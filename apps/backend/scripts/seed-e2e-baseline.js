@@ -1,9 +1,52 @@
 /**
  * Minimal deterministic E2E data using a single pg connection (avoids Knex pool issues during isolated runs).
  * Expects DATABASE_URL (same as backend).
+ * Do not run manually against your dev DB — use `cd apps/web && yarn test:e2e` (isolated `hylo_e2e`).
  */
+const path = require('path')
+require('dotenv').config({ path: path.resolve(__dirname, '../.env'), override: false })
+
 const { Client } = require('pg')
 const bcrypt = require('bcrypt')
+
+/** Match `apps/web/scripts/run-isolated-e2e.js` — never seed a normal dev DB by accident. */
+const DEFAULT_E2E_DB = 'hylo_e2e'
+const DANGEROUS_DB_NAMES = new Set(['hylo', 'hylo_test', 'postgres', 'template0', 'template1'])
+
+/**
+ * Parse the database name from a Postgres connection URL.
+ * @param {string} connectionString
+ */
+function databaseNameFromUrl (connectionString) {
+  const withScheme = connectionString.startsWith('postgres://') || connectionString.startsWith('postgresql://')
+    ? connectionString.trim()
+    : `postgresql://${connectionString.trim()}`
+  const u = new URL(withScheme)
+  const segment = (u.pathname || '/').replace(/^\//, '').split('/')[0] || ''
+  return segment ? decodeURIComponent(segment) : ''
+}
+
+/**
+ * Refuse to run against a dev/shared database unless explicitly overridden.
+ * Intended entrypoint: `yarn test:e2e` → run-isolated-e2e.js → hylo_e2e (fresh drop/create).
+ * @param {string} connectionString
+ */
+function assertSafeE2eDatabase (connectionString) {
+  const dbName = databaseNameFromUrl(connectionString).toLowerCase()
+  if (!dbName) {
+    console.error('[seed-e2e-baseline] Could not parse database name from DATABASE_URL')
+    process.exit(1)
+  }
+  if (DANGEROUS_DB_NAMES.has(dbName) && process.env.E2E_ALLOW_DANGEROUS_DB !== '1') {
+    console.error(
+      `[seed-e2e-baseline] Refusing to seed database "${dbName}".\n` +
+      `This script is for the isolated Playwright DB only (e.g. ${DEFAULT_E2E_DB}).\n` +
+      'Run: cd apps/web && yarn test:e2e\n' +
+      'Or point DATABASE_URL at your E2E database, not your dev database.'
+    )
+    process.exit(1)
+  }
+}
 
 const E2E_USER_EMAIL = 'e2e.user@hylo.test'
 const E2E_USER_PASSWORD = 'e2e-password-123'
@@ -13,14 +56,31 @@ const E2E_STRIPE_ACCOUNT_EXTERNAL_ID = 'acct_e2e_public_group_001'
 /** Member of `e2e-public-group` without Coordinator — sees track paywall (Batch P3 E2E). */
 const E2E_TRACK_VIEWER_EMAIL = 'e2e.track-viewer@hylo.test'
 
+const E2E_INVITE_LINK_GROUPS = [
+  { slug: 'e2e-invite-hidden-closed', name: 'E2E Invite Hidden Closed', visibility: 0, accessibility: 0, token: 'e2e-invite-hc-001' },
+  { slug: 'e2e-invite-hidden-restricted', name: 'E2E Invite Hidden Restricted', visibility: 0, accessibility: 1, token: 'e2e-invite-hr-001' },
+  { slug: 'e2e-invite-protected-closed', name: 'E2E Invite Protected Closed', visibility: 1, accessibility: 0, token: 'e2e-invite-pc-001' },
+  { slug: 'e2e-invite-protected-restricted', name: 'E2E Invite Protected Restricted', visibility: 1, accessibility: 1, token: 'e2e-invite-pr-001' },
+  { slug: 'e2e-invite-public-closed', name: 'E2E Invite Public Closed', visibility: 2, accessibility: 0, token: 'e2e-invite-uc-001' },
+  { slug: 'e2e-invite-token-group', name: 'E2E Invite Public Restricted', visibility: 2, accessibility: 1, token: 'e2e-static-invite-token-001' }
+]
+
+const E2E_JOIN_LINK_GROUPS = [
+  { slug: 'e2e-join-hidden-closed', name: 'E2E Join Hidden Closed', visibility: 0, accessibility: 0, accessCode: 'e2ejohc001' },
+  { slug: 'e2e-hidden-join-group', name: 'E2E Join Hidden Restricted', visibility: 0, accessibility: 1, accessCode: 'e2ehjco001' },
+  { slug: 'e2e-join-protected-closed', name: 'E2E Join Protected Closed', visibility: 1, accessibility: 0, accessCode: 'e2ejopc001' },
+  { slug: 'e2e-join-protected-restricted', name: 'E2E Join Protected Restricted', visibility: 1, accessibility: 1, accessCode: 'e2ejopr001' },
+  { slug: 'e2e-join-code-group', name: 'E2E Join Public Closed', visibility: 2, accessibility: 0, accessCode: 'e2ejoincode001' },
+  { slug: 'e2e-join-public-restricted', name: 'E2E Join Public Restricted', visibility: 2, accessibility: 1, accessCode: 'e2ejpubr001' }
+]
+
 const E2E_GROUP_SLUGS = [
   'e2e-public-group',
   'e2e-private-group',
   'e2e-paywall-group',
   'e2e-welcome-overlay',
-  'e2e-join-code-group',
-  'e2e-invite-token-group',
-  'e2e-hidden-join-group'
+  ...E2E_JOIN_LINK_GROUPS.map((g) => g.slug),
+  ...E2E_INVITE_LINK_GROUPS.map((g) => g.slug)
 ]
 
 const E2E_USER_EMAILS = [
@@ -30,7 +90,7 @@ const E2E_USER_EMAILS = [
   'e2e.join-host@hylo.test'
 ].map((email) => email.toLowerCase())
 
-const E2E_INVITE_TOKEN = 'e2e-static-invite-token-001'
+const E2E_INVITE_TOKENS = E2E_INVITE_LINK_GROUPS.map((g) => g.token)
 
 /**
  * Removes rows from a previous full or partial seed so the script is safe to re-run.
@@ -38,9 +98,9 @@ const E2E_INVITE_TOKEN = 'e2e-static-invite-token-001'
 async function clearPreviousE2eBaseline (client) {
   await client.query(
     `DELETE FROM group_invites
-     WHERE token = $1
+     WHERE token = ANY($1::text[])
         OR group_id IN (SELECT id FROM groups WHERE slug = ANY($2::text[]))`,
-    [E2E_INVITE_TOKEN, E2E_GROUP_SLUGS]
+    [E2E_INVITE_TOKENS, E2E_GROUP_SLUGS]
   )
 
   await client.query(
@@ -109,6 +169,10 @@ async function main () {
     console.error('[seed-e2e-baseline] DATABASE_URL is required')
     process.exit(1)
   }
+
+  assertSafeE2eDatabase(connectionString)
+  const dbName = databaseNameFromUrl(connectionString)
+  console.log(`[seed-e2e-baseline] seeding database: ${dbName}`)
 
   const sslMode = (process.env.PGSSLMODE || 'disable').toLowerCase()
   const useSsl =
@@ -628,79 +692,71 @@ async function main () {
     )
     const nogroupsUserId = nogroupsUserRes.rows[0].id
 
-    const joinCodeGroupRes = await client.query(
-      `INSERT INTO groups (
-        active, created_at, updated_at, name, slug, description,
-        visibility, accessibility, created_by_id, settings, num_members, allow_in_public, access_code
-      ) VALUES (
-        true, $1::timestamptz, $1::timestamptz, $2, $3, $4,
-        2, 2, $5, $6::jsonb, 1, true, $7
-      ) RETURNING id`,
-      [
-        now,
-        'E2E Join Code Group',
-        'e2e-join-code-group',
-        'Playwright E2E — join via /groups/:slug/join/:accessCode',
-        hostId,
-        emptyGroupSettings,
-        'e2ejoincode001'
-      ]
-    )
-    const joinCodeGroupId = joinCodeGroupRes.rows[0].id
+    /** Batch Q — join / invite link matrix (Closed + Restricted only; no Open). */
+    const invitationLinkGroupIds = []
 
-    const inviteTokenGroupRes = await client.query(
-      `INSERT INTO groups (
-        active, created_at, updated_at, name, slug, description,
-        visibility, accessibility, created_by_id, settings, num_members, allow_in_public
-      ) VALUES (
-        true, $1::timestamptz, $1::timestamptz, $2, $3, $4,
-        2, 2, $5, $6::jsonb, 1, true
-      ) RETURNING id`,
-      [
-        now,
-        'E2E Invite Token Group',
-        'e2e-invite-token-group',
-        'Playwright E2E — join via /h/use-invitation?token=…',
-        hostId,
-        emptyGroupSettings
-      ]
-    )
-    const inviteTokenGroupId = inviteTokenGroupRes.rows[0].id
+    for (const groupDef of E2E_JOIN_LINK_GROUPS) {
+      const res = await client.query(
+        `INSERT INTO groups (
+          active, created_at, updated_at, name, slug, description,
+          visibility, accessibility, created_by_id, settings, num_members, allow_in_public, access_code
+        ) VALUES (
+          true, $1::timestamptz, $1::timestamptz, $2, $3, $4,
+          $5, $6, $7, $8::jsonb, 1, $9, $10
+        ) RETURNING id`,
+        [
+          now,
+          groupDef.name,
+          groupDef.slug,
+          `Playwright E2E — join link (${groupDef.slug})`,
+          groupDef.visibility,
+          groupDef.accessibility,
+          hostId,
+          emptyGroupSettings,
+          groupDef.visibility === 2,
+          groupDef.accessCode
+        ]
+      )
+      invitationLinkGroupIds.push(res.rows[0].id)
+    }
 
-    /** Hidden + restricted + join code — Batch Q E2E (`Group.Visibility.HIDDEN` = 0, `RESTRICTED` = 1). */
-    const hiddenJoinGroupRes = await client.query(
-      `INSERT INTO groups (
-        active, created_at, updated_at, name, slug, description,
-        visibility, accessibility, created_by_id, settings, num_members, allow_in_public, access_code
-      ) VALUES (
-        true, $1::timestamptz, $1::timestamptz, $2, $3, $4,
-        0, 1, $5, $6::jsonb, 1, false, $7
-      ) RETURNING id`,
-      [
-        now,
-        'E2E Hidden Join Group',
-        'e2e-hidden-join-group',
-        'Playwright E2E — hidden group; about/join only with valid accessCode',
-        hostId,
-        emptyGroupSettings,
-        'e2ehjco001'
-      ]
-    )
-    const hiddenJoinGroupId = hiddenJoinGroupRes.rows[0].id
+    for (const groupDef of E2E_INVITE_LINK_GROUPS) {
+      const res = await client.query(
+        `INSERT INTO groups (
+          active, created_at, updated_at, name, slug, description,
+          visibility, accessibility, created_by_id, settings, num_members, allow_in_public
+        ) VALUES (
+          true, $1::timestamptz, $1::timestamptz, $2, $3, $4,
+          $5, $6, $7, $8::jsonb, 1, $9
+        ) RETURNING id`,
+        [
+          now,
+          groupDef.name,
+          groupDef.slug,
+          `Playwright E2E — invite link (${groupDef.slug})`,
+          groupDef.visibility,
+          groupDef.accessibility,
+          hostId,
+          emptyGroupSettings,
+          groupDef.visibility === 2
+        ]
+      )
+      const groupId = res.rows[0].id
+      invitationLinkGroupIds.push(groupId)
+      await client.query(
+        `INSERT INTO group_invites (created_at, invited_by_id, token, email, group_id)
+         VALUES ($1::timestamptz, $2, $3, $4, $5)`,
+        [now, hostId, groupDef.token, E2E_USER_EMAIL.toLowerCase(), groupId]
+      )
+    }
 
-    await client.query(
-      `INSERT INTO group_memberships (group_id, user_id, active, role, created_at, updated_at, settings)
-       VALUES ($1, $2, true, 1, $3::timestamptz, $3::timestamptz, $4::jsonb),
-              ($5, $2, true, 1, $3::timestamptz, $3::timestamptz, $4::jsonb),
-              ($6, $2, true, 1, $3::timestamptz, $3::timestamptz, $4::jsonb)`,
-      [joinCodeGroupId, hostId, now, membershipSettings, inviteTokenGroupId, hiddenJoinGroupId]
-    )
-
-    await client.query(
-      `INSERT INTO group_invites (created_at, invited_by_id, token, email, group_id)
-       VALUES ($1::timestamptz, $2, $3, $4, $5)`,
-      [now, hostId, E2E_INVITE_TOKEN, E2E_USER_EMAIL.toLowerCase(), inviteTokenGroupId]
-    )
+    for (const groupId of invitationLinkGroupIds) {
+      await client.query(
+        `INSERT INTO group_memberships (group_id, user_id, active, role, created_at, updated_at, settings)
+         VALUES ($1, $2, true, 1, $3::timestamptz, $3::timestamptz, $4::jsonb)`,
+        [groupId, hostId, now, membershipSettings]
+      )
+    }
 
     const passwordHash = await bcrypt.hash(E2E_USER_PASSWORD, 10)
     await client.query(

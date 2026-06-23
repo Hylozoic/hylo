@@ -1443,6 +1443,7 @@
   "This group has prerequisite groups you cannot see, you cannot join this group at this time": "इस समूह के कुछ पूर्वापेक्षित समूह हैं जिन्हें आप नहीं देख सकते, इसलिए आप इस समय इस समूह में शामिल नहीं हो सकते।",
   "This group is a member": "यह समूह सदस्य है",
   "This group is invitation only": "यह समूह केवल निमंत्रण द्वारा है",
+  "This group is invite only. You require a join or invite link in order to join.": "यह समूह केवल निमंत्रण द्वारा है। शामिल होने के लिए आपको जॉइन या इनवाइट लिंक की आवश्यकता है।",
   "This group is ready to have a paywall added": "यह समूह पेवाल जोड़ने के लिए तैयार है",
   "This group requires a fee to join": "इस समूह में शामिल होने के लिए शुल्क आवश्यक है",
   "This group requires payment to join": "इस समूह में शामिल होने के लिए भुगतान आवश्यक है",

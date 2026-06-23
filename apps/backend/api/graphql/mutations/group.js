@@ -94,7 +94,7 @@ export async function deleteGroupRelationship (userId, parentId, childId, contex
 
 /**
  * Join a group. For Open groups, anyone can join directly.
- * For Restricted groups, a valid accessCode or invitationToken is required (pre-approved).
+ * For Restricted or Closed groups, a valid accessCode or invitationToken is required (pre-approved).
  * @param groupId {string} the group to join
  * @param userId {string} the user joining
  * @param questionAnswers {array} answers to join questions

@@ -1443,6 +1443,7 @@
   "This group has prerequisite groups you cannot see, you cannot join this group at this time": "Ce groupe a des groupes prérequis que vous ne pouvez pas voir, vous ne pouvez pas rejoindre ce groupe pour le moment",
   "This group is a member": "Ce groupe est membre",
   "This group is invitation only": "Ce groupe est accessible uniquement sur invitation",
+  "This group is invite only. You require a join or invite link in order to join.": "Ce groupe est accessible uniquement sur invitation. Vous avez besoin d'un lien de jointure ou d'invitation pour rejoindre.",
   "This group is ready to have a paywall added": "Ce groupe est prêt à recevoir une paywall",
   "This group requires a fee to join": "Ce groupe nécessite des frais pour rejoindre",
   "This group requires payment to join": "Ce groupe nécessite un paiement pour rejoindre",
