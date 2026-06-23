@@ -1513,6 +1513,7 @@
   "This group has prerequisite groups you cannot see, you cannot join this group at this time": "This group has prerequisite groups you cannot see, you cannot join this group at this time",
   "This group is a member": "This group is a member",
   "This group is invitation only": "This group is invitation only",
+  "This group is invite only. You require a join or invite link in order to join.": "This group is invite only. You require a join or invite link in order to join.",
   "This group is ready to have a paywall added": "This group is ready to have a paywall added",
   "This group requires a fee to join": "This group requires a fee to join",
   "This group requires payment to join": "This group requires payment to join",
