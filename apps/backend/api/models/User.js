@@ -350,7 +350,6 @@ module.exports = bookshelf.Model.extend(merge({
     location = NULL,
     url = NULL,
     tagline = NULL,
-    stripe_account_id = NULL,
     location_id = NULL,
     contact_email = NULL,
     contact_phone = NULL,
