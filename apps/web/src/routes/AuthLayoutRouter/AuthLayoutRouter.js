@@ -1,4 +1,3 @@
-import isMobile from 'ismobilejs'
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { matchPath, Route, Routes, Navigate, useLocation, useNavigate } from 'react-router-dom'
@@ -59,13 +58,12 @@ import GroupExplorer from 'routes/GroupExplorer'
 import Drawer from './components/Drawer'
 import JoinGroup from 'routes/JoinGroup'
 import LandingPage from 'routes/LandingPage'
-import Loading from 'components/Loading'
 import BootstrapShell from 'components/Skeleton/BootstrapShell'
 import RouteBootstrapSkeleton from 'components/Skeleton/RouteBootstrapSkeleton'
 import MapExplorer from 'routes/MapExplorer'
 import MemberProfile from 'routes/MemberProfile'
 import Members from 'routes/Members'
-import Messages from 'routes/Messages'
+import MessagesLayout from 'routes/Messages/MessagesLayout'
 import ThreadList from 'routes/Messages/ThreadList'
 import Moderation from 'routes/Moderation'
 import MyTracks from 'routes/MyTracks'
@@ -85,6 +83,7 @@ import { VIEW_DRAFTS } from 'store/constants'
 import { isAtReturnToPath } from 'util/returnToPath'
 import Management from 'routes/Management'
 import { getLocaleFromLocalStorage } from 'util/locale'
+import { isCompactLayoutDevice, isDrawerNavLayout, isPhoneDevice } from 'util/mobile'
 import { isLegacyWebView } from 'util/webView'
 import store from 'store'
 import { setMembershipLastViewedAt, toggleNavMenu } from './AuthLayoutRouter.store'
@@ -197,6 +196,14 @@ export default function AuthLayoutRouter (props) {
   const backdropRef = useRef(null)
   const isNavOpenRef = useRef(isNavOpen)
   const isDraggingNavRef = useRef(false)
+  const compactLayout = isCompactLayoutDevice()
+  const phoneLayout = isPhoneDevice()
+
+  // Phones and tablets share compact layout styling (see typography.scss).
+  useEffect(() => {
+    document.documentElement.classList.toggle('compact-layout', compactLayout)
+    return () => document.documentElement.classList.remove('compact-layout')
+  }, [compactLayout])
 
   // Keep isNavOpen ref in sync for use in touch handlers
   useEffect(() => { isNavOpenRef.current = isNavOpen }, [isNavOpen])
@@ -205,13 +212,13 @@ export default function AuthLayoutRouter (props) {
   // mount into the DOM (after the loading screen), preventing any flash.
   const setNavContainerRef = useCallback((node) => {
     navContainerRef.current = node
-    if (node && window.innerWidth < 640) {
+    if (node && isDrawerNavLayout(window.innerWidth)) {
       node.style.transform = isNavOpenRef.current ? 'translateX(0)' : 'translateX(-100%)'
     }
   }, [])
   const setBackdropRef = useCallback((node) => {
     backdropRef.current = node
-    if (node && window.innerWidth < 640) {
+    if (node && isDrawerNavLayout(window.innerWidth)) {
       node.style.opacity = isNavOpenRef.current ? '1' : '0'
       node.style.pointerEvents = isNavOpenRef.current ? 'auto' : 'none'
     }
@@ -220,7 +227,7 @@ export default function AuthLayoutRouter (props) {
   // Clear mobile nav inline styles when resizing to desktop
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth >= 640) {
+      if (!isDrawerNavLayout(window.innerWidth)) {
         const navEl = navContainerRef.current
         const backdropEl = backdropRef.current
         if (navEl) { navEl.style.transform = ''; navEl.style.transition = '' }
@@ -235,7 +242,7 @@ export default function AuthLayoutRouter (props) {
   useEffect(() => {
     const navEl = navContainerRef.current
     const backdropEl = backdropRef.current
-    if (!navEl || !backdropEl || window.innerWidth >= 640) return
+    if (!navEl || !backdropEl || !isDrawerNavLayout(window.innerWidth)) return
     if (isDraggingNavRef.current) return // Drag handler manages position during drag
 
     navEl.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1)'
@@ -314,7 +321,7 @@ export default function AuthLayoutRouter (props) {
     document.addEventListener('selectionchange', onSelectionChange)
 
     const handleTouchStart = (e) => {
-      if (window.innerWidth >= 640) return
+      if (!isDrawerNavLayout(window.innerWidth)) return
       const navEl = navContainerRef.current
       const backdropEl = backdropRef.current
       if (!navEl || !backdropEl) return
@@ -653,7 +660,7 @@ export default function AuthLayoutRouter (props) {
 
   if (currentUserLoading) {
     return (
-      <div data-testid='loading-screen' className={cn('flex flex-row items-stretch bg-midground h-full', { 'h-[100dvh]': isMobile.any })}>
+      <div data-testid='loading-screen' className={cn('flex flex-row items-stretch bg-midground h-full', { 'h-[100dvh]': compactLayout })}>
         <Helmet>
           <title>Hylo</title>
           <meta name='description' content='Prosocial Coordination for a Thriving Planet' />
@@ -766,7 +773,7 @@ export default function AuthLayoutRouter (props) {
         {/* )} */}
       </Routes>
 
-      <div className={cn('flex items-stretch bg-midground h-full', isTabNav ? 'flex-col' : 'flex-row', { 'h-[100dvh]': isMobile.any, [classes.mapView]: isMapView, [classes.detailOpen]: hasDetail })}>
+      <div className={cn('flex items-stretch bg-midground h-full', isTabNav ? 'flex-col' : 'flex-row', { 'h-[100dvh]': compactLayout, [classes.mapView]: isMapView, [classes.detailOpen]: hasDetail })}>
         {/* Top tab nav bar (when tab mode is active) */}
         {isTabNav && !withoutNav && (
           <TopNav currentUser={currentUser} />
@@ -780,7 +787,7 @@ export default function AuthLayoutRouter (props) {
           {!withoutNav && !isTabNav && !isCreateGroupRoute && !isOneColumnGroup && (
             <div
               ref={setBackdropRef}
-              className='sm:hidden fixed inset-0 z-[100] bg-black/50'
+              className={cn('fixed inset-0 z-[100] bg-black/50', !phoneLayout && 'sm:hidden')}
               style={{ opacity: 0, pointerEvents: 'none' }}
               onClick={() => dispatch(toggleNavMenu(false))}
             />
@@ -792,19 +799,18 @@ export default function AuthLayoutRouter (props) {
               (isTabNav || isOneColumnGroup)
                 ? 'relative z-50 h-full w-auto'
                 : [
-                    // Mobile: fixed drawer, full-width, off-screen by default (JS manages transform)
+                    // Phones: fixed drawer, full-width, off-screen by default (JS manages transform)
                     'fixed left-0 top-0 z-[101] h-dvh w-full',
-                    // Desktop: back in normal flow
-                    'sm:relative sm:z-50 sm:h-full sm:w-auto',
-                    'sm:max-w-420'
+                    // Tablet and desktop: back in normal flow
+                    !phoneLayout && 'sm:relative sm:z-50 sm:h-full sm:w-auto sm:max-w-420'
                   ],
-              // Hide nav on small screens for full-page Create Group flow
-              { 'hidden sm:relative': isCreateGroupRoute },
+              // Hide nav for full-page Create Group flow
+              isCreateGroupRoute && (phoneLayout ? 'hidden' : 'hidden sm:relative'),
               // Simple group views take the full viewport on phone, but the GlobalNav
               // sidebar stays visible on desktop so you can still navigate between contexts.
-              { 'hidden sm:flex': isOneColumnGroup && !isSimpleGroupHomeOrSettings },
+              isOneColumnGroup && !isSimpleGroupHomeOrSettings && 'hidden sm:flex',
               // Phone settings use master-detail in the center column — hide the sidebar.
-              { hidden: isPhoneSettings }
+              isPhoneSettings && 'hidden'
             )}
           >
             {!withoutNav && !isTabNav && (
@@ -829,8 +835,12 @@ export default function AuthLayoutRouter (props) {
                     Group home shows just the GlobalNav + OneColumnLayout — no widget context menu. */}
                 {!isOneColumnGroup && <Route path='groups/:groupSlug/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />}
                 {isOneColumnGroup && <Route path='groups/:groupSlug/settings/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />}
-                <Route path='messages/:messageThreadId' element={<ThreadList />} />
-                <Route path='messages' element={<ThreadList />} />
+                {isPhoneDevice() && (
+                  <>
+                    <Route path='messages/:messageThreadId' element={<ThreadList />} />
+                    <Route path='messages' element={<ThreadList />} />
+                  </>
+                )}
               </Routes>}
           </div> {/* END NavContainer */}
 
@@ -979,8 +989,8 @@ export default function AuthLayoutRouter (props) {
                 <Route path='management/*' element={<Management />} />
                 {/* **** Other Routes **** */}
                 <Route path='welcome/*' element={<WelcomeWizardRouter />} />
-                <Route path='messages/:messageThreadId' element={<Messages />} />
-                <Route path='messages' element={<Loading />} />
+                <Route path='messages/:messageThreadId' element={<MessagesLayout />} />
+                <Route path='messages' element={<MessagesLayout />} />
                 <Route path='post/:postId/*' element={<PostDetail />} />
                 {/* Keep old settings paths for mobile */}
                 <Route path='settings/*' element={<UserSettings />} />
@@ -1029,8 +1039,8 @@ export default function AuthLayoutRouter (props) {
         <CookieConsentLinker />
       </div>
       <Toaster
-        position={isMobile.any ? 'top-center' : 'bottom-left'}
-        style={isMobile.any ? {} : { left: '80px' }}
+        position={compactLayout ? 'top-center' : 'bottom-left'}
+        style={compactLayout ? {} : { left: '80px' }}
       />
     </IntercomProvider>
   )

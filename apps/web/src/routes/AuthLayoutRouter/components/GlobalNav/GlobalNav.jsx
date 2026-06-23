@@ -51,7 +51,7 @@ import CreateMenu from 'components/CreateMenu'
 import GlobalNavItem from './GlobalNavItem'
 import GlobalNavTooltipContainer from './GlobalNavTooltipContainer'
 import { getMyGroupsWithChildren } from 'store/selectors/getMyGroups'
-import { isMobileDevice, downloadApp } from 'util/mobile'
+import { isCompactLayoutDevice, isMobileDevice, downloadApp } from 'util/mobile'
 import isWebView, { sendMessageToWebView, getMobileAppVersion } from 'util/webView'
 import { getCookieConsent } from 'util/cookieConsent'
 import { useCookieConsent } from 'contexts/CookieConsentContext'
@@ -122,6 +122,7 @@ const NotificationsDropdown = React.lazy(() => import('./NotificationsDropdown')
 
 // Settings Menu Component
 function SettingsMenu ({ currentUser, triggerClassName, contentSide = 'right', contentAlign = 'start' }) {
+  const compactLayout = isCompactLayoutDevice()
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const dispatch = useDispatch()
@@ -202,12 +203,21 @@ function SettingsMenu ({ currentUser, triggerClassName, contentSide = 'right', c
       <DropdownMenuTrigger asChild>
         <span
           data-testid='global-nav-settings-trigger'
-          className={triggerClassName || cn('bg-primary relative transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-10 sm:h-8 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-2 border-foreground/0 hover:border-foreground/50 cursor-pointer')}
+          className={triggerClassName || cn('bg-primary relative transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-2 border-foreground/0 hover:border-foreground/50 cursor-pointer', compactLayout ? 'h-10' : 'h-10 sm:h-8')}
         >
-          <Settings className={triggerClassName ? 'w-5 h-5' : 'w-7 h-7 sm:w-6 sm:h-6'} />
+          <Settings className={triggerClassName ? 'w-5 h-5' : cn(compactLayout ? 'w-7 h-7' : 'w-7 h-7 sm:w-6 sm:h-6')} />
         </span>
       </DropdownMenuTrigger>
-      <DropdownMenuContent side={contentSide} align={contentAlign} className='z-[200] min-w-[260px] sm:min-w-[200px] bg-card [&_[role=menuitem]]:py-3 [&_[role=menuitem]]:text-base sm:[&_[role=menuitem]]:py-1.5 sm:[&_[role=menuitem]]:text-sm'>
+      <DropdownMenuContent
+        side={contentSide}
+        align={contentAlign}
+        className={cn(
+          'z-[200] bg-card',
+          compactLayout
+            ? 'min-w-[260px] [&_[role=menuitem]]:py-3 [&_[role=menuitem]]:text-base'
+            : 'min-w-[260px] sm:min-w-[200px] [&_[role=menuitem]]:py-3 [&_[role=menuitem]]:text-base sm:[&_[role=menuitem]]:py-1.5 sm:[&_[role=menuitem]]:text-sm'
+        )}
+      >
         <DropdownMenuItem data-testid='global-nav-logout' onClick={handleLogout} className='flex flex-row items-center justify-between gap-2'>
           <span className='flex flex-row items-center min-w-0'>
             <LogOut className='mr-2 h-4 w-4 shrink-0' />
@@ -361,6 +371,7 @@ export default function GlobalNav (props) {
   const isNavOpen = useSelector(state => get('AuthLayoutRouter.isNavOpen', state))
   const pinnedGroups = useMemo(() => sortedGroups.filter(group => group.navOrder !== null), [sortedGroups])
   const unpinnedGroups = useMemo(() => sortedGroups.filter(group => group.navOrder === null), [sortedGroups])
+  const compactLayout = isCompactLayoutDevice()
   const appStoreLinkClass = isMobileDevice() ? 'isMobileDevice' : 'isntMobileDevice'
   const { t } = useTranslation()
   const [navReady, setNavReady] = useState(false)
@@ -758,7 +769,7 @@ export default function GlobalNav (props) {
 
   return (
     <div
-      className={cn('globalNavContainer flex flex-col bg-card relative h-full z-[50] items-center pb-0 pointer-events-auto user-select-none', { 'h-screen h-[100dvh]': isMobileDevice() })}
+      className={cn('globalNavContainer flex flex-col bg-card relative h-full z-[50] items-center pb-0 pointer-events-auto user-select-none', { 'h-screen h-[100dvh]': compactLayout })}
       style={{
         boxShadow: 'inset -15px 0 15px -10px hsl(var(--darkening) / 0.4)'
       }}

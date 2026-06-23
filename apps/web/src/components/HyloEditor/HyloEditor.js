@@ -38,7 +38,8 @@ const HyloEditor = React.forwardRef(({
   showMenu = false,
   extendedMenu = false,
   suggestionsThemeName = 'suggestions',
-  type = 'post' // Used for the image uploader to know what type of content it's uploading
+  type = 'post', // Used for the image uploader to know what type of content it's uploading
+  blurOnScroll = true
 }, ref) => {
   const { t } = useTranslation()
   const editorRef = useRef(null)
@@ -142,7 +143,7 @@ const HyloEditor = React.forwardRef(({
     Video
   ]
 
-  const onTouchMove = (e) => {
+  const onTouchMove = () => {
     // Hide the keyboard when scrolling on mobile so you can't scroll down to empty white space on safari
     editorRef.current.commands.blur()
   }
@@ -159,13 +160,17 @@ const HyloEditor = React.forwardRef(({
       onUpdate(editor.getHTML())
     },
     onFocus: () => {
-      document.addEventListener('touchmove', onTouchMove, { passive: false })
+      if (blurOnScroll) {
+        document.addEventListener('touchmove', onTouchMove, { passive: false })
+      }
       if (onFocus) {
         onFocus()
       }
     },
     onBlur: () => {
-      document.removeEventListener('touchmove', onTouchMove, { passive: false })
+      if (blurOnScroll) {
+        document.removeEventListener('touchmove', onTouchMove, { passive: false })
+      }
       if (onBlur) {
         onBlur()
       }
@@ -177,7 +182,17 @@ const HyloEditor = React.forwardRef(({
           return html.replace(/<img.*?>/g, '') // remove any images copied any pasted as HTML
         }
         return html
-      }
+      },
+      ...(!blurOnScroll && {
+        handleDOMEvents: {
+          touchstart: (_view, event) => {
+            event.stopPropagation()
+          },
+          touchmove: (_view, event) => {
+            event.stopPropagation()
+          }
+        }
+      })
     }
   })
 

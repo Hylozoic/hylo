@@ -1,5 +1,5 @@
 import { cn } from 'util/index'
-import { Pencil, Trash2 } from 'lucide-react'
+import { Check, Pencil, Trash2, X } from 'lucide-react'
 import React, { useCallback } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { filter, isFunction, isEmpty } from 'lodash/fp'
@@ -37,7 +37,8 @@ function Comment ({
   onReplyComment,
   selectedCommentId,
   slug,
-  post
+  post,
+  onEditingChange
 }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
@@ -66,21 +67,39 @@ function Comment ({
     }
   }, [selectedCommentId, comment.id])
 
+  React.useEffect(() => {
+    if (!onEditingChange || !editing) return
+    onEditingChange(true)
+    return () => onEditingChange(false)
+  }, [editing, onEditingChange])
+
   const deleteCommentWithConfirm = useCallback((commentId, text) => {
     return window.confirm(text) && dispatch(deleteComment(commentId))
   }, [])
 
   const handleEditComment = useCallback(() => {
+    setShowActions(false)
     setEditing(true)
   }, [])
 
-  const handleEditCancel = useCallback(() => {
+  const discardEdit = useCallback(() => {
     setEditing(false)
-    editor.current.setContent(comment.text)
-    return true
-  }, [])
+    editor.current?.setContent(comment.text)
+  }, [comment.text])
 
-  const handleEditSave = contentHTML => {
+  const handleEditCancel = useCallback(() => {
+    discardEdit()
+    return true
+  }, [discardEdit])
+
+  const handleEditCancelClick = useCallback((event) => {
+    event.stopPropagation()
+    if (window.confirm(t('Do you want to discard your edit?'))) {
+      discardEdit()
+    }
+  }, [discardEdit, t])
+
+  const handleEditSave = useCallback(contentHTML => {
     if (editor?.current && editor.current.isEmpty()) {
       return true
     }
@@ -88,7 +107,14 @@ function Comment ({
     setEditing(false)
     setEdited(true)
     return true
-  }
+  }, [comment.id, dispatch])
+
+  const handleEditSaveClick = useCallback((event) => {
+    event.stopPropagation()
+    if (editor?.current) {
+      handleEditSave(editor.current.getHTML())
+    }
+  }, [handleEditSave])
 
   const handleScrollToComment = useCallback(() => {
     if (commentRef.current) {
@@ -122,7 +148,7 @@ function Comment ({
     <div
       ref={commentRef}
       className={cn('CommentContainer px-4 py-1 mb-1', { [styles.selectedComment]: selectedCommentId === comment.id })}
-      onMouseEnter={() => setShowActions(true)}
+      onMouseEnter={() => { if (!editing) setShowActions(true) }}
       onMouseLeave={() => { if (!isEmojiPickerOpen) { setShowActions(false) } }}
     >
       <div className='flex flex-row items-center justify-between w-full'>
@@ -141,10 +167,7 @@ function Comment ({
           )}
         </div>
         <div className={styles.upperRight}>
-          {editing && (
-            <Icon name='Ex' className={styles.cancelIcon} onClick={handleEditCancel} />
-          )}
-          {currentUser && (
+          {currentUser && !editing && (
             <div className={cn(styles.commentActions, { [styles.showActions]: showActions })}>
               <div className={cn(styles.commentAction)} onClick={onReplyComment} data-tooltip-content='Reply' data-tooltip-id={`reply-tip-${id}`}>
                 <Icon name='Replies' />
@@ -174,13 +197,28 @@ function Comment ({
           <CardFileAttachments attachments={attachments} className={styles.files} />
         </div>}
       {editing && (
-        <HyloEditor
-          className={styles.editing}
-          contentHTML={text}
-          onEscape={handleEditCancel}
-          onEnter={handleEditSave}
-          ref={editor}
-        />
+        <div className={styles.editingContainer}>
+          <HyloEditor
+            className={styles.editing}
+            contentHTML={text}
+            onEscape={handleEditCancel}
+            onEnter={handleEditSave}
+            blurOnScroll={false}
+            ref={editor}
+          />
+          <div className={styles.editActions}>
+            <Check
+              className={styles.editActionIcon}
+              onClick={handleEditSaveClick}
+              data-testid='Save'
+            />
+            <X
+              className={styles.editActionIcon}
+              onClick={handleEditCancelClick}
+              data-testid='Cancel'
+            />
+          </div>
+        </div>
       )}
       {!editing && (
         <>
@@ -270,6 +308,7 @@ export default function CommentWithReplies (props) {
               {...props}
               comment={c}
               onReplyComment={(e) => onReplyComment(e, c.creator)}
+              onEditingChange={props.onEditingChange}
             />
           ))}
         </div>
