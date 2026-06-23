@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.5.2] - 2026-06-23
+
+### Fixed
+- Ensure users with the appropriate join or invite link can join CLOSED groups
+
 ## [6.5.1] - 2026-06-16
 
 ### Addded
