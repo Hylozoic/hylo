@@ -6,7 +6,7 @@ import isAdmin from '../api/policies/isAdmin'
 import accessTokenAuth from '../api/policies/accessTokenAuth'
 import checkClientCredentials from '../api/policies/checkClientCredentials'
 import cors from 'cors'
-import { cors as corsConfig } from './cors'
+import { graphqlCorsOrigin } from './corsAllowedOrigins'
 import oidc from '../api/services/OpenIDConnect'
 
 export default function (app) {
@@ -31,7 +31,7 @@ export default function (app) {
   app.use('/noo/admin/kue', kueUI.app)
 
   app.use(GRAPHQL_ENDPOINT, cors({
-    origin: '*',
+    origin: graphqlCorsOrigin,
     methods: 'GET, POST, PUT, DELETE, OPTIONS, HEAD',
     credentials: true
   }))

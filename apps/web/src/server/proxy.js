@@ -92,11 +92,10 @@ export const handleStaticPages = server => {
   })
 
   server.use((req, res, next) => {
-    // Gatsby keeps its images, under the /static path, page data under /page-data
-    // and css + js at the root directory. Proxy those URLs to the static site
-    if (!req.originalUrl.startsWith('/static') &&
-        !req.originalUrl.startsWith('/page-data') &&
-        !/^\/[^/]+\.(js|css)$/.test(req.originalUrl)
+    // Astro bundles JS/CSS under /_astro; images and other public assets
+    // live under /v5 (and any other top-level public folders)
+    if (!req.originalUrl.startsWith('/_astro') &&
+        !req.originalUrl.startsWith('/v5')
     ) {
       return next()
     }
