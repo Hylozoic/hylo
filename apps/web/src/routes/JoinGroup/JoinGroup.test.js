@@ -7,6 +7,7 @@ import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import getReturnToPath from 'store/selectors/getReturnToPath'
 import extractModelsForTest from 'util/testing/extractModelsForTest'
 import { AllTheProviders, render, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
+import { AuthSessionStatus } from 'store/reducers/authSession'
 import JoinGroup from './JoinGroup'
 
 jest.mock('components/ui/tooltip', () => ({ TooltipProvider: ({ children }) => children }))
@@ -17,7 +18,18 @@ afterEach(() => {
 
 function currentUserProvider (authStateComplete) {
   const ormSession = orm.mutableSession(orm.getEmptyState())
-  const reduxState = { orm: ormSession.state }
+  // Authorization/signup state is now driven by the `authSession` slice, not the ORM `me`.
+  const reduxState = {
+    orm: ormSession.state,
+    authSession: {
+      status: AuthSessionStatus.Authenticated,
+      userId: '1',
+      emailValidated: true,
+      hasRegistered: true,
+      signupInProgress: !authStateComplete,
+      checkedAt: Date.now()
+    }
+  }
 
   extractModelsForTest({
     me: {

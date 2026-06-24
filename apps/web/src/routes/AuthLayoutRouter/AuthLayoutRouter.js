@@ -630,14 +630,18 @@ export default function AuthLayoutRouter (props) {
     )
   }
 
-  // Layout props, flags, and event handlers
-  const intercomProps = {
-    hideDefaultLauncher: true,
-    userHash: currentUser.intercomHash,
-    email: currentUser.email,
-    name: currentUser.name,
-    userId: currentUser.id
-  }
+  // Auth gating (RootRouter) is driven by the auth session, not currentUser data, so this layout
+  // can be mounted while currentUser is momentarily absent (e.g. during logout teardown). Build
+  // intercom props defensively so a null user never throws while the shell renders.
+  const intercomProps = currentUser
+    ? {
+        hideDefaultLauncher: true,
+        userHash: currentUser.intercomHash,
+        email: currentUser.email,
+        name: currentUser.name,
+        userId: currentUser.id
+      }
+    : { hideDefaultLauncher: true }
   const showMenuBadge = some(m => m.newPostCount > 0, memberships)
 
   // Only redirect to returnToPath when outside the welcome wizard. Inside the wizard,
@@ -674,7 +678,7 @@ export default function AuthLayoutRouter (props) {
 
   /* First time viewing a group redirect to welcome page if it exists, otherwise home view */
   // XXX: this is a hack, figure out better way to do this
-  if (currentGroupMembership && !get('lastViewedAt', currentGroupMembership)) {
+  if (currentUser && currentGroupMembership && !get('lastViewedAt', currentGroupMembership)) {
     const lastViewedAt = (new Date()).toISOString()
     dispatch(setMembershipLastViewedAt(currentGroup.id, currentUser.id, lastViewedAt))
     if (currentGroup?.settings?.showWelcomePage) {
@@ -710,9 +714,11 @@ export default function AuthLayoutRouter (props) {
       <Helmet>
         <title>{currentGroup ? `${currentGroup.name} | ` : ''}Hylo</title>
         <meta name='description' content='Prosocial Coordination for a Thriving Planet' />
-        <script id='greencheck' type='application/json'>
-          {`{ 'id': '${currentUser.id}', 'fullname': '${currentUser.name}', 'description': '${currentUser.tagline}', 'image': '${currentUser.avatarUrl}' }`}
-        </script>
+        {currentUser && (
+          <script id='greencheck' type='application/json'>
+            {`{ 'id': '${currentUser.id}', 'fullname': '${currentUser.name}', 'description': '${currentUser.tagline}', 'image': '${currentUser.avatarUrl}' }`}
+          </script>
+        )}
       </Helmet>
 
       <Routes>

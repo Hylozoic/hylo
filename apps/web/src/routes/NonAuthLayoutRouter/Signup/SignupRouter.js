@@ -48,9 +48,9 @@ export default function SignupRouter (props) {
         }
         break
       }
-      // Should never be true as SignupRouter is not active at this state,
+      // Should never be true as SignupRouter is not active once authorized,
       // Routing will have been turned-over to AuthLayoutRouter
-      case AuthState.SignupInProgress: {
+      case AuthState.Complete: {
         redirectTo('/')
         break
       }
