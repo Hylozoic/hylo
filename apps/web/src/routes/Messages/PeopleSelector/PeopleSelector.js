@@ -4,6 +4,7 @@ import PropTypes from 'prop-types'
 import { debounce, throttle } from 'lodash/fp'
 import PeopleList from './PeopleList'
 import MatchingPeopleListItem from './MatchingPeopleListItem'
+import { MAX_MESSAGE_THREAD_PARTICIPANTS } from '../messageThreadLimits'
 
 const invalidPersonName = /[^a-z '-]+/gi
 
@@ -19,7 +20,8 @@ export default function PeopleSelector (props) {
     people,
     setPeopleSearch,
     selectedPeople,
-    peopleSelectorOpen
+    peopleSelectorOpen,
+    maxParticipantsReached
   } = props
 
   useEffect(() => {
@@ -45,7 +47,7 @@ export default function PeopleSelector (props) {
   }, [people, selectedPeople])
 
   const selectPerson = (person) => {
-    if (!person) return
+    if (!person || maxParticipantsReached) return
     autocompleteInput.current.focus()
     if (selectedPeople.find(p => p.id === person.id)) return
     setPeopleSearch(null)
@@ -130,7 +132,8 @@ export default function PeopleSelector (props) {
             spellCheck={false}
             onChange={onChange}
             onKeyDown={handleKeyDown}
-            placeholder={`+ ${t('Add someone')}`}
+            placeholder={maxParticipantsReached ? t('Group limit reached') : `+ ${t('Add someone')}`}
+            disabled={maxParticipantsReached}
             onFocus={(e) => {
               setSelectedIndex(-1)
               props.onFocus?.(e)
@@ -154,6 +157,11 @@ export default function PeopleSelector (props) {
             : ''}
         </div>
       </div>
+      {maxParticipantsReached && (
+        <p className='text-xs text-foreground/60 mt-1 px-2'>
+          {t('Group messages are limited to {{count}} people', { count: MAX_MESSAGE_THREAD_PARTICIPANTS })}
+        </p>
+      )}
     </div>
   )
 }
@@ -167,5 +175,6 @@ PeopleSelector.propTypes = {
   selectPerson: PropTypes.func.isRequired,
   removePerson: PropTypes.func,
   inputRef: PropTypes.object,
-  autoFocus: PropTypes.bool
+  autoFocus: PropTypes.bool,
+  maxParticipantsReached: PropTypes.bool
 }

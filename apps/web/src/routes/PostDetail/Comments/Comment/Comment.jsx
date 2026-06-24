@@ -172,13 +172,16 @@ function Comment ({
               <div className={cn(styles.commentAction)} onClick={onReplyComment} data-tooltip-content='Reply' data-tooltip-id={`reply-tip-${id}`}>
                 <Icon name='Replies' />
               </div>
-              {dropdownItems.map(item => (
-                <div key={item.label} className={styles.commentAction} onClick={item.onClick}>
-                  {React.isValidElement(item.icon)
-                    ? React.cloneElement(item.icon, { 'data-testid': item.label })
-                    : <Icon name={item.icon} dataTestId={item.label} />}
-                </div>
-              ))}
+              {dropdownItems.map(item => {
+                const handleClick = item.onClick
+                return (
+                  <div key={item.label} className={styles.commentAction} onClick={handleClick}>
+                    {React.isValidElement(item.icon)
+                      ? React.cloneElement(item.icon, { 'data-testid': item.label })
+                      : <Icon name={item.icon} dataTestId={item.label} />}
+                  </div>
+                )
+              })}
               <EmojiRow
                 alignLeft
                 className={cn(styles.emojis, styles.hiddenReactions)}

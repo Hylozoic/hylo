@@ -75,7 +75,13 @@ export async function createMessage (userId, data, context) {
   const comment = await underlyingCreateComment(userId, merge(data, { post }))
 
   // Notify all participants of a new messageThread after first new message (comment) created
-  otherParticipants.forEach(participant => {
+  const notifyParticipants = []
+  for (const participant of otherParticipants) {
+    const postUser = await PostUser.find(postId, participant.id)
+    if (!postUser?.get('muted_at')) notifyParticipants.push(participant)
+  }
+
+  notifyParticipants.forEach(participant => {
     if (newThread) {
       context.pubSub.publish(`updates:${participant.id}`, { messageThread: post })
     } else {

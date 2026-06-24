@@ -286,21 +286,24 @@ export default function ChatPost ({
           )
           }
         >
-          {actionItems.map(item => (
-            <button
-              key={item.label}
-              onClick={item.onClick}
-              className={cn(
-                'h-6 flex justify-center items-center rounded-lg bg-card hover:scale-110 transition-all border-2 border-transparent hover:border-foreground/50 shadow-lg hover:cursor-pointer',
-                item.label === 'Reply' ? 'gap-1 px-2' : 'w-6'
-              )}
-              data-tooltip-content={item.label !== 'Reply' ? item.tooltip : undefined}
-              data-tooltip-id='action-tt'
-            >
-              {item.icon}
-              {item.label === 'Reply' && <span className='text-xs text-foreground'>{t('Reply')}</span>}
-            </button>
-          ))}
+          {actionItems.map(item => {
+            const handleClick = item.onClick
+            return (
+              <button
+                key={item.label}
+                onClick={handleClick}
+                className={cn(
+                  'h-6 flex justify-center items-center rounded-lg bg-card hover:scale-110 transition-all border-2 border-transparent hover:border-foreground/50 shadow-lg hover:cursor-pointer',
+                  item.label === 'Reply' ? 'gap-1 px-2' : 'w-6'
+                )}
+                data-tooltip-content={item.label !== 'Reply' ? item.tooltip : undefined}
+                data-tooltip-id='action-tt'
+              >
+                {item.icon}
+                {item.label === 'Reply' && <span className='text-xs text-foreground'>{t('Reply')}</span>}
+              </button>
+            )
+          })}
           <Tooltip
             delay={50}
             id='action-tt'

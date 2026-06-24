@@ -185,6 +185,7 @@ export {
   removeEmailEnabledTester
 } from './emailEnabledTesters'
 export { default as findOrCreateThread } from '../../models/post/findOrCreateThread'
+export { muteMessageThread, unmuteMessageThread } from './messageThread'
 
 export async function updateMe (sessionId, userId, changes) {
   const user = await User.find(userId)
