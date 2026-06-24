@@ -1,5 +1,5 @@
 import { filter, isEmpty, isFunction, pick } from 'lodash/fp'
-import { BookmarkCheck, Bookmark, Flag, MessageCircle, Pencil, Trash2 } from 'lucide-react'
+import { BookmarkCheck, Bookmark, Check, Flag, MessageCircle, Pencil, Trash2, X } from 'lucide-react'
 import { DateTimeHelpers } from '@hylo/shared'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -85,7 +85,12 @@ export default function ChatPost ({
   const isCreator = currentUser.id === creator.id
   const isFlagged = useMemo(() => group && post.flaggedGroups && post.flaggedGroups.includes(group.id), [group, post.flaggedGroups])
 
-  const groupIds = groups.map(g => g.id)
+  const postGroups = useMemo(() => {
+    if (groups?.length) return groups
+    return group ? [{ id: group.id, name: group.name, slug: group.slug }] : []
+  }, [groups, group])
+
+  const groupIds = useMemo(() => postGroups.map(g => g.id), [postGroups])
 
   useEffect(() => {
     if (linkPreview?.url) {
@@ -134,6 +139,7 @@ export default function ChatPost ({
   }, [creator.id, group.slug])
 
   const editPost = useCallback((event) => {
+    setIsHovered(false)
     setEditing(true)
     setTimeout(() => {
       editorRef.current.focus('end')
@@ -153,26 +159,44 @@ export default function ChatPost ({
     onRemoveReaction(post, emojiFull)
   }
 
-  const handleEditCancel = useCallback(() => {
-    editorRef.current.setContent(details)
+  const discardEdit = useCallback(() => {
+    editorRef.current?.setContent(details)
     setEditing(false)
-    return true
   }, [details])
 
-  const handleEditSave = contentHTML => {
+  const handleEditCancel = useCallback(() => {
+    discardEdit()
+    return true
+  }, [discardEdit])
+
+  const handleEditCancelClick = useCallback((event) => {
+    event.stopPropagation()
+    if (window.confirm(t('Do you want to discard your edit?'))) {
+      discardEdit()
+    }
+  }, [discardEdit, t])
+
+  const handleEditSave = useCallback(contentHTML => {
     if (editorRef.current.isEmpty()) {
-      // Do nothing and stop propagation
       return true
     }
 
-    post.details = contentHTML
-    post.topicNames = post.topics?.map((t) => t.name) // Make sure topic stays on the post
-    updatePostAction(post)
+    updatePostAction({
+      ...post,
+      details: contentHTML,
+      groups: postGroups
+    })
     setEditing(false)
 
-    // Tell Editor this keyboard event was handled and to end propagation.
     return true
-  }
+  }, [post, postGroups, updatePostAction])
+
+  const handleEditSaveClick = useCallback((event) => {
+    event.stopPropagation()
+    if (editorRef.current) {
+      handleEditSave(editorRef.current.getHTML())
+    }
+  }, [handleEditSave])
 
   const deletePostWithConfirm = useCallback((event) => {
     if (window.confirm(t('Are you sure you want to delete this post? You cannot undo this.'))) {
@@ -218,7 +242,7 @@ export default function ChatPost ({
   const moderationActionsGroupUrl = group && groupUrl(group.slug, 'moderation')
 
   const handleMouseEnter = () => {
-    setIsHovered(true)
+    if (!editing) setIsHovered(true)
   }
 
   const handleMouseLeave = () => {
@@ -265,7 +289,7 @@ export default function ChatPost ({
           cn(
             'flex p-1 gap-2 absolute z-10 right-1 -top-0 transition-all rounded-lg cursor-normal bg-background/100 dark:bg-darkening opacity-0 delay-100 scale-0',
             {
-              'opacity-100 scale-102': isHovered
+              'opacity-100 scale-102': isHovered && !editing
             }
           )
           }
@@ -319,17 +343,31 @@ export default function ChatPost ({
           </div>
         )}
         {details && editing && (
-          <HyloEditor
-            containerClassName={styles.postContentContainer}
-            contentHTML={details}
-            groupIds={groupIds}
-            onEscape={handleEditCancel}
-            onEnter={handleEditSave}
-            placeholder='Edit Post'
-            ref={editorRef}
-            showMenu
-            className={cn(styles.editing, 'p-0 m-0')}
-          />
+          <div className={styles.editingContainer}>
+            <HyloEditor
+              containerClassName={styles.postContentContainer}
+              contentHTML={details}
+              groupIds={groupIds}
+              onEscape={handleEditCancel}
+              onEnter={handleEditSave}
+              placeholder='Edit Post'
+              ref={editorRef}
+              showMenu
+              className={cn(styles.editing, 'p-0 m-0')}
+            />
+            <div className={styles.editActions}>
+              <Check
+                className={styles.editActionIcon}
+                onClick={handleEditSaveClick}
+                data-testid='Save'
+              />
+              <X
+                className={styles.editActionIcon}
+                onClick={handleEditCancelClick}
+                data-testid='Cancel'
+              />
+            </div>
+          </div>
         )}
         {details && !editing && (
           <ClickCatcher groupSlug={group.slug} onClick={handleClick}>

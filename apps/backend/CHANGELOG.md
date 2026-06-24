@@ -6,10 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-### Changed
-- Search performance: concurrent materialized view refresh, `sort_ts` baked into `search_index`, semi-join group access filter, `limit + 1` pagination via `hasMore`, and `statement_timeout` on search queries
+## [6.5.2] - 2026-06-23
+
+### Fixed
+- Account deletion
 
 ## [6.5.1] - 2026-06-16
+
+### Changed
+- Search performance: concurrent materialized view refresh, `sort_ts` baked into `search_index`, semi-join group access filter, `limit + 1` pagination via `hasMore`, and `statement_timeout` on search queries
 
 ### Fixed
 - Security issues
@@ -25,7 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Search query streamlined.
 
-## [6.4.6] - 2026-07-01
+## [6.4.6] - 2026-06-11
 
 ### Changed
 - Backend changed required to allow mobile to log in via Open ID Connect and oAuth. To fix always asking users to log in when they open the mobile app.

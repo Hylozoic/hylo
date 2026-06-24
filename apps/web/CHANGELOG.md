@@ -6,10 +6,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.5.2] - 2026-06-23
+
+### Fixed
+- Ensure users with the appropriate join or invite link can join CLOSED groups
+
 ## [6.5.1] - 2026-06-16
+
+### Addded
+- Green check box button saves changes when editing a chat or a comment
+
+### Changed
+- Improve speed of loading search results.
+- Hover menu doesn't appear while editing a chat or a comment
+- Disable pull to close post modal on mobile while editing a comment
 
 ### Fixed
 - Fix occasional mobile app WebView infinite reload loop
+- Editing long comments on ipad/mobile. Don't close the keyboard when scrolling inside the comment form.
+- ipad UI should look/work better when using the app now
+- Scrolling in comment edit box on ipad now works
+- When saving a chat edit dont flash briefly back to the old content before updating.
 
 ## [6.5.0] - 2026-06-15
 
@@ -25,7 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Search query streamlined.
 - Group menu editing streamlined
 
-## [6.4.11] - 2026-07-01
+## [6.4.11] - 2026-06-11
 
 ### Changed
 - Many improvements to editing of Group Menu, and All Views in general

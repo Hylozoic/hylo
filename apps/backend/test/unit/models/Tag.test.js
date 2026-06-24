@@ -86,6 +86,22 @@ describe('Tag', () => {
         }))
     })
 
+    it('preserves existing tags when tagNames is undefined', () => {
+      var post = new Post({
+        name: 'Tagged Post Keep Tags'
+      })
+      var tag = new Tag({ name: 'keeptag' })
+      return Promise.join(post.save(), tag.save(), (post, tag) =>
+        new PostTag({ post_id: post.id, tag_id: tag.id }).save())
+        .then(() => Tag.updateForPost(post, undefined))
+        .then(() => Tag.find({ name: 'keeptag' }, { withRelated: ['posts'] }))
+        .then(tag => {
+          expect(tag).to.exist
+          expect(tag.relations.posts.length).to.equal(1)
+          expect(tag.relations.posts.models[0].get('name')).to.equal('Tagged Post Keep Tags')
+        })
+    })
+
     it('associates tags with groups of which the user is a member', () => {
       var post = new Post({
         name: 'New Tagged Post',

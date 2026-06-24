@@ -15,7 +15,7 @@ import Loading from 'components/Loading'
 import Icon from 'components/Icon'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { cn } from 'util/index'
-import { GROUP_VISIBILITY } from 'store/models/Group'
+import { GROUP_ACCESSIBILITY, GROUP_VISIBILITY } from 'store/models/Group'
 import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import { regenerateAccessCode as regenerateAccessCodeAction, FETCH_GROUP_SETTINGS } from '../GroupSettings.store'
 import {
@@ -163,7 +163,7 @@ I'm inviting you to join {{name}} on Hylo.
 
       {!pending && (
         <>
-          {group.visibility === GROUP_VISIBILITY.Public && (
+          {group.visibility === GROUP_VISIBILITY.Public && group.accessibility !== GROUP_ACCESSIBILITY.Closed && (
             <div className='border-2 mt-6 p-4 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-2 text-foreground background-black/10 rounded-lg border-dashed relative mb-4 hover:border-t-foreground/100 hover:border-x-foreground/90 transition-all hover:border-b-foreground/80 flex flex-col gap-2'>
               <div className='text-foreground'>
                 <h2 className='text-lg font-bold mt-0 mb-1 text-foreground'>{t('Public Group Link')}</h2>

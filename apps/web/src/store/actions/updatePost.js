@@ -76,6 +76,12 @@ export default function updatePost (post, query = updatePostMutation) {
     },
     meta: {
       id,
+      ...(topicNames !== undefined ? { topicNames } : {}),
+      data: {
+        details,
+        title,
+        editedAt: new Date().toISOString()
+      },
       extractModel: {
         modelName: 'Post',
         getRoot: get('updatePost'),

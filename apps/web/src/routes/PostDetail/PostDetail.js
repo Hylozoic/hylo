@@ -56,6 +56,11 @@ import ActionCompletionSection from './ActionCompletionSection'
 import classes from './PostDetail.module.scss'
 import UnsavedDraftLeaveDialog from 'components/UnsavedDraftLeaveDialog/UnsavedDraftLeaveDialog'
 
+/** Touch targets inside comment composers — pull-to-close must not steal their scroll gestures. */
+const isCommentEditorTouchTarget = (target) => (
+  !!target?.closest?.('.ProseMirror, .CommentForm, .editingContainer')
+)
+
 // the height of the header plus the padding-top
 const STICKY_HEADER_SCROLL_OFFSET = 60
 const MAX_DETAILS_LENGTH = 144
@@ -88,6 +93,7 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
     showPeopleDialog: false
   })
   const [showCommentLeaveDraftDialog, setShowCommentLeaveDraftDialog] = useState(false)
+  const [commentEditingActive, setCommentEditingActive] = useState(false)
   const commentFormRef = useRef(null)
 
   const activityHeader = useRef(null)
@@ -226,13 +232,14 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
   const isDraggingUp = useRef(false)
   const touchStartedWithTextSelected = useRef(false)
   const touchStartTime = useRef(null)
+  const touchStartedInEditor = useRef(false)
   const onCloseRef = useRef(attemptClose)
   onCloseRef.current = attemptClose
   const PULL_THRESHOLD = 100
 
   useEffect(() => {
     const el = pullTouchRef.current
-    if (!el) return
+    if (!el || commentEditingActive) return
 
     // The drag target is the dialog content wrapper (or the detail column if not in a dialog)
     const getDragTarget = () =>
@@ -303,7 +310,8 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
       if (!scrollContainer) return
       // Yield to text interaction: editors/inputs and any existing/active selection.
       // (Don't bail on the whole .PostDetail card — that would disable the gesture entirely.)
-      if (isTextInteractionTarget(e.target) || selectionTracker.hasSelection) return
+      touchStartedInEditor.current = isCommentEditorTouchTarget(e.target)
+      if (touchStartedInEditor.current || isTextInteractionTarget(e.target) || selectionTracker.hasSelection) return
       touchStartY.current = e.touches[0].clientY
       touchStartScrollTop.current = scrollContainer.scrollTop
       touchStartAtBottom.current = isAtBottom(scrollContainer)
@@ -319,6 +327,7 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
     }
 
     const handleTouchMove = (e) => {
+      if (touchStartedInEditor.current || isCommentEditorTouchTarget(e.target)) return
       if (touchStartY.current === null || touchStartScrollTop.current === null) return
       if (!scrollContainer || !dragTarget) return
       // Don't trigger pull-to-close when the user is selecting or expanding text.
@@ -362,6 +371,10 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
     }
 
     const handleTouchEnd = (e) => {
+      if (touchStartedInEditor.current) {
+        touchStartedInEditor.current = false
+        return
+      }
       if (touchStartY.current === null || touchStartScrollTop.current === null) return
 
       const wasDragging = isDraggingDown.current || isDraggingUp.current
@@ -433,7 +446,7 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
       }
     }
   // Re-run when post loads (ref won't be set until post renders the JSX)
-  }, [postId, !!post])
+  }, [postId, !!post, commentEditingActive])
 
   const scrollToBottom = useCallback(() => {
     const detail = document.getElementById(DETAIL_COLUMN_ID)
@@ -626,6 +639,7 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
         selectedCommentId={commentId}
         scrollToBottom={scrollToBottom}
         commentFormRef={commentFormRef}
+        onCommentEditingChange={setCommentEditingActive}
       />
       {showPeopleDialog && (
         <PostPeopleDialog
