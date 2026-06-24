@@ -245,11 +245,11 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
     const getDragTarget = () =>
       document.getElementById('post-dialog-content') || document.getElementById(DETAIL_COLUMN_ID)
 
-    // The scroll container is the dialog overlay (has overflow-y: auto) or the detail column
+    // The scroll container is the dialog content (PostDialog) or the detail column
     const getScrollContainer = () => {
       const dialog = document.getElementById('post-dialog-content')
       if (dialog) {
-        // The overlay is the dialog content's parent
+        if (inPostDialog) return dialog
         return dialog.closest('.PostDialog-Overlay') || dialog.parentElement
       }
       return document.getElementById(DETAIL_COLUMN_ID) || document.getElementById(CENTER_COLUMN_ID)
@@ -265,8 +265,10 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
     // Attach listeners to the scroll container so we can intercept before native scroll
     const listenTarget = scrollContainer || el
 
-    // The overlay is the scroll container when inside a dialog
-    const overlay = scrollContainer?.classList?.contains('PostDialog-Overlay') ? scrollContainer : null
+    // Backdrop dimming during dismiss — PostDialog uses a sibling overlay div
+    const backdropOverlay = inPostDialog
+      ? document.querySelector('.PostDialog-Overlay')
+      : (scrollContainer?.classList?.contains('PostDialog-Overlay') ? scrollContainer : null)
 
     const resetStyles = () => {
       if (dragTarget) {
@@ -275,13 +277,18 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
         dragTarget.style.borderRadius = ''
         dragTarget.style.willChange = ''
       }
-      if (overlay) {
-        overlay.style.backgroundColor = ''
-        overlay.style.backdropFilter = ''
+      if (backdropOverlay) {
+        backdropOverlay.style.backgroundColor = ''
+        backdropOverlay.style.backdropFilter = ''
       }
     }
 
     const applyDragStyles = (dampened, progress, direction) => {
+      // PostDialog content is centered via translate(-50%, -50%). Inline transforms during
+      // drag overwrite that and snap the card to the wrong position — track the gesture
+      // silently and only animate on successful dismiss in handleTouchEnd.
+      if (inPostDialog) return
+
       const opacity = Math.max(1 - progress * 0.4, 0.3)
       const scale = Math.max(1 - progress * 0.04, 0.92)
       const translate = direction === 'down' ? dampened : -dampened
@@ -292,10 +299,10 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
       dragTarget.style.transformOrigin = direction === 'down' ? 'top center' : 'bottom center'
       dragTarget.style.willChange = 'transform, opacity'
 
-      if (overlay) {
+      if (backdropOverlay) {
         const overlayOpacity = Math.max(1 - progress * 0.6, 0.1)
-        overlay.style.backgroundColor = `rgba(0, 0, 0, ${overlayOpacity * 0.5})`
-        overlay.style.backdropFilter = `blur(${Math.max(12 - progress * 8, 0)}px)`
+        backdropOverlay.style.backgroundColor = `rgba(0, 0, 0, ${overlayOpacity * 0.5})`
+        backdropOverlay.style.backdropFilter = `blur(${Math.max(12 - progress * 8, 0)}px)`
       }
     }
 
@@ -397,20 +404,22 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
       if (dampened >= PULL_THRESHOLD && dragTarget) {
         const dismissTranslate = direction === 'down' ? '60vh' : '-60vh'
         dragTarget.style.transition = 'transform 0.25s ease-out, opacity 0.25s ease-out'
-        dragTarget.style.transform = `translateY(${dismissTranslate}) scale(0.9)`
+        dragTarget.style.transform = inPostDialog
+          ? `translate(-50%, calc(-50% + ${dismissTranslate})) scale(0.9)`
+          : `translateY(${dismissTranslate}) scale(0.9)`
         dragTarget.style.opacity = '0'
-        if (overlay) {
-          overlay.style.transition = 'background-color 0.25s ease-out, backdrop-filter 0.25s ease-out'
-          overlay.style.backgroundColor = 'transparent'
-          overlay.style.backdropFilter = 'blur(0px)'
+        if (backdropOverlay) {
+          backdropOverlay.style.transition = 'background-color 0.25s ease-out, backdrop-filter 0.25s ease-out'
+          backdropOverlay.style.backgroundColor = 'transparent'
+          backdropOverlay.style.backdropFilter = 'blur(0px)'
         }
         setTimeout(() => onCloseRef.current(), 200)
       } else {
         if (dragTarget) {
           dragTarget.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.3s ease, border-radius 0.3s ease'
         }
-        if (overlay) {
-          overlay.style.transition = 'background-color 0.3s ease, backdrop-filter 0.3s ease'
+        if (backdropOverlay) {
+          backdropOverlay.style.transition = 'background-color 0.3s ease, backdrop-filter 0.3s ease'
         }
         resetStyles()
       }
@@ -441,12 +450,12 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
       if (dragTarget) {
         dragTarget.style.transition = ''
       }
-      if (overlay) {
-        overlay.style.transition = ''
+      if (backdropOverlay) {
+        backdropOverlay.style.transition = ''
       }
     }
   // Re-run when post loads (ref won't be set until post renders the JSX)
-  }, [postId, !!post, commentEditingActive])
+  }, [postId, !!post, inPostDialog, commentEditingActive])
 
   const scrollToBottom = useCallback(() => {
     const detail = document.getElementById(DETAIL_COLUMN_ID)
