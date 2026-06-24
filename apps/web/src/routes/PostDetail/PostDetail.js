@@ -42,6 +42,10 @@ import getPost from 'store/selectors/getPost'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { cn } from 'util/index'
+import {
+  createPersistentSelectionTracker,
+  isTextInteractionTarget
+} from 'util/textSelectionTouch'
 import { removePostFromUrl } from '@hylo/navigation'
 import { getPostDetailCloseDestination, shouldUseSmartPostClose } from 'util/postDetailCloseNavigation'
 import { getPostTypeIcon } from 'store/models/Post'
@@ -230,9 +234,6 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
     const el = pullTouchRef.current
     if (!el) return
 
-    // PostDialog: close via header X; pull-to-close steals vertical selection-handle drags.
-    if (inPostDialog) return
-
     // The drag target is the dialog content wrapper (or the detail column if not in a dialog)
     const getDragTarget = () =>
       document.getElementById('post-dialog-content') || document.getElementById(DETAIL_COLUMN_ID)
@@ -291,28 +292,18 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
       }
     }
 
-    // Tracks whether text was selected at any point since the last confirmed
-    // deselect. iOS clears window.getSelection() while a selection handle is
-    // being dragged, so we can't rely on a live check — instead we set this
-    // flag via selectionchange and only clear it in touchend once the selection
-    // is confirmed gone.
-    let persistentHasSelection = false
-
-    const onSelectionChange = () => {
-      const hasSelection = !!(window.getSelection && window.getSelection().toString().length > 0)
-      if (hasSelection) {
-        persistentHasSelection = true
-      } else if (touchStartY.current === null) {
-        // Only clear when there is no active touch. If iOS fires selectionchange
-        // with an empty value mid-gesture (e.g. during handle drag), we must keep
-        // the flag set so the pull-to-close guard stays active.
-        persistentHasSelection = false
-      }
-    }
-    document.addEventListener('selectionchange', onSelectionChange)
+    // Tracks whether text was selected — see util/textSelectionTouch.js. iOS clears
+    // window.getSelection() while a selection handle is being dragged, so the tracker
+    // keeps the flag set across that gap (cleared only once selection is confirmed gone).
+    const selectionTracker = createPersistentSelectionTracker({
+      getActiveTouch: () => touchStartY.current !== null
+    })
 
     const handleTouchStart = (e) => {
       if (!scrollContainer) return
+      // Yield to text interaction: editors/inputs and any existing/active selection.
+      // (Don't bail on the whole .PostDetail card — that would disable the gesture entirely.)
+      if (isTextInteractionTarget(e.target) || selectionTracker.hasSelection) return
       touchStartY.current = e.touches[0].clientY
       touchStartScrollTop.current = scrollContainer.scrollTop
       touchStartAtBottom.current = isAtBottom(scrollContainer)
@@ -320,7 +311,7 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
       isDraggingUp.current = false
       // Use the persistent flag so we catch handle-drag touches where iOS has
       // temporarily cleared window.getSelection() at touchstart.
-      touchStartedWithTextSelected.current = persistentHasSelection
+      touchStartedWithTextSelected.current = selectionTracker.hasSelection
       touchStartTime.current = Date.now()
       if (dragTarget) {
         dragTarget.style.transition = 'none'
@@ -331,11 +322,17 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
       if (touchStartY.current === null || touchStartScrollTop.current === null) return
       if (!scrollContainer || !dragTarget) return
       // Don't trigger pull-to-close when the user is selecting or expanding text.
-      // touchStartedWithTextSelected uses the persistent flag so it survives the
-      // period where iOS clears getSelection() during a handle drag.
-      // elapsed >= 300ms catches the initial long-press before a selection exists.
+      // Re-check e.target — iOS selection handles may not match the touchstart target.
+      // touchStartedWithTextSelected / the tracker survive the period where iOS clears
+      // getSelection() during a handle drag; elapsed >= 300ms catches the initial
+      // long-press before a selection exists.
       const elapsed = Date.now() - (touchStartTime.current || 0)
-      if (touchStartedWithTextSelected.current || elapsed >= 300) return
+      if (
+        isTextInteractionTarget(e.target) ||
+        touchStartedWithTextSelected.current ||
+        selectionTracker.hasSelection ||
+        elapsed >= 300
+      ) return
 
       const currentY = e.touches[0].clientY
       const rawDelta = currentY - touchStartY.current
@@ -415,9 +412,7 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
       // Only clear the persistent flag once the selection is actually gone,
       // not speculatively — iOS may still hold the selection after touchend
       // during a handle drag interaction.
-      if (!window.getSelection || !window.getSelection().toString().length) {
-        persistentHasSelection = false
-      }
+      selectionTracker.clearIfGone()
     }
 
     listenTarget.addEventListener('touchstart', handleTouchStart, { passive: true })
@@ -428,7 +423,7 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
       listenTarget.removeEventListener('touchstart', handleTouchStart)
       listenTarget.removeEventListener('touchmove', handleTouchMove)
       listenTarget.removeEventListener('touchend', handleTouchEnd)
-      document.removeEventListener('selectionchange', onSelectionChange)
+      selectionTracker.destroy()
       resetStyles()
       if (dragTarget) {
         dragTarget.style.transition = ''
