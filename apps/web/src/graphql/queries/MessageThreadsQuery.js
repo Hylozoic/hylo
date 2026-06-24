@@ -1,10 +1,10 @@
 import gql from 'graphql-tag'
 
 const MessageThreadsQuery = gql`
-  query MessageThreadsQuery ($first: Int = 10, $offset: Int, $firstMessages: Int = 1) {
+  query MessageThreadsQuery ($first: Int = 10, $offset: Int, $firstMessages: Int = 1, $search: String) {
     me {
       id
-      messageThreads(sortBy: "updatedAt", order: "desc", first: $first, offset: $offset) {
+      messageThreads(sortBy: "updatedAt", order: "desc", first: $first, offset: $offset, search: $search) {
         total
         hasMore
         items {

@@ -192,8 +192,10 @@ export function matchNewPostIntoQueryResults (state, { id, isPublic, type, group
     queriesToMatch.push({ context: 'public' })
   }
 
+  const groupSlugs = groups.map(g => g.slug)
+
   // Group streams
-  return reduce((memo, group) => {
+  const updatedState = reduce((memo, group) => {
     // Chat posts only appear in the chat rooms, nowhere else
     if (type !== 'chat') {
       queriesToMatch.push(
@@ -260,8 +262,10 @@ export function matchNewPostIntoQueryResults (state, { id, isPublic, type, group
 
     for (const topic of topics) {
       queriesToMatch.push(
-        // Add to the past posts in a chat room (past because of order: 'asc')
-        { context: 'groups', slug: group.slug, sortBy: 'id', order: 'desc', topic: topic.id, filter: 'chat', childPostInclusion: 'no' }
+        // Add to the past posts in a chat room
+        { context: 'groups', slug: group.slug, sortBy: 'id', order: 'desc', topic: topic.id, filter: 'chat', childPostInclusion: 'no' },
+        // Add to new/unread posts in a chat room
+        { context: 'groups', slug: group.slug, sortBy: 'id', order: 'asc', topic: topic.id, filter: 'chat', childPostInclusion: 'no' }
       )
     }
 
@@ -271,6 +275,22 @@ export function matchNewPostIntoQueryResults (state, { id, isPublic, type, group
       return prependIdForCreate(innerMemo, FETCH_POSTS, params, id)
     }, memo, queriesToMatch)
   }, state, groups)
+
+  // Generically handle queries that filter by a `types` array (e.g. requests-and-offers, projects, resources views).
+  // The existing queriesToMatch logic only covers `filter` (single type); this covers multi-type views.
+  return mapValues(updatedState, (results, key) => {
+    if (!results?.ids || results.ids.includes(id) || type === 'chat') return results
+    const keyObject = JSON.parse(key)
+    const typesArray = keyObject.params?.types
+    if (!typesArray || !typesArray.includes(type)) return results
+    if (!groupSlugs.includes(keyObject.params?.slug)) return results
+    return {
+      ...results,
+      ids: [id].concat(results.ids),
+      total: (results.total || results.total === 0) && results.total + 1,
+      hasMore: results.hasMore
+    }
+  })
 }
 
 export function matchNewTopicIntoQueryResults (state, { id, isDefault, groupTopics }) {
@@ -393,14 +413,16 @@ export function makeDropQueryResults (actionType) {
 export function buildKey (type, params) {
   return JSON.stringify({
     type,
-    params: omitBy(isNull, pick(queryParamWhitelist, params))
+    params: omitBy(v => isNull(v) || (Array.isArray(v) && isEmpty(v)), pick(queryParamWhitelist, params))
   })
 }
 
 export const queryParamWhitelist = [
   'autocomplete',
   'activePostsOnly',
+  'afterTime',
   'announcementsOnly',
+  'beforeTime',
   'childPostInclusion',
   'context',
   'collectionToFilterOut',

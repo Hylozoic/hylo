@@ -6,7 +6,7 @@ import isAdmin from '../api/policies/isAdmin'
 import accessTokenAuth from '../api/policies/accessTokenAuth'
 import checkClientCredentials from '../api/policies/checkClientCredentials'
 import cors from 'cors'
-import { cors as corsConfig } from './cors'
+import { graphqlCorsOrigin } from './corsAllowedOrigins'
 import oidc from '../api/services/OpenIDConnect'
 
 export default function (app) {
@@ -14,6 +14,9 @@ export default function (app) {
 
   // XXX: has to come before bodyParser?
   app.use('/noo/oauth', oidc.callback())
+
+  // Capture raw body for Stripe webhook before JSON parsing
+  app.use('/noo/stripe/webhook', bodyParser.raw({ type: 'application/json' }))
 
   app.use(bodyParser.urlencoded({ extended: true }))
   app.use(bodyParser.json())
@@ -28,7 +31,7 @@ export default function (app) {
   app.use('/noo/admin/kue', kueUI.app)
 
   app.use(GRAPHQL_ENDPOINT, cors({
-    origin: '*',
+    origin: graphqlCorsOrigin,
     methods: 'GET, POST, PUT, DELETE, OPTIONS, HEAD',
     credentials: true
   }))

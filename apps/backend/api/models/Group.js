@@ -20,6 +20,7 @@ import { inviteGroupToGroup } from '../graphql/mutations/group'
 import { findOrCreateLocation } from '../graphql/mutations/location'
 import { whereId } from './group/queryUtils'
 import { getLocaleStrings } from '../../lib/i18n/locales'
+const { createGroupScope } = require('../../lib/scopes')
 
 export const GROUP_MEMBERSHIP_ATTR_UPDATE_WHITELIST = [
   'role',
@@ -48,6 +49,52 @@ module.exports = bookshelf.Model.extend(merge({
     }
 
     return response
+  },
+
+  /**
+   * Builds a Stripe Dashboard URL for this group's connected account
+   */
+  async stripeDashboardUrl () {
+    try {
+      const stripeAccountId = this.get('stripe_account_id')
+      if (!stripeAccountId) return null
+      const acct = await StripeAccount.where({ id: stripeAccountId }).fetch()
+      if (!acct) return null
+      const externalId = acct.get('stripe_account_external_id')
+      if (!externalId) return null
+      return `https://dashboard.stripe.com/${externalId}`
+    } catch (e) {
+      return null
+    }
+  },
+
+  /**
+   * Check if a user has access to this group
+   * If group has no paywall, returns true (free access)
+   * Otherwise checks: 1) full-access responsibilities, 2) scope-based access
+   * @param {String|Number} userId - User ID to check
+   * @returns {Promise<Boolean>}
+   */
+  async canAccess (userId) {
+    // If no paywall, group is freely accessible
+    if (!this.get('paywall')) {
+      return true
+    }
+
+    if (!userId) {
+      return false
+    }
+    
+    // Check if user has full-access responsibility (admin or content manager)
+    const groupId = this.get('id')
+    const hasFullAccess = await Group.hasFullAccessResponsibility(userId, groupId)
+    if (hasFullAccess) {
+      return true
+    }
+    
+    // Check scope-based access (purchased or granted)
+    const requiredScope = createGroupScope(groupId)
+    return await UserScope.canAccess(userId, requiredScope)
   },
 
   // ******** Getters ******* //
@@ -785,7 +832,7 @@ module.exports = bookshelf.Model.extend(merge({
       'about_video_uri', 'active', 'access_code', 'accessibility', 'avatar_url', 'banner_url',
       'description', 'geo_shape', 'location', 'location_id', 'name', 'purpose', 'settings',
       'steward_descriptor', 'steward_descriptor_plural', 'type_descriptor', 'type_descriptor_plural', 'visibility',
-      'welcome_page', 'website_url'
+      'welcome_page', 'website_url', 'stripe_account_id', 'stripe_charges_enabled', 'stripe_payouts_enabled', 'stripe_details_submitted', 'paywall'
     ]
     const trimAttrs = ['name', 'description', 'purpose']
 
@@ -891,41 +938,47 @@ module.exports = bookshelf.Model.extend(merge({
       }
 
       if (changes.custom_views) {
-        const currentViews = await this.customViews().fetch({ transacting })
-        let currentView = currentViews.shift()
-        // TODO: more validation?
         const newViews = changes.custom_views.filter(cv => trim(cv.name) !== '')
-        let newView = newViews.shift()
-        // Update current views, add new ones, delete old ones and try to be efficient about it
-        while (currentView || newView) {
-          if (newView) {
-            const topics = newView && newView.topics
-            delete newView.topics
-            delete newView.id
-            if (currentView) {
-              await currentView.save(newView, { transacting })
+        const existingViews = (await this.customViews().fetch({ transacting })).models
+        const existingById = {}
+        for (const view of existingViews) {
+          existingById[view.id] = view
+        }
+        const keptIds = new Set()
 
-              // If this custom view has a collection then update the name of the collection to match the custom view's name
-              const collection = await currentView.collection().fetch()
-              if (collection && collection.get('name') !== currentView.get('name')) {
-                await collection.save({ name: currentView.get('name') })
-              }
-            } else {
-              currentView = await CustomView.forge({ ...newView, group_id: this.id }).save({}, { transacting })
-                .tap((currentView) => Queue.classMethod('Group', 'doesMenuUpdate', { customView: currentView, groupIds: [this.id] }))
+        for (const incoming of newViews) {
+          const topics = incoming.topics
+          const incomingData = { ...incoming }
+          delete incomingData.topics
+          const incomingId = incomingData.id
+          delete incomingData.id
+          if (incomingData.order == null) incomingData.order = 1
+
+          let currentView
+          const existingView = incomingId && (existingById[incomingId] || existingById[parseInt(incomingId, 10)])
+          if (existingView) {
+            currentView = existingView
+            await currentView.save(incomingData, { transacting })
+            keptIds.add(currentView.id)
+
+            const collection = await currentView.collection().fetch()
+            if (collection && collection.get('name') !== currentView.get('name')) {
+              await collection.save({ name: currentView.get('name') })
             }
-
-            await currentView.updateTopics(topics, transacting)
-          } else if (currentView) {
-            // Delete associated context widgets
-            await ContextWidget.where({ group_id: this.id, custom_view_id: currentView.id }).destroy({ transacting })
-
-            await currentView.destroy({ transacting })
           } else {
-            break
+            currentView = await CustomView.forge({ ...incomingData, group_id: this.id }).save({}, { transacting })
+              .tap((currentView) => Queue.classMethod('Group', 'doesMenuUpdate', { customView: currentView, groupIds: [this.id] }))
+            keptIds.add(currentView.id)
           }
-          currentView = currentViews.shift()
-          newView = newViews.shift()
+
+          await currentView.updateTopics(topics, transacting)
+        }
+
+        for (const view of existingViews) {
+          if (!keptIds.has(view.id)) {
+            await ContextWidget.where({ group_id: this.id, custom_view_id: view.id }).destroy({ transacting })
+            await view.destroy({ transacting })
+          }
         }
       }
 
@@ -1130,14 +1183,13 @@ module.exports = bookshelf.Model.extend(merge({
     const attrs = defaults(
       pick(mapValues(data, (v, k) => trimAttrs.includes(k) ? trim(v) : v),
         'about_video_uri', 'accessibility', 'access_code', 'avatar_url', 'banner_url', 'description',
-        'location_id', 'location', 'group_data_type', 'name', 'purpose', 'settings', 'slug',
+        'location_id', 'location', 'name', 'purpose', 'settings', 'slug',
         'steward_descriptor', 'steward_descriptor_plural', 'type', 'type_descriptor', 'type_descriptor_plural', 'visibility'
       ),
       {
         accessibility: Group.Accessibility.RESTRICTED,
         avatar_url: DEFAULT_AVATAR,
         banner_url: DEFAULT_BANNER,
-        group_data_type: 1,
         visibility: Group.Visibility.PROTECTED
       }
     )
@@ -1429,6 +1481,32 @@ module.exports = bookshelf.Model.extend(merge({
 
   findActive (key, opts = {}) {
     return this.find(key, merge({ active: true }, opts))
+  },
+
+  /**
+   * Check if a user has a responsibility that grants full access to group content
+   * Full-access responsibilities: Administration, Manage Content
+   * Limited responsibilities (no content access): Manage Rounds, Add Members, etc.
+   * 
+   * @param {String|Number} userId - User ID to check
+   * @param {String|Number} groupId - Group ID to check
+   * @returns {Promise<Boolean>}
+   */
+  hasFullAccessResponsibility: async function (userId, groupId) {
+    if (!userId || !groupId) {
+      return false
+    }
+
+    // Get all responsibilities for this user in this group
+    const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, groupId)
+
+    // Check if user has any full-access responsibility
+    const fullAccessResponsibilities = [
+      Responsibility.constants.RESP_ADMINISTRATION,
+      Responsibility.constants.RESP_MANAGE_CONTENT
+    ]
+
+    return responsibilities.some(resp => fullAccessResponsibilities.includes(resp))
   },
 
   getNewAccessCode: function () {

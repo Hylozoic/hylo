@@ -30,7 +30,7 @@ posts(
   hasMore
   total
   items {
-    ${postCardFieldsFragment}
+    ${postCardFieldsFragment()}
   }
 }`
 

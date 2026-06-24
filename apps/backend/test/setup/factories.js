@@ -50,7 +50,6 @@ module.exports = {
       name: faker.random.words(6),
       slug: faker.lorem.slug(),
       access_code: faker.random.alphaNumeric(6),
-      group_data_type: 1,
       settings: {}
     }, attrs))
   },
@@ -173,6 +172,9 @@ module.exports = {
         },
         param: function (name) {
           return this.params[name]
+        },
+        get: function (name) {
+          return this.headers[name]
         },
         session: {
           regenerate: function(callback) {

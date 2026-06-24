@@ -6,6 +6,76 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.5.2] - 2026-06-23
+
+### Fixed
+- Account deletion
+
+## [6.5.1] - 2026-06-16
+
+### Changed
+- Search performance: concurrent materialized view refresh, `sort_ts` baked into `search_index`, semi-join group access filter, `limit + 1` pagination via `hasMore`, and `statement_timeout` on search queries
+
+### Fixed
+- Security issues
+
+## [6.5.0] - 2026-06-15
+
+### Added
+- 'Paid Content' released.
+- Groups can now raise funds via their membership, or pay-gate group membership, tracks or group roles.
+- DM search is now a full-history search.
+- DMs can be read/unread.
+
+### Fixed
+- Search query streamlined.
+
+## [6.4.6] - 2026-06-11
+
+### Changed
+- Backend changed required to allow mobile to log in via Open ID Connect and oAuth. To fix always asking users to log in when they open the mobile app.
+
+### Fixed
+- Don't error out trying to delete a draft that doesnt exist
+- Correct URL to event posts in RSVP emails
+- Links to posts from email notifications should now work more consistently on mobile
+- Deleting of unused container widgets
+
+## [6.4.5] - 2026-06-10
+
+### Fixed
+- Make sure post notifications show the post over the correct home view
+- Non-chat posts being opened in a group with a chat home view now use /post/:id as a path segment (opens the full post modal overlaid above the chat) rather than ?postId= (which was going to the the inline-chat-message highlight pattern reserved for chat-type posts), so you can see the full post and comments.
+- If a non-chat post has no topics on it (which can happen if it was created by Zapier for example) and the home view is a chat room, open the post on its own at the fall through url of /group/:slug/post/:postId, because if we try to open it in the chat based home then the post isn't there and can't be viewed.
+- Tweaks to auth handling for mobile web, including consistent domain labeling
+- Clean up generation of certain notification links
+
+## [6.4.4] - 2026-05-27
+
+### Fixed
+- Mobile: Notification URLs should always go to the right place
+
+## [6.4.3] - 2026-05-27
+
+### Added
+- Member CSV export includes a `joined_at` column which has the date time of when the member joined the group.
+
+### Fixed
+- Weird reordering of custom views when editing
+
+## [6.4.2] - 2026-05-20
+
+### Changed
+- When viewing a post outisde of a group context, closing it now goes back to last viewed group instead of opening up global nav menu in confusing way.
+
+## [6.4.1] - 2026-05-07
+
+### Changed
+- Added (via Hylo) to the Sender of all email notifications that were missing it
+
+### Fixed
+- Don't include actions and submissions in new post counts for topics/chat rooms
+
 ## [6.4.0] - 2026-04-14
 
 ### Added

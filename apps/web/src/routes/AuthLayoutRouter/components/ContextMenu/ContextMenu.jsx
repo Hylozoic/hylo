@@ -1,8 +1,8 @@
 import { DndContext, DragOverlay, useDroppable, useDraggable, closestCorners } from '@dnd-kit/core'
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
-import isMobile from 'ismobilejs'
+import { isPhoneDevice } from 'util/mobile'
 import { get } from 'lodash/fp'
-import { ChevronLeft, Copy, GripHorizontal, Pencil, UserPlus, LogOut, Users, House, Trash } from 'lucide-react'
+import { ChevronLeft, CircleX, Copy, GripHorizontal, Pencil, UserPlus, LogOut, Users, House } from 'lucide-react'
 import React, { useRef, useEffect, useMemo, useState, useCallback } from 'react'
 import { useNavigate, useLocation, Routes, Route } from 'react-router-dom'
 import { replace } from 'redux-first-history'
@@ -49,7 +49,7 @@ import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION, RESP_MANAGE_TRACKS } from 'store/constants'
 import { bgImageStyle, cn } from 'util/index'
-import { sendMessageToWebView } from 'util/webView'
+import { sendMessageToWebView, getMobileAppVersion } from 'util/webView'
 
 import { useContextMenuContext } from './ContextMenuContext'
 import ContextMenuProvider from './ContextMenuProvider'
@@ -87,6 +87,8 @@ export default function ContextMenu (props) {
   const groupSlug = routeParams.groupSlug
   const group = useSelector(state => currentGroup || getGroupForSlug(state, groupSlug))
   const canAdminister = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADMINISTRATION, groupId: group?.id }))
+  const hasAccess = group?.canAccess !== false // Default to true if not paywalled or if canAccess is undefined
+  const showPaywallBlock = group?.paywall && !hasAccess && groupSlug && routeParams.context === 'groups'
   const rootPath = baseUrl({ ...routeParams, view: null })
   const isPublicContext = routeParams.context === PUBLIC_CONTEXT_SLUG
   const isMyContext = routeParams.context === MY_CONTEXT_SLUG
@@ -164,9 +166,11 @@ export default function ContextMenu (props) {
     }
   }, [newWidgetId])
 
+  // Opens add-view flow; when addToEnd is true, do not pass widget.id (placeholders like bottom-of-list-* are not DB ids)
   const handlePositionedAdd = ({ widget, addToEnd, parentId }) => {
     isAddingChildWidget = true
-    navigate(addQuerystringToPath(location.pathname, { addview: 'yes', cme: 'yes', parentId: widget?.parentId || parentId, orderInFrontOfWidgetId: widget?.id || null }))
+    const orderInFrontOfWidgetId = addToEnd ? null : widget?.id || null
+    navigate(addQuerystringToPath(location.pathname, { addview: 'yes', cme: 'yes', parentId: widget?.parentId || parentId, orderInFrontOfWidgetId }))
   }
 
   const handleDragStart = ({ active }) => {
@@ -225,7 +229,7 @@ export default function ContextMenu (props) {
       handlePositionedAdd={handlePositionedAdd}
     >
       <div
-        className={cn('ContextMenu bg-background relative z-20 isolate pointer-events-auto h-full flex-1 min-w-0 sm:flex-initial sm:w-[300px]', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isNavOpen, 'h-screen h-dvh': isMobile.any, '!overflow-y-auto': !location.pathname.includes('/settings'), 'overflow-y-hidden': location.pathname.includes('/settings') }, className)}
+        className={cn('ContextMenu bg-background relative z-20 isolate pointer-events-auto h-full flex-1 min-w-0', !isPhoneDevice() && 'sm:flex-initial sm:w-[300px]', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isNavOpen, 'h-screen h-dvh': isPhoneDevice(), '!overflow-y-auto': !location.pathname.includes('/settings'), 'overflow-y-hidden': location.pathname.includes('/settings') }, className)}
         style={{ boxShadow: 'inset -15px 0 15px -10px hsl(var(--darkening) / 0.3)' }}
         onScroll={handleScroll}
       >
@@ -258,7 +262,7 @@ export default function ContextMenu (props) {
                   : null}
           </div>
           {hasContextWidgets && (
-            <div className='relative flex flex-col items-center overflow-hidden z-20'>
+            <div className={cn('relative flex flex-col items-center overflow-hidden z-20', location.pathname.includes('/settings') && 'flex-1 min-h-0')}>
               <Routes>
                 <Route path='settings/*' element={<GroupSettingsMenu group={group} />} />
               </Routes>
@@ -286,6 +290,19 @@ export default function ContextMenu (props) {
                 <div className='px-2 w-full mb-[0.05em] mt-6'>
                   <ContextMenuItem widget={allViewsWidget} />
                 </div>
+              )}
+              {showPaywallBlock && (
+                <div
+                  className='absolute inset-0 bg-background/80 backdrop-blur-sm z-50 pointer-events-auto'
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    navigate(groupUrl(groupSlug, 'stream'))
+                  }}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onMouseUp={(e) => e.stopPropagation()}
+                  onTouchStart={(e) => e.stopPropagation()}
+                  onTouchEnd={(e) => e.stopPropagation()}
+                />
               )}
             </div>
           )}
@@ -376,7 +393,7 @@ function ContextMenuItem ({ widget, isOverlay = false }) {
   const url = widgetUrl({ widget, rootPath, groupSlug })
   const allView = widget.type === 'all-views'
   // Hide edit menu on mobile - editing is desktop-only
-  const showEdit = allView && canAdminister && !isMobile.any
+  const showEdit = allView && canAdminister && !isPhoneDevice()
   const canDnd = isEditing && !allView && widget.type !== 'home'
 
   if (isCreating) {
@@ -403,13 +420,21 @@ function ContextMenuItem ({ widget, isOverlay = false }) {
   }
 
   if (widget.type === 'logout') {
+    const mobileAppVersionLabel = typeof window !== 'undefined' && window.HyloMobileV2
+      ? getMobileAppVersion()
+      : ''
     return (
       <div key={widget.id} className='ContextMenu ContextWidgetMenuItemLogout mt-6'>
-        <span className='flex justify-between items-center content-center'>
-          <WidgetIconResolver widget={widget} />
-          <MenuLink onClick={handleLogout} className='text-sm text-foreground border-2 border-transparent hover:border-foreground/50 hover:text-foreground rounded-md p-2 bg-card text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100 flex'>
-            <LogOut className='h-[20px] mr-2' /> <span>{title}</span>
-          </MenuLink>
+        <span className='flex justify-between items-center content-center gap-2 w-full'>
+          <span className='flex items-center min-w-0 flex-1 mb-[.5rem]'>
+            <WidgetIconResolver widget={widget} />
+            <MenuLink onClick={handleLogout} className='text-sm text-foreground border-2 border-transparent hover:border-foreground/50 hover:text-foreground rounded-md p-2 bg-card text-foreground w-full min-w-0 flex-1 transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100 flex'>
+              <LogOut className='h-[20px] mr-2 shrink-0' /> <span className='truncate'>{title}</span>
+            </MenuLink>
+          </span>
+          {mobileAppVersionLabel
+            ? <span className='text-sm text-foreground/60 shrink-0 mb-[.5rem] self-center tabular-nums'>v{mobileAppVersionLabel}</span>
+            : null}
         </span>
       </div>
     )
@@ -543,18 +568,18 @@ function ActionMenu ({ widget }) {
   }, [widget.id, group.id])
 
   return (
-    <span className='text-sm font-bold cursor-pointer flex items-center'>
-      {widget.isEditable && <Pencil onClick={handleEditWidget} />}
+    <span className='text-sm font-bold cursor-pointer flex items-center gap-1'>
+      {widget.isEditable && <Pencil className='h-6 w-6' onClick={handleEditWidget} />}
       <Tooltip>
         <TooltipTrigger asChild>
-          <Trash onClick={handleRemoveWidget} />
+          <CircleX className='h-6 w-6' onClick={handleRemoveWidget} aria-hidden />
         </TooltipTrigger>
         <TooltipContent>{t('Remove from Menu')}</TooltipContent>
       </Tooltip>
       {widget.isValidHomeWidget && (
         <Tooltip>
           <TooltipTrigger asChild>
-            <House onClick={handleWidgetHomePromotion} />
+            <House className='h-6 w-6' onClick={handleWidgetHomePromotion} />
           </TooltipTrigger>
           <TooltipContent>{t('Set as Home View')}</TooltipContent>
         </Tooltip>
@@ -789,7 +814,7 @@ function SpecialTopElementRenderer ({ widget }) {
             title: t('Add Description'),
             url: settingsUrl
           })}
-          {!group.locationObject && listItemComponent({
+          {!group.locationObject && !group.location && listItemComponent({
             title: t('Add Location'),
             url: settingsUrl
           })}
@@ -824,6 +849,8 @@ function GroupSettingsMenu ({ group }) {
     }
   }, [confirm, previousLocation, groupSlug])
 
+  const phoneLayout = isPhoneDevice()
+
   const settingsMenuItems = useMemo(() => [
     canAdminister && { title: 'Group Details', url: 'settings' },
     canAdminister && { title: 'Agreements', url: 'settings/agreements' },
@@ -837,12 +864,25 @@ function GroupSettingsMenu ({ group }) {
     canManageTracks && { title: 'Tracks & Actions', url: 'settings/tracks' },
     canAdminister && { title: 'Custom Views', url: 'settings/views' },
     canAdminister && { title: 'Export Data', url: 'settings/export' },
+    canAdminister && { title: 'Paid Content', url: 'settings/paid-content' },
     canAdminister && { title: 'Delete', url: 'settings/delete' }
   ].filter(Boolean), [canAdminister, canAddMembers, canManageTracks])
 
   return (
-    <div className='ContextMenu-GroupSettings fixed h-full top-0 left-[66px] sm:left-[80px] w-[260px] sm:w-[300px] bg-background bg-gradient-to-b from-background to-theme-background/20 z-[1050]'>
-      <div className='absolute h-full overflow-y-auto top-0 right-0 left-14 flex flex-col gap-2 bg-background shadow-[-15px_0px_25px_rgba(0,0,0,0.3)] px-2 z-10'>
+    <div
+      className={cn(
+        'ContextMenu-GroupSettings h-full bg-background bg-gradient-to-b from-background to-theme-background/20 z-[1050]',
+        phoneLayout
+          ? 'fixed top-0 left-[66px] sm:left-[80px] w-[260px] sm:w-[300px]'
+          : 'absolute inset-0 w-full'
+      )}
+    >
+      <div
+        className={cn(
+          'absolute h-full overflow-y-auto top-0 right-0 flex flex-col gap-2 bg-background shadow-[-15px_0px_25px_rgba(0,0,0,0.3)] px-2 z-10',
+          phoneLayout ? 'left-14' : 'left-0'
+        )}
+      >
         <h3 className='text-lg font-bold flex items-center gap-2 text-foreground'>
           <ChevronLeft className='w-6 h-6 inline cursor-pointer' onClick={closeMenu} />
           {t('Group Settings')}

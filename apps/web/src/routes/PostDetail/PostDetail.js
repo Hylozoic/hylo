@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect, useRef, useMemo } from 'react'
+import React, { useCallback, useState, useEffect, useRef, useMemo, forwardRef, useImperativeHandle } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useResizeDetector } from 'react-resize-detector'
 import { useTranslation } from 'react-i18next'
@@ -43,17 +43,26 @@ import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { cn } from 'util/index'
 import { removePostFromUrl } from '@hylo/navigation'
+import { getPostDetailCloseDestination, shouldUseSmartPostClose } from 'util/postDetailCloseNavigation'
+import { getPostTypeIcon } from 'store/models/Post'
 import { DETAIL_COLUMN_ID, CENTER_COLUMN_ID, position } from 'util/scrolling'
 
 import ActionCompletionSection from './ActionCompletionSection'
 
 import classes from './PostDetail.module.scss'
+import UnsavedDraftLeaveDialog from 'components/UnsavedDraftLeaveDialog/UnsavedDraftLeaveDialog'
+
+/** Touch targets inside comment composers — pull-to-close must not steal their scroll gestures. */
+const isCommentEditorTouchTarget = (target) => (
+  !!target?.closest?.('.ProseMirror, .CommentForm, .editingContainer')
+)
 
 // the height of the header plus the padding-top
 const STICKY_HEADER_SCROLL_OFFSET = 60
 const MAX_DETAILS_LENGTH = 144
 
-function PostDetail () {
+const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
+  const { inPostDialog = false, onDismissEmbeddedDialog } = props
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const location = useLocation()
@@ -79,25 +88,46 @@ function PostDetail () {
     activityScrollOffset: 0,
     showPeopleDialog: false
   })
+  const [showCommentLeaveDraftDialog, setShowCommentLeaveDraftDialog] = useState(false)
+  const [commentEditingActive, setCommentEditingActive] = useState(false)
+  const commentFormRef = useRef(null)
 
   const activityHeader = useRef(null)
   const { t } = useTranslation()
+
+  const postDetailCloseDestination = useMemo(() => {
+    return post
+      ? getPostDetailCloseDestination({
+        pathname: location.pathname,
+        search: location.search,
+        post,
+        me: currentUser
+      })
+      : {
+          pathname: removePostFromUrl(location.pathname) || '/',
+          search: location.search
+        }
+  }, [post, location.pathname, location.search, currentUser])
 
   useEffect(() => {
     onPostIdChange()
   }, [postId])
 
   const { setHeaderDetails } = useViewHeader()
+  const isIsolatedPostView = view === 'post'
+  const useSmartPostClose = shouldUseSmartPostClose(view) && !inPostDialog
   useEffect(() => {
-    if (view === 'post') {
-      setHeaderDetails({
-        title: t('Post'),
-        icon: '',
-        info: '',
-        search: false
-      })
-    }
-  }, [])
+    if (!isIsolatedPostView) return
+    const postType = post?.type || 'post'
+    setHeaderDetails({
+      title: t(postType) + ': ' + post?.title,
+      icon: getPostTypeIcon(postType),
+      info: '',
+      search: false,
+      mobileBackButton: true,
+      backTo: postDetailCloseDestination
+    })
+  }, [isIsolatedPostView, post?.type, post?.title, t, setHeaderDetails, postDetailCloseDestination])
 
   const handleSetComponentPositions = useCallback(() => {
     const container = document.getElementById(DETAIL_COLUMN_ID)
@@ -147,12 +177,46 @@ function PostDetail () {
   const togglePeopleDialog = useCallback(() => setState(prevState => ({ ...prevState, showPeopleDialog: !prevState.showPeopleDialog })), [])
 
   const onClose = useCallback(() => {
-    const closeLocation = {
-      ...location,
-      pathname: removePostFromUrl(location.pathname) || '/'
+    if (!useSmartPostClose) {
+      navigate({
+        pathname: removePostFromUrl(location.pathname) || '/',
+        search: location.search
+      })
+      return
     }
-    navigate(closeLocation)
-  }, [location])
+    navigate(postDetailCloseDestination)
+  }, [useSmartPostClose, navigate, postDetailCloseDestination, location.pathname, location.search])
+
+  const attemptClose = useCallback(() => {
+    if (inPostDialog && commentFormRef.current?.hasUnsavedContent?.()) {
+      setShowCommentLeaveDraftDialog(true)
+      return
+    }
+    onClose()
+  }, [inPostDialog, onClose])
+
+  const handleCommentSaveDraftAndLeave = useCallback(async () => {
+    await commentFormRef.current?.flushSaveDraft?.()
+    setShowCommentLeaveDraftDialog(false)
+    onDismissEmbeddedDialog?.()
+  }, [onDismissEmbeddedDialog])
+
+  const handleCommentDiscardAndLeave = useCallback(async () => {
+    await commentFormRef.current?.discardDraft?.()
+    setShowCommentLeaveDraftDialog(false)
+    onDismissEmbeddedDialog?.()
+  }, [onDismissEmbeddedDialog])
+
+  useImperativeHandle(forwardedRef, () => ({
+    blockEmbeddedDismiss: () => {
+      if (!inPostDialog) return false
+      if (commentFormRef.current?.hasUnsavedContent?.()) {
+        setShowCommentLeaveDraftDialog(true)
+        return true
+      }
+      return false
+    }
+  }), [inPostDialog])
 
   // Pull-to-close: drag down to dismiss when scrolled to top,
   // or drag up to dismiss when scrolled to bottom
@@ -164,13 +228,14 @@ function PostDetail () {
   const isDraggingUp = useRef(false)
   const touchStartedWithTextSelected = useRef(false)
   const touchStartTime = useRef(null)
-  const onCloseRef = useRef(onClose)
-  onCloseRef.current = onClose
+  const touchStartedInEditor = useRef(false)
+  const onCloseRef = useRef(attemptClose)
+  onCloseRef.current = attemptClose
   const PULL_THRESHOLD = 100
 
   useEffect(() => {
     const el = pullTouchRef.current
-    if (!el) return
+    if (!el || commentEditingActive) return
 
     // The drag target is the dialog content wrapper (or the detail column if not in a dialog)
     const getDragTarget = () =>
@@ -252,6 +317,8 @@ function PostDetail () {
 
     const handleTouchStart = (e) => {
       if (!scrollContainer) return
+      touchStartedInEditor.current = isCommentEditorTouchTarget(e.target)
+      if (touchStartedInEditor.current) return
       touchStartY.current = e.touches[0].clientY
       touchStartScrollTop.current = scrollContainer.scrollTop
       touchStartAtBottom.current = isAtBottom(scrollContainer)
@@ -267,6 +334,7 @@ function PostDetail () {
     }
 
     const handleTouchMove = (e) => {
+      if (touchStartedInEditor.current || isCommentEditorTouchTarget(e.target)) return
       if (touchStartY.current === null || touchStartScrollTop.current === null) return
       if (!scrollContainer || !dragTarget) return
       // Don't trigger pull-to-close when the user is selecting or expanding text.
@@ -304,6 +372,10 @@ function PostDetail () {
     }
 
     const handleTouchEnd = (e) => {
+      if (touchStartedInEditor.current) {
+        touchStartedInEditor.current = false
+        return
+      }
       if (touchStartY.current === null || touchStartScrollTop.current === null) return
 
       const wasDragging = isDraggingDown.current || isDraggingUp.current
@@ -377,7 +449,7 @@ function PostDetail () {
       }
     }
   // Re-run when post loads (ref won't be set until post renders the JSX)
-  }, [postId, !!post])
+  }, [postId, !!post, commentEditingActive])
 
   const scrollToBottom = useCallback(() => {
     const detail = document.getElementById(DETAIL_COLUMN_ID)
@@ -448,7 +520,7 @@ function PostDetail () {
           className={classes.header}
           post={post}
           routeParams={routeParams}
-          close={onClose}
+          close={inPostDialog ? attemptClose : undefined}
           expanded
           isFlagged={isFlagged}
           hasImage={hasImage}
@@ -466,7 +538,7 @@ function PostDetail () {
               currentUser={currentUser}
               post={post}
               routeParams={routeParams}
-              close={onClose}
+              close={inPostDialog ? attemptClose : undefined}
               isFlagged={isFlagged}
             />
           </div>
@@ -569,6 +641,8 @@ function PostDetail () {
         slug={groupSlug}
         selectedCommentId={commentId}
         scrollToBottom={scrollToBottom}
+        commentFormRef={commentFormRef}
+        onCommentEditingChange={setCommentEditingActive}
       />
       {showPeopleDialog && (
         <PostPeopleDialog
@@ -580,15 +654,26 @@ function PostDetail () {
         />
       )}
       <SocketSubscriber type='post' id={post.id} />
+      <UnsavedDraftLeaveDialog
+        open={showCommentLeaveDraftDialog}
+        onOpenChange={setShowCommentLeaveDraftDialog}
+        title={t('Save draft before closing?')}
+        description={t('You have unsaved text in your comment. Save it as a draft to continue later, or discard it.')}
+        onContinueEditing={() => setShowCommentLeaveDraftDialog(false)}
+        onDiscard={handleCommentDiscardAndLeave}
+        onSaveDraft={handleCommentSaveDraftAndLeave}
+      />
     </div>
   )
-}
+})
 
 PostDetail.propTypes = {
   currentUser: PropTypes.object,
   fetchPost: PropTypes.func,
   post: PropTypes.object,
-  routeParams: PropTypes.object
+  routeParams: PropTypes.object,
+  inPostDialog: PropTypes.bool,
+  onDismissEmbeddedDialog: PropTypes.func
 }
 
 export function JoinProjectSection ({ currentUser, members, leaving, joinProject, leaveProject, togglePeopleDialog }) {

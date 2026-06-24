@@ -2,6 +2,8 @@ import React from 'react'
 import { render, screen } from 'util/testing/reactTestingLibraryExtended'
 import AddLocation from './AddLocation'
 
+jest.mock('components/ui/tooltip', () => ({ TooltipProvider: ({ children }) => children }))
+
 describe('AddLocation', () => {
   it('renders the location input and instructions', () => {
     render(<AddLocation />)

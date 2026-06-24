@@ -6,6 +6,132 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.5.2] - 2026-06-23
+
+### Fixed
+- Ensure users with the appropriate join or invite link can join CLOSED groups
+
+## [6.5.1] - 2026-06-16
+
+### Addded
+- Green check box button saves changes when editing a chat or a comment
+
+### Changed
+- Improve speed of loading search results.
+- Hover menu doesn't appear while editing a chat or a comment
+- Disable pull to close post modal on mobile while editing a comment
+
+### Fixed
+- Fix occasional mobile app WebView infinite reload loop
+- Editing long comments on ipad/mobile. Don't close the keyboard when scrolling inside the comment form.
+- ipad UI should look/work better when using the app now
+- Scrolling in comment edit box on ipad now works
+- When saving a chat edit dont flash briefly back to the old content before updating.
+
+## [6.5.0] - 2026-06-15
+
+### Added
+- 'Paid Content' released, integrating with Stripe.
+- Groups can now raise funds via their membership, or pay-gate group membership, tracks or group roles.
+- Calendar settings are now integrated into navigation, providing better user experience when navigating.
+- Search: Better error and no-result user experience.
+- Direct Message threads can be marked as read/unread.
+
+### Fixed
+- Calendar event creation streamlined.
+- Search query streamlined.
+- Group menu editing streamlined
+
+## [6.4.11] - 2026-06-11
+
+### Changed
+- Many improvements to editing of Group Menu, and All Views in general
+- Container type widgets/views show a Container icon
+- Tooltips over views that explain what type of widget they are (except for unique ones like About or Tracks right now)
+- Show all the views in the All Views while editing, even ones alreadt in the menu, to remove confusion. Except don't show containers that are already in the Group Menu.
+- Change Trash icon to X icon to remove widgets from the GroupMenu so as not to confuse with the trash icon that deletes a widget from AllViews
+- Allow better event creation when on the calendar view of the stream component
+- Post view uses post type and title in the view header
+- Show role badges in the Stewards section of the group About page
+
+### Fixed
+- Text styling in about page steward list
+- Calendar data loading; fix some infinite loading loops
+
+## [6.4.10] - 2026-06-10
+
+### Changed
+- In-app notifications for non-chat posts open them over the home view. Instead of as an individual post view.
+
+### Fixed
+- Tracking whether group location is set in the Group Setup widget in the group menu
+- Make sure post notifications show the post over the correct home view
+- Non-chat posts being opened in a group with a chat home view now use /post/:id as a path segment (opens the full post modal overlaid above the chat) rather than ?postId= (which was going to the the inline-chat-message highlight pattern reserved for chat-type posts), so you can see the full post and comments.
+- If a non-chat post has no topics on it (which can happen if it was created by Zapier for example) and the home view is a chat room, open the post on its own at the fall through url of /group/:slug/post/:postId, because if we try to open it in the chat based home then the post isn't there and can't be viewed.
+- Using a join link when already a member takes you to correct home view
+- Make sure new posts created in requests and offers view appear immediately
+- Fix issue where after creating a post the saved draft was not removed
+
+## [6.4.9] - 2026-05-27
+
+### Fixed
+- Don't show child post label incorrectly on all Stream posts
+- Mobile: Notification URLs should always go to the right place
+
+## [6.4.8] - 2026-05-27
+
+### Added
+- Add group join date to the member export CSV
+
+### Changed
+- Show post type and icon in view header when viewing standalone post route
+- Remove X to close button when viewing a standalone Post Detail route
+
+### Fixed
+- Mobile: Issue where closing a post open from a chat room would take you to the stream
+- Adding a custom view directly to the bottom of the Context Menu
+- Toggling of Make Public toggle
+- Child post label being on top of post card three dot menu
+- Weird reordering of custom views when editing
+- Avoid infinity scroll query trigger for calendar view
+
+## [6.4.7] - 2026-05-20
+
+### Added
+- Drafts! When creating or editing a post, chat, comment or direct message, we auto save drafts as you go and reload them when you come back to that same page/field. If you try to leave a post while editing it you will be asked if you want to save your draft or discard it. All saved drafts can be found in the new My Home -> My Drafts page.
+
+### Changed
+- When viewing a post outisde of a group context, closing it now goes back to last viewed group instead of opening up global nav menu in confusing way.
+- Refine what hylo links open in the android app
+- If the mobile app receives OIDC urls, redirect them to the browser
+
+### Fixed
+- Correctly load data when directly loading the Custom Views setting tab.
+- Wrapping of long links in post location field on post cards.
+- Display of DMs on iPad
+- Direct Messages with long strings overflowing the screen and causing horizontal scrollbars
+- Always scroll down to bottom of messages list when focusing on messages box on mobile
+
+## [6.4.6] - 2026-05-07
+
+### Added
+- Button on about page to copy a link to jump to the Agreements section of the about page
+- More sophisticated Link editing to post editor. Remove link becomes Edit Link. You can edit the text and link URL separately now.
+
+### Changed
+- Improve styling of the about page
+- About Widget only displays a group's purpose, not its full description in the group menu.
+- Change how we wrap text in posts so we now display full links instead of shortening them
+
+### Fixed
+- Use custom Action label everywhere in a track
+- Make calender picker easier to use on mobile
+- Avoid PostEditor autofocus on mobile web
+- iPad issues with keyboard covering comment input
+- Join questions were not always required when joining a group
+- Role badge not saving correctly in group settings
+- Make sure links like google.com (without https://) used in posts open correctly. They were opening up as internal Hylo posts
+
 ## [6.4.5] - 2026-04-15
 
 ### Changed

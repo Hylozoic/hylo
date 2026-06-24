@@ -39,11 +39,12 @@ export default function PostTitle ({
           <div className='flex items-center text-sm italic'>{t('Completed {{timestamp}}', { timestamp: DateTime.fromISO(post.fulfilledAt).toFormat('DD') })}</div>
         )}
         {location && (
-          <div className={cn('text-xs text-foreground/50 flex items-center gap-1', { [classes.constrained]: constrained, 'mb-2': type !== 'event' })}>
-            <Icon name='Location' className='w-4 h-4 text-foreground/50 text-xs' dataTestId='icon-Location' />
+          <div className={cn('text-xs text-foreground/50 flex min-w-0 items-start gap-1', { [classes.constrained]: constrained, 'mb-2': type !== 'event' })}>
+            <Icon name='Location' className='mt-px w-4 h-4 shrink-0 text-foreground/50 text-xs' dataTestId='icon-Location' />
             {looksLikeUrl
               ? (
                 <a
+                  className='min-w-0 break-words'
                   href={normalizedUrl}
                   target='_blank'
                   rel='noopener noreferrer'
@@ -52,7 +53,7 @@ export default function PostTitle ({
                   {generalLocation}
                 </a>
                 )
-              : generalLocation}
+              : <span className='min-w-0 break-words'>{generalLocation}</span>}
           </div>
         )}
       </>

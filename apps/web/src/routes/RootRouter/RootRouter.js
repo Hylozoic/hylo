@@ -1,8 +1,10 @@
 import mixpanel from 'mixpanel-browser'
+import { WebViewMessageTypes } from '@hylo/shared'
 import React, { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
-import config, { isProduction, isTest } from 'config/index'
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
+import { connectSocket } from 'client/websockets'
+import config, { debugCheckLogin, isProduction, isTest } from 'config/index'
 import Loading from 'components/Loading'
 import BootstrapShell from 'components/Skeleton/BootstrapShell'
 import NavigateWithParams from 'components/NavigateWithParams'
@@ -13,15 +15,36 @@ import OAuthLayoutRouter from 'routes/OAuth/OAuthLayoutRouter'
 import PublicLayoutRouter from 'routes/PublicLayoutRouter'
 import PublicGroupDetail from 'routes/PublicLayoutRouter/PublicGroupDetail'
 import PublicPostDetail from 'routes/PublicLayoutRouter/PublicPostDetail'
+import OfferingDetails from 'routes/OfferingDetails/OfferingDetails'
 import checkLogin from 'store/actions/checkLogin'
-import logout from 'store/actions/logout'
 import { getAuthorized } from 'store/selectors/getAuthState'
 import { getAuthSessionUnknown } from 'store/selectors/getAuthSession'
 import { sendMessageToWebView } from 'util/webView'
-import { WebViewMessageTypes } from '@hylo/shared'
 
-if (!isTest) {
+if (!isTest && config.mixpanel.token) {
   mixpanel.init(config.mixpanel.token, { debug: !isProduction })
+}
+
+// In the v2 mobile WebView, a failed auth check is almost always a transient cookie
+// desync (e.g. social-login resume), NOT a real logout. Ask native to re-establish
+// the session from its token and reload us, retrying a bounded number of times before
+// concluding the native session is genuinely gone.
+const MOBILE_REAUTH_ATTEMPTS_KEY = 'hyloMobileReauthAttempts'
+const MAX_MOBILE_REAUTH_ATTEMPTS = 3
+
+function readMobileReauthAttempts () {
+  try {
+    return parseInt(window.localStorage?.getItem(MOBILE_REAUTH_ATTEMPTS_KEY) || '0', 10) || 0
+  } catch (e) {
+    return 0
+  }
+}
+
+function writeMobileReauthAttempts (n) {
+  try {
+    if (n === 0) window.localStorage?.removeItem(MOBILE_REAUTH_ATTEMPTS_KEY)
+    else window.localStorage?.setItem(MOBILE_REAUTH_ATTEMPTS_KEY, String(n))
+  } catch (e) { /* storage unavailable — re-auth simply won't be bounded */ }
 }
 
 /**
@@ -38,6 +61,13 @@ function isNeutralRootSessionLoadingPath (pathname) {
   if (pathname.startsWith('/oauth/')) return true
   if (pathname === '/h/use-invitation') return true
   if (pathname.includes('/join/')) return true
+  // Single-segment paths that are not obvious “main app” entry slugs resolve to non-auth (e.g. → /login); avoid auth-shaped skeleton while checkLogin runs
+  const oneSeg = pathname.match(/^\/([^/]+)$/)
+  if (oneSeg) {
+    const slug = oneSeg[1]
+    const mainAppRootSlugs = new Set(['groups', 'all', 'my', 'members', 'post', 'public', 'oauth', 'h'])
+    if (!mainAppRootSlugs.has(slug)) return true
+  }
   return false
 }
 
@@ -52,12 +82,28 @@ export default function RootRouter () {
   // Routes will not be available until this check is complete.
   useEffect(() => {
     (async function () {
-      const action = await dispatch(checkLogin())
-      // If the server returns me: null the session/cookie is dead. Clear the
-      // persisted ORM (which may still have a stale Me row) so the app does not
-      // briefly appear authenticated on the next load before checkLogin resolves.
-      const me = action?.payload?.data?.me
-      if (!me) dispatch(logout())
+      const t0 = typeof performance !== 'undefined' ? performance.now() : Date.now()
+      try {
+        const action = await dispatch(checkLogin())
+        // If the server returns me: null the session/cookie is dead. The
+        // authSession reducer already records Anonymous from CHECK_LOGIN, so the
+        // separated auth state drives routing without dispatching logout here.
+        const me = action?.payload?.data?.me
+        if (debugCheckLogin) {
+          const ms = Math.round((typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0)
+          console.info('[Hylo checkLogin]', `${ms}ms`, { hasMe: !!me, pathname })
+        }
+        // Explicit `me: null` only — `undefined` has cleared valid sessions when the payload shape was wrong.
+        // XXXX: This breaks logging in production only. Why???
+        // if (me === null) dispatch(logout())
+      } catch (err) {
+        if (debugCheckLogin) {
+          const ms = Math.round((typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0)
+          console.info('[Hylo checkLogin]', `${ms}ms`, 'error', err?.message || err, { pathname })
+        }
+        // XXXX: This breaks logging in production only. Why???
+        // dispatch(logout())
+      }
     }())
 
     // For navigation to work from notifactions in the electron app
@@ -78,6 +124,33 @@ export default function RootRouter () {
     }
   }, [])
 
+  // Mobile WebView re-auth handshake. Once checkLogin has resolved:
+  // - authorized → reset the attempt counter (healthy session).
+  // - unauthorized inside the v2 WebView → ask native to re-mint the session from
+  //   its token and reload us (VERIFY_AUTH). After MAX attempts without success the
+  //   native session really is gone, so send LOGOUT to let native show its login UI.
+  // Non-mobile web is unaffected (window.HyloMobileV2 is undefined → falls through).
+  useEffect(() => {
+    if (isAuthSessionUnknown) return
+    if (!window.HyloMobileV2) return
+
+    if (isAuthorized) {
+      writeMobileReauthAttempts(0)
+      sendMessageToWebView(WebViewMessageTypes.AUTH_SUCCESS)
+      connectSocket()
+      return
+    }
+
+    const attempts = readMobileReauthAttempts()
+    if (attempts >= MAX_MOBILE_REAUTH_ATTEMPTS) {
+      writeMobileReauthAttempts(0)
+      sendMessageToWebView(WebViewMessageTypes.LOGOUT)
+      return
+    }
+    writeMobileReauthAttempts(attempts + 1)
+    sendMessageToWebView(WebViewMessageTypes.VERIFY_AUTH)
+  }, [isAuthSessionUnknown, isAuthorized])
+
   if (isAuthSessionUnknown) {
     if (isNeutralRootSessionLoadingPath(pathname)) {
       return <Loading type='fullscreen' />
@@ -94,16 +167,20 @@ export default function RootRouter () {
       </Routes>
     )
   }
-  // Safety net: never show the web login page inside the new mobile WebView.
-  // If the session expires or logout happens through any path, signal native to handle it.
+  // In the v2 mobile WebView, native owns auth (token-based) and is the source of truth.
+  // A passive auth-check miss here (e.g. a transient WebView cookie desync on resume) must
+  // NOT log the native app out. The effect above drives the recovery handshake (VERIFY_AUTH
+  // → native re-mints the session and reloads); we just render a neutral loading state while
+  // that round-trips, instead of the web login page.
   if (!isAuthorized && window.HyloMobileV2) {
-    sendMessageToWebView(WebViewMessageTypes.LOGOUT)
-    return null
+    return <Loading type='fullscreen' />
   }
 
   if (!isAuthorized) {
     return (
       <Routes>
+        <Route path='/' element={<Navigate to='/login' replace />} />
+
         <Route
           path='/public/*'
           element={<PublicLayoutRouter />}
@@ -132,6 +209,8 @@ export default function RootRouter () {
 
         {/* XXX: sending join page directly to JoinGroup, before all other group pages go to the public group detail */}
         <Route path='/groups/:groupSlug/join/:accessCode/*' element={<JoinGroup />} />
+        {/* Must be before `/groups/:groupSlug/*` → PublicGroupDetail so offering URLs resolve here */}
+        <Route path='/groups/:groupSlug/offerings/:offeringId' element={<OfferingDetails />} />
         <Route path='/groups/:groupSlug/*' element={<PublicGroupDetail />} />
 
         <Route path='*' element={<NonAuthLayoutRouter />} />

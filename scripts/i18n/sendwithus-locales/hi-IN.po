@@ -1,3 +1,22 @@
+# Refund Processed template strings
+#, python-format
+msgid "Refund Processed: %(offering_name)s"
+msgstr "रिफंड प्रोसेस हो गया: %(offering_name)s"
+
+msgid "Your refund has been processed successfully."
+msgstr "आपका रिफंड सफलतापूर्वक प्रोसेस हो गया है।"
+
+msgid "We've issued a refund for your purchase of "
+msgstr "हमने आपकी खरीद के लिए रिफंड जारी किया है: "
+
+msgid "Refund amount:"
+msgstr "रिफंड राशि:"
+
+msgid "Refund date:"
+msgstr "रिफंड तारीख:"
+
+msgid "If you have any questions, reply to this email or contact"
+msgstr "यदि आपके कोई प्रश्न हों, तो इस ईमेल का जवाब दें या संपर्क करें"
 # Translation file for SendWithUs templates
 # Language: hi-IN
 # Generated automatically
@@ -288,8 +307,8 @@ msgstr "सदस्यता रद्द करने या ईमेल स�
 msgid "No new search results"
 msgstr "कोई नया खोज नतीजा नहीं"
 
-msgid "Thank you for your generous donation of "
-msgstr "आपके उदार दान के लिए धन्यवाद "
+msgid "Thank you for your generous contribution of "
+msgstr "आपके उदार योगदान के लिए धन्यवाद "
 
 msgid " to Hylo!"
 msgstr " Hylo को!"
@@ -297,37 +316,37 @@ msgstr " Hylo को!"
 msgid "Your support helps us continue building tools for social coordination and community building."
 msgstr "आपका समर्थन सामाजिक समन्वय और समुदाय निर्माण के लिए टूल बनाने में मदद करता है।"
 
-msgid "Donation Date:"
-msgstr "दान की तारीख:"
+msgid "Contribution date:"
+msgstr "योगदान की तारीख:"
 
-msgid "Donation Type:"
-msgstr "दान का प्रकार:"
+msgid "Contribution type:"
+msgstr "योगदान का प्रकार:"
 
-msgid "Tax-Deductible Donation"
-msgstr "कर-कटौती योग्य दान"
+msgid "Tax-deductible contribution"
+msgstr "कर-कटौती योग्य योगदान"
 
 #, python-format
-msgid "Your donation is tax-deductible in the United States. Hylo is fiscally sponsored by %(fiscal_sponsor_name_var)s, a 501(c)(3) nonprofit organization."
-msgstr "आपका दान अमेरिका में कर-कटौती योग्य है। Hylo को %(fiscal_sponsor_name_var)s द्वारा वित्तीय प्रायोजन मिला है, एक 501(c)(3) गैर-लाभकारी संगठन।"
+msgid "Your contribution is tax-deductible in the United States. Hylo is fiscally sponsored by %(fiscal_sponsor_name_var)s, a 501(c)(3) nonprofit organization."
+msgstr "आपका योगदान अमेरिका में कर-कटौती योग्य है। Hylo को %(fiscal_sponsor_name_var)s द्वारा वित्तीय प्रायोजन मिला है, एक 501(c)(3) गैर-लाभकारी संगठन।"
 
-msgid "This is a recurring donation that will automatically repeat "
-msgstr "यह आवर्ती दान है जो अपने आप दोहराया जाएगा "
+msgid "This is a recurring contribution that will automatically repeat "
+msgstr "यह आवर्ती योगदान है जो अपने आप दोहराया जाएगा "
 
 msgid "."
 msgstr "."
 
-msgid "Next Donation:"
-msgstr "अगला दान:"
+msgid "Next contribution:"
+msgstr "अगला योगदान:"
 
-msgid "Manage Recurring Donation"
-msgstr "आवर्ती दान प्रबंधित करें"
+msgid "Manage recurring contribution"
+msgstr "आवर्ती योगदान प्रबंधित करें"
 
 #, python-format
-msgid "This donation was made as part of your %(purchase_context_var)s."
-msgstr "यह दान आपके %(purchase_context_var)s के हिस्से के रूप में किया गया।"
+msgid "This contribution was made as part of your %(purchase_context_var)s."
+msgstr "यह योगदान आपके %(purchase_context_var)s के हिस्से के रूप में किया गया।"
 
-msgid "Thank you for your donation to Hylo"
-msgstr "Hylo को दान के लिए धन्यवाद"
+msgid "Thank you for your contribution to Hylo"
+msgstr "Hylo को योगदान के लिए धन्यवाद"
 
 #, python-format
 msgid "%(subject)s"

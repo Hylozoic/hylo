@@ -1,4 +1,5 @@
 /* eslint-disable no-unused-expressions */
+import { randomUUID } from 'node:crypto'
 import jwt from 'jsonwebtoken'
 import { createRequestHandler, makeMutations, makeAuthenticatedQueries } from './index'
 import '../../test/setup'
@@ -263,6 +264,47 @@ describe('graphql request handler', () => {
         }
       })
     })
+
+    it('filters messageThreads by search (case-insensitive)', async () => {
+      await user2.save({ name: 'Jodie Crowe' }, { patch: true })
+      await message.save({ text: 'Hey Jodie!!' }, { patch: true })
+
+      const { executionResult: noMatch } = await handler.inject({
+        document: `{
+          me {
+            messageThreads(search: "zzznomatch") {
+              items { id }
+            }
+          }
+        }`,
+        serverContext: { req, res }
+      })
+      expect(noMatch.data.me.messageThreads.items).to.deep.equal([])
+
+      const { executionResult: byName } = await handler.inject({
+        document: `{
+          me {
+            messageThreads(search: "jodie") {
+              items { id }
+            }
+          }
+        }`,
+        serverContext: { req, res }
+      })
+      expect(byName.data.me.messageThreads.items).to.deep.equal([{ id: thread.id }])
+
+      const { executionResult: byMessage } = await handler.inject({
+        document: `{
+          me {
+            messageThreads(search: "hey jodie") {
+              items { id }
+            }
+          }
+        }`,
+        serverContext: { req, res }
+      })
+      expect(byMessage.data.me.messageThreads.items).to.deep.equal([{ id: thread.id }])
+    })
   })
 
   describe('querying Comment attachments', () => {
@@ -447,9 +489,11 @@ describe('graphql request handler', () => {
     })
 
     it('works', async () => {
+      // First 4 chars can be an English stop-word prefix (e.g. "withdraw…" → "with") and match nothing in FTS.
+      const searchTerm = post.get('name').trim().split(/\s+/)[0].replace(/\\/g, '\\\\').replace(/"/g, '\\"')
       const { response, executionResult } = await handler.inject({
         document: `{
-          search(term: "${post.get('name').substring(0, 4)}") {
+          search(term: "${searchTerm}", type: "post") {
             items {
               content {
                 __typename
@@ -484,8 +528,9 @@ describe('graphql request handler', () => {
     var skill1, skill2
 
     before(() => {
-      skill1 = factories.skill()
-      skill2 = factories.skill()
+      const suffix = randomUUID()
+      skill1 = factories.skill({ name: `graphql-remove-skill-a-${suffix}` })
+      skill2 = factories.skill({ name: `graphql-remove-skill-b-${suffix}` })
       return Promise.join(skill1.save(), skill2.save())
     })
 

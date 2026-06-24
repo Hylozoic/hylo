@@ -7,6 +7,7 @@ import pending from './pending'
 import locationHistory from './locationHistory'
 import resetStore from './resetStore'
 import mixpanel from './mixpanel'
+import myTransactions from './myTransactions'
 import queryResults from './queryResults'
 import { composeReducers, handleSetState } from './util'
 
@@ -22,12 +23,14 @@ import Messages from 'routes/Messages/Messages.store'
 import Members from 'routes/Members/Members.store'
 import MembershipRequests from 'routes/GroupSettings/MembershipRequestsTab/MembershipRequestsTab.store'
 import MemberSelector from 'components/MemberSelector/MemberSelector.store'
+import PaidContentTab from 'routes/GroupSettings/PaidContentTab/PaidContentTab.store'
 import RoleSettings from 'routes/GroupSettings/RolesSettingsTab/RolesSettingsTab.store'
 import PeopleTyping from 'components/PeopleTyping/PeopleTyping.store'
 import PostEditor from 'components/PostEditor/PostEditor.store'
 import AuthLayoutRouter from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import RelatedGroups from 'routes/GroupSettings/RelatedGroupsTab/RelatedGroupsTab.store'
 import SavedSearches from 'routes/UserSettings/UserSettings.store'
+import Search from 'routes/Search/Search.store'
 import SkillsSection from 'components/SkillsSection/SkillsSection.store'
 import SkillsToLearnSection from 'components/SkillsToLearnSection/SkillsToLearnSection.store'
 import TopicsSettings from 'routes/GroupSettings/TopicsSettingsTab/TopicsSettingsTab.store'
@@ -43,6 +46,7 @@ export const createCombinedReducers = routerReducer => combineReducers({
   queryResults,
   locationHistory,
   mixpanel,
+  myTransactions,
 
   // Local store (Component)
   // generator-marker-local-store-reducer
@@ -56,12 +60,14 @@ export const createCombinedReducers = routerReducer => combineReducers({
   Members,
   MemberSelector,
   Messages,
+  PaidContentTab,
   RoleSettings,
   PeopleTyping,
   AuthLayoutRouter,
   PostEditor,
   RelatedGroups,
   SavedSearches,
+  Search,
   SkillsSection,
   SkillsToLearnSection,
   TopicsSettings,

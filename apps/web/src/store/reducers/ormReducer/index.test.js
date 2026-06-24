@@ -495,6 +495,44 @@ describe('on UPDATE_POST_PENDING', () => {
     const attachments = newSession.Post.withId(postId).attachments.toModelArray()
     expect(attachments.length).toEqual(0)
   })
+
+  it('updates post details optimistically', () => {
+    const theNewDetails = 'updated chat message'
+    session.Post.withId(postId).update({ details: 'old message' })
+
+    const newState = ormReducer(session.state, {
+      type: UPDATE_POST_PENDING,
+      meta: {
+        id: postId,
+        data: {
+          details: theNewDetails,
+          editedAt: '2024-03-01T12:00:00.000Z'
+        }
+      }
+    })
+    const newSession = orm.session(newState)
+    const post = newSession.Post.withId(postId)
+    expect(post.details).toEqual(theNewDetails)
+    expect(post.editedAt).toEqual('2024-03-01T12:00:00.000Z')
+  })
+
+  it('does not clear topics when topicNames are not being updated', () => {
+    const topic = session.Topic.create({ id: 't1', name: 'general' })
+    session.Post.withId(postId).update({ topics: [topic.id] })
+
+    const newState = ormReducer(session.state, {
+      type: UPDATE_POST_PENDING,
+      meta: {
+        id: postId,
+        data: {
+          details: 'updated chat message'
+        }
+      }
+    })
+    const newSession = orm.session(newState)
+    const post = newSession.Post.withId(postId)
+    expect(post.topics.toModelArray().map(t => t.id)).toEqual(['t1'])
+  })
 })
 
 describe('on CREATE_GROUP', () => {

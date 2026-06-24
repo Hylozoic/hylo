@@ -411,6 +411,21 @@ export default {
       }
     },
 
+    markThreadUnread: (result, args, cache, info) => {
+      const updatedThread = result?.markThreadUnread
+      if (updatedThread?.id) {
+        cache.updateQuery({ query: meQuery }, ({ me }) => {
+          if (!me) return null
+          return {
+            me: {
+              ...me,
+              unseenThreadCount: (me.unseenThreadCount || 0) + 1
+            }
+          }
+        })
+      }
+    },
+
     recordClickthrough: (result, args, cache, info) => {
       if (result[info.fieldName].success) {
         const postId = args?.postId

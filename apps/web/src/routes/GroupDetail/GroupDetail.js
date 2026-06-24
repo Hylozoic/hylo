@@ -8,6 +8,7 @@ import { Tooltip } from 'react-tooltip'
 import { useSelector, useDispatch } from 'react-redux'
 import { TextHelpers, WebViewMessageTypes } from '@hylo/shared'
 import Avatar from 'components/Avatar'
+import BadgeEmoji from 'components/BadgeEmoji'
 import ClickCatcher from 'components/ClickCatcher'
 import FarmGroupDetailBody from 'components/FarmGroupDetailBody'
 import GroupAboutVideoEmbed from 'components/GroupAboutVideoEmbed'
@@ -19,6 +20,7 @@ import NotFound from 'components/NotFound'
 import { addSkill, removeSkill } from 'components/SkillsSection/SkillsSection.store'
 import JoinSection from './JoinSection'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
+import checkInvitation from 'store/actions/checkInvitation'
 import fetchGroupDetails from 'store/actions/fetchGroupDetails'
 import { FETCH_GROUP_DETAILS, RESP_ADMINISTRATION } from 'store/constants'
 import {
@@ -39,10 +41,12 @@ import useRouteParams from 'hooks/useRouteParams'
 import getMyMemberships from 'store/selectors/getMyMemberships'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
+import getRolesForGroup from 'store/selectors/getRolesForGroup'
 import fetchForCurrentUser from 'store/actions/fetchForCurrentUser'
 import { cn, inIframe } from 'util/index'
 import { groupUrl, personUrl, removeGroupFromUrl } from '@hylo/navigation'
-import { isLegacyWebView, sendMessageToWebView } from 'util/webView'
+import isWebView, { sendMessageToWebView } from 'util/webView'
+import getQuerystringParam from 'store/selectors/getQuerystringParam'
 
 import {
   createJoinRequest,
@@ -54,6 +58,37 @@ import g from './GroupDetail.module.scss'
 import m from '../MapExplorer/MapDrawer/MapDrawer.module.scss' // eslint-disable-line no-unused-vars
 
 const MAX_DETAILS_LENGTH = 144
+
+/** Renders a steward row with role emoji pills (tooltips match Membership / MemberProfile). */
+function StewardWithRoles ({ personId, name, avatarUrl, groupId, groupSlug }) {
+  const roles = useSelector(state => getRolesForGroup(state, { person: personId, groupId }))
+  const visibleRoles = useMemo(
+    () => roles.filter(role => role.common || role.active !== false),
+    [roles]
+  )
+
+  return (
+    <div className={g.steward}>
+      <Link to={personUrl(personId, groupSlug)} className={g.stewardMain}>
+        <Avatar avatarUrl={avatarUrl} medium className='shrink-0' />
+        <span className='text-foreground'>{name}</span>
+      </Link>
+      {visibleRoles.length > 0 && (
+        <div className={g.stewardRoles}>
+          {visibleRoles.map(role => (
+            <BadgeEmoji
+              key={`${groupId}-${personId}-${role.common ? 'c' : 'g'}-${role.id}`}
+              expanded
+              {...role}
+              responsibilities={role.responsibilities}
+              id={`${groupId}-${personId}-${role.common ? 'c' : 'g'}-${role.id}`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 function GroupDetail ({ forCurrentGroup = false }) {
   const dispatch = useDispatch()
@@ -75,18 +110,66 @@ function GroupDetail ({ forCurrentGroup = false }) {
   const responsibilityTitles = useMemo(() => responsibilities.map(r => r.title), [responsibilities])
   const pending = useSelector(state => state.pending[FETCH_GROUP_DETAILS])
 
+  // Read invitation params from URL (passed by JoinGroup redirect)
+  const accessCode = getQuerystringParam('accessCode', location)
+  const invitationToken = getQuerystringParam('token', location)
+
+  // For email invites, fetch the associated email and role from backend (not URL for security)
+  const [invitationEmail, setInvitationEmail] = useState(null)
+  const [invitationRole, setInvitationRole] = useState(null)
+  const [invitationChecked, setInvitationChecked] = useState(false)
+
+  useEffect(() => {
+    if (invitationToken && currentUser && !invitationChecked) {
+      (async () => {
+        const result = await dispatch(checkInvitation({ invitationToken }))
+        const checkResult = result?.payload?.data?.checkInvitation
+        if (checkResult?.email) {
+          setInvitationEmail(checkResult.email)
+        }
+        // Set invitation role from either commonRole or groupRole
+        if (checkResult?.commonRole) {
+          setInvitationRole(checkResult.commonRole)
+        } else if (checkResult?.groupRole) {
+          setInvitationRole(checkResult.groupRole)
+        }
+        setInvitationChecked(true)
+      })()
+    }
+  }, [invitationToken, currentUser, invitationChecked, dispatch])
+
+  // For email invites, validate that logged-in user's email matches the invitation email
+  const hasEmailInvite = !!(invitationToken && invitationEmail)
+  const userEmail = currentUser?.email?.toLowerCase()
+  const inviteEmailLower = invitationEmail?.toLowerCase()
+  const emailMismatch = hasEmailInvite && currentUser && userEmail !== inviteEmailLower
+
   const fetchGroup = useCallback(() => {
-    dispatch(fetchGroupDetails({ slug, withContextWidgets: false, withWidgets: true, withPrerequisites: !!currentUser }))
-  }, [dispatch, slug, currentUser])
+    dispatch(fetchGroupDetails({
+      slug,
+      accessCode,
+      invitationToken,
+      withContextWidgets: false,
+      withWidgets: true,
+      withPrerequisites: !!currentUser
+    }))
+  }, [dispatch, slug, accessCode, invitationToken, currentUser])
 
   const joinGroupHandler = useCallback(async (groupId, questionAnswers) => {
-    await dispatch(joinGroup(groupId, questionAnswers.map(q => ({ questionId: q.questionId, answer: q.answer }))))
-    if (isLegacyWebView()) {
+    // Pass acceptAgreements: true since user can only reach this point after accepting all barriers
+    await dispatch(joinGroup(
+      groupId,
+      questionAnswers.map(q => ({ questionId: q.questionId, answer: q.answer })),
+      accessCode,
+      invitationToken,
+      true // acceptAgreements - user accepted during join flow
+    ))
+    if (isWebView()) {
       sendMessageToWebView(WebViewMessageTypes.JOINED_GROUP, { groupSlug: group.slug })
     } else {
       navigate(groupUrl(group.slug))
     }
-  }, [dispatch, group])
+  }, [dispatch, group, accessCode, invitationToken])
 
   const requestToJoinGroup = useCallback((groupId, questionAnswers) => {
     dispatch(createJoinRequest(groupId, questionAnswers.map(q => ({ questionId: q.questionId, answer: q.answer }))))
@@ -119,7 +202,7 @@ function GroupDetail ({ forCurrentGroup = false }) {
 
   useEffect(() => {
     fetchGroup()
-  }, [group?.id])
+  }, [fetchGroup])
 
   const closeDetailModal = () => {
     const newUrl = removeGroupFromUrl(window.location.pathname)
@@ -137,6 +220,30 @@ function GroupDetail ({ forCurrentGroup = false }) {
 
   if (!group && !pending) return <NotFound />
   if (!group && pending) return <Loading />
+
+  // Wait for invitation check to complete before showing content (for email invites)
+  if (invitationToken && currentUser && !invitationChecked) return <Loading />
+
+  // Show error if email invite doesn't match logged-in user's email
+  if (emailMismatch) {
+    return (
+      <div className='flex flex-col items-center justify-center min-h-[400px] p-8 text-center'>
+        <Icon name='AlertTriangle' className='w-16 h-16 text-warning mb-4' />
+        <h2 className='text-xl font-bold text-foreground mb-2'>
+          {t('This invitation is not for your account')}
+        </h2>
+        <p className='text-foreground/70 mb-4'>
+          {t('This invitation was sent to {{email}}. You are currently logged in as {{userEmail}}.', {
+            email: invitationEmail,
+            userEmail: currentUser?.email
+          })}
+        </p>
+        <p className='text-foreground/70 text-sm'>
+          {t('Please log in with the correct account or request a new invitation.')}
+        </p>
+      </div>
+    )
+  }
 
   const groupsWithPendingRequests = keyBy(joinRequests, 'group.id')
 
@@ -189,20 +296,24 @@ function GroupDetail ({ forCurrentGroup = false }) {
         {isAboutCurrentGroup || group.type === GROUP_TYPES.farm
           ? (
             <div className='border-2 border-dashed border-foreground/20 rounded-xl p-4 mb-4'>
-              <h3>{group.stewardDescriptorPlural || t('Stewards')}</h3>
+              <h3 className='text-xl font-bold py-2'>{group.stewardDescriptorPlural || t('Stewards')}</h3>
               <div className={g.stewards}>
                 {stewards.map(p => (
-                  <Link to={personUrl(p.id, group.slug)} key={p.id} className={g.steward}>
-                    <Avatar avatarUrl={p.avatarUrl} medium className='mx-1' />
-                    <span>{p.name}</span>
-                  </Link>
+                  <StewardWithRoles
+                    key={p.id}
+                    personId={p.id}
+                    name={p.name}
+                    avatarUrl={p.avatarUrl}
+                    groupId={group.id}
+                    groupSlug={group.slug}
+                  />
                 ))}
               </div>
             </div>
             )
           : ''}
         <div className='border-2 border-dashed border-foreground/20 rounded-xl p-4 mb-4'>
-          <h3>{t('Privacy settings')}</h3>
+          <h3 className='text-xl font-bold py-2'>{t('Privacy settings')}</h3>
           <div className='flex flex-row gap-2 items-center'>
             <Icon name={visibilityIcon(group.visibility)} className={g.settingIcon} />
             <p>{t(visibilityString(group.visibility))} - {t(visibilityDescription(group.visibility))}</p>
@@ -217,10 +328,10 @@ function GroupDetail ({ forCurrentGroup = false }) {
             <div
               ref={agreementsSectionRef}
               id='agreements'
-              className='border-2 border-dashed border-foreground/20 rounded-xl p-4'
+              className='border-2 border-dashed border-foreground/20 rounded-xl p-4 mb-4'
             >
               <div className='flex flex-row flex-wrap items-center justify-between gap-2 gap-y-1 mb-2'>
-                <h2 className='m-0'>{t('Agreements')}</h2>
+                <h2 className='m-0 text-xl font-bold py-2'>{t('Agreements')}</h2>
                 <button
                   type='button'
                   className='inline-flex items-center gap-1.5 text-sm rounded-lg border-2 border-foreground/20 px-2 py-1 hover:border-foreground/50 transition-all hover:cursor-pointer bg-card text-foreground shrink-0'
@@ -244,36 +355,58 @@ function GroupDetail ({ forCurrentGroup = false }) {
             </div>)
           : ''}
         {!isAboutCurrentGroup
-          ? !currentUser
-              ? (
-                <div className={g.signupButton}>
-                  <Link to={'/login?returnToUrl=' + location.pathname} target={inIframe() ? '_blank' : ''} className={g.requestButton}>
-                    {t('Signup or Login to connect with')}{' '}
-                    <span className={g.requestGroup}>{group.name}</span>
-                  </Link>
-                </div>)
-              : isMember
+          ? group.paywall
+            ? (
+              <div>
+                <JoinSection
+                  accessCode={accessCode}
+                  addSkill={addSkill}
+                  currentUser={currentUser}
+                  fullPage={fullPage}
+                  group={group}
+                  groupsWithPendingRequests={groupsWithPendingRequests}
+                  invitationRole={invitationRole}
+                  invitationToken={invitationToken}
+                  joinGroup={joinGroupHandler}
+                  requestToJoinGroup={requestToJoinGroup}
+                  removeSkill={removeSkill}
+                  routeParams={routeParams}
+                  t={t}
+                />
+              </div>)
+            : !currentUser
                 ? (
-                  <div className={g.existingMember}>
-                    {t('You are a member of ')}
-                    <Link to={groupUrl(group.slug)}>{group.name}</Link>
+                  <div className={g.signupButton}>
+                    <Link to={'/login?returnToUrl=' + location.pathname} target={inIframe() ? '_blank' : ''} className={g.requestButton}>
+                      {t('Signup or Login to connect with')}{' '}
+                      <span className={g.requestGroup}>{group.name}</span>
+                    </Link>
                   </div>)
-                : (
-                  <div>
-                    <JoinSection
-                      addSkill={addSkill}
-                      currentUser={currentUser}
-                      fullPage={fullPage}
-                      group={group}
-                      groupsWithPendingRequests={groupsWithPendingRequests}
-                      joinGroup={joinGroupHandler}
-                      requestToJoinGroup={requestToJoinGroup}
-                      removeSkill={removeSkill}
-                      routeParams={routeParams}
-                      t={t}
-                    />
-                  </div>
-                  )
+                : isMember
+                  ? (
+                    <div className={g.existingMember}>
+                      {t('You are a member of ')}
+                      <Link to={groupUrl(group.slug)}>{group.name}</Link>
+                    </div>)
+                  : (
+                    <div>
+                      <JoinSection
+                        accessCode={accessCode}
+                        addSkill={addSkill}
+                        currentUser={currentUser}
+                        fullPage={fullPage}
+                        group={group}
+                        groupsWithPendingRequests={groupsWithPendingRequests}
+                        invitationRole={invitationRole}
+                        invitationToken={invitationToken}
+                        joinGroup={joinGroupHandler}
+                        requestToJoinGroup={requestToJoinGroup}
+                        removeSkill={removeSkill}
+                        routeParams={routeParams}
+                        t={t}
+                      />
+                    </div>
+                    )
           : ''}
       </div>
       <Tooltip
@@ -299,14 +432,14 @@ function GroupDetail ({ forCurrentGroup = false }) {
 const defaultGroupBody = ({ group, isAboutCurrentGroup, responsibilityTitles, t }) => {
   return (
     <>
-      {isAboutCurrentGroup && group.aboutVideoUri && (
+      {group.aboutVideoUri && (
         <GroupAboutVideoEmbed uri={group.aboutVideoUri} className={g.groupAboutVideo} />
       )}
       {isAboutCurrentGroup && (!group.purpose && !group.description) && responsibilityTitles.includes(RESP_ADMINISTRATION)
         ? (
           <div className={g.noDescription}>
             <div>
-              <h4>{t('Your group doesn\'t have a purpose or description')}</h4>
+              <h4 className='text-xl font-bold py-2'>{t('Your group doesn\'t have a purpose or description')}</h4>
               <p>{t('Add a purpose, description, location, and more in your group settings')}</p>
               <Link to={groupUrl(group.slug, 'settings')}>{t('Add a group description')}</Link>
             </div>
@@ -318,7 +451,7 @@ const defaultGroupBody = ({ group, isAboutCurrentGroup, responsibilityTitles, t 
               {group.purpose
                 ? (
                   <>
-                    <h3>{t('Purpose')}</h3>
+                    <h3 className='text-xl font-bold py-2'>{t('Purpose')}</h3>
                     <ClickCatcher>
                       <HyloHTML element='span' html={TextHelpers.markdown(group.purpose)} />
                     </ClickCatcher>
@@ -328,7 +461,7 @@ const defaultGroupBody = ({ group, isAboutCurrentGroup, responsibilityTitles, t 
               {group.description
                 ? (
                   <>
-                    <h3>{t('Description')}</h3>
+                    <h3 className='text-xl font-bold py-2'>{t('Description')}</h3>
                     <ClickCatcher>
                       <HyloHTML element='span' html={TextHelpers.markdown(group.description)} />
                     </ClickCatcher>
@@ -338,7 +471,7 @@ const defaultGroupBody = ({ group, isAboutCurrentGroup, responsibilityTitles, t 
               {group.websiteUrl
                 ? (
                   <>
-                    <h3>{t('Website')}</h3>
+                    <h3 className='text-xl font-bold py-2'>{t('Website')}</h3>
                     <a href={TextHelpers.sanitizeURL(group.websiteUrl)} target='_blank' rel='noopener noreferrer'>{group.websiteUrl}</a>
                   </>
                   )

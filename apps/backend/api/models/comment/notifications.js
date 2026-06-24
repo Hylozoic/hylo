@@ -3,6 +3,7 @@ import { URL } from 'url'
 import { compact, some, sum, uniq } from 'lodash/fp'
 import { DateTimeHelpers, TextHelpers } from '@hylo/shared'
 import { mapLocaleToSendWithUS } from '../../../lib/util'
+import { senderNameViaHylo } from '../../../lib/email/senderNameViaHylo'
 import RedisClient from '../../services/RedisClient'
 import { getLocaleStrings } from '../../../lib/i18n/locales'
 const MAX_PUSH_NOTIFICATION_LENGTH = 140
@@ -119,7 +120,7 @@ export const sendDigests = async () => {
             participant_avatars: otherAvatarUrls[0],
             participant_names: participantNames,
             other_names: otherNames,
-            thread_url: Frontend.Route.thread(post) + clickthroughParams,
+            thread_url: Frontend.appendQueryString(Frontend.Route.thread(post), clickthroughParams),
             messages: filtered.map(presentComment)
           },
           sender: {
@@ -149,8 +150,8 @@ export const sendDigests = async () => {
             date: DateTimeHelpers.formatDatePair({ start: filtered[0].get('created_at'), timezone: post.get('timezone') }),
             email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, user),
             post_title: post.summary(),
-            post_creator_avatar_url: post.relations.user.get('avatar_url') + clickthroughParams,
-            thread_url: Frontend.Route.comment({ comment: filtered[0], group: routeGroup, post }) + clickthroughParams,
+            post_creator_avatar_url: Frontend.appendQueryString(post.relations.user.get('avatar_url'), clickthroughParams),
+            thread_url: Frontend.appendQueryString(Frontend.Route.comment({ comment: filtered[0], group: routeGroup, post }), clickthroughParams),
             comments: commentData,
             subject_prefix: some(hasMention, commentData)
               ? 'You were mentioned in'
@@ -158,7 +159,7 @@ export const sendDigests = async () => {
           },
           sender: {
             reply_to: Email.postReplyAddress(post.id, user.id),
-            name: routeGroup ? `${routeGroup.get('name')} (via Hylo)` : getLocaleStrings(locale).theTeamAtHylo
+            name: routeGroup ? senderNameViaHylo(routeGroup.get('name'), locale) : getLocaleStrings(locale).theTeamAtHylo
           }
         })
       }

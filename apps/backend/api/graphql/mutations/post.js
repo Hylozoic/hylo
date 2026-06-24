@@ -2,6 +2,7 @@ import { GraphQLError } from 'graphql'
 import validatePostData from '../../models/post/validatePostData'
 import underlyingCreatePost from '../../models/post/createPost'
 import underlyingUpdatePost from '../../models/post/updatePost'
+import { deletePostDraftForCreate } from './draft'
 
 export async function completePost (userId, postId, completionResponse) {
   const post = await Post.find(postId)
@@ -18,7 +19,15 @@ export async function completePost (userId, postId, completionResponse) {
 export function createPost (userId, data) {
   return convertGraphqlPostData(data)
     .tap(convertedData => validatePostData(userId, convertedData))
-    .then(validatedData => underlyingCreatePost(userId, validatedData))
+    .then(async validatedData => {
+      const createdPost = await underlyingCreatePost(userId, validatedData)
+      await deletePostDraftForCreate(userId, {
+        groupId: validatedData.group_ids?.[0],
+        topicName: validatedData.type === 'chat' ? validatedData.topicNames?.[0] : null,
+        postType: validatedData.type || null
+      })
+      return createdPost
+    })
 }
 
 export function deletePost (userId, postId) {

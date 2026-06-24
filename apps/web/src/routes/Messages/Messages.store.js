@@ -9,6 +9,7 @@ import {
   FETCH_THREAD,
   FETCH_THREADS,
   UPDATE_THREAD_READ_TIME,
+  MARK_THREAD_UNREAD,
   CREATE_MESSAGE,
   FIND_OR_CREATE_THREAD
 } from 'store/constants'
@@ -18,6 +19,7 @@ import FindOrCreateThreadMutation from '@graphql/mutations/FindOrCreateThreadMut
 import CreateMessageMutation from '@graphql/mutations/CreateMessageMutation'
 import MessageThreadQuery from '@graphql/queries/MessageThreadQuery'
 import MessageThreadMessagesQuery from '@graphql/queries/MessageThreadMessagesQuery'
+import MarkThreadUnreadMutation from '@graphql/mutations/MarkThreadUnreadMutation'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import filterDeletedUsers from 'util/filterDeletedUsers'
 
@@ -181,6 +183,20 @@ export function updateThreadReadTime (id) {
   }
 }
 
+export function markThreadUnread (id) {
+  return {
+    type: MARK_THREAD_UNREAD,
+    graphql: {
+      query: MarkThreadUnreadMutation,
+      variables: { messageThreadId: id }
+    },
+    meta: {
+      id,
+      extractModel: 'MessageThread'
+    }
+  }
+}
+
 // Selectors
 
 export const getParticipantsFromQuerystring = ormCreateSelector(
@@ -278,21 +294,22 @@ export const getCurrentMessageThread = ormCreateSelector(
   }
 )
 
-export const getThreadResults = makeGetQueryResults(FETCH_THREADS)
+export const getThreadResults = (state) => {
+  const search = getThreadSearch(state)
+  return makeGetQueryResults(FETCH_THREADS)(state, search ? { search } : {})
+}
 
 export const getThreadsHasMore = createSelector(getThreadResults, get('hasMore'))
 
 export const getThreads = ormCreateSelector(
   orm,
-  getThreadSearch,
   getThreadResults,
-  (session, threadSearch, searchResults) => {
+  (session, searchResults) => {
     if (isEmpty(searchResults) || isEmpty(searchResults.ids)) return []
     return session.MessageThread.all()
       .orderBy(thread => -new Date(thread.updatedAt))
       .toModelArray()
       .filter(thread => includes(thread.id, searchResults.ids))
-      .filter(filterThreadsByParticipant(threadSearch))
   }
 )
 

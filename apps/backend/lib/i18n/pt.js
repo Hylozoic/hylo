@@ -10,6 +10,7 @@ exports.pt = {
   Group: () => 'Grupo',
   emailDigestDailySubject: (name) => `Seu resumo diário de ${name}`,
   emailDigestWeeklySubject: (name) => `Seu resumo semanal de ${name}`,
+  emailSenderViaHyloSuffix: () => ' (via Hylo)',
   groupCreatedNotifySubject: (name) => `Novo grupo Hylo criado: ${name}`,
   fundingRoundTransitionButtonText: ({ phase }) => {
     const buttonTextMessages = {
@@ -90,5 +91,12 @@ exports.pt = {
     }
     return `${reminderMessages[reminderType] || 'Prazo se aproximando'}`
   },
-  theTeamAtHylo: 'A equipe Hylo'
+  theTeamAtHylo: 'A equipe Hylo',
+  stripeContributionProductName: () => 'Escolha sua contribuição para a Hylo',
+  stripeContributionProductDescription: () => 'Escolha o nível da sua contribuição para apoiar a plataforma Hylo.',
+  stripeSlidingScaleUnitProductName: ({ currency }) => `Defina o valor da sua contribuição (unidades ${currency})`,
+  stripeSlidingScaleUnitProductDescription: () => 'Ajuste a quantidade para escolher o valor da sua contribuição.',
+  donationTaxReceiptInfo: () => '',
+  donationImpactMessage: () => 'Sua contribuição ajuda a sustentar a plataforma Hylo e nossa missão de permitir melhor coordenação e colaboração em comunidades no mundo todo.',
+  donationRecurringImpactMessage: () => 'Sua contribuição recorrente ajuda a sustentar a plataforma Hylo e nossa missão de permitir melhor coordenação e colaboração em comunidades no mundo todo.'
 }

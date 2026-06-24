@@ -2,6 +2,7 @@ import React, { useRef, useCallback, useState, useEffect } from 'react'
 import { View, StatusBar } from 'react-native'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { WebViewMessageTypes } from '@hylo/shared'
+import { version as hyloAppVersion } from '../../../package.json'
 import { isIOS } from 'util/platform'
 import HyloWebView from 'components/HyloWebView'
 import Loading from 'components/Loading'
@@ -168,65 +169,55 @@ export default function PrimaryWebView() {
     return null
   }
 
-  // Show loading only on the very first render before we've ever resolved a user.
-  // After that, keep the WebView mounted — the web app's RootRouter LOGOUT guard handles
-  // session expiry by sending a LOGOUT message back to native.
-  if (!hasLoadedUser.current && (fetchingUser || !currentUser)) {
-    return (
-      <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor, paddingBottom: bottomInset }} edges={safeAreaEdges}>
-        <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
-        <Loading size='large' />
-      </SafeAreaView>
-    )
-  }
-
   // Show error screen if WebView failed to load due to network issues
   if (webViewError && (!isConnected || !isInternetReachable)) {
     return (
       <NoInternetConnection 
         onRetry={() => {
-          // Clear error and reload WebView
           setWebViewError(null)
           setIsWebViewLoading(true)
-          // WebView will reload when component re-renders
         }} 
       />
     )
   }
 
+  // Single loading overlay covers the full sequence:
+  //   1. auth loading (waiting for currentUser)
+  //   2. cookie bridge resolution (HyloWebView renders null while getting session cookie)
+  //   3. WebView page loading
+  // This replaces the previous three separate loading states that caused visible flashes.
+  const showLoadingOverlay = !hasLoadedUser.current || isWebViewLoading
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor, paddingBottom: bottomInset }} edges={safeAreaEdges}>
       <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
-      {isWebViewLoading && (
-        <View style={{ 
-          position: 'absolute', 
-          top: 0, 
-          left: 0, 
-          right: 0, 
-          bottom: 0, 
-          justifyContent: 'center', 
+      {showLoadingOverlay && (
+        <View style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          justifyContent: 'center',
           alignItems: 'center',
-          zIndex: 1
+          zIndex: 1,
+          backgroundColor
         }}>
           <Loading size='large' />
         </View>
       )}
-      <HyloWebView
-        ref={webViewRef}
-        path={webViewPath}
-        messageHandler={messageHandler}
-        onLoadEnd={handleLoadEnd}
-        onError={handleError}
-        onHttpError={handleHttpError}
-        // NOTE: Pull-to-refresh is handled on the web side via usePullToRefresh hook
-        // Native pull-to-refresh doesn't work with AutoHeightWebView because:
-        // - AutoHeightWebView manages its own height based on content
-        // - Scrolling happens INSIDE the WebView (CSS/JS), not via native ScrollView
-        // - Native pull-to-refresh needs to detect when native scroll reaches top
-        // enablePullToRefresh={true}
-        enableScrolling={true}
-      />
+      {hasLoadedUser.current && currentUser && (
+        <HyloWebView
+          ref={webViewRef}
+          path={webViewPath}
+          mobileAppVersion={hyloAppVersion}
+          messageHandler={messageHandler}
+          onLoadEnd={handleLoadEnd}
+          onError={handleError}
+          onHttpError={handleHttpError}
+          enableScrolling
+        />
+      )}
     </SafeAreaView>
   )
 }
-

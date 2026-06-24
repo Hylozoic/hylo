@@ -9,11 +9,13 @@ import {
   CREATE_JOIN_REQUEST,
   CREATE_MESSAGE,
   CREATE_MESSAGE_PENDING,
+  CREATE_POST,
   CREATE_MODERATION_ACTION_PENDING,
   CREATE_POST_PENDING,
   CREATE_PROJECT_PENDING,
   CREATE_CONTEXT_WIDGET,
   CREATE_CONTEXT_WIDGET_PENDING,
+  DELETE_DRAFT,
   DELETE_COMMENT_PENDING,
   DELETE_CONTEXT_WIDGET_PENDING,
   DELETE_GROUP_RELATIONSHIP,
@@ -21,6 +23,7 @@ import {
   FETCH_GROUP_DETAILS_PENDING,
   FETCH_MESSAGES_PENDING,
   FETCH_GROUP_CHAT_ROOMS,
+  FETCH_MY_DRAFTS,
   INVITE_CHILD_TO_JOIN_PARENT_GROUP,
   INVITE_PEER_RELATIONSHIP,
   JOIN_PROJECT_PENDING,
@@ -33,6 +36,8 @@ import {
   REJECT_GROUP_RELATIONSHIP_INVITE,
   REMOVE_REACT_ON_COMMENT_PENDING,
   REMOVE_REACT_ON_POST_PENDING,
+  REMOVE_DRAFT,
+  REMOVE_DRAFT_BY_CONTEXT,
   REMOVE_POST_PENDING,
   REMOVE_PROPOSAL_VOTE_PENDING,
   REQUEST_FOR_CHILD_TO_JOIN_PARENT_GROUP,
@@ -49,6 +54,7 @@ import {
   UPDATE_POST,
   UPDATE_POST_PENDING,
   UPDATE_THREAD_READ_TIME,
+  MARK_THREAD_UNREAD,
   UPDATE_USER_SETTINGS_PENDING as UPDATE_USER_SETTINGS_GLOBAL_PENDING,
   UPDATE_WIDGET,
   USE_INVITATION,
@@ -107,6 +113,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
 
   const {
     Comment,
+    Draft,
     EventInvitation,
     Group,
     GroupRelationship,
@@ -128,10 +135,33 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
   } = session
 
   if (payload && !isPromise(payload) && meta && meta.extractModel) {
+    if (type === FETCH_MY_DRAFTS && meta.replaceAllDrafts) {
+      Draft.all().toModelArray().forEach(draft => draft.delete())
+    }
     extractModelsFromAction(action, session)
   }
 
   let me, membership, group, person, post, comment, groupTopic, topicFollow
+  const sameId = (a, b) => String(a || '') === String(b || '')
+  const isNil = value => value === null || value === undefined || value === ''
+  const matchesDraftContext = (draft, context) => {
+    if (context.type && draft.type !== context.type) return false
+
+    if (context.type === 'post') {
+      const draftIsEdit = !!draft.isEdit
+      if (!!context.isEdit !== draftIsEdit) return false
+      if (draftIsEdit) return sameId(draft.postId, context.postId)
+      if (!sameId(draft.groupId, context.groupId)) return false
+      if (isNil(context.topicId)) return isNil(draft.topicId)
+      if (!sameId(draft.topicId, context.topicId)) return false
+      if (context.postType) return draft.postType === context.postType
+      return isNil(draft.postType)
+    }
+
+    if (context.type === 'comment') return sameId(draft.postId, context.postId)
+    if (context.type === 'message') return sameId(draft.messageThreadId, context.messageThreadId)
+    return false
+  }
 
   switch (type) {
     case ACCEPT_GROUP_RELATIONSHIP_INVITE: {
@@ -218,6 +248,9 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         p.update({ commentersTotal: p.commentersTotal + 1 }) // TODO: this should only update if we're a new commenter
         p.update({ commentsTotal: p.commentsTotal + 1 })
       }
+      Draft.all().toModelArray()
+        .filter(d => matchesDraftContext(d, { type: 'comment', postId: meta.postId }))
+        .forEach(d => d.delete())
       break
     }
 
@@ -259,6 +292,9 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       Message.withId(meta.tempId).delete()
       const message = payload.data.createMessage
       MessageThread.withId(message.messageThread.id).newMessageReceived()
+      Draft.all().toModelArray()
+        .filter(d => matchesDraftContext(d, { type: 'message', messageThreadId: message.messageThread.id }))
+        .forEach(d => d.delete())
       break
     }
 
@@ -341,6 +377,25 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       break
     }
 
+    case CREATE_POST: {
+      const createdPost = payload?.data?.createPost
+      if (!createdPost) break
+      const createdType = createdPost.type
+      const createdGroupId = createdPost.groups?.[0]?.id || meta?.groupIds?.[0] || meta?.groupId
+      const createdTopicId = createdType === 'chat' ? createdPost.topics?.[0]?.id : null
+
+      Draft.all().toModelArray()
+        .filter(d => matchesDraftContext(d, {
+          type: 'post',
+          groupId: createdGroupId,
+          topicId: createdTopicId,
+          postType: createdType,
+          isEdit: false
+        }))
+        .forEach(d => d.delete())
+      break
+    }
+
     case CREATE_CONTEXT_WIDGET_PENDING: {
       const group = Group.withId(meta.groupId)
       const allWidgets = group.contextWidgets.items
@@ -369,6 +424,22 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     case DELETE_COMMENT_PENDING: {
       comment = Comment.withId(meta.id)
       comment.delete()
+      break
+    }
+
+    case DELETE_DRAFT:
+    case REMOVE_DRAFT: {
+      if (meta?.id && Draft.idExists(meta.id)) {
+        Draft.withId(meta.id).delete()
+      }
+      break
+    }
+
+    case REMOVE_DRAFT_BY_CONTEXT: {
+      const drafts = Draft.all().toModelArray()
+      drafts
+        .filter(d => matchesDraftContext(d, meta || {}))
+        .forEach(d => d.delete())
       break
     }
 
@@ -490,10 +561,18 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
 
     case INVITE_PEOPLE_TO_EVENT_PENDING: {
       meta.inviteeIds.forEach(inviteeId => {
-        EventInvitation.create({
-          event: meta.eventId,
-          person: inviteeId
-        })
+        const alreadyInvited = EventInvitation.all()
+          .toModelArray()
+          .some(ei =>
+            sameId(ei.event?.id ?? ei.event, meta.eventId) &&
+            sameId(ei.person?.id ?? ei.person, inviteeId)
+          )
+        if (!alreadyInvited) {
+          EventInvitation.create({
+            event: meta.eventId,
+            person: inviteeId
+          })
+        }
       })
       clearCacheFor(Post, meta.eventId)
       break
@@ -922,7 +1001,11 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       // deleting all attachments and removing topics here because we restore them from the result of the UPDATE_POST action
       post = Post.withId(meta.id)
       post.attachments.toModelArray().map(a => a.delete())
-      post.update({ topics: [] })
+      const updates = { ...(meta.data || {}) }
+      if (meta.topicNames !== undefined) {
+        updates.topics = []
+      }
+      post.update(updates)
       break
     }
 
@@ -932,6 +1015,20 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         unseenThreadCount: Math.max(0, me.unseenThreadCount - 1)
       })
       MessageThread.withId(meta.id).markAsRead()
+      break
+    }
+
+    case MARK_THREAD_UNREAD: {
+      if (payload?.api) {
+        const thread = MessageThread.withId(meta.id)
+        if (thread && thread.unreadCount === 0) {
+          me = Me.first()
+          me.update({
+            unseenThreadCount: (me.unseenThreadCount || 0) + 1
+          })
+        }
+        thread?.markAsUnread()
+      }
       break
     }
 

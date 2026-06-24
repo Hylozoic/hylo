@@ -1,8 +1,8 @@
 import isMobile from 'ismobilejs'
-import React, { useRef, useCallback, useState, useEffect } from 'react'
+import React, { useRef, useCallback, useEffect, useState, useImperativeHandle, forwardRef } from 'react'
 import { throttle, isEmpty } from 'lodash/fp'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { SendHorizontal } from 'lucide-react'
 import { sendIsTyping } from 'client/websockets'
 import AttachmentManager from 'components/AttachmentManager'
@@ -17,23 +17,47 @@ import getMe from 'store/selectors/getMe'
 import { cn, inIframe } from 'util/index'
 import { STARTED_TYPING_INTERVAL } from 'util/constants'
 import { useSelector, useDispatch } from 'react-redux'
+import useDraft, { hasDraftContent } from 'hooks/useDraft'
 import { isMobileDevice } from 'util/mobile'
 
 import classes from './CommentForm.module.scss'
 
-function CommentForm ({
+const CommentForm = forwardRef(function CommentForm ({
   createComment,
   className,
   placeholder,
   editorContent,
   postId
-}) {
+}, ref) {
   const { t } = useTranslation()
   const editor = useRef()
   const dispatch = useDispatch()
+  const location = useLocation()
+  const { pathname } = location
+
+  const { loadedData, isLoaded, saveDraft, flushSaveDraft, clearDraft } = useDraft({
+    type: 'comment',
+    postId,
+    navigateTo: pathname,
+    debounceMs: 1000,
+    skip: !postId
+  })
+
+  const draftRef = useRef(editorContent || '')
+
+  /**
+   * HyloEditor resets the whole document whenever `contentHTML` changes. `loadedData` updates
+   * after each debounced save (often with normalized HTML), which was wiping trailing spaces /
+   * the last few characters while the user kept typing. Cache the first resolved HTML per post
+   * and only use that for the prop — not live `loadedData` after saves.
+   */
+  const commentEditorInitialHtmlRef = useRef({ postId: null, html: null })
+
   const [isFocused, setIsFocused] = useState(false)
   const hasUserInteracted = useRef(false)
   const mountTime = useRef(Date.now())
+  /** True after the editor has had visible text this visit — delete server draft when cleared. */
+  const commentComposerHadContentRef = useRef(false)
 
   const currentUser = useSelector(getMe)
   const attachments = useSelector(
@@ -43,6 +67,31 @@ function CommentForm ({
   const sendIsTypingAction = useCallback((isTyping) => sendIsTyping(postId, isTyping), [postId])
   const addAttachmentAction = useCallback(attachment => dispatch(addAttachment('comment', 'new', attachment)), [dispatch])
   const clearAttachmentsAction = useCallback(() => dispatch(clearAttachments('comment')), [dispatch])
+
+  useEffect(() => {
+    commentComposerHadContentRef.current = false
+  }, [postId])
+
+  const hyloContentHTML = (() => {
+    if (editorContent) return editorContent
+    if (!isLoaded) return ''
+    if (commentEditorInitialHtmlRef.current.postId !== postId) {
+      commentEditorInitialHtmlRef.current = { postId, html: null }
+    }
+    if (commentEditorInitialHtmlRef.current.html === null) {
+      commentEditorInitialHtmlRef.current.html = loadedData || ''
+    }
+    return commentEditorInitialHtmlRef.current.html
+  })()
+
+  useEffect(() => {
+    if (!isLoaded) return
+    const draft = editorContent ?? commentEditorInitialHtmlRef.current.html ?? ''
+    draftRef.current = draft
+    if (editor.current) {
+      editor.current.setContent(draft)
+    }
+  }, [editorContent, isLoaded, postId])
 
   const startTyping = useCallback(throttle(STARTED_TYPING_INTERVAL, () => {
     sendIsTypingAction(true)
@@ -59,9 +108,29 @@ function CommentForm ({
     sendIsTypingAction(false)
     createComment({ text: contentHTML, attachments })
     clearAttachmentsAction()
+    draftRef.current = ''
+    commentComposerHadContentRef.current = false
+    clearDraft()
 
     return true
-  }, [attachments, clearAttachmentsAction, createComment, sendIsTypingAction, startTyping])
+  }, [attachments, clearAttachmentsAction, clearDraft, createComment, sendIsTypingAction, startTyping])
+
+  const handleEditorUpdate = useCallback(async (html) => {
+    startTyping()
+    if (hasDraftContent(html)) {
+      commentComposerHadContentRef.current = true
+      draftRef.current = html
+      saveDraft(html)
+      return
+    }
+    draftRef.current = ''
+    // Empty HTML: cancel any pending debounced save (useDraft) then remove server draft if user had content
+    saveDraft(html)
+    if (commentComposerHadContentRef.current) {
+      commentComposerHadContentRef.current = false
+      await clearDraft({ deleteOnServer: true })
+    }
+  }, [saveDraft, clearDraft, startTyping])
 
   const placeholderText = placeholder || t('Add a comment...')
 
@@ -108,15 +177,33 @@ function CommentForm ({
     setIsFocused(true)
   }, [])
 
-  const handleContainerMouseDown = useCallback(event => {
-    // Don't auto-focus on mobile devices to prevent keyboard from opening
-    if (isMobileDevice()) {
-      return
+  useImperativeHandle(ref, () => ({
+    hasUnsavedContent: () => {
+      const html = editor.current?.getHTML?.() ?? draftRef.current ?? ''
+      if (hasDraftContent(html)) return true
+      if (attachments.length > 0) return true
+      return false
+    },
+    flushSaveDraft: async () => {
+      const html = editor.current?.getHTML?.() ?? draftRef.current ?? ''
+      if (!hasDraftContent(html)) return
+      await flushSaveDraft(html, { force: true })
+    },
+    discardDraft: async () => {
+      editor.current?.clearContent?.()
+      draftRef.current = ''
+      commentComposerHadContentRef.current = false
+      await clearDraft()
+      clearAttachmentsAction()
     }
-    if (!isFocused) {
-      editor?.current?.focus()
-    }
-  }, [editor, isFocused])
+  }), [attachments.length, clearAttachmentsAction, clearDraft, flushSaveDraft])
+
+  const focusEditorFromContainerTap = useCallback(event => {
+    if (!currentUser) return
+    if (event.target.closest('button, a, [data-testid="upload-button"]')) return
+    if (event.target.closest('.ProseMirror')) return
+    editor?.current?.focus()
+  }, [editor, currentUser])
 
   return (
     <>
@@ -126,19 +213,24 @@ function CommentForm ({
           { 'border-2 border-focus': isFocused },
           className
         )}
-        onMouseDown={handleContainerMouseDown}
       >
-        <div className={cn('ml-0 mr-0 w-full cursor-text flex items-center overflow-x-hidden', { [classes.disabled]: !currentUser })}>
+        <div
+          className={cn('ml-0 mr-0 w-full cursor-text flex items-center overflow-x-hidden', { [classes.disabled]: !currentUser })}
+          onMouseDown={focusEditorFromContainerTap}
+          onTouchStart={focusEditorFromContainerTap}
+        >
           {currentUser
             ? <RoundImage url={currentUser.avatarUrl} small className='w-6 h-6' />
             : <Icon name='Person' className={classes.anonymousImage} dataTestId='icon-Person' />}
 
           <HyloEditor
-            contentHTML={editorContent}
+            contentHTML={hyloContentHTML}
             onAltEnter={handleSubmit}
-            className='w-full max-h-[200px] overflow-y-auto cursor-text flex'
+            containerClassName='min-w-0'
+            className='w-full min-w-0 max-h-[200px] overflow-y-auto cursor-text [&_.ProseMirror]:w-full'
             readOnly={!currentUser}
-            onUpdate={startTyping}
+            blurOnScroll={false}
+            onUpdate={handleEditorUpdate}
             onFocus={handleFocus}
             onBlur={() => setIsFocused(false)}
             placeholder={placeholderText}
@@ -189,7 +281,8 @@ function CommentForm ({
       </p>
     </>
   )
-}
+})
+
 function UploadButton ({
   onClick,
   loading,

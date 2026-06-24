@@ -1,7 +1,7 @@
 import isMobile from 'ismobilejs'
 import { get, isEmpty } from 'lodash/fp'
 import { Bookmark } from 'lucide-react'
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Helmet } from 'react-helmet'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
@@ -22,19 +22,21 @@ import PostGridItem from 'components/PostGridItem'
 import PostBigGridItem from 'components/PostBigGridItem'
 import PostLabel from 'components/PostLabel'
 import PostPrompt from './PostPrompt'
+import PaywallOfferingsSection from 'routes/GroupDetail/PaywallOfferingsSection'
+import MyDrafts from './MyDrafts'
 import GroupCalendarSubscribe from '../GroupCalendarSubscribe/GroupCalendarSubscribe'
 import ScrollListener from 'components/ScrollListener'
 import ViewControls from 'components/StreamViewControls'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useRouteParams from 'hooks/useRouteParams'
 import { updateUserSettings } from 'routes/UserSettings/UserSettings.store'
-import changeQuerystringParam from 'store/actions/changeQuerystringParam'
+import changeQuerystringParam, { changeQuerystringParams } from 'store/actions/changeQuerystringParam'
 import fetchCustomView from 'store/actions/fetchCustomView'
 import fetchGroupTopic from 'store/actions/fetchGroupTopic'
 import fetchTopic from 'store/actions/fetchTopic'
 import fetchPosts from 'store/actions/fetchPosts'
 // import toggleGroupTopicSubscribe from 'store/actions/toggleGroupTopicSubscribe'
-import { FETCH_POSTS, FETCH_TOPIC, FETCH_GROUP_TOPIC, FETCH_CUSTOM_VIEW, CONTEXT_MY, VIEW_MENTIONS, VIEW_ANNOUNCEMENTS, VIEW_INTERACTIONS, VIEW_POSTS, VIEW_SAVED_POSTS } from 'store/constants'
+import { FETCH_POSTS, FETCH_TOPIC, FETCH_GROUP_TOPIC, FETCH_CUSTOM_VIEW, CONTEXT_MY, VIEW_MENTIONS, VIEW_ANNOUNCEMENTS, VIEW_INTERACTIONS, VIEW_POSTS, VIEW_SAVED_POSTS, VIEW_DRAFTS } from 'store/constants'
 import orm from 'store/models'
 import presentPost from 'store/presenters/presentPost'
 import { makeDropQueryResults } from 'store/reducers/queryResults'
@@ -69,6 +71,13 @@ const getCustomView = ormCreateSelector(
 
 const dropPostResults = makeDropQueryResults(FETCH_POSTS)
 
+function isChildGroupPost ({ context, groupSlug, post }) {
+  if ([CONTEXT_MY, 'all', 'public'].includes(context)) return false
+  const groupSlugs = post.groups?.map(group => group.slug) || []
+  if (groupSlugs.length === 0) return false
+  return !groupSlugs.includes(groupSlug)
+}
+
 export default function Stream (props) {
   const dispatch = useDispatch()
   const location = useLocation()
@@ -80,11 +89,19 @@ export default function Stream (props) {
 
   const [container, setContainer] = useState(null)
 
-  const view = props.view || routeParams.view
+  // `/my/drafts` historically resolves without an explicit `view` param; keep
+  // this guard so the drafts template still renders when the path comes through.
+  const isMyDraftsRoute = context === CONTEXT_MY && (routeParams.view === VIEW_DRAFTS || location.pathname.includes('/my/drafts'))
+
+  const view = props.view || (isMyDraftsRoute ? VIEW_DRAFTS : routeParams.view)
+  const isDraftsView = context === CONTEXT_MY && view === VIEW_DRAFTS
 
   const currentUserHasMemberships = useSelector(state => !isEmpty(getMyMemberships(state)))
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
   const groupId = group?.id || 0
+  const hasAccess = group?.canAccess !== false
+  const showPaywallBlock =
+    Boolean(group?.paywall && !hasAccess && context !== CONTEXT_MY && context !== 'public' && groupSlug)
   const topic = useSelector(state => getTopicForCurrentRoute(state, topicName))
 
   const systemView = COMMON_VIEWS[view]
@@ -105,17 +122,18 @@ export default function Stream (props) {
   const defaultActivePostsOnly = systemView?.defaultActivePostsOnly || get('settings.activePostsOnly', currentUser) || false
   const defaultChildPostInclusion = get('settings.streamChildPosts', currentUser) || systemView?.defaultChildPostInclusion || 'yes'
 
-  const querystringParams = getQuerystringParam(['s', 't', 'v', 'c', 'search', 'timeframe', 'activeOnly'], location)
+  const querystringParams = getQuerystringParam(['s', 't', 'v', 'c', 'search', 'timeframe', 'activeOnly', 'calendarMode', 'calendarDate'], location)
 
   const search = querystringParams.search
+  const viewMode = querystringParams.v || customView?.defaultViewMode || defaultViewMode
+  const isCalendarViewMode = viewMode === 'calendar'
   let sortBy = querystringParams.s || customView?.defaultSort || defaultSortBy
   if (!customView && sortBy === 'order') {
     sortBy = 'updated'
   }
-  if (view === 'events') {
+  if (view === 'events' || isCalendarViewMode) {
     sortBy = 'start_time'
   }
-  const viewMode = querystringParams.v || customView?.defaultViewMode || defaultViewMode
   const activePostsOnly = (querystringParams.activeOnly === 'true') || (!querystringParams.activeOnly && ((customView?.type === 'stream' && customView.activePostsOnly) || defaultActivePostsOnly))
   const childPostInclusion = querystringParams.c || defaultChildPostInclusion
   const timeframe = querystringParams.timeframe || 'future'
@@ -130,10 +148,16 @@ export default function Stream (props) {
 
   const topics = topic ? [topic.id] : customView?.type === 'stream' ? customView?.topics?.toModelArray().map(t => t.id) : []
 
-  // for calendar viewmode
-  const [calendarMode, setCalendarMode] = useState('month')
-  const [calendarDate, setCalendarDate] = useState(new Date())
-  const isCalendarViewMode = viewMode === 'calendar'
+  const calendarModes = ['day', 'week', 'month']
+  const calendarMode = calendarModes.includes(querystringParams.calendarMode)
+    ? querystringParams.calendarMode
+    : 'month'
+  const calendarDate = useMemo(() => {
+    const dateParam = querystringParams.calendarDate
+    if (!dateParam) return new Date()
+    const parsed = DateTimeHelpers.toDateTime(dateParam, { locale: getLocaleFromLocalStorage() })
+    return parsed.isValid ? parsed.toJSDate() : new Date()
+  }, [querystringParams.calendarDate])
   const eventCalendarUrl = useMemo(() => group?.eventCalendarUrl || '', [group])
   const rsvpCalendarUrl = useMemo(() => currentUser?.rsvpCalendarUrl || '', [currentUser])
 
@@ -143,7 +167,22 @@ export default function Stream (props) {
   }, [dispatch])
 
   const fetchPostsParam = useMemo(() => {
-    // DEPRECATED: Load same number of posts for all mobile (including webview)
+    if (isDraftsView) {
+      return {
+        activePostsOnly,
+        childPostInclusion,
+        context,
+        filter: postTypeFilter,
+        first: 0,
+        forCollection: null,
+        search,
+        slug: groupSlug,
+        sortBy,
+        topics,
+        types: postTypesAvailable
+      }
+    }
+
     const numPostsToLoad = isMobile.any ? 10 : 20
 
     const params = {
@@ -165,14 +204,15 @@ export default function Stream (props) {
       params.afterTime = luxonDate.startOf('month').startOf('week', { useLocaleWeeks: true }).startOf('day').toISO()
       params.beforeTime = luxonDate.endOf('month').endOf('week', { useLocaleWeeks: true }).plus({ day: 1 }).endOf('day').toISO()
       params.order = 'asc'
+      // Stream calendar has no view-level postTypes; events view already sets types: ['event']
+      if (!params.filter && !params.types?.length) {
+        params.filter = 'event'
+      }
     } else if (view === 'events') {
       const today = DateTimeHelpers.dateTimeNow(getLocaleFromLocalStorage()).toISO()
       params.afterTime = timeframe === 'future' ? today : undefined
       params.beforeTime = timeframe === 'past' ? today : undefined
       params.order = timeframe === 'future' ? 'asc' : 'desc'
-    }
-    if (view === 'events' || isCalendarViewMode) {
-      dispatch(dropPostResults(params))
     }
     if (context === CONTEXT_MY) {
       switch (view) {
@@ -222,6 +262,10 @@ export default function Stream (props) {
         name = t('Posts')
         icon = 'Posticon'
         break
+      case VIEW_DRAFTS:
+        name = t('Drafts')
+        icon = 'FilePenLine'
+        break
       case VIEW_SAVED_POSTS:
         name = t('Saved Posts')
         icon = <Bookmark />
@@ -235,9 +279,10 @@ export default function Stream (props) {
   const pending = useSelector(state => state.pending[FETCH_POSTS])
 
   const fetchPostsFrom = useCallback((offset) => {
-    if (pending || hasMore === false) return
+    if (pending && offset > 0) return
+    if (hasMore === false && offset > 0) return
     dispatch(fetchPosts({ offset, ...fetchPostsParam }))
-  }, [pending, hasMore, fetchPostsParam])
+  }, [dispatch, pending, hasMore, fetchPostsParam])
 
   useEffect(() => {
     if (customViewId) {
@@ -256,11 +301,37 @@ export default function Stream (props) {
   }, [topicName])
 
   useEffect(() => {
+    if (view === 'events' || isCalendarViewMode) {
+      dispatch(dropPostResults(fetchPostsParam))
+    }
+  }, [dispatch, fetchPostsParam, isCalendarViewMode, view])
+
+  useEffect(() => {
+    if (isDraftsView) return
     if ((!customViewId || customView?.type === 'stream' || customView?.type === 'collection') && (!topicName || topic)) {
       // Fetch posts, unless the custom view has not fully loaded yet, or the topic has not fully loaded yet
       fetchPostsFrom(0)
     }
-  }, [fetchPostsParam])
+  }, [fetchPostsParam, isDraftsView])
+
+  useEffect(() => {
+    if (!isCalendarViewMode || isDraftsView) return
+    if (customViewId && customView?.type !== 'stream' && customView?.type !== 'collection') return
+    if (topicName && !topic) return
+    if (pending || hasMore !== true || posts.length === 0) return
+    fetchPostsFrom(posts.length)
+  }, [
+    isCalendarViewMode,
+    isDraftsView,
+    customViewId,
+    customView?.type,
+    topicName,
+    topic,
+    pending,
+    hasMore,
+    posts.length,
+    fetchPostsFrom
+  ])
 
   const changePostTypeFilter = useCallback(postType => {
     dispatch(updateUserSettings({ settings: { streamPostType: postType || '' } }))
@@ -294,10 +365,49 @@ export default function Stream (props) {
     dispatch(changeQuerystringParam(location, 'timeframe', timeframe, 'future'))
   }, [location])
 
+  const updateCalendarQueryParams = useCallback((updates) => {
+    const params = {}
+    if (updates.mode !== undefined) {
+      params.calendarMode = updates.mode
+    }
+    if (updates.date !== undefined) {
+      params.calendarDate = DateTimeHelpers.toDateTime(updates.date, { locale: getLocaleFromLocalStorage() }).toISODate()
+    }
+    if (Object.keys(params).length > 0) {
+      dispatch(changeQuerystringParams(location, params))
+    }
+  }, [dispatch, location])
+
+  const changeCalendarMode = useCallback(mode => {
+    updateCalendarQueryParams({ mode })
+  }, [updateCalendarQueryParams])
+
+  const changeCalendarDate = useCallback(date => {
+    updateCalendarQueryParams({ date })
+  }, [updateCalendarQueryParams])
+
   const newPost = useCallback(() => dispatch(push(createPostUrl(routeParams, querystringParams))), [routeParams, querystringParams])
+
+  // Refresh calendar when returning from the create modal (a post may have been created)
+  const prevPathWasCreateRef = useRef(false)
+  useEffect(() => {
+    const isCreatePath = location.pathname.includes('/create/')
+    if (prevPathWasCreateRef.current && !isCreatePath && isCalendarViewMode) {
+      dispatch(dropPostResults(fetchPostsParam))
+      fetchPostsFrom(0)
+    }
+    prevPathWasCreateRef.current = isCreatePath
+  }, [location.pathname, isCalendarViewMode, dispatch, fetchPostsParam, fetchPostsFrom])
 
   const ViewComponent = viewComponent[viewMode]
   const hasPostPrompt = currentUserHasMemberships && context !== CONTEXT_MY && view !== 'explore'
+  // Calendar view applies on both `/events` (default) and `/stream?v=calendar`.
+  // Default new-post type to event in calendar mode; `/events` list view uses COMMON_VIEWS postTypes.
+  const postTypesForPrompt = useMemo(() => {
+    if (view === 'events') return postTypesAvailable || ['event']
+    if (isCalendarViewMode) return ['event']
+    return postTypesAvailable
+  }, [view, isCalendarViewMode, postTypesAvailable])
 
   const info = useMemo(() => {
     if (customView?.type === 'stream') {
@@ -324,15 +434,37 @@ export default function Stream (props) {
 
   const noPostsMessage = view === 'events' ? t('No {{timeFrame}} events', { timeFrame: timeframe === 'future' ? t('upcoming') : t('past') }) : 'No posts'
 
+  const calendarInitialLoading = (pending || topicBlockingStreams || customViewLoading) && isCalendarViewMode && posts.length === 0
+  const calendarFetchingMore = pending && isCalendarViewMode && posts.length > 0
+  const showCalendar = !customViewLoading && !topicBlockingStreams && isCalendarViewMode && (posts.length > 0 || !pending)
+
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
+    if (isDraftsView) {
+      setHeaderDetails({ title: t('Drafts'), icon: 'FilePenLine', info: null, search: false })
+      return
+    }
     setHeaderDetails({
       title: name,
       icon,
       info,
       search: true
     })
-  }, [name, info])
+  }, [icon, info, isDraftsView, name, setHeaderDetails, t])
+
+  if (isDraftsView) {
+    return (
+      <div id='stream-outer-container' className='flex flex-col h-full overflow-auto'>
+        <Helmet>
+          <title>{`${t('Drafts')} | Hylo`}</title>
+          <meta name='description' content={t('Drafts')} />
+        </Helmet>
+        <div className='flex flex-col flex-1 w-full mx-auto p-1 sm:p-4 max-w-[750px]'>
+          <MyDrafts />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div id='stream-outer-container' className='flex flex-col h-full overflow-auto' ref={setContainer}>
@@ -353,89 +485,110 @@ export default function Stream (props) {
           isCalendarViewMode && 'w-full mx-auto p-1 sm:p-4'
         )}
       >
-        {hasPostPrompt && (
+        {hasPostPrompt && !showPaywallBlock && (
           <PostPrompt
             avatarUrl={currentUser.avatarUrl}
             firstName={currentUser.firstName()}
             newPost={newPost}
-            querystringParams={querystringParams}
-            routeParams={routeParams}
-            postTypesAvailable={postTypesAvailable}
+            postTypesAvailable={postTypesForPrompt}
           />
         )}
-        <ViewControls
-          routeParams={routeParams} view={view} postTypeFilter={postTypeFilter} postTypesAvailable={postTypesAvailable} customViewType={customView?.type}
-          sortBy={sortBy} viewMode={viewMode} searchValue={search}
-          changePostTypeFilter={changePostTypeFilter} context={context} changeSort={changeSort} changeView={changeView} changeSearch={changeSearch}
-          changeChildPostInclusion={changeChildPostInclusion} childPostInclusion={childPostInclusion}
-          changeTimeframe={changeTimeframe} timeframe={timeframe} activePostsOnly={activePostsOnly} changeActivePostsOnly={changeActivePostsOnly}
-        />
-        {!isCalendarViewMode && (
-          <MasonryGrid
-            enabled={viewMode === 'grid' || viewMode === 'bigGrid'}
-            gap={8}
-            className={cn(styles.streamItems, {
-              [styles.streamGrid]: viewMode === 'grid',
-              [styles.bigGrid]: viewMode === 'bigGrid',
-              'border-2 border-foreground/10 rounded-md bg-card overflow-hidden': viewMode === 'list'
-            })}
-          >
+        {!showPaywallBlock && (
+          <ViewControls
+            routeParams={routeParams} view={view} postTypeFilter={postTypeFilter} postTypesAvailable={postTypesAvailable} customViewType={customView?.type}
+            sortBy={sortBy} viewMode={viewMode} searchValue={search}
+            changePostTypeFilter={changePostTypeFilter} context={context} changeSort={changeSort} changeView={changeView} changeSearch={changeSearch}
+            changeChildPostInclusion={changeChildPostInclusion} childPostInclusion={childPostInclusion}
+            changeTimeframe={changeTimeframe} timeframe={timeframe} activePostsOnly={activePostsOnly} changeActivePostsOnly={changeActivePostsOnly}
+          />
+        )}
+        {showPaywallBlock
+          ? (
+            <div className='mt-4'>
+              <PaywallOfferingsSection group={group} />
+            </div>
+            )
+          : (
+            <>
+              {calendarFetchingMore && (
+                <div
+                  aria-live='polite'
+                  className='sticky top-2 z-20 flex justify-end pointer-events-none h-0 overflow-visible'
+                >
+                  <Loading
+                    type='inline'
+                    className='mr-1 sm:mr-2 rounded-full bg-midground/90 px-2 py-1 shadow-sm backdrop-blur-sm'
+                  />
+                </div>
+              )}
+              {!isCalendarViewMode && (
+                <MasonryGrid
+                  enabled={viewMode === 'grid' || viewMode === 'bigGrid'}
+                  gap={8}
+                  className={cn(styles.streamItems, {
+                    [styles.streamGrid]: viewMode === 'grid',
+                    [styles.bigGrid]: viewMode === 'bigGrid',
+                    'border-2 border-foreground/10 rounded-md bg-card overflow-hidden': viewMode === 'list'
+                  })}
+                >
 
-            {!pending && !topicBlockingStreams && !customViewLoading && posts.length === 0 ? <NoPosts message={noPostsMessage} /> : ''}
+                  {!pending && !topicBlockingStreams && !customViewLoading && posts.length === 0 ? <NoPosts message={noPostsMessage} /> : ''}
 
-            {posts.map(post => {
-              const groupSlugs = post.groups.map(group => group.slug)
-              return (
-                <ViewComponent
-                  className={cn({ [styles.cardItem]: viewMode === 'cards' })}
-                  routeParams={routeParams}
-                  post={post}
-                  group={group}
-                  key={post.id}
-                  currentGroupId={group && group.id}
-                  currentUser={currentUser}
-                  querystringParams={querystringParams}
-                  childPost={![CONTEXT_MY, 'all', 'public'].includes(context) && !groupSlugs.includes(groupSlug)}
+                  {posts.map(post => (
+                    <ViewComponent
+                      className={cn({ [styles.cardItem]: viewMode === 'cards' })}
+                      routeParams={routeParams}
+                      post={post}
+                      group={group}
+                      key={post.id}
+                      currentGroupId={group && group.id}
+                      currentUser={currentUser}
+                      querystringParams={querystringParams}
+                      childPost={isChildGroupPost({ context, groupSlug, post })}
+                    />
+                  ))}
+                </MasonryGrid>
+              )}
+              {showCalendar && (
+                <div className='calendarView'>
+                  <Calendar
+                    posts={posts}
+                    group={group}
+                    routeParams={routeParams}
+                    querystringParams={querystringParams}
+                    date={calendarDate}
+                    setDate={changeCalendarDate}
+                    mode={calendarMode}
+                    setMode={changeCalendarMode}
+                    updateCalendarView={updateCalendarQueryParams}
+                  />
+                  {group && calendarMode === 'month' && <GroupCalendarSubscribe eventCalendarUrl={eventCalendarUrl} />}
+                  {!group && view === 'events' && calendarMode === 'month' && (
+                    <GroupCalendarSubscribe
+                      eventCalendarUrl={rsvpCalendarUrl}
+                      buttonLabel={t('Subscribe to all the Hylo events you have RSVPed to')}
+                      modalTitle={t('Subscribe to all the Hylo events you have RSVPed to')}
+                      onEnsureCalendarUrl={handleEnsureRsvpCalendarUrl}
+                    />
+                  )}
+                </div>
+              )}
+
+              {(pending || topicBlockingStreams || customViewLoading) && !isCalendarViewMode && (
+                posts.length === 0
+                  ? <StreamSkeleton wrapWithMainColumn={false} />
+                  : <StreamSkeleton wrapWithMainColumn={false} placeholderCount={2} />
+              )}
+              {calendarInitialLoading && <Loading />}
+
+              {!isCalendarViewMode && (
+                <ScrollListener
+                  onBottom={() => fetchPostsFrom(posts.length)}
+                  elementId='stream-outer-container'
                 />
-              )
-            })}
-          </MasonryGrid>
-        )}
-        {!pending && !customViewLoading && isCalendarViewMode && (
-          <div className='calendarView'>
-            <Calendar
-              posts={posts}
-              group={group}
-              routeParams={routeParams}
-              querystringParams={querystringParams}
-              date={calendarDate}
-              setDate={setCalendarDate}
-              mode={calendarMode}
-              setMode={setCalendarMode}
-            />
-            {group && calendarMode === 'month' && <GroupCalendarSubscribe eventCalendarUrl={eventCalendarUrl} />}
-            {!group && view === 'events' && calendarMode === 'month' && (
-              <GroupCalendarSubscribe
-                eventCalendarUrl={rsvpCalendarUrl}
-                buttonLabel={t('Subscribe to all the Hylo events you have RSVPed to')}
-                modalTitle={t('Subscribe to all the Hylo events you have RSVPed to')}
-                onEnsureCalendarUrl={handleEnsureRsvpCalendarUrl}
-              />
+              )}
+            </>
             )}
-          </div>
-        )}
-
-        {(pending || topicBlockingStreams || customViewLoading) && !isCalendarViewMode && (
-          posts.length === 0
-            ? <StreamSkeleton wrapWithMainColumn={false} />
-            : <StreamSkeleton wrapWithMainColumn={false} placeholderCount={2} />
-        )}
-        {(pending || topicBlockingStreams || customViewLoading) && isCalendarViewMode && <Loading />}
-
-        <ScrollListener
-          onBottom={() => fetchPostsFrom(posts.length)}
-          elementId='stream-outer-container'
-        />
       </div>
     </div>
   )

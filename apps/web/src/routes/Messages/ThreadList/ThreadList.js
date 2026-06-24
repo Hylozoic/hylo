@@ -1,6 +1,6 @@
 import { isEmpty, orderBy } from 'lodash/fp'
 import { SquarePen, Search, SearchX } from 'lucide-react'
-import React, { useCallback, useEffect, useState, useRef, useMemo } from 'react'
+import React, { useCallback, useEffect, useState, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { Link, useParams, useNavigate } from 'react-router-dom'
@@ -9,6 +9,7 @@ import { toRefArray, itemsToArray } from 'util/reduxOrmMigration'
 import fetchThreads from 'store/actions/fetchThreads'
 import getMe from 'store/selectors/getMe'
 import isPendingFor from 'store/selectors/isPendingFor'
+import useDebounce from 'hooks/useDebounce'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import {
   setThreadSearch,
@@ -20,6 +21,7 @@ import {
 import Loading from 'components/Loading'
 import ThreadListItem from './ThreadListItem'
 import { cn } from 'util/index'
+import { isPhoneDevice } from 'util/mobile'
 
 import classes from './ThreadList.module.scss'
 
@@ -37,16 +39,28 @@ function ThreadList () {
   const threadsPending = useSelector(state => isPendingFor(fetchThreads, state))
   const hasMoreThreads = useSelector(state => getThreadsHasMore(state))
   const threadSearch = useSelector(state => getThreadSearch(state))
+  const [searchInput, setSearchInput] = useState(threadSearch || '')
+  const debouncedSearch = useDebounce(searchInput, 300)
 
-  const fetchMoreThreadsAction = useCallback(() => hasMoreThreads && dispatch(fetchThreads(20, threads.length)), [hasMoreThreads])
-  const setThreadSearchAction = useCallback((search) => dispatch(setThreadSearch(search)), [])
+  const fetchThreadsAction = useCallback(
+    (offset = 0) => dispatch(fetchThreads(20, offset, debouncedSearch || undefined)),
+    [debouncedSearch, dispatch]
+  )
+  const fetchMoreThreadsAction = useCallback(
+    () => hasMoreThreads && fetchThreadsAction(threads.length),
+    [hasMoreThreads, threads.length, fetchThreadsAction]
+  )
+  const setThreadSearchAction = useCallback((search) => dispatch(setThreadSearch(search)), [dispatch])
 
   const toggleNavMenuAction = useCallback(() => dispatch(toggleNavMenu()), [])
 
   const onSearchChange = event => {
-    const searchTerm = event.target.value
-    setThreadSearchAction(searchTerm)
+    setSearchInput(event.target.value)
   }
+
+  useEffect(() => {
+    setThreadSearchAction(debouncedSearch)
+  }, [debouncedSearch, setThreadSearchAction])
 
   const handleContainerClick = (e) => {
     if (e.target.closest('a') || e.target.closest('button')) return
@@ -62,48 +76,21 @@ function ThreadList () {
   }
 
   useEffect(() => {
-    dispatch(fetchThreads(20, 0)).then((response) => {
-      if (!messageThreadId) {
+    fetchThreadsAction(0).then((response) => {
+      if (!messageThreadId && !debouncedSearch) {
         const firstThread = response.payload.data?.me?.messageThreads?.items[0]
         if (firstThread) {
           navigate(`/messages/${firstThread.id}`, { replace: true })
         }
       }
     })
-  }, [])
-
-  const displayThreads = useMemo(() => {
-    if (!threadSearch) return threads
-    const normalizedSearch = threadSearch.toLowerCase()
-    return threads.filter(thread => {
-      const participants = toRefArray(thread.participants || {})
-      const participantMatch = participants.some(p =>
-        (p.name || '').toLowerCase().includes(normalizedSearch)
-      )
-      const messages = itemsToArray(toRefArray(thread.messages))
-      const messageMatch = messages.some(msg => {
-        const messageContent = [
-          msg.text,
-          msg.content,
-          msg.body,
-          msg.message,
-          msg.lastMessage,
-          typeof msg === 'string' ? msg : null
-        ]
-          .filter(Boolean)
-          .join(' ')
-          .toLowerCase()
-          .replace(/<[^>]*>/g, '')
-        return messageContent.includes(normalizedSearch)
-      })
-      return participantMatch || messageMatch
-    })
-  }, [threads, threadSearch])
+  }, [debouncedSearch])
 
   return (
     <div
       className={cn(
-        'bg-background h-full flex flex-col flex-wrap overflow-hidden w-full min-w-0 sm:w-[300px] sm:flex-shrink-0'
+        'bg-background h-full flex flex-col flex-wrap overflow-hidden min-w-0',
+        isPhoneDevice() ? 'w-full' : 'w-[300px] flex-shrink-0'
       )}
       style={{ boxShadow: 'inset -15px 0 15px -10px hsl(var(--darkening) / 0.3)' }}
       onClick={handleContainerClick}
@@ -115,19 +102,19 @@ function ThreadList () {
             ref={searchInputRef}
             type='text'
             placeholder={t('Search messages...')}
-            value={threadSearch || ''}
+            value={searchInput}
             onChange={onSearchChange}
             onFocus={handleSearchFocus}
             onBlur={handleSearchBlur}
             className='bg-transparent border-foreground pl-2 text-foreground placeholder:text-foreground/50 outline-none border-none w-full'
           />
         </div>
-        <Link className='bg-darkening/20 rounded-lg text-foreground flex justify-center items-center w-10 h-10 hover:bg-selected/100 scale-100 hover:scale-105 transition-all hover:text-foreground flex-shrink-0' to='/messages/new' onClick={toggleNavMenuAction}>
+        <Link className='bg-darkening/20 rounded-lg text-foreground flex justify-center items-center w-10 h-10 hover:bg-selected/100 scale-100 hover:scale-105 transition-all hover:text-foreground flex-shrink-0' to='/messages/new' onClick={isPhoneDevice() ? toggleNavMenuAction : undefined}>
           <SquarePen />
         </Link>
       </div>
       <ul className={classes.list} id='thread-list-list' role='list'>
-        {!isEmpty(displayThreads) && displayThreads.map(t => {
+        {!isEmpty(threads) && threads.map(t => {
           const messages = itemsToArray(toRefArray(t.messages))
           const isUnread = t.unreadCount > 0
           const latestMessage = orderBy(m => Date.parse(m.createdAt), 'desc', messages)[0]
@@ -147,13 +134,13 @@ function ThreadList () {
         })}
         {threadsPending &&
           <Loading type='bottom' />}
-        {!threadsPending && isEmpty(displayThreads) && !threadSearch &&
+        {!threadsPending && isEmpty(threads) && !searchInput &&
           <div className={classes.noConversations}>
             {t('You have no active messages!')}
-            <Link to='/messages/new' onClick={toggleNavMenuAction}>{t('Send a message')}</Link>
+            <Link to='/messages/new' onClick={isPhoneDevice() ? toggleNavMenuAction : undefined}>{t('Send a message')}</Link>
             {t('to get started.')}
           </div>}
-        {!threadsPending && isEmpty(displayThreads) && threadSearch &&
+        {!threadsPending && isEmpty(threads) && searchInput &&
           <div className='text-center text-foreground border-2 border-dashed border-foreground/20 rounded-lg m-4 p-4 flex flex-col items-center justify-center'>
             <SearchX />
             <div>{t('No messages found')}</div>

@@ -7,6 +7,8 @@ import setupBridge from '../../lib/graphql-bookshelf-bridge'
 import { presentQuerySet } from '../../lib/graphql-bookshelf-bridge/util'
 import mixpanel from '../../lib/mixpanel'
 import {
+  saveDraft,
+  deleteDraft,
   acceptGroupRelationshipInvite,
   acceptJoinRequest,
   addGroupResponsibility,
@@ -74,6 +76,7 @@ import {
   findOrCreateThread,
   flagInappropriateContent,
   fulfillPost,
+  grantContentAccess,
   inviteGroupToGroup,
   invitePeerRelationship,
   invitePeopleToEvent,
@@ -88,12 +91,14 @@ import {
   markActivityRead,
   markAllActivitiesRead,
   markThreadRead,
+  markThreadUnread,
   messageGroupStewards,
   pinPost,
   processStripeToken,
   reactOn,
   reactivateUser,
   recordClickthrough,
+  recordStripePurchase,
   regenerateAccessCode,
   registerDevice,
   registerStripeAccount,
@@ -113,8 +118,10 @@ import {
   removeSuggestedSkillFromGroup,
   reorderContextWidget,
   reorderPostInCollection,
+  refundContentAccess,
   resendInvitation,
   respondToEvent,
+  revokeContentAccess,
   savePost,
   sendEmailVerification,
   sendPasswordReset,
@@ -147,14 +154,35 @@ import {
   updateStripeAccount,
   updateWidget,
   useInvitation,
+  createStripeConnectedAccount,
+  createStripeAccountLink,
+  createStripeOffering,
+  updateStripeOffering,
+  createStripeCheckoutSession,
+  checkStripeStatus,
+  membershipChangeCommit,
   verifyEmail
 } from './mutations'
+import {
+  stripeAccountStatus,
+  stripeOfferings,
+  publicStripeOfferings,
+  publicStripeOffering,
+  offeringSubscriptionStats,
+  offeringSubscribers,
+  checkContentAccess,
+  myTransactions,
+  membershipChangeEligibleOfferings,
+  membershipChangePreview,
+  membershipChangeInvoicePreview
+} from './queries'
 import peopleTyping from './mutations/peopleTyping'
 import InvitationService from '../services/InvitationService'
 import makeModels from './makeModels'
 import makeSubscriptions from './makeSubscriptions'
 
 const schemaText = readFileSync(join(__dirname, 'schema.graphql')).toString()
+let modelToTypeMap
 
 export default async function makeSchema ({ req }) {
   const userId = req.session.userId
@@ -243,50 +271,7 @@ export default async function makeSchema ({ req }) {
       Mutation: makeMutations({ fetchOne }),
       Subscription: makeSubscriptions(),
 
-      // Custom Type resolvers
-
-      FeedItemContent: {
-        __resolveType (data, context, info) {
-          if (data instanceof bookshelf.Model) {
-            return info.schema.getType('Post')
-          }
-          throw new GraphQLError('Post is the only implemented FeedItemContent type')
-        }
-      },
-      Role: {
-        __resolveType (data, context, info) {
-          return getTypeForInstance(data, models)
-        }
-      },
-      SearchResultContent: {
-        __resolveType (data, context, info) {
-          return getTypeForInstance(data, models)
-        }
-      },
-      // Type resolver for the Update graphql union type used in update subscription (see makeSubscriptions)
-      Update: {
-        __resolveType (data, context, info) {
-          // Message and MessageThread are not the isDefaultTypeForTable for Comment and Post
-          // in makeModels, and there is apparently no other way to infer the types, so the
-          // correct type is set on makeModelsType by the subscription resolver to be used here
-          if (data?.makeModelsType) return data.makeModelsType
-
-          const foundType = getTypeForInstance(data, models)
-          if (foundType) return foundType
-          throw new Error(`Unable to determine GraphQL type for instance: ${data}`)
-        }
-      },
-      // Type resolver for the SubscriptionUpdate union type used in allUpdates subscription
-      SubscriptionUpdate: {
-        __resolveType (data, context, info) {
-          // Use makeModelsType if set by the subscription resolver
-          if (data?.makeModelsType) return data.makeModelsType
-
-          const foundType = getTypeForInstance(data, models)
-          if (foundType) return foundType
-          throw new Error(`Unable to determine GraphQL type for SubscriptionUpdate: ${data}`)
-        }
-      }
+      ...makeUnionAndInterfaceResolvers(models)
     }
   } else if (req.api_client) {
     // TODO: check scope here, just api:write, just api:read, or both?
@@ -312,17 +297,111 @@ export default async function makeSchema ({ req }) {
   })
 }
 
+/**
+ * Invitation links must only bypass visibility for the group that issued them.
+ * Otherwise a valid code/token for group A could fetch any other group by slug/id.
+ */
+function invitationMatchesGroupQuery (inviteCheck, slug, id) {
+  if (!inviteCheck?.valid) return false
+  if (slug) {
+    return !!(inviteCheck.groupSlug && inviteCheck.groupSlug === slug)
+  }
+  if (id != null && id !== '') {
+    return String(inviteCheck.groupId) === String(id)
+  }
+  return false
+}
+
+/**
+ * Maps a Bookshelf model instance to its GraphQL type name from makeModels config.
+ */
+export function getTypeForInstance (instance, models) {
+  if (!modelToTypeMap) {
+    modelToTypeMap = reduce(models, (m, v, k) => {
+      const tableName = v.model.forge().tableName
+      if (!m[tableName] || v.isDefaultTypeForTable) {
+        m[tableName] = k
+      }
+      return m
+    }, {})
+  }
+
+  return modelToTypeMap[instance.tableName]
+}
+
+/**
+ * Union / interface field resolvers that are not generated by the bookshelf bridge.
+ */
+export function makeUnionAndInterfaceResolvers (models) {
+  return {
+    FeedItemContent: {
+      __resolveType (data, context, info) {
+        if (data instanceof bookshelf.Model) {
+          return info.schema.getType('Post')
+        }
+        throw new GraphQLError('Post is the only implemented FeedItemContent type')
+      }
+    },
+    Role: {
+      __resolveType (data, context, info) {
+        return getTypeForInstance(data, models)
+      }
+    },
+    SearchResultContent: {
+      __resolveType (data, context, info) {
+        return getTypeForInstance(data, models)
+      }
+    },
+    // Type resolver for the Update graphql union type used in update subscription (see makeSubscriptions)
+    Update: {
+      __resolveType (data, context, info) {
+        // Message and MessageThread are not the isDefaultTypeForTable for Comment and Post
+        // in makeModels, and there is apparently no other way to infer the types, so the
+        // correct type is set on makeModelsType by the subscription resolver to be used here
+        if (data?.makeModelsType) return data.makeModelsType
+
+        const foundType = getTypeForInstance(data, models)
+        if (foundType) return foundType
+        throw new Error(`Unable to determine GraphQL type for instance: ${data}`)
+      }
+    },
+    // Type resolver for the SubscriptionUpdate union type used in allUpdates subscription
+    SubscriptionUpdate: {
+      __resolveType (data, context, info) {
+        if (data?.makeModelsType) return data.makeModelsType
+
+        const foundType = getTypeForInstance(data, models)
+        if (foundType) return foundType
+        throw new Error(`Unable to determine GraphQL type for SubscriptionUpdate: ${data}`)
+      }
+    }
+  }
+}
+
 // Queries that non-logged in users can make
 export function makePublicQueries ({ fetchOne, fetchMany }) {
   return {
     checkInvitation: (root, { invitationToken, accessCode }) =>
       InvitationService.check(invitationToken, accessCode),
-    // Can only access public communities and posts
-    group: async (root, { id, slug }) => fetchOne('Group', slug || id, slug ? 'slug' : 'id', { visibility: Group.Visibility.PUBLIC }),
+    // Can only access public communities and posts, unless a valid invitation is provided
+    group: async (root, { id, slug, accessCode, invitationToken }) => {
+      // If invitation credentials are provided, validate and bypass visibility filter
+      if (accessCode || invitationToken) {
+        const inviteCheck = await InvitationService.check(invitationToken, accessCode)
+        if (invitationMatchesGroupQuery(inviteCheck, slug, id)) {
+          // Fetch group without visibility restriction
+          return Group.where(slug ? { slug } : { id }).where({ active: true }).fetch()
+        }
+      }
+      // Default: only allow PUBLIC visibility groups
+      return fetchOne('Group', slug || id, slug ? 'slug' : 'id', { visibility: Group.Visibility.PUBLIC })
+    },
     groups: (root, args) => fetchMany('Group', Object.assign(args, { visibility: Group.Visibility.PUBLIC })),
     platformAgreements: (root, args) => PlatformAgreement.fetchAll(args),
     post: (root, { id }) => fetchOne('Post', id, 'id', { isPublic: true }),
-    posts: (root, args) => fetchMany('Post', Object.assign(args, { isPublic: true }))
+    posts: (root, args) => fetchMany('Post', Object.assign(args, { isPublic: true })),
+    publicStripeOfferings: (root, { groupId }) => publicStripeOfferings(null, { groupId }),
+    publicStripeOffering: (root, { offeringId }) => publicStripeOffering(null, { offeringId })
   }
 }
 
@@ -330,6 +409,7 @@ export function makePublicQueries ({ fetchOne, fetchMany }) {
 export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
   return {
     activity: (root, { id }) => fetchOne('Activity', id),
+    checkContentAccess: (root, args, context) => checkContentAccess(context.currentUserId, args),
     checkInvitation: (root, { invitationToken, accessCode }) =>
       InvitationService.check(invitationToken, accessCode),
     collection: (root, { id }) => fetchOne('Collection', id),
@@ -337,10 +417,22 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     customView: (root, { id }) => fetchOne('CustomView', id),
     commonRoles: (root, args) => CommonRole.fetchAll(args),
     connections: (root, args) => fetchMany('PersonConnection', args),
+    contentAccess: (root, args) => fetchMany('ContentAccess', args),
     fundingRound: (root, { id }) => fetchOne('FundingRound', id),
-    group: async (root, { id, slug, updateLastViewed }, context) => {
-      // you can specify id or slug, but not both
-      const group = await fetchOne('Group', slug || id, slug ? 'slug' : 'id')
+    group: async (root, { id, slug, updateLastViewed, accessCode, invitationToken }, context) => {
+      let group
+      // If invitation credentials are provided, validate and bypass visibility filter
+      if (accessCode || invitationToken) {
+        const inviteCheck = await InvitationService.check(invitationToken, accessCode)
+        if (invitationMatchesGroupQuery(inviteCheck, slug, id)) {
+          // Fetch group directly without normal visibility filter
+          group = await Group.where(slug ? { slug } : { id }).where({ active: true }).fetch()
+        }
+      }
+      // Default: use normal fetch with group filter applied
+      if (!group) {
+        group = await fetchOne('Group', slug || id, slug ? 'slug' : 'id')
+      }
       if (updateLastViewed && group) {
         // Resets new post count to 0
         await GroupMembership.updateLastViewedAt(context.currentUserId, group)
@@ -364,7 +456,20 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     groupTopics: (root, args) => fetchMany('GroupTopic', args),
     groups: (root, args) => fetchMany('Group', args),
     joinRequests: (root, args) => fetchMany('JoinRequest', args),
+    myDrafts: (root, args, context) =>
+      Draft.where({ user_id: context.currentUserId }).orderBy('updated_at', 'desc').fetchAll(),
+
+    draft: (root, { type, postId, groupId, topicId, messageThreadId, postType, isEdit }, context) =>
+      Draft.findForContext(context.currentUserId, { type, postId, groupId, topicId, messageThreadId, postType, isEdit }),
+
     me: (root, args, context) => fetchOne('Me', context.currentUserId),
+    myTransactions: (root, args, context) => myTransactions(context.currentUserId, args),
+    membershipChangeEligibleOfferings: (root, { groupId }, context) =>
+      membershipChangeEligibleOfferings(context.currentUserId, { groupId }),
+    membershipChangePreview: (root, args, context) =>
+      membershipChangePreview(context.currentUserId, args),
+    membershipChangeInvoicePreview: (root, args, context) =>
+      membershipChangeInvoicePreview(context.currentUserId, args),
     messageThread: (root, { id }) => fetchOne('MessageThread', id),
     moderationActions: (root, args) => fetchMany('ModerationAction', args),
     notifications: async (root, { first, offset, resetCount, order = 'desc' }, context) => {
@@ -383,14 +488,20 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     search: (root, args, context) => {
       if (!args.first) args.first = 20
       return Search.fullTextSearch(context.currentUserId, args)
-        .then(({ models, total }) => {
+        .then(({ models, hasMore }) => {
           // FIXME this shouldn't be used directly here -- there should be some
           // way of integrating this into makeModels and using the presentation
           // logic that's already in the fetcher
-          return presentQuerySet(models, merge(args, { total }))
+          return presentQuerySet(models, merge(args, { hasMore }))
         })
     },
     skills: (root, args) => fetchMany('Skill', args),
+    stripeAccountStatus: (root, { groupId, accountId }, context) => stripeAccountStatus(context.currentUserId, { groupId, accountId }),
+    stripeOfferings: (root, { groupId, accountId }, context) => stripeOfferings(context.currentUserId, { groupId, accountId }),
+    publicStripeOfferings: (root, { groupId }) => publicStripeOfferings(null, { groupId }),
+    publicStripeOffering: (root, { offeringId }) => publicStripeOffering(null, { offeringId }),
+    offeringSubscriptionStats: (root, { offeringId, groupId }, context) => offeringSubscriptionStats(context.currentUserId, { offeringId, groupId }),
+    offeringSubscribers: (root, { offeringId, groupId, page, pageSize, lapsedOnly }, context) => offeringSubscribers(context.currentUserId, { offeringId, groupId, page, pageSize, lapsedOnly }),
     // you can specify id or name, but not both
     topic: (root, { id, name }) => fetchOne('Topic', name || id, name ? 'name' : 'id'),
     topicFollow: (root, { groupId, topicName }, context) => TagFollow.findOrCreate({ groupId, topicName, userId: context.currentUserId }),
@@ -413,7 +524,8 @@ export function makePublicMutations ({ fetchOne }) {
     sendEmailVerification,
     sendPasswordReset,
     register: register(fetchOne),
-    verifyEmail: verifyEmail(fetchOne)
+    verifyEmail: verifyEmail(fetchOne),
+    createStripeCheckoutSession: (root, { groupId, offeringId, quantity, adjustableQuantity, successUrl, cancelUrl, metadata }) => createStripeCheckoutSession(null, { groupId, offeringId, quantity, adjustableQuantity, successUrl, cancelUrl, metadata })
   }
 }
 
@@ -463,6 +575,14 @@ export function makeMutations ({ fetchOne }) {
 
     completePost: (root, { postId, completionResponse }, context) => completePost(context.currentUserId, postId, completionResponse),
 
+    grantContentAccess: (root, args, context) => grantContentAccess(context.currentUserId, args),
+
+    revokeContentAccess: (root, args, context) => revokeContentAccess(context.currentUserId, args),
+
+    refundContentAccess: (root, args, context) => refundContentAccess(context.currentUserId, args),
+
+    recordStripePurchase: (root, args, context) => recordStripePurchase(context.currentUserId, args),
+
     createAffiliation: (root, { data }, context) => createAffiliation(context.currentUserId, data),
 
     createCollection: (root, { data }, context) => createCollection(context.currentUserId, data),
@@ -504,6 +624,8 @@ export function makeMutations ({ fetchOne }) {
     deleteAffiliation: (root, { id }, context) => deleteAffiliation(context.currentUserId, id),
 
     deleteComment: (root, { id }, context) => deleteComment(context.currentUserId, id),
+
+    deleteDraft: (root, { id }, context) => deleteDraft(context.currentUserId, id),
 
     deleteContextWidget: (root, { contextWidgetId }, context) => deleteContextWidget(context.currentUserId, contextWidgetId, context),
 
@@ -557,7 +679,7 @@ export function makeMutations ({ fetchOne }) {
 
     joinFundingRound: (root, { id }, context) => joinFundingRound(context.currentUserId, id),
 
-    joinGroup: (root, { groupId, questionAnswers }, context) => joinGroup(groupId, context.currentUserId, questionAnswers, context),
+    joinGroup: (root, { groupId, questionAnswers, accessCode, invitationToken, acceptAgreements }, context) => joinGroup(groupId, context.currentUserId, questionAnswers, accessCode, invitationToken, acceptAgreements, context),
 
     joinProject: (root, { id }, context) => joinProject(id, context.currentUserId),
 
@@ -574,6 +696,8 @@ export function makeMutations ({ fetchOne }) {
     markAllActivitiesRead: (root, args, context) => markAllActivitiesRead(context.currentUserId),
 
     markThreadRead,
+
+    markThreadUnread,
 
     messageGroupStewards: (root, { groupId }, context) => messageGroupStewards(context.currentUserId, groupId),
 
@@ -595,6 +719,21 @@ export function makeMutations ({ fetchOne }) {
     registerDevice: () => registerDevice(),
 
     registerStripeAccount: (root, { authorizationCode }, context) => registerStripeAccount(context.currentUserId, authorizationCode),
+
+    createStripeConnectedAccount: (root, { groupId, email, businessName, country, existingAccountId }, context) => createStripeConnectedAccount(context.currentUserId, { groupId, email, businessName, country, existingAccountId }),
+
+    createStripeAccountLink: (root, { groupId, accountId, returnUrl, refreshUrl }, context) => createStripeAccountLink(context.currentUserId, { groupId, accountId, returnUrl, refreshUrl }),
+
+    createStripeOffering: (root, { input }, context) => createStripeOffering(context.currentUserId, input),
+
+    updateStripeOffering: (root, { offeringId, name, description, priceInCents, currency, accessGrants, renewalPolicy, duration, publishStatus }, context) => updateStripeOffering(context.currentUserId, { offeringId, name, description, priceInCents, currency, accessGrants, renewalPolicy, duration, publishStatus }),
+
+    createStripeCheckoutSession: (root, { groupId, offeringId, quantity, adjustableQuantity, successUrl, cancelUrl, metadata }, context) => createStripeCheckoutSession(context.currentUserId, { groupId, offeringId, quantity, adjustableQuantity, successUrl, cancelUrl, metadata }),
+
+    checkStripeStatus: (root, { groupId }, context) => checkStripeStatus(context.currentUserId, { groupId }),
+
+    membershipChangeCommit: (root, { groupId, fromOfferingId, toOfferingId, newQuantity }, context) =>
+      membershipChangeCommit(context.currentUserId, { groupId, fromOfferingId, toOfferingId, newQuantity }),
 
     reinviteAll: (root, { groupId }, context) => reinviteAll(context.currentUserId, groupId),
 
@@ -632,6 +771,9 @@ export function makeMutations ({ fetchOne }) {
     resendInvitation: (root, { invitationId }, context) => resendInvitation(context.currentUserId, invitationId),
 
     respondToEvent: (root, { id, response }, context) => respondToEvent(context.currentUserId, id, response),
+
+    saveDraft: (root, { type, data, postId, groupId, topicId, messageThreadId, postType, isEdit, navigateTo }, context) =>
+      saveDraft(context.currentUserId, { type, data, postId, groupId, topicId, messageThreadId, postType, isEdit, navigateTo }),
 
     savePost: (root, { postId }, context) => savePost(context.currentUserId, postId),
 
@@ -717,20 +859,4 @@ export function makeApiMutations () {
     createGroup: (root, { asUserId, data }) => createGroup(asUserId, data),
     updateGroup: (root, { asUserId, id, changes }) => updateGroup(asUserId, id, changes)
   }
-}
-
-let modelToTypeMap
-
-export function getTypeForInstance (instance, models) {
-  if (!modelToTypeMap) {
-    modelToTypeMap = reduce(models, (m, v, k) => {
-      const tableName = v.model.forge().tableName
-      if (!m[tableName] || v.isDefaultTypeForTable) {
-        m[tableName] = k
-      }
-      return m
-    }, {})
-  }
-
-  return modelToTypeMap[instance.tableName]
 }

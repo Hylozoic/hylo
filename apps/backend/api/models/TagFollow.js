@@ -2,6 +2,7 @@
 import HasSettings from './mixins/HasSettings'
 import RedisClient from '../services/RedisClient'
 import { mapLocaleToSendWithUS } from '../../lib/util'
+import { senderNameViaHylo } from '../../lib/email/senderNameViaHylo'
 
 const CHAT_ROOM_DIGEST_REDIS_TIMESTAMP_KEY = 'ChatRoom.digests.lastSentAt'
 
@@ -210,18 +211,18 @@ module.exports = bookshelf.Model.extend(Object.assign({
         email: tagFollow.relations.user.get('email'),
         locale,
         sender: {
-          name: tagFollow.relations.group.get('name') + ' (via Hylo)',
+          name: senderNameViaHylo(tagFollow.relations.group.get('name'), locale),
           reply_to: 'DoNotReply@hylo.com'
         },
         data: {
           count: postData.length,
           chat_topic: tagFollow.relations.tag.get('name'),
           // For the overall chat room URL use the URL of the last post in the email digest
-          chat_room_url: Frontend.Route.post(posts.models[posts.models.length - 1], tagFollow.relations.group) + clickthroughParams,
+          chat_room_url: Frontend.appendQueryString(Frontend.Route.post(posts.models[posts.models.length - 1], tagFollow.relations.group), clickthroughParams),
           // date: DateTimeHelpers.formatDatePair({ start: posts[0].get('created_at'), timezone: posts[0].get('timezone') }),
           email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, tagFollow.relations.user),
           group_name: tagFollow.relations.group.get('name'),
-          group_avatar_url: tagFollow.relations.group.get('avatar_url') + clickthroughParams,
+          group_avatar_url: Frontend.appendQueryString(tagFollow.relations.group.get('avatar_url'), clickthroughParams),
           posts: postData
         }
       })

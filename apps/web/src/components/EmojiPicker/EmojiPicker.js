@@ -28,7 +28,7 @@ export default function EmojiPicker (props) {
     } else {
       handleReaction(selectedEmoji)
     }
-    handleOpenChange(!modalOpen)
+    handleOpenChange(false)
 
     return true
   }
@@ -84,7 +84,7 @@ function EmojiPickerContent (props) {
       const response = await window.fetch(
         'https://cdn.jsdelivr.net/npm/@emoji-mart/data'
       )
-      setData(response.json())
+      setData(await response.json())
     }
     getData()
   }, [])

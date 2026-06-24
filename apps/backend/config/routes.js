@@ -19,6 +19,8 @@ module.exports.routes = {
   'GET    /noo/admin/login/oauth':                        'AdminSessionController.oauth',
   'GET    /noo/admin/logout':                             'AdminSessionController.destroy',
   'GET    /noo/admin/raw-metrics':                        'AdminController.rawMetrics',
+  'GET    /noo/admin/stripe-analytics':                   'AdminController.stripeAnalytics',
+  'POST   /noo/admin/stripe-sales-pause':                 'AdminController.setStripeSalesPaused',
   'GET    /noo/admin/login-as/:userId':                   'AdminController.loginAsUser',
 
   'POST   /noo/hook/comment':                             'CommentController.createFromEmail',
@@ -28,6 +30,8 @@ module.exports.routes = {
   'POST   /noo/hook/batchCommentForm':                    'CommentController.createBatchFromEmailForm',
 
   'POST   /noo/login':                                    'SessionController.create',
+  'POST   /noo/login/native':                             'SessionController.nativeLogin',
+  'POST   /noo/session/from-token':                       'SessionController.fromToken',
   'GET    /noo/login/token':                              'SessionController.createWithToken',
   'POST   /noo/login/token':                              'SessionController.createWithToken',
   'GET    /noo/login/jwt':                                'SessionController.createWithJWT',
@@ -61,6 +65,12 @@ module.exports.routes = {
 
   'GET     /noo/payment/registerStripe':                  'PaymentController.registerStripe',
   'POST    /noo/payment/registerStripe':                  'PaymentController.registerStripe',
+
+  // Stripe Connect routes
+  'GET     /noo/stripe/health':                          'StripeController.health',
+  'GET     /noo/stripe/checkout/success':                'StripeController.checkoutSuccess',
+  'GET     /noo/stripe/checkout/cancel':                 'StripeController.checkoutCancel',
+  'POST    /noo/stripe/webhook':                         'StripeController.webhook',
 
   // websockets routes
   'POST   /noo/user/subscribe':                           'UserController.subscribeToUpdates',

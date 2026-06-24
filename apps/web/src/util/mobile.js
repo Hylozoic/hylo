@@ -29,6 +29,37 @@ export function isMobileDevice () {
   )
 }
 
+// Phones only — excludes tablets and iPadOS desktop UA (see isMobileDevice).
+// Use for layouts that need a side-by-side nav + content column (e.g. DMs).
+export function isPhoneDevice () {
+  return (
+    isMobile.apple.phone ||
+    isMobile.apple.ipod ||
+    isMobile.android.phone ||
+    isMobile.seven_inch
+  )
+}
+
+// Tablets and iPadOS (desktop UA) — excludes phones.
+export function isTabletDevice () {
+  return (
+    isMobile.apple.tablet ||
+    isMobile.android.tablet ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  )
+}
+
+// Phone-style compact layout: single-column content, drawer nav, smaller typography.
+// Tablets need this even when the viewport is >= Tailwind's sm breakpoint (640px).
+export function isCompactLayoutDevice () {
+  return isPhoneDevice() || isTabletDevice()
+}
+
+// Slide-out nav drawer: phones and narrow desktop windows (not tablets).
+export function isDrawerNavLayout (viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 0) {
+  return isPhoneDevice() || viewportWidth < 640
+}
+
 export function downloadApp () {
   if (isMobileDevice()) {
     if (isMobile.apple.device) {

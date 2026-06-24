@@ -183,19 +183,37 @@ export function primaryPostUrl (post, opts = {}, querystringParams = {}) {
   let result = baseUrl(opts)
   const postId = get('id', post) || post
   if (post.type === 'chat') {
-    // If topicName passed in we are opening the post from a specific chat room, otherwise if a chat then always open its first topic chat room
+    // Chat posts always open in their specific chat room
     const topicName = post.topics[0].name
     if (opts.commentId) {
-      // When there is a commentId we pass the postId in the route params so that the post is opened when the room is loaded
+      // commentId in route params causes the post to open when the room loads
       result = `${result}/chat/${topicName}/post/${postId}?commentId=${opts.commentId}`
     } else {
-      // When there is no commentId, we pass the postId in the querystring so that the post is highlighted but not opened when the room is loaded
+      // postId as querystring highlights the message without forcing it open
       result = `${result}/chat/${topicName}?postId=${postId}`
     }
   } else {
-    result = `${result}/post/${postId}`
-    if (opts.commentId) {
-      result = `${result}?commentId=${opts.commentId}`
+    // Non-chat posts open within the group's home view so there is context.
+    // homeRoute is a path like '/stream', '/map', or '/chat/general'.
+    // Non-chat posts always use the /post/:id path format (modal overlay) even
+    // when the home is a chat view, so you can see the full post and comments
+    // (?postId= is reserved for chat-type posts only).
+    // If the home is a chat view but the post has no topics (e.g. Zapier-
+    // created posts), fall back to the standalone /post/:id URL so the UI
+    // can still open the post even though it isn't in any chat room.
+    const homeRoute = opts.homeRoute || '/stream'
+    const firstTopic = post.topics?.[0]?.name
+    if (homeRoute.startsWith('/chat/') && firstTopic) {
+      // Non-chat post shown in a chat home: open as a modal above the chat
+      result = `${result}${homeRoute}/post/${postId}`
+      if (opts.commentId) result = `${result}?commentId=${opts.commentId}`
+    } else if (homeRoute.startsWith('/chat/')) {
+      // Chat home but no topics: fall back to standalone post URL
+      result = `${result}/post/${postId}`
+      if (opts.commentId) result = `${result}?commentId=${opts.commentId}`
+    } else {
+      result = `${result}${homeRoute}/post/${postId}`
+      if (opts.commentId) result = `${result}?commentId=${opts.commentId}`
     }
   }
   return addQuerystringToPath(result, querystringParams)
@@ -303,6 +321,16 @@ export function fundingRoundUrl (fundingRoundId, opts) {
   return baseUrl({ ...opts, context: 'group', view: 'funding-rounds' }) + `/${fundingRoundId}` + (opts.tab ? `/${opts.tab}` : '')
 }
 
+/**
+ * Generates a URL for an offering details page
+ * @param {string} offeringId - The offering ID
+ * @param {string} groupSlug - The group slug
+ * @returns {string} The offering URL path
+ */
+export function offeringUrl (offeringId, groupSlug) {
+  return `/groups/${groupSlug}/offerings/${offeringId}`
+}
+
 // URL utility functions
 
 export function setQuerystringParam (key, value, location) {
@@ -341,6 +369,26 @@ export function removeCreateEditModalFromUrl (url) {
       const parts = match.split('/')
       return parts.slice(0, 3).join('/') // Keep '/tracks/{id}'
     })
+}
+
+/**
+ * Drops compose-modal-only query params so the underlying route (e.g. chat room)
+ * does not keep `newPostType` / draft resume params after the modal closes.
+ * @param {string} url Path with optional search and hash (relative to origin is OK)
+ * @returns {string}
+ */
+export function stripComposeModalQueryParams (url) {
+  if (!url || typeof url !== 'string') return url
+  try {
+    const base = typeof window !== 'undefined' ? window.location.origin : 'http://localhost'
+    const u = new URL(url, base)
+    u.searchParams.delete('newPostType')
+    u.searchParams.delete('sourceDraftId')
+    u.searchParams.delete('closePath')
+    return `${u.pathname}${u.search}${u.hash}`
+  } catch {
+    return url
+  }
 }
 
 export function removePostFromUrl (url) {

@@ -13,7 +13,7 @@ import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
 import getPreviousLocation from 'store/selectors/getPreviousLocation'
 import { bgImageStyle, cn } from 'util/index'
-import { isMobileDevice } from 'util/mobile'
+import { isCompactLayoutDevice, isDrawerNavLayout, isPhoneDevice } from 'util/mobile'
 
 const ViewHeader = () => {
   const dispatch = useDispatch()
@@ -27,6 +27,7 @@ const ViewHeader = () => {
   const { backButton, backTo, mobileBackButton, title, icon, info, search, centered, headerActions } = headerDetails
 
   const previousLocation = useSelector(getPreviousLocation)
+  const compactLayout = isCompactLayoutDevice()
 
   const [searchValue, setSearchValue] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
@@ -119,8 +120,7 @@ const ViewHeader = () => {
   // a back button, we always treat the chevron as \"back\" so it never takes
   // two taps.
   const handleChevronClick = () => {
-    const isSmallScreen = window.innerWidth < 640 // Tailwind 'sm' breakpoint
-    if (isSmallScreen && !mobileBackButton && !backButton) {
+    if (isDrawerNavLayout(window.innerWidth) && !mobileBackButton && !backButton) {
       dispatch(toggleNavMenu())
     } else if (backTo) {
       navigate(backTo)
@@ -131,8 +131,8 @@ const ViewHeader = () => {
     }
   }
 
-  // Hide ViewHeader on mobile for messages - MessagesMobile handles its own header
-  if (isMobileDevice() && location.pathname.startsWith('/messages')) {
+  // Hide ViewHeader on phones for messages - MessagesMobile handles its own header
+  if (isPhoneDevice() && location.pathname.startsWith('/messages')) {
     return null
   }
 
@@ -143,7 +143,7 @@ const ViewHeader = () => {
     >
       {centered && (backButton || mobileBackButton) && (
         <button
-          className={cn('sm:hidden p-2 -ml-1 cursor-pointer absolute left-0 z-10 bg-background', { 'sm:block': backButton })}
+          className={cn('p-2 -ml-1 cursor-pointer absolute left-0 z-10 bg-background', !compactLayout && 'sm:hidden', !compactLayout && backButton && 'sm:block')}
           onClick={handleChevronClick}
         >
           <ChevronLeft className='w-6 h-6' />
@@ -154,13 +154,13 @@ const ViewHeader = () => {
       {!centered && (
         <>
           <button
-            className={cn('sm:hidden p-2 -ml-1 mr-1 cursor-pointer', { 'sm:block': backButton })}
+            className={cn('p-2 -ml-1 mr-1 cursor-pointer', !compactLayout && 'sm:hidden', !compactLayout && backButton && 'sm:block')}
             onClick={handleChevronClick}
           >
             <ChevronLeft className='w-6 h-6' />
           </button>
           {context !== 'messages' && (
-            <div className='ViewHeaderContextIcon sm:hidden mr-3 w-8 h-8 rounded-lg drop-shadow-md'>
+            <div className={cn('ViewHeaderContextIcon mr-3 w-8 h-8 rounded-lg drop-shadow-md', !compactLayout && 'sm:hidden')}>
               {context === 'groups'
                 ? <div style={bgImageStyle(group?.avatarUrl)} className='w-8 h-8 rounded-lg bg-cover bg-center' />
                 : context === 'my'
@@ -179,7 +179,8 @@ const ViewHeader = () => {
           'truncate min-w-0 flex-1': typeof title === 'string',
           'whitespace-nowrap': title?.mobile && title?.desktop,
           'min-w-0 overflow-x-auto flex-1': React.isValidElement(title),
-          'pl-12 sm:pl-0': centered && (backButton || mobileBackButton)
+          'pl-12': centered && (backButton || mobileBackButton) && compactLayout,
+          'pl-12 sm:pl-0': centered && (backButton || mobileBackButton) && !compactLayout
         })}
       >
         {typeof title === 'string' || React.isValidElement(title)
@@ -187,8 +188,8 @@ const ViewHeader = () => {
           : title?.mobile && title?.desktop
             ? (
               <>
-                <span className='inline sm:hidden text-sm truncate'>{title.mobile}</span>
-                <span className='hidden sm:inline'>{title.desktop}</span>
+                <span className={cn('inline text-sm truncate', !compactLayout && 'sm:hidden')}>{title.mobile}</span>
+                <span className={cn('hidden', !compactLayout && 'sm:inline')}>{title.desktop}</span>
               </>
               )
             : ''}
@@ -201,7 +202,8 @@ const ViewHeader = () => {
             <button
               type='button'
               className={cn(
-                'sm:hidden flex items-center justify-center w-9 h-9 rounded-lg bg-input/60 cursor-pointer border-none',
+                'flex items-center justify-center w-9 h-9 rounded-lg bg-input/60 cursor-pointer border-none',
+                !compactLayout && 'sm:hidden',
                 searchOpen && 'hidden'
               )}
               onClick={() => searchInputRef.current?.focus()}
@@ -210,13 +212,18 @@ const ViewHeader = () => {
             </button>
             <Icon
               name='Search'
-              className={cn('left-2 absolute opacity-50 z-10', searchOpen ? 'block' : 'hidden', 'sm:block')}
+              className={cn('left-2 absolute opacity-50 z-10', searchOpen ? 'block' : 'hidden', !compactLayout && 'sm:block')}
             />
             <input
               ref={searchInputRef}
               type='text'
               placeholder={t('Search')}
-              className='bg-input/60 focus:bg-input/100 rounded-lg text-foreground placeholder-foreground/40 w-0 sm:w-[90px] py-1 pl-0 sm:pl-7 focus:w-[200px] sm:focus:w-[250px] focus:pl-7 transition-all outline-none focus:outline-focus focus:outline-2'
+              className={cn(
+                'bg-input/60 focus:bg-input/100 rounded-lg text-foreground placeholder-foreground/40 py-1 transition-all outline-none focus:outline-focus focus:outline-2',
+                compactLayout
+                  ? 'w-0 pl-0 focus:w-[200px] focus:pl-7'
+                  : 'w-0 sm:w-[90px] pl-0 sm:pl-7 focus:w-[200px] sm:focus:w-[250px] focus:pl-7'
+              )}
               value={searchValue}
               onFocus={() => {
                 setSearchOpen(true)
