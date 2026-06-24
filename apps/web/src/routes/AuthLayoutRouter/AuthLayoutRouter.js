@@ -618,7 +618,11 @@ export default function AuthLayoutRouter (props) {
     })
   }, [newVersionAvailable])
 
-  if (currentUserLoading) {
+  // Parallel render: when the URL targets a specific post, don't hide the whole shell behind the
+  // bootstrap skeleton. The post is fetched independently (raced in the bootstrap effect and by
+  // PostDetail itself) and PostDetail renders its own skeleton, so it can paint while currentUser
+  // and commonRoles finish loading. Every other route keeps the full-screen bootstrap gate for now.
+  if (currentUserLoading && !paramPostId) {
     return (
       <div data-testid='loading-screen' className={cn('flex flex-row items-stretch bg-midground h-full', { 'h-[100dvh]': compactLayout })}>
         <Helmet>
@@ -660,7 +664,9 @@ export default function AuthLayoutRouter (props) {
     return <Navigate to='/welcome' replace />
   }
 
-  if (!currentGroupMembership && hasDetail && paramPostId && currentGroupSlug) {
+  // Wait for the bootstrap before deciding membership: during parallel post render `currentGroupMembership`
+  // is transiently null while fetchForCurrentUser loads, so redirecting on it would bounce members away.
+  if (!currentUserLoading && !currentGroupMembership && hasDetail && paramPostId && currentGroupSlug) {
     /* There are times when users will be send to a path where they have access to the POST on that path but not to the GROUP on that path
       This redirect replaces the non-accessible groupSlug from the path with '/all', for a better UI experience
     */
@@ -878,7 +884,7 @@ export default function AuthLayoutRouter (props) {
                        instead of a bare spinner. */
                     currentGroupLoading && !paramPostId
                       ? <RouteBootstrapSkeleton />
-                      : currentGroupSlug && !currentGroupMembership
+                      : currentGroupSlug && !currentGroupMembership && !(paramPostId && currentUserLoading)
                         ? <GroupDetail context='groups' group={currentGroup} />
                         : (
                           <Routes>

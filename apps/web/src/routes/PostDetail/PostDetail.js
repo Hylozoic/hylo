@@ -608,7 +608,7 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
               )}
             </div>
           )}
-          {isProject && acceptContributions && currentUser.hasFeature(PROJECT_CONTRIBUTIONS) && (
+          {isProject && acceptContributions && currentUser?.hasFeature(PROJECT_CONTRIBUTIONS) && (
             <ProjectContributions
               postId={post.id}
               totalContributions={totalContributions}
