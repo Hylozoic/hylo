@@ -69,7 +69,8 @@ import {
   CREATE_POST,
   CREATE_PROJECT,
   FETCH_POST,
-  RESP_ADMINISTRATION
+  RESP_ADMINISTRATION,
+  UPDATE_POST
 } from 'store/constants'
 import createPost from 'store/actions/createPost'
 import updatePost from 'store/actions/updatePost'
@@ -271,6 +272,8 @@ function PostEditorInner ({
   const pendingTypeSwitchRef = useRef(null)
   /** Set to true when the post has been successfully submitted, preventing draft saves during teardown/navigation. */
   const isSubmittedRef = useRef(false)
+  /** Blocks duplicate create/update dispatches before Redux pending state updates. */
+  const isSavingRef = useRef(false)
 
   // Default topic to use when not in a chatroom — available immediately from the store
   const generalTopic = useSelector(state => !topicName ? getTopicForCurrentRoute(state, DEFAULT_CHAT_TOPIC) : null)
@@ -290,8 +293,10 @@ function PostEditorInner ({
     state => getAttachments(state, { type: 'post', id: attachmentPostId, attachmentType: 'file' }),
     (a, b) => a.length === b.length && a.every((item, index) => item?.url === b[index]?.url)
   )
-  const postPending = useSelector(state => isPendingFor([CREATE_POST, CREATE_PROJECT], state))
+  const postPending = useSelector(state => isPendingFor([CREATE_POST, CREATE_PROJECT, UPDATE_POST], state))
   const loading = useSelector(state => isPendingFor(FETCH_POST, state)) || !!uploadAttachmentPending
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const submitting = postPending || isSubmitting
 
   let inputPost = propsPost
   const _editingPost = useSelector(state => getPost(state, editingPostId))
@@ -1134,116 +1139,130 @@ function PostEditorInner ({
    * Collects all form data and dispatches the appropriate action (create or update)
    */
   const save = useCallback(async () => {
-    const {
-      acceptContributions,
-      budget,
-      completionAction,
-      completionActionSettings,
-      donationsLink,
-      endTime,
-      eventInvitations,
-      groups,
-      id,
-      isAnonymousVote,
-      isPublic,
-      isStrictProposal,
-      linkPreview,
-      linkPreviewFeatured,
-      locationId,
-      members,
-      projectManagementLink,
-      proposalOptions,
-      votingMethod,
-      quorum,
-      startTime,
-      timezone,
-      title,
-      topics,
-      type
-    } = currentPost
-    const details = editorRef.current.getHTML()
-    const topicNames = topics?.map((t) => t.name)
-    const memberIds = members?.map((m) => m.id) || []
-    if (type === 'project') {
-      // Add the current user to the project members
-      memberIds.push(currentUser.id)
-    }
-    const eventInviteeIds =
-      eventInvitations && eventInvitations.map((m) => m.id)
-    const imageUrls =
-      imageAttachments && imageAttachments.map((attachment) => attachment.url)
-    const fileUrls =
-      fileAttachments && fileAttachments.map((attachment) => attachment.url)
-    const postLocation = currentPost.location || selectedLocation
-    const actualLocationId = await ensureLocationIdIfCoordinate({
-      fetchLocation,
-      postLocation,
-      locationId
-    })
+    if (isSavingRef.current) return
+    isSavingRef.current = true
+    setIsSubmitting(true)
 
-    const postToSave = {
-      id,
-      acceptContributions,
-      budget,
-      commenters: [], // For optimistic display of the new post
-      createdAt: DateTimeHelpers.dateTimeNow(getLocaleFromLocalStorage()).toISO(), // For optimistic display of the new post
-      creator: currentUser, // For optimistic display of the new post
-      completionAction,
-      completionActionSettings,
-      details,
-      donationsLink: sanitizeURL(donationsLink),
-      endTime,
-      eventInviteeIds,
-      fileAttachments, // For optimistic display of the new post
-      fileUrls,
-      fundingRoundId: currentFundingRound?.id,
-      groups,
-      imageAttachments, // For optimistic display of the new post
-      imageUrls,
-      isAnonymousVote,
-      isPublic,
-      isStrictProposal,
-      linkPreview,
-      linkPreviewFeatured,
-      localId: uniqueId('post_'), // For optimistic display of the new post
-      location: postLocation,
-      locationId: actualLocationId,
-      memberIds,
-      pending: true, // For optimistic display of the new post
-      projectManagementLink: sanitizeURL(projectManagementLink),
-      proposalOptions: proposalOptions.map(({ color, emoji, text, id }) => {
-        return { color, text, emoji, id }
-      }),
-      votingMethod,
-      quorum,
-      sendAnnouncement: announcementSelected,
-      startTime,
-      timezone,
-      title,
-      topicNames,
-      trackId: currentTrack?.id,
-      type,
-      markAsReadTopicName
-    }
-
-    const saveFunc = isEditing ? updatePost : createPost
-    setAnnouncementSelected(false)
-    if (onSave) onSave(postToSave)
-    // Prevent any draft saves triggered by re-renders during or after the mutation.
-    isSubmittedRef.current = true
-    // Cancel any in-flight debounced draft save so it cannot fire during the async mutation.
-    cancelPendingSave()
-    if (!modal) reset()
-    const savedPost = await dispatch(saveFunc(postToSave))
-    if (!savedPost.error) {
-      await clearDraft()
-      setIsDirty(false)
-      if (afterSave) {
-        const returnedPost = isEditing
-          ? savedPost?.payload?.data?.updatePost
-          : savedPost?.payload?.data?.createPost
-        afterSave(returnedPost)
+    try {
+      const {
+        acceptContributions,
+        budget,
+        completionAction,
+        completionActionSettings,
+        donationsLink,
+        endTime,
+        eventInvitations,
+        groups,
+        id,
+        isAnonymousVote,
+        isPublic,
+        isStrictProposal,
+        linkPreview,
+        linkPreviewFeatured,
+        locationId,
+        members,
+        projectManagementLink,
+        proposalOptions,
+        votingMethod,
+        quorum,
+        startTime,
+        timezone,
+        title,
+        topics,
+        type
+      } = currentPost
+      const details = editorRef.current.getHTML()
+      const topicNames = topics?.map((t) => t.name)
+      const memberIds = members?.map((m) => m.id) || []
+      if (type === 'project') {
+        // Add the current user to the project members
+        memberIds.push(currentUser.id)
       }
+      const eventInviteeIds =
+        eventInvitations && eventInvitations.map((m) => m.id)
+      const imageUrls =
+        imageAttachments && imageAttachments.map((attachment) => attachment.url)
+      const fileUrls =
+        fileAttachments && fileAttachments.map((attachment) => attachment.url)
+      const postLocation = currentPost.location || selectedLocation
+      const actualLocationId = await ensureLocationIdIfCoordinate({
+        fetchLocation,
+        postLocation,
+        locationId
+      })
+
+      const postToSave = {
+        id,
+        acceptContributions,
+        budget,
+        commenters: [], // For optimistic display of the new post
+        createdAt: DateTimeHelpers.dateTimeNow(getLocaleFromLocalStorage()).toISO(), // For optimistic display of the new post
+        creator: currentUser, // For optimistic display of the new post
+        completionAction,
+        completionActionSettings,
+        details,
+        donationsLink: sanitizeURL(donationsLink),
+        endTime,
+        eventInviteeIds,
+        fileAttachments, // For optimistic display of the new post
+        fileUrls,
+        fundingRoundId: currentFundingRound?.id,
+        groups,
+        imageAttachments, // For optimistic display of the new post
+        imageUrls,
+        isAnonymousVote,
+        isPublic,
+        isStrictProposal,
+        linkPreview,
+        linkPreviewFeatured,
+        localId: uniqueId('post_'), // For optimistic display of the new post
+        location: postLocation,
+        locationId: actualLocationId,
+        memberIds,
+        pending: true, // For optimistic display of the new post
+        projectManagementLink: sanitizeURL(projectManagementLink),
+        proposalOptions: proposalOptions.map(({ color, emoji, text, id }) => {
+          return { color, text, emoji, id }
+        }),
+        votingMethod,
+        quorum,
+        sendAnnouncement: announcementSelected,
+        startTime,
+        timezone,
+        title,
+        topicNames,
+        trackId: currentTrack?.id,
+        type,
+        markAsReadTopicName
+      }
+
+      const saveFunc = isEditing ? updatePost : createPost
+      setAnnouncementSelected(false)
+      if (onSave) onSave(postToSave)
+      // Prevent any draft saves triggered by re-renders during or after the mutation.
+      isSubmittedRef.current = true
+      // Cancel any in-flight debounced draft save so it cannot fire during the async mutation.
+      cancelPendingSave()
+      if (!modal) reset()
+
+      const savedPost = await dispatch(saveFunc(postToSave))
+      if (!savedPost.error) {
+        await clearDraft()
+        setIsDirty(false)
+        if (afterSave) {
+          const returnedPost = isEditing
+            ? savedPost?.payload?.data?.updatePost
+            : savedPost?.payload?.data?.createPost
+          afterSave(returnedPost)
+        }
+      } else {
+        isSavingRef.current = false
+        setIsSubmitting(false)
+      }
+    } catch (error) {
+      isSavingRef.current = false
+      setIsSubmitting(false)
+      throw error
     }
   }, [afterSave, announcementSelected, cancelPendingSave, clearDraft, currentFundingRound?.id, currentPost, currentTrack?.id, currentUser, dispatch, fileAttachments, imageAttachments, isEditing, modal, onSave, reset, selectedLocation, setIsDirty])
 
@@ -1252,7 +1271,7 @@ function PostEditorInner ({
    * Shows announcement modal or warning if needed
    */
   const doSave = useEventCallback(() => {
-    if (!isValid || loading) return
+    if (!isValid || loading || submitting) return
 
     const _save = announcementSelected ? toggleAnnouncementModal : save
     if (currentPost.type === 'proposal' && isEditing) {
@@ -1262,7 +1281,7 @@ function PostEditorInner ({
     } else {
       _save()
     }
-  }, [announcementSelected, currentPost.type, currentPost.proposalOptions, isEditing, isValid, initialPost.proposalOptions, save, loading])
+  }, [announcementSelected, currentPost.type, currentPost.proposalOptions, isEditing, isValid, initialPost.proposalOptions, save, loading, submitting])
 
   // Allow parents (e.g. CreateModal) to trigger save/reset flows without duplicating editor logic
   useImperativeHandle(ref, () => ({
@@ -1271,10 +1290,10 @@ function PostEditorInner ({
   }))
 
   const buttonLabel = useCallback(() => {
-    if (postPending) return t('Posting...')
+    if (submitting) return t('Posting...')
     if (isEditing) return t('Save')
     return t('Post')
-  }, [postPending, isEditing])
+  }, [submitting, isEditing])
 
   const toggleAnnouncementModal = useCallback(() => {
     setShowAnnouncementModal(!showAnnouncementModal)
@@ -1861,6 +1880,7 @@ function PostEditorInner ({
         invalidMessage={invalidMessage}
         isEditing={isEditing}
         loading={loading}
+        submitting={submitting}
         myAdminGroups={myAdminGroups}
         doSave={doSave}
         save={save}
