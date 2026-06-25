@@ -21541,6 +21541,26 @@ __metadata:
   languageName: node
   linkType: hard
 
+"expo-image-loader@npm:~6.0.0":
+  version: 6.0.0
+  resolution: "expo-image-loader@npm:6.0.0"
+  peerDependencies:
+    expo: "*"
+  checksum: 10/896b4df1208ec071888acac0a8673ee4a67afcc8e06061de26fd189feed3369959ab9254314d51f303bcfc8f6289fd04ca9bec616007333d3dcb2e6d0618a2fe
+  languageName: node
+  linkType: hard
+
+"expo-image-picker@npm:~17.0.8":
+  version: 17.0.11
+  resolution: "expo-image-picker@npm:17.0.11"
+  dependencies:
+    expo-image-loader: "npm:~6.0.0"
+  peerDependencies:
+    expo: "*"
+  checksum: 10/5ace69627009df039125a2a0ae68dbc4c0e20efa2371c1b066b04f1a477a3e21df7619c8edf0a0bbe96364bc4e550f1a71053317987390e9193df5e5439b8442
+  languageName: node
+  linkType: hard
+
 "expo-image@npm:~56.0.11":
   version: 56.0.11
   resolution: "expo-image@npm:56.0.11"
@@ -21572,6 +21592,15 @@ __metadata:
     expo: "*"
     react: "*"
   checksum: 10/6a3704ba20ce54b97745ea16627669b0b3d09cd4ee9dd546bd4973af3cb0caa93f5ad33643a16504ef90b3231f4012f3702e40de4c0b10f9e16b07d185229946
+  languageName: node
+  linkType: hard
+
+"expo-location@npm:~19.0.8":
+  version: 19.0.8
+  resolution: "expo-location@npm:19.0.8"
+  peerDependencies:
+    expo: "*"
+  checksum: 10/8bc41904c520ceaa86e500bff974668b669c8554be91cb00dc70e6cd32c8c84a85cc6774ab4296834b8f8a0da51e29e42b432952afa0b7e4734560cfa8dfd4a2
   languageName: node
   linkType: hard
 
@@ -30712,6 +30741,8 @@ __metadata:
     expo-constants: "npm:~56.0.18"
     expo-dev-client: "npm:~56.0.20"
     expo-image: "npm:~56.0.11"
+    expo-image-picker: "npm:~17.0.8"
+    expo-location: "npm:~19.0.8"
     expo-secure-store: "npm:~56.0.0"
     expo-status-bar: "npm:~56.0.4"
     graphql: "npm:^16.9.0"

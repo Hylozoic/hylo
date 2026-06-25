@@ -56,6 +56,8 @@ export default function PrimaryWebViewScreen () {
         if (themeName && scheme) setTheme(themeName, scheme)
         break
       }
+      case WebViewMessageTypes.AUTH_SUCCESS:
+        break
       default:
         if (__DEV__ && type) {
           console.log('Unknown WebView message type:', type, data)

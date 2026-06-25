@@ -1,13 +1,13 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import useBindPlatformUser from '../hooks/useBindPlatformUser'
-import useOpenInitialURL from '../hooks/useOpenInitialURL'
+import useHandleLinking from '../hooks/useHandleLinking'
 import PrimaryWebViewScreen from '../screens/PrimaryWebView/PrimaryWebViewScreen'
 
 const AuthRoot = createNativeStackNavigator()
 
 function AuthNavigatorContent () {
   useBindPlatformUser()
-  useOpenInitialURL(false)
+  useHandleLinking(false)
 
   return (
     <AuthRoot.Navigator screenOptions={{ headerShown: false }}>

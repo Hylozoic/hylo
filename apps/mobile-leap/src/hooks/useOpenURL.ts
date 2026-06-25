@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { Linking } from 'react-native'
-import { getActionFromState, useNavigation } from '@react-navigation/native'
+import { CommonActions, getActionFromState, StackActions, useNavigation } from '@react-navigation/native'
 import { prefixes, DEFAULT_APP_HOST, staticPages } from '../navigation/linking'
 import getStateFromPath from '../navigation/linking/getStateFromPath'
 import { URL } from 'react-native-url-polyfill'
@@ -18,7 +18,7 @@ export default function useOpenURL () {
 
 export async function openURL (
   providedPathOrURL: string,
-  options: Record<string, unknown> = {},
+  options: { openExternal?: boolean, reset?: boolean, replace?: boolean } = {},
   navigation: NavigationLike = navigationRef
 ) {
   const linkingURL = new URL(providedPathOrURL, DEFAULT_APP_HOST)
@@ -33,8 +33,14 @@ export async function openURL (
     const stateForPath = getStateFromPath(linkingPath)
 
     if (stateForPath) {
-      const actionForPath = getActionFromState(stateForPath)
+      let actionForPath = getActionFromState(stateForPath)
       if (actionForPath) {
+        if (options.reset) {
+          actionForPath = CommonActions.reset({ routes: [actionForPath.payload] })
+        } else if (options.replace) {
+          actionForPath = StackActions.replace(actionForPath.payload.name, actionForPath.payload.params)
+        }
+
         if ('dispatch' in navigation && navigation.dispatch) {
           navigation.dispatch(actionForPath)
         } else if ('current' in navigation && navigation.current) {

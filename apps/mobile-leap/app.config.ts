@@ -1,4 +1,8 @@
+import { existsSync } from 'fs'
+import path from 'path'
 import { ExpoConfig, ConfigContext } from 'expo/config'
+
+const projectRoot = __dirname
 
 const API_HOST = process.env.API_HOST ?? 'http://localhost:3001'
 const HYLO_WEB_BASE_URL = process.env.HYLO_WEB_BASE_URL ?? 'http://localhost:3000'
@@ -14,6 +18,7 @@ const INTERCOM_APP_ID = process.env.INTERCOM_APP_ID ?? ''
 const INTERCOM_IOS_API_KEY = process.env.INTERCOM_IOS_API_KEY ?? ''
 const INTERCOM_ANDROID_API_KEY = process.env.INTERCOM_ANDROID_API_KEY ?? ''
 const MIXPANEL_TOKEN = process.env.MIXPANEL_TOKEN ?? ''
+const MAPBOX_TOKEN = process.env.MAPBOX_TOKEN ?? ''
 const IOS_BUNDLE_ID = 'com.hylo.HyloLeap'
 
 function getIosUrlScheme (iosGoogleClientId: string): string | undefined {
@@ -47,6 +52,19 @@ function buildPlugins (): NonNullable<ExpoConfig['plugins']> {
     'expo-asset',
     'expo-apple-authentication',
     [
+      'expo-image-picker',
+      {
+        photosPermission: 'Allow Hylo to access your photos for profile pictures.',
+        cameraPermission: 'Allow Hylo to use your camera for profile pictures.'
+      }
+    ],
+    [
+      'expo-location',
+      {
+        locationWhenInUsePermission: 'Allow Hylo to use your location to find nearby content.'
+      }
+    ],
+    [
       'expo-build-properties',
       {
         ios: {
@@ -57,6 +75,9 @@ function buildPlugins (): NonNullable<ExpoConfig['plugins']> {
             { name: 'GoogleUtilities', modular_headers: true },
             { name: 'RecaptchaInterop', modular_headers: true }
           ]
+        },
+        android: {
+          usesCleartextTraffic: true
         }
       }
     ],
@@ -114,7 +135,26 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       monochromeImage: './assets/android-icon-monochrome.png',
       backgroundColor: '#E6F4FE'
     },
-    package: 'com.hylo.hyloleap'
+    package: 'com.hylo.hyloleap',
+    ...(existsSync(path.join(projectRoot, 'google-services.json'))
+      ? { googleServicesFile: './google-services.json' }
+      : {}),
+    intentFilters: [
+      {
+        action: 'VIEW',
+        autoVerify: true,
+        data: [
+          { scheme: 'https', host: 'www.hylo.com', pathPrefix: '/' },
+          { scheme: 'https', host: 'staging.hylo.com', pathPrefix: '/' }
+        ],
+        category: ['BROWSABLE', 'DEFAULT']
+      }
+    ],
+    permissions: [
+      'ACCESS_COARSE_LOCATION',
+      'ACCESS_FINE_LOCATION',
+      'CAMERA'
+    ]
   },
   plugins: buildPlugins(),
   extra: {
@@ -131,6 +171,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     INTERCOM_IOS_API_KEY,
     INTERCOM_ANDROID_API_KEY,
     MIXPANEL_TOKEN,
+    MAPBOX_TOKEN,
     eas: {
       projectId: process.env.EAS_PROJECT_ID
     }

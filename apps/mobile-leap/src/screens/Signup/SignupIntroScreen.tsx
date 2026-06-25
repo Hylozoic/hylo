@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import { Image } from 'expo-image'
-import { ScrollView, Text, TextInput, Pressable, View } from 'react-native'
+import { Dimensions, ImageBackground, Pressable, ScrollView, Text, TextInput, View } from 'react-native'
 import { useMutation } from 'urql'
 import { useTranslation } from 'react-i18next'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
@@ -11,10 +11,15 @@ import sendEmailVerificationMutation from '@hylo/graphql/mutations/sendEmailVeri
 import { trackWithConsent } from '../../services/mixpanel'
 import useOpenURL from '../../hooks/useOpenURL'
 import useRouteParams from '../../hooks/useRouteParams'
-import Button from '../../components/Button'
 import FormattedError from '../../components/FormattedError'
 import SocialAuth from '../../components/SocialAuth'
+import { AuthBanner, AuthPrimaryButton } from '../../components/auth/AuthScreenParts'
+import { isIOS } from '../../util/platform'
 import validator from 'validator'
+
+const signinBackground = require('../../../assets/signin_background.png')
+const merkabaWhite = require('../../../assets/merkaba_white.png')
+const heroHeight = Dimensions.get('window').height * 0.25 + (isIOS ? 20 : 60)
 
 function useSignupWorkflow () {
   const navigation = useNavigation()
@@ -57,7 +62,7 @@ export default function SignupIntroScreen () {
   const insets = useSafeAreaInsets()
   const navigation = useNavigation()
   const openURL = useOpenURL()
-  const { fetching } = useSignupWorkflow()
+  useSignupWorkflow()
   const [, sendEmailVerification] = useMutation(sendEmailVerificationMutation)
   const { email: routeEmail, error: routeError, bannerError: routeBannerError } = useRouteParams<{
     email?: string
@@ -100,34 +105,28 @@ export default function SignupIntroScreen () {
     }
   }
 
-  if (fetching) return null
-
   return (
-    <View className='flex-1 bg-background' style={{ paddingBottom: insets.bottom }}>
-      <ScrollView className='flex-1'>
-        {bannerError && (
-          <Text className='bg-destructive px-4 py-2 text-destructive-foreground' style={{ paddingTop: insets.top }}>
-            {bannerError}
-          </Text>
-        )}
-        {!bannerError && signingUp && (
-          <Text className='bg-selected px-4 py-2 text-foreground' style={{ paddingTop: insets.top }}>
-            {t('SIGNING UP')}
-          </Text>
-        )}
+    <View className='flex-1 bg-white' style={{ paddingBottom: insets.bottom }}>
+      {bannerError && <AuthBanner message={bannerError} variant='error' topInset={insets.top} />}
+      {!bannerError && signingUp && <AuthBanner message={t('SIGNING UP')} topInset={insets.top} />}
 
-        <View className='items-center bg-secondary px-6 pb-8 pt-12'>
-          <Image source={require('../../../assets/icon.png')} style={{ width: 64, height: 64 }} contentFit='contain' />
-          <Text className='mt-4 text-2xl font-bold text-secondary-foreground'>{t('Welcome to Hylo')}</Text>
-          <Text className='mt-2 text-center text-secondary-foreground/90'>
+      <ScrollView className='flex-1'>
+        <ImageBackground
+          source={signinBackground}
+          style={{ width: '100%', height: heroHeight + insets.top, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 20 }}
+          imageStyle={{ height: heroHeight + insets.top, resizeMode: 'cover' }}
+        >
+          <Image source={merkabaWhite} style={{ width: 97, height: 97 }} contentFit='contain' />
+          <Text className='mt-4 text-2xl font-bold text-white'>{t('Welcome to Hylo')}</Text>
+          <Text className='mt-2 px-[20%] text-center text-base text-white/90'>
             {t('Stay connected, organized, and engaged with your group')}.
           </Text>
-        </View>
+        </ImageBackground>
 
         <View className='px-6 py-6'>
-          <Text className='mb-3 text-foreground'>{t('Enter your email below to get started!')}</Text>
+          <Text className='mb-3 text-foreground/80'>{t('Enter your email below to get started!')}</Text>
           <TextInput
-            className='mb-4 rounded-lg border border-border bg-card px-3 py-3 text-foreground'
+            className='mb-4 rounded-md border border-border px-3 py-3 text-base text-foreground'
             value={email}
             onChangeText={setEmail}
             keyboardType='email-address'
@@ -136,8 +135,8 @@ export default function SignupIntroScreen () {
             onSubmitEditing={canSubmit ? submit : undefined}
           />
           <FormattedError error={error} action='Signup' />
-          <Button
-            text={signingUp ? t('Saving-ellipsis') : t('Continue')}
+          <AuthPrimaryButton
+            label={signingUp ? t('Saving-ellipsis') : t('Continue')}
             onPress={submit}
             disabled={!canSubmit || signingUp}
           />
@@ -150,9 +149,19 @@ export default function SignupIntroScreen () {
             }}
           />
           <View className='mt-6 flex-row justify-center'>
-            <Text className='text-muted-foreground'>{t('Already have an account?')} </Text>
+            <Text className='text-foreground/70'>{t('Already have an account?')} </Text>
             <Pressable onPress={() => navigation.replace('Login' as never)}>
-              <Text className='font-semibold text-secondary'>{t('Log in now')}</Text>
+              <Text className='font-bold text-selected'>{t('Log in now')}</Text>
+            </Pressable>
+          </View>
+          <View className='mt-8'>
+            <Text className='text-center text-sm text-foreground/70'>
+              {t('Your data is safe with Hylo By clicking the Sign Up button above you are agreeing to these terms:')}
+            </Text>
+            <Pressable onPress={() => openURL('https://www.hylo.com/terms')}>
+              <Text className='mt-2 text-center text-sm font-bold text-selected'>
+                {t('Terms of Service + Privacy Policy')}
+              </Text>
             </Pressable>
           </View>
         </View>

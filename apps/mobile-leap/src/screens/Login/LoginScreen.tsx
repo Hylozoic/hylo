@@ -1,6 +1,6 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Image } from 'expo-image'
-import { ScrollView, Text, TextInput, Pressable, View } from 'react-native'
+import { Pressable, ScrollView, Text, TextInput, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -11,6 +11,7 @@ import validator from 'validator'
 import errorMessages from 'util/errorMessages'
 import SocialAuth from '../../components/SocialAuth'
 import FormattedError from '../../components/FormattedError'
+import { AuthBanner, AuthInput, AuthPrimaryButton } from '../../components/auth/AuthScreenParts'
 
 export default function LoginScreen () {
   const insets = useSafeAreaInsets()
@@ -66,72 +67,57 @@ export default function LoginScreen () {
   }
 
   return (
-    <View className='flex-1 bg-background' style={{ paddingBottom: insets.bottom }}>
-      <ScrollView className='flex-1 px-6' contentContainerClassName='pb-8 pt-4'>
-        {bannerError && (
-          <Text className='mb-2 text-center text-destructive' style={{ paddingTop: insets.top }}>
-            {bannerError}
-          </Text>
-        )}
-        {!bannerError && bannerMessage && (
-          <Text className='mb-2 text-center text-foreground' style={{ paddingTop: insets.top }}>
-            {bannerMessage}
-          </Text>
-        )}
+    <View testID='login-screen' className='flex-1 bg-white' style={{ paddingBottom: insets.bottom }}>
+      {bannerError && <AuthBanner message={bannerError} variant='error' topInset={insets.top} />}
+      {!bannerError && bannerMessage && <AuthBanner message={bannerMessage} topInset={insets.top} />}
 
+      <ScrollView className='flex-1' contentContainerClassName='items-center pb-8 pt-16'>
         <Image
-          source={require('../../../assets/icon.png')}
-          style={{ width: 80, height: 80, alignSelf: 'center', marginVertical: 24 }}
+          source={require('../../../assets/merkaba-green-on-white.png')}
+          style={{ width: 80, height: 80, marginBottom: 10 }}
           contentFit='contain'
         />
-        <Text className='mb-6 text-center text-2xl font-semibold text-foreground'>
-          {t('Log in to Hylo')}
-        </Text>
+        <Text className='mb-5 text-2xl font-bold text-selected'>{t('Log in to Hylo')}</Text>
 
-        <Text className='mb-1 text-sm text-muted-foreground'>{t('Email address')}</Text>
-        <View className={`mb-4 flex-row items-center rounded-lg border px-3 ${emailIsValid ? 'border-selected' : 'border-border'}`}>
-          <TextInput
-            className='flex-1 py-3 text-foreground'
+        <View className='w-full'>
+          <AuthInput
+            label={t('Email address')}
+            value={email}
             onChangeText={setEmail}
-            returnKeyType='next'
-            autoCapitalize='none'
-            autoCorrect={false}
+            valid={emailIsValid}
             keyboardType='email-address'
+            returnKeyType='next'
             onSubmitEditing={() => passwordInputRef.current?.focus()}
+            testID='login-email-input'
           />
-          {emailIsValid && <Entypo name='check' size={20} color='#5cb85c' />}
-        </View>
 
-        <View className='mb-1 flex-row items-center justify-between'>
-          <Text className='text-sm text-muted-foreground'>{t('Password')}</Text>
-          <Pressable onPress={() => navigation.navigate('ForgotPassword' as never)}>
-            <Text className='text-sm text-secondary'>{t('Forgot your password?')}</Text>
-          </Pressable>
-        </View>
-        <View className='mb-4 flex-row items-center rounded-lg border border-border px-3'>
-          <TextInput
-            ref={passwordInputRef}
-            className='flex-1 py-3 text-foreground'
-            secureTextEntry={securePassword}
-            autoCapitalize='none'
+          <View className='mb-1 flex-row items-center justify-between px-4'>
+            <Text className='text-sm text-foreground/80'>{t('Password')}</Text>
+            <Pressable onPress={() => navigation.navigate('ForgotPassword' as never)}>
+              <Text className='text-sm text-selected'>{t('Forgot your password?')}</Text>
+            </Pressable>
+          </View>
+          <AuthInput
+            label=''
+            value={password}
             onChangeText={setPasswordState}
+            secureTextEntry={securePassword}
             returnKeyType='go'
             onSubmitEditing={handleLogin}
+            inputRef={passwordInputRef}
+            testID='login-password-input'
+            rightAccessory={(
+              <Pressable onPress={() => setSecurePassword(!securePassword)}>
+                <Entypo name={securePassword ? 'eye' : 'eye-with-line'} size={20} color='#888' />
+              </Pressable>
+            )}
           />
-          <Pressable onPress={() => setSecurePassword(!securePassword)}>
-            <Entypo name={securePassword ? 'eye' : 'eye-with-line'} size={20} color='#888' />
-          </Pressable>
         </View>
 
-        <FormattedError error={formError} action='Login' />
-
-        <Pressable
-          className={`mb-4 items-center rounded-full py-3 ${emailIsValid ? 'bg-selected' : 'bg-muted opacity-60'}`}
-          onPress={handleLogin}
-          disabled={!emailIsValid}
-        >
-          <Text className='font-semibold text-foreground'>{t('Log In')}</Text>
-        </Pressable>
+        <View className='w-full px-4'>
+          <FormattedError error={formError} action='Login' />
+          <AuthPrimaryButton label={t('Log In')} onPress={handleLogin} disabled={!emailIsValid} testID='login-submit-button' />
+        </View>
 
         <SocialAuth
           onStart={() => setBannerMessage(t('LOGGING IN'))}
@@ -141,10 +127,10 @@ export default function LoginScreen () {
           }}
         />
 
-        <View className='mt-6 flex-row justify-center'>
-          <Text className='text-muted-foreground'>{t('Dont have an account?')} </Text>
+        <View className='mt-6 flex-row'>
+          <Text className='text-foreground/70'>{t('Dont have an account?')} </Text>
           <Pressable onPress={() => navigation.navigate('Signup' as never)}>
-            <Text className='font-semibold text-secondary'>{t('Sign up now')}</Text>
+            <Text className='font-bold text-selected'>{t('Sign up now')}</Text>
           </Pressable>
         </View>
       </ScrollView>

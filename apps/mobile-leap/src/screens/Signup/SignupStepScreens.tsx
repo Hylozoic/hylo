@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ScrollView, Text, TextInput, Pressable, View } from 'react-native'
+import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from 'react-native'
+import { Image } from 'expo-image'
+import { Entypo } from '@expo/vector-icons'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
 import { gql, useMutation } from 'urql'
@@ -14,6 +16,10 @@ import useRouteParams from '../../hooks/useRouteParams'
 import { trackWithConsent } from '../../services/mixpanel'
 import errorMessages from 'util/errorMessages'
 import FormattedError from '../../components/FormattedError'
+import { SignupFlowButton, SignupFlowLayout } from '../../components/auth/AuthScreenParts'
+import ImagePicker from '../../components/ImagePicker'
+import LocationSelector from '../../components/LocationSelector'
+import LoadingScreen from '../../components/LoadingScreen'
 
 const CODE_LENGTH = 6
 
@@ -98,11 +104,13 @@ export function SignupEmailValidationScreen () {
   }
 
   return (
-    <View className='flex-1 bg-background px-6' style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
+    <SignupFlowLayout
+      title={t('Check your email')}
+      subtitle={`${t('Weve sent a 6 digit code to')}: ${email ?? ''}`}
+      topInset={insets.top}
+      bottomInset={insets.bottom}
+    >
       <ScrollView keyboardShouldPersistTaps='handled'>
-        <Text className='mb-2 text-2xl font-semibold text-foreground'>{t('Check your email')}</Text>
-        <Text className='text-muted-foreground'>{t('Weve sent a 6 digit code to')}:</Text>
-        <Text className='my-2 font-bold text-foreground'>{email}</Text>
         <CodeField
           ref={verificationCodeRef}
           {...props}
@@ -115,7 +123,7 @@ export function SignupEmailValidationScreen () {
           renderCell={({ index, symbol, isFocused }) => (
             <Text
               key={index}
-              className={`mx-1 h-12 w-10 rounded border text-center text-xl leading-[48px] text-foreground ${isFocused ? 'border-secondary' : 'border-border'}`}
+              className={`mx-1 h-12 w-10 rounded border text-center text-xl leading-[48px] text-white ${isFocused ? 'border-white' : 'border-white/40'}`}
               onLayout={getCellOnLayoutHandler(index)}
             >
               {symbol || (isFocused ? <Cursor /> : ' ')}
@@ -123,11 +131,11 @@ export function SignupEmailValidationScreen () {
           )}
         />
         <Pressable className='mt-4' onPress={resendCode} disabled={loading}>
-          <Text className='text-secondary'>{t('Resend code')}</Text>
+          <Text className='text-white'>{t('Resend code')}</Text>
         </Pressable>
         <FormattedError error={error} />
       </ScrollView>
-    </View>
+    </SignupFlowLayout>
   )
 }
 
@@ -165,56 +173,159 @@ export function SignupRegistrationScreen () {
   }
 
   return (
-    <View className='flex-1 bg-background px-6' style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
-      <Text className='mb-2 text-2xl font-semibold text-foreground'>{t('Lets do this!')}</Text>
-      <Text className='mb-6 text-muted-foreground'>
-        {currentUser?.email ?? ''}
-      </Text>
+    <SignupFlowLayout
+      title={t('Lets do this!')}
+      subtitle={currentUser?.email ?? ''}
+      topInset={insets.top}
+      bottomInset={insets.bottom}
+      footer={(
+        <SignupFlowButton
+          label={loading ? t('Saving-ellipsis') : t('Continue')}
+          onPress={handleSubmit}
+          disabled={loading || !name}
+        />
+      )}
+    >
       <FormattedError error={error} />
-      <Text className='mb-1 text-sm text-muted-foreground'>{t('Your Full Name')}</Text>
-      <TextInput className='mb-3 rounded-lg border border-border bg-card px-3 py-3 text-foreground' value={name} onChangeText={setName} />
-      <Text className='mb-1 text-sm text-muted-foreground'>{t('Password (at least 9 characters)')}</Text>
-      <TextInput className='mb-3 rounded-lg border border-border bg-card px-3 py-3 text-foreground' value={password} onChangeText={setPassword} secureTextEntry />
-      <Text className='mb-1 text-sm text-muted-foreground'>{t('Confirm Password')}</Text>
-      <TextInput className='mb-3 rounded-lg border border-border bg-card px-3 py-3 text-foreground' value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry />
-      <Pressable className='mt-4 items-center rounded-full bg-selected py-3' onPress={handleSubmit} disabled={loading || !name}>
-        <Text className='font-semibold text-foreground'>{loading ? t('Saving-ellipsis') : t('Continue')}</Text>
-      </Pressable>
-    </View>
+      <Text className='mb-1 text-sm text-white/80'>{t('Your Full Name')}</Text>
+      <TextInput className='mb-3 rounded-lg border border-white/30 bg-white/90 px-3 py-3 text-foreground' value={name} onChangeText={setName} />
+      <Text className='mb-1 text-sm text-white/80'>{t('Password (at least 9 characters)')}</Text>
+      <TextInput className='mb-3 rounded-lg border border-white/30 bg-white/90 px-3 py-3 text-foreground' value={password} onChangeText={setPassword} secureTextEntry />
+      <Text className='mb-1 text-sm text-white/80'>{t('Confirm Password')}</Text>
+      <TextInput className='mb-3 rounded-lg border border-white/30 bg-white/90 px-3 py-3 text-foreground' value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry />
+    </SignupFlowLayout>
   )
 }
 
 export function SignupUploadAvatarScreen () {
+  const insets = useSafeAreaInsets()
   const { t } = useTranslation()
   const navigation = useNavigation()
+  const { currentUser, fetching } = useAuth()
+  const [, updateUserSettings] = useMutation(updateUserSettingsMutation)
+  const [avatarUrl, setAvatarUrl] = useState(currentUser?.avatarUrl)
+  const [avatarImageSource, setAvatarImageSource] = useState<{ uri?: string } | null>(
+    currentUser?.avatarUrl ? { uri: currentUser.avatarUrl } : null
+  )
+  const [imagePickerPending, setImagePickerPending] = useState(false)
+
+  useFocusEffect(
+    useCallback(() => {
+      navigation.setOptions({ title: t('STEP 2/3') } as never)
+    }, [navigation, t])
+  )
+
+  const handleAvatarImageUpload = ({ local, remote }: { local: string, remote: string | null }) => {
+    setAvatarImageSource({ uri: local })
+    setAvatarUrl(remote || local)
+  }
+
+  const saveAndNext = async () => {
+    await updateUserSettings({ changes: { avatarUrl } })
+    navigation.navigate('SignupSetLocation' as never)
+  }
+
+  if (fetching) return <LoadingScreen />
 
   return (
-    <View className='flex-1 items-center justify-center bg-background px-6'>
-      <Text className='mb-2 text-xl font-semibold text-foreground'>{t('Upload a Photo')}</Text>
-      <Text className='mb-6 text-center text-muted-foreground'>Skip for now — full avatar picker in a follow-up.</Text>
-      <Pressable className='w-full items-center rounded-full bg-selected py-3' onPress={() => navigation.navigate('SignupSetLocation' as never)}>
-        <Text className='font-semibold text-foreground'>{t('Continue')}</Text>
-      </Pressable>
-    </View>
+    <SignupFlowLayout
+      title={t('Upload a Photo')}
+      topInset={insets.top}
+      bottomInset={insets.bottom}
+      footer={(
+        <SignupFlowButton
+          label={t('Continue')}
+          onPress={saveAndNext}
+          disabled={imagePickerPending}
+        />
+      )}
+    >
+      <View className='items-center pt-6'>
+        <ImagePicker
+          type='userAvatar'
+          cameraType='front'
+          id={currentUser?.id}
+          onChoice={handleAvatarImageUpload}
+          onPendingChange={setImagePickerPending}
+        >
+          {avatarImageSource?.uri ? (
+            <View className='h-[138px] w-[138px] overflow-hidden rounded-full bg-white/40'>
+              <Image
+                source={{ uri: avatarImageSource.uri }}
+                style={{ width: 138, height: 138 }}
+                contentFit='cover'
+              />
+              {imagePickerPending && (
+                <View className='absolute inset-0 items-center justify-center bg-black/30'>
+                  <ActivityIndicator color='#fff' size='large' />
+                </View>
+              )}
+            </View>
+          ) : (
+            <View className='h-[138px] w-[138px] items-center justify-center rounded-full bg-white/40'>
+              {imagePickerPending ? <ActivityIndicator color='#fff' size='large' /> : (
+                <Entypo name='camera' size={48} color='#ffffff99' />
+              )}
+            </View>
+          )}
+        </ImagePicker>
+      </View>
+    </SignupFlowLayout>
   )
 }
 
 export function SignupSetLocationScreen () {
+  const insets = useSafeAreaInsets()
   const { t } = useTranslation()
+  const navigation = useNavigation()
+  const { currentUser } = useAuth()
+  const [locationObject, setLocationObject] = useState<{ id?: string | null, fullText?: string }>()
   const [, updateUserSettings] = useMutation(updateUserSettingsMutation)
 
-  const finish = async () => {
-    await updateUserSettings({ changes: { settings: { signupInProgress: false } } })
-    trackWithConsent(AnalyticsEvents.SIGNUP_COMPLETE, {})
+  useFocusEffect(
+    useCallback(() => {
+      navigation.setOptions({ title: t('STEP 3/3') } as never)
+    }, [navigation, t])
+  )
+
+  const saveAndFinish = async () => {
+    await updateUserSettings({
+      changes: {
+        location: locationObject?.fullText,
+        locationId: locationObject?.id,
+        settings: { signupInProgress: false }
+      }
+    })
+    trackWithConsent(AnalyticsEvents.SIGNUP_COMPLETE, {}, currentUser)
   }
 
   return (
-    <View className='flex-1 items-center justify-center bg-background px-6'>
-      <Text className='mb-2 text-xl font-semibold text-foreground'>{t('Add your location')}</Text>
-      <Text className='mb-6 text-center text-muted-foreground'>Location picker coming soon — finish signup to enter the app.</Text>
-      <Pressable className='w-full items-center rounded-full bg-selected py-3' onPress={finish}>
-        <Text className='font-semibold text-foreground'>{t('Finish')}</Text>
-      </Pressable>
-    </View>
+    <SignupFlowLayout
+      title={t('Add your location')}
+      subtitle={`${t('Add your location to see more relevant content and find people and projects near you')}.`}
+      topInset={insets.top}
+      bottomInset={insets.bottom}
+      footer={(
+        <>
+          <SignupFlowButton label={t('< Back')} onPress={() => navigation.goBack()} variant='back' />
+          <SignupFlowButton label={t('Finish')} onPress={saveAndFinish} />
+        </>
+      )}
+    >
+      <View className='mb-3 flex-row items-center justify-between'>
+        <Text className='font-bold text-white'>Selected:</Text>
+        {locationObject?.fullText && (
+          <Pressable onPress={() => setLocationObject(undefined)}>
+            <Entypo name='cross' size={20} color='#ffffffcc' />
+          </Pressable>
+        )}
+      </View>
+      <Text className='mb-4 text-base text-white'>
+        {locationObject?.fullText || '(None selected)'}
+      </Text>
+      {!locationObject?.fullText && (
+        <LocationSelector onSelect={setLocationObject} />
+      )}
+    </SignupFlowLayout>
   )
 }
