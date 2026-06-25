@@ -65,6 +65,11 @@ export default Me
 Me.modelName = 'Me'
 Me.fields = {
   blockedUsers: many('Person'),
+  email: attr(),
+  emailValidated: attr(),
+  hasRegistered: attr(),
+  settings: attr(),
+  avatarUrl: attr(),
   intercomHash: attr(),
   isAdmin: attr(),
   name: attr(),

@@ -1,6 +1,6 @@
 import mixpanel from 'mixpanel-browser'
 import { WebViewMessageTypes } from '@hylo/shared'
-import React, { useState, useEffect } from 'react'
+import React, { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { connectSocket } from 'client/websockets'
@@ -18,6 +18,7 @@ import PublicPostDetail from 'routes/PublicLayoutRouter/PublicPostDetail'
 import OfferingDetails from 'routes/OfferingDetails/OfferingDetails'
 import checkLogin from 'store/actions/checkLogin'
 import { getAuthorized } from 'store/selectors/getAuthState'
+import { getAuthSessionUnknown } from 'store/selectors/getAuthSession'
 import { sendMessageToWebView } from 'util/webView'
 
 if (!isTest && config.mixpanel.token) {
@@ -73,7 +74,7 @@ function isNeutralRootSessionLoadingPath (pathname) {
 export default function RootRouter () {
   const dispatch = useDispatch()
   const isAuthorized = useSelector(getAuthorized)
-  const [loading, setLoading] = useState(true)
+  const isAuthSessionUnknown = useSelector(getAuthSessionUnknown)
   const navigate = useNavigate()
   const { pathname } = useLocation()
 
@@ -81,13 +82,12 @@ export default function RootRouter () {
   // Routes will not be available until this check is complete.
   useEffect(() => {
     (async function () {
-      setLoading(true)
       const t0 = typeof performance !== 'undefined' ? performance.now() : Date.now()
       try {
         const action = await dispatch(checkLogin())
-        // If the server returns me: null the session/cookie is dead. Clear the
-        // persisted ORM (which may still have a stale Me row) so the app does not
-        // briefly appear authenticated on the next load before checkLogin resolves.
+        // If the server returns me: null the session/cookie is dead. The
+        // authSession reducer already records Anonymous from CHECK_LOGIN, so the
+        // separated auth state drives routing without dispatching logout here.
         const me = action?.payload?.data?.me
         if (debugCheckLogin) {
           const ms = Math.round((typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0)
@@ -103,8 +103,6 @@ export default function RootRouter () {
         }
         // XXXX: This breaks logging in production only. Why???
         // dispatch(logout())
-      } finally {
-        setLoading(false)
       }
     }())
 
@@ -133,7 +131,7 @@ export default function RootRouter () {
   //   native session really is gone, so send LOGOUT to let native show its login UI.
   // Non-mobile web is unaffected (window.HyloMobileV2 is undefined → falls through).
   useEffect(() => {
-    if (loading) return
+    if (isAuthSessionUnknown) return
     if (!window.HyloMobileV2) return
 
     if (isAuthorized) {
@@ -151,9 +149,9 @@ export default function RootRouter () {
     }
     writeMobileReauthAttempts(attempts + 1)
     sendMessageToWebView(WebViewMessageTypes.VERIFY_AUTH)
-  }, [loading, isAuthorized])
+  }, [isAuthSessionUnknown, isAuthorized])
 
-  if (loading) {
+  if (isAuthSessionUnknown) {
     if (isNeutralRootSessionLoadingPath(pathname)) {
       return <Loading type='fullscreen' />
     }

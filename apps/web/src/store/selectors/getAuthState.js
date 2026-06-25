@@ -1,5 +1,10 @@
 import { createSelector } from 'reselect'
-import getMe from 'store/selectors/getMe'
+import {
+  getAuthSessionAuthenticated,
+  getAuthSessionEmailValidated,
+  getAuthSessionHasRegistered,
+  getAuthSessionSignupInProgress
+} from './getAuthSession'
 
 /*
 
@@ -29,17 +34,19 @@ export const AuthState = {
   Complete: 'Complete'
 }
 
+// Derived purely from the `authSession` slice so high-level routing
+// (`getAuthorized`) never has to wait on the ORM `me` row. The signup-progress
+// distinction (SignupInProgress vs Complete) lives in the separate
+// `getSignupInProgress`/`getSignupComplete` selectors below, which are also
+// session-driven (signupInProgress is mirrored into `authSession`).
 export const getAuthState = createSelector(
-  getMe,
-  currentUser => {
-    if (!currentUser) return AuthState.None
-
-    const { emailValidated, hasRegistered, settings } = currentUser
-    const signupInProgress = settings?.signupInProgress
-
+  getAuthSessionAuthenticated,
+  getAuthSessionEmailValidated,
+  getAuthSessionHasRegistered,
+  (isAuthenticated, emailValidated, hasRegistered) => {
+    if (!isAuthenticated) return AuthState.None
     if (!emailValidated) return AuthState.EmailValidation
-    if (emailValidated && !hasRegistered) return AuthState.Registration
-    if (signupInProgress) return AuthState.SignupInProgress
+    if (!hasRegistered) return AuthState.Registration
 
     return AuthState.Complete
   }
@@ -49,38 +56,31 @@ export const getAuthState = createSelector(
 // * Should probably only be used for attaching Hylo user to external
 // APIs (i.e. Mixpanel currently) as soon as authentication is complete
 export const getAuthenticated = createSelector(
-  getAuthState,
-  authState => {
-    return authState !== AuthState.None
-  }
+  getAuthSessionAuthenticated,
+  isAuthenticated => isAuthenticated
 )
 
-// Authenticated && (Signup In Progress || Signup Complete)
+// Authenticated && email validated && registered (i.e. past signup).
+// Derived from `authSession` only, so `RootRouter` can authorize without `me`.
 // * Used by `RootRouter`
 export const getAuthorized = createSelector(
   getAuthState,
-  authState => {
-    return [
-      AuthState.SignupInProgress,
-      AuthState.Complete
-    ].includes(authState)
-  }
+  authState => authState === AuthState.Complete
 )
 
-// Authenticated && Authorized && Signup In Progress
+// Authorized && signup wizard still in progress. Session-driven (signupInProgress is
+// mirrored into `authSession` at auth time and on the wizard's `updateMe` confirm).
 export const getSignupInProgress = createSelector(
-  getAuthState,
-  authState => {
-    return authState === AuthState.SignupInProgress
-  }
+  getAuthorized,
+  getAuthSessionSignupInProgress,
+  (authorized, signupInProgress) => authorized && !!signupInProgress
 )
 
-// Authenticated && Authorized && Signup Complete
+// Authorized && signup wizard finished. Session-driven (see `getSignupInProgress`).
 export const getSignupComplete = createSelector(
-  getAuthState,
-  authState => {
-    return authState === AuthState.Complete
-  }
+  getAuthorized,
+  getAuthSessionSignupInProgress,
+  (authorized, signupInProgress) => authorized && !signupInProgress
 )
 
 export default getAuthState
