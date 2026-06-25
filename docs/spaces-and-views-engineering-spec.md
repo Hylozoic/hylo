@@ -7,21 +7,19 @@ _Product spec: [Google Doc](https://docs.google.com/document/d/1Oct_l40Jj64dYl5D
 ## Table of Contents
 
 1. [Core Concepts](#1-core-concepts)
-2. [Resolved Architecture Decisions](#2-resolved-architecture-decisions)
-3. [Open Questions](#3-open-questions)
-4. [Database Changes](#4-database-changes)
-5. [Backend Model Changes](#5-backend-model-changes)
-6. [GraphQL Schema Changes](#6-graphql-schema-changes)
-7. [Data Migration](#7-data-migration)
-8. [Routing](#8-routing)
-9. [Frontend Component Changes](#9-frontend-component-changes)
-10. [Notifications & Unread Tracking](#10-notifications--unread-tracking)
-11. [Search](#11-search)
-12. [Group & Space Creation](#12-group--space-creation)
-13. [Archive](#13-archive)
-14. [Steward Onboarding Prompt](#14-steward-onboarding-prompt)
-15. [Out of Scope / Future Work](#15-out-of-scope--future-work)
-16. [Phased Rollout](#16-phased-rollout)
+2. [Database Changes](#2-database-changes)
+3. [Backend Model Changes](#3-backend-model-changes)
+4. [GraphQL Schema Changes](#4-graphql-schema-changes)
+5. [Data Migration](#5-data-migration)
+6. [Routing](#6-routing)
+7. [Frontend Component Changes](#7-frontend-component-changes)
+8. [Notifications & Unread Tracking](#8-notifications--unread-tracking)
+9. [Search](#9-search)
+10. [Group & Space Creation](#10-group--space-creation)
+11. [Archive](#11-archive)
+12. [Steward Onboarding Prompt](#12-steward-onboarding-prompt)
+13. [Out of Scope / Future Work](#13-out-of-scope--future-work)
+14. [Phased Rollout](#14-phased-rollout)
 
 ---
 
@@ -37,72 +35,9 @@ _Product spec: [Google Doc](https://docs.google.com/document/d/1Oct_l40Jj64dYl5D
 
 ---
 
-## 2. Resolved Architecture Decisions
+## 2. Database Changes
 
-| Question | Decision |
-|----------|----------|
-| Spaces in DB | Rows in `groups` with `type = 'space'` and `parent_id` set |
-| `parent_id` on groups | **Yes** — `bigint nullable` FK |
-| `accepted_post_types` | **Whitelist** jsonb array. `null` = all types accepted |
-| Home view designation | **`order = 0`** on `group_views`. No separate flag or FK on groups. |
-| Collections table | **Eliminated** — fold into `group_views` with `type = 'collection'`; posts linked via `collection_posts` table |
-| `custom_views` table | **Eliminated** — stream filter settings fold into `group_views.settings` jsonb; topics stored as jsonb array in `group_views.topics` |
-| External links | **`group_views.link` column** — no `custom_views` row needed |
-| `group_views_users` notification column | Named **`settings`** jsonb |
-| `Stream` component | **Rename** to `GroupView` — universal renderer for all view types |
-| Views in Archive | **No** — views are either in the menu or deleted. Only spaces go in Archive. |
-| ContextWidget code | **All code removed**. `context_widgets` TABLE stays (read-only, for recovery reference). |
-| Custom Views settings tab | **Remove** — all view settings accessible from ContextMenu edit mode |
-| Welcome Page settings tab | **Remove** — welcome page edited via ContextMenu edit mode (settings button next to Welcome view) |
-| Tracks/Actions settings tab | **Remove** — Track settings accessible from ContextMenu or Archive settings link |
-| Space creation permission | **Administration responsibility only** in parent group for Phase 1 |
-| Routing | **Keep current routes** (`/groups/:slug/map` etc). Add new routes for new view types. |
-| Space routing | **Nested** — `/groups/:parentSlug/spaces/:spaceSlug` |
-| Space slugs | See [Space Slug Strategy](#space-slug-strategy) below |
-| `#general` tag removal | **Yes** — strip from all posts after migration |
-| Edit mode query param | `cme=yes` → **`edit=yes`** |
-| `tag_follows` table | **Keep** — may be useful in future, unrelated to chat room deprecation |
-| Chat post creation | **No space selector** — chats created from chat box in current space/view |
-| Moderation view | **Visible to all group members** when there are any flagged posts. Always-visible link at the bottom of the ContextMenu. Not a `group_views` row — rendered directly by ContextMenu. |
-| Track/Funding Round space home | **`welcome` view** (order=0) — steward's customizable `page_content`, with special track/round metadata rendered above (phase info for rounds; no `welcome_message` for tracks — that field is removed). |
-| Track `welcome_message` field | **Removed** — replaced by the `welcome` view's `page_content` |
-| Space join interstitial | Non-members see a preview page before joining. For track spaces: shows track metadata (num_actions etc). For funding round spaces: shows round description + launch date if not yet started. No CTA join bar inside the space itself. |
-| `required_roles` on spaces | **Yes** — `group_roles` IDs (bigint array jsonb). If set, space only visible to members with one of those roles in the parent group. Replaces the old `required_responsibilities` idea. |
-| `funding_rounds_posts` table | **Eliminated** — posts migrated to `groups_posts` referencing the new funding round space |
-| `funding_rounds_users` table | **Eliminated** — users migrated to `group_memberships`; `tokens_remaining` stored in `group_memberships.settings` |
-| `tracks_posts` table | **Eliminated** — action post ordering tracked via `collection_posts` (view_id = the `track-actions` view in the space) |
-| `tracks_users` table | **Eliminated** — users migrated to `group_memberships`; `enrolled_at` and `completed_at` stored in `group_memberships.settings` |
-| `groups.home_route` | **Keep** — still needed for fast redirect without loading views. Update format in migration. |
-| Track/Funding Round as home | **Auto-demote** during migration; prompt stewards to pick new home |
-| Space accessibility UI | **Single selector** with 5 options that sets both `visibility` and `accessibility` on the group (see Section 9.9) |
-| Paid spaces | **Any space can be paywalled** if the parent group has paid content enabled. Generalizes the track paywall. Stripe offerings attach to a space group id instead of a track id. Addressed in Phase 4. |
-| `common_roles` consolidation | **Eliminated** — system roles stamped out per group into `groups_roles` with `type = 'system'`. `common_roles`, `common_roles_responsibilities`, and `group_memberships_common_roles` tables dropped. All UNION queries in permission checks collapse to single-table lookups. |
-| `required_roles` source | **`groups_roles.id` values** — uniform after consolidation. System roles identified by `type = 'system'` and name on the `groups_roles` row. |
-| `tracks` table cleanup | `name`, `description`, `banner_url`, `welcome_message`, `deactivated_at`, `access_controlled` removed; `groups_tracks` table removed; `group_id` added (→ track space) |
-| `funding_rounds` table cleanup | `title`, `banner`, `description`, `deactivated_at` removed; `group_id` now points to the funding round space (not parent group) |
-| Funding round member directory | `members` view cross-references each member's `group_roles` against the round's `submitter_roles` and `voter_roles` arrays, rendering "Can Submit" / "Can Vote" badges |
-
-### Space Slug Strategy
-
-`groups.slug` remains globally unique for all groups including spaces.
-
-**Stored slug for spaces:** `{parentSlug}-{localName}` e.g. parent = `my-community`, space named "General" → stored slug = `my-community-general`.
-
-**Routing:** `/groups/my-community/spaces/general` — the URL uses only the local portion. The backend derives the stored slug as `parentSlug + '-' + spaceSlug`.
-
-**Collision handling:** if `my-community-general` already exists as a top-level group, append a number: `my-community-general-2`, `-3`, etc. Show this to the steward during space creation so they can adjust the name.
-
-**Promoting a space to a group:** The stored slug stays `my-community-general`. It now appears as `/groups/my-community-general` — a valid globally-unique group slug.
-
----
-
-## 3. Open Questions
-
-> No open questions at this time. All architectural decisions have been resolved and incorporated into the spec.
-
-## 4. Database Changes
-
-### 4.1 `groups` table — new columns
+### 2.1 `groups` table — new columns
 
 ```sql
 ALTER TABLE groups
@@ -132,7 +67,7 @@ CREATE INDEX idx_groups_funding_round_id ON groups(funding_round_id);
 
 ---
 
-### 4.2 `tracks` table — columns removed and added
+### 2.2 `tracks` table — columns removed and added
 
 ```sql
 -- Add new FK pointing to the space created for this track
@@ -164,7 +99,7 @@ DROP TABLE groups_tracks;
 
 ---
 
-### 4.3 `funding_rounds` table — columns removed, `group_id` updated
+### 2.3 `funding_rounds` table — columns removed, `group_id` updated
 
 ```sql
 -- Remove columns migrated to the space group
@@ -188,7 +123,7 @@ ALTER TABLE funding_rounds
 
 ---
 
-### 4.4 Roles consolidation — eliminate `common_roles`
+### 2.4 Roles consolidation — eliminate `common_roles`
 
 System roles (Coordinator, Moderator, Host) are stamped out as `groups_roles` rows for each group, collapsing two parallel role tables into one.
 
@@ -235,7 +170,7 @@ For each existing group:
 
 ---
 
-### 4.5 `group_views` table — new table
+### 2.5 `group_views` table — new table
 
 ```sql
 CREATE TABLE group_views (
@@ -309,7 +244,7 @@ No `visibility` column — all views in a space are visible to all members of th
 
 ---
 
-### 4.6 `group_views_users` table — new table
+### 2.6 `group_views_users` table — new table
 
 ```sql
 CREATE TABLE group_views_users (
@@ -334,7 +269,7 @@ Created when a user joins a space — one row per view in that space.
 
 ---
 
-### 4.7 `collection_posts` table — replaces `posts_collections`, also used for track action ordering
+### 2.7 `collection_posts` table — replaces `posts_collections`, also used for track action ordering
 
 ```sql
 CREATE TABLE collection_posts (
@@ -355,7 +290,7 @@ Used for two view types:
 
 ---
 
-### 4.8 Tables eliminated — data migrated
+### 2.8 Tables eliminated — data migrated
 
 | Table | What replaces it |
 |-------|-----------------|
@@ -374,7 +309,7 @@ Used for two view types:
 
 ---
 
-### 4.9 Tables kept unchanged (notable)
+### 2.9 Tables kept unchanged (notable)
 
 | Table | Notes |
 |-------|-------|
@@ -386,14 +321,13 @@ Used for two view types:
 | `groups_roles` | Add `type varchar NOT NULL DEFAULT 'custom'` column. System roles get `type = 'system'`. |
 | `tracks` | `name`, `description`, `banner_url`, `welcome_message`, `deactivated_at`, `access_controlled` removed; `group_id` added (→ space) |
 | `funding_rounds` | `title`, `banner`, `description`, `deactivated_at` removed; `group_id` updated to point to the space |
-| `common_roles` | Referenced by `groups.required_roles` for Phase 1 |
-| `group_roles` | Unchanged; may be referenced by `groups.required_roles` in future |
+
 
 ---
 
-## 5. Backend Model Changes
+## 3. Backend Model Changes
 
-### 5.1 New model: `GroupView`
+### 3.1 New model: `GroupView`
 
 New file: `apps/backend/api/models/GroupView.js`
 
@@ -418,7 +352,7 @@ Static methods:
 
 ---
 
-### 5.2 New model: `GroupViewUser`
+### 3.2 New model: `GroupViewUser`
 
 New file: `apps/backend/api/models/GroupViewUser.js`
 
@@ -431,7 +365,7 @@ Static: `GroupViewUser.findOrCreate(viewId, userId)`, `GroupViewUser.markRead(vi
 
 ---
 
-### 5.3 New model: `CollectionPost`
+### 3.3 New model: `CollectionPost`
 
 New file: `apps/backend/api/models/CollectionPost.js`
 
@@ -444,7 +378,7 @@ Replaces `PostCollection`. Used for both collection views and track-actions orde
 
 ---
 
-### 5.4 Changes to `Group` model
+### 3.4 Changes to `Group` model
 
 `apps/backend/api/models/Group.js`
 
@@ -467,7 +401,7 @@ Remove all calls to `setupContextWidgets()` from `Group.create()`.
 
 ---
 
-### 5.5 Remove models
+### 3.5 Remove models
 
 After migration and code cleanup:
 - Remove `CustomView.js`, `CustomViewTopic.js` — table dropped, data in `group_views`
@@ -477,7 +411,7 @@ After migration and code cleanup:
 
 ---
 
-### 5.6 Roles model changes
+### 3.6 Roles model changes
 
 **`GroupRole` model** (`apps/backend/api/models/GroupRole.js`):
 - Add `type` field (`'system' | 'custom'`)
@@ -496,7 +430,7 @@ After migration and code cleanup:
 
 ---
 
-### 5.7 Changes to `Track` model
+### 3.7 Changes to `Track` model
 
 `apps/backend/api/models/Track.js`
 
@@ -510,7 +444,7 @@ After migration and code cleanup:
 
 ---
 
-### 5.8 Changes to `FundingRound` model
+### 3.8 Changes to `FundingRound` model
 
 `apps/backend/api/models/FundingRound.js`
 
@@ -523,7 +457,7 @@ After migration and code cleanup:
 
 ---
 
-### 5.9 Queries that must exclude spaces
+### 3.9 Queries that must exclude spaces
 
 Add `WHERE type != 'space'` or `WHERE parent_id IS NULL` wherever group lists are returned and spaces should not appear:
 
@@ -541,9 +475,9 @@ Add `WHERE type != 'space'` or `WHERE parent_id IS NULL` wherever group lists ar
 
 ---
 
-## 6. GraphQL Schema Changes
+## 4. GraphQL Schema Changes
 
-### 6.1 New types
+### 4.1 New types
 
 ```graphql
 type GroupView {
@@ -573,7 +507,7 @@ type GroupViewUser {
 }
 ```
 
-### 6.2 Changes to `Group` type
+### 4.2 Changes to `Group` type
 
 Add:
 ```graphql
@@ -591,11 +525,11 @@ Remove (Phase 6, after ContextWidget code removal):
 # contextWidgets, chatRooms, homeWidget
 ```
 
-### 6.3 Remove types (Phase 6)
+### 4.3 Remove types (Phase 6)
 
 Remove `CustomView`, `Collection`, `GroupWidget` (from GraphQL schema and all resolvers).
 
-### 6.4 New mutations
+### 4.4 New mutations
 
 ```graphql
 # Views
@@ -625,7 +559,7 @@ removePostFromView(viewId: ID!, postId: ID!): GenericResult
 reorderViewPost(viewId: ID!, postId: ID!, order: Int!): GenericResult
 ```
 
-### 6.5 Remove mutations (Phase 6)
+### 4.5 Remove mutations (Phase 6)
 
 - `createContextWidget`, `updateContextWidget`, `deleteContextWidget`, `reorderContextWidget`, `removeWidgetFromMenu`, `setHomeWidget`
 - `createCustomView`, `updateCustomView`, `deleteCustomView`
@@ -633,13 +567,13 @@ reorderViewPost(viewId: ID!, postId: ID!, order: Int!): GenericResult
 
 ---
 
-## 7. Data Migration
+## 5. Data Migration
 
 One-time migration script. Must be idempotent. All steps run in a transaction.
 
 ### Step 1 — Add new columns and create tables
 
-Run all DDL from Section 4. Do not drop old tables yet (`common_roles`, `common_roles_responsibilities`, `group_memberships_common_roles` dropped in this step after migration; others in Phase 7 cleanup).
+Run all DDL from Section 2. Do not drop old tables yet (`common_roles`, `common_roles_responsibilities`, `group_memberships_common_roles` dropped in this step after migration; others in Phase 7 cleanup).
 
 ### Step 1b — Consolidate roles (stamp system roles per group)
 
@@ -836,9 +770,9 @@ For each group and space: `home_route = GroupView.computeHomeRoutePath(homeView,
 
 ---
 
-## 8. Routing
+## 6. Routing
 
-### 8.1 Keep current main group view routes
+### 6.1 Keep current main group view routes
 
 | Route | Component | Notes |
 |-------|-----------|-------|
@@ -861,7 +795,7 @@ For each group and space: `home_route = GroupView.computeHomeRoutePath(homeView,
 | `/groups/:groupSlug/tracks` | Redirect → `/groups/:groupSlug/archive` | Tracks now in Archive |
 | `/groups/:groupSlug/funding-rounds` | Redirect → `/groups/:groupSlug/archive` | Rounds now in Archive |
 
-### 8.2 New space routes
+### 6.2 New space routes
 
 Space slugs in URLs are the **local** portion (e.g., `general` not `my-community-general`).
 
@@ -881,7 +815,21 @@ Space slugs in URLs are the **local** portion (e.g., `general` not `my-community
 | `/groups/:parentSlug/spaces/:spaceSlug/settings` | `SpaceSettings` |
 | _(all other view types follow same pattern)_ | |
 
-### 8.3 Slug resolution helper
+### 6.3 Space Slug Strategy
+
+`groups.slug` remains globally unique for all groups including spaces.
+
+**Stored slug for spaces:** `{parentSlug}-{localName}` e.g. parent = `my-community`, space named "General" → stored slug = `my-community-general`.
+
+**Routing:** `/groups/my-community/spaces/general` — the URL uses only the local portion. The backend derives the stored slug as `parentSlug + '-' + spaceSlug`.
+
+**Collision handling:** if `my-community-general` already exists as a top-level group, append a number: `my-community-general-2`, `-3`, etc. Show this to the steward during space creation so they can adjust the name.
+
+**Promoting a space to a group:** The stored slug stays `my-community-general`. It now appears as `/groups/my-community-general` — a valid globally-unique group slug.
+
+---
+
+### 6.4 Slug resolution helper
 
 ```javascript
 // stored slug = parentSlug + '-' + localSlug
@@ -893,7 +841,7 @@ function localSpaceSlug(parentGroup, space) {
 }
 ```
 
-### 8.4 `packages/navigation` updates
+### 6.5 `packages/navigation` updates
 
 - Add `groupViewUrl(group, view)` — returns the correct URL for a view (main group or space context).
 - Add `spaceUrl(parentGroup, space)` — returns `/groups/:parentSlug/spaces/:localSlug`.
@@ -902,9 +850,9 @@ function localSpaceSlug(parentGroup, space) {
 
 ---
 
-## 9. Frontend Component Changes
+## 7. Frontend Component Changes
 
-### 9.1 `Stream` → `GroupView`
+### 7.1 `Stream` → `GroupView`
 
 **Rename:** `apps/web/src/routes/Stream/` → `apps/web/src/routes/GroupView/`
 
@@ -936,7 +884,7 @@ viewType='member'                    → Member profile view
 viewType='group'                     → Child group/space view
 ```
 
-### 9.2 TrackHome and FundingRoundHome — remove tabs
+### 7.2 TrackHome and FundingRoundHome — remove tabs
 
 **`TrackHome.jsx`:** Currently has tabbed interface. After this change:
 - Tab UI removed entirely.
@@ -960,7 +908,7 @@ viewType='group'                     → Child group/space view
 - For **funding round spaces**: phase status, submission open/close dates, voting dates — especially "opens on [date]" if not yet launched
 - Join / Request to Join button (or paywall CTA if the space is paywalled)
 
-### 9.3 ContextMenu redesign
+### 7.3 ContextMenu redesign
 
 `apps/web/src/routes/AuthLayoutRouter/components/ContextMenu/ContextMenu.jsx`
 
@@ -1008,7 +956,7 @@ viewType='group'                     → Child group/space view
 - "Add Space" → space creation form.
 - Clicking settings icon next to a `welcome` type view → opens welcome page editor (replaces `WelcomePageTab`).
 
-### 9.4 ContextMenu — always-visible bottom section
+### 7.4 ContextMenu — always-visible bottom section
 
 **For all group members** (when applicable):
 - **Moderation** link → `/groups/:slug/moderation` — shown when `group.flaggedItemsCount > 0`
@@ -1018,7 +966,7 @@ viewType='group'                     → Child group/space view
 
 These are not `group_views` rows — rendered directly by ContextMenu.
 
-### 9.5 Welcome page editing
+### 7.5 Welcome page editing
 
 The `WelcomePageTab` at `apps/web/src/routes/GroupSettings/WelcomePageTab/WelcomePageTab.js` is **removed**.
 
@@ -1032,7 +980,7 @@ Instead:
 
 For Track and Funding Round spaces, the welcome view settings modal shows only the `page_content` editor (the special track/round data above it comes from the model, not the page_content field).
 
-### 9.6 Group Settings tab — accepted post types
+### 7.6 Group Settings tab — accepted post types
 
 In `apps/web/src/routes/GroupSettings/GroupSettingsTab/GroupSettingsTab.js`:
 
@@ -1048,14 +996,14 @@ Toggle off = removes from `accepted_post_types`. Calls `updateGroup` mutation.
 
 Show a warning: turning off a post type hides those views from the menu but does not delete existing posts.
 
-### 9.7 Remove settings tabs
+### 7.7 Remove settings tabs
 
 - **Custom Views tab** → remove. Custom views managed from ContextMenu edit mode.
 - **Welcome Page tab** → remove. Welcome view edited from ContextMenu edit mode.
 - **Tracks tab** → remove. Track settings accessible from Track space ContextMenu or Archive.
 - **Funding Rounds tab** (if separate) → remove. Same.
 
-### 9.8 Post creation changes
+### 7.8 Post creation changes
 
 In the post creation modal:
 
@@ -1065,7 +1013,7 @@ In the post creation modal:
 - **Space list filter:** only spaces where `accepted_post_types` includes the selected type (or null).
 - **`groups_posts`:** when a space is selected, associate the post with the space group in `groups_posts`.
 
-### 9.9 Space management UI
+### 7.9 Space management UI
 
 Accessible from ContextMenu edit mode ("Add Space" button). Only users with `RESP_ADMINISTRATION` in the parent group can access.
 
@@ -1082,13 +1030,13 @@ Accessible from ContextMenu edit mode ("Add Space" button). Only users with `RES
    - **Paid** — anyone can see it, but must pay to join _(protected, restricted; sets `group.paywall = true`)_. Only shown if the parent group has paid content enabled.
    - **Hidden / Invite only** — stewards must invite members directly _(hidden, closed)_
 
-### 9.10 Space invites
+### 7.10 Space invites
 
 Space invitations surface in **My Invites** (the existing invites UI in the My context). No new UI needed — invite system works for spaces since they are groups. Ensure invite flows handle `parent_id IS NOT NULL` correctly.
 
 ---
 
-## 10. Notifications & Unread Tracking
+## 8. Notifications & Unread Tracking
 
 ### Per-view unread counting
 
@@ -1128,7 +1076,7 @@ Posts from spaces the user has joined are included in the parent group digest. E
 
 ---
 
-## 11. Search
+## 9. Search
 
 ### Frontend
 
@@ -1151,7 +1099,7 @@ Also filter spaces from group search results when searching for groups.
 
 ---
 
-## 12. Group & Space Creation
+## 10. Group & Space Creation
 
 ### New group creation
 
@@ -1183,7 +1131,7 @@ Creating a new Track or Funding Round automatically creates its space:
 
 ---
 
-## 13. Archive
+## 11. Archive
 
 Route: `/groups/:groupSlug/archive` (redirects from `/all-views`, `/tracks`, `/funding-rounds`)
 
@@ -1199,7 +1147,7 @@ Route: `/groups/:groupSlug/archive` (redirects from `/all-views`, `/tracks`, `/f
 
 ---
 
-## 14. Steward Onboarding Prompt
+## 12. Steward Onboarding Prompt
 
 After migration, the first time a group steward logs in, show a modal:
 
@@ -1221,10 +1169,8 @@ These get a slightly more detailed prompt describing the specific change.
 
 ---
 
-## 15. Out of Scope / Future Work
+## 13. Out of Scope / Future Work
 
-- Paid space access / paywall for general spaces (track paywall migration tracked in Q4; general space paywall is a future feature)
-- Role-gated access beyond `required_roles` (e.g. custom group_roles)
 - Space-level custom roles / moderators
 - "Anyone can create a space" — needs Manage Spaces responsibility
 - Group and space templates UI (Phase 1 uses hardcoded defaults)
@@ -1246,7 +1192,7 @@ These get a slightly more detailed prompt describing the specific change.
 
 ---
 
-## 16. Phased Rollout
+## 14. Phased Rollout
 
 ### Phase 1 — Database & Backend
 
@@ -1256,7 +1202,7 @@ These get a slightly more detailed prompt describing the specific change.
 - Create `GroupView`, `GroupViewUser`, `CollectionPost` models
 - Update `Group`, `GroupRole`, `Responsibility`, `Track`, `FundingRound` models
 - Delete `CommonRole`, `MemberCommonRole` models
-- GraphQL: add new types, queries, all mutations in Section 6
+- GraphQL: add new types, queries, all mutations in Section 4
 - Run data migration on staging, verify, then production (includes roles consolidation)
 - Keep all ContextWidget code active in parallel during transition
 
