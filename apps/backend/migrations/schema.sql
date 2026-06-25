@@ -2628,7 +2628,8 @@ CREATE TABLE public.posts_users (
     completed_at timestamp with time zone,
     completion_response jsonb DEFAULT '[]'::jsonb,
     saved_at timestamp with time zone,
-    tokens_allocated_to integer DEFAULT 0
+    tokens_allocated_to integer DEFAULT 0,
+    muted_at timestamp with time zone
 );
 
 
