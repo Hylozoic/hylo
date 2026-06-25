@@ -283,21 +283,30 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
       }
     }
 
-    const applyDragStyles = (dampened, progress, direction) => {
-      // PostDialog content is centered via translate(-50%, -50%). Inline transforms during
-      // drag overwrite that and snap the card to the wrong position — track the gesture
-      // silently and only animate on successful dismiss in handleTouchEnd.
-      if (inPostDialog) return
+    // PostDialog content is centered via translate(-50%, -50%). Drag feedback must preserve
+    // that centering, so shift the card a small clamped amount in the drag direction.
+    const POST_DIALOG_MAX_DRAG_PX = 30
 
+    const applyDragStyles = (dampened, progress, direction) => {
       const opacity = Math.max(1 - progress * 0.4, 0.3)
       const scale = Math.max(1 - progress * 0.04, 0.92)
-      const translate = direction === 'down' ? dampened : -dampened
 
-      dragTarget.style.transform = `translateY(${translate}px) scale(${scale})`
-      dragTarget.style.opacity = opacity
-      dragTarget.style.borderRadius = `${Math.min(progress * 16, 16)}px`
-      dragTarget.style.transformOrigin = direction === 'down' ? 'top center' : 'bottom center'
-      dragTarget.style.willChange = 'transform, opacity'
+      if (inPostDialog) {
+        // Preserve the dialog's translate(-50%, -50%) centering; shift vertically a clamped
+        // amount in the drag direction, plus the same subtle scale/opacity/backdrop as prod.
+        const offset = Math.min(dampened, POST_DIALOG_MAX_DRAG_PX) * (direction === 'down' ? 1 : -1)
+        dragTarget.style.transform = `translate(-50%, calc(-50% + ${offset}px)) scale(${scale})`
+        dragTarget.style.opacity = opacity
+        dragTarget.style.borderRadius = `${Math.min(progress * 16, 16)}px`
+        dragTarget.style.willChange = 'transform, opacity'
+      } else {
+        const translate = direction === 'down' ? dampened : -dampened
+        dragTarget.style.transform = `translateY(${translate}px) scale(${scale})`
+        dragTarget.style.opacity = opacity
+        dragTarget.style.borderRadius = `${Math.min(progress * 16, 16)}px`
+        dragTarget.style.transformOrigin = direction === 'down' ? 'top center' : 'bottom center'
+        dragTarget.style.willChange = 'transform, opacity'
+      }
 
       if (backdropOverlay) {
         const overlayOpacity = Math.max(1 - progress * 0.6, 0.1)
