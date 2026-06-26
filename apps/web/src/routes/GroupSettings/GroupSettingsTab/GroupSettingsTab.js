@@ -129,7 +129,7 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
     setHeaderDetails({
-      title: t('Group Settings'),
+      title: `${t('Group Settings')} > ${t('Group Details')}`,
       icon: 'Settings',
       info: ''
     })

@@ -139,7 +139,7 @@ function TopNavTab ({ label, img, url, badgeCount = 0, children, isActive, onNav
             {label}
           </TooltipContent>
         </Tooltip>
-        <PopoverContent side='bottom' align='start' className='w-56 p-1'>
+        <PopoverContent side='bottom' align='start' className='w-56 p-1 max-h-[var(--radix-popover-content-available-height)] overflow-y-auto'>
           <div
             onClick={() => onNavigate(url)}
             className='flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer hover:bg-foreground/10 transition-colors font-medium'
