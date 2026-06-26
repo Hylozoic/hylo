@@ -927,6 +927,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
   isVisibleToUser: async function (postId, userId) {
     if (!postId || !userId) return Promise.resolve(false)
     const post = await Post.find(postId)
+    if (!post) return false
     if (post.isPublic()) return true
 
     const postGroupIds = await PostMembership.query()

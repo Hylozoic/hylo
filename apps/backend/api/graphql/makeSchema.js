@@ -483,7 +483,14 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     // you can query by id or email, with id taking preference
     person: (root, { id, email }) => fetchOne('Person', id || email, id ? 'id' : 'email'),
     platformAgreements: (root, args) => PlatformAgreement.fetchAll(args),
-    post: (root, { id }) => fetchOne('Post', id),
+    // Gate single-post access on visibility (public, shared group membership, or followed).
+    // Return null when not permitted (and for missing posts) so we never leak a post's existence
+    // to users who can't see it; the client renders NotFound for a null post.
+    post: async (root, { id }, context) => {
+      if (!id) return null
+      const authorized = await Post.isVisibleToUser(id, context.currentUserId)
+      return authorized ? fetchOne('Post', id) : null
+    },
     posts: (root, args) => fetchMany('Post', args),
     responsibilities: (root, args) => Responsibility.fetchAll(args),
     savedSearches: (root, args) => fetchMany('SavedSearch', args),
