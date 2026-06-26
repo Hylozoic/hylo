@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
 import { createSelector } from 'reselect'
 
+import { useTheme } from 'contexts/ThemeContext'
 import ContextWidgetPresenter, {
   isValidDropZone,
   getStaticMenuWidgets,
@@ -90,6 +91,7 @@ export default function ContextMenu (props) {
   const hasAccess = group?.canAccess !== false // Default to true if not paywalled or if canAccess is undefined
   const showPaywallBlock = group?.paywall && !hasAccess && groupSlug && routeParams.context === 'groups'
   const rootPath = baseUrl({ ...routeParams, view: null })
+  const isOneColumnLayout = routeParams.context === 'groups' && group?.settings?.layout === 'one-column'
   const isPublicContext = routeParams.context === PUBLIC_CONTEXT_SLUG
   const isMyContext = routeParams.context === MY_CONTEXT_SLUG
   const isAllContext = routeParams.context === ALL_GROUPS_CONTEXT_SLUG
@@ -143,7 +145,7 @@ export default function ContextMenu (props) {
   useEffect(() => {
     if (isEditing) {
       const element = document.querySelector('.ContextMenu')
-      element.scrollTop = element.scrollHeight
+      if (element) element.scrollTop = element.scrollHeight
     }
   }, [isEditing])
 
@@ -209,6 +211,7 @@ export default function ContextMenu (props) {
   // Allow scroll events to pass through to ContextMenu even when a modal post dialog is open
   useEffect(() => {
     const menu = document.querySelector('.ContextMenu')
+    if (!menu) return
     menu.addEventListener('wheel', (e) => { e.stopPropagation() }, { passive: false })
   }, [])
 
@@ -216,6 +219,23 @@ export default function ContextMenu (props) {
   const handleScroll = useCallback(() => {
     window.dispatchEvent(new CustomEvent('contextMenuScroll'))
   }, [])
+
+  // Simple groups don't use the vertical widget context menu — their home dashboard
+  // (OneColumnLayout) replaces it. Only render the settings menu when on /settings.
+  if (isOneColumnLayout && !location.pathname.includes('/settings')) {
+    return null
+  }
+
+  // One-column layout on settings: only show the settings menu, not the full context menu.
+  // Wrap in a sized container so the (position:fixed) menu reserves flex space and the
+  // center column shifts over instead of rendering underneath it.
+  if (isOneColumnLayout && location.pathname.includes('/settings')) {
+    return (
+      <div className='relative z-20 h-full flex-shrink-0 w-[260px] sm:w-[300px]'>
+        <GroupSettingsMenu group={group} isOneColumn />
+      </div>
+    )
+  }
 
   return (
     <ContextMenuProvider
@@ -229,7 +249,17 @@ export default function ContextMenu (props) {
       handlePositionedAdd={handlePositionedAdd}
     >
       <div
-        className={cn('ContextMenu bg-background relative z-20 isolate pointer-events-auto h-full flex-1 min-w-0', !isPhoneDevice() && 'sm:flex-initial sm:w-[300px]', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isNavOpen, 'h-screen h-dvh': isPhoneDevice(), '!overflow-y-auto': !location.pathname.includes('/settings'), 'overflow-y-hidden': location.pathname.includes('/settings') }, className)}
+        className={cn(
+          'ContextMenu bg-background relative z-20 isolate pointer-events-auto h-full',
+          // Simple groups render inline on phone too (no drawer), so they need a fixed
+          // phone width instead of flex-1 (which would collapse inside a w-auto parent).
+          isOneColumnLayout
+            ? 'w-[220px] sm:w-[300px]'
+            : 'flex-1 min-w-0 sm:flex-initial sm:w-[300px]',
+          { [classes.mapView]: mapView },
+          { [classes.showGroupMenu]: isNavOpen, 'h-screen h-dvh': isPhoneDevice(), '!overflow-y-auto': !location.pathname.includes('/settings'), 'overflow-y-hidden': location.pathname.includes('/settings') },
+          className
+        )}
         style={{ boxShadow: 'inset -15px 0 15px -10px hsl(var(--darkening) / 0.3)' }}
         onScroll={handleScroll}
       >
@@ -826,12 +856,12 @@ function SpecialTopElementRenderer ({ widget }) {
   return null
 }
 
-function GroupSettingsMenu ({ group }) {
+function GroupSettingsMenu ({ group, isOneColumn = false }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const location = useLocation()
-  const { groupSlug } = useContextMenuContext()
+  const groupSlug = group?.slug
 
   const canAdminister = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADMINISTRATION, groupId: group?.id }))
   const canAddMembers = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADD_MEMBERS, groupId: group?.id }))
@@ -852,7 +882,7 @@ function GroupSettingsMenu ({ group }) {
   const phoneLayout = isPhoneDevice()
 
   const settingsMenuItems = useMemo(() => [
-    canAdminister && { title: 'Group Details', url: 'settings' },
+    canAdminister && { title: 'Group Details', url: 'settings/details' },
     canAdminister && { title: 'Agreements', url: 'settings/agreements' },
     canAdminister && { title: 'Welcome Page', url: 'settings/welcome' },
     canAdminister && { title: 'Responsibilities', url: 'settings/responsibilities' },
@@ -864,23 +894,27 @@ function GroupSettingsMenu ({ group }) {
     canManageTracks && { title: 'Tracks & Actions', url: 'settings/tracks' },
     canAdminister && { title: 'Custom Views', url: 'settings/views' },
     canAdminister && { title: 'Export Data', url: 'settings/export' },
+    canAdminister && { title: 'Appearance & Layout', url: 'settings/appearance' },
     canAdminister && { title: 'Paid Content', url: 'settings/paid-content' },
     canAdminister && { title: 'Delete', url: 'settings/delete' }
   ].filter(Boolean), [canAdminister, canAddMembers, canManageTracks])
+
+  const { navMode } = useTheme()
+  const isTabNav = navMode === 'tabs'
 
   return (
     <div
       className={cn(
         'ContextMenu-GroupSettings h-full bg-background bg-gradient-to-b from-background to-theme-background/20 z-[1050]',
         phoneLayout
-          ? 'fixed top-0 left-[66px] sm:left-[80px] w-[260px] sm:w-[300px]'
+          ? cn('fixed w-[260px] sm:w-[300px]', isTabNav ? 'top-11 left-0' : 'top-0 left-[66px] sm:left-[80px]')
           : 'absolute inset-0 w-full'
       )}
     >
       <div
         className={cn(
           'absolute h-full overflow-y-auto top-0 right-0 flex flex-col gap-2 bg-background shadow-[-15px_0px_25px_rgba(0,0,0,0.3)] px-2 z-10',
-          phoneLayout ? 'left-14' : 'left-0'
+          phoneLayout ? (isOneColumn ? 'left-0' : 'left-14') : 'left-0'
         )}
       >
         <h3 className='text-lg font-bold flex items-center gap-2 text-foreground'>

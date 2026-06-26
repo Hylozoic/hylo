@@ -15,7 +15,7 @@ import getPreviousLocation from 'store/selectors/getPreviousLocation'
 import { bgImageStyle, cn } from 'util/index'
 import { isCompactLayoutDevice, isDrawerNavLayout, isPhoneDevice } from 'util/mobile'
 
-const ViewHeader = () => {
+const ViewHeader = ({ oneColumnGroup, oneColumnGroupSlug }) => {
   const dispatch = useDispatch()
   const { context, groupSlug } = useRouteParams()
   const navigate = useNavigate()
@@ -32,6 +32,34 @@ const ViewHeader = () => {
   const [searchValue, setSearchValue] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
   const [activeOptionIndex, setActiveOptionIndex] = useState(0)
+  // For simple groups: the home dashboard's banner already shows the group avatar
+  // and name prominently, so the redundant breadcrumb header is hidden until the
+  // user scrolls past the banner. Tracked via IntersectionObserver below.
+  const [isBannerVisible, setIsBannerVisible] = useState(true)
+
+  useEffect(() => {
+    if (!oneColumnGroup) {
+      setIsBannerVisible(false) // not on simple group home → don't hide
+      return
+    }
+    let observer
+    // Wait one frame so the OneColumnLayout banner has mounted after navigation.
+    const rafId = requestAnimationFrame(() => {
+      const bannerEl = document.getElementById('one-column-banner')
+      if (!bannerEl) {
+        setIsBannerVisible(false) // simple group view (no banner rendered)
+        return
+      }
+      observer = new IntersectionObserver(([entry]) => {
+        setIsBannerVisible(entry.isIntersecting)
+      }, { threshold: 0 })
+      observer.observe(bannerEl)
+    })
+    return () => {
+      cancelAnimationFrame(rafId)
+      if (observer) observer.disconnect()
+    }
+  }, [oneColumnGroup, location.pathname])
 
   const searchContainerRef = useRef(null)
   const searchInputRef = useRef(null)
@@ -120,7 +148,27 @@ const ViewHeader = () => {
   // a back button, we always treat the chevron as \"back\" so it never takes
   // two taps.
   const handleChevronClick = () => {
-    if (isDrawerNavLayout(window.innerWidth) && !mobileBackButton && !backButton) {
+    // Phone settings use master-detail navigation:
+    // /settings/<tab>  → back to /settings (the menu)
+    // /settings (root) → exit settings, return to the group home. For normal groups
+    //                    also open the drawer so the user lands on the context menu
+    //                    (widget list) instead of the underlying active view.
+    if (isDrawerNavLayout(window.innerWidth) && groupSlug && location.pathname.startsWith(`/groups/${groupSlug}/settings`)) {
+      const isSettingsRoot = location.pathname === `/groups/${groupSlug}/settings` ||
+        location.pathname === `/groups/${groupSlug}/settings/`
+      if (isSettingsRoot) {
+        navigate(`/groups/${groupSlug}`)
+        if (!oneColumnGroup) {
+          dispatch(toggleNavMenu(true))
+        }
+      } else {
+        navigate(`/groups/${groupSlug}/settings`)
+      }
+      return
+    }
+    // Simple (one-column) groups render the sidebar inline on phone too — there's no
+    // drawer to toggle, so the chevron should navigate back instead.
+    if (isDrawerNavLayout(window.innerWidth) && !mobileBackButton && !backButton && !oneColumnGroup) {
       dispatch(toggleNavMenu())
     } else if (backTo) {
       navigate(backTo)
@@ -138,7 +186,8 @@ const ViewHeader = () => {
 
   return (
     <header className={cn('flex flex-row items-center z-20 p-2 sticky top-0 w-full bg-background shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)]', {
-      'justify-center': centered
+      'justify-center': centered,
+      hidden: oneColumnGroup && isBannerVisible
     })}
     >
       {centered && (backButton || mobileBackButton) && (
@@ -159,7 +208,7 @@ const ViewHeader = () => {
           >
             <ChevronLeft className='w-6 h-6' />
           </button>
-          {context !== 'messages' && (
+          {context !== 'messages' && !oneColumnGroup && (
             <div className={cn('ViewHeaderContextIcon mr-3 w-8 h-8 rounded-lg drop-shadow-md', !compactLayout && 'sm:hidden')}>
               {context === 'groups'
                 ? <div style={bgImageStyle(group?.avatarUrl)} className='w-8 h-8 rounded-lg bg-cover bg-center' />
@@ -173,7 +222,34 @@ const ViewHeader = () => {
         </>
       )}
       {/* )} */}
-      {!centered && icon && (typeof icon === 'string' ? <Icon name={icon} className='mr-3 text-lg' /> : React.cloneElement(icon, { className: 'mr-3 text-lg' }))}
+      {!centered && !oneColumnGroup && icon && (typeof icon === 'string' ? <Icon name={icon} className='mr-3 text-lg' /> : React.cloneElement(icon, { className: 'mr-3 text-lg' }))}
+      {oneColumnGroup && (() => {
+        // The chevron should only appear when an actual sub-view title is set —
+        // not when title is the empty default ({mobile: '', desktop: ''}) on group home.
+        const hasTitle = typeof title === 'string'
+          ? title.length > 0
+          : React.isValidElement(title)
+            ? true
+            : !!(title?.mobile || title?.desktop)
+        return (
+          <div className='flex items-center gap-2 mr-2'>
+            {oneColumnGroup.avatarUrl && (
+              <div
+                className='w-6 h-6 rounded-sm bg-cover bg-center shrink-0 cursor-pointer hover:scale-110 transition-transform'
+                style={bgImageStyle(oneColumnGroup.avatarUrl)}
+                onClick={() => navigate(`/groups/${oneColumnGroupSlug}`)}
+              />
+            )}
+            <span
+              className='font-semibold text-foreground/70 cursor-pointer hover:text-foreground transition-colors whitespace-nowrap'
+              onClick={() => navigate(`/groups/${oneColumnGroupSlug}`)}
+            >
+              {oneColumnGroup.name}
+            </span>
+            {hasTitle && <span className='text-foreground/30 text-lg'>{'>'}</span>}
+          </div>
+        )
+      })()}
       <h2
         className={cn('text-foreground m-0', {
           'truncate min-w-0 flex-1': typeof title === 'string',
