@@ -118,7 +118,7 @@ export const staticPages = [
   '/about',
   '/stories',
   '/features',
-  'pricing',
+  '/pricing',
   '/stewardship-support',
   '/get-involved',
   '/blog',

@@ -8,11 +8,19 @@ import { URL } from 'url'
 const cache = LRU(50)
 
 // flag-shared
-const staticPages = [
+// flag-shared
+export const staticPages = [
   '',
   '/about',
+  '/stories',
+  '/features',
+  '/pricing',
+  '/stewardship-support',
+  '/get-involved',
+  '/blog',
+  '/who-is-hylo-for',
+  '/why-choose-hylo',
   '/agreements',
-  '/participate',
   '/terms',
   '/privacy',
   '/murmurations.json',
