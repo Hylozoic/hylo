@@ -19,6 +19,8 @@ import {
   DROP_QUERY_RESULTS,
   FIND_OR_CREATE_THREAD,
   FETCH_THREADS,
+  MUTE_MESSAGE_THREAD,
+  UNMUTE_MESSAGE_THREAD,
   FETCH_CHILD_COMMENTS,
   FETCH_COMMENTS,
   REMOVE_POST_PENDING,
@@ -82,6 +84,28 @@ export default function (state = {}, action) {
 
     case RECEIVE_THREAD:
       return matchNewThreadIntoQueryResults(state, payload.data.thread)
+
+    case MUTE_MESSAGE_THREAD:
+      return mapValues(state, (results, key) => {
+        const keyObject = JSON.parse(key)
+        if (keyObject.type !== FETCH_THREADS || keyObject.params?.muted) return results
+        return {
+          ...results,
+          ids: results.ids.filter(id => id !== meta.messageThreadId),
+          total: (results.total || results.total === 0) && results.total - 1
+        }
+      })
+
+    case UNMUTE_MESSAGE_THREAD:
+      return mapValues(state, (results, key) => {
+        const keyObject = JSON.parse(key)
+        if (keyObject.type !== FETCH_THREADS || !keyObject.params?.muted) return results
+        return {
+          ...results,
+          ids: results.ids.filter(id => id !== meta.messageThreadId),
+          total: (results.total || results.total === 0) && results.total - 1
+        }
+      })
 
     case REMOVE_MEMBER_PENDING:
       return mapValues(state, (results, key) => {
@@ -318,7 +342,7 @@ export function matchNewTopicIntoQueryResults (state, { id, isDefault, groupTopi
 }
 
 export function matchNewThreadIntoQueryResults (state, { id, type }) {
-  return prependIdForCreate(state, FETCH_THREADS, null, id)
+  return prependIdForCreate(state, FETCH_THREADS, { muted: false }, id)
 }
 
 export function matchSubCommentsIntoQueryResults (state, { data }) {
@@ -437,6 +461,7 @@ export const queryParamWhitelist = [
   'id',
   'interactedWithBy',
   'mentionsOf',
+  'muted',
   'order',
   'page',
   'parentSlugs',

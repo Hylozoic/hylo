@@ -42,6 +42,10 @@ import getPost from 'store/selectors/getPost'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { cn } from 'util/index'
+import {
+  createPersistentSelectionTracker,
+  isTextInteractionTarget
+} from 'util/textSelectionTouch'
 import { removePostFromUrl } from '@hylo/navigation'
 import { getPostDetailCloseDestination, shouldUseSmartPostClose } from 'util/postDetailCloseNavigation'
 import { getPostTypeIcon } from 'store/models/Post'
@@ -241,11 +245,11 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
     const getDragTarget = () =>
       document.getElementById('post-dialog-content') || document.getElementById(DETAIL_COLUMN_ID)
 
-    // The scroll container is the dialog overlay (has overflow-y: auto) or the detail column
+    // The scroll container is the dialog content (PostDialog) or the detail column
     const getScrollContainer = () => {
       const dialog = document.getElementById('post-dialog-content')
       if (dialog) {
-        // The overlay is the dialog content's parent
+        if (inPostDialog) return dialog
         return dialog.closest('.PostDialog-Overlay') || dialog.parentElement
       }
       return document.getElementById(DETAIL_COLUMN_ID) || document.getElementById(CENTER_COLUMN_ID)
@@ -261,8 +265,10 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
     // Attach listeners to the scroll container so we can intercept before native scroll
     const listenTarget = scrollContainer || el
 
-    // The overlay is the scroll container when inside a dialog
-    const overlay = scrollContainer?.classList?.contains('PostDialog-Overlay') ? scrollContainer : null
+    // Backdrop dimming during dismiss — PostDialog uses a sibling overlay div
+    const backdropOverlay = inPostDialog
+      ? document.querySelector('.PostDialog-Overlay')
+      : (scrollContainer?.classList?.contains('PostDialog-Overlay') ? scrollContainer : null)
 
     const resetStyles = () => {
       if (dragTarget) {
@@ -271,54 +277,57 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
         dragTarget.style.borderRadius = ''
         dragTarget.style.willChange = ''
       }
-      if (overlay) {
-        overlay.style.backgroundColor = ''
-        overlay.style.backdropFilter = ''
+      if (backdropOverlay) {
+        backdropOverlay.style.backgroundColor = ''
+        backdropOverlay.style.backdropFilter = ''
       }
     }
+
+    // PostDialog content is centered via translate(-50%, -50%). Drag feedback must preserve
+    // that centering, so shift the card a small clamped amount in the drag direction.
+    const POST_DIALOG_MAX_DRAG_PX = 30
 
     const applyDragStyles = (dampened, progress, direction) => {
       const opacity = Math.max(1 - progress * 0.4, 0.3)
       const scale = Math.max(1 - progress * 0.04, 0.92)
-      const translate = direction === 'down' ? dampened : -dampened
 
-      dragTarget.style.transform = `translateY(${translate}px) scale(${scale})`
-      dragTarget.style.opacity = opacity
-      dragTarget.style.borderRadius = `${Math.min(progress * 16, 16)}px`
-      dragTarget.style.transformOrigin = direction === 'down' ? 'top center' : 'bottom center'
-      dragTarget.style.willChange = 'transform, opacity'
+      if (inPostDialog) {
+        // Preserve the dialog's translate(-50%, -50%) centering; shift vertically a clamped
+        // amount in the drag direction, plus the same subtle scale/opacity/backdrop as prod.
+        const offset = Math.min(dampened, POST_DIALOG_MAX_DRAG_PX) * (direction === 'down' ? 1 : -1)
+        dragTarget.style.transform = `translate(-50%, calc(-50% + ${offset}px)) scale(${scale})`
+        dragTarget.style.opacity = opacity
+        dragTarget.style.borderRadius = `${Math.min(progress * 16, 16)}px`
+        dragTarget.style.willChange = 'transform, opacity'
+      } else {
+        const translate = direction === 'down' ? dampened : -dampened
+        dragTarget.style.transform = `translateY(${translate}px) scale(${scale})`
+        dragTarget.style.opacity = opacity
+        dragTarget.style.borderRadius = `${Math.min(progress * 16, 16)}px`
+        dragTarget.style.transformOrigin = direction === 'down' ? 'top center' : 'bottom center'
+        dragTarget.style.willChange = 'transform, opacity'
+      }
 
-      if (overlay) {
+      if (backdropOverlay) {
         const overlayOpacity = Math.max(1 - progress * 0.6, 0.1)
-        overlay.style.backgroundColor = `rgba(0, 0, 0, ${overlayOpacity * 0.5})`
-        overlay.style.backdropFilter = `blur(${Math.max(12 - progress * 8, 0)}px)`
+        backdropOverlay.style.backgroundColor = `rgba(0, 0, 0, ${overlayOpacity * 0.5})`
+        backdropOverlay.style.backdropFilter = `blur(${Math.max(12 - progress * 8, 0)}px)`
       }
     }
 
-    // Tracks whether text was selected at any point since the last confirmed
-    // deselect. iOS clears window.getSelection() while a selection handle is
-    // being dragged, so we can't rely on a live check — instead we set this
-    // flag via selectionchange and only clear it in touchend once the selection
-    // is confirmed gone.
-    let persistentHasSelection = false
-
-    const onSelectionChange = () => {
-      const hasSelection = !!(window.getSelection && window.getSelection().toString().length > 0)
-      if (hasSelection) {
-        persistentHasSelection = true
-      } else if (touchStartY.current === null) {
-        // Only clear when there is no active touch. If iOS fires selectionchange
-        // with an empty value mid-gesture (e.g. during handle drag), we must keep
-        // the flag set so the pull-to-close guard stays active.
-        persistentHasSelection = false
-      }
-    }
-    document.addEventListener('selectionchange', onSelectionChange)
+    // Tracks whether text was selected — see util/textSelectionTouch.js. iOS clears
+    // window.getSelection() while a selection handle is being dragged, so the tracker
+    // keeps the flag set across that gap (cleared only once selection is confirmed gone).
+    const selectionTracker = createPersistentSelectionTracker({
+      getActiveTouch: () => touchStartY.current !== null
+    })
 
     const handleTouchStart = (e) => {
       if (!scrollContainer) return
+      // Yield to text interaction: editors/inputs and any existing/active selection.
+      // (Don't bail on the whole .PostDetail card — that would disable the gesture entirely.)
       touchStartedInEditor.current = isCommentEditorTouchTarget(e.target)
-      if (touchStartedInEditor.current) return
+      if (touchStartedInEditor.current || isTextInteractionTarget(e.target) || selectionTracker.hasSelection) return
       touchStartY.current = e.touches[0].clientY
       touchStartScrollTop.current = scrollContainer.scrollTop
       touchStartAtBottom.current = isAtBottom(scrollContainer)
@@ -326,7 +335,7 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
       isDraggingUp.current = false
       // Use the persistent flag so we catch handle-drag touches where iOS has
       // temporarily cleared window.getSelection() at touchstart.
-      touchStartedWithTextSelected.current = persistentHasSelection
+      touchStartedWithTextSelected.current = selectionTracker.hasSelection
       touchStartTime.current = Date.now()
       if (dragTarget) {
         dragTarget.style.transition = 'none'
@@ -338,11 +347,17 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
       if (touchStartY.current === null || touchStartScrollTop.current === null) return
       if (!scrollContainer || !dragTarget) return
       // Don't trigger pull-to-close when the user is selecting or expanding text.
-      // touchStartedWithTextSelected uses the persistent flag so it survives the
-      // period where iOS clears getSelection() during a handle drag.
-      // elapsed >= 300ms catches the initial long-press before a selection exists.
+      // Re-check e.target — iOS selection handles may not match the touchstart target.
+      // touchStartedWithTextSelected / the tracker survive the period where iOS clears
+      // getSelection() during a handle drag; elapsed >= 300ms catches the initial
+      // long-press before a selection exists.
       const elapsed = Date.now() - (touchStartTime.current || 0)
-      if (touchStartedWithTextSelected.current || elapsed >= 300) return
+      if (
+        isTextInteractionTarget(e.target) ||
+        touchStartedWithTextSelected.current ||
+        selectionTracker.hasSelection ||
+        elapsed >= 300
+      ) return
 
       const currentY = e.touches[0].clientY
       const rawDelta = currentY - touchStartY.current
@@ -398,20 +413,22 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
       if (dampened >= PULL_THRESHOLD && dragTarget) {
         const dismissTranslate = direction === 'down' ? '60vh' : '-60vh'
         dragTarget.style.transition = 'transform 0.25s ease-out, opacity 0.25s ease-out'
-        dragTarget.style.transform = `translateY(${dismissTranslate}) scale(0.9)`
+        dragTarget.style.transform = inPostDialog
+          ? `translate(-50%, calc(-50% + ${dismissTranslate})) scale(0.9)`
+          : `translateY(${dismissTranslate}) scale(0.9)`
         dragTarget.style.opacity = '0'
-        if (overlay) {
-          overlay.style.transition = 'background-color 0.25s ease-out, backdrop-filter 0.25s ease-out'
-          overlay.style.backgroundColor = 'transparent'
-          overlay.style.backdropFilter = 'blur(0px)'
+        if (backdropOverlay) {
+          backdropOverlay.style.transition = 'background-color 0.25s ease-out, backdrop-filter 0.25s ease-out'
+          backdropOverlay.style.backgroundColor = 'transparent'
+          backdropOverlay.style.backdropFilter = 'blur(0px)'
         }
         setTimeout(() => onCloseRef.current(), 200)
       } else {
         if (dragTarget) {
           dragTarget.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.3s ease, border-radius 0.3s ease'
         }
-        if (overlay) {
-          overlay.style.transition = 'background-color 0.3s ease, backdrop-filter 0.3s ease'
+        if (backdropOverlay) {
+          backdropOverlay.style.transition = 'background-color 0.3s ease, backdrop-filter 0.3s ease'
         }
         resetStyles()
       }
@@ -426,9 +443,7 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
       // Only clear the persistent flag once the selection is actually gone,
       // not speculatively — iOS may still hold the selection after touchend
       // during a handle drag interaction.
-      if (!window.getSelection || !window.getSelection().toString().length) {
-        persistentHasSelection = false
-      }
+      selectionTracker.clearIfGone()
     }
 
     listenTarget.addEventListener('touchstart', handleTouchStart, { passive: true })
@@ -439,17 +454,17 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
       listenTarget.removeEventListener('touchstart', handleTouchStart)
       listenTarget.removeEventListener('touchmove', handleTouchMove)
       listenTarget.removeEventListener('touchend', handleTouchEnd)
-      document.removeEventListener('selectionchange', onSelectionChange)
+      selectionTracker.destroy()
       resetStyles()
       if (dragTarget) {
         dragTarget.style.transition = ''
       }
-      if (overlay) {
-        overlay.style.transition = ''
+      if (backdropOverlay) {
+        backdropOverlay.style.transition = ''
       }
     }
   // Re-run when post loads (ref won't be set until post renders the JSX)
-  }, [postId, !!post, commentEditingActive])
+  }, [postId, !!post, inPostDialog, commentEditingActive])
 
   const scrollToBottom = useCallback(() => {
     const detail = document.getElementById(DETAIL_COLUMN_ID)

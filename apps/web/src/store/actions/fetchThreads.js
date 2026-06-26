@@ -2,8 +2,8 @@ import { get } from 'lodash/fp'
 import MessageThreadsQuery from '@graphql/queries/MessageThreadsQuery'
 import { FETCH_THREADS } from 'store/constants'
 
-export default function (first = 10, offset = 0, search) {
-  const variables = { first, offset }
+export default function (first = 10, offset = 0, { muted = false, search } = {}) {
+  const variables = { first, offset, muted }
   if (search) variables.search = search
 
   return {
@@ -16,7 +16,11 @@ export default function (first = 10, offset = 0, search) {
       extractModel: 'Me',
       extractQueryResults: {
         getItems: get('payload.data.me.messageThreads'),
-        getRouteParams: () => (search ? { search } : {})
+        getRouteParams: () => {
+          const params = { muted }
+          if (search) params.search = search
+          return params
+        }
       }
     }
   }

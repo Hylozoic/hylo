@@ -13,6 +13,7 @@ import TopicMentions from './extensions/TopicMentions'
 import Video from './extensions/Video'
 import HyloEditorMenuBar from './HyloEditorMenuBar'
 import 'tippy.js/dist/tippy.css'
+import { shouldBailTextSelectionGesture } from 'util/textSelectionTouch'
 import classes from './HyloEditor.module.scss'
 
 const HyloEditor = React.forwardRef(({
@@ -143,8 +144,10 @@ const HyloEditor = React.forwardRef(({
     Video
   ]
 
-  const onTouchMove = () => {
-    // Hide the keyboard when scrolling on mobile so you can't scroll down to empty white space on safari
+  const onTouchMove = (e) => {
+    // Only dismiss the keyboard when scrolling the editor itself — not when the user
+    // is selecting text elsewhere in the chat room (e.g. message bodies above).
+    if (shouldBailTextSelectionGesture(e.target)) return
     editorRef.current.commands.blur()
   }
 

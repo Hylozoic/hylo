@@ -645,7 +645,7 @@ describe('on UPDATE_ALL_MEMBERSHIP_SETTINGS_PENDING', () => {
 
     const newSession = orm.session(ormReducer(session.state, action))
     const membershipsAfterAction = newSession.Membership.all().toModelArray()
-    membershipsAfterAction.map(membership => {
+    membershipsAfterAction.forEach(membership => {
       expect(membership.settings.sendEmail).toEqual(true)
     })
   })
