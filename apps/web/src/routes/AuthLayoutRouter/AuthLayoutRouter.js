@@ -32,7 +32,7 @@ import getMe from 'store/selectors/getMe'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMyMemberships from 'store/selectors/getMyMemberships'
 import getMyGroupMembership from 'store/selectors/getMyGroupMembership'
-import { getSignupInProgress } from 'store/selectors/getAuthState'
+import { getSignupInProgress } from 'store/selectors/getSignupState'
 import getLastViewedGroup from 'store/selectors/getLastViewedGroup'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import {

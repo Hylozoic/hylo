@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useSelector } from 'react-redux'
 import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
-import getAuthState, { AuthState } from 'store/selectors/getAuthState'
+import getSignupState, { SignupState } from 'store/selectors/getSignupState'
 import Signup from './Signup'
 import VerifyEmail from './VerifyEmail'
 import Agreements from './Agreements'
@@ -11,7 +11,7 @@ import Loading from 'components/Loading'
 export default function SignupRouter (props) {
   const location = useLocation()
   const navigate = useNavigate()
-  const authState = useSelector(getAuthState)
+  const signupState = useSelector(getSignupState)
   const [loading, setLoading] = useState(true)
 
   // Ensures user is direct to the appropriate Signup screen regardless
@@ -26,18 +26,18 @@ export default function SignupRouter (props) {
       }
     }
 
-    switch (authState) {
-      case AuthState.None: {
+    switch (signupState) {
+      case SignupState.None: {
         if (location.pathname !== '/signup/verify-email') {
           redirectTo('/signup')
         }
         break
       }
-      case AuthState.EmailValidation: {
+      case SignupState.EmailValidation: {
         redirectTo('/signup/verify-email')
         break
       }
-      case AuthState.Registration: {
+      case SignupState.Registration: {
         // If user is on agreements page, let them stay there
         if (location.pathname === '/signup/agreements') {
           break
@@ -50,14 +50,14 @@ export default function SignupRouter (props) {
       }
       // Should never be true as SignupRouter is not active once authorized,
       // Routing will have been turned-over to AuthLayoutRouter
-      case AuthState.Complete: {
+      case SignupState.Complete: {
         redirectTo('/')
         break
       }
     }
 
     setLoading(false)
-  }, [authState, location.pathname])
+  }, [signupState, location.pathname])
 
   if (loading) return <Loading />
 

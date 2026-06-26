@@ -16,6 +16,11 @@ Hylo Authentication and Authorization state reflected in terms of "Signup State"
 The state object and selectors below are primarily utilized for high-level routing
 in `RootRouter`, `SignupRouter`, and `AuthRouter`.
 
+This is the *derived/interpreted* layer over the raw `authSession` slice reads in
+`getAuthSession`: those selectors return what's literally stored, while the
+`SignupState` enum here collapses those facts into the user's position in the
+signup funnel for routing.
+
 Each state below below implies transition from the previous state has completed, e.g.:
 
   None > EmailValidation > Registration > SignupInProgress > Complete
@@ -25,8 +30,8 @@ Each state below below implies transition from the previous state has completed,
 
 */
 
-// ONLY use in the `SignupRouter` and in `getAuthState` below
-export const AuthState = {
+// ONLY use in the `SignupRouter` and in `getSignupState` below
+export const SignupState = {
   None: 'None',
   EmailValidation: 'EmailValidation',
   Registration: 'Registration',
@@ -39,16 +44,16 @@ export const AuthState = {
 // distinction (SignupInProgress vs Complete) lives in the separate
 // `getSignupInProgress`/`getSignupComplete` selectors below, which are also
 // session-driven (signupInProgress is mirrored into `authSession`).
-export const getAuthState = createSelector(
+export const getSignupState = createSelector(
   getAuthSessionAuthenticated,
   getAuthSessionEmailValidated,
   getAuthSessionHasRegistered,
   (isAuthenticated, emailValidated, hasRegistered) => {
-    if (!isAuthenticated) return AuthState.None
-    if (!emailValidated) return AuthState.EmailValidation
-    if (!hasRegistered) return AuthState.Registration
+    if (!isAuthenticated) return SignupState.None
+    if (!emailValidated) return SignupState.EmailValidation
+    if (!hasRegistered) return SignupState.Registration
 
-    return AuthState.Complete
+    return SignupState.Complete
   }
 )
 
@@ -64,8 +69,8 @@ export const getAuthenticated = createSelector(
 // Derived from `authSession` only, so `RootRouter` can authorize without `me`.
 // * Used by `RootRouter`
 export const getAuthorized = createSelector(
-  getAuthState,
-  authState => authState === AuthState.Complete
+  getSignupState,
+  signupState => signupState === SignupState.Complete
 )
 
 // Authorized && signup wizard still in progress. Session-driven (signupInProgress is
@@ -83,4 +88,4 @@ export const getSignupComplete = createSelector(
   (authorized, signupInProgress) => authorized && !signupInProgress
 )
 
-export default getAuthState
+export default getSignupState
