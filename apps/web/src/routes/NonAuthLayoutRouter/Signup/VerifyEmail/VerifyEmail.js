@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link, Navigate, useLocation } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import VerificationInput from 'react-verification-input'
 import { formatError } from '../../util'
@@ -11,6 +11,7 @@ import Loading from 'components/Loading'
 
 export default function VerifyEmail (props) {
   const dispatch = useDispatch()
+  const navigate = useNavigate()
   const currentUser = useSelector(getMe)
   const location = useLocation()
   const email = currentUser?.email || getQuerystringParam('email', location)
@@ -45,9 +46,17 @@ export default function VerifyEmail (props) {
     try {
       setLoading(true)
       const result = await dispatch(verifyEmail(email, value || code, token))
-      const error = result?.payload?.getData()?.error
+      const data = result?.payload?.getData?.()
+      const error = data?.error
 
-      if (error) setError(error)
+      if (error) {
+        setError(error)
+        return
+      }
+
+      // Next signup step (agreements). Do not rely only on SignupRouter + getSignupState so a
+      // sync gap or selector edge case cannot leave the user on this screen with no feedback.
+      navigate('/signup/agreements', { replace: true })
     } catch (requestError) {
       setRedirectTo(`/signup?error=${requestError.message}`)
     } finally {

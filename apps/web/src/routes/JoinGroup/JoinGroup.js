@@ -6,7 +6,7 @@ import { every, isEmpty } from 'lodash/fp'
 import { baseUrl, groupUrl } from '@hylo/navigation'
 import setReturnToPath from 'store/actions/setReturnToPath'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
-import { getSignupComplete } from 'store/selectors/getAuthState'
+import { getSignupComplete } from 'store/selectors/getSignupState'
 import checkInvitation from 'store/actions/checkInvitation'
 import Loading from 'components/Loading'
 
