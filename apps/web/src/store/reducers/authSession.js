@@ -1,4 +1,4 @@
-import { CHECK_LOGIN, CLEAR_AUTH_SESSION, LOGIN, LOGOUT, SET_AUTH_SESSION, UPDATE_USER_SETTINGS } from 'store/constants'
+import { CHECK_LOGIN, LOGIN, LOGOUT, UPDATE_USER_SETTINGS } from 'store/constants'
 import { REGISTER, VERIFY_EMAIL } from 'routes/NonAuthLayoutRouter/Signup/Signup.store'
 
 export const AuthSessionStatus = {
@@ -12,7 +12,7 @@ export const getInitialAuthSessionState = () => ({
   userId: null,
   // `emailValidated`, `hasRegistered`, and `signupInProgress` are the only `me` facts
   // needed to decide authorization and signup state. Holding them here keeps
-  // `getAuthState`/`getAuthorized`/`getSignup*` independent of the ORM `me` row (and
+  // `getSignupState`/`getAuthorized`/`getSignup*` independent of the ORM `me` row (and
   // persistable) while rich user data stays in the ORM.
   emailValidated: null,
   hasRegistered: null,
@@ -110,7 +110,7 @@ export default function authSession (state = getInitialAuthSessionState(), actio
     return authenticatedSession(me)
   }
 
-  if (action.type === LOGOUT || action.type === CLEAR_AUTH_SESSION) {
+  if (action.type === LOGOUT) {
     return anonymousSession()
   }
 
@@ -127,10 +127,6 @@ export default function authSession (state = getInitialAuthSessionState(), actio
       hasRegistered: me.hasRegistered ?? state.hasRegistered,
       signupInProgress: me.settings?.signupInProgress ?? null
     }
-  }
-
-  if (action.type === SET_AUTH_SESSION) {
-    return { ...state, ...action.payload }
   }
 
   return state

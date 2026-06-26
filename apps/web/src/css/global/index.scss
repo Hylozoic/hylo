@@ -150,6 +150,15 @@
       list-style-type: decimal;
     }
   }
+
+  @media (max-width: 640px) {
+    .global-postContent,
+    .ChatPost_container .global-postContent {
+      -webkit-user-select: text;
+      user-select: text;
+      touch-action: manipulation;
+    }
+  }
 }
 
 input:-webkit-autofill,

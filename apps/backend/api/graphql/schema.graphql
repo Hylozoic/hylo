@@ -1888,7 +1888,9 @@ type Me {
     # NOT USED RIGHT NOW
     sortBy: String,
     # Return threads whose participant name or message text match this term (case-insensitive)
-    search: String
+    search: String,
+    # When true, return muted threads. Defaults to inbox (non-muted) threads.
+    muted: Boolean
   ): MessageThreadQuerySet
 
   # The set of Posts the logged in user has created
@@ -2091,6 +2093,8 @@ type MessageThread {
   participantsTotal: Int
   # Number of unread messages since logged in user last looked at this thread
   unreadCount: Int
+  # Whether the logged in user has muted this thread
+  isMuted: Boolean
   updatedAt: Date
 
   # The set of messages in the thread
@@ -3453,6 +3457,10 @@ type Mutation {
   leaveFundingRound(id: ID): FundingRound
   # Leave a group
   leaveGroup(id: ID): ID
+  # Mute a direct message thread for the logged in user
+  muteMessageThread(messageThreadId: ID): GenericResult
+  # Unmute a direct message thread for the logged in user
+  unmuteMessageThread(messageThreadId: ID): GenericResult
   # Remove yourself as a member of a project Post
   leaveProject(id: ID): GenericResult
   # Leave a track

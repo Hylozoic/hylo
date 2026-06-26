@@ -54,7 +54,7 @@ export default function VerifyEmail (props) {
         return
       }
 
-      // Next signup step (agreements). Do not rely only on SignupRouter + getAuthState so a
+      // Next signup step (agreements). Do not rely only on SignupRouter + getSignupState so a
       // sync gap or selector edge case cannot leave the user on this screen with no feedback.
       navigate('/signup/agreements', { replace: true })
     } catch (requestError) {

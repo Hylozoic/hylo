@@ -6,6 +6,7 @@ export const MessageThreadQuery = gql`
       id
       unreadCount
       lastReadAt
+      isMuted
       createdAt
       updatedAt
       participants {

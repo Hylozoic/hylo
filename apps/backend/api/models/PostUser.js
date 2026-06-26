@@ -50,6 +50,8 @@ module.exports = bookshelf.Model.extend({
         'posts_users.following': true
       })
 
+      q.whereNull('posts_users.muted_at')
+
       if (afterTime) q.where('posts.updated_at', '>', afterTime)
 
       q.where(q2 => {

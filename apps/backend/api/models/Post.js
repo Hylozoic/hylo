@@ -26,7 +26,8 @@ export const POSTS_USERS_ATTR_UPDATE_WHITELIST = [
   'following',
   'active',
   'clickthrough',
-  'saved_at'
+  'saved_at',
+  'muted_at'
 ]
 
 const commentersQuery = (limit, post, currentUserId) => q => {
@@ -154,7 +155,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
   followers: function () {
     return this.belongsToMany(User).through(PostUser)
       // .withPivot(['last_read_at', 'clickthrough']) // TODO COMOD: does not seem to work
-      .withPivot(['last_read_at'])
+      .withPivot(['last_read_at', 'muted_at'])
       .where({ following: true, 'posts_users.active': true, 'users.active': true })
   },
 
@@ -170,6 +171,11 @@ module.exports = bookshelf.Model.extend(Object.assign({
   async isFollowed (userId) {
     const pu = await PostUser.find(this.id, userId)
     return !!(pu && pu.get('following'))
+  },
+
+  async isMutedForUser (userId) {
+    const pu = await PostUser.find(this.id, userId)
+    return !!(pu && pu.get('muted_at'))
   },
 
   /**
