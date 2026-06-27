@@ -29,6 +29,7 @@ export default function acceptInvitation (inviteCodes = {}) {
                   publicMemberDirectory
                   showSuggestedSkills
                   showWelcomePage
+                  layout
                 }
                 slug
                 visibility

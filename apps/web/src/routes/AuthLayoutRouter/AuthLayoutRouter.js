@@ -16,6 +16,9 @@ import CookieConsentLinker from 'components/CookieConsentLinker'
 import ContextMenu from './components/ContextMenu'
 import CreateModal from 'components/CreateModal'
 import GlobalNav from './components/GlobalNav'
+import OneColumnLayout from './components/ContextMenu/OneColumnLayout'
+import TopNav from './components/TopNav'
+import { useTheme } from 'contexts/ThemeContext'
 import NotFound from 'components/NotFound'
 import SocketListener from 'components/SocketListener'
 import SocketSubscriber from 'components/SocketSubscriber'
@@ -23,6 +26,7 @@ import { useLayoutFlags } from 'contexts/LayoutFlagsContext'
 import ViewHeader from 'components/ViewHeader'
 // useSwipeGesture replaced by interactive nav drawer gesture below
 import usePullToRefresh from 'hooks/usePullToRefresh'
+import useIsPhoneViewport from 'hooks/useIsPhoneViewport'
 import getReturnToPath from 'store/selectors/getReturnToPath'
 import checkForNewNotifications from 'store/actions/checkForNewNotifications'
 import setReturnToPath from 'store/actions/setReturnToPath'
@@ -96,6 +100,11 @@ export default function AuthLayoutRouter (props) {
   const resizeRef = useRef()
   const navigate = useNavigate()
   const { hideNavLayout } = useLayoutFlags()
+  const { navMode } = useTheme()
+  // Tabs are forced off on phone-sized viewports — only ~2 group icons fit there
+  // and the existing mobile drawer already handles narrow screens well.
+  const isPhoneViewport = useIsPhoneViewport()
+  const isTabNav = navMode === 'tabs' && !isPhoneViewport
   const withoutNav = isLegacyWebView() || hideNavLayout
   const newVersionAvailable = useNewAppVersion()
   const newVersionToastShownRef = useRef(false)
@@ -139,10 +148,41 @@ export default function AuthLayoutRouter (props) {
   const isMapView = pathMatchParams?.view === 'map'
   const isWelcomeContext = pathMatchParams?.context === 'welcome'
   const isCreateGroupRoute = location.pathname.startsWith('/create-group')
+  // For simple groups: home and settings show the inline sidebar; everything else
+  // ("a view") takes the full viewport with no sidebar.
+  const isSimpleGroupHomeOrSettings = useMemo(() => {
+    if (!currentGroupSlug) return false
+    const path = location.pathname.replace(/\/$/, '')
+    return path === `/groups/${currentGroupSlug}` ||
+      path.startsWith(`/groups/${currentGroupSlug}/settings`)
+  }, [currentGroupSlug, location.pathname])
+  // Phone settings use master-detail in the center column, so the sidebar
+  // (GlobalNav + GroupSettingsMenu) is suppressed entirely.
+  const isOnGroupSettings = useMemo(() => {
+    if (!currentGroupSlug) return false
+    return location.pathname.startsWith(`/groups/${currentGroupSlug}/settings`)
+  }, [currentGroupSlug, location.pathname])
+  const isPhoneSettings = isPhoneViewport && isOnGroupSettings
 
   // Store
   const dispatch = useDispatch()
   const currentGroup = useSelector(state => getGroupForSlug(state, currentGroupSlug))
+  const isOneColumnGroup = useMemo(() => {
+    if (pathMatchParams?.context !== 'groups') return false
+    // Use group settings if available
+    if (currentGroup?.settings?.layout) {
+      // Cache for instant access on next visit
+      if (currentGroupSlug) {
+        try { window.localStorage.setItem(`hylo-group-layout-${currentGroupSlug}`, currentGroup.settings.layout) } catch (e) {}
+      }
+      return currentGroup.settings.layout === 'one-column'
+    }
+    // Fall back to cached value to prevent flash
+    if (currentGroupSlug) {
+      try { return window.localStorage.getItem(`hylo-group-layout-${currentGroupSlug}`) === 'one-column' } catch (e) {}
+    }
+    return false
+  }, [pathMatchParams?.context, currentGroup?.settings?.layout, currentGroupSlug])
   const currentGroupMembership = useSelector(state => getMyGroupMembership(state, currentGroupSlug))
   const currentUser = useSelector(getMe)
   const isDrawerOpen = useSelector(state => get('AuthLayoutRouter.isDrawerOpen', state))
@@ -758,11 +798,18 @@ export default function AuthLayoutRouter (props) {
         {/* )} */}
       </Routes>
 
-      <div className={cn('flex flex-row items-stretch bg-midground h-full', { 'h-[100dvh]': compactLayout, [classes.mapView]: isMapView, [classes.detailOpen]: hasDetail })}>
-        <div ref={resizeRef} className={cn(classes.main, { [classes.mapView]: isMapView, [classes.withoutNav]: withoutNav, [classes.mainPad]: !withoutNav })}>
+      <div className={cn('flex items-stretch bg-midground h-full', isTabNav ? 'flex-col' : 'flex-row', { 'h-[100dvh]': compactLayout, [classes.mapView]: isMapView, [classes.detailOpen]: hasDetail })}>
+        {/* Top tab nav bar (when tab mode is active) */}
+        {isTabNav && !withoutNav && (
+          <TopNav currentUser={currentUser} />
+        )}
+
+        {/* Simple groups skip the mobile drawer pattern: their home dashboard already
+            functions as the menu, so the sidebar renders inline (like desktop) on phone too. */}
+        <div ref={resizeRef} className={cn(classes.main, { [classes.mapView]: isMapView, [classes.withoutNav]: withoutNav || isTabNav, [classes.mainPad]: !withoutNav && !isTabNav && !isOneColumnGroup })}>
           {/* Mobile nav backdrop overlay - not shown on create-group so back chevron gets first tap */}
           {/* TODO: this is a hack for the create group route, which we may make a modal handle a different better way  */}
-          {!withoutNav && !isCreateGroupRoute && (
+          {!withoutNav && !isTabNav && !isCreateGroupRoute && !isOneColumnGroup && (
             <div
               ref={setBackdropRef}
               className={cn('fixed inset-0 z-[100] bg-black/50', !phoneLayout && 'sm:hidden')}
@@ -771,18 +818,27 @@ export default function AuthLayoutRouter (props) {
             />
           )}
           <div
-            ref={setNavContainerRef}
+            ref={isTabNav || isOneColumnGroup ? undefined : setNavContainerRef}
             className={cn(
               'AuthLayoutRouterNavContainer flex flex-row h-full flex-shrink-0 overflow-hidden',
-              // Phones: fixed drawer, full-width, off-screen by default (JS manages transform)
-              'fixed left-0 top-0 z-[101] h-dvh w-full',
-              // Tablet and desktop: back in normal flow
-              !phoneLayout && 'sm:relative sm:z-50 sm:h-full sm:w-auto sm:max-w-420',
+              (isTabNav || isOneColumnGroup)
+                ? 'relative z-50 h-full w-auto'
+                : [
+                    // Phones: fixed drawer, full-width, off-screen by default (JS manages transform)
+                    'fixed left-0 top-0 z-[101] h-dvh w-full',
+                    // Tablet and desktop: back in normal flow
+                    !phoneLayout && 'sm:relative sm:z-50 sm:h-full sm:w-auto sm:max-w-420'
+                  ],
               // Hide nav for full-page Create Group flow
-              isCreateGroupRoute && (phoneLayout ? 'hidden' : 'hidden sm:relative')
+              isCreateGroupRoute && (phoneLayout ? 'hidden' : 'hidden sm:relative'),
+              // Simple group views take the full viewport on phone, but the GlobalNav
+              // sidebar stays visible on desktop so you can still navigate between contexts.
+              isOneColumnGroup && !isSimpleGroupHomeOrSettings && 'hidden sm:flex',
+              // Phone settings use master-detail in the center column — hide the sidebar.
+              isPhoneSettings && 'hidden'
             )}
           >
-            {!withoutNav && (
+            {!withoutNav && !isTabNav && (
               <>
                 <GlobalNav
                   group={currentGroup}
@@ -800,7 +856,10 @@ export default function AuthLayoutRouter (props) {
                 <Route path='my/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
                 <Route path='all/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
                 <Route path='groups/:joinGroupSlug/join/:accessCode' element={null} />
-                <Route path='groups/:groupSlug/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
+                {/* Simple groups: ContextMenu only renders for /settings (the settings sidebar).
+                    Group home shows just the GlobalNav + OneColumnLayout — no widget context menu. */}
+                {!isOneColumnGroup && <Route path='groups/:groupSlug/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />}
+                {isOneColumnGroup && <Route path='groups/:groupSlug/settings/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />}
                 {isPhoneDevice() && (
                   <>
                     <Route path='messages/:messageThreadId' element={<ThreadList />} />
@@ -856,7 +915,10 @@ export default function AuthLayoutRouter (props) {
             </Routes>
 
             <div className={cn('AuthLayout_centerColumn bg-midground flex flex-col px-0 relative min-h-1 h-full flex-1 overflow-y-auto overflow-x-hidden transition-all duration-450', { 'z-[60]': withoutNav, 'sm:p-0': isMapView })} id={CENTER_COLUMN_ID}>
-              <ViewHeader />
+              <ViewHeader
+                oneColumnGroup={isOneColumnGroup ? currentGroup : null}
+                oneColumnGroupSlug={isOneColumnGroup ? currentGroupSlug : null}
+              />
               {/* NOTE: It could be more clear to group the following switched routes by component  */}
               <Routes>
                 {/* **** Member Routes **** */}
@@ -929,9 +991,9 @@ export default function AuthLayoutRouter (props) {
                             <Route path='payment/failure' element={<PaymentFailure />} />
                             <Route path='settings/*' element={<GroupSettings context='groups' />} />
                             <Route path='all-views' element={<AllView context='groups' />} />
-                            <Route path={POST_DETAIL_MATCH} element={<PostDetail />} />
+                            {!isOneColumnGroup && <Route path={POST_DETAIL_MATCH} element={<PostDetail />} />}
                             <Route path='moderation/*' element={<Moderation context='groups' />} />
-                            <Route path='*' element={<Navigate to={`/groups/${currentGroupSlug}${currentGroup?.homeRoute || '/stream'}`} replace />} />
+                            <Route path='*' element={isOneColumnGroup ? <OneColumnLayout group={currentGroup} /> : <Navigate to={`/groups/${currentGroupSlug}${currentGroup?.homeRoute || '/stream'}`} replace />} />
                           </Routes>
                           )
                     }

@@ -120,8 +120,19 @@ export default gql`
         settings {
           showSuggestedSkills
           showWelcomePage
+          layout
         }
         slug
+        childGroups {
+          items {
+            id
+            name
+            avatarUrl
+            slug
+            visibility
+            accessibility
+          }
+        }
       }
     }
     membershipCommonRoles {

@@ -50,7 +50,7 @@ import BadgedIcon from 'components/BadgedIcon'
 import CreateMenu from 'components/CreateMenu'
 import GlobalNavItem from './GlobalNavItem'
 import GlobalNavTooltipContainer from './GlobalNavTooltipContainer'
-import getMyGroups from 'store/selectors/getMyGroups'
+import { getMyGroupsWithChildren } from 'store/selectors/getMyGroups'
 import { isCompactLayoutDevice, isMobileDevice, downloadApp } from 'util/mobile'
 import isWebView, { sendMessageToWebView, getMobileAppVersion } from 'util/webView'
 import { getCookieConsent } from 'util/cookieConsent'
@@ -111,6 +111,7 @@ function SortableGlobalNavItem ({ group, index, isVisible, showTooltip, isContai
         url={`/groups/${group.slug}`}
         className={isVisible}
         showTooltip={isContainerHovered}
+        childGroups={group.childGroups}
         isPinned
       />
     </div>
@@ -120,13 +121,25 @@ function SortableGlobalNavItem ({ group, index, isVisible, showTooltip, isContai
 const NotificationsDropdown = React.lazy(() => import('./NotificationsDropdown'))
 
 // Settings Menu Component
-function SettingsMenu ({ currentUser }) {
+function SettingsMenu ({ currentUser, triggerClassName, contentSide = 'right', contentAlign = 'start' }) {
   const compactLayout = isCompactLayoutDevice()
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const dispatch = useDispatch()
-  const { colorScheme, setColorScheme, currentTheme, setCurrentTheme, availableThemes } = useTheme()
+  const { colorScheme, setColorScheme, currentTheme, setCurrentTheme, navMode, setNavMode, stackGroups, setStackGroups, availableThemes } = useTheme()
   const currentLocale = currentUser?.settings?.locale || i18n.language || getLocaleFromLocalStorage() || 'en'
+
+  // Hide the Sidebar/Tabs toggle on phone viewports — tabs are forced off there.
+  const [isPhoneViewport, setIsPhoneViewport] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 639px)').matches
+  )
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const mq = window.matchMedia('(max-width: 639px)')
+    const handler = (e) => setIsPhoneViewport(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
 
   const handleLogout = async () => {
     await dispatch(logout())
@@ -190,14 +203,14 @@ function SettingsMenu ({ currentUser }) {
       <DropdownMenuTrigger asChild>
         <span
           data-testid='global-nav-settings-trigger'
-          className={cn('bg-primary relative transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-2 border-foreground/0 hover:border-foreground/50 cursor-pointer', compactLayout ? 'h-10' : 'h-10 sm:h-8')}
+          className={triggerClassName || cn('bg-primary relative transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-2 border-foreground/0 hover:border-foreground/50 cursor-pointer', compactLayout ? 'h-10' : 'h-10 sm:h-8')}
         >
-          <Settings className={cn(compactLayout ? 'w-7 h-7' : 'w-7 h-7 sm:w-6 sm:h-6')} />
+          <Settings className={triggerClassName ? 'w-5 h-5' : cn(compactLayout ? 'w-7 h-7' : 'w-7 h-7 sm:w-6 sm:h-6')} />
         </span>
       </DropdownMenuTrigger>
       <DropdownMenuContent
-        side='right'
-        align='start'
+        side={contentSide}
+        align={contentAlign}
         className={cn(
           'z-[200] bg-card',
           compactLayout
@@ -251,6 +264,30 @@ function SettingsMenu ({ currentUser }) {
               </DropdownMenuRadioItem>
               <DropdownMenuRadioItem value='dark'>
                 {t('Dark')}
+              </DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+            <DropdownMenuSeparator />
+            {!isPhoneViewport && (
+              <>
+                <div className='px-2 py-1.5 text-sm font-semibold'>{t('Navigation')}</div>
+                <DropdownMenuRadioGroup value={navMode} onValueChange={setNavMode}>
+                  <DropdownMenuRadioItem value='sidebar'>
+                    {t('Sidebar')}
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value='tabs'>
+                    {t('Top bar')}
+                  </DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+                <DropdownMenuSeparator />
+              </>
+            )}
+            <div className='px-2 py-1.5 text-sm font-semibold'>{t('Group Display')}</div>
+            <DropdownMenuRadioGroup value={stackGroups ? 'stacked' : 'flat'} onValueChange={value => setStackGroups(value === 'stacked')}>
+              <DropdownMenuRadioItem value='stacked'>
+                {t('Stacked')}
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value='flat'>
+                {t('Flat')}
               </DropdownMenuRadioItem>
             </DropdownMenuRadioGroup>
             <DropdownMenuSeparator />
@@ -324,7 +361,13 @@ export default function GlobalNav (props) {
   const { showPreferences } = useCookieConsent()
   const [showSupportModal, setShowSupportModal] = useState(false)
   const dispatch = useDispatch()
-  const sortedGroups = useSelector(getMyGroups)
+  const { stackGroups } = useTheme()
+  const rawGroups = useSelector(getMyGroupsWithChildren)
+  // When stacking is off, flatten: every group renders as its own item with no subgroup stack.
+  const sortedGroups = useMemo(
+    () => stackGroups ? rawGroups : rawGroups.map(group => ({ ...group, childGroups: [] })),
+    [rawGroups, stackGroups]
+  )
   const isNavOpen = useSelector(state => get('AuthLayoutRouter.isNavOpen', state))
   const pinnedGroups = useMemo(() => sortedGroups.filter(group => group.navOrder !== null), [sortedGroups])
   const unpinnedGroups = useMemo(() => sortedGroups.filter(group => group.navOrder === null), [sortedGroups])
@@ -843,6 +886,7 @@ export default function GlobalNav (props) {
                     url={`/groups/${group.slug}`}
                     className={isVisible(4 + actualIndex)}
                     showTooltip={isContainerHovered}
+                    childGroups={group.childGroups}
                   />
                 </RightClickMenuTrigger>
                 <RightClickMenuContent>
@@ -948,4 +992,4 @@ export default function GlobalNav (props) {
   )
 }
 
-export { GlobalNavTooltipContainer }
+export { GlobalNavTooltipContainer, SettingsMenu }
