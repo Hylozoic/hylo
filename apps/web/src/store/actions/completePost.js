@@ -1,6 +1,6 @@
 import { COMPLETE_POST } from 'store/constants'
 
-export default function completePost (id, completionResponse) {
+export default function completePost (id, completionResponse, { trackId, trackCompleted, completionRoleId, completionRole, groupId } = {}) {
   return {
     type: COMPLETE_POST,
     graphql: {
@@ -19,7 +19,12 @@ export default function completePost (id, completionResponse) {
     meta: {
       optimistic: true,
       postId: id,
-      completionResponse
+      completionResponse,
+      trackId,
+      trackCompleted,
+      completionRoleId,
+      completionRole,
+      groupId
     }
   }
 }

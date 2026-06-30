@@ -101,7 +101,6 @@ export default function makeSubscriptions () {
             group: new Group(payload.groupMembershipUpdate.group),
             member: new User(payload.groupMembershipUpdate.member),
             action: payload.groupMembershipUpdate.action,
-            role: payload.groupMembershipUpdate.role,
             makeModelsType: 'GroupMembershipUpdate'
           }
         }
@@ -260,7 +259,6 @@ export default function makeSubscriptions () {
             group: new Group(payload.groupMembershipUpdate.group),
             member: new User(payload.groupMembershipUpdate.member),
             action: payload.groupMembershipUpdate.action,
-            role: payload.groupMembershipUpdate.role,
             makeModelsType: 'GroupMembershipUpdate'
           }
         }

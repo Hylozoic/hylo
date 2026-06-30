@@ -37,7 +37,6 @@ import revokeContentAccess from 'store/actions/revokeContentAccess'
 import refundContentAccess from 'store/actions/refundContentAccess'
 import getTracksForGroup from 'store/selectors/getTracksForGroup'
 import useDebounce from 'hooks/useDebounce'
-import getCommonRoles from 'store/selectors/getCommonRoles'
 
 /**
  * Content Access Tab Component
@@ -48,17 +47,14 @@ function ContentAccessTab ({ group, offerings = [] }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const tracks = useSelector(state => getTracksForGroup(state, { groupId: group?.id }))
-  const commonRoles = useSelector(getCommonRoles)
   const contentAccessData = useSelector(getContentAccessRecords)
-
-  // Get group roles from the group object
   const groupRoles = group?.groupRoles?.items || []
 
-  // Combine common roles and group roles for the filter dropdown
-  const allRoles = React.useMemo(() => [
-    ...commonRoles.map(role => ({ ...role, type: 'common', displayName: `${role.emoji || ''} ${role.name}`.trim() })),
-    ...groupRoles.map(role => ({ ...role, type: 'group', displayName: `${role.emoji || ''} ${role.name}`.trim() }))
-  ], [commonRoles, groupRoles])
+  const allRoles = React.useMemo(() => groupRoles.map(role => ({
+    ...role,
+    type: 'group',
+    displayName: `${role.emoji || ''} ${role.name}`.trim()
+  })), [groupRoles])
 
   const [search, setSearch] = useState('')
   const [accessTypeFilter, setAccessTypeFilter] = useState('all')
@@ -92,8 +88,7 @@ function ContentAccessTab ({ group, offerings = [] }) {
       status: statusFilter !== 'all' ? statusFilter : null,
       offeringId: offeringFilter !== 'all' ? offeringFilter : null,
       trackId: trackFilter !== 'all' ? trackFilter : null,
-      groupRoleId: selectedRole?.type === 'group' ? (selectedRole.id || roleFilter) : null,
-      commonRoleId: selectedRole?.type === 'common' ? (selectedRole.id || roleFilter) : null,
+      groupRoleId: roleFilter !== 'all' ? roleFilter : null,
       first: 20,
       offset,
       sortBy: 'created_at',
@@ -342,10 +337,9 @@ function ContentAccessTab ({ group, offerings = [] }) {
  */
 function ContentAccessRecordItem ({ record, t, onActionComplete }) {
   const dispatch = useDispatch()
-  const { id, user, offering, track, groupRole, commonRole, accessType, status, createdAt, expiresAt, grantedBy, subscriptionCancelAtPeriodEnd, subscriptionPeriodEnd } = record
+  const { id, user, offering, track, groupRole, accessType, status, createdAt, expiresAt, grantedBy, subscriptionCancelAtPeriodEnd, subscriptionPeriodEnd } = record
 
-  // Use groupRole or commonRole, whichever is present
-  const role = groupRole || commonRole
+  const role = groupRole
 
   const [showRevokeDialog, setShowRevokeDialog] = useState(false)
   const [showRefundDialog, setShowRefundDialog] = useState(false)

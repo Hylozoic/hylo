@@ -540,12 +540,10 @@ describe('on CREATE_GROUP', () => {
   const group1 = session.Group.create({ id: 'c1' })
   const group2 = session.Group.create({ id: 'c2' })
   const membership = session.Membership.create({ id: 'm1', group: group1.id })
-  session.CommonRole.create({ id: 1, name: 'Coordinator', responsibilities: [{ id: 1, title: 'Administration' }] })
   session.Membership.create({ id: 'm2', group: group2.id })
   session.Me.create({
     id: 1,
-    memberships: [membership.id],
-    membershipCommonRoles: [{ commonRoleId: 1, groupId: group1.id, userId: 1, id: 1 }]
+    memberships: [membership.id]
   })
   const action = {
     type: CREATE_GROUP,
@@ -553,20 +551,24 @@ describe('on CREATE_GROUP', () => {
       data: {
         createGroup: {
           id: 'g2',
+          groupRoles: {
+            items: [{
+              id: 'coord-1',
+              name: 'Coordinator',
+              groupId: 'g2',
+              emoji: '🪄',
+              active: true,
+              responsibilities: {
+                items: [{ id: '1', title: 'Administration', description: '' }]
+              }
+            }]
+          },
           memberships: {
             items: [
               {
                 id: 'm2',
                 person: {
-                  id: 1,
-                  membershipCommonRoles: {
-                    items: [{
-                      id: 1,
-                      groupId: group1.id,
-                      commonRoleId: 1,
-                      userId: 1
-                    }]
-                  }
+                  id: 1
                 }
               }
             ]
@@ -576,12 +578,20 @@ describe('on CREATE_GROUP', () => {
     }
   }
 
-  it('adds a membership to the currentUser with Coordinator role', () => {
+  it('adds a membership to the currentUser', () => {
     const newState = ormReducer(session.state, action)
     const newSession = orm.session(newState)
     const currentUser = newSession.Me.first()
     expect(currentUser.memberships.toModelArray()).toHaveLength(2)
-    expect(currentUser.membershipCommonRoles[0].commonRoleId).toEqual(1)
+  })
+
+  it('adds the coordinator groupRole to the currentUser', () => {
+    const newState = ormReducer(session.state, action)
+    const newSession = orm.session(newState)
+    const currentUser = newSession.Me.first()
+    expect(currentUser.groupRoles.items).toHaveLength(1)
+    expect(currentUser.groupRoles.items[0].name).toBe('Coordinator')
+    expect(currentUser.groupRoles.items[0].responsibilities.items[0].title).toBe('Administration')
   })
 })
 

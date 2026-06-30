@@ -64,7 +64,6 @@ export default
     }
     memberships {
       id
-      role
       group {
         id
         name
@@ -72,14 +71,6 @@ export default
       }
       person {
         id
-      }
-    }
-    membershipCommonRoles {
-      items {
-        id
-        commonRoleId
-        groupId
-        userId
       }
     }
     groupRoles {

@@ -34,8 +34,7 @@ type Query {
     groupId: ID,
     productId: ID,
     trackId: ID,
-    groupRoleId: ID,
-    commonRoleId: ID
+    groupRoleId: ID
   ): ContentAccessCheckResult
 
   # Check if a group invitation is still valid
@@ -43,8 +42,6 @@ type Query {
 
   # Find an Comment by ID
   comment(id: ID): Comment
-
-  commonRoles: [CommonRole]
 
   collection(id: ID): Collection
 
@@ -64,8 +61,6 @@ type Query {
     trackId: ID,
     # Filter by group role ID
     groupRoleId: ID,
-    # Filter by common role ID
-    commonRoleId: ID,
     # Number of records to return
     first: Int,
     # For pagination, start loading after this offset
@@ -369,8 +364,6 @@ type Query {
     groupId: ID
     # responsibilties for a groupRole id
     groupRoleId: ID
-    # responsibilties for a commonRole id
-    commonRoleId: ID
   ): [Responsibility]
 
   # Query for SavedSearches by user ID
@@ -479,9 +472,8 @@ union Update = Message | MessageThread | Notification
 type GroupMembershipUpdate {
   group: Group
   member: Person
-  # Action type: 'joined', 'left', 'role_changed', 'moderator_added', 'moderator_removed'
+  # Action type: 'joined', 'left'
   action: String
-  role: String
 }
 
 # Group relationship update payload for subscriptions
@@ -664,9 +656,7 @@ type CheckInvitationResult {
   groupSlug: String
   # The email address from the invitation (for token-based invites)
   email: String
-  # The common role that will be assigned when this invitation is used
-  commonRole: CommonRole
-  # The group-specific role that will be assigned when this invitation is used
+  # The group role that will be assigned when this invitation is used
   groupRole: GroupRole
 }
 
@@ -777,20 +767,6 @@ type ContentAccessQuerySet {
   total: Int
   hasMore: Boolean
   items: [ContentAccess]
-}
-
-# Common Roles are standard roles that are always available in all groups
-type CommonRole {
-  id: ID
-  # The description of the role
-  description: String
-  # The emoji/icon used for the role
-  emoji: String
-  # The name of the role
-  name: String
-  # The responsiblities attached to the role
-  responsibilities: ResponsibilityQuerySet
-  responsibilitiesTotal: Int
 }
 
 # A ContextWidget for a Group
@@ -1103,8 +1079,6 @@ type Group {
     boundingBox: [PointInput],
     # Return members with a specific groupRole
     groupRoleId: ID,
-    # Return members with a specific commonRole
-    commonRoleId: ID,
     # Number of people to return
     first: Int,
     # For pagination, return people after this offset in the query results
@@ -1357,8 +1331,6 @@ type Group {
     trackId: ID,
     # Filter by group role ID
     groupRoleId: ID,
-    # Filter by common role ID
-    commonRoleId: ID,
     # Number of records to return
     first: Int,
     # For pagination, start loading after this offset
@@ -1545,6 +1517,8 @@ type GroupRole {
   groupId: ID
   # The name of the role
   name: String
+  # system or custom
+  type: String
   # When this role was last updated
   updatedAt: Date
   # The responsibilities that are part of this role
@@ -1608,13 +1582,6 @@ type ResponsibilityQuerySet {
   total: Int
   hasMore: Boolean
   items: [Responsibility]
-}
-
-# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
-type CommonRoleQuerySet {
-  total: Int
-  hasMore: Boolean
-  items: [CommonRole]
 }
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
@@ -1872,11 +1839,6 @@ type Me {
     order: String
   ): [Membership]
 
-  # Set of common roles I have in groups. Can be filtered by groupId
-  membershipCommonRoles(
-    groupId: ID
-  ): MembershipCommonRoleQuerySet
-
   # The set of MessageThreads
   messageThreads(
     # Load this number of threads
@@ -1951,29 +1913,21 @@ type Membership {
   # The agreements this user has agreed to (or not) for this group
   agreements: MembershipAgreementQuerySet
   createdAt: Date
-  # The common roles this member has in this group
-  commonRoles: CommonRoleQuerySet
   # When this membership expires (mirrored from content_access table)
   expiresAt: Date
   groupId: ID
   group: Group
-  # Is this group membership a moderator role. TODO: remove once mobile app has been updated to use new roles
-  hasModeratorRole: Boolean
   # Answers to the join questions for this group
   joinQuestionAnswers: GroupJoinQuestionAnswerQuerySet
   # The last time the current logged in user viewed this group (if they are a member of it)
   lastViewedAt: String
-  # The common roles this members has in this group - just the join table data
-  membershipCommonRoles: MembershipCommonRoleQuerySet
-  # The group defined roles this members has in this group - just the join table data
+  # The group roles this member has in this group - join table data
   membershipGroupRoles: MembershipGroupRoleQuerySet
   # The order of this group membership in the global nav drawer - having a value means it is pinned to the top in order, null means it is not pinned
   navOrder: Int
   # Number of new posts in this group since the current logged in user viewed it (if they are a member of it)
   newPostCount: Int
   person: Person
-  # 0: default, 1: moderator. TODO: deprecated, remove once mobile app has been updated to use new roles
-  role: Int
   settings: MembershipSettings
   topicFollows: TopicFollowQuerySet
 }
@@ -2000,29 +1954,7 @@ type MembershipAgreementQuerySet {
   items: [MembershipAgreement]
 }
 
-# The common roles a user has in a group
-type MembershipCommonRole {
-  id: ID
-  commonRoleId: ID
-  commonRole: CommonRole
-  createdAt: Date
-  group: Group
-  groupId: ID
-  # same as commonRoleId (for backwards compatibility)
-  roleId: ID
-  updatedAt: Date
-  user: Person
-  userId: ID
-}
-
-# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
-type MembershipCommonRoleQuerySet {
-  total: Int
-  hasMore: Boolean
-  items: [MembershipCommonRole]
-}
-
-# The common roles a user has in a group
+# A user's assignment of a group role in a group
 type MembershipGroupRole {
   id: ID
   createdAt: Date
@@ -2218,10 +2150,6 @@ type Person {
     # Determines sort order, either 'ASC' or 'DESC'. Posts are sorted by order they were created.
     order: String
   ): CommentQuerySet
-  # Common roles that the user has in groups
-  commonRoles(
-    id: ID
-  ): CommonRoleQuerySet
   # The events this person is attending (that are visible to logged in user)
   eventsAttending: PostQuerySet
   # The set of Group Memberships this person has (that are visible to logged in user)
@@ -2233,10 +2161,6 @@ type Person {
     # Determines sort order, either 'ASC' or 'DESC'. Memberships always sorted by order they were created.
     order: String
   ): [Membership]
-  # The set of common roles this person has in groups. Can be filtered by groupId
-  membershipCommonRoles(
-    groupId: ID
-  ): MembershipCommonRoleQuerySet
   # All the member roles for a user
   groupRoles: GroupRoleQuerySet
   # Answers to join questions for the current group context (when queried through a group's members)
@@ -2617,8 +2541,6 @@ type Responsibility {
   type: String
 }
 
-union Role = CommonRole | GroupRole
-
 # A saved set of search/filter parameters for the map that can be reloaded later by a user
 type SavedSearch {
   id: ID
@@ -2765,9 +2687,7 @@ type Track {
   # The message shown when a user completes this track
   completionMessage: String
   # The role/badge that is awarded when a user completes this track
-  completionRole: Role
-  # The type of role/badge that is awarded when a user completes this track. Either 'common' or 'group'
-  completionRoleType: String
+  completionRole: GroupRole
   # When this track was created
   createdAt: Date
   # When this track was deactivated
@@ -2937,9 +2857,6 @@ type ContentAccess {
   # Group role access is for (optional)
   groupRole: GroupRole
   groupRoleId: ID
-  # Common role access is for (optional)
-  commonRole: CommonRole
-  commonRoleId: ID
   # How access was granted: stripe_purchase or admin_grant
   accessType: String
   # Stripe session ID (for purchases)
@@ -2970,7 +2887,6 @@ type ContentAccessResult {
   productId: ID
   trackId: ID
   groupRoleId: ID
-  commonRoleId: ID
   accessType: String
   status: String
   success: Boolean
@@ -3089,7 +3005,7 @@ type FundingRound {
   # The date submissions open (optional)
   submissionsOpenAt: Date
   # The roles or badges required to add a submission to the round
-  submitterRoles: [Role]
+  submitterRoles: [GroupRole]
   # The title of the funding round
   title: String
   # When tokens were distributed to users
@@ -3110,7 +3026,7 @@ type FundingRound {
   # The settings for the current user in this track
   userSettings: JSON
   # The roles/badges required to vote on submissions
-  voterRoles: [Role]
+  voterRoles: [GroupRole]
   # When voting opens (optional)
   votingClosesAt: Date
   # When voting closes (optional)
@@ -3255,11 +3171,8 @@ type Mutation {
   addMember(
     groupId: ID,
     userId: ID,
-    # 0 = default, 1 = moderator
-    role: Int
+    assignCoordinator: Boolean
   ): GenericResult
-  # Add a new moderator to a Group. Only a moderator of the Group can do this.
-  addModerator(personId: ID, groupId: ID): Group
   # NOT USED RIGHGT NOW. Add one or more people to a Project as a Project member.
   addPeopleToProjectRole(peopleIds: [ID], projectRoleId: ID): GenericResult
   # Add a Post to a Collection
@@ -3276,8 +3189,7 @@ type Mutation {
   addRoleToMember(
     roleId: ID,
     groupId: ID,
-    personId: ID,
-    isCommonRole: Boolean
+    personId: ID
   ): GroupRole
   # Add a skill to your profile
   addSkill(
@@ -3309,7 +3221,6 @@ type Mutation {
     productId: ID,
     trackId: ID,
     groupRoleId: ID,
-    commonRoleId: ID,
     expiresAt: Date,
     reason: String
   ): ContentAccessResult
@@ -3331,7 +3242,6 @@ type Mutation {
     productId: ID,
     trackId: ID,
     groupRoleId: ID,
-    commonRoleId: ID,
     sessionId: String!,
     stripeSubscriptionId: String,
     amountPaid: Int,
@@ -3507,13 +3417,6 @@ type Mutation {
   removeWidgetFromMenu(contextWidgetId: ID, groupId: ID): GenericResult
   # Remove a Person from a Group. Only a group Moderator can call this.
   removeMember(personId: ID, groupId: ID): Group
-  # Remove a moderator from a Group.
-  removeModerator(
-    groupId: ID,
-    # Whether to also remove the person from the Group completely
-    isRemoveFromGroup: Boolean,
-    personId: ID
-  ): Group
   # Remove a Post from a group, by groupId or group slug
   removePost(postId: ID, slug: String, groupId: ID): GenericResult
   # Remove a Post from a Collection, if you have permission to
@@ -3525,7 +3428,7 @@ type Mutation {
   # Remove a vote from a proposal
   removeProposalVote(postId: ID, optionId: ID): GenericResult
   # Remove a badge/role from a member of a group, inititated by that member or by a group Steward
-  removeRoleFromMember(roleId: ID, groupId: ID, personId: ID, isCommonRole: Boolean): GenericResult
+  removeRoleFromMember(roleId: ID, groupId: ID, personId: ID): GenericResult
   # Remove a skill from your user profile
   removeSkill(id: ID, name: String): GenericResult
   # Remove a skill you want to learn from your user profile
@@ -4270,7 +4173,7 @@ input StripeOfferingInput {
   # Currency code (e.g. 'usd')
   currency: String
   # JSONB object defining what access this offering grants
-  # Format: { "trackIds": [1, 2], "groupRoleIds": [3, 4], "commonRoleIds": [5, 6], "groupIds": [7, 8] }
+  # Format: { "trackIds": [1, 2], "groupRoleIds": [3, 4], "groupIds": [7, 8] }
   # buyButtonText and slidingScale may be sent here for convenience; they are stored in metadata
   accessGrants: JSON
   # Renewal policy: automatic or manual
@@ -4302,9 +4205,9 @@ input InappropriateContentInput {
 input InviteInput {
   emails: [String]
   message: String
-  # Common role ID to assign when the invitation is used (Coordinator=1, Moderator=2, Host=3)
-  commonRoleId: ID
-  # Group-specific role ID to assign when the invitation is used
+  # Assign Coordinator system role when the invitation is used
+  assignCoordinator: Boolean
+  # Group role ID to assign when the invitation is used
   groupRoleId: ID
 }
 
@@ -4568,8 +4471,6 @@ input TrackInput {
   completionMessage: String
   # The role/badge that is awarded when a user completes this track
   completionRoleId: ID
-  # The type of role/badge that is awarded when a user completes this track. Either 'common' or 'group'
-  completionRoleType: String
   # The description of the track
   description: String
   # The groups this track is associated with
@@ -4585,10 +4486,8 @@ input TrackInput {
 }
 
 input RoleSelectionInput {
-  # The ID of the role
+  # The ID of the group role
   id: ID!
-  # The type of role: 'common' or 'group'
-  type: String!
 }
 
 input FundingRoundInput {

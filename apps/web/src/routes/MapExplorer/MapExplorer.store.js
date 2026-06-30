@@ -120,14 +120,6 @@ const membersFragment = `
           }
         }
       }
-      membershipCommonRoles {
-        items {
-          id
-          commonRoleId
-          groupId
-          userId
-        }
-      }
       locationObject {
         center {
           lat

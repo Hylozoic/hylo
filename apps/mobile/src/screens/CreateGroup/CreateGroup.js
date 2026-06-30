@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 // DEPRECATED: lucide-react-native removed
 // import { X } from 'lucide-react-native'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import { hasAdministrationInGroup } from '@hylo/hooks/groupRoleHelpers'
 import { GROUP_ACCESSIBILITY } from '@hylo/presenters/GroupPresenter'
 import { isIOS } from 'util/platform'
 import useKeyboardVisible from 'hooks/useKeyboardVisible'
@@ -32,7 +33,8 @@ export default function CreateGroup ({ navigation }) {
   const memberships = currentUser?.memberships
 
   const hasParentGroupOptions = memberships?.some(
-    (m) => m.hasModeratorRole || m.group.accessibility === GROUP_ACCESSIBILITY.Open
+    (m) => hasAdministrationInGroup(currentUser, m.group.id) ||
+      m.group.accessibility === GROUP_ACCESSIBILITY.Open
   )
 
   const screens = [

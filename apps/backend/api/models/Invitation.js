@@ -26,11 +26,6 @@ module.exports = bookshelf.Model.extend(Object.assign({
     return this.belongsTo(User, 'expired_by_id')
   },
 
-  // The common role to assign when this invitation is used
-  commonRole: function () {
-    return this.belongsTo(CommonRole, 'common_role_id')
-  },
-
   // The group-specific role to assign when this invitation is used
   groupRole: function () {
     return this.belongsTo(GroupRole, 'group_role_id')
@@ -56,29 +51,11 @@ module.exports = bookshelf.Model.extend(Object.assign({
   async use (userId, { transacting } = {}) {
     const user = await User.find(userId, { transacting })
     const group = await this.group().fetch({ transacting })
-    const role = Number(this.get('role'))
     const membership =
       await GroupMembership.forPair(user, group).fetch({ transacting }) ||
-      await user.joinGroup(group, { role, fromInvitation: true, transacting })
+      await user.joinGroup(group, { fromInvitation: true, transacting })
 
-    // Assign common role if specified on the invitation
-    const commonRoleId = this.get('common_role_id')
-    if (commonRoleId) {
-      try {
-        await MemberCommonRole.forge({
-          user_id: userId,
-          group_id: this.get('group_id'),
-          common_role_id: commonRoleId
-        }).save(null, { transacting })
-      } catch (err) {
-        // Ignore duplicate key errors - user may already have this role
-        if (!err.message || !err.message.includes('duplicate key value')) {
-          throw err
-        }
-      }
-    }
-
-    // Assign group-specific role if specified on the invitation
+    // Assign group role if specified on the invitation
     const groupRoleId = this.get('group_role_id')
     if (groupRoleId) {
       try {
@@ -169,15 +146,20 @@ module.exports = bookshelf.Model.extend(Object.assign({
     return Invitation.where(attr, idOrToken).fetch(opts)
   },
 
-  create: function (opts) {
+  create: async function (opts) {
+    let groupRoleId = opts.groupRoleId || null
+    if (opts.assignCoordinator && !groupRoleId) {
+      await GroupRole.setupSystemRoles(opts.groupId)
+      const coordinator = await GroupRole.findSystemRole(opts.groupId, 'Coordinator')
+      groupRoleId = coordinator ? coordinator.id : null
+    }
+
     return new Invitation({
       invited_by_id: opts.userId,
       group_id: opts.groupId,
       email: opts.email.toLowerCase(),
       tag_id: opts.tagId,
-      role: GroupMembership.Role[opts.moderator ? 'MODERATOR' : 'DEFAULT'],
-      common_role_id: opts.commonRoleId || null, // Common role to assign on join
-      group_role_id: opts.groupRoleId || null, // Group-specific role to assign on join
+      group_role_id: groupRoleId,
       token: uuidv4(),
       created_at: new Date(),
       subject: opts.subject,

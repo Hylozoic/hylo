@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 2taOPDihnNMv7cqG4gy7dcNwN2jcip9tW7clIBqD4deYNdeiEr9SrGdBUu1Wr3x
+\restrict 4hjAA3Sl3pGoB6jiTRLpGMoKZfd9B1XvMZqTNTSKcyYGfnYbcWgDnzvsDUnQHd2
 
 -- Dumped from database version 17.8 (Postgres.app)
 -- Dumped by pg_dump version 18.2 (Postgres.app)
@@ -68,6 +68,61 @@ COMMENT ON EXTENSION "uuid-ossp" IS 'generate universally unique identifiers (UU
 
 
 --
+-- Name: clear_content_access_expires_at(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.clear_content_access_expires_at() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    DECLARE
+      latest_expires_at TIMESTAMP WITH TIME ZONE;
+    BEGIN
+      IF NEW.track_id IS NOT NULL THEN
+        UPDATE tracks_users
+        SET access_granted = false, updated_at = NOW()
+        WHERE user_id = NEW.user_id AND track_id = NEW.track_id;
+      END IF;
+
+      IF NEW.group_role_id IS NOT NULL THEN
+        SELECT MAX(expires_at) INTO latest_expires_at
+        FROM content_access
+        WHERE user_id = NEW.user_id
+          AND group_role_id = NEW.group_role_id
+          AND granted_by_group_id = NEW.granted_by_group_id
+          AND status = 'active'
+          AND id != NEW.id;
+        UPDATE group_memberships_group_roles
+        SET expires_at = latest_expires_at, updated_at = NOW()
+        WHERE user_id = NEW.user_id
+          AND group_id = NEW.granted_by_group_id
+          AND group_role_id = NEW.group_role_id;
+        UPDATE group_memberships
+        SET expires_at = latest_expires_at, updated_at = NOW()
+        WHERE user_id = NEW.user_id
+          AND group_id = NEW.granted_by_group_id;
+      END IF;
+
+      IF NEW.track_id IS NULL AND NEW.group_role_id IS NULL THEN
+        SELECT MAX(expires_at) INTO latest_expires_at
+        FROM content_access
+        WHERE user_id = NEW.user_id
+          AND granted_by_group_id = NEW.granted_by_group_id
+          AND track_id IS NULL
+          AND group_role_id IS NULL
+          AND status = 'active'
+          AND id != NEW.id;
+        UPDATE group_memberships
+        SET expires_at = latest_expires_at, updated_at = NOW()
+        WHERE user_id = NEW.user_id
+          AND group_id = NEW.granted_by_group_id;
+      END IF;
+
+      RETURN NEW;
+    END;
+    $$;
+
+
+--
 -- Name: compute_user_scopes_from_content_access(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -78,34 +133,27 @@ CREATE FUNCTION public.compute_user_scopes_from_content_access() RETURNS trigger
       scope_string TEXT;
       scope_group_id BIGINT;
     BEGIN
-      -- Only process active content_access records
       IF NEW.status = 'active' THEN
-        -- Determine the scope based on what the content_access grants
-        
-        -- Track access: scope format is 'track:<track_id>'
         IF NEW.track_id IS NOT NULL THEN
           scope_string := 'track:' || NEW.track_id;
-          
           INSERT INTO user_scopes (user_id, scope, expires_at, source_kind, source_id, created_at, updated_at)
           VALUES (NEW.user_id, scope_string, NEW.expires_at, 'grant', NEW.id, NOW(), NOW())
-          ON CONFLICT (user_id, scope) 
-          DO UPDATE SET 
-            expires_at = CASE 
+          ON CONFLICT (user_id, scope)
+          DO UPDATE SET
+            expires_at = CASE
               WHEN user_scopes.expires_at IS NULL OR NEW.expires_at IS NULL THEN NULL
               WHEN NEW.expires_at > user_scopes.expires_at THEN NEW.expires_at
               ELSE user_scopes.expires_at
             END,
             updated_at = NOW();
         END IF;
-        
-        -- Group role access: scope format is 'group_role:<group_id>:<role_id>'
+
         IF NEW.group_role_id IS NOT NULL THEN
           scope_group_id := COALESCE(NEW.group_id, NEW.granted_by_group_id);
           IF scope_group_id IS NULL THEN
             RAISE WARNING 'Cannot create group role scope: missing group_id and granted_by_group_id for content_access %', NEW.id;
           ELSE
             scope_string := 'group_role:' || scope_group_id || ':' || NEW.group_role_id;
-
             INSERT INTO user_scopes (user_id, scope, expires_at, source_kind, source_id, created_at, updated_at)
             VALUES (NEW.user_id, scope_string, NEW.expires_at, 'grant', NEW.id, NOW(), NOW())
             ON CONFLICT (user_id, scope)
@@ -119,36 +167,13 @@ CREATE FUNCTION public.compute_user_scopes_from_content_access() RETURNS trigger
           END IF;
         END IF;
 
-        -- Common role access: scope format is 'common_role:<group_id>:<role_id>'
-        IF NEW.common_role_id IS NOT NULL THEN
-          scope_group_id := COALESCE(NEW.group_id, NEW.granted_by_group_id);
-          IF scope_group_id IS NULL THEN
-            RAISE WARNING 'Cannot create common role scope: missing group_id and granted_by_group_id for content_access %', NEW.id;
-          ELSE
-            scope_string := 'common_role:' || scope_group_id || ':' || NEW.common_role_id;
-
-            INSERT INTO user_scopes (user_id, scope, expires_at, source_kind, source_id, created_at, updated_at)
-            VALUES (NEW.user_id, scope_string, NEW.expires_at, 'grant', NEW.id, NOW(), NOW())
-            ON CONFLICT (user_id, scope)
-            DO UPDATE SET
-              expires_at = CASE
-                WHEN user_scopes.expires_at IS NULL OR NEW.expires_at IS NULL THEN NULL
-                WHEN NEW.expires_at > user_scopes.expires_at THEN NEW.expires_at
-                ELSE user_scopes.expires_at
-              END,
-              updated_at = NOW();
-          END IF;
-        END IF;
-        
-        -- Group access: scope format is 'group:<group_id>'
-        IF NEW.track_id IS NULL AND NEW.group_role_id IS NULL AND NEW.common_role_id IS NULL AND NEW.granted_by_group_id IS NOT NULL THEN
+        IF NEW.track_id IS NULL AND NEW.group_role_id IS NULL AND NEW.granted_by_group_id IS NOT NULL THEN
           scope_string := 'group:' || NEW.granted_by_group_id;
-          
           INSERT INTO user_scopes (user_id, scope, expires_at, source_kind, source_id, created_at, updated_at)
           VALUES (NEW.user_id, scope_string, NEW.expires_at, 'grant', NEW.id, NOW(), NOW())
-          ON CONFLICT (user_id, scope) 
-          DO UPDATE SET 
-            expires_at = CASE 
+          ON CONFLICT (user_id, scope)
+          DO UPDATE SET
+            expires_at = CASE
               WHEN user_scopes.expires_at IS NULL OR NEW.expires_at IS NULL THEN NULL
               WHEN NEW.expires_at > user_scopes.expires_at THEN NEW.expires_at
               ELSE user_scopes.expires_at
@@ -156,50 +181,28 @@ CREATE FUNCTION public.compute_user_scopes_from_content_access() RETURNS trigger
             updated_at = NOW();
         END IF;
       ELSE
-        -- If status is not active (revoked/expired), remove the scope
         IF NEW.track_id IS NOT NULL THEN
           scope_string := 'track:' || NEW.track_id;
-          DELETE FROM user_scopes 
-          WHERE user_id = NEW.user_id 
-            AND scope = scope_string 
-            AND source_kind = 'grant' 
-            AND source_id = NEW.id;
+          DELETE FROM user_scopes
+          WHERE user_id = NEW.user_id AND scope = scope_string AND source_kind = 'grant' AND source_id = NEW.id;
         END IF;
-        
+
         IF NEW.group_role_id IS NOT NULL THEN
           scope_group_id := COALESCE(NEW.group_id, NEW.granted_by_group_id);
           IF scope_group_id IS NOT NULL THEN
             scope_string := 'group_role:' || scope_group_id || ':' || NEW.group_role_id;
-            DELETE FROM user_scopes 
-            WHERE user_id = NEW.user_id 
-              AND scope = scope_string 
-              AND source_kind = 'grant' 
-              AND source_id = NEW.id;
+            DELETE FROM user_scopes
+            WHERE user_id = NEW.user_id AND scope = scope_string AND source_kind = 'grant' AND source_id = NEW.id;
           END IF;
         END IF;
 
-        IF NEW.common_role_id IS NOT NULL THEN
-          scope_group_id := COALESCE(NEW.group_id, NEW.granted_by_group_id);
-          IF scope_group_id IS NOT NULL THEN
-            scope_string := 'common_role:' || scope_group_id || ':' || NEW.common_role_id;
-            DELETE FROM user_scopes 
-            WHERE user_id = NEW.user_id 
-              AND scope = scope_string 
-              AND source_kind = 'grant' 
-              AND source_id = NEW.id;
-          END IF;
-        END IF;
-        
-        IF NEW.track_id IS NULL AND NEW.group_role_id IS NULL AND NEW.common_role_id IS NULL AND NEW.granted_by_group_id IS NOT NULL THEN
+        IF NEW.track_id IS NULL AND NEW.group_role_id IS NULL AND NEW.granted_by_group_id IS NOT NULL THEN
           scope_string := 'group:' || NEW.granted_by_group_id;
-          DELETE FROM user_scopes 
-          WHERE user_id = NEW.user_id 
-            AND scope = scope_string 
-            AND source_kind = 'grant' 
-            AND source_id = NEW.id;
+          DELETE FROM user_scopes
+          WHERE user_id = NEW.user_id AND scope = scope_string AND source_kind = 'grant' AND source_id = NEW.id;
         END IF;
       END IF;
-      
+
       RETURN NEW;
     END;
     $$;
@@ -263,6 +266,59 @@ CREATE FUNCTION public.compute_user_scopes_from_role() RETURNS trigger
 -- Name: delete_user(integer); Type: PROCEDURE; Schema: public; Owner: -
 --
 
+
+
+--
+-- Name: sync_content_access_expires_at(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.sync_content_access_expires_at() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    DECLARE
+      latest_expires_at TIMESTAMP WITH TIME ZONE;
+    BEGIN
+      IF NEW.track_id IS NOT NULL THEN
+        UPDATE tracks_users
+        SET access_granted = true, updated_at = NOW()
+        WHERE user_id = NEW.user_id AND track_id = NEW.track_id;
+      END IF;
+
+      IF NEW.group_role_id IS NOT NULL THEN
+        SELECT MAX(expires_at) INTO latest_expires_at
+        FROM content_access
+        WHERE user_id = NEW.user_id
+          AND group_role_id = NEW.group_role_id
+          AND granted_by_group_id = NEW.granted_by_group_id
+          AND status = 'active';
+        UPDATE group_memberships_group_roles
+        SET expires_at = latest_expires_at, updated_at = NOW()
+        WHERE user_id = NEW.user_id
+          AND group_id = NEW.granted_by_group_id
+          AND group_role_id = NEW.group_role_id;
+        UPDATE group_memberships
+        SET expires_at = latest_expires_at, updated_at = NOW()
+        WHERE user_id = NEW.user_id
+          AND group_id = NEW.granted_by_group_id;
+      END IF;
+
+      IF NEW.track_id IS NULL AND NEW.group_role_id IS NULL THEN
+        SELECT MAX(expires_at) INTO latest_expires_at
+        FROM content_access
+        WHERE user_id = NEW.user_id
+          AND granted_by_group_id = NEW.granted_by_group_id
+          AND track_id IS NULL
+          AND group_role_id IS NULL
+          AND status = 'active';
+        UPDATE group_memberships
+        SET expires_at = latest_expires_at, updated_at = NOW()
+        WHERE user_id = NEW.user_id
+          AND group_id = NEW.granted_by_group_id;
+      END IF;
+
+      RETURN NEW;
+    END;
+    $$;
 
 
 SET default_tablespace = '';
@@ -513,71 +569,6 @@ ALTER SEQUENCE public.comments_tags_id_seq OWNED BY public.comments_tags.id;
 
 
 --
--- Name: common_roles; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.common_roles (
-    id integer NOT NULL,
-    name text NOT NULL,
-    description text,
-    emoji text,
-    created_at timestamp with time zone,
-    updated_at timestamp with time zone
-);
-
-
---
--- Name: common_roles_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.common_roles_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: common_roles_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.common_roles_id_seq OWNED BY public.common_roles.id;
-
-
---
--- Name: common_roles_responsibilities; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.common_roles_responsibilities (
-    id integer NOT NULL,
-    common_role_id bigint,
-    responsibility_id bigint
-);
-
-
---
--- Name: common_roles_responsibilities_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.common_roles_responsibilities_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: common_roles_responsibilities_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.common_roles_responsibilities_id_seq OWNED BY public.common_roles_responsibilities.id;
-
-
---
 -- Name: groups_tags; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -636,6 +627,64 @@ CREATE SEQUENCE public.community_seq
     NO MINVALUE
     NO MAXVALUE
     CACHE 1;
+
+
+--
+-- Name: content_access; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.content_access (
+    id bigint NOT NULL,
+    user_id bigint NOT NULL,
+    granted_by_group_id bigint NOT NULL,
+    group_id bigint,
+    product_id bigint,
+    track_id integer,
+    access_type character varying(50) NOT NULL,
+    stripe_session_id character varying(255),
+    status character varying(50) DEFAULT 'active'::character varying NOT NULL,
+    granted_by_id bigint,
+    expires_at timestamp with time zone,
+    metadata jsonb DEFAULT '{}'::jsonb,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    stripe_subscription_id character varying(255),
+    group_role_id integer,
+    stripe_customer_id character varying(255)
+);
+
+
+--
+-- Name: COLUMN content_access.stripe_subscription_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.content_access.stripe_subscription_id IS 'Stripe subscription ID for recurring access (null for one-time purchases)';
+
+
+--
+-- Name: COLUMN content_access.stripe_customer_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.content_access.stripe_customer_id IS 'Stripe customer id (cus_...) on the connected account; set at checkout completion';
+
+
+--
+-- Name: content_access_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.content_access_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: content_access_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.content_access_id_seq OWNED BY public.content_access.id;
 
 
 --
@@ -1358,7 +1407,6 @@ CREATE TABLE public.group_invites (
     token text NOT NULL,
     used_at timestamp with time zone,
     email text NOT NULL,
-    role smallint DEFAULT 0,
     tag_id bigint,
     last_sent_at timestamp with time zone,
     sent_count integer DEFAULT 0,
@@ -1367,7 +1415,6 @@ CREATE TABLE public.group_invites (
     expired_by_id bigint,
     expired_at timestamp with time zone,
     group_id bigint NOT NULL,
-    common_role_id bigint,
     group_role_id bigint
 );
 
@@ -1429,7 +1476,6 @@ CREATE TABLE public.group_memberships (
     group_id bigint NOT NULL,
     user_id bigint NOT NULL,
     active boolean DEFAULT true,
-    role integer,
     settings jsonb,
     created_at timestamp with time zone,
     updated_at timestamp with time zone,
@@ -1437,38 +1483,6 @@ CREATE TABLE public.group_memberships (
     project_role_id bigint,
     nav_order integer
 );
-
-
---
--- Name: group_memberships_common_roles; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.group_memberships_common_roles (
-    id integer NOT NULL,
-    common_role_id bigint,
-    user_id bigint,
-    group_id bigint
-);
-
-
---
--- Name: group_memberships_common_roles_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.group_memberships_common_roles_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: group_memberships_common_roles_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.group_memberships_common_roles_id_seq OWNED BY public.group_memberships_common_roles.id;
 
 
 --
@@ -1715,14 +1729,31 @@ CREATE TABLE public.groups (
     purpose text,
     welcome_page text,
     website_url text,
+    calendar_token character varying(255),
+    home_route character varying(255),
     stripe_account_id bigint,
     stripe_charges_enabled boolean DEFAULT false,
     stripe_payouts_enabled boolean DEFAULT false,
     stripe_details_submitted boolean DEFAULT false,
     paywall boolean DEFAULT false,
-    calendar_token character varying(255),
-    home_route character varying(255)
+    stripe_sales_paused boolean DEFAULT false NOT NULL,
+    stripe_sales_paused_at timestamp with time zone,
+    stripe_sales_paused_reason text
 );
+
+
+--
+-- Name: COLUMN groups.paywall; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.groups.paywall IS 'Whether this group requires purchased membership';
+
+
+--
+-- Name: COLUMN groups.stripe_sales_paused; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.groups.stripe_sales_paused IS 'When true, checkout session creation for this group is blocked by Hylo';
 
 
 --
@@ -1824,7 +1855,8 @@ CREATE TABLE public.groups_roles (
     created_at timestamp with time zone,
     updated_at timestamp with time zone,
     description character varying(255),
-    scopes jsonb
+    scopes jsonb,
+    type character varying(255) DEFAULT 'custom'::character varying NOT NULL
 );
 
 
@@ -3174,6 +3206,136 @@ ALTER SEQUENCE public.stripe_accounts_id_seq OWNED BY public.stripe_accounts.id;
 
 
 --
+-- Name: stripe_logs; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.stripe_logs (
+    id bigint NOT NULL,
+    stripe_account_id bigint,
+    group_id bigint,
+    content_access_id bigint,
+    log_type character varying(32) NOT NULL,
+    external_id character varying(255),
+    alert_type character varying(64),
+    threshold_triggered text,
+    charge_id character varying(255),
+    amount integer,
+    currency character varying(3),
+    reason character varying(255),
+    status character varying(64),
+    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+--
+-- Name: COLUMN stripe_logs.log_type; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.stripe_logs.log_type IS 'refund, dispute, alert';
+
+
+--
+-- Name: COLUMN stripe_logs.external_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.stripe_logs.external_id IS 'charge id for refunds, dispute id for disputes';
+
+
+--
+-- Name: COLUMN stripe_logs.alert_type; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.stripe_logs.alert_type IS 'dispute_rate_warning, dispute_rate_critical, dispute_spike';
+
+
+--
+-- Name: COLUMN stripe_logs.amount; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.stripe_logs.amount IS 'Amount in smallest currency unit (e.g. cents)';
+
+
+--
+-- Name: stripe_logs_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.stripe_logs_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: stripe_logs_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.stripe_logs_id_seq OWNED BY public.stripe_logs.id;
+
+
+--
+-- Name: stripe_products; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.stripe_products (
+    id bigint NOT NULL,
+    group_id bigint NOT NULL,
+    stripe_product_id character varying(255) NOT NULL,
+    stripe_price_id character varying(255) NOT NULL,
+    name character varying(255) NOT NULL,
+    description text,
+    price_in_cents integer NOT NULL,
+    currency character varying(3) DEFAULT 'usd'::character varying NOT NULL,
+    track_id integer,
+    access_grants jsonb DEFAULT '{}'::jsonb,
+    renewal_policy character varying(20) DEFAULT 'manual'::character varying,
+    duration character varying(20),
+    publish_status character varying(20) DEFAULT 'unpublished'::character varying,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    metadata jsonb DEFAULT '{}'::jsonb NOT NULL
+);
+
+
+--
+-- Name: COLUMN stripe_products.access_grants; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.stripe_products.access_grants IS 'Defines what access this product grants - groups, tracks, roles';
+
+
+--
+-- Name: COLUMN stripe_products.renewal_policy; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.stripe_products.renewal_policy IS 'Renewal policy: automatic or manual';
+
+
+--
+-- Name: COLUMN stripe_products.duration; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.stripe_products.duration IS 'Duration: month, season, annual, lifetime, or null for no expiration';
+
+
+--
+-- Name: COLUMN stripe_products.publish_status; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.stripe_products.publish_status IS 'Publish status: unpublished, unlisted, published, archived';
+
+
+--
+-- Name: COLUMN stripe_products.metadata; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.stripe_products.metadata IS 'Presentation / checkout options: buyButtonText, slidingScale (not access scopes)';
+
+
+--
 -- Name: stripe_products_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -3186,30 +3348,6 @@ CREATE SEQUENCE public.stripe_products_id_seq
 
 
 --
--- Name: stripe_products; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.stripe_products (
-    id bigint DEFAULT nextval('public.stripe_products_id_seq'::regclass) NOT NULL,
-    group_id bigint NOT NULL,
-    stripe_product_id character varying(255) NOT NULL,
-    stripe_price_id character varying(255) NOT NULL,
-    name character varying(255) NOT NULL,
-    description text,
-    price_in_cents integer NOT NULL,
-    currency character varying(3) NOT NULL DEFAULT 'usd'::character varying,
-    track_id bigint,
-    access_grants jsonb DEFAULT '{}'::jsonb,
-    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
-    renewal_policy character varying(20) DEFAULT 'manual'::character varying,
-    duration character varying(20),
-    publish_status character varying(20) DEFAULT 'unpublished'::character varying,
-    created_at timestamp with time zone,
-    updated_at timestamp with time zone
-);
-
-
---
 -- Name: stripe_products_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
@@ -3217,47 +3355,36 @@ ALTER SEQUENCE public.stripe_products_id_seq OWNED BY public.stripe_products.id;
 
 
 --
--- Name: COLUMN stripe_products.metadata; Type: COMMENT; Schema: public; Owner: -
+-- Name: stripe_webhook_processed_events; Type: TABLE; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.stripe_products.metadata IS 'Presentation / checkout options: buyButtonText, slidingScale (not access scopes)';
-
-
---
--- Name: content_access_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.content_access_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
+CREATE TABLE public.stripe_webhook_processed_events (
+    stripe_event_id character varying(255) NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
 
 
 --
--- Name: content_access; Type: TABLE; Schema: public; Owner: -
+-- Name: subscription_change_events; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.content_access (
-    id bigint DEFAULT nextval('public.content_access_id_seq'::regclass) NOT NULL,
+CREATE TABLE public.subscription_change_events (
+    id bigint NOT NULL,
     user_id bigint NOT NULL,
-    granted_by_group_id bigint NOT NULL,
-    group_id bigint,
-    product_id bigint,
-    track_id integer,
-    common_role_id integer,
-    group_role_id integer,
-    access_type character varying(50) NOT NULL,
-    stripe_session_id character varying(255),
+    group_id bigint NOT NULL,
+    correlation_id character varying(64) NOT NULL,
+    from_product_id bigint,
+    to_product_id bigint,
+    mode character varying(64) NOT NULL,
     stripe_subscription_id character varying(255),
     stripe_customer_id character varying(255),
-    status character varying(50) NOT NULL DEFAULT 'active'::character varying,
-    granted_by_id bigint,
-    expires_at timestamp with time zone,
-    metadata jsonb DEFAULT '{}'::jsonb,
-    created_at timestamp with time zone,
-    updated_at timestamp with time zone
+    status character varying(32) DEFAULT 'pending'::character varying NOT NULL,
+    payload jsonb DEFAULT '{}'::jsonb NOT NULL,
+    pending_effective_at timestamp with time zone,
+    applied_at timestamp with time zone,
+    error_message text,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
 
@@ -3274,95 +3401,10 @@ CREATE SEQUENCE public.subscription_change_events_id_seq
 
 
 --
--- Name: subscription_change_events; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.subscription_change_events (
-    id bigint DEFAULT nextval('public.subscription_change_events_id_seq'::regclass) NOT NULL,
-    user_id bigint NOT NULL,
-    group_id bigint NOT NULL,
-    correlation_id character varying(64) NOT NULL,
-    from_product_id bigint,
-    to_product_id bigint,
-    mode character varying(64) NOT NULL,
-    stripe_subscription_id character varying(255),
-    stripe_customer_id character varying(255),
-    status character varying(32) NOT NULL DEFAULT 'pending'::character varying,
-    payload jsonb DEFAULT '{}'::jsonb NOT NULL,
-    pending_effective_at timestamp with time zone,
-    applied_at timestamp with time zone,
-    error_message text,
-    created_at timestamp with time zone,
-    updated_at timestamp with time zone
-);
-
-
---
 -- Name: subscription_change_events_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public.subscription_change_events_id_seq OWNED BY public.subscription_change_events.id;
-
-
---
--- Name: COLUMN subscription_change_events.payload; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.subscription_change_events.payload IS 'Audit payload (mode reason, Stripe refs, etc.)';
-
-
---
--- Name: stripe_webhook_processed_events; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.stripe_webhook_processed_events (
-    stripe_event_id character varying(255) NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
--- Name: content_access_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.content_access_id_seq OWNED BY public.content_access.id;
-
-
---
--- Name: user_scopes; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.user_scopes (
-    user_id bigint NOT NULL,
-    scope character varying(255) NOT NULL,
-    expires_at timestamp with time zone,
-    source_kind character varying(255) NOT NULL,
-    source_id bigint NOT NULL,
-    created_at timestamp with time zone,
-    updated_at timestamp with time zone,
-    CONSTRAINT user_scopes_pkey PRIMARY KEY (user_id, scope)
-);
-
-
---
--- Name: COLUMN user_scopes.expires_at; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_scopes.expires_at IS 'Earliest ends_at among sources, null means never expires';
-
-
---
--- Name: COLUMN user_scopes.source_kind; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_scopes.source_kind IS 'Type of source: grant or role';
-
-
---
--- Name: COLUMN user_scopes.source_id; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.user_scopes.source_id IS 'ID of the content_access grant or group_memberships_group_roles record';
 
 
 --
@@ -3454,10 +3496,16 @@ CREATE TABLE public.tracks (
     num_people_enrolled integer DEFAULT 0,
     num_people_completed integer DEFAULT 0,
     completion_role_id bigint,
-    completion_role_type character varying(255),
     action_descriptor character varying(255),
     access_controlled boolean DEFAULT false
 );
+
+
+--
+-- Name: COLUMN tracks.access_controlled; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.tracks.access_controlled IS 'Whether this track requires purchased access';
 
 
 --
@@ -3691,6 +3739,42 @@ CREATE TABLE public.user_post_relevance (
 
 
 --
+-- Name: user_scopes; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.user_scopes (
+    user_id bigint NOT NULL,
+    scope character varying(255) NOT NULL,
+    expires_at timestamp with time zone,
+    source_kind character varying(255) NOT NULL,
+    source_id bigint NOT NULL,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone
+);
+
+
+--
+-- Name: COLUMN user_scopes.expires_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.user_scopes.expires_at IS 'Earliest ends_at among sources, null means never expires';
+
+
+--
+-- Name: COLUMN user_scopes.source_kind; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.user_scopes.source_kind IS 'Type of source: grant or role';
+
+
+--
+-- Name: COLUMN user_scopes.source_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.user_scopes.source_id IS 'ID of the content_access grant or group_memberships_group_roles record';
+
+
+--
 -- Name: user_verification_codes; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -3897,17 +3981,10 @@ ALTER TABLE ONLY public.comments_tags ALTER COLUMN id SET DEFAULT nextval('publi
 
 
 --
--- Name: common_roles id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: content_access id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.common_roles ALTER COLUMN id SET DEFAULT nextval('public.common_roles_id_seq'::regclass);
-
-
---
--- Name: common_roles_responsibilities id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.common_roles_responsibilities ALTER COLUMN id SET DEFAULT nextval('public.common_roles_responsibilities_id_seq'::regclass);
+ALTER TABLE ONLY public.content_access ALTER COLUMN id SET DEFAULT nextval('public.content_access_id_seq'::regclass);
 
 
 --
@@ -4034,13 +4111,6 @@ ALTER TABLE ONLY public.group_join_questions_answers ALTER COLUMN id SET DEFAULT
 --
 
 ALTER TABLE ONLY public.group_memberships ALTER COLUMN id SET DEFAULT nextval('public.group_memberships_id_seq'::regclass);
-
-
---
--- Name: group_memberships_common_roles id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.group_memberships_common_roles ALTER COLUMN id SET DEFAULT nextval('public.group_memberships_common_roles_id_seq'::regclass);
 
 
 --
@@ -4317,6 +4387,27 @@ ALTER TABLE ONLY public.stripe_accounts ALTER COLUMN id SET DEFAULT nextval('pub
 
 
 --
+-- Name: stripe_logs id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stripe_logs ALTER COLUMN id SET DEFAULT nextval('public.stripe_logs_id_seq'::regclass);
+
+
+--
+-- Name: stripe_products id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stripe_products ALTER COLUMN id SET DEFAULT nextval('public.stripe_products_id_seq'::regclass);
+
+
+--
+-- Name: subscription_change_events id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.subscription_change_events ALTER COLUMN id SET DEFAULT nextval('public.subscription_change_events_id_seq'::regclass);
+
+
+--
 -- Name: tag_follows id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -4420,17 +4511,23 @@ ALTER TABLE ONLY public.users
 --
 
 CREATE MATERIALIZED VIEW public.search_index AS
- SELECT p.id AS post_id,
+ SELECT ('post-'::text || (p.id)::text) AS row_key,
+    p.id AS post_id,
     NULL::bigint AS user_id,
     NULL::bigint AS comment_id,
+    p.updated_at AS sort_ts,
     ((setweight(to_tsvector('english'::regconfig, p.name), 'B'::"char") || setweight(to_tsvector('english'::regconfig, COALESCE(p.description, ''::text)), 'C'::"char")) || setweight(to_tsvector('english'::regconfig, (u.name)::text), 'D'::"char")) AS document
    FROM (public.posts p
      JOIN public.users u ON ((u.id = p.user_id)))
   WHERE ((p.active = true) AND (u.active = true))
 UNION
- SELECT NULL::bigint AS post_id,
+ SELECT ('user-'::text || (u.id)::text) AS row_key,
+    NULL::bigint AS post_id,
     u.id AS user_id,
     NULL::bigint AS comment_id,
+    COALESCE(( SELECT max(gm.created_at) AS max
+           FROM public.group_memberships gm
+          WHERE ((gm.user_id = u.id) AND (gm.active = true))), u.last_active_at, u.updated_at, u.created_at) AS sort_ts,
     ((setweight(to_tsvector('english'::regconfig, (u.name)::text), 'A'::"char") || setweight(to_tsvector('english'::regconfig, COALESCE(string_agg(replace((s.name)::text, '-'::text, ' '::text), ' '::text), ''::text)), 'C'::"char")) || setweight(to_tsvector('english'::regconfig, COALESCE(u.bio, ''::text)), 'C'::"char")) AS document
    FROM ((public.users u
      LEFT JOIN public.skills_users su ON ((u.id = su.user_id)))
@@ -4438,9 +4535,11 @@ UNION
   WHERE (u.active = true)
   GROUP BY u.id
 UNION
- SELECT NULL::bigint AS post_id,
+ SELECT ('comment-'::text || (c.id)::text) AS row_key,
+    NULL::bigint AS post_id,
     NULL::bigint AS user_id,
     c.id AS comment_id,
+    c.created_at AS sort_ts,
     (setweight(to_tsvector('english'::regconfig, c.text), 'C'::"char") || setweight(to_tsvector('english'::regconfig, (u.name)::text), 'D'::"char")) AS document
    FROM (public.comments c
      JOIN public.users u ON ((u.id = c.user_id)))
@@ -4497,27 +4596,19 @@ ALTER TABLE ONLY public.comments_tags
 
 
 --
--- Name: common_roles common_roles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.common_roles
-    ADD CONSTRAINT common_roles_pkey PRIMARY KEY (id);
-
-
---
--- Name: common_roles_responsibilities common_roles_responsibilities_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.common_roles_responsibilities
-    ADD CONSTRAINT common_roles_responsibilities_pkey PRIMARY KEY (id);
-
-
---
 -- Name: groups_tags communities_tags_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.groups_tags
     ADD CONSTRAINT communities_tags_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: content_access content_access_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.content_access
+    ADD CONSTRAINT content_access_pkey PRIMARY KEY (id);
 
 
 --
@@ -4694,14 +4785,6 @@ ALTER TABLE ONLY public.group_extensions
 
 ALTER TABLE ONLY public.group_join_questions
     ADD CONSTRAINT group_join_questions_pkey PRIMARY KEY (id);
-
-
---
--- Name: group_memberships_common_roles group_memberships_common_roles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.group_memberships_common_roles
-    ADD CONSTRAINT group_memberships_common_roles_pkey PRIMARY KEY (id);
 
 
 --
@@ -5177,6 +5260,54 @@ ALTER TABLE ONLY public.stripe_accounts
 
 
 --
+-- Name: stripe_logs stripe_logs_log_type_external_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stripe_logs
+    ADD CONSTRAINT stripe_logs_log_type_external_id_unique UNIQUE (log_type, external_id);
+
+
+--
+-- Name: stripe_logs stripe_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stripe_logs
+    ADD CONSTRAINT stripe_logs_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: stripe_products stripe_products_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stripe_products
+    ADD CONSTRAINT stripe_products_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: stripe_webhook_processed_events stripe_webhook_processed_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stripe_webhook_processed_events
+    ADD CONSTRAINT stripe_webhook_processed_events_pkey PRIMARY KEY (stripe_event_id);
+
+
+--
+-- Name: subscription_change_events subscription_change_events_correlation_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.subscription_change_events
+    ADD CONSTRAINT subscription_change_events_correlation_id_unique UNIQUE (correlation_id);
+
+
+--
+-- Name: subscription_change_events subscription_change_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.subscription_change_events
+    ADD CONSTRAINT subscription_change_events_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: tag_follows tag_follows_group_id_tag_id_user_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5313,6 +5444,14 @@ ALTER TABLE ONLY public.user_post_relevance
 
 
 --
+-- Name: user_scopes user_scopes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_scopes
+    ADD CONSTRAINT user_scopes_pkey PRIMARY KEY (user_id, scope);
+
+
+--
 -- Name: user_verification_codes user_verification_codes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5367,10 +5506,73 @@ CREATE INDEX blocked_users_user_id_index ON public.blocked_users USING btree (us
 
 
 --
--- Name: common_roles_responsibilities_responsibility_id_index; Type: INDEX; Schema: public; Owner: -
+-- Name: content_access_access_type_index; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX common_roles_responsibilities_responsibility_id_index ON public.common_roles_responsibilities USING btree (responsibility_id);
+CREATE INDEX content_access_access_type_index ON public.content_access USING btree (access_type);
+
+
+--
+-- Name: content_access_granted_by_group_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX content_access_granted_by_group_id_index ON public.content_access USING btree (granted_by_group_id);
+
+
+--
+-- Name: content_access_group_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX content_access_group_id_index ON public.content_access USING btree (group_id);
+
+
+--
+-- Name: content_access_group_role_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX content_access_group_role_id_index ON public.content_access USING btree (group_role_id);
+
+
+--
+-- Name: content_access_product_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX content_access_product_id_index ON public.content_access USING btree (product_id);
+
+
+--
+-- Name: content_access_status_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX content_access_status_index ON public.content_access USING btree (status);
+
+
+--
+-- Name: content_access_stripe_session_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX content_access_stripe_session_id_index ON public.content_access USING btree (stripe_session_id);
+
+
+--
+-- Name: content_access_stripe_subscription_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX content_access_stripe_subscription_id_index ON public.content_access USING btree (stripe_subscription_id) WHERE (stripe_subscription_id IS NOT NULL);
+
+
+--
+-- Name: content_access_track_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX content_access_track_id_index ON public.content_access USING btree (track_id);
+
+
+--
+-- Name: content_access_user_id_status_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX content_access_user_id_status_index ON public.content_access USING btree (user_id, status);
 
 
 --
@@ -5497,13 +5699,6 @@ CREATE INDEX group_invites_group_id_index ON public.group_invites USING btree (g
 --
 
 CREATE INDEX group_join_questions_group_id_index ON public.group_join_questions USING btree (group_id);
-
-
---
--- Name: group_memberships_common_roles_user_id_group_id_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX group_memberships_common_roles_user_id_group_id_index ON public.group_memberships_common_roles USING btree (user_id, group_id);
 
 
 --
@@ -5637,6 +5832,34 @@ CREATE INDEX idx_reactions_entity_id ON public.reactions USING btree (entity_id)
 --
 
 CREATE INDEX idx_reactions_entity_type ON public.reactions USING btree (entity_type);
+
+
+--
+-- Name: idx_search_index_comment_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_search_index_comment_id ON public.search_index USING btree (comment_id) WHERE (comment_id IS NOT NULL);
+
+
+--
+-- Name: idx_search_index_post_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_search_index_post_id ON public.search_index USING btree (post_id) WHERE (post_id IS NOT NULL);
+
+
+--
+-- Name: idx_search_index_unique; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_search_index_unique ON public.search_index USING btree (row_key);
+
+
+--
+-- Name: idx_search_index_user_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_search_index_user_id ON public.search_index USING btree (user_id) WHERE (user_id IS NOT NULL);
 
 
 --
@@ -5787,6 +6010,62 @@ CREATE INDEX saved_searches_user_id_index ON public.saved_searches USING btree (
 
 
 --
+-- Name: stripe_logs_created_at_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX stripe_logs_created_at_index ON public.stripe_logs USING btree (created_at);
+
+
+--
+-- Name: stripe_logs_group_id_alert_type_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX stripe_logs_group_id_alert_type_index ON public.stripe_logs USING btree (group_id, alert_type);
+
+
+--
+-- Name: stripe_logs_group_id_log_type_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX stripe_logs_group_id_log_type_index ON public.stripe_logs USING btree (group_id, log_type);
+
+
+--
+-- Name: stripe_products_group_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX stripe_products_group_id_index ON public.stripe_products USING btree (group_id);
+
+
+--
+-- Name: stripe_products_stripe_product_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX stripe_products_stripe_product_id_index ON public.stripe_products USING btree (stripe_product_id);
+
+
+--
+-- Name: subscription_change_events_status_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX subscription_change_events_status_index ON public.subscription_change_events USING btree (status);
+
+
+--
+-- Name: subscription_change_events_stripe_subscription_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX subscription_change_events_stripe_subscription_id_index ON public.subscription_change_events USING btree (stripe_subscription_id);
+
+
+--
+-- Name: subscription_change_events_user_id_group_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX subscription_change_events_user_id_group_id_index ON public.subscription_change_events USING btree (user_id, group_id);
+
+
+--
 -- Name: tracks_posts_track_id_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -5815,139 +6094,6 @@ CREATE INDEX user_connections_user_id_index ON public.user_connections USING btr
 
 
 --
--- Name: user_verification_codes_email_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX user_verification_codes_email_index ON public.user_verification_codes USING btree (email);
-
-
---
--- Name: zapier_triggers_groups_zapier_trigger_id_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX zapier_triggers_groups_zapier_trigger_id_index ON public.zapier_triggers_groups USING btree (zapier_trigger_id);
-
-
---
--- Name: stripe_products_group_id_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX stripe_products_group_id_index ON public.stripe_products USING btree (group_id);
-
-
---
--- Name: stripe_products_stripe_product_id_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX stripe_products_stripe_product_id_index ON public.stripe_products USING btree (stripe_product_id);
-
-
---
--- Name: content_access_user_id_status_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX content_access_user_id_status_index ON public.content_access USING btree (user_id, status);
-
-
---
--- Name: content_access_group_id_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX content_access_group_id_index ON public.content_access USING btree (group_id);
-
-
---
--- Name: content_access_product_id_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX content_access_product_id_index ON public.content_access USING btree (product_id);
-
-
---
--- Name: content_access_track_id_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX content_access_track_id_index ON public.content_access USING btree (track_id);
-
-
---
--- Name: content_access_common_role_id_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX content_access_common_role_id_index ON public.content_access USING btree (common_role_id);
-
-
---
--- Name: content_access_group_role_id_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX content_access_group_role_id_index ON public.content_access USING btree (group_role_id);
-
-
---
--- Name: content_access_stripe_session_id_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX content_access_stripe_session_id_index ON public.content_access USING btree (stripe_session_id);
-
-
---
--- Name: content_access_access_type_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX content_access_access_type_index ON public.content_access USING btree (access_type);
-
-
---
--- Name: content_access_status_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX content_access_status_index ON public.content_access USING btree (status);
-
-
---
--- Name: content_access_stripe_subscription_id_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX content_access_stripe_subscription_id_index ON public.content_access USING btree (stripe_subscription_id) WHERE (stripe_subscription_id IS NOT NULL);
-
-
---
--- Name: subscription_change_events_correlation_id_unique; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX subscription_change_events_correlation_id_unique ON public.subscription_change_events USING btree (correlation_id);
-
-
---
--- Name: subscription_change_events_user_id_group_id_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX subscription_change_events_user_id_group_id_index ON public.subscription_change_events USING btree (user_id, group_id);
-
-
---
--- Name: subscription_change_events_status_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX subscription_change_events_status_index ON public.subscription_change_events USING btree (status);
-
-
---
--- Name: subscription_change_events_stripe_subscription_id_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX subscription_change_events_stripe_subscription_id_index ON public.subscription_change_events USING btree (stripe_subscription_id);
-
-
---
--- Name: user_scopes_user_id_scope_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX user_scopes_user_id_scope_index ON public.user_scopes USING btree (user_id, scope);
-
-
---
 -- Name: user_scopes_expires_at_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -5962,35 +6108,52 @@ CREATE INDEX user_scopes_source_index ON public.user_scopes USING btree (source_
 
 
 --
--- Name: stripe_products stripe_products_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: user_scopes_user_id_scope_index; Type: INDEX; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.stripe_products
-    ADD CONSTRAINT stripe_products_pkey PRIMARY KEY (id);
-
-
---
--- Name: content_access content_access_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.content_access
-    ADD CONSTRAINT content_access_pkey PRIMARY KEY (id);
+CREATE INDEX user_scopes_user_id_scope_index ON public.user_scopes USING btree (user_id, scope);
 
 
 --
--- Name: subscription_change_events subscription_change_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: user_verification_codes_email_index; Type: INDEX; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.subscription_change_events
-    ADD CONSTRAINT subscription_change_events_pkey PRIMARY KEY (id);
+CREATE INDEX user_verification_codes_email_index ON public.user_verification_codes USING btree (email);
 
 
 --
--- Name: stripe_webhook_processed_events stripe_webhook_processed_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: zapier_triggers_groups_zapier_trigger_id_index; Type: INDEX; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.stripe_webhook_processed_events
-    ADD CONSTRAINT stripe_webhook_processed_events_pkey PRIMARY KEY (stripe_event_id);
+CREATE INDEX zapier_triggers_groups_zapier_trigger_id_index ON public.zapier_triggers_groups USING btree (zapier_trigger_id);
+
+
+--
+-- Name: content_access content_access_user_scopes_delete; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER content_access_user_scopes_delete AFTER DELETE ON public.content_access FOR EACH ROW EXECUTE FUNCTION public.compute_user_scopes_from_content_access();
+
+
+--
+-- Name: content_access content_access_user_scopes_sync; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER content_access_user_scopes_sync AFTER INSERT OR UPDATE ON public.content_access FOR EACH ROW EXECUTE FUNCTION public.compute_user_scopes_from_content_access();
+
+
+--
+-- Name: group_memberships_group_roles group_role_assignment_user_scopes_delete; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER group_role_assignment_user_scopes_delete AFTER DELETE ON public.group_memberships_group_roles FOR EACH ROW EXECUTE FUNCTION public.compute_user_scopes_from_role();
+
+
+--
+-- Name: group_memberships_group_roles group_role_assignment_user_scopes_sync; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER group_role_assignment_user_scopes_sync AFTER INSERT OR UPDATE ON public.group_memberships_group_roles FOR EACH ROW EXECUTE FUNCTION public.compute_user_scopes_from_role();
 
 
 --
@@ -6162,22 +6325,6 @@ ALTER TABLE ONLY public.comments_tags
 
 
 --
--- Name: common_roles_responsibilities common_roles_responsibilities_common_role_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.common_roles_responsibilities
-    ADD CONSTRAINT common_roles_responsibilities_common_role_id_foreign FOREIGN KEY (common_role_id) REFERENCES public.common_roles(id);
-
-
---
--- Name: common_roles_responsibilities common_roles_responsibilities_responsibility_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.common_roles_responsibilities
-    ADD CONSTRAINT common_roles_responsibilities_responsibility_id_foreign FOREIGN KEY (responsibility_id) REFERENCES public.responsibilities(id);
-
-
---
 -- Name: groups_tags communities_tags_owner_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6207,6 +6354,62 @@ ALTER TABLE ONLY public.group_invites
 
 ALTER TABLE ONLY public.group_invites
     ADD CONSTRAINT community_invites_expired_by_id_foreign FOREIGN KEY (expired_by_id) REFERENCES public.users(id);
+
+
+--
+-- Name: content_access content_access_granted_by_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.content_access
+    ADD CONSTRAINT content_access_granted_by_group_id_foreign FOREIGN KEY (granted_by_group_id) REFERENCES public.groups(id);
+
+
+--
+-- Name: content_access content_access_granted_by_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.content_access
+    ADD CONSTRAINT content_access_granted_by_id_foreign FOREIGN KEY (granted_by_id) REFERENCES public.users(id);
+
+
+--
+-- Name: content_access content_access_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.content_access
+    ADD CONSTRAINT content_access_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id);
+
+
+--
+-- Name: content_access content_access_group_role_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.content_access
+    ADD CONSTRAINT content_access_group_role_id_foreign FOREIGN KEY (group_role_id) REFERENCES public.groups_roles(id);
+
+
+--
+-- Name: content_access content_access_product_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.content_access
+    ADD CONSTRAINT content_access_product_id_foreign FOREIGN KEY (product_id) REFERENCES public.stripe_products(id);
+
+
+--
+-- Name: content_access content_access_track_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.content_access
+    ADD CONSTRAINT content_access_track_id_foreign FOREIGN KEY (track_id) REFERENCES public.tracks(id);
+
+
+--
+-- Name: content_access content_access_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.content_access
+    ADD CONSTRAINT content_access_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id);
 
 
 --
@@ -6666,19 +6869,11 @@ ALTER TABLE ONLY public.group_invites
 
 
 --
--- Name: group_invites group_invites_common_role_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.group_invites
-    ADD CONSTRAINT group_invites_common_role_id_foreign FOREIGN KEY (common_role_id) REFERENCES public.common_roles(id) DEFERRABLE INITIALLY DEFERRED;
-
-
---
 -- Name: group_invites group_invites_group_role_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.group_invites
-    ADD CONSTRAINT group_invites_group_role_id_foreign FOREIGN KEY (group_role_id) REFERENCES public.groups_roles(id) DEFERRABLE INITIALLY DEFERRED;
+    ADD CONSTRAINT group_invites_group_role_id_foreign FOREIGN KEY (group_role_id) REFERENCES public.groups_roles(id);
 
 
 --
@@ -6711,30 +6906,6 @@ ALTER TABLE ONLY public.group_join_questions
 
 ALTER TABLE ONLY public.group_join_questions
     ADD CONSTRAINT group_join_questions_question_id_foreign FOREIGN KEY (question_id) REFERENCES public.questions(id);
-
-
---
--- Name: group_memberships_common_roles group_memberships_common_roles_common_role_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.group_memberships_common_roles
-    ADD CONSTRAINT group_memberships_common_roles_common_role_id_foreign FOREIGN KEY (common_role_id) REFERENCES public.common_roles(id) DEFERRABLE INITIALLY DEFERRED;
-
-
---
--- Name: group_memberships_common_roles group_memberships_common_roles_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.group_memberships_common_roles
-    ADD CONSTRAINT group_memberships_common_roles_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id);
-
-
---
--- Name: group_memberships_common_roles group_memberships_common_roles_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.group_memberships_common_roles
-    ADD CONSTRAINT group_memberships_common_roles_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id);
 
 
 --
@@ -6890,14 +7061,6 @@ ALTER TABLE ONLY public.groups
 
 
 --
--- Name: groups groups_stripe_account_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.groups
-    ADD CONSTRAINT groups_stripe_account_id_foreign FOREIGN KEY (stripe_account_id) REFERENCES public.stripe_accounts(id) DEFERRABLE INITIALLY DEFERRED;
-
-
---
 -- Name: groups groups_location_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6919,6 +7082,14 @@ ALTER TABLE ONLY public.groups_posts
 
 ALTER TABLE ONLY public.groups_roles
     ADD CONSTRAINT groups_roles_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: groups groups_stripe_account_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.groups
+    ADD CONSTRAINT groups_stripe_account_id_foreign FOREIGN KEY (stripe_account_id) REFERENCES public.stripe_accounts(id);
 
 
 --
@@ -6959,126 +7130,6 @@ ALTER TABLE ONLY public.groups_tracks
 
 ALTER TABLE ONLY public.groups_tracks
     ADD CONSTRAINT groups_tracks_track_id_foreign FOREIGN KEY (track_id) REFERENCES public.tracks(id) DEFERRABLE INITIALLY DEFERRED;
-
-
---
--- Name: stripe_products stripe_products_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.stripe_products
-    ADD CONSTRAINT stripe_products_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
-
-
---
--- Name: stripe_products stripe_products_track_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.stripe_products
-    ADD CONSTRAINT stripe_products_track_id_foreign FOREIGN KEY (track_id) REFERENCES public.tracks(id) DEFERRABLE INITIALLY DEFERRED;
-
-
---
--- Name: content_access content_access_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.content_access
-    ADD CONSTRAINT content_access_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) DEFERRABLE INITIALLY DEFERRED;
-
-
---
--- Name: content_access content_access_granted_by_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.content_access
-    ADD CONSTRAINT content_access_granted_by_group_id_foreign FOREIGN KEY (granted_by_group_id) REFERENCES public.groups(id) DEFERRABLE INITIALLY DEFERRED;
-
-
---
--- Name: content_access content_access_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.content_access
-    ADD CONSTRAINT content_access_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id) DEFERRABLE INITIALLY DEFERRED;
-
-
---
--- Name: content_access content_access_product_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.content_access
-    ADD CONSTRAINT content_access_product_id_foreign FOREIGN KEY (product_id) REFERENCES public.stripe_products(id) DEFERRABLE INITIALLY DEFERRED;
-
-
---
--- Name: content_access content_access_track_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.content_access
-    ADD CONSTRAINT content_access_track_id_foreign FOREIGN KEY (track_id) REFERENCES public.tracks(id) DEFERRABLE INITIALLY DEFERRED;
-
-
---
--- Name: content_access content_access_common_role_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.content_access
-    ADD CONSTRAINT content_access_common_role_id_foreign FOREIGN KEY (common_role_id) REFERENCES public.common_roles(id) DEFERRABLE INITIALLY DEFERRED;
-
-
---
--- Name: content_access content_access_group_role_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.content_access
-    ADD CONSTRAINT content_access_group_role_id_foreign FOREIGN KEY (group_role_id) REFERENCES public.groups_roles(id) DEFERRABLE INITIALLY DEFERRED;
-
-
---
--- Name: content_access content_access_granted_by_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.content_access
-    ADD CONSTRAINT content_access_granted_by_id_foreign FOREIGN KEY (granted_by_id) REFERENCES public.users(id) DEFERRABLE INITIALLY DEFERRED;
-
-
---
--- Name: subscription_change_events subscription_change_events_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.subscription_change_events
-    ADD CONSTRAINT subscription_change_events_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
-
-
---
--- Name: subscription_change_events subscription_change_events_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.subscription_change_events
-    ADD CONSTRAINT subscription_change_events_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
-
-
---
--- Name: subscription_change_events subscription_change_events_from_product_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.subscription_change_events
-    ADD CONSTRAINT subscription_change_events_from_product_id_foreign FOREIGN KEY (from_product_id) REFERENCES public.stripe_products(id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED;
-
-
---
--- Name: subscription_change_events subscription_change_events_to_product_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.subscription_change_events
-    ADD CONSTRAINT subscription_change_events_to_product_id_foreign FOREIGN KEY (to_product_id) REFERENCES public.stripe_products(id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED;
-
-
---
--- Name: user_scopes user_scopes_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.user_scopes
-    ADD CONSTRAINT user_scopes_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id);
 
 
 --
@@ -7450,6 +7501,78 @@ ALTER TABLE ONLY public.skills_users
 
 
 --
+-- Name: stripe_logs stripe_logs_content_access_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stripe_logs
+    ADD CONSTRAINT stripe_logs_content_access_id_foreign FOREIGN KEY (content_access_id) REFERENCES public.content_access(id) ON DELETE SET NULL;
+
+
+--
+-- Name: stripe_logs stripe_logs_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stripe_logs
+    ADD CONSTRAINT stripe_logs_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id) ON DELETE SET NULL;
+
+
+--
+-- Name: stripe_logs stripe_logs_stripe_account_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stripe_logs
+    ADD CONSTRAINT stripe_logs_stripe_account_id_foreign FOREIGN KEY (stripe_account_id) REFERENCES public.stripe_accounts(id) ON DELETE SET NULL;
+
+
+--
+-- Name: stripe_products stripe_products_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stripe_products
+    ADD CONSTRAINT stripe_products_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id) ON DELETE CASCADE;
+
+
+--
+-- Name: stripe_products stripe_products_track_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stripe_products
+    ADD CONSTRAINT stripe_products_track_id_foreign FOREIGN KEY (track_id) REFERENCES public.tracks(id);
+
+
+--
+-- Name: subscription_change_events subscription_change_events_from_product_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.subscription_change_events
+    ADD CONSTRAINT subscription_change_events_from_product_id_foreign FOREIGN KEY (from_product_id) REFERENCES public.stripe_products(id) ON DELETE SET NULL;
+
+
+--
+-- Name: subscription_change_events subscription_change_events_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.subscription_change_events
+    ADD CONSTRAINT subscription_change_events_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id) ON DELETE CASCADE;
+
+
+--
+-- Name: subscription_change_events subscription_change_events_to_product_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.subscription_change_events
+    ADD CONSTRAINT subscription_change_events_to_product_id_foreign FOREIGN KEY (to_product_id) REFERENCES public.stripe_products(id) ON DELETE SET NULL;
+
+
+--
+-- Name: subscription_change_events subscription_change_events_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.subscription_change_events
+    ADD CONSTRAINT subscription_change_events_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
 -- Name: tag_follows tag_follows_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -7530,6 +7653,14 @@ ALTER TABLE ONLY public.user_external_data
 
 
 --
+-- Name: user_scopes user_scopes_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_scopes
+    ADD CONSTRAINT user_scopes_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id);
+
+
+--
 -- Name: users_groups_agreements users_groups_agreements_agreement_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -7586,208 +7717,8 @@ ALTER TABLE ONLY public.zapier_triggers
 
 
 --
--- Name: compute_user_scopes_from_content_access(); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE OR REPLACE FUNCTION compute_user_scopes_from_content_access() RETURNS TRIGGER AS $$
-DECLARE
-  scope_string TEXT;
-  scope_group_id BIGINT;
-BEGIN
-  IF NEW.status = 'active' THEN
-    IF NEW.track_id IS NOT NULL THEN
-      scope_string := 'track:' || NEW.track_id;
-      INSERT INTO user_scopes (user_id, scope, expires_at, source_kind, source_id, created_at, updated_at)
-      VALUES (NEW.user_id, scope_string, NEW.expires_at, 'grant', NEW.id, NOW(), NOW())
-      ON CONFLICT (user_id, scope) 
-      DO UPDATE SET 
-        expires_at = CASE 
-          WHEN user_scopes.expires_at IS NULL OR NEW.expires_at IS NULL THEN NULL
-          WHEN NEW.expires_at > user_scopes.expires_at THEN NEW.expires_at
-          ELSE user_scopes.expires_at
-        END,
-        updated_at = NOW();
-    END IF;
-    IF NEW.group_role_id IS NOT NULL THEN
-      scope_group_id := COALESCE(NEW.group_id, NEW.granted_by_group_id);
-      IF scope_group_id IS NULL THEN
-        RAISE WARNING 'Cannot create group role scope: missing group_id and granted_by_group_id for content_access %', NEW.id;
-      ELSE
-        scope_string := 'group_role:' || scope_group_id || ':' || NEW.group_role_id;
-        INSERT INTO user_scopes (user_id, scope, expires_at, source_kind, source_id, created_at, updated_at)
-        VALUES (NEW.user_id, scope_string, NEW.expires_at, 'grant', NEW.id, NOW(), NOW())
-        ON CONFLICT (user_id, scope)
-        DO UPDATE SET
-          expires_at = CASE
-            WHEN user_scopes.expires_at IS NULL OR NEW.expires_at IS NULL THEN NULL
-            WHEN NEW.expires_at > user_scopes.expires_at THEN NEW.expires_at
-            ELSE user_scopes.expires_at
-          END,
-          updated_at = NOW();
-      END IF;
-    END IF;
-    IF NEW.common_role_id IS NOT NULL THEN
-      scope_group_id := COALESCE(NEW.group_id, NEW.granted_by_group_id);
-      IF scope_group_id IS NULL THEN
-        RAISE WARNING 'Cannot create common role scope: missing group_id and granted_by_group_id for content_access %', NEW.id;
-      ELSE
-        scope_string := 'common_role:' || scope_group_id || ':' || NEW.common_role_id;
-        INSERT INTO user_scopes (user_id, scope, expires_at, source_kind, source_id, created_at, updated_at)
-        VALUES (NEW.user_id, scope_string, NEW.expires_at, 'grant', NEW.id, NOW(), NOW())
-        ON CONFLICT (user_id, scope)
-        DO UPDATE SET
-          expires_at = CASE
-            WHEN user_scopes.expires_at IS NULL OR NEW.expires_at IS NULL THEN NULL
-            WHEN NEW.expires_at > user_scopes.expires_at THEN NEW.expires_at
-            ELSE user_scopes.expires_at
-          END,
-          updated_at = NOW();
-      END IF;
-    END IF;
-    IF NEW.track_id IS NULL AND NEW.group_role_id IS NULL AND NEW.common_role_id IS NULL AND NEW.granted_by_group_id IS NOT NULL THEN
-      scope_string := 'group:' || NEW.granted_by_group_id;
-      INSERT INTO user_scopes (user_id, scope, expires_at, source_kind, source_id, created_at, updated_at)
-      VALUES (NEW.user_id, scope_string, NEW.expires_at, 'grant', NEW.id, NOW(), NOW())
-      ON CONFLICT (user_id, scope) 
-      DO UPDATE SET 
-        expires_at = CASE 
-          WHEN user_scopes.expires_at IS NULL OR NEW.expires_at IS NULL THEN NULL
-          WHEN NEW.expires_at > user_scopes.expires_at THEN NEW.expires_at
-          ELSE user_scopes.expires_at
-        END,
-        updated_at = NOW();
-    END IF;
-  ELSE
-    IF NEW.track_id IS NOT NULL THEN
-      scope_string := 'track:' || NEW.track_id;
-      DELETE FROM user_scopes 
-      WHERE user_id = NEW.user_id 
-        AND scope = scope_string 
-        AND source_kind = 'grant' 
-        AND source_id = NEW.id;
-    END IF;
-    IF NEW.group_role_id IS NOT NULL THEN
-      scope_group_id := COALESCE(NEW.group_id, NEW.granted_by_group_id);
-      IF scope_group_id IS NOT NULL THEN
-        scope_string := 'group_role:' || scope_group_id || ':' || NEW.group_role_id;
-        DELETE FROM user_scopes 
-        WHERE user_id = NEW.user_id 
-          AND scope = scope_string 
-          AND source_kind = 'grant' 
-          AND source_id = NEW.id;
-      END IF;
-    END IF;
-    IF NEW.common_role_id IS NOT NULL THEN
-      scope_group_id := COALESCE(NEW.group_id, NEW.granted_by_group_id);
-      IF scope_group_id IS NOT NULL THEN
-        scope_string := 'common_role:' || scope_group_id || ':' || NEW.common_role_id;
-        DELETE FROM user_scopes 
-        WHERE user_id = NEW.user_id 
-          AND scope = scope_string 
-          AND source_kind = 'grant' 
-          AND source_id = NEW.id;
-      END IF;
-    END IF;
-    IF NEW.track_id IS NULL AND NEW.group_role_id IS NULL AND NEW.common_role_id IS NULL AND NEW.granted_by_group_id IS NOT NULL THEN
-      scope_string := 'group:' || NEW.granted_by_group_id;
-      DELETE FROM user_scopes 
-      WHERE user_id = NEW.user_id 
-        AND scope = scope_string 
-        AND source_kind = 'grant' 
-        AND source_id = NEW.id;
-    END IF;
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-
---
--- Name: compute_user_scopes_from_role(); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE OR REPLACE FUNCTION compute_user_scopes_from_role() RETURNS TRIGGER AS $$
-DECLARE
-  role_scopes JSONB;
-  scope_string TEXT;
-BEGIN
-  IF NEW.active = true THEN
-    SELECT scopes INTO role_scopes
-    FROM groups_roles
-    WHERE id = NEW.group_role_id;
-    IF role_scopes IS NOT NULL THEN
-      FOR scope_string IN SELECT jsonb_array_elements_text(role_scopes)
-      LOOP
-        INSERT INTO user_scopes (user_id, scope, expires_at, source_kind, source_id, created_at, updated_at)
-        VALUES (NEW.user_id, scope_string, NULL, 'role', NEW.id, NOW(), NOW())
-        ON CONFLICT (user_id, scope) 
-        DO UPDATE SET 
-          updated_at = NOW();
-      END LOOP;
-    END IF;
-  ELSE
-    SELECT scopes INTO role_scopes
-    FROM groups_roles
-    WHERE id = NEW.group_role_id;
-    IF role_scopes IS NOT NULL THEN
-      FOR scope_string IN SELECT jsonb_array_elements_text(role_scopes)
-      LOOP
-        DELETE FROM user_scopes 
-        WHERE user_id = NEW.user_id 
-          AND scope = scope_string 
-          AND source_kind = 'role' 
-          AND source_id = NEW.id;
-      END LOOP;
-    END IF;
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-
---
--- Name: content_access_user_scopes_sync; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER content_access_user_scopes_sync
-    AFTER INSERT OR UPDATE ON public.content_access
-    FOR EACH ROW
-    EXECUTE FUNCTION compute_user_scopes_from_content_access();
-
-
---
--- Name: content_access_user_scopes_delete; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER content_access_user_scopes_delete
-    AFTER DELETE ON public.content_access
-    FOR EACH ROW
-    EXECUTE FUNCTION compute_user_scopes_from_content_access();
-
-
---
--- Name: group_role_assignment_user_scopes_sync; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER group_role_assignment_user_scopes_sync
-    AFTER INSERT OR UPDATE ON public.group_memberships_group_roles
-    FOR EACH ROW
-    EXECUTE FUNCTION compute_user_scopes_from_role();
-
-
---
--- Name: group_role_assignment_user_scopes_delete; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER group_role_assignment_user_scopes_delete
-    AFTER DELETE ON public.group_memberships_group_roles
-    FOR EACH ROW
-    EXECUTE FUNCTION compute_user_scopes_from_role();
-
-
---
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 2taOPDihnNMv7cqG4gy7dcNwN2jcip9tW7clIBqD4deYNdeiEr9SrGdBUu1Wr3x
+\unrestrict 4hjAA3Sl3pGoB6jiTRLpGMoKZfd9B1XvMZqTNTSKcyYGfnYbcWgDnzvsDUnQHd2
 

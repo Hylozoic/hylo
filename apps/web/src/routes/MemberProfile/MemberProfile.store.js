@@ -18,7 +18,6 @@ export function presentPerson (person, selectedGroupSlug) {
     ...person.ref,
     skills: person.skills && person.skills.toRefArray(),
     memberships: getMemberships(person),
-    membershipCommonRoles: person.membershipCommonRoles,
     groupRoles: person.groupRoles
   }
 }

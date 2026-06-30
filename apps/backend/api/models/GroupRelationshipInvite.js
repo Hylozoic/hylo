@@ -188,9 +188,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
           toMembers = (parentToChild && toGroup.isHidden()) ? await toGroup.stewards().fetch({ transacting }) : await toGroup.members().fetch({ transacting })
         }
 
-        // TODO: don't send a notification to the actorId...
+        const toStewardIds = new Set((await toGroup.stewards().fetch({ transacting })).pluck('id'))
 
-        // TODO: fix hasRole
         const reason = parentToChild
           ? Activity.Reason.GroupChildGroupInviteAccepted
           : peerToPeer
@@ -198,18 +197,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
             : Activity.Reason.GroupParentGroupJoinRequestAccepted
         const fromGroupActivities = fromMembers.map(member => {
           const relationshipContext = peerToPeer ? 'peer' : (parentToChild ? 'parent' : 'child')
-          const memberType = peerToPeer ? 'moderator' : (member.hasRole(GroupMembership.Role.MODERATOR) ? 'moderator' : 'member')
-          return {
-            reader_id: member.id,
-            actor_id: actorId,
-            group_id: fromGroup.id,
-            other_group_id: toGroup.id,
-            reason: `${reason}:${relationshipContext}:${memberType}`
-          }
-        })
-        const toGroupActivities = toMembers.map(member => {
-          const relationshipContext = peerToPeer ? 'peer' : (parentToChild ? 'child' : 'parent')
-          const memberType = peerToPeer ? 'moderator' : (member.hasRole(GroupMembership.Role.MODERATOR) ? 'moderator' : 'member')
+          const memberType = peerToPeer ? 'moderator' : (toStewardIds.has(member.id) ? 'moderator' : 'member')
           return {
             reader_id: member.id,
             actor_id: actorId,

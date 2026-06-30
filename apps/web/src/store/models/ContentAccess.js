@@ -23,9 +23,7 @@ ContentAccess.fields = {
   trackId: attr(),
   track: fk('Track', 'contentAccess'),
   groupRoleId: attr(),
-  groupRole: attr(), // Stored as plain object, not ORM model
-  commonRoleId: attr(),
-  commonRole: attr(), // Stored as plain object, not ORM model
+  groupRole: attr(),
   accessType: attr(),
   stripeSessionId: attr(),
   stripeSubscriptionId: attr(),

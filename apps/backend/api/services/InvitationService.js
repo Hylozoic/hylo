@@ -65,12 +65,11 @@ module.exports = {
    * @param userIds {String[]} list of userIds
    * @param emails {String[]} list of emails
    * @param message
-   * @param isModerator {Boolean} should invite as moderator (defaults: false)
+   * @param assignCoordinator {Boolean} invite as Coordinator (defaults: false)
    * @param subject
-   * @param commonRoleId {Number} common role ID to assign when invitation is used
-   * @param groupRoleId {Number} group-specific role ID to assign when invitation is used
+   * @param groupRoleId {Number} group role ID to assign when invitation is used
    */
-  create: ({ sessionUserId, groupId, tagName, userIds, emails = [], message, isModerator = false, subject, commonRoleId, groupRoleId }) => {
+  create: ({ sessionUserId, groupId, tagName, userIds, emails = [], message, assignCoordinator = false, subject, groupRoleId }) => {
     return Promise.join(
       userIds && User.query(q => q.whereIn('id', userIds)).fetchAll(),
       Group.find(groupId),
@@ -87,7 +86,6 @@ module.exports = {
             email,
             userId: sessionUserId,
             groupId: group.id,
-            commonRoleId: commonRoleId || null,
             groupRoleId: groupRoleId || null
           }
 
@@ -95,12 +93,13 @@ module.exports = {
             opts.tagId = tag.id
           } else {
             opts.message = TextHelpers.markdown(message, { disableAutolinking: true })
-            opts.moderator = isModerator
+            // TODO: are we still using this, alongside the groupRoleId?
+            opts.assignCoordinator = assignCoordinator
             opts.subject = subject
           }
 
           return Invitation.create(opts)
-            .tap(i => i.refresh({ withRelated: ['creator', 'group', 'tag'] }))
+            .then(invitation => invitation.refresh({ withRelated: ['creator', 'group', 'tag'] }).then(() => invitation))
             .then(invitation => {
               return Queue.classMethod('Invitation', 'createAndSend', { invitation })
                 .then(() => ({
@@ -121,15 +120,15 @@ module.exports = {
    * @param groupId
    * @param subject {String} the email subject
    * @param message {String} the email message text
-   * @param moderator {Boolean} should invite as moderator
+   * @param assignCoordinator {Boolean} invite as Coordinator
    * @returns {*}
    */
-  reinviteAll: ({ sessionUserId, groupId, subject = '', message = '', isModerator = false }) => {
+  reinviteAll: ({ sessionUserId, groupId, subject = '', message = '', assignCoordinator = false }) => {
     return Queue.classMethod('Invitation', 'reinviteAll', {
       groupId,
       subject,
       message,
-      moderator: isModerator,
+      assignCoordinator,
       userId: sessionUserId
     })
   },
@@ -156,7 +155,7 @@ module.exports = {
    * Check if an invitation is valid and return group information for redirect
    * @param token {String} invitation token from email invite
    * @param accessCode {String} access code from invite link
-   * @returns {Object} { valid, groupId, groupSlug, email, commonRole, groupRole }
+   * @returns {Object} { valid, groupId, groupSlug, email, groupRole }
    */
   check: async (token, accessCode) => {
     if (accessCode) {
@@ -177,13 +176,7 @@ module.exports = {
       if (invitation) {
         const group = await Group.find(invitation.get('group_id'))
 
-        // Load the common role if one is assigned to this invitation
-        let commonRole = null
-        if (invitation.get('common_role_id')) {
-          commonRole = await CommonRole.where({ id: invitation.get('common_role_id') }).fetch()
-        }
-
-        // Load the group-specific role if one is assigned to this invitation
+        // Load the group role if one is assigned to this invitation
         let groupRole = null
         if (invitation.get('group_role_id')) {
           groupRole = await GroupRole.where({ id: invitation.get('group_role_id') }).fetch()
@@ -196,13 +189,6 @@ module.exports = {
             ? group.get('slug')
             : null,
           email: invitation.get('email'),
-          commonRole: commonRole
-            ? {
-                id: commonRole.id,
-                name: commonRole.get('name'),
-                emoji: commonRole.get('emoji')
-              }
-            : null,
           groupRole: groupRole
             ? {
                 id: groupRole.id,
@@ -240,7 +226,7 @@ module.exports = {
                     return membership
                   })
               }
-              if (group) return user.joinGroup(group, { role: GroupMembership.Role.DEFAULT, fromInvitation: true }).then(membership => membership)
+              if (group) return user.joinGroup(group, { fromInvitation: true }).then(membership => membership)
             })
             .catch(err => {
               throw new Error(err.message)

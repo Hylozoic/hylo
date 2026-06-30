@@ -7,10 +7,25 @@ export default gql`
     createGroup(data: $data) {
       ...GroupFieldsFragment
       ...GroupPrerequisiteGroupsFieldsFragment
+      groupRoles {
+        items {
+          id
+          name
+          emoji
+          active
+          groupId
+          responsibilities {
+            items {
+              id
+              title
+              description
+            }
+          }
+        }
+      }
       memberships {
         items {
           id
-          hasModeratorRole
           person {
             id
           }

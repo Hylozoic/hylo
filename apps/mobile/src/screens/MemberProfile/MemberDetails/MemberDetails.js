@@ -21,6 +21,7 @@ import { useChangeToGroup } from 'hooks/useHandleCurrentGroup'
 import useRouteParams from 'hooks/useRouteParams'
 import useConfirmAlert from 'hooks/useConfirmAlert'
 import useOpenURL from 'hooks/useOpenURL'
+import { hasAdministrationInGroup } from '@hylo/hooks/groupRoleHelpers'
 import ModalHeader from 'navigation/headers/ModalHeader'
 import TabStackHeader from 'navigation/headers/TabStackHeader'
 import Icon from 'components/Icon'
@@ -147,7 +148,8 @@ export default function MemberDetails () {
         goToSkills={goToSkills}
       />
       <MemberGroups
-        memberships={person?.memberships}
+        memberships={selectedPerson?.memberships}
+        person={selectedPerson}
         editing={editing}
       />
       <MemberAffiliations
@@ -213,7 +215,7 @@ export function MemberSkills ({ skills, editable, goToSkills }) {
   )
 }
 
-export function MemberGroups ({ memberships, editing }) {
+export function MemberGroups ({ memberships, person, editing }) {
   const { t } = useTranslation()
 
   if (isEmpty(memberships)) return null
@@ -224,6 +226,7 @@ export function MemberGroups ({ memberships, editing }) {
       {memberships.map(membership => (
         <GroupRow
           membership={membership}
+          person={person}
           key={membership.id}
           editing={editing}
         />
@@ -267,10 +270,11 @@ export function MemberAffiliation ({ affiliation }) {
   )
 }
 
-export function GroupRow ({ membership, editing }) {
+export function GroupRow ({ membership, person, editing }) {
   const changeToGroup = useChangeToGroup()
   const handleOnPress = () => changeToGroup(group.slug, { confirm: true })
-  const { group, hasModeratorRole } = membership
+  const { group } = membership
+  const isAdmin = hasAdministrationInGroup(person, group.id)
   const formatCount = count => {
     if (count < 1000) return `${count}`
     return `${Number(count / 1000).toFixed(1)}k`
@@ -283,7 +287,7 @@ export function GroupRow ({ membership, editing }) {
       <TouchableOpacity onPress={handleOnPress} disabled={editing}>
         <Text style={styles.groupName}>{group.name}</Text>
       </TouchableOpacity>
-      {hasModeratorRole && <Icon name='Star' style={styles.starIcon} />}
+      {isAdmin && <Icon name='Star' style={styles.starIcon} />}
       <Text style={styles.memberCount}>{memberCount}</Text>
       <Icon name='Members' style={styles.memberIcon} />
     </View>

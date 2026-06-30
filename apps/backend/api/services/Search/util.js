@@ -158,7 +158,7 @@ export const filterAndSortPosts = curry((opts, q) => {
   }
 })
 
-export const filterAndSortUsers = curry(({ autocomplete, boundingBox, groupId, groupRoleId, commonRoleId, order, search, sortBy }, q) => {
+export const filterAndSortUsers = curry(({ autocomplete, boundingBox, groupId, groupRoleId, order, search, sortBy }, q) => {
   if (autocomplete) {
     const query = chain(autocomplete.split(/\s*\s/)) // split on whitespace
       .map(word => word.replace(/[,;|:&()!\\]+/, ''))
@@ -177,12 +177,9 @@ export const filterAndSortUsers = curry(({ autocomplete, boundingBox, groupId, g
   if (groupRoleId) {
     q.leftJoin('group_memberships_group_roles', 'group_memberships_group_roles.user_id', '=', 'users.id')
     q.where('group_memberships_group_roles.group_role_id', '=', groupRoleId)
-  }
-
-  if (commonRoleId && groupId) {
-    q.leftJoin('group_memberships_common_roles as crgm', 'crgm.user_id', 'users.id')
-    q.where('crgm.common_role_id', '=', commonRoleId)
-    q.andWhere('crgm.group_id', '=', groupId)
+    if (groupId) {
+      q.andWhere('group_memberships_group_roles.group_id', '=', groupId)
+    }
   }
 
   if (search) {
@@ -253,7 +250,6 @@ export const filterAndSortContentAccess = curry((opts, q) => {
     offeringId,
     trackId,
     groupRoleId,
-    commonRoleId,
     sortBy = 'created_at',
     order
   } = opts
@@ -292,11 +288,6 @@ export const filterAndSortContentAccess = curry((opts, q) => {
   // Filter by group role ID
   if (groupRoleId) {
     q.where('content_access.group_role_id', groupRoleId)
-  }
-
-  // Filter by common role ID
-  if (commonRoleId) {
-    q.where('content_access.common_role_id', commonRoleId)
   }
 
   // Validate sortBy

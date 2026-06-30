@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import FastImage from 'react-native-fast-image'
 import { GROUP_ACCESSIBILITY } from '@hylo/presenters/GroupPresenter'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import { hasAdministrationInGroup } from '@hylo/hooks/groupRoleHelpers'
 import { useCreateGroupStore } from './CreateGroup.store'
 import Icon from 'components/Icon'
 import ItemSelectorModal from 'components/ItemSelectorModal'
@@ -17,7 +18,8 @@ export default function CreateGroupParentGroups ({ navigation }) {
   const clearParentGroups = () => setParentGroups([])
   const memberships = currentUser?.memberships
   const parentGroupOptions = memberships
-    .filter(m => m.hasModeratorRole || m.group.accessibility === GROUP_ACCESSIBILITY.Open)
+    .filter(m => hasAdministrationInGroup(currentUser, m.group.id) ||
+      m.group.accessibility === GROUP_ACCESSIBILITY.Open)
     .map((m) => m.group)
     .sort((a, b) => a.name.localeCompare(b.name))
 
