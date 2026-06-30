@@ -66,6 +66,33 @@ const SYSTEM_ROLE_DEFINITIONS = [
   }
 ]
 
+/** System responsibilities referenced by SYSTEM_ROLE_DEFINITIONS — schema.sql creates the table but no rows. */
+const SYSTEM_RESPONSIBILITY_DEFINITIONS = [
+  { title: 'Administration', description: 'Allows for editing group settings, exporting data, and deleting the group.' },
+  { title: 'Add Members', description: 'The ability to invite and add new people to the group, and to accept or reject join requests.' },
+  { title: 'Remove Members', description: 'The ability to remove a member from the group.' },
+  { title: 'Manage Content', description: 'Adjust group topics, custom views and manage content that contradicts the agreements of the group.' },
+  { title: 'Manage Tracks', description: 'Create and manage tracks in the group.' },
+  { title: 'Manage Rounds', description: 'Create and manage funding rounds in the group.' }
+]
+
+/**
+ * E2E loads schema.sql only (no Knex migrations), so responsibilities may be empty.
+ * GroupSettings and other permission checks need these rows for Coordinator → Administration.
+ */
+async function ensureSystemResponsibilities (client, now) {
+  for (const resp of SYSTEM_RESPONSIBILITY_DEFINITIONS) {
+    await client.query(
+      `INSERT INTO responsibilities (title, description, type, created_at, updated_at, group_id)
+       SELECT $1, $2, 'system', $3::timestamptz, $3::timestamptz, NULL
+       WHERE NOT EXISTS (
+         SELECT 1 FROM responsibilities r WHERE r.title = $1 AND r.type = 'system'
+       )`,
+      [resp.title, resp.description, now]
+    )
+  }
+}
+
 /**
  * Create per-group system roles (Coordinator, Moderator, Host) if missing.
  * @returns {Promise<Record<string, number>>} role name → groups_roles.id
@@ -256,6 +283,7 @@ async function main () {
   await client.connect()
   const seedInstantMs = Date.now()
   const now = new Date(seedInstantMs).toISOString()
+  await ensureSystemResponsibilities(client, now)
   const userSettings = JSON.stringify({ locale: 'en' })
   const emptyGroupSettings = JSON.stringify({})
 
