@@ -143,18 +143,17 @@ describe('Group', function () {
     })
 
     it('merges new settings to existing memberships and creates new ones', async function () {
-      const results = await group.addMembers([u1.id, u2.id], { role: 1, settings: { there: true } })
+      const results = await group.addMembers([u1.id, u2.id], { assignCoordinator: true, settings: { there: true } })
       expect(results.length).to.equal(2)
 
       await gm1.refresh()
-      // updateMembers always adds joinQuestionsAnsweredAt and showJoinForm defaults
       expect(gm1.get('settings')).to.deep.equal({ here: true, there: true, joinQuestionsAnsweredAt: null, showJoinForm: true })
-      expect(gm1.get('role')).to.equal(1)
+      expect(await GroupMembership.hasResponsibility(u1.id, group, Responsibility.constants.RESP_ADMINISTRATION)).to.be.true
 
       const gm2 = await group.memberships()
         .query(q => q.where('user_id', u2.id)).fetchOne()
       expect(gm2.get('settings')).to.deep.equal({ agreementsAcceptedAt: null, joinQuestionsAnsweredAt: null, showJoinForm: true, there: true })
-      expect(gm2.get('role')).to.equal(1)
+      expect(await GroupMembership.hasResponsibility(u2.id, group, Responsibility.constants.RESP_ADMINISTRATION)).to.be.true
     })
   })
 
@@ -176,15 +175,13 @@ describe('Group', function () {
       const user1 = await factories.user().save()
       const user2 = await factories.user().save()
       const projectRole = await ProjectRole.forge({name: 'test role'}).save()
-      const role = 1
       const project_role_id = projectRole.id
-      const updates = { role, project_role_id }
+      const updates = { project_role_id }
       await group.addMembers([user1, user2])
       await group.updateMembers([user1, user2], updates)
       const updatedMemberships = await group.memberships().fetch()
       updatedMemberships.models.forEach(membership => {
         expect(membership.get('project_role_id')).to.equal(project_role_id)
-        expect(membership.get('role')).to.equal(role)
       })
     })
   })

@@ -101,16 +101,17 @@ before(function (done) {
 
       setup.createSchema()
         .then(async () => {
-          const cr1 = await CommonRole.forge({ name: 'Coordinator' }).save()
-          const cr2 = await CommonRole.forge({ name: 'Moderator' }).save()
-          const cr3 = await CommonRole.forge({ name: 'Host' }).save()
-          const r1 = await Responsibility.forge({ title: 'Administration', type: 'system' }).save()
-          const r2 = await Responsibility.forge({ title: 'Add Members', type: 'system' }).save()
-          const r3 = await Responsibility.forge({ title: 'Remove Members', type: 'system' }).save()
-          const r4 = await Responsibility.forge({ title: 'Manage Content', type: 'system' }).save()
-          await cr1.responsibilities().attach([r1, r2, r3, r4])
-          await cr2.responsibilities().attach([r3, r4])
-          await cr3.responsibilities().attach([r2])
+          const systemResponsibilities = [
+            'Administration',
+            'Add Members',
+            'Remove Members',
+            'Manage Content',
+            'Manage Tracks',
+            'Manage Rounds'
+          ]
+          for (const title of systemResponsibilities) {
+            await Responsibility.forge({ title, type: 'system' }).save()
+          }
           await new Tag({ name: 'general' }).save()
           done()
         })
@@ -122,15 +123,38 @@ before(function (done) {
 afterEach(() => nock.cleanAll())
 
 // Split SQL statements on semicolons while ignoring semicolons inside
-// dollar-quoted function/procedure bodies (e.g. $$ ... $$, $tag$ ... $tag$).
+// dollar-quoted function/procedure bodies (e.g. $$ ... $$, $tag$ ... $tag$)
+// and inside single-quoted string literals.
 function splitSqlStatements (sql) {
   const statements = []
   let current = ''
   let i = 0
   let dollarTag = null
+  let inSingleQuote = false
 
   while (i < sql.length) {
     const ch = sql[i]
+
+    if (inSingleQuote) {
+      current += ch
+      if (ch === "'") {
+        if (sql[i + 1] === "'") {
+          current += sql[i + 1]
+          i += 2
+          continue
+        }
+        inSingleQuote = false
+      }
+      i += 1
+      continue
+    }
+
+    if (!dollarTag && ch === "'") {
+      inSingleQuote = true
+      current += ch
+      i += 1
+      continue
+    }
 
     if (!dollarTag && ch === '$') {
       const m = sql.slice(i).match(/^\$[A-Za-z_][A-Za-z0-9_]*\$/) || (sql.slice(i, i + 2) === '$$' ? ['$$'] : null)

@@ -13,7 +13,7 @@ describe('pinPost', () => {
     post = factories.post()
     return Promise.join(group.save(), user.save(), post.save())
       .then(() => group.posts().attach(post))
-      .then(() => user.joinGroup(group, { role: GroupMembership.Role.MODERATOR }))
+      .then(() => user.joinGroup(group, { assignCoordinator: true }))
   })
 
   it('sets pinned_at to current time if not set', () => {

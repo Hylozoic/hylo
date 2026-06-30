@@ -30,6 +30,14 @@ describe('stripeOfferingMetadata', () => {
       })
       expect(Object.prototype.hasOwnProperty.call(offeringMetadata, 'buyButtonText')).to.equal(false)
     })
+    it('strips legacy commonRoleIds from access grants', () => {
+      const { cleanAccessGrants } = extractOfferingPresentationFields({
+        groupIds: [1],
+        groupRoleIds: [2],
+        commonRoleIds: [3]
+      })
+      expect(cleanAccessGrants).to.deep.equal({ groupIds: [1], groupRoleIds: [2] })
+    })
   })
 
   describe('mergeAccessGrantsForPresentation', () => {

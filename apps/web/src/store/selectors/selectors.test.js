@@ -82,15 +82,25 @@ describe('getTopicForCurrentRoute', () => {
 
 describe('hasResponsibilityForGroup', () => {
   const session = orm.session(orm.getEmptyState())
-  let group, me, mcr
+  let group, me
 
   beforeEach(() => {
-    session.CommonRole.create({ id: 1, title: 'Coordinator', responsibilities: { items: [{ id: 1, title: 'Administration' }, { id: 2, title: 'Manage Content' }] } })
     group = session.Group.create({ id: 1 })
-    mcr = session.MembershipCommonRole.create({ id: 1, groupId: group.id, userId: 1, commonRoleId: 1 })
     me = session.Me.create({
       id: '1',
-      membershipCommonRoles: { items: [mcr] }
+      groupRoles: {
+        items: [{
+          id: 1,
+          groupId: group.id,
+          name: 'Coordinator',
+          responsibilities: {
+            items: [
+              { id: 1, title: 'Administration' },
+              { id: 2, title: 'Manage Content' }
+            ]
+          }
+        }]
+      }
     })
     session.Membership.create({ id: 1, group: group.id, person: 1 })
   })

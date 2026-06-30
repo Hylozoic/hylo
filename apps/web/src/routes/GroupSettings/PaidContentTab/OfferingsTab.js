@@ -9,7 +9,7 @@
  */
 
 import React, { useCallback, useEffect, useState, useMemo, useRef } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { CreditCard, AlertCircle, PlusCircle, Edit, X, Link2, Users, ChevronDown, ChevronUp } from 'lucide-react'
 import CopyToClipboard from 'react-copy-to-clipboard'
@@ -27,7 +27,6 @@ import GroupPaywallSection from './GroupPaywallSection'
 import { offeringUrl, origin } from '@hylo/navigation'
 import fetchGroupTracks from 'store/actions/fetchGroupTracks'
 import useDebounce from 'hooks/useDebounce'
-import getCommonRoles from 'store/selectors/getCommonRoles'
 import { validateOfferingDurationForAccessGrants, isRecurringOfferingDuration } from '@hylo/shared'
 import { parseAccessGrants, offeringHasTrackAccess, offeringHasGroupAccess, offeringHasRoleAccess } from 'util/accessGrants'
 import { queryHyloAPI } from 'util/graphql'
@@ -125,7 +124,7 @@ const OFFERING_SUBSCRIBERS_QUERY = `
 function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
-  const commonRoles = useSelector(getCommonRoles)
+  const groupRoles = useMemo(() => group?.groupRoles?.items || [], [group?.groupRoles?.items])
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [editingOffering, setEditingOffering] = useState(null)
   const editFormRef = useRef(null)
@@ -211,18 +210,14 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
       }
 
       // Format accessGrants from line items
-      // Format: { "trackIds": [1, 2], "commonRoleIds": [3], "groupRoleIds": [4], "groupIds": [5, 6] }
+      // Format: { "trackIds": [1, 2], "groupRoleIds": [4], "groupIds": [5, 6] }
       const accessGrants = {}
       if (formData.lineItems.tracks.length > 0) {
         accessGrants.trackIds = formData.lineItems.tracks.map(track => parseInt(track.id))
       }
       if (formData.lineItems.roles.length > 0) {
         // Separate common roles and group roles
-        const commonRoleIds = formData.lineItems.roles.filter(r => r.type === 'common').map(r => parseInt(r.id))
-        const groupRoleIds = formData.lineItems.roles.filter(r => r.type === 'group').map(r => parseInt(r.id))
-        if (commonRoleIds.length > 0) {
-          accessGrants.commonRoleIds = commonRoleIds
-        }
+        const groupRoleIds = formData.lineItems.roles.map(r => parseInt(r.id))
         if (groupRoleIds.length > 0) {
           accessGrants.groupRoleIds = groupRoleIds
         }
@@ -316,11 +311,7 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
       }
       if (formData.lineItems.roles.length > 0) {
         // Separate common roles and group roles
-        const commonRoleIds = formData.lineItems.roles.filter(r => r.type === 'common').map(r => parseInt(r.id))
-        const groupRoleIds = formData.lineItems.roles.filter(r => r.type === 'group').map(r => parseInt(r.id))
-        if (commonRoleIds.length > 0) {
-          accessGrants.commonRoleIds = commonRoleIds
-        }
+        const groupRoleIds = formData.lineItems.roles.map(r => parseInt(r.id))
         if (groupRoleIds.length > 0) {
           accessGrants.groupRoleIds = groupRoleIds
         }
@@ -347,7 +338,6 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
       const normalizeAccessGrants = (ag) => {
         const normalized = {}
         if (ag.trackIds && ag.trackIds.length > 0) normalized.trackIds = [...ag.trackIds].sort()
-        if (ag.commonRoleIds && ag.commonRoleIds.length > 0) normalized.commonRoleIds = [...ag.commonRoleIds].sort()
         if (ag.groupRoleIds && ag.groupRoleIds.length > 0) normalized.groupRoleIds = [...ag.groupRoleIds].sort()
         if (ag.groupIds && ag.groupIds.length > 0) normalized.groupIds = [...ag.groupIds].sort()
         if (ag.buyButtonText != null && String(ag.buyButtonText).trim() !== '') {
@@ -425,20 +415,6 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
       })
     }
 
-    if (accessGrants.commonRoleIds && Array.isArray(accessGrants.commonRoleIds)) {
-      accessGrants.commonRoleIds.forEach(roleId => {
-        const role = commonRoles.find(r => parseInt(r.id) === parseInt(roleId))
-        if (role) {
-          rolesFromAccessGrants.push({
-            id: role.id,
-            name: role.name,
-            emoji: role.emoji,
-            type: 'common'
-          })
-        }
-      })
-    }
-
     // Convert tracks relation to lineItems format
     const lineItems = {
       tracks: offeringTracks.map(track => ({
@@ -467,7 +443,7 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
       lineItems
     })
     setShowCreateForm(false)
-  }, [group, commonRoles])
+  }, [group, groupRoles])
 
   const handleCancelEdit = useCallback(() => {
     setEditingOffering(null)
@@ -1141,7 +1117,6 @@ function SubscribersPanel ({ offering, group, t }) {
  */
 function OfferingListItem ({ offering, onEdit, group, isEditing, isExpanded, onToggleSubscribers, t }) {
   const [copied, setCopied] = useState(false)
-  const commonRoles = useSelector(getCommonRoles)
 
   /**
    * Handle toggle click for subscriber view
@@ -1173,13 +1148,6 @@ function OfferingListItem ({ offering, onEdit, group, isEditing, isExpanded, onT
     }
 
     // Lookup common roles
-    if (accessGrants.commonRoleIds && Array.isArray(accessGrants.commonRoleIds)) {
-      accessGrants.commonRoleIds.forEach(roleId => {
-        const role = commonRoles.find(r => parseInt(r.id) === parseInt(roleId))
-        if (role) roles.push(role)
-      })
-    }
-
     const details = {
       tracks: offering.tracks || [],
       roles,
@@ -1192,7 +1160,7 @@ function OfferingListItem ({ offering, onEdit, group, isEditing, isExpanded, onT
     }
 
     return details
-  }, [offering.tracks, accessGrants, group?.groupRoles?.items, commonRoles])
+  }, [offering.tracks, accessGrants, group?.groupRoles?.items])
 
   const hasAccessContent = accessDetails.tracks.length > 0 || accessDetails.roles.length > 0 || accessDetails.hasGroups
 
@@ -1396,12 +1364,12 @@ function LineItemsSelector ({ group, lineItems, onLineItemsChange, t }) {
   const debouncedSearch = useDebounce(searchTerm, 300)
 
   // Get roles (combine common roles and group roles, like TagInput does)
-  const commonRoles = useSelector(getCommonRoles)
   const groupRoles = useMemo(() => group?.groupRoles?.items || [], [group?.groupRoles?.items])
-  const allRoles = useMemo(() => [
-    ...commonRoles.map(role => ({ ...role, type: 'common', label: `${role.emoji || ''} ${role.name}`.trim() })),
-    ...groupRoles.map(role => ({ ...role, type: 'group', label: `${role.emoji || ''} ${role.name}`.trim() }))
-  ], [commonRoles, groupRoles])
+  const allRoles = useMemo(() => groupRoles.map(role => ({
+    ...role,
+    type: 'group',
+    label: `${role.emoji || ''} ${role.name}`.trim()
+  })), [groupRoles])
 
   // Fetch tracks when track selector is active.
   useEffect(() => {

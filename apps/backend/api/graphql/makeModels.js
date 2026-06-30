@@ -90,20 +90,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
       }
     },
 
-    CommonRole: {
-      model: CommonRole,
-      attributes: [
-        'id',
-        'name',
-        'description',
-        'emoji'
-      ],
-      relations: [
-        { responsibilities: { querySet: true } }
-      ],
-      fetchMany: () => CommonRole.fetchAll()
-    },
-
     ContextWidget: {
       model: ContextWidget,
       attributes: [
@@ -196,18 +182,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
         { skills: { querySet: true } },
         { skillsToLearn: { querySet: true } },
         {
-          membershipCommonRoles: {
-            querySet: true,
-            filter: (relation, { groupId }) => {
-              return relation.query(q => {
-                if (groupId) {
-                  q.where('group_id', groupId)
-                }
-              })
-            }
-          }
-        },
-        {
           messageThreads: {
             typename: 'MessageThread',
             querySet: true,
@@ -248,8 +222,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         { agreements: { querySet: true } },
         { group: { alias: 'group' } },
         { user: { alias: 'person' } },
-        { commonRoles: { querySet: true } },
-        { membershipCommonRoles: { querySet: true } },
+        { membershipGroupRoles: { querySet: true } },
         { joinQuestionAnswers: { querySet: true } },
         { tagFollows: { alias: 'topicFollows', querySet: true } }
       ],
@@ -258,8 +231,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         lastViewedAt: m =>
           m.get('user_id') === userId ? m.getSetting('lastReadAt') : null,
         newPostCount: m =>
-          m.get('user_id') === userId ? m.get('new_post_count') : null,
-        hasModeratorRole: m => m.hasRole(GroupMembership.Role.MODERATOR) // TODO RESP: verify
+          m.get('user_id') === userId ? m.get('new_post_count') : null
       },
       filter: nonAdminFilter(membershipFilter(userId))
     },
@@ -275,21 +247,28 @@ export default function makeModels (userId, isAdmin, apiClient) {
       }
     },
 
-    MembershipCommonRole: {
-      model: MemberCommonRole,
+    GroupRole: {
+      model: GroupRole,
       attributes: [
-        'id',
+        'emoji',
+        'description',
         'group_id',
-        'common_role_id',
-        'user_id'
+        'name',
+        'type',
+        'active',
+        'createdAt',
+        'updatedAt'
       ],
       relations: [
-        'commonRole',
         'group',
-        'user'
+        { responsibilities: { querySet: true } }
       ],
       getters: {
-        roleId: mcr => mcr.get('common_role_id')
+        canAccess: gr => {
+          if (!gr || !userId) return false
+          const requiredScope = createGroupRoleScope(gr.get('id'), gr.get('group_id'))
+          return UserScope.canAccess(userId, requiredScope)
+        }
       }
     },
 
@@ -357,18 +336,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
       relations: [
         'memberships',
         {
-          membershipCommonRoles: {
-            querySet: true,
-            filter: (relation, { groupId }) => {
-              return relation.query(q => {
-                if (groupId) {
-                  q.where('group_id', groupId)
-                }
-              })
-            }
-          }
-        },
-        {
           groupJoinQuestionAnswers: {
             querySet: true,
             filter: (relation, args, context, info) => {
@@ -387,7 +354,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'moderatedGroupMemberships', // TODO: still need this?
         'locationObject',
         { groupRoles: { querySet: true } },
-        { commonRoles: { querySet: true } },
         { affiliations: { querySet: true } },
         { eventsAttending: { querySet: true } },
         // This fix is required for web and mobile, to avoid action posts showing up in member profiles
@@ -721,8 +687,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
         {
           members: {
             querySet: true,
-            filter: (relation, { id, autocomplete, boundingBox, groupRoleId, order, search, sortBy, commonRoleId }) =>
-              relation.query(filterAndSortUsers({ autocomplete, boundingBox, groupId: relation.relatedData.parentId, groupRoleId, order, search, sortBy, commonRoleId }))
+            filter: (relation, { id, autocomplete, boundingBox, groupRoleId, order, search, sortBy }) =>
+              relation.query(filterAndSortUsers({ autocomplete, boundingBox, groupId: relation.relatedData.parentId, groupRoleId, order, search, sortBy }))
           }
         },
         { parentGroups: { querySet: true } },
@@ -836,7 +802,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         {
           contentAccess: {
             querySet: true,
-            filter: (relation, { search, accessType, status, offeringId, trackId, groupRoleId, commonRoleId, sortBy, order }) =>
+            filter: (relation, { search, accessType, status, offeringId, trackId, groupRoleId, sortBy, order }) =>
               relation.query(filterAndSortContentAccess({
                 groupIds: [relation.relatedData.parentId],
                 search,
@@ -845,7 +811,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
                 offeringId,
                 trackId,
                 groupRoleId,
-                commonRoleId,
                 sortBy,
                 order
               }))
@@ -1021,31 +986,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
         questionAnswers: i => i.questionAnswers().fetch()
       },
       relations: ['createdBy', 'fromGroup', 'toGroup']
-    },
-
-    GroupRole: {
-      model: GroupRole,
-      attributes: [
-        'emoji',
-        'description',
-        'group_id',
-        'name',
-        'active',
-        'createdAt',
-        'updatedAt'
-      ],
-      relations: [
-        'group',
-        { responsibilities: { querySet: true } }
-      ],
-      getters: {
-        canAccess: gr => {
-          if (!gr || !userId) return false
-          // Check if user has the group_role scope
-          const requiredScope = createGroupRoleScope(gr.get('id'))
-          return UserScope.canAccess(userId, requiredScope)
-        }
-      }
     },
 
     CustomView: {
@@ -1371,7 +1311,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'action_descriptor_plural',
         'created_at',
         'banner_url',
-        'completion_role_type',
         'completion_message',
         'deactivated_at',
         'description',
@@ -1737,7 +1676,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'group_id',
         'track_id',
         'group_role_id',
-        'common_role_id',
         'access_type',
         'stripe_session_id',
         'stripe_subscription_id',
@@ -1753,7 +1691,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
         { product: { alias: 'offering', typename: 'StripeOffering' } },
         'track',
         'groupRole',
-        'commonRole',
         'grantedBy'
       ],
       fetchMany: (args) => {
@@ -1763,7 +1700,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
       },
       filter: (relation) => {
         const args = ContentAccess._fetchManyArgs || {}
-        const { groupIds, search, accessType, status, offeringId, trackId, groupRoleId, commonRoleId, sortBy = 'created_at', order } = args
+        const { groupIds, search, accessType, status, offeringId, trackId, groupRoleId, sortBy = 'created_at', order } = args
 
         return relation.query(q => {
           // Filter by group IDs (groups that granted the access)
@@ -1802,11 +1739,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
             q.where('content_access.group_role_id', groupRoleId)
           }
 
-          // Filter by common role ID
-          if (commonRoleId) {
-            q.where('content_access.common_role_id', commonRoleId)
-          }
-
           // Apply sorting
           const validSortColumns = {
             created_at: 'content_access.created_at',
@@ -1836,7 +1768,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
         offeringId: ca => ca.get('product_id'),
         trackId: ca => ca.get('track_id'),
         groupRoleId: ca => ca.get('group_role_id'),
-        commonRoleId: ca => ca.get('common_role_id'),
         accessType: ca => ca.get('access_type'),
         stripeSessionId: ca => ca.get('stripe_session_id'),
         stripeSubscriptionId: ca => ca.get('stripe_subscription_id'),

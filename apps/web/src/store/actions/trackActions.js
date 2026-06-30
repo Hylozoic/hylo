@@ -144,18 +144,18 @@ export function fetchTrack (trackId) {
             bannerUrl
             completionMessage
             completionRole {
-              ... on CommonRole {
-                id
-                emoji
-                name
-              }
-              ... on GroupRole {
-                id
-                emoji
-                name
+              id
+              emoji
+              name
+              groupId
+              responsibilities {
+                items {
+                  id
+                  title
+                  description
+                }
               }
             }
-            completionRoleType
             description
             didComplete
             enrolledUsers {
@@ -209,18 +209,10 @@ export function createTrack (data) {
           bannerUrl
           completionMessage
           completionRole {
-            ... on CommonRole {
-              id
-              emoji
-              name
-            }
-            ... on GroupRole {
-              id
-              emoji
-              name
-            }
+            id
+            emoji
+            name
           }
-          completionRoleType
           description
           groups {
             items {

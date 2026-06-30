@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-/* global bookshelf, Group, Post, CommonRole, GroupRole, FundingRoundUser, User, MemberCommonRole, MemberGroupRole, FundingRound, FundingRoundPost, Tag */
+/* global bookshelf, Group, Post, GroupRole, FundingRoundUser, User, MemberGroupRole, FundingRound, FundingRoundPost, Tag */
 import { GraphQLError } from 'graphql'
 import { sendPhaseTransitionNotifications, sendReminderNotifications, notifyStewardsOfSubmission } from './FundingRound/notifications'
 
@@ -47,11 +47,7 @@ module.exports = bookshelf.Model.extend({
     if (!rolesData || rolesData.length === 0) return []
 
     const roles = await Promise.all(rolesData.map(async roleInfo => {
-      if (roleInfo.type === 'common') {
-        return await CommonRole.where({ id: roleInfo.id }).fetch()
-      } else {
-        return await GroupRole.where({ id: roleInfo.id }).fetch()
-      }
+      return await GroupRole.where({ id: roleInfo.id }).fetch()
     }))
 
     return roles.filter(r => r) // Filter out any nulls
@@ -120,11 +116,7 @@ module.exports = bookshelf.Model.extend({
     if (!rolesData || rolesData.length === 0) return []
 
     const roles = await Promise.all(rolesData.map(async roleInfo => {
-      if (roleInfo.type === 'common') {
-        return await CommonRole.where({ id: roleInfo.id }).fetch()
-      } else {
-        return await GroupRole.where({ id: roleInfo.id }).fetch()
-      }
+      return await GroupRole.where({ id: roleInfo.id }).fetch()
     }))
 
     return roles.filter(r => r) // Filter out any nulls
@@ -141,21 +133,12 @@ module.exports = bookshelf.Model.extend({
 
     // Check if user has any of the specified roles
     for (const roleInfo of rolesData) {
-      if (roleInfo.type === 'common') {
-        const hasRole = await MemberCommonRole.where({
-          user_id: userId,
-          group_id: groupId,
-          common_role_id: roleInfo.id
-        }).fetch()
-        if (hasRole) return true
-      } else {
-        const hasRole = await MemberGroupRole.where({
-          user_id: userId,
-          group_id: groupId,
-          group_role_id: roleInfo.id
-        }).fetch()
-        if (hasRole) return true
-      }
+      const hasRole = await MemberGroupRole.where({
+        user_id: userId,
+        group_id: groupId,
+        group_role_id: roleInfo.id
+      }).fetch()
+      if (hasRole) return true
     }
 
     return false
@@ -172,21 +155,12 @@ module.exports = bookshelf.Model.extend({
 
     // Check if user has any of the specified roles
     for (const roleInfo of rolesData) {
-      if (roleInfo.type === 'common') {
-        const hasRole = await MemberCommonRole.where({
-          user_id: userId,
-          group_id: groupId,
-          common_role_id: roleInfo.id
-        }).fetch()
-        if (hasRole) return true
-      } else {
-        const hasRole = await MemberGroupRole.where({
-          user_id: userId,
-          group_id: groupId,
-          group_role_id: roleInfo.id
-        }).fetch()
-        if (hasRole) return true
-      }
+      const hasRole = await MemberGroupRole.where({
+        user_id: userId,
+        group_id: groupId,
+        group_role_id: roleInfo.id
+      }).fetch()
+      if (hasRole) return true
     }
 
     return false

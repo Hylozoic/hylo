@@ -7,20 +7,18 @@
  * - group:<groupId> - e.g., "group:123"
  * - track:<trackId> - e.g., "track:456"
  * - group_role:<groupId>:<roleId> - e.g., "group_role:123:789"
- * - common_role:<groupId>:<roleId> - e.g., "common_role:123:1"
  */
 
 const SCOPE_TYPES = {
   GROUP: 'group',
   TRACK: 'track',
-  GROUP_ROLE: 'group_role',
-  COMMON_ROLE: 'common_role'
+  GROUP_ROLE: 'group_role'
 }
 
 /**
  * Creates a scope string from type and entity ID
  *
- * @param {string} type - One of: 'group', 'track' (use createGroupRoleScope / createCommonRoleScope for roles)
+ * @param {string} type - One of: 'group', 'track' (use createGroupRoleScope for role scopes)
  * @param {string|number} entityId - The ID of the entity
  * @returns {string} The formatted scope string
  * @throws {Error} If type is invalid or entityId is missing
@@ -30,8 +28,8 @@ function createScope (type, entityId) {
     throw new Error(`Invalid scope type: ${type}. Must be one of: ${Object.values(SCOPE_TYPES).join(', ')}`)
   }
 
-  if (type === SCOPE_TYPES.GROUP_ROLE || type === SCOPE_TYPES.COMMON_ROLE) {
-    throw new Error('Use createGroupRoleScope or createCommonRoleScope for role scopes')
+  if (type === SCOPE_TYPES.GROUP_ROLE) {
+    throw new Error('Use createGroupRoleScope for role scopes')
   }
 
   if (!entityId) {
@@ -67,7 +65,7 @@ function parseScope (scopeString) {
     }
 
     // Role scopes should have 3 parts, so if it's a role type with only 2 parts, it's invalid
-    if (type === SCOPE_TYPES.GROUP_ROLE || type === SCOPE_TYPES.COMMON_ROLE) {
+    if (type === SCOPE_TYPES.GROUP_ROLE) {
       return null
     }
 
@@ -81,7 +79,7 @@ function parseScope (scopeString) {
   if (parts.length === 3) {
     const [type, groupId, roleId] = parts
 
-    if (type !== SCOPE_TYPES.GROUP_ROLE && type !== SCOPE_TYPES.COMMON_ROLE) {
+    if (type !== SCOPE_TYPES.GROUP_ROLE) {
       return null
     }
 
@@ -141,20 +139,6 @@ function createGroupRoleScope (groupRoleId, groupId) {
     throw new Error('groupId is required for group role scopes')
   }
   return `${SCOPE_TYPES.GROUP_ROLE}:${groupId}:${groupRoleId}`
-}
-
-/**
- * Creates a common role scope
- *
- * @param {string|number} commonRoleId - The common role ID
- * @param {string|number} groupId - The group ID (required to avoid collisions)
- * @returns {string} The common role scope string
- */
-function createCommonRoleScope (commonRoleId, groupId) {
-  if (!groupId) {
-    throw new Error('groupId is required for common role scopes')
-  }
-  return `${SCOPE_TYPES.COMMON_ROLE}:${groupId}:${commonRoleId}`
 }
 
 /**
@@ -221,7 +205,6 @@ module.exports = {
   createGroupScope,
   createTrackScope,
   createGroupRoleScope,
-  createCommonRoleScope,
   isScopeOfType,
   getEntityIdFromScope,
   createScopesFromContentAccess

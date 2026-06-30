@@ -11,19 +11,10 @@ export default gql`
     description
     completionMessage
     completionRole {
-      __typename
-      ... on CommonRole {
-        id
-        emoji
-        name
-      }
-      ... on GroupRole {
-        id
-        emoji
-        name
-      }
+      id
+      emoji
+      name
     }
-    completionRoleType
     didComplete
     enrolledUsers {
       items {

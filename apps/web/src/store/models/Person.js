@@ -14,16 +14,6 @@ Reaction.fields = {
   post: fk('Post', 'reactions')
 }
 
-export class MembershipCommonRole extends Model { }
-MembershipCommonRole.modelName = 'MembershipCommonRole'
-MembershipCommonRole.fields = {
-  id: attr(),
-  commonRoleId: attr(),
-  groupId: attr(),
-  userId: attr(),
-  commonRole: fk('CommonRole', 'membershipCommonRoles')
-}
-
 class Person extends Model {
   toString () {
     return `Person: ${this.name}`
@@ -49,7 +39,6 @@ Person.fields = {
     to: 'Location',
     as: 'locationObject'
   }),
-  membershipCommonRoles: many('MembershipCommonRole'),
   reactions: many('Reaction'),
   skills: many({ to: 'Skill', as: 'skills', relatedName: 'peopleHaving' }),
   skillsToLearn: many({

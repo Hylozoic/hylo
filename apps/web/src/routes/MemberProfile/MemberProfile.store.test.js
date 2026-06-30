@@ -11,10 +11,8 @@ describe('store & connector', () => {
       person
     } = testData
     session = orm.mutableSession(orm.getEmptyState())
-    session.CommonRole.create({ id: 1, title: 'Coordinator', responsibilities: { items: [{ id: 1, title: 'Administration' }, { id: 2, title: 'Manage Content' }] } })
     session.Person.create(person)
     session.Group.create(groups[0])
-    session.MembershipCommonRole.create(testData.membershipCommonRoles[0])
     state = { orm: session.state }
     selectorProps = {
       personId: '46816',

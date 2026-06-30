@@ -135,10 +135,8 @@ const subscriptionHandlers = {
             // Add new membership
             const newMembership = {
               __typename: 'GroupMembership',
-              id: `temp-${update.group.id}`, // Temporary ID
+              id: `temp-${update.group.id}`,
               group: update.group,
-              role: update.role || 0,
-              hasModeratorRole: update.role === 1,
               settings: {}
             }
             return {
@@ -510,11 +508,6 @@ export default {
       }
     },
 
-    addModerator: (result, args, cache, info) => {
-      const { groupId } = args
-      cache.invalidate({ __typename: 'Group', id: groupId })
-    },
-
     addPostToCollection: (result, args, cache, info) => {
       const { collectionId } = args
       cache.invalidate({ __typename: 'Collection', id: collectionId })
@@ -544,6 +537,12 @@ export default {
     createInvitation: (result, args, cache, info) => {
       const { groupId } = args
       cache.invalidate({ __typename: 'Group', id: groupId })
+    },
+
+    createGroup: (result, args, cache, info) => {
+      if (result?.createGroup?.id) {
+        cache.invalidate('Query', 'me')
+      }
     },
 
     createPost: (result, args, cache, info) => {
@@ -595,11 +594,6 @@ export default {
     },
 
     removeMember: (result, args, cache, info) => {
-      const { groupId } = args
-      cache.invalidate({ __typename: 'Group', id: groupId })
-    },
-
-    removeModerator: (result, args, cache, info) => {
       const { groupId } = args
       cache.invalidate({ __typename: 'Group', id: groupId })
     },

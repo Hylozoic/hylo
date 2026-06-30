@@ -23,7 +23,7 @@ module.exports = {
    *       userId: "456"
    *       grantedByGroupId: "123"
    *       groupId: "789"  // optional - for group-specific access
-   *       productId: "789"  // optional - or trackId: "101" or groupRoleId: "202" or commonRoleId: "203"
+   *       productId: "789"  // optional - or trackId: "101" or groupRoleId: "202"
    *     ) {
    *       hasAccess
    *       accessType
@@ -31,17 +31,15 @@ module.exports = {
    *     }
    *   }
    */
-  checkContentAccess: async (sessionUserId, { userId, grantedByGroupId, groupId, productId, trackId, groupRoleId, commonRoleId }) => {
+  checkContentAccess: async (sessionUserId, { userId, grantedByGroupId, groupId, productId, trackId, groupRoleId }) => {
     try {
-      // Check access using the model method
       const access = await ContentAccess.checkAccess({
         userId,
         grantedByGroupId,
         groupId,
         productId,
         trackId,
-        groupRoleId,
-        commonRoleId
+        groupRoleId
       })
 
       if (!access) {

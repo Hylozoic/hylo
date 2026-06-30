@@ -1,21 +1,13 @@
 import '../../../test/setup'
 import setup from '../../../test/setup'
 import factories from '../../../test/setup/factories'
+import { assignCoordinator } from '../../../test/setup/roleHelpers'
 import {
   createCollection,
   addPostToCollection,
   removePostFromCollection,
   reorderPostInCollection
 } from './collection'
-
-async function assignCoordinator (user, group) {
-  await user.joinGroup(group)
-  await new MemberCommonRole({
-    user_id: user.id,
-    group_id: group.id,
-    common_role_id: CommonRole.ROLES.Coordinator
-  }).save()
-}
 
 describe('collection mutations', () => {
   let owner, other, group, post
@@ -66,6 +58,24 @@ describe('collection mutations', () => {
       } catch (e) {
         expect(e.message).to.match(/Not a valid collection/)
       }
+    })
+
+    it('allows a user with Manage Content to modify a group collection', async () => {
+      const moderator = await factories.user().save()
+      const g = await factories.group().save()
+      await GroupRole.setupSystemRoles(g.id)
+      await moderator.joinGroup(g)
+      const moderatorRole = await GroupRole.findSystemRole(g.id, 'Moderator')
+      await MemberGroupRole.forge({
+        user_id: moderator.id,
+        group_id: g.id,
+        group_role_id: moderatorRole.id,
+        active: true
+      }).save()
+
+      const col = await createCollection(owner.id, { name: 'Group list', groupId: g.id })
+      const result = await addPostToCollection(moderator.id, col.id, post.id)
+      expect(result.success).to.equal(true)
     })
 
     it('throws when the post does not exist', async () => {

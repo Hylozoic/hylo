@@ -38,7 +38,7 @@ export const groupFilter = userId => relation => {
         const childGroupIds = GroupRelationship.childIdsFor(selectIdsForMember)
         const peerGroupIds = GroupRelationship.peerIdsFor(selectIdsForMember)
         // You can see all related groups, even hidden ones, if you are a group Administrator
-        const selectStewardedGroupIds = Group.selectIdsByResponsibilities(userId, [Responsibility.Common.RESP_ADMINISTRATION])
+        const selectStewardedGroupIds = Group.selectIdsByResponsibilities(userId, [Responsibility.constants.RESP_ADMINISTRATION])
         const childrenOfStewardedGroupIds = GroupRelationship.childIdsFor(selectStewardedGroupIds)
         const peerGroupsOfStewardedGroupIds = GroupRelationship.peerIdsFor(selectStewardedGroupIds)
 

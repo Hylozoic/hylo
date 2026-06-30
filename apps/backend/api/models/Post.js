@@ -1109,16 +1109,17 @@ module.exports = bookshelf.Model.extend(Object.assign({
       const tracks = await Track.query(q => q.whereIn('id', trackIds)).fetchAll({ transacting: trx })
       for (const track of tracks) {
         const trackActions = await track.posts().fetch({ transacting: trx })
+        const actionPostIds = trackActions.pluck('id')
         const completedActionsCount = await PostUser.query(q => {
           q.where('user_id', userId)
-          q.whereIn('post_id', trackActions.pluck('post_id'))
+          q.whereIn('post_id', actionPostIds)
           q.whereNotNull('completed_at')
         }).count({ transacting: trx })
 
         // If completed the track
         if (parseInt(completedActionsCount) === trackActions.length) {
           const trackUser = await TrackUser.where({ track_id: track.id, user_id: userId }).fetch({ transacting: trx })
-          if (trackUser.get('completed_at')) {
+          if (!trackUser || trackUser.get('completed_at')) {
             // Don't complete the track again if it's already completed
             continue
           }
@@ -1127,10 +1128,17 @@ module.exports = bookshelf.Model.extend(Object.assign({
           const group = await track.groups().fetchOne({ transacting: trx })
           // See if there is a role/badge for completing the track
           if (track.get('completion_role_id')) {
-            if (track.get('completion_role_type') === 'common') {
-              await MemberCommonRole.forge({ common_role_id: track.get('completion_role_id'), user_id: userId, group_id: group.id }).save(null, { transacting: trx })
-            } else if (track.get('completion_role_type') === 'group') {
-              await MemberGroupRole.forge({ group_role_id: track.get('completion_role_id'), user_id: userId, active: true, group_id: group.id }).save(null, { transacting: trx })
+            try {
+              await MemberGroupRole.forge({
+                group_role_id: track.get('completion_role_id'),
+                user_id: userId,
+                active: true,
+                group_id: group.id
+              }).save(null, { transacting: trx })
+            } catch (err) {
+              if (!err.message || !err.message.includes('duplicate key value')) {
+                throw err
+              }
             }
           }
 

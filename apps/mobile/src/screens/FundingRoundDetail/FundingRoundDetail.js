@@ -285,20 +285,11 @@ const PeopleTab = ({ fundingRound, group, currentPhase, canSubmit, canVote }) =>
   const userHasRole = (user, requiredRoles, groupId) => {
     if (!requiredRoles || requiredRoles.length === 0) return true
 
-    for (const requiredRole of requiredRoles) {
-      if (requiredRole.type === 'common') {
-        const hasCommonRole = user.membershipCommonRoles?.items?.some(
-          mcr => mcr.commonRoleId === requiredRole.id && mcr.groupId === groupId
-        )
-        if (hasCommonRole) return true
-      } else {
-        const hasGroupRole = user.groupRoles?.items?.some(
-          gr => gr.id === requiredRole.id && gr.groupId === groupId && gr.active
-        )
-        if (hasGroupRole) return true
-      }
-    }
-    return false
+    return requiredRoles.some(requiredRole =>
+      user.groupRoles?.items?.some(
+        gr => gr.id === requiredRole.id && gr.groupId === groupId && gr.active
+      )
+    )
   }
 
   return (

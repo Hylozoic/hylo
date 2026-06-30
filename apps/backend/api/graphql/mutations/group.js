@@ -27,21 +27,6 @@ async function getStewardedGroup (userId, groupId, additionalResponsibility = ''
 
 // Group Mutations
 
-export async function addModerator (userId, personId, groupId, context) {
-  const group = await getStewardedGroup(userId, groupId, Responsibility.constants.RESP_ADMINISTRATION)
-  const person = await User.find(personId)
-  await GroupMembership.setModeratorRole(personId, group)
-
-  // Publish group membership update to all group members (non-blocking)
-  publishAsync(publishGroupMembershipUpdate, context, groupId, {
-    group,
-    member: person,
-    action: 'moderator_added'
-  })
-
-  return group
-}
-
 export async function createGroup (userId, data) {
   return Group.create(userId, convertGraphqlData(data))
 }
@@ -141,6 +126,15 @@ export async function joinGroup (groupId, userId, questionAnswers, accessCode, i
     await membership.acceptAgreements()
   }
 
+  // Token invitations can attach a group role (e.g. Host). joinGroup marks invites used by
+  // email but does not assign roles — invitation.use() handles role assignment.
+  if (invitationToken && hasValidInvitation) {
+    const invitation = await Invitation.find(invitationToken)
+    if (invitation) {
+      await invitation.use(userId)
+    }
+  }
+
   // Subscription publishing for group joins is handled in the background job Group.afterAddMembers
 
   return membership
@@ -168,34 +162,6 @@ export async function removeMember (loggedInUserId, userIdToRemove, groupId, con
   }, {
     additionalUserIds: [userIdToRemove]
   })
-
-  return group
-}
-
-export async function removeModerator (userId, personId, groupId, isRemoveFromGroup, context) {
-  const group = await getStewardedGroup(userId, groupId, Responsibility.constants.RESP_ADMINISTRATION)
-  const person = await User.find(personId)
-
-  if (isRemoveFromGroup) {
-    await GroupMembership.removeModeratorRole(personId, group)
-    await GroupService.removeMember(personId, groupId)
-
-    publishAsync(publishGroupMembershipUpdate, context, groupId, {
-      group,
-      member: person,
-      action: 'left'
-    }, {
-      additionalUserIds: [personId]
-    })
-  } else {
-    await GroupMembership.removeModeratorRole(personId, group)
-
-    publishAsync(publishGroupMembershipUpdate, context, groupId, {
-      group,
-      member: person,
-      action: 'moderator_removed'
-    })
-  }
 
   return group
 }
@@ -310,15 +276,13 @@ export async function rejectGroupRelationshipInvite (userId, groupRelationshipIn
 }
 
 // API only Group Mutations
-export async function addMember (userId, groupId, role) {
+export async function addMember (userId, groupId, assignCoordinator = false) {
   const group = await Group.find(groupId)
   if (!group) {
     return { success: false, error: 'Group not found' }
   }
 
-  if (group) {
-    await group.addMembers([userId], { role: role || GroupMembership.Role.DEFAULT }, {})
-  }
+  await group.addMembers([userId], { assignCoordinator: !!assignCoordinator }, {})
   return { success: true }
 }
 

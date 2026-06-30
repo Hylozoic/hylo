@@ -8,9 +8,9 @@ import { joinRoom, leaveRoom } from '../services/Websockets'
 module.exports = {
 
   create: async function (req, res) {
-    const { name, email, groupId, isModerator } = req.allParams()
+    const { name, email, groupId, isCoordinator } = req.allParams()
     const group = groupId && await Group.find(groupId)
-    const isModeratorVal = isModerator && isModerator === 'true'
+    const assignCoordinator = isCoordinator === true || isCoordinator === 'true'
 
     const user = await User.find(email, {}, false)
     if (user) {
@@ -34,7 +34,7 @@ module.exports = {
 
           await InvitationService.create({
             groupId: group.id,
-            isModerator: isModeratorVal,
+            assignCoordinator,
             message,
             sessionUserId: inviteBy?.id,
             subject,
@@ -48,8 +48,8 @@ module.exports = {
     }
 
     const attrs = { name, email: email ? email.toLowerCase() : null, email_validated: false, active: false, group }
-    if (isModeratorVal) {
-      attrs.role = GroupMembership.Role.MODERATOR // This is ultimately fed to Group.addMembers, which handles mod -> Coordinator. TODO: RESP, fix this
+    if (assignCoordinator) {
+      attrs.assignCoordinator = true
     }
 
     return User.create(attrs)

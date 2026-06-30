@@ -46,7 +46,6 @@ export {
 export {
   acceptGroupRelationshipInvite,
   addMember,
-  addModerator,
   cancelGroupRelationshipInvite,
   createGroup,
   invitePeerRelationship,
@@ -58,7 +57,6 @@ export {
   joinGroup,
   regenerateAccessCode,
   rejectGroupRelationshipInvite,
-  removeModerator,
   removeMember,
   updateGroup,
   updatePeerRelationship
