@@ -245,17 +245,7 @@ export default function OfferingDetails () {
 
             {/* Access Grants Section */}
             {(() => {
-              // Lookup roles from group context using IDs from accessGrants
-              const accessGrants = parseAccessGrants(offering.accessGrants)
-              const groupRoles = group?.groupRoles?.items || []
-              const allRoles = []
-
-              if (accessGrants.groupRoleIds && Array.isArray(accessGrants.groupRoleIds)) {
-                accessGrants.groupRoleIds.forEach(roleId => {
-                  const role = groupRoles.find(r => parseInt(r.id) === parseInt(roleId))
-                  if (role) allRoles.push(role)
-                })
-              }
+              const allRoles = offering.roles || []
               const hasTracks = offering.tracks && offering.tracks.length > 0
               const hasRoles = allRoles.length > 0
               return (grantsGroupAccess || hasTracks || hasRoles) && (
