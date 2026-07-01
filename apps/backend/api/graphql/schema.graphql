@@ -2827,6 +2827,8 @@ type StripeOffering {
   metadata: JSON
   # Tracks this offering grants access to (resolved from accessGrants.trackIds)
   tracks: [Track]
+  # Group roles this offering grants (resolved from accessGrants.groupRoleIds)
+  roles: [GroupRole]
   # Renewal policy: automatic or manual
   renewalPolicy: String
   # Duration: month, season, annual, lifetime, or null for no expiration

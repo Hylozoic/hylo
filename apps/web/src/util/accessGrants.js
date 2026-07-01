@@ -123,7 +123,7 @@ export function offeringHasGroupAccess (offering) {
 
 /**
  * Checks if an offering has any role access grants
- * @param {object} offering - The offering object with groupRoles/commonRoles relations or accessGrants
+ * @param {object} offering - The offering object with optional `roles` (GraphQL) or `accessGrants`
  * @returns {boolean} True if the offering grants access to any roles
  */
 export function offeringHasRoleAccess (offering) {
@@ -131,13 +131,10 @@ export function offeringHasRoleAccess (offering) {
     return false
   }
 
-  // Prefer role relations if available
-  const hasGroupRolesRelation = offering.groupRoles && Array.isArray(offering.groupRoles) && offering.groupRoles.length > 0
-  if (hasGroupRolesRelation) {
+  if (offering.roles && Array.isArray(offering.roles) && offering.roles.length > 0) {
     return true
   }
 
-  // Fallback to parsing accessGrants
   const accessGrants = parseAccessGrants(offering.accessGrants)
   return accessGrants.groupRoleIds && Array.isArray(accessGrants.groupRoleIds) && accessGrants.groupRoleIds.length > 0
 }

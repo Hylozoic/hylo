@@ -21,6 +21,11 @@ const query = `
         bannerUrl
         description
       }
+      roles {
+        id
+        name
+        emoji
+      }
       group {
         id
         name

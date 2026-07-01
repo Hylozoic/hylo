@@ -1660,6 +1660,32 @@ export default function makeModels (userId, isAdmin, apiClient) {
           // Fetch tracks
           const tracks = await Track.where('id', 'in', trackIds).fetchAll()
           return tracks.models || []
+        },
+        roles: async (sp) => {
+          if (!sp) return []
+          const accessGrants = sp.get('access_grants')
+          if (!accessGrants) return []
+
+          let grants = {}
+          if (typeof accessGrants === 'string') {
+            try {
+              grants = JSON.parse(accessGrants)
+            } catch {
+              return []
+            }
+          } else {
+            grants = accessGrants
+          }
+
+          const groupRoleIds = []
+          if (grants.groupRoleIds && Array.isArray(grants.groupRoleIds)) {
+            groupRoleIds.push(...grants.groupRoleIds.map(id => parseInt(id)))
+          }
+
+          if (groupRoleIds.length === 0) return []
+
+          const roles = await GroupRole.where('id', 'in', groupRoleIds).fetchAll()
+          return roles.models || []
         }
       }
     },
