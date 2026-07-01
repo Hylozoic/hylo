@@ -116,6 +116,7 @@ export default gql`
             emoji
             active
             groupId
+            type
             responsibilities {
               items {
                 id
@@ -123,14 +124,6 @@ export default gql`
                 description
               }
             }
-          }
-        }
-        membershipCommonRoles {
-          items {
-            id
-            groupId
-            userId
-            roleId
           }
         }
       }

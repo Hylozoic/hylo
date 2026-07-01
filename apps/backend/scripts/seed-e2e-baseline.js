@@ -45,6 +45,106 @@ function assertSafeE2eDatabase (connectionString) {
   }
 }
 
+const SYSTEM_ROLE_DEFINITIONS = [
+  {
+    name: 'Coordinator',
+    emoji: '🪄',
+    description: 'Coordinators are empowered to do everything related to group administration.',
+    responsibilities: ['Administration', 'Add Members', 'Remove Members', 'Manage Content', 'Manage Tracks', 'Manage Rounds']
+  },
+  {
+    name: 'Moderator',
+    emoji: '⚖️',
+    description: 'Moderators are expected to actively engage in discussion, encourage participation, and take corrective action if a member violates group agreements.',
+    responsibilities: ['Manage Content', 'Remove Members']
+  },
+  {
+    name: 'Host',
+    emoji: '👋',
+    description: 'Hosts are responsible for cultivating a good atmosphere by welcoming and orienting new members, embodying the group culture and agreements, and helping members connect with relevant content and people.',
+    responsibilities: ['Add Members']
+  }
+]
+
+/** System responsibilities referenced by SYSTEM_ROLE_DEFINITIONS — schema.sql creates the table but no rows. */
+const SYSTEM_RESPONSIBILITY_DEFINITIONS = [
+  { title: 'Administration', description: 'Allows for editing group settings, exporting data, and deleting the group.' },
+  { title: 'Add Members', description: 'The ability to invite and add new people to the group, and to accept or reject join requests.' },
+  { title: 'Remove Members', description: 'The ability to remove a member from the group.' },
+  { title: 'Manage Content', description: 'Adjust group topics, custom views and manage content that contradicts the agreements of the group.' },
+  { title: 'Manage Tracks', description: 'Create and manage tracks in the group.' },
+  { title: 'Manage Rounds', description: 'Create and manage funding rounds in the group.' }
+]
+
+/**
+ * E2E loads schema.sql only (no Knex migrations), so responsibilities may be empty.
+ * GroupSettings and other permission checks need these rows for Coordinator → Administration.
+ */
+async function ensureSystemResponsibilities (client, now) {
+  for (const resp of SYSTEM_RESPONSIBILITY_DEFINITIONS) {
+    await client.query(
+      `INSERT INTO responsibilities (title, description, type, created_at, updated_at, group_id)
+       SELECT $1, $2, 'system', $3::timestamptz, $3::timestamptz, NULL
+       WHERE NOT EXISTS (
+         SELECT 1 FROM responsibilities r WHERE r.title = $1 AND r.type = 'system'
+       )`,
+      [resp.title, resp.description, now]
+    )
+  }
+}
+
+/**
+ * Create per-group system roles (Coordinator, Moderator, Host) if missing.
+ * @returns {Promise<Record<string, number>>} role name → groups_roles.id
+ */
+async function setupSystemRolesForGroup (client, groupId, now) {
+  const roleIds = {}
+  for (const roleDef of SYSTEM_ROLE_DEFINITIONS) {
+    let res = await client.query(
+      `SELECT id FROM groups_roles WHERE group_id = $1 AND name = $2 AND type = 'system' LIMIT 1`,
+      [groupId, roleDef.name]
+    )
+    let roleId = res.rows[0]?.id
+    if (!roleId) {
+      res = await client.query(
+        `INSERT INTO groups_roles (group_id, name, emoji, description, type, active, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, 'system', true, $5::timestamptz, $5::timestamptz)
+         RETURNING id`,
+        [groupId, roleDef.name, roleDef.emoji, roleDef.description, now]
+      )
+      roleId = res.rows[0].id
+    }
+    for (const respTitle of roleDef.responsibilities) {
+      await client.query(
+        `INSERT INTO group_roles_responsibilities (group_role_id, responsibility_id)
+         SELECT $1::bigint, r.id
+         FROM responsibilities r
+         WHERE r.title = $2 AND r.type = 'system'
+         AND NOT EXISTS (
+           SELECT 1 FROM group_roles_responsibilities grr
+           WHERE grr.group_role_id = $1 AND grr.responsibility_id = r.id
+         )`,
+        [roleId, respTitle]
+      )
+    }
+    roleIds[roleDef.name] = roleId
+  }
+  return roleIds
+}
+
+/** Assign the Coordinator system role to a membership. */
+async function assignCoordinatorRole (client, userId, groupId, coordinatorRoleId, now) {
+  await client.query(
+    `INSERT INTO group_memberships_group_roles (user_id, group_id, group_role_id, active, created_at, updated_at)
+     SELECT $1::bigint, $2::bigint, $3::bigint, true, $4::timestamptz, $4::timestamptz
+     WHERE NOT EXISTS (
+       SELECT 1 FROM group_memberships_group_roles mgr
+       WHERE mgr.user_id = $1 AND mgr.group_id = $2 AND mgr.group_role_id = $3
+     )`,
+    [userId, groupId, coordinatorRoleId, now]
+  )
+}
+
 const E2E_USER_EMAIL = 'e2e.user@hylo.test'
 const E2E_USER_PASSWORD = 'e2e-password-123'
 /** Logout / re-login Playwright only — keeps primary `e2e.user` session valid for parallel tests. */
@@ -126,7 +226,7 @@ async function clearPreviousE2eBaseline (client) {
   await client.query(`DELETE FROM posts WHERE name = 'E2E Public Post'`)
 
   await client.query(
-    `DELETE FROM group_memberships_common_roles
+    `DELETE FROM group_memberships_group_roles
      WHERE group_id IN (SELECT id FROM groups WHERE slug = ANY($1::text[]))
         OR user_id IN (SELECT id FROM users WHERE lower(email) = ANY($2::text[]))`,
     [E2E_GROUP_SLUGS, E2E_USER_EMAILS]
@@ -183,6 +283,7 @@ async function main () {
   await client.connect()
   const seedInstantMs = Date.now()
   const now = new Date(seedInstantMs).toISOString()
+  await ensureSystemResponsibilities(client, now)
   const userSettings = JSON.stringify({ locale: 'en' })
   const emptyGroupSettings = JSON.stringify({})
 
@@ -250,13 +351,18 @@ async function main () {
     )
     const privateGroupId = privRes.rows[0].id
 
+    const publicRoles = await setupSystemRolesForGroup(client, publicGroupId, now)
+    const privateRoles = await setupSystemRolesForGroup(client, privateGroupId, now)
+
     // Maps to Membership.lastViewedAt; without it AuthLayoutRouter replaces deep links with …/stream
     await client.query(
-      `INSERT INTO group_memberships (group_id, user_id, active, role, created_at, updated_at, settings)
-       VALUES ($1, $2, true, 1, $3::timestamptz, $3::timestamptz, $4::jsonb),
-              ($5, $2, true, 1, $3::timestamptz, $3::timestamptz, $6::jsonb)`,
+      `INSERT INTO group_memberships (group_id, user_id, active, created_at, updated_at, settings)
+       VALUES ($1, $2, true, $3::timestamptz, $3::timestamptz, $4::jsonb),
+              ($5, $2, true, $3::timestamptz, $3::timestamptz, $6::jsonb)`,
       [publicGroupId, userId, now, membershipSettingsPrimaryLastViewed, privateGroupId, membershipSettingsPrimaryLastViewed]
     )
+    await assignCoordinatorRole(client, userId, publicGroupId, publicRoles.Coordinator, now)
+    await assignCoordinatorRole(client, userId, privateGroupId, privateRoles.Coordinator, now)
 
     const stripeAccountRes = await client.query(
       `INSERT INTO stripe_accounts (stripe_account_external_id)
@@ -295,6 +401,7 @@ async function main () {
       ]
     )
     const paywallGroupId = paywallRes.rows[0].id
+    await setupSystemRolesForGroup(client, paywallGroupId, now)
 
     await client.query(
       `UPDATE groups
@@ -349,8 +456,8 @@ async function main () {
     )
 
     await client.query(
-      `INSERT INTO group_memberships (group_id, user_id, active, role, created_at, updated_at, settings)
-       VALUES ($1, $2, true, 1, $3::timestamptz, $3::timestamptz, $4::jsonb)`,
+      `INSERT INTO group_memberships (group_id, user_id, active, created_at, updated_at, settings)
+       VALUES ($1, $2, true, $3::timestamptz, $3::timestamptz, $4::jsonb)`,
       [paywallGroupId, userId, now, membershipSettings]
     )
 
@@ -467,48 +574,8 @@ async function main () {
 
     /**
      * GroupSettings requires Coordinator → Administration (`getResponsibilitiesForGroup`).
-     * Raw `group_memberships` inserts do not run `MemberCommonRole.updateCoordinatorRole`.
+     * Raw `group_memberships` inserts do not run GroupMembership.assignCoordinatorRole.
      */
-    let coordinatorRoleId = (await client.query(
-      'SELECT id FROM common_roles WHERE name = \'Coordinator\' LIMIT 1'
-    )).rows[0]?.id
-    if (!coordinatorRoleId) {
-      const cr = await client.query(
-        `INSERT INTO common_roles (name, description, emoji, created_at, updated_at)
-         VALUES ('Coordinator', $1, '🪄', $2::timestamptz, $2::timestamptz)
-         RETURNING id`,
-        [
-          'Coordinators are empowered to do everything related to group administration.',
-          now
-        ]
-      )
-      coordinatorRoleId = cr.rows[0].id
-    }
-
-    let administrationRespId = (await client.query(
-      'SELECT id FROM responsibilities WHERE title = \'Administration\' LIMIT 1'
-    )).rows[0]?.id
-    if (!administrationRespId) {
-      const rr = await client.query(
-        `INSERT INTO responsibilities (title, description, type, created_at, updated_at, group_id)
-         VALUES ('Administration', $1, 'system', $2::timestamptz, $2::timestamptz, NULL)
-         RETURNING id`,
-        ['Full group administration', now]
-      )
-      administrationRespId = rr.rows[0].id
-    }
-
-    await client.query(
-      `INSERT INTO common_roles_responsibilities (common_role_id, responsibility_id)
-       SELECT $1::bigint, $2::bigint
-       WHERE NOT EXISTS (
-         SELECT 1 FROM common_roles_responsibilities
-         WHERE common_role_id = $1 AND responsibility_id = $2
-       )`,
-      [coordinatorRoleId, administrationRespId]
-    )
-
-    /** Only this slug uses `showJoinForm: true` for Batch M Playwright; all other seeded memberships clear the welcome gate. */
     const welcomeOverlayMembershipSettings = JSON.stringify({
       lastReadAt: new Date(seedInstantMs - 43200000).toISOString(),
       showJoinForm: true
@@ -524,24 +591,15 @@ async function main () {
       [now, 'E2E Welcome Overlay', 'e2e-welcome-overlay', 'Playwright GroupWelcomeModal E2E', userId, emptyGroupSettings]
     )
     const welcomeGroupId = welcomeRes.rows[0].id
+    const welcomeRoles = await setupSystemRolesForGroup(client, welcomeGroupId, now)
 
     await client.query(
-      `INSERT INTO group_memberships (group_id, user_id, active, role, created_at, updated_at, settings)
-       VALUES ($1, $2, true, 1, $3::timestamptz, $3::timestamptz, $4::jsonb)`,
+      `INSERT INTO group_memberships (group_id, user_id, active, created_at, updated_at, settings)
+       VALUES ($1, $2, true, $3::timestamptz, $3::timestamptz, $4::jsonb)`,
       [welcomeGroupId, userId, now, welcomeOverlayMembershipSettings]
     )
 
-    for (const gid of [publicGroupId, privateGroupId, welcomeGroupId]) {
-      await client.query(
-        `INSERT INTO group_memberships_common_roles (user_id, group_id, common_role_id)
-         SELECT $1::bigint, $2::bigint, $3::bigint
-         WHERE NOT EXISTS (
-           SELECT 1 FROM group_memberships_common_roles gmcr
-           WHERE gmcr.user_id = $1 AND gmcr.group_id = $2 AND gmcr.common_role_id = $3
-         )`,
-        [userId, gid, coordinatorRoleId]
-      )
-    }
+    await assignCoordinatorRole(client, userId, welcomeGroupId, welcomeRoles.Coordinator, now)
 
     const mutateUserRes = await client.query(
       `INSERT INTO users (email, name, first_name, last_name, active, email_validated, created_at, updated_at, settings)
@@ -553,20 +611,12 @@ async function main () {
     const sessionMutateMembershipSettings = membershipSettingsWelcomeCleared(seedInstantMs + 7200000)
 
     await client.query(
-      `INSERT INTO group_memberships (group_id, user_id, active, role, created_at, updated_at, settings)
-       VALUES ($1, $2, true, 1, $3::timestamptz, $3::timestamptz, $4::jsonb)`,
+      `INSERT INTO group_memberships (group_id, user_id, active, created_at, updated_at, settings)
+       VALUES ($1, $2, true, $3::timestamptz, $3::timestamptz, $4::jsonb)`,
       [publicGroupId, sessionMutateUserId, now, sessionMutateMembershipSettings]
     )
 
-    await client.query(
-      `INSERT INTO group_memberships_common_roles (user_id, group_id, common_role_id)
-       SELECT $1::bigint, $2::bigint, $3::bigint
-       WHERE NOT EXISTS (
-         SELECT 1 FROM group_memberships_common_roles gmcr
-         WHERE gmcr.user_id = $1 AND gmcr.group_id = $2 AND gmcr.common_role_id = $3
-       )`,
-      [sessionMutateUserId, publicGroupId, coordinatorRoleId]
-    )
+    await assignCoordinatorRole(client, sessionMutateUserId, publicGroupId, publicRoles.Coordinator, now)
 
     const mutatePasswordHash = await bcrypt.hash(E2E_USER_PASSWORD, 10)
     await client.query(
@@ -625,24 +675,24 @@ async function main () {
     )
     const extrPubBId = extrPubBRes.rows[0].id
 
+    const outsiderRoles = await setupSystemRolesForGroup(client, outsiderGroupId, now)
+    const extrPubARoles = await setupSystemRolesForGroup(client, extrPubAId, now)
+    const extrPubBRoles = await setupSystemRolesForGroup(client, extrPubBId, now)
+
     await client.query(
-      `INSERT INTO group_memberships (group_id, user_id, active, role, created_at, updated_at, settings)
-       VALUES ($1, $2, true, 1, $3::timestamptz, $3::timestamptz, $4::jsonb),
-              ($5, $2, true, 1, $3::timestamptz, $3::timestamptz, $4::jsonb),
-              ($6, $2, true, 1, $3::timestamptz, $3::timestamptz, $4::jsonb)`,
+      `INSERT INTO group_memberships (group_id, user_id, active, created_at, updated_at, settings)
+       VALUES ($1, $2, true, $3::timestamptz, $3::timestamptz, $4::jsonb),
+              ($5, $2, true, $3::timestamptz, $3::timestamptz, $4::jsonb),
+              ($6, $2, true, $3::timestamptz, $3::timestamptz, $4::jsonb)`,
       [outsiderGroupId, hostId, now, membershipSettings, extrPubAId, extrPubBId]
     )
 
-    for (const gid of [outsiderGroupId, extrPubAId, extrPubBId]) {
-      await client.query(
-        `INSERT INTO group_memberships_common_roles (user_id, group_id, common_role_id)
-         SELECT $1::bigint, $2::bigint, $3::bigint
-         WHERE NOT EXISTS (
-           SELECT 1 FROM group_memberships_common_roles gmcr
-           WHERE gmcr.user_id = $1 AND gmcr.group_id = $2 AND gmcr.common_role_id = $3
-         )`,
-        [hostId, gid, coordinatorRoleId]
-      )
+    for (const [gid, coordinatorRoleId] of [
+      [outsiderGroupId, outsiderRoles.Coordinator],
+      [extrPubAId, extrPubARoles.Coordinator],
+      [extrPubBId, extrPubBRoles.Coordinator]
+    ]) {
+      await assignCoordinatorRole(client, hostId, gid, coordinatorRoleId, now)
     }
 
     const postMultiPublicRes = await client.query(
@@ -748,11 +798,13 @@ async function main () {
     }
 
     for (const groupId of invitationLinkGroupIds) {
+      const roles = await setupSystemRolesForGroup(client, groupId, now)
       await client.query(
-        `INSERT INTO group_memberships (group_id, user_id, active, role, created_at, updated_at, settings)
-         VALUES ($1, $2, true, 1, $3::timestamptz, $3::timestamptz, $4::jsonb)`,
+        `INSERT INTO group_memberships (group_id, user_id, active, created_at, updated_at, settings)
+         VALUES ($1, $2, true, $3::timestamptz, $3::timestamptz, $4::jsonb)`,
         [groupId, hostId, now, membershipSettings]
       )
+      await assignCoordinatorRole(client, hostId, groupId, roles.Coordinator, now)
     }
 
     const passwordHash = await bcrypt.hash(E2E_USER_PASSWORD, 10)
@@ -783,8 +835,8 @@ async function main () {
     const trackViewerId = trackViewerRes.rows[0].id
 
     await client.query(
-      `INSERT INTO group_memberships (group_id, user_id, active, role, created_at, updated_at, settings)
-       VALUES ($1, $2, true, 1, $3::timestamptz, $3::timestamptz, $4::jsonb)`,
+      `INSERT INTO group_memberships (group_id, user_id, active, created_at, updated_at, settings)
+       VALUES ($1, $2, true, $3::timestamptz, $3::timestamptz, $4::jsonb)`,
       [publicGroupId, trackViewerId, now, membershipSettings]
     )
 

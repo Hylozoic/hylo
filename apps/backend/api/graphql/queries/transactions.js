@@ -242,7 +242,7 @@ export async function myTransactions (userId, { first = 20, offset = 0, status, 
         q.offset(offset)
       })
       .fetchAll({
-        withRelated: ['product', 'grantedByGroup', 'track', 'groupRole', 'commonRole']
+        withRelated: ['product', 'grantedByGroup', 'track', 'groupRole']
       })
 
     // Transform records into UserTransaction format
@@ -256,7 +256,7 @@ export async function myTransactions (userId, { first = 20, offset = 0, status, 
       let derivedAccessType = 'group'
       if (record.get('track_id')) {
         derivedAccessType = 'track'
-      } else if (record.get('group_role_id') || record.get('common_role_id')) {
+      } else if (record.get('group_role_id')) {
         derivedAccessType = 'role'
       } else if (record.get('group_id')) {
         derivedAccessType = 'group'

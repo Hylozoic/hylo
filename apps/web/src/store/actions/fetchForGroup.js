@@ -90,14 +90,6 @@ const queryFragment = `group(slug: $slug, updateLastViewed: $updateLastViewed) {
         avatarUrl
         lastActiveAt
         name
-        membershipCommonRoles {
-          items {
-            id
-            groupId
-            userId
-            commonRoleId
-          }
-        }
         groupRoles {
           items {
             id

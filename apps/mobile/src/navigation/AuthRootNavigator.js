@@ -9,7 +9,6 @@ import mixpanel from 'services/mixpanel'
 import { useTranslation } from 'react-i18next'
 import resetNotificationsCountMutation from '@hylo/graphql/mutations/resetNotificationsCountMutation'
 import notificationsQuery from '@hylo/graphql/queries/notificationsQuery'
-import commonRolesQuery from '@hylo/graphql/queries/commonRolesQuery'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import usePlatformAgreements from '@hylo/hooks/usePlatformAgreements'
 import useHandleLinking from 'navigation/linking/useHandleLinking'
@@ -54,7 +53,6 @@ export default function AuthRootNavigator () {
 
   // Pause queries if no internet connectivity
   useQuery({ query: notificationsQuery, pause: !isConnected || !isInternetReachable })
-  useQuery({ query: commonRolesQuery, pause: !isConnected || !isInternetReachable })
   usePlatformAgreements()
   useHandleLinking()
 

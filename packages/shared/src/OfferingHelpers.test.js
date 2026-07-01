@@ -28,7 +28,6 @@ describe('OfferingHelpers', () => {
     it('returns false when tracks are combined with groups or roles', () => {
       expect(accessGrantsGrantOnlyTracks({ trackIds: [1], groupIds: [2] })).toBe(false)
       expect(accessGrantsGrantOnlyTracks({ trackIds: [1], groupRoleIds: [3] })).toBe(false)
-      expect(accessGrantsGrantOnlyTracks({ trackIds: [1], commonRoleIds: [4] })).toBe(false)
     })
 
     it('returns false when no tracks are granted', () => {

@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-const { createTrackScope, createGroupRoleScope, createCommonRoleScope, createGroupScope } = require('../../lib/scopes')
+const { createTrackScope, createGroupRoleScope, createGroupScope } = require('../../lib/scopes')
 const StripeService = require('../services/StripeService')
 
 module.exports = bookshelf.Model.extend({
@@ -54,14 +54,6 @@ module.exports = bookshelf.Model.extend({
   },
 
   /**
-   * Optional common role that this access grant is for
-   * If set, this grants a specific common role within the group
-   */
-  commonRole: function () {
-    return this.belongsTo(CommonRole, 'common_role_id')
-  },
-
-  /**
    * The admin who granted this access (for admin-granted free access)
    */
   grantedBy: function () {
@@ -88,12 +80,11 @@ module.exports = bookshelf.Model.extend({
   /**
    * Get the scope string that this content access grants
    * Note: Each content_access record grants exactly ONE scope - either a track, role, or group scope
-   * @returns {String|null} Single scope string (e.g., 'group:123', 'track:456', 'group_role:123:789', 'common_role:123:1')
+   * @returns {String|null} Single scope string (e.g., 'group:123', 'track:456', 'group_role:123:789')
    */
   getScope: function () {
     const trackId = this.get('track_id')
     const groupRoleId = this.get('group_role_id')
-    const commonRoleId = this.get('common_role_id')
     const groupId = this.get('group_id')
     const grantedByGroupId = this.get('granted_by_group_id')
 
@@ -108,14 +99,6 @@ module.exports = bookshelf.Model.extend({
         return null
       }
       return createGroupRoleScope(groupRoleId, scopeGroupId)
-    } else if (commonRoleId) {
-      // Use group_id if available, otherwise fall back to granted_by_group_id
-      const scopeGroupId = groupId || grantedByGroupId
-      if (!scopeGroupId) {
-        console.warn('Cannot create common role scope: missing group_id and granted_by_group_id')
-        return null
-      }
-      return createCommonRoleScope(commonRoleId, scopeGroupId)
     } else if (groupId) {
       return createGroupScope(groupId)
     }
@@ -151,7 +134,6 @@ module.exports = bookshelf.Model.extend({
    * @param {String} [attrs.product_id] - Optional Stripe product ID
    * @param {String} [attrs.track_id] - Optional track ID
    * @param {String} [attrs.group_role_id] - Optional group role ID
-   * @param {String} [attrs.common_role_id] - Optional common role ID
    * @param {Date} [attrs.expires_at] - Optional expiration date
    * @param {String} [attrs.stripe_session_id] - For Stripe purchases
    * @param {String} [attrs.stripe_subscription_id] - Stripe subscription ID (for recurring purchases)
@@ -188,7 +170,6 @@ module.exports = bookshelf.Model.extend({
    * @param {String|Number} [params.productId] - Optional product
    * @param {String|Number} [params.trackId] - Optional track
    * @param {String|Number} [params.groupRoleId] - Optional group role
-   * @param {String|Number} [params.commonRoleId] - Optional common role
    * @param {Date} [params.expiresAt] - Optional expiration
    * @param {String} [params.reason] - Reason for granting access (stored in metadata)
    * @param {Object} options - Options including transacting
@@ -202,7 +183,6 @@ module.exports = bookshelf.Model.extend({
     productId,
     trackId,
     groupRoleId,
-    commonRoleId,
     expiresAt,
     reason
   }, { transacting } = {}) {
@@ -216,7 +196,6 @@ module.exports = bookshelf.Model.extend({
       product_id: productId,
       track_id: trackId,
       group_role_id: groupRoleId,
-      common_role_id: commonRoleId,
       access_type: this.Type.ADMIN_GRANT,
       granted_by_id: grantedById,
       expires_at: expiresAt,
@@ -233,7 +212,6 @@ module.exports = bookshelf.Model.extend({
    * @param {String|Number} params.productId - Stripe product ID (from stripe_products table)
    * @param {String|Number} [params.trackId] - Optional track
    * @param {String|Number} [params.groupRoleId] - Optional group role
-   * @param {String|Number} [params.commonRoleId] - Optional common role
    * @param {String} params.sessionId - Stripe checkout session ID
    * @param {String} [params.stripeSubscriptionId] - Stripe subscription ID (for recurring purchases)
    * @param {String} [params.stripeCustomerId] - Stripe customer ID on connected account (cus_...)
@@ -249,7 +227,6 @@ module.exports = bookshelf.Model.extend({
     productId,
     trackId,
     groupRoleId,
-    commonRoleId,
     sessionId,
     stripeSubscriptionId,
     stripeCustomerId,
@@ -263,7 +240,6 @@ module.exports = bookshelf.Model.extend({
       product_id: productId,
       track_id: trackId,
       group_role_id: groupRoleId,
-      common_role_id: commonRoleId,
       access_type: this.Type.STRIPE_PURCHASE,
       stripe_session_id: sessionId,
       stripe_subscription_id: stripeSubscriptionId,
@@ -340,10 +316,9 @@ module.exports = bookshelf.Model.extend({
    * @param {String|Number} [params.productId] - Optional product
    * @param {String|Number} [params.trackId] - Optional track
    * @param {String|Number} [params.groupRoleId] - Optional group role
-   * @param {String|Number} [params.commonRoleId] - Optional common role
    * @returns {Promise<ContentAccess|null>}
    */
-  checkAccess: async function ({ userId, grantedByGroupId, groupId, productId, trackId, groupRoleId, commonRoleId }) {
+  checkAccess: async function ({ userId, grantedByGroupId, groupId, productId, trackId, groupRoleId }) {
     const query = this.where({
       user_id: userId,
       granted_by_group_id: grantedByGroupId,
@@ -354,7 +329,6 @@ module.exports = bookshelf.Model.extend({
     if (productId) query.where({ product_id: productId })
     if (trackId) query.where({ track_id: trackId })
     if (groupRoleId) query.where({ group_role_id: groupRoleId })
-    if (commonRoleId) query.where({ common_role_id: commonRoleId })
 
     const access = await query.fetch()
 

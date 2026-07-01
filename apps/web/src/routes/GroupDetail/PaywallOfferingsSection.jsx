@@ -11,7 +11,6 @@ import { createStripeCheckoutSession } from 'util/offerings'
 import { offeringGrantsGroupAccess, parseAccessGrants } from 'util/accessGrants'
 import getMe from 'store/selectors/getMe'
 import getMyMemberships from 'store/selectors/getMyMemberships'
-import getCommonRoles from 'store/selectors/getCommonRoles'
 import setReturnToPath from 'store/actions/setReturnToPath'
 import { JoinBarriers } from './JoinSection'
 
@@ -205,7 +204,6 @@ export default function PaywallOfferingsSection ({ group }) {
  */
 function OfferingCard ({ offering, group, checkoutLoading, onPurchase, isPurchaseDisabled, isAuthenticated }) {
   const { t } = useTranslation()
-  const commonRoles = useSelector(getCommonRoles)
 
   const grantsGroupAccess = useMemo(() => {
     if (!group?.id || !offering) return false
@@ -225,15 +223,8 @@ function OfferingCard ({ offering, group, checkoutLoading, onPurchase, isPurchas
       })
     }
 
-    if (accessGrants.commonRoleIds && Array.isArray(accessGrants.commonRoleIds)) {
-      accessGrants.commonRoleIds.forEach(roleId => {
-        const role = commonRoles.find(r => parseInt(r.id) === parseInt(roleId))
-        if (role) roles.push(role)
-      })
-    }
-
     return roles
-  }, [offering.accessGrants, group?.groupRoles?.items, commonRoles])
+  }, [offering.accessGrants, group?.groupRoles?.items])
 
   const hasTracks = offering.tracks && offering.tracks.length > 0
   const hasRoles = allRoles.length > 0

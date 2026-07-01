@@ -30,7 +30,6 @@ import useIsPhoneViewport from 'hooks/useIsPhoneViewport'
 import getReturnToPath from 'store/selectors/getReturnToPath'
 import checkForNewNotifications from 'store/actions/checkForNewNotifications'
 import setReturnToPath from 'store/actions/setReturnToPath'
-import fetchCommonRoles from 'store/actions/fetchCommonRoles'
 import fetchForCurrentUser from 'store/actions/fetchForCurrentUser'
 import fetchForGroup from 'store/actions/fetchForGroup'
 import fetchPost from 'store/actions/fetchPost'
@@ -502,7 +501,6 @@ export default function AuthLayoutRouter (props) {
         // If the initial URL contains a post ID, race fetchPost alongside them
         // so the post data is ready (or nearly ready) by the time the auth shell renders.
         const bootstrapFetches = [
-          dispatch(fetchCommonRoles()),
           dispatch(fetchForCurrentUser()),
           ...(paramPostId ? [dispatch(fetchPost(paramPostId, false))] : [])
         ]

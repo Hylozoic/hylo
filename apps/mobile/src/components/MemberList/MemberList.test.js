@@ -14,7 +14,6 @@ beforeAll(() => {
   const session = orm.session(orm.getEmptyState())
   const group = session.Group.create({ id: '99', slug: 'foo', name: 'foo' })
   const group2 = session.Group.create({ id: '100', slug: 'bar', name: 'bar' })
-  const commonRoleCoordinator = session.CommonRole.create({ id: 1, name: 'Coordinator', responsibilities: [{ id: 1, name: 'Administration' }] })
 
   session.LinkPreview.create({
     id: 1
@@ -29,22 +28,11 @@ beforeAll(() => {
       }),
       session.Membership.create({
         id: '678',
-        group: group2.id,
-        commonRoles: { items: [] }
+        group: group2.id
       })
     ],
     groupRoles: {
       items: []
-    },
-    membershipCommonRoles: {
-      items: [
-        {
-          id: 1,
-          groupId: group.id,
-          commonRoleId: commonRoleCoordinator.id,
-          userId: 1
-        }
-      ]
     }
   })
 
@@ -69,8 +57,8 @@ describe('MemberList', () => {
       navigation: {},
       group: { id: 2 },
       members: [
-        { id: '1', groupRoles: { items: [] }, membershipCommonRoles: { items: [] }, name: 'Loren' },
-        { id: '2', groupRoles: { items: [] }, membershipCommonRoles: { items: [] }, name: 'Robbie' }
+        { id: '1', groupRoles: { items: [] }, name: 'Loren' },
+        { id: '2', groupRoles: { items: [] }, name: 'Robbie' }
       ]
     }
 
@@ -186,8 +174,8 @@ describe('MemberList', () => {
       group: { id: 2 },
       isServerSearch: true,
       members: [
-        { id: '1', groupRoles: { items: [] }, membershipCommonRoles: { items: [] }, name: 'Loren' },
-        { id: '2', groupRoles: { items: [] }, membershipCommonRoles: { items: [] }, name: 'Robbie' }
+        { id: '1', groupRoles: { items: [] }, name: 'Loren' },
+        { id: '2', groupRoles: { items: [] }, name: 'Robbie' }
       ]
     }
 

@@ -345,7 +345,7 @@ exports[`renders correctly with no group (all groups default) 1`] = `
                                 "groupRoles": [],
                                 "id": "1",
                                 "location": "here",
-                                "membershipCommonRoles": [],
+                                
                                 "name": "Foo Lane",
                               },
                               {
@@ -354,7 +354,7 @@ exports[`renders correctly with no group (all groups default) 1`] = `
                                 "groupRoles": [],
                                 "id": "2",
                                 "location": "there",
-                                "membershipCommonRoles": [],
+                                
                                 "name": "Bar Jones",
                               },
                               {
@@ -362,21 +362,21 @@ exports[`renders correctly with no group (all groups default) 1`] = `
                                 "bio": "Could be",
                                 "groupRoles": [],
                                 "id": "3",
-                                "membershipCommonRoles": [],
+                                
                                 "name": "Baz Chu",
                               },
                               {
                                 "avatarUrl": "bonk.jpg",
                                 "groupRoles": [],
                                 "id": "4",
-                                "membershipCommonRoles": [],
+                                
                                 "name": "Bonk Gundsdottir",
                               },
                               {
                                 "avatarUrl": "woof.png",
                                 "groupRoles": [],
                                 "id": "5",
-                                "membershipCommonRoles": [],
+                                
                               },
                               {
                                 "id": -1,
@@ -1286,9 +1286,6 @@ exports[`renders with invite button when a moderator 1`] = `
                                 },
                                 "id": "1",
                                 "location": "here",
-                                "membershipCommonRoles": {
-                                  "items": [],
-                                },
                                 "name": "Foo Lane",
                               },
                               {
@@ -1299,9 +1296,6 @@ exports[`renders with invite button when a moderator 1`] = `
                                 },
                                 "id": "2",
                                 "location": "there",
-                                "membershipCommonRoles": {
-                                  "items": [],
-                                },
                                 "name": "Bar Jones",
                               },
                               {
@@ -1311,9 +1305,6 @@ exports[`renders with invite button when a moderator 1`] = `
                                   "items": [],
                                 },
                                 "id": "3",
-                                "membershipCommonRoles": {
-                                  "items": [],
-                                },
                                 "name": "Baz Chu",
                               },
                               {
@@ -1322,9 +1313,6 @@ exports[`renders with invite button when a moderator 1`] = `
                                   "items": [],
                                 },
                                 "id": "4",
-                                "membershipCommonRoles": {
-                                  "items": [],
-                                },
                                 "name": "Bonk Gundsdottir",
                               },
                               {
@@ -1333,9 +1321,6 @@ exports[`renders with invite button when a moderator 1`] = `
                                   "items": [],
                                 },
                                 "id": "5",
-                                "membershipCommonRoles": {
-                                  "items": [],
-                                },
                               },
                               {
                                 "id": -1,

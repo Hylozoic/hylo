@@ -21,7 +21,7 @@ describe('mutations/context_widgets', () => {
     chat = await factories.tag().save({ name: 'test-chat' })
 
     // Add user as admin to group
-    await user.joinGroup(group, { role: GroupMembership.Role.MODERATOR })
+    await user.joinGroup(group, { assignCoordinator: true })
     // Add non-admin user as regular member
     await nonAdminUser.joinGroup(group)
 

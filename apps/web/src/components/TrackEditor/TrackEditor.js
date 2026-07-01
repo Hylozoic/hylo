@@ -10,7 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'c
 import HyloEditor from 'components/HyloEditor'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import { RESP_MANAGE_TRACKS } from 'store/constants'
-import getCommonRoles from 'store/selectors/getCommonRoles'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getTrack from 'store/selectors/getTrack'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
@@ -52,9 +51,8 @@ function TrackEditor (props) {
   const editingTrack = useSelector(state => props.editingTrack ? getTrack(state, routeParams.trackId) : null)
   const hasTracksResponsibility = useSelector(state => currentGroup && hasResponsibilityForGroup(state, { groupId: currentGroup.id, responsibility: RESP_MANAGE_TRACKS }))
 
-  const commonRoles = useSelector(getCommonRoles)
   const groupRoles = useMemo(() => currentGroup?.groupRoles?.items || [], [currentGroup?.groupRoles?.items])
-  const roles = useMemo(() => [...commonRoles.map(role => ({ ...role, type: 'common' })), ...groupRoles.map(role => ({ ...role, type: 'group' }))], [commonRoles, groupRoles])
+  const roles = useMemo(() => groupRoles, [groupRoles])
 
   const [trackState, setTrackState] = useState(Object.assign({
     accessControlled: false,
@@ -62,7 +60,6 @@ function TrackEditor (props) {
     actionDescriptorPlural: currentGroup.settings.actionDescriptorPlural || 'Actions',
     bannerUrl: '',
     completionRole: null,
-    completionRoleType: '',
     completionMessage: '',
     description: '',
     name: '',
@@ -97,7 +94,7 @@ function TrackEditor (props) {
     const newValue = typeof value?.target !== 'undefined' ? value.target.value : value
 
     if (field === 'completionRole') {
-      setTrackState({ ...trackState, completionRole: newValue, completionRoleType: newValue.type })
+      setTrackState({ ...trackState, completionRole: newValue })
     } else {
       setTrackState({ ...trackState, [field]: newValue })
     }
@@ -127,7 +124,6 @@ function TrackEditor (props) {
       actionDescriptorPlural,
       bannerUrl,
       completionRole,
-      completionRoleType,
       name,
       publishedAt
     } = trackState
@@ -153,7 +149,6 @@ function TrackEditor (props) {
       bannerUrl,
       completionMessage,
       completionRole,
-      completionRoleType,
       description,
       name,
       groupIds: [currentGroup.id],

@@ -7,7 +7,6 @@ export default `
     $offeringId: ID,
     $trackId: ID,
     $groupRoleId: ID,
-    $commonRoleId: ID,
     $first: Int,
     $offset: Int,
     $order: String,
@@ -21,7 +20,6 @@ export default `
       offeringId: $offeringId,
       trackId: $trackId,
       groupRoleId: $groupRoleId,
-      commonRoleId: $commonRoleId,
       first: $first,
       offset: $offset,
       order: $order,
@@ -69,11 +67,6 @@ export default `
           name
         }
         groupRole {
-          id
-          name
-          emoji
-        }
-        commonRole {
           id
           name
           emoji
