@@ -46,6 +46,8 @@ function extractOfferingPresentationFields (accessGrants) {
   }
   delete clean.slidingScale
   delete clean.sliding_scale
+  delete clean.commonRoleIds
+  delete clean.commonRoleId
 
   return { cleanAccessGrants: clean, offeringMetadata: meta }
 }

@@ -10,7 +10,6 @@ import { GRANT_CONTENT_ACCESS } from 'store/constants'
  * @param {string} [params.productId] - ID of the product/offering to grant access to
  * @param {string} [params.trackId] - ID of the track to grant access to
  * @param {string} [params.groupRoleId] - ID of the group role to grant
- * @param {string} [params.commonRoleId] - ID of the common role to grant
  * @param {string} [params.expiresAt] - When the access expires (ISO date string)
  * @param {string} [params.reason] - Reason for granting access
  */
@@ -21,7 +20,6 @@ export default function grantContentAccess ({
   productId,
   trackId,
   groupRoleId,
-  commonRoleId,
   expiresAt,
   reason
 }) {
@@ -36,7 +34,6 @@ export default function grantContentAccess ({
           $productId: ID,
           $trackId: ID,
           $groupRoleId: ID,
-          $commonRoleId: ID,
           $expiresAt: Date,
           $reason: String
         ) {
@@ -47,7 +44,6 @@ export default function grantContentAccess ({
             productId: $productId,
             trackId: $trackId,
             groupRoleId: $groupRoleId,
-            commonRoleId: $commonRoleId,
             expiresAt: $expiresAt,
             reason: $reason
           ) {
@@ -58,7 +54,6 @@ export default function grantContentAccess ({
             productId
             trackId
             groupRoleId
-            commonRoleId
             accessType
             status
             success
@@ -73,7 +68,6 @@ export default function grantContentAccess ({
         productId: productId || null,
         trackId: trackId || null,
         groupRoleId: groupRoleId || null,
-        commonRoleId: commonRoleId || null,
         expiresAt: expiresAt || null,
         reason: reason || null
       }

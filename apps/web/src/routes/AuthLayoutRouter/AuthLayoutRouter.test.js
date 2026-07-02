@@ -33,7 +33,7 @@ it('shows group if the group exists', async () => {
     slug: 'test-group',
     name: 'Test Group'
   }
-  const membership = { id: '1', person: { id: '1' }, group, commonRoles: { items: [] } }
+  const membership = { id: '1', person: { id: '1' }, group }
   const me = {
     id: '1',
     name: 'Test User',
@@ -101,11 +101,6 @@ it('shows group if the group exists', async () => {
         data: { notifications: null }
       })
     }),
-    graphql.query('FetchCommonRoles', ({ query, variables }) => {
-      return HttpResponse.json({
-        data: { commonRoles: [] }
-      })
-    }),
     graphql.query('FetchPlatformAgreements', ({ query, variables }) => {
       return HttpResponse.json({
         data: {
@@ -135,7 +130,7 @@ it('shows NotFound if the group does not exist', async () => {
       signupInProgress: false,
       alreadySeenTour: true
     },
-    memberships: [{ id: '3', person: { id: '3' }, commonRoles: { items: [] } }]
+    memberships: [{ id: '3', person: { id: '3' } }]
   }
 
   mockGraphqlServer.use(
@@ -194,11 +189,6 @@ it('shows NotFound if the group does not exist', async () => {
         data: {
           notifications: null
         }
-      })
-    }),
-    graphql.query('FetchCommonRoles', ({ query, variables }) => {
-      return HttpResponse.json({
-        data: { commonRoles: [] }
       })
     }),
     graphql.query('FetchPlatformAgreements', ({ query, variables }) => {

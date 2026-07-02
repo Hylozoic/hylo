@@ -82,7 +82,7 @@ describe('Stripe Queries', () => {
     group = await factories.group().save()
 
     // Add admin user as group administrator
-    await adminUser.joinGroup(group, { role: GroupMembership.Role.MODERATOR })
+    await adminUser.joinGroup(group, { assignCoordinator: true })
     // Add regular user as group member
     await user.joinGroup(group)
   })
@@ -384,7 +384,7 @@ describe('Stripe Queries', () => {
       const otherGroup = await factories.group().save()
       // Make adminUser an admin of otherGroup so the admin check passes
       // and we can test the offering ownership check
-      await adminUser.joinGroup(otherGroup, { role: GroupMembership.Role.MODERATOR })
+      await adminUser.joinGroup(otherGroup, { assignCoordinator: true })
 
       await expect(
         offeringSubscriptionStats(adminUser.id, {
@@ -482,7 +482,7 @@ describe('Stripe Queries', () => {
 
     it('rejects subscribers query when offering belongs to different group', async () => {
       const otherGroup = await factories.group().save()
-      await adminUser.joinGroup(otherGroup, { role: GroupMembership.Role.MODERATOR })
+      await adminUser.joinGroup(otherGroup, { assignCoordinator: true })
 
       await expect(
         offeringSubscribers(adminUser.id, {

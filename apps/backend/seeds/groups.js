@@ -1,7 +1,53 @@
 'use strict'
 
+const SYSTEM_ROLES = [
+  {
+    name: 'Coordinator',
+    emoji: '🪄',
+    description: 'Coordinators are empowered to do everything related to group administration.',
+    responsibilities: ['Administration', 'Add Members', 'Remove Members', 'Manage Content', 'Manage Tracks', 'Manage Rounds']
+  },
+  {
+    name: 'Moderator',
+    emoji: '⚖️',
+    description: 'Moderators are expected to actively engage in discussion, encourage participation, and take corrective action if a member violates group agreements.',
+    responsibilities: ['Manage Content', 'Remove Members']
+  },
+  {
+    name: 'Host',
+    emoji: '👋',
+    description: 'Hosts are responsible for cultivating a good atmosphere by welcoming and orienting new members, embodying the group culture and agreements, and helping members connect with relevant content and people.',
+    responsibilities: ['Add Members']
+  }
+]
+
+async function seedSystemRolesForGroup (knex, groupId, responsibilityByName, now) {
+  for (const roleDef of SYSTEM_ROLES) {
+    const [role] = await knex('groups_roles')
+      .insert({
+        group_id: groupId,
+        name: roleDef.name,
+        emoji: roleDef.emoji,
+        description: roleDef.description,
+        type: 'system',
+        active: true,
+        created_at: now,
+        updated_at: now
+      })
+      .returning('*')
+
+    for (const title of roleDef.responsibilities) {
+      const responsibilityId = responsibilityByName[title]
+      if (!responsibilityId) continue
+      await knex('group_roles_responsibilities').insert({
+        group_role_id: role.id,
+        responsibility_id: responsibilityId
+      })
+    }
+  }
+}
+
 exports.seed = function (knex, Promise) {
-  // create records to be loaded
   const responsibilitiesData = [
     {
       title: 'Administration',
@@ -23,34 +69,6 @@ exports.seed = function (knex, Promise) {
       description: 'Adjust group topics, custom views and manage content that contradicts the agreements of the group.',
       type: 'system'
     }
-  ]
-
-  const commonRolesData = [
-    {
-      name: 'Coordinator',
-      description: 'Coordinators are empowered to do everything related to group administration.',
-      emoji: '🪄'
-    },
-    {
-      name: 'Moderator',
-      description: 'Moderators are expected to actively engage in discussion, encourage participation, and take corrective action if a member violates group agreements.',
-      emoji: '⚖️'
-    },
-    {
-      name: 'Host',
-      description: 'Hosts are responsible for cultivating a good atmosphere by welcoming and orienting new members, embodying the group culture and agreements, and helping members connect with relevant content and people.',
-      emoji: '👋'
-    }
-  ]
-
-  const commonRoleResponsibilitiesData = [
-    { common_role_id: 1, responsibility_id: 1 },
-    { common_role_id: 1, responsibility_id: 2 },
-    { common_role_id: 1, responsibility_id: 3 },
-    { common_role_id: 1, responsibility_id: 4 },
-    { common_role_id: 2, responsibility_id: 3 },
-    { common_role_id: 2, responsibility_id: 4 },
-    { common_role_id: 3, responsibility_id: 2 }
   ]
 
   const initialStarterGroup = {
@@ -111,7 +129,6 @@ exports.seed = function (knex, Promise) {
   // now wipe and initialize the database
   // NB: Deletes ALL existing users, groups, and posts, etc
   return knex('groups_posts').del()
-    .then(() => knex('group_memberships_common_roles').del())
     .then(() => knex('groups_tags').del())
     .then(() => knex('tag_follows').del())
     .then(() => knex('linked_account').del())
@@ -126,15 +143,11 @@ exports.seed = function (knex, Promise) {
 
       await knex('responsibilities').del()
       await knex.raw('ALTER SEQUENCE responsibilities_id_seq RESTART WITH 1')
-      await knex('responsibilities').insert(responsibilitiesData)
+      const insertedResponsibilities = await knex('responsibilities').insert(responsibilitiesData).returning('*')
+      const responsibilityByName = {}
+      insertedResponsibilities.forEach(r => { responsibilityByName[r.title] = r.id })
 
-      await knex('common_roles').del()
-      await knex.raw('ALTER SEQUENCE common_roles_id_seq RESTART WITH 1')
-      await knex('common_roles').insert(commonRolesData)
-
-      await knex('common_roles_responsibilities').del()
-      await knex.raw('ALTER SEQUENCE common_roles_responsibilities_id_seq RESTART WITH 1')
-      await knex('common_roles_responsibilities').insert(commonRoleResponsibilitiesData)
+      await seedSystemRolesForGroup(knex, 1, responsibilityByName, now)
 
       await knex('widgets').del()
       await knex.raw('ALTER SEQUENCE widgets_id_seq RESTART WITH 1')
@@ -144,15 +157,9 @@ exports.seed = function (knex, Promise) {
       await knex.raw('ALTER SEQUENCE users_seq RESTART WITH 1')
       await knex('users').insert(axolotlUser)
 
-      // await knex('posts').del() <== have to delete before deleting users
       await knex.raw('ALTER SEQUENCE post_seq RESTART WITH 1')
       await knex('posts').insert(initialPost)
 
-      await knex('groups_posts').del()
-      await knex.raw('ALTER SEQUENCE groups_posts_id_seq RESTART WITH 1')
-      await knex('groups_posts').insert({
-        post_id: 1,
-        group_id: 1
-      })
+      return knex('groups_posts').insert({ group_id: 1, post_id: 1, active: true })
     })
 }

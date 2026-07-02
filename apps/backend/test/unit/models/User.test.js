@@ -108,15 +108,14 @@ describe('User', function () {
     })
   })
 
-  it('can become moderator', function () {
+  it('can become coordinator', function () {
     const street = new Group({ name: 'Street', slug: 'street' })
 
     return street.save()
-    .then(() => cat.joinGroup(street, { role: GroupMembership.Role.MODERATOR }))
-    .then(() => GroupMembership.forPair(cat, street).fetch())
-    .then(membership => {
-      expect(membership).to.exist
-      expect(membership.get('role')).to.equal(1)
+    .then(() => cat.joinGroup(street, { assignCoordinator: true }))
+    .then(() => GroupMembership.hasResponsibility(cat, street, Responsibility.constants.RESP_ADMINISTRATION))
+    .then(hasAdmin => {
+      expect(hasAdmin).to.be.true
     })
   })
 

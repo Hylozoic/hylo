@@ -95,6 +95,7 @@ MessageThread.modelName = 'MessageThread'
 MessageThread.fields = {
   id: attr(),
   unreadCount: attr(),
+  isMuted: attr(),
   participants: many('Person'),
   updatedAt: attr(),
   lastReadAt: attr()

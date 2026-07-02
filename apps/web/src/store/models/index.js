@@ -5,7 +5,6 @@ import Agreement from './Agreement'
 import Attachment from './Attachment'
 import Collection, { CollectionPost } from './Collection'
 import Comment from './Comment'
-import CommonRole from './CommonRole'
 import ContentAccess from './ContentAccess'
 import CustomView from './CustomView'
 import Draft from './Draft'
@@ -23,7 +22,7 @@ import Message from './Message'
 import MessageThread from './MessageThread'
 import ModerationAction from './ModerationAction'
 import Notification from './Notification'
-import Person, { MembershipCommonRole, PersonSkillsToLearn, Reaction } from './Person'
+import Person, { PersonSkillsToLearn, Reaction } from './Person'
 import PersonConnection from './PersonConnection'
 import PlatformAgreement from './PlatformAgreement'
 import Post, { PostFollower, PostCommenter, ProjectMember, ProposalOption, PostUser } from './Post'
@@ -46,7 +45,6 @@ orm.register(
   Collection,
   CollectionPost,
   Comment,
-  CommonRole,
   ContentAccess,
   CustomView,
   Draft,
@@ -69,7 +67,6 @@ orm.register(
   Me,
   Membership,
   MembershipAgreement,
-  MembershipCommonRole,
   Message,
   MessageThread,
   ModerationAction,

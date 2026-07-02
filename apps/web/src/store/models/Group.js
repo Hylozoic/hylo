@@ -164,7 +164,6 @@ Group.fields = {
     throughFields: ['childGroup', 'parentGroup']
   }),
   peerGroups: many('Group'),
-  commonRoles: many('CommonRole'),
   customViews: many('CustomView'),
   feedOrder: attr(),
   geoShape: attr(),

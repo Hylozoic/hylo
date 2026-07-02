@@ -103,8 +103,21 @@ export async function pushMessageToSockets (message, thread) {
     socketMessageName = 'messageAdded'
   }
 
+  const postUsers = await PostUser.query(q => {
+    q.where('post_id', thread.id)
+    q.whereIn('user_id', excludingSender)
+  }).fetchAll()
+
+  const mutedByUserId = {}
+  postUsers.forEach(postUser => {
+    mutedByUserId[postUser.get('user_id')] = !!postUser.get('muted_at')
+  })
+
   return Promise.map(excludingSender, userId =>
-    pushToSockets(userRoom(userId), socketMessageName, response))
+    pushToSockets(userRoom(userId), socketMessageName, {
+      ...response,
+      isMuted: mutedByUserId[userId] || false
+    }))
 }
 
 function pushCommentToSockets (comment) {

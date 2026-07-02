@@ -737,14 +737,14 @@ export default function ChatRoom (props) {
       <div id='chats' className='my-0 mx-auto h-[calc(100%-130px)] w-full flex flex-col flex-1 relative overflow-hidden px-1'>
         {initialPostToScrollTo === null || (topicFollowLoading && !topicFollow)
           ? (
-            <div className='h-full w-full mt-auto overflow-x-hidden flex flex-col justify-end min-h-[40vh]'>
+            <div className='h-full w-full mt-auto overflow-x-visible flex flex-col justify-end min-h-[40vh]'>
               <StreamSkeleton columnVariant='chat' />
             </div>
             )
           : (
             <VirtuosoMessageListLicense licenseKey={import.meta.env.VITE_VIRTUOSO_KEY}>
               <VirtuosoMessageList
-                style={{ height: '100%', width: '100%', marginTop: 'auto', overflowX: 'hidden' }}
+                style={{ height: '100%', width: '100%', marginTop: 'auto', overflowX: 'visible' }}
                 className='px-1 sm:px-2'
                 ref={messageListRef}
                 context={{

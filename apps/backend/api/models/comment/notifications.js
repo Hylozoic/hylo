@@ -22,6 +22,8 @@ export async function notifyAboutMessage ({ commentId }) {
   const path = new URL(Frontend.Route.thread({ id: post_id })).pathname
 
   return Promise.map(recipients, async user => {
+    if (user.pivot.get('muted_at')) return
+
     // don't notify if the user has read the thread recently and respect the
     // dm_notifications setting.
     if (!(await user.enabledNotification(Notification.TYPE.Message, Notification.MEDIUM.Push))) return
@@ -68,6 +70,8 @@ export const sendDigests = async () => {
     const followers = await post.followers().fetch()
 
     return Promise.map(followers.models, async user => {
+      if (user.pivot.get('muted_at')) return
+
       // select comments not written by this user and newer than user's last
       // read time.
       let lastReadAt = user.pivot.get('last_read_at')

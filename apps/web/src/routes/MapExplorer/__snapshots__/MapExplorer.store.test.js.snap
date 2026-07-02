@@ -114,14 +114,6 @@ Object {
           }
         }
       }
-      membershipCommonRoles {
-        items {
-          id
-          commonRoleId
-          groupId
-          userId
-        }
-      }
       locationObject {
         center {
           lat
@@ -246,14 +238,6 @@ posts: viewPosts(
             description
           }
         }
-      }
-    }
-    membershipCommonRoles {
-      items {
-        id
-        commonRoleId
-        groupId
-        userId
       }
     }
   }

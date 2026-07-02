@@ -127,10 +127,8 @@ function GroupDetail ({ forCurrentGroup = false }) {
         if (checkResult?.email) {
           setInvitationEmail(checkResult.email)
         }
-        // Set invitation role from either commonRole or groupRole
-        if (checkResult?.commonRole) {
-          setInvitationRole(checkResult.commonRole)
-        } else if (checkResult?.groupRole) {
+        // Set invitation role from groupRole on the invite
+        if (checkResult?.groupRole) {
           setInvitationRole(checkResult.groupRole)
         }
         setInvitationChecked(true)

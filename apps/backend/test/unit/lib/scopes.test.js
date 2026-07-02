@@ -6,7 +6,6 @@ import {
   createGroupScope,
   createTrackScope,
   createGroupRoleScope,
-  createCommonRoleScope,
   isScopeOfType,
   getEntityIdFromScope,
   createScopesFromContentAccess
@@ -19,9 +18,8 @@ describe('Scope Helper Functions', () => {
       expect(createScope('track', '456')).to.equal('track:456')
     })
 
-    it('rejects role types (use createGroupRoleScope / createCommonRoleScope)', () => {
-      expect(() => createScope('group_role', 789)).to.throw('createGroupRoleScope or createCommonRoleScope')
-      expect(() => createScope('common_role', 1)).to.throw('createGroupRoleScope or createCommonRoleScope')
+    it('rejects role types (use createGroupRoleScope)', () => {
+      expect(() => createScope('group_role', 789)).to.throw('createGroupRoleScope')
     })
 
     it('throws error for invalid type', () => {
@@ -39,11 +37,11 @@ describe('Scope Helper Functions', () => {
       expect(parseScope('group:123')).to.deep.equal({ type: 'group', entityId: '123' })
       expect(parseScope('track:456')).to.deep.equal({ type: 'track', entityId: '456' })
       expect(parseScope('group_role:123:789')).to.deep.equal({ type: 'group_role', groupId: '123', entityId: '789' })
-      expect(parseScope('common_role:123:1')).to.deep.equal({ type: 'common_role', groupId: '123', entityId: '1' })
     })
 
     it('returns null for invalid scope strings', () => {
       expect(parseScope('invalid:123')).to.be.null
+      expect(parseScope('common_role:123:1')).to.be.null
       expect(parseScope('group')).to.be.null
       expect(parseScope('group:')).to.be.null
       expect(parseScope('group:123:extra')).to.be.null
@@ -86,12 +84,6 @@ describe('Scope Helper Functions', () => {
     })
   })
 
-  describe('createCommonRoleScope', () => {
-    it('creates a common role scope', () => {
-      expect(createCommonRoleScope(1, 123)).to.equal('common_role:123:1')
-    })
-  })
-
   describe('isScopeOfType', () => {
     it('checks if scope is of specific type', () => {
       expect(isScopeOfType('group:123', 'group')).to.be.true
@@ -122,7 +114,7 @@ describe('Scope Helper Functions', () => {
       const scopes = createScopesFromContentAccess(contentAccess)
 
       // Note: Role scopes require groupId, so they cannot be created from accessGrants alone
-      // Roles are created from content_access records which have both groupRoleId/commonRoleId and groupId
+      // Roles are created from content_access records which have both groupRoleId and groupId
       expect(scopes).to.have.lengthOf(3)
       expect(scopes).to.include('track:1')
       expect(scopes).to.include('track:2')

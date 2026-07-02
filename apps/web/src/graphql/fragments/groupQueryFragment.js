@@ -109,14 +109,6 @@ export default function groupQueryFragment () {
         avatarUrl
         lastActiveAt
         name
-        membershipCommonRoles {
-          items {
-            id
-            groupId
-            userId
-            commonRoleId
-          }
-        }
         groupRoles {
           items {
             id
