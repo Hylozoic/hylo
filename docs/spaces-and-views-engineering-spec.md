@@ -57,7 +57,7 @@ CREATE INDEX idx_groups_funding_round_id ON groups(funding_round_id);
 |--------|---------|
 | `parent_id` | Null for top-level groups. Set to parent group id for all spaces. Cascade-deletes spaces when parent is deleted. |
 | `accepted_post_types` | JSON array of accepted post type strings. `null` = all types accepted. `[]` = archive-only space. **Migration:** leave `null` (all types) for all existing groups; stewards narrow later. |
-| `required_roles` | JSON array of role IDs. If set, space is only visible to members with one of those roles in the parent group. Spaces **inherit role definitions from the parent group** — roles are not customized per space. |
+| `required_roles` | JSON array of group_roles IDs. If set, space is only visible to members with one of those roles in its parent group.
 | `track_id` | If set, this group is a Track/Course space. References the `tracks` table. |
 | `funding_round_id` | If set, this group is a Funding Round space. References the `funding_rounds` table. |
 
@@ -127,33 +127,7 @@ ALTER TABLE funding_rounds
 
 ---
 
-### 2.4 Roles consolidation — eliminate `common_roles`
-
-System roles (Coordinator, Moderator, Host) are moved from common_roles into `groups_roles` rows for each group, collapsing two parallel role tables into one. This makes lots of things easier and faster, including role based access to spaces.
-
-**DDL changes:**
-
-```sql
--- Add type column to groups_roles to distinguish system vs custom roles
-ALTER TABLE groups_roles ADD COLUMN type varchar NOT NULL DEFAULT 'custom';
-
--- Drop the now-redundant tables (after migration)
-DROP TABLE group_memberships_common_roles;
-DROP TABLE common_roles_responsibilities;
-DROP TABLE common_roles;
-```
-
-**Group setup — new system role rows per group:**
-
-When a group is created (and during migration for existing groups), insert one row in `groups_roles` for each system role, linked to their responsibilities via `group_roles_responsibilities`:
-
-```js
-const SYSTEM_ROLES = [
-  { name: 'Coordinator', responsibilities: ['Administration', 'Add Members', 'Remove Members', 'Manage Content', 'Manage Tracks', 'Manage Rounds', 'Create Spaces'] },
-  { name: 'Moderator',   responsibilities: ['Manage Content', 'Remove Members'] },
-  { name: 'Host',        responsibilities: ['Add Members'] }
-]
-```
+### 2.4 Roles & Responsibilities
 
 **New system responsibility:** `Create Spaces` — assignable to any role via group role editor. Controls who can create child spaces in a group (not limited to Coordinators). Coordinator includes it by default.
 
@@ -162,16 +136,9 @@ Responsibilities are looked up by **`name` AND `type = 'system'`** — never by 
 **Migration:**
 
 For each existing group:
-1. Create 3 `groups_roles` rows (`type = 'system'`, one per system role)
-2. For each new row, link its responsibilities via `group_roles_responsibilities` (looked up by name + type='system')
-3. For each `group_memberships_common_roles` row: insert an equivalent `group_memberships_group_roles` row using the newly created per-group system role id
-4. Migrate admin-only chat room spaces: set `required_roles = [<coordinator role id for that group>]`
-
-**After consolidation:**
-
-- All permission checks use a single query path (no more UNION across `common_roles_responsibilities` and `group_roles_responsibilities`)
-- System roles are identified by `groups_roles.type = 'system'` — stewards cannot edit them in the UI (but the architecture allows it in future)
-- Cross-group queries: `groups_roles WHERE type = 'system' AND name = 'Coordinator'` joined to `group_memberships_group_roles`
+1. Add the `Create Spaces` responsibility to coordinator role for the group
+2. Migrate admin-only chat room spaces: set `required_roles = [<coordinator role id for that group>]`
+3. Spaces **inherit role definitions from the parent group** — it has the same set of group_roles copied over from the parent group. roles are not customizable per space. |
 
 ---
 
@@ -319,9 +286,6 @@ Used for two view types:
 | `tracks_posts` | Action post ordering now tracked via `collection_posts` (view_id = the `track-actions` view) |
 | `tracks_users` | Users migrated to `group_memberships`; `enrolled_at` → `settings.enrolledAt`, `completed_at` → `settings.completedAt` |
 | `groups_tracks` | Replaced by `tracks.group_id` (1:1 relationship — each track has one space) |
-| `common_roles` | System roles stamped out per group into `groups_roles`. No longer needed as a separate table. |
-| `common_roles_responsibilities` | System role→responsibility links moved to `group_roles_responsibilities` for the new per-group system role rows |
-| `group_memberships_common_roles` | Rows migrated to `group_memberships_group_roles` using new per-group system role ids |
 
 ---
 
@@ -334,10 +298,8 @@ Used for two view types:
 | `tags` / `group_tags` | Unchanged — topics remain for filtering/search |
 | `group_relationships` | Unchanged — peer/affiliation relationships between groups |
 | `widgets` / `group_widgets` | Unchanged — legacy explore/landing page |
-| `groups_roles` | Add `type varchar NOT NULL DEFAULT 'custom'` column. System roles get `type = 'system'`. |
 | `tracks` | `name`, `description`, `banner_url`, `welcome_message`, `deactivated_at`, `access_controlled` removed; `group_id` added (→ space) |
 | `funding_rounds` | `title`, `banner`, `description`, `deactivated_at` removed; `group_id` updated to point to the space |
-
 
 ---
 
@@ -428,26 +390,7 @@ After migration and code cleanup:
 
 ---
 
-### 3.6 Roles model changes
-
-**`GroupRole` model** (`apps/backend/api/models/GroupRole.js`):
-- Add `type` field (`'system' | 'custom'`)
-- Add `setupSystemRoles(groupId, { transacting })` class method — creates the 3 system role rows and their responsibility links for a group (used on group creation and during migration). Looks up responsibility ids by `name AND type = 'system'` — never by hardcoded id.
-
-**`Responsibility` model** (`apps/backend/api/models/Responsibility.js`):
-- `fetchForUserAndGroupAsStrings` — remove the UNION branch for `common_roles_responsibilities`; query `group_roles_responsibilities` only
-- `fetchSystemResponsiblititesForUser` — same, remove UNION branch
-- `fetchForGroup` — same
-- `fetchAll` — remove `commonRoleId` branch
-- Remove `Common` static (hardcoded ids) — replace any remaining usages with name lookups
-
-**`CommonRole` model** — **deleted**
-
-**`MemberCommonRole` model** — **deleted**
-
----
-
-### 3.7 Changes to `Track` model
+### 3.6 Changes to `Track` model
 
 `apps/backend/api/models/Track.js`
 
@@ -461,7 +404,7 @@ After migration and code cleanup:
 
 ---
 
-### 3.8 Changes to `FundingRound` model
+### 3.7 Changes to `FundingRound` model
 
 `apps/backend/api/models/FundingRound.js`
 
@@ -474,7 +417,7 @@ After migration and code cleanup:
 
 ---
 
-### 3.9 Queries that must exclude spaces
+### 3.8 Queries that must exclude spaces
 
 Add `WHERE type != 'space'` or `WHERE parent_id IS NULL` wherever group lists are returned and spaces should not appear:
 
@@ -592,21 +535,9 @@ One-time migration script. Must be idempotent. All steps run in a transaction.
 
 ### Step 1 — Add new columns and create tables
 
-Run all DDL from Section 2. Do not drop old tables yet (`common_roles`, `common_roles_responsibilities`, `group_memberships_common_roles` dropped in this step after migration; others in Phase 7 cleanup).
+Run all DDL from Section 2. Do not drop old tables yet
 
-### Step 1b — Consolidate roles (stamp system roles per group)
-
-For every existing group:
-1. Look up system responsibility ids: `SELECT id, name FROM responsibilities WHERE type = 'system' AND name IN ('Administration', 'Add Members', 'Remove Members', 'Manage Content', 'Manage Tracks', 'Manage Rounds', 'Create Spaces')`
-2. For each system role definition (Coordinator, Moderator, Host — hardcoded name/default responsibility set):
-   - Insert a row into `groups_roles` with `group_id = group.id`, `name = roleName`, `type = 'system'`
-   - Insert rows into `group_roles_responsibilities` linking the new role to its responsibilities (by name-matched id from step 1)
-3. For each row in `group_memberships_common_roles` for this group:
-   - Find the matching new `groups_roles` row by `group_id + name` (e.g., `common_role_id = 1` → Coordinator)
-   - Insert an equivalent row in `group_memberships_group_roles` with the new `group_role_id`
-4. Drop `group_memberships_common_roles`, `common_roles_responsibilities`, `common_roles`
-
-### Step 1c — Migration defaults (product decisions)
+### Step 1b — Migration defaults
 
 Apply these defaults during migration for all existing groups and spaces:
 
@@ -1250,13 +1181,12 @@ These get a slightly more detailed prompt describing the specific change.
 ### Phase 1 — Database & Backend
 
 - Add `parent_id`, `accepted_post_types`, `required_roles`, `track_id`, `funding_round_id` to `groups`
-- Add `type` column to `groups_roles`; add `group_id` to `tracks`
+- add `group_id` to `tracks`
 - Create `group_views`, `group_views_users`, `collection_posts` tables
 - Create `GroupView`, `GroupViewUser`, `CollectionPost` models
-- Update `Group`, `GroupRole`, `Responsibility`, `Track`, `FundingRound` models
-- Delete `CommonRole`, `MemberCommonRole` models
+- Update `Group`, `Track`, `FundingRound` models
 - GraphQL: add new types, queries, all mutations in Section 4
-- Run data migration on staging, verify, then production (includes roles consolidation)
+- Run data migration on staging, verify, then production
 - Keep all ContextWidget code active in parallel during transition
 
 ### Phase 2 — Navigation UI (web)
@@ -1329,5 +1259,4 @@ Generalizes the existing track paywall to work for any space. A group with paid 
 - Remove all ContextWidget code (model, GraphQL, frontend)
 - Drop `tracks_posts`, `tracks_users`, `funding_rounds_posts`, `funding_rounds_users`, `groups_tracks` (already empty after Phase 1 migration)
 - Drop `custom_views`, `custom_view_topics`, `collections`, `posts_collections` (already empty after Phase 1 migration)
-- Note: `common_roles`, `common_roles_responsibilities`, `group_memberships_common_roles` are already dropped in Step 1b of the Phase 1 migration
 - Mobile app navigation (separate ticket)
