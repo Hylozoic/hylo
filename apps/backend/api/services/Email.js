@@ -5,15 +5,14 @@ import { senderNameViaHylo } from '../../lib/email/senderNameViaHylo'
 
 const api = require('sendwithus')(process.env.SENDWITHUS_KEY)
 
-const sendEmail = async opts => {
-  try {
-    await api.send(opts)
-    return true
-  } catch (err) {
-    console.error('Error sending email:', err, ' email opts = ', opts)
-    return false
-  }
-}
+const sendEmail = opts =>
+  new Promise((resolve, reject) =>
+    api.send(opts, (err, resp) => err ? reject(err) : resolve(resp)))
+    .then(() => true)
+    .catch(err => {
+      console.error('Error sending email:', err, ' email opts = ', opts)
+      return false
+    })
 
 const defaultOptions = {
   sender: {
