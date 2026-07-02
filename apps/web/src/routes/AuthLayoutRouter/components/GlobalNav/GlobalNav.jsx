@@ -208,7 +208,7 @@ function SettingsMenu ({ currentUser }) {
         <DropdownMenuItem data-testid='global-nav-logout' onClick={handleLogout} className='flex flex-row items-center justify-between gap-2'>
           <span className='flex flex-row items-center min-w-0'>
             <LogOut className='mr-2 h-4 w-4 shrink-0' />
-            <span>{t('Logout')}</span>
+            <span className='truncate'>{t('Logout')} {currentUser?.email}</span>
           </span>
           {mobileAppVersionLabel
             ? <span className='text-xs text-muted-foreground shrink-0 tabular-nums'>v{mobileAppVersionLabel}</span>
