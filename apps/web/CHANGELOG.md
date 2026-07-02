@@ -6,6 +6,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.5.3] - 2026-07-02
+
+### Added
+- Muting of message threads - they will no longer appear in the messages inbox or send notifications.
+
+### Changed
+- Only show mute/unread buttons when hovering over a message row in the messages inbox
+
+### Fixed
+- Delete Account functionality
+- Prevent accidental double posting
+- Text selection on mobile
+- Nested comment reply unclickable on android
+
 ## [6.5.2] - 2026-06-23
 
 ### Fixed
