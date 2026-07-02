@@ -28,6 +28,32 @@ const {
 } = require('../../lib/stripeOfferingMetadata')
 import { messageThreadSearchFilter } from './messageThreadSearch'
 
+/** Deprecated GraphQL compat: older mobile clients still query removed common-role fields */
+const emptyQuerySet = () => ({ total: 0, hasMore: false, items: [] })
+
+/** Deprecated GraphQL compat: old clients queried hasModeratorRole on Membership */
+async function membershipHasModeratorRole (membership) {
+  const groupId = membership.get('group_id')
+  const memberUserId = membership.get('user_id')
+  if (!groupId || !memberUserId) return false
+
+  const role = await GroupRole.where({
+    group_id: groupId,
+    name: 'Moderator',
+    type: 'system',
+    active: true
+  }).fetch()
+  if (!role) return false
+
+  const assignment = await MemberGroupRole.where({
+    user_id: memberUserId,
+    group_id: groupId,
+    group_role_id: role.id,
+    active: true
+  }).fetch()
+  return !!assignment
+}
+
 // this defines what subset of attributes and relations in each Bookshelf model
 // should be exposed through GraphQL, and what query filters should be applied
 // based on the current user's access rights.
@@ -220,6 +246,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         blockedUsers: u => u.blockedUsers().fetch(),
         hasStripeAccount: u => u.hasStripeAccount(),
         isAdmin: u => isAdmin || false,
+        membershipCommonRoles: emptyQuerySet,
         rsvpCalendarUrl: u => u.rsvpCalendarUrl(),
         settings: u => mapKeys(camelCase, u.get('settings'))
       }
@@ -246,7 +273,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
         lastViewedAt: m =>
           m.get('user_id') === userId ? m.getSetting('lastReadAt') : null,
         newPostCount: m =>
-          m.get('user_id') === userId ? m.get('new_post_count') : null
+          m.get('user_id') === userId ? m.get('new_post_count') : null,
+        hasModeratorRole: membershipHasModeratorRole
       },
       filter: nonAdminFilter(membershipFilter(userId))
     },
@@ -346,6 +374,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
       getters: {
         completedAt: p => p.pivot && p.pivot.get('completed_at'), // When loading through a track this is when they completed the track
         enrolledAt: p => p.pivot && p.pivot.get('enrolled_at'), // When loading through a track this is when they were enrolled in the track
+        membershipCommonRoles: emptyQuerySet,
         messageThreadId: p => p.getMessageThreadWith(userId).then(post => post ? post.id : null)
       },
       relations: [
