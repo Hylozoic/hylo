@@ -10,6 +10,7 @@
 
 const StripeService = require('../services/StripeService')
 const Stripe = require('stripe')
+const { parseJsonObject: parseAccessGrants } = require('../../lib/stripeOfferingMetadata')
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2025-10-29.clover'
 })
@@ -1322,7 +1323,7 @@ module.exports = {
         return
       }
 
-      const accessGrants = offering.get('access_grants') || {}
+      const accessGrants = parseAccessGrants(offering.get('access_grants'))
 
       // If access_grants is empty, this is expected (e.g., voluntary contribution)
       if (Object.keys(accessGrants).length === 0) {
