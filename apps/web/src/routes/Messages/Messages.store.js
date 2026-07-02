@@ -28,6 +28,12 @@ import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import filterDeletedUsers from 'util/filterDeletedUsers'
 
 export const MODULE_NAME = 'Messages'
+export const NEW_THREAD_ID = 'new'
+
+/** True when id is a persisted message thread (not the compose-route sentinel). */
+export function isValidMessageThreadId (id) {
+  return id && id !== NEW_THREAD_ID && !isNaN(Number(id))
+}
 export const UPDATE_MESSAGE_TEXT = `${MODULE_NAME}/UPDATE_MESSAGE_TEXT`
 export const SET_THREAD_SEARCH = `${MODULE_NAME}/SET_THREAD_SEARCH`
 export const SET_CONTACTS_SEARCH = `${MODULE_NAME}/SET_CONTACTS_SEARCH`
@@ -135,6 +141,10 @@ export function findOrCreateThread (participantIds) {
 }
 
 export function fetchThread (id) {
+  if (!isValidMessageThreadId(id)) {
+    return { type: FETCH_THREAD, meta: { skipped: true } }
+  }
+
   return {
     type: FETCH_THREAD,
     graphql: {
@@ -154,6 +164,10 @@ export function fetchThread (id) {
 }
 
 export function fetchMessages (id, opts = {}) {
+  if (!isValidMessageThreadId(id)) {
+    return { type: FETCH_MESSAGES, meta: { skipped: true } }
+  }
+
   return {
     type: FETCH_MESSAGES,
     graphql: {
@@ -193,6 +207,10 @@ export function createMessage (messageThreadId, messageText, forNewThread) {
 }
 
 export function updateThreadReadTime (id) {
+  if (!isValidMessageThreadId(id)) {
+    return { type: UPDATE_THREAD_READ_TIME, meta: { skipped: true } }
+  }
+
   return {
     type: UPDATE_THREAD_READ_TIME,
     payload: {

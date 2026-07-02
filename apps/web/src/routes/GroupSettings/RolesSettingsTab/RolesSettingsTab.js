@@ -6,22 +6,21 @@ import { useTranslation } from 'react-i18next'
 import {
   addGroupRole,
   addRoleToMember,
-  fetchMembersForGroupRole,
+  fetchGroupRoleDetails,
   removeRoleFromMember,
   updateGroupRole
 } from '../../../store/actions/roles'
 import {
   removeResponsibilityFromRole,
   addResponsibilityToRole,
-  fetchResponsibilitiesForGroupRole,
   fetchResponsibilitiesForGroup
 } from 'store/actions/responsibilities'
 import {
   fetchStewardSuggestions,
-  clearStewardSuggestions
+  clearStewardSuggestions,
+  getStewardSuggestions
 } from './RolesSettingsTab.store'
 import { fetchGroupSettings } from '../GroupSettings.store'
-import getPerson from 'store/selectors/getPerson'
 import SettingsSection from '../SettingsSection'
 import EmojiPicker from 'components/EmojiPicker'
 import SettingsControl from 'components/SettingsControl'
@@ -32,6 +31,7 @@ import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { keyMap } from 'util/textInput'
 import { cn } from 'util/index'
 import { personUrl } from '@hylo/navigation'
+import { sortCustomGroupRoles, sortSystemGroupRoles, isSystemGroupRole } from '@hylo/hooks/groupRoleHelpers'
 
 import styles from './RolesSettingsTab.module.scss'
 
@@ -51,21 +51,32 @@ const validateRole = ({ name, emoji }) => {
 
 function RolesSettingsTab ({ group, slug }) {
   const dispatch = useDispatch()
-  const suggestions = useSelector(state => state.RoleSettings.map(personId => getPerson(state, { personId })))
+  const suggestions = useSelector(getStewardSuggestions)
   const { t } = useTranslation()
 
   const systemRoles = useMemo(
-    () => (group?.groupRoles?.items || []).filter(role => role.type === 'system'),
+    () => sortSystemGroupRoles(group?.groupRoles?.items || []),
     [group?.groupRoles?.items]
   )
-  const [roles, setRoles] = useState((group?.groupRoles?.items || []).filter(role => role.type !== 'system'))
+  const customRolesFromGroup = useMemo(
+    () => sortCustomGroupRoles((group?.groupRoles?.items || []).filter(role => !isSystemGroupRole(role))),
+    [group?.groupRoles?.items]
+  )
+  const [rolesOverride, setRolesOverride] = useState(null)
+  const roles = rolesOverride ?? customRolesFromGroup
+  const [availableResponsibilities, setAvailableResponsibilities] = useState([])
   const { setHeaderDetails } = useViewHeader()
 
   useEffect(() => {
-    if (group?.groupRoles) {
-      setRoles((group.groupRoles.items || []).filter(role => role.type !== 'system'))
-    }
-  }, [group])
+    if (!group?.id) return
+    let isMounted = true
+    dispatch(fetchResponsibilitiesForGroup({ groupId: group.id }))
+      .then((response) => {
+        if (isMounted) setAvailableResponsibilities(response?.payload?.data?.responsibilities || [])
+      })
+      .catch((e) => { console.error('Error fetching responsibilities for group', e) })
+    return () => { isMounted = false }
+  }, [group?.id, dispatch])
 
   useEffect(() => {
     setHeaderDetails({
@@ -80,14 +91,14 @@ function RolesSettingsTab ({ group, slug }) {
   }, [])
 
   const handleAddRole = () => {
-    setRoles([...roles, { ...emptyRole }])
+    setRolesOverride([...roles, { ...emptyRole }])
   }
 
   const deleteUnsavedRole = (i) => () => {
     if (window.confirm(t('Are you sure you want to delete this unsaved role/badge?'))) {
       const newRoles = [...roles]
       newRoles.splice(i, 1)
-      setRoles(newRoles)
+      setRolesOverride(newRoles)
     }
   }
 
@@ -96,7 +107,7 @@ function RolesSettingsTab ({ group, slug }) {
     if (window.confirm(`${t('Are you sure you want to ')}${role.active ? t('deactivate') : t('reactivate')} ${t('this role/badge?')}`)) {
       dispatch(updateGroupRole({ active: !role.active, groupId: group?.id, groupRoleId: role.id })).then((response) => {
         const saved = response.payload.data.updateGroupRole
-        setRoles(prev => prev.map((r, idx) => idx === i ? { ...saved } : r))
+        setRolesOverride(prev => (prev ?? customRolesFromGroup).map((r, idx) => idx === i ? { ...saved } : r))
         if (slug || group?.slug) dispatch(fetchGroupSettings(slug || group.slug))
       })
     }
@@ -110,7 +121,7 @@ function RolesSettingsTab ({ group, slug }) {
     role.changed = true
     const updatedRoles = [...roles]
     updatedRoles[i] = role
-    setRoles(updatedRoles)
+    setRolesOverride(updatedRoles)
   }
 
   const saveRole = (i) => () => {
@@ -118,7 +129,7 @@ function RolesSettingsTab ({ group, slug }) {
     if (validateRole(role)) {
       dispatch(addGroupRole({ ...role, groupId: group?.id })).then((response) => {
         const saved = response.payload.data.addGroupRole
-        setRoles(prev => prev.map((r, idx) => idx === i ? { ...saved } : r))
+        setRolesOverride(prev => (prev ?? customRolesFromGroup).map((r, idx) => idx === i ? { ...saved } : r))
         if (slug || group?.slug) dispatch(fetchGroupSettings(slug || group.slug))
       })
     } else {
@@ -130,7 +141,7 @@ function RolesSettingsTab ({ group, slug }) {
     const role = { ...roles[i] }
     const updatedRoles = [...roles]
     updatedRoles[i] = { ...role.originalState }
-    setRoles(updatedRoles)
+    setRolesOverride(updatedRoles)
   }
 
   const updateRole = (i) => () => {
@@ -138,7 +149,7 @@ function RolesSettingsTab ({ group, slug }) {
     if (validateRole(role)) {
       dispatch(updateGroupRole({ ...role, groupId: group?.id, groupRoleId: role.id })).then((response) => {
         const saved = response.payload.data.updateGroupRole
-        setRoles(prev => prev.map((r, idx) => idx === i ? { ...saved } : r))
+        setRolesOverride(prev => (prev ?? customRolesFromGroup).map((r, idx) => idx === i ? { ...saved } : r))
         if (slug || group?.slug) dispatch(fetchGroupSettings(slug || group.slug))
       })
     } else {
@@ -151,12 +162,13 @@ function RolesSettingsTab ({ group, slug }) {
   return (
     <>
       <SettingsSection>
-        <h2 className='text-foreground'>{t('System Roles')}</h2>
+        <h2 className='text-foreground'>{t('Common Roles')}</h2>
         <div className='text-foreground/70 text-xs'>{t('adminRolesHelpText')}</div>
         {systemRoles.map((role, i) => (
           <RoleRow
             group={group}
             suggestions={suggestions}
+            availableResponsibilities={availableResponsibilities}
             key={role.id || i}
             index={i}
             {...role}
@@ -171,6 +183,7 @@ function RolesSettingsTab ({ group, slug }) {
           <RoleRow
             group={group}
             suggestions={suggestions}
+            availableResponsibilities={availableResponsibilities}
             key={i}
             index={i}
             {...role}
@@ -206,6 +219,7 @@ RolesSettingsTab.propTypes = {
 function RoleRow ({
   active,
   addRoleToMember,
+  availableResponsibilities,
   changed,
   isSystemRole,
   description,
@@ -258,12 +272,12 @@ function RoleRow ({
             )
           : (active || isSystemRole) && (
             <RoleList
-              {...{ addRoleToMember, suggestions, clearStewardSuggestions, fetchMembersForGroupRole, fetchStewardSuggestions, removeRoleFromMember, active }}
+              {...{ addRoleToMember, suggestions, clearStewardSuggestions, fetchStewardSuggestions, removeRoleFromMember, active }}
               key='grList'
               group={group}
               isSystemRole={isSystemRole}
               roleId={id}
-              t={t}
+              availableResponsibilities={availableResponsibilities}
               slug={group.slug}
             />)
       }
@@ -435,35 +449,25 @@ function RoleList ({
   suggestions,
   roleId,
   group,
-  isSystemRole
+  isSystemRole,
+  availableResponsibilities = []
 }) {
   const { t } = useTranslation()
   const [membersForRole, setMembersForRole] = useState([])
   const [responsibilitiesForRole, setResponsibilitiesForRole] = useState([])
-  const [availableResponsibilities, setAvailableResponsibilities] = useState([])
   const dispatch = useDispatch()
 
   useEffect(() => {
-    dispatch(fetchMembersForGroupRole({ id: group.id, roleId }))
-      .then((response) => setMembersForRole(response?.payload?.data?.group?.members?.items || []))
-      .catch((e) => { console.error('Error fetching members for role ', e) })
-  }, [])
-
-  useEffect(() => {
     let isMounted = true
-    dispatch(fetchResponsibilitiesForGroupRole({ id: group.id, roleId }))
-      .then((response) => { if (isMounted) setResponsibilitiesForRole(response?.payload?.data?.responsibilities || []) })
-      .catch((e) => { console.error('Error fetching responsibilities for role ', e) })
+    dispatch(fetchGroupRoleDetails({ id: group.id, roleId }))
+      .then((response) => {
+        if (!isMounted) return
+        setMembersForRole(response?.payload?.data?.group?.members?.items || [])
+        setResponsibilitiesForRole(response?.payload?.data?.responsibilities || [])
+      })
+      .catch((e) => { console.error('Error fetching group role details', e) })
     return () => { isMounted = false }
-  }, [])
-
-  useEffect(() => {
-    let isMounted = true
-    dispatch(fetchResponsibilitiesForGroup({ groupId: group.id }))
-      .then((response) => { if (isMounted) setAvailableResponsibilities(response?.payload?.data?.responsibilities || []) })
-      .catch((e) => { console.error('Error fetching responsibilities for group', e) })
-    return () => { isMounted = false }
-  }, [])
+  }, [group.id, roleId, dispatch])
 
   const memberRoleIds = membersForRole.map(mr => mr.id)
 
@@ -472,33 +476,24 @@ function RoleList ({
   const responsibilitySuggestions = availableResponsibilities.filter(responsibility => !includes(responsibility.title, groupRoleResponsibilityTitles))
 
   const updateLocalMembersForRole = (choice) => {
-    const updatedMembers = [...membersForRole, choice]
-    setMembersForRole(updatedMembers)
-  }
-
-  const updateLocalResponsibilitiesForRole = (choice) => {
-    const updatedResponsibilities = [...responsibilitiesForRole, choice]
-    setResponsibilitiesForRole(updatedResponsibilities)
+    setMembersForRole([...membersForRole, choice])
   }
 
   const handleRemoveRoleFromMember = (id) => {
     dispatch(removeRoleFromMember({ personId: id, groupId: group.id, roleId })).then(() => {
-      const updatedMembers = membersForRole.filter(member => member.id !== id)
-      setMembersForRole(updatedMembers)
+      setMembersForRole(membersForRole.filter(member => member.id !== id))
     })
   }
 
   const handleRemoveResponsibilityFromRole = (id) => {
     dispatch(removeResponsibilityFromRole({ roleResponsibilityId: id, groupId: group.id })).then(() => {
-      const updatedResponsibilities = responsibilitiesForRole.filter(responsibility => responsibility.id !== id)
-      setResponsibilitiesForRole(updatedResponsibilities)
+      setResponsibilitiesForRole(responsibilitiesForRole.filter(responsibility => responsibility.id !== id))
     })
   }
 
   const handleAddResponsibilityToRole = ({ responsibilityId, roleId, groupId, responsibility }) => {
-    dispatch(addResponsibilityToRole({ responsibilityId, roleId, groupId })).then((response) => {
-      const updatedResponsibilities = [...responsibilitiesForRole, { ...responsibility, id: response.payload.data.addResponsibilityToRole.id, responsibilityId: responsibility.id }]
-      setResponsibilitiesForRole(updatedResponsibilities)
+    return dispatch(addResponsibilityToRole({ responsibilityId, roleId, groupId })).then((response) => {
+      setResponsibilitiesForRole([...responsibilitiesForRole, { ...responsibility, id: response.payload.data.addResponsibilityToRole.id, responsibilityId: responsibility.id }])
     })
   }
 
@@ -507,7 +502,7 @@ function RoleList ({
       <div className='p-2'>
         <h4 className='mb-0'>Responsibilities</h4>
         {isSystemRole && (
-          <div className='text-foreground/70 text-xs mb-2'>{t('System roles cannot have their responsibilities edited')}</div>
+          <div className='text-foreground/70 text-xs mb-2'>{t('Common roles cannot have their responsibilities edited')}</div>
         )}
         <div className='flex flex-col gap-2'>
           {responsibilitiesForRole.map(r =>
@@ -520,10 +515,8 @@ function RoleList ({
       </div>
       {!isSystemRole && (
         <AddResponsibilityToRoleSection
-          fetchSuggestions={() => dispatch(fetchResponsibilitiesForGroup({ groupId: group.id }))}
           handleAddResponsibilityToRole={handleAddResponsibilityToRole}
           responsibilitySuggestions={responsibilitySuggestions}
-          updateLocalResponsibilitiesForRole={updateLocalResponsibilitiesForRole}
           roleId={roleId}
           group={group}
         />)}
@@ -554,3 +547,4 @@ function RoleList ({
 }
 
 export default RolesSettingsTab
+export { RoleList, AddMemberToRole }

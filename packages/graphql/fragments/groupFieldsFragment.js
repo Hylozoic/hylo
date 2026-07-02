@@ -108,7 +108,7 @@ export default gql`
         id
         name
         avatarUrl
-        groupRoles {
+        groupRoles(groupId: $id, slug: $slug) {
           items {
             id
             name

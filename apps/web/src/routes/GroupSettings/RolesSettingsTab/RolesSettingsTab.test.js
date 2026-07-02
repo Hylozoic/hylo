@@ -15,6 +15,33 @@ describe('RolesSettingsTab', () => {
     unmount()
     expect(clearStewardSuggestions).toHaveBeenCalled()
   })
+
+  it('displays system roles before custom roles in the correct order', () => {
+    const group = {
+      id: 1,
+      slug: 'test-group',
+      groupRoles: {
+        items: [
+          { id: 100, name: 'Custom B', type: 'custom', active: true, emoji: '⭐', description: '' },
+          { id: 50, name: 'Host', type: 'system', active: true, emoji: '👋', description: '' },
+          { id: 30, name: 'Coordinator', type: 'system', active: true, emoji: '🪄', description: '' },
+          { id: 40, name: 'Moderator', type: 'system', active: true, emoji: '⚖️', description: '' },
+          { id: 90, name: 'Custom A', type: 'custom', active: true, emoji: '🎖', description: '' }
+        ]
+      }
+    }
+
+    render(<RolesSettingsTab group={group} slug='test-group' />, { wrapper: AllTheProviders() })
+
+    const nameInputs = screen.getAllByDisplayValue(/Coordinator|Moderator|Host|Custom/)
+    expect(nameInputs.map(input => input.value)).toEqual([
+      'Coordinator',
+      'Moderator',
+      'Host',
+      'Custom A',
+      'Custom B'
+    ])
+  })
 })
 
 describe('RoleList', () => {
@@ -27,21 +54,17 @@ describe('RoleList', () => {
       suggestions: [],
       isSystemRole: true,
       group: { id: 1 },
-      fetchMembersForGroupRole: jest.fn().mockResolvedValue({ response: { payload: { data: { group: { members: { items: [] } } } } } }),
-      t: (str) => str
+      availableResponsibilities: []
     }
 
     mockGraphqlServer.use(
-      graphql.query('fetchResponsibilitiesForGroupRole', () => {
+      graphql.query('fetchGroupRoleDetails', () => {
         return HttpResponse.json({
           data: {
-            responsibilities: []
-          }
-        })
-      }),
-      graphql.query('fetchResponsibiltiesForGroup', () => {
-        return HttpResponse.json({
-          data: {
+            group: {
+              id: 1,
+              members: { items: [] }
+            },
             responsibilities: []
           }
         })
@@ -53,7 +76,7 @@ describe('RoleList', () => {
     await waitFor(() => {
       expect(screen.getByText('Responsibilities')).toBeInTheDocument()
       expect(screen.getByText('Members')).toBeInTheDocument()
-      expect(screen.getByText('System roles cannot have their responsibilities edited')).toBeInTheDocument()
+      expect(screen.getByText('Common roles cannot have their responsibilities edited')).toBeInTheDocument()
     })
   })
 })

@@ -41,12 +41,11 @@ import {
   getTextForCurrentMessageThread,
   getMessages,
   getMessagesHasMore,
-  getCurrentMessageThread
+  getCurrentMessageThread,
+  NEW_THREAD_ID
 } from './Messages.store'
 
 import classes from './Messages.module.scss'
-
-export const NEW_THREAD_ID = 'new'
 
 const Messages = () => {
   const dispatch = useDispatch()
@@ -335,11 +334,11 @@ const Messages = () => {
               ref={formRef}
               updateMessageText={updateMessageTextAction}
               messageText={messageText}
-              sendIsTyping={status => sendIsTyping(messageThreadId, status)}
+              sendIsTyping={status => isRealThread && sendIsTyping(messageThreadId, status)}
               pending={messageCreatePending}
             />
           </div>
-          {socket && <SocketSubscriber type='post' id={messageThreadId} />}
+          {socket && isRealThread && <SocketSubscriber type='post' id={messageThreadId} />}
         </div>)}
     </div>
   )

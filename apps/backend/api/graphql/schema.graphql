@@ -1818,7 +1818,15 @@ type Me {
     sortBy: String
   ): [Group]
 
-  groupRoles: GroupRoleQuerySet
+  groupRoles(
+    groupId: ID,
+    slug: String
+  ): GroupRoleQuerySet
+
+  # Deprecated: removed with common roles consolidation; kept for older mobile clients
+  membershipCommonRoles(
+    groupId: ID
+  ): MembershipCommonRoleQuerySet
 
   # Set of pending invites to Groups
   groupInvitesPending: InvitationQuerySet
@@ -1917,6 +1925,8 @@ type Membership {
   expiresAt: Date
   groupId: ID
   group: Group
+  # Deprecated: use membershipGroupRoles; kept for older mobile clients
+  hasModeratorRole: Boolean
   # Answers to the join questions for this group
   joinQuestionAnswers: GroupJoinQuestionAnswerQuerySet
   # The last time the current logged in user viewed this group (if they are a member of it)
@@ -1976,6 +1986,20 @@ type MembershipGroupRoleQuerySet {
   total: Int
   hasMore: Boolean
   items: [MembershipGroupRole]
+}
+
+# Deprecated stub types kept for older mobile/web clients until app releases catch up
+type MembershipCommonRole {
+  id: ID
+  commonRoleId: ID
+  groupId: ID
+  userId: ID
+}
+
+type MembershipCommonRoleQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [MembershipCommonRole]
 }
 
 # Settinga for a user's group membership
@@ -2162,7 +2186,14 @@ type Person {
     order: String
   ): [Membership]
   # All the member roles for a user
-  groupRoles: GroupRoleQuerySet
+  groupRoles(
+    groupId: ID,
+    slug: String
+  ): GroupRoleQuerySet
+  # Deprecated: kept for older mobile clients
+  membershipCommonRoles(
+    groupId: ID
+  ): MembershipCommonRoleQuerySet
   # Answers to join questions for the current group context (when queried through a group's members)
   groupJoinQuestionAnswers(
     groupId: ID,
