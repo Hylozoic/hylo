@@ -1,6 +1,7 @@
 import {
   ADD_GROUP_ROLE,
   ADD_ROLE_TO_MEMBER,
+  FETCH_GROUP_ROLE_DETAILS,
   FETCH_MEMBERS_FOR_GROUP_ROLE,
   REMOVE_ROLE_FROM_MEMBER,
   UPDATE_GROUP_ROLE
@@ -96,6 +97,61 @@ export function removeRoleFromMember ({ personId, groupId, roleId }) {
       groupId,
       roleId,
       optimistic: true
+    }
+  }
+}
+
+export function fetchGroupRoleDetails ({ id, roleId: groupRoleId }) {
+  return {
+    type: FETCH_GROUP_ROLE_DETAILS,
+    graphql: {
+      query: `query fetchGroupRoleDetails ($id: ID, $groupRoleId: ID) {
+        group (id: $id) {
+          id
+          members (first: 50, groupRoleId: $groupRoleId) {
+            hasMore
+            items {
+              id
+              name
+              avatarUrl
+              groupRoles {
+                items {
+                  id
+                  name
+                  emoji
+                  active
+                  groupId
+                  type
+                  responsibilities {
+                    items {
+                      id
+                      title
+                      description
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+        responsibilities (groupRoleId: $groupRoleId) {
+          id
+          title
+          type
+          description
+          responsibilityId
+        }
+      }`,
+      variables: {
+        id, groupRoleId
+      }
+    },
+    meta: {
+      extractModel: {
+        getRoot: data => data.group,
+        modelName: 'Group',
+        append: true
+      }
     }
   }
 }
