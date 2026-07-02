@@ -89,7 +89,7 @@ const queryFragment = `group(slug: $slug, updateLastViewed: $updateLastViewed) {
         avatarUrl
         lastActiveAt
         name
-        groupRoles {
+        groupRoles(slug: $slug) {
           items {
             id
             name

@@ -1818,7 +1818,10 @@ type Me {
     sortBy: String
   ): [Group]
 
-  groupRoles: GroupRoleQuerySet
+  groupRoles(
+    groupId: ID,
+    slug: String
+  ): GroupRoleQuerySet
 
   # Set of pending invites to Groups
   groupInvitesPending: InvitationQuerySet
@@ -2162,7 +2165,10 @@ type Person {
     order: String
   ): [Membership]
   # All the member roles for a user
-  groupRoles: GroupRoleQuerySet
+  groupRoles(
+    groupId: ID,
+    slug: String
+  ): GroupRoleQuerySet
   # Answers to join questions for the current group context (when queried through a group's members)
   groupJoinQuestionAnswers(
     groupId: ID,

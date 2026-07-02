@@ -34,6 +34,21 @@ import { messageThreadSearchFilter } from './messageThreadSearch'
 //
 // keys in the returned object are GraphQL schema type names
 //
+/** Limit a person's groupRoles to a single group when groupId or slug is provided. */
+function filterGroupRolesByGroup (relation, { groupId, slug }) {
+  if (!groupId && !slug) return relation
+  return relation.query(q => {
+    if (groupId) {
+      q.where('groups_roles.group_id', groupId)
+    } else {
+      q.whereIn('groups_roles.group_id', Group.query(gq => {
+        gq.select('id')
+        gq.where({ slug })
+      }).query())
+    }
+  })
+}
+
 export default function makeModels (userId, isAdmin, apiClient) {
   const nonAdminFilter = makeFilterToggle(!isAdmin)
 
@@ -165,7 +180,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'memberships',
         'posts',
         'locationObject',
-        { groupRoles: { querySet: true } },
+        { groupRoles: { querySet: true, filter: filterGroupRolesByGroup } },
         { affiliations: { querySet: true } },
         { groupInvitesPending: { querySet: true } },
         {
@@ -353,7 +368,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         },
         'moderatedGroupMemberships', // TODO: still need this?
         'locationObject',
-        { groupRoles: { querySet: true } },
+        { groupRoles: { querySet: true, filter: filterGroupRolesByGroup } },
         { affiliations: { querySet: true } },
         { eventsAttending: { querySet: true } },
         // This fix is required for web and mobile, to avoid action posts showing up in member profiles
