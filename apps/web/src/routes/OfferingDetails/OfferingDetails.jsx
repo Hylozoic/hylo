@@ -12,7 +12,6 @@ import { offeringUrl, origin } from '@hylo/navigation'
 import { offeringGrantsGroupAccess, parseAccessGrants } from 'util/accessGrants'
 import { createStripeCheckoutSession } from 'util/offerings'
 import fetchPublicStripeOffering from 'store/actions/fetchPublicStripeOffering'
-import getCommonRoles from 'store/selectors/getCommonRoles'
 import getMe from 'store/selectors/getMe'
 import setReturnToPath from 'store/actions/setReturnToPath'
 
@@ -67,9 +66,6 @@ export default function OfferingDetails () {
 
     loadOffering()
   }, [dispatch, offeringId, t])
-
-  // Get common roles for role lookup
-  const commonRoles = useSelector(getCommonRoles)
 
   // Check if this offering grants access to the owning group
   const grantsGroupAccess = useMemo(() => {
@@ -257,13 +253,6 @@ export default function OfferingDetails () {
               if (accessGrants.groupRoleIds && Array.isArray(accessGrants.groupRoleIds)) {
                 accessGrants.groupRoleIds.forEach(roleId => {
                   const role = groupRoles.find(r => parseInt(r.id) === parseInt(roleId))
-                  if (role) allRoles.push(role)
-                })
-              }
-
-              if (accessGrants.commonRoleIds && Array.isArray(accessGrants.commonRoleIds)) {
-                accessGrants.commonRoleIds.forEach(roleId => {
-                  const role = commonRoles.find(r => parseInt(r.id) === parseInt(roleId))
                   if (role) allRoles.push(role)
                 })
               }

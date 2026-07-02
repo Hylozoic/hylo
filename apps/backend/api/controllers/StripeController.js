@@ -836,8 +836,8 @@ module.exports = {
         }
       }
 
-      // If groupRoleIds or commonRoleIds are specified, ensure membership for those groups
-      if (accessGrants.groupRoleIds || accessGrants.commonRoleIds) {
+      // If groupRoleIds are specified, ensure membership for those groups
+      if (accessGrants.groupRoleIds || accessGrants.groupIds) {
         const groupIdsForRoles = accessGrants.groupIds && Array.isArray(accessGrants.groupIds) && accessGrants.groupIds.length > 0
           ? accessGrants.groupIds.map(id => parseInt(id, 10)).filter(id => !isNaN(id) && id > 0)
           : [grantedByGroupIdNum]
@@ -849,9 +849,7 @@ module.exports = {
       // Ensure user is a member of all groups that will receive access BEFORE assigning roles
       for (const accessGroupId of groupsToJoin) {
         try {
-          const membership = await GroupMembership.ensureMembership(userIdNum, accessGroupId, {
-            role: GroupMembership.Role.DEFAULT
-          })
+          const membership = await GroupMembership.ensureMembership(userIdNum, accessGroupId)
 
           // Record agreement acceptance - user accepted agreements before purchase
           if (membership) {
@@ -1358,8 +1356,8 @@ module.exports = {
         }
       }
 
-      // If groupRoleIds or commonRoleIds are specified, ensure membership for those groups
-      if (accessGrants.groupRoleIds || accessGrants.commonRoleIds) {
+      // If groupRoleIds are specified, ensure membership for those groups
+      if (accessGrants.groupRoleIds || accessGrants.groupIds) {
         const groupIdsForRoles = accessGrants.groupIds && Array.isArray(accessGrants.groupIds) && accessGrants.groupIds.length > 0
           ? accessGrants.groupIds.map(id => parseInt(id, 10)).filter(id => !isNaN(id) && id > 0)
           : [grantedByGroupIdNum]
@@ -1371,9 +1369,7 @@ module.exports = {
       // Ensure user is a member of all groups that will receive access BEFORE assigning roles
       for (const accessGroupId of groupsToJoin) {
         try {
-          const membership = await GroupMembership.ensureMembership(userIdNum, accessGroupId, {
-            role: GroupMembership.Role.DEFAULT
-          })
+          const membership = await GroupMembership.ensureMembership(userIdNum, accessGroupId)
 
           // Record agreement acceptance - user accepted agreements before purchase
           if (membership) {
@@ -1678,7 +1674,7 @@ module.exports = {
           // Send Admin Notification emails to all admins/stewards
           try {
             // Get all admins with RESP_ADMINISTRATION (ID = 1)
-            const admins = await group.membersWithResponsibilities([Responsibility.Common.RESP_ADMINISTRATION]).fetch()
+            const admins = await group.membersWithResponsibilities([Responsibility.constants.RESP_ADMINISTRATION]).fetch()
 
             if (admins && admins.models && admins.models.length > 0) {
               // Determine cancellation type

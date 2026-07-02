@@ -111,14 +111,6 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
           }
         }
       }
-      membershipCommonRoles {
-        items {
-          id
-          groupId
-          userId
-          roleId
-        }
-      }
     }
   }
   ${withTopics

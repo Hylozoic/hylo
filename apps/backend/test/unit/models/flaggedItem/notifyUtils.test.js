@@ -36,8 +36,8 @@ describe('sendToGroups', () => {
       u1 = await factories.user().save({}, { transacting })
       u2 = await factories.user().save({}, { transacting })
       u3 = await factories.user().save({}, { transacting })
-      await g1.addMembers([u1, u2], { role: GroupMembership.Role.MODERATOR }, { transacting })
-      await g2.addMembers([u2, u3], { role: GroupMembership.Role.MODERATOR }, { transacting })
+      await g1.addMembers([u1, u2], { assignCoordinator: true }, { transacting })
+      await g2.addMembers([u2, u3], { assignCoordinator: true }, { transacting })
     })
 
     groups = [g1, g2]

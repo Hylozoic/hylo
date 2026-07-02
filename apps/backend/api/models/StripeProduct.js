@@ -94,7 +94,7 @@ module.exports = bookshelf.Model.extend({
       return accessRecords
     }
 
-    // Process access_grants structure: { groupIds: [123, 456], trackIds: [1, 2], groupRoleIds: [3], commonRoleIds: [4] }
+    // Process access_grants structure: { groupIds: [123, 456], trackIds: [1, 2], groupRoleIds: [3] }
     // Handle groupIds - create group access records
     if (accessGrants.groupIds && Array.isArray(accessGrants.groupIds)) {
       for (const groupId of accessGrants.groupIds) {
@@ -213,52 +213,6 @@ module.exports = bookshelf.Model.extend({
             metadata
           }, { transacting })
           accessRecords.push(roleRecord)
-        }
-      }
-    }
-
-    // Handle commonRoleIds - create MemberCommonRole records for common roles
-    // Common roles are assigned via group_memberships_common_roles table, not content_access
-    if (accessGrants.commonRoleIds && Array.isArray(accessGrants.commonRoleIds)) {
-      /* global MemberCommonRole */
-      for (const groupIdNum of groupIdsForRoles) {
-        for (const commonRoleId of accessGrants.commonRoleIds) {
-          const commonRoleIdNum = commonRoleId != null ? parseInt(commonRoleId, 10) : null
-          if (commonRoleId != null && (isNaN(commonRoleIdNum) || commonRoleIdNum <= 0)) {
-            console.warn(`Invalid commonRoleId: ${commonRoleId}, skipping`)
-            continue
-          }
-
-          // Check if the common role assignment already exists
-          const existing = await MemberCommonRole.where({
-            user_id: userIdNum,
-            group_id: groupIdNum,
-            common_role_id: commonRoleIdNum
-          }).fetch({ transacting })
-
-          if (!existing) {
-            // Create MemberCommonRole assignment
-            await MemberCommonRole.forge({
-              user_id: userIdNum,
-              group_id: groupIdNum,
-              common_role_id: commonRoleIdNum
-            }).save(null, { transacting })
-          }
-
-          // Also create a content_access record to track the purchase
-          const commonRoleRecord = await ContentAccess.recordPurchase({
-            userId: userIdNum,
-            grantedByGroupId: grantedByGroupIdNum,
-            groupId: groupIdNum,
-            productId: productIdNum,
-            commonRoleId: commonRoleIdNum,
-            sessionId,
-            stripeSubscriptionId,
-            stripeCustomerId,
-            expiresAt: calculatedExpiresAt,
-            metadata
-          }, { transacting })
-          accessRecords.push(commonRoleRecord)
         }
       }
     }

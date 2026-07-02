@@ -123,17 +123,9 @@ export default gql`
         }
       }
       submitterRoles {
-        __typename
-        ... on CommonRole {
-          id
-          emoji
-          name
-        }
-        ... on GroupRole {
-          id
-          emoji
-          name
-        }
+        id
+        emoji
+        name
       }
       submissionsCloseAt
       submissionsOpenAt
@@ -148,14 +140,6 @@ export default gql`
           id
           avatarUrl
           name
-          membershipCommonRoles {
-            items {
-              id
-              commonRoleId
-              groupId
-              userId
-            }
-          }
           groupRoles {
             items {
               id
@@ -180,17 +164,9 @@ export default gql`
         }
       }
       voterRoles {
-        __typename
-        ... on CommonRole {
-          id
-          emoji
-          name
-        }
-        ... on GroupRole {
-          id
-          emoji
-          name
-        }
+        id
+        emoji
+        name
       }
       votingMethod
       votingClosesAt

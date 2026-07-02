@@ -43,7 +43,7 @@ async function getExternalAccountId (accountId) {
 
 async function getGroupAdminLocale (group) {
   try {
-    const admins = await group.membersWithResponsibilities([Responsibility.Common.RESP_ADMINISTRATION]).fetch()
+    const admins = await group.membersWithResponsibilities([Responsibility.constants.RESP_ADMINISTRATION]).fetch()
     if (!admins?.models?.length) {
       return 'en'
     }
@@ -246,7 +246,6 @@ module.exports = {
    *       accessGrants: {
    *         trackIds: [456, 789]
    *         groupRoleIds: [1, 2]
-   *         commonRoleIds: [3, 4]
    *         groupIds: [123]
    *       }
    *       publishStatus: "published"
@@ -369,7 +368,6 @@ module.exports = {
    *       accessGrants: {
    *         trackIds: [456, 789]
    *         groupRoleIds: [1, 2]
-   *         commonRoleIds: [3, 4]
    *         groupIds: [123]
    *       }
    *       publishStatus: "published"

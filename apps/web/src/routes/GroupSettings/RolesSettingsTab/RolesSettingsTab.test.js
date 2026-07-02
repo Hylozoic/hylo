@@ -9,7 +9,7 @@ describe('RolesSettingsTab', () => {
   it('clears suggestions on unmount', () => {
     const clearStewardSuggestions = jest.fn()
     const { unmount } = render(
-      <RolesSettingsTab clearStewardSuggestions={clearStewardSuggestions} commonRoles={[]} />,
+      <RolesSettingsTab clearStewardSuggestions={clearStewardSuggestions} />,
       { wrapper: AllTheProviders() }
     )
     unmount()
@@ -25,14 +25,14 @@ describe('RoleList', () => {
       roleId: '1',
       slug: 'foogroup',
       suggestions: [],
-      isCommonRole: true,
+      isSystemRole: true,
       group: { id: 1 },
-      fetchMembersForCommonRole: jest.fn().mockResolvedValue({ response: { payload: { data: { group: { members: { items: [] } } } } } }),
+      fetchMembersForGroupRole: jest.fn().mockResolvedValue({ response: { payload: { data: { group: { members: { items: [] } } } } } }),
       t: (str) => str
     }
 
     mockGraphqlServer.use(
-      graphql.query('fetchResponsibilitiesForCommonRole', () => {
+      graphql.query('fetchResponsibilitiesForGroupRole', () => {
         return HttpResponse.json({
           data: {
             responsibilities: []
@@ -53,7 +53,7 @@ describe('RoleList', () => {
     await waitFor(() => {
       expect(screen.getByText('Responsibilities')).toBeInTheDocument()
       expect(screen.getByText('Members')).toBeInTheDocument()
-      expect(screen.getByText('Common roles cannot have their responsibilities edited')).toBeInTheDocument()
+      expect(screen.getByText('System roles cannot have their responsibilities edited')).toBeInTheDocument()
     })
   })
 })

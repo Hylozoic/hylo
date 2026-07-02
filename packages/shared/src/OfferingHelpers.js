@@ -22,9 +22,8 @@ export function accessGrantsGrantOnlyTracks (accessGrants) {
   const hasTracks = Array.isArray(accessGrants.trackIds) && accessGrants.trackIds.length > 0
   const hasGroups = Array.isArray(accessGrants.groupIds) && accessGrants.groupIds.length > 0
   const hasGroupRoles = Array.isArray(accessGrants.groupRoleIds) && accessGrants.groupRoleIds.length > 0
-  const hasCommonRoles = Array.isArray(accessGrants.commonRoleIds) && accessGrants.commonRoleIds.length > 0
 
-  return hasTracks && !hasGroups && !hasGroupRoles && !hasCommonRoles
+  return hasTracks && !hasGroups && !hasGroupRoles
 }
 
 /**

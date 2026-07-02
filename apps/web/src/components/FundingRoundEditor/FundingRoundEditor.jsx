@@ -39,7 +39,6 @@ import {
 import HyloEditor from 'components/HyloEditor'
 import { createFundingRound, updateFundingRound } from 'routes/FundingRounds/FundingRounds.store'
 import { RESP_MANAGE_ROUNDS } from 'store/constants'
-import getCommonRoles from 'store/selectors/getCommonRoles'
 import getFundingRound from 'store/selectors/getFundingRound'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
@@ -169,9 +168,8 @@ function FundingRoundEditor (props) {
     { label: t('Divide total {{tokenName}} evenly among all voters', { tokenName: fundingRoundState.tokenType }), value: 'token_allocation_divide' }
   ]
 
-  const commonRoles = useSelector(getCommonRoles)
   const groupRoles = useMemo(() => currentGroup?.groupRoles?.items || [], [currentGroup?.groupRoles?.items])
-  const roles = useMemo(() => [...commonRoles.map(role => ({ ...role, type: 'common', label: `${role.emoji} ${role.name}` })), ...groupRoles.map(role => ({ ...role, type: 'group', label: `${role.emoji} ${role.name}` }))], [commonRoles, groupRoles])
+  const roles = useMemo(() => groupRoles.map(role => ({ ...role, type: 'group', label: `${role.emoji} ${role.name}` })), [groupRoles])
 
   const [submitterRoleSearchTerm, setSubmitterRoleSearchTerm] = useState(null)
   const [voterRoleSearchTerm, setVoterRoleSearchTerm] = useState(null)

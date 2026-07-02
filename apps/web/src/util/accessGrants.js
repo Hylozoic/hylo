@@ -5,12 +5,11 @@
  * {
  *   trackIds: [1, 2, 3],
  *   groupIds: [4, 5, 6],
- *   commonRoleIds: [7, 8],  // Common roles (from common_roles table)
- *   groupRoleIds: [9, 10],   // Group roles (from groups_roles table)
+ *   groupRoleIds: [9, 10],
  *   buyButtonText: "Join now"  // Optional; UI/checkout only (also stored on stripe_products.metadata)
  *   slidingScale: { enabled, minimum?, maximum? }  // Optional; checkout quantity range (also in metadata)
  * }
- * Access logic uses trackIds, groupIds, commonRoleIds, groupRoleIds; presentation fields are ignored there.
+ * Access logic uses trackIds, groupIds, groupRoleIds; presentation fields are ignored there.
  * The client may still send buyButtonText / slidingScale inside this object; the API persists them in metadata.
  */
 
@@ -134,14 +133,11 @@ export function offeringHasRoleAccess (offering) {
 
   // Prefer role relations if available
   const hasGroupRolesRelation = offering.groupRoles && Array.isArray(offering.groupRoles) && offering.groupRoles.length > 0
-  const hasCommonRolesRelation = offering.commonRoles && Array.isArray(offering.commonRoles) && offering.commonRoles.length > 0
-  if (hasGroupRolesRelation || hasCommonRolesRelation) {
+  if (hasGroupRolesRelation) {
     return true
   }
 
   // Fallback to parsing accessGrants
   const accessGrants = parseAccessGrants(offering.accessGrants)
-  const hasCommonRoles = accessGrants.commonRoleIds && Array.isArray(accessGrants.commonRoleIds) && accessGrants.commonRoleIds.length > 0
-  const hasGroupRoles = accessGrants.groupRoleIds && Array.isArray(accessGrants.groupRoleIds) && accessGrants.groupRoleIds.length > 0
-  return hasCommonRoles || hasGroupRoles
+  return accessGrants.groupRoleIds && Array.isArray(accessGrants.groupRoleIds) && accessGrants.groupRoleIds.length > 0
 }

@@ -15,6 +15,7 @@ import * as Dialog from '@radix-ui/react-dialog'
 import { Label } from 'components/ui/label'
 import useRouteParams from 'hooks/useRouteParams'
 import completePost from 'store/actions/completePost'
+import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getTrack from 'store/selectors/getTrack'
 
 export default function ActionCompletionSection ({ post, currentUser }) {
@@ -27,18 +28,29 @@ export default function ActionCompletionSection ({ post, currentUser }) {
   const { completionAction, completionActionSettings } = post
   const { instructions, options } = completionActionSettings
   const currentTrack = useSelector(state => getTrack(state, routeParams.trackId))
+  const currentGroup = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
 
   const handleSubmitCompletion = useCallback(() => {
     if (completionAction === 'button' || completionResponse.length > 0) {
       // Check if the person has completed all actions in the track
       const allActionsCompleted = currentTrack?.posts.every(action => action.id === post.id || action.completedAt)
-      if (allActionsCompleted && !post.completedAt) {
+      const trackCompleted = allActionsCompleted && !post.completedAt
+      if (trackCompleted) {
         setShowTrackCompletionDialog(true)
       }
-      dispatch(completePost(post.id, completionResponse, currentTrack?.id, allActionsCompleted))
+      const completionRole = currentTrack?.completionRole && currentGroup?.groupRoles?.items?.find(
+        role => String(role.id) === String(currentTrack.completionRole.id)
+      )
+      dispatch(completePost(post.id, completionResponse, {
+        trackId: currentTrack?.id,
+        trackCompleted,
+        completionRoleId: currentTrack?.completionRole?.id,
+        completionRole,
+        groupId: currentGroup?.id
+      }))
     }
     setIsEditing(false)
-  }, [post, completionResponse, currentTrack?.id])
+  }, [post, completionResponse, currentTrack, currentGroup?.id, dispatch, completionAction])
 
   useEffect(() => {
     // If the post is completed, or re-completed, close edit mode

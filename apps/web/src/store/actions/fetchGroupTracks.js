@@ -26,18 +26,10 @@ query (
         description
         completionMessage
         completionRole {
-          ... on CommonRole {
-            id
-            emoji
-            name
-          }
-          ... on GroupRole {
-            id
-            emoji
-            name
-          }
+          id
+          emoji
+          name
         }
-        completionRoleType
         didComplete
         isEnrolled
         name

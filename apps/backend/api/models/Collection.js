@@ -40,15 +40,18 @@ module.exports = bookshelf.Model.extend({
   },
 
   findValidCollectionForUser: async function (userId, id) {
-    // Only allow modifying a collection created by this user or a group Collection in a group moderated by this user
+    // Personal collections: creator only. Group collections: members with Manage Content.
     if (!id) {
       throw new GraphQLError('Not a valid collection')
     }
+    const manageContent = await Responsibility.where({
+      title: Responsibility.constants.RESP_MANAGE_CONTENT
+    }).fetch()
     const collection = await Collection.query(q => {
       q.where({ id, is_active: true })
       q.andWhere(sub => {
         sub.where({ user_id: userId })
-          .orWhereIn('group_id', Group.selectIdsForMember(userId, { 'group_memberships.role': GroupMembership.Role.MODERATOR }))
+          .orWhereIn('group_id', Group.selectIdsByResponsibilities(userId, [manageContent.id]))
       })
     }).fetch()
 
