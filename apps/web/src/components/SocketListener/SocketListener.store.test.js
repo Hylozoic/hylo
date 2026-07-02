@@ -14,6 +14,7 @@ describe('SocketListener.store.ormSessionReducer', () => {
   })
 
   it('responds to RECEIVE_MESSAGE', () => {
+    session.Me.create({ id: '1', unseenThreadCount: 0 })
     const action = {
       type: RECEIVE_MESSAGE,
       payload: {
@@ -32,6 +33,34 @@ describe('SocketListener.store.ormSessionReducer', () => {
     ormSessionReducer(session, action)
     const thread = session.MessageThread.withId('7')
     expect(thread.unreadCount).toBe(1)
+    expect(session.Me.first().unseenThreadCount).toBe(1)
+  })
+
+  it('does not bump unseenThreadCount for muted threads', () => {
+    session.Me.create({ id: '1', unseenThreadCount: 0 })
+    session.MessageThread.create({
+      id: '7',
+      unreadCount: 0,
+      isMuted: true
+    })
+    const action = {
+      type: RECEIVE_MESSAGE,
+      payload: {
+        data: {
+          message: {
+            text: 'hello world',
+            messageThread: '7'
+          }
+        }
+      },
+      meta: {
+        bumpUnreadCount: true
+      }
+    }
+
+    ormSessionReducer(session, action)
+    expect(session.MessageThread.withId('7').unreadCount).toBe(1)
+    expect(session.Me.first().unseenThreadCount).toBe(0)
   })
 
   describe('for RECEIVE_POST', () => {

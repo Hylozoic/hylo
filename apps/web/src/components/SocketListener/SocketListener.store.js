@@ -15,7 +15,8 @@ export function receiveMessage (message, opts = {}) {
     },
     meta: {
       extractModel: 'Message',
-      bumpUnreadCount: opts.bumpUnreadCount
+      bumpUnreadCount: opts.bumpUnreadCount,
+      isMuted: opts.isMuted
     }
   }
 }
@@ -83,21 +84,29 @@ export function ormSessionReducer (session, { meta, type, payload }) {
 
   switch (type) {
     case RECEIVE_MESSAGE: {
-      currentUser = Me.first()
-      currentUser.update({
-        unseenThreadCount: currentUser.unseenThreadCount + 1
-      })
-
       const id = payload.data.message.messageThread
+      const isMuted = meta.isMuted || (MessageThread.idExists(id) && MessageThread.withId(id).isMuted)
+
       if (!MessageThread.idExists(id)) {
         MessageThread.create({
           id,
           updatedAt: new Date().toString(),
           lastReadAt: 0,
-          unreadCount: 0
+          unreadCount: 0,
+          isMuted: !!meta.isMuted
+        })
+      } else if (meta.isMuted) {
+        MessageThread.withId(id).update({ isMuted: true })
+      }
+
+      MessageThread.withId(id).newMessageReceived(meta.bumpUnreadCount)
+
+      if (meta.bumpUnreadCount && !isMuted) {
+        currentUser = Me.first()
+        currentUser.update({
+          unseenThreadCount: currentUser.unseenThreadCount + 1
         })
       }
-      MessageThread.withId(id).newMessageReceived(meta.bumpUnreadCount)
       break
     }
 
