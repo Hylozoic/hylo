@@ -1,6 +1,8 @@
 /* eslint-disable camelcase */
 /* global Track */
 
+const { parseJsonObject: parseAccessGrants } = require('../../lib/stripeOfferingMetadata')
+
 module.exports = bookshelf.Model.extend({
   tableName: 'stripe_products',
   requireFetch: false,
@@ -53,7 +55,7 @@ module.exports = bookshelf.Model.extend({
     expiresAt,
     metadata = {}
   }, { transacting } = {}) {
-    const accessGrants = this.get('access_grants') || {}
+    const accessGrants = parseAccessGrants(this.get('access_grants'))
     const grantedByGroupId = this.get('group_id') // The group that owns/sells this product
     const productId = this.get('id')
     const duration = this.get('duration')
