@@ -464,7 +464,10 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
       membershipChangePreview(context.currentUserId, args),
     membershipChangeInvoicePreview: (root, args, context) =>
       membershipChangeInvoicePreview(context.currentUserId, args),
-    messageThread: (root, { id }) => fetchOne('MessageThread', id),
+    messageThread: (root, { id }) => {
+      if (!id || isNaN(Number(id))) return null
+      return fetchOne('MessageThread', id)
+    },
     moderationActions: (root, args) => fetchMany('ModerationAction', args),
     notifications: async (root, { first, offset, resetCount, order = 'desc' }, context) => {
       const notifications = await fetchMany('Notification', { first, offset, order })

@@ -1,12 +1,16 @@
 import orm from 'store/models'
 import {
-  CREATE_MESSAGE
+  CREATE_MESSAGE,
+  FETCH_MESSAGES,
+  FETCH_THREAD
 } from 'store/constants'
 import reducer, {
   defaultState,
   getMessages,
   filterThreadsByParticipant,
   findOrCreateThread,
+  fetchThread,
+  fetchMessages,
   createMessage,
   updateMessageText,
   moduleSelector,
@@ -121,6 +125,24 @@ describe('findOrCreateThread', () => {
     const { query, variables } = graphql
     const actual = findOrCreateThread(variables.participantIds, query)
     expect(actual).toMatchSnapshot()
+  })
+})
+
+describe('fetchThread', () => {
+  it('skips graphql when id is the new-thread route sentinel', () => {
+    const action = fetchThread('new')
+    expect(action.type).toEqual(FETCH_THREAD)
+    expect(action.graphql).toBeUndefined()
+    expect(action.meta.skipped).toBe(true)
+  })
+})
+
+describe('fetchMessages', () => {
+  it('skips graphql when id is the new-thread route sentinel', () => {
+    const action = fetchMessages('new')
+    expect(action.type).toEqual(FETCH_MESSAGES)
+    expect(action.graphql).toBeUndefined()
+    expect(action.meta.skipped).toBe(true)
   })
 })
 

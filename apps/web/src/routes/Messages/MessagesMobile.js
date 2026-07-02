@@ -12,8 +12,7 @@ import { sendIsTyping } from 'client/websockets'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import { canAddThreadParticipant } from './messageThreadLimits'
 import MutedThreadNotice from './MutedThreadNotice'
-
-export const NEW_THREAD_ID = 'new'
+import { NEW_THREAD_ID } from './Messages.store'
 
 const MessagesMobile = ({
   messageThreadId,
@@ -226,7 +225,7 @@ const MessagesMobile = ({
                 ref={formRef}
                 updateMessageText={updateMessageTextAction}
                 messageText={messageText}
-                sendIsTyping={(status) => sendIsTyping(messageThreadId, status)}
+                sendIsTyping={(status) => messageThreadId !== NEW_THREAD_ID && sendIsTyping(messageThreadId, status)}
                 pending={messageCreatePending}
               />
             </div>
