@@ -148,6 +148,12 @@ module.exports = bookshelf.Model.extend(merge({
       .orderBy('groups.name', 'asc')
   },
 
+  // Spaces & Views: all child spaces of this group/space, via groups.parent_id
+  // (includes archived spaces — filter on active where needed) (spec section 3.4)
+  spaces () {
+    return this.hasMany(Group, 'parent_id').query(q => q.where('type', 'space'))
+  },
+
   comments: function () {
     return Comment.collection().query(q => {
       q.join('groups_posts', 'groups_posts.post_id', 'comments.post_id')
@@ -172,6 +178,11 @@ module.exports = bookshelf.Model.extend(merge({
 
   fundingRounds () {
     return this.hasMany(FundingRound, 'group_id')
+  },
+
+  // Spaces & Views: the FundingRound whose space this group is (spec section 3.4)
+  fundingRound () {
+    return this.belongsTo(FundingRound, 'funding_round_id')
   },
 
   groupAgreements () {
@@ -199,6 +210,11 @@ module.exports = bookshelf.Model.extend(merge({
   groupExtensions: function () {
     return this.belongsToMany(Extension).through(GroupExtension).where('group_extensions.active', true)
       .withPivot(['data'])
+  },
+
+  // Spaces & Views: ordered list of this group's/space's own views (spec section 3.4)
+  groupViews () {
+    return this.hasMany(GroupView, 'group_id')
   },
 
   groupToGroupJoinQuestions () {
@@ -355,6 +371,13 @@ module.exports = bookshelf.Model.extend(merge({
       .query({ where: { active: true, relationship_type: 0 } }) // PARENT_CHILD only
   },
 
+  // Spaces & Views: the top-level group (or parent space) this space belongs
+  // to, via groups.parent_id — distinct from the group_relationships-based
+  // parentGroups() used for peer/affiliation relationships (spec section 3.4)
+  parentGroup () {
+    return this.belongsTo(Group, 'parent_id')
+  },
+
   peerGroups () {
     // For peer relationships, we need to get groups connected to this one in either direction
     // Since peer relationships are bidirectional, we can't use the normal belongsToMany().through() pattern
@@ -473,6 +496,11 @@ module.exports = bookshelf.Model.extend(merge({
 
   tracks () {
     return this.belongsToMany(Track, 'groups_tracks')
+  },
+
+  // Spaces & Views: the Track whose space this group is (spec section 3.4)
+  track () {
+    return this.belongsTo(Track, 'track_id')
   },
 
   // The posts to show for a particular user viewing a group's stream or map

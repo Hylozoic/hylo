@@ -5,6 +5,7 @@ const RESP_REMOVE_MEMBERS = 'Remove Members'
 const RESP_MANAGE_CONTENT = 'Manage Content'
 const RESP_MANAGE_TRACKS = 'Manage Tracks'
 const RESP_MANAGE_ROUNDS = 'Manage Rounds'
+const RESP_MANAGE_SPACES = 'Manage Spaces'
 
 module.exports = bookshelf.Model.extend({
   tableName: 'responsibilities',
@@ -26,7 +27,8 @@ module.exports = bookshelf.Model.extend({
     RESP_MANAGE_CONTENT,
     RESP_REMOVE_MEMBERS,
     RESP_MANAGE_ROUNDS,
-    RESP_MANAGE_TRACKS
+    RESP_MANAGE_TRACKS,
+    RESP_MANAGE_SPACES
   },
 
   // Users with these responsibilities we show to users in the sidebar of the group

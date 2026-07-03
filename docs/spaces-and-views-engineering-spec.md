@@ -95,7 +95,7 @@ DROP TABLE groups_tracks;
 **What moves to the space group (`groups` table):**
 - `name` → `groups.name`
 - `description` → `groups.description`
-- `banner_url` → `groups.banner_url` (or `avatar_url` — confirm which field)
+- `banner_url` → `groups.banner_url` (confirmed)
 - `deactivated_at` → archive the space (`groups.deactivated_at`) if set
 - `access_controlled` → set space to paid (see Phase 4 Paid Spaces)
 
@@ -129,14 +129,14 @@ ALTER TABLE funding_rounds
 
 ### 2.4 Roles & Responsibilities
 
-**New system responsibility:** `Create Spaces` — assignable to any role via group role editor. Controls who can create child spaces in a group (not limited to Coordinators). Coordinator includes it by default.
+**New system responsibility:** `Manage Spaces` — assignable to any role via group role editor. Controls who can create child spaces in a group (not limited to Coordinators). Coordinator includes it by default.
 
 Responsibilities are looked up by **`name` AND `type = 'system'`** — never by hardcoded id — because ids may differ across databases and group-custom responsibilities can reuse the same name.
 
 **Migration:**
 
 For each existing group:
-1. Add the `Create Spaces` responsibility to coordinator role for the group
+1. Add the `Manage Spaces` responsibility to coordinator role for the group
 2. Migrate admin-only chat room spaces: set `required_roles = [<coordinator role id for that group>]`
 3. Spaces **inherit role definitions from the parent group** — it has the same set of group_roles copied over from the parent group. roles are not customizable per space. |
 
@@ -695,6 +695,17 @@ For each ContextWidget with `view_chat_id IS NOT NULL` and `order IS NOT NULL` t
 
 6. **Migrate posts:** chat posts in `groups_posts` for parent group that have this tag → reassociate with new space in `groups_posts`; remove parent group association.
 
+### Step 8b — Backfill `group_views_users` for all existing members
+
+Steps 6-8 above already create `group_views_users` rows for the members of newly-created Track/Round/Chat spaces. But **every other existing `group_views` row** created in Steps 2 and 4 (i.e. the Main Space views of every pre-existing top-level group) has no corresponding `group_views_users` rows yet — those are only ever created "when a user joins a space" (section 2.6) going forward, which doesn't help existing members of existing groups. Without this step, per-view unread counts (section 8) would be broken/empty for every current member of every current group until some other action happens to create the row.
+
+For every `group_views` row (from Steps 2 and 4 — i.e. Main Space views), for every active `group_membership` in that view's `group_id`:
+- Create a `group_views_users` row if one doesn't already exist for `(view_id, user_id)`.
+- `new_post_count = 0`
+- `last_read_post_id` = the most recent post id in that group at migration time — treats all pre-existing content as already read so existing members don't suddenly see unread badges for old posts after migration.
+
+Idempotent — skip rows that already exist (enforced by the `(view_id, user_id)` unique constraint).
+
 ### Step 9 — Handle `#general` or other home chat rooms specifically
 
 - Remove `#general` from all posts: delete rows from `posts_tags` where `tag_id = #general.id`.
@@ -717,6 +728,7 @@ For each group and space: `home_route = GroupView.computeHomeRoutePath(homeView,
 - Every funding round space has `funding_round_id IS NOT NULL`.
 - No top-level group has `type = 'space'`.
 - `tracks_posts`, `tracks_users`, `funding_rounds_posts`, `funding_rounds_users` are empty (all rows migrated).
+- Every active `group_membership` has a `group_views_users` row for every `group_views` row in that membership's `group_id` (see Step 8b).
 
 ---
 
@@ -980,7 +992,7 @@ In the post creation modal:
 
 ### 7.10 Space management UI
 
-Accessible from ContextMenu edit mode ("Add Space" button). Requires **Create Spaces** responsibility in the parent group (assignable to any role — not limited to Coordinators). To edit, use the gear icon next to the space name when the menu is in edit mode.
+Accessible from ContextMenu edit mode ("Add Space" button). Requires **Manage Spaces** responsibility in the parent group (assignable to any role — not limited to Coordinators). To edit, use the gear icon next to the space name when the menu is in edit mode.
 
 **Roles in spaces:**
 - Spaces **inherit role definitions** from the parent group. Per-space custom role sets are **not** supported.
@@ -1092,7 +1104,7 @@ Also filter spaces from group search results when searching for groups.
 
 ### New space creation
 
-- Requires **Create Spaces** responsibility in the parent group (assignable to any role).
+- Requires **Manage Spaces** responsibility in the parent group (assignable to any role).
 - Via ContextMenu edit mode "Add Space" button.
 - `createSpace` mutation → creates `groups` row with `type = 'space'`, `parent_id`, then calls `Group.setupSpaceViews()`.
 - Creator becomes the space **Coordinator** and can assign roles to other space members (using parent group's role definitions).
