@@ -917,6 +917,8 @@ type Group {
   aboutVideoUri: String,
   # Either 0 = Closed (invite only), 1 = Restricted (Anyone can request to join), 2 = Open (anyone can join if they can find/see the group)
   accessibility: Int
+  # Spaces & Views: post types that can be posted into this Group/Space, e.g. ['discussion', 'event']. Null = all types accepted
+  acceptedPostTypes: [String]
   # Whether this group's posts can be shown in public feeds
   allowInPublic: Boolean
   # URL to the image of the avatar of the group
@@ -957,6 +959,8 @@ type Group {
   postCount: Int
   # The purpose statement for the group
   purpose: String
+  # Spaces & Views: group role ids required to view/post in this Space. Null/empty = no role restriction
+  requiredRoles: [Int]
   # Group settings
   settings: GroupSettings
   # Unique URL slug
@@ -975,7 +979,7 @@ type Group {
   stripePayoutsEnabled: Boolean
   # Whether all required Stripe details have been submitted
   stripeDetailsSubmitted: Boolean
-  # Right now can either by 'farm' or null
+  # Either 'farm', 'space' (a child Group belonging to another Group via parentGroup), or null
   type: String
   # Word used to describe this type of group. Defaults to Group, or if type is set then defaults to the type (e.g. Farm)
   typeDescriptor: String
@@ -1032,6 +1036,21 @@ type Group {
 
   # CustomViews for this group
   customViews: CustomViewQuerySet
+
+  # Spaces & Views: the ordered list of this Group's/Space's own views. `type = 'space'` entries include a `linkedGroup` with its own `groupViews`
+  groupViews: GroupViewQuerySet
+
+  # Spaces & Views: all child Spaces of this Group (including archived ones)
+  spaces: GroupQuerySet
+
+  # Spaces & Views: the parent Group this Space belongs to, if this Group is a Space
+  parentGroup: Group
+
+  # Spaces & Views: the Track this Space represents, if any
+  track: Track
+
+  # Spaces & Views: the FundingRound this Space represents, if any
+  fundingRound: FundingRound
 
   # The GroupExtension data for this group if it is a special group type like 'farm'
   groupExtensions: GroupExtensionQuerySet
@@ -1356,6 +1375,76 @@ type GroupQuerySet {
   total: Int
   hasMore: Boolean
   items: [Group]
+}
+
+# A View within a Group's or Space's navigation menu (see docs/spaces-and-views-engineering-spec.md section 2.5)
+type GroupView {
+  id: ID
+  # The Group or Space this view belongs to
+  group: Group
+  # Display name override (used by 'custom', 'space' and 'group' type views)
+  name: String
+  # The type of view, e.g. 'chat', 'welcome', 'custom', 'space', 'collection', 'link', etc.
+  type: String
+  # Position in the group's single ordered menu list. 0 = home view
+  order: Int
+  # Icon override for this view
+  icon: String
+  # Markdown content, used by 'welcome', 'text' and 'link' type views
+  pageContent: String
+  # URL, used by 'link' type views
+  link: String
+  # Topic names used to filter posts, for 'custom' type views
+  topics: [String]
+  # Type-specific settings, e.g. {postTypes, activePostsOnly, defaultSort, defaultViewMode, searchText} for 'custom' views
+  settings: JSON
+  # Posts in this view, for 'collection' and 'track-actions' type views
+  collectionPosts: [Post]
+  # The Space (or Group) this view links to, for 'space' and 'group' type views
+  linkedGroup: Group
+  # The Post this view points at, for 'post' type views
+  viewPost: Post
+  # The Person this view points at, for 'member' type views
+  viewUser: Person
+  # Number of new/unread posts in this view for the current logged in user
+  newPostCount: Int
+  # The last post id the current logged in user has read in this view
+  lastReadPostId: ID
+}
+
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type GroupViewQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [GroupView]
+}
+
+# Per-user unread state / settings for a GroupView (see docs/spaces-and-views-engineering-spec.md section 2.6)
+type GroupViewUser {
+  id: ID
+  # The View this pertains to
+  view: GroupView
+  # The Person this pertains to
+  user: Person
+  # Number of new/unread posts in this view for this user
+  newPostCount: Int
+  # The last post id this user has read in this view
+  lastReadPostId: ID
+  # Per-user, per-view settings. Null = inherit from the user's space membership settings
+  settings: JSON
+}
+
+# A Post within a 'collection' or 'track-actions' type GroupView (see docs/spaces-and-views-engineering-spec.md section 2.7)
+type CollectionPost {
+  id: ID
+  # The View this post belongs to
+  view: GroupView
+  # The Post
+  post: Post
+  # The order of the post within the view when manually sorted
+  order: Int
+  # When this was created
+  createdAt: Date
 }
 
 # Results of groupExists query
@@ -3300,6 +3389,86 @@ type Mutation {
     # Create the group as a specific user. Only supported by particular API keys.
     asUserId: ID
   ): Group
+  # ---- Spaces & Views (see docs/spaces-and-views-engineering-spec.md section 4) ----
+  # Create a new View in a Group's or Space's navigation menu
+  createGroupView(
+    groupId: ID!,
+    type: String!,
+    name: String,
+    icon: String,
+    settings: JSON,
+    link: String,
+    pageContent: String,
+    topics: [String],
+    orderInFrontOfViewId: ID,
+    addToEnd: Boolean,
+    linkedGroupId: ID,
+    postId: ID,
+    userId: ID
+  ): GroupView
+  # Update a View
+  updateGroupView(
+    id: ID!,
+    name: String,
+    icon: String,
+    settings: JSON,
+    link: String,
+    pageContent: String,
+    topics: [String],
+    orderInFrontOfViewId: ID,
+    addToEnd: Boolean
+  ): GroupView
+  # Delete a View
+  deleteGroupView(id: ID!): GenericResult
+  # Reorder a View within its Group's or Space's menu
+  reorderGroupView(id: ID!, orderInFrontOfViewId: ID, addToEnd: Boolean): GenericResult
+  # Set a View as the home view for its Group or Space
+  setHomeView(viewId: ID!, groupId: ID!): GenericResult
+  # Create a new Space (a child Group) within a parent Group
+  createSpace(
+    parentGroupId: ID!,
+    name: String!,
+    slug: String,
+    acceptedPostTypes: [String],
+    visibility: Int,
+    accessibility: Int,
+    icon: String,
+    description: String,
+    requiredRoles: [Int]
+  ): Group
+  # Update a Space's settings
+  updateSpace(
+    id: ID!,
+    name: String,
+    slug: String,
+    acceptedPostTypes: [String],
+    visibility: Int,
+    accessibility: Int,
+    icon: String,
+    description: String,
+    requiredRoles: [Int],
+    location: String,
+    locationId: ID
+  ): Group
+  # Archive a Space (soft-deactivate; removes its menu entry from the parent)
+  archiveSpace(id: ID!): Group
+  # Permanently delete a Space
+  deleteSpace(id: ID!): GenericResult
+  # Join a Space (creates a group membership + per-view unread rows)
+  joinSpace(spaceId: ID!): Membership
+  # Leave a Space
+  leaveSpace(spaceId: ID!): GenericResult
+  # Mark a View as read for the current logged in user
+  markViewAsRead(viewId: ID!): GroupViewUser
+  # Update the current logged in user's settings for a View
+  updateViewSettings(viewId: ID!, settings: JSON!): GroupViewUser
+  # Add a Post to a 'collection' or 'track-actions' type View
+  addPostToView(viewId: ID!, postId: ID!, order: Int): CollectionPost
+  # Remove a Post from a View
+  removePostFromView(viewId: ID!, postId: ID!): GenericResult
+  # Reorder a Post within a View
+  reorderViewPost(viewId: ID!, postId: ID!, order: Int!): GenericResult
+
   # Invite an email address to join a Group
   createInvitation(groupId: ID, data: InviteInput): CreatedInvitations
   # Ask to join a Group

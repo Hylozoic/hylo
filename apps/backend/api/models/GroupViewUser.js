@@ -34,8 +34,14 @@ module.exports = bookshelf.Model.extend({
 
   markRead: async function (viewId, userId, { transacting } = {}) {
     const viewUser = await GroupViewUser.findOrCreate(viewId, userId, { transacting })
-    const lastPost = await bookshelf.knex('posts')
-      .max('id as max')
+    const view = await GroupView.where({ id: viewId }).fetch({ transacting })
+
+    // Approximate "read" as the most recent post in the view's group, matching the
+    // simplification used for the ContextWidget -> GroupView data migration (spec
+    // section 5). Full per-view-type post filtering is a future enhancement.
+    const lastPost = await bookshelf.knex('groups_posts')
+      .max('post_id as max')
+      .where({ group_id: view.get('group_id') })
       .modify(q => { if (transacting) q.transacting(transacting) })
       .then(rows => rows[0]?.max)
 

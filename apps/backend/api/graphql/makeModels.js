@@ -1,4 +1,4 @@
-/* global FundingRound ContentAccess Draft */
+/* global FundingRound ContentAccess Draft GroupView GroupViewUser CollectionPost */
 import { camelCase, isNil, mapKeys, startCase } from 'lodash/fp'
 import pluralize from 'pluralize'
 import { TextHelpers } from '@hylo/shared'
@@ -658,6 +658,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
       model: Group,
       attributes: [
         'about_video_uri',
+        'accepted_post_types',
         'accessibility',
         'allow_in_public',
         'avatar_url',
@@ -673,6 +674,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'paywall',
         'postCount',
         'purpose',
+        'required_roles',
         'slug',
         'stripe_account_id',
         'stripe_charges_enabled',
@@ -885,7 +887,13 @@ export default function makeModels (userId, isAdmin, apiClient) {
           }
         },
         { widgets: { querySet: true } },
-        { groupExtensions: { querySet: true } }
+        { groupExtensions: { querySet: true } },
+        // Spaces & Views (see docs/spaces-and-views-engineering-spec.md section 4.2)
+        { groupViews: { querySet: true } },
+        { spaces: { querySet: true } },
+        'parentGroup',
+        'track',
+        'fundingRound'
       ],
       getters: {
         eventCalendarUrl: g => g.eventCalendarUrl(),
@@ -979,6 +987,72 @@ export default function makeModels (userId, isAdmin, apiClient) {
           type: filter,
           visibility: context === 'public' ? Group.Visibility.PUBLIC : visibility
         })
+    },
+
+    // Spaces & Views (see docs/spaces-and-views-engineering-spec.md section 2.5 / 4.1)
+    GroupView: {
+      model: GroupView,
+      attributes: [
+        'id',
+        'name',
+        'type',
+        'order',
+        'icon',
+        'page_content',
+        'link',
+        'topics',
+        'settings'
+      ],
+      relations: [
+        'group',
+        'linkedGroup',
+        'viewPost',
+        'viewUser'
+      ],
+      getters: {
+        // collectionPosts resolves to the actual Posts (not the join rows) per the GraphQL schema
+        collectionPosts: async gv => {
+          const rows = await gv.collectionPosts().fetch({ withRelated: ['post'] })
+          return rows.map(row => row.related('post')).filter(post => post && post.id)
+        },
+        newPostCount: async gv => {
+          if (!userId) return 0
+          const viewUser = await GroupViewUser.where({ view_id: gv.id, user_id: userId }).fetch()
+          return viewUser ? viewUser.get('new_post_count') : 0
+        },
+        lastReadPostId: async gv => {
+          if (!userId) return null
+          const viewUser = await GroupViewUser.where({ view_id: gv.id, user_id: userId }).fetch()
+          return viewUser ? viewUser.get('last_read_post_id') : null
+        }
+      }
+    },
+
+    GroupViewUser: {
+      model: GroupViewUser,
+      attributes: [
+        'id',
+        'new_post_count',
+        'last_read_post_id',
+        'settings'
+      ],
+      relations: [
+        'view',
+        'user'
+      ]
+    },
+
+    CollectionPost: {
+      model: CollectionPost,
+      attributes: [
+        'id',
+        'order',
+        'created_at'
+      ],
+      relations: [
+        'view',
+        'post'
+      ]
     },
 
     GroupJoinQuestion: {

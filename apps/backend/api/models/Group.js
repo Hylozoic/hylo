@@ -214,7 +214,7 @@ module.exports = bookshelf.Model.extend(merge({
 
   // Spaces & Views: ordered list of this group's/space's own views (spec section 3.4)
   groupViews () {
-    return this.hasMany(GroupView, 'group_id')
+    return this.hasMany(GroupView, 'group_id').query(q => q.orderBy('order', 'asc'))
   },
 
   groupToGroupJoinQuestions () {
@@ -1320,6 +1320,54 @@ module.exports = bookshelf.Model.extend(merge({
     if (group) {
       await group.save({ active: false }, opts)
       return group.removeMembers(await group.members().fetch(), opts)
+    }
+  },
+
+  // Maps accepted post types to the GroupView type shown for them, mirroring the
+  // grouping used by the legacy ContextWidget menu (offer + request share one view)
+  ACCEPTED_POST_TYPE_TO_VIEW_TYPE: {
+    discussion: 'discussions',
+    event: 'events',
+    offer: 'requests-and-offers',
+    request: 'requests-and-offers',
+    resource: 'resources',
+    proposal: 'proposals',
+    project: 'projects'
+  },
+
+  /**
+   * Seeds the default `group_views` rows for a newly created space (spec section 3.4 / 10):
+   * `welcome` (order 0, home), `chat` (order 1), `members` (order 2), then one view per
+   * accepted post type. Idempotent — does nothing if the space already has views.
+   */
+  async setupSpaceViews (spaceId, acceptedPostTypes = [], { transacting } = {}) {
+    const existing = await GroupView.where({ group_id: spaceId }).fetchAll({ transacting })
+    if (existing.length > 0) return
+
+    const now = new Date()
+    const rows = [
+      { type: GroupView.Type.WELCOME },
+      { type: GroupView.Type.CHAT },
+      { type: GroupView.Type.MEMBERS }
+    ]
+
+    const seenViewTypes = new Set(rows.map(r => r.type))
+    for (const postType of (acceptedPostTypes || [])) {
+      const viewType = Group.ACCEPTED_POST_TYPE_TO_VIEW_TYPE[postType]
+      if (viewType && !seenViewTypes.has(viewType)) {
+        seenViewTypes.add(viewType)
+        rows.push({ type: viewType })
+      }
+    }
+
+    for (let i = 0; i < rows.length; i++) {
+      await GroupView.forge({
+        group_id: spaceId,
+        type: rows[i].type,
+        order: i,
+        created_at: now,
+        updated_at: now
+      }).save(null, { transacting })
     }
   },
 

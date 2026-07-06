@@ -74,6 +74,26 @@ module.exports = bookshelf.Model.extend({
   },
 
   /**
+   * Insert a new view at the end of a group's/space's ordered menu list.
+   */
+  appendToMenu: async function (attrs, { transacting } = {}) {
+    const now = new Date()
+    const maxOrderRow = await bookshelf.knex('group_views')
+      .where({ group_id: attrs.group_id })
+      .max('order as max_order')
+      .modify(q => { if (transacting) q.transacting(transacting) })
+      .first()
+    const nextOrder = maxOrderRow && maxOrderRow.max_order != null ? Number(maxOrderRow.max_order) + 1 : 0
+
+    return GroupView.forge({
+      ...attrs,
+      order: nextOrder,
+      created_at: now,
+      updated_at: now
+    }).save(null, { transacting, method: 'insert' })
+  },
+
+  /**
    * Best-effort route suffix (appended after /groups/:slug for a main group,
    * or the equivalent space base path) for a given view. Used to populate
    * groups.home_route so the frontend can redirect without loading all views.

@@ -22,8 +22,10 @@ import {
   addSkill,
   addSkillToLearn,
   addSuggestedSkillToGroup,
+  addPostToView,
   allocateTokensToSubmission,
   allowGroupInvites,
+  archiveSpace,
   blockUser,
   cancelGroupRelationshipInvite,
   cancelJoinRequest,
@@ -35,6 +37,7 @@ import {
   createContextWidget,
   createFundingRound,
   createGroup,
+  createGroupView,
   createInvitation,
   createJoinRequest,
   createMessage,
@@ -43,6 +46,7 @@ import {
   createProject,
   createProjectRole,
   createSavedSearch,
+  createSpace,
   createTrack,
   createZapierTrigger,
   login,
@@ -60,11 +64,13 @@ import {
   deleteGroupRelationship,
   deleteGroupResponsibility,
   deleteGroupTopic,
+  deleteGroupView,
   deletePeerRelationship,
   deletePost,
   deleteProjectRole,
   deleteReaction,
   deleteSavedSearch,
+  deleteSpace,
   deleteZapierTrigger,
   doPhaseTransition,
   duplicateTrack,
@@ -82,17 +88,20 @@ import {
   joinFundingRound,
   joinGroup,
   joinProject,
+  joinSpace,
   leaveFundingRound,
   leaveGroup,
   muteMessageThread,
   unmuteMessageThread,
   leaveProject,
+  leaveSpace,
   leaveTrack,
   logout,
   markActivityRead,
   markAllActivitiesRead,
   markThreadRead,
   markThreadUnread,
+  markViewAsRead,
   messageGroupStewards,
   pinPost,
   processStripeToken,
@@ -110,6 +119,7 @@ import {
   removeMember,
   removePost,
   removePostFromCollection,
+  removePostFromView,
   removeResponsibilityFromRole,
   removeRoleFromMember,
   removeProposalVote,
@@ -117,7 +127,9 @@ import {
   removeSkillToLearn,
   removeSuggestedSkillFromGroup,
   reorderContextWidget,
+  reorderGroupView,
   reorderPostInCollection,
+  reorderViewPost,
   refundContentAccess,
   resendInvitation,
   respondToEvent,
@@ -127,6 +139,7 @@ import {
   sendPasswordReset,
   setProposalOptions,
   setHomeWidget,
+  setHomeView,
   subscribe,
   swapProposalVote,
   unblockUser,
@@ -142,6 +155,7 @@ import {
   updateGroupRole,
   updateGroupTopic,
   updateGroupTopicFollow,
+  updateGroupView,
   updateTopicFollow,
   updateTrack,
   updateTrackActionOrder,
@@ -151,7 +165,9 @@ import {
   updatePost,
   updateProposalOptions,
   updateProposalOutcome,
+  updateSpace,
   updateStripeAccount,
+  updateViewSettings,
   updateWidget,
   useInvitation,
   createStripeConnectedAccount,
@@ -590,6 +606,42 @@ export function makeMutations ({ fetchOne }) {
     createFundingRound: (root, { data }, context) => createFundingRound(context.currentUserId, data),
 
     createGroup: (root, { data }, context) => createGroup(context.currentUserId, data),
+
+    createGroupView: (root, { groupId, type, name, icon, settings, link, pageContent, topics, orderInFrontOfViewId, addToEnd, linkedGroupId, postId, userId: viewUserId }, context) =>
+      createGroupView({ userId: context.currentUserId, groupId, type, name, icon, settings, link, pageContent, topics, orderInFrontOfViewId, addToEnd, linkedGroupId, postId, viewUserId, context }),
+
+    updateGroupView: (root, { id, name, icon, settings, link, pageContent, topics, orderInFrontOfViewId, addToEnd }, context) =>
+      updateGroupView({ userId: context.currentUserId, id, name, icon, settings, link, pageContent, topics, orderInFrontOfViewId, addToEnd, context }),
+
+    deleteGroupView: (root, { id }, context) => deleteGroupView(context.currentUserId, id, context),
+
+    reorderGroupView: (root, { id, orderInFrontOfViewId, addToEnd }, context) => reorderGroupView(context.currentUserId, id, orderInFrontOfViewId, addToEnd, context),
+
+    setHomeView: (root, { viewId, groupId }, context) => setHomeView(context.currentUserId, viewId, groupId, context),
+
+    markViewAsRead: (root, { viewId }, context) => markViewAsRead(context.currentUserId, viewId),
+
+    updateViewSettings: (root, { viewId, settings }, context) => updateViewSettings(context.currentUserId, viewId, settings),
+
+    addPostToView: (root, { viewId, postId, order }, context) => addPostToView(context.currentUserId, viewId, postId, order),
+
+    removePostFromView: (root, { viewId, postId }, context) => removePostFromView(context.currentUserId, viewId, postId),
+
+    reorderViewPost: (root, { viewId, postId, order }, context) => reorderViewPost(context.currentUserId, viewId, postId, order),
+
+    createSpace: (root, { parentGroupId, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles }, context) =>
+      createSpace(context.currentUserId, { parentGroupId, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles }, context),
+
+    updateSpace: (root, { id, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, location, locationId }, context) =>
+      updateSpace(context.currentUserId, { id, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, location, locationId }, context),
+
+    archiveSpace: (root, { id }, context) => archiveSpace(context.currentUserId, id, context),
+
+    deleteSpace: (root, { id }, context) => deleteSpace(context.currentUserId, id, context),
+
+    joinSpace: (root, { spaceId }, context) => joinSpace(context.currentUserId, spaceId),
+
+    leaveSpace: (root, { spaceId }, context) => leaveSpace(context.currentUserId, spaceId),
 
     createInvitation: (root, { groupId, data }, context) => createInvitation(context.currentUserId, groupId, data), // consider sending locale from the frontend here
 

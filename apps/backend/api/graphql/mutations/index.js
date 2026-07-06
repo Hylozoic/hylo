@@ -40,6 +40,26 @@ export {
   setHomeWidget
 } from './context_widgets'
 export {
+  createGroupView,
+  updateGroupView,
+  deleteGroupView,
+  reorderGroupView,
+  setHomeView,
+  markViewAsRead,
+  updateViewSettings,
+  addPostToView,
+  removePostFromView,
+  reorderViewPost
+} from './group_views'
+export {
+  createSpace,
+  updateSpace,
+  archiveSpace,
+  deleteSpace,
+  joinSpace,
+  leaveSpace
+} from './spaces'
+export {
   respondToEvent,
   invitePeopleToEvent
 } from './event'
