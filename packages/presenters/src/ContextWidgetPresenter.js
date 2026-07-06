@@ -185,35 +185,35 @@ export function getStaticMenuWidgets ({ isPublicContext, isMyContext, profileUrl
 
 // Determines if a child widget is valid inside the parent widget
 export function isValidChildWidget ({ parentWidget, childWidget }) {
-  const isWrongType = ['home', 'members', 'setup'].includes(parentWidget?.type)
-    || (parentWidget?.type === 'chats' && !childWidget?.viewChat?.name)
-    || (parentWidget?.type === 'custom-views' && !childWidget?.customView?.id)
-  const parentWidgetIsContainer = parentWidget?.childWidgets?.length > 0
-    || ['container', 'custom-views', 'chats', 'members', 'setup', 'auto-view'].includes(parentWidget?.type)
-  const childWidgetIsContainer = childWidget?.childWidgets?.length > 0
-    || ['container', 'custom-views', 'chats', 'members', 'setup', 'auto-view'].includes(childWidget?.type)
+  const isWrongType = ['home', 'members', 'setup'].includes(parentWidget?.type) ||
+    (parentWidget?.type === 'chats' && !childWidget?.viewChat?.name) ||
+    (parentWidget?.type === 'custom-views' && !childWidget?.customView?.id)
+  const parentWidgetIsContainer = parentWidget?.childWidgets?.length > 0 ||
+    ['container', 'custom-views', 'chats', 'members', 'setup', 'auto-view'].includes(parentWidget?.type)
+  const childWidgetIsContainer = childWidget?.childWidgets?.length > 0 ||
+    ['container', 'custom-views', 'chats', 'members', 'setup', 'auto-view'].includes(childWidget?.type)
 
   return !(
-    isWrongType
-      || parentWidget?.viewGroup?.slug
-      || parentWidget?.viewChat?.name
-      || parentWidget?.viewUser?.id
-      || parentWidget?.viewPost?.id
-      || parentWidget?.customView?.id
-      || parentWidget?.viewTrack?.id
-      || parentWidget?.viewFundingRound?.id
-      || childWidget?.id?.includes('fake-id')
-      || childWidget?.id === parentWidget?.id
-      || (childWidgetIsContainer && parentWidgetIsContainer)
+    isWrongType ||
+      parentWidget?.viewGroup?.slug ||
+      parentWidget?.viewChat?.name ||
+      parentWidget?.viewUser?.id ||
+      parentWidget?.viewPost?.id ||
+      parentWidget?.customView?.id ||
+      parentWidget?.viewTrack?.id ||
+      parentWidget?.viewFundingRound?.id ||
+      childWidget?.id?.includes('fake-id') ||
+      childWidget?.id === parentWidget?.id ||
+      (childWidgetIsContainer && parentWidgetIsContainer)
   )
 }
 
 export function isValidDropZone ({ overWidget, activeWidget, parentWidget, isOverlay = false, isEditing, droppableParams }) {
   const containerTypes = ['container', 'custom-views', 'chats', 'members', 'setup', 'auto-view', 'home']
-  const isWrongType = overWidget?.type === 'home'
-    || (parentWidget?.type === 'chats' && !activeWidget?.viewChat?.id)
-    || (parentWidget?.type === 'custom-views' && !activeWidget?.customView?.id)
-    || (parentWidget?.type === 'home')
+  const isWrongType = overWidget?.type === 'home' ||
+    (parentWidget?.type === 'chats' && !activeWidget?.viewChat?.id) ||
+    (parentWidget?.type === 'custom-views' && !activeWidget?.customView?.id) ||
+    (parentWidget?.type === 'home')
   const parentWidgetIsContainer = containerTypes.includes(parentWidget?.type)
   const activeWidgetIsContainer = containerTypes.includes(activeWidget?.type)
   const isDynamicWidget = overWidget?.id?.includes('fake-id')
@@ -232,12 +232,12 @@ export function isValidDropZone ({ overWidget, activeWidget, parentWidget, isOve
   // console.log('isOverlay', isOverlay)
   // console.log('isEditing', isEditing)
 
-  return (!activeWidgetIsContainer || !parentWidgetIsContainer)
-    && (overWidget?.isDroppable || true)
-    && !isWrongType
-    && !isOverlay
-    && isEditing
-    && !isDynamicWidget
+  return (!activeWidgetIsContainer || !parentWidgetIsContainer) &&
+    (overWidget?.isDroppable || true) &&
+    !isWrongType &&
+    !isOverlay &&
+    isEditing &&
+    !isDynamicWidget
 }
 
 export const orderContextWidgetsForContextMenu = (contextWidgets) => {
