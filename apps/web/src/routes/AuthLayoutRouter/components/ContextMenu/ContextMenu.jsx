@@ -3,10 +3,12 @@ import { get } from 'lodash/fp'
 import { ChevronRight, Pencil, RefreshCw } from 'lucide-react'
 import React, { useEffect, useCallback, useState, useMemo } from 'react'
 import { useLocation, Routes, Route } from 'react-router-dom'
+import { replace } from 'redux-first-history'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
 
 import {
+  ALL_GROUPS_CONTEXT_SLUG,
   MY_CONTEXT_SLUG,
   PUBLIC_CONTEXT_SLUG,
   groupUrl,
@@ -15,16 +17,22 @@ import {
   localSpaceSlug,
   spaceHomeUrl,
   spaceGroupViewUrl,
-  addQuerystringToPath
+  addQuerystringToPath,
+  viewUrl
 } from '@hylo/navigation'
 
 import GroupMenuHeader from 'components/GroupMenuHeader'
 import MenuLink from './MenuLink'
 import GroupViewIcon from './GroupViewIcon'
 import useRouteParams from 'hooks/useRouteParams'
-import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
+import GroupViewPresenter, {
+  displayNameForView,
+  getStaticMenuViews,
+  orderContextViewsForMenu
+} from '@hylo/presenters/GroupViewPresenter'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
+import logout from 'store/actions/logout'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { getGroupViews } from 'store/selectors/getGroupViews'
 import getMe from 'store/selectors/getMe'
@@ -39,8 +47,19 @@ import AddSpaceDialog, { AddSpaceButton } from './AddSpaceDialog'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { RESP_ADMINISTRATION, RESP_MANAGE_SPACES } from 'store/constants'
+import { WebViewMessageTypes } from '@hylo/shared'
+import { getMobileAppVersion, sendMessageToWebView } from 'util/webView'
 
 import classes from './ContextMenu.module.scss'
+
+/** Resolves a URL for static My/Public/All context menu views. */
+function contextViewUrl (view) {
+  if (view.link) return view.link
+  if (view.context && view.type) {
+    return viewUrl(view.type, { context: view.context })
+  }
+  return null
+}
 
 /** Maps a GroupView to its URL within a group's route tree. Falls back to the group home. */
 function groupViewUrl (groupSlug, view) {
@@ -106,6 +125,7 @@ function UnreadDot () {
 
 /** Resolves menu URL for a view — space sub-items use the parent/space URL pattern. */
 function menuViewUrl (parentSlug, view, spaceGroup = null) {
+  if (view?.link || view?.context) return contextViewUrl(view)
   if (spaceGroup) {
     const url = spaceGroupViewUrl(parentSlug, spaceGroup, view)
     if (url) return url
@@ -127,6 +147,7 @@ function GroupViewMenuItem ({
   setExpandedSpaceId,
   onCollapseSpaces
 }) {
+  const dispatch = useDispatch()
   const { t } = useTranslation()
   const presentedView = useMemo(() => GroupViewPresenter(view), [view])
 
@@ -135,10 +156,62 @@ function GroupViewMenuItem ({
   }
 
   if (presentedView.type === 'text') {
+    const childViews = view.childViews || []
     return (
-      <p className='text-xs text-foreground/40 px-2 mt-3 mb-1 uppercase tracking-wide'>
-        {displayNameForView(presentedView, t)}
-      </p>
+      <li className='list-none'>
+        <p className='text-xs text-foreground/40 px-2 mt-3 mb-1 uppercase tracking-wide'>
+          {displayNameForView(presentedView, t)}
+        </p>
+        {childViews.length > 0 && (
+          <ul className='pl-4 mt-1 mb-2'>
+            {childViews.map(subView => (
+              <GroupViewMenuItem
+                key={subView.id}
+                view={subView}
+                parentSlug={parentSlug}
+                spaceGroup={spaceGroup}
+                spaceSlug={spaceSlug}
+                expandedSpaceId={expandedSpaceId}
+                setExpandedSpaceId={setExpandedSpaceId}
+                onCollapseSpaces={onCollapseSpaces}
+              />
+            ))}
+          </ul>
+        )}
+      </li>
+    )
+  }
+
+  if (presentedView.type === 'logout') {
+    const mobileAppVersionLabel = typeof window !== 'undefined' && window.HyloMobileV2
+      ? getMobileAppVersion()
+      : ''
+
+    const handleLogout = async () => {
+      await dispatch(logout())
+      if (window.HyloMobileV2) {
+        sendMessageToWebView(WebViewMessageTypes.LOGOUT)
+      } else {
+        dispatch(replace('/login', null))
+      }
+    }
+
+    return (
+      <li className='list-none mt-6'>
+        <div className='flex items-center justify-between gap-2 px-2'>
+          <button
+            type='button'
+            onClick={handleLogout}
+            className='flex-1 flex items-center gap-2 text-base text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-2 opacity-85 hover:opacity-100 text-left'
+          >
+            <GroupViewIcon view={presentedView} />
+            <span className='truncate'>{displayNameForView(presentedView, t)}</span>
+          </button>
+          {mobileAppVersionLabel
+            ? <span className='text-xs text-muted-foreground shrink-0 tabular-nums'>v{mobileAppVersionLabel}</span>
+            : null}
+        </div>
+      </li>
     )
   }
 
@@ -201,7 +274,7 @@ function GroupViewMenuItem ({
 
   const url = menuViewUrl(parentSlug, presentedView, spaceGroup)
   const hasUnread = presentedView.newPostCount > 0
-  const isExternal = presentedView.type === 'link'
+  const isExternal = presentedView.type === 'link' && url && /^https?:\/\//.test(url)
 
   return (
     <li className='list-none'>
@@ -308,7 +381,9 @@ export default function ContextMenu (props) {
 
   const isPublicContext = routeParams.context === PUBLIC_CONTEXT_SLUG
   const isMyContext = routeParams.context === MY_CONTEXT_SLUG
+  const isAllContext = routeParams.context === ALL_GROUPS_CONTEXT_SLUG
   const isGroupContext = routeParams.context === 'groups'
+  const profileUrl = personUrl(currentUser?.id, groupSlug)
 
   const isNavOpen = useSelector(state => get('AuthLayoutRouter.isNavOpen', state))
   const toggleNavMenuAction = useCallback(() => dispatch(toggleNavMenu()), [dispatch])
@@ -316,7 +391,17 @@ export default function ContextMenu (props) {
   // Dev toggle: false = old ContextWidgets menu, true = new GroupViews menu
   const [useGroupViews, setUseGroupViews] = useState(true)
 
-  const groupViews = useSelector(state => getGroupViews(state, group))
+  const staticMenuViews = useMemo(() => {
+    const views = getStaticMenuViews({
+      isPublicContext,
+      isMyContext: isMyContext || isAllContext,
+      profileUrl
+    })
+    return views ? orderContextViewsForMenu(views) : null
+  }, [isPublicContext, isMyContext, isAllContext, profileUrl])
+
+  const fetchedGroupViews = useSelector(state => getGroupViews(state, group))
+  const menuViews = staticMenuViews || fetchedGroupViews
 
   // Fetch GroupViews whenever we enter a real group context
   useEffect(() => {
@@ -373,10 +458,10 @@ export default function ContextMenu (props) {
     : null
 
   const menuFooter = (
-    <>
+    <div className='mt-auto'>
       {editMenuButton}
       {devToggle}
-    </>
+    </div>
   )
 
   if (!useGroupViews) {
@@ -395,7 +480,7 @@ export default function ContextMenu (props) {
       style={{ boxShadow: 'inset -15px 0 15px -10px hsl(var(--darkening) / 0.3)' }}
       onScroll={handleScroll}
     >
-      <div className='relative min-h-full'>
+      <div className='relative min-h-full min-h-screen min-h-dvh flex flex-col'>
         <div className='absolute inset-0 bg-gradient-to-b from-context-menu-background to-theme-background/10 dark:to-theme-background/40 z-0 pointer-events-none' />
         <div className='ContextDetails w-full z-20 relative'>
           {isGroupContext
@@ -428,15 +513,15 @@ export default function ContextMenu (props) {
                 : null}
         </div>
 
-        <div className='relative z-20'>
+        <div className='relative z-20 flex flex-col flex-1'>
           <Routes>
             <Route path='settings/*' element={<GroupSettingsMenu group={group} groupSlug={groupSlug} />} />
           </Routes>
 
-          {groupViews.length > 0
+          {menuViews.length > 0
             ? (
               <GroupViewList
-                groupViews={groupViews}
+                groupViews={menuViews}
                 group={group}
                 groupSlug={groupSlug}
                 spaceSlug={spaceSlug}

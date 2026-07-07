@@ -13,8 +13,10 @@ const VIEW_TYPE_TO_ICON_NAME = {
   projects: 'Stack',
   proposals: 'Proposal',
   'related-groups': 'Groups',
+  groups: 'Groups',
   'requests-and-offers': 'Request',
   resources: 'Document',
+  stream: 'Stream',
   'track-actions': 'Shapes',
   tracks: 'Shapes',
   welcome: 'Hand',
@@ -28,6 +30,31 @@ const VIEW_TYPE_TO_LUCIDE_ICON = {
   text: 'Type',
   separator: 'Minus'
 }
+
+/** Explicit icon names that map to Lucide (not the Hylo icon font). */
+const LUCIDE_ICON_NAMES = new Set([
+  'BadgeDollarSign',
+  'Bell',
+  'Bookmark',
+  'CreditCard',
+  'Edit',
+  'ExternalLink',
+  'FilePenLine',
+  'Grid3x3',
+  'Languages',
+  'LogOut',
+  'Mail',
+  'MessageCircleMore',
+  'Minus',
+  'Palette',
+  'Search',
+  'Shapes',
+  'Shield',
+  'Type',
+  'User',
+  'UserX',
+  'Users'
+])
 
 /** Translates a stored view name when it is a view-* or widget-* locale key. */
 export function translateViewName (name, t) {
@@ -50,10 +77,13 @@ export function avatarForView (view) {
 /** Resolves the icon for a view — DB override, then type default. */
 export function iconForView (view) {
   if (view?.icon) {
-    if (view.type === 'custom' || view.type === 'space' || view.type === 'link') {
+    if (LUCIDE_ICON_NAMES.has(view.icon) || view.type === 'custom' || view.type === 'space' || view.type === 'link' || view.type === 'logout') {
       return { iconName: null, lucideIcon: view.icon }
     }
     return { iconName: view.icon, lucideIcon: null }
+  }
+  if (view?.type === 'logout') {
+    return { iconName: null, lucideIcon: 'LogOut' }
   }
   if (VIEW_TYPE_TO_LUCIDE_ICON[view?.type]) {
     return { iconName: null, lucideIcon: VIEW_TYPE_TO_LUCIDE_ICON[view.type] }
@@ -67,13 +97,92 @@ export function displayNameForView (view, t) {
   if (view?.type === 'post' && view.viewPost?.title) return view.viewPost.title
   if (view?.type === 'member' && view.viewUser?.name) return view.viewUser.name
   if (view?.type === 'group' && view.linkedGroup?.name) return view.linkedGroup.name
-  if (view?.type === 'text' && view.pageContent) return view.pageContent
+  if (view?.type === 'text') {
+    if (view.pageContent) return view.pageContent
+    if (view.name) return translateViewName(view.name, t)
+  }
   if (view?.type === 'space') {
     return view.name ? translateViewName(view.name, t) : view.linkedGroup?.name
   }
   if (view?.name) return translateViewName(view.name, t)
   if (view?.type) return translateViewName(`view-${view.type}`, t)
   return ''
+}
+
+/** Static menu views for the Public context (The Commons). */
+export const PUBLIC_CONTEXT_VIEWS = [
+  { type: 'stream', context: 'public', icon: 'Stream', name: 'widget-public-stream', id: 'view-public-stream', order: 1 },
+  { type: 'groups', context: 'public', icon: 'Groups', name: 'widget-public-groups', id: 'view-public-groups', order: 2 },
+  { type: 'map', context: 'public', name: 'widget-public-map', id: 'view-public-map', order: 3 },
+  { type: 'events', context: 'public', name: 'widget-public-events', id: 'view-public-events', order: 4 }
+]
+
+/** Static menu views for the My (and All My Groups) context. */
+export const MY_CONTEXT_VIEWS = (profileUrl) => [
+  { type: 'text', name: 'widget-my-groups-content', id: 'view-my-groups-content', order: 2 },
+  { type: 'stream', context: 'all', name: 'widget-my-groups-stream', id: 'view-my-groups-stream', order: 1, parentId: 'view-my-groups-content' },
+  { type: 'map', context: 'all', name: 'widget-my-groups-map', id: 'view-my-groups-map', order: 2, parentId: 'view-my-groups-content' },
+  { type: 'events', context: 'all', name: 'widget-my-groups-events', id: 'view-my-groups-events', order: 3, parentId: 'view-my-groups-content' },
+  { type: 'text', name: 'widget-my-content', id: 'view-my-content', order: 1 },
+  { type: 'posts', context: 'my', icon: 'Posticon', name: 'widget-my-posts', id: 'view-my-posts', order: 1, parentId: 'view-my-content' },
+  { type: 'drafts', context: 'my', icon: 'FilePenLine', name: 'widget-my-drafts', id: 'view-my-drafts', order: 2, parentId: 'view-my-content' },
+  { type: 'interactions', context: 'my', icon: 'Support', name: 'widget-my-interactions', id: 'view-my-interactions', order: 3, parentId: 'view-my-content' },
+  { type: 'mentions', context: 'my', icon: 'Email', name: 'widget-my-mentions', id: 'view-my-mentions', order: 4, parentId: 'view-my-content' },
+  { type: 'announcements', context: 'my', icon: 'Announcement', name: 'widget-my-announcements', id: 'view-my-announcements', order: 5, parentId: 'view-my-content' },
+  { type: 'saved-posts', context: 'my', icon: 'Bookmark', name: 'widget-my-saved-posts', id: 'view-my-saved-posts', order: 6, parentId: 'view-my-content' },
+  { type: 'tracks', context: 'my', icon: 'Shapes', name: 'widget-my-tracks', id: 'view-my-tracks', order: 7, parentId: 'view-my-content' },
+  { type: 'funding-rounds', context: 'my', icon: 'BadgeDollarSign', name: 'widget-my-funding-rounds', id: 'view-my-funding-rounds', order: 8, parentId: 'view-my-content' },
+  { type: 'text', name: 'widget-myself', id: 'view-myself', order: 3 },
+  { type: 'link', name: 'widget-my-profile', link: profileUrl, icon: 'User', id: 'view-my-profile', order: 1, parentId: 'view-myself' },
+  { type: 'edit-profile', context: 'my', icon: 'Edit', name: 'widget-my-edit-profile', id: 'view-my-edit-profile', order: 2, parentId: 'view-myself' },
+  { type: 'groups', context: 'my', icon: 'Users', name: 'widget-my-groups', id: 'view-my-groups', order: 3, parentId: 'view-myself' },
+  { type: 'invitations', context: 'my', icon: 'Mail', name: 'widget-my-invites', id: 'view-my-invites', order: 4, parentId: 'view-myself' },
+  { type: 'transactions', context: 'my', icon: 'CreditCard', name: 'widget-my-transactions', id: 'view-my-transactions', order: 5, parentId: 'view-myself' },
+  { type: 'notifications', context: 'my', icon: 'Bell', name: 'widget-my-notifications', id: 'view-my-notifications', order: 6, parentId: 'view-myself' },
+  { type: 'theme-settings', context: 'my', icon: 'Palette', name: 'Appearance & Themes', id: 'view-my-theme-settings', order: 7, parentId: 'view-myself' },
+  { type: 'locale', context: 'my', icon: 'Languages', name: 'widget-my-locale', id: 'view-my-locale', order: 8, parentId: 'view-myself' },
+  { type: 'blocked-users', context: 'my', icon: 'UserX', name: 'widget-my-blocked-users', id: 'view-my-blocked-users', order: 9, parentId: 'view-myself' },
+  { type: 'saved-searches', context: 'my', icon: 'Search', name: 'widget-my-saved-searches', id: 'view-my-saved-searches', order: 10, parentId: 'view-myself' },
+  { type: 'account', context: 'my', icon: 'Shield', name: 'widget-my-account', id: 'view-my-account', order: 11, parentId: 'view-myself' },
+  { type: 'logout', name: 'widget-my-logout', icon: 'LogOut', id: 'view-my-logout', order: 13 }
+]
+
+/** Returns static menu views for My Home or Public contexts. */
+export function getStaticMenuViews ({ isPublicContext, isMyContext, profileUrl }) {
+  if (isPublicContext) return PUBLIC_CONTEXT_VIEWS
+  if (isMyContext) return MY_CONTEXT_VIEWS(profileUrl)
+  return null
+}
+
+/** Nests static context views by parentId for the context menu (mirrors orderContextWidgetsForContextMenu). */
+export function orderContextViewsForMenu (views) {
+  const orderedViews = (views || [])
+    .filter(view => view.order != null)
+    .map(view => ({ ...view }))
+  const parentViews = orderedViews.filter(view => !view.parentId)
+  const childViews = orderedViews.filter(view => view.parentId)
+
+  parentViews.forEach(parent => {
+    parent.childViews = []
+  })
+
+  childViews.forEach(child => {
+    const parent = parentViews.find(p => p.id === child.parentId)
+    if (parent) parent.childViews.push(child)
+  })
+
+  const sortByOrderThenId = (a, b) => {
+    const byOrder = (a.order ?? 0) - (b.order ?? 0)
+    if (byOrder !== 0) return byOrder
+    return String(a.id).localeCompare(String(b.id))
+  }
+
+  parentViews.sort(sortByOrderThenId)
+  parentViews.forEach(parent => {
+    parent.childViews.sort(sortByOrderThenId)
+  })
+
+  return parentViews
 }
 
 /** Present a GroupView with resolved display helpers for the navigation menu. */

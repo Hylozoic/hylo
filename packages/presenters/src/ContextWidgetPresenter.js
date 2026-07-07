@@ -1,3 +1,9 @@
+import {
+  MY_CONTEXT_VIEWS,
+  PUBLIC_CONTEXT_VIEWS,
+  getStaticMenuViews
+} from './GroupViewPresenter.js'
+
 export default function ContextWidgetPresenter (widget) {
   if (!widget || widget?._presented) return widget
 
@@ -178,12 +184,81 @@ export const isHiddenInContextMenuResolver = (widget) => {
 
 /* == ContextWidget collection methods, Static Views, and utility functions == */
 
-export function getStaticMenuWidgets ({ isPublicContext, isMyContext, profileUrl }) {
-  if (isPublicContext) return PUBLIC_CONTEXT_WIDGETS
-  if (isMyContext) return MY_CONTEXT_WIDGETS(profileUrl)
+/** @deprecated Use MY_CONTEXT_VIEWS from GroupViewPresenter */
+export const MY_CONTEXT_WIDGETS = MY_CONTEXT_VIEWS
+
+/** @deprecated Use PUBLIC_CONTEXT_VIEWS from GroupViewPresenter */
+export const PUBLIC_CONTEXT_WIDGETS = PUBLIC_CONTEXT_VIEWS
+
+/** Converts a static GroupView to the legacy ContextWidget shape for ContextMenuOld. */
+function staticViewToWidget (view) {
+  const widget = {
+    id: view.id,
+    order: view.order,
+    parentId: view.parentId ?? null,
+    title: view.name
+  }
+
+  if (view.type === 'link') {
+    widget.url = view.link
+    if (view.icon) widget.iconName = view.icon
+  } else if (view.type === 'logout') {
+    widget.view = 'logout'
+    widget.type = 'logout'
+    if (view.icon) widget.iconName = view.icon
+  } else if (view.type === 'text') {
+    // section header only
+  } else if (view.context) {
+    widget.context = view.context
+    widget.view = view.type
+    if (view.icon) widget.iconName = view.icon
+  }
+
+  return widget
 }
 
-// Determines if a child widget is valid inside the parent widget
+export function getStaticMenuWidgets ({ isPublicContext, isMyContext, profileUrl }) {
+  const views = getStaticMenuViews({ isPublicContext, isMyContext, profileUrl })
+  if (!views) return null
+  return views.map(staticViewToWidget)
+}
+
+export function orderContextWidgetsForContextMenu (contextWidgets) {
+  // Step 1: Filter out widgets without an order, as these are not displayed in the context menu
+  const orderedWidgets = contextWidgets.filter(widget => widget.order !== null)
+
+  // Step 2: Split into parentWidgets and childWidgets
+  const parentWidgets = orderedWidgets.filter(widget => !widget?.parentId)
+  const childWidgets = orderedWidgets.filter(widget => widget?.parentId)
+
+  // Step 3: Add an empty array for childWidgets to each parentWidget
+  parentWidgets.forEach(parent => {
+    parent.childWidgets = []
+  })
+
+  // Step 4: Append each childWidget to the appropriate parentWidget
+  childWidgets.forEach(child => {
+    const parent = parentWidgets.find(parent => parent.id === child?.parentId)
+    if (parent) {
+      parent.childWidgets.push(child)
+    }
+  })
+
+  // Step 5: Sort parentWidgets and each childWidgets array by order (stable id tie-break for duplicate order)
+  const sortByOrderThenId = (a, b) => {
+    const byOrder = (a.order ?? 0) - (b.order ?? 0)
+    if (byOrder !== 0) return byOrder
+    return Number(a.id) - Number(b.id)
+  }
+  parentWidgets.sort(sortByOrderThenId)
+  parentWidgets.forEach(parent => {
+    parent.childWidgets.sort(sortByOrderThenId)
+  })
+
+  // Return the sorted parentWidgets with nested childWidgets
+  return parentWidgets
+}
+
 export function isValidChildWidget ({ parentWidget, childWidget }) {
   const isWrongType = ['home', 'members', 'setup'].includes(parentWidget?.type) ||
     (parentWidget?.type === 'chats' && !childWidget?.viewChat?.name) ||
@@ -240,42 +315,6 @@ export function isValidDropZone ({ overWidget, activeWidget, parentWidget, isOve
     !isDynamicWidget
 }
 
-export const orderContextWidgetsForContextMenu = (contextWidgets) => {
-  // Step 1: Filter out widgets without an order, as these are not displayed in the context menu
-  const orderedWidgets = contextWidgets.filter(widget => widget.order !== null)
-
-  // Step 2: Split into parentWidgets and childWidgets
-  const parentWidgets = orderedWidgets.filter(widget => !widget?.parentId)
-  const childWidgets = orderedWidgets.filter(widget => widget?.parentId)
-
-  // Step 3: Add an empty array for childWidgets to each parentWidget
-  parentWidgets.forEach(parent => {
-    parent.childWidgets = []
-  })
-
-  // Step 4: Append each childWidget to the appropriate parentWidget
-  childWidgets.forEach(child => {
-    const parent = parentWidgets.find(parent => parent.id === child?.parentId)
-    if (parent) {
-      parent.childWidgets.push(child)
-    }
-  })
-
-  // Step 5: Sort parentWidgets and each childWidgets array by order (stable id tie-break for duplicate order)
-  const sortByOrderThenId = (a, b) => {
-    const byOrder = (a.order ?? 0) - (b.order ?? 0)
-    if (byOrder !== 0) return byOrder
-    return Number(a.id) - Number(b.id)
-  }
-  parentWidgets.sort(sortByOrderThenId)
-  parentWidgets.forEach(parent => {
-    parent.childWidgets.sort(sortByOrderThenId)
-  })
-
-  // Return the sorted parentWidgets with nested childWidgets
-  return parentWidgets
-}
-
 export function translateTitle (title, t) {
   return title && title.startsWith('widget-') ? t(title) : title
 }
@@ -286,46 +325,6 @@ export function wrapItemInWidget (item, type) {
     id: 'fake-id-' + Math.floor(Math.random() * 1e9).toString()
   }
 }
-
-// Static widgets and widget data
-
-export const PUBLIC_CONTEXT_WIDGETS = [
-  { type: 'home', url: '/public/stream' },
-  { context: 'public', view: 'stream', title: 'widget-public-stream', id: 'widget-public-stream', order: 1, parentId: null },
-  { context: 'public', view: 'groups', title: 'widget-public-groups', id: 'widget-public-groups', order: 2, parentId: null },
-  { context: 'public', view: 'map', title: 'widget-public-map', id: 'widget-public-map', type: 'map', order: 3, parentId: null },
-  { context: 'public', view: 'events', title: 'widget-public-events', id: 'widget-public-events', order: 4, parentId: null }
-]
-
-export const MY_CONTEXT_WIDGETS = (profileUrl) => [
-  { type: 'home', url: '/my/posts' },
-  { title: 'widget-my-groups-content', id: 'widget-my-groups-content', order: 2, parentId: null },
-  { context: 'all', view: 'stream', title: 'widget-my-groups-stream', id: 'widget-my-groups-stream', order: 1, parentId: 'widget-my-groups-content' },
-  { context: 'all', view: 'map', title: 'widget-my-groups-map', id: 'widget-my-groups-map', type: 'map', order: 2, parentId: 'widget-my-groups-content' },
-  { context: 'all', view: 'events', title: 'widget-my-groups-events', id: 'widget-my-groups-events', order: 3, parentId: 'widget-my-groups-content' },
-  { title: 'widget-my-content', id: 'widget-my-content', order: 1, parentId: null },
-  { context: 'my', view: 'posts', iconName: 'Posticon', title: 'widget-my-posts', id: 'widget-my-posts', order: 1, parentId: 'widget-my-content' },
-  { context: 'my', view: 'drafts', iconName: 'FilePenLine', title: 'widget-my-drafts', id: 'widget-my-drafts', order: 2, parentId: 'widget-my-content' },
-  { context: 'my', view: 'interactions', iconName: 'Support', title: 'widget-my-interactions', id: 'widget-my-interactions', order: 3, parentId: 'widget-my-content' },
-  { context: 'my', view: 'mentions', iconName: 'Email', title: 'widget-my-mentions', id: 'widget-my-mentions', order: 4, parentId: 'widget-my-content' },
-  { context: 'my', view: 'announcements', iconName: 'Announcement', title: 'widget-my-announcements', id: 'widget-my-announcements', order: 5, parentId: 'widget-my-content' },
-  { context: 'my', view: 'saved-posts', iconName: 'Bookmark', title: 'widget-my-saved-posts', id: 'widget-my-saved-posts', order: 5, parentId: 'widget-my-content' },
-  { context: 'my', view: 'tracks', iconName: 'Shapes', title: 'widget-my-tracks', id: 'widget-my-tracks', order: 5, parentId: 'widget-my-content' },
-  { context: 'my', view: 'funding-rounds', iconName: 'BadgeDollarSign', title: 'widget-my-funding-rounds', id: 'widget-my-funding-rounds', order: 6, parentId: 'widget-my-content' },
-  { title: 'widget-myself', id: 'widget-myself', order: 3, parentId: null },
-  { title: 'widget-my-profile', id: 'widget-my-profile', url: profileUrl, order: 1, parentId: 'widget-myself' },
-  { context: 'my', view: 'edit-profile', title: 'widget-my-edit-profile', id: 'widget-my-edit-profile', order: 2, parentId: 'widget-myself' },
-  { context: 'my', view: 'groups', title: 'widget-my-groups', id: 'widget-my-groups', order: 3, parentId: 'widget-myself' },
-  { context: 'my', view: 'invitations', title: 'widget-my-invites', id: 'widget-my-invites', order: 4, parentId: 'widget-myself' },
-  { context: 'my', view: 'transactions', iconName: 'CreditCard', title: 'widget-my-transactions', id: 'widget-my-transactions', order: 5, parentId: 'widget-myself' },
-  { context: 'my', view: 'notifications', title: 'widget-my-notifications', id: 'widget-my-notifications', order: 6, parentId: 'widget-myself' },
-  { context: 'my', view: 'theme-settings', title: 'Appearance & Themes', id: 'widget-my-theme-settings', order: 7, parentId: 'widget-myself' },
-  { context: 'my', view: 'locale', title: 'widget-my-locale', id: 'widget-my-locale', order: 8, parentId: 'widget-myself' },
-  { context: 'my', view: 'blocked-users', title: 'widget-my-blocked-users', id: 'widget-my-blocked-users', order: 9, parentId: 'widget-myself' },
-  { context: 'my', view: 'saved-searches', title: 'widget-my-saved-searches', id: 'widget-my-saved-searches', order: 10, parentId: 'widget-myself' },
-  { context: 'my', view: 'account', title: 'widget-my-account', id: 'widget-my-account', order: 11, parentId: 'widget-myself' },
-  { view: 'logout', title: 'widget-my-logout', id: 'widget-my-logout', type: 'logout', iconName: 'LogOut', order: 13, parentId: null }
-]
 
 export const allViewsWidget = ContextWidgetPresenter({ id: 'all-views', title: 'widget-all', type: 'all-views', view: 'all-views', iconName: 'Grid3x3', childWidgets: [] })
 
