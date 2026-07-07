@@ -174,28 +174,35 @@ const ViewHeader = () => {
       )}
       {/* )} */}
       {!centered && icon && (typeof icon === 'string' ? <Icon name={icon} className='mr-3 text-lg' /> : React.cloneElement(icon, { className: 'mr-3 text-lg' }))}
-      <h2
-        className={cn('text-foreground m-0', {
-          'truncate min-w-0 flex-1': typeof title === 'string',
-          'whitespace-nowrap': title?.mobile && title?.desktop,
-          'min-w-0 overflow-x-auto flex-1': React.isValidElement(title),
-          'pl-12': centered && (backButton || mobileBackButton) && compactLayout,
-          'pl-12 sm:pl-0': centered && (backButton || mobileBackButton) && !compactLayout
+      <div
+        className={cn('flex items-center min-w-0 gap-1', {
+          'flex-1': !centered && typeof title === 'string',
+          'min-w-0 overflow-x-auto flex-1': !centered && React.isValidElement(title)
         })}
       >
-        {typeof title === 'string' || React.isValidElement(title)
-          ? title
-          : title?.mobile && title?.desktop
-            ? (
-              <>
-                <span className={cn('inline text-sm truncate', !compactLayout && 'sm:hidden')}>{title.mobile}</span>
-                <span className={cn('hidden', !compactLayout && 'sm:inline')}>{title.desktop}</span>
-              </>
-              )
-            : ''}
-      </h2>
+        <h2
+          className={cn('text-foreground m-0', {
+            'truncate min-w-0': typeof title === 'string',
+            'whitespace-nowrap': title?.mobile && title?.desktop,
+            'min-w-0 overflow-x-auto': React.isValidElement(title),
+            'pl-12': centered && (backButton || mobileBackButton) && compactLayout,
+            'pl-12 sm:pl-0': centered && (backButton || mobileBackButton) && !compactLayout
+          })}
+        >
+          {typeof title === 'string' || React.isValidElement(title)
+            ? title
+            : title?.mobile && title?.desktop
+              ? (
+                <>
+                  <span className={cn('inline text-sm truncate', !compactLayout && 'sm:hidden')}>{title.mobile}</span>
+                  <span className={cn('hidden', !compactLayout && 'sm:inline')}>{title.desktop}</span>
+                </>
+                )
+              : ''}
+        </h2>
+        {!centered && info && <InfoButton content={info} className='shrink-0' />}
+      </div>
       {!centered && headerActions && <div className='flex items-center ml-2 shrink-0'>{headerActions}</div>}
-      {!centered && info && <InfoButton content={info} className='ml-2' />}
       {!centered && search && (
         <div className='flex justify-end relative ml-2'>
           <div ref={searchContainerRef} className='relative flex items-center'>

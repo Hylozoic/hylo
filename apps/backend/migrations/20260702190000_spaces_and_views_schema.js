@@ -44,7 +44,7 @@ exports.up = async function (knex) {
     table.bigInteger('post_id').references('id').inTable('posts').onDelete('CASCADE')
     table.bigInteger('user_id').references('id').inTable('users').onDelete('CASCADE')
     table.bigInteger('linked_group_id').references('id').inTable('groups').onDelete('CASCADE')
-    table.jsonb('topics')
+    table.jsonb('topics').notNullable().defaultTo(knex.raw("'[]'::jsonb"))
     table.jsonb('settings')
     table.timestamp('created_at', { useTz: true }).notNullable().defaultTo(knex.fn.now())
     table.timestamp('updated_at', { useTz: true }).notNullable().defaultTo(knex.fn.now())
@@ -72,28 +72,33 @@ exports.up = async function (knex) {
   await knex.schema.raw('CREATE INDEX idx_gvu_view_id ON group_views_users(view_id)')
   await knex.schema.raw('CREATE INDEX idx_gvu_user_id ON group_views_users(user_id)')
 
-  await knex.schema.createTable('collection_posts', table => {
-    table.bigIncrements('id').primary()
-    table.bigInteger('view_id').notNullable().references('id').inTable('group_views').onDelete('CASCADE')
-    table.bigInteger('post_id').notNullable().references('id').inTable('posts').onDelete('CASCADE')
-    table.integer('order').notNullable().defaultTo(0)
-    table.timestamp('created_at', { useTz: true }).notNullable().defaultTo(knex.fn.now())
-    table.unique(['view_id', 'post_id'])
+  // Re-use collections_posts for view post ordering (collection_id retired in a later migration)
+  await knex.schema.table('collections_posts', table => {
+    table.bigInteger('view_id').references('id').inTable('group_views').onDelete('CASCADE')
   })
-  await knex.raw('alter table collection_posts alter constraint collection_posts_view_id_foreign deferrable initially deferred')
-  await knex.raw('alter table collection_posts alter constraint collection_posts_post_id_foreign deferrable initially deferred')
-  await knex.schema.raw('CREATE INDEX idx_collection_posts_view_id ON collection_posts(view_id)')
+  await knex.raw('ALTER TABLE collections_posts ALTER COLUMN collection_id DROP NOT NULL')
+  await knex.raw('alter table collections_posts alter constraint collections_posts_view_id_foreign deferrable initially deferred')
+  await knex.schema.raw('CREATE INDEX idx_collections_posts_view_id ON collections_posts(view_id)')
+  await knex.schema.raw(
+    'CREATE UNIQUE INDEX idx_collections_posts_view_post ON collections_posts(view_id, post_id) WHERE view_id IS NOT NULL'
+  )
 }
 
 exports.down = async function (knex) {
-  await knex.schema.dropTableIfExists('collection_posts')
+  console.log('[down schema] 1/3 dropping group_views tables…')
+  await knex.schema.raw('DROP INDEX IF EXISTS idx_collections_posts_view_post')
+  await knex.schema.table('collections_posts', table => {
+    table.dropColumn('view_id')
+  })
   await knex.schema.dropTableIfExists('group_views_users')
   await knex.schema.dropTableIfExists('group_views')
 
+  console.log('[down schema] 2/3 dropping tracks.group_id…')
   await knex.schema.table('tracks', table => {
     table.dropColumn('group_id')
   })
 
+  console.log('[down schema] 3/3 dropping groups columns (can take several minutes on large DBs)…')
   await knex.schema.table('groups', table => {
     table.dropColumn('parent_id')
     table.dropColumn('accepted_post_types')
@@ -101,4 +106,5 @@ exports.down = async function (knex) {
     table.dropColumn('track_id')
     table.dropColumn('funding_round_id')
   })
+  console.log('[down schema] done.')
 }

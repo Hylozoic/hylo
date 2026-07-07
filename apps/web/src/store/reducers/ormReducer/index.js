@@ -15,9 +15,11 @@ import {
   CREATE_PROJECT_PENDING,
   CREATE_CONTEXT_WIDGET,
   CREATE_CONTEXT_WIDGET_PENDING,
+  CREATE_GROUP_VIEW,
   DELETE_DRAFT,
   DELETE_COMMENT_PENDING,
   DELETE_CONTEXT_WIDGET_PENDING,
+  DELETE_GROUP_VIEW,
   DELETE_GROUP_RELATIONSHIP,
   DELETE_POST_PENDING,
   FETCH_GROUP_DETAILS_PENDING,
@@ -44,7 +46,9 @@ import {
   RESET_NEW_POST_COUNT_PENDING,
   RESPOND_TO_EVENT_PENDING,
   REMOVE_WIDGET_FROM_MENU_PENDING,
+  REORDER_GROUP_VIEW_PENDING,
   SWAP_PROPOSAL_VOTE_PENDING,
+  SET_HOME_VIEW_PENDING,
   SET_HOME_WIDGET_PENDING,
   TOGGLE_GROUP_TOPIC_SUBSCRIBE_PENDING,
   UPDATE_COMMENT_PENDING,
@@ -108,6 +112,7 @@ import extractModelsFromAction from '../ModelExtractor/extractModelsFromAction'
 import { isPromise } from 'util/index'
 import { homeRoutePathForWidget } from '@hylo/navigation'
 import { reorderTree, replaceHomeWidget } from 'util/contextWidgets'
+import { applyGroupViewsOrder, appendGroupViewToMenu, removeGroupViewFromMenu } from 'store/util/groupViewsOrder'
 
 export default function ormReducer (state = orm.getEmptyState(), action) {
   const session = orm.session(state)
@@ -461,6 +466,14 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       break
     }
 
+    case CREATE_GROUP_VIEW: {
+      const newView = payload.data.createGroupView
+      if (!newView || !meta.groupId) break
+      group = Group.withId(meta.groupId)
+      appendGroupViewToMenu(group, newView)
+      break
+    }
+
     case DELETE_COMMENT_PENDING: {
       comment = Comment.withId(meta.id)
       comment.delete()
@@ -488,6 +501,13 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       const allWidgets = group.contextWidgets.items
       const newWidgets = allWidgets.filter(widget => parseInt(widget.id) !== parseInt(meta.contextWidgetId))
       group.update({ contextWidgets: { items: structuredClone(newWidgets) } })
+      break
+    }
+
+    case DELETE_GROUP_VIEW: {
+      if (!meta.id || !meta.groupId) break
+      group = Group.withId(meta.groupId)
+      removeGroupViewFromMenu(group, meta.id)
       break
     }
 
@@ -849,6 +869,31 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         resultingWidgets = allWidgets
       }
       Group.update({ contextWidgets: { items: structuredClone(resultingWidgets) } })
+      break
+    }
+
+    case REORDER_GROUP_VIEW_PENDING: {
+      if (!meta.parentGroupId || !meta.targetGroupId || !meta.reorderedItems) break
+      group = Group.withId(meta.parentGroupId)
+      applyGroupViewsOrder({
+        group,
+        parentGroupId: meta.parentGroupId,
+        targetGroupId: meta.targetGroupId,
+        reorderedItems: meta.reorderedItems
+      })
+      break
+    }
+
+    case SET_HOME_VIEW_PENDING: {
+      if (!meta.parentGroupId || !meta.targetGroupId || !meta.reorderedItems) break
+      group = Group.withId(meta.parentGroupId)
+      applyGroupViewsOrder({
+        group,
+        parentGroupId: meta.parentGroupId,
+        targetGroupId: meta.targetGroupId,
+        reorderedItems: meta.reorderedItems,
+        updateHomeRoute: String(meta.parentGroupId) === String(meta.targetGroupId)
+      })
       break
     }
 

@@ -144,7 +144,7 @@ function FundingRoundHome () {
 
         {/* Chat tab rendered outside the scroll container so ChatRoom gets a clean flex-fill height context */}
         {currentTab === 'chat' && (
-          <ChatRoom customTopicName={`‡funding_round_${fundingRound.id}`} />
+          <ChatRoom groupSlug={fundingRound.group?.slug} showHomeWelcome={false} />
         )}
 
         {currentTab !== 'chat' && (

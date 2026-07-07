@@ -1,6 +1,8 @@
 /* global bookshelf, Group, Post, User, GroupViewUser, CollectionPost, GroupView */
 /* eslint-disable camelcase */
 
+const { homeRoutePathForView } = require('@hylo/navigation')
+
 // See docs/spaces-and-views-engineering-spec.md section 2.5 / 3.1
 
 module.exports = bookshelf.Model.extend({
@@ -100,19 +102,7 @@ module.exports = bookshelf.Model.extend({
    * NOTE: exact space URL wiring lands with the Phase 2 routing work.
    */
   computeHomeRoutePath: function (view, group) {
-    if (!view) return '/all'
-    const type = view.get ? view.get('type') : view.type
-
-    switch (type) {
-      case this.Type.CUSTOM:
-        return `/custom/${view.get ? view.get('id') : view.id}`
-      case this.Type.COLLECTION:
-        return `/collection/${view.get ? view.get('id') : view.id}`
-      case this.Type.ALL:
-        return '/all'
-      default:
-        return `/${type}`
-    }
+    return homeRoutePathForView(view)
   },
 
   /**
@@ -126,13 +116,16 @@ module.exports = bookshelf.Model.extend({
 
       const groupId = view.get('group_id')
       const views = await GroupView.findForGroup(groupId, { transacting: trx })
-      const otherIds = views.map(v => v.id).filter(viewId => viewId !== Number(id))
+      // bigint PKs come back as strings from node-postgres; normalise to Number for safe comparison
+      const numId = Number(id)
+      const otherIds = views.map(v => Number(v.id)).filter(viewId => viewId !== numId)
 
-      let newOrderedIds = [...otherIds, Number(id)]
+      let newOrderedIds = [...otherIds, numId]
       if (!addToEnd && orderInFrontOfViewId) {
-        const idx = otherIds.indexOf(Number(orderInFrontOfViewId))
+        const numFrontId = Number(orderInFrontOfViewId)
+        const idx = otherIds.indexOf(numFrontId)
         if (idx !== -1) {
-          newOrderedIds = [...otherIds.slice(0, idx), Number(id), ...otherIds.slice(idx)]
+          newOrderedIds = [...otherIds.slice(0, idx), numId, ...otherIds.slice(idx)]
         }
       }
 
@@ -152,8 +145,10 @@ module.exports = bookshelf.Model.extend({
   setHomeView: async function ({ id, groupId, trx: existingTrx }) {
     const doWork = async (trx) => {
       const views = await GroupView.findForGroup(groupId, { transacting: trx })
-      const otherIds = views.map(v => v.id).filter(viewId => viewId !== Number(id))
-      const newOrderedIds = [Number(id), ...otherIds]
+      // bigint PKs come back as strings from node-postgres; normalise to Number for safe comparison
+      const numId = Number(id)
+      const otherIds = views.map(v => Number(v.id)).filter(viewId => viewId !== numId)
+      const newOrderedIds = [numId, ...otherIds]
 
       await GroupView.applyOrder(newOrderedIds, { groupId, trx })
 

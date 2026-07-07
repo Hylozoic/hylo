@@ -12,7 +12,9 @@ import {
   isPublicPath,
   isMapView,
   isGroupsView,
-  origin
+  origin,
+  homeRoutePathForView,
+  groupViewPath
 } from './navigation'
 
 describe('postUrl', () => {
@@ -189,5 +191,33 @@ describe('is* functions', () => {
     expect(isPublicPath('/public/something/else')).toBe(true)
     expect(isPublicPath('something/public/else')).toBe(false)
     expect(isPublicPath('something/else/public')).toBe(false)
+  })
+})
+
+describe('homeRoutePathForView', () => {
+  it('returns /all for a missing view', () => {
+    expect(homeRoutePathForView(null)).toEqual('/all')
+  })
+
+  it('returns paths for common home view types', () => {
+    expect(homeRoutePathForView({ type: 'all' })).toEqual('/all')
+    expect(homeRoutePathForView({ type: 'welcome' })).toEqual('/welcome')
+    expect(homeRoutePathForView({ type: 'stream' })).toEqual('/stream')
+    expect(homeRoutePathForView({ type: 'custom', id: 12 })).toEqual('/custom/12')
+    expect(homeRoutePathForView({ type: 'collection', id: 34 })).toEqual('/collection/34')
+  })
+
+  it('matches groupViewPath for navigable views', () => {
+    const view = { type: 'track-actions' }
+    expect(homeRoutePathForView(view)).toEqual(groupViewPath(view))
+  })
+
+  it('supports bookshelf-style models', () => {
+    const view = {
+      get (key) {
+        return { type: 'welcome' }[key]
+      }
+    }
+    expect(homeRoutePathForView(view)).toEqual('/welcome')
   })
 })

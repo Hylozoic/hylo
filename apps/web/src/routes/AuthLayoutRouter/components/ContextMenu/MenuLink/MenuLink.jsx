@@ -5,10 +5,16 @@ import { Link, useLocation } from 'react-router-dom'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import { cn } from 'util/index'
 
-export default function MenuLink ({ badgeCount = null, to, children, onClick, externalLink, className, isEditing }) {
+/** Returns true when pathname matches the link target or a nested route under it. */
+function isPathActive (pathname, to) {
+  if (!to) return false
+  return pathname === to || pathname.startsWith(`${to}/`)
+}
+
+export default function MenuLink ({ badgeCount = null, to, children, onClick, externalLink, className, isEditing, isActive }) {
   const dispatch = useDispatch()
   const location = useLocation()
-  const isCurrentLocation = location.pathname === to
+  const isCurrentLocation = isActive ?? isPathActive(location.pathname, to)
 
   const handleClick = useCallback(() => {
     if (onClick) {

@@ -62,30 +62,36 @@ export function baseUrl ({
   fundingRoundId,
   groupSlug,
   memberId, personId, // TODO: switch to one of these?
+  spaceSlug,
   tab,
   topicName,
   trackId,
   view
 }) {
   const safeMemberId = personId || memberId
+  const spaceBase = spaceSlug && groupSlug ? spaceUrl(groupSlug, spaceSlug) : null
 
   if (safeMemberId) {
+    if (spaceBase) return `${spaceBase}/members/${safeMemberId}`
     return personUrl(safeMemberId, groupSlug)
   } else if (view === 'chat' && topicName) {
-    return chatUrl(topicName, { context, groupSlug })
+    return chatUrl(topicName, { context, groupSlug, spaceSlug })
   } else if (topicName) {
-    return topicUrl(topicName, { context, groupSlug })
+    return topicUrl(topicName, { context, groupSlug, spaceSlug })
   } else if (trackId) {
-    return trackUrl(trackId, { context, groupSlug, tab })
+    return trackUrl(trackId, { context, groupSlug, spaceSlug, tab })
   } else if (fundingRoundId) {
-    return fundingRoundUrl(fundingRoundId, { context, groupSlug, tab })
+    return fundingRoundUrl(fundingRoundId, { context, groupSlug, spaceSlug, tab })
   } else if (view) {
+    if (spaceBase) {
+      return `${spaceBase}/${view}${customViewId ? '/' + customViewId : ''}`
+    }
     return viewUrl(view, { context, customViewId, defaultUrl, groupSlug })
   } else if (context === SEARCH_CONTEXT_SLUG) {
     // Has to come before groupSlug check because we use groupSlug as a param in searching
     return searchUrl()
   } else if (groupSlug) {
-    return groupUrl(groupSlug)
+    return spaceBase || groupUrl(groupSlug)
   } else if (context === ALL_GROUPS_CONTEXT_SLUG) {
     return allGroupsUrl()
   } else if (context === PUBLIC_CONTEXT_SLUG) {
@@ -131,6 +137,79 @@ export function groupUrl (slug, view = '', defaultUrl = allGroupsUrl()) {
   } else {
     return defaultUrl
   }
+}
+
+/** Local space slug portion from a stored space slug (parentSlug-localName). */
+export function localSpaceSlug (parentSlug, spaceFullSlug) {
+  if (!parentSlug || !spaceFullSlug) return spaceFullSlug || ''
+  const prefix = `${parentSlug}-`
+  return spaceFullSlug.startsWith(prefix) ? spaceFullSlug.slice(prefix.length) : spaceFullSlug
+}
+
+/** Path segment for a GroupView within a group or space (e.g. /chat, /custom/123). */
+export function groupViewPath (view) {
+  if (!view) return ''
+  switch (view.type) {
+    case 'post':
+      return view.viewPost?.id ? `/post/${view.viewPost.id}` : ''
+    case 'member':
+      return view.viewUser?.id ? `/members/${view.viewUser.id}` : ''
+    case 'custom':
+      return `/custom/${view.id}`
+    case 'collection':
+      return `/collection/${view.id}`
+    case 'link':
+      return null
+    default:
+      return view.type ? `/${view.type}` : '/all'
+  }
+}
+
+/** Normalize a GroupView from a plain object or Bookshelf model. */
+function normalizeGroupView (view) {
+  if (!view) return null
+  if (typeof view.get === 'function') {
+    return { type: view.get('type'), id: view.get('id') }
+  }
+  return view
+}
+
+/**
+ * Route path suffix stored in groups.home_route for a GroupView
+ * (e.g. /stream, /custom/123, /welcome).
+ * Shared by backend GroupView.computeHomeRoutePath and frontend optimistic updates.
+ */
+export function homeRoutePathForView (view) {
+  if (!view) return '/all'
+  const normalized = normalizeGroupView(view)
+  const path = groupViewPath(normalized)
+  if (path) return path
+  return normalized.type ? `/${normalized.type}` : '/all'
+}
+
+/** Base URL for a space under its parent group. Optional viewPath is appended (e.g. /chat). */
+export function spaceUrl (parentSlug, localSlug, viewPath = '') {
+  if (!parentSlug || !localSlug) return '/'
+  const base = `/groups/${parentSlug}/spaces/${localSlug}`
+  if (!viewPath) return base
+  return `${base}${viewPath.startsWith('/') ? viewPath : `/${viewPath}`}`
+}
+
+/** URL for a view inside a space. */
+export function spaceGroupViewUrl (parentSlug, spaceGroup, view) {
+  if (!parentSlug || !spaceGroup) return groupUrl(parentSlug)
+  const local = localSpaceSlug(parentSlug, spaceGroup.slug)
+  const path = groupViewPath(view)
+  if (path === null) return view?.link || null
+  return spaceUrl(parentSlug, local, path)
+}
+
+/** URL for a space's home view. */
+export function spaceHomeUrl (parentSlug, spaceGroup) {
+  if (!parentSlug || !spaceGroup) return '/'
+  const local = localSpaceSlug(parentSlug, spaceGroup.slug)
+  const homeRoute = spaceGroup.homeRoute || '/all'
+  return spaceUrl(parentSlug, local, homeRoute)
 }
 
 export function groupDetailUrl (slug, opts = {}, querystringParams = {}) {

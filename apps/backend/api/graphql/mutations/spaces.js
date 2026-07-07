@@ -1,17 +1,8 @@
 import { GraphQLError } from 'graphql'
 import { v4 as uuidv4 } from 'uuid'
-import {
-  publishGroupUpdate
-} from '../../../lib/groupSubscriptionPublisher'
-import { publishAsync } from '../../../lib/subscriptionUtils'
-import { groupRoom, pushToSockets } from '../../services/Websockets'
+import { notifyGroupUpdated } from './notifyGroupUpdated'
 
 // Space mutations — see docs/spaces-and-views-engineering-spec.md section 4.4 / 10
-
-function notifyGroupUpdated (context, group, groupId) {
-  pushToSockets(groupRoom(groupId), 'groupUpdated', { groupId })
-  publishAsync(publishGroupUpdate, context, group, group)
-}
 
 function slugify (name) {
   return (name || '')

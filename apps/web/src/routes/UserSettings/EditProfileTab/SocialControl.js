@@ -1,7 +1,8 @@
 import React, { Component } from 'react'
 import { withTranslation } from 'react-i18next'
 import PropTypes from 'prop-types'
-import { Facebook, Twitter, Linkedin, Check, Link as LinkIcon, Unlink, Link2Off } from 'lucide-react'
+import { Check, Link as LinkIcon, Unlink, Link2Off } from 'lucide-react'
+import SimpleIcon from 'components/SimpleIcon/SimpleIcon'
 import Button from 'components/ui/button'
 
 const { func, string } = PropTypes
@@ -70,20 +71,7 @@ class SocialControl extends Component {
 
   getSocialIcon () {
     const { provider } = this.props
-    const iconProps = {
-      className: 'w-5 h-5'
-    }
-
-    switch (provider) {
-      case 'facebook':
-        return <Facebook {...iconProps} />
-      case 'twitter':
-        return <Twitter {...iconProps} />
-      case 'linkedin':
-        return <Linkedin {...iconProps} />
-      default:
-        return null
-    }
+    return <SimpleIcon name={provider} className='w-5 h-5' />
   }
 
   render () {

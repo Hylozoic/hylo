@@ -76,11 +76,6 @@ function ContentAccessTab ({ group, offerings = [] }) {
 
     setLoading(true)
 
-    // Determine if the selected role is a common role or group role
-    const selectedRole = roleFilter !== 'all'
-      ? allRoles.find(role => role.id === roleFilter || role.id?.toString() === roleFilter?.toString())
-      : null
-
     const params = {
       groupIds: [group.id],
       search: debouncedSearch || undefined,

@@ -122,6 +122,7 @@ export default gql`
           showWelcomePage
         }
         slug
+        type
       }
     }
     skills {

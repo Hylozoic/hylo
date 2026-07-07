@@ -26735,12 +26735,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lucide-react@npm:^0.453.0":
-  version: 0.453.0
-  resolution: "lucide-react@npm:0.453.0"
+"lucide-react@npm:^1.23.0":
+  version: 1.23.0
+  resolution: "lucide-react@npm:1.23.0"
   peerDependencies:
-    react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0-rc
-  checksum: 10/b49c486ce04ebe3650d756aab0584eb96d4b3c2381ab1185ebedbd00333cfafcfe71766f918bc5ea7538bab0339804363afa5503acb416ee2208af9d31a9fac1
+    react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
+  checksum: 10/660938dc985d8101d669750d2abbd4516d2260d74f21455f1a79ff977fa5d2a2ba755a29b4b4e773e6fb5e85eb1beba1a1aead2ce19ef6c0c50ae7f075752fa5
   languageName: node
   linkType: hard
 
@@ -35679,6 +35679,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"simple-icons@npm:^14.6.0":
+  version: 14.15.0
+  resolution: "simple-icons@npm:14.15.0"
+  checksum: 10/893af38e591c815070ce23d977a6c0c374fe90b51793209e417ae7b9cdf0a91d3e6b90a18f3ecb492094b536fac805c8d3143ec941bd37490e7fbf9fd31dc58c
+  languageName: node
+  linkType: hard
+
 "simple-is@npm:~0.2.0":
   version: 0.2.0
   resolution: "simple-is@npm:0.2.0"
@@ -39678,7 +39685,7 @@ __metadata:
     jest-websocket-mock: "npm:^2.5.0"
     lodash: "npm:~4.17.21"
     lru-cache: "npm:^4.1.1"
-    lucide-react: "npm:^0.453.0"
+    lucide-react: "npm:^1.23.0"
     luxon: "npm:^3.5.0"
     mapbox-gl: "npm:^3.7.0"
     mime: "npm:^2.0.3"
@@ -39739,6 +39746,7 @@ __metadata:
     sails.io.js: "npm:1.2.1"
     sass: "npm:^1.78.0"
     scroll-into-view-if-needed: "npm:^2.2.29"
+    simple-icons: "npm:^14.6.0"
     slick-carousel: "npm:^1.8.1"
     socket.io-client: "npm:2.3.1"
     sonner: "npm:^2.0.7"

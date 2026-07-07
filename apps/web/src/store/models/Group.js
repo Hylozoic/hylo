@@ -8,7 +8,8 @@ export const GROUP_ACCESSIBILITY = {
 
 export const GROUP_TYPES = {
   default: null,
-  farm: 'farm'
+  farm: 'farm',
+  space: 'space'
 }
 
 export function accessibilityDescription (a) {
@@ -168,6 +169,7 @@ Group.fields = {
   feedOrder: attr(),
   geoShape: attr(),
   groupToGroupJoinQuestions: many('GroupToGroupJoinQuestion'),
+  groupViews: attr(),
   homeRoute: attr(),
   id: attr(),
   joinQuestions: many('GroupJoinQuestion'),
@@ -205,6 +207,7 @@ Group.fields = {
   slug: attr(),
   suggestedSkills: many('Skill'),
   tracks: many('Track'),
+  type: attr(),
   upcomingEvents: many({
     to: 'Post',
     as: 'upcomingEvents',

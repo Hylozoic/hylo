@@ -6,9 +6,9 @@
 // steward-curated `collection` views and for ordering `track-actions` posts.
 
 module.exports = bookshelf.Model.extend({
-  tableName: 'collection_posts',
+  tableName: 'collections_posts',
   requireFetch: false,
-  hasTimestamps: false,
+  hasTimestamps: true,
 
   view () {
     return this.belongsTo(GroupView, 'view_id')
@@ -20,7 +20,8 @@ module.exports = bookshelf.Model.extend({
 
 }, {
   create: async function (attrs, { transacting } = {}) {
-    return this.forge(Object.assign({ created_at: new Date() }, attrs)).save(null, { transacting, method: 'insert' })
+    const now = new Date()
+    return this.forge(Object.assign({ created_at: now, updated_at: now }, attrs)).save(null, { transacting, method: 'insert' })
   },
 
   find: function (viewId, postId, options = {}) {

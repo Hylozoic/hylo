@@ -9,6 +9,7 @@ import { useSelector, useDispatch } from 'react-redux'
 import { useLocation, useParams, useNavigate } from 'react-router-dom'
 import useRouteParams from 'hooks/useRouteParams'
 import useAllowedPostTypesForView from 'hooks/useAllowedPostTypesForView'
+import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import { useTranslation } from 'react-i18next'
 import { Tooltip as ReactTooltip } from 'react-tooltip'
 import { createSelector } from 'reselect'
@@ -40,6 +41,7 @@ import { PROJECT_CONTRIBUTIONS } from 'config/featureFlags'
 import useEventCallback from 'hooks/useEventCallback'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
 import fetchAllMyGroupsChatRooms from 'store/actions/fetchAllMyGroupsChatRooms'
+import fetchForGroup from 'store/actions/fetchForGroup'
 import {
   PROPOSAL_ADVICE,
   PROPOSAL_CONSENSUS,
@@ -206,7 +208,9 @@ function PostEditorInner ({
   const navigateToForDraft = `${pathname}${search || ''}`
   const routeParams = useParams()
   const parsedRouteParams = useRouteParams()
-  const groupSlug = routeParams.groupSlug || parsedRouteParams.groupSlug
+  // When inside a space, this resolves to the space group's slug so chats/posts go to the space
+  const effectiveGroupSlug = useEffectiveGroupSlug()
+  const groupSlug = effectiveGroupSlug || routeParams.groupSlug || parsedRouteParams.groupSlug
   const navigate = useNavigate()
   const hourCycle = getHourCycle()
   const { t } = useTranslation()
@@ -219,6 +223,10 @@ function PostEditorInner ({
   const allowedPostTypesForView = useAllowedPostTypesForView()
   const allowedPostTypes = (!editing && modal) ? allowedPostTypesForView : null
 
+  useEffect(() => {
+    if (groupSlug && !currentGroup) dispatch(fetchForGroup(groupSlug))
+  }, [dispatch, groupSlug, currentGroup])
+
   const editingPostId = routeParams.postId
   const fromPostId = getQuerystringParam('fromPostId', urlLocation)
 
@@ -227,11 +235,12 @@ function PostEditorInner ({
   const createPostType = postType || (modal
     ? (allowedPostTypesForView?.[0] || 'discussion')
     : 'chat')
+  const isInlineChatComposer = !modal && createPostType === 'chat'
+  // TODO: do we still need this topic stuff with chat no longer using topics? is there a different semantic context for drafts now for chat?
   const topicName = customTopicName || (routeParams.topicName && decodeURIComponent(routeParams.topicName))
-  const hiddenTopic = topicName?.startsWith('‡')
-  const topic = useSelector(state => getTopicForCurrentRoute(state, topicName))
-  // Draft storage is scoped by semantic context
-  // Inline chat composer scopes by topicId.
+  const topic = useSelector(state => isInlineChatComposer ? null : getTopicForCurrentRoute(state, topicName))
+  // Draft storage is scoped by semantic context.
+  // Inline chat composer: no topicId (topic is null above).
   // For create modal, also scope by topicId when opened from a chat room so each room keeps an independent modal draft.
   // Non-chat modal composers use a topic-agnostic slot.
   const openedFromChatRoom = !!topicName
@@ -282,8 +291,8 @@ function PostEditorInner ({
   /** Blocks duplicate create/update dispatches before Redux pending state updates. */
   const isSubmittingRef = useRef(false)
 
-  // Default topic to use when not in a chatroom — available immediately from the store
-  const generalTopic = useSelector(state => !topicName ? getTopicForCurrentRoute(state, DEFAULT_CHAT_TOPIC) : null)
+  // Default topic for non-chat posts when posting to a group's general stream
+  const generalTopic = useSelector(state => !isInlineChatComposer && !topicName ? getTopicForCurrentRoute(state, DEFAULT_CHAT_TOPIC) : null)
 
   const linkPreview = useSelector(state => getLinkPreview(state)) // TODO: probably not working?
   const fetchLinkPreviewPending = useSelector(state => isPendingFor(FETCH_LINK_PREVIEW, state))
@@ -347,13 +356,17 @@ function PostEditorInner ({
     quorum: 0,
     timezone: DateTimeHelpers.dateTimeNow(getLocaleFromLocalStorage()).zoneName,
     title: '',
-    topics: topic ? [topic] : (generalTopic && postType !== 'action' ? [generalTopic] : []),
+    topics: isInlineChatComposer
+      ? []
+      : topic
+        ? [topic]
+        : (generalTopic && postType !== 'action' ? [generalTopic] : []),
     type: createPostType,
     votingMethod: VOTING_METHOD_SINGLE,
     ...(inputPost || {}),
     startTime: typeof inputPost?.startTime === 'string' ? new Date(inputPost.startTime) : inputPost?.startTime,
     endTime: typeof inputPost?.endTime === 'string' ? new Date(inputPost.endTime) : inputPost?.endTime
-  }), [inputPost?.id, createPostType, currentGroup, topic, generalTopic, context])
+  }), [inputPost?.id, createPostType, currentGroup, topic, generalTopic, context, isInlineChatComposer])
 
   const [currentPost, setCurrentPostState] = useState(initialPost)
   const [editorInitialContent, setEditorInitialContent] = useState(initialPost.details || '')
@@ -754,8 +767,9 @@ function PostEditorInner ({
   }, [linkPreview, setCurrentPost])
 
   useEffect(() => {
-    // When switching between chatrooms (route topic changes), reset topics to only the new route topic
-    // This ensures users don't accidentally post to the wrong chatroom
+    if (isInlineChatComposer) return
+
+    // When switching between topic streams (route topic changes), reset topics to only the new route topic
     setCurrentPost(prev => {
       // If route topic changed, reset topics to only contain the new route topic
       if (topic?.id && topic.id !== routeTopicIdRef.current) {
@@ -782,20 +796,18 @@ function PostEditorInner ({
 
       return prev
     })
-  }, [topic?.id])
+  }, [topic?.id, isInlineChatComposer])
 
   useEffect(() => {
     setCurrentPost(prev => (prev.sendAnnouncement === announcementSelected ? prev : { ...prev, sendAnnouncement: announcementSelected }))
   }, [announcementSelected, setCurrentPost])
 
-  // Auto-add topic when groups are selected
-  // If we're in a chatroom (topic from URL exists), use that topic
-  // Otherwise, default to #general topic
+  // Auto-add #general topic when groups are selected for non-chat posts
   useEffect(() => {
+    if (isInlineChatComposer) return
     if (!selectedGroups || selectedGroups.length === 0) return
 
-    // If we're in a chatroom, the route topic useEffect already handles adding it
-    // So we only need to add #general if we're NOT in a chatroom
+    // If we're on a topic stream, the route topic useEffect already handles adding it
     if (topic?.id) return
 
     // Action posts should never appear in chat rooms
@@ -820,7 +832,7 @@ function PostEditorInner ({
 
       return { ...prev, topics: [...(prev.topics || []), generalTopic] }
     })
-  }, [selectedGroups, topic?.id, postType])
+  }, [selectedGroups, topic?.id, postType, isInlineChatComposer])
 
   /**
    * Resets the editor to its initial state
@@ -1176,7 +1188,7 @@ function PostEditorInner ({
         type
       } = currentPost
       const details = editorRef.current.getHTML()
-      const topicNames = topics?.map((t) => t.name)
+      const topicNames = type === 'chat' ? [] : topics?.map((t) => t.name)
       const memberIds = members?.map((m) => m.id) || []
       if (type === 'project') {
         // Add the current user to the project members
@@ -1389,26 +1401,28 @@ function PostEditorInner ({
           WebkitMaskImage: 'linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 40px, rgba(0,0,0,1) calc(100% - 40px), rgba(0,0,0,0) 100%)'
         }}
       />
-      <div className={cn('PostEditorHeader relative')}>
-        {isAction
-          ? (
-            <div className=''>{isEditing ? t('Edit {{actionDescriptor}}', { actionDescriptor: currentTrack?.actionDescriptor }) : t('Add {{actionDescriptor}}', { actionDescriptor: currentTrack?.actionDescriptor })}</div>
-            )
-          : isSubmission
+      {!isInlineChatComposer && (
+        <div className={cn('PostEditorHeader relative')}>
+          {isAction
             ? (
-              <div className=''>{isEditing ? t('Edit {{submissionDescriptor}}', { submissionDescriptor: currentFundingRound?.submissionDescriptor }) : t('Add {{submissionDescriptor}}', { submissionDescriptor: currentFundingRound?.submissionDescriptor })}</div>
+              <div className=''>{isEditing ? t('Edit {{actionDescriptor}}', { actionDescriptor: currentTrack?.actionDescriptor }) : t('Add {{actionDescriptor}}', { actionDescriptor: currentTrack?.actionDescriptor })}</div>
               )
-            : (
-              <PostTypeSelect
-                allowedPostTypes={allowedPostTypes}
-                disabled={loading}
-                includeChat={!modal}
-                postType={currentPost.type}
-                setPostType={handlePostTypeSelection}
-                className={cn({ 'absolute top-3 right-1 z-10': isChat, hidden: !!currentFundingRound })}
-              />
-              )}
-      </div>
+            : isSubmission
+              ? (
+                <div className=''>{isEditing ? t('Edit {{submissionDescriptor}}', { submissionDescriptor: currentFundingRound?.submissionDescriptor }) : t('Add {{submissionDescriptor}}', { submissionDescriptor: currentFundingRound?.submissionDescriptor })}</div>
+                )
+              : (
+                <PostTypeSelect
+                  allowedPostTypes={allowedPostTypes}
+                  disabled={loading}
+                  includeChat={!modal}
+                  postType={currentPost.type}
+                  setPostType={handlePostTypeSelection}
+                  className={cn({ 'absolute top-3 right-1 z-10': isChat, hidden: !!currentFundingRound })}
+                />
+                )}
+        </div>
+      )}
       {showSubmissionCriteria && (
         <div className='flex flex-col gap-2 rounded-lg border border-foreground/20 bg-foreground/5 p-3 text-xs text-foreground/80'>
           <div className='text-xs uppercase tracking-wide text-foreground/60'>{t('Submission Criteria')}</div>
@@ -1490,14 +1504,13 @@ function PostEditorInner ({
         {currentPost.details === null || loading
           ? <div className={styles.editor}><Loading /></div>
           : <HyloEditor
-              placeholder={isChat ? t('Send a chat to {{topicName}}', { topicName: hiddenTopic ? t('funding round') : '#' + currentPost?.topics?.[0]?.name }) : t('Add a description')}
+              placeholder={isChat ? t('Send a chat to {{groupName}}', { groupName: currentGroup?.name }) : t('Add a description')}
               onUpdate={handleDetailsChange}
               onAltEnter={doSave}
               onAddTopic={handleAddTopic}
               onAddLink={handleAddLinkPreview}
               contentHTML={editorInitialContent}
               groupIds={groupIds}
-              menuClassName={cn({ 'pr-16': isChat })}
               showMenu
               readOnly={loading}
               ref={editorRef}

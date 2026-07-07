@@ -23,6 +23,8 @@
 // `down` is provided for development: roll back, fix `up`, and re-run.
 // It is NOT safe for production once real post-migration activity exists.
 
+const { homeRoutePathForView } = require('@hylo/navigation')
+
 const SYSTEM_VIEW_TYPE_BY_WIDGET_VIEW = {
   stream: 'all',
   map: 'map',
@@ -35,9 +37,62 @@ const SYSTEM_VIEW_TYPE_BY_WIDGET_VIEW = {
   members: 'members',
   about: 'about',
   welcome: 'welcome',
-  'related-groups': 'related-groups'
+  'related-groups': 'related-groups',
+  groups: 'related-groups'
 }
 const SKIPPED_WIDGET_VIEWS = ['all-topics', 'setup']
+
+// Legacy menu folders become a text section header, then their children follow.
+const STRUCTURAL_FOLDER_TYPES = ['chats', 'auto-view', 'custom-views']
+const SECTION_LABEL_BY_WIDGET_TYPE = {
+  'auto-view': 'Common Views',
+  'custom-views': 'Custom Views',
+  chats: 'Chats'
+}
+
+// Default translation keys for system views created without a legacy widget title.
+const DEFAULT_VIEW_NAME_BY_TYPE = {
+  welcome: 'view-welcome',
+  chat: 'view-chat',
+  members: 'view-members',
+  all: 'view-all',
+  map: 'view-map',
+  events: 'view-events',
+  discussions: 'view-discussions',
+  proposals: 'view-proposals',
+  resources: 'view-resources',
+  'requests-and-offers': 'view-requests-and-offers',
+  projects: 'view-projects',
+  about: 'view-about',
+  'related-groups': 'view-related-groups',
+  'track-actions': 'view-track-actions',
+  'funding-round-submissions': 'view-funding-round-submissions'
+}
+
+/** Convert legacy widget-xxx title keys to view-xxx translation keys. */
+function viewNameFromWidgetTitle (title) {
+  if (!title) return null
+  if (title.startsWith('widget-')) return `view-${title.slice(7)}`
+  return title
+}
+
+/** Resolve the stored group_views.name for a view row. */
+function resolveViewName ({ name, type }) {
+  if (type === 'related-groups') return 'view-related-groups'
+  if (type === 'all') return 'view-all'
+  return viewNameFromWidgetTitle(name) || DEFAULT_VIEW_NAME_BY_TYPE[type] || name || null
+}
+
+/** Display name for legacy folder/section labels (auto-view, custom-views, chats). */
+function sectionLabelForWidget (widget) {
+  if (SECTION_LABEL_BY_WIDGET_TYPE[widget.type]) {
+    return SECTION_LABEL_BY_WIDGET_TYPE[widget.type]
+  }
+  if (widget.title === 'widget-auto-view') return 'Common Views'
+  if (widget.title === 'widget-custom-views') return 'Custom Views'
+  if (widget.title === 'widget-chats') return 'Chats'
+  return resolveViewName({ name: widget.title, type: 'text' })
+}
 
 const SYSTEM_ROLES = [
   {
@@ -61,22 +116,43 @@ const SYSTEM_ROLES = [
 ]
 
 exports.up = async function (knex) {
+  console.log('[up] 1/6 applying migration defaults…')
   await applyMigrationDefaults(knex)
+  console.log('[up] 2/6 migrating main space views…')
   await migrateMainSpaceViews(knex)
+  console.log('[up] 3/6 migrating tracks…')
   await migrateTracks(knex)
+  console.log('[up] 4/6 migrating funding rounds…')
   await migrateFundingRounds(knex)
+  console.log('[up] 5/6 backfilling group_views_users…')
   await backfillGroupViewsUsers(knex)
+  console.log('[up] 6/6 updating home routes…')
   await updateHomeRoutes(knex)
+  console.log('[up] done.')
 }
 
 exports.down = async function (knex) {
   // Development rollback — undo everything `up` created so the migration can
   // be re-run from context_widgets. Does NOT restore #general posts_tags
   // (that step is deferred to Phase 6 cleanup; see file header).
+  //
+  // IMPORTANT: explicit deletes of group_views_users / collections_posts (view_id rows)
+  // come before the parent-table deletes to avoid slow FK-cascade row-by-row
+  // processing inside Postgres.
+  console.log('[down] 1/6 purging group_views_users…')
+  await knex('group_views_users').delete()
+  console.log('[down] 2/6 purging collections_posts view links…')
+  await knex('collections_posts').whereNotNull('view_id').delete()
+  console.log('[down] 3/6 rolling back migrated spaces…')
   await rollbackMigratedSpaces(knex)
+  console.log('[down] 4/6 deleting main-space group_views…')
   await deleteMainGroupViews(knex)
+  console.log('[down] 5/6 reverting home routes…')
   await revertHomeRoutes(knex)
+  console.log('[down] 6/6 reverting migration defaults…')
   await revertMigrationDefaults(knex)
+  console.log('[down] data migration complete.')
+  console.log('[down] note: `yarn rollback` rolls back the whole batch — knex will next run schema migrations (slow, little output). For data-only rollback use `yarn rollback:data`.')
 }
 
 // ---------------------------------------------------------------------------
@@ -107,12 +183,17 @@ async function migrateMainSpaceViews (knex) {
     .whereRaw("type IS DISTINCT FROM 'space'")
     .select('id', 'slug', 'settings')
 
-  for (const group of groups) {
-    // Idempotent: skip groups that already have views (either migrated
-    // already, or created directly as a space/group post-migration).
-    const alreadyMigrated = await knex('group_views').where({ group_id: group.id }).first()
-    if (alreadyMigrated) continue
+  // Fetch all already-migrated group ids in one query for fast idempotency check.
+  const migratedGroupIds = new Set(
+    await knex('group_views').distinct('group_id').pluck('group_id')
+  )
 
+  const todo = groups.filter(g => !migratedGroupIds.has(g.id))
+  console.log(`[up]   ${groups.length} groups total, ${todo.length} need migration`)
+
+  for (let i = 0; i < todo.length; i++) {
+    const group = todo[i]
+    if (i > 0 && i % 100 === 0) console.log(`[up]   migrated ${i}/${todo.length} groups…`)
     await knex.transaction(trx => migrateGroupMenu(trx, group, generalTagId))
   }
 }
@@ -139,7 +220,7 @@ async function migrateGroupMenu (trx, group, generalTagId) {
   const emitted = []
   let homeItem = null
 
-  const emitHomeChat = () => ({ view: { type: 'chat' } })
+  const emitHomeChat = () => ({ view: { type: 'chat', name: 'view-chat' } })
 
   const emitChatWidget = widget => {
     const isGeneral = generalTagId && widget.view_chat_id === generalTagId
@@ -149,6 +230,8 @@ async function migrateGroupMenu (trx, group, generalTagId) {
   }
 
   const emitWidget = widget => {
+    // widget-home is structural only — its child becomes the home view (order 0).
+    if (widget.type === 'home') return null
     if (widget.view_chat_id) return emitChatWidget(widget)
     if (widget.view_track_id) return { space: { kind: 'track', widget } }
     if (widget.view_funding_round_id) return { space: { kind: 'fundingRound', widget } }
@@ -156,7 +239,14 @@ async function migrateGroupMenu (trx, group, generalTagId) {
     if (widget.view_post_id) return { view: { type: 'post', post_id: widget.view_post_id, name: widget.title, icon: widget.icon } }
     if (widget.view_group_id) return { view: { type: 'group', linked_group_id: widget.view_group_id, name: widget.title, icon: widget.icon } }
     if (widget.view_user_id) return { view: { type: 'member', user_id: widget.view_user_id, name: widget.title, icon: widget.icon } }
-    if (widget.type === 'container') return { view: { type: 'text', name: widget.title, icon: widget.icon }, children: childrenOf(widget.id) }
+    if (widget.type === 'container') {
+      const children = childrenOf(widget.id)
+      if (children.length === 0) return null
+      return {
+        view: { type: 'text', name: sectionLabelForWidget(widget), icon: widget.icon },
+        children
+      }
+    }
     if (widget.view && SKIPPED_WIDGET_VIEWS.includes(widget.view)) return null
     if (widget.view && SYSTEM_VIEW_TYPE_BY_WIDGET_VIEW[widget.view]) {
       return { view: { type: SYSTEM_VIEW_TYPE_BY_WIDGET_VIEW[widget.view], name: widget.title, icon: widget.icon } }
@@ -166,12 +256,22 @@ async function migrateGroupMenu (trx, group, generalTagId) {
     return null
   }
 
-  // Walk a widget, expanding structural containers ('chats' folder, 'container').
+  // Walk a widget, expanding structural folders (chats, auto-view, custom-views).
   const walk = widget => {
-    if (widget.type === 'chats') {
+    if (widget.type === 'home') {
       for (const child of childrenOf(widget.id)) walk(child)
       return
     }
+
+    if (STRUCTURAL_FOLDER_TYPES.includes(widget.type)) {
+      const children = childrenOf(widget.id)
+      if (children.length > 0) {
+        emitted.push({ view: { type: 'text', name: sectionLabelForWidget(widget) } })
+        for (const child of children) walk(child)
+      }
+      return
+    }
+
     const result = emitWidget(widget)
     if (!result) return
 
@@ -217,8 +317,8 @@ async function migrateGroupMenu (trx, group, generalTagId) {
 
   // Materialize: plain views get inserted directly; spaces get created (with
   // their own default views) and a type='space' menu entry inserted here;
-  // collection views are inserted as plain views, with their collection_posts
-  // migrated afterwards once the row (and its real id) exists.
+  // collection views are inserted as plain views, with their collections_posts
+  // view links migrated afterwards once the row (and its real id) exists.
   const viewsToInsert = []
   const collectionTasks = []
   for (const item of orderedItems) {
@@ -240,12 +340,13 @@ async function migrateGroupMenu (trx, group, generalTagId) {
     const view = insertedViews[task.index]
     const linkedPosts = await trx('collections_posts').where({ collection_id: task.customView.collection_id }).orderBy('order', 'asc')
     for (const lp of linkedPosts) {
-      await trx('collection_posts').insert({
-        view_id: view.id,
-        post_id: lp.post_id,
-        order: lp.order || 0,
-        created_at: now
-      }).onConflict(['view_id', 'post_id']).ignore()
+      await insertCollectionsPostForView(trx, {
+        viewId: view.id,
+        postId: lp.post_id,
+        userId: lp.user_id,
+        order: lp.order,
+        now
+      })
     }
   }
 }
@@ -266,7 +367,7 @@ async function resolveCustomViewItem (trx, item) {
     // Unlike tracks/rounds/chats, a 'collection' view lives directly on the
     // parent group (see GroupView type='collection') rather than becoming a
     // child space, so it's handled as a plain view + a deferred post-insert
-    // step to migrate collection_posts once the view has a real id.
+    // step to migrate collections_posts view links once the view has a real id.
     return { collectionView: { customView }, isHome: item.isHome }
   }
 
@@ -359,12 +460,14 @@ async function buildTrackSpace (trx, parentGroup, track) {
 
   const trackPosts = await trx('tracks_posts').where({ track_id: track.id }).orderBy('sort_order', 'asc')
   for (const tp of trackPosts) {
-    await trx('collection_posts').insert({
-      view_id: trackActionsView.id,
-      post_id: tp.post_id,
-      order: tp.sort_order || 0,
-      created_at: now
-    }).onConflict(['view_id', 'post_id']).ignore()
+    const post = await trx('posts').where({ id: tp.post_id }).select('user_id').first()
+    await insertCollectionsPostForView(trx, {
+      viewId: trackActionsView.id,
+      postId: tp.post_id,
+      userId: post?.user_id || parentGroup.created_by_id,
+      order: tp.sort_order,
+      now
+    })
   }
 
   await migrateSpaceMembers(trx, spaceId, parentGroup.id, async () => {
@@ -442,12 +545,13 @@ async function buildFundingRoundSpace (trx, parentGroup, round) {
 
   await trx('funding_rounds').where({ id: round.id }).update({ group_id: spaceId })
 
-  await insertGroupViews(trx, spaceId, [
+  const views = await insertGroupViews(trx, spaceId, [
     { type: 'welcome' },
     { type: 'funding-round-submissions' },
     { type: 'chat' },
     { type: 'members' }
   ])
+  const chatView = views.find(v => v.type === 'chat')
 
   const submissions = await trx('funding_rounds_posts').where({ funding_round_id: round.id })
   for (const s of submissions) {
@@ -455,12 +559,46 @@ async function buildFundingRoundSpace (trx, parentGroup, round) {
       .onConflict(['group_id', 'post_id']).ignore()
   }
 
+  // Reassociate funding-round chat posts from the parent group to this space.
+  // Each round has a hidden topic ‡funding_round_<id> (see FundingRound.create).
+  const fundingRoundChatTag = await trx('tags').where({ name: `‡funding_round_${round.id}` }).first()
+  if (fundingRoundChatTag) {
+    const taggedChatPostIds = await trx('posts_tags')
+      .join('posts', 'posts.id', 'posts_tags.post_id')
+      .where('posts_tags.tag_id', fundingRoundChatTag.id)
+      .where('posts.type', 'chat')
+      .pluck('posts.id')
+
+    if (taggedChatPostIds.length > 0) {
+      await trx('groups_posts')
+        .where({ group_id: parentGroup.id })
+        .whereIn('post_id', taggedChatPostIds)
+        .update({ group_id: spaceId })
+    }
+  }
+
   await migrateSpaceMembers(trx, spaceId, parentGroup.id, async () => {
     const roundUsers = await trx('funding_rounds_users').where({ funding_round_id: round.id })
-    return roundUsers.map(ru => ({
-      user_id: ru.user_id,
-      settingsPatch: { tokensRemaining: ru.tokens_remaining }
-    }))
+    const tagFollowsByUserId = {}
+    if (fundingRoundChatTag) {
+      const follows = await trx('tag_follows')
+        .where({ group_id: parentGroup.id, tag_id: fundingRoundChatTag.id })
+      for (const follow of follows) {
+        tagFollowsByUserId[follow.user_id] = follow
+      }
+    }
+    return roundUsers.map(ru => {
+      const follow = tagFollowsByUserId[ru.user_id]
+      return {
+        user_id: ru.user_id,
+        settingsPatch: { tokensRemaining: ru.tokens_remaining },
+        ...(follow && chatView && {
+          newPostCount: follow.new_post_count,
+          lastReadPostId: follow.last_read_post_id,
+          viewId: chatView.id
+        })
+      }
+    })
   })
 
   return spaceId
@@ -541,15 +679,34 @@ async function createChatSpace (trx, parentGroup, widget) {
 // Shared helpers
 // ---------------------------------------------------------------------------
 
+/** Idempotent insert of a view-linked collections_posts row (partial unique index is not usable with knex onConflict). */
+async function insertCollectionsPostForView (trx, { viewId, postId, userId, order, now }) {
+  const existing = await trx('collections_posts').where({ view_id: viewId, post_id: postId }).first()
+  if (existing) return
+  await trx('collections_posts').insert({
+    view_id: viewId,
+    post_id: postId,
+    user_id: userId,
+    order: order || 0,
+    created_at: now,
+    updated_at: now
+  })
+}
+
 async function insertGroupViews (trx, groupId, views) {
   const now = new Date()
-  const rows = views.map((v, i) => ({
-    group_id: groupId,
-    order: i,
-    created_at: now,
-    updated_at: now,
-    ...v
-  }))
+  const rows = views.map((v, i) => {
+    const { name, type, ...rest } = v
+    return {
+      group_id: groupId,
+      order: i,
+      created_at: now,
+      updated_at: now,
+      type,
+      ...rest,
+      name: resolveViewName({ name, type })
+    }
+  })
   return trx('group_views').insert(rows).returning('*')
 }
 
@@ -722,17 +879,23 @@ function uuidv4 () {
 // ---------------------------------------------------------------------------
 
 async function backfillGroupViewsUsers (knex) {
-  await knex.raw(`
+  // Pre-compute the max post_id per group once to avoid a correlated subquery
+  // for every (view, member) pair — that would be extremely slow at scale.
+  const result = await knex.raw(`
     INSERT INTO group_views_users (view_id, user_id, new_post_count, last_read_post_id, created_at, updated_at)
     SELECT gv.id, gm.user_id, 0,
-      (SELECT max(gp.post_id) FROM groups_posts gp WHERE gp.group_id = gv.group_id),
+      max_posts.max_post_id,
       now(), now()
     FROM group_views gv
     JOIN group_memberships gm ON gm.group_id = gv.group_id AND gm.active = true
+    LEFT JOIN (
+      SELECT group_id, max(post_id) AS max_post_id FROM groups_posts GROUP BY group_id
+    ) max_posts ON max_posts.group_id = gv.group_id
     WHERE NOT EXISTS (
       SELECT 1 FROM group_views_users gvu WHERE gvu.view_id = gv.id AND gvu.user_id = gm.user_id
     )
   `)
+  console.log(`[up]   inserted ${result.rowCount ?? '?'} group_views_users rows`)
 }
 
 // ---------------------------------------------------------------------------
@@ -746,103 +909,149 @@ async function backfillGroupViewsUsers (knex) {
 // ---------------------------------------------------------------------------
 
 async function updateHomeRoutes (knex) {
-  const groups = await knex('groups').select('id')
-  for (const group of groups) {
-    const homeView = await knex('group_views').where({ group_id: group.id, order: 0 }).first()
-    const homeRoute = computeHomeRoutePath(homeView)
-    await knex('groups').where({ id: group.id }).update({ home_route: homeRoute })
-  }
-}
-
-function computeHomeRoutePath (view) {
-  if (!view) return '/all'
-  switch (view.type) {
-    case 'custom': return `/custom/${view.id}`
-    case 'collection': return `/collection/${view.id}`
-    case 'all': return '/all'
-    default: return `/${view.type}`
-  }
+  // Load all order-0 views in one query, then bulk-update.
+  const homeViews = await knex('group_views').where({ order: 0 })
+  const updates = homeViews.map(view => ({ id: view.group_id, home_route: homeRoutePathForView(view) }))
+  if (updates.length > 0) await bulkUpdateGroupsHomeRoutes(knex, updates)
 }
 
 // ---------------------------------------------------------------------------
 // `down` — development rollback (reverse of `up`, best-effort)
+// Bulk SQL where possible — this runs often during dev iteration.
 // ---------------------------------------------------------------------------
 
 async function rollbackMigratedSpaces (knex) {
-  const spaces = await knex('groups')
+  const spaceIds = await knex('groups')
     .where({ type: 'space' })
     .whereNotNull('parent_id')
-    .select('id', 'parent_id', 'track_id', 'funding_round_id')
+    .pluck('id')
 
-  for (const space of spaces) {
-    await knex.transaction(trx => rollbackSpace(trx, space))
+  console.log(`[down]   found ${spaceIds.length} spaces to roll back`)
+  if (spaceIds.length === 0) return
+
+  const chunkSize = 25
+  for (let i = 0; i < spaceIds.length; i += chunkSize) {
+    const chunk = spaceIds.slice(i, i + chunkSize)
+    const end = Math.min(i + chunkSize, spaceIds.length)
+    console.log(`[down]   rolling back spaces ${i + 1}-${end} of ${spaceIds.length}…`)
+
+    await knex.transaction(async trx => {
+      const idPlaceholders = chunk.map(() => '?').join(', ')
+
+      await trx('tracks').whereIn('group_id', chunk).update({ group_id: null })
+
+      await trx.raw(`
+        DELETE FROM groups_posts gp
+        USING groups g, funding_rounds_posts frp
+        WHERE gp.group_id = g.id
+          AND g.id IN (${idPlaceholders})
+          AND g.type = 'space'
+          AND g.parent_id IS NOT NULL
+          AND g.funding_round_id = frp.funding_round_id
+          AND gp.post_id = frp.post_id
+      `, chunk)
+      await trx.raw(`
+        UPDATE funding_rounds fr
+        SET group_id = g.parent_id
+        FROM groups g
+        WHERE g.funding_round_id = fr.id
+          AND g.id IN (${idPlaceholders})
+          AND g.type = 'space'
+          AND g.parent_id IS NOT NULL
+      `, chunk)
+      await trx.raw(`
+        UPDATE groups_posts gp
+        SET group_id = g.parent_id
+        FROM groups g, posts p, posts_tags pt, tags t
+        WHERE gp.group_id = g.id
+          AND g.id IN (${idPlaceholders})
+          AND g.type = 'space'
+          AND g.parent_id IS NOT NULL
+          AND g.funding_round_id IS NOT NULL
+          AND gp.post_id = p.id
+          AND p.type = 'chat'
+          AND pt.post_id = p.id
+          AND pt.tag_id = t.id
+          AND t.name = concat('‡funding_round_', g.funding_round_id::text)
+      `, chunk)
+      await trx.raw(`
+        UPDATE groups_posts gp
+        SET group_id = g.parent_id
+        FROM groups g
+        WHERE gp.group_id = g.id
+          AND g.id IN (${idPlaceholders})
+          AND g.type = 'space'
+          AND g.parent_id IS NOT NULL
+          AND g.track_id IS NULL
+          AND g.funding_round_id IS NULL
+      `, chunk)
+
+      const roleIds = await trx('groups_roles').whereIn('group_id', chunk).pluck('id')
+      if (roleIds.length > 0) {
+        await trx('group_roles_responsibilities').whereIn('group_role_id', roleIds).delete()
+        await trx('group_memberships_group_roles').whereIn('group_id', chunk).delete()
+        await trx('groups_roles').whereIn('group_id', chunk).delete()
+      }
+      await trx('group_memberships').whereIn('group_id', chunk).delete()
+
+      await trx('groups').whereIn('id', chunk).delete()
+    })
   }
-}
-
-async function rollbackSpace (trx, space) {
-  await rollbackSpaceSideEffects(trx, space)
-  await deleteSpaceRolesAndMemberships(trx, space.id)
-  // Cascades: group_views on this space, menu entries (linked_group_id), etc.
-  await trx('groups').where({ id: space.id }).delete()
-}
-
-async function rollbackSpaceSideEffects (trx, space) {
-  if (space.track_id) {
-    await trx('tracks').where({ id: space.track_id }).update({ group_id: null })
-    return
-  }
-
-  if (space.funding_round_id) {
-    await trx('funding_rounds').where({ id: space.funding_round_id }).update({ group_id: space.parent_id })
-    await trx('groups_posts')
-      .where({ group_id: space.id })
-      .whereIn('post_id', trx('funding_rounds_posts')
-        .where({ funding_round_id: space.funding_round_id })
-        .select('post_id'))
-      .delete()
-    return
-  }
-
-  // Chat (and other non-track/round) child spaces — move posts back to parent
-  await trx('groups_posts')
-    .where({ group_id: space.id })
-    .update({ group_id: space.parent_id })
-}
-
-async function deleteSpaceRolesAndMemberships (trx, spaceId) {
-  const roleIds = await trx('groups_roles').where({ group_id: spaceId }).pluck('id')
-  if (roleIds.length > 0) {
-    await trx('group_roles_responsibilities').whereIn('group_role_id', roleIds).delete()
-    await trx('group_memberships_group_roles').where({ group_id: spaceId }).delete()
-    await trx('groups_roles').where({ group_id: spaceId }).delete()
-  }
-  await trx('group_memberships').where({ group_id: spaceId }).delete()
+  console.log('[down]   spaces rollback complete')
 }
 
 async function deleteMainGroupViews (knex) {
-  const parentGroupIds = knex('groups').whereRaw("type IS DISTINCT FROM 'space'").select('id')
-  // Cascades collection_posts + group_views_users for these views
-  await knex('group_views').whereIn('group_id', parentGroupIds).delete()
+  const parentGroupIds = await knex('groups').whereRaw("type IS DISTINCT FROM 'space'").pluck('id')
+  console.log(`[down]   deleting group_views for ${parentGroupIds.length} groups…`)
+
+  const chunkSize = 50
+  for (let i = 0; i < parentGroupIds.length; i += chunkSize) {
+    const chunk = parentGroupIds.slice(i, i + chunkSize)
+    const end = Math.min(i + chunkSize, parentGroupIds.length)
+    const deleted = await knex('group_views').whereIn('group_id', chunk).delete()
+    console.log(`[down]   deleted ${deleted} group_views (groups ${i + 1}-${end})`)
+  }
 }
 
 async function revertMigrationDefaults (knex) {
+  // Use jsonb_exists — knex treats bare `?` in raw SQL as a bind placeholder.
   await knex.raw(`
     UPDATE groups
     SET settings = settings - 'showPostNoticesInChat'
-    WHERE settings ? 'showPostNoticesInChat'
+    WHERE jsonb_exists(settings, 'showPostNoticesInChat')
   `)
 }
 
 async function revertHomeRoutes (knex) {
   const groups = await knex('groups').whereRaw("type IS DISTINCT FROM 'space'").select('id')
-  for (const group of groups) {
-    const homeRoute = await computeLegacyHomeRoute(knex, group.id)
-    await knex('groups').where({ id: group.id }).update({ home_route: homeRoute })
+  if (groups.length === 0) return
+
+  console.log(`[down]   recomputing home_route for ${groups.length} groups…`)
+  const groupIds = groups.map(g => g.id)
+  const widgets = await knex('context_widgets').whereIn('group_id', groupIds)
+
+  const widgetsByGroupId = {}
+  for (const widget of widgets) {
+    if (!widgetsByGroupId[widget.group_id]) widgetsByGroupId[widget.group_id] = []
+    widgetsByGroupId[widget.group_id].push(widget)
   }
+
+  const chatTagIds = [...new Set(widgets.filter(w => w.view_chat_id).map(w => w.view_chat_id))]
+  const tagsById = {}
+  if (chatTagIds.length > 0) {
+    const tags = await knex('tags').whereIn('id', chatTagIds)
+    for (const tag of tags) tagsById[tag.id] = tag
+  }
+
+  const updates = groups.map(group => ({
+    id: group.id,
+    home_route: computeLegacyHomeRouteFromWidgets(widgetsByGroupId[group.id] || [], tagsById)
+  }))
+
+  await bulkUpdateGroupsHomeRoutes(knex, updates)
 }
 
-async function computeLegacyHomeRoute (knex, groupId) {
-  const widgets = await knex('context_widgets').where({ group_id: groupId })
+function computeLegacyHomeRouteFromWidgets (widgets, tagsById) {
   const homeWidget = widgets.find(w => w.type === 'home')
   const homeChild = homeWidget ? widgets.find(w => w.parent_id === homeWidget.id) : null
   if (!homeChild) return '/stream'
@@ -851,13 +1060,28 @@ async function computeLegacyHomeRoute (knex, groupId) {
     return homeChild.view === 'stream' ? '/stream' : `/${homeChild.view}`
   }
   if (homeChild.view_chat_id) {
-    const chat = await knex('tags').where({ id: homeChild.view_chat_id }).first()
+    const chat = tagsById[homeChild.view_chat_id]
     return `/chat/${chat?.name || 'general'}`
   }
   if (homeChild.custom_view_id) return `/custom/${homeChild.custom_view_id}`
   if (homeChild.view_track_id) return `/tracks/${homeChild.view_track_id}`
   if (homeChild.view_funding_round_id) return `/funding-rounds/${homeChild.view_funding_round_id}`
   return '/stream'
+}
+
+async function bulkUpdateGroupsHomeRoutes (knex, updates) {
+  const chunkSize = 250
+  for (let i = 0; i < updates.length; i += chunkSize) {
+    const chunk = updates.slice(i, i + chunkSize)
+    const placeholders = chunk.map(() => '(?, ?)').join(', ')
+    const bindings = chunk.flatMap(row => [row.id, row.home_route])
+    await knex.raw(`
+      UPDATE groups AS g
+      SET home_route = v.home_route
+      FROM (VALUES ${placeholders}) AS v(id, home_route)
+      WHERE g.id = v.id::bigint
+    `, bindings)
+  }
 }
 
 // ---------------------------------------------------------------------------

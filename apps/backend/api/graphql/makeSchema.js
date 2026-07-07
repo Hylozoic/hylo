@@ -156,6 +156,7 @@ import {
   updateGroupTopic,
   updateGroupTopicFollow,
   updateGroupView,
+  updateGroupViewUser,
   updateTopicFollow,
   updateTrack,
   updateTrackActionOrder,
@@ -612,6 +613,9 @@ export function makeMutations ({ fetchOne }) {
 
     updateGroupView: (root, { id, name, icon, settings, link, pageContent, topics, orderInFrontOfViewId, addToEnd }, context) =>
       updateGroupView({ userId: context.currentUserId, id, name, icon, settings, link, pageContent, topics, orderInFrontOfViewId, addToEnd, context }),
+
+    updateGroupViewUser: (root, { viewId, lastReadPostId }, context) =>
+      updateGroupViewUser(context.currentUserId, viewId, { lastReadPostId }),
 
     deleteGroupView: (root, { id }, context) => deleteGroupView(context.currentUserId, id, context),
 

@@ -10,6 +10,7 @@ import CustomView from './CustomView'
 import Draft from './Draft'
 import EventInvitation from './EventInvitation'
 import Group, { ChatRoom, GroupRelationship, GroupSteward, GroupJoinQuestion, GroupPrerequisite, GroupToGroupJoinQuestion } from './Group'
+import GroupView from './GroupView'
 import GroupRelationshipInvite, { GroupToGroupJoinRequestQuestionAnswer } from './GroupRelationshipInvite'
 import GroupTopic from './GroupTopic'
 import Invitation from './Invitation'
@@ -60,6 +61,7 @@ orm.register(
   GroupToGroupJoinRequestQuestionAnswer,
   GroupTopic,
   GroupSteward,
+  GroupView,
   Invitation,
   JoinRequest,
   LinkPreview,

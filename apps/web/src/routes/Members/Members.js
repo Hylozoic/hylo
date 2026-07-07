@@ -2,7 +2,7 @@ import { debounce, get, isEmpty, some } from 'lodash/fp'
 import React, { useEffect, useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Helmet } from 'react-helmet'
-import { Link, useParams, useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import Button from 'components/Button'
 import Dropdown from 'components/Dropdown'
@@ -11,6 +11,7 @@ import Member from 'components/Member'
 import ScrollListener from 'components/ScrollListener'
 import SwitchStyled from 'components/SwitchStyled'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
+import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
 import { queryParamWhitelist } from 'store/reducers/queryResults'
 import { groupUrl } from '@hylo/navigation'
@@ -27,11 +28,10 @@ const defaultSortBy = 'name'
 function Members (props) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
-  const routeParams = useParams()
   const location = useLocation()
 
   const context = props.context
-  const slug = routeParams.groupSlug
+  const slug = useEffectiveGroupSlug()
 
   // State selectors
   const group = useSelector(state => getGroupForSlug(state, slug))

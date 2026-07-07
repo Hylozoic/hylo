@@ -1,5 +1,6 @@
 import { createSelector } from 'redux-orm'
 import orm from 'store/models'
+import { GROUP_TYPES } from 'store/models/Group'
 import getMyMemberships from 'store/selectors/getMyMemberships'
 
 export const getMyGroups = createSelector(
@@ -7,6 +8,7 @@ export const getMyGroups = createSelector(
   getMyMemberships,
   (_, memberships) => {
     return memberships
+      .filter(m => m.group.ref.type !== GROUP_TYPES.space)
       .map(m => ({
         ...m.group.ref,
         newPostCount: m.newPostCount,

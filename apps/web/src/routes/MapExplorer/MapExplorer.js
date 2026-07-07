@@ -29,6 +29,7 @@ import Tooltip from 'components/Tooltip'
 import LayoutFlagsContext from 'contexts/LayoutFlagsContext'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useRouteParams from 'hooks/useRouteParams'
+import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import { locationObjectToViewport } from 'util/geo'
 import { isMobileDevice } from 'util/mobile'
@@ -102,7 +103,7 @@ function MapExplorer (props) {
   const mapRef = useRef(null)
 
   const context = useMemo(() => routeParams.context || props.context, [routeParams.context, props.context])
-  const groupSlug = useMemo(() => routeParams.groupSlug, [routeParams.groupSlug])
+  const groupSlug = useEffectiveGroupSlug()
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
   const groupId = group?.id
   const queryGroupSlugs = getQuerystringParam('group', location)

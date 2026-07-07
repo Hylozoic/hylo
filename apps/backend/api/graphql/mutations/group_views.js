@@ -1,17 +1,7 @@
 import { GraphQLError } from 'graphql'
-import {
-  publishGroupUpdate
-} from '../../../lib/groupSubscriptionPublisher'
-import { publishAsync } from '../../../lib/subscriptionUtils'
-import { groupRoom, pushToSockets } from '../../services/Websockets'
+import { notifyGroupUpdated } from './notifyGroupUpdated'
 
 // Spaces & Views mutations — see docs/spaces-and-views-engineering-spec.md section 4.4
-
-// Notify all clients (web/mobile WebView via Socket.io + GraphQL subscription clients) that a group's views changed
-function notifyGroupUpdated (context, group, groupId) {
-  pushToSockets(groupRoom(groupId), 'groupUpdated', { groupId })
-  publishAsync(publishGroupUpdate, context, group, group)
-}
 
 async function requireAdmin (userId, groupId, action) {
   const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, groupId)
@@ -35,7 +25,7 @@ export async function createGroupView ({ userId, groupId, type, name, icon, sett
     settings,
     link,
     page_content: pageContent,
-    topics,
+    topics: topics ?? [],
     linked_group_id: linkedGroupId,
     post_id: postId,
     user_id: viewUserId
@@ -69,7 +59,7 @@ export async function updateGroupView ({ userId, id, name, icon, settings, link,
   if (settings !== undefined) changes.settings = settings
   if (link !== undefined) changes.link = link
   if (pageContent !== undefined) changes.page_content = pageContent
-  if (topics !== undefined) changes.topics = topics
+  if (topics !== undefined) changes.topics = topics ?? []
 
   await view.save({ ...changes, updated_at: new Date() }, { patch: true })
     .catch(err => {
@@ -158,6 +148,40 @@ export async function setHomeView (userId, viewId, groupId, context) {
   return { success: true }
 }
 
+/**
+ * Update the current user's per-view unread state for a 'chat' type GroupView.
+ * Sets lastReadPostId to the given post and recalculates newPostCount.
+ * Returns the updated GroupView so the frontend ORM is refreshed in one round-trip.
+ */
+export async function updateGroupViewUser (userId, viewId, { lastReadPostId } = {}) {
+  if (!userId) throw new GraphQLError('No userId passed into function')
+  if (!viewId) throw new GraphQLError('No viewId passed into function')
+
+  const view = await GroupView.where({ id: viewId }).fetch()
+  if (!view) throw new GraphQLError('View not found')
+
+  const viewUser = await GroupViewUser.findOrCreate(viewId, userId)
+  const updates = { updated_at: new Date() }
+
+  if (lastReadPostId != null) {
+    updates.last_read_post_id = lastReadPostId
+    const groupId = view.get('group_id')
+    const newPostCount = await bookshelf.knex('posts')
+      .join('groups_posts', 'posts.id', 'groups_posts.post_id')
+      .where('groups_posts.group_id', groupId)
+      .where('posts.type', 'chat')
+      .where('posts.id', '>', lastReadPostId)
+      .whereNull('posts.deactivated_at')
+      .count('posts.id as count')
+      .then(rows => parseInt(rows[0]?.count || 0))
+    updates.new_post_count = newPostCount
+  }
+
+  await viewUser.save(updates, { patch: true })
+  // Return the GroupView; its newPostCount/lastReadPostId resolvers re-read the updated row.
+  return GroupView.where({ id: viewId }).fetch()
+}
+
 export async function markViewAsRead (userId, viewId) {
   if (!userId) throw new GraphQLError('No userId passed into function')
   if (!viewId) throw new GraphQLError('No viewId passed into function')
@@ -195,14 +219,14 @@ export async function addPostToView (userId, viewId, postId, order) {
 
   let nextOrder = order
   if (nextOrder == null) {
-    const row = await bookshelf.knex('collection_posts')
+    const row = await bookshelf.knex('collections_posts')
       .where({ view_id: viewId })
       .select(bookshelf.knex.raw('coalesce(max("order"), -1) as max_order'))
       .first()
     nextOrder = Number(row.max_order) + 1
   }
 
-  return CollectionPost.create({ view_id: viewId, post_id: postId, order: nextOrder })
+  return CollectionPost.create({ view_id: viewId, post_id: postId, order: nextOrder, user_id: userId })
 }
 
 export async function removePostFromView (userId, viewId, postId) {

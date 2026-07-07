@@ -30,9 +30,11 @@ exports.up = async function (knex) {
 }
 
 exports.down = async function (knex) {
+  console.log('[down schema] reverting Manage Spaces responsibility…')
   const responsibility = await knex('responsibilities').where({ title: TITLE, type: 'system' }).first()
   if (!responsibility) return
 
   await knex('group_roles_responsibilities').where({ responsibility_id: responsibility.id }).delete()
   await knex('responsibilities').where({ id: responsibility.id }).delete()
+  console.log('[down schema] Manage Spaces responsibility reverted.')
 }

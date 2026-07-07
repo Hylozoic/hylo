@@ -12,7 +12,8 @@ import {
   receiveNotification,
   receivePost
 } from './SocketListener.store'
-import fetchForGroup from 'store/actions/fetchForGroup'
+import fetchGroupViews from 'store/actions/fetchGroupViews'
+import getMe from 'store/selectors/getMe'
 import {
   addUserTyping,
   clearUserTyping
@@ -25,6 +26,7 @@ const SocketListener = (props) => {
   const locationRef = useRef(location)
   const routeParams = useRouteParams()
   const group = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
+  const currentUser = useSelector(getMe)
 
   // Need to keep the location up to date without causing handlers to rerender and us to reconnect to the sockets on every location change
   useEffect(() => {
@@ -33,8 +35,11 @@ const SocketListener = (props) => {
 
   const handlers = useMemo(() => ({
     commentAdded: data => dispatch(receiveComment(data)),
-    groupUpdated: () => {
-      if (group?.slug) dispatch(fetchForGroup(group.slug))
+    groupUpdated: (data) => {
+      if (!group?.id) return
+      if (data?.groupId && String(data.groupId) !== String(group.id)) return
+      if (data?.updatedByUserId && String(data.updatedByUserId) === String(currentUser?.id)) return
+      dispatch(fetchGroupViews(group.id))
     },
     messageAdded: (data) => {
       const message = convertToMessage(data)
@@ -49,7 +54,7 @@ const SocketListener = (props) => {
     userTyping: ({ userId, userName, isTyping }) => {
       isTyping ? dispatch(addUserTyping(userId, userName)) : dispatch(clearUserTyping(userId))
     }
-  }), [group?.id, group?.slug])
+  }), [currentUser?.id, dispatch, group?.id])
 
   useEffect(() => {
     const socket = getSocket()

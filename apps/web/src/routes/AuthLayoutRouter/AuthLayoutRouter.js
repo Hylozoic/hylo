@@ -71,6 +71,8 @@ import OfferingDetails from 'routes/OfferingDetails/OfferingDetails'
 import PostDetail from 'routes/PostDetail'
 import Search from 'routes/Search'
 import Stream from 'routes/Stream'
+import ViewContent from 'routes/ViewContent'
+import SpaceContent from 'routes/SpaceContent'
 import Themes from 'routes/Themes'
 import TrackHome from 'routes/TrackHome'
 import FundingRounds from 'routes/FundingRounds'
@@ -105,6 +107,7 @@ export default function AuthLayoutRouter (props) {
     const matches = [
       { path: `${POST_DETAIL_MATCH}` },
       { path: 'groups/:joinGroupSlug/join/:accessCode', context: 'groups' },
+      { path: 'groups/:groupSlug/spaces/:spaceSlug/*', context: 'groups' },
       { path: 'groups/:groupSlug/:view/*', context: 'groups' },
       { path: 'groups/:groupSlug/*', context: 'groups' },
       { path: 'all/:view/*', context: 'all' },
@@ -565,16 +568,16 @@ export default function AuthLayoutRouter (props) {
   useEffect(() => {
     if (currentGroupSlug && currentGroupMembership && currentGroup?.paywall && currentGroup?.canAccess === false) {
       const currentPath = location.pathname
-      const streamPath = `/groups/${currentGroupSlug}/stream`
+      const homePath = `/groups/${currentGroupSlug}${currentGroup?.homeRoute || '/all'}`
       const onOfferingPurchasePath = currentPath.startsWith(`/groups/${currentGroupSlug}/offerings/`)
-      // Only redirect if not already on stream page; keep offering URLs so members can buy access
-      if (!currentPath.includes('/stream') && !onOfferingPurchasePath) {
+      // Only redirect if not already on a view page; keep offering URLs so members can buy access
+      if (!currentPath.includes(homePath) && !currentPath.includes('/stream') && !onOfferingPurchasePath) {
         // Mobile web: LOCATION_CHANGE only closes the group drawer, not the sliding nav + backdrop.
         // Close the nav so the paywall / no-access stream view is visible after redirect.
         if (typeof window !== 'undefined' && window.innerWidth < 640) {
           dispatch(toggleNavMenu(false))
         }
-        navigate(streamPath, { replace: true })
+        navigate(homePath, { replace: true })
       }
     }
   }, [currentGroupSlug, currentGroupMembership, currentGroup?.paywall, currentGroup?.canAccess, location.pathname, navigate, dispatch])
@@ -697,7 +700,7 @@ export default function AuthLayoutRouter (props) {
     if (currentGroup?.settings?.showWelcomePage) {
       navigate(`/groups/${currentGroupSlug}/welcome`, { replace: true })
     } else {
-      navigate(`/groups/${currentGroupSlug}${currentGroup?.homeRoute || '/stream'}`, { replace: true })
+      navigate(`/groups/${currentGroupSlug}${currentGroup?.homeRoute || '/all'}`, { replace: true })
     }
   }
 
@@ -807,9 +810,9 @@ export default function AuthLayoutRouter (props) {
               <Route path='groups/:groupSlug/topics/:topicName/create/*' element={<CreateModal context='groups' />} />
               <Route path='groups/:groupSlug/topics/:topicName/post/:postId/create/*' element={<CreateModal context='groups' />} />
               <Route path='groups/:groupSlug/topics/:topicName/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
-              <Route path='groups/:groupSlug/chat/:topicName/create/*' element={<CreateModal context='groups' />} />
-              <Route path='groups/:groupSlug/chat/:topicName/post/:postId/create/*' element={<CreateModal context='groups' />} />
-              <Route path='groups/:groupSlug/chat/:topicName/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
+              <Route path='groups/:groupSlug/chat/create/*' element={<CreateModal context='groups' />} />
+              <Route path='groups/:groupSlug/chat/post/:postId/create/*' element={<CreateModal context='groups' />} />
+              <Route path='groups/:groupSlug/chat/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
               <Route path='groups/:groupSlug/members/:personId/create/*' element={<CreateModal context='groups' />} />
               <Route path='groups/:groupSlug/tracks/:trackId/create/*' element={<CreateModal context='groups' />} />
               <Route path='groups/:groupSlug/tracks/:trackId/edit/*' element={<CreateModal context='groups' editingTrack />} />
@@ -893,18 +896,21 @@ export default function AuthLayoutRouter (props) {
                         ? <GroupDetail context='groups' group={currentGroup} />
                         : (
                           <Routes>
+                            <Route path='spaces/:spaceSlug/*' element={<SpaceContent />} />
                             <Route path='about/*' element={<GroupDetail context='groups' forCurrentGroup />} />
                             <Route path='welcome/*' element={<GroupWelcomePage />} />
                             <Route path='map/*' element={<MapExplorer context='groups' view='map' />} />
+                            <Route path='all/*' element={<ViewContent context='groups' view='all' />} />
                             <Route path='stream/*' element={<Stream context='groups' view='stream' />} />
-                            <Route path='discussions/*' element={<Stream context='groups' view='discussions' />} />
-                            <Route path='events/*' element={<Stream context='groups' view='events' />} />
-                            <Route path='resources/*' element={<Stream context='groups' view='resources' />} />
-                            <Route path='projects/*' element={<Stream context='groups' view='projects' />} />
-                            <Route path='proposals/*' element={<Stream context='groups' view='proposals' />} />
-                            <Route path='requests-and-offers/*' element={<Stream context='groups' view='requests-and-offers' />} />
+                            <Route path='discussions/*' element={<ViewContent context='groups' view='discussions' />} />
+                            <Route path='events/*' element={<ViewContent context='groups' view='events' />} />
+                            <Route path='resources/*' element={<ViewContent context='groups' view='resources' />} />
+                            <Route path='projects/*' element={<ViewContent context='groups' view='projects' />} />
+                            <Route path='proposals/*' element={<ViewContent context='groups' view='proposals' />} />
+                            <Route path='requests-and-offers/*' element={<ViewContent context='groups' view='requests-and-offers' />} />
                             <Route path='explore/*' element={<LandingPage />} />
-                            <Route path='custom/:customViewId/*' element={<Stream context='groups' view='custom' />} />
+                            <Route path='custom/:customViewId/*' element={<ViewContent context='groups' view='custom' />} />
+                            <Route path='collection/:customViewId/*' element={<ViewContent context='groups' view='collection' />} />
                             <Route path='groups/*' element={<Groups context='groups' />} />
                             <Route path='members/create/*' element={<Members context='groups' />} />
                             <Route path='members/:personId/*' element={<MemberProfile context='groups' />} />
@@ -915,7 +921,7 @@ export default function AuthLayoutRouter (props) {
                             <Route path='tracks/*' element={<Tracks />} />
                             <Route path='funding-rounds/:fundingRoundId/*' element={<FundingRoundHome />} />
                             <Route path='funding-rounds/*' element={<FundingRounds />} />
-                            <Route path='chat/:topicName/*' element={<ChatRoom context='groups' />} />
+                            <Route path='chat/*' element={<ChatRoom context='groups' />} />
                             <Route path='payment/success' element={<PaymentSuccess />} />
                             <Route path='payment/cancel' element={<PaymentFailure />} />
                             <Route path='payment/failure' element={<PaymentFailure />} />
@@ -923,7 +929,7 @@ export default function AuthLayoutRouter (props) {
                             <Route path='all-views' element={<AllView context='groups' />} />
                             <Route path={POST_DETAIL_MATCH} element={<PostDetail />} />
                             <Route path='moderation/*' element={<Moderation context='groups' />} />
-                            <Route path='*' element={<Navigate to={`/groups/${currentGroupSlug}${currentGroup?.homeRoute || '/stream'}`} replace />} />
+                            <Route path='*' element={<Navigate to={`/groups/${currentGroupSlug}${currentGroup?.homeRoute || '/all'}`} replace />} />
                           </Routes>
                           )
                     }
