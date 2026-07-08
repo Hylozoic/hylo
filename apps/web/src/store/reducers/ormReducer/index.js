@@ -112,7 +112,7 @@ import extractModelsFromAction from '../ModelExtractor/extractModelsFromAction'
 import { isPromise } from 'util/index'
 import { homeRoutePathForWidget } from '@hylo/navigation'
 import { reorderTree, replaceHomeWidget } from 'util/contextWidgets'
-import { applyGroupViewsOrder, appendGroupViewToMenu, removeGroupViewFromMenu } from 'store/util/groupViewsOrder'
+import { applyGroupViewsOrder, appendGroupViewToMenu, removeGroupViewFromMenu, updateGroupViewInMenu } from 'store/util/groupViewsOrder'
 
 export default function ormReducer (state = orm.getEmptyState(), action) {
   const session = orm.session(state)
@@ -373,7 +373,16 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     case CREATE_POST_PENDING: {
       const postType = meta?.type
       if (!postType) break
-      if (postType === 'chat') break
+
+      if (postType === 'chat') {
+        const chatGroupId = Array.isArray(meta.groupIds) ? meta.groupIds[0] : meta.groupId
+        const chatGroup = Group.withId(chatGroupId)
+        const chatView = chatGroup?.groupViews?.items?.find(view => view.type === 'chat')
+        if (chatGroup && chatView?.id) {
+          updateGroupViewInMenu(chatGroup, chatView.id, { newPostCount: 0 })
+        }
+        break
+      }
 
       const groupIds = Array.isArray(meta.groupIds) ? meta.groupIds : [meta.groupId]
 
@@ -438,6 +447,17 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
           isEdit: false
         }))
         .forEach(d => d.delete())
+
+      if (createdType === 'chat' && createdPost.id && createdGroupId) {
+        const createdGroup = Group.withId(createdGroupId)
+        const chatView = createdGroup?.groupViews?.items?.find(view => view.type === 'chat')
+        if (createdGroup && chatView?.id) {
+          updateGroupViewInMenu(createdGroup, chatView.id, {
+            newPostCount: 0,
+            lastReadPostId: createdPost.id
+          })
+        }
+      }
       break
     }
 

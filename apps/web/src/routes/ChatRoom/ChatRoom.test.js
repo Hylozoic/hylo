@@ -37,9 +37,9 @@ jest.mock('client/websockets.js', () => ({
   })
 }))
 
-// Mock the PostEditor component
-jest.mock('components/PostEditor/PostEditor', () => {
-  return function MockPostEditor({ onSave, afterSave }) {
+// Mock the ChatEditor component
+jest.mock('components/ChatEditor', () => {
+  return function MockChatEditor({ onSave, afterSave }) {
     return (
       <div data-testid="post-editor">
         <button

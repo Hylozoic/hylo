@@ -36,8 +36,6 @@ import { getLocaleFromLocalStorage } from 'util/locale'
 import { hasActiveTextSelection, hasReadableContentSelection } from 'util/textSelectionTouch'
 import { cn } from 'util/index'
 
-import styles from './ChatPost.module.scss'
-
 export default function ChatPost ({
   className,
   group,
@@ -108,7 +106,7 @@ export default function ChatPost ({
     } else if (
       !editing &&
       !(event.target.getAttribute('target') === '_blank') &&
-      !event.target.className.includes(styles.imageInner) &&
+      !event.target.className.includes('image') &&
       !event.target.className.includes('icon-Smiley')
     ) {
       showPost()
@@ -269,13 +267,11 @@ export default function ChatPost ({
     <Highlight {...highlightProps}>
       <div
         className={cn(
-          'ChatPost_container rounded-lg pr-[15px] pb-[1px] px-1 py-1 -my-1 -mx-1 pt-1 relative transition-all group cursor-pointer border-2 border-transparent hover:border-foreground/50',
+          'ChatPost_container rounded-lg pr-[15px] pb-[1px] px-1 py-1 -my-1 -mx-1 pt-1 relative transition-all group cursor-pointer border-2 border-transparent hover:border-foreground/50 select-text max-sm:pl-[15px]',
           showHeader ? 'py-1 mt-2' : ' ',
           className,
-          styles.container,
           {
-            [styles.longPressed]: isLongPress,
-            [styles.hovered]: isHovered,
+            'bg-muted cursor-pointer': isLongPress,
             'bg-card shadow-lg cursor-pointer': isHovered,
             'bg-accent/30': highlighted
           }
@@ -289,7 +285,7 @@ export default function ChatPost ({
           cn(
             'flex p-1 gap-2 absolute z-10 right-1 -top-0 transition-all rounded-lg cursor-normal bg-background/100 dark:bg-darkening opacity-0 delay-100 scale-0',
             {
-              'opacity-100 scale-102': isHovered && !editing
+              'opacity-100 scale-102': (isHovered || isLongPress) && !editing
             }
           )
           }
@@ -343,9 +339,9 @@ export default function ChatPost ({
           </div>
         )}
         {details && editing && (
-          <div className={styles.editingContainer}>
+          <div className='relative'>
             <HyloEditor
-              containerClassName={styles.postContentContainer}
+              containerClassName='ml-[35px] xs:ml-[42px] overflow-visible [&_p]:my-[3px]'
               contentHTML={details}
               groupIds={groupIds}
               onEscape={handleEditCancel}
@@ -353,16 +349,16 @@ export default function ChatPost ({
               placeholder='Edit Post'
               ref={editorRef}
               showMenu
-              className={cn(styles.editing, 'p-0 m-0')}
+              className='py-2.5 pr-[50px] pl-2.5 m-0 overflow-y-auto max-h-[200px] cursor-text after:content-[""] after:block after:pb-[15px]'
             />
-            <div className={styles.editActions}>
+            <div className='absolute top-2.5 right-2.5 flex items-center gap-1.5 z-[1]'>
               <Check
-                className={styles.editActionIcon}
+                className='w-5 h-5 shrink-0 cursor-pointer text-selected'
                 onClick={handleEditSaveClick}
                 data-testid='Save'
               />
               <X
-                className={styles.editActionIcon}
+                className='w-5 h-5 shrink-0 cursor-pointer text-destructive'
                 onClick={handleEditCancelClick}
                 data-testid='Cancel'
               />
@@ -371,7 +367,7 @@ export default function ChatPost ({
         )}
         {details && !editing && (
           <ClickCatcher groupSlug={group.slug} onClick={handleClick}>
-            <div className={cn('ml-12 cursor-text select-text', { [styles.isFlagged]: isFlagged })}>
+            <div className={cn('ml-12 cursor-text select-text', { 'blur-sm': isFlagged })}>
               <HyloHTML className='w-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0' html={details} />
             </div>
           </ClickCatcher>
@@ -385,7 +381,7 @@ export default function ChatPost ({
           <Feature url={linkPreview.url} />
         )}
         {linkPreview && !linkPreviewFeatured && (
-          <LinkPreview {...pick(['title', 'description', 'imageUrl', 'url'], linkPreview)} className={styles.linkPreview} />
+          <LinkPreview {...pick(['title', 'description', 'imageUrl', 'url'], linkPreview)} className='px-5 pb-[0.6rem] pl-9 block [&>div]:mb-0' />
         )}
         <CardImageAttachments attachments={post.attachments} isFlagged={isFlagged && !post.clickthrough} forChatPost />
         {!isEmpty(fileAttachments) && (
@@ -395,7 +391,6 @@ export default function ChatPost ({
           {postReactions && postReactions.length > 0 && (
             <div onClick={handleClick}>
               <EmojiRow
-                className={cn(styles.emojis, { [styles.noEmojis]: !postReactions || postReactions.length === 0 })}
                 post={post}
                 currentUser={currentUser}
                 onAddReaction={onAddReaction}
@@ -406,7 +401,7 @@ export default function ChatPost ({
           {commentsTotal > 0 && (
             <div onClick={handleClick}>
               <span className='ChatPost_commenters bg-darkening/5 rounded-lg py-2 px-2 items-center justify-center inline-flex'>
-                <RoundImageRow imageUrls={commenterAvatarUrls.slice(0, 3)} className={styles.commenters} onClick={handleClick} small />
+                <RoundImageRow imageUrls={commenterAvatarUrls.slice(0, 3)} className='mr-1 whitespace-nowrap inline-block align-middle' onClick={handleClick} small />
                 <span className='text-sm text-foreground' onClick={handleClick}>
                   {commentsTotal} {commentsTotal === 1 ? 'reply' : 'replies'}
                 </span>

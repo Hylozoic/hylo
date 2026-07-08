@@ -13,15 +13,15 @@ import { VirtuosoMessageList, VirtuosoMessageListLicense, useCurrentlyRenderedDa
 
 import { getSocket } from 'client/websockets.js'
 import { useLayoutFlags } from 'contexts/LayoutFlagsContext'
-import PostEditor from 'components/PostEditor/PostEditor'
+import ChatEditor from 'components/ChatEditor'
 import Loading from 'components/Loading'
 import { StreamSkeleton } from 'components/PostCard/PostCardSkeleton'
 import NoPosts from 'components/NoPosts'
-import PostCard from 'components/PostCard'
 import PostDialog from 'components/PostDialog'
 import Tooltip from 'components/Tooltip'
 import Button from 'components/ui/button'
 import ChatPost from './ChatPost'
+import ChatPostNotice from './ChatPostNotice'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import useRouteParams from 'hooks/useRouteParams'
@@ -115,6 +115,7 @@ export default function ChatRoom (props) {
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
   const groupViews = useSelector(state => getGroupViews(state, group))
   const chatView = groupViews.find(v => v.type === 'chat') || null
+  const showPostNoticesInChat = group?.settings?.showPostNoticesInChat ?? true
 
   const chatViewLoading = !!group?.id && !chatView
   const groupLoading = !!groupSlug && !group
@@ -136,6 +137,10 @@ export default function ChatRoom (props) {
    * corrupting the list or marking the wrong room loaded.
    */
   const chatListEpochRef = useRef(0)
+  // Tracks whether the tab was actually hidden before reconciling on foreground return.
+  const tabWasHiddenRef = useRef(false)
+  /** True while the chat composer has focus — avoids spurious scroll pagination from layout shifts. */
+  const composerFocusedRef = useRef(false)
 
   // Tracks the lastReadPostId we have committed locally — updated synchronously on create and on scroll updates,
   // so closures can check it without waiting for the Redux ORM re-render cycle.
@@ -158,31 +163,31 @@ export default function ChatRoom (props) {
   // DEPRECATED: Load same number for all mobile (including webview)
   const INITIAL_POSTS_TO_LOAD = isMobile.any ? 17 : 25
 
-  const fetchPostsPastParams = useMemo(() => ({
+  const chatFetchBaseParams = useMemo(() => ({
     childPostInclusion: 'no',
     includePostGroups: false,
+    fieldsVariant: 'chatRoom',
     context,
-    cursor: postIdToStartAt ? parseInt(postIdToStartAt) + 1 : parseInt(chatView?.lastReadPostId) + 1,
-    filter: 'chat',
-    first: Math.max(INITIAL_POSTS_TO_LOAD - (chatView?.newPostCount || 0), 3),
-    order: 'desc',
     slug: groupSlug,
     search,
-    sortBy: 'id'
-  }), [context, postIdToStartAt, chatView?.lastReadPostId, groupSlug, search, chatView?.newPostCount])
+    sortBy: 'id',
+    filter: 'chat',
+    ...(showPostNoticesInChat ? {} : { types: ['chat'] })
+  }), [context, groupSlug, search, showPostNoticesInChat])
+
+  const fetchPostsPastParams = useMemo(() => ({
+    ...chatFetchBaseParams,
+    cursor: postIdToStartAt ? parseInt(postIdToStartAt) + 1 : parseInt(chatView?.lastReadPostId) + 1,
+    first: Math.max(INITIAL_POSTS_TO_LOAD - (chatView?.newPostCount || 0), 3),
+    order: 'desc'
+  }), [chatFetchBaseParams, postIdToStartAt, chatView?.lastReadPostId, chatView?.newPostCount])
 
   const fetchPostsFutureParams = useMemo(() => ({
-    childPostInclusion: 'no',
-    includePostGroups: false,
-    context,
+    ...chatFetchBaseParams,
     cursor: postIdToStartAt || chatView?.lastReadPostId,
-    filter: 'chat',
     first: Math.min(INITIAL_POSTS_TO_LOAD, chatView?.newPostCount || 0),
-    order: 'asc',
-    slug: groupSlug,
-    search,
-    sortBy: 'id'
-  }), [context, postIdToStartAt, chatView?.lastReadPostId, groupSlug, search, chatView?.newPostCount])
+    order: 'asc'
+  }), [chatFetchBaseParams, postIdToStartAt, chatView?.lastReadPostId, chatView?.newPostCount])
 
   // Use per-instance memoized selectors to avoid cache thrashing between different prop sets
   const getPostsPastSelector = useMemo(() => makeGetPostsSelector(), [])
@@ -296,7 +301,7 @@ export default function ChatRoom (props) {
   const handleNewPostReceived = useCallback((data) => {
     if (!group?.id) return
     if (!data.groups?.some(g => String(g.id) === String(group.id))) return
-    if (data.type !== 'chat') return
+    if (data.type !== 'chat' && !showPostNoticesInChat) return
     const post = presentPost(data, group.id)
     if (!post) return
 
@@ -325,7 +330,7 @@ export default function ChatRoom (props) {
           }
         })
     }
-  }, [group?.id])
+  }, [group?.id, showPostNoticesInChat])
 
   const resetInitialPostToScrollTo = useCallback(() => {
     if (loadedPast && loadedFuture) {
@@ -342,8 +347,9 @@ export default function ChatRoom (props) {
   }, [dispatch, groupSlug, group])
 
   useEffect(() => {
-    if (group?.id && !chatView) dispatch(fetchGroupViews(group.id))
-  }, [dispatch, group?.id, chatView])
+    if (!group?.id || chatView?.id) return
+    dispatch(fetchGroupViews(group.id))
+  }, [dispatch, group?.id, chatView?.id])
 
   useEffect(() => {
     socket.on('newPost', handleNewPostReceived)
@@ -355,21 +361,20 @@ export default function ChatRoom (props) {
 
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState === 'hidden') {
+        tabWasHiddenRef.current = true
+        return
+      }
+      if (document.visibilityState === 'visible' && tabWasHiddenRef.current) {
+        tabWasHiddenRef.current = false
         reconcileChatOnForeground()
       }
     }
 
-    const handleWindowFocus = () => {
-      reconcileChatOnForeground()
-    }
-
     document.addEventListener('visibilitychange', handleVisibilityChange)
-    window.addEventListener('focus', handleWindowFocus)
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
-      window.removeEventListener('focus', handleWindowFocus)
     }
   }, [reconcileChatOnForeground])
 
@@ -518,7 +523,7 @@ export default function ChatRoom (props) {
       if (!loadingPast && !loadingFuture) {
         if (location.listOffset > -100 && hasMorePostsPast) {
           fetchPostsPast(postsPast.length, { first: 10 })
-        } else if (location.bottomOffset < 50 && hasMorePostsFuture) {
+        } else if (location.bottomOffset < 50 && hasMorePostsFuture && !composerFocusedRef.current) {
           fetchPostsFuture(postsFuture.length, { first: 10 })
         }
       }
@@ -570,68 +575,6 @@ export default function ChatRoom (props) {
     messageListRef.current?.data.map((item) => post.id === item.id || (post.localId && post.localId === item.localId) ? newPost : item)
   }, [group?.id])
 
-  const handleAddProposalVote = useCallback(({ post, optionId }) => {
-    const optimisticUpdate = {
-      proposalVotes: {
-        ...post.proposalVotes,
-        items: [
-          ...post.proposalVotes.items,
-          {
-            postId: post.id,
-            optionId,
-            user: currentUser
-          }
-        ]
-      }
-    }
-    const newPost = { ...post, ...optimisticUpdate }
-    messageListRef.current?.data.map((item) => post.id === item.id || (post.localId && post.localId === item.localId) ? newPost : item)
-  }, [currentUser])
-
-  const handleRemoveProposalVote = useCallback(({ post, optionId }) => {
-    const voteIndex = post.proposalVotes.items.findIndex(vote =>
-      vote?.user?.id === currentUser.id && vote.optionId === optionId)
-
-    if (voteIndex === -1) return
-
-    const newProposalVotes = [...post.proposalVotes.items]
-    newProposalVotes.splice(voteIndex, 1)
-
-    const optimisticUpdate = {
-      proposalVotes: {
-        ...post.proposalVotes,
-        items: newProposalVotes
-      }
-    }
-
-    const newPost = { ...post, ...optimisticUpdate }
-    messageListRef.current?.data.map((item) => post.id === item.id || (post.localId && post.localId === item.localId) ? newPost : item)
-  }, [currentUser])
-
-  const handleSwapProposalVote = useCallback(({ post, addOptionId, removeOptionId }) => {
-    const voteIndex = post.proposalVotes.items.findIndex(vote =>
-      vote?.user?.id === currentUser.id && vote.optionId === removeOptionId)
-
-    if (voteIndex === -1) return
-
-    const newProposalVotes = [...post.proposalVotes.items]
-    newProposalVotes[voteIndex] = {
-      postId: post.id,
-      optionId: addOptionId,
-      user: currentUser
-    }
-
-    const optimisticUpdate = {
-      proposalVotes: {
-        ...post.proposalVotes,
-        items: newProposalVotes
-      }
-    }
-
-    const newPost = { ...post, ...optimisticUpdate }
-    messageListRef.current?.data.map((item) => post.id === item.id || (post.localId && post.localId === item.localId) ? newPost : item)
-  }, [currentUser])
-
   // Create a new chat post
   const onCreate = useCallback((postToSave) => {
     const groupId = group?.id || postToSave?.groups?.[0]?.id
@@ -660,12 +603,12 @@ export default function ChatRoom (props) {
     const confirmedPost = { ...post, localId: undefined }
     messageListRef.current?.data.map((item) => item.pending && post.localId && item.localId && post.localId === item.localId ? confirmedPost : item)
     // Sync lastReadPostId locally — update the ref immediately so updateLastReadPost won't fire a redundant
-    // network call before the Redux ORM re-render cycle completes.
-    if (post.id && chatView?.id) {
+    // network call before the Redux ORM re-render cycle completes. Read state is persisted by the backend
+    // on createPost; Redux is updated optimistically in CREATE_POST_PENDING / CREATE_POST.
+    if (post.id) {
       lastReadPostIdRef.current = post.id
-      dispatch(updateGroupViewUser(chatView.id, { lastReadPostId: post.id }))
     }
-  }, [chatView?.id, dispatch, group?.id])
+  }, [group?.id])
 
   const handleRemovePost = useCallback((postId) => {
     messageListRef.current?.data.findAndDelete((item) => postId === item.id)
@@ -718,9 +661,6 @@ export default function ChatRoom (props) {
                   handleFlagPost,
                   handleRemovePost,
                   handleRemoveReaction,
-                  handleAddProposalVote,
-                  handleRemoveProposalVote,
-                  handleSwapProposalVote,
                   loadToLatest,
                   postIdToStartAt,
                   selectedPostId,
@@ -747,13 +687,13 @@ export default function ChatRoom (props) {
       <div className='ChatBoxContainer w-full max-w-[750px] border-t-2 border-l-2 border-r-2 border-foreground/10 shadow-xl rounded-t-lg overflow-y-auto'>
         {/* Drafts are scoped per chat topic so switching rooms does not leak text */}
         {group?.id && (
-          <PostEditor
+          <ChatEditor
             context='groups'
             autoFocus={!isMobile.any}
-            modal={false}
-            draftId={`chat:${groupSlug || 'global'}`}
             onSave={onCreate}
             afterSave={afterCreate}
+            onComposerFocus={() => { composerFocusedRef.current = true }}
+            onComposerBlur={() => { composerFocusedRef.current = false }}
           />
         )}
       </div>
@@ -868,10 +808,7 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
     handleAddReaction,
     handleFlagPost,
     handleRemovePost,
-    handleRemoveReaction,
-    handleAddProposalVote,
-    handleRemoveProposalVote,
-    handleSwapProposalVote
+    handleRemoveReaction
   } = context
   const { t } = useTranslation()
   if (!post) return null
@@ -935,22 +872,12 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
           </div>)
         : (
           <div
-            className={`mx-auto max-w-[750px] mt-2 ${animationClass}`}
+            className={cn('mx-auto max-w-[750px] my-2', animationClass)}
             style={animationStyle}
           >
-            <PostCard
-              chat
-              group={context.group}
-              expanded={expanded}
+            <ChatPostNotice
               highlighted={highlighted}
               post={post}
-              onAddReaction={handleAddReaction}
-              onRemoveReaction={handleRemoveReaction}
-              onRemovePost={handleRemovePost}
-              onFlagPost={handleFlagPost}
-              onAddProposalVote={handleAddProposalVote}
-              onRemoveProposalVote={handleRemoveProposalVote}
-              onSwapProposalVote={handleSwapProposalVote}
             />
           </div>
           )}

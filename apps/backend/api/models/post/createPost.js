@@ -129,21 +129,25 @@ async function updateTagsAndGroups (post, localId, trx, markAsReadTopicName = nu
   const markAsReadTagId = markAsReadTag ? markAsReadTag.get('id') : null
 
   // For the topic the user is currently viewing: always update last_read_post_id.
-  const activeTopicTagFollowQuery = markAsReadTagId ? TagFollow.query(q => {
-    q.where('tag_id', markAsReadTagId)
-    q.whereIn('group_id', groups.map('id'))
-    q.where('user_id', post.get('user_id'))
-  }).query() : null
+  const activeTopicTagFollowQuery = markAsReadTagId
+    ? TagFollow.query(q => {
+      q.where('tag_id', markAsReadTagId)
+      q.whereIn('group_id', groups.map('id'))
+      q.where('user_id', post.get('user_id'))
+    }).query()
+    : null
 
   // For all other topics: only update last_read_post_id when new_post_count = 0
   // (avoids hiding unread posts when creating from outside a chat room).
   const otherTagIds = tags.filter(t => t.get('id') !== markAsReadTagId).map(t => t.get('id'))
-  const otherMyTagFollowQuery = otherTagIds.length > 0 ? TagFollow.query(q => {
-    q.whereIn('tag_id', otherTagIds)
-    q.whereIn('group_id', groups.map('id'))
-    q.where('user_id', post.get('user_id'))
-    q.where('new_post_count', 0)
-  }).query() : null
+  const otherMyTagFollowQuery = otherTagIds.length > 0
+    ? TagFollow.query(q => {
+      q.whereIn('tag_id', otherTagIds)
+      q.whereIn('group_id', groups.map('id'))
+      q.where('user_id', post.get('user_id'))
+      q.where('new_post_count', 0)
+    }).query()
+    : null
 
   const groupMembershipQuery = GroupMembership.query(q => {
     q.whereIn('group_id', groups.map('id'))
@@ -161,12 +165,24 @@ async function updateTagsAndGroups (post, localId, trx, markAsReadTopicName = nu
 
   const trackAsNewPost = ![Post.Type.ACTION, Post.Type.SUBMISSION].includes(post.get('type'))
 
+  const markAuthorChatViewRead = post.get('type') === Post.Type.CHAT
+    ? Promise.map(groups.models, async group => {
+      const chatView = await GroupView.where({
+        group_id: group.id,
+        type: GroupView.Type.CHAT
+      }).fetch({ transacting: trx })
+      if (!chatView) return
+      return GroupViewUser.markAuthorRead(chatView.id, post.get('user_id'), post.get('id'), { transacting: trx })
+    })
+    : null
+
   return Promise.all([
     notifySockets,
     trackAsNewPost && groupTagsQuery.update({ updated_at: new Date() }),
     trackAsNewPost && tagFollowQuery.update({ updated_at: new Date() }).increment('new_post_count'),
     trackAsNewPost && activeTopicTagFollowQuery && activeTopicTagFollowQuery.update({ updated_at: new Date(), last_read_post_id: post.get('id') }),
     trackAsNewPost && otherMyTagFollowQuery && otherMyTagFollowQuery.update({ updated_at: new Date(), last_read_post_id: post.get('id') }),
-    groupMembershipQuery.update({ updated_at: new Date() }).increment('new_post_count')
+    groupMembershipQuery.update({ updated_at: new Date() }).increment('new_post_count'),
+    markAuthorChatViewRead
   ])
 }

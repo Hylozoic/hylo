@@ -4,8 +4,6 @@ import { CSS } from '@dnd-kit/utilities'
 import Icon from 'components/Icon'
 import { bgImageStyle } from 'util/index'
 
-import classes from './AttachmentManager.module.scss'
-
 export function ImagePreview (props) {
   const {
     attachment, removeImage
@@ -32,9 +30,18 @@ export function ImagePreview (props) {
   }
 
   return (
-    <div className={classes.imagePreview} ref={setNodeRef} style={style}>
-      <Icon name='Ex' className={classes.removeImage} onClick={removeImage} />
-      <div style={bgImageStyle(attachment.url)} className={classes.image} {...listeners} {...attributes} />
+    <div className='relative cursor-move w-[100px] h-[100px] rounded mr-4 mb-4' ref={setNodeRef} style={style}>
+      <Icon
+        name='Ex'
+        className='absolute -top-2 -right-2 rounded-full bg-foreground text-background text-xs p-px border border-card bg-clip-padding cursor-pointer'
+        onClick={removeImage}
+      />
+      <div
+        style={bgImageStyle(attachment.url)}
+        className='image w-full h-full bg-cover bg-center rounded p-2'
+        {...listeners}
+        {...attributes}
+      />
     </div>
   )
 }

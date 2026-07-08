@@ -74,8 +74,6 @@ export function baseUrl ({
   if (safeMemberId) {
     if (spaceBase) return `${spaceBase}/members/${safeMemberId}`
     return personUrl(safeMemberId, groupSlug)
-  } else if (view === 'chat' && topicName) {
-    return chatUrl(topicName, { context, groupSlug, spaceSlug })
   } else if (topicName) {
     return topicUrl(topicName, { context, groupSlug, spaceSlug })
   } else if (trackId) {
@@ -230,11 +228,13 @@ export function groupHomeUrl ({ group, routeParams }) {
 // Post URLS
 export function postUrl (id, opts = {}, querystringParams = {}) {
   const action = get('action', opts)
+  // Standalone /groups/:slug/post/:id uses "post" as a path segment, not a stream view name
+  const urlOpts = opts.view === 'post' ? { ...opts, view: undefined } : opts
   let result
-  if (opts.context === '') {
+  if (urlOpts.context === '') {
     result = `/post/${id}`
   } else {
-    result = baseUrl(opts)
+    result = baseUrl(urlOpts)
     result = `${result}/post/${id}`
   }
   if (action) result = `${result}/${action}`
@@ -262,33 +262,27 @@ export function primaryPostUrl (post, opts = {}, querystringParams = {}) {
   let result = baseUrl(opts)
   const postId = get('id', post) || post
   if (post.type === 'chat') {
-    // Chat posts always open in their specific chat room
-    const topicName = post.topics[0].name
+    result = `${baseUrl({ ...opts, view: 'chat' })}`
     if (opts.commentId) {
       // commentId in route params causes the post to open when the room loads
-      result = `${result}/chat/${topicName}/post/${postId}?commentId=${opts.commentId}`
+      result = `${result}/post/${postId}?commentId=${opts.commentId}`
     } else {
       // postId as querystring highlights the message without forcing it open
-      result = `${result}/chat/${topicName}?postId=${postId}`
+      result = `${result}?postId=${postId}`
     }
   } else {
     // Non-chat posts open within the group's home view so there is context.
-    // homeRoute is a path like '/stream', '/map', or '/chat/general'.
+    // homeRoute is a path like '/all', '/map', or '/chat'.
     // Non-chat posts always use the /post/:id path format (modal overlay) even
     // when the home is a chat view, so you can see the full post and comments
     // (?postId= is reserved for chat-type posts only).
     // If the home is a chat view but the post has no topics (e.g. Zapier-
     // created posts), fall back to the standalone /post/:id URL so the UI
     // can still open the post even though it isn't in any chat room.
-    const homeRoute = opts.homeRoute || '/stream'
-    const firstTopic = post.topics?.[0]?.name
-    if (homeRoute.startsWith('/chat/') && firstTopic) {
+    const homeRoute = opts.homeRoute || '/all'
+    if (homeRoute === '/chat' || homeRoute.startsWith('/chat/')) {
       // Non-chat post shown in a chat home: open as a modal above the chat
-      result = `${result}${homeRoute}/post/${postId}`
-      if (opts.commentId) result = `${result}?commentId=${opts.commentId}`
-    } else if (homeRoute.startsWith('/chat/')) {
-      // Chat home but no topics: fall back to standalone post URL
-      result = `${result}/post/${postId}`
+      result = `${result}/chat/post/${postId}`
       if (opts.commentId) result = `${result}?commentId=${opts.commentId}`
     } else {
       result = `${result}${homeRoute}/post/${postId}`
@@ -341,8 +335,8 @@ export function topicUrl (topicName, opts) {
   return `${topicsUrl(opts)}/${topicName}`
 }
 
-export function chatUrl (chatName, { context, groupSlug }) {
-  return `${baseUrl({ context, groupSlug })}/chat/${chatName}`
+export function chatUrl (_chatName, { context, groupSlug, spaceSlug } = {}) {
+  return viewUrl('chat', { context, groupSlug, spaceSlug })
 }
 
 export function customViewUrl (customViewId, rootPath, { context, groupSlug }) {
@@ -354,9 +348,9 @@ export function customViewUrl (customViewId, rootPath, { context, groupSlug }) {
  * Mirrors backend ContextWidget.computeHomeRoutePath for optimistic updates.
  */
 export function homeRoutePathForWidget (widget) {
-  if (!widget) return '/stream'
+  if (!widget) return '/all'
   if (widget.view) return '/' + widget.view
-  if (widget.viewChat) return '/chat/' + (widget.viewChat.name || 'general')
+  if (widget.viewChat) return '/chat'
   if (widget.customView) return '/custom/' + widget.customView.id
   if (widget.viewTrack) return '/tracks/' + widget.viewTrack.id
   if (widget.viewFundingRound) return '/funding-rounds/' + widget.viewFundingRound.id
@@ -380,7 +374,7 @@ export function widgetUrl ({ widget, rootPath, groupSlug: providedSlug, context 
   } else if (widget.viewPost) {
     url = postUrl(widget.viewPost.id, { groupSlug, context })
   } else if (widget.viewChat) {
-    url = chatUrl(widget.viewChat.name, { rootPath, groupSlug, context })
+    url = viewUrl('chat', { groupSlug, context: widget.context || context })
   } else if (widget.customView) {
     url = customViewUrl(widget.customView.id, rootPath, { context, groupSlug })
   } else if (widget.viewTrack) {

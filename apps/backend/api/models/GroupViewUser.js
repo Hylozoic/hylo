@@ -32,6 +32,18 @@ module.exports = bookshelf.Model.extend({
     return viewUser
   },
 
+  // Mark the author's chat view read up to the post they just created.
+  markAuthorRead: async function (viewId, userId, postId, { transacting } = {}) {
+    if (!viewId || !userId || !postId) return
+
+    const viewUser = await GroupViewUser.findOrCreate(viewId, userId, { transacting })
+    return viewUser.save({
+      last_read_post_id: postId,
+      new_post_count: 0,
+      updated_at: new Date()
+    }, { transacting, patch: true })
+  },
+
   markRead: async function (viewId, userId, { transacting } = {}) {
     const viewUser = await GroupViewUser.findOrCreate(viewId, userId, { transacting })
     const view = await GroupView.where({ id: viewId }).fetch({ transacting })

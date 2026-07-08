@@ -202,7 +202,7 @@ async function migrateGroupMenu (trx, group, generalTagId) {
   const widgets = await trx('context_widgets').where({ group_id: group.id })
   if (widgets.length === 0) {
     // No legacy menu at all — seed the same minimal default a brand new space gets.
-    await insertGroupViews(trx, group.id, [{ type: 'welcome' }, { type: 'chat' }, { type: 'members' }])
+    await insertGroupViews(trx, group.id, [{ type: 'all' }, { type: 'chat' }, { type: 'members' }])
     return
   }
 
@@ -311,7 +311,7 @@ async function migrateGroupMenu (trx, group, generalTagId) {
 
   const orderedItems = finalHome ? [finalHome, ...finalRest] : finalRest
   if (orderedItems.length === 0) {
-    await insertGroupViews(trx, group.id, [{ type: 'welcome' }, { type: 'chat' }, { type: 'members' }])
+    await insertGroupViews(trx, group.id, [{ type: 'all' }, { type: 'chat' }, { type: 'members' }])
     return
   }
 
@@ -879,22 +879,34 @@ function uuidv4 () {
 // ---------------------------------------------------------------------------
 
 async function backfillGroupViewsUsers (knex) {
+  const generalTagId = await getGeneralTagId(knex)
+
   // Pre-compute the max post_id per group once to avoid a correlated subquery
   // for every (view, member) pair — that would be extremely slow at scale.
+  // Main-space chat views (#general / home chat) preserve unread state from
+  // tag_follows; all other views start at 0 with last_read at the latest post.
   const result = await knex.raw(`
     INSERT INTO group_views_users (view_id, user_id, new_post_count, last_read_post_id, created_at, updated_at)
-    SELECT gv.id, gm.user_id, 0,
-      max_posts.max_post_id,
+    SELECT gv.id, gm.user_id,
+      CASE WHEN gv.type = 'chat' THEN COALESCE(tf.new_post_count, 0) ELSE 0 END,
+      CASE WHEN gv.type = 'chat'
+        THEN COALESCE(tf.last_read_post_id, max_posts.max_post_id)
+        ELSE max_posts.max_post_id
+      END,
       now(), now()
     FROM group_views gv
     JOIN group_memberships gm ON gm.group_id = gv.group_id AND gm.active = true
     LEFT JOIN (
       SELECT group_id, max(post_id) AS max_post_id FROM groups_posts GROUP BY group_id
     ) max_posts ON max_posts.group_id = gv.group_id
+    LEFT JOIN tag_follows tf ON gv.type = 'chat'
+      AND tf.group_id = gv.group_id
+      AND tf.user_id = gm.user_id
+      AND tf.tag_id = ?
     WHERE NOT EXISTS (
       SELECT 1 FROM group_views_users gvu WHERE gvu.view_id = gv.id AND gvu.user_id = gm.user_id
     )
-  `)
+  `, [generalTagId])
   console.log(`[up]   inserted ${result.rowCount ?? '?'} group_views_users rows`)
 }
 

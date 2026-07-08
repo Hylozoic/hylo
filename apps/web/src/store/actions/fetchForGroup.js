@@ -37,6 +37,7 @@ const queryFragment = `group(slug: $slug, updateLastViewed: $updateLastViewed) {
       publicMemberDirectory
       showSuggestedSkills
       showWelcomePage
+      showPostNoticesInChat
     }
     slug
     type

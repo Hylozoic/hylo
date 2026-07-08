@@ -2259,6 +2259,7 @@
   "you can add them here, and they will appear for all members of your group to see and use to tag posts.": "you can add them here, and they will appear for all members of your group to see and use to tag posts.",
   "you're subscribed to #{{topicName}}": "you're subscribed to #{{topicName}}",
   "{{action}} was canceled or no user data was found.": "{{action}} was canceled or no user data was found.",
+  "{{author}} posted a new {{postType}}": "{{author}} posted a new {{postType}}",
   "{{appName}} is asking to have offline access to Hylo": "{{appName}} is asking to have offline access to Hylo",
   "{{appName}} is asking you to confirm previously given authorization": "{{appName}} is asking you to confirm previously given authorization",
   "{{appName}} wants access to your Hylo account": "{{appName}} wants access to your Hylo account",

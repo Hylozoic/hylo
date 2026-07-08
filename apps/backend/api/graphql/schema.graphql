@@ -1530,6 +1530,8 @@ type GroupSettings {
   showSuggestedSkills: Boolean
   # Whether to display the custom Welcome Page when a member joins the group
   showWelcomePage: Boolean
+  # Whether the chat view shows inline notices when other post types are created
+  showPostNoticesInChat: Boolean
 }
 
 # A relationship between two Groups
@@ -4345,6 +4347,8 @@ input GroupSettingsInput {
   showSuggestedSkills: Boolean
   # Whether to display the custom Welcome Page when a member joins the group
   showWelcomePage: Boolean
+  # Whether the chat view shows inline notices when other post types are created
+  showPostNoticesInChat: Boolean
 }
 
 # Settings for a Widget in a particular Group's explore page

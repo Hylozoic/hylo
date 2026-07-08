@@ -2165,6 +2165,7 @@
   "you can add them here, and they will appear for all members of your group to see and use to tag posts.": "você pode adicioná-los aqui, e eles aparecerão para todos os membros do seu grupo verem e usarem para marcar publicações.",
   "you're subscribed to #{{topicName}}": "você está inscrito em #{{topicName}}",
   "{{action}} was canceled or no user data was found.": "{{action}} foi cancelado ou nenhum dado de usuário foi encontrado.",
+  "{{author}} posted a new {{postType}}": "{{author}} publicou um novo {{postType}}",
   "{{appName}} is asking to have offline access to Hylo": "{{appName}} está pedindo acesso offline ao Hylo",
   "{{appName}} is asking you to confirm previously given authorization": "{{appName}} está pedindo que você confirme a autorização concedida anteriormente",
   "{{appName}} wants access to your Hylo account": "{{appName}} quer acesso à sua conta Hylo",

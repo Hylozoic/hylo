@@ -91,6 +91,16 @@ describe('editPostUrl', () => {
     const result = editPostUrl('1234', { context: 'groups', groupSlug: 'test' })
     expect(result).toEqual('/groups/test/post/1234/edit')
   })
+
+  it('should return edit URL for chat post overlay without doubling post segment', () => {
+    const result = editPostUrl('1234', { context: 'groups', groupSlug: 'test', view: 'chat' })
+    expect(result).toEqual('/groups/test/chat/post/1234/edit')
+  })
+
+  it('should return edit URL for standalone group post detail without doubling post segment', () => {
+    const result = editPostUrl('1234', { context: 'groups', groupSlug: 'test', view: 'post' })
+    expect(result).toEqual('/groups/test/post/1234/edit')
+  })
 })
 
 describe('duplicatePostUrl', () => {

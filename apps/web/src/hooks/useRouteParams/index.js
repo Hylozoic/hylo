@@ -90,10 +90,9 @@ export default function useRouteParams () {
       }
     }
 
-    // Set chat topicName
-    if (params.view === 'chat' || params.view === 'topic') {
+    // Set topicName for topic streams (/topics/:topicName). Chat is /chat with no topic segment.
+    if (params.view === 'topic') {
       if (!params.spaceSlug) {
-        // XXX: this should only ever be in a group
         params.topicName = pathParts[4]
       }
     }
