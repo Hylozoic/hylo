@@ -63,7 +63,18 @@ export function translateViewName (name, t) {
   return name
 }
 
-/** Resolves avatar data for member/group type views. */
+const DEFAULT_GROUP_AVATAR = '/default-group-avatar.svg'
+
+/** Returns whether a group has a non-default custom avatar URL. */
+function groupHasCustomAvatar (avatarUrl) {
+  return Boolean(
+    avatarUrl &&
+    avatarUrl !== DEFAULT_GROUP_AVATAR &&
+    !avatarUrl.endsWith('/default-group-avatar.svg')
+  )
+}
+
+/** Resolves avatar data for member/group/space type views. */
 export function avatarForView (view) {
   if (view?.type === 'member' && view.viewUser) {
     return { avatarUrl: view.viewUser.avatarUrl, displayName: view.viewUser.name }
@@ -71,16 +82,28 @@ export function avatarForView (view) {
   if (view?.type === 'group' && view.linkedGroup) {
     return { avatarUrl: view.linkedGroup.avatarUrl, displayName: view.linkedGroup.name }
   }
+  if (view?.type === 'space' && view.linkedGroup && groupHasCustomAvatar(view.linkedGroup.avatarUrl)) {
+    return {
+      avatarUrl: view.linkedGroup.avatarUrl,
+      displayName: view.linkedGroup.name
+    }
+  }
   return null
 }
 
-/** Resolves the icon for a view — DB override, then type default. */
+/** Resolves the icon for a view — DB override, linked space group icon, then type default. */
 export function iconForView (view) {
   if (view?.icon) {
     if (LUCIDE_ICON_NAMES.has(view.icon) || view.type === 'custom' || view.type === 'space' || view.type === 'link' || view.type === 'logout') {
       return { iconName: null, lucideIcon: view.icon }
     }
     return { iconName: view.icon, lucideIcon: null }
+  }
+  if (view?.type === 'space' && view.linkedGroup?.icon && !groupHasCustomAvatar(view.linkedGroup.avatarUrl)) {
+    if (LUCIDE_ICON_NAMES.has(view.linkedGroup.icon)) {
+      return { iconName: null, lucideIcon: view.linkedGroup.icon }
+    }
+    return { iconName: view.linkedGroup.icon, lucideIcon: null }
   }
   if (view?.type === 'logout') {
     return { iconName: null, lucideIcon: 'LogOut' }

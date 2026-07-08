@@ -25,6 +25,7 @@ export default function fetchGroupViews (groupId) {
                 name
                 slug
                 avatarUrl
+                icon
                 homeRoute
                 description
                 groupViews {
@@ -48,6 +49,7 @@ export default function fetchGroupViews (groupId) {
                       id
                       name
                       avatarUrl
+                      icon
                     }
                   }
                 }

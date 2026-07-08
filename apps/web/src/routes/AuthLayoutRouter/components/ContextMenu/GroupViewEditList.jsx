@@ -78,8 +78,12 @@ function SortableEditRow ({ view, onSettings, onDelete, isHome }) {
 
   if (presentedView.type === 'separator') {
     return (
-      <li ref={setNodeRef} style={style} className='list-none flex items-center gap-2 py-1 group'>
-        <button type='button' className='p-1 cursor-grab text-foreground/40' {...attributes} {...listeners}>
+      <li
+        ref={setNodeRef}
+        style={style}
+        className='list-none flex items-center gap-1 border-2 border-dashed border-transparent hover:border-foreground/20 rounded-md p-1 group'
+      >
+        <button type='button' className='p-1 cursor-grab text-foreground/50 shrink-0' {...attributes} {...listeners}>
           <GripVertical className='w-4 h-4' />
         </button>
         <hr className='flex-1 border-foreground/10' />
@@ -90,8 +94,12 @@ function SortableEditRow ({ view, onSettings, onDelete, isHome }) {
 
   if (presentedView.type === 'text') {
     return (
-      <li ref={setNodeRef} style={style} className='list-none flex items-center gap-2 group'>
-        <button type='button' className='p-1 cursor-grab text-foreground/40' {...attributes} {...listeners}>
+      <li
+        ref={setNodeRef}
+        style={style}
+        className='list-none flex items-center gap-1 border-2 border-dashed border-transparent hover:border-foreground/20 rounded-md p-1 group'
+      >
+        <button type='button' className='p-1 cursor-grab text-foreground/50 shrink-0' {...attributes} {...listeners}>
           <GripVertical className='w-4 h-4' />
         </button>
         <p className='flex-1 text-xs text-foreground/40 uppercase tracking-wide truncate'>

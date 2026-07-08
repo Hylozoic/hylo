@@ -667,6 +667,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'description',
         'home_route',
         'homeWidget',
+        'icon',
         'location',
         'geo_shape',
         'memberCount',

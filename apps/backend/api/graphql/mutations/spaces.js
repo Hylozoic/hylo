@@ -55,11 +55,12 @@ export async function createSpace (userId, { parentGroupId, name, slug, accepted
     name: name.trim(),
     slug: finalSlug,
     description,
+    icon: icon || null,
     accepted_post_types: acceptedPostTypes,
     required_roles: requiredRoles,
     visibility: visibility != null ? visibility : Group.Visibility.PROTECTED,
     accessibility: accessibility != null ? accessibility : Group.Accessibility.RESTRICTED,
-    settings: icon ? { icon } : {},
+    settings: {},
     access_code: await Group.getNewAccessCode(),
     calendar_token: uuidv4(),
     created_at: new Date(),
@@ -106,11 +107,9 @@ export async function updateSpace (userId, { id, name, slug, acceptedPostTypes, 
   if (requiredRoles !== undefined) changes.required_roles = requiredRoles
   if (location !== undefined) changes.location = location
   if (locationId !== undefined) changes.location_id = locationId
+  if (icon !== undefined) changes.icon = icon || null
 
   await space.save(changes, { patch: true })
-  if (icon !== undefined) {
-    await space.addSetting({ icon }, true)
-  }
 
   const parentId = space.get('parent_id')
   if (parentId) {

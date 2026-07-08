@@ -923,6 +923,8 @@ type Group {
   allowInPublic: Boolean
   # URL to the image of the avatar of the group
   avatarUrl: String
+  # Lucide or Hylo icon name for groups/spaces without a custom avatar
+  icon: String
   # URL to the image of the banner for the group
   bannerUrl: String
   # When the group was created

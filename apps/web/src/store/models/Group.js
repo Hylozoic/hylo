@@ -171,6 +171,7 @@ Group.fields = {
   groupToGroupJoinQuestions: many('GroupToGroupJoinQuestion'),
   groupViews: attr(),
   homeRoute: attr(),
+  icon: attr(),
   id: attr(),
   joinQuestions: many('GroupJoinQuestion'),
   location: attr(),

@@ -15,8 +15,8 @@ function groupViewMenuData ({ name, icon, settings, link, pageContent, topics })
 }
 
 /** Build embedded menu patch fields for a space view row from updateSpace args. */
-function spaceViewMenuData ({ name, description, viewName }) {
-  const linkedGroup = omitBy(isUndefined, { name, description })
+function spaceViewMenuData ({ name, description, viewName, icon }) {
+  const linkedGroup = omitBy(isUndefined, { name, description, icon })
   return omitBy(isUndefined, {
     name: viewName,
     linkedGroup: Object.keys(linkedGroup).length ? linkedGroup : undefined
@@ -49,6 +49,7 @@ const groupViewFields = `
     name
     slug
     avatarUrl
+    icon
     homeRoute
     description
     groupViews {
