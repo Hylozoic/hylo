@@ -6,6 +6,7 @@ import LucideIcon from 'components/LucideIcon/LucideIcon'
 import Button from 'components/ui/button'
 import { Input } from 'components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from 'components/ui/popover'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from 'components/ui/tooltip'
 import { cn } from 'util/index'
 
 const ICON_NAMES = Object.keys(icons).sort()
@@ -79,24 +80,32 @@ export default function LucideIconPicker ({ value, onChange, className }) {
           placeholder={t('Search icons...')}
           className='mb-2'
         />
-        <div className='max-h-64 overflow-y-auto flex flex-col gap-0.5' onScroll={handleScroll}>
+        <div className='max-h-64 overflow-y-auto' onScroll={handleScroll}>
           {visibleIcons.length === 0 && (
             <div className='py-4 text-center text-sm text-foreground/60'>{t('No icon found')}</div>
           )}
-          {visibleIcons.map(name => (
-            <button
-              key={name}
-              type='button'
-              onClick={() => handleSelect(name)}
-              className={cn(
-                'flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-left hover:bg-selected/10',
-                value === name && 'bg-selected/20'
-              )}
-            >
-              <LucideIcon name={name} className='w-4 h-4 shrink-0' />
-              <span className='truncate'>{name}</span>
-            </button>
-          ))}
+          <TooltipProvider delayDuration={300}>
+            <div className='grid grid-cols-6 gap-1'>
+              {visibleIcons.map(name => (
+                <Tooltip key={name}>
+                  <TooltipTrigger asChild>
+                    <button
+                      type='button'
+                      onClick={() => handleSelect(name)}
+                      aria-label={name}
+                      className={cn(
+                        'flex items-center justify-center rounded-md p-2 hover:bg-selected/10',
+                        value === name && 'bg-selected/20'
+                      )}
+                    >
+                      <LucideIcon name={name} className='w-4 h-4 shrink-0' />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>{name}</TooltipContent>
+                </Tooltip>
+              ))}
+            </div>
+          </TooltipProvider>
           {hasMoreIcons && (
             <div className='py-2 text-center text-xs text-foreground/50'>
               {t('Scroll for more icons', { defaultValue: 'Scroll for more icons' })}
