@@ -66,7 +66,9 @@ import {
   USE_INVITATION,
   UPDATE_PROPOSAL_OUTCOME_PENDING,
   UPDATE_MEMBERSHIP_NAV_ORDER_PENDING,
-  UPDATE_CONTEXT_WIDGET_PENDING
+  UPDATE_CONTEXT_WIDGET_PENDING,
+  UPDATE_GROUP_VIEW_PENDING,
+  UPDATE_SPACE_PENDING
 } from 'store/constants'
 import {
   UPDATE_ALL_MEMBERSHIP_SETTINGS_PENDING,
@@ -491,6 +493,20 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       if (!newView || !meta.groupId) break
       group = Group.withId(meta.groupId)
       appendGroupViewToMenu(group, newView)
+      break
+    }
+
+    case UPDATE_GROUP_VIEW_PENDING: {
+      if (!meta.groupId || !meta.id || !meta.data || Object.keys(meta.data).length === 0) break
+      group = Group.withId(meta.groupId)
+      updateGroupViewInMenu(group, meta.id, meta.data)
+      break
+    }
+
+    case UPDATE_SPACE_PENDING: {
+      if (!meta.groupId || !meta.spaceViewId || !meta.data || Object.keys(meta.data).length === 0) break
+      group = Group.withId(meta.groupId)
+      updateGroupViewInMenu(group, meta.spaceViewId, meta.data)
       break
     }
 

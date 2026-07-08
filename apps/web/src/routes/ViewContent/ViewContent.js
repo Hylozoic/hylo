@@ -48,7 +48,7 @@ import { getHasMorePosts, getPosts } from 'store/selectors/getPosts'
 import getTopicForCurrentRoute from 'store/selectors/getTopicForCurrentRoute'
 import isPendingFor from 'store/selectors/isPendingFor'
 import { cn } from 'util/index'
-import { createPostUrl } from '@hylo/navigation'
+import { createPostUrl, groupUrl, spaceUrl } from '@hylo/navigation'
 import { getLocaleFromLocalStorage } from 'util/locale'
 import { STREAM_MAIN_COLUMN_CLASS } from 'util/mainContentColumn'
 import { StreamSkeleton } from 'components/PostCard/PostCardSkeleton'
@@ -94,7 +94,7 @@ export default function ViewContent (props) {
   const routeParams = useRouteParams()
   const { t } = useTranslation()
   const groupSlug = useEffectiveGroupSlug()
-  const { parentGroupSlug } = useGroupRouteOpts()
+  const { parentGroupSlug, spaceSlug } = useGroupRouteOpts()
   const { topicName, customViewId } = routeParams
   const context = props.context
   const currentUser = useSelector(getMe)
@@ -150,8 +150,9 @@ export default function ViewContent (props) {
 
   const querystringParams = getQuerystringParam(['s', 't', 'v', 'c', 'search', 'timeframe', 'activeOnly', 'calendarMode', 'calendarDate'], location)
 
-  const search = querystringParams.search
-  const viewMode = querystringParams.v || streamViewConfig?.defaultViewMode || defaultViewMode
+  const search = querystringParams.search || streamViewConfig?.searchText
+  const configuredViewMode = querystringParams.v || streamViewConfig?.defaultViewMode || defaultViewMode
+  const viewMode = configuredViewMode === 'map' ? 'cards' : configuredViewMode
   const isCalendarViewMode = viewMode === 'calendar'
   let sortBy = querystringParams.s || streamViewConfig?.defaultSort || defaultSortBy
   if (!streamViewConfig && sortBy === 'order') {
@@ -313,6 +314,19 @@ export default function ViewContent (props) {
     if (hasMore === false && offset > 0) return
     dispatch(fetchPosts({ offset, ...fetchPostsParam }))
   }, [dispatch, pending, hasMore, fetchPostsParam])
+
+  useEffect(() => {
+    if (view !== 'custom' || !customViewId || !streamViewConfig) return
+    if (querystringParams.v) return
+    if (streamViewConfig.defaultViewMode !== 'map') return
+    const slug = parentGroupSlug || groupSlug
+    if (!slug) return
+    if (spaceSlug && parentGroupSlug) {
+      dispatch(push(spaceUrl(parentGroupSlug, spaceSlug, 'map')))
+      return
+    }
+    dispatch(push(groupUrl(slug, 'map')))
+  }, [view, customViewId, streamViewConfig, querystringParams.v, parentGroupSlug, spaceSlug, groupSlug, dispatch])
 
   useEffect(() => {
     if (topicName) {

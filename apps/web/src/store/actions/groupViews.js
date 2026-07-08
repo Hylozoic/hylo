@@ -1,4 +1,4 @@
-import { get } from 'lodash/fp'
+import { get, isUndefined, omitBy } from 'lodash/fp'
 import {
   CREATE_GROUP_VIEW,
   CREATE_SPACE,
@@ -8,6 +8,20 @@ import {
   UPDATE_GROUP_VIEW,
   UPDATE_SPACE
 } from 'store/constants'
+
+/** Build embedded menu patch fields from updateGroupView mutation args. */
+function groupViewMenuData ({ name, icon, settings, link, pageContent, topics }) {
+  return omitBy(isUndefined, { name, icon, settings, link, pageContent, topics })
+}
+
+/** Build embedded menu patch fields for a space view row from updateSpace args. */
+function spaceViewMenuData ({ name, description, viewName }) {
+  const linkedGroup = omitBy(isUndefined, { name, description })
+  return omitBy(isUndefined, {
+    name: viewName,
+    linkedGroup: Object.keys(linkedGroup).length ? linkedGroup : undefined
+  })
+}
 
 const groupViewFields = `
   id
@@ -96,7 +110,7 @@ export function createGroupView ({ groupId, type, name, icon, settings, link, pa
 }
 
 /** Update an existing group view. */
-export function updateGroupView ({ id, name, icon, settings, link, pageContent, topics, orderInFrontOfViewId, addToEnd }) {
+export function updateGroupView ({ id, groupId, name, icon, settings, link, pageContent, topics, orderInFrontOfViewId, addToEnd }) {
   return {
     type: UPDATE_GROUP_VIEW,
     graphql: {
@@ -115,10 +129,13 @@ export function updateGroupView ({ id, name, icon, settings, link, pageContent, 
           ${groupViewFields}
         }
       }`,
-      variables: { id, name, icon, settings, link, pageContent, topics, orderInFrontOfViewId, addToEnd }
+      variables: omitBy(isUndefined, { id, name, icon, settings, link, pageContent, topics, orderInFrontOfViewId, addToEnd })
     },
     meta: {
       id,
+      groupId,
+      data: groupViewMenuData({ name, icon, settings, link, pageContent, topics }),
+      optimistic: true,
       extractModel: [
         { getRoot: get('updateGroupView'), modelName: 'GroupView' },
         { getRoot: get('updateGroupView.linkedGroup'), modelName: 'Group' }
@@ -208,7 +225,7 @@ export function createSpace ({ parentGroupId, name, slug, description, icon, acc
 }
 
 /** Update a space's settings. */
-export function updateSpace ({ id, name, slug, description, icon, acceptedPostTypes }) {
+export function updateSpace ({ id, groupId, spaceViewId, name, slug, description, icon, acceptedPostTypes, viewName }) {
   return {
     type: UPDATE_SPACE,
     graphql: {
@@ -228,10 +245,14 @@ export function updateSpace ({ id, name, slug, description, icon, acceptedPostTy
           description
         }
       }`,
-      variables: { id, name, slug, description, icon, acceptedPostTypes }
+      variables: omitBy(isUndefined, { id, name, slug, description, icon, acceptedPostTypes })
     },
     meta: {
       id,
+      groupId,
+      spaceViewId,
+      data: spaceViewMenuData({ name, description, viewName }),
+      optimistic: true,
       extractModel: [
         { getRoot: get('updateSpace'), modelName: 'Group' }
       ]

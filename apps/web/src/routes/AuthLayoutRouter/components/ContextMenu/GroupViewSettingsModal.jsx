@@ -6,7 +6,13 @@ import { House, Trash2 } from 'lucide-react'
 
 import Button from 'components/ui/button'
 import { Input } from 'components/ui/input'
+import CustomViewFormFields from 'components/CustomViewForm/CustomViewFormFields'
+import {
+  CUSTOM_VIEW_DEFAULT_POST_TYPES,
+  CUSTOM_VIEW_DEFAULT_VIEW_MODE
+} from 'components/CustomViewForm/customViewFormConstants'
 import HyloEditor from 'components/HyloEditor'
+import LucideIconPicker from 'components/LucideIconPicker/LucideIconPicker'
 import SwitchStyled from 'components/SwitchStyled'
 import GroupViewIcon from './GroupViewIcon'
 import { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
@@ -14,65 +20,160 @@ import { deleteGroupView, setHomeView, updateGroupView, updateSpace } from 'stor
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import fetchForGroup from 'store/actions/fetchForGroup'
 import { updateGroupSettings } from 'routes/GroupSettings/GroupSettings.store'
-import { canDeleteView } from 'store/models/GroupView'
+import { canDeleteView, viewTypeHasSettings } from 'store/models/GroupView'
 import { cn } from 'util/index'
+
+/** Build initial custom view form state from a GroupView record. */
+function customViewFormState (view) {
+  const settings = view?.settings || {}
+  return {
+    name: view?.name || '',
+    icon: view?.icon || 'ListFilter',
+    postTypes: settings.postTypes?.length ? settings.postTypes : CUSTOM_VIEW_DEFAULT_POST_TYPES,
+    topics: (view?.topics || []).map(name => ({ name })),
+    searchText: settings.searchText || '',
+    defaultViewMode: settings.defaultViewMode || CUSTOM_VIEW_DEFAULT_VIEW_MODE
+  }
+}
 
 /** Settings modal for editing a single GroupView row. */
 export default function GroupViewSettingsModal ({ view, group, onClose }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
-  const editorRef = useRef()
+  const welcomeEditorRef = useRef()
   const [name, setName] = useState(view?.name || '')
   const [link, setLink] = useState(view?.link || '')
+  const [linkIcon, setLinkIcon] = useState(view?.icon || 'Globe')
+  const [textContent, setTextContent] = useState(view?.pageContent || '')
   const [description, setDescription] = useState(view?.linkedGroup?.description || '')
   const [showWelcomePage, setShowWelcomePage] = useState(group?.settings?.showWelcomePage ?? true)
+  const [showPostNoticesInChat, setShowPostNoticesInChat] = useState(group?.settings?.showPostNoticesInChat ?? true)
+  const [customForm, setCustomForm] = useState(() => customViewFormState(view))
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     setName(view?.name || '')
     setLink(view?.link || '')
+    setLinkIcon(view?.icon || 'Globe')
+    setTextContent(view?.pageContent || '')
     setDescription(view?.linkedGroup?.description || '')
     setShowWelcomePage(group?.settings?.showWelcomePage ?? true)
-  }, [view?.id, group?.settings?.showWelcomePage, view?.name, view?.link, view?.linkedGroup?.description])
+    setShowPostNoticesInChat(group?.settings?.showPostNoticesInChat ?? true)
+    setCustomForm(customViewFormState(view))
+  }, [
+    view?.id,
+    view?.name,
+    view?.link,
+    view?.icon,
+    view?.pageContent,
+    view?.topics,
+    view?.settings,
+    group?.settings?.showWelcomePage,
+    group?.settings?.showPostNoticesInChat,
+    view?.linkedGroup?.description
+  ])
+
+  const updateCustomForm = useCallback((key, value) => {
+    setCustomForm(prev => ({ ...prev, [key]: value }))
+  }, [])
 
   const handleSave = useCallback(async () => {
     if (!view?.id || !group?.id) return
     setIsSaving(true)
     try {
       if (view.type === 'welcome') {
-        const pageContent = editorRef.current?.getHTML?.() ?? view.pageContent
-        await dispatch(updateGroupView({ id: view.id, pageContent }))
+        const pageContent = welcomeEditorRef.current?.getHTML?.() ?? view.pageContent
+        await dispatch(updateGroupView({
+          id: view.id,
+          groupId: group.id,
+          pageContent
+        }))
         if (!isEqual(showWelcomePage, group.settings?.showWelcomePage)) {
           await dispatch(updateGroupSettings(group.id, { settings: { showWelcomePage } }))
         }
         if (pageContent !== group.welcomePage) {
           await dispatch(updateGroupSettings(group.id, { welcomePage: pageContent }))
         }
+      } else if (view.type === 'chat') {
+        if (!isEqual(showPostNoticesInChat, group.settings?.showPostNoticesInChat)) {
+          await dispatch(updateGroupSettings(group.id, { settings: { showPostNoticesInChat } }))
+        }
       } else if (view.type === 'space' && view.linkedGroup?.id) {
+        const spaceName = name || view.linkedGroup.name
         await dispatch(updateSpace({
           id: view.linkedGroup.id,
-          name: name || view.linkedGroup.name,
-          description: description || null
+          groupId: group.id,
+          spaceViewId: view.id,
+          name: spaceName,
+          description: description || null,
+          viewName: (name && name !== view.name) ? name : undefined
         }))
         if (name && name !== view.name) {
-          await dispatch(updateGroupView({ id: view.id, name }))
+          await dispatch(updateGroupView({
+            id: view.id,
+            groupId: group.id,
+            name
+          }))
         }
       } else if (view.type === 'link') {
-        await dispatch(updateGroupView({ id: view.id, name: name || null, link }))
-      } else if (['custom', 'text'].includes(view.type)) {
-        await dispatch(updateGroupView({ id: view.id, name: name || null }))
+        await dispatch(updateGroupView({
+          id: view.id,
+          groupId: group.id,
+          name: name.trim() || null,
+          link: link.trim() || null,
+          icon: linkIcon
+        }))
+      } else if (view.type === 'text') {
+        const trimmed = textContent.trim() || null
+        await dispatch(updateGroupView({
+          id: view.id,
+          groupId: group.id,
+          pageContent: trimmed
+        }))
+      } else if (view.type === 'custom') {
+        await dispatch(updateGroupView({
+          id: view.id,
+          groupId: group.id,
+          name: customForm.name.trim(),
+          icon: customForm.icon,
+          topics: customForm.topics.map(topic => topic.name),
+          settings: {
+            ...(view.settings || {}),
+            postTypes: customForm.postTypes,
+            defaultViewMode: customForm.defaultViewMode,
+            defaultSort: view.settings?.defaultSort || 'created',
+            activePostsOnly: view.settings?.activePostsOnly ?? false,
+            searchText: customForm.searchText.trim() || undefined
+          }
+        }))
       } else if (name !== view.name) {
-        await dispatch(updateGroupView({ id: view.id, name: name || null }))
+        await dispatch(updateGroupView({
+          id: view.id,
+          groupId: group.id,
+          name: name || null
+        }))
       }
-      await dispatch(fetchGroupViews(group.id))
       onClose()
     } catch (error) {
       console.error('Failed to save view settings:', error)
     } finally {
       setIsSaving(false)
     }
-  }, [dispatch, view, group, name, link, description, showWelcomePage, onClose])
+  }, [
+    customForm,
+    dispatch,
+    view,
+    group,
+    name,
+    link,
+    linkIcon,
+    textContent,
+    description,
+    showWelcomePage,
+    showPostNoticesInChat,
+    onClose
+  ])
 
   const handleSetHome = useCallback(async () => {
     if (!view?.id || !group?.id) return
@@ -107,6 +208,8 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
   const title = displayNameForView(view, t)
   const isHome = view.order === 0
   const deletable = canDeleteView(view)
+  const canSaveCustom = customForm.name.trim().length >= 2 && customForm.postTypes.length > 0
+  const saveDisabled = view.type === 'custom' ? !canSaveCustom : isSaving
 
   return (
     <div className='fixed inset-0 z-50 flex items-center justify-center bg-darkening/50'>
@@ -135,11 +238,24 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
                 className='min-h-32 p-2 border border-foreground/20 rounded-lg bg-input'
                 extendedMenu
                 groupIds={[group.id]}
-                ref={editorRef}
+                ref={welcomeEditorRef}
                 showMenu
                 type='welcomePage'
               />
             </>
+          )}
+
+          {view.type === 'chat' && (
+            <div className='flex items-center gap-2'>
+              <SwitchStyled
+                checked={showPostNoticesInChat}
+                onChange={() => setShowPostNoticesInChat(v => !v)}
+                backgroundColor={showPostNoticesInChat ? 'hsl(var(--selected))' : 'rgba(0 0 0 / .6)'}
+              />
+              <span className='text-sm text-foreground/80'>
+                {t('Show post notices in chat when other post types are created in this group.')}
+              </span>
+            </div>
           )}
 
           {view.type === 'space' && (
@@ -158,29 +274,50 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
 
           {view.type === 'link' && (
             <>
-              <label className='text-sm text-foreground/70'>{t('Name')}</label>
+              <div className='flex flex-col gap-1'>
+                <label className='text-sm text-foreground/70'>{t('Icon')}</label>
+                <LucideIconPicker value={linkIcon} onChange={setLinkIcon} />
+              </div>
+              <label className='text-sm text-foreground/70'>{t('Title')}</label>
               <Input value={name} onChange={e => setName(e.target.value)} />
               <label className='text-sm text-foreground/70'>{t('URL')}</label>
               <Input value={link} onChange={e => setLink(e.target.value)} />
             </>
           )}
 
-          {['custom', 'text'].includes(view.type) && (
+          {view.type === 'text' && (
             <>
-              <label className='text-sm text-foreground/70'>{t('Name')}</label>
-              <Input value={name} onChange={e => setName(e.target.value)} />
+              <label className='text-sm text-foreground/70'>{t('Text to display in the menu')}</label>
+              <textarea
+                value={textContent}
+                onChange={e => setTextContent(e.target.value)}
+                rows={3}
+                className='w-full rounded-md border border-foreground/20 bg-input p-2 text-sm text-foreground'
+              />
             </>
           )}
 
-          {!['welcome', 'space', 'link', 'custom', 'text', 'separator'].includes(view.type) && view.type !== 'separator' && (
-            <>
-              <label className='text-sm text-foreground/70'>{t('Display name (optional)')}</label>
-              <Input value={name} onChange={e => setName(e.target.value)} placeholder={title} />
-            </>
+          {view.type === 'custom' && (
+            <CustomViewFormFields
+              group={group}
+              name={customForm.name}
+              onNameChange={value => updateCustomForm('name', value)}
+              icon={customForm.icon}
+              onIconChange={value => updateCustomForm('icon', value)}
+              postTypes={customForm.postTypes}
+              onPostTypesChange={value => updateCustomForm('postTypes', value)}
+              topics={customForm.topics}
+              onTopicsChange={value => updateCustomForm('topics', value)}
+              searchText={customForm.searchText}
+              onSearchTextChange={value => updateCustomForm('searchText', value)}
+              defaultViewMode={customForm.defaultViewMode}
+              onDefaultViewModeChange={value => updateCustomForm('defaultViewMode', value)}
+            />
           )}
         </div>
 
         <div className='flex flex-wrap gap-2 mt-4 pt-4 border-t border-foreground/10'>
+          <Button variant='primary' onClick={onClose}>{t('Cancel')}</Button>
           {!isHome && view.type !== 'separator' && view.type !== 'text' && view.type !== 'link' && (
             <Button variant='secondary' onClick={handleSetHome} className='flex items-center gap-1'>
               <House className='w-4 h-4' />
@@ -188,14 +325,13 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
             </Button>
           )}
           {deletable && (
-            <Button variant='secondary' disabled={isDeleting} onClick={handleDelete} className='flex items-center gap-1 text-destructive'>
+            <Button variant='destructive' disabled={isDeleting} onClick={handleDelete} className='flex items-center gap-1 text-destructive-foreground'>
               <Trash2 className='w-4 h-4' />
               {t('Remove from Menu')}
             </Button>
           )}
           <div className='flex-1' />
-          <Button variant='secondary' onClick={onClose}>{t('Cancel')}</Button>
-          <Button variant='primary' disabled={isSaving} onClick={handleSave}>
+          <Button variant='secondary' disabled={saveDisabled} onClick={handleSave}>
             {isSaving ? t('Saving...') : t('Save')}
           </Button>
         </div>
@@ -207,16 +343,19 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
 /** Inline gear/trash controls shown on hover in edit mode. */
 export function GroupViewEditActions ({ view, onSettings, onDelete, className }) {
   const deletable = canDeleteView(view)
+  const showSettings = viewTypeHasSettings(view?.type)
   return (
     <div className={cn('flex items-center gap-1 shrink-0', className)}>
-      <button
-        type='button'
-        className='p-1 text-foreground/50 hover:text-foreground rounded'
-        onClick={(e) => { e.preventDefault(); e.stopPropagation(); onSettings(view) }}
-        aria-label='Settings'
-      >
-        <SettingsIcon />
-      </button>
+      {showSettings && (
+        <button
+          type='button'
+          className='p-1 text-foreground/50 hover:text-foreground rounded'
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onSettings(view) }}
+          aria-label='Settings'
+        >
+          <SettingsIcon />
+        </button>
+      )}
       {deletable && (
         <button
           type='button'

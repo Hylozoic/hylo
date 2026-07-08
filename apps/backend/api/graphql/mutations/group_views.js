@@ -3,6 +3,11 @@ import { notifyGroupUpdated } from './notifyGroupUpdated'
 
 // Spaces & Views mutations — see docs/spaces-and-views-engineering-spec.md section 4.4
 
+/** node-pg binds a JS array as a Postgres array type; in jsonb that becomes `{}` for []. */
+function topicsForJsonb (topics) {
+  return JSON.stringify(topics ?? [])
+}
+
 async function requireAdmin (userId, groupId, action) {
   const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, groupId)
   if (!responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)) {
@@ -25,7 +30,7 @@ export async function createGroupView ({ userId, groupId, type, name, icon, sett
     settings,
     link,
     page_content: pageContent,
-    topics: topics ?? [],
+    topics: topicsForJsonb(topics),
     linked_group_id: linkedGroupId,
     post_id: postId,
     user_id: viewUserId
@@ -59,7 +64,7 @@ export async function updateGroupView ({ userId, id, name, icon, settings, link,
   if (settings !== undefined) changes.settings = settings
   if (link !== undefined) changes.link = link
   if (pageContent !== undefined) changes.page_content = pageContent
-  if (topics !== undefined) changes.topics = topics ?? []
+  if (topics !== undefined) changes.topics = topicsForJsonb(topics)
 
   await view.save({ ...changes, updated_at: new Date() }, { patch: true })
     .catch(err => {

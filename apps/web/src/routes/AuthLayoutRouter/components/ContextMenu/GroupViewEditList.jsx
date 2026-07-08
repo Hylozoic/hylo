@@ -16,7 +16,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { ChevronRight, GripVertical } from 'lucide-react'
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 
@@ -26,6 +26,7 @@ import { canDeleteView } from 'store/models/GroupView'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 import { deleteGroupView, reorderGroupView, setHomeView } from 'store/actions/groupViews'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
+import { mergeOrderedViewsFromSource } from 'store/util/groupViewsOrder'
 import { cn } from 'util/index'
 
 /** Sort views by menu order for consistent drag indices. */
@@ -191,14 +192,11 @@ function SortableSpaceEditRow ({ view, group, onSettings, onDelete, onReorder, o
 function GroupViewEditSubList ({ views, groupId, parentGroupId, onSettings, onDelete, onReorder, onReordered }) {
   const sortedViews = useMemo(() => sortViewsByOrder(views), [views])
   const [orderedViews, setOrderedViews] = useState(sortedViews)
-  const viewsRef = useRef(views)
-  viewsRef.current = views
 
-  // Only re-sync when the set of IDs changes, not on every Redux reference refresh.
-  const sortedViewIds = sortedViews.map(v => v.id).join(',')
+  // Merge Redux updates into local order (preserves drag order; full replace on add/delete).
   useEffect(() => {
-    setOrderedViews(sortViewsByOrder(viewsRef.current))
-  }, [sortedViewIds])
+    setOrderedViews(prev => mergeOrderedViewsFromSource(prev, sortedViews))
+  }, [sortedViews])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -237,15 +235,11 @@ export default function GroupViewEditList ({ views, group, onSettings }) {
   const { t } = useTranslation()
   const sortedViews = useMemo(() => sortViewsByOrder(views), [views])
   const [orderedViews, setOrderedViews] = useState(sortedViews)
-  const viewsRef = useRef(views)
-  viewsRef.current = views
 
-  // Only re-sync from Redux when the set of view IDs changes (add/delete), not on
-  // every reference change caused by the socket-triggered fetchForGroup.
-  const sortedViewIds = sortedViews.map(v => v.id).join(',')
+  // Merge Redux updates into local order (preserves drag order; full replace on add/delete).
   useEffect(() => {
-    setOrderedViews(sortViewsByOrder(viewsRef.current))
-  }, [sortedViewIds])
+    setOrderedViews(prev => mergeOrderedViewsFromSource(prev, sortedViews))
+  }, [sortedViews])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),

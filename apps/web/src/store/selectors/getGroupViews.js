@@ -19,9 +19,12 @@ function findGroupViewById (group, viewId) {
 /** Returns the ordered GroupView items for a given group object, or [] if not yet loaded. */
 export const getGroupViews = ormCreateSelector(
   orm,
-  (state, group) => group,
-  (session, group) => {
-    const items = group?.groupViews?.items || []
+  (state, group) => group?.id,
+  (session, groupId) => {
+    if (!groupId) return []
+    const group = session.Group.withId(groupId)
+    if (!group) return []
+    const items = group.groupViews?.items || []
     return [...items].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
   }
 )
