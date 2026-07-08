@@ -204,6 +204,7 @@ Group.fields = {
     throughFields: ['prerequisiteGroup', 'forGroup']
   }),
   purpose: attr(),
+  requiredRoles: attr(),
   settings: attr(),
   slug: attr(),
   suggestedSkills: many('Skill'),

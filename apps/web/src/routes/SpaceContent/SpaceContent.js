@@ -12,12 +12,14 @@ import MemberProfile from 'routes/MemberProfile'
 import Members from 'routes/Members'
 import Moderation from 'routes/Moderation'
 import PostDetail from 'routes/PostDetail'
+import SpaceJoinPage from 'routes/SpaceJoinPage'
 import Stream from 'routes/Stream'
 import ViewContent from 'routes/ViewContent'
 import fetchForGroup from 'store/actions/fetchForGroup'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { getGroupViews } from 'store/selectors/getGroupViews'
+import getMyMemberships from 'store/selectors/getMyMemberships'
 import { localSpaceSlug, spaceUrl, POST_DETAIL_MATCH } from '@hylo/navigation'
 
 /**
@@ -46,6 +48,12 @@ export default function SpaceContent () {
   const spaceGroupId = spaceGroup?.id
   const spaceGroupViewsLoaded = spaceGroup?.groupViews != null
 
+  const myMemberships = useSelector(getMyMemberships)
+  const isSpaceMember = useMemo(
+    () => Boolean(spaceGroupId && myMemberships.some(m => m.group.id === spaceGroupId)),
+    [spaceGroupId, myMemberships]
+  )
+
   useEffect(() => {
     if (spaceFullSlug && !spaceGroup) {
       dispatch(fetchForGroup(spaceFullSlug))
@@ -64,6 +72,16 @@ export default function SpaceContent () {
 
   const homeRoute = spaceGroup?.homeRoute || spaceView.linkedGroup?.homeRoute || '/welcome'
   const spaceBase = spaceUrl(parentSlug, localSlug)
+
+  if (!isSpaceMember) {
+    return (
+      <SpaceGroupSlugContext.Provider value={spaceFullSlug}>
+        <Routes>
+          <Route path='*' element={<SpaceJoinPage />} />
+        </Routes>
+      </SpaceGroupSlugContext.Provider>
+    )
+  }
 
   return (
     <SpaceGroupSlugContext.Provider value={spaceFullSlug}>

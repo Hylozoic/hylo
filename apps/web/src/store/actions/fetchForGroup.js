@@ -26,6 +26,7 @@ const queryFragment = `group(slug: $slug, updateLastViewed: $updateLastViewed) {
     stewardDescriptorPlural
     name
     purpose
+    requiredRoles
     settings {
       agreementsLastUpdatedAt
       allowGroupInvites

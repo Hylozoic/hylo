@@ -36,6 +36,7 @@ import logout from 'store/actions/logout'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { getGroupViews } from 'store/selectors/getGroupViews'
 import getMe from 'store/selectors/getMe'
+import getMyMemberships from 'store/selectors/getMyMemberships'
 import { bgImageStyle, cn } from 'util/index'
 
 import GroupSettingsMenu from './GroupSettingsMenu'
@@ -123,6 +124,11 @@ function UnreadDot () {
   return <span className='w-2 h-2 rounded-full bg-orange-500 shrink-0 ml-1' />
 }
 
+const GROUP_VIEW_MENU_ITEM_CLASS = 'flex items-center gap-2 text-base text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 mb-[.3rem] w-full transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100'
+
+/** MenuLink overrides when nested inside a styled space row wrapper. */
+const GROUP_VIEW_MENU_ITEM_INNER_LINK_CLASS = 'flex-1 flex items-center gap-2 min-w-0 border-0 bg-transparent p-0 mb-0 rounded-none shadow-none hover:border-0 hover:bg-transparent hover:scale-100 font-inherit'
+
 /** Resolves menu URL for a view — space sub-items use the parent/space URL pattern. */
 function menuViewUrl (parentSlug, view, spaceGroup = null) {
   if (view?.link || view?.context) return contextViewUrl(view)
@@ -150,6 +156,7 @@ function GroupViewMenuItem ({
   const dispatch = useDispatch()
   const { t } = useTranslation()
   const presentedView = useMemo(() => GroupViewPresenter(view), [view])
+  const myMemberships = useSelector(getMyMemberships)
 
   if (presentedView.type === 'separator') {
     return <hr className='border-foreground/10 my-1' />
@@ -217,57 +224,86 @@ function GroupViewMenuItem ({
 
   if (presentedView.type === 'space') {
     const linkedSpaceGroup = presentedView.linkedGroup
+    const isSpaceMember = Boolean(
+      linkedSpaceGroup &&
+      myMemberships.some(m => m.group.id === linkedSpaceGroup.id)
+    )
     const spaceViews = (linkedSpaceGroup?.groupViews?.items || []).map(v => GroupViewPresenter(v))
+    const hasMultipleSpaceViews = spaceViews.length > 1
+    const singleSpaceView = spaceViews.length === 1 ? spaceViews[0] : null
     const spaceUnread = spaceViews.some(v => v.newPostCount > 0)
     const spaceHome = linkedSpaceGroup ? spaceHomeUrl(parentSlug, linkedSpaceGroup) : null
-    const isExpanded = expandedSpaceId === presentedView.id
+    const spaceLink = singleSpaceView && isSpaceMember
+      ? menuViewUrl(parentSlug, singleSpaceView, linkedSpaceGroup)
+      : spaceHome
+    const isExpanded = isSpaceMember && expandedSpaceId === presentedView.id
     const isSpaceActive = Boolean(
       spaceSlug &&
       linkedSpaceGroup &&
       localSpaceSlug(parentSlug, linkedSpaceGroup.slug) === spaceSlug
     )
 
+    if (hasMultipleSpaceViews) {
+      return (
+        <li className='list-none'>
+          <div
+            className={cn(
+              GROUP_VIEW_MENU_ITEM_CLASS,
+              isSpaceActive && 'opacity-100 border-selected bg-card font-bold'
+            )}
+          >
+            <MenuLink
+              to={spaceLink}
+              isActive={false}
+              className={GROUP_VIEW_MENU_ITEM_INNER_LINK_CLASS}
+              onClick={() => { if (isSpaceMember) setExpandedSpaceId(presentedView.id) }}
+            >
+              <GroupViewIcon view={presentedView} />
+              <span className='truncate flex-1'>{displayNameForView(presentedView, t)}</span>
+              {spaceUnread && <UnreadDot />}
+            </MenuLink>
+            {isSpaceMember && (
+              <button
+                type='button'
+                className='shrink-0 p-1 pr-1 text-foreground/50 hover:text-foreground transition-all'
+                onClick={() => setExpandedSpaceId(isExpanded ? null : presentedView.id)}
+                aria-label={t('Toggle space views')}
+              >
+                <ChevronRight className={cn('w-4 h-4 transition-transform', isExpanded && 'rotate-90')} />
+              </button>
+            )}
+          </div>
+          {isExpanded && (
+            <ul className='pl-4 mt-1'>
+              {spaceViews.map(subView => (
+                <GroupViewMenuItem
+                  key={subView.id}
+                  view={subView}
+                  parentSlug={parentSlug}
+                  spaceGroup={linkedSpaceGroup}
+                  spaceSlug={spaceSlug}
+                  expandedSpaceId={expandedSpaceId}
+                  setExpandedSpaceId={setExpandedSpaceId}
+                />
+              ))}
+            </ul>
+          )}
+        </li>
+      )
+    }
+
     return (
       <li className='list-none'>
-        <div
-          className={cn(
-            'flex items-center justify-between group rounded-md hover:bg-card transition-all',
-            isSpaceActive && 'bg-card'
-          )}
+        <MenuLink
+          to={spaceLink}
+          isActive={isSpaceActive}
+          className={GROUP_VIEW_MENU_ITEM_CLASS}
+          onClick={onCollapseSpaces}
         >
-          <MenuLink
-            to={spaceHome}
-            isActive={isSpaceActive}
-            className='flex-1 flex items-center gap-2 text-base text-foreground p-1 pl-2 opacity-85 hover:opacity-100'
-            onClick={() => setExpandedSpaceId(presentedView.id)}
-          >
-            <GroupViewIcon view={presentedView} />
-            <span className='truncate'>{displayNameForView(presentedView, t)}</span>
-            {spaceUnread && <UnreadDot />}
-          </MenuLink>
-          <button
-            className='p-1 text-foreground/50 hover:text-foreground transition-all'
-            onClick={() => setExpandedSpaceId(isExpanded ? null : presentedView.id)}
-            aria-label={t('Toggle space views')}
-          >
-            <ChevronRight className={cn('w-4 h-4 transition-transform', isExpanded && 'rotate-90')} />
-          </button>
-        </div>
-        {isExpanded && spaceViews.length > 0 && (
-          <ul className='pl-4 mt-1'>
-            {spaceViews.map(subView => (
-              <GroupViewMenuItem
-                key={subView.id}
-                view={subView}
-                parentSlug={parentSlug}
-                spaceGroup={linkedSpaceGroup}
-                spaceSlug={spaceSlug}
-                expandedSpaceId={expandedSpaceId}
-                setExpandedSpaceId={setExpandedSpaceId}
-              />
-            ))}
-          </ul>
-        )}
+          <GroupViewIcon view={presentedView} />
+          <span className='truncate flex-1'>{displayNameForView(presentedView, t)}</span>
+          {spaceUnread && <UnreadDot />}
+        </MenuLink>
       </li>
     )
   }
@@ -281,7 +317,7 @@ function GroupViewMenuItem ({
       <MenuLink
         to={isExternal ? null : url}
         externalLink={isExternal ? url : null}
-        className='flex items-center gap-2 text-base text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 mb-[.3rem] w-full transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100'
+        className={GROUP_VIEW_MENU_ITEM_CLASS}
         onClick={spaceGroup ? undefined : onCollapseSpaces}
       >
         <GroupViewIcon view={presentedView} />
@@ -306,14 +342,15 @@ function GroupViewList ({
   const [showAddView, setShowAddView] = useState(false)
   const [showAddSpace, setShowAddSpace] = useState(false)
 
-  // Auto-expand the space sub-menu when viewing a space route
+  // Auto-expand the space sub-menu when viewing a space route (multi-view spaces only)
   useEffect(() => {
     if (!spaceSlug || !groupViews?.length) return
     const spaceView = groupViews.find(v =>
       v.type === 'space' &&
       localSpaceSlug(groupSlug, v.linkedGroup?.slug) === spaceSlug
     )
-    if (spaceView) setExpandedSpaceId(spaceView.id)
+    const spaceViewCount = spaceView?.linkedGroup?.groupViews?.items?.length || 0
+    if (spaceView && spaceViewCount > 1) setExpandedSpaceId(spaceView.id)
   }, [spaceSlug, groupViews, groupSlug])
 
   const handleCollapseSpaces = useCallback(() => setExpandedSpaceId(null), [])
