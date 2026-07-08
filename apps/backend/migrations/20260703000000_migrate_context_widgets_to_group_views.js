@@ -23,7 +23,22 @@
 // `down` is provided for development: roll back, fix `up`, and re-run.
 // It is NOT safe for production once real post-migration activity exists.
 
-const { homeRoutePathForView } = require('@hylo/navigation')
+/** Route path for groups.home_route from a group_views knex row (snake_case). */
+function homeRoutePathForViewRow (view) {
+  if (!view) return '/all'
+  switch (view.type) {
+    case 'post':
+      return view.post_id ? `/post/${view.post_id}` : '/post'
+    case 'member':
+      return view.user_id ? `/members/${view.user_id}` : '/members'
+    case 'custom':
+      return `/custom/${view.id}`
+    case 'collection':
+      return `/collection/${view.id}`
+    default:
+      return view.type ? `/${view.type}` : '/all'
+  }
+}
 
 const SYSTEM_VIEW_TYPE_BY_WIDGET_VIEW = {
   stream: 'all',
@@ -439,8 +454,9 @@ async function buildTrackSpace (trx, parentGroup, track) {
     banner_url: track.banner_url,
     active: !track.deactivated_at,
     visibility: 2,
-    accessibility: 1,
+    accessibility: 2,
     settings: '{}',
+    icon: 'Shapes',
     access_code: await newAccessCode(trx),
     calendar_token: uuidv4(),
     created_at: now,
@@ -450,13 +466,13 @@ async function buildTrackSpace (trx, parentGroup, track) {
 
   await trx('tracks').where({ id: track.id }).update({ group_id: spaceId })
 
-  const welcomeView = await insertGroupViews(trx, spaceId, [
-    { type: 'welcome', page_content: track.welcome_message },
+  const views = await insertGroupViews(trx, spaceId, [
     { type: 'track-actions' },
     { type: 'chat' },
-    { type: 'members' }
+    { type: 'members' },
+    { type: 'welcome', page_content: track.welcome_message }
   ])
-  const trackActionsView = welcomeView.find(v => v.type === 'track-actions')
+  const trackActionsView = views.find(v => v.type === 'track-actions')
 
   const trackPosts = await trx('tracks_posts').where({ track_id: track.id }).orderBy('sort_order', 'asc')
   for (const tp of trackPosts) {
@@ -534,8 +550,9 @@ async function buildFundingRoundSpace (trx, parentGroup, round) {
     banner_url: round.banner_url,
     active: !round.deactivated_at,
     visibility: 2,
-    accessibility: 1,
-    settings: '{}',
+    accessibility: 2,
+    settings: '{ "show_welcome_page": true }',
+    icon: 'BadgeDollarSign',
     access_code: await newAccessCode(trx),
     calendar_token: uuidv4(),
     created_at: now,
@@ -546,10 +563,10 @@ async function buildFundingRoundSpace (trx, parentGroup, round) {
   await trx('funding_rounds').where({ id: round.id }).update({ group_id: spaceId })
 
   const views = await insertGroupViews(trx, spaceId, [
-    { type: 'welcome' },
     { type: 'funding-round-submissions' },
     { type: 'chat' },
-    { type: 'members' }
+    { type: 'members' },
+    { type: 'welcome' }
   ])
   const chatView = views.find(v => v.type === 'chat')
 
@@ -638,8 +655,9 @@ async function createChatSpace (trx, parentGroup, widget) {
     required_roles: widget.visibility === 'admin' ? JSON.stringify([1]) : null,
     active: true,
     visibility: 2,
-    accessibility: 1,
+    accessibility: 2,
     settings: '{}',
+    icon: 'MessageCircleMore',
     access_code: await newAccessCode(trx),
     calendar_token: uuidv4(),
     created_at: now,
@@ -923,7 +941,7 @@ async function backfillGroupViewsUsers (knex) {
 async function updateHomeRoutes (knex) {
   // Load all order-0 views in one query, then bulk-update.
   const homeViews = await knex('group_views').where({ order: 0 })
-  const updates = homeViews.map(view => ({ id: view.group_id, home_route: homeRoutePathForView(view) }))
+  const updates = homeViews.map(view => ({ id: view.group_id, home_route: homeRoutePathForViewRow(view) }))
   if (updates.length > 0) await bulkUpdateGroupsHomeRoutes(knex, updates)
 }
 
