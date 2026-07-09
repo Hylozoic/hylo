@@ -10,8 +10,9 @@ import {
 } from 'components/CustomViewForm/customViewFormConstants'
 import { createGroupView } from 'store/actions/groupViews'
 
-/** Modal for configuring a new custom GroupView before creation. */
-export default function AddCustomViewDialog ({ group, onCancel, onCreated }) {
+/** Modal for configuring a new custom GroupView before creation.
+ * Pass `onAdd` to stage the view locally instead of dispatching a mutation (see AddGroupViewDialog). */
+export default function AddCustomViewDialog ({ group, onCancel, onCreated, onAdd }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const [name, setName] = useState('')
@@ -25,31 +26,39 @@ export default function AddCustomViewDialog ({ group, onCancel, onCreated }) {
   const canSave = name.trim().length >= 2 && postTypes.length > 0
 
   const handleSave = useCallback(async () => {
-    if (!canSave || !group?.id) return
+    if (!canSave) return
+
+    const viewData = {
+      type: 'custom',
+      name: name.trim(),
+      icon,
+      topics: topics.map(topic => topic.name),
+      settings: {
+        postTypes,
+        activePostsOnly: false,
+        defaultSort: 'created',
+        defaultViewMode,
+        searchText: searchText.trim() || undefined
+      },
+      addToEnd: true
+    }
+
+    if (onAdd) {
+      onAdd(viewData)
+      return
+    }
+
+    if (!group?.id) return
     setIsSaving(true)
     try {
-      await dispatch(createGroupView({
-        groupId: group.id,
-        type: 'custom',
-        name: name.trim(),
-        icon,
-        topics: topics.map(topic => topic.name),
-        settings: {
-          postTypes,
-          activePostsOnly: false,
-          defaultSort: 'created',
-          defaultViewMode,
-          searchText: searchText.trim() || undefined
-        },
-        addToEnd: true
-      }))
+      await dispatch(createGroupView({ groupId: group.id, ...viewData }))
       onCreated()
     } catch (error) {
       console.error('Failed to create custom view:', error)
     } finally {
       setIsSaving(false)
     }
-  }, [canSave, defaultViewMode, dispatch, group?.id, name, icon, topics, postTypes, searchText, onCreated])
+  }, [canSave, defaultViewMode, dispatch, group?.id, name, icon, topics, postTypes, searchText, onCreated, onAdd])
 
   return (
     <div className='fixed inset-0 z-[60] flex items-center justify-center bg-darkening/50'>

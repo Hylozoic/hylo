@@ -368,7 +368,7 @@ function GroupViewList ({
           <AddViewButton onClick={() => setShowAddView(true)} />
           {canManageSpaces && <AddSpaceButton onClick={() => setShowAddSpace(true)} />}
         </div>
-        {showAddView && <AddGroupViewDialog group={group} groupViews={groupViews} onClose={() => setShowAddView(false)} />}
+        {showAddView && <AddGroupViewDialog group={group} groupViews={groupViews} acceptedPostTypes={group?.acceptedPostTypes} onClose={() => setShowAddView(false)} />}
         {showAddSpace && <AddSpaceDialog group={group} onClose={() => setShowAddSpace(false)} />}
       </div>
     )

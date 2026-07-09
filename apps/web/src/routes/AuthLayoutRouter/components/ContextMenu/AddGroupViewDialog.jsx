@@ -11,6 +11,7 @@ import GroupViewIcon from './GroupViewIcon'
 import AddCustomViewDialog from './AddCustomViewDialog'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 import { createGroupView } from 'store/actions/groupViews'
+import { VIEW_TYPE_TO_POST_TYPES } from 'store/models/GroupView'
 import { cn } from 'util/index'
 
 /** View types that can be added from the menu editor without picking an entity. */
@@ -56,8 +57,10 @@ function descriptionForViewType (type, t) {
   return t(`addViewDesc-${type}`, { defaultValue: '' })
 }
 
-/** Modal for picking and creating a new group view. */
-export default function AddGroupViewDialog ({ group, groupViews, onClose }) {
+/** Modal for picking and creating a new group view.
+ * Pass `onAdd` to stage the view locally instead of dispatching a mutation — used when
+ * building up a not-yet-created group/space (e.g. AddSpaceDialog's Included Views editor). */
+export default function AddGroupViewDialog ({ group, groupViews, acceptedPostTypes, onClose, onAdd }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const [selectedType, setSelectedType] = useState(null)
@@ -76,6 +79,18 @@ export default function AddGroupViewDialog ({ group, groupViews, onClose }) {
   const isTypeInMenu = useCallback((type) => {
     return SINGLETON_VIEW_TYPES.has(type) && typesInMenu.has(type)
   }, [typesInMenu])
+
+  const isTypeAcceptable = useCallback((type) => {
+    if (!acceptedPostTypes) return true
+    const requiredPostTypes = VIEW_TYPE_TO_POST_TYPES[type]
+    if (!requiredPostTypes) return true
+    return requiredPostTypes.some(postType => acceptedPostTypes.includes(postType))
+  }, [acceptedPostTypes])
+
+  const addableViewTypes = useMemo(
+    () => ADDABLE_GROUP_VIEW_TYPES.filter(isTypeAcceptable),
+    [isTypeAcceptable]
+  )
 
   const resetTypeFields = useCallback(() => {
     setLinkName('')
@@ -105,31 +120,39 @@ export default function AddGroupViewDialog ({ group, groupViews, onClose }) {
   }, [selectedType, linkName, linkUrl, textContent])
 
   const handleAdd = useCallback(async () => {
-    if (!canAdd || !group?.id || !selectedType) return
+    if (!canAdd || !selectedType) return
+    if (!onAdd && !group?.id) return
 
     if (selectedType === 'custom') {
       setShowCustomViewDialog(true)
       return
     }
 
+    const viewData = {
+      type: selectedType,
+      name: selectedType === 'link' ? linkName.trim() : null,
+      link: selectedType === 'link' ? linkUrl.trim() : null,
+      icon: selectedType === 'link' ? linkIcon : null,
+      pageContent: selectedType === 'text' ? textContent.trim() : null,
+      addToEnd: true
+    }
+
+    if (onAdd) {
+      onAdd(viewData)
+      onClose()
+      return
+    }
+
     setIsCreating(true)
     try {
-      await dispatch(createGroupView({
-        groupId: group.id,
-        type: selectedType,
-        name: selectedType === 'link' ? linkName.trim() : null,
-        link: selectedType === 'link' ? linkUrl.trim() : null,
-        icon: selectedType === 'link' ? linkIcon : null,
-        pageContent: selectedType === 'text' ? textContent.trim() : null,
-        addToEnd: true
-      }))
+      await dispatch(createGroupView({ groupId: group.id, ...viewData }))
       onClose()
     } catch (error) {
       console.error('Failed to create group view:', error)
     } finally {
       setIsCreating(false)
     }
-  }, [canAdd, dispatch, group?.id, selectedType, linkName, linkUrl, linkIcon, textContent, onClose])
+  }, [canAdd, dispatch, group?.id, selectedType, linkName, linkUrl, linkIcon, textContent, onClose, onAdd])
 
   const handleCustomViewCreated = useCallback(() => {
     setShowCustomViewDialog(false)
@@ -143,7 +166,7 @@ export default function AddGroupViewDialog ({ group, groupViews, onClose }) {
           <h2 className='text-lg font-semibold mb-4'>{t('Add View')}</h2>
 
           <div className='flex flex-col gap-1 overflow-y-auto flex-1 min-h-0'>
-            {ADDABLE_GROUP_VIEW_TYPES.map(type => {
+            {addableViewTypes.map(type => {
               const inMenu = isTypeInMenu(type)
               const isSelected = selectedType === type
               const presentedView = GroupViewPresenter({ type })
@@ -212,8 +235,8 @@ export default function AddGroupViewDialog ({ group, groupViews, onClose }) {
           </div>
 
           <div className='flex justify-end gap-2 mt-4 pt-2 border-t border-foreground/10'>
-            <Button variant='secondary' onClick={onClose}>{t('Cancel')}</Button>
-            <Button variant='primary' disabled={!canAdd || isCreating} onClick={handleAdd}>
+            <Button variant='primary' onClick={onClose}>{t('Cancel')}</Button>
+            <Button variant='secondary' disabled={!canAdd || isCreating} onClick={handleAdd}>
               {isCreating ? t('Creating...') : t('Add View')}
             </Button>
           </div>
@@ -225,6 +248,7 @@ export default function AddGroupViewDialog ({ group, groupViews, onClose }) {
           group={group}
           onCancel={() => setShowCustomViewDialog(false)}
           onCreated={handleCustomViewCreated}
+          onAdd={onAdd ? (viewData) => { onAdd(viewData); handleCustomViewCreated() } : undefined}
         />
       )}
     </>

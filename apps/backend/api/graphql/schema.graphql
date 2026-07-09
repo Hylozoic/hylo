@@ -3438,7 +3438,11 @@ type Mutation {
     accessibility: Int,
     icon: String,
     description: String,
-    requiredRoles: [Int]
+    requiredRoles: [Int],
+    purpose: String,
+    location: String,
+    locationId: ID,
+    viewTypes: [String]
   ): Group
   # Update a Space's settings
   updateSpace(
@@ -3452,7 +3456,8 @@ type Mutation {
     description: String,
     requiredRoles: [Int],
     location: String,
-    locationId: ID
+    locationId: ID,
+    purpose: String
   ): Group
   # Archive a Space (soft-deactivate; removes its menu entry from the parent)
   archiveSpace(id: ID!): Group

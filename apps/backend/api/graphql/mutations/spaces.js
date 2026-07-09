@@ -34,7 +34,7 @@ async function requireStewardOfGroup (userId, groupId, action) {
   return group
 }
 
-export async function createSpace (userId, { parentGroupId, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles }, context) {
+export async function createSpace (userId, { parentGroupId, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, purpose, location, locationId, viewTypes }, context) {
   if (!userId) throw new GraphQLError('No userId passed into function')
   if (!parentGroupId) throw new GraphQLError('No parentGroupId passed into function')
   if (!name || !name.trim()) throw new GraphQLError('Name cannot be blank')
@@ -58,6 +58,9 @@ export async function createSpace (userId, { parentGroupId, name, slug, accepted
     icon: icon || null,
     accepted_post_types: acceptedPostTypes,
     required_roles: requiredRoles,
+    purpose,
+    location,
+    location_id: locationId,
     visibility: visibility != null ? visibility : Group.Visibility.PROTECTED,
     accessibility: accessibility != null ? accessibility : Group.Accessibility.RESTRICTED,
     settings: {},
@@ -71,7 +74,7 @@ export async function createSpace (userId, { parentGroupId, name, slug, accepted
     await space.save(null, { transacting: trx })
     await GroupRole.setupSystemRoles(space.id, { transacting: trx })
     await space.addMembers([userId], { assignCoordinator: true, lastReadAt: new Date() }, { transacting: trx })
-    await Group.setupSpaceViews(space.id, acceptedPostTypes, { transacting: trx })
+    await Group.setupSpaceViews(space.id, acceptedPostTypes, viewTypes, { transacting: trx })
 
     // Add a `type = 'space'` menu entry to the parent group's view list (spec section 2.5)
     await GroupView.appendToMenu({
@@ -88,7 +91,7 @@ export async function createSpace (userId, { parentGroupId, name, slug, accepted
   return space
 }
 
-export async function updateSpace (userId, { id, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, location, locationId }, context) {
+export async function updateSpace (userId, { id, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, location, locationId, purpose }, context) {
   if (!userId) throw new GraphQLError('No userId passed into function')
   if (!id) throw new GraphQLError('No id passed into function')
 
@@ -104,6 +107,7 @@ export async function updateSpace (userId, { id, name, slug, acceptedPostTypes, 
   if (visibility !== undefined) changes.visibility = visibility
   if (accessibility !== undefined) changes.accessibility = accessibility
   if (description !== undefined) changes.description = description
+  if (purpose !== undefined) changes.purpose = purpose
   if (requiredRoles !== undefined) changes.required_roles = requiredRoles
   if (location !== undefined) changes.location = location
   if (locationId !== undefined) changes.location_id = locationId

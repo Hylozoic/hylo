@@ -2,6 +2,23 @@ import { attr, Model } from 'redux-orm'
 
 const NON_DELETABLE_TYPES = ['track-actions', 'funding-round-submissions']
 
+/** Maps an accepted post type to the GroupView type that displays it (mirrors backend Group.ACCEPTED_POST_TYPE_TO_VIEW_TYPE). */
+export const POST_TYPE_TO_VIEW_TYPE = {
+  discussion: 'discussions',
+  event: 'events',
+  resource: 'resources',
+  project: 'projects',
+  proposal: 'proposals',
+  offer: 'requests-and-offers',
+  request: 'requests-and-offers'
+}
+
+/** Inverse of POST_TYPE_TO_VIEW_TYPE — the post type(s) that make a given view type relevant. */
+export const VIEW_TYPE_TO_POST_TYPES = Object.entries(POST_TYPE_TO_VIEW_TYPE).reduce((acc, [postType, viewType]) => {
+  acc[viewType] = [...(acc[viewType] || []), postType]
+  return acc
+}, {})
+
 /** View types that have configurable settings in the menu editor. */
 export function viewTypeHasSettings (type) {
   return ['chat', 'link', 'text', 'custom', 'welcome', 'space'].includes(type)

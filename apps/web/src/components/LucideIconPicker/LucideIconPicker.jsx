@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { icons } from 'lucide-react'
+import { ChevronDown, icons } from 'lucide-react'
 
 import LucideIcon from 'components/LucideIcon/LucideIcon'
 import Button from 'components/ui/button'
@@ -65,12 +65,13 @@ export default function LucideIconPicker ({ value, onChange, className }) {
         <Button
           type='button'
           variant='outline'
-          className={cn('w-full justify-start gap-2 font-normal hover:scale-100', className)}
+          className={cn('LucideIconPicker w-full justify-start gap-2 font-normal hover:scale-100', className)}
         >
           {value
             ? <LucideIcon name={value} className='w-4 h-4 shrink-0' />
             : <span className='w-4 h-4 shrink-0 rounded-sm border border-foreground/20' />}
-          <span className='truncate'>{value || t('Select an icon')}</span>
+          <span className='truncate flex-1 text-left'>{value || t('Select an icon')}</span>
+          <ChevronDown className='w-4 h-4 shrink-0 text-foreground/50' aria-hidden='true' />
         </Button>
       </PopoverTrigger>
       <PopoverContent className='w-80 p-2 z-[60]' align='start'>

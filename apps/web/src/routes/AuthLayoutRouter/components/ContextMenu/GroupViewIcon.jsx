@@ -23,22 +23,22 @@ export default function GroupViewIcon ({ view, className }) {
     return (
       <LucideIcon
         name={view.lucideIcon}
-        className={className || 'h-4 w-4 shrink-0'}
-        fallback={<Icon name={view.lucideIcon} className={className || 'w-4 h-4 shrink-0'} />}
+        className={className || 'h-4 w-4 shrink-0 mr-1'}
+        fallback={<Icon name={view.lucideIcon} className={className || 'h-4 w-4 shrink-0 mr-1'} />}
       />
     )
   }
 
   if (view.iconName === 'Shapes') {
-    return <Shapes className={className || 'h-4 w-4 shrink-0'} />
+    return <Shapes className={className || 'h-4 w-4 shrink-0 mr-1'} />
   }
 
   if (view.iconName === 'BadgeDollarSign') {
-    return <BadgeDollarSign className={className || 'h-4 w-4 shrink-0'} />
+    return <BadgeDollarSign className={className || 'h-4 w-4 shrink-0 mr-1'} />
   }
 
   if (view.iconName) {
-    return <Icon name={view.iconName} className={className || 'w-4 h-4 shrink-0'} />
+    return <Icon name={view.iconName} className={className || 'h-4 w-4 shrink-0 mr-1'} />
   }
 
   return null

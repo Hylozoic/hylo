@@ -1337,26 +1337,34 @@ module.exports = bookshelf.Model.extend(merge({
 
   /**
    * Seeds the default `group_views` rows for a newly created space (spec section 3.4 / 10):
-   * `welcome` (order 0, home), `chat` (order 1), `members` (order 2), then one view per
+   * `all` (order 0, home), `chat` (order 1), `members` (order 2), then one view per
    * accepted post type. Idempotent — does nothing if the space already has views.
+   * Pass `viewTypes` (an ordered array of GroupView types) to seed an explicit list instead
+   * (used when the creator has customized the Included Views in the space creation dialog).
    */
-  async setupSpaceViews (spaceId, acceptedPostTypes = [], { transacting } = {}) {
+  async setupSpaceViews (spaceId, acceptedPostTypes = [], viewTypes, { transacting } = {}) {
     const existing = await GroupView.where({ group_id: spaceId }).fetchAll({ transacting })
     if (existing.length > 0) return
 
     const now = new Date()
-    const rows = [
-      { type: GroupView.Type.WELCOME },
-      { type: GroupView.Type.CHAT },
-      { type: GroupView.Type.MEMBERS }
-    ]
+    let rows
 
-    const seenViewTypes = new Set(rows.map(r => r.type))
-    for (const postType of (acceptedPostTypes || [])) {
-      const viewType = Group.ACCEPTED_POST_TYPE_TO_VIEW_TYPE[postType]
-      if (viewType && !seenViewTypes.has(viewType)) {
-        seenViewTypes.add(viewType)
-        rows.push({ type: viewType })
+    if (viewTypes && viewTypes.length > 0) {
+      rows = viewTypes.map(type => ({ type }))
+    } else {
+      rows = [
+        { type: GroupView.Type.ALL },
+        { type: GroupView.Type.CHAT },
+        { type: GroupView.Type.MEMBERS }
+      ]
+
+      const seenViewTypes = new Set(rows.map(r => r.type))
+      for (const postType of (acceptedPostTypes || [])) {
+        const viewType = Group.ACCEPTED_POST_TYPE_TO_VIEW_TYPE[postType]
+        if (viewType && !seenViewTypes.has(viewType)) {
+          seenViewTypes.add(viewType)
+          rows.push({ type: viewType })
+        }
       }
     }
 

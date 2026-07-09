@@ -194,11 +194,11 @@ export function setHomeView ({ viewId, groupId, parentGroupId, targetGroupId, re
 }
 
 /** Create a child space under a parent group. */
-export function createSpace ({ parentGroupId, name, slug, description, icon, acceptedPostTypes }) {
+export function createSpace ({ parentGroupId, name, slug, description, icon, acceptedPostTypes, purpose, location, locationId, visibility, accessibility, requiredRoles, viewTypes }) {
   return {
     type: CREATE_SPACE,
     graphql: {
-      query: `mutation ($parentGroupId: ID!, $name: String!, $slug: String, $description: String, $icon: String, $acceptedPostTypes: [String]) {
+      query: `mutation ($parentGroupId: ID!, $name: String!, $slug: String, $description: String, $icon: String, $acceptedPostTypes: [String], $purpose: String, $location: String, $locationId: ID, $visibility: Int, $accessibility: Int, $requiredRoles: [Int], $viewTypes: [String]) {
         createSpace(
           parentGroupId: $parentGroupId
           name: $name
@@ -206,6 +206,13 @@ export function createSpace ({ parentGroupId, name, slug, description, icon, acc
           description: $description
           icon: $icon
           acceptedPostTypes: $acceptedPostTypes
+          purpose: $purpose
+          location: $location
+          locationId: $locationId
+          visibility: $visibility
+          accessibility: $accessibility
+          requiredRoles: $requiredRoles
+          viewTypes: $viewTypes
         ) {
           id
           name
@@ -214,7 +221,7 @@ export function createSpace ({ parentGroupId, name, slug, description, icon, acc
           description
         }
       }`,
-      variables: { parentGroupId, name, slug, description, icon, acceptedPostTypes }
+      variables: { parentGroupId, name, slug, description, icon, acceptedPostTypes, purpose, location, locationId, visibility, accessibility, requiredRoles, viewTypes }
     },
     meta: {
       parentGroupId,
@@ -226,11 +233,11 @@ export function createSpace ({ parentGroupId, name, slug, description, icon, acc
 }
 
 /** Update a space's settings. */
-export function updateSpace ({ id, groupId, spaceViewId, name, slug, description, icon, acceptedPostTypes, viewName }) {
+export function updateSpace ({ id, groupId, spaceViewId, name, slug, description, icon, acceptedPostTypes, viewName, purpose, location, locationId, visibility, accessibility, requiredRoles }) {
   return {
     type: UPDATE_SPACE,
     graphql: {
-      query: `mutation ($id: ID!, $name: String, $slug: String, $description: String, $icon: String, $acceptedPostTypes: [String]) {
+      query: `mutation ($id: ID!, $name: String, $slug: String, $description: String, $icon: String, $acceptedPostTypes: [String], $purpose: String, $location: String, $locationId: ID, $visibility: Int, $accessibility: Int, $requiredRoles: [Int]) {
         updateSpace(
           id: $id
           name: $name
@@ -238,6 +245,12 @@ export function updateSpace ({ id, groupId, spaceViewId, name, slug, description
           description: $description
           icon: $icon
           acceptedPostTypes: $acceptedPostTypes
+          purpose: $purpose
+          location: $location
+          locationId: $locationId
+          visibility: $visibility
+          accessibility: $accessibility
+          requiredRoles: $requiredRoles
         ) {
           id
           name
@@ -246,7 +259,7 @@ export function updateSpace ({ id, groupId, spaceViewId, name, slug, description
           description
         }
       }`,
-      variables: omitBy(isUndefined, { id, name, slug, description, icon, acceptedPostTypes })
+      variables: omitBy(isUndefined, { id, name, slug, description, icon, acceptedPostTypes, purpose, location, locationId, visibility, accessibility, requiredRoles })
     },
     meta: {
       id,

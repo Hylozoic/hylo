@@ -146,6 +146,7 @@ Group.modelName = 'Group'
 
 Group.fields = {
   accessibility: attr(),
+  acceptedPostTypes: attr(),
   activeProjects: many({
     to: 'Post',
     as: 'activeProjects',

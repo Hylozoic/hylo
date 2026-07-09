@@ -47,6 +47,7 @@ query FetchGroupsMenuData (
       type
       visibility
       accessibility
+      acceptedPostTypes
       memberCount
       settings {
         allowGroupInvites
