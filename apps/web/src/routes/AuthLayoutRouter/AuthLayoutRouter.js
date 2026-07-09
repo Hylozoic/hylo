@@ -43,7 +43,6 @@ import {
 } from '@hylo/navigation'
 import { CENTER_COLUMN_ID, DETAIL_COLUMN_ID } from 'util/scrolling'
 import AllTopics from 'routes/AllTopics'
-import AllView from 'routes/AllView'
 import ChatRoom from 'routes/ChatRoom'
 import CreateGroup from 'routes/CreateGroup'
 import GroupDetail from 'routes/GroupDetail'
@@ -75,9 +74,7 @@ import ViewContent from 'routes/ViewContent'
 import SpaceContent from 'routes/SpaceContent'
 import Themes from 'routes/Themes'
 import TrackHome from 'routes/TrackHome'
-import FundingRounds from 'routes/FundingRounds'
 import FundingRoundHome from 'routes/FundingRoundHome'
-import Tracks from 'routes/Tracks'
 import UserSettings from 'routes/UserSettings'
 import WelcomeWizardRouter from 'routes/WelcomeWizardRouter'
 import { VIEW_DRAFTS } from 'store/constants'
@@ -918,15 +915,15 @@ export default function AuthLayoutRouter (props) {
                             <Route path='topics/:topicName/*' element={<Stream context='groups' />} />
                             <Route path='topics' element={<AllTopics context='groups' />} />
                             <Route path='tracks/:trackId/*' element={<TrackHome />} />
-                            <Route path='tracks/*' element={<Tracks />} />
+                            <Route path='tracks' element={<Navigate to={`/groups/${currentGroupSlug}${currentGroup?.homeRoute || '/all'}`} replace />} />
                             <Route path='funding-rounds/:fundingRoundId/*' element={<FundingRoundHome />} />
-                            <Route path='funding-rounds/*' element={<FundingRounds />} />
+                            <Route path='funding-rounds' element={<Navigate to={`/groups/${currentGroupSlug}${currentGroup?.homeRoute || '/all'}`} replace />} />
                             <Route path='chat/*' element={<ChatRoom context='groups' />} />
                             <Route path='payment/success' element={<PaymentSuccess />} />
                             <Route path='payment/cancel' element={<PaymentFailure />} />
                             <Route path='payment/failure' element={<PaymentFailure />} />
                             <Route path='settings/*' element={<GroupSettings context='groups' />} />
-                            <Route path='all-views' element={<AllView context='groups' />} />
+                            <Route path='all-views' element={<Navigate to={`/groups/${currentGroupSlug}${currentGroup?.homeRoute || '/all'}`} replace />} />
                             <Route path={POST_DETAIL_MATCH} element={<PostDetail />} />
                             <Route path='moderation/*' element={<Moderation context='groups' />} />
                             <Route path='*' element={<Navigate to={`/groups/${currentGroupSlug}${currentGroup?.homeRoute || '/all'}`} replace />} />

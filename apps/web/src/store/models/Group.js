@@ -208,6 +208,7 @@ Group.fields = {
   requiredRoles: attr(),
   settings: attr(),
   slug: attr(),
+  spaces: attr(),
   suggestedSkills: many('Skill'),
   tracks: many('Track'),
   type: attr(),

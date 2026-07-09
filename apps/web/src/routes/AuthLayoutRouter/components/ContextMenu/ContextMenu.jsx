@@ -45,6 +45,7 @@ import GroupViewEditList from './GroupViewEditList'
 import GroupViewSettingsModal from './GroupViewSettingsModal'
 import AddGroupViewDialog, { AddViewButton } from './AddGroupViewDialog'
 import AddSpaceDialog, { AddSpaceButton } from './AddSpaceDialog'
+import MoreSpacesSection from './MoreSpacesSection'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { RESP_ADMINISTRATION, RESP_MANAGE_SPACES } from 'store/constants'
@@ -479,6 +480,17 @@ export default function ContextMenu (props) {
     </div>
   )
 
+  const moreSpacesSection = isGroupContext && group?.id
+    ? (
+      <MoreSpacesSection
+        group={group}
+        groupSlug={groupSlug}
+        spaceSlug={spaceSlug}
+        isEditing={isEditing}
+      />
+      )
+    : null
+
   const editMenuButton = canAdminister && isGroupContext && group?.id
     ? (
       <div className='px-3 pb-2 border-t border-foreground/10 pt-2'>
@@ -496,6 +508,7 @@ export default function ContextMenu (props) {
 
   const menuFooter = (
     <div className='mt-auto'>
+      {moreSpacesSection}
       {editMenuButton}
       {devToggle}
     </div>

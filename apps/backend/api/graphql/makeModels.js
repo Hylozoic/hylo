@@ -660,6 +660,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'about_video_uri',
         'accepted_post_types',
         'accessibility',
+        'active',
         'allow_in_public',
         'avatar_url',
         'banner_url',

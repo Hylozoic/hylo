@@ -919,6 +919,8 @@ type Group {
   accessibility: Int
   # Spaces & Views: post types that can be posted into this Group/Space, e.g. ['discussion', 'event']. Null = all types accepted
   acceptedPostTypes: [String]
+  # Whether this group/space is active. False means archived (spaces appear under More Spaces → Archived)
+  active: Boolean
   # Whether this group's posts can be shown in public feeds
   allowInPublic: Boolean
   # URL to the image of the avatar of the group

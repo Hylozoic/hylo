@@ -23,6 +23,25 @@ import getMyMemberships from 'store/selectors/getMyMemberships'
 import { localSpaceSlug, spaceUrl, POST_DETAIL_MATCH } from '@hylo/navigation'
 
 /**
+ * Resolves a space group from the parent menu or from More Spaces (off-menu spaces).
+ * Menu spaces live on groupViews; off-menu spaces live on group.spaces.
+ */
+function resolveSpaceGroup (parentGroup, groupViews, parentSlug, localSlug) {
+  if (!localSlug || !parentSlug) return null
+
+  const menuSpace = (groupViews || []).find(v =>
+    v.type === 'space' &&
+    localSpaceSlug(parentSlug, v.linkedGroup?.slug) === localSlug
+  )
+  if (menuSpace?.linkedGroup) return menuSpace.linkedGroup
+
+  const offMenuSpace = (parentGroup?.spaces?.items || []).find(space =>
+    localSpaceSlug(parentSlug, space.slug) === localSlug
+  )
+  return offMenuSpace || null
+}
+
+/**
  * Renders space views at /groups/:parentSlug/spaces/:spaceSlug/* while the
  * ContextMenu continues to show the parent group's navigation.
  */
@@ -35,17 +54,14 @@ export default function SpaceContent () {
   const parentGroup = useSelector(state => getGroupForSlug(state, parentSlug))
   const groupViews = useSelector(state => getGroupViews(state, parentGroup))
 
-  const spaceView = useMemo(() => {
-    if (!localSlug || !groupViews?.length) return null
-    return groupViews.find(v =>
-      v.type === 'space' &&
-      localSpaceSlug(parentSlug, v.linkedGroup?.slug) === localSlug
-    )
-  }, [groupViews, localSlug, parentSlug])
+  const linkedSpace = useMemo(
+    () => resolveSpaceGroup(parentGroup, groupViews, parentSlug, localSlug),
+    [parentGroup, groupViews, parentSlug, localSlug]
+  )
 
-  const spaceFullSlug = spaceView?.linkedGroup?.slug
+  const spaceFullSlug = linkedSpace?.slug
   const spaceGroup = useSelector(state => getGroupForSlug(state, spaceFullSlug))
-  const spaceGroupId = spaceGroup?.id
+  const spaceGroupId = spaceGroup?.id || linkedSpace?.id
   const spaceGroupViewsLoaded = spaceGroup?.groupViews != null
 
   const myMemberships = useSelector(getMyMemberships)
@@ -61,18 +77,15 @@ export default function SpaceContent () {
   }, [dispatch, spaceFullSlug, spaceGroup])
 
   useEffect(() => {
-    if (spaceGroupId && !spaceGroupViewsLoaded) {
+    if (isSpaceMember && spaceGroupId && !spaceGroupViewsLoaded) {
       dispatch(fetchGroupViews(spaceGroupId))
     }
-  }, [dispatch, spaceGroupId, spaceGroupViewsLoaded])
+  }, [dispatch, isSpaceMember, spaceGroupId, spaceGroupViewsLoaded])
 
   if (!parentGroup || !localSlug) return <Loading />
-  if (!spaceView) return <Loading />
-  if (spaceFullSlug && (!spaceGroup || !spaceGroupViewsLoaded)) return <Loading />
+  if (!linkedSpace) return <Loading />
 
-  const homeRoute = spaceGroup?.homeRoute || spaceView.linkedGroup?.homeRoute || '/welcome'
-  const spaceBase = spaceUrl(parentSlug, localSlug)
-
+  // Non-members: show join interstitial as soon as we know the space — don't wait for views
   if (!isSpaceMember) {
     return (
       <SpaceGroupSlugContext.Provider value={spaceFullSlug}>
@@ -82,6 +95,11 @@ export default function SpaceContent () {
       </SpaceGroupSlugContext.Provider>
     )
   }
+
+  if (spaceFullSlug && (!spaceGroup || !spaceGroupViewsLoaded)) return <Loading />
+
+  const homeRoute = spaceGroup?.homeRoute || linkedSpace?.homeRoute || '/welcome'
+  const spaceBase = spaceUrl(parentSlug, localSlug)
 
   return (
     <SpaceGroupSlugContext.Provider value={spaceFullSlug}>
