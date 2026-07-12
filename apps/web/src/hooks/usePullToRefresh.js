@@ -2,10 +2,33 @@ import { useEffect, useRef, useState } from 'react'
 import isWebView from 'util/webView'
 
 /**
+ * Returns true when the document and every scrollable ancestor of the touch
+ * target are at their top. Needed because HyloWebView locks body scroll and
+ * real scrolling happens in nested containers (e.g. #center-column, stream).
+ */
+function isAtScrollTop (touchTarget) {
+  if (window.scrollY > 0) return false
+
+  let node = touchTarget
+  while (node && node !== document.body && node !== document.documentElement) {
+    if (node.nodeType === 1) {
+      const { overflowY } = window.getComputedStyle(node)
+      const canScroll = overflowY === 'auto' || overflowY === 'scroll' || overflowY === 'overlay'
+      if (canScroll && node.scrollHeight > node.clientHeight && node.scrollTop > 0) {
+        return false
+      }
+    }
+    node = node.parentElement
+  }
+
+  return true
+}
+
+/**
  * Hook to detect pull-to-refresh gesture (web-side implementation)
  *
  * Only triggers when:
- * 1. User is at scroll position 0 (top of page)
+ * 1. User is at scroll position 0 (top of page / scroll container)
  * 2. User pulls DOWN past the threshold
  * 3. User HOLDS the pull position for the required duration
  * 4. Visual indicator shows when "ready to refresh"
@@ -40,8 +63,8 @@ export default function usePullToRefresh (onRefresh, options = {}) {
     let holdTimer = null
 
     const handleTouchStart = (e) => {
-      // Check if we're at the top of the scroll
-      wasAtTop.current = window.scrollY <= 0
+      // Check if we're at the top of the relevant scroll container(s)
+      wasAtTop.current = isAtScrollTop(e.target)
 
       if (wasAtTop.current) {
         touchStartY.current = e.touches[0].clientY
@@ -56,7 +79,7 @@ export default function usePullToRefresh (onRefresh, options = {}) {
       const deltaY = currentY - touchStartY.current
 
       // Check if we've crossed the threshold while still at top
-      const isPastThreshold = deltaY > threshold && window.scrollY <= 0
+      const isPastThreshold = deltaY > threshold && isAtScrollTop(e.target)
 
       if (isPastThreshold && !thresholdCrossedAt.current) {
         // Just crossed threshold - start hold timer
@@ -79,7 +102,7 @@ export default function usePullToRefresh (onRefresh, options = {}) {
       }
     }
 
-    const handleTouchEnd = () => {
+    const handleTouchEnd = (e) => {
       // Clear any pending timer
       if (holdTimer) {
         clearTimeout(holdTimer)
@@ -89,7 +112,7 @@ export default function usePullToRefresh (onRefresh, options = {}) {
       // Check if we met the hold duration requirement
       if (thresholdCrossedAt.current) {
         const heldDuration = Date.now() - thresholdCrossedAt.current
-        if (heldDuration >= holdDuration && window.scrollY <= 0) {
+        if (heldDuration >= holdDuration && isAtScrollTop(e.target)) {
           setIsRefreshing(true)
           onRefresh()
         }
