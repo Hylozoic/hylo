@@ -4,7 +4,7 @@ import Config from 'react-native-config'
 import useRouteParams from 'hooks/useRouteParams'
 import AutoHeightWebView from 'react-native-autoheight-webview'
 import { getSessionCookie, clearSessionCookie, ensureWebViewCookies, sessionCookieFromToken } from 'util/session'
-import { parseWebViewMessage } from '.'
+import { parseWebViewMessage, sendMessageFromWebView } from '.'
 import { useAuth } from '@hylo/contexts/AuthContext'
 import { WebViewMessageTypes } from '@hylo/shared'
 
@@ -47,14 +47,13 @@ const HyloWebView = React.forwardRef(({
   mobileAppVersion,
   onLoadStart: externalOnLoadStart,
   onLoadEnd: externalOnLoadEnd,
+  onSessionRecoveryStart,
+  onSessionRecoveryEnd,
   ...forwardedProps
 }, webViewRef) => {
   const [cookie, setCookie] = useState()
   const [isLoading, setIsLoading] = useState(true)
   const [showSessionRecovery, setShowSessionRecovery] = useState(false)
-  // Bumped to force a full WebView remount (reload) after re-minting the session
-  // cookie in response to a VERIFY_AUTH message from the web app.
-  const [reloadNonce, setReloadNonce] = useState(0)
   const { postId, path: routePath, originalLinkingPath } = useRouteParams()
   const path = pathProp || routePath || originalLinkingPath || ''
   const uri = (source?.uri || `${Config.HYLO_WEB_BASE_URL}${path}`) + (postId ? `?postId=${postId}` : '')
@@ -163,25 +162,27 @@ const HyloWebView = React.forwardRef(({
 
   // Web app reported itself unauthenticated inside the mobile WebView. Native auth
   // (the Keychain token) is the source of truth, so re-mint a fresh server session
-  // from the token, repopulate the WebView cookie jar, and force a reload — rather
-  // than letting the web side log the native app out on a transient cookie desync.
-  // Only when there's genuinely no valid token do we fall through to logout.
+  // from the token, repopulate the WebView cookie jar, and tell the web app to
+  // re-run checkLogin in place — no full page reload.
   const reverifyAuth = useCallback(async () => {
+    onSessionRecoveryStart?.()
     try {
       const fresh = await sessionCookieFromToken()
       if (fresh) {
         await ensureWebViewCookies()
         setCookie(fresh)
-        setReloadNonce(nonce => nonce + 1)
+        sendMessageFromWebView(webViewRef, WebViewMessageTypes.SESSION_READY)
       } else {
+        onSessionRecoveryEnd?.()
         await clearSessionCookie()
         logout()
       }
     } catch (error) {
       console.warn('🔑 HyloWebView re-auth failed:', error)
+      onSessionRecoveryEnd?.()
       logout()
     }
-  }, [logout])
+  }, [logout, onSessionRecoveryEnd, onSessionRecoveryStart, webViewRef])
 
   const handleMessage = message => {
     const parsedMessage = parseWebViewMessage(message)
@@ -189,6 +190,11 @@ const HyloWebView = React.forwardRef(({
 
     if (type === WebViewMessageTypes.VERIFY_AUTH) {
       reverifyAuth()
+      return
+    }
+
+    if (type === WebViewMessageTypes.AUTH_SUCCESS) {
+      onSessionRecoveryEnd?.()
       return
     }
 
@@ -216,9 +222,6 @@ const HyloWebView = React.forwardRef(({
 
   return (
     <AutoHeightWebView
-      // Remounts (and thus reloads) the WebView after a VERIFY_AUTH re-mint so the
-      // web app re-runs its auth check carrying the freshly-minted session cookie.
-      key={reloadNonce}
       // Must run before page JS so window.HyloMobileV2 is visible when the web app's
       // router initialises. Must end with `true` to avoid an Android WebView crash.
       injectedJavaScriptBeforeContentLoaded={injectedJavaScriptBeforeContentLoaded}
