@@ -3,31 +3,66 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate, useLocation } from 'react-router-dom'
+import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
+import { localSpaceSlug } from '@hylo/navigation'
 import Icon from 'components/Icon'
 import InfoButton from 'components/ui/info'
 import { Command, CommandItem, CommandList } from 'components/ui/command'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useRouteParams from 'hooks/useRouteParams'
+import GroupViewIcon from 'routes/AuthLayoutRouter/components/ContextMenu/GroupViewIcon'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
+import { getGroupViews } from 'store/selectors/getGroupViews'
 import getMe from 'store/selectors/getMe'
 import getPreviousLocation from 'store/selectors/getPreviousLocation'
 import { bgImageStyle, cn } from 'util/index'
 import { isCompactLayoutDevice, isDrawerNavLayout, isPhoneDevice } from 'util/mobile'
 
+/** Resolves the parent menu's space view (or a synthetic one for off-menu spaces). */
+function resolveSpaceMenuView (parentGroup, groupViews, parentSlug, spaceSlug) {
+  if (!spaceSlug || !parentSlug) return null
+
+  const menuSpace = (groupViews || []).find(v =>
+    v.type === 'space' &&
+    localSpaceSlug(parentSlug, v.linkedGroup?.slug) === spaceSlug
+  )
+  if (menuSpace) return menuSpace
+
+  const offMenuSpace = (parentGroup?.spaces?.items || []).find(space =>
+    localSpaceSlug(parentSlug, space.slug) === spaceSlug
+  )
+  if (!offMenuSpace) return null
+
+  return {
+    type: 'space',
+    name: offMenuSpace.name,
+    icon: offMenuSpace.icon,
+    linkedGroup: offMenuSpace
+  }
+}
+
 const ViewHeader = () => {
   const dispatch = useDispatch()
-  const { context, groupSlug } = useRouteParams()
+  const { context, groupSlug, spaceSlug } = useRouteParams()
   const navigate = useNavigate()
   const location = useLocation()
   const { t } = useTranslation()
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
+  const groupViews = useSelector(state => spaceSlug ? getGroupViews(state, group) : null)
   const currentUser = useSelector(getMe)
   const { headerDetails } = useViewHeader()
-  const { backButton, backTo, mobileBackButton, title, icon, info, search, centered, headerActions } = headerDetails
+  const { backButton, backTo, mobileBackButton, title, icon, info, search, centered, headerActions, spaceBreadcrumb } = headerDetails
 
   const previousLocation = useSelector(getPreviousLocation)
   const compactLayout = isCompactLayoutDevice()
+
+  const presentedSpaceView = useMemo(() => {
+    if (spaceBreadcrumb === false) return null
+    const spaceView = resolveSpaceMenuView(group, groupViews, groupSlug, spaceSlug)
+    return spaceView ? GroupViewPresenter(spaceView) : null
+  }, [group, groupViews, groupSlug, spaceSlug, spaceBreadcrumb])
+  const spaceName = presentedSpaceView ? displayNameForView(presentedSpaceView, t) : null
 
   const [searchValue, setSearchValue] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
@@ -173,6 +208,13 @@ const ViewHeader = () => {
         </>
       )}
       {/* )} */}
+      {!centered && presentedSpaceView && (
+        <>
+          <GroupViewIcon view={presentedSpaceView} className='mr-2 shrink-0 w-5 h-5' />
+          <span className='truncate max-w-[30%] shrink min-w-0 text-foreground'>{spaceName}</span>
+          <span className='mx-2 shrink-0 text-foreground/40'>/</span>
+        </>
+      )}
       {!centered && icon && (typeof icon === 'string' ? <Icon name={icon} className='mr-3 text-lg' /> : React.cloneElement(icon, { className: 'mr-3 text-lg' }))}
       <div
         className={cn('flex items-center min-w-0 gap-1', {
