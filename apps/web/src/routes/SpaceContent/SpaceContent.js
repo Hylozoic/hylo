@@ -6,6 +6,7 @@ import Loading from 'components/Loading'
 import { SpaceGroupSlugContext } from 'contexts/SpaceGroupContext'
 import useRouteParams from 'hooks/useRouteParams'
 import ChatRoom from 'routes/ChatRoom'
+import GroupDetail from 'routes/GroupDetail'
 import GroupWelcomePage from 'routes/GroupWelcomePage'
 import MapExplorer from 'routes/MapExplorer'
 import MemberProfile from 'routes/MemberProfile'
@@ -85,11 +86,12 @@ export default function SpaceContent () {
   if (!parentGroup || !localSlug) return <Loading />
   if (!linkedSpace) return <Loading />
 
-  // Non-members: show join interstitial as soon as we know the space — don't wait for views
+  // Non-members: about page is public-ish (GroupDetail); everything else is the join interstitial
   if (!isSpaceMember) {
     return (
       <SpaceGroupSlugContext.Provider value={spaceFullSlug}>
         <Routes>
+          <Route path='about/*' element={<GroupDetail context='groups' forCurrentGroup />} />
           <Route path='*' element={<SpaceJoinPage />} />
         </Routes>
       </SpaceGroupSlugContext.Provider>
@@ -123,7 +125,7 @@ export default function SpaceContent () {
         <Route path='track-actions/*' element={<ViewContent context='groups' view='track-actions' />} />
         <Route path='funding-round-submissions/*' element={<ViewContent context='groups' view='funding-round-submissions' />} />
         <Route path='moderation/*' element={<Moderation context='groups' />} />
-        <Route path='about/*' element={<ViewContent context='groups' view='about' />} />
+        <Route path='about/*' element={<GroupDetail context='groups' forCurrentGroup />} />
         <Route path={POST_DETAIL_MATCH} element={<PostDetail />} />
         <Route path='*' element={<Navigate to={`${spaceBase}${homeRoute}`} replace />} />
       </Routes>

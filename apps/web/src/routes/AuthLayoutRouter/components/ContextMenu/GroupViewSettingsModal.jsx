@@ -16,7 +16,7 @@ import LucideIconPicker from 'components/LucideIconPicker/LucideIconPicker'
 import SwitchStyled from 'components/SwitchStyled'
 import GroupViewIcon from './GroupViewIcon'
 import { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
-import { deleteGroupView, setHomeView, updateGroupView, updateSpace } from 'store/actions/groupViews'
+import { deleteGroupView, setHomeView, updateGroupView } from 'store/actions/groupViews'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import fetchForGroup from 'store/actions/fetchForGroup'
 import { updateGroupSettings } from 'routes/GroupSettings/GroupSettings.store'
@@ -45,7 +45,6 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
   const [link, setLink] = useState(view?.link || '')
   const [linkIcon, setLinkIcon] = useState(view?.icon || 'Globe')
   const [textContent, setTextContent] = useState(view?.pageContent || '')
-  const [description, setDescription] = useState(view?.linkedGroup?.description || '')
   const [showWelcomePage, setShowWelcomePage] = useState(group?.settings?.showWelcomePage ?? true)
   const [showPostNoticesInChat, setShowPostNoticesInChat] = useState(group?.settings?.showPostNoticesInChat ?? true)
   const [customForm, setCustomForm] = useState(() => customViewFormState(view))
@@ -57,7 +56,6 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
     setLink(view?.link || '')
     setLinkIcon(view?.icon || 'Globe')
     setTextContent(view?.pageContent || '')
-    setDescription(view?.linkedGroup?.description || '')
     setShowWelcomePage(group?.settings?.showWelcomePage ?? true)
     setShowPostNoticesInChat(group?.settings?.showPostNoticesInChat ?? true)
     setCustomForm(customViewFormState(view))
@@ -70,8 +68,7 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
     view?.topics,
     view?.settings,
     group?.settings?.showWelcomePage,
-    group?.settings?.showPostNoticesInChat,
-    view?.linkedGroup?.description
+    group?.settings?.showPostNoticesInChat
   ])
 
   const updateCustomForm = useCallback((key, value) => {
@@ -98,23 +95,6 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
       } else if (view.type === 'chat') {
         if (!isEqual(showPostNoticesInChat, group.settings?.showPostNoticesInChat)) {
           await dispatch(updateGroupSettings(group.id, { settings: { showPostNoticesInChat } }))
-        }
-      } else if (view.type === 'space' && view.linkedGroup?.id) {
-        const spaceName = name || view.linkedGroup.name
-        await dispatch(updateSpace({
-          id: view.linkedGroup.id,
-          groupId: group.id,
-          spaceViewId: view.id,
-          name: spaceName,
-          description: description || null,
-          viewName: (name && name !== view.name) ? name : undefined
-        }))
-        if (name && name !== view.name) {
-          await dispatch(updateGroupView({
-            id: view.id,
-            groupId: group.id,
-            name
-          }))
         }
       } else if (view.type === 'link') {
         await dispatch(updateGroupView({
@@ -169,7 +149,6 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
     link,
     linkIcon,
     textContent,
-    description,
     showWelcomePage,
     showPostNoticesInChat,
     onClose
@@ -256,20 +235,6 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
                 {t('Show post notices in chat when other post types are created in this group.')}
               </span>
             </div>
-          )}
-
-          {view.type === 'space' && (
-            <>
-              <label className='text-sm text-foreground/70'>{t('Name')}</label>
-              <Input value={name} onChange={e => setName(e.target.value)} placeholder={view.linkedGroup?.name} />
-              <label className='text-sm text-foreground/70'>{t('Description')}</label>
-              <textarea
-                value={description}
-                onChange={e => setDescription(e.target.value)}
-                rows={3}
-                className='w-full rounded-md border border-foreground/20 bg-input p-2 text-sm text-foreground'
-              />
-            </>
           )}
 
           {view.type === 'link' && (

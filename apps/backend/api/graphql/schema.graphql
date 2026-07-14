@@ -3444,7 +3444,9 @@ type Mutation {
     purpose: String,
     location: String,
     locationId: ID,
-    viewTypes: [String]
+    viewTypes: [String],
+    bannerUrl: String,
+    avatarUrl: String
   ): Group
   # Update a Space's settings
   updateSpace(
@@ -3459,7 +3461,9 @@ type Mutation {
     requiredRoles: [Int],
     location: String,
     locationId: ID,
-    purpose: String
+    purpose: String,
+    bannerUrl: String,
+    avatarUrl: String
   ): Group
   # Archive a Space (soft-deactivate; removes its menu entry from the parent)
   archiveSpace(id: ID!): Group
@@ -4231,6 +4235,10 @@ input GroupInput {
   aboutVideoUri: String
   # Either 0 = Closed (invite only), 1 = Restricted (Anyone can request to join), 2 = Open (anyone can join if they can find/see the group)
   accessibility: Int
+  # Post types this group accepts (used to seed initial GroupViews via viewTypes)
+  acceptedPostTypes: [String]
+  # Ordered list of GroupView types to seed for this group's menu (see Group.setupSpaceViews)
+  viewTypes: [String]
   # Whether this Group is active or not
   active: Boolean
   # The group agreements

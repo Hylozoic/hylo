@@ -1,6 +1,6 @@
 import { isPhoneDevice } from 'util/mobile'
 import { get } from 'lodash/fp'
-import { ChevronRight, Pencil, RefreshCw } from 'lucide-react'
+import { Info, Pencil, RefreshCw } from 'lucide-react'
 import React, { useEffect, useCallback, useState, useMemo } from 'react'
 import { useLocation, Routes, Route } from 'react-router-dom'
 import { replace } from 'redux-first-history'
@@ -17,6 +17,7 @@ import {
   localSpaceSlug,
   spaceHomeUrl,
   spaceGroupViewUrl,
+  spaceUrl,
   addQuerystringToPath,
   viewUrl
 } from '@hylo/navigation'
@@ -43,6 +44,7 @@ import GroupSettingsMenu from './GroupSettingsMenu'
 import ContextMenuOld from './ContextMenuOld'
 import GroupViewEditList from './GroupViewEditList'
 import GroupViewSettingsModal from './GroupViewSettingsModal'
+import SpaceSettingsModal from './SpaceSettingsModal'
 import AddGroupViewDialog, { AddViewButton } from './AddGroupViewDialog'
 import AddSpaceDialog, { AddSpaceButton } from './AddSpaceDialog'
 import MoreSpacesSection from './MoreSpacesSection'
@@ -149,10 +151,7 @@ function GroupViewMenuItem ({
   view,
   parentSlug,
   spaceGroup = null,
-  spaceSlug = null,
-  expandedSpaceId,
-  setExpandedSpaceId,
-  onCollapseSpaces
+  spaceSlug = null
 }) {
   const dispatch = useDispatch()
   const { t } = useTranslation()
@@ -179,9 +178,6 @@ function GroupViewMenuItem ({
                 parentSlug={parentSlug}
                 spaceGroup={spaceGroup}
                 spaceSlug={spaceSlug}
-                expandedSpaceId={expandedSpaceId}
-                setExpandedSpaceId={setExpandedSpaceId}
-                onCollapseSpaces={onCollapseSpaces}
               />
             ))}
           </ul>
@@ -237,74 +233,58 @@ function GroupViewMenuItem ({
     const spaceLink = singleSpaceView && isSpaceMember
       ? menuViewUrl(parentSlug, singleSpaceView, linkedSpaceGroup)
       : spaceHome
-    const isExpanded = isSpaceMember && expandedSpaceId === presentedView.id
     const isSpaceActive = Boolean(
       spaceSlug &&
       linkedSpaceGroup &&
       localSpaceSlug(parentSlug, linkedSpaceGroup.slug) === spaceSlug
     )
-
-    if (hasMultipleSpaceViews) {
-      return (
-        <li className='list-none'>
-          <div
-            className={cn(
-              GROUP_VIEW_MENU_ITEM_CLASS,
-              isSpaceActive && 'opacity-100 border-selected bg-card font-bold'
-            )}
-          >
-            <MenuLink
-              to={spaceLink}
-              isActive={false}
-              className={GROUP_VIEW_MENU_ITEM_INNER_LINK_CLASS}
-              onClick={() => { if (isSpaceMember) setExpandedSpaceId(presentedView.id) }}
-            >
-              <GroupViewIcon view={presentedView} />
-              <span className='truncate flex-1'>{displayNameForView(presentedView, t)}</span>
-              {spaceUnread && <UnreadDot />}
-            </MenuLink>
-            {isSpaceMember && (
-              <button
-                type='button'
-                className='shrink-0 p-1 pr-1 text-foreground/50 hover:text-foreground transition-all'
-                onClick={() => setExpandedSpaceId(isExpanded ? null : presentedView.id)}
-                aria-label={t('Toggle space views')}
-              >
-                <ChevronRight className={cn('w-4 h-4 transition-transform', isExpanded && 'rotate-90')} />
-              </button>
-            )}
-          </div>
-          {isExpanded && (
-            <ul className='pl-4 mt-1'>
-              {spaceViews.map(subView => (
-                <GroupViewMenuItem
-                  key={subView.id}
-                  view={subView}
-                  parentSlug={parentSlug}
-                  spaceGroup={linkedSpaceGroup}
-                  spaceSlug={spaceSlug}
-                  expandedSpaceId={expandedSpaceId}
-                  setExpandedSpaceId={setExpandedSpaceId}
-                />
-              ))}
-            </ul>
-          )}
-        </li>
-      )
-    }
+    // Spaces expand only while their route is active; otherwise stay collapsed.
+    const isExpanded = isSpaceMember && isSpaceActive && hasMultipleSpaceViews
+    const aboutUrl = linkedSpaceGroup
+      ? spaceUrl(parentSlug, localSpaceSlug(parentSlug, linkedSpaceGroup.slug), '/about')
+      : null
 
     return (
       <li className='list-none'>
-        <MenuLink
-          to={spaceLink}
-          isActive={isSpaceActive}
-          className={GROUP_VIEW_MENU_ITEM_CLASS}
-          onClick={onCollapseSpaces}
+        <div
+          className={cn(
+            GROUP_VIEW_MENU_ITEM_CLASS,
+            isSpaceActive && 'opacity-100 border-selected bg-card font-bold'
+          )}
         >
-          <GroupViewIcon view={presentedView} />
-          <span className='truncate flex-1'>{displayNameForView(presentedView, t)}</span>
-          {spaceUnread && <UnreadDot />}
-        </MenuLink>
+          <MenuLink
+            to={spaceLink}
+            isActive={false}
+            className={GROUP_VIEW_MENU_ITEM_INNER_LINK_CLASS}
+          >
+            <GroupViewIcon view={presentedView} />
+            <span className='truncate flex-1'>{displayNameForView(presentedView, t)}</span>
+            {spaceUnread && <UnreadDot />}
+          </MenuLink>
+          {aboutUrl && (
+            <MenuLink
+              to={aboutUrl}
+              isActive={false}
+              className='shrink-0 p-1 pr-1 text-foreground/50 hover:text-foreground border-0 bg-transparent mb-0 rounded-none shadow-none hover:border-0 hover:bg-transparent hover:scale-100'
+            >
+              <Info className='w-4 h-4' aria-hidden='true' />
+              <span className='sr-only'>{t('About')}</span>
+            </MenuLink>
+          )}
+        </div>
+        {isExpanded && (
+          <ul className='pl-4 mt-1'>
+            {spaceViews.map(subView => (
+              <GroupViewMenuItem
+                key={subView.id}
+                view={subView}
+                parentSlug={parentSlug}
+                spaceGroup={linkedSpaceGroup}
+                spaceSlug={spaceSlug}
+              />
+            ))}
+          </ul>
+        )}
       </li>
     )
   }
@@ -319,7 +299,6 @@ function GroupViewMenuItem ({
         to={isExternal ? null : url}
         externalLink={isExternal ? url : null}
         className={GROUP_VIEW_MENU_ITEM_CLASS}
-        onClick={spaceGroup ? undefined : onCollapseSpaces}
       >
         <GroupViewIcon view={presentedView} />
         <span className='truncate flex-1'>{displayNameForView(presentedView, t)}</span>
@@ -339,22 +318,8 @@ function GroupViewList ({
   onOpenSettings,
   canManageSpaces
 }) {
-  const [expandedSpaceId, setExpandedSpaceId] = useState(null)
   const [showAddView, setShowAddView] = useState(false)
   const [showAddSpace, setShowAddSpace] = useState(false)
-
-  // Auto-expand the space sub-menu when viewing a space route (multi-view spaces only)
-  useEffect(() => {
-    if (!spaceSlug || !groupViews?.length) return
-    const spaceView = groupViews.find(v =>
-      v.type === 'space' &&
-      localSpaceSlug(groupSlug, v.linkedGroup?.slug) === spaceSlug
-    )
-    const spaceViewCount = spaceView?.linkedGroup?.groupViews?.items?.length || 0
-    if (spaceView && spaceViewCount > 1) setExpandedSpaceId(spaceView.id)
-  }, [spaceSlug, groupViews, groupSlug])
-
-  const handleCollapseSpaces = useCallback(() => setExpandedSpaceId(null), [])
 
   if (isEditing) {
     return (
@@ -384,9 +349,6 @@ function GroupViewList ({
             view={view}
             parentSlug={groupSlug}
             spaceSlug={spaceSlug}
-            expandedSpaceId={expandedSpaceId}
-            setExpandedSpaceId={setExpandedSpaceId}
-            onCollapseSpaces={handleCollapseSpaces}
           />
         ))}
       </ul>
@@ -587,11 +549,21 @@ export default function ContextMenu (props) {
               )}
           {menuFooter}
           {settingsView && (
-            <GroupViewSettingsModal
-              view={settingsView}
-              group={group}
-              onClose={() => setSettingsView(null)}
-            />
+            settingsView.type === 'space'
+              ? (
+                <SpaceSettingsModal
+                  view={settingsView}
+                  group={group}
+                  onClose={() => setSettingsView(null)}
+                />
+                )
+              : (
+                <GroupViewSettingsModal
+                  view={settingsView}
+                  group={group}
+                  onClose={() => setSettingsView(null)}
+                />
+                )
           )}
         </div>
 

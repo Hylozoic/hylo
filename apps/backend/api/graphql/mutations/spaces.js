@@ -34,7 +34,7 @@ async function requireStewardOfGroup (userId, groupId, action) {
   return group
 }
 
-export async function createSpace (userId, { parentGroupId, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, purpose, location, locationId, viewTypes }, context) {
+export async function createSpace (userId, { parentGroupId, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, purpose, location, locationId, viewTypes, bannerUrl, avatarUrl }, context) {
   if (!userId) throw new GraphQLError('No userId passed into function')
   if (!parentGroupId) throw new GraphQLError('No parentGroupId passed into function')
   if (!name || !name.trim()) throw new GraphQLError('Name cannot be blank')
@@ -61,6 +61,8 @@ export async function createSpace (userId, { parentGroupId, name, slug, accepted
     purpose,
     location,
     location_id: locationId,
+    banner_url: bannerUrl,
+    avatar_url: avatarUrl,
     visibility: visibility != null ? visibility : Group.Visibility.PROTECTED,
     accessibility: accessibility != null ? accessibility : Group.Accessibility.RESTRICTED,
     settings: {},
@@ -91,7 +93,7 @@ export async function createSpace (userId, { parentGroupId, name, slug, accepted
   return space
 }
 
-export async function updateSpace (userId, { id, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, location, locationId, purpose }, context) {
+export async function updateSpace (userId, { id, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, location, locationId, purpose, bannerUrl, avatarUrl }, context) {
   if (!userId) throw new GraphQLError('No userId passed into function')
   if (!id) throw new GraphQLError('No id passed into function')
 
@@ -112,6 +114,8 @@ export async function updateSpace (userId, { id, name, slug, acceptedPostTypes, 
   if (location !== undefined) changes.location = location
   if (locationId !== undefined) changes.location_id = locationId
   if (icon !== undefined) changes.icon = icon || null
+  if (bannerUrl !== undefined) changes.banner_url = bannerUrl
+  if (avatarUrl !== undefined) changes.avatar_url = avatarUrl
 
   await space.save(changes, { patch: true })
 

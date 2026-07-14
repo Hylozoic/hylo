@@ -27,6 +27,7 @@ import PeopleInfo from 'components/PostCard/PeopleInfo'
 import ProjectContributions from './ProjectContributions'
 import PostPeopleDialog from 'components/PostPeopleDialog'
 import useRouteParams from 'hooks/useRouteParams'
+import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import fetchPost from 'store/actions/fetchPost'
 import joinProject from 'store/actions/joinProject'
 import leaveProject from 'store/actions/leaveProject'
@@ -72,7 +73,8 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
   const location = useLocation()
   const routeParams = useRouteParams()
   const postId = routeParams.postId || getQuerystringParam('fromPostId', location)
-  const { groupSlug, view } = routeParams
+  const { view } = routeParams
+  const groupSlug = useEffectiveGroupSlug() || routeParams.groupSlug
   const commentId = getQuerystringParam('commentId', location) || routeParams.commentId
   const currentGroup = useSelector(state => getGroupForSlug(state, groupSlug))
   const hasTracksResponsibility = useSelector(state => currentGroup && hasResponsibilityForGroup(state, { groupId: currentGroup.id, responsibility: RESP_MANAGE_TRACKS }))

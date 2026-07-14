@@ -13,6 +13,7 @@ const VIEW_TYPE_TO_ICON_NAME = {
   projects: 'Stack',
   proposals: 'Proposal',
   'related-groups': 'Groups',
+  group: 'Groups',
   groups: 'Groups',
   'requests-and-offers': 'Request',
   resources: 'Document',
@@ -27,6 +28,7 @@ const VIEW_TYPE_TO_ICON_NAME = {
 const VIEW_TYPE_TO_LUCIDE_ICON = {
   chat: 'MessageCircleMore',
   link: 'ExternalLink',
+  member: 'User',
   text: 'Type',
   separator: 'Minus'
 }

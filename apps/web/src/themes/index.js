@@ -28,7 +28,16 @@ export const baseTheme = {
     input: '42 5.9% 100%',
     ring: '240 10% 3.9%',
     'theme-background': '39 3% 5%',
-    'theme-highlight': '39 5% 5%'
+    'theme-highlight': '39 5% 5%',
+    chats: '197 100% 69%',
+    discussions: '197 100% 45%',
+    events: '357 99% 64%',
+    offers: '167 100% 39%',
+    projects: '30 100% 49%',
+    proposals: '258 38% 47%',
+    requests: '167 100% 39%',
+    resources: '50 100% 51%',
+    members: '315 51% 57%'
   },
   dark: {
     darkening: '39 2% 0%',
@@ -58,7 +67,16 @@ export const baseTheme = {
     input: '200 2.7% 8.9%',
     ring: '240 4.9% 83.9%',
     'theme-background': '39 2% 8%',
-    'theme-highlight': '39 2% 8%'
+    'theme-highlight': '39 2% 8%',
+    chats: '197 100% 69%',
+    discussions: '197 100% 45%',
+    events: '357 99% 64%',
+    offers: '167 100% 39%',
+    projects: '30 100% 49%',
+    proposals: '258 38% 47%',
+    requests: '167 100% 39%',
+    resources: '50 100% 51%',
+    members: '315 51% 57%'
   }
 }
 

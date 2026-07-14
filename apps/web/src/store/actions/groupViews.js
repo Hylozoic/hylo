@@ -194,11 +194,11 @@ export function setHomeView ({ viewId, groupId, parentGroupId, targetGroupId, re
 }
 
 /** Create a child space under a parent group. */
-export function createSpace ({ parentGroupId, name, slug, description, icon, acceptedPostTypes, purpose, location, locationId, visibility, accessibility, requiredRoles, viewTypes }) {
+export function createSpace ({ parentGroupId, name, slug, description, icon, acceptedPostTypes, purpose, location, locationId, visibility, accessibility, requiredRoles, viewTypes, bannerUrl, avatarUrl }) {
   return {
     type: CREATE_SPACE,
     graphql: {
-      query: `mutation ($parentGroupId: ID!, $name: String!, $slug: String, $description: String, $icon: String, $acceptedPostTypes: [String], $purpose: String, $location: String, $locationId: ID, $visibility: Int, $accessibility: Int, $requiredRoles: [Int], $viewTypes: [String]) {
+      query: `mutation ($parentGroupId: ID!, $name: String!, $slug: String, $description: String, $icon: String, $acceptedPostTypes: [String], $purpose: String, $location: String, $locationId: ID, $visibility: Int, $accessibility: Int, $requiredRoles: [Int], $viewTypes: [String], $bannerUrl: String, $avatarUrl: String) {
         createSpace(
           parentGroupId: $parentGroupId
           name: $name
@@ -213,15 +213,19 @@ export function createSpace ({ parentGroupId, name, slug, description, icon, acc
           accessibility: $accessibility
           requiredRoles: $requiredRoles
           viewTypes: $viewTypes
+          bannerUrl: $bannerUrl
+          avatarUrl: $avatarUrl
         ) {
           id
           name
           slug
           homeRoute
           description
+          bannerUrl
+          avatarUrl
         }
       }`,
-      variables: { parentGroupId, name, slug, description, icon, acceptedPostTypes, purpose, location, locationId, visibility, accessibility, requiredRoles, viewTypes }
+      variables: { parentGroupId, name, slug, description, icon, acceptedPostTypes, purpose, location, locationId, visibility, accessibility, requiredRoles, viewTypes, bannerUrl, avatarUrl }
     },
     meta: {
       parentGroupId,
@@ -233,11 +237,11 @@ export function createSpace ({ parentGroupId, name, slug, description, icon, acc
 }
 
 /** Update a space's settings. */
-export function updateSpace ({ id, groupId, spaceViewId, name, slug, description, icon, acceptedPostTypes, viewName, purpose, location, locationId, visibility, accessibility, requiredRoles }) {
+export function updateSpace ({ id, groupId, spaceViewId, name, slug, description, icon, acceptedPostTypes, viewName, purpose, location, locationId, visibility, accessibility, requiredRoles, bannerUrl, avatarUrl }) {
   return {
     type: UPDATE_SPACE,
     graphql: {
-      query: `mutation ($id: ID!, $name: String, $slug: String, $description: String, $icon: String, $acceptedPostTypes: [String], $purpose: String, $location: String, $locationId: ID, $visibility: Int, $accessibility: Int, $requiredRoles: [Int]) {
+      query: `mutation ($id: ID!, $name: String, $slug: String, $description: String, $icon: String, $acceptedPostTypes: [String], $purpose: String, $location: String, $locationId: ID, $visibility: Int, $accessibility: Int, $requiredRoles: [Int], $bannerUrl: String, $avatarUrl: String) {
         updateSpace(
           id: $id
           name: $name
@@ -251,15 +255,19 @@ export function updateSpace ({ id, groupId, spaceViewId, name, slug, description
           visibility: $visibility
           accessibility: $accessibility
           requiredRoles: $requiredRoles
+          bannerUrl: $bannerUrl
+          avatarUrl: $avatarUrl
         ) {
           id
           name
           slug
           homeRoute
           description
+          bannerUrl
+          avatarUrl
         }
       }`,
-      variables: omitBy(isUndefined, { id, name, slug, description, icon, acceptedPostTypes, purpose, location, locationId, visibility, accessibility, requiredRoles })
+      variables: omitBy(isUndefined, { id, name, slug, description, icon, acceptedPostTypes, purpose, location, locationId, visibility, accessibility, requiredRoles, bannerUrl, avatarUrl })
     },
     meta: {
       id,

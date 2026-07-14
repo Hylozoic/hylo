@@ -1,144 +1,82 @@
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors
-} from '@dnd-kit/core'
-import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
-import {
-  SortableContext,
-  arrayMove,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy
-} from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { GripVertical, Plus, X } from 'lucide-react'
+import { BadgeDollarSign, ImagePlus, Layers, MessageCircleMore, Plus, Shapes } from 'lucide-react'
 
 import Button from 'components/ui/button'
 import { Input } from 'components/ui/input'
 import { Label } from 'components/ui/label'
 import { RadioGroup, RadioGroupItem } from 'components/ui/radio-group'
+import IncludedViewsEditor from 'components/IncludedViewsEditor/IncludedViewsEditor'
 import LucideIcon from 'components/LucideIcon/LucideIcon'
 import LucideIconPicker from 'components/LucideIconPicker/LucideIconPicker'
 import LocationInput from 'components/LocationInput/LocationInput'
 import PostTypePills from 'components/PostTypePills/PostTypePills'
 import TagInput from 'components/TagInput'
-import { CUSTOM_VIEW_POST_TYPE_OPTIONS } from 'components/CustomViewForm/customViewFormConstants'
+import UploadAttachmentButton from 'components/UploadAttachmentButton'
+import { CUSTOM_VIEW_DEFAULT_POST_TYPES, CUSTOM_VIEW_POST_TYPE_OPTIONS } from 'components/CustomViewForm/customViewFormConstants'
 import { addQuerystringToPath } from '@hylo/navigation'
-import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 import { createSpace, createGroupView } from 'store/actions/groupViews'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
-import { GROUP_ACCESSIBILITY, GROUP_VISIBILITY } from 'store/models/Group'
+import { createTrack } from 'store/actions/trackActions'
+import { createFundingRound } from 'routes/FundingRounds/FundingRounds.store'
 import { POST_TYPE_TO_VIEW_TYPE } from 'store/models/GroupView'
 import { cn } from 'util/index'
 
-import GroupViewIcon from './GroupViewIcon'
-import AddGroupViewDialog, { AddViewButton } from './AddGroupViewDialog'
+import { SPACE_ICON_SUGGESTIONS, ACCESS_OPTIONS } from './spaceFormConstants'
 
-/** Suggested icons covering common space archetypes (chat, circle, team, local group, etc). */
-const SPACE_ICON_SUGGESTIONS = [
-  'MessageCircleMore',
-  'Circle',
-  'Building2',
-  'MapPin',
-  'Users',
-  'Sparkles',
-  'Heart',
-  'Landmark',
-  'Trees',
-  'Globe'
+const STANDARD_VIEW_TYPES = new Set([
+  'all',
+  'chat',
+  'members',
+  'welcome',
+  'track-actions',
+  'funding-round-submissions',
+  ...Object.values(POST_TYPE_TO_VIEW_TYPE)
+])
+
+/** Space types selectable at creation — immutable afterward (no type switch in SpaceSettingsModal). */
+const SPACE_TYPE_OPTIONS = [
+  { value: 'custom', labelKey: 'Custom Space', icon: Layers },
+  { value: 'chat', labelKey: 'Chat Space', icon: MessageCircleMore },
+  { value: 'track', labelKey: 'Track', icon: Shapes },
+  { value: 'funding-round', labelKey: 'Funding Round', icon: BadgeDollarSign }
 ]
 
-const STANDARD_VIEW_TYPES = new Set(['all', 'chat', 'members', ...Object.values(POST_TYPE_TO_VIEW_TYPE)])
-
-const ACCESS_OPTIONS = [
-  {
-    value: 'open',
-    labelKey: 'Open',
-    descKey: 'Anyone who can see this space can join it',
-    visibility: GROUP_VISIBILITY.Public,
-    accessibility: GROUP_ACCESSIBILITY.Open
-  },
-  {
-    value: 'request',
-    labelKey: 'Request to Join',
-    descKey: 'Must be approved by a group host',
-    visibility: GROUP_VISIBILITY.Public,
-    accessibility: GROUP_ACCESSIBILITY.Restricted
-  },
-  {
-    value: 'invite',
-    labelKey: 'Invite Only',
-    descKey: 'Only people who are invited can join',
-    visibility: GROUP_VISIBILITY.Hidden,
-    accessibility: GROUP_ACCESSIBILITY.Closed
-  },
-  {
-    value: 'role',
-    labelKey: 'Role Gated',
-    descKey: 'Only members with the selected roles can join',
-    visibility: GROUP_VISIBILITY.Hidden,
-    accessibility: GROUP_ACCESSIBILITY.Closed
-  },
-  {
-    value: 'paid',
-    labelKey: 'Paid',
-    descKey: 'Requires payment to join (details coming soon)',
-    visibility: GROUP_VISIBILITY.Hidden,
-    accessibility: GROUP_ACCESSIBILITY.Closed
+/** Defaults for accepted post types / included views based on the selected space type. */
+function defaultsForSpaceType (spaceType) {
+  switch (spaceType) {
+    case 'chat':
+      return {
+        postTypes: [],
+        standardViewTypes: ['chat']
+      }
+    case 'track':
+      return {
+        postTypes: [],
+        standardViewTypes: ['track-actions', 'chat', 'members', 'welcome']
+      }
+    case 'funding-round':
+      return {
+        postTypes: [],
+        standardViewTypes: ['funding-round-submissions', 'chat', 'members', 'welcome']
+      }
+    default:
+      return {
+        postTypes: [...CUSTOM_VIEW_DEFAULT_POST_TYPES],
+        standardViewTypes: null
+      }
   }
-]
-
-/** Keeps drag order stable across renders: preserves the order of keys still present,
- * appends any brand-new keys at the end, and drops keys that no longer exist. */
-function mergeViewOrder (prevOrder, currentKeys) {
-  const currentSet = new Set(currentKeys)
-  const kept = prevOrder.filter(key => currentSet.has(key))
-  const keptSet = new Set(kept)
-  const added = currentKeys.filter(key => !keptSet.has(key))
-  return [...kept, ...added]
 }
 
-/** Single draggable row in the Included Views editor. */
-function SortableViewRow ({ rowKey, row, isHome, onRemove, t }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: rowKey })
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1
-  }
-  const presentedView = GroupViewPresenter({ type: row.type, name: row.name, pageContent: row.pageContent })
-  const rowLabel = row.name || displayNameForView(presentedView, t)
-
-  return (
-    <li ref={setNodeRef} style={style} className='list-none flex items-center gap-1 border-2 border-foreground/10 rounded-md p-1 pl-1'>
-      <button type='button' className='p-1 cursor-grab text-foreground/40 shrink-0' {...attributes} {...listeners} aria-label={t('Drag to reorder')}>
-        <GripVertical className='w-3.5 h-3.5' />
-      </button>
-      <GroupViewIcon view={presentedView} className='w-4 h-4 shrink-0 text-foreground/70 mr-2' />
-      <span className='flex-1 text-sm text-foreground truncate'>
-        {rowLabel}
-        {isHome && <span className='ml-1 text-xs text-foreground/50'>({t('Home')})</span>}
-      </span>
-      {row.removable && (
-        <button
-          type='button'
-          onClick={onRemove}
-          className='p-1 text-foreground/40 hover:text-foreground transition-colors'
-          aria-label={t('Remove view')}
-        >
-          <X className='w-3.5 h-3.5' />
-        </button>
-      )}
-    </li>
-  )
+/** Post-type-derived views for Custom Space (All Activity, Chat, Members, then type views). */
+function customSpaceStandardViews (postTypes, removedStandardTypes) {
+  const base = ['all', 'chat', 'members']
+  const postTypeViews = CUSTOM_VIEW_POST_TYPE_OPTIONS
+    .filter(option => option.postTypes.every(type => postTypes.includes(type)))
+    .map(option => POST_TYPE_TO_VIEW_TYPE[option.postTypes[0]])
+  return [...base, ...postTypeViews].filter(type => !removedStandardTypes.has(type))
 }
 
 /** Modal for creating a new space under the current group. */
@@ -148,20 +86,32 @@ export default function AddSpaceDialog ({ group, onClose }) {
   const navigate = useNavigate()
   const routerLocation = useLocation()
 
+  const [spaceType, setSpaceType] = useState('custom')
   const [name, setName] = useState('')
   const [icon, setIcon] = useState(SPACE_ICON_SUGGESTIONS[0])
+  const [bannerUrl, setBannerUrl] = useState('')
   const [purpose, setPurpose] = useState('')
   const [description, setDescription] = useState('')
   const [locationObject, setLocationObject] = useState(null)
-  const [postTypes, setPostTypes] = useState([])
-  const [removedStandardTypes, setRemovedStandardTypes] = useState(new Set())
+  const [postTypes, setPostTypes] = useState(() => defaultsForSpaceType('custom').postTypes)
+  const [removedStandardTypes, setRemovedStandardTypes] = useState(() => new Set())
+  const [presetStandardViews, setPresetStandardViews] = useState(null)
   const [manualViews, setManualViews] = useState([])
-  const [viewOrder, setViewOrder] = useState([])
-  const [showAddViewDialog, setShowAddViewDialog] = useState(false)
+  const [orderedRows, setOrderedRows] = useState([])
   const [access, setAccess] = useState('open')
   const [requiredRoles, setRequiredRoles] = useState([])
   const [roleSearchTerm, setRoleSearchTerm] = useState(null)
   const [isCreating, setIsCreating] = useState(false)
+
+  /** Switches space type and resets post types / included views to that type's defaults. */
+  const handleSpaceTypeChange = useCallback((value) => {
+    setSpaceType(value)
+    const defaults = defaultsForSpaceType(value)
+    setPostTypes(defaults.postTypes)
+    setRemovedStandardTypes(new Set())
+    setPresetStandardViews(defaults.standardViewTypes)
+    setManualViews([])
+  }, [])
 
   const groupRoles = useMemo(() => group?.groupRoles?.items || [], [group?.groupRoles?.items])
   const roles = useMemo(() => groupRoles.map(role => ({ ...role, type: 'group', label: `${role.emoji} ${role.name}` })), [groupRoles])
@@ -184,58 +134,14 @@ export default function AddSpaceDialog ({ group, onClose }) {
   ), [])
 
   const standardViewTypes = useMemo(() => {
-    const base = ['all', 'chat', 'members']
-    const postTypeViews = CUSTOM_VIEW_POST_TYPE_OPTIONS
-      .filter(option => option.postTypes.every(type => postTypes.includes(type)))
-      .map(option => POST_TYPE_TO_VIEW_TYPE[option.postTypes[0]])
-    return [...base, ...postTypeViews].filter(type => !removedStandardTypes.has(type))
-  }, [postTypes, removedStandardTypes])
-
-  const rowsByKey = useMemo(() => {
-    const rows = {}
-    standardViewTypes.forEach(type => {
-      rows[type] = { key: type, kind: 'standard', type, removable: type !== 'all' }
-    })
-    manualViews.forEach(view => {
-      rows[view.key] = { ...view, kind: 'manual', removable: true }
-    })
-    return rows
-  }, [standardViewTypes, manualViews])
-
-  const rowKeys = useMemo(() => Object.keys(rowsByKey), [rowsByKey])
-
-  // Reconcile drag order with the current set of rows: keep existing order, append new rows, drop removed ones.
-  useEffect(() => {
-    setViewOrder(prev => mergeViewOrder(prev, rowKeys))
-  }, [rowKeys])
-
-  const orderedRows = useMemo(
-    () => viewOrder.map(key => rowsByKey[key]).filter(Boolean),
-    [viewOrder, rowsByKey]
-  )
-
-  const combinedViewsForAddDialog = useMemo(
-    () => orderedRows.map(row => ({ type: row.type })),
-    [orderedRows]
-  )
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  )
-
-  const handleDragEnd = useCallback((event) => {
-    const { active, over } = event
-    if (!over || active.id === over.id) return
-    setViewOrder(prev => {
-      const oldIndex = prev.indexOf(active.id)
-      const newIndex = prev.indexOf(over.id)
-      if (oldIndex === -1 || newIndex === -1) return prev
-      return arrayMove(prev, oldIndex, newIndex)
-    })
-  }, [])
+    if (presetStandardViews) {
+      return presetStandardViews.filter(type => !removedStandardTypes.has(type))
+    }
+    return customSpaceStandardViews(postTypes, removedStandardTypes)
+  }, [presetStandardViews, postTypes, removedStandardTypes])
 
   const handleRemoveStandardView = useCallback((type) => {
+    if (type === 'all' || type === 'track-actions' || type === 'funding-round-submissions') return
     setRemovedStandardTypes(prev => new Set(prev).add(type))
   }, [])
 
@@ -249,6 +155,11 @@ export default function AddSpaceDialog ({ group, onClose }) {
         const next = new Set(prev)
         next.delete(viewData.type)
         return next
+      })
+      // Preset space types (track/chat/funding) may not already include this view — append it.
+      setPresetStandardViews(prev => {
+        if (!prev || prev.includes(viewData.type)) return prev
+        return [...prev, viewData.type]
       })
       return
     }
@@ -268,6 +179,7 @@ export default function AddSpaceDialog ({ group, onClose }) {
         name: name.trim(),
         description: description || null,
         icon,
+        bannerUrl: bannerUrl || null,
         purpose: purpose.trim() || null,
         location: locationObject?.fullText || null,
         locationId: locationObject?.id || null,
@@ -279,6 +191,23 @@ export default function AddSpaceDialog ({ group, onClose }) {
       }))
 
       const newSpace = result?.payload?.data?.createSpace
+
+      if (newSpace?.id && spaceType === 'track') {
+        await dispatch(createTrack({
+          groupIds: [newSpace.id],
+          name: name.trim(),
+          actionDescriptor: 'Action',
+          actionDescriptorPlural: 'Actions'
+        }))
+      } else if (newSpace?.id && spaceType === 'funding-round') {
+        await dispatch(createFundingRound({
+          groupId: newSpace.id,
+          title: name.trim(),
+          votingMethod: 'token_allocation_constant',
+          totalTokens: 100
+        }))
+      }
+
       if (newSpace?.id && manualRowsInOrder.length > 0) {
         // Fetch the standard views the backend just seeded so manual (custom/link/text) views
         // can be inserted at their correct position rather than always appended at the end.
@@ -303,6 +232,9 @@ export default function AddSpaceDialog ({ group, onClose }) {
             icon: row.icon,
             link: row.link,
             pageContent: row.pageContent,
+            postId: row.postId,
+            userId: row.userId,
+            linkedGroupId: row.linkedGroupId,
             addToEnd: nextId == null,
             orderInFrontOfViewId: nextId || undefined
           }))
@@ -318,7 +250,7 @@ export default function AddSpaceDialog ({ group, onClose }) {
     } finally {
       setIsCreating(false)
     }
-  }, [dispatch, group?.id, name, description, icon, purpose, locationObject, postTypes, access, requiredRoles, orderedRows, onClose, navigate, routerLocation.pathname])
+  }, [dispatch, group?.id, name, description, icon, bannerUrl, purpose, locationObject, postTypes, access, requiredRoles, spaceType, orderedRows, onClose, navigate, routerLocation.pathname])
 
   return (
     <div className='fixed inset-0 z-50 flex items-center justify-center bg-darkening/50'>
@@ -326,14 +258,44 @@ export default function AddSpaceDialog ({ group, onClose }) {
         <h2 className='text-lg font-semibold mb-4'>{t('Add Space')}</h2>
 
         <div className='flex flex-col gap-3 overflow-y-auto flex-1 min-h-0 p-1 -m-1'>
-          <div className='flex flex-col gap-1'>
-            <label className='text-sm text-foreground/70'>{t('Name')}</label>
-            <Input
-              value={name}
-              onChange={e => setName(e.target.value)}
-              placeholder={t('Space name')}
-            />
+          <div className='grid grid-cols-2 sm:grid-cols-4 gap-2'>
+            {SPACE_TYPE_OPTIONS.map(option => {
+              const OptionIcon = option.icon
+              const isSelected = spaceType === option.value
+              return (
+                <button
+                  key={option.value}
+                  type='button'
+                  onClick={() => handleSpaceTypeChange(option.value)}
+                  className={cn(
+                    'flex flex-col items-center gap-1 rounded-md border-2 p-2 transition-all',
+                    isSelected
+                      ? 'border-selected bg-selected/20'
+                      : 'border-foreground/20 hover:border-foreground/50'
+                  )}
+                >
+                  <OptionIcon className='w-4 h-4' />
+                  <span className='text-sm'>{t(option.labelKey)}</span>
+                </button>
+              )
+            })}
           </div>
+
+          <UploadAttachmentButton
+            type='groupBanner'
+            onInitialUpload={({ url }) => setBannerUrl(url)}
+            className='w-full group'
+          >
+            <div
+              className={cn('relative w-full h-[20vh] flex flex-col items-center justify-center border-2 border-dashed border-foreground/50 rounded-lg shadow-md bg-cover bg-center bg-darkening/0 hover:bg-darkening/20 scale-1 hover:scale-105 transition-all cursor-pointer', { 'border-none': !!bannerUrl })}
+              style={{ backgroundImage: `url(${bannerUrl})` }}
+            >
+              <div className='flex flex-col items-center justify-center gap-1'>
+                <ImagePlus className='inline-block' />
+                <span className='ml-2 text-xs opacity-40 group-hover:opacity-100 transition-all'>{t('Set space banner')}</span>
+              </div>
+            </div>
+          </UploadAttachmentButton>
 
           <div className='flex flex-col gap-1'>
             <label className='text-sm text-foreground/70'>{t('Icon')}</label>
@@ -356,6 +318,15 @@ export default function AddSpaceDialog ({ group, onClose }) {
               ))}
               <LucideIconPicker value={icon} onChange={setIcon} className='w-auto px-2 shrink-0' />
             </div>
+          </div>
+
+          <div className='flex flex-col gap-1'>
+            <label className='text-sm text-foreground/70'>{t('Name')}</label>
+            <Input
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder={t('Space name')}
+            />
           </div>
 
           <div className='flex flex-col gap-1'>
@@ -394,26 +365,16 @@ export default function AddSpaceDialog ({ group, onClose }) {
             label={t('Accepted post types')}
           />
 
-          <div className='flex flex-col gap-2'>
-            <label className='text-sm text-foreground/70'>{t('Included Views')}</label>
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd} modifiers={[restrictToVerticalAxis]}>
-              <SortableContext items={viewOrder} strategy={verticalListSortingStrategy}>
-                <ul className='flex flex-col gap-1 m-0 p-0'>
-                  {orderedRows.map((row, index) => (
-                    <SortableViewRow
-                      key={row.key}
-                      rowKey={row.key}
-                      row={row}
-                      isHome={index === 0}
-                      onRemove={() => row.kind === 'standard' ? handleRemoveStandardView(row.type) : handleRemoveManualView(row.key)}
-                      t={t}
-                    />
-                  ))}
-                </ul>
-              </SortableContext>
-            </DndContext>
-            <AddViewButton onClick={() => setShowAddViewDialog(true)} />
-          </div>
+          <IncludedViewsEditor
+            key={spaceType}
+            standardViewTypes={standardViewTypes}
+            onRemoveStandardType={handleRemoveStandardView}
+            manualViews={manualViews}
+            onAddView={handleAddView}
+            onRemoveManualView={handleRemoveManualView}
+            acceptedPostTypes={postTypes}
+            onOrderedRowsChange={setOrderedRows}
+          />
 
           <div className='flex flex-col gap-2'>
             <label className='text-sm text-foreground/70'>{t('Access')}</label>
@@ -461,16 +422,6 @@ export default function AddSpaceDialog ({ group, onClose }) {
           </Button>
         </div>
       </div>
-
-      {showAddViewDialog && (
-        <AddGroupViewDialog
-          group={null}
-          groupViews={combinedViewsForAddDialog}
-          acceptedPostTypes={postTypes}
-          onAdd={handleAddView}
-          onClose={() => setShowAddViewDialog(false)}
-        />
-      )}
     </div>
   )
 }

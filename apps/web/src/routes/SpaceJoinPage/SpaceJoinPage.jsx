@@ -52,14 +52,21 @@ export default function SpaceJoinPage () {
     if (parentSlug && !parentRolesLoaded) dispatch(fetchForGroup(parentSlug))
   }, [dispatch, parentSlug, parentRolesLoaded])
 
-  const { setHeaderDetails } = useViewHeader()
-  useEffect(() => {
-    setHeaderDetails({ title: t('Join Space'), icon: 'Hand', search: false })
-  }, [setHeaderDetails, t])
-
-  const spaceView = useMemo(() => spaceGroup ? { type: 'space', linkedGroup: spaceGroup } : null, [spaceGroup])
+  const spaceView = useMemo(() => spaceGroup
+    ? { type: 'space', name: spaceGroup.name, icon: spaceGroup.icon, linkedGroup: spaceGroup }
+    : null, [spaceGroup])
   const avatar = useMemo(() => avatarForView(spaceView), [spaceView])
   const icon = useMemo(() => iconForView(spaceView), [spaceView])
+
+  const { setHeaderDetails } = useViewHeader()
+  useEffect(() => {
+    setHeaderDetails({
+      title: spaceGroup?.name || t('Join Space'),
+      icon: '',
+      search: false,
+      spaceBreadcrumb: false
+    })
+  }, [spaceGroup?.name, setHeaderDetails, t])
 
   // Required roles are role ids from the parent group — a Space's access is gated by
   // roles the user holds in the parent, not roles on the space itself.

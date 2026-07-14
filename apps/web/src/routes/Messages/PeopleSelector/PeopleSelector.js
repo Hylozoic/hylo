@@ -112,10 +112,13 @@ export default function PeopleSelector (props) {
     }
   }
 
+  const showLabel = props.showLabel !== false
+  const inputPlaceholder = props.placeholder || (maxParticipantsReached ? t('Group limit reached') : `+ ${t('Add someone')}`)
+
   return (
     <div className='w-full relative' tabIndex='0'>
       <div className='w-full relative flex flex-wrap gap-1'>
-        <span className='p-2'>{t('New Message With')}:</span>
+        {showLabel && <span className='p-2'>{t('New Message With')}:</span>}
         {selectedPeople && selectedPeople.map(person =>
           <MatchingPeopleListItem
             avatarUrl={person.avatarUrl}
@@ -124,15 +127,15 @@ export default function PeopleSelector (props) {
             key={person.id}
           />
         )}
-        <div className='relative'>
+        <div className='relative flex-1 min-w-[150px]'>
           <input
-            className='w-[150px] bg-darkening/20 focus:bg-input rounded p-2 text-foreground placeholder:text-foreground/50 border-2 border-transparent focus:border-focus transition-all outline-none'
+            className='w-full bg-darkening/20 focus:bg-input rounded p-2 text-foreground placeholder:text-foreground/50 border-2 border-transparent focus:border-focus transition-all outline-none'
             ref={autocompleteInput}
             type='text'
             spellCheck={false}
             onChange={onChange}
             onKeyDown={handleKeyDown}
-            placeholder={maxParticipantsReached ? t('Group limit reached') : `+ ${t('Add someone')}`}
+            placeholder={inputPlaceholder}
             disabled={maxParticipantsReached}
             onFocus={(e) => {
               setSelectedIndex(-1)
@@ -176,5 +179,7 @@ PeopleSelector.propTypes = {
   removePerson: PropTypes.func,
   inputRef: PropTypes.object,
   autoFocus: PropTypes.bool,
-  maxParticipantsReached: PropTypes.bool
+  maxParticipantsReached: PropTypes.bool,
+  showLabel: PropTypes.bool,
+  placeholder: PropTypes.string
 }

@@ -22,6 +22,7 @@ import { useDispatch } from 'react-redux'
 
 import GroupViewIcon from './GroupViewIcon'
 import { GroupViewEditActions } from './GroupViewSettingsModal'
+import AddGroupViewDialog, { AddViewButton } from './AddGroupViewDialog'
 import { canDeleteView } from 'store/models/GroupView'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 import { deleteGroupView, reorderGroupView, setHomeView } from 'store/actions/groupViews'
@@ -137,10 +138,13 @@ function SortableEditRow ({ view, onSettings, onDelete, isHome }) {
 /** Space row with optional nested editable sub-views. */
 function SortableSpaceEditRow ({ view, group, onSettings, onDelete, onReorder, onSpaceViewsReordered }) {
   const { t } = useTranslation()
+  const dispatch = useDispatch()
   const [expanded, setExpanded] = useState(true)
+  const [showAddView, setShowAddView] = useState(false)
   const presentedView = GroupViewPresenter(view)
-  const spaceViews = sortViewsByOrder(presentedView.linkedGroup?.groupViews?.items || [])
-  const spaceGroupId = presentedView.linkedGroup?.id
+  const spaceGroup = presentedView.linkedGroup
+  const spaceViews = sortViewsByOrder(spaceGroup?.groupViews?.items || [])
+  const spaceGroupId = spaceGroup?.id
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: String(view.id),
@@ -152,6 +156,14 @@ function SortableSpaceEditRow ({ view, group, onSettings, onDelete, onReorder, o
     transition,
     opacity: isDragging ? 0.5 : 1
   }
+
+  /** Close the add-view dialog and refresh the parent menu so nested space views update. */
+  const handleAddViewClose = useCallback(async () => {
+    setShowAddView(false)
+    if (group?.id) {
+      await dispatch(fetchGroupViews(group.id))
+    }
+  }, [dispatch, group?.id])
 
   return (
     <li ref={setNodeRef} style={style} className='list-none'>
@@ -169,7 +181,7 @@ function SortableSpaceEditRow ({ view, group, onSettings, onDelete, onReorder, o
           onDelete={onDelete}
           className='opacity-0 group-hover:opacity-100'
         />
-        {spaceViews.length > 0 && (
+        {spaceGroupId && (
           <button
             type='button'
             className='p-1 text-foreground/50 hover:text-foreground'
@@ -179,18 +191,31 @@ function SortableSpaceEditRow ({ view, group, onSettings, onDelete, onReorder, o
           </button>
         )}
       </div>
-      {expanded && spaceViews.length > 0 && spaceGroupId && (
-        <ul className='pl-6 mt-1'>
-          <GroupViewEditSubList
-            views={spaceViews}
-            groupId={spaceGroupId}
-            parentGroupId={group?.id}
-            onSettings={onSettings}
-            onDelete={onDelete}
-            onReorder={onReorder}
-            onReordered={(newItems) => onSpaceViewsReordered(view.id, newItems)}
-          />
-        </ul>
+      {expanded && spaceGroupId && (
+        <div className='pl-6 mt-1'>
+          {spaceViews.length > 0 && (
+            <ul className='m-0 p-0'>
+              <GroupViewEditSubList
+                views={spaceViews}
+                groupId={spaceGroupId}
+                parentGroupId={group?.id}
+                onSettings={onSettings}
+                onDelete={onDelete}
+                onReorder={onReorder}
+                onReordered={(newItems) => onSpaceViewsReordered(view.id, newItems)}
+              />
+            </ul>
+          )}
+          <AddViewButton onClick={() => setShowAddView(true)} />
+        </div>
+      )}
+      {showAddView && (
+        <AddGroupViewDialog
+          group={spaceGroup}
+          groupViews={spaceViews}
+          acceptedPostTypes={spaceGroup?.acceptedPostTypes}
+          onClose={handleAddViewClose}
+        />
       )}
     </li>
   )

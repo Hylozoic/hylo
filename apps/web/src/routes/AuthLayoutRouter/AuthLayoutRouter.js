@@ -822,6 +822,19 @@ export default function AuthLayoutRouter (props) {
               <Route path='groups/:groupSlug/create/*' element={<CreateModal context='groups' />} />
               <Route path='groups/:groupSlug/post/:postId/create/*' element={<CreateModal context='groups' />} />
               <Route path='groups/:groupSlug/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
+              {/* Space create/edit modals — mirror group routes under /spaces/:spaceSlug */}
+              <Route path='groups/:groupSlug/spaces/:spaceSlug/chat/create/*' element={<CreateModal context='groups' />} />
+              <Route path='groups/:groupSlug/spaces/:spaceSlug/chat/post/:postId/create/*' element={<CreateModal context='groups' />} />
+              <Route path='groups/:groupSlug/spaces/:spaceSlug/chat/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
+              <Route path='groups/:groupSlug/spaces/:spaceSlug/members/:personId/create/*' element={<CreateModal context='groups' />} />
+              <Route path='groups/:groupSlug/spaces/:spaceSlug/:view/create/*' element={<CreateModal context='groups' />} />
+              <Route path='groups/:groupSlug/spaces/:spaceSlug/custom/:customViewId/create/*' element={<CreateModal context='groups' />} />
+              <Route path='groups/:groupSlug/spaces/:spaceSlug/custom/:customViewId/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
+              <Route path='groups/:groupSlug/spaces/:spaceSlug/:view/post/:postId/create/*' element={<CreateModal context='groups' />} />
+              <Route path='groups/:groupSlug/spaces/:spaceSlug/:view/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
+              <Route path='groups/:groupSlug/spaces/:spaceSlug/create/*' element={<CreateModal context='groups' />} />
+              <Route path='groups/:groupSlug/spaces/:spaceSlug/post/:postId/create/*' element={<CreateModal context='groups' />} />
+              <Route path='groups/:groupSlug/spaces/:spaceSlug/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
               <Route path='public/topics/:topicName/create/*' element={<CreateModal context='public' />} />
               <Route path='public/topics/:topicName/post/:postId/create/*' element={<CreateModal context='public' />} />
               <Route path='public/topics/:topicName/post/:postId/edit/*' element={<CreateModal context='public' editingPost />} />

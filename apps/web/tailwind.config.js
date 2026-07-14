@@ -139,7 +139,16 @@ export default {
         },
         'theme-background': 'hsl(var(--theme-background))',
         'theme-highlight': 'hsl(var(--theme-highlight) / <alpha-value>)',
-        'context-menu-background': 'hsl(var(--context-menu-background) / <alpha-value>)'
+        'context-menu-background': 'hsl(var(--context-menu-background) / <alpha-value>)',
+        chats: 'hsl(var(--chats) / <alpha-value>)',
+        discussions: 'hsl(var(--discussions) / <alpha-value>)',
+        events: 'hsl(var(--events) / <alpha-value>)',
+        offers: 'hsl(var(--offers) / <alpha-value>)',
+        projects: 'hsl(var(--projects) / <alpha-value>)',
+        proposals: 'hsl(var(--proposals) / <alpha-value>)',
+        requests: 'hsl(var(--requests) / <alpha-value>)',
+        resources: 'hsl(var(--resources) / <alpha-value>)',
+        members: 'hsl(var(--members) / <alpha-value>)'
       },
       fontSize: {
         '2xs': '0.625rem'

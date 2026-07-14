@@ -1220,7 +1220,7 @@ module.exports = bookshelf.Model.extend(merge({
     const attrs = defaults(
       pick(mapValues(data, (v, k) => trimAttrs.includes(k) ? trim(v) : v),
         'about_video_uri', 'accessibility', 'access_code', 'avatar_url', 'banner_url', 'description',
-        'location_id', 'location', 'name', 'purpose', 'settings', 'slug',
+        'location_id', 'location', 'name', 'purpose', 'settings', 'slug', 'accepted_post_types',
         'steward_descriptor', 'steward_descriptor_plural', 'type', 'type_descriptor', 'type_descriptor_plural', 'visibility'
       ),
       {
@@ -1275,6 +1275,12 @@ module.exports = bookshelf.Model.extend(merge({
       await group.createInitialWidgets(trx)
 
       await group.setupContextWidgets(trx)
+
+      // Spaces & Views: also seed real GroupView rows from the creator's chosen Included Views
+      // list (see routes/CreateGroup.jsx) so the new group menu works under the new system too.
+      if (data.view_types) {
+        await Group.setupSpaceViews(group.id, attrs.accepted_post_types, data.view_types, { transacting: trx })
+      }
 
       // Set lastReadAt when creating a new group to mark creator as having viewed the group already
       await group.addMembers([userId], { assignCoordinator: true, lastReadAt: new Date() }, { transacting: trx })

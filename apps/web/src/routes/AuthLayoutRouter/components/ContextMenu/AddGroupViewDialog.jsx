@@ -1,17 +1,27 @@
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { Plus } from 'lucide-react'
 
 import Button from 'components/ui/button'
 import Checkbox from 'components/ui/checkbox'
 import { Input } from 'components/ui/input'
 import LucideIconPicker from 'components/LucideIconPicker/LucideIconPicker'
+import GroupsSelector from 'components/GroupsSelector'
+import PostSelector from 'components/PostSelector'
+import PeopleSelector from 'routes/Messages/PeopleSelector'
 import GroupViewIcon from './GroupViewIcon'
 import AddCustomViewDialog from './AddCustomViewDialog'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 import { createGroupView } from 'store/actions/groupViews'
+import fetchGroupRelationships from 'store/actions/fetchGroupRelationships'
+import fetchPeople from 'store/actions/fetchPeople'
 import { VIEW_TYPE_TO_POST_TYPES } from 'store/models/GroupView'
+import {
+  getChildGroups,
+  getParentGroups,
+  getPeerGroups
+} from 'store/selectors/getGroupRelationships'
 import { cn } from 'util/index'
 
 /** View types that can be added from the menu editor without picking an entity. */
@@ -29,6 +39,9 @@ const ADDABLE_GROUP_VIEW_TYPES = [
   'welcome',
   'about',
   'related-groups',
+  'post',
+  'member',
+  'group',
   'custom',
   'link',
   'text',
@@ -52,6 +65,9 @@ const SINGLETON_VIEW_TYPES = new Set([
   'related-groups'
 ])
 
+/** View types that require picking a specific entity before creating. */
+const ENTITY_VIEW_TYPES = new Set(['post', 'member', 'group'])
+
 /** Short description shown on the right side of each add-view row. */
 function descriptionForViewType (type, t) {
   return t(`addViewDesc-${type}`, { defaultValue: '' })
@@ -70,6 +86,28 @@ export default function AddGroupViewDialog ({ group, groupViews, acceptedPostTyp
   const [textContent, setTextContent] = useState('')
   const [showCustomViewDialog, setShowCustomViewDialog] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
+  const [people, setPeople] = useState([])
+  const [peopleSelectorOpen, setPeopleSelectorOpen] = useState(false)
+  const [peopleSearch, setPeopleSearch] = useState(null)
+
+  const parentGroups = useSelector(state => getParentGroups(state, group))
+  const childGroups = useSelector(state => getChildGroups(state, group))
+  const peerGroups = useSelector(state => getPeerGroups(state, group))
+
+  // Related groups are not loaded with the main group payload — fetch them when
+  // the user opens the Group picker (same source as More Spaces).
+  useEffect(() => {
+    if (selectedType !== 'group' || !group?.slug) return
+    dispatch(fetchGroupRelationships(group.slug))
+  }, [selectedType, group?.slug, dispatch])
+
+  const relatedGroupOptions = useMemo(() => {
+    const byId = new Map()
+    ;[...parentGroups, ...childGroups, ...peerGroups].forEach(related => {
+      if (related?.id) byId.set(related.id, related)
+    })
+    return Array.from(byId.values()).sort((a, b) => a.name.localeCompare(b.name))
+  }, [parentGroups, childGroups, peerGroups])
 
   const typesInMenu = useMemo(
     () => new Set((groupViews || []).map(view => view.type)),
@@ -97,6 +135,9 @@ export default function AddGroupViewDialog ({ group, groupViews, acceptedPostTyp
     setLinkUrl('')
     setLinkIcon('Globe')
     setTextContent('')
+    setPeople([])
+    setPeopleSearch(null)
+    setPeopleSelectorOpen(false)
   }, [])
 
   const handleRowClick = useCallback((type) => {
@@ -113,35 +154,21 @@ export default function AddGroupViewDialog ({ group, groupViews, acceptedPostTyp
 
   const canAdd = useMemo(() => {
     if (!selectedType) return false
+    if (ENTITY_VIEW_TYPES.has(selectedType)) return false
     if (selectedType === 'link') return Boolean(linkName.trim() && linkUrl.trim())
     if (selectedType === 'text') return Boolean(textContent.trim())
     if (selectedType === 'custom') return true
     return true
   }, [selectedType, linkName, linkUrl, textContent])
 
-  const handleAdd = useCallback(async () => {
-    if (!canAdd || !selectedType) return
-    if (!onAdd && !group?.id) return
-
-    if (selectedType === 'custom') {
-      setShowCustomViewDialog(true)
-      return
-    }
-
-    const viewData = {
-      type: selectedType,
-      name: selectedType === 'link' ? linkName.trim() : null,
-      link: selectedType === 'link' ? linkUrl.trim() : null,
-      icon: selectedType === 'link' ? linkIcon : null,
-      pageContent: selectedType === 'text' ? textContent.trim() : null,
-      addToEnd: true
-    }
-
+  /** Create a GroupView (or stage via onAdd) and close the dialog. */
+  const createView = useCallback(async (viewData) => {
     if (onAdd) {
       onAdd(viewData)
       onClose()
       return
     }
+    if (!group?.id) return
 
     setIsCreating(true)
     try {
@@ -152,7 +179,73 @@ export default function AddGroupViewDialog ({ group, groupViews, acceptedPostTyp
     } finally {
       setIsCreating(false)
     }
-  }, [canAdd, dispatch, group?.id, selectedType, linkName, linkUrl, linkIcon, textContent, onClose, onAdd])
+  }, [dispatch, group?.id, onAdd, onClose])
+
+  const handleAdd = useCallback(async () => {
+    if (!canAdd || !selectedType) return
+    if (!onAdd && !group?.id) return
+
+    if (selectedType === 'custom') {
+      setShowCustomViewDialog(true)
+      return
+    }
+
+    await createView({
+      type: selectedType,
+      name: selectedType === 'link' ? linkName.trim() : null,
+      link: selectedType === 'link' ? linkUrl.trim() : null,
+      icon: selectedType === 'link' ? linkIcon : null,
+      pageContent: selectedType === 'text' ? textContent.trim() : null,
+      addToEnd: true
+    })
+  }, [canAdd, createView, group?.id, selectedType, linkName, linkUrl, linkIcon, textContent, onAdd])
+
+  const handleSelectPost = useCallback((post) => {
+    if (!post?.id || isCreating) return
+    createView({
+      type: 'post',
+      name: post.title || null,
+      postId: post.id,
+      addToEnd: true
+    })
+  }, [createView, isCreating])
+
+  const handleSelectPerson = useCallback((person) => {
+    if (!person?.id || isCreating) return
+    createView({
+      type: 'member',
+      name: person.name || null,
+      userId: person.id,
+      addToEnd: true
+    })
+  }, [createView, isCreating])
+
+  const handleSelectGroups = useCallback((selectedGroups) => {
+    if (isCreating) return
+    const selectedGroup = selectedGroups?.[selectedGroups.length - 1]
+    if (!selectedGroup?.id) return
+    createView({
+      type: 'group',
+      name: selectedGroup.name || null,
+      linkedGroupId: selectedGroup.id,
+      addToEnd: true
+    })
+  }, [createView, isCreating])
+
+  const fetchPeopleForGroup = useCallback(async (autocomplete = '') => {
+    if (!group?.id) return
+    const response = await dispatch(fetchPeople({
+      autocomplete: typeof autocomplete === 'string' ? autocomplete : peopleSearch || '',
+      groupIds: [group.id],
+      first: 20
+    }))
+    const members = response?.payload?.data?.groups?.items?.[0]?.members?.items || []
+    setPeople(members)
+  }, [dispatch, group?.id, peopleSearch])
+
+  const fetchDefaultPeopleList = useCallback(() => {
+    fetchPeopleForGroup('')
+  }, [fetchPeopleForGroup])
 
   const handleCustomViewCreated = useCallback(() => {
     setShowCustomViewDialog(false)
@@ -229,6 +322,42 @@ export default function AddGroupViewDialog ({ group, groupViews, acceptedPostTyp
                       />
                     </div>
                   )}
+
+                  {isSelected && type === 'post' && group && (
+                    <div className='ml-9 mr-1 mb-1' onClick={e => e.stopPropagation()}>
+                      <PostSelector group={group} onSelectPost={handleSelectPost} posts={[]} />
+                    </div>
+                  )}
+
+                  {isSelected && type === 'member' && group && (
+                    <div className='ml-9 mr-1 mb-1' onClick={e => e.stopPropagation()}>
+                      <PeopleSelector
+                        showLabel={false}
+                        placeholder={t('Search for a member')}
+                        fetchPeople={fetchPeopleForGroup}
+                        fetchDefaultList={fetchDefaultPeopleList}
+                        setPeopleSearch={setPeopleSearch}
+                        people={people}
+                        selectedPeople={[]}
+                        selectPerson={handleSelectPerson}
+                        removePerson={() => {}}
+                        peopleSelectorOpen={peopleSelectorOpen}
+                        onFocus={() => setPeopleSelectorOpen(true)}
+                        autoFocus
+                      />
+                    </div>
+                  )}
+
+                  {isSelected && type === 'group' && (
+                    <div className='ml-9 mr-1 mb-1' onClick={e => e.stopPropagation()}>
+                      <GroupsSelector
+                        options={relatedGroupOptions}
+                        selected={[]}
+                        onChange={handleSelectGroups}
+                        placeholder={relatedGroupOptions.length === 0 ? t('No related groups available') : t('Type group name...')}
+                      />
+                    </div>
+                  )}
                 </React.Fragment>
               )
             })}
@@ -236,9 +365,11 @@ export default function AddGroupViewDialog ({ group, groupViews, acceptedPostTyp
 
           <div className='flex justify-end gap-2 mt-4 pt-2 border-t border-foreground/10'>
             <Button variant='primary' onClick={onClose}>{t('Cancel')}</Button>
-            <Button variant='secondary' disabled={!canAdd || isCreating} onClick={handleAdd}>
-              {isCreating ? t('Creating...') : t('Add View')}
-            </Button>
+            {!ENTITY_VIEW_TYPES.has(selectedType) && (
+              <Button variant='secondary' disabled={!canAdd || isCreating} onClick={handleAdd}>
+                {isCreating ? t('Creating...') : t('Add View')}
+              </Button>
+            )}
           </div>
         </div>
       </div>
