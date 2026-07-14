@@ -9,7 +9,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [6.5.4] - 2026-07-14
 
 ### Changed
-- Using the search feature in a post view like the Stream now also searched by post creator name alongside post content
 - When on a common view like Discussions, Events or Requests and Offers, the post create modal only allows you to create posts of the type(s) displayed in that view
 
 ### Fixed
