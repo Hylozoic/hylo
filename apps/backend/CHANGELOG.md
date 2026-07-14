@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.5.4] - 2026-07-14
+
+### Changed
+- Using the search feature in a post view like the Stream now also searches by post creator name alongside post content
+
 ## [6.5.3] - 2026-07-02
 
 ### Added
