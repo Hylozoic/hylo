@@ -8,6 +8,7 @@ import React, { useCallback, useMemo, useRef, useEffect, useState, forwardRef, u
 import { useSelector, useDispatch } from 'react-redux'
 import { useLocation, useParams, useNavigate } from 'react-router-dom'
 import useRouteParams from 'hooks/useRouteParams'
+import useAllowedPostTypesForView from 'hooks/useAllowedPostTypesForView'
 import { useTranslation } from 'react-i18next'
 import { Tooltip as ReactTooltip } from 'react-tooltip'
 import { createSelector } from 'reselect'
@@ -214,12 +215,18 @@ function PostEditorInner ({
   const currentGroup = useSelector(state => getGroupForSlug(state, groupSlug))
   const currentTrack = useSelector(state => getTrack(state, routeParams.trackId))
   const currentFundingRound = useSelector(state => getFundingRound(state, routeParams.fundingRoundId))
+  // Restrict create-modal type options to the current view's post types (e.g. request/offer on requests-and-offers)
+  const allowedPostTypesForView = useAllowedPostTypesForView()
+  const allowedPostTypes = (!editing && modal) ? allowedPostTypesForView : null
 
   const editingPostId = routeParams.postId
   const fromPostId = getQuerystringParam('fromPostId', urlLocation)
 
   const postType = getQuerystringParam('newPostType', urlLocation)
-  const createPostType = postType || (modal ? 'discussion' : 'chat')
+  // Prefer explicit newPostType, then the view's first allowed type, then discussion/chat default
+  const createPostType = postType || (modal
+    ? (allowedPostTypesForView?.[0] || 'discussion')
+    : 'chat')
   const topicName = customTopicName || (routeParams.topicName && decodeURIComponent(routeParams.topicName))
   const hiddenTopic = topicName?.startsWith('‡')
   const topic = useSelector(state => getTopicForCurrentRoute(state, topicName))
@@ -1393,6 +1400,7 @@ function PostEditorInner ({
               )
             : (
               <PostTypeSelect
+                allowedPostTypes={allowedPostTypes}
                 disabled={loading}
                 includeChat={!modal}
                 postType={currentPost.type}
