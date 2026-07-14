@@ -1098,8 +1098,9 @@ function PostEditorInner ({
         title,
         topicNames,
         trackId: currentTrack?.id,
-        type,
-        markAsReadTopicName
+        markAsReadTopicName,
+        viewId,
+        type
       }
 
       const saveFunc = isEditing ? updatePost : createPost

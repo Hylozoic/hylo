@@ -188,6 +188,7 @@
       "CustomView",
       "CustomViewTopic",
       "Contribution",
+      "Draft",
       "Email",
       "EventInvitation",
       "EventResponse",

@@ -557,7 +557,6 @@ export function makeMutations ({ fetchOne }) {
 
     addGroupRole: (root, { groupId, color, name, description, emoji }, context) => addGroupRole({ userId: context.currentUserId, groupId, color, name, description, emoji }),
 
-
     addPeopleToProjectRole: (root, { peopleIds, projectRoleId }, context) => addPeopleToProjectRole(context.currentUserId, peopleIds, projectRoleId),
 
     addPostToCollection: (root, { collectionId, postId }, context) => addPostToCollection(context.currentUserId, collectionId, postId),
