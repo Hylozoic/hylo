@@ -14,7 +14,6 @@ import {
   addGroupResponsibility,
   addGroupRole,
   addMember,
-  addModerator,
   addPeopleToProjectRole,
   addPostToCollection,
   addResponsibilityToRole,
@@ -85,6 +84,8 @@ import {
   joinProject,
   leaveFundingRound,
   leaveGroup,
+  muteMessageThread,
+  unmuteMessageThread,
   leaveProject,
   leaveTrack,
   logout,
@@ -107,7 +108,6 @@ import {
   register,
   removeWidgetFromMenu,
   removeMember,
-  removeModerator,
   removePost,
   removePostFromCollection,
   removeResponsibilityFromRole,
@@ -342,11 +342,6 @@ export function makeUnionAndInterfaceResolvers (models) {
         throw new GraphQLError('Post is the only implemented FeedItemContent type')
       }
     },
-    Role: {
-      __resolveType (data, context, info) {
-        return getTypeForInstance(data, models)
-      }
-    },
     SearchResultContent: {
       __resolveType (data, context, info) {
         return getTypeForInstance(data, models)
@@ -415,7 +410,6 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     collection: (root, { id }) => fetchOne('Collection', id),
     comment: (root, { id }) => fetchOne('Comment', id),
     customView: (root, { id }) => fetchOne('CustomView', id),
-    commonRoles: (root, args) => CommonRole.fetchAll(args),
     connections: (root, args) => fetchMany('PersonConnection', args),
     contentAccess: (root, args) => fetchMany('ContentAccess', args),
     fundingRound: (root, { id }) => fetchOne('FundingRound', id),
@@ -470,7 +464,10 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
       membershipChangePreview(context.currentUserId, args),
     membershipChangeInvoicePreview: (root, args, context) =>
       membershipChangeInvoicePreview(context.currentUserId, args),
-    messageThread: (root, { id }) => fetchOne('MessageThread', id),
+    messageThread: (root, { id }) => {
+      if (!id || isNaN(Number(id))) return null
+      return fetchOne('MessageThread', id)
+    },
     moderationActions: (root, args) => fetchMany('ModerationAction', args),
     notifications: async (root, { first, offset, resetCount, order = 'desc' }, context) => {
       const notifications = await fetchMany('Notification', { first, offset, order })
@@ -543,7 +540,6 @@ export function makeMutations ({ fetchOne }) {
 
     addGroupRole: (root, { groupId, color, name, description, emoji }, context) => addGroupRole({ userId: context.currentUserId, groupId, color, name, description, emoji }),
 
-    addModerator: (root, { personId, groupId }, context) => addModerator(context.currentUserId, personId, groupId, context),
 
     addPeopleToProjectRole: (root, { peopleIds, projectRoleId }, context) => addPeopleToProjectRole(context.currentUserId, peopleIds, projectRoleId),
 
@@ -553,7 +549,7 @@ export function makeMutations ({ fetchOne }) {
 
     addResponsibilityToRole: (root, { responsibilityId, roleId, groupId }, context) => addResponsibilityToRole({ userId: context.currentUserId, responsibilityId, roleId, groupId }),
 
-    addRoleToMember: (root, { personId, roleId, groupId, isCommonRole = false }, context) => addRoleToMember({ userId: context.currentUserId, personId, roleId, groupId, isCommonRole }),
+    addRoleToMember: (root, { personId, roleId, groupId }, context) => addRoleToMember({ userId: context.currentUserId, personId, roleId, groupId }),
 
     addSkill: (root, { name }, context) => addSkill(context.currentUserId, name),
 
@@ -687,6 +683,10 @@ export function makeMutations ({ fetchOne }) {
 
     leaveGroup: (root, { id }, context) => leaveGroup(context.currentUserId, id),
 
+    muteMessageThread: (root, { messageThreadId }, context) => muteMessageThread(context.currentUserId, messageThreadId),
+
+    unmuteMessageThread: (root, { messageThreadId }, context) => unmuteMessageThread(context.currentUserId, messageThreadId),
+
     leaveProject: (root, { id }, context) => leaveProject(id, context.currentUserId),
 
     leaveTrack: (root, { trackId }, context) => leaveTrack(context.currentUserId, trackId),
@@ -743,15 +743,13 @@ export function makeMutations ({ fetchOne }) {
 
     removeMember: (root, { personId, groupId }, context) => removeMember(context.currentUserId, personId, groupId, context),
 
-    removeModerator: (root, { personId, groupId, isRemoveFromGroup }, context) => removeModerator(context.currentUserId, personId, groupId, isRemoveFromGroup, context),
-
     removePost: (root, { postId, groupId, slug }, context) => removePost(context.currentUserId, postId, groupId || slug),
 
     removePostFromCollection: (root, { collectionId, postId }, context) => removePostFromCollection(context.currentUserId, collectionId, postId),
 
     removeResponsibilityFromRole: (root, { roleResponsibilityId, groupId }, context) => removeResponsibilityFromRole({ userId: context.currentUserId, roleResponsibilityId, groupId }),
 
-    removeRoleFromMember: (root, { roleId, personId, groupId, isCommonRole }, context) => removeRoleFromMember({ roleId, personId, userId: context.currentUserId, groupId, isCommonRole }),
+    removeRoleFromMember: (root, { roleId, personId, groupId }, context) => removeRoleFromMember({ roleId, personId, userId: context.currentUserId, groupId }),
 
     removeProposalVote: (root, { postId, optionId }, context) => removeProposalVote({ userId: context.currentUserId, postId, optionId }),
 

@@ -6,6 +6,10 @@ import { IntercomProvider } from 'react-use-intercom'
 import { Helmet } from 'react-helmet'
 import { get, some } from 'lodash/fp'
 import { cn } from 'util/index'
+import {
+  createPersistentSelectionTracker,
+  shouldBailTextSelectionGesture
+} from 'util/textSelectionTouch'
 import mixpanel from 'mixpanel-browser'
 import config, { isDev, isTest } from 'config/index'
 import CookieConsentLinker from 'components/CookieConsentLinker'
@@ -26,7 +30,6 @@ import useIsPhoneViewport from 'hooks/useIsPhoneViewport'
 import getReturnToPath from 'store/selectors/getReturnToPath'
 import checkForNewNotifications from 'store/actions/checkForNewNotifications'
 import setReturnToPath from 'store/actions/setReturnToPath'
-import fetchCommonRoles from 'store/actions/fetchCommonRoles'
 import fetchForCurrentUser from 'store/actions/fetchForCurrentUser'
 import fetchForGroup from 'store/actions/fetchForGroup'
 import fetchPost from 'store/actions/fetchPost'
@@ -269,6 +272,7 @@ export default function AuthLayoutRouter (props) {
 
     const VELOCITY_THRESHOLD = 0.3 // px/ms — fast flick overrides position
     const POSITION_THRESHOLD = 0.4 // 40% of nav width to snap open
+    const NAV_OPEN_EDGE_WIDTH_PX = 70
 
     let touchStartX = null
     let touchStartY = null
@@ -305,28 +309,28 @@ export default function AuthLayoutRouter (props) {
 
     let touchTarget = null
     let touchStartedWithTextSelected = false
+    let touchActive = false
 
-    let persistentHasSelection = false
-    const onSelectionChange = () => {
-      const hasSelection = !!(window.getSelection && window.getSelection().toString().length > 0)
-      if (hasSelection) {
-        persistentHasSelection = true
-      } else if (touchStartX === null) {
-        // Only clear when there is no active touch, so iOS's mid-gesture
-        // selectionchange (e.g. during handle drag) doesn't prematurely clear
-        // the flag and allow the nav swipe to activate.
-        persistentHasSelection = false
-      }
-    }
-    document.addEventListener('selectionchange', onSelectionChange)
+    const selectionTracker = createPersistentSelectionTracker({
+      getActiveTouch: () => touchActive
+    })
 
     const handleTouchStart = (e) => {
       if (!isDrawerNavLayout(window.innerWidth)) return
+      if (document.querySelector('.PostDialog-Content')) return
+      if (shouldBailTextSelectionGesture(e.target)) return
+      if (selectionTracker.hasSelection) return
       const navEl = navContainerRef.current
       const backdropEl = backdropRef.current
       if (!navEl || !backdropEl) return
 
       const touch = e.touches[0]
+
+      // Swipe-to-open only from the left edge so horizontal drags in content
+      // (e.g. text selection handles) are not hijacked as nav gestures.
+      if (!isNavOpenRef.current && touch.clientX > NAV_OPEN_EDGE_WIDTH_PX) return
+
+      touchActive = true
       touchStartX = touch.clientX
       touchStartY = touch.clientY
       touchStartTime = Date.now()
@@ -337,7 +341,7 @@ export default function AuthLayoutRouter (props) {
 
       // Use the persistent flag so handle-drag touches are detected even when
       // iOS has temporarily cleared window.getSelection() at touchstart.
-      touchStartedWithTextSelected = persistentHasSelection
+      touchStartedWithTextSelected = selectionTracker.hasSelection
 
       // Determine gesture type based on current nav state
       isOpenGesture = !isNavOpenRef.current
@@ -348,6 +352,20 @@ export default function AuthLayoutRouter (props) {
 
     const handleTouchMove = (e) => {
       if (touchStartX === null) return
+      if (document.querySelector('.PostDialog-Content')) {
+        touchStartX = null
+        touchActive = false
+        return
+      }
+      if (
+        shouldBailTextSelectionGesture(e.target) ||
+        touchStartedWithTextSelected ||
+        selectionTracker.hasSelection
+      ) {
+        touchStartX = null
+        touchActive = false
+        return
+      }
 
       const navEl = navContainerRef.current
       const backdropEl = backdropRef.current
@@ -415,6 +433,8 @@ export default function AuthLayoutRouter (props) {
       if (!isDragging || touchStartX === null) {
         touchStartX = null
         touchStartY = null
+        touchActive = false
+        selectionTracker.clearIfGone()
         return
       }
 
@@ -445,10 +465,8 @@ export default function AuthLayoutRouter (props) {
       touchStartX = null
       touchStartY = null
       isDragging = false
-      // Only clear the persistent selection flag once deselection is confirmed.
-      if (!window.getSelection || !window.getSelection().toString().length) {
-        persistentHasSelection = false
-      }
+      touchActive = false
+      selectionTracker.clearIfGone()
     }
 
     document.addEventListener('touchstart', handleTouchStart, { passive: true })
@@ -461,7 +479,7 @@ export default function AuthLayoutRouter (props) {
       document.removeEventListener('touchmove', handleTouchMove)
       document.removeEventListener('touchend', handleTouchEnd)
       document.removeEventListener('touchcancel', handleTouchEnd)
-      document.removeEventListener('selectionchange', onSelectionChange)
+      selectionTracker.destroy()
     }
   }, [withoutNav, dispatch])
 
@@ -483,7 +501,6 @@ export default function AuthLayoutRouter (props) {
         // If the initial URL contains a post ID, race fetchPost alongside them
         // so the post data is ready (or nearly ready) by the time the auth shell renders.
         const bootstrapFetches = [
-          dispatch(fetchCommonRoles()),
           dispatch(fetchForCurrentUser()),
           ...(paramPostId ? [dispatch(fetchPost(paramPostId, false))] : [])
         ]

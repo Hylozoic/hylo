@@ -167,6 +167,7 @@ export function fetchGroupSettings (slug) {
               emoji
               name
               description
+              type
             }
           }
           groupToGroupJoinQuestions {

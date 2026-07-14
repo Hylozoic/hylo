@@ -135,14 +135,6 @@ export default gql`
         }
       }
     }
-    membershipCommonRoles {
-      items {
-        id
-        commonRoleId
-        groupId
-        userId
-      }
-    }
     skills {
       items {
         id

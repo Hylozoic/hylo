@@ -139,8 +139,8 @@ function getOfferingDetails (offering, t) {
   const accessSummary = [
     (accessGrants.groupIds?.length ? `${accessGrants.groupIds.length} ${t('Group access')}` : null),
     (accessGrants.trackIds?.length ? `${accessGrants.trackIds.length} ${t('Track access')}` : null),
-    ((accessGrants.groupRoleIds?.length || accessGrants.commonRoleIds?.length)
-      ? `${(accessGrants.groupRoleIds?.length || 0) + (accessGrants.commonRoleIds?.length || 0)} ${t('Role access')}`
+    (accessGrants.groupRoleIds?.length
+      ? `${accessGrants.groupRoleIds.length} ${t('Role access')}`
       : null)
   ].filter(Boolean).join(' • ')
 

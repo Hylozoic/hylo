@@ -23,7 +23,6 @@ import { getLocaleStrings } from '../../lib/i18n/locales'
 const { createGroupScope } = require('../../lib/scopes')
 
 export const GROUP_MEMBERSHIP_ATTR_UPDATE_WHITELIST = [
-  'role',
   'project_role_id',
   'following',
   'settings',
@@ -84,14 +83,14 @@ module.exports = bookshelf.Model.extend(merge({
     if (!userId) {
       return false
     }
-    
+
     // Check if user has full-access responsibility (admin or content manager)
     const groupId = this.get('id')
     const hasFullAccess = await Group.hasFullAccessResponsibility(userId, groupId)
     if (hasFullAccess) {
       return true
     }
-    
+
     // Check scope-based access (purchased or granted)
     const requiredScope = createGroupScope(groupId)
     return await UserScope.canAccess(userId, requiredScope)
@@ -274,7 +273,7 @@ module.exports = bookshelf.Model.extend(merge({
           q.where(where)
         }
       })
-      .withPivot(['created_at', 'role', 'settings'])
+      .withPivot(['created_at', 'settings'])
   },
 
   memberships (includeInactive = false) {
@@ -287,22 +286,29 @@ module.exports = bookshelf.Model.extend(merge({
     return this.get('num_members')
   },
 
-  // This returns all members with the given responsibilities
-  membersWithResponsibilities (responsibilityIds) {
+  // This returns all members with the given responsibilities (ids or title strings)
+  membersWithResponsibilities (responsibilities) {
+    const useTitles = responsibilities.some(r => typeof r === 'string' && Number.isNaN(Number(r)))
     return this.members().query(q => {
-      q.whereRaw(`(exists (
-        select * from group_memberships_common_roles
-        inner join common_roles_responsibilities on common_roles_responsibilities.common_role_id = group_memberships_common_roles.common_role_id
-        where common_roles_responsibilities.responsibility_id IN (${responsibilityIds.join(',')})
-          and group_memberships_common_roles.user_id = users.id
-          and group_memberships_common_roles.group_id = group_memberships.group_id
-      ) or exists (
-        select * from group_memberships_group_roles
-        inner join group_roles_responsibilities on group_roles_responsibilities.group_role_id = group_memberships_group_roles.group_role_id
-        where group_roles_responsibilities.responsibility_id IN (${responsibilityIds.join(',')})
-          and group_memberships_group_roles.user_id = users.id
-          and group_memberships_group_roles.group_id = group_memberships.group_id
-      ))`)
+      const placeholders = responsibilities.map(() => '?').join(',')
+      if (useTitles) {
+        q.whereRaw(`exists (
+          select * from group_memberships_group_roles
+          inner join group_roles_responsibilities on group_roles_responsibilities.group_role_id = group_memberships_group_roles.group_role_id
+          inner join responsibilities on responsibilities.id = group_roles_responsibilities.responsibility_id
+          where responsibilities.title IN (${placeholders})
+            and group_memberships_group_roles.user_id = users.id
+            and group_memberships_group_roles.group_id = group_memberships.group_id
+        )`, responsibilities)
+      } else {
+        q.whereRaw(`exists (
+          select * from group_memberships_group_roles
+          inner join group_roles_responsibilities on group_roles_responsibilities.group_role_id = group_memberships_group_roles.group_role_id
+          where group_roles_responsibilities.responsibility_id IN (${placeholders})
+            and group_memberships_group_roles.user_id = users.id
+            and group_memberships_group_roles.group_id = group_memberships.group_id
+        )`, responsibilities)
+      }
     })
   },
 
@@ -423,7 +429,7 @@ module.exports = bookshelf.Model.extend(merge({
             qb3.andWhere(groupId, 'in', selectIdsForMember)
           })
           // Stewards of this group can see hidden peer groups
-          const selectStewardedGroupIds = Group.selectIdsByResponsibilities(userId, [Responsibility.Common.RESP_ADMINISTRATION])
+          const selectStewardedGroupIds = Group.selectIdsByResponsibilities(userId, [Responsibility.constants.RESP_ADMINISTRATION])
           qb2.orWhere(qb4 => {
             qb4.where('groups.visibility', Group.Visibility.HIDDEN)
             qb4.andWhere(groupId, 'in', selectStewardedGroupIds)
@@ -530,21 +536,21 @@ module.exports = bookshelf.Model.extend(merge({
   async addMembers (usersOrIds, attrs = {}, { transacting } = {}) {
     const groupSettings = this.get('settings') || {}
     const defaultDigestFrequency = groupSettings.default_digest_frequency === 'weekly' ? 'weekly' : 'daily'
+    const { assignCoordinator, ...membershipAttrs } = attrs
 
     const updatedAttribs = Object.assign(
       {},
       {
         active: true,
-        role: GroupMembership.Role.DEFAULT,
         settings: {
           postNotifications: 'all',
           digestFrequency: defaultDigestFrequency,
           sendEmail: true,
           sendPushNotifications: true,
-          lastReadAt: attrs.lastReadAt || null
+          lastReadAt: membershipAttrs.lastReadAt || null
         }
       },
-      pick(omitBy(attrs, isUndefined), GROUP_MEMBERSHIP_ATTR_UPDATE_WHITELIST)
+      pick(omitBy(membershipAttrs, isUndefined), GROUP_MEMBERSHIP_ATTR_UPDATE_WHITELIST)
     )
 
     const userIds = usersOrIds.map(x => x instanceof User ? x.id : x)
@@ -572,12 +578,15 @@ module.exports = bookshelf.Model.extend(merge({
           }
         }), { transacting })
       newMemberships.push(membership)
-      // Based on the role attribute, add or remove the user to the Coordinator common role
-      // TODO: RESP, change this to directly pass in and set commonRoles, instead of the role attribute
-      await MemberCommonRole.updateCoordinatorRole({ userId: id, groupId: this.id, role: updatedAttribs.role, transacting })
 
       // Subscribe each user to the default tags in the group
       await User.followTags(id, this.id, defaultTagIds, transacting)
+    }
+
+    if (assignCoordinator) {
+      for (const id of userIds) {
+        await GroupMembership.assignCoordinatorRole(id, this.id, { transacting })
+      }
     }
 
     // Increment num_members
@@ -1221,6 +1230,8 @@ module.exports = bookshelf.Model.extend(merge({
     await bookshelf.transaction(async trx => {
       await group.save(null, { transacting: trx })
 
+      await GroupRole.setupSystemRoles(group.id, { transacting: trx })
+
       if (data.group_extensions) {
         for (const extData of data.group_extensions) {
           const ext = await Extension.find(extData.type, { transacting: trx })
@@ -1239,7 +1250,7 @@ module.exports = bookshelf.Model.extend(merge({
       await group.setupContextWidgets(trx)
 
       // Set lastReadAt when creating a new group to mark creator as having viewed the group already
-      await group.addMembers([userId], { role: GroupMembership.Role.MODERATOR, lastReadAt: new Date() }, { transacting: trx })
+      await group.addMembers([userId], { assignCoordinator: true, lastReadAt: new Date() }, { transacting: trx })
 
       // Have to add/request add to parent group after admin has been added to the group
       if (data.parent_ids) {
@@ -1252,9 +1263,9 @@ module.exports = bookshelf.Model.extend(merge({
               query: q => { q.select('group_memberships.*', 'groups.accessibility as accessibility', 'groups.visibility as visibility') }
             }).fetch({ transacting: trx })
 
-            // TODO: fix hasRole
             if (parentGroupMembership &&
-                (parentGroupMembership.get('accessibility') === Group.Accessibility.OPEN || parentGroupMembership.hasRole(GroupMembership.Role.MODERATOR))) {
+                (parentGroupMembership.get('accessibility') === Group.Accessibility.OPEN ||
+                  await GroupMembership.hasResponsibility(userId, parentId, Responsibility.constants.RESP_ADMINISTRATION, { transacting: trx }))) {
               await group.parentGroups().attach(parentId, { transacting: trx })
             } else {
               // If can't add directly to parent group then send a request to join
@@ -1488,7 +1499,7 @@ module.exports = bookshelf.Model.extend(merge({
    * Check if a user has a responsibility that grants full access to group content
    * Full-access responsibilities: Administration, Manage Content
    * Limited responsibilities (no content access): Manage Rounds, Add Members, etc.
-   * 
+   *
    * @param {String|Number} userId - User ID to check
    * @param {String|Number} groupId - Group ID to check
    * @returns {Promise<Boolean>}
@@ -1676,18 +1687,17 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   selectIdsByResponsibilities (userOrId, responsibilities) {
-    const throughCommonRole = MemberCommonRole.query(q => {
-      q.select('group_id')
-      whereId(q, userOrId, 'group_memberships_common_roles.user_id')
-      q.join('common_roles_responsibilities', 'common_roles_responsibilities.common_role_id', 'group_memberships_common_roles.common_role_id')
-      q.where('common_roles_responsibilities.responsibility_id', 'in', responsibilities)
-    })
-
+    const useTitles = responsibilities.some(r => typeof r === 'string' && Number.isNaN(Number(r)))
     const throughGroupRole = MemberGroupRole.collection().query(q => {
-      q.select('group_id')
+      q.select('group_memberships_group_roles.group_id')
       whereId(q, userOrId, 'group_memberships_group_roles.user_id')
       q.join('group_roles_responsibilities', 'group_roles_responsibilities.group_role_id', 'group_memberships_group_roles.group_role_id')
-      q.where('group_roles_responsibilities.responsibility_id', 'in', responsibilities)
+      if (useTitles) {
+        q.join('responsibilities', 'responsibilities.id', 'group_roles_responsibilities.responsibility_id')
+        q.whereIn('responsibilities.title', responsibilities)
+      } else {
+        q.whereIn('group_roles_responsibilities.responsibility_id', responsibilities)
+      }
     })
 
     return GroupMembership.forIds(userOrId, null, {
@@ -1695,10 +1705,7 @@ module.exports = bookshelf.Model.extend(merge({
         q.select('groups.id')
         q.join('groups', 'groups.id', 'group_memberships.group_id')
         q.where('groups.active', true)
-        q.where((q2) => {
-          q2.whereIn('groups.id', throughCommonRole.query())
-          q2.orWhereIn('groups.id', throughGroupRole.query())
-        })
+        q.whereIn('groups.id', throughGroupRole.query())
       },
       multiple: true
     }).query()

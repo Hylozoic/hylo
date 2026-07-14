@@ -26,7 +26,7 @@ describe('Content Access Queries', () => {
     }).save()
 
     // Add admin user as group administrator
-    await adminUser.joinGroup(group, { role: GroupMembership.Role.MODERATOR })
+    await adminUser.joinGroup(group, { assignCoordinator: true })
     // Add regular user as group member
     await user.joinGroup(group)
   })

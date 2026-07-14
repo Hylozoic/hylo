@@ -94,25 +94,36 @@ export function createGroup (data) {
           name
           purpose
           slug
+          avatarUrl
           parentGroups {
             items {
               id
+            }
+          }
+          groupRoles {
+            items {
+              id
+              name
+              emoji
+              active
+              groupId
+              responsibilities {
+                items {
+                  id
+                  title
+                  description
+                }
+              }
             }
           }
           memberships {
             items {
               id
               lastViewedAt
+              navOrder
+              newPostCount
               person {
                 id
-                membershipCommonRoles {
-                  items {
-                    id
-                    groupId
-                    commonRoleId
-                    userId
-                  }
-                }
               }
               settings {
                 agreementsAcceptedAt

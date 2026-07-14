@@ -22,6 +22,8 @@ export async function notifyAboutMessage ({ commentId }) {
   const path = new URL(Frontend.Route.thread({ id: post_id })).pathname
 
   return Promise.map(recipients, async user => {
+    if (user.pivot.get('muted_at')) return
+
     // don't notify if the user has read the thread recently and respect the
     // dm_notifications setting.
     if (!(await user.enabledNotification(Notification.TYPE.Message, Notification.MEDIUM.Push))) return
@@ -43,132 +45,151 @@ export const sendDigests = async () => {
 
   lastDigestAt = lastDigestAt ? new Date(Number(lastDigestAt)) : fallbackTime()
 
-  const posts = await Post.query(q => {
-    q.where('updated_at', '>', lastDigestAt)
-    q.where('active', true)
-  }).fetchAll({
-    withRelated: [
-      {
-        comments: q => {
-          q.where('created_at', '>', lastDigestAt)
-          q.orderBy('created_at', 'asc')
+  try {
+    const posts = await Post.query(q => {
+      q.where('updated_at', '>', lastDigestAt)
+      q.where('active', true)
+    }).fetchAll({
+      withRelated: [
+        {
+          comments: q => {
+            q.where('created_at', '>', lastDigestAt)
+            q.orderBy('created_at', 'asc')
+          }
+        },
+        'user',
+        'groups',
+        'comments.user',
+        'comments.media'
+      ]
+    })
+
+    sails.log.info(`Comment.sendDigests: checking ${posts.length} posts updated since ${lastDigestAt.toISOString()}`)
+
+    const numSends = await Promise.all(posts.map(async post => {
+      const { comments } = post.relations
+      if (comments.length === 0) return []
+
+      const followers = await post.followers().fetch()
+
+      return Promise.map(followers.models, async user => {
+        try {
+          return await sendDigestForUser({ post, comments, user })
+        } catch (err) {
+          sails.log.error(`Comment.sendDigests: error sending digest for post ${post.id} to user ${user.id}: ${err.message}`, err.stack)
+          throw err
         }
+      })
+        .then(sends => compact(sends).length)
+    }))
+
+    await redisClient.set(sendDigests.REDIS_TIMESTAMP_KEY, now.getTime().toString())
+    sails.log.info(`Comment.sendDigests: sent ${sum(numSends)} digests, updated last sent timestamp to ${now.toISOString()}`)
+    return sum(numSends)
+  } catch (err) {
+    sails.log.error(`Comment.sendDigests: run failed before updating last sent timestamp (lastDigestAt=${lastDigestAt.toISOString()}), digests will be re-sent next run: ${err.message}`, err.stack)
+    throw err
+  }
+}
+
+async function sendDigestForUser ({ post, comments, user }) {
+  if (user.pivot.get('muted_at')) return
+
+  // select comments not written by this user and newer than user's last
+  // read time.
+  let lastReadAt = user.pivot.get('last_read_at')
+  if (lastReadAt) lastReadAt = new Date(lastReadAt)
+  const locale = mapLocaleToSendWithUS(user.get('settings')?.locale || 'en-US')
+
+  const filtered = comments.filter(c =>
+    c.get('created_at') > (lastReadAt || 0) &&
+    c.get('user_id') !== user.id)
+
+  if (filtered.length === 0) return
+
+  const presentComment = comment => {
+    const presented = {
+      id: comment.id,
+      text: comment.text(),
+      image: comment.relations?.media?.first?.()?.pick('url', 'thumbnail_url'),
+      name: comment.relations.user.get('name'),
+      avatar_url: comment.relations.user.get('avatar_url'),
+      timestamp: comment.get('created_at').toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })
+    }
+    return presented
+  }
+
+  if (post.get('type') === Post.Type.THREAD) {
+    if (!(await user.enabledNotification(Notification.TYPE.Message, Notification.MEDIUM.Email))) return
+
+    const others = filtered.map(comment => comment.relations.user)
+
+    const otherNames = uniq(others.map(other => other.get('name')))
+
+    const otherAvatarUrls = others.map(other => other.get('avatar_url'))
+
+    const participantNames = otherNames.length === 1
+      ? otherNames[0]
+      : otherNames.slice(0, otherNames.length - 1).join(', ') + ' & ' + otherNames[otherNames.length - 1]
+
+    const clickthroughParams = '?' + new URLSearchParams({
+      ctt: 'message_digest_email',
+      cti: user.id
+    }).toString()
+
+    return Email.sendMessageDigest({
+      email: user.get('email'),
+      locale,
+      data: {
+        count: filtered.length,
+        date: DateTimeHelpers.formatDatePair({ start: filtered[0].get('created_at') }),
+        email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, user),
+        participant_avatars: otherAvatarUrls[0],
+        participant_names: participantNames,
+        other_names: otherNames,
+        thread_url: Frontend.appendQueryString(Frontend.Route.thread(post), clickthroughParams),
+        messages: filtered.map(presentComment)
       },
-      'user',
-      'groups',
-      'comments.user',
-      'comments.media'
-    ]
-  })
-
-  const numSends = await Promise.all(posts.map(async post => {
-    const { comments } = post.relations
-    if (comments.length === 0) return []
-
-    const followers = await post.followers().fetch()
-
-    return Promise.map(followers.models, async user => {
-      // select comments not written by this user and newer than user's last
-      // read time.
-      let lastReadAt = user.pivot.get('last_read_at')
-      if (lastReadAt) lastReadAt = new Date(lastReadAt)
-      const locale = mapLocaleToSendWithUS(user.get('settings')?.locale || 'en-US')
-
-      const filtered = comments.filter(c =>
-        c.get('created_at') > (lastReadAt || 0) &&
-        c.get('user_id') !== user.id)
-
-      if (filtered.length === 0) return
-
-      const presentComment = comment => {
-        const presented = {
-          id: comment.id,
-          text: comment.text(),
-          image: comment.relations?.media?.first?.()?.pick('url', 'thumbnail_url'),
-          name: comment.relations.user.get('name'),
-          avatar_url: comment.relations.user.get('avatar_url'),
-          timestamp: comment.get('created_at').toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })
-        }
-        return presented
-      }
-
-      if (post.get('type') === Post.Type.THREAD) {
-        if (!(await user.enabledNotification(Notification.TYPE.Message, Notification.MEDIUM.Email))) return
-
-        const others = filtered.map(comment => comment.relations.user)
-
-        const otherNames = uniq(others.map(other => other.get('name')))
-
-        const otherAvatarUrls = others.map(other => other.get('avatar_url'))
-
-        const participantNames = otherNames.length === 1
-          ? otherNames[0]
-          : otherNames.slice(0, otherNames.length - 1).join(', ') + ' & ' + otherNames[otherNames.length - 1]
-
-        const clickthroughParams = '?' + new URLSearchParams({
-          ctt: 'message_digest_email',
-          cti: user.id
-        }).toString()
-
-        return Email.sendMessageDigest({
-          email: user.get('email'),
-          locale,
-          data: {
-            count: filtered.length,
-            date: DateTimeHelpers.formatDatePair({ start: filtered[0].get('created_at') }),
-            email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, user),
-            participant_avatars: otherAvatarUrls[0],
-            participant_names: participantNames,
-            other_names: otherNames,
-            thread_url: Frontend.appendQueryString(Frontend.Route.thread(post), clickthroughParams),
-            messages: filtered.map(presentComment)
-          },
-          sender: {
-            reply_to: Email.postReplyAddress(post.id, user.id)
-          }
-        })
-      } else {
-        if (!(await user.enabledNotification(Notification.TYPE.Comment, Notification.MEDIUM.Email))) return
-
-        const routeGroup = await post.groupForFrontendRouteForUser(user.id)
-
-        const commentData = filtered.map(presentComment)
-        const hasMention = ({ text }) =>
-          RichText.getUserMentions(text).includes(user.id)
-
-        const clickthroughParams = '?' + new URLSearchParams({
-          ctt: 'comment_digest_email',
-          cti: user.id,
-          ctcn: routeGroup?.get('name')
-        }).toString()
-
-        return Email.sendCommentDigest({
-          email: user.get('email'),
-          locale,
-          data: {
-            count: commentData.length,
-            date: DateTimeHelpers.formatDatePair({ start: filtered[0].get('created_at'), timezone: post.get('timezone') }),
-            email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, user),
-            post_title: post.summary(),
-            post_creator_avatar_url: Frontend.appendQueryString(post.relations.user.get('avatar_url'), clickthroughParams),
-            thread_url: Frontend.appendQueryString(Frontend.Route.comment({ comment: filtered[0], group: routeGroup, post }), clickthroughParams),
-            comments: commentData,
-            subject_prefix: some(hasMention, commentData)
-              ? 'You were mentioned in'
-              : 'New comments on'
-          },
-          sender: {
-            reply_to: Email.postReplyAddress(post.id, user.id),
-            name: routeGroup ? senderNameViaHylo(routeGroup.get('name'), locale) : getLocaleStrings(locale).theTeamAtHylo
-          }
-        })
+      sender: {
+        reply_to: Email.postReplyAddress(post.id, user.id)
       }
     })
-      .then(sends => compact(sends).length)
-  }))
+  } else {
+    if (!(await user.enabledNotification(Notification.TYPE.Comment, Notification.MEDIUM.Email))) return
 
-  await redisClient.set(sendDigests.REDIS_TIMESTAMP_KEY, now.getTime().toString())
-  return sum(numSends)
+    const routeGroup = await post.groupForFrontendRouteForUser(user.id)
+
+    const commentData = filtered.map(presentComment)
+    const hasMention = ({ text }) =>
+      RichText.getUserMentions(text).includes(user.id)
+
+    const clickthroughParams = '?' + new URLSearchParams({
+      ctt: 'comment_digest_email',
+      cti: user.id,
+      ctcn: routeGroup?.get('name')
+    }).toString()
+
+    return Email.sendCommentDigest({
+      email: user.get('email'),
+      locale,
+      data: {
+        count: commentData.length,
+        date: DateTimeHelpers.formatDatePair({ start: filtered[0].get('created_at'), timezone: post.get('timezone') }),
+        email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, user),
+        post_title: post.summary(),
+        post_creator_avatar_url: Frontend.appendQueryString(post.relations.user.get('avatar_url'), clickthroughParams),
+        thread_url: Frontend.appendQueryString(Frontend.Route.comment({ comment: filtered[0], group: routeGroup, post }), clickthroughParams),
+        comments: commentData,
+        subject_prefix: some(hasMention, commentData)
+          ? 'You were mentioned in'
+          : 'New comments on'
+      },
+      sender: {
+        reply_to: Email.postReplyAddress(post.id, user.id),
+        name: routeGroup ? senderNameViaHylo(routeGroup.get('name'), locale) : getLocaleStrings(locale).theTeamAtHylo
+      }
+    })
+  }
 }
 
 // we keep track of the last time we sent comment digests in Redis, so that the

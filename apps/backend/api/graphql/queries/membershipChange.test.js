@@ -60,7 +60,7 @@ describe('Membership Change Queries', () => {
   before(async () => {
     user = await factories.user().save()
     group = await factories.group().save()
-    await user.joinGroup(group, { role: GroupMembership.Role.MODERATOR })
+    await user.joinGroup(group, { assignCoordinator: true })
     stripeAccount = await factories.stripeAccount({
       stripe_account_external_id: 'acct_test_membership_queries'
     }).save()

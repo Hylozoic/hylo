@@ -307,7 +307,6 @@ describe('GroupRow', () => {
         name: 'Great Place',
         memberCount: 432
       },
-      hasModeratorRole: false
     }
 
     const renderer = new ReactShallowRenderer()
@@ -328,7 +327,6 @@ describe('GroupRow', () => {
         name: 'Greater Place',
         memberCount: 24495
       },
-      hasModeratorRole: true
     }
 
     const renderer = new ReactShallowRenderer()

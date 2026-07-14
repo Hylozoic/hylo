@@ -1,7 +1,7 @@
 exports.up = async function (knex) {
   await knex.schema.table('content_access', function (table) {
     table.string('stripe_customer_id', 255).nullable()
-      .comment('Stripe customer id (cus_...) on the connected account; set at checkout completion')
+      .comment('Stripe customer id (cus_...) on the connected account, set at checkout completion')
   })
 
   await knex.schema.createTable('subscription_change_events', function (table) {

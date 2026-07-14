@@ -1,6 +1,7 @@
 import setup from '../../../test/setup'
 import factories from '../../../test/setup/factories'
 import { spyify, unspyify } from '../../../test/setup/helpers'
+import { assignTrackManager, ensureManageTracksResponsibility } from '../../../test/setup/roleHelpers'
 import {
   createTrack,
   deleteTrack,
@@ -10,46 +11,6 @@ import {
   updateTrack,
   updateTrackActionOrder
 } from './track'
-
-async function getTrackManagerRoleId () {
-  const role = await CommonRole.where({ name: 'Coordinator' }).fetch()
-  if (!role) throw new Error('Track manager role not found in test setup')
-  return role.id
-}
-
-async function assignTrackManager (user, group) {
-  const trackManagerRoleId = await getTrackManagerRoleId()
-  await user.joinGroup(group)
-  await new MemberCommonRole({
-    user_id: user.id,
-    group_id: group.id,
-    common_role_id: trackManagerRoleId
-  }).save()
-}
-
-async function ensureTrackManagerRoleCanManageTracks () {
-  const trackManagerRoleId = await getTrackManagerRoleId()
-  let responsibility = await Responsibility.where({ title: Responsibility.constants.RESP_MANAGE_TRACKS }).fetch()
-  if (!responsibility) {
-    responsibility = await Responsibility.forge({
-      title: Responsibility.constants.RESP_MANAGE_TRACKS,
-      description: 'The ability to create, edit, and delete tracks.',
-      type: 'system'
-    }).save()
-  }
-  const existing = await bookshelf.knex('common_roles_responsibilities')
-    .where({
-      common_role_id: trackManagerRoleId,
-      responsibility_id: responsibility.id
-    })
-    .first()
-  if (!existing) {
-    await bookshelf.knex('common_roles_responsibilities').insert({
-      common_role_id: trackManagerRoleId,
-      responsibility_id: responsibility.id
-    })
-  }
-}
 
 describe('track mutations', () => {
   let trackManager, member, group
@@ -63,7 +24,7 @@ describe('track mutations', () => {
   })
 
   before(async () => {
-    await ensureTrackManagerRoleCanManageTracks()
+    await ensureManageTracksResponsibility()
     trackManager = await factories.user().save()
     member = await factories.user().save()
     group = await factories.group().save()

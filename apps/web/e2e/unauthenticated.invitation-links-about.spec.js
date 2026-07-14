@@ -1,13 +1,11 @@
 import { test, expect } from '@playwright/test'
 import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading.js'
 import {
-  HIDDEN_JOIN_ACCESS_CODE,
-  HIDDEN_JOIN_GROUP_SLUG,
-  JOIN_ACCESS_CODE,
-  JOIN_CODE_GROUP_SLUG,
+  JOIN_LINK_FIXTURES,
+  INVITE_LINK_FIXTURES,
   PAYWALL_GROUP_SLUG,
-  PRIVATE_GROUP_SLUG,
   PUBLIC_GROUP_SLUG,
+  PRIVATE_GROUP_SLUG,
   expectGroupDetailAboutLoaded,
   expectUnauthenticatedAboutJoinGate,
   seededGroupTitlePattern
@@ -16,6 +14,7 @@ import {
 /**
  * Batch Q — unauthenticated paths to group about / join entry
  * (`INVITATION_LINKS_ARCHITECTURE.md`). Uses `chromium-unauth` / `mobile-unauth` storageState.
+ * Matrix: Hidden / Protected / Public × Closed / Restricted (Open excluded).
  */
 
 test.beforeEach(async ({ context, page }) => {
@@ -48,7 +47,7 @@ async function dismissCookieConsentBannerIfPresent (page) {
   }
 }
 
-test.describe('Batch Q: public / hidden about (unauthenticated)', () => {
+test.describe('Batch Q: baseline about visibility (unauthenticated)', () => {
   test('GET /groups/:slug/about shows seeded public group (no login)', async ({ page }) => {
     await page.goto(`/groups/${PUBLIC_GROUP_SLUG}/about`, gotoOpts)
     await waitPastRootSessionLoading(page)
@@ -63,53 +62,84 @@ test.describe('Batch Q: public / hidden about (unauthenticated)', () => {
     await waitPastRootSessionLoading(page)
     await expect(page).toHaveURL(/\/login/, routeTimeout)
   })
-
-  test('GET /groups/:slug/about?accessCode= grants visibility for restricted public group', async ({ page }) => {
-    await page.goto(
-      `/groups/${JOIN_CODE_GROUP_SLUG}/about?accessCode=${encodeURIComponent(JOIN_ACCESS_CODE)}`,
-      gotoOpts
-    )
-    await waitPastRootSessionLoading(page)
-    await expect(page).toHaveURL(
-      new RegExp(`/groups/${JOIN_CODE_GROUP_SLUG}/about`),
-      routeTimeout
-    )
-    await expect(page).toHaveTitle(seededGroupTitlePattern('E2E Join Code Group'), uiTimeout)
-    await expectGroupDetailAboutLoaded(page, uiTimeout)
-    await expectUnauthenticatedAboutJoinGate(page, 'E2E Join Code Group', uiTimeout)
-  })
-
-  test('GET /groups/:slug/about for dedicated hidden+join group without code sends user to login', async ({ page }) => {
-    await page.goto(`/groups/${HIDDEN_JOIN_GROUP_SLUG}/about`, gotoOpts)
-    await waitPastRootSessionLoading(page)
-    await expect(page).toHaveURL(/\/login/, routeTimeout)
-  })
-
-  test('GET /groups/:slug/about?accessCode= grants visibility for hidden group with join code', async ({ page }) => {
-    await page.goto(
-      `/groups/${HIDDEN_JOIN_GROUP_SLUG}/about?accessCode=${encodeURIComponent(HIDDEN_JOIN_ACCESS_CODE)}`,
-      gotoOpts
-    )
-    await waitPastRootSessionLoading(page)
-    await expect(page).toHaveURL(new RegExp(`/groups/${HIDDEN_JOIN_GROUP_SLUG}/about`), routeTimeout)
-    await expect(page).toHaveTitle(seededGroupTitlePattern('E2E Hidden Join Group'), uiTimeout)
-    await expectGroupDetailAboutLoaded(page, uiTimeout)
-    await expectUnauthenticatedAboutJoinGate(page, 'E2E Hidden Join Group', uiTimeout)
-  })
 })
 
-test.describe('Batch Q: join link entry (unauthenticated)', () => {
-  test('GET /groups/:slug/join/:accessCode sends guest to signup (return path stored for after auth)', async ({ page }) => {
-    await page.goto(`/groups/${JOIN_CODE_GROUP_SLUG}/join/${JOIN_ACCESS_CODE}`, gotoOpts)
-    await expect(page).toHaveURL(/\/signup\/?/, routeTimeout)
-    await waitPastRootSessionLoading(page)
-  })
+test.describe('Batch Q: join links (unauthenticated)', () => {
+  for (const fixture of JOIN_LINK_FIXTURES) {
+    test(`GET /groups/:slug/join/:accessCode sends guest to signup for ${fixture.label}`, async ({ page }) => {
+      await page.goto(`/groups/${fixture.slug}/join/${fixture.accessCode}`, gotoOpts)
+      await expect(page).toHaveURL(/\/signup\/?/, routeTimeout)
+      await waitPastRootSessionLoading(page)
+    })
 
-  test('GET /groups/:slug/join/:accessCode for hidden group sends guest to signup', async ({ page }) => {
-    await page.goto(`/groups/${HIDDEN_JOIN_GROUP_SLUG}/join/${HIDDEN_JOIN_ACCESS_CODE}`, gotoOpts)
-    await expect(page).toHaveURL(/\/signup\/?/, routeTimeout)
-    await waitPastRootSessionLoading(page)
-  })
+    test(`GET /groups/:slug/about?accessCode= grants visibility for ${fixture.label}`, async ({ page }) => {
+      await page.goto(
+        `/groups/${fixture.slug}/about?accessCode=${encodeURIComponent(fixture.accessCode)}`,
+        gotoOpts
+      )
+      await waitPastRootSessionLoading(page)
+      await expect(page).toHaveURL(new RegExp(`/groups/${fixture.slug}/about`), routeTimeout)
+      await expect(page).toHaveTitle(seededGroupTitlePattern(fixture.groupName), uiTimeout)
+      await expectGroupDetailAboutLoaded(page, uiTimeout)
+      await expectUnauthenticatedAboutJoinGate(page, fixture.groupName, uiTimeout)
+    })
+
+    if (fixture.requiresLoginWithoutLink) {
+      test(`GET /groups/:slug/about without join link sends guest to login for ${fixture.label}`, async ({ page }) => {
+        await page.goto(`/groups/${fixture.slug}/about`, gotoOpts)
+        await waitPastRootSessionLoading(page)
+        await expect(page).toHaveURL(/\/login/, routeTimeout)
+      })
+    } else {
+      test(`GET /groups/:slug/about without join link shows signup gate for ${fixture.label}`, async ({ page }) => {
+        await page.goto(`/groups/${fixture.slug}/about`, gotoOpts)
+        await waitPastRootSessionLoading(page)
+        await expect(page).toHaveURL(new RegExp(`/groups/${fixture.slug}/about`), routeTimeout)
+        await expect(page).toHaveTitle(seededGroupTitlePattern(fixture.groupName), uiTimeout)
+        await expectGroupDetailAboutLoaded(page, uiTimeout)
+        await expectUnauthenticatedAboutJoinGate(page, fixture.groupName, uiTimeout)
+      })
+    }
+  }
+})
+
+test.describe('Batch Q: invite links (unauthenticated)', () => {
+  for (const fixture of INVITE_LINK_FIXTURES) {
+    test(`GET /h/use-invitation?token= sends guest to signup for ${fixture.label}`, async ({ page }) => {
+      await page.goto(`/h/use-invitation?token=${encodeURIComponent(fixture.token)}`, gotoOpts)
+      await expect(page).toHaveURL(/\/signup\/?/, routeTimeout)
+      await waitPastRootSessionLoading(page)
+    })
+
+    test(`GET /groups/:slug/about?token= grants visibility for ${fixture.label}`, async ({ page }) => {
+      await page.goto(
+        `/groups/${fixture.slug}/about?token=${encodeURIComponent(fixture.token)}`,
+        gotoOpts
+      )
+      await waitPastRootSessionLoading(page)
+      await expect(page).toHaveURL(new RegExp(`/groups/${fixture.slug}/about`), routeTimeout)
+      await expect(page).toHaveTitle(seededGroupTitlePattern(fixture.groupName), uiTimeout)
+      await expectGroupDetailAboutLoaded(page, uiTimeout)
+      await expectUnauthenticatedAboutJoinGate(page, fixture.groupName, uiTimeout)
+    })
+
+    if (fixture.requiresLoginWithoutLink) {
+      test(`GET /groups/:slug/about without invite sends guest to login for ${fixture.label}`, async ({ page }) => {
+        await page.goto(`/groups/${fixture.slug}/about`, gotoOpts)
+        await waitPastRootSessionLoading(page)
+        await expect(page).toHaveURL(/\/login/, routeTimeout)
+      })
+    } else {
+      test(`GET /groups/:slug/about without invite shows signup gate for ${fixture.label}`, async ({ page }) => {
+        await page.goto(`/groups/${fixture.slug}/about`, gotoOpts)
+        await waitPastRootSessionLoading(page)
+        await expect(page).toHaveURL(new RegExp(`/groups/${fixture.slug}/about`), routeTimeout)
+        await expect(page).toHaveTitle(seededGroupTitlePattern(fixture.groupName), uiTimeout)
+        await expectGroupDetailAboutLoaded(page, uiTimeout)
+        await expectUnauthenticatedAboutJoinGate(page, fixture.groupName, uiTimeout)
+      })
+    }
+  }
 })
 
 test.describe('Batch Q: paywall about path (unauthenticated)', () => {

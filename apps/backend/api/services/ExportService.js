@@ -31,6 +31,15 @@ module.exports = {
         : ''
       userData.last_active_at = membership?.getSetting('lastReadAt') ? DateTime.fromISO(membership.getSetting('lastReadAt'))?.toFormat('yyyy-MM-dd HH:mm:ss Z') : ''
 
+      if (membership) {
+        const membershipGroupRoles = await membership.membershipGroupRoles()
+          .where({ active: true })
+          .fetch({ withRelated: ['groupRole'] })
+        userData.roles = accumulatePivotCell(membershipGroupRoles, renderGroupRole) || ''
+      } else {
+        userData.roles = ''
+      }
+
       const locationObject = await u.locationObject().fetch()
       userData.location = renderLocation(locationObject)
 
@@ -66,7 +75,7 @@ module.exports = {
 
     // send data as CSV response
     output(results, [
-      'id', 'name', 'joined_at', 'contact_email', 'contact_phone', 'location', 'avatar_url', 'tagline', 'bio',
+      'id', 'name', 'joined_at', 'roles', 'contact_email', 'contact_phone', 'location', 'avatar_url', 'tagline', 'bio',
       { key: 'url', header: 'personal_url' },
       'twitter_name', 'facebook_url', 'linkedin_url',
       'skills', 'skills_to_learn',
@@ -169,11 +178,18 @@ module.exports = {
         for (const membership of memberships.models) {
           const group = await membership.group().fetch()
           if (group) {
+            const membershipGroupRoles = await membership.membershipGroupRoles()
+              .where({ active: true })
+              .fetch({ withRelated: ['groupRole'] })
+            const roles = membershipGroupRoles.models
+              .map(mgr => mgr.related('groupRole')?.get('name'))
+              .filter(Boolean)
+
             membershipsData.push({
               group_id: group.get('id'),
               group_name: group.get('name'),
               group_slug: group.get('slug'),
-              role: membership.get('role'),
+              roles,
               created_at: membership.get('created_at'),
               settings: membership.get('settings')
             })
@@ -298,6 +314,10 @@ function renderSkill (s) {
 function renderJoinQuestionAnswersToJSON (QApair) {
   if (QApair.length === 0) { return [] }
   return [QApair[1].toJSON()]
+}
+
+function renderGroupRole (mgr) {
+  return mgr.related('groupRole')?.get('name')
 }
 
 function renderGroup (g) {

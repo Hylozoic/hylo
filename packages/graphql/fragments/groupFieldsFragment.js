@@ -109,13 +109,14 @@ export default gql`
         id
         name
         avatarUrl
-        groupRoles {
+        groupRoles(groupId: $id, slug: $slug) {
           items {
             id
             name
             emoji
             active
             groupId
+            type
             responsibilities {
               items {
                 id
@@ -123,14 +124,6 @@ export default gql`
                 description
               }
             }
-          }
-        }
-        membershipCommonRoles {
-          items {
-            id
-            groupId
-            userId
-            roleId
           }
         }
       }

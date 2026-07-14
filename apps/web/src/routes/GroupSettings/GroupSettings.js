@@ -33,7 +33,6 @@ import { allGroupsUrl, groupUrl } from '@hylo/navigation'
 import presentGroup from 'store/presenters/presentGroup'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { getParentGroups } from 'store/selectors/getGroupRelationships'
-import getCommonRoles from 'store/selectors/getCommonRoles'
 import getMe from 'store/selectors/getMe'
 import {
   FETCH_GROUP_SETTINGS,
@@ -76,7 +75,6 @@ export default function GroupSettings () {
   const group = useMemo(() => rawGroup ? presentGroup(rawGroup) : null, [rawGroup])
   const currentUser = useSelector(getMe)
   const parentGroups = useSelector(state => getParentGroups(state, rawGroup))
-  const commonRoles = useSelector(getCommonRoles)
   const fetchPending = useSelector(state => state.pending[FETCH_GROUP_SETTINGS])
 
   // Action creators
@@ -180,7 +178,7 @@ export default function GroupSettings () {
   const rolesSettings = {
     name: t('Roles & Badges'),
     path: 'roles',
-    component: <RolesSettingsTab groupId={group.id} group={group} slug={group.slug} commonRoles={commonRoles} />
+    component: <RolesSettingsTab groupId={group.id} group={group} slug={group.slug} />
   }
 
   const accessSettings = {

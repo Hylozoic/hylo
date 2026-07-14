@@ -76,9 +76,21 @@ function addKrishaToGroups (knex) {
         active: true,
         group_id: id,
         created_at: knex.fn.now(),
-        role: 1,
         settings: '{ "send_email": true, "send_push_notifications": true }',
         user_id: 45331
+      }))))
+    .then(() => knex('groups_roles')
+      .whereIn('group_id', knex('groups').select('id').whereIn('groups.name', farmNames))
+      .where({ name: 'Coordinator', type: 'system' })
+      .select('id as group_role_id', 'group_id'))
+    .then(coordinatorRoles => Promise.all(coordinatorRoles.map(({ group_id, group_role_id }) =>
+      knex('group_memberships_group_roles').insert({
+        user_id: 45331,
+        group_id,
+        group_role_id,
+        active: true,
+        created_at: knex.fn.now(),
+        updated_at: knex.fn.now()
       }))))
 }
 
@@ -91,9 +103,21 @@ function addClareToGroups (knex) {
         active: true,
         group_id: id,
         created_at: knex.fn.now(),
-        role: 1,
         settings: '{ "send_email": true, "send_push_notifications": true }',
         user_id: 30206
+      }))))
+    .then(() => knex('groups_roles')
+      .whereIn('group_id', knex('groups').select('id').whereIn('groups.name', farmNames))
+      .where({ name: 'Coordinator', type: 'system' })
+      .select('id as group_role_id', 'group_id'))
+    .then(coordinatorRoles => Promise.all(coordinatorRoles.map(({ group_id, group_role_id }) =>
+      knex('group_memberships_group_roles').insert({
+        user_id: 30206,
+        group_id,
+        group_role_id,
+        active: true,
+        created_at: knex.fn.now(),
+        updated_at: knex.fn.now()
       }))))
 }
 
@@ -112,7 +136,6 @@ function fakeMembership (user_id, knex) {
         active: true,
         group_id: group.id,
         created_at: knex.fn.now(),
-        role: 1,
         settings: '{ "send_email": true, "send_push_notifications": true }',
         user_id
       }))

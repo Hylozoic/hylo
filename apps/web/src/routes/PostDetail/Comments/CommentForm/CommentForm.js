@@ -198,15 +198,12 @@ const CommentForm = forwardRef(function CommentForm ({
     }
   }), [attachments.length, clearAttachmentsAction, clearDraft, flushSaveDraft])
 
-  const handleContainerMouseDown = useCallback(event => {
-    // Don't auto-focus on mobile devices to prevent keyboard from opening
-    if (isMobileDevice()) {
-      return
-    }
-    if (!isFocused) {
-      editor?.current?.focus()
-    }
-  }, [editor, isFocused])
+  const focusEditorFromContainerTap = useCallback(event => {
+    if (!currentUser) return
+    if (event.target.closest('button, a, [data-testid="upload-button"]')) return
+    if (event.target.closest('.ProseMirror')) return
+    editor?.current?.focus()
+  }, [editor, currentUser])
 
   return (
     <>
@@ -216,9 +213,12 @@ const CommentForm = forwardRef(function CommentForm ({
           { 'border-2 border-focus': isFocused },
           className
         )}
-        onMouseDown={handleContainerMouseDown}
       >
-        <div className={cn('ml-0 mr-0 w-full cursor-text flex items-center overflow-x-hidden', { [classes.disabled]: !currentUser })}>
+        <div
+          className={cn('ml-0 mr-0 w-full cursor-text flex items-center overflow-x-hidden', { [classes.disabled]: !currentUser })}
+          onMouseDown={focusEditorFromContainerTap}
+          onTouchStart={focusEditorFromContainerTap}
+        >
           {currentUser
             ? <RoundImage url={currentUser.avatarUrl} small className='w-6 h-6' />
             : <Icon name='Person' className={classes.anonymousImage} dataTestId='icon-Person' />}
@@ -226,8 +226,10 @@ const CommentForm = forwardRef(function CommentForm ({
           <HyloEditor
             contentHTML={hyloContentHTML}
             onAltEnter={handleSubmit}
-            className='w-full max-h-[200px] overflow-y-auto cursor-text flex'
+            containerClassName='min-w-0'
+            className='w-full min-w-0 max-h-[200px] overflow-y-auto cursor-text [&_.ProseMirror]:w-full'
             readOnly={!currentUser}
+            blurOnScroll={false}
             onUpdate={handleEditorUpdate}
             onFocus={handleFocus}
             onBlur={() => setIsFocused(false)}

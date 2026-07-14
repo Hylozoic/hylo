@@ -6,7 +6,6 @@ export default gql`
     lastViewedAt
     navOrder
     newPostCount
-    hasModeratorRole
     person {
       id
     }
@@ -41,6 +40,7 @@ export default gql`
       }
       slug
       allowInPublic
+      accessibility
     }
   }
 `

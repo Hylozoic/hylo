@@ -67,14 +67,6 @@ const groupMembersQuery = gql`
               }
             }
           }
-          membershipCommonRoles {
-            items {
-              id
-              commonRoleId
-              groupId
-              userId
-            }
-          }
           skills {
             hasMore
             items {

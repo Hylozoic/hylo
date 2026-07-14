@@ -1,15 +1,71 @@
 import { COMPLETE_POST_PENDING, CREATE_POST } from 'store/constants'
 import { ENROLL_IN_TRACK_PENDING, LEAVE_TRACK_PENDING, UPDATE_TRACK_PENDING, UPDATE_TRACK_ACTION_ORDER_PENDING } from 'store/actions/trackActions'
+import clearCacheFor from 'store/reducers/ormReducer/clearCacheFor'
+
+function appendCompletionRoleToMe ({ Me, Group, Track, meta }) {
+  const { completionRoleId, completionRole, groupId, trackId } = meta
+  if (!completionRoleId || !groupId) return
+
+  const me = Me.first()
+  if (!me) return
+
+  let roleToAdd = completionRole
+
+  if (!roleToAdd) {
+    const group = Group.withId(groupId)
+    roleToAdd = group?.groupRoles?.items?.find(
+      role => String(role.id) === String(completionRoleId)
+    )
+  }
+
+  if (!roleToAdd && trackId) {
+    const track = Track.withId(trackId)
+    const trackCompletionRole = track?.completionRole
+    if (trackCompletionRole && String(trackCompletionRole.id) === String(completionRoleId)) {
+      roleToAdd = {
+        ...trackCompletionRole.ref,
+        groupId,
+        active: true
+      }
+    }
+  }
+
+  if (!roleToAdd) return
+
+  const roleWithGroup = roleToAdd.groupId ? roleToAdd : { ...roleToAdd, groupId }
+  const existingItems = me.groupRoles?.items || []
+  const alreadyHasRole = existingItems.some(
+    role => String(role.id) === String(roleWithGroup.id) && String(role.groupId) === String(groupId)
+  )
+  if (alreadyHasRole) return
+
+  me.update({
+    groupRoles: {
+      ...me.groupRoles,
+      items: [...existingItems, { ...roleWithGroup, active: true }]
+    }
+  })
+  clearCacheFor(Me, me.id)
+}
 
 export function ormSessionReducer (
-  { Post, Track, Role, session },
+  { Post, Track, Role, Me, Group },
   { type, meta, payload }
 ) {
   switch (type) {
     case COMPLETE_POST_PENDING: {
       const post = Post.safeGet({ id: meta.postId })
       if (!post) return
-      return post.update({ completedAt: new Date().toISOString(), completionResponse: meta.completionResponse })
+      post.update({ completedAt: new Date().toISOString(), completionResponse: meta.completionResponse })
+
+      if (meta.trackCompleted && meta.trackId) {
+        const track = Track.safeGet({ id: meta.trackId })
+        if (track) {
+          track.update({ didComplete: true })
+        }
+        appendCompletionRoleToMe({ Me, Group, Track, meta })
+      }
+      break
     }
 
     case CREATE_POST: {

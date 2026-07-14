@@ -25,6 +25,8 @@ import SocketSubscriber from 'components/SocketSubscriber'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { isMobileDevice, isPhoneDevice } from 'util/mobile'
 import MessagesMobile from './MessagesMobile'
+import { canAddThreadParticipant } from './messageThreadLimits'
+import MutedThreadNotice from './MutedThreadNotice'
 
 import {
   createMessage,
@@ -39,12 +41,11 @@ import {
   getTextForCurrentMessageThread,
   getMessages,
   getMessagesHasMore,
-  getCurrentMessageThread
+  getCurrentMessageThread,
+  NEW_THREAD_ID
 } from './Messages.store'
 
 import classes from './Messages.module.scss'
-
-export const NEW_THREAD_ID = 'new'
 
 const Messages = () => {
   const dispatch = useDispatch()
@@ -203,7 +204,12 @@ const Messages = () => {
   }
 
   const addParticipant = (participant) => {
-    setParticipants(prevParticipants => [...prevParticipants, participant])
+    setParticipants(prevParticipants => {
+      if (!canAddThreadParticipant([...prevParticipants, participant], currentUser?.id)) {
+        return prevParticipants
+      }
+      return [...prevParticipants, participant]
+    })
   }
 
   const removeParticipant = (participant) => {
@@ -241,6 +247,7 @@ const Messages = () => {
           removePerson={removeParticipant}
           peopleSelectorOpen={peopleSelectorOpen}
           autoFocus={forNewThread}
+          maxParticipantsReached={!canAddThreadParticipant(participants, currentUser?.id)}
         />
       </div>
       )
@@ -248,6 +255,7 @@ const Messages = () => {
       <Header
         messageThread={messageThread}
         currentUser={currentUser}
+        threadId={messageThreadId}
       />
       )
 
@@ -317,6 +325,7 @@ const Messages = () => {
           />
           <PeopleTyping className='w-full mx-auto max-w-[750px] pl-16 py-1 flex-shrink-0 px-3' />
           <div className='flex-shrink-0 px-3 pb-3'>
+            {messageThread?.isMuted && <MutedThreadNotice />}
             <MessageForm
               disabled={!messageThreadId && participants.length === 0}
               onSubmit={sendMessage}
@@ -325,11 +334,11 @@ const Messages = () => {
               ref={formRef}
               updateMessageText={updateMessageTextAction}
               messageText={messageText}
-              sendIsTyping={status => sendIsTyping(messageThreadId, status)}
+              sendIsTyping={status => isRealThread && sendIsTyping(messageThreadId, status)}
               pending={messageCreatePending}
             />
           </div>
-          {socket && <SocketSubscriber type='post' id={messageThreadId} />}
+          {socket && isRealThread && <SocketSubscriber type='post' id={messageThreadId} />}
         </div>)}
     </div>
   )

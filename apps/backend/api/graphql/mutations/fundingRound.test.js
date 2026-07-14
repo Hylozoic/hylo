@@ -1,5 +1,6 @@
 import '../../../test/setup'
 import factories from '../../../test/setup/factories'
+import { assignCoordinator } from '../../../test/setup/roleHelpers'
 import {
   createFundingRound,
   updateFundingRound,
@@ -11,37 +12,14 @@ import {
 } from './fundingRound'
 
 describe('createFundingRound', () => {
-  let user, moderatorUser, group, responsibility
+  let user, moderatorUser, group
 
   beforeEach(async function () {
     user = factories.user()
     moderatorUser = factories.user()
     group = factories.group()
     await Promise.all([user.save(), moderatorUser.save(), group.save()])
-
-    // Create the RESP_MANAGE_ROUNDS responsibility if it doesn't exist
-    responsibility = await Responsibility.where({ title: Responsibility.constants.RESP_MANAGE_ROUNDS }).fetch()
-    if (!responsibility) {
-      responsibility = await new Responsibility({
-        title: Responsibility.constants.RESP_MANAGE_ROUNDS,
-        description: 'Can manage funding rounds',
-        type: 'system'
-      }).save()
-
-      // Attach to Coordinator role (id: 1)
-      const coordinatorRole = await CommonRole.where({ id: CommonRole.ROLES.Coordinator }).fetch()
-      if (coordinatorRole) {
-        await coordinatorRole.responsibilities().attach(responsibility.id)
-      }
-    }
-
-    // Join group and give moderator the Coordinator role which has RESP_MANAGE_ROUNDS
-    await moderatorUser.joinGroup(group)
-    await new MemberCommonRole({
-      user_id: moderatorUser.id,
-      group_id: group.id,
-      common_role_id: CommonRole.ROLES.Coordinator
-    }).save()
+    await assignCoordinator(moderatorUser, group)
   })
 
   it('creates a funding round with required fields', async () => {
@@ -123,58 +101,40 @@ describe('createFundingRound', () => {
   })
 
   it('creates a funding round with role restrictions', async () => {
+    const coordinator = await GroupRole.findSystemRole(group.id, 'Coordinator')
+    const moderator = await GroupRole.findSystemRole(group.id, 'Moderator')
+    const submitterRoles = [{ id: coordinator.id }]
+    const voterRoles = [{ id: moderator.id }]
     const data = {
       title: 'Test Round',
       groupId: group.id,
       votingMethod: 'token_allocation_constant',
       totalTokens: 100,
-      submitterRoles: [{ type: 'common', id: 1 }],
-      voterRoles: [{ type: 'common', id: 2 }],
+      submitterRoles,
+      voterRoles,
       publishedAt: new Date(Date.now() - 1000).getTime().toString() // Set published_at so creator can join
     }
 
     const round = await createFundingRound(moderatorUser.id, data)
-    const submitterRoles = round.get('submitter_roles')
-    const voterRoles = round.get('voter_roles')
+    const storedSubmitterRoles = round.get('submitter_roles')
+    const storedVoterRoles = round.get('voter_roles')
     // The roles are stored as JSON strings, so parse them if they're strings
-    const parsedSubmitterRoles = typeof submitterRoles === 'string' ? JSON.parse(submitterRoles) : submitterRoles
-    const parsedVoterRoles = typeof voterRoles === 'string' ? JSON.parse(voterRoles) : voterRoles
-    expect(parsedSubmitterRoles).to.deep.equal(data.submitterRoles)
-    expect(parsedVoterRoles).to.deep.equal(data.voterRoles)
+    const parsedSubmitterRoles = typeof storedSubmitterRoles === 'string' ? JSON.parse(storedSubmitterRoles) : storedSubmitterRoles
+    const parsedVoterRoles = typeof storedVoterRoles === 'string' ? JSON.parse(storedVoterRoles) : storedVoterRoles
+    expect(parsedSubmitterRoles).to.deep.equal(submitterRoles)
+    expect(parsedVoterRoles).to.deep.equal(voterRoles)
   })
 })
 
 describe('updateFundingRound', () => {
-  let user, moderatorUser, group, round, responsibility
+  let user, moderatorUser, group, round
 
   beforeEach(async function () {
     user = factories.user()
     moderatorUser = factories.user()
     group = factories.group()
     await Promise.all([user.save(), moderatorUser.save(), group.save()])
-
-    // Create the RESP_MANAGE_ROUNDS responsibility if it doesn't exist
-    responsibility = await Responsibility.where({ title: Responsibility.constants.RESP_MANAGE_ROUNDS }).fetch()
-    if (!responsibility) {
-      responsibility = await new Responsibility({
-        title: Responsibility.constants.RESP_MANAGE_ROUNDS,
-        description: 'Can manage funding rounds',
-        type: 'system'
-      }).save()
-
-      // Attach to Coordinator role (id: 1)
-      const coordinatorRole = await CommonRole.where({ id: CommonRole.ROLES.Coordinator }).fetch()
-      if (coordinatorRole) {
-        await coordinatorRole.responsibilities().attach(responsibility.id)
-      }
-    }
-
-    await moderatorUser.joinGroup(group)
-    await new MemberCommonRole({
-      user_id: moderatorUser.id,
-      group_id: group.id,
-      common_role_id: CommonRole.ROLES.Coordinator
-    }).save()
+    await assignCoordinator(moderatorUser, group)
 
     // Create a funding round
     round = await new FundingRound({
@@ -201,19 +161,19 @@ describe('updateFundingRound', () => {
   })
 
   it('updates role restrictions', async () => {
-    const data = {
-      submitterRoles: [{ type: 'common', id: 1 }],
-      voterRoles: [{ type: 'common', id: 2 }]
-    }
+    const coordinator = await GroupRole.findSystemRole(group.id, 'Coordinator')
+    const moderator = await GroupRole.findSystemRole(group.id, 'Moderator')
+    const submitterRoles = [{ id: coordinator.id }]
+    const voterRoles = [{ id: moderator.id }]
+    const data = { submitterRoles, voterRoles }
 
     const updatedRound = await updateFundingRound(moderatorUser.id, round.id, data)
-    const submitterRoles = updatedRound.get('submitter_roles')
-    const voterRoles = updatedRound.get('voter_roles')
-    // The roles are stored as JSON strings, so parse them if they're strings
-    const parsedSubmitterRoles = typeof submitterRoles === 'string' ? JSON.parse(submitterRoles) : submitterRoles
-    const parsedVoterRoles = typeof voterRoles === 'string' ? JSON.parse(voterRoles) : voterRoles
-    expect(parsedSubmitterRoles).to.deep.equal(data.submitterRoles)
-    expect(parsedVoterRoles).to.deep.equal(data.voterRoles)
+    const storedSubmitterRoles = updatedRound.get('submitter_roles')
+    const storedVoterRoles = updatedRound.get('voter_roles')
+    const parsedSubmitterRoles = typeof storedSubmitterRoles === 'string' ? JSON.parse(storedSubmitterRoles) : storedSubmitterRoles
+    const parsedVoterRoles = typeof storedVoterRoles === 'string' ? JSON.parse(storedVoterRoles) : storedVoterRoles
+    expect(parsedSubmitterRoles).to.deep.equal(submitterRoles)
+    expect(parsedVoterRoles).to.deep.equal(voterRoles)
   })
 
   it('throws error when round does not exist', async () => {
@@ -251,36 +211,14 @@ describe('updateFundingRound', () => {
 })
 
 describe('deleteFundingRound', () => {
-  let user, moderatorUser, group, round, responsibility
+  let user, moderatorUser, group, round
 
   beforeEach(async function () {
     user = factories.user()
     moderatorUser = factories.user()
     group = factories.group()
     await Promise.all([user.save(), moderatorUser.save(), group.save()])
-
-    // Create the RESP_MANAGE_ROUNDS responsibility if it doesn't exist
-    responsibility = await Responsibility.where({ title: Responsibility.constants.RESP_MANAGE_ROUNDS }).fetch()
-    if (!responsibility) {
-      responsibility = await new Responsibility({
-        title: Responsibility.constants.RESP_MANAGE_ROUNDS,
-        description: 'Can manage funding rounds',
-        type: 'system'
-      }).save()
-
-      // Attach to Coordinator role (id: 1)
-      const coordinatorRole = await CommonRole.where({ id: CommonRole.ROLES.Coordinator }).fetch()
-      if (coordinatorRole) {
-        await coordinatorRole.responsibilities().attach(responsibility.id)
-      }
-    }
-
-    await moderatorUser.joinGroup(group)
-    await new MemberCommonRole({
-      user_id: moderatorUser.id,
-      group_id: group.id,
-      common_role_id: CommonRole.ROLES.Coordinator
-    }).save()
+    await assignCoordinator(moderatorUser, group)
 
     // Create a funding round
     round = await new FundingRound({

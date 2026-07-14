@@ -102,9 +102,6 @@ exports[`MemberList renders with default props with default non-server search 1`
                     "items": [],
                   },
                   "id": "1",
-                  "membershipCommonRoles": {
-                    "items": [],
-                  },
                   "name": "Loren",
                 },
                 {
@@ -112,9 +109,6 @@ exports[`MemberList renders with default props with default non-server search 1`
                     "items": [],
                   },
                   "id": "2",
-                  "membershipCommonRoles": {
-                    "items": [],
-                  },
                   "name": "Robbie",
                 },
               ]
@@ -240,9 +234,6 @@ exports[`MemberList runs call for new results if server search 1`] = `
                     "items": [],
                   },
                   "id": "1",
-                  "membershipCommonRoles": {
-                    "items": [],
-                  },
                   "name": "Loren",
                 },
                 {
@@ -250,9 +241,6 @@ exports[`MemberList runs call for new results if server search 1`] = `
                     "items": [],
                   },
                   "id": "2",
-                  "membershipCommonRoles": {
-                    "items": [],
-                  },
                   "name": "Robbie",
                 },
               ]
