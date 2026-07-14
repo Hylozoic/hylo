@@ -124,8 +124,10 @@ export const filterAndSortPosts = curry((opts, q) => {
   }
 
   if (!isEmpty(search)) {
+    // Alias avoids conflicting with callers that already join `users` (e.g. forPosts)
+    q.leftJoin('users as post_creators', 'posts.user_id', '=', 'post_creators.id')
     addTermToQueryBuilder(search, q, {
-      columns: ['posts.name', 'posts.description']
+      columns: ['posts.name', 'posts.description', 'post_creators.name']
     })
   }
 

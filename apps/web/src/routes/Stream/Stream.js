@@ -144,7 +144,13 @@ export default function Stream (props) {
     return null
   }, [customView, systemView])
 
-  const postTypeFilter = useMemo(() => querystringParams.t || postTypesAvailable?.[defaultPostType] ? defaultPostType : undefined, [querystringParams, defaultPostType])
+  // Prefer querystring, then user/view default; ignore defaults outside this view's allowed types
+  const postTypeFilter = useMemo(() => {
+    const selected = querystringParams.t || defaultPostType || undefined
+    if (!selected) return undefined
+    if (postTypesAvailable && !postTypesAvailable.includes(selected)) return undefined
+    return selected
+  }, [querystringParams.t, defaultPostType, postTypesAvailable])
 
   const topics = topic ? [topic.id] : customView?.type === 'stream' ? customView?.topics?.toModelArray().map(t => t.id) : []
 
@@ -167,6 +173,9 @@ export default function Stream (props) {
   }, [dispatch])
 
   const fetchPostsParam = useMemo(() => {
+    // Backend ignores `filter` when `types` is set, so only pass types when not filtering to one type
+    const types = postTypeFilter ? undefined : postTypesAvailable
+
     if (isDraftsView) {
       return {
         activePostsOnly,
@@ -179,7 +188,7 @@ export default function Stream (props) {
         slug: groupSlug,
         sortBy,
         topics,
-        types: postTypesAvailable
+        types
       }
     }
 
@@ -196,7 +205,7 @@ export default function Stream (props) {
       slug: groupSlug,
       sortBy,
       topics,
-      types: postTypesAvailable
+      types
     }
 
     if (isCalendarViewMode) {

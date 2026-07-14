@@ -62,6 +62,15 @@ describe('filterAndSortPosts', () => {
       where "posts"."type" in ('discussion', 'request', 'offer', 'project', 'proposal', 'event', 'resource')
       order by "posts"."updated_at" desc`)
   })
+
+  it('searches post content and creator name', () => {
+    filterAndSortPosts({ search: 'alice' }, query)
+    expectEqualQuery(relation, `select * from "posts"
+      left join "users" as "post_creators" on "posts"."user_id" = "post_creators"."id"
+      where "posts"."type" in ('discussion', 'request', 'offer', 'project', 'proposal', 'event', 'resource')
+      and (((to_tsvector('english', posts.name) @@ to_tsquery('alice:*')) or (to_tsvector('english', posts.description) @@ to_tsquery('alice:*')) or (to_tsvector('english', post_creators.name) @@ to_tsquery('alice:*'))))
+      order by "posts"."updated_at" desc`)
+  })
 })
 
 describe('filterAndSortGroups', () => {
