@@ -76,7 +76,8 @@ export function createResolverForModel (spec, fetcher) {
         const fetchOpts = Object.assign(
           {
             querySet: opts.querySet,
-            filter: opts.filter && partialRight(opts.filter, args)
+            filter: opts.filter && partialRight(opts.filter, args),
+            skipModelFilter: opts.skipModelFilter
           },
           pick(args, 'first', 'cursor', 'order', 'sortBy', 'offset')
         )
