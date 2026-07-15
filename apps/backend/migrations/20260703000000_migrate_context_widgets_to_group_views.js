@@ -970,6 +970,8 @@ async function rollbackMigratedSpaces (knex) {
 
       await trx('tracks').whereIn('group_id', chunk).update({ group_id: null })
 
+      // Funding-round submissions were inserted as *new* groups_posts on the
+      // space (parent may still have its own row) — drop the space copies.
       await trx.raw(`
         DELETE FROM groups_posts gp
         USING groups g, funding_rounds_posts frp
@@ -989,20 +991,23 @@ async function rollbackMigratedSpaces (knex) {
           AND g.type = 'space'
           AND g.parent_id IS NOT NULL
       `, chunk)
+      // Move every remaining space groups_posts row back to the parent.
+      // Chat / FR-chat / post-migration leftovers used to be handled with
+      // narrow filters; anything missed left dangling FKs that only failed at
+      // COMMIT (groups_posts_group_id_foreign is DEFERRABLE INITIALLY DEFERRED).
+      // Drop space copies that would collide with an existing parent row first.
       await trx.raw(`
-        UPDATE groups_posts gp
-        SET group_id = g.parent_id
-        FROM groups g, posts p, posts_tags pt, tags t
+        DELETE FROM groups_posts gp
+        USING groups g
         WHERE gp.group_id = g.id
           AND g.id IN (${idPlaceholders})
           AND g.type = 'space'
           AND g.parent_id IS NOT NULL
-          AND g.funding_round_id IS NOT NULL
-          AND gp.post_id = p.id
-          AND p.type = 'chat'
-          AND pt.post_id = p.id
-          AND pt.tag_id = t.id
-          AND t.name = concat('‡funding_round_', g.funding_round_id::text)
+          AND EXISTS (
+            SELECT 1 FROM groups_posts parent_gp
+            WHERE parent_gp.group_id = g.parent_id
+              AND parent_gp.post_id = gp.post_id
+          )
       `, chunk)
       await trx.raw(`
         UPDATE groups_posts gp
@@ -1012,8 +1017,6 @@ async function rollbackMigratedSpaces (knex) {
           AND g.id IN (${idPlaceholders})
           AND g.type = 'space'
           AND g.parent_id IS NOT NULL
-          AND g.track_id IS NULL
-          AND g.funding_round_id IS NULL
       `, chunk)
 
       const roleIds = await trx('groups_roles').whereIn('group_id', chunk).pluck('id')
