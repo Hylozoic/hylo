@@ -1027,6 +1027,60 @@ async function rollbackMigratedSpaces (knex) {
       }
       await trx('group_memberships').whereIn('group_id', chunk).delete()
 
+      // Wipe remaining non-CASCADE FK rows that point at these spaces.
+      // Deferred FKs (activities, tag_follows, …) only fail at outer COMMIT —
+      // cascade-covered tables (group_views, context_widgets, moderation,
+      // stripe_products) and SET NULL (stripe_logs) are fine to leave alone.
+      const activityIds = await trx('activities').whereIn('group_id', chunk).pluck('id')
+      if (activityIds.length > 0) {
+        await trx('notifications').whereIn('activity_id', activityIds).delete()
+        await trx('activities').whereIn('id', activityIds).delete()
+      }
+      await trx('activities').whereIn('other_group_id', chunk).update({ other_group_id: null })
+      const collectionIds = await trx('collections').whereIn('group_id', chunk).pluck('id')
+      if (collectionIds.length > 0) {
+        await trx('collections_posts').whereIn('collection_id', collectionIds).delete()
+        await trx('collections').whereIn('id', collectionIds).delete()
+      }
+      await trx('content_access').where(builder => {
+        builder.whereIn('group_id', chunk).orWhereIn('granted_by_group_id', chunk)
+      }).delete()
+      const customViewIds = await trx('custom_views').whereIn('group_id', chunk).pluck('id')
+      if (customViewIds.length > 0) {
+        await trx('custom_view_topics').whereIn('custom_view_id', customViewIds).delete()
+        await trx('custom_views').whereIn('id', customViewIds).delete()
+      }
+      await trx('drafts').whereIn('group_id', chunk).delete()
+      await trx('group_extensions').whereIn('group_id', chunk).delete()
+      await trx('group_invites').whereIn('group_id', chunk).delete()
+      await trx('group_join_questions_answers').whereIn('group_id', chunk).delete()
+      await trx('group_join_questions').whereIn('group_id', chunk).delete()
+      await trx('group_relationship_invites').where(builder => {
+        builder.whereIn('from_group_id', chunk).orWhereIn('to_group_id', chunk)
+      }).delete()
+      await trx('group_relationships').where(builder => {
+        builder.whereIn('parent_group_id', chunk).orWhereIn('child_group_id', chunk)
+      }).delete()
+      await trx('group_to_group_join_questions').whereIn('group_id', chunk).delete()
+      await trx('group_widgets').whereIn('group_id', chunk).delete()
+      await trx('groups_agreements').whereIn('group_id', chunk).delete()
+      await trx('groups_suggested_skills').whereIn('group_id', chunk).delete()
+      await trx('groups_tags').whereIn('group_id', chunk).delete()
+      await trx('groups_tracks').whereIn('group_id', chunk).delete()
+      await trx('join_requests').whereIn('group_id', chunk).delete()
+      const spaceResponsibilityIds = await trx('responsibilities').whereIn('group_id', chunk).pluck('id')
+      if (spaceResponsibilityIds.length > 0) {
+        await trx('group_roles_responsibilities').whereIn('responsibility_id', spaceResponsibilityIds).delete()
+        await trx('responsibilities').whereIn('id', spaceResponsibilityIds).delete()
+      }
+      await trx('tag_follows').whereIn('group_id', chunk).delete()
+      await trx('users_groups_agreements').whereIn('group_id', chunk).delete()
+      await trx('zapier_triggers_groups').whereIn('group_id', chunk).delete()
+      // Explicit (also CASCADE) — avoids slow row-by-row cascade on large menus.
+      await trx('group_views').where(builder => {
+        builder.whereIn('group_id', chunk).orWhereIn('linked_group_id', chunk)
+      }).delete()
+
       await trx('groups').whereIn('id', chunk).delete()
     })
   }
