@@ -795,7 +795,7 @@ export default function AuthLayoutRouter (props) {
                 <Route path='groups/:groupSlug/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
                 {isPhoneDevice() && (
                   <>
-                    <Route path='messages/:messageThreadId' element={<ThreadList />} />
+                    <Route path='messages/:messageThreadId/*' element={<ThreadList />} />
                     <Route path='messages' element={<ThreadList />} />
                   </>
                 )}
@@ -845,6 +845,8 @@ export default function AuthLayoutRouter (props) {
               <Route path='all/post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
               <Route path='post/:postId/create/*' element={<CreateModal context='all' />} />
               <Route path='post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
+              <Route path='messages/:messageThreadId/create/*' element={<CreateModal context='messages' />} />
+              <Route path='messages/create/*' element={<CreateModal context='messages' />} />
             </Routes>
 
             <div className={cn('AuthLayout_centerColumn bg-midground flex flex-col px-0 relative min-h-1 h-full flex-1 overflow-y-auto overflow-x-hidden transition-all duration-450', { 'z-[60]': withoutNav, 'sm:p-0': isMapView })} id={CENTER_COLUMN_ID}>
@@ -944,7 +946,7 @@ export default function AuthLayoutRouter (props) {
                 <Route path='management/*' element={<Management />} />
                 {/* **** Other Routes **** */}
                 <Route path='welcome/*' element={<WelcomeWizardRouter />} />
-                <Route path='messages/:messageThreadId' element={<MessagesLayout />} />
+                <Route path='messages/:messageThreadId/*' element={<MessagesLayout />} />
                 <Route path='messages' element={<MessagesLayout />} />
                 <Route path='post/:postId/*' element={<PostDetail />} />
                 {/* Keep old settings paths for mobile */}
