@@ -14,9 +14,11 @@ import Checkbox from 'components/ui/checkbox'
 import * as Dialog from '@radix-ui/react-dialog'
 import { Label } from 'components/ui/label'
 import useRouteParams from 'hooks/useRouteParams'
+import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import completePost from 'store/actions/completePost'
+import { fetchViewPosts } from 'store/actions/groupViews'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
-import getTrack from 'store/selectors/getTrack'
+import { getGroupViews } from 'store/selectors/getGroupViews'
 
 export default function ActionCompletionSection ({ post, currentUser }) {
   const dispatch = useDispatch()
@@ -26,14 +28,26 @@ export default function ActionCompletionSection ({ post, currentUser }) {
   const [showTrackCompletionDialog, setShowTrackCompletionDialog] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const { completionAction, completionActionSettings } = post
-  const { instructions, options } = completionActionSettings
-  const currentTrack = useSelector(state => getTrack(state, routeParams.trackId))
-  const currentGroup = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
+  const { instructions, options } = completionActionSettings || {}
+  // Track spaces carry the track on the space group (group.track).
+  const groupSlug = useEffectiveGroupSlug() || routeParams.groupSlug
+  const currentGroup = useSelector(state => getGroupForSlug(state, groupSlug))
+  const currentTrack = currentGroup?.track || null
+  const groupViews = useSelector(state => getGroupViews(state, currentGroup))
+  const actionsView = groupViews.find(v => v.type === 'track-actions')
+  const trackActions = actionsView?.collectionPosts || []
+
+  useEffect(() => {
+    if (currentGroup?.id && actionsView?.id && actionsView.collectionPosts === undefined) {
+      dispatch(fetchViewPosts(currentGroup.id, actionsView.id))
+    }
+  }, [currentGroup?.id, actionsView?.id, actionsView?.collectionPosts, dispatch])
 
   const handleSubmitCompletion = useCallback(() => {
     if (completionAction === 'button' || completionResponse.length > 0) {
-      // Check if the person has completed all actions in the track
-      const allActionsCompleted = currentTrack?.posts.every(action => action.id === post.id || action.completedAt)
+      // Action posts live on the track-actions view's collectionPosts
+      const allActionsCompleted = trackActions.length > 0 &&
+        trackActions.every(action => action.id === post.id || action.completedAt)
       const trackCompleted = allActionsCompleted && !post.completedAt
       if (trackCompleted) {
         setShowTrackCompletionDialog(true)
@@ -50,7 +64,7 @@ export default function ActionCompletionSection ({ post, currentUser }) {
       }))
     }
     setIsEditing(false)
-  }, [post, completionResponse, currentTrack, currentGroup?.id, dispatch, completionAction])
+  }, [post, completionResponse, currentTrack, currentGroup?.id, dispatch, completionAction, trackActions])
 
   useEffect(() => {
     // If the post is completed, or re-completed, close edit mode

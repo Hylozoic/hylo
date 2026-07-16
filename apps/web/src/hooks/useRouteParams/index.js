@@ -97,17 +97,6 @@ export default function useRouteParams () {
       }
     }
 
-    // Set trackId
-    if (params.view === 'tracks') {
-      if (params.spaceSlug) {
-        params.trackId = pathParts[6]
-        params.tab = pathParts[7]
-      } else {
-        params.trackId = pathParts[4]
-        params.tab = pathParts[5]
-      }
-    }
-
     // Set fundingRoundId
     if (params.view === 'funding-rounds') {
       if (params.spaceSlug) {

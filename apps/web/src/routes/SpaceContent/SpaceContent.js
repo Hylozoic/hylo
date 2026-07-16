@@ -15,6 +15,7 @@ import Moderation from 'routes/Moderation'
 import PostDetail from 'routes/PostDetail'
 import SpaceJoinPage from 'routes/SpaceJoinPage'
 import Stream from 'routes/Stream'
+import TrackActionsView from 'routes/TrackActionsView/TrackActionsView'
 import ViewContent from 'routes/ViewContent'
 import fetchForGroup from 'store/actions/fetchForGroup'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
@@ -122,7 +123,7 @@ export default function SpaceContent () {
         <Route path='members/:personId/*' element={<MemberProfile context='groups' />} />
         <Route path='members/*' element={<Members context='groups' />} />
         <Route path='chat/*' element={<ChatRoom context='groups' showHomeWelcome={false} />} />
-        <Route path='track-actions/*' element={<ViewContent context='groups' view='track-actions' />} />
+        <Route path='track-actions/*' element={<TrackActionsView />} />
         <Route path='funding-round-submissions/*' element={<ViewContent context='groups' view='funding-round-submissions' />} />
         <Route path='moderation/*' element={<Moderation context='groups' />} />
         <Route path='about/*' element={<GroupDetail context='groups' forCurrentGroup />} />

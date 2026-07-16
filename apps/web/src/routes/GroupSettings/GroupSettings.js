@@ -16,13 +16,12 @@ import PrivacySettingsTab from './PrivacySettingsTab'
 import RelatedGroupsTab from './RelatedGroupsTab'
 import ResponsibilitiesTab from './ResponsibilitiesTab'
 import ExportDataTab from './ExportDataTab'
-import TracksTab from './TracksTab'
 import WelcomePageTab from './WelcomePageTab'
 import PaidContentTab from './PaidContentTab'
 import Loading from 'components/Loading'
 import { fetchLocation } from 'components/LocationInput/LocationInput.store'
 import FullPageModal from 'routes/FullPageModal'
-import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION, RESP_MANAGE_TRACKS } from 'store/constants'
+import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
 import { WebViewMessageTypes } from '@hylo/shared'
 import { isLegacyWebView, sendMessageToWebView } from 'util/webView'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
@@ -78,7 +77,6 @@ export default function GroupSettings () {
   const responsibilities = useSelector(state => getResponsibilitiesForGroup(state, { person: currentUser, groupId: group?.id })).map(r => r.title)
   const canAdminister = responsibilities.includes(RESP_ADMINISTRATION)
   const canAddMembers = responsibilities.includes(RESP_ADD_MEMBERS)
-  const canManageTracks = responsibilities.includes(RESP_MANAGE_TRACKS)
 
   if (!group) return <Loading />
 
@@ -162,12 +160,6 @@ export default function GroupSettings () {
     component: <RelatedGroupsTab group={group} currentUser={currentUser} />
   }
 
-  const tracksSettings = {
-    name: t('Tracks'),
-    path: 'tracks',
-    component: <TracksTab group={group} currentUser={currentUser} />
-  }
-
   const importSettings = {
     name: '',
     path: 'import',
@@ -207,7 +199,6 @@ export default function GroupSettings () {
         canAddMembers ? inviteSettings : null,
         canAddMembers ? joinRequestSettings : null,
         canAdminister ? relatedGroupsSettings : null,
-        canManageTracks ? tracksSettings : null,
         canAdminister ? importSettings : null,
         canAdminister ? exportSettings : null,
         canAdminister ? paidContentSettings : null,

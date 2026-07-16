@@ -157,8 +157,7 @@ export {
   duplicateTrack,
   enrollInTrack,
   leaveTrack,
-  updateTrack,
-  updateTrackActionOrder
+  updateTrack
 } from './track'
 export {
   allocateTokensToSubmission,

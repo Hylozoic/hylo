@@ -12,8 +12,7 @@ import {
   GroupWelcomeBootstrapSkeleton,
   MapExplorerBootstrapSkeleton,
   MembersBootstrapSkeleton,
-  ModerationBootstrapSkeleton,
-  TracksBootstrapSkeleton
+  ModerationBootstrapSkeleton
 } from './RouteBootstrapPlaceholders'
 
 /** Group chat room — same column width as ChatRoom message list. */
@@ -75,16 +74,6 @@ const EVENTS_BOOTSTRAP_PATTERNS = [
   '/all/events',
   '/public/events/*',
   '/public/events'
-]
-
-const TRACKS_DETAIL_BOOTSTRAP_PATTERNS = [
-  '/groups/:groupSlug/tracks/:trackId/*',
-  '/groups/:groupSlug/tracks/:trackId'
-]
-
-const TRACKS_LIST_BOOTSTRAP_PATTERNS = [
-  '/groups/:groupSlug/tracks/*',
-  '/groups/:groupSlug/tracks'
 ]
 
 const FUNDING_ROUND_DETAIL_BOOTSTRAP_PATTERNS = [
@@ -149,14 +138,6 @@ function isEventsBootstrapPath (pathname) {
   return matchesAnyPattern(EVENTS_BOOTSTRAP_PATTERNS, pathname)
 }
 
-function isTracksDetailBootstrapPath (pathname) {
-  return matchesAnyPattern(TRACKS_DETAIL_BOOTSTRAP_PATTERNS, pathname)
-}
-
-function isTracksListBootstrapPath (pathname) {
-  return matchesAnyPattern(TRACKS_LIST_BOOTSTRAP_PATTERNS, pathname)
-}
-
 function isFundingRoundDetailBootstrapPath (pathname) {
   return matchesAnyPattern(FUNDING_ROUND_DETAIL_BOOTSTRAP_PATTERNS, pathname)
 }
@@ -216,14 +197,6 @@ export default function RouteBootstrapSkeleton ({ pathname: pathnameProp }) {
 
   if (isEventsBootstrapPath(pathname)) {
     return <EventsBootstrapSkeleton />
-  }
-
-  if (isTracksDetailBootstrapPath(pathname)) {
-    return <TracksBootstrapSkeleton />
-  }
-
-  if (isTracksListBootstrapPath(pathname)) {
-    return <TracksBootstrapSkeleton />
   }
 
   if (isFundingRoundDetailBootstrapPath(pathname)) {

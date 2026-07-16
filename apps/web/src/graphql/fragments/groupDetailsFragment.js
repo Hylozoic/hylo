@@ -28,6 +28,7 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
   }
   slug
   type
+  parentId
   typeDescriptor
   typeDescriptorPlural
   visibility

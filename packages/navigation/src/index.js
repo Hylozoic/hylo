@@ -113,10 +113,6 @@ export function createGroupUrl (opts) {
   return baseUrl(opts) + '/create/group'
 }
 
-export function createTrackUrl (opts) {
-  return baseUrl(opts) + '/create/track'
-}
-
 // For specific views of a group like 'map', or 'projects'
 export function viewUrl (view, { context, groupSlug, defaultUrl, customViewId }) {
   if (!view) return '/'
@@ -352,7 +348,7 @@ export function homeRoutePathForWidget (widget) {
   if (widget.view) return '/' + widget.view
   if (widget.viewChat) return '/chat'
   if (widget.customView) return '/custom/' + widget.customView.id
-  if (widget.viewTrack) return '/tracks/' + widget.viewTrack.id
+  if (widget.viewTrack) return '/track-actions'
   if (widget.viewFundingRound) return '/funding-rounds/' + widget.viewFundingRound.id
   return '/stream'
 }
@@ -378,7 +374,11 @@ export function widgetUrl ({ widget, rootPath, groupSlug: providedSlug, context 
   } else if (widget.customView) {
     url = customViewUrl(widget.customView.id, rootPath, { context, groupSlug })
   } else if (widget.viewTrack) {
-    url = trackUrl(widget.viewTrack.id, { context, groupSlug })
+    url = trackUrl(widget.viewTrack.id, {
+      context,
+      groupSlug,
+      space: widget.viewTrack.space
+    })
   } else if (widget.viewFundingRound) {
     url = fundingRoundUrl(widget.viewFundingRound.id, { context, groupSlug })
   }
@@ -386,8 +386,19 @@ export function widgetUrl ({ widget, rootPath, groupSlug: providedSlug, context 
   return url
 }
 
-export function trackUrl (trackId, opts) {
-  return baseUrl({ ...opts, context: 'group', view: 'tracks' }) + `/${trackId}` + (opts.tab ? `/${opts.tab}` : '')
+/**
+ * URL for a Track's space. Prefer opts.space (or spaceSlug) — legacy
+ * /groups/:groupSlug/tracks/:trackId routes are no longer supported.
+ */
+export function trackUrl (trackId, opts = {}) {
+  const { groupSlug, spaceSlug, space, tab } = opts
+  const localSlug = spaceSlug || (space?.slug && groupSlug ? localSpaceSlug(groupSlug, space.slug) : null)
+  if (groupSlug && localSlug) {
+    if (!tab && space) return spaceHomeUrl(groupSlug, space)
+    return spaceUrl(groupSlug, localSlug, tab ? `/${tab}` : '')
+  }
+  if (groupSlug) return groupUrl(groupSlug, 'settings/tracks')
+  return '/my/tracks'
 }
 
 export function fundingRoundUrl (fundingRoundId, opts) {
@@ -434,14 +445,8 @@ export function addQuerystringToPath (path, querystringParams) {
 export function removeCreateEditModalFromUrl (url) {
   const matchForCreateRegex = '/create/(post|track)/*'
   const matchForEditRegex = `/post/${HYLO_ID_MATCH}(/.*)?`
-  const matchForEditTrackRegex = `/tracks/${HYLO_ID_MATCH}(/.*)?`
   return url.replace(new RegExp(matchForCreateRegex), '')
     .replace(new RegExp(matchForEditRegex), '')
-    .replace(new RegExp(matchForEditTrackRegex), (match) => {
-      // Split the match into parts so we only remove the "edit" part of the url
-      const parts = match.split('/')
-      return parts.slice(0, 3).join('/') // Keep '/tracks/{id}'
-    })
 }
 
 /**

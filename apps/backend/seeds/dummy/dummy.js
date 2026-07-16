@@ -20,7 +20,7 @@ const SYSTEM_ROLES = [
     name: 'Coordinator',
     emoji: '🪄',
     description: 'Coordinators are empowered to do everything related to group administration.',
-    responsibilities: ['Administration', 'Add Members', 'Remove Members', 'Manage Content', 'Manage Tracks']
+    responsibilities: ['Administration', 'Add Members', 'Remove Members', 'Manage Content', 'Manage Spaces']
   },
   {
     name: 'Moderator',
@@ -153,7 +153,7 @@ exports.seed = (knex) => warning(knex)
     { title: 'Add Members', type: 'system' },
     { title: 'Remove Members', type: 'system' },
     { title: 'Manage Content', type: 'system' },
-    { title: 'Manage Tracks', type: 'system' }
+    { title: 'Manage Spaces', type: 'system' }
   ]))
   .then(() => knex('responsibilities').select('id', 'title'))
   .then((rows) => Object.fromEntries(rows.map(r => [r.title, r.id])))

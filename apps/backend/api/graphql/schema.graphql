@@ -957,6 +957,8 @@ type Group {
   name: String
   # For the current logged in user how many prerequisite groups must they join before they can join this one
   numPrerequisitesLeft: Int
+  # Spaces & Views: parent Group id when this Group is a Space; null for top-level groups
+  parentId: ID
   # Whether this group requires purchased membership (paywall enabled)
   paywall: Boolean
   # Total number of posts in this group
@@ -2097,10 +2099,12 @@ type MembershipCommonRoleQuerySet {
   items: [MembershipCommonRole]
 }
 
-# Settinga for a user's group membership
+# Settings for a user's group membership
 type MembershipSettings {
   # When the member last accepted the agreements of the group
   agreementsAcceptedAt: Date
+  # Track space: when the member completed the linked track
+  completedAt: Date
   # How often this person wants to receive the email digest about new posts and comments in this group: daily, weekly, or never
   digestFrequency: String
   # When the member filled out the join questions
@@ -2229,7 +2233,7 @@ type Person {
   contactEmail: String
   # Phone number made visible on this person's profile
   contactPhone: String
-  # When loading through a track this is when they were enrolled in the track
+  # When loading through a track: membership created_at (join space = enroll)
   enrolledAt: Date
   # The URL to this person's Facebook profile
   facebookUrl: String
@@ -2484,8 +2488,6 @@ type Post {
   reactionsSummary: JSON
   # When the current user saved this post
   savedAt: Date
-  # When loading posts for a Track, this is the order of the post in the track
-  sortOrder: Int
   # When this post "starts". Used for events, resources, projects, requests and offers right now
   startTime: Date
   # The timezone of the post
@@ -2848,10 +2850,8 @@ type Track {
   usersTotal: Int
   # The welcome message for this track
   welcomeMessage: String
-  # The groups in this track
-  groups: GroupQuerySet
-  # The posts in this track
-  posts: PostQuerySet
+  # The Track space Group (tracks.group_id / groups.track_id)
+  space: Group
   # The users related to this track
   users: PersonQuerySet
 }
@@ -2860,18 +2860,6 @@ type TrackQuerySet {
   total: Int
   hasMore: Boolean
   items: [Track]
-}
-
-type TrackUser {
-  id: ID
-  completedAt: Date
-  createdAt: Date
-  enrolledAt: Date
-  settings: JSON
-  updatedAt: Date
-  group: Group
-  track: Track
-  user: Person
 }
 
 # Preview of subscription change rules (v1)
@@ -3030,7 +3018,7 @@ type ContentAccessCheckResult {
 # A user's transaction/purchase record, enriched with Stripe data
 type UserTransaction {
   id: ID!
-  
+
   # From our database
   # The offering/product that was purchased
   offering: StripeOffering
@@ -3049,7 +3037,7 @@ type UserTransaction {
   purchaseDate: Date!
   # When access expires (null for lifetime)
   expiresAt: Date
-  
+
   # From Stripe API (enriched)
   # Payment type: 'one_time' or 'subscription'
   paymentType: String!
@@ -3066,7 +3054,7 @@ type UserTransaction {
   amountPaid: Int
   # Currency code (e.g., 'usd')
   currency: String
-  
+
   # Generated links
   # URL to Stripe billing portal for managing this subscription
   manageUrl: String
@@ -3768,8 +3756,6 @@ type Mutation {
   updateTopicFollow(id: ID, data: TopicFollowInput): TopicFollow
   # Update a track
   updateTrack(trackId: ID, data: TrackInput): Track
-  # Update the order of an action in a track
-  updateTrackActionOrder(trackId: ID, postId: ID, newOrderIndex: Int): GenericResult
   # Update settings for a GroupWidget
   updateWidget(id: ID, changes: GroupWidgetInput): GroupWidget
   # Accept an invitation to a Group
@@ -4614,6 +4600,8 @@ input PostInput {
   topicNames: [String]
   # The track this post is associated with
   trackId: ID
+  # The GroupView to add this post to (e.g. track-actions / collection / funding-round-submissions)
+  viewId: ID
   # Post type: 'action', 'chat', 'discussion', 'event', 'offer', 'project', 'proposal', 'request', 'resource', 'submission'
   type: String
 }
@@ -4698,8 +4686,8 @@ input TrackInput {
   completionRoleId: ID
   # The description of the track
   description: String
-  # The groups this track is associated with
-  groupIds: [ID]
+  # The Track space group (tracks.group_id / groups.track_id)
+  groupId: ID
   # The posts (actions) for the track
   postIds: [ID]
   # The name of the track

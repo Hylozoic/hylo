@@ -372,8 +372,9 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'tagline'
       ],
       getters: {
-        completedAt: p => p.pivot && p.pivot.get('completed_at'), // When loading through a track this is when they completed the track
-        enrolledAt: p => p.pivot && p.pivot.get('enrolled_at'), // When loading through a track this is when they were enrolled in the track
+        // When loading via Track.users: enrollment = membership created_at; completion in settings
+        completedAt: p => p.pivot && (p.pivot.get('settings') || {}).completedAt,
+        enrolledAt: p => p.pivot && p.pivot.get('created_at'),
         membershipCommonRoles: emptyQuerySet,
         messageThreadId: p => p.getMessageThreadWith(userId).then(post => post ? post.id : null)
       },
@@ -536,7 +537,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
             ? p.userEventInvitation(userId).then(eventInvitation => eventInvitation ? eventInvitation.get('response') : '')
             : '',
         savedAt: p => p.savedAtForUser(userId),
-        sortOrder: p => p.pivot && p.pivot.get('sort_order'), // For loading posts in order in a track
         tokensAllocated: async p => {
           if (!userId) return null
           const postUser = await PostUser.find(p.get('id'), userId)
@@ -560,7 +560,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
               return relation.query(async q => {
                 const postUsers = await PostMembership.where({ post_id: relation.relatedData.parentId }).fetchAll()
                 const hasTracksResponsibility = postUsers.length > 0 && await Promise.any(postUsers.map(postUser => {
-                  return GroupMembership.hasResponsibility(userId, postUser.get('group_id'), Responsibility.constants.RESP_MANAGE_TRACKS)
+                  return GroupMembership.hasResponsibility(userId, postUser.get('group_id'), Responsibility.constants.RESP_MANAGE_SPACES)
                 }))
                 if (!hasTracksResponsibility) return q.where('user_id', userId)
                 return q
@@ -816,6 +816,12 @@ export default function makeModels (userId, isAdmin, apiClient) {
             querySet: true,
             filter: (relation, { autocomplete, published, sortBy, order }) =>
               relation.query(q => {
+                const groupId = relation.relatedData.parentId
+                // Include tracks whose space is a child of this group (parent listing)
+                q.orWhereIn('tracks.group_id', function () {
+                  this.select('id').from('groups').where('parent_id', groupId)
+                })
+
                 if (autocomplete) {
                   q.whereRaw('tracks.name ilike ?', autocomplete + '%')
                 }
@@ -831,7 +837,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
                 q.orderBy(sortBy || 'id', order || 'asc')
 
                 // Only admins can see unpublished tracks
-                if (!GroupMembership.hasResponsibility(userId, relation.relatedData.parentId, Responsibility.constants.RESP_ADMINISTRATION)) {
+                if (!GroupMembership.hasResponsibility(userId, groupId, Responsibility.constants.RESP_ADMINISTRATION)) {
                   q.whereNotNull('tracks.published_at')
                 }
               })
@@ -1012,10 +1018,17 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'viewUser'
       ],
       getters: {
-        // collectionPosts resolves to the actual Posts (not the join rows) per the GraphQL schema
+        // collectionPosts resolves to the actual Posts (not the join rows) per the GraphQL schema.
+        // Re-applies the same visibility rules as every other Post query (active, membership,
+        // public, blocked-user) since this is a custom getter and bypasses the generic Post filter.
         collectionPosts: async gv => {
-          const rows = await gv.collectionPosts().fetch({ withRelated: ['post'] })
-          return rows.map(row => row.related('post')).filter(post => post && post.id)
+          const rows = await gv.collectionPosts().fetch()
+          const postIds = rows.map(row => row.get('post_id'))
+          if (postIds.length === 0) return []
+
+          const posts = await postFilter(userId, isAdmin)(Post.query(q => q.whereIn('posts.id', postIds))).fetchAll()
+          const postsById = new Map(posts.map(post => [String(post.id), post]))
+          return postIds.map(id => postsById.get(String(id))).filter(Boolean)
         },
         newPostCount: async gv => {
           if (!userId) return 0
@@ -1445,9 +1458,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
       relations: [
         'completionRole',
         { enrolledUsers: { querySet: true } },
-        { groups: { querySet: true } },
-        { posts: { querySet: true } },
-        { users: { querySet: true } }
+        { group: { alias: 'space' } }
       ],
       getters: {
         canAccess: t => t ? t.canAccess(userId) : false,
@@ -1459,18 +1470,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
         searchQuerySet('tracks', {
           autocomplete, first, offset, order, published, sortBy
         })
-    },
-
-    TrackUser: {
-      model: TrackUser,
-      attributes: [
-        'completed_at',
-        'created_at',
-        'enrolled_at',
-        'settings',
-        'updated_at'
-      ],
-      relations: ['track', 'group', 'user']
     },
 
     FundingRound: {

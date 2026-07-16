@@ -9,7 +9,7 @@ export default async function createPost (userId, params) {
     .then(attrs => bookshelf.transaction(transacting =>
       Post.create(attrs, { transacting })
         .tap(post => afterCreatingPost(post, merge(
-          pick(params, 'localId', 'group_ids', 'imageUrl', 'videoUrl', 'docs', 'topicNames', 'memberIds', 'eventInviteeIds', 'imageUrls', 'fileUrls', 'fundingRoundId', 'announcement', 'location', 'location_id', 'proposalOptions', 'trackId', 'markAsReadTopicName'),
+          pick(params, 'localId', 'group_ids', 'imageUrl', 'videoUrl', 'docs', 'topicNames', 'memberIds', 'eventInviteeIds', 'imageUrls', 'fileUrls', 'fundingRoundId', 'announcement', 'location', 'location_id', 'proposalOptions', 'trackId', 'viewId', 'markAsReadTopicName'),
           { children: params.requests, transacting }
         ))))
       .then(function (inserts) {
@@ -72,7 +72,10 @@ export function afterCreatingPost (post, opts) {
     }, trx),
     opts.docs && Promise.map(opts.docs, (doc) => Media.createDoc(post.id, doc, trx)),
 
-    opts.trackId && Track.addPost(post, opts.trackId, trxOpts),
+    opts.trackId && Track.addPost(post, opts.trackId, { ...trxOpts, userId }),
+
+    // Explicit view collection link (e.g. track-actions / funding-round-submissions / collection views)
+    opts.viewId && addPostToViewCollection(post, opts.viewId, userId, trxOpts),
 
     opts.fundingRoundId && post.get('type') === Post.Type.SUBMISSION && FundingRound.addPost(post, opts.fundingRoundId, userId, trxOpts)
   ]))
@@ -90,6 +93,29 @@ export function afterCreatingPost (post, opts) {
       console.error('afterCreatingPost failed: ', err)
       throw new GraphQLError(`afterCreatingPost failed: ${err}`)
     })
+}
+
+/** Links a newly created post into a view's ordered collections_posts list. */
+async function addPostToViewCollection (post, viewId, userId, { transacting } = {}) {
+  const view = await GroupView.where({ id: viewId }).fetch({ transacting })
+  if (!view) return null
+
+  const existing = await CollectionPost.find(viewId, post.id, { transacting })
+  if (existing) return existing
+
+  const row = await bookshelf.knex('collections_posts')
+    .modify(q => { if (transacting) q.transacting(transacting) })
+    .where({ view_id: viewId })
+    .select(bookshelf.knex.raw('coalesce(max("order"), -1) as max_order'))
+    .first()
+  const nextOrder = Number(row.max_order) + 1
+
+  return CollectionPost.create({
+    view_id: viewId,
+    post_id: post.id,
+    order: nextOrder,
+    user_id: userId
+  }, { transacting })
 }
 
 async function updateTagsAndGroups (post, localId, trx, markAsReadTopicName = null) {

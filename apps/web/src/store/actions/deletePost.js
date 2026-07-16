@@ -1,6 +1,6 @@
 import { DELETE_POST } from 'store/constants'
 
-export default function deletePost (id, groupId, trackId) {
+export default function deletePost (id, groupId, trackId, viewId) {
   return {
     type: DELETE_POST,
     graphql: {
@@ -17,7 +17,8 @@ export default function deletePost (id, groupId, trackId) {
       optimistic: true,
       id,
       groupId,
-      trackId
+      trackId,
+      viewId
     }
   }
 }

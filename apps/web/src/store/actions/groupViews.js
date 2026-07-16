@@ -3,11 +3,14 @@ import {
   CREATE_GROUP_VIEW,
   CREATE_SPACE,
   DELETE_GROUP_VIEW,
+  FETCH_VIEW_POSTS,
   REORDER_GROUP_VIEW,
+  REORDER_VIEW_POST,
   SET_HOME_VIEW,
   UPDATE_GROUP_VIEW,
   UPDATE_SPACE
 } from 'store/constants'
+import { PostFieldsFragment } from 'store/actions/trackActions'
 
 /** Build embedded menu patch fields from updateGroupView mutation args. */
 function groupViewMenuData ({ name, icon, settings, link, pageContent, topics }) {
@@ -190,6 +193,51 @@ export function setHomeView ({ viewId, groupId, parentGroupId, targetGroupId, re
       variables: { viewId, groupId }
     },
     meta: { viewId, groupId, parentGroupId, targetGroupId, reorderedItems }
+  }
+}
+
+/** Reorder a post within a view's ordered collection (e.g. a track's Actions list). */
+export function reorderViewPost ({ groupId, viewId, postId, order }) {
+  return {
+    type: REORDER_VIEW_POST,
+    graphql: {
+      query: `mutation ($viewId: ID!, $postId: ID!, $order: Int!) {
+        reorderViewPost(viewId: $viewId, postId: $postId, order: $order) {
+          success
+        }
+      }`,
+      variables: { viewId, postId, order }
+    },
+    meta: { groupId, viewId, postId, order, optimistic: true }
+  }
+}
+
+/**
+ * Fetch the ordered posts for a view (e.g. a track's Actions list or a
+ * funding round's Submissions list), sourced from collections_posts.
+ * Merged directly onto the matching view in the group's menu, so it doesn't
+ * clobber the rest of the (separately-fetched) groupViews menu data.
+ */
+export function fetchViewPosts (groupId, viewId) {
+  return {
+    type: FETCH_VIEW_POSTS,
+    graphql: {
+      query: `query ($groupId: ID) {
+        group(id: $groupId) {
+          id
+          groupViews {
+            items {
+              id
+              collectionPosts {
+                ${PostFieldsFragment}
+              }
+            }
+          }
+        }
+      }`,
+      variables: { groupId }
+    },
+    meta: { groupId, viewId }
   }
 }
 

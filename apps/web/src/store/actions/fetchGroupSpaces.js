@@ -1,4 +1,6 @@
+import { get } from 'lodash/fp'
 import { FETCH_GROUP_SPACES } from 'store/constants'
+import { collectSpaceGroups } from 'store/util/extractNestedGroups'
 
 /** Loads child spaces for a group (used by More Spaces). */
 export default function fetchGroupSpaces (groupId) {
@@ -13,10 +15,30 @@ export default function fetchGroupSpaces (groupId) {
               id
               name
               slug
+              type
+              parentId
               avatarUrl
               icon
               bannerUrl
               description
+              purpose
+              location
+              locationObject {
+                id
+                fullText
+              }
+              acceptedPostTypes
+              visibility
+              accessibility
+              requiredRoles
+              groupRoles {
+                items {
+                  id
+                  name
+                  emoji
+                  active
+                }
+              }
               active
               homeRoute
               groupViews {
@@ -27,6 +49,7 @@ export default function fetchGroupSpaces (groupId) {
                   order
                   icon
                   newPostCount
+                  pageContent
                   viewPost {
                     id
                     title
@@ -47,7 +70,17 @@ export default function fetchGroupSpaces (groupId) {
               track {
                 id
                 name
+                actionDescriptor
+                actionDescriptorPlural
+                completionMessage
+                completionRole {
+                  id
+                  name
+                  emoji
+                }
                 publishedAt
+                accessControlled
+                canAccess
               }
               fundingRound {
                 id
@@ -60,6 +93,13 @@ export default function fetchGroupSpaces (groupId) {
       }`,
       variables: { groupId }
     },
-    meta: { extractModel: 'Group' }
+    meta: {
+      // Also extract each off-menu space (and its own nested space views) as its
+      // own normalized Group record — see store/util/extractNestedGroups.js
+      extractModel: [
+        { getRoot: get('group'), modelName: 'Group', append: true },
+        { getRoot: data => collectSpaceGroups(get('group.spaces.items', data)), modelName: 'Group', append: true }
+      ]
+    }
   }
 }

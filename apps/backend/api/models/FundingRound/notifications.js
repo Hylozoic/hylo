@@ -252,7 +252,7 @@ export const notifyStewardsOfSubmission = async ({ fundingRoundId, postId, userI
   if (!fundingRound) return
 
   const group = await fundingRound.group().fetch()
-  const manageResponsibility = await Responsibility.where({ title: Responsibility.constants.RESP_MANAGE_ROUNDS }).fetch()
+  const manageResponsibility = await Responsibility.where({ title: Responsibility.constants.RESP_MANAGE_SPACES }).fetch()
   const stewards = await group.membersWithResponsibilities([manageResponsibility.id]).fetch()
   const stewardIds = stewards.pluck('id')
 

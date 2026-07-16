@@ -494,13 +494,42 @@ module.exports = bookshelf.Model.extend(merge({
     return this.belongsToMany(Tag).through(GroupTag).withPivot(['is_default'])
   },
 
+  /**
+   * Tracks whose space is this group (tracks.group_id). Parent groups also list
+   * child-space tracks via the GraphQL filter (see makeModels Group.tracks).
+   */
   tracks () {
-    return this.belongsToMany(Track, 'groups_tracks')
+    return this.hasMany(Track, 'group_id')
   },
 
   // Spaces & Views: the Track whose space this group is (spec section 3.4)
   track () {
     return this.belongsTo(Track, 'track_id')
+  },
+
+  // The track-actions GroupView for this Track space (ordering via collections_posts)
+  trackActionsView () {
+    return this.hasOne(GroupView, 'group_id').query(q => q.where('type', GroupView.Type.TRACK_ACTIONS))
+  },
+
+  /**
+   * Ordered active action Posts from this Track space's track-actions view.
+   * @param {{ transacting?: object }} [opts]
+   * @returns {Promise<Array>}
+   */
+  actionPosts: async function ({ transacting } = {}) {
+    const view = await this.trackActionsView().fetch({ transacting })
+    if (!view) return []
+    const rows = await view.collectionPosts().fetch({ transacting })
+    const postIds = rows.map(r => r.get('post_id'))
+    if (postIds.length === 0) return []
+    const posts = await Post.query(q => {
+      q.whereIn('posts.id', postIds)
+      q.where('posts.active', true)
+      q.where('posts.type', Post.Type.ACTION)
+    }).fetchAll({ transacting })
+    const byId = new Map(posts.map(p => [String(p.id), p]))
+    return postIds.map(id => byId.get(String(id))).filter(Boolean)
   },
 
   // The posts to show for a particular user viewing a group's stream or map
@@ -1587,7 +1616,7 @@ module.exports = bookshelf.Model.extend(merge({
   /**
    * Check if a user has a responsibility that grants full access to group content
    * Full-access responsibilities: Administration, Manage Content
-   * Limited responsibilities (no content access): Manage Rounds, Add Members, etc.
+   * Limited responsibilities (no content access): Manage Spaces, Add Members, etc.
    *
    * @param {String|Number} userId - User ID to check
    * @param {String|Number} groupId - Group ID to check

@@ -3,13 +3,13 @@ import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useDispatch } from 'react-redux'
 import ActionCompletionResponsesDialog from 'components/ActionCompletionResponsesDialog'
 import useRouteParams from 'hooks/useRouteParams'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import deletePost from 'store/actions/deletePost'
-import { editPostUrl, trackUrl } from '@hylo/navigation'
+import { editPostUrl, postUrl } from '@hylo/navigation'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,9 +17,10 @@ import {
   DropdownMenuTrigger
 } from 'components/ui/dropdown-menu'
 
-function ActionSummary ({ post }) {
+function ActionSummary ({ post, trackId, groupId, viewId }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const location = useLocation()
   const routeParams = useRouteParams()
   const querystringParams = getQuerystringParam(['tab'], location)
   const dispatch = useDispatch()
@@ -37,7 +38,7 @@ function ActionSummary ({ post }) {
 
   const deletePostWithConfirm = (postId) => {
     if (window.confirm(t('Are you sure you want to remove this action? You cannot undo this.'))) {
-      dispatch(deletePost(postId, null, routeParams.trackId))
+      dispatch(deletePost(postId, groupId, trackId, viewId))
     }
   }
 
@@ -65,7 +66,7 @@ function ActionSummary ({ post }) {
       <DropdownMenu>
         <DropdownMenuTrigger className='outline-none'><EllipsisVertical /></DropdownMenuTrigger>
         <DropdownMenuContent sideOffset={-30} align='end'>
-          <DropdownMenuItem onClick={() => navigator.clipboard.writeText(`${window.location.protocol}//${window.location.host}${trackUrl(routeParams.trackId, { groupSlug: routeParams.groupSlug })}/post/${post.id}`)}>
+          <DropdownMenuItem onClick={() => navigator.clipboard.writeText(`${window.location.protocol}//${window.location.host}${postUrl(post.id, routeParams)}`)}>
             {t('Copy Link')}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => deletePostWithConfirm(post.id)}>{t('Remove')}</DropdownMenuItem>

@@ -194,7 +194,7 @@ export default function AddSpaceDialog ({ group, onClose }) {
 
       if (newSpace?.id && spaceType === 'track') {
         await dispatch(createTrack({
-          groupIds: [newSpace.id],
+          groupId: newSpace.id,
           name: name.trim(),
           actionDescriptor: 'Action',
           actionDescriptorPlural: 'Actions'

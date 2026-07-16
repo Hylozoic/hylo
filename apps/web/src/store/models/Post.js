@@ -108,13 +108,17 @@ Post.fields = {
   location: attr(),
   peopleReactedTotal: attr(),
   projectManagementLink: attr(),
-  sortOrder: attr(), // For actions in a track
+  sortOrder: attr(),
   startsAt: attr(),
   timezone: attr(),
   title: attr(),
   tokensAllocated: attr(), // Tokens allocated by current user in a funding round
   totalTokensAllocated: attr(), // Total tokens allocated to this post in a funding round
   type: attr(),
+  completedAt: attr(),
+  completionAction: attr(),
+  completionActionSettings: attr(),
+  completionResponse: attr(),
   commenters: many({
     to: 'Person',
     relatedName: 'postsCommented',

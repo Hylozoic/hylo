@@ -42,6 +42,7 @@ const queryFragment = `group(slug: $slug, updateLastViewed: $updateLastViewed) {
     }
     slug
     type
+    parentId
     typeDescriptor
     typeDescriptorPlural
     visibility

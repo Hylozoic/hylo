@@ -23,23 +23,6 @@ export default function initDataLoaders (spec) {
     { cacheKeyFn: _ => Math.random().toString() }
   )
 
-  // DataLoader for TrackUser lookups by (trackId, userId) pairs
-  // To prevent duplicate lookups of the same TrackUser in one session
-  loaders.trackUser = new DataLoader(
-    async (keys) => {
-      const results = await Promise.map(keys, async ({ trackId, userId }) => {
-        return TrackUser.query(q => {
-          q.where({
-            user_id: userId,
-            track_id: trackId
-          })
-        }).fetch()
-      })
-      return results
-    },
-    { cacheKeyFn: ({ trackId, userId }) => `${trackId}:${userId}` }
-  )
-
   // DataLoader for TagFollow lookups by (groupId, tagId, userId) tuples
   // To prevent duplicate lookups of the same TagFollow in one session
   loaders.tagFollow = new DataLoader(

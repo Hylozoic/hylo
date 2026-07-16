@@ -60,6 +60,7 @@ export default function groupQueryFragment () {
     }
     slug
     type
+    parentId
     typeDescriptor
     typeDescriptorPlural
     visibility

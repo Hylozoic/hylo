@@ -65,7 +65,6 @@ import getTopicForCurrentRoute from 'store/selectors/getTopicForCurrentRoute'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
-import getTrack from 'store/selectors/getTrack'
 import { fetchLocation, ensureLocationIdIfCoordinate } from 'components/LocationInput/LocationInput.store'
 import {
   CREATE_POST,
@@ -155,11 +154,12 @@ function PostEditorInner ({
 
   const currentUser = useSelector(getMe)
   const currentGroup = useSelector(state => getGroupForSlug(state, groupSlug))
-  const currentTrack = useSelector(state => getTrack(state, routeParams.trackId))
+  // Track spaces carry the track on the group itself (group.track).
+  const currentTrack = currentGroup?.track || null
   const currentFundingRound = useSelector(state => getFundingRound(state, routeParams.fundingRoundId))
   // Restrict create-modal type options to the current view's post types (e.g. request/offer on requests-and-offers)
   const allowedPostTypesForView = useAllowedPostTypesForView()
-  const allowedPostTypes = (!editing && modal) ? allowedPostTypesForView : null
+  const allowedPostTypes = !editing ? allowedPostTypesForView : null
 
   useEffect(() => {
     if (groupSlug && !currentGroup) dispatch(fetchForGroup(groupSlug))
@@ -167,6 +167,7 @@ function PostEditorInner ({
 
   const editingPostId = routeParams.postId
   const fromPostId = getQuerystringParam('fromPostId', urlLocation)
+  const viewId = getQuerystringParam('viewId', urlLocation)
 
   const postType = getQuerystringParam('newPostType', urlLocation)
   // Prefer explicit newPostType, then the view's first allowed type, then discussion
@@ -174,17 +175,11 @@ function PostEditorInner ({
   // TODO: do we still need this topic stuff with chat no longer using topics? is there a different semantic context for drafts now for chat?
   const topicName = customTopicName || (routeParams.topicName && decodeURIComponent(routeParams.topicName))
   const topic = useSelector(state => getTopicForCurrentRoute(state, topicName))
-  // Draft storage is scoped by semantic context.
-  // For create modal, also scope by topicId when opened from a chat room so each room keeps an independent modal draft.
-  // Non-chat modal composers use a topic-agnostic slot.
-  const openedFromChatRoom = !!topicName
-  const draftTopicId = (!modal || openedFromChatRoom) ? topic?.id : undefined
 
   const { loadedData: serverLoadedData, isLoaded: serverDraftLoaded, saveDraft: saveServerDraft, cancelPendingSave, clearDraft } = useDraft({
     type: 'post',
     postId: editing ? editingPostId : undefined,
     groupId: currentGroup?.id,
-    topicId: draftTopicId,
     postType: editing ? undefined : createPostType,
     isEdit: editing,
     navigateTo: navigateToForDraft,
@@ -195,8 +190,8 @@ function PostEditorInner ({
   // Stable key used to detect context changes (navigating between chat rooms, etc.)
   const draftContextKey = useMemo(() => {
     if (editing) return `edit:${editingPostId}`
-    return `new:${currentGroup?.id || 'none'}:${draftTopicId || 'none'}:${createPostType || 'none'}`
-  }, [editing, editingPostId, currentGroup?.id, draftTopicId, createPostType])
+    return `new:${currentGroup?.id || 'none'}:${createPostType || 'none'}`
+  }, [editing, editingPostId, currentGroup?.id, createPostType])
 
   const loadDraftJSON = useCallback(() => {
     if (!serverLoadedData) return null
@@ -1128,7 +1123,7 @@ function PostEditorInner ({
       isSubmittingRef.current = false
       throw error
     }
-  }, [afterSave, announcementSelected, cancelPendingSave, clearDraft, currentFundingRound?.id, currentPost, currentTrack?.id, currentUser, dispatch, fileAttachments, imageAttachments, isEditing, onSave, selectedLocation, setIsDirty])
+  }, [afterSave, announcementSelected, cancelPendingSave, clearDraft, currentFundingRound?.id, currentPost, currentTrack?.id, currentUser, dispatch, fileAttachments, imageAttachments, isEditing, onSave, selectedLocation, setIsDirty, viewId])
 
   /**
    * Initiates the save process with validation and confirmation checks
@@ -1781,7 +1776,9 @@ function PostEditorInner ({
 function CompletionActionSection ({ currentPost, loading, setCurrentPost }) {
   const { t } = useTranslation()
   const routeParams = useRouteParams()
-  const currentTrack = useSelector(state => getTrack(state, routeParams.trackId))
+  const effectiveGroupSlug = useEffectiveGroupSlug()
+  const group = useSelector(state => getGroupForSlug(state, effectiveGroupSlug || routeParams.groupSlug))
+  const currentTrack = group?.track || null
 
   const { completionAction, completionActionSettings } = currentPost
 

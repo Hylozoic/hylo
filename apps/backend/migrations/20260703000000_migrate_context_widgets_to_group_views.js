@@ -12,9 +12,9 @@
 //
 // Legacy tables (context_widgets, custom_views, tracks_posts, tracks_users,
 // funding_rounds_posts, funding_rounds_users, collections, collections_posts)
-// are intentionally NOT dropped here — that destructive cleanup is deferred
-// to a follow-up migration once the new Spaces & Views system is verified
-// working in production (see spec Phase 6).
+// are intentionally NOT dropped here — tracks_posts / tracks_users cleanup is
+// in 20260713120000_spaces_cleanup.js; remaining destructive cleanup is
+// deferred until Spaces & Views is verified in production (see spec Phase 6).
 //
 // Step 9 (#general posts_tags cleanup) is also deferred to that Phase 6
 // cleanup migration — it is destructive and not reversible, so it is
@@ -108,27 +108,6 @@ function sectionLabelForWidget (widget) {
   if (widget.title === 'widget-chats') return 'Chats'
   return resolveViewName({ name: widget.title, type: 'text' })
 }
-
-const SYSTEM_ROLES = [
-  {
-    name: 'Coordinator',
-    emoji: '🪄',
-    description: 'Coordinators are empowered to do everything related to group administration.',
-    responsibilities: ['Administration', 'Add Members', 'Remove Members', 'Manage Content', 'Manage Tracks', 'Manage Rounds', 'Manage Spaces']
-  },
-  {
-    name: 'Moderator',
-    emoji: '⚖️',
-    description: 'Moderators are expected to actively engage in discussion, encourage participation, and take corrective action if a member violates group agreements.',
-    responsibilities: ['Manage Content', 'Remove Members']
-  },
-  {
-    name: 'Host',
-    emoji: '👋',
-    description: 'Hosts are responsible for cultivating a good atmosphere by welcoming and orienting new members, embodying the group culture and agreements, and helping members connect with relevant content and people.',
-    responsibilities: ['Add Members']
-  }
-]
 
 exports.up = async function (knex) {
   console.log('[up] 1/6 applying migration defaults…')
@@ -486,11 +465,27 @@ async function buildTrackSpace (trx, parentGroup, track) {
     })
   }
 
+  // Reassociate action posts from the parent group to this track space.
+  // Collection ordering alone is not enough — posts must live on the space
+  // (same pattern as chat / funding-round chat post moves above).
+  const trackPostIds = trackPosts.map(tp => tp.post_id)
+  if (trackPostIds.length > 0) {
+    await trx('groups_posts')
+      .where({ group_id: parentGroup.id })
+      .whereIn('post_id', trackPostIds)
+      .update({ group_id: spaceId })
+  }
+
   await migrateSpaceMembers(trx, spaceId, parentGroup.id, async () => {
-    const trackUsers = await trx('tracks_users').where({ track_id: track.id })
+    // Join space = enroll; preserve historical enrollment time on membership.created_at.
+    // Completion stays in settings.completedAt.
+    const trackUsers = await trx('tracks_users')
+      .where({ track_id: track.id })
+      .whereNotNull('enrolled_at')
     return trackUsers.map(tu => ({
       user_id: tu.user_id,
-      settingsPatch: { enrolledAt: tu.enrolled_at, completedAt: tu.completed_at || undefined }
+      createdAt: tu.enrolled_at,
+      settingsPatch: tu.completed_at ? { completedAt: tu.completed_at } : {}
     }))
   })
 
@@ -570,10 +565,15 @@ async function buildFundingRoundSpace (trx, parentGroup, round) {
   ])
   const chatView = views.find(v => v.type === 'chat')
 
-  const submissions = await trx('funding_rounds_posts').where({ funding_round_id: round.id })
-  for (const s of submissions) {
-    await trx('groups_posts').insert({ group_id: spaceId, post_id: s.post_id })
-      .onConflict(['group_id', 'post_id']).ignore()
+  // Reassociate submission posts from the parent group to this funding round space.
+  const submissionPostIds = await trx('funding_rounds_posts')
+    .where({ funding_round_id: round.id })
+    .pluck('post_id')
+  if (submissionPostIds.length > 0) {
+    await trx('groups_posts')
+      .where({ group_id: parentGroup.id })
+      .whereIn('post_id', submissionPostIds)
+      .update({ group_id: spaceId })
   }
 
   // Reassociate funding-round chat posts from the parent group to this space.
@@ -751,10 +751,20 @@ async function migrateSpaceMembers (trx, spaceId, parentGroupId, fetchMembers) {
         group_id: spaceId,
         user_id: member.user_id,
         active: true,
-        settings: JSON.stringify({ ...(parentMembership.settings || {}), ...member.settingsPatch }),
-        created_at: now,
+        settings: JSON.stringify({ ...(parentMembership.settings || {}), ...(member.settingsPatch || {}) }),
+        created_at: member.createdAt || now,
         updated_at: now
       })
+    } else if (member.settingsPatch && Object.keys(member.settingsPatch).length > 0) {
+      // Membership may already exist (e.g. coordinator grant on a prior partial
+      // run) — still merge completion settings onto it.
+      await trx('group_memberships')
+        .where({ id: existing.id })
+        .update({
+          active: true,
+          settings: JSON.stringify({ ...(existing.settings || {}), ...member.settingsPatch }),
+          updated_at: now
+        })
     }
 
     for (const view of views) {
@@ -770,16 +780,13 @@ async function migrateSpaceMembers (trx, spaceId, parentGroupId, fetchMembers) {
     }
   }
 
-  // Give the parent group's existing Coordinators administrative access to
-  // the new space too (system roles are per-space in the new model — see
-  // docs/spaces-and-views-engineering-spec.md section 3, "role inheritance" —
-  // without this, migrated spaces would otherwise have no one able to manage
-  // them until Hylo staff intervenes).
+  // Give parent Coordinators membership in the new space so they can see its
+  // content. Roles are NOT copied onto the space — spaces inherit role
+  // assignments from the parent at lookup time.
   await grantParentCoordinatorsAccess(trx, spaceId, parentGroupId)
 }
 
 async function grantParentCoordinatorsAccess (trx, spaceId, parentGroupId) {
-  const spaceCoordinatorRoleId = await setupSystemRoles(trx, spaceId)
   const parentCoordinatorRole = await trx('groups_roles').where({ group_id: parentGroupId, name: 'Coordinator', type: 'system' }).first()
   if (!parentCoordinatorRole) return
 
@@ -788,64 +795,37 @@ async function grantParentCoordinatorsAccess (trx, spaceId, parentGroupId) {
     .pluck('user_id')
 
   const now = new Date()
+  const views = await trx('group_views').where({ group_id: spaceId })
+
   for (const userId of parentCoordinators) {
-    const existing = await trx('group_memberships_group_roles')
-      .where({ group_id: spaceId, user_id: userId, group_role_id: spaceCoordinatorRoleId })
+    // Membership is required for content visibility (postFilter); roles come from the parent.
+    const parentMembership = await trx('group_memberships')
+      .where({ group_id: parentGroupId, user_id: userId, active: true })
       .first()
-    if (!existing) {
-      await trx('group_memberships_group_roles').insert({
-        group_id: spaceId,
-        user_id: userId,
-        group_role_id: spaceCoordinatorRoleId,
-        active: true,
-        created_at: now,
-        updated_at: now
-      })
-    }
-  }
-}
-
-// Minimal, dependency-free re-implementation of GroupRole.setupSystemRoles
-// (api/models/GroupRole.js) for use inside a standalone knex migration, which
-// doesn't have access to Sails/Bookshelf globals. Returns the new space's
-// Coordinator groups_roles.id.
-async function setupSystemRoles (trx, groupId) {
-  const responsibilityRows = await trx('responsibilities').where({ type: 'system' })
-  const responsibilityIdByTitle = {}
-  responsibilityRows.forEach(r => { responsibilityIdByTitle[r.title] = r.id })
-
-  const now = new Date()
-  let coordinatorRoleId = null
-
-  for (const roleDef of SYSTEM_ROLES) {
-    let role = await trx('groups_roles').where({ group_id: groupId, name: roleDef.name, type: 'system' }).first()
-    if (!role) {
-      const [inserted] = await trx('groups_roles').insert({
-        group_id: groupId,
-        name: roleDef.name,
-        emoji: roleDef.emoji,
-        description: roleDef.description,
-        type: 'system',
-        active: true,
-        created_at: now,
-        updated_at: now
-      }).returning('*')
-      role = inserted
-    }
-    if (roleDef.name === 'Coordinator') coordinatorRoleId = role.id
-
-    for (const title of roleDef.responsibilities) {
-      const responsibilityId = responsibilityIdByTitle[title]
-      if (!responsibilityId) continue
-      const exists = await trx('group_roles_responsibilities')
-        .where({ group_role_id: role.id, responsibility_id: responsibilityId }).first()
-      if (!exists) {
-        await trx('group_roles_responsibilities').insert({ group_role_id: role.id, responsibility_id: responsibilityId })
+    if (parentMembership) {
+      const existingMembership = await trx('group_memberships').where({ group_id: spaceId, user_id: userId }).first()
+      if (!existingMembership) {
+        await trx('group_memberships').insert({
+          group_id: spaceId,
+          user_id: userId,
+          active: true,
+          settings: JSON.stringify(parentMembership.settings || {}),
+          created_at: now,
+          updated_at: now
+        })
+      }
+      for (const view of views) {
+        await trx('group_views_users').insert({
+          view_id: view.id,
+          user_id: userId,
+          new_post_count: 0,
+          last_read_post_id: null,
+          created_at: now,
+          updated_at: now
+        }).onConflict(['view_id', 'user_id']).ignore()
       }
     }
   }
-
-  return coordinatorRoleId
 }
 
 async function getGeneralTagId (knex) {
@@ -973,16 +953,6 @@ async function rollbackMigratedSpaces (knex) {
       // Funding-round submissions were inserted as *new* groups_posts on the
       // space (parent may still have its own row) — drop the space copies.
       await trx.raw(`
-        DELETE FROM groups_posts gp
-        USING groups g, funding_rounds_posts frp
-        WHERE gp.group_id = g.id
-          AND g.id IN (${idPlaceholders})
-          AND g.type = 'space'
-          AND g.parent_id IS NOT NULL
-          AND g.funding_round_id = frp.funding_round_id
-          AND gp.post_id = frp.post_id
-      `, chunk)
-      await trx.raw(`
         UPDATE funding_rounds fr
         SET group_id = g.parent_id
         FROM groups g
@@ -990,6 +960,18 @@ async function rollbackMigratedSpaces (knex) {
           AND g.id IN (${idPlaceholders})
           AND g.type = 'space'
           AND g.parent_id IS NOT NULL
+      `, chunk)
+      // Move funding-round submission posts back to the parent group.
+      await trx.raw(`
+        UPDATE groups_posts gp
+        SET group_id = g.parent_id
+        FROM groups g, funding_rounds_posts frp
+        WHERE gp.group_id = g.id
+          AND g.id IN (${idPlaceholders})
+          AND g.type = 'space'
+          AND g.parent_id IS NOT NULL
+          AND g.funding_round_id = frp.funding_round_id
+          AND gp.post_id = frp.post_id
       `, chunk)
       // Move every remaining space groups_posts row back to the parent.
       // Chat / FR-chat / post-migration leftovers used to be handled with
@@ -1008,6 +990,19 @@ async function rollbackMigratedSpaces (knex) {
             WHERE parent_gp.group_id = g.parent_id
               AND parent_gp.post_id = gp.post_id
           )
+      `, chunk)
+      // Move track action posts back to the parent group before deleting the space.
+      await trx.raw(`
+        UPDATE groups_posts gp
+        SET group_id = g.parent_id
+        FROM groups g, tracks_posts tp
+        WHERE gp.group_id = g.id
+          AND g.id IN (${idPlaceholders})
+          AND g.type = 'space'
+          AND g.parent_id IS NOT NULL
+          AND g.track_id IS NOT NULL
+          AND g.track_id = tp.track_id
+          AND gp.post_id = tp.post_id
       `, chunk)
       await trx.raw(`
         UPDATE groups_posts gp

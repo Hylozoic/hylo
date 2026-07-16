@@ -7,7 +7,7 @@ import { personUrl } from '@hylo/navigation'
 import BadgeEmoji from 'components/BadgeEmoji'
 import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
-import { MapPin, Trash2 } from 'lucide-react'
+import { Check, MapPin, Trash2 } from 'lucide-react'
 import { RESP_REMOVE_MEMBERS } from 'store/constants'
 import { cn, bgImageStyle } from 'util/index'
 import getMe from 'store/selectors/getMe'
@@ -24,7 +24,9 @@ function Member ({
   group,
   member,
   removeMember,
-  showAnswers
+  showAnswers,
+  showTrackCompletion,
+  trackCompletedAt
 }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
@@ -71,6 +73,11 @@ function Member ({
           </div>
           {location && <div className='text-xs text-foreground/70 flex items-center gap-1'><MapPin className='w-3 h-3' /> {location}</div>}
           {tagline && <div className='text-base text-foreground/100'>{tagline}</div>}
+          {showTrackCompletion && (
+            trackCompletedAt
+              ? <div className='text-xs text-selected flex items-center gap-1'><Check className='w-3 h-3' /> {t('Completed {{date}}', { date: new Date(trackCompletedAt).toLocaleDateString() })}</div>
+              : <div className='text-xs text-foreground/50'>{t('Not yet completed')}</div>
+          )}
         </div>
       </div>
       {canSeeJoinAnswers && showAnswers && member.groupJoinQuestionAnswers?.items?.length > 0 && (
@@ -107,7 +114,9 @@ Member.propTypes = {
     bannerUrl: string
   }).isRequired,
   removeMember: PropTypes.func,
-  showAnswers: bool
+  showAnswers: bool,
+  showTrackCompletion: bool,
+  trackCompletedAt: string
 }
 
 export default Member

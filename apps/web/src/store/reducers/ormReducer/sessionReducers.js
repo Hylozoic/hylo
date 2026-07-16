@@ -35,5 +35,9 @@ export {
 } from 'routes/Tracks/Tracks.store'
 
 export {
+  ormSessionReducer as trackActionsViewReducer
+} from 'routes/TrackActionsView/TrackActionsView.store'
+
+export {
   ormSessionReducer as fundingRoundsReducer
 } from 'routes/FundingRounds/FundingRounds.store'

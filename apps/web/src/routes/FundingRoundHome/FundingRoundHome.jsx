@@ -9,7 +9,7 @@ import NotFound from 'components/NotFound'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import ChatRoom from 'routes/ChatRoom'
 import { FETCH_FUNDING_ROUND, fetchFundingRound, doPhaseTransition, needsPhaseTransition } from 'routes/FundingRounds/FundingRounds.store'
-import { RESP_MANAGE_ROUNDS } from 'store/constants'
+import { RESP_MANAGE_SPACES } from 'store/constants'
 import getFundingRound from 'store/selectors/getFundingRound'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
@@ -29,7 +29,7 @@ function FundingRoundHome () {
   const currentGroup = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
   const fundingRound = useSelector(state => getFundingRound(state, routeParams.fundingRoundId))
   const isLoading = useSelector(state => state.pending && state.pending[FETCH_FUNDING_ROUND])
-  const canManageRound = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_MANAGE_ROUNDS, groupId: currentGroup?.id }))
+  const canManageRound = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_MANAGE_SPACES, groupId: currentGroup?.id }))
 
   const currentTab = routeParams.tab || 'about'
 

@@ -17,17 +17,19 @@ import TagInput from 'components/TagInput'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import { updateSpace, updateGroupView } from 'store/actions/groupViews'
 import { updateTrack } from 'store/actions/trackActions'
+import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import { cn, bgImageStyle } from 'util/index'
 
 import { SPACE_ICON_SUGGESTIONS, ACCESS_OPTIONS, accessValueForSpace } from './spaceFormConstants'
 
 /** Modal for editing an existing space's settings — same fields as AddSpaceDialog's creation form,
- * plus a Track settings section (appended below) when the space is backed by a Track. */
-export default function SpaceSettingsModal ({ view, group, onClose }) {
+ * plus a Track settings section (appended below) when the space is backed by a Track.
+ * Accepts `space` directly (e.g. More Spaces) and optional parent-menu `view` when the space is on the menu. */
+export default function SpaceSettingsModal ({ space: spaceProp, view, group, onClose }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
-  const space = view?.linkedGroup
+  const space = spaceProp || view?.linkedGroup
   const track = space?.track
   const modalTitle = track
     ? t('Track Space Settings')
@@ -100,12 +102,14 @@ export default function SpaceSettingsModal ({ view, group, onClose }) {
     setIsSaving(true)
     try {
       const accessOption = ACCESS_OPTIONS.find(option => option.value === access)
+      const trimmedName = name.trim()
+      const menuNameChanged = Boolean(view?.id && trimmedName && trimmedName !== view.name)
 
       await dispatch(updateSpace({
         id: space.id,
         groupId: group.id,
-        spaceViewId: view.id,
-        name: name.trim(),
+        spaceViewId: view?.id,
+        name: trimmedName,
         description: description || null,
         icon,
         bannerUrl: bannerUrl || null,
@@ -117,11 +121,11 @@ export default function SpaceSettingsModal ({ view, group, onClose }) {
         visibility: accessOption.visibility,
         accessibility: accessOption.accessibility,
         requiredRoles: access === 'role' ? requiredRoles.map(role => role.id) : [],
-        viewName: (name.trim() && name.trim() !== view.name) ? name.trim() : undefined
+        viewName: menuNameChanged ? trimmedName : undefined
       }))
 
-      if (name.trim() && name.trim() !== view.name) {
-        await dispatch(updateGroupView({ id: view.id, groupId: group.id, name: name.trim() }))
+      if (menuNameChanged) {
+        await dispatch(updateGroupView({ id: view.id, groupId: group.id, name: trimmedName }))
       }
 
       if (track?.id) {
@@ -137,7 +141,11 @@ export default function SpaceSettingsModal ({ view, group, onClose }) {
         }))
       }
 
-      await dispatch(fetchGroupViews(group.id))
+      if (view?.id) {
+        await dispatch(fetchGroupViews(group.id))
+      } else {
+        await dispatch(fetchGroupSpaces(group.id))
+      }
       onClose()
     } catch (error) {
       console.error('Failed to save space settings:', error)

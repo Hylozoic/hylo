@@ -4,17 +4,16 @@ import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 
 import Avatar from 'components/Avatar'
-import Button from 'components/ui/button'
-import { Input } from 'components/ui/input'
 import LucideIcon from 'components/LucideIcon/LucideIcon'
 import GroupViewIcon from './GroupViewIcon'
 import MenuLink from './MenuLink'
+import SpaceSettingsModal from './SpaceSettingsModal'
 import { groupUrl, localSpaceSlug, spaceGroupViewUrl, spaceHomeUrl, spaceUrl } from '@hylo/navigation'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 import fetchGroupRelationships from 'store/actions/fetchGroupRelationships'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
-import { createGroupView, updateSpace } from 'store/actions/groupViews'
+import { createGroupView } from 'store/actions/groupViews'
 import { FETCH_GROUP_RELATIONSHIPS, FETCH_GROUP_SPACES } from 'store/constants'
 import {
   getChildGroups,
@@ -214,62 +213,6 @@ function MoreSpaceRow ({
         </ul>
       )}
     </li>
-  )
-}
-
-/** Settings modal for an off-menu space (no GroupView row yet). */
-function MoreSpaceSettingsModal ({ space, group, onClose }) {
-  const { t } = useTranslation()
-  const dispatch = useDispatch()
-  const [name, setName] = useState(space?.name || '')
-  const [description, setDescription] = useState(space?.description || '')
-  const [isSaving, setIsSaving] = useState(false)
-
-  const handleSave = useCallback(async () => {
-    if (!space?.id || !group?.id) return
-    setIsSaving(true)
-    try {
-      await dispatch(updateSpace({
-        id: space.id,
-        groupId: group.id,
-        name: name.trim() || space.name,
-        description: description || null
-      }))
-      await dispatch(fetchGroupSpaces(group.id))
-      onClose()
-    } catch (error) {
-      console.error('Failed to save space settings:', error)
-    } finally {
-      setIsSaving(false)
-    }
-  }, [dispatch, space, group?.id, name, description, onClose])
-
-  return (
-    <div className='fixed inset-0 z-50 flex items-center justify-center bg-darkening/50'>
-      <div className='bg-midground rounded-lg shadow-lg p-4 w-full max-w-lg'>
-        <h2 className='text-lg font-semibold mb-4 flex items-center gap-2'>
-          <SpaceIcon space={space} />
-          {space.name}
-        </h2>
-        <div className='flex flex-col gap-3'>
-          <label className='text-sm text-foreground/70'>{t('Name')}</label>
-          <Input value={name} onChange={e => setName(e.target.value)} placeholder={space.name} />
-          <label className='text-sm text-foreground/70'>{t('Description')}</label>
-          <textarea
-            value={description}
-            onChange={e => setDescription(e.target.value)}
-            rows={3}
-            className='w-full rounded-md border border-foreground/20 bg-input p-2 text-sm text-foreground'
-          />
-        </div>
-        <div className='flex justify-end gap-2 mt-4'>
-          <Button variant='secondary' onClick={onClose}>{t('Cancel')}</Button>
-          <Button variant='primary' disabled={isSaving} onClick={handleSave}>
-            {isSaving ? t('Saving…') : t('Save')}
-          </Button>
-        </div>
-      </div>
-    </div>
   )
 }
 
@@ -523,7 +466,7 @@ export default function MoreSpacesSection ({
       )}
 
       {settingsSpace && (
-        <MoreSpaceSettingsModal
+        <SpaceSettingsModal
           space={settingsSpace}
           group={group}
           onClose={() => setSettingsSpace(null)}

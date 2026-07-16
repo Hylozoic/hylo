@@ -30,7 +30,7 @@ export async function createFundingRound (userId, data) {
   const group = await Group.find(attrs.group_id)
   if (!group) throw new GraphQLError('Invalid group')
 
-  const canManage = await GroupMembership.hasResponsibility(userId, group, Responsibility.constants.RESP_MANAGE_ROUNDS)
+  const canManage = await GroupMembership.hasResponsibility(userId, group, Responsibility.constants.RESP_MANAGE_SPACES)
   if (!canManage) throw new GraphQLError('You do not have permission to create funding rounds')
 
   // Convert role arrays to JSON format for storage
@@ -52,7 +52,7 @@ export async function updateFundingRound (userId, id, data) {
     if (!round) throw new GraphQLError('FundingRound not found')
 
     const group = await round.group().fetch()
-    const canManage = await GroupMembership.hasResponsibility(userId, group, Responsibility.constants.RESP_MANAGE_ROUNDS, { transacting })
+    const canManage = await GroupMembership.hasResponsibility(userId, group, Responsibility.constants.RESP_MANAGE_SPACES, { transacting })
     if (!canManage) throw new GraphQLError('You do not have permission to update funding rounds')
 
     const attrs = convertGraphqlData(data)
@@ -134,7 +134,7 @@ export async function deleteFundingRound (userId, id) {
   const round = await FundingRound.where({ id }).fetch()
   if (!round) throw new GraphQLError('FundingRound not found')
   const group = await round.group().fetch()
-  const canManage = await GroupMembership.hasResponsibility(userId, group, Responsibility.constants.RESP_MANAGE_ROUNDS)
+  const canManage = await GroupMembership.hasResponsibility(userId, group, Responsibility.constants.RESP_MANAGE_SPACES)
   if (!canManage) throw new GraphQLError('You do not have permission to delete funding rounds')
   await round.save({ deactivated_at: new Date() }, { patch: true })
   return { success: true }

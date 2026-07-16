@@ -1,4 +1,6 @@
+import { get } from 'lodash/fp'
 import { FETCH_GROUP_VIEWS } from 'store/constants'
+import { collectLinkedGroups } from 'store/util/extractNestedGroups'
 
 export default function fetchGroupViews (groupId) {
   return {
@@ -24,10 +26,48 @@ export default function fetchGroupViews (groupId) {
                 id
                 name
                 slug
+                type
+                parentId
                 avatarUrl
+                bannerUrl
                 icon
                 homeRoute
                 description
+                purpose
+                location
+                locationObject {
+                  id
+                  fullText
+                }
+                acceptedPostTypes
+                visibility
+                accessibility
+                requiredRoles
+                groupRoles {
+                  items {
+                    id
+                    name
+                    emoji
+                  }
+                }
+                track {
+                  id
+                  name
+                  actionDescriptor
+                  actionDescriptorPlural
+                  completionMessage
+                  completionRole {
+                    id
+                    name
+                    emoji
+                  }
+                  publishedAt
+                  accessControlled
+                  canAccess
+                }
+                fundingRound {
+                  id
+                }
                 groupViews {
                   items {
                     id
@@ -69,6 +109,13 @@ export default function fetchGroupViews (groupId) {
       }`,
       variables: { groupId }
     },
-    meta: { extractModel: 'Group' }
+    meta: {
+      // Also extract each menu space's linkedGroup (e.g. its `track`) as its own
+      // normalized Group record — see store/util/extractNestedGroups.js
+      extractModel: [
+        { getRoot: get('group'), modelName: 'Group', append: true },
+        { getRoot: data => collectLinkedGroups(get('group.groupViews.items', data)), modelName: 'Group', append: true }
+      ]
+    }
   }
 }

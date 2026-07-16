@@ -12,7 +12,7 @@ import fetchGroupFundingRounds, { FETCH_GROUP_FUNDING_ROUNDS } from 'store/actio
 import getFundingRoundsForGroup from 'store/selectors/getFundingRoundsForGroup'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import isPendingFor from 'store/selectors/isPendingFor'
-import { RESP_MANAGE_ROUNDS } from 'store/constants'
+import { RESP_MANAGE_SPACES } from 'store/constants'
 import { cn } from 'util/index'
 import { joinFundingRound, leaveFundingRound } from './FundingRounds.store'
 
@@ -81,7 +81,7 @@ function FundingRounds () {
   const location = useLocation()
   const navigate = useNavigate()
   const currentGroup = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
-  const canManage = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_MANAGE_ROUNDS, groupId: currentGroup?.id }))
+  const canManage = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_MANAGE_SPACES, groupId: currentGroup?.id }))
 
   const rounds = useSelector(state => getFundingRoundsForGroup(state, { groupId: currentGroup.id }))
   const roundsToDisplay = useMemo(() => canManage ? rounds : rounds.filter(round => round.publishedAt), [canManage, rounds])

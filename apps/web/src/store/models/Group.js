@@ -191,6 +191,7 @@ Group.fields = {
   stewardDescriptor: attr(),
   stewardDescriptorPlural: attr(),
   name: attr(),
+  parentId: attr(),
   openOffersAndRequests: many({
     to: 'Post',
     as: 'openOffersAndRequests',
@@ -210,6 +211,7 @@ Group.fields = {
   slug: attr(),
   spaces: attr(),
   suggestedSkills: many('Skill'),
+  track: attr(),
   tracks: many('Track'),
   type: attr(),
   upcomingEvents: many({

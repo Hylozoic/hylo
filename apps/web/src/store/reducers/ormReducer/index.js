@@ -26,6 +26,7 @@ import {
   FETCH_MESSAGES_PENDING,
   FETCH_GROUP_CHAT_ROOMS,
   FETCH_MY_DRAFTS,
+  FETCH_VIEW_POSTS,
   INVITE_CHILD_TO_JOIN_PARENT_GROUP,
   INVITE_PEER_RELATIONSHIP,
   JOIN_PROJECT_PENDING,
@@ -572,12 +573,16 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     }
 
     case DELETE_POST_PENDING:
-      post = Post.withId(meta.id)
-      if (meta.groupId) {
-        const group = Group.withId(meta.groupId)
-        removePostFromGroup(post, group)
+      // Posts sourced from a view's raw collectionPosts (e.g. TrackActionsView)
+      // aren't normalized into the Post table, so they may not exist here.
+      post = Post.idExists(meta.id) ? Post.withId(meta.id) : null
+      if (post) {
+        if (meta.groupId) {
+          const group = Group.withId(meta.groupId)
+          removePostFromGroup(post, group)
+        }
+        post.delete()
       }
-      post.delete()
       break
 
     case FETCH_COLLECTION_POSTS:
@@ -597,6 +602,16 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       const memberships = get('data.me.memberships', payload)
       if (memberships) {
         memberships.forEach(m => clearCacheFor(Membership, m.id))
+      }
+      break
+    }
+
+    case FETCH_VIEW_POSTS: {
+      const items = payload.data?.group?.groupViews?.items || []
+      const viewData = items.find(v => String(v.id) === String(meta.viewId))
+      const targetGroup = Group.withId(meta.groupId)
+      if (viewData && targetGroup) {
+        updateGroupViewInMenu(targetGroup, meta.viewId, { collectionPosts: viewData.collectionPosts })
       }
       break
     }

@@ -3,8 +3,6 @@ const RESP_ADMINISTRATION = 'Administration'
 const RESP_ADD_MEMBERS = 'Add Members'
 const RESP_REMOVE_MEMBERS = 'Remove Members'
 const RESP_MANAGE_CONTENT = 'Manage Content'
-const RESP_MANAGE_TRACKS = 'Manage Tracks'
-const RESP_MANAGE_ROUNDS = 'Manage Rounds'
 const RESP_MANAGE_SPACES = 'Manage Spaces'
 
 module.exports = bookshelf.Model.extend({
@@ -26,13 +24,11 @@ module.exports = bookshelf.Model.extend({
     RESP_ADMINISTRATION,
     RESP_MANAGE_CONTENT,
     RESP_REMOVE_MEMBERS,
-    RESP_MANAGE_ROUNDS,
-    RESP_MANAGE_TRACKS,
     RESP_MANAGE_SPACES
   },
 
   // Users with these responsibilities we show to users in the sidebar of the group
-  IMPORTANT_RESPONSIBILITIES: [RESP_ADMINISTRATION, RESP_REMOVE_MEMBERS, RESP_MANAGE_CONTENT, RESP_MANAGE_TRACKS],
+  IMPORTANT_RESPONSIBILITIES: [RESP_ADMINISTRATION, RESP_REMOVE_MEMBERS, RESP_MANAGE_CONTENT, RESP_MANAGE_SPACES],
 
   fetchAll: function ({ groupId = 0, groupRoleId }) {
     if (groupRoleId) {

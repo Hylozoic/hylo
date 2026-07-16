@@ -12,18 +12,24 @@ import ScrollListener from 'components/ScrollListener'
 import SwitchStyled from 'components/SwitchStyled'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
-import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
+import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION, RESP_MANAGE_SPACES } from 'store/constants'
 import { queryParamWhitelist } from 'store/reducers/queryResults'
 import { groupUrl } from '@hylo/navigation'
 import { FETCH_MEMBERS, fetchMembers, getMembers, getHasMoreMembers, removeMember } from './Members.store'
+import { fetchTrack } from 'store/actions/trackActions'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
+import getRolesForGroup from 'store/selectors/getRolesForGroup'
+import getTrack from 'store/selectors/getTrack'
+import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
 
 import classes from './Members.module.scss'
 
 const defaultSortBy = 'name'
+// TODO: should be by responsibility, not role
+const TRACK_COMPLETION_VISIBLE_ROLES = ['Moderator', 'Host']
 
 function Members (props) {
   const { t } = useTranslation()
@@ -46,6 +52,21 @@ function Members (props) {
   const canSeeJoinAnswers = useMemo(() =>
     myResponsibilityTitles.includes(RESP_ADMINISTRATION) || myResponsibilityTitles.includes(RESP_ADD_MEMBERS),
   [myResponsibilityTitles])
+
+  // Track spaces: members with Manage Spaces, or the Moderator/Host system role, can see who completed the track.
+  const trackId = group?.track?.id
+  const canManageSpaces = useSelector(state => hasResponsibilityForGroup(state, { groupId: group?.id, responsibility: RESP_MANAGE_SPACES }))
+  const myRoleNames = useSelector(state => getRolesForGroup(state, { groupId: group?.id }).map(role => role.name))
+  const canSeeTrackCompletion = Boolean(trackId) && (canManageSpaces || myRoleNames.some(name => TRACK_COMPLETION_VISIBLE_ROLES.includes(name)))
+  const currentTrack = useSelector(state => trackId ? getTrack(state, trackId) : null)
+  const completedAtByUserId = useMemo(() => {
+    if (!canSeeTrackCompletion) return {}
+    return Object.fromEntries((currentTrack?.enrolledUsers || []).map(user => [user.id, user.completedAt]))
+  }, [canSeeTrackCompletion, currentTrack?.enrolledUsers])
+
+  useEffect(() => {
+    if (trackId) dispatch(fetchTrack(trackId))
+  }, [dispatch, trackId])
 
   const [showAnswers, setShowAnswers] = useState(false)
 
@@ -155,6 +176,8 @@ function Members (props) {
               context={context}
               canSeeJoinAnswers={canSeeJoinAnswers}
               showAnswers={showAnswers}
+              showTrackCompletion={canSeeTrackCompletion}
+              trackCompletedAt={completedAtByUserId[member.id]}
             />
           ))}
         </div>

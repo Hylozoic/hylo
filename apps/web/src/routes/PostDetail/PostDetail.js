@@ -34,7 +34,7 @@ import leaveProject from 'store/actions/leaveProject'
 import processStripeToken from 'store/actions/processStripeToken'
 import respondToEvent from 'store/actions/respondToEvent'
 import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
-import { FETCH_POST, RESP_MANAGE_TRACKS } from 'store/constants'
+import { FETCH_POST, RESP_MANAGE_SPACES } from 'store/constants'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import presentPost from 'store/presenters/presentPost'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
@@ -77,7 +77,7 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
   const groupSlug = useEffectiveGroupSlug() || routeParams.groupSlug
   const commentId = getQuerystringParam('commentId', location) || routeParams.commentId
   const currentGroup = useSelector(state => getGroupForSlug(state, groupSlug))
-  const hasTracksResponsibility = useSelector(state => currentGroup && hasResponsibilityForGroup(state, { groupId: currentGroup.id, responsibility: RESP_MANAGE_TRACKS }))
+  const hasTracksResponsibility = useSelector(state => currentGroup && hasResponsibilityForGroup(state, { groupId: currentGroup.id, responsibility: RESP_MANAGE_SPACES }))
   const postSelector = useSelector(state => getPost(state, postId))
   const post = useMemo(() => {
     return postSelector ? presentPost(postSelector, get('id', currentGroup)) : null
@@ -115,8 +115,26 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
         }
   }, [post, location.pathname, location.search, currentUser])
 
+  // Fetch post; include action-completion fields only for action posts.
+  // Deep-linked actions may fetch twice: once without type, again once type is known.
   useEffect(() => {
-    onPostIdChange()
+    if (!postId) return
+    const isAction = post?.type === 'action'
+    dispatch(fetchPost(postId, {
+      withCompletion: isAction,
+      withCompletionResponses: isAction && hasTracksResponsibility
+    }))
+  }, [postId, post?.type, hasTracksResponsibility])
+
+  useEffect(() => {
+    if (!post) return
+    dispatch(trackAnalyticsEvent(AnalyticsEvents.POST_OPENED, {
+      postId: post.id,
+      groupId: post.groups.map(g => g.id),
+      isPublic: post.isPublic,
+      topics: post.topics?.map(t => t.name),
+      type: post.type
+    }))
   }, [postId])
 
   const { setHeaderDetails } = useViewHeader()
@@ -148,22 +166,6 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
   }, [])
 
   const { ref } = useResizeDetector({ handleHeight: false, onResize: handleSetComponentPositions })
-
-  const onPostIdChange = useCallback(() => {
-    if (!pending) {
-      dispatch(fetchPost(postId, hasTracksResponsibility))
-    }
-
-    if (post) {
-      dispatch(trackAnalyticsEvent(AnalyticsEvents.POST_OPENED, {
-        postId: post.id,
-        groupId: post.groups.map(g => g.id),
-        isPublic: post.isPublic,
-        topics: post.topics?.map(t => t.name),
-        type: post.type
-      }))
-    }
-  }, [postId, post, pending])
 
   const handleScroll = throttle(100, event => {
     const { scrollTop } = event.target

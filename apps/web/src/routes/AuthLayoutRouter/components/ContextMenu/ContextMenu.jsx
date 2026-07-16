@@ -553,6 +553,7 @@ export default function ContextMenu (props) {
               ? (
                 <SpaceSettingsModal
                   view={settingsView}
+                  space={settingsView.linkedGroup}
                   group={group}
                   onClose={() => setSettingsView(null)}
                 />

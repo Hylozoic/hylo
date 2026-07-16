@@ -159,7 +159,6 @@ import {
   updateGroupViewUser,
   updateTopicFollow,
   updateTrack,
-  updateTrackActionOrder,
   updateMe,
   updateMembership,
   updatePeerRelationship,
@@ -207,26 +206,8 @@ export default async function makeSchema ({ req }) {
   const models = makeModels(userId, isAdmin, req.api_client)
   const { resolvers, fetchOne, fetchMany, loaders } = setupBridge(models)
 
-  // Override Track, GroupTopic, and FundingRound resolvers to use DataLoaders for caching
+  // Override GroupTopic and FundingRound resolvers to use DataLoaders for caching
   if (userId && loaders) {
-    if (resolvers.Track) {
-      resolvers.Track.isEnrolled = async (track) => {
-        if (!track || !userId) return null
-        const trackUser = await loaders.trackUser.load({ trackId: track.get('id'), userId })
-        return trackUser && trackUser.get('enrolled_at') !== null
-      }
-      resolvers.Track.didComplete = async (track) => {
-        if (!track || !userId) return null
-        const trackUser = await loaders.trackUser.load({ trackId: track.get('id'), userId })
-        return trackUser && trackUser.get('completed_at') !== null
-      }
-      resolvers.Track.userSettings = async (track) => {
-        if (!track || !userId) return null
-        const trackUser = await loaders.trackUser.load({ trackId: track.get('id'), userId })
-        return trackUser ? trackUser.get('settings') : null
-      }
-    }
-
     if (resolvers.GroupTopic) {
       resolvers.GroupTopic.isSubscribed = async (groupTag) => {
         if (!groupTag || !userId) return null
@@ -883,8 +864,6 @@ export function makeMutations ({ fetchOne }) {
     updateStripeAccount: (root, { accountId }, context) => updateStripeAccount(context.currentUserId, accountId),
 
     updateTrack: (root, { trackId, data }, context) => updateTrack(context.currentUserId, trackId, data),
-
-    updateTrackActionOrder: (root, { trackId, postId, newOrderIndex }, context) => updateTrackActionOrder(context.currentUserId, trackId, postId, newOrderIndex),
 
     updateWidget: (root, { id, changes }, context) => updateWidget(id, changes),
 

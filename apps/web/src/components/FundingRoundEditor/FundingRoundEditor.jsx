@@ -38,7 +38,7 @@ import {
 } from 'components/ui/dialog'
 import HyloEditor from 'components/HyloEditor'
 import { createFundingRound, updateFundingRound } from 'routes/FundingRounds/FundingRounds.store'
-import { RESP_MANAGE_ROUNDS } from 'store/constants'
+import { RESP_MANAGE_SPACES } from 'store/constants'
 import getFundingRound from 'store/selectors/getFundingRound'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
@@ -101,7 +101,7 @@ function FundingRoundEditor (props) {
   const routeParams = useParams()
   const currentGroup = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
   const editingRound = useSelector(state => props.editingRound ? getFundingRound(state, routeParams.fundingRoundId) : null)
-  const canManage = useSelector(state => currentGroup && hasResponsibilityForGroup(state, { groupId: currentGroup.id, responsibility: RESP_MANAGE_ROUNDS }))
+  const canManage = useSelector(state => currentGroup && hasResponsibilityForGroup(state, { groupId: currentGroup.id, responsibility: RESP_MANAGE_SPACES }))
 
   const [fundingRoundState, setFundingRoundState] = useState({
     allowSelfVoting: false,

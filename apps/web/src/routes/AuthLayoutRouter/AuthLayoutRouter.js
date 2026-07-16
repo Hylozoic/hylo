@@ -73,7 +73,6 @@ import Stream from 'routes/Stream'
 import ViewContent from 'routes/ViewContent'
 import SpaceContent from 'routes/SpaceContent'
 import Themes from 'routes/Themes'
-import TrackHome from 'routes/TrackHome'
 import FundingRoundHome from 'routes/FundingRoundHome'
 import UserSettings from 'routes/UserSettings'
 import WelcomeWizardRouter from 'routes/WelcomeWizardRouter'
@@ -462,7 +461,7 @@ export default function AuthLayoutRouter (props) {
         // so the post data is ready (or nearly ready) by the time the auth shell renders.
         const bootstrapFetches = [
           dispatch(fetchForCurrentUser()),
-          ...(paramPostId ? [dispatch(fetchPost(paramPostId, false))] : [])
+          ...(paramPostId ? [dispatch(fetchPost(paramPostId))] : [])
         ]
         await Promise.all(bootstrapFetches)
         bootstrapOk = true
@@ -811,8 +810,6 @@ export default function AuthLayoutRouter (props) {
               <Route path='groups/:groupSlug/chat/post/:postId/create/*' element={<CreateModal context='groups' />} />
               <Route path='groups/:groupSlug/chat/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
               <Route path='groups/:groupSlug/members/:personId/create/*' element={<CreateModal context='groups' />} />
-              <Route path='groups/:groupSlug/tracks/:trackId/create/*' element={<CreateModal context='groups' />} />
-              <Route path='groups/:groupSlug/tracks/:trackId/edit/*' element={<CreateModal context='groups' editingTrack />} />
               <Route path='groups/:groupSlug/settings/:tab/create/*' element={<CreateModal context='groups' />} />
               <Route path='groups/:groupSlug/:view/create/*' element={<CreateModal context='groups' />} />
               <Route path='groups/:groupSlug/custom/:customViewId/create/*' element={<CreateModal context='groups' />} />
@@ -927,8 +924,6 @@ export default function AuthLayoutRouter (props) {
                             <Route path='members/*' element={<Members context='groups' />} />
                             <Route path='topics/:topicName/*' element={<Stream context='groups' />} />
                             <Route path='topics' element={<AllTopics context='groups' />} />
-                            <Route path='tracks/:trackId/*' element={<TrackHome />} />
-                            <Route path='tracks' element={<Navigate to={`/groups/${currentGroupSlug}${currentGroup?.homeRoute || '/all'}`} replace />} />
                             <Route path='funding-rounds/:fundingRoundId/*' element={<FundingRoundHome />} />
                             <Route path='funding-rounds' element={<Navigate to={`/groups/${currentGroupSlug}${currentGroup?.homeRoute || '/all'}`} replace />} />
                             <Route path='chat/*' element={<ChatRoom context='groups' />} />

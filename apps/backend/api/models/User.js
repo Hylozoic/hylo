@@ -12,7 +12,6 @@ import { findThread } from './post/findOrCreateThread'
 import { generateHyloJWT } from '../../lib/HyloJWT'
 import ical from 'ical-generator'
 import Frontend from '../services/Frontend'
-const { DateTime } = require('luxon')
 
 module.exports = bookshelf.Model.extend(merge({
   tableName: 'users',
@@ -259,11 +258,13 @@ module.exports = bookshelf.Model.extend(merge({
     return this.hasMany(Thank)
   },
 
+  // TODO: do we need this? i think we can see all their tracks by loading all spaces with type track
   tracksEnrolledIn: function () {
-    return this.belongsToMany(Track).through(TrackUser).query(q => {
-      q.where('tracks_users.user_id', this.id)
-      q.whereNotNull('tracks_users.enrolled_at')
-    })
+    return this.belongsToMany(Track, 'group_memberships', 'user_id', 'group_id', 'id', 'group_id')
+      .query(q => {
+        q.where('group_memberships.active', true)
+        q.whereNull('tracks.deactivated_at')
+      })
   },
 
   intercomHash: function () {
@@ -893,7 +894,7 @@ module.exports = bookshelf.Model.extend(merge({
       const group = await Group.find(groupId)
       if (user && group) {
         for (const trigger of zapierTriggers) {
-          const response = await fetch(trigger.get('target_url'), {
+          await fetch(trigger.get('target_url'), {
             method: 'post',
             body: JSON.stringify({
               id: user.id,
@@ -917,7 +918,7 @@ module.exports = bookshelf.Model.extend(merge({
       memberships.models.forEach(async (membership) => {
         const zapierTriggers = await ZapierTrigger.forTypeAndGroups('member_updated', membership.get('group_id')).fetchAll()
         for (const trigger of zapierTriggers) {
-          const response = await fetch(trigger.get('target_url'), {
+          await fetch(trigger.get('target_url'), {
             method: 'post',
             body: JSON.stringify(Object.assign({ id: user.id, profileUrl: Frontend.Route.profile(user, membership.relations.group) }, changes)),
             headers: { 'Content-Type': 'application/json' }
@@ -1003,8 +1004,8 @@ module.exports = bookshelf.Model.extend(merge({
     await require('../../lib/uploader/storage').writeStringToS3(
       cal.toString(),
       user.getRsvpCalendarPath(), {
-      ContentType: 'text/calendar'
-    })
+        'Content-Type': 'text/calendar'
+      })
   }
 })
 

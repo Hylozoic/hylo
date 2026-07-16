@@ -106,8 +106,7 @@ before(function (done) {
             'Add Members',
             'Remove Members',
             'Manage Content',
-            'Manage Tracks',
-            'Manage Rounds'
+            'Manage Spaces'
           ]
           for (const title of systemResponsibilities) {
             await Responsibility.forge({ title, type: 'system' }).save()

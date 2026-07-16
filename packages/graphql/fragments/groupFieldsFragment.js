@@ -30,6 +30,7 @@ export default gql`
     }
     slug
     type
+    parentId
     typeDescriptor
     typeDescriptorPlural
     visibility

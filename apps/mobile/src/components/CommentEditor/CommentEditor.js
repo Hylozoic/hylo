@@ -78,7 +78,7 @@ export const CommentEditor = React.forwardRef(({
         } else {
           // Check if this completion also completes the track
           if (currentTrack && data.completePost) {
-            const allActionsCompleted = currentTrack.posts.every(
+            const allActionsCompleted = (currentTrack.posts || []).every(
               action => action.id === post.id || action.completedAt
             )
 

@@ -11,7 +11,7 @@ import { groupUrl } from '@hylo/navigation'
 import MenuLink from './MenuLink'
 import { setConfirmBeforeClose } from 'routes/FullPageModal/FullPageModal.store'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
-import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION, RESP_MANAGE_TRACKS } from 'store/constants'
+import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
 import { cn } from 'util/index'
 
 /** Settings overlay for the ContextMenu panel. Accepts groupSlug directly (no context required). */
@@ -25,7 +25,6 @@ export default function GroupSettingsMenu ({ group, groupSlug }) {
 
   const canAdminister = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADMINISTRATION, groupId: group?.id }))
   const canAddMembers = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADD_MEMBERS, groupId: group?.id }))
-  const canManageTracks = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_MANAGE_TRACKS, groupId: group?.id }))
 
   // XXX: hacky way to track the view we were at before opening the settings menu. also see locationHistory.js
   const previousLocation = useSelector(state => get('locationHistory.currentLocation', state))
@@ -50,12 +49,11 @@ export default function GroupSettingsMenu ({ group, groupSlug }) {
     canAddMembers && { title: 'Invitations', url: 'settings/invite' },
     canAddMembers && { title: 'Join Requests', url: 'settings/requests' },
     canAdminister && { title: 'Related Groups', url: 'settings/relationships' },
-    canManageTracks && { title: 'Tracks & Actions', url: 'settings/tracks' },
     canAdminister && { title: 'Custom Views', url: 'settings/views' },
     canAdminister && { title: 'Export Data', url: 'settings/export' },
     canAdminister && { title: 'Paid Content', url: 'settings/paid-content' },
     canAdminister && { title: 'Delete', url: 'settings/delete' }
-  ].filter(Boolean), [canAdminister, canAddMembers, canManageTracks])
+  ].filter(Boolean), [canAdminister, canAddMembers])
 
   return (
     <div

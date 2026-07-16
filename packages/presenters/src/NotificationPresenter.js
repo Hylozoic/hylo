@@ -274,7 +274,7 @@ export function urlForNotification ({ id, activity: { action, actor, post, comme
     }
     case ACTION_TRACK_COMPLETED:
     case ACTION_TRACK_ENROLLMENT:
-      return trackUrl(track.id, { groupSlug })
+      return trackUrl(track.id, { groupSlug, space: track.space })
     case ACTION_FUNDING_ROUND_NEW_SUBMISSION:
       return fundingRoundUrl(fundingRound.id, { groupSlug, tab: 'submissions' })
     case ACTION_FUNDING_ROUND_PHASE_TRANSITION:
