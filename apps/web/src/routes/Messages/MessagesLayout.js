@@ -11,7 +11,9 @@ import ThreadList from './ThreadList'
  * so the thread list never overlays the conversation.
  */
 export default function MessagesLayout () {
-  const { messageThreadId } = useParams()
+  const { messageThreadId: rawMessageThreadId } = useParams()
+  // `/messages/create/...` matches `:messageThreadId` as "create"; treat that as no thread
+  const messageThreadId = rawMessageThreadId === 'create' ? undefined : rawMessageThreadId
 
   if (isPhoneDevice()) {
     if (!messageThreadId) return <Loading />
