@@ -37,8 +37,9 @@ async function membershipHasModeratorRole (membership) {
   const memberUserId = membership.get('user_id')
   if (!groupId || !memberUserId) return false
 
+  const roleScopeId = await Group.roleScopeId(groupId)
   const role = await GroupRole.where({
-    group_id: groupId,
+    group_id: roleScopeId,
     name: 'Moderator',
     type: 'system',
     active: true
@@ -47,7 +48,7 @@ async function membershipHasModeratorRole (membership) {
 
   const assignment = await MemberGroupRole.where({
     user_id: memberUserId,
-    group_id: groupId,
+    group_id: roleScopeId,
     group_role_id: role.id,
     active: true
   }).fetch()
@@ -60,15 +61,19 @@ async function membershipHasModeratorRole (membership) {
 //
 // keys in the returned object are GraphQL schema type names
 //
-/** Limit a person's groupRoles to a single group when groupId or slug is provided. */
+/** Limit a person's groupRoles to a single group when groupId or slug is provided. Spaces resolve to parent. */
 function filterGroupRolesByGroup (relation, { groupId, slug }) {
   if (!groupId && !slug) return relation
   return relation.query(q => {
     if (groupId) {
-      q.where('groups_roles.group_id', groupId)
+      q.whereIn('groups_roles.group_id', function () {
+        this.select(bookshelf.knex.raw('COALESCE(parent_id, id)'))
+          .from('groups')
+          .where('id', groupId)
+      })
     } else {
       q.whereIn('groups_roles.group_id', Group.query(gq => {
-        gq.select('id')
+        gq.select(bookshelf.knex.raw('COALESCE(parent_id, id)'))
         gq.where({ slug })
       }).query())
     }
@@ -673,6 +678,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'geo_shape',
         'memberCount',
         'name',
+        'parent_id',
         'paywall',
         'postCount',
         'purpose',

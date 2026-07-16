@@ -122,20 +122,21 @@ module.exports = bookshelf.Model.extend({
     return roles.filter(r => r) // Filter out any nulls
   },
 
-  // Check if a user has any of the required submitter roles
+  // Check if a user has any of the required submitter roles (roles live on the parent group for spaces)
   canUserSubmit: async function (userId) {
     const rolesData = this.get('submitter_roles')
     // If no roles are specified, anyone can submit
     if (!rolesData || rolesData.length === 0) return true
 
     const group = await this.group().fetch()
-    const groupId = group.id
+    if (!group) return false
+    const roleScopeId = await Group.roleScopeId(group)
 
     // Check if user has any of the specified roles
     for (const roleInfo of rolesData) {
       const hasRole = await MemberGroupRole.where({
         user_id: userId,
-        group_id: groupId,
+        group_id: roleScopeId,
         group_role_id: roleInfo.id
       }).fetch()
       if (hasRole) return true
@@ -144,20 +145,21 @@ module.exports = bookshelf.Model.extend({
     return false
   },
 
-  // Check if a user has any of the required voter roles
+  // Check if a user has any of the required voter roles (roles live on the parent group for spaces)
   canUserVote: async function (userId) {
     const rolesData = this.get('voter_roles')
     // If no roles are specified, anyone can vote
     if (!rolesData || rolesData.length === 0) return true
 
     const group = await this.group().fetch()
-    const groupId = group.id
+    if (!group) return false
+    const roleScopeId = await Group.roleScopeId(group)
 
     // Check if user has any of the specified roles
     for (const roleInfo of rolesData) {
       const hasRole = await MemberGroupRole.where({
         user_id: userId,
-        group_id: groupId,
+        group_id: roleScopeId,
         group_role_id: roleInfo.id
       }).fetch()
       if (hasRole) return true
@@ -333,7 +335,7 @@ module.exports = bookshelf.Model.extend({
 
       // XXX: don't send notifications for joining a funding round for now
       // const group = await round.group().fetch({ transacting })
-      // const manageResponsibility = await Responsibility.where({ title: Responsibility.constants.RESP_MANAGE_ROUNDS }).fetch({ transacting })
+      // const manageResponsibility = await Responsibility.where({ title: Responsibility.constants.RESP_MANAGE_SPACES }).fetch({ transacting })
       // const stewards = await group.membersWithResponsibilities([manageResponsibility.id]).fetch({ transacting })
       // const stewardsIds = stewards.pluck('id')
       // const activities = stewardsIds.map(stewardId => ({

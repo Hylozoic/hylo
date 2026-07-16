@@ -23,15 +23,24 @@ async function uniqueSlug (baseSlug) {
   return slug
 }
 
-async function requireStewardOfGroup (userId, groupId, action) {
-  const group = await Group.findActive(groupId)
-  if (!group) throw new GraphQLError('Space not found')
+/**
+ * Require Manage Spaces or Administration on the parent group to manage a space.
+ * Does not require space membership (stewards are not auto-added to every space).
+ */
+async function requireSpaceManager (userId, spaceId, action) {
+  const space = await Group.findActive(spaceId)
+  if (!space || space.get('type') !== 'space') throw new GraphQLError('Space not found')
 
-  const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, groupId)
-  if (!responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)) {
+  const parentId = space.get('parent_id')
+  if (!parentId) throw new GraphQLError('Space has no parent group')
+
+  const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, parentId)
+  const canManage = responsibilities.includes(Responsibility.constants.RESP_MANAGE_SPACES) ||
+    responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)
+  if (!canManage) {
     throw new GraphQLError(`You don't have permission to ${action}`)
   }
-  return group
+  return space
 }
 
 export async function createSpace (userId, { parentGroupId, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, purpose, location, locationId, viewTypes, bannerUrl, avatarUrl }, context) {
@@ -74,8 +83,8 @@ export async function createSpace (userId, { parentGroupId, name, slug, accepted
 
   await bookshelf.transaction(async trx => {
     await space.save(null, { transacting: trx })
-    await GroupRole.setupSystemRoles(space.id, { transacting: trx })
-    await space.addMembers([userId], { assignCoordinator: true, lastReadAt: new Date() }, { transacting: trx })
+    // No setupSystemRoles / assignCoordinator — spaces inherit roles from the parent
+    await space.addMembers([userId], { lastReadAt: new Date() }, { transacting: trx })
     await Group.setupSpaceViews(space.id, acceptedPostTypes, viewTypes, { transacting: trx })
 
     // Add a `type = 'space'` menu entry to the parent group's view list (spec section 2.5)
@@ -97,7 +106,7 @@ export async function updateSpace (userId, { id, name, slug, acceptedPostTypes, 
   if (!userId) throw new GraphQLError('No userId passed into function')
   if (!id) throw new GraphQLError('No id passed into function')
 
-  const space = await requireStewardOfGroup(userId, id, 'update this space')
+  const space = await requireSpaceManager(userId, id, 'update this space')
 
   const changes = {}
   if (name !== undefined && name.trim()) changes.name = name.trim()
@@ -132,7 +141,7 @@ export async function archiveSpace (userId, id, context) {
   if (!userId) throw new GraphQLError('No userId passed into function')
   if (!id) throw new GraphQLError('No id passed into function')
 
-  const space = await requireStewardOfGroup(userId, id, 'archive this space')
+  const space = await requireSpaceManager(userId, id, 'archive this space')
   const parentId = space.get('parent_id')
 
   await bookshelf.transaction(async trx => {
@@ -156,7 +165,7 @@ export async function deleteSpace (userId, id, context) {
   if (!userId) throw new GraphQLError('No userId passed into function')
   if (!id) throw new GraphQLError('No id passed into function')
 
-  const space = await requireStewardOfGroup(userId, id, 'delete this space')
+  const space = await requireSpaceManager(userId, id, 'delete this space')
   const parentId = space.get('parent_id')
 
   await bookshelf.transaction(async trx => {

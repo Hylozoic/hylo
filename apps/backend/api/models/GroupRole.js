@@ -93,8 +93,12 @@ module.exports = bookshelf.Model.extend({
   /**
    * Create system roles (Coordinator, Moderator, Host) for a group if they do not exist yet.
    * Links responsibilities by name (type = system). Idempotent.
+   * No-op for spaces — they inherit roles from the parent group.
    */
   setupSystemRoles: async function (groupId, { transacting } = {}) {
+    const roleScopeId = await Group.roleScopeId(groupId)
+    if (String(roleScopeId) !== String(groupId)) return
+
     const responsibilityRows = await Responsibility.query(q => {
       q.where('type', 'system')
     }).fetchAll({ transacting })

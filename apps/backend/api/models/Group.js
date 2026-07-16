@@ -199,8 +199,13 @@ module.exports = bookshelf.Model.extend(merge({
       .query({ where: { status: GroupRelationshipInvite.STATUS.Pending } })
   },
 
+  /**
+   * Role definitions for this group. Spaces inherit from the parent group
+   * (no per-space groups_roles rows).
+   */
   groupRoles () {
-    return this.hasMany(GroupRole)
+    const localKey = this.get('parent_id') ? 'parent_id' : 'id'
+    return this.hasMany(GroupRole, 'group_id', localKey)
   },
 
   groupTags () {
@@ -269,9 +274,14 @@ module.exports = bookshelf.Model.extend(merge({
     return this.belongsTo(Location, 'location_id')
   },
 
+  /**
+   * System + group-custom responsibilities available for role editing.
+   * Spaces resolve against the parent group.
+   */
   availableResponsibilities () {
+    const groupId = this.get('parent_id') || this.id
     return Responsibility.collection().query(q => {
-      q.whereRaw('group_id = ? or group_id is null', this.id)
+      q.whereRaw('group_id = ? or group_id is null', groupId)
     })
   },
 
@@ -303,10 +313,18 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   // This returns all members with the given responsibilities (ids or title strings)
+  /**
+   * Members of this group/space who hold any of the given responsibilities.
+   * Role assignments are resolved against the parent for spaces.
+   */
   membersWithResponsibilities (responsibilities) {
     const useTitles = responsibilities.some(r => typeof r === 'string' && Number.isNaN(Number(r)))
     return this.members().query(q => {
       const placeholders = responsibilities.map(() => '?').join(',')
+      // Spaces inherit roles from parent: match assignments on COALESCE(parent_id, id)
+      const roleScopeJoin = `group_memberships_group_roles.group_id = (
+          select coalesce(g.parent_id, g.id) from groups g where g.id = group_memberships.group_id
+        )`
       if (useTitles) {
         q.whereRaw(`exists (
           select * from group_memberships_group_roles
@@ -314,7 +332,7 @@ module.exports = bookshelf.Model.extend(merge({
           inner join responsibilities on responsibilities.id = group_roles_responsibilities.responsibility_id
           where responsibilities.title IN (${placeholders})
             and group_memberships_group_roles.user_id = users.id
-            and group_memberships_group_roles.group_id = group_memberships.group_id
+            and ${roleScopeJoin}
         )`, responsibilities)
       } else {
         q.whereRaw(`exists (
@@ -322,7 +340,7 @@ module.exports = bookshelf.Model.extend(merge({
           inner join group_roles_responsibilities on group_roles_responsibilities.group_role_id = group_memberships_group_roles.group_role_id
           where group_roles_responsibilities.responsibility_id IN (${placeholders})
             and group_memberships_group_roles.user_id = users.id
-            and group_memberships_group_roles.group_id = group_memberships.group_id
+            and ${roleScopeJoin}
         )`, responsibilities)
       }
     })
@@ -1804,6 +1822,10 @@ module.exports = bookshelf.Model.extend(merge({
     }).query()
   },
 
+  /**
+   * Group/space ids where the user is a member and holds any of the responsibilities.
+   * Spaces inherit role assignments from their parent group.
+   */
   selectIdsByResponsibilities (userOrId, responsibilities) {
     const useTitles = responsibilities.some(r => typeof r === 'string' && Number.isNaN(Number(r)))
     const throughGroupRole = MemberGroupRole.collection().query(q => {
@@ -1823,10 +1845,32 @@ module.exports = bookshelf.Model.extend(merge({
         q.select('groups.id')
         q.join('groups', 'groups.id', 'group_memberships.group_id')
         q.where('groups.active', true)
-        q.whereIn('groups.id', throughGroupRole.query())
+        // Direct role on this group, or (for spaces) role on parent_id
+        q.where(function () {
+          this.whereIn('groups.id', throughGroupRole.query())
+            .orWhereIn('groups.parent_id', throughGroupRole.query())
+        })
       },
       multiple: true
     }).query()
+  },
+
+  /**
+   * Group id whose groups_roles / role assignments apply for this group.
+   * Spaces use parent_id; top-level groups use their own id.
+   */
+  async roleScopeId (groupOrId) {
+    const groupId = groupOrId instanceof Group ? groupOrId.id : groupOrId
+    if (!groupId) return groupId
+    if (groupOrId instanceof Group && groupOrId.get('parent_id') != null) {
+      return groupOrId.get('parent_id')
+    }
+    if (groupOrId instanceof Group && groupOrId.has('parent_id')) {
+      return groupOrId.id
+    }
+    const row = await bookshelf.knex('groups').where('id', groupId).select('id', 'parent_id').first()
+    if (!row) return groupId
+    return row.parent_id || row.id
   },
 
   async allHaveMember (groupDataIds, userOrId) {

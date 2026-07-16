@@ -1,9 +1,21 @@
 import { GraphQLError } from 'graphql'
 
+/**
+ * Reject role mutations targeting a space — roles are only edited on the parent group.
+ */
+async function assertNotSpace (groupId) {
+  if (!groupId) return
+  const group = await Group.find(groupId)
+  if (group && (group.get('type') === 'space' || group.get('parent_id'))) {
+    throw new GraphQLError('Roles cannot be edited on a space; edit roles on the parent group instead')
+  }
+}
+
 export async function addGroupRole ({ groupId, color, name, description, emoji, userId }) {
   if (!userId) throw new GraphQLError('No userId passed into function')
 
   if (groupId && name && emoji) {
+    await assertNotSpace(groupId)
     const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, groupId)
 
     if (responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)) {
@@ -20,6 +32,7 @@ export async function updateGroupRole ({ groupRoleId, color, name, description, 
   if (!userId) throw new GraphQLError('No userId passed into function')
 
   if (groupRoleId) {
+    await assertNotSpace(groupId)
     const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, groupId)
     if (responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)) {
       return bookshelf.transaction(async transacting => {
@@ -47,6 +60,7 @@ export async function addRoleToMember ({ userId, roleId, personId, groupId }) {
   if (!userId) throw new GraphQLError('No userId passed into function')
 
   if (personId && roleId) {
+    await assertNotSpace(groupId)
     const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, groupId)
     if (responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)) {
       return MemberGroupRole.forge({
@@ -67,6 +81,7 @@ export async function removeRoleFromMember ({ userId, roleId, personId, groupId 
   if (!userId) throw new GraphQLError('No userId passed into function')
 
   if (personId && roleId && groupId) {
+    await assertNotSpace(groupId)
     const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, groupId)
     if (responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION) || userId === personId) {
       const role = await MemberGroupRole.query(q => {
