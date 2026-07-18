@@ -40,6 +40,7 @@ import SliderInput from 'components/SliderInput/SliderInput'
 import { PROJECT_CONTRIBUTIONS } from 'config/featureFlags'
 import useEventCallback from 'hooks/useEventCallback'
 import fetchAllMyGroupsChatRooms from 'store/actions/fetchAllMyGroupsChatRooms'
+import fetchAllMyGroupsSpaces from 'store/actions/fetchAllMyGroupsSpaces'
 import fetchForGroup from 'store/actions/fetchForGroup'
 import {
   PROPOSAL_ADVICE,
@@ -55,7 +56,7 @@ import {
   VOTING_METHOD_MULTI_UNRESTRICTED,
   VOTING_METHOD_SINGLE
 } from 'store/models/Post'
-import { DEFAULT_CHAT_TOPIC } from 'store/models/Group'
+import { DEFAULT_CHAT_TOPIC, GROUP_TYPES } from 'store/models/Group'
 import isPendingFor from 'store/selectors/isPendingFor'
 import getMe from 'store/selectors/getMe'
 import getPost from 'store/selectors/getPost'
@@ -96,6 +97,20 @@ import ActionsBar from './ActionsBar'
 import HyloHTML from 'components/HyloHTML'
 import useDraft, { hasDraftContent, hasPostDraftPayloadContent } from 'hooks/useDraft'
 import { buildPostDraftPayload, mergeDraftIntoPost } from './postDraftUtils'
+
+/** Returns true when a group/space accepts the given post type (null acceptedPostTypes = all). */
+function groupAcceptsPostType (group, postType) {
+  if (!group || !postType) return false
+  const types = group.acceptedPostTypes
+  if (types == null) return true
+  if (!Array.isArray(types) || types.length === 0) return false
+  return types.includes(postType)
+}
+
+/** Returns true when the group is a space (child of a top-level group). */
+function isSpaceGroup (group) {
+  return !!group && (group.type === GROUP_TYPES.space || !!group.parentId)
+}
 
 const emojiOptions = ['', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟', '✅✅', '👍', '👎', '⁉️', '‼️', '❓', '❗', '🚫', '➡️', '🛑', '✅', '🛑🛑', '🌈', '🔴', '🔵', '🟤', '🟣', '🟢', '🟡', '🟠', '⚫', '⚪', '🤷🤷', '📆', '🤔', '❤️', '👏', '🎉', '🔥', '🤣', '😢', '😡', '🤷', '💃🕺', '⛔', '🙏', '👀', '🙌', '💯', '🔗', '🚀', '💃', '🕺', '🫶💯']
 const MAX_TITLE_LENGTH = 80
@@ -311,6 +326,9 @@ function PostEditorInner ({
   const [dateError, setDateError] = useState(false)
   const [showLocation, setShowLocation] = useState(POST_TYPES_SHOW_LOCATION_BY_DEFAULT.includes(initialPost.type) || selectedLocation)
 
+  // Bumped after membership spaces load so To options recompute with parentId/acceptedPostTypes
+  const [membershipSpacesTick, setMembershipSpacesTick] = useState(0)
+
   const groupOptions = useMemo(() => {
     if (!currentUser) return []
 
@@ -324,7 +342,7 @@ function PostEditorInner ({
         return true
       })
       .sort((a, b) => a.name.localeCompare(b.name))
-  }, [currentUser?.memberships])
+  }, [currentUser?.memberships, membershipSpacesTick])
   const isAction = currentPost.type === 'action'
   const isSubmission = currentPost.type === 'submission'
 
@@ -484,117 +502,82 @@ function PostEditorInner ({
   const toOptions = useMemo(() => {
     if (!groupOptions) return []
 
-    // Sort groups so currentGroup appears first, then alphabetically
-    const sortedGroups = [...groupOptions]
-      .filter(Boolean)
+    const postTypeForOptions = currentPost.type
+    const topLevelGroups = groupOptions.filter(g => g && !isSpaceGroup(g))
+    const spaces = groupOptions.filter(g => g && isSpaceGroup(g))
+    const currentTopLevelId = currentGroup?.parentId || currentGroup?.id
+
+    // Current top-level group first, then alphabetically; only groups that accept this post type
+    const sortedTopLevel = [...topLevelGroups]
+      .filter(g => groupAcceptsPostType(g, postTypeForOptions))
       .sort((a, b) => {
-        const aIsCurrent = a.id === currentGroup?.id
-        const bIsCurrent = b.id === currentGroup?.id
+        const aIsCurrent = String(a.id) === String(currentTopLevelId)
+        const bIsCurrent = String(b.id) === String(currentTopLevelId)
         if (aIsCurrent && !bIsCurrent) return -1
         if (!aIsCurrent && bIsCurrent) return 1
         return a.name.localeCompare(b.name)
       })
 
-    // Build a map of selected group IDs to their selected topic names
-    // Only filter out topics for groups that are already selected
-    const selectedGroupIds = new Set((selectedGroups || []).map(g => g?.id).filter(Boolean))
-    const selectedTopicsByGroup = new Map()
+    return sortedTopLevel.flatMap((parent) => {
+      const options = [{
+        id: parent.id,
+        group: parent,
+        name: parent.name,
+        avatarUrl: parent.avatarUrl,
+        allowInPublic: parent.allowInPublic,
+        isSpace: false
+      }]
 
-    // For each selected group, collect its selected topic names
-    if (selectedGroups && currentPost.topics) {
-      selectedGroups.forEach(group => {
-        if (!group?.id) return
-        const groupTopicNames = new Set()
+      const childSpaces = spaces
+        .filter(space =>
+          String(space.parentId) === String(parent.id) &&
+          groupAcceptsPostType(space, postTypeForOptions)
+        )
+        .sort((a, b) => a.name.localeCompare(b.name))
 
-        // Find topics that belong to this group by checking chatRooms
-        group.chatRooms?.toModelArray?.()?.forEach(cr => {
-          const topic = cr?.groupTopic?.topic
-          if (topic && currentPost.topics.some(t => t?.id === topic.id)) {
-            groupTopicNames.add(topic.name)
-          }
+      childSpaces.forEach(space => {
+        options.push({
+          id: space.id,
+          group: space,
+          parentGroup: parent,
+          name: `${parent.name} / ${space.name}`,
+          avatarUrl: parent.avatarUrl,
+          icon: space.icon,
+          allowInPublic: space.allowInPublic,
+          isSpace: true
         })
-
-        if (groupTopicNames.size > 0) {
-          selectedTopicsByGroup.set(group.id, groupTopicNames)
-        }
       })
-    }
 
-    return sortedGroups
-      .map((g) => {
-        if (!g) return []
-        // Only show topic options (like "Group #general"), no group-only options
-        const isGroupSelected = selectedGroupIds.has(g.id)
-        const selectedTopicsForThisGroup = selectedTopicsByGroup.get(g.id) || new Set()
-
-        return (g.chatRooms?.toModelArray() || [])
-          .map((cr) => ({
-            id: cr?.id,
-            group: g,
-            name: g.name + ' #' + cr?.groupTopic?.topic?.name,
-            topic: cr?.groupTopic?.topic,
-            avatarUrl: g.avatarUrl,
-            allowInPublic: g.allowInPublic
-          }))
-          .filter(Boolean)
-          .filter(o => {
-            // Only filter out topics if this group is already selected AND this topic is already selected for this group
-            if (!isGroupSelected) return true // Group not selected, show all topics
-            return !selectedTopicsForThisGroup.has(o.topic?.name) // Group selected, hide only topics already selected for this group
-          })
-          .sort((a, b) => a.name.localeCompare(b.name))
-      }).flat()
-  }, [groupOptions, currentGroup?.id, selectedGroups, currentPost.topics])
+      return options
+    })
+  }, [groupOptions, currentGroup?.id, currentGroup?.parentId, currentPost.type])
 
   const selectedToOptions = useMemo(() => {
     return selectedGroups.map((g) => {
-      if (!g) return []
+      if (!g) return null
 
-      // Get all selected topic options for this group
-      const chatRoomOptions = g.chatRooms?.toModelArray()
-        ?.filter(cr =>
-          cr?.groupTopic?.topic?.id &&
-          currentPost.topics?.some(t => t?.id === cr.groupTopic.topic.id)
-        )
-        ?.map(cr => {
-          if (!cr?.groupTopic?.topic) return null
-          return {
-            id: cr.groupTopic.id,
-            group: g,
-            name: `${g.name} #${cr.groupTopic.topic.name}`,
-            topic: cr.groupTopic.topic,
-            avatarUrl: g.avatarUrl
-          }
-        })
-        .filter(Boolean) || []
-
-      // Fallback: chatRooms haven't loaded yet but we know the topics from context.
-      // Display topic pills directly so the "to" field isn't empty on initial render.
-      if (chatRoomOptions.length === 0 && currentPost.topics?.length > 0) {
-        return currentPost.topics
-          .filter(Boolean)
-          .map(t => ({
-            id: t.id,
-            group: g,
-            name: `${g.name} #${t.name}`,
-            topic: t,
-            avatarUrl: g.avatarUrl
-          }))
-      }
-
-      // Events and other non-chat posts: show the group when no topic is selected
-      if (chatRoomOptions.length === 0 && (!currentPost.topics || currentPost.topics.length === 0)) {
-        return [{
-          id: `group-${g.id}`,
+      if (isSpaceGroup(g)) {
+        const parent = groupOptions.find(p => p && String(p.id) === String(g.parentId))
+        return {
+          id: g.id,
           group: g,
-          name: g.name,
-          avatarUrl: g.avatarUrl
-        }]
+          parentGroup: parent,
+          name: parent ? `${parent.name} / ${g.name}` : g.name,
+          avatarUrl: parent?.avatarUrl || g.avatarUrl,
+          icon: g.icon,
+          isSpace: true
+        }
       }
 
-      return chatRoomOptions
-    }).flat()
-  }, [selectedGroups, currentPost.groups, currentPost.topics])
+      return {
+        id: g.id,
+        group: g,
+        name: g.name,
+        avatarUrl: g.avatarUrl,
+        isSpace: false
+      }
+    }).filter(Boolean)
+  }, [selectedGroups, groupOptions])
 
   useEffect(() => {
     if (currentTrack?.actionDescriptor && !currentPost.completionActionSettings) {
@@ -618,13 +601,15 @@ function PostEditorInner ({
     }
   }, [])
 
-  // Fetch chat rooms if we're not in a chat and we haven't fetched them yet
-  const hasFetchedChatRoomsRef = useRef(false)
+  // Fetch chat rooms + membership spaces so the To field has destinations from every group
+  const hasFetchedToFieldDataRef = useRef(false)
   useEffect(() => {
-    if (!hasFetchedChatRoomsRef.current) {
-      dispatch(fetchAllMyGroupsChatRooms())
-      hasFetchedChatRoomsRef.current = true
-    }
+    if (hasFetchedToFieldDataRef.current) return
+    hasFetchedToFieldDataRef.current = true
+    dispatch(fetchAllMyGroupsChatRooms())
+    Promise.resolve(dispatch(fetchAllMyGroupsSpaces())).finally(() => {
+      setMembershipSpacesTick(tick => tick + 1)
+    })
   }, [dispatch])
 
   useEffect(() => {
@@ -765,7 +750,12 @@ function PostEditorInner ({
       search: setQuerystringParam('newPostType', type, urlLocation)
     }, { replace: true })
 
-    setCurrentPost(prev => ({ ...prev, type }))
+    setCurrentPost(prev => ({
+      ...prev,
+      type,
+      // Drop destinations that do not accept the newly selected post type
+      groups: (prev.groups || []).filter(g => groupAcceptsPostType(g, type))
+    }))
     setTimeout(() => { titleInputRef.current && titleInputRef.current.focus() }, 100)
   }, [currentPost, navigate, setCurrentPost, urlLocation])
 
@@ -884,46 +874,14 @@ function PostEditorInner ({
   }, [dispatch, setCurrentPost])
 
   const handleAddToOption = useCallback((toOptions) => {
-    const groups = uniqBy('id', toOptions.map(toOption => toOption.group))
-    const topics = uniqBy('id', toOptions.filter(toOption => toOption.topic).map(toOption => toOption.topic))
-    setCurrentPost(prev => ({ ...prev, groups, topics }))
+    const groups = uniqBy('id', toOptions.map(toOption => toOption.group).filter(Boolean))
+    setCurrentPost(prev => ({ ...prev, groups }))
   }, [setCurrentPost])
 
-  /**
-   * Custom delete handler for ToField that implements conditional pill removal
-   * - When removing the #general pill:
-   *   - If there are other topics for that group: just remove #general, keep other topics
-   *   - If #general is the only topic: remove the entire group (all options with this group)
-   * - When removing any other topic pill: just remove that topic
-   */
+  /** Removes a selected group or space destination from the To field. */
   const handleToOptionDelete = useCallback((deletedOption, allSelected) => {
     const groupId = deletedOption.group?.id
-
-    // Group-only pill (no topic), e.g. events
-    if (!deletedOption.topic) {
-      return allSelected.filter(o => o.group?.id !== groupId)
-    }
-
-    // Check if we're deleting the #general pill
-    if (deletedOption.topic?.name === DEFAULT_CHAT_TOPIC) {
-      // Check if there are other topics for this group (beyond #general)
-      const otherTopicsForGroup = allSelected.filter(o =>
-        o.group?.id === groupId &&
-        o.topic &&
-        o.topic?.name !== DEFAULT_CHAT_TOPIC
-      )
-
-      if (otherTopicsForGroup.length > 0) {
-        // There are other topics - just remove #general, keep the group via other topics
-        return allSelected.filter(o => o.topic?.id !== deletedOption.topic?.id)
-      }
-
-      // #general is the only topic - remove the entire group
-      return allSelected.filter(o => o.group?.id !== groupId)
-    }
-
-    // Deleting a non-general topic pill - just remove that topic
-    return allSelected.filter(o => o.topic?.id !== deletedOption.topic?.id)
+    return allSelected.filter(o => o.group?.id !== groupId)
   }, [])
 
   const togglePublic = useCallback(() => {

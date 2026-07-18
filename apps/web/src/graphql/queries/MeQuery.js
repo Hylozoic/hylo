@@ -110,11 +110,14 @@ export default gql`
       }
       group {
         id
+        acceptedPostTypes
         avatarUrl
         bannerUrl
         homeRoute
+        icon
         name
         memberCount
+        parentId
         stewardDescriptor
         stewardDescriptorPlural
         settings {
@@ -123,6 +126,7 @@ export default gql`
         }
         slug
         type
+        allowInPublic
       }
     }
     skills {

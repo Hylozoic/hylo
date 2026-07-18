@@ -26,6 +26,7 @@ export function fetchGroupSettings (slug) {
       query: `query ($slug: String) {
         group (slug: $slug) {
           id
+          acceptedPostTypes
           accessibility
           avatarUrl
           bannerUrl
@@ -262,6 +263,7 @@ export function updateGroupSettings (id, changes) {
       query: `mutation ($id: ID, $changes: GroupInput) {
         updateGroupSettings(id: $id, changes: $changes) {
           id
+          acceptedPostTypes
           stripeAccountId
           stripeChargesEnabled
           stripePayoutsEnabled

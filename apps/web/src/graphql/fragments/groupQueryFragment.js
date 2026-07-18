@@ -61,6 +61,8 @@ export default function groupQueryFragment () {
     slug
     type
     parentId
+    icon
+    acceptedPostTypes
     typeDescriptor
     typeDescriptorPlural
     visibility

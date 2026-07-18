@@ -19,6 +19,14 @@ export const VIEW_TYPE_TO_POST_TYPES = Object.entries(POST_TYPE_TO_VIEW_TYPE).re
   return acc
 }, {})
 
+/** Returns true when a view type is allowed by the group's acceptedPostTypes (null = all allowed). */
+export function viewAcceptedByPostTypes (viewType, acceptedPostTypes) {
+  if (acceptedPostTypes == null) return true
+  const requiredPostTypes = VIEW_TYPE_TO_POST_TYPES[viewType]
+  if (!requiredPostTypes) return true
+  return requiredPostTypes.some(postType => acceptedPostTypes.includes(postType))
+}
+
 /** View types that have configurable settings in the menu editor. */
 export function viewTypeHasSettings (type) {
   return ['chat', 'link', 'text', 'custom', 'welcome', 'space'].includes(type)

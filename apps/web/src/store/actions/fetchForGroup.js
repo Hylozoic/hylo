@@ -43,6 +43,8 @@ const queryFragment = `group(slug: $slug, updateLastViewed: $updateLastViewed) {
     slug
     type
     parentId
+    icon
+    acceptedPostTypes
     typeDescriptor
     typeDescriptorPlural
     visibility
