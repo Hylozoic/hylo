@@ -1513,6 +1513,27 @@ export default function makeModels (userId, isAdmin, apiClient) {
         canVote: r => r && userId ? r.canUserVote(userId) : false,
         isParticipating: r => r && userId && r.isParticipating(userId),
         joinedAt: r => r && userId ? r.joinedAt(userId) : null,
+        // Participants = space members; use cached groups.num_members
+        numParticipants: async r => {
+          if (!r) return 0
+          const spaceId = r.get('group_id')
+          if (!spaceId) return 0
+          const row = await bookshelf.knex('groups').where({ id: spaceId }).select('num_members').first()
+          return parseInt(row?.num_members || 0, 10)
+        },
+        numSubmissions: async r => {
+          if (!r) return 0
+          const spaceId = r.get('group_id')
+          if (!spaceId) return 0
+          const result = await bookshelf.knex('groups_posts')
+            .join('posts', 'posts.id', 'groups_posts.post_id')
+            .where('groups_posts.group_id', spaceId)
+            .where('posts.type', Post.Type.SUBMISSION)
+            .where('posts.active', true)
+            .count('* as count')
+            .first()
+          return parseInt(result?.count || 0, 10)
+        },
         submitterRoles: r => r ? r.submitterRoles() : [],
         allocations: r => r ? r.allocations() : [],
         tokensRemaining: async r => {
@@ -1543,6 +1564,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
               'name',
               'slug',
               'homeRoute',
+              'memberCount',
               { parentGroup: ['id', 'name', 'slug'] }
             ]
           }
