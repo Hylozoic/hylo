@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 import { Eye, EyeOff, ImagePlus, Info, Lock, LockOpen } from 'lucide-react'
@@ -200,8 +201,10 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, group, onC
 
   if (!space) return null
 
-  return (
-    <div className='fixed inset-0 z-50 flex items-center justify-center bg-darkening/50'>
+  // Portal above AuthLayout nav stacking (nav is z-50); otherwise the left edge of the
+  // centered panel sits under GlobalNav/ContextMenu and radio/checkbox hit targets miss.
+  return createPortal(
+    <div className='fixed inset-0 z-[1100] flex items-center justify-center bg-darkening/50 pointer-events-auto'>
       <div className='bg-midground rounded-lg shadow-lg p-4 w-full max-w-md sm:max-w-[40rem] max-h-[85vh] flex flex-col'>
         <h2 className='text-lg font-semibold mb-4'>{modalTitle}</h2>
 
@@ -494,6 +497,7 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, group, onC
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
