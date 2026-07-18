@@ -126,8 +126,8 @@ export default function AddGroupViewDialog ({ group, groupViews, acceptedPostTyp
   }, [acceptedPostTypes])
 
   const addableViewTypes = useMemo(
-    () => ADDABLE_GROUP_VIEW_TYPES.filter(isTypeAcceptable),
-    [isTypeAcceptable]
+    () => ADDABLE_GROUP_VIEW_TYPES.filter(type => isTypeAcceptable(type) && !isTypeInMenu(type)),
+    [isTypeAcceptable, isTypeInMenu]
   )
 
   const resetTypeFields = useCallback(() => {
@@ -260,7 +260,6 @@ export default function AddGroupViewDialog ({ group, groupViews, acceptedPostTyp
 
           <div className='flex flex-col gap-1 overflow-y-auto flex-1 min-h-0'>
             {addableViewTypes.map(type => {
-              const inMenu = isTypeInMenu(type)
               const isSelected = selectedType === type
               const presentedView = GroupViewPresenter({ type })
               const label = displayNameForView({ type }, t)
@@ -269,26 +268,22 @@ export default function AddGroupViewDialog ({ group, groupViews, acceptedPostTyp
                 <React.Fragment key={type}>
                   <button
                     type='button'
-                    disabled={inMenu}
                     onClick={() => handleRowClick(type)}
                     className={cn(
                       'flex items-center gap-3 w-full px-2 py-1 text-left border-2 rounded-md transition-all',
-                      inMenu
-                        ? 'border-foreground/10 opacity-60 cursor-not-allowed'
-                        : 'border-foreground/20 hover:border-foreground/50 cursor-pointer',
-                      isSelected && !inMenu && 'border-selected bg-selected/10'
+                      'border-foreground/20 hover:border-foreground/50 cursor-pointer',
+                      isSelected && 'border-selected bg-selected/10'
                     )}
                   >
                     <Checkbox
-                      checked={inMenu || isSelected}
-                      disabled={inMenu}
+                      checked={isSelected}
                       className='pointer-events-none'
                       aria-hidden
                     />
                     <GroupViewIcon view={presentedView} className='w-4 h-4 shrink-0 text-foreground/70' />
                     <span className='flex-1 text-base text-foreground truncate'>{label}</span>
                     <span className='text-xs text-foreground/50 shrink-0 max-w-[40%] text-right truncate'>
-                      {inMenu ? t('Added') : descriptionForViewType(type, t)}
+                      {descriptionForViewType(type, t)}
                     </span>
                   </button>
 

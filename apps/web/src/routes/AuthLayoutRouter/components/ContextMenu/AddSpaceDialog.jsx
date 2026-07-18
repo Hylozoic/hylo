@@ -196,6 +196,8 @@ export default function AddSpaceDialog ({ group, onClose }) {
       const accessOption = ACCESS_OPTIONS.find(option => option.value === access)
       const standardTypesInOrder = orderedRows.filter(row => row.kind === 'standard').map(row => row.type)
       const manualRowsInOrder = orderedRows.filter(row => row.kind === 'manual')
+      // Fall back to standardViewTypes if IncludedViewsEditor hasn't reported order yet
+      const viewTypes = standardTypesInOrder.length > 0 ? standardTypesInOrder : standardViewTypes
 
       const result = await dispatch(createSpace({
         parentGroupId: group.id,
@@ -210,7 +212,7 @@ export default function AddSpaceDialog ({ group, onClose }) {
         visibility: accessOption.visibility,
         accessibility: accessOption.accessibility,
         requiredRoles: access === 'role' ? requiredRoles.map(role => role.id) : null,
-        viewTypes: standardTypesInOrder
+        viewTypes
       }))
 
       const newSpace = result?.payload?.data?.createSpace
@@ -286,7 +288,7 @@ export default function AddSpaceDialog ({ group, onClose }) {
     } finally {
       setIsCreating(false)
     }
-  }, [dispatch, group?.id, name, description, icon, bannerUrl, purpose, locationObject, postTypes, access, requiredRoles, spaceType, orderedRows, onClose, navigate, routerLocation.pathname, frPublishedAt, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frHideFinalResults, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles])
+  }, [dispatch, group?.id, name, description, icon, bannerUrl, purpose, locationObject, postTypes, access, requiredRoles, spaceType, orderedRows, standardViewTypes, onClose, navigate, routerLocation.pathname, frPublishedAt, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frHideFinalResults, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles])
 
   return (
     <div className='fixed inset-0 z-50 flex items-center justify-center bg-darkening/50'>
