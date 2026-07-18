@@ -624,7 +624,7 @@ export function makeMutations ({ fetchOne }) {
 
     createProjectRole: (root, { projectId, roleName }, context) => createProjectRole(context.currentUserId, projectId, roleName),
 
-    createSavedSearch: (root, { data }) => createSavedSearch(data),
+    createSavedSearch: (root, { data }, context) => createSavedSearch(context.currentUserId, data),
 
     createTrack: (root, { data }, context) => createTrack(context.currentUserId, data),
 
@@ -664,7 +664,7 @@ export function makeMutations ({ fetchOne }) {
 
     deleteReaction: (root, { entityId, data }, context) => deleteReaction(context.currentUserId, entityId, data, context),
 
-    deleteSavedSearch: (root, { id }, context) => deleteSavedSearch(id),
+    deleteSavedSearch: (root, { id }, context) => deleteSavedSearch(context.currentUserId, id),
 
     deleteZapierTrigger: (root, { id }, context) => deleteZapierTrigger(context.currentUserId, id),
 
