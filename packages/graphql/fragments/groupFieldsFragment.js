@@ -35,7 +35,6 @@ export default gql`
     typeDescriptorPlural
     visibility
     websiteUrl
-    welcomePage
     agreements {
       items {
         id

@@ -6,6 +6,7 @@ import {
   FETCH_VIEW_POSTS,
   REORDER_GROUP_VIEW,
   REORDER_VIEW_POST,
+  SET_GROUP_VIEW_HIDDEN,
   SET_HOME_VIEW,
   UPDATE_GROUP_VIEW,
   UPDATE_SPACE
@@ -177,6 +178,31 @@ export function reorderGroupView ({ id, orderInFrontOfViewId, addToEnd, parentGr
       variables: { id, orderInFrontOfViewId, addToEnd }
     },
     meta: { id, parentGroupId, targetGroupId, reorderedItems }
+  }
+}
+
+/** Hide (order = null) or show a view in the group's menu. */
+export function setGroupViewHidden ({ id, groupId, hidden }) {
+  return {
+    type: SET_GROUP_VIEW_HIDDEN,
+    graphql: {
+      query: `mutation ($id: ID!, $hidden: Boolean!) {
+        setGroupViewHidden(id: $id, hidden: $hidden) {
+          ${groupViewFields}
+        }
+      }`,
+      variables: { id, hidden }
+    },
+    meta: {
+      id,
+      groupId,
+      hidden,
+      optimistic: true,
+      extractModel: [
+        { getRoot: get('setGroupViewHidden'), modelName: 'GroupView' },
+        { getRoot: get('setGroupViewHidden.linkedGroup'), modelName: 'Group' }
+      ]
+    }
   }
 }
 

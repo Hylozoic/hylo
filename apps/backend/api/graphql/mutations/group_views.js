@@ -98,10 +98,25 @@ export async function deleteGroupView (userId, id, context) {
     throw new GraphQLError('This view cannot be deleted')
   }
 
+  const wasWelcome = view.get('type') === GroupView.Type.WELCOME
+
   await view.destroy()
     .catch(err => {
       throw new GraphQLError(`Deletion of view failed: ${err.message}`)
     })
+
+  // Welcome page is gone — stop redirecting new members to /welcome.
+  if (wasWelcome) {
+    const groupModel = await Group.find(groupId)
+    if (groupModel) {
+      const settings = groupModel.get('settings') || {}
+      if (settings.show_welcome_page !== false) {
+        await groupModel.save({
+          settings: { ...settings, show_welcome_page: false }
+        }, { patch: true })
+      }
+    }
+  }
 
   const group = await Group.find(groupId)
   notifyGroupUpdated(context, group, groupId)
@@ -128,6 +143,58 @@ export async function reorderGroupView (userId, id, orderInFrontOfViewId, addToE
   notifyGroupUpdated(context, group, groupId)
 
   return { success: true }
+}
+
+/**
+ * Hide or show a view in the group's menu.
+ * Hidden views keep their content (order = null) and appear grayed in edit mode.
+ * Showing appends the view to the end of the ordered menu.
+ */
+export async function setGroupViewHidden (userId, id, hidden, context) {
+  if (!userId) throw new GraphQLError('No userId passed into function')
+  if (!id) throw new GraphQLError('No view id passed into function')
+  if (typeof hidden !== 'boolean') throw new GraphQLError('hidden must be a boolean')
+
+  const view = await GroupView.where({ id }).fetch()
+  if (!view) throw new GraphQLError('View not found')
+
+  const groupId = view.get('group_id')
+  await requireAdmin(userId, groupId, 'update views')
+
+  const currentOrder = view.get('order')
+
+  if (hidden) {
+    if (currentOrder === 0) {
+      throw new GraphQLError('Cannot hide the home view — set another view as home first')
+    }
+    if (currentOrder == null) {
+      return view
+    }
+
+    await bookshelf.transaction(async trx => {
+      await view.save({ order: null, updated_at: new Date() }, { patch: true, transacting: trx })
+      const remaining = await GroupView.findForGroup(groupId, { transacting: trx })
+      const ids = remaining.map(v => Number(v.id))
+      await GroupView.applyOrder(ids, { groupId, trx })
+    })
+  } else {
+    if (currentOrder != null) {
+      return view
+    }
+
+    const maxOrderRow = await bookshelf.knex('group_views')
+      .where({ group_id: groupId })
+      .whereNotNull('order')
+      .max('order as max_order')
+      .first()
+    const nextOrder = maxOrderRow && maxOrderRow.max_order != null ? Number(maxOrderRow.max_order) + 1 : 0
+    await view.save({ order: nextOrder, updated_at: new Date() }, { patch: true })
+  }
+
+  const group = await Group.find(groupId)
+  notifyGroupUpdated(context, group, groupId)
+
+  return GroupView.where({ id }).fetch()
 }
 
 export async function setHomeView (userId, viewId, groupId, context) {

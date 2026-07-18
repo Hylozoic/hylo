@@ -225,7 +225,9 @@ function GroupViewMenuItem ({
       linkedSpaceGroup &&
       myMemberships.some(m => m.group.id === linkedSpaceGroup.id)
     )
-    const spaceViews = (linkedSpaceGroup?.groupViews?.items || []).map(v => GroupViewPresenter(v))
+    const spaceViews = (linkedSpaceGroup?.groupViews?.items || [])
+      .filter(v => v.order != null)
+      .map(v => GroupViewPresenter(v))
     const hasMultipleSpaceViews = spaceViews.length > 1
     const singleSpaceView = spaceViews.length === 1 ? spaceViews[0] : null
     const spaceUnread = spaceViews.some(v => v.newPostCount > 0)
@@ -340,10 +342,13 @@ function GroupViewList ({
     )
   }
 
+  // Live menu: only views with an order (hidden views have order = null).
+  const visibleViews = groupViews.filter(view => view.order != null)
+
   return (
     <div className='relative flex flex-col z-20'>
       <ul className='m-0 p-3 mb-6'>
-        {groupViews.map((view, index) => (
+        {visibleViews.map((view, index) => (
           <GroupViewMenuItem
             key={view.id || index}
             view={view}

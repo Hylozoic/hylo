@@ -65,7 +65,6 @@ export default function groupQueryFragment () {
     typeDescriptorPlural
     visibility
     websiteUrl
-    welcomePage
     paywall
     canAccess
     groupRoles {

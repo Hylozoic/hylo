@@ -31,6 +31,16 @@ function mergeViewFromSource (localView, sourceView) {
   return merged
 }
 
+/** Sort views with ordered items first (by order), then hidden (order = null) at the end. */
+export function sortViewsByMenuOrder (views) {
+  return [...(views || [])].sort((a, b) => {
+    if (a.order == null && b.order == null) return 0
+    if (a.order == null) return 1
+    if (b.order == null) return -1
+    return a.order - b.order
+  })
+}
+
 /** Merge Redux view rows into a local ordered list (full replace when IDs change). */
 export function mergeOrderedViewsFromSource (localViews, sourceViews) {
   const source = sourceViews || []
@@ -38,7 +48,7 @@ export function mergeOrderedViewsFromSource (localViews, sourceViews) {
   const localIds = (localViews || []).map(v => String(v.id)).join(',')
 
   if (sourceIds !== localIds) {
-    return [...source].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+    return sortViewsByMenuOrder(source)
   }
 
   const byId = new Map(source.map(v => [String(v.id), v]))
@@ -89,9 +99,74 @@ export function appendGroupViewToMenu (group, newView) {
   if (!group || !newView?.id) return
   const items = group.groupViews?.items || []
   if (items.some(view => String(view.id) === String(newView.id))) return
-  const maxOrder = items.reduce((max, view) => Math.max(max, view.order ?? 0), -1)
+  const maxOrder = items.reduce((max, view) => {
+    if (view.order == null) return max
+    return Math.max(max, view.order)
+  }, -1)
   const viewWithOrder = { ...newView, order: newView.order ?? maxOrder + 1 }
   group.update({ groupViews: { items: structuredClone([...items, viewWithOrder]) } })
+}
+
+/**
+ * Optimistically hide (order = null) or show (append) a view in the embedded menu.
+ * When hiding, compact remaining ordered views to contiguous 0..n.
+ */
+export function setGroupViewHiddenInMenu (group, viewId, hidden) {
+  if (!group || !viewId) return
+
+  const applyToItems = (items) => {
+    const list = items || []
+    const target = list.find(view => String(view.id) === String(viewId))
+    if (!target) return null
+
+    if (hidden) {
+      if (target.order === 0 || target.order == null) return null
+      const remaining = list
+        .filter(view => String(view.id) !== String(viewId) && view.order != null)
+        .sort((a, b) => a.order - b.order)
+        .map((view, index) => ({ ...view, order: index }))
+      const hiddenView = { ...target, order: null }
+      const otherHidden = list.filter(view =>
+        String(view.id) !== String(viewId) && view.order == null
+      )
+      return [...remaining, ...otherHidden, hiddenView]
+    }
+
+    if (target.order != null) return null
+    const maxOrder = list.reduce((max, view) => {
+      if (view.order == null) return max
+      return Math.max(max, view.order)
+    }, -1)
+    return list.map(view =>
+      String(view.id) === String(viewId) ? { ...view, order: maxOrder + 1 } : view
+    )
+  }
+
+  const items = group.groupViews?.items || []
+  const topLevel = applyToItems(items)
+  if (topLevel) {
+    group.update({ groupViews: { items: structuredClone(topLevel) } })
+    return
+  }
+
+  // Nested space menus
+  let changed = false
+  const newItems = items.map(view => {
+    if (view.type !== 'space' || !view.linkedGroup?.groupViews?.items) return view
+    const nested = applyToItems(view.linkedGroup.groupViews.items)
+    if (!nested) return view
+    changed = true
+    return {
+      ...view,
+      linkedGroup: {
+        ...view.linkedGroup,
+        groupViews: { items: structuredClone(nested) }
+      }
+    }
+  })
+  if (changed) {
+    group.update({ groupViews: { items: structuredClone(newItems) } })
+  }
 }
 
 /** Remove a view from a group's embedded menu list. */

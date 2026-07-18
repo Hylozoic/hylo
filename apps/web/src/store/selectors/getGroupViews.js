@@ -16,7 +16,18 @@ function findGroupViewById (group, viewId) {
   return null
 }
 
-/** Returns the ordered GroupView items for a given group object, or [] if not yet loaded. */
+/** Sort views with ordered items first, then hidden (order = null) at the end. */
+function sortViewsByMenuOrder (views) {
+  return [...(views || [])].sort((a, b) => {
+    if (a.order == null && b.order == null) return 0
+    if (a.order == null) return 1
+    if (b.order == null) return -1
+    return a.order - b.order
+  })
+}
+
+/** Returns the ordered GroupView items for a given group object, or [] if not yet loaded.
+ * Includes hidden views (order = null) at the end — filter for the live menu separately. */
 export const getGroupViews = ormCreateSelector(
   orm,
   (state, group) => group?.id,
@@ -24,8 +35,7 @@ export const getGroupViews = ormCreateSelector(
     if (!groupId) return []
     const group = session.Group.withId(groupId)
     if (!group) return []
-    const items = group.groupViews?.items || []
-    return [...items].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+    return sortViewsByMenuOrder(group.groupViews?.items || [])
   }
 )
 

@@ -49,6 +49,7 @@ import {
   REMOVE_WIDGET_FROM_MENU_PENDING,
   REORDER_GROUP_VIEW_PENDING,
   SWAP_PROPOSAL_VOTE_PENDING,
+  SET_GROUP_VIEW_HIDDEN_PENDING,
   SET_HOME_VIEW_PENDING,
   SET_HOME_WIDGET_PENDING,
   TOGGLE_GROUP_TOPIC_SUBSCRIBE_PENDING,
@@ -115,7 +116,7 @@ import extractModelsFromAction from '../ModelExtractor/extractModelsFromAction'
 import { isPromise } from 'util/index'
 import { homeRoutePathForWidget } from '@hylo/navigation'
 import { reorderTree, replaceHomeWidget } from 'util/contextWidgets'
-import { applyGroupViewsOrder, appendGroupViewToMenu, removeGroupViewFromMenu, updateGroupViewInMenu } from 'store/util/groupViewsOrder'
+import { applyGroupViewsOrder, appendGroupViewToMenu, removeGroupViewFromMenu, setGroupViewHiddenInMenu, updateGroupViewInMenu } from 'store/util/groupViewsOrder'
 
 export default function ormReducer (state = orm.getEmptyState(), action) {
   const session = orm.session(state)
@@ -935,6 +936,13 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       break
     }
 
+    case SET_GROUP_VIEW_HIDDEN_PENDING: {
+      if (!meta.id || !meta.groupId || typeof meta.hidden !== 'boolean') break
+      group = Group.withId(meta.groupId)
+      setGroupViewHiddenInMenu(group, meta.id, meta.hidden)
+      break
+    }
+
     case SET_HOME_VIEW_PENDING: {
       if (!meta.parentGroupId || !meta.targetGroupId || !meta.reorderedItems) break
       group = Group.withId(meta.parentGroupId)
@@ -977,7 +985,13 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
 
     case UPDATE_GROUP_SETTINGS_PENDING: {
       group = Group.withId(meta.id)
-      group.update(meta.changes)
+      const { settings: settingsChanges, ...otherChanges } = meta.changes || {}
+      group.update({
+        ...otherChanges,
+        ...(settingsChanges
+          ? { settings: { ...group.settings, ...settingsChanges } }
+          : {})
+      })
       me = Me.first()
       // Clear out prerequisiteGroups so they can be reset when the UPDATE completes
       group.update({ prerequisiteGroups: [] })

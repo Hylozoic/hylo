@@ -993,8 +993,6 @@ type Group {
   typeDescriptorPlural: String
   # The primary website for the group
   websiteUrl: String
-  # The content for the group welcome page
-  welcomePage: String
   # Either 0 = Hidden (only visible to members), 1 = Protected (visible to members of related groups), 2 = Public (anyone can find/see this group)
   visibility: Int
 
@@ -3416,6 +3414,8 @@ type Mutation {
   deleteGroupView(id: ID!): GenericResult
   # Reorder a View within its Group's or Space's menu
   reorderGroupView(id: ID!, orderInFrontOfViewId: ID, addToEnd: Boolean): GenericResult
+  # Hide (order = null) or show a View in the menu. Hidden views keep their content.
+  setGroupViewHidden(id: ID!, hidden: Boolean!): GroupView
   # Set a View as the home view for its Group or Space
   setHomeView(viewId: ID!, groupId: ID!): GenericResult
   # Create a new Space (a child Group) within a parent Group
@@ -4291,8 +4291,6 @@ input GroupInput {
   typeDescriptorPlural: String
   # The primary website for the group
   websiteUrl: String
-  # The content for the group welcome page
-  welcomePage: String
   # Either 0 = Hidden (only visible to members), 1 = Protected (visible to members of related groups), 2 = Public (anyone can find/see this group)
   visibility: Int
 }

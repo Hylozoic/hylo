@@ -45,6 +45,7 @@ export {
   updateGroupViewUser,
   deleteGroupView,
   reorderGroupView,
+  setGroupViewHidden,
   setHomeView,
   markViewAsRead,
   updateViewSettings,

@@ -690,8 +690,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'stripe_details_submitted',
         'type',
         'visibility',
-        'website_url',
-        'welcome_page'
+        'website_url'
       ],
       relations: [
         { activeMembers: { querySet: true } },

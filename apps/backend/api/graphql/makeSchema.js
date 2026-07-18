@@ -139,6 +139,7 @@ import {
   sendPasswordReset,
   setProposalOptions,
   setHomeWidget,
+  setGroupViewHidden,
   setHomeView,
   subscribe,
   swapProposalVote,
@@ -237,7 +238,6 @@ export default async function makeSchema ({ req }) {
         return tagFollow ? tagFollow.get('new_post_count') : 0
       }
     }
-
   }
 
   let allResolvers
@@ -583,6 +583,8 @@ export function makeMutations ({ fetchOne }) {
     deleteGroupView: (root, { id }, context) => deleteGroupView(context.currentUserId, id, context),
 
     reorderGroupView: (root, { id, orderInFrontOfViewId, addToEnd }, context) => reorderGroupView(context.currentUserId, id, orderInFrontOfViewId, addToEnd, context),
+
+    setGroupViewHidden: (root, { id, hidden }, context) => setGroupViewHidden(context.currentUserId, id, hidden, context),
 
     setHomeView: (root, { viewId, groupId }, context) => setHomeView(context.currentUserId, viewId, groupId, context),
 

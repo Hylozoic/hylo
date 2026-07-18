@@ -16,7 +16,6 @@ import PrivacySettingsTab from './PrivacySettingsTab'
 import RelatedGroupsTab from './RelatedGroupsTab'
 import ResponsibilitiesTab from './ResponsibilitiesTab'
 import ExportDataTab from './ExportDataTab'
-import WelcomePageTab from './WelcomePageTab'
 import PaidContentTab from './PaidContentTab'
 import Loading from 'components/Loading'
 import { fetchLocation } from 'components/LocationInput/LocationInput.store'
@@ -104,12 +103,6 @@ export default function GroupSettings () {
     component: <AgreementsTab group={group} />
   }
 
-  const welcomePageSettings = {
-    name: t('Welcome Page'),
-    path: 'welcome',
-    component: <WelcomePageTab group={group} updateGroupSettings={updateGroupSettingsAction} />
-  }
-
   const responsibilitiesSettings = {
     name: t('Responsibilities'),
     path: 'responsibilities',
@@ -190,7 +183,6 @@ export default function GroupSettings () {
       content={compact([
         canAdminister ? overallSettings : null,
         canAdminister ? agreementSettings : null,
-        canAdminister ? welcomePageSettings : null,
         canAdminister ? responsibilitiesSettings : null,
         canAdminister ? rolesSettings : null,
         canAdminister ? accessSettings : null,

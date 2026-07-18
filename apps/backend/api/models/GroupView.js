@@ -65,9 +65,10 @@ module.exports = bookshelf.Model.extend({
   // View types that are not real routes / don't get their own GroupView page
   NON_NAVIGABLE_TYPES: ['link', 'text', 'separator', 'space'],
 
+  // Ordered menu views only — excludes hidden views (order = null).
   findForGroup: function (groupId, options = {}) {
     return this.where({ group_id: groupId })
-      .query(q => q.orderBy('order', 'asc'))
+      .query(q => q.whereNotNull('order').orderBy('order', 'asc'))
       .fetchAll(options)
   },
 

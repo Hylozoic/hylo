@@ -47,7 +47,6 @@ const queryFragment = `group(slug: $slug, updateLastViewed: $updateLastViewed) {
     typeDescriptorPlural
     visibility
     websiteUrl
-    welcomePage
     paywall
     canAccess
     fundingRound {

@@ -271,6 +271,8 @@ export function updateGroupSettings (id, changes) {
             defaultDigestFrequency
             locationDisplayPrecision
             showSuggestedSkills
+            showWelcomePage
+            showPostNoticesInChat
           }
           agreements {
             items {

@@ -42,7 +42,6 @@ export default function GroupSettingsMenu ({ group, groupSlug }) {
   const settingsMenuItems = useMemo(() => [
     canAdminister && { title: 'Group Details', url: 'settings' },
     canAdminister && { title: 'Agreements', url: 'settings/agreements' },
-    canAdminister && { title: 'Welcome Page', url: 'settings/welcome' },
     canAdminister && { title: 'Responsibilities', url: 'settings/responsibilities' },
     canAdminister && { title: 'Roles & Badges', url: 'settings/roles' },
     canAdminister && { title: 'Privacy & Access', url: 'settings/privacy' },

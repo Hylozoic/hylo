@@ -33,7 +33,6 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
   typeDescriptorPlural
   visibility
   websiteUrl
-  welcomePage
   paywall
   canAccess
   agreements {
