@@ -159,8 +159,13 @@ module.exports = bookshelf.Model.extend(Object.assign({
       .where({ following: true, 'posts_users.active': true, 'users.active': true })
   },
 
+  /** Funding rounds whose space hosts this post (via groups_posts). */
   fundingRounds: function () {
-    return this.belongsToMany(FundingRound, 'funding_rounds_posts', 'post_id', 'funding_round_id')
+    return FundingRound.query(q => {
+      q.join('groups_posts', 'groups_posts.group_id', 'funding_rounds.group_id')
+      q.where('groups_posts.post_id', this.id)
+      q.whereNull('funding_rounds.deactivated_at')
+    })
   },
 
   groups: function () {

@@ -17,10 +17,12 @@ import { queryParamWhitelist } from 'store/reducers/queryResults'
 import { groupUrl } from '@hylo/navigation'
 import { FETCH_MEMBERS, fetchMembers, getMembers, getHasMoreMembers, removeMember } from './Members.store'
 import { fetchTrack } from 'store/actions/trackActions'
+import { fetchFundingRound } from 'routes/FundingRounds/FundingRounds.store'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import getRolesForGroup from 'store/selectors/getRolesForGroup'
 import getTrack from 'store/selectors/getTrack'
+import getFundingRound from 'store/selectors/getFundingRound'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
@@ -53,10 +55,13 @@ function Members (props) {
     myResponsibilityTitles.includes(RESP_ADMINISTRATION) || myResponsibilityTitles.includes(RESP_ADD_MEMBERS),
   [myResponsibilityTitles])
 
+  // Spaces inherit roles from the parent group
+  const roleGroupId = group?.parentId || group?.id
+
   // Track spaces: members with Manage Spaces, or the Moderator/Host system role, can see who completed the track.
   const trackId = group?.track?.id
-  const canManageSpaces = useSelector(state => hasResponsibilityForGroup(state, { groupId: group?.id, responsibility: RESP_MANAGE_SPACES }))
-  const myRoleNames = useSelector(state => getRolesForGroup(state, { groupId: group?.id }).map(role => role.name))
+  const canManageSpaces = useSelector(state => hasResponsibilityForGroup(state, { groupId: roleGroupId, responsibility: RESP_MANAGE_SPACES }))
+  const myRoleNames = useSelector(state => getRolesForGroup(state, { groupId: roleGroupId }).map(role => role.name))
   const canSeeTrackCompletion = Boolean(trackId) && (canManageSpaces || myRoleNames.some(name => TRACK_COMPLETION_VISIBLE_ROLES.includes(name)))
   const currentTrack = useSelector(state => trackId ? getTrack(state, trackId) : null)
   const completedAtByUserId = useMemo(() => {
@@ -64,9 +69,20 @@ function Members (props) {
     return Object.fromEntries((currentTrack?.enrolledUsers || []).map(user => [user.id, user.completedAt]))
   }, [canSeeTrackCompletion, currentTrack?.enrolledUsers])
 
+  // Funding round spaces: show who can submit / vote from round role settings
+  const fundingRoundId = group?.fundingRound?.id
+  const fundingRound = useSelector(state => fundingRoundId ? getFundingRound(state, fundingRoundId) : null)
+  const showFundingRoundRoles = Boolean(fundingRoundId)
+  const submitterRoles = fundingRound?.submitterRoles || []
+  const voterRoles = fundingRound?.voterRoles || []
+
   useEffect(() => {
     if (trackId) dispatch(fetchTrack(trackId))
   }, [dispatch, trackId])
+
+  useEffect(() => {
+    if (fundingRoundId) dispatch(fetchFundingRound(fundingRoundId))
+  }, [dispatch, fundingRoundId])
 
   const [showAnswers, setShowAnswers] = useState(false)
 
@@ -178,6 +194,9 @@ function Members (props) {
               showAnswers={showAnswers}
               showTrackCompletion={canSeeTrackCompletion}
               trackCompletedAt={completedAtByUserId[member.id]}
+              showFundingRoundRoles={showFundingRoundRoles}
+              submitterRoles={submitterRoles}
+              voterRoles={voterRoles}
             />
           ))}
         </div>

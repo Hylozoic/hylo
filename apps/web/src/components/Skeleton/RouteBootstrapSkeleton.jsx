@@ -5,7 +5,6 @@ import PostDetailSkeleton from 'routes/PostDetail/PostDetailSkeleton'
 import {
   AllViewBootstrapSkeleton,
   EventsBootstrapSkeleton,
-  FundingRoundsBootstrapSkeleton,
   GroupAboutBootstrapSkeleton,
   GroupSettingsBootstrapSkeleton,
   GroupSubgroupsBootstrapSkeleton,
@@ -76,16 +75,6 @@ const EVENTS_BOOTSTRAP_PATTERNS = [
   '/public/events'
 ]
 
-const FUNDING_ROUND_DETAIL_BOOTSTRAP_PATTERNS = [
-  '/groups/:groupSlug/funding-rounds/:fundingRoundId/*',
-  '/groups/:groupSlug/funding-rounds/:fundingRoundId'
-]
-
-const FUNDING_ROUNDS_LIST_BOOTSTRAP_PATTERNS = [
-  '/groups/:groupSlug/funding-rounds/*',
-  '/groups/:groupSlug/funding-rounds'
-]
-
 const MODERATION_BOOTSTRAP_PATTERNS = [
   '/groups/:groupSlug/moderation/*',
   '/groups/:groupSlug/moderation'
@@ -136,14 +125,6 @@ function isGroupWelcomeBootstrapPath (pathname) {
 
 function isEventsBootstrapPath (pathname) {
   return matchesAnyPattern(EVENTS_BOOTSTRAP_PATTERNS, pathname)
-}
-
-function isFundingRoundDetailBootstrapPath (pathname) {
-  return matchesAnyPattern(FUNDING_ROUND_DETAIL_BOOTSTRAP_PATTERNS, pathname)
-}
-
-function isFundingRoundsListBootstrapPath (pathname) {
-  return matchesAnyPattern(FUNDING_ROUNDS_LIST_BOOTSTRAP_PATTERNS, pathname)
 }
 
 function isModerationBootstrapPath (pathname) {
@@ -197,14 +178,6 @@ export default function RouteBootstrapSkeleton ({ pathname: pathnameProp }) {
 
   if (isEventsBootstrapPath(pathname)) {
     return <EventsBootstrapSkeleton />
-  }
-
-  if (isFundingRoundDetailBootstrapPath(pathname)) {
-    return <FundingRoundsBootstrapSkeleton />
-  }
-
-  if (isFundingRoundsListBootstrapPath(pathname)) {
-    return <FundingRoundsBootstrapSkeleton />
   }
 
   if (isModerationBootstrapPath(pathname)) {

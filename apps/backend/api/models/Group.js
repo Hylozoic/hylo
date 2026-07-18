@@ -50,6 +50,19 @@ module.exports = bookshelf.Model.extend(merge({
     return response
   },
 
+  // Knex binds JS arrays as Postgres arrays ({chat}), which is invalid for jsonb.
+  // Stringify jsonb array columns before save (same pattern as FundingRound).
+  format (attrs) {
+    const formatted = Object.assign({}, attrs)
+    if (Array.isArray(formatted.accepted_post_types)) {
+      formatted.accepted_post_types = JSON.stringify(formatted.accepted_post_types)
+    }
+    if (Array.isArray(formatted.required_roles)) {
+      formatted.required_roles = JSON.stringify(formatted.required_roles)
+    }
+    return formatted
+  },
+
   /**
    * Builds a Stripe Dashboard URL for this group's connected account
    */
@@ -1390,10 +1403,11 @@ module.exports = bookshelf.Model.extend(merge({
 
   /**
    * Seeds the default `group_views` rows for a newly created space (spec section 3.4 / 10):
-   * `all` (order 0, home), `chat` (order 1), `members` (order 2), then one view per
-   * accepted post type. Idempotent — does nothing if the space already has views.
-   * Pass `viewTypes` (an ordered array of GroupView types) to seed an explicit list instead
+   * When `viewTypes` is omitted: `all` (order 0, home), `chat`, `members`, then one view per
+   * accepted post type. When `viewTypes` is provided, seeds that ordered list instead
    * (used when the creator has customized the Included Views in the space creation dialog).
+   * Always sets `groups.home_route` from the order-0 view. Idempotent — does nothing if the
+   * space already has views.
    */
   async setupSpaceViews (spaceId, acceptedPostTypes = [], viewTypes, { transacting } = {}) {
     const existing = await GroupView.where({ group_id: spaceId }).fetchAll({ transacting })
@@ -1429,6 +1443,14 @@ module.exports = bookshelf.Model.extend(merge({
         created_at: now,
         updated_at: now
       }).save(null, { transacting })
+    }
+
+    // Persist home_route from the order-0 view so redirects work without loading all views
+    if (rows.length > 0) {
+      const homeRoute = GroupView.computeHomeRoutePath({ type: rows[0].type })
+      const update = bookshelf.knex('groups').where({ id: spaceId }).update({ home_route: homeRoute })
+      if (transacting) update.transacting(transacting)
+      await update
     }
   },
 
@@ -1748,7 +1770,7 @@ module.exports = bookshelf.Model.extend(merge({
             first_name: firstName,
             group_name: group.get('name'),
             add_purpose_url: Frontend.Route.groupSettings(group),
-            edit_welcome_page_url: Frontend.Route.groupSettings(group) + '/welcome',
+            edit_welcome_page_url: Frontend.Route.group(group) + '?edit=true',
             stewardship_support_url: 'https://hylozoic.gitbook.io/hylo/about/community-stewardship-support-program-csaas',
             community_call_url: 'https://www.hylo.com/participate/'
           },

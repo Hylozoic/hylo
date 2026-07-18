@@ -15,32 +15,39 @@ import LocationInput from 'components/LocationInput/LocationInput'
 import PostTypePills from 'components/PostTypePills/PostTypePills'
 import TagInput from 'components/TagInput'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
+import { updateFundingRound } from 'routes/FundingRounds/FundingRounds.store'
 import { updateSpace, updateGroupView } from 'store/actions/groupViews'
 import { updateTrack } from 'store/actions/trackActions'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
-import { cn, bgImageStyle } from 'util/index'
+import { cn } from 'util/index'
 
-import { SPACE_ICON_SUGGESTIONS, ACCESS_OPTIONS, accessValueForSpace } from './spaceFormConstants'
+import FundingRoundSettingsFields from './FundingRoundSettingsFields'
+import { SPACE_ICON_SUGGESTIONS, ACCESS_OPTIONS, accessValueForSpace, toIsoOrNull } from './spaceFormConstants'
+
+function toDateOrNull (value) {
+  if (!value) return null
+  return value instanceof Date ? value : new Date(value)
+}
 
 /** Modal for editing an existing space's settings — same fields as AddSpaceDialog's creation form,
- * plus a Track settings section (appended below) when the space is backed by a Track.
+ * plus Track / Funding Round settings when the space is backed by either.
  * Accepts `space` directly (e.g. More Spaces) and optional parent-menu `view` when the space is on the menu. */
 export default function SpaceSettingsModal ({ space: spaceProp, view, group, onClose }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const space = spaceProp || view?.linkedGroup
   const track = space?.track
+  const fundingRound = space?.fundingRound
   const modalTitle = track
     ? t('Track Space Settings')
-    : space?.fundingRound
+    : fundingRound
       ? t('Funding Round Space Settings')
       : t('Space Settings')
 
   const [name, setName] = useState(view?.name || space?.name || '')
   const [icon, setIcon] = useState(space?.icon || SPACE_ICON_SUGGESTIONS[0])
   const [bannerUrl, setBannerUrl] = useState(space?.bannerUrl || '')
-  const [avatarUrl, setAvatarUrl] = useState(space?.avatarUrl || '')
   const [purpose, setPurpose] = useState(space?.purpose || '')
   const [description, setDescription] = useState(space?.description || '')
   const [locationObject, setLocationObject] = useState(space?.locationObject || null)
@@ -66,6 +73,23 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, group, onC
   const [accessControlled, setAccessControlled] = useState(track?.accessControlled || false)
   const [showAccessControlInfo, setShowAccessControlInfo] = useState(false)
   const completionMessageEditorRef = useRef(null)
+
+  // Funding Round settings
+  const [frPublishedAt, setFrPublishedAt] = useState(fundingRound?.publishedAt || null)
+  const [frSubmissionsOpenAt, setFrSubmissionsOpenAt] = useState(toDateOrNull(fundingRound?.submissionsOpenAt))
+  const [frSubmissionsCloseAt, setFrSubmissionsCloseAt] = useState(toDateOrNull(fundingRound?.submissionsCloseAt))
+  const [frVotingOpensAt, setFrVotingOpensAt] = useState(toDateOrNull(fundingRound?.votingOpensAt))
+  const [frVotingClosesAt, setFrVotingClosesAt] = useState(toDateOrNull(fundingRound?.votingClosesAt))
+  const [frVotingMethod, setFrVotingMethod] = useState(fundingRound?.votingMethod || 'token_allocation_constant')
+  const [frTotalTokens, setFrTotalTokens] = useState(fundingRound?.totalTokens ?? '')
+  const [frTokenType, setFrTokenType] = useState(fundingRound?.tokenType || 'Votes')
+  const [frAllowSelfVoting, setFrAllowSelfVoting] = useState(!!fundingRound?.allowSelfVoting)
+  const [frHideFinalResults, setFrHideFinalResults] = useState(!!fundingRound?.hideFinalResultsFromParticipants)
+  const [frSubmissionDescriptor, setFrSubmissionDescriptor] = useState(fundingRound?.submissionDescriptor || 'Submission')
+  const [frSubmissionDescriptorPlural, setFrSubmissionDescriptorPlural] = useState(fundingRound?.submissionDescriptorPlural || 'Submissions')
+  const [frSubmitterRoles, setFrSubmitterRoles] = useState(fundingRound?.submitterRoles || [])
+  const [frVoterRoles, setFrVoterRoles] = useState(fundingRound?.voterRoles || [])
+  const frCriteriaEditorRef = useRef(null)
 
   // Spaces created before roles were set up on them (e.g. migrated Track spaces) may have no
   // group_roles rows yet — fall back to the parent group's roles rather than showing an empty list.
@@ -113,7 +137,6 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, group, onC
         description: description || null,
         icon,
         bannerUrl: bannerUrl || null,
-        avatarUrl: avatarUrl || null,
         purpose: purpose.trim() || null,
         location: locationObject?.fullText || null,
         locationId: locationObject?.id || null,
@@ -141,9 +164,30 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, group, onC
         }))
       }
 
-      if (view?.id) {
-        await dispatch(fetchGroupViews(group.id))
-      } else {
+      if (fundingRound?.id) {
+        await dispatch(updateFundingRound({
+          id: fundingRound.id,
+          publishedAt: toIsoOrNull(frPublishedAt),
+          submissionsOpenAt: toIsoOrNull(frSubmissionsOpenAt),
+          submissionsCloseAt: toIsoOrNull(frSubmissionsCloseAt),
+          votingOpensAt: toIsoOrNull(frVotingOpensAt),
+          votingClosesAt: toIsoOrNull(frVotingClosesAt),
+          votingMethod: frVotingMethod,
+          totalTokens: frTotalTokens === '' ? null : Number(frTotalTokens),
+          tokenType: frTokenType,
+          allowSelfVoting: frAllowSelfVoting,
+          hideFinalResultsFromParticipants: frHideFinalResults,
+          submissionDescriptor: frSubmissionDescriptor,
+          submissionDescriptorPlural: frSubmissionDescriptorPlural,
+          submitterRoles: frSubmitterRoles,
+          voterRoles: frVoterRoles,
+          criteria: frCriteriaEditorRef.current?.getHTML?.() ?? fundingRound.criteria
+        }))
+      }
+
+      // Always refresh parent menu views so nested space labels (e.g. unit terms) stay in sync
+      await dispatch(fetchGroupViews(group.id))
+      if (!view?.id) {
         await dispatch(fetchGroupSpaces(group.id))
       }
       onClose()
@@ -152,7 +196,7 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, group, onC
     } finally {
       setIsSaving(false)
     }
-  }, [dispatch, space?.id, group?.id, view?.id, view?.name, name, description, icon, bannerUrl, avatarUrl, purpose, locationObject, postTypes, access, requiredRoles, track?.id, actionDescriptor, actionDescriptorPlural, completionRole, publishedAt, accessControlled, onClose])
+  }, [dispatch, space?.id, group?.id, view?.id, view?.name, name, description, icon, bannerUrl, purpose, locationObject, postTypes, access, requiredRoles, track?.id, actionDescriptor, actionDescriptorPlural, completionRole, publishedAt, accessControlled, fundingRound?.id, frPublishedAt, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frHideFinalResults, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles, onClose])
 
   if (!space) return null
 
@@ -178,33 +222,6 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, group, onC
             </div>
           </UploadAttachmentButton>
 
-          <UploadAttachmentButton
-            type='groupAvatar'
-            onInitialUpload={({ url }) => setAvatarUrl(url)}
-            className='relative -top-10 self-center bg-midground -mb-6 group'
-          >
-            <div
-              style={bgImageStyle(avatarUrl)}
-              className={cn('relative w-20 h-20 rounded-lg border-dashed border-2 border-foreground/50 shadow-md flex items-center justify-center bg-cover bg-center bg-darkening/0 hover:bg-darkening/20 scale-1 hover:scale-105 transition-all cursor-pointer', { 'border-none': !!avatarUrl })}
-            >
-              {!avatarUrl && (
-                <div className='flex flex-col items-center justify-center gap-1'>
-                  <ImagePlus className='inline-block' />
-                  <span className='text-xs opacity-40 group-hover:opacity-100 transition-all'>{t('Add icon')}</span>
-                </div>
-              )}
-            </div>
-          </UploadAttachmentButton>
-
-          <div className='flex flex-col gap-1'>
-            <label className='text-sm text-foreground/70'>{t('Name')}</label>
-            <Input
-              value={name}
-              onChange={e => setName(e.target.value)}
-              placeholder={t('Space name')}
-            />
-          </div>
-
           <div className='flex flex-col gap-1'>
             <label className='text-sm text-foreground/70'>{t('Icon')}</label>
             <div className='flex flex-wrap items-center gap-2'>
@@ -226,6 +243,15 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, group, onC
               ))}
               <LucideIconPicker value={icon} onChange={setIcon} className='w-auto px-2 shrink-0' />
             </div>
+          </div>
+
+          <div className='flex flex-col gap-1'>
+            <label className='text-sm text-foreground/70'>{t('Name')}</label>
+            <Input
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder={t('Space name')}
+            />
           </div>
 
           <div className='flex flex-col gap-1'>
@@ -420,6 +446,44 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, group, onC
                 )}
               </div>
             </div>
+          )}
+
+          {fundingRound?.id && (
+            <FundingRoundSettingsFields
+              publishedAt={frPublishedAt}
+              setPublishedAt={setFrPublishedAt}
+              submissionDescriptor={frSubmissionDescriptor}
+              setSubmissionDescriptor={setFrSubmissionDescriptor}
+              submissionDescriptorPlural={frSubmissionDescriptorPlural}
+              setSubmissionDescriptorPlural={setFrSubmissionDescriptorPlural}
+              submissionsOpenAt={frSubmissionsOpenAt}
+              setSubmissionsOpenAt={setFrSubmissionsOpenAt}
+              submissionsCloseAt={frSubmissionsCloseAt}
+              setSubmissionsCloseAt={setFrSubmissionsCloseAt}
+              votingOpensAt={frVotingOpensAt}
+              setVotingOpensAt={setFrVotingOpensAt}
+              votingClosesAt={frVotingClosesAt}
+              setVotingClosesAt={setFrVotingClosesAt}
+              votingMethod={frVotingMethod}
+              setVotingMethod={setFrVotingMethod}
+              totalTokens={frTotalTokens}
+              setTotalTokens={setFrTotalTokens}
+              tokenType={frTokenType}
+              setTokenType={setFrTokenType}
+              allowSelfVoting={frAllowSelfVoting}
+              setAllowSelfVoting={setFrAllowSelfVoting}
+              hideFinalResults={frHideFinalResults}
+              setHideFinalResults={setFrHideFinalResults}
+              submitterRoles={frSubmitterRoles}
+              setSubmitterRoles={setFrSubmitterRoles}
+              voterRoles={frVoterRoles}
+              setVoterRoles={setFrVoterRoles}
+              roles={roles}
+              criteriaEditorRef={frCriteriaEditorRef}
+              groupIds={[space.id]}
+              editorKey={fundingRound.id}
+              initialCriteria={fundingRound.criteria}
+            />
           )}
         </div>
 

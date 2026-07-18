@@ -6,7 +6,6 @@ import getPreviousLocation from 'store/selectors/getPreviousLocation'
 import UnsavedDraftLeaveDialog from 'components/UnsavedDraftLeaveDialog/UnsavedDraftLeaveDialog'
 import CreateModalChooser from './CreateModalChooser'
 import CreateGroup from 'components/CreateGroup'
-import FundingRoundEditor from 'components/FundingRoundEditor'
 import Icon from 'components/Icon'
 import PostEditor from 'components/PostEditor'
 import { removeCreateEditModalFromUrl, stripComposeModalQueryParams } from '@hylo/navigation'
@@ -88,31 +87,26 @@ const CreateModal = (props) => {
                 ref={postEditorRef}
               />
               )
-            : props.editingFundingRound
-              ? (
-                <FundingRoundEditor {...props} editingRound />
-                )
-              : (
-                <Routes>
-                  <Route
-                    path='post'
-                    element={(
-                      <PostEditor
-                        {...props}
-                        selectedLocation={mapLocation}
-                        afterSave={closeModal}
-                        onCancel={confirmClose}
-                        setIsDirty={setIsDirty}
-                        draftId={`${modalDraftId}:create`}
-                        ref={postEditorRef}
-                      />
-                    )}
-                  />
-                  <Route path='group' element={<CreateGroup {...props} />} />
-                  <Route path='funding-round' element={<FundingRoundEditor {...props} />} />
-                  <Route path='*' element={<CreateModalChooser {...props} />} />
-                </Routes>
-                )}
+            : (
+              <Routes>
+                <Route
+                  path='post'
+                  element={(
+                    <PostEditor
+                      {...props}
+                      selectedLocation={mapLocation}
+                      afterSave={closeModal}
+                      onCancel={confirmClose}
+                      setIsDirty={setIsDirty}
+                      draftId={`${modalDraftId}:create`}
+                      ref={postEditorRef}
+                    />
+                  )}
+                />
+                <Route path='group' element={<CreateGroup {...props} />} />
+                <Route path='*' element={<CreateModalChooser {...props} />} />
+              </Routes>
+              )}
         </div>
         <div className={classes.createModalBg} onClick={confirmClose} />
 

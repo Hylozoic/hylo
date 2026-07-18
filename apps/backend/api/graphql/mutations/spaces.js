@@ -99,7 +99,8 @@ export async function createSpace (userId, { parentGroupId, name, slug, accepted
 
   notifyGroupUpdated(context, parentGroup, parentGroupId)
 
-  return space
+  // Refresh so home_route (set by setupSpaceViews) is included in the response
+  return space.refresh()
 }
 
 export async function updateSpace (userId, { id, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, location, locationId, purpose, bannerUrl, avatarUrl }, context) {

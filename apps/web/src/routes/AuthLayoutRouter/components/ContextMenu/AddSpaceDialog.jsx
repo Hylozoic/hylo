@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 import { useNavigate, useLocation } from 'react-router-dom'
@@ -24,7 +24,8 @@ import { createFundingRound } from 'routes/FundingRounds/FundingRounds.store'
 import { POST_TYPE_TO_VIEW_TYPE } from 'store/models/GroupView'
 import { cn } from 'util/index'
 
-import { SPACE_ICON_SUGGESTIONS, ACCESS_OPTIONS } from './spaceFormConstants'
+import FundingRoundSettingsFields from './FundingRoundSettingsFields'
+import { SPACE_ICON_SUGGESTIONS, ACCESS_OPTIONS, toIsoOrNull } from './spaceFormConstants'
 
 const STANDARD_VIEW_TYPES = new Set([
   'all',
@@ -44,28 +45,32 @@ const SPACE_TYPE_OPTIONS = [
   { value: 'funding-round', labelKey: 'Funding Round', icon: BadgeDollarSign }
 ]
 
-/** Defaults for accepted post types / included views based on the selected space type. */
+/** Defaults for accepted post types / included views / icon based on the selected space type. */
 function defaultsForSpaceType (spaceType) {
   switch (spaceType) {
     case 'chat':
       return {
         postTypes: [],
-        standardViewTypes: ['chat']
+        standardViewTypes: ['chat'],
+        icon: 'MessageCircleMore'
       }
     case 'track':
       return {
         postTypes: [],
-        standardViewTypes: ['track-actions', 'chat', 'members', 'welcome']
+        standardViewTypes: ['track-actions', 'chat', 'members', 'welcome'],
+        icon: 'Shapes'
       }
     case 'funding-round':
       return {
         postTypes: [],
-        standardViewTypes: ['funding-round-submissions', 'chat', 'members', 'welcome']
+        standardViewTypes: ['funding-round-submissions', 'chat', 'members', 'welcome'],
+        icon: 'BadgeDollarSign'
       }
     default:
       return {
         postTypes: [...CUSTOM_VIEW_DEFAULT_POST_TYPES],
-        standardViewTypes: null
+        standardViewTypes: null,
+        icon: 'Circle'
       }
   }
 }
@@ -88,7 +93,7 @@ export default function AddSpaceDialog ({ group, onClose }) {
 
   const [spaceType, setSpaceType] = useState('custom')
   const [name, setName] = useState('')
-  const [icon, setIcon] = useState(SPACE_ICON_SUGGESTIONS[0])
+  const [icon, setIcon] = useState(() => defaultsForSpaceType('custom').icon)
   const [bannerUrl, setBannerUrl] = useState('')
   const [purpose, setPurpose] = useState('')
   const [description, setDescription] = useState('')
@@ -103,7 +108,24 @@ export default function AddSpaceDialog ({ group, onClose }) {
   const [roleSearchTerm, setRoleSearchTerm] = useState(null)
   const [isCreating, setIsCreating] = useState(false)
 
-  /** Switches space type and resets post types / included views to that type's defaults. */
+  // Funding Round settings (only used when creating a funding-round space)
+  const [frPublishedAt, setFrPublishedAt] = useState(null)
+  const [frSubmissionsOpenAt, setFrSubmissionsOpenAt] = useState(null)
+  const [frSubmissionsCloseAt, setFrSubmissionsCloseAt] = useState(null)
+  const [frVotingOpensAt, setFrVotingOpensAt] = useState(null)
+  const [frVotingClosesAt, setFrVotingClosesAt] = useState(null)
+  const [frVotingMethod, setFrVotingMethod] = useState('token_allocation_constant')
+  const [frTotalTokens, setFrTotalTokens] = useState(100)
+  const [frTokenType, setFrTokenType] = useState('Votes')
+  const [frAllowSelfVoting, setFrAllowSelfVoting] = useState(false)
+  const [frHideFinalResults, setFrHideFinalResults] = useState(false)
+  const [frSubmissionDescriptor, setFrSubmissionDescriptor] = useState('Submission')
+  const [frSubmissionDescriptorPlural, setFrSubmissionDescriptorPlural] = useState('Submissions')
+  const [frSubmitterRoles, setFrSubmitterRoles] = useState([])
+  const [frVoterRoles, setFrVoterRoles] = useState([])
+  const frCriteriaEditorRef = useRef(null)
+
+  /** Switches space type and resets post types / included views / icon to that type's defaults. */
   const handleSpaceTypeChange = useCallback((value) => {
     setSpaceType(value)
     const defaults = defaultsForSpaceType(value)
@@ -111,6 +133,7 @@ export default function AddSpaceDialog ({ group, onClose }) {
     setRemovedStandardTypes(new Set())
     setPresetStandardViews(defaults.standardViewTypes)
     setManualViews([])
+    setIcon(defaults.icon)
   }, [])
 
   const groupRoles = useMemo(() => group?.groupRoles?.items || [], [group?.groupRoles?.items])
@@ -203,8 +226,21 @@ export default function AddSpaceDialog ({ group, onClose }) {
         await dispatch(createFundingRound({
           groupId: newSpace.id,
           title: name.trim(),
-          votingMethod: 'token_allocation_constant',
-          totalTokens: 100
+          publishedAt: toIsoOrNull(frPublishedAt),
+          submissionsOpenAt: toIsoOrNull(frSubmissionsOpenAt),
+          submissionsCloseAt: toIsoOrNull(frSubmissionsCloseAt),
+          votingOpensAt: toIsoOrNull(frVotingOpensAt),
+          votingClosesAt: toIsoOrNull(frVotingClosesAt),
+          votingMethod: frVotingMethod,
+          totalTokens: frTotalTokens === '' ? null : Number(frTotalTokens),
+          tokenType: frTokenType,
+          allowSelfVoting: frAllowSelfVoting,
+          hideFinalResultsFromParticipants: frHideFinalResults,
+          submissionDescriptor: frSubmissionDescriptor,
+          submissionDescriptorPlural: frSubmissionDescriptorPlural,
+          submitterRoles: frSubmitterRoles,
+          voterRoles: frVoterRoles,
+          criteria: frCriteriaEditorRef.current?.getHTML?.() || null
         }))
       }
 
@@ -250,7 +286,7 @@ export default function AddSpaceDialog ({ group, onClose }) {
     } finally {
       setIsCreating(false)
     }
-  }, [dispatch, group?.id, name, description, icon, bannerUrl, purpose, locationObject, postTypes, access, requiredRoles, spaceType, orderedRows, onClose, navigate, routerLocation.pathname])
+  }, [dispatch, group?.id, name, description, icon, bannerUrl, purpose, locationObject, postTypes, access, requiredRoles, spaceType, orderedRows, onClose, navigate, routerLocation.pathname, frPublishedAt, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frHideFinalResults, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles])
 
   return (
     <div className='fixed inset-0 z-50 flex items-center justify-center bg-darkening/50'>
@@ -413,6 +449,43 @@ export default function AddSpaceDialog ({ group, onClose }) {
               ))}
             </RadioGroup>
           </div>
+
+          {spaceType === 'funding-round' && (
+            <FundingRoundSettingsFields
+              publishedAt={frPublishedAt}
+              setPublishedAt={setFrPublishedAt}
+              submissionDescriptor={frSubmissionDescriptor}
+              setSubmissionDescriptor={setFrSubmissionDescriptor}
+              submissionDescriptorPlural={frSubmissionDescriptorPlural}
+              setSubmissionDescriptorPlural={setFrSubmissionDescriptorPlural}
+              submissionsOpenAt={frSubmissionsOpenAt}
+              setSubmissionsOpenAt={setFrSubmissionsOpenAt}
+              submissionsCloseAt={frSubmissionsCloseAt}
+              setSubmissionsCloseAt={setFrSubmissionsCloseAt}
+              votingOpensAt={frVotingOpensAt}
+              setVotingOpensAt={setFrVotingOpensAt}
+              votingClosesAt={frVotingClosesAt}
+              setVotingClosesAt={setFrVotingClosesAt}
+              votingMethod={frVotingMethod}
+              setVotingMethod={setFrVotingMethod}
+              totalTokens={frTotalTokens}
+              setTotalTokens={setFrTotalTokens}
+              tokenType={frTokenType}
+              setTokenType={setFrTokenType}
+              allowSelfVoting={frAllowSelfVoting}
+              setAllowSelfVoting={setFrAllowSelfVoting}
+              hideFinalResults={frHideFinalResults}
+              setHideFinalResults={setFrHideFinalResults}
+              submitterRoles={frSubmitterRoles}
+              setSubmitterRoles={setFrSubmitterRoles}
+              voterRoles={frVoterRoles}
+              setVoterRoles={setFrVoterRoles}
+              roles={roles}
+              criteriaEditorRef={frCriteriaEditorRef}
+              groupIds={group?.id ? [group.id] : []}
+              editorKey='create'
+            />
+          )}
         </div>
 
         <div className='flex justify-end gap-2 mt-4 pt-2 border-t border-foreground/10'>

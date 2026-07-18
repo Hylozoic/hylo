@@ -2,8 +2,11 @@ import { GROUP_ACCESSIBILITY, GROUP_VISIBILITY } from 'store/models/Group'
 
 /** Suggested icons covering common space archetypes (chat, circle, team, local group, etc). */
 export const SPACE_ICON_SUGGESTIONS = [
-  'MessageCircleMore',
   'Circle',
+  'MessageCircleMore',
+  'Shapes',
+  'BadgeDollarSign',
+  'Layers',
   'Building2',
   'MapPin',
   'Users',
@@ -58,4 +61,11 @@ export function accessValueForSpace ({ visibility, accessibility, requiredRoles 
   if (requiredRoles && requiredRoles.length > 0) return 'role'
   const match = ACCESS_OPTIONS.find(option => option.visibility === visibility && option.accessibility === accessibility)
   return match?.value || 'invite'
+}
+
+/** Serializes a date for FundingRound GraphQL Date inputs (ISO string). */
+export function toIsoOrNull (value) {
+  if (!value) return null
+  const date = value instanceof Date ? value : new Date(value)
+  return Number.isNaN(date.getTime()) ? null : date.toISOString()
 }

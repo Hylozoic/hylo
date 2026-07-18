@@ -238,23 +238,6 @@ export default async function makeSchema ({ req }) {
       }
     }
 
-    if (resolvers.FundingRound) {
-      resolvers.FundingRound.isParticipating = async (fundingRound) => {
-        if (!fundingRound || !userId) return null
-        const roundUser = await loaders.fundingRoundUser.load({ fundingRoundId: fundingRound.get('id'), userId })
-        return !!roundUser
-      }
-      resolvers.FundingRound.userSettings = async (fundingRound) => {
-        if (!fundingRound || !userId) return null
-        const roundUser = await loaders.fundingRoundUser.load({ fundingRoundId: fundingRound.get('id'), userId })
-        return roundUser ? roundUser.get('settings') : null
-      }
-      resolvers.FundingRound.tokensRemaining = async (fundingRound) => {
-        if (!fundingRound || !userId) return null
-        const roundUser = await loaders.fundingRoundUser.load({ fundingRoundId: fundingRound.get('id'), userId })
-        return roundUser ? roundUser.get('tokens_remaining') : null
-      }
-    }
   }
 
   let allResolvers

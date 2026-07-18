@@ -1,4 +1,4 @@
-import { BadgeDollarSign, Shapes } from 'lucide-react'
+import { BadgeDollarSign, ClipboardList, Shapes } from 'lucide-react'
 import React from 'react'
 import Avatar from 'components/Avatar'
 import Icon from 'components/Icon'
@@ -35,6 +35,10 @@ export default function GroupViewIcon ({ view, className }) {
 
   if (view.iconName === 'BadgeDollarSign') {
     return <BadgeDollarSign className={className || 'h-4 w-4 shrink-0 mr-1'} />
+  }
+
+  if (view.iconName === 'ClipboardList') {
+    return <ClipboardList className={className || 'h-4 w-4 shrink-0 mr-1'} />
   }
 
   if (view.iconName) {

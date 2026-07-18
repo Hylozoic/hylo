@@ -1051,7 +1051,7 @@ module.exports = bookshelf.Model.extend({
     const post = this.post()
     const actor = this.actor()
     const locale = this.locale()
-    const group = await fundingRound.group().fetch()
+    const group = await fundingRound.group().fetch({ withRelated: ['parentGroup'] })
     const path = routeToPath(Frontend.Route.fundingRound(fundingRound, group))
     const alertText = PushNotification.textForFundingRoundNewSubmission(fundingRound, post, actor, locale)
     return this.reader().sendPushNotification(alertText, path)
@@ -1062,7 +1062,7 @@ module.exports = bookshelf.Model.extend({
     const post = this.post()
     const reader = this.reader()
     const locale = this.locale()
-    const group = await fundingRound.group().fetch()
+    const group = await fundingRound.group().fetch({ withRelated: ['parentGroup'] })
 
     const clickthroughParams = '?' + new URLSearchParams({
       ctt: 'funding_round_new_submission_email',
@@ -1089,7 +1089,7 @@ module.exports = bookshelf.Model.extend({
   sendFundingRoundPhaseTransitionPush: async function () {
     const fundingRound = this.fundingRound()
     const locale = this.locale()
-    const group = await fundingRound.group().fetch()
+    const group = await fundingRound.group().fetch({ withRelated: ['parentGroup'] })
     const path = routeToPath(Frontend.Route.fundingRound(fundingRound, group))
     const meta = this.relations.activity.get('meta')
     const phase = meta.phase
@@ -1101,7 +1101,7 @@ module.exports = bookshelf.Model.extend({
     const fundingRound = this.fundingRound()
     const reader = this.reader()
     const locale = this.locale()
-    const group = await fundingRound.group().fetch()
+    const group = await fundingRound.group().fetch({ withRelated: ['parentGroup'] })
     const meta = this.relations.activity.get('meta')
     const phase = meta.phase
 
@@ -1162,7 +1162,7 @@ module.exports = bookshelf.Model.extend({
   sendFundingRoundReminderPush: async function () {
     const fundingRound = this.fundingRound()
     const locale = this.locale()
-    const group = await fundingRound.group().fetch()
+    const group = await fundingRound.group().fetch({ withRelated: ['parentGroup'] })
     const path = routeToPath(Frontend.Route.fundingRound(fundingRound, group))
     const meta = this.relations.activity.get('meta')
     const reminderType = meta.reminderType
@@ -1174,7 +1174,7 @@ module.exports = bookshelf.Model.extend({
     const fundingRound = this.fundingRound()
     const reader = this.reader()
     const locale = this.locale()
-    const group = await fundingRound.group().fetch()
+    const group = await fundingRound.group().fetch({ withRelated: ['parentGroup'] })
     const meta = this.relations.activity.get('meta')
     const reminderType = meta.reminderType
 

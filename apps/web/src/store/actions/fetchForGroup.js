@@ -50,6 +50,9 @@ const queryFragment = `group(slug: $slug, updateLastViewed: $updateLastViewed) {
     welcomePage
     paywall
     canAccess
+    fundingRound {
+      id
+    }
     groupRoles {
       items {
         id

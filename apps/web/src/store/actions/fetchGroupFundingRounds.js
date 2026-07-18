@@ -45,6 +45,16 @@ query (
         votingMethod
         votingOpensAt
         votingClosesAt
+        group {
+          id
+          slug
+          description
+          homeRoute
+          parentGroup {
+            id
+            slug
+          }
+        }
         users {
           items {
             id

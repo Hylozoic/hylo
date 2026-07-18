@@ -213,6 +213,7 @@ Group.fields = {
   suggestedSkills: many('Skill'),
   track: attr(),
   tracks: many('Track'),
+  fundingRound: attr(),
   type: attr(),
   upcomingEvents: many({
     to: 'Post',

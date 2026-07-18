@@ -10,7 +10,7 @@ import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import deletePost from 'store/actions/deletePost'
 import removePost from 'store/actions/removePost'
 import { allocateTokensToSubmission } from 'routes/FundingRounds/FundingRounds.store'
-import { editPostUrl, groupUrl, personUrl, postUrl, fundingRoundUrl } from '@hylo/navigation'
+import { editPostUrl, groupUrl, personUrl, postUrl } from '@hylo/navigation'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -60,22 +60,22 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
 
   const deletePostWithConfirm = useCallback(() => {
     if (window.confirm(t('Are you sure you want to delete this {{submissionDescriptor}}? You cannot undo this.', { submissionDescriptor: round?.submissionDescriptor }))) {
-      dispatch(deletePost(post.id, null, routeParams.fundingRoundId))
+      dispatch(deletePost(post.id))
     }
-  }, [post.id, routeParams.fundingRoundId, t])
+  }, [post.id, t])
 
   const removePostWithConfirm = useCallback(() => {
     if (window.confirm(t('Are you sure you want to remove this {{submissionDescriptor}}? You cannot undo this.', { submissionDescriptor: round?.submissionDescriptor }))) {
-      dispatch(removePost(post.id, null, routeParams.fundingRoundId))
+      dispatch(removePost(post.id))
     }
-  }, [post.id, routeParams.fundingRoundId, t])
+  }, [post.id, t])
 
   const flagPostFunc = useCallback(() => { setFlaggingVisible(true) })
   const moderationActionsGroupUrl = groupUrl(routeParams.groupSlug, 'moderation')
 
   const dropdownItems = useMemo(() => filter([
     { icon: <Pencil />, label: t('Edit'), onClick: ['submissions', 'discussion'].includes(currentPhase) && currentUser?.id === post.creator.id ? () => navigate(editPostUrl(post.id, routeParams, querystringParams)) : undefined },
-    { icon: <LinkIcon />, label: t('Copy Link'), onClick: () => navigator.clipboard.writeText(`${window.location.protocol}//${window.location.host}${fundingRoundUrl(routeParams.fundingRoundId, { groupSlug: routeParams.groupSlug })}/submissions/post/${post.id}`) },
+    { icon: <LinkIcon />, label: t('Copy Link'), onClick: () => navigator.clipboard.writeText(`${window.location.protocol}//${window.location.host}${location.pathname.replace(/\/post\/.*$/, '')}/post/${post.id}`) },
     { icon: <Flag />, label: t('Flag'), onClick: currentUser?.id === post.creator.id ? undefined : flagPostFunc },
     { icon: <Trash />, label: t('Delete'), onClick: currentUser?.id === post.creator.id ? deletePostWithConfirm : undefined, red: true },
     { icon: <Trash />, label: t('Remove from Round'), onClick: canManageRound && currentUser?.id !== post.creator.id ? removePostWithConfirm : undefined, red: true }

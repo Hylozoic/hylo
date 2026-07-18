@@ -67,6 +67,35 @@ export default function fetchGroupViews (groupId) {
                 }
                 fundingRound {
                   id
+                  title
+                  publishedAt
+                  phase
+                  allowSelfVoting
+                  hideFinalResultsFromParticipants
+                  votingMethod
+                  totalTokens
+                  tokenType
+                  maxTokenAllocation
+                  minTokenAllocation
+                  requireBudget
+                  submissionDescriptor
+                  submissionDescriptorPlural
+                  submissionsOpenAt
+                  submissionsCloseAt
+                  votingOpensAt
+                  votingClosesAt
+                  criteria
+                  description
+                  submitterRoles {
+                    id
+                    emoji
+                    name
+                  }
+                  voterRoles {
+                    id
+                    emoji
+                    name
+                  }
                 }
                 groupViews {
                   items {

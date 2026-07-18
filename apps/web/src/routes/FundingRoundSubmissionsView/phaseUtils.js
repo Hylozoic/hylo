@@ -1,9 +1,24 @@
 import { DateTimeHelpers } from '@hylo/shared'
 import { getLocaleFromLocalStorage } from 'util/locale'
 
+/** Safely parses a round date into a DateTime, or null if missing/invalid. */
+function toDateTime (value) {
+  if (!value) return null
+  try {
+    // Numeric millisecond timestamps (optimistic updates / legacy payloads)
+    if (typeof value === 'number' || (typeof value === 'string' && /^\d+$/.test(value))) {
+      const date = new Date(Number(value))
+      if (Number.isNaN(date.getTime())) return null
+      return DateTimeHelpers.toDateTime(date.toISOString(), { locale: getLocaleFromLocalStorage() })
+    }
+    return DateTimeHelpers.toDateTime(value, { locale: getLocaleFromLocalStorage() })
+  } catch (error) {
+    return null
+  }
+}
+
 export function getRoundPhaseMeta (round) {
   const now = new Date()
-  const toDateTime = (value) => value ? DateTimeHelpers.toDateTime(value, { locale: getLocaleFromLocalStorage() }) : null
 
   const submissionsOpenAt = toDateTime(round?.submissionsOpenAt)
   const submissionsCloseAt = toDateTime(round?.submissionsCloseAt)

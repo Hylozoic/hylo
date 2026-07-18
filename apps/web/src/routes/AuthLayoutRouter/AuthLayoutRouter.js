@@ -73,7 +73,6 @@ import Stream from 'routes/Stream'
 import ViewContent from 'routes/ViewContent'
 import SpaceContent from 'routes/SpaceContent'
 import Themes from 'routes/Themes'
-import FundingRoundHome from 'routes/FundingRoundHome'
 import UserSettings from 'routes/UserSettings'
 import WelcomeWizardRouter from 'routes/WelcomeWizardRouter'
 import { VIEW_DRAFTS } from 'store/constants'
@@ -924,8 +923,6 @@ export default function AuthLayoutRouter (props) {
                             <Route path='members/*' element={<Members context='groups' />} />
                             <Route path='topics/:topicName/*' element={<Stream context='groups' />} />
                             <Route path='topics' element={<AllTopics context='groups' />} />
-                            <Route path='funding-rounds/:fundingRoundId/*' element={<FundingRoundHome />} />
-                            <Route path='funding-rounds' element={<Navigate to={`/groups/${currentGroupSlug}${currentGroup?.homeRoute || '/all'}`} replace />} />
                             <Route path='chat/*' element={<ChatRoom context='groups' />} />
                             <Route path='payment/success' element={<PaymentSuccess />} />
                             <Route path='payment/cancel' element={<PaymentFailure />} />

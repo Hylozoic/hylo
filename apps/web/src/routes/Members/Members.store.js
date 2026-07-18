@@ -33,7 +33,7 @@ query FetchGroupMembers ($slug: String, $groupId: ID, $first: Int, $sortBy: Stri
             answer
           }
         }
-        groupRoles {
+        groupRoles (slug: $slug) {
           items {
             id
             name

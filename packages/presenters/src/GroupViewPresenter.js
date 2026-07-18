@@ -5,7 +5,6 @@ const VIEW_TYPE_TO_ICON_NAME = {
   collection: 'Stack',
   discussions: 'Message',
   events: 'Calendar',
-  'funding-round-submissions': 'BadgeDollarSign',
   map: 'Globe',
   members: 'People',
   moderation: 'Shield',
@@ -27,6 +26,7 @@ const VIEW_TYPE_TO_ICON_NAME = {
 /** View types that use a Lucide icon instead of the Hylo icon font. */
 const VIEW_TYPE_TO_LUCIDE_ICON = {
   chat: 'MessageCircleMore',
+  'funding-round-submissions': 'ClipboardList',
   link: 'ExternalLink',
   member: 'User',
   text: 'Type',
@@ -38,6 +38,7 @@ const LUCIDE_ICON_NAMES = new Set([
   'BadgeDollarSign',
   'Bell',
   'Bookmark',
+  'ClipboardList',
   'CreditCard',
   'Edit',
   'ExternalLink',
@@ -117,8 +118,11 @@ export function iconForView (view) {
   return { iconName, lucideIcon: null }
 }
 
-/** Human-readable menu label for a GroupView. */
-export function displayNameForView (view, t) {
+/**
+ * Human-readable menu label for a GroupView.
+ * Optional `spaceGroup` supplies track/funding-round unit terms for nested space views.
+ */
+export function displayNameForView (view, t, { spaceGroup } = {}) {
   if (view?.type === 'post' && view.viewPost?.title) return view.viewPost.title
   if (view?.type === 'member' && view.viewUser?.name) return view.viewUser.name
   if (view?.type === 'group' && view.linkedGroup?.name) return view.linkedGroup.name
@@ -130,6 +134,19 @@ export function displayNameForView (view, t) {
     return view.name ? translateViewName(view.name, t) : view.linkedGroup?.name
   }
   if (view?.name) return translateViewName(view.name, t)
+
+  // Default type labels for track/FR content views use the configured unit term.
+  if (view?.type === 'funding-round-submissions') {
+    const plural = spaceGroup?.fundingRound?.submissionDescriptorPlural ||
+      view.linkedGroup?.fundingRound?.submissionDescriptorPlural
+    if (plural) return plural
+  }
+  if (view?.type === 'track-actions') {
+    const plural = spaceGroup?.track?.actionDescriptorPlural ||
+      view.linkedGroup?.track?.actionDescriptorPlural
+    if (plural) return plural
+  }
+
   if (view?.type) return translateViewName(`view-${view.type}`, t)
   return ''
 }

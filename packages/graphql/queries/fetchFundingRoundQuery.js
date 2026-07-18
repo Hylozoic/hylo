@@ -10,11 +10,11 @@ export default gql`
       canVote
       createdAt
       criteria
-      description
       group {
         id
         name
         slug
+        description
       }
       hideFinalResultsFromParticipants
       isParticipating

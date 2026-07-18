@@ -349,7 +349,7 @@ export function homeRoutePathForWidget (widget) {
   if (widget.viewChat) return '/chat'
   if (widget.customView) return '/custom/' + widget.customView.id
   if (widget.viewTrack) return '/track-actions'
-  if (widget.viewFundingRound) return '/funding-rounds/' + widget.viewFundingRound.id
+  if (widget.viewFundingRound) return '/funding-round-submissions'
   return '/stream'
 }
 
@@ -380,7 +380,11 @@ export function widgetUrl ({ widget, rootPath, groupSlug: providedSlug, context 
       space: widget.viewTrack.space
     })
   } else if (widget.viewFundingRound) {
-    url = fundingRoundUrl(widget.viewFundingRound.id, { context, groupSlug })
+    url = fundingRoundUrl(widget.viewFundingRound.id, {
+      context,
+      groupSlug,
+      space: widget.viewFundingRound.group
+    })
   }
 
   return url
@@ -401,8 +405,21 @@ export function trackUrl (trackId, opts = {}) {
   return '/my/tracks'
 }
 
-export function fundingRoundUrl (fundingRoundId, opts) {
-  return baseUrl({ ...opts, context: 'group', view: 'funding-rounds' }) + `/${fundingRoundId}` + (opts.tab ? `/${opts.tab}` : '')
+/**
+ * URL for a Funding Round's space. Prefer opts.space (or spaceSlug) — legacy
+ * /groups/:groupSlug/funding-rounds/:id routes are no longer supported.
+ */
+export function fundingRoundUrl (fundingRoundId, opts = {}) {
+  const { groupSlug, spaceSlug, space, tab } = opts
+  const localSlug = spaceSlug || (space?.slug && groupSlug ? localSpaceSlug(groupSlug, space.slug) : null)
+  // Legacy tab name → space view path
+  const viewTab = tab === 'submissions' ? 'funding-round-submissions' : tab
+  if (groupSlug && localSlug) {
+    if (!viewTab && space) return spaceHomeUrl(groupSlug, space)
+    return spaceUrl(groupSlug, localSlug, viewTab ? `/${viewTab}` : '')
+  }
+  if (groupSlug) return groupUrl(groupSlug)
+  return '/'
 }
 
 /**

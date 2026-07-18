@@ -131,3 +131,66 @@ export function applyGroupViewsOrder ({ group, parentGroupId, targetGroupId, reo
   })
   group.update({ groupViews: { items: structuredClone(newItems) } })
 }
+
+/**
+ * Syncs funding-round fields onto embedded Group.fundingRound blobs used by menus
+ * (parent groupViews.linkedGroup.fundingRound, space Group.fundingRound, spaces list).
+ */
+export function syncFundingRoundEmbeddedData (session, fundingRoundId, patch) {
+  if (!session?.Group || !fundingRoundId || !patch) return
+
+  const cleanPatch = Object.fromEntries(
+    Object.entries(patch).filter(([, value]) => value !== undefined)
+  )
+  if (Object.keys(cleanPatch).length === 0) return
+
+  session.Group.all().toModelArray().forEach(group => {
+    const updates = {}
+
+    if (group.fundingRound && String(group.fundingRound.id) === String(fundingRoundId)) {
+      updates.fundingRound = { ...group.fundingRound, ...cleanPatch }
+    }
+
+    const menuItems = group.groupViews?.items
+    if (menuItems?.length) {
+      let menuChanged = false
+      const newMenuItems = menuItems.map(view => {
+        if (view.type !== 'space' || !view.linkedGroup?.fundingRound) return view
+        if (String(view.linkedGroup.fundingRound.id) !== String(fundingRoundId)) return view
+        menuChanged = true
+        return {
+          ...view,
+          linkedGroup: {
+            ...view.linkedGroup,
+            fundingRound: { ...view.linkedGroup.fundingRound, ...cleanPatch }
+          }
+        }
+      })
+      if (menuChanged) {
+        updates.groupViews = { items: structuredClone(newMenuItems) }
+      }
+    }
+
+    const spaces = group.spaces?.items || group.spaces
+    if (Array.isArray(spaces) && spaces.length) {
+      let spacesChanged = false
+      const newSpaces = spaces.map(space => {
+        if (!space?.fundingRound || String(space.fundingRound.id) !== String(fundingRoundId)) return space
+        spacesChanged = true
+        return {
+          ...space,
+          fundingRound: { ...space.fundingRound, ...cleanPatch }
+        }
+      })
+      if (spacesChanged) {
+        updates.spaces = group.spaces?.items
+          ? { ...group.spaces, items: structuredClone(newSpaces) }
+          : structuredClone(newSpaces)
+      }
+    }
+
+    if (Object.keys(updates).length > 0) {
+      group.update(updates)
+    }
+  })
+}

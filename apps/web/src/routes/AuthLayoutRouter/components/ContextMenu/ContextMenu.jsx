@@ -167,7 +167,7 @@ function GroupViewMenuItem ({
     return (
       <li className='list-none'>
         <p className='text-xs text-foreground/40 px-2 mt-3 mb-1 uppercase tracking-wide'>
-          {displayNameForView(presentedView, t)}
+          {displayNameForView(presentedView, t, { spaceGroup })}
         </p>
         {childViews.length > 0 && (
           <ul className='pl-4 mt-1 mb-2'>
@@ -209,7 +209,7 @@ function GroupViewMenuItem ({
             className='flex-1 flex items-center gap-2 text-base text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-2 opacity-85 hover:opacity-100 text-left'
           >
             <GroupViewIcon view={presentedView} />
-            <span className='truncate'>{displayNameForView(presentedView, t)}</span>
+            <span className='truncate'>{displayNameForView(presentedView, t, { spaceGroup })}</span>
           </button>
           {mobileAppVersionLabel
             ? <span className='text-xs text-muted-foreground shrink-0 tabular-nums'>v{mobileAppVersionLabel}</span>
@@ -258,7 +258,7 @@ function GroupViewMenuItem ({
             className={GROUP_VIEW_MENU_ITEM_INNER_LINK_CLASS}
           >
             <GroupViewIcon view={presentedView} />
-            <span className='truncate flex-1'>{displayNameForView(presentedView, t)}</span>
+            <span className='truncate flex-1'>{displayNameForView(presentedView, t, { spaceGroup })}</span>
             {spaceUnread && <UnreadDot />}
           </MenuLink>
           {aboutUrl && (
@@ -301,7 +301,7 @@ function GroupViewMenuItem ({
         className={GROUP_VIEW_MENU_ITEM_CLASS}
       >
         <GroupViewIcon view={presentedView} />
-        <span className='truncate flex-1'>{displayNameForView(presentedView, t)}</span>
+        <span className='truncate flex-1'>{displayNameForView(presentedView, t, { spaceGroup })}</span>
         {hasUnread && <UnreadDot />}
       </MenuLink>
     </li>

@@ -3086,7 +3086,7 @@ type FundingRound {
   criteria: String
   # Description of the round
   description: String
-  # The group that the funding round belongs to
+  # The Funding Round space Group (funding_rounds.group_id)
   group: Group
   # Whether to hide final voting results from participants
   hideFinalResultsFromParticipants: Boolean

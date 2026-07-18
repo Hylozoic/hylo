@@ -854,7 +854,12 @@ export default function makeModels (userId, isAdmin, apiClient) {
             querySet: true,
             filter: (relation, { sortBy, order }) =>
               relation.query(q => {
-                q.where('deactivated_at', null)
+                const groupId = relation.relatedData.parentId
+                // Include rounds whose space is a child of this group (parent listing)
+                q.orWhereIn('funding_rounds.group_id', function () {
+                  this.select('id').from('groups').where('parent_id', groupId)
+                })
+                q.where('funding_rounds.deactivated_at', null)
                 q.orderBy(sortBy || 'id', order || 'asc')
               })
           }
@@ -1489,8 +1494,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'hide_final_results_from_participants',
         'max_token_allocation',
         'min_token_allocation',
-        'num_participants',
-        'num_submissions',
         'phase',
         'published_at',
         'require_budget',
@@ -1515,13 +1518,17 @@ export default function makeModels (userId, isAdmin, apiClient) {
         allocations: r => r ? r.allocations() : [],
         tokensRemaining: async r => {
           if (!r || !userId) return null
-          return r.roundUser(userId).fetch().then(roundUser => roundUser ? roundUser.get('tokens_remaining') : null)
+          return r.tokensRemaining(userId)
         },
         totalTokensAllocated: async r => {
           if (!r) return null
+          const spaceId = r.get('group_id')
+          if (!spaceId) return 0
           const result = await bookshelf.knex('posts_users')
-            .join('funding_rounds_posts', 'posts_users.post_id', 'funding_rounds_posts.post_id')
-            .where('funding_rounds_posts.funding_round_id', r.get('id'))
+            .join('groups_posts', 'posts_users.post_id', 'groups_posts.post_id')
+            .join('posts', 'posts.id', 'groups_posts.post_id')
+            .where('groups_posts.group_id', spaceId)
+            .where('posts.type', Post.Type.SUBMISSION)
             .sum('posts_users.tokens_allocated_to as total')
             .first()
           return result?.total ? parseInt(result.total) : 0
@@ -1530,7 +1537,17 @@ export default function makeModels (userId, isAdmin, apiClient) {
         voterRoles: r => r ? r.voterRoles() : []
       },
       relations: [
-        'group',
+        {
+          group: {
+            fields: [
+              'id',
+              'name',
+              'slug',
+              'homeRoute',
+              { parentGroup: ['id', 'name', 'slug'] }
+            ]
+          }
+        },
         { submissions: { querySet: true } },
         { users: { querySet: true } }
       ],

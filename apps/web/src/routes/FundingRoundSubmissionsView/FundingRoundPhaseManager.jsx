@@ -1,10 +1,8 @@
-import { Settings, ChevronsRight, Download, Trash2 } from 'lucide-react'
+import { Settings, ChevronsRight, Download } from 'lucide-react'
 import React, { useCallback, useEffect, useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
-import { useNavigate } from 'react-router-dom'
 import { DateTimeHelpers } from '@hylo/shared'
-import { groupUrl } from '@hylo/navigation'
 import Button from 'components/ui/button'
 import {
   Dialog,
@@ -14,17 +12,20 @@ import {
   DialogHeader,
   DialogTitle
 } from 'components/ui/dialog'
-import useRouteParams from 'hooks/useRouteParams'
-import { updateFundingRound, deleteFundingRound, fetchFundingRoundParticipants } from 'routes/FundingRounds/FundingRounds.store'
+import { updateFundingRound, fetchFundingRoundParticipants } from 'routes/FundingRounds/FundingRounds.store'
 import fetchFundingRoundAllocations from 'store/actions/fetchFundingRoundAllocations'
 import { cn } from 'util/index'
 import { getLocaleFromLocalStorage } from 'util/locale'
 
-export default function ManageTab ({ round }) {
+/** Returns true when the stored phase is the pre-submissions "not begun" state. */
+function isNotBegunPhase (phase) {
+  return phase === 'published' || phase === 'draft'
+}
+
+/** Steward controls for advancing/rewinding funding round phases and exporting results. */
+export default function FundingRoundPhaseManager ({ round, spaceName, onOpenSettings, submissionCount, participantCount }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
-  const routeParams = useRouteParams()
-  const navigate = useNavigate()
 
   useEffect(() => {
     if (round?.id) dispatch(fetchFundingRoundParticipants(round.id))
@@ -49,13 +50,35 @@ export default function ManageTab ({ round }) {
   const submissionsCloseAt = round.submissionsCloseAt ? DateTimeHelpers.toDateTime(round.submissionsCloseAt, { locale: getLocaleFromLocalStorage() }) : null
   const votingOpensAt = round.votingOpensAt ? DateTimeHelpers.toDateTime(round.votingOpensAt, { locale: getLocaleFromLocalStorage() }) : null
   const votingClosesAt = round.votingClosesAt ? DateTimeHelpers.toDateTime(round.votingClosesAt, { locale: getLocaleFromLocalStorage() }) : null
-
-  // Determine current phase
   const currentPhase = round.phase
 
-  // Helper function to get status-aware phase data
+  // Prefer live submission count; participants come from the space's cached memberCount
+  const numSubmissions = submissionCount ?? round.numSubmissions ?? 0
+  const numParticipants = participantCount ?? round.numParticipants ?? 0
+
+  /** Determines whether a timeline phase key is in the past relative to the current phase. */
+  const getIsPast = useCallback((phaseKey) => {
+    switch (phaseKey) {
+      case 'published':
+        return !isNotBegunPhase(currentPhase)
+      case 'submissions':
+        return currentPhase === 'discussion' || currentPhase === 'voting' || currentPhase === 'completed'
+      case 'discussion':
+        return currentPhase === 'voting' || currentPhase === 'completed'
+      case 'voting':
+        return currentPhase === 'completed'
+      case 'completed':
+        return false
+      default:
+        return false
+    }
+  }, [currentPhase])
+
+  /** Builds status-aware label/description/actions for one timeline phase. */
   const getPhaseData = useCallback(({ phaseKey, baseLabel, baseDescription, dateField, forwardButtonText, backButtonText, backDateField, nextPhaseKey, previousPhaseKey }) => {
-    const isCurrent = currentPhase === phaseKey
+    const isCurrent = phaseKey === 'published'
+      ? isNotBegunPhase(currentPhase)
+      : currentPhase === phaseKey
     const isPast = getIsPast(phaseKey)
     const isFuture = !isCurrent && !isPast
 
@@ -64,7 +87,6 @@ export default function ManageTab ({ round }) {
     let endDate = null
 
     if (isPast) {
-      // Completed phases - show completion status
       switch (phaseKey) {
         case 'published':
           label = t('Round started')
@@ -74,24 +96,23 @@ export default function ManageTab ({ round }) {
         case 'submissions':
           label = t('Submissions ended', { submissionDescriptorPlural: round.submissionDescriptorPlural || t('Submissions') })
           description = t('{{numSubmissions}} {{submissionDescriptorPlural}} received', {
-            numSubmissions: round.numSubmissions || 0,
+            numSubmissions,
             submissionDescriptorPlural: (round.submissionDescriptorPlural || t('Submissions')).toLowerCase()
           })
           endDate = submissionsCloseAt
           break
         case 'discussion':
           label = t('Discussion ended')
-          description = t('Discussion phase completed')
+          description = ''
           endDate = votingOpensAt
           break
         case 'voting':
           label = t('Voting ended')
-          description = t('Voting phase completed')
+          description = ''
           endDate = votingClosesAt
           break
       }
     } else if (isFuture) {
-      // Future phases - show scheduling status
       switch (phaseKey) {
         case 'submissions':
           label = t('Submission phase')
@@ -116,7 +137,6 @@ export default function ManageTab ({ round }) {
       }
     }
 
-    // Determine if phase is scheduled based on whether it has a date
     let isScheduled = false
     if (phaseKey === 'submissions') {
       isScheduled = !!submissionsOpenAt
@@ -144,27 +164,8 @@ export default function ManageTab ({ round }) {
       nextPhaseKey,
       previousPhaseKey
     }
-  }, [currentPhase, submissionsOpenAt, submissionsCloseAt, votingOpensAt, votingClosesAt])
+  }, [currentPhase, getIsPast, submissionsOpenAt, submissionsCloseAt, votingOpensAt, votingClosesAt, round.submissionDescriptorPlural, numSubmissions, t])
 
-  // Helper function to determine if a phase is past
-  const getIsPast = (phaseKey) => {
-    switch (phaseKey) {
-      case 'published':
-        return currentPhase !== 'published'
-      case 'submissions':
-        return currentPhase === 'discussion' || currentPhase === 'voting' || currentPhase === 'completed'
-      case 'discussion':
-        return currentPhase === 'voting' || currentPhase === 'completed'
-      case 'voting':
-        return currentPhase === 'completed'
-      case 'completed':
-        return false
-      default:
-        return false
-    }
-  }
-
-  // Define the 5 phases with status-aware data
   const submissionDescriptorPlural = round.submissionDescriptorPlural || t('Submissions')
 
   const phases = useMemo(() => [
@@ -213,7 +214,7 @@ export default function ManageTab ({ round }) {
     getPhaseData({
       phaseKey: 'completed',
       baseLabel: t('Round complete!'),
-      baseDescription: t('Congratulations! {{numParticipants}} participants contributed {{numSubmissions}} {{submissionDescriptorPlural}}! View the {{submissionDescriptorPlural}} page to see the outcome.', { numParticipants: round.numParticipants || 0, numSubmissions: round.numSubmissions || 0, submissionDescriptorPlural: submissionDescriptorPlural.toLowerCase() }),
+      baseDescription: t('Congratulations! {{numParticipants}} participants contributed {{numSubmissions}} {{submissionDescriptorPlural}}!', { numParticipants, numSubmissions, submissionDescriptorPlural: submissionDescriptorPlural.toLowerCase() }),
       dateField: null,
       forwardButtonText: null,
       backButtonText: t('Re-open Voting'),
@@ -221,8 +222,9 @@ export default function ManageTab ({ round }) {
       nextPhaseKey: null,
       previousPhaseKey: 'voting'
     })
-  ], [round.phase])
+  ], [getPhaseData, numParticipants, numSubmissions, submissionDescriptorPlural, t])
 
+  /** Confirms and advances the round to the next phase. */
   const handleStartPhase = (phase) => {
     setConfirmDialog({
       isOpen: true,
@@ -245,11 +247,10 @@ export default function ManageTab ({ round }) {
     })
   }
 
+  /** Confirms and rewinds the round to the previous phase. */
   const handleGoBackPhase = (phase) => {
-    // Going back means clearing the date to go back to the previous phase
     let confirmMessage = t('Are you sure you want to {{action}}?', { action: phase.backButtonText.toLowerCase() })
 
-    // If going back from voting phase to discussion, warn about token reset
     if (phase.backDateField === 'votingOpensAt' && (round.phase === 'voting' || round.phase === 'completed')) {
       confirmMessage = t('This will reset all token allocations. Are you sure you want to {{action}}?', { action: phase.backButtonText.toLowerCase() })
     }
@@ -275,42 +276,24 @@ export default function ManageTab ({ round }) {
     })
   }
 
+  /** Closes the confirm dialog without applying a phase change. */
   const handleCancelConfirm = () => {
     setConfirmDialog({ isOpen: false, title: '', message: '', onConfirm: null })
   }
 
+  /** Runs the pending confirm-dialog action. */
   const handleConfirm = () => {
     if (confirmDialog.onConfirm) {
       confirmDialog.onConfirm()
     }
   }
 
+  /** Closes the error dialog. */
   const handleCloseError = () => {
     setErrorDialog({ isOpen: false, title: '', message: '' })
   }
 
-  const handleDeleteRound = () => {
-    setConfirmDialog({
-      isOpen: true,
-      title: t('Delete Funding Round'),
-      message: t('Are you sure you want to delete this funding round? This action cannot be undone. All submissions and votes will be permanently deleted.'),
-      confirmButtonText: t('Delete'),
-      onConfirm: async () => {
-        setConfirmDialog({ isOpen: false, title: '', message: '', confirmButtonText: '', onConfirm: null })
-        try {
-          await dispatch(deleteFundingRound(round.id))
-          navigate(groupUrl(routeParams.groupSlug, 'funding-rounds'))
-        } catch (error) {
-          const errorMessage = error?.message || error?.toString() || t('An error occurred while deleting the funding round')
-          setErrorDialog({
-            isOpen: true,
-            title: t('Error'),
-            message: errorMessage
-          })
-        }
-      }
-    })
-  }
+  /** Exports allocation results as a CSV download. */
   const handleExportResults = useCallback(async () => {
     if (isExporting) return
 
@@ -333,7 +316,11 @@ export default function ManageTab ({ round }) {
         return participantMap.get(key)
       }
 
-      (round.users || []).forEach(user => {
+      const users = round.users?.toRefArray?.() ||
+        round.users?.items ||
+        (Array.isArray(round.users) ? round.users : [])
+
+      users.forEach(user => {
         addParticipant(user)
       })
 
@@ -389,8 +376,9 @@ export default function ManageTab ({ round }) {
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      const safeTitle = round.title
-        ? round.title.replace(/[^a-z0-9]+/gi, '_').replace(/_{2,}/g, '_').replace(/^_|_$/g, '')
+      const titleSource = spaceName || round.title
+      const safeTitle = titleSource
+        ? titleSource.replace(/[^a-z0-9]+/gi, '_').replace(/_{2,}/g, '_').replace(/^_|_$/g, '')
         : 'funding_round'
       link.setAttribute('download', `${safeTitle || 'funding_round'}-results.csv`)
       document.body.appendChild(link)
@@ -408,32 +396,35 @@ export default function ManageTab ({ round }) {
     } finally {
       setIsExporting(false)
     }
-  }, [dispatch, isExporting, round, t])
+  }, [dispatch, isExporting, round, spaceName, t])
 
   return (
-    <div className='flex flex-col gap-4 mt-4 pb-4'>
-      <button
-        className='w-full text-foreground border-2 border-foreground/20 hover:border-foreground/50 transition-all px-4 py-2 rounded-md flex flex-row items-center gap-2 justify-center'
-        onClick={() => navigate(groupUrl(routeParams.groupSlug, `funding-rounds/${round?.id}/edit`))}
-      >
-        <Settings className='w-4 h-4' />
-        <span>{t('Edit Funding Round')}</span>
-      </button>
+    <div className='flex flex-col gap-4 mt-4 pb-2'>
+      {onOpenSettings && (
+        <button
+          type='button'
+          className='w-full text-foreground border-2 border-foreground/20 hover:border-foreground/50 transition-all px-4 py-2 rounded-md flex flex-row items-center gap-2 justify-center'
+          onClick={onOpenSettings}
+        >
+          <Settings className='w-4 h-4' />
+          <span>{t('Funding Round Settings')}</span>
+        </button>
+      )}
 
       <div className='border-2 border-foreground/20 rounded-lg p-4'>
         <h3 className='text-sm opacity-50 w-full text-center mb-3'>{t('Round Timeline')}</h3>
         <div className='flex flex-col gap-3'>
-          {phases.map((phase, index) => {
-            // Show forward button for current phase if it has a forward action
-            // Show back button for current phase if it has a back action
+          {phases.map((phase) => {
             const showForwardButton = phase.isCurrent && phase.forwardButtonText
             const showBackButton = phase.isCurrent && phase.backButtonText
+            const showExportButton = phase.key === 'completed' && phase.isCurrent
+            const showActions = showForwardButton || showBackButton || showExportButton
 
             return (
               <div
                 key={phase.key}
                 className={cn(
-                  'flex flex-col items-start justify-between border-2 p-4 rounded-md',
+                  'flex flex-col items-start border-2 p-4 rounded-md',
                   phase.isCurrent
                     ? 'border-selected bg-selected/10 shadow-md'
                     : phase.isPast || phase.isFuture
@@ -441,10 +432,10 @@ export default function ManageTab ({ round }) {
                       : 'border-foreground/20'
                 )}
               >
-                <div className='flex flex-col gap-1 flex-1'>
+                <div className='flex flex-col gap-1'>
                   <div className='font-medium text-lg text-foreground flex items-center gap-2 flex-wrap'>
                     {phase.label}
-                    {phase.isCurrent && phase.key !== 'not-begun' && phase.key !== 'completed' && (
+                    {phase.isCurrent && phase.key !== 'completed' && (
                       <span className='px-2 py-0.5 text-xs text-foreground bg-selected rounded-full font-medium'>
                         {t('Current')}
                       </span>
@@ -465,55 +456,51 @@ export default function ManageTab ({ round }) {
                       </span>
                     )}
                   </div>
-                  <div>
-                    {phase.description}
+                  {phase.description && (
+                    <div>
+                      {phase.description}
+                    </div>
+                  )}
+                </div>
+                {showActions && (
+                  <div className='flex flex-wrap gap-2 w-full items-center justify-center mt-4'>
+                    {showBackButton && (
+                      <Button
+                        size='sm'
+                        className='bg-transparent border-2 border-foreground/20 hover:border-foreground/40 text-foreground'
+                        onClick={() => handleGoBackPhase(phase)}
+                      >
+                        {phase.backButtonText}
+                      </Button>
+                    )}
+                    {showExportButton && (
+                      <Button
+                        size='sm'
+                        className='bg-selected text-foreground border-2 border-selected hover:bg-selected/90 '
+                        onClick={handleExportResults}
+                        disabled={isExporting}
+                      >
+                        <Download className='w-4 h-4 mr-1' />
+                        {isExporting ? t('Exporting...') : t('Export results')}
+                      </Button>
+                    )}
+                    {showForwardButton && (
+                      <Button
+                        size='sm'
+                        className='bg-selected hover:bg-selected/90 text-foreground border-2 border-transparent'
+                        onClick={() => handleStartPhase(phase)}
+                      >
+                        <ChevronsRight className='w-4 h-4 mr-1' />
+                        {phase.forwardButtonText}
+                      </Button>
+                    )}
                   </div>
-                </div>
-                <div className='flex flex-wrap gap-2 w-full items-center justify-center mt-4 mb-2'>
-                  {showBackButton && (
-                    <Button
-                      size='sm'
-                      className='bg-transparent border-2 border-foreground/20 hover:border-foreground/40 text-foreground'
-                      onClick={() => handleGoBackPhase(phase)}
-                    >
-                      {phase.backButtonText}
-                    </Button>
-                  )}
-                  {phase.key === 'completed' && phase.isCurrent && (
-                    <Button
-                      size='sm'
-                      className='bg-selected text-foreground border-2 border-selected hover:bg-selected/90 '
-                      onClick={handleExportResults}
-                      disabled={isExporting}
-                    >
-                      <Download className='w-4 h-4 mr-1' />
-                      {isExporting ? t('Exporting...') : t('Export results')}
-                    </Button>
-                  )}
-                  {showForwardButton && (
-                    <Button
-                      size='sm'
-                      className='bg-selected hover:bg-selected/90 text-foreground border-2 border-transparent'
-                      onClick={() => handleStartPhase(phase)}
-                    >
-                      <ChevronsRight className='w-4 h-4 mr-1' />
-                      {phase.forwardButtonText}
-                    </Button>
-                  )}
-                </div>
+                )}
               </div>
             )
           })}
         </div>
       </div>
-
-      <button
-        className='w-full text-destructive border-2 border-destructive/20 hover:border-destructive hover:bg-destructive/10 transition-all px-4 py-2 rounded-md flex flex-row items-center gap-2 justify-center'
-        onClick={handleDeleteRound}
-      >
-        <Trash2 className='w-4 h-4' />
-        <span>{t('Delete Round')}</span>
-      </button>
 
       <Dialog open={confirmDialog.isOpen} onOpenChange={handleCancelConfirm}>
         <DialogContent>
@@ -531,12 +518,7 @@ export default function ManageTab ({ round }) {
               {t('Cancel')}
             </Button>
             <Button
-              className={cn(
-                'text-foreground',
-                confirmDialog.confirmButtonText === t('Delete')
-                  ? 'bg-destructive hover:bg-destructive/90'
-                  : 'bg-selected hover:bg-selected/90'
-              )}
+              className='text-foreground bg-selected hover:bg-selected/90'
               onClick={handleConfirm}
             >
               {confirmDialog.confirmButtonText || t('Confirm')}

@@ -197,8 +197,8 @@ export default function ActionCompletionSection ({ post, currentUser }) {
           <Dialog.Overlay className='CompletedTrackDialog-Overlay bg-darkening/50 absolute top-0 left-0 right-0 bottom-0 grid place-items-center overflow-y-auto z-[900] backdrop-blur-sm'>
             <Dialog.Content className='CompletedTrackDialog-Content min-w-[300px] w-full bg-background p-4 rounded-md z-[51] max-w-[750px] outline-none'>
               <PartyPopper className='w-10 h-10 text-green-500 mx-auto' />
-              <Dialog.Title className='sr-only'>Congratulations!</Dialog.Title>
-              <Dialog.Description className='sr-only'>Congratulations!</Dialog.Description>
+              <Dialog.Title className='sr-only'>{t('Congratulations!')}</Dialog.Title>
+              <Dialog.Description className='sr-only'>{t('Congratulations!')}</Dialog.Description>
               <h3 className='text-2xl font-bold text-center'>Congratulations, you have completed {currentTrack?.name}!</h3>
               {currentTrack?.completionMessage && (
                 <ClickCatcher>
@@ -207,7 +207,7 @@ export default function ActionCompletionSection ({ post, currentUser }) {
               )}
               {currentTrack?.completionRole && (
                 <div className='text-center text-foreground border-2 border-selected/20 flex flex-col gap-2 items-center ml-auto mr-auto w-full mt-4 p-4 rounded-md border-dashed'>
-                  <div>You've earned a new role!</div>
+                  <div>{t('newRoleEarned')}</div>
                   <div className='rounded-md bg-selected/50 shadow-xl border-2 border-selected/80 px-2 py-1 bg-selected'>{currentTrack?.completionRole.emoji} {currentTrack?.completionRole.name}</div>
                 </div>
               )}

@@ -167,10 +167,18 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
     }
   }, [dispatch, view?.id, group, onClose, t])
 
+  const spaceGroupForLabel = useMemo(() => {
+    if (!view || !['funding-round-submissions', 'track-actions'].includes(view.type)) return null
+    if (group?.fundingRound || group?.track) return group
+    return (group?.groupViews?.items || [])
+      .map(menuView => menuView.linkedGroup)
+      .find(linked => linked?.groupViews?.items?.some(spaceView => String(spaceView.id) === String(view.id))) || null
+  }, [view, group])
+
   const handleDelete = useCallback(async () => {
     if (!view?.id || !group?.id || !canDeleteView(view)) return
-    const label = displayNameForView(view, t)
-    if (!window.confirm(t('Are you sure you want to remove {{name}} from the menu?', { name: label }))) return
+    const label = displayNameForView(view, t, { spaceGroup: spaceGroupForLabel })
+    const confirmMessage = view.type === 'welcome'
     setIsDeleting(true)
     try {
       await dispatch(deleteGroupView(view.id, group.id))
@@ -180,11 +188,11 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
     } finally {
       setIsDeleting(false)
     }
-  }, [dispatch, view, group?.id, onClose, t])
+  }, [dispatch, view, group?.id, onClose, t, spaceGroupForLabel])
 
   if (!view) return null
 
-  const title = displayNameForView(view, t)
+  const title = displayNameForView(view, t, { spaceGroup: spaceGroupForLabel })
   const isHome = view.order === 0
   const deletable = canDeleteView(view)
   const canSaveCustom = customForm.name.trim().length >= 2 && customForm.postTypes.length > 0

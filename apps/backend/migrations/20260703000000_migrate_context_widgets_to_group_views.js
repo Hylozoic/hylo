@@ -518,6 +518,45 @@ async function migrateTracks (knex) {
 // Step 7 — Funding Rounds -> Funding Round Spaces
 // ---------------------------------------------------------------------------
 
+/**
+ * Ensure submission (or chat) posts are on the funding-round space.
+ * Prefer moving a parent groups_posts row; if none exists (join-table-only /
+ * orphaned posts), INSERT onto the space. Idempotent.
+ */
+async function ensurePostsOnSpace (trx, spaceId, parentGroupId, postIds) {
+  if (!postIds.length) return
+  for (const postId of postIds) {
+    const onSpace = await trx('groups_posts').where({ group_id: spaceId, post_id: postId }).first()
+    if (onSpace) continue
+
+    const updated = await trx('groups_posts')
+      .where({ group_id: parentGroupId, post_id: postId })
+      .update({ group_id: spaceId })
+    if (updated) continue
+
+    await trx('groups_posts').insert({ group_id: spaceId, post_id: postId })
+  }
+}
+
+async function ensureFundingRoundPostsOnSpace (trx, spaceId, parentGroupId, round) {
+  const submissionPostIds = await trx('funding_rounds_posts')
+    .where({ funding_round_id: round.id })
+    .pluck('post_id')
+  await ensurePostsOnSpace(trx, spaceId, parentGroupId, submissionPostIds)
+
+  // Funding-round chat posts (hidden topic ‡funding_round_<id>)
+  const fundingRoundChatTag = await trx('tags').where({ name: `‡funding_round_${round.id}` }).first()
+  if (!fundingRoundChatTag) return fundingRoundChatTag
+
+  const taggedChatPostIds = await trx('posts_tags')
+    .join('posts', 'posts.id', 'posts_tags.post_id')
+    .where('posts_tags.tag_id', fundingRoundChatTag.id)
+    .where('posts.type', 'chat')
+    .pluck('posts.id')
+  await ensurePostsOnSpace(trx, spaceId, parentGroupId, taggedChatPostIds)
+  return fundingRoundChatTag
+}
+
 async function createFundingRoundSpace (trx, parentGroup, fundingRoundId) {
   const round = await trx('funding_rounds').where({ id: fundingRoundId }).first()
   if (!round) return null
@@ -526,7 +565,12 @@ async function createFundingRoundSpace (trx, parentGroup, fundingRoundId) {
   // (it's the round's pre-existing parent group), so "already migrated" has to
   // be detected via the new space itself rather than a null check.
   const existingSpace = await trx('groups').where({ funding_round_id: round.id, type: 'space' }).first()
-  if (existingSpace) return existingSpace.id
+  if (existingSpace) {
+    // Space may have been created before posts were associated — repair idempotently.
+    const parentId = existingSpace.parent_id || parentGroup.id
+    await ensureFundingRoundPostsOnSpace(trx, existingSpace.id, parentId, round)
+    return existingSpace.id
+  }
 
   return buildFundingRoundSpace(trx, parentGroup, round)
 }
@@ -565,34 +609,7 @@ async function buildFundingRoundSpace (trx, parentGroup, round) {
   ])
   const chatView = views.find(v => v.type === 'chat')
 
-  // Reassociate submission posts from the parent group to this funding round space.
-  const submissionPostIds = await trx('funding_rounds_posts')
-    .where({ funding_round_id: round.id })
-    .pluck('post_id')
-  if (submissionPostIds.length > 0) {
-    await trx('groups_posts')
-      .where({ group_id: parentGroup.id })
-      .whereIn('post_id', submissionPostIds)
-      .update({ group_id: spaceId })
-  }
-
-  // Reassociate funding-round chat posts from the parent group to this space.
-  // Each round has a hidden topic ‡funding_round_<id> (see FundingRound.create).
-  const fundingRoundChatTag = await trx('tags').where({ name: `‡funding_round_${round.id}` }).first()
-  if (fundingRoundChatTag) {
-    const taggedChatPostIds = await trx('posts_tags')
-      .join('posts', 'posts.id', 'posts_tags.post_id')
-      .where('posts_tags.tag_id', fundingRoundChatTag.id)
-      .where('posts.type', 'chat')
-      .pluck('posts.id')
-
-    if (taggedChatPostIds.length > 0) {
-      await trx('groups_posts')
-        .where({ group_id: parentGroup.id })
-        .whereIn('post_id', taggedChatPostIds)
-        .update({ group_id: spaceId })
-    }
-  }
+  const fundingRoundChatTag = await ensureFundingRoundPostsOnSpace(trx, spaceId, parentGroup.id, round)
 
   await migrateSpaceMembers(trx, spaceId, parentGroup.id, async () => {
     const roundUsers = await trx('funding_rounds_users').where({ funding_round_id: round.id })

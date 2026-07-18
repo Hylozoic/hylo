@@ -54,6 +54,7 @@ import {
   fetchJoinRequests,
   joinGroup
 } from './GroupDetail.store'
+import FundingRoundAboutInfo from 'components/FundingRoundAboutInfo/FundingRoundAboutInfo'
 
 import g from './GroupDetail.module.scss'
 import m from '../MapExplorer/MapDrawer/MapDrawer.module.scss' // eslint-disable-line no-unused-vars
@@ -297,6 +298,7 @@ function GroupDetail ({ forCurrentGroup = false }) {
         {group.type === GROUP_TYPES.farm && (
           <FarmGroupDetailBody isMember={isMember} group={group} currentUser={currentUser} routeParams={routeParams} />
         )}
+        {group.type === GROUP_TYPES.space && defaultGroupBody({ group, isAboutCurrentGroup, t, responsibilityTitles })}
         {isAboutCurrentGroup || group.type === GROUP_TYPES.farm
           ? (
             <div className='border-2 border-dashed border-foreground/20 rounded-xl p-4 mb-4'>
@@ -327,6 +329,12 @@ function GroupDetail ({ forCurrentGroup = false }) {
             <p>{t(accessibilityString(group.accessibility))} - {t(accessibilityDescription(group.accessibility))}</p>
           </div>
         </div>
+        {group.fundingRound?.id && (
+          <FundingRoundAboutInfo
+            fundingRoundId={group.fundingRound.id}
+            roleGroupId={group.parentId || group.id}
+          />
+        )}
         {group.agreements?.length > 0
           ? (
             <div

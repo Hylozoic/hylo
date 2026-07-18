@@ -154,9 +154,14 @@ function PostEditorInner ({
 
   const currentUser = useSelector(getMe)
   const currentGroup = useSelector(state => getGroupForSlug(state, groupSlug))
-  // Track spaces carry the track on the group itself (group.track).
+  // Track / funding-round spaces carry their config on the group itself.
   const currentTrack = currentGroup?.track || null
-  const currentFundingRound = useSelector(state => getFundingRound(state, routeParams.fundingRoundId))
+  const currentFundingRound = useSelector(state => {
+    const nested = currentGroup?.fundingRound
+    if (nested?.id) return getFundingRound(state, nested.id) || nested
+    if (routeParams.fundingRoundId) return getFundingRound(state, routeParams.fundingRoundId)
+    return null
+  })
   // Restrict create-modal type options to the current view's post types (e.g. request/offer on requests-and-offers)
   const allowedPostTypesForView = useAllowedPostTypesForView()
   const allowedPostTypes = !editing ? allowedPostTypesForView : null
@@ -1253,7 +1258,7 @@ function PostEditorInner ({
             )
           : isSubmission
             ? (
-              <div className=''>{isEditing ? t('Edit {{submissionDescriptor}}', { submissionDescriptor: currentFundingRound?.submissionDescriptor }) : t('Add {{submissionDescriptor}}', { submissionDescriptor: currentFundingRound?.submissionDescriptor })}</div>
+              <div className=''>{isEditing ? t('Edit {{submissionDescriptor}}', { submissionDescriptor: currentFundingRound?.submissionDescriptor || t('Submission') }) : t('Add {{submissionDescriptor}}', { submissionDescriptor: currentFundingRound?.submissionDescriptor || t('Submission') })}</div>
               )
             : (
               <PostTypeSelect

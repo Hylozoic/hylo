@@ -18,6 +18,13 @@ import classes from './Member.module.scss'
 
 const { bool, object, string, shape } = PropTypes
 
+/** True when member has any of the required roles, or when no roles are required. */
+function memberHasRequiredRole (memberRoles, requiredRoles) {
+  if (!requiredRoles || requiredRoles.length === 0) return true
+  const requiredIds = new Set(requiredRoles.map(role => String(role.id)))
+  return memberRoles.some(role => requiredIds.has(String(role.id)))
+}
+
 function Member ({
   canSeeJoinAnswers,
   className,
@@ -25,16 +32,21 @@ function Member ({
   member,
   removeMember,
   showAnswers,
+  showFundingRoundRoles = false,
+  submitterRoles = [],
+  voterRoles = [],
   showTrackCompletion,
   trackCompletedAt
 }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const currentUser = useSelector(getMe)
+  // Spaces inherit roles from the parent group
+  const roleGroupId = group?.parentId || group?.id
   const currentUserResponsibilities = useSelector(state =>
-    getResponsibilityTitlesForGroup(state, { person: currentUser, groupId: group.id }))
+    getResponsibilityTitlesForGroup(state, { person: currentUser, groupId: roleGroupId }))
   const roles = useSelector(state =>
-    getRolesForGroup(state, { person: member.id, groupId: group.id }))
+    getRolesForGroup(state, { person: member.id, groupId: roleGroupId }))
 
   const goToPerson = useCallback((id, slug) => () => {
     dispatch(push(personUrl(id, slug)))
@@ -49,6 +61,9 @@ function Member ({
   }, [removeMember, t])
 
   const { id, name, location, tagline, avatarUrl, bannerUrl } = member
+  const canSubmit = showFundingRoundRoles && memberHasRequiredRole(roles, submitterRoles)
+  const canVote = showFundingRoundRoles && memberHasRequiredRole(roles, voterRoles)
+  const isViewer = showFundingRoundRoles && !canSubmit && !canVote
 
   return (
     <div className={cn('flex flex-col gap-2 bg-card/100 rounded-lg p-2 shadow-lg hover:bg-card/100 transition-all hover:scale-102 relative overflow-hidden', className)} data-testid='member-card'>
@@ -62,7 +77,7 @@ function Member ({
         />}
       <div onClick={goToPerson(id, group.slug)} className='flex flex-row gap-2 z-10 relative cursor-pointer'>
         <div className='min-w-16 min-h-16 max-h-16 rounded-full bg-cover' style={bgImageStyle(avatarUrl)} />
-        <div className='flex flex-col gap-0 justify-center'>
+        <div className='flex flex-col gap-0 justify-center flex-1 min-w-0'>
           <div className='text-base whitespace-nowrap flex flex-row gap-1 items-center'>
             <span className='font-bold'>{name}</span>
             <div className='text-sm inline-flex gap-1'>
@@ -77,6 +92,19 @@ function Member ({
             trackCompletedAt
               ? <div className='text-xs text-selected flex items-center gap-1'><Check className='w-3 h-3' /> {t('Completed {{date}}', { date: new Date(trackCompletedAt).toLocaleDateString() })}</div>
               : <div className='text-xs text-foreground/50'>{t('Not yet completed')}</div>
+          )}
+          {showFundingRoundRoles && (
+            <div className='flex flex-row flex-wrap gap-1.5 mt-1'>
+              {canSubmit && (
+                <span className='px-2 py-0.5 text-xs bg-selected/20 text-foreground rounded-md'>{t('Can Submit')}</span>
+              )}
+              {canVote && (
+                <span className='px-2 py-0.5 text-xs bg-selected/20 text-foreground rounded-md'>{t('Can Vote')}</span>
+              )}
+              {isViewer && (
+                <span className='px-2 py-0.5 text-xs bg-foreground/10 text-foreground/70 rounded-md'>{t('Viewer')}</span>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -115,6 +143,9 @@ Member.propTypes = {
   }).isRequired,
   removeMember: PropTypes.func,
   showAnswers: bool,
+  showFundingRoundRoles: bool,
+  submitterRoles: PropTypes.array,
+  voterRoles: PropTypes.array,
   showTrackCompletion: bool,
   trackCompletedAt: string
 }

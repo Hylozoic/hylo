@@ -190,7 +190,7 @@ export default function RoundPhaseStatus ({
           <span className='text-sm font-normal pt-0 mt-0'>
             {t('{{numSubmissions}} total {{submissionDescriptorPlural}}', {
               submissionDescriptorPlural: round.submissionDescriptorPlural,
-              numSubmissions: round.numSubmissions || 0
+              numSubmissions: submissionCount || round.numSubmissions || 0
             })}
           </span>
           {canVote && !joinedAfterVotingStarted && (
@@ -228,10 +228,10 @@ export default function RoundPhaseStatus ({
           </div>
           <div className='text-base font-semibold text-foreground/80'>
             {t('{{numParticipants}} Participants allocated {{totalTokens}} {{tokenType}} to {{totalSubmissions}} {{submissionDescriptorPlural}}!', {
-              numParticipants: round.numParticipants || 0,
+              numParticipants: round.group?.memberCount ?? round.numParticipants ?? 0,
               totalTokens: round.totalTokensAllocated || 0,
               tokenType: round.tokenType || t('Votes'),
-              totalSubmissions: round.numSubmissions || 0,
+              totalSubmissions: submissionCount || round.numSubmissions || 0,
               submissionDescriptorPlural: round.submissionDescriptorPlural || t('Submissions')
             })}
           </div>
