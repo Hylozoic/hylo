@@ -52,6 +52,7 @@ import {
   PROPOSAL_TEMPLATES,
   PROPOSAL_YESNO,
   POST_COMPLETION_ACTIONS,
+  POST_TYPES,
   POST_TYPES_SHOW_LOCATION_BY_DEFAULT,
   VOTING_METHOD_MULTI_UNRESTRICTED,
   VOTING_METHOD_SINGLE
@@ -97,6 +98,13 @@ import ActionsBar from './ActionsBar'
 import HyloHTML from 'components/HyloHTML'
 import useDraft, { hasDraftContent, hasPostDraftPayloadContent } from 'hooks/useDraft'
 import { buildPostDraftPayload, mergeDraftIntoPost } from './postDraftUtils'
+
+/** First post type as shown in PostTypeSelect (POST_TYPES order), among allowed types. */
+function firstDropdownPostType (allowedPostTypes) {
+  const dropdownOrder = Object.keys(POST_TYPES).filter(type => type !== 'action' && type !== 'chat')
+  if (allowedPostTypes == null) return 'discussion'
+  return dropdownOrder.find(type => allowedPostTypes.includes(type)) || 'discussion'
+}
 
 /** Returns true when a group/space accepts the given post type (null acceptedPostTypes = all). */
 function groupAcceptsPostType (group, postType) {
@@ -202,9 +210,9 @@ function PostEditorInner ({
   const viewId = getQuerystringParam('viewId', urlLocation)
 
   const postType = getQuerystringParam('newPostType', urlLocation)
-  // Prefer explicit newPostType (if still allowed), then the first allowed type, then discussion
+  // Prefer explicit newPostType (if still allowed), else top dropdown option (POST_TYPES order)
   const createPostType = (() => {
-    const fallback = allowedPostTypes?.[0] || 'discussion'
+    const fallback = firstDropdownPostType(allowedPostTypes)
     if (!postType) return fallback
     if (allowedPostTypes != null && !allowedPostTypes.includes(postType)) return fallback
     return postType
