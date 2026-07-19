@@ -27,9 +27,9 @@ export default function FullPageModal ({
     )
   } else {
     return (
-      <div className={cn('bg-midground flex flex-col flex-1 min-h-0 h-full')}>
+      <div className={cn('bg-midground flex flex-col flex-1 min-h-0 h-full overflow-y-auto')}>
         {multipleTabs && (
-          <div className={cn('w-full max-w-[750px] mx-auto px-2 py-2 sm:px-8 sm:py-8 flex-1 min-h-0 overflow-y-auto')}>
+          <div className={cn('w-full max-w-[750px] mx-auto px-2 py-2 sm:px-8 sm:py-8')}>
             <Routes>
               {content.map(tab => {
                 const element = tab.render ? tab.render() : tab.component
