@@ -6,7 +6,7 @@ import { debounce, uniqBy } from 'lodash/fp'
 import * as Dialog from '@radix-ui/react-dialog'
 import { humanResponse } from '@hylo/presenters/EventInvitationPresenter'
 import Button from 'components/Button'
-import CheckBox from 'components/CheckBox'
+import Checkbox from 'components/ui/checkbox'
 import Loading from 'components/Loading'
 import TextInput from 'components/TextInput'
 import { bgImageStyle, cn } from 'util/index'
@@ -92,11 +92,15 @@ const EventInviteDialog = ({
       ? t('Invite 1 person')
       : t('Invite {{invitedIds.length}} people', { invitedIds })
 
+  // Same portal host as PostDialog, with higher z so invite sits above the post modal.
+  const portalContainer = document.getElementById('center-column-container') ||
+    document.getElementById(CENTER_COLUMN_ID)
+
   return (
     <Dialog.Root defaultOpen onOpenChange={onClose}>
-      <Dialog.Portal container={document.getElementById(CENTER_COLUMN_ID)}>
-        <Dialog.Overlay className='EventInviteDialog-Overlay bg-black/50 absolute left-0 right-0 bottom-0 grid place-items-center overflow-y-auto z-[100] h-full backdrop-blur-sm p-2'>
-          <Dialog.Content className='EventInviteDialog-Content min-w-[300px] w-full bg-background p-3 rounded-md z-[41] max-w-[750px] outline-none relative'>
+      <Dialog.Portal container={portalContainer}>
+        <Dialog.Overlay className='EventInviteDialog-Overlay bg-black/50 absolute left-0 right-0 bottom-0 grid place-items-center overflow-y-auto z-[110] h-full backdrop-blur-sm p-2'>
+          <Dialog.Content className='EventInviteDialog-Content min-w-[300px] w-full bg-background p-3 rounded-md z-[111] max-w-[750px] outline-none relative'>
             <Dialog.Title className='text-xl font-semibold leading-none tracking-tight'>Invite to event: {eventTitle}</Dialog.Title>
             <Dialog.Description className='sr-only'>Invite group members to event: {eventTitle}</Dialog.Description>
             <div className={styles.container}>
@@ -155,7 +159,7 @@ export const InviteeRow = React.forwardRef((props, ref) => {
       </div>
       {!showResponse && (
         <div className={cn(styles.col, styles.check)}>
-          <CheckBox checked={selected} noInput />
+          <Checkbox checked={selected} className='pointer-events-none' tabIndex={-1} aria-hidden />
         </div>
       )}
       {showResponse && response && (

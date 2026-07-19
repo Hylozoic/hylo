@@ -2,10 +2,11 @@ import React, { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Eye, EyeOff } from 'lucide-react'
 
-import CheckBox from 'components/CheckBox'
 import HyloEditor from 'components/HyloEditor'
 import TagInput from 'components/TagInput'
+import Checkbox from 'components/ui/checkbox'
 import { DateTimePicker } from 'components/ui/datetimepicker'
+import { Label } from 'components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'components/ui/select'
 import { cn } from 'util/index'
 
@@ -176,16 +177,26 @@ export default function FundingRoundSettingsFields ({
       </div>
 
       <div className='flex flex-col gap-2'>
-        <CheckBox
-          checked={allowSelfVoting}
-          onChange={checked => setAllowSelfVoting(checked)}
-          label={t('Allow participants to vote on their own submissions')}
-        />
-        <CheckBox
-          checked={hideFinalResults}
-          onChange={checked => setHideFinalResults(checked)}
-          label={t('Hide final results from participants')}
-        />
+        <div className='flex items-center gap-2'>
+          <Checkbox
+            id='fr-allow-self-voting'
+            checked={allowSelfVoting}
+            onCheckedChange={checked => setAllowSelfVoting(!!checked)}
+          />
+          <Label htmlFor='fr-allow-self-voting' className='cursor-pointer font-normal'>
+            {t('Allow participants to vote on their own submissions')}
+          </Label>
+        </div>
+        <div className='flex items-center gap-2'>
+          <Checkbox
+            id='fr-hide-final-results'
+            checked={hideFinalResults}
+            onCheckedChange={checked => setHideFinalResults(!!checked)}
+          />
+          <Label htmlFor='fr-hide-final-results' className='cursor-pointer font-normal'>
+            {t('Hide final results from participants')}
+          </Label>
+        </div>
       </div>
 
       <div>

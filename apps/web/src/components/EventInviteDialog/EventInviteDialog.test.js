@@ -33,7 +33,7 @@ describe('InviteeRow', () => {
     render(<InviteeRow {...props} />)
 
     expect(screen.getByText('John')).toBeInTheDocument()
-    expect(screen.getByTestId('icon-Checkmark')).toBeInTheDocument()
+    expect(screen.getByRole('checkbox', { hidden: true })).toBeChecked()
   })
 
   it('renders correctly with showResponse', () => {
@@ -47,7 +47,7 @@ describe('InviteeRow', () => {
 
     expect(screen.getByText('Jane')).toBeInTheDocument()
     expect(screen.getByText('Interested')).toBeInTheDocument()
-    expect(screen.queryByTestId('icon-Checkmark')).not.toBeInTheDocument()
+    expect(screen.queryByRole('checkbox', { hidden: true })).not.toBeInTheDocument()
   })
 })
 
