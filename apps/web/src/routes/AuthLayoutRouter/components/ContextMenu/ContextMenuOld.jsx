@@ -549,14 +549,9 @@ function ActionMenu ({ widget }) {
 
   const handleEditWidget = useCallback((e) => {
     e.preventDefault()
-
-    if (widget.type === 'customView') {
-      navigate(groupUrl(group.slug, 'settings/views'))
-    } else {
-      const url = window.location.pathname
-      const editWidgetUrl = addQuerystringToPath(url, { 'edit-widget-id': widget.id, cme: 'yes' })
-      navigate(editWidgetUrl)
-    }
+    const url = window.location.pathname
+    const editWidgetUrl = addQuerystringToPath(url, { 'edit-widget-id': widget.id, cme: 'yes' })
+    navigate(editWidgetUrl)
   }, [widget.id, group.id])
 
   const handleRemoveWidget = useCallback((e) => {
@@ -866,7 +861,6 @@ function GroupSettingsMenu ({ group }) {
     canAddMembers && { title: 'Invitations', url: 'settings/invite' },
     canAddMembers && { title: 'Join Requests', url: 'settings/requests' },
     canAdminister && { title: 'Related Groups', url: 'settings/relationships' },
-    canAdminister && { title: 'Custom Views', url: 'settings/views' },
     canAdminister && { title: 'Export Data', url: 'settings/export' },
     canAdminister && { title: 'Paid Content', url: 'settings/paid-content' },
     canAdminister && { title: 'Delete', url: 'settings/delete' }

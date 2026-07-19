@@ -231,32 +231,3 @@ export function ModerationBootstrapSkeleton () {
     </div>
   )
 }
-
-/**
- * All Views — matches `AllView.jsx`: responsive grid, dashed add tile, then widget cards
- * (`bg-card/40 border-2 border-card/30 rounded-lg`, centered title block).
- */
-export function AllViewBootstrapSkeleton () {
-  return (
-    <div
-      className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4 w-full'
-      aria-busy='true'
-      aria-label='Loading views'
-    >
-      <div className='border-2 flex items-center justify-center border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 background-black/10 rounded-lg border-dashed relative min-h-[120px]'>
-        <Skeleton className='h-7 w-36 max-w-[85%] rounded-md' />
-      </div>
-      {[0, 1, 2, 3, 4, 5, 6, 7].map(i => (
-        <div
-          key={i}
-          className='relative flex flex-col bg-card/40 border-2 border-card/30 shadow-md rounded-lg min-h-[120px] items-center justify-center p-4'
-        >
-          <div className='flex flex-col items-center gap-2 w-full max-w-[220px]'>
-            <Skeleton className='h-5 w-[88%]' />
-            <Skeleton className='h-4 w-[55%]' />
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-}

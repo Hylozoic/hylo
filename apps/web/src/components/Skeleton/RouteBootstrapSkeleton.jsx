@@ -3,7 +3,6 @@ import { matchPath, useLocation } from 'react-router-dom'
 import { StreamSkeleton } from 'components/PostCard/PostCardSkeleton'
 import PostDetailSkeleton from 'routes/PostDetail/PostDetailSkeleton'
 import {
-  AllViewBootstrapSkeleton,
   EventsBootstrapSkeleton,
   GroupAboutBootstrapSkeleton,
   GroupSettingsBootstrapSkeleton,
@@ -80,11 +79,6 @@ const MODERATION_BOOTSTRAP_PATTERNS = [
   '/groups/:groupSlug/moderation'
 ]
 
-const ALL_VIEWS_BOOTSTRAP_PATTERNS = [
-  '/groups/:groupSlug/all-views',
-  '/groups/:groupSlug/all-views/'
-]
-
 function matchesAnyPattern (patterns, pathname) {
   return patterns.some(p =>
     matchPath({ path: p, end: false }, pathname)
@@ -129,10 +123,6 @@ function isEventsBootstrapPath (pathname) {
 
 function isModerationBootstrapPath (pathname) {
   return matchesAnyPattern(MODERATION_BOOTSTRAP_PATTERNS, pathname)
-}
-
-function isAllViewsBootstrapPath (pathname) {
-  return matchesAnyPattern(ALL_VIEWS_BOOTSTRAP_PATTERNS, pathname)
 }
 
 /**
@@ -182,10 +172,6 @@ export default function RouteBootstrapSkeleton ({ pathname: pathnameProp }) {
 
   if (isModerationBootstrapPath(pathname)) {
     return <ModerationBootstrapSkeleton />
-  }
-
-  if (isAllViewsBootstrapPath(pathname)) {
-    return <AllViewBootstrapSkeleton />
   }
 
   return <StreamSkeleton />

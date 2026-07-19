@@ -48,7 +48,6 @@ export default function GroupSettingsMenu ({ group, groupSlug }) {
     canAddMembers && { title: 'Invitations', url: 'settings/invite' },
     canAddMembers && { title: 'Join Requests', url: 'settings/requests' },
     canAdminister && { title: 'Related Groups', url: 'settings/relationships' },
-    canAdminister && { title: 'Custom Views', url: 'settings/views' },
     canAdminister && { title: 'Export Data', url: 'settings/export' },
     canAdminister && { title: 'Paid Content', url: 'settings/paid-content' },
     canAdminister && { title: 'Delete', url: 'settings/delete' }
@@ -74,19 +73,28 @@ export default function GroupSettingsMenu ({ group, groupSlug }) {
           {t('Group Settings')}
         </h3>
         <ul className='flex flex-col gap-2 p-0'>
-          {settingsMenuItems.map(item => (
-            <li key={item.url}>
-              <MenuLink
-                to={groupUrl(slug, item.url)}
-                className={cn(
-                  'text-base text-foreground border-2 border-transparent hover:border-foreground/50 hover:text-foreground rounded-md p-1 pl-2 hover:bg-card text-foreground w-full block transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100',
-                  { 'border-secondary': location.pathname === groupUrl(slug, item.url) }
-                )}
-              >
-                {t(item.title)}
-              </MenuLink>
-            </li>
-          ))}
+          {settingsMenuItems.map(item => {
+            const itemPath = groupUrl(slug, item.url)
+            // Group Details uses the /settings prefix shared by all tabs, so only match exactly
+            const isActive = item.url === 'settings'
+              ? location.pathname === itemPath
+              : location.pathname === itemPath || location.pathname.startsWith(`${itemPath}/`)
+
+            return (
+              <li key={item.url}>
+                <MenuLink
+                  to={itemPath}
+                  isActive={isActive}
+                  className={cn(
+                    'text-base text-foreground border-2 border-transparent hover:border-foreground/50 hover:text-foreground rounded-md p-1 pl-2 hover:bg-card text-foreground w-full block transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100',
+                    { 'border-secondary': isActive }
+                  )}
+                >
+                  {t(item.title)}
+                </MenuLink>
+              </li>
+            )
+          })}
         </ul>
       </div>
       <div className='absolute top-0 left-0 z-0 w-full h-full' onClick={closeMenu} />

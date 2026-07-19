@@ -5,7 +5,6 @@ import { push } from 'redux-first-history'
 import { useTranslation } from 'react-i18next'
 import { useParams } from 'react-router-dom'
 import AgreementsTab from './AgreementsTab'
-import CustomViewsTab from './CustomViewsTab'
 import DeleteSettingsTab from './DeleteSettingsTab'
 import GroupSettingsTab from './GroupSettingsTab'
 import ImportExportSettingsTab from './ImportExportSettingsTab'
@@ -121,14 +120,6 @@ export default function GroupSettings () {
     component: <PrivacySettingsTab group={group} slug={group.slug} updateGroupSettings={updateGroupSettingsAction} parentGroups={parentGroups} fetchPending={fetchPending} />
   }
 
-  const customViewsSettings = {
-    name: t('Custom Views'),
-    path: 'views',
-    component: (
-      <CustomViewsTab group={group} />
-    )
-  }
-
   // const topicsSettings = {
   //   name: t('Topics'),
   //   path: 'topics',
@@ -186,7 +177,6 @@ export default function GroupSettings () {
         canAdminister ? responsibilitiesSettings : null,
         canAdminister ? rolesSettings : null,
         canAdminister ? accessSettings : null,
-        canAdminister ? customViewsSettings : null,
         // canAdminister ? topicsSettings : null, TODO: hide for now, we may want to bring back
         canAddMembers ? inviteSettings : null,
         canAddMembers ? joinRequestSettings : null,
