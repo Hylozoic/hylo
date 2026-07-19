@@ -8,9 +8,11 @@ import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
 import { ImageUp, Info } from 'lucide-react'
+import { CUSTOM_VIEW_DEFAULT_POST_TYPES } from 'components/CustomViewForm/customViewFormConstants'
 import { ensureLocationIdIfCoordinate } from 'components/LocationInput/LocationInput.store'
 import EditableMap from 'components/Map/EditableMap/EditableMap'
 import EditableMapModal from 'components/Map/EditableMap/EditableMapModal'
+import PostTypePills from 'components/PostTypePills/PostTypePills'
 import SettingsControl from 'components/SettingsControl'
 import SkillsSection from 'components/SkillsSection'
 import SwitchStyled from 'components/SwitchStyled'
@@ -46,12 +48,13 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
     if (!group) return { edits: {}, changed: false, valid: false }
 
     const {
-      aboutVideoUri, avatarUrl, bannerUrl, description, geoShape, location, locationObject, name, settings, websiteUrl
+      aboutVideoUri, acceptedPostTypes, avatarUrl, bannerUrl, description, geoShape, location, locationObject, name, settings, websiteUrl
     } = group
 
     return {
       edits: {
         aboutVideoUri: (aboutVideoUri && trim(aboutVideoUri)) || '',
+        acceptedPostTypes: Array.isArray(acceptedPostTypes) ? acceptedPostTypes : [...CUSTOM_VIEW_DEFAULT_POST_TYPES],
         avatarUrl: avatarUrl || DEFAULT_AVATAR,
         bannerUrl: bannerUrl || DEFAULT_BANNER,
         description: description || '',
@@ -133,7 +136,7 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
 
   const { changed, edits, error } = state
   const {
-    aboutVideoUri, avatarUrl, bannerUrl, description, geoShape, location, stewardDescriptor, stewardDescriptorPlural, name, purpose, settings, websiteUrl
+    aboutVideoUri, acceptedPostTypes, avatarUrl, bannerUrl, description, geoShape, location, stewardDescriptor, stewardDescriptorPlural, name, purpose, settings, websiteUrl
   } = edits
 
   const { defaultDigestFrequency: defaultDigestFrequencySetting = 'daily', locationDisplayPrecision, showSuggestedSkills } = settings
@@ -251,6 +254,15 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
               />
               )}
         </div>
+      </SettingsSection>
+      <SettingsSection>
+        <h3 className='text-foreground text-xl mb-4 mt-0'>{t('Accepted Post Types')}</h3>
+        <p className='text-foreground/70 text-sm mb-4'>{t('Choose which post types this group accepts. Views for turned-off types are hidden from the group menu.')}</p>
+        <PostTypePills
+          postTypes={acceptedPostTypes}
+          onPostTypesChange={updateSettingDirectly('acceptedPostTypes')}
+          label={t('Accepted post types')}
+        />
       </SettingsSection>
       <SettingsSection>
         <h3 className='text-foreground text-xl mb-4 mt-0'>{t('Customize group terms')}</h3>

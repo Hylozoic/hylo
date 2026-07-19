@@ -921,7 +921,7 @@ module.exports = bookshelf.Model.extend(merge({
 
   update: async function (changes, updatedByUserId) {
     const whitelist = [
-      'about_video_uri', 'active', 'access_code', 'accessibility', 'avatar_url', 'banner_url',
+      'about_video_uri', 'accepted_post_types', 'active', 'access_code', 'accessibility', 'avatar_url', 'banner_url',
       'description', 'geo_shape', 'icon', 'location', 'location_id', 'name', 'purpose', 'settings',
       'steward_descriptor', 'steward_descriptor_plural', 'type_descriptor', 'type_descriptor_plural', 'visibility',
       'website_url', 'stripe_account_id', 'stripe_charges_enabled', 'stripe_payouts_enabled', 'stripe_details_submitted', 'paywall'

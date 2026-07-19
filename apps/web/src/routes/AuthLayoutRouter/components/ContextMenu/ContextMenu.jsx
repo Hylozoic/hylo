@@ -51,6 +51,7 @@ import MoreSpacesSection from './MoreSpacesSection'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { RESP_ADMINISTRATION, RESP_MANAGE_SPACES } from 'store/constants'
+import { viewAcceptedByPostTypes } from 'store/models/GroupView'
 import { WebViewMessageTypes } from '@hylo/shared'
 import { getMobileAppVersion, sendMessageToWebView } from 'util/webView'
 
@@ -227,6 +228,7 @@ function GroupViewMenuItem ({
     )
     const spaceViews = (linkedSpaceGroup?.groupViews?.items || [])
       .filter(v => v.order != null)
+      .filter(v => viewAcceptedByPostTypes(v.type, linkedSpaceGroup?.acceptedPostTypes))
       .map(v => GroupViewPresenter(v))
     const hasMultipleSpaceViews = spaceViews.length > 1
     const singleSpaceView = spaceViews.length === 1 ? spaceViews[0] : null
@@ -342,8 +344,11 @@ function GroupViewList ({
     )
   }
 
-  // Live menu: only views with an order (hidden views have order = null).
-  const visibleViews = groupViews.filter(view => view.order != null)
+  // Live menu: only views with an order (hidden views have order = null),
+  // and post-type views must be allowed by the group's acceptedPostTypes.
+  const visibleViews = groupViews
+    .filter(view => view.order != null)
+    .filter(view => viewAcceptedByPostTypes(view.type, group?.acceptedPostTypes))
 
   return (
     <div className='relative flex flex-col z-20'>

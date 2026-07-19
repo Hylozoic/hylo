@@ -16,7 +16,7 @@ import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupVi
 import { createGroupView } from 'store/actions/groupViews'
 import fetchGroupRelationships from 'store/actions/fetchGroupRelationships'
 import fetchPeople from 'store/actions/fetchPeople'
-import { VIEW_TYPE_TO_POST_TYPES } from 'store/models/GroupView'
+import { viewAcceptedByPostTypes } from 'store/models/GroupView'
 import {
   getChildGroups,
   getParentGroups,
@@ -119,10 +119,7 @@ export default function AddGroupViewDialog ({ group, groupViews, acceptedPostTyp
   }, [typesInMenu])
 
   const isTypeAcceptable = useCallback((type) => {
-    if (!acceptedPostTypes) return true
-    const requiredPostTypes = VIEW_TYPE_TO_POST_TYPES[type]
-    if (!requiredPostTypes) return true
-    return requiredPostTypes.some(postType => acceptedPostTypes.includes(postType))
+    return viewAcceptedByPostTypes(type, acceptedPostTypes)
   }, [acceptedPostTypes])
 
   const addableViewTypes = useMemo(

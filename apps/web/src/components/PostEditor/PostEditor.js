@@ -178,8 +178,20 @@ function PostEditorInner ({
     return null
   })
   // Restrict create-modal type options to the current view's post types (e.g. request/offer on requests-and-offers)
+  // intersected with the current group's acceptedPostTypes when set.
   const allowedPostTypesForView = useAllowedPostTypesForView()
-  const allowedPostTypes = !editing ? allowedPostTypesForView : null
+  const allowedPostTypes = useMemo(() => {
+    if (editing) return null
+
+    const fromView = allowedPostTypesForView
+    const fromGroup = currentGroup?.acceptedPostTypes
+
+    // null/undefined acceptedPostTypes = group accepts all types
+    if (fromGroup == null) return fromView
+    if (!Array.isArray(fromGroup)) return fromView
+    if (fromView == null) return fromGroup
+    return fromView.filter(type => fromGroup.includes(type))
+  }, [editing, allowedPostTypesForView, currentGroup?.acceptedPostTypes])
 
   useEffect(() => {
     if (groupSlug && !currentGroup) dispatch(fetchForGroup(groupSlug))
@@ -190,8 +202,13 @@ function PostEditorInner ({
   const viewId = getQuerystringParam('viewId', urlLocation)
 
   const postType = getQuerystringParam('newPostType', urlLocation)
-  // Prefer explicit newPostType, then the view's first allowed type, then discussion
-  const createPostType = postType || (allowedPostTypesForView?.[0] || 'discussion')
+  // Prefer explicit newPostType (if still allowed), then the first allowed type, then discussion
+  const createPostType = (() => {
+    const fallback = allowedPostTypes?.[0] || 'discussion'
+    if (!postType) return fallback
+    if (allowedPostTypes != null && !allowedPostTypes.includes(postType)) return fallback
+    return postType
+  })()
   // TODO: do we still need this topic stuff with chat no longer using topics? is there a different semantic context for drafts now for chat?
   const topicName = customTopicName || (routeParams.topicName && decodeURIComponent(routeParams.topicName))
   const topic = useSelector(state => getTopicForCurrentRoute(state, topicName))
