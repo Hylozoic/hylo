@@ -39,6 +39,7 @@ export default gql`
       settings {
         showSuggestedSkills
         showWelcomePage
+        layout
       }
       slug
       type

@@ -1524,6 +1524,8 @@ type GroupSettings {
   defaultDigestFrequency: String
   # Whether to display group extension data on the profile for special group types like farms
   hideExtensionData: Boolean
+  # Layout mode for the group: 'two-column' (sidebar + content) or 'one-column' (dashboard cards)
+  layout: String
   # How precisely to display group locations on the map and the group profile, to enable obfuscating the location
   locationDisplayPrecision: LocationDisplayPrecision
   # Whether to display the members of the group to non-members
@@ -4338,6 +4340,8 @@ input GroupSettingsInput {
   defaultDigestFrequency: String
   # Whether to display group extension data on the profile for special group types like farms
   hideExtensionData: Boolean
+  # Layout mode for the group: 'two-column' (sidebar + content) or 'one-column' (dashboard cards)
+  layout: String
   # How precisely to display group locations on the map and the group profile, to enable obfuscating the location
   locationDisplayPrecision: LocationDisplayPrecision
   # Whether to display the members of the group to non-members

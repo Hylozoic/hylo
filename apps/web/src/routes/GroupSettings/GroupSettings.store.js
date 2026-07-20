@@ -61,6 +61,8 @@ export function fetchGroupSettings (slug) {
             publishMurmurationsProfile
             showSuggestedSkills
             showWelcomePage
+            showPostNoticesInChat
+            layout
           }
           type
           slug
@@ -270,6 +272,7 @@ export function updateGroupSettings (id, changes) {
             showSuggestedSkills
             showWelcomePage
             showPostNoticesInChat
+            layout
           }
           agreements {
             items {

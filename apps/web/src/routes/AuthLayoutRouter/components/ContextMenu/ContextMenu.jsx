@@ -394,6 +394,7 @@ export default function ContextMenu (props) {
   const isMyContext = routeParams.context === MY_CONTEXT_SLUG
   const isAllContext = routeParams.context === ALL_GROUPS_CONTEXT_SLUG
   const isGroupContext = routeParams.context === 'groups'
+  const isOneColumnLayout = isGroupContext && group?.settings?.layout === 'one-column'
   const profileUrl = personUrl(currentUser?.id, groupSlug)
 
   const isNavOpen = useSelector(state => get('AuthLayoutRouter.isNavOpen', state))
@@ -486,6 +487,23 @@ export default function ContextMenu (props) {
       {devToggle}
     </div>
   )
+
+  // Simple groups don't use the vertical widget context menu — their home dashboard
+  // (OneColumnLayout) replaces it. Only render the settings menu when on /settings.
+  if (isOneColumnLayout && !location.pathname.includes('/settings')) {
+    return null
+  }
+
+  // One-column layout on settings: only show the settings menu, not the full context menu.
+  // Wrap in a sized container so the (position:fixed) menu reserves flex space and the
+  // center column shifts over instead of rendering underneath it.
+  if (isOneColumnLayout && location.pathname.includes('/settings')) {
+    return (
+      <div className='relative z-20 h-full flex-shrink-0 w-[260px] sm:w-[300px]'>
+        <GroupSettingsMenu group={group} groupSlug={groupSlug} isOneColumn />
+      </div>
+    )
+  }
 
   if (!useGroupViews) {
     return <ContextMenuOld {...props} devToggle={devToggle} />

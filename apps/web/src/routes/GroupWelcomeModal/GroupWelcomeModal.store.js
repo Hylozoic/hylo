@@ -15,6 +15,7 @@ export const groupWelcomeQuery = `
         publicMemberDirectory
         showSuggestedSkills
         showWelcomePage
+        layout
       }
       agreements {
         items {

@@ -1,0 +1,470 @@
+import { cn } from 'util/index'
+import { get } from 'lodash/fp'
+import { Globe, HelpCircle, PlusCircle, Bell, MessagesSquare, Layers, Pin, X } from 'lucide-react'
+import React, { Suspense, useState, useRef, useMemo, useCallback, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
+import { useSelector, useDispatch } from 'react-redux'
+import { useNavigate } from 'react-router-dom'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger
+} from 'components/ui/popover'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from 'components/ui/tooltip'
+import BadgedIcon from 'components/BadgedIcon'
+import CreateMenu from 'components/CreateMenu'
+import { getMyGroupsWithChildren } from 'store/selectors/getMyGroups'
+import { useTheme } from 'contexts/ThemeContext'
+import useRouteParams from 'hooks/useRouteParams'
+import { baseUrl } from '@hylo/navigation'
+import { DEFAULT_AVATAR } from 'store/models/Group'
+import Badge from 'components/Badge'
+import { SettingsMenu } from '../GlobalNav/GlobalNav'
+import { pinGroup } from 'store/actions/pinGroup'
+
+const NotificationsDropdown = React.lazy(() => import('../GlobalNav/NotificationsDropdown'))
+
+// Framed tile for system (non-group) icons — mirrors the bg-primary tiles in the GlobalNav sidebar,
+// so they read as the same kind of element as the group/avatar tabs rather than bare glyphs.
+const SYSTEM_ICON_FRAME = 'flex items-center justify-center w-[26px] h-[26px] rounded-sm bg-primary text-primary-foreground shadow-sm'
+
+function TabAvatar ({ img, label, size = 26, className }) {
+  const isDefaultAvatar = img === DEFAULT_AVATAR
+  if (img && !isDefaultAvatar) {
+    return (
+      <div
+        className={cn('rounded-sm bg-primary bg-cover bg-center', className)}
+        style={{ width: size, height: size, backgroundImage: `url(${img})` }}
+      />
+    )
+  }
+  if (isDefaultAvatar) {
+    return (
+      <div
+        className={cn('rounded-sm flex items-center justify-center text-[10px] font-bold text-white', className)}
+        style={{ width: size, height: size, background: 'linear-gradient(to bottom right, hsl(var(--focus)), hsl(var(--selected)))' }}
+      >
+        {label?.split(' ').slice(0, 2).map(w => w[0]?.toUpperCase()).join('')}
+      </div>
+    )
+  }
+  return null
+}
+
+function StackedAvatars ({ parentImg, parentLabel, childGroups }) {
+  // Show parent + up to 2 children stacked: top-left -> bottom-right
+  const stackItems = [
+    { img: parentImg, label: parentLabel },
+    ...childGroups.slice(0, 2).map(c => ({ img: c.avatarUrl, label: c.name }))
+  ]
+  const count = stackItems.length
+  const itemSize = 22
+  const offset = 3
+  const frameSize = itemSize + (count - 1) * offset
+
+  return (
+    <div className='relative shrink-0 flex items-center justify-center' style={{ width: frameSize, height: frameSize }}>
+      {stackItems.map((item, i) => (
+        <div
+          key={i}
+          className='absolute rounded-sm overflow-hidden border border-foreground/20'
+          style={{
+            top: i * offset,
+            left: i * offset,
+            zIndex: count - i
+          }}
+        >
+          <TabAvatar img={item.img} label={item.label} size={itemSize} />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function TopNavTab ({ label, img, url, badgeCount = 0, children, isActive, onNavigate, iconOnly = false, childGroups, onNavigateChild }) {
+  const { t } = useTranslation()
+  const hasChildren = childGroups && childGroups.length > 0
+
+  const tabContent = (
+    <div
+      onClick={hasChildren ? undefined : () => onNavigate(url)}
+      className={cn(
+        'TopNavTab group relative flex items-center h-full cursor-pointer select-none',
+        'border-r border-foreground/10 transition-colors duration-150',
+        'hover:bg-foreground/10',
+        '[&:has(+.TopNavTab-active)]:border-r-transparent',
+        iconOnly ? 'px-1.5 justify-center' : 'px-3 gap-1.5',
+        {
+          'TopNavTab-active border-r-transparent': isActive
+        }
+      )}
+      style={{
+        // Named tabs are content-sized (don't grow to fill the row) but can shrink and
+        // truncate when space gets tight. Icon-only tabs keep flex-grow so they spread
+        // evenly across the available width as the only thing visible.
+        flex: iconOnly ? '1 1 0' : '0 1 auto',
+        minWidth: iconOnly ? (hasChildren ? 44 : 34) : 80,
+        maxWidth: iconOnly ? (hasChildren ? 70 : 50) : 200
+      }}
+    >
+      {isActive && <span aria-hidden className='absolute inset-x-0.5 inset-y-[3px] rounded-lg bg-selected/70' />}
+      <div className='relative z-10 shrink-0'>
+        {hasChildren
+          ? <StackedAvatars parentImg={img} parentLabel={label} childGroups={childGroups} />
+          : img
+            ? <TabAvatar img={img} label={label} />
+            : children
+              ? <span className={cn(SYSTEM_ICON_FRAME, '[&>svg]:w-4 [&>svg]:h-4')}>{children}</span>
+              : null}
+        {(badgeCount > 0 || badgeCount === '-') && (
+          <span className='absolute -top-1.5 -right-1.5 z-10 w-2.5 h-2.5 rounded-full bg-accent border border-card' />
+        )}
+      </div>
+      {/* The tab bar background is dark in both light and dark themes, so labels are always light. */}
+      {!iconOnly && <span className={cn('relative z-10 truncate text-xs font-medium', isActive ? 'text-white' : 'text-white/80')}>{label}</span>}
+    </div>
+  )
+
+  if (hasChildren) {
+    return (
+      <Popover>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <PopoverTrigger asChild>
+              {tabContent}
+            </PopoverTrigger>
+          </TooltipTrigger>
+          <TooltipContent side='bottom' className='text-xs'>
+            {label}
+          </TooltipContent>
+        </Tooltip>
+        <PopoverContent side='bottom' align='start' className='w-56 p-1'>
+          <div
+            onClick={() => onNavigate(url)}
+            className='flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer hover:bg-foreground/10 transition-colors font-medium'
+          >
+            <TabAvatar img={img} label={label} size={20} />
+            <span className='truncate text-sm'>{label}</span>
+          </div>
+          {childGroups.map(child => (
+            <div
+              key={child.id}
+              onClick={() => onNavigate(`/groups/${child.slug}`)}
+              className='flex items-center gap-2 pl-6 pr-2 py-1.5 rounded-md cursor-pointer hover:bg-foreground/10 transition-colors'
+            >
+              <TabAvatar img={child.avatarUrl} label={child.name} size={18} />
+              <span className='truncate text-sm text-foreground/70'>{child.name}</span>
+            </div>
+          ))}
+        </PopoverContent>
+      </Popover>
+    )
+  }
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        {tabContent}
+      </TooltipTrigger>
+      <TooltipContent side='bottom' className='text-xs'>
+        {label}
+      </TooltipContent>
+    </Tooltip>
+  )
+}
+
+export default function TopNav ({ currentUser }) {
+  const { t } = useTranslation()
+  const dispatch = useDispatch()
+  const navigate = useNavigate()
+  const routeParams = useRouteParams()
+  const { stackGroups } = useTheme()
+  const sortedGroups = useSelector(getMyGroupsWithChildren)
+  const tabContainerRef = useRef(null)
+  const [visibleGroupCount, setVisibleGroupCount] = useState(sortedGroups.length)
+  const [iconOnly, setIconOnly] = useState(false)
+
+  const currentBase = baseUrl({ context: routeParams.context, groupSlug: routeParams.groupSlug })
+
+  // A group tab is active when its own group is open OR when one of its stacked subgroups is the active group.
+  const isGroupTabActive = useCallback((tab) =>
+    currentBase === tab.url || (tab.childGroups || []).some(child => child.slug === routeParams.groupSlug),
+  [currentBase, routeParams.groupSlug])
+
+  const handleNavigate = useCallback((url) => {
+    if (url) navigate(url)
+  }, [navigate])
+
+  // Fixed tabs (always shown)
+  const fixedTabs = useMemo(() => [
+    { key: 'home', label: t('My Home'), url: '/my', img: get('avatarUrl', currentUser) },
+    { key: 'messages', label: t('Messages'), url: '/messages', badgeCount: currentUser?.unseenThreadCount || 0 },
+    { key: 'commons', label: t('The Commons'), url: '/public' }
+  ], [currentUser, t])
+
+  // Every group the user is a member of gets its own tab — including subgroups.
+  // Subgroups also appear in their parent's dropdown (req: don't auto-consolidate).
+  const groupTabs = useMemo(() =>
+    sortedGroups.map(group => ({
+      key: `group-${group.id}`,
+      groupId: group.id,
+      label: group.name,
+      url: `/groups/${group.slug}`,
+      img: group.avatarUrl,
+      badgeCount: group.newPostCount ? '-' : 0,
+      // When stacking is off, subgroups don't nest into the parent's stack/dropdown.
+      childGroups: stackGroups ? (group.childGroups || []) : []
+    })),
+  [sortedGroups, stackGroups])
+
+  // Measure available space and pick a layout mode like browser tabs:
+  // 1. Named: every tab gets at least NAMED_TAB_MIN — names visible, truncated as space tightens.
+  // 2. Icon-only: not enough room for names, but every tab still fits as an icon.
+  // 3. Overflow: even icon-only tabs don't all fit; show as many as we can plus an overflow popover.
+  useEffect(() => {
+    const container = tabContainerRef.current
+    if (!container) return
+
+    const ICON_ONLY_TAB_WIDTH = 38 // avatar (26px) + padding (2 * 6px)
+    const NAMED_TAB_MIN = 80 // minimum width to keep a tab readable with a truncated name
+    const OVERFLOW_BUTTON_WIDTH = 52
+
+    const measure = () => {
+      const containerWidth = container.clientWidth
+
+      if (groupTabs.length === 0) {
+        setVisibleGroupCount(0)
+        setIconOnly(false)
+        return
+      }
+
+      const totalTabs = fixedTabs.length + groupTabs.length
+
+      // Mode 1: do all tabs fit at the minimum named width?
+      if (totalTabs * NAMED_TAB_MIN <= containerWidth) {
+        setVisibleGroupCount(groupTabs.length)
+        setIconOnly(false)
+        return
+      }
+
+      // Mode 2: icon-only — fixed tabs collapse too.
+      const availableForGroups = containerWidth - fixedTabs.length * ICON_ONLY_TAB_WIDTH
+      if (groupTabs.length * ICON_ONLY_TAB_WIDTH <= availableForGroups) {
+        setVisibleGroupCount(groupTabs.length)
+        setIconOnly(true)
+        return
+      }
+
+      // Mode 3: overflow — fit what we can, the rest go in the overflow popover.
+      const availableWithOverflow = availableForGroups - OVERFLOW_BUTTON_WIDTH
+      const fitCount = Math.max(0, Math.floor(availableWithOverflow / ICON_ONLY_TAB_WIDTH))
+      setVisibleGroupCount(fitCount)
+      setIconOnly(true)
+    }
+
+    const raf = requestAnimationFrame(measure)
+    window.addEventListener('resize', measure)
+
+    return () => {
+      cancelAnimationFrame(raf)
+      window.removeEventListener('resize', measure)
+    }
+  }, [fixedTabs.length, groupTabs.length])
+
+  // My Home renders as the first item in the bar, ahead of notifications.
+  const homeTab = fixedTabs.find(tab => tab.key === 'home')
+  const nonHomeFixedTabs = fixedTabs.filter(tab => tab.key !== 'home')
+
+  const visibleGroups = groupTabs.slice(0, visibleGroupCount)
+  const overflowGroups = groupTabs.slice(visibleGroupCount)
+  const hasOverflow = overflowGroups.length > 0
+  const overflowHasBadge = overflowGroups.some(tab => tab.badgeCount > 0 || tab.badgeCount === '-')
+
+  const handlePinGroup = useCallback((groupId, e) => {
+    e.stopPropagation()
+    dispatch(pinGroup(groupId))
+  }, [dispatch])
+
+  return (
+    <div
+      className='TopNav flex items-stretch bg-card w-full h-11 shrink-0 border-b border-foreground/15 z-50 relative'
+      style={{
+        boxShadow: '0 1px 3px hsl(var(--darkening) / 0.15)'
+      }}
+    >
+      <div className='absolute inset-0 bg-gradient-to-b from-theme-background/75 to-theme-highlight dark:bg-gradient-to-b dark:from-theme-background/90 dark:to-theme-highlight/100 z-0' />
+
+      {/* User home — first item */}
+      {homeTab && (
+        <TopNavTab
+          label={homeTab.label}
+          img={homeTab.img}
+          url={homeTab.url}
+          badgeCount={homeTab.badgeCount}
+          isActive={currentBase === homeTab.url}
+          onNavigate={handleNavigate}
+          iconOnly={iconOnly}
+        />
+      )}
+
+      {/* Notifications button */}
+      <Suspense fallback={
+        <div className='relative z-10 flex items-center px-2 border-r border-foreground/10'>
+          <span className={SYSTEM_ICON_FRAME}><Bell className='w-4 h-4' /></span>
+        </div>
+      }
+      >
+        <NotificationsDropdown renderToggleChildren={showBadge =>
+          <div className='relative z-10 flex items-center px-2 border-r border-foreground/10 cursor-pointer hover:bg-foreground/5 transition-colors'>
+            <span className={SYSTEM_ICON_FRAME}>
+              <BadgedIcon name='Notifications' className='!text-primary-foreground cursor-pointer text-base' />
+            </span>
+          </div>}
+        />
+      </Suspense>
+
+      {/* Tab container */}
+      <div
+        ref={tabContainerRef}
+        className='relative z-10 flex items-stretch flex-1 overflow-hidden'
+      >
+        {nonHomeFixedTabs.map(tab => (
+          <TopNavTab
+            key={tab.key}
+            label={tab.label}
+            img={tab.img}
+            url={tab.url}
+            badgeCount={tab.badgeCount}
+            isActive={currentBase === tab.url}
+            onNavigate={handleNavigate}
+            iconOnly={iconOnly}
+          >
+            {tab.key === 'messages' && <MessagesSquare className='w-4 h-4' />}
+            {tab.key === 'commons' && <Globe className='w-4 h-4' />}
+          </TopNavTab>
+        ))}
+
+        {visibleGroups.map(tab => (
+          <TopNavTab
+            key={tab.key}
+            label={tab.label}
+            img={tab.img}
+            url={tab.url}
+            badgeCount={tab.badgeCount}
+            isActive={isGroupTabActive(tab)}
+            onNavigate={handleNavigate}
+            iconOnly={iconOnly}
+            childGroups={tab.childGroups}
+          />
+        ))}
+
+      </div>
+
+      {/* Overflow button - outside tab container so it's always visible */}
+      {hasOverflow && (
+        <Popover>
+          <PopoverTrigger asChild>
+            <div
+              className={cn(
+                'relative z-10 flex items-center h-full px-2 cursor-pointer select-none shrink-0',
+                'border-r border-foreground/10 transition-colors duration-150',
+                'hover:bg-foreground/5'
+              )}
+            >
+              <div className='relative flex items-center gap-1 h-[26px] px-2 rounded-md bg-primary text-primary-foreground shadow-sm'>
+                <Layers className='w-4 h-4' />
+                <span className='text-xs font-bold'>{overflowGroups.length}</span>
+                {overflowHasBadge && (
+                  <span className='absolute -top-1.5 -right-1.5 z-10 w-2.5 h-2.5 rounded-full bg-accent border border-card' />
+                )}
+              </div>
+            </div>
+          </PopoverTrigger>
+          <PopoverContent side='bottom' align='start' className='w-64 max-h-80 overflow-y-auto p-1'>
+            {overflowGroups.map(tab => {
+              const isDefaultAvatar = tab.img === DEFAULT_AVATAR
+              return (
+                <div
+                  key={tab.key}
+                  onClick={() => handleNavigate(tab.url)}
+                  className={cn(
+                    'group flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer',
+                    'hover:bg-foreground/10 transition-colors',
+                    { 'bg-selected/10': currentBase === tab.url }
+                  )}
+                >
+                  {tab.img && !isDefaultAvatar
+                    ? (
+                      <div
+                        className='w-5 h-5 rounded-sm bg-primary shrink-0 bg-cover bg-center'
+                        style={{ backgroundImage: `url(${tab.img})` }}
+                      />
+                      )
+                    : (
+                      <div
+                        className='w-5 h-5 rounded-sm shrink-0 flex items-center justify-center text-[9px] font-bold text-white'
+                        style={{ background: 'linear-gradient(to bottom right, hsl(var(--focus)), hsl(var(--selected)))' }}
+                      >
+                        {tab.label?.split(' ').slice(0, 2).map(w => w[0]?.toUpperCase()).join('')}
+                      </div>
+                      )}
+                  <span className='truncate text-sm flex-1'>{tab.label}</span>
+                  {(tab.badgeCount > 0 || tab.badgeCount === '-') && (
+                    <span className='w-2 h-2 rounded-full bg-accent shrink-0' />
+                  )}
+                  <button
+                    onClick={(e) => handlePinGroup(tab.groupId, e)}
+                    className='shrink-0 opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity p-1 rounded hover:bg-foreground/20'
+                    title={t('Pin to top')}
+                  >
+                    <Pin className='w-3 h-3' />
+                  </button>
+                </div>
+              )
+            })}
+          </PopoverContent>
+        </Popover>
+      )}
+
+      {/* Action buttons */}
+      <div className='relative z-10 flex items-center gap-1.5 px-2 border-l border-foreground/10'>
+        <Popover>
+          <PopoverTrigger>
+            <div className={cn(SYSTEM_ICON_FRAME, 'cursor-pointer transition-all hover:drop-shadow [&>svg]:w-4 [&>svg]:h-4')}>
+              <PlusCircle />
+            </div>
+          </PopoverTrigger>
+          <PopoverContent side='bottom' align='end'>
+            <CreateMenu />
+          </PopoverContent>
+        </Popover>
+
+        <SettingsMenu
+          currentUser={currentUser}
+          triggerClassName={cn(SYSTEM_ICON_FRAME, 'cursor-pointer transition-all hover:drop-shadow [&>svg]:w-4 [&>svg]:h-4')}
+          contentSide='bottom'
+          contentAlign='end'
+        />
+
+        <Popover>
+          <PopoverTrigger>
+            <div className={cn(SYSTEM_ICON_FRAME, 'cursor-pointer transition-all hover:drop-shadow [&>svg]:w-4 [&>svg]:h-4')}>
+              <HelpCircle />
+            </div>
+          </PopoverTrigger>
+          <PopoverContent side='bottom' align='end'>
+            <ul className='flex flex-col gap-2 m-0 p-0'>
+              <li className='w-full'><a className='text-foreground cursor-pointer hover:text-foreground/100 px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2 text-sm' href='https://hylozoic.gitbook.io/hylo/guides/hylo-user-guide' target='_blank' rel='noreferrer'>{t('User Guide')}</a></li>
+              <li className='w-full'><a className='text-foreground cursor-pointer hover:text-foreground/100 px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2 text-sm' href='http://hylo.com/terms/' target='_blank' rel='noreferrer'>{t('Terms & Privacy')}</a></li>
+              <li className='w-full'><a className='text-foreground cursor-pointer hover:text-foreground/100 px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2 text-sm' href='https://opencollective.com/hylo' target='_blank' rel='noreferrer'>{t('Contribute to Hylo')}</a></li>
+            </ul>
+          </PopoverContent>
+        </Popover>
+      </div>
+    </div>
+  )
+}

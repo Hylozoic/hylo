@@ -15,7 +15,7 @@ import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
 import { cn } from 'util/index'
 
 /** Settings overlay for the ContextMenu panel. Accepts groupSlug directly (no context required). */
-export default function GroupSettingsMenu ({ group, groupSlug }) {
+export default function GroupSettingsMenu ({ group, groupSlug, isOneColumn = false }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const navigate = useNavigate()
@@ -49,6 +49,7 @@ export default function GroupSettingsMenu ({ group, groupSlug }) {
     canAddMembers && { title: 'Join Requests', url: 'settings/requests' },
     canAdminister && { title: 'Related Groups', url: 'settings/relationships' },
     canAdminister && { title: 'Export Data', url: 'settings/export' },
+    canAdminister && { title: 'Appearance & Layout', url: 'settings/appearance' },
     canAdminister && { title: 'Paid Content', url: 'settings/paid-content' },
     canAdminister && { title: 'Delete', url: 'settings/delete' }
   ].filter(Boolean), [canAdminister, canAddMembers])
@@ -65,7 +66,7 @@ export default function GroupSettingsMenu ({ group, groupSlug }) {
       <div
         className={cn(
           'absolute h-full overflow-y-auto top-0 right-0 flex flex-col gap-2 bg-background shadow-[-15px_0px_25px_rgba(0,0,0,0.3)] px-2 z-10',
-          phoneLayout ? 'left-14' : 'left-0'
+          phoneLayout ? (isOneColumn ? 'left-0' : 'left-14') : 'left-0'
         )}
       >
         <h3 className='text-lg font-bold flex items-center gap-2 text-foreground'>

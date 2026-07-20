@@ -123,10 +123,21 @@ export default gql`
         settings {
           showSuggestedSkills
           showWelcomePage
+          layout
         }
         slug
         type
         allowInPublic
+        childGroups {
+          items {
+            id
+            name
+            avatarUrl
+            slug
+            visibility
+            accessibility
+          }
+        }
       }
     }
     skills {
