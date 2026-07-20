@@ -1,4 +1,10 @@
-import { DELETE_POST_PENDING, CREATE_POST, REORDER_VIEW_POST_PENDING } from 'store/constants'
+import {
+  ADD_POST_TO_VIEW_PENDING,
+  CREATE_POST,
+  DELETE_POST_PENDING,
+  REMOVE_POST_FROM_VIEW_PENDING,
+  REORDER_VIEW_POST_PENDING
+} from 'store/constants'
 import { updateGroupViewInMenu } from 'store/util/groupViewsOrder'
 
 /** Finds a view's raw collectionPosts array within a group's embedded menu (top-level or nested space menu). */
@@ -52,6 +58,34 @@ export function ormSessionReducer ({ Group }, { type, meta, payload }) {
       const [moved] = reordered.splice(fromIndex, 1)
       reordered.splice(order, 0, moved)
       updateGroupViewInMenu(group, viewId, { collectionPosts: reordered })
+      break
+    }
+
+    case ADD_POST_TO_VIEW_PENDING: {
+      const { groupId, viewId, postId, post } = meta
+      if (!post) return
+      const group = Group.safeWithId(groupId)
+      if (!group) return
+      const posts = findCollectionPosts(group, viewId)
+      if (posts === undefined) {
+        updateGroupViewInMenu(group, viewId, { collectionPosts: [post] })
+        return
+      }
+      if (posts.some(p => String(p.id) === String(postId))) return
+      updateGroupViewInMenu(group, viewId, {
+        collectionPosts: [...posts, post]
+      })
+      break
+    }
+
+    case REMOVE_POST_FROM_VIEW_PENDING: {
+      const { groupId, viewId, postId } = meta
+      const group = Group.safeWithId(groupId)
+      const posts = findCollectionPosts(group, viewId)
+      if (!posts) return
+      updateGroupViewInMenu(group, viewId, {
+        collectionPosts: posts.filter(p => String(p.id) !== String(postId))
+      })
       break
     }
 

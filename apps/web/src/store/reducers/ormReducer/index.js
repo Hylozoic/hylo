@@ -88,7 +88,6 @@ import {
 } from 'components/SkillsToLearnSection/SkillsToLearnSection.store'
 
 import {
-  FETCH_COLLECTION_POSTS,
   UPDATE_GROUP_SETTINGS,
   UPDATE_GROUP_SETTINGS_PENDING
 } from 'routes/GroupSettings/GroupSettings.store'
@@ -586,10 +585,6 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       }
       break
 
-    case FETCH_COLLECTION_POSTS:
-      clearCacheFor(Group, meta.groupId)
-      break
-
     case FETCH_GROUP_DETAILS_PENDING: {
       // Clear out prerequisite groups so they correclty update with latest data
       group = Group.safeGet({ slug: meta.slug })
@@ -609,11 +604,13 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
 
     case FETCH_VIEW_POSTS: {
       const items = payload.data?.group?.groupViews?.items || []
-      const viewData = items.find(v => String(v.id) === String(meta.viewId))
       const targetGroup = Group.withId(meta.groupId)
-      if (viewData && targetGroup) {
-        updateGroupViewInMenu(targetGroup, meta.viewId, { collectionPosts: viewData.collectionPosts })
-      }
+      if (!targetGroup) break
+      items.forEach(viewData => {
+        if (viewData?.id != null && viewData.collectionPosts !== undefined) {
+          updateGroupViewInMenu(targetGroup, viewData.id, { collectionPosts: viewData.collectionPosts })
+        }
+      })
       break
     }
 

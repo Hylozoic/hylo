@@ -1,9 +1,11 @@
 import { get, isUndefined, omitBy } from 'lodash/fp'
 import {
+  ADD_POST_TO_VIEW,
   CREATE_GROUP_VIEW,
   CREATE_SPACE,
   DELETE_GROUP_VIEW,
   FETCH_VIEW_POSTS,
+  REMOVE_POST_FROM_VIEW,
   REORDER_GROUP_VIEW,
   REORDER_VIEW_POST,
   SET_GROUP_VIEW_HIDDEN,
@@ -219,6 +221,43 @@ export function setHomeView ({ viewId, groupId, parentGroupId, targetGroupId, re
       variables: { viewId, groupId }
     },
     meta: { viewId, groupId, parentGroupId, targetGroupId, reorderedItems }
+  }
+}
+
+/** Add a post to a collection (or other ordered) GroupView. */
+export function addPostToView ({ groupId, viewId, postId, order, post }) {
+  return {
+    type: ADD_POST_TO_VIEW,
+    graphql: {
+      query: `mutation ($viewId: ID!, $postId: ID!, $order: Int) {
+        addPostToView(viewId: $viewId, postId: $postId, order: $order) {
+          id
+          order
+          post {
+            id
+            title
+          }
+        }
+      }`,
+      variables: { viewId, postId, order }
+    },
+    meta: { groupId, viewId, postId, order, post, optimistic: true }
+  }
+}
+
+/** Remove a post from a collection (or other ordered) GroupView. */
+export function removePostFromView ({ groupId, viewId, postId }) {
+  return {
+    type: REMOVE_POST_FROM_VIEW,
+    graphql: {
+      query: `mutation ($viewId: ID!, $postId: ID!) {
+        removePostFromView(viewId: $viewId, postId: $postId) {
+          success
+        }
+      }`,
+      variables: { viewId, postId }
+    },
+    meta: { groupId, viewId, postId, optimistic: true }
   }
 }
 

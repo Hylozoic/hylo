@@ -11,6 +11,7 @@ import GroupsSelector from 'components/GroupsSelector'
 import PostSelector from 'components/PostSelector'
 import PeopleSelector from 'routes/Messages/PeopleSelector'
 import GroupViewIcon from './GroupViewIcon'
+import AddCollectionDialog from './AddCollectionDialog'
 import AddCustomViewDialog from './AddCustomViewDialog'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 import { createGroupView } from 'store/actions/groupViews'
@@ -43,6 +44,7 @@ const ADDABLE_GROUP_VIEW_TYPES = [
   'member',
   'group',
   'custom',
+  'collection',
   'link',
   'text',
   'separator'
@@ -85,6 +87,7 @@ export default function AddGroupViewDialog ({ group, groupViews, acceptedPostTyp
   const [linkIcon, setLinkIcon] = useState('Globe')
   const [textContent, setTextContent] = useState('')
   const [showCustomViewDialog, setShowCustomViewDialog] = useState(false)
+  const [showCollectionDialog, setShowCollectionDialog] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
   const [people, setPeople] = useState([])
   const [peopleSelectorOpen, setPeopleSelectorOpen] = useState(false)
@@ -154,7 +157,7 @@ export default function AddGroupViewDialog ({ group, groupViews, acceptedPostTyp
     if (ENTITY_VIEW_TYPES.has(selectedType)) return false
     if (selectedType === 'link') return Boolean(linkName.trim() && linkUrl.trim())
     if (selectedType === 'text') return Boolean(textContent.trim())
-    if (selectedType === 'custom') return true
+    if (selectedType === 'custom' || selectedType === 'collection') return true
     return true
   }, [selectedType, linkName, linkUrl, textContent])
 
@@ -184,6 +187,11 @@ export default function AddGroupViewDialog ({ group, groupViews, acceptedPostTyp
 
     if (selectedType === 'custom') {
       setShowCustomViewDialog(true)
+      return
+    }
+
+    if (selectedType === 'collection') {
+      setShowCollectionDialog(true)
       return
     }
 
@@ -246,6 +254,11 @@ export default function AddGroupViewDialog ({ group, groupViews, acceptedPostTyp
 
   const handleCustomViewCreated = useCallback(() => {
     setShowCustomViewDialog(false)
+    onClose()
+  }, [onClose])
+
+  const handleCollectionCreated = useCallback(() => {
+    setShowCollectionDialog(false)
     onClose()
   }, [onClose])
 
@@ -359,7 +372,11 @@ export default function AddGroupViewDialog ({ group, groupViews, acceptedPostTyp
             <Button variant='primary' onClick={onClose}>{t('Cancel')}</Button>
             {!ENTITY_VIEW_TYPES.has(selectedType) && (
               <Button variant='secondary' disabled={!canAdd || isCreating} onClick={handleAdd}>
-                {isCreating ? t('Creating...') : t('Add View')}
+                {isCreating
+                  ? t('Creating...')
+                  : (selectedType === 'custom' || selectedType === 'collection')
+                      ? t('Next')
+                      : t('Add View')}
               </Button>
             )}
           </div>
@@ -372,6 +389,15 @@ export default function AddGroupViewDialog ({ group, groupViews, acceptedPostTyp
           onCancel={() => setShowCustomViewDialog(false)}
           onCreated={handleCustomViewCreated}
           onAdd={onAdd ? (viewData) => { onAdd(viewData); handleCustomViewCreated() } : undefined}
+        />
+      )}
+
+      {showCollectionDialog && (
+        <AddCollectionDialog
+          group={group}
+          onCancel={() => setShowCollectionDialog(false)}
+          onCreated={handleCollectionCreated}
+          onAdd={onAdd ? (viewData) => { onAdd(viewData); handleCollectionCreated() } : undefined}
         />
       )}
     </>

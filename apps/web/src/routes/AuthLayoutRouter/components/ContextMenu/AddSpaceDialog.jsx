@@ -271,6 +271,8 @@ export default function AddSpaceDialog ({ group, onClose }) {
             icon: row.icon,
             link: row.link,
             pageContent: row.pageContent,
+            topics: row.topics,
+            settings: row.settings,
             postId: row.postId,
             userId: row.userId,
             linkedGroupId: row.linkedGroupId,

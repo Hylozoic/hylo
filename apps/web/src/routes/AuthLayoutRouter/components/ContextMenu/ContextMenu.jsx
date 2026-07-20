@@ -45,6 +45,7 @@ import ContextMenuOld from './ContextMenuOld'
 import GroupViewEditList from './GroupViewEditList'
 import GroupViewSettingsModal from './GroupViewSettingsModal'
 import SpaceSettingsModal from './SpaceSettingsModal'
+import AddCollectionDialog from './AddCollectionDialog'
 import AddGroupViewDialog, { AddViewButton } from './AddGroupViewDialog'
 import AddSpaceDialog, { AddSpaceButton } from './AddSpaceDialog'
 import MoreSpacesSection from './MoreSpacesSection'
@@ -568,13 +569,22 @@ export default function ContextMenu (props) {
                   onClose={() => setSettingsView(null)}
                 />
                 )
-              : (
-                <GroupViewSettingsModal
-                  view={settingsView}
-                  group={group}
-                  onClose={() => setSettingsView(null)}
-                />
-                )
+              : settingsView.type === 'collection'
+                ? (
+                  <AddCollectionDialog
+                    group={group}
+                    view={settingsView}
+                    onCancel={() => setSettingsView(null)}
+                    onCreated={() => setSettingsView(null)}
+                  />
+                  )
+                : (
+                  <GroupViewSettingsModal
+                    view={settingsView}
+                    group={group}
+                    onClose={() => setSettingsView(null)}
+                  />
+                  )
           )}
         </div>
 

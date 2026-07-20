@@ -74,7 +74,7 @@ export default function LucideIconPicker ({ value, onChange, className }) {
           <ChevronDown className='w-4 h-4 shrink-0 text-foreground/50' aria-hidden='true' />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className='w-80 p-2 z-[60]' align='start'>
+      <PopoverContent className='w-80 p-2 z-[1200]' align='start'>
         <Input
           value={search}
           onChange={e => setSearch(e.target.value)}
@@ -102,14 +102,14 @@ export default function LucideIconPicker ({ value, onChange, className }) {
                       <LucideIcon name={name} className='w-4 h-4 shrink-0' />
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent>{name}</TooltipContent>
+                  <TooltipContent className='z-[1300]'>{name}</TooltipContent>
                 </Tooltip>
               ))}
             </div>
           </TooltipProvider>
           {hasMoreIcons && (
             <div className='py-2 text-center text-xs text-foreground/50'>
-              {t('Scroll for more icons', { defaultValue: 'Scroll for more icons' })}
+              {t('Scroll for more icons')}
             </div>
           )}
         </div>

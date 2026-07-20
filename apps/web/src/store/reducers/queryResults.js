@@ -24,6 +24,7 @@ import {
   FETCH_CHILD_COMMENTS,
   FETCH_COMMENTS,
   REMOVE_POST_PENDING,
+  REMOVE_POST_FROM_VIEW_PENDING,
   SAVE_POST_PENDING,
   UNSAVE_POST_PENDING,
   FULFILL_POST_PENDING,
@@ -123,6 +124,17 @@ export default function (state = {}, action) {
         return {
           ...results,
           ids: results.ids.filter(id => id !== meta.postId)
+        }
+      })
+
+    case REMOVE_POST_FROM_VIEW_PENDING:
+      return mapValues(state, (results, key) => {
+        const keyObject = JSON.parse(key)
+        if (String(get('params.forCollection', keyObject)) !== String(meta.viewId)) return results
+        return {
+          ...results,
+          ids: results.ids.filter(id => String(id) !== String(meta.postId)),
+          total: (results.total || results.total === 0) && results.total - 1
         }
       })
 

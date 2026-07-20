@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next'
 import { createSelector } from 'reselect'
 import { debounce, get, groupBy, isEqual, isEmpty } from 'lodash'
 import { pick, pickBy } from 'lodash/fp'
-import { Heart } from 'lucide-react'
+import { Heart, Layers } from 'lucide-react'
 import bbox from '@turf/bbox'
 import bboxPolygon from '@turf/bbox-polygon'
 import booleanWithin from '@turf/boolean-within'
@@ -863,7 +863,7 @@ function MapExplorer (props) {
           })}
         data-testid='layers-selector-button'
       >
-        <Icon name='Stack' />
+        <Layers className='w-4 h-4' />
       </button>
       <div className={cn(
         'absolute bottom-[120px] w-[200px] right-5 hidden bg-background rounded-md p-2 drop-shadow-md flex-col',

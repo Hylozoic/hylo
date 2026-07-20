@@ -2,14 +2,12 @@
 const VIEW_TYPE_TO_ICON_NAME = {
   about: 'Info',
   all: 'Stream',
-  collection: 'Stack',
   discussions: 'Message',
   events: 'Calendar',
   map: 'Globe',
   members: 'People',
   moderation: 'Shield',
   post: 'Posticon',
-  projects: 'Stack',
   proposals: 'Proposal',
   'related-groups': 'Groups',
   group: 'Groups',
@@ -26,9 +24,11 @@ const VIEW_TYPE_TO_ICON_NAME = {
 /** View types that use a Lucide icon instead of the Hylo icon font. */
 const VIEW_TYPE_TO_LUCIDE_ICON = {
   chat: 'MessageCircleMore',
+  collection: 'Layers',
   'funding-round-submissions': 'ClipboardList',
   link: 'ExternalLink',
   member: 'User',
+  projects: 'Layers',
   text: 'Type',
   separator: 'Minus'
 }
@@ -45,6 +45,7 @@ const LUCIDE_ICON_NAMES = new Set([
   'FilePenLine',
   'Grid3x3',
   'Languages',
+  'Layers',
   'LogOut',
   'Mail',
   'MessageCircleMore',
@@ -97,7 +98,7 @@ export function avatarForView (view) {
 /** Resolves the icon for a view — DB override, linked space group icon, then type default. */
 export function iconForView (view) {
   if (view?.icon) {
-    if (LUCIDE_ICON_NAMES.has(view.icon) || view.type === 'custom' || view.type === 'space' || view.type === 'link' || view.type === 'logout') {
+    if (LUCIDE_ICON_NAMES.has(view.icon) || view.type === 'custom' || view.type === 'collection' || view.type === 'space' || view.type === 'link' || view.type === 'logout') {
       return { iconName: null, lucideIcon: view.icon }
     }
     return { iconName: view.icon, lucideIcon: null }

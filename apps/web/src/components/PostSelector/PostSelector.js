@@ -5,6 +5,7 @@ import { CSS } from '@dnd-kit/utilities'
 import update from 'immutability-helper'
 import { isEmpty } from 'lodash'
 import React, { forwardRef, useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useInView } from 'react-cool-inview'
 import { useDispatch, useSelector } from 'react-redux'
@@ -20,7 +21,7 @@ import classes from './PostSelector.module.scss'
 
 const PAGE_SIZE = 10
 
-export default function PostSelector ({ collection, draggable, group, onRemovePost, onReorderPost, onSelectPost, posts }) {
+export default function PostSelector ({ collection, viewId, draggable, group, onRemovePost, onReorderPost, onSelectPost, posts }) {
   const dispatch = useDispatch()
   const [autocomplete, setAutocomplete] = useState('')
   const [suggestions, setSuggestions] = useState([])
@@ -28,38 +29,38 @@ export default function PostSelector ({ collection, draggable, group, onRemovePo
   const [selectedPosts, setSelectedPosts] = useState(posts || [])
   const [suggestionsOpen, setSuggestionsOpen] = useState(false)
   const [dragIndex, setDragIndex] = useState(null)
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 })
   const searchBoxRef = useRef()
   const { t } = useTranslation()
+  const filterOutId = viewId || collection?.id
 
-  const debouncedAutcomplete = useDebounce(autocomplete, 300)
+  const debouncedAutocomplete = useDebounce(autocomplete, 300)
 
   useEffect(() => setSelectedPosts(posts || []), [posts])
 
   useEffect(() => {
-    // TODO: tell people they need to type 2 characters to get results?
-    if (!autocomplete?.length || autocomplete.length > 1) {
-      dispatch(fetchPosts({
-        collectionToFilterOut: collection?.id,
-        context: 'groups',
-        first: PAGE_SIZE,
-        offset: 0,
-        search: debouncedAutcomplete,
-        slug: group.slug,
-        sortBy: 'created'
-      })).then(res => {
-        setSuggestions(res.payload?.data?.group?.posts?.items || [])
-      })
-      setOffset(PAGE_SIZE)
-    }
-  }, [debouncedAutcomplete, collection?.id])
+    if (!group?.slug) return
+    dispatch(fetchPosts({
+      collectionToFilterOut: filterOutId,
+      context: 'groups',
+      first: PAGE_SIZE,
+      offset: 0,
+      search: debouncedAutocomplete,
+      slug: group.slug,
+      sortBy: 'created'
+    })).then(res => {
+      setSuggestions(res.payload?.data?.group?.posts?.items || [])
+    })
+    setOffset(PAGE_SIZE)
+  }, [debouncedAutocomplete, filterOutId, group?.slug, dispatch])
 
   const { observe } = useInView({
     onEnter: async () => {
       const res = await dispatch(fetchPosts({
-        collectionToFilterOut: collection?.id,
+        collectionToFilterOut: filterOutId,
         context: 'groups',
         first: PAGE_SIZE,
-        search: debouncedAutcomplete,
+        search: debouncedAutocomplete,
         offset,
         slug: group.slug,
         sortBy: 'created'
@@ -139,6 +140,55 @@ export default function PostSelector ({ collection, draggable, group, onRemovePo
   }, [suggestions, selectedPosts])
 
   const pending = useSelector(state => isPendingFor(FETCH_POSTS, state))
+  const showSuggestions = suggestionsOpen && (pending || !isEmpty(displaySuggestions))
+
+  /** Keep the portaled suggestions panel aligned with the search input. */
+  useEffect(() => {
+    if (!suggestionsOpen || !searchBoxRef.current) return
+
+    const updatePosition = () => {
+      const rect = searchBoxRef.current.getBoundingClientRect()
+      setDropdownPosition({
+        top: rect.bottom + 4,
+        left: rect.left,
+        width: rect.width
+      })
+    }
+
+    updatePosition()
+    window.addEventListener('scroll', updatePosition, true)
+    window.addEventListener('resize', updatePosition)
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true)
+      window.removeEventListener('resize', updatePosition)
+    }
+  }, [suggestionsOpen, showSuggestions])
+
+  const suggestionsDropdown = showSuggestions
+    ? createPortal(
+      <div
+        className='fixed bg-card rounded-lg shadow-lg p-2 z-[10000]'
+        style={{
+          top: dropdownPosition.top,
+          left: dropdownPosition.left,
+          width: dropdownPosition.width
+        }}
+        onClick={(e) => { e.preventDefault(); e.stopPropagation() }}
+      >
+        {pending && <Loading />}
+        <ul className='flex flex-col gap-1 max-h-[11.5rem] overflow-y-auto m-0 p-0'>
+          {displaySuggestions.map((s, idx) => (
+            <Suggestion
+              key={s.id}
+              item={s}
+              onSelect={handleSelectPost}
+              observeRef={idx === suggestions.length - 1 ? observe : null}
+            />
+          ))}
+        </ul>
+      </div>,
+      document.body)
+    : null
 
   return (
     <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
@@ -175,20 +225,7 @@ export default function PostSelector ({ collection, draggable, group, onRemovePo
                 }}
               />
             </div>
-            {suggestionsOpen && (pending || !isEmpty(displaySuggestions)) &&
-              <div className='absolute top-full left-0 w-full bg-card rounded-lg shadow-lg p-2 z-[10000]'>
-                {pending && <Loading />}
-                <ul className='flex flex-col gap-1 max-h-[300px] overflow-y-auto m-0 p-0'>
-                  {displaySuggestions.map((s, idx) => (
-                    <Suggestion
-                      key={s.id}
-                      item={s}
-                      onSelect={handleSelectPost}
-                      observeRef={idx === suggestions.length - 1 ? observe : null}
-                    />
-                  ))}
-                </ul>
-              </div>}
+            {suggestionsDropdown}
           </div>
         </div>
       </SortableContext>
@@ -228,8 +265,7 @@ function SelectedPostDraggable ({ draggable, dragging, index, handleDelete, post
   const style = {
     transform: CSS.Transform.toString(transform && { ...transform, scaleY: 1 }),
     transition,
-    opacity: dragging ? 0 : 1,
-    cursor: 'move'
+    opacity: dragging ? 0 : 1
   }
 
   return (
@@ -244,15 +280,39 @@ const SelectedPost = forwardRef(({ children, ...props }, ref) => {
   const { t } = useTranslation()
   const { attributes, draggable, index, handleDelete, listeners, post, style } = props
 
+  /** Remove the post without starting a drag from the row. */
+  const handleTrashClick = (event) => {
+    event.preventDefault()
+    event.stopPropagation()
+    handleDelete(post, index)()
+  }
+
   return (
-    <div className={cn('rounded-xl cursor-pointer p-1 flex flex-row gap-2 items-center justify-between transition-all bg-midground/50 hover:bg-midground/100 border-2 border-card/30 shadow-xl hover:shadow-lg mb-4 relative hover:z-[2] hover:scale-105 duration-400 cursor-pointer', { 'bg-selected cursor-grab': draggable })} ref={ref} style={style} {...attributes} {...listeners}>
-      <div className='flex flex-row gap-2 items-center'>
+    <div
+      className={cn(
+        'rounded-xl p-1 flex flex-row gap-2 items-center justify-between transition-all bg-midground/50 hover:bg-midground/100 border-2 border-card/30 shadow-xl hover:shadow-lg mb-2 relative hover:z-[2] duration-400',
+        { 'bg-selected': draggable }
+      )}
+      ref={ref}
+      style={style}
+      {...attributes}
+    >
+      <div className='flex flex-row gap-2 items-center min-w-0'>
         <RoundImage url={post?.creator?.avatarUrl} className={classes.selectedPostAvatar} small />
         <span className={classes.postTitle}>{post.title}</span>
       </div>
-      <div className='flex flex-row gap-2 items-center'>
-        <Icon name='Trash' onClick={handleDelete(post, index)} className={cn(classes.removePost, classes.selectedPostIcon)} dataTip={t('Remove Post')} />
-        {draggable && <Icon name='Draggable' className='w-6 h-6 text-foreground/100 hover:text-foreground' />}
+      <div className='flex flex-row gap-2 items-center shrink-0'>
+        <Icon
+          name='Trash'
+          onClick={handleTrashClick}
+          className={cn(classes.removePost, classes.selectedPostIcon)}
+          dataTip={t('Remove Post')}
+        />
+        {draggable && (
+          <span className='cursor-grab touch-none' {...listeners}>
+            <Icon name='Draggable' className='w-6 h-6 text-foreground/100 hover:text-foreground' />
+          </span>
+        )}
       </div>
     </div>
   )

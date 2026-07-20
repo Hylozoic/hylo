@@ -61,11 +61,11 @@ export default function AddCustomViewDialog ({ group, onCancel, onCreated, onAdd
   }, [canSave, defaultViewMode, dispatch, group?.id, name, icon, topics, postTypes, searchText, onCreated, onAdd])
 
   return (
-    <div className='fixed inset-0 z-[60] flex items-center justify-center bg-darkening/50'>
-      <div className='bg-midground rounded-lg shadow-lg p-4 w-full max-w-md max-h-[85vh] flex flex-col'>
+    <div className='fixed inset-0 z-[60] flex items-center justify-center bg-darkening/50 p-4'>
+      <div className='bg-midground rounded-lg shadow-lg p-5 w-full max-w-md max-h-[85vh] flex flex-col'>
         <h2 className='text-lg font-semibold mb-4'>{t('Custom View')}</h2>
 
-        <div className='overflow-y-auto flex-1 min-h-0'>
+        <div className='overflow-y-auto flex-1 min-h-0 p-1'>
           <CustomViewFormFields
             group={group}
             name={name}
@@ -84,9 +84,9 @@ export default function AddCustomViewDialog ({ group, onCancel, onCreated, onAdd
         </div>
 
         <div className='flex justify-end gap-2 mt-4 pt-2 border-t border-foreground/10'>
-          <Button variant='secondary' onClick={onCancel}>{t('Cancel')}</Button>
-          <Button variant='primary' disabled={!canSave || isSaving} onClick={handleSave}>
-            {isSaving ? t('Creating...') : t('Save')}
+          <Button variant='primary' onClick={onCancel}>{t('Back')}</Button>
+          <Button variant='secondary' disabled={!canSave || isSaving} onClick={handleSave}>
+            {isSaving ? t('Creating...') : t('Add View')}
           </Button>
         </div>
       </div>

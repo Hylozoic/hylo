@@ -89,7 +89,7 @@ function avatarDataResolver (widget) {
 const WIDGET_TYPE_TO_ICON_NAME_MAP = {
   about: 'Info',
   setup: 'Settings',
-  'custom-views': 'Stack',
+  'custom-views': 'Layers',
   chats: 'Topics',
   viewChat: 'Topics',
   viewFundingRound: 'BadgeDollarSign',
@@ -372,7 +372,7 @@ export const COMMON_VIEWS = {
   },
   projects: {
     name: 'Projects',
-    iconName: 'Stack',
+    iconName: 'Layers',
     defaultViewMode: 'bigGrid',
     postTypes: ['project'],
     defaultSortBy: 'created'

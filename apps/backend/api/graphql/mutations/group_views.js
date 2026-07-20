@@ -15,6 +15,15 @@ async function requireAdmin (userId, groupId, action) {
   }
 }
 
+/** Admins and content moderators can curate posts in collection views. */
+async function requireAdminOrManageContent (userId, groupId, action) {
+  const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, groupId)
+  const { RESP_ADMINISTRATION, RESP_MANAGE_CONTENT } = Responsibility.constants
+  if (!responsibilities.includes(RESP_ADMINISTRATION) && !responsibilities.includes(RESP_MANAGE_CONTENT)) {
+    throw new GraphQLError(`You don't have permission to ${action} for this group`)
+  }
+}
+
 export async function createGroupView ({ userId, groupId, type, name, icon, settings, link, pageContent, topics, orderInFrontOfViewId, addToEnd, linkedGroupId, postId, viewUserId, context }) {
   if (!userId) throw new GraphQLError('No userId passed into function')
   if (!groupId) throw new GraphQLError('No groupId passed into function')
@@ -284,7 +293,7 @@ export async function addPostToView (userId, viewId, postId, order) {
   if (!post) throw new GraphQLError('Post not found')
 
   const groupId = view.get('group_id')
-  await requireAdmin(userId, groupId, 'add posts to this view')
+  await requireAdminOrManageContent(userId, groupId, 'add posts to this view')
 
   const existing = await CollectionPost.find(viewId, postId)
   if (existing) return existing
@@ -307,7 +316,7 @@ export async function removePostFromView (userId, viewId, postId) {
   if (!view) throw new GraphQLError('View not found')
 
   const groupId = view.get('group_id')
-  await requireAdmin(userId, groupId, 'remove posts from this view')
+  await requireAdminOrManageContent(userId, groupId, 'remove posts from this view')
 
   const linkedPost = await CollectionPost.find(viewId, postId)
   if (!linkedPost) throw new GraphQLError('Not a valid post for this view')
@@ -323,7 +332,7 @@ export async function reorderViewPost (userId, viewId, postId, newOrder) {
   if (!view) throw new GraphQLError('View not found')
 
   const groupId = view.get('group_id')
-  await requireAdmin(userId, groupId, 'reorder posts in this view')
+  await requireAdminOrManageContent(userId, groupId, 'reorder posts in this view')
 
   const linkedPost = await CollectionPost.find(viewId, postId)
   if (!linkedPost) throw new GraphQLError('Not a valid post for this view')
