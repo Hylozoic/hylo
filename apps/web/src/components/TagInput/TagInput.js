@@ -180,10 +180,11 @@ class TagInput extends Component {
         <ul className={theme.selected}>
           {selectedItems}
 
-          <li className={cn('text-foreground bg-transparent inline-flex', theme.searchInputContainer, { tagsEmpty: selectedItems.length === 0 })}>
-            <div className={cn('relative', theme.searchInputContainer)}>
+          <li className={cn('text-foreground bg-transparent inline-flex', theme.searchInputContainer, { 'w-full': selectedItems.length === 0, tagsEmpty: selectedItems.length === 0 })}>
+            <div className={cn('relative', theme.searchInputContainer, { 'w-full': selectedItems.length === 0 })}>
               <input
-                className={cn('text-foreground bg-transparent inline outline-none pr-1 placeholder:text-foreground/50',
+                className={cn('text-foreground bg-transparent outline-none pr-1 placeholder:text-foreground/50',
+                  selectedItems.length === 0 ? 'w-full' : 'inline',
                   theme.searchInput,
                   { error: maxReached, tagsEmpty: selectedItems.length === 0 }
                 )}
