@@ -108,7 +108,7 @@ export default function ViewContent (props) {
   const view = props.view || (isMyDraftsRoute ? VIEW_DRAFTS : routeParams.view)
   const isDraftsView = context === CONTEXT_MY && view === VIEW_DRAFTS
 
-  // `all` is the Spaces & Views home stream; reuse stream fetch/display defaults.
+  // `all` reuses stream fetch/display defaults but keeps its own label ("All Activity").
   const systemView = COMMON_VIEWS[view] || (view === 'all' ? COMMON_VIEWS.stream : null)
 
   const currentUserHasMemberships = useSelector(state => !isEmpty(getMyMemberships(state)))
@@ -267,7 +267,9 @@ export default function ViewContent (props) {
 
   let name = presentedGroupView
     ? displayNameForView(presentedGroupView, t)
-    : (systemView?.name || (view === 'all' ? t('view-all') : 'All Activity'))
+    : view === 'all'
+      ? t('view-all')
+      : (systemView?.name || t('view-all'))
   let icon = presentedGroupView?.lucideIcon
     ? <GroupViewIcon view={presentedGroupView} className='w-5 h-5' />
     : (presentedGroupView?.iconName || systemView?.iconName || (view === 'all' ? 'Stream' : undefined))

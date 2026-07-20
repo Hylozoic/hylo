@@ -11,15 +11,11 @@ import {
   ALL_GROUPS_CONTEXT_SLUG,
   MY_CONTEXT_SLUG,
   PUBLIC_CONTEXT_SLUG,
-  groupUrl,
-  postUrl,
-  personUrl,
   localSpaceSlug,
   spaceHomeUrl,
-  spaceGroupViewUrl,
   spaceUrl,
   addQuerystringToPath,
-  viewUrl
+  personUrl
 } from '@hylo/navigation'
 
 import GroupMenuHeader from 'components/GroupMenuHeader'
@@ -49,6 +45,7 @@ import AddCollectionDialog from './AddCollectionDialog'
 import AddGroupViewDialog, { AddViewButton } from './AddGroupViewDialog'
 import AddSpaceDialog, { AddSpaceButton } from './AddSpaceDialog'
 import MoreSpacesSection from './MoreSpacesSection'
+import { menuViewUrl } from './groupViewMenuUrl'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { RESP_ADMINISTRATION, RESP_MANAGE_SPACES } from 'store/constants'
@@ -57,72 +54,6 @@ import { WebViewMessageTypes } from '@hylo/shared'
 import { getMobileAppVersion, sendMessageToWebView } from 'util/webView'
 
 import classes from './ContextMenu.module.scss'
-
-/** Resolves a URL for static My/Public/All context menu views. */
-function contextViewUrl (view) {
-  if (view.link) return view.link
-  if (view.context && view.type) {
-    return viewUrl(view.type, { context: view.context })
-  }
-  return null
-}
-
-/** Maps a GroupView to its URL within a group's route tree. Falls back to the group home. */
-function groupViewUrl (groupSlug, view) {
-  if (!view || !groupSlug) return groupUrl(groupSlug)
-
-  switch (view.type) {
-    case 'post':
-      return view.viewPost?.id ? postUrl(view.viewPost.id, { groupSlug, context: 'groups' }) : groupUrl(groupSlug)
-    case 'group':
-      return view.linkedGroup?.slug ? groupUrl(view.linkedGroup.slug) : groupUrl(groupSlug)
-    case 'member':
-      return view.viewUser?.id ? personUrl(view.viewUser.id, groupSlug) : groupUrl(groupSlug)
-    case 'all':
-      return groupUrl(groupSlug, 'all')
-    case 'chat':
-      // Group-level chat — no topicName needed in the URL
-      return groupUrl(groupSlug, 'chat')
-    case 'events':
-      return groupUrl(groupSlug, 'events')
-    case 'map':
-      return groupUrl(groupSlug, 'map')
-    case 'members':
-      return groupUrl(groupSlug, 'members')
-    case 'about':
-      return groupUrl(groupSlug, 'about')
-    case 'welcome':
-      return groupUrl(groupSlug, 'welcome')
-    case 'discussions':
-      return groupUrl(groupSlug, 'discussions')
-    case 'proposals':
-      return groupUrl(groupSlug, 'proposals')
-    case 'projects':
-      return groupUrl(groupSlug, 'projects')
-    case 'resources':
-      return groupUrl(groupSlug, 'resources')
-    case 'requests-and-offers':
-      return groupUrl(groupSlug, 'requests-and-offers')
-    case 'related-groups':
-      return groupUrl(groupSlug, 'groups')
-    case 'decisions':
-      return groupUrl(groupSlug, 'decisions')
-    case 'custom':
-      return groupUrl(groupSlug, `custom/${view.id}`)
-    case 'collection':
-      return groupUrl(groupSlug, `collection/${view.id}`)
-    case 'track-actions':
-      return groupUrl(groupSlug, 'track-actions')
-    case 'funding-round-submissions':
-      return groupUrl(groupSlug, 'funding-round-submissions')
-    case 'space':
-      return view.linkedGroup ? spaceHomeUrl(groupSlug, view.linkedGroup) : groupUrl(groupSlug)
-    case 'link':
-      return view.link || null
-    default:
-      return groupUrl(groupSlug, view.type || 'all')
-  }
-}
 
 /** Small orange unread dot shown when a view has new posts. */
 function UnreadDot () {
@@ -133,20 +64,6 @@ const GROUP_VIEW_MENU_ITEM_CLASS = 'flex items-center gap-2 text-base text-foreg
 
 /** MenuLink overrides when nested inside a styled space row wrapper. */
 const GROUP_VIEW_MENU_ITEM_INNER_LINK_CLASS = 'flex-1 flex items-center gap-2 min-w-0 border-0 bg-transparent p-0 mb-0 rounded-none shadow-none hover:border-0 hover:bg-transparent hover:scale-100 font-inherit'
-
-/** Resolves menu URL for a view — space sub-items use the parent/space URL pattern. */
-function menuViewUrl (parentSlug, view, spaceGroup = null) {
-  if (view?.link || view?.context) return contextViewUrl(view)
-  if (spaceGroup) {
-    const url = spaceGroupViewUrl(parentSlug, spaceGroup, view)
-    if (url) return url
-    return spaceHomeUrl(parentSlug, spaceGroup)
-  }
-  if (view?.type === 'space' && view.linkedGroup) {
-    return spaceHomeUrl(parentSlug, view.linkedGroup)
-  }
-  return groupViewUrl(parentSlug, view)
-}
 
 /** Renders a single GroupView menu item, including nested space sub-items. */
 function GroupViewMenuItem ({
@@ -489,7 +406,7 @@ export default function ContextMenu (props) {
   )
 
   // Simple groups don't use the vertical widget context menu — their home dashboard
-  // (OneColumnLayout) replaces it. Only render the settings menu when on /settings.
+  // (ContextMenuGrid) replaces it. Only render the settings menu when on /settings.
   if (isOneColumnLayout && !location.pathname.includes('/settings')) {
     return null
   }

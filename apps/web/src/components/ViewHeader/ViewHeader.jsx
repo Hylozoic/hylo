@@ -78,9 +78,9 @@ const ViewHeader = ({ oneColumnGroup, oneColumnGroupSlug }) => {
       return
     }
     let observer
-    // Wait one frame so the OneColumnLayout banner has mounted after navigation.
+    // Wait one frame so the ContextMenuGrid banner has mounted after navigation.
     const rafId = requestAnimationFrame(() => {
-      const bannerEl = document.getElementById('one-column-banner')
+      const bannerEl = document.getElementById('context-menu-grid-banner')
       if (!bannerEl) {
         setIsBannerVisible(false) // simple group view (no banner rendered)
         return
@@ -201,6 +201,34 @@ const ViewHeader = ({ oneColumnGroup, oneColumnGroupSlug }) => {
       }
       return
     }
+
+    // One-column groups: back from a space view → space menu; from a group view → group menu.
+    if (oneColumnGroup && groupSlug) {
+      const path = location.pathname.replace(/\/$/, '')
+      const groupHome = `/groups/${groupSlug}`
+      if (spaceSlug) {
+        const spaceMenu = `/groups/${groupSlug}/spaces/${spaceSlug}`
+        if (path !== spaceMenu) {
+          navigate(spaceMenu)
+          return
+        }
+        if (location.state?.fromMoreSpaces) {
+          navigate(`${groupHome}/more-spaces`)
+          return
+        }
+        navigate(groupHome)
+        return
+      }
+      if (path !== groupHome && path !== `${groupHome}/more-spaces`) {
+        navigate(groupHome)
+        return
+      }
+      if (path === `${groupHome}/more-spaces`) {
+        navigate(groupHome)
+        return
+      }
+    }
+
     // Simple (one-column) groups render the sidebar inline on phone too — there's no
     // drawer to toggle, so the chevron should navigate back instead.
     if (isDrawerNavLayout(window.innerWidth) && !mobileBackButton && !backButton && !oneColumnGroup) {
@@ -214,6 +242,16 @@ const ViewHeader = ({ oneColumnGroup, oneColumnGroupSlug }) => {
     }
   }
 
+  // For simple groups: hide ViewHeader on menu levels (group home has its own banner;
+  // nested grids have their own sticky back bar). Show it on actual views.
+  const isOneColumnMenuLevel = useMemo(() => {
+    if (!oneColumnGroupSlug) return false
+    const path = location.pathname.replace(/\/$/, '')
+    const groupBase = `/groups/${oneColumnGroupSlug}`
+    if (path === groupBase || path === `${groupBase}/more-spaces`) return true
+    return Boolean(path.match(new RegExp(`^/groups/${oneColumnGroupSlug}/spaces/[^/]+$`)))
+  }, [oneColumnGroupSlug, location.pathname])
+
   // Hide ViewHeader on phones for messages - MessagesMobile handles its own header
   if (isPhoneDevice() && location.pathname.startsWith('/messages')) {
     return null
@@ -222,7 +260,7 @@ const ViewHeader = ({ oneColumnGroup, oneColumnGroupSlug }) => {
   return (
     <header className={cn('flex flex-row items-center z-20 p-2 sticky top-0 w-full bg-background shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)]', {
       'justify-center': centered,
-      hidden: oneColumnGroup && isBannerVisible
+      hidden: (oneColumnGroup && isBannerVisible) || isOneColumnMenuLevel
     })}
     >
       {centered && (backButton || mobileBackButton) && (
@@ -259,9 +297,24 @@ const ViewHeader = ({ oneColumnGroup, oneColumnGroupSlug }) => {
       {/* )} */}
       {!centered && !oneColumnGroup && presentedSpaceView && (
         <>
-          <GroupViewIcon view={presentedSpaceView} className='mr-2 shrink-0 w-5 h-5' />
-          <span className='truncate max-w-[30%] shrink min-w-0 text-foreground'>{spaceName}</span>
-          <span className='mx-2 shrink-0 text-foreground/40'>/</span>
+          {group?.avatarUrl && (
+            <div
+              className='w-5 h-5 rounded-sm bg-cover bg-center shrink-0 mr-1 cursor-pointer hover:opacity-80 transition-opacity'
+              style={bgImageStyle(group.avatarUrl)}
+              onClick={() => navigate(`/groups/${groupSlug}`)}
+              title={group.name}
+            />
+          )}
+          <span
+            className='truncate max-w-[20%] shrink min-w-0 text-foreground/70 cursor-pointer hover:text-foreground hidden sm:inline'
+            onClick={() => navigate(`/groups/${groupSlug}`)}
+          >
+            {group?.name}
+          </span>
+          <span className='mx-1.5 shrink-0 text-foreground/40'>{'>'}</span>
+          <GroupViewIcon view={presentedSpaceView} className='mr-1 shrink-0 w-5 h-5' />
+          <span className='truncate max-w-[25%] shrink min-w-0 text-foreground'>{spaceName}</span>
+          <span className='mx-1.5 shrink-0 text-foreground/40'>{'>'}</span>
         </>
       )}
       {!centered && !oneColumnGroup && icon && (typeof icon === 'string' ? <Icon name={icon} className='mr-3 text-lg' /> : React.cloneElement(icon, { className: 'mr-3 text-lg' }))}
@@ -273,22 +326,50 @@ const ViewHeader = ({ oneColumnGroup, oneColumnGroupSlug }) => {
           : React.isValidElement(title)
             ? true
             : !!(title?.mobile || title?.desktop)
+        const inSpace = Boolean(presentedSpaceView && spaceSlug)
+        const groupHref = `/groups/${oneColumnGroupSlug}`
+        const spaceHref = `/groups/${oneColumnGroupSlug}/spaces/${spaceSlug}`
+
         return (
-          <div className='flex items-center gap-2 mr-2'>
+          <div className='flex items-center gap-1.5 mr-2 min-w-0'>
             {oneColumnGroup.avatarUrl && (
               <div
                 className='w-6 h-6 rounded-sm bg-cover bg-center shrink-0 cursor-pointer hover:scale-110 transition-transform'
                 style={bgImageStyle(oneColumnGroup.avatarUrl)}
-                onClick={() => navigate(`/groups/${oneColumnGroupSlug}`)}
+                onClick={() => navigate(groupHref)}
               />
             )}
             <span
-              className='font-semibold text-foreground/70 cursor-pointer hover:text-foreground transition-colors whitespace-nowrap'
-              onClick={() => navigate(`/groups/${oneColumnGroupSlug}`)}
+              className='font-semibold text-foreground/70 cursor-pointer hover:text-foreground transition-colors whitespace-nowrap truncate'
+              onClick={() => navigate(groupHref)}
             >
               {oneColumnGroup.name}
             </span>
-            {hasTitle && <span className='text-foreground/30 text-lg'>{'>'}</span>}
+            {inSpace && (
+              <>
+                <span className='text-foreground/30 text-lg shrink-0'>{'>'}</span>
+                <button
+                  type='button'
+                  className='shrink-0 cursor-pointer hover:scale-110 transition-transform'
+                  onClick={() => navigate(spaceHref)}
+                  aria-label={spaceName}
+                >
+                  <GroupViewIcon view={presentedSpaceView} className='!w-5 !h-5 !mr-0' />
+                </button>
+                <span
+                  className='font-semibold text-foreground/70 cursor-pointer hover:text-foreground transition-colors whitespace-nowrap truncate'
+                  onClick={() => navigate(spaceHref)}
+                >
+                  {spaceName}
+                </span>
+              </>
+            )}
+            {hasTitle && <span className='text-foreground/30 text-lg shrink-0'>{'>'}</span>}
+            {hasTitle && icon && (
+              typeof icon === 'string'
+                ? <Icon name={icon} className='text-lg shrink-0' />
+                : React.cloneElement(icon, { className: 'w-5 h-5 shrink-0' })
+            )}
           </div>
         )
       })()}

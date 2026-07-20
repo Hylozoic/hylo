@@ -10,6 +10,14 @@ const COLOR_SCHEME_STORAGE_KEY = 'hylo-color-scheme'
 const NAV_MODE_STORAGE_KEY = 'hylo-nav-mode'
 const STACK_GROUPS_STORAGE_KEY = 'hylo-stack-groups'
 
+/**
+ * Reads the persisted stack-groups preference (default on).
+ * Used outside React (e.g. MeQuery) to decide whether to load childGroups.
+ */
+export function getStackGroupsPreference () {
+  return window.localStorage.getItem(STACK_GROUPS_STORAGE_KEY) !== 'false'
+}
+
 // Theme migration map for handling renamed themes
 const THEME_MIGRATIONS = {
 }
@@ -44,9 +52,7 @@ export function ThemeProvider ({ children }) {
   })
 
   // Whether parent groups display their subgroups as a stacked avatar (default on).
-  const [stackGroups, setStackGroups] = useState(() => {
-    return window.localStorage.getItem(STACK_GROUPS_STORAGE_KEY) !== 'false'
-  })
+  const [stackGroups, setStackGroups] = useState(getStackGroupsPreference)
 
   const [systemColorScheme, setSystemColorScheme] = useState(() => {
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'

@@ -18,6 +18,7 @@ import Stream from 'routes/Stream'
 import FundingRoundSubmissionsView from 'routes/FundingRoundSubmissionsView/FundingRoundSubmissionsView'
 import TrackActionsView from 'routes/TrackActionsView/TrackActionsView'
 import ViewContent from 'routes/ViewContent'
+import ContextMenuGrid from 'routes/AuthLayoutRouter/components/ContextMenu/ContextMenuGrid'
 import fetchForGroup from 'store/actions/fetchForGroup'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
@@ -47,14 +48,17 @@ function resolveSpaceGroup (parentGroup, groupViews, parentSlug, localSlug) {
 /**
  * Renders space views at /groups/:parentSlug/spaces/:spaceSlug/* while the
  * ContextMenu continues to show the parent group's navigation.
+ * For one-column groups, the space index shows ContextMenuGrid (space menu)
+ * instead of redirecting to the home view.
  */
-export default function SpaceContent () {
+export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColumnGroup = false }) {
   const dispatch = useDispatch()
   const routeParams = useRouteParams()
   const parentSlug = routeParams.groupSlug
   const localSlug = routeParams.spaceSlug
 
-  const parentGroup = useSelector(state => getGroupForSlug(state, parentSlug))
+  const parentGroupFromStore = useSelector(state => getGroupForSlug(state, parentSlug))
+  const parentGroup = parentGroupProp || parentGroupFromStore
   const groupViews = useSelector(state => getGroupViews(state, parentGroup))
 
   const linkedSpace = useMemo(
@@ -104,11 +108,19 @@ export default function SpaceContent () {
 
   const homeRoute = spaceGroup?.homeRoute || linkedSpace?.homeRoute || '/welcome'
   const spaceBase = spaceUrl(parentSlug, localSlug)
+  const resolvedSpace = spaceGroup || linkedSpace
 
   return (
     <SpaceGroupSlugContext.Provider value={spaceFullSlug}>
       <Routes>
-        <Route index element={<Navigate to={`${spaceBase}${homeRoute}`} replace />} />
+        <Route
+          index
+          element={
+            isOneColumnGroup
+              ? <ContextMenuGrid group={parentGroup} spaceGroup={resolvedSpace} />
+              : <Navigate to={`${spaceBase}${homeRoute}`} replace />
+          }
+        />
         <Route path='welcome/*' element={<GroupWelcomePage />} />
         <Route path='map/*' element={<MapExplorer context='groups' view='map' />} />
         <Route path='all/*' element={<ViewContent context='groups' view='all' />} />
@@ -129,7 +141,14 @@ export default function SpaceContent () {
         <Route path='moderation/*' element={<Moderation context='groups' />} />
         <Route path='about/*' element={<GroupDetail context='groups' forCurrentGroup />} />
         <Route path={POST_DETAIL_MATCH} element={<PostDetail />} />
-        <Route path='*' element={<Navigate to={`${spaceBase}${homeRoute}`} replace />} />
+        <Route
+          path='*'
+          element={
+            isOneColumnGroup
+              ? <ContextMenuGrid group={parentGroup} spaceGroup={resolvedSpace} />
+              : <Navigate to={`${spaceBase}${homeRoute}`} replace />
+          }
+        />
       </Routes>
     </SpaceGroupSlugContext.Provider>
   )

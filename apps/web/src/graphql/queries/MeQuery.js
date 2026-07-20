@@ -1,7 +1,7 @@
 import gql from 'graphql-tag'
 
 export default gql`
-  query MeQuery {
+  query MeQuery ($includeChildGroups: Boolean!) {
     me {
       ...MeCompleteFragment
     }
@@ -128,7 +128,7 @@ export default gql`
         slug
         type
         allowInPublic
-        childGroups {
+        childGroups @include(if: $includeChildGroups) {
           items {
             id
             name
