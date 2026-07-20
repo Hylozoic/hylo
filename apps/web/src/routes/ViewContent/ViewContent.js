@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
 import { Routes, Route, useLocation } from 'react-router-dom'
 import { push } from 'redux-first-history'
-import { COMMON_VIEWS } from '@hylo/presenters/ContextWidgetPresenter'
+import { COMMON_VIEWS } from 'store/models/GroupView'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 import Loading from 'components/Loading'
 import NoPosts from 'components/NoPosts'
@@ -108,8 +108,7 @@ export default function ViewContent (props) {
   const view = props.view || (isMyDraftsRoute ? VIEW_DRAFTS : routeParams.view)
   const isDraftsView = context === CONTEXT_MY && view === VIEW_DRAFTS
 
-  // `all` reuses stream fetch/display defaults but keeps its own label ("All Activity").
-  const systemView = COMMON_VIEWS[view] || (view === 'all' ? COMMON_VIEWS.stream : null)
+  const systemView = COMMON_VIEWS[view]
 
   const currentUserHasMemberships = useSelector(state => !isEmpty(getMyMemberships(state)))
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
@@ -267,12 +266,10 @@ export default function ViewContent (props) {
 
   let name = presentedGroupView
     ? displayNameForView(presentedGroupView, t)
-    : view === 'all'
-      ? t('view-all')
-      : (systemView?.name || t('view-all'))
+    : (view === 'all' ? t('view-all') : (systemView?.name || t('view-all')))
   let icon = presentedGroupView?.lucideIcon
     ? <GroupViewIcon view={presentedGroupView} className='w-5 h-5' />
-    : (presentedGroupView?.iconName || systemView?.iconName || (view === 'all' ? 'Stream' : undefined))
+    : (presentedGroupView?.iconName || systemView?.iconName)
   if (topicName) {
     name = '#' + topicName
   }

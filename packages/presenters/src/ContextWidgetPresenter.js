@@ -1,7 +1,8 @@
 import {
   MY_CONTEXT_VIEWS,
   PUBLIC_CONTEXT_VIEWS,
-  getStaticMenuViews
+  getStaticMenuViews,
+  COMMON_VIEWS
 } from './GroupViewPresenter.js'
 
 export default function ContextWidgetPresenter (widget) {
@@ -327,87 +328,3 @@ export function wrapItemInWidget (item, type) {
 }
 
 export const allViewsWidget = ContextWidgetPresenter({ id: 'all-views', title: 'widget-all', type: 'all-views', view: 'all-views', iconName: 'Grid3x3', childWidgets: [] })
-
-export const COMMON_VIEWS = {
-  proposals: {
-    name: 'Proposals',
-    iconName: 'Proposal',
-    defaultViewMode: 'cards',
-    postTypes: ['proposal'],
-    defaultSortBy: 'created'
-  },
-  discussions: {
-    name: 'Discussions',
-    iconName: 'Message',
-    defaultViewMode: 'list',
-    postTypes: ['discussion'],
-    defaultSortBy: 'updated'
-  },
-  events: {
-    name: 'Events',
-    iconName: 'Calendar',
-    defaultViewMode: 'calendar',
-    postTypes: ['event'],
-    defaultSortBy: 'start_time'
-  },
-  'funding-rounds': {
-    name: 'Funding Rounds',
-    iconName: 'BadgeDollarSign'
-  },
-  groups: {
-    name: 'Groups',
-    iconName: 'Groups'
-  },
-  map: {
-    name: 'Map',
-    iconName: 'Globe'
-  },
-  members: {
-    name: 'Members',
-    iconName: 'People'
-  },
-  moderation: {
-    name: 'Moderation',
-    iconName: 'Shield'
-  },
-  projects: {
-    name: 'Projects',
-    iconName: 'Layers',
-    defaultViewMode: 'bigGrid',
-    postTypes: ['project'],
-    defaultSortBy: 'created'
-  },
-  'requests-and-offers': {
-    name: 'Requests & Offers',
-    iconName: 'Request',
-    defaultViewMode: 'bigGrid',
-    postTypes: ['request', 'offer'],
-    defaultSortBy: 'created',
-    defaultActivePostsOnly: true
-  },
-  resources: {
-    name: 'Resources',
-    iconName: 'Document',
-    defaultViewMode: 'grid',
-    postTypes: ['resource'],
-    defaultSortBy: 'created'
-  },
-  stream: {
-    name: 'Stream',
-    iconName: 'Stream',
-    defaultViewMode: 'cards',
-    defaultSortBy: 'created'
-  },
-  topics: {
-    name: 'All Topics',
-    iconName: 'Topics'
-  },
-  tracks: {
-    name: 'Tracks',
-    iconName: 'Shapes'
-  },
-  welcome: {
-    name: 'Welcome',
-    iconName: 'Hand'
-  }
-}

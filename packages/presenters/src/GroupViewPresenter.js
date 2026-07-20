@@ -21,6 +21,100 @@ const VIEW_TYPE_TO_ICON_NAME = {
   custom: 'Filter'
 }
 
+/**
+ * Defaults for built-in / system GroupView types (labels, icons, stream filters).
+ * Shared by web ViewContent and packages (e.g. useStreamQueryVariables).
+ */
+export const COMMON_VIEWS = {
+  all: {
+    name: 'All Activity',
+    iconName: 'Stream',
+    defaultViewMode: 'cards',
+    defaultSortBy: 'created'
+  },
+  proposals: {
+    name: 'Proposals',
+    iconName: 'Proposal',
+    defaultViewMode: 'cards',
+    postTypes: ['proposal'],
+    defaultSortBy: 'created'
+  },
+  discussions: {
+    name: 'Discussions',
+    iconName: 'Message',
+    defaultViewMode: 'list',
+    postTypes: ['discussion'],
+    defaultSortBy: 'updated'
+  },
+  events: {
+    name: 'Events',
+    iconName: 'Calendar',
+    defaultViewMode: 'calendar',
+    postTypes: ['event'],
+    defaultSortBy: 'start_time'
+  },
+  'funding-rounds': {
+    name: 'Funding Rounds',
+    iconName: 'BadgeDollarSign'
+  },
+  groups: {
+    name: 'Groups',
+    iconName: 'Groups'
+  },
+  map: {
+    name: 'Map',
+    iconName: 'Globe'
+  },
+  members: {
+    name: 'Members',
+    iconName: 'People'
+  },
+  moderation: {
+    name: 'Moderation',
+    iconName: 'Shield'
+  },
+  projects: {
+    name: 'Projects',
+    iconName: 'Layers',
+    defaultViewMode: 'bigGrid',
+    postTypes: ['project'],
+    defaultSortBy: 'created'
+  },
+  'requests-and-offers': {
+    name: 'Requests & Offers',
+    iconName: 'Request',
+    defaultViewMode: 'bigGrid',
+    postTypes: ['request', 'offer'],
+    defaultSortBy: 'created',
+    defaultActivePostsOnly: true
+  },
+  resources: {
+    name: 'Resources',
+    iconName: 'Document',
+    defaultViewMode: 'grid',
+    postTypes: ['resource'],
+    defaultSortBy: 'created'
+  },
+  stream: {
+    name: 'Stream',
+    iconName: 'Stream',
+    defaultViewMode: 'cards',
+    defaultSortBy: 'created'
+  },
+  topics: {
+    name: 'All Topics',
+    iconName: 'Topics'
+  },
+  tracks: {
+    name: 'Tracks',
+    iconName: 'Shapes'
+  },
+  welcome: {
+    name: 'Welcome',
+    iconName: 'Hand'
+  }
+}
+
 /** View types that use a Lucide icon instead of the Hylo icon font. */
 const VIEW_TYPE_TO_LUCIDE_ICON = {
   chat: 'MessageCircleMore',

@@ -1,5 +1,8 @@
 import { attr, Model } from 'redux-orm'
 
+/** Re-export system view defaults — defined in @hylo/presenters for package sharing. */
+export { COMMON_VIEWS } from '@hylo/presenters/GroupViewPresenter'
+
 const NON_DELETABLE_TYPES = ['track-actions', 'funding-round-submissions']
 
 /** Maps an accepted post type to the GroupView type that displays it (mirrors backend Group.ACCEPTED_POST_TYPE_TO_VIEW_TYPE). */
