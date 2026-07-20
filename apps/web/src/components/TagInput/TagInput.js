@@ -6,6 +6,7 @@ import { cn } from 'util/index'
 import { getKeyCode, keyMap } from 'util/textInput'
 import Icon from 'components/Icon'
 import KeyControlledItemList from 'components/KeyControlledList/KeyControlledItemList'
+import LucideIcon from 'components/LucideIcon/LucideIcon'
 import RoundImage from 'components/RoundImage'
 import { accessibilityIcon, visibilityIcon, accessibilityString, accessibilityDescription, visibilityString, visibilityDescription } from 'store/models/Group'
 import styles from './TagInput.module.scss'
@@ -140,31 +141,55 @@ class TagInput extends Component {
     const { tags = [], placeholder = this.props.t('Type...'), suggestions, className, theme, readOnly, maxTags, addLeadingHashtag, renderSuggestion, tagType } = this.props
     const optionalHashtag = addLeadingHashtag ? '#' : ''
 
-    const selectedItems = uniqBy('id', tags).map(t =>
-      <li key={t.id} className='inline-flex items-center relative mr-2'>
-        {t.avatarUrl && <RoundImage url={t.avatarUrl} small className={theme.selectedTagImage} />}
-        <span className='text-foreground'>
-          {optionalHashtag}{t.label || t.name}
-          {tagType && tagType === 'groups' && this.props.groupSettings && (
-            <span>
-              <span className={styles.privacyIcon}>
-                <Icon name={accessibilityIcon(t.accessibility)} className={styles.tagInputPrivacyIcon} />
-                <div className={styles.privacyTooltip}>
-                  <div><strong>{this.props.t(accessibilityString(t.accessibility))}</strong> - {this.props.t(accessibilityDescription(t.accessibility))}</div>
-                </div>
-              </span>
-              <span className={styles.privacyIcon}>
-                <Icon name={visibilityIcon(t.visibility)} className={styles.tagInputPrivacyIcon} />
-                <div className={styles.privacyTooltip}>
-                  <div><strong>{this.props.t(visibilityString(t.visibility))}</strong> - {this.props.t(visibilityDescription(t.visibility))}</div>
-                </div>
-              </span>
-            </span>
-          )}
-        </span>
-        <a onClick={!readOnly ? this.remove(t) : undefined} className={theme.selectedTagRemove}>&times;</a>
-      </li>
-    )
+    const selectedItems = uniqBy('id', tags).map(t => {
+      const spaceName = t.isSpace
+        ? (t.group?.name || t.name?.split(' / ').slice(1).join(' / '))
+        : null
+      const parentName = t.isSpace
+        ? (t.parentGroup?.name || t.name?.split(' / ')[0])
+        : null
+
+      return (
+        <li key={t.id} className='inline-flex items-center relative mr-2'>
+          {t.avatarUrl && <RoundImage url={t.avatarUrl} small className={theme.selectedTagImage} />}
+          <span className={cn('text-foreground', { 'inline-flex min-w-0 items-center gap-1.5': t.isSpace })}>
+            {t.isSpace
+              ? (
+                <>
+                  <span className='truncate'>{parentName}</span>
+                  <span className='text-foreground/50 shrink-0'>/</span>
+                  {t.icon && (
+                    <LucideIcon name={t.icon} className='h-3.5 w-3.5 shrink-0' />
+                  )}
+                  <span className='truncate'>{spaceName}</span>
+                </>
+                )
+              : (
+                <>
+                  {optionalHashtag}{t.label || t.name}
+                  {tagType && tagType === 'groups' && this.props.groupSettings && (
+                    <span>
+                      <span className={styles.privacyIcon}>
+                        <Icon name={accessibilityIcon(t.accessibility)} className={styles.tagInputPrivacyIcon} />
+                        <div className={styles.privacyTooltip}>
+                          <div><strong>{this.props.t(accessibilityString(t.accessibility))}</strong> - {this.props.t(accessibilityDescription(t.accessibility))}</div>
+                        </div>
+                      </span>
+                      <span className={styles.privacyIcon}>
+                        <Icon name={visibilityIcon(t.visibility)} className={styles.tagInputPrivacyIcon} />
+                        <div className={styles.privacyTooltip}>
+                          <div><strong>{this.props.t(visibilityString(t.visibility))}</strong> - {this.props.t(visibilityDescription(t.visibility))}</div>
+                        </div>
+                      </span>
+                    </span>
+                  )}
+                </>
+                )}
+          </span>
+          <a onClick={!readOnly ? this.remove(t) : undefined} className={theme.selectedTagRemove}>&times;</a>
+        </li>
+      )
+    })
 
     const maxReached = maxTags && selectedItems.length >= maxTags
 
