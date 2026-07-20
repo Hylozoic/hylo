@@ -217,6 +217,10 @@ export default function ContextMenu (props) {
     window.dispatchEvent(new CustomEvent('contextMenuScroll'))
   }, [])
 
+  // Settings menu needs a viewport-bounded height so it can scroll independently of the
+  // underlying widget list (which stays mounted behind the settings overlay).
+  const isSettingsPath = location.pathname.includes('/settings')
+
   return (
     <ContextMenuProvider
       contextWidgets={orderedWidgets}
@@ -229,13 +233,24 @@ export default function ContextMenu (props) {
       handlePositionedAdd={handlePositionedAdd}
     >
       <div
-        className={cn('ContextMenu bg-background relative z-20 isolate pointer-events-auto h-full flex-1 min-w-0', !isPhoneDevice() && 'sm:flex-initial sm:w-[300px]', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isNavOpen, 'h-screen h-dvh': isPhoneDevice(), '!overflow-y-auto': !location.pathname.includes('/settings'), 'overflow-y-hidden': location.pathname.includes('/settings') }, className)}
+        className={cn(
+          'ContextMenu bg-background relative z-20 isolate pointer-events-auto h-full flex-1 min-w-0',
+          !isPhoneDevice() && 'sm:flex-initial sm:w-[300px]',
+          { [classes.mapView]: mapView },
+          {
+            [classes.showGroupMenu]: isNavOpen,
+            'h-screen h-dvh': isPhoneDevice(),
+            'overflow-y-hidden flex flex-col': isSettingsPath,
+            '!overflow-y-auto': !isSettingsPath
+          },
+          className
+        )}
         style={{ boxShadow: 'inset -15px 0 15px -10px hsl(var(--darkening) / 0.3)' }}
         onScroll={handleScroll}
       >
-        <div className='relative min-h-full'>
+        <div className={cn('relative', isSettingsPath ? 'flex flex-col flex-1 min-h-0 overflow-hidden' : 'min-h-full')}>
           <div className='absolute inset-0 bg-gradient-to-b from-context-menu-background to-theme-background/10 dark:to-theme-background/40 z-0 pointer-events-none' />
-          <div className='ContextDetails w-full z-20 relative'>
+          <div className='ContextDetails w-full z-20 relative shrink-0'>
             {routeParams.context === 'groups'
               ? <GroupMenuHeader group={group} />
               : isPublicContext
@@ -267,7 +282,7 @@ export default function ContextMenu (props) {
                   : null}
           </div>
           {hasContextWidgets && (
-            <div className={cn('relative flex flex-col items-center overflow-hidden z-20', location.pathname.includes('/settings') && 'flex-1 min-h-0')}>
+            <div className={cn('relative flex flex-col items-center overflow-hidden z-20', isSettingsPath && 'flex-1 min-h-0')}>
               <Routes>
                 <Route path='settings/*' element={<GroupSettingsMenu group={group} />} />
               </Routes>
