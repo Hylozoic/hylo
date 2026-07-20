@@ -148,3 +148,6 @@ Or use the package.json scripts: `yarn test:e2e`, `yarn screenshot`
 - GraphQL for API queries (some in `.graphql` files, most defined inline)
 - Shared logic goes in `packages/` when used by both web and backend
 - Standard.js linting for the web app
+
+## Web App Guidelines
+- When adding new strings always translate them to the different languages in public/locales
