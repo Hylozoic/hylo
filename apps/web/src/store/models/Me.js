@@ -81,7 +81,6 @@ Me.fields = {
     to: 'Location',
     as: 'locationObject'
   }),
-  commonRoles: many('CommonRole'),
   memberships: many('Membership'),
   messageThreads: many('MessageThread'),
   notifications: many('Notification'),

@@ -125,7 +125,7 @@ function ThreadList () {
           <SquarePen />
         </Link>
       </div>
-      <div className='flex gap-2 px-2 pb-2'>
+      <div className='flex gap-2 px-2 py-1'>
         <button
           type='button'
           onClick={handleSelectInboxTab}

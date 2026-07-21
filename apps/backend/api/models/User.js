@@ -10,7 +10,6 @@ import RedisClient from '../services/RedisClient'
 import HasSettings from './mixins/HasSettings'
 import { findThread } from './post/findOrCreateThread'
 import { generateHyloJWT } from '../../lib/HyloJWT'
-import MemberCommonRole from './MemberCommonRole'
 import ical from 'ical-generator'
 import Frontend from '../services/Frontend'
 const { DateTime } = require('luxon')
@@ -119,11 +118,6 @@ module.exports = bookshelf.Model.extend(merge({
     return this.hasOne(CookieConsent, 'user_id')
   },
 
-  commonRoles () {
-    return this.belongsToMany(CommonRole)
-      .through(MemberCommonRole, 'user_id', 'common_role_id')
-  },
-
   contributions: function () {
     return this.hasMany(Contribution)
   },
@@ -197,17 +191,22 @@ module.exports = bookshelf.Model.extend(merge({
       )
   },
 
-  membershipCommonRoles () {
-    return this.hasMany(MemberCommonRole, 'user_id')
-  },
-
   messageThreads: function () {
     return this.followedPosts().query(q => q.where('type', Post.Type.THREAD))
   },
 
-  moderatedGroupMemberships: function () { // TODO RESP: need to edit this. A helper function has already been created on the Responsibility model, it gets you groupIds and responsibilities tho, need to use that to look up memberships to return
+  moderatedGroupMemberships: function () {
     return this.memberships()
-      .where('group_memberships.role', GroupMembership.Role.MODERATOR)
+      .query(q => {
+        q.join('group_memberships_group_roles as mgr', function () {
+          this.on('mgr.group_id', '=', 'group_memberships.group_id')
+            .andOn('mgr.user_id', '=', 'group_memberships.user_id')
+        })
+        q.join('groups_roles as gr', 'gr.id', 'mgr.group_role_id')
+        q.where('gr.type', 'system')
+        q.where('gr.name', 'Coordinator')
+        q.where('mgr.active', true)
+      })
   },
 
   posts: function () {
@@ -373,13 +372,13 @@ module.exports = bookshelf.Model.extend(merge({
     return this.getSetting('locale') || 'en'
   },
 
-  joinGroup: async function (group, { role = GroupMembership.Role.DEFAULT, fromInvitation = false, questionAnswers = [], transacting = null } = {}) {
+  joinGroup: async function (group, { assignCoordinator = false, fromInvitation = false, questionAnswers = [], transacting = null } = {}) {
     const groupSettings = group.get('settings') || {}
     const defaultDigestFrequency = groupSettings.default_digest_frequency === 'weekly' ? 'weekly' : 'daily'
 
     const memberships = await group.addMembers([this.id],
       {
-        role,
+        assignCoordinator,
         settings: {
           // Set joinQuestionsAnsweredAt if user answered questions during the join flow
           joinQuestionsAnsweredAt: questionAnswers.length > 0 ? new Date() : null,
@@ -714,7 +713,7 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   create: function (attributes) {
-    const { account, group, role } = attributes
+    const { account, group, assignCoordinator } = attributes
 
     attributes = merge({
       avatar_url: User.gravatar(attributes.email),
@@ -726,7 +725,7 @@ module.exports = bookshelf.Model.extend(merge({
         comment_notifications: 'both'
       },
       active: true
-    }, omit(attributes, 'account', 'group', 'role'))
+    }, omit(attributes, 'account', 'group', 'assignCoordinator', 'role'))
 
     if (account) {
       merge(
@@ -741,7 +740,7 @@ module.exports = bookshelf.Model.extend(merge({
         .then(async (user) => {
           await Promise.join(
             account && LinkedAccount.create(user.id, account, { transacting }),
-            group && group.addMembers([user.id], { role: role || GroupMembership.Role.DEFAULT }, { transacting }),
+            group && group.addMembers([user.id], { assignCoordinator: !!assignCoordinator }, { transacting }),
             group && user.markInvitationsUsed(group.id, transacting)
           )
           return user

@@ -50,7 +50,24 @@ describe('comment/createComment', () => {
         expect(messageType).to.equal('messageAdded')
         expect(payload.messageThread).to.equal(thread.id)
         expect(payload.text).to.equal('hi')
+        expect(payload.isMuted).to.equal(false)
       })
+    })
+
+    it('includes isMuted in socket payload when thread is muted', async () => {
+      const postUser = await PostUser.find(thread.id, user2.id)
+      await postUser.updateAndSave({ muted_at: new Date() })
+
+      const message = new Comment({
+        text: 'hi',
+        post_id: thread.id,
+        user_id: user.id
+      })
+      thread.set({ num_comments: 2 })
+      return pushMessageToSockets(message, thread)
+        .then(promises => {
+          expect(promises[0].payload.isMuted).to.equal(true)
+        })
     })
   })
 })

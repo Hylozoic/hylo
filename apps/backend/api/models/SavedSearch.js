@@ -26,78 +26,54 @@ module.exports = bookshelf.Model.extend({
   },
 
   newPosts: async function () {
+    const context = this.get('context')
+    if (context !== 'groups') {
+      return Post.collection()
+    }
+
     const searchId = this.id
-    const topics = await this.topics()
     const searchText = this.get('search_text')
-    const contextQuery = this.getContextQuery()
+    const groupId = this.get('group_id')
 
     const query = `
-    with posts_with_locations as (
-      select p.id, p.description, p.name, p.type, p.is_public, loc.center as location, array_agg(t.tag_id)::integer[] as tag_ids from posts p
-      left join locations loc on p.location_id = loc.id
-      left join posts_tags t on p.id = t.post_id
-      where loc.id is not null
-      group by p.id, p.description, p.name, p.type, p.is_public, loc.center
-    ),
-    search as (
-      select s.bounding_box, s.last_post_id, CONCAT('%',search_text,'%') as search_text, s.post_types, array_agg(sst.tag_id)::integer[] as tag_ids from saved_searches s
+    with search as (
+      select s.bounding_box, s.last_post_id, s.search_text, s.post_types,
+        array_agg(sst.tag_id) filter (where sst.tag_id is not null)::integer[] as tag_ids
+      from saved_searches s
       left join saved_search_topics sst on s.id = sst.saved_search_id
-      where s.id=${searchId}
+      where s.id = ${searchId}
       group by s.id
     )
-    select p.id from posts_with_locations p
-    where ST_Within(p.location, (select bounding_box from search limit 1))=true
-    and p.id > (select last_post_id from search)
-    ${searchText ? 'and (p.name ilike (select search_text from search) or p.description ilike (select search_text from search))' : ''}
-    ${topics.length > 0 ? 'and p.tag_ids && (select tag_ids from search)' : ''}
-    and CONCAT('{',p.type,'}')::varchar[] && (select post_types from search)
-    ${contextQuery}
+    select p.id
+    from posts p
+    inner join locations loc on p.location_id = loc.id
+    inner join groups_posts gp on gp.post_id = p.id
+    cross join search s
+    where gp.group_id = ${groupId}
+      and p.id > s.last_post_id
+      and ST_Within(loc.center, s.bounding_box)
+      and CONCAT('{', p.type, '}')::varchar[] && s.post_types
+      ${searchText ? "and (p.name ilike '%' || s.search_text || '%' or p.description ilike '%' || s.search_text || '%')" : ''}
+      and (
+        cardinality(coalesce(s.tag_ids, '{}')) = 0
+        or exists (
+          select 1 from posts_tags pt
+          where pt.post_id = p.id and pt.tag_id = any(s.tag_ids)
+        )
+      )
     order by p.id desc
     `
     const result = await bookshelf.knex.raw(query)
     const postIds = (result.rows || []).map(p => p.id)
+    if (postIds.length === 0) {
+      return Post.collection()
+    }
     const posts = await Post.query(q => {
       q.where('id', 'in', postIds)
     }).fetchAll({
       withRelated: ['user', 'linkPreview']
     })
     return posts
-  },
-
-  getContextQuery: function () {
-    const context = this.get('context')
-    const lastPostId = this.get('last_post_id')
-    const userId = this.get('user_id')
-
-    let query
-
-    // TODO: fix up to use groups
-    switch (context) {
-      case 'all':
-        query = `
-          and p.id in (select p.id from posts p
-          left join groups_posts gp on p.id = gp.post_id
-          left join group_memberships gm on gm.group_id = gp.group_id
-          where gm.user_id=${userId}
-          and p.id > ${lastPostId})
-        `
-        break
-      case 'public':
-        query = `
-          and p.is_public = true
-        `
-        break
-      case 'groups':
-        query = `
-          and p.id in (select p.id from posts p
-          left join groups_posts gp on p.id = gp.post_id
-          where gp.group_id=${this.get('group_id')}
-          and p.id > ${lastPostId})
-        `
-        break
-    }
-
-    return query
   },
 
   updateLastPost: async function(id, last_post_id) {

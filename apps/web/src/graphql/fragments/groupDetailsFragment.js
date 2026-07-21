@@ -95,7 +95,7 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
       id
       name
       avatarUrl
-      groupRoles {
+      groupRoles(slug: $slug) {
         items {
           id
           name
@@ -109,14 +109,6 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
               description
             }
           }
-        }
-      }
-      membershipCommonRoles {
-        items {
-          id
-          groupId
-          userId
-          roleId
         }
       }
     }

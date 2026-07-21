@@ -1006,4 +1006,66 @@ describe('Post', function () {
       expect(notFoundPost).to.not.exist
     })
   })
+
+  describe('checkCompletedTracks', () => {
+    let user, group, track, completionRole, a1, a2, trackManager
+
+    beforeEach(async () => {
+      spyify(Queue, 'classMethod', () => Promise.resolve())
+      await setup.clearDb()
+      const { assignTrackManager, ensureManageTracksResponsibility } = require('../../setup/roleHelpers')
+      await ensureManageTracksResponsibility()
+      trackManager = await factories.user().save()
+      user = await factories.user().save()
+      group = await factories.group().save()
+      await assignTrackManager(trackManager, group)
+      await user.joinGroup(group)
+      completionRole = await GroupRole.forge({
+        group_id: group.id,
+        name: 'Graduate',
+        emoji: '🎓',
+        type: GroupRole.TYPE_CUSTOM
+      }).save()
+      track = await Track.create({
+        name: 'Test Track',
+        published_at: new Date(),
+        completion_role_id: completionRole.id
+      })
+      await track.groups().attach(group.id)
+      a1 = await factories.post({ type: Post.Type.ACTION, user_id: trackManager.id }).save()
+      a2 = await factories.post({ type: Post.Type.ACTION, user_id: trackManager.id }).save()
+      await a1.groups().attach(group)
+      await a2.groups().attach(group)
+      await Track.addPost(a1, track)
+      await Track.addPost(a2, track)
+      await Track.enroll(track.id, user.id)
+    })
+
+    afterEach(() => {
+      unspyify(Queue, 'classMethod')
+    })
+
+    it('assigns the completion role when all track actions are completed', async () => {
+      await a1.complete(user.id, JSON.stringify([]))
+      await Post.checkCompletedTracks({ userId: user.id, postId: a1.id })
+      let memberRole = await MemberGroupRole.where({
+        user_id: user.id,
+        group_role_id: completionRole.id
+      }).fetch()
+      expect(memberRole).to.not.exist
+
+      await a2.complete(user.id, JSON.stringify([]))
+      await Post.checkCompletedTracks({ userId: user.id, postId: a2.id })
+
+      memberRole = await MemberGroupRole.where({
+        user_id: user.id,
+        group_role_id: completionRole.id,
+        active: true
+      }).fetch()
+      expect(memberRole).to.exist
+
+      const trackUser = await TrackUser.where({ track_id: track.id, user_id: user.id }).fetch()
+      expect(trackUser.get('completed_at')).to.exist
+    })
+  })
 })

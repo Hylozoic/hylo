@@ -111,14 +111,6 @@ export default gql`
     memberships {
       ...MembershipFieldsFragment
     }
-    membershipCommonRoles {
-      items {
-        id
-        commonRoleId
-        groupId
-        userId
-      }
-    }
     skills {
       items {
         id

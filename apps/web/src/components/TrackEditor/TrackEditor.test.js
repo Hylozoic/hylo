@@ -51,7 +51,6 @@ describe('TrackEditor', () => {
         emoji: '🏆',
         name: 'Achievement Badge'
       },
-      completionRoleType: 'group',
       publishedAt: new Date().toISOString()
     }
 

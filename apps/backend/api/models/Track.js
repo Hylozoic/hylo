@@ -11,11 +11,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
   hasTimestamps: true,
 
   completionRole: function () {
-    if (this.get('completion_role_type') === 'common') {
-      return this.belongsTo(CommonRole, 'completion_role_id')
-    } else {
-      return this.belongsTo(GroupRole, 'completion_role_id')
-    }
+    return this.belongsTo(GroupRole, 'completion_role_id')
   },
 
   enrolledUsers: function () {

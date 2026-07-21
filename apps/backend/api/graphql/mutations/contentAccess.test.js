@@ -35,7 +35,7 @@ describe('Content Access Mutations', () => {
     await group.tracks().attach(track.id)
 
     // Add admin user as group administrator
-    await adminUser.joinGroup(group, { role: GroupMembership.Role.MODERATOR })
+    await adminUser.joinGroup(group, { assignCoordinator: true })
     // Add regular user as group member
     await user.joinGroup(group)
   })
@@ -152,7 +152,7 @@ describe('Content Access Mutations', () => {
           grantedByGroupId: group.id,
           reason: 'Test'
         })
-      ).to.be.rejectedWith('Must specify either groupId, productId, trackId, groupRoleId, or commonRoleId')
+      ).to.be.rejectedWith('Must specify either groupId, productId, trackId, or groupRoleId')
     })
   })
 

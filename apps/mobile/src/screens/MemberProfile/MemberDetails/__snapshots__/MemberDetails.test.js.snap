@@ -35,7 +35,6 @@ exports[`GroupRow handles high member count and moderator role 1`] = `
           "memberCount": 24495,
           "name": "Greater Place",
         },
-        "hasModeratorRole": true,
       }
     }
   />
@@ -77,7 +76,6 @@ exports[`GroupRow matches the last snapshot 1`] = `
           "memberCount": 432,
           "name": "Great Place",
         },
-        "hasModeratorRole": false,
       }
     }
   />

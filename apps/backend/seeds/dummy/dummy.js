@@ -15,6 +15,65 @@ const n = {
   threads: 100
 }
 
+const SYSTEM_ROLES = [
+  {
+    name: 'Coordinator',
+    emoji: '🪄',
+    description: 'Coordinators are empowered to do everything related to group administration.',
+    responsibilities: ['Administration', 'Add Members', 'Remove Members', 'Manage Content', 'Manage Tracks']
+  },
+  {
+    name: 'Moderator',
+    emoji: '⚖️',
+    description: 'Moderators are expected to actively engage in discussion, encourage participation, and take corrective action if a member violates group agreements.',
+    responsibilities: ['Manage Content', 'Remove Members']
+  },
+  {
+    name: 'Host',
+    emoji: '👋',
+    description: 'Hosts are responsible for cultivating a good atmosphere by welcoming and orienting new members, embodying the group culture and agreements, and helping members connect with relevant content and people.',
+    responsibilities: ['Add Members']
+  }
+]
+
+async function seedSystemRolesForGroup (knex, groupId, responsibilityByName, now) {
+  for (const roleDef of SYSTEM_ROLES) {
+    const [role] = await knex('groups_roles')
+      .insert({
+        group_id: groupId,
+        name: roleDef.name,
+        emoji: roleDef.emoji,
+        description: roleDef.description,
+        type: 'system',
+        active: true,
+        created_at: now,
+        updated_at: now
+      })
+      .returning('*')
+
+    for (const title of roleDef.responsibilities) {
+      const responsibilityId = responsibilityByName[title]
+      if (!responsibilityId) continue
+      await knex('group_roles_responsibilities').insert({
+        group_role_id: role.id,
+        responsibility_id: responsibilityId
+      })
+    }
+  }
+}
+
+async function seedSystemRolesForAllGroups (knex, responsibilityByName) {
+  const now = new Date().toISOString()
+  const groups = await knex('groups').select('id')
+  for (const { id } of groups) {
+    const existing = await knex('groups_roles')
+      .where({ group_id: id, type: 'system' })
+      .first()
+    if (existing) continue
+    await seedSystemRolesForGroup(knex, id, responsibilityByName, now)
+  }
+}
+
 // Add your test account details here. You'll be randomly assigned to a group,
 // and you'll also be added to the one specified below.
 // (You can create your own later if you want).
@@ -96,31 +155,15 @@ exports.seed = (knex) => warning(knex)
     { title: 'Manage Content', type: 'system' },
     { title: 'Manage Tracks', type: 'system' }
   ]))
-  .then(() => knex('common_roles').insert([
-    { name: 'Coordinator' },
-    { name: 'Moderator' }
-  ]))
-  .then(() => Promise.all([
-    knex('responsibilities').where('title', 'Administration').first('id'),
-    knex('responsibilities').where('title', 'Add Members').first('id'),
-    knex('responsibilities').where('title', 'Remove Members').first('id'),
-    knex('responsibilities').where('title', 'Manage Content').first('id'),
-    knex('responsibilities').where('title', 'Manage Tracks').first('id'),
-    knex('common_roles').where('name', 'Coordinator').first('id'),
-    knex('common_roles').where('name', 'Moderator').first('id')
-  ]))
-  .then(([admin, addMembers, removeMembers, manageContent, manageTracks, coordinator, moderator]) => knex('common_roles_responsibilities').insert([
-    { common_role_id: coordinator.id, responsibility_id: admin.id },
-    { common_role_id: coordinator.id, responsibility_id: addMembers.id },
-    { common_role_id: coordinator.id, responsibility_id: removeMembers.id },
-    { common_role_id: coordinator.id, responsibility_id: manageContent.id },
-    { common_role_id: coordinator.id, responsibility_id: manageTracks.id },
-    { common_role_id: moderator.id, responsibility_id: manageContent.id }
-  ]))
-  .then(() => seed('tags', knex))
-  .then(() => knex('groups').insert(fakeGroupData('starter-posts', 'starter-posts')))
-  .then(() => knex('groups').insert(fakeGroupData(group, groupSlug)))
-  .then(() => seed('groups', knex))
+  .then(() => knex('responsibilities').select('id', 'title'))
+  .then((rows) => Object.fromEntries(rows.map(r => [r.title, r.id])))
+  .then((responsibilityByName) => {
+    return seed('tags', knex).then(() => responsibilityByName)
+  })
+  .then((responsibilityByName) => knex('groups').insert(fakeGroupData('starter-posts', 'starter-posts')).then(() => responsibilityByName))
+  .then((responsibilityByName) => knex('groups').insert(fakeGroupData(group, groupSlug)).then(() => responsibilityByName))
+  .then((responsibilityByName) => seed('groups', knex).then(() => responsibilityByName))
+  .then((responsibilityByName) => seedSystemRolesForAllGroups(knex, responsibilityByName))
   .then(() => seed('posts', knex))
   .then(() => Promise.all([
     knex('users').where('email', email).first('id'),
@@ -135,9 +178,22 @@ exports.seed = (knex) => warning(knex)
       user_id: user.id,
       group_id: group.id,
       created_at: knex.fn.now(),
-      role: 1,
       settings: '{ "send_email": true, "send_push_notifications": true }'
     })
+
+    const coordinator = await knex('groups_roles')
+      .where({ group_id: group.id, name: 'Coordinator', type: 'system' })
+      .first()
+    if (coordinator) {
+      await knex('group_memberships_group_roles').insert({
+        user_id: user.id,
+        group_id: group.id,
+        group_role_id: coordinator.id,
+        active: true,
+        created_at: knex.fn.now(),
+        updated_at: knex.fn.now()
+      })
+    }
 
     // Add chat rooms to main group
     const homeWidget = await knex('context_widgets').insert({

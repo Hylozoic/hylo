@@ -109,15 +109,7 @@ export default function groupQueryFragment () {
         avatarUrl
         lastActiveAt
         name
-        membershipCommonRoles {
-          items {
-            id
-            groupId
-            userId
-            commonRoleId
-          }
-        }
-        groupRoles {
+        groupRoles(slug: $slug) {
           items {
             id
             name
