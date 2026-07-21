@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 # Check if YARN2_WORKSPACE_PATH is set
 if [ -z "$YARN2_WORKSPACE_PATH" ]; then

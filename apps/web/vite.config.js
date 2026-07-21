@@ -15,22 +15,28 @@ dotenv.config({ path: '.env', override: false })
 
 const proxyTarget = process.env.VITE_API_HOST || 'http://localhost:3001'
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   base: '/',
   define: {
     'process.env.PUBLIC_URL': JSON.stringify('')
   },
   build: {
-    minify: true
+    minify: true,
+    // Gzipping every chunk to print sizes is expensive on large bundles and
+    // contributed to Heroku build OOMs (~2.5GB heap limit).
+    reportCompressedSize: false
   },
   plugins: [
     patchCssModules(),
     react(),
-    eslint({
-      exclude: ['/virtual:/', 'node_modules/**'],
-      failOnError: false, // Prevents Vite from stopping on lint errors
-      failOnWarning: false // Ensures warnings don't block the build either
-    }),
+    // Skip ESLint during production builds — it adds peak memory on Heroku.
+    ...(command === 'serve'
+      ? [eslint({
+          exclude: ['/virtual:/', 'node_modules/**'],
+          failOnError: false, // Prevents Vite from stopping on lint errors
+          failOnWarning: false // Ensures warnings don't block the build either
+        })]
+      : []),
     {
       name: 'treat-js-files-as-jsx',
       async transform (code, id) {
@@ -147,4 +153,4 @@ export default defineConfig({
       }
     }
   }
-})
+}))
