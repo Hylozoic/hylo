@@ -38,6 +38,9 @@ export const WebViewMessageTypes = {
   VERIFY_AUTH: 'VERIFY_AUTH',
   // Web app confirmed checkLogin succeeded inside the v2 mobile WebView.
   AUTH_SUCCESS: 'AUTH_SUCCESS',
+  // Native re-minted the session cookie and synced the WebView jar — re-run checkLogin
+  // in place instead of reloading the whole page.
+  SESSION_READY: 'SESSION_READY',
   NAVIGATION: 'NAVIGATION',
   THEME_CHANGE: 'THEME_CHANGE',
   EDITOR: {

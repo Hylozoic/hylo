@@ -6,6 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.5.5] - 2026-07-21
+
+### Added
+- Create post dialog can now open when in the messages view
+- Made mobile web view auth more robust
+
+### Fixed
+- Chat paths more reliably handle query params, avoiding instances of bad chat queries
+- Ensure all participants of a message thread can see each other, before their first message
+- Avoid double posting from post editor
+
 ## [6.5.4] - 2026-07-14
 
 ### Changed

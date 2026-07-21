@@ -1314,7 +1314,17 @@ export default function makeModels (userId, isAdmin, apiClient) {
         isMuted: t => t.isMutedForUser(userId)
       },
       relations: [
-        { followers: { alias: 'participants' } },
+        {
+          followers: {
+            alias: 'participants',
+            // Thread members should see everyone on the thread, even when they
+            // do not share a group or UserConnection (personFilter would hide them).
+            skipModelFilter: true,
+            filter: relation => relation.query(q => {
+              q.whereNotIn('users.id', BlockedUser.blockedFor(userId))
+            })
+          }
+        },
         { comments: { alias: 'messages', typename: 'Message', querySet: true } }
       ],
       filter: relation => relation.query(q =>

@@ -896,7 +896,7 @@ export default function GlobalNav (props) {
           url='/messages'
           className={isVisible(2)}
           showTooltip={isContainerHovered}
-          badgeCount={currentUser.unseenThreadCount || 0}
+          badgeCount={currentUser?.unseenThreadCount || 0}
         >
           <MessagesSquare />
         </GlobalNavItem>
