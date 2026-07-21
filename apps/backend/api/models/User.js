@@ -963,18 +963,16 @@ module.exports = bookshelf.Model.extend(merge({
     // Fetch all EventInvitations for this user with YES or INTERESTED responses
     // but returnempty collection if RSVP calendar subscription is disabled
     const fromDate = Post.eventCalSubDateLimit().toISO()
-    const eventInvitations = user.get('settings')?.rsvp_calendar_sub ?
-      await EventInvitation
-        .query(q => {
-          q.join('posts', 'event_invitations.event_id', 'posts.id')
-          q.where('event_invitations.user_id', userId)
-          q.where('posts.active', true)
-          q.where('posts.start_time', '>=', fromDate)
-          q.whereIn('event_invitations.response', [
-            EventInvitation.RESPONSE.YES,
-            EventInvitation.RESPONSE.INTERESTED
-          ])
-        })
+    const eventInvitations = user.get('settings')?.rsvp_calendar_sub
+      ? await EventInvitation.query()
+        .join('posts', 'event_invitations.event_id', 'posts.id')
+        .where('event_invitations.user_id', userId)
+        .where('posts.active', true)
+        .where('posts.start_time', '>=', fromDate)
+        .whereIn('event_invitations.response', [
+          EventInvitation.RESPONSE.YES,
+          EventInvitation.RESPONSE.INTERESTED
+        ])
         .fetchAll({ withRelated: 'event' })
       : { models: [] }
 
@@ -1004,7 +1002,7 @@ module.exports = bookshelf.Model.extend(merge({
     await require('../../lib/uploader/storage').writeStringToS3(
       cal.toString(),
       user.getRsvpCalendarPath(), {
-        'Content-Type': 'text/calendar'
+        ContentType: 'text/calendar'
       })
   }
 })

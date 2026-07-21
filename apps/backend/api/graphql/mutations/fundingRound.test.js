@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-expressions */
 import '../../../test/setup'
 import factories from '../../../test/setup/factories'
 import { assignCoordinator } from '../../../test/setup/roleHelpers'
@@ -34,7 +35,7 @@ describe('createFundingRound', () => {
     }
 
     const round = await createFundingRound(moderatorUser.id, data)
-    expect(round).to.exist()
+    expect(round).to.exist
     expect(round.get('title')).to.equal(data.title)
     expect(round.get('group_id')).to.equal(group.id)
   })
@@ -293,7 +294,7 @@ describe('joinFundingRound', () => {
     await joinFundingRound(user.id, round.id)
 
     const membership = await GroupMembership.forPair(user.id, space).fetch()
-    expect(membership).to.exist()
+    expect(membership).to.exist
     expect(membership.get('active')).to.equal(true)
   })
 })
@@ -336,7 +337,7 @@ describe('leaveFundingRound', () => {
     await leaveFundingRound(user.id, round.id)
 
     const membership = await GroupMembership.forPair(user.id, space).fetch()
-    expect(membership).to.not.exist()
+    expect(membership).to.not.exist
     const inactive = await GroupMembership.forPair(user.id, space, { includeInactive: true }).fetch()
     expect(inactive.get('active')).to.equal(false)
   })
@@ -560,7 +561,7 @@ describe('allocateTokensToSubmission', () => {
   it('allows a user to allocate tokens to a submission', async () => {
     const result = await allocateTokensToSubmission(voter.id, submission.id, 50)
 
-    expect(result).to.exist()
+    expect(result).to.exist
 
     // Check that tokens were allocated
     const postUser = await PostUser.find(submission.id, voter.id)
@@ -713,7 +714,7 @@ describe('allocateTokensToSubmission', () => {
     // Then set to zero
     const result = await allocateTokensToSubmission(voter.id, submission.id, 0)
 
-    expect(result).to.exist()
+    expect(result).to.exist
 
     const postUser = await PostUser.find(submission.id, voter.id)
     expect(postUser.get('tokens_allocated_to')).to.equal(0)

@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-expressions */
 import setup from '../../../test/setup'
 import factories from '../../../test/setup/factories'
 import { spyify, unspyify } from '../../../test/setup/helpers'
@@ -112,7 +113,7 @@ describe('track mutations', () => {
       })
       const copy = await duplicateTrack(trackManager.id, track.id)
       expect(copy.get('name')).to.match(/\(copy\)/)
-      expect(copy.get('group_id')).to.exist()
+      expect(copy.get('group_id')).to.exist
     })
   })
 
