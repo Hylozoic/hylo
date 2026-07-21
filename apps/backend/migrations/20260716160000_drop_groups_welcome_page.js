@@ -88,3 +88,10 @@ exports.down = async function (knex) {
   }
   console.log(`[down]   restored welcome_page on ${restored} groups`)
 }
+
+// Without this, migrate:latest wraps the whole spaces batch in one transaction.
+// Phase 1 DML on groups (and deferred FKs from group_views inserts in this file)
+// then leave pending trigger events, so DROP COLUMN fails with:
+//   cannot ALTER TABLE "groups" because it has pending trigger events
+// Same pattern as 20260503120000_drop_legacy_group_polymorphism.js.
+exports.config = { transaction: false }
