@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { formatError } from 'routes/NonAuthLayoutRouter/util'
 import TextInput from 'components/TextInput'
 import Button from 'components/ui/button'
-import { getAuthorized } from 'store/selectors/getAuthState'
+import { getAuthorized } from 'store/selectors/getSignupState'
 import { login } from './Login.store'
 
 export default function Login (props) {
