@@ -61,7 +61,6 @@ export async function createFundingRound (userId, data) {
     await group.save({ funding_round_id: round.id }, { patch: true })
   }
 
-  Queue.classMethod('Group', 'doesMenuUpdate', { groupIds: [attrs.group_id], fundingRound: round })
   return round
 }
 
@@ -135,8 +134,6 @@ export async function updateFundingRound (userId, id, data) {
     await round.save({ updated_at: new Date(), ...updatedAttrs }, { transacting, patch: true })
 
     await doPhaseTransition(userId, round, { transacting })
-
-    Queue.classMethod('Group', 'doesMenuUpdate', { groupIds: [group.id], fundingRound: round })
 
     return round
   })

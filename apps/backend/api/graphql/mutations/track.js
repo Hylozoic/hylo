@@ -1,4 +1,4 @@
-/* global Track, Group, GroupMembership, Responsibility, Queue */
+/* global Track, Group, GroupMembership, Responsibility */
 import { omit } from 'lodash'
 import { GraphQLError } from 'graphql'
 import convertGraphqlData from './convertGraphqlData'
@@ -24,7 +24,6 @@ export async function createTrack (userId, data) {
       }
     }
 
-    Queue.classMethod('Group', 'doesMenuUpdate', { groupIds: spaceId ? [spaceId] : [], track })
     return track
   })
 }
@@ -96,13 +95,6 @@ export async function updateTrack (userId, id, data) {
   const attrs = convertGraphqlData(omit(data, 'groupId', 'publishedAt'))
   attrs.published_at = data.publishedAt ? new Date(Number(data.publishedAt)) : null
   await track.save(attrs)
-  const space = await track.group().fetch()
-  const groupIds = []
-  if (space) {
-    groupIds.push(space.id)
-    if (space.get('parent_id')) groupIds.push(space.get('parent_id'))
-  }
-  Queue.classMethod('Group', 'doesMenuUpdate', { groupIds, track })
   return track
 }
 

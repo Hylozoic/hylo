@@ -59,7 +59,6 @@ export function afterUpdatingPost (post, opts) {
       Tag.updateForPost(post, topicNames, userId, transacting),
       updateFollowers(post, transacting)
     ]))
-    .then(() => Queue.classMethod('Group', 'doesMenuUpdate', { post: { type: post.type, location_id: post.location_id }, groupIds: group_ids }))
     .then(() => post.isEvent() && Queue.classMethod('Post', 'processEventUpdated', { postId: post.id, eventInviteeIds, userId, eventChanges }))
     .then(() => post.get('type') === 'project' && memberIds && post.setProjectMembers(memberIds, { transacting }))
     .then(() => post.get('type') === 'proposal' && proposalOptions && post.updateProposalOptions({ options: proposalOptions, userId, opts: { transacting } }))

@@ -84,7 +84,6 @@ export function afterCreatingPost (post, opts) {
     .then(() => post.isProposal() && post.setProposalOptions({ options: opts.proposalOptions || [], userId, opts: trxOpts }))
     .then(() => Tag.updateForPost(post, opts.topicNames, userId, trx))
     .then(() => updateTagsAndGroups(post, opts.localId, trx, opts.markAsReadTopicName))
-    .then(() => Queue.classMethod('Group', 'doesMenuUpdate', { post: { type: post.get('type'), location_id: post.get('location_id') }, groupIds: opts.group_ids }))
     .then(() => Queue.classMethod('Post', 'createActivities', { postId: post.id }))
     .then(() => opts.fundingRoundId && post.get('type') === Post.Type.SUBMISSION && Queue.classMethod('FundingRound', 'notifyStewardsOfSubmission', { fundingRoundId: opts.fundingRoundId, postId: post.id, userId }))
     .then(() => Queue.classMethod('Post', 'notifySlack', { postId: post.id }))
