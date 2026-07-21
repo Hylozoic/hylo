@@ -25,7 +25,12 @@ const bootstrapTimeout = { timeout: 120000 }
 test.describe('authenticated: logout and session', () => {
   test('global nav sign out shows login; follow-up / is unauthenticated', async ({ page }) => {
     const pageErrors = []
-    page.on('pageerror', err => pageErrors.push(err.message))
+    page.on('pageerror', err => {
+      pageErrors.push(err.message)
+      if (process.env.E2E_FORWARD_BROWSER_LOGS === '1') {
+        process.stderr.write(`[browser][auth-session] pageerror: ${err.message}\n${err.stack || ''}\n`)
+      }
+    })
 
     await page.goto('/my/posts')
     await waitPastRootSessionLoading(page)
@@ -47,7 +52,12 @@ test.describe('authenticated: logout and session', () => {
 
   test('sign out then seeded email/password login restores auth shell', async ({ page }) => {
     const pageErrors = []
-    page.on('pageerror', err => pageErrors.push(err.message))
+    page.on('pageerror', err => {
+      pageErrors.push(err.message)
+      if (process.env.E2E_FORWARD_BROWSER_LOGS === '1') {
+        process.stderr.write(`[browser][auth-session] pageerror: ${err.message}\n${err.stack || ''}\n`)
+      }
+    })
 
     await page.goto('/my/posts')
     await waitPastRootSessionLoading(page)
