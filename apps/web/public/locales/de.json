@@ -2340,5 +2340,18 @@
   "{{personOne}}, {{personTwo}} and {{othersTotal}} other_plural": "{{personOne}}, {{personTwo}} und {{othersTotal}} weitere Personen",
   "{{submissionDescriptor}} Criteria": "{{submissionDescriptor}} Kriterien",
   "{{totalTopicsCached}} Total Topics": "{{totalTopicsCached}} Themen insgesamt",
-  "~ Mixed ~": "~ Gemischt ~"
+  "~ Mixed ~": "~ Gemischt ~",
+  "Add a space to the menu with +, or open it to edit its views.": "Füge einen Raum mit + zum Menü hinzu, oder öffne ihn, um seine Ansichten zu bearbeiten.",
+  "Archived Tracks": "Archivierte Tracks",
+  "Draft Funding Rounds": "Finanzierungsrunden-Entwürfe",
+  "Draft Tracks": "Track-Entwürfe",
+  "Archived Funding Rounds": "Archivierte Finanzierungsrunden",
+  "Drag and drop items in the menu on the left to reorder them. The top item is the home view for this group.": "Ziehe Menüeinträge per Drag & Drop, um sie neu anzuordnen. Der oberste Eintrag ist die Startansicht für diese Gruppe.",
+  "No draft or archived spaces off the menu": "Keine Entwurfs- oder archivierten Räume außerhalb des Menüs",
+  "No more spaces": "Keine weiteren Räume",
+  "Other Archived Spaces": "Andere archivierte Räume",
+  "Show Welcome Page to users": "Willkommensseite für Nutzer anzeigen",
+  "Show in the Menu": "Im Menü anzeigen",
+  "Spaces not in menu": "Räume nicht im Menü",
+  "Welcome page exists but is hidden from the menu.": "Die Willkommensseite existiert, ist aber im Menü ausgeblendet."
 }

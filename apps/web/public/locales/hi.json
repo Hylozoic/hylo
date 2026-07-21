@@ -2341,5 +2341,18 @@
   "{{personOne}}, {{personTwo}} and {{othersTotal}} other_plural": "{{personOne}}, {{personTwo}} और {{othersTotal}} अन्य",
   "{{submissionDescriptor}} Criteria": "{{submissionDescriptor}} मानदंड",
   "{{totalTopicsCached}} Total Topics": "{{totalTopicsCached}} कुल विषय",
-  "~ Mixed ~": "~ मिश्रित ~"
+  "~ Mixed ~": "~ मिश्रित ~",
+  "Add a space to the menu with +, or open it to edit its views.": "मेनू में स्पेस जोड़ने के लिए + दबाएँ, या उसके व्यू संपादित करने के लिए खोलें।",
+  "Archived Tracks": "संग्रहीत ट्रैक",
+  "Draft Funding Rounds": "ड्राफ्ट फंडिंग राउंड",
+  "Draft Tracks": "ड्राफ्ट ट्रैक",
+  "Archived Funding Rounds": "संग्रहीत फंडिंग राउंड",
+  "Drag and drop items in the menu on the left to reorder them. The top item is the home view for this group.": "मेनू आइटम को पुनर्व्यवस्थित करने के लिए उन्हें खींचकर छोड़ें। सबसे ऊपर वाला आइटम इस समूह का होम व्यू है।",
+  "No draft or archived spaces off the menu": "मेनू के बाहर कोई ड्राफ्ट या संग्रहीत स्पेस नहीं",
+  "No more spaces": "और स्पेस नहीं",
+  "Other Archived Spaces": "अन्य संग्रहीत स्पेस",
+  "Show Welcome Page to users": "उपयोगकर्ताओं को स्वागत पृष्ठ दिखाएँ",
+  "Show in the Menu": "मेनू में दिखाएँ",
+  "Spaces not in menu": "मेनू में नहीं स्पेस",
+  "Welcome page exists but is hidden from the menu.": "स्वागत पृष्ठ मौजूद है लेकिन मेनू से छिपा है।"
 }

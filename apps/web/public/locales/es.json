@@ -2426,5 +2426,18 @@
   "{{submissionDescriptor}} Criteria": "{{submissionDescriptor}} Criterios",
   "{{totalTopicsCached}} Total Topics": "{{totalTopicsCached}} Total de temas",
   "{{unseenCount}} unread notifications": "{{unseenCount}} notificaciones no leídas",
-  "~ Mixed ~": "~ Mezclado ~"
+  "~ Mixed ~": "~ Mezclado ~",
+  "Add a space to the menu with +, or open it to edit its views.": "Añade un espacio al menú con +, o ábrelo para editar sus vistas.",
+  "Archived Tracks": "Pistas archivadas",
+  "Draft Funding Rounds": "Rondas de financiación en borrador",
+  "Draft Tracks": "Pistas en borrador",
+  "Archived Funding Rounds": "Rondas de financiación archivadas",
+  "Drag and drop items in the menu on the left to reorder them. The top item is the home view for this group.": "Arrastra y suelta elementos del menú para reordenarlos. El elemento de arriba es la vista de inicio de este grupo.",
+  "No draft or archived spaces off the menu": "No hay espacios en borrador o archivados fuera del menú",
+  "No more spaces": "No hay más espacios",
+  "Other Archived Spaces": "Otros espacios archivados",
+  "Show Welcome Page to users": "Mostrar la página de bienvenida a los usuarios",
+  "Show in the Menu": "Mostrar en el menú",
+  "Spaces not in menu": "Espacios fuera del menú",
+  "Welcome page exists but is hidden from the menu.": "La página de bienvenida existe pero está oculta del menú."
 }

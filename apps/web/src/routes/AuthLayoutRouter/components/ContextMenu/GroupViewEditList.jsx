@@ -20,7 +20,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
-import { addQuerystringToPath, spaceHomeUrl } from '@hylo/navigation'
+import { addQuerystringToPath, groupUrl, localSpaceSlug } from '@hylo/navigation'
 
 import GroupViewIcon from './GroupViewIcon'
 import { GroupViewEditActions } from './GroupViewSettingsModal'
@@ -206,10 +206,14 @@ function SortableSpaceEditRow ({
     }
   }, [dispatch, group?.id])
 
-  /** In independent mode, open the space menu while staying in edit mode. */
+  /** In independent mode, open the space in the sidebar while staying on Edit Menu. */
   const handleOpenSpace = useCallback(() => {
     if (!independentSpaceMenu || !spaceGroup || !group?.slug) return
-    navigate(addQuerystringToPath(spaceHomeUrl(group.slug, spaceGroup), { edit: 'true' }))
+    const local = localSpaceSlug(group.slug, spaceGroup.slug)
+    navigate(addQuerystringToPath(groupUrl(group.slug, 'edit-menu'), {
+      edit: 'true',
+      space: local
+    }))
   }, [independentSpaceMenu, spaceGroup, group?.slug, navigate])
 
   return (

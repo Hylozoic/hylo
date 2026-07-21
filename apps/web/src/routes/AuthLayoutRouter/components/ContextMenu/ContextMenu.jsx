@@ -1,6 +1,6 @@
 import { isPhoneDevice } from 'util/mobile'
 import { get } from 'lodash/fp'
-import { ChevronLeft, Info, Pencil, RefreshCw, Settings } from 'lucide-react'
+import { ChevronLeft, CircleEllipsis, Info, Pencil, RefreshCw, Settings } from 'lucide-react'
 import React, { useEffect, useCallback, useState, useMemo } from 'react'
 import { useLocation, useNavigate, Routes, Route } from 'react-router-dom'
 import { replace } from 'redux-first-history'
@@ -29,6 +29,7 @@ import GroupViewPresenter, {
 } from '@hylo/presenters/GroupViewPresenter'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
+import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import logout from 'store/actions/logout'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { getGroupViews } from 'store/selectors/getGroupViews'
@@ -292,8 +293,12 @@ function GroupViewList ({
               <span>{t('Space Settings')}</span>
             </button>
           )}
-          <AddViewButton onClick={() => setShowAddView(true)} />
-          {canManageSpaces && !hideAddSpace && <AddSpaceButton onClick={() => setShowAddSpace(true)} />}
+          {!(independentSpaceMenu && !spaceGroup) && (
+            <>
+              <AddViewButton onClick={() => setShowAddView(true)} />
+              {canManageSpaces && !hideAddSpace && <AddSpaceButton onClick={() => setShowAddSpace(true)} />}
+            </>
+          )}
         </div>
         {showAddView && <AddGroupViewDialog group={group} groupViews={groupViews} acceptedPostTypes={group?.acceptedPostTypes} onClose={() => setShowAddView(false)} />}
         {showAddSpace && !hideAddSpace && <AddSpaceDialog group={group} onClose={() => setShowAddSpace(false)} />}
@@ -343,13 +348,16 @@ export default function ContextMenu (props) {
   const { t } = useTranslation()
 
   const groupSlug = routeParams.groupSlug
-  const spaceSlug = routeParams.spaceSlug
+  const routeSpaceSlug = routeParams.spaceSlug
   const group = useSelector(state => currentGroup || getGroupForSlug(state, groupSlug))
   const canAdminister = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADMINISTRATION, groupId: group?.id }))
   const canManageSpaces = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_MANAGE_SPACES, groupId: group?.id }))
   const isEditing = getQuerystringParam('edit', location) === 'true' && canAdminister
   const [settingsView, setSettingsView] = useState(null)
   const independentSpaceMenu = currentUser?.settings?.independentSpaceMenu === true
+  const isEditMenuPath = location.pathname.replace(/\/$/, '').endsWith('/edit-menu')
+  // On Edit Menu page, `?space=` selects a space in the sidebar without leaving the page.
+  const spaceSlug = routeSpaceSlug || (isEditMenuPath ? getQuerystringParam('space', location) : null)
 
   const isPublicContext = routeParams.context === PUBLIC_CONTEXT_SLUG
   const isMyContext = routeParams.context === MY_CONTEXT_SLUG
@@ -390,7 +398,7 @@ export default function ContextMenu (props) {
     independentSpaceMenu &&
     isGroupContext &&
     activeSpaceGroup &&
-    isSpaceMember
+    (isSpaceMember || (isEditMenuPath && canAdminister))
   )
   const spaceMenuViewsFromStore = useSelector(state =>
     showingSpaceMenu ? getGroupViews(state, activeSpaceGroup) : []
@@ -408,8 +416,9 @@ export default function ContextMenu (props) {
   useEffect(() => {
     if (group?.id && isGroupContext) {
       dispatch(fetchGroupViews(group.id))
+      if (independentSpaceMenu) dispatch(fetchGroupSpaces(group.id))
     }
-  }, [group?.id, isGroupContext])
+  }, [group?.id, isGroupContext, independentSpaceMenu, dispatch])
 
   // Load the space's own views when the independent space menu is active.
   useEffect(() => {
@@ -419,9 +428,13 @@ export default function ContextMenu (props) {
   }, [showingSpaceMenu, activeSpaceGroup?.id, dispatch])
 
   const handleBackToGroupMenu = useCallback(() => {
+    if (isEditMenuPath) {
+      navigate(addQuerystringToPath(groupUrl(groupSlug, 'edit-menu'), { edit: 'true' }))
+      return
+    }
     const home = groupUrl(groupSlug)
     navigate(isEditing ? addQuerystringToPath(home, { edit: 'true' }) : home)
-  }, [navigate, groupSlug, isEditing])
+  }, [navigate, groupSlug, isEditing, isEditMenuPath])
 
   // Allow scroll events to pass through to ContextMenu even when a modal post dialog is open
   useEffect(() => {
@@ -457,13 +470,27 @@ export default function ContextMenu (props) {
 
   const moreSpacesSection = isGroupContext && group?.id && !showingSpaceMenu
     ? (
-      <MoreSpacesSection
-        group={group}
-        groupSlug={groupSlug}
-        spaceSlug={spaceSlug}
-        isEditing={isEditing}
-        independentSpaceMenu={independentSpaceMenu}
-      />
+        independentSpaceMenu
+          ? (
+            <div className='px-3 pb-2 border-t border-foreground/10 pt-2'>
+              <MenuLink
+                to={groupUrl(groupSlug, 'more-spaces')}
+                className='flex items-center gap-2 text-base text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 w-full transition-all opacity-85 hover:opacity-100'
+              >
+                <CircleEllipsis className='w-4 h-4 shrink-0' />
+                <span>{t('More Spaces')}</span>
+              </MenuLink>
+            </div>
+            )
+          : (
+            <MoreSpacesSection
+              group={group}
+              groupSlug={groupSlug}
+              spaceSlug={spaceSlug}
+              isEditing={isEditing}
+              independentSpaceMenu={independentSpaceMenu}
+            />
+            )
       )
     : null
 
@@ -471,7 +498,13 @@ export default function ContextMenu (props) {
     ? (
       <div className='px-3 pb-2 border-t border-foreground/10 pt-2'>
         <MenuLink
-          to={addQuerystringToPath(location.pathname, { edit: isEditing ? null : 'true' })}
+          to={
+            independentSpaceMenu
+              ? (isEditing
+                  ? groupUrl(groupSlug)
+                  : addQuerystringToPath(groupUrl(groupSlug, 'edit-menu'), { edit: 'true' }))
+              : addQuerystringToPath(location.pathname, { edit: isEditing ? null : 'true' })
+          }
           isEditing={isEditing}
           className='flex items-center gap-2 text-base text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 w-full transition-all opacity-85 hover:opacity-100'
         >

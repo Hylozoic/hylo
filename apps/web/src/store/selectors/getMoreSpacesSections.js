@@ -47,6 +47,53 @@ export function categorizeOffMenuSpaces (spaces, menuSpaceIds) {
   return { trackSpaces, fundingRoundSpaces, otherSpaces, archivedSpaces }
 }
 
+/**
+ * Off-menu spaces for the Edit Menu page: drafts and archived only
+ * (no related groups, no published active spaces).
+ */
+export function categorizeOffMenuSpacesForEdit (spaces, menuSpaceIds) {
+  const draftTracks = []
+  const archivedTracks = []
+  const draftFundingRounds = []
+  const archivedFundingRounds = []
+  const otherArchivedSpaces = []
+
+  for (const space of spaces || []) {
+    if (menuSpaceIds.has(String(space.id))) continue
+
+    const isArchived = space.active === false
+    const isTrack = Boolean(space.track)
+    const isFundingRound = Boolean(space.fundingRound)
+    const isDraftTrack = isTrack && !space.track?.publishedAt
+    const isDraftFunding = isFundingRound && !space.fundingRound?.publishedAt
+
+    if (isArchived) {
+      if (isTrack) archivedTracks.push(space)
+      else if (isFundingRound) archivedFundingRounds.push(space)
+      else otherArchivedSpaces.push(space)
+      continue
+    }
+
+    if (isDraftTrack) draftTracks.push(space)
+    else if (isDraftFunding) draftFundingRounds.push(space)
+  }
+
+  const sortByName = (a, b) => (a.name || '').localeCompare(b.name || '')
+  draftTracks.sort(sortByName)
+  archivedTracks.sort(sortByName)
+  draftFundingRounds.sort(sortByName)
+  archivedFundingRounds.sort(sortByName)
+  otherArchivedSpaces.sort(sortByName)
+
+  return {
+    draftTracks,
+    archivedTracks,
+    draftFundingRounds,
+    archivedFundingRounds,
+    otherArchivedSpaces
+  }
+}
+
 /** Returns off-menu space sections for the More Spaces menu expand. */
 export const getMoreSpacesSections = ormCreateSelector(
   orm,
@@ -69,6 +116,35 @@ export const getMoreSpacesSections = ormCreateSelector(
       sections.fundingRoundSpaces.length +
       sections.otherSpaces.length +
       sections.archivedSpaces.length > 0
+
+    return { ...sections, hasAny }
+  }
+)
+
+/** Returns draft/archived off-menu sections for the Edit Menu page. */
+export const getEditMenuOffMenuSections = ormCreateSelector(
+  orm,
+  (state, group) => group,
+  (session, group) => {
+    if (!group) {
+      return {
+        draftTracks: [],
+        archivedTracks: [],
+        draftFundingRounds: [],
+        archivedFundingRounds: [],
+        otherArchivedSpaces: [],
+        hasAny: false
+      }
+    }
+
+    const menuSpaceIds = getMenuSpaceIds(group.groupViews)
+    const spaces = group.spaces?.items || []
+    const sections = categorizeOffMenuSpacesForEdit(spaces, menuSpaceIds)
+    const hasAny = sections.draftTracks.length +
+      sections.archivedTracks.length +
+      sections.draftFundingRounds.length +
+      sections.archivedFundingRounds.length +
+      sections.otherArchivedSpaces.length > 0
 
     return { ...sections, hasAny }
   }

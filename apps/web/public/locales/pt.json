@@ -2341,5 +2341,18 @@
   "{{personOne}}, {{personTwo}} and {{othersTotal}} other_plural": "{{personOne}}, {{personTwo}} e {{othersTotal}} outros",
   "{{submissionDescriptor}} Criteria": "Critérios de {{submissionDescriptor}}",
   "{{totalTopicsCached}} Total Topics": "{{totalTopicsCached}} Tópicos totais",
-  "~ Mixed ~": "~ Misto ~"
+  "~ Mixed ~": "~ Misto ~",
+  "Add a space to the menu with +, or open it to edit its views.": "Adicione um espaço ao menu com +, ou abra-o para editar as suas vistas.",
+  "Archived Tracks": "Tracks arquivados",
+  "Draft Funding Rounds": "Rodadas de financiamento em rascunho",
+  "Draft Tracks": "Tracks em rascunho",
+  "Archived Funding Rounds": "Rodadas de financiamento arquivadas",
+  "Drag and drop items in the menu on the left to reorder them. The top item is the home view for this group.": "Arraste e solte itens no menu para reordená-los. O item do topo é a vista inicial deste grupo.",
+  "No draft or archived spaces off the menu": "Nenhum espaço em rascunho ou arquivado fora do menu",
+  "No more spaces": "Não há mais espaços",
+  "Other Archived Spaces": "Outros espaços arquivados",
+  "Show Welcome Page to users": "Mostrar a página de boas-vindas aos utilizadores",
+  "Show in the Menu": "Mostrar no menu",
+  "Spaces not in menu": "Espaços fora do menu",
+  "Welcome page exists but is hidden from the menu.": "A página de boas-vindas existe mas está oculta do menu."
 }
