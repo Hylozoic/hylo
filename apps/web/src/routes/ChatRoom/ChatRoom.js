@@ -93,6 +93,16 @@ const getDisplayDay = (date) => {
 }
 
 /**
+ * Extracts a clean numeric post id from a querystring postId value.
+ * Older mobile clients could mangle deep-link URLs into e.g. ?postId=123?postId=123,
+ * which would otherwise flow into the posts query cursor and error out the fetch.
+ */
+const sanitizePostId = (postId) => {
+  const matched = postId && String(postId).match(/^\d+/)
+  return matched ? matched[0] : null
+}
+
+/**
  * List index to show after load (posts sorted by id ascending).
  */
 const computeChatInitialScrollIndex = (sortedPosts, postIdToStartAt, lastReadPostId) => {
@@ -138,7 +148,7 @@ export default function ChatRoom (props) {
   const topicFollowLoading = useSelector(state => isPendingFor([FETCH_TOPIC_FOLLOW], state))
   const querystringParams = getQuerystringParam(['search', 'postId'], location)
   const search = querystringParams?.search
-  const [postIdToStartAt, setPostIdToStartAt] = useState(querystringParams?.postId)
+  const [postIdToStartAt, setPostIdToStartAt] = useState(sanitizePostId(querystringParams?.postId))
 
   const [container, setContainer] = React.useState(null)
   const messageListRef = useRef(null)
@@ -285,6 +295,11 @@ export default function ChatRoom (props) {
         }
       })
       return newPosts.length
+    }).catch(() => {
+      // Without this catch a failed fetch rejects through the callers' .then chains,
+      // loadedFuture never flips true and the room is stuck on the loading skeleton
+      setLoadingFuture(false)
+      return 0
     })
   }, [fetchPostsFutureParams, loadingFuture, hasMorePostsFuture, group?.id])
 
@@ -495,34 +510,37 @@ export default function ChatRoom (props) {
 
   useEffect(() => {
     if (querystringParams?.postId) {
-      setPostIdToStartAt(querystringParams?.postId)
-      const index = messageListRef.current?.data.findIndex(post => post.id === querystringParams?.postId)
-      if (index !== -1) {
-        messageListRef.current?.scrollToItem({ index, align: 'start-no-overflow', behavior: 'auto' })
-      } else if (loadedFuture && loadedPast) {
-        // Can't find the post in the list, so we need to load a new set of posts around the one we want to scroll to
-        // Basically just reset the list
+      const targetPostId = sanitizePostId(querystringParams.postId)
+      if (targetPostId) {
+        setPostIdToStartAt(targetPostId)
+        const index = messageListRef.current?.data.findIndex(post => post.id === targetPostId)
+        if (index !== -1) {
+          messageListRef.current?.scrollToItem({ index, align: 'start-no-overflow', behavior: 'auto' })
+        } else if (loadedFuture && loadedPast) {
+          // Can't find the post in the list, so we need to load a new set of posts around the one we want to scroll to
+          // Basically just reset the list
 
-        // Drop post results from Redux store (only need to call once)
-        dispatch(dropPostResults(fetchPostsFutureParams))
-        dispatch(dropPostResults(fetchPostsPastParams))
+          // Drop post results from Redux store (only need to call once)
+          dispatch(dropPostResults(fetchPostsFutureParams))
+          dispatch(dropPostResults(fetchPostsPastParams))
 
-        // Reset loading states
-        setLoadedFuture(false)
-        setLoadedPast(false)
+          // Reset loading states
+          setLoadedFuture(false)
+          setLoadedPast(false)
 
-        messageListRef.current?.data.replace([], {
-          purgeItemSizes: true
-        })
+          messageListRef.current?.data.replace([], {
+            purgeItemSizes: true
+          })
 
-        // Load new data centered around the target post
-        Promise.all([
-          // We don't know how many posts are before or after the target post, so we load the initial number of posts to fill the screen
-          fetchPostsFuture(0, { cursor: querystringParams?.postId, first: INITIAL_POSTS_TO_LOAD }, true)
-            .then(() => setLoadedFuture(true)),
-          fetchPostsPast(0, { cursor: parseInt(querystringParams?.postId) + 1, first: INITIAL_POSTS_TO_LOAD }, true)
-            .then(() => setLoadedPast(true))
-        ])
+          // Load new data centered around the target post
+          Promise.all([
+            // We don't know how many posts are before or after the target post, so we load the initial number of posts to fill the screen
+            fetchPostsFuture(0, { cursor: targetPostId, first: INITIAL_POSTS_TO_LOAD }, true)
+              .then(() => setLoadedFuture(true)),
+            fetchPostsPast(0, { cursor: parseInt(targetPostId) + 1, first: INITIAL_POSTS_TO_LOAD }, true)
+              .then(() => setLoadedPast(true))
+          ])
+        }
       }
 
       // Remove the scroll to post from the url so we can click on a notification to scroll to it again
