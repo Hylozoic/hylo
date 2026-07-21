@@ -57,7 +57,14 @@ const HyloWebView = React.forwardRef(({
   const [reloadNonce, setReloadNonce] = useState(0)
   const { postId, path: routePath, originalLinkingPath } = useRouteParams()
   const path = pathProp || routePath || originalLinkingPath || ''
-  const uri = (source?.uri || `${Config.HYLO_WEB_BASE_URL}${path}`) + (postId ? `?postId=${postId}` : '')
+  const baseUri = source?.uri || `${Config.HYLO_WEB_BASE_URL}${path}`
+  // Deep-link paths (e.g. chat push notifications) may already carry ?postId= in their
+  // query string. Appending it again with a second '?' mangles the param on the web side
+  // (postId becomes "123?postId=123"), so only append when missing, with the right separator.
+  const shouldAppendPostId = postId && !baseUri.includes('postId=')
+  const uri = shouldAppendPostId
+    ? `${baseUri}${baseUri.includes('?') ? '&' : '?'}postId=${postId}`
+    : baseUri
   const { isAuthenticated, logout } = useAuth()
 
   // Debug logging for webview URI construction
