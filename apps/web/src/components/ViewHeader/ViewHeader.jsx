@@ -413,7 +413,7 @@ const ViewHeader = () => {
                   style={bgImageStyle(currentUser.avatarUrl)}
                   onClick={() => navigate(contextHref)}
                 />
-                )}
+              )}
             <span
               className='font-semibold text-foreground/70 cursor-pointer hover:text-foreground transition-colors whitespace-nowrap truncate'
               onClick={() => navigate(contextHref)}

@@ -1,6 +1,6 @@
 import { cn } from 'util/index'
 import { get } from 'lodash/fp'
-import { Globe, HelpCircle, PlusCircle, Bell, MessagesSquare, Layers, Pin, X } from 'lucide-react'
+import { Globe, HelpCircle, PlusCircle, Bell, MessagesSquare, Layers, Pin } from 'lucide-react'
 import React, { Suspense, useState, useRef, useMemo, useCallback, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
@@ -21,7 +21,6 @@ import { getMyGroupsWithChildren } from 'store/selectors/getMyGroups'
 import useRouteParams from 'hooks/useRouteParams'
 import { baseUrl } from '@hylo/navigation'
 import { DEFAULT_AVATAR } from 'store/models/Group'
-import Badge from 'components/Badge'
 import { SettingsMenu } from '../GlobalNav/GlobalNav'
 import { pinGroup } from 'store/actions/pinGroup'
 
@@ -85,7 +84,6 @@ function StackedAvatars ({ parentImg, parentLabel, childGroups }) {
 }
 
 function TopNavTab ({ label, img, url, badgeCount = 0, children, isActive, onNavigate, iconOnly = false, childGroups, onNavigateChild }) {
-  const { t } = useTranslation()
   const hasChildren = childGroups && childGroups.length > 0
 
   const tabContent = (
