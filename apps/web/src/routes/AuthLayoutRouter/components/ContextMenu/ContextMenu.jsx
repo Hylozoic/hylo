@@ -1,8 +1,8 @@
 import { isPhoneDevice } from 'util/mobile'
 import { get } from 'lodash/fp'
-import { Info, Pencil, RefreshCw } from 'lucide-react'
+import { ChevronLeft, Info, Pencil, RefreshCw, Settings } from 'lucide-react'
 import React, { useEffect, useCallback, useState, useMemo } from 'react'
-import { useLocation, Routes, Route } from 'react-router-dom'
+import { useLocation, useNavigate, Routes, Route } from 'react-router-dom'
 import { replace } from 'redux-first-history'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
@@ -11,6 +11,7 @@ import {
   ALL_GROUPS_CONTEXT_SLUG,
   MY_CONTEXT_SLUG,
   PUBLIC_CONTEXT_SLUG,
+  groupUrl,
   localSpaceSlug,
   spaceHomeUrl,
   spaceUrl,
@@ -65,12 +66,37 @@ const GROUP_VIEW_MENU_ITEM_CLASS = 'flex items-center gap-2 text-base text-foreg
 /** MenuLink overrides when nested inside a styled space row wrapper. */
 const GROUP_VIEW_MENU_ITEM_INNER_LINK_CLASS = 'flex-1 flex items-center gap-2 min-w-0 border-0 bg-transparent p-0 mb-0 rounded-none shadow-none hover:border-0 hover:bg-transparent hover:scale-100 font-inherit'
 
+/** Finds a space menu view / linked group matching the current local spaceSlug. */
+function findSpaceForSlug (groupViews, group, parentSlug, spaceSlug) {
+  if (!parentSlug || !spaceSlug) return { spaceView: null, spaceGroup: null }
+
+  for (const view of groupViews || []) {
+    if (view.type === 'space' && view.linkedGroup) {
+      if (localSpaceSlug(parentSlug, view.linkedGroup.slug) === spaceSlug) {
+        return { spaceView: view, spaceGroup: view.linkedGroup }
+      }
+    }
+  }
+
+  for (const space of group?.spaces?.items || []) {
+    if (localSpaceSlug(parentSlug, space.slug) === spaceSlug) {
+      return {
+        spaceView: { type: 'space', name: space.name, icon: space.icon, linkedGroup: space },
+        spaceGroup: space
+      }
+    }
+  }
+
+  return { spaceView: null, spaceGroup: null }
+}
+
 /** Renders a single GroupView menu item, including nested space sub-items. */
 function GroupViewMenuItem ({
   view,
   parentSlug,
   spaceGroup = null,
-  spaceSlug = null
+  spaceSlug = null,
+  independentSpaceMenu = false
 }) {
   const dispatch = useDispatch()
   const { t } = useTranslation()
@@ -146,8 +172,8 @@ function GroupViewMenuItem ({
       linkedSpaceGroup &&
       localSpaceSlug(parentSlug, linkedSpaceGroup.slug) === spaceSlug
     )
-    // Spaces expand only while their route is active; otherwise stay collapsed.
-    const isExpanded = isSpaceMember && isSpaceActive && hasMultipleSpaceViews
+    // Nested expand only when independent space menu is off and the space route is active.
+    const isExpanded = !independentSpaceMenu && isSpaceMember && isSpaceActive && hasMultipleSpaceViews
     const aboutUrl = linkedSpaceGroup
       ? spaceUrl(parentSlug, localSpaceSlug(parentSlug, linkedSpaceGroup.slug), '/about')
       : null
@@ -189,6 +215,7 @@ function GroupViewMenuItem ({
                 parentSlug={parentSlug}
                 spaceGroup={linkedSpaceGroup}
                 spaceSlug={spaceSlug}
+                independentSpaceMenu={independentSpaceMenu}
               />
             ))}
           </ul>
@@ -222,12 +249,27 @@ function GroupViewList ({
   group,
   groupSlug,
   spaceSlug,
+  spaceGroup = null,
+  spaceMenuView = null,
   isEditing,
   onOpenSettings,
-  canManageSpaces
+  canManageSpaces,
+  independentSpaceMenu = false,
+  hideAddSpace = false
 }) {
+  const { t } = useTranslation()
   const [showAddView, setShowAddView] = useState(false)
   const [showAddSpace, setShowAddSpace] = useState(false)
+
+  const handleOpenSpaceSettings = useCallback(() => {
+    if (!spaceGroup || !onOpenSettings) return
+    onOpenSettings(spaceMenuView || {
+      type: 'space',
+      name: spaceGroup.name,
+      icon: spaceGroup.icon,
+      linkedGroup: spaceGroup
+    })
+  }, [spaceGroup, spaceMenuView, onOpenSettings])
 
   if (isEditing) {
     return (
@@ -237,13 +279,24 @@ function GroupViewList ({
           group={group}
           groupSlug={groupSlug}
           onSettings={onOpenSettings}
+          independentSpaceMenu={independentSpaceMenu}
         />
-        <div className='px-3 pb-3'>
+        <div className='px-3 pb-3 flex flex-col gap-1'>
+          {spaceGroup && (
+            <button
+              type='button'
+              onClick={handleOpenSpaceSettings}
+              className='flex items-center gap-2 text-base text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 w-full transition-all opacity-85 hover:opacity-100'
+            >
+              <Settings className='w-4 h-4' />
+              <span>{t('Space Settings')}</span>
+            </button>
+          )}
           <AddViewButton onClick={() => setShowAddView(true)} />
-          {canManageSpaces && <AddSpaceButton onClick={() => setShowAddSpace(true)} />}
+          {canManageSpaces && !hideAddSpace && <AddSpaceButton onClick={() => setShowAddSpace(true)} />}
         </div>
         {showAddView && <AddGroupViewDialog group={group} groupViews={groupViews} acceptedPostTypes={group?.acceptedPostTypes} onClose={() => setShowAddView(false)} />}
-        {showAddSpace && <AddSpaceDialog group={group} onClose={() => setShowAddSpace(false)} />}
+        {showAddSpace && !hideAddSpace && <AddSpaceDialog group={group} onClose={() => setShowAddSpace(false)} />}
       </div>
     )
   }
@@ -262,7 +315,9 @@ function GroupViewList ({
             key={view.id || index}
             view={view}
             parentSlug={groupSlug}
+            spaceGroup={spaceGroup}
             spaceSlug={spaceSlug}
+            independentSpaceMenu={independentSpaceMenu}
           />
         ))}
       </ul>
@@ -280,9 +335,11 @@ export default function ContextMenu (props) {
   } = props
 
   const dispatch = useDispatch()
+  const navigate = useNavigate()
   const routeParams = useRouteParams()
   const location = useLocation()
   const currentUser = useSelector(getMe)
+  const myMemberships = useSelector(getMyMemberships)
   const { t } = useTranslation()
 
   const groupSlug = routeParams.groupSlug
@@ -292,6 +349,7 @@ export default function ContextMenu (props) {
   const canManageSpaces = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_MANAGE_SPACES, groupId: group?.id }))
   const isEditing = getQuerystringParam('edit', location) === 'true' && canAdminister
   const [settingsView, setSettingsView] = useState(null)
+  const independentSpaceMenu = currentUser?.settings?.independentSpaceMenu === true
 
   const isPublicContext = routeParams.context === PUBLIC_CONTEXT_SLUG
   const isMyContext = routeParams.context === MY_CONTEXT_SLUG
@@ -320,12 +378,50 @@ export default function ContextMenu (props) {
   const fetchedGroupViews = useSelector(state => getGroupViews(state, group))
   const menuViews = staticMenuViews || fetchedGroupViews
 
+  const { spaceView: activeSpaceView, spaceGroup: activeSpaceGroup } = useMemo(
+    () => findSpaceForSlug(fetchedGroupViews, group, groupSlug, spaceSlug),
+    [fetchedGroupViews, group, groupSlug, spaceSlug]
+  )
+  const isSpaceMember = Boolean(
+    activeSpaceGroup &&
+    myMemberships.some(m => m.group.id === activeSpaceGroup.id)
+  )
+  const showingSpaceMenu = Boolean(
+    independentSpaceMenu &&
+    isGroupContext &&
+    activeSpaceGroup &&
+    isSpaceMember
+  )
+  const spaceMenuViewsFromStore = useSelector(state =>
+    showingSpaceMenu ? getGroupViews(state, activeSpaceGroup) : []
+  )
+  const spaceMenuViews = useMemo(() => {
+    if (!showingSpaceMenu) return []
+    if (spaceMenuViewsFromStore.length > 0) return spaceMenuViewsFromStore
+    return activeSpaceGroup?.groupViews?.items || []
+  }, [showingSpaceMenu, spaceMenuViewsFromStore, activeSpaceGroup])
+  const spaceDisplayName = activeSpaceView
+    ? displayNameForView(GroupViewPresenter(activeSpaceView), t)
+    : (activeSpaceGroup?.name || t('Space'))
+
   // Fetch GroupViews whenever we enter a real group context
   useEffect(() => {
     if (group?.id && isGroupContext) {
       dispatch(fetchGroupViews(group.id))
     }
   }, [group?.id, isGroupContext])
+
+  // Load the space's own views when the independent space menu is active.
+  useEffect(() => {
+    if (showingSpaceMenu && activeSpaceGroup?.id) {
+      dispatch(fetchGroupViews(activeSpaceGroup.id))
+    }
+  }, [showingSpaceMenu, activeSpaceGroup?.id, dispatch])
+
+  const handleBackToGroupMenu = useCallback(() => {
+    const home = groupUrl(groupSlug)
+    navigate(isEditing ? addQuerystringToPath(home, { edit: 'true' }) : home)
+  }, [navigate, groupSlug, isEditing])
 
   // Allow scroll events to pass through to ContextMenu even when a modal post dialog is open
   useEffect(() => {
@@ -359,13 +455,14 @@ export default function ContextMenu (props) {
     </div>
   )
 
-  const moreSpacesSection = isGroupContext && group?.id
+  const moreSpacesSection = isGroupContext && group?.id && !showingSpaceMenu
     ? (
       <MoreSpacesSection
         group={group}
         groupSlug={groupSlug}
         spaceSlug={spaceSlug}
         isEditing={isEditing}
+        independentSpaceMenu={independentSpaceMenu}
       />
       )
     : null
@@ -464,23 +561,62 @@ export default function ContextMenu (props) {
             <Route path='settings/*' element={<GroupSettingsMenu group={group} groupSlug={groupSlug} />} />
           </Routes>
 
-          {menuViews.length > 0
+          {showingSpaceMenu
             ? (
-              <GroupViewList
-                groupViews={menuViews}
-                group={group}
-                groupSlug={groupSlug}
-                spaceSlug={spaceSlug}
-                isEditing={isEditing}
-                onOpenSettings={setSettingsView}
-                canManageSpaces={canManageSpaces}
-              />
+              <>
+                <div className='relative z-20 flex flex-col gap-1 px-3 py-2 border-b border-foreground/10'>
+                  <button
+                    type='button'
+                    onClick={handleBackToGroupMenu}
+                    className='flex items-center gap-1 self-start text-sm text-foreground/60 hover:text-foreground transition-colors'
+                    aria-label={t('Back')}
+                  >
+                    <ChevronLeft className='w-5 h-5' />
+                    <span>{t('Back')}</span>
+                  </button>
+                  <span className='font-semibold text-foreground truncate'>{spaceDisplayName}</span>
+                </div>
+                {spaceMenuViews.length > 0 || isEditing
+                  ? (
+                    <GroupViewList
+                      groupViews={spaceMenuViews}
+                      group={activeSpaceGroup}
+                      groupSlug={groupSlug}
+                      spaceSlug={spaceSlug}
+                      spaceGroup={activeSpaceGroup}
+                      spaceMenuView={activeSpaceView}
+                      isEditing={isEditing}
+                      onOpenSettings={setSettingsView}
+                      canManageSpaces={false}
+                      independentSpaceMenu={independentSpaceMenu}
+                      hideAddSpace
+                    />
+                    )
+                  : (
+                    <div className='p-3 text-foreground/40 text-sm'>
+                      {t('Loading views…')}
+                    </div>
+                    )}
+              </>
               )
-            : (
-              <div className='p-3 text-foreground/40 text-sm'>
-                {group?.id ? t('Loading views…') : null}
-              </div>
-              )}
+            : menuViews.length > 0
+              ? (
+                <GroupViewList
+                  groupViews={menuViews}
+                  group={group}
+                  groupSlug={groupSlug}
+                  spaceSlug={spaceSlug}
+                  isEditing={isEditing}
+                  onOpenSettings={setSettingsView}
+                  canManageSpaces={canManageSpaces}
+                  independentSpaceMenu={independentSpaceMenu}
+                />
+                )
+              : (
+                <div className='p-3 text-foreground/40 text-sm'>
+                  {group?.id ? t('Loading views…') : null}
+                </div>
+                )}
           {menuFooter}
           {settingsView && (
             settingsView.type === 'space'
@@ -495,7 +631,7 @@ export default function ContextMenu (props) {
               : settingsView.type === 'collection'
                 ? (
                   <AddCollectionDialog
-                    group={group}
+                    group={showingSpaceMenu ? activeSpaceGroup : group}
                     view={settingsView}
                     onCancel={() => setSettingsView(null)}
                     onCreated={() => setSettingsView(null)}
@@ -504,7 +640,7 @@ export default function ContextMenu (props) {
                 : (
                   <GroupViewSettingsModal
                     view={settingsView}
-                    group={group}
+                    group={showingSpaceMenu ? activeSpaceGroup : group}
                     onClose={() => setSettingsView(null)}
                   />
                   )

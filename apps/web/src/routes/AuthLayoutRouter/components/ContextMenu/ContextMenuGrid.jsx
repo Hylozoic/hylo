@@ -342,50 +342,65 @@ function MoreSpacesGrid ({ group, groupSlug, navigate, t }) {
   const gridSections = useMemo(() => {
     const result = []
     if (sections.trackSpaces.length) {
-      result.push({ title: t('Tracks'), items: sections.trackSpaces.map(space => ({
-        key: space.id,
-        name: space.name,
-        avatarUrl: space.avatarUrl,
-        icon: space.icon,
-        badge: space.isDraft ? t('Draft') : null,
-        onClick: () => handleOpenSpace(space)
-      })) })
+      result.push({
+        title: t('Tracks'),
+        items: sections.trackSpaces.map(space => ({
+          key: space.id,
+          name: space.name,
+          avatarUrl: space.avatarUrl,
+          icon: space.icon,
+          badge: space.isDraft ? t('Draft') : null,
+          onClick: () => handleOpenSpace(space)
+        }))
+      })
     }
     if (sections.fundingRoundSpaces.length) {
-      result.push({ title: t('Funding Rounds'), items: sections.fundingRoundSpaces.map(space => ({
-        key: space.id,
-        name: space.name,
-        avatarUrl: space.avatarUrl,
-        icon: space.icon,
-        onClick: () => handleOpenSpace(space)
-      })) })
+      result.push({
+        title: t('Funding Rounds'),
+        items: sections.fundingRoundSpaces.map(space => ({
+          key: space.id,
+          name: space.name,
+          avatarUrl: space.avatarUrl,
+          icon: space.icon,
+          onClick: () => handleOpenSpace(space)
+        }))
+      })
     }
     if (relatedGroups.length) {
-      result.push({ title: t('Related Groups'), items: relatedGroups.map(({ group: related, relationLabel }) => ({
-        key: related.id,
-        name: related.name,
-        avatarUrl: related.avatarUrl,
-        badge: relationLabel,
-        onClick: () => navigate(groupUrl(related.slug))
-      })) })
+      result.push({
+        title: t('Related Groups'),
+        items: relatedGroups.map(({ group: related, relationLabel }) => ({
+          key: related.id,
+          name: related.name,
+          avatarUrl: related.avatarUrl,
+          badge: relationLabel,
+          onClick: () => navigate(groupUrl(related.slug))
+        }))
+      })
     }
     if (sections.otherSpaces.length) {
-      result.push({ title: t('Spaces'), items: sections.otherSpaces.map(space => ({
-        key: space.id,
-        name: space.name,
-        avatarUrl: space.avatarUrl,
-        icon: space.icon,
-        onClick: () => handleOpenSpace(space)
-      })) })
+      result.push({
+        title: t('Spaces'),
+        items: sections.otherSpaces.map(space => ({
+          key: space.id,
+          name: space.name,
+          avatarUrl: space.avatarUrl,
+          icon: space.icon,
+          onClick: () => handleOpenSpace(space)
+        }))
+      })
     }
     if (sections.archivedSpaces.length) {
-      result.push({ title: t('Archived Spaces'), items: sections.archivedSpaces.map(space => ({
-        key: space.id,
-        name: space.name,
-        avatarUrl: space.avatarUrl,
-        icon: space.icon,
-        onClick: () => handleOpenSpace(space)
-      })) })
+      result.push({
+        title: t('Archived Spaces'),
+        items: sections.archivedSpaces.map(space => ({
+          key: space.id,
+          name: space.name,
+          avatarUrl: space.avatarUrl,
+          icon: space.icon,
+          onClick: () => handleOpenSpace(space)
+        }))
+      })
     }
     return result
   }, [sections, relatedGroups, handleOpenSpace, navigate, t])

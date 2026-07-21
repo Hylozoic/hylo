@@ -19,6 +19,7 @@ export default gql`
       rsvpCalendarSub
       signupInProgress
       stackGroups
+      independentSpaceMenu
       streamChildPosts
       streamViewMode
       streamSortBy

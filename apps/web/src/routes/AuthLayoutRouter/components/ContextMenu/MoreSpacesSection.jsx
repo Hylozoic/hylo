@@ -128,7 +128,8 @@ function MoreSpaceRow ({
   isEditing,
   isSpaceMember,
   onAddToMenu,
-  onSettings
+  onSettings,
+  independentSpaceMenu = false
 }) {
   const { t } = useTranslation()
   const spaceViews = useMemo(
@@ -140,8 +141,8 @@ function MoreSpaceRow ({
     spaceSlug &&
     localSpaceSlug(parentSlug, space.slug) === spaceSlug
   )
-  // Spaces expand only while their route is active; otherwise stay collapsed.
-  const isExpanded = isSpaceMember && isSpaceActive && hasMultipleViews
+  // Nested expand only when independent space menu is off and the space route is active.
+  const isExpanded = !independentSpaceMenu && isSpaceMember && isSpaceActive && hasMultipleViews
   const spaceHome = spaceHomeUrl(parentSlug, space)
   const aboutUrl = spaceUrl(parentSlug, localSpaceSlug(parentSlug, space.slug), '/about')
 
@@ -226,7 +227,8 @@ function SpaceSubSection ({
   myMemberships,
   getExplainer,
   onAddToMenu,
-  onSettings
+  onSettings,
+  independentSpaceMenu = false
 }) {
   if (!spaces?.length) return null
 
@@ -245,6 +247,7 @@ function SpaceSubSection ({
             isSpaceMember={myMemberships.some(m => m.group.id === space.id)}
             onAddToMenu={onAddToMenu ? () => onAddToMenu(space) : null}
             onSettings={onSettings ? () => onSettings(space) : null}
+            independentSpaceMenu={independentSpaceMenu}
           />
         ))}
       </ul>
@@ -260,7 +263,8 @@ export default function MoreSpacesSection ({
   group,
   groupSlug,
   spaceSlug,
-  isEditing
+  isEditing,
+  independentSpaceMenu = false
 }) {
   const dispatch = useDispatch()
   const { t } = useTranslation()
@@ -307,9 +311,10 @@ export default function MoreSpacesSection ({
     setHasLoaded(true)
   }, [hasLoaded, group?.id, groupSlug, dispatch])
 
-  // Auto-expand More Spaces when viewing an off-menu space (members only)
+  // Auto-expand More Spaces when viewing an off-menu space (members only).
+  // Skip when independent space menu replaces the whole ContextMenu for that space.
   useEffect(() => {
-    if (!spaceSlug || !hasLoaded) return
+    if (independentSpaceMenu || !spaceSlug || !hasLoaded) return
     const allSpaces = [
       ...sections.trackSpaces,
       ...sections.fundingRoundSpaces,
@@ -322,7 +327,7 @@ export default function MoreSpacesSection ({
     if (match && myMemberships.some(m => m.group.id === match.id)) {
       setExpanded(true)
     }
-  }, [spaceSlug, hasLoaded, sections, groupSlug, myMemberships])
+  }, [independentSpaceMenu, spaceSlug, hasLoaded, sections, groupSlug, myMemberships])
 
   const handleToggle = useCallback(() => {
     setExpanded(v => !v)
@@ -401,6 +406,7 @@ export default function MoreSpacesSection ({
                     getExplainer={space => (space.isDraft ? t('Draft') : null)}
                     onAddToMenu={handleAddSpaceToMenu}
                     onSettings={setSettingsSpace}
+                    independentSpaceMenu={independentSpaceMenu}
                   />
                 )}
 
@@ -414,6 +420,7 @@ export default function MoreSpacesSection ({
                     myMemberships={myMemberships}
                     onAddToMenu={handleAddSpaceToMenu}
                     onSettings={setSettingsSpace}
+                    independentSpaceMenu={independentSpaceMenu}
                   />
                 )}
 
@@ -446,6 +453,7 @@ export default function MoreSpacesSection ({
                     myMemberships={myMemberships}
                     onAddToMenu={handleAddSpaceToMenu}
                     onSettings={setSettingsSpace}
+                    independentSpaceMenu={independentSpaceMenu}
                   />
                 )}
 
@@ -458,6 +466,7 @@ export default function MoreSpacesSection ({
                     isEditing={isEditing}
                     myMemberships={myMemberships}
                     onSettings={setSettingsSpace}
+                    independentSpaceMenu={independentSpaceMenu}
                   />
                 )}
               </ul>

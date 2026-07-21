@@ -3192,6 +3192,8 @@ type UserSettings {
   signupInProgress: Boolean
   # Whether to show subgroups stacked on their parent in global nav (default false / flat)
   stackGroups: Boolean
+  # Whether space clicks replace the ContextMenu with the space's views (default false / nested in group menu)
+  independentSpaceMenu: Boolean
   # Include child group posts in user's stream
   streamChildPosts: String
   # The most recent stream view mode used by this person: cards, list, grid, bigGrid
@@ -4787,6 +4789,8 @@ input UserSettingsInput {
   signupInProgress: Boolean
   # Whether to show subgroups stacked on their parent in global nav (default false / flat)
   stackGroups: Boolean
+  # Whether space clicks replace the ContextMenu with the space's views (default false / nested in group menu)
+  independentSpaceMenu: Boolean
   # Include child group posts in user's stream
   streamChildPosts: String
   # The most recent stream view mode used by this person: cards, list, grid, bigGrid

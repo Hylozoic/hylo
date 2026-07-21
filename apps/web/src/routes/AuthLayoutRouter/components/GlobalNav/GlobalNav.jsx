@@ -136,6 +136,7 @@ function SettingsMenu ({ currentUser, triggerClassName, contentSide = 'right', c
   const { theme } = getAppearanceFromSettings(currentUser?.settings)
   const globalNavStyle = currentUser?.settings?.globalNavStyle === 'tabs' ? 'tabs' : 'sidebar'
   const stackGroups = currentUser?.settings?.stackGroups === true
+  const independentSpaceMenu = currentUser?.settings?.independentSpaceMenu === true
   const currentLocale = currentUser?.settings?.locale || i18n.language || getLocaleFromLocalStorage() || 'en'
 
   // Hide the Sidebar/Tabs toggle on phone viewports — tabs are forced off there.
@@ -352,6 +353,24 @@ function SettingsMenu ({ currentUser, triggerClassName, contentSide = 'right', c
                   </DropdownMenuRadioItem>
                   <DropdownMenuRadioItem value={NAV_STYLE_ONE_COLUMN}>
                     {t('Card Menu')}
+                  </DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                <span>{t('Space Menu Style')}</span>
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className='z-[200] bg-card'>
+                <DropdownMenuRadioGroup
+                  value={independentSpaceMenu ? 'independent' : 'in-group'}
+                  onValueChange={value => handleSettingChange({ independentSpaceMenu: value === 'independent' })}
+                >
+                  <DropdownMenuRadioItem value='in-group'>
+                    {t('Spaces In Group Menu')}
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value='independent'>
+                    {t('Independent Space Menu')}
                   </DropdownMenuRadioItem>
                 </DropdownMenuRadioGroup>
               </DropdownMenuSubContent>

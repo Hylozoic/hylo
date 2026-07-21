@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
-import { Moon, Sun, Palette, Trees, Waves, Mountain, Snowflake, TreePalm, Monitor, Flower2, Leaf, Gem, PanelLeft, AppWindow, Layers, List, LayoutGrid, Columns2, LayoutPanelTop } from 'lucide-react'
+import { Moon, Sun, Palette, Trees, Waves, Mountain, Snowflake, TreePalm, Monitor, Flower2, Leaf, Gem, PanelLeft, AppWindow, Layers, List, LayoutGrid, Columns2, LayoutPanelTop, ListTree, SquareMenu } from 'lucide-react'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useAppearance from 'hooks/useAppearance'
 import { themes } from '../../../themes'
@@ -66,6 +66,7 @@ export default function AppearanceTab () {
   const { theme } = getAppearanceFromSettings(currentUser?.settings)
   const globalNavStyle = currentUser?.settings?.globalNavStyle === 'tabs' ? 'tabs' : DEFAULT_GLOBAL_NAV_STYLE
   const stackGroups = currentUser?.settings?.stackGroups === true
+  const independentSpaceMenu = currentUser?.settings?.independentSpaceMenu === true
   const groupNavStyle = currentUser?.settings?.groupNavStyle || NAV_STYLE_GROUP_DEFAULT
   const resolvedScheme = useMemo(() => effectiveColorScheme, [effectiveColorScheme])
 
@@ -246,6 +247,40 @@ export default function AppearanceTab () {
             >
               <LayoutGrid className='h-4 w-4' />
               <span className='text-xs'>{t('Card Menu')}</span>
+            </button>
+          </div>
+        </div>
+
+        <div className='flex items-center justify-between gap-3'>
+          <label className='text-sm font-medium shrink-0'>{t('Space Menu Style')}</label>
+          <div className='flex items-center gap-2 rounded-lg border-2 border-foreground/20 p-1 flex-wrap justify-end'>
+            <button
+              onClick={() => handleSettingChange({ independentSpaceMenu: false })}
+              className={cn(
+                'p-2 rounded-md transition-colors flex items-center gap-1.5',
+                !independentSpaceMenu
+                  ? 'bg-selected text-selected-foreground'
+                  : 'hover:bg-muted'
+              )}
+              aria-label={t('Spaces In Group Menu')}
+              title={t('Spaces In Group Menu')}
+            >
+              <ListTree className='h-4 w-4' />
+              <span className='text-xs'>{t('Spaces In Group Menu')}</span>
+            </button>
+            <button
+              onClick={() => handleSettingChange({ independentSpaceMenu: true })}
+              className={cn(
+                'p-2 rounded-md transition-colors flex items-center gap-1.5',
+                independentSpaceMenu
+                  ? 'bg-selected text-selected-foreground'
+                  : 'hover:bg-muted'
+              )}
+              aria-label={t('Independent Space Menu')}
+              title={t('Independent Space Menu')}
+            >
+              <SquareMenu className='h-4 w-4' />
+              <span className='text-xs'>{t('Independent Space Menu')}</span>
             </button>
           </div>
         </div>

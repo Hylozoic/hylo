@@ -19,6 +19,8 @@ import { ChevronRight, EyeOff, GripVertical } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
+import { useNavigate } from 'react-router-dom'
+import { addQuerystringToPath, spaceHomeUrl } from '@hylo/navigation'
 
 import GroupViewIcon from './GroupViewIcon'
 import { GroupViewEditActions } from './GroupViewSettingsModal'
@@ -165,10 +167,20 @@ function SortableEditRow ({ view, onSettings, onDelete, onToggleHidden, isHome, 
 }
 
 /** Space row with optional nested editable sub-views. */
-function SortableSpaceEditRow ({ view, group, onSettings, onDelete, onToggleHidden, onReorder, onSpaceViewsReordered }) {
+function SortableSpaceEditRow ({
+  view,
+  group,
+  onSettings,
+  onDelete,
+  onToggleHidden,
+  onReorder,
+  onSpaceViewsReordered,
+  independentSpaceMenu = false
+}) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
-  const [expanded, setExpanded] = useState(true)
+  const navigate = useNavigate()
+  const [expanded, setExpanded] = useState(!independentSpaceMenu)
   const [showAddView, setShowAddView] = useState(false)
   const presentedView = GroupViewPresenter(view)
   const spaceGroup = presentedView.linkedGroup
@@ -194,16 +206,39 @@ function SortableSpaceEditRow ({ view, group, onSettings, onDelete, onToggleHidd
     }
   }, [dispatch, group?.id])
 
+  /** In independent mode, open the space menu while staying in edit mode. */
+  const handleOpenSpace = useCallback(() => {
+    if (!independentSpaceMenu || !spaceGroup || !group?.slug) return
+    navigate(addQuerystringToPath(spaceHomeUrl(group.slug, spaceGroup), { edit: 'true' }))
+  }, [independentSpaceMenu, spaceGroup, group?.slug, navigate])
+
   return (
     <li ref={setNodeRef} style={style} className='list-none'>
       <div className='flex items-center gap-1 border-2 border-dashed border-transparent hover:border-foreground/20 rounded-md p-1 group'>
         <button type='button' className='p-1 cursor-grab text-foreground/50 shrink-0' {...attributes} {...listeners}>
           <GripVertical className='w-4 h-4' />
         </button>
-        <GroupViewIcon view={presentedView} />
-        <span className='flex-1 truncate text-base text-foreground'>
-          {displayNameForView(presentedView, t)}
-        </span>
+        {independentSpaceMenu
+          ? (
+            <button
+              type='button'
+              className='flex-1 flex items-center gap-2 min-w-0 text-left cursor-pointer'
+              onClick={handleOpenSpace}
+            >
+              <GroupViewIcon view={presentedView} />
+              <span className='flex-1 truncate text-base text-foreground'>
+                {displayNameForView(presentedView, t)}
+              </span>
+            </button>
+            )
+          : (
+            <>
+              <GroupViewIcon view={presentedView} />
+              <span className='flex-1 truncate text-base text-foreground'>
+                {displayNameForView(presentedView, t)}
+              </span>
+            </>
+            )}
         <GroupViewEditActions
           view={view}
           onSettings={onSettings}
@@ -211,7 +246,7 @@ function SortableSpaceEditRow ({ view, group, onSettings, onDelete, onToggleHidd
           onToggleHidden={onToggleHidden}
           className='opacity-0 group-hover:opacity-100'
         />
-        {spaceGroupId && (
+        {spaceGroupId && !independentSpaceMenu && (
           <button
             type='button'
             className='p-1 text-foreground/50 hover:text-foreground'
@@ -221,7 +256,7 @@ function SortableSpaceEditRow ({ view, group, onSettings, onDelete, onToggleHidd
           </button>
         )}
       </div>
-      {expanded && spaceGroupId && (
+      {!independentSpaceMenu && expanded && spaceGroupId && (
         <div className='pl-6 mt-1'>
           {spaceViews.length > 0 && (
             <ul className='m-0 p-0'>
@@ -310,7 +345,7 @@ function GroupViewEditSubList ({ views, groupId, parentGroupId, spaceGroup, onSe
 }
 
 /** Drag-and-drop editable list of group views. */
-export default function GroupViewEditList ({ views, group, onSettings }) {
+export default function GroupViewEditList ({ views, group, onSettings, independentSpaceMenu = false }) {
   const dispatch = useDispatch()
   const { t } = useTranslation()
   const visibleViews = useMemo(() => sortViewsByOrder((views || []).filter(v => v.order != null)), [views])
@@ -428,6 +463,7 @@ export default function GroupViewEditList ({ views, group, onSettings }) {
                   onToggleHidden={handleToggleHidden}
                   onReorder={handleReorder}
                   onSpaceViewsReordered={handleSpaceViewsReordered}
+                  independentSpaceMenu={independentSpaceMenu}
                 />
               )
             }
