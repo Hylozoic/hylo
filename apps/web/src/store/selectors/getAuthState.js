@@ -1,5 +1,6 @@
 import { createSelector } from 'reselect'
 import getMe from 'store/selectors/getMe'
+import { getAuthSessionAuthenticated } from './getAuthSession'
 
 /*
 
@@ -30,9 +31,10 @@ export const AuthState = {
 }
 
 export const getAuthState = createSelector(
+  getAuthSessionAuthenticated,
   getMe,
-  currentUser => {
-    if (!currentUser) return AuthState.None
+  (isAuthenticated, currentUser) => {
+    if (!isAuthenticated || !currentUser) return AuthState.None
 
     const { emailValidated, hasRegistered, settings } = currentUser
     const signupInProgress = settings?.signupInProgress
@@ -49,10 +51,8 @@ export const getAuthState = createSelector(
 // * Should probably only be used for attaching Hylo user to external
 // APIs (i.e. Mixpanel currently) as soon as authentication is complete
 export const getAuthenticated = createSelector(
-  getAuthState,
-  authState => {
-    return authState !== AuthState.None
-  }
+  getAuthSessionAuthenticated,
+  isAuthenticated => isAuthenticated
 )
 
 // Authenticated && (Signup In Progress || Signup Complete)
