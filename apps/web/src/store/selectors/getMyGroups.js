@@ -32,9 +32,11 @@ export const getMyGroupsWithChildren = createSelector(
   getMyMemberships,
   (_, memberships) => {
     return memberships
+      .filter(m => m.group.ref.type !== GROUP_TYPES.space)
       .map(m => {
         const childGroups = m.group.childGroups
           ?.toModelArray()
+          .filter(c => c.type !== GROUP_TYPES.space)
           .sort((a, b) => a.name.localeCompare(b.name))
           .map(c => ({ id: c.id, name: c.name, avatarUrl: c.avatarUrl, slug: c.slug })) || []
         return {

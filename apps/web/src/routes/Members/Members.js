@@ -19,6 +19,7 @@ import { FETCH_MEMBERS, fetchMembers, getMembers, getHasMoreMembers, removeMembe
 import { fetchTrack } from 'store/actions/trackActions'
 import { fetchFundingRound } from 'routes/FundingRounds/FundingRounds.store'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
+import getMe from 'store/selectors/getMe'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import getRolesForGroup from 'store/selectors/getRolesForGroup'
 import getTrack from 'store/selectors/getTrack'
@@ -26,6 +27,7 @@ import getFundingRound from 'store/selectors/getFundingRound'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
+import { isOneColumnLayout as resolveIsOneColumnLayout } from 'util/navigationLayout'
 
 import classes from './Members.module.scss'
 
@@ -43,6 +45,7 @@ function Members (props) {
 
   // State selectors
   const group = useSelector(state => getGroupForSlug(state, slug))
+  const currentUser = useSelector(getMe)
   const sortBy = getQuerystringParam('s', location) || defaultSortBy
   const search = getQuerystringParam('q', location)
   const memberCount = useSelector(state => get('memberCount', group))
@@ -86,8 +89,11 @@ function Members (props) {
 
   const [showAnswers, setShowAnswers] = useState(false)
 
-  // Single-column groups show the member directory as a grid of square cards.
-  const isOneColumnLayout = context === 'groups' && group?.settings?.layout === 'one-column'
+  // One-column menu style shows the member directory as a grid of square cards.
+  const isOneColumnLayout = context === 'groups' && resolveIsOneColumnLayout(
+    currentUser?.settings?.groupNavStyle,
+    group?.settings?.layout
+  )
 
   // Action creators
   const changeSearch = useCallback(term =>

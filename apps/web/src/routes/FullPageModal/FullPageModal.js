@@ -1,16 +1,17 @@
 import { cn } from 'util/index'
 import React from 'react'
 import { Route, Routes } from 'react-router-dom'
+import { useSelector } from 'react-redux'
 import { isLegacyWebView } from 'util/webView'
-import { useTheme } from 'contexts/ThemeContext'
+import getMe from 'store/selectors/getMe'
 
 export default function FullPageModal ({
   confirmMessage, navigate, goToOnClose,
   content, children, narrow, fullWidth, leftSideBarHidden
 }) {
   const multipleTabs = Array.isArray(content)
-  const { navMode } = useTheme()
-  const isTabNav = navMode === 'tabs'
+  const currentUser = useSelector(getMe)
+  const isTabNav = currentUser?.settings?.globalNavStyle === 'tabs'
 
   // DEPRECATED: New mobile app no longer longer renders differently for webview but uses standard layout
   if (isLegacyWebView()) {

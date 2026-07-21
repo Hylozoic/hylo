@@ -254,34 +254,37 @@ export const PUBLIC_CONTEXT_VIEWS = [
   { type: 'events', context: 'public', name: 'widget-public-events', id: 'view-public-events', order: 4 }
 ]
 
-/** Static menu views for the My (and All My Groups) context. */
+/**
+ * Static menu views for the My (and All My Groups) context.
+ * Flat ordered list with text headers as section breaks (same shape as group menus).
+ */
 export const MY_CONTEXT_VIEWS = (profileUrl) => [
-  { type: 'text', name: 'widget-my-groups-content', id: 'view-my-groups-content', order: 2 },
-  { type: 'stream', context: 'all', name: 'widget-my-groups-stream', id: 'view-my-groups-stream', order: 1, parentId: 'view-my-groups-content' },
-  { type: 'map', context: 'all', name: 'widget-my-groups-map', id: 'view-my-groups-map', order: 2, parentId: 'view-my-groups-content' },
-  { type: 'events', context: 'all', name: 'widget-my-groups-events', id: 'view-my-groups-events', order: 3, parentId: 'view-my-groups-content' },
   { type: 'text', name: 'widget-my-content', id: 'view-my-content', order: 1 },
-  { type: 'posts', context: 'my', icon: 'Posticon', name: 'widget-my-posts', id: 'view-my-posts', order: 1, parentId: 'view-my-content' },
-  { type: 'drafts', context: 'my', icon: 'FilePenLine', name: 'widget-my-drafts', id: 'view-my-drafts', order: 2, parentId: 'view-my-content' },
-  { type: 'interactions', context: 'my', icon: 'Support', name: 'widget-my-interactions', id: 'view-my-interactions', order: 3, parentId: 'view-my-content' },
-  { type: 'mentions', context: 'my', icon: 'Email', name: 'widget-my-mentions', id: 'view-my-mentions', order: 4, parentId: 'view-my-content' },
-  { type: 'announcements', context: 'my', icon: 'Announcement', name: 'widget-my-announcements', id: 'view-my-announcements', order: 5, parentId: 'view-my-content' },
-  { type: 'saved-posts', context: 'my', icon: 'Bookmark', name: 'widget-my-saved-posts', id: 'view-my-saved-posts', order: 6, parentId: 'view-my-content' },
-  { type: 'tracks', context: 'my', icon: 'Shapes', name: 'widget-my-tracks', id: 'view-my-tracks', order: 7, parentId: 'view-my-content' },
-  { type: 'funding-rounds', context: 'my', icon: 'BadgeDollarSign', name: 'widget-my-funding-rounds', id: 'view-my-funding-rounds', order: 8, parentId: 'view-my-content' },
-  { type: 'text', name: 'widget-myself', id: 'view-myself', order: 3 },
-  { type: 'link', name: 'widget-my-profile', link: profileUrl, icon: 'User', id: 'view-my-profile', order: 1, parentId: 'view-myself' },
-  { type: 'edit-profile', context: 'my', icon: 'Edit', name: 'widget-my-edit-profile', id: 'view-my-edit-profile', order: 2, parentId: 'view-myself' },
-  { type: 'groups', context: 'my', icon: 'Users', name: 'widget-my-groups', id: 'view-my-groups', order: 3, parentId: 'view-myself' },
-  { type: 'invitations', context: 'my', icon: 'Mail', name: 'widget-my-invites', id: 'view-my-invites', order: 4, parentId: 'view-myself' },
-  { type: 'transactions', context: 'my', icon: 'CreditCard', name: 'widget-my-transactions', id: 'view-my-transactions', order: 5, parentId: 'view-myself' },
-  { type: 'notifications', context: 'my', icon: 'Bell', name: 'widget-my-notifications', id: 'view-my-notifications', order: 6, parentId: 'view-myself' },
-  { type: 'theme-settings', context: 'my', icon: 'Palette', name: 'Appearance & Themes', id: 'view-my-theme-settings', order: 7, parentId: 'view-myself' },
-  { type: 'locale', context: 'my', icon: 'Languages', name: 'widget-my-locale', id: 'view-my-locale', order: 8, parentId: 'view-myself' },
-  { type: 'blocked-users', context: 'my', icon: 'UserX', name: 'widget-my-blocked-users', id: 'view-my-blocked-users', order: 9, parentId: 'view-myself' },
-  { type: 'saved-searches', context: 'my', icon: 'Search', name: 'widget-my-saved-searches', id: 'view-my-saved-searches', order: 10, parentId: 'view-myself' },
-  { type: 'account', context: 'my', icon: 'Shield', name: 'widget-my-account', id: 'view-my-account', order: 11, parentId: 'view-myself' },
-  { type: 'logout', name: 'widget-my-logout', icon: 'LogOut', id: 'view-my-logout', order: 13 }
+  { type: 'posts', context: 'my', icon: 'Posticon', name: 'widget-my-posts', id: 'view-my-posts', order: 2 },
+  { type: 'drafts', context: 'my', icon: 'FilePenLine', name: 'widget-my-drafts', id: 'view-my-drafts', order: 3 },
+  { type: 'interactions', context: 'my', icon: 'Support', name: 'widget-my-interactions', id: 'view-my-interactions', order: 4 },
+  { type: 'mentions', context: 'my', icon: 'Email', name: 'widget-my-mentions', id: 'view-my-mentions', order: 5 },
+  { type: 'announcements', context: 'my', icon: 'Announcement', name: 'widget-my-announcements', id: 'view-my-announcements', order: 6 },
+  { type: 'saved-posts', context: 'my', icon: 'Bookmark', name: 'widget-my-saved-posts', id: 'view-my-saved-posts', order: 7 },
+  { type: 'tracks', context: 'my', icon: 'Shapes', name: 'widget-my-tracks', id: 'view-my-tracks', order: 8 },
+  { type: 'funding-rounds', context: 'my', icon: 'BadgeDollarSign', name: 'widget-my-funding-rounds', id: 'view-my-funding-rounds', order: 9 },
+  { type: 'text', name: 'widget-my-groups-content', id: 'view-my-groups-content', order: 10 },
+  { type: 'stream', context: 'all', name: 'widget-my-groups-stream', id: 'view-my-groups-stream', order: 11 },
+  { type: 'map', context: 'all', name: 'widget-my-groups-map', id: 'view-my-groups-map', order: 12 },
+  { type: 'events', context: 'all', name: 'widget-my-groups-events', id: 'view-my-groups-events', order: 13 },
+  { type: 'text', name: 'widget-myself', id: 'view-myself', order: 14 },
+  { type: 'link', name: 'widget-my-profile', link: profileUrl, icon: 'User', id: 'view-my-profile', order: 15 },
+  { type: 'edit-profile', context: 'my', icon: 'Edit', name: 'widget-my-edit-profile', id: 'view-my-edit-profile', order: 16 },
+  { type: 'groups', context: 'my', icon: 'Users', name: 'widget-my-groups', id: 'view-my-groups', order: 17 },
+  { type: 'invitations', context: 'my', icon: 'Mail', name: 'widget-my-invites', id: 'view-my-invites', order: 18 },
+  { type: 'transactions', context: 'my', icon: 'CreditCard', name: 'widget-my-transactions', id: 'view-my-transactions', order: 19 },
+  { type: 'notifications', context: 'my', icon: 'Bell', name: 'widget-my-notifications', id: 'view-my-notifications', order: 20 },
+  { type: 'appearance', context: 'my', icon: 'Palette', name: 'Appearance', id: 'view-my-appearance', order: 21 },
+  { type: 'locale', context: 'my', icon: 'Languages', name: 'widget-my-locale', id: 'view-my-locale', order: 22 },
+  { type: 'blocked-users', context: 'my', icon: 'UserX', name: 'widget-my-blocked-users', id: 'view-my-blocked-users', order: 23 },
+  { type: 'saved-searches', context: 'my', icon: 'Search', name: 'widget-my-saved-searches', id: 'view-my-saved-searches', order: 24 },
+  { type: 'account', context: 'my', icon: 'Shield', name: 'widget-my-account', id: 'view-my-account', order: 25 },
+  { type: 'logout', name: 'widget-my-logout', icon: 'LogOut', id: 'view-my-logout', order: 26 }
 ]
 
 /** Returns static menu views for My Home or Public contexts. */
@@ -289,37 +292,6 @@ export function getStaticMenuViews ({ isPublicContext, isMyContext, profileUrl }
   if (isPublicContext) return PUBLIC_CONTEXT_VIEWS
   if (isMyContext) return MY_CONTEXT_VIEWS(profileUrl)
   return null
-}
-
-/** Nests static context views by parentId for the context menu (mirrors orderContextWidgetsForContextMenu). */
-export function orderContextViewsForMenu (views) {
-  const orderedViews = (views || [])
-    .filter(view => view.order != null)
-    .map(view => ({ ...view }))
-  const parentViews = orderedViews.filter(view => !view.parentId)
-  const childViews = orderedViews.filter(view => view.parentId)
-
-  parentViews.forEach(parent => {
-    parent.childViews = []
-  })
-
-  childViews.forEach(child => {
-    const parent = parentViews.find(p => p.id === child.parentId)
-    if (parent) parent.childViews.push(child)
-  })
-
-  const sortByOrderThenId = (a, b) => {
-    const byOrder = (a.order ?? 0) - (b.order ?? 0)
-    if (byOrder !== 0) return byOrder
-    return String(a.id).localeCompare(String(b.id))
-  }
-
-  parentViews.sort(sortByOrderThenId)
-  parentViews.forEach(parent => {
-    parent.childViews.sort(sortByOrderThenId)
-  })
-
-  return parentViews
 }
 
 /** Present a GroupView with resolved display helpers for the navigation menu. */

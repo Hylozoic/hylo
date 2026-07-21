@@ -7,7 +7,7 @@
  * Only the `background` and `foreground` HSL values are included here
  * because they are the only ones needed outside the WebView (for SafeAreaView
  * background and StatusBar styling). All other theme colors are applied
- * inside the WebView by the web app's ThemeContext.
+ * inside the WebView by the web app's AppearanceSync.
  *
  * If a theme is added or modified in the web app, update this file to match.
  */

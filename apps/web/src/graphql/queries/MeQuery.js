@@ -52,16 +52,21 @@ export default gql`
     rsvpCalendarUrl
     settings {
       alreadySeenTour
+      colorScheme
       dmNotifications
       commentNotifications
       locale
       mapBaseLayer
+      globalNavStyle
+      groupNavStyle
       rsvpCalendarSub
       signupInProgress
+      stackGroups
       streamChildPosts
       streamViewMode
       streamSortBy
       streamPostType
+      theme
     }
     joinRequests(status: 0) {
       items {

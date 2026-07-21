@@ -4,14 +4,22 @@ import React, { useMemo, useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
-import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
+import GroupViewPresenter, {
+  displayNameForView,
+  getStaticMenuViews
+} from '@hylo/presenters/GroupViewPresenter'
 import {
   groupUrl,
   currentUserSettingsUrl,
   addQuerystringToPath,
   localSpaceSlug,
+  personUrl,
   spaceUrl
 } from '@hylo/navigation'
+import { replace } from 'redux-first-history'
+import { WebViewMessageTypes } from '@hylo/shared'
+import { sendMessageToWebView } from 'util/webView'
+import logout from 'store/actions/logout'
 import { DEFAULT_BANNER, DEFAULT_AVATAR } from 'store/models/Group'
 import { getGroupViews } from 'store/selectors/getGroupViews'
 import { getMoreSpacesSections } from 'store/selectors/getMoreSpacesSections'
@@ -26,7 +34,7 @@ import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import getMe from 'store/selectors/getMe'
 import isPendingFor from 'store/selectors/isPendingFor'
 import { mapbox as mapboxConfig } from 'config'
-import { useTheme } from 'contexts/ThemeContext'
+import useAppearance from 'hooks/useAppearance'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
@@ -146,6 +154,7 @@ function ViewsGrid ({ sections, groupSlug, group, spaceGroup, navigate, t }) {
 
 /** Single navigable view card in the grid. */
 function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
+  const dispatch = useDispatch()
   const presentedView = useMemo(() => GroupViewPresenter(view), [view])
   const title = displayNameForView(presentedView, t, { spaceGroup })
   const url = menuViewUrl(groupSlug, presentedView, spaceGroup)
@@ -156,8 +165,9 @@ function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
     : null
   const isMap = presentedView.type === 'map'
   const isSpace = presentedView.type === 'space'
+  const isLogout = presentedView.type === 'logout'
   const currentUser = useSelector(getMe)
-  const { effectiveColorScheme } = useTheme()
+  const { effectiveColorScheme } = useAppearance()
   const mapStyle = effectiveColorScheme === 'dark' ? 'dark-v11' : 'light-v11'
   const mapCenter = group?.locationObject?.center || currentUser?.locationObject?.center
 
@@ -167,7 +177,16 @@ function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
       : `https://api.mapbox.com/styles/v1/mapbox/${mapStyle}/static/0,20,1,0/280x200@2x?access_token=${mapboxConfig.token}`
     : null
 
-  const handleClick = () => {
+  const handleClick = async () => {
+    if (isLogout) {
+      await dispatch(logout())
+      if (window.HyloMobileV2) {
+        sendMessageToWebView(WebViewMessageTypes.LOGOUT)
+      } else {
+        dispatch(replace('/login', null))
+      }
+      return
+    }
     if (isSpace && presentedView.linkedGroup) {
       const local = localSpaceSlug(groupSlug, presentedView.linkedGroup.slug)
       navigate(spaceUrl(groupSlug, local))
@@ -403,20 +422,24 @@ function MoreSpacesGrid ({ group, groupSlug, navigate, t }) {
 }
 
 /**
- * Full-screen grid context menu for one-column (simple) groups.
- * Supports nested levels: group menu → more spaces / space menu → view.
+ * Full-screen grid context menu for card-menu (one-column) layouts.
+ * Group mode: group menu → more spaces / space menu → view.
+ * Context mode: My / All / Public static menus via `context`.
  *
- * @param {object} group - Parent group
+ * @param {object} [group] - Parent group (group mode)
  * @param {object} [spaceGroup] - When set, renders that space's views (space menu level)
+ * @param {string} [context] - 'my' | 'all' | 'public' for static context menus
  */
-export default function ContextMenuGrid ({ group, spaceGroup = null }) {
+export default function ContextMenuGrid ({ group = null, spaceGroup = null, context = null }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
   const dispatch = useDispatch()
+  const currentUser = useSelector(getMe)
   const groupSlug = group?.slug
+  const isContextMode = Boolean(context) && !group
 
-  const isMoreSpacesLevel = !spaceGroup && location.pathname.replace(/\/$/, '').endsWith('/more-spaces')
+  const isMoreSpacesLevel = !isContextMode && !spaceGroup && location.pathname.replace(/\/$/, '').endsWith('/more-spaces')
   const isSpaceLevel = Boolean(spaceGroup)
   const isNestedLevel = isMoreSpacesLevel || isSpaceLevel
 
@@ -428,7 +451,7 @@ export default function ContextMenuGrid ({ group, spaceGroup = null }) {
     responsibility: RESP_MANAGE_SPACES,
     groupId: group?.id
   }))
-  const isEditing = getQuerystringParam('edit', location) === 'true' && canAdminister && !isMoreSpacesLevel
+  const isEditing = !isContextMode && getQuerystringParam('edit', location) === 'true' && canAdminister && !isMoreSpacesLevel
   const [settingsView, setSettingsView] = useState(null)
   const [showAddView, setShowAddView] = useState(false)
   const [showAddSpace, setShowAddSpace] = useState(false)
@@ -437,28 +460,45 @@ export default function ContextMenuGrid ({ group, spaceGroup = null }) {
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
     setHeaderDetails({})
-  }, [setHeaderDetails, groupSlug, spaceGroup?.id, isMoreSpacesLevel])
+  }, [setHeaderDetails, groupSlug, spaceGroup?.id, isMoreSpacesLevel, context])
 
   const menuGroup = spaceGroup || group
 
   useEffect(() => {
-    if (menuGroup?.id) dispatch(fetchGroupViews(menuGroup.id))
-  }, [dispatch, menuGroup?.id])
+    if (!isContextMode && menuGroup?.id) dispatch(fetchGroupViews(menuGroup.id))
+  }, [dispatch, menuGroup?.id, isContextMode])
 
-  const groupViews = useSelector(state => getGroupViews(state, menuGroup))
+  const groupViews = useSelector(state => isContextMode ? [] : getGroupViews(state, menuGroup))
 
   const visibleViews = useMemo(() => {
+    if (isContextMode) {
+      const profileUrl = personUrl(currentUser?.id)
+      return getStaticMenuViews({
+        isPublicContext: context === 'public',
+        isMyContext: context === 'my' || context === 'all',
+        profileUrl
+      }) || []
+    }
     return (groupViews || [])
       .filter(view => view.order != null)
       .filter(view => viewAcceptedByPostTypes(view.type, menuGroup?.acceptedPostTypes))
-  }, [groupViews, menuGroup?.acceptedPostTypes])
+  }, [isContextMode, context, currentUser?.id, groupViews, menuGroup?.acceptedPostTypes])
 
   const sections = useMemo(() => partitionViewsIntoSections(visibleViews), [visibleViews])
 
-  const bannerUrl = (spaceGroup || group)?.bannerUrl || group?.bannerUrl || DEFAULT_BANNER
-  const avatarUrl = (spaceGroup || group)?.avatarUrl || DEFAULT_AVATAR
-  const isDefaultAvatar = avatarUrl === DEFAULT_AVATAR
-  const displayName = spaceGroup?.name || group?.name
+  const bannerUrl = isContextMode
+    ? (context === 'public' ? '/the-commons.jpg' : (currentUser?.bannerUrl || '/default-user-banner.svg'))
+    : ((spaceGroup || group)?.bannerUrl || group?.bannerUrl || DEFAULT_BANNER)
+  const avatarUrl = isContextMode
+    ? (context === 'public' ? null : (currentUser?.avatarUrl || DEFAULT_AVATAR))
+    : ((spaceGroup || group)?.avatarUrl || DEFAULT_AVATAR)
+  const isDefaultAvatar = !avatarUrl || avatarUrl === DEFAULT_AVATAR
+  const displayName = isContextMode
+    ? (context === 'public' ? t('The Commons') : t('My Home'))
+    : (spaceGroup?.name || group?.name)
+  const displaySubtitle = isContextMode && context !== 'public' && currentUser?.name
+    ? `${currentUser.name}${currentUser.email ? ` (${currentUser.email})` : ''}`
+    : null
 
   const handleBack = useCallback(() => {
     if (isSpaceLevel && location.state?.fromMoreSpaces) {
@@ -489,46 +529,54 @@ export default function ContextMenuGrid ({ group, spaceGroup = null }) {
 
   return (
     <div className='ContextMenuGrid w-full h-full overflow-y-auto' id='context-menu-grid'>
-      {/* Group/space banner — only on the root group menu */}
+      {/* Banner — root group/context menu only */}
       {!isNestedLevel && (
         <div className='relative w-full'>
           <div id='context-menu-grid-banner' className='relative h-[220px] overflow-hidden'>
             <div className='absolute inset-0 bg-cover bg-center' style={{ ...bgImageStyle(bannerUrl), opacity: 0.7 }} />
             <div className='absolute inset-0 bg-darkening/50' />
 
-            <div className='absolute top-3 left-1/2 -translate-x-1/2 z-30 w-full max-w-[1000px] px-3 flex items-center justify-between'>
-              <button type='button' onClick={() => navigate(currentUserSettingsUrl('notifications?group=' + group.id))}>
-                <Bell className='w-6 h-6 text-white drop-shadow-md hover:scale-110 transition-all' />
-              </button>
-
-              {canAdminister && (
-                <button type='button' onClick={() => navigate(groupUrl(groupSlug, 'settings', {}))}>
-                  <Settings className='w-6 h-6 text-white drop-shadow-md hover:scale-110 transition-all' />
+            {!isContextMode && (
+              <div className='absolute top-3 left-1/2 -translate-x-1/2 z-30 w-full max-w-[1000px] px-3 flex items-center justify-between'>
+                <button type='button' onClick={() => navigate(currentUserSettingsUrl('notifications?group=' + group.id))}>
+                  <Bell className='w-6 h-6 text-white drop-shadow-md hover:scale-110 transition-all' />
                 </button>
-              )}
-            </div>
 
-            <div className='absolute inset-0 z-20 flex flex-col items-center justify-center gap-1'>
-              <div
-                className={cn('w-16 h-16 rounded-xl shadow-lg bg-cover bg-center border-2 border-white/30 overflow-hidden relative', { 'bg-darkening': isDefaultAvatar })}
-                style={!isDefaultAvatar ? bgImageStyle(avatarUrl) : {}}
-              >
-                {isDefaultAvatar && (
-                  <>
-                    <div className='absolute inset-0 opacity-70' style={{ background: 'linear-gradient(to bottom right, hsl(var(--focus)), hsl(var(--selected)))' }} />
-                    <span className='relative z-10 text-white text-2xl flex items-center justify-center uppercase h-full drop-shadow-md'>
-                      {displayName?.split(/\s+/).length > 1
-                        ? `${displayName.split(/\s+/)[0].charAt(0)}${displayName.split(/\s+/)[1].charAt(0)}`
-                        : displayName?.charAt(0)}
-                    </span>
-                  </>
+                {canAdminister && (
+                  <button type='button' onClick={() => navigate(groupUrl(groupSlug, 'settings', {}))}>
+                    <Settings className='w-6 h-6 text-white drop-shadow-md hover:scale-110 transition-all' />
+                  </button>
                 )}
               </div>
+            )}
+
+            <div className='absolute inset-0 z-20 flex flex-col items-center justify-center gap-1'>
+              {context !== 'public' && (
+                <div
+                  className={cn('w-16 h-16 rounded-xl shadow-lg bg-cover bg-center border-2 border-white/30 overflow-hidden relative', { 'bg-darkening': isDefaultAvatar })}
+                  style={!isDefaultAvatar ? bgImageStyle(avatarUrl) : {}}
+                >
+                  {isDefaultAvatar && (
+                    <>
+                      <div className='absolute inset-0 opacity-70' style={{ background: 'linear-gradient(to bottom right, hsl(var(--focus)), hsl(var(--selected)))' }} />
+                      <span className='relative z-10 text-white text-2xl flex items-center justify-center uppercase h-full drop-shadow-md'>
+                        {displayName?.split(/\s+/).length > 1
+                          ? `${displayName.split(/\s+/)[0].charAt(0)}${displayName.split(/\s+/)[1].charAt(0)}`
+                          : displayName?.charAt(0)}
+                      </span>
+                    </>
+                  )}
+                </div>
+              )}
               <h1 className='text-2xl font-bold text-white drop-shadow-md m-0 leading-tight'>{displayName}</h1>
-              <span className='text-sm flex items-center gap-1 text-white/80 drop-shadow-md'>
-                <Users className='w-4 h-4' />
-                {t('{{count}} Members', { count: (spaceGroup || group)?.memberCount || 0 })}
-              </span>
+              {displaySubtitle
+                ? <span className='text-sm text-white/80 drop-shadow-md'>{displaySubtitle}</span>
+                : !isContextMode && (
+                  <span className='text-sm flex items-center gap-1 text-white/80 drop-shadow-md'>
+                    <Users className='w-4 h-4' />
+                    {t('{{count}} Members', { count: (spaceGroup || group)?.memberCount || 0 })}
+                  </span>
+                  )}
             </div>
           </div>
         </div>
@@ -566,7 +614,7 @@ export default function ContextMenuGrid ({ group, spaceGroup = null }) {
               )
             : (
               <div className='flex flex-col gap-6'>
-                {menuGroup?.id && groupViews.length === 0
+                {!isContextMode && menuGroup?.id && groupViews.length === 0
                   ? <p className='text-sm text-foreground/40'>{t('Loading views…')}</p>
                   : (
                     <ViewsGrid
@@ -578,7 +626,7 @@ export default function ContextMenuGrid ({ group, spaceGroup = null }) {
                       t={t}
                     />
                     )}
-                {!spaceGroup && (
+                {!isContextMode && !spaceGroup && (
                   <div className='flex flex-wrap gap-3'>
                     <MoreSpacesCard
                       onClick={() => navigate(groupUrl(groupSlug, 'more-spaces'))}
@@ -589,7 +637,7 @@ export default function ContextMenuGrid ({ group, spaceGroup = null }) {
               </div>
               )}
 
-        {canAdminister && !isMoreSpacesLevel && (
+        {!isContextMode && canAdminister && !isMoreSpacesLevel && (
           <div className='flex justify-center mt-6'>
             <button
               type='button'

@@ -175,7 +175,7 @@ export const isHiddenInContextMenuResolver = (widget) => {
     is not having any children. Since widgets arrive from the server in a flat array,
     the needs-to-be-hidden quality of a widget has to wait until things are ordered for this to be accurate.
   */
-  return (!['members', 'setup'].includes(widget.type) && !widget.view && widget?.childWidgets?.length === 0 &&
+  return (!['members', 'setup', 'text'].includes(widget.type) && !widget.view && widget?.childWidgets?.length === 0 &&
   !widget.viewGroup && !widget.viewUser && !widget.viewPost && !widget.viewTrack && !widget.viewFundingRound &&
   !widget.viewChat && !widget.customView) ||
   // Hide unpublished tracks
@@ -208,7 +208,7 @@ function staticViewToWidget (view) {
     widget.type = 'logout'
     if (view.icon) widget.iconName = view.icon
   } else if (view.type === 'text') {
-    // section header only
+    widget.type = 'text'
   } else if (view.context) {
     widget.context = view.context
     widget.view = view.type

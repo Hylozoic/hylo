@@ -24,8 +24,7 @@ import GroupViewIcon from './GroupViewIcon'
 import useRouteParams from 'hooks/useRouteParams'
 import GroupViewPresenter, {
   displayNameForView,
-  getStaticMenuViews,
-  orderContextViewsForMenu
+  getStaticMenuViews
 } from '@hylo/presenters/GroupViewPresenter'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
@@ -35,6 +34,7 @@ import { getGroupViews } from 'store/selectors/getGroupViews'
 import getMe from 'store/selectors/getMe'
 import getMyMemberships from 'store/selectors/getMyMemberships'
 import { bgImageStyle, cn } from 'util/index'
+import { isOneColumnLayout as resolveIsOneColumnLayout } from 'util/navigationLayout'
 
 import GroupSettingsMenu from './GroupSettingsMenu'
 import ContextMenuOld from './ContextMenuOld'
@@ -82,25 +82,11 @@ function GroupViewMenuItem ({
   }
 
   if (presentedView.type === 'text') {
-    const childViews = view.childViews || []
     return (
       <li className='list-none'>
         <p className='text-xs text-foreground/40 px-2 mt-3 mb-1 uppercase tracking-wide'>
           {displayNameForView(presentedView, t, { spaceGroup })}
         </p>
-        {childViews.length > 0 && (
-          <ul className='pl-4 mt-1 mb-2'>
-            {childViews.map(subView => (
-              <GroupViewMenuItem
-                key={subView.id}
-                view={subView}
-                parentSlug={parentSlug}
-                spaceGroup={spaceGroup}
-                spaceSlug={spaceSlug}
-              />
-            ))}
-          </ul>
-        )}
       </li>
     )
   }
@@ -311,7 +297,10 @@ export default function ContextMenu (props) {
   const isMyContext = routeParams.context === MY_CONTEXT_SLUG
   const isAllContext = routeParams.context === ALL_GROUPS_CONTEXT_SLUG
   const isGroupContext = routeParams.context === 'groups'
-  const isOneColumnLayout = isGroupContext && group?.settings?.layout === 'one-column'
+  const isOneColumnLayout = isGroupContext && resolveIsOneColumnLayout(
+    currentUser?.settings?.groupNavStyle,
+    group?.settings?.layout
+  )
   const profileUrl = personUrl(currentUser?.id, groupSlug)
 
   const isNavOpen = useSelector(state => get('AuthLayoutRouter.isNavOpen', state))
@@ -321,12 +310,11 @@ export default function ContextMenu (props) {
   const [useGroupViews, setUseGroupViews] = useState(true)
 
   const staticMenuViews = useMemo(() => {
-    const views = getStaticMenuViews({
+    return getStaticMenuViews({
       isPublicContext,
       isMyContext: isMyContext || isAllContext,
       profileUrl
     })
-    return views ? orderContextViewsForMenu(views) : null
   }, [isPublicContext, isMyContext, isAllContext, profileUrl])
 
   const fetchedGroupViews = useSelector(state => getGroupViews(state, group))

@@ -18,6 +18,7 @@ import getMe from 'store/selectors/getMe'
 import getPreviousLocation from 'store/selectors/getPreviousLocation'
 import { bgImageStyle, cn } from 'util/index'
 import { isCompactLayoutDevice, isDrawerNavLayout, isPhoneDevice } from 'util/mobile'
+import { isCardMenuPreference, isOneColumnLayout } from 'util/navigationLayout'
 
 /** Resolves the parent menu's space view (or a synthetic one for off-menu spaces). */
 function resolveSpaceMenuView (parentGroup, groupViews, parentSlug, spaceSlug) {
@@ -42,7 +43,7 @@ function resolveSpaceMenuView (parentGroup, groupViews, parentSlug, spaceSlug) {
   }
 }
 
-const ViewHeader = ({ oneColumnGroup, oneColumnGroupSlug }) => {
+const ViewHeader = () => {
   const dispatch = useDispatch()
   const { context, groupSlug, spaceSlug } = useRouteParams()
   const navigate = useNavigate()
@@ -56,6 +57,10 @@ const ViewHeader = ({ oneColumnGroup, oneColumnGroupSlug }) => {
 
   const previousLocation = useSelector(getPreviousLocation)
   const compactLayout = isCompactLayoutDevice()
+  const userGroupNavStyle = currentUser?.settings?.groupNavStyle
+  const isOneColumnGroup = context === 'groups' && isOneColumnLayout(userGroupNavStyle, group?.settings?.layout)
+  const isOneColumnContext = isCardMenuPreference(userGroupNavStyle) && ['my', 'all', 'public'].includes(context)
+  const oneColumn = isOneColumnGroup || isOneColumnContext
 
   const presentedSpaceView = useMemo(() => {
     if (spaceBreadcrumb === false) return null
@@ -67,14 +72,13 @@ const ViewHeader = ({ oneColumnGroup, oneColumnGroupSlug }) => {
   const [searchValue, setSearchValue] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
   const [activeOptionIndex, setActiveOptionIndex] = useState(0)
-  // For simple groups: the home dashboard's banner already shows the group avatar
-  // and name prominently, so the redundant breadcrumb header is hidden until the
-  // user scrolls past the banner. Tracked via IntersectionObserver below.
+  // For card-menu homes: the dashboard banner already shows avatar/name prominently,
+  // so the redundant breadcrumb header is hidden until the user scrolls past it.
   const [isBannerVisible, setIsBannerVisible] = useState(true)
 
   useEffect(() => {
-    if (!oneColumnGroup) {
-      setIsBannerVisible(false) // not on simple group home → don't hide
+    if (!oneColumn) {
+      setIsBannerVisible(false) // not on card-menu home → don't hide
       return
     }
     let observer
@@ -94,7 +98,7 @@ const ViewHeader = ({ oneColumnGroup, oneColumnGroupSlug }) => {
       cancelAnimationFrame(rafId)
       if (observer) observer.disconnect()
     }
-  }, [oneColumnGroup, location.pathname])
+  }, [oneColumn, location.pathname])
 
   const searchContainerRef = useRef(null)
   const searchInputRef = useRef(null)
@@ -193,7 +197,7 @@ const ViewHeader = ({ oneColumnGroup, oneColumnGroupSlug }) => {
         location.pathname === `/groups/${groupSlug}/settings/`
       if (isSettingsRoot) {
         navigate(`/groups/${groupSlug}`)
-        if (!oneColumnGroup) {
+        if (!isOneColumnGroup) {
           dispatch(toggleNavMenu(true))
         }
       } else {
@@ -203,7 +207,7 @@ const ViewHeader = ({ oneColumnGroup, oneColumnGroupSlug }) => {
     }
 
     // One-column groups: back from a space view → space menu; from a group view → group menu.
-    if (oneColumnGroup && groupSlug) {
+    if (isOneColumnGroup && groupSlug) {
       const path = location.pathname.replace(/\/$/, '')
       const groupHome = `/groups/${groupSlug}`
       if (spaceSlug) {
@@ -229,9 +233,19 @@ const ViewHeader = ({ oneColumnGroup, oneColumnGroupSlug }) => {
       }
     }
 
-    // Simple (one-column) groups render the sidebar inline on phone too — there's no
+    // Card-menu My/All/Public: back from a view returns to that context's menu home.
+    if (isOneColumnContext) {
+      const path = location.pathname.replace(/\/$/, '')
+      const contextHome = `/${context}`
+      if (path !== contextHome) {
+        navigate(contextHome)
+        return
+      }
+    }
+
+    // Card-menu layouts render the sidebar inline on phone too — there's no
     // drawer to toggle, so the chevron should navigate back instead.
-    if (isDrawerNavLayout(window.innerWidth) && !mobileBackButton && !backButton && !oneColumnGroup) {
+    if (isDrawerNavLayout(window.innerWidth) && !mobileBackButton && !backButton && !oneColumn) {
       dispatch(toggleNavMenu())
     } else if (backTo) {
       navigate(backTo)
@@ -242,15 +256,17 @@ const ViewHeader = ({ oneColumnGroup, oneColumnGroupSlug }) => {
     }
   }
 
-  // For simple groups: hide ViewHeader on menu levels (group home has its own banner;
+  // Hide ViewHeader on card-menu levels (homes have their own banner;
   // nested grids have their own sticky back bar). Show it on actual views.
   const isOneColumnMenuLevel = useMemo(() => {
-    if (!oneColumnGroupSlug) return false
+    if (!oneColumn) return false
     const path = location.pathname.replace(/\/$/, '')
-    const groupBase = `/groups/${oneColumnGroupSlug}`
+    if (isOneColumnContext && path === `/${context}`) return true
+    if (!isOneColumnGroup || !groupSlug) return false
+    const groupBase = `/groups/${groupSlug}`
     if (path === groupBase || path === `${groupBase}/more-spaces`) return true
-    return Boolean(path.match(new RegExp(`^/groups/${oneColumnGroupSlug}/spaces/[^/]+$`)))
-  }, [oneColumnGroupSlug, location.pathname])
+    return Boolean(path.match(new RegExp(`^/groups/${groupSlug}/spaces/[^/]+$`)))
+  }, [oneColumn, isOneColumnContext, isOneColumnGroup, context, groupSlug, location.pathname])
 
   // Hide ViewHeader on phones for messages - MessagesMobile handles its own header
   if (isPhoneDevice() && location.pathname.startsWith('/messages')) {
@@ -260,7 +276,7 @@ const ViewHeader = ({ oneColumnGroup, oneColumnGroupSlug }) => {
   return (
     <header className={cn('flex flex-row items-center z-20 p-2 sticky top-0 w-full bg-background shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)]', {
       'justify-center': centered,
-      hidden: (oneColumnGroup && isBannerVisible) || isOneColumnMenuLevel
+      hidden: (oneColumn && isBannerVisible) || isOneColumnMenuLevel
     })}
     >
       {centered && (backButton || mobileBackButton) && (
@@ -281,7 +297,7 @@ const ViewHeader = ({ oneColumnGroup, oneColumnGroupSlug }) => {
           >
             <ChevronLeft className='w-6 h-6' />
           </button>
-          {context !== 'messages' && !oneColumnGroup && (
+          {context !== 'messages' && !oneColumn && (
             <div className={cn('ViewHeaderContextIcon mr-3 w-8 h-8 rounded-lg drop-shadow-md', !compactLayout && 'sm:hidden')}>
               {context === 'groups'
                 ? <div style={bgImageStyle(group?.avatarUrl)} className='w-8 h-8 rounded-lg bg-cover bg-center' />
@@ -295,7 +311,7 @@ const ViewHeader = ({ oneColumnGroup, oneColumnGroupSlug }) => {
         </>
       )}
       {/* )} */}
-      {!centered && !oneColumnGroup && presentedSpaceView && (
+      {!centered && !oneColumn && presentedSpaceView && (
         <>
           {group?.avatarUrl && (
             <div
@@ -317,8 +333,8 @@ const ViewHeader = ({ oneColumnGroup, oneColumnGroupSlug }) => {
           <span className='mx-1.5 shrink-0 text-foreground/40'>{'>'}</span>
         </>
       )}
-      {!centered && !oneColumnGroup && icon && (typeof icon === 'string' ? <Icon name={icon} className='mr-3 text-lg' /> : React.cloneElement(icon, { className: 'mr-3 text-lg' }))}
-      {oneColumnGroup && (() => {
+      {!centered && !oneColumn && icon && (typeof icon === 'string' ? <Icon name={icon} className='mr-3 text-lg' /> : React.cloneElement(icon, { className: 'mr-3 text-lg' }))}
+      {isOneColumnGroup && (() => {
         // The chevron should only appear when an actual sub-view title is set —
         // not when title is the empty default ({mobile: '', desktop: ''}) on group home.
         const hasTitle = typeof title === 'string'
@@ -327,15 +343,15 @@ const ViewHeader = ({ oneColumnGroup, oneColumnGroupSlug }) => {
             ? true
             : !!(title?.mobile || title?.desktop)
         const inSpace = Boolean(presentedSpaceView && spaceSlug)
-        const groupHref = `/groups/${oneColumnGroupSlug}`
-        const spaceHref = `/groups/${oneColumnGroupSlug}/spaces/${spaceSlug}`
+        const groupHref = `/groups/${groupSlug}`
+        const spaceHref = `/groups/${groupSlug}/spaces/${spaceSlug}`
 
         return (
           <div className='flex items-center gap-1.5 mr-2 min-w-0'>
-            {oneColumnGroup.avatarUrl && (
+            {group?.avatarUrl && (
               <div
                 className='w-6 h-6 rounded-sm bg-cover bg-center shrink-0 cursor-pointer hover:scale-110 transition-transform'
-                style={bgImageStyle(oneColumnGroup.avatarUrl)}
+                style={bgImageStyle(group.avatarUrl)}
                 onClick={() => navigate(groupHref)}
               />
             )}
@@ -343,7 +359,7 @@ const ViewHeader = ({ oneColumnGroup, oneColumnGroupSlug }) => {
               className='font-semibold text-foreground/70 cursor-pointer hover:text-foreground transition-colors whitespace-nowrap truncate'
               onClick={() => navigate(groupHref)}
             >
-              {oneColumnGroup.name}
+              {group?.name}
             </span>
             {inSpace && (
               <>
@@ -364,6 +380,46 @@ const ViewHeader = ({ oneColumnGroup, oneColumnGroupSlug }) => {
                 </span>
               </>
             )}
+            {hasTitle && <span className='text-foreground/30 text-lg shrink-0'>{'>'}</span>}
+            {hasTitle && icon && (
+              typeof icon === 'string'
+                ? <Icon name={icon} className='text-lg shrink-0' />
+                : React.cloneElement(icon, { className: 'w-5 h-5 shrink-0' })
+            )}
+          </div>
+        )
+      })()}
+      {isOneColumnContext && (() => {
+        const hasTitle = typeof title === 'string'
+          ? title.length > 0
+          : React.isValidElement(title)
+            ? true
+            : !!(title?.mobile || title?.desktop)
+        const contextHref = `/${context}`
+        const contextLabel = context === 'public' ? t('The Commons') : t('My Home')
+
+        return (
+          <div className='flex items-center gap-1.5 mr-2 min-w-0'>
+            {context === 'public'
+              ? (
+                <Globe
+                  className='w-6 h-6 shrink-0 cursor-pointer hover:scale-110 transition-transform'
+                  onClick={() => navigate(contextHref)}
+                />
+                )
+              : currentUser?.avatarUrl && (
+                <div
+                  className='w-6 h-6 rounded-sm bg-cover bg-center shrink-0 cursor-pointer hover:scale-110 transition-transform'
+                  style={bgImageStyle(currentUser.avatarUrl)}
+                  onClick={() => navigate(contextHref)}
+                />
+                )}
+            <span
+              className='font-semibold text-foreground/70 cursor-pointer hover:text-foreground transition-colors whitespace-nowrap truncate'
+              onClick={() => navigate(contextHref)}
+            >
+              {contextLabel}
+            </span>
             {hasTitle && <span className='text-foreground/30 text-lg shrink-0'>{'>'}</span>}
             {hasTitle && icon && (
               typeof icon === 'string'

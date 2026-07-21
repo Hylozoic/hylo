@@ -18,7 +18,6 @@ import {
 import BadgedIcon from 'components/BadgedIcon'
 import CreateMenu from 'components/CreateMenu'
 import { getMyGroupsWithChildren } from 'store/selectors/getMyGroups'
-import { useTheme } from 'contexts/ThemeContext'
 import useRouteParams from 'hooks/useRouteParams'
 import { baseUrl } from '@hylo/navigation'
 import { DEFAULT_AVATAR } from 'store/models/Group'
@@ -182,7 +181,7 @@ export default function TopNav ({ currentUser }) {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const routeParams = useRouteParams()
-  const { stackGroups } = useTheme()
+  const stackGroups = currentUser?.settings?.stackGroups === true
   const sortedGroups = useSelector(getMyGroupsWithChildren)
   const tabContainerRef = useRef(null)
   const [visibleGroupCount, setVisibleGroupCount] = useState(sortedGroups.length)
