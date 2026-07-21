@@ -1,13 +1,19 @@
 import React from 'react'
 import { useSelector } from 'react-redux'
-import { Route, Routes, useLocation } from 'react-router-dom'
+import { Route, Routes } from 'react-router-dom'
 import { graphql, HttpResponse } from 'msw'
 import orm from 'store/models'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import getReturnToPath from 'store/selectors/getReturnToPath'
 import extractModelsForTest from 'util/testing/extractModelsForTest'
 import { AllTheProviders, render, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
-import JoinGroup, { SIGNUP_PATH } from './JoinGroup'
+import JoinGroup from './JoinGroup'
+
+jest.mock('components/ui/tooltip', () => ({ TooltipProvider: ({ children }) => children }))
+
+afterEach(() => {
+  jest.restoreAllMocks()
+})
 
 function currentUserProvider (authStateComplete) {
   const ormSession = orm.mutableSession(orm.getEmptyState())
@@ -37,53 +43,44 @@ function currentUserProvider (authStateComplete) {
   return AllTheProviders(reduxState, ['/join-group'])
 }
 
-it('joins and forwards to group when current user is fully signed-up', async () => {
-  const testMembership = {
-    id: '2',
-    group: {
-      id: '3',
-      slug: 'test-group'
-    }
-  }
-
+it('redirects signed-up user to group about page with accessCode when invitation is valid', async () => {
   mockGraphqlServer.use(
-    graphql.mutation('UseInvitation', () => {
+    graphql.query('CheckInvitation', () => {
       return HttpResponse.json({
         data: {
-          useInvitation: {
-            membership: testMembership
+          checkInvitation: {
+            valid: true,
+            groupSlug: 'test-group'
           }
-        }
-      })
-    }),
-    graphql.query('FetchForGroup', () => {
-      return HttpResponse.json({
-        data: {
-          group: testMembership.group
         }
       })
     })
   )
 
-  jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ accessCode: 'anything' })
-  // jest.spyOn(require('react-router-dom'), 'useLocation').mockReturnValue({ search: '' })
+  jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ accessCode: 'test-access-code' })
 
   render(
     <>
       <Routes>
         <Route path='/join-group' element={<JoinGroup />} />
-        <Route path='/groups/test-group/explore' element={<div>/groups/test-group/explore</div>} />
+        <Route
+          path='/groups/test-group/about'
+          element={<div>/groups/test-group/about?accessCode=test-access-code</div>}
+        />
       </Routes>
     </>,
     { wrapper: currentUserProvider(true) }
   )
 
   await waitFor(() => {
-    expect(screen.getByText('/groups/test-group/explore')).toBeInTheDocument()
+    expect(screen.getByText('/groups/test-group/about?accessCode=test-access-code')).toBeInTheDocument()
   })
 })
 
-it('checks invitation and forwards to expired invite page when invitation is invalid when not logged-in', async () => {
+it('shows alert and navigates home when invitation is invalid and user is not signed-up', async () => {
+  const alertSpy = jest.spyOn(window, 'alert').mockImplementation(() => {})
+  const navigateMock = jest.fn()
+
   mockGraphqlServer.use(
     graphql.query('CheckInvitation', () => {
       return HttpResponse.json({
@@ -97,27 +94,22 @@ it('checks invitation and forwards to expired invite page when invitation is inv
   )
 
   jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ accessCode: 'anything' })
-  jest.spyOn(require('react-router-dom'), 'useLocation').mockReturnValue({ pathname: '/signup', search: 'error=invalid-invite' })
-
-  const SignupMock = () => {
-    const location = useLocation()
-    return <div>signup mock {location.pathname}?{location.search}</div>
-  }
+  jest.spyOn(require('react-router-dom'), 'useLocation').mockReturnValue({ pathname: '/join-group', search: '' })
+  jest.spyOn(require('react-router-dom'), 'useNavigate').mockReturnValue(navigateMock)
 
   render(
-    <>
-      <JoinGroup />
-      <Routes>
-        <Route path='/join-group' element={<JoinGroup />} />
-        <Route path='/signup' element={<SignupMock />} />
-      </Routes>
-    </>,
+    <Routes>
+      <Route path='/join-group' element={<JoinGroup />} />
+    </Routes>,
     { wrapper: currentUserProvider(false) }
   )
 
   await waitFor(() => {
-    expect(screen.getByText(`${SIGNUP_PATH}?error=invalid-invite`, { exact: false })).toBeInTheDocument()
+    expect(alertSpy).toHaveBeenCalled()
+    expect(navigateMock).toHaveBeenCalledWith('/all')
   })
+
+  alertSpy.mockRestore()
 })
 
 it('sets returnToPath and forwards to signup page when invitation is valid and user is not logged-in', async () => {
@@ -126,7 +118,8 @@ it('sets returnToPath and forwards to signup page when invitation is valid and u
       return HttpResponse.json({
         data: {
           checkInvitation: {
-            valid: true
+            valid: true,
+            groupSlug: 'test-group'
           }
         }
       })
@@ -143,7 +136,8 @@ it('sets returnToPath and forwards to signup page when invitation is valid and u
       <>
         <div>{returnToPath}</div>
       </>
-    )  }
+    )
+  }
 
   render(
     <>
@@ -156,6 +150,6 @@ it('sets returnToPath and forwards to signup page when invitation is valid and u
   )
 
   await waitFor(() => {
-    expect(screen.getByText('route/to/join-group')).toBeInTheDocument()
+    expect(screen.getByText('/groups/test-group/about?accessCode=anything')).toBeInTheDocument()
   })
 })

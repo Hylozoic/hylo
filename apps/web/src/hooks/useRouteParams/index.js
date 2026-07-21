@@ -32,12 +32,28 @@ export default function useRouteParams () {
 
     // if view is not set, then set it
     if (!params.view) {
-      const pathParts = location.pathname.split('/')
-      // Correctly track the view
+      // Standalone post URL (e.g. /groups/:slug/post/:postId) uses "post" as a path segment, not a stream view name
       if (params.context === 'groups') {
-        params.view = !['create', 'post'].includes(pathParts[3]) ? pathParts[3] : ''
+        const isGroupPostDetail = pathParts[3] === 'post' && pathParts[4] && /^\d+$/.test(pathParts[4])
+        if (isGroupPostDetail) {
+          params.view = 'post'
+        } else if (!['create', 'post'].includes(pathParts[3])) {
+          params.view = pathParts[3]
+        } else {
+          params.view = ''
+        }
       } else {
-        params.view = !['create', 'post'].includes(pathParts[2]) ? pathParts[2] : ''
+        const isContextPostDetail = ['all', 'public', 'my'].includes(params.context) &&
+          pathParts[2] === 'post' &&
+          pathParts[3] &&
+          /^\d+$/.test(pathParts[3])
+        if (isContextPostDetail) {
+          params.view = 'post'
+        } else if (!['create', 'post'].includes(pathParts[2])) {
+          params.view = pathParts[2]
+        } else {
+          params.view = ''
+        }
       }
     }
 

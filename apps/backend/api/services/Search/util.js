@@ -124,8 +124,10 @@ export const filterAndSortPosts = curry((opts, q) => {
   }
 
   if (!isEmpty(search)) {
+    // Alias avoids conflicting with callers that already join `users` (e.g. forPosts)
+    q.leftJoin('users as post_creators', 'posts.user_id', '=', 'post_creators.id')
     addTermToQueryBuilder(search, q, {
-      columns: ['posts.name', 'posts.description']
+      columns: ['posts.name', 'posts.description', 'post_creators.name']
     })
   }
 
@@ -158,7 +160,7 @@ export const filterAndSortPosts = curry((opts, q) => {
   }
 })
 
-export const filterAndSortUsers = curry(({ autocomplete, boundingBox, groupId, groupRoleId, commonRoleId, order, search, sortBy }, q) => {
+export const filterAndSortUsers = curry(({ autocomplete, boundingBox, groupId, groupRoleId, order, search, sortBy }, q) => {
   if (autocomplete) {
     const query = chain(autocomplete.split(/\s*\s/)) // split on whitespace
       .map(word => word.replace(/[,;|:&()!\\]+/, ''))
@@ -177,12 +179,9 @@ export const filterAndSortUsers = curry(({ autocomplete, boundingBox, groupId, g
   if (groupRoleId) {
     q.leftJoin('group_memberships_group_roles', 'group_memberships_group_roles.user_id', '=', 'users.id')
     q.where('group_memberships_group_roles.group_role_id', '=', groupRoleId)
-  }
-
-  if (commonRoleId && groupId) {
-    q.leftJoin('group_memberships_common_roles as crgm', 'crgm.user_id', 'users.id')
-    q.where('crgm.common_role_id', '=', commonRoleId)
-    q.andWhere('crgm.group_id', '=', groupId)
+    if (groupId) {
+      q.andWhere('group_memberships_group_roles.group_id', '=', groupId)
+    }
   }
 
   if (search) {
@@ -242,4 +241,83 @@ export const filterAndSortGroups = curry((opts, q) => {
   }
 
   q.orderBy(sortBy || 'name', order || sortBy === 'size' ? 'desc' : 'asc')
+})
+
+export const filterAndSortContentAccess = curry((opts, q) => {
+  const {
+    groupIds,
+    search,
+    accessType,
+    status,
+    offeringId,
+    trackId,
+    groupRoleId,
+    sortBy = 'created_at',
+    order
+  } = opts
+
+  // Filter by group IDs (groups that granted the access)
+  if (groupIds && groupIds.length > 0) {
+    q.whereIn('content_access.granted_by_group_id', groupIds)
+  }
+
+  // Filter by user name search
+  if (search) {
+    q.join('users', 'users.id', '=', 'content_access.user_id')
+    q.whereRaw('users.name ilike ?', `%${search}%`)
+  }
+
+  // Filter by access type
+  if (accessType) {
+    q.where('content_access.access_type', accessType)
+  }
+
+  // Filter by status
+  if (status) {
+    q.where('content_access.status', status)
+  }
+
+  // Filter by offering ID
+  if (offeringId) {
+    q.where('content_access.product_id', offeringId)
+  }
+
+  // Filter by track ID
+  if (trackId) {
+    q.where('content_access.track_id', trackId)
+  }
+
+  // Filter by group role ID
+  if (groupRoleId) {
+    q.where('content_access.group_role_id', groupRoleId)
+  }
+
+  // Validate sortBy
+  const validSortColumns = {
+    created_at: 'content_access.created_at',
+    expires_at: 'content_access.expires_at',
+    user_name: 'users.name'
+  }
+
+  const sortColumn = validSortColumns[sortBy]
+  if (!sortColumn) {
+    throw new GraphQLError(`Cannot sort by "${sortBy}"`)
+  }
+
+  // Validate order
+  if (order && !['asc', 'desc'].includes(order.toLowerCase())) {
+    throw new GraphQLError(`Cannot use sort order "${order}"`)
+  }
+
+  // If sorting by user name and not already joined, join users table
+  if (sortBy === 'user_name' && !search) {
+    q.join('users', 'users.id', '=', 'content_access.user_id')
+  }
+
+  // Apply sorting
+  if (sortBy === 'user_name') {
+    q.orderByRaw(`lower("users"."name") ${order || 'asc'}`)
+  } else {
+    q.orderBy(sortColumn, order || 'desc')
+  }
 })

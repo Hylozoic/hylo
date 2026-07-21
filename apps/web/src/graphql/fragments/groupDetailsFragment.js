@@ -33,6 +33,8 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
   visibility
   websiteUrl
   welcomePage
+  paywall
+  canAccess
   agreements {
     items {
       id
@@ -93,7 +95,7 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
       id
       name
       avatarUrl
-      groupRoles {
+      groupRoles(slug: $slug) {
         items {
           id
           name
@@ -107,14 +109,6 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
               description
             }
           }
-        }
-      }
-      membershipCommonRoles {
-        items {
-          id
-          groupId
-          userId
-          roleId
         }
       }
     }

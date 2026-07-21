@@ -18,6 +18,12 @@ export {
   removePostFromCollection
 } from './collection'
 export {
+  grantContentAccess,
+  revokeContentAccess,
+  refundContentAccess,
+  recordStripePurchase
+} from './contentAccess'
+export {
   createComment,
   createMessage,
   deleteComment,
@@ -40,7 +46,6 @@ export {
 export {
   acceptGroupRelationshipInvite,
   addMember,
-  addModerator,
   cancelGroupRelationshipInvite,
   createGroup,
   invitePeerRelationship,
@@ -52,7 +57,6 @@ export {
   joinGroup,
   regenerateAccessCode,
   rejectGroupRelationshipInvite,
-  removeModerator,
   removeMember,
   updateGroup,
   updatePeerRelationship
@@ -164,10 +168,22 @@ export {
   deleteZapierTrigger
 } from './zapier'
 export {
+  createStripeConnectedAccount,
+  createStripeAccountLink,
+  createStripeOffering,
+  updateStripeOffering,
+  createStripeCheckoutSession,
+  checkStripeStatus
+} from './stripe'
+export {
+  membershipChangeCommit
+} from './membershipChange'
+export {
   addEmailEnabledTester,
   removeEmailEnabledTester
 } from './emailEnabledTesters'
 export { default as findOrCreateThread } from '../../models/post/findOrCreateThread'
+export { muteMessageThread, unmuteMessageThread } from './messageThread'
 
 export async function updateMe (sessionId, userId, changes) {
   const user = await User.find(userId)
@@ -268,6 +284,12 @@ export function markAllActivitiesRead (userId) {
 export async function markThreadRead (root, { messageThreadId }, context) {
   const messageThread = await Post.find(messageThreadId)
   await messageThread.markAsRead(context.currentUserId)
+  return messageThread
+}
+
+export async function markThreadUnread (root, { messageThreadId }, context) {
+  const messageThread = await Post.find(messageThreadId)
+  await messageThread.markAsUnread(context.currentUserId)
   return messageThread
 }
 

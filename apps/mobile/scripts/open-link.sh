@@ -4,7 +4,20 @@
 # this version just gives us more flexibility, is easier to type, and doesn't require installing
 # uri-scheme globally or having to wait it to download each time
 
-SCHEME="https://www.hylo.com/"
+# Base URL must match the app's Config.HYLO_WEB_BASE_URL (react-native-config reads apps/mobile/.env).
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+MOBILE_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+ENV_FILE="$MOBILE_ROOT/.env"
+if [[ -f "$ENV_FILE" ]]; then
+  HYLO_WEB_BASE_URL="$(grep -E '^HYLO_WEB_BASE_URL=' "$ENV_FILE" | tail -1 | cut -d'=' -f2- | tr -d '\r')"
+fi
+if [[ -z "$HYLO_WEB_BASE_URL" ]]; then
+  echo "Warning: HYLO_WEB_BASE_URL not set in $ENV_FILE — defaulting to https://www.hylo.com" >&2
+  HYLO_WEB_BASE_URL='https://www.hylo.com'
+fi
+# Single trailing slash for concatenating paths
+BASE_URL="${HYLO_WEB_BASE_URL%/}/"
+
 PLATFORM="ios"
 
 # Function to show usage
@@ -43,10 +56,10 @@ else
   EXTRACTED_PATH=$(echo "$EXTRACTED_PATH" | sed -E 's#^/##')
 
   # Construct the deep link
-  DEEP_LINK="$SCHEME$EXTRACTED_PATH"
+  DEEP_LINK="$BASE_URL$EXTRACTED_PATH"
 fi
 
-echo "Opening deep link: $DEEP_LINK on $PLATFORM..."
+echo "Opening deep link: $DEEP_LINK on $PLATFORM (HYLO_WEB_BASE_URL=$HYLO_WEB_BASE_URL)..."
 
 if [ "$PLATFORM" == "ios" ]; then
   xcrun simctl openurl booted "$DEEP_LINK"

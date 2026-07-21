@@ -2,7 +2,7 @@ import { AnalyticsEvents } from '@hylo/shared'
 import React, { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
-import { push, goBack } from 'redux-first-history'
+import { push } from 'redux-first-history'
 import LocationInput from 'components/LocationInput'
 import { ensureLocationIdIfCoordinate, fetchLocation as fetchLocationAction } from 'components/LocationInput/LocationInput.store'
 import WelcomeWizardModalFooter from '../WelcomeWizardModalFooter'
@@ -35,10 +35,10 @@ function AddLocation () {
     setLocation(loc.fullText)
   }
 
+  // Called inside .then() — server has confirmed signupInProgress=false, so navigating to
+  // returnToPath here is safe: any subsequent fetchForCurrentUser also sees the committed value.
   const goToNextStep = useCallback(() => {
-    if (!returnToPath) {
-      dispatch(push('/welcome/explore'))
-    }
+    dispatch(push(returnToPath || '/welcome/explore'))
   }, [dispatch, returnToPath])
 
   const submit = async () => {

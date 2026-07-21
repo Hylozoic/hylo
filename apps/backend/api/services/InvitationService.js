@@ -5,7 +5,7 @@ import { get, isEmpty, map, merge } from 'lodash/fp'
 
 module.exports = {
   checkPermission: (userId, invitationId) => {
-    return Invitation.find(invitationId, {withRelated: 'group'})
+    return Invitation.find(invitationId, { withRelated: 'group' })
     .then(async (invitation) => {
       if (!invitation) throw new GraphQLError('Invitation not found')
       const { group } = invitation.relations
@@ -18,7 +18,7 @@ module.exports = {
     return Invitation.find(invitationId)
   },
 
-  find: ({groupId, limit, offset, pendingOnly = false, includeExpired = false}) => {
+  find: ({ groupId, limit, offset, pendingOnly = false, includeExpired = false }) => {
     return Group.find(groupId)
     .then(group => Invitation.query(qb => {
       qb.limit(limit || 20)
@@ -38,11 +38,11 @@ module.exports = {
       !includeExpired && qb.whereNull('expired_by_id')
 
       qb.orderBy('created_at', 'desc')
-    }).fetchAll({withRelated: ['user']}))
+      }).fetchAll({ withRelated: ['user'] }))
     .then(invitations => ({
       total: invitations.length > 0 ? Number(invitations.first().get('total')) : 0,
       items: invitations.map(i => {
-        var user = i.relations.user
+          let user = i.relations.user
         if (isEmpty(user) && i.get('joined_user_id')) {
           user = {
             id: i.get('joined_user_id'),
@@ -65,47 +65,50 @@ module.exports = {
    * @param userIds {String[]} list of userIds
    * @param emails {String[]} list of emails
    * @param message
-   * @param isModerator {Boolean} should invite as moderator (defaults: false)
+   * @param assignCoordinator {Boolean} invite as Coordinator (defaults: false)
    * @param subject
+   * @param groupRoleId {Number} group role ID to assign when invitation is used
    */
-  create: ({sessionUserId, groupId, tagName, userIds, emails = [], message, isModerator = false, subject}) => {
+  create: ({ sessionUserId, groupId, tagName, userIds, emails = [], message, assignCoordinator = false, subject, groupRoleId }) => {
     return Promise.join(
       userIds && User.query(q => q.whereIn('id', userIds)).fetchAll(),
       Group.find(groupId),
       tagName && Tag.find({ name: tagName }),
       (users, group, tag) => {
-        let concatenatedEmails = emails.concat(map(u => u.get('email'), get('models', users)))
+        const concatenatedEmails = emails.concat(map(u => u.get('email'), get('models', users)))
 
         return Promise.map(concatenatedEmails, email => {
           if (!validator.isEmail(email)) {
-            return {email, error: 'not a valid email address'}
+            return { email, error: 'not a valid email address' }
           }
 
           const opts = {
             email,
             userId: sessionUserId,
-            groupId: group.id
+            groupId: group.id,
+            groupRoleId: groupRoleId || null
           }
 
           if (tag) {
             opts.tagId = tag.id
           } else {
             opts.message = TextHelpers.markdown(message, { disableAutolinking: true })
-            opts.moderator = isModerator
+            // TODO: are we still using this, alongside the groupRoleId?
+            opts.assignCoordinator = assignCoordinator
             opts.subject = subject
           }
 
           return Invitation.create(opts)
-            .tap(i => i.refresh({withRelated: ['creator', 'group', 'tag']}))
+            .then(invitation => invitation.refresh({ withRelated: ['creator', 'group', 'tag'] }).then(() => invitation))
             .then(invitation => {
-              return Queue.classMethod('Invitation', 'createAndSend', {invitation})
+              return Queue.classMethod('Invitation', 'createAndSend', { invitation })
                 .then(() => ({
                   email,
                   id: invitation.id,
                   createdAt: invitation.created_at,
                   lastSentAt: invitation.last_sent_at
                 }))
-                .catch(err => ({email, error: err.message}))
+                .catch(err => ({ email, error: err.message }))
             })
         })
       })
@@ -117,15 +120,15 @@ module.exports = {
    * @param groupId
    * @param subject {String} the email subject
    * @param message {String} the email message text
-   * @param moderator {Boolean} should invite as moderator
+   * @param assignCoordinator {Boolean} invite as Coordinator
    * @returns {*}
    */
-  reinviteAll: ({sessionUserId, groupId, subject = '', message = '', isModerator = false}) => {
+  reinviteAll: ({ sessionUserId, groupId, subject = '', message = '', assignCoordinator = false }) => {
     return Queue.classMethod('Invitation', 'reinviteAll', {
       groupId,
       subject,
       message,
-      moderator: isModerator,
+      assignCoordinator,
       userId: sessionUserId
     })
   },
@@ -148,22 +151,56 @@ module.exports = {
     })
   },
 
-  check: (token, accessCode) => {
+  /**
+   * Check if an invitation is valid and return group information for redirect
+   * @param token {String} invitation token from email invite
+   * @param accessCode {String} access code from invite link
+   * @returns {Object} { valid, groupId, groupSlug, email, groupRole }
+   */
+  check: async (token, accessCode) => {
     if (accessCode) {
-      return Group.queryByAccessCode(accessCode)
-        .count()
-        .then(count => {
-          return {valid: count !== '0'}
-        })
+      // Invalid / unknown codes must return { valid: false } — plain .fetch() rejects when no row (Bookshelf).
+      const group = await Group.queryByAccessCode(accessCode).fetch({ require: false })
+      return {
+        valid: !!group,
+        groupId: group ? group.get('id') : null,
+        groupSlug: group ? group.get('slug') : null
       }
-    if (token) {
-      return Invitation.query()
-        .where({ token, used_by_id: null, expired_by_id: null })
-        .count()
-        .then(result => {
-          return { valid: result[0].count !== '0' }
-        })
     }
+    if (token) {
+      const invitation = await Invitation.where({
+        token,
+        used_by_id: null,
+        expired_by_id: null
+      }).fetch()
+      if (invitation) {
+        const group = await Group.find(invitation.get('group_id'))
+
+        // Load the group role if one is assigned to this invitation
+        let groupRole = null
+        if (invitation.get('group_role_id')) {
+          groupRole = await GroupRole.where({ id: invitation.get('group_role_id') }).fetch()
+        }
+
+        return {
+          valid: true,
+          groupId: invitation.get('group_id'),
+          groupSlug: group
+            ? group.get('slug')
+            : null,
+          email: invitation.get('email'),
+          groupRole: groupRole
+            ? {
+                id: groupRole.id,
+                name: groupRole.get('name'),
+                emoji: groupRole.get('emoji')
+              }
+            : null
+        }
+      }
+      return { valid: false }
+    }
+    return { valid: false }
   },
 
   async use (userId, token, accessCode) {
@@ -172,6 +209,7 @@ module.exports = {
       return Group.queryByAccessCode(accessCode)
         .fetch()
         .then(group => {
+          // TODO STRIPE: We need to think through how invite links will be impacted by paywall
           return GroupMembership.forPair(user, group, { includeInactive: true }).fetch()
             .then(existingMembership => {
               if (existingMembership) {
@@ -188,7 +226,7 @@ module.exports = {
                     return membership
                   })
               }
-              if (group) return user.joinGroup(group, { role: GroupMembership.Role.DEFAULT, fromInvitation: true }).then(membership => membership)
+              if (group) return user.joinGroup(group, { fromInvitation: true }).then(membership => membership)
             })
             .catch(err => {
               throw new Error(err.message)
@@ -197,10 +235,11 @@ module.exports = {
     }
 
     if (token) {
-      return Invitation.where({token}).fetch()
+      return Invitation.where({ token }).fetch()
       .then(invitation => {
         if (!invitation) throw new GraphQLError('not found')
         if (invitation.isExpired()) throw new GraphQLError('expired')
+        // TODO STRIPE: We need to think through how invite links will be impacted by paywall
         return invitation.use(userId)
       })
     }

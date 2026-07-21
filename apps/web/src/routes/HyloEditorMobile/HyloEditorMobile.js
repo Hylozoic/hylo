@@ -100,6 +100,7 @@ export default function HyloEditorMobile (props) {
     containerClassName: 'hyloEditorMobileContainer',
     contentHTML,
     className: 'hyloEditorMobile',
+    blurOnScroll: false,
     onUpdate: handleUpdate,
     onEnter: handleEnter,
     onCreate: handleCreate,

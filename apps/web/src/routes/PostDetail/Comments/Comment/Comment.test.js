@@ -71,6 +71,8 @@ describe('Comment', () => {
     render(<Comment {...props} />, { wrapper: testProviders() })
     fireEvent.click(screen.getByTestId('Edit'))
     expect(screen.getByRole('textbox')).toBeInTheDocument()
+    expect(screen.getByTestId('Save')).toBeInTheDocument()
+    expect(screen.getByTestId('Cancel')).toBeInTheDocument()
   })
 
   it('displays image attachments', () => {

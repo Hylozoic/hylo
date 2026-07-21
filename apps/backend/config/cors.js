@@ -1,13 +1,19 @@
 /* eslint spaced-comment:0 */
 
+const { hyloCorsAllowOriginsCommaSeparated } = require('./corsAllowedOrigins')
+
 /**
  * Cross-Origin Resource Sharing (CORS) Settings
- * (sails.config.cors)
+ * (sails.config.security.cors — see https://sailsjs.com/documentation/concepts/security/cors)
  *
  * CORS is like a more modern version of JSONP-- it allows your server/API
  * to successfully respond to requests from client-side JavaScript code
  * running on some other domain (e.g. google.com)
  * Unlike JSONP, it works with POST, PUT, and DELETE requests
+ *
+ * GraphQL (/noo/graphql) uses Express `cors` in customMiddleware.js with credentials + an allowlist.
+ * OAuth/OIDC (/noo/oauth) CORS is decided by oidc-provider (see api/services/OpenIDConnect.js clientBasedCORS),
+ * not this file.
  *
  * For more information on CORS, check out:
  * http://en.wikipedia.org/wiki/Cross-origin_resource_sharing
@@ -50,8 +56,8 @@ module.exports.security = {
     *                                                                          *
     ***************************************************************************/
 
-    allowOrigins: '*',
-    // process.env.CORS_ORIGIN || 'https://www.hylo.com',
+    // Comma-separated list; allowCredentials is false below (no session cookie reflection via Sails CORS).
+    allowOrigins: hyloCorsAllowOriginsCommaSeparated(),
 
     /***************************************************************************
     *                                                                          *

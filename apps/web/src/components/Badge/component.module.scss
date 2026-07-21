@@ -9,6 +9,13 @@
   height: 16px;
 }
 
+.badgeWrapperExpanded {
+  width: auto;
+  height: auto;
+  min-width: 21px;
+  min-height: 21px;
+}
+
 @mixin badge {
   display: inline-flex;
   align-items: center;

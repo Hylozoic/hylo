@@ -5,7 +5,8 @@ Role.modelName = 'Role'
 Role.fields = {
   id: attr(),
   emoji: attr(),
-  name: attr()
+  name: attr(),
+  groupId: attr()
 }
 
 class Track extends Model {
@@ -28,7 +29,6 @@ Track.fields = {
   bannerUrl: attr(),
   completionMessage: attr(),
   completionRole: fk('Role', 'tracks'),
-  completionRoleType: attr(),
   description: attr(),
   enrolledUsers: many('Person'),
   groups: many('Group'),

@@ -62,7 +62,9 @@ const removeFromTaggable = (taggable, tag, opts) => {
 }
 
 const updateForTaggable = ({ taggable, tagNames, userId, transacting }) => {
-  const lowerTagNames = tagNames?.map(name => name.toLowerCase()) || []
+  if (tagNames === undefined) return Promise.resolve()
+
+  const lowerTagNames = tagNames.map(name => name.toLowerCase())
   return taggable.load('tags', { transacting })
     .then(() => {
       const toRemove = taggable.relations.tags.models

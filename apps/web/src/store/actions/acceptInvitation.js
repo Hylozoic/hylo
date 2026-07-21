@@ -20,6 +20,7 @@ export default function acceptInvitation (inviteCodes = {}) {
                 homeRoute
                 name
                 purpose
+                paywall
                 settings {
                   agreementsLastUpdatedAt
                   allowGroupInvites

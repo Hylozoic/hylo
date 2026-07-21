@@ -6,11 +6,11 @@ import Members from './Members'
 
 it('renders correctly with no group (all groups default)', () => {
   const members = [
-    { id: '1', groupRoles: [], membershipCommonRoles: [], name: 'Foo Lane', location: 'here', bio: 'Hello!', avatarUrl: 'foo.gif' },
-    { id: '2', groupRoles: [], membershipCommonRoles: [], name: 'Bar Jones', location: 'there', bio: 'Not a stork', avatarUrl: 'bar.png' },
-    { id: '3', groupRoles: [], membershipCommonRoles: [], name: 'Baz Chu', bio: 'Could be', avatarUrl: 'baz.png' },
-    { id: '4', groupRoles: [], membershipCommonRoles: [], name: 'Bonk Gundsdottir', avatarUrl: 'bonk.jpg' },
-    { id: '5', groupRoles: [], membershipCommonRoles: [], avatarUrl: 'woof.png' }
+    { id: '1', groupRoles: [], name: 'Foo Lane', location: 'here', bio: 'Hello!', avatarUrl: 'foo.gif' },
+    { id: '2', groupRoles: [], name: 'Bar Jones', location: 'there', bio: 'Not a stork', avatarUrl: 'bar.png' },
+    { id: '3', groupRoles: [], name: 'Baz Chu', bio: 'Could be', avatarUrl: 'baz.png' },
+    { id: '4', groupRoles: [], name: 'Bonk Gundsdottir', avatarUrl: 'bonk.jpg' },
+    { id: '5', groupRoles: [], avatarUrl: 'woof.png' }
   ]
   const { toJSON } = TestRenderer.create(
     <TestRoot>
@@ -27,11 +27,11 @@ it('renders correctly with no group (all groups default)', () => {
 
 it('renders with invite button when a moderator', () => {
   const members = [
-    { id: '1', groupRoles: { items: [] }, membershipCommonRoles: { items: [] }, name: 'Foo Lane', location: 'here', bio: 'Hello!', avatarUrl: 'foo.gif' },
-    { id: '2', groupRoles: { items: [] }, membershipCommonRoles: { items: [] }, name: 'Bar Jones', location: 'there', bio: 'Not a stork', avatarUrl: 'bar.png' },
-    { id: '3', groupRoles: { items: [] }, membershipCommonRoles: { items: [] }, name: 'Baz Chu', bio: 'Could be', avatarUrl: 'baz.png' },
-    { id: '4', groupRoles: { items: [] }, membershipCommonRoles: { items: [] }, name: 'Bonk Gundsdottir', avatarUrl: 'bonk.jpg' },
-    { id: '5', groupRoles: { items: [] }, membershipCommonRoles: { items: [] }, avatarUrl: 'woof.png' }
+    { id: '1', groupRoles: { items: [] }, name: 'Foo Lane', location: 'here', bio: 'Hello!', avatarUrl: 'foo.gif' },
+    { id: '2', groupRoles: { items: [] }, name: 'Bar Jones', location: 'there', bio: 'Not a stork', avatarUrl: 'bar.png' },
+    { id: '3', groupRoles: { items: [] }, name: 'Baz Chu', bio: 'Could be', avatarUrl: 'baz.png' },
+    { id: '4', groupRoles: { items: [] }, name: 'Bonk Gundsdottir', avatarUrl: 'bonk.jpg' },
+    { id: '5', groupRoles: { items: [] }, avatarUrl: 'woof.png' }
   ]
   const { toJSON } = TestRenderer.create(
     <TestRoot>

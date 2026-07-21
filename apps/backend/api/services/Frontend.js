@@ -22,6 +22,18 @@ const url = function () {
   return format.apply(null, args)
 }
 
+/**
+ * Appends query params to an existing URL without producing a second `?`
+ * @param {string} baseUrl
+ * @param {string} queryFragment `?ctt=...&cti=...` or `ctt=...&cti=...`
+ */
+const appendQueryString = function (baseUrl, queryFragment) {
+  if (queryFragment == null || queryFragment === '') return baseUrl
+  const q = String(queryFragment).replace(/^\?+/, '').replace(/^&+/, '') // Remove any leading ? or & from the queryFragment
+  if (!q) return baseUrl
+  return baseUrl + (baseUrl.includes('?') ? '&' : '?') + q
+}
+
 const getModelId = function (model) {
   let id
   // If it's a number, than we just passed the ID in straight
@@ -57,6 +69,7 @@ const getTopicName = function (topic) {
 }
 
 module.exports = {
+  appendQueryString,
   getSlug,
   Route: {
     evo: {
@@ -134,7 +147,10 @@ module.exports = {
         exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24 * 30), // 1 month expiration
         action: 'notification_settings' // To track that this token can only be used for changing notification settings
       })
-      return url('/notifications' + clickthroughParams + '&expand=account&token=' + loginToken + '&name=' + encodeURIComponent(user.get('name')) + '&u=' + user.id)
+      return appendQueryString(
+        url('/notifications'),
+        clickthroughParams
+      ) + '&expand=account&token=' + loginToken + '&name=' + encodeURIComponent(user.get('name')) + '&u=' + user.id
     },
 
     profile: function (user, group) {
@@ -167,6 +183,8 @@ module.exports = {
      * default to /stream.
      */
     post: function (post, group, extraParams = '', fundingRound = null) {
+      // Remove any leading ? or & from the extraParams
+      const querySuffix = String(extraParams ?? '').replace(/^\?+/, '').replace(/^&+/, '')
       const groupSlug = getSlug(group)
       let groupUrl = '/all'
 
@@ -174,14 +192,14 @@ module.exports = {
         groupUrl = '/public'
       } else if (!isEmpty(groupSlug)) {
         if (fundingRound) {
-          return url(`/groups/${groupSlug}/funding-rounds/${getModelId(fundingRound)}/submissions/post/${getModelId(post)}?${extraParams}`)
+          return url(`/groups/${groupSlug}/funding-rounds/${getModelId(fundingRound)}/submissions/post/${getModelId(post)}${querySuffix ? '?' + querySuffix : ''}`)
         }
 
         const tags = post.relations?.tags
         const firstTopic = tags && tags.first()?.get('name')
 
         if (post.get && post.get('type') === Post.Type.CHAT && firstTopic) {
-          return url(`/groups/${groupSlug}/chat/${firstTopic}?postId=${post.id}&${extraParams}`)
+          return url(`/groups/${groupSlug}/chat/${firstTopic}?postId=${post.id}${querySuffix ? '&' + querySuffix : ''}`)
         }
 
         const isGroupObject = group && typeof group.get === 'function'
@@ -189,16 +207,16 @@ module.exports = {
         if (homeRoute.startsWith('/chat/') && firstTopic) {
           // Non-chat post shown in a chat home: open as a modal above the chat
           // using /post/:id so you can see the full post and comments.
-          return url(`/groups/${groupSlug}${homeRoute}/post/${getModelId(post)}?${extraParams}`)
+          return url(`/groups/${groupSlug}${homeRoute}/post/${getModelId(post)}${querySuffix ? '?' + querySuffix : ''}`)
         }
         if (!homeRoute.startsWith('/chat/')) {
-          return url(`/groups/${groupSlug}${homeRoute}/post/${getModelId(post)}?${extraParams}`)
+          return url(`/groups/${groupSlug}${homeRoute}/post/${getModelId(post)}${querySuffix ? '?' + querySuffix : ''}`)
         }
         // Chat home but post has no topics (e.g. Zapier-created): fall back to
         // standalone post URL so the UI can still open it.
-        return url(`/groups/${groupSlug}/post/${getModelId(post)}?${extraParams}`)
+        return url(`/groups/${groupSlug}/post/${getModelId(post)}${querySuffix ? '?' + querySuffix : ''}`)
       }
-      return url(`${groupUrl}/post/${getModelId(post)}?${extraParams}`)
+      return url(`${groupUrl}/post/${getModelId(post)}${querySuffix ? '?' + querySuffix : ''}`)
     },
 
     signup: (error) => {
@@ -226,7 +244,7 @@ module.exports = {
     },
 
     unfollow: function (post, group) {
-      return this.post(post, group) + '?action=unfollow'
+      return appendQueryString(this.post(post, group), 'action=unfollow')
     },
 
     userSettings: function () {

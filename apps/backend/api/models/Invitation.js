@@ -26,6 +26,11 @@ module.exports = bookshelf.Model.extend(Object.assign({
     return this.belongsTo(User, 'expired_by_id')
   },
 
+  // The group-specific role to assign when this invitation is used
+  groupRole: function () {
+    return this.belongsTo(GroupRole, 'group_role_id')
+  },
+
   isUsed: function () {
     return !!this.get('used_by_id')
   },
@@ -46,10 +51,27 @@ module.exports = bookshelf.Model.extend(Object.assign({
   async use (userId, { transacting } = {}) {
     const user = await User.find(userId, { transacting })
     const group = await this.group().fetch({ transacting })
-    const role = Number(this.get('role'))
     const membership =
       await GroupMembership.forPair(user, group).fetch({ transacting }) ||
-      await user.joinGroup(group, { role, fromInvitation: true, transacting })
+      await user.joinGroup(group, { fromInvitation: true, transacting })
+
+    // Assign group role if specified on the invitation
+    const groupRoleId = this.get('group_role_id')
+    if (groupRoleId) {
+      try {
+        await MemberGroupRole.forge({
+          user_id: userId,
+          group_id: this.get('group_id'),
+          group_role_id: groupRoleId,
+          active: true
+        }).save(null, { transacting })
+      } catch (err) {
+        // Ignore duplicate key errors - user may already have this role
+        if (!err.message || !err.message.includes('duplicate key value')) {
+          throw err
+        }
+      }
+    }
 
     // TODO: we are not using this right now, but we could use to invite to a chat room
     if (!this.isUsed() && this.get('tag_id')) {
@@ -124,13 +146,20 @@ module.exports = bookshelf.Model.extend(Object.assign({
     return Invitation.where(attr, idOrToken).fetch(opts)
   },
 
-  create: function (opts) {
+  create: async function (opts) {
+    let groupRoleId = opts.groupRoleId || null
+    if (opts.assignCoordinator && !groupRoleId) {
+      await GroupRole.setupSystemRoles(opts.groupId)
+      const coordinator = await GroupRole.findSystemRole(opts.groupId, 'Coordinator')
+      groupRoleId = coordinator ? coordinator.id : null
+    }
+
     return new Invitation({
       invited_by_id: opts.userId,
       group_id: opts.groupId,
       email: opts.email.toLowerCase(),
       tag_id: opts.tagId,
-      role: GroupMembership.Role[opts.moderator ? 'MODERATOR' : 'DEFAULT'],
+      group_role_id: groupRoleId,
       token: uuidv4(),
       created_at: new Date(),
       subject: opts.subject,

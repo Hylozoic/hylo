@@ -17,8 +17,9 @@ const configuration = {
               // 'birthdate', 'family_name', 'gender', 'given_name', 'locale', 'middle_name', 'nickname', 'preferred_username', 'profile', 'zoneinfo'
   },
   clients: [],
-  // This seems to be needed? but maybe we want something client based like:
-  //   https://github.com/panva/node-oidc-provider/blob/main/recipes/client_based_origins.md
+  // Browser calls to the authorization server (e.g. token) from SPAs need CORS; returning true
+  // allows any Origin — separate from Sails cors.js / GraphQL allowlist. Tighten with
+  // https://github.com/panva/node-oidc-provider/blob/main/recipes/client_based_origins.md if needed.
   clientBasedCORS: (ctx, origin, client) => {
     return true
   },

@@ -24,8 +24,9 @@ import PeopleTyping from 'components/PeopleTyping'
 import SocketSubscriber from 'components/SocketSubscriber'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { isMobileDevice, isPhoneDevice } from 'util/mobile'
-import { CENTER_COLUMN_ID } from 'util/scrolling'
 import MessagesMobile from './MessagesMobile'
+import { canAddThreadParticipant } from './messageThreadLimits'
+import MutedThreadNotice from './MutedThreadNotice'
 
 import {
   createMessage,
@@ -40,12 +41,11 @@ import {
   getTextForCurrentMessageThread,
   getMessages,
   getMessagesHasMore,
-  getCurrentMessageThread
+  getCurrentMessageThread,
+  NEW_THREAD_ID
 } from './Messages.store'
 
 import classes from './Messages.module.scss'
-
-export const NEW_THREAD_ID = 'new'
 
 const Messages = () => {
   const dispatch = useDispatch()
@@ -93,7 +93,6 @@ const Messages = () => {
   const [forNewThread, setForNewThread] = useState(messageThreadId === NEW_THREAD_ID)
   const [peopleSelectorOpen, setPeopleSelectorOpen] = useState(false)
   const [participants, setParticipants] = useState([])
-  const [headerHeight, setHeaderHeight] = useState(0)
   const formRef = useRef(null)
   /** Avoid re-applying server draft whenever draft ORM updates (e.g. after saves). */
   const messageDraftRestoreDoneRef = useRef(false)
@@ -108,30 +107,6 @@ const Messages = () => {
     debounceMs: 800,
     skip: !isRealThread || !currentUser
   })
-
-  // Measure ViewHeader height to position Messages below it
-  useEffect(() => {
-    const measureHeader = () => {
-      const centerColumn = document.getElementById(CENTER_COLUMN_ID)
-      if (centerColumn) {
-        const header = centerColumn.querySelector('header')
-        if (header) {
-          setHeaderHeight(header.offsetHeight)
-        }
-      }
-    }
-
-    measureHeader()
-    // Re-measure on resize in case header height changes
-    window.addEventListener('resize', measureHeader)
-    // Also check after a short delay to catch dynamic content
-    const timer = setTimeout(measureHeader, 100)
-
-    return () => {
-      window.removeEventListener('resize', measureHeader)
-      clearTimeout(timer)
-    }
-  }, [])
 
   useEffect(() => {
     // Get group IDs from user's memberships to filter people who share a group
@@ -229,7 +204,12 @@ const Messages = () => {
   }
 
   const addParticipant = (participant) => {
-    setParticipants(prevParticipants => [...prevParticipants, participant])
+    setParticipants(prevParticipants => {
+      if (!canAddThreadParticipant([...prevParticipants, participant], currentUser?.id)) {
+        return prevParticipants
+      }
+      return [...prevParticipants, participant]
+    })
   }
 
   const removeParticipant = (participant) => {
@@ -267,6 +247,7 @@ const Messages = () => {
           removePerson={removeParticipant}
           peopleSelectorOpen={peopleSelectorOpen}
           autoFocus={forNewThread}
+          maxParticipantsReached={!canAddThreadParticipant(participants, currentUser?.id)}
         />
       </div>
       )
@@ -274,6 +255,7 @@ const Messages = () => {
       <Header
         messageThread={messageThread}
         currentUser={currentUser}
+        threadId={messageThreadId}
       />
       )
 
@@ -325,10 +307,7 @@ const Messages = () => {
   }
 
   return (
-    <div
-      className={cn('absolute left-0 right-0 bottom-0 flex flex-col w-full min-w-0', { [classes.messagesOpen]: messageThreadId })}
-      style={{ top: headerHeight > 0 ? `${headerHeight}px` : 0 }}
-    >
+    <div className={cn('flex flex-col h-full flex-1 min-w-0 w-full', { [classes.messagesOpen]: messageThreadId })}>
       <Helmet>
         <title>Messages | Hylo</title>
       </Helmet>
@@ -346,6 +325,7 @@ const Messages = () => {
           />
           <PeopleTyping className='w-full mx-auto max-w-[750px] pl-16 py-1 flex-shrink-0 px-3' />
           <div className='flex-shrink-0 px-3 pb-3'>
+            {messageThread?.isMuted && <MutedThreadNotice />}
             <MessageForm
               disabled={!messageThreadId && participants.length === 0}
               onSubmit={sendMessage}
@@ -354,11 +334,11 @@ const Messages = () => {
               ref={formRef}
               updateMessageText={updateMessageTextAction}
               messageText={messageText}
-              sendIsTyping={status => sendIsTyping(messageThreadId, status)}
+              sendIsTyping={status => isRealThread && sendIsTyping(messageThreadId, status)}
               pending={messageCreatePending}
             />
           </div>
-          {socket && <SocketSubscriber type='post' id={messageThreadId} />}
+          {socket && isRealThread && <SocketSubscriber type='post' id={messageThreadId} />}
         </div>)}
     </div>
   )

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { withTranslation } from 'react-i18next'
 import { get } from 'lodash/fp'
 import PropTypes from 'prop-types'
@@ -18,6 +18,8 @@ import { bgImageStyle, cn } from 'util/index'
 
 export const validateName = name => name && name.match(/\S/gm)
 
+const MOBILE_TABLET_MEDIA_QUERY = '(max-width: 1023px)'
+
 function EditProfileTab ({
   currentUser,
   updateUserSettings,
@@ -29,6 +31,16 @@ function EditProfileTab ({
 }) {
   const [edits, setEdits] = useState({})
   const [changed, setChanged] = useState(false)
+  const [isMobileOrTablet, setIsMobileOrTablet] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia(MOBILE_TABLET_MEDIA_QUERY).matches
+  )
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(MOBILE_TABLET_MEDIA_QUERY)
+    const handleChange = () => setIsMobileOrTablet(mediaQuery.matches)
+    mediaQuery.addEventListener('change', handleChange)
+    return () => mediaQuery.removeEventListener('change', handleChange)
+  }, [])
 
   useEffect(() => {
     setEditState()
@@ -90,11 +102,13 @@ function EditProfileTab ({
   const updateSettingDirectly = (key, shouldSetChanged = true) => value =>
     updateSetting(key, shouldSetChanged)({ target: { value } })
 
-  const save = () => {
+  const save = useCallback(() => {
     setChanged(false)
     setConfirm(false)
     updateUserSettings(edits)
-  }
+  }, [edits, setConfirm, updateUserSettings])
+
+  const canSave = changed && validateName(edits.name)
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
@@ -102,9 +116,20 @@ function EditProfileTab ({
       title: t('Edit Your Profile'),
       icon: '',
       info: '',
-      search: false
+      search: false,
+      headerActions: isMobileOrTablet
+        ? (
+          <Button
+            variant={canSave ? 'highVisibility' : 'outline'}
+            onClick={canSave ? save : null}
+            disabled={!canSave}
+          >
+            {t('Save')}
+          </Button>
+          )
+        : undefined
     })
-  }, [])
+  }, [isMobileOrTablet, canSave, save, t, setHeaderDetails])
 
   if (fetchPending || !currentUser) return <Loading />
 
@@ -257,7 +282,7 @@ function EditProfileTab ({
         </div>
       </div>
 
-      <div className='sticky bottom-0 left-0 right-0 bg-background/80 backdrop-blur-sm border-t border-foreground/10 p-4 rounded-lg shadow-xl mt-4'>
+      <div className='hidden lg:block sticky bottom-0 left-0 right-0 bg-background/80 backdrop-blur-sm border-t border-foreground/10 p-4 rounded-lg shadow-xl mt-4'>
         <div className='max-w-3xl mx-auto flex items-center justify-between'>
           <span className={cn('text-sm transition-colors', changed ? 'text-accent' : 'text-foreground/50')}>
             {changed ? t('Changes not saved') : t('Current settings up to date')}

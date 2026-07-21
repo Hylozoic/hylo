@@ -495,6 +495,44 @@ describe('on UPDATE_POST_PENDING', () => {
     const attachments = newSession.Post.withId(postId).attachments.toModelArray()
     expect(attachments.length).toEqual(0)
   })
+
+  it('updates post details optimistically', () => {
+    const theNewDetails = 'updated chat message'
+    session.Post.withId(postId).update({ details: 'old message' })
+
+    const newState = ormReducer(session.state, {
+      type: UPDATE_POST_PENDING,
+      meta: {
+        id: postId,
+        data: {
+          details: theNewDetails,
+          editedAt: '2024-03-01T12:00:00.000Z'
+        }
+      }
+    })
+    const newSession = orm.session(newState)
+    const post = newSession.Post.withId(postId)
+    expect(post.details).toEqual(theNewDetails)
+    expect(post.editedAt).toEqual('2024-03-01T12:00:00.000Z')
+  })
+
+  it('does not clear topics when topicNames are not being updated', () => {
+    const topic = session.Topic.create({ id: 't1', name: 'general' })
+    session.Post.withId(postId).update({ topics: [topic.id] })
+
+    const newState = ormReducer(session.state, {
+      type: UPDATE_POST_PENDING,
+      meta: {
+        id: postId,
+        data: {
+          details: 'updated chat message'
+        }
+      }
+    })
+    const newSession = orm.session(newState)
+    const post = newSession.Post.withId(postId)
+    expect(post.topics.toModelArray().map(t => t.id)).toEqual(['t1'])
+  })
 })
 
 describe('on CREATE_GROUP', () => {
@@ -502,12 +540,10 @@ describe('on CREATE_GROUP', () => {
   const group1 = session.Group.create({ id: 'c1' })
   const group2 = session.Group.create({ id: 'c2' })
   const membership = session.Membership.create({ id: 'm1', group: group1.id })
-  session.CommonRole.create({ id: 1, name: 'Coordinator', responsibilities: [{ id: 1, title: 'Administration' }] })
   session.Membership.create({ id: 'm2', group: group2.id })
   session.Me.create({
     id: 1,
-    memberships: [membership.id],
-    membershipCommonRoles: [{ commonRoleId: 1, groupId: group1.id, userId: 1, id: 1 }]
+    memberships: [membership.id]
   })
   const action = {
     type: CREATE_GROUP,
@@ -515,20 +551,24 @@ describe('on CREATE_GROUP', () => {
       data: {
         createGroup: {
           id: 'g2',
+          groupRoles: {
+            items: [{
+              id: 'coord-1',
+              name: 'Coordinator',
+              groupId: 'g2',
+              emoji: '🪄',
+              active: true,
+              responsibilities: {
+                items: [{ id: '1', title: 'Administration', description: '' }]
+              }
+            }]
+          },
           memberships: {
             items: [
               {
                 id: 'm2',
                 person: {
-                  id: 1,
-                  membershipCommonRoles: {
-                    items: [{
-                      id: 1,
-                      groupId: group1.id,
-                      commonRoleId: 1,
-                      userId: 1
-                    }]
-                  }
+                  id: 1
                 }
               }
             ]
@@ -538,12 +578,20 @@ describe('on CREATE_GROUP', () => {
     }
   }
 
-  it('adds a membership to the currentUser with Coordinator role', () => {
+  it('adds a membership to the currentUser', () => {
     const newState = ormReducer(session.state, action)
     const newSession = orm.session(newState)
     const currentUser = newSession.Me.first()
     expect(currentUser.memberships.toModelArray()).toHaveLength(2)
-    expect(currentUser.membershipCommonRoles[0].commonRoleId).toEqual(1)
+  })
+
+  it('adds the coordinator groupRole to the currentUser', () => {
+    const newState = ormReducer(session.state, action)
+    const newSession = orm.session(newState)
+    const currentUser = newSession.Me.first()
+    expect(currentUser.groupRoles.items).toHaveLength(1)
+    expect(currentUser.groupRoles.items[0].name).toBe('Coordinator')
+    expect(currentUser.groupRoles.items[0].responsibilities.items[0].title).toBe('Administration')
   })
 })
 
@@ -607,7 +655,7 @@ describe('on UPDATE_ALL_MEMBERSHIP_SETTINGS_PENDING', () => {
 
     const newSession = orm.session(ormReducer(session.state, action))
     const membershipsAfterAction = newSession.Membership.all().toModelArray()
-    membershipsAfterAction.map(membership => {
+    membershipsAfterAction.forEach(membership => {
       expect(membership.settings.sendEmail).toEqual(true)
     })
   })

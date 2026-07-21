@@ -1,4 +1,3 @@
-import isMobile from 'ismobilejs'
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { matchPath, Route, Routes, Navigate, useLocation, useNavigate } from 'react-router-dom'
@@ -7,6 +6,10 @@ import { IntercomProvider } from 'react-use-intercom'
 import { Helmet } from 'react-helmet'
 import { get, some } from 'lodash/fp'
 import { cn } from 'util/index'
+import {
+  createPersistentSelectionTracker,
+  shouldBailTextSelectionGesture
+} from 'util/textSelectionTouch'
 import mixpanel from 'mixpanel-browser'
 import config, { isDev, isTest } from 'config/index'
 import CookieConsentLinker from 'components/CookieConsentLinker'
@@ -23,7 +26,6 @@ import usePullToRefresh from 'hooks/usePullToRefresh'
 import getReturnToPath from 'store/selectors/getReturnToPath'
 import checkForNewNotifications from 'store/actions/checkForNewNotifications'
 import setReturnToPath from 'store/actions/setReturnToPath'
-import fetchCommonRoles from 'store/actions/fetchCommonRoles'
 import fetchForCurrentUser from 'store/actions/fetchForCurrentUser'
 import fetchForGroup from 'store/actions/fetchForGroup'
 import fetchPost from 'store/actions/fetchPost'
@@ -35,6 +37,7 @@ import getMyMemberships from 'store/selectors/getMyMemberships'
 import getMyGroupMembership from 'store/selectors/getMyGroupMembership'
 import { getSignupInProgress } from 'store/selectors/getAuthState'
 import getLastViewedGroup from 'store/selectors/getLastViewedGroup'
+import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import {
   POST_DETAIL_MATCH, GROUP_DETAIL_MATCH, postUrl
 } from '@hylo/navigation'
@@ -44,6 +47,8 @@ import AllView from 'routes/AllView'
 import ChatRoom from 'routes/ChatRoom'
 import CreateGroup from 'routes/CreateGroup'
 import GroupDetail from 'routes/GroupDetail'
+import PaymentSuccess from 'routes/GroupDetail/PaymentSuccess'
+import PaymentFailure from 'routes/GroupDetail/PaymentFailure'
 import GroupSettings from 'routes/GroupSettings'
 import GroupWelcomeModal from 'routes/GroupWelcomeModal'
 import GroupWelcomePage from 'routes/GroupWelcomePage'
@@ -52,16 +57,17 @@ import GroupExplorer from 'routes/GroupExplorer'
 import Drawer from './components/Drawer'
 import JoinGroup from 'routes/JoinGroup'
 import LandingPage from 'routes/LandingPage'
-import Loading from 'components/Loading'
 import BootstrapShell from 'components/Skeleton/BootstrapShell'
 import RouteBootstrapSkeleton from 'components/Skeleton/RouteBootstrapSkeleton'
 import MapExplorer from 'routes/MapExplorer'
 import MemberProfile from 'routes/MemberProfile'
 import Members from 'routes/Members'
-import Messages from 'routes/Messages'
+import MessagesLayout from 'routes/Messages/MessagesLayout'
 import ThreadList from 'routes/Messages/ThreadList'
 import Moderation from 'routes/Moderation'
 import MyTracks from 'routes/MyTracks'
+import MyTransactions from 'routes/MyTransactions'
+import OfferingDetails from 'routes/OfferingDetails/OfferingDetails'
 import PostDetail from 'routes/PostDetail'
 import Search from 'routes/Search'
 import Stream from 'routes/Stream'
@@ -73,8 +79,10 @@ import Tracks from 'routes/Tracks'
 import UserSettings from 'routes/UserSettings'
 import WelcomeWizardRouter from 'routes/WelcomeWizardRouter'
 import { VIEW_DRAFTS } from 'store/constants'
+import { isAtReturnToPath } from 'util/returnToPath'
 import Management from 'routes/Management'
 import { getLocaleFromLocalStorage } from 'util/locale'
+import { isCompactLayoutDevice, isDrawerNavLayout, isPhoneDevice } from 'util/mobile'
 import { isLegacyWebView } from 'util/webView'
 import store from 'store'
 import { setMembershipLastViewedAt, toggleNavMenu } from './AuthLayoutRouter.store'
@@ -151,6 +159,14 @@ export default function AuthLayoutRouter (props) {
   const backdropRef = useRef(null)
   const isNavOpenRef = useRef(isNavOpen)
   const isDraggingNavRef = useRef(false)
+  const compactLayout = isCompactLayoutDevice()
+  const phoneLayout = isPhoneDevice()
+
+  // Phones and tablets share compact layout styling (see typography.scss).
+  useEffect(() => {
+    document.documentElement.classList.toggle('compact-layout', compactLayout)
+    return () => document.documentElement.classList.remove('compact-layout')
+  }, [compactLayout])
 
   // Keep isNavOpen ref in sync for use in touch handlers
   useEffect(() => { isNavOpenRef.current = isNavOpen }, [isNavOpen])
@@ -159,13 +175,13 @@ export default function AuthLayoutRouter (props) {
   // mount into the DOM (after the loading screen), preventing any flash.
   const setNavContainerRef = useCallback((node) => {
     navContainerRef.current = node
-    if (node && window.innerWidth < 640) {
+    if (node && isDrawerNavLayout(window.innerWidth)) {
       node.style.transform = isNavOpenRef.current ? 'translateX(0)' : 'translateX(-100%)'
     }
   }, [])
   const setBackdropRef = useCallback((node) => {
     backdropRef.current = node
-    if (node && window.innerWidth < 640) {
+    if (node && isDrawerNavLayout(window.innerWidth)) {
       node.style.opacity = isNavOpenRef.current ? '1' : '0'
       node.style.pointerEvents = isNavOpenRef.current ? 'auto' : 'none'
     }
@@ -174,7 +190,7 @@ export default function AuthLayoutRouter (props) {
   // Clear mobile nav inline styles when resizing to desktop
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth >= 640) {
+      if (!isDrawerNavLayout(window.innerWidth)) {
         const navEl = navContainerRef.current
         const backdropEl = backdropRef.current
         if (navEl) { navEl.style.transform = ''; navEl.style.transition = '' }
@@ -189,7 +205,7 @@ export default function AuthLayoutRouter (props) {
   useEffect(() => {
     const navEl = navContainerRef.current
     const backdropEl = backdropRef.current
-    if (!navEl || !backdropEl || window.innerWidth >= 640) return
+    if (!navEl || !backdropEl || !isDrawerNavLayout(window.innerWidth)) return
     if (isDraggingNavRef.current) return // Drag handler manages position during drag
 
     navEl.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1)'
@@ -216,6 +232,7 @@ export default function AuthLayoutRouter (props) {
 
     const VELOCITY_THRESHOLD = 0.3 // px/ms — fast flick overrides position
     const POSITION_THRESHOLD = 0.4 // 40% of nav width to snap open
+    const NAV_OPEN_EDGE_WIDTH_PX = 70
 
     let touchStartX = null
     let touchStartY = null
@@ -252,28 +269,28 @@ export default function AuthLayoutRouter (props) {
 
     let touchTarget = null
     let touchStartedWithTextSelected = false
+    let touchActive = false
 
-    let persistentHasSelection = false
-    const onSelectionChange = () => {
-      const hasSelection = !!(window.getSelection && window.getSelection().toString().length > 0)
-      if (hasSelection) {
-        persistentHasSelection = true
-      } else if (touchStartX === null) {
-        // Only clear when there is no active touch, so iOS's mid-gesture
-        // selectionchange (e.g. during handle drag) doesn't prematurely clear
-        // the flag and allow the nav swipe to activate.
-        persistentHasSelection = false
-      }
-    }
-    document.addEventListener('selectionchange', onSelectionChange)
+    const selectionTracker = createPersistentSelectionTracker({
+      getActiveTouch: () => touchActive
+    })
 
     const handleTouchStart = (e) => {
-      if (window.innerWidth >= 640) return
+      if (!isDrawerNavLayout(window.innerWidth)) return
+      if (document.querySelector('.PostDialog-Content')) return
+      if (shouldBailTextSelectionGesture(e.target)) return
+      if (selectionTracker.hasSelection) return
       const navEl = navContainerRef.current
       const backdropEl = backdropRef.current
       if (!navEl || !backdropEl) return
 
       const touch = e.touches[0]
+
+      // Swipe-to-open only from the left edge so horizontal drags in content
+      // (e.g. text selection handles) are not hijacked as nav gestures.
+      if (!isNavOpenRef.current && touch.clientX > NAV_OPEN_EDGE_WIDTH_PX) return
+
+      touchActive = true
       touchStartX = touch.clientX
       touchStartY = touch.clientY
       touchStartTime = Date.now()
@@ -284,7 +301,7 @@ export default function AuthLayoutRouter (props) {
 
       // Use the persistent flag so handle-drag touches are detected even when
       // iOS has temporarily cleared window.getSelection() at touchstart.
-      touchStartedWithTextSelected = persistentHasSelection
+      touchStartedWithTextSelected = selectionTracker.hasSelection
 
       // Determine gesture type based on current nav state
       isOpenGesture = !isNavOpenRef.current
@@ -295,6 +312,20 @@ export default function AuthLayoutRouter (props) {
 
     const handleTouchMove = (e) => {
       if (touchStartX === null) return
+      if (document.querySelector('.PostDialog-Content')) {
+        touchStartX = null
+        touchActive = false
+        return
+      }
+      if (
+        shouldBailTextSelectionGesture(e.target) ||
+        touchStartedWithTextSelected ||
+        selectionTracker.hasSelection
+      ) {
+        touchStartX = null
+        touchActive = false
+        return
+      }
 
       const navEl = navContainerRef.current
       const backdropEl = backdropRef.current
@@ -362,6 +393,8 @@ export default function AuthLayoutRouter (props) {
       if (!isDragging || touchStartX === null) {
         touchStartX = null
         touchStartY = null
+        touchActive = false
+        selectionTracker.clearIfGone()
         return
       }
 
@@ -392,10 +425,8 @@ export default function AuthLayoutRouter (props) {
       touchStartX = null
       touchStartY = null
       isDragging = false
-      // Only clear the persistent selection flag once deselection is confirmed.
-      if (!window.getSelection || !window.getSelection().toString().length) {
-        persistentHasSelection = false
-      }
+      touchActive = false
+      selectionTracker.clearIfGone()
     }
 
     document.addEventListener('touchstart', handleTouchStart, { passive: true })
@@ -408,7 +439,7 @@ export default function AuthLayoutRouter (props) {
       document.removeEventListener('touchmove', handleTouchMove)
       document.removeEventListener('touchend', handleTouchEnd)
       document.removeEventListener('touchcancel', handleTouchEnd)
-      document.removeEventListener('selectionchange', onSelectionChange)
+      selectionTracker.destroy()
     }
   }, [withoutNav, dispatch])
 
@@ -430,7 +461,6 @@ export default function AuthLayoutRouter (props) {
         // If the initial URL contains a post ID, race fetchPost alongside them
         // so the post data is ready (or nearly ready) by the time the auth shell renders.
         const bootstrapFetches = [
-          dispatch(fetchCommonRoles()),
           dispatch(fetchForCurrentUser()),
           ...(paramPostId ? [dispatch(fetchPost(paramPostId, false))] : [])
         ]
@@ -531,6 +561,24 @@ export default function AuthLayoutRouter (props) {
     }
   }, [currentGroupSlug, dispatch])
 
+  // Redirect to stream if user is a member but doesn't have access (expired subscription)
+  useEffect(() => {
+    if (currentGroupSlug && currentGroupMembership && currentGroup?.paywall && currentGroup?.canAccess === false) {
+      const currentPath = location.pathname
+      const streamPath = `/groups/${currentGroupSlug}/stream`
+      const onOfferingPurchasePath = currentPath.startsWith(`/groups/${currentGroupSlug}/offerings/`)
+      // Only redirect if not already on stream page; keep offering URLs so members can buy access
+      if (!currentPath.includes('/stream') && !onOfferingPurchasePath) {
+        // Mobile web: LOCATION_CHANGE only closes the group drawer, not the sliding nav + backdrop.
+        // Close the nav so the paywall / no-access stream view is visible after redirect.
+        if (typeof window !== 'undefined' && window.innerWidth < 640) {
+          dispatch(toggleNavMenu(false))
+        }
+        navigate(streamPath, { replace: true })
+      }
+    }
+  }, [currentGroupSlug, currentGroupMembership, currentGroup?.paywall, currentGroup?.canAccess, location.pathname, navigate, dispatch])
+
   // Pre-load context menu data for all membership groups in paginated batches.
   // This ensures context menus render immediately when switching groups.
   // Batches are processed sequentially (10 groups at a time) with a delay
@@ -589,7 +637,7 @@ export default function AuthLayoutRouter (props) {
 
   if (currentUserLoading) {
     return (
-      <div data-testid='loading-screen' className={cn('flex flex-row items-stretch bg-midground h-full', { 'h-[100dvh]': isMobile.any })}>
+      <div data-testid='loading-screen' className={cn('flex flex-row items-stretch bg-midground h-full', { 'h-[100dvh]': compactLayout })}>
         <Helmet>
           <title>Hylo</title>
           <meta name='description' content='Prosocial Coordination for a Thriving Planet' />
@@ -609,12 +657,15 @@ export default function AuthLayoutRouter (props) {
   }
   const showMenuBadge = some(m => m.newPostCount > 0, memberships)
 
-  if (!signupInProgress && returnToPath) {
-    const returnToPathName = new URL(returnToPath, 'https://hylo.com')?.pathname
-    if (location.pathname === returnToPathName) {
+  // Only redirect to returnToPath when outside the welcome wizard. Inside the wizard,
+  // the PENDING optimistic update sets signupInProgress=false before the server confirms,
+  // which would cause a premature redirect followed by a race with fetchForCurrentUser.
+  // AddLocation.goToNextStep() handles the redirect after the server actually confirms.
+  if (!signupInProgress && returnToPath && !isWelcomeContext) {
+    if (isAtReturnToPath(location, returnToPath)) {
       dispatch(setReturnToPath())
     } else {
-      return <Navigate to={returnToPath} />
+      return <Navigate to={returnToPath} replace />
     }
   }
 
@@ -629,8 +680,12 @@ export default function AuthLayoutRouter (props) {
     return <Navigate to={postUrl(paramPostId, { context: 'all', groupSlug: null })} />
   }
 
-  // Looking at a group that doesn't exist or current user doesn't have access to it
-  if (currentGroupSlug && !currentGroup && !currentGroupLoading) {
+  // Looking at a group that doesn't exist or current user doesn't have access to it.
+  // Skip this when the URL carries invite/join credentials: FetchForGroup has no accessCode,
+  // so hidden groups look missing until GroupDetail runs GroupDetailsQuery with those params.
+  const groupInviteBypass =
+    !!getQuerystringParam('accessCode', location) || !!getQuerystringParam('token', location)
+  if (currentGroupSlug && !currentGroup && !currentGroupLoading && !groupInviteBypass) {
     return <NotFound />
   }
 
@@ -695,14 +750,14 @@ export default function AuthLayoutRouter (props) {
         {/* )} */}
       </Routes>
 
-      <div className={cn('flex flex-row items-stretch bg-midground h-full', { 'h-[100dvh]': isMobile.any, [classes.mapView]: isMapView, [classes.detailOpen]: hasDetail })}>
+      <div className={cn('flex flex-row items-stretch bg-midground h-full', { 'h-[100dvh]': compactLayout, [classes.mapView]: isMapView, [classes.detailOpen]: hasDetail })}>
         <div ref={resizeRef} className={cn(classes.main, { [classes.mapView]: isMapView, [classes.withoutNav]: withoutNav, [classes.mainPad]: !withoutNav })}>
           {/* Mobile nav backdrop overlay - not shown on create-group so back chevron gets first tap */}
           {/* TODO: this is a hack for the create group route, which we may make a modal handle a different better way  */}
           {!withoutNav && !isCreateGroupRoute && (
             <div
               ref={setBackdropRef}
-              className='sm:hidden fixed inset-0 z-[100] bg-black/50'
+              className={cn('fixed inset-0 z-[100] bg-black/50', !phoneLayout && 'sm:hidden')}
               style={{ opacity: 0, pointerEvents: 'none' }}
               onClick={() => dispatch(toggleNavMenu(false))}
             />
@@ -711,13 +766,12 @@ export default function AuthLayoutRouter (props) {
             ref={setNavContainerRef}
             className={cn(
               'AuthLayoutRouterNavContainer flex flex-row h-full flex-shrink-0 overflow-hidden',
-              // Mobile: fixed drawer, full-width, off-screen by default (JS manages transform)
+              // Phones: fixed drawer, full-width, off-screen by default (JS manages transform)
               'fixed left-0 top-0 z-[101] h-dvh w-full',
-              // Desktop: back in normal flow
-              'sm:relative sm:z-50 sm:h-full sm:w-auto',
-              'sm:max-w-420',
-              // Hide nav on small screens for full-page Create Group flow
-              { 'hidden sm:relative': isCreateGroupRoute }
+              // Tablet and desktop: back in normal flow
+              !phoneLayout && 'sm:relative sm:z-50 sm:h-full sm:w-auto sm:max-w-420',
+              // Hide nav for full-page Create Group flow
+              isCreateGroupRoute && (phoneLayout ? 'hidden' : 'hidden sm:relative')
             )}
           >
             {!withoutNav && (
@@ -739,8 +793,12 @@ export default function AuthLayoutRouter (props) {
                 <Route path='all/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
                 <Route path='groups/:joinGroupSlug/join/:accessCode' element={null} />
                 <Route path='groups/:groupSlug/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
-                <Route path='messages/:messageThreadId' element={<ThreadList />} />
-                <Route path='messages' element={<ThreadList />} />
+                {isPhoneDevice() && (
+                  <>
+                    <Route path='messages/:messageThreadId' element={<ThreadList />} />
+                    <Route path='messages' element={<ThreadList />} />
+                  </>
+                )}
               </Routes>}
           </div> {/* END NavContainer */}
 
@@ -816,6 +874,8 @@ export default function AuthLayoutRouter (props) {
                 <Route path='public/post/:postId/create/*' element={<Stream context='public' />} />
                 <Route path='all/*' element={<Stream context='my' />} />
                 <Route path='public/*' element={<Navigate to='/public/stream' replace />} />
+                {/* Must be before `groups/:groupSlug/*` so `/groups/:slug/offerings/:id` is not handled only by the group splat + inner Navigate-to-stream */}
+                <Route path='groups/:groupSlug/offerings/:offeringId' element={<OfferingDetails />} />
                 {/* **** Group Routes **** */}
                 <Route path='create-group/*' element={<CreateGroup />} />
                 <Route path='groups/:joinGroupSlug/join/:accessCode' element={<JoinGroup />} />
@@ -856,6 +916,9 @@ export default function AuthLayoutRouter (props) {
                             <Route path='funding-rounds/:fundingRoundId/*' element={<FundingRoundHome />} />
                             <Route path='funding-rounds/*' element={<FundingRounds />} />
                             <Route path='chat/:topicName/*' element={<ChatRoom context='groups' />} />
+                            <Route path='payment/success' element={<PaymentSuccess />} />
+                            <Route path='payment/cancel' element={<PaymentFailure />} />
+                            <Route path='payment/failure' element={<PaymentFailure />} />
                             <Route path='settings/*' element={<GroupSettings context='groups' />} />
                             <Route path='all-views' element={<AllView context='groups' />} />
                             <Route path={POST_DETAIL_MATCH} element={<PostDetail />} />
@@ -874,14 +937,15 @@ export default function AuthLayoutRouter (props) {
                 <Route path='my/mentions/*' element={<Stream context='my' view='mentions' />} />
                 <Route path='my/saved-posts/*' element={<Stream context='my' view='saved-posts' />} />
                 <Route path='my/tracks/*' element={<MyTracks />} />
+                <Route path='my/transactions' element={<MyTransactions />} />
                 <Route path='my/*' element={<UserSettings />} />
                 <Route path='my' element={<Navigate to='/my/posts' replace />} />
                 {/* **** Management Routes (Admin Only) **** */}
                 <Route path='management/*' element={<Management />} />
                 {/* **** Other Routes **** */}
                 <Route path='welcome/*' element={<WelcomeWizardRouter />} />
-                <Route path='messages/:messageThreadId' element={<Messages />} />
-                <Route path='messages' element={<Loading />} />
+                <Route path='messages/:messageThreadId' element={<MessagesLayout />} />
+                <Route path='messages' element={<MessagesLayout />} />
                 <Route path='post/:postId/*' element={<PostDetail />} />
                 {/* Keep old settings paths for mobile */}
                 <Route path='settings/*' element={<UserSettings />} />
@@ -930,8 +994,8 @@ export default function AuthLayoutRouter (props) {
         <CookieConsentLinker />
       </div>
       <Toaster
-        position={isMobile.any ? 'top-center' : 'bottom-left'}
-        style={isMobile.any ? {} : { left: '80px' }}
+        position={compactLayout ? 'top-center' : 'bottom-left'}
+        style={compactLayout ? {} : { left: '80px' }}
       />
     </IntercomProvider>
   )

@@ -3,25 +3,18 @@ import { gql } from 'urql'
 export default gql`
   fragment TrackFields on Track {
     id
+    accessControlled
+    canAccess
     bannerUrl
     actionDescriptor
     actionDescriptorPlural
     description
     completionMessage
     completionRole {
-      __typename
-      ... on CommonRole {
-        id
-        emoji
-        name
-      }
-      ... on GroupRole {
-        id
-        emoji
-        name
-      }
+      id
+      emoji
+      name
     }
-    completionRoleType
     didComplete
     enrolledUsers {
       items {

@@ -35,3 +35,19 @@ export async function clickGlobalNavLogout (page) {
   await expect(item).toBeVisible(uiTimeout)
   await item.click()
 }
+
+/**
+ * Idempotent DELETE /noo/session in the browser (same cookie jar as the page), then clear cookies.
+ * Use after UI logout before a full `page.goto('/')` when tests must assert an unauthenticated root:
+ * the server may invalidate the session without expiring the cookie in the response; a stale cookie
+ * can still satisfy `checkLogin` on the next load unless the jar is cleared.
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+export async function ensureBrowserSessionDestroyed (page) {
+  await page.evaluate(async () => {
+    const res = await fetch('/noo/session', { method: 'DELETE', credentials: 'same-origin' })
+    await res.text().catch(() => '')
+  })
+  await page.context().clearCookies()
+}

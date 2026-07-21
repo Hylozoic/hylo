@@ -26,7 +26,8 @@ export const POSTS_USERS_ATTR_UPDATE_WHITELIST = [
   'following',
   'active',
   'clickthrough',
-  'saved_at'
+  'saved_at',
+  'muted_at'
 ]
 
 const commentersQuery = (limit, post, currentUserId) => q => {
@@ -154,7 +155,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
   followers: function () {
     return this.belongsToMany(User).through(PostUser)
       // .withPivot(['last_read_at', 'clickthrough']) // TODO COMOD: does not seem to work
-      .withPivot(['last_read_at'])
+      .withPivot(['last_read_at', 'muted_at'])
       .where({ following: true, 'posts_users.active': true, 'users.active': true })
   },
 
@@ -170,6 +171,11 @@ module.exports = bookshelf.Model.extend(Object.assign({
   async isFollowed (userId) {
     const pu = await PostUser.find(this.id, userId)
     return !!(pu && pu.get('following'))
+  },
+
+  async isMutedForUser (userId) {
+    const pu = await PostUser.find(this.id, userId)
+    return !!(pu && pu.get('muted_at'))
   },
 
   /**
@@ -429,14 +435,16 @@ module.exports = bookshelf.Model.extend(Object.assign({
       type: this.get('type'),
       start_time: type === 'oneline' && this.get('start_time') && DateTimeHelpers.formatDatePair({ start: this.get('start_time'), timezone: this.get('timezone'), locale }),
       title: this.summary(),
-      unfollow_url: Frontend.Route.unfollow(this, group) + clickthroughParams,
+      unfollow_url: Frontend.appendQueryString(Frontend.Route.unfollow(this, group), clickthroughParams),
       user: {
         id: user.id,
         name: user.get('name'),
         avatar_url: user.get('avatar_url'),
-        profile_url: Frontend.Route.profile(user) + clickthroughParams
+        profile_url: Frontend.appendQueryString(Frontend.Route.profile(user), clickthroughParams)
       },
-      url: context ? Frontend.Route.mapPost(this, context, slug) + clickthroughParams : Frontend.Route.post(this, group, '', fundingRound) + clickthroughParams,
+      url: context
+        ? Frontend.appendQueryString(Frontend.Route.mapPost(this, context, slug), clickthroughParams)
+        : Frontend.appendQueryString(Frontend.Route.post(this, group, '', fundingRound), clickthroughParams),
       when: this.get('start_time') && DateTimeHelpers.formatDatePair({ start: this.get('start_time'), end: this.get('end_time'), timezone: this.get('timezone') })
     }
   },
@@ -610,6 +618,20 @@ module.exports = bookshelf.Model.extend(Object.assign({
     const pu = await this.loadPostInfoForUser(userId)
     // XXX: don't know why we need to save the completion_response here but it errors without
     return pu.save({ last_read_at: new Date(), completion_response: JSON.stringify(pu.get('completion_response')) })
+  },
+
+  async markAsUnread (userId) {
+    const pu = await this.loadPostInfoForUser(userId)
+    const latestComment = await this.comments().query(q => {
+      q.orderBy('created_at', 'desc')
+      q.orderBy('comments.id', 'desc')
+      q.limit(1)
+    }).fetchOne()
+
+    if (!latestComment) return pu
+
+    const lastReadAt = new Date(new Date(latestComment.get('created_at')).getTime() - 1)
+    return pu.save({ last_read_at: lastReadAt, completion_response: JSON.stringify(pu.get('completion_response')) })
   },
 
   pushTypingToSockets: function (userId, userName, isTyping, socketToExclude) {
@@ -1087,16 +1109,17 @@ module.exports = bookshelf.Model.extend(Object.assign({
       const tracks = await Track.query(q => q.whereIn('id', trackIds)).fetchAll({ transacting: trx })
       for (const track of tracks) {
         const trackActions = await track.posts().fetch({ transacting: trx })
+        const actionPostIds = trackActions.pluck('id')
         const completedActionsCount = await PostUser.query(q => {
           q.where('user_id', userId)
-          q.whereIn('post_id', trackActions.pluck('post_id'))
+          q.whereIn('post_id', actionPostIds)
           q.whereNotNull('completed_at')
         }).count({ transacting: trx })
 
         // If completed the track
         if (parseInt(completedActionsCount) === trackActions.length) {
           const trackUser = await TrackUser.where({ track_id: track.id, user_id: userId }).fetch({ transacting: trx })
-          if (trackUser.get('completed_at')) {
+          if (!trackUser || trackUser.get('completed_at')) {
             // Don't complete the track again if it's already completed
             continue
           }
@@ -1105,10 +1128,17 @@ module.exports = bookshelf.Model.extend(Object.assign({
           const group = await track.groups().fetchOne({ transacting: trx })
           // See if there is a role/badge for completing the track
           if (track.get('completion_role_id')) {
-            if (track.get('completion_role_type') === 'common') {
-              await MemberCommonRole.forge({ common_role_id: track.get('completion_role_id'), user_id: userId, group_id: group.id }).save(null, { transacting: trx })
-            } else if (track.get('completion_role_type') === 'group') {
-              await MemberGroupRole.forge({ group_role_id: track.get('completion_role_id'), user_id: userId, active: true, group_id: group.id }).save(null, { transacting: trx })
+            try {
+              await MemberGroupRole.forge({
+                group_role_id: track.get('completion_role_id'),
+                user_id: userId,
+                active: true,
+                group_id: group.id
+              }).save(null, { transacting: trx })
+            } catch (err) {
+              if (!err.message || !err.message.includes('duplicate key value')) {
+                throw err
+              }
             }
           }
 

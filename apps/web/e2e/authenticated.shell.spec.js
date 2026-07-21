@@ -4,7 +4,7 @@ import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading
 /**
  * Batch A — authenticated shell & redirects (`AuthLayoutRouter` + top-level stubs).
  * Runs on `chromium` and `mobile-chrome` (saved session from `auth.setup.js`).
- * Requires E2E seed / login: `e2e.user@hylo.test` with groups `e2e-public-group`, `e2e-private-group`.
+ * Requires E2E seed / login: `e2e.user@hylo.test` with groups including `e2e-public-group`, `e2e-private-group`, and often `e2e-paywall-group` (last-viewed after other E2E batches).
  */
 
 test.describe.configure({ timeout: 120000 })
@@ -17,7 +17,7 @@ test.describe('Batch A: authenticated shell & redirects', () => {
     await page.goto('/')
     await waitPastRootSessionLoading(page)
     await expect(page).toHaveURL(
-      /\/(all(\/.*)?$|groups\/e2e-(public|private)-group(\/.*)?$)/,
+      /\/(all(\/.*)?$|groups\/e2e-(public|private|paywall)-group(\/.*)?$)/,
       navTimeout
     )
     await expect(page).toHaveTitle(/Hylo/i, uiTimeout)

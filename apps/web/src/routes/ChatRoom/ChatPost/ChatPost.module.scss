@@ -1,5 +1,6 @@
 .container {
-
+  -webkit-user-select: text;
+  user-select: text;
 
   .action-bar {
     display: none;
@@ -127,8 +128,38 @@
 
 .postContentContainer {
   margin-left: 42px;
+  overflow: visible;
   p {
     margin: 3px 0;
+  }
+}
+
+.editingContainer {
+  position: relative;
+}
+
+.editActions {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 1;
+}
+
+.editActionIcon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  cursor: pointer;
+
+  &:first-child {
+    color: $color-gossamer;
+  }
+
+  &:last-child {
+    color: $color-amaranth;
   }
 }
 
@@ -140,7 +171,7 @@
   color: hsl(var(--text-foreground));
 
   &.editing {
-    padding: 10px;
+    padding: 10px 50px 10px 10px;
     overflow-y: auto;
     max-height: 200px;
     cursor: text;
@@ -237,10 +268,5 @@
 @media screen and (max-width: 410px) {
   .postContentContainer {
     margin-left: 35px;
-  }
-
-  .container {
-    -webkit-user-select: text;
-    user-select: text;
   }
 }

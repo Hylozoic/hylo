@@ -107,7 +107,7 @@ We have a `RootNavigator`, that wraps `AuthRootNavigator` and `NonAuthRootNaviga
 I'm still quite interested in whether we can optimize our app and all of the nested of the above navigators as suggested in here: https://github.com/react-navigation/react-navigation/discussions/11290
 
 ##### Debugging navigation and links
-use `yarn open-link`. It is really handy to get around the app and to manually test how links will resolve.
+use `yarn open-link`. It is really handy to get around the app and to manually test how links will resolve. It builds HTTPS links from `HYLO_WEB_BASE_URL` in `.env` (same as the app), not a hardcoded production host.
 
 ### Webview
 We use webviews a lot. These allow us to point at pieces of the web app in mobile screens. It is both very cool and has quirks.

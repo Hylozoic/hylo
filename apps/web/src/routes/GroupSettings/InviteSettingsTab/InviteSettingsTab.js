@@ -15,7 +15,7 @@ import Loading from 'components/Loading'
 import Icon from 'components/Icon'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { cn } from 'util/index'
-import { GROUP_VISIBILITY } from 'store/models/Group'
+import { GROUP_ACCESSIBILITY, GROUP_VISIBILITY } from 'store/models/Group'
 import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import { regenerateAccessCode as regenerateAccessCodeAction, FETCH_GROUP_SETTINGS } from '../GroupSettings.store'
 import {
@@ -45,7 +45,7 @@ function InviteSettingsTab (props) {
   const pendingInvites = useSelector(state => getPendingInvites(state, { groupId: group.id }))
 
   const regenerateAccessCode = useCallback(() => dispatch(regenerateAccessCodeAction(group.id)), [dispatch, group.id])
-  const createInvitations = useCallback((emails, message) => dispatch(createInvitationsAction(group.id, emails, message)), [dispatch, group.id])
+  const createInvitations = useCallback((emails, message, groupRoleId) => dispatch(createInvitationsAction(group.id, emails, message, groupRoleId)), [dispatch, group.id])
   const expireInvitation = useCallback((invitationToken) => dispatch(expireInvitationAction(invitationToken)), [dispatch])
   const resendInvitation = useCallback((invitationToken) => dispatch(resendInvitationAction(invitationToken)), [dispatch])
   const reinviteAll = useCallback(() => dispatch(reinviteAllAction(group.id)), [dispatch, group.id])
@@ -64,6 +64,7 @@ I'm inviting you to join {{name}} on Hylo.
   const [reset, setReset] = useState(false)
   const [emails, setEmails] = useState('')
   const [message, setMessage] = useState(defaultMessage)
+  const [selectedRoleId, setSelectedRoleId] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
   const sendingRef = useRef(false)
@@ -80,7 +81,12 @@ I'm inviting you to join {{name}} on Hylo.
     if (sendingRef.current) return
     sendingRef.current = true
 
-    createInvitations(parseEmailList(emails), message)
+    let groupRoleId = null
+    if (selectedRoleId) {
+      groupRoleId = parseInt(selectedRoleId, 10)
+    }
+
+    createInvitations(parseEmailList(emails), message, groupRoleId)
       .then(res => {
         sendingRef.current = false
         const { invitations } = res.payload.data.createInvitation
@@ -99,6 +105,7 @@ I'm inviting you to join {{name}} on Hylo.
         setEmails(badEmails.join('\n'))
         setErrorMessage(errorMessage)
         setSuccessMessage(successMessage)
+        setSelectedRoleId('') // Reset role selection after sending
       })
   }
 
@@ -149,7 +156,7 @@ I'm inviting you to join {{name}} on Hylo.
 
       {!pending && (
         <>
-          {group.visibility === GROUP_VISIBILITY.Public && (
+          {group.visibility === GROUP_VISIBILITY.Public && group.accessibility !== GROUP_ACCESSIBILITY.Closed && (
             <div className='border-2 mt-6 p-4 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-2 text-foreground background-black/10 rounded-lg border-dashed relative mb-4 hover:border-t-foreground/100 hover:border-x-foreground/90 transition-all hover:border-b-foreground/80 flex flex-col gap-2'>
               <div className='text-foreground'>
                 <h2 className='text-lg font-bold mt-0 mb-1 text-foreground'>{t('Public Group Link')}</h2>
@@ -238,6 +245,20 @@ I'm inviting you to join {{name}} on Hylo.
           disabled={pendingCreate}
           onChange={(event) => setMessage(event.target.value)}
         />
+        <div className='mt-4 mb-2'>{t('Assign a role to invitees (optional):')}</div>
+        <select
+          className='rounded-lg bg-input text-foreground focus:outline-none focus:ring-0 focus:ring-offset-0 border-2 border-transparent focus:border-focus p-2'
+          value={selectedRoleId}
+          disabled={pendingCreate}
+          onChange={(event) => setSelectedRoleId(event.target.value)}
+        >
+          <option value=''>{t('No special role')}</option>
+          {group.groupRoles?.items?.filter(role => role.active).map(role => (
+            <option key={role.id} value={role.id}>
+              {role.emoji ? `${role.emoji} ` : ''}{role.name}
+            </option>
+          ))}
+        </select>
         <div className={classes.sendInviteButton}>
           <div className={classes.sendInviteFeedback}>
             {errorMessage && <span className={classes.error}>{errorMessage}</span>}

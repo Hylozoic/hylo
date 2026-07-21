@@ -39,7 +39,8 @@ const SocketListener = (props) => {
     messageAdded: (data) => {
       const message = convertToMessage(data)
       dispatch(receiveMessage(message, {
-        bumpUnreadCount: !isActiveThread(locationRef.current, data)
+        bumpUnreadCount: !isActiveThread(locationRef.current, data),
+        isMuted: data.isMuted
       }))
     },
     newNotification: data => dispatch(receiveNotification(data)),

@@ -6,7 +6,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-## [6.4.6] - 2026-07-01
+## [6.5.4] - 2026-07-14
+
+### Changed
+- Using the search feature in a post view like the Stream now also searches by post creator name alongside post content
+
+## [6.5.3] - 2026-07-02
+
+### Added
+- Muting of message threads - they will no longer appear in the messages inbox or be notified about in the notifications tab.
+
+### Changed
+- Got rid of common roles, separate from group roles. Now system roles get separately assigned to each group. Nothing changes in the experience right now, but this paves the way for future abilities for groups to customze their system roles, and should improve performance.
+
+## [6.5.2] - 2026-06-23
+
+### Fixed
+- Account deletion
+
+## [6.5.1] - 2026-06-16
+
+### Changed
+- Search performance: concurrent materialized view refresh, `sort_ts` baked into `search_index`, semi-join group access filter, `limit + 1` pagination via `hasMore`, and `statement_timeout` on search queries
+
+### Fixed
+- Security issues
+
+## [6.5.0] - 2026-06-15
+
+### Added
+- 'Paid Content' released.
+- Groups can now raise funds via their membership, or pay-gate group membership, tracks or group roles.
+- DM search is now a full-history search.
+- DMs can be read/unread.
+
+### Fixed
+- Search query streamlined.
+
+## [6.4.6] - 2026-06-11
+
+### Changed
+- Backend changed required to allow mobile to log in via Open ID Connect and oAuth. To fix always asking users to log in when they open the mobile app.
+
+### Fixed
+- Don't error out trying to delete a draft that doesnt exist
+- Correct URL to event posts in RSVP emails
+- Links to posts from email notifications should now work more consistently on mobile
+- Deleting of unused container widgets
 
 ## [6.4.5] - 2026-06-10
 

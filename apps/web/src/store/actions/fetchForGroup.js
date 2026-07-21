@@ -45,6 +45,8 @@ const queryFragment = `group(slug: $slug, updateLastViewed: $updateLastViewed) {
     visibility
     websiteUrl
     welcomePage
+    paywall
+    canAccess
     groupRoles {
       items {
         id
@@ -52,6 +54,7 @@ const queryFragment = `group(slug: $slug, updateLastViewed: $updateLastViewed) {
         active
         emoji
         groupId
+        type
         responsibilities {
           items {
             id
@@ -87,15 +90,7 @@ const queryFragment = `group(slug: $slug, updateLastViewed: $updateLastViewed) {
         avatarUrl
         lastActiveAt
         name
-        membershipCommonRoles {
-          items {
-            id
-            groupId
-            userId
-            commonRoleId
-          }
-        }
-        groupRoles {
+        groupRoles(slug: $slug) {
           items {
             id
             name

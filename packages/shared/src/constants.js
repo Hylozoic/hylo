@@ -36,6 +36,8 @@ export const WebViewMessageTypes = {
   // session cookie from its token and reloads — instead of the web side logging
   // the native app out on a transient WebView cookie desync.
   VERIFY_AUTH: 'VERIFY_AUTH',
+  // Web app confirmed checkLogin succeeded inside the v2 mobile WebView.
+  AUTH_SUCCESS: 'AUTH_SUCCESS',
   NAVIGATION: 'NAVIGATION',
   THEME_CHANGE: 'THEME_CHANGE',
   EDITOR: {

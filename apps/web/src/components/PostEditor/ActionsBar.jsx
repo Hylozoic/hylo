@@ -21,6 +21,7 @@ export default function ActionsBar ({
   groups,
   invalidMessage,
   loading,
+  submitting = false,
   myAdminGroups,
   setAnnouncementSelected,
   setShowLocation,
@@ -119,13 +120,13 @@ export default function ActionsBar ({
             : t(navigator.platform.includes('Mac') ? 'Option-Enter to post' : 'Alt-Enter to post')}
         </label>
         <Button
-          disabled={!valid || loading}
+          disabled={!valid || loading || submitting}
           onClick={doSave}
           className='border-2 border-foreground/30 bg-foreground/30 px-2 py-1 rounded flex items-center'
           dataTipHtml={!valid ? invalidMessage : ''}
           dataFor='submit-tt'
         >
-          <SendHorizontal className={!valid || loading ? 'text-muted-foreground' : 'text-highlight'} size={18} style={{ display: 'inline' }} />
+          <SendHorizontal className={!valid || loading || submitting ? 'text-muted-foreground' : 'text-highlight'} size={18} style={{ display: 'inline' }} />
         </Button>
 
         <Tooltip

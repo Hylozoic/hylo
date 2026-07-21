@@ -49,6 +49,9 @@ env:
   GOOGLE_CLIENT_SECRET: e2e-ci-placeholder-oauth-client-secret
   LINKEDIN_API_KEY: e2e-ci-placeholder-linkedin-key
   LINKEDIN_API_SECRET: e2e-ci-placeholder-linkedin-secret
+  # StripeService requires a key at Sails load; isolated runner also sets defaults — override with secrets if needed.
+  STRIPE_SECRET_KEY: sk_test_fake_key_for_testing_purposes
+  STRIPE_API_KEY: sk_test_fake_api_key_for_testing_purposes
   # OIDC_KEYS: set in a step below from secrets.OIDC_KEYS or an ephemeral RSA key (passport JWT strategy).
   # One Vite + one API: tune workers for runner capacity (override with E2E_PLAYWRIGHT_WORKERS).
   E2E_PLAYWRIGHT_WORKERS: '8'

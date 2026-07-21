@@ -171,6 +171,7 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
   }, [])
 
   const openPostDetails = useCallback(() => navigate(postUrl(post.id, routeParams, querystringParams)), [post.id, routeParams, querystringParams])
+  const handleDropdownItemClick = useCallback((onClick) => () => onClick(), [])
 
   return (
     <div
@@ -207,7 +208,7 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
             <DropdownMenuTrigger className='outline-none' onClick={e => e.stopPropagation()} tabIndex={-1}><EllipsisVertical /></DropdownMenuTrigger>
             <DropdownMenuContent sideOffset={-30} alignOffset={30} align='end'>
               {dropdownItems.map(item => (
-                <DropdownMenuItem key={item.label} onClick={item.onClick}>
+                <DropdownMenuItem key={item.label} onClick={handleDropdownItemClick(item.onClick)}>
                   <span>{item.icon}</span>
                   <span>{item.label}</span>
                 </DropdownMenuItem>

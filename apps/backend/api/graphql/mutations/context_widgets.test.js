@@ -21,7 +21,7 @@ describe('mutations/context_widgets', () => {
     chat = await factories.tag().save({ name: 'test-chat' })
 
     // Add user as admin to group
-    await user.joinGroup(group, { role: GroupMembership.Role.MODERATOR })
+    await user.joinGroup(group, { assignCoordinator: true })
     // Add non-admin user as regular member
     await nonAdminUser.joinGroup(group)
 
@@ -244,6 +244,21 @@ describe('mutations/context_widgets', () => {
 
       const deletedWidget = await ContextWidget.where({ id: widget.id }).fetch()
       expect(deletedWidget).to.be.null
+    })
+
+    it('allows deletion of user container widgets (type container, no entity links)', async () => {
+      const container = await factories.contextWidget({
+        group_id: group.id,
+        title: 'My container',
+        type: 'container',
+        view: null,
+        order: null,
+        parent_id: null,
+        auto_added: true
+      }).save()
+
+      const result = await deleteContextWidget(user.id, container.id)
+      expect(result).to.deep.equal({ success: true })
     })
 
     it('prevents deletion of system widgets', async () => {

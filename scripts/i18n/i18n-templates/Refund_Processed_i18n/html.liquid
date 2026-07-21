@@ -1,0 +1,35 @@
+{% snippet 'header_redesign' %}
+
+<p>
+  {% set user_name_var = user_name %}
+  {% trans %}Hi {{user_name_var}}{% endtrans %},
+</p>
+
+<p>{% trans %}Your refund has been processed successfully.{% endtrans %}</p>
+
+<p>
+  {% trans %}We've issued a refund for your purchase of {% endtrans %}
+  <strong>{{offering_name}}</strong>
+  {% trans %}in{% endtrans %}
+  <strong>{{group_name}}</strong>.
+</p>
+
+<p><strong>{% trans %}Refund amount:{% endtrans %}</strong> {{refund_amount_formatted}} {{currency}}</p>
+<p><strong>{% trans %}Refund date:{% endtrans %}</strong> {{refund_date}}</p>
+
+{% if refund_reason %}
+  <p><strong>{% trans %}Reason:{% endtrans %}</strong> {{refund_reason}}</p>
+{% endif %}
+
+{% if group_url %}
+  <a class='btn btn-blue' href="{{group_url}}" clicktracking="off">{% trans %}Visit Group{% endtrans %}</a>
+{% endif %}
+
+{% if support_email %}
+  <p>
+    {% trans %}If you have any questions, reply to this email or contact{% endtrans %}
+    {{support_email}}.
+  </p>
+{% endif %}
+
+{% snippet 'footer_redesign' %}

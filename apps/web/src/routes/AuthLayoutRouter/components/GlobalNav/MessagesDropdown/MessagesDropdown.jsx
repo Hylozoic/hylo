@@ -12,7 +12,7 @@ import { isUnread, isUpdatedSince } from 'store/models/MessageThread'
 import NoItems from 'routes/AuthLayoutRouter/components/GlobalNav/NoItems'
 import LoadingItems from 'routes/AuthLayoutRouter/components/GlobalNav/LoadingItems'
 import fetchThreads from 'store/actions/fetchThreads'
-import { getThreads } from 'routes/Messages/Messages.store'
+import { getInboxThreads } from 'routes/Messages/Messages.store'
 import getMe from 'store/selectors/getMe'
 import { FETCH_THREADS } from 'store/constants'
 
@@ -27,11 +27,11 @@ const MessagesDropdown = ({
   const dispatch = useDispatch()
 
   const currentUser = useSelector(state => getMe(state))
-  const threads = useSelector(state => getThreads(state))
+  const threads = useSelector(state => getInboxThreads(state))
   const pending = useSelector(state => state.pending[FETCH_THREADS])
 
   useEffect(() => {
-    dispatch(fetchThreads(10, 0))
+    dispatch(fetchThreads(10, 0, { muted: false }))
   }, [dispatch])
 
   const handleOpenChange = isOpen => {

@@ -54,6 +54,9 @@ import {
   UPDATE_POST,
   UPDATE_POST_PENDING,
   UPDATE_THREAD_READ_TIME,
+  MARK_THREAD_UNREAD,
+  MUTE_MESSAGE_THREAD,
+  UNMUTE_MESSAGE_THREAD,
   UPDATE_USER_SETTINGS_PENDING as UPDATE_USER_SETTINGS_GLOBAL_PENDING,
   UPDATE_WIDGET,
   USE_INVITATION,
@@ -98,6 +101,7 @@ import {
 } from 'components/SocketListener/SocketListener.store'
 
 import orm from 'store/models'
+import { DEFAULT_AVATAR } from 'store/models/Group'
 import clearCacheFor from './clearCacheFor'
 import { find, get, values } from 'lodash/fp'
 import extractModelsFromAction from '../ModelExtractor/extractModelsFromAction'
@@ -270,10 +274,47 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
 
     case CREATE_GROUP: {
       me = Me.withId(Me.first().id)
+      const createGroupData = payload.data.createGroup
+      const membershipData = createGroupData.memberships.items[0]
+
       me.updateAppending({
-        memberships: [payload.data.createGroup.memberships.items[0].id],
-        membershipCommonRoles: payload.data.createGroup.memberships.items[0].person.membershipCommonRoles.items
+        memberships: [membershipData.id]
       })
+
+      const group = Group.withId(createGroupData.id)
+      if (group) {
+        group.update({
+          avatarUrl: createGroupData.avatarUrl || DEFAULT_AVATAR
+        })
+      }
+
+      const membership = Membership.withId(membershipData.id)
+      if (membership) {
+        membership.update({
+          navOrder: membershipData.navOrder ?? null,
+          newPostCount: membershipData.newPostCount ?? 0
+        })
+      }
+
+      const coordinatorRole = createGroupData.groupRoles?.items?.find(role => role.name === 'Coordinator')
+      if (coordinatorRole) {
+        const roleWithGroupId = coordinatorRole.groupId
+          ? coordinatorRole
+          : { ...coordinatorRole, groupId: createGroupData.id }
+        const existingItems = me.groupRoles?.items || []
+        const alreadyHasRole = existingItems.some(
+          role => role.groupId === roleWithGroupId.groupId && role.name === 'Coordinator'
+        )
+        if (!alreadyHasRole) {
+          me.update({
+            groupRoles: {
+              ...me.groupRoles,
+              items: [...existingItems, roleWithGroupId]
+            }
+          })
+        }
+      }
+
       clearCacheFor(Me, me.id)
       break
     }
@@ -1000,7 +1041,11 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       // deleting all attachments and removing topics here because we restore them from the result of the UPDATE_POST action
       post = Post.withId(meta.id)
       post.attachments.toModelArray().map(a => a.delete())
-      post.update({ topics: [] })
+      const updates = { ...(meta.data || {}) }
+      if (meta.topicNames !== undefined) {
+        updates.topics = []
+      }
+      post.update(updates)
       break
     }
 
@@ -1010,6 +1055,37 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         unseenThreadCount: Math.max(0, me.unseenThreadCount - 1)
       })
       MessageThread.withId(meta.id).markAsRead()
+      break
+    }
+
+    case MARK_THREAD_UNREAD: {
+      if (payload?.api) {
+        const thread = MessageThread.withId(meta.id)
+        if (thread && thread.unreadCount === 0) {
+          me = Me.first()
+          me.update({
+            unseenThreadCount: (me.unseenThreadCount || 0) + 1
+          })
+        }
+        thread?.markAsUnread()
+      }
+      break
+    }
+
+    case MUTE_MESSAGE_THREAD: {
+      me = Me.first()
+      const thread = MessageThread.withId(meta.messageThreadId)
+      if (thread?.unreadCount > 0) {
+        me.update({
+          unseenThreadCount: Math.max(0, (me.unseenThreadCount || 0) - 1)
+        })
+      }
+      thread?.update({ isMuted: true })
+      break
+    }
+
+    case UNMUTE_MESSAGE_THREAD: {
+      MessageThread.withId(meta.messageThreadId)?.update({ isMuted: false })
       break
     }
 

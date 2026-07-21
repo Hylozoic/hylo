@@ -54,6 +54,32 @@ const CONTAINER = types.CONTAINER
 const TRACK = types.TRACK
 const FUNDING_ROUND = types.FUNDING_ROUND
 
+/** Widget types that use the menu container icon and "Container" tooltip on All Views */
+const ALL_VIEWS_MENU_CONTAINER_TYPES = [CONTAINER, 'chats', 'auto-view', 'custom-views']
+
+function allViewsIsMenuContainerWidget (widget) {
+  return ALL_VIEWS_MENU_CONTAINER_TYPES.includes(widget.type)
+}
+
+/**
+ * Tooltip for widget title on All Views; returns null when no tooltip should appear.
+ */
+function getAllViewsWidgetTypeTooltip (widget, t) {
+  if (widget.viewChat || widget.type === 'viewChat' || widget.type === 'chat') {
+    return t('allViewsTooltipChatRoom')
+  }
+  if (allViewsIsMenuContainerWidget(widget)) {
+    return t('allViewsTooltipContainer')
+  }
+  if (widget.type === 'customView' && widget.customView) {
+    const cvType = widget.customView.type || 'externalLink'
+    if (cvType === 'externalLink') return t('allViewsTooltipCustomViewExternalLink')
+    if (cvType === 'collection') return t('allViewsTooltipCustomViewPostCollection')
+    return t('allViewsTooltipCustomViewPostStream')
+  }
+  return null
+}
+
 export default function AllViews () {
   const navigate = useNavigate()
   const location = useLocation()
@@ -110,40 +136,50 @@ export default function AllViews () {
   }, [updateContextWidget])
 
   const handleDeleteWidget = useCallback((widget) => {
-    if (confirm('Are you sure you want to delete this view?')) {
+    if (window.confirm(t('Are you sure you want to delete this view?'))) {
       dispatch(deleteContextWidget({
         contextWidgetId: widget.id,
         groupId: group.id
       }))
     }
-  }, [deleteContextWidget])
+  }, [deleteContextWidget, t])
 
   // Filter and sort widgets and get them ready for display
   const visibleWidgets = useMemo(() => {
     return contextWidgets.filter(widget => {
-      // When not editing only show widgets with a related view or chat room
+      if (widget.type === 'home') return false
+      if (isEditing && allViewsIsMenuContainerWidget(widget) && widget.order) return false
       if (!isEditing && !widget.view && !widget.customView && !widget.viewChat && widget.type !== 'chat' && widget.type !== 'viewChat') return false
-      // When editing only show widgets that have not already been added
-      if (isEditing && widget.order) return false
-      // Hide widgets that are not visible to the user
       if (widget.visibility === 'none' || (widget.visibility === 'admin' && !canAdminister)) return false
       return true
     })
       .map(widget => ContextWidgetPresenter(widget))
       .map(widget => ({ ...widget, title: translateTitle(widget.title, t) }))
       .sort((a, b) => a.title.localeCompare(b.title))
-  }, [contextWidgets, isEditing])
+  }, [contextWidgets, isEditing, canAdminister])
 
   // Create widget cards
   const widgetCards = useMemo(() => {
     return visibleWidgets.map(widget => {
       // TODO: Integrate into ContextWidgetPresenter as makeUrl() method on presented object (requires shared url makers/helpers)
       const url = widgetUrl({ widget, rootPath, groupSlug: routeParams.groupSlug, context: 'group' })
+      const titleTooltip = getAllViewsWidgetTypeTooltip(widget, t)
       const cardContent = (
         <div>
           <h3 className='text-lg font-semibold text-foreground'>
-            <WidgetIconResolver widget={widget} />
-            <span className='ml-2'>{widget.title}</span>
+            {allViewsIsMenuContainerWidget(widget)
+              ? <SquareDashed className='h-[18px] w-[18px] inline-block align-middle text-foreground' aria-hidden />
+              : <WidgetIconResolver widget={widget} />}
+            {titleTooltip
+              ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className='ml-2 cursor-default'>{widget.title}</span>
+                  </TooltipTrigger>
+                  <TooltipContent side='top'>{titleTooltip}</TooltipContent>
+                </Tooltip>
+                )
+              : <span className='ml-2'>{widget.title}</span>}
           </h3>
           {isEditing && widget.isEditable && (
             <Tooltip>
@@ -207,22 +243,26 @@ export default function AllViews () {
           )}
         </div>
       )
+      // Widgets without menu order are "add to menu" targets; ones already in the menu navigate like browse mode
+      const isPendingMenuPlacement = isEditing && !widget.order
       const onClickAction = isEditing
-        ? (evt) => {
-            evt.stopPropagation()
-            handleWidgetUpdate(widget)
-          }
+        ? isPendingMenuPlacement
+          ? (evt) => {
+              evt.stopPropagation()
+              handleWidgetUpdate(widget)
+            }
+          : (url ? () => navigate(url) : null)
         : (url ? () => navigate(url) : null)
 
       return (
-        <div key={widget.id} onClick={onClickAction} className={`cursor-pointer relative flex flex-col transition-all bg-card/40 border-2 border-card/30 shadow-md hover:shadow-lg mb-4 hover:z-50 hover:scale-105 duration-400 rounded-lg h-full items-center justify-center ${url ? 'cursor-pointer' : ''}`}>
+        <div key={widget.id} onClick={onClickAction} className={`relative flex flex-col transition-all bg-card/40 border-2 border-card/30 shadow-md hover:shadow-lg mb-4 hover:z-50 hover:scale-105 duration-400 rounded-lg h-full items-center justify-center ${url || isPendingMenuPlacement ? 'cursor-pointer' : ''}`}>
           <div className='block text-center text-foreground'>
             {cardContent}
           </div>
         </div>
       )
     })
-  }, [visibleWidgets, rootPath, routeParams.groupSlug])
+  }, [visibleWidgets, rootPath, routeParams.groupSlug, isEditing, t, navigate, handleWidgetUpdate, handleEditWidget, handleWidgetHomePromotion, handleDeleteWidget])
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
@@ -297,7 +337,7 @@ function AddViewDialog ({ group, orderInFrontOfWidgetId, parentId, addToEnd, par
     const contextWidgetInput = {
       addToEnd: !orderInFrontOfWidgetId,
       visibility: widgetData.visibility === 'all' ? null : widgetData.visibility,
-      type: addChoice === CHAT ? CHAT : null, // The default is for type to be null unless there is a specific need
+      type: addChoice === CHAT ? CHAT : addChoice === CONTAINER ? CONTAINER : null,
       title: widgetData.title === '' ? null : widgetData.title,
       icon: null, // TODO CONTEXT: what is required for icons?
       viewGroupId: addChoice === GROUP ? selectedItem.id : null,

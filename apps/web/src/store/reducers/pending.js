@@ -3,7 +3,13 @@ export const initialState = {}
 export default function pending (state = initialState, action) {
   const { type, meta, error } = action
 
-  if (error) return state
+  if (error) {
+    const originalType = type.replace(/_PENDING/, '')
+    if (state[originalType]) {
+      return { ...state, [originalType]: null }
+    }
+    return state
+  }
 
   const originalType = type.replace(/_PENDING/, '')
 

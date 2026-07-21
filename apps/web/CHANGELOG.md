@@ -6,7 +6,79 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-## [6.4.11] - 2026-07-01
+## [6.5.4] - 2026-07-14
+
+### Changed
+- When on a common view like Discussions, Events or Requests and Offers, the post create modal only allows you to create posts of the type(s) displayed in that view
+
+### Fixed
+- Fix filtering of post stream by type for views other than the main Stream
+
+## [6.5.3] - 2026-07-02
+
+### Added
+- Muting of message threads - they will no longer appear in the messages inbox or send notifications.
+
+### Changed
+- Only show mute/unread buttons when hovering over a message row in the messages inbox
+
+### Fixed
+- Delete Account functionality
+- Prevent accidental double posting
+- Text selection on mobile
+- Nested comment reply unclickable on android
+
+## [6.5.2] - 2026-06-23
+
+### Fixed
+- Ensure users with the appropriate join or invite link can join CLOSED groups
+
+## [6.5.1] - 2026-06-16
+
+### Addded
+- Green check box button saves changes when editing a chat or a comment
+
+### Changed
+- Improve speed of loading search results.
+- Hover menu doesn't appear while editing a chat or a comment
+- Disable pull to close post modal on mobile while editing a comment
+
+### Fixed
+- Fix occasional mobile app WebView infinite reload loop
+- Editing long comments on ipad/mobile. Don't close the keyboard when scrolling inside the comment form.
+- ipad UI should look/work better when using the app now
+- Scrolling in comment edit box on ipad now works
+- When saving a chat edit dont flash briefly back to the old content before updating.
+
+## [6.5.0] - 2026-06-15
+
+### Added
+- 'Paid Content' released, integrating with Stripe.
+- Groups can now raise funds via their membership, or pay-gate group membership, tracks or group roles.
+- Calendar settings are now integrated into navigation, providing better user experience when navigating.
+- Search: Better error and no-result user experience.
+- Direct Message threads can be marked as read/unread.
+
+### Fixed
+- Calendar event creation streamlined.
+- Search query streamlined.
+- Group menu editing streamlined
+
+## [6.4.11] - 2026-06-11
+
+### Changed
+- Many improvements to editing of Group Menu, and All Views in general
+- Container type widgets/views show a Container icon
+- Tooltips over views that explain what type of widget they are (except for unique ones like About or Tracks right now)
+- Show all the views in the All Views while editing, even ones alreadt in the menu, to remove confusion. Except don't show containers that are already in the Group Menu.
+- Change Trash icon to X icon to remove widgets from the GroupMenu so as not to confuse with the trash icon that deletes a widget from AllViews
+- Allow better event creation when on the calendar view of the stream component
+- Post view uses post type and title in the view header
+- Show role badges in the Stewards section of the group About page
+
+### Fixed
+- Text styling in about page steward list
+- Calendar data loading; fix some infinite loading loops
 
 ## [6.4.10] - 2026-06-10
 

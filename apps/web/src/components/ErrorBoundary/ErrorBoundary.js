@@ -22,8 +22,8 @@ class ErrorBoundary extends React.Component {
 
   componentDidCatch (error, info) {
     if (isChunkLoadError(error)) {
-      if (!sessionStorage.getItem('vite-reload-attempted')) {
-        sessionStorage.setItem('vite-reload-attempted', '1')
+      if (!window.sessionStorage.getItem('vite-reload-attempted')) {
+        window.sessionStorage.setItem('vite-reload-attempted', '1')
         window.location.reload()
       }
       return

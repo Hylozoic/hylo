@@ -1,12 +1,63 @@
+/* eslint-disable import/first */
 process.env.NODE_ENV = 'test'
+process.env.STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || 'sk_test_fake_key_for_testing_purposes'
+process.env.STRIPE_API_KEY = process.env.STRIPE_API_KEY || 'sk_test_fake_api_key_for_testing_purposes'
 
 import nock from 'nock'
 import './core'
+const mock = require('mock-require')
 const skiff = require('../../lib/skiff')
 const fs = require('fs')
 const path = require('path')
 const Promise = require('bluebird')
 const root = require('root-path')
+
+// Mock Stripe before any modules are loaded (must support `new Stripe(key, opts)` — see stripe-node v17)
+function TestStripeClient () {
+  if (!(this instanceof TestStripeClient)) {
+    return new TestStripeClient()
+  }
+  this.accounts = {
+    create: async () => ({}),
+    retrieve: async () => ({}),
+    update: async () => ({})
+  }
+  this.accountLinks = {
+    create: async () => ({})
+  }
+  this.products = {
+    create: async () => ({}),
+    update: async () => ({}),
+    list: async () => ({})
+  }
+  this.prices = {
+    create: async () => ({}),
+    retrieve: async () => ({})
+  }
+  this.checkout = {
+    sessions: {
+      create: async () => ({}),
+      retrieve: async () => ({})
+    }
+  }
+  this.subscriptions = {
+    retrieve: async () => ({})
+  }
+  this.invoices = {
+    retrieve: async () => ({})
+  }
+  this.paymentIntents = {
+    retrieve: async () => ({})
+  }
+  this.webhooks = {
+    constructEvent: () => {
+      throw new Error('stripe.webhooks.constructEvent is not stubbed for this test')
+    }
+  }
+}
+
+// Set up mock-require to intercept all Stripe imports
+mock('stripe', TestStripeClient)
 
 const TestSetup = function () {
   this.tables = []
@@ -14,6 +65,11 @@ const TestSetup = function () {
 }
 
 const setup = new TestSetup()
+
+setup.restoreDefaultStripeMock = () => {
+  mock.stop('stripe')
+  mock('stripe', TestStripeClient)
+}
 
 before(function (done) {
   this.timeout(50000)
@@ -23,7 +79,7 @@ before(function (done) {
   global.sails = skiff.sails
 
   skiff.lift({
-    log: {level: process.env.LOG_LEVEL || 'warn'},
+    log: { level: process.env.LOG_LEVEL || 'warn' },
     silent: true,
     start: function () {
       const { database } = bookshelf.knex.client.connectionSettings
@@ -45,16 +101,17 @@ before(function (done) {
 
       setup.createSchema()
         .then(async () => {
-          const cr1 = await CommonRole.forge({ name: 'Coordinator' }).save()
-          const cr2 = await CommonRole.forge({ name: 'Moderator' }).save()
-          const cr3 = await CommonRole.forge({ name: 'Host' }).save()
-          const r1 = await Responsibility.forge({ title: 'Administration', type: 'system' }).save()
-          const r2 = await Responsibility.forge({ title: 'Add Members', type: 'system' }).save()
-          const r3 = await Responsibility.forge({ title: 'Remove Members', type: 'system' }).save()
-          const r4 = await Responsibility.forge({ title: 'Manage Content', type: 'system' }).save()
-          await cr1.responsibilities().attach([r1, r2, r3, r4])
-          await cr2.responsibilities().attach([r3, r4])
-          await cr3.responsibilities().attach([r2])
+          const systemResponsibilities = [
+            'Administration',
+            'Add Members',
+            'Remove Members',
+            'Manage Content',
+            'Manage Tracks',
+            'Manage Rounds'
+          ]
+          for (const title of systemResponsibilities) {
+            await Responsibility.forge({ title, type: 'system' }).save()
+          }
           await new Tag({ name: 'general' }).save()
           done()
         })
@@ -66,15 +123,38 @@ before(function (done) {
 afterEach(() => nock.cleanAll())
 
 // Split SQL statements on semicolons while ignoring semicolons inside
-// dollar-quoted function/procedure bodies (e.g. $$ ... $$, $tag$ ... $tag$).
+// dollar-quoted function/procedure bodies (e.g. $$ ... $$, $tag$ ... $tag$)
+// and inside single-quoted string literals.
 function splitSqlStatements (sql) {
   const statements = []
   let current = ''
   let i = 0
   let dollarTag = null
+  let inSingleQuote = false
 
   while (i < sql.length) {
     const ch = sql[i]
+
+    if (inSingleQuote) {
+      current += ch
+      if (ch === "'") {
+        if (sql[i + 1] === "'") {
+          current += sql[i + 1]
+          i += 2
+          continue
+        }
+        inSingleQuote = false
+      }
+      i += 1
+      continue
+    }
+
+    if (!dollarTag && ch === "'") {
+      inSingleQuote = true
+      current += ch
+      i += 1
+      continue
+    }
 
     if (!dollarTag && ch === '$') {
       const m = sql.slice(i).match(/^\$[A-Za-z_][A-Za-z0-9_]*\$/) || (sql.slice(i, i + 2) === '$$' ? ['$$'] : null)
@@ -136,6 +216,10 @@ TestSetup.prototype.createSchema = function () {
 TestSetup.prototype.clearDb = function () {
   if (!this.initialized) throw new Error('not initialized')
   return bookshelf.knex.transaction(trx => trx.raw('set constraints all deferred')
+    .then(() => {
+      // Delete from user_scopes first to avoid foreign key constraint violations
+      return trx.raw('delete from public.user_scopes')
+    })
     .then(() => Promise.map(this.tables, table => { if (!['public.common_roles', 'public.responsibilities', 'public.common_roles_responsibilities', 'public.tags', 'public.platform_agreements'].includes(table)) { return trx.raw('delete from ' + table) } })))
 }
 

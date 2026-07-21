@@ -120,7 +120,8 @@ export default {
   },
 
   incrementIcalSequence: async function () {
-    this.save({ ical_sequence: this.getIcalSequence() + 1 })
+    const nextSeq = this.getIcalSequence() + 1
+    return this.save({ ical_sequence: nextSeq }, { patch: true })
   },
 
   createUserRsvpCalendarSubscriptions: async function () {
@@ -160,7 +161,7 @@ export default {
         event_name: this.title(),
         event_description: this.details(),
         event_location: this.get('location'),
-        event_url: calInvite.url,
+        event_url: Frontend.Route.post(this, this.relations.groups.first()),
         response: eventInvitation.getHumanResponse(),
         group_names: groupNames,
         newDate,

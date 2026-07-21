@@ -8,11 +8,19 @@ import { URL } from 'url'
 const cache = LRU(50)
 
 // flag-shared
-const staticPages = [
+// flag-shared
+export const staticPages = [
   '',
   '/about',
+  '/stories',
+  '/features',
+  '/pricing',
+  '/stewardship-support',
+  '/get-involved',
+  '/blog',
+  '/who-is-hylo-for',
+  '/why-choose-hylo',
   '/agreements',
-  '/participate',
   '/terms',
   '/privacy',
   '/murmurations.json',
@@ -92,11 +100,10 @@ export const handleStaticPages = server => {
   })
 
   server.use((req, res, next) => {
-    // Gatsby keeps its images, under the /static path, page data under /page-data
-    // and css + js at the root directory. Proxy those URLs to the static site
-    if (!req.originalUrl.startsWith('/static') &&
-        !req.originalUrl.startsWith('/page-data') &&
-        !/^\/[^/]+\.(js|css)$/.test(req.originalUrl)
+    // Astro bundles JS/CSS under /_astro; images and other public assets
+    // live under /v5 (and any other top-level public folders)
+    if (!req.originalUrl.startsWith('/_astro') &&
+        !req.originalUrl.startsWith('/v5')
     ) {
       return next()
     }
