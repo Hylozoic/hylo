@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.5.5] - 2026-07-21
+
+### Fixed
+- Chat paths more reliably handle query params, avoiding instances of bad chat queries
+- Ensure all participants of a message thread can see each other, before their first message
+
 ## [6.5.4] - 2026-07-14
 
 ### Changed
