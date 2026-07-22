@@ -275,6 +275,8 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   reactivate: function () {
+    const invalidReason = Validators.validateUser.name(this.get('name'))
+    if (invalidReason) return Promise.reject(new GraphQLError(invalidReason))
     return this.save({ active: true })
   },
 
@@ -1013,8 +1015,17 @@ function validateUserAttributes (attrs, { existingUser, transacting } = {}) {
     if (invalidReason) return Promise.reject(new GraphQLError(invalidReason))
   }
 
-  if (has(attrs, 'name')) {
-    const invalidReason = Validators.validateUser.name(attrs.name)
+  // Name is required whenever it is being set, or when the user is / will be active.
+  // Inactive email-verification stubs may omit name until register() / OAuth fills it in.
+  const willBeActive = has(attrs, 'active')
+    ? !!attrs.active
+    : (existingUser ? !!existingUser.get('active') : true)
+  const name = has(attrs, 'name')
+    ? attrs.name
+    : (existingUser ? existingUser.get('name') : undefined)
+
+  if (has(attrs, 'name') || willBeActive) {
+    const invalidReason = Validators.validateUser.name(name)
     if (invalidReason) return Promise.reject(new GraphQLError(invalidReason))
   }
 

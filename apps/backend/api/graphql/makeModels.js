@@ -252,6 +252,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
         hasStripeAccount: u => u.hasStripeAccount(),
         isAdmin: u => isAdmin || false,
         membershipCommonRoles: emptyQuerySet,
+        // Never expose null names to clients — they call .split() etc.
+        name: p => p.get('name') || '',
         rsvpCalendarUrl: u => u.rsvpCalendarUrl(),
         settings: u => mapKeys(camelCase, u.get('settings'))
       }
@@ -381,7 +383,9 @@ export default function makeModels (userId, isAdmin, apiClient) {
         completedAt: p => p.pivot && (p.pivot.get('settings') || {}).completedAt,
         enrolledAt: p => p.pivot && p.pivot.get('created_at'),
         membershipCommonRoles: emptyQuerySet,
-        messageThreadId: p => p.getMessageThreadWith(userId).then(post => post ? post.id : null)
+        messageThreadId: p => p.getMessageThreadWith(userId).then(post => post ? post.id : null),
+        // Never expose null names to clients — they call .split() etc.
+        name: p => p.get('name') || ''
       },
       relations: [
         'memberships',

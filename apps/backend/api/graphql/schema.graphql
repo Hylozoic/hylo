@@ -3629,7 +3629,7 @@ type Mutation {
   # Reinvite all pending invitations to the current group. Only a group Host can call this.
   reinviteAll(groupId: ID): GenericResult
   # Create a new user account
-  register(name: String, password: String): SignupResult
+  register(name: String!, password: String!): SignupResult
   # NOT USED RIGHT NOW
   registerStripeAccount(authorizationCode: String): GenericResult
   # Reject a Group's invite or request to connect to one of your groups. Only a group steward can call this.

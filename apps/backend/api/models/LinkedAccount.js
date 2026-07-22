@@ -63,6 +63,11 @@ module.exports = bookshelf.Model.extend({
         if (avatarUrl && !avatarUrl.match(/gravatar/)) {
           attributes.avatar_url = avatarUrl
         }
+        // Fill a missing name from the social profile when available
+        if (Validators.validateUser.name(user.get('name'))) {
+          const profileName = typeof profile?.name === 'string' ? profile.name.trim() : ''
+          if (profileName) attributes.name = profileName
+        }
         if (!isEmpty(attributes)) {
           const q = User.query().where('id', userId)
           if (transacting) {
