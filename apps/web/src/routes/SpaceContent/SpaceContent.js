@@ -71,6 +71,12 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
   const spaceGroup = useSelector(state => getGroupForSlug(state, spaceFullSlug))
   const spaceGroupId = spaceGroup?.id || linkedSpace?.id
   const spaceGroupViewsLoaded = spaceGroup?.groupViews != null
+  // Nested parent/space fetches may populate groupViews without lastReadPostId. ChatRoom
+  // restores scroll from that field — wait for a views fetch that includes it.
+  const spaceChatMissingLastRead = (spaceGroup?.groupViews?.items || []).some(
+    view => view.type === 'chat' && !Object.prototype.hasOwnProperty.call(view, 'lastReadPostId')
+  )
+  const needsSpaceGroupViews = !spaceGroupViewsLoaded || spaceChatMissingLastRead
 
   const myMemberships = useSelector(getMyMemberships)
   const isSpaceMember = useMemo(
@@ -85,10 +91,10 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
   }, [dispatch, spaceFullSlug, spaceGroup])
 
   useEffect(() => {
-    if (isSpaceMember && spaceGroupId && !spaceGroupViewsLoaded) {
+    if (isSpaceMember && spaceGroupId && needsSpaceGroupViews) {
       dispatch(fetchGroupViews(spaceGroupId))
     }
-  }, [dispatch, isSpaceMember, spaceGroupId, spaceGroupViewsLoaded])
+  }, [dispatch, isSpaceMember, spaceGroupId, needsSpaceGroupViews])
 
   if (!parentGroup || !localSlug) return <Loading />
   if (!linkedSpace) return <Loading />
@@ -105,7 +111,7 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
     )
   }
 
-  if (spaceFullSlug && (!spaceGroup || !spaceGroupViewsLoaded)) return <Loading />
+  if (spaceFullSlug && (!spaceGroup || needsSpaceGroupViews)) return <Loading />
 
   const homeRoute = spaceGroup?.homeRoute || linkedSpace?.homeRoute || '/welcome'
   const spaceBase = spaceUrl(parentSlug, localSlug)

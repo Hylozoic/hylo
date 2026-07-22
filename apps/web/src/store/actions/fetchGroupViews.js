@@ -106,6 +106,7 @@ export default function fetchGroupViews (groupId) {
                     order
                     icon
                     newPostCount
+                    lastReadPostId
                     viewPost {
                       id
                       title
