@@ -31,11 +31,13 @@ export default gql`
     }
     slug
     type
+    parentId
+    icon
+    acceptedPostTypes
     typeDescriptor
     typeDescriptorPlural
     visibility
     websiteUrl
-    welcomePage
     agreements {
       items {
         id

@@ -258,7 +258,8 @@ describe('User', function () {
       return User.create({
         email: null,
         group,
-        account: { type: 'password', password: 'password' }
+        account: { type: 'password', password: 'password' },
+        name: 'foo bar'
       })
         .then(user => expect.fail())
         .catch(err => expect(err.message).to.equal('invalid-email'))
@@ -319,6 +320,7 @@ describe('User', function () {
 
     it('works with linkedin', function () {
       return User.create({
+        name: 'Linked In User',
         email: 'foo4@bar.com',
         account: {
           type: 'linkedin',
@@ -336,6 +338,7 @@ describe('User', function () {
 
           expect(user.id).to.exist
           expect(user.get('active')).to.be.true
+          expect(user.get('name')).to.equal('Linked In User')
           expect(user.get('linkedin_url')).to.equal('https://www.linkedin.com/in/foobar')
           expect(user.get('avatar_url')).to.equal(catPic)
 
@@ -349,6 +352,26 @@ describe('User', function () {
               .then(membership => expect(membership).to.exist)
           )
         })
+    })
+
+    it('allows inactive users without a name (email verification stub)', function () {
+      return User.create({
+        email: 'stub-no-name@bar.com',
+        active: false
+      })
+        .then(user => {
+          expect(user.id).to.exist
+          expect(user.get('active')).to.be.false
+          expect(user.get('name')).to.not.exist
+        })
+    })
+
+    it('rejects active users without a name', function () {
+      return User.create({
+        email: 'active-no-name@bar.com'
+      })
+        .then(() => expect.fail())
+        .catch(err => expect(err.message).to.equal('Name must be a string.'))
     })
   })
 

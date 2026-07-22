@@ -40,6 +40,28 @@ export {
   setHomeWidget
 } from './context_widgets'
 export {
+  createGroupView,
+  updateGroupView,
+  updateGroupViewUser,
+  deleteGroupView,
+  reorderGroupView,
+  setGroupViewHidden,
+  setHomeView,
+  markViewAsRead,
+  updateViewSettings,
+  addPostToView,
+  removePostFromView,
+  reorderViewPost
+} from './group_views'
+export {
+  createSpace,
+  updateSpace,
+  archiveSpace,
+  deleteSpace,
+  joinSpace,
+  leaveSpace
+} from './spaces'
+export {
   respondToEvent,
   invitePeopleToEvent
 } from './event'
@@ -136,8 +158,7 @@ export {
   duplicateTrack,
   enrollInTrack,
   leaveTrack,
-  updateTrack,
-  updateTrackActionOrder
+  updateTrack
 } from './track'
 export {
   allocateTokensToSubmission,
@@ -192,11 +213,11 @@ export async function updateMe (sessionId, userId, changes) {
   // Generate calendar token if RSVP calendar subscription is enabled and token doesn't exist
   if (convertedChanges.settings?.rsvp_calendar_sub) {
     !user.get('calendar_token') && (convertedChanges.calendar_token = uuidv4())
-    Queue.classMethod('User', 'createRsvpCalendarSubscription', { userId: user.id })    
+    Queue.classMethod('User', 'createRsvpCalendarSubscription', { userId: user.id })
   }
   // if disabling, the subscription will become empty, same as unsubscribing
   if (convertedChanges.settings?.rsvp_calendar_sub === false && user.get('calendar_token')) {
-    Queue.classMethod('User', 'createRsvpCalendarSubscription', { userId: user.id })    
+    Queue.classMethod('User', 'createRsvpCalendarSubscription', { userId: user.id })
   }
 
   return user.validateAndSave(sessionId, convertedChanges)

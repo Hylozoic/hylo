@@ -57,6 +57,19 @@ const getSlug = function (group) {
   return slug
 }
 
+/** Local space slug portion from a stored space slug (`{parentSlug}-{localName}`). */
+const localSpaceSlug = function (parentSlug, spaceFullSlug) {
+  if (!parentSlug || !spaceFullSlug) return spaceFullSlug || ''
+  const prefix = `${parentSlug}-`
+  return spaceFullSlug.startsWith(prefix) ? spaceFullSlug.slice(prefix.length) : spaceFullSlug
+}
+
+/** Normalize an optional view path (`chat` → `/chat`). Empty/null → ''. */
+const normalizeViewPath = function (viewPath) {
+  if (viewPath == null || viewPath === '') return ''
+  return viewPath.startsWith('/') ? viewPath : `/${viewPath}`
+}
+
 const getTopicName = function (topic) {
   let name
   if (isString(topic)) { // In case we passed just the name in instead of group object
@@ -192,7 +205,11 @@ module.exports = {
         groupUrl = '/public'
       } else if (!isEmpty(groupSlug)) {
         if (fundingRound) {
-          return url(`/groups/${groupSlug}/funding-rounds/${getModelId(fundingRound)}/submissions/post/${getModelId(post)}${querySuffix ? '?' + querySuffix : ''}`)
+          // `group` is the funding-round space
+          return appendQueryString(
+            module.exports.Route.space(group, `/funding-round-submissions/post/${getModelId(post)}`),
+            querySuffix
+          )
         }
 
         const tags = post.relations?.tags
@@ -239,8 +256,49 @@ module.exports = {
       return url(`/tracks/${getModelId(track)}`)
     },
 
-    fundingRound: function (fundingRound, group, tab = null) {
-      return url(`/groups/${getSlug(group)}/funding-rounds/${getModelId(fundingRound)}${tab ? `/${tab}` : ''}`)
+    /**
+     * URL for a space under its parent group.
+     * `spaceGroup` should have `parentGroup` loaded (relations.parentGroup).
+     * @param {Group|string} spaceGroup - space Group (or slug)
+     * @param {string} [viewPath] - optional view path, e.g. 'funding-round-submissions' or '/chat'
+     *   When omitted, uses the space's home_route (or '' if unset).
+     */
+    space: function (spaceGroup, viewPath) {
+      const spaceSlug = getSlug(spaceGroup)
+      if (!spaceSlug) return url('/')
+
+      const parent = spaceGroup?.relations?.parentGroup
+      const parentSlug = parent ? getSlug(parent) : null
+
+      let path
+      if (viewPath !== undefined && viewPath !== null) {
+        path = normalizeViewPath(viewPath)
+      } else {
+        const homeRoute = spaceGroup?.get ? spaceGroup.get('home_route') : null
+        path = normalizeViewPath(homeRoute || '')
+      }
+
+      if (parentSlug) {
+        const local = localSpaceSlug(parentSlug, spaceSlug)
+        return url(`/groups/${parentSlug}/spaces/${local}${path}`)
+      }
+      // Parent not loaded (or not a nested space): fall back to treating slug as a group path
+      return url(`/groups/${spaceSlug}${path}`)
+    },
+
+    /**
+     * Funding-round space URL. `group` is the FR space.
+     * Optional `view` is a space view path (e.g. 'funding-round-submissions').
+     * Legacy notification tab names `submissions` / `voting` map to that view.
+     */
+    fundingRound: function (fundingRound, group, view) {
+      let viewPath = view
+      if (view === 'submissions' || view === 'voting') {
+        viewPath = 'funding-round-submissions'
+      } else if (view == null) {
+        viewPath = (group?.get && group.get('home_route')) || 'funding-round-submissions'
+      }
+      return module.exports.Route.space(group, viewPath)
     },
 
     unfollow: function (post, group) {

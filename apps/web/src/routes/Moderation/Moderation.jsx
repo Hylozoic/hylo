@@ -9,7 +9,7 @@ import NoPosts from 'components/NoPosts'
 import PostDialog from 'components/PostDialog'
 import ScrollListener from 'components/ScrollListener'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
-import useRouteParams from 'hooks/useRouteParams'
+import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import { fetchModerationActions, clearModerationAction } from 'store/actions/moderationActions'
 import { FETCH_MODERATION_ACTIONS } from 'store/constants'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
@@ -18,8 +18,7 @@ import { cn } from 'util/index'
 
 export default function Moderation (props) {
   const dispatch = useDispatch()
-  const routeParams = useRouteParams()
-  const { groupSlug } = routeParams
+  const groupSlug = useEffectiveGroupSlug()
   const context = props.context
 
   const [container, setContainer] = useState(null)

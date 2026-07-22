@@ -41,7 +41,7 @@ export default ({ items, group }) => {
       <Slider {...settings} onSwipe={handleSwiped}>
         {items.map(m => (
           <div key={m.id} className={classes.activeUser}>
-            <div className={classes.userName}>{m.name.split(' ')[0]}</div>
+            <div className={classes.userName}>{(m.name || '').split(' ')[0]}</div>
             <div className={classes.userControls}>
               <div className={classes.buttons}>
                 <Link to={messagePersonUrl(m)} onClickCapture={handleOnItemClick}>

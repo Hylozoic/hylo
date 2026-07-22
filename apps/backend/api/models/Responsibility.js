@@ -3,8 +3,7 @@ const RESP_ADMINISTRATION = 'Administration'
 const RESP_ADD_MEMBERS = 'Add Members'
 const RESP_REMOVE_MEMBERS = 'Remove Members'
 const RESP_MANAGE_CONTENT = 'Manage Content'
-const RESP_MANAGE_TRACKS = 'Manage Tracks'
-const RESP_MANAGE_ROUNDS = 'Manage Rounds'
+const RESP_MANAGE_SPACES = 'Manage Spaces'
 
 module.exports = bookshelf.Model.extend({
   tableName: 'responsibilities',
@@ -17,7 +16,7 @@ module.exports = bookshelf.Model.extend({
 
   // responsiblities have a many-to-many relationship with group_roles
   groupRoles: function () {
-    return this.belongsToMany(GroupRole, 'group_roles_responsibilities', 'responsibility_id', 'group_role_id')
+    return this.belongsToMany(GroupRole, 'group_roles_responsibilities', 'group_role_id', 'responsibility_id')
   }
 }, {
   constants: {
@@ -25,12 +24,11 @@ module.exports = bookshelf.Model.extend({
     RESP_ADMINISTRATION,
     RESP_MANAGE_CONTENT,
     RESP_REMOVE_MEMBERS,
-    RESP_MANAGE_ROUNDS,
-    RESP_MANAGE_TRACKS
+    RESP_MANAGE_SPACES
   },
 
   // Users with these responsibilities we show to users in the sidebar of the group
-  IMPORTANT_RESPONSIBILITIES: [RESP_ADMINISTRATION, RESP_REMOVE_MEMBERS, RESP_MANAGE_CONTENT, RESP_MANAGE_TRACKS],
+  IMPORTANT_RESPONSIBILITIES: [RESP_ADMINISTRATION, RESP_REMOVE_MEMBERS, RESP_MANAGE_CONTENT, RESP_MANAGE_SPACES],
 
   fetchAll: function ({ groupId = 0, groupRoleId }) {
     if (groupRoleId) {
@@ -41,13 +39,18 @@ module.exports = bookshelf.Model.extend({
     return bookshelf.knex('responsibilities').whereRaw('group_id is NULL or group_id = ?', groupId)
   },
 
-  fetchForUserAndGroupAsStrings (userId, groupId) {
+  /**
+   * Responsibilities for a user in a group/space.
+   * Spaces inherit role assignments from their parent group (COALESCE(parent_id, id)).
+   */
+  async fetchForUserAndGroupAsStrings (userId, groupId) {
+    const roleScopeId = await Group.roleScopeId(groupId)
     return bookshelf.knex.raw(
       `WITH UserGroupRoles AS (
         SELECT group_role_id
         FROM group_memberships_group_roles
         WHERE user_id = ${userId}
-          AND group_id = ${groupId}
+          AND group_id = ${roleScopeId}
       ),
       ResponsibilitiesCTE AS (
         SELECT responsibility_id
@@ -90,7 +93,12 @@ module.exports = bookshelf.Model.extend({
     })
   },
 
-  fetchForGroup (groupId) {
+  /**
+   * System responsibilities held by members of a group/space.
+   * Spaces resolve role assignments against the parent group.
+   */
+  async fetchForGroup (groupId) {
+    const roleScopeId = await Group.roleScopeId(groupId)
     return bookshelf.knex.raw(
       `SELECT DISTINCT
         r.title AS responsibility_title,
@@ -98,7 +106,7 @@ module.exports = bookshelf.Model.extend({
       FROM responsibilities r
       JOIN group_roles_responsibilities gr ON r.id = gr.responsibility_id
       JOIN group_memberships_group_roles m ON gr.group_role_id = m.group_role_id
-      WHERE r.type = 'system' AND m.group_id = ${groupId};`
+      WHERE r.type = 'system' AND m.group_id = ${roleScopeId};`
     ).then(resp => resp.rows)
   },
 

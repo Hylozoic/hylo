@@ -280,7 +280,11 @@ describe('on UPDATE_GROUP_SETTINGS_PENDING', () => {
   const group = session.Group.create({
     id,
     name: 'Old Name',
-    description: 'Old description'
+    description: 'Old description',
+    settings: {
+      showWelcomePage: true,
+      showSuggestedSkills: true
+    }
   })
   session.Membership.create({
     group: group.id,
@@ -309,6 +313,27 @@ describe('on UPDATE_GROUP_SETTINGS_PENDING', () => {
     const group = newSession.Group.withId(id)
     expect(group.name).toEqual(name)
     expect(group.description).toEqual(description)
+  })
+
+  it('merges settings instead of replacing them', () => {
+    const action = {
+      type: UPDATE_GROUP_SETTINGS_PENDING,
+      meta: {
+        id,
+        changes: {
+          settings: {
+            showWelcomePage: false
+          }
+        }
+      }
+    }
+    const newState = ormReducer(session.state, action)
+    const newSession = orm.session(newState)
+    const group = newSession.Group.withId(id)
+    expect(group.settings).toEqual({
+      showWelcomePage: false,
+      showSuggestedSkills: true
+    })
   })
 })
 

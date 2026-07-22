@@ -5,8 +5,6 @@ import ModalDialog from 'components/ModalDialog'
 import ImageCarousel from 'components/ImageCarousel'
 import { bgImageStyle, cn } from 'util/index'
 
-import classes from './CardImageAttachments.module.scss'
-
 export default function CardImageAttachments ({
   attachments = [],
   className,
@@ -40,12 +38,28 @@ export default function CardImageAttachments ({
 
   return (
     <>
-      <div className={cn(className, classes.images, { [classes.chatPost]: forChatPost, [classes.flagged]: isFlagged })}>
+      <div
+        className={cn(
+          className,
+          'relative [&_img]:cursor-pointer',
+          forChatPost && 'flex overflow-x-auto overflow-y-hidden h-[90px] ml-12',
+          isFlagged && !forChatPost && 'overflow-hidden',
+          isFlagged && '[&_img]:blur-[30px]'
+        )}
+      >
         {forChatPost
           ? (
-            <div className={classes.imagesInner}>
+            <div className='flex flex-row'>
               {imageAttachments.map((image, index) =>
-                <div key={image.url} data-index={index} className={classes.image} style={bgImageStyle(image.url)} role='img' aria-label={image.url} onClick={toggleModal} />
+                <div
+                  key={image.url}
+                  data-index={index}
+                  className='block w-20 h-20 cursor-pointer rounded-sm mr-5 bg-cover border border-foreground/10 shadow-lg shadow-foreground/30 hover:brightness-110'
+                  style={bgImageStyle(image.url)}
+                  role='img'
+                  aria-label={image.url}
+                  onClick={toggleModal}
+                />
               )}
             </div>
             )
@@ -54,24 +68,16 @@ export default function CardImageAttachments ({
               <img
                 src={firstImageUrl}
                 alt='Attached image 1'
-                className='rounded-xl shadow-2xl'
+                className='block mx-auto my-0 w-full h-auto max-h-[500px] object-cover rounded-xl shadow-2xl cursor-pointer'
                 data-index={0}
                 onClick={toggleModal}
                 data-testid='first-image'
-                style={{
-                  maxHeight: '500px',
-                  width: '100%',
-                  height: 'auto',
-                  display: 'block',
-                  margin: '0 auto',
-                  objectFit: 'cover'
-                }}
               />
-              <div className={classes.others}>
-                <div className={classes.othersInner}>
+              <div className='absolute w-full bottom-[15px] right-0 flex overflow-x-auto py-2.5 pl-2 cursor-pointer'>
+                <div className='flex flex-row ml-auto'>
                   {!isEmpty(otherImageUrls) && otherImageUrls.map((url, index) =>
                     <img
-                      className={classes.other}
+                      className='block border-2 border-card w-auto h-20 rounded-sm mr-5 object-cover shadow-lg shadow-foreground/60 hover:brightness-110 cursor-pointer'
                       data-index={index + 1}
                       src={url}
                       alt={`Attached image ${index + 2}`}

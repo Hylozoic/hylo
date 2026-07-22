@@ -12,7 +12,6 @@ import { findThread } from './post/findOrCreateThread'
 import { generateHyloJWT } from '../../lib/HyloJWT'
 import ical from 'ical-generator'
 import Frontend from '../services/Frontend'
-const { DateTime } = require('luxon')
 
 module.exports = bookshelf.Model.extend(merge({
   tableName: 'users',
@@ -259,11 +258,13 @@ module.exports = bookshelf.Model.extend(merge({
     return this.hasMany(Thank)
   },
 
+  // TODO: do we need this? i think we can see all their tracks by loading all spaces with type track
   tracksEnrolledIn: function () {
-    return this.belongsToMany(Track).through(TrackUser).query(q => {
-      q.where('tracks_users.user_id', this.id)
-      q.whereNotNull('tracks_users.enrolled_at')
-    })
+    return this.belongsToMany(Track, 'group_memberships', 'user_id', 'group_id', 'id', 'group_id')
+      .query(q => {
+        q.where('group_memberships.active', true)
+        q.whereNull('tracks.deactivated_at')
+      })
   },
 
   intercomHash: function () {
@@ -274,6 +275,8 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   reactivate: function () {
+    const invalidReason = Validators.validateUser.name(this.get('name'))
+    if (invalidReason) return Promise.reject(new GraphQLError(invalidReason))
     return this.save({ active: true })
   },
 
@@ -893,7 +896,7 @@ module.exports = bookshelf.Model.extend(merge({
       const group = await Group.find(groupId)
       if (user && group) {
         for (const trigger of zapierTriggers) {
-          const response = await fetch(trigger.get('target_url'), {
+          await fetch(trigger.get('target_url'), {
             method: 'post',
             body: JSON.stringify({
               id: user.id,
@@ -917,7 +920,7 @@ module.exports = bookshelf.Model.extend(merge({
       memberships.models.forEach(async (membership) => {
         const zapierTriggers = await ZapierTrigger.forTypeAndGroups('member_updated', membership.get('group_id')).fetchAll()
         for (const trigger of zapierTriggers) {
-          const response = await fetch(trigger.get('target_url'), {
+          await fetch(trigger.get('target_url'), {
             method: 'post',
             body: JSON.stringify(Object.assign({ id: user.id, profileUrl: Frontend.Route.profile(user, membership.relations.group) }, changes)),
             headers: { 'Content-Type': 'application/json' }
@@ -962,18 +965,16 @@ module.exports = bookshelf.Model.extend(merge({
     // Fetch all EventInvitations for this user with YES or INTERESTED responses
     // but returnempty collection if RSVP calendar subscription is disabled
     const fromDate = Post.eventCalSubDateLimit().toISO()
-    const eventInvitations = user.get('settings')?.rsvp_calendar_sub ?
-      await EventInvitation
-        .query(q => {
-          q.join('posts', 'event_invitations.event_id', 'posts.id')
-          q.where('event_invitations.user_id', userId)
-          q.where('posts.active', true)
-          q.where('posts.start_time', '>=', fromDate)
-          q.whereIn('event_invitations.response', [
-            EventInvitation.RESPONSE.YES,
-            EventInvitation.RESPONSE.INTERESTED
-          ])
-        })
+    const eventInvitations = user.get('settings')?.rsvp_calendar_sub
+      ? await EventInvitation.query()
+        .join('posts', 'event_invitations.event_id', 'posts.id')
+        .where('event_invitations.user_id', userId)
+        .where('posts.active', true)
+        .where('posts.start_time', '>=', fromDate)
+        .whereIn('event_invitations.response', [
+          EventInvitation.RESPONSE.YES,
+          EventInvitation.RESPONSE.INTERESTED
+        ])
         .fetchAll({ withRelated: 'event' })
       : { models: [] }
 
@@ -1003,8 +1004,8 @@ module.exports = bookshelf.Model.extend(merge({
     await require('../../lib/uploader/storage').writeStringToS3(
       cal.toString(),
       user.getRsvpCalendarPath(), {
-      ContentType: 'text/calendar'
-    })
+        ContentType: 'text/calendar'
+      })
   }
 })
 
@@ -1014,8 +1015,17 @@ function validateUserAttributes (attrs, { existingUser, transacting } = {}) {
     if (invalidReason) return Promise.reject(new GraphQLError(invalidReason))
   }
 
-  if (has(attrs, 'name')) {
-    const invalidReason = Validators.validateUser.name(attrs.name)
+  // Name is required whenever it is being set, or when the user is / will be active.
+  // Inactive email-verification stubs may omit name until register() / OAuth fills it in.
+  const willBeActive = has(attrs, 'active')
+    ? !!attrs.active
+    : (existingUser ? !!existingUser.get('active') : true)
+  const name = has(attrs, 'name')
+    ? attrs.name
+    : (existingUser ? existingUser.get('name') : undefined)
+
+  if (has(attrs, 'name') || willBeActive) {
+    const invalidReason = Validators.validateUser.name(name)
     if (invalidReason) return Promise.reject(new GraphQLError(invalidReason))
   }
 

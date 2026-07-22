@@ -16,9 +16,10 @@ import CookieConsentLinker from 'components/CookieConsentLinker'
 import ContextMenu from './components/ContextMenu'
 import CreateModal from 'components/CreateModal'
 import GlobalNav from './components/GlobalNav'
-import OneColumnLayout from './components/ContextMenu/OneColumnLayout'
+import ContextMenuGrid from './components/ContextMenu/ContextMenuGrid'
+import MoreSpacesPage from './components/ContextMenu/MoreSpacesPage'
+import EditMenuPage from './components/ContextMenu/EditMenuPage'
 import TopNav from './components/TopNav'
-import { useTheme } from 'contexts/ThemeContext'
 import NotFound from 'components/NotFound'
 import SocketListener from 'components/SocketListener'
 import SocketSubscriber from 'components/SocketSubscriber'
@@ -46,8 +47,11 @@ import {
   POST_DETAIL_MATCH, GROUP_DETAIL_MATCH, postUrl
 } from '@hylo/navigation'
 import { CENTER_COLUMN_ID, DETAIL_COLUMN_ID } from 'util/scrolling'
+import {
+  isCardMenuPreference,
+  isOneColumnLayout as resolveIsOneColumnLayout
+} from 'util/navigationLayout'
 import AllTopics from 'routes/AllTopics'
-import AllView from 'routes/AllView'
 import ChatRoom from 'routes/ChatRoom'
 import CreateGroup from 'routes/CreateGroup'
 import GroupDetail from 'routes/GroupDetail'
@@ -75,11 +79,9 @@ import OfferingDetails from 'routes/OfferingDetails/OfferingDetails'
 import PostDetail from 'routes/PostDetail'
 import Search from 'routes/Search'
 import Stream from 'routes/Stream'
+import ViewContent from 'routes/ViewContent'
+import SpaceContent from 'routes/SpaceContent'
 import Themes from 'routes/Themes'
-import TrackHome from 'routes/TrackHome'
-import FundingRounds from 'routes/FundingRounds'
-import FundingRoundHome from 'routes/FundingRoundHome'
-import Tracks from 'routes/Tracks'
 import UserSettings from 'routes/UserSettings'
 import WelcomeWizardRouter from 'routes/WelcomeWizardRouter'
 import { VIEW_DRAFTS } from 'store/constants'
@@ -100,11 +102,11 @@ export default function AuthLayoutRouter (props) {
   const resizeRef = useRef()
   const navigate = useNavigate()
   const { hideNavLayout } = useLayoutFlags()
-  const { navMode } = useTheme()
+  // Start false so a Me load with stackGroups=true still triggers a childGroups refetch
+  const prevStackGroupsRef = useRef(false)
   // Tabs are forced off on phone-sized viewports — only ~2 group icons fit there
   // and the existing mobile drawer already handles narrow screens well.
   const isPhoneViewport = useIsPhoneViewport()
-  const isTabNav = navMode === 'tabs' && !isPhoneViewport
   const withoutNav = isLegacyWebView() || hideNavLayout
   const newVersionAvailable = useNewAppVersion()
   const newVersionToastShownRef = useRef(false)
@@ -116,14 +118,18 @@ export default function AuthLayoutRouter (props) {
     const matches = [
       { path: `${POST_DETAIL_MATCH}` },
       { path: 'groups/:joinGroupSlug/join/:accessCode', context: 'groups' },
+      { path: 'groups/:groupSlug/spaces/:spaceSlug/*', context: 'groups' },
       { path: 'groups/:groupSlug/:view/*', context: 'groups' },
       { path: 'groups/:groupSlug/*', context: 'groups' },
       { path: 'all/:view/*', context: 'all' },
       { path: 'public/:view/*', context: 'public' },
       { path: 'all/*', context: 'all' },
       { path: 'public/*', context: 'public' },
+      { path: 'all', context: 'all' },
+      { path: 'public', context: 'public' },
       { path: 'welcome/*', context: 'welcome' },
-      { path: 'my/*', context: 'my' }
+      { path: 'my/*', context: 'my' },
+      { path: 'my', context: 'my' }
     ]
     const match = matches.find(match => matchPath(match, location.pathname))
     const matchResult = match ? matchPath(match, location.pathname) : null
@@ -149,14 +155,42 @@ export default function AuthLayoutRouter (props) {
   const isMapView = pathMatchParams?.view === 'map'
   const isWelcomeContext = pathMatchParams?.context === 'welcome'
   const isCreateGroupRoute = location.pathname.startsWith('/create-group')
-  // For simple groups: home and settings show the inline sidebar; everything else
-  // ("a view") takes the full viewport with no sidebar.
+  // Store
+  const dispatch = useDispatch()
+  const currentGroup = useSelector(state => getGroupForSlug(state, currentGroupSlug))
+  const currentGroupMembership = useSelector(state => getMyGroupMembership(state, currentGroupSlug))
+  const currentUser = useSelector(getMe)
+  const globalNavStyle = currentUser?.settings?.globalNavStyle === 'tabs' ? 'tabs' : 'sidebar'
+  const stackGroups = currentUser?.settings?.stackGroups === true
+  const isTabNav = globalNavStyle === 'tabs' && !isPhoneViewport
+  const userGroupNavStyle = currentUser?.settings?.groupNavStyle
+  const isCardMenuUser = isCardMenuPreference(userGroupNavStyle)
+  const isOneColumnGroup = useMemo(() => {
+    if (pathMatchParams?.context !== 'groups') return false
+    return resolveIsOneColumnLayout(userGroupNavStyle, currentGroup?.settings?.layout)
+  }, [pathMatchParams?.context, currentGroup?.settings?.layout, userGroupNavStyle])
+  // Card menu for My / All / Public when the user explicitly chose one-column.
+  const isOneColumnContext = isCardMenuUser && ['my', 'all', 'public'].includes(pathMatchParams?.context)
+  const isOneColumnNav = isOneColumnGroup || isOneColumnContext
+  const independentSpaceMenu = currentUser?.settings?.independentSpaceMenu === true
+
+  // For simple groups: menu levels (home, more-spaces, space menu) and settings show
+  // the inline sidebar; everything else ("a view") takes the full viewport with no sidebar.
   const isSimpleGroupHomeOrSettings = useMemo(() => {
     if (!currentGroupSlug) return false
     const path = location.pathname.replace(/\/$/, '')
-    return path === `/groups/${currentGroupSlug}` ||
-      path.startsWith(`/groups/${currentGroupSlug}/settings`)
+    const groupBase = `/groups/${currentGroupSlug}`
+    if (path === groupBase || path.startsWith(`${groupBase}/settings`)) return true
+    if (path === `${groupBase}/more-spaces` || path === `${groupBase}/edit-menu`) return true
+    // Space menu root: /groups/:slug/spaces/:spaceSlug (no further view path)
+    const spaceMenuMatch = path.match(new RegExp(`^/groups/${currentGroupSlug}/spaces/[^/]+$`))
+    return Boolean(spaceMenuMatch)
   }, [currentGroupSlug, location.pathname])
+  const isContextMenuHome = useMemo(() => {
+    const path = location.pathname.replace(/\/$/, '')
+    return path === '/my' || path === '/all' || path === '/public'
+  }, [location.pathname])
+  const isOneColumnHome = (isOneColumnGroup && isSimpleGroupHomeOrSettings) || (isOneColumnContext && isContextMenuHome)
   // Phone settings use master-detail in the center column, so the sidebar
   // (GlobalNav + GroupSettingsMenu) is suppressed entirely.
   const isOnGroupSettings = useMemo(() => {
@@ -164,28 +198,6 @@ export default function AuthLayoutRouter (props) {
     return location.pathname.startsWith(`/groups/${currentGroupSlug}/settings`)
   }, [currentGroupSlug, location.pathname])
   const isPhoneSettings = isPhoneViewport && isOnGroupSettings
-
-  // Store
-  const dispatch = useDispatch()
-  const currentGroup = useSelector(state => getGroupForSlug(state, currentGroupSlug))
-  const isOneColumnGroup = useMemo(() => {
-    if (pathMatchParams?.context !== 'groups') return false
-    // Use group settings if available
-    if (currentGroup?.settings?.layout) {
-      // Cache for instant access on next visit
-      if (currentGroupSlug) {
-        try { window.localStorage.setItem(`hylo-group-layout-${currentGroupSlug}`, currentGroup.settings.layout) } catch (e) {}
-      }
-      return currentGroup.settings.layout === 'one-column'
-    }
-    // Fall back to cached value to prevent flash
-    if (currentGroupSlug) {
-      try { return window.localStorage.getItem(`hylo-group-layout-${currentGroupSlug}`) === 'one-column' } catch (e) {}
-    }
-    return false
-  }, [pathMatchParams?.context, currentGroup?.settings?.layout, currentGroupSlug])
-  const currentGroupMembership = useSelector(state => getMyGroupMembership(state, currentGroupSlug))
-  const currentUser = useSelector(getMe)
   const isDrawerOpen = useSelector(state => get('AuthLayoutRouter.isDrawerOpen', state))
   const isNavOpen = useSelector(state => get('AuthLayoutRouter.isNavOpen', state)) // For mobile nav
   const lastViewedGroup = useSelector(getLastViewedGroup)
@@ -504,7 +516,7 @@ export default function AuthLayoutRouter (props) {
         // so the post data is ready (or nearly ready) by the time the auth shell renders.
         const bootstrapFetches = [
           dispatch(fetchForCurrentUser()),
-          ...(paramPostId ? [dispatch(fetchPost(paramPostId, false))] : [])
+          ...(paramPostId ? [dispatch(fetchPost(paramPostId))] : [])
         ]
         await Promise.all(bootstrapFetches)
         bootstrapOk = true
@@ -538,6 +550,15 @@ export default function AuthLayoutRouter (props) {
     document.addEventListener('visibilitychange', handleVisibilityChange)
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
   }, [])
+
+  // If the user turns stack-groups on after a flat MeQuery load, refetch so childGroups are available.
+  useEffect(() => {
+    const wasStacked = prevStackGroupsRef.current
+    prevStackGroupsRef.current = stackGroups
+    if (stackGroups && !wasStacked) {
+      dispatch(fetchForCurrentUser({ includeChildGroups: true }))
+    }
+  }, [dispatch, stackGroups])
 
   useEffect(() => {
     if (currentUser?.settings?.locale) {
@@ -607,16 +628,16 @@ export default function AuthLayoutRouter (props) {
   useEffect(() => {
     if (currentGroupSlug && currentGroupMembership && currentGroup?.paywall && currentGroup?.canAccess === false) {
       const currentPath = location.pathname
-      const streamPath = `/groups/${currentGroupSlug}/stream`
+      const homePath = `/groups/${currentGroupSlug}${currentGroup?.homeRoute || '/all'}`
       const onOfferingPurchasePath = currentPath.startsWith(`/groups/${currentGroupSlug}/offerings/`)
-      // Only redirect if not already on stream page; keep offering URLs so members can buy access
-      if (!currentPath.includes('/stream') && !onOfferingPurchasePath) {
+      // Only redirect if not already on a view page; keep offering URLs so members can buy access
+      if (!currentPath.includes(homePath) && !currentPath.includes('/stream') && !onOfferingPurchasePath) {
         // Mobile web: LOCATION_CHANGE only closes the group drawer, not the sliding nav + backdrop.
         // Close the nav so the paywall / no-access stream view is visible after redirect.
         if (typeof window !== 'undefined' && window.innerWidth < 640) {
           dispatch(toggleNavMenu(false))
         }
-        navigate(streamPath, { replace: true })
+        navigate(homePath, { replace: true })
       }
     }
   }, [currentGroupSlug, currentGroupMembership, currentGroup?.paywall, currentGroup?.canAccess, location.pathname, navigate, dispatch])
@@ -743,7 +764,7 @@ export default function AuthLayoutRouter (props) {
     if (currentGroup?.settings?.showWelcomePage) {
       navigate(`/groups/${currentGroupSlug}/welcome`, { replace: true })
     } else {
-      navigate(`/groups/${currentGroupSlug}${currentGroup?.homeRoute || '/stream'}`, { replace: true })
+      navigate(`/groups/${currentGroupSlug}${currentGroup?.homeRoute || '/all'}`, { replace: true })
     }
   }
 
@@ -806,10 +827,10 @@ export default function AuthLayoutRouter (props) {
 
         {/* Simple groups skip the mobile drawer pattern: their home dashboard already
             functions as the menu, so the sidebar renders inline (like desktop) on phone too. */}
-        <div ref={resizeRef} className={cn(classes.main, { [classes.mapView]: isMapView, [classes.withoutNav]: withoutNav || isTabNav, [classes.mainPad]: !withoutNav && !isTabNav && !isOneColumnGroup })}>
+        <div ref={resizeRef} className={cn(classes.main, { [classes.mapView]: isMapView, [classes.withoutNav]: withoutNav || isTabNav, [classes.mainPad]: !withoutNav && !isTabNav && !isOneColumnNav })}>
           {/* Mobile nav backdrop overlay - not shown on create-group so back chevron gets first tap */}
           {/* TODO: this is a hack for the create group route, which we may make a modal handle a different better way  */}
-          {!withoutNav && !isTabNav && !isCreateGroupRoute && !isOneColumnGroup && (
+          {!withoutNav && !isTabNav && !isCreateGroupRoute && !isOneColumnNav && (
             <div
               ref={setBackdropRef}
               className={cn('fixed inset-0 z-[100] bg-black/50', !phoneLayout && 'sm:hidden')}
@@ -818,10 +839,10 @@ export default function AuthLayoutRouter (props) {
             />
           )}
           <div
-            ref={isTabNav || isOneColumnGroup ? undefined : setNavContainerRef}
+            ref={isTabNav || isOneColumnNav ? undefined : setNavContainerRef}
             className={cn(
               'AuthLayoutRouterNavContainer flex flex-row h-full flex-shrink-0 overflow-hidden',
-              (isTabNav || isOneColumnGroup)
+              (isTabNav || isOneColumnNav)
                 ? 'relative z-50 h-full w-auto'
                 : [
                     // Phones: fixed drawer, full-width, off-screen by default (JS manages transform)
@@ -831,9 +852,8 @@ export default function AuthLayoutRouter (props) {
                   ],
               // Hide nav for full-page Create Group flow
               isCreateGroupRoute && (phoneLayout ? 'hidden' : 'hidden sm:relative'),
-              // Simple group views take the full viewport on phone, but the GlobalNav
-              // sidebar stays visible on desktop so you can still navigate between contexts.
-              isOneColumnGroup && !isSimpleGroupHomeOrSettings && 'hidden sm:flex',
+              // Card-menu views take the full viewport on phone; GlobalNav stays on desktop.
+              isOneColumnNav && !isOneColumnHome && 'hidden sm:flex',
               // Phone settings use master-detail in the center column — hide the sidebar.
               isPhoneSettings && 'hidden'
             )}
@@ -852,12 +872,13 @@ export default function AuthLayoutRouter (props) {
 
             {(!currentGroupSlug || (currentGroup && currentGroupMembership)) &&
               <Routes>
-                <Route path='public/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
-                <Route path='my/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
-                <Route path='all/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
+                {/* Card menu: My/All/Public homes use ContextMenuGrid in the center — no sidebar menu. */}
+                {!isCardMenuUser && <Route path='public/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />}
+                {!isCardMenuUser && <Route path='my/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />}
+                {!isCardMenuUser && <Route path='all/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />}
                 <Route path='groups/:joinGroupSlug/join/:accessCode' element={null} />
                 {/* Simple groups: ContextMenu only renders for /settings (the settings sidebar).
-                    Group home shows just the GlobalNav + OneColumnLayout — no widget context menu. */}
+                    Group home shows just the GlobalNav + ContextMenuGrid — no sidebar context menu. */}
                 {!isOneColumnGroup && <Route path='groups/:groupSlug/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />}
                 {isOneColumnGroup && <Route path='groups/:groupSlug/settings/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />}
                 {isPhoneDevice() && (
@@ -874,12 +895,10 @@ export default function AuthLayoutRouter (props) {
               <Route path='groups/:groupSlug/topics/:topicName/create/*' element={<CreateModal context='groups' />} />
               <Route path='groups/:groupSlug/topics/:topicName/post/:postId/create/*' element={<CreateModal context='groups' />} />
               <Route path='groups/:groupSlug/topics/:topicName/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
-              <Route path='groups/:groupSlug/chat/:topicName/create/*' element={<CreateModal context='groups' />} />
-              <Route path='groups/:groupSlug/chat/:topicName/post/:postId/create/*' element={<CreateModal context='groups' />} />
-              <Route path='groups/:groupSlug/chat/:topicName/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
+              <Route path='groups/:groupSlug/chat/create/*' element={<CreateModal context='groups' />} />
+              <Route path='groups/:groupSlug/chat/post/:postId/create/*' element={<CreateModal context='groups' />} />
+              <Route path='groups/:groupSlug/chat/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
               <Route path='groups/:groupSlug/members/:personId/create/*' element={<CreateModal context='groups' />} />
-              <Route path='groups/:groupSlug/tracks/:trackId/create/*' element={<CreateModal context='groups' />} />
-              <Route path='groups/:groupSlug/tracks/:trackId/edit/*' element={<CreateModal context='groups' editingTrack />} />
               <Route path='groups/:groupSlug/settings/:tab/create/*' element={<CreateModal context='groups' />} />
               <Route path='groups/:groupSlug/:view/create/*' element={<CreateModal context='groups' />} />
               <Route path='groups/:groupSlug/custom/:customViewId/create/*' element={<CreateModal context='groups' />} />
@@ -889,6 +908,19 @@ export default function AuthLayoutRouter (props) {
               <Route path='groups/:groupSlug/create/*' element={<CreateModal context='groups' />} />
               <Route path='groups/:groupSlug/post/:postId/create/*' element={<CreateModal context='groups' />} />
               <Route path='groups/:groupSlug/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
+              {/* Space create/edit modals — mirror group routes under /spaces/:spaceSlug */}
+              <Route path='groups/:groupSlug/spaces/:spaceSlug/chat/create/*' element={<CreateModal context='groups' />} />
+              <Route path='groups/:groupSlug/spaces/:spaceSlug/chat/post/:postId/create/*' element={<CreateModal context='groups' />} />
+              <Route path='groups/:groupSlug/spaces/:spaceSlug/chat/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
+              <Route path='groups/:groupSlug/spaces/:spaceSlug/members/:personId/create/*' element={<CreateModal context='groups' />} />
+              <Route path='groups/:groupSlug/spaces/:spaceSlug/:view/create/*' element={<CreateModal context='groups' />} />
+              <Route path='groups/:groupSlug/spaces/:spaceSlug/custom/:customViewId/create/*' element={<CreateModal context='groups' />} />
+              <Route path='groups/:groupSlug/spaces/:spaceSlug/custom/:customViewId/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
+              <Route path='groups/:groupSlug/spaces/:spaceSlug/:view/post/:postId/create/*' element={<CreateModal context='groups' />} />
+              <Route path='groups/:groupSlug/spaces/:spaceSlug/:view/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
+              <Route path='groups/:groupSlug/spaces/:spaceSlug/create/*' element={<CreateModal context='groups' />} />
+              <Route path='groups/:groupSlug/spaces/:spaceSlug/post/:postId/create/*' element={<CreateModal context='groups' />} />
+              <Route path='groups/:groupSlug/spaces/:spaceSlug/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
               <Route path='public/topics/:topicName/create/*' element={<CreateModal context='public' />} />
               <Route path='public/topics/:topicName/post/:postId/create/*' element={<CreateModal context='public' />} />
               <Route path='public/topics/:topicName/post/:postId/edit/*' element={<CreateModal context='public' editingPost />} />
@@ -917,10 +949,7 @@ export default function AuthLayoutRouter (props) {
             </Routes>
 
             <div className={cn('AuthLayout_centerColumn bg-midground flex flex-col px-0 relative min-h-1 h-full flex-1 overflow-y-auto overflow-x-hidden transition-all duration-450', { 'z-[60]': withoutNav, 'sm:p-0': isMapView })} id={CENTER_COLUMN_ID}>
-              <ViewHeader
-                oneColumnGroup={isOneColumnGroup ? currentGroup : null}
-                oneColumnGroupSlug={isOneColumnGroup ? currentGroupSlug : null}
-              />
+              <ViewHeader />
               {/* NOTE: It could be more clear to group the following switched routes by component  */}
               <Routes>
                 {/* **** Member Routes **** */}
@@ -944,7 +973,9 @@ export default function AuthLayoutRouter (props) {
                 {/* Must be before `public/*` — otherwise `/public/post/:id/edit` matches `public/*` and redirects away */}
                 <Route path='public/post/:postId/edit/*' element={<Stream context='public' />} />
                 <Route path='public/post/:postId/create/*' element={<Stream context='public' />} />
+                <Route path='all' element={isCardMenuUser ? <ContextMenuGrid context='all' /> : <Stream context='my' />} />
                 <Route path='all/*' element={<Stream context='my' />} />
+                <Route path='public' element={isCardMenuUser ? <ContextMenuGrid context='public' /> : <Navigate to='/public/stream' replace />} />
                 <Route path='public/*' element={<Navigate to='/public/stream' replace />} />
                 {/* Must be before `groups/:groupSlug/*` so `/groups/:slug/offerings/:id` is not handled only by the group splat + inner Navigate-to-stream */}
                 <Route path='groups/:groupSlug/offerings/:offeringId' element={<OfferingDetails />} />
@@ -965,37 +996,54 @@ export default function AuthLayoutRouter (props) {
                         ? <GroupDetail context='groups' group={currentGroup} />
                         : (
                           <Routes>
+                            <Route path='spaces/:spaceSlug/*' element={<SpaceContent parentGroup={currentGroup} isOneColumnGroup={isOneColumnGroup} />} />
                             <Route path='about/*' element={<GroupDetail context='groups' forCurrentGroup />} />
                             <Route path='welcome/*' element={<GroupWelcomePage />} />
                             <Route path='map/*' element={<MapExplorer context='groups' view='map' />} />
+                            <Route path='all/*' element={<ViewContent context='groups' view='all' />} />
                             <Route path='stream/*' element={<Stream context='groups' view='stream' />} />
-                            <Route path='discussions/*' element={<Stream context='groups' view='discussions' />} />
-                            <Route path='events/*' element={<Stream context='groups' view='events' />} />
-                            <Route path='resources/*' element={<Stream context='groups' view='resources' />} />
-                            <Route path='projects/*' element={<Stream context='groups' view='projects' />} />
-                            <Route path='proposals/*' element={<Stream context='groups' view='proposals' />} />
-                            <Route path='requests-and-offers/*' element={<Stream context='groups' view='requests-and-offers' />} />
+                            <Route path='discussions/*' element={<ViewContent context='groups' view='discussions' />} />
+                            <Route path='events/*' element={<ViewContent context='groups' view='events' />} />
+                            <Route path='resources/*' element={<ViewContent context='groups' view='resources' />} />
+                            <Route path='projects/*' element={<ViewContent context='groups' view='projects' />} />
+                            <Route path='proposals/*' element={<ViewContent context='groups' view='proposals' />} />
+                            <Route path='requests-and-offers/*' element={<ViewContent context='groups' view='requests-and-offers' />} />
                             <Route path='explore/*' element={<LandingPage />} />
-                            <Route path='custom/:customViewId/*' element={<Stream context='groups' view='custom' />} />
+                            <Route path='custom/:customViewId/*' element={<ViewContent context='groups' view='custom' />} />
+                            <Route path='collection/:customViewId/*' element={<ViewContent context='groups' view='collection' />} />
                             <Route path='groups/*' element={<Groups context='groups' />} />
                             <Route path='members/create/*' element={<Members context='groups' />} />
                             <Route path='members/:personId/*' element={<MemberProfile context='groups' />} />
                             <Route path='members/*' element={<Members context='groups' />} />
                             <Route path='topics/:topicName/*' element={<Stream context='groups' />} />
                             <Route path='topics' element={<AllTopics context='groups' />} />
-                            <Route path='tracks/:trackId/*' element={<TrackHome />} />
-                            <Route path='tracks/*' element={<Tracks />} />
-                            <Route path='funding-rounds/:fundingRoundId/*' element={<FundingRoundHome />} />
-                            <Route path='funding-rounds/*' element={<FundingRounds />} />
-                            <Route path='chat/:topicName/*' element={<ChatRoom context='groups' />} />
+                            <Route path='chat/*' element={<ChatRoom context='groups' />} />
                             <Route path='payment/success' element={<PaymentSuccess />} />
                             <Route path='payment/cancel' element={<PaymentFailure />} />
                             <Route path='payment/failure' element={<PaymentFailure />} />
                             <Route path='settings/*' element={<GroupSettings context='groups' />} />
-                            <Route path='all-views' element={<AllView context='groups' />} />
+                            <Route
+                              path='more-spaces'
+                              element={
+                                isOneColumnGroup
+                                  ? <ContextMenuGrid group={currentGroup} />
+                                  : independentSpaceMenu
+                                    ? <MoreSpacesPage group={currentGroup} />
+                                    : <Navigate to={`/groups/${currentGroupSlug}${currentGroup?.homeRoute || '/all'}`} replace />
+                              }
+                            />
+                            <Route
+                              path='edit-menu'
+                              element={
+                                independentSpaceMenu && currentGroup
+                                  ? <EditMenuPage group={currentGroup} />
+                                  : <Navigate to={`/groups/${currentGroupSlug}${currentGroup?.homeRoute || '/all'}`} replace />
+                              }
+                            />
+                            <Route path='all-views' element={<Navigate to={isOneColumnGroup ? `/groups/${currentGroupSlug}/more-spaces` : `/groups/${currentGroupSlug}${currentGroup?.homeRoute || '/all'}`} replace />} />
                             {!isOneColumnGroup && <Route path={POST_DETAIL_MATCH} element={<PostDetail />} />}
                             <Route path='moderation/*' element={<Moderation context='groups' />} />
-                            <Route path='*' element={isOneColumnGroup ? <OneColumnLayout group={currentGroup} /> : <Navigate to={`/groups/${currentGroupSlug}${currentGroup?.homeRoute || '/stream'}`} replace />} />
+                            <Route path='*' element={isOneColumnGroup ? <ContextMenuGrid group={currentGroup} /> : <Navigate to={`/groups/${currentGroupSlug}${currentGroup?.homeRoute || '/all'}`} replace />} />
                           </Routes>
                           )
                     }
@@ -1011,7 +1059,7 @@ export default function AuthLayoutRouter (props) {
                 <Route path='my/tracks/*' element={<MyTracks />} />
                 <Route path='my/transactions' element={<MyTransactions />} />
                 <Route path='my/*' element={<UserSettings />} />
-                <Route path='my' element={<Navigate to='/my/posts' replace />} />
+                <Route path='my' element={isCardMenuUser ? <ContextMenuGrid context='my' /> : <Navigate to='/my/posts' replace />} />
                 {/* **** Management Routes (Admin Only) **** */}
                 <Route path='management/*' element={<Management />} />
                 {/* **** Other Routes **** */}

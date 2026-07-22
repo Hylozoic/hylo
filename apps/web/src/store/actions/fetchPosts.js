@@ -27,12 +27,13 @@ export default function fetchPosts ({
   sortBy,
   topic,
   topics,
-  types
+  types,
+  fieldsVariant
 }) {
   let query, extractModel, getItems
 
   if (context === 'groups') {
-    query = groupQuery(childPostInclusion === 'yes', includePostGroups)
+    query = groupQuery(childPostInclusion === 'yes', { includeGroups: includePostGroups, fieldsVariant })
     extractModel = 'Group'
     getItems = get('payload.data.group.posts')
   } else if (context === 'all' || context === 'public' || context === CONTEXT_MY) {
@@ -83,7 +84,7 @@ export default function fetchPosts ({
   }
 }
 
-const groupQuery = (childPostInclusion, includePostGroups = true) => `query GroupPostsQuery (
+const groupQuery = (childPostInclusion, { includeGroups = true, fieldsVariant } = {}) => `query GroupPostsQuery (
   $activePostsOnly: Boolean,
   $afterTime: Date,
   $beforeTime: Date,
@@ -110,7 +111,7 @@ const groupQuery = (childPostInclusion, includePostGroups = true) => `query Grou
     name
     avatarUrl
     bannerUrl
-    ${groupViewPostsQueryFragment(childPostInclusion, { includeGroups: includePostGroups })}
+    ${groupViewPostsQueryFragment(childPostInclusion, { includeGroups, fieldsVariant })}
   }
 }`
 

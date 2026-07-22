@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { isNull, isUndefined, omitBy } from 'lodash/fp'
-import { COMMON_VIEWS } from '@hylo/presenters/ContextWidgetPresenter'
+import { COMMON_VIEWS } from '@hylo/presenters/GroupViewPresenter'
 
 export default function useStreamQueryVariables ({
   childPostInclusion,

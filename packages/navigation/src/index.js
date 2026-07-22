@@ -62,30 +62,34 @@ export function baseUrl ({
   fundingRoundId,
   groupSlug,
   memberId, personId, // TODO: switch to one of these?
+  spaceSlug,
   tab,
   topicName,
   trackId,
   view
 }) {
   const safeMemberId = personId || memberId
+  const spaceBase = spaceSlug && groupSlug ? spaceUrl(groupSlug, spaceSlug) : null
 
   if (safeMemberId) {
+    if (spaceBase) return `${spaceBase}/members/${safeMemberId}`
     return personUrl(safeMemberId, groupSlug)
-  } else if (view === 'chat' && topicName) {
-    return chatUrl(topicName, { context, groupSlug })
   } else if (topicName) {
-    return topicUrl(topicName, { context, groupSlug })
+    return topicUrl(topicName, { context, groupSlug, spaceSlug })
   } else if (trackId) {
-    return trackUrl(trackId, { context, groupSlug, tab })
+    return trackUrl(trackId, { context, groupSlug, spaceSlug, tab })
   } else if (fundingRoundId) {
-    return fundingRoundUrl(fundingRoundId, { context, groupSlug, tab })
+    return fundingRoundUrl(fundingRoundId, { context, groupSlug, spaceSlug, tab })
   } else if (view) {
+    if (spaceBase) {
+      return `${spaceBase}/${view}${customViewId ? '/' + customViewId : ''}`
+    }
     return viewUrl(view, { context, customViewId, defaultUrl, groupSlug })
   } else if (context === SEARCH_CONTEXT_SLUG) {
     // Has to come before groupSlug check because we use groupSlug as a param in searching
     return searchUrl()
   } else if (groupSlug) {
-    return groupUrl(groupSlug)
+    return spaceBase || groupUrl(groupSlug)
   } else if (context === ALL_GROUPS_CONTEXT_SLUG) {
     return allGroupsUrl()
   } else if (context === PUBLIC_CONTEXT_SLUG) {
@@ -109,10 +113,6 @@ export function createGroupUrl (opts) {
   return baseUrl(opts) + '/create/group'
 }
 
-export function createTrackUrl (opts) {
-  return baseUrl(opts) + '/create/track'
-}
-
 // For specific views of a group like 'map', or 'projects'
 export function viewUrl (view, { context, groupSlug, defaultUrl, customViewId }) {
   if (!view) return '/'
@@ -133,6 +133,81 @@ export function groupUrl (slug, view = '', defaultUrl = allGroupsUrl()) {
   }
 }
 
+/** Local space slug portion from a stored space slug (parentSlug-localName). */
+export function localSpaceSlug (parentSlug, spaceFullSlug) {
+  if (!parentSlug || !spaceFullSlug) return spaceFullSlug || ''
+  const prefix = `${parentSlug}-`
+  return spaceFullSlug.startsWith(prefix) ? spaceFullSlug.slice(prefix.length) : spaceFullSlug
+}
+
+/** Path segment for a GroupView within a group or space (e.g. /chat, /custom/123). */
+export function groupViewPath (view) {
+  if (!view) return ''
+  switch (view.type) {
+    case 'post':
+      return view.viewPost?.id ? `/post/${view.viewPost.id}` : ''
+    case 'member':
+      return view.viewUser?.id ? `/members/${view.viewUser.id}` : ''
+    case 'custom':
+      return `/custom/${view.id}`
+    case 'collection':
+      return `/collection/${view.id}`
+    case 'link':
+      return null
+    case 'manage-round':
+      return '/manage-round'
+    default:
+      return view.type ? `/${view.type}` : '/all'
+  }
+}
+
+/** Normalize a GroupView from a plain object or Bookshelf model. */
+function normalizeGroupView (view) {
+  if (!view) return null
+  if (typeof view.get === 'function') {
+    return { type: view.get('type'), id: view.get('id') }
+  }
+  return view
+}
+
+/**
+ * Route path suffix stored in groups.home_route for a GroupView
+ * (e.g. /stream, /custom/123, /welcome).
+ * Shared by backend GroupView.computeHomeRoutePath and frontend optimistic updates.
+ */
+export function homeRoutePathForView (view) {
+  if (!view) return '/all'
+  const normalized = normalizeGroupView(view)
+  const path = groupViewPath(normalized)
+  if (path) return path
+  return normalized.type ? `/${normalized.type}` : '/all'
+}
+
+/** Base URL for a space under its parent group. Optional viewPath is appended (e.g. /chat). */
+export function spaceUrl (parentSlug, localSlug, viewPath = '') {
+  if (!parentSlug || !localSlug) return '/'
+  const base = `/groups/${parentSlug}/spaces/${localSlug}`
+  if (!viewPath) return base
+  return `${base}${viewPath.startsWith('/') ? viewPath : `/${viewPath}`}`
+}
+
+/** URL for a view inside a space. */
+export function spaceGroupViewUrl (parentSlug, spaceGroup, view) {
+  if (!parentSlug || !spaceGroup) return groupUrl(parentSlug)
+  const local = localSpaceSlug(parentSlug, spaceGroup.slug)
+  const path = groupViewPath(view)
+  if (path === null) return view?.link || null
+  return spaceUrl(parentSlug, local, path)
+}
+
+/** URL for a space's home view. */
+export function spaceHomeUrl (parentSlug, spaceGroup) {
+  if (!parentSlug || !spaceGroup) return '/'
+  const local = localSpaceSlug(parentSlug, spaceGroup.slug)
+  const homeRoute = spaceGroup.homeRoute || '/all'
+  return spaceUrl(parentSlug, local, homeRoute)
+}
+
 export function groupDetailUrl (slug, opts = {}, querystringParams = {}) {
   let result = baseUrl(opts)
   result = `${result}/group/${slug}`
@@ -151,11 +226,13 @@ export function groupHomeUrl ({ group, routeParams }) {
 // Post URLS
 export function postUrl (id, opts = {}, querystringParams = {}) {
   const action = get('action', opts)
+  // Standalone /groups/:slug/post/:id uses "post" as a path segment, not a stream view name
+  const urlOpts = opts.view === 'post' ? { ...opts, view: undefined } : opts
   let result
-  if (opts.context === '') {
+  if (urlOpts.context === '') {
     result = `/post/${id}`
   } else {
-    result = baseUrl(opts)
+    result = baseUrl(urlOpts)
     result = `${result}/post/${id}`
   }
   if (action) result = `${result}/${action}`
@@ -183,33 +260,27 @@ export function primaryPostUrl (post, opts = {}, querystringParams = {}) {
   let result = baseUrl(opts)
   const postId = get('id', post) || post
   if (post.type === 'chat') {
-    // Chat posts always open in their specific chat room
-    const topicName = post.topics[0].name
+    result = `${baseUrl({ ...opts, view: 'chat' })}`
     if (opts.commentId) {
       // commentId in route params causes the post to open when the room loads
-      result = `${result}/chat/${topicName}/post/${postId}?commentId=${opts.commentId}`
+      result = `${result}/post/${postId}?commentId=${opts.commentId}`
     } else {
       // postId as querystring highlights the message without forcing it open
-      result = `${result}/chat/${topicName}?postId=${postId}`
+      result = `${result}?postId=${postId}`
     }
   } else {
     // Non-chat posts open within the group's home view so there is context.
-    // homeRoute is a path like '/stream', '/map', or '/chat/general'.
+    // homeRoute is a path like '/all', '/map', or '/chat'.
     // Non-chat posts always use the /post/:id path format (modal overlay) even
     // when the home is a chat view, so you can see the full post and comments
     // (?postId= is reserved for chat-type posts only).
     // If the home is a chat view but the post has no topics (e.g. Zapier-
     // created posts), fall back to the standalone /post/:id URL so the UI
     // can still open the post even though it isn't in any chat room.
-    const homeRoute = opts.homeRoute || '/stream'
-    const firstTopic = post.topics?.[0]?.name
-    if (homeRoute.startsWith('/chat/') && firstTopic) {
+    const homeRoute = opts.homeRoute || '/all'
+    if (homeRoute === '/chat' || homeRoute.startsWith('/chat/')) {
       // Non-chat post shown in a chat home: open as a modal above the chat
-      result = `${result}${homeRoute}/post/${postId}`
-      if (opts.commentId) result = `${result}?commentId=${opts.commentId}`
-    } else if (homeRoute.startsWith('/chat/')) {
-      // Chat home but no topics: fall back to standalone post URL
-      result = `${result}/post/${postId}`
+      result = `${result}/chat/post/${postId}`
       if (opts.commentId) result = `${result}?commentId=${opts.commentId}`
     } else {
       result = `${result}${homeRoute}/post/${postId}`
@@ -262,8 +333,8 @@ export function topicUrl (topicName, opts) {
   return `${topicsUrl(opts)}/${topicName}`
 }
 
-export function chatUrl (chatName, { context, groupSlug }) {
-  return `${baseUrl({ context, groupSlug })}/chat/${chatName}`
+export function chatUrl (_chatName, { context, groupSlug, spaceSlug } = {}) {
+  return viewUrl('chat', { context, groupSlug, spaceSlug })
 }
 
 export function customViewUrl (customViewId, rootPath, { context, groupSlug }) {
@@ -275,12 +346,12 @@ export function customViewUrl (customViewId, rootPath, { context, groupSlug }) {
  * Mirrors backend ContextWidget.computeHomeRoutePath for optimistic updates.
  */
 export function homeRoutePathForWidget (widget) {
-  if (!widget) return '/stream'
+  if (!widget) return '/all'
   if (widget.view) return '/' + widget.view
-  if (widget.viewChat) return '/chat/' + (widget.viewChat.name || 'general')
+  if (widget.viewChat) return '/chat'
   if (widget.customView) return '/custom/' + widget.customView.id
-  if (widget.viewTrack) return '/tracks/' + widget.viewTrack.id
-  if (widget.viewFundingRound) return '/funding-rounds/' + widget.viewFundingRound.id
+  if (widget.viewTrack) return '/track-actions'
+  if (widget.viewFundingRound) return '/funding-round-submissions'
   return '/stream'
 }
 
@@ -301,24 +372,56 @@ export function widgetUrl ({ widget, rootPath, groupSlug: providedSlug, context 
   } else if (widget.viewPost) {
     url = postUrl(widget.viewPost.id, { groupSlug, context })
   } else if (widget.viewChat) {
-    url = chatUrl(widget.viewChat.name, { rootPath, groupSlug, context })
+    url = viewUrl('chat', { groupSlug, context: widget.context || context })
   } else if (widget.customView) {
     url = customViewUrl(widget.customView.id, rootPath, { context, groupSlug })
   } else if (widget.viewTrack) {
-    url = trackUrl(widget.viewTrack.id, { context, groupSlug })
+    url = trackUrl(widget.viewTrack.id, {
+      context,
+      groupSlug,
+      space: widget.viewTrack.space
+    })
   } else if (widget.viewFundingRound) {
-    url = fundingRoundUrl(widget.viewFundingRound.id, { context, groupSlug })
+    url = fundingRoundUrl(widget.viewFundingRound.id, {
+      context,
+      groupSlug,
+      space: widget.viewFundingRound.group
+    })
   }
 
   return url
 }
 
-export function trackUrl (trackId, opts) {
-  return baseUrl({ ...opts, context: 'group', view: 'tracks' }) + `/${trackId}` + (opts.tab ? `/${opts.tab}` : '')
+/**
+ * URL for a Track's space. Prefer opts.space (or spaceSlug) — legacy
+ * /groups/:groupSlug/tracks/:trackId routes are no longer supported.
+ */
+export function trackUrl (trackId, opts = {}) {
+  const { groupSlug, spaceSlug, space, tab } = opts
+  const localSlug = spaceSlug || (space?.slug && groupSlug ? localSpaceSlug(groupSlug, space.slug) : null)
+  if (groupSlug && localSlug) {
+    if (!tab && space) return spaceHomeUrl(groupSlug, space)
+    return spaceUrl(groupSlug, localSlug, tab ? `/${tab}` : '')
+  }
+  if (groupSlug) return groupUrl(groupSlug, 'settings/tracks')
+  return '/my/tracks'
 }
 
-export function fundingRoundUrl (fundingRoundId, opts) {
-  return baseUrl({ ...opts, context: 'group', view: 'funding-rounds' }) + `/${fundingRoundId}` + (opts.tab ? `/${opts.tab}` : '')
+/**
+ * URL for a Funding Round's space. Prefer opts.space (or spaceSlug) — legacy
+ * /groups/:groupSlug/funding-rounds/:id routes are no longer supported.
+ */
+export function fundingRoundUrl (fundingRoundId, opts = {}) {
+  const { groupSlug, spaceSlug, space, tab } = opts
+  const localSlug = spaceSlug || (space?.slug && groupSlug ? localSpaceSlug(groupSlug, space.slug) : null)
+  // Legacy tab name → space view path
+  const viewTab = tab === 'submissions' ? 'funding-round-submissions' : tab
+  if (groupSlug && localSlug) {
+    if (!viewTab && space) return spaceHomeUrl(groupSlug, space)
+    return spaceUrl(groupSlug, localSlug, viewTab ? `/${viewTab}` : '')
+  }
+  if (groupSlug) return groupUrl(groupSlug)
+  return '/'
 }
 
 /**
@@ -361,14 +464,8 @@ export function addQuerystringToPath (path, querystringParams) {
 export function removeCreateEditModalFromUrl (url) {
   const matchForCreateRegex = '/create/(post|track)/*'
   const matchForEditRegex = `/post/${HYLO_ID_MATCH}(/.*)?`
-  const matchForEditTrackRegex = `/tracks/${HYLO_ID_MATCH}(/.*)?`
   return url.replace(new RegExp(matchForCreateRegex), '')
     .replace(new RegExp(matchForEditRegex), '')
-    .replace(new RegExp(matchForEditTrackRegex), (match) => {
-      // Split the match into parts so we only remove the "edit" part of the url
-      const parts = match.split('/')
-      return parts.slice(0, 3).join('/') // Keep '/tracks/{id}'
-    })
 }
 
 /**

@@ -39,6 +39,16 @@ query (
         publishedAt
         userSettings
         welcomeMessage
+        space {
+          id
+          slug
+          type
+          homeRoute
+          parentGroup {
+            id
+            slug
+          }
+        }
       }
     }
   }

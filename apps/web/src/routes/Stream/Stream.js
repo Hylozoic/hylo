@@ -9,7 +9,7 @@ import { Routes, Route, useLocation } from 'react-router-dom'
 import { push } from 'redux-first-history'
 import { createSelector as ormCreateSelector } from 'redux-orm'
 
-import { COMMON_VIEWS } from '@hylo/presenters/ContextWidgetPresenter'
+import { COMMON_VIEWS } from 'store/models/GroupView'
 import Loading from 'components/Loading'
 import NoPosts from 'components/NoPosts'
 import { DateTimeHelpers } from '@hylo/shared'
@@ -29,6 +29,7 @@ import ScrollListener from 'components/ScrollListener'
 import ViewControls from 'components/StreamViewControls'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useRouteParams from 'hooks/useRouteParams'
+import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import { updateUserSettings } from 'routes/UserSettings/UserSettings.store'
 import changeQuerystringParam, { changeQuerystringParams } from 'store/actions/changeQuerystringParam'
 import fetchCustomView from 'store/actions/fetchCustomView'
@@ -83,7 +84,8 @@ export default function Stream (props) {
   const location = useLocation()
   const routeParams = useRouteParams()
   const { t } = useTranslation()
-  const { groupSlug, topicName, customViewId } = routeParams
+  const groupSlug = useEffectiveGroupSlug()
+  const { topicName, customViewId } = routeParams
   const context = props.context
   const currentUser = useSelector(getMe)
 

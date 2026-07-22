@@ -1007,8 +1007,8 @@ describe('Post', function () {
     })
   })
 
-  describe('checkCompletedTracks', () => {
-    let user, group, track, completionRole, a1, a2, trackManager
+  describe('checkCompletedTrack', () => {
+    let user, group, space, track, completionRole, a1, a2, trackManager
 
     beforeEach(async () => {
       spyify(Queue, 'classMethod', () => Promise.resolve())
@@ -1026,16 +1026,23 @@ describe('Post', function () {
         emoji: '🎓',
         type: GroupRole.TYPE_CUSTOM
       }).save()
+      space = await factories.group({
+        type: 'space',
+        parent_id: group.id,
+        slug: `track-space-${Date.now()}`
+      }).save()
       track = await Track.create({
         name: 'Test Track',
         published_at: new Date(),
-        completion_role_id: completionRole.id
+        completion_role_id: completionRole.id,
+        group_id: space.id
       })
-      await track.groups().attach(group.id)
+      await space.save({ track_id: track.id }, { patch: true })
+      await Group.setupSpaceViews(space.id, ['action'], ['about', 'track-actions', 'members'])
       a1 = await factories.post({ type: Post.Type.ACTION, user_id: trackManager.id }).save()
       a2 = await factories.post({ type: Post.Type.ACTION, user_id: trackManager.id }).save()
-      await a1.groups().attach(group)
-      await a2.groups().attach(group)
+      await a1.groups().attach(space)
+      await a2.groups().attach(space)
       await Track.addPost(a1, track)
       await Track.addPost(a2, track)
       await Track.enroll(track.id, user.id)
@@ -1047,7 +1054,7 @@ describe('Post', function () {
 
     it('assigns the completion role when all track actions are completed', async () => {
       await a1.complete(user.id, JSON.stringify([]))
-      await Post.checkCompletedTracks({ userId: user.id, postId: a1.id })
+      await Post.checkCompletedTrack({ userId: user.id, postId: a1.id })
       let memberRole = await MemberGroupRole.where({
         user_id: user.id,
         group_role_id: completionRole.id
@@ -1055,7 +1062,7 @@ describe('Post', function () {
       expect(memberRole).to.not.exist
 
       await a2.complete(user.id, JSON.stringify([]))
-      await Post.checkCompletedTracks({ userId: user.id, postId: a2.id })
+      await Post.checkCompletedTrack({ userId: user.id, postId: a2.id })
 
       memberRole = await MemberGroupRole.where({
         user_id: user.id,
@@ -1064,8 +1071,8 @@ describe('Post', function () {
       }).fetch()
       expect(memberRole).to.exist
 
-      const trackUser = await TrackUser.where({ track_id: track.id, user_id: user.id }).fetch()
-      expect(trackUser.get('completed_at')).to.exist
+      const membership = await GroupMembership.forPair(user.id, space).fetch()
+      expect(membership.get('settings')?.completedAt).to.exist
     })
   })
 })

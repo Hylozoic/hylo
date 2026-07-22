@@ -15,8 +15,14 @@ export default gql`
     numPeopleEnrolled
     userSettings
     publishedAt
-    groups {
-      items {
+    space {
+      id
+      avatarUrl
+      name
+      slug
+      type
+      homeRoute
+      parentGroup {
         id
         avatarUrl
         name

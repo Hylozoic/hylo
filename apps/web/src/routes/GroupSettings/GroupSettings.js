@@ -8,7 +8,6 @@ import { ChevronRight } from 'lucide-react'
 import useIsPhoneViewport from 'hooks/useIsPhoneViewport'
 import AppearanceTab from './AppearanceTab/AppearanceTab'
 import AgreementsTab from './AgreementsTab'
-import CustomViewsTab from './CustomViewsTab'
 import DeleteSettingsTab from './DeleteSettingsTab'
 import GroupSettingsTab from './GroupSettingsTab'
 import ImportExportSettingsTab from './ImportExportSettingsTab'
@@ -19,13 +18,11 @@ import PrivacySettingsTab from './PrivacySettingsTab'
 import RelatedGroupsTab from './RelatedGroupsTab'
 import ResponsibilitiesTab from './ResponsibilitiesTab'
 import ExportDataTab from './ExportDataTab'
-import TracksTab from './TracksTab'
-import WelcomePageTab from './WelcomePageTab'
 import PaidContentTab from './PaidContentTab'
 import Loading from 'components/Loading'
 import { fetchLocation } from 'components/LocationInput/LocationInput.store'
 import FullPageModal from 'routes/FullPageModal'
-import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION, RESP_MANAGE_TRACKS } from 'store/constants'
+import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
 import { WebViewMessageTypes } from '@hylo/shared'
 import { isLegacyWebView, sendMessageToWebView } from 'util/webView'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
@@ -104,7 +101,6 @@ export default function GroupSettings () {
   const responsibilities = useSelector(state => getResponsibilitiesForGroup(state, { person: currentUser, groupId: group?.id })).map(r => r.title)
   const canAdminister = responsibilities.includes(RESP_ADMINISTRATION)
   const canAddMembers = responsibilities.includes(RESP_ADD_MEMBERS)
-  const canManageTracks = responsibilities.includes(RESP_MANAGE_TRACKS)
 
   if (!group) return <Loading />
 
@@ -127,17 +123,15 @@ export default function GroupSettings () {
   const phoneMenuItems = compact([
     canAdminister && { name: t('Group Details'), path: 'details' },
     canAdminister && { name: t('Agreements'), path: 'agreements' },
-    canAdminister && { name: t('Welcome Page'), path: 'welcome' },
     canAdminister && { name: t('Responsibilities'), path: 'responsibilities' },
     canAdminister && { name: t('Roles & Badges'), path: 'roles' },
     canAdminister && { name: t('Privacy & Access'), path: 'privacy' },
     canAddMembers && { name: t('Invite'), path: 'invite' },
     canAddMembers && { name: t('Join Requests'), path: 'requests' },
     canAdminister && { name: t('Related Groups'), path: 'relationships' },
-    canManageTracks && { name: t('Tracks'), path: 'tracks' },
-    canAdminister && { name: t('Custom Views'), path: 'views' },
     canAdminister && { name: t('Export Data'), path: 'export' },
     canAdminister && { name: t('Appearance & Layout'), path: 'appearance' },
+    canAdminister && { name: t('Paid Content'), path: 'paid-content' },
     canAdminister && { name: t('Delete'), path: 'delete' }
   ])
 
@@ -163,12 +157,6 @@ export default function GroupSettings () {
     component: <AgreementsTab group={group} />
   }
 
-  const welcomePageSettings = {
-    name: t('Welcome Page'),
-    path: 'welcome',
-    component: <WelcomePageTab group={group} updateGroupSettings={updateGroupSettingsAction} />
-  }
-
   const responsibilitiesSettings = {
     name: t('Responsibilities'),
     path: 'responsibilities',
@@ -185,14 +173,6 @@ export default function GroupSettings () {
     name: t('Privacy & Access'),
     path: 'privacy',
     component: <PrivacySettingsTab group={group} slug={group.slug} updateGroupSettings={updateGroupSettingsAction} parentGroups={parentGroups} fetchPending={fetchPending} />
-  }
-
-  const customViewsSettings = {
-    name: t('Custom Views'),
-    path: 'views',
-    component: (
-      <CustomViewsTab group={group} />
-    )
   }
 
   // const topicsSettings = {
@@ -217,12 +197,6 @@ export default function GroupSettings () {
     name: t('Related Groups'),
     path: 'relationships',
     component: <RelatedGroupsTab group={group} currentUser={currentUser} />
-  }
-
-  const tracksSettings = {
-    name: t('Tracks'),
-    path: 'tracks',
-    component: <TracksTab group={group} currentUser={currentUser} />
   }
 
   const importSettings = {
@@ -262,16 +236,13 @@ export default function GroupSettings () {
         canAdminister ? overallSettings : null,
         canAdminister ? detailsSettings : null,
         canAdminister ? agreementSettings : null,
-        canAdminister ? welcomePageSettings : null,
         canAdminister ? responsibilitiesSettings : null,
         canAdminister ? rolesSettings : null,
         canAdminister ? accessSettings : null,
-        canAdminister ? customViewsSettings : null,
         // canAdminister ? topicsSettings : null, TODO: hide for now, we may want to bring back
         canAddMembers ? inviteSettings : null,
         canAddMembers ? joinRequestSettings : null,
         canAdminister ? relatedGroupsSettings : null,
-        canManageTracks ? tracksSettings : null,
         canAdminister ? importSettings : null,
         canAdminister ? exportSettings : null,
         canAdminister ? appearanceSettings : null,

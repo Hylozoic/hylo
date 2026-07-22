@@ -13,7 +13,9 @@ const defaultHeaderDetails = {
     desktop: ''
   },
   search: false,
-  centered: false
+  centered: false,
+  // When false, ViewHeader skips the "space / view" breadcrumb on space routes
+  spaceBreadcrumb: true
 }
 
 export const ViewHeaderProvider = ({ children }) => {

@@ -1,7 +1,7 @@
 import gql from 'graphql-tag'
 
 export default gql`
-  query MeQuery {
+  query MeQuery ($includeChildGroups: Boolean!) {
     me {
       ...MeCompleteFragment
     }
@@ -52,16 +52,22 @@ export default gql`
     rsvpCalendarUrl
     settings {
       alreadySeenTour
+      colorScheme
       dmNotifications
       commentNotifications
       locale
       mapBaseLayer
+      globalNavStyle
+      groupNavStyle
       rsvpCalendarSub
       signupInProgress
+      stackGroups
+      independentSpaceMenu
       streamChildPosts
       streamViewMode
       streamSortBy
       streamPostType
+      theme
     }
     joinRequests(status: 0) {
       items {
@@ -110,11 +116,14 @@ export default gql`
       }
       group {
         id
+        acceptedPostTypes
         avatarUrl
         bannerUrl
         homeRoute
+        icon
         name
         memberCount
+        parentId
         stewardDescriptor
         stewardDescriptorPlural
         settings {
@@ -123,7 +132,9 @@ export default gql`
           layout
         }
         slug
-        childGroups {
+        type
+        allowInPublic
+        childGroups @include(if: $includeChildGroups) {
           items {
             id
             name

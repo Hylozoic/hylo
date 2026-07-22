@@ -15,15 +15,18 @@ import {
   CREATE_PROJECT_PENDING,
   CREATE_CONTEXT_WIDGET,
   CREATE_CONTEXT_WIDGET_PENDING,
+  CREATE_GROUP_VIEW,
   DELETE_DRAFT,
   DELETE_COMMENT_PENDING,
   DELETE_CONTEXT_WIDGET_PENDING,
+  DELETE_GROUP_VIEW,
   DELETE_GROUP_RELATIONSHIP,
   DELETE_POST_PENDING,
   FETCH_GROUP_DETAILS_PENDING,
   FETCH_MESSAGES_PENDING,
   FETCH_GROUP_CHAT_ROOMS,
   FETCH_MY_DRAFTS,
+  FETCH_VIEW_POSTS,
   INVITE_CHILD_TO_JOIN_PARENT_GROUP,
   INVITE_PEER_RELATIONSHIP,
   JOIN_PROJECT_PENDING,
@@ -44,7 +47,10 @@ import {
   RESET_NEW_POST_COUNT_PENDING,
   RESPOND_TO_EVENT_PENDING,
   REMOVE_WIDGET_FROM_MENU_PENDING,
+  REORDER_GROUP_VIEW_PENDING,
   SWAP_PROPOSAL_VOTE_PENDING,
+  SET_GROUP_VIEW_HIDDEN_PENDING,
+  SET_HOME_VIEW_PENDING,
   SET_HOME_WIDGET_PENDING,
   TOGGLE_GROUP_TOPIC_SUBSCRIBE_PENDING,
   UPDATE_COMMENT_PENDING,
@@ -62,7 +68,9 @@ import {
   USE_INVITATION,
   UPDATE_PROPOSAL_OUTCOME_PENDING,
   UPDATE_MEMBERSHIP_NAV_ORDER_PENDING,
-  UPDATE_CONTEXT_WIDGET_PENDING
+  UPDATE_CONTEXT_WIDGET_PENDING,
+  UPDATE_GROUP_VIEW_PENDING,
+  UPDATE_SPACE_PENDING
 } from 'store/constants'
 import {
   UPDATE_ALL_MEMBERSHIP_SETTINGS_PENDING,
@@ -80,7 +88,6 @@ import {
 } from 'components/SkillsToLearnSection/SkillsToLearnSection.store'
 
 import {
-  FETCH_COLLECTION_POSTS,
   UPDATE_GROUP_SETTINGS,
   UPDATE_GROUP_SETTINGS_PENDING
 } from 'routes/GroupSettings/GroupSettings.store'
@@ -108,6 +115,7 @@ import extractModelsFromAction from '../ModelExtractor/extractModelsFromAction'
 import { isPromise } from 'util/index'
 import { homeRoutePathForWidget } from '@hylo/navigation'
 import { reorderTree, replaceHomeWidget } from 'util/contextWidgets'
+import { applyGroupViewsOrder, appendGroupViewToMenu, removeGroupViewFromMenu, setGroupViewHiddenInMenu, updateGroupViewInMenu } from 'store/util/groupViewsOrder'
 
 export default function ormReducer (state = orm.getEmptyState(), action) {
   const session = orm.session(state)
@@ -368,7 +376,16 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     case CREATE_POST_PENDING: {
       const postType = meta?.type
       if (!postType) break
-      if (postType === 'chat') break
+
+      if (postType === 'chat') {
+        const chatGroupId = Array.isArray(meta.groupIds) ? meta.groupIds[0] : meta.groupId
+        const chatGroup = Group.withId(chatGroupId)
+        const chatView = chatGroup?.groupViews?.items?.find(view => view.type === 'chat')
+        if (chatGroup && chatView?.id) {
+          updateGroupViewInMenu(chatGroup, chatView.id, { newPostCount: 0 })
+        }
+        break
+      }
 
       const groupIds = Array.isArray(meta.groupIds) ? meta.groupIds : [meta.groupId]
 
@@ -433,6 +450,17 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
           isEdit: false
         }))
         .forEach(d => d.delete())
+
+      if (createdType === 'chat' && createdPost.id && createdGroupId) {
+        const createdGroup = Group.withId(createdGroupId)
+        const chatView = createdGroup?.groupViews?.items?.find(view => view.type === 'chat')
+        if (createdGroup && chatView?.id) {
+          updateGroupViewInMenu(createdGroup, chatView.id, {
+            newPostCount: 0,
+            lastReadPostId: createdPost.id
+          })
+        }
+      }
       break
     }
 
@@ -458,6 +486,28 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       reorderedWidgets.push(payload.data.createContextWidget)
       group.update({ contextWidgets: { items: structuredClone(reorderedWidgets) } })
 
+      break
+    }
+
+    case CREATE_GROUP_VIEW: {
+      const newView = payload.data.createGroupView
+      if (!newView || !meta.groupId) break
+      group = Group.withId(meta.groupId)
+      appendGroupViewToMenu(group, newView)
+      break
+    }
+
+    case UPDATE_GROUP_VIEW_PENDING: {
+      if (!meta.groupId || !meta.id || !meta.data || Object.keys(meta.data).length === 0) break
+      group = Group.withId(meta.groupId)
+      updateGroupViewInMenu(group, meta.id, meta.data)
+      break
+    }
+
+    case UPDATE_SPACE_PENDING: {
+      if (!meta.groupId || !meta.spaceViewId || !meta.data || Object.keys(meta.data).length === 0) break
+      group = Group.withId(meta.groupId)
+      updateGroupViewInMenu(group, meta.spaceViewId, meta.data)
       break
     }
 
@@ -491,6 +541,13 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       break
     }
 
+    case DELETE_GROUP_VIEW: {
+      if (!meta.id || !meta.groupId) break
+      group = Group.withId(meta.groupId)
+      removeGroupViewFromMenu(group, meta.id)
+      break
+    }
+
     case DELETE_GROUP_RELATIONSHIP: {
       if (payload.data.deleteGroupRelationship.success) {
         const gr = GroupRelationship.safeGet({ parentGroup: meta.parentId, childGroup: meta.childId })
@@ -516,16 +573,16 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     }
 
     case DELETE_POST_PENDING:
-      post = Post.withId(meta.id)
-      if (meta.groupId) {
-        const group = Group.withId(meta.groupId)
-        removePostFromGroup(post, group)
+      // Posts sourced from a view's raw collectionPosts (e.g. TrackActionsView)
+      // aren't normalized into the Post table, so they may not exist here.
+      post = Post.idExists(meta.id) ? Post.withId(meta.id) : null
+      if (post) {
+        if (meta.groupId) {
+          const group = Group.withId(meta.groupId)
+          removePostFromGroup(post, group)
+        }
+        post.delete()
       }
-      post.delete()
-      break
-
-    case FETCH_COLLECTION_POSTS:
-      clearCacheFor(Group, meta.groupId)
       break
 
     case FETCH_GROUP_DETAILS_PENDING: {
@@ -542,6 +599,18 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       if (memberships) {
         memberships.forEach(m => clearCacheFor(Membership, m.id))
       }
+      break
+    }
+
+    case FETCH_VIEW_POSTS: {
+      const items = payload.data?.group?.groupViews?.items || []
+      const targetGroup = Group.withId(meta.groupId)
+      if (!targetGroup) break
+      items.forEach(viewData => {
+        if (viewData?.id != null && viewData.collectionPosts !== undefined) {
+          updateGroupViewInMenu(targetGroup, viewData.id, { collectionPosts: viewData.collectionPosts })
+        }
+      })
       break
     }
 
@@ -852,6 +921,38 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       break
     }
 
+    case REORDER_GROUP_VIEW_PENDING: {
+      if (!meta.parentGroupId || !meta.targetGroupId || !meta.reorderedItems) break
+      group = Group.withId(meta.parentGroupId)
+      applyGroupViewsOrder({
+        group,
+        parentGroupId: meta.parentGroupId,
+        targetGroupId: meta.targetGroupId,
+        reorderedItems: meta.reorderedItems
+      })
+      break
+    }
+
+    case SET_GROUP_VIEW_HIDDEN_PENDING: {
+      if (!meta.id || !meta.groupId || typeof meta.hidden !== 'boolean') break
+      group = Group.withId(meta.groupId)
+      setGroupViewHiddenInMenu(group, meta.id, meta.hidden)
+      break
+    }
+
+    case SET_HOME_VIEW_PENDING: {
+      if (!meta.parentGroupId || !meta.targetGroupId || !meta.reorderedItems) break
+      group = Group.withId(meta.parentGroupId)
+      applyGroupViewsOrder({
+        group,
+        parentGroupId: meta.parentGroupId,
+        targetGroupId: meta.targetGroupId,
+        reorderedItems: meta.reorderedItems,
+        updateHomeRoute: String(meta.parentGroupId) === String(meta.targetGroupId)
+      })
+      break
+    }
+
     case UPDATE_GROUP_SETTINGS: {
       // Set new join questions in the ORM
       if (payload.data.updateGroupSettings && (payload.data.updateGroupSettings.joinQuestions || payload.data.updateGroupSettings.prerequisiteGroups)) {
@@ -881,7 +982,13 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
 
     case UPDATE_GROUP_SETTINGS_PENDING: {
       group = Group.withId(meta.id)
-      group.update(meta.changes)
+      const { settings: settingsChanges, ...otherChanges } = meta.changes || {}
+      group.update({
+        ...otherChanges,
+        ...(settingsChanges
+          ? { settings: { ...group.settings, ...settingsChanges } }
+          : {})
+      })
       me = Me.first()
       // Clear out prerequisiteGroups so they can be reset when the UPDATE completes
       group.update({ prerequisiteGroups: [] })

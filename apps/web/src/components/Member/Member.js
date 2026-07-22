@@ -7,7 +7,7 @@ import { personUrl } from '@hylo/navigation'
 import BadgeEmoji from 'components/BadgeEmoji'
 import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
-import { MapPin, Trash2 } from 'lucide-react'
+import { Check, MapPin, Trash2 } from 'lucide-react'
 import { RESP_REMOVE_MEMBERS } from 'store/constants'
 import { cn, bgImageStyle } from 'util/index'
 import getMe from 'store/selectors/getMe'
@@ -16,7 +16,14 @@ import getRolesForGroup from 'store/selectors/getRolesForGroup'
 
 import classes from './Member.module.scss'
 
-const { bool, func, object, string, shape } = PropTypes
+const { bool, object, string, shape } = PropTypes
+
+/** True when member has any of the required roles, or when no roles are required. */
+function memberHasRequiredRole (memberRoles, requiredRoles) {
+  if (!requiredRoles || requiredRoles.length === 0) return true
+  const requiredIds = new Set(requiredRoles.map(role => String(role.id)))
+  return memberRoles.some(role => requiredIds.has(String(role.id)))
+}
 
 function Member ({
   canSeeJoinAnswers,
@@ -25,15 +32,22 @@ function Member ({
   member,
   removeMember,
   showAnswers,
+  showFundingRoundRoles = false,
+  submitterRoles = [],
+  voterRoles = [],
+  showTrackCompletion,
+  trackCompletedAt,
   square
 }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const currentUser = useSelector(getMe)
+  // Spaces inherit roles from the parent group
+  const roleGroupId = group?.parentId || group?.id
   const currentUserResponsibilities = useSelector(state =>
-    getResponsibilityTitlesForGroup(state, { person: currentUser, groupId: group.id }))
+    getResponsibilityTitlesForGroup(state, { person: currentUser, groupId: roleGroupId }))
   const roles = useSelector(state =>
-    getRolesForGroup(state, { person: member.id, groupId: group.id }))
+    getRolesForGroup(state, { person: member.id, groupId: roleGroupId }))
 
   const goToPerson = useCallback((id, slug) => () => {
     dispatch(push(personUrl(id, slug)))
@@ -48,6 +62,9 @@ function Member ({
   }, [removeMember, t])
 
   const { id, name, location, tagline, avatarUrl, bannerUrl } = member
+  const canSubmit = showFundingRoundRoles && memberHasRequiredRole(roles, submitterRoles)
+  const canVote = showFundingRoundRoles && memberHasRequiredRole(roles, voterRoles)
+  const isViewer = showFundingRoundRoles && !canSubmit && !canVote
 
   const removeDropdown = currentUserResponsibilities.includes(RESP_REMOVE_MEMBERS) && (
     <Dropdown
@@ -119,7 +136,7 @@ function Member ({
       {removeDropdown}
       <div onClick={goToPerson(id, group.slug)} className='flex flex-row gap-2 z-10 relative cursor-pointer'>
         <div className='min-w-16 min-h-16 max-h-16 rounded-full bg-cover' style={bgImageStyle(avatarUrl)} />
-        <div className='flex flex-col gap-0 justify-center'>
+        <div className='flex flex-col gap-0 justify-center flex-1 min-w-0'>
           <div className='text-base whitespace-nowrap flex flex-row gap-1 items-center'>
             <span className='font-bold'>{name}</span>
             <div className='text-sm inline-flex gap-1'>
@@ -130,6 +147,24 @@ function Member ({
           </div>
           {location && <div className='text-xs text-foreground/70 flex items-center gap-1'><MapPin className='w-3 h-3' /> {location}</div>}
           {tagline && <div className='text-base text-foreground/100'>{tagline}</div>}
+          {showTrackCompletion && (
+            trackCompletedAt
+              ? <div className='text-xs text-selected flex items-center gap-1'><Check className='w-3 h-3' /> {t('Completed {{date}}', { date: new Date(trackCompletedAt).toLocaleDateString() })}</div>
+              : <div className='text-xs text-foreground/50'>{t('Not yet completed')}</div>
+          )}
+          {showFundingRoundRoles && (
+            <div className='flex flex-row flex-wrap gap-1.5 mt-1'>
+              {canSubmit && (
+                <span className='px-2 py-0.5 text-xs bg-selected/20 text-foreground rounded-md'>{t('Can Submit')}</span>
+              )}
+              {canVote && (
+                <span className='px-2 py-0.5 text-xs bg-selected/20 text-foreground rounded-md'>{t('Can Vote')}</span>
+              )}
+              {isViewer && (
+                <span className='px-2 py-0.5 text-xs bg-foreground/10 text-foreground/70 rounded-md'>{t('Viewer')}</span>
+              )}
+            </div>
+          )}
         </div>
       </div>
       {joinAnswersBlock}
@@ -149,8 +184,13 @@ Member.propTypes = {
     avatarUrl: string,
     bannerUrl: string
   }).isRequired,
-  removeMember: func,
+  removeMember: PropTypes.func,
   showAnswers: bool,
+  showFundingRoundRoles: bool,
+  submitterRoles: PropTypes.array,
+  voterRoles: PropTypes.array,
+  showTrackCompletion: bool,
+  trackCompletedAt: string,
   square: bool
 }
 

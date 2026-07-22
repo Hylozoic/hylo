@@ -9,7 +9,7 @@ export default async function createPost (userId, params) {
     .then(attrs => bookshelf.transaction(transacting =>
       Post.create(attrs, { transacting })
         .tap(post => afterCreatingPost(post, merge(
-          pick(params, 'localId', 'group_ids', 'imageUrl', 'videoUrl', 'docs', 'topicNames', 'memberIds', 'eventInviteeIds', 'imageUrls', 'fileUrls', 'fundingRoundId', 'announcement', 'location', 'location_id', 'proposalOptions', 'trackId', 'markAsReadTopicName'),
+          pick(params, 'localId', 'group_ids', 'imageUrl', 'videoUrl', 'docs', 'topicNames', 'memberIds', 'eventInviteeIds', 'imageUrls', 'fileUrls', 'fundingRoundId', 'announcement', 'location', 'location_id', 'proposalOptions', 'trackId', 'viewId', 'markAsReadTopicName'),
           { children: params.requests, transacting }
         ))))
       .then(function (inserts) {
@@ -72,7 +72,10 @@ export function afterCreatingPost (post, opts) {
     }, trx),
     opts.docs && Promise.map(opts.docs, (doc) => Media.createDoc(post.id, doc, trx)),
 
-    opts.trackId && Track.addPost(post, opts.trackId, trxOpts),
+    opts.trackId && Track.addPost(post, opts.trackId, { ...trxOpts, userId }),
+
+    // Explicit view collection link (e.g. track-actions / funding-round-submissions / collection views)
+    opts.viewId && addPostToViewCollection(post, opts.viewId, userId, trxOpts),
 
     opts.fundingRoundId && post.get('type') === Post.Type.SUBMISSION && FundingRound.addPost(post, opts.fundingRoundId, userId, trxOpts)
   ]))
@@ -81,7 +84,6 @@ export function afterCreatingPost (post, opts) {
     .then(() => post.isProposal() && post.setProposalOptions({ options: opts.proposalOptions || [], userId, opts: trxOpts }))
     .then(() => Tag.updateForPost(post, opts.topicNames, userId, trx))
     .then(() => updateTagsAndGroups(post, opts.localId, trx, opts.markAsReadTopicName))
-    .then(() => Queue.classMethod('Group', 'doesMenuUpdate', { post: { type: post.get('type'), location_id: post.get('location_id') }, groupIds: opts.group_ids }))
     .then(() => Queue.classMethod('Post', 'createActivities', { postId: post.id }))
     .then(() => opts.fundingRoundId && post.get('type') === Post.Type.SUBMISSION && Queue.classMethod('FundingRound', 'notifyStewardsOfSubmission', { fundingRoundId: opts.fundingRoundId, postId: post.id, userId }))
     .then(() => Queue.classMethod('Post', 'notifySlack', { postId: post.id }))
@@ -90,6 +92,29 @@ export function afterCreatingPost (post, opts) {
       console.error('afterCreatingPost failed: ', err)
       throw new GraphQLError(`afterCreatingPost failed: ${err}`)
     })
+}
+
+/** Links a newly created post into a view's ordered collections_posts list. */
+async function addPostToViewCollection (post, viewId, userId, { transacting } = {}) {
+  const view = await GroupView.where({ id: viewId }).fetch({ transacting })
+  if (!view) return null
+
+  const existing = await CollectionPost.find(viewId, post.id, { transacting })
+  if (existing) return existing
+
+  const row = await bookshelf.knex('collections_posts')
+    .modify(q => { if (transacting) q.transacting(transacting) })
+    .where({ view_id: viewId })
+    .select(bookshelf.knex.raw('coalesce(max("order"), -1) as max_order'))
+    .first()
+  const nextOrder = Number(row.max_order) + 1
+
+  return CollectionPost.create({
+    view_id: viewId,
+    post_id: post.id,
+    order: nextOrder,
+    user_id: userId
+  }, { transacting })
 }
 
 async function updateTagsAndGroups (post, localId, trx, markAsReadTopicName = null) {
@@ -129,21 +154,25 @@ async function updateTagsAndGroups (post, localId, trx, markAsReadTopicName = nu
   const markAsReadTagId = markAsReadTag ? markAsReadTag.get('id') : null
 
   // For the topic the user is currently viewing: always update last_read_post_id.
-  const activeTopicTagFollowQuery = markAsReadTagId ? TagFollow.query(q => {
-    q.where('tag_id', markAsReadTagId)
-    q.whereIn('group_id', groups.map('id'))
-    q.where('user_id', post.get('user_id'))
-  }).query() : null
+  const activeTopicTagFollowQuery = markAsReadTagId
+    ? TagFollow.query(q => {
+      q.where('tag_id', markAsReadTagId)
+      q.whereIn('group_id', groups.map('id'))
+      q.where('user_id', post.get('user_id'))
+    }).query()
+    : null
 
   // For all other topics: only update last_read_post_id when new_post_count = 0
   // (avoids hiding unread posts when creating from outside a chat room).
   const otherTagIds = tags.filter(t => t.get('id') !== markAsReadTagId).map(t => t.get('id'))
-  const otherMyTagFollowQuery = otherTagIds.length > 0 ? TagFollow.query(q => {
-    q.whereIn('tag_id', otherTagIds)
-    q.whereIn('group_id', groups.map('id'))
-    q.where('user_id', post.get('user_id'))
-    q.where('new_post_count', 0)
-  }).query() : null
+  const otherMyTagFollowQuery = otherTagIds.length > 0
+    ? TagFollow.query(q => {
+      q.whereIn('tag_id', otherTagIds)
+      q.whereIn('group_id', groups.map('id'))
+      q.where('user_id', post.get('user_id'))
+      q.where('new_post_count', 0)
+    }).query()
+    : null
 
   const groupMembershipQuery = GroupMembership.query(q => {
     q.whereIn('group_id', groups.map('id'))
@@ -161,12 +190,24 @@ async function updateTagsAndGroups (post, localId, trx, markAsReadTopicName = nu
 
   const trackAsNewPost = ![Post.Type.ACTION, Post.Type.SUBMISSION].includes(post.get('type'))
 
+  const markAuthorChatViewRead = post.get('type') === Post.Type.CHAT
+    ? Promise.map(groups.models, async group => {
+      const chatView = await GroupView.where({
+        group_id: group.id,
+        type: GroupView.Type.CHAT
+      }).fetch({ transacting: trx })
+      if (!chatView) return
+      return GroupViewUser.markAuthorRead(chatView.id, post.get('user_id'), post.get('id'), { transacting: trx })
+    })
+    : null
+
   return Promise.all([
     notifySockets,
     trackAsNewPost && groupTagsQuery.update({ updated_at: new Date() }),
     trackAsNewPost && tagFollowQuery.update({ updated_at: new Date() }).increment('new_post_count'),
     trackAsNewPost && activeTopicTagFollowQuery && activeTopicTagFollowQuery.update({ updated_at: new Date(), last_read_post_id: post.get('id') }),
     trackAsNewPost && otherMyTagFollowQuery && otherMyTagFollowQuery.update({ updated_at: new Date(), last_read_post_id: post.get('id') }),
-    groupMembershipQuery.update({ updated_at: new Date() }).increment('new_post_count')
+    groupMembershipQuery.update({ updated_at: new Date() }).increment('new_post_count'),
+    markAuthorChatViewRead
   ])
 }

@@ -29,11 +29,13 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
   }
   slug
   type
+  parentId
+  icon
+  acceptedPostTypes
   typeDescriptor
   typeDescriptorPlural
   visibility
   websiteUrl
-  welcomePage
   paywall
   canAccess
   agreements {

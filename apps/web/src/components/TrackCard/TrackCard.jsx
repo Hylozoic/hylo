@@ -9,30 +9,38 @@ import useRouteParams from 'hooks/useRouteParams'
 import { duplicateTrack, updateTrack } from 'store/actions/trackActions'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
-import { RESP_MANAGE_TRACKS } from 'store/constants'
+import { RESP_MANAGE_SPACES } from 'store/constants'
 import { trackUrl } from '@hylo/navigation'
 import { cn } from 'util/index'
+
+/** Resolves the parent group slug for linking into a Track space. */
+function parentSlugForTrack (track, routeGroupSlug) {
+  if (routeGroupSlug) return routeGroupSlug
+  return track.space?.parentGroup?.slug || track.space?.slug || null
+}
 
 function TrackCard ({ track }) {
   const routeParams = useRouteParams()
   const { t } = useTranslation()
-  let currentGroup = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
-  let viewTrackUrl = trackUrl(track.id, routeParams)
-  if (!currentGroup) {
-    // When viewing from My Tracks, use the first group of the track
-    currentGroup = track.groups?.[0]
-    viewTrackUrl = trackUrl(track.id, { ...routeParams, groupSlug: currentGroup.slug })
-  }
-  const canEdit = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_MANAGE_TRACKS, groupId: currentGroup?.id }))
+  const routeGroup = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
+  const parentSlug = parentSlugForTrack(track, routeParams.groupSlug || routeGroup?.slug)
+  const parentFromSpace = track.space?.parentGroup
+  const responsibilityGroupId = routeGroup?.id || parentFromSpace?.id || track.space?.id
+  const viewTrackUrl = trackUrl(track.id, { groupSlug: parentSlug, space: track.space })
+  const canEdit = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_MANAGE_SPACES, groupId: responsibilityGroupId }))
   const dispatch = useDispatch()
   const navigate = useNavigate()
 
   const handleDuplicateTrack = useCallback(async () => {
     if (window.confirm(t('Are you sure you want to duplicate this track?'))) {
       const newTrack = await dispatch(duplicateTrack(track.id))
-      navigate(trackUrl(newTrack.payload.data?.duplicateTrack?.id, routeParams) + '/edit')
+      const duplicated = newTrack.payload.data?.duplicateTrack
+      navigate(trackUrl(duplicated?.id, {
+        groupSlug: parentSlug,
+        space: duplicated?.space || track.space
+      }))
     }
-  }, [routeParams])
+  }, [routeParams, parentSlug, track.space, track.id, dispatch, navigate, t])
 
   const handlePublishTrack = useCallback((publishedAt) => {
     if (confirm(publishedAt ? t('Are you sure you want to publish this track?') : t('Are you sure you want to unpublish this track?'))) {
@@ -64,7 +72,7 @@ function TrackCard ({ track }) {
             <span className='text-xs text-foreground/60 ml-2'>{numActions} {actionDescriptorPlural}</span>
           </Link>
           {canEdit && <CopyPlus className='hover:scale-125 transition-all w-6 h-6 cursor-pointer text-foreground mr-2' onClick={handleDuplicateTrack} />}
-          {canEdit && <Link className='hover:scale-125 transition-all' to={`${viewTrackUrl}?tab=edit`}><Pencil className='w-6 h-6 cursor-pointer text-foreground' /></Link>}
+          {canEdit && <Link className='hover:scale-125 transition-all' to={viewTrackUrl}><Pencil className='w-6 h-6 cursor-pointer text-foreground' /></Link>}
         </div>
         <Link className='flex justify-between items-center text-foreground hover:text-foreground/100' to={viewTrackUrl}>
           <div className='flex justify-between items-center flex-row gap-2'>

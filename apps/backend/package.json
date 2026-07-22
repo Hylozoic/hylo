@@ -15,7 +15,7 @@
   },
   "main": "app.js",
   "engines": {
-    "node": "^20"
+    "node": "^24"
   },
   "packageManager": "yarn@4.9.2",
   "scripts": {
@@ -26,6 +26,7 @@
     "worker": "node --optimize_for_size --gc_interval=100 worker.js",
     "migrate": "node migrations/scripts/updateMigrationsTable.js && node ./node_modules/.bin/knex migrate:latest",
     "migrate-up": "node migrations/scripts/updateMigrationsTable.js && node ./node_modules/.bin/knex migrate:up",
+    "migrate-down": "node migrations/scripts/updateMigrationsTable.js && node ./node_modules/.bin/knex migrate:down",
     "rollback": "node ./node_modules/.bin/knex migrate:rollback",
     "migrate-make": "node ./node_modules/.bin/knex migrate:make",
     "debug": "node-debug app.js",
@@ -59,7 +60,7 @@
     "standard": "^17.1.2"
   },
   "dependencies": {
-    "@airbnb/node-memwatch": "^2.0.0",
+    "@airbnb/node-memwatch": "^3.0.0",
     "@babel/core": "^7.17.9",
     "@babel/preset-env": "^7.16.11",
     "@babel/register": "^7.17.7",
@@ -143,7 +144,7 @@
     "sanitize-filename": "^1.6.1",
     "semver": "^5.4.1",
     "sendwithus": "^2.8.0",
-    "sharp": "^0.30.4",
+    "sharp": "^0.35.3",
     "socket.io-emitter": "^3.1.1",
     "stream-buffers": "^3.0.2",
     "stripe": "^17.5.0",
@@ -188,6 +189,7 @@
       "CustomView",
       "CustomViewTopic",
       "Contribution",
+      "Draft",
       "Email",
       "EventInvitation",
       "EventResponse",
@@ -197,8 +199,7 @@
       "Frontend",
       "FullTextSearch",
       "FundingRound",
-      "FundingRoundPost",
-      "FundingRoundUser",
+      "CollectionPost",
       "Group",
       "GroupAgreement",
       "GroupExtension",
@@ -212,6 +213,8 @@
       "GroupTag",
       "GroupToGroupJoinQuestion",
       "GroupToGroupJoinRequestQuestionAnswer",
+      "GroupView",
+      "GroupViewUser",
       "GroupWidget",
       "Invitation",
       "JoinRequest",
@@ -243,6 +246,7 @@
       "SavedSearch",
       "Search",
       "Skill",
+      "StripeAccount",
       "StripeService",
       "StripeProduct",
       "SubscriptionChangeEvent",
@@ -251,8 +255,6 @@
       "Thank",
       "TokenAuth",
       "Track",
-      "TrackPost",
-      "TrackUser",
       "TopicFollow",
       "User",
       "UserConnection",

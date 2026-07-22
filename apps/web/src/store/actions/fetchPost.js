@@ -5,11 +5,18 @@ import {
 } from 'store/constants'
 import postQuery from '@graphql/queries/postQuery'
 
-export default function fetchPost (id, withCompletionResponses = false) {
+/**
+ * Fetch a post by id.
+ * @param {string|number} id
+ * @param {{ withCompletion?: boolean, withCompletionResponses?: boolean }} [options]
+ *   withCompletion — include completedAt / completionAction / completionResponse (action posts)
+ *   withCompletionResponses — include all members' completionResponses (managers)
+ */
+export default function fetchPost (id, { withCompletion = false, withCompletionResponses = false } = {}) {
   return {
     type: FETCH_POST,
     graphql: {
-      query: postQuery(withCompletionResponses),
+      query: postQuery({ withCompletion, withCompletionResponses }),
       variables: {
         id
       }

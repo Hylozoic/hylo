@@ -11,9 +11,10 @@ export default function PostTypeSelect ({ allowedPostTypes, className, includeCh
   if (!includeChat) {
     postTypes = postTypes.filter(type => type !== 'chat')
   }
-  if (allowedPostTypes?.length) {
+  // null = all types; empty array = none (except keep current selection visible)
+  if (allowedPostTypes != null) {
     postTypes = postTypes.filter(type => allowedPostTypes.includes(type))
-    // Keep the current type selectable if it falls outside the view's allowed set
+    // Keep the current type selectable if it falls outside the allowed set
     if (postType && !postTypes.includes(postType)) {
       postTypes = [...postTypes, postType]
     }

@@ -68,14 +68,18 @@ export const getPostsAndComments = async (group, startTime, endTime, digestType)
     })
     .then(get('models'))
 
-  // Get funding round submissions for participating users
-  const fundingRoundSubmissions = await bookshelf.knex('funding_rounds_posts')
-    .join('funding_rounds', 'funding_rounds_posts.funding_round_id', 'funding_rounds.id')
-    .join('posts', 'funding_rounds_posts.post_id', 'posts.id')
-    .where('funding_rounds.group_id', group.id)
-    .whereBetween('funding_rounds_posts.created_at', [startTime.toJSDate(), endTime.toJSDate()])
+  // Get funding round submissions for spaces under this group (or the group itself)
+  const fundingRoundSubmissions = await bookshelf.knex('groups_posts')
+    .join('posts', 'posts.id', 'groups_posts.post_id')
+    .join('funding_rounds', 'funding_rounds.group_id', 'groups_posts.group_id')
+    .join('groups', 'groups.id', 'groups_posts.group_id')
+    .where(function () {
+      this.where('groups.parent_id', group.id).orWhere('groups.id', group.id)
+    })
+    .whereBetween('posts.created_at', [startTime.toJSDate(), endTime.toJSDate()])
     .where('posts.active', true)
     .where('posts.type', Post.Type.SUBMISSION)
+    .whereNull('funding_rounds.deactivated_at')
     .select(
       'funding_rounds.id as funding_round_id',
       'funding_rounds.title as funding_round_title',

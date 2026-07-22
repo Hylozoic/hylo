@@ -1,16 +1,17 @@
 import { cn } from 'util/index'
 import React from 'react'
 import { Route, Routes } from 'react-router-dom'
+import { useSelector } from 'react-redux'
 import { isLegacyWebView } from 'util/webView'
-import { useTheme } from 'contexts/ThemeContext'
+import getMe from 'store/selectors/getMe'
 
 export default function FullPageModal ({
   confirmMessage, navigate, goToOnClose,
   content, children, narrow, fullWidth, leftSideBarHidden
 }) {
   const multipleTabs = Array.isArray(content)
-  const { navMode } = useTheme()
-  const isTabNav = navMode === 'tabs'
+  const currentUser = useSelector(getMe)
+  const isTabNav = currentUser?.settings?.globalNavStyle === 'tabs'
 
   // DEPRECATED: New mobile app no longer longer renders differently for webview but uses standard layout
   if (isLegacyWebView()) {
@@ -30,9 +31,9 @@ export default function FullPageModal ({
     )
   } else {
     return (
-      <div className={cn('bg-midground flex flex-col flex-1 min-h-0 h-full')}>
+      <div className={cn('bg-midground flex flex-col flex-1 min-h-0 h-full overflow-y-auto')}>
         {multipleTabs && (
-          <div className={cn('w-full mx-auto px-2 py-2 sm:px-8 sm:py-8 flex-1 min-h-0 overflow-y-auto', !isTabNav && 'max-w-[750px]')}>
+          <div className={cn('w-full mx-auto px-2 py-2 sm:px-8 sm:py-8', !isTabNav && 'max-w-[750px]')}>
             <Routes>
               {content.map(tab => {
                 const element = tab.render ? tab.render() : tab.component

@@ -50,7 +50,7 @@ const SYSTEM_ROLE_DEFINITIONS = [
     name: 'Coordinator',
     emoji: '🪄',
     description: 'Coordinators are empowered to do everything related to group administration.',
-    responsibilities: ['Administration', 'Add Members', 'Remove Members', 'Manage Content', 'Manage Tracks', 'Manage Rounds']
+    responsibilities: ['Administration', 'Add Members', 'Remove Members', 'Manage Content', 'Manage Spaces']
   },
   {
     name: 'Moderator',
@@ -72,8 +72,7 @@ const SYSTEM_RESPONSIBILITY_DEFINITIONS = [
   { title: 'Add Members', description: 'The ability to invite and add new people to the group, and to accept or reject join requests.' },
   { title: 'Remove Members', description: 'The ability to remove a member from the group.' },
   { title: 'Manage Content', description: 'Adjust group topics, custom views and manage content that contradicts the agreements of the group.' },
-  { title: 'Manage Tracks', description: 'Create and manage tracks in the group.' },
-  { title: 'Manage Rounds', description: 'Create and manage funding rounds in the group.' }
+  { title: 'Manage Spaces', description: 'The ability to create and manage spaces (including tracks and funding rounds) within this group.' }
 ]
 
 /**
@@ -208,12 +207,13 @@ async function clearPreviousE2eBaseline (client) {
   )
 
   await client.query(
-    `DELETE FROM groups_tracks
+    `UPDATE groups SET track_id = NULL
      WHERE track_id IN (SELECT id FROM tracks WHERE name = 'E2E Paid Track')
-        OR group_id IN (SELECT id FROM groups WHERE slug = ANY($1::text[]))`,
-    [E2E_GROUP_SLUGS]
+        OR slug = 'e2e-paid-track-space'`
   )
 
+  await client.query(`DELETE FROM group_views WHERE group_id IN (SELECT id FROM groups WHERE slug = 'e2e-paid-track-space')`)
+  await client.query(`DELETE FROM groups WHERE slug = 'e2e-paid-track-space'`)
   await client.query(`DELETE FROM tracks WHERE name = 'E2E Paid Track'`)
 
   await client.query(
@@ -503,12 +503,33 @@ async function main () {
       ]
     )
 
-    /** Access-controlled published track + offering granting track scope (Batch P3). Coordinators bypass paywall; use `e2e.track-viewer@hylo.test`. */
+    /** Access-controlled published track space + offering granting track scope (Batch P3). Coordinators bypass paywall; use `e2e.track-viewer@hylo.test`. */
+    const paidTrackSpaceRes = await client.query(
+      `INSERT INTO groups (
+        name, slug, type, parent_id, access_code, visibility, accessibility,
+        created_at, updated_at, settings, active
+      ) VALUES (
+        'E2E Paid Track',
+        'e2e-paid-track-space',
+        'space',
+        $1,
+        $2,
+        1,
+        1,
+        $3::timestamptz,
+        $3::timestamptz,
+        '{}'::jsonb,
+        true
+      ) RETURNING id`,
+      [publicGroupId, `e2e-track-${Date.now().toString(36)}`, now]
+    )
+    const paidTrackSpaceId = paidTrackSpaceRes.rows[0].id
+
     const paidTrackRes = await client.query(
       `INSERT INTO tracks (
         name, description, published_at, access_controlled,
         action_descriptor, action_descriptor_plural,
-        created_at, updated_at, settings
+        group_id, created_at, updated_at, settings
       ) VALUES (
         'E2E Paid Track',
         '<p>Deterministic paid track for Batch P3 E2E</p>',
@@ -516,18 +537,27 @@ async function main () {
         true,
         'Action',
         'Actions',
+        $2,
         $1::timestamptz,
         $1::timestamptz,
         '{}'::jsonb
       ) RETURNING id`,
-      [now]
+      [now, paidTrackSpaceId]
     )
     const paidTrackId = paidTrackRes.rows[0].id
 
     await client.query(
-      `INSERT INTO groups_tracks (track_id, group_id, created_at, updated_at)
-       VALUES ($1, $2, $3::timestamptz, $3::timestamptz)`,
-      [paidTrackId, publicGroupId, now]
+      `UPDATE groups SET track_id = $1 WHERE id = $2`,
+      [paidTrackId, paidTrackSpaceId]
+    )
+
+    await client.query(
+      `INSERT INTO group_views (group_id, type, "order", created_at, updated_at)
+       VALUES
+         ($1, 'about', 0, $2::timestamptz, $2::timestamptz),
+         ($1, 'track-actions', 1, $2::timestamptz, $2::timestamptz),
+         ($1, 'members', 2, $2::timestamptz, $2::timestamptz)`,
+      [paidTrackSpaceId, now]
     )
 
     await client.query(

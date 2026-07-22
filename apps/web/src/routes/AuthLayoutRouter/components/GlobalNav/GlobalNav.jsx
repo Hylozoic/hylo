@@ -60,9 +60,15 @@ import { pinGroup, unpinGroup, updateGroupNavOrder } from 'store/actions/pinGrou
 import logout from 'store/actions/logout'
 import { personUrl } from '@hylo/navigation'
 import { WebViewMessageTypes } from '@hylo/shared'
-import { useTheme } from 'contexts/ThemeContext'
+import useAppearance from 'hooks/useAppearance'
 import { getLocaleFromLocalStorage } from 'util/locale'
 import updateUserSettings from 'store/actions/updateUserSettings'
+import { availableThemes, getAppearanceFromSettings } from 'util/appearance'
+import {
+  NAV_STYLE_GROUP_DEFAULT,
+  NAV_STYLE_ONE_COLUMN,
+  NAV_STYLE_TWO_COLUMN
+} from 'util/navigationLayout'
 
 import styles from './GlobalNav.module.scss'
 
@@ -126,7 +132,11 @@ function SettingsMenu ({ currentUser, triggerClassName, contentSide = 'right', c
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const dispatch = useDispatch()
-  const { colorScheme, setColorScheme, currentTheme, setCurrentTheme, navMode, setNavMode, stackGroups, setStackGroups, availableThemes } = useTheme()
+  const { colorScheme } = useAppearance()
+  const { theme } = getAppearanceFromSettings(currentUser?.settings)
+  const globalNavStyle = currentUser?.settings?.globalNavStyle === 'tabs' ? 'tabs' : 'sidebar'
+  const stackGroups = currentUser?.settings?.stackGroups === true
+  const independentSpaceMenu = currentUser?.settings?.independentSpaceMenu === true
   const currentLocale = currentUser?.settings?.locale || i18n.language || getLocaleFromLocalStorage() || 'en'
 
   // Hide the Sidebar/Tabs toggle on phone viewports — tabs are forced off there.
@@ -198,6 +208,17 @@ function SettingsMenu ({ currentUser, triggerClassName, contentSide = 'right', c
     }
   }
 
+  const groupNavStyle = currentUser?.settings?.groupNavStyle || NAV_STYLE_GROUP_DEFAULT
+
+  /**
+   * Persists one or more appearance settings on the current user.
+   */
+  const handleSettingChange = (settings) => {
+    if (currentUser) {
+      dispatch(updateUserSettings({ settings }))
+    }
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -254,51 +275,106 @@ function SettingsMenu ({ currentUser, triggerClassName, contentSide = 'right', c
             <span>{t('Appearance')}</span>
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent className='z-[200] bg-card'>
-            <div className='px-2 py-1.5 text-sm font-semibold'>{t('Display Mode')}</div>
-            <DropdownMenuRadioGroup value={colorScheme} onValueChange={setColorScheme}>
-              <DropdownMenuRadioItem value='auto'>
-                {t('System')}
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value='light'>
-                {t('Light')}
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value='dark'>
-                {t('Dark')}
-              </DropdownMenuRadioItem>
-            </DropdownMenuRadioGroup>
-            <DropdownMenuSeparator />
-            {!isPhoneViewport && (
-              <>
-                <div className='px-2 py-1.5 text-sm font-semibold'>{t('Navigation')}</div>
-                <DropdownMenuRadioGroup value={navMode} onValueChange={setNavMode}>
-                  <DropdownMenuRadioItem value='sidebar'>
-                    {t('Sidebar')}
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                <span>{t('Color Mode')}</span>
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className='z-[200] bg-card'>
+                <DropdownMenuRadioGroup value={colorScheme} onValueChange={value => handleSettingChange({ colorScheme: value })}>
+                  <DropdownMenuRadioItem value='auto'>
+                    {t('System')}
                   </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value='tabs'>
-                    {t('Top bar')}
+                  <DropdownMenuRadioItem value='light'>
+                    {t('Light')}
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value='dark'>
+                    {t('Dark')}
                   </DropdownMenuRadioItem>
                 </DropdownMenuRadioGroup>
-                <DropdownMenuSeparator />
-              </>
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                <span>{t('Color Theme')}</span>
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className='z-[200] bg-card'>
+                <DropdownMenuRadioGroup value={theme} onValueChange={value => handleSettingChange({ theme: value })}>
+                  {availableThemes.map(theme => (
+                    <DropdownMenuRadioItem key={theme} value={theme} className='capitalize'>
+                      {t(theme)}
+                    </DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+            {!isPhoneViewport && (
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <span>{t('Global Navigation')}</span>
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className='z-[200] bg-card'>
+                  <DropdownMenuRadioGroup value={globalNavStyle} onValueChange={value => handleSettingChange({ globalNavStyle: value })}>
+                    <DropdownMenuRadioItem value='sidebar'>
+                      {t('Sidebar')}
+                    </DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value='tabs'>
+                      {t('Topbar')}
+                    </DropdownMenuRadioItem>
+                  </DropdownMenuRadioGroup>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
             )}
-            <div className='px-2 py-1.5 text-sm font-semibold'>{t('Group Display')}</div>
-            <DropdownMenuRadioGroup value={stackGroups ? 'stacked' : 'flat'} onValueChange={value => setStackGroups(value === 'stacked')}>
-              <DropdownMenuRadioItem value='stacked'>
-                {t('Stacked')}
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value='flat'>
-                {t('Flat')}
-              </DropdownMenuRadioItem>
-            </DropdownMenuRadioGroup>
-            <DropdownMenuSeparator />
-            <div className='px-2 py-1.5 text-sm font-semibold'>{t('Color Scheme')}</div>
-            <DropdownMenuRadioGroup value={currentTheme} onValueChange={setCurrentTheme}>
-              {availableThemes.map(theme => (
-                <DropdownMenuRadioItem key={theme} value={theme} className='capitalize'>
-                  {t(theme)}
-                </DropdownMenuRadioItem>
-              ))}
-            </DropdownMenuRadioGroup>
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                <span>{t('Group Nav Stacking')}</span>
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className='z-[200] bg-card'>
+                <DropdownMenuRadioGroup value={stackGroups ? 'stacked' : 'flat'} onValueChange={value => handleSettingChange({ stackGroups: value === 'stacked' })}>
+                  <DropdownMenuRadioItem value='flat'>
+                    {t('Flat')}
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value='stacked'>
+                    {t('Stacked')}
+                  </DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                <span>{t('Group Menu Style')}</span>
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className='z-[200] bg-card'>
+                <DropdownMenuRadioGroup value={groupNavStyle} onValueChange={value => handleSettingChange({ groupNavStyle: value })}>
+                  <DropdownMenuRadioItem value={NAV_STYLE_GROUP_DEFAULT}>
+                    {t('Group Default')}
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value={NAV_STYLE_TWO_COLUMN}>
+                    {t('Side Menu')}
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value={NAV_STYLE_ONE_COLUMN}>
+                    {t('Card Menu')}
+                  </DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                <span>{t('Space Menu Style')}</span>
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className='z-[200] bg-card'>
+                <DropdownMenuRadioGroup
+                  value={independentSpaceMenu ? 'independent' : 'in-group'}
+                  onValueChange={value => handleSettingChange({ independentSpaceMenu: value === 'independent' })}
+                >
+                  <DropdownMenuRadioItem value='in-group'>
+                    {t('Spaces In Group Menu')}
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value='independent'>
+                    {t('Independent Space Menu')}
+                  </DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
           </DropdownMenuSubContent>
         </DropdownMenuSub>
         <DropdownMenuSub>
@@ -361,7 +437,7 @@ export default function GlobalNav (props) {
   const { showPreferences } = useCookieConsent()
   const [showSupportModal, setShowSupportModal] = useState(false)
   const dispatch = useDispatch()
-  const { stackGroups } = useTheme()
+  const stackGroups = currentUser?.settings?.stackGroups === true
   const rawGroups = useSelector(getMyGroupsWithChildren)
   // When stacking is off, flatten: every group renders as its own item with no subgroup stack.
   const sortedGroups = useMemo(

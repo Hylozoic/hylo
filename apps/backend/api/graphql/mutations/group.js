@@ -228,8 +228,6 @@ export async function acceptGroupRelationshipInvite (userId, groupRelationshipIn
   if (invite) {
     if (GroupMembership.hasResponsibility(userId, invite.get('to_group_id'), Responsibility.constants.RESP_ADMINISTRATION)) {
       const groupRelationship = await invite.accept(userId)
-      const groupIds = [invite.get('from_group_id'), invite.get('to_group_id')]
-      await Queue.classMethod('Group', 'doesMenuUpdate', { groupRelationship: true, groupIds })
 
       if (groupRelationship) {
         publishAsync(publishGroupRelationshipUpdate, context, {

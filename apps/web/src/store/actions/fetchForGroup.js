@@ -26,6 +26,7 @@ const queryFragment = `group(slug: $slug, updateLastViewed: $updateLastViewed) {
     stewardDescriptorPlural
     name
     purpose
+    requiredRoles
     settings {
       agreementsLastUpdatedAt
       allowGroupInvites
@@ -37,17 +38,23 @@ const queryFragment = `group(slug: $slug, updateLastViewed: $updateLastViewed) {
       publicMemberDirectory
       showSuggestedSkills
       showWelcomePage
+      showPostNoticesInChat
       layout
     }
     slug
     type
+    parentId
+    icon
+    acceptedPostTypes
     typeDescriptor
     typeDescriptorPlural
     visibility
     websiteUrl
-    welcomePage
     paywall
     canAccess
+    fundingRound {
+      id
+    }
     groupRoles {
       items {
         id

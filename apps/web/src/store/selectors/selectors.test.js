@@ -96,7 +96,8 @@ describe('hasResponsibilityForGroup', () => {
           responsibilities: {
             items: [
               { id: 1, title: 'Administration' },
-              { id: 2, title: 'Manage Content' }
+              { id: 2, title: 'Manage Content' },
+              { id: 3, title: 'Manage Spaces' }
             ]
           }
         }]
@@ -116,5 +117,12 @@ describe('hasResponsibilityForGroup', () => {
     const state = { orm: session.state }
     const props = { person: me, groupId: group.id, responsibility: 'Manage Content' }
     expect(hasResponsibilityForGroup(state, props)).toBeFalsy()
+  })
+
+  it('inherits parent roles when checking a space', () => {
+    const space = session.Group.create({ id: 10, type: 'space', parentId: group.id })
+    const state = { orm: session.state }
+    const props = { person: me, groupId: space.id, responsibility: 'Manage Spaces' }
+    expect(hasResponsibilityForGroup(state, props)).toEqual(true)
   })
 })
