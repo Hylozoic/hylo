@@ -488,6 +488,10 @@ export default function ContextMenu (props) {
     }
   }, [isEditing])
 
+  // Settings menu needs a viewport-bounded height so it can scroll independently of the
+  // underlying view list (which stays mounted behind the settings overlay).
+  const isSettingsPath = location.pathname.includes('/settings')
+
   const devToggle = (
     <div className='px-3 py-2 border-t border-foreground/10'>
       <button
@@ -586,15 +590,24 @@ export default function ContextMenu (props) {
         'ContextMenu bg-background relative z-20 isolate pointer-events-auto h-full flex-1 min-w-0',
         !isPhoneDevice() && 'sm:flex-initial sm:w-[300px]',
         { [classes.mapView]: mapView },
-        { [classes.showGroupMenu]: isNavOpen, 'h-screen h-dvh': isPhoneDevice(), '!overflow-y-auto': !location.pathname.includes('/settings'), 'overflow-y-hidden': location.pathname.includes('/settings') },
+        {
+          [classes.showGroupMenu]: isNavOpen,
+          'h-screen h-dvh': isPhoneDevice(),
+          'overflow-y-hidden flex flex-col': isSettingsPath,
+          '!overflow-y-auto': !isSettingsPath
+        },
         className
       )}
       style={{ boxShadow: 'inset -15px 0 15px -10px hsl(var(--darkening) / 0.3)' }}
       onScroll={handleScroll}
     >
-      <div className='relative min-h-full min-h-screen min-h-dvh flex flex-col'>
+      <div className={cn(
+        'relative flex flex-col',
+        isSettingsPath ? 'flex-1 min-h-0 overflow-hidden' : 'min-h-full min-h-screen min-h-dvh'
+      )}
+      >
         <div className='absolute inset-0 bg-gradient-to-b from-context-menu-background to-theme-background/10 dark:to-theme-background/40 z-0 pointer-events-none' />
-        <div className='ContextDetails w-full z-20 relative'>
+        <div className='ContextDetails w-full z-20 relative shrink-0'>
           {isGroupContext
             ? <GroupMenuHeader group={group} />
             : isPublicContext
@@ -625,7 +638,7 @@ export default function ContextMenu (props) {
                 : null}
         </div>
 
-        <div className='relative z-20 flex flex-col flex-1'>
+        <div className={cn('relative z-20 flex flex-col flex-1', isSettingsPath && 'min-h-0 overflow-hidden')}>
           <Routes>
             <Route path='settings/*' element={<GroupSettingsMenu group={group} groupSlug={groupSlug} />} />
           </Routes>
