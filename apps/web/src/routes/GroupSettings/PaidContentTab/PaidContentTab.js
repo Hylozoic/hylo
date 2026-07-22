@@ -387,7 +387,7 @@ function PaidContentTab ({ group, currentUser }) {
         {currentTab === 'account' && (
           <>
             <p>{t('Use Paid Content to charge for membership in your group or access to a track in your group.')}</p>
-            <p>{t('To start, set up Stripe Connect to accept payments for group memberships, tracks, and other offerings. Stripe handles all payment processing securely.')}</p>
+            <p>{t('To start, set up Stripe Connect to accept payments for group memberships, spaces, and other offerings. Stripe handles all payment processing securely.')}</p>
             {!stripeAccountFullyActive && (
               <div
                 className='rounded-lg border-2 border-amber-500/60 bg-amber-500/[0.14] dark:bg-amber-400/10 p-3 sm:p-4 flex gap-3 items-start shadow-sm ring-1 ring-inset ring-amber-500/25'
@@ -402,7 +402,7 @@ function PaidContentTab ({ group, currentUser }) {
           </>
         )}
         {currentTab === 'offerings' && (
-          <p>{t('To charge for group membership or tracks, set up an offering. For example, if you want to create a paywall for your group, click Create Offering and set the payment terms you\'d like. Options include one-time or recurring fees, price tiers, and sliding scale. Once the offering is created and your Stripe account is connected, you can check the box to enable a group paywall.')}</p>
+          <p>{t('To charge for group membership or spaces, set up an offering. For example, if you want to create a paywall for your group, click Create Offering and set the payment terms you\'d like. Options include one-time or recurring fees, price tiers, and sliding scale. Once the offering is created and your Stripe account is connected, you can check the box to enable a group paywall.')}</p>
         )}
         {currentTab === 'content-access' && (
           <p>{t('View who has access to paid content in your group and manage those permissions.')}</p>

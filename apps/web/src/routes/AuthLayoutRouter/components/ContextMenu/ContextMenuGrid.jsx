@@ -34,8 +34,10 @@ import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import getMe from 'store/selectors/getMe'
 import isPendingFor from 'store/selectors/isPendingFor'
+import { filterMoreSpacesSections } from 'util/paidSpaceVisibility'
 import { mapbox as mapboxConfig } from 'config'
 import useAppearance from 'hooks/useAppearance'
+import usePublishedOfferings from 'hooks/usePublishedOfferings'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
@@ -306,7 +308,19 @@ function MoreSpacesCard ({ onClick, t }) {
 /** Nested More Spaces grid with section headers. */
 function MoreSpacesGrid ({ group, groupSlug, navigate, t }) {
   const dispatch = useDispatch()
-  const sections = useSelector(state => getMoreSpacesSections(state, group))
+  const sectionsRaw = useSelector(state => getMoreSpacesSections(state, group))
+  const canManageSpaces = useSelector(state => hasResponsibilityForGroup(state, {
+    responsibility: RESP_MANAGE_SPACES,
+    groupId: group?.id
+  }))
+  const publishedOfferings = usePublishedOfferings(group?.id)
+  const sections = useMemo(
+    () => filterMoreSpacesSections(sectionsRaw, {
+      offerings: publishedOfferings,
+      canManageSpaces
+    }),
+    [sectionsRaw, publishedOfferings, canManageSpaces]
+  )
   const parentGroups = useSelector(state => getParentGroups(state, group))
   const childGroups = useSelector(state => getChildGroups(state, group))
   const peerGroups = useSelector(state => getPeerGroups(state, group))

@@ -23,6 +23,7 @@ import GroupMenuHeader from 'components/GroupMenuHeader'
 import MenuLink from './MenuLink'
 import GroupViewIcon from './GroupViewIcon'
 import useRouteParams from 'hooks/useRouteParams'
+import usePublishedOfferings from 'hooks/usePublishedOfferings'
 import GroupViewPresenter, {
   displayNameForView,
   getStaticMenuViews,
@@ -38,6 +39,7 @@ import getMe from 'store/selectors/getMe'
 import getMyMemberships from 'store/selectors/getMyMemberships'
 import { bgImageStyle, cn } from 'util/index'
 import { isOneColumnLayout as resolveIsOneColumnLayout } from 'util/navigationLayout'
+import { filterSpaceViewsForMenuVisibility } from 'util/paidSpaceVisibility'
 
 import GroupSettingsMenu from './GroupSettingsMenu'
 import ContextMenuOld from './ContextMenuOld'
@@ -409,7 +411,16 @@ export default function ContextMenu (props) {
   }, [isPublicContext, isMyContext, isAllContext, profileUrl])
 
   const fetchedGroupViews = useSelector(state => getGroupViews(state, group))
-  const menuViews = staticMenuViews || fetchedGroupViews
+  const publishedOfferings = usePublishedOfferings(group?.id)
+  const menuViews = useMemo(() => {
+    const views = staticMenuViews || fetchedGroupViews
+    if (staticMenuViews) return views
+    // Managers always see paywalled spaces; others only when a published offering grants access
+    return filterSpaceViewsForMenuVisibility(views, {
+      offerings: publishedOfferings,
+      canManageSpaces: canManageSpaces || isEditing
+    })
+  }, [staticMenuViews, fetchedGroupViews, publishedOfferings, canManageSpaces, isEditing])
 
   const { spaceView: activeSpaceView, spaceGroup: activeSpaceGroup } = useMemo(
     () => findSpaceForSlug(fetchedGroupViews, group, groupSlug, spaceSlug),

@@ -307,11 +307,11 @@ export function fetchViewPosts (groupId, viewId) {
 }
 
 /** Create a child space under a parent group. */
-export function createSpace ({ parentGroupId, name, slug, description, icon, acceptedPostTypes, purpose, location, locationId, visibility, accessibility, requiredRoles, viewTypes, bannerUrl, avatarUrl }) {
+export function createSpace ({ parentGroupId, name, slug, description, icon, acceptedPostTypes, purpose, location, locationId, visibility, accessibility, requiredRoles, viewTypes, bannerUrl, avatarUrl, paywall }) {
   return {
     type: CREATE_SPACE,
     graphql: {
-      query: `mutation ($parentGroupId: ID!, $name: String!, $slug: String, $description: String, $icon: String, $acceptedPostTypes: [String], $purpose: String, $location: String, $locationId: ID, $visibility: Int, $accessibility: Int, $requiredRoles: [Int], $viewTypes: [String], $bannerUrl: String, $avatarUrl: String) {
+      query: `mutation ($parentGroupId: ID!, $name: String!, $slug: String, $description: String, $icon: String, $acceptedPostTypes: [String], $purpose: String, $location: String, $locationId: ID, $visibility: Int, $accessibility: Int, $requiredRoles: [Int], $viewTypes: [String], $bannerUrl: String, $avatarUrl: String, $paywall: Boolean) {
         createSpace(
           parentGroupId: $parentGroupId
           name: $name
@@ -328,6 +328,7 @@ export function createSpace ({ parentGroupId, name, slug, description, icon, acc
           viewTypes: $viewTypes
           bannerUrl: $bannerUrl
           avatarUrl: $avatarUrl
+          paywall: $paywall
         ) {
           id
           name
@@ -336,9 +337,12 @@ export function createSpace ({ parentGroupId, name, slug, description, icon, acc
           description
           bannerUrl
           avatarUrl
+          paywall
+          visibility
+          accessibility
         }
       }`,
-      variables: { parentGroupId, name, slug, description, icon, acceptedPostTypes, purpose, location, locationId, visibility, accessibility, requiredRoles, viewTypes, bannerUrl, avatarUrl }
+      variables: { parentGroupId, name, slug, description, icon, acceptedPostTypes, purpose, location, locationId, visibility, accessibility, requiredRoles, viewTypes, bannerUrl, avatarUrl, paywall }
     },
     meta: {
       parentGroupId,
@@ -350,11 +354,11 @@ export function createSpace ({ parentGroupId, name, slug, description, icon, acc
 }
 
 /** Update a space's settings. */
-export function updateSpace ({ id, groupId, spaceViewId, name, slug, description, icon, acceptedPostTypes, viewName, purpose, location, locationId, visibility, accessibility, requiredRoles, bannerUrl, avatarUrl }) {
+export function updateSpace ({ id, groupId, spaceViewId, name, slug, description, icon, acceptedPostTypes, viewName, purpose, location, locationId, visibility, accessibility, requiredRoles, bannerUrl, avatarUrl, paywall }) {
   return {
     type: UPDATE_SPACE,
     graphql: {
-      query: `mutation ($id: ID!, $name: String, $slug: String, $description: String, $icon: String, $acceptedPostTypes: [String], $purpose: String, $location: String, $locationId: ID, $visibility: Int, $accessibility: Int, $requiredRoles: [Int], $bannerUrl: String, $avatarUrl: String) {
+      query: `mutation ($id: ID!, $name: String, $slug: String, $description: String, $icon: String, $acceptedPostTypes: [String], $purpose: String, $location: String, $locationId: ID, $visibility: Int, $accessibility: Int, $requiredRoles: [Int], $bannerUrl: String, $avatarUrl: String, $paywall: Boolean) {
         updateSpace(
           id: $id
           name: $name
@@ -370,6 +374,7 @@ export function updateSpace ({ id, groupId, spaceViewId, name, slug, description
           requiredRoles: $requiredRoles
           bannerUrl: $bannerUrl
           avatarUrl: $avatarUrl
+          paywall: $paywall
         ) {
           id
           name
@@ -378,9 +383,12 @@ export function updateSpace ({ id, groupId, spaceViewId, name, slug, description
           description
           bannerUrl
           avatarUrl
+          paywall
+          visibility
+          accessibility
         }
       }`,
-      variables: omitBy(isUndefined, { id, name, slug, description, icon, acceptedPostTypes, purpose, location, locationId, visibility, accessibility, requiredRoles, bannerUrl, avatarUrl })
+      variables: omitBy(isUndefined, { id, name, slug, description, icon, acceptedPostTypes, purpose, location, locationId, visibility, accessibility, requiredRoles, bannerUrl, avatarUrl, paywall })
     },
     meta: {
       id,

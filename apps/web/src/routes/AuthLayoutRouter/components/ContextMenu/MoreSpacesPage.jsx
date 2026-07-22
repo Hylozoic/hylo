@@ -10,7 +10,7 @@ import { groupUrl, spaceHomeUrl } from '@hylo/navigation'
 import GroupViewPresenter from '@hylo/presenters/GroupViewPresenter'
 import fetchGroupRelationships from 'store/actions/fetchGroupRelationships'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
-import { FETCH_GROUP_RELATIONSHIPS, FETCH_GROUP_SPACES } from 'store/constants'
+import { FETCH_GROUP_RELATIONSHIPS, FETCH_GROUP_SPACES, RESP_MANAGE_SPACES } from 'store/constants'
 import { viewAcceptedByPostTypes } from 'store/models/GroupView'
 import {
   getChildGroups,
@@ -19,6 +19,9 @@ import {
 } from 'store/selectors/getGroupRelationships'
 import { getMoreSpacesSections } from 'store/selectors/getMoreSpacesSections'
 import isPendingFor from 'store/selectors/isPendingFor'
+import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
+import usePublishedOfferings from 'hooks/usePublishedOfferings'
+import { filterMoreSpacesSections } from 'util/paidSpaceVisibility'
 
 import { menuViewUrl } from './groupViewMenuUrl'
 
@@ -70,7 +73,19 @@ export default function MoreSpacesPage ({ group }) {
   const { setHeaderDetails } = useViewHeader()
   const groupSlug = group?.slug
 
-  const sections = useSelector(state => getMoreSpacesSections(state, group))
+  const sectionsRaw = useSelector(state => getMoreSpacesSections(state, group))
+  const canManageSpaces = useSelector(state => hasResponsibilityForGroup(state, {
+    responsibility: RESP_MANAGE_SPACES,
+    groupId: group?.id
+  }))
+  const publishedOfferings = usePublishedOfferings(group?.id)
+  const sections = useMemo(
+    () => filterMoreSpacesSections(sectionsRaw, {
+      offerings: publishedOfferings,
+      canManageSpaces
+    }),
+    [sectionsRaw, publishedOfferings, canManageSpaces]
+  )
   const parentGroups = useSelector(state => getParentGroups(state, group))
   const childGroups = useSelector(state => getChildGroups(state, group))
   const peerGroups = useSelector(state => getPeerGroups(state, group))

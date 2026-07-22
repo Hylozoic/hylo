@@ -31,6 +31,7 @@ export default function fetchGroupSpaces (groupId) {
               visibility
               accessibility
               requiredRoles
+              paywall
               groupRoles {
                 items {
                   id

@@ -23,7 +23,11 @@ import {
 import { getMoreSpacesSections } from 'store/selectors/getMoreSpacesSections'
 import getMyMemberships from 'store/selectors/getMyMemberships'
 import isPendingFor from 'store/selectors/isPendingFor'
+import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
+import { RESP_MANAGE_SPACES } from 'store/constants'
+import usePublishedOfferings from 'hooks/usePublishedOfferings'
 import { cn } from 'util/index'
+import { filterMoreSpacesSections } from 'util/paidSpaceVisibility'
 
 /** Matches ContextMenu GroupViewMenuItem row chrome. */
 const MENU_ITEM_CLASS = 'flex items-center gap-2 text-base text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 mb-[.3rem] w-full transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100'
@@ -272,7 +276,19 @@ export default function MoreSpacesSection ({
   const [hasLoaded, setHasLoaded] = useState(false)
   const [settingsSpace, setSettingsSpace] = useState(null)
 
-  const sections = useSelector(state => getMoreSpacesSections(state, group))
+  const sectionsRaw = useSelector(state => getMoreSpacesSections(state, group))
+  const canManageSpaces = useSelector(state => hasResponsibilityForGroup(state, {
+    responsibility: RESP_MANAGE_SPACES,
+    groupId: group?.id
+  }))
+  const publishedOfferings = usePublishedOfferings(group?.id)
+  const sections = useMemo(
+    () => filterMoreSpacesSections(sectionsRaw, {
+      offerings: publishedOfferings,
+      canManageSpaces
+    }),
+    [sectionsRaw, publishedOfferings, canManageSpaces]
+  )
   const parentGroups = useSelector(state => getParentGroups(state, group))
   const childGroups = useSelector(state => getChildGroups(state, group))
   const peerGroups = useSelector(state => getPeerGroups(state, group))

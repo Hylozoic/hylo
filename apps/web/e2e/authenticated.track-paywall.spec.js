@@ -2,9 +2,9 @@ import { test, expect } from '@playwright/test'
 import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading.js'
 
 /**
- * Batch P3 — access-controlled track (member without Coordinator bypass).
- * Seed: `E2E Paid Track`, user `e2e.track-viewer@hylo.test`.
- * Track detail lives on the Track space (not legacy /tracks/:trackId).
+ * Batch P3 — paid track space (member without Coordinator / Manage Spaces).
+ * Seed: `E2E Paid Track` space with paywall + offering granting that space.
+ * User: `e2e.track-viewer@hylo.test`.
  */
 
 test.describe.configure({ timeout: 120000 })
@@ -60,8 +60,8 @@ async function fetchTrackSpaceSlug (page, groupSlug, trackName) {
   )
 }
 
-test.describe('Batch P3: track paywall (track viewer)', () => {
-  test('access-controlled track space shows access required message', async ({ page }) => {
+test.describe('Batch P3: paid space paywall (track viewer)', () => {
+  test('paywalled track space shows offerings on join interstitial', async ({ page }) => {
     await page.goto('/')
     await waitPastRootSessionLoading(page)
 
@@ -75,6 +75,7 @@ test.describe('Batch P3: track paywall (track viewer)', () => {
     await page.goto(`/groups/${PUBLIC_GROUP_SLUG}/spaces/${localSlug}/track-actions`)
     await waitPastRootSessionLoading(page)
 
-    await expect(page.getByText(/need to be granted access/i)).toBeVisible(uiTimeout)
+    await expect(page.getByText(/Pay to Join Space/i)).toBeVisible(uiTimeout)
+    await expect(page.getByText(/E2E Track Access Monthly/i)).toBeVisible(uiTimeout)
   })
 })

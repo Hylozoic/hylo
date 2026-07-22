@@ -147,7 +147,7 @@ function ContentAccessTab ({ group, offerings = [] }) {
           </div>
           <p className='text-sm text-foreground/70'>
             {showGrantForm
-              ? t('Grant users access to group content, tracks, or offerings')
+              ? t('Grant users access to group content, spaces, or offerings')
               : t('View and manage all content access grants for your group')}
           </p>
         </div>

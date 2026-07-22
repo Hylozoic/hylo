@@ -2937,7 +2937,7 @@ type StripeOffering {
   accessGrants: JSON
   # Presentation / checkout options (buyButtonText, slidingScale), not access scopes
   metadata: JSON
-  # Tracks this offering grants access to (resolved from accessGrants.trackIds)
+  # Tracks this offering used to grant (deprecated; prefer groupIds for spaces). Kept for read compatibility.
   tracks: [Track]
   # Group roles this offering grants (resolved from accessGrants.groupRoleIds)
   roles: [GroupRole]
@@ -3448,7 +3448,9 @@ type Mutation {
     locationId: ID,
     viewTypes: [String],
     bannerUrl: String,
-    avatarUrl: String
+    avatarUrl: String,
+    # When true, space is Paid access (forces protected + restricted)
+    paywall: Boolean
   ): Group
   # Update a Space's settings
   updateSpace(
@@ -3465,7 +3467,9 @@ type Mutation {
     locationId: ID,
     purpose: String,
     bannerUrl: String,
-    avatarUrl: String
+    avatarUrl: String,
+    # When true, space is Paid access (forces protected + restricted)
+    paywall: Boolean
   ): Group
   # Archive a Space (soft-deactivate; removes its menu entry from the parent)
   archiveSpace(id: ID!): Group
@@ -4398,8 +4402,9 @@ input StripeOfferingInput {
   # Currency code (e.g. 'usd')
   currency: String
   # JSONB object defining what access this offering grants
-  # Format: { "trackIds": [1, 2], "groupRoleIds": [3, 4], "groupIds": [7, 8] }
+  # Format: { "groupIds": [7, 8], "groupRoleIds": [3, 4] } — groupIds may include space groups
   # buyButtonText and slidingScale may be sent here for convenience; they are stored in metadata
+  # Legacy trackIds are deprecated and ignored for new grants
   accessGrants: JSON
   # Renewal policy: automatic or manual
   renewalPolicy: String
