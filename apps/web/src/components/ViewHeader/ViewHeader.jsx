@@ -8,12 +8,12 @@ import InfoButton from 'components/ui/info'
 import { Command, CommandItem, CommandList } from 'components/ui/command'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useRouteParams from 'hooks/useRouteParams'
-import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
 import getPreviousLocation from 'store/selectors/getPreviousLocation'
 import { bgImageStyle, cn } from 'util/index'
-import { isCompactLayoutDevice, isDrawerNavLayout, isPhoneDevice } from 'util/mobile'
+import { performMobileNavBack } from 'util/mobileNavBack'
+import { isCompactLayoutDevice, isPhoneDevice } from 'util/mobile'
 
 const ViewHeader = () => {
   const dispatch = useDispatch()
@@ -24,7 +24,7 @@ const ViewHeader = () => {
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
   const currentUser = useSelector(getMe)
   const { headerDetails } = useViewHeader()
-  const { backButton, backTo, mobileBackButton, title, icon, info, search, centered, headerActions } = headerDetails
+  const { backButton, mobileBackButton, title, icon, info, search, centered, headerActions } = headerDetails
 
   const previousLocation = useSelector(getPreviousLocation)
   const compactLayout = isCompactLayoutDevice()
@@ -120,15 +120,12 @@ const ViewHeader = () => {
   // a back button, we always treat the chevron as \"back\" so it never takes
   // two taps.
   const handleChevronClick = () => {
-    if (isDrawerNavLayout(window.innerWidth) && !mobileBackButton && !backButton) {
-      dispatch(toggleNavMenu())
-    } else if (backTo) {
-      navigate(backTo)
-    } else if (centered) {
-      navigate(previousLocation || '/')
-    } else {
-      navigate(-1)
-    }
+    performMobileNavBack({
+      dispatch,
+      navigate,
+      headerDetails,
+      previousLocation
+    })
   }
 
   // Hide ViewHeader on phones for messages - MessagesMobile handles its own header
