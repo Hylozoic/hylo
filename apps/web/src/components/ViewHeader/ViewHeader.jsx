@@ -8,12 +8,12 @@ import InfoButton from 'components/ui/info'
 import { Command, CommandItem, CommandList } from 'components/ui/command'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useRouteParams from 'hooks/useRouteParams'
-import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
 import getPreviousLocation from 'store/selectors/getPreviousLocation'
 import { bgImageStyle, cn } from 'util/index'
-import { isCompactLayoutDevice, isDrawerNavLayout, isPhoneDevice } from 'util/mobile'
+import { performMobileNavBack } from 'util/mobileNavBack'
+import { isCompactLayoutDevice, isPhoneDevice } from 'util/mobile'
 
 const ViewHeader = ({ oneColumnGroup, oneColumnGroupSlug }) => {
   const dispatch = useDispatch()
@@ -24,7 +24,7 @@ const ViewHeader = ({ oneColumnGroup, oneColumnGroupSlug }) => {
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
   const currentUser = useSelector(getMe)
   const { headerDetails } = useViewHeader()
-  const { backButton, backTo, mobileBackButton, title, icon, info, search, centered, headerActions } = headerDetails
+  const { backButton, mobileBackButton, title, icon, info, search, centered, headerActions } = headerDetails
 
   const previousLocation = useSelector(getPreviousLocation)
   const compactLayout = isCompactLayoutDevice()
@@ -50,7 +50,7 @@ const ViewHeader = ({ oneColumnGroup, oneColumnGroupSlug }) => {
         setIsBannerVisible(false) // simple group view (no banner rendered)
         return
       }
-      observer = new IntersectionObserver(([entry]) => {
+      observer = new window.IntersectionObserver(([entry]) => {
         setIsBannerVisible(entry.isIntersecting)
       }, { threshold: 0 })
       observer.observe(bannerEl)
@@ -148,35 +148,15 @@ const ViewHeader = ({ oneColumnGroup, oneColumnGroupSlug }) => {
   // a back button, we always treat the chevron as \"back\" so it never takes
   // two taps.
   const handleChevronClick = () => {
-    // Phone settings use master-detail navigation:
-    // /settings/<tab>  → back to /settings (the menu)
-    // /settings (root) → exit settings, return to the group home. For normal groups
-    //                    also open the drawer so the user lands on the context menu
-    //                    (widget list) instead of the underlying active view.
-    if (isDrawerNavLayout(window.innerWidth) && groupSlug && location.pathname.startsWith(`/groups/${groupSlug}/settings`)) {
-      const isSettingsRoot = location.pathname === `/groups/${groupSlug}/settings` ||
-        location.pathname === `/groups/${groupSlug}/settings/`
-      if (isSettingsRoot) {
-        navigate(`/groups/${groupSlug}`)
-        if (!oneColumnGroup) {
-          dispatch(toggleNavMenu(true))
-        }
-      } else {
-        navigate(`/groups/${groupSlug}/settings`)
-      }
-      return
-    }
-    // Simple (one-column) groups render the sidebar inline on phone too — there's no
-    // drawer to toggle, so the chevron should navigate back instead.
-    if (isDrawerNavLayout(window.innerWidth) && !mobileBackButton && !backButton && !oneColumnGroup) {
-      dispatch(toggleNavMenu())
-    } else if (backTo) {
-      navigate(backTo)
-    } else if (centered) {
-      navigate(previousLocation || '/')
-    } else {
-      navigate(-1)
-    }
+    performMobileNavBack({
+      dispatch,
+      navigate,
+      headerDetails,
+      previousLocation,
+      pathname: location.pathname,
+      groupSlug,
+      oneColumnGroup: !!oneColumnGroup
+    })
   }
 
   // Hide ViewHeader on phones for messages - MessagesMobile handles its own header
