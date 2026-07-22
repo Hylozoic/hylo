@@ -92,6 +92,17 @@ function findSpaceForSlug (groupViews, group, parentSlug, spaceSlug) {
   return { spaceView: null, spaceGroup: null }
 }
 
+/** Visible menu views for a space (ordered, post-type filtered), optionally with Manage Round. */
+function visibleSpaceMenuViews (spaceGroup, { includeManageRound = false } = {}) {
+  const spaceViews = (spaceGroup?.groupViews?.items || [])
+    .filter(v => v.order != null)
+    .filter(v => viewAcceptedByPostTypes(v.type, spaceGroup?.acceptedPostTypes))
+  if (includeManageRound && spaceGroup?.fundingRound?.id) {
+    return [...spaceViews, MANAGE_ROUND_VIEW]
+  }
+  return spaceViews
+}
+
 /** Renders a single GroupView menu item, including nested space sub-items. */
 function GroupViewMenuItem ({
   view,
@@ -163,9 +174,7 @@ function GroupViewMenuItem ({
       myMemberships.some(m => m.group.id === linkedSpaceGroup.id)
     )
     const showManageRound = Boolean(linkedSpaceGroup?.fundingRound?.id && canManageRound)
-    const spaceViews = (linkedSpaceGroup?.groupViews?.items || [])
-      .filter(v => v.order != null)
-      .filter(v => viewAcceptedByPostTypes(v.type, linkedSpaceGroup?.acceptedPostTypes))
+    const spaceViews = visibleSpaceMenuViews(linkedSpaceGroup)
       .map(v => GroupViewPresenter(v))
     const menuSpaceViews = showManageRound
       ? [...spaceViews, GroupViewPresenter(MANAGE_ROUND_VIEW)]
@@ -174,7 +183,8 @@ function GroupViewMenuItem ({
     const singleSpaceView = menuSpaceViews.length === 1 ? menuSpaceViews[0] : null
     const spaceUnread = spaceViews.some(v => v.newPostCount > 0)
     const spaceHome = linkedSpaceGroup ? spaceHomeUrl(parentSlug, linkedSpaceGroup) : null
-    const spaceLink = singleSpaceView && isSpaceMember
+    // Independent mode: single-view spaces open that view and keep the parent menu.
+    const spaceLink = singleSpaceView && (independentSpaceMenu || isSpaceMember)
       ? menuViewUrl(parentSlug, singleSpaceView, linkedSpaceGroup)
       : spaceHome
     const isSpaceActive = Boolean(
@@ -409,11 +419,20 @@ export default function ContextMenu (props) {
     activeSpaceGroup &&
     myMemberships.some(m => m.group.id === activeSpaceGroup.id)
   )
+  const activeSpaceMenuViewCount = useMemo(() => {
+    if (!activeSpaceGroup) return 0
+    return visibleSpaceMenuViews(activeSpaceGroup, {
+      includeManageRound: Boolean(activeSpaceGroup.fundingRound?.id && canManageSpaces)
+    }).length
+  }, [activeSpaceGroup, canManageSpaces])
+  // Independent mode: only swap to the space menu when the space has multiple views
+  // (or when editing a space from the Edit Menu page via ?space=).
   const showingSpaceMenu = Boolean(
     independentSpaceMenu &&
     isGroupContext &&
     activeSpaceGroup &&
-    (isSpaceMember || (isEditMenuPath && canAdminister))
+    (isSpaceMember || (isEditMenuPath && canAdminister)) &&
+    (isEditMenuPath || activeSpaceMenuViewCount > 1)
   )
   const spaceMenuViewsFromStore = useSelector(state =>
     showingSpaceMenu ? getGroupViews(state, activeSpaceGroup) : []
@@ -516,7 +535,10 @@ export default function ContextMenu (props) {
             independentSpaceMenu
               ? (isEditing
                   ? groupUrl(groupSlug)
-                  : addQuerystringToPath(groupUrl(groupSlug, 'edit-menu'), { edit: 'true' }))
+                  : addQuerystringToPath(groupUrl(groupSlug, 'edit-menu'), {
+                    edit: 'true',
+                    ...(showingSpaceMenu && spaceSlug ? { space: spaceSlug } : {})
+                  }))
               : addQuerystringToPath(location.pathname, { edit: isEditing ? null : 'true' })
           }
           isEditing={isEditing}

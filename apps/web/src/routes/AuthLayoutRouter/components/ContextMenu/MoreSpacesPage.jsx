@@ -7,9 +7,11 @@ import Avatar from 'components/Avatar'
 import LucideIcon from 'components/LucideIcon/LucideIcon'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { groupUrl, spaceHomeUrl } from '@hylo/navigation'
+import GroupViewPresenter from '@hylo/presenters/GroupViewPresenter'
 import fetchGroupRelationships from 'store/actions/fetchGroupRelationships'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import { FETCH_GROUP_RELATIONSHIPS, FETCH_GROUP_SPACES } from 'store/constants'
+import { viewAcceptedByPostTypes } from 'store/models/GroupView'
 import {
   getChildGroups,
   getParentGroups,
@@ -17,6 +19,8 @@ import {
 } from 'store/selectors/getGroupRelationships'
 import { getMoreSpacesSections } from 'store/selectors/getMoreSpacesSections'
 import isPendingFor from 'store/selectors/isPendingFor'
+
+import { menuViewUrl } from './groupViewMenuUrl'
 
 /** Section heading for More Spaces page lists. */
 function SectionHeading ({ children }) {
@@ -105,6 +109,15 @@ export default function MoreSpacesPage ({ group }) {
   }, [parentGroups, childGroups, peerGroups, group?.groupViews?.items, t])
 
   const handleOpenSpace = useCallback((space) => {
+    const views = (space.groupViews?.items || [])
+      .filter(v => v.order != null)
+      .filter(v => viewAcceptedByPostTypes(v.type, space.acceptedPostTypes))
+    if (views.length === 1) {
+      navigate(menuViewUrl(groupSlug, GroupViewPresenter(views[0]), space), {
+        state: { fromMoreSpaces: true }
+      })
+      return
+    }
     navigate(spaceHomeUrl(groupSlug, space), { state: { fromMoreSpaces: true } })
   }, [navigate, groupSlug])
 

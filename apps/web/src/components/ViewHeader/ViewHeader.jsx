@@ -313,21 +313,6 @@ const ViewHeader = () => {
       {/* )} */}
       {!centered && !oneColumn && presentedSpaceView && (
         <>
-          {group?.avatarUrl && (
-            <div
-              className='w-5 h-5 rounded-sm bg-cover bg-center shrink-0 mr-1 cursor-pointer hover:opacity-80 transition-opacity'
-              style={bgImageStyle(group.avatarUrl)}
-              onClick={() => navigate(`/groups/${groupSlug}`)}
-              title={group.name}
-            />
-          )}
-          <span
-            className='truncate max-w-[20%] shrink min-w-0 text-foreground/70 cursor-pointer hover:text-foreground hidden sm:inline'
-            onClick={() => navigate(`/groups/${groupSlug}`)}
-          >
-            {group?.name}
-          </span>
-          <span className='mx-1.5 shrink-0 text-foreground/40'>{'>'}</span>
           <GroupViewIcon view={presentedSpaceView} className='mr-1 shrink-0 w-5 h-5' />
           <span className='truncate max-w-[25%] shrink min-w-0 text-foreground'>{spaceName}</span>
           <span className='mx-1.5 shrink-0 text-foreground/40'>{'>'}</span>
