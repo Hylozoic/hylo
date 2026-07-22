@@ -47,10 +47,44 @@ describe('createResolverForModel', () => {
       expect(call[0]).to.equal('mock wheels relation')
       expect(call[1]).to.equal('Wheel')
       expect(call[2].querySet).to.exist
+      expect(call[2].skipModelFilter).to.not.exist
 
       call[2].filter(mockRelation)
       expect(mockQuery.where).to.have.been.called.with({type: 'front'})
     })
+  })
+
+  it('passes skipModelFilter through to fetchOpts', () => {
+    const modelWithSkip = {
+      model: {
+        forge () {
+          return {
+            wheels () {
+              return {
+                relatedData: { type: 'hasMany' }
+              }
+            }
+          }
+        }
+      },
+      relations: [
+        {
+          wheels: {
+            typename: 'Wheel',
+            skipModelFilter: true
+          }
+        }
+      ]
+    }
+    const resolver = createResolverForModel(modelWithSkip, fetcher)
+    const instance = {
+      wheels: spy(() => 'mock wheels relation')
+    }
+    return resolver.wheels(instance, {})
+      .then(() => {
+        const call = fetchRelationCalls[0]
+        expect(call[2].skipModelFilter).to.equal(true)
+      })
   })
 
   it('throws an error if a relation cannot be found', () => {
