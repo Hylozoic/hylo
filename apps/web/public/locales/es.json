@@ -2439,5 +2439,7 @@
   "Show Welcome Page to users": "Mostrar la página de bienvenida a los usuarios",
   "Show in the Menu": "Mostrar en el menú",
   "Spaces not in menu": "Espacios fuera del menú",
-  "Welcome page exists but is hidden from the menu.": "La página de bienvenida existe pero está oculta del menú."
+  "Welcome page exists but is hidden from the menu.": "La página de bienvenida existe pero está oculta del menú.",
+  "Manage Round": "Administrar ronda",
+  "view-manage-round": "Administrar ronda"
 }

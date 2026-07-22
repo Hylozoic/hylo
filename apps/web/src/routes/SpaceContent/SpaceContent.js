@@ -16,6 +16,7 @@ import PostDetail from 'routes/PostDetail'
 import SpaceJoinPage from 'routes/SpaceJoinPage'
 import Stream from 'routes/Stream'
 import FundingRoundSubmissionsView from 'routes/FundingRoundSubmissionsView/FundingRoundSubmissionsView'
+import ManageRoundView from 'routes/ManageRoundView/ManageRoundView'
 import TrackActionsView from 'routes/TrackActionsView/TrackActionsView'
 import ViewContent from 'routes/ViewContent'
 import ContextMenuGrid from 'routes/AuthLayoutRouter/components/ContextMenu/ContextMenuGrid'
@@ -138,6 +139,7 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
         <Route path='chat/*' element={<ChatRoom context='groups' showHomeWelcome={false} />} />
         <Route path='track-actions/*' element={<TrackActionsView />} />
         <Route path='funding-round-submissions/*' element={<FundingRoundSubmissionsView />} />
+        <Route path='manage-round/*' element={<ManageRoundView />} />
         <Route path='moderation/*' element={<Moderation context='groups' />} />
         <Route path='about/*' element={<GroupDetail context='groups' forCurrentGroup />} />
         <Route path={POST_DETAIL_MATCH} element={<PostDetail />} />

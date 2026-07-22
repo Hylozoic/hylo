@@ -17,7 +17,7 @@ import PostTypePills from 'components/PostTypePills/PostTypePills'
 import TagInput from 'components/TagInput'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import { updateFundingRound } from 'routes/FundingRounds/FundingRounds.store'
-import { updateSpace, updateGroupView } from 'store/actions/groupViews'
+import { updateSpace } from 'store/actions/groupViews'
 import { updateTrack } from 'store/actions/trackActions'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
@@ -46,7 +46,7 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, group, onC
       ? t('Funding Round Space Settings')
       : t('Space Settings')
 
-  const [name, setName] = useState(view?.name || space?.name || '')
+  const [name, setName] = useState(space?.name || view?.name || '')
   const [icon, setIcon] = useState(space?.icon || SPACE_ICON_SUGGESTIONS[0])
   const [bannerUrl, setBannerUrl] = useState(space?.bannerUrl || '')
   const [purpose, setPurpose] = useState(space?.purpose || '')
@@ -128,8 +128,8 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, group, onC
     try {
       const accessOption = ACCESS_OPTIONS.find(option => option.value === access)
       const trimmedName = name.trim()
-      const menuNameChanged = Boolean(view?.id && trimmedName && trimmedName !== view.name)
 
+      // Space menu labels use linkedGroup.name — do not snapshot the name onto group_views.
       await dispatch(updateSpace({
         id: space.id,
         groupId: group.id,
@@ -144,13 +144,8 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, group, onC
         acceptedPostTypes: postTypes,
         visibility: accessOption.visibility,
         accessibility: accessOption.accessibility,
-        requiredRoles: access === 'role' ? requiredRoles.map(role => role.id) : [],
-        viewName: menuNameChanged ? trimmedName : undefined
+        requiredRoles: access === 'role' ? requiredRoles.map(role => role.id) : []
       }))
-
-      if (menuNameChanged) {
-        await dispatch(updateGroupView({ id: view.id, groupId: group.id, name: trimmedName }))
-      }
 
       if (track?.id) {
         const completionMessage = completionMessageEditorRef.current?.getHTML?.() ?? track.completionMessage
@@ -197,7 +192,7 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, group, onC
     } finally {
       setIsSaving(false)
     }
-  }, [dispatch, space?.id, group?.id, view?.id, view?.name, name, description, icon, bannerUrl, purpose, locationObject, postTypes, access, requiredRoles, track?.id, actionDescriptor, actionDescriptorPlural, completionRole, publishedAt, accessControlled, fundingRound?.id, frPublishedAt, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frHideFinalResults, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles, onClose])
+  }, [dispatch, space?.id, group?.id, view?.id, name, description, icon, bannerUrl, purpose, locationObject, postTypes, access, requiredRoles, track?.id, actionDescriptor, actionDescriptorPlural, completionRole, publishedAt, accessControlled, fundingRound?.id, frPublishedAt, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frHideFinalResults, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles, onClose])
 
   if (!space) return null
 

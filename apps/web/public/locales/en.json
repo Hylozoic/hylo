@@ -2451,5 +2451,7 @@
   "Show Welcome Page to users": "Show Welcome Page to users",
   "Show in the Menu": "Show in the Menu",
   "Spaces not in menu": "Spaces not in menu",
-  "Welcome page exists but is hidden from the menu.": "Welcome page exists but is hidden from the menu."
+  "Welcome page exists but is hidden from the menu.": "Welcome page exists but is hidden from the menu.",
+  "Manage Round": "Manage Round",
+  "view-manage-round": "Manage Round"
 }

@@ -2354,5 +2354,7 @@
   "Show Welcome Page to users": "उपयोगकर्ताओं को स्वागत पृष्ठ दिखाएँ",
   "Show in the Menu": "मेनू में दिखाएँ",
   "Spaces not in menu": "मेनू में नहीं स्पेस",
-  "Welcome page exists but is hidden from the menu.": "स्वागत पृष्ठ मौजूद है लेकिन मेनू से छिपा है।"
+  "Welcome page exists but is hidden from the menu.": "स्वागत पृष्ठ मौजूद है लेकिन मेनू से छिपा है।",
+  "Manage Round": "राउंड प्रबंधित करें",
+  "view-manage-round": "राउंड प्रबंधित करें"
 }

@@ -1,6 +1,6 @@
 import { ClipboardList } from 'lucide-react'
 import { isEmpty } from 'lodash/fp'
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { Route, Routes, useNavigate } from 'react-router-dom'
@@ -12,7 +12,6 @@ import PostDialog from 'components/PostDialog'
 import { useEffectiveGroupSlug, useGroupRouteOpts } from 'contexts/SpaceGroupContext'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useRouteParams from 'hooks/useRouteParams'
-import SpaceSettingsModal from 'routes/AuthLayoutRouter/components/ContextMenu/SpaceSettingsModal'
 import {
   FETCH_FUNDING_ROUND,
   fetchFundingRound,
@@ -33,7 +32,6 @@ import isPendingFor from 'store/selectors/isPendingFor'
 import { cn } from 'util/index'
 import { seededShuffle } from 'util/seededRandom'
 
-import FundingRoundPhaseManager from './FundingRoundPhaseManager'
 import RoundPhaseStatus from './RoundPhaseStatus'
 import SubmissionCard from './SubmissionCard'
 import { getRoundPhaseMeta } from './phaseUtils'
@@ -76,7 +74,6 @@ export default function FundingRoundSubmissionsView () {
   const isLoadingRound = useSelector(state => isPendingFor(FETCH_FUNDING_ROUND, state))
   const isLoadingSubmissions = useSelector(state => isPendingFor(FETCH_FUNDING_ROUND_SUBMISSIONS, state))
   const [localVoteAmounts, setLocalVoteAmounts] = React.useState({})
-  const [settingsOpen, setSettingsOpen] = useState(false)
 
   const currentUserRoles = useSelector(state => getRolesForGroup(state, { person: currentUser, groupId: roleGroupId }))
   const canSubmit = useMemo(() => {
@@ -223,15 +220,6 @@ export default function FundingRoundSubmissionsView () {
           submissionCount={posts.length}
           currentTokensRemaining={currentTokensRemaining}
         />
-        {canManageRound && (
-          <FundingRoundPhaseManager
-            round={round}
-            spaceName={group?.name}
-            submissionCount={posts.length}
-            participantCount={group?.memberCount}
-            onOpenSettings={() => setSettingsOpen(true)}
-          />
-        )}
         {currentPhase === 'submissions' && canSubmit && (
           <button
             className='my-4 w-full text-foreground border-2 border-foreground/20 hover:border-foreground/50 transition-all px-4 py-2 rounded-md mb-4'
@@ -264,21 +252,6 @@ export default function FundingRoundSubmissionsView () {
           <Route path='post/:postId' element={<PostDialog />} />
         </Routes>
       </div>
-      {settingsOpen && group && parentGroup && (
-        <SpaceSettingsModal
-          space={{
-            ...(group.ref || group),
-            acceptedPostTypes: group.acceptedPostTypes,
-            groupRoles: group.groupRoles,
-            locationObject: group.locationObject,
-            requiredRoles: group.requiredRoles,
-            fundingRound: round,
-            track: group.track
-          }}
-          group={parentGroup}
-          onClose={() => setSettingsOpen(false)}
-        />
-      )}
     </>
   )
 }

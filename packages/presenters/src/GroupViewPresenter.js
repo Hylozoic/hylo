@@ -120,6 +120,7 @@ const VIEW_TYPE_TO_LUCIDE_ICON = {
   chat: 'MessageCircleMore',
   collection: 'Layers',
   'funding-round-submissions': 'ClipboardList',
+  'manage-round': 'Settings',
   link: 'ExternalLink',
   member: 'User',
   projects: 'Layers',
@@ -146,6 +147,7 @@ const LUCIDE_ICON_NAMES = new Set([
   'Minus',
   'Palette',
   'Search',
+  'Settings',
   'Shapes',
   'Shield',
   'Type',
@@ -225,8 +227,9 @@ export function displayNameForView (view, t, { spaceGroup } = {}) {
     if (view.pageContent) return view.pageContent
     if (view.name) return translateViewName(view.name, t)
   }
+  // Space menu labels always follow the space group name (not a stale view.name snapshot).
   if (view?.type === 'space') {
-    return view.name ? translateViewName(view.name, t) : view.linkedGroup?.name
+    return view.linkedGroup?.name || (view.name ? translateViewName(view.name, t) : undefined)
   }
   if (view?.name) return translateViewName(view.name, t)
 
@@ -292,6 +295,18 @@ export function getStaticMenuViews ({ isPublicContext, isMyContext, profileUrl }
   if (isPublicContext) return PUBLIC_CONTEXT_VIEWS
   if (isMyContext) return MY_CONTEXT_VIEWS(profileUrl)
   return null
+}
+
+/**
+ * Synthetic menu item for Funding Round spaces — not stored in the DB.
+ * Always rendered at the bottom of the space menu for stewards who can manage spaces.
+ */
+export const MANAGE_ROUND_VIEW = {
+  type: 'manage-round',
+  id: 'view-manage-round',
+  name: 'view-manage-round',
+  icon: 'Settings',
+  order: Number.MAX_SAFE_INTEGER
 }
 
 /** Present a GroupView with resolved display helpers for the navigation menu. */

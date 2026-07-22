@@ -25,7 +25,8 @@ import GroupViewIcon from './GroupViewIcon'
 import useRouteParams from 'hooks/useRouteParams'
 import GroupViewPresenter, {
   displayNameForView,
-  getStaticMenuViews
+  getStaticMenuViews,
+  MANAGE_ROUND_VIEW
 } from '@hylo/presenters/GroupViewPresenter'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
@@ -103,6 +104,10 @@ function GroupViewMenuItem ({
   const { t } = useTranslation()
   const presentedView = useMemo(() => GroupViewPresenter(view), [view])
   const myMemberships = useSelector(getMyMemberships)
+  const canManageRound = useSelector(state => hasResponsibilityForGroup(state, {
+    responsibility: RESP_MANAGE_SPACES,
+    groupId: view?.linkedGroup?.parentId
+  }))
 
   if (presentedView.type === 'separator') {
     return <hr className='border-foreground/10 my-1' />
@@ -157,12 +162,16 @@ function GroupViewMenuItem ({
       linkedSpaceGroup &&
       myMemberships.some(m => m.group.id === linkedSpaceGroup.id)
     )
+    const showManageRound = Boolean(linkedSpaceGroup?.fundingRound?.id && canManageRound)
     const spaceViews = (linkedSpaceGroup?.groupViews?.items || [])
       .filter(v => v.order != null)
       .filter(v => viewAcceptedByPostTypes(v.type, linkedSpaceGroup?.acceptedPostTypes))
       .map(v => GroupViewPresenter(v))
-    const hasMultipleSpaceViews = spaceViews.length > 1
-    const singleSpaceView = spaceViews.length === 1 ? spaceViews[0] : null
+    const menuSpaceViews = showManageRound
+      ? [...spaceViews, GroupViewPresenter(MANAGE_ROUND_VIEW)]
+      : spaceViews
+    const hasMultipleSpaceViews = menuSpaceViews.length > 1
+    const singleSpaceView = menuSpaceViews.length === 1 ? menuSpaceViews[0] : null
     const spaceUnread = spaceViews.some(v => v.newPostCount > 0)
     const spaceHome = linkedSpaceGroup ? spaceHomeUrl(parentSlug, linkedSpaceGroup) : null
     const spaceLink = singleSpaceView && isSpaceMember
@@ -209,7 +218,7 @@ function GroupViewMenuItem ({
         </div>
         {isExpanded && (
           <ul className='pl-4 mt-1'>
-            {spaceViews.map(subView => (
+            {menuSpaceViews.map(subView => (
               <GroupViewMenuItem
                 key={subView.id}
                 view={subView}
@@ -255,6 +264,7 @@ function GroupViewList ({
   isEditing,
   onOpenSettings,
   canManageSpaces,
+  canManageRound = false,
   independentSpaceMenu = false,
   hideAddSpace = false
 }) {
@@ -312,10 +322,15 @@ function GroupViewList ({
     .filter(view => view.order != null)
     .filter(view => viewAcceptedByPostTypes(view.type, group?.acceptedPostTypes))
 
+  // Synthetic steward item for funding-round spaces — always last, not in the DB.
+  const menuViews = (spaceGroup?.fundingRound?.id && canManageRound)
+    ? [...visibleViews, MANAGE_ROUND_VIEW]
+    : visibleViews
+
   return (
     <div className='relative flex flex-col z-20'>
       <ul className='m-0 p-3 mb-6'>
-        {visibleViews.map((view, index) => (
+        {menuViews.map((view, index) => (
           <GroupViewMenuItem
             key={view.id || index}
             view={view}
@@ -408,9 +423,8 @@ export default function ContextMenu (props) {
     if (spaceMenuViewsFromStore.length > 0) return spaceMenuViewsFromStore
     return activeSpaceGroup?.groupViews?.items || []
   }, [showingSpaceMenu, spaceMenuViewsFromStore, activeSpaceGroup])
-  const spaceDisplayName = activeSpaceView
-    ? displayNameForView(GroupViewPresenter(activeSpaceView), t)
-    : (activeSpaceGroup?.name || t('Space'))
+  const spaceDisplayName = activeSpaceGroup?.name ||
+    (activeSpaceView ? displayNameForView(GroupViewPresenter(activeSpaceView), t) : t('Space'))
 
   // Fetch GroupViews whenever we enter a real group context
   useEffect(() => {
@@ -621,6 +635,7 @@ export default function ContextMenu (props) {
                       isEditing={isEditing}
                       onOpenSettings={setSettingsView}
                       canManageSpaces={false}
+                      canManageRound={canManageSpaces}
                       independentSpaceMenu={independentSpaceMenu}
                       hideAddSpace
                     />

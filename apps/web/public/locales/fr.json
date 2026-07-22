@@ -2354,5 +2354,7 @@
   "Show Welcome Page to users": "Afficher la page d'accueil aux utilisateurs",
   "Show in the Menu": "Afficher dans le menu",
   "Spaces not in menu": "Espaces hors du menu",
-  "Welcome page exists but is hidden from the menu.": "La page d'accueil existe mais est masquée du menu."
+  "Welcome page exists but is hidden from the menu.": "La page d'accueil existe mais est masquée du menu.",
+  "Manage Round": "Gérer le tour",
+  "view-manage-round": "Gérer le tour"
 }

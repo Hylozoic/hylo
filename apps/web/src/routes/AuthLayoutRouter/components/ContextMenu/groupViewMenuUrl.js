@@ -63,6 +63,8 @@ export function groupViewUrl (groupSlug, view) {
       return groupUrl(groupSlug, 'track-actions')
     case 'funding-round-submissions':
       return groupUrl(groupSlug, 'funding-round-submissions')
+    case 'manage-round':
+      return groupUrl(groupSlug, 'manage-round')
     case 'space':
       return view.linkedGroup ? spaceHomeUrl(groupSlug, view.linkedGroup) : groupUrl(groupSlug)
     case 'link':

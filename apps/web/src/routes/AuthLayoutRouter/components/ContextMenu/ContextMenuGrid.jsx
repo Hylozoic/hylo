@@ -6,7 +6,8 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import GroupViewPresenter, {
   displayNameForView,
-  getStaticMenuViews
+  getStaticMenuViews,
+  MANAGE_ROUND_VIEW
 } from '@hylo/presenters/GroupViewPresenter'
 import {
   groupUrl,
@@ -494,10 +495,14 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
         profileUrl
       }) || []
     }
-    return (groupViews || [])
+    const views = (groupViews || [])
       .filter(view => view.order != null)
       .filter(view => viewAcceptedByPostTypes(view.type, menuGroup?.acceptedPostTypes))
-  }, [isContextMode, context, currentUser?.id, groupViews, menuGroup?.acceptedPostTypes])
+    if (spaceGroup?.fundingRound?.id && canManageSpaces) {
+      return [...views, MANAGE_ROUND_VIEW]
+    }
+    return views
+  }, [isContextMode, context, currentUser?.id, groupViews, menuGroup?.acceptedPostTypes, spaceGroup?.fundingRound?.id, canManageSpaces])
 
   const sections = useMemo(() => partitionViewsIntoSections(visibleViews), [visibleViews])
 

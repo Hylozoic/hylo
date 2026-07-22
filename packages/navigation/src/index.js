@@ -154,6 +154,8 @@ export function groupViewPath (view) {
       return `/collection/${view.id}`
     case 'link':
       return null
+    case 'manage-round':
+      return '/manage-round'
     default:
       return view.type ? `/${view.type}` : '/all'
   }

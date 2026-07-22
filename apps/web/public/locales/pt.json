@@ -2354,5 +2354,7 @@
   "Show Welcome Page to users": "Mostrar a página de boas-vindas aos utilizadores",
   "Show in the Menu": "Mostrar no menu",
   "Spaces not in menu": "Espaços fora do menu",
-  "Welcome page exists but is hidden from the menu.": "A página de boas-vindas existe mas está oculta do menu."
+  "Welcome page exists but is hidden from the menu.": "A página de boas-vindas existe mas está oculta do menu.",
+  "Manage Round": "Gerenciar rodada",
+  "view-manage-round": "Gerenciar rodada"
 }
