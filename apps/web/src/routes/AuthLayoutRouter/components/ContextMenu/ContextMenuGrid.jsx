@@ -45,8 +45,10 @@ import fetchGroupRelationships from 'store/actions/fetchGroupRelationships'
 import { viewAcceptedByPostTypes } from 'store/models/GroupView'
 import Avatar from 'components/Avatar'
 import LucideIcon from 'components/LucideIcon/LucideIcon'
+import CardIconField from './CardIconField'
 import GroupViewIcon from './GroupViewIcon'
 import GroupViewEditList from './GroupViewEditList'
+import { viewCardColor, inkOn, fieldSeed } from './viewCardTheme'
 import GroupViewSettingsModal from './GroupViewSettingsModal'
 import SpaceSettingsModal from './SpaceSettingsModal'
 import AddCollectionDialog from './AddCollectionDialog'
@@ -54,7 +56,12 @@ import AddGroupViewDialog, { AddViewButton } from './AddGroupViewDialog'
 import AddSpaceDialog, { AddSpaceButton } from './AddSpaceDialog'
 import { menuViewUrl } from './groupViewMenuUrl'
 
-const CARD_CLASS = 'group relative flex flex-col rounded-xl border-2 border-foreground/10 bg-card/50 transition-all p-2 w-[calc(50%-6px)] aspect-[16/9] sm:p-3 sm:w-[230px] sm:h-[129px] sm:aspect-auto cursor-pointer hover:border-foreground/30 hover:shadow-md'
+// Cards are deliberately dark in both themes — each is a mini canvas tinted by
+// its view's brand color (see viewCardTheme.js), per the one-column dashboard design.
+const CARD_CLASS = 'group relative flex flex-col overflow-hidden rounded-2xl border border-white/10 transition-all w-[calc(50%-6px)] aspect-[13/11] sm:w-[208px] sm:h-[176px] sm:aspect-auto cursor-pointer hover:-translate-y-0.5 shadow-[0_2px_8px_rgba(0,0,0,0.3)]'
+const CARD_DARK_BG = 'hsl(0 0% 14%)'
+const cardGradient = (col) => `linear-gradient(150deg, color-mix(in srgb, ${col} 30%, #16171a), color-mix(in srgb, ${col} 17%, #0d0e10))`
+const cardHoverRing = (col) => `inset 0 0 0 1px color-mix(in srgb, ${col} 55%, transparent)`
 
 /**
  * Splits ordered views into grid sections.
@@ -158,6 +165,7 @@ function ViewsGrid ({ sections, groupSlug, group, spaceGroup, navigate, t }) {
 /** Single navigable view card in the grid. */
 function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
   const dispatch = useDispatch()
+  const [hover, setHover] = useState(false)
   const presentedView = useMemo(() => GroupViewPresenter(view), [view])
   const title = displayNameForView(presentedView, t, { spaceGroup })
   const url = menuViewUrl(groupSlug, presentedView, spaceGroup)
@@ -179,6 +187,19 @@ function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
       ? `https://api.mapbox.com/styles/v1/mapbox/${mapStyle}/static/${mapCenter.lng},${mapCenter.lat},4,0/280x200@2x?access_token=${mapboxConfig.token}`
       : `https://api.mapbox.com/styles/v1/mapbox/${mapStyle}/static/0,20,1,0/280x200@2x?access_token=${mapboxConfig.token}`
     : null
+
+  // Avatar-backed cards (spaces, groups, members) show an image, not a pattern;
+  // icon cards get the postType color theme with the icon-field background.
+  const linkedGroup = presentedView.linkedGroup
+  const bgImageUrl = presentedView.avatarUrl
+    ? (linkedGroup?.bannerUrl || presentedView.avatarUrl)
+    : null
+  const col = viewCardColor(presentedView)
+  const tint = `color-mix(in srgb, ${col} 60%, white)`
+  const ink = inkOn(col)
+  // Map/welcome cards keep their extra content, so their icon+label stay in a
+  // flowing column; plain cards center the tile exactly per the design.
+  const hasExtraContent = Boolean((isMap && staticMapUrl) || (isWelcome && welcomeText))
 
   const handleClick = async () => {
     if (isLogout) {
@@ -204,10 +225,33 @@ function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
 
   const hasUnread = (presentedView.newPostCount || 0) > 0
 
+  const iconTile = (
+    <div
+      className='w-14 h-14 rounded-[15px] grid place-items-center shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.35)]'
+      style={bgImageUrl
+        ? { background: 'hsl(0 0% 100% / 0.16)', backdropFilter: 'blur(4px)', color: 'white', border: '1px solid hsl(0 0% 100% / 0.28)' }
+        : { background: col, color: ink, border: `1px solid color-mix(in srgb, ${col} 55%, white)` }}
+    >
+      <span className='flex items-center justify-center w-[26px] h-[26px] [&>svg]:!w-full [&>svg]:!h-full [&>img]:!w-full [&>img]:!h-full [&>span]:!text-[26px] [&>span]:!leading-none'>
+        <GroupViewIcon view={presentedView} className='!w-[26px] !h-[26px] !mr-0' />
+      </span>
+    </div>
+  )
+
+  const label = (
+    <h3 className='text-sm font-bold text-white line-clamp-2 m-0 leading-tight [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]'>{title}</h3>
+  )
+
   return (
     <div
       onClick={handleClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
       className={CARD_CLASS}
+      style={{
+        background: bgImageUrl ? CARD_DARK_BG : cardGradient(col),
+        boxShadow: hover ? `0 12px 30px rgba(0,0,0,0.45), ${cardHoverRing(col)}` : undefined
+      }}
       role='button'
       tabIndex={0}
       onKeyDown={(e) => {
@@ -217,49 +261,65 @@ function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
         }
       }}
     >
+      {bgImageUrl
+        ? (
+          <>
+            <div className='absolute inset-0 bg-cover bg-center' style={bgImageStyle(bgImageUrl)} />
+            <div className='absolute inset-0' style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.6) 100%)' }} />
+          </>
+          )
+        : (
+          <CardIconField view={presentedView} tint={tint} w={208} h={176} seed={fieldSeed(view.id)} />
+          )}
+
       {hasUnread && (
-        <span className='absolute -top-1.5 -right-1.5 z-10 w-3 h-3 rounded-full bg-orange-500 border-2 border-background' />
+        <span className='absolute top-2 right-2 z-10 w-3 h-3 rounded-full bg-orange-500 border-2 border-black/40' />
       )}
 
-      <div className='flex-1 flex flex-col items-center justify-center gap-1.5 text-center'>
-        <span className='text-foreground/60 flex items-center justify-center w-[32px] h-[32px] [&>svg]:!w-full [&>svg]:!h-full [&>img]:!w-full [&>img]:!h-full [&>span]:!text-[32px] [&>span]:!leading-none'>
-          <GroupViewIcon view={presentedView} className='!w-8 !h-8 !mr-0' />
-        </span>
-        <h3 className='text-base font-semibold text-foreground line-clamp-2'>{title}</h3>
-      </div>
-
-      {isMap && staticMapUrl && (
-        <div className='mt-auto -mx-2 -mb-2 rounded-b-lg overflow-hidden'>
-          <img
-            src={staticMapUrl}
-            alt={title}
-            className='w-full h-[120px] object-cover'
-          />
-        </div>
-      )}
-
-      {isWelcome && welcomeText && (
-        <div className='mt-auto px-1'>
-          <p className='text-xs text-foreground/60 line-clamp-5 leading-relaxed'>{welcomeText}</p>
-          <button
-            type='button'
-            onClick={handleClick}
-            className='text-xs text-selected hover:text-selected/80 transition-colors mt-1'
-          >
-            {t('Read more...')}
-          </button>
-        </div>
-      )}
+      {hasExtraContent
+        ? (
+          <div className='relative h-full flex flex-col p-2 sm:p-3'>
+            <div className='flex-1 flex flex-col items-center justify-center gap-1.5 text-center'>
+              {iconTile}
+              {label}
+            </div>
+            {isMap && staticMapUrl && (
+              <div className='mt-auto -mx-2 -mb-2 sm:-mx-3 sm:-mb-3 overflow-hidden'>
+                <img
+                  src={staticMapUrl}
+                  alt={title}
+                  className='w-full h-[86px] object-cover'
+                />
+              </div>
+            )}
+            {isWelcome && welcomeText && (
+              <p className='m-0 px-1 text-xs text-white/70 line-clamp-2 leading-relaxed [text-shadow:0_1px_4px_rgba(0,0,0,0.6)]'>{welcomeText}</p>
+            )}
+          </div>
+          )
+        : (
+          <div className='relative h-full'>
+            <div className='absolute inset-0 grid place-items-center'>
+              {iconTile}
+            </div>
+            <div className='absolute left-0 right-0 top-[calc(50%+28px)] bottom-0 flex flex-col items-center justify-center text-center px-3'>
+              {label}
+            </div>
+          </div>
+          )}
     </div>
   )
 }
 
-/** Card for a space (or related group) in the More Spaces grid. */
-function EntityCard ({ name, icon, avatarUrl, onClick, badge }) {
+/** Card for a space (or related group) in the More Spaces grid. Image-backed
+ * with a frosted-glass tile, matching the design's space cards. */
+function EntityCard ({ name, icon, avatarUrl, bannerUrl, onClick, badge }) {
+  const bgImageUrl = bannerUrl || avatarUrl
   return (
     <div
       onClick={onClick}
       className={CARD_CLASS}
+      style={{ background: CARD_DARK_BG }}
       role='button'
       tabIndex={0}
       onKeyDown={(e) => {
@@ -269,14 +329,26 @@ function EntityCard ({ name, icon, avatarUrl, onClick, badge }) {
         }
       }}
     >
-      <div className='flex-1 flex flex-col items-center justify-center gap-1.5 text-center'>
-        {avatarUrl
-          ? <Avatar avatarUrl={avatarUrl} name={name} medium className='!w-10 !h-10' />
-          : icon
-            ? <LucideIcon name={icon} className='w-8 h-8 text-foreground/60' />
-            : <div className='w-8 h-8 rounded-full bg-foreground/15' />}
-        <h3 className='text-base font-semibold text-foreground line-clamp-2'>{name}</h3>
-        {badge && <span className='text-xs text-foreground/40'>{badge}</span>}
+      {bgImageUrl && (
+        <>
+          <div className='absolute inset-0 bg-cover bg-center' style={bgImageStyle(bgImageUrl)} />
+          <div className='absolute inset-0' style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.6) 100%)' }} />
+        </>
+      )}
+      <div className='relative h-full'>
+        <div className='absolute inset-0 grid place-items-center'>
+          <div className='w-14 h-14 rounded-[15px] grid place-items-center shrink-0 text-white shadow-[0_4px_12px_rgba(0,0,0,0.35)]' style={{ background: 'hsl(0 0% 100% / 0.16)', backdropFilter: 'blur(4px)', border: '1px solid hsl(0 0% 100% / 0.28)' }}>
+            {avatarUrl
+              ? <Avatar avatarUrl={avatarUrl} name={name} medium className='!w-10 !h-10' />
+              : icon
+                ? <LucideIcon name={icon} className='w-7 h-7' />
+                : <div className='w-7 h-7 rounded-full bg-white/20' />}
+          </div>
+        </div>
+        <div className='absolute left-0 right-0 top-[calc(50%+28px)] bottom-0 flex flex-col items-center justify-center text-center px-3'>
+          <h3 className='text-sm font-bold text-white line-clamp-2 m-0 leading-tight [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]'>{name}</h3>
+          {badge && <span className='text-[10.5px] font-semibold text-white/70 mt-1 [text-shadow:0_1px_4px_rgba(0,0,0,0.6)]'>{badge}</span>}
+        </div>
       </div>
     </div>
   )
@@ -288,6 +360,7 @@ function MoreSpacesCard ({ onClick, t }) {
     <div
       onClick={onClick}
       className={CARD_CLASS}
+      style={{ background: CARD_DARK_BG }}
       role='button'
       tabIndex={0}
       onKeyDown={(e) => {
@@ -297,9 +370,15 @@ function MoreSpacesCard ({ onClick, t }) {
         }
       }}
     >
-      <div className='flex-1 flex flex-col items-center justify-center gap-1.5 text-center'>
-        <CircleEllipsis className='w-8 h-8 text-foreground/60' />
-        <h3 className='text-base font-semibold text-foreground'>{t('More Views and Spaces')}</h3>
+      <div className='relative h-full'>
+        <div className='absolute inset-0 grid place-items-center'>
+          <div className='w-14 h-14 rounded-[15px] grid place-items-center text-white shadow-[0_4px_12px_rgba(0,0,0,0.35)]' style={{ background: 'hsl(0 0% 100% / 0.16)', border: '1px solid hsl(0 0% 100% / 0.28)' }}>
+            <CircleEllipsis className='w-7 h-7' />
+          </div>
+        </div>
+        <div className='absolute left-0 right-0 top-[calc(50%+28px)] bottom-0 flex flex-col items-center justify-center text-center px-3'>
+          <h3 className='text-sm font-bold text-white m-0 leading-tight [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]'>{t('More Views and Spaces')}</h3>
+        </div>
       </div>
     </div>
   )
@@ -377,6 +456,7 @@ function MoreSpacesGrid ({ group, groupSlug, navigate, t }) {
           key: space.id,
           name: space.name,
           avatarUrl: space.avatarUrl,
+          bannerUrl: space.bannerUrl,
           icon: space.icon,
           badge: space.isDraft ? t('Draft') : null,
           onClick: () => handleOpenSpace(space)
@@ -390,6 +470,7 @@ function MoreSpacesGrid ({ group, groupSlug, navigate, t }) {
           key: space.id,
           name: space.name,
           avatarUrl: space.avatarUrl,
+          bannerUrl: space.bannerUrl,
           icon: space.icon,
           onClick: () => handleOpenSpace(space)
         }))
@@ -402,6 +483,7 @@ function MoreSpacesGrid ({ group, groupSlug, navigate, t }) {
           key: space.id,
           name: space.name,
           avatarUrl: space.avatarUrl,
+          bannerUrl: space.bannerUrl,
           icon: space.icon,
           onClick: () => handleOpenSpace(space)
         }))
@@ -430,6 +512,7 @@ function MoreSpacesGrid ({ group, groupSlug, navigate, t }) {
                 name={item.name}
                 icon={item.icon}
                 avatarUrl={item.avatarUrl}
+                bannerUrl={item.bannerUrl}
                 badge={item.badge}
                 onClick={item.onClick}
               />

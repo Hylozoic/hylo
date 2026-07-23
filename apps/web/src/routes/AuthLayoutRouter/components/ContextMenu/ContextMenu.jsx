@@ -43,6 +43,9 @@ import { filterSpaceViewsForMenuVisibility } from 'util/paidSpaceVisibility'
 
 import GroupSettingsMenu from './GroupSettingsMenu'
 import ContextMenuOld from './ContextMenuOld'
+import MenuRowBackground from './MenuRowBackground'
+import { viewCardColor, hueOf } from './viewCardTheme'
+import { DEFAULT_BANNER } from 'store/models/Group'
 import GroupViewEditList from './GroupViewEditList'
 import GroupViewSettingsModal from './GroupViewSettingsModal'
 import SpaceSettingsModal from './SpaceSettingsModal'
@@ -112,6 +115,7 @@ function GroupViewMenuItem ({
   spaceSlug = null
 }) {
   const dispatch = useDispatch()
+  const location = useLocation()
   const { t } = useTranslation()
   const presentedView = useMemo(() => GroupViewPresenter(view), [view])
   const myMemberships = useSelector(getMyMemberships)
@@ -197,18 +201,40 @@ function GroupViewMenuItem ({
       ? spaceUrl(parentSlug, localSpaceSlug(parentSlug, linkedSpaceGroup.slug), '/about')
       : null
 
+    // Active space rows reveal the space's banner photo (uploaded ones only);
+    // spaces without a banner fall back to the tinted icon texture.
+    const spaceBannerUrl = linkedSpaceGroup?.bannerUrl && linkedSpaceGroup.bannerUrl !== DEFAULT_BANNER
+      ? linkedSpaceGroup.bannerUrl
+      : null
+    const spaceHue = hueOf(viewCardColor(presentedView))
+
     return (
       <li className='list-none'>
         <div
           className={cn(
             GROUP_VIEW_MENU_ITEM_CLASS,
-            isSpaceActive && 'opacity-100 border-selected bg-card font-bold'
+            'group relative overflow-hidden',
+            isSpaceActive && 'opacity-100 font-bold'
           )}
+          style={isSpaceActive
+            ? { borderColor: spaceBannerUrl ? 'hsl(0 0% 100% / 0.35)' : `hsl(${spaceHue} 45% 42%)` }
+            : undefined}
         >
+          <MenuRowBackground
+            view={presentedView}
+            bannerUrl={spaceBannerUrl}
+            className={cn('transition-opacity duration-200', isSpaceActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100')}
+          />
           <MenuLink
             to={spaceLink}
             isActive={false}
-            className={GROUP_VIEW_MENU_ITEM_INNER_LINK_CLASS}
+            className={cn(
+              GROUP_VIEW_MENU_ITEM_INNER_LINK_CLASS,
+              'relative z-10 transition-colors duration-200',
+              isSpaceActive
+                ? 'text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.65)]'
+                : 'group-hover:text-white group-hover:[text-shadow:0_1px_3px_rgba(0,0,0,0.65)]'
+            )}
           >
             <GroupViewIcon view={presentedView} />
             <span className='truncate flex-1'>{displayNameForView(presentedView, t, { spaceGroup })}</span>
@@ -218,7 +244,11 @@ function GroupViewMenuItem ({
             <MenuLink
               to={aboutUrl}
               isActive={false}
-              className='shrink-0 p-1 pr-1 text-foreground/50 hover:text-foreground border-0 bg-transparent mb-0 rounded-none shadow-none hover:border-0 hover:bg-transparent hover:scale-100'
+              className={cn(
+                'shrink-0 p-1 pr-1 text-foreground/50 hover:text-foreground border-0 bg-transparent mb-0 rounded-none shadow-none hover:border-0 hover:bg-transparent hover:scale-100',
+                'relative z-10 transition-colors duration-200',
+                isSpaceActive ? 'text-white/80 hover:text-white' : 'group-hover:text-white/80'
+              )}
             >
               <Info className='w-4 h-4' aria-hidden='true' />
               <span className='sr-only'>{t('About')}</span>
@@ -245,17 +275,35 @@ function GroupViewMenuItem ({
   const url = menuViewUrl(parentSlug, presentedView, spaceGroup)
   const hasUnread = presentedView.newPostCount > 0
   const isExternal = presentedView.type === 'link' && url && /^https?:\/\//.test(url)
+  // The selected row reveals a postType-tinted icon-texture background,
+  // mirroring the one-column dashboard cards.
+  const isRowActive = Boolean(!isExternal && url && (location.pathname === url || location.pathname.startsWith(`${url}/`)))
+  const rowHue = hueOf(viewCardColor(presentedView))
 
   return (
     <li className='list-none'>
       <MenuLink
         to={isExternal ? null : url}
         externalLink={isExternal ? url : null}
-        className={GROUP_VIEW_MENU_ITEM_CLASS}
+        isActive={isRowActive}
+        className={cn(GROUP_VIEW_MENU_ITEM_CLASS, 'group relative overflow-hidden')}
+        style={isRowActive ? { borderColor: `hsl(${rowHue} 45% 42%)` } : undefined}
       >
-        <GroupViewIcon view={presentedView} />
-        <span className='truncate flex-1'>{displayNameForView(presentedView, t, { spaceGroup })}</span>
-        {hasUnread && <UnreadDot />}
+        <MenuRowBackground
+          view={presentedView}
+          className={cn('transition-opacity duration-200', isRowActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100')}
+        />
+        <span className={cn(
+          'relative z-10 flex items-center gap-2 flex-1 min-w-0 transition-colors duration-200',
+          isRowActive
+            ? 'text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.65)]'
+            : 'group-hover:text-white group-hover:[text-shadow:0_1px_3px_rgba(0,0,0,0.65)]'
+        )}
+        >
+          <GroupViewIcon view={presentedView} />
+          <span className='truncate flex-1'>{displayNameForView(presentedView, t, { spaceGroup })}</span>
+          {hasUnread && <UnreadDot />}
+        </span>
       </MenuLink>
     </li>
   )
