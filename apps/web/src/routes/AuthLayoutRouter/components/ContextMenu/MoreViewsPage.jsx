@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { useLocation, useNavigate } from 'react-router-dom'
@@ -396,6 +396,23 @@ export default function MoreViewsPage ({ group }) {
     navigate(groupUrl(groupSlug))
   }, [navigate, groupSlug])
 
+  // The Done Editing bar is fixed to the viewport bottom; measure the content
+  // column so the fixed bar aligns with it instead of the full viewport.
+  const containerRef = useRef(null)
+  const [barRect, setBarRect] = useState(null)
+  useEffect(() => {
+    if (!isEditing) return
+    const update = () => {
+      const el = containerRef.current
+      if (!el) return
+      const rect = el.getBoundingClientRect()
+      setBarRect({ left: rect.left, width: rect.width })
+    }
+    update()
+    window.addEventListener('resize', update)
+    return () => window.removeEventListener('resize', update)
+  }, [isEditing])
+
   const handleAddViewClose = useCallback(async () => {
     setShowAddView(false)
     if (contentGroup?.id) await dispatch(fetchGroupViews(contentGroup.id))
@@ -429,7 +446,7 @@ export default function MoreViewsPage ({ group }) {
   const hasContent = showViews || showTracks || showFundingRounds || showOtherSpaces
 
   return (
-    <div className={cn('w-full max-w-[980px] mx-auto px-4 py-6', isEditing && 'pb-24')}>
+    <div ref={containerRef} className={cn('w-full max-w-[980px] mx-auto px-4 py-6', isEditing && 'pb-24')}>
       {isEditing && (
         <>
           <p className='text-sm text-foreground/70 mb-6'>
@@ -523,7 +540,10 @@ export default function MoreViewsPage ({ group }) {
               )}
 
       {isEditing && (
-        <div className='sticky bottom-0 mt-8 pt-6 pb-2 bg-gradient-to-t from-background from-40% to-transparent pointer-events-none'>
+        <div
+          className='fixed bottom-0 z-30 pt-6 pb-2 px-4 bg-gradient-to-t from-background from-40% to-transparent pointer-events-none'
+          style={barRect ? { left: barRect.left, width: barRect.width } : { left: 0, right: 0 }}
+        >
           <button
             type='button'
             onClick={handleDoneEditing}
