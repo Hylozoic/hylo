@@ -23,3 +23,15 @@ export function getGroupReplayEntries (bootstrap) {
     }]
   }))
 }
+
+export function getGroupsMenuDataReplayEntries (bootstrap) {
+  const batches = bootstrap?.groupsMenuDataBatches || []
+  return batches.map(entry => ({
+    data: entry?.data,
+    extractModel: [{
+      getRoot: get('groups'),
+      modelName: 'Group',
+      append: true
+    }]
+  }))
+}

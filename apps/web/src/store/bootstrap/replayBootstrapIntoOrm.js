@@ -1,5 +1,9 @@
 import { BOOTSTRAP_REPLAY } from 'store/constants'
-import { bootstrapReplayEntries, getGroupReplayEntries } from './bootstrapReplayMeta'
+import {
+  bootstrapReplayEntries,
+  getGroupReplayEntries,
+  getGroupsMenuDataReplayEntries
+} from './bootstrapReplayMeta'
 
 export function replayBootstrapIntoOrm (bootstrap, dispatch) {
   if (!bootstrap) return
@@ -16,6 +20,16 @@ export function replayBootstrapIntoOrm (bootstrap, dispatch) {
   })
 
   getGroupReplayEntries(bootstrap).forEach(({ data, extractModel }) => {
+    if (!data) return
+
+    dispatch({
+      type: BOOTSTRAP_REPLAY,
+      payload: { data },
+      meta: { extractModel }
+    })
+  })
+
+  getGroupsMenuDataReplayEntries(bootstrap).forEach(({ data, extractModel }) => {
     if (!data) return
 
     dispatch({

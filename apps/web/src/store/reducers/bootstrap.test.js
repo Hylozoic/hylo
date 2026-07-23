@@ -1,8 +1,13 @@
-import bootstrap, { getInitialBootstrapState, MAX_CACHED_GROUPS } from './bootstrap'
+import bootstrap, {
+  getInitialBootstrapState,
+  MAX_CACHED_GROUPS,
+  MAX_CACHED_MENU_BATCHES
+} from './bootstrap'
 import {
   CHECK_LOGIN,
   FETCH_FOR_CURRENT_USER,
   FETCH_FOR_GROUP,
+  FETCH_GROUPS_MENU_DATA,
   LOGOUT
 } from 'store/constants'
 
@@ -48,6 +53,32 @@ describe('bootstrap reducer', () => {
     expect(Object.keys(state.groupsBySlug)).toHaveLength(MAX_CACHED_GROUPS)
     expect(state.groupsBySlug['g-0']).toBeUndefined()
     expect(state.groupsBySlug[`g-${MAX_CACHED_GROUPS + 1}`]).toBeDefined()
+  })
+
+  it('captures FETCH_GROUPS_MENU_DATA batches', () => {
+    const payload = { data: { groups: { items: [{ id: '1', slug: 'a' }] } } }
+    const next = bootstrap(getInitialBootstrapState(), {
+      type: FETCH_GROUPS_MENU_DATA,
+      payload,
+      meta: { groupIds: ['1'] }
+    })
+    expect(next.groupsMenuDataBatches).toHaveLength(1)
+    expect(next.groupsMenuDataBatches[0].data).toEqual(payload.data)
+    expect(next.groupsMenuDataBatches[0].groupIds).toEqual(['1'])
+  })
+
+  it('LRU-trims groupsMenuDataBatches', () => {
+    let state = getInitialBootstrapState()
+    for (let i = 0; i < MAX_CACHED_MENU_BATCHES + 2; i++) {
+      state = bootstrap(state, {
+        type: FETCH_GROUPS_MENU_DATA,
+        payload: { data: { groups: { items: [] } } },
+        meta: { groupIds: [String(i)] }
+      })
+      state.groupsMenuDataBatches[state.groupsMenuDataBatches.length - 1].at = i
+    }
+
+    expect(state.groupsMenuDataBatches).toHaveLength(MAX_CACHED_MENU_BATCHES)
   })
 
   it('clears on LOGOUT', () => {

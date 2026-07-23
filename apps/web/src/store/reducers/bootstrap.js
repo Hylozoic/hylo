@@ -2,18 +2,22 @@ import {
   CHECK_LOGIN,
   FETCH_FOR_CURRENT_USER,
   FETCH_FOR_GROUP,
+  FETCH_GROUPS_MENU_DATA,
   LOGOUT
 } from 'store/constants'
 
 export const BOOTSTRAP_VERSION = 1
-export const MAX_CACHED_GROUPS = 5
+// LRU cap for fetchForGroup payloads keyed by slug (Least Recently Used eviction).
+export const MAX_CACHED_GROUPS = 20
+export const MAX_CACHED_MENU_BATCHES = 8
 
 export function getInitialBootstrapState () {
   return {
     _version: BOOTSTRAP_VERSION,
     checkLogin: null,
     currentUser: null,
-    groupsBySlug: {}
+    groupsBySlug: {},
+    groupsMenuDataBatches: []
   }
 }
 
@@ -66,6 +70,23 @@ export default function bootstrap (state = getInitialBootstrapState(), action) {
           [slug]: capturePayload(action.payload)
         })
       }
+    }
+
+    case FETCH_GROUPS_MENU_DATA: {
+      const groupIds = action.meta?.groupIds
+      if (!groupIds?.length) return state
+
+      const batch = {
+        groupIds,
+        data: action.payload.data,
+        at: Date.now()
+      }
+      const batches = [...state.groupsMenuDataBatches, batch]
+      const groupsMenuDataBatches = batches.length > MAX_CACHED_MENU_BATCHES
+        ? batches.sort((a, b) => (b.at || 0) - (a.at || 0)).slice(0, MAX_CACHED_MENU_BATCHES)
+        : batches
+
+      return { ...state, groupsMenuDataBatches }
     }
 
     default:

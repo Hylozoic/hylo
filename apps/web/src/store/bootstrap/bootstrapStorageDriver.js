@@ -9,6 +9,10 @@ export function getBootstrapRevision (bootstrapSlice) {
     if (entry?.at) times.push(entry.at)
   })
 
+  ;(bootstrapSlice.groupsMenuDataBatches || []).forEach(batch => {
+    if (batch?.at) times.push(batch.at)
+  })
+
   return times.length ? Math.max(...times) : 0
 }
 

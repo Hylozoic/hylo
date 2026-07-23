@@ -16,6 +16,7 @@ export default function fetchGroupsMenuData (groupIds) {
       }
     },
     meta: {
+      groupIds,
       extractModel: [
         {
           getRoot: get('groups'),
