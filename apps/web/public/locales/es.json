@@ -945,6 +945,7 @@
   "Monthly Revenue": "Ingresos Mensuales",
   "More Spaces": "Más espacios",
   "More Views and Spaces": "Más vistas y espacios",
+  "More Views and Spaces (Editing)": "Más vistas y espacios (edición)",
   "Multiple Choice": "Opción multiple",
   "Multiple people are typing...": "Varias personas están escribiendo...",
   "Multiple votes allowed": "Se permiten varios votos",
@@ -2457,6 +2458,5 @@
   "{{totalTopicsCached}} Total Topics": "{{totalTopicsCached}} Total de temas",
   "{{unseenCount}} unread notifications": "{{unseenCount}} notificaciones no leídas",
   "~ Mixed ~": "~ Mezclado ~",
-  "More Views and Spaces (editing)": "Más vistas y espacios (editando)",
   "Edit space menu": "Editar menú del espacio"
 }

@@ -918,6 +918,7 @@
   "Monthly Revenue": "मासिक राजस्व",
   "More Spaces": "अधिक स्थान",
   "More Views and Spaces": "और व्यू और स्पेस",
+  "More Views and Spaces (Editing)": "और व्यू और स्पेस (संपादन)",
   "Multiple Choice": "बहुविकल्पीय",
   "Multiple people are typing...": "कई लोग टाइप कर रहे हैं...",
   "Multiple votes allowed": "एकाधिक वोटों की अनुमति है",
@@ -2372,6 +2373,5 @@
   "{{submissionDescriptor}} Criteria": "{{submissionDescriptor}} मानदंड",
   "{{totalTopicsCached}} Total Topics": "{{totalTopicsCached}} कुल विषय",
   "~ Mixed ~": "~ मिश्रित ~",
-  "More Views and Spaces (editing)": "और व्यू और स्पेस (संपादन)",
   "Edit space menu": "स्पेस मेनू संपादित करें"
 }

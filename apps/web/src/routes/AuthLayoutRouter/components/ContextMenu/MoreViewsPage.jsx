@@ -25,8 +25,11 @@ import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import isPendingFor from 'store/selectors/isPendingFor'
 import { deleteGroup } from 'routes/GroupSettings/GroupSettings.store'
-import { cn } from 'util/index'
+import { DEFAULT_BANNER } from 'store/models/Group'
+import { bgImageStyle, cn } from 'util/index'
 
+import CardIconField from './CardIconField'
+import { viewCardColor, inkOn, fieldSeed } from './viewCardTheme'
 import GroupViewIcon from './GroupViewIcon'
 import AddGroupViewDialog, { AddViewButton } from './AddGroupViewDialog'
 import AddSpaceDialog, { AddSpaceButton } from './AddSpaceDialog'
@@ -34,7 +37,11 @@ import GroupViewSettingsModal from './GroupViewSettingsModal'
 import SpaceSettingsModal from './SpaceSettingsModal'
 import { menuViewUrl } from './groupViewMenuUrl'
 
-const CARD_CLASS = 'group relative flex flex-col rounded-xl border-2 border-foreground/10 bg-card/50 transition-all p-2 w-[calc(50%-6px)] aspect-[16/9] sm:p-3 sm:w-[230px] sm:h-[129px] sm:aspect-auto cursor-pointer hover:border-foreground/30 hover:shadow-md'
+// Same dark, postType-themed card treatment as the one-column dashboard (ContextMenuGrid).
+const CARD_CLASS = 'group relative flex flex-col overflow-hidden rounded-2xl border border-white/10 transition-all w-[calc(50%-6px)] aspect-[13/11] sm:w-[208px] sm:h-[176px] sm:aspect-auto cursor-pointer hover:-translate-y-0.5 shadow-[0_2px_8px_rgba(0,0,0,0.3)]'
+const CARD_DARK_BG = 'hsl(0 0% 14%)'
+const cardGradient = (col) => `linear-gradient(150deg, color-mix(in srgb, ${col} 30%, #16171a), color-mix(in srgb, ${col} 17%, #0d0e10))`
+const cardHoverRing = (col) => `inset 0 0 0 1px color-mix(in srgb, ${col} 55%, transparent)`
 
 const CARD_ACTION_BTN = 'p-1.5 rounded-md bg-background/90 text-foreground/60 hover:text-foreground pointer-events-auto'
 
@@ -50,7 +57,7 @@ function SectionHeading ({ children }) {
 /** Edit-mode action row at the bottom of a card: +, gear, delete. */
 function CardEditActions ({ onAddToMenu, onOpenSettings, onDelete, addLabel, settingsLabel, deleteLabel }) {
   return (
-    <div className='mt-auto pt-2 flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none'>
+    <div className='absolute bottom-2 right-2 z-10 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none'>
       {onAddToMenu && (
         <button
           type='button'
@@ -97,11 +104,15 @@ function CardEditActions ({ onAddToMenu, onOpenSettings, onDelete, addLabel, set
   )
 }
 
-/** Card for an off-menu GroupView. */
+/** Card for an off-menu GroupView, themed by its postType color. */
 function ViewCard ({ view, isEditing, onAddToMenu, onOpen, onOpenSettings }) {
   const { t } = useTranslation()
+  const [hover, setHover] = useState(false)
   const presented = useMemo(() => GroupViewPresenter(view), [view])
   const title = displayNameForView(presented, t)
+  const col = viewCardColor(presented)
+  const tint = `color-mix(in srgb, ${col} 60%, white)`
+  const ink = inkOn(col)
 
   const handleOpen = () => {
     if (isEditing) return
@@ -111,6 +122,12 @@ function ViewCard ({ view, isEditing, onAddToMenu, onOpen, onOpenSettings }) {
   return (
     <div
       className={cn(CARD_CLASS, isEditing && 'cursor-default')}
+      style={{
+        background: cardGradient(col),
+        boxShadow: hover && !isEditing ? `0 12px 30px rgba(0,0,0,0.45), ${cardHoverRing(col)}` : undefined
+      }}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
       role={isEditing ? undefined : 'button'}
       tabIndex={isEditing ? undefined : 0}
       onClick={handleOpen}
@@ -122,9 +139,21 @@ function ViewCard ({ view, isEditing, onAddToMenu, onOpen, onOpenSettings }) {
         }
       }}
     >
-      <div className='flex items-start gap-2 min-w-0'>
-        <GroupViewIcon view={presented} className='shrink-0 w-6 h-6' />
-        <span className='font-semibold text-foreground truncate'>{title}</span>
+      <CardIconField view={presented} tint={tint} w={208} h={176} seed={fieldSeed(view.id)} />
+      <div className='relative h-full'>
+        <div className='absolute inset-0 grid place-items-center'>
+          <div
+            className='w-14 h-14 rounded-[15px] grid place-items-center shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.35)]'
+            style={{ background: col, color: ink, border: `1px solid color-mix(in srgb, ${col} 55%, white)` }}
+          >
+            <span className='flex items-center justify-center w-[26px] h-[26px] [&>svg]:!w-full [&>svg]:!h-full [&>img]:!w-full [&>img]:!h-full [&>span]:!text-[26px] [&>span]:!leading-none'>
+              <GroupViewIcon view={presented} className='!w-[26px] !h-[26px] !mr-0' />
+            </span>
+          </div>
+        </div>
+        <div className='absolute left-0 right-0 top-[calc(50%+28px)] bottom-0 flex flex-col items-center justify-center text-center px-3'>
+          <h3 className='text-sm font-bold text-white line-clamp-2 m-0 leading-tight [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]'>{title}</h3>
+        </div>
       </div>
       {isEditing && (
         <CardEditActions
@@ -138,13 +167,15 @@ function ViewCard ({ view, isEditing, onAddToMenu, onOpen, onOpenSettings }) {
   )
 }
 
-/** Card for an off-menu space. */
+/** Card for an off-menu space: banner image + scrim with a frosted-glass tile. */
 function SpaceCard ({ space, isEditing, onOpen, onAddToMenu, onOpenSettings, onDelete }) {
   const { t } = useTranslation()
+  const bgImageUrl = (space.bannerUrl && space.bannerUrl !== DEFAULT_BANNER ? space.bannerUrl : null) || space.avatarUrl || null
 
   return (
     <div
       className={CARD_CLASS}
+      style={{ background: CARD_DARK_BG }}
       role='button'
       tabIndex={0}
       onClick={() => onOpen(space)}
@@ -155,17 +186,29 @@ function SpaceCard ({ space, isEditing, onOpen, onAddToMenu, onOpenSettings, onD
         }
       }}
     >
-      <div className='flex items-start gap-2 min-w-0'>
-        {space.avatarUrl
-          ? <Avatar avatarUrl={space.avatarUrl} name={space.name} small className='shrink-0' />
-          : space.icon
-            ? <LucideIcon name={space.icon} className='h-6 w-6 shrink-0' />
-            : <div className='h-6 w-6 shrink-0 rounded-full bg-foreground/15' />}
-        <span className='font-semibold text-foreground truncate'>{space.name}</span>
-      </div>
-      {space.isDraft && (
-        <span className='text-xs text-foreground/40 mt-1'>{t('Draft')}</span>
+      {bgImageUrl && (
+        <>
+          <div className='absolute inset-0 bg-cover bg-center' style={bgImageStyle(bgImageUrl)} />
+          <div className='absolute inset-0' style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.6) 100%)' }} />
+        </>
       )}
+      <div className='relative h-full'>
+        <div className='absolute inset-0 grid place-items-center'>
+          <div className='w-14 h-14 rounded-[15px] grid place-items-center shrink-0 text-white shadow-[0_4px_12px_rgba(0,0,0,0.35)]' style={{ background: 'hsl(0 0% 100% / 0.16)', backdropFilter: 'blur(4px)', border: '1px solid hsl(0 0% 100% / 0.28)' }}>
+            {space.avatarUrl
+              ? <Avatar avatarUrl={space.avatarUrl} name={space.name} medium className='!w-10 !h-10' />
+              : space.icon
+                ? <LucideIcon name={space.icon} className='w-7 h-7' />
+                : <div className='w-7 h-7 rounded-full bg-white/20' />}
+          </div>
+        </div>
+        <div className='absolute left-0 right-0 top-[calc(50%+28px)] bottom-0 flex flex-col items-center justify-center text-center px-3'>
+          <h3 className='text-sm font-bold text-white line-clamp-2 m-0 leading-tight [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]'>{space.name}</h3>
+          {space.isDraft && (
+            <span className='text-[10.5px] font-semibold text-white/70 mt-1 [text-shadow:0_1px_4px_rgba(0,0,0,0.6)]'>{t('Draft')}</span>
+          )}
+        </div>
+      </div>
       {isEditing && (
         <CardEditActions
           onAddToMenu={onAddToMenu ? () => onAddToMenu(space) : null}
@@ -240,7 +283,7 @@ export default function MoreViewsPage ({ group }) {
 
   useEffect(() => {
     setHeaderDetails({
-      title: isEditing ? t('More Views and Spaces (editing)') : t('More Views and Spaces'),
+      title: isEditing ? t('More Views and Spaces (Editing)') : t('More Views and Spaces'),
       icon: '',
       info: '',
       search: false
