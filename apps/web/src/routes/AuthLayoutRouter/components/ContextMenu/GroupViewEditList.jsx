@@ -15,20 +15,20 @@ import {
   verticalListSortingStrategy
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { ChevronRight, EyeOff, GripVertical } from 'lucide-react'
+import { GripVertical, Pencil } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
+import { useNavigate } from 'react-router-dom'
+import { addQuerystringToPath, groupUrl, localSpaceSlug } from '@hylo/navigation'
 
 import GroupViewIcon from './GroupViewIcon'
 import { GroupViewEditActions } from './GroupViewSettingsModal'
-import AddGroupViewDialog, { AddViewButton } from './AddGroupViewDialog'
 import { canDeleteView, canHardDeleteView, isSoftRemoveView } from 'store/models/GroupView'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 import { deleteGroupView, reorderGroupView, setGroupViewHidden, setHomeView } from 'store/actions/groupViews'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import { mergeOrderedViewsFromSource, sortViewsByMenuOrder } from 'store/util/groupViewsOrder'
-import { cn } from 'util/index'
 
 /** Sort views by menu order for consistent drag indices (hidden last). */
 function sortViewsByOrder (views) {
@@ -60,34 +60,6 @@ async function persistViewReorder (dispatch, movedView, params, { parentGroupId,
     orderInFrontOfViewId: params.orderInFrontOfViewId,
     ...syncMeta
   }))
-}
-
-/** Non-draggable row for a view hidden from the menu (order = null). */
-function HiddenEditRow ({ view, onSettings, onDelete, onToggleHidden, spaceGroup = null }) {
-  const { t } = useTranslation()
-  const presentedView = GroupViewPresenter(view)
-
-  return (
-    <li
-      className='list-none flex items-center gap-1 border-2 border-dashed border-transparent hover:border-foreground/20 rounded-md p-1 group opacity-50'
-      title={t('Hidden from menu')}
-    >
-      <span className='p-1 text-foreground/40 shrink-0' aria-hidden>
-        <EyeOff className='w-4 h-4' />
-      </span>
-      <GroupViewIcon view={presentedView} className='opacity-70' />
-      <span className='flex-1 truncate text-base text-foreground/70'>
-        {displayNameForView(presentedView, t, { spaceGroup })}
-      </span>
-      <GroupViewEditActions
-        view={view}
-        onSettings={onSettings}
-        onDelete={onDelete}
-        onToggleHidden={onToggleHidden}
-        className='opacity-0 group-hover:opacity-100'
-      />
-    </li>
-  )
 }
 
 /** Single draggable row in edit mode. */
@@ -164,24 +136,18 @@ function SortableEditRow ({ view, onSettings, onDelete, onToggleHidden, isHome, 
   )
 }
 
-/** Space row with optional nested editable sub-views. */
+/** Space row — pencil drills into that space's menu in edit mode (no nested expand). */
 function SortableSpaceEditRow ({
   view,
-  group,
+  groupSlug,
   onSettings,
   onDelete,
-  onToggleHidden,
-  onReorder,
-  onSpaceViewsReordered
+  onToggleHidden
 }) {
   const { t } = useTranslation()
-  const dispatch = useDispatch()
-  const [expanded, setExpanded] = useState(true)
-  const [showAddView, setShowAddView] = useState(false)
+  const navigate = useNavigate()
   const presentedView = GroupViewPresenter(view)
   const spaceGroup = presentedView.linkedGroup
-  const spaceViews = spaceGroup?.groupViews?.items || []
-  const spaceGroupId = spaceGroup?.id
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: String(view.id),
@@ -194,13 +160,17 @@ function SortableSpaceEditRow ({
     opacity: isDragging ? 0.5 : 1
   }
 
-  /** Close the add-view dialog and refresh the parent menu so nested space views update. */
-  const handleAddViewClose = useCallback(async () => {
-    setShowAddView(false)
-    if (group?.id) {
-      await dispatch(fetchGroupViews(group.id))
-    }
-  }, [dispatch, group?.id])
+  /** Open this space's more-views page in edit mode (same as More Views space click). */
+  const handleEditSpaceMenu = useCallback((e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!groupSlug || !spaceGroup?.slug) return
+    const local = localSpaceSlug(groupSlug, spaceGroup.slug)
+    navigate(addQuerystringToPath(groupUrl(groupSlug, 'more-views'), {
+      edit: 'true',
+      space: local
+    }))
+  }, [navigate, groupSlug, spaceGroup?.slug])
 
   return (
     <li ref={setNodeRef} style={style} className='list-none'>
@@ -219,106 +189,24 @@ function SortableSpaceEditRow ({
           onToggleHidden={onToggleHidden}
           className='opacity-0 group-hover:opacity-100'
         />
-        {spaceGroupId && (
+        {spaceGroup?.slug && groupSlug && (
           <button
             type='button'
             className='p-1 text-foreground/50 hover:text-foreground'
-            onClick={() => setExpanded(v => !v)}
+            onClick={handleEditSpaceMenu}
+            aria-label={t('Edit space menu')}
+            title={t('Edit space menu')}
           >
-            <ChevronRight className={cn('w-4 h-4 transition-transform', expanded && 'rotate-90')} />
+            <Pencil className='w-4 h-4' />
           </button>
         )}
       </div>
-      {expanded && spaceGroupId && (
-        <div className='pl-6 mt-1'>
-          {spaceViews.length > 0 && (
-            <ul className='m-0 p-0'>
-              <GroupViewEditSubList
-                views={spaceViews}
-                groupId={spaceGroupId}
-                parentGroupId={group?.id}
-                spaceGroup={spaceGroup}
-                onSettings={onSettings}
-                onDelete={onDelete}
-                onToggleHidden={onToggleHidden}
-                onReorder={onReorder}
-                onReordered={(newItems) => onSpaceViewsReordered(view.id, newItems)}
-              />
-            </ul>
-          )}
-          <AddViewButton onClick={() => setShowAddView(true)} />
-        </div>
-      )}
-      {showAddView && (
-        <AddGroupViewDialog
-          group={spaceGroup}
-          groupViews={spaceViews}
-          acceptedPostTypes={spaceGroup?.acceptedPostTypes}
-          onClose={handleAddViewClose}
-        />
-      )}
     </li>
   )
 }
 
-/** Nested sortable list for views inside a space. */
-function GroupViewEditSubList ({ views, groupId, parentGroupId, spaceGroup, onSettings, onDelete, onToggleHidden, onReorder, onReordered }) {
-  const visibleViews = useMemo(() => sortViewsByOrder((views || []).filter(v => v.order != null)), [views])
-  const hiddenViews = useMemo(() => (views || []).filter(v => v.order == null), [views])
-  const [orderedViews, setOrderedViews] = useState(visibleViews)
-
-  // Merge Redux updates into local order (preserves drag order; full replace on add/delete).
-  useEffect(() => {
-    setOrderedViews(prev => mergeOrderedViewsFromSource(prev, visibleViews))
-  }, [visibleViews])
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  )
-  const ids = orderedViews.map(v => String(v.id))
-
-  const handleDragEnd = (event) => {
-    onReorder(event, orderedViews, groupId, {
-      setLocalViews: setOrderedViews,
-      onReordered,
-      parentGroupId
-    })
-  }
-
-  return (
-    <>
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd} modifiers={[restrictToVerticalAxis]}>
-        <SortableContext items={ids} strategy={verticalListSortingStrategy}>
-          {orderedViews.map((view, index) => (
-            <SortableEditRow
-              key={view.id}
-              view={view}
-              spaceGroup={spaceGroup}
-              onSettings={onSettings}
-              onDelete={onDelete}
-              onToggleHidden={onToggleHidden}
-              isHome={index === 0}
-            />
-          ))}
-        </SortableContext>
-      </DndContext>
-      {hiddenViews.map(view => (
-        <HiddenEditRow
-          key={view.id}
-          view={view}
-          spaceGroup={spaceGroup}
-          onSettings={onSettings}
-          onDelete={onDelete}
-          onToggleHidden={onToggleHidden}
-        />
-      ))}
-    </>
-  )
-}
-
 /** Drag-and-drop editable list of group views. */
-export default function GroupViewEditList ({ views, group, onSettings }) {
+export default function GroupViewEditList ({ views, group, groupSlug, onSettings }) {
   const dispatch = useDispatch()
   const { t } = useTranslation()
   const visibleViews = useMemo(() => sortViewsByOrder((views || []).filter(v => v.order != null)), [views])
@@ -366,22 +254,6 @@ export default function GroupViewEditList ({ views, group, onSettings }) {
       }
     }
   }, [dispatch, group?.id])
-
-  const handleSpaceViewsReordered = useCallback((spaceViewId, newItems) => {
-    setOrderedViews(prev => prev.map(v => {
-      if (String(v.id) !== String(spaceViewId) || !v.linkedGroup) return v
-      return {
-        ...v,
-        linkedGroup: {
-          ...v.linkedGroup,
-          groupViews: {
-            ...v.linkedGroup.groupViews,
-            items: newItems
-          }
-        }
-      }
-    }))
-  }, [])
 
   const handleDelete = useCallback(async (view) => {
     if (!canDeleteView(view) || !group?.id) return
@@ -439,12 +311,10 @@ export default function GroupViewEditList ({ views, group, onSettings }) {
                 <SortableSpaceEditRow
                   key={view.id}
                   view={view}
-                  group={group}
+                  groupSlug={groupSlug || group?.slug}
                   onSettings={onSettings}
                   onDelete={handleDelete}
                   onToggleHidden={handleToggleHidden}
-                  onReorder={handleReorder}
-                  onSpaceViewsReordered={handleSpaceViewsReordered}
                 />
               )
             }

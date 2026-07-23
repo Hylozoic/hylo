@@ -2370,5 +2370,7 @@
   "{{personOne}}, {{personTwo}} and {{othersTotal}} other_plural": "{{personOne}}, {{personTwo}} und {{othersTotal}} weitere Personen",
   "{{submissionDescriptor}} Criteria": "{{submissionDescriptor}} Kriterien",
   "{{totalTopicsCached}} Total Topics": "{{totalTopicsCached}} Themen insgesamt",
-  "~ Mixed ~": "~ Gemischt ~"
+  "~ Mixed ~": "~ Gemischt ~",
+  "More Views and Spaces (editing)": "Weitere Ansichten und Räume (Bearbeitung)",
+  "Edit space menu": "Menü des Raums bearbeiten"
 }

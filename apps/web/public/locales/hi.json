@@ -2371,5 +2371,7 @@
   "{{personOne}}, {{personTwo}} and {{othersTotal}} other_plural": "{{personOne}}, {{personTwo}} और {{othersTotal}} अन्य",
   "{{submissionDescriptor}} Criteria": "{{submissionDescriptor}} मानदंड",
   "{{totalTopicsCached}} Total Topics": "{{totalTopicsCached}} कुल विषय",
-  "~ Mixed ~": "~ मिश्रित ~"
+  "~ Mixed ~": "~ मिश्रित ~",
+  "More Views and Spaces (editing)": "और व्यू और स्पेस (संपादन)",
+  "Edit space menu": "स्पेस मेनू संपादित करें"
 }

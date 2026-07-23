@@ -187,8 +187,8 @@ function GroupViewMenuItem ({
     const singleSpaceView = menuSpaceViews.length === 1 ? menuSpaceViews[0] : null
     const spaceUnread = spaceViews.some(v => v.newPostCount > 0)
     const spaceHome = linkedSpaceGroup ? spaceHomeUrl(parentSlug, linkedSpaceGroup) : null
-    // Independent mode: single-view spaces open that view and keep the parent menu.
-    const spaceLink = singleSpaceView && (independentSpaceMenu || isSpaceMember)
+    // Single-view spaces open that view directly; multi-view spaces nest under the row when active.
+    const spaceLink = singleSpaceView && isSpaceMember
       ? menuViewUrl(parentSlug, singleSpaceView, linkedSpaceGroup)
       : spaceHome
     const isSpaceActive = Boolean(
@@ -552,13 +552,25 @@ export default function ContextMenu (props) {
   const moreSpacesSection = isGroupContext && group?.id && !showingSpaceMenu
     ? (
       <div className='px-3 pb-2 border-t border-foreground/10 pt-2'>
-        <MenuLink
-          to={groupUrl(groupSlug, 'more-views')}
-          className='flex items-center gap-2 text-base text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 w-full transition-all opacity-85 hover:opacity-100'
-        >
-          <CircleEllipsis className='w-4 h-4 shrink-0' />
-          <span>{t('More Views and Spaces')}</span>
-        </MenuLink>
+        {isEditing
+          ? (
+            <div
+              className='flex items-center gap-2 text-base text-foreground/40 border-2 border-transparent rounded-md p-1 pl-2 w-full cursor-not-allowed opacity-60'
+              aria-disabled='true'
+            >
+              <CircleEllipsis className='w-4 h-4 shrink-0' />
+              <span>{t('More Views and Spaces')}</span>
+            </div>
+            )
+          : (
+            <MenuLink
+              to={groupUrl(groupSlug, 'more-views')}
+              className='flex items-center gap-2 text-base text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 w-full transition-all opacity-85 hover:opacity-100'
+            >
+              <CircleEllipsis className='w-4 h-4 shrink-0' />
+              <span>{t('More Views and Spaces')}</span>
+            </MenuLink>
+            )}
       </div>
       )
     : null

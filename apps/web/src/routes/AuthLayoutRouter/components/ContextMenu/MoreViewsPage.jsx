@@ -240,7 +240,7 @@ export default function MoreViewsPage ({ group }) {
 
   useEffect(() => {
     setHeaderDetails({
-      title: isEditing ? t('Edit Menu') : t('More Views and Spaces'),
+      title: isEditing ? t('More Views and Spaces (editing)') : t('More Views and Spaces'),
       icon: '',
       info: '',
       search: false

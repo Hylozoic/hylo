@@ -2371,5 +2371,7 @@
   "{{personOne}}, {{personTwo}} and {{othersTotal}} other_plural": "{{personOne}}, {{personTwo}} e {{othersTotal}} outros",
   "{{submissionDescriptor}} Criteria": "Critérios de {{submissionDescriptor}}",
   "{{totalTopicsCached}} Total Topics": "{{totalTopicsCached}} Tópicos totais",
-  "~ Mixed ~": "~ Misto ~"
+  "~ Mixed ~": "~ Misto ~",
+  "More Views and Spaces (editing)": "Mais vistas e espaços (editando)",
+  "Edit space menu": "Editar menu do espaço"
 }

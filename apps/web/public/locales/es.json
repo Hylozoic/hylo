@@ -2456,5 +2456,7 @@
   "{{submissionDescriptor}} Criteria": "{{submissionDescriptor}} Criterios",
   "{{totalTopicsCached}} Total Topics": "{{totalTopicsCached}} Total de temas",
   "{{unseenCount}} unread notifications": "{{unseenCount}} notificaciones no leídas",
-  "~ Mixed ~": "~ Mezclado ~"
+  "~ Mixed ~": "~ Mezclado ~",
+  "More Views and Spaces (editing)": "Más vistas y espacios (editando)",
+  "Edit space menu": "Editar menú del espacio"
 }
