@@ -554,10 +554,10 @@ function PostEditorInner ({
 
   // Ensure the chat composer keeps keyboard focus when navigating between rooms
   useEffect(() => {
-    if (modal || !isChat) return
+    if (modal || !isChat || !autoFocus) return
     const id = setTimeout(() => editorRef.current?.focus('end'), 150)
     return () => clearTimeout(id)
-  }, [draftContextKey, isChat, modal])
+  }, [autoFocus, draftContextKey, isChat, modal])
 
   const selectedGroups = useMemo(() => {
     if (!groupOptions || !currentPost?.groups) return []
