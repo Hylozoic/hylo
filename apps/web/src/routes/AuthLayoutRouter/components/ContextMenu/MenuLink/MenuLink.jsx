@@ -11,7 +11,7 @@ function isPathActive (pathname, to) {
   return pathname === to || pathname.startsWith(`${to}/`)
 }
 
-export default function MenuLink ({ badgeCount = null, to, children, onClick, externalLink, className, isEditing, isActive }) {
+export default function MenuLink ({ badgeCount = null, to, children, onClick, externalLink, className, isEditing, isActive, style }) {
   const dispatch = useDispatch()
   const location = useLocation()
   const isCurrentLocation = isActive ?? isPathActive(location.pathname, to)
@@ -33,7 +33,7 @@ export default function MenuLink ({ badgeCount = null, to, children, onClick, ex
   }
 
   return (
-    <Link to={to} onClick={handleClick} className={cn('text-foreground focus:text-foreground relative p-1 pl-2 rounded-md', className, { 'opacity-100 border-selected p-1 pl-2 rounded-md bg-card/100 font-bold': isCurrentLocation }, { 'border-accent': badgeCount > 0 })}>
+    <Link to={to} onClick={handleClick} style={style} className={cn('text-foreground focus:text-foreground relative p-1 pl-2 rounded-md', className, { 'opacity-100 border-selected p-1 pl-2 rounded-md bg-card/100 font-bold': isCurrentLocation }, { 'border-accent': badgeCount > 0 })}>
       {children}
       {badgeCount && badgeCount > 0
         ? (

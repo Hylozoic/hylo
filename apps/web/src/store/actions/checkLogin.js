@@ -24,7 +24,6 @@ export default function checkLogin () {
               rsvpCalendarSub
               signupInProgress
               stackGroups
-              independentSpaceMenu
               streamChildPosts
               streamViewMode
               streamSortBy

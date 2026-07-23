@@ -11,6 +11,7 @@ import fetch from 'node-fetch'
 import { postRoom, pushToSockets } from '../services/Websockets'
 import { fulfill, unfulfill } from './post/fulfillPost'
 import { decrementNewPostCount } from './post/deletePost'
+import { incrementNewPostCount } from './post/createPost'
 import EnsureLoad from './mixins/EnsureLoad'
 import { countTotal } from '../../lib/util/knex'
 import { refineMany, refineOne } from './util/relations'
@@ -1092,6 +1093,22 @@ module.exports = bookshelf.Model.extend(Object.assign({
       await decrementNewPostCount(post)
     } catch (error) {
       console.error('❌ Error decrementing new_post_count in background job:', error)
+    }
+  },
+
+  // Background task to increment new_post_count when a post is created
+  incrementNewPostCountForCreatedPost: async ({ postId }) => {
+    const post = await Post.find(postId, { withRelated: ['groups', 'tags'] })
+    if (!post) return
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`📈 Background job: Incrementing new_post_count for created post ${postId}`)
+    }
+
+    try {
+      await incrementNewPostCount(post)
+    } catch (error) {
+      console.error('❌ Error incrementing new_post_count in background job:', error)
     }
   },
 

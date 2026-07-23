@@ -26,7 +26,7 @@ import { POST_TYPE_TO_VIEW_TYPE } from 'store/models/GroupView'
 import { cn } from 'util/index'
 
 import FundingRoundSettingsFields from './FundingRoundSettingsFields'
-import { SPACE_ICON_SUGGESTIONS, ACCESS_OPTIONS, toIsoOrNull } from './spaceFormConstants'
+import { SPACE_ICON_SUGGESTIONS, accessOptionsForGroup, toIsoOrNull } from './spaceFormConstants'
 
 const STANDARD_VIEW_TYPES = new Set([
   'all',
@@ -194,7 +194,7 @@ export default function AddSpaceDialog ({ group, onClose }) {
     if (!name.trim() || !group?.id) return
     setIsCreating(true)
     try {
-      const accessOption = ACCESS_OPTIONS.find(option => option.value === access)
+      const accessOption = accessOptionsForGroup(group).find(option => option.value === access)
       const standardTypesInOrder = orderedRows.filter(row => row.kind === 'standard').map(row => row.type)
       const manualRowsInOrder = orderedRows.filter(row => row.kind === 'manual')
       // Fall back to standardViewTypes if IncludedViewsEditor hasn't reported order yet
@@ -213,6 +213,7 @@ export default function AddSpaceDialog ({ group, onClose }) {
         visibility: accessOption.visibility,
         accessibility: accessOption.accessibility,
         requiredRoles: access === 'role' ? requiredRoles.map(role => role.id) : null,
+        paywall: Boolean(accessOption.paywall),
         viewTypes
       }))
 
@@ -421,7 +422,7 @@ export default function AddSpaceDialog ({ group, onClose }) {
           <div className='flex flex-col gap-2'>
             <label className='text-sm text-foreground/70'>{t('Access')}</label>
             <RadioGroup value={access} onValueChange={setAccess}>
-              {ACCESS_OPTIONS.map(option => (
+              {accessOptionsForGroup(group).map(option => (
                 <div key={option.value} className='flex flex-col gap-1 mb-2'>
                   <div className='flex items-start gap-2'>
                     <RadioGroupItem value={option.value} id={`space-access-${option.value}`} className='mt-0.5 shrink-0' />
@@ -507,13 +508,16 @@ export default function AddSpaceDialog ({ group, onClose }) {
 }
 
 /** Button row for adding spaces in edit mode. */
-export function AddSpaceButton ({ onClick }) {
+export function AddSpaceButton ({ onClick, className }) {
   const { t } = useTranslation()
   return (
     <button
       type='button'
       onClick={onClick}
-      className='flex items-center gap-2 w-full text-base text-foreground border-2 border-dashed border-foreground/30 hover:border-foreground/50 rounded-md p-2 pl-2 mb-2 transition-all opacity-85 hover:opacity-100'
+      className={cn(
+        'flex items-center gap-2 w-full text-base text-foreground border-2 border-dashed border-foreground/30 hover:border-foreground/50 rounded-md p-2 pl-2 mb-2 transition-all opacity-85 hover:opacity-100',
+        className
+      )}
     >
       <Plus className='w-4 h-4' />
       <span>{t('Add Space')}</span>

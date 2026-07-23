@@ -1,7 +1,7 @@
 import React, { useRef, useCallback, useState, useEffect } from 'react'
-import { View, StatusBar } from 'react-native'
+import { View, StatusBar, BackHandler, Platform } from 'react-native'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
-import { WebViewMessageTypes } from '@hylo/shared'
+import { WebViewMessageTypes, HYLO_HARDWARE_BACK_EVENT } from '@hylo/shared'
 import { version as hyloAppVersion } from '../../../package.json'
 import { isIOS } from 'util/platform'
 import HyloWebView from 'components/HyloWebView'
@@ -64,6 +64,23 @@ export default function PrimaryWebView() {
   const [webViewError, setWebViewError] = useState(null)
   const [sessionRecovering, setSessionRecovering] = useState(false)
 
+  useEffect(() => {
+    if (Platform.OS !== 'android') return
+
+    const onHardwareBackPress = () => {
+      if (!webViewRef.current) return false
+
+      webViewRef.current.injectJavaScript(`
+        window.dispatchEvent(new CustomEvent(${JSON.stringify(HYLO_HARDWARE_BACK_EVENT)}));
+        true;
+      `)
+      return true
+    }
+
+    const subscription = BackHandler.addEventListener('hardwareBackPress', onHardwareBackPress)
+    return () => subscription.remove()
+  }, [])
+
   // Get the path from the route params
   // This comes from the linking table catch-all: ':path(.*)' -> Main
   const { path, originalLinkingPath } = useRouteParams()
@@ -94,6 +111,10 @@ export default function PrimaryWebView() {
         }
         break
       }
+
+      case WebViewMessageTypes.CAN_EXIT_APP:
+        BackHandler.exitApp()
+        break
 
       // DEPRECATED: These cases are no longer needed
       // case 'NAVIGATION': Web app handles all navigation now

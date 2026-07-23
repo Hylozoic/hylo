@@ -486,12 +486,12 @@ export default function ChatRoom (props) {
         !hasMorePostsFuture &&
         postsForDisplay.length > 0) {
       const latestPost = postsForDisplay[postsForDisplay.length - 1]
-      if (latestPost?.id && chatView?.id) {
+      if (latestPost?.id && chatView?.id && group?.id) {
         lastReadPostIdRef.current = latestPost.id
-        dispatch(updateGroupViewUser(chatView.id, { lastReadPostId: latestPost.id }))
+        dispatch(updateGroupViewUser(chatView.id, { lastReadPostId: latestPost.id }, group.id))
       }
     }
-  }, [loadedPast, loadedFuture, chatView?.newPostCount, chatView?.id, hasMorePostsFuture, postsForDisplay])
+  }, [loadedPast, loadedFuture, chatView?.newPostCount, chatView?.id, hasMorePostsFuture, postsForDisplay, group?.id, dispatch])
 
   useEffect(() => {
     if (querystringParams?.postId) {
@@ -550,11 +550,11 @@ export default function ChatRoom (props) {
   )
 
   const updateLastReadPost = debounce(200, (lastPost) => {
-    if (chatView?.id && lastPost?.id &&
+    if (chatView?.id && group?.id && lastPost?.id &&
         parseInt(lastPost.id) > parseInt(lastReadPostIdRef.current || 0)) {
       try {
         lastReadPostIdRef.current = lastPost.id
-        dispatch(updateGroupViewUser(chatView.id, { lastReadPostId: lastPost.id }))
+        dispatch(updateGroupViewUser(chatView.id, { lastReadPostId: lastPost.id }, group.id))
       } catch (error) {
         console.error('Error updating last read post:', error)
       }
@@ -569,7 +569,7 @@ export default function ChatRoom (props) {
         updateLastReadPost(lastPost)
       }
     }
-  }, [chatView?.id, chatView?.lastReadPostId])
+  }, [chatView?.id, chatView?.lastReadPostId, group?.id])
 
   const handleAddReaction = useCallback((post, emojiFull) => {
     const optimisticUpdate = { postReactions: [...post.postReactions, { emojiFull, user: { name: currentUser.name, id: currentUser.id } }] }

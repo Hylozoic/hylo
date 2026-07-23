@@ -43,7 +43,7 @@ async function requireSpaceManager (userId, spaceId, action) {
   return space
 }
 
-export async function createSpace (userId, { parentGroupId, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, purpose, location, locationId, viewTypes, bannerUrl, avatarUrl }, context) {
+export async function createSpace (userId, { parentGroupId, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, purpose, location, locationId, viewTypes, bannerUrl, avatarUrl, paywall }, context) {
   if (!userId) throw new GraphQLError('No userId passed into function')
   if (!parentGroupId) throw new GraphQLError('No parentGroupId passed into function')
   if (!name || !name.trim()) throw new GraphQLError('Name cannot be blank')
@@ -57,6 +57,13 @@ export async function createSpace (userId, { parentGroupId, name, slug, accepted
   }
 
   const finalSlug = await uniqueSlug(slug && Group.isSlugValid(slug) ? slug : slugify(name))
+  const isPaywalled = Boolean(paywall)
+  const spaceVisibility = isPaywalled
+    ? Group.Visibility.PROTECTED
+    : (visibility != null ? visibility : Group.Visibility.PROTECTED)
+  const spaceAccessibility = isPaywalled
+    ? Group.Accessibility.RESTRICTED
+    : (accessibility != null ? accessibility : Group.Accessibility.RESTRICTED)
 
   const space = new Group({
     type: 'space',
@@ -66,14 +73,15 @@ export async function createSpace (userId, { parentGroupId, name, slug, accepted
     description,
     icon: icon || null,
     accepted_post_types: acceptedPostTypes,
-    required_roles: requiredRoles,
+    required_roles: isPaywalled ? null : requiredRoles,
     purpose,
     location,
     location_id: locationId,
     banner_url: bannerUrl,
     avatar_url: avatarUrl,
-    visibility: visibility != null ? visibility : Group.Visibility.PROTECTED,
-    accessibility: accessibility != null ? accessibility : Group.Accessibility.RESTRICTED,
+    visibility: spaceVisibility,
+    accessibility: spaceAccessibility,
+    paywall: isPaywalled,
     settings: {},
     access_code: await Group.getNewAccessCode(),
     calendar_token: uuidv4(),
@@ -103,7 +111,7 @@ export async function createSpace (userId, { parentGroupId, name, slug, accepted
   return space.refresh()
 }
 
-export async function updateSpace (userId, { id, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, location, locationId, purpose, bannerUrl, avatarUrl }, context) {
+export async function updateSpace (userId, { id, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, location, locationId, purpose, bannerUrl, avatarUrl, paywall }, context) {
   if (!userId) throw new GraphQLError('No userId passed into function')
   if (!id) throw new GraphQLError('No id passed into function')
 
@@ -126,6 +134,14 @@ export async function updateSpace (userId, { id, name, slug, acceptedPostTypes, 
   if (icon !== undefined) changes.icon = icon || null
   if (bannerUrl !== undefined) changes.banner_url = bannerUrl
   if (avatarUrl !== undefined) changes.avatar_url = avatarUrl
+  if (paywall !== undefined) {
+    changes.paywall = Boolean(paywall)
+    if (changes.paywall) {
+      changes.visibility = Group.Visibility.PROTECTED
+      changes.accessibility = Group.Accessibility.RESTRICTED
+      changes.required_roles = null
+    }
+  }
 
   await space.save(changes, { patch: true })
 
@@ -201,6 +217,10 @@ export async function joinSpace (userId, spaceId) {
   const parentMembership = parentId && await GroupMembership.forPair(userId, parentId).fetch()
   if (!parentMembership) {
     throw new GraphQLError('You must be a member of the parent group to join this space')
+  }
+
+  if (space.get('paywall')) {
+    throw new GraphQLError('This space requires purchased access to join')
   }
 
   if (space.get('accessibility') !== Group.Accessibility.OPEN) {

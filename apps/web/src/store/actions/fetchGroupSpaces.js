@@ -31,6 +31,7 @@ export default function fetchGroupSpaces (groupId) {
               visibility
               accessibility
               requiredRoles
+              paywall
               groupRoles {
                 items {
                   id
@@ -49,6 +50,7 @@ export default function fetchGroupSpaces (groupId) {
                   order
                   icon
                   newPostCount
+                  lastReadPostId
                   pageContent
                   viewPost {
                     id

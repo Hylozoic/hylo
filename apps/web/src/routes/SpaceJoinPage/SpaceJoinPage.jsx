@@ -93,7 +93,6 @@ export default function SpaceJoinPage () {
   const [joining, setJoining] = useState(false)
   const [requesting, setRequesting] = useState(false)
   const [actionError, setActionError] = useState(null)
-  const [showPaywall, setShowPaywall] = useState(false)
 
   const handleJoinSpace = useCallback(async () => {
     setActionError(null)
@@ -173,16 +172,10 @@ export default function SpaceJoinPage () {
 
         {spaceGroup.paywall
           ? (
-            <>
-              <Button variant='secondary' className='w-full' onClick={() => setShowPaywall(true)}>
-                {t('Pay to Join Space')}
-              </Button>
-              {showPaywall && (
-                <div className='mt-4 w-full text-left'>
-                  <PaywallOfferingsSection group={spaceGroup} />
-                </div>
-              )}
-            </>
+            <div className='w-full text-left'>
+              <p className='text-sm text-foreground/70 mb-3 text-center'>{t('Pay to Join Space')}</p>
+              <PaywallOfferingsSection group={spaceGroup} />
+            </div>
             )
           : spaceGroup.accessibility === GROUP_ACCESSIBILITY.Open
             ? (

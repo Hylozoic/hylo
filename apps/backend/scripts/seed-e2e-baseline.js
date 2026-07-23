@@ -240,11 +240,11 @@ async function clearPreviousE2eBaseline (client) {
   )
 
   await client.query(
-    `UPDATE groups SET stripe_account_id = NULL WHERE slug = ANY($1::text[])`,
+    'UPDATE groups SET stripe_account_id = NULL WHERE slug = ANY($1::text[])',
     [E2E_GROUP_SLUGS]
   )
 
-  await client.query(`DELETE FROM groups WHERE slug = ANY($1::text[])`, [E2E_GROUP_SLUGS])
+  await client.query('DELETE FROM groups WHERE slug = ANY($1::text[])', [E2E_GROUP_SLUGS])
 
   await client.query(
     `DELETE FROM linked_account
@@ -252,10 +252,10 @@ async function clearPreviousE2eBaseline (client) {
     [E2E_USER_EMAILS]
   )
 
-  await client.query(`DELETE FROM users WHERE lower(email) = ANY($1::text[])`, [E2E_USER_EMAILS])
+  await client.query('DELETE FROM users WHERE lower(email) = ANY($1::text[])', [E2E_USER_EMAILS])
 
   await client.query(
-    `DELETE FROM stripe_accounts WHERE stripe_account_external_id = $1`,
+    'DELETE FROM stripe_accounts WHERE stripe_account_external_id = $1',
     [E2E_STRIPE_ACCOUNT_EXTERNAL_ID]
   )
 }
@@ -503,11 +503,11 @@ async function main () {
       ]
     )
 
-    /** Access-controlled published track space + offering granting track scope (Batch P3). Coordinators bypass paywall; use `e2e.track-viewer@hylo.test`. */
+    /** Paid track space + offering granting space membership (Batch P3). Coordinators bypass; use `e2e.track-viewer@hylo.test`. */
     const paidTrackSpaceRes = await client.query(
       `INSERT INTO groups (
         name, slug, type, parent_id, access_code, visibility, accessibility,
-        created_at, updated_at, settings, active
+        created_at, updated_at, settings, active, paywall
       ) VALUES (
         'E2E Paid Track',
         'e2e-paid-track-space',
@@ -519,6 +519,7 @@ async function main () {
         $3::timestamptz,
         $3::timestamptz,
         '{}'::jsonb,
+        true,
         true
       ) RETURNING id`,
       [publicGroupId, `e2e-track-${Date.now().toString(36)}`, now]
@@ -534,7 +535,7 @@ async function main () {
         'E2E Paid Track',
         '<p>Deterministic paid track for Batch P3 E2E</p>',
         $1::timestamptz,
-        true,
+        false,
         'Action',
         'Actions',
         $2,
@@ -595,9 +596,9 @@ async function main () {
         'prod_e2e_track_access_001',
         'price_e2e_track_access_001',
         'E2E Track Access Monthly',
-        'Offering that grants access to the Batch P3 seeded track',
+        'Offering that grants access to the Batch P3 seeded paid track space',
         900,
-        JSON.stringify({ trackIds: [paidTrackId] }),
+        JSON.stringify({ groupIds: [paidTrackSpaceId] }),
         now
       ]
     )

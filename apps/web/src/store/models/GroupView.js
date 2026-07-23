@@ -5,6 +5,25 @@ export { COMMON_VIEWS } from '@hylo/presenters/GroupViewPresenter'
 
 const NON_DELETABLE_TYPES = ['track-actions', 'funding-round-submissions']
 
+/** Soft-removed from the menu (order = null) → More Views / Spaces; not hard-deleted. */
+export const SOFT_REMOVE_VIEW_TYPES = new Set([
+  'all',
+  'about',
+  'chat',
+  'discussions',
+  'events',
+  'map',
+  'members',
+  'moderation',
+  'projects',
+  'proposals',
+  'related-groups',
+  'requests-and-offers',
+  'resources',
+  'space',
+  'welcome'
+])
+
 /** Maps an accepted post type to the GroupView type that displays it (mirrors backend Group.ACCEPTED_POST_TYPE_TO_VIEW_TYPE). */
 export const POST_TYPE_TO_VIEW_TYPE = {
   discussion: 'discussions',
@@ -35,12 +54,22 @@ export function viewTypeHasSettings (type) {
   return ['chat', 'link', 'text', 'custom', 'collection', 'welcome', 'space'].includes(type)
 }
 
-/** Returns whether a view can be removed from the menu. */
+/** Soft-removable system views use X (hide) instead of hard delete. */
+export function isSoftRemoveView (view) {
+  return SOFT_REMOVE_VIEW_TYPES.has(view?.type)
+}
+
+/** Returns whether a view can be removed from the menu (soft or hard). */
 export function canDeleteView (view) {
   if (!view?.id) return false
   if (view.order === 0) return false
   if (NON_DELETABLE_TYPES.includes(view.type)) return false
   return true
+}
+
+/** Returns whether a view can be hard-deleted (custom/link/etc). */
+export function canHardDeleteView (view) {
+  return canDeleteView(view) && !isSoftRemoveView(view)
 }
 
 class GroupView extends Model {

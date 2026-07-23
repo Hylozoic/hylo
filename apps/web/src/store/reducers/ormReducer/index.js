@@ -70,6 +70,8 @@ import {
   UPDATE_MEMBERSHIP_NAV_ORDER_PENDING,
   UPDATE_CONTEXT_WIDGET_PENDING,
   UPDATE_GROUP_VIEW_PENDING,
+  UPDATE_GROUP_VIEW_USER,
+  UPDATE_GROUP_VIEW_USER_PENDING,
   UPDATE_SPACE_PENDING
 } from 'store/constants'
 import {
@@ -501,6 +503,26 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       if (!meta.groupId || !meta.id || !meta.data || Object.keys(meta.data).length === 0) break
       group = Group.withId(meta.groupId)
       updateGroupViewInMenu(group, meta.id, meta.data)
+      break
+    }
+
+    case UPDATE_GROUP_VIEW_USER_PENDING: {
+      // ChatRoom reads lastReadPostId from the embedded group.groupViews menu, not the
+      // standalone GroupView ORM row — keep the menu in sync so re-entry restores scroll.
+      if (!meta.groupId || !meta.id || !meta.data) break
+      group = Group.withId(meta.groupId)
+      updateGroupViewInMenu(group, meta.id, meta.data)
+      break
+    }
+
+    case UPDATE_GROUP_VIEW_USER: {
+      const updatedView = payload?.data?.updateGroupViewUser
+      if (!meta.groupId || !updatedView?.id) break
+      group = Group.withId(meta.groupId)
+      updateGroupViewInMenu(group, updatedView.id, {
+        lastReadPostId: updatedView.lastReadPostId,
+        newPostCount: updatedView.newPostCount
+      })
       break
     }
 

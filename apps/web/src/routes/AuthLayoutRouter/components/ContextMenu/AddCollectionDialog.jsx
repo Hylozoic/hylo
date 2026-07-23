@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
+import { House } from 'lucide-react'
 
 import Button from 'components/ui/button'
 import { Input } from 'components/ui/input'
@@ -12,8 +13,11 @@ import {
   fetchViewPosts,
   removePostFromView,
   reorderViewPost,
+  setHomeView,
   updateGroupView
 } from 'store/actions/groupViews'
+import fetchGroupViews from 'store/actions/fetchGroupViews'
+import fetchForGroup from 'store/actions/fetchForGroup'
 
 /** Resolves the group that owns a view (top-level menu or nested space menu). */
 function findViewOwnerGroup (parentGroup, viewId) {
@@ -223,7 +227,22 @@ export default function AddCollectionDialog ({ group, view, onCancel, onCreated,
     onAdd
   ])
 
+  /** Set this collection as the group's home view (order = 0). */
+  const handleSetHome = useCallback(async () => {
+    if (!view?.id || !ownerGroup?.id) return
+    if (!window.confirm(t('Set this view as the home view for the group?'))) return
+    try {
+      await dispatch(setHomeView({ viewId: view.id, groupId: ownerGroup.id }))
+      await dispatch(fetchGroupViews(ownerGroup.id))
+      if (ownerGroup.slug) await dispatch(fetchForGroup(ownerGroup.slug))
+      onCancel?.()
+    } catch (error) {
+      console.error('Failed to set home view:', error)
+    }
+  }, [dispatch, view?.id, ownerGroup, onCancel, t])
+
   const postSelectorGroup = ownerGroup || group
+  const canBeHome = isEditing && view?.order !== 0
 
   return (
     <div className='fixed inset-0 z-[60] flex items-center justify-center bg-darkening/50 p-4'>
@@ -264,10 +283,17 @@ export default function AddCollectionDialog ({ group, view, onCancel, onCreated,
           )}
         </div>
 
-        <div className='flex justify-end gap-2 mt-4 pt-2 border-t border-foreground/10'>
+        <div className='flex flex-wrap gap-2 mt-4 pt-2 border-t border-foreground/10'>
           <Button variant='primary' onClick={onCancel}>
             {isEditing ? t('Cancel') : t('Back')}
           </Button>
+          {canBeHome && (
+            <Button variant='secondary' onClick={handleSetHome} className='flex items-center gap-1'>
+              <House className='w-4 h-4' />
+              {t('Set as Home View')}
+            </Button>
+          )}
+          <div className='flex-1' />
           <Button variant='secondary' disabled={!canSave || isSaving || isLoadingPosts} onClick={handleSave}>
             {isSaving
               ? (isEditing ? t('Saving...') : t('Creating...'))
