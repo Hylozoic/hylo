@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import * as Dialog from '@radix-ui/react-dialog'
 
 import { removePostFromUrl } from '@hylo/navigation'
+import { useRegisterHardwareBackHandler } from 'util/hardwareBackHandler'
 
 import PostDetail from 'routes/PostDetail/PostDetail'
 
@@ -86,6 +87,11 @@ const PostDialog = ({
       }
     }
   }, [])
+
+  useRegisterHardwareBackHandler(useCallback(() => {
+    handleOpenChange(false)
+    return true
+  }, [handleOpenChange]))
 
   return (
     <Dialog.Root open={dialogOpen} onOpenChange={handleOpenChange} modal={false}>
