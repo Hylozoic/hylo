@@ -94,6 +94,7 @@ import store from 'store'
 import { setMembershipLastViewedAt, toggleNavMenu } from './AuthLayoutRouter.store'
 import { Toaster } from 'components/ui/sonner'
 import useNewAppVersion from 'hooks/useNewAppVersion'
+import useMobileHardwareBack from 'hooks/useMobileHardwareBack'
 
 import classes from './AuthLayoutRouter.module.scss'
 
@@ -109,6 +110,7 @@ export default function AuthLayoutRouter (props) {
   const withoutNav = isLegacyWebView() || hideNavLayout
   const newVersionAvailable = useNewAppVersion()
   const newVersionToastShownRef = useRef(false)
+  useMobileHardwareBack()
 
   // Setup `pathMatchParams` and `queryParams` (`matchPath` best only used in this section)
   const location = useLocation()

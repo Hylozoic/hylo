@@ -221,10 +221,12 @@ function ChatEditorInner ({
     setIsDirty(true)
   }, [currentPost, initialPost.details, saveDraftJSON, saveServerDraft, setIsDirty, clearDraft])
 
+  // Keep keyboard focus when navigating between chat rooms
   useEffect(() => {
+    if (!autoFocus) return
     const id = setTimeout(() => editorRef.current?.focus('end'), 150)
     return () => clearTimeout(id)
-  }, [draftContextKey])
+  }, [autoFocus, draftContextKey])
 
   useEffect(() => {
     if (autoFocus) {

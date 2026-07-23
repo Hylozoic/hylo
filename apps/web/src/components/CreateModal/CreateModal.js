@@ -1,9 +1,10 @@
-import React, { useRef, useState } from 'react'
+import React, { useRef, useState, useCallback } from 'react'
 import { useSelector } from 'react-redux'
 import { Route, Routes, useNavigate, useLocation } from 'react-router-dom'
 import { CSSTransition } from 'react-transition-group'
 import getPreviousLocation from 'store/selectors/getPreviousLocation'
 import UnsavedDraftLeaveDialog from 'components/UnsavedDraftLeaveDialog/UnsavedDraftLeaveDialog'
+import { useRegisterHardwareBackHandler } from 'util/hardwareBackHandler'
 import CreateModalChooser from './CreateModalChooser'
 import CreateGroup from 'components/CreateGroup'
 import Icon from 'components/Icon'
@@ -60,6 +61,18 @@ const CreateModal = (props) => {
     setShowConfirmDialog(false)
     closeModal()
   }
+
+  const confirmCloseRef = useRef(confirmClose)
+  confirmCloseRef.current = confirmClose
+
+  useRegisterHardwareBackHandler(useCallback(() => {
+    if (showConfirmDialog) {
+      setShowConfirmDialog(false)
+      return true
+    }
+    confirmCloseRef.current()
+    return true
+  }, [showConfirmDialog]))
 
   return (
     <CSSTransition
