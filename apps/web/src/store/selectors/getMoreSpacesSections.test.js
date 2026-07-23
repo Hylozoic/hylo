@@ -1,17 +1,18 @@
 import {
   categorizeOffMenuSpaces,
-  categorizeOffMenuSpacesForEdit,
-  getMenuSpaceIds
+  getMenuSpaceIds,
+  getOffMenuViews
 } from './getMoreSpacesSections'
 
 describe('getMenuSpaceIds', () => {
-  it('collects linked space ids from menu views', () => {
+  it('collects linked space ids from ordered menu views only', () => {
     const ids = getMenuSpaceIds([
-      { type: 'space', linkedGroup: { id: '1' } },
-      { type: 'all' },
-      { type: 'space', linkedGroup: { id: '2' } }
+      { type: 'space', order: 1, linkedGroup: { id: '1' } },
+      { type: 'all', order: 0 },
+      { type: 'space', order: null, linkedGroup: { id: '2' } },
+      { type: 'space', order: 2, linkedGroup: { id: '3' } }
     ])
-    expect([...ids]).toEqual(['1', '2'])
+    expect([...ids].sort()).toEqual(['1', '3'])
   })
 })
 
@@ -37,26 +38,16 @@ describe('categorizeOffMenuSpaces', () => {
   })
 })
 
-describe('categorizeOffMenuSpacesForEdit', () => {
-  const menuSpaceIds = new Set(['10'])
+describe('getOffMenuViews', () => {
+  it('returns soft-removable views with order null', () => {
+    const views = getOffMenuViews([
+      { id: '1', type: 'all', order: 0 },
+      { id: '2', type: 'chat', order: null },
+      { id: '3', type: 'custom', order: null },
+      { id: '4', type: 'moderation', order: null },
+      { id: '5', type: 'space', order: null, linkedGroup: { id: '9' } }
+    ], null)
 
-  it('groups draft and archived off-menu spaces only', () => {
-    const result = categorizeOffMenuSpacesForEdit([
-      { id: '10', name: 'In menu', active: true },
-      { id: '11', name: 'Live FR', active: true, fundingRound: { id: 'r1', publishedAt: '2020-01-01' } },
-      { id: '12', name: 'Draft track', active: true, track: { id: 't1', publishedAt: null } },
-      { id: '13', name: 'Live track', active: true, track: { id: 't2', publishedAt: '2020-01-01' } },
-      { id: '14', name: 'Other space', active: true },
-      { id: '15', name: 'Archived track', active: false, track: { id: 't3', publishedAt: '2020-01-01' } },
-      { id: '16', name: 'Draft FR', active: true, fundingRound: { id: 'r2', publishedAt: null } },
-      { id: '17', name: 'Archived FR', active: false, fundingRound: { id: 'r3', publishedAt: '2020-01-01' } },
-      { id: '18', name: 'Other archived', active: false }
-    ], menuSpaceIds)
-
-    expect(result.draftTracks.map(s => s.id)).toEqual(['12'])
-    expect(result.archivedTracks.map(s => s.id)).toEqual(['15'])
-    expect(result.draftFundingRounds.map(s => s.id)).toEqual(['16'])
-    expect(result.archivedFundingRounds.map(s => s.id)).toEqual(['17'])
-    expect(result.otherArchivedSpaces.map(s => s.id)).toEqual(['18'])
+    expect(views.map(v => v.type).sort()).toEqual(['chat', 'moderation'])
   })
 })

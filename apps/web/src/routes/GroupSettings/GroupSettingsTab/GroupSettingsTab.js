@@ -3,7 +3,9 @@ import PropTypes from 'prop-types'
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
+import { useNavigate } from 'react-router-dom'
 import { TextHelpers } from '@hylo/shared'
+import { addQuerystringToPath, groupUrl } from '@hylo/navigation'
 import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
@@ -35,6 +37,7 @@ const { object, func } = PropTypes
 
 function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, updateGroupSettings }) {
   const dispatch = useDispatch()
+  const navigate = useNavigate()
   const [state, setState] = useState(defaultEditState())
   const { t } = useTranslation()
 
@@ -139,7 +142,8 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
     aboutVideoUri, acceptedPostTypes, avatarUrl, bannerUrl, description, geoShape, location, stewardDescriptor, stewardDescriptorPlural, name, purpose, settings, websiteUrl
   } = edits
 
-  const { defaultDigestFrequency: defaultDigestFrequencySetting = 'daily', locationDisplayPrecision, showSuggestedSkills } = settings
+  const { defaultDigestFrequency: defaultDigestFrequencySetting = 'daily', locationDisplayPrecision, showSuggestedSkills, showWelcomePage = true } = settings
+  const welcomeShownToNewMembers = showWelcomePage !== false
   const editableMapLocation = group?.locationObject || currentUser.locationObject
 
   t('Display exact location')
@@ -263,6 +267,30 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
           onPostTypesChange={updateSettingDirectly('acceptedPostTypes')}
           label={t('Accepted post types')}
         />
+        <div className='mt-6 flex flex-col gap-2'>
+          <div className='flex items-center gap-3'>
+            <SwitchStyled
+              checked={welcomeShownToNewMembers}
+              onChange={() => updateSettingDirectly('settings.showWelcomePage')(!welcomeShownToNewMembers)}
+              backgroundColor={welcomeShownToNewMembers ? 'hsl(var(--selected))' : 'rgba(0 0 0 / .6)'}
+            />
+            <span className='text-foreground text-sm'>
+              {t('Show this welcome page to new members when they first land in the group.')}
+            </span>
+          </div>
+          {welcomeShownToNewMembers && (
+            <button
+              type='button'
+              className='text-sm text-selected hover:underline self-start ml-12'
+              onClick={() => navigate(addQuerystringToPath(groupUrl(group.slug, 'more-views'), {
+                edit: 'true',
+                settings: 'welcome'
+              }))}
+            >
+              {t('Edit Welcome Page Content')}
+            </button>
+          )}
+        </div>
       </SettingsSection>
       <SettingsSection>
         <h3 className='text-foreground text-xl mb-4 mt-0'>{t('Customize group terms')}</h3>

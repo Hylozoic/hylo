@@ -19,13 +19,11 @@ import { ChevronRight, EyeOff, GripVertical } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
-import { useNavigate } from 'react-router-dom'
-import { addQuerystringToPath, groupUrl, localSpaceSlug } from '@hylo/navigation'
 
 import GroupViewIcon from './GroupViewIcon'
 import { GroupViewEditActions } from './GroupViewSettingsModal'
 import AddGroupViewDialog, { AddViewButton } from './AddGroupViewDialog'
-import { canDeleteView } from 'store/models/GroupView'
+import { canDeleteView, canHardDeleteView, isSoftRemoveView } from 'store/models/GroupView'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 import { deleteGroupView, reorderGroupView, setGroupViewHidden, setHomeView } from 'store/actions/groupViews'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
@@ -174,13 +172,11 @@ function SortableSpaceEditRow ({
   onDelete,
   onToggleHidden,
   onReorder,
-  onSpaceViewsReordered,
-  independentSpaceMenu = false
+  onSpaceViewsReordered
 }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
-  const navigate = useNavigate()
-  const [expanded, setExpanded] = useState(!independentSpaceMenu)
+  const [expanded, setExpanded] = useState(true)
   const [showAddView, setShowAddView] = useState(false)
   const presentedView = GroupViewPresenter(view)
   const spaceGroup = presentedView.linkedGroup
@@ -206,43 +202,16 @@ function SortableSpaceEditRow ({
     }
   }, [dispatch, group?.id])
 
-  /** In independent mode, open the space in the sidebar while staying on Edit Menu. */
-  const handleOpenSpace = useCallback(() => {
-    if (!independentSpaceMenu || !spaceGroup || !group?.slug) return
-    const local = localSpaceSlug(group.slug, spaceGroup.slug)
-    navigate(addQuerystringToPath(groupUrl(group.slug, 'edit-menu'), {
-      edit: 'true',
-      space: local
-    }))
-  }, [independentSpaceMenu, spaceGroup, group?.slug, navigate])
-
   return (
     <li ref={setNodeRef} style={style} className='list-none'>
       <div className='flex items-center gap-1 border-2 border-dashed border-transparent hover:border-foreground/20 rounded-md p-1 group'>
         <button type='button' className='p-1 cursor-grab text-foreground/50 shrink-0' {...attributes} {...listeners}>
           <GripVertical className='w-4 h-4' />
         </button>
-        {independentSpaceMenu
-          ? (
-            <button
-              type='button'
-              className='flex-1 flex items-center gap-2 min-w-0 text-left cursor-pointer'
-              onClick={handleOpenSpace}
-            >
-              <GroupViewIcon view={presentedView} />
-              <span className='flex-1 truncate text-base text-foreground'>
-                {displayNameForView(presentedView, t)}
-              </span>
-            </button>
-            )
-          : (
-            <>
-              <GroupViewIcon view={presentedView} />
-              <span className='flex-1 truncate text-base text-foreground'>
-                {displayNameForView(presentedView, t)}
-              </span>
-            </>
-            )}
+        <GroupViewIcon view={presentedView} />
+        <span className='flex-1 truncate text-base text-foreground'>
+          {displayNameForView(presentedView, t)}
+        </span>
         <GroupViewEditActions
           view={view}
           onSettings={onSettings}
@@ -250,7 +219,7 @@ function SortableSpaceEditRow ({
           onToggleHidden={onToggleHidden}
           className='opacity-0 group-hover:opacity-100'
         />
-        {spaceGroupId && !independentSpaceMenu && (
+        {spaceGroupId && (
           <button
             type='button'
             className='p-1 text-foreground/50 hover:text-foreground'
@@ -260,7 +229,7 @@ function SortableSpaceEditRow ({
           </button>
         )}
       </div>
-      {!independentSpaceMenu && expanded && spaceGroupId && (
+      {expanded && spaceGroupId && (
         <div className='pl-6 mt-1'>
           {spaceViews.length > 0 && (
             <ul className='m-0 p-0'>
@@ -349,11 +318,10 @@ function GroupViewEditSubList ({ views, groupId, parentGroupId, spaceGroup, onSe
 }
 
 /** Drag-and-drop editable list of group views. */
-export default function GroupViewEditList ({ views, group, onSettings, independentSpaceMenu = false }) {
+export default function GroupViewEditList ({ views, group, onSettings }) {
   const dispatch = useDispatch()
   const { t } = useTranslation()
   const visibleViews = useMemo(() => sortViewsByOrder((views || []).filter(v => v.order != null)), [views])
-  const hiddenViews = useMemo(() => (views || []).filter(v => v.order == null), [views])
   const [orderedViews, setOrderedViews] = useState(visibleViews)
 
   // Merge Redux updates into local order (preserves drag order; full replace on add/delete).
@@ -418,11 +386,21 @@ export default function GroupViewEditList ({ views, group, onSettings, independe
   const handleDelete = useCallback(async (view) => {
     if (!canDeleteView(view) || !group?.id) return
     const label = displayNameForView(view, t)
-    const isWelcome = view.type === 'welcome'
-    const confirmMessage = isWelcome
-      ? t('Are you sure you want to permanently delete {{name}}? This removes the page and its content.', { name: label })
-      : t('Are you sure you want to remove {{name}} from the menu?', { name: label })
-    if (!window.confirm(confirmMessage)) return
+    if (isSoftRemoveView(view)) {
+      if (!window.confirm(t('Are you sure you want to remove {{name}} from the menu?', { name: label }))) return
+      try {
+        await dispatch(setGroupViewHidden({
+          id: view.id,
+          groupId: group.id,
+          hidden: true
+        }))
+      } catch (error) {
+        console.error('Failed to remove view from menu:', error)
+      }
+      return
+    }
+    if (!canHardDeleteView(view)) return
+    if (!window.confirm(t('Are you sure you want to permanently delete {{name}}?', { name: label }))) return
     try {
       await dispatch(deleteGroupView(view.id, group.id))
     } catch (error) {
@@ -467,7 +445,6 @@ export default function GroupViewEditList ({ views, group, onSettings, independe
                   onToggleHidden={handleToggleHidden}
                   onReorder={handleReorder}
                   onSpaceViewsReordered={handleSpaceViewsReordered}
-                  independentSpaceMenu={independentSpaceMenu}
                 />
               )
             }
@@ -482,15 +459,6 @@ export default function GroupViewEditList ({ views, group, onSettings, independe
               />
             )
           })}
-          {hiddenViews.map(view => (
-            <HiddenEditRow
-              key={view.id}
-              view={view}
-              onSettings={onSettings}
-              onDelete={handleDelete}
-              onToggleHidden={handleToggleHidden}
-            />
-          ))}
         </ul>
       </SortableContext>
     </DndContext>

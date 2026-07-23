@@ -240,11 +240,11 @@ async function clearPreviousE2eBaseline (client) {
   )
 
   await client.query(
-    `UPDATE groups SET stripe_account_id = NULL WHERE slug = ANY($1::text[])`,
+    'UPDATE groups SET stripe_account_id = NULL WHERE slug = ANY($1::text[])',
     [E2E_GROUP_SLUGS]
   )
 
-  await client.query(`DELETE FROM groups WHERE slug = ANY($1::text[])`, [E2E_GROUP_SLUGS])
+  await client.query('DELETE FROM groups WHERE slug = ANY($1::text[])', [E2E_GROUP_SLUGS])
 
   await client.query(
     `DELETE FROM linked_account
@@ -252,10 +252,10 @@ async function clearPreviousE2eBaseline (client) {
     [E2E_USER_EMAILS]
   )
 
-  await client.query(`DELETE FROM users WHERE lower(email) = ANY($1::text[])`, [E2E_USER_EMAILS])
+  await client.query('DELETE FROM users WHERE lower(email) = ANY($1::text[])', [E2E_USER_EMAILS])
 
   await client.query(
-    `DELETE FROM stripe_accounts WHERE stripe_account_external_id = $1`,
+    'DELETE FROM stripe_accounts WHERE stripe_account_external_id = $1',
     [E2E_STRIPE_ACCOUNT_EXTERNAL_ID]
   )
 }

@@ -27,25 +27,12 @@ import { cn } from 'util/index'
 
 /** View types that can be added from the menu editor without picking an entity. */
 const ADDABLE_GROUP_VIEW_TYPES = [
-  'all',
-  'discussions',
-  'events',
-  'resources',
-  'projects',
-  'proposals',
-  'requests-and-offers',
-  'map',
-  'members',
-  'chat',
-  'welcome',
-  'about',
-  'related-groups',
+  'custom',
+  'link',
+  'collection',
   'post',
   'member',
   'group',
-  'custom',
-  'collection',
-  'link',
   'text',
   'separator'
 ]
@@ -64,7 +51,8 @@ const SINGLETON_VIEW_TYPES = new Set([
   'chat',
   'welcome',
   'about',
-  'related-groups'
+  'related-groups',
+  'moderation'
 ])
 
 /** View types that require picking a specific entity before creating. */
@@ -405,13 +393,16 @@ export default function AddGroupViewDialog ({ group, groupViews, acceptedPostTyp
 }
 
 /** Button row for adding views in edit mode. */
-export function AddViewButton ({ onClick }) {
+export function AddViewButton ({ onClick, className }) {
   const { t } = useTranslation()
   return (
     <button
       type='button'
       onClick={onClick}
-      className='flex items-center gap-2 w-full text-base text-foreground border-2 border-dashed border-foreground/30 hover:border-foreground/50 rounded-md p-2 pl-2 mb-2 transition-all opacity-85 hover:opacity-100'
+      className={cn(
+        'flex items-center gap-2 w-full text-base text-foreground border-2 border-dashed border-foreground/30 hover:border-foreground/50 rounded-md p-2 pl-2 mb-2 transition-all opacity-85 hover:opacity-100',
+        className
+      )}
     >
       <Plus className='w-4 h-4' />
       <span>{t('Add View')}</span>

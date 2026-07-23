@@ -49,7 +49,7 @@ export function filterSpaceViewsForMenuVisibility (views, { offerings, canManage
 }
 
 /**
- * Filters More Spaces section lists for paywalled spaces without published offerings.
+ * Filters More Views and Spaces section lists for paywalled spaces without published offerings.
  */
 export function filterMoreSpacesSections (sections, { offerings, canManageSpaces }) {
   if (!sections) return sections
@@ -58,6 +58,18 @@ export function filterMoreSpacesSections (sections, { offerings, canManageSpaces
   const fundingRoundSpaces = filterSpacesForMenuVisibility(sections.fundingRoundSpaces, opts)
   const otherSpaces = filterSpacesForMenuVisibility(sections.otherSpaces, opts)
   const archivedSpaces = filterSpacesForMenuVisibility(sections.archivedSpaces, opts)
-  const hasAny = trackSpaces.length + fundingRoundSpaces.length + otherSpaces.length + archivedSpaces.length > 0
-  return { trackSpaces, fundingRoundSpaces, otherSpaces, archivedSpaces, hasAny }
+  const offMenuViews = sections.offMenuViews || []
+  const hasAny = offMenuViews.length +
+    trackSpaces.length +
+    fundingRoundSpaces.length +
+    otherSpaces.length +
+    archivedSpaces.length > 0
+  return {
+    offMenuViews,
+    trackSpaces,
+    fundingRoundSpaces,
+    otherSpaces,
+    archivedSpaces,
+    hasAny
+  }
 }

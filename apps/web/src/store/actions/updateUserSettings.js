@@ -25,7 +25,6 @@ export default function updateUserSettings (changes) {
               rsvpCalendarSub
               signupInProgress
               stackGroups
-              independentSpaceMenu
               streamChildPosts
               streamViewMode
               streamSortBy

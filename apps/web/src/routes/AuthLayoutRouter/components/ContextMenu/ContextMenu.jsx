@@ -49,7 +49,6 @@ import SpaceSettingsModal from './SpaceSettingsModal'
 import AddCollectionDialog from './AddCollectionDialog'
 import AddGroupViewDialog, { AddViewButton } from './AddGroupViewDialog'
 import AddSpaceDialog, { AddSpaceButton } from './AddSpaceDialog'
-import MoreSpacesSection from './MoreSpacesSection'
 import { menuViewUrl } from './groupViewMenuUrl'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
@@ -110,8 +109,7 @@ function GroupViewMenuItem ({
   view,
   parentSlug,
   spaceGroup = null,
-  spaceSlug = null,
-  independentSpaceMenu = false
+  spaceSlug = null
 }) {
   const dispatch = useDispatch()
   const { t } = useTranslation()
@@ -194,8 +192,7 @@ function GroupViewMenuItem ({
       linkedSpaceGroup &&
       localSpaceSlug(parentSlug, linkedSpaceGroup.slug) === spaceSlug
     )
-    // Nested expand only when independent space menu is off and the space route is active.
-    const isExpanded = !independentSpaceMenu && isSpaceMember && isSpaceActive && hasMultipleSpaceViews
+    const isExpanded = isSpaceMember && isSpaceActive && hasMultipleSpaceViews
     const aboutUrl = linkedSpaceGroup
       ? spaceUrl(parentSlug, localSpaceSlug(parentSlug, linkedSpaceGroup.slug), '/about')
       : null
@@ -237,7 +234,6 @@ function GroupViewMenuItem ({
                 parentSlug={parentSlug}
                 spaceGroup={linkedSpaceGroup}
                 spaceSlug={spaceSlug}
-                independentSpaceMenu={independentSpaceMenu}
               />
             ))}
           </ul>
@@ -277,7 +273,6 @@ function GroupViewList ({
   onOpenSettings,
   canManageSpaces,
   canManageRound = false,
-  independentSpaceMenu = false,
   hideAddSpace = false
 }) {
   const { t } = useTranslation()
@@ -302,7 +297,6 @@ function GroupViewList ({
           group={group}
           groupSlug={groupSlug}
           onSettings={onOpenSettings}
-          independentSpaceMenu={independentSpaceMenu}
         />
         <div className='px-3 pb-3 flex flex-col gap-1'>
           {spaceGroup && (
@@ -315,12 +309,8 @@ function GroupViewList ({
               <span>{t('Space Settings')}</span>
             </button>
           )}
-          {!(independentSpaceMenu && !spaceGroup) && (
-            <>
-              <AddViewButton onClick={() => setShowAddView(true)} />
-              {canManageSpaces && !hideAddSpace && <AddSpaceButton onClick={() => setShowAddSpace(true)} />}
-            </>
-          )}
+          <AddViewButton onClick={() => setShowAddView(true)} />
+          {canManageSpaces && !hideAddSpace && <AddSpaceButton onClick={() => setShowAddSpace(true)} />}
         </div>
         {showAddView && <AddGroupViewDialog group={group} groupViews={groupViews} acceptedPostTypes={group?.acceptedPostTypes} onClose={() => setShowAddView(false)} />}
         {showAddSpace && !hideAddSpace && <AddSpaceDialog group={group} onClose={() => setShowAddSpace(false)} />}
@@ -349,7 +339,6 @@ function GroupViewList ({
             parentSlug={groupSlug}
             spaceGroup={spaceGroup}
             spaceSlug={spaceSlug}
-            independentSpaceMenu={independentSpaceMenu}
           />
         ))}
       </ul>
@@ -381,10 +370,9 @@ export default function ContextMenu (props) {
   const canManageSpaces = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_MANAGE_SPACES, groupId: group?.id }))
   const isEditing = getQuerystringParam('edit', location) === 'true' && canAdminister
   const [settingsView, setSettingsView] = useState(null)
-  const independentSpaceMenu = currentUser?.settings?.independentSpaceMenu === true
-  const isEditMenuPath = location.pathname.replace(/\/$/, '').endsWith('/edit-menu')
-  // On Edit Menu page, `?space=` selects a space in the sidebar without leaving the page.
-  const spaceSlug = routeSpaceSlug || (isEditMenuPath ? getQuerystringParam('space', location) : null)
+  const isMoreViewsPath = location.pathname.replace(/\/$/, '').endsWith('/more-views')
+  // On More Views page, `?space=` selects a space in the sidebar without leaving the page.
+  const spaceSlug = routeSpaceSlug || (isMoreViewsPath ? getQuerystringParam('space', location) : null)
 
   const isPublicContext = routeParams.context === PUBLIC_CONTEXT_SLUG
   const isMyContext = routeParams.context === MY_CONTEXT_SLUG
@@ -430,20 +418,21 @@ export default function ContextMenu (props) {
     activeSpaceGroup &&
     myMemberships.some(m => m.group.id === activeSpaceGroup.id)
   )
-  const activeSpaceMenuViewCount = useMemo(() => {
-    if (!activeSpaceGroup) return 0
-    return visibleSpaceMenuViews(activeSpaceGroup, {
-      includeManageRound: Boolean(activeSpaceGroup.fundingRound?.id && canManageSpaces)
-    }).length
-  }, [activeSpaceGroup, canManageSpaces])
-  // Independent mode: only swap to the space menu when the space has multiple views
-  // (or when editing a space from the Edit Menu page via ?space=).
+  // Ordered (in-menu) spaces nest under the row; off-menu spaces drill into a replaced menu.
+  const isOrderedMenuSpace = useMemo(() => {
+    if (!spaceSlug || !groupSlug) return false
+    return (fetchedGroupViews || []).some(view => (
+      view.type === 'space' &&
+      view.order != null &&
+      view.linkedGroup &&
+      localSpaceSlug(groupSlug, view.linkedGroup.slug) === spaceSlug
+    ))
+  }, [fetchedGroupViews, groupSlug, spaceSlug])
   const showingSpaceMenu = Boolean(
-    independentSpaceMenu &&
     isGroupContext &&
     activeSpaceGroup &&
-    (isSpaceMember || (isEditMenuPath && canAdminister)) &&
-    (isEditMenuPath || activeSpaceMenuViewCount > 1)
+    (isSpaceMember || (isMoreViewsPath && canAdminister)) &&
+    (!isOrderedMenuSpace || (isMoreViewsPath && spaceSlug))
   )
   const spaceMenuViewsFromStore = useSelector(state =>
     showingSpaceMenu ? getGroupViews(state, activeSpaceGroup) : []
@@ -456,15 +445,15 @@ export default function ContextMenu (props) {
   const spaceDisplayName = activeSpaceGroup?.name ||
     (activeSpaceView ? displayNameForView(GroupViewPresenter(activeSpaceView), t) : t('Space'))
 
-  // Fetch GroupViews whenever we enter a real group context
+  // Fetch GroupViews and spaces whenever we enter a real group context
   useEffect(() => {
     if (group?.id && isGroupContext) {
       dispatch(fetchGroupViews(group.id))
-      if (independentSpaceMenu) dispatch(fetchGroupSpaces(group.id))
+      dispatch(fetchGroupSpaces(group.id))
     }
-  }, [group?.id, isGroupContext, independentSpaceMenu, dispatch])
+  }, [group?.id, isGroupContext, dispatch])
 
-  // Load the space's own views when the independent space menu is active.
+  // Load the space's own views when the drill-in space menu is active.
   useEffect(() => {
     if (showingSpaceMenu && activeSpaceGroup?.id) {
       dispatch(fetchGroupViews(activeSpaceGroup.id))
@@ -472,13 +461,13 @@ export default function ContextMenu (props) {
   }, [showingSpaceMenu, activeSpaceGroup?.id, dispatch])
 
   const handleBackToGroupMenu = useCallback(() => {
-    if (isEditMenuPath) {
-      navigate(addQuerystringToPath(groupUrl(groupSlug, 'edit-menu'), { edit: 'true' }))
+    if (isMoreViewsPath) {
+      navigate(addQuerystringToPath(groupUrl(groupSlug, 'more-views'), { edit: 'true' }))
       return
     }
     const home = groupUrl(groupSlug)
     navigate(isEditing ? addQuerystringToPath(home, { edit: 'true' }) : home)
-  }, [navigate, groupSlug, isEditing, isEditMenuPath])
+  }, [navigate, groupSlug, isEditing, isMoreViewsPath])
 
   // Allow scroll events to pass through to ContextMenu even when a modal post dialog is open
   useEffect(() => {
@@ -514,27 +503,15 @@ export default function ContextMenu (props) {
 
   const moreSpacesSection = isGroupContext && group?.id && !showingSpaceMenu
     ? (
-        independentSpaceMenu
-          ? (
-            <div className='px-3 pb-2 border-t border-foreground/10 pt-2'>
-              <MenuLink
-                to={groupUrl(groupSlug, 'more-spaces')}
-                className='flex items-center gap-2 text-base text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 w-full transition-all opacity-85 hover:opacity-100'
-              >
-                <CircleEllipsis className='w-4 h-4 shrink-0' />
-                <span>{t('More Spaces')}</span>
-              </MenuLink>
-            </div>
-            )
-          : (
-            <MoreSpacesSection
-              group={group}
-              groupSlug={groupSlug}
-              spaceSlug={spaceSlug}
-              isEditing={isEditing}
-              independentSpaceMenu={independentSpaceMenu}
-            />
-            )
+      <div className='px-3 pb-2 border-t border-foreground/10 pt-2'>
+        <MenuLink
+          to={groupUrl(groupSlug, 'more-views')}
+          className='flex items-center gap-2 text-base text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 w-full transition-all opacity-85 hover:opacity-100'
+        >
+          <CircleEllipsis className='w-4 h-4 shrink-0' />
+          <span>{t('More Views and Spaces')}</span>
+        </MenuLink>
+      </div>
       )
     : null
 
@@ -543,14 +520,12 @@ export default function ContextMenu (props) {
       <div className='px-3 pb-2 border-t border-foreground/10 pt-2'>
         <MenuLink
           to={
-            independentSpaceMenu
-              ? (isEditing
-                  ? groupUrl(groupSlug)
-                  : addQuerystringToPath(groupUrl(groupSlug, 'edit-menu'), {
-                    edit: 'true',
-                    ...(showingSpaceMenu && spaceSlug ? { space: spaceSlug } : {})
-                  }))
-              : addQuerystringToPath(location.pathname, { edit: isEditing ? null : 'true' })
+            isEditing
+              ? groupUrl(groupSlug)
+              : addQuerystringToPath(groupUrl(groupSlug, 'more-views'), {
+                edit: 'true',
+                ...(showingSpaceMenu && spaceSlug ? { space: spaceSlug } : {})
+              })
           }
           isEditing={isEditing}
           className='flex items-center gap-2 text-base text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 w-full transition-all opacity-85 hover:opacity-100'
@@ -669,7 +644,6 @@ export default function ContextMenu (props) {
                       onOpenSettings={setSettingsView}
                       canManageSpaces={false}
                       canManageRound={canManageSpaces}
-                      independentSpaceMenu={independentSpaceMenu}
                       hideAddSpace
                     />
                     )
@@ -690,7 +664,6 @@ export default function ContextMenu (props) {
                   isEditing={isEditing}
                   onOpenSettings={setSettingsView}
                   canManageSpaces={canManageSpaces}
-                  independentSpaceMenu={independentSpaceMenu}
                 />
                 )
               : (

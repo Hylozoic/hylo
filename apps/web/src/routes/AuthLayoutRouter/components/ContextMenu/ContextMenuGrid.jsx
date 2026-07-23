@@ -23,7 +23,7 @@ import { sendMessageToWebView } from 'util/webView'
 import logout from 'store/actions/logout'
 import { DEFAULT_BANNER, DEFAULT_AVATAR } from 'store/models/Group'
 import { getGroupViews } from 'store/selectors/getGroupViews'
-import { getMoreSpacesSections } from 'store/selectors/getMoreSpacesSections'
+import { getMoreViewsSections } from 'store/selectors/getMoreSpacesSections'
 import {
   getChildGroups,
   getParentGroups,
@@ -282,7 +282,7 @@ function EntityCard ({ name, icon, avatarUrl, onClick, badge }) {
   )
 }
 
-/** Card opening the More Spaces nested grid. */
+/** Card opening the More Views and Spaces nested grid. */
 function MoreSpacesCard ({ onClick, t }) {
   return (
     <div
@@ -299,16 +299,16 @@ function MoreSpacesCard ({ onClick, t }) {
     >
       <div className='flex-1 flex flex-col items-center justify-center gap-1.5 text-center'>
         <CircleEllipsis className='w-8 h-8 text-foreground/60' />
-        <h3 className='text-base font-semibold text-foreground'>{t('More Spaces')}</h3>
+        <h3 className='text-base font-semibold text-foreground'>{t('More Views and Spaces')}</h3>
       </div>
     </div>
   )
 }
 
-/** Nested More Spaces grid with section headers. */
+/** Nested More Views and Spaces grid with section headers. */
 function MoreSpacesGrid ({ group, groupSlug, navigate, t }) {
   const dispatch = useDispatch()
-  const sectionsRaw = useSelector(state => getMoreSpacesSections(state, group))
+  const sectionsRaw = useSelector(state => getMoreViewsSections(state, group))
   const canManageSpaces = useSelector(state => hasResponsibilityForGroup(state, {
     responsibility: RESP_MANAGE_SPACES,
     groupId: group?.id
@@ -327,36 +327,50 @@ function MoreSpacesGrid ({ group, groupSlug, navigate, t }) {
   const pending = useSelector(state =>
     isPendingFor([FETCH_GROUP_SPACES, FETCH_GROUP_RELATIONSHIPS], state)
   )
+  const hasRelatedGroups = parentGroups.length + childGroups.length + peerGroups.length > 0
 
   useEffect(() => {
     if (!group?.id || !groupSlug) return
     dispatch(fetchGroupSpaces(group.id))
     dispatch(fetchGroupRelationships(groupSlug))
+    dispatch(fetchGroupViews(group.id))
   }, [dispatch, group?.id, groupSlug])
-
-  const relatedGroups = useMemo(() => {
-    const menuGroupIds = new Set(
-      (group?.groupViews?.items || [])
-        .filter(view => view.type === 'group' && view.linkedGroup?.id)
-        .map(view => String(view.linkedGroup.id))
-    )
-    return [
-      ...parentGroups.map(g => ({ group: g, relationLabel: t('Parent') })),
-      ...childGroups.map(g => ({ group: g, relationLabel: t('Child') })),
-      ...peerGroups.map(g => ({ group: g, relationLabel: t('Peer') }))
-    ]
-      .filter(({ group: related }) => !menuGroupIds.has(String(related.id)))
-      .sort((a, b) => (a.group.name || '').localeCompare(b.group.name || ''))
-  }, [parentGroups, childGroups, peerGroups, group?.groupViews?.items, t])
 
   const handleOpenSpace = useCallback((space) => {
     const local = localSpaceSlug(groupSlug, space.slug)
-    navigate(spaceUrl(groupSlug, local), { state: { fromMoreSpaces: true } })
+    navigate(spaceUrl(groupSlug, local), { state: { fromMoreViews: true } })
   }, [groupSlug, navigate])
+
+  const handleOpenView = useCallback((view) => {
+    const presented = GroupViewPresenter(view)
+    const url = menuViewUrl(groupSlug, presented)
+    if (url) navigate(url)
+  }, [groupSlug, navigate])
+
+  const offMenuViews = useMemo(() => {
+    return (sections.offMenuViews || []).filter(view => {
+      if (view.type === 'related-groups' && !hasRelatedGroups) return false
+      return true
+    })
+  }, [sections.offMenuViews, hasRelatedGroups])
 
   const gridSections = useMemo(() => {
     const result = []
-    if (sections.trackSpaces.length) {
+    if (offMenuViews.length) {
+      result.push({
+        title: t('Views'),
+        items: offMenuViews.map(view => {
+          const presented = GroupViewPresenter(view)
+          return {
+            key: view.id,
+            name: displayNameForView(presented, t),
+            icon: presented.icon || presented.type,
+            onClick: () => handleOpenView(view)
+          }
+        })
+      })
+    }
+    if (sections.trackSpaces?.length) {
       result.push({
         title: t('Tracks'),
         items: sections.trackSpaces.map(space => ({
@@ -369,7 +383,7 @@ function MoreSpacesGrid ({ group, groupSlug, navigate, t }) {
         }))
       })
     }
-    if (sections.fundingRoundSpaces.length) {
+    if (sections.fundingRoundSpaces?.length) {
       result.push({
         title: t('Funding Rounds'),
         items: sections.fundingRoundSpaces.map(space => ({
@@ -381,21 +395,9 @@ function MoreSpacesGrid ({ group, groupSlug, navigate, t }) {
         }))
       })
     }
-    if (relatedGroups.length) {
+    if (sections.otherSpaces?.length) {
       result.push({
-        title: t('Related Groups'),
-        items: relatedGroups.map(({ group: related, relationLabel }) => ({
-          key: related.id,
-          name: related.name,
-          avatarUrl: related.avatarUrl,
-          badge: relationLabel,
-          onClick: () => navigate(groupUrl(related.slug))
-        }))
-      })
-    }
-    if (sections.otherSpaces.length) {
-      result.push({
-        title: t('Spaces'),
+        title: t('Other Spaces'),
         items: sections.otherSpaces.map(space => ({
           key: space.id,
           name: space.name,
@@ -405,20 +407,8 @@ function MoreSpacesGrid ({ group, groupSlug, navigate, t }) {
         }))
       })
     }
-    if (sections.archivedSpaces.length) {
-      result.push({
-        title: t('Archived Spaces'),
-        items: sections.archivedSpaces.map(space => ({
-          key: space.id,
-          name: space.name,
-          avatarUrl: space.avatarUrl,
-          icon: space.icon,
-          onClick: () => handleOpenSpace(space)
-        }))
-      })
-    }
     return result
-  }, [sections, relatedGroups, handleOpenSpace, navigate, t])
+  }, [sections, offMenuViews, handleOpenSpace, handleOpenView, t])
 
   if (pending && gridSections.length === 0) {
     return <p className='text-sm text-foreground/40'>{t('Loading…')}</p>
@@ -469,7 +459,7 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
   const groupSlug = group?.slug
   const isContextMode = Boolean(context) && !group
 
-  const isMoreSpacesLevel = !isContextMode && !spaceGroup && location.pathname.replace(/\/$/, '').endsWith('/more-spaces')
+  const isMoreSpacesLevel = !isContextMode && !spaceGroup && location.pathname.replace(/\/$/, '').endsWith('/more-views')
   const isSpaceLevel = Boolean(spaceGroup)
   const isNestedLevel = isMoreSpacesLevel || isSpaceLevel
 
@@ -535,8 +525,8 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
     : null
 
   const handleBack = useCallback(() => {
-    if (isSpaceLevel && location.state?.fromMoreSpaces) {
-      navigate(groupUrl(groupSlug, 'more-spaces'))
+    if (isSpaceLevel && location.state?.fromMoreViews) {
+      navigate(groupUrl(groupSlug, 'more-views'))
       return
     }
     if (isSpaceLevel || isMoreSpacesLevel) {
@@ -558,7 +548,7 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
   }, [isEditing, location.pathname, location.search, navigate])
 
   const nestedTitle = isMoreSpacesLevel
-    ? t('More Spaces')
+    ? t('More Views and Spaces')
     : (spaceGroup?.name || t('Space'))
 
   return (
@@ -663,7 +653,7 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
                 {!isContextMode && !spaceGroup && (
                   <div className='flex flex-wrap gap-3'>
                     <MoreSpacesCard
-                      onClick={() => navigate(groupUrl(groupSlug, 'more-spaces'))}
+                      onClick={() => navigate(groupUrl(groupSlug, 'more-views'))}
                       t={t}
                     />
                   </div>

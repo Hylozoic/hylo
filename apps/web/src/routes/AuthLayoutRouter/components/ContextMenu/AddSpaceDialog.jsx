@@ -508,13 +508,16 @@ export default function AddSpaceDialog ({ group, onClose }) {
 }
 
 /** Button row for adding spaces in edit mode. */
-export function AddSpaceButton ({ onClick }) {
+export function AddSpaceButton ({ onClick, className }) {
   const { t } = useTranslation()
   return (
     <button
       type='button'
       onClick={onClick}
-      className='flex items-center gap-2 w-full text-base text-foreground border-2 border-dashed border-foreground/30 hover:border-foreground/50 rounded-md p-2 pl-2 mb-2 transition-all opacity-85 hover:opacity-100'
+      className={cn(
+        'flex items-center gap-2 w-full text-base text-foreground border-2 border-dashed border-foreground/30 hover:border-foreground/50 rounded-md p-2 pl-2 mb-2 transition-all opacity-85 hover:opacity-100',
+        className
+      )}
     >
       <Plus className='w-4 h-4' />
       <span>{t('Add Space')}</span>

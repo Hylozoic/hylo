@@ -24,7 +24,6 @@ export default function login (email, password) {
                 rsvpCalendarSub
                 signupInProgress
                 stackGroups
-                independentSpaceMenu
                 streamChildPosts
                 streamViewMode
                 streamSortBy

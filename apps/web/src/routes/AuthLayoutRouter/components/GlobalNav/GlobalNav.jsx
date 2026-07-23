@@ -357,24 +357,6 @@ function SettingsMenu ({ currentUser, triggerClassName, contentSide = 'right', c
                 </DropdownMenuRadioGroup>
               </DropdownMenuSubContent>
             </DropdownMenuSub>
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <span>{t('Space Menu Style')}</span>
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent className='z-[200] bg-card'>
-                <DropdownMenuRadioGroup
-                  value={independentSpaceMenu ? 'independent' : 'in-group'}
-                  onValueChange={value => handleSettingChange({ independentSpaceMenu: value === 'independent' })}
-                >
-                  <DropdownMenuRadioItem value='in-group'>
-                    {t('Spaces In Group Menu')}
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value='independent'>
-                    {t('Independent Space Menu')}
-                  </DropdownMenuRadioItem>
-                </DropdownMenuRadioGroup>
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
           </DropdownMenuSubContent>
         </DropdownMenuSub>
         <DropdownMenuSub>
