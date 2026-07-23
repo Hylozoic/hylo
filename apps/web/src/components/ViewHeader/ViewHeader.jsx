@@ -197,18 +197,18 @@ const ViewHeader = () => {
           navigate(spaceMenu)
           return
         }
-        if (location.state?.fromMoreSpaces) {
-          navigate(`${groupHome}/more-spaces`)
+        if (location.state?.fromMoreViews || location.state?.fromMoreSpaces) {
+          navigate(`${groupHome}/more-views`)
           return
         }
         navigate(groupHome)
         return
       }
-      if (path !== groupHome && path !== `${groupHome}/more-spaces`) {
+      if (path !== groupHome && path !== `${groupHome}/more-views`) {
         navigate(groupHome)
         return
       }
-      if (path === `${groupHome}/more-spaces`) {
+      if (path === `${groupHome}/more-views`) {
         navigate(groupHome)
         return
       }
@@ -244,7 +244,7 @@ const ViewHeader = () => {
     if (isOneColumnContext && path === `/${context}`) return true
     if (!isOneColumnGroup || !groupSlug) return false
     const groupBase = `/groups/${groupSlug}`
-    if (path === groupBase || path === `${groupBase}/more-spaces`) return true
+    if (path === groupBase || path === `${groupBase}/more-views`) return true
     return Boolean(path.match(new RegExp(`^/groups/${groupSlug}/spaces/[^/]+$`)))
   }, [oneColumn, isOneColumnContext, isOneColumnGroup, context, groupSlug, location.pathname])
 

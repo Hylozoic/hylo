@@ -49,6 +49,7 @@ module.exports = bookshelf.Model.extend({
     MAP: 'map',
     MEMBER: 'member',
     MEMBERS: 'members',
+    MODERATION: 'moderation',
     POST: 'post',
     PROJECTS: 'projects',
     PROPOSALS: 'proposals',
@@ -61,6 +62,25 @@ module.exports = bookshelf.Model.extend({
     TRACK_ACTIONS: 'track-actions',
     WELCOME: 'welcome'
   },
+
+  // Soft-removed from the menu (order = null) and shown in More Views / Spaces — not hard-deleted.
+  SOFT_REMOVE_TYPES: [
+    'all',
+    'about',
+    'chat',
+    'discussions',
+    'events',
+    'map',
+    'members',
+    'moderation',
+    'projects',
+    'proposals',
+    'related-groups',
+    'requests-and-offers',
+    'resources',
+    'space',
+    'welcome'
+  ],
 
   // View types that are not real routes / don't get their own GroupView page
   NON_NAVIGABLE_TYPES: ['link', 'text', 'separator', 'space'],
@@ -179,5 +199,35 @@ module.exports = bookshelf.Model.extend({
       WHERE id IN (${newOrderedIds.join(',')})
     `
     await bookshelf.knex.raw(query).transacting(trx)
+  },
+
+  /**
+   * Ensure related-groups, moderation, and welcome views exist (order = null → More Views).
+   * Idempotent — skips types that already have a row for this group.
+   */
+  ensureOffMenuSystemViews: async function (groupId, { transacting } = {}) {
+    if (!groupId) return
+
+    const types = [
+      GroupView.Type.RELATED_GROUPS,
+      GroupView.Type.MODERATION,
+      GroupView.Type.WELCOME
+    ]
+    const existing = await GroupView.where({ group_id: groupId })
+      .query(q => q.whereIn('type', types))
+      .fetchAll({ transacting })
+    const existingTypes = new Set(existing.map(v => v.get('type')))
+    const now = new Date()
+
+    for (const type of types) {
+      if (existingTypes.has(type)) continue
+      await GroupView.forge({
+        group_id: groupId,
+        type,
+        order: null,
+        created_at: now,
+        updated_at: now
+      }).save(null, { transacting, method: 'insert' })
+    }
   }
 })

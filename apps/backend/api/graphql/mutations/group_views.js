@@ -103,29 +103,18 @@ export async function deleteGroupView (userId, id, context) {
   if (view.get('order') === 0) {
     throw new GraphQLError('Cannot delete the home view — set another view as home first')
   }
-  if (['track-actions', 'funding-round-submissions'].includes(view.get('type'))) {
+  const viewType = view.get('type')
+  if (['track-actions', 'funding-round-submissions'].includes(viewType)) {
     throw new GraphQLError('This view cannot be deleted')
   }
-
-  const wasWelcome = view.get('type') === GroupView.Type.WELCOME
+  if (GroupView.SOFT_REMOVE_TYPES.includes(viewType)) {
+    throw new GraphQLError('This view cannot be deleted — remove it from the menu instead')
+  }
 
   await view.destroy()
     .catch(err => {
       throw new GraphQLError(`Deletion of view failed: ${err.message}`)
     })
-
-  // Welcome page is gone — stop redirecting new members to /welcome.
-  if (wasWelcome) {
-    const groupModel = await Group.find(groupId)
-    if (groupModel) {
-      const settings = groupModel.get('settings') || {}
-      if (settings.show_welcome_page !== false) {
-        await groupModel.save({
-          settings: { ...settings, show_welcome_page: false }
-        }, { patch: true })
-      }
-    }
-  }
 
   const group = await Group.find(groupId)
   notifyGroupUpdated(context, group, groupId)

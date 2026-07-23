@@ -53,6 +53,8 @@ export function groupViewUrl (groupSlug, view) {
       return groupUrl(groupSlug, 'requests-and-offers')
     case 'related-groups':
       return groupUrl(groupSlug, 'groups')
+    case 'moderation':
+      return groupUrl(groupSlug, 'moderation')
     case 'decisions':
       return groupUrl(groupSlug, 'decisions')
     case 'custom':

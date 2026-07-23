@@ -2,7 +2,7 @@ import React, { useCallback, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
-import { Eye, EyeOff, ImagePlus, Info, Lock, LockOpen } from 'lucide-react'
+import { Eye, EyeOff, ImagePlus } from 'lucide-react'
 
 import Button from 'components/ui/button'
 import { Input } from 'components/ui/input'
@@ -24,7 +24,7 @@ import fetchGroupViews from 'store/actions/fetchGroupViews'
 import { cn } from 'util/index'
 
 import FundingRoundSettingsFields from './FundingRoundSettingsFields'
-import { SPACE_ICON_SUGGESTIONS, ACCESS_OPTIONS, accessValueForSpace, toIsoOrNull } from './spaceFormConstants'
+import { SPACE_ICON_SUGGESTIONS, accessOptionsForGroup, accessValueForSpace, toIsoOrNull } from './spaceFormConstants'
 
 function toDateOrNull (value) {
   if (!value) return null
@@ -56,7 +56,8 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, group, onC
   const [access, setAccess] = useState(() => accessValueForSpace({
     visibility: space?.visibility,
     accessibility: space?.accessibility,
-    requiredRoles: space?.requiredRoles
+    requiredRoles: space?.requiredRoles,
+    paywall: space?.paywall
   }))
   const [requiredRoles, setRequiredRoles] = useState(() => {
     const roleIds = space?.requiredRoles || []
@@ -71,9 +72,12 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, group, onC
   const [actionDescriptorPlural, setActionDescriptorPlural] = useState(track?.actionDescriptorPlural || 'Actions')
   const [completionRole, setCompletionRole] = useState(track?.completionRole || null)
   const [publishedAt, setPublishedAt] = useState(track?.publishedAt || null)
-  const [accessControlled, setAccessControlled] = useState(track?.accessControlled || false)
-  const [showAccessControlInfo, setShowAccessControlInfo] = useState(false)
   const completionMessageEditorRef = useRef(null)
+
+  const accessOptions = useMemo(
+    () => accessOptionsForGroup(group, { includePaid: Boolean(space?.paywall) }),
+    [group, space?.paywall]
+  )
 
   // Funding Round settings
   const [frPublishedAt, setFrPublishedAt] = useState(fundingRound?.publishedAt || null)
@@ -126,7 +130,7 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, group, onC
     if (!name.trim() || !space?.id || !group?.id) return
     setIsSaving(true)
     try {
-      const accessOption = ACCESS_OPTIONS.find(option => option.value === access)
+      const accessOption = accessOptions.find(option => option.value === access)
       const trimmedName = name.trim()
 
       // Space menu labels use linkedGroup.name — do not snapshot the name onto group_views.
@@ -144,7 +148,8 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, group, onC
         acceptedPostTypes: postTypes,
         visibility: accessOption.visibility,
         accessibility: accessOption.accessibility,
-        requiredRoles: access === 'role' ? requiredRoles.map(role => role.id) : []
+        requiredRoles: access === 'role' ? requiredRoles.map(role => role.id) : [],
+        paywall: Boolean(accessOption.paywall)
       }))
 
       if (track?.id) {
@@ -155,8 +160,7 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, group, onC
           actionDescriptorPlural,
           completionMessage,
           completionRole,
-          publishedAt,
-          accessControlled
+          publishedAt
         }))
       }
 
@@ -192,7 +196,7 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, group, onC
     } finally {
       setIsSaving(false)
     }
-  }, [dispatch, space?.id, group?.id, view?.id, name, description, icon, bannerUrl, purpose, locationObject, postTypes, access, requiredRoles, track?.id, actionDescriptor, actionDescriptorPlural, completionRole, publishedAt, accessControlled, fundingRound?.id, frPublishedAt, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frHideFinalResults, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles, onClose])
+  }, [dispatch, space?.id, group?.id, view?.id, name, description, icon, bannerUrl, purpose, locationObject, postTypes, access, accessOptions, requiredRoles, track?.id, actionDescriptor, actionDescriptorPlural, completionRole, publishedAt, fundingRound?.id, frPublishedAt, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frHideFinalResults, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles, onClose])
 
   if (!space) return null
 
@@ -291,7 +295,7 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, group, onC
           <div className='flex flex-col gap-2'>
             <label className='text-sm text-foreground/70'>{t('Access')}</label>
             <RadioGroup value={access} onValueChange={setAccess}>
-              {ACCESS_OPTIONS.map(option => (
+              {accessOptions.map(option => (
                 <div key={option.value} className='flex flex-col gap-1 mb-2'>
                   <div className='flex items-start gap-2'>
                     <RadioGroupItem value={option.value} id={`space-settings-access-${option.value}`} className='mt-0.5 shrink-0' />
@@ -417,31 +421,6 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, group, onC
                   </button>
                   <span>{publishedAt ? t('Published') : t('Unpublished')}</span>
                 </div>
-              </div>
-
-              <div className='flex flex-col bg-input rounded-md p-2 gap-2'>
-                <div className='flex items-center gap-2'>
-                  <button
-                    type='button'
-                    className={cn('p-2 rounded-md transition-colors', accessControlled ? 'bg-accent text-white' : 'bg-foreground/10')}
-                    onClick={() => setAccessControlled(v => !v)}
-                  >
-                    {accessControlled ? <Lock className='w-5 h-5' /> : <LockOpen className='w-5 h-5' />}
-                  </button>
-                  <span>{accessControlled ? t('Access Controlled') : t('Free Access')}</span>
-                  <button
-                    type='button'
-                    className='p-1 rounded-md hover:bg-foreground/10 transition-colors'
-                    onClick={() => setShowAccessControlInfo(v => !v)}
-                  >
-                    <Info className='w-4 h-4 text-foreground/50' />
-                  </button>
-                </div>
-                {showAccessControlInfo && (
-                  <p className='text-xs text-foreground/60 ml-1'>
-                    {t('When enabled, users will need to purchase access or be granted access by an admin before they can access this track.')}
-                  </p>
-                )}
               </div>
             </div>
           )}

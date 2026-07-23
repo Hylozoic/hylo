@@ -23,6 +23,7 @@ import GroupMenuHeader from 'components/GroupMenuHeader'
 import MenuLink from './MenuLink'
 import GroupViewIcon from './GroupViewIcon'
 import useRouteParams from 'hooks/useRouteParams'
+import usePublishedOfferings from 'hooks/usePublishedOfferings'
 import GroupViewPresenter, {
   displayNameForView,
   getStaticMenuViews,
@@ -38,16 +39,19 @@ import getMe from 'store/selectors/getMe'
 import getMyMemberships from 'store/selectors/getMyMemberships'
 import { bgImageStyle, cn } from 'util/index'
 import { isOneColumnLayout as resolveIsOneColumnLayout } from 'util/navigationLayout'
+import { filterSpaceViewsForMenuVisibility } from 'util/paidSpaceVisibility'
 
 import GroupSettingsMenu from './GroupSettingsMenu'
 import ContextMenuOld from './ContextMenuOld'
+import MenuRowBackground from './MenuRowBackground'
+import { viewCardColor, hueOf } from './viewCardTheme'
+import { DEFAULT_BANNER } from 'store/models/Group'
 import GroupViewEditList from './GroupViewEditList'
 import GroupViewSettingsModal from './GroupViewSettingsModal'
 import SpaceSettingsModal from './SpaceSettingsModal'
 import AddCollectionDialog from './AddCollectionDialog'
 import AddGroupViewDialog, { AddViewButton } from './AddGroupViewDialog'
 import AddSpaceDialog, { AddSpaceButton } from './AddSpaceDialog'
-import MoreSpacesSection from './MoreSpacesSection'
 import { menuViewUrl } from './groupViewMenuUrl'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
@@ -108,10 +112,10 @@ function GroupViewMenuItem ({
   view,
   parentSlug,
   spaceGroup = null,
-  spaceSlug = null,
-  independentSpaceMenu = false
+  spaceSlug = null
 }) {
   const dispatch = useDispatch()
+  const location = useLocation()
   const { t } = useTranslation()
   const presentedView = useMemo(() => GroupViewPresenter(view), [view])
   const myMemberships = useSelector(getMyMemberships)
@@ -183,8 +187,8 @@ function GroupViewMenuItem ({
     const singleSpaceView = menuSpaceViews.length === 1 ? menuSpaceViews[0] : null
     const spaceUnread = spaceViews.some(v => v.newPostCount > 0)
     const spaceHome = linkedSpaceGroup ? spaceHomeUrl(parentSlug, linkedSpaceGroup) : null
-    // Independent mode: single-view spaces open that view and keep the parent menu.
-    const spaceLink = singleSpaceView && (independentSpaceMenu || isSpaceMember)
+    // Single-view spaces open that view directly; multi-view spaces nest under the row when active.
+    const spaceLink = singleSpaceView && isSpaceMember
       ? menuViewUrl(parentSlug, singleSpaceView, linkedSpaceGroup)
       : spaceHome
     const isSpaceActive = Boolean(
@@ -192,24 +196,45 @@ function GroupViewMenuItem ({
       linkedSpaceGroup &&
       localSpaceSlug(parentSlug, linkedSpaceGroup.slug) === spaceSlug
     )
-    // Nested expand only when independent space menu is off and the space route is active.
-    const isExpanded = !independentSpaceMenu && isSpaceMember && isSpaceActive && hasMultipleSpaceViews
+    const isExpanded = isSpaceMember && isSpaceActive && hasMultipleSpaceViews
     const aboutUrl = linkedSpaceGroup
       ? spaceUrl(parentSlug, localSpaceSlug(parentSlug, linkedSpaceGroup.slug), '/about')
       : null
+
+    // Active space rows reveal the space's banner photo (uploaded ones only);
+    // spaces without a banner fall back to the tinted icon texture.
+    const spaceBannerUrl = linkedSpaceGroup?.bannerUrl && linkedSpaceGroup.bannerUrl !== DEFAULT_BANNER
+      ? linkedSpaceGroup.bannerUrl
+      : null
+    const spaceHue = hueOf(viewCardColor(presentedView))
 
     return (
       <li className='list-none'>
         <div
           className={cn(
             GROUP_VIEW_MENU_ITEM_CLASS,
-            isSpaceActive && 'opacity-100 border-selected bg-card font-bold'
+            'group relative overflow-hidden',
+            isSpaceActive && 'opacity-100 font-bold'
           )}
+          style={isSpaceActive
+            ? { borderColor: spaceBannerUrl ? 'hsl(0 0% 100% / 0.35)' : `hsl(${spaceHue} 45% 42%)` }
+            : undefined}
         >
+          <MenuRowBackground
+            view={presentedView}
+            bannerUrl={spaceBannerUrl}
+            className={cn('transition-opacity duration-200', isSpaceActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100')}
+          />
           <MenuLink
             to={spaceLink}
             isActive={false}
-            className={GROUP_VIEW_MENU_ITEM_INNER_LINK_CLASS}
+            className={cn(
+              GROUP_VIEW_MENU_ITEM_INNER_LINK_CLASS,
+              'relative z-10 transition-colors duration-200',
+              isSpaceActive
+                ? 'text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.65)]'
+                : 'group-hover:text-white group-hover:[text-shadow:0_1px_3px_rgba(0,0,0,0.65)]'
+            )}
           >
             <GroupViewIcon view={presentedView} />
             <span className='truncate flex-1'>{displayNameForView(presentedView, t, { spaceGroup })}</span>
@@ -219,7 +244,11 @@ function GroupViewMenuItem ({
             <MenuLink
               to={aboutUrl}
               isActive={false}
-              className='shrink-0 p-1 pr-1 text-foreground/50 hover:text-foreground border-0 bg-transparent mb-0 rounded-none shadow-none hover:border-0 hover:bg-transparent hover:scale-100'
+              className={cn(
+                'shrink-0 p-1 pr-1 text-foreground/50 hover:text-foreground border-0 bg-transparent mb-0 rounded-none shadow-none hover:border-0 hover:bg-transparent hover:scale-100',
+                'relative z-10 transition-colors duration-200',
+                isSpaceActive ? 'text-white/80 hover:text-white' : 'group-hover:text-white/80'
+              )}
             >
               <Info className='w-4 h-4' aria-hidden='true' />
               <span className='sr-only'>{t('About')}</span>
@@ -235,7 +264,6 @@ function GroupViewMenuItem ({
                 parentSlug={parentSlug}
                 spaceGroup={linkedSpaceGroup}
                 spaceSlug={spaceSlug}
-                independentSpaceMenu={independentSpaceMenu}
               />
             ))}
           </ul>
@@ -247,17 +275,35 @@ function GroupViewMenuItem ({
   const url = menuViewUrl(parentSlug, presentedView, spaceGroup)
   const hasUnread = presentedView.newPostCount > 0
   const isExternal = presentedView.type === 'link' && url && /^https?:\/\//.test(url)
+  // The selected row reveals a postType-tinted icon-texture background,
+  // mirroring the one-column dashboard cards.
+  const isRowActive = Boolean(!isExternal && url && (location.pathname === url || location.pathname.startsWith(`${url}/`)))
+  const rowHue = hueOf(viewCardColor(presentedView))
 
   return (
     <li className='list-none'>
       <MenuLink
         to={isExternal ? null : url}
         externalLink={isExternal ? url : null}
-        className={GROUP_VIEW_MENU_ITEM_CLASS}
+        isActive={isRowActive}
+        className={cn(GROUP_VIEW_MENU_ITEM_CLASS, 'group relative overflow-hidden')}
+        style={isRowActive ? { borderColor: `hsl(${rowHue} 45% 42%)` } : undefined}
       >
-        <GroupViewIcon view={presentedView} />
-        <span className='truncate flex-1'>{displayNameForView(presentedView, t, { spaceGroup })}</span>
-        {hasUnread && <UnreadDot />}
+        <MenuRowBackground
+          view={presentedView}
+          className={cn('transition-opacity duration-200', isRowActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100')}
+        />
+        <span className={cn(
+          'relative z-10 flex items-center gap-2 flex-1 min-w-0 transition-colors duration-200',
+          isRowActive
+            ? 'text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.65)]'
+            : 'group-hover:text-white group-hover:[text-shadow:0_1px_3px_rgba(0,0,0,0.65)]'
+        )}
+        >
+          <GroupViewIcon view={presentedView} />
+          <span className='truncate flex-1'>{displayNameForView(presentedView, t, { spaceGroup })}</span>
+          {hasUnread && <UnreadDot />}
+        </span>
       </MenuLink>
     </li>
   )
@@ -275,7 +321,6 @@ function GroupViewList ({
   onOpenSettings,
   canManageSpaces,
   canManageRound = false,
-  independentSpaceMenu = false,
   hideAddSpace = false
 }) {
   const { t } = useTranslation()
@@ -300,7 +345,6 @@ function GroupViewList ({
           group={group}
           groupSlug={groupSlug}
           onSettings={onOpenSettings}
-          independentSpaceMenu={independentSpaceMenu}
         />
         <div className='px-3 pb-3 flex flex-col gap-1'>
           {spaceGroup && (
@@ -313,12 +357,8 @@ function GroupViewList ({
               <span>{t('Space Settings')}</span>
             </button>
           )}
-          {!(independentSpaceMenu && !spaceGroup) && (
-            <>
-              <AddViewButton onClick={() => setShowAddView(true)} />
-              {canManageSpaces && !hideAddSpace && <AddSpaceButton onClick={() => setShowAddSpace(true)} />}
-            </>
-          )}
+          <AddViewButton onClick={() => setShowAddView(true)} />
+          {canManageSpaces && !hideAddSpace && <AddSpaceButton onClick={() => setShowAddSpace(true)} />}
         </div>
         {showAddView && <AddGroupViewDialog group={group} groupViews={groupViews} acceptedPostTypes={group?.acceptedPostTypes} onClose={() => setShowAddView(false)} />}
         {showAddSpace && !hideAddSpace && <AddSpaceDialog group={group} onClose={() => setShowAddSpace(false)} />}
@@ -347,7 +387,6 @@ function GroupViewList ({
             parentSlug={groupSlug}
             spaceGroup={spaceGroup}
             spaceSlug={spaceSlug}
-            independentSpaceMenu={independentSpaceMenu}
           />
         ))}
       </ul>
@@ -379,10 +418,9 @@ export default function ContextMenu (props) {
   const canManageSpaces = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_MANAGE_SPACES, groupId: group?.id }))
   const isEditing = getQuerystringParam('edit', location) === 'true' && canAdminister
   const [settingsView, setSettingsView] = useState(null)
-  const independentSpaceMenu = currentUser?.settings?.independentSpaceMenu === true
-  const isEditMenuPath = location.pathname.replace(/\/$/, '').endsWith('/edit-menu')
-  // On Edit Menu page, `?space=` selects a space in the sidebar without leaving the page.
-  const spaceSlug = routeSpaceSlug || (isEditMenuPath ? getQuerystringParam('space', location) : null)
+  const isMoreViewsPath = location.pathname.replace(/\/$/, '').endsWith('/more-views')
+  // On More Views page, `?space=` selects a space in the sidebar without leaving the page.
+  const spaceSlug = routeSpaceSlug || (isMoreViewsPath ? getQuerystringParam('space', location) : null)
 
   const isPublicContext = routeParams.context === PUBLIC_CONTEXT_SLUG
   const isMyContext = routeParams.context === MY_CONTEXT_SLUG
@@ -409,7 +447,16 @@ export default function ContextMenu (props) {
   }, [isPublicContext, isMyContext, isAllContext, profileUrl])
 
   const fetchedGroupViews = useSelector(state => getGroupViews(state, group))
-  const menuViews = staticMenuViews || fetchedGroupViews
+  const publishedOfferings = usePublishedOfferings(group?.id)
+  const menuViews = useMemo(() => {
+    const views = staticMenuViews || fetchedGroupViews
+    if (staticMenuViews) return views
+    // Managers always see paywalled spaces; others only when a published offering grants access
+    return filterSpaceViewsForMenuVisibility(views, {
+      offerings: publishedOfferings,
+      canManageSpaces: canManageSpaces || isEditing
+    })
+  }, [staticMenuViews, fetchedGroupViews, publishedOfferings, canManageSpaces, isEditing])
 
   const { spaceView: activeSpaceView, spaceGroup: activeSpaceGroup } = useMemo(
     () => findSpaceForSlug(fetchedGroupViews, group, groupSlug, spaceSlug),
@@ -419,20 +466,21 @@ export default function ContextMenu (props) {
     activeSpaceGroup &&
     myMemberships.some(m => m.group.id === activeSpaceGroup.id)
   )
-  const activeSpaceMenuViewCount = useMemo(() => {
-    if (!activeSpaceGroup) return 0
-    return visibleSpaceMenuViews(activeSpaceGroup, {
-      includeManageRound: Boolean(activeSpaceGroup.fundingRound?.id && canManageSpaces)
-    }).length
-  }, [activeSpaceGroup, canManageSpaces])
-  // Independent mode: only swap to the space menu when the space has multiple views
-  // (or when editing a space from the Edit Menu page via ?space=).
+  // Ordered (in-menu) spaces nest under the row; off-menu spaces drill into a replaced menu.
+  const isOrderedMenuSpace = useMemo(() => {
+    if (!spaceSlug || !groupSlug) return false
+    return (fetchedGroupViews || []).some(view => (
+      view.type === 'space' &&
+      view.order != null &&
+      view.linkedGroup &&
+      localSpaceSlug(groupSlug, view.linkedGroup.slug) === spaceSlug
+    ))
+  }, [fetchedGroupViews, groupSlug, spaceSlug])
   const showingSpaceMenu = Boolean(
-    independentSpaceMenu &&
     isGroupContext &&
     activeSpaceGroup &&
-    (isSpaceMember || (isEditMenuPath && canAdminister)) &&
-    (isEditMenuPath || activeSpaceMenuViewCount > 1)
+    (isSpaceMember || (isMoreViewsPath && canAdminister)) &&
+    (!isOrderedMenuSpace || (isMoreViewsPath && spaceSlug))
   )
   const spaceMenuViewsFromStore = useSelector(state =>
     showingSpaceMenu ? getGroupViews(state, activeSpaceGroup) : []
@@ -445,15 +493,15 @@ export default function ContextMenu (props) {
   const spaceDisplayName = activeSpaceGroup?.name ||
     (activeSpaceView ? displayNameForView(GroupViewPresenter(activeSpaceView), t) : t('Space'))
 
-  // Fetch GroupViews whenever we enter a real group context
+  // Fetch GroupViews and spaces whenever we enter a real group context
   useEffect(() => {
     if (group?.id && isGroupContext) {
       dispatch(fetchGroupViews(group.id))
-      if (independentSpaceMenu) dispatch(fetchGroupSpaces(group.id))
+      dispatch(fetchGroupSpaces(group.id))
     }
-  }, [group?.id, isGroupContext, independentSpaceMenu, dispatch])
+  }, [group?.id, isGroupContext, dispatch])
 
-  // Load the space's own views when the independent space menu is active.
+  // Load the space's own views when the drill-in space menu is active.
   useEffect(() => {
     if (showingSpaceMenu && activeSpaceGroup?.id) {
       dispatch(fetchGroupViews(activeSpaceGroup.id))
@@ -461,13 +509,13 @@ export default function ContextMenu (props) {
   }, [showingSpaceMenu, activeSpaceGroup?.id, dispatch])
 
   const handleBackToGroupMenu = useCallback(() => {
-    if (isEditMenuPath) {
-      navigate(addQuerystringToPath(groupUrl(groupSlug, 'edit-menu'), { edit: 'true' }))
+    if (isMoreViewsPath) {
+      navigate(addQuerystringToPath(groupUrl(groupSlug, 'more-views'), { edit: 'true' }))
       return
     }
     const home = groupUrl(groupSlug)
     navigate(isEditing ? addQuerystringToPath(home, { edit: 'true' }) : home)
-  }, [navigate, groupSlug, isEditing, isEditMenuPath])
+  }, [navigate, groupSlug, isEditing, isMoreViewsPath])
 
   // Allow scroll events to pass through to ContextMenu even when a modal post dialog is open
   useEffect(() => {
@@ -507,27 +555,27 @@ export default function ContextMenu (props) {
 
   const moreSpacesSection = isGroupContext && group?.id && !showingSpaceMenu
     ? (
-        independentSpaceMenu
+      <div className='px-3 pb-2 border-t border-foreground/10 pt-2'>
+        {isEditing
           ? (
-            <div className='px-3 pb-2 border-t border-foreground/10 pt-2'>
-              <MenuLink
-                to={groupUrl(groupSlug, 'more-spaces')}
-                className='flex items-center gap-2 text-base text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 w-full transition-all opacity-85 hover:opacity-100'
-              >
-                <CircleEllipsis className='w-4 h-4 shrink-0' />
-                <span>{t('More Spaces')}</span>
-              </MenuLink>
+            <div
+              className='flex items-center gap-2 text-base text-foreground/40 border-2 border-transparent rounded-md p-1 pl-2 w-full cursor-not-allowed opacity-60'
+              aria-disabled='true'
+            >
+              <CircleEllipsis className='w-4 h-4 shrink-0' />
+              <span>{t('More Views and Spaces')}</span>
             </div>
             )
           : (
-            <MoreSpacesSection
-              group={group}
-              groupSlug={groupSlug}
-              spaceSlug={spaceSlug}
-              isEditing={isEditing}
-              independentSpaceMenu={independentSpaceMenu}
-            />
-            )
+            <MenuLink
+              to={groupUrl(groupSlug, 'more-views')}
+              className='flex items-center gap-2 text-base text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 w-full transition-all opacity-85 hover:opacity-100'
+            >
+              <CircleEllipsis className='w-4 h-4 shrink-0' />
+              <span>{t('More Views and Spaces')}</span>
+            </MenuLink>
+            )}
+      </div>
       )
     : null
 
@@ -536,14 +584,12 @@ export default function ContextMenu (props) {
       <div className='px-3 pb-2 border-t border-foreground/10 pt-2'>
         <MenuLink
           to={
-            independentSpaceMenu
-              ? (isEditing
-                  ? groupUrl(groupSlug)
-                  : addQuerystringToPath(groupUrl(groupSlug, 'edit-menu'), {
-                    edit: 'true',
-                    ...(showingSpaceMenu && spaceSlug ? { space: spaceSlug } : {})
-                  }))
-              : addQuerystringToPath(location.pathname, { edit: isEditing ? null : 'true' })
+            isEditing
+              ? groupUrl(groupSlug)
+              : addQuerystringToPath(groupUrl(groupSlug, 'more-views'), {
+                edit: 'true',
+                ...(showingSpaceMenu && spaceSlug ? { space: spaceSlug } : {})
+              })
           }
           isEditing={isEditing}
           className='flex items-center gap-2 text-base text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 w-full transition-all opacity-85 hover:opacity-100'
@@ -671,7 +717,6 @@ export default function ContextMenu (props) {
                       onOpenSettings={setSettingsView}
                       canManageSpaces={false}
                       canManageRound={canManageSpaces}
-                      independentSpaceMenu={independentSpaceMenu}
                       hideAddSpace
                     />
                     )
@@ -692,7 +737,6 @@ export default function ContextMenu (props) {
                   isEditing={isEditing}
                   onOpenSettings={setSettingsView}
                   canManageSpaces={canManageSpaces}
-                  independentSpaceMenu={independentSpaceMenu}
                 />
                 )
               : (

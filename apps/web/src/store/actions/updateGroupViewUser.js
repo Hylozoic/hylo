@@ -3,10 +3,15 @@ import { UPDATE_GROUP_VIEW_USER } from 'store/constants'
 
 /**
  * Update the current user's last-read position for a chat GroupView.
- * Optimistically sets lastReadPostId and newPostCount on the GroupView ORM model,
- * then the backend response refreshes with the actual recalculated values.
+ * Optimistically patches lastReadPostId/newPostCount on the group's embedded
+ * groupViews menu (see UPDATE_GROUP_VIEW_USER_PENDING), then refreshes from the
+ * backend response.
+ *
+ * @param {string|number} viewId - GroupView id
+ * @param {object} data - fields to update (typically { lastReadPostId })
+ * @param {string|number} groupId - owning group id (required for menu optimistic update)
  */
-export default function updateGroupViewUser (viewId, data) {
+export default function updateGroupViewUser (viewId, data, groupId) {
   return {
     type: UPDATE_GROUP_VIEW_USER,
     graphql: {
@@ -21,6 +26,7 @@ export default function updateGroupViewUser (viewId, data) {
     },
     meta: {
       id: viewId,
+      groupId,
       data: { newPostCount: 0, ...data },
       optimistic: true,
       extractModel: [

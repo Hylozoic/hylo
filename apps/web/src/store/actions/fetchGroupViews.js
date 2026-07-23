@@ -43,6 +43,7 @@ export default function fetchGroupViews (groupId) {
                 visibility
                 accessibility
                 requiredRoles
+                paywall
                 groupRoles {
                   items {
                     id
@@ -105,6 +106,7 @@ export default function fetchGroupViews (groupId) {
                     order
                     icon
                     newPostCount
+                    lastReadPostId
                     viewPost {
                       id
                       title

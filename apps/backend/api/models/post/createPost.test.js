@@ -55,6 +55,8 @@ describe('afterCreatingPost', () => {
         expect(child.details()).to.equal('is your uncle')
 
         expect(Queue.classMethod).to.have.been.called
+          .with('Post', 'incrementNewPostCountForCreatedPost', { postId: post.id }, 0)
+        expect(Queue.classMethod).to.have.been.called
           .with('Post', 'createActivities', { postId: post.id })
       })
   })

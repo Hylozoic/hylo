@@ -17,8 +17,7 @@ import ContextMenu from './components/ContextMenu'
 import CreateModal from 'components/CreateModal'
 import GlobalNav from './components/GlobalNav'
 import ContextMenuGrid from './components/ContextMenu/ContextMenuGrid'
-import MoreSpacesPage from './components/ContextMenu/MoreSpacesPage'
-import EditMenuPage from './components/ContextMenu/EditMenuPage'
+import MoreViewsPage from './components/ContextMenu/MoreViewsPage'
 import TopNav from './components/TopNav'
 import NotFound from 'components/NotFound'
 import SocketListener from 'components/SocketListener'
@@ -172,16 +171,14 @@ export default function AuthLayoutRouter (props) {
   // Card menu for My / All / Public when the user explicitly chose one-column.
   const isOneColumnContext = isCardMenuUser && ['my', 'all', 'public'].includes(pathMatchParams?.context)
   const isOneColumnNav = isOneColumnGroup || isOneColumnContext
-  const independentSpaceMenu = currentUser?.settings?.independentSpaceMenu === true
-
-  // For simple groups: menu levels (home, more-spaces, space menu) and settings show
+  // For simple groups: menu levels (home, more-views, space menu) and settings show
   // the inline sidebar; everything else ("a view") takes the full viewport with no sidebar.
   const isSimpleGroupHomeOrSettings = useMemo(() => {
     if (!currentGroupSlug) return false
     const path = location.pathname.replace(/\/$/, '')
     const groupBase = `/groups/${currentGroupSlug}`
     if (path === groupBase || path.startsWith(`${groupBase}/settings`)) return true
-    if (path === `${groupBase}/more-spaces` || path === `${groupBase}/edit-menu`) return true
+    if (path === `${groupBase}/more-views`) return true
     // Space menu root: /groups/:slug/spaces/:spaceSlug (no further view path)
     const spaceMenuMatch = path.match(new RegExp(`^/groups/${currentGroupSlug}/spaces/[^/]+$`))
     return Boolean(spaceMenuMatch)
@@ -1023,24 +1020,13 @@ export default function AuthLayoutRouter (props) {
                             <Route path='payment/failure' element={<PaymentFailure />} />
                             <Route path='settings/*' element={<GroupSettings context='groups' />} />
                             <Route
-                              path='more-spaces'
+                              path='more-views'
                               element={
                                 isOneColumnGroup
                                   ? <ContextMenuGrid group={currentGroup} />
-                                  : independentSpaceMenu
-                                    ? <MoreSpacesPage group={currentGroup} />
-                                    : <Navigate to={`/groups/${currentGroupSlug}${currentGroup?.homeRoute || '/all'}`} replace />
+                                  : <MoreViewsPage group={currentGroup} />
                               }
                             />
-                            <Route
-                              path='edit-menu'
-                              element={
-                                independentSpaceMenu && currentGroup
-                                  ? <EditMenuPage group={currentGroup} />
-                                  : <Navigate to={`/groups/${currentGroupSlug}${currentGroup?.homeRoute || '/all'}`} replace />
-                              }
-                            />
-                            <Route path='all-views' element={<Navigate to={isOneColumnGroup ? `/groups/${currentGroupSlug}/more-spaces` : `/groups/${currentGroupSlug}${currentGroup?.homeRoute || '/all'}`} replace />} />
                             {!isOneColumnGroup && <Route path={POST_DETAIL_MATCH} element={<PostDetail />} />}
                             <Route path='moderation/*' element={<Moderation context='groups' />} />
                             <Route path='*' element={isOneColumnGroup ? <ContextMenuGrid group={currentGroup} /> : <Navigate to={`/groups/${currentGroupSlug}${currentGroup?.homeRoute || '/all'}`} replace />} />
