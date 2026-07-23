@@ -81,6 +81,9 @@ export function afterCreatingPost (post, opts) {
     .then(() => post.isProposal() && post.setProposalOptions({ options: opts.proposalOptions || [], userId, opts: trxOpts }))
     .then(() => Tag.updateForPost(post, opts.topicNames, userId, trx))
     .then(() => updateTagsAndGroups(post, opts.localId, trx, opts.markAsReadTopicName))
+    // Mass TagFollow / GroupMembership new_post_count updates can touch thousands of
+    // rows for #general (every member is subscribed). Run in the background like delete.
+    .then(() => Queue.classMethod('Post', 'incrementNewPostCountForCreatedPost', { postId: post.id }, 0))
     .then(() => Queue.classMethod('Group', 'doesMenuUpdate', { post: { type: post.get('type'), location_id: post.get('location_id') }, groupIds: opts.group_ids }))
     .then(() => Queue.classMethod('Post', 'createActivities', { postId: post.id }))
     .then(() => opts.fundingRoundId && post.get('type') === Post.Type.SUBMISSION && Queue.classMethod('FundingRound', 'notifyStewardsOfSubmission', { fundingRoundId: opts.fundingRoundId, postId: post.id, userId }))
@@ -90,6 +93,37 @@ export function afterCreatingPost (post, opts) {
       console.error('afterCreatingPost failed: ', err)
       throw new GraphQLError(`afterCreatingPost failed: ${err}`)
     })
+}
+
+/**
+ * Increment new_post_count for TagFollows and GroupMemberships when a post is created.
+ * Called as a background job so large groups (#general) do not block createPost.
+ */
+export async function incrementNewPostCount (post) {
+  const { tags, groups } = post.relations
+
+  if (!tags || tags.length === 0 || !groups || groups.length === 0) {
+    return
+  }
+
+  const trackAsNewPost = ![Post.Type.ACTION, Post.Type.SUBMISSION].includes(post.get('type'))
+
+  const tagFollowQuery = TagFollow.query(q => {
+    q.whereIn('tag_id', tags.map('id'))
+    q.whereIn('group_id', groups.map('id'))
+    q.whereNot('user_id', post.get('user_id'))
+  }).query()
+
+  const groupMembershipQuery = GroupMembership.query(q => {
+    q.whereIn('group_id', groups.map('id'))
+    q.whereNot('group_memberships.user_id', post.get('user_id'))
+    q.where('group_memberships.active', true)
+  }).query()
+
+  return Promise.all([
+    trackAsNewPost && tagFollowQuery.update({ updated_at: new Date() }).increment('new_post_count'),
+    groupMembershipQuery.update({ updated_at: new Date() }).increment('new_post_count')
+  ])
 }
 
 async function updateTagsAndGroups (post, localId, trx, markAsReadTopicName = null) {
@@ -118,12 +152,6 @@ async function updateTagsAndGroups (post, localId, trx, markAsReadTopicName = nu
     q.whereIn('tag_id', tags.map('id'))
   }).query()
 
-  const tagFollowQuery = TagFollow.query(q => {
-    q.whereIn('tag_id', tags.map('id'))
-    q.whereIn('group_id', groups.map('id'))
-    q.whereNot('user_id', post.get('user_id'))
-  }).query()
-
   // Find the specific tag the user is actively viewing so we can always mark it read.
   const markAsReadTag = markAsReadTopicName ? tags.find(t => t.get('name') === markAsReadTopicName) : null
   const markAsReadTagId = markAsReadTag ? markAsReadTag.get('id') : null
@@ -145,18 +173,10 @@ async function updateTagsAndGroups (post, localId, trx, markAsReadTopicName = nu
     q.where('new_post_count', 0)
   }).query() : null
 
-  const groupMembershipQuery = GroupMembership.query(q => {
-    q.whereIn('group_id', groups.map('id'))
-    q.whereNot('group_memberships.user_id', post.get('user_id'))
-    q.where('group_memberships.active', true)
-  }).query()
-
   if (trx) {
     groupTagsQuery.transacting(trx)
-    tagFollowQuery.transacting(trx)
     if (activeTopicTagFollowQuery) activeTopicTagFollowQuery.transacting(trx)
     if (otherMyTagFollowQuery) otherMyTagFollowQuery.transacting(trx)
-    groupMembershipQuery.transacting(trx)
   }
 
   const trackAsNewPost = ![Post.Type.ACTION, Post.Type.SUBMISSION].includes(post.get('type'))
@@ -164,9 +184,7 @@ async function updateTagsAndGroups (post, localId, trx, markAsReadTopicName = nu
   return Promise.all([
     notifySockets,
     trackAsNewPost && groupTagsQuery.update({ updated_at: new Date() }),
-    trackAsNewPost && tagFollowQuery.update({ updated_at: new Date() }).increment('new_post_count'),
     trackAsNewPost && activeTopicTagFollowQuery && activeTopicTagFollowQuery.update({ updated_at: new Date(), last_read_post_id: post.get('id') }),
-    trackAsNewPost && otherMyTagFollowQuery && otherMyTagFollowQuery.update({ updated_at: new Date(), last_read_post_id: post.get('id') }),
-    groupMembershipQuery.update({ updated_at: new Date() }).increment('new_post_count')
+    trackAsNewPost && otherMyTagFollowQuery && otherMyTagFollowQuery.update({ updated_at: new Date(), last_read_post_id: post.get('id') })
   ])
 }
