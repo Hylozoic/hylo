@@ -203,7 +203,7 @@ export default function AuthLayoutRouter (props) {
   const returnToPath = useSelector(getReturnToPath)
   const signupInProgress = useSelector(getSignupInProgress)
 
-  const [currentUserLoading, setCurrentUserLoading] = useState(true)
+  const [currentUserLoading, setCurrentUserLoading] = useState(() => !getMe(store.getState()))
   const [currentGroupLoading, setCurrentGroupLoading] = useState(false)
 
   // Refs for mobile nav drawer animation

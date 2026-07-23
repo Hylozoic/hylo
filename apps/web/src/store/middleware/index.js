@@ -10,6 +10,7 @@ import optimisticMiddleware from './optimisticMiddleware'
 import userBlockingMiddleware from './userBlockingMiddleware'
 import mixpanelMiddleware from './mixpanelMiddleware'
 import rollbarMiddleware from './rollbarMiddleware'
+import bootstrapMiddleware from './bootstrapMiddleware'
 
 export default function createMiddleware (routerMiddleware, req) {
   const middleware = compact([
@@ -22,6 +23,7 @@ export default function createMiddleware (routerMiddleware, req) {
     userBlockingMiddleware,
     mixpanelMiddleware,
     rollbarMiddleware,
+    bootstrapMiddleware,
     isDev && createLogger({ collapsed: true })
   ])
 

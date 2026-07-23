@@ -207,6 +207,7 @@
     "redux-mock-store": "^1.5.4",
     "redux-orm": "^0.16.2",
     "redux-promise": "^0.6.0",
+    "redux-remember": "^5.4.0",
     "request": "^2.83.0",
     "reselect": "^3.0.1",
     "rollbar": "^2.26.4",

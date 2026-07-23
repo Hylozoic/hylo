@@ -34135,6 +34135,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"redux-remember@npm:^5.4.0":
+  version: 5.4.0
+  resolution: "redux-remember@npm:5.4.0"
+  peerDependencies:
+    redux: ">=5.0.0"
+  checksum: 10/588e68e629d262eafc75fc15f124dfaf613eb6a9a2b854ec56f869f059a93d62d8c7c753932654754fd66018aa1efbf0926215b3d8a8f2b85b365bc7baea2aa4
+  languageName: node
+  linkType: hard
+
 "redux@npm:^4.0.5, redux@npm:^4.2.0":
   version: 4.2.1
   resolution: "redux@npm:4.2.1"
@@ -40084,6 +40093,7 @@ __metadata:
     redux-mock-store: "npm:^1.5.4"
     redux-orm: "npm:^0.16.2"
     redux-promise: "npm:^0.6.0"
+    redux-remember: "npm:^5.4.0"
     request: "npm:^2.83.0"
     reselect: "npm:^3.0.1"
     rollbar: "npm:^2.26.4"

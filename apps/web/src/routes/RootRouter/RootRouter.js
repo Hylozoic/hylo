@@ -19,6 +19,7 @@ import OfferingDetails from 'routes/OfferingDetails/OfferingDetails'
 import checkLogin from 'store/actions/checkLogin'
 import { getAuthorized } from 'store/selectors/getSignupState'
 import { getAuthSessionUnknown } from 'store/selectors/getAuthSession'
+import { hasBootstrapCache, getBootstrapRehydrated } from 'store/selectors/getBootstrap'
 import { sendMessageToWebView } from 'util/webView'
 
 if (!isTest && config.mixpanel.token) {
@@ -91,6 +92,8 @@ export default function RootRouter () {
   const dispatch = useDispatch()
   const isAuthorized = useSelector(getAuthorized)
   const isAuthSessionUnknown = useSelector(getAuthSessionUnknown)
+  const bootstrapCache = useSelector(hasBootstrapCache)
+  const bootstrapRehydrated = useSelector(getBootstrapRehydrated)
   const [mobileRecovering, setMobileRecovering] = useState(
     () => typeof window !== 'undefined' && window.HyloMobileV2 && readMobileRecovering()
   )
@@ -194,6 +197,21 @@ export default function RootRouter () {
     writeMobileReauthAttempts(attempts + 1)
     sendMessageToWebView(WebViewMessageTypes.VERIFY_AUTH)
   }, [isAuthSessionUnknown, isAuthorized])
+
+  const showOptimisticAuthShell =
+    isAuthSessionUnknown &&
+    bootstrapCache &&
+    bootstrapRehydrated &&
+    !mobileRecovering
+
+  if (showOptimisticAuthShell) {
+    return (
+      <Routes>
+        <Route path='/oauth/*' element={<OAuthLayoutRouter />} />
+        <Route path='*' element={<AuthLayoutRouter />} />
+      </Routes>
+    )
+  }
 
   if (isAuthSessionUnknown || mobileRecovering) {
     if (window.HyloMobileV2 || isNeutralRootSessionLoadingPath(pathname)) {
