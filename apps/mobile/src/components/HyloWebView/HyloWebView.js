@@ -244,6 +244,7 @@ const HyloWebView = React.forwardRef(({
       originWhitelist={[
         'https://www.hylo*',
         'https://staging.hylo*',
+        'https://frontend-1452-redux-per-m6hvju.herokuapp.com*',
         'http://localhost*',
         'https://www.youtube.com',
         'https://*.youtube.com',
