@@ -40,13 +40,15 @@ import { FETCH_POSTS, FETCH_TOPIC, FETCH_GROUP_TOPIC, CONTEXT_MY, VIEW_MENTIONS,
 import presentPost from 'store/presenters/presentPost'
 import { makeDropQueryResults } from 'store/reducers/queryResults'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
-import { getGroupViewById } from 'store/selectors/getGroupViews'
+import { getGroupViews, getGroupViewById } from 'store/selectors/getGroupViews'
 import getMe from 'store/selectors/getMe'
 import getMyMemberships from 'store/selectors/getMyMemberships'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import { getHasMorePosts, getPosts } from 'store/selectors/getPosts'
 import getTopicForCurrentRoute from 'store/selectors/getTopicForCurrentRoute'
 import isPendingFor from 'store/selectors/isPendingFor'
+import markViewAsRead from 'store/actions/markViewAsRead'
+import { TYPED_BADGE_VIEW_TYPES } from 'util/viewUnreadBadges'
 import { cn } from 'util/index'
 import { createPostUrl, groupUrl, spaceUrl } from '@hylo/navigation'
 import { getLocaleFromLocalStorage } from 'util/locale'
@@ -131,6 +133,19 @@ export default function ViewContent (props) {
     () => streamConfigFromGroupView(groupView),
     [groupView]
   )
+
+  const groupViews = useSelector(state => getGroupViews(state, group))
+  const typedBadgeView = useMemo(() => {
+    if (!TYPED_BADGE_VIEW_TYPES.has(view)) return null
+    return (groupViews || []).find(v => v.type === view) || null
+  }, [groupViews, view])
+
+  // Clear typed-view unread when opening Events/Proposals/etc.
+  useEffect(() => {
+    if (!typedBadgeView?.id || !group?.id) return
+    if (!(typedBadgeView.newPostCount > 0)) return
+    dispatch(markViewAsRead(typedBadgeView.id, group.id))
+  }, [dispatch, typedBadgeView?.id, typedBadgeView?.newPostCount, group?.id])
 
   const topicLoading = useSelector(state => isPendingFor([FETCH_TOPIC, FETCH_GROUP_TOPIC], state))
 

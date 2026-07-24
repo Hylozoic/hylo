@@ -62,10 +62,11 @@ import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup
 import { viewAcceptedByPostTypes } from 'store/models/GroupView'
 import { WebViewMessageTypes } from '@hylo/shared'
 import { getMobileAppVersion, sendMessageToWebView } from 'util/webView'
+import { viewShowsUnreadDot, viewUnreadBadgeCount } from 'util/viewUnreadBadges'
 
 import classes from './ContextMenu.module.scss'
 
-/** Small orange unread dot shown when a view has new posts. */
+/** Small orange unread dot shown when a typed view has new posts. */
 function UnreadDot () {
   return <span className='w-2 h-2 rounded-full bg-orange-500 shrink-0 ml-1' />
 }
@@ -200,7 +201,10 @@ function GroupViewMenuItem ({
       : spaceViews
     const hasMultipleSpaceViews = menuSpaceViews.length > 1
     const singleSpaceView = menuSpaceViews.length === 1 ? menuSpaceViews[0] : null
-    const spaceUnread = spaceViews.some(v => v.newPostCount > 0)
+    // Space badge = membership unread (same as groups), not aggregated child views.
+    const spaceMembership = linkedSpaceGroup &&
+      myMemberships.find(m => String(m.group.id) === String(linkedSpaceGroup.id))
+    const spaceUnread = (spaceMembership?.newPostCount || 0) > 0
     const spaceHome = linkedSpaceGroup ? spaceHomeUrl(parentSlug, linkedSpaceGroup) : null
     // Single-view spaces open that view directly; multi-view spaces nest under the row when active.
     const spaceLink = singleSpaceView && isSpaceMember
@@ -288,7 +292,8 @@ function GroupViewMenuItem ({
   }
 
   const url = menuViewUrl(parentSlug, presentedView, spaceGroup)
-  const hasUnread = presentedView.newPostCount > 0
+  const chatBadgeCount = viewUnreadBadgeCount(presentedView)
+  const showUnreadDot = viewShowsUnreadDot(presentedView)
   const isExternal = presentedView.type === 'link' && url && /^https?:\/\//.test(url)
   // The selected row reveals a postType-tinted icon-texture background,
   // mirroring the one-column dashboard cards.
@@ -301,6 +306,7 @@ function GroupViewMenuItem ({
         to={isExternal ? null : url}
         externalLink={isExternal ? url : null}
         isActive={false}
+        badgeCount={chatBadgeCount}
         className={cn(
           GROUP_VIEW_MENU_ITEM_CLASS,
           'group relative overflow-hidden',
@@ -323,7 +329,7 @@ function GroupViewMenuItem ({
         >
           <GroupViewIcon view={presentedView} />
           <span className='truncate flex-1'>{displayNameForView(presentedView, t, { spaceGroup })}</span>
-          {hasUnread && <UnreadDot />}
+          {showUnreadDot && <UnreadDot />}
         </span>
       </MenuLink>
     </li>

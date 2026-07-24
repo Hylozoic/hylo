@@ -322,7 +322,7 @@ module.exports = bookshelf.Model.extend({
     // Send notifications if not just about a new post, or notifications for all new posts are on, or notifications for important posts are on and its an announcement or mention
     let sendNotification = true
     if (isChat(activity)) {
-      emailable = false // XXX: we don't send emails for chats, they go out in a every 10 minute digest
+      emailable = false // XXX: we don't send emails for chats, they go out in an hourly digest
 
       // Whether to send any notifications for this chat
       const reasons = activity.get('meta').reasons

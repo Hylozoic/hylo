@@ -102,6 +102,7 @@ import {
   markThreadRead,
   markThreadUnread,
   markViewAsRead,
+  markGroupAsRead,
   messageGroupStewards,
   pinPost,
   processStripeToken,
@@ -219,25 +220,7 @@ export default async function makeSchema ({ req }) {
         })
         return tagFollow !== null
       }
-      resolvers.GroupTopic.lastReadPostId = async (groupTag) => {
-        if (!groupTag || !userId) return null
-        const tagFollow = await loaders.tagFollow.load({
-          groupId: groupTag.get('group_id'),
-          tagId: groupTag.get('tag_id'),
-          userId
-        })
-        return tagFollow ? tagFollow.get('last_read_post_id') : null
-      }
-      resolvers.GroupTopic.newPostCount = async (groupTag) => {
-        if (!groupTag || !userId) return 0
-        const tagFollow = await loaders.tagFollow.load({
-          groupId: groupTag.get('group_id'),
-          tagId: groupTag.get('tag_id'),
-          userId
-        })
-        return tagFollow ? tagFollow.get('new_post_count') : 0
-      }
-    }
+     }
   }
 
   let allResolvers
@@ -589,6 +572,8 @@ export function makeMutations ({ fetchOne }) {
     setHomeView: (root, { viewId, groupId }, context) => setHomeView(context.currentUserId, viewId, groupId, context),
 
     markViewAsRead: (root, { viewId }, context) => markViewAsRead(context.currentUserId, viewId),
+
+    markGroupAsRead: (root, { groupId }, context) => markGroupAsRead(context.currentUserId, groupId),
 
     updateViewSettings: (root, { viewId, settings }, context) => updateViewSettings(context.currentUserId, viewId, settings),
 

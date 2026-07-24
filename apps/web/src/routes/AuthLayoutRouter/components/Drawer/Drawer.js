@@ -149,7 +149,7 @@ export function ContextRow ({
       <Link to={path} className={s.contextRowLink} title={name}>
         <div className={s.contextRowAvatar} style={imageStyle} />
         <span className={s.groupName}>{name}</span>
-        {showBadge && <Badge expanded number={newPostCount} />}
+        {showBadge && <Badge expanded number='-' />}
       </Link>
     </li>
   )

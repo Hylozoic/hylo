@@ -287,22 +287,91 @@ export default function ChatRoom (props) {
     })
   }, [fetchPostsFutureParams, loadingFuture, hasMorePostsFuture, group?.id])
 
+  /**
+   * Jump to the newest chat posts, scroll to bottom, and mark the room fully read.
+   * Always hard-resets to the latest window — stale newPostCount / hasMoreFuture=false
+   * previously left people stranded mid-history and spammed UPDATE_GROUP_VIEW_USER.
+   */
   const loadToLatest = useCallback(async () => {
-    // If there are many new posts, reset to newest using the existing reset flow
-    if ((chatView?.newPostCount || 0) >= INITIAL_POSTS_TO_LOAD * 2) {
-      // Set a huge postId to trigger the reset effect to fetch around the newest posts
-      dispatch(changeQuerystringParam(location, 'postId', String(Number.MAX_SAFE_INTEGER), null, true))
-      return
+    if (!chatView?.id || !group?.id) return
+
+    const epoch = chatListEpochRef.current
+    const unread = chatView.newPostCount || 0
+
+    // Nothing unread — StickyFooter will just scroll to the already-loaded bottom.
+    if (unread === 0) return
+
+    // Sentinel cursor beyond any real post id. Setting postIdToStartAt aligns Redux
+    // query keys with this window so scroll-up pagination keeps working afterward.
+    const jumpId = String(Number.MAX_SAFE_INTEGER)
+    const pastParams = {
+      ...chatFetchBaseParams,
+      cursor: parseInt(jumpId, 10) + 1,
+      first: INITIAL_POSTS_TO_LOAD,
+      order: 'desc'
+    }
+    const futureParams = {
+      ...chatFetchBaseParams,
+      cursor: jumpId,
+      // No posts exist after the sentinel; record an empty future page so hasMore is false.
+      first: 1,
+      order: 'asc'
     }
 
-    let offset = (postsFuture && postsFuture.length) ? postsFuture.length : 0
-    // Incrementally fetch remaining future pages
-    while (true) {
-      const fetched = await fetchPostsFuture(offset, { first: INITIAL_POSTS_TO_LOAD }, true)
-      if (!fetched || fetched < INITIAL_POSTS_TO_LOAD) break
-      offset += fetched
+    setPostIdToStartAt(jumpId)
+    setLoadedFuture(false)
+    setLoadedPast(false)
+    setInitialPostToScrollTo(null)
+
+    dispatch(dropPostResults(fetchPostsFutureParams))
+    dispatch(dropPostResults(fetchPostsPastParams))
+    dispatch(dropPostResults(pastParams))
+    dispatch(dropPostResults(futureParams))
+
+    messageListRef.current?.data.replace([], { purgeItemSizes: true })
+
+    const pastAction = await dispatch(fetchPosts({ ...pastParams, offset: 0 }))
+    await dispatch(fetchPosts({ ...futureParams, offset: 0 }))
+
+    if (epoch !== chatListEpochRef.current) return
+
+    const items = (pastAction.payload?.data?.group?.posts?.items || [])
+      .map(p => presentPost(p, group.id))
+      .filter(Boolean)
+      .sort((a, b) => Number(a.id) - Number(b.id))
+
+    queueMicrotask(() => {
+      if (epoch !== chatListEpochRef.current) return
+      const lastIndex = Math.max(items.length - 1, 0)
+      messageListRef.current?.data.replace(items, {
+        purgeItemSizes: true,
+        initialLocation: items.length > 0
+          ? { index: lastIndex, align: 'end' }
+          : undefined
+      })
+    })
+
+    setLoadedPast(true)
+    setLoadedFuture(true)
+    if (items.length > 0) {
+      setInitialPostToScrollTo(items.length - 1)
     }
-  }, [dispatch, fetchPostsFuture, location, postsFuture?.length, chatView?.newPostCount])
+
+    const latestPost = items[items.length - 1]
+    if (latestPost?.id) {
+      lastReadPostIdRef.current = latestPost.id
+      setLatestOldPostId(latestPost.id)
+      dispatch(updateGroupViewUser(chatView.id, { lastReadPostId: latestPost.id }, group.id))
+    }
+  }, [
+    chatView?.id,
+    chatView?.newPostCount,
+    group?.id,
+    dispatch,
+    fetchPostsFutureParams,
+    fetchPostsPastParams,
+    chatFetchBaseParams
+  ])
 
   const reconcileChatOnForeground = useCallback(() => {
     if (!group?.id) return
@@ -479,14 +548,17 @@ export default function ChatRoom (props) {
     }
   }, [loadedPast, loadedFuture, initialAnimationComplete])
 
-  // Reset new_post_count when we're at the latest post but still showing a new post count
+  // Reset new_post_count when we're at the true latest loaded post and last-read can advance.
+  // Do not re-dispatch the same lastReadPostId — that infinite-looped when newPostCount was stale
+  // (hasMoreFuture false while unread posts still existed beyond the loaded window).
   useEffect(() => {
     if (loadedPast && loadedFuture &&
         (chatView?.newPostCount || 0) > 0 &&
-        !hasMorePostsFuture &&
+        hasMorePostsFuture === false &&
         postsForDisplay.length > 0) {
       const latestPost = postsForDisplay[postsForDisplay.length - 1]
-      if (latestPost?.id && chatView?.id && group?.id) {
+      if (latestPost?.id && chatView?.id && group?.id &&
+          parseInt(latestPost.id) > parseInt(lastReadPostIdRef.current || 0)) {
         lastReadPostIdRef.current = latestPost.id
         dispatch(updateGroupViewUser(chatView.id, { lastReadPostId: latestPost.id }, group.id))
       }

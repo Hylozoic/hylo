@@ -48,6 +48,7 @@ export {
   setGroupViewHidden,
   setHomeView,
   markViewAsRead,
+  markGroupAsRead,
   updateViewSettings,
   addPostToView,
   removePostFromView,
@@ -254,38 +255,24 @@ export function updateGroupTopic (id, data) {
 }
 
 export function updateGroupTopicFollow (userId, { id, data }) {
-  const whitelist = mapKeys(pick(data, ['newPostCount', 'lastReadPostId']), (v, k) => snakeCase(k))
-  if (isEmpty(whitelist)) return Promise.resolve(null)
-
-  return GroupTag.where({ id }).fetch()
-    .then(ct => ct.tagFollow(userId).query().update(whitelist))
-    .then(() => ({ success: true }))
+  // TopicFollow unread (newPostCount / lastReadPostId) is obsolete — GroupViews own unread now.
+  // Keep this mutation for any remaining callers but ignore unread fields.
+  return Promise.resolve({ success: true })
 }
 
 export async function updateTopicFollow (userId, { id, data }) {
-  const whitelist = mapKeys(pick(data, ['newPostCount', 'lastReadPostId']), (v, k) => snakeCase(k))
   const tagFollow = await TagFollow.where({ id }).fetch()
-  if (['all', 'none', 'important'].includes(data.settings?.notifications)) {
-    if (!tagFollow.settings?.notifications) {
-      // If notifications are being set for the first time, this counts as "subscribing" to the chat room
-      //  Set the lastReadPostId to the most recent post id so when viewing the chat room for the first time you start at the latest post
-      //  and set the newPostCount to 0 because there are no new posts
-      whitelist.last_read_post_id = await Post.query(q => q.select(bookshelf.knex.raw('max(posts.id) as max'))).fetch().then(result => result.get('max'))
+  if (!tagFollow) return null
 
-      whitelist.new_post_count = 0
-    }
+  const whitelist = {}
+  // Notification settings only — unread tracking moved to GroupViewUser
+  if (['all', 'none', 'important'].includes(data.settings?.notifications)) {
     const newSettings = tagFollow.settings || {}
     newSettings.notifications = data.settings.notifications
     whitelist.settings = JSON.stringify(newSettings)
   }
 
-  if (whitelist.last_read_post_id && typeof whitelist.new_post_count !== 'number') {
-    // Update newPostCount based on how many more posts after the lastReadPostId
-    const newPostCount = await GroupTag.taggedPostCount(tagFollow.get('group_id'), tagFollow.get('tag_id'), whitelist.last_read_post_id)
-    whitelist.new_post_count = newPostCount
-  }
-
-  if (isEmpty(whitelist)) return Promise.resolve(null)
+  if (isEmpty(whitelist)) return tagFollow
   return tagFollow.save(whitelist)
 }
 
