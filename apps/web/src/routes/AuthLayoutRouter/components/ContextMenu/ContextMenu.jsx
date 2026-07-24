@@ -22,6 +22,7 @@ import {
 import GroupMenuHeader from 'components/GroupMenuHeader'
 import MenuLink from './MenuLink'
 import GroupViewIcon from './GroupViewIcon'
+import useAppearance from 'hooks/useAppearance'
 import useRouteParams from 'hooks/useRouteParams'
 import usePublishedOfferings from 'hooks/usePublishedOfferings'
 import GroupViewPresenter, {
@@ -46,7 +47,7 @@ import { filterSpaceViewsForMenuVisibility } from 'util/paidSpaceVisibility'
 import GroupSettingsMenu from './GroupSettingsMenu'
 import ContextMenuOld from './ContextMenuOld'
 import MenuRowBackground from './MenuRowBackground'
-import { viewCardColor, hueOf } from './viewCardTheme'
+import { viewCardColor } from './viewCardTheme'
 import { DEFAULT_BANNER } from 'store/models/Group'
 import GroupViewEditList from './GroupViewEditList'
 import GroupViewSettingsModal from './GroupViewSettingsModal'
@@ -68,7 +69,10 @@ function UnreadDot () {
   return <span className='w-2 h-2 rounded-full bg-orange-500 shrink-0 ml-1' />
 }
 
-const GROUP_VIEW_MENU_ITEM_CLASS = 'flex items-center gap-2 text-base text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 mb-[.3rem] w-full transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100'
+// No hover:bg-card here — the MenuRowBackground texture is the hover surface, and a
+// background beneath it flashes white through the fade. bg-clip-padding keeps any
+// active background (from MenuLink) out of the semi-transparent border zone.
+const GROUP_VIEW_MENU_ITEM_CLASS = 'flex items-center gap-2 text-base font-semibold text-foreground border-2 border-transparent bg-clip-padding rounded-md p-1 pl-2 mb-[.3rem] w-full transition-all duration-200 scale-100 hover:scale-102 opacity-85 hover:opacity-100'
 
 /** MenuLink overrides when nested inside a styled space row wrapper. */
 const GROUP_VIEW_MENU_ITEM_INNER_LINK_CLASS = 'flex-1 flex items-center gap-2 min-w-0 border-0 bg-transparent p-0 mb-0 rounded-none shadow-none hover:border-0 hover:bg-transparent hover:scale-100 font-inherit'
@@ -118,12 +122,24 @@ function GroupViewMenuItem ({
   const dispatch = useDispatch()
   const location = useLocation()
   const { t } = useTranslation()
+  const { effectiveColorScheme } = useAppearance()
+  const isDark = effectiveColorScheme === 'dark'
+  const [hover, setHover] = useState(false)
   const presentedView = useMemo(() => GroupViewPresenter(view), [view])
   const myMemberships = useSelector(getMyMemberships)
   const canManageRound = useSelector(state => hasResponsibilityForGroup(state, {
     responsibility: RESP_MANAGE_SPACES,
     groupId: view?.linkedGroup?.parentId
   }))
+  // Labels over the revealed row background: white on dark surfaces (and photos),
+  // regular foreground on the pale light-mode surface.
+  const activeLabelClass = isDark
+    ? 'text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.65)]'
+    : 'text-foreground'
+  const hoverLabelClass = isDark
+    ? 'group-hover:text-white group-hover:[text-shadow:0_1px_3px_rgba(0,0,0,0.65)]'
+    : 'group-hover:text-foreground'
+  const onPhotoLabelClass = 'text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.65)]'
 
   if (presentedView.type === 'separator') {
     return <hr className='border-foreground/10 my-1' />
@@ -207,19 +223,24 @@ function GroupViewMenuItem ({
     const spaceBannerUrl = linkedSpaceGroup?.bannerUrl && linkedSpaceGroup.bannerUrl !== DEFAULT_BANNER
       ? linkedSpaceGroup.bannerUrl
       : null
-    const spaceHue = hueOf(viewCardColor(presentedView))
+    const spaceCol = viewCardColor(presentedView)
+    // Border tracks the view color like the dashboard cards: 0 → 20% on hover → full when selected.
+    // Photo-backed rows use white steps instead so the border reads over the image.
+    const spaceBorderColor = spaceBannerUrl
+      ? (isSpaceActive ? 'hsl(0 0% 100% / 0.35)' : hover ? 'hsl(0 0% 100% / 0.2)' : 'hsl(0 0% 100% / 0)')
+      : (isSpaceActive ? spaceCol : hover ? `${spaceCol}33` : `${spaceCol}00`)
 
     return (
       <li className='list-none'>
         <div
+          onMouseEnter={() => setHover(true)}
+          onMouseLeave={() => setHover(false)}
           className={cn(
             GROUP_VIEW_MENU_ITEM_CLASS,
             'group relative overflow-hidden',
             isSpaceActive && 'opacity-100 font-bold'
           )}
-          style={isSpaceActive
-            ? { borderColor: spaceBannerUrl ? 'hsl(0 0% 100% / 0.35)' : `hsl(${spaceHue} 45% 42%)` }
-            : undefined}
+          style={{ borderColor: spaceBorderColor }}
         >
           <MenuRowBackground
             view={presentedView}
@@ -233,8 +254,8 @@ function GroupViewMenuItem ({
               GROUP_VIEW_MENU_ITEM_INNER_LINK_CLASS,
               'relative z-10 transition-colors duration-200',
               isSpaceActive
-                ? 'text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.65)]'
-                : 'group-hover:text-white group-hover:[text-shadow:0_1px_3px_rgba(0,0,0,0.65)]'
+                ? (spaceBannerUrl ? onPhotoLabelClass : activeLabelClass)
+                : (spaceBannerUrl ? 'group-hover:text-white group-hover:[text-shadow:0_1px_3px_rgba(0,0,0,0.65)]' : hoverLabelClass)
             )}
           >
             <GroupViewIcon view={presentedView} />
@@ -248,7 +269,9 @@ function GroupViewMenuItem ({
               className={cn(
                 'shrink-0 p-1 pr-1 text-foreground/50 hover:text-foreground border-0 bg-transparent mb-0 rounded-none shadow-none hover:border-0 hover:bg-transparent hover:scale-100',
                 'relative z-10 transition-colors duration-200',
-                isSpaceActive ? 'text-white/80 hover:text-white' : 'group-hover:text-white/80'
+                (spaceBannerUrl || isDark)
+                  ? (isSpaceActive ? 'text-white/80 hover:text-white' : 'group-hover:text-white/80')
+                  : (isSpaceActive ? 'text-foreground/70 hover:text-foreground' : '')
               )}
             >
               <Info className='w-4 h-4' aria-hidden='true' />
@@ -279,7 +302,9 @@ function GroupViewMenuItem ({
   // The selected row reveals a postType-tinted icon-texture background,
   // mirroring the one-column dashboard cards.
   const isRowActive = Boolean(!isExternal && url && (location.pathname === url || location.pathname.startsWith(`${url}/`)))
-  const rowHue = hueOf(viewCardColor(presentedView))
+  const rowCol = viewCardColor(presentedView)
+  // Border tracks the view color like the dashboard cards: 0 → 20% on hover → full when selected.
+  const rowBorderColor = isRowActive ? rowCol : hover ? `${rowCol}33` : `${rowCol}00`
 
   return (
     <li className='list-none'>
@@ -287,8 +312,10 @@ function GroupViewMenuItem ({
         to={isExternal ? null : url}
         externalLink={isExternal ? url : null}
         isActive={isRowActive}
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
         className={cn(GROUP_VIEW_MENU_ITEM_CLASS, 'group relative overflow-hidden')}
-        style={isRowActive ? { borderColor: `hsl(${rowHue} 45% 42%)` } : undefined}
+        style={{ borderColor: rowBorderColor }}
       >
         <MenuRowBackground
           view={presentedView}
@@ -296,9 +323,7 @@ function GroupViewMenuItem ({
         />
         <span className={cn(
           'relative z-10 flex items-center gap-2 flex-1 min-w-0 transition-colors duration-200',
-          isRowActive
-            ? 'text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.65)]'
-            : 'group-hover:text-white group-hover:[text-shadow:0_1px_3px_rgba(0,0,0,0.65)]'
+          isRowActive ? activeLabelClass : hoverLabelClass
         )}
         >
           <GroupViewIcon view={presentedView} />
@@ -358,8 +383,9 @@ function GroupViewList ({
               <span>{t('Space Settings')}</span>
             </button>
           )}
-          <AddViewButton onClick={() => setShowAddView(true)} />
-          {canManageSpaces && !hideAddSpace && <AddSpaceButton onClick={() => setShowAddSpace(true)} />}
+          {/* p-1 matches the Done Editing button height below */}
+          <AddViewButton onClick={() => setShowAddView(true)} className='p-1 pl-2' />
+          {canManageSpaces && !hideAddSpace && <AddSpaceButton onClick={() => setShowAddSpace(true)} className='p-1 pl-2' />}
         </div>
         {showAddView && <AddGroupViewDialog group={group} groupViews={groupViews} acceptedPostTypes={group?.acceptedPostTypes} onClose={() => setShowAddView(false)} />}
         {showAddSpace && !hideAddSpace && <AddSpaceDialog group={group} onClose={() => setShowAddSpace(false)} />}

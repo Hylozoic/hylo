@@ -48,7 +48,7 @@ import LucideIcon from 'components/LucideIcon/LucideIcon'
 import CardIconField from './CardIconField'
 import GroupViewIcon from './GroupViewIcon'
 import GroupViewEditList from './GroupViewEditList'
-import { viewCardColor, inkOn, fieldSeed } from './viewCardTheme'
+import { viewCardColor, inkOn, fieldSeed, cardGradient, cardFieldTint, cardHoverRing, cardRestRing, cardNeutralBg } from './viewCardTheme'
 import GroupViewSettingsModal from './GroupViewSettingsModal'
 import SpaceSettingsModal from './SpaceSettingsModal'
 import AddCollectionDialog from './AddCollectionDialog'
@@ -58,10 +58,14 @@ import { menuViewUrl } from './groupViewMenuUrl'
 
 // Cards are deliberately dark in both themes — each is a mini canvas tinted by
 // its view's brand color (see viewCardTheme.js), per the one-column dashboard design.
-const CARD_CLASS = 'group relative flex flex-col overflow-hidden rounded-2xl border border-white/10 transition-all w-[calc(50%-6px)] aspect-[13/11] sm:w-[208px] sm:h-[176px] sm:aspect-auto cursor-pointer hover:-translate-y-0.5 shadow-[0_2px_8px_rgba(0,0,0,0.3)]'
-const CARD_DARK_BG = 'hsl(0 0% 14%)'
-const cardGradient = (col) => `linear-gradient(150deg, color-mix(in srgb, ${col} 30%, #16171a), color-mix(in srgb, ${col} 17%, #0d0e10))`
-const cardHoverRing = (col) => `inset 0 0 0 1px color-mix(in srgb, ${col} 55%, transparent)`
+const CARD_CLASS = 'group relative flex flex-col overflow-hidden rounded-2xl border transition-all w-[calc(50%-6px)] aspect-[13/11] sm:w-[208px] sm:h-[176px] sm:aspect-auto cursor-pointer hover:-translate-y-0.5'
+/** Scheme-dependent card border + resting shadow. */
+const cardChrome = (isDark) => isDark
+  ? 'border-white/10 shadow-[0_2px_8px_rgba(0,0,0,0.3)]'
+  : 'border-black/10 shadow-[0_2px_8px_rgba(0,0,0,0.12)]'
+const cardHoverShadow = (isDark) => isDark ? '0 12px 30px rgba(0,0,0,0.45)' : '0 12px 30px rgba(0,0,0,0.18)'
+// Rest shadow mirrors cardChrome's class values so inline hover shadows transition smoothly
+const cardRestShadow = (isDark) => isDark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.12)'
 
 /**
  * Splits ordered views into grid sections.
@@ -194,9 +198,12 @@ function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
   const bgImageUrl = presentedView.avatarUrl
     ? (linkedGroup?.bannerUrl || presentedView.avatarUrl)
     : null
+  const isDark = effectiveColorScheme === 'dark'
   const col = viewCardColor(presentedView)
-  const tint = `color-mix(in srgb, ${col} 60%, white)`
+  const tint = cardFieldTint(col, effectiveColorScheme)
   const ink = inkOn(col)
+  // Photo-backed cards keep white-on-scrim labels in both schemes.
+  const lightSurfaceLabels = !isDark && !bgImageUrl
   // Map/welcome cards keep their extra content, so their icon+label stay in a
   // flowing column; plain cards center the tile exactly per the design.
   const hasExtraContent = Boolean((isMap && staticMapUrl) || (isWelcome && welcomeText))
@@ -239,7 +246,12 @@ function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
   )
 
   const label = (
-    <h3 className='text-sm font-bold text-white line-clamp-2 m-0 leading-tight [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]'>{title}</h3>
+    <h3 className={cn(
+      'text-sm font-bold line-clamp-2 m-0 leading-tight',
+      lightSurfaceLabels ? 'text-foreground' : 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]'
+    )}
+    >{title}
+    </h3>
   )
 
   return (
@@ -247,10 +259,16 @@ function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
       onClick={handleClick}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      className={CARD_CLASS}
+      className={cn(CARD_CLASS, cardChrome(isDark))}
       style={{
-        background: bgImageUrl ? CARD_DARK_BG : cardGradient(col),
-        boxShadow: hover ? `0 12px 30px rgba(0,0,0,0.45), ${cardHoverRing(col)}` : undefined
+        background: bgImageUrl ? cardNeutralBg(effectiveColorScheme) : cardGradient(col, effectiveColorScheme),
+        // Light mode: icon cards take their border from the view color (same as the
+        // icon tile) — softened at rest, full strength on hover (hex-alpha animates)
+        ...(!isDark && !bgImageUrl ? { borderColor: hover ? col : `${col}59` } : {}),
+        // Always set both shadows in matching structure so the transition interpolates
+        boxShadow: hover
+          ? `${cardHoverShadow(isDark)}, ${cardHoverRing(col)}`
+          : `${cardRestShadow(isDark)}, ${cardRestRing(col)}`
       }}
       role='button'
       tabIndex={0}
@@ -293,7 +311,12 @@ function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
               </div>
             )}
             {isWelcome && welcomeText && (
-              <p className='m-0 px-1 text-xs text-white/70 line-clamp-2 leading-relaxed [text-shadow:0_1px_4px_rgba(0,0,0,0.6)]'>{welcomeText}</p>
+              <p className={cn(
+                'm-0 px-1 text-xs line-clamp-2 leading-relaxed',
+                lightSurfaceLabels ? 'text-foreground/70' : 'text-white/70 [text-shadow:0_1px_4px_rgba(0,0,0,0.6)]'
+              )}
+              >{welcomeText}
+              </p>
             )}
           </div>
           )
@@ -314,12 +337,15 @@ function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
 /** Card for a space (or related group) in the More Spaces grid. Image-backed
  * with a frosted-glass tile, matching the design's space cards. */
 function EntityCard ({ name, icon, avatarUrl, bannerUrl, onClick, badge }) {
+  const { effectiveColorScheme } = useAppearance()
+  const isDark = effectiveColorScheme === 'dark'
   const bgImageUrl = bannerUrl || avatarUrl
+  const onLightSurface = !isDark && !bgImageUrl
   return (
     <div
       onClick={onClick}
-      className={CARD_CLASS}
-      style={{ background: CARD_DARK_BG }}
+      className={cn(CARD_CLASS, cardChrome(isDark))}
+      style={{ background: cardNeutralBg(effectiveColorScheme) }}
       role='button'
       tabIndex={0}
       onKeyDown={(e) => {
@@ -337,17 +363,22 @@ function EntityCard ({ name, icon, avatarUrl, bannerUrl, onClick, badge }) {
       )}
       <div className='relative h-full'>
         <div className='absolute inset-0 grid place-items-center'>
-          <div className='w-14 h-14 rounded-[15px] grid place-items-center shrink-0 text-white shadow-[0_4px_12px_rgba(0,0,0,0.35)]' style={{ background: 'hsl(0 0% 100% / 0.16)', backdropFilter: 'blur(4px)', border: '1px solid hsl(0 0% 100% / 0.28)' }}>
+          <div
+            className={cn('w-14 h-14 rounded-[15px] grid place-items-center shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.35)]', onLightSurface ? 'text-foreground/80' : 'text-white')}
+            style={onLightSurface
+              ? { background: 'hsl(0 0% 0% / 0.06)', border: '1px solid hsl(0 0% 0% / 0.15)' }
+              : { background: 'hsl(0 0% 100% / 0.16)', backdropFilter: 'blur(4px)', border: '1px solid hsl(0 0% 100% / 0.28)' }}
+          >
             {avatarUrl
               ? <Avatar avatarUrl={avatarUrl} name={name} medium className='!w-10 !h-10' />
               : icon
                 ? <LucideIcon name={icon} className='w-7 h-7' />
-                : <div className='w-7 h-7 rounded-full bg-white/20' />}
+                : <div className={cn('w-7 h-7 rounded-full', onLightSurface ? 'bg-black/15' : 'bg-white/20')} />}
           </div>
         </div>
         <div className='absolute left-0 right-0 top-[calc(50%+28px)] bottom-0 flex flex-col items-center justify-center text-center px-3'>
-          <h3 className='text-sm font-bold text-white line-clamp-2 m-0 leading-tight [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]'>{name}</h3>
-          {badge && <span className='text-[10.5px] font-semibold text-white/70 mt-1 [text-shadow:0_1px_4px_rgba(0,0,0,0.6)]'>{badge}</span>}
+          <h3 className={cn('text-sm font-bold line-clamp-2 m-0 leading-tight', onLightSurface ? 'text-foreground' : 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]')}>{name}</h3>
+          {badge && <span className={cn('text-[10.5px] font-semibold mt-1', onLightSurface ? 'text-foreground/60' : 'text-white/70 [text-shadow:0_1px_4px_rgba(0,0,0,0.6)]')}>{badge}</span>}
         </div>
       </div>
     </div>
@@ -356,11 +387,13 @@ function EntityCard ({ name, icon, avatarUrl, bannerUrl, onClick, badge }) {
 
 /** Card opening the More Views and Spaces nested grid. */
 function MoreSpacesCard ({ onClick, t }) {
+  const { effectiveColorScheme } = useAppearance()
+  const isDark = effectiveColorScheme === 'dark'
   return (
     <div
       onClick={onClick}
-      className={CARD_CLASS}
-      style={{ background: CARD_DARK_BG }}
+      className={cn(CARD_CLASS, cardChrome(isDark))}
+      style={{ background: cardNeutralBg(effectiveColorScheme) }}
       role='button'
       tabIndex={0}
       onKeyDown={(e) => {
@@ -372,12 +405,17 @@ function MoreSpacesCard ({ onClick, t }) {
     >
       <div className='relative h-full'>
         <div className='absolute inset-0 grid place-items-center'>
-          <div className='w-14 h-14 rounded-[15px] grid place-items-center text-white shadow-[0_4px_12px_rgba(0,0,0,0.35)]' style={{ background: 'hsl(0 0% 100% / 0.16)', border: '1px solid hsl(0 0% 100% / 0.28)' }}>
+          <div
+            className={cn('w-14 h-14 rounded-[15px] grid place-items-center shadow-[0_4px_12px_rgba(0,0,0,0.35)]', isDark ? 'text-white' : 'text-foreground/80')}
+            style={isDark
+              ? { background: 'hsl(0 0% 100% / 0.16)', border: '1px solid hsl(0 0% 100% / 0.28)' }
+              : { background: 'hsl(0 0% 0% / 0.06)', border: '1px solid hsl(0 0% 0% / 0.15)' }}
+          >
             <CircleEllipsis className='w-7 h-7' />
           </div>
         </div>
         <div className='absolute left-0 right-0 top-[calc(50%+28px)] bottom-0 flex flex-col items-center justify-center text-center px-3'>
-          <h3 className='text-sm font-bold text-white m-0 leading-tight [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]'>{t('More Views and Spaces')}</h3>
+          <h3 className={cn('text-sm font-bold m-0 leading-tight', isDark ? 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]' : 'text-foreground')}>{t('More Views and Spaces')}</h3>
         </div>
       </div>
     </div>

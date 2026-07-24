@@ -54,6 +54,35 @@ export function fieldSeed (id) {
   return String(id || '').split('').reduce((a, ch) => a + ch.charCodeAt(0), 0)
 }
 
+/** Card surface gradient tinted by the view color, per color scheme. */
+export function cardGradient (col, scheme = 'dark') {
+  return scheme === 'dark'
+    ? `linear-gradient(150deg, color-mix(in srgb, ${col} 30%, #16171a), color-mix(in srgb, ${col} 17%, #0d0e10))`
+    : `linear-gradient(150deg, color-mix(in srgb, ${col} 24%, #ffffff), color-mix(in srgb, ${col} 11%, #f3f1ea))`
+}
+
+/** Colored inset ring shown on card hover (hex-alpha so it interpolates in transitions). */
+export function cardHoverRing (col) {
+  return `inset 0 0 0 1px ${col}8C`
+}
+
+/** Zero-alpha version of the hover ring, so box-shadow transitions have a matching start value. */
+export function cardRestRing (col) {
+  return `inset 0 0 0 1px ${col}00`
+}
+
+/** Tint for the repeated icon-field glyphs, per scheme. */
+export function cardFieldTint (col, scheme = 'dark') {
+  return scheme === 'dark'
+    ? `color-mix(in srgb, ${col} 60%, white)`
+    : `color-mix(in srgb, ${col} 70%, #222222)`
+}
+
+/** Neutral card surface behind image-backed cards, per scheme. */
+export function cardNeutralBg (scheme = 'dark') {
+  return scheme === 'dark' ? 'hsl(0 0% 14%)' : 'hsl(0 0% 92%)'
+}
+
 /** Hue (0-360) of a hex color, for hsl()-based tints derived from brand tokens. */
 export function hueOf (hex) {
   const h = (hex || '').replace('#', '')
