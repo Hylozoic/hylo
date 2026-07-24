@@ -6,7 +6,7 @@ import {
   LOGOUT
 } from 'store/constants'
 
-export const BOOTSTRAP_VERSION = 1
+export const BOOTSTRAP_VERSION = 2
 // LRU cap for fetchForGroup payloads keyed by slug (Least Recently Used eviction).
 export const MAX_CACHED_GROUPS = 20
 export const MAX_CACHED_MENU_BATCHES = 8
