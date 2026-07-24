@@ -151,6 +151,10 @@ function cookieDomainForUrl (url) {
   const noScheme = String(url).replace(/^[a-z]+:\/\//i, '')
   const host = noScheme.split('/')[0].split(':')[0]
   if (!host || host === 'localhost' || /^[0-9.]+$/.test(host)) return undefined
+  // Only widen scope for hylo.com hosts. Review frontends (e.g. *.herokuapp.com) sit on
+  // public-suffix domains where Domain= cookies are rejected by the WebView cookie store
+  // (supercookie protection), silently breaking the session sync — host-only is correct there.
+  if (!host.endsWith('hylo.com')) return undefined
   const labels = host.split('.')
   if (labels.length < 2) return undefined
   return '.' + labels.slice(-2).join('.')
