@@ -29,7 +29,7 @@ import {
   getParentGroups,
   getPeerGroups
 } from 'store/selectors/getGroupRelationships'
-import { RESP_ADMINISTRATION, RESP_MANAGE_SPACES, FETCH_GROUP_SPACES, FETCH_GROUP_RELATIONSHIPS } from 'store/constants'
+import { RESP_ADMINISTRATION, RESP_MANAGE_SPACES, FETCH_GROUP_SPACES, FETCH_GROUP_RELATIONSHIPS, FETCH_GROUP_VIEWS } from 'store/constants'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import getMe from 'store/selectors/getMe'
@@ -506,17 +506,20 @@ function MoreSpacesGrid ({ group, groupSlug, navigate, t }) {
         <div key={section.title} className='flex flex-col gap-3'>
           <TextSection>{section.title}</TextSection>
           <div className='flex flex-wrap gap-3'>
-            {section.items.map(item => (
-              <EntityCard
-                key={item.key}
-                name={item.name}
-                icon={item.icon}
-                avatarUrl={item.avatarUrl}
-                bannerUrl={item.bannerUrl}
-                badge={item.badge}
-                onClick={item.onClick}
-              />
-            ))}
+            {section.items.map(item => {
+              const handleClick = item.onClick
+              return (
+                <EntityCard
+                  key={item.key}
+                  name={item.name}
+                  icon={item.icon}
+                  avatarUrl={item.avatarUrl}
+                  bannerUrl={item.bannerUrl}
+                  badge={item.badge}
+                  onClick={handleClick}
+                />
+              )
+            })}
           </div>
         </div>
       ))}
@@ -572,6 +575,8 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
   }, [dispatch, menuGroup?.id, isContextMode])
 
   const groupViews = useSelector(state => isContextMode ? [] : getGroupViews(state, menuGroup))
+  const viewsPending = useSelector(state => isPendingFor(FETCH_GROUP_VIEWS, state))
+  const viewsLoading = viewsPending && groupViews.length === 0
 
   const visibleViews = useMemo(() => {
     if (isContextMode) {
@@ -721,7 +726,7 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
               )
             : (
               <div className='flex flex-col gap-6'>
-                {!isContextMode && menuGroup?.id && groupViews.length === 0
+                {!isContextMode && menuGroup?.id && viewsLoading
                   ? <p className='text-sm text-foreground/40'>{t('Loading views…')}</p>
                   : (
                     <ViewsGrid

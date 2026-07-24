@@ -33,10 +33,12 @@ import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import logout from 'store/actions/logout'
+import { FETCH_GROUP_VIEWS, RESP_ADMINISTRATION, RESP_MANAGE_SPACES } from 'store/constants'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { getGroupViews } from 'store/selectors/getGroupViews'
 import getMe from 'store/selectors/getMe'
 import getMyMemberships from 'store/selectors/getMyMemberships'
+import isPendingFor from 'store/selectors/isPendingFor'
 import { bgImageStyle, cn } from 'util/index'
 import { isOneColumnLayout as resolveIsOneColumnLayout } from 'util/navigationLayout'
 import { filterSpaceViewsForMenuVisibility } from 'util/paidSpaceVisibility'
@@ -55,7 +57,6 @@ import AddSpaceDialog, { AddSpaceButton } from './AddSpaceDialog'
 import { menuViewUrl } from './groupViewMenuUrl'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
-import { RESP_ADMINISTRATION, RESP_MANAGE_SPACES } from 'store/constants'
 import { viewAcceptedByPostTypes } from 'store/models/GroupView'
 import { WebViewMessageTypes } from '@hylo/shared'
 import { getMobileAppVersion, sendMessageToWebView } from 'util/webView'
@@ -447,6 +448,8 @@ export default function ContextMenu (props) {
   }, [isPublicContext, isMyContext, isAllContext, profileUrl])
 
   const fetchedGroupViews = useSelector(state => getGroupViews(state, group))
+  const viewsPending = useSelector(state => isPendingFor(FETCH_GROUP_VIEWS, state))
+  const groupViewsLoading = viewsPending && fetchedGroupViews.length === 0
   const publishedOfferings = usePublishedOfferings(group?.id)
   const menuViews = useMemo(() => {
     const views = staticMenuViews || fetchedGroupViews
@@ -490,6 +493,7 @@ export default function ContextMenu (props) {
     if (spaceMenuViewsFromStore.length > 0) return spaceMenuViewsFromStore
     return activeSpaceGroup?.groupViews?.items || []
   }, [showingSpaceMenu, spaceMenuViewsFromStore, activeSpaceGroup])
+  const spaceViewsLoading = viewsPending && spaceMenuViews.length === 0
   const spaceDisplayName = activeSpaceGroup?.name ||
     (activeSpaceView ? displayNameForView(GroupViewPresenter(activeSpaceView), t) : t('Space'))
 
@@ -707,11 +711,13 @@ export default function ContextMenu (props) {
                       hideAddSpace
                     />
                     )
-                  : (
-                    <div className='p-3 text-foreground/40 text-sm'>
-                      {t('Loading views…')}
-                    </div>
-                    )}
+                  : spaceViewsLoading
+                    ? (
+                      <div className='p-3 text-foreground/40 text-sm'>
+                        {t('Loading views…')}
+                      </div>
+                      )
+                    : null}
               </>
               )
             : menuViews.length > 0
@@ -726,11 +732,13 @@ export default function ContextMenu (props) {
                   canManageSpaces={canManageSpaces}
                 />
                 )
-              : (
-                <div className='p-3 text-foreground/40 text-sm'>
-                  {group?.id ? t('Loading views…') : null}
-                </div>
-                )}
+              : groupViewsLoading
+                ? (
+                  <div className='p-3 text-foreground/40 text-sm'>
+                    {t('Loading views…')}
+                  </div>
+                  )
+                : null}
           {menuFooter}
           {settingsView && (
             settingsView.type === 'space'
