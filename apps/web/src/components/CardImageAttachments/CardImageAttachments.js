@@ -42,19 +42,19 @@ export default function CardImageAttachments ({
         className={cn(
           className,
           'relative [&_img]:cursor-pointer',
-          forChatPost && 'flex overflow-x-auto overflow-y-hidden h-[90px] ml-12',
+          forChatPost && 'flex overflow-x-auto overflow-y-hidden h-[200px] ml-[42px] mt-3 mb-3',
           isFlagged && !forChatPost && 'overflow-hidden',
           isFlagged && '[&_img]:blur-[30px]'
         )}
       >
         {forChatPost
           ? (
-            <div className='flex flex-row'>
+            <div className='flex flex-row gap-2'>
               {imageAttachments.map((image, index) =>
                 <div
                   key={image.url}
                   data-index={index}
-                  className='block w-20 h-20 cursor-pointer rounded-sm mr-5 bg-cover border border-foreground/10 shadow-lg shadow-foreground/30 hover:brightness-110'
+                  className='block w-[150px] h-[200px] cursor-pointer rounded-md bg-cover bg-center border border-foreground/10 hover:brightness-110'
                   style={bgImageStyle(image.url)}
                   role='img'
                   aria-label={image.url}

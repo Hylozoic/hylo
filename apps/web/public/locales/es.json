@@ -2459,5 +2459,9 @@
   "{{totalTopicsCached}} Total Topics": "{{totalTopicsCached}} Total de temas",
   "{{unseenCount}} unread notifications": "{{unseenCount}} notificaciones no leídas",
   "~ Mixed ~": "~ Mezclado ~",
-  "Edit space menu": "Editar menú del espacio"
+  "Edit space menu": "Editar menú del espacio",
+  "Upload image": "Subir imagen",
+  "Attach file": "Adjuntar archivo",
+  "Add attachment": "Añadir adjunto",
+  "Toggle formatting toolbar": "Alternar barra de formato"
 }

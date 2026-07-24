@@ -661,7 +661,7 @@ export default function ChatRoom (props) {
             <VirtuosoMessageListLicense licenseKey={import.meta.env.VITE_VIRTUOSO_KEY}>
               <VirtuosoMessageList
                 style={{ height: '100%', width: '100%', marginTop: 'auto', overflowX: 'visible' }}
-                className='px-1 sm:px-2'
+                className='px-3 sm:px-5'
                 ref={messageListRef}
                 context={{
                   currentUser,
@@ -702,7 +702,9 @@ export default function ChatRoom (props) {
       </div>
 
       {/* Post chat box */}
-      <div className='ChatBoxContainer w-full max-w-[750px] border-t-2 border-l-2 border-r-2 border-foreground/10 shadow-xl rounded-t-lg overflow-y-auto'>
+      {/* Composer floats with margins matching the message gutter (left edge = avatar edge).
+          Subtle gradient settles the pane into a darker hue beneath the input. */}
+      <div className='ChatBoxContainer w-full px-3 sm:px-5 pb-3 sm:pb-5 pt-2 overflow-y-auto bg-gradient-to-b from-transparent to-darkening/25'>
         {/* Drafts are scoped per chat topic so switching rooms does not leak text */}
         {group?.id && (
           <ChatEditor
@@ -865,15 +867,14 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
         </div>}
       {displayDay && (
         <div className='w-full flex items-center my-3'>
-          <div className='grow h-px bg-foreground/10' />
-          <div className='mx-4 text-foreground/40 text-sm whitespace-nowrap'>{displayDay}</div>
-          <div className='grow h-px bg-foreground/10' />
+          <div className='text-foreground/40 text-xs whitespace-nowrap'>{displayDay}</div>
+          <div className='grow ml-4 border-t border-dashed border-foreground/15' />
         </div>
       )}
       {post.type === 'chat'
         ? (
           <div
-            className={cn('mx-auto max-w-[750px] transition-all mb-0', animationClass, { 'mb-5': index === context.numPosts - 1 })}
+            className={cn('max-w-[750px] transition-all mb-0', animationClass, { 'mb-5': index === context.numPosts - 1 })}
             style={animationStyle}
           >
             <ChatPost
@@ -890,7 +891,7 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
           </div>)
         : (
           <div
-            className={cn('mx-auto max-w-[750px] my-2', animationClass)}
+            className={cn('max-w-[750px] my-2', animationClass)}
             style={animationStyle}
           >
             <ChatPostNotice
