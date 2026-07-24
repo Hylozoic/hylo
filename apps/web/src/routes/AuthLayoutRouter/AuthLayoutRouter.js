@@ -97,6 +97,18 @@ import useMobileHardwareBack from 'hooks/useMobileHardwareBack'
 
 import classes from './AuthLayoutRouter.module.scss'
 
+/** Reads a membership's group id from redux-orm (FK may be a model or raw id). */
+function groupIdFromMembership (membership) {
+  const group = membership?.group
+  if (group == null) return null
+  if (typeof group === 'object' && group.id != null) return String(group.id)
+  if (typeof group === 'string' || typeof group === 'number') return String(group)
+  return null
+}
+
+/** Max memberships (including spaces) before menu preload is skipped. */
+const MENU_PRELOAD_MAX_MEMBERSHIPS = 60
+
 export default function AuthLayoutRouter (props) {
   const resizeRef = useRef()
   const navigate = useNavigate()
@@ -202,12 +214,24 @@ export default function AuthLayoutRouter (props) {
   const returnToPath = useSelector(getReturnToPath)
   const signupInProgress = useSelector(getSignupInProgress)
 
+  // Stable key for preload effect deps — getMyMemberships returns a new array reference on
+  // every ORM update, which would otherwise reset the 4.5s timer indefinitely.
+  const membershipGroupIdsKey = useMemo(() => (
+    memberships
+      .map(groupIdFromMembership)
+      .filter(Boolean)
+      .filter((id, index, self) => self.indexOf(id) === index)
+      .sort()
+      .join(',')
+  ), [memberships])
+
   const [currentUserLoading, setCurrentUserLoading] = useState(() => !getMe(store.getState()))
   const [currentGroupLoading, setCurrentGroupLoading] = useState(false)
 
   // Refs for mobile nav drawer animation
   const navContainerRef = useRef(null)
   const backdropRef = useRef(null)
+  const preloadedMenuGroupIdsKeyRef = useRef('')
   const isNavOpenRef = useRef(isNavOpen)
   const isDraggingNavRef = useRef(false)
   const compactLayout = isCompactLayoutDevice()
@@ -643,38 +667,32 @@ export default function AuthLayoutRouter (props) {
   // This ensures context menus render immediately when switching groups.
   // Batches are processed sequentially (10 groups at a time) with a delay
   // after initial page load to let critical requests complete first.
-  // Disabled for users with more than 40 memberships to avoid overwhelming the backend.
+  // Disabled for users with more than MENU_PRELOAD_MAX_MEMBERSHIPS memberships
+  // (includes space memberships) to avoid overwhelming the backend.
   useEffect(() => {
-    if (!currentUserLoading && memberships.length > 0 && memberships.length <= 40) {
-      const currentGroupId = currentGroup?.id
-      const groupIds = memberships
-        .map(m => m.group?.id)
-        .filter(Boolean)
-        .filter(id => id !== currentGroupId)
-        .filter((id, index, self) => self.indexOf(id) === index) // unique ids
+    if (currentUserLoading) return
+    if (memberships.length === 0 || memberships.length > MENU_PRELOAD_MAX_MEMBERSHIPS) return
+    if (!membershipGroupIdsKey) return
+    if (membershipGroupIdsKey === preloadedMenuGroupIdsKeyRef.current) return
 
-      if (groupIds.length === 0) return
+    const groupIds = membershipGroupIdsKey.split(',')
+    const INITIAL_DELAY = 4500
+    const BATCH_SIZE = 10
 
-      // Delay initial request to let critical page load requests complete first
-      const INITIAL_DELAY = 4500
-      const BATCH_SIZE = 10
+    const timeoutId = setTimeout(async () => {
+      preloadedMenuGroupIdsKeyRef.current = membershipGroupIdsKey
+      const batches = []
+      for (let i = 0; i < groupIds.length; i += BATCH_SIZE) {
+        batches.push(groupIds.slice(i, i + BATCH_SIZE))
+      }
 
-      const timeoutId = setTimeout(async () => {
-        // Split into batches of 10
-        const batches = []
-        for (let i = 0; i < groupIds.length; i += BATCH_SIZE) {
-          batches.push(groupIds.slice(i, i + BATCH_SIZE))
-        }
+      for (const batch of batches) {
+        await dispatch(fetchGroupsMenuData(batch))
+      }
+    }, INITIAL_DELAY)
 
-        // Process batches sequentially (wait for each to complete before starting next)
-        for (const batch of batches) {
-          await dispatch(fetchGroupsMenuData(batch))
-        }
-      }, INITIAL_DELAY)
-
-      return () => clearTimeout(timeoutId)
-    }
-  }, [currentUserLoading, currentGroup?.id, memberships, dispatch])
+    return () => clearTimeout(timeoutId)
+  }, [currentUserLoading, membershipGroupIdsKey, memberships.length, dispatch])
 
   // Scroll to top of center column when context, groupSlug, or view changes (from `pathMatchParams`)
   useEffect(() => {
