@@ -4,6 +4,7 @@ import cookieParser from 'cookie-parser'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import apiProxy from './apiProxy.js'
+import createSocketProxy from './socketProxy.js'
 import appMiddleware from './appMiddleware.js'
 import redirectToApp from './redirectToApp.js'
 import { handleStaticPages } from './proxy.js'
@@ -19,6 +20,8 @@ function startServer () {
   const server = express()
   server.use(cookieParser())
   server.use(compression())
+  const socketProxy = createSocketProxy(process.env.VITE_API_HOST)
+  server.use(socketProxy.middleware)
   server.use(apiProxy)
   server.use(redirectToApp)
   handleStaticPages(server)
@@ -30,6 +33,8 @@ function startServer () {
     const elapsed = new Date().getTime() - startTime
     console.log(`listening on port ${port} after ${elapsed}ms (pid ${process.pid})`)
   })
+
+  socketProxy.attachUpgrade(listener)
 
   function shutdown () {
     const waitForClose = process.env.NODE_ENV === 'production'
