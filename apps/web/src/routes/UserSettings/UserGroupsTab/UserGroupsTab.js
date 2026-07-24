@@ -30,8 +30,8 @@ import { cn } from 'util/index'
 import { isLegacyWebView, sendMessageToWebView } from 'util/webView'
 
 import { createAffiliation, deleteAffiliation, leaveGroup } from './UserGroupsTab.store'
-import getMyMemberships from 'store/selectors/getMyMemberships'
-import useRouteParams from 'hooks/useRouteParams'
+import { getMyGroupsWithChildren, isSpaceGroup } from 'store/selectors/getMyGroups'
+import { spaceHomeUrl } from '@hylo/navigation'
 
 export const getCurrentUserAffiliations = ormCreateSelector(
   orm,
@@ -45,17 +45,15 @@ export const getCurrentUserAffiliations = ormCreateSelector(
 function UserGroupsTab () {
   const { t } = useTranslation()
   const dispatch = useDispatch()
-  const routeParams = useRouteParams()
 
   // Get state from Redux
   const action = useSelector(state => get(state, 'UserGroupsTab.action'))
   const reduxAffiliations = useSelector(getCurrentUserAffiliations)
-  const reduxMemberships = useSelector(getMyMemberships).sort((a, b) =>
-    a.group.name.localeCompare(b.group.name))
+  const groupsTree = useSelector(getMyGroupsWithChildren)
 
   // Local state
   const [affiliations, setAffiliations] = useState(reduxAffiliations || [])
-  const [memberships, setMemberships] = useState(reduxMemberships || [])
+  const [groups, setGroups] = useState(groupsTree || [])
   const [errorMessage, setErrorMessage] = useState(undefined)
   const [successMessage, setSuccessMessage] = useState(undefined)
   const [showAddAffiliations, setShowAddAffiliations] = useState(false)
@@ -66,8 +64,8 @@ function UserGroupsTab () {
   }, [reduxAffiliations])
 
   useEffect(() => {
-    setMemberships(reduxMemberships || [])
-  }, [reduxMemberships])
+    setGroups(groupsTree || [])
+  }, [groupsTree])
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
@@ -124,8 +122,13 @@ function UserGroupsTab () {
         const deletedGroupId = get(res, 'payload.data.leaveGroup')
         if (deletedGroupId) {
           setSuccessMessage(t('You left {{group_name}}', { group_name: groupToLeave.name || 'this group' }))
-          const newMemberships = memberships.filter((m) => m.group.id !== deletedGroupId)
-          setMemberships(newMemberships)
+          setGroups(currentGroups => currentGroups
+            .map(group => ({
+              ...group,
+              spaces: (group.spaces || []).filter(space => String(space.id) !== String(deletedGroupId))
+            }))
+            .filter(group => String(group.id) !== String(deletedGroupId))
+            .filter(group => !group.isParentOnly || (group.spaces || []).length > 0))
         }
 
         if (isLegacyWebView()) {
@@ -135,7 +138,7 @@ function UserGroupsTab () {
       .finally(() => {
         setGroupToLeave(null)
       })
-  }, [groupToLeave, memberships, dispatch, t])
+  }, [groupToLeave, dispatch, t])
 
   const saveAffiliation = useCallback(({ role, preposition, orgName, url }) => {
     dispatch(createAffiliation({ role, preposition, orgName, url }))
@@ -155,7 +158,29 @@ function UserGroupsTab () {
       })
   }, [affiliations])
 
-  if (!memberships && !affiliations) return <Loading />
+  if (!groups && !affiliations) return <Loading />
+
+  const leaveLabel = (group) => t(isSpaceGroup(group) ? 'Leave Space' : 'Leave Group')
+
+  const renderLeaveButton = (group) => (
+    <div className='flex items-center p-2 bg-darkening/20 rounded-b-lg sm:rounded-r-lg sm:rounded-b-none group w-full sm:w-auto justify-end'>
+      <Button variant='outline' onClick={() => handleLeaveGroup(group)} className='border-accent/20 hover:border-accent/100 text-sm text-accent/60 hover:text-accent/100'>
+        <Trash className='opacity-50 group-hover:opacity-100 cursor-pointer text-accent hover:scale-110 w-10 h-10 transition-all duration-300' /> {leaveLabel(group)}
+      </Button>
+    </div>
+  )
+
+  const renderGroupRow = (group, { nested = false, to = null } = {}) => (
+    <div key={group.id} className={cn('relative flex items-center mb-4 w-full flex-col sm:flex-row', nested && 'ml-4 sm:ml-8')}>
+      <div className='flex-1 min-w-0 w-full'>
+        <GroupCard
+          group={{ ...group, memberStatus: 'member' }}
+          to={to}
+        />
+      </div>
+      {renderLeaveButton(group)}
+    </div>
+  )
 
   return (
     <div className='p-4 max-w-4xl mx-auto'>
@@ -163,28 +188,17 @@ function UserGroupsTab () {
 
       <h2 className='text-xl font-bold mb-4 text-foreground'>{t('Hylo Groups')}</h2>
       {action === LEAVE_GROUP && displayMessage && <Message errorMessage={errorMessage} successMessage={successMessage} reset={resetMessage} />}
-      {memberships.map(m => {
-        const group = {
-          ...m.group.ref,
-          memberStatus: 'member'
-        }
-        return (
-          <div key={m.id} className='relative flex items-center mb-4 w-full flex-col sm:flex-row'>
-            <div className='flex-1 min-w-0 w-full'>
-              <GroupCard
-                group={group}
-                routeParams={routeParams}
-                className='w-full'
-              />
-            </div>
-            <div className='flex items-center p-2 bg-darkening/20 rounded-b-lg sm:rounded-r-lg sm:rounded-b-none group w-full sm:w-auto justify-end'>
-              <Button variant='outline' onClick={() => handleLeaveGroup(m.group)} className='border-accent/20 hover:border-accent/100 text-sm text-accent/60 hover:text-accent/100'>
-                <Trash className='opacity-50 group-hover:opacity-100 cursor-pointer text-accent hover:scale-110 w-10 h-10 transition-all duration-300' /> {t('Leave Group')}
-              </Button>
-            </div>
-          </div>
-        )
-      })}
+      {groups.map(group => (
+        <div key={group.id} className='mb-6'>
+          {group.isParentOnly
+            ? <h3 className='text-lg font-semibold text-foreground mb-3'>{group.name}</h3>
+            : renderGroupRow(group)}
+          {(group.spaces || []).map(space => renderGroupRow(space, {
+            nested: true,
+            to: spaceHomeUrl(group.slug, space)
+          }))}
+        </div>
+      ))}
 
       <h2 className='text-xl font-bold mb-4 mt-8 text-foreground'>{t('Other Affiliations')}</h2>
       {action === DELETE_AFFILIATION && displayMessage && <Message errorMessage={errorMessage} successMessage={successMessage} reset={resetMessage} />}
@@ -214,7 +228,7 @@ function UserGroupsTab () {
       <Dialog open={!!groupToLeave} onOpenChange={(open) => !open && setGroupToLeave(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t('Leave Group')}</DialogTitle>
+            <DialogTitle>{groupToLeave ? leaveLabel(groupToLeave) : t('Leave Group')}</DialogTitle>
             <DialogDescription className='text-foreground/70'>
               {t('Are you sure you want to leave {{group_name}}? You will no longer have access to this group\'s content.', { group_name: groupToLeave?.name })}
             </DialogDescription>
@@ -224,7 +238,7 @@ function UserGroupsTab () {
               {t('Cancel')}
             </Button>
             <Button variant='destructive' onClick={confirmLeaveGroup}>
-              {t('Leave Group')}
+              {groupToLeave ? leaveLabel(groupToLeave) : t('Leave Group')}
             </Button>
           </DialogFooter>
         </DialogContent>
