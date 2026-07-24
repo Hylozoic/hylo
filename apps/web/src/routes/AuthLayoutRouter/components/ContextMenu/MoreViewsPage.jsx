@@ -39,7 +39,7 @@ import SpaceSettingsModal from './SpaceSettingsModal'
 import { menuViewUrl } from './groupViewMenuUrl'
 
 // Same postType-themed card treatment as the one-column dashboard (ContextMenuGrid).
-const CARD_CLASS = 'group relative flex flex-col overflow-hidden rounded-2xl border transition-all w-[calc(50%-6px)] aspect-[13/11] sm:w-[208px] sm:h-[176px] sm:aspect-auto cursor-pointer hover:-translate-y-0.5'
+const CARD_CLASS = 'group relative flex flex-col overflow-hidden rounded-2xl border transition-all w-[calc(50%-6px)] aspect-[13/11] sm:w-[208px] sm:h-[176px] sm:aspect-auto cursor-pointer hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] active:duration-[50ms]'
 /** Scheme-dependent card border + resting shadow. */
 const cardChrome = (isDark) => isDark
   ? 'border-white/10 shadow-[0_2px_8px_rgba(0,0,0,0.3)]'
