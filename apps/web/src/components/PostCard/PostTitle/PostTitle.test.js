@@ -23,10 +23,10 @@ describe('PostTitle', () => {
     expect(screen.getByTestId('icon-Location')).toBeInTheDocument()
   })
 
-  it('does not render location for event posts', () => {
-    render(<PostTitle {...defaultProps} type="event" />)
-    expect(screen.queryByText('New York, NY')).not.toBeInTheDocument()
-    expect(screen.queryByTestId('icon-Location')).not.toBeInTheDocument()
+  it('renders location for event posts', () => {
+    render(<PostTitle {...defaultProps} type='event' />)
+    expect(screen.getByText('New York, NY')).toBeInTheDocument()
+    expect(screen.getByTestId('icon-Location')).toBeInTheDocument()
   })
 
   it('applies constrained class when constrained prop is true', () => {

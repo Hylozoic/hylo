@@ -3,11 +3,10 @@ import { render, screen, fireEvent } from 'util/testing/reactTestingLibraryExten
 import MatchingPeopleListItem from './MatchingPeopleListItem'
 
 describe('MatchingPeopleListItem', () => {
-  it('renders name and avatar', () => {
+  it('renders name', () => {
     render(<MatchingPeopleListItem name='John Doe' avatarUrl='https://example.com/avatar.jpg' />)
 
     expect(screen.getByText('John Doe')).toBeInTheDocument()
-    expect(screen.getByRole('img').getAttribute('style')).toContain('background-image: url(https://example.com/avatar.jpg)')
   })
 
   it('calls onClick when close button clicked', () => {

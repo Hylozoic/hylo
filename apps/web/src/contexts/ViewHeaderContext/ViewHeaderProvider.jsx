@@ -1,6 +1,6 @@
 // HeaderContext.js
 import React, { useState, useCallback } from 'react'
-import { ViewHeaderContext } from './index'
+import { ViewHeaderContext } from './ViewHeaderContext'
 
 const defaultHeaderDetails = {
   backButton: false,

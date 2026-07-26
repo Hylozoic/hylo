@@ -277,8 +277,9 @@ describe('matchNewPostIntoQueryResults', () => {
 
 describe('matchNewThreadIntoQueryResults', () => {
   it('prepends the thread id to matching query result sets', () => {
+    const key = buildKey('FETCH_THREADS', { muted: false })
     const state = {
-      '{"type":"FETCH_THREADS","params":{}}': {
+      [key]: {
         hasMore: true,
         ids: ['20', '21']
       }
@@ -287,7 +288,7 @@ describe('matchNewThreadIntoQueryResults', () => {
     const thread = { id: '27' }
 
     expect(matchNewThreadIntoQueryResults(state, thread)).toEqual({
-      '{"type":"FETCH_THREADS","params":{}}': {
+      [key]: {
         hasMore: true,
         ids: ['27', '20', '21'],
         total: false

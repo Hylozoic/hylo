@@ -4,6 +4,7 @@ import Search from './Search'
 import { FETCH_SEARCH } from './Search.store'
 import orm from 'store/models'
 import { ViewHeaderContext } from 'contexts/ViewHeaderContext'
+import { CENTER_COLUMN_ID } from 'util/scrolling'
 // Mock debounce to execute immediately in tests
 jest.mock('lodash/fp', () => {
   const original = jest.requireActual('lodash/fp')
@@ -67,6 +68,10 @@ const {
 
 // Reset mocks before each test
 beforeEach(() => {
+  const centerColumn = document.createElement('div')
+  centerColumn.id = CENTER_COLUMN_ID
+  document.body.appendChild(centerColumn)
+
   // Reset to default mock results
   __setMockResults([
     {
@@ -84,6 +89,11 @@ beforeEach(() => {
   mockGetSearchResults.mockClear()
   mockFetchSearchResults.mockClear()
   mockGetHasMoreSearchResults.mockClear()
+})
+
+afterEach(() => {
+  const centerColumn = document.getElementById(CENTER_COLUMN_ID)
+  if (centerColumn) centerColumn.remove()
 })
 
 function testProviders (mockResults = []) {
@@ -139,7 +149,7 @@ describe('Search', () => {
     render(<Search />, { wrapper: testProviders(defaultMockResults) })
 
     expect(screen.getByText('All')).toBeInTheDocument()
-    expect(screen.getByText('Discussions')).toBeInTheDocument()
+    expect(screen.getByText('Posts')).toBeInTheDocument()
     expect(screen.getByText('People')).toBeInTheDocument()
     expect(screen.getByText('Comments')).toBeInTheDocument()
     expect(screen.getByText('Test Person')).toBeInTheDocument()

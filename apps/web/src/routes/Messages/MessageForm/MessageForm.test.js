@@ -67,7 +67,7 @@ describe('MessageForm', () => {
   it('shows loading state when pending', () => {
     render(<MessageForm {...defaultProps} pending />)
 
-    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument()
+    expect(screen.getByText(/Sending/i)).toBeInTheDocument()
   })
 })
 
