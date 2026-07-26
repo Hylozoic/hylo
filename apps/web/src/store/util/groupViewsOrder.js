@@ -94,6 +94,18 @@ export function updateGroupViewInMenu (group, viewId, updates) {
   }
 }
 
+/**
+ * Patch a view id across every loaded group's menu — including when the view lives
+ * inside a parent's type=space linkedGroup.groupViews (ContextMenu reads that copy).
+ */
+export function updateGroupViewInAllMenus (groups, viewId, updates) {
+  if (!viewId || !updates) return
+  const list = typeof groups?.toModelArray === 'function'
+    ? groups.toModelArray()
+    : (groups || [])
+  list.forEach(group => updateGroupViewInMenu(group, viewId, updates))
+}
+
 /** Append a newly created view to the end of a group's embedded menu list. */
 export function appendGroupViewToMenu (group, newView) {
   if (!group || !newView?.id) return
