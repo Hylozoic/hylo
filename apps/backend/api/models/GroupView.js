@@ -82,6 +82,24 @@ module.exports = bookshelf.Model.extend({
     'welcome'
   ],
 
+  /**
+   * Common views that should always exist as GroupView rows. Missing types are inserted
+   * with order = null (More Views). Types already present (any order) are left alone.
+   */
+  OFF_MENU_COMMON_TYPES: [
+    'discussions',
+    'events',
+    'map',
+    'members',
+    'moderation',
+    'projects',
+    'proposals',
+    'related-groups',
+    'requests-and-offers',
+    'resources',
+    'welcome'
+  ],
+
   // View types that are not real routes / don't get their own GroupView page
   NON_NAVIGABLE_TYPES: ['link', 'text', 'separator', 'space'],
 
@@ -202,17 +220,14 @@ module.exports = bookshelf.Model.extend({
   },
 
   /**
-   * Ensure related-groups, moderation, and welcome views exist (order = null → More Views).
-   * Idempotent — skips types that already have a row for this group.
+   * Ensure every common view type exists for the group (order = null → More Views).
+   * Idempotent — skips types that already have a row (in-menu or off-menu).
+   * Called on group/space create and by migrations for existing groups.
    */
   ensureOffMenuSystemViews: async function (groupId, { transacting } = {}) {
     if (!groupId) return
 
-    const types = [
-      GroupView.Type.RELATED_GROUPS,
-      GroupView.Type.MODERATION,
-      GroupView.Type.WELCOME
-    ]
+    const types = GroupView.OFF_MENU_COMMON_TYPES
     const existing = await GroupView.where({ group_id: groupId })
       .query(q => q.whereIn('type', types))
       .fetchAll({ transacting })

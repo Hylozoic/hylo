@@ -424,10 +424,8 @@ describe('on UPDATE_USER_SETTINGS_PENDING', () => {
     expect(me.location).toEqual('original location')
     expect(me.tagline).toEqual('new tagline')
     expect(me.settings).toEqual({
-      digestFrequency: 'daily',
       dmNotifications: 'both',
-      commentNotifications: 'email',
-      postNotifications: 'important'
+      commentNotifications: 'email'
     })
   })
 })

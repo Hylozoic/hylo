@@ -1650,9 +1650,9 @@ type GroupTopic {
   isDefault: Boolean
   # Whether the current logged in user is subscribed to this topic in this group
   isSubscribed: Boolean
-  # The most recent post that the user has read in this GroupTopic
+  # Obsolete — unread is on GroupViewUser. Always null.
   lastReadPostId: ID
-  # The number of new posts in this topic in this group since the current logged in user looked at the stream for this topic/group
+  # Obsolete — unread is on GroupViewUser. Always 0.
   newPostCount: Int
   # Total number of posts using this topic in this group
   postsTotal(groupSlug: String): Int
@@ -2776,9 +2776,9 @@ type TopicFollow {
   createdAt: Date
   # The group that the topic is in
   group: Group
-  # The last post id that the user has read in this group
+  # Obsolete — unread is on GroupViewUser. Not updated.
   lastReadPostId: ID
-  # The number of new posts since the last post the user has read in this group
+  # Obsolete — unread is on GroupViewUser. Not updated.
   newPostCount: Int
   # The settings for the topic follow
   settings: TopicFollowSettings
@@ -3482,7 +3482,9 @@ type Mutation {
   # Update the current logged in user's last-read position for a chat GroupView, recalculating newPostCount
   updateGroupViewUser(viewId: ID!, lastReadPostId: ID): GroupView
   # Mark a View as read for the current logged in user
-  markViewAsRead(viewId: ID!): GroupViewUser
+  markViewAsRead(viewId: ID!): GroupView
+  # Mark all views + the group membership badge as read
+  markGroupAsRead(groupId: ID!): Group
   # Update the current logged in user's settings for a View
   updateViewSettings(viewId: ID!, settings: JSON!): GroupViewUser
   # Add a Post to a 'collection' or 'track-actions' type View
@@ -4330,9 +4332,9 @@ input GroupTopicInput {
 
 # Data related to a Person following a Topic in a Group
 input TopicFollowInput {
-  # The most recent post that the user has read in this GroupTopic
+  # Obsolete — unread is on GroupViewUser. Ignored by updateTopicFollow.
   lastReadPostId: ID
-  # Set the count of new posts with this Topic in the Group since the Person last looked a the Topic stream
+  # Obsolete — unread is on GroupViewUser. Ignored by updateTopicFollow.
   newPostCount: Int
   # Settings for this TopicFollow
   settings: TopicFollowSettingsInput

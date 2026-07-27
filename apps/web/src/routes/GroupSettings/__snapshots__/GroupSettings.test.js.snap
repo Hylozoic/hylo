@@ -3,11 +3,10 @@
 exports[`renders a redirect if you can not moderate 1`] = `
 <DocumentFragment>
   <div
-    class="loading"
+    class="flex justify-center items-center w-full h-full"
     data-testid="loading-container"
   >
     <div
-      class="loadingIndicator"
       data-testid="loading-indicator"
     >
       <svg
@@ -22,7 +21,7 @@ exports[`renders a redirect if you can not moderate 1`] = `
       >
         <path
           d="M25.251,6.461c-10.318,0-18.683,8.365-18.683,18.683h4.068c0-8.071,6.543-14.615,14.615-14.615V6.461z"
-          fill="#000"
+          fill="#999999"
         >
           <animatetransform
             attributeName="transform"
@@ -43,11 +42,10 @@ exports[`renders a redirect if you can not moderate 1`] = `
 exports[`renders correctly with a group 1`] = `
 <DocumentFragment>
   <div
-    class="loading"
+    class="flex justify-center items-center w-full h-full"
     data-testid="loading-container"
   >
     <div
-      class="loadingIndicator"
       data-testid="loading-indicator"
     >
       <svg
@@ -62,7 +60,7 @@ exports[`renders correctly with a group 1`] = `
       >
         <path
           d="M25.251,6.461c-10.318,0-18.683,8.365-18.683,18.683h4.068c0-8.071,6.543-14.615,14.615-14.615V6.461z"
-          fill="#000"
+          fill="#999999"
         >
           <animatetransform
             attributeName="transform"
@@ -83,11 +81,10 @@ exports[`renders correctly with a group 1`] = `
 exports[`renders correctly with no group 1`] = `
 <DocumentFragment>
   <div
-    class="loading"
+    class="flex justify-center items-center w-full h-full"
     data-testid="loading-container"
   >
     <div
-      class="loadingIndicator"
       data-testid="loading-indicator"
     >
       <svg
@@ -102,7 +99,7 @@ exports[`renders correctly with no group 1`] = `
       >
         <path
           d="M25.251,6.461c-10.318,0-18.683,8.365-18.683,18.683h4.068c0-8.071,6.543-14.615,14.615-14.615V6.461z"
-          fill="#000"
+          fill="#999999"
         >
           <animatetransform
             attributeName="transform"

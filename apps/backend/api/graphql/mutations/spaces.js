@@ -239,10 +239,15 @@ export async function joinSpace (userId, spaceId) {
 
   const membership = await user.joinGroup(space, {})
 
-  // Create per-view unread rows for every existing view in the space (spec section 2.6)
+  // Create per-view unread rows for every existing view in the space (spec section 2.6).
+  // Chat starts at the latest chat post so joining does not dump people at the oldest message.
   const views = await GroupView.findForGroup(spaceId)
   for (const view of views.models) {
-    await GroupViewUser.findOrCreate(view.id, userId)
+    if (view.get('type') === 'chat') {
+      await GroupViewUser.markRead(view.id, userId)
+    } else {
+      await GroupViewUser.findOrCreate(view.id, userId)
+    }
   }
 
   return membership

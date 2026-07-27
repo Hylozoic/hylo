@@ -31,12 +31,13 @@ module.exports = bookshelf.Model.extend({
     return this.tagFollow(userId).fetch().then(tagFollow => tagFollow !== null)
   },
 
+  // Unread is tracked on GroupViewUser now — these remain for GraphQL GroupTopic fields.
   lastReadPostId: function (userId) {
-    return this.tagFollow(userId).fetch().then(tagFollow => tagFollow ? tagFollow.get('last_read_post_id') : null)
+    return Promise.resolve(null)
   },
 
   newPostCount: function (userId) {
-    return this.tagFollow(userId).fetch().then(tagFollow => tagFollow ? tagFollow.get('new_post_count') : 0)
+    return Promise.resolve(0)
   },
 
   postCount: function () {

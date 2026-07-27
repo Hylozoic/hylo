@@ -12,7 +12,7 @@ import ical from 'ical-generator'
 import { writeStringToS3 } from '../../lib/uploader/storage'
 
 import mixpanel from '../../lib/mixpanel'
-import { AnalyticsEvents, LocationHelpers } from '@hylo/shared'
+import { AnalyticsEvents, LocationHelpers, POST_TYPE_TO_TYPED_VIEW } from '@hylo/shared'
 import HasSettings from './mixins/HasSettings'
 import findOrCreateThread from './post/findOrCreateThread'
 import { groupFilter } from '../graphql/filters'
@@ -1387,15 +1387,7 @@ module.exports = bookshelf.Model.extend(merge({
 
   // Maps accepted post types to the GroupView type shown for them, mirroring the
   // grouping used by the legacy ContextWidget menu (offer + request share one view)
-  ACCEPTED_POST_TYPE_TO_VIEW_TYPE: {
-    discussion: 'discussions',
-    event: 'events',
-    offer: 'requests-and-offers',
-    request: 'requests-and-offers',
-    resource: 'resources',
-    proposal: 'proposals',
-    project: 'projects'
-  },
+  ACCEPTED_POST_TYPE_TO_VIEW_TYPE: POST_TYPE_TO_TYPED_VIEW,
 
   /**
    * Seeds the default `group_views` rows for a newly created space (spec section 3.4 / 10):

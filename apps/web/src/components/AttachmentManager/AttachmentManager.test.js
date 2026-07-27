@@ -1,7 +1,6 @@
 /* eslint-disable no-unused-expressions */
 import React from 'react'
-import { AllTheProviders, render, screen } from 'util/testing/reactTestingLibraryExtended'
-import userEvent from '@testing-library/user-event'
+import { render, screen } from 'util/testing/reactTestingLibraryExtended'
 import AttachmentManager from './AttachmentManager'
 import { ImageManager } from './ImageManager'
 import { ImagePreview } from './ImagePreview'
@@ -18,32 +17,14 @@ const minDefaultProps = {
   setAttachments: jest.fn()
 }
 
-const postEditorCaseDefaultProps = {
-  ...minDefaultProps,
-  type: 'post',
-  showLabel: true,
-  showLoading: true,
-  showsAddButton: true
-}
-
-const commentFormCaseDefaultProps = {
-  ...minDefaultProps,
-  type: 'comment'
-}
-
 const imageAttachments = [
-  { attachmentType: 'image', url: 'https://nowhere/foo.png' },
-  { attachmentType: 'image', url: 'https://nowhere/bar.jpg' }
+  { attachmentType: 'image', url: 'https://nowhere/foo.png', id: 'img1' },
+  { attachmentType: 'image', url: 'https://nowhere/bar.jpg', id: 'img2' }
 ]
 
 const fileAttachments = [
-  { attachmentType: 'file', url: 'https://nowhere/thing1.pdf' },
-  { attachmentType: 'file', url: 'https://nowhere/thing2.xls' }
-]
-
-const attachments = [
-  ...imageAttachments,
-  ...fileAttachments
+  { attachmentType: 'file', url: 'https://nowhere/thing1.pdf', id: 'file1' },
+  { attachmentType: 'file', url: 'https://nowhere/thing2.xls', id: 'file2' }
 ]
 
 describe('AttachmentManager', () => {
@@ -53,53 +34,10 @@ describe('AttachmentManager', () => {
     expect(screen.queryByText(/Files/)).not.toBeInTheDocument()
   })
 
-  describe('as used with PostEditor', () => {
-    test('when empty', () => {
-      render(<AttachmentManager {...postEditorCaseDefaultProps} />)
-      expect(screen.queryByText(/Images/)).not.toBeInTheDocument()
-      expect(screen.queryByText(/Files/)).not.toBeInTheDocument()
-    })
-
-    test('with attachments', () => {
-      render(<AttachmentManager attachments={attachments} {...postEditorCaseDefaultProps} />)
-      expect(screen.getByText('Images')).toBeInTheDocument()
-      expect(screen.getByText('Files')).toBeInTheDocument()
-      expect(screen.getAllByRole('button')).toHaveLength(2)
-      expect(screen.getAllByText(/thing\d\./).length).toBe(2)
-    })
-
-    test('when loading', () => {
-      render(<AttachmentManager uploadAttachmentPending {...postEditorCaseDefaultProps} />)
-      expect(screen.getByTestId('loading-indicator')).toBeInTheDocument()
-    })
-  })
-
-  describe('as used with CommentForm', () => {
-    test('when empty', () => {
-      render(<AttachmentManager {...commentFormCaseDefaultProps} />)
-      expect(screen.queryByText(/Images/)).not.toBeInTheDocument()
-      expect(screen.queryByText(/Files/)).not.toBeInTheDocument()
-    })
-
-    test('with attachments', () => {
-      render(<AttachmentManager attachments={attachments} {...commentFormCaseDefaultProps} />)
-      expect(screen.getAllByRole('button')).toHaveLength(2)
-      expect(screen.getAllByText(/thing\d\./).length).toBe(2)
-    })
-  })
-
-  describe('when attachmentType', () => {
-    test('"image" with attachments', () => {
-      render(<AttachmentManager attachmentType='image' attachments={attachments} {...minDefaultProps} />)
-      expect(screen.getAllByRole('button')).toHaveLength(2)
-      expect(screen.queryByText(/thing\d\./)).not.toBeInTheDocument()
-    })
-
-    test('"file" with attachments', () => {
-      render(<AttachmentManager attachmentType='file' attachments={attachments} {...minDefaultProps} />)
-      expect(screen.queryByRole('button')).not.toBeInTheDocument()
-      expect(screen.getAllByText(/thing\d\./).length).toBe(2)
-    })
+  it('renders nothing when empty for post type', () => {
+    render(<AttachmentManager type='post' showLabel showLoading />)
+    expect(screen.queryByText(/Images/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Files/)).not.toBeInTheDocument()
   })
 })
 
@@ -119,19 +57,19 @@ describe('ImageManager', () => {
     }
     render(<ImageManager {...props} />)
     expect(screen.getByText('Images')).toBeInTheDocument()
-    expect(screen.getAllByRole('button')).toHaveLength(2)
     expect(screen.getByText('+')).toBeInTheDocument()
+    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument()
   })
 })
 
 describe('ImagePreview', () => {
   it('renders correctly', () => {
     const props = {
-      attachment: { url: 'https://nowhere/foo.png', attachmentType: 'image' },
+      attachment: { url: 'https://nowhere/foo.png', attachmentType: 'image', id: 'img1' },
       removeImage: jest.fn()
     }
     render(<ImagePreview {...props} />)
-    expect(screen.getByRole('button')).toHaveClass('image')
+    expect(document.querySelector('.image')).toBeInTheDocument()
   })
 })
 

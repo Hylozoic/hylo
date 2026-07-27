@@ -49,7 +49,13 @@ const SocketListener = (props) => {
       }))
     },
     newNotification: data => dispatch(receiveNotification(data)),
-    newPost: data => dispatch(receivePost(data, group.id)),
+    // Use the post's group from the socket payload — not the currently viewed group.
+    // Space posts arrive on the space room while the parent menu may still be open.
+    newPost: data => {
+      const postGroupId = data?.groups?.[0]?.id
+      if (!postGroupId) return
+      dispatch(receivePost(data, postGroupId))
+    },
     newThread: data => dispatch(receiveThread(convertToThread(data))),
     userTyping: ({ userId, userName, isTyping }) => {
       isTyping ? dispatch(addUserTyping(userId, userName)) : dispatch(clearUserTyping(userId))

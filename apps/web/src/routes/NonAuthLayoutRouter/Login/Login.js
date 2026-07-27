@@ -12,7 +12,7 @@ import TextInput from 'components/TextInput'
 import GoogleButton from 'components/GoogleButton'
 import Button from 'components/ui/button'
 import classes from './Login.module.scss'
-import { cn } from 'util'
+import { cn } from 'util/index'
 
 export default function Login (props) {
   const dispatch = useDispatch()
