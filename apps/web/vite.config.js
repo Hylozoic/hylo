@@ -9,14 +9,20 @@ import svgr from 'vite-plugin-svgr'
 import dotenv from 'dotenv'
 // import fs from 'fs'
 import path from 'path'
+import { fileURLToPath } from 'url'
 
-// Load environment variables from .env file (do not override vars set by the parent, e.g. isolated E2E)
-dotenv.config({ path: '.env', override: false })
+const webRoot = path.dirname(fileURLToPath(import.meta.url))
+const __dirname = webRoot
+
+// Load environment variables from .env file (do not override vars set by the parent, e.g. Heroku)
+dotenv.config({ path: path.join(webRoot, '.env'), override: false })
 
 const proxyTarget = process.env.VITE_API_HOST || 'http://localhost:3001'
 
 export default defineConfig(({ command }) => ({
   base: '/',
+  envDir: webRoot,
+  root: webRoot,
   define: {
     'process.env.PUBLIC_URL': JSON.stringify('')
   },

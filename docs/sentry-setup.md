@@ -155,6 +155,17 @@ Typical workflow: deploy review web with DSN + debug flags → install staging B
 
 ---
 
+## Verify in the browser
+
+After deploy, open DevTools console:
+
+- `__hyloSentryStatus` — always set once the app bundle loads. `{ enabled: true }` means `VITE_SENTRY_DSN` was present at **build** time; `{ enabled: false }` means redeploy after setting the Heroku config var.
+- `__hyloSentryTest()` — available when `enabled` is true; sends a test error.
+
+Heroku build logs should include `Sentry: VITE_SENTRY_DSN is set` or `... is not set` during the web build.
+
+---
+
 ## Useful Sentry filters
 
 - `environment:staging` / `environment:reviewApp` / `environment:production` — web (and native where applicable)

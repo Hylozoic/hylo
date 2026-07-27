@@ -12,18 +12,33 @@ import * as Sentry from '@sentry/react'
 const dsn = import.meta.env.VITE_SENTRY_DSN
 const environment = import.meta.env.VITE_SENTRY_ENV || import.meta.env.MODE
 
-export const SENTRY_DEBUG = import.meta.env.VITE_SENTRY_DEBUG === 'true'
+export const SENTRY_DEBUG =
+  import.meta.env.VITE_SENTRY_DEBUG === 'true' ||
+  import.meta.env.VITE_SENTRY_DEBUG === '1'
 
 const enabled = typeof window !== 'undefined' && !!dsn
+
+if (typeof window !== 'undefined') {
+  window.__hyloSentryStatus = {
+    enabled,
+    debug: SENTRY_DEBUG,
+    environment: enabled ? environment : null
+  }
+}
 
 if (enabled) {
   Sentry.init({
     dsn,
     environment,
+    debug: SENTRY_DEBUG,
     // Error reporting only -- no performance tracing (keeps quota and bundle impact low)
     tracesSampleRate: 0,
     maxBreadcrumbs: SENTRY_DEBUG ? 200 : 50
   })
+
+  window.__hyloSentryTest = () => {
+    Sentry.captureException(new Error('Hylo web Sentry test'))
+  }
 
   // Tags set by the mobile app via injectedJavaScriptBeforeContentLoaded in
   // HyloWebView, so they are guaranteed to exist before this module runs.
