@@ -3,7 +3,7 @@ import { useFocusEffect } from '@react-navigation/native'
 import Config from 'react-native-config'
 import useRouteParams from 'hooks/useRouteParams'
 import AutoHeightWebView from 'react-native-autoheight-webview'
-import { getSessionCookie, clearSessionCookie, ensureWebViewCookies, sessionCookieFromToken } from 'util/session'
+import { getSessionCookie, clearSessionCookie, ensureWebViewCookies, sessionCookieFromToken, joinWebBaseAndPath } from 'util/session'
 import { authLog, AUTH_DEBUG, authHandshakeEvent } from 'util/authDebug'
 import getNativeSessionId from 'util/nativeSessionId'
 import { parseWebViewMessage, sendMessageFromWebView } from '.'
@@ -58,7 +58,7 @@ const HyloWebView = React.forwardRef(({
   const [showSessionRecovery, setShowSessionRecovery] = useState(false)
   const { postId, path: routePath, originalLinkingPath } = useRouteParams()
   const path = pathProp || routePath || originalLinkingPath || ''
-  const baseUri = source?.uri || `${Config.HYLO_WEB_BASE_URL}${path}`
+  const baseUri = source?.uri || joinWebBaseAndPath(Config.HYLO_WEB_BASE_URL, path)
   // Deep-link paths (e.g. chat push notifications) may already carry ?postId= in their
   // query string. Appending it again with a second '?' mangles the param on the web side
   // (postId becomes "123?postId=123"), so only append when missing, with the right separator.

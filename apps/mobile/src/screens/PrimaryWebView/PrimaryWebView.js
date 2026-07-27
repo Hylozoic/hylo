@@ -13,6 +13,7 @@ import useRouteParams from 'hooks/useRouteParams'
 import useNetworkConnectivity from 'hooks/useNetworkConnectivity'
 import useThemeStore from 'store/themeStore'
 import { authHandshakeEvent } from 'util/authDebug'
+import { normalizeWebPath } from 'util/session'
 
 /**
  * PrimaryWebView - Single full-screen WebView for all authenticated content
@@ -162,7 +163,7 @@ export default function PrimaryWebView() {
   // Use originalLinkingPath if available, otherwise path, otherwise fallback to '/app'.
   // Do NOT fallback to '/' — the proxy serves the marketing landing page there for
   // unauthenticated requests, and the React app never loads to fire the LOGOUT guard.
-  const webViewPath = originalLinkingPath || path || '/app'
+  const webViewPath = normalizeWebPath(originalLinkingPath || path || '/app')
 
   if (__DEV__) {
     console.log('📱 PrimaryWebView loading path:', {

@@ -112,6 +112,12 @@ export default function RootRouter () {
       const me = action?.payload?.data?.me
       const ms = Math.round((typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0)
       mobileAuthBreadcrumb('checkLogin done', { ms, hasMe: !!me, error: !!action?.error })
+      if (window.HyloMobileV2 && !me && !action?.error) {
+        mobileAuthReport('WebView auth: checkLogin returned no me', {
+          ms,
+          pathname: typeof window !== 'undefined' ? window.location.pathname : ''
+        })
+      }
       if (debugCheckLogin) {
         console.info('[Hylo checkLogin]', `${ms}ms`, {
           hasMe: !!me,
