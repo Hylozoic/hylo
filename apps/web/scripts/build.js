@@ -4,15 +4,25 @@ import { fileURLToPath } from 'url'
 import { dirname, resolve } from 'path'
 import fs from 'fs'
 const __dirname = dirname(fileURLToPath(import.meta.url))
+const webRoot = resolve(__dirname, '..')
 
 async function buildApp () {
-  // Load environment variables
-  dotenv.config()
+  // Load apps/web/.env without overriding Heroku / shell env (e.g. VITE_SENTRY_DSN)
+  dotenv.config({ path: resolve(webRoot, '.env'), override: false })
+
+  const sentryDsnSet = Boolean(process.env.VITE_SENTRY_DSN)
+  console.log(
+    sentryDsnSet
+      ? 'Sentry: VITE_SENTRY_DSN is set — client bundle will initialize @sentry/react'
+      : 'Sentry: VITE_SENTRY_DSN is not set — client error reporting will be disabled'
+  )
 
   try {
-    // Build client
+    // Build client (envDir must be apps/web so Vite inlines VITE_* from process.env)
     await build({
-      configFile: resolve(__dirname, '../vite.config.js')
+      configFile: resolve(webRoot, 'vite.config.js'),
+      root: webRoot,
+      envDir: webRoot
     })
 
     console.log('Building server...')
