@@ -62,6 +62,15 @@ export function addBreadcrumb (breadcrumb) {
 const errorReporter = {
   disabled: !enabled,
 
+  /** Reports a string at warning level (creates a Sentry event; breadcrumbs attach here) */
+  diagnostic (message, context) {
+    if (!enabled) {
+      console.warn(message, context)
+      return
+    }
+    Sentry.captureMessage(String(message), { level: 'warning', extra: context })
+  },
+
   /** Reports an error or message string to Sentry, with optional extra context */
   error (errorOrMessage, context) {
     if (!enabled) {

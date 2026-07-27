@@ -90,8 +90,33 @@ export async function logCookieJar (label) {
   }
 }
 
+/**
+ * Where native code mints a browser session from the Keychain access token.
+ * Review/Heroku frontends (*.herokuapp.com) must use same-origin /noo on the web
+ * host so Set-Cookie is rewritten for host-only cookies; direct api-staging calls
+ * return Domain=.hylo.com which the WebView jar rejects on non-hylo pages.
+ */
+export function sessionFromTokenUrl () {
+  const web = String(Config.HYLO_WEB_BASE_URL || '').replace(/\/$/, '')
+  if (web) {
+    try {
+      const { hostname } = new URL(web)
+      if (
+        hostname !== 'localhost' &&
+        !/^[0-9.]+$/.test(hostname) &&
+        !hostname.endsWith('hylo.com')
+      ) {
+        return `${web}/noo/session/from-token`
+      }
+    } catch (e) { /* use API host below */ }
+  }
+  return `${apiHost}/noo/session/from-token`
+}
+
 async function postSessionFromToken (accessToken) {
-  return fetch(`${apiHost}/noo/session/from-token`, {
+  const url = sessionFromTokenUrl()
+  authLog('session/from-token POST', url)
+  return fetch(url, {
     method: 'POST',
     headers: {
       Accept: 'application/json',
@@ -123,7 +148,10 @@ export async function sessionCookieFromToken () {
       resp = await postSessionFromToken(tokens.access_token)
     }
 
-    if (!resp.ok) return null
+    if (!resp.ok) {
+      authLog('session/from-token failed', `${resp.status} ${sessionFromTokenUrl()}`)
+      return null
+    }
 
     await setSessionCookie(resp)
     await logCookieJar('after from-token sync')

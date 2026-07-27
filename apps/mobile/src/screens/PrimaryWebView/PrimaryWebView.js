@@ -12,6 +12,7 @@ import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useRouteParams from 'hooks/useRouteParams'
 import useNetworkConnectivity from 'hooks/useNetworkConnectivity'
 import useThemeStore from 'store/themeStore'
+import { authEvent } from 'util/authDebug'
 
 /**
  * PrimaryWebView - Single full-screen WebView for all authenticated content
@@ -210,6 +211,24 @@ export default function PrimaryWebView() {
   //   3. WebView page loading
   // This replaces the previous three separate loading states that caused visible flashes.
   const showLoadingOverlay = !hasLoadedUser.current || isWebViewLoading || sessionRecovering
+
+  useEffect(() => {
+    if (!showLoadingOverlay) return
+    const report = () => {
+      authEvent('PrimaryWebView loading overlay', {
+        hasLoadedUser: hasLoadedUser.current,
+        isWebViewLoading,
+        sessionRecovering,
+        userId: currentUser?.id
+      })
+    }
+    const initial = setTimeout(report, 15000)
+    const interval = setInterval(report, 20000)
+    return () => {
+      clearTimeout(initial)
+      clearInterval(interval)
+    }
+  }, [showLoadingOverlay, isWebViewLoading, sessionRecovering, currentUser?.id])
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor, paddingBottom: bottomInset }} edges={safeAreaEdges}>

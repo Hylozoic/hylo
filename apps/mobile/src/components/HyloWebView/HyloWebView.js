@@ -4,7 +4,7 @@ import Config from 'react-native-config'
 import useRouteParams from 'hooks/useRouteParams'
 import AutoHeightWebView from 'react-native-autoheight-webview'
 import { getSessionCookie, clearSessionCookie, ensureWebViewCookies, sessionCookieFromToken } from 'util/session'
-import { AUTH_DEBUG } from 'util/authDebug'
+import { authLog, AUTH_DEBUG } from 'util/authDebug'
 import getNativeSessionId from 'util/nativeSessionId'
 import { parseWebViewMessage, sendMessageFromWebView } from '.'
 import { useAuth } from '@hylo/contexts/AuthContext'
@@ -126,13 +126,9 @@ const HyloWebView = React.forwardRef(({
       const getCookieAsync = async () => {
         try {
           const fromToken = await sessionCookieFromToken()
-          if (__DEV__) {
-            console.log('🔑 HyloWebView cookie bridge:', fromToken ? 'token→session ✓' : 'no token, falling back to stored cookie')
-          }
+          authLog('HyloWebView cookie bridge:', fromToken ? 'token→session ✓' : 'no token, falling back to stored cookie')
           const newCookie = fromToken || await getSessionCookie()
-          if (__DEV__) {
-            console.log('🔑 HyloWebView final cookie:', newCookie ? `found (${newCookie.slice(0, 30)}…)` : 'none — WebView will not load')
-          }
+          authLog('HyloWebView final cookie:', newCookie ? `found (${newCookie.slice(0, 30)}…)` : 'none — WebView will not load')
           // Populate the WebView's native cookie jar BEFORE calling setCookie().
           // setCookie() makes `cookie` truthy which immediately renders the WebView
           // and starts loading. If we populate the jar after, there's a race where
@@ -199,11 +195,13 @@ const HyloWebView = React.forwardRef(({
     const { type } = parsedMessage
 
     if (type === WebViewMessageTypes.VERIFY_AUTH) {
+      authLog('HyloWebView VERIFY_AUTH from web — re-minting session')
       reverifyAuth()
       return
     }
 
     if (type === WebViewMessageTypes.AUTH_SUCCESS) {
+      authLog('HyloWebView AUTH_SUCCESS from web')
       onSessionRecoveryEnd?.()
       return
     }

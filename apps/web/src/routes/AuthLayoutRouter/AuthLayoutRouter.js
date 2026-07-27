@@ -12,6 +12,7 @@ import {
 } from 'util/textSelectionTouch'
 import mixpanel from 'mixpanel-browser'
 import config, { isDev, isTest } from 'config/index'
+import { mobileAuthBreadcrumb, mobileAuthReport, mobileAuthStuck } from 'util/mobileAuthTrace'
 import CookieConsentLinker from 'components/CookieConsentLinker'
 import ContextMenu from './components/ContextMenu'
 import CreateModal from 'components/CreateModal'
@@ -550,6 +551,7 @@ export default function AuthLayoutRouter (props) {
         ]
         await Promise.all(bootstrapFetches)
         bootstrapOk = true
+        mobileAuthBreadcrumb('auth bootstrap fetchForCurrentUser ok')
         if (isDev) {
           performance.mark('hylo-auth-bootstrap-end')
           try {
@@ -561,6 +563,7 @@ export default function AuthLayoutRouter (props) {
       } catch (e) {
         const detail = e?.message || (Array.isArray(e) ? JSON.stringify(e) : String(e))
         console.error('[Hylo auth bootstrap] failed', detail, e)
+        mobileAuthStuck('[Hylo auth bootstrap] failed', { detail })
       } finally {
         setCurrentUserLoading(false)
       }
@@ -580,6 +583,29 @@ export default function AuthLayoutRouter (props) {
     document.addEventListener('visibilitychange', handleVisibilityChange)
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
   }, [])
+
+  useEffect(() => {
+    if (!window.HyloMobileV2 || !currentUserLoading) return
+    mobileAuthBreadcrumb('auth bootstrap loading screen visible')
+    const initial = setTimeout(() => {
+      if (currentUserLoading) {
+        mobileAuthReport('WebView auth still loading (AuthLayoutRouter bootstrap)', {
+          currentUserLoading: true
+        })
+      }
+    }, 15000)
+    const interval = setInterval(() => {
+      if (currentUserLoading) {
+        mobileAuthReport('WebView auth still loading (AuthLayoutRouter bootstrap)', {
+          currentUserLoading: true
+        })
+      }
+    }, 20000)
+    return () => {
+      clearTimeout(initial)
+      clearInterval(interval)
+    }
+  }, [currentUserLoading])
 
   // If the user turns stack-groups on after a flat MeQuery load, refetch so childGroups are available.
   useEffect(() => {

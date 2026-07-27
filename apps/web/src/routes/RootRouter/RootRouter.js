@@ -21,6 +21,7 @@ import { getAuthorized } from 'store/selectors/getSignupState'
 import { getAuthSessionUnknown } from 'store/selectors/getAuthSession'
 import { hasBootstrapCache, getBootstrapRehydrated } from 'store/selectors/getBootstrap'
 import { sendMessageToWebView } from 'util/webView'
+import { mobileAuthBreadcrumb, mobileAuthReport, mobileAuthStuck } from 'util/mobileAuthTrace'
 
 if (!isTest && config.mixpanel.token) {
   mixpanel.init(config.mixpanel.token, { debug: !isProduction })
@@ -105,19 +106,22 @@ export default function RootRouter () {
   // separated auth state (isAuthSessionUnknown) drives routing — no local loading flag.
   const runCheckLogin = useCallback(async () => {
     const t0 = typeof performance !== 'undefined' ? performance.now() : Date.now()
+    mobileAuthBreadcrumb('checkLogin start', { pathname: typeof window !== 'undefined' ? window.location.pathname : '' })
     try {
       const action = await dispatch(checkLogin())
       const me = action?.payload?.data?.me
+      const ms = Math.round((typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0)
+      mobileAuthBreadcrumb('checkLogin done', { ms, hasMe: !!me, error: !!action?.error })
       if (debugCheckLogin) {
-        const ms = Math.round((typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0)
         console.info('[Hylo checkLogin]', `${ms}ms`, {
           hasMe: !!me,
           pathname: typeof window !== 'undefined' ? window.location.pathname : ''
         })
       }
     } catch (err) {
+      const ms = Math.round((typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0)
+      mobileAuthBreadcrumb('checkLogin threw', { ms, message: err?.message || String(err) })
       if (debugCheckLogin) {
-        const ms = Math.round((typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0)
         console.info('[Hylo checkLogin]', `${ms}ms`, 'error', err?.message || err, {
           pathname: typeof window !== 'undefined' ? window.location.pathname : ''
         })
@@ -158,6 +162,7 @@ export default function RootRouter () {
       try {
         const payload = JSON.parse(event.data)
         if (payload?.type !== WebViewMessageTypes.SESSION_READY) return
+        mobileAuthBreadcrumb('SESSION_READY from native')
         runCheckLogin()
       } catch (e) { /* non-JSON postMessage */ }
     }
@@ -179,6 +184,7 @@ export default function RootRouter () {
       writeMobileReauthAttempts(0)
       writeMobileRecovering(false)
       setMobileRecovering(false)
+      mobileAuthBreadcrumb('authorized — AUTH_SUCCESS to native')
       sendMessageToWebView(WebViewMessageTypes.AUTH_SUCCESS)
       connectSocket()
       return
@@ -188,6 +194,7 @@ export default function RootRouter () {
     setMobileRecovering(true)
     const attempts = readMobileReauthAttempts()
     if (attempts >= MAX_MOBILE_REAUTH_ATTEMPTS) {
+      mobileAuthStuck('WebView auth: max VERIFY_AUTH attempts', { attempts })
       writeMobileReauthAttempts(0)
       writeMobileRecovering(false)
       setMobileRecovering(false)
@@ -195,8 +202,48 @@ export default function RootRouter () {
       return
     }
     writeMobileReauthAttempts(attempts + 1)
+    mobileAuthBreadcrumb('unauthorized — VERIFY_AUTH to native', { attempt: attempts + 1 })
     sendMessageToWebView(WebViewMessageTypes.VERIFY_AUTH)
   }, [isAuthSessionUnknown, isAuthorized])
+
+  // Periodic Sentry reports while auth is stuck (breadcrumbs only ship with an event).
+  useEffect(() => {
+    if (!window.HyloMobileV2) return
+
+    const isStuck = () =>
+      isAuthSessionUnknown || mobileRecovering || !isAuthorized
+
+    if (!isStuck()) return
+
+    const report = () => {
+      if (!isStuck()) return
+      mobileAuthReport('WebView auth still loading (RootRouter)', {
+        isAuthSessionUnknown,
+        mobileRecovering,
+        isAuthorized,
+        bootstrapCache,
+        bootstrapRehydrated,
+        showOptimisticAuthShell:
+          isAuthSessionUnknown && bootstrapCache && bootstrapRehydrated && !mobileRecovering,
+        pathname,
+        reauthAttempts: readMobileReauthAttempts()
+      })
+    }
+
+    const initial = setTimeout(report, 15000)
+    const interval = setInterval(report, 20000)
+    return () => {
+      clearTimeout(initial)
+      clearInterval(interval)
+    }
+  }, [
+    isAuthSessionUnknown,
+    isAuthorized,
+    mobileRecovering,
+    bootstrapCache,
+    bootstrapRehydrated,
+    pathname
+  ])
 
   const showOptimisticAuthShell =
     isAuthSessionUnknown &&

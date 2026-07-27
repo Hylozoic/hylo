@@ -1,4 +1,18 @@
-import { parseCookies } from './session'
+import { parseCookies, sessionFromTokenUrl } from './session'
+
+jest.mock('react-native-config', () => ({
+  HYLO_WEB_BASE_URL: 'https://review-app.herokuapp.com',
+  API_HOST: 'https://api-staging.hylo.com',
+  SESSION_COOKIE_KEY: 'hylo.staging.sid2'
+}))
+
+jest.mock('util/apiHost', () => 'https://api-staging.hylo.com')
+
+it('sessionFromTokenUrl uses review web proxy for non-hylo.com hosts', () => {
+  expect(sessionFromTokenUrl()).toBe(
+    'https://review-app.herokuapp.com/noo/session/from-token'
+  )
+})
 
 const testString = 'heroku-session-affinity=AECDaANoA24IARbTS53///8_; ' +
   'Version=1; Expires=Fri, 28-Jul-2017 18:20:27 GMT; Max-Age=86400; ' +
