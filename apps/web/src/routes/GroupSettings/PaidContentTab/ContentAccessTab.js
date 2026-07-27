@@ -76,11 +76,6 @@ function ContentAccessTab ({ group, offerings = [] }) {
 
     setLoading(true)
 
-    // Determine if the selected role is a common role or group role
-    const selectedRole = roleFilter !== 'all'
-      ? allRoles.find(role => role.id === roleFilter || role.id?.toString() === roleFilter?.toString())
-      : null
-
     const params = {
       groupIds: [group.id],
       search: debouncedSearch || undefined,
@@ -97,7 +92,7 @@ function ContentAccessTab ({ group, offerings = [] }) {
 
     dispatch(fetchContentAccess(params))
       .finally(() => setLoading(false))
-  }, [dispatch, group?.id, debouncedSearch, accessTypeFilter, statusFilter, offeringFilter, trackFilter, roleFilter, allRoles, offset])
+  }, [dispatch, group?.id, debouncedSearch, accessTypeFilter, statusFilter, offeringFilter, trackFilter, roleFilter, offset])
 
   // Initial load on mount
   useEffect(() => {
