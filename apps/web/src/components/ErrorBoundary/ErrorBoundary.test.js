@@ -2,11 +2,12 @@ import React from 'react'
 import { render, screen } from 'util/testing/reactTestingLibraryExtended'
 import ErrorBoundary from './ErrorBoundary'
 
-const Something = () => null
-
-// Mock the rollbar module
-jest.mock('client/rollbar', () => ({
-  error: jest.fn()
+// Mock the error reporter module
+jest.mock('client/errorReporter', () => ({
+  __esModule: true,
+  default: {
+    error: jest.fn()
+  }
 }))
 
 describe('ErrorBoundary', () => {

@@ -8524,19 +8524,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@rollbar/react@npm:^0.12.0-beta":
-  version: 0.12.0-beta
-  resolution: "@rollbar/react@npm:0.12.0-beta"
-  dependencies:
-    tiny-invariant: "npm:^1.1.0"
-  peerDependencies:
-    prop-types: ^15.7.2
-    react: 16.x || 17.x || 18.x
-    rollbar: ^2.26.4
-  checksum: 10/5c7c9dca6027166698c8f21ad193b33eae9e335db73e2117ca80d5b39a218175309509649f8d3c6c5fc003db841b9b86e4af28c55fc9a4e2db6981e249609cb4
-  languageName: node
-  linkType: hard
-
 "@rollup/pluginutils@npm:^4.2.0, @rollup/pluginutils@npm:^4.2.1":
   version: 4.2.1
   resolution: "@rollup/pluginutils@npm:4.2.1"
@@ -8819,6 +8806,30 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@sentry/browser-utils@npm:10.68.0":
+  version: 10.68.0
+  resolution: "@sentry/browser-utils@npm:10.68.0"
+  dependencies:
+    "@sentry/conventions": "npm:^0.16.0"
+    "@sentry/core": "npm:10.68.0"
+  checksum: 10/9e606c9f963a92419fc025c49ead16a2b828f3030c42c1a70699bf443150507e4669b1a17d78b95e273274709d222fc16e3927f11799cd2361996b383a67c459
+  languageName: node
+  linkType: hard
+
+"@sentry/browser@npm:10.68.0":
+  version: 10.68.0
+  resolution: "@sentry/browser@npm:10.68.0"
+  dependencies:
+    "@sentry/browser-utils": "npm:10.68.0"
+    "@sentry/conventions": "npm:^0.16.0"
+    "@sentry/core": "npm:10.68.0"
+    "@sentry/feedback": "npm:10.68.0"
+    "@sentry/replay": "npm:10.68.0"
+    "@sentry/replay-canvas": "npm:10.68.0"
+  checksum: 10/253530a72e73edd8dda6df4353326f6e4357897bb0724eb946e2a2cb73f49479558b7a9cac9d5eec944434ec3085bc409ea534746fb4f00b6cdd1753cf5837b9
+  languageName: node
+  linkType: hard
+
 "@sentry/browser@npm:8.55.0, @sentry/browser@npm:8.x.x":
   version: 8.55.0
   resolution: "@sentry/browser@npm:8.55.0"
@@ -8928,10 +8939,35 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@sentry/conventions@npm:^0.16.0":
+  version: 0.16.0
+  resolution: "@sentry/conventions@npm:0.16.0"
+  checksum: 10/21c5bdbde32ff5058954a87f7d6b40b670cdd08c10a1c6787fedc3b94b89804b0df92817e5a37d0ed60e8f1ce6747d01b840f05a5e8940742f9a1dcb0f2d490e
+  languageName: node
+  linkType: hard
+
+"@sentry/core@npm:10.68.0":
+  version: 10.68.0
+  resolution: "@sentry/core@npm:10.68.0"
+  dependencies:
+    "@sentry/conventions": "npm:^0.16.0"
+  checksum: 10/a06bf20611476c5fdbed67faf6e042f51f40cb200c82c4ac2ced3d4d433b55c8bb5c5a14a0c780a84978da7935aecac762914112d227da47385640feb68b1844
+  languageName: node
+  linkType: hard
+
 "@sentry/core@npm:8.55.0":
   version: 8.55.0
   resolution: "@sentry/core@npm:8.55.0"
   checksum: 10/918dfb461c35d9b5f6dbd31e7ba9b993029e51afa63205ab0848ed647693055bae4eed800198908e1c6c5b45b680b84c4f3f7f83e92f60e6114cc997c18d82a2
+  languageName: node
+  linkType: hard
+
+"@sentry/feedback@npm:10.68.0":
+  version: 10.68.0
+  resolution: "@sentry/feedback@npm:10.68.0"
+  dependencies:
+    "@sentry/core": "npm:10.68.0"
+  checksum: 10/dcbf936adb77385df97ffba4cfc454742753424aaa647778f5112ef3d31af259f081cb853281b6ed7f881b7b893bd0f2c7931d419b531a21a3202c40906e3856
   languageName: node
   linkType: hard
 
@@ -8969,6 +9005,39 @@ __metadata:
   peerDependencies:
     react: ^16.14.0 || 17.x || 18.x || 19.x
   checksum: 10/4e340137baa75b05400006d02fae2e5d72cd5ffd84b56c9f8a2f66f04b430d682a24c2142be16fb012d74f5fbe4f821d618ec37af26d6e33948169b576867eee
+  languageName: node
+  linkType: hard
+
+"@sentry/react@npm:^10.68.0":
+  version: 10.68.0
+  resolution: "@sentry/react@npm:10.68.0"
+  dependencies:
+    "@sentry/browser": "npm:10.68.0"
+    "@sentry/conventions": "npm:^0.16.0"
+    "@sentry/core": "npm:10.68.0"
+  peerDependencies:
+    react: ^16.14.0 || 17.x || 18.x || 19.x
+  checksum: 10/eed3b50caaa6fce384828fc3a54756666c1360479d115be8bd76c2fda92993632eb41dc8186be9f5b06a14ea6ca693f9d5c935876f7bf1ebd057623027ff2114
+  languageName: node
+  linkType: hard
+
+"@sentry/replay-canvas@npm:10.68.0":
+  version: 10.68.0
+  resolution: "@sentry/replay-canvas@npm:10.68.0"
+  dependencies:
+    "@sentry/core": "npm:10.68.0"
+    "@sentry/replay": "npm:10.68.0"
+  checksum: 10/da352b9053a667f5a26ee7b9ac77173c808a67b8b013b2c60c01164cd12ddc987039c36043950d143b7e4bf4f1a13bb45bf6c90d2aac58767389448f2920f23a
+  languageName: node
+  linkType: hard
+
+"@sentry/replay@npm:10.68.0":
+  version: 10.68.0
+  resolution: "@sentry/replay@npm:10.68.0"
+  dependencies:
+    "@sentry/browser-utils": "npm:10.68.0"
+    "@sentry/core": "npm:10.68.0"
+  checksum: 10/87f54e1fbb68df704611764070da596670ec2b8e40afa1bc23ee16c379daa3042064864682bc3f4286d028716b7c77d0f081d06455340495637e4b376e693379
   languageName: node
   linkType: hard
 
@@ -34820,7 +34889,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"rollbar@npm:^2.0, rollbar@npm:^2.26.4":
+"rollbar@npm:^2.0":
   version: 2.26.4
   resolution: "rollbar@npm:2.26.4"
   dependencies:
@@ -37890,7 +37959,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tiny-invariant@npm:^1.1.0, tiny-invariant@npm:^1.3.3":
+"tiny-invariant@npm:^1.3.3":
   version: 1.3.3
   resolution: "tiny-invariant@npm:1.3.3"
   checksum: 10/5e185c8cc2266967984ce3b352a4e57cb89dad5a8abb0dea21468a6ecaa67cd5bb47a3b7a85d08041008644af4f667fb8b6575ba38ba5fb00b3b5068306e59fe
@@ -39917,7 +39986,7 @@ __metadata:
     "@radix-ui/react-toggle": "npm:^1.1.10"
     "@radix-ui/react-toggle-group": "npm:^1.1.11"
     "@radix-ui/react-tooltip": "npm:^1.2.8"
-    "@rollbar/react": "npm:^0.12.0-beta"
+    "@sentry/react": "npm:^10.68.0"
     "@testing-library/dom": "npm:^10.4.0"
     "@testing-library/jest-dom": "npm:^6.6.3"
     "@testing-library/react": "npm:^16.1.0"
@@ -40079,7 +40148,6 @@ __metadata:
     redux-promise: "npm:^0.6.0"
     request: "npm:^2.83.0"
     reselect: "npm:^3.0.1"
-    rollbar: "npm:^2.26.4"
     root-path: "npm:^0.2.1"
     sails.io.js: "npm:1.2.1"
     sass: "npm:^1.78.0"

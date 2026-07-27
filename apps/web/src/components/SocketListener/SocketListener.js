@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useLocation } from 'react-router-dom'
 import { getSocket, socketUrl } from 'client/websockets.js'
-import rollbar from 'client/rollbar'
+import errorReporter from 'client/errorReporter'
 import useRouteParams from 'hooks/useRouteParams'
 import {
   receiveThread,
@@ -77,7 +77,7 @@ const SocketListener = (props) => {
 
     socket.post(socketUrl('/noo/user/subscribe'), (body, jwr) => {
       if (!isEqual(body, {})) {
-        rollbar.error(`Failed to connect SocketListener: ${body}`)
+        errorReporter.error(`Failed to connect SocketListener: ${body}`)
       }
     })
   }
