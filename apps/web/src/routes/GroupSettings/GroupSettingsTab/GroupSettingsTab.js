@@ -38,8 +38,8 @@ const { object, func } = PropTypes
 function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, updateGroupSettings }) {
   const dispatch = useDispatch()
   const navigate = useNavigate()
-  const [state, setState] = useState(defaultEditState())
   const { t } = useTranslation()
+  const [state, setState] = useState(defaultEditState)
 
   useEffect(() => {
     if (!fetchPending) {

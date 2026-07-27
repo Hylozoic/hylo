@@ -821,6 +821,7 @@
   "Latest activity": "नवीनतम गतिविधि",
   "Leave": "छोड़ें",
   "Leave Group": "समूह छोड़ें",
+  "Leave Space": "स्पेस छोड़ें",
   "Leave Parent": "मूल समूह छोड़ें",
   "Leave Project": "परियोजना छोड़ें",
   "Leave Round": "छुट्टी का चक्र",
@@ -918,6 +919,7 @@
   "Monthly Revenue": "मासिक राजस्व",
   "More Spaces": "अधिक स्थान",
   "More Views and Spaces": "और व्यू और स्पेस",
+  "More Views and Spaces (Editing)": "और व्यू और स्पेस (संपादन)",
   "Multiple Choice": "बहुविकल्पीय",
   "Multiple people are typing...": "कई लोग टाइप कर रहे हैं...",
   "Multiple votes allowed": "एकाधिक वोटों की अनुमति है",
@@ -2372,6 +2374,9 @@
   "{{submissionDescriptor}} Criteria": "{{submissionDescriptor}} मानदंड",
   "{{totalTopicsCached}} Total Topics": "{{totalTopicsCached}} कुल विषय",
   "~ Mixed ~": "~ मिश्रित ~",
-  "More Views and Spaces (editing)": "और व्यू और स्पेस (संपादन)",
-  "Edit space menu": "स्पेस मेनू संपादित करें"
+  "Edit space menu": "स्पेस मेनू संपादित करें",
+  "Upload image": "छवि अपलोड करें",
+  "Attach file": "फ़ाइल संलग्न करें",
+  "Add attachment": "अटैचमेंट जोड़ें",
+  "Toggle formatting toolbar": "फ़ॉर्मेटिंग टूलबार टॉगल करें"
 }

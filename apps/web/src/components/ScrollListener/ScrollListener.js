@@ -55,13 +55,17 @@ export default class ScrollListener extends React.Component {
   }
 
   componentDidMount () {
-    this.element().addEventListener('scroll', this.throttledScroll)
-    this.element().addEventListener('scroll', this.passThroughScroll)
+    const element = this.element()
+    if (!element) return
+    element.addEventListener('scroll', this.throttledScroll)
+    element.addEventListener('scroll', this.passThroughScroll)
   }
 
   componentWillUnmount () {
-    this.element().removeEventListener('scroll', this.throttledScroll)
-    this.element().removeEventListener('scroll', this.passThroughScroll)
+    const element = this.element()
+    if (!element) return
+    element.removeEventListener('scroll', this.throttledScroll)
+    element.removeEventListener('scroll', this.passThroughScroll)
   }
 
   render () {

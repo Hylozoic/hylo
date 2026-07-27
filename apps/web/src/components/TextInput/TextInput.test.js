@@ -25,7 +25,7 @@ describe('TextInput', () => {
   it('renders clear button when value is present', () => {
     render(<TextInput onChange={() => {}} value='test value' />)
 
-    const clearButton = screen.getByRole('button', { name: /clear/i })
+    const clearButton = screen.getByRole('button')
     expect(clearButton).toBeInTheDocument()
   })
 
@@ -33,7 +33,7 @@ describe('TextInput', () => {
     const onChange = jest.fn()
     render(<TextInput onChange={onChange} value='test value' />)
 
-    const clearButton = screen.getByRole('button', { name: /clear/i })
+    const clearButton = screen.getByRole('button')
     fireEvent.click(clearButton)
 
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({

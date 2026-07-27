@@ -11,7 +11,7 @@ function isPathActive (pathname, to) {
   return pathname === to || pathname.startsWith(`${to}/`)
 }
 
-export default function MenuLink ({ badgeCount = null, to, children, onClick, externalLink, className, isEditing, isActive, style }) {
+export default function MenuLink ({ badgeCount = null, to, children, onClick, externalLink, className, isEditing, isActive, style, onMouseEnter, onMouseLeave }) {
   const dispatch = useDispatch()
   const location = useLocation()
   const isCurrentLocation = isActive ?? isPathActive(location.pathname, to)
@@ -25,7 +25,7 @@ export default function MenuLink ({ badgeCount = null, to, children, onClick, ex
 
   if (externalLink) {
     return (
-      <a href={externalLink} target='_blank' rel='noreferrer' onClick={onClick} className={cn('MenuLink text-foreground', className, { 'opacity-100 border-selected': isCurrentLocation })}>
+      <a href={externalLink} target='_blank' rel='noreferrer' onClick={onClick} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave} style={style} className={cn('MenuLink text-foreground', className, { 'opacity-100 border-selected': isCurrentLocation })}>
         {children}
         {!isEditing && <ExternalLink className='w-4 h-4' />}
       </a>
@@ -33,7 +33,7 @@ export default function MenuLink ({ badgeCount = null, to, children, onClick, ex
   }
 
   return (
-    <Link to={to} onClick={handleClick} style={style} className={cn('text-foreground focus:text-foreground relative p-1 pl-2 rounded-md', className, { 'opacity-100 border-selected p-1 pl-2 rounded-md bg-card/100 font-bold': isCurrentLocation }, { 'border-accent': badgeCount > 0 })}>
+    <Link to={to} onClick={handleClick} style={style} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave} className={cn('text-foreground focus:text-foreground relative p-1 pl-2 rounded-md', className, { 'opacity-100 border-selected p-1 pl-2 rounded-md bg-card/100 font-bold': isCurrentLocation }, { 'border-accent': badgeCount > 0 })}>
       {children}
       {badgeCount && badgeCount > 0
         ? (

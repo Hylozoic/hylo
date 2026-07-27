@@ -57,6 +57,7 @@ import { getCookieConsent } from 'util/cookieConsent'
 import { useCookieConsent } from 'contexts/CookieConsentContext'
 import ModalDialog from 'components/ModalDialog'
 import { pinGroup, unpinGroup, updateGroupNavOrder } from 'store/actions/pinGroup'
+import markGroupAsRead from 'store/actions/markGroupAsRead'
 import logout from 'store/actions/logout'
 import { personUrl } from '@hylo/navigation'
 import { WebViewMessageTypes } from '@hylo/shared'
@@ -136,7 +137,6 @@ function SettingsMenu ({ currentUser, triggerClassName, contentSide = 'right', c
   const { theme } = getAppearanceFromSettings(currentUser?.settings)
   const globalNavStyle = currentUser?.settings?.globalNavStyle === 'tabs' ? 'tabs' : 'sidebar'
   const stackGroups = currentUser?.settings?.stackGroups === true
-  const independentSpaceMenu = currentUser?.settings?.independentSpaceMenu === true
   const currentLocale = currentUser?.settings?.locale || i18n.language || getLocaleFromLocalStorage() || 'en'
 
   // Hide the Sidebar/Tabs toggle on phone viewports — tabs are forced off there.
@@ -778,6 +778,10 @@ export default function GlobalNav (props) {
     dispatch(unpinGroup(groupId))
   }
 
+  const handleMarkGroupAsRead = (groupId) => {
+    dispatch(markGroupAsRead(groupId))
+  }
+
   // Drag and drop sensors
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -915,6 +919,7 @@ export default function GlobalNav (props) {
                   />
                 </RightClickMenuTrigger>
                 <RightClickMenuContent>
+                  <RightClickMenuItem onClick={() => handleMarkGroupAsRead(group.id)}>{t('Mark as Read')}</RightClickMenuItem>
                   <RightClickMenuItem onClick={() => handleUnpinGroup(group.id)}>{t('Unpin')}</RightClickMenuItem>
                 </RightClickMenuContent>
               </RightClickMenu>
@@ -948,6 +953,7 @@ export default function GlobalNav (props) {
                   />
                 </RightClickMenuTrigger>
                 <RightClickMenuContent>
+                  <RightClickMenuItem onClick={() => handleMarkGroupAsRead(group.id)}>{t('Mark as Read')}</RightClickMenuItem>
                   <RightClickMenuItem onClick={() => handlePinGroup(group.id)}>{t('Pin to top')}</RightClickMenuItem>
                 </RightClickMenuContent>
               </RightClickMenu>

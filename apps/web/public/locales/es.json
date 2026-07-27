@@ -848,6 +848,7 @@
   "Latest activity": "Última actividad",
   "Leave": "Salir",
   "Leave Group": "Salir del grupo",
+  "Leave Space": "Salir del espacio",
   "Leave Parent": "Salir padre",
   "Leave Project": "Salir del proyecto",
   "Leave Round": "Dejar ronda",
@@ -945,6 +946,7 @@
   "Monthly Revenue": "Ingresos Mensuales",
   "More Spaces": "Más espacios",
   "More Views and Spaces": "Más vistas y espacios",
+  "More Views and Spaces (Editing)": "Más vistas y espacios (edición)",
   "Multiple Choice": "Opción multiple",
   "Multiple people are typing...": "Varias personas están escribiendo...",
   "Multiple votes allowed": "Se permiten varios votos",
@@ -2457,6 +2459,9 @@
   "{{totalTopicsCached}} Total Topics": "{{totalTopicsCached}} Total de temas",
   "{{unseenCount}} unread notifications": "{{unseenCount}} notificaciones no leídas",
   "~ Mixed ~": "~ Mezclado ~",
-  "More Views and Spaces (editing)": "Más vistas y espacios (editando)",
-  "Edit space menu": "Editar menú del espacio"
+  "Edit space menu": "Editar menú del espacio",
+  "Upload image": "Subir imagen",
+  "Attach file": "Adjuntar archivo",
+  "Add attachment": "Añadir adjunto",
+  "Toggle formatting toolbar": "Alternar barra de formato"
 }

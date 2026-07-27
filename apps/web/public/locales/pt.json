@@ -821,6 +821,7 @@
   "Latest activity": "Última atividade",
   "Leave": "Sair",
   "Leave Group": "Sair do grupo",
+  "Leave Space": "Sair do espaço",
   "Leave Parent": "Sair do grupo pai",
   "Leave Project": "Sair do projeto",
   "Leave Round": "Deixar Rodada",
@@ -918,6 +919,7 @@
   "Monthly Revenue": "Receita Mensal",
   "More Spaces": "Mais espaços",
   "More Views and Spaces": "Mais vistas e espaços",
+  "More Views and Spaces (Editing)": "Mais vistas e espaços (edição)",
   "Multiple Choice": "Múltipla escolha",
   "Multiple people are typing...": "Várias pessoas estão digitando...",
   "Multiple votes allowed": "Votos múltiplos permitidos",
@@ -2372,6 +2374,9 @@
   "{{submissionDescriptor}} Criteria": "Critérios de {{submissionDescriptor}}",
   "{{totalTopicsCached}} Total Topics": "{{totalTopicsCached}} Tópicos totais",
   "~ Mixed ~": "~ Misto ~",
-  "More Views and Spaces (editing)": "Mais vistas e espaços (editando)",
-  "Edit space menu": "Editar menu do espaço"
+  "Edit space menu": "Editar menu do espaço",
+  "Upload image": "Enviar imagem",
+  "Attach file": "Anexar arquivo",
+  "Add attachment": "Adicionar anexo",
+  "Toggle formatting toolbar": "Alternar barra de formatação"
 }

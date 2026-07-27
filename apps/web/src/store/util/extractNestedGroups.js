@@ -32,3 +32,21 @@ export function collectSpaceGroups (items) {
   }
   return result
 }
+
+/** Collects linked groups from every group in a batch `groups.items` response. */
+export function collectLinkedGroupsFromGroupsQuery (groupsData) {
+  const result = []
+  for (const group of groupsData?.items || []) {
+    result.push(...collectLinkedGroups(group.groupViews?.items))
+  }
+  return result
+}
+
+/** Collects space groups from every group in a batch `groups.items` response. */
+export function collectSpaceGroupsFromGroupsQuery (groupsData) {
+  const result = []
+  for (const group of groupsData?.items || []) {
+    result.push(...collectSpaceGroups(group.spaces?.items))
+  }
+  return result
+}

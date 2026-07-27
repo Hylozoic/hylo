@@ -966,15 +966,17 @@ module.exports = bookshelf.Model.extend(merge({
     // but returnempty collection if RSVP calendar subscription is disabled
     const fromDate = Post.eventCalSubDateLimit().toISO()
     const eventInvitations = user.get('settings')?.rsvp_calendar_sub
-      ? await EventInvitation.query()
-        .join('posts', 'event_invitations.event_id', 'posts.id')
-        .where('event_invitations.user_id', userId)
-        .where('posts.active', true)
-        .where('posts.start_time', '>=', fromDate)
-        .whereIn('event_invitations.response', [
-          EventInvitation.RESPONSE.YES,
-          EventInvitation.RESPONSE.INTERESTED
-        ])
+      ? await EventInvitation
+        .query(q => {
+          q.join('posts', 'event_invitations.event_id', 'posts.id')
+          q.where('event_invitations.user_id', userId)
+          q.where('posts.active', true)
+          q.where('posts.start_time', '>=', fromDate)
+          q.whereIn('event_invitations.response', [
+            EventInvitation.RESPONSE.YES,
+            EventInvitation.RESPONSE.INTERESTED
+          ])
+        })
         .fetchAll({ withRelated: 'event' })
       : { models: [] }
 

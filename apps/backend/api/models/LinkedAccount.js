@@ -58,8 +58,8 @@ module.exports = bookshelf.Model.extend({
   updateUser: function (userId, { type, profile, transacting } = {}) {
     return User.find(userId, { transacting }, false)
       .then(user => {
-        let avatarUrl = user.get('avatar_url')
-        let attributes = this.socialMediaAttributes(type, profile)
+        const avatarUrl = user.get('avatar_url')
+        const attributes = this.socialMediaAttributes(type, profile)
         if (avatarUrl && !avatarUrl.match(/gravatar/)) {
           attributes.avatar_url = avatarUrl
         }

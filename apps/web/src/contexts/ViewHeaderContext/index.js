@@ -1,4 +1,2 @@
-import { createContext, useContext } from 'react'
-const ViewHeaderContext = createContext()
-const useViewHeader = () => useContext(ViewHeaderContext)
-export { ViewHeaderContext, useViewHeader }
+export { ViewHeaderContext, useViewHeader } from './ViewHeaderContext'
+export { ViewHeaderProvider } from './ViewHeaderProvider'

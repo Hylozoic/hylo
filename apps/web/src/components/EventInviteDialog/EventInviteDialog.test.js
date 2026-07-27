@@ -3,20 +3,28 @@ import { render, screen, fireEvent } from 'util/testing/reactTestingLibraryExten
 import EventInviteDialog, { InviteeRow, Search } from './EventInviteDialog'
 
 describe('EventInviteDialog', () => {
+  beforeEach(() => {
+    const portalHost = document.createElement('div')
+    portalHost.setAttribute('id', 'center-column-container')
+    document.body.appendChild(portalHost)
+  })
+
+  afterEach(() => {
+    const portalHost = document.getElementById('center-column-container')
+    if (portalHost) portalHost.remove()
+  })
+
   it('renders correctly', () => {
     const props = {
       onClose: jest.fn(),
+      eventTitle: 'Community Picnic',
       eventInvitations: [{ id: 1 }, { id: 2 }, { id: 3 }],
-      people: [{ id: 1, name: 'Alice' }, { id: 4, name: 'Bob' }, { id: 5, name: 'Charlie' }],
       forGroups: [],
-      fetchPeople: jest.fn(),
-      eventId: '123',
-      invitePeopleToEvent: jest.fn(),
-      pending: false
+      eventId: '123'
     }
     render(<EventInviteDialog {...props} />)
 
-    expect(screen.getByText('Invite')).toBeInTheDocument()
+    expect(screen.getByText(/Invite to event/i)).toBeInTheDocument()
     expect(screen.getByPlaceholderText('Search members')).toBeInTheDocument()
     expect(screen.getByText('Already Invited')).toBeInTheDocument()
     expect(screen.getByText('Select people to invite')).toBeInTheDocument()
