@@ -55,8 +55,6 @@ import {
   TOGGLE_GROUP_TOPIC_SUBSCRIBE_PENDING,
   UPDATE_COMMENT_PENDING,
   UPDATE_GROUP_TOPIC_PENDING,
-  UPDATE_TOPIC_FOLLOW,
-  UPDATE_TOPIC_FOLLOW_PENDING,
   UPDATE_POST,
   UPDATE_POST_PENDING,
   UPDATE_THREAD_READ_TIME,
@@ -72,6 +70,9 @@ import {
   UPDATE_GROUP_VIEW_PENDING,
   UPDATE_GROUP_VIEW_USER,
   UPDATE_GROUP_VIEW_USER_PENDING,
+  MARK_VIEW_AS_READ,
+  MARK_VIEW_AS_READ_PENDING,
+  MARK_GROUP_AS_READ_PENDING,
   UPDATE_SPACE_PENDING
 } from 'store/constants'
 import {
@@ -117,7 +118,59 @@ import extractModelsFromAction from '../ModelExtractor/extractModelsFromAction'
 import { isPromise } from 'util/index'
 import { homeRoutePathForWidget } from '@hylo/navigation'
 import { reorderTree, replaceHomeWidget } from 'util/contextWidgets'
-import { applyGroupViewsOrder, appendGroupViewToMenu, removeGroupViewFromMenu, setGroupViewHiddenInMenu, updateGroupViewInMenu } from 'store/util/groupViewsOrder'
+import { applyGroupViewsOrder, appendGroupViewToMenu, removeGroupViewFromMenu, setGroupViewHiddenInMenu, updateGroupViewInMenu, updateGroupViewInAllMenus } from 'store/util/groupViewsOrder'
+import { groupMenuHasUnreadBadges } from 'util/viewUnreadBadges'
+
+/**
+ * Whether any loaded menu copy for this group still shows unread (own GroupViews
+ * and/or nested under a parent's type=space linkedGroup).
+ */
+function groupHasUnreadInAnyMenu (session, groupId, getMembershipNewPostCount) {
+  const { Group } = session
+  const group = Group.idExists(groupId) ? Group.withId(groupId) : null
+  if (group && groupMenuHasUnreadBadges(group, getMembershipNewPostCount)) return true
+
+  for (const parent of Group.all().toModelArray()) {
+    for (const view of parent.groupViews?.items || []) {
+      if (view.type !== 'space' || String(view.linkedGroup?.id) !== String(groupId)) continue
+      if (groupMenuHasUnreadBadges(view.linkedGroup, getMembershipNewPostCount)) return true
+    }
+  }
+  return false
+}
+
+/**
+ * Clear group/space membership badges when the menu has no remaining view or
+ * nested-space unread. Also clears parent groups that embed this group as a space.
+ */
+function clearMembershipIfMenuHasNoUnread (session, groupId) {
+  if (!groupId) return
+  const { Group, Me, Membership } = session
+  const me = Me.first()
+  if (!me) return
+
+  const getMembershipNewPostCount = (id) => {
+    const membership = Membership.safeGet({ group: id, person: me.id })
+    return membership?.newPostCount || 0
+  }
+
+  const clearOne = (id) => {
+    if (groupHasUnreadInAnyMenu(session, id, getMembershipNewPostCount)) return
+    const membership = Membership.safeGet({ group: id, person: me.id })
+    if (membership && membership.newPostCount > 0) {
+      membership.update({ newPostCount: 0 })
+    }
+  }
+
+  clearOne(groupId)
+
+  Group.all().toModelArray().forEach(parent => {
+    const embedsSpace = (parent.groupViews?.items || []).some(view =>
+      view.type === 'space' && String(view.linkedGroup?.id) === String(groupId)
+    )
+    if (embedsSpace) clearOne(parent.id)
+  })
+}
 
 export default function ormReducer (state = orm.getEmptyState(), action) {
   const session = orm.session(state)
@@ -143,8 +196,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     PostCommenter,
     ProjectMember,
     Skill,
-    Topic,
-    TopicFollow
+    Topic
   } = session
 
   if (payload && !isPromise(payload) && meta && meta.extractModel) {
@@ -154,7 +206,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     extractModelsFromAction(action, session)
   }
 
-  let me, membership, group, person, post, comment, groupTopic, topicFollow
+  let me, membership, group, person, post, comment, groupTopic
   const sameId = (a, b) => String(a || '') === String(b || '')
   const isNil = value => value === null || value === undefined || value === ''
   const matchesDraftContext = (draft, context) => {
@@ -507,22 +559,66 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     }
 
     case UPDATE_GROUP_VIEW_USER_PENDING: {
-      // ChatRoom reads lastReadPostId from the embedded group.groupViews menu, not the
-      // standalone GroupView ORM row — keep the menu in sync so re-entry restores scroll.
-      if (!meta.groupId || !meta.id || !meta.data) break
-      group = Group.withId(meta.groupId)
-      updateGroupViewInMenu(group, meta.id, meta.data)
+      // ChatRoom / ContextMenu read lastReadPostId + badges from embedded menus.
+      // Space views are often nested under the parent group's type=space linkedGroup —
+      // patch every loaded menu so the badge clears where the user is looking.
+      if (!meta.id || !meta.data) break
+      updateGroupViewInAllMenus(Group.all(), meta.id, meta.data)
+      if ((meta.data.newPostCount ?? 0) === 0) {
+        clearMembershipIfMenuHasNoUnread(session, meta.groupId)
+      }
       break
     }
 
     case UPDATE_GROUP_VIEW_USER: {
       const updatedView = payload?.data?.updateGroupViewUser
-      if (!meta.groupId || !updatedView?.id) break
-      group = Group.withId(meta.groupId)
-      updateGroupViewInMenu(group, updatedView.id, {
+      if (!updatedView?.id) break
+      updateGroupViewInAllMenus(Group.all(), updatedView.id, {
         lastReadPostId: updatedView.lastReadPostId,
         newPostCount: updatedView.newPostCount
       })
+      if ((updatedView.newPostCount ?? 0) === 0) {
+        clearMembershipIfMenuHasNoUnread(session, meta.groupId)
+      }
+      break
+    }
+
+    case MARK_VIEW_AS_READ_PENDING: {
+      if (!meta.id) break
+      updateGroupViewInAllMenus(Group.all(), meta.id, { newPostCount: 0 })
+      clearMembershipIfMenuHasNoUnread(session, meta.groupId)
+      break
+    }
+
+    case MARK_VIEW_AS_READ: {
+      const readView = payload?.data?.markViewAsRead
+      if (!readView?.id) break
+      updateGroupViewInAllMenus(Group.all(), readView.id, {
+        lastReadPostId: readView.lastReadPostId,
+        newPostCount: readView.newPostCount ?? 0
+      })
+      if ((readView.newPostCount ?? 0) === 0) {
+        clearMembershipIfMenuHasNoUnread(session, meta.groupId)
+      }
+      break
+    }
+
+    case MARK_GROUP_AS_READ_PENDING: {
+      if (!meta.groupId) break
+      group = Group.withId(meta.groupId)
+      const me = Me.first()
+      if (me) {
+        membership = Membership.safeGet({ group: meta.groupId, person: me.id })
+        if (membership) membership.update({ newPostCount: 0 })
+      }
+      const items = group?.groupViews?.items || []
+      if (items.length > 0) {
+        group.update({
+          groupViews: {
+            items: structuredClone(items.map(view => ({ ...view, newPostCount: 0 })))
+          }
+        })
+      }
       break
     }
 
@@ -839,9 +935,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     }
 
     case RESET_NEW_POST_COUNT_PENDING: {
-      if (meta.type === 'TopicFollow') {
-        session.TopicFollow.withId(meta.id).update({ newPostCount: meta.count })
-      } else if (meta.type === 'Membership') {
+      if (meta.type === 'Membership') {
         me = Me.first()
         const membership = Membership.safeGet({ group: meta.id, person: me.id })
         membership && membership.update({ newPostCount: meta.count })
@@ -1024,33 +1118,6 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       groupTopic = GroupTopic.withId(meta.id)
       groupTopic.update(meta.data)
       clearCacheFor(GroupTopic, meta.id)
-      break
-    }
-
-    case UPDATE_TOPIC_FOLLOW_PENDING: {
-      if (meta.data.lastReadPostId) {
-        topicFollow = TopicFollow.withId(meta.id)
-        topicFollow.update({ lastReadPostId: meta.data.lastReadPostId })
-        clearCacheFor(TopicFollow, meta.id)
-      }
-      break
-    }
-
-    case UPDATE_TOPIC_FOLLOW: {
-      const data = payload.data.updateTopicFollow
-      if (typeof data.newPostCount === 'number') {
-        group = Group.withId(data.group.id)
-        const contextWidgets = group.contextWidgets?.items
-        if (contextWidgets) {
-          const newContextWidgets = contextWidgets.map(cw => {
-            if (cw.viewChat?.id === data.topic.id) {
-              return { ...cw, highlightNumber: data.newPostCount }
-            }
-            return cw
-          })
-          group.update({ contextWidgets: { items: structuredClone(newContextWidgets) } })
-        }
-      }
       break
     }
 

@@ -2373,5 +2373,9 @@
   "{{submissionDescriptor}} Criteria": "{{submissionDescriptor}} Kriterien",
   "{{totalTopicsCached}} Total Topics": "{{totalTopicsCached}} Themen insgesamt",
   "~ Mixed ~": "~ Gemischt ~",
-  "Edit space menu": "Menü des Raums bearbeiten"
+  "Edit space menu": "Menü des Raums bearbeiten",
+  "Upload image": "Bild hochladen",
+  "Attach file": "Datei anhängen",
+  "Add attachment": "Anhang hinzufügen",
+  "Toggle formatting toolbar": "Formatierungsleiste umschalten"
 }

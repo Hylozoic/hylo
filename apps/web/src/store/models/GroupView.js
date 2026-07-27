@@ -1,7 +1,13 @@
 import { attr, Model } from 'redux-orm'
+import {
+  POST_TYPE_TO_VIEW_TYPE,
+  VIEW_TYPE_TO_POST_TYPES
+} from '@hylo/shared'
 
 /** Re-export system view defaults — defined in @hylo/presenters for package sharing. */
 export { COMMON_VIEWS } from '@hylo/presenters/GroupViewPresenter'
+
+export { POST_TYPE_TO_VIEW_TYPE, VIEW_TYPE_TO_POST_TYPES }
 
 const NON_DELETABLE_TYPES = ['track-actions', 'funding-round-submissions']
 
@@ -23,23 +29,6 @@ export const SOFT_REMOVE_VIEW_TYPES = new Set([
   'space',
   'welcome'
 ])
-
-/** Maps an accepted post type to the GroupView type that displays it (mirrors backend Group.ACCEPTED_POST_TYPE_TO_VIEW_TYPE). */
-export const POST_TYPE_TO_VIEW_TYPE = {
-  discussion: 'discussions',
-  event: 'events',
-  resource: 'resources',
-  project: 'projects',
-  proposal: 'proposals',
-  offer: 'requests-and-offers',
-  request: 'requests-and-offers'
-}
-
-/** Inverse of POST_TYPE_TO_VIEW_TYPE — the post type(s) that make a given view type relevant. */
-export const VIEW_TYPE_TO_POST_TYPES = Object.entries(POST_TYPE_TO_VIEW_TYPE).reduce((acc, [postType, viewType]) => {
-  acc[viewType] = [...(acc[viewType] || []), postType]
-  return acc
-}, {})
 
 /** Returns true when a view type is allowed by the group's acceptedPostTypes (null = all allowed). */
 export function viewAcceptedByPostTypes (viewType, acceptedPostTypes) {

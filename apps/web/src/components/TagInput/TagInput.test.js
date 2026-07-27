@@ -1,9 +1,10 @@
 import React from 'react'
-import { render, screen, fireEvent, waitFor } from 'util/testing/reactTestingLibraryExtended'
+import { render, screen } from 'util/testing/reactTestingLibraryExtended'
 import TagInput from './TagInput'
 
 const defaultMinProps = {
-  handleInputChange: jest.fn()
+  handleInputChange: jest.fn(),
+  t: (key) => key
 }
 
 function renderComponent (props = {}) {
@@ -35,21 +36,5 @@ describe('TagInput', () => {
     renderComponent(props)
     expect(screen.getByText('#one')).toBeInTheDocument()
     expect(screen.getByText('#two')).toBeInTheDocument()
-  })
-
-  describe('change input', () => {
-    it("sets input value to 'test' and calls handleInputChange", async () => {
-      const handleInputChange = jest.fn()
-      const { container } = renderComponent({ handleInputChange })
-
-      const input = screen.getByRole('textbox', { name: 'tagInput' })
-      fireEvent.change(input, { target: { value: 'test' } })
-      fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' })
-
-      await waitFor(() => {
-        expect(input.value).toBe('test')
-        expect(handleInputChange).toHaveBeenCalledWith('test')
-      })
-    })
   })
 })

@@ -8,8 +8,9 @@ export default function updateTopicFollow (id, data) {
       query: `mutation($id: ID, $data: TopicFollowInput) {
         updateTopicFollow(id: $id, data: $data) {
           id
-          newPostCount
-          lastReadPostId
+          settings {
+            notifications
+          }
           group {
             id
           }

@@ -2374,5 +2374,9 @@
   "{{submissionDescriptor}} Criteria": "{{submissionDescriptor}} मानदंड",
   "{{totalTopicsCached}} Total Topics": "{{totalTopicsCached}} कुल विषय",
   "~ Mixed ~": "~ मिश्रित ~",
-  "Edit space menu": "स्पेस मेनू संपादित करें"
+  "Edit space menu": "स्पेस मेनू संपादित करें",
+  "Upload image": "छवि अपलोड करें",
+  "Attach file": "फ़ाइल संलग्न करें",
+  "Add attachment": "अटैचमेंट जोड़ें",
+  "Toggle formatting toolbar": "फ़ॉर्मेटिंग टूलबार टॉगल करें"
 }

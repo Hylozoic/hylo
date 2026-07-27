@@ -4,21 +4,16 @@ import { fetchRecentActivity, getRecentActivity } from './RecentActivity.store'
 
 describe('fetchRecentActivity', () => {
   it('returns the correct action', () => {
-    const expected = {
-      type: 'FETCH_RECENT_ACTIVITY',
-      graphql: {
-        query: 'Give me all the recent activity, please.',
-        variables: {
-          id: '12345',
-          first: 10,
-          order: 'desc'
-        }
-      },
-      meta: { extractModel: 'Person' }
-    }
-    const { query, variables } = expected.graphql
-    const actual = fetchRecentActivity(variables.id, 10, query)
-    expect(actual).toEqual(expected)
+    const actual = fetchRecentActivity('12345', 10, 0)
+    expect(actual.type).toEqual('FETCH_RECENT_ACTIVITY')
+    expect(actual.graphql.variables).toEqual({
+      id: '12345',
+      first: 10,
+      offset: 0,
+      order: 'desc'
+    })
+    expect(actual.meta).toEqual({ extractModel: 'Person' })
+    expect(actual.graphql.query).toContain('query RecentActivity')
   })
 })
 
@@ -58,7 +53,7 @@ describe('connector', () => {
 
   describe('activity selector length', () => {
     it('returns activity items of the correct length', () => {
-      expect(getRecentActivity(state, props).length).toBe(2)
+      expect(getRecentActivity(state, props)).toHaveLength(2)
     })
   })
 })

@@ -8,9 +8,16 @@ import { useLocation, useParams } from 'react-router-dom'
 import useRouteParams from 'hooks/useRouteParams'
 import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import { useTranslation } from 'react-i18next'
+import { CaseSensitive, ImagePlus, Paperclip, Plus, Send } from 'lucide-react'
 import AttachmentManager from 'components/AttachmentManager'
 import HyloEditor from 'components/HyloEditor'
 import Loading from 'components/Loading'
+import UploadAttachmentButton from 'components/UploadAttachmentButton'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger
+} from 'components/ui/popover'
 import isPendingFor from 'store/selectors/isPendingFor'
 import getMe from 'store/selectors/getMe'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
@@ -32,7 +39,6 @@ import {
 import useEventCallback from 'hooks/useEventCallback'
 import { MAX_POST_TOPICS } from 'util/constants'
 import useDraft, { hasDraftContent, hasPostDraftPayloadContent } from 'hooks/useDraft'
-import ActionsBar from 'components/PostEditor/ActionsBar'
 import LinkPreview from 'components/PostEditor/LinkPreview'
 import { buildPostDraftPayload, mergeDraftIntoPost } from 'components/PostEditor/postDraftUtils'
 
@@ -133,6 +139,9 @@ function ChatEditorInner ({
   const [editorInitialContent, setEditorInitialContent] = useState('')
   const [invalidMessage, setInvalidMessage] = useState('')
   const [hasDescription, setHasDescription] = useState(false)
+  // Formatting toolbar is hidden by default; the CaseSensitive button in the composer toggles it
+  const [showToolbar, setShowToolbar] = useState(false)
+  const [attachMenuOpen, setAttachMenuOpen] = useState(false)
 
   const setCurrentPost = useCallback((value) => {
     if (typeof value === 'function') {
@@ -384,43 +393,114 @@ function ChatEditorInner ({
     resetToInitial: () => reset()
   }))
 
-  const buttonLabel = useCallback(() => {
-    if (postPending) return t('Posting...')
-    return t('Post')
-  }, [postPending, t])
-
   const groupIds = currentGroup?.id ? [currentGroup.id] : undefined
+  const canSubmit = isValid && !loading && !postPending
 
   return (
-    <div className={cn('flex flex-col rounded-lg bg-background p-3 shadow-2xl relative border-2 border-foreground/30 pb-1 pt-2 gap-2')}>
-      <div
-        className='absolute -top-[20px] left-0 right-0 h-[20px] bg-gradient-to-t from-black/10 to-transparent'
-        style={{
-          maskImage: 'linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 40px, rgba(0,0,0,1) calc(100% - 40px), rgba(0,0,0,0) 100%)',
-          WebkitMaskImage: 'linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 40px, rgba(0,0,0,1) calc(100% - 40px), rgba(0,0,0,0) 100%)'
-        }}
-      />
-      <div className={cn(
-        'ChatEditorContent w-full bg-input rounded p-1',
-        'flex flex-col !items-start border-2 border-transparent shadow-md transition-all duration-200 overflow-x-hidden focus-within:border-2 focus-within:border-focus max-h-[300px]'
-      )}
-      >
-        {currentPost.details === null || loading
-          ? <div><Loading /></div>
-          : <HyloEditor
-              placeholder={t('Send a chat to {{groupName}}', { groupName: currentGroup?.name })}
-              onUpdate={handleDetailsChange}
-              onAltEnter={doSave}
-              onAddTopic={handleAddTopic}
-              onAddLink={handleAddLinkPreview}
-              onFocus={onComposerFocus}
-              onBlur={onComposerBlur}
-              contentHTML={editorInitialContent}
-              groupIds={groupIds}
-              showMenu
-              readOnly={loading}
-              ref={editorRef}
-            />}
+    <div className='flex flex-col relative gap-2'>
+      <div className='ChatEditorContent w-full bg-foreground/5 border border-foreground/10 rounded-xl p-1.5 flex flex-col !items-start transition-all duration-200 overflow-x-hidden max-h-[300px] focus-within:border-foreground/20'>
+        {/* items-end pins the controls to the container bottom as the input grows;
+            the small bottom margins center them against a single-line input */}
+        <div className='w-full flex items-end gap-1'>
+          {/* Attachment menu — plain + icon before the input text */}
+          <Popover open={attachMenuOpen} onOpenChange={setAttachMenuOpen}>
+            <PopoverTrigger asChild>
+              <button
+                type='button'
+                className='p-1.5 mb-1 shrink-0 sticky bottom-1 text-foreground/50 hover:text-foreground transition-colors'
+                aria-label={t('Add attachment')}
+                data-testid='chat-attach-button'
+              >
+                <Plus className='w-6 h-6' />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent side='top' align='start' className='w-48 p-1'>
+              <UploadAttachmentButton
+                type='post'
+                id={currentPost.id}
+                attachmentType='image'
+                onSuccess={(attachment) => {
+                  dispatch(addAttachment('post', currentPost.id, attachment))
+                  setIsDirty(true)
+                  setAttachMenuOpen(false)
+                }}
+                allowMultiple
+                disable={showImages}
+                className='w-full'
+              >
+                <span className='flex items-center gap-2 w-full px-2 py-1.5 rounded-md cursor-pointer hover:bg-foreground/10 text-sm text-foreground' data-testid='add-image-icon'>
+                  <ImagePlus className='w-4 h-4' />
+                  {t('Upload image')}
+                </span>
+              </UploadAttachmentButton>
+              <UploadAttachmentButton
+                type='post'
+                id={currentPost.id}
+                attachmentType='file'
+                onSuccess={(attachment) => {
+                  dispatch(addAttachment('post', currentPost.id, attachment))
+                  setIsDirty(true)
+                  setAttachMenuOpen(false)
+                }}
+                allowMultiple
+                disable={showFiles}
+                className='w-full'
+              >
+                <span className='flex items-center gap-2 w-full px-2 py-1.5 rounded-md cursor-pointer hover:bg-foreground/10 text-sm text-foreground' data-testid='add-file-icon'>
+                  <Paperclip className='w-4 h-4' />
+                  {t('Attach file')}
+                </span>
+              </UploadAttachmentButton>
+            </PopoverContent>
+          </Popover>
+
+          <div className='flex-1 min-w-0'>
+            {currentPost.details === null || loading
+              ? <div><Loading /></div>
+              : <HyloEditor
+                  placeholder={t('Send a chat to {{groupName}}', { groupName: currentGroup?.name })}
+                  onUpdate={handleDetailsChange}
+                  onAltEnter={doSave}
+                  onAddTopic={handleAddTopic}
+                  onAddLink={handleAddLinkPreview}
+                  onFocus={onComposerFocus}
+                  onBlur={onComposerBlur}
+                  contentHTML={editorInitialContent}
+                  groupIds={groupIds}
+                  showMenu={showToolbar}
+                  readOnly={loading}
+                  ref={editorRef}
+                />}
+          </div>
+
+          {/* Toolbar toggle + send, inside the input */}
+          <button
+            type='button'
+            onClick={() => setShowToolbar(v => !v)}
+            className={cn(
+              'p-1.5 mb-1 shrink-0 sticky bottom-1 rounded-md transition-colors',
+              showToolbar
+                ? 'bg-foreground/15 text-foreground'
+                : 'text-foreground/40 hover:text-foreground hover:bg-foreground/5'
+            )}
+            aria-label={t('Toggle formatting toolbar')}
+            aria-pressed={showToolbar}
+            data-testid='chat-toolbar-toggle'
+          >
+            <CaseSensitive className='w-6 h-6' />
+          </button>
+          <button
+            type='button'
+            onClick={doSave}
+            disabled={!canSubmit}
+            title={!isValid ? invalidMessage.replace(/<br \/>/g, ', ') : undefined}
+            className='p-1.5 mb-0.5 mr-0.5 shrink-0 sticky bottom-1 rounded-lg border border-foreground/20 text-highlight hover:border-foreground/40 disabled:text-muted-foreground disabled:cursor-not-allowed disabled:hover:border-foreground/20 transition-colors'
+            aria-label={t('Post')}
+            data-testid='chat-send-button'
+          >
+            <Send className='w-5 h-5' />
+          </button>
+        </div>
         {(currentPost.linkPreview || fetchLinkPreviewPending) && (
           <LinkPreview
             loading={fetchLinkPreviewPending}
@@ -447,32 +527,6 @@ function ChatEditorInner ({
           showLoading
         />
       </div>
-      <ActionsBar
-        id={currentPost.id}
-        addAttachment={addAttachment}
-        announcementSelected={false}
-        canMakeAnnouncement={false}
-        groupCount={currentPost.groups?.length || 0}
-        groups={currentPost.groups}
-        invalidMessage={invalidMessage}
-        isEditing={false}
-        loading={loading}
-        submitting={postPending}
-        myAdminGroups={[]}
-        doSave={doSave}
-        save={save}
-        setAnnouncementSelected={() => {}}
-        setIsDirty={setIsDirty}
-        setShowLocation={() => {}}
-        showAnnouncementModal={false}
-        showFiles={showFiles}
-        showImages={showImages}
-        showLocation={false}
-        submitButtonLabel={buttonLabel()}
-        toggleAnnouncementModal={() => {}}
-        type='chat'
-        valid={isValid}
-      />
     </div>
   )
 }

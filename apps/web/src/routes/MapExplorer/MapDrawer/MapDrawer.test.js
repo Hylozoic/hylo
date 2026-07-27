@@ -47,8 +47,10 @@ describe('MapDrawer', () => {
     }
     render(<MapDrawer {...props} />)
     expect(screen.getByText('Post')).toBeInTheDocument()
-    expect(screen.getByText('group one')).toBeInTheDocument()
     expect(screen.getByText('#food')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByText('Groups'))
+    expect(screen.getByText('group one')).toBeInTheDocument()
   })
 
   it('updates filters when searching', () => {
@@ -70,8 +72,8 @@ describe('TabBar', () => {
     const selectTab = jest.fn()
     render(<TabBar currentTab='Posts' selectTab={selectTab} tabs={tabs} />)
 
-    expect(screen.getByText('Posts')).toHaveClass('tabActive')
-    expect(screen.getByText('Groups')).not.toHaveClass('tabActive')
+    expect(screen.getByText('Posts').closest('li')).toHaveClass('bg-midground/100')
+    expect(screen.getByText('Groups').closest('li')).not.toHaveClass('bg-midground/100')
 
     fireEvent.click(screen.getByText('Groups'))
     expect(selectTab).toHaveBeenCalledWith('Groups')

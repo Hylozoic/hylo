@@ -10,8 +10,8 @@ export const STREAM_MAIN_COLUMN_CLASS =
   'w-full max-w-[750px] mx-auto p-1 sm:p-4'
 
 /**
- * Chat message list column (matches Virtuoso `className='px-1 sm:px-2'` + empty state `max-w-[750px]`).
- * Vertical padding kept light so the list area matches `#chats`.
+ * Chat message list column (matches Virtuoso `className='px-3 sm:px-5'` + `max-w-[750px]`,
+ * left-aligned). Vertical padding kept light so the list area matches `#chats`.
  */
 export const CHAT_MESSAGE_COLUMN_CLASS =
-  'w-full max-w-[750px] mx-auto px-1 sm:px-2 py-1'
+  'w-full max-w-[750px] px-3 sm:px-5 py-1'

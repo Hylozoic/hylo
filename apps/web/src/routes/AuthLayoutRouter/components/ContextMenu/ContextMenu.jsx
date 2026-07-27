@@ -37,6 +37,7 @@ import logout from 'store/actions/logout'
 import { FETCH_GROUP_VIEWS, RESP_ADMINISTRATION, RESP_MANAGE_SPACES } from 'store/constants'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { getGroupViews } from 'store/selectors/getGroupViews'
+import { getMoreViewsSections } from 'store/selectors/getMoreSpacesSections'
 import getMe from 'store/selectors/getMe'
 import getMyMemberships from 'store/selectors/getMyMemberships'
 import isPendingFor from 'store/selectors/isPendingFor'
@@ -61,21 +62,23 @@ import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup
 import { viewAcceptedByPostTypes } from 'store/models/GroupView'
 import { WebViewMessageTypes } from '@hylo/shared'
 import { getMobileAppVersion, sendMessageToWebView } from 'util/webView'
+import { viewShowsUnreadDot, viewUnreadBadgeCount } from 'util/viewUnreadBadges'
 
 import classes from './ContextMenu.module.scss'
 
-/** Small orange unread dot shown when a view has new posts. */
+/** Small orange unread dot shown when a typed view has new posts. */
 function UnreadDot () {
   return <span className='w-2 h-2 rounded-full bg-orange-500 shrink-0 ml-1' />
 }
 
-// No hover:bg-card here — the MenuRowBackground texture is the hover surface, and a
-// background beneath it flashes white through the fade. bg-clip-padding keeps any
-// active background (from MenuLink) out of the semi-transparent border zone.
-const GROUP_VIEW_MENU_ITEM_CLASS = 'flex items-center gap-2 text-base font-semibold text-foreground border-2 border-transparent bg-clip-padding rounded-md p-1 pl-2 mb-[.3rem] w-full transition-all duration-200 scale-100 hover:scale-102 opacity-85 hover:opacity-100'
+// Rows have no background of their own — the MenuRowBackground texture is the only
+// surface (half strength on hover, full when selected). hover:text-foreground pins the
+// link color so the global link-hover green never shows.
+const GROUP_VIEW_MENU_ITEM_CLASS = 'flex items-center gap-2 text-base font-semibold text-foreground hover:text-foreground border-2 border-transparent rounded-md p-1 pl-2 mb-[.3rem] w-full transition-all duration-200 ease-out scale-100 hover:scale-102 active:scale-[0.985] active:translate-y-[0.5px] active:duration-[50ms] opacity-85 hover:opacity-100'
 
-/** MenuLink overrides when nested inside a styled space row wrapper. */
-const GROUP_VIEW_MENU_ITEM_INNER_LINK_CLASS = 'flex-1 flex items-center gap-2 min-w-0 border-0 bg-transparent p-0 mb-0 rounded-none shadow-none hover:border-0 hover:bg-transparent hover:scale-100 font-inherit'
+/** MenuLink overrides when nested inside a styled space row wrapper. hover:text-foreground
+ *  pins the anchor's color against the global link-hover green. */
+const GROUP_VIEW_MENU_ITEM_INNER_LINK_CLASS = 'flex-1 flex items-center gap-2 min-w-0 border-0 bg-transparent p-0 mb-0 rounded-none shadow-none hover:border-0 hover:bg-transparent hover:scale-100 hover:text-foreground font-inherit'
 
 /** Finds a space menu view / linked group matching the current local spaceSlug. */
 function findSpaceForSlug (groupViews, group, parentSlug, spaceSlug) {
@@ -124,7 +127,6 @@ function GroupViewMenuItem ({
   const { t } = useTranslation()
   const { effectiveColorScheme } = useAppearance()
   const isDark = effectiveColorScheme === 'dark'
-  const [hover, setHover] = useState(false)
   const presentedView = useMemo(() => GroupViewPresenter(view), [view])
   const myMemberships = useSelector(getMyMemberships)
   const canManageRound = useSelector(state => hasResponsibilityForGroup(state, {
@@ -132,14 +134,11 @@ function GroupViewMenuItem ({
     groupId: view?.linkedGroup?.parentId
   }))
   // Labels over the revealed row background: white on dark surfaces (and photos),
-  // regular foreground on the pale light-mode surface.
+  // regular foreground on the pale light-mode surface. Hover never changes text color.
   const activeLabelClass = isDark
-    ? 'text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.65)]'
+    ? 'text-white hover:text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.65)]'
     : 'text-foreground'
-  const hoverLabelClass = isDark
-    ? 'group-hover:text-white group-hover:[text-shadow:0_1px_3px_rgba(0,0,0,0.65)]'
-    : 'group-hover:text-foreground'
-  const onPhotoLabelClass = 'text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.65)]'
+  const onPhotoLabelClass = 'text-white hover:text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.65)]'
 
   if (presentedView.type === 'separator') {
     return <hr className='border-foreground/10 my-1' />
@@ -202,7 +201,10 @@ function GroupViewMenuItem ({
       : spaceViews
     const hasMultipleSpaceViews = menuSpaceViews.length > 1
     const singleSpaceView = menuSpaceViews.length === 1 ? menuSpaceViews[0] : null
-    const spaceUnread = spaceViews.some(v => v.newPostCount > 0)
+    // Space badge = membership unread (same as groups), not aggregated child views.
+    const spaceMembership = linkedSpaceGroup &&
+      myMemberships.find(m => String(m.group.id) === String(linkedSpaceGroup.id))
+    const spaceUnread = (spaceMembership?.newPostCount || 0) > 0
     const spaceHome = linkedSpaceGroup ? spaceHomeUrl(parentSlug, linkedSpaceGroup) : null
     // Single-view spaces open that view directly; multi-view spaces nest under the row when active.
     const spaceLink = singleSpaceView && isSpaceMember
@@ -224,38 +226,33 @@ function GroupViewMenuItem ({
       ? linkedSpaceGroup.bannerUrl
       : null
     const spaceCol = viewCardColor(presentedView)
-    // Border tracks the view color like the dashboard cards: 0 → 20% on hover → full when selected.
-    // Photo-backed rows use white steps instead so the border reads over the image.
-    const spaceBorderColor = spaceBannerUrl
-      ? (isSpaceActive ? 'hsl(0 0% 100% / 0.35)' : hover ? 'hsl(0 0% 100% / 0.2)' : 'hsl(0 0% 100% / 0)')
-      : (isSpaceActive ? spaceCol : hover ? `${spaceCol}33` : `${spaceCol}00`)
 
     return (
       <li className='list-none'>
         <div
-          onMouseEnter={() => setHover(true)}
-          onMouseLeave={() => setHover(false)}
           className={cn(
             GROUP_VIEW_MENU_ITEM_CLASS,
             'group relative overflow-hidden',
-            isSpaceActive && 'opacity-100 font-bold'
+            isSpaceActive ? 'opacity-100 font-bold' : 'hover:border-[color:var(--row-border-hover)]'
           )}
-          style={{ borderColor: spaceBorderColor }}
+          style={{
+            // Hover border: view color at 20% (white steps over photos). Selected: full strength.
+            '--row-border-hover': spaceBannerUrl ? 'hsl(0 0% 100% / 0.2)' : `${spaceCol}33`,
+            ...(isSpaceActive ? { borderColor: spaceBannerUrl ? 'hsl(0 0% 100% / 0.35)' : spaceCol } : {})
+          }}
         >
           <MenuRowBackground
             view={presentedView}
             bannerUrl={spaceBannerUrl}
-            className={cn('transition-opacity duration-200', isSpaceActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100')}
+            className={cn('transition-opacity duration-200', isSpaceActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-50')}
           />
           <MenuLink
             to={spaceLink}
             isActive={false}
             className={cn(
               GROUP_VIEW_MENU_ITEM_INNER_LINK_CLASS,
-              'relative z-10 transition-colors duration-200',
-              isSpaceActive
-                ? (spaceBannerUrl ? onPhotoLabelClass : activeLabelClass)
-                : (spaceBannerUrl ? 'group-hover:text-white group-hover:[text-shadow:0_1px_3px_rgba(0,0,0,0.65)]' : hoverLabelClass)
+              'relative z-10',
+              isSpaceActive && (spaceBannerUrl ? onPhotoLabelClass : activeLabelClass)
             )}
           >
             <GroupViewIcon view={presentedView} />
@@ -268,10 +265,8 @@ function GroupViewMenuItem ({
               isActive={false}
               className={cn(
                 'shrink-0 p-1 pr-1 text-foreground/50 hover:text-foreground border-0 bg-transparent mb-0 rounded-none shadow-none hover:border-0 hover:bg-transparent hover:scale-100',
-                'relative z-10 transition-colors duration-200',
-                (spaceBannerUrl || isDark)
-                  ? (isSpaceActive ? 'text-white/80 hover:text-white' : 'group-hover:text-white/80')
-                  : (isSpaceActive ? 'text-foreground/70 hover:text-foreground' : '')
+                'relative z-10',
+                isSpaceActive && ((spaceBannerUrl || isDark) ? 'text-white/80 hover:text-white' : 'text-foreground/70 hover:text-foreground')
               )}
             >
               <Info className='w-4 h-4' aria-hidden='true' />
@@ -297,38 +292,44 @@ function GroupViewMenuItem ({
   }
 
   const url = menuViewUrl(parentSlug, presentedView, spaceGroup)
-  const hasUnread = presentedView.newPostCount > 0
+  const chatBadgeCount = viewUnreadBadgeCount(presentedView)
+  const showUnreadDot = viewShowsUnreadDot(presentedView)
   const isExternal = presentedView.type === 'link' && url && /^https?:\/\//.test(url)
   // The selected row reveals a postType-tinted icon-texture background,
   // mirroring the one-column dashboard cards.
   const isRowActive = Boolean(!isExternal && url && (location.pathname === url || location.pathname.startsWith(`${url}/`)))
   const rowCol = viewCardColor(presentedView)
-  // Border tracks the view color like the dashboard cards: 0 → 20% on hover → full when selected.
-  const rowBorderColor = isRowActive ? rowCol : hover ? `${rowCol}33` : `${rowCol}00`
 
   return (
     <li className='list-none'>
       <MenuLink
         to={isExternal ? null : url}
         externalLink={isExternal ? url : null}
-        isActive={isRowActive}
-        onMouseEnter={() => setHover(true)}
-        onMouseLeave={() => setHover(false)}
-        className={cn(GROUP_VIEW_MENU_ITEM_CLASS, 'group relative overflow-hidden')}
-        style={{ borderColor: rowBorderColor }}
+        isActive={false}
+        badgeCount={chatBadgeCount}
+        className={cn(
+          GROUP_VIEW_MENU_ITEM_CLASS,
+          'group relative overflow-hidden',
+          isRowActive ? 'opacity-100 font-bold' : 'hover:border-[color:var(--row-border-hover)]'
+        )}
+        style={{
+          // Hover border: view color at 20%. Selected: full strength.
+          '--row-border-hover': `${rowCol}33`,
+          ...(isRowActive ? { borderColor: rowCol } : {})
+        }}
       >
         <MenuRowBackground
           view={presentedView}
-          className={cn('transition-opacity duration-200', isRowActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100')}
+          className={cn('transition-opacity duration-200', isRowActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-50')}
         />
         <span className={cn(
-          'relative z-10 flex items-center gap-2 flex-1 min-w-0 transition-colors duration-200',
-          isRowActive ? activeLabelClass : hoverLabelClass
+          'relative z-10 flex items-center gap-2 flex-1 min-w-0',
+          isRowActive && activeLabelClass
         )}
         >
           <GroupViewIcon view={presentedView} />
           <span className='truncate flex-1'>{displayNameForView(presentedView, t, { spaceGroup })}</span>
-          {hasUnread && <UnreadDot />}
+          {showUnreadDot && <UnreadDot />}
         </span>
       </MenuLink>
     </li>
@@ -377,7 +378,7 @@ function GroupViewList ({
             <button
               type='button'
               onClick={handleOpenSpaceSettings}
-              className='flex items-center gap-2 text-base text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 w-full transition-all opacity-85 hover:opacity-100'
+              className='flex items-center gap-2 text-base text-foreground hover:text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 w-full transition-all opacity-85 hover:opacity-100'
             >
               <Settings className='w-4 h-4' />
               <span>{t('Space Settings')}</span>
@@ -476,6 +477,8 @@ export default function ContextMenu (props) {
   const fetchedGroupViews = useSelector(state => getGroupViews(state, group))
   const viewsPending = useSelector(state => isPendingFor(FETCH_GROUP_VIEWS, state))
   const groupViewsLoading = viewsPending && fetchedGroupViews.length === 0
+  // Count for the More Views and Spaces badge (off-menu views + tracks + rounds + other spaces)
+  const moreViewsSections = useSelector(state => (isGroupContext && group) ? getMoreViewsSections(state, group) : null)
   const publishedOfferings = usePublishedOfferings(group?.id)
   const menuViews = useMemo(() => {
     const views = staticMenuViews || fetchedGroupViews
@@ -579,6 +582,18 @@ export default function ContextMenu (props) {
     </div>
   )
 
+  const moreViewsCount = (moreViewsSections?.offMenuViews?.length || 0) +
+    (moreViewsSections?.trackSpaces?.length || 0) +
+    (moreViewsSections?.fundingRoundSpaces?.length || 0) +
+    (moreViewsSections?.otherSpaces?.length || 0)
+  const moreViewsBadge = moreViewsCount > 0
+    ? (
+      <span className='ml-auto shrink-0 text-xs leading-none text-foreground/50 bg-foreground/10 rounded-full px-1.5 py-1'>
+        {moreViewsCount}
+      </span>
+      )
+    : null
+
   const moreSpacesSection = isGroupContext && group?.id && !showingSpaceMenu
     ? (
       <div className='px-3 pb-2 border-t border-foreground/10 pt-2'>
@@ -590,15 +605,17 @@ export default function ContextMenu (props) {
             >
               <CircleEllipsis className='w-4 h-4 shrink-0' />
               <span>{t('More Views and Spaces')}</span>
+              {moreViewsBadge}
             </div>
             )
           : (
             <MenuLink
               to={groupUrl(groupSlug, 'more-views')}
-              className='flex items-center gap-2 text-base text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 w-full transition-all opacity-85 hover:opacity-100'
+              className='flex items-center gap-2 text-base text-foreground hover:text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 w-full transition-all opacity-85 hover:opacity-100'
             >
               <CircleEllipsis className='w-4 h-4 shrink-0' />
               <span>{t('More Views and Spaces')}</span>
+              {moreViewsBadge}
             </MenuLink>
             )}
       </div>
@@ -618,7 +635,7 @@ export default function ContextMenu (props) {
               })
           }
           isEditing={isEditing}
-          className='flex items-center gap-2 text-base text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 w-full transition-all opacity-85 hover:opacity-100'
+          className='flex items-center gap-2 text-base text-foreground hover:text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 w-full transition-all opacity-85 hover:opacity-100'
         >
           <Pencil className='w-4 h-4' />
           <span>{isEditing ? t('Done Editing') : t('Edit Menu')}</span>

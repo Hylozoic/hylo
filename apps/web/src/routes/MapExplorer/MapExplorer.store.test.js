@@ -7,7 +7,7 @@ import {
 } from 'store/constants'
 
 import reducer, {
-  fetchGroups,
+  fetchGroupsForMap,
   fetchMembers,
   fetchPostsForDrawer,
   fetchPostsForMap,
@@ -84,9 +84,9 @@ describe('fetchMembers', () => {
   })
 })
 
-describe('fetchGroups', () => {
+describe('fetchGroupsForMap', () => {
   it('works for public context', () => {
-    expect(fetchGroups({
+    expect(fetchGroupsForMap({
       context: 'public',
       boundingBox: [122.60387590065002, 37.698360551679215, -121.93892409934989, 37.91048712726531],
       offset: 0,

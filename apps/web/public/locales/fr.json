@@ -2374,5 +2374,9 @@
   "{{submissionDescriptor}} Criteria": "Critères de {{submissionDescriptor}}",
   "{{totalTopicsCached}} Total Topics": "{{totalTopicsCached}} sujets au total",
   "~ Mixed ~": "~ Mixte ~",
-  "Edit space menu": "Modifier le menu de l'espace"
+  "Edit space menu": "Modifier le menu de l'espace",
+  "Upload image": "Télécharger une image",
+  "Attach file": "Joindre un fichier",
+  "Add attachment": "Ajouter une pièce jointe",
+  "Toggle formatting toolbar": "Basculer la barre de mise en forme"
 }

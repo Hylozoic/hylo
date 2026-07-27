@@ -30,15 +30,17 @@ describe('ChatPost', () => {
       linkPreview: {
         title: 'a walk in the park',
         url: 'https://www.hylo.com/awitp',
-        imageUrl: 'foo.png',
+        imageUrl: 'foo.png'
       },
-      imageAttachments: [
+      attachments: [
         {
           id: 1,
+          type: 'image',
           url: 'https://www.hylo.com/awitp.gif'
         },
         {
           id: 2,
+          type: 'image',
           url: 'http://www.google.com/lalala.png'
         }
       ],
@@ -78,6 +80,4 @@ describe('ChatPost', () => {
     expect(screen.getByRole('img', { name: 'https://www.hylo.com/awitp.gif' })).toBeInTheDocument()
     expect(screen.getByRole('img', { name: 'http://www.google.com/lalala.png' })).toBeInTheDocument()
   })
-
-  // Add more tests as needed
 })

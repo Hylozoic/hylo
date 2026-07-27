@@ -24,7 +24,8 @@ describe('DropdownButton', () => {
     expect(optionOne).toBeInTheDocument()
     expect(optionTwo).toBeInTheDocument()
     const dropdownChoices = screen.getByTestId('dropdown-button-choices')
-    expect(dropdownChoices).not.toHaveClass('expanded')
+    expect(dropdownChoices).toHaveClass('hidden')
+    expect(dropdownChoices).not.toHaveClass('flex')
 
     // Open the dropdown
     fireEvent.click(button)
@@ -32,13 +33,14 @@ describe('DropdownButton', () => {
     // Check if the dropdown options are now visible
     expect(screen.getByText('one')).toBeInTheDocument()
     expect(screen.getByText('two')).toBeInTheDocument()
-    expect(dropdownChoices).toHaveClass('expanded')
+    expect(dropdownChoices).toHaveClass('flex')
+    expect(dropdownChoices).not.toHaveClass('hidden')
 
     // Choose an option
     fireEvent.click(screen.getByText('one'))
 
     // Check if the dropdown is closed after selection
-    expect(dropdownChoices).not.toHaveClass('expanded')
+    expect(dropdownChoices).toHaveClass('hidden')
 
     // Check if the onChoose prop was called with the correct value
     expect(props.onChoose).toHaveBeenCalledWith(1)
@@ -50,6 +52,6 @@ describe('DropdownButton', () => {
     fireEvent.click(button)
 
     // Check if the dropdown is closed
-    expect(dropdownChoices).not.toHaveClass('expanded')
+    expect(dropdownChoices).toHaveClass('hidden')
   })
 })

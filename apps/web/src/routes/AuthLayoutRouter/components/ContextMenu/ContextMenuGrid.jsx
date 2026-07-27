@@ -43,6 +43,7 @@ import fetchGroupViews from 'store/actions/fetchGroupViews'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import fetchGroupRelationships from 'store/actions/fetchGroupRelationships'
 import { viewAcceptedByPostTypes } from 'store/models/GroupView'
+import { viewShowsUnreadDot, viewUnreadBadgeCount } from 'util/viewUnreadBadges'
 import Avatar from 'components/Avatar'
 import LucideIcon from 'components/LucideIcon/LucideIcon'
 import CardIconField from './CardIconField'
@@ -58,7 +59,7 @@ import { menuViewUrl } from './groupViewMenuUrl'
 
 // Cards are deliberately dark in both themes — each is a mini canvas tinted by
 // its view's brand color (see viewCardTheme.js), per the one-column dashboard design.
-const CARD_CLASS = 'group relative flex flex-col overflow-hidden rounded-2xl border transition-all w-[calc(50%-6px)] aspect-[13/11] sm:w-[208px] sm:h-[176px] sm:aspect-auto cursor-pointer hover:-translate-y-0.5'
+const CARD_CLASS = 'group relative flex flex-col overflow-hidden rounded-2xl border transition-all w-[calc(50%-6px)] aspect-[13/11] sm:w-[208px] sm:h-[176px] sm:aspect-auto cursor-pointer hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] active:duration-[50ms]'
 /** Scheme-dependent card border + resting shadow. */
 const cardChrome = (isDark) => isDark
   ? 'border-white/10 shadow-[0_2px_8px_rgba(0,0,0,0.3)]'
@@ -230,7 +231,8 @@ function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
     if (url) navigate(url)
   }
 
-  const hasUnread = (presentedView.newPostCount || 0) > 0
+  const chatBadgeCount = viewUnreadBadgeCount(presentedView)
+  const showUnreadDot = viewShowsUnreadDot(presentedView)
 
   const iconTile = (
     <div
@@ -290,8 +292,13 @@ function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
           <CardIconField view={presentedView} tint={tint} w={208} h={176} seed={fieldSeed(view.id)} />
           )}
 
-      {hasUnread && (
-        <span className='absolute top-2 right-2 z-10 w-3 h-3 rounded-full bg-orange-500 border-2 border-black/40' />
+      {showUnreadDot && (
+        <span className='absolute -top-1.5 -right-1.5 z-10 w-3 h-3 rounded-full bg-orange-500 border-2 border-background' />
+      )}
+      {chatBadgeCount != null && (
+        <span className='absolute -top-1.5 -right-1.5 z-10 min-w-5 h-5 px-1 rounded-full bg-accent text-white text-xs font-bold flex items-center justify-center border-2 border-background'>
+          {chatBadgeCount}
+        </span>
       )}
 
       {hasExtraContent
