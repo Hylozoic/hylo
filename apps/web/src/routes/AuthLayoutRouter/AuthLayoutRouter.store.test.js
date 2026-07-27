@@ -2,25 +2,28 @@
 import reducer, { ormSessionReducer } from './AuthLayoutRouter.store'
 import { FETCH_FOR_CURRENT_USER, LOGOUT_PENDING } from 'store/constants'
 import { LOCATION_CHANGE } from 'redux-first-history'
-import rollbar from 'client/rollbar'
+import errorReporter from 'client/errorReporter'
 import orm from 'store/models'
 
-jest.mock('client/rollbar', () => ({}))
+jest.mock('client/errorReporter', () => ({
+  __esModule: true,
+  default: {}
+}))
 
 describe('reducer', () => {
   describe(`when ${FETCH_FOR_CURRENT_USER}`, () => {
     beforeEach(() => {
-      rollbar.configure = jest.fn()
+      errorReporter.configure = jest.fn()
     })
 
-    test('rollbar called', () => {
+    test('errorReporter called', () => {
       const action = {
         type: FETCH_FOR_CURRENT_USER,
         payload: { data: { me: { id: '1', username: 'Proteus', email: 'prot@e.us' } } }
       }
 
       reducer({}, action)
-      expect(rollbar.configure).toBeCalled()
+      expect(errorReporter.configure).toBeCalled()
     })
 
     it('does nothing if the action had an error', () => {
@@ -31,7 +34,7 @@ describe('reducer', () => {
       }
 
       reducer({}, action)
-      expect(rollbar.configure).not.toBeCalled()
+      expect(errorReporter.configure).not.toBeCalled()
     })
   })
 

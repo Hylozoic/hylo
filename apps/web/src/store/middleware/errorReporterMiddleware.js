@@ -1,14 +1,22 @@
-import rollbar from 'client/rollbar'
+import errorReporter, { addBreadcrumb, SENTRY_DEBUG } from 'client/errorReporter'
 import { get } from 'lodash/fp'
 
-export default function rollbarMiddleware (store) {
+/*
+  Reports redux action errors to Sentry. When VITE_SENTRY_DEBUG=true it also
+  leaves a breadcrumb for every dispatched action, so error reports from
+  staging/review builds include a trail of what the app was doing.
+*/
+export default function errorReporterMiddleware (store) {
   return next => action => {
     const { error, type, payload } = action
+    if (SENTRY_DEBUG) {
+      addBreadcrumb({ category: 'redux', message: type, level: error ? 'error' : 'info' })
+    }
     if (error) {
       let errMsg = `action error for ${type}`
       const serverMessage = get('response.body', payload)
       if (serverMessage) errMsg += `: ${serverMessage}`
-      rollbar.error(errMsg, { action: JSON.parse(safeStringify(action)) })
+      errorReporter.error(errMsg, { action: JSON.parse(safeStringify(action)) })
     }
     return next(action)
   }

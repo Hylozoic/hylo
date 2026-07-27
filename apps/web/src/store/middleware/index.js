@@ -9,7 +9,7 @@ import pendingMiddleware from './pendingMiddleware'
 import optimisticMiddleware from './optimisticMiddleware'
 import userBlockingMiddleware from './userBlockingMiddleware'
 import mixpanelMiddleware from './mixpanelMiddleware'
-import rollbarMiddleware from './rollbarMiddleware'
+import errorReporterMiddleware from './errorReporterMiddleware'
 import bootstrapMiddleware from './bootstrapMiddleware'
 
 export default function createMiddleware (routerMiddleware, req) {
@@ -22,7 +22,7 @@ export default function createMiddleware (routerMiddleware, req) {
     promiseMiddleware,
     userBlockingMiddleware,
     mixpanelMiddleware,
-    rollbarMiddleware,
+    errorReporterMiddleware,
     bootstrapMiddleware,
     isDev && createLogger({ collapsed: true })
   ])
