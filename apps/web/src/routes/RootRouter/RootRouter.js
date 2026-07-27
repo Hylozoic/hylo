@@ -21,7 +21,7 @@ import { getAuthorized } from 'store/selectors/getSignupState'
 import { getAuthSessionUnknown } from 'store/selectors/getAuthSession'
 import { hasBootstrapCache, getBootstrapRehydrated } from 'store/selectors/getBootstrap'
 import { sendMessageToWebView } from 'util/webView'
-import { mobileAuthBreadcrumb, mobileAuthReport, mobileAuthStuck } from 'util/mobileAuthTrace'
+import { mobileAuthBreadcrumb, mobileAuthReport, mobileAuthStuck, scheduleMobileAuthStuckReports } from 'util/mobileAuthTrace'
 
 if (!isTest && config.mixpanel.token) {
   mixpanel.init(config.mixpanel.token, { debug: !isProduction })
@@ -163,6 +163,7 @@ export default function RootRouter () {
         const payload = JSON.parse(event.data)
         if (payload?.type !== WebViewMessageTypes.SESSION_READY) return
         mobileAuthBreadcrumb('SESSION_READY from native')
+        mobileAuthReport('WebView auth: SESSION_READY from native')
         runCheckLogin()
       } catch (e) { /* non-JSON postMessage */ }
     }
@@ -203,6 +204,7 @@ export default function RootRouter () {
     }
     writeMobileReauthAttempts(attempts + 1)
     mobileAuthBreadcrumb('unauthorized — VERIFY_AUTH to native', { attempt: attempts + 1 })
+    mobileAuthReport('WebView auth: VERIFY_AUTH sent to native', { attempt: attempts + 1 })
     sendMessageToWebView(WebViewMessageTypes.VERIFY_AUTH)
   }, [isAuthSessionUnknown, isAuthorized])
 
@@ -212,8 +214,6 @@ export default function RootRouter () {
 
     const isStuck = () =>
       isAuthSessionUnknown || mobileRecovering || !isAuthorized
-
-    if (!isStuck()) return
 
     const report = () => {
       if (!isStuck()) return
@@ -230,12 +230,7 @@ export default function RootRouter () {
       })
     }
 
-    const initial = setTimeout(report, 15000)
-    const interval = setInterval(report, 20000)
-    return () => {
-      clearTimeout(initial)
-      clearInterval(interval)
-    }
+    return scheduleMobileAuthStuckReports(isStuck, report)
   }, [
     isAuthSessionUnknown,
     isAuthorized,

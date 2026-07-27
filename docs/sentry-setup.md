@@ -56,6 +56,18 @@ Set in `apps/mobile/.env` (or Bitrise env) **before** building. Not a Sentry env
 
 Do **not** enable `AUTH_DEBUG` on production store builds.
 
+### Mobile: WebView auth handshake telemetry (automatic on staging API)
+
+When `API_HOST` contains `staging` (typical Bitrise review/staging builds), native code emits low-volume Sentry messages tagged `[auth-handshake]` for:
+
+- `session/from-token` success/failure
+- Cookie bridge, `VERIFY_AUTH`, `SESSION_READY`, `AUTH_SUCCESS`, `LOGOUT`, `WEB_BOOT`
+- `PrimaryWebView` loading overlay at 5s / 15s / 30s
+
+Same events also fire when `AUTH_DEBUG=true`. **Prod API + App Store builds** do not emit these unless `AUTH_DEBUG` is set.
+
+On the **web** side (WebView JS), `mobileAuthReport` fires immediately when a stall starts, then every 5s / 10s while `RootRouter` or `AuthLayoutRouter` is waiting on auth/bootstrap. Search Sentry for `WebView auth still loading` or `VERIFY_AUTH sent to native`.
+
 ---
 
 ## Environment variables by deployment

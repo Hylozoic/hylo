@@ -5,7 +5,7 @@ import CookieManager from '@react-native-cookies/cookies'
 import { isNull, isUndefined, omitBy, reduce } from 'lodash'
 import apiHost from 'util/apiHost'
 import { getTokens, refreshAndSaveTokens } from 'util/tokenStore'
-import { authLog, maskToken, AUTH_DEBUG } from 'util/authDebug'
+import { authLog, maskToken, AUTH_DEBUG, authHandshakeEvent } from 'util/authDebug'
 
 const COOKIE_KEY = Config.SESSION_COOKIE_KEY || 'hylo_session_cookie'
 
@@ -149,15 +149,27 @@ export async function sessionCookieFromToken () {
     }
 
     if (!resp.ok) {
-      authLog('session/from-token failed', `${resp.status} ${sessionFromTokenUrl()}`)
+      const tokenUrl = sessionFromTokenUrl()
+      authLog('session/from-token failed', `${resp.status} ${tokenUrl}`)
+      let host = ''
+      try {
+        host = new URL(tokenUrl).host
+      } catch (e) { /* ignore */ }
+      authHandshakeEvent('session/from-token failed', { status: resp.status, host }, 'warning')
       return null
     }
 
     await setSessionCookie(resp)
     await logCookieJar('after from-token sync')
+    let host = ''
+    try {
+      host = new URL(sessionFromTokenUrl()).host
+    } catch (e) { /* ignore */ }
+    authHandshakeEvent('session/from-token ok', { status: resp.status, host })
     return getSessionCookie()
   } catch (err) {
     console.warn('Failed to derive WebView session from token:', err)
+    authHandshakeEvent('session/from-token error', { message: err?.message || String(err) }, 'warning')
     return null
   }
 }

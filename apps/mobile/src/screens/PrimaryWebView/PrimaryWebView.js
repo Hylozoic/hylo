@@ -12,7 +12,7 @@ import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useRouteParams from 'hooks/useRouteParams'
 import useNetworkConnectivity from 'hooks/useNetworkConnectivity'
 import useThemeStore from 'store/themeStore'
-import { authEvent } from 'util/authDebug'
+import { authHandshakeEvent } from 'util/authDebug'
 
 /**
  * PrimaryWebView - Single full-screen WebView for all authenticated content
@@ -100,6 +100,7 @@ export default function PrimaryWebView() {
       case WebViewMessageTypes.LOGOUT:
         // Web app triggers logout, native handles the actual logout
         console.log('📱 Logout triggered from WebView')
+        authHandshakeEvent('LOGOUT received from web', {}, 'warning')
         setSessionRecovering(false)
         logout()
         break
@@ -214,20 +215,17 @@ export default function PrimaryWebView() {
 
   useEffect(() => {
     if (!showLoadingOverlay) return
-    const report = () => {
-      authEvent('PrimaryWebView loading overlay', {
+    const delays = [5000, 15000, 30000]
+    const timers = delays.map(ms => setTimeout(() => {
+      authHandshakeEvent('PrimaryWebView loading overlay', {
+        elapsedMs: ms,
         hasLoadedUser: hasLoadedUser.current,
         isWebViewLoading,
         sessionRecovering,
         userId: currentUser?.id
-      })
-    }
-    const initial = setTimeout(report, 15000)
-    const interval = setInterval(report, 20000)
-    return () => {
-      clearTimeout(initial)
-      clearInterval(interval)
-    }
+      }, 'warning')
+    }, ms))
+    return () => timers.forEach(clearTimeout)
   }, [showLoadingOverlay, isWebViewLoading, sessionRecovering, currentUser?.id])
 
   return (

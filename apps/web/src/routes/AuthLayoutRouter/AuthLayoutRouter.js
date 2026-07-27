@@ -12,7 +12,7 @@ import {
 } from 'util/textSelectionTouch'
 import mixpanel from 'mixpanel-browser'
 import config, { isDev, isTest } from 'config/index'
-import { mobileAuthBreadcrumb, mobileAuthReport, mobileAuthStuck } from 'util/mobileAuthTrace'
+import { mobileAuthBreadcrumb, mobileAuthReport, mobileAuthStuck, scheduleMobileAuthStuckReports } from 'util/mobileAuthTrace'
 import CookieConsentLinker from 'components/CookieConsentLinker'
 import ContextMenu from './components/ContextMenu'
 import CreateModal from 'components/CreateModal'
@@ -587,24 +587,17 @@ export default function AuthLayoutRouter (props) {
   useEffect(() => {
     if (!window.HyloMobileV2 || !currentUserLoading) return
     mobileAuthBreadcrumb('auth bootstrap loading screen visible')
-    const initial = setTimeout(() => {
-      if (currentUserLoading) {
-        mobileAuthReport('WebView auth still loading (AuthLayoutRouter bootstrap)', {
-          currentUserLoading: true
-        })
-      }
-    }, 15000)
-    const interval = setInterval(() => {
-      if (currentUserLoading) {
-        mobileAuthReport('WebView auth still loading (AuthLayoutRouter bootstrap)', {
-          currentUserLoading: true
-        })
-      }
-    }, 20000)
-    return () => {
-      clearTimeout(initial)
-      clearInterval(interval)
+
+    const isActive = () => currentUserLoading
+
+    const report = () => {
+      if (!currentUserLoading) return
+      mobileAuthReport('WebView auth still loading (AuthLayoutRouter bootstrap)', {
+        currentUserLoading: true
+      })
     }
+
+    return scheduleMobileAuthStuckReports(isActive, report)
   }, [currentUserLoading])
 
   // If the user turns stack-groups on after a flat MeQuery load, refetch so childGroups are available.

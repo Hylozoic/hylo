@@ -4,7 +4,7 @@ import Config from 'react-native-config'
 import useRouteParams from 'hooks/useRouteParams'
 import AutoHeightWebView from 'react-native-autoheight-webview'
 import { getSessionCookie, clearSessionCookie, ensureWebViewCookies, sessionCookieFromToken } from 'util/session'
-import { authLog, AUTH_DEBUG } from 'util/authDebug'
+import { authLog, AUTH_DEBUG, authHandshakeEvent } from 'util/authDebug'
 import getNativeSessionId from 'util/nativeSessionId'
 import { parseWebViewMessage, sendMessageFromWebView } from '.'
 import { useAuth } from '@hylo/contexts/AuthContext'
@@ -89,7 +89,8 @@ const HyloWebView = React.forwardRef(({
       ? `window.HyloMobileAppVersion=${JSON.stringify(trimmed)};`
       : ''
     const sessionIdLine = `window.HyloNativeSessionId=${JSON.stringify(getNativeSessionId())};`
-    return `${versionLine}${sessionIdLine}window.HyloWebView=true;window.HyloMobileV2=true;true;`
+    const webBootLine = `(function(){try{if(window.ReactNativeWebView){window.ReactNativeWebView.postMessage(JSON.stringify({type:'WEB_BOOT',data:{phase:'flags'}}));}}catch(e){}})();`
+    return `${versionLine}${sessionIdLine}window.HyloWebView=true;window.HyloMobileV2=true;${webBootLine}true;`
   }, [mobileAppVersion])
 
   // Monitor auth state changes and reset recovery state when auth is restored
@@ -129,6 +130,10 @@ const HyloWebView = React.forwardRef(({
           authLog('HyloWebView cookie bridge:', fromToken ? 'token→session ✓' : 'no token, falling back to stored cookie')
           const newCookie = fromToken || await getSessionCookie()
           authLog('HyloWebView final cookie:', newCookie ? `found (${newCookie.slice(0, 30)}…)` : 'none — WebView will not load')
+          authHandshakeEvent('WebView cookie bridge', {
+            fromToken: !!fromToken,
+            hasCookie: !!newCookie
+          }, newCookie ? 'info' : 'warning')
           // Populate the WebView's native cookie jar BEFORE calling setCookie().
           // setCookie() makes `cookie` truthy which immediately renders the WebView
           // and starts loading. If we populate the jar after, there's a race where
@@ -177,14 +182,17 @@ const HyloWebView = React.forwardRef(({
       if (fresh) {
         await ensureWebViewCookies()
         setCookie(fresh)
+        authHandshakeEvent('SESSION_READY sent to web')
         sendMessageFromWebView(webViewRef, WebViewMessageTypes.SESSION_READY)
       } else {
+        authHandshakeEvent('reverifyAuth: no cookie after from-token', {}, 'warning')
         onSessionRecoveryEnd?.()
         await clearSessionCookie()
         logout()
       }
     } catch (error) {
       console.warn('🔑 HyloWebView re-auth failed:', error)
+      authHandshakeEvent('reverifyAuth failed', { message: error?.message || String(error) }, 'warning')
       onSessionRecoveryEnd?.()
       logout()
     }
@@ -196,13 +204,20 @@ const HyloWebView = React.forwardRef(({
 
     if (type === WebViewMessageTypes.VERIFY_AUTH) {
       authLog('HyloWebView VERIFY_AUTH from web — re-minting session')
+      authHandshakeEvent('VERIFY_AUTH received from web')
       reverifyAuth()
       return
     }
 
     if (type === WebViewMessageTypes.AUTH_SUCCESS) {
       authLog('HyloWebView AUTH_SUCCESS from web')
+      authHandshakeEvent('AUTH_SUCCESS received from web')
       onSessionRecoveryEnd?.()
+      return
+    }
+
+    if (type === 'WEB_BOOT') {
+      authHandshakeEvent('WEB_BOOT from web', parsedMessage.data || {})
       return
     }
 
