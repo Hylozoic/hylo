@@ -2,7 +2,7 @@ import PropTypes from 'prop-types'
 import { useEffect } from 'react'
 import { getSocket, socketUrl } from 'client/websockets'
 import { isEqual } from 'lodash'
-import rollbar from 'client/rollbar'
+import errorReporter from 'client/errorReporter'
 
 export default function SocketSubscriber ({ id, type }) {
   useEffect(() => {
@@ -26,7 +26,7 @@ export default function SocketSubscriber ({ id, type }) {
         }
         socket.post(socketUrl(`/noo/${type}/${id}/subscribe`), (body, jwr) => {
           if (!isEqual(body, {})) {
-            rollbar.error(`Failed to connect ${label}: ${body}`)
+            errorReporter.error(`Failed to connect ${label}: ${body}`)
           }
         })
       }
