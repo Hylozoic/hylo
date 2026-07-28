@@ -24,7 +24,7 @@ import { addQuerystringToPath, groupUrl, localSpaceSlug } from '@hylo/navigation
 
 import GroupViewIcon from './GroupViewIcon'
 import { GroupViewEditActions } from './GroupViewSettingsModal'
-import { canDeleteView, canHardDeleteView, isSoftRemoveView } from 'store/models/GroupView'
+import { canBeHomeView, canDeleteView, canHardDeleteView, isSoftRemoveView } from 'store/models/GroupView'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 import { deleteGroupView, reorderGroupView, setGroupViewHidden, setHomeView } from 'store/actions/groupViews'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
@@ -234,6 +234,9 @@ export default function GroupViewEditList ({ views, group, groupSlug, onSettings
 
     const movedView = listViews[oldIndex]
     const finalOrder = arrayMove(listViews, oldIndex, newIndex)
+    // External links (and other non-home types) cannot become the home view.
+    if (!canBeHomeView(finalOrder[0])) return
+
     const params = getReorderParams(finalOrder, newIndex)
     const resolvedParentGroupId = parentGroupId || group?.id
 

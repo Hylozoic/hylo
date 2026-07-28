@@ -19,7 +19,7 @@ import { setHomeView, updateGroupView } from 'store/actions/groupViews'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import fetchForGroup from 'store/actions/fetchForGroup'
 import { updateGroupSettings } from 'routes/GroupSettings/GroupSettings.store'
-import { canDeleteView, canHardDeleteView, isSoftRemoveView, viewTypeHasSettings } from 'store/models/GroupView'
+import { canDeleteView, canHardDeleteView, canSetAsHomeView, isSoftRemoveView, viewTypeHasSettings } from 'store/models/GroupView'
 import { cn } from 'util/index'
 
 /** Build initial custom view form state from a GroupView record. */
@@ -174,8 +174,7 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
   if (!view) return null
 
   const title = displayNameForView(view, t, { spaceGroup: spaceGroupForLabel })
-  const isHome = view.order === 0
-  const canBeHome = !isHome && view.type !== 'separator' && view.type !== 'text' && view.type !== 'space'
+  const canBeHome = canSetAsHomeView(view)
   const canSaveCustom = customForm.name.trim().length >= 2 && customForm.postTypes.length > 0
   const saveDisabled = view.type === 'custom' ? !canSaveCustom : isSaving
 

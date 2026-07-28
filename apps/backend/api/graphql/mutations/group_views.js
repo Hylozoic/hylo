@@ -284,6 +284,10 @@ export async function setHomeView (userId, viewId, groupId, context) {
     throw new GraphQLError('View not found in this group')
   }
 
+  if (GroupView.NON_NAVIGABLE_TYPES.includes(view.get('type'))) {
+    throw new GraphQLError('This view cannot be set as the home view')
+  }
+
   await GroupView.setHomeView({ id: viewId, groupId })
     .catch(err => {
       throw new GraphQLError(`Setting home view failed: ${err.message}`)

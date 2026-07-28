@@ -51,6 +51,14 @@ export const HARD_DELETE_VIEW_TYPES = new Set([
   'text'
 ])
 
+/** Types that cannot be the group's home view (no navigable route / not a landing page). */
+export const NON_HOME_VIEW_TYPES = new Set([
+  'link',
+  'text',
+  'separator',
+  'space'
+])
+
 /** Returns true when a view type is allowed by the group's acceptedPostTypes (null = all allowed). */
 export function viewAcceptedByPostTypes (viewType, acceptedPostTypes) {
   if (acceptedPostTypes == null) return true
@@ -82,6 +90,18 @@ export function canHardDeleteView (view) {
   if (!canDeleteView(view)) return false
   if (view?.type === 'space') return true
   return HARD_DELETE_VIEW_TYPES.has(view?.type)
+}
+
+/** Returns whether this view type is allowed as the group/space home view. */
+export function canBeHomeView (view) {
+  return Boolean(view?.type) && !NON_HOME_VIEW_TYPES.has(view.type)
+}
+
+/** Returns whether the "Set as Home View" action should be offered for this view. */
+export function canSetAsHomeView (view) {
+  if (!view?.id) return false
+  if (view.order === 0) return false
+  return canBeHomeView(view)
 }
 
 class GroupView extends Model {
