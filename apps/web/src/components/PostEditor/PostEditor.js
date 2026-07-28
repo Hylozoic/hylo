@@ -261,6 +261,11 @@ function PostEditorInner ({
   const isSubmittedRef = useRef(false)
   /** Blocks duplicate create/update dispatches before Redux pending state updates. */
   const isSubmittingRef = useRef(false)
+  /**
+   * Latest editor HTML. Kept in a ref so typing does not write into React state on every keystroke.
+   * null means not hydrated yet — draft effect falls back to currentPost.details.
+   */
+  const detailsHtmlRef = useRef(null)
 
   // Default topic for non-chat posts when posting to a group's general stream
   const generalTopic = useSelector(state => !topicName ? getTopicForCurrentRoute(state, DEFAULT_CHAT_TOPIC) : null)
@@ -388,6 +393,14 @@ function PostEditorInner ({
     }
   }, [])
 
+  // Debounced write of editor HTML into React state. Typing stays in TipTap + detailsHtmlRef;
+  // this only syncs for draft persistence (avoids re-rendering the whole form per keystroke).
+  const syncDetailsToCurrentPost = useRef(
+    debounce(400, (html) => {
+      setCurrentPostState(prev => (prev.details === html ? prev : { ...prev, details: html }))
+    })
+  ).current
+
   const applyPostToEditor = useCallback((nextPost) => {
     let post = nextPost
     if (!editing && currentGroup?.id) {
@@ -396,13 +409,15 @@ function PostEditorInner ({
         post = { ...post, groups: [currentGroup, ...(post.groups || [])] }
       }
     }
+    syncDetailsToCurrentPost.cancel()
     setCurrentPostState(post)
     const details = post.details || ''
+    detailsHtmlRef.current = details
     setHasDescription(hasDraftContent(details))
     setEditorInitialContent(details)
     editorRef.current?.setContent(details)
     draftLoadedRef.current = true
-  }, [currentGroup, editing])
+  }, [currentGroup, editing, syncDetailsToCurrentPost])
 
   /**
    * Filters the available group options to find only those groups
@@ -417,8 +432,9 @@ function PostEditorInner ({
 
   useEffect(() => {
     draftLoadedRef.current = false
+    detailsHtmlRef.current = initialPost.details || ''
     postComposerHadBodyDraftRef.current = false
-  }, [draftContextKey])
+  }, [draftContextKey, initialPost.details])
 
   useEffect(() => {
     if (!serverDraftLoaded || draftLoadedRef.current) return
@@ -458,6 +474,12 @@ function PostEditorInner ({
     })
   }, [currentGroup?.id, editing, setCurrentPost])
 
+  // Flush pending details into currentPost on unmount so drafts are not truncated.
+  useEffect(() => () => {
+    syncDetailsToCurrentPost.flush?.()
+    syncDetailsToCurrentPost.cancel()
+  }, [syncDetailsToCurrentPost])
+
   // Persist structural updates (title, metadata, etc.) whenever the draft changes after initial hydration.
   // When the user edits before the server responds, mark draftLoadedRef = true immediately so the
   // server load effect cannot overwrite their changes when the response eventually arrives.
@@ -468,8 +490,14 @@ function PostEditorInner ({
   useEffect(() => {
     if (isSubmittedRef.current) return
     if (typeSwitchDialog) return
+    // Prefer live editor HTML so title/metadata draft saves include latest typing
+    // even before the debounced details → currentPost sync lands.
+    const details = detailsHtmlRef.current ?? (currentPost.details || '')
+    const postForDraft = details === currentPost.details
+      ? currentPost
+      : { ...currentPost, details }
 
-    const payload = buildPostDraftPayload(currentPost)
+    const payload = buildPostDraftPayload(postForDraft)
 
     if (!hasPostDraftPayloadContent(payload)) {
       saveServerDraft(JSON.stringify(payload))
@@ -719,11 +747,14 @@ function PostEditorInner ({
    * Clears form fields, attachments, and link previews
    */
   const reset = useCallback(() => {
-    editorRef.current?.setContent(initialPost.details)
-    setHasDescription(initialPost.details?.length > 0)
+    syncDetailsToCurrentPost.cancel()
+    const details = initialPost.details || ''
+    detailsHtmlRef.current = details
+    editorRef.current?.setContent(details)
+    setHasDescription(details.length > 0)
     dispatch(clearLinkPreview())
     setCurrentPost(() => ({ ...initialPost, linkPreview: null, linkPreviewFeatured: false }))
-    setEditorInitialContent(initialPost.details || '')
+    setEditorInitialContent(details)
     dispatch(clearAttachments('post', 'new', 'image'))
     dispatch(clearAttachments('post', 'new', 'file'))
     setShowLocation(POST_TYPES_SHOW_LOCATION_BY_DEFAULT.includes(initialPost.type) || selectedLocation)
@@ -739,7 +770,7 @@ function PostEditorInner ({
     } else {
       toFieldRef?.current?.reset()
     }
-  }, [clearDraft, initialPost, autoFocus, selectedLocation, setCurrentPost])
+  }, [clearDraft, initialPost, autoFocus, selectedLocation, setCurrentPost, syncDetailsToCurrentPost])
 
   /**
    * Calculates an end time based on start time, preserving duration if both times exist
@@ -759,7 +790,12 @@ function PostEditorInner ({
   const handlePostTypeSelection = useCallback((type) => {
     if (type === currentPost.type) return
 
-    const currentPayload = buildPostDraftPayload(currentPost)
+    syncDetailsToCurrentPost.flush?.()
+    const postWithDetails = {
+      ...currentPost,
+      details: detailsHtmlRef.current ?? currentPost.details
+    }
+    const currentPayload = buildPostDraftPayload(postWithDetails)
     inSessionDraftByTypeRef.current[currentPost.type] = currentPayload
     pendingTypeSwitchRef.current = {
       fromType: currentPost.type,
@@ -778,11 +814,12 @@ function PostEditorInner ({
     setCurrentPost(prev => ({
       ...prev,
       type,
+      details: postWithDetails.details,
       // Drop destinations that do not accept the newly selected post type
       groups: (prev.groups || []).filter(g => groupAcceptsPostType(g, type))
     }))
     setTimeout(() => { titleInputRef.current && titleInputRef.current.focus() }, 100)
-  }, [currentPost, navigate, setCurrentPost, urlLocation])
+  }, [currentPost, navigate, setCurrentPost, syncDetailsToCurrentPost, urlLocation])
 
   const handleKeepCurrentTypeContent = useCallback(() => {
     if (typeSwitchDialog?.targetType && typeSwitchDialog?.carriedPost) {
@@ -808,11 +845,22 @@ function PostEditorInner ({
     setCurrentPost(prev => (title === prev.title ? prev : { ...prev, title }))
   }, [setCurrentPost])
 
+  /**
+   * TipTap onUpdate handler. Avoid putting full HTML into React state on every keystroke —
+   * that re-renders the entire PostEditor and causes typing lag / out-of-order characters
+   * as content grows. Keep HTML in a ref; only flip hasDescription when emptiness changes;
+   * debounce syncing details into currentPost for draft persistence.
+   */
   const handleDetailsChange = useCallback((html) => {
-    const detailsText = editorRef.current?.getText?.() || ''
-    setHasDescription(detailsText.length > 0)
-    setCurrentPost(prev => ({ ...prev, details: html }))
-  }, [setCurrentPost])
+    detailsHtmlRef.current = html
+    const hasContent = (editorRef.current?.getText?.() || '').length > 0
+    // queueMicrotask: TipTap updates synchronously; deferring avoids render-cycle conflicts
+    // that can surface as characters appearing out of order under load.
+    queueMicrotask(() => {
+      setHasDescription(prev => (prev === hasContent ? prev : hasContent))
+      syncDetailsToCurrentPost(html)
+    })
+  }, [syncDetailsToCurrentPost])
 
   const handleBudgetChange = useCallback((evt) => {
     const budget = evt.target.value
@@ -1091,7 +1139,9 @@ function PostEditorInner ({
       if (onSave) onSave(postToSave)
       // Prevent any draft saves triggered by re-renders during or after the mutation.
       isSubmittedRef.current = true
-      // Cancel any in-flight debounced draft save so it cannot fire during the async mutation.
+      // Drop pending details→state sync and cancel in-flight draft save so neither
+      // fires during the async mutation. Save already reads HTML from the editor.
+      syncDetailsToCurrentPost.cancel()
       cancelPendingSave()
 
       const savedPost = await dispatch(saveFunc(postToSave))
@@ -1111,7 +1161,7 @@ function PostEditorInner ({
       isSubmittingRef.current = false
       throw error
     }
-  }, [afterSave, announcementSelected, cancelPendingSave, clearDraft, currentFundingRound?.id, currentPost, currentTrack?.id, currentUser, dispatch, fileAttachments, imageAttachments, isEditing, onSave, selectedLocation, setIsDirty, viewId])
+  }, [afterSave, announcementSelected, cancelPendingSave, clearDraft, currentFundingRound?.id, currentPost, currentTrack?.id, currentUser, dispatch, fileAttachments, imageAttachments, isEditing, onSave, selectedLocation, setIsDirty, syncDetailsToCurrentPost, viewId])
 
   /**
    * Initiates the save process with validation and confirmation checks

@@ -19,7 +19,7 @@ import { setHomeView, updateGroupView } from 'store/actions/groupViews'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import fetchForGroup from 'store/actions/fetchForGroup'
 import { updateGroupSettings } from 'routes/GroupSettings/GroupSettings.store'
-import { canDeleteView, canHardDeleteView, isSoftRemoveView, viewTypeHasSettings } from 'store/models/GroupView'
+import { canDeleteView, canHardDeleteView, canSetAsHomeView, isSoftRemoveView, viewTypeHasSettings } from 'store/models/GroupView'
 import { cn } from 'util/index'
 
 /** Build initial custom view form state from a GroupView record. */
@@ -174,8 +174,7 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
   if (!view) return null
 
   const title = displayNameForView(view, t, { spaceGroup: spaceGroupForLabel })
-  const isHome = view.order === 0
-  const canBeHome = !isHome && view.type !== 'separator' && view.type !== 'text' && view.type !== 'space'
+  const canBeHome = canSetAsHomeView(view)
   const canSaveCustom = customForm.name.trim().length >= 2 && customForm.postTypes.length > 0
   const saveDisabled = view.type === 'custom' ? !canSaveCustom : isSaving
 
@@ -288,8 +287,9 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
   )
 }
 
-/** Inline gear / remove controls shown on hover in edit mode. */
-export function GroupViewEditActions ({ view, onSettings, onDelete, className }) {
+/** Inline gear / remove controls shown on hover in edit mode.
+ * X moves soft-removable views to More Views; trash permanently deletes when allowed. */
+export function GroupViewEditActions ({ view, onSettings, onHide, onDelete, className }) {
   const { t } = useTranslation()
   const removable = canDeleteView(view)
   const hardDeletable = canHardDeleteView(view)
@@ -307,24 +307,24 @@ export function GroupViewEditActions ({ view, onSettings, onDelete, className })
           <SettingsIcon />
         </button>
       )}
-      {softRemovable && (
+      {softRemovable && onHide && (
         <button
           type='button'
           className='p-1 text-foreground/50 hover:text-destructive rounded'
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(view) }}
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onHide(view) }}
           aria-label={t('Remove from Menu')}
           title={t('Remove from Menu')}
         >
           <X className='w-4 h-4' />
         </button>
       )}
-      {hardDeletable && (
+      {hardDeletable && onDelete && (
         <button
           type='button'
           className='p-1 text-foreground/50 hover:text-destructive rounded'
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(view) }}
-          aria-label={t('Delete')}
-          title={t('Delete')}
+          aria-label={view?.type === 'space' ? t('Delete Space') : t('Delete')}
+          title={view?.type === 'space' ? t('Delete Space') : t('Delete')}
         >
           <Trash2 className='w-4 h-4' />
         </button>

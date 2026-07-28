@@ -1,41 +1,24 @@
 import { POST_TYPES } from '@hylo/presenters/PostPresenter'
-import { butterflyBush, mediumPurple, pictonBlue, slateGrey } from '@hylo/presenters/colors'
+import { slateGrey } from '@hylo/presenters/colors'
 
 /**
- * Brand color for a dashboard view card, keyed by view type.
- * Post-type views use the canonical POST_TYPES primaryColor tokens; the rest
- * follow the prototype's palette mapped onto existing named colors.
+ * Brand colors for post-type stream views only.
+ * Custom, map, members, chat, all, welcome, etc. use slate grey —
+ * still with the icon-field background, just neutrally tinted.
  */
-const VIEW_TYPE_COLOR = {
-  chat: POST_TYPES.discussion.primaryColor,
+const POST_TYPE_VIEW_COLOR = {
   discussions: POST_TYPES.discussion.primaryColor,
-  stream: POST_TYPES.discussion.primaryColor,
-  'all-activity': POST_TYPES.discussion.primaryColor,
-  posts: POST_TYPES.discussion.primaryColor,
   events: POST_TYPES.event.primaryColor,
   'requests-and-offers': POST_TYPES.request.primaryColor,
   resources: POST_TYPES.resource.primaryColor,
   projects: POST_TYPES.project.primaryColor,
   proposals: POST_TYPES.proposal.primaryColor,
-  decisions: POST_TYPES.proposal.primaryColor,
-  map: butterflyBush,
-  members: butterflyBush,
-  groups: butterflyBush,
-  about: slateGrey,
-  welcome: slateGrey,
-  link: slateGrey,
-  moderation: slateGrey,
-  'track-actions': mediumPurple,
-  tracks: mediumPurple,
-  space: butterflyBush,
-  group: butterflyBush,
-  'funding-round-submissions': POST_TYPES.resource.primaryColor,
-  'manage-round': POST_TYPES.resource.primaryColor,
-  'funding-rounds': POST_TYPES.resource.primaryColor
+  decisions: POST_TYPES.proposal.primaryColor
 }
 
+/** Brand color for a view card — post-type colors, or slate grey for everything else. */
 export function viewCardColor (view) {
-  return VIEW_TYPE_COLOR[view?.type] || pictonBlue
+  return POST_TYPE_VIEW_COLOR[view?.type] || slateGrey
 }
 
 /** Readable icon ink for a solid color tile (dark ink on light brand colors like gold). */

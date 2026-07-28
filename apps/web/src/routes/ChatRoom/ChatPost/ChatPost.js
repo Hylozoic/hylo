@@ -377,7 +377,9 @@ export default function ChatPost ({
           id='flag-tt'
         />
         {linkPreview?.url && linkPreviewFeatured && isVideo && (
-          <Feature url={linkPreview.url} />
+          <div className='ml-[42px] mt-2 max-w-[700px] overflow-hidden rounded-lg'>
+            <Feature url={linkPreview.url} />
+          </div>
         )}
         {linkPreview && !linkPreviewFeatured && (
           <LinkPreview {...pick(['title', 'description', 'imageUrl', 'url'], linkPreview)} className='px-5 pb-[0.6rem] pl-[42px] block [&>div]:mb-0 max-w-[700px]' />

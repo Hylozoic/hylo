@@ -1296,7 +1296,7 @@ module.exports = bookshelf.Model.extend(merge({
       layout: 'two-column'
     }
 
-    const homeRoute = defaultSettings.homeView === 'CHAT' ? '/chat/general' : defaultSettings.homeView === 'MAP' ? '/map' : '/stream'
+    const homeRoute = defaultSettings.homeView === 'CHAT' ? '/chat/general' : defaultSettings.homeView === 'MAP' ? '/map' : '/all'
 
     // eslint-disable-next-line camelcase
     const access_code = attrs.access_code || await Group.getNewAccessCode()

@@ -42,13 +42,14 @@ import { useViewHeader } from 'contexts/ViewHeaderContext'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import fetchGroupRelationships from 'store/actions/fetchGroupRelationships'
-import { viewAcceptedByPostTypes } from 'store/models/GroupView'
+import { createGroupView, deleteGroupView, setGroupViewHidden } from 'store/actions/groupViews'
+import { deleteGroup } from 'routes/GroupSettings/GroupSettings.store'
+import { canHardDeleteView, viewAcceptedByPostTypes } from 'store/models/GroupView'
 import { viewShowsUnreadDot, viewUnreadBadgeCount } from 'util/viewUnreadBadges'
-import Avatar from 'components/Avatar'
-import LucideIcon from 'components/LucideIcon/LucideIcon'
 import CardIconField from './CardIconField'
 import GroupViewIcon from './GroupViewIcon'
 import GroupViewEditList from './GroupViewEditList'
+import GroupViewCard, { SpaceViewCard } from './GroupViewCard'
 import { viewCardColor, inkOn, fieldSeed, cardGradient, cardFieldTint, cardHoverRing, cardRestRing, cardNeutralBg } from './viewCardTheme'
 import GroupViewSettingsModal from './GroupViewSettingsModal'
 import SpaceSettingsModal from './SpaceSettingsModal'
@@ -193,8 +194,8 @@ function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
       : `https://api.mapbox.com/styles/v1/mapbox/${mapStyle}/static/0,20,1,0/280x200@2x?access_token=${mapboxConfig.token}`
     : null
 
-  // Avatar-backed cards (spaces, groups, members) show an image, not a pattern;
-  // icon cards get the postType color theme with the icon-field background.
+  // Avatar-backed cards (spaces, groups, members) show an image; icon cards use
+  // the view color (post-type brand, or slate grey for everything else).
   const linkedGroup = presentedView.linkedGroup
   const bgImageUrl = presentedView.avatarUrl
     ? (linkedGroup?.bannerUrl || presentedView.avatarUrl)
@@ -263,13 +264,13 @@ function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
       onMouseLeave={() => setHover(false)}
       className={cn(CARD_CLASS, cardChrome(isDark))}
       style={{
-        background: bgImageUrl ? cardNeutralBg(effectiveColorScheme) : cardGradient(col, effectiveColorScheme),
-        // Light mode: icon cards take their border from the view color (same as the
-        // icon tile) — softened at rest, full strength on hover (hex-alpha animates)
+        background: bgImageUrl
+          ? cardNeutralBg(effectiveColorScheme)
+          : cardGradient(col, effectiveColorScheme),
+        // Light mode: icon cards take their border from the view color (brand or grey)
         ...(!isDark && !bgImageUrl ? { borderColor: hover ? col : `${col}59` } : {}),
-        // Always set both shadows in matching structure so the transition interpolates
         boxShadow: hover
-          ? `${cardHoverShadow(isDark)}, ${cardHoverRing(col)}`
+          ? `${cardHoverShadow(isDark)}, ${bgImageUrl ? cardRestRing(col) : cardHoverRing(col)}`
           : `${cardRestShadow(isDark)}, ${cardRestRing(col)}`
       }}
       role='button'
@@ -288,9 +289,7 @@ function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
             <div className='absolute inset-0' style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.6) 100%)' }} />
           </>
           )
-        : (
-          <CardIconField view={presentedView} tint={tint} w={208} h={176} seed={fieldSeed(view.id)} />
-          )}
+        : <CardIconField view={presentedView} tint={tint} w={208} h={176} seed={fieldSeed(view.id)} />}
 
       {showUnreadDot && (
         <span className='absolute -top-1.5 -right-1.5 z-10 w-3 h-3 rounded-full bg-orange-500 border-2 border-background' />
@@ -341,57 +340,6 @@ function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
   )
 }
 
-/** Card for a space (or related group) in the More Spaces grid. Image-backed
- * with a frosted-glass tile, matching the design's space cards. */
-function EntityCard ({ name, icon, avatarUrl, bannerUrl, onClick, badge }) {
-  const { effectiveColorScheme } = useAppearance()
-  const isDark = effectiveColorScheme === 'dark'
-  const bgImageUrl = bannerUrl || avatarUrl
-  const onLightSurface = !isDark && !bgImageUrl
-  return (
-    <div
-      onClick={onClick}
-      className={cn(CARD_CLASS, cardChrome(isDark))}
-      style={{ background: cardNeutralBg(effectiveColorScheme) }}
-      role='button'
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          onClick?.()
-        }
-      }}
-    >
-      {bgImageUrl && (
-        <>
-          <div className='absolute inset-0 bg-cover bg-center' style={bgImageStyle(bgImageUrl)} />
-          <div className='absolute inset-0' style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.6) 100%)' }} />
-        </>
-      )}
-      <div className='relative h-full'>
-        <div className='absolute inset-0 grid place-items-center'>
-          <div
-            className={cn('w-14 h-14 rounded-[15px] grid place-items-center shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.35)]', onLightSurface ? 'text-foreground/80' : 'text-white')}
-            style={onLightSurface
-              ? { background: 'hsl(0 0% 0% / 0.06)', border: '1px solid hsl(0 0% 0% / 0.15)' }
-              : { background: 'hsl(0 0% 100% / 0.16)', backdropFilter: 'blur(4px)', border: '1px solid hsl(0 0% 100% / 0.28)' }}
-          >
-            {avatarUrl
-              ? <Avatar avatarUrl={avatarUrl} name={name} medium className='!w-10 !h-10' />
-              : icon
-                ? <LucideIcon name={icon} className='w-7 h-7' />
-                : <div className={cn('w-7 h-7 rounded-full', onLightSurface ? 'bg-black/15' : 'bg-white/20')} />}
-          </div>
-        </div>
-        <div className='absolute left-0 right-0 top-[calc(50%+28px)] bottom-0 flex flex-col items-center justify-center text-center px-3'>
-          <h3 className={cn('text-sm font-bold line-clamp-2 m-0 leading-tight', onLightSurface ? 'text-foreground' : 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]')}>{name}</h3>
-          {badge && <span className={cn('text-[10.5px] font-semibold mt-1', onLightSurface ? 'text-foreground/60' : 'text-white/70 [text-shadow:0_1px_4px_rgba(0,0,0,0.6)]')}>{badge}</span>}
-        </div>
-      </div>
-    </div>
-  )
-}
-
 /** Card opening the More Views and Spaces nested grid. */
 function MoreSpacesCard ({ onClick, t }) {
   const { effectiveColorScheme } = useAppearance()
@@ -429,8 +377,16 @@ function MoreSpacesCard ({ onClick, t }) {
   )
 }
 
-/** Nested More Views and Spaces grid with section headers. */
-function MoreSpacesGrid ({ group, groupSlug, navigate, t }) {
+/** Nested More Views and Spaces grid with section headers. Supports edit mode actions. */
+function MoreSpacesGrid ({
+  group,
+  groupSlug,
+  navigate,
+  t,
+  isEditing = false,
+  onOpenSettings,
+  onOpenSpaceSettings
+}) {
   const dispatch = useDispatch()
   const sectionsRaw = useSelector(state => getMoreViewsSections(state, group))
   const canManageSpaces = useSelector(state => hasResponsibilityForGroup(state, {
@@ -452,6 +408,7 @@ function MoreSpacesGrid ({ group, groupSlug, navigate, t }) {
     isPendingFor([FETCH_GROUP_SPACES, FETCH_GROUP_RELATIONSHIPS], state)
   )
   const hasRelatedGroups = parentGroups.length + childGroups.length + peerGroups.length > 0
+  const groupViews = useSelector(state => getGroupViews(state, group))
 
   useEffect(() => {
     if (!group?.id || !groupSlug) return
@@ -461,113 +418,180 @@ function MoreSpacesGrid ({ group, groupSlug, navigate, t }) {
   }, [dispatch, group?.id, groupSlug])
 
   const handleOpenSpace = useCallback((space) => {
+    if (isEditing) return
     const local = localSpaceSlug(groupSlug, space.slug)
     navigate(spaceUrl(groupSlug, local), { state: { fromMoreViews: true } })
-  }, [groupSlug, navigate])
+  }, [groupSlug, navigate, isEditing])
 
   const handleOpenView = useCallback((view) => {
+    if (isEditing) return
     const presented = GroupViewPresenter(view)
     const url = menuViewUrl(groupSlug, presented)
     if (url) navigate(url)
-  }, [groupSlug, navigate])
+  }, [groupSlug, navigate, isEditing])
+
+  const handleAddViewToMenu = useCallback(async (view) => {
+    if (!group?.id || !view?.id) return
+    try {
+      await dispatch(setGroupViewHidden({ id: view.id, groupId: group.id, hidden: false }))
+      await dispatch(fetchGroupViews(group.id))
+    } catch (error) {
+      console.error('Failed to add view to menu:', error)
+    }
+  }, [dispatch, group?.id])
+
+  const handleAddSpaceToMenu = useCallback(async (space) => {
+    if (!group?.id || !space?.id) return
+    try {
+      const existing = (groupViews || []).find(v =>
+        v.type === 'space' && String(v.linkedGroup?.id) === String(space.id)
+      )
+      if (existing?.id) {
+        await dispatch(setGroupViewHidden({ id: existing.id, groupId: group.id, hidden: false }))
+      } else {
+        await dispatch(createGroupView({
+          groupId: group.id,
+          type: 'space',
+          linkedGroupId: space.id,
+          addToEnd: true
+        }))
+      }
+      await dispatch(fetchGroupViews(group.id))
+      await dispatch(fetchGroupSpaces(group.id))
+    } catch (error) {
+      console.error('Failed to add space to menu:', error)
+    }
+  }, [dispatch, group?.id, groupViews])
+
+  const handleDeleteView = useCallback(async (view) => {
+    if (!canHardDeleteView(view) || !group?.id) return
+    const label = displayNameForView(GroupViewPresenter(view), t)
+    if (!window.confirm(t('Are you sure you want to permanently delete {{name}}?', { name: label }))) return
+    try {
+      await dispatch(deleteGroupView(view.id, group.id))
+      await dispatch(fetchGroupViews(group.id))
+    } catch (error) {
+      console.error('Failed to delete view:', error)
+    }
+  }, [dispatch, group?.id, t])
+
+  const handleDeleteSpace = useCallback(async (space) => {
+    if (!space?.id) return
+    const confirmed = window.confirm(
+      t('Are you sure you want to permanently delete {{name}}? Posts in this space will no longer be accessible.', {
+        name: space.name
+      })
+    )
+    if (!confirmed) return
+    try {
+      await dispatch(deleteGroup(space.id))
+      await dispatch(fetchGroupSpaces(group.id))
+      await dispatch(fetchGroupViews(group.id))
+    } catch (error) {
+      console.error('Failed to delete space:', error)
+    }
+  }, [dispatch, group?.id, t])
 
   const offMenuViews = useMemo(() => {
-    return (sections.offMenuViews || []).filter(view => {
+    const views = (sections.offMenuViews || []).filter(view => {
       if (view.type === 'related-groups' && !hasRelatedGroups) return false
       return true
     })
-  }, [sections.offMenuViews, hasRelatedGroups])
+    return [...views].sort((a, b) =>
+      displayNameForView(GroupViewPresenter(a), t).localeCompare(
+        displayNameForView(GroupViewPresenter(b), t)
+      )
+    )
+  }, [sections.offMenuViews, hasRelatedGroups, t])
 
-  const gridSections = useMemo(() => {
-    const result = []
-    if (offMenuViews.length) {
-      result.push({
-        title: t('Views'),
-        items: offMenuViews.map(view => {
-          const presented = GroupViewPresenter(view)
-          return {
-            key: view.id,
-            name: displayNameForView(presented, t),
-            icon: presented.icon || presented.type,
-            onClick: () => handleOpenView(view)
-          }
-        })
-      })
-    }
-    if (sections.trackSpaces?.length) {
-      result.push({
-        title: t('Tracks'),
-        items: sections.trackSpaces.map(space => ({
-          key: space.id,
-          name: space.name,
-          avatarUrl: space.avatarUrl,
-          bannerUrl: space.bannerUrl,
-          icon: space.icon,
-          badge: space.isDraft ? t('Draft') : null,
-          onClick: () => handleOpenSpace(space)
-        }))
-      })
-    }
-    if (sections.fundingRoundSpaces?.length) {
-      result.push({
-        title: t('Funding Rounds'),
-        items: sections.fundingRoundSpaces.map(space => ({
-          key: space.id,
-          name: space.name,
-          avatarUrl: space.avatarUrl,
-          bannerUrl: space.bannerUrl,
-          icon: space.icon,
-          onClick: () => handleOpenSpace(space)
-        }))
-      })
-    }
-    if (sections.otherSpaces?.length) {
-      result.push({
-        title: t('Other Spaces'),
-        items: sections.otherSpaces.map(space => ({
-          key: space.id,
-          name: space.name,
-          avatarUrl: space.avatarUrl,
-          bannerUrl: space.bannerUrl,
-          icon: space.icon,
-          onClick: () => handleOpenSpace(space)
-        }))
-      })
-    }
-    return result
-  }, [sections, offMenuViews, handleOpenSpace, handleOpenView, t])
+  const showViews = offMenuViews.length > 0
+  const showTracks = sections.trackSpaces?.length > 0
+  const showFundingRounds = sections.fundingRoundSpaces?.length > 0
+  const showOtherSpaces = sections.otherSpaces?.length > 0
+  const hasContent = showViews || showTracks || showFundingRounds || showOtherSpaces
 
-  if (pending && gridSections.length === 0) {
+  if (pending && !hasContent) {
     return <p className='text-sm text-foreground/40'>{t('Loading…')}</p>
   }
 
-  if (gridSections.length === 0) {
+  if (!hasContent) {
     return <p className='text-sm text-foreground/40'>{t('Nothing here yet')}</p>
   }
 
   return (
     <div className='flex flex-col gap-6'>
-      {gridSections.map(section => (
-        <div key={section.title} className='flex flex-col gap-3'>
-          <TextSection>{section.title}</TextSection>
+      {showViews && (
+        <div className='flex flex-col gap-3'>
+          <TextSection>{t('Views')}</TextSection>
           <div className='flex flex-wrap gap-3'>
-            {section.items.map(item => {
-              const handleClick = item.onClick
-              return (
-                <EntityCard
-                  key={item.key}
-                  name={item.name}
-                  icon={item.icon}
-                  avatarUrl={item.avatarUrl}
-                  bannerUrl={item.bannerUrl}
-                  badge={item.badge}
-                  onClick={handleClick}
-                />
-              )
-            })}
+            {offMenuViews.map(view => (
+              <GroupViewCard
+                key={view.id}
+                view={view}
+                isEditing={isEditing}
+                onAddToMenu={handleAddViewToMenu}
+                onOpen={handleOpenView}
+                onOpenSettings={onOpenSettings}
+                onDelete={canHardDeleteView(view) ? handleDeleteView : null}
+              />
+            ))}
           </div>
         </div>
-      ))}
+      )}
+      {showTracks && (
+        <div className='flex flex-col gap-3'>
+          <TextSection>{t('Tracks')}</TextSection>
+          <div className='flex flex-wrap gap-3'>
+            {sections.trackSpaces.map(space => (
+              <SpaceViewCard
+                key={space.id}
+                space={space}
+                isEditing={isEditing}
+                onOpen={handleOpenSpace}
+                onAddToMenu={handleAddSpaceToMenu}
+                onOpenSettings={onOpenSpaceSettings}
+                onDelete={handleDeleteSpace}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+      {showFundingRounds && (
+        <div className='flex flex-col gap-3'>
+          <TextSection>{t('Funding Rounds')}</TextSection>
+          <div className='flex flex-wrap gap-3'>
+            {sections.fundingRoundSpaces.map(space => (
+              <SpaceViewCard
+                key={space.id}
+                space={space}
+                isEditing={isEditing}
+                onOpen={handleOpenSpace}
+                onAddToMenu={handleAddSpaceToMenu}
+                onOpenSettings={onOpenSpaceSettings}
+                onDelete={handleDeleteSpace}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+      {showOtherSpaces && (
+        <div className='flex flex-col gap-3'>
+          <TextSection>{t('Other Spaces')}</TextSection>
+          <div className='flex flex-wrap gap-3'>
+            {sections.otherSpaces.map(space => (
+              <SpaceViewCard
+                key={space.id}
+                space={space}
+                isEditing={isEditing}
+                onOpen={handleOpenSpace}
+                onAddToMenu={handleAddSpaceToMenu}
+                onOpenSettings={onOpenSpaceSettings}
+                onDelete={handleDeleteSpace}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -748,16 +772,31 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
           ? <MoreSpacesGrid group={group} groupSlug={groupSlug} navigate={navigate} t={t} />
           : isEditing
             ? (
-              <div className='flex flex-col gap-3'>
+              <div className='flex flex-col gap-6'>
                 <GroupViewEditList
                   views={groupViews}
                   group={menuGroup}
+                  groupSlug={groupSlug}
                   onSettings={setSettingsView}
                 />
                 <div className='flex flex-col gap-2 max-w-md'>
                   <AddViewButton onClick={() => setShowAddView(true)} />
                   {!spaceGroup && canManageSpaces && <AddSpaceButton onClick={() => setShowAddSpace(true)} />}
                 </div>
+                {!spaceGroup && (
+                  <div className='flex flex-col gap-3 pt-4 border-t border-foreground/10'>
+                    <TextSection>{t('More Views and Spaces')}</TextSection>
+                    <MoreSpacesGrid
+                      group={group}
+                      groupSlug={groupSlug}
+                      navigate={navigate}
+                      t={t}
+                      isEditing
+                      onOpenSettings={setSettingsView}
+                      onOpenSpaceSettings={(space) => setSettingsView({ type: 'space', linkedGroup: space, name: space.name, icon: space.icon })}
+                    />
+                  </div>
+                )}
                 {showAddView && (
                   <AddGroupViewDialog
                     group={menuGroup}

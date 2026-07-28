@@ -15,6 +15,7 @@ import { cn } from 'util/index'
  */
 export default function PostGridItem ({
   childPost,
+  childPostFromSpace,
   currentGroupId,
   post,
   expanded
@@ -64,7 +65,7 @@ export default function PostGridItem ({
         {childPost && (
           <div
             className='absolute top-2 right-2 bg-white/90 rounded p-1 z-10'
-            data-tooltip-content={t('Post from child group')}
+            data-tooltip-content={t(childPostFromSpace ? 'Post from child space' : 'Post from child group')}
             data-tooltip-id={'childgroup-tt' + post.id}
           >
             <Icon name='Subgroup' className='w-4 h-4' />
@@ -110,7 +111,7 @@ export default function PostGridItem ({
       {childPost && (
         <div
           className='absolute top-2 right-2 bg-primary rounded p-1 z-10'
-          data-tooltip-content={t('Post from child group')}
+          data-tooltip-content={t(childPostFromSpace ? 'Post from child space' : 'Post from child group')}
           data-tooltip-id={'childgroup-tt' + post.id}
         >
           <Icon name='Subgroup' className='w-4 h-4' />
