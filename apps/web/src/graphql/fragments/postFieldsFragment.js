@@ -171,6 +171,7 @@ const postFieldsFragment = (withComments, withCompletion = false, withAllComplet
     id
     name
     slug
+    type
   }
   attachments {
     type

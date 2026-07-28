@@ -83,11 +83,18 @@ function streamConfigFromGroupView (groupView) {
   }
 }
 
+/** Returns true when a stream post belongs only to child groups/spaces, not the current group. */
 function isChildGroupPost ({ context, groupSlug, post }) {
   if ([CONTEXT_MY, 'all', 'public'].includes(context)) return false
   const groupSlugs = post.groups?.map(group => group.slug) || []
   if (groupSlugs.length === 0) return false
   return !groupSlugs.includes(groupSlug)
+}
+
+/** Returns true when a child post comes from a space (group type === 'space'). */
+function isChildSpacePost ({ context, groupSlug, post }) {
+  if (!isChildGroupPost({ context, groupSlug, post })) return false
+  return (post.groups || []).some(group => group.type === 'space')
 }
 
 export default function ViewContent (props) {
@@ -604,6 +611,7 @@ export default function ViewContent (props) {
                       currentUser={currentUser}
                       querystringParams={querystringParams}
                       childPost={isChildGroupPost({ context, groupSlug, post })}
+                      childPostFromSpace={isChildSpacePost({ context, groupSlug, post })}
                     />
                   ))}
                 </MasonryGrid>

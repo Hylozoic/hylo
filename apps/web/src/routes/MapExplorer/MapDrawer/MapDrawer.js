@@ -148,7 +148,7 @@ function MapDrawer ({
                 <>
                   <span
                     onClick={handleChildPostInclusion}
-                    data-tooltip-content={childPostInclusion === 'yes' ? t('Hide posts from child groups') : t('Show posts from child groups')}
+                    data-tooltip-content={childPostInclusion === 'yes' ? t('Hide posts from child groups and spaces') : t('Show posts from child groups and spaces')}
                     data-tooltip-id='childgroup-toggle-tt'
                   >
                     <Icon
