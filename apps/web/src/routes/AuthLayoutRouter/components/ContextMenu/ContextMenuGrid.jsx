@@ -194,8 +194,8 @@ function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
       : `https://api.mapbox.com/styles/v1/mapbox/${mapStyle}/static/0,20,1,0/280x200@2x?access_token=${mapboxConfig.token}`
     : null
 
-  // Avatar-backed cards (spaces, groups, members) show an image, not a pattern;
-  // icon cards get the postType color theme with the icon-field background.
+  // Avatar-backed cards (spaces, groups, members) show an image; icon cards use
+  // the view color (post-type brand, or slate grey for everything else).
   const linkedGroup = presentedView.linkedGroup
   const bgImageUrl = presentedView.avatarUrl
     ? (linkedGroup?.bannerUrl || presentedView.avatarUrl)
@@ -264,13 +264,13 @@ function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
       onMouseLeave={() => setHover(false)}
       className={cn(CARD_CLASS, cardChrome(isDark))}
       style={{
-        background: bgImageUrl ? cardNeutralBg(effectiveColorScheme) : cardGradient(col, effectiveColorScheme),
-        // Light mode: icon cards take their border from the view color (same as the
-        // icon tile) — softened at rest, full strength on hover (hex-alpha animates)
+        background: bgImageUrl
+          ? cardNeutralBg(effectiveColorScheme)
+          : cardGradient(col, effectiveColorScheme),
+        // Light mode: icon cards take their border from the view color (brand or grey)
         ...(!isDark && !bgImageUrl ? { borderColor: hover ? col : `${col}59` } : {}),
-        // Always set both shadows in matching structure so the transition interpolates
         boxShadow: hover
-          ? `${cardHoverShadow(isDark)}, ${cardHoverRing(col)}`
+          ? `${cardHoverShadow(isDark)}, ${bgImageUrl ? cardRestRing(col) : cardHoverRing(col)}`
           : `${cardRestShadow(isDark)}, ${cardRestRing(col)}`
       }}
       role='button'
@@ -289,9 +289,7 @@ function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
             <div className='absolute inset-0' style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.6) 100%)' }} />
           </>
           )
-        : (
-          <CardIconField view={presentedView} tint={tint} w={208} h={176} seed={fieldSeed(view.id)} />
-          )}
+        : <CardIconField view={presentedView} tint={tint} w={208} h={176} seed={fieldSeed(view.id)} />}
 
       {showUnreadDot && (
         <span className='absolute -top-1.5 -right-1.5 z-10 w-3 h-3 rounded-full bg-orange-500 border-2 border-background' />

@@ -138,7 +138,12 @@ export default function GroupViewCard ({ view, isEditing, onAddToMenu, onOpen, o
           </div>
         </div>
         <div className='absolute left-0 right-0 top-[calc(50%+28px)] bottom-0 flex flex-col items-center justify-center text-center px-3'>
-          <h3 className={cn('text-sm font-bold line-clamp-2 m-0 leading-tight', isDark ? 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]' : 'text-foreground')}>{title}</h3>
+          <h3 className={cn(
+            'text-sm font-bold line-clamp-2 m-0 leading-tight',
+            isDark ? 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]' : 'text-foreground'
+          )}
+          >{title}
+          </h3>
         </div>
       </div>
       {isEditing && (
