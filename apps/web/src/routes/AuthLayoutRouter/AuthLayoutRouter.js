@@ -77,7 +77,6 @@ import MyTransactions from 'routes/MyTransactions'
 import OfferingDetails from 'routes/OfferingDetails/OfferingDetails'
 import PostDetail from 'routes/PostDetail'
 import Search from 'routes/Search'
-import Stream from 'routes/Stream'
 import ViewContent from 'routes/ViewContent'
 import SpaceContent from 'routes/SpaceContent'
 import Themes from 'routes/Themes'
@@ -618,7 +617,7 @@ export default function AuthLayoutRouter (props) {
     }
   }, [currentGroup?.id, currentGroup?.location, currentGroup?.name, currentGroup?.type, memberships])
 
-  // Keep group loading in sync with the URL before paint so we never mount Stream/chat,
+  // Keep group loading in sync with the URL before paint so we never mount ViewContent/chat,
   // then swap to RouteBootstrapSkeleton when fetchForGroup sets loading (reopen / SPA nav).
   useLayoutEffect(() => {
     if (!currentGroupSlug) {
@@ -980,25 +979,25 @@ export default function AuthLayoutRouter (props) {
                 <Route path='members/:personId/*' element={<MemberProfile />} />
                 <Route path='all/members/:personId/*' element={<MemberProfile />} />
                 {/* **** All and Public Routes **** */}
-                <Route path='all/stream/*' element={<Stream context='all' />} />
-                <Route path='public/stream/*' element={<Stream context='public' />} />
-                <Route path='all/projects/*' element={<Stream context='all' view='projects' />} />
-                <Route path='public/projects/*' element={<Stream context='public' view='projects' />} />
-                <Route path='all/proposals/*' element={<Stream context='all' view='proposals' />} />
-                <Route path='public/proposals/*' element={<Stream context='public' view='proposals' />} />
-                <Route path='all/events/*' element={<Stream context='all' />} />
-                <Route path='public/events/*' element={<Stream context='public' />} />
+                <Route path='all/stream/*' element={<ViewContent context='all' />} />
+                <Route path='public/stream/*' element={<ViewContent context='public' />} />
+                <Route path='all/projects/*' element={<ViewContent context='all' view='projects' />} />
+                <Route path='public/projects/*' element={<ViewContent context='public' view='projects' />} />
+                <Route path='all/proposals/*' element={<ViewContent context='all' view='proposals' />} />
+                <Route path='public/proposals/*' element={<ViewContent context='public' view='proposals' />} />
+                <Route path='all/events/*' element={<ViewContent context='all' view='events' />} />
+                <Route path='public/events/*' element={<ViewContent context='public' view='events' />} />
                 <Route path='all/map/*' element={<MapExplorer context='all' />} />
                 <Route path='public/map/*' element={<MapExplorer context='public' />} />
                 <Route path='public/groups/*' element={<GroupExplorer />} />
-                <Route path='all/topics/:topicName' element={<Stream context='all' />} />
-                <Route path='public/topics/:topicName' element={<Stream context='public' />} />
+                <Route path='all/topics/:topicName' element={<ViewContent context='all' />} />
+                <Route path='public/topics/:topicName' element={<ViewContent context='public' />} />
                 <Route path='all/topics' element={<AllTopics />} />
                 {/* Must be before `public/*` — otherwise `/public/post/:id/edit` matches `public/*` and redirects away */}
-                <Route path='public/post/:postId/edit/*' element={<Stream context='public' />} />
-                <Route path='public/post/:postId/create/*' element={<Stream context='public' />} />
-                <Route path='all' element={isCardMenuUser ? <ContextMenuGrid context='all' /> : <Stream context='my' />} />
-                <Route path='all/*' element={<Stream context='my' />} />
+                <Route path='public/post/:postId/edit/*' element={<ViewContent context='public' />} />
+                <Route path='public/post/:postId/create/*' element={<ViewContent context='public' />} />
+                <Route path='all' element={isCardMenuUser ? <ContextMenuGrid context='all' /> : <ViewContent context='my' />} />
+                <Route path='all/*' element={<ViewContent context='my' />} />
                 <Route path='public' element={isCardMenuUser ? <ContextMenuGrid context='public' /> : <Navigate to='/public/stream' replace />} />
                 <Route path='public/*' element={<Navigate to='/public/stream' replace />} />
                 {/* Must be before `groups/:groupSlug/*` so `/groups/:slug/offerings/:id` is not handled only by the group splat + inner Navigate-to-stream */}
@@ -1025,7 +1024,7 @@ export default function AuthLayoutRouter (props) {
                             <Route path='welcome/*' element={<GroupWelcomePage />} />
                             <Route path='map/*' element={<MapExplorer context='groups' view='map' />} />
                             <Route path='all/*' element={<ViewContent context='groups' view='all' />} />
-                            <Route path='stream/*' element={<Stream context='groups' view='stream' />} />
+                            <Route path='stream/*' element={<Navigate to={`/groups/${currentGroupSlug}/all`} replace />} />
                             <Route path='discussions/*' element={<ViewContent context='groups' view='discussions' />} />
                             <Route path='events/*' element={<ViewContent context='groups' view='events' />} />
                             <Route path='resources/*' element={<ViewContent context='groups' view='resources' />} />
@@ -1039,7 +1038,7 @@ export default function AuthLayoutRouter (props) {
                             <Route path='members/create/*' element={<Members context='groups' />} />
                             <Route path='members/:personId/*' element={<MemberProfile context='groups' />} />
                             <Route path='members/*' element={<Members context='groups' />} />
-                            <Route path='topics/:topicName/*' element={<Stream context='groups' />} />
+                            <Route path='topics/:topicName/*' element={<ViewContent context='groups' />} />
                             <Route path='topics' element={<AllTopics context='groups' />} />
                             <Route path='chat/*' element={<ChatRoom context='groups' />} />
                             <Route path='payment/success' element={<PaymentSuccess />} />
@@ -1062,13 +1061,13 @@ export default function AuthLayoutRouter (props) {
                     }
                 />
                 {/* **** My Routes **** */}
-                <Route path='my/posts/*' element={<Stream context='my' view='posts' />} />
+                <Route path='my/posts/*' element={<ViewContent context='my' view='posts' />} />
                 {/* My Drafts is a local-only stream; map it explicitly so `/my/drafts` bypasses settings. */}
-                <Route path='my/drafts/*' element={<Stream context='my' view={VIEW_DRAFTS} />} />
-                <Route path='my/interactions/*' element={<Stream context='my' view='interactions' />} />
-                <Route path='my/announcements/*' element={<Stream context='my' view='announcements' />} />
-                <Route path='my/mentions/*' element={<Stream context='my' view='mentions' />} />
-                <Route path='my/saved-posts/*' element={<Stream context='my' view='saved-posts' />} />
+                <Route path='my/drafts/*' element={<ViewContent context='my' view={VIEW_DRAFTS} />} />
+                <Route path='my/interactions/*' element={<ViewContent context='my' view='interactions' />} />
+                <Route path='my/announcements/*' element={<ViewContent context='my' view='announcements' />} />
+                <Route path='my/mentions/*' element={<ViewContent context='my' view='mentions' />} />
+                <Route path='my/saved-posts/*' element={<ViewContent context='my' view='saved-posts' />} />
                 <Route path='my/tracks/*' element={<MyTracks />} />
                 <Route path='my/transactions' element={<MyTransactions />} />
                 <Route path='my/*' element={<UserSettings />} />

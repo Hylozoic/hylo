@@ -7,7 +7,7 @@ import GroupDetail from 'routes/GroupDetail'
 import GroupExplorer from 'routes/GroupExplorer'
 import MapExplorer from 'routes/MapExplorer'
 import PostDetail from 'routes/PostDetail'
-import Stream from 'routes/Stream'
+import ViewContent from 'routes/ViewContent'
 import AllTopics from 'routes/AllTopics'
 import PublicPageHeader from './PublicPageHeader'
 
@@ -29,15 +29,15 @@ export default function PublicLayoutRouter (props) {
           <Route index element={<Navigate to='groups' replace />} />
           <Route path='map/*' element={<MapExplorerLayoutRouter />} />
           <Route path='groups/*' element={<GroupExplorerLayoutRouter />} />
-          <Route path='stream/*' element={<PublicCenterColumn><Stream context='public' /></PublicCenterColumn>} />
-          <Route path='projects/*' element={<PublicCenterColumn><Stream context='public' view='projects' /></PublicCenterColumn>} />
-          <Route path='proposals/*' element={<PublicCenterColumn><Stream context='public' view='proposals' /></PublicCenterColumn>} />
-          <Route path='events/*' element={<PublicCenterColumn><Stream context='public' /></PublicCenterColumn>} />
-          <Route path='topics/:topicName' element={<PublicCenterColumn><Stream context='public' /></PublicCenterColumn>} />
+          <Route path='stream/*' element={<PublicCenterColumn><ViewContent context='public' /></PublicCenterColumn>} />
+          <Route path='projects/*' element={<PublicCenterColumn><ViewContent context='public' view='projects' /></PublicCenterColumn>} />
+          <Route path='proposals/*' element={<PublicCenterColumn><ViewContent context='public' view='proposals' /></PublicCenterColumn>} />
+          <Route path='events/*' element={<PublicCenterColumn><ViewContent context='public' view='events' /></PublicCenterColumn>} />
+          <Route path='topics/:topicName' element={<PublicCenterColumn><ViewContent context='public' /></PublicCenterColumn>} />
           <Route path='topics' element={<AllTopics />} />
           {/* Must be before `public/*` in AuthLayout; here match post editor paths if ever deep-linked unauth */}
-          <Route path='post/:postId/edit/*' element={<PublicCenterColumn><Stream context='public' /></PublicCenterColumn>} />
-          <Route path='post/:postId/create/*' element={<PublicCenterColumn><Stream context='public' /></PublicCenterColumn>} />
+          <Route path='post/:postId/edit/*' element={<PublicCenterColumn><ViewContent context='public' /></PublicCenterColumn>} />
+          <Route path='post/:postId/create/*' element={<PublicCenterColumn><ViewContent context='public' /></PublicCenterColumn>} />
 
           {/* Unknown under /public — send to stream (same as auth shell), not login */}
           <Route path='*' element={<Navigate to='/public/stream' replace />} />

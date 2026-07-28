@@ -185,7 +185,13 @@ export default function ViewContent (props) {
     return null
   }, [streamViewConfig, systemView])
 
-  const postTypeFilter = useMemo(() => querystringParams.t || postTypesAvailable?.[defaultPostType] ? defaultPostType : undefined, [querystringParams, defaultPostType])
+  // Prefer querystring, then user/view default; ignore defaults outside this view's allowed types
+  const postTypeFilter = useMemo(() => {
+    const selected = querystringParams.t || defaultPostType || undefined
+    if (!selected) return undefined
+    if (postTypesAvailable && !postTypesAvailable.includes(selected)) return undefined
+    return selected
+  }, [querystringParams.t, defaultPostType, postTypesAvailable])
 
   const topics = topic ? [topic.id] : streamViewConfig?.type === 'stream' ? streamViewConfig.topics : []
 

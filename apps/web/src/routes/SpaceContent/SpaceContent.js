@@ -14,7 +14,6 @@ import Members from 'routes/Members'
 import Moderation from 'routes/Moderation'
 import PostDetail from 'routes/PostDetail'
 import SpaceJoinPage from 'routes/SpaceJoinPage'
-import Stream from 'routes/Stream'
 import FundingRoundSubmissionsView from 'routes/FundingRoundSubmissionsView/FundingRoundSubmissionsView'
 import ManageRoundView from 'routes/ManageRoundView/ManageRoundView'
 import TrackActionsView from 'routes/TrackActionsView/TrackActionsView'
@@ -131,7 +130,7 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
         <Route path='welcome/*' element={<GroupWelcomePage />} />
         <Route path='map/*' element={<MapExplorer context='groups' view='map' />} />
         <Route path='all/*' element={<ViewContent context='groups' view='all' />} />
-        <Route path='stream/*' element={<Stream context='groups' view='stream' />} />
+        <Route path='stream/*' element={<Navigate to={`${spaceBase}/all`} replace />} />
         <Route path='discussions/*' element={<ViewContent context='groups' view='discussions' />} />
         <Route path='events/*' element={<ViewContent context='groups' view='events' />} />
         <Route path='resources/*' element={<ViewContent context='groups' view='resources' />} />

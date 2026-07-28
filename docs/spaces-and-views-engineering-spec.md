@@ -16,7 +16,7 @@ _Product spec: [Google Doc](https://docs.google.com/document/d/1Oct_l40Jj64dYl5D
 8. [Notifications & Unread Tracking](#8-notifications--unread-tracking)
 9. [Search](#9-search)
 10. [Group & Space Creation](#10-group--space-creation)
-11. [More Spaces](#11-more-spaces)
+11. [More Views & Spaces](#11-more-views)
 12. [Steward Onboarding Prompt](#12-steward-onboarding-prompt)
 13. [Out of Scope / Future Work](#13-out-of-scope--future-work)
 14. [Phased Rollout](#14-phased-rollout)
@@ -753,10 +753,10 @@ For each group and space: `home_route = GroupView.computeHomeRoutePath(homeView,
 | `/groups/:groupSlug/proposals` | `GroupView` (type=proposals) | Unchanged |
 | `/groups/:groupSlug/welcome` | `GroupView` (type=welcome) | **New** |
 | `/groups/:groupSlug/groups` | `GroupView` (type=related-groups) | Unchanged |
-| `/groups/:groupSlug/all-views` | Redirect → `/groups/:groupSlug/more-spaces` | Backward-compat |
-| `/groups/:groupSlug/more-spaces` | `MoreSpaces` | Replaces All Views, Tracks, Funding Rounds, Archive |
-| `/groups/:groupSlug/tracks` | Redirect → `/groups/:groupSlug/more-spaces` | Tracks now in More Spaces |
-| `/groups/:groupSlug/funding-rounds` | Redirect → `/groups/:groupSlug/more-spaces` | Rounds now in More Spaces |
+| `/groups/:groupSlug/all-views` | Redirect → `/groups/:groupSlug/more-views` | Backward-compat |
+| `/groups/:groupSlug/more-views` | `MoreViewsPage` | Replaces All Views, Tracks, Funding Rounds, Archive |
+| `/groups/:groupSlug/tracks` | Redirect → `/groups/:groupSlug/more-views` | Tracks now in More Spaces |
+| `/groups/:groupSlug/funding-rounds` | Redirect → `/groups/:groupSlug/more-views` | Rounds now in More Spaces |
 
 ### 6.2 New space routes
 
@@ -817,11 +817,11 @@ function localSpaceSlug(parentGroup, space) {
 
 ## 7. Frontend Component Changes
 
-### 7.1 `Stream` → `GroupView`
+### 7.1 `Stream` → `ViewContent`
 
-**Rename:** `apps/web/src/routes/Stream/` → `apps/web/src/routes/GroupView/`
+**Rename (done):** `apps/web/src/routes/Stream/` → `apps/web/src/routes/ViewContent/` (shim left at `routes/Stream` for Calendar SCSS / legacy imports)
 
-`GroupView.js` receives a `viewType` prop (from route or `group_view.type`) and renders:
+`ViewContent.js` receives a `view` prop (from route or `group_view.type`) and renders:
 
 ```
 viewType='all'                       → existing Stream UI (or defaultViewMode of the group_view.settings if it exists)
@@ -899,7 +899,7 @@ viewType='group'                     → Navigate to the group
 
   ─────────────────              ← always-visible bottom section (when applicable)
   Join Requests       [●]          ← spaces only: shown when pending join requests exist
-  More Spaces                      ← link to /more-spaces (tracks, rounds, related groups, moderation, drafts, archived spaces)
+  More Views & Spaces             ← link to /more-views (tracks, rounds, moderation, drafts, archived spaces)
 ```
 
 **Not in the menu:** Moderation, All Topics, Tracks list, Funding Rounds list — all live under **More Spaces**.
@@ -928,9 +928,7 @@ viewType='group'                     → Navigate to the group
 
 **For spaces:** when there are pending join requests, show a **Join Requests** menu item with unread indicator → space join request queue.
 
-**For all groups/spaces:** **More Spaces** link → `/groups/:slug/more-spaces` (or space equivalent). Shown when there is anything to display there (off-menu spaces, track/round drafts, related groups, moderation items, archived spaces). Replaces separate Tracks / Funding Rounds
-
-Moderation, and off-menu track/funding-round spaces are **not** `group_views` rows and **not** fake menu views — they render inside the More Spaces page.
+**For all other views and spaces:** **More Views & Spaces** link → `/groups/:slug/more-views` (or space equivalent). Shown when there is anything to display there (off-menu spaces, track/round drafts, moderation, archived spaces). Replaces separate Tracks / Funding Rounds
 
 ### 7.5 Welcome page editing
 
@@ -1216,8 +1214,8 @@ Legend: ✅ done · 🟡 partly done · `-` not done
 
 ### Phase 2 — Navigation UI (web)
 
-🟡 Rename `Stream` → `ViewContent`; update `AuthLayoutRouter` routes — **still to do:** finish retiring `Stream` for my/public/topics (and other non-group) contexts; group/space views already use `ViewContent` + space routes under `/groups/:parentSlug/spaces/:spaceSlug/...`
-🟡 Redesign `ContextMenu`: `GroupViewMenuItem`, space expand/collapse, unread dots, bottom section (Join Requests + More Spaces) — **still to do:** Join Requests is still under Group Settings menu, not the ContextMenu footer; footer link is **More Views and Spaces** → `/more-views` (not `/more-spaces`)
+✅ Rename `Stream` → `ViewContent`; update `AuthLayoutRouter` routes (my/public/all/topics + group/space; group/space `/stream` redirects to `/all`)
+🟡 Redesign `ContextMenu`: `GroupViewMenuItem`, space expand/collapse, unread dots, bottom section (Join Requests + More Spaces) — **still to do:** Join Requests is still under Group Settings menu, not the ContextMenu footer; footer link is **More Views and Spaces** → `/more-views`
 ✅ Add edit mode (`?edit=true`), view settings in edit mode
 ✅ Remove `WelcomePageTab`, `CustomViewsTab`, `TracksTab` from Group Settings
 🟡 Add accepted post type pill toggles and chat post-notices toggle to GroupSettingsTab — **still to do:** post-type pills are in GroupSettingsTab; `showPostNoticesInChat` toggle lives on chat view settings (`GroupViewSettingsModal`), not GroupSettingsTab
