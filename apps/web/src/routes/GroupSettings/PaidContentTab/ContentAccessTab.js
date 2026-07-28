@@ -92,7 +92,7 @@ function ContentAccessTab ({ group, offerings = [] }) {
 
     dispatch(fetchContentAccess(params))
       .finally(() => setLoading(false))
-  }, [dispatch, group?.id, debouncedSearch, accessTypeFilter, statusFilter, offeringFilter, trackFilter, roleFilter, allRoles, offset])
+  }, [dispatch, group?.id, debouncedSearch, accessTypeFilter, statusFilter, offeringFilter, trackFilter, roleFilter, offset])
 
   // Initial load on mount
   useEffect(() => {
