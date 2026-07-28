@@ -2,6 +2,7 @@ import { useCallback } from 'react'
 import { Linking } from 'react-native'
 import { CommonActions, getActionFromState, StackActions, useNavigation } from '@react-navigation/native'
 import { prefixes, DEFAULT_APP_HOST, staticPages } from '../navigation/linking'
+import { hyloUrlForExternalBrowser, shouldOpenHyloOidcInExternalBrowser } from '../navigation/linking/oidcExternalBrowserGate'
 import getStateFromPath from '../navigation/linking/getStateFromPath'
 import { URL } from 'react-native-url-polyfill'
 import { navigationRef } from '../navigation/linking/helpers'
@@ -21,6 +22,15 @@ export async function openURL (
   options: { openExternal?: boolean, reset?: boolean, replace?: boolean } = {},
   navigation: NavigationLike = navigationRef
 ) {
+  // Hylo-as-OIDC-provider and third-party OIDC flows must stay in the system browser
+  if (shouldOpenHyloOidcInExternalBrowser(providedPathOrURL)) {
+    const href = hyloUrlForExternalBrowser(providedPathOrURL)
+    if (await Linking.canOpenURL(href)) {
+      return Linking.openURL(href)
+    }
+    return null
+  }
+
   const linkingURL = new URL(providedPathOrURL, DEFAULT_APP_HOST)
   const knownHyloappHosts = ['www.hylo.com', 'hylo.com', 'staging.hylo.com']
   const isHyloappURL = linkingURL.protocol === 'hyloapp:' && knownHyloappHosts.includes(linkingURL.host)

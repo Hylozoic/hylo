@@ -1,4 +1,5 @@
 import { type ReactNode } from 'react'
+import { reloadAppAsync } from 'expo'
 import { useTranslation } from 'react-i18next'
 import { Button, Text, View } from 'react-native'
 import * as Sentry from '@sentry/react-native'
@@ -9,10 +10,12 @@ function DefaultErrorMessage () {
 
   const handleRestart = async () => {
     try {
+      // Clear app cache but preserve the session cookie to keep HyloWebView working
       await clearAllExceptSessionCookie()
     } catch (error) {
       console.warn('Failed to clear cache before restart:', error)
     }
+    await reloadAppAsync('ErrorBoundary restart')
   }
 
   return (

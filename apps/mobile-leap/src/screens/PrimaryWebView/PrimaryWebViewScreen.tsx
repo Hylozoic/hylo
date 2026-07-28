@@ -1,9 +1,9 @@
 import Constants from 'expo-constants'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { StatusBar, View } from 'react-native'
+import { BackHandler, Platform, StatusBar, View } from 'react-native'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import type { WebView } from 'react-native-webview'
-import { WebViewMessageTypes } from '@hylo/shared'
+import { WebViewMessageTypes, HYLO_HARDWARE_BACK_EVENT } from '@hylo/shared'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import HyloWebView from '../../components/HyloWebView/HyloWebView'
 import LoadingScreen from '../../components/LoadingScreen'
@@ -34,13 +34,31 @@ export default function PrimaryWebViewScreen () {
     requestPolicy: 'cache-and-network',
     pause: !isConnected || !isInternetReachable
   })
-  const { currentUser, fetching: fetchingUser, error: userError } = currentUserResult?.[0] ?? {}
+  const { currentUser, error: userError } = currentUserResult?.[0] ?? {}
 
   const hasLoadedUser = useRef(false)
   if (currentUser) hasLoadedUser.current = true
 
   const [isWebViewLoading, setIsWebViewLoading] = useState(true)
   const [webViewError, setWebViewError] = useState<unknown>(null)
+  const [sessionRecovering, setSessionRecovering] = useState(false)
+
+  useEffect(() => {
+    if (Platform.OS !== 'android') return
+
+    const onHardwareBackPress = () => {
+      if (!webViewRef.current) return false
+
+      webViewRef.current.injectJavaScript(`
+        window.dispatchEvent(new CustomEvent(${JSON.stringify(HYLO_HARDWARE_BACK_EVENT)}));
+        true;
+      `)
+      return true
+    }
+
+    const subscription = BackHandler.addEventListener('hardwareBackPress', onHardwareBackPress)
+    return () => subscription.remove()
+  }, [])
 
   const { path, originalLinkingPath } = useRouteParams()
 
@@ -49,6 +67,7 @@ export default function PrimaryWebViewScreen () {
 
     switch (type) {
       case WebViewMessageTypes.LOGOUT:
+        setSessionRecovering(false)
         logout()
         break
       case WebViewMessageTypes.THEME_CHANGE: {
@@ -56,7 +75,11 @@ export default function PrimaryWebViewScreen () {
         if (themeName && scheme) setTheme(themeName, scheme)
         break
       }
+      case WebViewMessageTypes.CAN_EXIT_APP:
+        BackHandler.exitApp()
+        break
       case WebViewMessageTypes.AUTH_SUCCESS:
+        setSessionRecovering(false)
         break
       default:
         if (__DEV__ && type) {
@@ -107,7 +130,7 @@ export default function PrimaryWebViewScreen () {
     )
   }
 
-  const showLoadingOverlay = !hasLoadedUser.current || fetchingUser || isWebViewLoading
+  const showLoadingOverlay = !hasLoadedUser.current || isWebViewLoading || sessionRecovering
 
   return (
     <SafeAreaView
@@ -130,6 +153,8 @@ export default function PrimaryWebViewScreen () {
           path={webViewPath}
           mobileAppVersion={hyloAppVersion}
           messageHandler={messageHandler}
+          onSessionRecoveryStart={() => setSessionRecovering(true)}
+          onSessionRecoveryEnd={() => setSessionRecovering(false)}
           onLoadEnd={handleLoadEnd}
           onError={handleError}
           onHttpError={handleHttpError}

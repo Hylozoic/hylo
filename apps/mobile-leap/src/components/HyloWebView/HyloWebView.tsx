@@ -19,7 +19,9 @@ import {
   getSessionCookie,
   sessionCookieFromToken
 } from 'util/session'
+import getNativeSessionId from 'util/nativeSessionId'
 import { parseWebViewMessage } from './parseWebViewMessage'
+import { sendMessageFromWebView } from './sendMessageFromWebView'
 
 const baseInjectedStyle = `
   ::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
@@ -32,6 +34,8 @@ type HyloWebViewProps = Omit<WebViewProps, 'source' | 'onMessage'> & {
   path?: string
   mobileAppVersion?: string
   enableScrolling?: boolean
+  onSessionRecoveryStart?: () => void
+  onSessionRecoveryEnd?: () => void
 }
 
 const HyloWebView = forwardRef<WebView, HyloWebViewProps>(function HyloWebView (
@@ -44,6 +48,8 @@ const HyloWebView = forwardRef<WebView, HyloWebViewProps>(function HyloWebView (
     enableScrolling = false,
     onLoadStart: externalOnLoadStart,
     onLoadEnd: externalOnLoadEnd,
+    onSessionRecoveryStart,
+    onSessionRecoveryEnd,
     ...forwardedProps
   },
   webViewRef
@@ -51,10 +57,13 @@ const HyloWebView = forwardRef<WebView, HyloWebViewProps>(function HyloWebView (
   const [cookie, setCookie] = useState<string | null | undefined>()
   const [isLoading, setIsLoading] = useState(true)
   const [showSessionRecovery, setShowSessionRecovery] = useState(false)
-  const [reloadNonce, setReloadNonce] = useState(0)
   const { postId, path: routePath, originalLinkingPath } = useRouteParams()
   const path = pathProp || routePath || originalLinkingPath || ''
-  const uri = (source?.uri || `${HYLO_WEB_BASE_URL}${path}`) + (postId ? `?postId=${postId}` : '')
+  const baseUri = (source?.uri || `${HYLO_WEB_BASE_URL}${path}`)
+  const shouldAppendPostId = postId && !baseUri.includes('postId=')
+  const uri = shouldAppendPostId
+    ? `${baseUri}${baseUri.includes('?') ? '&' : '?'}postId=${postId}`
+    : baseUri
   const { isAuthenticated, logout } = useAuth()
 
   const injectedJavaScriptBeforeContentLoaded = useMemo(() => {
@@ -62,7 +71,8 @@ const HyloWebView = forwardRef<WebView, HyloWebViewProps>(function HyloWebView (
     const versionLine = trimmed !== ''
       ? `window.HyloMobileAppVersion=${JSON.stringify(trimmed)};`
       : ''
-    return `${versionLine}window.HyloWebView=true;window.HyloMobileV2=true;true;`
+    const sessionIdLine = `window.HyloNativeSessionId=${JSON.stringify(getNativeSessionId())};`
+    return `${versionLine}${sessionIdLine}window.HyloWebView=true;window.HyloMobileV2=true;true;`
   }, [mobileAppVersion])
 
   const injectedJavaScript = useMemo(() => {
@@ -112,21 +122,24 @@ const HyloWebView = forwardRef<WebView, HyloWebViewProps>(function HyloWebView (
   }, [externalOnLoadEnd])
 
   const reverifyAuth = useCallback(async () => {
+    onSessionRecoveryStart?.()
     try {
       const fresh = await sessionCookieFromToken()
       if (fresh) {
         await ensureWebViewCookies()
         setCookie(fresh)
-        setReloadNonce(nonce => nonce + 1)
+        sendMessageFromWebView(webViewRef, WebViewMessageTypes.SESSION_READY)
       } else {
+        onSessionRecoveryEnd?.()
         await clearSessionCookie()
         logout()
       }
     } catch (error) {
       console.warn('HyloWebView re-auth failed:', error)
+      onSessionRecoveryEnd?.()
       logout()
     }
-  }, [logout])
+  }, [logout, onSessionRecoveryEnd, onSessionRecoveryStart, webViewRef])
 
   const handleMessage = useCallback((message: Parameters<NonNullable<WebViewProps['onMessage']>>[0]) => {
     const parsedMessage = parseWebViewMessage(message)
@@ -137,8 +150,13 @@ const HyloWebView = forwardRef<WebView, HyloWebViewProps>(function HyloWebView (
       return
     }
 
+    if (type === WebViewMessageTypes.AUTH_SUCCESS) {
+      onSessionRecoveryEnd?.()
+      return
+    }
+
     messageHandler?.(parsedMessage)
-  }, [messageHandler, reverifyAuth])
+  }, [messageHandler, onSessionRecoveryEnd, reverifyAuth])
 
   if (cookie === undefined && uri) return null
 
@@ -151,7 +169,6 @@ const HyloWebView = forwardRef<WebView, HyloWebViewProps>(function HyloWebView (
 
   return (
     <WebView
-      key={reloadNonce}
       ref={webViewRef}
       injectedJavaScriptBeforeContentLoaded={injectedJavaScriptBeforeContentLoaded}
       injectedJavaScript={injectedJavaScript}
