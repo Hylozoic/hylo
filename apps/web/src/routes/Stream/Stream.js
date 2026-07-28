@@ -9,7 +9,7 @@ import { Routes, Route, useLocation } from 'react-router-dom'
 import { push } from 'redux-first-history'
 import { createSelector as ormCreateSelector } from 'redux-orm'
 
-import { COMMON_VIEWS } from '@hylo/presenters/ContextWidgetPresenter'
+import { COMMON_VIEWS } from 'store/models/GroupView'
 import Loading from 'components/Loading'
 import NoPosts from 'components/NoPosts'
 import { DateTimeHelpers } from '@hylo/shared'
@@ -29,6 +29,7 @@ import ScrollListener from 'components/ScrollListener'
 import ViewControls from 'components/StreamViewControls'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useRouteParams from 'hooks/useRouteParams'
+import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import { updateUserSettings } from 'routes/UserSettings/UserSettings.store'
 import changeQuerystringParam, { changeQuerystringParams } from 'store/actions/changeQuerystringParam'
 import fetchCustomView from 'store/actions/fetchCustomView'
@@ -83,7 +84,8 @@ export default function Stream (props) {
   const location = useLocation()
   const routeParams = useRouteParams()
   const { t } = useTranslation()
-  const { groupSlug, topicName, customViewId } = routeParams
+  const groupSlug = useEffectiveGroupSlug()
+  const { topicName, customViewId } = routeParams
   const context = props.context
   const currentUser = useSelector(getMe)
 
@@ -144,7 +146,13 @@ export default function Stream (props) {
     return null
   }, [customView, systemView])
 
-  const postTypeFilter = useMemo(() => querystringParams.t || postTypesAvailable?.[defaultPostType] ? defaultPostType : undefined, [querystringParams, defaultPostType])
+  // Prefer querystring, then user/view default; ignore defaults outside this view's allowed types
+  const postTypeFilter = useMemo(() => {
+    const selected = querystringParams.t || defaultPostType || undefined
+    if (!selected) return undefined
+    if (postTypesAvailable && !postTypesAvailable.includes(selected)) return undefined
+    return selected
+  }, [querystringParams.t, defaultPostType, postTypesAvailable])
 
   const topics = topic ? [topic.id] : customView?.type === 'stream' ? customView?.topics?.toModelArray().map(t => t.id) : []
 
@@ -167,6 +175,9 @@ export default function Stream (props) {
   }, [dispatch])
 
   const fetchPostsParam = useMemo(() => {
+    // Backend ignores `filter` when `types` is set, so only pass types when not filtering to one type
+    const types = postTypeFilter ? undefined : postTypesAvailable
+
     if (isDraftsView) {
       return {
         activePostsOnly,
@@ -179,7 +190,7 @@ export default function Stream (props) {
         slug: groupSlug,
         sortBy,
         topics,
-        types: postTypesAvailable
+        types
       }
     }
 
@@ -196,7 +207,7 @@ export default function Stream (props) {
       slug: groupSlug,
       sortBy,
       topics,
-      types: postTypesAvailable
+      types
     }
 
     if (isCalendarViewMode) {

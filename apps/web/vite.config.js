@@ -9,28 +9,40 @@ import svgr from 'vite-plugin-svgr'
 import dotenv from 'dotenv'
 // import fs from 'fs'
 import path from 'path'
+import { fileURLToPath } from 'url'
 
-// Load environment variables from .env file (do not override vars set by the parent, e.g. isolated E2E)
-dotenv.config({ path: '.env', override: false })
+const webRoot = path.dirname(fileURLToPath(import.meta.url))
+const __dirname = webRoot
+
+// Load environment variables from .env file (do not override vars set by the parent, e.g. Heroku)
+dotenv.config({ path: path.join(webRoot, '.env'), override: false })
 
 const proxyTarget = process.env.VITE_API_HOST || 'http://localhost:3001'
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   base: '/',
+  envDir: webRoot,
+  root: webRoot,
   define: {
     'process.env.PUBLIC_URL': JSON.stringify('')
   },
   build: {
-    minify: true
+    minify: true,
+    // Gzipping every chunk to print sizes is expensive on large bundles and
+    // contributed to Heroku build OOMs (~2.5GB heap limit).
+    reportCompressedSize: false
   },
   plugins: [
     patchCssModules(),
     react(),
-    eslint({
-      exclude: ['/virtual:/', 'node_modules/**'],
-      failOnError: false, // Prevents Vite from stopping on lint errors
-      failOnWarning: false // Ensures warnings don't block the build either
-    }),
+    // Skip ESLint during production builds — it adds peak memory on Heroku.
+    ...(command === 'serve'
+      ? [eslint({
+          exclude: ['/virtual:/', 'node_modules/**'],
+          failOnError: false, // Prevents Vite from stopping on lint errors
+          failOnWarning: false // Ensures warnings don't block the build either
+        })]
+      : []),
     {
       name: 'treat-js-files-as-jsx',
       async transform (code, id) {
@@ -147,4 +159,4 @@ export default defineConfig({
       }
     }
   }
-})
+}))

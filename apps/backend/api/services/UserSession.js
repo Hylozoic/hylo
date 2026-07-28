@@ -1,4 +1,5 @@
 import { omitBy, isNil } from 'lodash/fp'
+import { Validators } from '@hylo/shared'
 
 module.exports = {
   // logic for setting up the session when a user logs in
@@ -29,7 +30,14 @@ module.exports = {
       })
     }
 
-    return user.save({ last_login_at: new Date(), active: true }, { patch: true, autoRefresh: true, transacting })
+    // Never activate an account without a valid name — email-verification stubs
+    // start with name null; they must complete register() or OAuth that supplies a name.
+    const updates = { last_login_at: new Date() }
+    if (!Validators.validateUser.name(user.get('name'))) {
+      updates.active = true
+    }
+
+    return user.save(updates, { patch: true, autoRefresh: true, transacting })
   },
 
   isLoggedIn: function (req) {

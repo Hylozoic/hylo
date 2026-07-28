@@ -65,13 +65,26 @@ export default gql`
           isActive
         }
       }
+      groupRoles {
+        items {
+          id
+          groupId
+          responsibilities {
+            items {
+              id
+              title
+            }
+          }
+        }
+      }
       memberships {
         id
-        hasModeratorRole
         group {
           id
           name
           slug
+          avatarUrl
+          memberCount
         }
         person {
           id
@@ -90,14 +103,6 @@ export default gql`
               avatarUrl
             }
           }
-        }
-      }
-      membershipCommonRoles {
-        items {
-          id
-          commonRoleId
-          groupId
-          userId
         }
       }
       skills (first: 100) {

@@ -1,13 +1,17 @@
 import { cn } from 'util/index'
 import React from 'react'
 import { Route, Routes } from 'react-router-dom'
+import { useSelector } from 'react-redux'
 import { isLegacyWebView } from 'util/webView'
+import getMe from 'store/selectors/getMe'
 
 export default function FullPageModal ({
   confirmMessage, navigate, goToOnClose,
   content, children, narrow, fullWidth, leftSideBarHidden
 }) {
   const multipleTabs = Array.isArray(content)
+  const currentUser = useSelector(getMe)
+  const isTabNav = currentUser?.settings?.globalNavStyle === 'tabs'
 
   // DEPRECATED: New mobile app no longer longer renders differently for webview but uses standard layout
   if (isLegacyWebView()) {
@@ -27,20 +31,27 @@ export default function FullPageModal ({
     )
   } else {
     return (
-      <div className={cn('bg-midground h-full')}>
+      <div className={cn('bg-midground flex flex-col flex-1 min-h-0 h-full overflow-y-auto')}>
         {multipleTabs && (
-          <div className={cn('w-full max-w-[750px] mx-auto px-2 py-2 sm:px-8 sm:py-8')}>
+          <div className={cn('w-full mx-auto px-2 py-2 sm:px-8 sm:py-8', !isTabNav && 'max-w-[750px]')}>
             <Routes>
-              {content.map(tab =>
-                <Route
-                  path={tab.path}
-                  element={tab.render ? tab.render() : tab.component}
-                  key={tab.path}
-                />)}
+              {content.map(tab => {
+                const element = tab.render ? tab.render() : tab.component
+                if (tab.path === '' || tab.path === undefined) {
+                  return <Route index element={element} key='index' />
+                }
+                return (
+                  <Route
+                    path={tab.path}
+                    element={element}
+                    key={tab.path}
+                  />
+                )
+              })}
             </Routes>
           </div>
         )}
-        {!multipleTabs && <div className={cn('w-full max-w-[750px] mx-auto px-8 py-8')}>{content || children}</div>}
+        {!multipleTabs && <div className={cn('w-full mx-auto px-8 py-8', !isTabNav && 'max-w-[750px]')}>{content || children}</div>}
       </div>
     )
   }

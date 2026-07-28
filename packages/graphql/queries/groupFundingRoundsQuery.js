@@ -26,7 +26,16 @@ export default gql`
           bannerUrl
           createdAt
           criteria
-          description
+          group {
+            id
+            description
+            slug
+            homeRoute
+            parentGroup {
+              id
+              slug
+            }
+          }
           isParticipating
           hideFinalResultsFromParticipants
           maxTokenAllocation

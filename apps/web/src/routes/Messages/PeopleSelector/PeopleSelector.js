@@ -4,6 +4,7 @@ import PropTypes from 'prop-types'
 import { debounce, throttle } from 'lodash/fp'
 import PeopleList from './PeopleList'
 import MatchingPeopleListItem from './MatchingPeopleListItem'
+import { MAX_MESSAGE_THREAD_PARTICIPANTS } from '../messageThreadLimits'
 
 const invalidPersonName = /[^a-z '-]+/gi
 
@@ -19,7 +20,8 @@ export default function PeopleSelector (props) {
     people,
     setPeopleSearch,
     selectedPeople,
-    peopleSelectorOpen
+    peopleSelectorOpen,
+    maxParticipantsReached
   } = props
 
   useEffect(() => {
@@ -45,7 +47,7 @@ export default function PeopleSelector (props) {
   }, [people, selectedPeople])
 
   const selectPerson = (person) => {
-    if (!person) return
+    if (!person || maxParticipantsReached) return
     autocompleteInput.current.focus()
     if (selectedPeople.find(p => p.id === person.id)) return
     setPeopleSearch(null)
@@ -110,10 +112,13 @@ export default function PeopleSelector (props) {
     }
   }
 
+  const showLabel = props.showLabel !== false
+  const inputPlaceholder = props.placeholder || (maxParticipantsReached ? t('Group limit reached') : `+ ${t('Add someone')}`)
+
   return (
     <div className='w-full relative' tabIndex='0'>
       <div className='w-full relative flex flex-wrap gap-1'>
-        <span className='p-2'>{t('New Message With')}:</span>
+        {showLabel && <span className='p-2'>{t('New Message With')}:</span>}
         {selectedPeople && selectedPeople.map(person =>
           <MatchingPeopleListItem
             avatarUrl={person.avatarUrl}
@@ -122,15 +127,16 @@ export default function PeopleSelector (props) {
             key={person.id}
           />
         )}
-        <div className='relative'>
+        <div className='relative flex-1 min-w-[150px]'>
           <input
-            className='w-[150px] bg-darkening/20 focus:bg-input rounded p-2 text-foreground placeholder:text-foreground/50 border-2 border-transparent focus:border-focus transition-all outline-none'
+            className='w-full bg-darkening/20 focus:bg-input rounded p-2 text-foreground placeholder:text-foreground/50 border-2 border-transparent focus:border-focus transition-all outline-none'
             ref={autocompleteInput}
             type='text'
             spellCheck={false}
             onChange={onChange}
             onKeyDown={handleKeyDown}
-            placeholder={`+ ${t('Add someone')}`}
+            placeholder={inputPlaceholder}
+            disabled={maxParticipantsReached}
             onFocus={(e) => {
               setSelectedIndex(-1)
               props.onFocus?.(e)
@@ -154,6 +160,11 @@ export default function PeopleSelector (props) {
             : ''}
         </div>
       </div>
+      {maxParticipantsReached && (
+        <p className='text-xs text-foreground/60 mt-1 px-2'>
+          {t('Group messages are limited to {{count}} people', { count: MAX_MESSAGE_THREAD_PARTICIPANTS })}
+        </p>
+      )}
     </div>
   )
 }
@@ -167,5 +178,8 @@ PeopleSelector.propTypes = {
   selectPerson: PropTypes.func.isRequired,
   removePerson: PropTypes.func,
   inputRef: PropTypes.object,
-  autoFocus: PropTypes.bool
+  autoFocus: PropTypes.bool,
+  maxParticipantsReached: PropTypes.bool,
+  showLabel: PropTypes.bool,
+  placeholder: PropTypes.string
 }

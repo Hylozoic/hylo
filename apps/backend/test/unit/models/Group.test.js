@@ -143,18 +143,17 @@ describe('Group', function () {
     })
 
     it('merges new settings to existing memberships and creates new ones', async function () {
-      const results = await group.addMembers([u1.id, u2.id], { role: 1, settings: { there: true } })
+      const results = await group.addMembers([u1.id, u2.id], { assignCoordinator: true, settings: { there: true } })
       expect(results.length).to.equal(2)
 
       await gm1.refresh()
-      // updateMembers always adds joinQuestionsAnsweredAt and showJoinForm defaults
       expect(gm1.get('settings')).to.deep.equal({ here: true, there: true, joinQuestionsAnsweredAt: null, showJoinForm: true })
-      expect(gm1.get('role')).to.equal(1)
+      expect(await GroupMembership.hasResponsibility(u1.id, group, Responsibility.constants.RESP_ADMINISTRATION)).to.be.true
 
       const gm2 = await group.memberships()
         .query(q => q.where('user_id', u2.id)).fetchOne()
       expect(gm2.get('settings')).to.deep.equal({ agreementsAcceptedAt: null, joinQuestionsAnsweredAt: null, showJoinForm: true, there: true })
-      expect(gm2.get('role')).to.equal(1)
+      expect(await GroupMembership.hasResponsibility(u2.id, group, Responsibility.constants.RESP_ADMINISTRATION)).to.be.true
     })
   })
 
@@ -176,15 +175,13 @@ describe('Group', function () {
       const user1 = await factories.user().save()
       const user2 = await factories.user().save()
       const projectRole = await ProjectRole.forge({name: 'test role'}).save()
-      const role = 1
       const project_role_id = projectRole.id
-      const updates = { role, project_role_id }
+      const updates = { project_role_id }
       await group.addMembers([user1, user2])
       await group.updateMembers([user1, user2], updates)
       const updatedMemberships = await group.memberships().fetch()
       updatedMemberships.models.forEach(membership => {
         expect(membership.get('project_role_id')).to.equal(project_role_id)
-        expect(membership.get('role')).to.equal(role)
       })
     })
   })
@@ -201,79 +198,6 @@ describe('Group', function () {
         on "posts"."id" = "groups_posts"."group_id"
         where "groups_posts"."group_id" in
         ${myGroupIdsSqlFragment('42')}`)
-    })
-  })
-
-  describe('.doesMenuUpdate', function () {
-    let group1, group2, post, customView
-
-    before(async function () {
-      // Create test groups
-      group1 = await factories.group().save()
-      group2 = await factories.group().save()
-
-      // Create project post
-      post = await factories.post().save({
-        type: 'project',
-        name: 'Test Project'
-      })
-
-      // Create custom view
-      customView = await factories.customView().save({
-        group_id: group1.id,
-        order: 1
-      })
-
-      // Setup initial context widgets for both groups
-      await group1.setupContextWidgets()
-      await group2.setupContextWidgets()
-    })
-
-    it('updates groups widget order when groups are related', async function () {
-      // Initial check
-      const initialWidgets = await ContextWidget.where({ group_id: group1.id }).fetchAll()
-      const groupsWidget = initialWidgets.find(w => w.get('view') === 'groups')
-      expect(groupsWidget.get('order')).to.be.null
-
-      // Perform update
-      await Group.doesMenuUpdate({ groupIds: [group1.id, group2.id], groupRelation: true })
-
-      // Check result
-      const updatedWidgets = await ContextWidget.where({ group_id: group1.id }).fetchAll()
-      const updatedGroupsWidget = updatedWidgets.find(w => w.get('view') === 'groups')
-      expect(updatedGroupsWidget.get('order')).to.not.be.null
-    })
-
-    it('updates projects widget order when project post is added', async function () {
-      // Initial check
-      const initialWidgets = await ContextWidget.where({ group_id: group1.id }).fetchAll()
-      const projectsWidget = initialWidgets.find(w => w.get('view') === 'projects')
-      expect(projectsWidget.get('order')).to.be.null
-      console.log('this should be a post', post, 'right?????')
-      // Perform update
-      await Group.doesMenuUpdate({ groupIds: [group1.id], post: { type: post.get('type'), location_id: post.get('location_id') } })
-
-      // Check result
-      const updatedWidgets = await ContextWidget.where({ group_id: group1.id }).fetchAll()
-      const updatedProjectsWidget = updatedWidgets.find(w => w.get('view') === 'projects')
-
-      expect(updatedProjectsWidget.get('order')).to.not.be.null
-    })
-
-    it('creates widget for custom view when added', async function () {
-      // Initial check
-      const initialWidgets = await ContextWidget.where({ group_id: group1.id }).fetchAll()
-      const initialCustomViewWidgets = initialWidgets.filter(w => w.get('custom_view_id'))
-      expect(initialCustomViewWidgets).to.be.empty
-
-      // Perform update
-      await Group.doesMenuUpdate({ groupIds: [group1.id], customView })
-
-      // Check result
-      const updatedWidgets = await ContextWidget.where({ group_id: group1.id }).fetchAll()
-      const customViewWidgets = updatedWidgets.filter(w => w.get('custom_view_id'))
-      expect(customViewWidgets).to.not.be.empty
-      expect(customViewWidgets[0].get('custom_view_id')).to.equal(String(customView.id))
     })
   })
 

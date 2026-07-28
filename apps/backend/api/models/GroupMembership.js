@@ -16,21 +16,19 @@ module.exports = bookshelf.Model.extend(Object.assign({
       .withPivot(['accepted'])
   },
 
-  commonRoles () {
-    return this.belongsToMany(CommonRole, 'group_memberships_common_roles', 'group_id', 'common_role_id', 'group_id')
-      .through(MemberCommonRole, 'group_id', 'common_role_id')
-      .where({ user_id: this.get('user_id'), group_id: this.get('group_id') })
-      .withPivot(['group_id'])
-  },
-
-  membershipCommonRoles () {
-    return this.hasMany(MemberCommonRole, 'group_id', 'group_id')
-      .where({ user_id: this.get('user_id') })
-  },
-
+  /**
+   * Role assignments for this membership. Spaces inherit assignments from the parent group.
+   */
   membershipGroupRoles () {
-    return this.hasMany(MemberGroupRole, 'group_id', 'group_id')
-      .where({ user_id: this.get('user_id') })
+    const groupId = this.get('group_id')
+    return this.hasMany(MemberGroupRole, 'user_id', 'user_id')
+      .query(q => {
+        q.whereIn('group_memberships_group_roles.group_id', function () {
+          this.select(bookshelf.knex.raw('COALESCE(parent_id, id)'))
+            .from('groups')
+            .where('id', groupId)
+        })
+      })
   },
 
   group () {
@@ -47,15 +45,6 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
   user () {
     return this.belongsTo(User)
-  },
-
-  // TODO RESP: update/fix/remove this yeah once mobile app has switched to new roles/responsibilities
-  async hasRole (role) {
-    if (role === GroupMembership.Role.MODERATOR) {
-      const result = await bookshelf.knex.raw(`SELECT 1 FROM group_memberships_common_roles WHERE user_id = ${this.get('user_id')} AND group_id = ${this.get('group_id')} AND common_role_id = 1 LIMIT 1`)
-      return result.rows.length > 0
-    }
-    return false
   },
 
   async acceptAgreements (transacting) {
@@ -96,20 +85,12 @@ module.exports = bookshelf.Model.extend(Object.assign({
         this.set(key, attrs[key])
       }
     }
-    if (attrs.role === 0 || attrs.role === 1) {
-      await MemberCommonRole.updateCoordinatorRole({ userId: this.get('user_id'), groupId: this.get('group_id'), role: attrs.role, transacting })
-    }
 
     if (!isEmpty(this.changed)) return this.save(null, { transacting })
     return this
   }
 
 }, HasSettings), {
-  Role: {
-    DEFAULT: 0,
-    MODERATOR: 1
-  },
-
   forPair (userOrId, groupOrId, opts = {}) {
     const userId = userOrId instanceof User ? userOrId.id : userOrId
     const groupId = groupOrId instanceof Group ? groupOrId.id : groupOrId
@@ -161,8 +142,6 @@ module.exports = bookshelf.Model.extend(Object.assign({
     }
 
     const gm = await this.forPair(userOrId, groupId).fetch(opts)
-
-    // TODO: simplify by fetching by responsibility id, for the common ones?
     const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, groupId)
 
     if (gm && !responsibilities.includes(responsibility)) {
@@ -171,12 +150,46 @@ module.exports = bookshelf.Model.extend(Object.assign({
     return !!gm
   },
 
-  async setModeratorRole (userId, group) {
-    return group.addMembers([userId], { role: this.Role.MODERATOR })
+  /**
+   * Assign the Coordinator system role to a member.
+   * No-op for spaces — they inherit roles from the parent group.
+   */
+  async assignCoordinatorRole (userId, groupId, { transacting } = {}) {
+    const roleScopeId = await Group.roleScopeId(groupId)
+    if (String(roleScopeId) !== String(groupId)) return
+
+    await GroupRole.setupSystemRoles(groupId, { transacting })
+    const coordinator = await GroupRole.findSystemRole(groupId, 'Coordinator', { transacting })
+    if (!coordinator) return
+
+    const exists = await MemberGroupRole.where({
+      user_id: userId,
+      group_id: groupId,
+      group_role_id: coordinator.id
+    }).fetch({ transacting })
+
+    if (!exists) {
+      await MemberGroupRole.forge({
+        user_id: userId,
+        group_id: groupId,
+        group_role_id: coordinator.id,
+        active: true
+      }).save(null, { transacting })
+    }
   },
 
-  async removeModeratorRole (userId, group) {
-    return group.addMembers([userId], { role: this.Role.DEFAULT })
+  /**
+   * Remove the Coordinator system role from a member.
+   */
+  async removeCoordinatorRole (userId, groupId, { transacting } = {}) {
+    const coordinator = await GroupRole.findSystemRole(groupId, 'Coordinator', { transacting })
+    if (!coordinator) return
+
+    await MemberGroupRole.where({
+      user_id: userId,
+      group_id: groupId,
+      group_role_id: coordinator.id
+    }).destroy({ require: false, transacting })
   },
 
   forMember (userOrId) {
@@ -204,7 +217,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
    * @param {Object} [options.transacting] - Database transaction
    * @returns {Promise<GroupMembership>} The membership record
    */
-  async ensureMembership (userOrId, groupOrId, { role = GroupMembership.Role.DEFAULT, transacting } = {}) {
+  async ensureMembership (userOrId, groupOrId, { assignCoordinator = false, transacting } = {}) {
     const userId = userOrId instanceof User ? userOrId.id : userOrId
     const groupId = groupOrId instanceof Group ? groupOrId.id : groupOrId
 
@@ -215,19 +228,18 @@ module.exports = bookshelf.Model.extend(Object.assign({
       throw new Error("Can't call ensureMembership without a group or group id")
     }
 
-    // Check for existing membership (including inactive)
     const existingMembership = await GroupMembership.forPair(userId, groupId, { includeInactive: true }).fetch({ transacting })
 
     if (existingMembership) {
-      // Membership exists
       if (!existingMembership.get('active')) {
-        // Reactivate inactive membership
         await existingMembership.save({ active: true }, { patch: true, transacting })
+      }
+      if (assignCoordinator) {
+        await GroupMembership.assignCoordinatorRole(userId, groupId, { transacting })
       }
       return existingMembership
     }
 
-    // No membership exists, create it
     const user = userOrId instanceof User ? userOrId : await User.find(userId, { transacting })
     if (!user) {
       throw new Error(`User not found: ${userId}`)
@@ -238,14 +250,11 @@ module.exports = bookshelf.Model.extend(Object.assign({
       throw new Error(`Group not found: ${groupId}`)
     }
 
-    // Create membership via user.joinGroup
-    const membership = await user.joinGroup(group, {
-      role,
+    return user.joinGroup(group, {
+      assignCoordinator,
       fromInvitation: true, // This will ensure join questions are still shown
       transacting
     })
-
-    return membership
   },
 
   /**

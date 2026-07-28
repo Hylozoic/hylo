@@ -60,11 +60,13 @@ export default function groupQueryFragment () {
     }
     slug
     type
+    parentId
+    icon
+    acceptedPostTypes
     typeDescriptor
     typeDescriptorPlural
     visibility
     websiteUrl
-    welcomePage
     paywall
     canAccess
     groupRoles {
@@ -109,15 +111,7 @@ export default function groupQueryFragment () {
         avatarUrl
         lastActiveAt
         name
-        membershipCommonRoles {
-          items {
-            id
-            groupId
-            userId
-            commonRoleId
-          }
-        }
-        groupRoles {
+        groupRoles(slug: $slug) {
           items {
             id
             name

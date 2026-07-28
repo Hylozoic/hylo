@@ -33,7 +33,7 @@ query FetchGroupMembers ($slug: String, $groupId: ID, $first: Int, $sortBy: Stri
             answer
           }
         }
-        groupRoles {
+        groupRoles (slug: $slug) {
           items {
             id
             name
@@ -47,14 +47,6 @@ query FetchGroupMembers ($slug: String, $groupId: ID, $first: Int, $sortBy: Stri
                 description
               }
             }
-          }
-        }
-        membershipCommonRoles {
-          items {
-            id
-            commonRoleId
-            groupId
-            userId
           }
         }
         skills {
@@ -121,8 +113,7 @@ export const getMembers = makeQueryResultsModelSelector(
   'Person',
   person => ({
     ...person.ref,
-    skills: person.skills.toModelArray(),
-    membershipCommonRoles: person.membershipCommonRoles.toModelArray()
+    skills: person.skills.toModelArray()
   })
 )
 

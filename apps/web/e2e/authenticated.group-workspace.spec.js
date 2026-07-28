@@ -119,22 +119,17 @@ test.describe('Batch D: group workspace', () => {
     await expectGroupWorkspaceShell(page, new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/groups`))
   })
 
-  test('GET …/all-views loads all views', async ({ page }) => {
+  test('GET …/all-views redirects away from removed All Views page', async ({ page }) => {
     await page.goto(groupPublic('/all-views'))
     await waitPastRootSessionLoading(page)
-    await expectGroupWorkspaceShell(page, new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/all-views`))
+    await expect(page).not.toHaveURL(new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/all-views/?$`), navTimeout)
+    await expectGroupWorkspaceShell(page, new RegExp(`/groups/${PUBLIC_GROUP_SLUG}`))
   })
 
   test('GET …/tracks loads tracks list', async ({ page }) => {
     await page.goto(groupPublic('/tracks'))
     await waitPastRootSessionLoading(page)
     await expectGroupWorkspaceShell(page, new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/tracks`))
-  })
-
-  test('GET …/funding-rounds loads funding rounds list', async ({ page }) => {
-    await page.goto(groupPublic('/funding-rounds'))
-    await waitPastRootSessionLoading(page)
-    await expectGroupWorkspaceShell(page, new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/funding-rounds`))
   })
 
   test('GET …/chat/:topic opens chat room', async ({ page }) => {

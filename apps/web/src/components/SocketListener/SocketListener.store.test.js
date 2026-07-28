@@ -14,6 +14,7 @@ describe('SocketListener.store.ormSessionReducer', () => {
   })
 
   it('responds to RECEIVE_MESSAGE', () => {
+    session.Me.create({ id: '1', unseenThreadCount: 0 })
     const action = {
       type: RECEIVE_MESSAGE,
       payload: {
@@ -32,6 +33,34 @@ describe('SocketListener.store.ormSessionReducer', () => {
     ormSessionReducer(session, action)
     const thread = session.MessageThread.withId('7')
     expect(thread.unreadCount).toBe(1)
+    expect(session.Me.first().unseenThreadCount).toBe(1)
+  })
+
+  it('does not bump unseenThreadCount for muted threads', () => {
+    session.Me.create({ id: '1', unseenThreadCount: 0 })
+    session.MessageThread.create({
+      id: '7',
+      unreadCount: 0,
+      isMuted: true
+    })
+    const action = {
+      type: RECEIVE_MESSAGE,
+      payload: {
+        data: {
+          message: {
+            text: 'hello world',
+            messageThread: '7'
+          }
+        }
+      },
+      meta: {
+        bumpUnreadCount: true
+      }
+    }
+
+    ormSessionReducer(session, action)
+    expect(session.MessageThread.withId('7').unreadCount).toBe(1)
+    expect(session.Me.first().unseenThreadCount).toBe(0)
   })
 
   describe('for RECEIVE_POST', () => {
@@ -39,38 +68,82 @@ describe('SocketListener.store.ormSessionReducer', () => {
 
     beforeEach(() => {
       session.Me.create({ id: '2' })
-      session.Person.create({ id: '14' })
-      session.Group.create({ id: '1', name: 'place' })
-      session.Membership.create({ id: '1', group: '1' })
-      session.Membership.create({ id: '2', group: '1', person: '14' })
-      session.GroupTopic.create({ id: '1', topic: '2', group: '1' })
-      session.GroupTopic.create({ id: '2', topic: '7', group: '1' })
+      session.Person.create({ id: '2' })
+      session.Group.create({
+        id: '1',
+        name: 'place',
+        groupViews: {
+          items: [
+            { id: '10', type: 'chat', newPostCount: 0 },
+            { id: '11', type: 'discussions', newPostCount: 0 }
+          ]
+        }
+      })
+      session.Membership.create({ id: '1', group: '1', person: '2', newPostCount: 0 })
       action = {
         type: RECEIVE_POST,
         payload: {
+          groupId: '1',
           data: {
             post: {
-              topics: ['2', '7'],
-              groupId: '1',
-              creatorId: '4'
+              type: 'discussion',
+              topics: [{ id: '2' }],
+              creator: { id: '4' }
             }
           }
         }
       }
     })
 
-    it('updates new post counts', () => {
+    it('updates membership and GroupView unread counts', () => {
       ormSessionReducer(session, action)
       expect(session.Membership.withId('1').newPostCount).toBe(1)
-      expect(session.Membership.withId('2').newPostCount).toBeFalsy()
-      expect(session.GroupTopic.withId('1').newPostCount).toBe(1)
-      expect(session.GroupTopic.withId('2').newPostCount).toBe(1)
+      const views = session.Group.withId('1').groupViews.items
+      expect(views.find(v => v.type === 'discussions').newPostCount).toBe(1)
+      expect(views.find(v => v.type === 'chat').newPostCount).toBe(1)
     })
 
     it('ignores posts created by the current user', () => {
-      action.payload.data.post.creatorId = '2'
+      action.payload.data.post.creator = { id: '2' }
       ormSessionReducer(session, action)
-      expect(session.Membership.withId('1').newPostCount).toBeFalsy()
+      expect(session.Membership.withId('1').newPostCount).toBe(0)
+      const views = session.Group.withId('1').groupViews.items
+      expect(views.find(v => v.type === 'discussions').newPostCount).toBe(0)
+      expect(views.find(v => v.type === 'chat').newPostCount).toBe(0)
+    })
+
+    it('updates nested space menus on the parent group', () => {
+      session.Group.create({
+        id: '99',
+        name: 'parent',
+        groupViews: {
+          items: [
+            {
+              id: 'space-view',
+              type: 'space',
+              linkedGroup: {
+                id: '1',
+                settings: { showPostNoticesInChat: true },
+                groupViews: {
+                  items: [
+                    { id: '10', type: 'chat', newPostCount: 0 },
+                    { id: '11', type: 'discussions', newPostCount: 0 }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      })
+      // Space's own Group may not have groupViews loaded — nested parent menu still updates
+      session.Group.withId('1').update({ groupViews: null })
+
+      ormSessionReducer(session, action)
+
+      const nested = session.Group.withId('99').groupViews.items[0].linkedGroup.groupViews.items
+      expect(nested.find(v => v.type === 'discussions').newPostCount).toBe(1)
+      expect(nested.find(v => v.type === 'chat').newPostCount).toBe(1)
+      expect(session.Membership.withId('1').newPostCount).toBe(1)
     })
   })
 

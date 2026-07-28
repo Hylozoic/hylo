@@ -25,14 +25,17 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
     publicMemberDirectory
     showSuggestedSkills
     showWelcomePage
+    layout
   }
   slug
   type
+  parentId
+  icon
+  acceptedPostTypes
   typeDescriptor
   typeDescriptorPlural
   visibility
   websiteUrl
-  welcomePage
   paywall
   canAccess
   agreements {
@@ -95,7 +98,7 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
       id
       name
       avatarUrl
-      groupRoles {
+      groupRoles(slug: $slug) {
         items {
           id
           name
@@ -109,14 +112,6 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
               description
             }
           }
-        }
-      }
-      membershipCommonRoles {
-        items {
-          id
-          groupId
-          userId
-          roleId
         }
       }
     }
@@ -168,6 +163,7 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
           publicMemberDirectory
           showSuggestedSkills
           showWelcomePage
+          layout
         }
         slug
       }

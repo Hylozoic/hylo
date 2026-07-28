@@ -3,14 +3,13 @@
  *
  * accessGrants can be either a JSON string or an object with the structure:
  * {
- *   trackIds: [1, 2, 3],
- *   groupIds: [4, 5, 6],
- *   commonRoleIds: [7, 8],  // Common roles (from common_roles table)
- *   groupRoleIds: [9, 10],   // Group roles (from groups_roles table)
+ *   groupIds: [4, 5, 6],  // parent group and/or space group ids
+ *   groupRoleIds: [9, 10],
  *   buyButtonText: "Join now"  // Optional; UI/checkout only (also stored on stripe_products.metadata)
  *   slidingScale: { enabled, minimum?, maximum? }  // Optional; checkout quantity range (also in metadata)
  * }
- * Access logic uses trackIds, groupIds, commonRoleIds, groupRoleIds; presentation fields are ignored there.
+ * Access logic uses groupIds, groupRoleIds; presentation fields are ignored there.
+ * Legacy trackIds may still exist on older rows until migration; prefer groupIds for spaces.
  * The client may still send buyButtonText / slidingScale inside this object; the API persists them in metadata.
  */
 
@@ -124,7 +123,7 @@ export function offeringHasGroupAccess (offering) {
 
 /**
  * Checks if an offering has any role access grants
- * @param {object} offering - The offering object with groupRoles/commonRoles relations or accessGrants
+ * @param {object} offering - The offering object with optional `roles` (GraphQL) or `accessGrants`
  * @returns {boolean} True if the offering grants access to any roles
  */
 export function offeringHasRoleAccess (offering) {
@@ -132,16 +131,10 @@ export function offeringHasRoleAccess (offering) {
     return false
   }
 
-  // Prefer role relations if available
-  const hasGroupRolesRelation = offering.groupRoles && Array.isArray(offering.groupRoles) && offering.groupRoles.length > 0
-  const hasCommonRolesRelation = offering.commonRoles && Array.isArray(offering.commonRoles) && offering.commonRoles.length > 0
-  if (hasGroupRolesRelation || hasCommonRolesRelation) {
+  if (offering.roles && Array.isArray(offering.roles) && offering.roles.length > 0) {
     return true
   }
 
-  // Fallback to parsing accessGrants
   const accessGrants = parseAccessGrants(offering.accessGrants)
-  const hasCommonRoles = accessGrants.commonRoleIds && Array.isArray(accessGrants.commonRoleIds) && accessGrants.commonRoleIds.length > 0
-  const hasGroupRoles = accessGrants.groupRoleIds && Array.isArray(accessGrants.groupRoleIds) && accessGrants.groupRoleIds.length > 0
-  return hasCommonRoles || hasGroupRoles
+  return accessGrants.groupRoleIds && Array.isArray(accessGrants.groupRoleIds) && accessGrants.groupRoleIds.length > 0
 }

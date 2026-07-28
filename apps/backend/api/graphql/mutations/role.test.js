@@ -22,8 +22,7 @@ describe('roles mutations', () => {
     group = factories.group()
     return Promise.join(group.save(), user.save(), user2.save())
       .then(() => user.joinGroup(group))
-      .then(() => user2.joinGroup(group, { role: GroupMembership.Role.MODERATOR }))
-
+      .then(() => user2.joinGroup(group, { assignCoordinator: true }))
   })
 
   after(async () => setup.clearDb())
@@ -54,6 +53,5 @@ describe('roles mutations', () => {
     const groupRole = await addGroupRole({ groupId: group.id, color, name, emoji, userId: user2.id })
     const updatedGroupRole = await updateGroupRole({ groupId: group.id, color: 'green', name, emoji, userId: user2.id, groupRoleId: groupRole.get('id') })
     expect(updatedGroupRole.get('color')).to.equal('green')
-
   })
 })

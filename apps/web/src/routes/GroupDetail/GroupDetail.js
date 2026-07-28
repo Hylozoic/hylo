@@ -20,6 +20,7 @@ import NotFound from 'components/NotFound'
 import { addSkill, removeSkill } from 'components/SkillsSection/SkillsSection.store'
 import JoinSection from './JoinSection'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
+import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import checkInvitation from 'store/actions/checkInvitation'
 import fetchGroupDetails from 'store/actions/fetchGroupDetails'
 import { FETCH_GROUP_DETAILS, RESP_ADMINISTRATION } from 'store/constants'
@@ -53,6 +54,7 @@ import {
   fetchJoinRequests,
   joinGroup
 } from './GroupDetail.store'
+import FundingRoundAboutInfo from 'components/FundingRoundAboutInfo/FundingRoundAboutInfo'
 
 import g from './GroupDetail.module.scss'
 import m from '../MapExplorer/MapDrawer/MapDrawer.module.scss' // eslint-disable-line no-unused-vars
@@ -96,11 +98,16 @@ function GroupDetail ({ forCurrentGroup = false }) {
   const location = useLocation()
   const routeParams = useRouteParams()
   const { t } = useTranslation()
+  const effectiveGroupSlug = useEffectiveGroupSlug()
 
   const currentUser = useSelector(getMe)
-  const groupSelector = useSelector(state => getGroupForSlug(state, routeParams.detailGroupSlug || routeParams.groupSlug))
+  // When forCurrentGroup (group or space about page), prefer the effective slug so spaces
+  // under /groups/:parent/spaces/:spaceSlug/about resolve to the space, not the parent.
+  const slug = forCurrentGroup
+    ? (effectiveGroupSlug || routeParams.groupSlug)
+    : (routeParams.detailGroupSlug || routeParams.groupSlug)
+  const groupSelector = useSelector(state => getGroupForSlug(state, slug))
   const group = useMemo(() => presentGroup(groupSelector), [groupSelector])
-  const slug = routeParams.detailGroupSlug || routeParams.groupSlug
   const isAboutCurrentGroup = forCurrentGroup || routeParams.groupSlug === routeParams.detailGroupSlug
   const myMemberships = useSelector(state => getMyMemberships(state))
   const isMember = useMemo(() => group && currentUser ? myMemberships.find(m => m.group.id === group.id) : false, [group, currentUser, myMemberships])
@@ -127,10 +134,8 @@ function GroupDetail ({ forCurrentGroup = false }) {
         if (checkResult?.email) {
           setInvitationEmail(checkResult.email)
         }
-        // Set invitation role from either commonRole or groupRole
-        if (checkResult?.commonRole) {
-          setInvitationRole(checkResult.commonRole)
-        } else if (checkResult?.groupRole) {
+        // Set invitation role from groupRole on the invite
+        if (checkResult?.groupRole) {
           setInvitationRole(checkResult.groupRole)
         }
         setInvitationChecked(true)
@@ -293,6 +298,7 @@ function GroupDetail ({ forCurrentGroup = false }) {
         {group.type === GROUP_TYPES.farm && (
           <FarmGroupDetailBody isMember={isMember} group={group} currentUser={currentUser} routeParams={routeParams} />
         )}
+        {group.type === GROUP_TYPES.space && defaultGroupBody({ group, isAboutCurrentGroup, t, responsibilityTitles })}
         {isAboutCurrentGroup || group.type === GROUP_TYPES.farm
           ? (
             <div className='border-2 border-dashed border-foreground/20 rounded-xl p-4 mb-4'>
@@ -323,6 +329,12 @@ function GroupDetail ({ forCurrentGroup = false }) {
             <p>{t(accessibilityString(group.accessibility))} - {t(accessibilityDescription(group.accessibility))}</p>
           </div>
         </div>
+        {group.fundingRound?.id && (
+          <FundingRoundAboutInfo
+            fundingRoundId={group.fundingRound.id}
+            roleGroupId={group.parentId || group.id}
+          />
+        )}
         {group.agreements?.length > 0
           ? (
             <div

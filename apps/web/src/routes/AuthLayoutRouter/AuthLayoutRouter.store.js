@@ -1,6 +1,6 @@
 import { LOCATION_CHANGE } from 'redux-first-history'
 import { pick } from 'lodash/fp'
-import rollbar from 'client/rollbar'
+import errorReporter from 'client/errorReporter'
 import {
   FETCH_FOR_CURRENT_USER,
   FETCH_FOR_GROUP_PENDING,
@@ -36,10 +36,10 @@ export default function reducer (state = initialState, action) {
     return { ...state, isDrawerOpen: false }
   }
 
-  // Links current user to rollbar config
+  // Links current user to error reporter (Sentry) config
   if (action.type === FETCH_FOR_CURRENT_USER && action.payload?.data?.me) {
     const { id, name, email } = action.payload.data.me
-    rollbar.configure({
+    errorReporter.configure({
       payload: {
         person: {
           id,

@@ -71,8 +71,7 @@ export async function publishGroupMembershipUpdate (context, group, membershipDa
     const membershipUpdate = {
       group: membershipData.group || groupObj,
       member: membershipData.member,
-      action: membershipData.action,
-      role: membershipData.role || null
+      action: membershipData.action
     }
 
     // Publish to each member's user channel

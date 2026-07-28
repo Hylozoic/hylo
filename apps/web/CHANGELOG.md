@@ -6,10 +6,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.5.5] - 2026-07-21
+
+### Added
+- Create post dialog can now open when in the messages view
+- Made mobile web view auth more robust
+
+### Fixed
+- Chat paths more reliably handle query params, avoiding instances of bad chat queries
+- Ensure all participants of a message thread can see each other, before their first message
+- Avoid double posting from post editor
+
+## [6.5.4] - 2026-07-14
+
+### Changed
+- When on a common view like Discussions, Events or Requests and Offers, the post create modal only allows you to create posts of the type(s) displayed in that view
+
+### Fixed
+- Fix filtering of post stream by type for views other than the main Stream
+
+## [6.5.3] - 2026-07-02
+
+### Added
+- Muting of message threads - they will no longer appear in the messages inbox or send notifications.
+
+### Changed
+- Only show mute/unread buttons when hovering over a message row in the messages inbox
+
+### Fixed
+- Delete Account functionality
+- Prevent accidental double posting
+- Text selection on mobile
+- Nested comment reply unclickable on android
+
+## [6.5.2] - 2026-06-23
+
+### Fixed
+- Ensure users with the appropriate join or invite link can join CLOSED groups
+
 ## [6.5.1] - 2026-06-16
+
+### Addded
+- Green check box button saves changes when editing a chat or a comment
+
+### Changed
+- Improve speed of loading search results.
+- Hover menu doesn't appear while editing a chat or a comment
+- Disable pull to close post modal on mobile while editing a comment
 
 ### Fixed
 - Fix occasional mobile app WebView infinite reload loop
+- Editing long comments on ipad/mobile. Don't close the keyboard when scrolling inside the comment form.
+- ipad UI should look/work better when using the app now
+- Scrolling in comment edit box on ipad now works
+- When saving a chat edit dont flash briefly back to the old content before updating.
 
 ## [6.5.0] - 2026-06-15
 
@@ -25,7 +75,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Search query streamlined.
 - Group menu editing streamlined
 
-## [6.4.11] - 2026-07-01
+## [6.4.11] - 2026-06-11
 
 ### Changed
 - Many improvements to editing of Group Menu, and All Views in general

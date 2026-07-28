@@ -5,6 +5,7 @@ export default gql`
     id
     unreadCount
     lastReadAt
+    isMuted
     createdAt
     updatedAt
     participants {

@@ -22,7 +22,7 @@ const WelcomeExplore = () => {
         <div className='text-center mb-6'>
           <h3 className='text-2xl font-bold text-foreground mb-2'>{t('Welcome to Hylo!')}</h3>
           <p className='text-muted-foreground'>
-            {t('We\'re glad you\'re here, {{firstName}}. To get started, explore public groups and posts, or create your own group!', { firstName: currentUser.name.split(' ')[0] })}
+            {t('We\'re glad you\'re here, {{firstName}}. To get started, explore public groups and posts, or create your own group!', { firstName: (currentUser.name || '').split(' ')[0] })}
           </p>
         </div>
 

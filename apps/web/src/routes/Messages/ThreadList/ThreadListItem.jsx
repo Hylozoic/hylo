@@ -9,16 +9,18 @@ import Badge from 'components/Badge'
 import RoundImage from 'components/RoundImage'
 import { participantAttributes } from 'store/models/MessageThread'
 import { cn } from 'util/index'
+import { isPhoneDevice } from 'util/mobile'
 import { useDispatch } from 'react-redux'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import { markThreadUnread, updateThreadReadTime } from '../Messages.store'
+import MuteThreadButton from '../MuteThreadButton'
 
 import classes from './ThreadList.module.scss'
 
 const MAX_THREAD_PREVIEW_LENGTH = 60
 
 export default function ThreadListItem ({
-  currentUser, active, id, thread, latestMessage, unreadCount, isUnread
+  currentUser, active, id, thread, latestMessage, unreadCount, isUnread, isMuted
 }) {
   const { t } = useTranslation()
   const latestMessagePreview = TextHelpers.presentHTMLToText(latestMessage?.text, { truncate: MAX_THREAD_PREVIEW_LENGTH })
@@ -37,7 +39,7 @@ export default function ThreadListItem ({
 
   return (
     <li className={cn('group flex flex-row items-stretch bg-transparent m-0 hover:scale-[1.02] transition-all hover:bg-selected/50', { [classes.unreadListItem]: isUnread, 'bg-transparent xs:bg-selected': active })}>
-      <Link to={`/messages/${id}`} className='flex flex-row flex-1 min-w-0 p-2' onClick={toggleNavMenuAction}>
+      <Link to={`/messages/${id}`} className='flex flex-row flex-1 min-w-0 p-2' onClick={isPhoneDevice() ? toggleNavMenuAction : undefined}>
         <div className='mr-2 flex flex-col justify-center flex-shrink-0'>
           <ThreadAvatars avatarUrls={avatarUrls} />
         </div>
@@ -53,19 +55,22 @@ export default function ThreadListItem ({
       </Link>
       <div className='flex flex-col items-center justify-center flex-shrink-0 gap-1 pr-2 py-2'>
         {unreadCount > 0 && <Badge number={unreadCount} expanded />}
-        <button
-          type='button'
-          onClick={handleToggleReadStatus}
-          aria-label={isUnread ? t('Mark as read') : t('Mark as unread')}
-          title={isUnread ? t('Mark as read') : t('Mark as unread')}
-          className={cn(
-            'flex items-center justify-center w-9 h-9 rounded-lg transition-all scale-100 hover:scale-105',
-            'bg-darkening/20 hover:bg-selected/80 text-foreground/60 hover:text-foreground',
-            { 'text-foreground': isUnread }
-          )}
-        >
-          {isUnread ? <MailOpen className='w-4 h-4' /> : <Mail className='w-4 h-4' />}
-        </button>
+        <div className='hidden flex-col items-center gap-1 group-hover:flex group-focus-within:flex'>
+          <button
+            type='button'
+            onClick={handleToggleReadStatus}
+            aria-label={isUnread ? t('Mark as read') : t('Mark as unread')}
+            title={isUnread ? t('Mark as read') : t('Mark as unread')}
+            className={cn(
+              'flex items-center justify-center w-9 h-9 rounded-lg transition-all scale-100 hover:scale-105',
+              'bg-darkening/20 hover:bg-selected/80 text-foreground/60 hover:text-foreground',
+              { 'text-foreground': isUnread }
+            )}
+          >
+            {isUnread ? <MailOpen className='w-4 h-4' /> : <Mail className='w-4 h-4' />}
+          </button>
+          <MuteThreadButton threadId={id} isMuted={isMuted} />
+        </div>
       </div>
     </li>
   )
@@ -79,7 +84,8 @@ ThreadListItem.propTypes = {
     text: PropTypes.string.isRequired
   }),
   thread: PropTypes.object,
-  unreadCount: PropTypes.number
+  unreadCount: PropTypes.number,
+  isMuted: PropTypes.bool
 }
 
 function ThreadAvatars ({ avatarUrls }) {

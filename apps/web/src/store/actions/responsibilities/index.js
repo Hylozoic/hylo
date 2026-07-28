@@ -5,8 +5,7 @@ import {
   UPDATE_GROUP_RESPONSIBILITY,
   FETCH_RESPONSIBILITIES_FOR_GROUP,
   REMOVE_RESPONSIBILITY_FROM_ROLE,
-  FETCH_RESPONSIBILITIES_FOR_GROUP_ROLE,
-  FETCH_RESPONSIBILITIES_FOR_COMMON_ROLE
+  FETCH_RESPONSIBILITIES_FOR_GROUP_ROLE
 } from 'store/constants'
 
 export function addGroupResponsibility ({ groupId, title, description }) {
@@ -123,24 +122,6 @@ export function fetchResponsibilitiesForGroupRole ({ roleId: groupRoleId }) {
         }
       }`,
       variables: { groupRoleId }
-    }
-  }
-}
-
-export function fetchResponsibilitiesForCommonRole ({ roleId: commonRoleId }) {
-  return {
-    type: FETCH_RESPONSIBILITIES_FOR_COMMON_ROLE,
-    graphql: {
-      query: `query fetchResponsibilitiesForCommonRole ($commonRoleId: ID) {
-        responsibilities (commonRoleId: $commonRoleId) {           
-          id
-          title
-          type
-          description
-          responsibilityId
-        }
-      }`,
-      variables: { commonRoleId }
     }
   }
 }

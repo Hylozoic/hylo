@@ -1,8 +1,8 @@
-import { BadgeDollarSign, Bookmark, FilePenLine, Grid3x3, Shapes } from 'lucide-react'
 import React from 'react'
 import { ContextWidgetPresenter } from '@hylo/presenters'
 import Avatar from 'components/Avatar'
 import Icon from 'components/Icon'
+import LucideIcon from 'components/LucideIcon/LucideIcon'
 
 export function WidgetIconResolver ({ widget: providedWidget, style, className }) {
   if (!providedWidget) return null
@@ -14,17 +14,13 @@ export function WidgetIconResolver ({ widget: providedWidget, style, className }
   }
 
   if (widget?.iconName) {
-    return widget.iconName === 'Grid3x3'
-      ? <Grid3x3 className='h-[16px] inline-block' />
-      : widget.iconName === 'Shapes'
-        ? <Shapes className='h-[16px] w-[16px] inline-block' />
-        : widget.iconName === 'Bookmark'
-          ? <Bookmark className='h-[16px] w-[16px] inline-block' />
-          : widget.iconName === 'FilePenLine'
-            ? <FilePenLine className='h-[16px] w-[16px] inline-block' />
-            : widget.iconName === 'BadgeDollarSign'
-              ? <BadgeDollarSign className='h-[16px] w-[16px] inline-block' />
-              : <Icon name={widget.iconName} style={style} className={className} />
+    return (
+      <LucideIcon
+        name={widget.iconName}
+        className={className || 'h-[16px] w-[16px] inline-block'}
+        fallback={<Icon name={widget.iconName} style={style} className={className} />}
+      />
+    )
   }
 
   return null

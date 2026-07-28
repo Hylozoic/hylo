@@ -62,6 +62,15 @@ describe('filterAndSortPosts', () => {
       where "posts"."type" in ('discussion', 'request', 'offer', 'project', 'proposal', 'event', 'resource')
       order by "posts"."updated_at" desc`)
   })
+
+  it('searches post content and creator name', () => {
+    filterAndSortPosts({ search: 'alice' }, query)
+    expectEqualQuery(relation, `select * from "posts"
+      left join "users" as "post_creators" on "posts"."user_id" = "post_creators"."id"
+      where "posts"."type" in ('discussion', 'request', 'offer', 'project', 'proposal', 'event', 'resource')
+      and (posts.name ilike '%alice%' or posts.description ilike '%alice%' or post_creators.name ilike '%alice%')
+      order by "posts"."updated_at" desc`)
+  })
 })
 
 describe('filterAndSortGroups', () => {

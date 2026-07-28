@@ -9,7 +9,8 @@ import SendAnnouncementModal from 'components/SendAnnouncementModal'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import { cn } from 'util/index'
 
-import styles from './PostEditor.module.scss'
+const actionIconClasses = 'text-[32px] cursor-pointer hover:text-[#0DC39F]'
+const highlightIconClasses = 'text-[#0DC39F] cursor-default'
 
 export default function ActionsBar ({
   id,
@@ -21,6 +22,7 @@ export default function ActionsBar ({
   groups,
   invalidMessage,
   loading,
+  submitting = false,
   myAdminGroups,
   setAnnouncementSelected,
   setShowLocation,
@@ -55,7 +57,7 @@ export default function ActionsBar ({
         >
           <Icon
             name='AddImage'
-            className={cn(styles.actionIcon, { [styles.highlightIcon]: showImages })}
+            className={cn(actionIconClasses, { [highlightIconClasses]: showImages })}
             dataTestId='add-image-icon'
           />
         </UploadAttachmentButton>
@@ -72,13 +74,13 @@ export default function ActionsBar ({
         >
           <Icon
             name='Paperclip'
-            className={cn(styles.actionIcon, { [styles.highlightIcon]: showFiles })}
+            className={cn(actionIconClasses, { [highlightIconClasses]: showFiles })}
             dataTestId='add-file-icon'
           />
         </UploadAttachmentButton>
         {type !== 'chat' && !showLocation && (
           <span data-tooltip-content={t('Add Location')} data-tooltip-id='location-tt' onClick={() => setShowLocation(true)}>
-            <MapPin className={styles.actionIcon} />
+            <MapPin className={actionIconClasses} />
           </span>
         )}
         {canMakeAnnouncement && (
@@ -90,8 +92,8 @@ export default function ActionsBar ({
                 setAnnouncementSelected(!announcementSelected)
                 setIsDirty(true)
               }}
-              className={cn(styles.actionIcon, {
-                [styles.highlightIcon]: announcementSelected
+              className={cn(actionIconClasses, {
+                [highlightIconClasses]: announcementSelected
               })}
             />
             <Tooltip
@@ -119,13 +121,13 @@ export default function ActionsBar ({
             : t(navigator.platform.includes('Mac') ? 'Option-Enter to post' : 'Alt-Enter to post')}
         </label>
         <Button
-          disabled={!valid || loading}
+          disabled={!valid || loading || submitting}
           onClick={doSave}
           className='border-2 border-foreground/30 bg-foreground/30 px-2 py-1 rounded flex items-center'
           dataTipHtml={!valid ? invalidMessage : ''}
           dataFor='submit-tt'
         >
-          <SendHorizontal className={!valid || loading ? 'text-muted-foreground' : 'text-highlight'} size={18} style={{ display: 'inline' }} />
+          <SendHorizontal className={!valid || loading || submitting ? 'text-muted-foreground' : 'text-highlight'} size={18} style={{ display: 'inline' }} />
         </Button>
 
         <Tooltip

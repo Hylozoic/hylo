@@ -39,7 +39,8 @@ export default function createPost (postParams) {
     title,
     topicNames,
     trackId,
-    type
+    type,
+    viewId
   } = postParams
   const linkPreviewId = linkPreview && linkPreview.id
   const groupIds = groups.map(c => c.id)
@@ -81,7 +82,8 @@ export default function createPost (postParams) {
         title,
         topicNames,
         trackId,
-        type
+        type,
+        viewId
       }
     },
     meta: {
@@ -103,7 +105,8 @@ export default function createPost (postParams) {
       type,
       fundingRoundId,
       groupIds,
-      trackId
+      trackId,
+      viewId
     }
   }
 }

@@ -6,12 +6,9 @@ import { get } from 'lodash/fp'
 import { cn } from 'util/index'
 import { Link, NavLink } from 'react-router-dom'
 import { topicsUrl, allGroupsUrl } from '@hylo/navigation'
-import Badge from 'components/Badge'
 import Icon from 'components/Icon'
-import resetNewPostCount from 'store/actions/resetNewPostCount'
 import { FETCH_POSTS } from 'store/constants'
 import { makeDropQueryResults } from 'store/reducers/queryResults'
-import badgeHoverStyles from '../../../../../components/Badge/component.module.scss'
 import { getTopicsFromSubscribedGroupTopics } from './TopicNavigation.store'
 import styles from './TopicNavigation.module.scss'
 
@@ -32,10 +29,6 @@ export default function TopicNavigation (props) {
   const topics = topicsProp ?? topicsFromStore
   const seeAllUrl = seeAllUrlProp ?? topicsUrl(routeParams, allGroupsUrl())
 
-  const clearBadge = useCallback((id) => {
-    dispatch(resetNewPostCount(id, 'TopicFollow'))
-  }, [dispatch])
-
   const clearStream = useCallback(() => {
     dispatch(dropPostResults(streamFetchPostsParam))
   }, [dispatch, streamFetchPostsParam])
@@ -45,13 +38,9 @@ export default function TopicNavigation (props) {
     dispatch(push(backUrl))
   }, [dispatch, backUrl])
 
-  const handleClearTopic = groupTopic => {
-    const { current, groupTopicId, newPostCount } = groupTopic
-
-    if (groupTopicId) {
-      current && clearStream()
-      newPostCount > 0 && clearBadge(groupTopicId)
-    }
+  const handleTopicClick = groupTopic => {
+    const { current, groupTopicId } = groupTopic
+    if (groupTopicId && current) clearStream()
   }
   const { t } = useTranslation()
 
@@ -65,7 +54,7 @@ export default function TopicNavigation (props) {
       </div>
       <TopicsList
         onClose={goBack}
-        onClick={handleClearTopic}
+        onClick={handleTopicClick}
         topics={topics}
       />
       <div className={styles.addTopic}>
@@ -81,13 +70,11 @@ export function TopicsList ({ topics, onClick, onClose }) {
       {topics.map(topic => (
         <li key={topic.name} className={cn(styles.topic, { [styles.pinned]: topic.visibility === 2 })}>
           <NavLink
-            className={({ isActive }) => cn(badgeHoverStyles.parent, styles.topicLink, { [styles.activeTopicNavLink]: isActive })}
+            className={({ isActive }) => cn(styles.topicLink, { [styles.activeTopicNavLink]: isActive })}
             to={topic.url}
             onClick={() => onClick(topic)}
           >
             <span className={styles.name}>#{topic.name}</span>
-            {topic.newPostCount > 0 && !topic.current &&
-              <Badge number={topic.newPostCount} className={styles.badge} />}
             {topic.visibility === 2 && <Icon name='Pin' className={styles.pinIcon} />}
             {topic.current &&
               <Icon name='Ex' className={styles.closeIcon} onClick={onClose} />}

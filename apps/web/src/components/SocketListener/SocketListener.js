@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useLocation } from 'react-router-dom'
 import { getSocket, socketUrl } from 'client/websockets.js'
-import rollbar from 'client/rollbar'
+import errorReporter from 'client/errorReporter'
 import useRouteParams from 'hooks/useRouteParams'
 import {
   receiveThread,
@@ -12,7 +12,8 @@ import {
   receiveNotification,
   receivePost
 } from './SocketListener.store'
-import fetchForGroup from 'store/actions/fetchForGroup'
+import fetchGroupViews from 'store/actions/fetchGroupViews'
+import getMe from 'store/selectors/getMe'
 import {
   addUserTyping,
   clearUserTyping
@@ -25,6 +26,7 @@ const SocketListener = (props) => {
   const locationRef = useRef(location)
   const routeParams = useRouteParams()
   const group = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
+  const currentUser = useSelector(getMe)
 
   // Need to keep the location up to date without causing handlers to rerender and us to reconnect to the sockets on every location change
   useEffect(() => {
@@ -33,22 +35,32 @@ const SocketListener = (props) => {
 
   const handlers = useMemo(() => ({
     commentAdded: data => dispatch(receiveComment(data)),
-    groupUpdated: () => {
-      if (group?.slug) dispatch(fetchForGroup(group.slug))
+    groupUpdated: (data) => {
+      if (!group?.id) return
+      if (data?.groupId && String(data.groupId) !== String(group.id)) return
+      if (data?.updatedByUserId && String(data.updatedByUserId) === String(currentUser?.id)) return
+      dispatch(fetchGroupViews(group.id))
     },
     messageAdded: (data) => {
       const message = convertToMessage(data)
       dispatch(receiveMessage(message, {
-        bumpUnreadCount: !isActiveThread(locationRef.current, data)
+        bumpUnreadCount: !isActiveThread(locationRef.current, data),
+        isMuted: data.isMuted
       }))
     },
     newNotification: data => dispatch(receiveNotification(data)),
-    newPost: data => dispatch(receivePost(data, group.id)),
+    // Use the post's group from the socket payload — not the currently viewed group.
+    // Space posts arrive on the space room while the parent menu may still be open.
+    newPost: data => {
+      const postGroupId = data?.groups?.[0]?.id
+      if (!postGroupId) return
+      dispatch(receivePost(data, postGroupId))
+    },
     newThread: data => dispatch(receiveThread(convertToThread(data))),
     userTyping: ({ userId, userName, isTyping }) => {
       isTyping ? dispatch(addUserTyping(userId, userName)) : dispatch(clearUserTyping(userId))
     }
-  }), [group?.id, group?.slug])
+  }), [currentUser?.id, dispatch, group?.id])
 
   useEffect(() => {
     const socket = getSocket()
@@ -71,7 +83,7 @@ const SocketListener = (props) => {
 
     socket.post(socketUrl('/noo/user/subscribe'), (body, jwr) => {
       if (!isEqual(body, {})) {
-        rollbar.error(`Failed to connect SocketListener: ${body}`)
+        errorReporter.error(`Failed to connect SocketListener: ${body}`)
       }
     })
   }

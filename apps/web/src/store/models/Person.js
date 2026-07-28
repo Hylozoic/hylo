@@ -14,16 +14,6 @@ Reaction.fields = {
   post: fk('Post', 'reactions')
 }
 
-export class MembershipCommonRole extends Model { }
-MembershipCommonRole.modelName = 'MembershipCommonRole'
-MembershipCommonRole.fields = {
-  id: attr(),
-  commonRoleId: attr(),
-  groupId: attr(),
-  userId: attr(),
-  commonRole: fk('CommonRole', 'membershipCommonRoles')
-}
-
 class Person extends Model {
   toString () {
     return `Person: ${this.name}`
@@ -49,7 +39,6 @@ Person.fields = {
     to: 'Location',
     as: 'locationObject'
   }),
-  membershipCommonRoles: many('MembershipCommonRole'),
   reactions: many('Reaction'),
   skills: many({ to: 'Skill', as: 'skills', relatedName: 'peopleHaving' }),
   skillsToLearn: many({
@@ -70,7 +59,7 @@ export const PERSON_PROP_TYPES = {
   avatarUrl: PropTypes.string.isRequired
 }
 
-export const firstName = person => person.name.split(' ')[0]
+export const firstName = person => (person.name || '').split(' ')[0]
 export const twitterUrl = twitterName => twitterName && `https://twitter.com/${twitterName}`
 
 export const AXOLOTL_ID = '13986'

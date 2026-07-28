@@ -7,5 +7,4 @@ export const SET_STATE = 'SET_STATE'
 export const UPLOAD = 'UPLOAD'
 
 // Responsibilities
-export const RESP_MANAGE_TRACKS = 'Manage Tracks'
-export const RESP_MANAGE_ROUNDS = 'Manage Rounds'
+export const RESP_MANAGE_SPACES = 'Manage Spaces'

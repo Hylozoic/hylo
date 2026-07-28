@@ -1,5 +1,6 @@
 import { GraphQLError } from 'graphql'
 import request from 'request'
+import { Validators } from '@hylo/shared'
 import { decodeHyloJWT } from '../../../lib/HyloJWT'
 
 // Sign-up Related
@@ -71,6 +72,12 @@ export const register = (fetchOne) => async (_, { name, password }, context) => 
     if (!user.get('email_validated')) {
       throw new GraphQLError('Email not validated')
     }
+
+    const invalidName = Validators.validateUser.name(name)
+    if (invalidName) throw new GraphQLError(invalidName)
+
+    const invalidPassword = Validators.validateUser.password(password)
+    if (invalidPassword) throw new GraphQLError(invalidPassword)
 
     await bookshelf.transaction(async transacting => {
       await user.save({ name, active: true }, { transacting })

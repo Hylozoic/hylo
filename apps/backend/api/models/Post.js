@@ -11,6 +11,7 @@ import fetch from 'node-fetch'
 import { postRoom, pushToSockets } from '../services/Websockets'
 import { fulfill, unfulfill } from './post/fulfillPost'
 import { decrementNewPostCount } from './post/deletePost'
+import { incrementNewPostCount } from './post/createPost'
 import EnsureLoad from './mixins/EnsureLoad'
 import { countTotal } from '../../lib/util/knex'
 import { refineMany, refineOne } from './util/relations'
@@ -26,7 +27,8 @@ export const POSTS_USERS_ATTR_UPDATE_WHITELIST = [
   'following',
   'active',
   'clickthrough',
-  'saved_at'
+  'saved_at',
+  'muted_at'
 ]
 
 const commentersQuery = (limit, post, currentUserId) => q => {
@@ -154,12 +156,17 @@ module.exports = bookshelf.Model.extend(Object.assign({
   followers: function () {
     return this.belongsToMany(User).through(PostUser)
       // .withPivot(['last_read_at', 'clickthrough']) // TODO COMOD: does not seem to work
-      .withPivot(['last_read_at'])
+      .withPivot(['last_read_at', 'muted_at'])
       .where({ following: true, 'posts_users.active': true, 'users.active': true })
   },
 
+  /** Funding rounds whose space hosts this post (via groups_posts). */
   fundingRounds: function () {
-    return this.belongsToMany(FundingRound, 'funding_rounds_posts', 'post_id', 'funding_round_id')
+    return FundingRound.query(q => {
+      q.join('groups_posts', 'groups_posts.group_id', 'funding_rounds.group_id')
+      q.where('groups_posts.post_id', this.id)
+      q.whereNull('funding_rounds.deactivated_at')
+    })
   },
 
   groups: function () {
@@ -170,6 +177,11 @@ module.exports = bookshelf.Model.extend(Object.assign({
   async isFollowed (userId) {
     const pu = await PostUser.find(this.id, userId)
     return !!(pu && pu.get('following'))
+  },
+
+  async isMutedForUser (userId) {
+    const pu = await PostUser.find(this.id, userId)
+    return !!(pu && pu.get('muted_at'))
   },
 
   /**
@@ -269,10 +281,6 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
   tags: function () {
     return this.belongsToMany(Tag).through(PostTag).withPivot('selected')
-  },
-
-  tracks: function () {
-    return this.belongsToMany(Track, 'tracks_posts')
   },
 
   user: function () {
@@ -599,7 +607,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
       if (!completedBefore) {
         await this.save({ num_people_completed: this.get('num_people_completed') + 1 }, { transacting: transaction })
-        Queue.classMethod('Post', 'checkCompletedTracks', { userId, postId: this.id })
+        Queue.classMethod('Post', 'checkCompletedTrack', { userId, postId: this.id })
       }
 
       return pu
@@ -1088,59 +1096,106 @@ module.exports = bookshelf.Model.extend(Object.assign({
     }
   },
 
+  // Background task to increment new_post_count when a post is created
+  incrementNewPostCountForCreatedPost: async ({ postId }) => {
+    const post = await Post.find(postId, { withRelated: ['groups', 'tags'] })
+    if (!post) return
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`📈 Background job: Incrementing new_post_count for created post ${postId}`)
+    }
+
+    try {
+      await incrementNewPostCount(post)
+    } catch (error) {
+      console.error('❌ Error incrementing new_post_count in background job:', error)
+    }
+  },
+
   createActivities: (opts) =>
     Post.find(opts.postId).then(post => post &&
       bookshelf.transaction(trx => post.createActivities(trx))),
 
-  // Check if completing this post completed any tracks for the user
-  checkCompletedTracks: async function ({ userId, postId }) {
+  // Check if completing this action completed its track for the user
+  checkCompletedTrack: async function ({ userId, postId }) {
     return bookshelf.transaction(async trx => {
       const post = await Post.find(postId, { transacting: trx })
       if (!post || post.get('type') !== 'action') return
 
-      const trackPosts = await TrackPost.where({ post_id: postId }).fetchAll({ transacting: trx })
-      const trackIds = trackPosts.pluck('track_id')
-      const tracks = await Track.query(q => q.whereIn('id', trackIds)).fetchAll({ transacting: trx })
-      for (const track of tracks) {
-        const trackActions = await track.posts().fetch({ transacting: trx })
-        const completedActionsCount = await PostUser.query(q => {
-          q.where('user_id', userId)
-          q.whereIn('post_id', trackActions.pluck('post_id'))
-          q.whereNotNull('completed_at')
-        }).count({ transacting: trx })
+      // An action belongs to one track-actions view / Track space
+      const spaceRow = await bookshelf.knex('collections_posts as cp')
+        .transacting(trx)
+        .join('group_views as gv', 'gv.id', 'cp.view_id')
+        .join('groups as g', 'g.id', 'gv.group_id')
+        .where('cp.post_id', postId)
+        .where('gv.type', GroupView.Type.TRACK_ACTIONS)
+        .whereNotNull('g.track_id')
+        .select('g.id')
+        .first()
+      if (!spaceRow) return
 
-        // If completed the track
-        if (parseInt(completedActionsCount) === trackActions.length) {
-          const trackUser = await TrackUser.where({ track_id: track.id, user_id: userId }).fetch({ transacting: trx })
-          if (trackUser.get('completed_at')) {
-            // Don't complete the track again if it's already completed
-            continue
-          }
-          await trackUser.save({ completed_at: new Date() }, { transacting: trx })
-          await track.save({ num_people_completed: track.get('num_people_completed') + 1 }, { transacting: trx })
-          const group = await track.groups().fetchOne({ transacting: trx })
-          // See if there is a role/badge for completing the track
-          if (track.get('completion_role_id')) {
-            if (track.get('completion_role_type') === 'common') {
-              await MemberCommonRole.forge({ common_role_id: track.get('completion_role_id'), user_id: userId, group_id: group.id }).save(null, { transacting: trx })
-            } else if (track.get('completion_role_type') === 'group') {
-              await MemberGroupRole.forge({ group_role_id: track.get('completion_role_id'), user_id: userId, active: true, group_id: group.id }).save(null, { transacting: trx })
-            }
-          }
+      const spaceGroup = await Group.find(spaceRow.id, {
+        withRelated: ['track'],
+        transacting: trx
+      })
+      const track = spaceGroup?.relations?.track
+      if (!track) return
 
-          // Create notification activities for the track's group's track managers
-          const manageTracksResponsibility = await Responsibility.where({ title: Responsibility.constants.RESP_MANAGE_TRACKS }).fetch({ transacting: trx })
-          const stewards = await group.membersWithResponsibilities([manageTracksResponsibility.id]).fetch({ transacting: trx })
-          const stewardsIds = stewards.pluck('id')
-          const activities = stewardsIds.map(stewardId => ({
-            reason: 'trackCompleted',
-            actor_id: userId,
-            group_id: group.id,
-            reader_id: stewardId,
-            track_id: track.id
-          }))
-          await Activity.saveForReasons(activities, { transacting: trx })
+      const trackActions = await spaceGroup.actionPosts({ transacting: trx })
+      const actionPostIds = trackActions.map(a => a.id)
+      if (actionPostIds.length === 0) return
+
+      const completedActionsCount = await PostUser.query(q => {
+        q.where('user_id', userId)
+        q.whereIn('post_id', actionPostIds)
+        q.whereNotNull('completed_at')
+      }).count({ transacting: trx })
+
+      if (parseInt(completedActionsCount) !== trackActions.length) return
+
+      const membership = await GroupMembership.forPair(userId, spaceGroup).fetch({ transacting: trx })
+      if (!membership || !membership.get('active') || membership.get('settings')?.completedAt) {
+        // Don't complete unless enrolled (active space member), and don't complete again
+        return
+      }
+
+      membership.addSetting({ completedAt: new Date().toISOString() })
+      await membership.save({ settings: membership.get('settings') }, { patch: true, transacting: trx })
+      await track.save({ num_people_completed: track.get('num_people_completed') + 1 }, { transacting: trx })
+
+      // Completion roles and steward notifications live on the parent group
+      const notifyGroupId = spaceGroup.get('parent_id') || spaceGroup.id
+      const notifyGroup = spaceGroup.get('parent_id')
+        ? await Group.find(spaceGroup.get('parent_id'), { transacting: trx })
+        : spaceGroup
+
+      if (track.get('completion_role_id') && notifyGroup) {
+        try {
+          await MemberGroupRole.forge({
+            group_role_id: track.get('completion_role_id'),
+            user_id: userId,
+            active: true,
+            group_id: notifyGroupId
+          }).save(null, { transacting: trx })
+        } catch (err) {
+          if (!err.message || !err.message.includes('duplicate key value')) {
+            throw err
+          }
         }
+      }
+
+      if (notifyGroup) {
+        const manageSpacesResponsibility = await Responsibility.where({ title: Responsibility.constants.RESP_MANAGE_SPACES }).fetch({ transacting: trx })
+        const stewards = await notifyGroup.membersWithResponsibilities([manageSpacesResponsibility.id]).fetch({ transacting: trx })
+        const stewardsIds = stewards.pluck('id')
+        const activities = stewardsIds.map(stewardId => ({
+          reason: 'trackCompleted',
+          actor_id: userId,
+          group_id: notifyGroupId,
+          reader_id: stewardId,
+          track_id: track.id
+        }))
+        await Activity.saveForReasons(activities, { transacting: trx })
       }
     })
   },
@@ -1219,7 +1274,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
         const entityUrl = Frontend.Route.post(post, post.relations.groups[0])
 
         const creator = post.relations.user
-        const response = await fetch(trigger.get('target_url'), {
+        await fetch(trigger.get('target_url'), {
           method: 'post',
           body: JSON.stringify({
             id: post.id,

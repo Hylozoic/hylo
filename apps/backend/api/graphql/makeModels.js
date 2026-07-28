@@ -1,7 +1,8 @@
-/* global FundingRound ContentAccess Draft */
+/* global FundingRound ContentAccess Draft GroupView GroupViewUser CollectionPost */
 import { camelCase, isNil, mapKeys, startCase } from 'lodash/fp'
 import pluralize from 'pluralize'
 import { TextHelpers } from '@hylo/shared'
+import { messageThreadSearchFilter } from './messageThreadSearch'
 import searchQuerySet from './searchQuerySet'
 import {
   commentFilter,
@@ -26,7 +27,33 @@ const {
   mergeAccessGrantsForPresentation,
   getBuyButtonTextFromOffering
 } = require('../../lib/stripeOfferingMetadata')
-import { messageThreadSearchFilter } from './messageThreadSearch'
+
+/** Deprecated GraphQL compat: older mobile clients still query removed common-role fields */
+const emptyQuerySet = () => ({ total: 0, hasMore: false, items: [] })
+
+/** Deprecated GraphQL compat: old clients queried hasModeratorRole on Membership */
+async function membershipHasModeratorRole (membership) {
+  const groupId = membership.get('group_id')
+  const memberUserId = membership.get('user_id')
+  if (!groupId || !memberUserId) return false
+
+  const roleScopeId = await Group.roleScopeId(groupId)
+  const role = await GroupRole.where({
+    group_id: roleScopeId,
+    name: 'Moderator',
+    type: 'system',
+    active: true
+  }).fetch()
+  if (!role) return false
+
+  const assignment = await MemberGroupRole.where({
+    user_id: memberUserId,
+    group_id: roleScopeId,
+    group_role_id: role.id,
+    active: true
+  }).fetch()
+  return !!assignment
+}
 
 // this defines what subset of attributes and relations in each Bookshelf model
 // should be exposed through GraphQL, and what query filters should be applied
@@ -34,6 +61,25 @@ import { messageThreadSearchFilter } from './messageThreadSearch'
 //
 // keys in the returned object are GraphQL schema type names
 //
+/** Limit a person's groupRoles to a single group when groupId or slug is provided. Spaces resolve to parent. */
+function filterGroupRolesByGroup (relation, { groupId, slug }) {
+  if (!groupId && !slug) return relation
+  return relation.query(q => {
+    if (groupId) {
+      q.whereIn('groups_roles.group_id', function () {
+        this.select(bookshelf.knex.raw('COALESCE(parent_id, id)'))
+          .from('groups')
+          .where('id', groupId)
+      })
+    } else {
+      q.whereIn('groups_roles.group_id', Group.query(gq => {
+        gq.select(bookshelf.knex.raw('COALESCE(parent_id, id)'))
+        gq.where({ slug })
+      }).query())
+    }
+  })
+}
+
 export default function makeModels (userId, isAdmin, apiClient) {
   const nonAdminFilter = makeFilterToggle(!isAdmin)
 
@@ -88,20 +134,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
         userId: c => c.get('user_id'),
         consentId: c => c.get('consent_id')
       }
-    },
-
-    CommonRole: {
-      model: CommonRole,
-      attributes: [
-        'id',
-        'name',
-        'description',
-        'emoji'
-      ],
-      relations: [
-        { responsibilities: { querySet: true } }
-      ],
-      fetchMany: () => CommonRole.fetchAll()
     },
 
     ContextWidget: {
@@ -179,7 +211,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'memberships',
         'posts',
         'locationObject',
-        { groupRoles: { querySet: true } },
+        { groupRoles: { querySet: true, filter: filterGroupRolesByGroup } },
         { affiliations: { querySet: true } },
         { groupInvitesPending: { querySet: true } },
         {
@@ -196,18 +228,21 @@ export default function makeModels (userId, isAdmin, apiClient) {
         { skills: { querySet: true } },
         { skillsToLearn: { querySet: true } },
         {
-          membershipCommonRoles: {
+          messageThreads: {
+            typename: 'MessageThread',
             querySet: true,
-            filter: (relation, { groupId }) => {
-              return relation.query(q => {
-                if (groupId) {
-                  q.where('group_id', groupId)
+            filter: (relation, args) => {
+              const result = relation.query(q => {
+                if (args.muted) {
+                  q.whereNotNull('posts_users.muted_at')
+                } else {
+                  q.whereNull('posts_users.muted_at')
                 }
               })
+              return messageThreadSearchFilter(userId)(result, args)
             }
           }
         },
-        { messageThreads: { typename: 'MessageThread', querySet: true, filter: messageThreadSearchFilter(userId) } },
         { tagFollows: { alias: 'topicFollows', querySet: true } },
         { tracksEnrolledIn: { querySet: true } },
         { cookieConsent: { alias: 'cookieConsentPreferences' } }
@@ -216,6 +251,9 @@ export default function makeModels (userId, isAdmin, apiClient) {
         blockedUsers: u => u.blockedUsers().fetch(),
         hasStripeAccount: u => u.hasStripeAccount(),
         isAdmin: u => isAdmin || false,
+        membershipCommonRoles: emptyQuerySet,
+        // Never expose null names to clients — they call .split() etc.
+        name: p => p.get('name') || '',
         rsvpCalendarUrl: u => u.rsvpCalendarUrl(),
         settings: u => mapKeys(camelCase, u.get('settings'))
       }
@@ -233,8 +271,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         { agreements: { querySet: true } },
         { group: { alias: 'group' } },
         { user: { alias: 'person' } },
-        { commonRoles: { querySet: true } },
-        { membershipCommonRoles: { querySet: true } },
+        { membershipGroupRoles: { querySet: true } },
         { joinQuestionAnswers: { querySet: true } },
         { tagFollows: { alias: 'topicFollows', querySet: true } }
       ],
@@ -244,7 +281,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
           m.get('user_id') === userId ? m.getSetting('lastReadAt') : null,
         newPostCount: m =>
           m.get('user_id') === userId ? m.get('new_post_count') : null,
-        hasModeratorRole: m => m.hasRole(GroupMembership.Role.MODERATOR) // TODO RESP: verify
+        hasModeratorRole: membershipHasModeratorRole
       },
       filter: nonAdminFilter(membershipFilter(userId))
     },
@@ -260,21 +297,28 @@ export default function makeModels (userId, isAdmin, apiClient) {
       }
     },
 
-    MembershipCommonRole: {
-      model: MemberCommonRole,
+    GroupRole: {
+      model: GroupRole,
       attributes: [
-        'id',
+        'emoji',
+        'description',
         'group_id',
-        'common_role_id',
-        'user_id'
+        'name',
+        'type',
+        'active',
+        'createdAt',
+        'updatedAt'
       ],
       relations: [
-        'commonRole',
         'group',
-        'user'
+        { responsibilities: { querySet: true } }
       ],
       getters: {
-        roleId: mcr => mcr.get('common_role_id')
+        canAccess: gr => {
+          if (!gr || !userId) return false
+          const requiredScope = createGroupRoleScope(gr.get('id'), gr.get('group_id'))
+          return UserScope.canAccess(userId, requiredScope)
+        }
       }
     },
 
@@ -335,24 +379,16 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'tagline'
       ],
       getters: {
-        completedAt: p => p.pivot && p.pivot.get('completed_at'), // When loading through a track this is when they completed the track
-        enrolledAt: p => p.pivot && p.pivot.get('enrolled_at'), // When loading through a track this is when they were enrolled in the track
-        messageThreadId: p => p.getMessageThreadWith(userId).then(post => post ? post.id : null)
+        // When loading via Track.users: enrollment = membership created_at; completion in settings
+        completedAt: p => p.pivot && (p.pivot.get('settings') || {}).completedAt,
+        enrolledAt: p => p.pivot && p.pivot.get('created_at'),
+        membershipCommonRoles: emptyQuerySet,
+        messageThreadId: p => p.getMessageThreadWith(userId).then(post => post ? post.id : null),
+        // Never expose null names to clients — they call .split() etc.
+        name: p => p.get('name') || ''
       },
       relations: [
         'memberships',
-        {
-          membershipCommonRoles: {
-            querySet: true,
-            filter: (relation, { groupId }) => {
-              return relation.query(q => {
-                if (groupId) {
-                  q.where('group_id', groupId)
-                }
-              })
-            }
-          }
-        },
         {
           groupJoinQuestionAnswers: {
             querySet: true,
@@ -371,8 +407,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         },
         'moderatedGroupMemberships', // TODO: still need this?
         'locationObject',
-        { groupRoles: { querySet: true } },
-        { commonRoles: { querySet: true } },
+        { groupRoles: { querySet: true, filter: filterGroupRolesByGroup } },
         { affiliations: { querySet: true } },
         { eventsAttending: { querySet: true } },
         // This fix is required for web and mobile, to avoid action posts showing up in member profiles
@@ -511,7 +546,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
             ? p.userEventInvitation(userId).then(eventInvitation => eventInvitation ? eventInvitation.get('response') : '')
             : '',
         savedAt: p => p.savedAtForUser(userId),
-        sortOrder: p => p.pivot && p.pivot.get('sort_order'), // For loading posts in order in a track
         tokensAllocated: async p => {
           if (!userId) return null
           const postUser = await PostUser.find(p.get('id'), userId)
@@ -535,7 +569,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
               return relation.query(async q => {
                 const postUsers = await PostMembership.where({ post_id: relation.relatedData.parentId }).fetchAll()
                 const hasTracksResponsibility = postUsers.length > 0 && await Promise.any(postUsers.map(postUser => {
-                  return GroupMembership.hasResponsibility(userId, postUser.get('group_id'), Responsibility.constants.RESP_MANAGE_TRACKS)
+                  return GroupMembership.hasResponsibility(userId, postUser.get('group_id'), Responsibility.constants.RESP_MANAGE_SPACES)
                 }))
                 if (!hasTracksResponsibility) return q.where('user_id', userId)
                 return q
@@ -633,7 +667,9 @@ export default function makeModels (userId, isAdmin, apiClient) {
       model: Group,
       attributes: [
         'about_video_uri',
+        'accepted_post_types',
         'accessibility',
+        'active',
         'allow_in_public',
         'avatar_url',
         'banner_url',
@@ -641,13 +677,16 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'description',
         'home_route',
         'homeWidget',
+        'icon',
         'location',
         'geo_shape',
         'memberCount',
         'name',
+        'parent_id',
         'paywall',
         'postCount',
         'purpose',
+        'required_roles',
         'slug',
         'stripe_account_id',
         'stripe_charges_enabled',
@@ -655,8 +694,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'stripe_details_submitted',
         'type',
         'visibility',
-        'website_url',
-        'welcome_page'
+        'website_url'
       ],
       relations: [
         { activeMembers: { querySet: true } },
@@ -706,8 +744,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
         {
           members: {
             querySet: true,
-            filter: (relation, { id, autocomplete, boundingBox, groupRoleId, order, search, sortBy, commonRoleId }) =>
-              relation.query(filterAndSortUsers({ autocomplete, boundingBox, groupId: relation.relatedData.parentId, groupRoleId, order, search, sortBy, commonRoleId }))
+            filter: (relation, { id, autocomplete, boundingBox, groupRoleId, order, search, sortBy }) =>
+              relation.query(filterAndSortUsers({ autocomplete, boundingBox, groupId: relation.relatedData.parentId, groupRoleId, order, search, sortBy }))
           }
         },
         { parentGroups: { querySet: true } },
@@ -787,6 +825,12 @@ export default function makeModels (userId, isAdmin, apiClient) {
             querySet: true,
             filter: (relation, { autocomplete, published, sortBy, order }) =>
               relation.query(q => {
+                const groupId = relation.relatedData.parentId
+                // Include tracks whose space is a child of this group (parent listing)
+                q.orWhereIn('tracks.group_id', function () {
+                  this.select('id').from('groups').where('parent_id', groupId)
+                })
+
                 if (autocomplete) {
                   q.whereRaw('tracks.name ilike ?', autocomplete + '%')
                 }
@@ -802,7 +846,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
                 q.orderBy(sortBy || 'id', order || 'asc')
 
                 // Only admins can see unpublished tracks
-                if (!GroupMembership.hasResponsibility(userId, relation.relatedData.parentId, Responsibility.constants.RESP_ADMINISTRATION)) {
+                if (!GroupMembership.hasResponsibility(userId, groupId, Responsibility.constants.RESP_ADMINISTRATION)) {
                   q.whereNotNull('tracks.published_at')
                 }
               })
@@ -813,7 +857,12 @@ export default function makeModels (userId, isAdmin, apiClient) {
             querySet: true,
             filter: (relation, { sortBy, order }) =>
               relation.query(q => {
-                q.where('deactivated_at', null)
+                const groupId = relation.relatedData.parentId
+                // Include rounds whose space is a child of this group (parent listing)
+                q.orWhereIn('funding_rounds.group_id', function () {
+                  this.select('id').from('groups').where('parent_id', groupId)
+                })
+                q.where('funding_rounds.deactivated_at', null)
                 q.orderBy(sortBy || 'id', order || 'asc')
               })
           }
@@ -821,7 +870,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         {
           contentAccess: {
             querySet: true,
-            filter: (relation, { search, accessType, status, offeringId, trackId, groupRoleId, commonRoleId, sortBy, order }) =>
+            filter: (relation, { search, accessType, status, offeringId, trackId, groupRoleId, sortBy, order }) =>
               relation.query(filterAndSortContentAccess({
                 groupIds: [relation.relatedData.parentId],
                 search,
@@ -830,7 +879,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
                 offeringId,
                 trackId,
                 groupRoleId,
-                commonRoleId,
                 sortBy,
                 order
               }))
@@ -861,7 +909,13 @@ export default function makeModels (userId, isAdmin, apiClient) {
           }
         },
         { widgets: { querySet: true } },
-        { groupExtensions: { querySet: true } }
+        { groupExtensions: { querySet: true } },
+        // Spaces & Views (see docs/spaces-and-views-engineering-spec.md section 4.2)
+        { groupViews: { querySet: true } },
+        { spaces: { querySet: true } },
+        'parentGroup',
+        'track',
+        'fundingRound'
       ],
       getters: {
         eventCalendarUrl: g => g.eventCalendarUrl(),
@@ -957,6 +1011,79 @@ export default function makeModels (userId, isAdmin, apiClient) {
         })
     },
 
+    // Spaces & Views (see docs/spaces-and-views-engineering-spec.md section 2.5 / 4.1)
+    GroupView: {
+      model: GroupView,
+      attributes: [
+        'id',
+        'name',
+        'type',
+        'order',
+        'icon',
+        'page_content',
+        'link',
+        'topics',
+        'settings'
+      ],
+      relations: [
+        'group',
+        'linkedGroup',
+        'viewPost',
+        'viewUser'
+      ],
+      getters: {
+        // collectionPosts resolves to the actual Posts (not the join rows) per the GraphQL schema.
+        // Re-applies the same visibility rules as every other Post query (active, membership,
+        // public, blocked-user) since this is a custom getter and bypasses the generic Post filter.
+        collectionPosts: async gv => {
+          const rows = await gv.collectionPosts().fetch()
+          const postIds = rows.map(row => row.get('post_id'))
+          if (postIds.length === 0) return []
+
+          const posts = await postFilter(userId, isAdmin)(Post.query(q => q.whereIn('posts.id', postIds))).fetchAll()
+          const postsById = new Map(posts.map(post => [String(post.id), post]))
+          return postIds.map(id => postsById.get(String(id))).filter(Boolean)
+        },
+        newPostCount: async gv => {
+          if (!userId) return 0
+          const viewUser = await GroupViewUser.where({ view_id: gv.id, user_id: userId }).fetch()
+          return viewUser ? viewUser.get('new_post_count') : 0
+        },
+        lastReadPostId: async gv => {
+          if (!userId) return null
+          const viewUser = await GroupViewUser.where({ view_id: gv.id, user_id: userId }).fetch()
+          return viewUser ? viewUser.get('last_read_post_id') : null
+        }
+      }
+    },
+
+    GroupViewUser: {
+      model: GroupViewUser,
+      attributes: [
+        'id',
+        'new_post_count',
+        'last_read_post_id',
+        'settings'
+      ],
+      relations: [
+        'view',
+        'user'
+      ]
+    },
+
+    CollectionPost: {
+      model: CollectionPost,
+      attributes: [
+        'id',
+        'order',
+        'created_at'
+      ],
+      relations: [
+        'view',
+        'post'
+      ]
+    },
+
     GroupJoinQuestion: {
       model: GroupJoinQuestion,
       attributes: [
@@ -1006,31 +1133,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
         questionAnswers: i => i.questionAnswers().fetch()
       },
       relations: ['createdBy', 'fromGroup', 'toGroup']
-    },
-
-    GroupRole: {
-      model: GroupRole,
-      attributes: [
-        'emoji',
-        'description',
-        'group_id',
-        'name',
-        'active',
-        'createdAt',
-        'updatedAt'
-      ],
-      relations: [
-        'group',
-        { responsibilities: { querySet: true } }
-      ],
-      getters: {
-        canAccess: gr => {
-          if (!gr || !userId) return false
-          // Check if user has the group_role scope
-          const requiredScope = createGroupRoleScope(gr.get('id'))
-          return UserScope.canAccess(userId, requiredScope)
-        }
-      }
     },
 
     CustomView: {
@@ -1212,10 +1314,21 @@ export default function makeModels (userId, isAdmin, apiClient) {
       getters: {
         unreadCount: t => t.unreadCountForUser(userId),
         lastReadAt: t => t.lastReadAtForUser(userId),
-        participantsTotal: t => postActiveFollowersCount(t)
+        participantsTotal: t => postActiveFollowersCount(t),
+        isMuted: t => t.isMutedForUser(userId)
       },
       relations: [
-        { followers: { alias: 'participants' } },
+        {
+          followers: {
+            alias: 'participants',
+            // Thread members should see everyone on the thread, even when they
+            // do not share a group or UserConnection (personFilter would hide them).
+            skipModelFilter: true,
+            filter: relation => relation.query(q => {
+              q.whereNotIn('users.id', BlockedUser.blockedFor(userId))
+            })
+          }
+        },
         { comments: { alias: 'messages', typename: 'Message', querySet: true } }
       ],
       filter: relation => relation.query(q =>
@@ -1355,7 +1468,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'action_descriptor_plural',
         'created_at',
         'banner_url',
-        'completion_role_type',
         'completion_message',
         'deactivated_at',
         'description',
@@ -1370,9 +1482,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
       relations: [
         'completionRole',
         { enrolledUsers: { querySet: true } },
-        { groups: { querySet: true } },
-        { posts: { querySet: true } },
-        { users: { querySet: true } }
+        { group: { alias: 'space' } }
       ],
       getters: {
         canAccess: t => t ? t.canAccess(userId) : false,
@@ -1386,18 +1496,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
         })
     },
 
-    TrackUser: {
-      model: TrackUser,
-      attributes: [
-        'completed_at',
-        'created_at',
-        'enrolled_at',
-        'settings',
-        'updated_at'
-      ],
-      relations: ['track', 'group', 'user']
-    },
-
     FundingRound: {
       model: FundingRound,
       attributes: [
@@ -1409,8 +1507,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'hide_final_results_from_participants',
         'max_token_allocation',
         'min_token_allocation',
-        'num_participants',
-        'num_submissions',
         'phase',
         'published_at',
         'require_budget',
@@ -1431,17 +1527,42 @@ export default function makeModels (userId, isAdmin, apiClient) {
         canVote: r => r && userId ? r.canUserVote(userId) : false,
         isParticipating: r => r && userId && r.isParticipating(userId),
         joinedAt: r => r && userId ? r.joinedAt(userId) : null,
+        // Participants = space members; use cached groups.num_members
+        numParticipants: async r => {
+          if (!r) return 0
+          const spaceId = r.get('group_id')
+          if (!spaceId) return 0
+          const row = await bookshelf.knex('groups').where({ id: spaceId }).select('num_members').first()
+          return parseInt(row?.num_members || 0, 10)
+        },
+        numSubmissions: async r => {
+          if (!r) return 0
+          const spaceId = r.get('group_id')
+          if (!spaceId) return 0
+          const result = await bookshelf.knex('groups_posts')
+            .join('posts', 'posts.id', 'groups_posts.post_id')
+            .where('groups_posts.group_id', spaceId)
+            .where('posts.type', Post.Type.SUBMISSION)
+            .where('posts.active', true)
+            .count('* as count')
+            .first()
+          return parseInt(result?.count || 0, 10)
+        },
         submitterRoles: r => r ? r.submitterRoles() : [],
         allocations: r => r ? r.allocations() : [],
         tokensRemaining: async r => {
           if (!r || !userId) return null
-          return r.roundUser(userId).fetch().then(roundUser => roundUser ? roundUser.get('tokens_remaining') : null)
+          return r.tokensRemaining(userId)
         },
         totalTokensAllocated: async r => {
           if (!r) return null
+          const spaceId = r.get('group_id')
+          if (!spaceId) return 0
           const result = await bookshelf.knex('posts_users')
-            .join('funding_rounds_posts', 'posts_users.post_id', 'funding_rounds_posts.post_id')
-            .where('funding_rounds_posts.funding_round_id', r.get('id'))
+            .join('groups_posts', 'posts_users.post_id', 'groups_posts.post_id')
+            .join('posts', 'posts.id', 'groups_posts.post_id')
+            .where('groups_posts.group_id', spaceId)
+            .where('posts.type', Post.Type.SUBMISSION)
             .sum('posts_users.tokens_allocated_to as total')
             .first()
           return result?.total ? parseInt(result.total) : 0
@@ -1450,7 +1571,18 @@ export default function makeModels (userId, isAdmin, apiClient) {
         voterRoles: r => r ? r.voterRoles() : []
       },
       relations: [
-        'group',
+        {
+          group: {
+            fields: [
+              'id',
+              'name',
+              'slug',
+              'homeRoute',
+              'memberCount',
+              { parentGroup: ['id', 'name', 'slug'] }
+            ]
+          }
+        },
         { submissions: { querySet: true } },
         { users: { querySet: true } }
       ],
@@ -1705,6 +1837,32 @@ export default function makeModels (userId, isAdmin, apiClient) {
           // Fetch tracks
           const tracks = await Track.where('id', 'in', trackIds).fetchAll()
           return tracks.models || []
+        },
+        roles: async (sp) => {
+          if (!sp) return []
+          const accessGrants = sp.get('access_grants')
+          if (!accessGrants) return []
+
+          let grants = {}
+          if (typeof accessGrants === 'string') {
+            try {
+              grants = JSON.parse(accessGrants)
+            } catch {
+              return []
+            }
+          } else {
+            grants = accessGrants
+          }
+
+          const groupRoleIds = []
+          if (grants.groupRoleIds && Array.isArray(grants.groupRoleIds)) {
+            groupRoleIds.push(...grants.groupRoleIds.map(id => parseInt(id)))
+          }
+
+          if (groupRoleIds.length === 0) return []
+
+          const roles = await GroupRole.where('id', 'in', groupRoleIds).fetchAll()
+          return roles.models || []
         }
       }
     },
@@ -1721,7 +1879,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'group_id',
         'track_id',
         'group_role_id',
-        'common_role_id',
         'access_type',
         'stripe_session_id',
         'stripe_subscription_id',
@@ -1737,7 +1894,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
         { product: { alias: 'offering', typename: 'StripeOffering' } },
         'track',
         'groupRole',
-        'commonRole',
         'grantedBy'
       ],
       fetchMany: (args) => {
@@ -1747,7 +1903,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
       },
       filter: (relation) => {
         const args = ContentAccess._fetchManyArgs || {}
-        const { groupIds, search, accessType, status, offeringId, trackId, groupRoleId, commonRoleId, sortBy = 'created_at', order } = args
+        const { groupIds, search, accessType, status, offeringId, trackId, groupRoleId, sortBy = 'created_at', order } = args
 
         return relation.query(q => {
           // Filter by group IDs (groups that granted the access)
@@ -1786,11 +1942,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
             q.where('content_access.group_role_id', groupRoleId)
           }
 
-          // Filter by common role ID
-          if (commonRoleId) {
-            q.where('content_access.common_role_id', commonRoleId)
-          }
-
           // Apply sorting
           const validSortColumns = {
             created_at: 'content_access.created_at',
@@ -1820,7 +1971,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
         offeringId: ca => ca.get('product_id'),
         trackId: ca => ca.get('track_id'),
         groupRoleId: ca => ca.get('group_role_id'),
-        commonRoleId: ca => ca.get('common_role_id'),
         accessType: ca => ca.get('access_type'),
         stripeSessionId: ca => ca.get('stripe_session_id'),
         stripeSubscriptionId: ca => ca.get('stripe_subscription_id'),

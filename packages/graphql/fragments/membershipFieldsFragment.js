@@ -6,7 +6,6 @@ export default gql`
     lastViewedAt
     navOrder
     newPostCount
-    hasModeratorRole
     person {
       id
     }
@@ -28,18 +27,24 @@ export default gql`
           title
         }
       }
+      acceptedPostTypes
       avatarUrl
       bannerUrl
+      icon
       name
       memberCount
       stewardDescriptor
       stewardDescriptorPlural
+      parentId
       settings {
         showSuggestedSkills
         showWelcomePage
+        layout
       }
       slug
+      type
       allowInPublic
+      accessibility
     }
   }
 `

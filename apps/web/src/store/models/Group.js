@@ -8,7 +8,8 @@ export const GROUP_ACCESSIBILITY = {
 
 export const GROUP_TYPES = {
   default: null,
-  farm: 'farm'
+  farm: 'farm',
+  space: 'space'
 }
 
 export function accessibilityDescription (a) {
@@ -145,6 +146,7 @@ Group.modelName = 'Group'
 
 Group.fields = {
   accessibility: attr(),
+  acceptedPostTypes: attr(),
   activeProjects: many({
     to: 'Post',
     as: 'activeProjects',
@@ -164,12 +166,13 @@ Group.fields = {
     throughFields: ['childGroup', 'parentGroup']
   }),
   peerGroups: many('Group'),
-  commonRoles: many('CommonRole'),
   customViews: many('CustomView'),
   feedOrder: attr(),
   geoShape: attr(),
   groupToGroupJoinQuestions: many('GroupToGroupJoinQuestion'),
+  groupViews: attr(),
   homeRoute: attr(),
+  icon: attr(),
   id: attr(),
   joinQuestions: many('GroupJoinQuestion'),
   location: attr(),
@@ -188,6 +191,7 @@ Group.fields = {
   stewardDescriptor: attr(),
   stewardDescriptorPlural: attr(),
   name: attr(),
+  parentId: attr(),
   openOffersAndRequests: many({
     to: 'Post',
     as: 'openOffersAndRequests',
@@ -202,10 +206,15 @@ Group.fields = {
     throughFields: ['prerequisiteGroup', 'forGroup']
   }),
   purpose: attr(),
+  requiredRoles: attr(),
   settings: attr(),
   slug: attr(),
+  spaces: attr(),
   suggestedSkills: many('Skill'),
+  track: attr(),
   tracks: many('Track'),
+  fundingRound: attr(),
+  type: attr(),
   upcomingEvents: many({
     to: 'Post',
     as: 'upcomingEvents',

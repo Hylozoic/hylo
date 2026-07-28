@@ -122,7 +122,7 @@ describe('Stripe Mutations', () => {
     group = await factories.group().save()
 
     // Add admin user as group administrator
-    await adminUser.joinGroup(group, { role: GroupMembership.Role.MODERATOR })
+    await adminUser.joinGroup(group, { assignCoordinator: true })
     // Add regular user as group member
     await user.joinGroup(group)
   })
@@ -132,7 +132,7 @@ describe('Stripe Mutations', () => {
   describe('createStripeConnectedAccount', () => {
     it('creates a connected account for group admins', async () => {
       const testGroup = await factories.group().save()
-      await adminUser.joinGroup(testGroup, { role: GroupMembership.Role.MODERATOR })
+      await adminUser.joinGroup(testGroup, { assignCoordinator: true })
 
       const result = await createStripeConnectedAccount(adminUser.id, {
         groupId: testGroup.id,
@@ -148,7 +148,7 @@ describe('Stripe Mutations', () => {
 
     it('uses group email and name as defaults', async () => {
       const testGroup = await factories.group({ name: 'Default Group' }).save()
-      await adminUser.joinGroup(testGroup, { role: GroupMembership.Role.MODERATOR })
+      await adminUser.joinGroup(testGroup, { assignCoordinator: true })
 
       const result = await createStripeConnectedAccount(adminUser.id, {
         groupId: testGroup.id,
@@ -196,7 +196,7 @@ describe('Stripe Mutations', () => {
 
     it('rejects connection if group already has Stripe account', async () => {
       const testGroup = await factories.group().save()
-      await adminUser.joinGroup(testGroup, { role: GroupMembership.Role.MODERATOR })
+      await adminUser.joinGroup(testGroup, { assignCoordinator: true })
 
       // First, create an account
       await createStripeConnectedAccount(adminUser.id, {
@@ -354,19 +354,6 @@ describe('Stripe Mutations', () => {
       ).to.be.rejectedWith('You must be a group administrator to create offerings')
     })
 
-    it('rejects track-only offerings with recurring duration', async () => {
-      await expect(
-        createStripeOffering(adminUser.id, {
-          groupId: group.id,
-          accountId: 'acct_test_123',
-          name: 'Track Course',
-          description: 'One-time track access',
-          priceInCents: 500,
-          accessGrants: { trackIds: [1] },
-          duration: 'month'
-        })
-      ).to.be.rejectedWith('Track-only offerings must use a one-time price')
-    })
   })
 
   describe('updateStripeOffering', () => {
@@ -527,16 +514,6 @@ describe('Stripe Mutations', () => {
       ).to.be.rejectedWith('You must be a group administrator to update offerings')
     })
 
-    it('rejects updating to track-only access with recurring duration', async () => {
-      await expect(
-        updateStripeOffering(adminUser.id, {
-          offeringId: testProduct.id,
-          accessGrants: { trackIds: [1] },
-          duration: 'month'
-        })
-      ).to.be.rejectedWith('Track-only offerings must use a one-time price')
-    })
-
     it('rejects update for non-existent offering', async () => {
       await expect(
         updateStripeOffering(adminUser.id, {
@@ -549,7 +526,7 @@ describe('Stripe Mutations', () => {
     it('rejects update when group has no Stripe account', async () => {
       // Create a group without a Stripe account
       const groupWithoutStripe = await factories.group().save()
-      await adminUser.joinGroup(groupWithoutStripe, { role: GroupMembership.Role.MODERATOR })
+      await adminUser.joinGroup(groupWithoutStripe, { assignCoordinator: true })
 
       const productWithoutStripe = await StripeProduct.create({
         group_id: groupWithoutStripe.id,
@@ -772,7 +749,7 @@ describe('Stripe Mutations', () => {
       await otherGroup.save({ stripe_account_id: otherStripeAccount.id })
 
       // Make adminUser an admin of otherGroup so they can create an offering
-      await adminUser.joinGroup(otherGroup, { role: GroupMembership.Role.MODERATOR })
+      await adminUser.joinGroup(otherGroup, { assignCoordinator: true })
 
       const otherOffering = await createStripeOffering(adminUser.id, {
         groupId: otherGroup.id,

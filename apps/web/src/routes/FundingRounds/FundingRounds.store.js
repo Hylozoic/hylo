@@ -1,5 +1,6 @@
 import { CREATE_POST } from 'store/constants'
 import CommentFieldsFragment from '@graphql/fragments/CommentFieldsFragment'
+import { syncFundingRoundEmbeddedData } from 'store/util/groupViewsOrder'
 
 export const MODULE_NAME = 'FundingRounds'
 export const ALLOCATE_TOKENS_TO_SUBMISSION = `${MODULE_NAME}/ALLOCATE_TOKENS_TO_SUBMISSION`
@@ -135,7 +136,6 @@ export function fetchFundingRound (id) {
           createdAt
           criteria
           description
-          group { id name slug }
           hideFinalResultsFromParticipants
           isParticipating
           joinedAt
@@ -149,16 +149,9 @@ export function fetchFundingRound (id) {
           submissionDescriptor
           submissionDescriptorPlural
           submitterRoles {
-            ... on CommonRole {
-              id
-              emoji
-              name
-            }
-            ... on GroupRole {
-              id
-              emoji
-              name
-            }
+            id
+            emoji
+            name
           }
           submissionsCloseAt,
           submissionsOpenAt,
@@ -169,20 +162,24 @@ export function fetchFundingRound (id) {
           totalTokensAllocated,
           updatedAt,
           voterRoles {
-            ... on CommonRole {
-              id
-              emoji
-              name
-            }
-            ... on GroupRole {
-              id
-              emoji
-              name
-            }
+            id
+            emoji
+            name
           }
           votingMethod,
           votingClosesAt,
-          votingOpensAt
+          votingOpensAt,
+          group {
+            id
+            name
+            slug
+            homeRoute
+            memberCount
+            parentGroup {
+              id
+              slug
+            }
+          }
         }
       }`,
       variables: { id }
@@ -235,14 +232,6 @@ export function fetchFundingRoundParticipants (id) {
               id
               avatarUrl
               name
-              membershipCommonRoles {
-                items {
-                  id
-                  commonRoleId
-                  groupId
-                  userId
-                }
-              }
               groupRoles {
                 items {
                   id
@@ -266,10 +255,10 @@ export function createFundingRound (data) {
   // Convert role objects to the format expected by the API (array of {id, type})
   const dataForMutation = { ...data }
   if (data.submitterRoles) {
-    dataForMutation.submitterRoles = data.submitterRoles.map(role => ({ id: role.id, type: role.type }))
+    dataForMutation.submitterRoles = data.submitterRoles.map(role => ({ id: role.id }))
   }
   if (data.voterRoles) {
-    dataForMutation.voterRoles = data.voterRoles.map(role => ({ id: role.id, type: role.type }))
+    dataForMutation.voterRoles = data.voterRoles.map(role => ({ id: role.id }))
   }
 
   return {
@@ -296,16 +285,9 @@ export function createFundingRound (data) {
           submissionDescriptor,
           submissionDescriptorPlural,
           submitterRoles {
-            ... on CommonRole {
-              id
-              emoji
-              name
-            }
-            ... on GroupRole {
-              id
-              emoji
-              name
-            }
+            id
+            emoji
+            name
           }
           submissionsCloseAt,
           submissionsOpenAt,
@@ -315,16 +297,9 @@ export function createFundingRound (data) {
           totalTokensAllocated,
           updatedAt,
           voterRoles {
-            ... on CommonRole {
-              id
-              emoji
-              name
-            }
-            ... on GroupRole {
-              id
-              emoji
-              name
-            }
+            id
+            emoji
+            name
           }
           votingMethod,
           votingClosesAt,
@@ -345,10 +320,10 @@ export function updateFundingRound (data) {
   // Convert role objects to the format expected by the API (array of {id, type})
   const dataForUpdate = { ...rest }
   if (dataForUpdate.submitterRoles) {
-    dataForUpdate.submitterRoles = dataForUpdate.submitterRoles.map(role => ({ id: role.id, type: role.type }))
+    dataForUpdate.submitterRoles = dataForUpdate.submitterRoles.map(role => ({ id: role.id }))
   }
   if (dataForUpdate.voterRoles) {
-    dataForUpdate.voterRoles = dataForUpdate.voterRoles.map(role => ({ id: role.id, type: role.type }))
+    dataForUpdate.voterRoles = dataForUpdate.voterRoles.map(role => ({ id: role.id }))
   }
   delete dataForUpdate.phase // Only for optimistic update, backend will handle phase update
 
@@ -360,6 +335,7 @@ export function updateFundingRound (data) {
           updateFundingRound(id: $id, data: $data) {
             id
             phase
+            tokensRemaining
           }
         }
       `,
@@ -371,7 +347,8 @@ export function updateFundingRound (data) {
     meta: {
       id,
       data: rest,
-      optimistic: true
+      optimistic: true,
+      extractModel: 'FundingRound'
     }
   }
 }
@@ -524,9 +501,11 @@ export function allocateTokensToSubmission (postId, tokens, fundingRoundId) {
 }
 
 export function ormSessionReducer (
-  { Post, FundingRound, Role, session },
+  session,
   { type, meta, payload }
 ) {
+  const { Post, FundingRound, Role } = session
+
   switch (type) {
     case CREATE_POST: {
       if (!meta.fundingRoundId || !payload.data.createPost) return
@@ -570,7 +549,7 @@ export function ormSessionReducer (
     case UPDATE_FUNDING_ROUND_PENDING: {
       const round = FundingRound.safeGet({ id: meta.id })
       if (!round) return
-      const data = meta.data
+      const data = { ...meta.data }
       if (data.submitterRoles) {
         data.submitterRoles = data.submitterRoles.map(roleData => {
           let role = Role.withId(roleData?.id)
@@ -589,7 +568,21 @@ export function ormSessionReducer (
           return role.id
         })
       }
-      return round.update(data)
+      round.update(data)
+      // Menus read unit terms from nested linkedGroup.fundingRound blobs, not FundingRound models
+      syncFundingRoundEmbeddedData(session, meta.id, {
+        submissionDescriptor: data.submissionDescriptor,
+        submissionDescriptorPlural: data.submissionDescriptorPlural,
+        publishedAt: data.publishedAt,
+        title: data.title,
+        tokenType: data.tokenType,
+        votingMethod: data.votingMethod,
+        submissionsOpenAt: data.submissionsOpenAt,
+        submissionsCloseAt: data.submissionsCloseAt,
+        votingOpensAt: data.votingOpensAt,
+        votingClosesAt: data.votingClosesAt
+      })
+      return round
     }
 
     case ALLOCATE_TOKENS_TO_SUBMISSION_PENDING: {

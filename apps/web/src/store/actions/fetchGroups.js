@@ -98,6 +98,7 @@ query FetchGroups (
         publicMemberDirectory
         showSuggestedSkills
         showWelcomePage
+        layout
       }
       slug
       groupTopics(first: 8) {

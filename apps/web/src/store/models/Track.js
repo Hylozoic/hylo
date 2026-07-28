@@ -5,14 +5,11 @@ Role.modelName = 'Role'
 Role.fields = {
   id: attr(),
   emoji: attr(),
-  name: attr()
+  name: attr(),
+  groupId: attr()
 }
 
 class Track extends Model {
-  currentAction () {
-    return this.posts.toModelArray().find(post => !post.completedAt)
-  }
-
   toString () {
     return `Track: ${this.name}`
   }
@@ -28,15 +25,14 @@ Track.fields = {
   bannerUrl: attr(),
   completionMessage: attr(),
   completionRole: fk('Role', 'tracks'),
-  completionRoleType: attr(),
   description: attr(),
   enrolledUsers: many('Person'),
-  groups: many('Group'),
   name: attr(),
   numActions: attr(),
   numPeopleCompleted: attr(),
   numPeopleEnrolled: attr(),
-  posts: many('Post'),
   publishedAt: attr(),
+  // Embedded space Group (tracks.group_id) — not a normalized relation
+  space: attr(),
   welcomeMessage: attr()
 }

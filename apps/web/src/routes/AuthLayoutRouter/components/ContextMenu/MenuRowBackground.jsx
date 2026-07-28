@@ -1,0 +1,58 @@
+import React from 'react'
+import useAppearance from 'hooks/useAppearance'
+import { bgImageStyle, cn } from 'util/index'
+import GroupViewIcon from './GroupViewIcon'
+import { viewCardColor, hueOf } from './viewCardTheme'
+
+/**
+ * Background revealed behind the selected (or hovered) context-menu row —
+ * mirroring the one-column dashboard cards. Spaces with an uploaded banner
+ * show the photo; everything else shows a repeating texture of the row's own
+ * icon, tinted to the item's post-type color, with a left-to-right scrim for
+ * label contrast. Light mode uses a pale tinted surface with darker glyphs.
+ * Pass opacity/transition classes via `className` to fade.
+ */
+export default function MenuRowBackground ({ view, bannerUrl, className }) {
+  const { effectiveColorScheme } = useAppearance()
+  const isDark = effectiveColorScheme === 'dark'
+
+  if (bannerUrl) {
+    return (
+      <div aria-hidden='true' className={cn('absolute inset-0 z-0 overflow-hidden rounded pointer-events-none', className)}>
+        <div className='absolute inset-0 bg-cover bg-center' style={bgImageStyle(bannerUrl)} />
+        <div className='absolute inset-0' style={{ background: 'linear-gradient(90deg, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.48) 55%, rgba(0,0,0,0.62) 100%)' }} />
+      </div>
+    )
+  }
+
+  const h = hueOf(viewCardColor(view))
+  const surface = isDark
+    ? `linear-gradient(135deg, hsl(${h} 40% 22%) 0%, hsl(${h} 42% 15%) 100%)`
+    : `linear-gradient(135deg, hsl(${h} 55% 90%) 0%, hsl(${h} 48% 80%) 100%)`
+  const glyphColor = isDark ? `hsl(${h} 70% 82%)` : `hsl(${h} 50% 34%)`
+  const scrim = isDark
+    ? `linear-gradient(90deg, hsl(${h} 42% 14% / 0.65) 0%, transparent 60%)`
+    : `linear-gradient(90deg, hsl(${h} 55% 90% / 0.65) 0%, transparent 60%)`
+
+  return (
+    <div
+      aria-hidden='true'
+      className={cn('absolute inset-0 z-0 overflow-hidden rounded pointer-events-none', className)}
+      style={{ background: surface }}
+    >
+      {/* The -8° tilt (top-left origin) lifts each row's right end by ~sin(8°)·width,
+          so supply enough extra rows that the bottom-right corner stays covered. */}
+      <div
+        className='absolute -top-1.5 -left-1.5 -right-1.5 flex flex-wrap'
+        style={{ gap: 7, opacity: 0.18, color: glyphColor, transform: 'rotate(-8deg)', transformOrigin: 'top left' }}
+      >
+        {Array.from({ length: 96 }, (_, i) => (
+          <span key={i} className='flex'>
+            <GroupViewIcon view={view} className='!w-[13px] !h-[13px] !mr-0' />
+          </span>
+        ))}
+      </div>
+      <div className='absolute inset-0' style={{ background: scrim }} />
+    </div>
+  )
+}

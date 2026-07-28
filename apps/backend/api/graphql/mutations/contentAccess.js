@@ -57,7 +57,6 @@ module.exports = {
     productId,
     trackId,
     groupRoleId,
-    commonRoleId,
     expiresAt,
     reason
   }) => {
@@ -93,9 +92,9 @@ module.exports = {
         }
       }
 
-      // Must provide either groupId, productId, trackId, groupRoleId, or commonRoleId
-      if (!groupId && !productId && !trackId && !groupRoleId && !commonRoleId) {
-        throw new GraphQLError('Must specify either groupId, productId, trackId, groupRoleId, or commonRoleId')
+      // Must provide either groupId, productId, trackId, or groupRoleId
+      if (!groupId && !productId && !trackId && !groupRoleId) {
+        throw new GraphQLError('Must specify either groupId, productId, trackId, or groupRoleId')
       }
 
       // Grant access using the ContentAccess model
@@ -107,7 +106,6 @@ module.exports = {
         productId,
         trackId,
         groupRoleId,
-        commonRoleId,
         expiresAt,
         reason
       })
@@ -124,9 +122,7 @@ module.exports = {
 
       if (groupId) {
         try {
-          await GroupMembership.ensureMembership(userId, groupId, {
-            role: GroupMembership.Role.DEFAULT
-          })
+          await GroupMembership.ensureMembership(userId, groupId)
 
           if (process.env.NODE_ENV === 'development') {
             console.log(`Created group membership for user ${userId} in group ${groupId} via admin grant`)
@@ -166,27 +162,12 @@ module.exports = {
           }
         } else if (groupRoleId) {
           accessType = 'group_role'
-          const roleIdToUse = groupRoleId
-          const role = await GroupRole.where({ id: roleIdToUse }).fetch()
+          const role = await GroupRole.where({ id: groupRoleId }).fetch()
           if (role) {
             accessName = role.get('name')
             // Role access is within a group context
             const roleGroupId = role.get('group_id')
             contextGroup = await Group.find(roleGroupId)
-            if (contextGroup) {
-              contextGroupName = contextGroup.get('name')
-              contextGroupUrl = Frontend.Route.group(contextGroup)
-              accessUrl = contextGroupUrl
-            }
-          }
-        } else if (commonRoleId) {
-          accessType = 'common_role'
-          /* global CommonRole */
-          const role = await CommonRole.where({ id: commonRoleId }).fetch()
-          if (role) {
-            accessName = role.get('name')
-            // Common role access is within a group context
-            contextGroup = await Group.find(grantedByGroupId)
             if (contextGroup) {
               contextGroupName = contextGroup.get('name')
               contextGroupUrl = Frontend.Route.group(contextGroup)
@@ -272,7 +253,6 @@ module.exports = {
         productId,
         trackId,
         groupRoleId: access.get('group_role_id'),
-        commonRoleId: access.get('common_role_id'),
         accessType: access.get('access_type'),
         status: access.get('status'),
         success: true,
@@ -352,7 +332,6 @@ module.exports = {
    *       productId: "789"
    *       trackId: "101"  // optional
    *       groupRoleId: "202"   // optional
-   *       commonRoleId: "203"   // optional
    *       sessionId: "cs_xxx"
    *       stripeSubscriptionId: "sub_xxx"  // optional, for recurring
    *     ) {
@@ -368,7 +347,6 @@ module.exports = {
     productId,
     trackId,
     groupRoleId,
-    commonRoleId,
     sessionId,
     stripeSubscriptionId,
     amountPaid,
@@ -388,7 +366,6 @@ module.exports = {
         productId,
         trackId,
         groupRoleId,
-        commonRoleId,
         sessionId,
         stripeSubscriptionId,
         amountPaid,

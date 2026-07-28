@@ -3,18 +3,24 @@ import orm from '../models'
 import { createSelector as ormCreateSelector } from 'redux-orm'
 import getMe from './getMe'
 
+/**
+ * Responsibilities the person holds in a group.
+ * Spaces inherit role assignments from their parent group (roles are not stored on spaces).
+ */
 const getResponsibilitiesForGroup = ormCreateSelector(
   orm,
   (state, props) => props.person || getMe(state),
   (state, props) => props.groupId,
-  ({ CommonRole }, person, groupId) => {
+  (session, person, groupId) => {
     if (!person || !groupId) return []
-    const commonRoles = CommonRole.all().toModelArray()
-    const membershipCommonRoles = (person.membershipCommonRoles?.items || person.membershipCommonRoles || []).filter(mcr => mcr.groupId === groupId)
-    const commonResp = commonRoles.filter(cr => membershipCommonRoles.find(mcr => mcr.commonRoleId === cr.id)).map(cr => cr.responsibilities.items || cr.responsibilities).flat()
-    const groupRolesForGroup = person?.groupRoles?.items.filter(groupRole => groupRole.groupId === groupId) || []
-    const resp = groupRolesForGroup.map(groupRole => groupRole.responsibilities.items || []).flat()
-    return [...resp, ...commonResp]
+
+    // Spaces inherit roles from parent — match role.groupId against parentId when set
+    const group = session.Group.safeGet({ id: groupId })
+    const roleScopeId = group?.parentId || groupId
+
+    return (person.groupRoles?.items || [])
+      .filter(role => String(role.groupId) === String(roleScopeId))
+      .flatMap(role => role.responsibilities?.items || [])
   }
 )
 

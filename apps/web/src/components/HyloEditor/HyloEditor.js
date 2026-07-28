@@ -13,6 +13,7 @@ import TopicMentions from './extensions/TopicMentions'
 import Video from './extensions/Video'
 import HyloEditorMenuBar from './HyloEditorMenuBar'
 import 'tippy.js/dist/tippy.css'
+import { shouldBailTextSelectionGesture } from 'util/textSelectionTouch'
 import classes from './HyloEditor.module.scss'
 
 const HyloEditor = React.forwardRef(({
@@ -38,7 +39,8 @@ const HyloEditor = React.forwardRef(({
   showMenu = false,
   extendedMenu = false,
   suggestionsThemeName = 'suggestions',
-  type = 'post' // Used for the image uploader to know what type of content it's uploading
+  type = 'post', // Used for the image uploader to know what type of content it's uploading
+  blurOnScroll = true
 }, ref) => {
   const { t } = useTranslation()
   const editorRef = useRef(null)
@@ -143,7 +145,9 @@ const HyloEditor = React.forwardRef(({
   ]
 
   const onTouchMove = (e) => {
-    // Hide the keyboard when scrolling on mobile so you can't scroll down to empty white space on safari
+    // Only dismiss the keyboard when scrolling the editor itself — not when the user
+    // is selecting text elsewhere in the chat room (e.g. message bodies above).
+    if (shouldBailTextSelectionGesture(e.target)) return
     editorRef.current.commands.blur()
   }
 
@@ -159,13 +163,17 @@ const HyloEditor = React.forwardRef(({
       onUpdate(editor.getHTML())
     },
     onFocus: () => {
-      document.addEventListener('touchmove', onTouchMove, { passive: false })
+      if (blurOnScroll) {
+        document.addEventListener('touchmove', onTouchMove, { passive: false })
+      }
       if (onFocus) {
         onFocus()
       }
     },
     onBlur: () => {
-      document.removeEventListener('touchmove', onTouchMove, { passive: false })
+      if (blurOnScroll) {
+        document.removeEventListener('touchmove', onTouchMove, { passive: false })
+      }
       if (onBlur) {
         onBlur()
       }
@@ -177,7 +185,17 @@ const HyloEditor = React.forwardRef(({
           return html.replace(/<img.*?>/g, '') // remove any images copied any pasted as HTML
         }
         return html
-      }
+      },
+      ...(!blurOnScroll && {
+        handleDOMEvents: {
+          touchstart: (_view, event) => {
+            event.stopPropagation()
+          },
+          touchmove: (_view, event) => {
+            event.stopPropagation()
+          }
+        }
+      })
     }
   })
 

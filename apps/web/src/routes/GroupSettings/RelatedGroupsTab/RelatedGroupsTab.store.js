@@ -76,18 +76,14 @@ export const getPossibleRelatedGroups = ormCreateSelector(
     // TODO: check for cycles, cant add a grandparent as a child
 
     // XXX: can't call getResponsibilitiesForGroup here because it does weird things when passed in the stats straight from ORM 🤷‍♂️
-    const commonRoles = state.CommonRole.all().toModelArray()
     const me = state.Me.first()
-    const allMembershipCommonRoles = (me.membershipCommonRoles?.items || me.membershipCommonRoles || [])
 
     return myMemberships.filter(m => {
       if (m.group.id !== group.id && !currentRelationships.includes(m.group.id)) {
-        const membershipCommonRoles = allMembershipCommonRoles.filter(mcr => mcr.groupId === m.group.id)
-        const commonResp = commonRoles.filter(cr => membershipCommonRoles.find(mcr => mcr.commonRoleId === cr.id)).map(cr => cr.responsibilities.items || cr.responsibilities).flat()
-        const groupRolesForGroup = me.groupRoles?.items.filter(groupRole => groupRole.groupId === m.group.id) || []
-        const responsibilities = commonResp.concat(groupRolesForGroup.map(groupRole => groupRole.responsibilities.items || []).flat())
+        const groupRolesForGroup = (me.groupRoles?.items || []).filter(role => role.groupId === m.group.id)
+        const responsibilities = groupRolesForGroup.flatMap(role => role.responsibilities?.items || [])
 
-        m.hasAdministrationAbility = responsibilities.find(r => r.title === 'Administration') || false
+        m.hasAdministrationAbility = responsibilities.some(r => r.title === 'Administration')
         return true
       }
       return false

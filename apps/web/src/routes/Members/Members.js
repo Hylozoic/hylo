@@ -2,7 +2,7 @@ import { debounce, get, isEmpty, some } from 'lodash/fp'
 import React, { useEffect, useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Helmet } from 'react-helmet'
-import { Link, useParams, useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import Button from 'components/Button'
 import Dropdown from 'components/Dropdown'
@@ -11,30 +11,41 @@ import Member from 'components/Member'
 import ScrollListener from 'components/ScrollListener'
 import SwitchStyled from 'components/SwitchStyled'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
-import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
+import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
+import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION, RESP_MANAGE_SPACES } from 'store/constants'
 import { queryParamWhitelist } from 'store/reducers/queryResults'
 import { groupUrl } from '@hylo/navigation'
 import { FETCH_MEMBERS, fetchMembers, getMembers, getHasMoreMembers, removeMember } from './Members.store'
+import { fetchTrack } from 'store/actions/trackActions'
+import { fetchFundingRound } from 'routes/FundingRounds/FundingRounds.store'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
+import getMe from 'store/selectors/getMe'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
+import getRolesForGroup from 'store/selectors/getRolesForGroup'
+import getTrack from 'store/selectors/getTrack'
+import getFundingRound from 'store/selectors/getFundingRound'
+import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
+import { isOneColumnLayout as resolveIsOneColumnLayout } from 'util/navigationLayout'
 
 import classes from './Members.module.scss'
 
 const defaultSortBy = 'name'
+// TODO: should be by responsibility, not role
+const TRACK_COMPLETION_VISIBLE_ROLES = ['Moderator', 'Host']
 
 function Members (props) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
-  const routeParams = useParams()
   const location = useLocation()
 
   const context = props.context
-  const slug = routeParams.groupSlug
+  const slug = useEffectiveGroupSlug()
 
   // State selectors
   const group = useSelector(state => getGroupForSlug(state, slug))
+  const currentUser = useSelector(getMe)
   const sortBy = getQuerystringParam('s', location) || defaultSortBy
   const search = getQuerystringParam('q', location)
   const memberCount = useSelector(state => get('memberCount', group))
@@ -47,7 +58,42 @@ function Members (props) {
     myResponsibilityTitles.includes(RESP_ADMINISTRATION) || myResponsibilityTitles.includes(RESP_ADD_MEMBERS),
   [myResponsibilityTitles])
 
+  // Spaces inherit roles from the parent group
+  const roleGroupId = group?.parentId || group?.id
+
+  // Track spaces: members with Manage Spaces, or the Moderator/Host system role, can see who completed the track.
+  const trackId = group?.track?.id
+  const canManageSpaces = useSelector(state => hasResponsibilityForGroup(state, { groupId: roleGroupId, responsibility: RESP_MANAGE_SPACES }))
+  const myRoleNames = useSelector(state => getRolesForGroup(state, { groupId: roleGroupId }).map(role => role.name))
+  const canSeeTrackCompletion = Boolean(trackId) && (canManageSpaces || myRoleNames.some(name => TRACK_COMPLETION_VISIBLE_ROLES.includes(name)))
+  const currentTrack = useSelector(state => trackId ? getTrack(state, trackId) : null)
+  const completedAtByUserId = useMemo(() => {
+    if (!canSeeTrackCompletion) return {}
+    return Object.fromEntries((currentTrack?.enrolledUsers || []).map(user => [user.id, user.completedAt]))
+  }, [canSeeTrackCompletion, currentTrack?.enrolledUsers])
+
+  // Funding round spaces: show who can submit / vote from round role settings
+  const fundingRoundId = group?.fundingRound?.id
+  const fundingRound = useSelector(state => fundingRoundId ? getFundingRound(state, fundingRoundId) : null)
+  const showFundingRoundRoles = Boolean(fundingRoundId)
+  const submitterRoles = fundingRound?.submitterRoles || []
+  const voterRoles = fundingRound?.voterRoles || []
+
+  useEffect(() => {
+    if (trackId) dispatch(fetchTrack(trackId))
+  }, [dispatch, trackId])
+
+  useEffect(() => {
+    if (fundingRoundId) dispatch(fetchFundingRound(fundingRoundId))
+  }, [dispatch, fundingRoundId])
+
   const [showAnswers, setShowAnswers] = useState(false)
+
+  // One-column menu style shows the member directory as a grid of square cards.
+  const isOneColumnLayout = context === 'groups' && resolveIsOneColumnLayout(
+    currentUser?.settings?.groupNavStyle,
+    group?.settings?.layout
+  )
 
   // Action creators
   const changeSearch = useCallback(term =>
@@ -145,7 +191,7 @@ function Members (props) {
             </div>
           )}
         </div>
-        <div className='flex flex-col gap-2'>
+        <div className={isOneColumnLayout ? 'grid grid-cols-2 sm:grid-cols-3 gap-3' : 'flex flex-col gap-2'}>
           {members.map(member => (
             <Member
               group={group}
@@ -155,6 +201,12 @@ function Members (props) {
               context={context}
               canSeeJoinAnswers={canSeeJoinAnswers}
               showAnswers={showAnswers}
+              showTrackCompletion={canSeeTrackCompletion}
+              trackCompletedAt={completedAtByUserId[member.id]}
+              showFundingRoundRoles={showFundingRoundRoles}
+              submitterRoles={submitterRoles}
+              voterRoles={voterRoles}
+              square={isOneColumnLayout}
             />
           ))}
         </div>

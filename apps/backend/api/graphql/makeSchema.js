@@ -14,7 +14,6 @@ import {
   addGroupResponsibility,
   addGroupRole,
   addMember,
-  addModerator,
   addPeopleToProjectRole,
   addPostToCollection,
   addResponsibilityToRole,
@@ -23,8 +22,10 @@ import {
   addSkill,
   addSkillToLearn,
   addSuggestedSkillToGroup,
+  addPostToView,
   allocateTokensToSubmission,
   allowGroupInvites,
+  archiveSpace,
   blockUser,
   cancelGroupRelationshipInvite,
   cancelJoinRequest,
@@ -36,6 +37,7 @@ import {
   createContextWidget,
   createFundingRound,
   createGroup,
+  createGroupView,
   createInvitation,
   createJoinRequest,
   createMessage,
@@ -44,6 +46,7 @@ import {
   createProject,
   createProjectRole,
   createSavedSearch,
+  createSpace,
   createTrack,
   createZapierTrigger,
   login,
@@ -61,11 +64,13 @@ import {
   deleteGroupRelationship,
   deleteGroupResponsibility,
   deleteGroupTopic,
+  deleteGroupView,
   deletePeerRelationship,
   deletePost,
   deleteProjectRole,
   deleteReaction,
   deleteSavedSearch,
+  deleteSpace,
   deleteZapierTrigger,
   doPhaseTransition,
   duplicateTrack,
@@ -83,15 +88,21 @@ import {
   joinFundingRound,
   joinGroup,
   joinProject,
+  joinSpace,
   leaveFundingRound,
   leaveGroup,
+  muteMessageThread,
+  unmuteMessageThread,
   leaveProject,
+  leaveSpace,
   leaveTrack,
   logout,
   markActivityRead,
   markAllActivitiesRead,
   markThreadRead,
   markThreadUnread,
+  markViewAsRead,
+  markGroupAsRead,
   messageGroupStewards,
   pinPost,
   processStripeToken,
@@ -107,9 +118,9 @@ import {
   register,
   removeWidgetFromMenu,
   removeMember,
-  removeModerator,
   removePost,
   removePostFromCollection,
+  removePostFromView,
   removeResponsibilityFromRole,
   removeRoleFromMember,
   removeProposalVote,
@@ -117,7 +128,9 @@ import {
   removeSkillToLearn,
   removeSuggestedSkillFromGroup,
   reorderContextWidget,
+  reorderGroupView,
   reorderPostInCollection,
+  reorderViewPost,
   refundContentAccess,
   resendInvitation,
   respondToEvent,
@@ -127,6 +140,8 @@ import {
   sendPasswordReset,
   setProposalOptions,
   setHomeWidget,
+  setGroupViewHidden,
+  setHomeView,
   subscribe,
   swapProposalVote,
   unblockUser,
@@ -142,16 +157,19 @@ import {
   updateGroupRole,
   updateGroupTopic,
   updateGroupTopicFollow,
+  updateGroupView,
+  updateGroupViewUser,
   updateTopicFollow,
   updateTrack,
-  updateTrackActionOrder,
   updateMe,
   updateMembership,
   updatePeerRelationship,
   updatePost,
   updateProposalOptions,
   updateProposalOutcome,
+  updateSpace,
   updateStripeAccount,
+  updateViewSettings,
   updateWidget,
   useInvitation,
   createStripeConnectedAccount,
@@ -190,26 +208,8 @@ export default async function makeSchema ({ req }) {
   const models = makeModels(userId, isAdmin, req.api_client)
   const { resolvers, fetchOne, fetchMany, loaders } = setupBridge(models)
 
-  // Override Track, GroupTopic, and FundingRound resolvers to use DataLoaders for caching
+  // Override GroupTopic and FundingRound resolvers to use DataLoaders for caching
   if (userId && loaders) {
-    if (resolvers.Track) {
-      resolvers.Track.isEnrolled = async (track) => {
-        if (!track || !userId) return null
-        const trackUser = await loaders.trackUser.load({ trackId: track.get('id'), userId })
-        return trackUser && trackUser.get('enrolled_at') !== null
-      }
-      resolvers.Track.didComplete = async (track) => {
-        if (!track || !userId) return null
-        const trackUser = await loaders.trackUser.load({ trackId: track.get('id'), userId })
-        return trackUser && trackUser.get('completed_at') !== null
-      }
-      resolvers.Track.userSettings = async (track) => {
-        if (!track || !userId) return null
-        const trackUser = await loaders.trackUser.load({ trackId: track.get('id'), userId })
-        return trackUser ? trackUser.get('settings') : null
-      }
-    }
-
     if (resolvers.GroupTopic) {
       resolvers.GroupTopic.isSubscribed = async (groupTag) => {
         if (!groupTag || !userId) return null
@@ -220,43 +220,7 @@ export default async function makeSchema ({ req }) {
         })
         return tagFollow !== null
       }
-      resolvers.GroupTopic.lastReadPostId = async (groupTag) => {
-        if (!groupTag || !userId) return null
-        const tagFollow = await loaders.tagFollow.load({
-          groupId: groupTag.get('group_id'),
-          tagId: groupTag.get('tag_id'),
-          userId
-        })
-        return tagFollow ? tagFollow.get('last_read_post_id') : null
-      }
-      resolvers.GroupTopic.newPostCount = async (groupTag) => {
-        if (!groupTag || !userId) return 0
-        const tagFollow = await loaders.tagFollow.load({
-          groupId: groupTag.get('group_id'),
-          tagId: groupTag.get('tag_id'),
-          userId
-        })
-        return tagFollow ? tagFollow.get('new_post_count') : 0
-      }
-    }
-
-    if (resolvers.FundingRound) {
-      resolvers.FundingRound.isParticipating = async (fundingRound) => {
-        if (!fundingRound || !userId) return null
-        const roundUser = await loaders.fundingRoundUser.load({ fundingRoundId: fundingRound.get('id'), userId })
-        return !!roundUser
-      }
-      resolvers.FundingRound.userSettings = async (fundingRound) => {
-        if (!fundingRound || !userId) return null
-        const roundUser = await loaders.fundingRoundUser.load({ fundingRoundId: fundingRound.get('id'), userId })
-        return roundUser ? roundUser.get('settings') : null
-      }
-      resolvers.FundingRound.tokensRemaining = async (fundingRound) => {
-        if (!fundingRound || !userId) return null
-        const roundUser = await loaders.fundingRoundUser.load({ fundingRoundId: fundingRound.get('id'), userId })
-        return roundUser ? roundUser.get('tokens_remaining') : null
-      }
-    }
+     }
   }
 
   let allResolvers
@@ -342,11 +306,6 @@ export function makeUnionAndInterfaceResolvers (models) {
         throw new GraphQLError('Post is the only implemented FeedItemContent type')
       }
     },
-    Role: {
-      __resolveType (data, context, info) {
-        return getTypeForInstance(data, models)
-      }
-    },
     SearchResultContent: {
       __resolveType (data, context, info) {
         return getTypeForInstance(data, models)
@@ -415,7 +374,6 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     collection: (root, { id }) => fetchOne('Collection', id),
     comment: (root, { id }) => fetchOne('Comment', id),
     customView: (root, { id }) => fetchOne('CustomView', id),
-    commonRoles: (root, args) => CommonRole.fetchAll(args),
     connections: (root, args) => fetchMany('PersonConnection', args),
     contentAccess: (root, args) => fetchMany('ContentAccess', args),
     fundingRound: (root, { id }) => fetchOne('FundingRound', id),
@@ -470,7 +428,10 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
       membershipChangePreview(context.currentUserId, args),
     membershipChangeInvoicePreview: (root, args, context) =>
       membershipChangeInvoicePreview(context.currentUserId, args),
-    messageThread: (root, { id }) => fetchOne('MessageThread', id),
+    messageThread: (root, { id }) => {
+      if (!id || isNaN(Number(id))) return null
+      return fetchOne('MessageThread', id)
+    },
     moderationActions: (root, args) => fetchMany('ModerationAction', args),
     notifications: async (root, { first, offset, resetCount, order = 'desc' }, context) => {
       const notifications = await fetchMany('Notification', { first, offset, order })
@@ -543,8 +504,6 @@ export function makeMutations ({ fetchOne }) {
 
     addGroupRole: (root, { groupId, color, name, description, emoji }, context) => addGroupRole({ userId: context.currentUserId, groupId, color, name, description, emoji }),
 
-    addModerator: (root, { personId, groupId }, context) => addModerator(context.currentUserId, personId, groupId, context),
-
     addPeopleToProjectRole: (root, { peopleIds, projectRoleId }, context) => addPeopleToProjectRole(context.currentUserId, peopleIds, projectRoleId),
 
     addPostToCollection: (root, { collectionId, postId }, context) => addPostToCollection(context.currentUserId, collectionId, postId),
@@ -553,7 +512,7 @@ export function makeMutations ({ fetchOne }) {
 
     addResponsibilityToRole: (root, { responsibilityId, roleId, groupId }, context) => addResponsibilityToRole({ userId: context.currentUserId, responsibilityId, roleId, groupId }),
 
-    addRoleToMember: (root, { personId, roleId, groupId, isCommonRole = false }, context) => addRoleToMember({ userId: context.currentUserId, personId, roleId, groupId, isCommonRole }),
+    addRoleToMember: (root, { personId, roleId, groupId }, context) => addRoleToMember({ userId: context.currentUserId, personId, roleId, groupId }),
 
     addSkill: (root, { name }, context) => addSkill(context.currentUserId, name),
 
@@ -595,6 +554,49 @@ export function makeMutations ({ fetchOne }) {
 
     createGroup: (root, { data }, context) => createGroup(context.currentUserId, data),
 
+    createGroupView: (root, { groupId, type, name, icon, settings, link, pageContent, topics, orderInFrontOfViewId, addToEnd, linkedGroupId, postId, userId: viewUserId }, context) =>
+      createGroupView({ userId: context.currentUserId, groupId, type, name, icon, settings, link, pageContent, topics, orderInFrontOfViewId, addToEnd, linkedGroupId, postId, viewUserId, context }),
+
+    updateGroupView: (root, { id, name, icon, settings, link, pageContent, topics, orderInFrontOfViewId, addToEnd }, context) =>
+      updateGroupView({ userId: context.currentUserId, id, name, icon, settings, link, pageContent, topics, orderInFrontOfViewId, addToEnd, context }),
+
+    updateGroupViewUser: (root, { viewId, lastReadPostId }, context) =>
+      updateGroupViewUser(context.currentUserId, viewId, { lastReadPostId }),
+
+    deleteGroupView: (root, { id }, context) => deleteGroupView(context.currentUserId, id, context),
+
+    reorderGroupView: (root, { id, orderInFrontOfViewId, addToEnd }, context) => reorderGroupView(context.currentUserId, id, orderInFrontOfViewId, addToEnd, context),
+
+    setGroupViewHidden: (root, { id, hidden }, context) => setGroupViewHidden(context.currentUserId, id, hidden, context),
+
+    setHomeView: (root, { viewId, groupId }, context) => setHomeView(context.currentUserId, viewId, groupId, context),
+
+    markViewAsRead: (root, { viewId }, context) => markViewAsRead(context.currentUserId, viewId),
+
+    markGroupAsRead: (root, { groupId }, context) => markGroupAsRead(context.currentUserId, groupId),
+
+    updateViewSettings: (root, { viewId, settings }, context) => updateViewSettings(context.currentUserId, viewId, settings),
+
+    addPostToView: (root, { viewId, postId, order }, context) => addPostToView(context.currentUserId, viewId, postId, order),
+
+    removePostFromView: (root, { viewId, postId }, context) => removePostFromView(context.currentUserId, viewId, postId),
+
+    reorderViewPost: (root, { viewId, postId, order }, context) => reorderViewPost(context.currentUserId, viewId, postId, order),
+
+    createSpace: (root, { parentGroupId, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, purpose, location, locationId, viewTypes, bannerUrl, avatarUrl, paywall }, context) =>
+      createSpace(context.currentUserId, { parentGroupId, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, purpose, location, locationId, viewTypes, bannerUrl, avatarUrl, paywall }, context),
+
+    updateSpace: (root, { id, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, location, locationId, purpose, bannerUrl, avatarUrl, paywall }, context) =>
+      updateSpace(context.currentUserId, { id, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, location, locationId, purpose, bannerUrl, avatarUrl, paywall }, context),
+
+    archiveSpace: (root, { id }, context) => archiveSpace(context.currentUserId, id, context),
+
+    deleteSpace: (root, { id }, context) => deleteSpace(context.currentUserId, id, context),
+
+    joinSpace: (root, { spaceId }, context) => joinSpace(context.currentUserId, spaceId),
+
+    leaveSpace: (root, { spaceId }, context) => leaveSpace(context.currentUserId, spaceId),
+
     createInvitation: (root, { groupId, data }, context) => createInvitation(context.currentUserId, groupId, data), // consider sending locale from the frontend here
 
     createJoinRequest: (root, { groupId, questionAnswers }, context) => createJoinRequest(context.currentUserId, groupId, questionAnswers),
@@ -609,7 +611,7 @@ export function makeMutations ({ fetchOne }) {
 
     createProjectRole: (root, { projectId, roleName }, context) => createProjectRole(context.currentUserId, projectId, roleName),
 
-    createSavedSearch: (root, { data }) => createSavedSearch(data),
+    createSavedSearch: (root, { data }, context) => createSavedSearch(context.currentUserId, data),
 
     createTrack: (root, { data }, context) => createTrack(context.currentUserId, data),
 
@@ -649,7 +651,7 @@ export function makeMutations ({ fetchOne }) {
 
     deleteReaction: (root, { entityId, data }, context) => deleteReaction(context.currentUserId, entityId, data, context),
 
-    deleteSavedSearch: (root, { id }, context) => deleteSavedSearch(id),
+    deleteSavedSearch: (root, { id }, context) => deleteSavedSearch(context.currentUserId, id),
 
     deleteZapierTrigger: (root, { id }, context) => deleteZapierTrigger(context.currentUserId, id),
 
@@ -686,6 +688,10 @@ export function makeMutations ({ fetchOne }) {
     leaveFundingRound: (root, { id }, context) => leaveFundingRound(context.currentUserId, id),
 
     leaveGroup: (root, { id }, context) => leaveGroup(context.currentUserId, id),
+
+    muteMessageThread: (root, { messageThreadId }, context) => muteMessageThread(context.currentUserId, messageThreadId),
+
+    unmuteMessageThread: (root, { messageThreadId }, context) => unmuteMessageThread(context.currentUserId, messageThreadId),
 
     leaveProject: (root, { id }, context) => leaveProject(id, context.currentUserId),
 
@@ -743,15 +749,13 @@ export function makeMutations ({ fetchOne }) {
 
     removeMember: (root, { personId, groupId }, context) => removeMember(context.currentUserId, personId, groupId, context),
 
-    removeModerator: (root, { personId, groupId, isRemoveFromGroup }, context) => removeModerator(context.currentUserId, personId, groupId, isRemoveFromGroup, context),
-
     removePost: (root, { postId, groupId, slug }, context) => removePost(context.currentUserId, postId, groupId || slug),
 
     removePostFromCollection: (root, { collectionId, postId }, context) => removePostFromCollection(context.currentUserId, collectionId, postId),
 
     removeResponsibilityFromRole: (root, { roleResponsibilityId, groupId }, context) => removeResponsibilityFromRole({ userId: context.currentUserId, roleResponsibilityId, groupId }),
 
-    removeRoleFromMember: (root, { roleId, personId, groupId, isCommonRole }, context) => removeRoleFromMember({ roleId, personId, userId: context.currentUserId, groupId, isCommonRole }),
+    removeRoleFromMember: (root, { roleId, personId, groupId }, context) => removeRoleFromMember({ roleId, personId, userId: context.currentUserId, groupId }),
 
     removeProposalVote: (root, { postId, optionId }, context) => removeProposalVote({ userId: context.currentUserId, postId, optionId }),
 
@@ -830,8 +834,6 @@ export function makeMutations ({ fetchOne }) {
     updateStripeAccount: (root, { accountId }, context) => updateStripeAccount(context.currentUserId, accountId),
 
     updateTrack: (root, { trackId, data }, context) => updateTrack(context.currentUserId, trackId, data),
-
-    updateTrackActionOrder: (root, { trackId, postId, newOrderIndex }, context) => updateTrackActionOrder(context.currentUserId, trackId, postId, newOrderIndex),
 
     updateWidget: (root, { id, changes }, context) => updateWidget(id, changes),
 

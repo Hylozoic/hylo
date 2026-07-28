@@ -43,6 +43,14 @@ export function getAndStore (url) {
     request.get(url)
       .on('error', reject)
       .on('response', upstreamRes => {
+        // Never cache error pages (e.g. upstream 504) — otherwise private-window
+        // visitors keep getting a tiny 504 HTML body with Express status 200.
+        if (upstreamRes.statusCode < 200 || upstreamRes.statusCode >= 300) {
+          upstreamRes.resume()
+          reject(new Error(`Proxy upstream ${upstreamRes.statusCode} for ${url}`))
+          return
+        }
+
         const gzipped = upstreamRes.headers['content-encoding'] === 'gzip'
         upstreamRes.on('data', d => chunks.push(d))
         upstreamRes.on('end', () => {
@@ -92,11 +100,10 @@ export const handleStaticPages = server => {
   })
 
   server.use((req, res, next) => {
-    // Gatsby keeps its images, under the /static path, page data under /page-data
-    // and css + js at the root directory. Proxy those URLs to the static site
-    if (!req.originalUrl.startsWith('/static') &&
-        !req.originalUrl.startsWith('/page-data') &&
-        !/^\/[^/]+\.(js|css)$/.test(req.originalUrl)
+    // Astro bundles JS/CSS under /_astro; images and other public assets
+    // live under /v5 (and any other top-level public folders)
+    if (!req.originalUrl.startsWith('/_astro') &&
+        !req.originalUrl.startsWith('/v5')
     ) {
       return next()
     }

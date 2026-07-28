@@ -2,10 +2,23 @@ import {
   CLEAR_STEWARD_SUGGESTIONS,
   FETCH_STEWARD_SUGGESTIONS
 } from 'store/constants'
+import { createSelector } from 'reselect'
+import orm from 'store/models'
 
 export const MODULE_NAME = 'RolesSettingsTab'
 
 const defaultState = []
+
+export const getStewardSuggestions = createSelector(
+  state => state.RoleSettings,
+  state => state.orm,
+  (personIds, ormState) => {
+    const session = orm.session(ormState)
+    return personIds.map(personId =>
+      session.Person.idExists(personId) ? session.Person.withId(personId) : null
+    ).filter(Boolean)
+  }
+)
 
 export default function reducer (state = defaultState, action) {
   const { error, type, payload } = action

@@ -58,7 +58,7 @@ const sendDigest = async (searchId, type) => {
 }
 
 export const sendAllDigests = async (type) => {
-  const savedSearches = await SavedSearch.where({ is_active: true }).query()
+  const savedSearches = await SavedSearch.where({ is_active: true, context: 'groups' }).query()
   const promises = savedSearches.map(s => sendDigest(s.id, type))
   await Promise.all(promises)
 }

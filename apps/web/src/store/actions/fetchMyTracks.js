@@ -28,8 +28,14 @@ query FetchMyTracks (
         numPeopleCompleted
         numPeopleEnrolled
         userSettings
-        groups {
-          items {
+        space {
+          id
+          slug
+          type
+          homeRoute
+          avatarUrl
+          name
+          parentGroup {
             id
             avatarUrl
             name

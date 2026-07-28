@@ -15,15 +15,18 @@ import {
   CREATE_PROJECT_PENDING,
   CREATE_CONTEXT_WIDGET,
   CREATE_CONTEXT_WIDGET_PENDING,
+  CREATE_GROUP_VIEW,
   DELETE_DRAFT,
   DELETE_COMMENT_PENDING,
   DELETE_CONTEXT_WIDGET_PENDING,
+  DELETE_GROUP_VIEW,
   DELETE_GROUP_RELATIONSHIP,
   DELETE_POST_PENDING,
   FETCH_GROUP_DETAILS_PENDING,
   FETCH_MESSAGES_PENDING,
   FETCH_GROUP_CHAT_ROOMS,
   FETCH_MY_DRAFTS,
+  FETCH_VIEW_POSTS,
   INVITE_CHILD_TO_JOIN_PARENT_GROUP,
   INVITE_PEER_RELATIONSHIP,
   JOIN_PROJECT_PENDING,
@@ -44,23 +47,33 @@ import {
   RESET_NEW_POST_COUNT_PENDING,
   RESPOND_TO_EVENT_PENDING,
   REMOVE_WIDGET_FROM_MENU_PENDING,
+  REORDER_GROUP_VIEW_PENDING,
   SWAP_PROPOSAL_VOTE_PENDING,
+  SET_GROUP_VIEW_HIDDEN_PENDING,
+  SET_HOME_VIEW_PENDING,
   SET_HOME_WIDGET_PENDING,
   TOGGLE_GROUP_TOPIC_SUBSCRIBE_PENDING,
   UPDATE_COMMENT_PENDING,
   UPDATE_GROUP_TOPIC_PENDING,
-  UPDATE_TOPIC_FOLLOW,
-  UPDATE_TOPIC_FOLLOW_PENDING,
   UPDATE_POST,
   UPDATE_POST_PENDING,
   UPDATE_THREAD_READ_TIME,
   MARK_THREAD_UNREAD,
+  MUTE_MESSAGE_THREAD,
+  UNMUTE_MESSAGE_THREAD,
   UPDATE_USER_SETTINGS_PENDING as UPDATE_USER_SETTINGS_GLOBAL_PENDING,
   UPDATE_WIDGET,
   USE_INVITATION,
   UPDATE_PROPOSAL_OUTCOME_PENDING,
   UPDATE_MEMBERSHIP_NAV_ORDER_PENDING,
-  UPDATE_CONTEXT_WIDGET_PENDING
+  UPDATE_CONTEXT_WIDGET_PENDING,
+  UPDATE_GROUP_VIEW_PENDING,
+  UPDATE_GROUP_VIEW_USER,
+  UPDATE_GROUP_VIEW_USER_PENDING,
+  MARK_VIEW_AS_READ,
+  MARK_VIEW_AS_READ_PENDING,
+  MARK_GROUP_AS_READ_PENDING,
+  UPDATE_SPACE_PENDING
 } from 'store/constants'
 import {
   UPDATE_ALL_MEMBERSHIP_SETTINGS_PENDING,
@@ -78,7 +91,6 @@ import {
 } from 'components/SkillsToLearnSection/SkillsToLearnSection.store'
 
 import {
-  FETCH_COLLECTION_POSTS,
   UPDATE_GROUP_SETTINGS,
   UPDATE_GROUP_SETTINGS_PENDING
 } from 'routes/GroupSettings/GroupSettings.store'
@@ -99,12 +111,66 @@ import {
 } from 'components/SocketListener/SocketListener.store'
 
 import orm from 'store/models'
+import { DEFAULT_AVATAR } from 'store/models/Group'
 import clearCacheFor from './clearCacheFor'
 import { find, get, values } from 'lodash/fp'
 import extractModelsFromAction from '../ModelExtractor/extractModelsFromAction'
 import { isPromise } from 'util/index'
 import { homeRoutePathForWidget } from '@hylo/navigation'
 import { reorderTree, replaceHomeWidget } from 'util/contextWidgets'
+import { applyGroupViewsOrder, appendGroupViewToMenu, removeGroupViewFromMenu, setGroupViewHiddenInMenu, updateGroupViewInMenu, updateGroupViewInAllMenus } from 'store/util/groupViewsOrder'
+import { groupMenuHasUnreadBadges } from 'util/viewUnreadBadges'
+
+/**
+ * Whether any loaded menu copy for this group still shows unread (own GroupViews
+ * and/or nested under a parent's type=space linkedGroup).
+ */
+function groupHasUnreadInAnyMenu (session, groupId, getMembershipNewPostCount) {
+  const { Group } = session
+  const group = Group.idExists(groupId) ? Group.withId(groupId) : null
+  if (group && groupMenuHasUnreadBadges(group, getMembershipNewPostCount)) return true
+
+  for (const parent of Group.all().toModelArray()) {
+    for (const view of parent.groupViews?.items || []) {
+      if (view.type !== 'space' || String(view.linkedGroup?.id) !== String(groupId)) continue
+      if (groupMenuHasUnreadBadges(view.linkedGroup, getMembershipNewPostCount)) return true
+    }
+  }
+  return false
+}
+
+/**
+ * Clear group/space membership badges when the menu has no remaining view or
+ * nested-space unread. Also clears parent groups that embed this group as a space.
+ */
+function clearMembershipIfMenuHasNoUnread (session, groupId) {
+  if (!groupId) return
+  const { Group, Me, Membership } = session
+  const me = Me.first()
+  if (!me) return
+
+  const getMembershipNewPostCount = (id) => {
+    const membership = Membership.safeGet({ group: id, person: me.id })
+    return membership?.newPostCount || 0
+  }
+
+  const clearOne = (id) => {
+    if (groupHasUnreadInAnyMenu(session, id, getMembershipNewPostCount)) return
+    const membership = Membership.safeGet({ group: id, person: me.id })
+    if (membership && membership.newPostCount > 0) {
+      membership.update({ newPostCount: 0 })
+    }
+  }
+
+  clearOne(groupId)
+
+  Group.all().toModelArray().forEach(parent => {
+    const embedsSpace = (parent.groupViews?.items || []).some(view =>
+      view.type === 'space' && String(view.linkedGroup?.id) === String(groupId)
+    )
+    if (embedsSpace) clearOne(parent.id)
+  })
+}
 
 export default function ormReducer (state = orm.getEmptyState(), action) {
   const session = orm.session(state)
@@ -130,8 +196,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     PostCommenter,
     ProjectMember,
     Skill,
-    Topic,
-    TopicFollow
+    Topic
   } = session
 
   if (payload && !isPromise(payload) && meta && meta.extractModel) {
@@ -141,7 +206,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     extractModelsFromAction(action, session)
   }
 
-  let me, membership, group, person, post, comment, groupTopic, topicFollow
+  let me, membership, group, person, post, comment, groupTopic
   const sameId = (a, b) => String(a || '') === String(b || '')
   const isNil = value => value === null || value === undefined || value === ''
   const matchesDraftContext = (draft, context) => {
@@ -271,10 +336,47 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
 
     case CREATE_GROUP: {
       me = Me.withId(Me.first().id)
+      const createGroupData = payload.data.createGroup
+      const membershipData = createGroupData.memberships.items[0]
+
       me.updateAppending({
-        memberships: [payload.data.createGroup.memberships.items[0].id],
-        membershipCommonRoles: payload.data.createGroup.memberships.items[0].person.membershipCommonRoles.items
+        memberships: [membershipData.id]
       })
+
+      const group = Group.withId(createGroupData.id)
+      if (group) {
+        group.update({
+          avatarUrl: createGroupData.avatarUrl || DEFAULT_AVATAR
+        })
+      }
+
+      const membership = Membership.withId(membershipData.id)
+      if (membership) {
+        membership.update({
+          navOrder: membershipData.navOrder ?? null,
+          newPostCount: membershipData.newPostCount ?? 0
+        })
+      }
+
+      const coordinatorRole = createGroupData.groupRoles?.items?.find(role => role.name === 'Coordinator')
+      if (coordinatorRole) {
+        const roleWithGroupId = coordinatorRole.groupId
+          ? coordinatorRole
+          : { ...coordinatorRole, groupId: createGroupData.id }
+        const existingItems = me.groupRoles?.items || []
+        const alreadyHasRole = existingItems.some(
+          role => role.groupId === roleWithGroupId.groupId && role.name === 'Coordinator'
+        )
+        if (!alreadyHasRole) {
+          me.update({
+            groupRoles: {
+              ...me.groupRoles,
+              items: [...existingItems, roleWithGroupId]
+            }
+          })
+        }
+      }
+
       clearCacheFor(Me, me.id)
       break
     }
@@ -328,7 +430,16 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     case CREATE_POST_PENDING: {
       const postType = meta?.type
       if (!postType) break
-      if (postType === 'chat') break
+
+      if (postType === 'chat') {
+        const chatGroupId = Array.isArray(meta.groupIds) ? meta.groupIds[0] : meta.groupId
+        const chatGroup = Group.withId(chatGroupId)
+        const chatView = chatGroup?.groupViews?.items?.find(view => view.type === 'chat')
+        if (chatGroup && chatView?.id) {
+          updateGroupViewInMenu(chatGroup, chatView.id, { newPostCount: 0 })
+        }
+        break
+      }
 
       const groupIds = Array.isArray(meta.groupIds) ? meta.groupIds : [meta.groupId]
 
@@ -393,6 +504,17 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
           isEdit: false
         }))
         .forEach(d => d.delete())
+
+      if (createdType === 'chat' && createdPost.id && createdGroupId) {
+        const createdGroup = Group.withId(createdGroupId)
+        const chatView = createdGroup?.groupViews?.items?.find(view => view.type === 'chat')
+        if (createdGroup && chatView?.id) {
+          updateGroupViewInMenu(createdGroup, chatView.id, {
+            newPostCount: 0,
+            lastReadPostId: createdPost.id
+          })
+        }
+      }
       break
     }
 
@@ -418,6 +540,92 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       reorderedWidgets.push(payload.data.createContextWidget)
       group.update({ contextWidgets: { items: structuredClone(reorderedWidgets) } })
 
+      break
+    }
+
+    case CREATE_GROUP_VIEW: {
+      const newView = payload.data.createGroupView
+      if (!newView || !meta.groupId) break
+      group = Group.withId(meta.groupId)
+      appendGroupViewToMenu(group, newView)
+      break
+    }
+
+    case UPDATE_GROUP_VIEW_PENDING: {
+      if (!meta.groupId || !meta.id || !meta.data || Object.keys(meta.data).length === 0) break
+      group = Group.withId(meta.groupId)
+      updateGroupViewInMenu(group, meta.id, meta.data)
+      break
+    }
+
+    case UPDATE_GROUP_VIEW_USER_PENDING: {
+      // ChatRoom / ContextMenu read lastReadPostId + badges from embedded menus.
+      // Space views are often nested under the parent group's type=space linkedGroup —
+      // patch every loaded menu so the badge clears where the user is looking.
+      if (!meta.id || !meta.data) break
+      updateGroupViewInAllMenus(Group.all(), meta.id, meta.data)
+      if ((meta.data.newPostCount ?? 0) === 0) {
+        clearMembershipIfMenuHasNoUnread(session, meta.groupId)
+      }
+      break
+    }
+
+    case UPDATE_GROUP_VIEW_USER: {
+      const updatedView = payload?.data?.updateGroupViewUser
+      if (!updatedView?.id) break
+      updateGroupViewInAllMenus(Group.all(), updatedView.id, {
+        lastReadPostId: updatedView.lastReadPostId,
+        newPostCount: updatedView.newPostCount
+      })
+      if ((updatedView.newPostCount ?? 0) === 0) {
+        clearMembershipIfMenuHasNoUnread(session, meta.groupId)
+      }
+      break
+    }
+
+    case MARK_VIEW_AS_READ_PENDING: {
+      if (!meta.id) break
+      updateGroupViewInAllMenus(Group.all(), meta.id, { newPostCount: 0 })
+      clearMembershipIfMenuHasNoUnread(session, meta.groupId)
+      break
+    }
+
+    case MARK_VIEW_AS_READ: {
+      const readView = payload?.data?.markViewAsRead
+      if (!readView?.id) break
+      updateGroupViewInAllMenus(Group.all(), readView.id, {
+        lastReadPostId: readView.lastReadPostId,
+        newPostCount: readView.newPostCount ?? 0
+      })
+      if ((readView.newPostCount ?? 0) === 0) {
+        clearMembershipIfMenuHasNoUnread(session, meta.groupId)
+      }
+      break
+    }
+
+    case MARK_GROUP_AS_READ_PENDING: {
+      if (!meta.groupId) break
+      group = Group.withId(meta.groupId)
+      const me = Me.first()
+      if (me) {
+        membership = Membership.safeGet({ group: meta.groupId, person: me.id })
+        if (membership) membership.update({ newPostCount: 0 })
+      }
+      const items = group?.groupViews?.items || []
+      if (items.length > 0) {
+        group.update({
+          groupViews: {
+            items: structuredClone(items.map(view => ({ ...view, newPostCount: 0 })))
+          }
+        })
+      }
+      break
+    }
+
+    case UPDATE_SPACE_PENDING: {
+      if (!meta.groupId || !meta.spaceViewId || !meta.data || Object.keys(meta.data).length === 0) break
+      group = Group.withId(meta.groupId)
+      updateGroupViewInMenu(group, meta.spaceViewId, meta.data)
       break
     }
 
@@ -451,6 +659,13 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       break
     }
 
+    case DELETE_GROUP_VIEW: {
+      if (!meta.id || !meta.groupId) break
+      group = Group.withId(meta.groupId)
+      removeGroupViewFromMenu(group, meta.id)
+      break
+    }
+
     case DELETE_GROUP_RELATIONSHIP: {
       if (payload.data.deleteGroupRelationship.success) {
         const gr = GroupRelationship.safeGet({ parentGroup: meta.parentId, childGroup: meta.childId })
@@ -476,16 +691,16 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     }
 
     case DELETE_POST_PENDING:
-      post = Post.withId(meta.id)
-      if (meta.groupId) {
-        const group = Group.withId(meta.groupId)
-        removePostFromGroup(post, group)
+      // Posts sourced from a view's raw collectionPosts (e.g. TrackActionsView)
+      // aren't normalized into the Post table, so they may not exist here.
+      post = Post.idExists(meta.id) ? Post.withId(meta.id) : null
+      if (post) {
+        if (meta.groupId) {
+          const group = Group.withId(meta.groupId)
+          removePostFromGroup(post, group)
+        }
+        post.delete()
       }
-      post.delete()
-      break
-
-    case FETCH_COLLECTION_POSTS:
-      clearCacheFor(Group, meta.groupId)
       break
 
     case FETCH_GROUP_DETAILS_PENDING: {
@@ -502,6 +717,18 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       if (memberships) {
         memberships.forEach(m => clearCacheFor(Membership, m.id))
       }
+      break
+    }
+
+    case FETCH_VIEW_POSTS: {
+      const items = payload.data?.group?.groupViews?.items || []
+      const targetGroup = Group.withId(meta.groupId)
+      if (!targetGroup) break
+      items.forEach(viewData => {
+        if (viewData?.id != null && viewData.collectionPosts !== undefined) {
+          updateGroupViewInMenu(targetGroup, viewData.id, { collectionPosts: viewData.collectionPosts })
+        }
+      })
       break
     }
 
@@ -708,9 +935,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     }
 
     case RESET_NEW_POST_COUNT_PENDING: {
-      if (meta.type === 'TopicFollow') {
-        session.TopicFollow.withId(meta.id).update({ newPostCount: meta.count })
-      } else if (meta.type === 'Membership') {
+      if (meta.type === 'Membership') {
         me = Me.first()
         const membership = Membership.safeGet({ group: meta.id, person: me.id })
         membership && membership.update({ newPostCount: meta.count })
@@ -812,6 +1037,38 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       break
     }
 
+    case REORDER_GROUP_VIEW_PENDING: {
+      if (!meta.parentGroupId || !meta.targetGroupId || !meta.reorderedItems) break
+      group = Group.withId(meta.parentGroupId)
+      applyGroupViewsOrder({
+        group,
+        parentGroupId: meta.parentGroupId,
+        targetGroupId: meta.targetGroupId,
+        reorderedItems: meta.reorderedItems
+      })
+      break
+    }
+
+    case SET_GROUP_VIEW_HIDDEN_PENDING: {
+      if (!meta.id || !meta.groupId || typeof meta.hidden !== 'boolean') break
+      group = Group.withId(meta.groupId)
+      setGroupViewHiddenInMenu(group, meta.id, meta.hidden)
+      break
+    }
+
+    case SET_HOME_VIEW_PENDING: {
+      if (!meta.parentGroupId || !meta.targetGroupId || !meta.reorderedItems) break
+      group = Group.withId(meta.parentGroupId)
+      applyGroupViewsOrder({
+        group,
+        parentGroupId: meta.parentGroupId,
+        targetGroupId: meta.targetGroupId,
+        reorderedItems: meta.reorderedItems,
+        updateHomeRoute: String(meta.parentGroupId) === String(meta.targetGroupId)
+      })
+      break
+    }
+
     case UPDATE_GROUP_SETTINGS: {
       // Set new join questions in the ORM
       if (payload.data.updateGroupSettings && (payload.data.updateGroupSettings.joinQuestions || payload.data.updateGroupSettings.prerequisiteGroups)) {
@@ -841,7 +1098,13 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
 
     case UPDATE_GROUP_SETTINGS_PENDING: {
       group = Group.withId(meta.id)
-      group.update(meta.changes)
+      const { settings: settingsChanges, ...otherChanges } = meta.changes || {}
+      group.update({
+        ...otherChanges,
+        ...(settingsChanges
+          ? { settings: { ...group.settings, ...settingsChanges } }
+          : {})
+      })
       me = Me.first()
       // Clear out prerequisiteGroups so they can be reset when the UPDATE completes
       group.update({ prerequisiteGroups: [] })
@@ -855,33 +1118,6 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       groupTopic = GroupTopic.withId(meta.id)
       groupTopic.update(meta.data)
       clearCacheFor(GroupTopic, meta.id)
-      break
-    }
-
-    case UPDATE_TOPIC_FOLLOW_PENDING: {
-      if (meta.data.lastReadPostId) {
-        topicFollow = TopicFollow.withId(meta.id)
-        topicFollow.update({ lastReadPostId: meta.data.lastReadPostId })
-        clearCacheFor(TopicFollow, meta.id)
-      }
-      break
-    }
-
-    case UPDATE_TOPIC_FOLLOW: {
-      const data = payload.data.updateTopicFollow
-      if (typeof data.newPostCount === 'number') {
-        group = Group.withId(data.group.id)
-        const contextWidgets = group.contextWidgets?.items
-        if (contextWidgets) {
-          const newContextWidgets = contextWidgets.map(cw => {
-            if (cw.viewChat?.id === data.topic.id) {
-              return { ...cw, highlightNumber: data.newPostCount }
-            }
-            return cw
-          })
-          group.update({ contextWidgets: { items: structuredClone(newContextWidgets) } })
-        }
-      }
       break
     }
 
@@ -1001,7 +1237,11 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       // deleting all attachments and removing topics here because we restore them from the result of the UPDATE_POST action
       post = Post.withId(meta.id)
       post.attachments.toModelArray().map(a => a.delete())
-      post.update({ topics: [] })
+      const updates = { ...(meta.data || {}) }
+      if (meta.topicNames !== undefined) {
+        updates.topics = []
+      }
+      post.update(updates)
       break
     }
 
@@ -1025,6 +1265,23 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         }
         thread?.markAsUnread()
       }
+      break
+    }
+
+    case MUTE_MESSAGE_THREAD: {
+      me = Me.first()
+      const thread = MessageThread.withId(meta.messageThreadId)
+      if (thread?.unreadCount > 0) {
+        me.update({
+          unseenThreadCount: Math.max(0, (me.unseenThreadCount || 0) - 1)
+        })
+      }
+      thread?.update({ isMuted: true })
+      break
+    }
+
+    case UNMUTE_MESSAGE_THREAD: {
+      MessageThread.withId(meta.messageThreadId)?.update({ isMuted: false })
       break
     }
 

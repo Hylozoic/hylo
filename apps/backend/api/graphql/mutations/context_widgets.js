@@ -1,16 +1,6 @@
 import { GraphQLError } from 'graphql'
 import convertGraphqlData from './convertGraphqlData'
-import {
-  publishGroupUpdate
-} from '../../../lib/groupSubscriptionPublisher'
-import { publishAsync } from '../../../lib/subscriptionUtils'
-import { groupRoom, pushToSockets } from '../../services/Websockets'
-
-// Notify all clients (web/mobile WebView via Socket.io + GraphQL subscription clients) that a group's context widgets changed
-function notifyGroupUpdated (context, group, groupId) {
-  pushToSockets(groupRoom(groupId), 'groupUpdated', { groupId })
-  publishAsync(publishGroupUpdate, context, group, group)
-}
+import { notifyGroupUpdated } from './notifyGroupUpdated'
 
 export async function createContextWidget ({ userId, groupId, data, context }) {
   if (!userId) throw new GraphQLError('No userId passed into function')

@@ -82,7 +82,7 @@ describe('Stripe Queries', () => {
     group = await factories.group().save()
 
     // Add admin user as group administrator
-    await adminUser.joinGroup(group, { role: GroupMembership.Role.MODERATOR })
+    await adminUser.joinGroup(group, { assignCoordinator: true })
     // Add regular user as group member
     await user.joinGroup(group)
   })
@@ -241,15 +241,15 @@ describe('Stripe Queries', () => {
       })
     })
 
-    it('returns published offerings with group or track access', async () => {
+    it('returns only published offerings with group or role access', async () => {
       const result = await publicStripeOfferings(null, {
         groupId: testGroup.id
       })
 
       expect(result.success).to.be.true
-      const names = result.offerings.map(o => o.get('name')).sort()
-      expect(names).to.deep.equal(['No Group Access Offering', 'Published Offering'])
-      expect(result.offerings.every(o => o.get('publish_status') === 'published')).to.be.true
+      expect(result.offerings).to.have.length(1)
+      expect(result.offerings[0].get('name')).to.equal('Published Offering')
+      expect(result.offerings[0].get('publish_status')).to.equal('published')
     })
 
     it('works without authentication', async () => {
@@ -384,7 +384,7 @@ describe('Stripe Queries', () => {
       const otherGroup = await factories.group().save()
       // Make adminUser an admin of otherGroup so the admin check passes
       // and we can test the offering ownership check
-      await adminUser.joinGroup(otherGroup, { role: GroupMembership.Role.MODERATOR })
+      await adminUser.joinGroup(otherGroup, { assignCoordinator: true })
 
       await expect(
         offeringSubscriptionStats(adminUser.id, {
@@ -482,7 +482,7 @@ describe('Stripe Queries', () => {
 
     it('rejects subscribers query when offering belongs to different group', async () => {
       const otherGroup = await factories.group().save()
-      await adminUser.joinGroup(otherGroup, { role: GroupMembership.Role.MODERATOR })
+      await adminUser.joinGroup(otherGroup, { assignCoordinator: true })
 
       await expect(
         offeringSubscribers(adminUser.id, {

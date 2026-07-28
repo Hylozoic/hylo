@@ -1,6 +1,8 @@
 /* eslint-disable camelcase */
 /* global Track */
 
+const { parseJsonObject: parseAccessGrants } = require('../../lib/stripeOfferingMetadata')
+
 module.exports = bookshelf.Model.extend({
   tableName: 'stripe_products',
   requireFetch: false,
@@ -53,7 +55,7 @@ module.exports = bookshelf.Model.extend({
     expiresAt,
     metadata = {}
   }, { transacting } = {}) {
-    const accessGrants = this.get('access_grants') || {}
+    const accessGrants = parseAccessGrants(this.get('access_grants'))
     const grantedByGroupId = this.get('group_id') // The group that owns/sells this product
     const productId = this.get('id')
     const duration = this.get('duration')
@@ -94,8 +96,8 @@ module.exports = bookshelf.Model.extend({
       return accessRecords
     }
 
-    // Process access_grants structure: { groupIds: [123, 456], trackIds: [1, 2], groupRoleIds: [3], commonRoleIds: [4] }
-    // Handle groupIds - create group access records
+    // Process access_grants structure: { groupIds: [123, 456], groupRoleIds: [3] }
+    // Handle groupIds - create group access records (includes paid spaces)
     if (accessGrants.groupIds && Array.isArray(accessGrants.groupIds)) {
       for (const groupId of accessGrants.groupIds) {
         const groupIdNum = parseInt(groupId, 10)
@@ -120,49 +122,6 @@ module.exports = bookshelf.Model.extend({
           }
         }, { transacting })
         accessRecords.push(baseRecord)
-      }
-    }
-
-    // Handle trackIds - create track access records (applies to all groups in groupIds, or grantedByGroupId if no groupIds)
-    if (accessGrants.trackIds && Array.isArray(accessGrants.trackIds)) {
-      const groupIdsForTracks = accessGrants.groupIds && Array.isArray(accessGrants.groupIds) && accessGrants.groupIds.length > 0
-        ? accessGrants.groupIds.map(id => parseInt(id, 10)).filter(id => !isNaN(id) && id > 0)
-        : [grantedByGroupIdNum] // Default to the group that owns the product
-
-      for (const groupIdNum of groupIdsForTracks) {
-        for (const trackId of accessGrants.trackIds) {
-          // Convert trackId to integer or null
-          const trackIdNum = trackId != null ? parseInt(trackId, 10) : null
-          if (trackId != null && (isNaN(trackIdNum) || trackIdNum <= 0)) {
-            console.warn(`Invalid trackId: ${trackId}, skipping`)
-            continue
-          }
-
-          const trackRecord = await ContentAccess.recordPurchase({
-            userId: userIdNum,
-            grantedByGroupId: grantedByGroupIdNum,
-            groupId: groupIdNum,
-            productId: productIdNum,
-            trackId: trackIdNum,
-            sessionId,
-            stripeSubscriptionId,
-            stripeCustomerId,
-            expiresAt: calculatedExpiresAt,
-            metadata: {
-              ...metadata,
-              accessType: 'track'
-            }
-          }, { transacting })
-          accessRecords.push(trackRecord)
-
-          // Auto-enroll user in track when access is granted
-          try {
-            await Track.enroll(trackIdNum, userIdNum)
-          } catch (enrollError) {
-            // Log but don't fail the purchase if enrollment fails
-            console.warn(`Auto-enrollment in track ${trackIdNum} failed for user ${userIdNum}:`, enrollError.message)
-          }
-        }
       }
     }
 
@@ -213,52 +172,6 @@ module.exports = bookshelf.Model.extend({
             metadata
           }, { transacting })
           accessRecords.push(roleRecord)
-        }
-      }
-    }
-
-    // Handle commonRoleIds - create MemberCommonRole records for common roles
-    // Common roles are assigned via group_memberships_common_roles table, not content_access
-    if (accessGrants.commonRoleIds && Array.isArray(accessGrants.commonRoleIds)) {
-      /* global MemberCommonRole */
-      for (const groupIdNum of groupIdsForRoles) {
-        for (const commonRoleId of accessGrants.commonRoleIds) {
-          const commonRoleIdNum = commonRoleId != null ? parseInt(commonRoleId, 10) : null
-          if (commonRoleId != null && (isNaN(commonRoleIdNum) || commonRoleIdNum <= 0)) {
-            console.warn(`Invalid commonRoleId: ${commonRoleId}, skipping`)
-            continue
-          }
-
-          // Check if the common role assignment already exists
-          const existing = await MemberCommonRole.where({
-            user_id: userIdNum,
-            group_id: groupIdNum,
-            common_role_id: commonRoleIdNum
-          }).fetch({ transacting })
-
-          if (!existing) {
-            // Create MemberCommonRole assignment
-            await MemberCommonRole.forge({
-              user_id: userIdNum,
-              group_id: groupIdNum,
-              common_role_id: commonRoleIdNum
-            }).save(null, { transacting })
-          }
-
-          // Also create a content_access record to track the purchase
-          const commonRoleRecord = await ContentAccess.recordPurchase({
-            userId: userIdNum,
-            grantedByGroupId: grantedByGroupIdNum,
-            groupId: groupIdNum,
-            productId: productIdNum,
-            commonRoleId: commonRoleIdNum,
-            sessionId,
-            stripeSubscriptionId,
-            stripeCustomerId,
-            expiresAt: calculatedExpiresAt,
-            metadata
-          }, { transacting })
-          accessRecords.push(commonRoleRecord)
         }
       }
     }

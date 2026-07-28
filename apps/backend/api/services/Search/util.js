@@ -92,11 +92,15 @@ export const filterAndSortPosts = curry((opts, q) => {
   }
 
   if (forCollection) {
+    // GroupView collections use view_id; legacy Collection rows still use collection_id
     q.join('collections_posts', (j) => {
       j.on('collections_posts.post_id', '=', 'posts.id')
-      j.andOn('collections_posts.collection_id', '=', bookshelf.knex.raw('?', [forCollection]))
+      j.andOn(bookshelf.knex.raw('(collections_posts.view_id = ? OR collections_posts.collection_id = ?)', [forCollection, forCollection]))
     })
-    q.whereIn('posts.id', bookshelf.knex.raw('select post_id from collections_posts where collection_id = ?', [forCollection]))
+    q.whereIn('posts.id', bookshelf.knex.raw(
+      'select post_id from collections_posts where view_id = ? OR collection_id = ?',
+      [forCollection, forCollection]
+    ))
   }
 
   if (savedBy) {
@@ -107,7 +111,10 @@ export const filterAndSortPosts = curry((opts, q) => {
   }
 
   if (collectionToFilterOut) {
-    q.whereNotIn('posts.id', bookshelf.knex.raw('select post_id from collections_posts where collection_id = ?', [collectionToFilterOut]))
+    q.whereNotIn('posts.id', bookshelf.knex.raw(
+      'select post_id from collections_posts where view_id = ? OR collection_id = ?',
+      [collectionToFilterOut, collectionToFilterOut]
+    ))
   }
 
   if (types) {
@@ -124,8 +131,15 @@ export const filterAndSortPosts = curry((opts, q) => {
   }
 
   if (!isEmpty(search)) {
-    addTermToQueryBuilder(search, q, {
-      columns: ['posts.name', 'posts.description']
+    // Alias avoids conflicting with callers that already join `users` (e.g. forPosts)
+    // Substring ILIKE so terms match anywhere in the title/description/creator name
+    // (FTS prefix matching only hits word starts).
+    const term = `%${String(search).replace(/[%_\\]/g, '\\$&')}%`
+    q.leftJoin('users as post_creators', 'posts.user_id', '=', 'post_creators.id')
+    q.where(function () {
+      this.whereRaw('posts.name ilike ?', [term])
+        .orWhereRaw('posts.description ilike ?', [term])
+        .orWhereRaw('post_creators.name ilike ?', [term])
     })
   }
 
@@ -158,7 +172,7 @@ export const filterAndSortPosts = curry((opts, q) => {
   }
 })
 
-export const filterAndSortUsers = curry(({ autocomplete, boundingBox, groupId, groupRoleId, commonRoleId, order, search, sortBy }, q) => {
+export const filterAndSortUsers = curry(({ autocomplete, boundingBox, groupId, groupRoleId, order, search, sortBy }, q) => {
   if (autocomplete) {
     const query = chain(autocomplete.split(/\s*\s/)) // split on whitespace
       .map(word => word.replace(/[,;|:&()!\\]+/, ''))
@@ -177,12 +191,9 @@ export const filterAndSortUsers = curry(({ autocomplete, boundingBox, groupId, g
   if (groupRoleId) {
     q.leftJoin('group_memberships_group_roles', 'group_memberships_group_roles.user_id', '=', 'users.id')
     q.where('group_memberships_group_roles.group_role_id', '=', groupRoleId)
-  }
-
-  if (commonRoleId && groupId) {
-    q.leftJoin('group_memberships_common_roles as crgm', 'crgm.user_id', 'users.id')
-    q.where('crgm.common_role_id', '=', commonRoleId)
-    q.andWhere('crgm.group_id', '=', groupId)
+    if (groupId) {
+      q.andWhere('group_memberships_group_roles.group_id', '=', groupId)
+    }
   }
 
   if (search) {
@@ -253,7 +264,6 @@ export const filterAndSortContentAccess = curry((opts, q) => {
     offeringId,
     trackId,
     groupRoleId,
-    commonRoleId,
     sortBy = 'created_at',
     order
   } = opts
@@ -292,11 +302,6 @@ export const filterAndSortContentAccess = curry((opts, q) => {
   // Filter by group role ID
   if (groupRoleId) {
     q.where('content_access.group_role_id', groupRoleId)
-  }
-
-  // Filter by common role ID
-  if (commonRoleId) {
-    q.where('content_access.common_role_id', commonRoleId)
   }
 
   // Validate sortBy

@@ -56,7 +56,6 @@ const iconList = [
   'Pin',
   'Flag',
   'Paperclip',
-  'Stack',
   'Calendar',
   'Event',
   'Funnel',

@@ -1006,4 +1006,73 @@ describe('Post', function () {
       expect(notFoundPost).to.not.exist
     })
   })
+
+  describe('checkCompletedTrack', () => {
+    let user, group, space, track, completionRole, a1, a2, trackManager
+
+    beforeEach(async () => {
+      spyify(Queue, 'classMethod', () => Promise.resolve())
+      await setup.clearDb()
+      const { assignTrackManager, ensureManageTracksResponsibility } = require('../../setup/roleHelpers')
+      await ensureManageTracksResponsibility()
+      trackManager = await factories.user().save()
+      user = await factories.user().save()
+      group = await factories.group().save()
+      await assignTrackManager(trackManager, group)
+      await user.joinGroup(group)
+      completionRole = await GroupRole.forge({
+        group_id: group.id,
+        name: 'Graduate',
+        emoji: '🎓',
+        type: GroupRole.TYPE_CUSTOM
+      }).save()
+      space = await factories.group({
+        type: 'space',
+        parent_id: group.id,
+        slug: `track-space-${Date.now()}`
+      }).save()
+      track = await Track.create({
+        name: 'Test Track',
+        published_at: new Date(),
+        completion_role_id: completionRole.id,
+        group_id: space.id
+      })
+      await space.save({ track_id: track.id }, { patch: true })
+      await Group.setupSpaceViews(space.id, ['action'], ['about', 'track-actions', 'members'])
+      a1 = await factories.post({ type: Post.Type.ACTION, user_id: trackManager.id }).save()
+      a2 = await factories.post({ type: Post.Type.ACTION, user_id: trackManager.id }).save()
+      await a1.groups().attach(space)
+      await a2.groups().attach(space)
+      await Track.addPost(a1, track)
+      await Track.addPost(a2, track)
+      await Track.enroll(track.id, user.id)
+    })
+
+    afterEach(() => {
+      unspyify(Queue, 'classMethod')
+    })
+
+    it('assigns the completion role when all track actions are completed', async () => {
+      await a1.complete(user.id, JSON.stringify([]))
+      await Post.checkCompletedTrack({ userId: user.id, postId: a1.id })
+      let memberRole = await MemberGroupRole.where({
+        user_id: user.id,
+        group_role_id: completionRole.id
+      }).fetch()
+      expect(memberRole).to.not.exist
+
+      await a2.complete(user.id, JSON.stringify([]))
+      await Post.checkCompletedTrack({ userId: user.id, postId: a2.id })
+
+      memberRole = await MemberGroupRole.where({
+        user_id: user.id,
+        group_role_id: completionRole.id,
+        active: true
+      }).fetch()
+      expect(memberRole).to.exist
+
+      const membership = await GroupMembership.forPair(user.id, space).fetch()
+      expect(membership.get('settings')?.completedAt).to.exist
+    })
+  })
 })

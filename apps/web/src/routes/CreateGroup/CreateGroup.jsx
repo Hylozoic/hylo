@@ -1,6 +1,6 @@
 import { get, trim } from 'lodash/fp'
 import { ArrowRight, ImagePlus, SquarePen } from 'lucide-react'
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { push } from 'redux-first-history'
@@ -8,6 +8,8 @@ import { useLocation, useParams } from 'react-router-dom'
 import Button from 'components/ui/button'
 // import GroupsSelector from 'components/GroupsSelector'
 import Icon from 'components/Icon'
+import IncludedViewsEditor from 'components/IncludedViewsEditor/IncludedViewsEditor'
+import PostTypePills from 'components/PostTypePills/PostTypePills'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import {
   Select,
@@ -16,7 +18,10 @@ import {
   SelectTrigger,
   SelectValue
 } from 'components/ui/select'
+import { CUSTOM_VIEW_POST_TYPE_OPTIONS } from 'components/CustomViewForm/customViewFormConstants'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
+import { createGroupView } from 'store/actions/groupViews'
+import fetchGroupViews from 'store/actions/fetchGroupViews'
 import { RESP_ADMINISTRATION } from 'store/constants'
 import {
   accessibilityDescription,
@@ -29,6 +34,7 @@ import {
   visibilityDescription,
   visibilityIcon
 } from 'store/models/Group'
+import { POST_TYPE_TO_VIEW_TYPE } from 'store/models/GroupView'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
@@ -37,6 +43,8 @@ import { bgImageStyle, cn } from 'util/index'
 import { groupUrl } from '@hylo/navigation'
 import { onEnter } from 'util/textInput'
 import { createGroup, fetchGroupExists } from './CreateGroup.store'
+
+const STANDARD_VIEW_TYPES = new Set(['all', 'chat', 'map', 'members', 'about', ...Object.values(POST_TYPE_TO_VIEW_TYPE)])
 
 const slugValidatorRegex = /^[0-9a-z-]{2,40}$/
 
@@ -70,11 +78,11 @@ function CreateGroup () {
     accessibility: 1,
     avatarUrl: '',
     bannerUrl: '',
-    homeView: 'CHAT',
     nameCharacterCount: 0,
     invitees: [],
     name: initialGroupName || '',
     parentGroups: currentGroup && parentGroupOptions.find(p => p.id === currentGroup.id) ? [currentGroup] : [],
+    purpose: '',
     purposeCharacterCount: 0,
     slug: initialGroupSlug || '',
     slugCustomized: false,
@@ -87,6 +95,10 @@ function CreateGroup () {
   })
 
   const [isNameFocused, setIsNameFocused] = useState(false)
+  const [postTypes, setPostTypes] = useState(['discussion', 'event', 'request', 'offer'])
+  const [removedStandardTypes, setRemovedStandardTypes] = useState(new Set())
+  const [manualViews, setManualViews] = useState([])
+  const [orderedRows, setOrderedRows] = useState([])
 
   // Refs
   // const groupsSelector = useRef()
@@ -165,29 +177,108 @@ function CreateGroup () {
     })
   }
 
-  const onSubmit = () => {
-    let { accessibility, avatarUrl, bannerUrl, homeView, name, parentGroups, purpose, slug, visibility } = state
+  // Default views for a new group: All Activity (home), Chat, then post-type-driven views, Map, Members, About
+  const standardViewTypes = useMemo(() => {
+    const postTypeViews = CUSTOM_VIEW_POST_TYPE_OPTIONS
+      .filter(option => option.postTypes.every(type => postTypes.includes(type)))
+      .map(option => POST_TYPE_TO_VIEW_TYPE[option.postTypes[0]])
+    return ['all', 'chat', ...postTypeViews, 'map', 'members', 'about'].filter(type => !removedStandardTypes.has(type))
+  }, [postTypes, removedStandardTypes])
+
+  const handleRemoveStandardView = useCallback((type) => {
+    setRemovedStandardTypes(prev => new Set(prev).add(type))
+  }, [])
+
+  const handleRemoveManualView = useCallback((key) => {
+    setManualViews(prev => prev.filter(view => view.key !== key))
+  }, [])
+
+  const handleAddView = useCallback((viewData) => {
+    if (STANDARD_VIEW_TYPES.has(viewData.type)) {
+      setRemovedStandardTypes(prev => {
+        const next = new Set(prev)
+        next.delete(viewData.type)
+        return next
+      })
+      return
+    }
+    setManualViews(prev => [...prev, { ...viewData, key: `manual-${prev.length}-${Date.now()}` }])
+  }, [])
+
+  const onSubmit = async () => {
+    let { accessibility, avatarUrl, bannerUrl, name, parentGroups, purpose, slug, visibility } = state
     name = typeof name === 'string' ? trim(name) : name
     purpose = typeof purpose === 'string' ? trim(purpose) : purpose
     avatarUrl = avatarUrl || DEFAULT_AVATAR
 
-    if (isValid()) {
-      dispatch(createGroup({ accessibility, avatarUrl, bannerUrl, homeView, name, slug, parentIds: parentGroups.map(g => g.id), purpose, visibility }))
-        .then(({ error }) => {
-          if (error) {
-            setState(prev => ({
-              ...prev,
-              error: t('There was an error, please try again.')
-            }))
-          } else {
-            dispatch(push(groupUrl(slug)))
-          }
-        })
+    if (!isValid()) return
+
+    const standardTypesInOrder = orderedRows.filter(row => row.kind === 'standard').map(row => row.type)
+    const manualRowsInOrder = orderedRows.filter(row => row.kind === 'manual')
+    const homeType = standardTypesInOrder[0]
+    const homeView = homeType === 'chat' ? 'CHAT' : homeType === 'map' ? 'MAP' : 'STREAM'
+
+    const { error, payload } = await dispatch(createGroup({
+      accessibility,
+      avatarUrl,
+      bannerUrl,
+      homeView,
+      name,
+      slug,
+      parentIds: parentGroups.map(g => g.id),
+      purpose,
+      acceptedPostTypes: postTypes,
+      viewTypes: standardTypesInOrder,
+      visibility
+    }))
+
+    if (error) {
+      setState(prev => ({
+        ...prev,
+        error: t('There was an error, please try again.')
+      }))
+      return
     }
+
+    const newGroup = payload?.data?.createGroup
+    if (newGroup?.id && manualRowsInOrder.length > 0) {
+      // Fetch the standard views the backend just seeded so manual (custom/link/text) views
+      // can be inserted at their correct position rather than always appended at the end.
+      const viewsResult = await dispatch(fetchGroupViews(newGroup.id))
+      const createdViews = viewsResult?.payload?.data?.group?.groupViews?.items || []
+      const idByType = createdViews.reduce((acc, view) => { acc[view.type] = view.id; return acc }, {})
+
+      let nextId = null
+      for (let i = orderedRows.length - 1; i >= 0; i--) {
+        const row = orderedRows[i]
+        if (row.kind === 'standard') {
+          nextId = idByType[row.type] || null
+          continue
+        }
+        const createResult = await dispatch(createGroupView({
+          groupId: newGroup.id,
+          type: row.type,
+          name: row.name,
+          icon: row.icon,
+          link: row.link,
+          pageContent: row.pageContent,
+          topics: row.topics,
+          settings: row.settings,
+          postId: row.postId,
+          userId: row.userId,
+          linkedGroupId: row.linkedGroupId,
+          addToEnd: nextId == null,
+          orderInFrontOfViewId: nextId || undefined
+        }))
+        nextId = createResult?.payload?.data?.createGroupView?.id || null
+      }
+    }
+
+    dispatch(push(groupUrl(slug)))
   }
 
   // Parent groups are not used in the CreateGroup component -- we will add them back in the future -- add 'parentGroups' to the state object
-  const { accessibility, avatarUrl, bannerUrl, homeView, nameCharacterCount, edited, errors, name, slug, visibility } = state
+  const { accessibility, avatarUrl, bannerUrl, purpose, purposeCharacterCount, nameCharacterCount, edited, errors, name, slug, visibility } = state
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
@@ -363,49 +454,39 @@ function CreateGroup () {
         )}  */}
 
         <div className='w-full bg-foreground/5 p-4 rounded-lg mt-4'>
-          <h3 className='text-foreground text-xl font-bold mb-2'>{t('Choose your home view')}</h3>
-          <p className='text-foreground/80 text-sm mb-4'>{t('home-view-choice-explainer')}</p>
-          <div className='flex flex-col gap-3'>
-            <button
-              type='button'
-              onClick={() => updateField('homeView')('CHAT')}
-              className={cn(
-                'w-full p-4 rounded-lg border-2 text-left transition-all',
-                homeView === 'CHAT'
-                  ? 'border-focus bg-focus/10'
-                  : 'border-foreground/20 hover:border-foreground/40'
-              )}
-            >
-              <div className='font-semibold text-foreground mb-1'>{t('Chat')}</div>
-              <div className='text-sm text-foreground/70'>{t('A short-form chat room experience for quick conversations and real-time discussions')}</div>
-            </button>
-            <button
-              type='button'
-              onClick={() => updateField('homeView')('STREAM')}
-              className={cn(
-                'w-full p-4 rounded-lg border-2 text-left transition-all',
-                homeView === 'STREAM'
-                  ? 'border-focus bg-focus/10'
-                  : 'border-foreground/20 hover:border-foreground/40'
-              )}
-            >
-              <div className='font-semibold text-foreground mb-1'>{t('Stream')}</div>
-              <div className='text-sm text-foreground/70'>{t('A longer-form feed of posts, discussions, and updates from your group')}</div>
-            </button>
-            <button
-              type='button'
-              onClick={() => updateField('homeView')('MAP')}
-              className={cn(
-                'w-full p-4 rounded-lg border-2 text-left transition-all',
-                homeView === 'MAP'
-                  ? 'border-focus bg-focus/10'
-                  : 'border-foreground/20 hover:border-foreground/40'
-              )}
-            >
-              <div className='font-semibold text-foreground mb-1'>{t('Map')}</div>
-              <div className='text-sm text-foreground/70'>{t('A map displaying your group\'s locational context and geographic connections')}</div>
-            </button>
+          <h3 className='text-foreground text-xl font-bold mb-2'>{t('Purpose')}</h3>
+          <div className='flex items-center justify-between mb-2'>
+            <p className='text-foreground/80 text-sm'>{t('What does this group hope to accomplish?')}</p>
+            <span className='text-xs text-foreground/50'>{purposeCharacterCount} / 500</span>
           </div>
+          <textarea
+            maxLength={500}
+            value={purpose}
+            onChange={updateField('purpose')}
+            placeholder={t('What does this group hope to accomplish?')}
+            rows={3}
+            className='w-full rounded-md border border-foreground/20 bg-input p-2 text-sm text-foreground'
+          />
+        </div>
+
+        <div className='w-full bg-foreground/5 p-4 rounded-lg mt-4'>
+          <PostTypePills
+            postTypes={postTypes}
+            onPostTypesChange={setPostTypes}
+            label={t('Accepted post types')}
+          />
+        </div>
+
+        <div className='w-full bg-foreground/5 p-4 rounded-lg mt-4'>
+          <IncludedViewsEditor
+            standardViewTypes={standardViewTypes}
+            onRemoveStandardType={handleRemoveStandardView}
+            manualViews={manualViews}
+            onAddView={handleAddView}
+            onRemoveManualView={handleRemoveManualView}
+            acceptedPostTypes={postTypes}
+            onOrderedRowsChange={setOrderedRows}
+          />
         </div>
 
         <div className='mt-10'>

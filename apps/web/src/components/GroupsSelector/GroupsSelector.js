@@ -55,7 +55,7 @@ const GroupsSelector = forwardRef(({
     onChange(selected.filter(c => c.id !== group.id))
   }
 
-  const placeholder = placeholderProp || options.length === 0 ? t('This group has no parent groups') : t('Type group name...')
+  const placeholder = placeholderProp || (options.length === 0 ? t('This group has no parent groups') : t('Type group name...'))
 
   return (
     <TagInput

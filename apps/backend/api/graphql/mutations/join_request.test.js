@@ -1,22 +1,13 @@
 import '../../../test/setup'
 import setup from '../../../test/setup'
 import factories from '../../../test/setup/factories'
+import { assignCoordinator } from '../../../test/setup/roleHelpers'
 import {
   createJoinRequest,
   acceptJoinRequest,
   cancelJoinRequest,
   declineJoinRequest
 } from './join_request'
-
-/** Gives user Coordinator common role in group (includes Add Members). */
-async function assignCoordinator (user, group) {
-  await user.joinGroup(group)
-  await new MemberCommonRole({
-    user_id: user.id,
-    group_id: group.id,
-    common_role_id: CommonRole.ROLES.Coordinator
-  }).save()
-}
 
 describe('join_request mutations', () => {
   let group, applicant, moderator, outsider

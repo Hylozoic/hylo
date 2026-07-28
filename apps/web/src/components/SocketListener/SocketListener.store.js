@@ -1,3 +1,9 @@
+import {
+  POST_TYPE_TO_VIEW_TYPE,
+  postCountsTowardChatUnread
+} from '@hylo/shared'
+import { updateGroupViewInMenu } from 'store/util/groupViewsOrder'
+
 const MODULE_NAME = 'SocketListener'
 export const RECEIVE_MESSAGE = `${MODULE_NAME}/RECEIVE_MESSAGE`
 export const RECEIVE_COMMENT = `${MODULE_NAME}/RECEIVE_COMMENT`
@@ -15,7 +21,8 @@ export function receiveMessage (message, opts = {}) {
     },
     meta: {
       extractModel: 'Message',
-      bumpUnreadCount: opts.bumpUnreadCount
+      bumpUnreadCount: opts.bumpUnreadCount,
+      isMuted: opts.isMuted
     }
   }
 }
@@ -77,27 +84,62 @@ export function receiveNotification (notification) {
   }
 }
 
+/**
+ * Bump typed + chat view unread counts for views in `viewItems`, writing through
+ * `menuGroup`'s embedded menu (works for top-level and nested space menus).
+ */
+function bumpUnreadViewsInMenu (menuGroup, viewItems, postType, showNotices) {
+  if (!menuGroup || !viewItems?.length) return
+
+  const typedViewType = POST_TYPE_TO_VIEW_TYPE[postType]
+  if (typedViewType) {
+    const typedView = viewItems.find(view => view.type === typedViewType)
+    if (typedView) {
+      updateGroupViewInMenu(menuGroup, typedView.id, {
+        newPostCount: (typedView.newPostCount || 0) + 1
+      })
+    }
+  }
+
+  if (postCountsTowardChatUnread(postType, showNotices)) {
+    const chatView = viewItems.find(view => view.type === 'chat')
+    if (chatView) {
+      updateGroupViewInMenu(menuGroup, chatView.id, {
+        newPostCount: (chatView.newPostCount || 0) + 1
+      })
+    }
+  }
+}
+
 export function ormSessionReducer (session, { meta, type, payload }) {
-  const { Group, MessageThread, Membership, TopicFollow, Me } = session
+  const { Group, MessageThread, Membership, Me } = session
   let currentUser
 
   switch (type) {
     case RECEIVE_MESSAGE: {
-      currentUser = Me.first()
-      currentUser.update({
-        unseenThreadCount: currentUser.unseenThreadCount + 1
-      })
-
       const id = payload.data.message.messageThread
+      const isMuted = meta.isMuted || (MessageThread.idExists(id) && MessageThread.withId(id).isMuted)
+
       if (!MessageThread.idExists(id)) {
         MessageThread.create({
           id,
           updatedAt: new Date().toString(),
           lastReadAt: 0,
-          unreadCount: 0
+          unreadCount: 0,
+          isMuted: !!meta.isMuted
+        })
+      } else if (meta.isMuted) {
+        MessageThread.withId(id).update({ isMuted: true })
+      }
+
+      MessageThread.withId(id).newMessageReceived(meta.bumpUnreadCount)
+
+      if (meta.bumpUnreadCount && !isMuted) {
+        currentUser = Me.first()
+        currentUser.update({
+          unseenThreadCount: currentUser.unseenThreadCount + 1
         })
       }
-      MessageThread.withId(id).newMessageReceived(meta.bumpUnreadCount)
       break
     }
 
@@ -105,29 +147,40 @@ export function ormSessionReducer (session, { meta, type, payload }) {
       currentUser = Me.first()
       const { post } = payload.data
       const groupId = payload.groupId
-      if (currentUser && post.creator.id !== currentUser.id) {
-        const increment = obj =>
-          obj && obj.update({
-            newPostCount: (obj.newPostCount || 0) + 1
-          })
+      const creatorId = post.creator?.id || post.creatorId
+      if (!currentUser || !groupId || String(creatorId) === String(currentUser.id)) break
 
-        increment(TopicFollow.filter(tf =>
-          post.topics.some(t => t.id === tf.topic) && tf.group === groupId).first())
-
-        const group = Group.withId(groupId)
-        const contextWidgets = group.contextWidgets.items
-        const newContextWidgets = contextWidgets.map(cw => {
-          if (cw.type === 'viewChat' && post.topics.some(t => t.id === cw.viewChat?.id)) {
-            return { ...cw, highlightNumber: cw.highlightNumber + 1 }
-          }
-          return cw
+      const increment = obj =>
+        obj && obj.update({
+          newPostCount: (obj.newPostCount || 0) + 1
         })
-        group.update({ contextWidgets: { items: structuredClone(newContextWidgets) } })
 
-        // TODO: is this working?
-        increment(Membership.filter(m =>
-          !m.person && m.group === groupId).first())
+      // Space/group orange dot — membership for the post's group
+      increment(Membership.safeGet({ group: groupId, person: currentUser.id }))
+
+      const postType = post.type
+      const postGroup = Group.withId(groupId)
+
+      // Direct menu on the post's group (when that group's views are loaded)
+      if (postGroup?.groupViews?.items?.length) {
+        const showNotices = postGroup.settings?.showPostNoticesInChat !== false
+        bumpUnreadViewsInMenu(postGroup, postGroup.groupViews.items, postType, showNotices)
       }
+
+      // Parent menus embed space views under type=space linkedGroup — patch those too
+      // so badges update while the parent group's ContextMenu is open.
+      Group.all().toModelArray().forEach(parentGroup => {
+        if (String(parentGroup.id) === String(groupId)) return
+        const items = parentGroup.groupViews?.items || []
+        items.forEach(view => {
+          if (view.type !== 'space') return
+          if (String(view.linkedGroup?.id) !== String(groupId)) return
+          const nestedItems = view.linkedGroup.groupViews?.items
+          if (!nestedItems?.length) return
+          const showNotices = view.linkedGroup.settings?.showPostNoticesInChat !== false
+          bumpUnreadViewsInMenu(parentGroup, nestedItems, postType, showNotices)
+        })
+      })
       break
     }
 

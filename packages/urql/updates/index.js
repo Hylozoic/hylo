@@ -1,4 +1,5 @@
 import { get } from 'lodash/fp'
+import { gql } from 'urql'
 import meQuery from '@hylo/graphql/queries/meQuery'
 import meCheckAuthQuery from '@hylo/graphql/queries/meCheckAuthQuery'
 import makeAppendToPaginatedSetResolver from './makeAppendToPaginatedSetResolver'
@@ -7,6 +8,26 @@ import { handleReactionPostCompletion } from './sideEffectPostCompletion'
 
 // Set to true to enable debug logging for group subscriptions
 const isDev = process.env.NODE_ENV === 'development'
+
+const messageThreadIsMutedFragment = gql`
+  fragment _ on MessageThread {
+    isMuted
+  }
+`
+
+/** Returns the message thread id from a message update payload. */
+function getMessageThreadId (message) {
+  const thread = message?.messageThread
+  return thread?.id || thread
+}
+
+/** Returns whether the message thread is muted for the current user. */
+function isMessageThreadMuted (cache, message) {
+  const threadId = getMessageThreadId(message)
+  if (!threadId) return false
+  const thread = cache.readFragment(messageThreadIsMutedFragment, { id: threadId })
+  return !!thread?.isMuted
+}
 
 const subscriptionHandlers = {
   updates: (result, args, cache, info) => {
@@ -19,6 +40,8 @@ const subscriptionHandlers = {
 
       // For Messages and MessageThreads, handle differently
       if (update.message) {
+        const isMuted = isMessageThreadMuted(cache, update.message)
+
         // This is a direct message
         cache.invalidate({ __typename: 'Message', id: update.message.id })
 
@@ -33,16 +56,18 @@ const subscriptionHandlers = {
           cache.invalidate('Query', field.fieldKey)
         })
 
-        // Update Me query to reflect new message count
-        cache.updateQuery({ query: meQuery }, ({ me }) => {
-          if (!me) return null
-          return {
-            me: {
-              ...me,
-              unseenThreadCount: me.unseenThreadCount + 1
+        // Update Me query to reflect new message count (skip muted threads)
+        if (!isMuted) {
+          cache.updateQuery({ query: meQuery }, ({ me }) => {
+            if (!me) return null
+            return {
+              me: {
+                ...me,
+                unseenThreadCount: me.unseenThreadCount + 1
+              }
             }
-          }
-        })
+          })
+        }
       } else if (update.messageThread) {
         // This is a message thread update
         cache.invalidate({ __typename: 'MessageThread', id: update.messageThread.id })
@@ -135,10 +160,8 @@ const subscriptionHandlers = {
             // Add new membership
             const newMembership = {
               __typename: 'GroupMembership',
-              id: `temp-${update.group.id}`, // Temporary ID
+              id: `temp-${update.group.id}`,
               group: update.group,
-              role: update.role || 0,
-              hasModeratorRole: update.role === 1,
               settings: {}
             }
             return {
@@ -510,11 +533,6 @@ export default {
       }
     },
 
-    addModerator: (result, args, cache, info) => {
-      const { groupId } = args
-      cache.invalidate({ __typename: 'Group', id: groupId })
-    },
-
     addPostToCollection: (result, args, cache, info) => {
       const { collectionId } = args
       cache.invalidate({ __typename: 'Collection', id: collectionId })
@@ -544,6 +562,12 @@ export default {
     createInvitation: (result, args, cache, info) => {
       const { groupId } = args
       cache.invalidate({ __typename: 'Group', id: groupId })
+    },
+
+    createGroup: (result, args, cache, info) => {
+      if (result?.createGroup?.id) {
+        cache.invalidate('Query', 'me')
+      }
     },
 
     createPost: (result, args, cache, info) => {
@@ -595,11 +619,6 @@ export default {
     },
 
     removeMember: (result, args, cache, info) => {
-      const { groupId } = args
-      cache.invalidate({ __typename: 'Group', id: groupId })
-    },
-
-    removeModerator: (result, args, cache, info) => {
       const { groupId } = args
       cache.invalidate({ __typename: 'Group', id: groupId })
     },

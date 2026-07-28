@@ -57,16 +57,21 @@ export default gql`
     }
     settings {
       alreadySeenTour
+      colorScheme
       dmNotifications
       commentNotifications
       locale
       mapBaseLayer
+      globalNavStyle
+      groupNavStyle
       rsvpCalendarSub
       signupInProgress
+      stackGroups
       streamChildPosts
       streamViewMode
       streamSortBy
       streamPostType
+      theme
     }
     affiliations {
       items {
@@ -110,14 +115,6 @@ export default gql`
     # for initial load in AuthLayoutRouter
     memberships {
       ...MembershipFieldsFragment
-    }
-    membershipCommonRoles {
-      items {
-        id
-        commonRoleId
-        groupId
-        userId
-      }
     }
     skills {
       items {

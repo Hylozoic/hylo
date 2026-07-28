@@ -1,12 +1,16 @@
 import orm from 'store/models'
 import {
-  CREATE_MESSAGE
+  CREATE_MESSAGE,
+  FETCH_MESSAGES,
+  FETCH_THREAD
 } from 'store/constants'
 import reducer, {
   defaultState,
   getMessages,
   filterThreadsByParticipant,
   findOrCreateThread,
+  fetchThread,
+  fetchMessages,
   createMessage,
   updateMessageText,
   moduleSelector,
@@ -90,11 +94,16 @@ describe('getMessages', () => {
 
 describe('filterThreadsByParticipant', () => {
   it('works as expected', () => {
-    const mockThread = names => {
+    const mockThread = (names, messages = []) => {
       return {
         participants: {
           toRefArray: function () {
             return names.map(name => ({ name }))
+          }
+        },
+        messages: {
+          toRefArray: function () {
+            return messages
           }
         }
       }
@@ -104,6 +113,7 @@ describe('filterThreadsByParticipant', () => {
     expect(filter(mockThread(['boxhead', 'footballface', 'tvnose']))).toBeTruthy()
     expect(filter(mockThread(['Fearsome Foe', 'jim jam']))).toBeTruthy()
     expect(filter(mockThread(['Tiresome toe', 'jim jam']))).toBeFalsy()
+    expect(filter(mockThread(['jim jam'], [{ text: 'foosball tonight' }]))).toBeTruthy()
 
     const noFilter = filterThreadsByParticipant()
     expect(noFilter(mockThread(['whomever']))).toBeTruthy()
@@ -121,6 +131,24 @@ describe('findOrCreateThread', () => {
     const { query, variables } = graphql
     const actual = findOrCreateThread(variables.participantIds, query)
     expect(actual).toMatchSnapshot()
+  })
+})
+
+describe('fetchThread', () => {
+  it('skips graphql when id is the new-thread route sentinel', () => {
+    const action = fetchThread('new')
+    expect(action.type).toEqual(FETCH_THREAD)
+    expect(action.graphql).toBeUndefined()
+    expect(action.meta.skipped).toBe(true)
+  })
+})
+
+describe('fetchMessages', () => {
+  it('skips graphql when id is the new-thread route sentinel', () => {
+    const action = fetchMessages('new')
+    expect(action.type).toEqual(FETCH_MESSAGES)
+    expect(action.graphql).toBeUndefined()
+    expect(action.meta.skipped).toBe(true)
   })
 })
 

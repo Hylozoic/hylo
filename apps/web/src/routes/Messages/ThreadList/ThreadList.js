@@ -15,12 +15,17 @@ import {
   setThreadSearch,
   getThreadSearch,
   getThreads,
-  getThreadsHasMore
+  getThreadsHasMore,
+  getThreadTab,
+  setThreadTab,
+  THREAD_TAB_INBOX,
+  THREAD_TAB_MUTED
 } from '../Messages.store'
 
 import Loading from 'components/Loading'
 import ThreadListItem from './ThreadListItem'
 import { cn } from 'util/index'
+import { isPhoneDevice } from 'util/mobile'
 
 import classes from './ThreadList.module.scss'
 
@@ -38,12 +43,17 @@ function ThreadList () {
   const threadsPending = useSelector(state => isPendingFor(fetchThreads, state))
   const hasMoreThreads = useSelector(state => getThreadsHasMore(state))
   const threadSearch = useSelector(state => getThreadSearch(state))
+  const threadTab = useSelector(getThreadTab)
+  const isMutedTab = threadTab === THREAD_TAB_MUTED
   const [searchInput, setSearchInput] = useState(threadSearch || '')
   const debouncedSearch = useDebounce(searchInput, 300)
 
   const fetchThreadsAction = useCallback(
-    (offset = 0) => dispatch(fetchThreads(20, offset, debouncedSearch || undefined)),
-    [debouncedSearch, dispatch]
+    (offset = 0) => dispatch(fetchThreads(20, offset, {
+      muted: isMutedTab,
+      search: debouncedSearch || undefined
+    })),
+    [debouncedSearch, dispatch, isMutedTab]
   )
   const fetchMoreThreadsAction = useCallback(
     () => hasMoreThreads && fetchThreadsAction(threads.length),
@@ -76,19 +86,23 @@ function ThreadList () {
 
   useEffect(() => {
     fetchThreadsAction(0).then((response) => {
-      if (!messageThreadId && !debouncedSearch) {
+      if (!messageThreadId && !debouncedSearch && !isMutedTab) {
         const firstThread = response.payload.data?.me?.messageThreads?.items[0]
         if (firstThread) {
           navigate(`/messages/${firstThread.id}`, { replace: true })
         }
       }
     })
-  }, [debouncedSearch])
+  }, [debouncedSearch, isMutedTab])
+
+  const handleSelectInboxTab = () => dispatch(setThreadTab(THREAD_TAB_INBOX))
+  const handleSelectMutedTab = () => dispatch(setThreadTab(THREAD_TAB_MUTED))
 
   return (
     <div
       className={cn(
-        'bg-background h-full flex flex-col flex-wrap overflow-hidden w-full min-w-0 sm:w-[300px] sm:flex-shrink-0'
+        'bg-background h-full flex flex-col flex-wrap overflow-hidden min-w-0',
+        isPhoneDevice() ? 'w-full' : 'w-[300px] flex-shrink-0'
       )}
       style={{ boxShadow: 'inset -15px 0 15px -10px hsl(var(--darkening) / 0.3)' }}
       onClick={handleContainerClick}
@@ -107,9 +121,31 @@ function ThreadList () {
             className='bg-transparent border-foreground pl-2 text-foreground placeholder:text-foreground/50 outline-none border-none w-full'
           />
         </div>
-        <Link className='bg-darkening/20 rounded-lg text-foreground flex justify-center items-center w-10 h-10 hover:bg-selected/100 scale-100 hover:scale-105 transition-all hover:text-foreground flex-shrink-0' to='/messages/new' onClick={toggleNavMenuAction}>
+        <Link className='bg-darkening/20 rounded-lg text-foreground flex justify-center items-center w-10 h-10 hover:bg-selected/100 scale-100 hover:scale-105 transition-all hover:text-foreground flex-shrink-0' to='/messages/new' onClick={isPhoneDevice() ? toggleNavMenuAction : undefined}>
           <SquarePen />
         </Link>
+      </div>
+      <div className='flex gap-2 px-2 py-1'>
+        <button
+          type='button'
+          onClick={handleSelectInboxTab}
+          className={cn(
+            'flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-all',
+            !isMutedTab ? 'bg-selected text-foreground' : 'bg-darkening/20 text-foreground/70 hover:bg-selected/50'
+          )}
+        >
+          {t('Inbox')}
+        </button>
+        <button
+          type='button'
+          onClick={handleSelectMutedTab}
+          className={cn(
+            'flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-all',
+            isMutedTab ? 'bg-selected text-foreground' : 'bg-darkening/20 text-foreground/70 hover:bg-selected/50'
+          )}
+        >
+          {t('Muted')}
+        </button>
       </div>
       <ul className={classes.list} id='thread-list-list' role='list'>
         {!isEmpty(threads) && threads.map(t => {
@@ -127,16 +163,21 @@ function ThreadList () {
               unreadCount={t.unreadCount}
               key={`thread-li-${t.id}`}
               isUnread={isUnread}
+              isMuted={isMutedTab}
             />
           )
         })}
         {threadsPending &&
           <Loading type='bottom' />}
-        {!threadsPending && isEmpty(threads) && !searchInput &&
+        {!threadsPending && isEmpty(threads) && !searchInput && !isMutedTab &&
           <div className={classes.noConversations}>
             {t('You have no active messages!')}
-            <Link to='/messages/new' onClick={toggleNavMenuAction}>{t('Send a message')}</Link>
+            <Link to='/messages/new' onClick={isPhoneDevice() ? toggleNavMenuAction : undefined}>{t('Send a message')}</Link>
             {t('to get started.')}
+          </div>}
+        {!threadsPending && isEmpty(threads) && !searchInput && isMutedTab &&
+          <div className={classes.noConversations}>
+            {t('You have no muted conversations.')}
           </div>}
         {!threadsPending && isEmpty(threads) && searchInput &&
           <div className='text-center text-foreground border-2 border-dashed border-foreground/20 rounded-lg m-4 p-4 flex flex-col items-center justify-center'>

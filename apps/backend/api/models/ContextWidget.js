@@ -40,10 +40,7 @@ module.exports = bookshelf.Model.extend({
   },
 
   async highlightNumber (userId) {
-    if (userId && this.get('view_chat_id')) {
-      const tf = await this.topicFollow(userId).fetch()
-      return tf ? tf.get('new_post_count') : 0
-    }
+    // Unread badges live on GroupViews; context widgets no longer track TagFollow counts.
     return 0
   },
 

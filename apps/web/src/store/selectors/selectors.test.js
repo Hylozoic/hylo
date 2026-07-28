@@ -3,6 +3,7 @@ import getMe from './getMe'
 import getGroupTopicForCurrentRoute from './getGroupTopicForCurrentRoute'
 import getTopicForCurrentRoute from './getTopicForCurrentRoute'
 import getMyMemberships from './getMyMemberships'
+import { getMyGroups, getMyGroupsWithChildren } from './getMyGroups'
 import hasResponsibilityForGroup from './hasResponsibilityForGroup'
 
 describe('getMe', () => {
@@ -82,15 +83,26 @@ describe('getTopicForCurrentRoute', () => {
 
 describe('hasResponsibilityForGroup', () => {
   const session = orm.session(orm.getEmptyState())
-  let group, me, mcr
+  let group, me
 
   beforeEach(() => {
-    session.CommonRole.create({ id: 1, title: 'Coordinator', responsibilities: { items: [{ id: 1, title: 'Administration' }, { id: 2, title: 'Manage Content' }] } })
     group = session.Group.create({ id: 1 })
-    mcr = session.MembershipCommonRole.create({ id: 1, groupId: group.id, userId: 1, commonRoleId: 1 })
     me = session.Me.create({
       id: '1',
-      membershipCommonRoles: { items: [mcr] }
+      groupRoles: {
+        items: [{
+          id: 1,
+          groupId: group.id,
+          name: 'Coordinator',
+          responsibilities: {
+            items: [
+              { id: 1, title: 'Administration' },
+              { id: 2, title: 'Manage Content' },
+              { id: 3, title: 'Manage Spaces' }
+            ]
+          }
+        }]
+      }
     })
     session.Membership.create({ id: 1, group: group.id, person: 1 })
   })
@@ -106,5 +118,44 @@ describe('hasResponsibilityForGroup', () => {
     const state = { orm: session.state }
     const props = { person: me, groupId: group.id, responsibility: 'Manage Content' }
     expect(hasResponsibilityForGroup(state, props)).toBeFalsy()
+  })
+
+  it('inherits parent roles when checking a space', () => {
+    const space = session.Group.create({ id: 10, type: 'space', parentId: group.id })
+    const state = { orm: session.state }
+    const props = { person: me, groupId: space.id, responsibility: 'Manage Spaces' }
+    expect(hasResponsibilityForGroup(state, props)).toEqual(true)
+  })
+})
+
+describe('getMyGroupsWithChildren', () => {
+  it('nests space memberships under their parent group', () => {
+    const session = orm.session(orm.getEmptyState())
+    const me = session.Me.create({ id: 1 })
+    const parent = session.Group.create({ id: '1', name: 'Parent Group', slug: 'parent-group' })
+    const space = session.Group.create({ id: '2', name: 'Alpha Space', slug: 'alpha-space', type: 'space', parentId: parent.id })
+    session.Membership.create({ id: 'm1', group: parent.id, person: me.id })
+    session.Membership.create({ id: 'm2', group: space.id, person: me.id })
+
+    const result = getMyGroupsWithChildren({ orm: session.state })
+
+    expect(result).toHaveLength(1)
+    expect(result[0].name).toEqual('Parent Group')
+    expect(result[0].spaces).toHaveLength(1)
+    expect(result[0].spaces[0].name).toEqual('Alpha Space')
+  })
+
+  it('excludes spaces from the top-level list', () => {
+    const session = orm.session(orm.getEmptyState())
+    const me = session.Me.create({ id: 1 })
+    const parent = session.Group.create({ id: '1', name: 'Parent Group', slug: 'parent-group' })
+    const space = session.Group.create({ id: '2', name: 'Beta Space', slug: 'beta-space', type: 'space', parentId: parent.id })
+    session.Membership.create({ id: 'm1', group: parent.id, person: me.id })
+    session.Membership.create({ id: 'm2', group: space.id, person: me.id })
+
+    const result = getMyGroups({ orm: session.state })
+
+    expect(result).toHaveLength(1)
+    expect(result[0].slug).toEqual('parent-group')
   })
 })

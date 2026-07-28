@@ -1,29 +1,26 @@
 import { isEmpty, includes } from 'lodash/fp'
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import PropTypes from 'prop-types'
 import { useTranslation } from 'react-i18next'
 import {
   addGroupRole,
   addRoleToMember,
-  fetchMembersForGroupRole,
-  fetchMembersForCommonRole,
+  fetchGroupRoleDetails,
   removeRoleFromMember,
   updateGroupRole
 } from '../../../store/actions/roles'
 import {
   removeResponsibilityFromRole,
   addResponsibilityToRole,
-  fetchResponsibilitiesForGroupRole,
-  fetchResponsibilitiesForGroup,
-  fetchResponsibilitiesForCommonRole
+  fetchResponsibilitiesForGroup
 } from 'store/actions/responsibilities'
 import {
   fetchStewardSuggestions,
-  clearStewardSuggestions
+  clearStewardSuggestions,
+  getStewardSuggestions
 } from './RolesSettingsTab.store'
 import { fetchGroupSettings } from '../GroupSettings.store'
-import getPerson from 'store/selectors/getPerson'
 import SettingsSection from '../SettingsSection'
 import EmojiPicker from 'components/EmojiPicker'
 import SettingsControl from 'components/SettingsControl'
@@ -34,6 +31,7 @@ import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { keyMap } from 'util/textInput'
 import { cn } from 'util/index'
 import { personUrl } from '@hylo/navigation'
+import { sortCustomGroupRoles, sortSystemGroupRoles, isSystemGroupRole } from '@hylo/hooks/groupRoleHelpers'
 
 import styles from './RolesSettingsTab.module.scss'
 
@@ -51,19 +49,34 @@ const validateRole = ({ name, emoji }) => {
   return true
 }
 
-function RolesSettingsTab ({ group, commonRoles, slug }) {
+function RolesSettingsTab ({ group, slug }) {
   const dispatch = useDispatch()
-  const suggestions = useSelector(state => state.RoleSettings.map(personId => getPerson(state, { personId })))
+  const suggestions = useSelector(getStewardSuggestions)
   const { t } = useTranslation()
 
-  const [roles, setRoles] = useState(group?.groupRoles?.items || [])
+  const systemRoles = useMemo(
+    () => sortSystemGroupRoles(group?.groupRoles?.items || []),
+    [group?.groupRoles?.items]
+  )
+  const customRolesFromGroup = useMemo(
+    () => sortCustomGroupRoles((group?.groupRoles?.items || []).filter(role => !isSystemGroupRole(role))),
+    [group?.groupRoles?.items]
+  )
+  const [rolesOverride, setRolesOverride] = useState(null)
+  const roles = rolesOverride ?? customRolesFromGroup
+  const [availableResponsibilities, setAvailableResponsibilities] = useState([])
   const { setHeaderDetails } = useViewHeader()
 
   useEffect(() => {
-    if (group?.groupRoles) {
-      setRoles(group.groupRoles.items || [])
-    }
-  }, [group])
+    if (!group?.id) return
+    let isMounted = true
+    dispatch(fetchResponsibilitiesForGroup({ groupId: group.id }))
+      .then((response) => {
+        if (isMounted) setAvailableResponsibilities(response?.payload?.data?.responsibilities || [])
+      })
+      .catch((e) => { console.error('Error fetching responsibilities for group', e) })
+    return () => { isMounted = false }
+  }, [group?.id, dispatch])
 
   useEffect(() => {
     setHeaderDetails({
@@ -78,14 +91,14 @@ function RolesSettingsTab ({ group, commonRoles, slug }) {
   }, [])
 
   const handleAddRole = () => {
-    setRoles([...roles, { ...emptyRole }])
+    setRolesOverride([...roles, { ...emptyRole }])
   }
 
   const deleteUnsavedRole = (i) => () => {
     if (window.confirm(t('Are you sure you want to delete this unsaved role/badge?'))) {
       const newRoles = [...roles]
       newRoles.splice(i, 1)
-      setRoles(newRoles)
+      setRolesOverride(newRoles)
     }
   }
 
@@ -94,7 +107,7 @@ function RolesSettingsTab ({ group, commonRoles, slug }) {
     if (window.confirm(`${t('Are you sure you want to ')}${role.active ? t('deactivate') : t('reactivate')} ${t('this role/badge?')}`)) {
       dispatch(updateGroupRole({ active: !role.active, groupId: group?.id, groupRoleId: role.id })).then((response) => {
         const saved = response.payload.data.updateGroupRole
-        setRoles(prev => prev.map((r, idx) => idx === i ? { ...saved } : r))
+        setRolesOverride(prev => (prev ?? customRolesFromGroup).map((r, idx) => idx === i ? { ...saved } : r))
         if (slug || group?.slug) dispatch(fetchGroupSettings(slug || group.slug))
       })
     }
@@ -108,7 +121,7 @@ function RolesSettingsTab ({ group, commonRoles, slug }) {
     role.changed = true
     const updatedRoles = [...roles]
     updatedRoles[i] = role
-    setRoles(updatedRoles)
+    setRolesOverride(updatedRoles)
   }
 
   const saveRole = (i) => () => {
@@ -116,7 +129,7 @@ function RolesSettingsTab ({ group, commonRoles, slug }) {
     if (validateRole(role)) {
       dispatch(addGroupRole({ ...role, groupId: group?.id })).then((response) => {
         const saved = response.payload.data.addGroupRole
-        setRoles(prev => prev.map((r, idx) => idx === i ? { ...saved } : r))
+        setRolesOverride(prev => (prev ?? customRolesFromGroup).map((r, idx) => idx === i ? { ...saved } : r))
         if (slug || group?.slug) dispatch(fetchGroupSettings(slug || group.slug))
       })
     } else {
@@ -128,7 +141,7 @@ function RolesSettingsTab ({ group, commonRoles, slug }) {
     const role = { ...roles[i] }
     const updatedRoles = [...roles]
     updatedRoles[i] = { ...role.originalState }
-    setRoles(updatedRoles)
+    setRolesOverride(updatedRoles)
   }
 
   const updateRole = (i) => () => {
@@ -136,7 +149,7 @@ function RolesSettingsTab ({ group, commonRoles, slug }) {
     if (validateRole(role)) {
       dispatch(updateGroupRole({ ...role, groupId: group?.id, groupRoleId: role.id })).then((response) => {
         const saved = response.payload.data.updateGroupRole
-        setRoles(prev => prev.map((r, idx) => idx === i ? { ...saved } : r))
+        setRolesOverride(prev => (prev ?? customRolesFromGroup).map((r, idx) => idx === i ? { ...saved } : r))
         if (slug || group?.slug) dispatch(fetchGroupSettings(slug || group.slug))
       })
     } else {
@@ -151,14 +164,15 @@ function RolesSettingsTab ({ group, commonRoles, slug }) {
       <SettingsSection>
         <h2 className='text-foreground'>{t('Common Roles')}</h2>
         <div className='text-foreground/70 text-xs'>{t('adminRolesHelpText')}</div>
-        {commonRoles.map((role, i) => (
+        {systemRoles.map((role, i) => (
           <RoleRow
             group={group}
             suggestions={suggestions}
-            key={i}
+            availableResponsibilities={availableResponsibilities}
+            key={role.id || i}
             index={i}
             {...role}
-            isCommonRole
+            isSystemRole
           />
         ))}
       </SettingsSection>
@@ -169,6 +183,7 @@ function RolesSettingsTab ({ group, commonRoles, slug }) {
           <RoleRow
             group={group}
             suggestions={suggestions}
+            availableResponsibilities={availableResponsibilities}
             key={i}
             index={i}
             {...role}
@@ -195,7 +210,6 @@ function RolesSettingsTab ({ group, commonRoles, slug }) {
 RolesSettingsTab.propTypes = {
   addGroupRole: PropTypes.func,
   addRoleToMember: PropTypes.func,
-  commonRoles: PropTypes.array,
   group: PropTypes.object,
   removeRoleFromMember: PropTypes.func,
   slug: PropTypes.string,
@@ -205,11 +219,11 @@ RolesSettingsTab.propTypes = {
 function RoleRow ({
   active,
   addRoleToMember,
+  availableResponsibilities,
   changed,
-  isCommonRole,
+  isSystemRole,
   description,
   emoji,
-  fetchMembersForCommonRole,
   group,
   id,
   name,
@@ -224,10 +238,10 @@ function RoleRow ({
 }) {
   const { t } = useTranslation()
   const isDraftRole = active === ''
-  const inactiveStyle = (!active && !isDraftRole && !isCommonRole) ? styles.inactive : ''
+  const inactiveStyle = (!active && !isDraftRole && !isSystemRole) ? styles.inactive : ''
   return (
     <div className={cn('relative bg-foreground/5 rounded-lg my-4 pb-2', inactiveStyle)}>
-      {!isCommonRole &&
+      {!isSystemRole &&
         <div className={styles.actionContainer}>
           {isDraftRole && (
             <span onClick={onDelete} className={styles.action}><Icon name='Trash' /> {t('Delete')}</span>
@@ -256,14 +270,14 @@ function RoleRow ({
               <div className={styles.createButton} onClick={onSave}>{t('Create Role')}</div>
             </div>
             )
-          : (active || isCommonRole) && (
+          : (active || isSystemRole) && (
             <RoleList
-              {...{ addRoleToMember, suggestions, clearStewardSuggestions, fetchMembersForGroupRole, fetchMembersForCommonRole, fetchStewardSuggestions, removeRoleFromMember, active }}
+              {...{ addRoleToMember, suggestions, clearStewardSuggestions, fetchStewardSuggestions, removeRoleFromMember, active }}
               key='grList'
               group={group}
-              isCommonRole={isCommonRole}
+              isSystemRole={isSystemRole}
               roleId={id}
-              t={t}
+              availableResponsibilities={availableResponsibilities}
               slug={group.slug}
             />)
       }
@@ -276,7 +290,7 @@ function AddMemberToRole ({
   roleId,
   memberSuggestions,
   updateLocalMembersForRole,
-  isCommonRole = false
+  isSystemRole = false
 }) {
   const [adding, setAdding] = useState(false)
   const listRef = useRef()
@@ -295,7 +309,7 @@ function AddMemberToRole ({
   }
 
   const onChoose = choice => {
-    dispatch(addRoleToMember({ personId: choice.id, roleId, isCommonRole, groupId })).then(() => {
+    dispatch(addRoleToMember({ personId: choice.id, roleId, groupId })).then(() => {
       updateLocalMembersForRole(choice)
     })
     toggle()
@@ -435,37 +449,25 @@ function RoleList ({
   suggestions,
   roleId,
   group,
-  isCommonRole
+  isSystemRole,
+  availableResponsibilities = []
 }) {
   const { t } = useTranslation()
   const [membersForRole, setMembersForRole] = useState([])
   const [responsibilitiesForRole, setResponsibilitiesForRole] = useState([])
-  const [availableResponsibilities, setAvailableResponsibilities] = useState([])
   const dispatch = useDispatch()
-  const memberFetcher = isCommonRole ? fetchMembersForCommonRole : fetchMembersForGroupRole
-  const responsibilityFetcher = isCommonRole ? fetchResponsibilitiesForCommonRole : fetchResponsibilitiesForGroupRole
-
-  useEffect(() => {
-    dispatch(memberFetcher({ id: group.id, roleId }))
-      .then((response) => setMembersForRole(response?.payload?.data?.group?.members?.items || []))
-      .catch((e) => { console.error('Error fetching members for role ', e) })
-  }, [])
 
   useEffect(() => {
     let isMounted = true
-    dispatch(responsibilityFetcher({ id: group.id, roleId }))
-      .then((response) => { if (isMounted) setResponsibilitiesForRole(response?.payload?.data?.responsibilities || []) })
-      .catch((e) => { console.error('Error fetching responsibilities for role ', e) })
+    dispatch(fetchGroupRoleDetails({ id: group.id, roleId }))
+      .then((response) => {
+        if (!isMounted) return
+        setMembersForRole(response?.payload?.data?.group?.members?.items || [])
+        setResponsibilitiesForRole(response?.payload?.data?.responsibilities || [])
+      })
+      .catch((e) => { console.error('Error fetching group role details', e) })
     return () => { isMounted = false }
-  }, [])
-
-  useEffect(() => {
-    let isMounted = true
-    dispatch(fetchResponsibilitiesForGroup({ groupId: group.id }))
-      .then((response) => { if (isMounted) setAvailableResponsibilities(response?.payload?.data?.responsibilities || []) })
-      .catch((e) => { console.error('Error fetching responsibilities for group', e) })
-    return () => { isMounted = false }
-  }, [])
+  }, [group.id, roleId, dispatch])
 
   const memberRoleIds = membersForRole.map(mr => mr.id)
 
@@ -474,33 +476,24 @@ function RoleList ({
   const responsibilitySuggestions = availableResponsibilities.filter(responsibility => !includes(responsibility.title, groupRoleResponsibilityTitles))
 
   const updateLocalMembersForRole = (choice) => {
-    const updatedMembers = [...membersForRole, choice]
-    setMembersForRole(updatedMembers)
-  }
-
-  const updateLocalResponsibilitiesForRole = (choice) => {
-    const updatedResponsibilities = [...responsibilitiesForRole, choice]
-    setResponsibilitiesForRole(updatedResponsibilities)
+    setMembersForRole([...membersForRole, choice])
   }
 
   const handleRemoveRoleFromMember = (id) => {
-    dispatch(removeRoleFromMember({ personId: id, groupId: group.id, roleId, isCommonRole })).then(() => {
-      const updatedMembers = membersForRole.filter(member => member.id !== id)
-      setMembersForRole(updatedMembers)
+    dispatch(removeRoleFromMember({ personId: id, groupId: group.id, roleId })).then(() => {
+      setMembersForRole(membersForRole.filter(member => member.id !== id))
     })
   }
 
   const handleRemoveResponsibilityFromRole = (id) => {
     dispatch(removeResponsibilityFromRole({ roleResponsibilityId: id, groupId: group.id })).then(() => {
-      const updatedResponsibilities = responsibilitiesForRole.filter(responsibility => responsibility.id !== id)
-      setResponsibilitiesForRole(updatedResponsibilities)
+      setResponsibilitiesForRole(responsibilitiesForRole.filter(responsibility => responsibility.id !== id))
     })
   }
 
   const handleAddResponsibilityToRole = ({ responsibilityId, roleId, groupId, responsibility }) => {
-    dispatch(addResponsibilityToRole({ responsibilityId, roleId, groupId })).then((response) => {
-      const updatedResponsibilities = [...responsibilitiesForRole, { ...responsibility, id: response.payload.data.addResponsibilityToRole.id, responsibilityId: responsibility.id }]
-      setResponsibilitiesForRole(updatedResponsibilities)
+    return dispatch(addResponsibilityToRole({ responsibilityId, roleId, groupId })).then((response) => {
+      setResponsibilitiesForRole([...responsibilitiesForRole, { ...responsibility, id: response.payload.data.addResponsibilityToRole.id, responsibilityId: responsibility.id }])
     })
   }
 
@@ -508,24 +501,22 @@ function RoleList ({
     <div>
       <div className='p-2'>
         <h4 className='mb-0'>Responsibilities</h4>
-        {isCommonRole && (
+        {isSystemRole && (
           <div className='text-foreground/70 text-xs mb-2'>{t('Common roles cannot have their responsibilities edited')}</div>
         )}
         <div className='flex flex-col gap-2'>
           {responsibilitiesForRole.map(r =>
             <RemovableListItem
               item={r}
-              removeItem={isCommonRole ? null : handleRemoveResponsibilityFromRole}
+              removeItem={isSystemRole ? null : handleRemoveResponsibilityFromRole}
               key={r.id}
             />)}
         </div>
       </div>
-      {!isCommonRole && (
+      {!isSystemRole && (
         <AddResponsibilityToRoleSection
-          fetchSuggestions={() => dispatch(fetchResponsibilitiesForGroup({ groupId: group.id }))}
           handleAddResponsibilityToRole={handleAddResponsibilityToRole}
           responsibilitySuggestions={responsibilitySuggestions}
-          updateLocalResponsibilitiesForRole={updateLocalResponsibilitiesForRole}
           roleId={roleId}
           group={group}
         />)}
@@ -549,10 +540,11 @@ function RoleList ({
         updateLocalMembersForRole={updateLocalMembersForRole}
         roleId={roleId}
         groupId={group.id}
-        isCommonRole={isCommonRole}
+        isSystemRole={isSystemRole}
       />
     </div>
   )
 }
 
 export default RolesSettingsTab
+export { RoleList, AddMemberToRole }
