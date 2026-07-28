@@ -17,6 +17,7 @@ import PublicGroupDetail from 'routes/PublicLayoutRouter/PublicGroupDetail'
 import PublicPostDetail from 'routes/PublicLayoutRouter/PublicPostDetail'
 import OfferingDetails from 'routes/OfferingDetails/OfferingDetails'
 import checkLogin from 'store/actions/checkLogin'
+import checkLoginAndBootstrap from 'store/actions/checkLoginAndBootstrap'
 import { getAuthorized } from 'store/selectors/getSignupState'
 import { getAuthSessionUnknown } from 'store/selectors/getAuthSession'
 import { hasBootstrapCache, getBootstrapRehydrated } from 'store/selectors/getBootstrap'
@@ -101,14 +102,13 @@ export default function RootRouter () {
   const navigate = useNavigate()
   const { pathname } = useLocation()
 
-  // This should be the only place we check for a session from the API. The
-  // authSession reducer records Authenticated/Anonymous from CHECK_LOGIN, so the
-  // separated auth state (isAuthSessionUnknown) drives routing — no local loading flag.
-  const runCheckLogin = useCallback(async () => {
+  // This should be the only place we check for a session from the API on cold boot.
+  // WebView SESSION_READY retries use light checkLogin only (no full MeQuery).
+  const runCheckLogin = useCallback(async ({ combinedBootstrap = false } = {}) => {
     const t0 = typeof performance !== 'undefined' ? performance.now() : Date.now()
-    mobileAuthBreadcrumb('checkLogin start', { pathname: typeof window !== 'undefined' ? window.location.pathname : '' })
+    mobileAuthBreadcrumb('checkLogin start', { pathname: typeof window !== 'undefined' ? window.location.pathname : '', combinedBootstrap })
     try {
-      const action = await dispatch(checkLogin())
+      const action = await dispatch(combinedBootstrap ? checkLoginAndBootstrap() : checkLogin())
       const me = action?.payload?.data?.me
       const ms = Math.round((typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0)
       mobileAuthBreadcrumb('checkLogin done', { ms, hasMe: !!me, error: !!action?.error })
@@ -136,7 +136,7 @@ export default function RootRouter () {
   }, [dispatch])
 
   useEffect(() => {
-    runCheckLogin()
+    runCheckLogin({ combinedBootstrap: true })
 
     // For navigation to work from notifactions in the electron app
     if (window.electron && window.electron.onNavigateTo) {

@@ -37,6 +37,8 @@ import fetchPost from 'store/actions/fetchPost'
 import fetchGroupsMenuData from 'store/actions/fetchGroupsMenuData'
 import fetchThreads from 'store/actions/fetchThreads'
 import getMe from 'store/selectors/getMe'
+import { getBootstrappedFromCheckLogin } from 'store/selectors/getBootstrap'
+import { getAuthSessionUnknown } from 'store/selectors/getAuthSession'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMyMemberships from 'store/selectors/getMyMemberships'
 import getMyGroupMembership from 'store/selectors/getMyGroupMembership'
@@ -223,6 +225,8 @@ export default function AuthLayoutRouter (props) {
   const memberships = useSelector(getMyMemberships)
   const returnToPath = useSelector(getReturnToPath)
   const signupInProgress = useSelector(getSignupInProgress)
+  const bootstrappedFromCheckLogin = useSelector(getBootstrappedFromCheckLogin)
+  const isAuthSessionUnknown = useSelector(getAuthSessionUnknown)
 
   // Stable key for preload effect deps — getMyMemberships returns a new array reference on
   // every ORM update, which would otherwise reset the 4.5s timer indefinitely.
@@ -539,19 +543,23 @@ export default function AuthLayoutRouter (props) {
   // hylo-fetch-for-group) and Network (GraphQL response sizes). Compare before/after deploy.
   useEffect(() => {
     (async function () {
+      if (isAuthSessionUnknown) return
+
       if (isDev) performance.mark('hylo-auth-bootstrap-start')
       let bootstrapOk = false
       try {
-        // Parallelise the two independent bootstrap fetches.
-        // If the initial URL contains a post ID, race fetchPost alongside them
-        // so the post data is ready (or nearly ready) by the time the auth shell renders.
         const bootstrapFetches = [
-          dispatch(fetchForCurrentUser()),
+          ...(bootstrappedFromCheckLogin ? [] : [dispatch(fetchForCurrentUser())]),
           ...(paramPostId ? [dispatch(fetchPost(paramPostId))] : [])
         ]
-        await Promise.all(bootstrapFetches)
-        bootstrapOk = true
-        mobileAuthBreadcrumb('auth bootstrap fetchForCurrentUser ok')
+        if (bootstrapFetches.length === 0) {
+          bootstrapOk = true
+          mobileAuthBreadcrumb('auth bootstrap skipped fetchForCurrentUser (checkLogin fan-out)')
+        } else {
+          await Promise.all(bootstrapFetches)
+          bootstrapOk = true
+          mobileAuthBreadcrumb('auth bootstrap fetchForCurrentUser ok')
+        }
         if (isDev) {
           performance.mark('hylo-auth-bootstrap-end')
           try {
@@ -582,7 +590,7 @@ export default function AuthLayoutRouter (props) {
     }
     document.addEventListener('visibilitychange', handleVisibilityChange)
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
-  }, [])
+  }, [dispatch, isAuthSessionUnknown, bootstrappedFromCheckLogin, paramPostId])
 
   useEffect(() => {
     if (!window.HyloMobileV2 || !currentUserLoading) return

@@ -14,6 +14,11 @@ export const getBootstrapReplayed = createSelector(
   bootstrapUi => bootstrapUi.replayed
 )
 
+export const getBootstrappedFromCheckLogin = createSelector(
+  getBootstrapUi,
+  bootstrapUi => bootstrapUi.bootstrappedFromCheckLogin
+)
+
 // MeQuery payload is what drives nav/memberships on cold boot.
 export const hasBootstrapCache = createSelector(
   getBootstrap,
