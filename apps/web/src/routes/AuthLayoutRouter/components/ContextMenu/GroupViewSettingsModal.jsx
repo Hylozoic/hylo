@@ -288,8 +288,9 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
   )
 }
 
-/** Inline gear / remove controls shown on hover in edit mode. */
-export function GroupViewEditActions ({ view, onSettings, onDelete, className }) {
+/** Inline gear / remove controls shown on hover in edit mode.
+ * X moves soft-removable views to More Views; trash permanently deletes when allowed. */
+export function GroupViewEditActions ({ view, onSettings, onHide, onDelete, className }) {
   const { t } = useTranslation()
   const removable = canDeleteView(view)
   const hardDeletable = canHardDeleteView(view)
@@ -307,24 +308,24 @@ export function GroupViewEditActions ({ view, onSettings, onDelete, className })
           <SettingsIcon />
         </button>
       )}
-      {softRemovable && (
+      {softRemovable && onHide && (
         <button
           type='button'
           className='p-1 text-foreground/50 hover:text-destructive rounded'
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(view) }}
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onHide(view) }}
           aria-label={t('Remove from Menu')}
           title={t('Remove from Menu')}
         >
           <X className='w-4 h-4' />
         </button>
       )}
-      {hardDeletable && (
+      {hardDeletable && onDelete && (
         <button
           type='button'
           className='p-1 text-foreground/50 hover:text-destructive rounded'
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(view) }}
-          aria-label={t('Delete')}
-          title={t('Delete')}
+          aria-label={view?.type === 'space' ? t('Delete Space') : t('Delete')}
+          title={view?.type === 'space' ? t('Delete Space') : t('Delete')}
         >
           <Trash2 className='w-4 h-4' />
         </button>

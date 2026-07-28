@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useParams } from 'react-router-dom'
 
 import Loading from 'components/Loading'
 import { SpaceGroupSlugContext } from 'contexts/SpaceGroupContext'
@@ -130,7 +130,6 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
         <Route path='welcome/*' element={<GroupWelcomePage />} />
         <Route path='map/*' element={<MapExplorer context='groups' view='map' />} />
         <Route path='all/*' element={<ViewContent context='groups' view='all' />} />
-        <Route path='stream/*' element={<Navigate to={`${spaceBase}/all`} replace />} />
         <Route path='discussions/*' element={<ViewContent context='groups' view='discussions' />} />
         <Route path='events/*' element={<ViewContent context='groups' view='events' />} />
         <Route path='resources/*' element={<ViewContent context='groups' view='resources' />} />

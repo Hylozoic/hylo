@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import { matchPath, Route, Routes, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { matchPath, Route, Routes, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { IntercomProvider } from 'react-use-intercom'
 import { Helmet } from 'react-helmet'
@@ -107,6 +107,14 @@ function groupIdFromMembership (membership) {
 
 /** Max memberships (including spaces) before menu preload is skipped. */
 const MENU_PRELOAD_MAX_MEMBERSHIPS = 60
+
+/**
+ * Legacy `/stream` → `/all`, preserving any trailing path (e.g. `/create`, `/post/:id`).
+ */
+function RedirectStreamToAll ({ basePath }) {
+  const { '*': rest } = useParams()
+  return <Navigate to={`${basePath}/all${rest ? `/${rest}` : ''}`} replace />
+}
 
 export default function AuthLayoutRouter (props) {
   const resizeRef = useRef()
@@ -660,7 +668,7 @@ export default function AuthLayoutRouter (props) {
       const homePath = `/groups/${currentGroupSlug}${currentGroup?.homeRoute || '/all'}`
       const onOfferingPurchasePath = currentPath.startsWith(`/groups/${currentGroupSlug}/offerings/`)
       // Only redirect if not already on a view page; keep offering URLs so members can buy access
-      if (!currentPath.includes(homePath) && !currentPath.includes('/stream') && !onOfferingPurchasePath) {
+      if (!currentPath.includes(homePath) && !currentPath.includes('/all') && !currentPath.includes('/stream') && !onOfferingPurchasePath) {
         // Mobile web: LOCATION_CHANGE only closes the group drawer, not the sliding nav + backdrop.
         // Close the nav so the paywall / no-access stream view is visible after redirect.
         if (typeof window !== 'undefined' && window.innerWidth < 640) {
@@ -1024,7 +1032,7 @@ export default function AuthLayoutRouter (props) {
                             <Route path='welcome/*' element={<GroupWelcomePage />} />
                             <Route path='map/*' element={<MapExplorer context='groups' view='map' />} />
                             <Route path='all/*' element={<ViewContent context='groups' view='all' />} />
-                            <Route path='stream/*' element={<Navigate to={`/groups/${currentGroupSlug}/all`} replace />} />
+                            <Route path='stream/*' element={<RedirectStreamToAll basePath={`/groups/${currentGroupSlug}`} />} />
                             <Route path='discussions/*' element={<ViewContent context='groups' view='discussions' />} />
                             <Route path='events/*' element={<ViewContent context='groups' view='events' />} />
                             <Route path='resources/*' element={<ViewContent context='groups' view='resources' />} />
@@ -1053,6 +1061,8 @@ export default function AuthLayoutRouter (props) {
                                   : <MoreViewsPage group={currentGroup} />
                               }
                             />
+                            <Route path='all-views' element={<Navigate to={`/groups/${currentGroupSlug}/more-views`} replace />} />
+                            <Route path='all-views/*' element={<Navigate to={`/groups/${currentGroupSlug}/more-views`} replace />} />
                             {!isOneColumnGroup && <Route path={POST_DETAIL_MATCH} element={<PostDetail />} />}
                             <Route path='moderation/*' element={<Moderation context='groups' />} />
                             <Route path='*' element={isOneColumnGroup ? <ContextMenuGrid group={currentGroup} /> : <Navigate to={`/groups/${currentGroupSlug}${currentGroup?.homeRoute || '/all'}`} replace />} />

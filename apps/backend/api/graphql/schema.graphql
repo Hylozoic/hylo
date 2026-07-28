@@ -3410,7 +3410,9 @@ type Mutation {
     addToEnd: Boolean,
     linkedGroupId: ID,
     postId: ID,
-    userId: ID
+    userId: ID,
+    # When true, create off-menu (order = null) for More Views
+    hidden: Boolean
   ): GroupView
   # Update a View
   updateGroupView(
@@ -3450,7 +3452,9 @@ type Mutation {
     bannerUrl: String,
     avatarUrl: String,
     # When true, space is Paid access (forces protected + restricted)
-    paywall: Boolean
+    paywall: Boolean,
+    # When false, parent menu space view is created off-menu (More Views). Default true.
+    addToMenu: Boolean
   ): Group
   # Update a Space's settings
   updateSpace(

@@ -11,16 +11,25 @@ export { POST_TYPE_TO_VIEW_TYPE, VIEW_TYPE_TO_POST_TYPES }
 
 const NON_DELETABLE_TYPES = ['track-actions', 'funding-round-submissions']
 
-/** Soft-removed from the menu (order = null) → More Views / Spaces; not hard-deleted. */
+/**
+ * Can soft-remove from the menu (order = null) → More Views / Spaces.
+ * Text and separator cannot live in More Views — only Context Menu or hard delete.
+ */
 export const SOFT_REMOVE_VIEW_TYPES = new Set([
   'all',
   'about',
   'chat',
+  'collection',
+  'custom',
   'discussions',
   'events',
+  'group',
+  'link',
   'map',
+  'member',
   'members',
   'moderation',
+  'post',
   'projects',
   'proposals',
   'related-groups',
@@ -28,6 +37,18 @@ export const SOFT_REMOVE_VIEW_TYPES = new Set([
   'resources',
   'space',
   'welcome'
+])
+
+/** Types that can be permanently deleted (trash). Spaces are deleted via deleteGroup. */
+export const HARD_DELETE_VIEW_TYPES = new Set([
+  'collection',
+  'custom',
+  'group',
+  'link',
+  'member',
+  'post',
+  'separator',
+  'text'
 ])
 
 /** Returns true when a view type is allowed by the group's acceptedPostTypes (null = all allowed). */
@@ -43,7 +64,7 @@ export function viewTypeHasSettings (type) {
   return ['chat', 'link', 'text', 'custom', 'collection', 'welcome', 'space'].includes(type)
 }
 
-/** Soft-removable system views use X (hide) instead of hard delete. */
+/** Soft-removable views use X to move to More Views (may also be hard-deletable). */
 export function isSoftRemoveView (view) {
   return SOFT_REMOVE_VIEW_TYPES.has(view?.type)
 }
@@ -56,9 +77,11 @@ export function canDeleteView (view) {
   return true
 }
 
-/** Returns whether a view can be hard-deleted (custom/link/etc). */
+/** Returns whether a view can be permanently deleted (trash). Spaces use deleteGroup. */
 export function canHardDeleteView (view) {
-  return canDeleteView(view) && !isSoftRemoveView(view)
+  if (!canDeleteView(view)) return false
+  if (view?.type === 'space') return true
+  return HARD_DELETE_VIEW_TYPES.has(view?.type)
 }
 
 class GroupView extends Model {

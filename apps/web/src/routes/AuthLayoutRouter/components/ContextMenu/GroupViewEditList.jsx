@@ -28,6 +28,8 @@ import { canDeleteView, canHardDeleteView, isSoftRemoveView } from 'store/models
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 import { deleteGroupView, reorderGroupView, setGroupViewHidden, setHomeView } from 'store/actions/groupViews'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
+import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
+import { deleteGroup } from 'routes/GroupSettings/GroupSettings.store'
 import { mergeOrderedViewsFromSource, sortViewsByMenuOrder } from 'store/util/groupViewsOrder'
 
 /** Sort views by menu order for consistent drag indices (hidden last). */
@@ -63,7 +65,7 @@ async function persistViewReorder (dispatch, movedView, params, { parentGroupId,
 }
 
 /** Single draggable row in edit mode. */
-function SortableEditRow ({ view, onSettings, onDelete, onToggleHidden, isHome, spaceGroup = null }) {
+function SortableEditRow ({ view, onSettings, onHide, onDelete, isHome, spaceGroup = null }) {
   const { t } = useTranslation()
   const presentedView = GroupViewPresenter(view)
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -88,7 +90,7 @@ function SortableEditRow ({ view, onSettings, onDelete, onToggleHidden, isHome, 
           <GripVertical className='w-4 h-4' />
         </button>
         <hr className='flex-1 border-foreground/10' />
-        <GroupViewEditActions view={view} onSettings={onSettings} onDelete={onDelete} onToggleHidden={onToggleHidden} className='opacity-0 group-hover:opacity-100' />
+        <GroupViewEditActions view={view} onSettings={onSettings} onHide={onHide} onDelete={onDelete} className='opacity-0 group-hover:opacity-100' />
       </li>
     )
   }
@@ -106,7 +108,7 @@ function SortableEditRow ({ view, onSettings, onDelete, onToggleHidden, isHome, 
         <p className='flex-1 text-xs text-foreground/40 uppercase tracking-wide truncate'>
           {displayNameForView(presentedView, t, { spaceGroup })}
         </p>
-        <GroupViewEditActions view={view} onSettings={onSettings} onDelete={onDelete} onToggleHidden={onToggleHidden} className='opacity-0 group-hover:opacity-100' />
+        <GroupViewEditActions view={view} onSettings={onSettings} onHide={onHide} onDelete={onDelete} className='opacity-0 group-hover:opacity-100' />
       </li>
     )
   }
@@ -128,8 +130,8 @@ function SortableEditRow ({ view, onSettings, onDelete, onToggleHidden, isHome, 
       <GroupViewEditActions
         view={view}
         onSettings={onSettings}
+        onHide={onHide}
         onDelete={onDelete}
-        onToggleHidden={onToggleHidden}
         className='opacity-0 group-hover:opacity-100'
       />
     </li>
@@ -141,8 +143,8 @@ function SortableSpaceEditRow ({
   view,
   groupSlug,
   onSettings,
-  onDelete,
-  onToggleHidden
+  onHide,
+  onDelete
 }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -185,8 +187,8 @@ function SortableSpaceEditRow ({
         <GroupViewEditActions
           view={view}
           onSettings={onSettings}
+          onHide={onHide}
           onDelete={onDelete}
-          onToggleHidden={onToggleHidden}
           className='opacity-0 group-hover:opacity-100'
         />
         {spaceGroup?.slug && groupSlug && (
@@ -255,23 +257,42 @@ export default function GroupViewEditList ({ views, group, groupSlug, onSettings
     }
   }, [dispatch, group?.id])
 
-  const handleDelete = useCallback(async (view) => {
-    if (!canDeleteView(view) || !group?.id) return
+  const handleHide = useCallback(async (view) => {
+    if (!isSoftRemoveView(view) || !canDeleteView(view) || !group?.id) return
     const label = displayNameForView(view, t)
-    if (isSoftRemoveView(view)) {
-      if (!window.confirm(t('Are you sure you want to remove {{name}} from the menu?', { name: label }))) return
+    if (!window.confirm(t('Are you sure you want to remove {{name}} from the menu?', { name: label }))) return
+    try {
+      await dispatch(setGroupViewHidden({
+        id: view.id,
+        groupId: group.id,
+        hidden: true
+      }))
+    } catch (error) {
+      console.error('Failed to remove view from menu:', error)
+    }
+  }, [dispatch, group?.id, t])
+
+  const handleDelete = useCallback(async (view) => {
+    if (!canHardDeleteView(view) || !group?.id) return
+    if (view.type === 'space') {
+      const space = view.linkedGroup
+      if (!space?.id) return
+      const confirmed = window.confirm(
+        t('Are you sure you want to permanently delete {{name}}? Posts in this space will no longer be accessible.', {
+          name: space.name || displayNameForView(view, t)
+        })
+      )
+      if (!confirmed) return
       try {
-        await dispatch(setGroupViewHidden({
-          id: view.id,
-          groupId: group.id,
-          hidden: true
-        }))
+        await dispatch(deleteGroup(space.id))
+        await dispatch(fetchGroupSpaces(group.id))
+        await dispatch(fetchGroupViews(group.id))
       } catch (error) {
-        console.error('Failed to remove view from menu:', error)
+        console.error('Failed to delete space:', error)
       }
       return
     }
-    if (!canHardDeleteView(view)) return
+    const label = displayNameForView(view, t)
     if (!window.confirm(t('Are you sure you want to permanently delete {{name}}?', { name: label }))) return
     try {
       await dispatch(deleteGroupView(view.id, group.id))
@@ -279,20 +300,6 @@ export default function GroupViewEditList ({ views, group, groupSlug, onSettings
       console.error('Failed to delete view:', error)
     }
   }, [dispatch, group?.id, t])
-
-  const handleToggleHidden = useCallback(async (view) => {
-    if (!view?.id || !group?.id) return
-    if (view.order === 0) return
-    try {
-      await dispatch(setGroupViewHidden({
-        id: view.id,
-        groupId: group.id,
-        hidden: view.order != null
-      }))
-    } catch (error) {
-      console.error('Failed to toggle view visibility:', error)
-    }
-  }, [dispatch, group?.id])
 
   const ids = orderedViews.map(v => String(v.id))
 
@@ -313,8 +320,8 @@ export default function GroupViewEditList ({ views, group, groupSlug, onSettings
                   view={view}
                   groupSlug={groupSlug || group?.slug}
                   onSettings={onSettings}
+                  onHide={handleHide}
                   onDelete={handleDelete}
-                  onToggleHidden={handleToggleHidden}
                 />
               )
             }
@@ -323,8 +330,8 @@ export default function GroupViewEditList ({ views, group, groupSlug, onSettings
                 key={view.id}
                 view={view}
                 onSettings={onSettings}
+                onHide={handleHide}
                 onDelete={handleDelete}
-                onToggleHidden={handleToggleHidden}
                 isHome={index === 0}
               />
             )

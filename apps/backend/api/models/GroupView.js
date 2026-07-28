@@ -63,8 +63,34 @@ module.exports = bookshelf.Model.extend({
     WELCOME: 'welcome'
   },
 
-  // Soft-removed from the menu (order = null) and shown in More Views / Spaces — not hard-deleted.
+  // Soft-removed from the menu (order = null) and shown in More Views / Spaces.
+  // Text and separator cannot live in More Views — Context Menu or hard delete only.
   SOFT_REMOVE_TYPES: [
+    'all',
+    'about',
+    'chat',
+    'collection',
+    'custom',
+    'discussions',
+    'events',
+    'group',
+    'link',
+    'map',
+    'member',
+    'members',
+    'moderation',
+    'post',
+    'projects',
+    'proposals',
+    'related-groups',
+    'requests-and-offers',
+    'resources',
+    'space',
+    'welcome'
+  ],
+
+  // System views that must soft-remove only (cannot be hard-deleted).
+  SYSTEM_VIEW_TYPES: [
     'all',
     'about',
     'chat',
@@ -129,6 +155,19 @@ module.exports = bookshelf.Model.extend({
     return GroupView.forge({
       ...attrs,
       order: nextOrder,
+      created_at: now,
+      updated_at: now
+    }).save(null, { transacting, method: 'insert' })
+  },
+
+  /**
+   * Insert a new view off-menu (order = null) for More Views / Spaces.
+   */
+  createOffMenu: async function (attrs, { transacting } = {}) {
+    const now = new Date()
+    return GroupView.forge({
+      ...attrs,
+      order: null,
       created_at: now,
       updated_at: now
     }).save(null, { transacting, method: 'insert' })

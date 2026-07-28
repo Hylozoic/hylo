@@ -1215,7 +1215,7 @@ Legend: ✅ done · 🟡 partly done · `-` not done
 ### Phase 2 — Navigation UI (web)
 
 ✅ Rename `Stream` → `ViewContent`; update `AuthLayoutRouter` routes (my/public/all/topics + group/space; group/space `/stream` redirects to `/all`)
-🟡 Redesign `ContextMenu`: `GroupViewMenuItem`, space expand/collapse, unread dots, bottom section (Join Requests + More Spaces) — **still to do:** Join Requests is still under Group Settings menu, not the ContextMenu footer; footer link is **More Views and Spaces** → `/more-views`
+🟡 Redesign `ContextMenu`: `GroupViewMenuItem`, space expand/collapse, unread dots, bottom section (Join Requests + More Views & Spaces) — **still to do:** Join Requests is still under Group Settings menu, not the ContextMenu footer;
 ✅ Add edit mode (`?edit=true`), view settings in edit mode
 ✅ Remove `WelcomePageTab`, `CustomViewsTab`, `TracksTab` from Group Settings
 🟡 Add accepted post type pill toggles and chat post-notices toggle to GroupSettingsTab — **still to do:** post-type pills are in GroupSettingsTab; `showPostNoticesInChat` toggle lives on chat view settings (`GroupViewSettingsModal`), not GroupSettingsTab
