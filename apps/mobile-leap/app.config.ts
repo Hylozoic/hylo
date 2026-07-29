@@ -51,7 +51,6 @@ function buildPlugins (): NonNullable<ExpoConfig['plugins']> {
   }
 
   plugins.push(
-    'expo-dev-client',
     'expo-asset',
     'expo-apple-authentication',
     [
@@ -89,6 +88,11 @@ function buildPlugins (): NonNullable<ExpoConfig['plugins']> {
       : '@react-native-google-signin/google-signin'
   )
 
+  // Local dev client only — omit on Bitrise release (smaller APK, correct launcher icon)
+  if (process.env.USE_EXPO_DEV_CLIENT === 'true') {
+    plugins.unshift('expo-dev-client')
+  }
+
   if (process.env.SENTRY_ORG && process.env.SENTRY_PROJECT) {
     plugins.push([
       '@sentry/react-native/expo',
@@ -113,9 +117,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   userInterfaceStyle: 'automatic',
   newArchEnabled: true,
   splash: {
-    image: './assets/splash-icon.png',
+    image: './assets/merkaba-green-on-white.png',
     resizeMode: 'contain',
-    backgroundColor: '#ffffff'
+    backgroundColor: '#0DC39F'
   },
   ios: {
     supportsTablet: true,
@@ -134,10 +138,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   android: {
     adaptiveIcon: {
-      foregroundImage: './assets/android-icon-foreground.png',
-      backgroundImage: './assets/android-icon-background.png',
-      monochromeImage: './assets/android-icon-monochrome.png',
-      backgroundColor: '#E6F4FE'
+      foregroundImage: './assets/merkaba-green-on-white.png',
+      backgroundColor: '#0DC39F'
     },
     package: 'com.hylo.hyloandroid',
     ...(BUILD_NUMBER ? { versionCode: parseInt(BUILD_NUMBER, 10) } : {}),

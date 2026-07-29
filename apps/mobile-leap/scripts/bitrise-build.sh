@@ -90,6 +90,10 @@ npx expo prebuild --platform "$PLATFORM" --clean --no-install
 
 apply_ci_signing_assets "$PLATFORM" "$(pwd)"
 
+if [ "$PLATFORM" = "android" ]; then
+  bash "$(dirname "$0")/patch-android-hylo-signing.sh"
+fi
+
 if [ "$PLATFORM" = "ios" ]; then
   echo "--- pod install"
   npx pod-install ios
