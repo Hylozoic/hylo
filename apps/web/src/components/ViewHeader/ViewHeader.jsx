@@ -14,6 +14,7 @@ import GroupViewIcon from 'routes/AuthLayoutRouter/components/ContextMenu/GroupV
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { getGroupViews } from 'store/selectors/getGroupViews'
+import { viewAcceptedByPostTypes } from 'store/models/GroupView'
 import getMe from 'store/selectors/getMe'
 import getPreviousLocation from 'store/selectors/getPreviousLocation'
 import { bgImageStyle, cn } from 'util/index'
@@ -68,6 +69,17 @@ const ViewHeader = () => {
     return spaceView ? GroupViewPresenter(spaceView) : null
   }, [group, groupViews, groupSlug, spaceSlug, spaceBreadcrumb])
   const spaceName = presentedSpaceView ? displayNameForView(presentedSpaceView, t) : null
+
+  // A single-view space (e.g. chat-only) opens straight into its one view, so the
+  // breadcrumb shows just the space — repeating the lone view's title is noise.
+  const isSingleViewSpace = useMemo(() => {
+    const spaceGroup = presentedSpaceView?.linkedGroup
+    if (!spaceGroup) return false
+    const visibleViews = (spaceGroup.groupViews?.items || [])
+      .filter(v => v.order != null)
+      .filter(v => viewAcceptedByPostTypes(v.type, spaceGroup.acceptedPostTypes))
+    return visibleViews.length === 1
+  }, [presentedSpaceView])
 
   const [searchValue, setSearchValue] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
@@ -316,11 +328,11 @@ const ViewHeader = () => {
       {!centered && !oneColumn && presentedSpaceView && (
         <>
           <GroupViewIcon view={presentedSpaceView} className='mr-1 shrink-0 w-5 h-5' />
-          <span className='truncate max-w-[25%] shrink min-w-0 text-foreground'>{spaceName}</span>
-          <span className='mx-1.5 shrink-0 text-foreground/40'>{'>'}</span>
+          <span className={cn('truncate shrink min-w-0 text-foreground', isSingleViewSpace ? 'font-bold' : 'max-w-[25%]')}>{spaceName}</span>
+          {!isSingleViewSpace && <span className='mx-1.5 shrink-0 text-foreground/40'>{'>'}</span>}
         </>
       )}
-      {!centered && !oneColumn && icon && (typeof icon === 'string' ? <Icon name={icon} className='mr-3 text-lg' /> : React.cloneElement(icon, { className: 'mr-3 text-lg' }))}
+      {!centered && !oneColumn && !isSingleViewSpace && icon && (typeof icon === 'string' ? <Icon name={icon} className='mr-3 text-lg' /> : React.cloneElement(icon, { className: 'mr-3 text-lg' }))}
       {isOneColumnGroup && (() => {
         // The chevron should only appear when an actual sub-view title is set —
         // not when title is the empty default ({mobile: '', desktop: ''}) on group home.
@@ -431,16 +443,18 @@ const ViewHeader = () => {
             'pl-12 sm:pl-0': centered && (backButton || mobileBackButton) && !compactLayout
           })}
         >
-          {typeof title === 'string' || React.isValidElement(title)
-            ? title
-            : title?.mobile && title?.desktop
-              ? (
-                <>
-                  <span className={cn('inline text-sm truncate', !compactLayout && 'sm:hidden')}>{title.mobile}</span>
-                  <span className={cn('hidden', !compactLayout && 'sm:inline')}>{title.desktop}</span>
-                </>
-                )
-              : ''}
+          {isSingleViewSpace
+            ? ''
+            : typeof title === 'string' || React.isValidElement(title)
+              ? title
+              : title?.mobile && title?.desktop
+                ? (
+                  <>
+                    <span className={cn('inline text-sm truncate', !compactLayout && 'sm:hidden')}>{title.mobile}</span>
+                    <span className={cn('hidden', !compactLayout && 'sm:inline')}>{title.desktop}</span>
+                  </>
+                  )
+                : ''}
         </h2>
         {!centered && info && <InfoButton content={info} className='shrink-0' />}
       </div>
