@@ -117,7 +117,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   userInterfaceStyle: 'automatic',
   newArchEnabled: true,
   splash: {
-    image: './assets/merkaba-green-on-white.png',
+    image: './assets/merkaba_white.png',
     resizeMode: 'contain',
     backgroundColor: '#0DC39F'
   },
@@ -137,9 +137,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       : {})
   },
   android: {
+    // Legacy home-screen look: App Store icon (dark gray + white merkaba). Match background
+    // to the icon plate — not merkaba-green-on-white (reads as a green blob when masked).
     adaptiveIcon: {
-      foregroundImage: './assets/merkaba-green-on-white.png',
-      backgroundColor: '#0DC39F'
+      foregroundImage: './assets/icon.png',
+      backgroundColor: '#333333'
     },
     package: 'com.hylo.hyloandroid',
     ...(BUILD_NUMBER ? { versionCode: parseInt(BUILD_NUMBER, 10) } : {}),
