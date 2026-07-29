@@ -8,7 +8,9 @@ import { useLocation, useParams } from 'react-router-dom'
 import useRouteParams from 'hooks/useRouteParams'
 import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import { useTranslation } from 'react-i18next'
+import { throttle } from 'lodash'
 import { CaseSensitive, ImagePlus, Paperclip, Plus, Send } from 'lucide-react'
+import { sendIsTypingGroup } from 'client/websockets'
 import AttachmentManager from 'components/AttachmentManager'
 import HyloEditor from 'components/HyloEditor'
 import Loading from 'components/Loading'
@@ -272,11 +274,25 @@ function ChatEditorInner ({
     }
   }, [autoFocus, clearDraft, dispatch, initialPost, setCurrentPost, setIsDirty])
 
+  // Broadcast "I'm typing!" every 3 seconds while the user is typing, so people
+  // in the room see the indicator even if they open the chat mid-composition.
+  const startTyping = useMemo(() => throttle(() => {
+    if (currentGroup?.id) sendIsTypingGroup(currentGroup.id, true)
+  }, 3000), [currentGroup?.id])
+
+  const stopTyping = useCallback(() => {
+    startTyping.cancel()
+    if (currentGroup?.id) sendIsTypingGroup(currentGroup.id, false)
+  }, [startTyping, currentGroup?.id])
+
+  useEffect(() => () => startTyping.cancel(), [startTyping])
+
   const handleDetailsChange = useCallback((html) => {
     const detailsText = editorRef.current?.getText?.() || ''
     setHasDescription(detailsText.length > 0)
+    if (detailsText.length > 0) startTyping()
     setCurrentPost(prev => ({ ...prev, details: html }))
-  }, [setCurrentPost])
+  }, [setCurrentPost, startTyping])
 
   const debouncedFetchLinkPreview = useRef(
     debounce(500, (url, force, currentLinkPreview) => {
@@ -366,6 +382,7 @@ function ChatEditorInner ({
       if (onSave) onSave(postToSave)
       isSubmittedRef.current = true
       cancelPendingSave()
+      stopTyping()
       reset()
 
       const savedPost = await dispatch(createPost(postToSave))
@@ -381,7 +398,7 @@ function ChatEditorInner ({
       isSubmittingRef.current = false
       throw error
     }
-  }, [afterSave, cancelPendingSave, clearDraft, currentPost, currentUser, dispatch, fileAttachments, imageAttachments, onSave, reset, setIsDirty])
+  }, [afterSave, cancelPendingSave, clearDraft, currentPost, currentUser, dispatch, fileAttachments, imageAttachments, onSave, reset, setIsDirty, stopTyping])
 
   const doSave = useEventCallback(() => {
     if (!isValid || loading || postPending) return

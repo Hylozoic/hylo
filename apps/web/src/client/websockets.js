@@ -112,3 +112,9 @@ export const sendIsTyping = curry((postId, isTyping) => {
   const url = socketUrl(`/noo/post/${postId}/typing`)
   getSocket().post(url, { isTyping })
 })
+
+/** Broadcasts typing state to the group's socket room (used by the chat view). */
+export const sendIsTypingGroup = curry((groupId, isTyping) => {
+  const url = socketUrl(`/noo/group/${groupId}/typing`)
+  getSocket().post(url, { isTyping })
+})

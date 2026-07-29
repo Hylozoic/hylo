@@ -15,6 +15,7 @@ import { getSocket } from 'client/websockets.js'
 import { useLayoutFlags } from 'contexts/LayoutFlagsContext'
 import ChatEditor from 'components/ChatEditor'
 import Loading from 'components/Loading'
+import PeopleTyping from 'components/PeopleTyping'
 import { StreamSkeleton } from 'components/PostCard/PostCardSkeleton'
 import NoPosts from 'components/NoPosts'
 import PostDialog from 'components/PostDialog'
@@ -774,9 +775,10 @@ export default function ChatRoom (props) {
       </div>
 
       {/* Post chat box */}
+      <PeopleTyping className='w-full px-3 sm:px-5 text-xs text-foreground/50' />
       {/* Composer floats with margins matching the message gutter (left edge = avatar edge).
           Subtle gradient settles the pane into a darker hue beneath the input. */}
-      <div className='ChatBoxContainer w-full px-3 sm:px-5 pb-3 sm:pb-5 pt-2 overflow-y-auto bg-gradient-to-b from-transparent to-darkening/25'>
+      <div className='ChatBoxContainer w-full px-3 sm:px-5 pb-3 sm:pb-5 pt-2 overflow-y-auto bg-gradient-to-b from-transparent to-darkening/[0.05] dark:to-darkening/25'>
         {/* Drafts are scoped per chat topic so switching rooms does not leak text */}
         {group?.id && (
           <ChatEditor
