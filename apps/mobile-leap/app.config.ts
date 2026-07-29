@@ -19,7 +19,10 @@ const INTERCOM_IOS_API_KEY = process.env.INTERCOM_IOS_API_KEY ?? ''
 const INTERCOM_ANDROID_API_KEY = process.env.INTERCOM_ANDROID_API_KEY ?? ''
 const MIXPANEL_TOKEN = process.env.MIXPANEL_TOKEN ?? ''
 const MAPBOX_TOKEN = process.env.MAPBOX_TOKEN ?? ''
-const IOS_BUNDLE_ID = 'com.hylo.HyloLeap'
+// Same identifiers as the legacy apps/mobile app — leap replaces it in the same store listings
+const IOS_BUNDLE_ID = 'com.hylo.HyloA'
+// CI (Bitrise) injects a monotonically increasing build number; EAS uses autoIncrement instead.
+const BUILD_NUMBER = process.env.BITRISE_BUILD_NUMBER ?? process.env.BUILD_NUMBER ?? ''
 
 function getIosUrlScheme (iosGoogleClientId: string): string | undefined {
   const match = iosGoogleClientId.match(/^([\w-]+)\.apps\.googleusercontent\.com$/)
@@ -104,7 +107,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   name: 'Hylo',
   slug: 'hylo-mobile-leap',
   scheme: 'hyloapp',
-  version: '1.0.0',
+  version: '6.3.9', // keep in lockstep with apps/mobile until cutover
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'automatic',
@@ -117,6 +120,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ios: {
     supportsTablet: true,
     bundleIdentifier: IOS_BUNDLE_ID,
+    ...(BUILD_NUMBER ? { buildNumber: BUILD_NUMBER } : {}),
     ...(process.env.APPLE_TEAM_ID ? { appleTeamId: process.env.APPLE_TEAM_ID } : {}),
     ...(ONESIGNAL_APP_ID
       ? {
@@ -135,7 +139,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       monochromeImage: './assets/android-icon-monochrome.png',
       backgroundColor: '#E6F4FE'
     },
-    package: 'com.hylo.hyloleap',
+    package: 'com.hylo.hyloandroid',
+    ...(BUILD_NUMBER ? { versionCode: parseInt(BUILD_NUMBER, 10) } : {}),
     ...(existsSync(path.join(projectRoot, 'google-services.json'))
       ? { googleServicesFile: './google-services.json' }
       : {}),

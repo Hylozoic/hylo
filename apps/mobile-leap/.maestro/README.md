@@ -41,7 +41,7 @@ yarn e2e:maestro
 Pass the Android application id:
 
 ```bash
-APP_ID=com.hylo.hyloleap yarn e2e:maestro:login-screen
+APP_ID=com.hylo.hyloandroid yarn e2e:maestro:login-screen
 ```
 
 ## Notes

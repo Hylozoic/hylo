@@ -76,9 +76,9 @@
     "android": "yarn android:reverse && expo run:android",
     "ios": "expo run:ios --device \"iPhone 16\"",
     "web": "expo start --web",
-    "e2e:maestro": "maestro test -e APP_ID=com.hylo.HyloLeap .maestro/",
-    "e2e:maestro:login-screen": "maestro test -e APP_ID=com.hylo.HyloLeap .maestro/login-screen.yaml",
-    "e2e:maestro:login": "maestro test -e APP_ID=com.hylo.HyloLeap .maestro/login-smoke.yaml"
+    "e2e:maestro": "maestro test -e APP_ID=com.hylo.HyloA .maestro/",
+    "e2e:maestro:login-screen": "maestro test -e APP_ID=com.hylo.HyloA .maestro/login-screen.yaml",
+    "e2e:maestro:login": "maestro test -e APP_ID=com.hylo.HyloA .maestro/login-smoke.yaml"
   },
   "private": true
 }
