@@ -38,6 +38,8 @@ write_var () {
   write_var APPLE_TEAM_ID
   write_var EAS_PROJECT_ID
   write_var BUILD_NUMBER
+} > "$ENV_FILE"
+
 echo "Wrote $ENV_FILE"
 echo "--- apps/mobile-leap/.env (secrets redacted in log) ---"
 grep -E '^[A-Z_]+=' "$ENV_FILE" | sed 's/=.*$/=***/' || true
