@@ -143,7 +143,7 @@ function GroupViewMenuItem ({
   const onPhotoLabelClass = 'text-white hover:text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.65)]'
 
   if (presentedView.type === 'separator') {
-    return <hr className='border-foreground/10 my-1' />
+    return <hr className='border-foreground/10 mt-5 mb-2' />
   }
 
   if (presentedView.type === 'text') {

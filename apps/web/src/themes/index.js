@@ -6,7 +6,7 @@ export const baseTheme = {
   light: {
     darkening: '28 18% 7%',
     background: '36 46% 90%',
-    'context-menu-background': '36 46% 90%',
+    'context-menu-background': '36 48% 96%',
     midground: '38 55% 96%',
     foreground: '28 16% 11%',
     selected: '145 50% 62%',

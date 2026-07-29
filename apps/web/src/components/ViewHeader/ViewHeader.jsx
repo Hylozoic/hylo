@@ -273,8 +273,10 @@ const ViewHeader = () => {
     return null
   }
 
+  // Light mode surfaces sit close in lightness, so the sticky header needs a
+  // hairline edge plus a stronger shadow to read as a layer above the stream.
   return (
-    <header className={cn('flex flex-row items-center z-20 p-2 sticky top-0 w-full bg-background shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)]', {
+    <header className={cn('flex flex-row items-center z-20 p-2 sticky top-0 w-full bg-background border-b border-foreground/[0.08] shadow-[0_4px_14px_0px_rgba(0,0,0,0.16)] dark:border-transparent dark:shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)]', {
       'justify-center': centered,
       hidden: (oneColumn && isBannerVisible) || isOneColumnMenuLevel
     })}
@@ -421,7 +423,7 @@ const ViewHeader = () => {
         })}
       >
         <h2
-          className={cn('text-foreground m-0', {
+          className={cn('text-foreground font-bold m-0', {
             'truncate min-w-0': typeof title === 'string',
             'whitespace-nowrap': title?.mobile && title?.desktop,
             'min-w-0 overflow-x-auto': React.isValidElement(title),
