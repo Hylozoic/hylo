@@ -18,12 +18,10 @@ import { setupOneSignal } from './services/onesignal'
 import RootNavigator from './navigation/RootNavigator'
 
 if (sentryConfig.enabled) {
+  const { enabled: _enabled, ...sentryInitOptions } = sentryConfig
   Sentry.init({
-    ...sentryConfig,
-    integrations: [
-      Sentry.reactNativeTracingIntegration({ traceFetch: true }),
-      Sentry.breadcrumbsIntegration({ fetch: true })
-    ]
+    ...sentryInitOptions,
+    integrations: [Sentry.reactNativeTracingIntegration({ traceFetch: true })]
   })
 }
 

@@ -12,4 +12,5 @@ fi
 
 adb reverse tcp:3000 tcp:3000
 adb reverse tcp:3001 tcp:3001
-echo 'adb reverse: localhost:3000 and :3001 forwarded to device'
+adb reverse tcp:8081 tcp:8081
+echo 'adb reverse: localhost:3000, :3001 and :8081 (Metro) forwarded to device'

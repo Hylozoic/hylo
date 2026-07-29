@@ -63,6 +63,13 @@ export async function openURL (
 
   if (options.openExternal !== false) {
     const href = linkingURL.href
+    if (
+      href.startsWith('exp+') ||
+      href.startsWith('expo://') ||
+      href.includes('expo-development-client')
+    ) {
+      return null
+    }
     if (await Linking.canOpenURL(href)) {
       return Linking.openURL(href)
     }

@@ -1,6 +1,7 @@
 import { Linking } from 'react-native'
 import useLinkingStore from './store'
 import { hyloUrlForExternalBrowser, shouldOpenHyloOidcInExternalBrowser } from './oidcExternalBrowserGate'
+import shouldStoreInitialURL from './shouldStoreInitialURL'
 
 export default async function getInitialURL () {
   const initialURL = await Linking.getInitialURL()
@@ -15,6 +16,8 @@ export default async function getInitialURL () {
     return null
   }
 
-  useLinkingStore.getState().setInitialURL(initialURL)
+  if (shouldStoreInitialURL(initialURL)) {
+    useLinkingStore.getState().setInitialURL(initialURL)
+  }
   return null
 }
