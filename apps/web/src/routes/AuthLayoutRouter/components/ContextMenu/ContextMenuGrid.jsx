@@ -35,7 +35,6 @@ import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import getMe from 'store/selectors/getMe'
 import isPendingFor from 'store/selectors/isPendingFor'
 import { filterMoreSpacesSections } from 'util/paidSpaceVisibility'
-import { mapbox as mapboxConfig } from 'config'
 import useAppearance from 'hooks/useAppearance'
 import usePublishedOfferings from 'hooks/usePublishedOfferings'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
@@ -50,7 +49,7 @@ import CardIconField from './CardIconField'
 import GroupViewIcon from './GroupViewIcon'
 import GroupViewEditList from './GroupViewEditList'
 import GroupViewCard, { SpaceViewCard } from './GroupViewCard'
-import { viewCardColor, inkOn, fieldSeed, cardGradient, cardFieldTint, cardHoverRing, cardRestRing, cardNeutralBg } from './viewCardTheme'
+import { viewCardColor, inkOn, cardGradient, cardFieldTint, cardHoverRing, cardRestRing, cardNeutralBg, cardBaseColor } from './viewCardTheme'
 import GroupViewSettingsModal from './GroupViewSettingsModal'
 import SpaceSettingsModal from './SpaceSettingsModal'
 import AddCollectionDialog from './AddCollectionDialog'
@@ -180,19 +179,9 @@ function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
   const welcomeText = isWelcome && (presentedView.pageContent || group?.welcomePage)
     ? (presentedView.pageContent || group.welcomePage).replace(/<[^>]*>/g, '').trim()
     : null
-  const isMap = presentedView.type === 'map'
   const isSpace = presentedView.type === 'space'
   const isLogout = presentedView.type === 'logout'
-  const currentUser = useSelector(getMe)
   const { effectiveColorScheme } = useAppearance()
-  const mapStyle = effectiveColorScheme === 'dark' ? 'dark-v11' : 'light-v11'
-  const mapCenter = group?.locationObject?.center || currentUser?.locationObject?.center
-
-  const staticMapUrl = isMap && mapboxConfig.token
-    ? mapCenter
-      ? `https://api.mapbox.com/styles/v1/mapbox/${mapStyle}/static/${mapCenter.lng},${mapCenter.lat},4,0/280x200@2x?access_token=${mapboxConfig.token}`
-      : `https://api.mapbox.com/styles/v1/mapbox/${mapStyle}/static/0,20,1,0/280x200@2x?access_token=${mapboxConfig.token}`
-    : null
 
   // Avatar-backed cards (spaces, groups, members) show an image; icon cards use
   // the view color (post-type brand, or slate grey for everything else).
@@ -208,7 +197,7 @@ function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
   const lightSurfaceLabels = !isDark && !bgImageUrl
   // Map/welcome cards keep their extra content, so their icon+label stay in a
   // flowing column; plain cards center the tile exactly per the design.
-  const hasExtraContent = Boolean((isMap && staticMapUrl) || (isWelcome && welcomeText))
+  const hasExtraContent = Boolean(isWelcome && welcomeText)
 
   const handleClick = async () => {
     if (isLogout) {
@@ -268,7 +257,10 @@ function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
           ? cardNeutralBg(effectiveColorScheme)
           : cardGradient(col, effectiveColorScheme),
         // Light mode: icon cards take their border from the view color (brand or grey)
-        ...(!isDark && !bgImageUrl ? { borderColor: hover ? col : `${col}59` } : {}),
+        // Light mode: icon cards take the view color — faint at rest, full on hover
+        ...(!isDark && !bgImageUrl ? { borderColor: hover ? col : `${col}33` } : {}),
+        // Photo-backed cards read better with a soft white edge than a dark hairline
+        ...(!isDark && bgImageUrl ? { borderColor: `hsl(0 0% 100% / ${hover ? 0.55 : 0.25})` } : {}),
         boxShadow: hover
           ? `${cardHoverShadow(isDark)}, ${bgImageUrl ? cardRestRing(col) : cardHoverRing(col)}`
           : `${cardRestShadow(isDark)}, ${cardRestRing(col)}`
@@ -289,7 +281,13 @@ function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
             <div className='absolute inset-0' style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.6) 100%)' }} />
           </>
           )
-        : <CardIconField view={presentedView} tint={tint} w={208} h={176} seed={fieldSeed(view.id)} />}
+        : (
+          <>
+            <CardIconField view={presentedView} tint={tint} w={208} h={176} />
+            {/* Settles the pattern toward the card's base color at the bottom, so the label reads clearly */}
+            <div className='absolute inset-0 pointer-events-none' style={{ background: `linear-gradient(180deg, transparent 0%, ${cardBaseColor(effectiveColorScheme, 0.5)} 100%)` }} />
+          </>
+          )}
 
       {showUnreadDot && (
         <span className='absolute -top-1.5 -right-1.5 z-10 w-3 h-3 rounded-full bg-orange-500 border-2 border-background' />
@@ -307,15 +305,6 @@ function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
               {iconTile}
               {label}
             </div>
-            {isMap && staticMapUrl && (
-              <div className='mt-auto -mx-2 -mb-2 sm:-mx-3 sm:-mb-3 overflow-hidden'>
-                <img
-                  src={staticMapUrl}
-                  alt={title}
-                  className='w-full h-[86px] object-cover'
-                />
-              </div>
-            )}
             {isWelcome && welcomeText && (
               <p className={cn(
                 'm-0 px-1 text-xs line-clamp-2 leading-relaxed',

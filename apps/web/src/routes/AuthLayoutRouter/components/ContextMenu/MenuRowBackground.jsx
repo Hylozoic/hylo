@@ -26,12 +26,12 @@ export default function MenuRowBackground ({ view, bannerUrl, className }) {
 
   const h = hueOf(viewCardColor(view))
   const surface = isDark
-    ? `linear-gradient(135deg, hsl(${h} 40% 22%) 0%, hsl(${h} 42% 15%) 100%)`
-    : `linear-gradient(135deg, hsl(${h} 55% 90%) 0%, hsl(${h} 48% 80%) 100%)`
+    ? `linear-gradient(135deg, hsl(${h} 34% 26%) 0%, hsl(${h} 36% 19%) 100%)`
+    : `linear-gradient(135deg, hsl(${h} 48% 93%) 0%, hsl(${h} 42% 86%) 100%)`
   const glyphColor = isDark ? `hsl(${h} 70% 82%)` : `hsl(${h} 50% 34%)`
   const scrim = isDark
-    ? `linear-gradient(90deg, hsl(${h} 42% 14% / 0.65) 0%, transparent 60%)`
-    : `linear-gradient(90deg, hsl(${h} 55% 90% / 0.65) 0%, transparent 60%)`
+    ? `linear-gradient(90deg, hsl(${h} 36% 18% / 0.65) 0%, transparent 60%)`
+    : `linear-gradient(90deg, hsl(${h} 48% 93% / 0.65) 0%, transparent 60%)`
 
   return (
     <div
@@ -43,7 +43,7 @@ export default function MenuRowBackground ({ view, bannerUrl, className }) {
           so supply enough extra rows that the bottom-right corner stays covered. */}
       <div
         className='absolute -top-1.5 -left-1.5 -right-1.5 flex flex-wrap'
-        style={{ gap: 7, opacity: 0.18, color: glyphColor, transform: 'rotate(-8deg)', transformOrigin: 'top left' }}
+        style={{ gap: 7, opacity: 0.12, color: glyphColor, transform: 'rotate(-8deg)', transformOrigin: 'top left' }}
       >
         {Array.from({ length: 96 }, (_, i) => (
           <span key={i} className='flex'>

@@ -14,12 +14,12 @@ import GroupViewIcon from './GroupViewIcon'
 import {
   viewCardColor,
   inkOn,
-  fieldSeed,
   cardGradient,
   cardFieldTint,
   cardHoverRing,
   cardRestRing,
-  cardNeutralBg
+  cardNeutralBg,
+  cardBaseColor
 } from './viewCardTheme'
 
 const CARD_CLASS = 'group relative flex flex-col overflow-hidden rounded-2xl border transition-all w-[calc(50%-6px)] aspect-[13/11] sm:w-[208px] sm:h-[176px] sm:aspect-auto cursor-pointer hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] active:duration-[50ms]'
@@ -107,7 +107,8 @@ export default function GroupViewCard ({ view, isEditing, onAddToMenu, onOpen, o
       className={cn(CARD_CLASS, cardChrome(isDark), isEditing && 'cursor-default')}
       style={{
         background: cardGradient(col, effectiveColorScheme),
-        ...(!isDark ? { borderColor: hover && !isEditing ? col : `${col}59` } : {}),
+        // Light mode: border takes the view color — faint at rest, full on hover
+        ...(!isDark ? { borderColor: hover && !isEditing ? col : `${col}33` } : {}),
         boxShadow: hover && !isEditing
           ? `${cardHoverShadow(isDark)}, ${cardHoverRing(col)}`
           : `${cardRestShadow(isDark)}, ${cardRestRing(col)}`
@@ -125,7 +126,9 @@ export default function GroupViewCard ({ view, isEditing, onAddToMenu, onOpen, o
         }
       }}
     >
-      <CardIconField view={presented} tint={tint} w={208} h={176} seed={fieldSeed(view.id)} />
+      <CardIconField view={presented} tint={tint} w={208} h={176} />
+      {/* Settles the pattern toward the card's base color at the bottom, so the label reads clearly */}
+      <div className='absolute inset-0 pointer-events-none' style={{ background: `linear-gradient(180deg, transparent 0%, ${cardBaseColor(effectiveColorScheme, 0.5)} 100%)` }} />
       <div className='relative h-full'>
         <div className='absolute inset-0 grid place-items-center'>
           <div
@@ -171,7 +174,11 @@ export function SpaceViewCard ({ space, isEditing, onOpen, onAddToMenu, onOpenSe
   return (
     <div
       className={cn(CARD_CLASS, cardChrome(isDark), isEditing && 'cursor-default')}
-      style={{ background: cardNeutralBg(effectiveColorScheme) }}
+      style={{
+        background: cardNeutralBg(effectiveColorScheme),
+        // Photo-backed cards read better with a soft white edge than a dark hairline
+        ...(!isDark && bgImageUrl ? { borderColor: 'hsl(0 0% 100% / 0.25)' } : {})
+      }}
       role={isEditing ? undefined : 'button'}
       tabIndex={isEditing ? undefined : 0}
       onClick={() => {

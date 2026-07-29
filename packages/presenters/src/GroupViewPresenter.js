@@ -124,6 +124,8 @@ const VIEW_TYPE_TO_LUCIDE_ICON = {
   link: 'ExternalLink',
   member: 'User',
   projects: 'Layers',
+  resources: 'PackageOpen',
+  'requests-and-offers': 'Heart',
   text: 'Type',
   separator: 'Minus'
 }

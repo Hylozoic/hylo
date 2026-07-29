@@ -21,7 +21,11 @@ export function viewCardColor (view) {
   return POST_TYPE_VIEW_COLOR[view?.type] || slateGrey
 }
 
-/** Readable icon ink for a solid color tile (dark ink on light brand colors like gold). */
+/**
+ * Readable icon ink for a solid color tile. Light brand colors (gold, for
+ * Resources) need dark ink, but a deep mix of the tile color itself reads as
+ * on-theme where flat black looked like a rendering bug.
+ */
 export function inkOn (hex) {
   const h = (hex || '').replace('#', '')
   if (h.length < 6) return '#ffffff'
@@ -29,12 +33,7 @@ export function inkOn (hex) {
   const g = parseInt(h.slice(2, 4), 16)
   const b = parseInt(h.slice(4, 6), 16)
   const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255
-  return lum > 0.62 ? '#141414' : '#ffffff'
-}
-
-/** Stable per-view seed so each card's icon field gets a distinct pattern. */
-export function fieldSeed (id) {
-  return String(id || '').split('').reduce((a, ch) => a + ch.charCodeAt(0), 0)
+  return lum > 0.62 ? `color-mix(in srgb, ${hex} 32%, #17181a)` : '#ffffff'
 }
 
 /** Card surface gradient tinted by the view color, per color scheme. */
@@ -42,6 +41,14 @@ export function cardGradient (col, scheme = 'dark') {
   return scheme === 'dark'
     ? `linear-gradient(150deg, color-mix(in srgb, ${col} 30%, #16171a), color-mix(in srgb, ${col} 17%, #0d0e10))`
     : `linear-gradient(150deg, color-mix(in srgb, ${col} 24%, #ffffff), color-mix(in srgb, ${col} 11%, #f3f1ea))`
+}
+
+/**
+ * The card surface's base color — the far end of cardGradient — at a given alpha.
+ * Used to fade the icon pattern back into the card toward the bottom.
+ */
+export function cardBaseColor (scheme = 'dark', alpha = 1) {
+  return scheme === 'dark' ? `rgb(13 14 16 / ${alpha})` : `rgb(243 241 234 / ${alpha})`
 }
 
 /** Colored inset ring shown on card hover (hex-alpha so it interpolates in transitions). */
