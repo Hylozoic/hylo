@@ -1,15 +1,15 @@
 const path = require('path')
-const { getDefaultConfig } = require('expo/metro-config')
+const { getSentryExpoConfig } = require('@sentry/react-native/metro')
 const { withNativeWind } = require('nativewind/metro')
-const { withSentryConfig } = require('@sentry/react-native/metro')
 
 const projectRoot = __dirname
 const monorepoRoot = path.resolve(projectRoot, '../..')
 
-// SDK 52+ auto-configures monorepo resolution — avoid manual watchFolders/nodeModulesPaths
-// (they can duplicate react-native/expo and break Expo Go native modules).
-const config = getDefaultConfig(projectRoot)
+// Expo + Metro 0.83+: use Sentry's Expo config (debug ID via asset plugin), not
+// withSentryConfig's customSerializer — release Gradle bundles hit undefined bundle code.
+const config = getSentryExpoConfig(projectRoot)
 
+const previousResolveRequest = config.resolver?.resolveRequest
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   if (moduleName.startsWith('@hylo/presenters/')) {
     const subpath = moduleName.replace('@hylo/presenters/', '')
@@ -19,9 +19,12 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
       return { filePath, type: 'sourceFile' }
     }
   }
+  if (previousResolveRequest) {
+    return previousResolveRequest(context, moduleName, platform)
+  }
   return context.resolveRequest(context, moduleName, platform)
 }
 
-module.exports = withSentryConfig(withNativeWind(config, {
+module.exports = withNativeWind(config, {
   input: path.resolve(projectRoot, 'src/style/global.css')
-}))
+})
