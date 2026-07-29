@@ -90,14 +90,19 @@ async function requireAdminOrManageContent (userId, groupId, action) {
   }
 }
 
-export async function createGroupView ({ userId, groupId, type, name, icon, settings, link, pageContent, topics, orderInFrontOfViewId, addToEnd, linkedGroupId, postId, viewUserId, context }) {
+export async function createGroupView ({ userId, groupId, type, name, icon, settings, link, pageContent, topics, orderInFrontOfViewId, addToEnd, linkedGroupId, postId, viewUserId, hidden, context }) {
   if (!userId) throw new GraphQLError('No userId passed into function')
   if (!groupId) throw new GraphQLError('No groupId passed into function')
   if (!type) throw new GraphQLError('No type passed into function')
 
   await requireAdmin(userId, groupId, 'create views')
 
-  const view = await GroupView.appendToMenu({
+  // Text and separator cannot live in More Views.
+  if (hidden && (type === 'text' || type === 'separator')) {
+    throw new GraphQLError('Text and separator views cannot be added to More Views')
+  }
+
+  const attrs = {
     group_id: groupId,
     type,
     name,
@@ -109,11 +114,16 @@ export async function createGroupView ({ userId, groupId, type, name, icon, sett
     linked_group_id: linkedGroupId,
     post_id: postId,
     user_id: viewUserId
-  }).catch(err => {
+  }
+
+  const view = await (hidden
+    ? GroupView.createOffMenu(attrs)
+    : GroupView.appendToMenu(attrs)
+  ).catch(err => {
     throw new GraphQLError(`Creation of view failed: ${err.message}`)
   })
 
-  if (orderInFrontOfViewId) {
+  if (!hidden && orderInFrontOfViewId) {
     await GroupView.reorder({ id: view.id, orderInFrontOfViewId, addToEnd })
   }
 
@@ -173,7 +183,8 @@ export async function deleteGroupView (userId, id, context) {
   if (['track-actions', 'funding-round-submissions'].includes(viewType)) {
     throw new GraphQLError('This view cannot be deleted')
   }
-  if (GroupView.SOFT_REMOVE_TYPES.includes(viewType)) {
+  // System views soft-remove to More Views; user-created types can be hard-deleted.
+  if (GroupView.SYSTEM_VIEW_TYPES.includes(viewType)) {
     throw new GraphQLError('This view cannot be deleted — remove it from the menu instead')
   }
 
@@ -271,6 +282,10 @@ export async function setHomeView (userId, viewId, groupId, context) {
   const view = await GroupView.where({ id: viewId }).fetch()
   if (!view || String(view.get('group_id')) !== String(groupId)) {
     throw new GraphQLError('View not found in this group')
+  }
+
+  if (GroupView.NON_NAVIGABLE_TYPES.includes(view.get('type'))) {
+    throw new GraphQLError('This view cannot be set as the home view')
   }
 
   await GroupView.setHomeView({ id: viewId, groupId })

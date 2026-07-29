@@ -43,7 +43,7 @@ async function requireSpaceManager (userId, spaceId, action) {
   return space
 }
 
-export async function createSpace (userId, { parentGroupId, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, purpose, location, locationId, viewTypes, bannerUrl, avatarUrl, paywall }, context) {
+export async function createSpace (userId, { parentGroupId, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, purpose, location, locationId, viewTypes, bannerUrl, avatarUrl, paywall, addToMenu = true }, context) {
   if (!userId) throw new GraphQLError('No userId passed into function')
   if (!parentGroupId) throw new GraphQLError('No parentGroupId passed into function')
   if (!name || !name.trim()) throw new GraphQLError('Name cannot be blank')
@@ -95,12 +95,18 @@ export async function createSpace (userId, { parentGroupId, name, slug, accepted
     await space.addMembers([userId], { lastReadAt: new Date() }, { transacting: trx })
     await Group.setupSpaceViews(space.id, acceptedPostTypes, viewTypes, { transacting: trx })
 
-    // Add a `type = 'space'` menu entry to the parent group's view list (spec section 2.5)
-    await GroupView.appendToMenu({
+    // Add a `type = 'space'` menu entry to the parent group's view list (spec section 2.5).
+    // When addToMenu is false (Add Space from More Views), create off-menu (order = null).
+    const spaceViewAttrs = {
       group_id: parentGroupId,
       type: GroupView.Type.SPACE,
       linked_group_id: space.id
-    }, { transacting: trx })
+    }
+    if (addToMenu === false) {
+      await GroupView.createOffMenu(spaceViewAttrs, { transacting: trx })
+    } else {
+      await GroupView.appendToMenu(spaceViewAttrs, { transacting: trx })
+    }
   }).catch(err => {
     throw new GraphQLError(`Creation of space failed: ${err.message}`)
   })

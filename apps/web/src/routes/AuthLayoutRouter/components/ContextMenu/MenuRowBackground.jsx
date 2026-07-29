@@ -7,9 +7,8 @@ import { viewCardColor, hueOf } from './viewCardTheme'
 /**
  * Background revealed behind the selected (or hovered) context-menu row —
  * mirroring the one-column dashboard cards. Spaces with an uploaded banner
- * show the photo; everything else shows a repeating texture of the row's own
- * icon, tinted to the item's post-type color, with a left-to-right scrim for
- * label contrast. Light mode uses a pale tinted surface with darker glyphs.
+ * show the photo; other views show a repeating icon texture tinted to the
+ * view color (post-type brand, or slate grey).
  * Pass opacity/transition classes via `className` to fade.
  */
 export default function MenuRowBackground ({ view, bannerUrl, className }) {

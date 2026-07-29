@@ -184,7 +184,7 @@ module.exports = {
      * 3. All other posts use the group's configured home view (home_route):
      *    - If the home is a chat view (e.g. /chat/general), the post is
      *      surfaced there via the same ?postId= query param pattern.
-     *    - Otherwise (e.g. /stream, /map) the post URL is appended as a path
+     *    - Otherwise (e.g. /all, /map) the post URL is appended as a path
      *      segment so the UI renders the post detail modal at that route.
      *    - Note: In theory it would be better to see if a post was created in a
      *      chat room and post there if so, but it adds complexity and will change
@@ -193,7 +193,7 @@ module.exports = {
      *
      * Note: `group` may be a Bookshelf model (has .get()) or a plain slug
      * string. When only a slug is available home_route is unknown so we
-     * default to /stream.
+     * default to /all.
      */
     post: function (post, group, extraParams = '', fundingRound = null) {
       // Remove any leading ? or & from the extraParams
@@ -220,7 +220,7 @@ module.exports = {
         }
 
         const isGroupObject = group && typeof group.get === 'function'
-        const homeRoute = isGroupObject ? (group.get('home_route') || '/stream') : '/stream'
+        const homeRoute = isGroupObject ? (group.get('home_route') || '/all') : '/all'
         if (homeRoute.startsWith('/chat/') && firstTopic) {
           // Non-chat post shown in a chat home: open as a modal above the chat
           // using /post/:id so you can see the full post and comments.

@@ -52,6 +52,7 @@ export default function PostCard (props) {
   const {
     chat,
     childPost,
+    childPostFromSpace,
     className,
     constrained,
     expanded,
@@ -391,7 +392,7 @@ export default function PostCard (props) {
         <div className={classes.childPostLabelWrapper}>
           <div className={classes.childPostLabel}>
             <Icon name='Subgroup' className={classes.icon} />
-            <span>{t('Post from')} <b>{t('child group')}</b></span>
+            <span>{t('Post from')} <b>{t(childPostFromSpace ? 'child space' : 'child group')}</b></span>
           </div>
         </div>}
       <div
@@ -489,6 +490,7 @@ PostCard.propTypes = {
   actionDescriptor: PropTypes.string,
   chat: PropTypes.bool,
   childPost: PropTypes.bool,
+  childPostFromSpace: PropTypes.bool,
   className: PropTypes.string,
   constrained: PropTypes.bool,
   expanded: PropTypes.bool,

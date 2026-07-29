@@ -127,7 +127,7 @@ const StreamViewControls = ({
             <div
               className={cn('bg-midground shadow-sm rounded text-foreground px-1 flex items-center transition-all hover:scale-125 group cursor-pointer')}
               onClick={handleChildPostInclusion}
-              data-tooltip-content={childPostInclusion === 'yes' ? t('Hide posts from child groups you are a member of') : t('Show posts from child groups you are a member of')}
+              data-tooltip-content={childPostInclusion === 'yes' ? t('Hide posts from child groups and spaces you are a member of') : t('Show posts from child groups and spaces you are a member of')}
               data-tooltip-id='stream-controls-tip'
             >
               <Icon name='Subgroup' className={cn('p-1 rounded transition-all group-hover:bg-selected/50', { 'bg-selected': childPostInclusion === 'yes' })} />

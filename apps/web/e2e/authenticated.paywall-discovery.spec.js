@@ -48,8 +48,8 @@ test.describe('Batch P2: paywall discovery (authenticated)', () => {
 })
 
 test.describe('Batch P6: group stream paywall (authenticated)', () => {
-  test('GET /groups/:slug/stream shows paywall offerings when member lacks access', async ({ page }) => {
-    await page.goto(`/groups/${PAYWALL_GROUP_SLUG}/stream`)
+  test('GET /groups/:slug/all shows paywall offerings when member lacks access', async ({ page }) => {
+    await page.goto(`/groups/${PAYWALL_GROUP_SLUG}/all`)
     await waitPastRootSessionLoading(page)
 
     await expect(page.getByRole('heading', { name: /This group requires a fee to join/i })).toBeVisible(uiTimeout)

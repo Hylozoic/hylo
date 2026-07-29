@@ -85,8 +85,9 @@ function customSpaceStandardViews (postTypes, removedStandardTypes) {
   return [...base, ...postTypeViews].filter(type => !removedStandardTypes.has(type))
 }
 
-/** Modal for creating a new space under the current group. */
-export default function AddSpaceDialog ({ group, onClose }) {
+/** Modal for creating a new space under the current group.
+ * Pass `addToMenu={false}` when adding from More Views (space view created off-menu). */
+export default function AddSpaceDialog ({ group, onClose, addToMenu = true }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const navigate = useNavigate()
@@ -214,7 +215,8 @@ export default function AddSpaceDialog ({ group, onClose }) {
         accessibility: accessOption.accessibility,
         requiredRoles: access === 'role' ? requiredRoles.map(role => role.id) : null,
         paywall: Boolean(accessOption.paywall),
-        viewTypes
+        viewTypes,
+        addToMenu
       }))
 
       const newSpace = result?.payload?.data?.createSpace
@@ -292,7 +294,7 @@ export default function AddSpaceDialog ({ group, onClose }) {
     } finally {
       setIsCreating(false)
     }
-  }, [dispatch, group?.id, name, description, icon, bannerUrl, purpose, locationObject, postTypes, access, requiredRoles, spaceType, orderedRows, standardViewTypes, onClose, navigate, routerLocation.pathname, frPublishedAt, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frHideFinalResults, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles])
+  }, [dispatch, group?.id, name, description, icon, bannerUrl, purpose, locationObject, postTypes, access, requiredRoles, spaceType, orderedRows, standardViewTypes, onClose, navigate, routerLocation.pathname, addToMenu, frPublishedAt, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frHideFinalResults, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles])
 
   // Portal above AuthLayout nav stacking so access radios / FR checkboxes remain clickable.
   return createPortal(

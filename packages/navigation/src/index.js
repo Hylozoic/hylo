@@ -156,6 +156,9 @@ export function groupViewPath (view) {
       return null
     case 'manage-round':
       return '/manage-round'
+    case 'stream':
+      // Legacy view type — GroupView type is now `all`
+      return '/all'
     default:
       return view.type ? `/${view.type}` : '/all'
   }

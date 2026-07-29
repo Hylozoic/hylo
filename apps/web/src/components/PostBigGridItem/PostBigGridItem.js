@@ -22,6 +22,7 @@ import getMe from 'store/selectors/getMe'
  */
 export default function PostBigGridItem ({
   childPost,
+  childPostFromSpace,
   currentGroupId,
   post,
   currentUser: propCurrentUser
@@ -89,7 +90,7 @@ export default function PostBigGridItem ({
         {childPost && (
           <div
             className='absolute top-3 right-3 bg-white/90 rounded p-1.5 z-10'
-            data-tooltip-content={t('Post from child group')}
+            data-tooltip-content={t(childPostFromSpace ? 'Post from child space' : 'Post from child group')}
             data-tooltip-id={'childgroup-tt' + post.id}
           >
             <Icon name='Subgroup' className='w-4 h-4' />
@@ -175,7 +176,7 @@ export default function PostBigGridItem ({
       {childPost && (
         <div
           className='absolute top-3 right-3 bg-primary rounded p-1.5 z-10'
-          data-tooltip-content={t('Post from child group')}
+          data-tooltip-content={t(childPostFromSpace ? 'Post from child space' : 'Post from child group')}
           data-tooltip-id={'childgroup-tt' + post.id}
         >
           <Icon name='Subgroup' className='w-4 h-4' />

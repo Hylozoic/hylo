@@ -298,4 +298,4 @@ const HyloEditor = React.forwardRef(({
   )
 })
 
-export default HyloEditor
+export default React.memo(HyloEditor)
