@@ -31,10 +31,17 @@ import {
 
 const CARD_ACTION_BTN = 'p-1.5 rounded-md bg-background/90 text-foreground/60 hover:text-foreground pointer-events-auto'
 
-/** Edit-mode action row at the bottom of a card: +, gear, delete. */
+/**
+ * Edit-mode toolbar in the top-right of a card: +, gear, delete.
+ * Stops pointerdown so that when the card itself is a drag handle, pressing a
+ * button doesn't begin a drag instead of clicking.
+ */
 export function CardEditActions ({ onAddToMenu, onOpenSettings, onDelete, addLabel, settingsLabel, deleteLabel }) {
   return (
-    <div className='absolute bottom-2 right-2 z-10 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none'>
+    <div
+      className='absolute top-2 right-2 z-10 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none'
+      onPointerDown={(e) => e.stopPropagation()}
+    >
       {onAddToMenu && (
         <button
           type='button'
@@ -82,7 +89,7 @@ export function CardEditActions ({ onAddToMenu, onOpenSettings, onDelete, addLab
 }
 
 /** Card for a GroupView, themed by its postType color. */
-export default function GroupViewCard ({ view, isEditing, onAddToMenu, onOpen, onOpenSettings, onDelete }) {
+export default function GroupViewCard ({ view, isEditing, onAddToMenu, onOpen, onOpenSettings, onDelete, renderEditActions = true }) {
   const { t } = useTranslation()
   const { effectiveColorScheme } = useAppearance()
   const isDark = effectiveColorScheme === 'dark'
@@ -107,7 +114,9 @@ export default function GroupViewCard ({ view, isEditing, onAddToMenu, onOpen, o
 
   return (
     <div
-      className={cn(CARD_CLASS, cardChrome(isDark), isEditing && 'cursor-default')}
+      // renderEditActions false means a wrapper owns the edit chrome and the drag
+      // listeners, so leave the cursor to it rather than forcing default here.
+      className={cn(CARD_CLASS, cardChrome(isDark), isEditing && renderEditActions && 'cursor-default')}
       style={{
         background: onPhoto ? cardNeutralBg(effectiveColorScheme) : cardGradient(col, effectiveColorScheme),
         // Light mode: border takes the view color — faint at rest, full on hover.
@@ -175,7 +184,8 @@ export default function GroupViewCard ({ view, isEditing, onAddToMenu, onOpen, o
           </h3>
         </div>
       </div>
-      {isEditing && (
+      {/* A sortable wrapper renders the toolbar itself, outside the drag listeners */}
+      {isEditing && renderEditActions && (
         <CardEditActions
           onAddToMenu={onAddToMenu ? () => onAddToMenu(view) : null}
           onOpenSettings={onOpenSettings ? () => onOpenSettings(view) : null}

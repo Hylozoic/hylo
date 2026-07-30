@@ -47,7 +47,7 @@ import { canHardDeleteView, viewAcceptedByPostTypes } from 'store/models/GroupVi
 import { viewShowsUnreadDot, viewUnreadBadgeCount } from 'util/viewUnreadBadges'
 import CardIconField from './CardIconField'
 import GroupViewIcon from './GroupViewIcon'
-import GroupViewEditList from './GroupViewEditList'
+import SortableViewsGrid from './SortableViewsGrid'
 import GroupViewCard, { SpaceViewCard } from './GroupViewCard'
 import ViewsGridSkeleton from './ViewsGridSkeleton'
 import {
@@ -718,6 +718,18 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
   const viewsPending = useSelector(state => isPendingFor(FETCH_GROUP_VIEWS, state))
   const viewsLoading = viewsPending && groupViews.length === 0
 
+  const handleDeleteMenuView = useCallback(async (view) => {
+    if (!canHardDeleteView(view) || !menuGroup?.id) return
+    const label = displayNameForView(GroupViewPresenter(view), t)
+    if (!window.confirm(t('Are you sure you want to permanently delete {{name}}?', { name: label }))) return
+    try {
+      await dispatch(deleteGroupView(view.id, menuGroup.id))
+      await dispatch(fetchGroupViews(menuGroup.id))
+    } catch (error) {
+      console.error('Failed to delete view:', error)
+    }
+  }, [dispatch, menuGroup?.id, t])
+
   const visibleViews = useMemo(() => {
     if (isContextMode) {
       const profileUrl = personUrl(currentUser?.id)
@@ -856,11 +868,15 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
           : isEditing
             ? (
               <div className='flex flex-col gap-6'>
-                <GroupViewEditList
+                {/* The one-column menu is a grid of cards, so it reorders as cards
+                    rather than dropping into the sidebar's list view */}
+                <SortableViewsGrid
                   views={groupViews}
-                  group={menuGroup}
-                  groupSlug={groupSlug}
-                  onSettings={setSettingsView}
+                  group={group}
+                  targetGroupId={menuGroup?.id}
+                  spaceGroup={spaceGroup}
+                  onOpenSettings={setSettingsView}
+                  onDelete={handleDeleteMenuView}
                 />
                 <div className='flex flex-col gap-2 max-w-md'>
                   <AddViewButton onClick={() => setShowAddView(true)} />

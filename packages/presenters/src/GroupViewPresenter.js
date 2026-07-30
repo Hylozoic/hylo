@@ -117,6 +117,7 @@ export const COMMON_VIEWS = {
 
 /** View types that use a Lucide icon instead of the Hylo icon font. */
 const VIEW_TYPE_TO_LUCIDE_ICON = {
+  all: 'Activity',
   chat: 'MessageCircleMore',
   collection: 'Layers',
   'funding-round-submissions': 'ClipboardList',
