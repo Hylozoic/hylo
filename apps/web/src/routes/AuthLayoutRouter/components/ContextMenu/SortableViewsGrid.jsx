@@ -24,6 +24,7 @@ import { mergeOrderedViewsFromSource, sortViewsByMenuOrder } from 'store/util/gr
 import { cn } from 'util/index'
 
 import GroupViewCard, { CardEditActions } from './GroupViewCard'
+import { CARD_SIZE_CLASS } from './viewCardTheme'
 import { useCommitViewOrder } from './useViewReorder'
 
 // Mouse drags start as soon as the pointer travels a few pixels. Touch needs the
@@ -78,7 +79,9 @@ function SortableViewItem ({ view, spaceGroup, onOpenSettings, onDelete, t }) {
       style={{ opacity: isDragging ? 0.4 : 1 }}
       className={cn(
         'group relative cursor-grab active:cursor-grabbing',
-        isFullWidth && 'w-full',
+        // The wrapper carries the card footprint so the card's sub-sm percentage
+        // width has a sized parent to resolve against
+        isFullWidth ? 'w-full' : CARD_SIZE_CLASS,
         isDragging && 'cursor-grabbing'
       )}
       {...attributes}

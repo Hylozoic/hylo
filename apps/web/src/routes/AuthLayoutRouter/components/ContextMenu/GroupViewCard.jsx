@@ -24,6 +24,7 @@ import {
   cardRestShadow,
   CARD_CLASS,
   CARD_FADE_CLASS,
+  CARD_FILL_CLASS,
   CARD_TITLE_CLASS,
   CARD_W,
   CARD_H
@@ -147,7 +148,10 @@ export default function GroupViewCard ({ view, isEditing, onAddToMenu, onOpen, o
       className={cn(
         CARD_CLASS,
         cardChrome(isDark),
-        isEditing && (renderEditActions ? 'cursor-default' : 'cursor-[inherit]')
+        isEditing && (renderEditActions ? 'cursor-default' : 'cursor-[inherit]'),
+        // The wrapper owns the footprint in that case; fill it rather than sizing
+        // against a parent that is sizing itself to this card.
+        !renderEditActions && CARD_FILL_CLASS
       )}
       style={{
         background: onPhoto ? cardNeutralBg(effectiveColorScheme) : cardGradient(col, effectiveColorScheme),

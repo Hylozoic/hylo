@@ -42,7 +42,17 @@ export const CARD_TITLE_CLASS = 'text-sm font-bold line-clamp-2 m-0 leading-[1.1
  * phone (where the root font size is larger) a hardcoded 6px left the pair
  * fractionally over 100% and wrapped them one per row.
  */
-export const CARD_CLASS = 'group relative flex flex-col overflow-hidden rounded-2xl border transition-all w-[calc(50%-0.375rem)] aspect-[14/13] sm:w-[168px] sm:h-[156px] sm:aspect-auto cursor-pointer hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] active:duration-[50ms]'
+export const CARD_SIZE_CLASS = 'w-[calc(50%-0.375rem)] aspect-[14/13] sm:w-[168px] sm:h-[156px] sm:aspect-auto'
+
+export const CARD_CLASS = `group relative flex flex-col overflow-hidden rounded-2xl border transition-all ${CARD_SIZE_CLASS} cursor-pointer hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] active:duration-[50ms]`
+
+/**
+ * For a card rendered inside a wrapper that carries CARD_SIZE_CLASS itself (the
+ * sortable grid). The sub-sm width is a percentage of the parent, so a card left
+ * to size itself inside an auto-width wrapper collapses to nothing — the wrapper
+ * takes the size and the card fills it.
+ */
+export const CARD_FILL_CLASS = 'w-full h-full aspect-auto'
 
 /** Scheme-dependent card border + resting shadow. */
 export function cardChrome (isDark) {
