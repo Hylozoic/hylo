@@ -19,20 +19,16 @@ import {
   cardHoverRing,
   cardRestRing,
   cardNeutralBg,
-  cardBaseColor
+  cardBaseColor,
+  cardChrome,
+  cardHoverShadow,
+  cardRestShadow,
+  CARD_CLASS,
+  CARD_TITLE_CLASS,
+  CARD_W,
+  CARD_H
 } from './viewCardTheme'
 
-const CARD_CLASS = 'group relative flex flex-col overflow-hidden rounded-2xl border transition-all w-[calc(50%-6px)] aspect-[13/11] sm:w-[208px] sm:h-[176px] sm:aspect-auto cursor-pointer hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] active:duration-[50ms]'
-
-/** Scheme-dependent card border + resting shadow. */
-function cardChrome (isDark) {
-  return isDark
-    ? 'border-white/10 shadow-[0_2px_8px_rgba(0,0,0,0.3)]'
-    : 'border-black/10 shadow-[0_2px_8px_rgba(0,0,0,0.12)]'
-}
-
-const cardHoverShadow = (isDark) => isDark ? '0 12px 30px rgba(0,0,0,0.45)' : '0 12px 30px rgba(0,0,0,0.18)'
-const cardRestShadow = (isDark) => isDark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.12)'
 const CARD_ACTION_BTN = 'p-1.5 rounded-md bg-background/90 text-foreground/60 hover:text-foreground pointer-events-auto'
 
 /** Edit-mode action row at the bottom of a card: +, gear, delete. */
@@ -126,7 +122,7 @@ export default function GroupViewCard ({ view, isEditing, onAddToMenu, onOpen, o
         }
       }}
     >
-      <CardIconField view={presented} tint={tint} w={208} h={176} />
+      <CardIconField view={presented} tint={tint} w={CARD_W} h={CARD_H} />
       {/* Settles the pattern toward the card's base color at the bottom, so the label reads clearly */}
       <div className='absolute inset-0 pointer-events-none' style={{ background: `linear-gradient(180deg, transparent 0%, ${cardBaseColor(effectiveColorScheme, 0.5)} 100%)` }} />
       <div className='relative h-full'>
@@ -142,7 +138,7 @@ export default function GroupViewCard ({ view, isEditing, onAddToMenu, onOpen, o
         </div>
         <div className='absolute left-0 right-0 top-[calc(50%+28px)] bottom-0 flex flex-col items-center justify-center text-center px-3'>
           <h3 className={cn(
-            'text-sm font-bold line-clamp-2 m-0 leading-tight',
+            CARD_TITLE_CLASS,
             isDark ? 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]' : 'text-foreground'
           )}
           >{title}
@@ -215,7 +211,7 @@ export function SpaceViewCard ({ space, isEditing, onOpen, onAddToMenu, onOpenSe
           </div>
         </div>
         <div className='absolute left-0 right-0 top-[calc(50%+28px)] bottom-0 flex flex-col items-center justify-center text-center px-3'>
-          <h3 className={cn('text-sm font-bold line-clamp-2 m-0 leading-tight', onLightSurface ? 'text-foreground' : 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]')}>{space.name}</h3>
+          <h3 className={cn(CARD_TITLE_CLASS, onLightSurface ? 'text-foreground' : 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]')}>{space.name}</h3>
           {space.isDraft && (
             <span className={cn('text-[10.5px] font-semibold mt-1', onLightSurface ? 'text-foreground/60' : 'text-white/70 [text-shadow:0_1px_4px_rgba(0,0,0,0.6)]')}>{t('Draft')}</span>
           )}

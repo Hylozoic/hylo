@@ -1,5 +1,5 @@
 import { cn, bgImageStyle } from 'util/index'
-import { Bell, Settings, Users, Pencil, X, CircleEllipsis, ChevronLeft } from 'lucide-react'
+import { BadgeInfo, Bell, Settings, Users, Pencil, X, CircleEllipsis, ChevronLeft } from 'lucide-react'
 import React, { useMemo, useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useLocation } from 'react-router-dom'
@@ -49,7 +49,24 @@ import CardIconField from './CardIconField'
 import GroupViewIcon from './GroupViewIcon'
 import GroupViewEditList from './GroupViewEditList'
 import GroupViewCard, { SpaceViewCard } from './GroupViewCard'
-import { viewCardColor, inkOn, cardGradient, cardFieldTint, cardHoverRing, cardRestRing, cardNeutralBg, cardBaseColor } from './viewCardTheme'
+import ViewsGridSkeleton from './ViewsGridSkeleton'
+import {
+  viewCardColor,
+  inkOn,
+  cardGradient,
+  cardFieldTint,
+  cardHoverRing,
+  cardRestRing,
+  cardNeutralBg,
+  cardBaseColor,
+  cardChrome,
+  cardHoverShadow,
+  cardRestShadow,
+  CARD_CLASS,
+  CARD_TITLE_CLASS,
+  CARD_W,
+  CARD_H
+} from './viewCardTheme'
 import GroupViewSettingsModal from './GroupViewSettingsModal'
 import SpaceSettingsModal from './SpaceSettingsModal'
 import AddCollectionDialog from './AddCollectionDialog'
@@ -57,16 +74,8 @@ import AddGroupViewDialog, { AddViewButton } from './AddGroupViewDialog'
 import AddSpaceDialog, { AddSpaceButton } from './AddSpaceDialog'
 import { menuViewUrl } from './groupViewMenuUrl'
 
-// Cards are deliberately dark in both themes — each is a mini canvas tinted by
-// its view's brand color (see viewCardTheme.js), per the one-column dashboard design.
-const CARD_CLASS = 'group relative flex flex-col overflow-hidden rounded-2xl border transition-all w-[calc(50%-6px)] aspect-[13/11] sm:w-[208px] sm:h-[176px] sm:aspect-auto cursor-pointer hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] active:duration-[50ms]'
-/** Scheme-dependent card border + resting shadow. */
-const cardChrome = (isDark) => isDark
-  ? 'border-white/10 shadow-[0_2px_8px_rgba(0,0,0,0.3)]'
-  : 'border-black/10 shadow-[0_2px_8px_rgba(0,0,0,0.12)]'
-const cardHoverShadow = (isDark) => isDark ? '0 12px 30px rgba(0,0,0,0.45)' : '0 12px 30px rgba(0,0,0,0.18)'
-// Rest shadow mirrors cardChrome's class values so inline hover shadows transition smoothly
-const cardRestShadow = (isDark) => isDark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.12)'
+/** Synthetic view so the More Views card can use the same icon wallpaper as real views. */
+const MORE_SPACES_VIEW = { lucideIcon: 'CircleEllipsis' }
 
 /**
  * Splits ordered views into grid sections.
@@ -239,7 +248,7 @@ function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
 
   const label = (
     <h3 className={cn(
-      'text-sm font-bold line-clamp-2 m-0 leading-tight',
+      CARD_TITLE_CLASS,
       lightSurfaceLabels ? 'text-foreground' : 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]'
     )}
     >{title}
@@ -283,7 +292,7 @@ function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
           )
         : (
           <>
-            <CardIconField view={presentedView} tint={tint} w={208} h={176} />
+            <CardIconField view={presentedView} tint={tint} w={CARD_W} h={CARD_H} />
             {/* Settles the pattern toward the card's base color at the bottom, so the label reads clearly */}
             <div className='absolute inset-0 pointer-events-none' style={{ background: `linear-gradient(180deg, transparent 0%, ${cardBaseColor(effectiveColorScheme, 0.5)} 100%)` }} />
           </>
@@ -333,11 +342,23 @@ function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
 function MoreSpacesCard ({ onClick, t }) {
   const { effectiveColorScheme } = useAppearance()
   const isDark = effectiveColorScheme === 'dark'
+  const [hover, setHover] = useState(false)
+  // Not a post-type view, so it takes the same slate grey as every other neutral card
+  const col = viewCardColor(null)
+  const tint = cardFieldTint(col, effectiveColorScheme)
   return (
     <div
       onClick={onClick}
       className={cn(CARD_CLASS, cardChrome(isDark))}
-      style={{ background: cardNeutralBg(effectiveColorScheme) }}
+      style={{
+        background: cardGradient(col, effectiveColorScheme),
+        ...(!isDark ? { borderColor: hover ? col : `${col}33` } : {}),
+        boxShadow: hover
+          ? `${cardHoverShadow(isDark)}, ${cardHoverRing(col)}`
+          : `${cardRestShadow(isDark)}, ${cardRestRing(col)}`
+      }}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
       role='button'
       tabIndex={0}
       onKeyDown={(e) => {
@@ -347,19 +368,21 @@ function MoreSpacesCard ({ onClick, t }) {
         }
       }}
     >
+      <CardIconField view={MORE_SPACES_VIEW} tint={tint} w={CARD_W} h={CARD_H} />
+      {/* Settles the pattern toward the card's base color at the bottom, so the label reads clearly */}
+      <div className='absolute inset-0 pointer-events-none' style={{ background: `linear-gradient(180deg, transparent 0%, ${cardBaseColor(effectiveColorScheme, 0.5)} 100%)` }} />
       <div className='relative h-full'>
         <div className='absolute inset-0 grid place-items-center'>
+          {/* Same solid tile as the icon cards, so this reads as one of them */}
           <div
-            className={cn('w-14 h-14 rounded-[15px] grid place-items-center shadow-[0_4px_12px_rgba(0,0,0,0.35)]', isDark ? 'text-white' : 'text-foreground/80')}
-            style={isDark
-              ? { background: 'hsl(0 0% 100% / 0.16)', border: '1px solid hsl(0 0% 100% / 0.28)' }
-              : { background: 'hsl(0 0% 0% / 0.06)', border: '1px solid hsl(0 0% 0% / 0.15)' }}
+            className='w-14 h-14 rounded-[15px] grid place-items-center shadow-[0_4px_12px_rgba(0,0,0,0.35)]'
+            style={{ background: col, color: inkOn(col), border: `1px solid color-mix(in srgb, ${col} 55%, white)` }}
           >
             <CircleEllipsis className='w-7 h-7' />
           </div>
         </div>
         <div className='absolute left-0 right-0 top-[calc(50%+28px)] bottom-0 flex flex-col items-center justify-center text-center px-3'>
-          <h3 className={cn('text-sm font-bold m-0 leading-tight', isDark ? 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]' : 'text-foreground')}>{t('More Views and Spaces')}</h3>
+          <h3 className={cn(CARD_TITLE_CLASS, isDark ? 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]' : 'text-foreground')}>{t('More Views and Spaces')}</h3>
         </div>
       </div>
     </div>
@@ -500,7 +523,7 @@ function MoreSpacesGrid ({
   const hasContent = showViews || showTracks || showFundingRounds || showOtherSpaces
 
   if (pending && !hasContent) {
-    return <p className='text-sm text-foreground/40'>{t('Loading…')}</p>
+    return <ViewsGridSkeleton />
   }
 
   if (!hasContent) {
@@ -712,11 +735,22 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
                   <Bell className='w-6 h-6 text-white drop-shadow-md hover:scale-110 transition-all' />
                 </button>
 
-                {canAdminister && (
-                  <button type='button' onClick={() => navigate(groupUrl(groupSlug, 'settings', {}))}>
-                    <Settings className='w-6 h-6 text-white drop-shadow-md hover:scale-110 transition-all' />
+                {/* Matches GroupMenuHeader's affordances — about, then settings */}
+                <div className='flex items-center gap-3'>
+                  <button
+                    type='button'
+                    onClick={() => navigate(groupUrl(groupSlug, 'about', {}))}
+                    aria-label={t('About')}
+                  >
+                    <BadgeInfo className='w-6 h-6 text-white drop-shadow-md hover:scale-110 transition-all' />
                   </button>
-                )}
+
+                  {canAdminister && (
+                    <button type='button' onClick={() => navigate(groupUrl(groupSlug, 'settings', {}))}>
+                      <Settings className='w-6 h-6 text-white drop-shadow-md hover:scale-110 transition-all' />
+                    </button>
+                  )}
+                </div>
               </div>
             )}
 
@@ -800,7 +834,7 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
             : (
               <div className='flex flex-col gap-6'>
                 {!isContextMode && menuGroup?.id && viewsLoading
-                  ? <p className='text-sm text-foreground/40'>{t('Loading views…')}</p>
+                  ? <ViewsGridSkeleton />
                   : (
                     <ViewsGrid
                       sections={sections}

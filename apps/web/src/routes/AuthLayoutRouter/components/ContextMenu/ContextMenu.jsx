@@ -74,9 +74,9 @@ function UnreadDot () {
 // Rows have no background of their own — the MenuRowBackground texture is the only
 // surface (half strength on hover, full when selected). hover:text-foreground pins the
 // link color so the global link-hover green never shows.
-// Rows sit flush against each other; hover adds vertical margin so the scaled row
-// (and its revealed background) can't visually collide with an adjacent active row.
-const GROUP_VIEW_MENU_ITEM_CLASS = 'flex items-center gap-2 text-base font-semibold text-foreground hover:text-foreground border-2 border-transparent rounded-md p-1 pl-2 my-0 hover:my-0.5 w-full transition-all duration-200 ease-out scale-100 hover:scale-102 active:scale-[0.985] active:translate-y-[0.5px] active:duration-[50ms] opacity-85 hover:opacity-100'
+// Rows sit flush against each other and keep their margin on hover, so hovering
+// never shifts the rows below it.
+const GROUP_VIEW_MENU_ITEM_CLASS = 'flex items-center gap-2 text-base font-semibold text-foreground hover:text-foreground border-2 border-transparent rounded-md p-1 pl-2 my-0 w-full transition-all duration-200 ease-out scale-100 hover:scale-102 active:scale-[0.985] active:translate-y-[0.5px] active:duration-[50ms] opacity-85 hover:opacity-100'
 
 /** MenuLink overrides when nested inside a styled space row wrapper. hover:text-foreground
  *  pins the anchor's color against the global link-hover green. */

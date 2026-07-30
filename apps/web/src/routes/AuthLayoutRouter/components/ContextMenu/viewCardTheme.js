@@ -22,6 +22,35 @@ export function viewCardColor (view) {
 }
 
 /**
+ * Card footprint on sm and up. CardIconField uses these to work out how many
+ * glyphs the wallpaper needs, so it has to match CARD_CLASS.
+ */
+export const CARD_W = 168
+export const CARD_H = 156
+
+/** Card title. Tight leading so a wrapped two-line title reads as one block. */
+export const CARD_TITLE_CLASS = 'text-sm font-bold line-clamp-2 m-0 leading-[1.1]'
+
+/**
+ * Shared card footprint and interaction. Cards are deliberately dark in both
+ * themes — each is a mini canvas tinted by its view's brand color, per the
+ * one-column dashboard design. Below sm the width is fluid, so the aspect ratio
+ * (14/13 — the same proportion as CARD_W/CARD_H) stands in for the fixed size.
+ */
+export const CARD_CLASS = 'group relative flex flex-col overflow-hidden rounded-2xl border transition-all w-[calc(50%-6px)] aspect-[14/13] sm:w-[168px] sm:h-[156px] sm:aspect-auto cursor-pointer hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] active:duration-[50ms]'
+
+/** Scheme-dependent card border + resting shadow. */
+export function cardChrome (isDark) {
+  return isDark
+    ? 'border-white/10 shadow-[0_2px_8px_rgba(0,0,0,0.3)]'
+    : 'border-black/10 shadow-[0_2px_8px_rgba(0,0,0,0.12)]'
+}
+
+export const cardHoverShadow = (isDark) => isDark ? '0 12px 30px rgba(0,0,0,0.45)' : '0 12px 30px rgba(0,0,0,0.18)'
+/** Rest shadow mirrors cardChrome's class values so inline hover shadows transition smoothly. */
+export const cardRestShadow = (isDark) => isDark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.12)'
+
+/**
  * Readable icon ink for a solid color tile. Light brand colors (gold, for
  * Resources) need dark ink, but a deep mix of the tile color itself reads as
  * on-theme where flat black looked like a rendering bug.

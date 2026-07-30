@@ -31,16 +31,22 @@ import AddSpaceDialog, { AddSpaceButton } from './AddSpaceDialog'
 import GroupViewSettingsModal from './GroupViewSettingsModal'
 import SpaceSettingsModal from './SpaceSettingsModal'
 import GroupViewCard, { SpaceViewCard } from './GroupViewCard'
+import ViewsGridSkeleton from './ViewsGridSkeleton'
 import { menuViewUrl } from './groupViewMenuUrl'
 
-/** Section heading above a card grid. */
+/** Section heading above a card grid. Sections own the space above them (see SECTION_CLASS). */
 function SectionHeading ({ children }) {
   return (
-    <h2 className='text-base font-semibold text-foreground/70 px-1 w-full mt-6 mb-3 first:mt-0'>
+    <h2 className='text-base font-semibold text-foreground/70 px-1 w-full mb-3'>
       {children}
     </h2>
   )
 }
+
+// Space above a section is twice the heading-to-cards gap below it. This lives on
+// the section rather than the heading because the heading is always the first child
+// of its own section, so `first:` there matched every heading and zeroed them all.
+const SECTION_CLASS = 'mt-6 first:mt-0'
 
 /**
  * More Views and Spaces — center-column grid of off-menu views and spaces.
@@ -296,13 +302,13 @@ export default function MoreViewsPage ({ group }) {
       )}
 
       {pending && !hasContent
-        ? <p className='text-sm text-foreground/40'>{t('Loading…')}</p>
+        ? <ViewsGridSkeleton />
         : !hasContent
             ? <p className='text-sm text-foreground/40'>{t('No more views or spaces')}</p>
             : (
               <div className='flex flex-col'>
                 {showViews && (
-                  <section>
+                  <section className={SECTION_CLASS}>
                     <SectionHeading>{t('Views')}</SectionHeading>
                     <div className='flex flex-wrap gap-3'>
                       {offMenuViews.map(view => (
@@ -320,7 +326,7 @@ export default function MoreViewsPage ({ group }) {
                   </section>
                 )}
                 {showTracks && (
-                  <section>
+                  <section className={SECTION_CLASS}>
                     <SectionHeading>{t('Tracks')}</SectionHeading>
                     <div className='flex flex-wrap gap-3'>
                       {sections.trackSpaces.map(space => (
@@ -338,7 +344,7 @@ export default function MoreViewsPage ({ group }) {
                   </section>
                 )}
                 {showFundingRounds && (
-                  <section>
+                  <section className={SECTION_CLASS}>
                     <SectionHeading>{t('Funding Rounds')}</SectionHeading>
                     <div className='flex flex-wrap gap-3'>
                       {sections.fundingRoundSpaces.map(space => (
@@ -356,7 +362,7 @@ export default function MoreViewsPage ({ group }) {
                   </section>
                 )}
                 {showOtherSpaces && (
-                  <section>
+                  <section className={SECTION_CLASS}>
                     <SectionHeading>{t('Other Spaces')}</SectionHeading>
                     <div className='flex flex-wrap gap-3'>
                       {sections.otherSpaces.map(space => (
