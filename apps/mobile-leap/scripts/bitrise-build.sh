@@ -31,6 +31,8 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 apply_ci_signing_assets () {
   local platform="$1"
   local app_root="$2"
@@ -91,11 +93,11 @@ npx expo prebuild --platform "$PLATFORM" --clean --no-install
 apply_ci_signing_assets "$PLATFORM" "$(pwd)"
 
 if [ "$PLATFORM" = "android" ]; then
-  bash "$(dirname "$0")/patch-android-hylo-signing.sh"
+  bash "$SCRIPT_DIR/patch-android-hylo-signing.sh"
 fi
 
 if [ "$PLATFORM" = "ios" ]; then
-  bash "$(dirname "$0")/patch-ios-hylo-signing.sh"
+  bash "$SCRIPT_DIR/patch-ios-hylo-signing.sh"
   echo "--- pod install"
   npx pod-install ios
 fi
