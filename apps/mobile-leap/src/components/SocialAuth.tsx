@@ -6,7 +6,7 @@ import { useAuth } from '@hylo/contexts/AuthContext'
 import { loginWithApple, loginWithGoogle } from 'util/authApi'
 import { saveTokens } from 'util/tokenStore'
 import { authLog } from 'util/authDebug'
-import Button from './Button'
+import GoogleLoginButton from './GoogleLoginButton'
 import { IOS_GOOGLE_CLIENT_ID, WEB_GOOGLE_CLIENT_ID } from 'config'
 
 type SocialAuthProps = {
@@ -94,10 +94,9 @@ export default function SocialAuth ({ onStart, onComplete, forSignup }: SocialAu
         />
       )}
       {!isExpoGo && (
-        <Button
+        <GoogleLoginButton
           text={forSignup ? t('Sign up with Google') : t('Sign in with Google')}
           onPress={handleGoogle}
-          className='min-w-[65%] bg-destructive'
         />
       )}
       {isExpoGo && Platform.OS === 'android' && (

@@ -36,6 +36,7 @@ type HyloWebViewProps = Omit<WebViewProps, 'source' | 'onMessage'> & {
   enableScrolling?: boolean
   onSessionRecoveryStart?: () => void
   onSessionRecoveryEnd?: () => void
+  onCookieStateChange?: (isResolving: boolean) => void
 }
 
 const HyloWebView = forwardRef<WebView, HyloWebViewProps>(function HyloWebView (
@@ -50,6 +51,7 @@ const HyloWebView = forwardRef<WebView, HyloWebViewProps>(function HyloWebView (
     onLoadEnd: externalOnLoadEnd,
     onSessionRecoveryStart,
     onSessionRecoveryEnd,
+    onCookieStateChange,
     ...forwardedProps
   },
   webViewRef
@@ -92,6 +94,10 @@ const HyloWebView = forwardRef<WebView, HyloWebViewProps>(function HyloWebView (
     }
     return () => { if (timer) clearTimeout(timer) }
   }, [cookie, isLoading])
+
+  useEffect(() => {
+    onCookieStateChange?.(cookie === undefined)
+  }, [cookie, onCookieStateChange])
 
   useFocusEffect(
     useCallback(() => {

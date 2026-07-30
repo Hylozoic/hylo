@@ -25,10 +25,12 @@ export default function PrimaryWebViewScreen () {
 
   useEffect(() => { hydrate() }, [hydrate])
 
-  const bottomInset = isIOS ? Math.max(insets.bottom * 0.5, 8) : insets.bottom
-  const safeAreaEdges = isIOS
-    ? (['top', 'left', 'right'] as const)
-    : (['top', 'left', 'right', 'bottom'] as const)
+  // iOS: small manual bottom pad for the home indicator. Android: no bottom inset —
+  // RN 0.85 edge-to-edge reports nav-bar insets; padding here shrinks the WebView and
+  // leaves a dead band (legacy RN 0.77 reported 0 on the same devices). Web content
+  // extends to the screen bottom like the existing mobile app.
+  const bottomInset = isIOS ? Math.max(insets.bottom * 0.5, 8) : 0
+  const safeAreaEdges = ['top', 'left', 'right'] as const
 
   const currentUserResult = useCurrentUser({
     requestPolicy: 'cache-and-network',
@@ -40,6 +42,8 @@ export default function PrimaryWebViewScreen () {
   if (currentUser) hasLoadedUser.current = true
 
   const [isWebViewLoading, setIsWebViewLoading] = useState(true)
+  const [isCookieResolving, setIsCookieResolving] = useState(true)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [webViewError, setWebViewError] = useState<unknown>(null)
   const [sessionRecovering, setSessionRecovering] = useState(false)
 
@@ -67,7 +71,10 @@ export default function PrimaryWebViewScreen () {
 
     switch (type) {
       case WebViewMessageTypes.LOGOUT:
+        setIsLoggingOut(true)
         setSessionRecovering(false)
+        setIsWebViewLoading(true)
+        setIsCookieResolving(true)
         logout()
         break
       case WebViewMessageTypes.THEME_CHANGE: {
@@ -130,7 +137,7 @@ export default function PrimaryWebViewScreen () {
     )
   }
 
-  const showLoadingOverlay = !hasLoadedUser.current || isWebViewLoading || sessionRecovering
+  const showLoadingOverlay = isLoggingOut || !hasLoadedUser.current || isCookieResolving || isWebViewLoading || sessionRecovering
 
   return (
     <SafeAreaView
@@ -147,7 +154,7 @@ export default function PrimaryWebViewScreen () {
           <LoadingScreen />
         </View>
       )}
-      {hasLoadedUser.current && currentUser && (
+      {hasLoadedUser.current && currentUser && !isLoggingOut && (
         <HyloWebView
           ref={webViewRef}
           path={webViewPath}
@@ -155,6 +162,7 @@ export default function PrimaryWebViewScreen () {
           messageHandler={messageHandler}
           onSessionRecoveryStart={() => setSessionRecovering(true)}
           onSessionRecoveryEnd={() => setSessionRecovering(false)}
+          onCookieStateChange={setIsCookieResolving}
           onLoadEnd={handleLoadEnd}
           onError={handleError}
           onHttpError={handleHttpError}

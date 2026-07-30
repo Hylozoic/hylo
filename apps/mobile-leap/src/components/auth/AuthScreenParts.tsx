@@ -81,7 +81,7 @@ export function AuthPrimaryButton ({ label, onPress, disabled, loading, testID }
   return (
     <Pressable
       testID={testID}
-      className={`mx-4 mb-4 items-center rounded-full py-3 ${disabled ? 'bg-muted opacity-60' : 'bg-selected'}`}
+      className={`mx-4 mb-4 items-center rounded-full py-3 ${disabled || loading ? 'bg-muted-foreground/70' : 'bg-selected'}`}
       onPress={onPress}
       disabled={disabled || loading}
     >

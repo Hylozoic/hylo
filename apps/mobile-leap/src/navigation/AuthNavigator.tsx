@@ -5,7 +5,9 @@ import PrimaryWebViewScreen from '../screens/PrimaryWebView/PrimaryWebViewScreen
 
 const AuthRoot = createNativeStackNavigator()
 
-function AuthNavigatorContent () {
+// RootNavigator only mounts this when isAuthorized — no separate loading gate here
+// (a parent/child split with duplicate useCurrentUser caused setState-during-render).
+export default function AuthNavigator () {
   useBindPlatformUser()
   useHandleLinking(false)
 
@@ -14,8 +16,4 @@ function AuthNavigatorContent () {
       <AuthRoot.Screen name='Main' component={PrimaryWebViewScreen} />
     </AuthRoot.Navigator>
   )
-}
-
-export default function AuthNavigator () {
-  return <AuthNavigatorContent />
 }

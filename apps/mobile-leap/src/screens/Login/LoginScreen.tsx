@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Image } from 'expo-image'
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native'
+import { Dimensions, Pressable, ScrollView, Text, TextInput, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -12,6 +12,9 @@ import errorMessages from 'util/errorMessages'
 import SocialAuth from '../../components/SocialAuth'
 import FormattedError from '../../components/FormattedError'
 import { AuthBanner, AuthInput, AuthPrimaryButton } from '../../components/auth/AuthScreenParts'
+
+const screenHeight = Dimensions.get('window').height
+const logoTopMargin = Math.max(0, (screenHeight - 580) * 0.4)
 
 export default function LoginScreen () {
   const insets = useSafeAreaInsets()
@@ -71,10 +74,18 @@ export default function LoginScreen () {
       {bannerError && <AuthBanner message={bannerError} variant='error' topInset={insets.top} />}
       {!bannerError && bannerMessage && <AuthBanner message={bannerMessage} topInset={insets.top} />}
 
-      <ScrollView className='flex-1' contentContainerClassName='items-center pb-8 pt-16'>
+      <ScrollView
+        className='flex-1'
+        contentContainerStyle={{
+          flexGrow: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          paddingBottom: 32
+        }}
+      >
         <Image
           source={require('../../../assets/merkaba-green-on-white.png')}
-          style={{ width: 80, height: 80, marginBottom: 10 }}
+          style={{ width: 80, height: 80, marginTop: logoTopMargin, marginBottom: 10 }}
           contentFit='contain'
         />
         <Text className='mb-5 text-2xl font-bold text-selected'>{t('Log in to Hylo')}</Text>
