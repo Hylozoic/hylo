@@ -95,6 +95,7 @@ if [ "$PLATFORM" = "android" ]; then
 fi
 
 if [ "$PLATFORM" = "ios" ]; then
+  bash "$(dirname "$0")/patch-ios-hylo-signing.sh"
   echo "--- pod install"
   npx pod-install ios
 fi
