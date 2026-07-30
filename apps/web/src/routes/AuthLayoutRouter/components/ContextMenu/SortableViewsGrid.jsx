@@ -1,0 +1,224 @@
+import {
+  DndContext,
+  DragOverlay,
+  closestCenter,
+  KeyboardSensor,
+  MouseSensor,
+  TouchSensor,
+  useSensor,
+  useSensors
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  arrayMove,
+  rectSortingStrategy,
+  sortableKeyboardCoordinates,
+  useSortable
+} from '@dnd-kit/sortable'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
+
+import { canHardDeleteView } from 'store/models/GroupView'
+import { mergeOrderedViewsFromSource, sortViewsByMenuOrder } from 'store/util/groupViewsOrder'
+import { cn } from 'util/index'
+
+import GroupViewCard, { CardEditActions } from './GroupViewCard'
+import { CARD_SIZE_CLASS } from './viewCardTheme'
+import { useCommitViewOrder } from './useViewReorder'
+
+// Mouse drags start as soon as the pointer travels a few pixels. Touch needs the
+// hold instead, because a finger moving over a card is a scroll until proven
+// otherwise — which is also why the cards need no touch-action override.
+// These have to be separate sensors: a delay constraint on a shared PointerSensor
+// applies the hold to the mouse as well, and any movement inside the delay
+// cancels activation, so an ordinary press-and-drag never starts.
+const MOUSE_ACTIVATION = { distance: 5 }
+const TOUCH_ACTIVATION = { delay: 180, tolerance: 8 }
+
+/** Full-width stand-ins for the text and separator rows, so they reorder with the cards. */
+function FullWidthRow ({ view, spaceGroup, t }) {
+  const presented = GroupViewPresenter(view)
+
+  if (presented.type === 'separator') {
+    return (
+      <div className='flex items-center w-full py-2'>
+        <hr className='flex-1 border-foreground/20 border-dashed' />
+      </div>
+    )
+  }
+
+  return (
+    <p className='w-full text-base font-semibold text-foreground/70 px-1 m-0'>
+      {displayNameForView(presented, t, { spaceGroup })}
+    </p>
+  )
+}
+
+/**
+ * One draggable grid item. The drag listeners sit on the wrapper so a press
+ * anywhere on the card starts the drag; the toolbar stops pointerdown so its
+ * buttons stay clickable instead of becoming drag handles.
+ */
+const SortableViewItem = React.memo(function SortableViewItem ({ view, spaceGroup, onOpenSettings, onDelete, t }) {
+  const presented = useMemo(() => GroupViewPresenter(view), [view])
+  const isFullWidth = presented.type === 'text' || presented.type === 'separator'
+  const { attributes, listeners, setNodeRef, isDragging } = useSortable({
+    id: String(view.id),
+    disabled: !view.id
+  })
+
+  return (
+    <div
+      ref={setNodeRef}
+      // Deliberately no transform from useSortable. Its sorting preview paints
+      // translations over the pre-drag layout, which assumes evenly sized items —
+      // with full-width text rows among the cards it slid them into the card rows.
+      // The grid reorders itself for real on drag-over instead, so flex-wrap keeps
+      // a full-width row breaking the line and starting its own.
+      style={{ opacity: isDragging ? 0.4 : 1 }}
+      className={cn(
+        'group relative cursor-grab active:cursor-grabbing',
+        // A card is a drag handle, not text. Without this a touch drag doubles as a
+        // text selection — the hold that starts the drag is also the gesture iOS
+        // uses to select — and the selection is left behind on release.
+        'select-none [-webkit-touch-callout:none]',
+        // The wrapper carries the card footprint so the card's sub-sm percentage
+        // width has a sized parent to resolve against
+        isFullWidth ? 'w-full' : CARD_SIZE_CLASS,
+        isDragging && 'cursor-grabbing'
+      )}
+      {...attributes}
+      {...listeners}
+    >
+      {isFullWidth
+        ? <FullWidthRow view={view} spaceGroup={spaceGroup} t={t} />
+        : <GroupViewCard view={view} isEditing renderEditActions={false} />}
+      <CardEditActions
+        onOpenSettings={onOpenSettings ? () => onOpenSettings(view) : null}
+        onDelete={onDelete && canHardDeleteView(view) ? () => onDelete(view) : null}
+        settingsLabel={t('Settings')}
+        deleteLabel={t('Delete')}
+      />
+    </div>
+  )
+})
+
+/**
+ * Drag-to-reorder card grid for edit mode — the card equivalent of
+ * GroupViewEditList, sharing its ordering rules through useViewReorder. Views
+ * are one flat sortable list (text and separator rows included, laid out full
+ * width) so a drop maps to the same order the menu is stored in.
+ */
+export default function SortableViewsGrid ({
+  views,
+  group,
+  targetGroupId,
+  spaceGroup = null,
+  onOpenSettings,
+  onDelete
+}) {
+  const { t } = useTranslation()
+  const commitOrder = useCommitViewOrder(group)
+  const visibleViews = useMemo(
+    () => sortViewsByMenuOrder((views || []).filter(v => v.order != null)),
+    [views]
+  )
+  const [orderedViews, setOrderedViews] = useState(visibleViews)
+
+  // Merge Redux updates into local order (preserves drag order; full replace on add/delete).
+  useEffect(() => {
+    setOrderedViews(prev => mergeOrderedViewsFromSource(prev, visibleViews))
+  }, [visibleViews])
+
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: MOUSE_ACTIVATION }),
+    useSensor(TouchSensor, { activationConstraint: TOUCH_ACTIVATION }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
+
+  const ids = useMemo(() => orderedViews.map(v => String(v.id)), [orderedViews])
+  const [activeId, setActiveId] = useState(null)
+  const activeView = useMemo(
+    () => orderedViews.find(v => String(v.id) === activeId) || null,
+    [orderedViews, activeId]
+  )
+  // The order as it stood before this drag, to roll back to if the mutation fails
+  const preDragOrder = useRef(null)
+
+  const handleDragStart = (e) => {
+    // A selection made just before the press would otherwise survive the drag
+    if (typeof window !== 'undefined') window.getSelection()?.removeAllRanges?.()
+    preDragOrder.current = orderedViews
+    setActiveId(String(e.active.id))
+  }
+
+  // Reorder as the pointer moves so the grid reflows for real — this is what keeps
+  // a full-width row breaking its line instead of being painted over the cards.
+  const handleDragOver = ({ active, over }) => {
+    if (!over || active.id === over.id) return
+    setOrderedViews(prev => {
+      const oldIndex = prev.findIndex(v => String(v.id) === String(active.id))
+      const newIndex = prev.findIndex(v => String(v.id) === String(over.id))
+      if (oldIndex === -1 || newIndex === -1) return prev
+      return arrayMove(prev, oldIndex, newIndex)
+    })
+  }
+
+  const handleDragEnd = () => {
+    const previousOrder = preDragOrder.current
+    const movedId = activeId
+    preDragOrder.current = null
+    setActiveId(null)
+    if (!movedId || !previousOrder) return
+    // Nothing to persist when the drag ended where it began
+    if (previousOrder.map(v => String(v.id)).join() === orderedViews.map(v => String(v.id)).join()) return
+
+    commitOrder(orderedViews, movedId, targetGroupId || group?.id, {
+      previousOrder,
+      setLocalViews: setOrderedViews,
+      parentGroupId: group?.id
+    })
+  }
+
+  const handleDragCancel = () => {
+    if (preDragOrder.current) setOrderedViews(preDragOrder.current)
+    preDragOrder.current = null
+    setActiveId(null)
+  }
+
+  return (
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
+      onDragCancel={handleDragCancel}
+      onDragEnd={handleDragEnd}
+    >
+      <SortableContext items={ids} strategy={rectSortingStrategy}>
+        <div className='flex flex-wrap gap-3'>
+          {orderedViews.map(view => (
+            <SortableViewItem
+              key={view.id}
+              view={view}
+              spaceGroup={spaceGroup}
+              onOpenSettings={onOpenSettings}
+              onDelete={onDelete}
+              t={t}
+            />
+          ))}
+        </div>
+      </SortableContext>
+      {/* The dragged item rides along at its natural size, so the in-flow copy never
+          has to be re-fitted around items of a different shape */}
+      <DragOverlay>
+        {activeView
+          ? (activeView.type === 'text' || activeView.type === 'separator'
+              ? <FullWidthRow view={activeView} spaceGroup={spaceGroup} t={t} />
+              : <GroupViewCard view={activeView} isEditing renderEditActions={false} />)
+          : null}
+      </DragOverlay>
+    </DndContext>
+  )
+}

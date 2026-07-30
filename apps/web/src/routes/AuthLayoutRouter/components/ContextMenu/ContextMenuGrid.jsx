@@ -47,8 +47,8 @@ import { canHardDeleteView, viewAcceptedByPostTypes } from 'store/models/GroupVi
 import { viewShowsUnreadDot, viewUnreadBadgeCount } from 'util/viewUnreadBadges'
 import CardIconField from './CardIconField'
 import GroupViewIcon from './GroupViewIcon'
-import GroupViewEditList from './GroupViewEditList'
-import GroupViewCard, { SpaceViewCard } from './GroupViewCard'
+import SortableViewsGrid from './SortableViewsGrid'
+import GroupViewCard, { AddCard, SpaceViewCard } from './GroupViewCard'
 import ViewsGridSkeleton from './ViewsGridSkeleton'
 import {
   viewCardColor,
@@ -71,8 +71,8 @@ import {
 import GroupViewSettingsModal from './GroupViewSettingsModal'
 import SpaceSettingsModal from './SpaceSettingsModal'
 import AddCollectionDialog from './AddCollectionDialog'
-import AddGroupViewDialog, { AddViewButton } from './AddGroupViewDialog'
-import AddSpaceDialog, { AddSpaceButton } from './AddSpaceDialog'
+import AddGroupViewDialog from './AddGroupViewDialog'
+import AddSpaceDialog from './AddSpaceDialog'
 import { menuViewUrl } from './groupViewMenuUrl'
 
 /** Synthetic view so the More Views card can use the same icon wallpaper as real views. */
@@ -127,10 +127,15 @@ function StickyBackHeader ({ title, onBack, t }) {
   )
 }
 
-/** Full-width text header row in the grid menu. */
+/**
+ * Full-width text header row in the grid menu. Owns the space above itself so a
+ * heading sits closer to the cards it labels than to the section before it. The
+ * other callers nest it as the first child of their own gap-3 column, where
+ * `first:` zeroes this out and their wrapper handles the spacing.
+ */
 function TextSection ({ children }) {
   return (
-    <h2 className='text-base font-semibold text-foreground/70 px-1 w-full'>
+    <h2 className='text-base font-semibold text-foreground/70 px-1 w-full mt-3 first:mt-0'>
       {children}
     </h2>
   )
@@ -144,7 +149,10 @@ function SeparatorSection () {
 /** Renders partitioned view sections as a card grid. */
 function ViewsGrid ({ sections, groupSlug, group, spaceGroup, navigate, t }) {
   return (
-    <div className='flex flex-col gap-6'>
+    // Headings and card rows are flat siblings here, so the gap is the heading's
+    // distance from its own cards — it matches the gap between cards, and
+    // TextSection's own top margin is what separates one section from the next.
+    <div className='flex flex-col gap-3'>
       {sections.map((section, index) => {
         if (section.type === 'text') {
           const presented = GroupViewPresenter(section.view)
@@ -236,14 +244,22 @@ function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
 
   const iconTile = (
     <div
-      className='w-14 h-14 rounded-[15px] grid place-items-center shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.35)]'
-      style={bgImageUrl
-        ? { background: 'hsl(0 0% 100% / 0.16)', backdropFilter: 'blur(4px)', color: 'white', border: '1px solid hsl(0 0% 100% / 0.28)' }
-        : { background: col, color: ink, border: `1px solid color-mix(in srgb, ${col} 55%, white)` }}
+      className='w-14 h-14 rounded-[15px] overflow-hidden grid place-items-center shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.35)]'
+      style={presentedView.avatarUrl
+        ? { border: '1px solid hsl(0 0% 100% / 0.28)' }
+        : bgImageUrl
+          ? { background: 'hsl(0 0% 100% / 0.16)', backdropFilter: 'blur(4px)', color: 'white', border: '1px solid hsl(0 0% 100% / 0.28)' }
+          : { background: col, color: ink, border: `1px solid color-mix(in srgb, ${col} 55%, white)` }}
     >
-      <span className='flex items-center justify-center w-[26px] h-[26px] [&>svg]:!w-full [&>svg]:!h-full [&>img]:!w-full [&>img]:!h-full [&>span]:!text-[26px] [&>span]:!leading-none'>
-        <GroupViewIcon view={presentedView} className='!w-[26px] !h-[26px] !mr-0' />
-      </span>
+      {/* An avatar fills the tile — RoundImage hard-codes its own small size, so it
+          can't be scaled up through GroupViewIcon's className. */}
+      {presentedView.avatarUrl
+        ? <div className='w-full h-full bg-cover bg-center' style={bgImageStyle(presentedView.avatarUrl)} />
+        : (
+          <span className='flex items-center justify-center w-[26px] h-[26px] [&>svg]:!w-full [&>svg]:!h-full [&>img]:!w-full [&>img]:!h-full [&>span]:!text-[26px] [&>span]:!leading-none'>
+            <GroupViewIcon view={presentedView} className='!w-[26px] !h-[26px] !mr-0' />
+          </span>
+          )}
     </div>
   )
 
@@ -388,17 +404,16 @@ function MoreSpacesCard ({ onClick, t }) {
   )
 }
 
-/** Nested More Views and Spaces grid with section headers. Supports edit mode actions. */
-function MoreSpacesGrid ({
-  group,
-  groupSlug,
-  navigate,
-  t,
-  isEditing = false,
-  onOpenSettings,
-  onOpenSpaceSettings
-}) {
-  const dispatch = useDispatch()
+/**
+ * Everything behind More Views and Spaces: the visible sections, whether there is
+ * anything there at all, and whether we are still finding out. One hook so the
+ * card that links here can't disagree with what this page would render — the
+ * off-menu views come from groupViews, but the track/round/space buckets need
+ * spaces to have been fetched, so a caller that hasn't fetched them would think
+ * the page was empty.
+ */
+function useMoreSpacesContent (group) {
+  const { t } = useTranslation()
   const sectionsRaw = useSelector(state => getMoreViewsSections(state, group))
   const canManageSpaces = useSelector(state => hasResponsibilityForGroup(state, {
     responsibility: RESP_MANAGE_SPACES,
@@ -419,6 +434,58 @@ function MoreSpacesGrid ({
     isPendingFor([FETCH_GROUP_SPACES, FETCH_GROUP_RELATIONSHIPS], state)
   )
   const hasRelatedGroups = parentGroups.length + childGroups.length + peerGroups.length > 0
+
+  const offMenuViews = useMemo(() => {
+    const views = (sections.offMenuViews || []).filter(view => {
+      if (view.type === 'related-groups' && !hasRelatedGroups) return false
+      return true
+    })
+    return [...views].sort((a, b) =>
+      displayNameForView(GroupViewPresenter(a), t).localeCompare(
+        displayNameForView(GroupViewPresenter(b), t)
+      )
+    )
+  }, [sections.offMenuViews, hasRelatedGroups])
+
+  const showViews = offMenuViews.length > 0
+  const showTracks = sections.trackSpaces?.length > 0
+  const showFundingRounds = sections.fundingRoundSpaces?.length > 0
+  const showOtherSpaces = sections.otherSpaces?.length > 0
+
+  return {
+    sections,
+    offMenuViews,
+    canManageSpaces,
+    pending,
+    showViews,
+    showTracks,
+    showFundingRounds,
+    showOtherSpaces,
+    hasContent: showViews || showTracks || showFundingRounds || showOtherSpaces
+  }
+}
+
+/** Nested More Views and Spaces grid with section headers. Supports edit mode actions. */
+function MoreSpacesGrid ({
+  group,
+  groupSlug,
+  navigate,
+  t,
+  isEditing = false,
+  onOpenSettings,
+  onOpenSpaceSettings
+}) {
+  const dispatch = useDispatch()
+  const {
+    sections,
+    offMenuViews,
+    pending,
+    showViews,
+    showTracks,
+    showFundingRounds,
+    showOtherSpaces,
+    hasContent
+  } = useMoreSpacesContent(group)
   const groupViews = useSelector(state => getGroupViews(state, group))
 
   useEffect(() => {
@@ -502,24 +569,6 @@ function MoreSpacesGrid ({
       console.error('Failed to delete space:', error)
     }
   }, [dispatch, group?.id, t])
-
-  const offMenuViews = useMemo(() => {
-    const views = (sections.offMenuViews || []).filter(view => {
-      if (view.type === 'related-groups' && !hasRelatedGroups) return false
-      return true
-    })
-    return [...views].sort((a, b) =>
-      displayNameForView(GroupViewPresenter(a), t).localeCompare(
-        displayNameForView(GroupViewPresenter(b), t)
-      )
-    )
-  }, [sections.offMenuViews, hasRelatedGroups, t])
-
-  const showViews = offMenuViews.length > 0
-  const showTracks = sections.trackSpaces?.length > 0
-  const showFundingRounds = sections.fundingRoundSpaces?.length > 0
-  const showOtherSpaces = sections.otherSpaces?.length > 0
-  const hasContent = showViews || showTracks || showFundingRounds || showOtherSpaces
 
   if (pending && !hasContent) {
     return <ViewsGridSkeleton />
@@ -654,9 +703,32 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
     if (!isContextMode && menuGroup?.id) dispatch(fetchGroupViews(menuGroup.id))
   }, [dispatch, menuGroup?.id, isContextMode])
 
+  // Whether to offer More Views and Spaces at all. MoreSpacesGrid fetches these
+  // itself once you are on that level, so only fetch here — where the card lives —
+  // to avoid asking twice.
+  const moreSpaces = useMoreSpacesContent(group)
+  const showMoreSpacesCard = moreSpaces.hasContent || moreSpaces.pending
+  useEffect(() => {
+    if (isContextMode || isMoreSpacesLevel || spaceGroup || !group?.id || !groupSlug) return
+    dispatch(fetchGroupSpaces(group.id))
+    dispatch(fetchGroupRelationships(groupSlug))
+  }, [dispatch, isContextMode, isMoreSpacesLevel, spaceGroup, group?.id, groupSlug])
+
   const groupViews = useSelector(state => isContextMode ? [] : getGroupViews(state, menuGroup))
   const viewsPending = useSelector(state => isPendingFor(FETCH_GROUP_VIEWS, state))
   const viewsLoading = viewsPending && groupViews.length === 0
+
+  const handleDeleteMenuView = useCallback(async (view) => {
+    if (!canHardDeleteView(view) || !menuGroup?.id) return
+    const label = displayNameForView(GroupViewPresenter(view), t)
+    if (!window.confirm(t('Are you sure you want to permanently delete {{name}}?', { name: label }))) return
+    try {
+      await dispatch(deleteGroupView(view.id, menuGroup.id))
+      await dispatch(fetchGroupViews(menuGroup.id))
+    } catch (error) {
+      console.error('Failed to delete view:', error)
+    }
+  }, [dispatch, menuGroup?.id, t])
 
   const visibleViews = useMemo(() => {
     if (isContextMode) {
@@ -796,15 +868,22 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
           : isEditing
             ? (
               <div className='flex flex-col gap-6'>
-                <GroupViewEditList
+                {/* The one-column menu is a grid of cards, so it reorders as cards
+                    rather than dropping into the sidebar's list view */}
+                <SortableViewsGrid
                   views={groupViews}
-                  group={menuGroup}
-                  groupSlug={groupSlug}
-                  onSettings={setSettingsView}
+                  group={group}
+                  targetGroupId={menuGroup?.id}
+                  spaceGroup={spaceGroup}
+                  onOpenSettings={setSettingsView}
+                  onDelete={handleDeleteMenuView}
                 />
-                <div className='flex flex-col gap-2 max-w-md'>
-                  <AddViewButton onClick={() => setShowAddView(true)} />
-                  {!spaceGroup && canManageSpaces && <AddSpaceButton onClick={() => setShowAddSpace(true)} />}
+                {/* Card-shaped so they read as the next slot in the grid above */}
+                <div className='flex flex-wrap gap-3'>
+                  <AddCard onClick={() => setShowAddView(true)} label={t('Add View')} />
+                  {!spaceGroup && canManageSpaces && (
+                    <AddCard onClick={() => setShowAddSpace(true)} label={t('Add Space')} />
+                  )}
                 </div>
                 {!spaceGroup && (
                   <div className='flex flex-col gap-3 pt-4 border-t border-foreground/10'>
@@ -845,7 +924,7 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
                       t={t}
                     />
                     )}
-                {!isContextMode && !spaceGroup && (
+                {!isContextMode && !spaceGroup && showMoreSpacesCard && (
                   <div className='flex flex-wrap gap-3'>
                     <MoreSpacesCard
                       onClick={() => navigate(groupUrl(groupSlug, 'more-views'))}

@@ -260,7 +260,9 @@ export default function GlobalNavItem ({
           <TooltipContent
             side='right'
             className={cn(
-              'transition-all duration-100 ease-out transform',
+              // font-semibold matches the context menu's row labels. Set here rather
+              // than on the shared TooltipContent so other tooltips are unaffected.
+              'font-semibold transition-all duration-100 ease-out transform',
               {
                 'opacity-80 translate-x-0 scale-80': parentShowTooltip && !isHovered && shouldAnimate,
                 'opacity-100 translate-x-0 scale-110': isHovered,
@@ -293,7 +295,7 @@ export default function GlobalNavItem ({
           className='flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer hover:bg-foreground/10 transition-colors font-medium'
         >
           <div className='w-5 h-5 rounded-sm bg-cover bg-center bg-primary shrink-0' style={{ backgroundImage: `url(${img})` }} />
-          <span className='truncate text-sm'>{tooltip}</span>
+          <span className='truncate text-sm font-semibold'>{tooltip}</span>
         </div>
         {childGroups.map(child => (
           <div
@@ -302,7 +304,7 @@ export default function GlobalNavItem ({
             className='flex items-center gap-2 pl-6 pr-2 py-1.5 rounded-md cursor-pointer hover:bg-foreground/10 transition-colors'
           >
             <div className='w-[18px] h-[18px] rounded-sm bg-cover bg-center bg-primary shrink-0' style={{ backgroundImage: `url(${child.avatarUrl})` }} />
-            <span className='truncate text-sm text-foreground/70'>{child.name}</span>
+            <span className='truncate text-sm font-semibold text-foreground/70'>{child.name}</span>
           </div>
         ))}
       </PopoverContent>
