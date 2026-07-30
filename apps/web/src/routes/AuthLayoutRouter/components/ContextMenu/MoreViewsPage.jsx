@@ -26,11 +26,11 @@ import { deleteGroup } from 'routes/GroupSettings/GroupSettings.store'
 import { canHardDeleteView } from 'store/models/GroupView'
 import { cn } from 'util/index'
 
-import AddGroupViewDialog, { AddViewButton } from './AddGroupViewDialog'
-import AddSpaceDialog, { AddSpaceButton } from './AddSpaceDialog'
+import AddGroupViewDialog from './AddGroupViewDialog'
+import AddSpaceDialog from './AddSpaceDialog'
 import GroupViewSettingsModal from './GroupViewSettingsModal'
 import SpaceSettingsModal from './SpaceSettingsModal'
-import GroupViewCard, { SpaceViewCard } from './GroupViewCard'
+import GroupViewCard, { AddCard, SpaceViewCard } from './GroupViewCard'
 import ViewsGridSkeleton from './ViewsGridSkeleton'
 import { menuViewUrl } from './groupViewMenuUrl'
 
@@ -294,10 +294,6 @@ export default function MoreViewsPage ({ group }) {
           <p className='text-sm text-foreground/70 mb-6'>
             {t('Drag and drop items in the menu on the left to reorder them. The top item is the home view for this group.')}
           </p>
-          <div className='flex flex-row gap-2 mb-8'>
-            <AddViewButton onClick={() => setShowAddView(true)} className='w-auto flex-1 mb-0' />
-            {!isSpaceMoreViews && <AddSpaceButton onClick={() => setShowAddSpace(true)} className='w-auto flex-1 mb-0' />}
-          </div>
         </>
       )}
 
@@ -381,6 +377,14 @@ export default function MoreViewsPage ({ group }) {
                 )}
               </div>
               )}
+
+      {/* Below the sections, and shown even when empty so there is a way to add the first one */}
+      {isEditing && (
+        <div className='flex flex-wrap gap-3 mt-6'>
+          <AddCard onClick={() => setShowAddView(true)} label={t('Add View')} />
+          {!isSpaceMoreViews && <AddCard onClick={() => setShowAddSpace(true)} label={t('Add Space')} />}
+        </div>
+      )}
 
       {isEditing && (
         <div

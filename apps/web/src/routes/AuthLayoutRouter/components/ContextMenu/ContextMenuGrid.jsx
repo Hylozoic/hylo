@@ -48,7 +48,7 @@ import { viewShowsUnreadDot, viewUnreadBadgeCount } from 'util/viewUnreadBadges'
 import CardIconField from './CardIconField'
 import GroupViewIcon from './GroupViewIcon'
 import SortableViewsGrid from './SortableViewsGrid'
-import GroupViewCard, { SpaceViewCard } from './GroupViewCard'
+import GroupViewCard, { AddCard, SpaceViewCard } from './GroupViewCard'
 import ViewsGridSkeleton from './ViewsGridSkeleton'
 import {
   viewCardColor,
@@ -71,8 +71,8 @@ import {
 import GroupViewSettingsModal from './GroupViewSettingsModal'
 import SpaceSettingsModal from './SpaceSettingsModal'
 import AddCollectionDialog from './AddCollectionDialog'
-import AddGroupViewDialog, { AddViewButton } from './AddGroupViewDialog'
-import AddSpaceDialog, { AddSpaceButton } from './AddSpaceDialog'
+import AddGroupViewDialog from './AddGroupViewDialog'
+import AddSpaceDialog from './AddSpaceDialog'
 import { menuViewUrl } from './groupViewMenuUrl'
 
 /** Synthetic view so the More Views card can use the same icon wallpaper as real views. */
@@ -878,9 +878,12 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
                   onOpenSettings={setSettingsView}
                   onDelete={handleDeleteMenuView}
                 />
-                <div className='flex flex-col gap-2 max-w-md'>
-                  <AddViewButton onClick={() => setShowAddView(true)} />
-                  {!spaceGroup && canManageSpaces && <AddSpaceButton onClick={() => setShowAddSpace(true)} />}
+                {/* Card-shaped so they read as the next slot in the grid above */}
+                <div className='flex flex-wrap gap-3'>
+                  <AddCard onClick={() => setShowAddView(true)} label={t('Add View')} />
+                  {!spaceGroup && canManageSpaces && (
+                    <AddCard onClick={() => setShowAddSpace(true)} label={t('Add Space')} />
+                  )}
                 </div>
                 {!spaceGroup && (
                   <div className='flex flex-col gap-3 pt-4 border-t border-foreground/10'>

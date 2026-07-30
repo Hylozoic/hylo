@@ -88,6 +88,28 @@ export function CardEditActions ({ onAddToMenu, onOpenSettings, onDelete, addLab
   )
 }
 
+/**
+ * Card-shaped add affordance, sized from CARD_CLASS so it sits in a card grid as
+ * one more tile. Dashed and unfilled so it reads as a slot rather than a view.
+ */
+export function AddCard ({ onClick, label }) {
+  return (
+    <button
+      type='button'
+      onClick={onClick}
+      className={cn(
+        CARD_CLASS,
+        'border-2 border-dashed border-foreground/25 hover:border-foreground/50 bg-transparent shadow-none hover:shadow-none items-center justify-center gap-2 text-foreground/70 hover:text-foreground'
+      )}
+    >
+      <span className='w-14 h-14 rounded-[15px] grid place-items-center border-2 border-dashed border-foreground/25'>
+        <Plus className='w-6 h-6' />
+      </span>
+      <span className={cn(CARD_TITLE_CLASS, 'px-3')}>{label}</span>
+    </button>
+  )
+}
+
 /** Card for a GroupView, themed by its postType color. */
 export default function GroupViewCard ({ view, isEditing, onAddToMenu, onOpen, onOpenSettings, onDelete, renderEditActions = true }) {
   const { t } = useTranslation()
