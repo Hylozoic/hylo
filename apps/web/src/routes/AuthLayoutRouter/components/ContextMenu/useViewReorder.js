@@ -36,12 +36,43 @@ export async function persistViewReorder (dispatch, movedView, params, { parentG
 }
 
 /**
- * Shared drag-to-reorder handler for group views, so the edit list and the card
- * grid stay on one implementation of the ordering rules (home view at index 0,
- * insert-before semantics, optimistic local order with rollback on failure).
- *
- * The returned handler takes the dnd-kit event plus the list that was being
- * dragged, and applies the new order through `setLocalViews` before persisting.
+ * Commit an already-decided order. `previousOrder` is what to roll back to if the
+ * mutation fails. Shared by both entry points below so the ordering rules — home
+ * view at index 0, insert-before semantics, rollback and refetch on failure —
+ * have a single implementation.
+ */
+async function commitOrder (dispatch, { finalOrder, movedView, newIndex, previousOrder, targetGroupId, parentGroupId, setLocalViews, onReordered }) {
+  // External links (and other non-home types) cannot become the home view.
+  if (!canBeHomeView(finalOrder[0])) {
+    setLocalViews?.(previousOrder)
+    onReordered?.(previousOrder)
+    return
+  }
+
+  const params = getReorderParams(finalOrder, newIndex)
+
+  setLocalViews?.(finalOrder)
+  onReordered?.(finalOrder)
+
+  try {
+    await persistViewReorder(dispatch, movedView, params, {
+      parentGroupId,
+      targetGroupId,
+      reorderedItems: finalOrder
+    })
+  } catch (error) {
+    console.error('Failed to reorder views:', error)
+    setLocalViews?.(previousOrder)
+    onReordered?.(previousOrder)
+    if (parentGroupId) {
+      await dispatch(fetchGroupViews(parentGroupId))
+    }
+  }
+}
+
+/**
+ * Drag-to-reorder handler for lists that keep their DOM order fixed during the
+ * drag and hand over the dnd-kit event at the end.
  */
 export default function useViewReorder (group) {
   const dispatch = useDispatch()
@@ -54,30 +85,40 @@ export default function useViewReorder (group) {
     const newIndex = listViews.findIndex(v => String(v.id) === String(over.id))
     if (oldIndex === -1 || newIndex === -1) return
 
-    const movedView = listViews[oldIndex]
-    const finalOrder = arrayMove(listViews, oldIndex, newIndex)
-    // External links (and other non-home types) cannot become the home view.
-    if (!canBeHomeView(finalOrder[0])) return
+    await commitOrder(dispatch, {
+      finalOrder: arrayMove(listViews, oldIndex, newIndex),
+      movedView: listViews[oldIndex],
+      newIndex,
+      previousOrder: listViews,
+      targetGroupId,
+      parentGroupId: parentGroupId || group?.id,
+      setLocalViews,
+      onReordered
+    })
+  }, [dispatch, group?.id])
+}
 
-    const params = getReorderParams(finalOrder, newIndex)
-    const resolvedParentGroupId = parentGroupId || group?.id
+/**
+ * Commit an order that the caller has already applied — for layouts that reorder
+ * themselves live during the drag, where the list is final by the time the drag
+ * ends.
+ */
+export function useCommitViewOrder (group) {
+  const dispatch = useDispatch()
 
-    setLocalViews?.(finalOrder)
-    onReordered?.(finalOrder)
+  return useCallback(async (finalOrder, movedId, targetGroupId, { previousOrder, setLocalViews, onReordered, parentGroupId } = {}) => {
+    const newIndex = finalOrder.findIndex(v => String(v.id) === String(movedId))
+    if (newIndex === -1) return
 
-    try {
-      await persistViewReorder(dispatch, movedView, params, {
-        parentGroupId: resolvedParentGroupId,
-        targetGroupId,
-        reorderedItems: finalOrder
-      })
-    } catch (error) {
-      console.error('Failed to reorder views:', error)
-      setLocalViews?.(listViews)
-      onReordered?.(listViews)
-      if (resolvedParentGroupId) {
-        await dispatch(fetchGroupViews(resolvedParentGroupId))
-      }
-    }
+    await commitOrder(dispatch, {
+      finalOrder,
+      movedView: finalOrder[newIndex],
+      newIndex,
+      previousOrder: previousOrder || finalOrder,
+      targetGroupId,
+      parentGroupId: parentGroupId || group?.id,
+      setLocalViews,
+      onReordered
+    })
   }, [dispatch, group?.id])
 }

@@ -10,12 +10,12 @@ import {
 } from '@dnd-kit/core'
 import {
   SortableContext,
+  arrayMove,
   rectSortingStrategy,
   sortableKeyboardCoordinates,
   useSortable
 } from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 
@@ -24,7 +24,7 @@ import { mergeOrderedViewsFromSource, sortViewsByMenuOrder } from 'store/util/gr
 import { cn } from 'util/index'
 
 import GroupViewCard, { CardEditActions } from './GroupViewCard'
-import useViewReorder from './useViewReorder'
+import { useCommitViewOrder } from './useViewReorder'
 
 // Mouse drags start as soon as the pointer travels a few pixels. Touch needs the
 // hold instead, because a finger moving over a card is a scroll until proven
@@ -62,7 +62,7 @@ function FullWidthRow ({ view, spaceGroup, t }) {
 function SortableViewItem ({ view, spaceGroup, onOpenSettings, onDelete, t }) {
   const presented = GroupViewPresenter(view)
   const isFullWidth = presented.type === 'text' || presented.type === 'separator'
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+  const { attributes, listeners, setNodeRef, isDragging } = useSortable({
     id: String(view.id),
     disabled: !view.id
   })
@@ -70,15 +70,12 @@ function SortableViewItem ({ view, spaceGroup, onOpenSettings, onDelete, t }) {
   return (
     <div
       ref={setNodeRef}
-      style={{
-        // Translate, not Transform: Transform carries dnd-kit's scaleX/scaleY, which
-        // stretch each item toward the footprint of whatever it is displacing. With
-        // cards and full-width text rows in one list that distorts badly — a card
-        // scaled into a text row's rect turns into a wide, ~30px-tall sliver.
-        transform: CSS.Translate.toString(transform),
-        transition,
-        opacity: isDragging ? 0.4 : 1
-      }}
+      // Deliberately no transform from useSortable. Its sorting preview paints
+      // translations over the pre-drag layout, which assumes evenly sized items —
+      // with full-width text rows among the cards it slid them into the card rows.
+      // The grid reorders itself for real on drag-over instead, so flex-wrap keeps
+      // a full-width row breaking the line and starting its own.
+      style={{ opacity: isDragging ? 0.4 : 1 }}
       className={cn(
         'group relative cursor-grab active:cursor-grabbing',
         isFullWidth && 'w-full',
@@ -115,7 +112,7 @@ export default function SortableViewsGrid ({
   onDelete
 }) {
   const { t } = useTranslation()
-  const handleReorder = useViewReorder(group)
+  const commitOrder = useCommitViewOrder(group)
   const visibleViews = useMemo(
     () => sortViewsByMenuOrder((views || []).filter(v => v.order != null)),
     [views]
@@ -139,20 +136,56 @@ export default function SortableViewsGrid ({
     () => orderedViews.find(v => String(v.id) === activeId) || null,
     [orderedViews, activeId]
   )
+  // The order as it stood before this drag, to roll back to if the mutation fails
+  const preDragOrder = useRef(null)
+
+  const handleDragStart = (e) => {
+    preDragOrder.current = orderedViews
+    setActiveId(String(e.active.id))
+  }
+
+  // Reorder as the pointer moves so the grid reflows for real — this is what keeps
+  // a full-width row breaking its line instead of being painted over the cards.
+  const handleDragOver = ({ active, over }) => {
+    if (!over || active.id === over.id) return
+    setOrderedViews(prev => {
+      const oldIndex = prev.findIndex(v => String(v.id) === String(active.id))
+      const newIndex = prev.findIndex(v => String(v.id) === String(over.id))
+      if (oldIndex === -1 || newIndex === -1) return prev
+      return arrayMove(prev, oldIndex, newIndex)
+    })
+  }
+
+  const handleDragEnd = () => {
+    const previousOrder = preDragOrder.current
+    const movedId = activeId
+    preDragOrder.current = null
+    setActiveId(null)
+    if (!movedId || !previousOrder) return
+    // Nothing to persist when the drag ended where it began
+    if (previousOrder.map(v => String(v.id)).join() === orderedViews.map(v => String(v.id)).join()) return
+
+    commitOrder(orderedViews, movedId, targetGroupId || group?.id, {
+      previousOrder,
+      setLocalViews: setOrderedViews,
+      parentGroupId: group?.id
+    })
+  }
+
+  const handleDragCancel = () => {
+    if (preDragOrder.current) setOrderedViews(preDragOrder.current)
+    preDragOrder.current = null
+    setActiveId(null)
+  }
 
   return (
     <DndContext
       sensors={sensors}
       collisionDetection={closestCenter}
-      onDragStart={(e) => setActiveId(String(e.active.id))}
-      onDragCancel={() => setActiveId(null)}
-      onDragEnd={(e) => {
-        setActiveId(null)
-        handleReorder(e, orderedViews, targetGroupId || group?.id, {
-          setLocalViews: setOrderedViews,
-          parentGroupId: group?.id
-        })
-      }}
+      onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
+      onDragCancel={handleDragCancel}
+      onDragEnd={handleDragEnd}
     >
       <SortableContext items={ids} strategy={rectSortingStrategy}>
         <div className='flex flex-wrap gap-3'>
