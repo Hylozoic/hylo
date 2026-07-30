@@ -99,10 +99,10 @@ export function AddCard ({ onClick, label }) {
       onClick={onClick}
       className={cn(
         CARD_CLASS,
-        'border-2 border-dashed border-foreground/25 hover:border-foreground/50 bg-transparent shadow-none hover:shadow-none items-center justify-center gap-2 text-foreground/70 hover:text-foreground'
+        'border-2 border-dashed border-foreground/[0.12] hover:border-foreground/30 bg-transparent shadow-none hover:shadow-none items-center justify-center gap-2 text-foreground/50 hover:text-foreground/80'
       )}
     >
-      <span className='w-14 h-14 rounded-[15px] grid place-items-center border-2 border-dashed border-foreground/25'>
+      <span className='w-14 h-14 rounded-[15px] grid place-items-center border-2 border-dashed border-foreground/[0.12]'>
         <Plus className='w-6 h-6' />
       </span>
       <span className={cn(CARD_TITLE_CLASS, 'px-3')}>{label}</span>
