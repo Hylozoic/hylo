@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next'
 import { Plus, Settings, Trash2 } from 'lucide-react'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 
-import Avatar from 'components/Avatar'
 import LucideIcon from 'components/LucideIcon/LucideIcon'
 import useAppearance from 'hooks/useAppearance'
 import { DEFAULT_BANNER } from 'store/models/Group'
@@ -93,6 +92,13 @@ export default function GroupViewCard ({ view, isEditing, onAddToMenu, onOpen, o
   const col = viewCardColor(presented)
   const tint = cardFieldTint(col, effectiveColorScheme)
   const ink = inkOn(col)
+  // Views backed by a group (spaces, groups, members) show that group's banner as
+  // the card, matching how the one-column grid renders them; icon views keep the
+  // tinted gradient and wallpaper.
+  const bgImageUrl = presented.avatarUrl
+    ? (presented.linkedGroup?.bannerUrl || presented.avatarUrl)
+    : null
+  const onPhoto = Boolean(bgImageUrl)
 
   const handleOpen = () => {
     if (isEditing) return
@@ -103,11 +109,16 @@ export default function GroupViewCard ({ view, isEditing, onAddToMenu, onOpen, o
     <div
       className={cn(CARD_CLASS, cardChrome(isDark), isEditing && 'cursor-default')}
       style={{
-        background: cardGradient(col, effectiveColorScheme),
-        // Light mode: border takes the view color — faint at rest, full on hover
-        ...(!isDark ? { borderColor: hover && !isEditing ? col : `${col}33` } : {}),
+        background: onPhoto ? cardNeutralBg(effectiveColorScheme) : cardGradient(col, effectiveColorScheme),
+        // Light mode: border takes the view color — faint at rest, full on hover.
+        // Photo-backed cards read better with a soft white edge than a dark hairline.
+        ...(!isDark
+          ? onPhoto
+            ? { borderColor: `hsl(0 0% 100% / ${hover && !isEditing ? 0.55 : 0.25})` }
+            : { borderColor: hover && !isEditing ? col : `${col}33` }
+          : {}),
         boxShadow: hover && !isEditing
-          ? `${cardHoverShadow(isDark)}, ${cardHoverRing(col)}`
+          ? `${cardHoverShadow(isDark)}, ${onPhoto ? cardRestRing(col) : cardHoverRing(col)}`
           : `${cardRestShadow(isDark)}, ${cardRestRing(col)}`
       }}
       onMouseEnter={() => setHover(true)}
@@ -123,23 +134,42 @@ export default function GroupViewCard ({ view, isEditing, onAddToMenu, onOpen, o
         }
       }}
     >
-      <CardIconField view={presented} tint={tint} w={CARD_W} h={CARD_H} />
-      <div className={CARD_FADE_CLASS} style={{ background: cardFadeGradient(effectiveColorScheme) }} />
+      {onPhoto
+        ? (
+          <>
+            <div className='absolute inset-0 bg-cover bg-center' style={bgImageStyle(bgImageUrl)} />
+            <div className='absolute inset-0' style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.6) 100%)' }} />
+          </>
+          )
+        : (
+          <>
+            <CardIconField view={presented} tint={tint} w={CARD_W} h={CARD_H} />
+            <div className={CARD_FADE_CLASS} style={{ background: cardFadeGradient(effectiveColorScheme) }} />
+          </>
+          )}
       <div className='relative h-full'>
         <div className='absolute inset-0 grid place-items-center'>
           <div
-            className='w-14 h-14 rounded-[15px] grid place-items-center shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.35)]'
-            style={{ background: col, color: ink, border: `1px solid color-mix(in srgb, ${col} 55%, white)` }}
+            className='w-14 h-14 rounded-[15px] overflow-hidden grid place-items-center shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.35)]'
+            style={presented.avatarUrl
+              ? { border: '1px solid hsl(0 0% 100% / 0.28)' }
+              : { background: col, color: ink, border: `1px solid color-mix(in srgb, ${col} 55%, white)` }}
           >
-            <span className='flex items-center justify-center w-[26px] h-[26px] [&>svg]:!w-full [&>svg]:!h-full [&>img]:!w-full [&>img]:!h-full [&>span]:!text-[26px] [&>span]:!leading-none'>
-              <GroupViewIcon view={presented} className='!w-[26px] !h-[26px] !mr-0' />
-            </span>
+            {/* An avatar fills the tile — RoundImage hard-codes its own small size,
+                so it can't be scaled up through GroupViewIcon's className. */}
+            {presented.avatarUrl
+              ? <div className='w-full h-full bg-cover bg-center' style={bgImageStyle(presented.avatarUrl)} />
+              : (
+                <span className='flex items-center justify-center w-[26px] h-[26px] [&>svg]:!w-full [&>svg]:!h-full [&>img]:!w-full [&>img]:!h-full [&>span]:!text-[26px] [&>span]:!leading-none'>
+                  <GroupViewIcon view={presented} className='!w-[26px] !h-[26px] !mr-0' />
+                </span>
+                )}
           </div>
         </div>
         <div className='absolute left-0 right-0 top-[calc(50%+28px)] bottom-0 flex flex-col items-center justify-center text-center px-3'>
           <h3 className={cn(
             CARD_TITLE_CLASS,
-            isDark ? 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]' : 'text-foreground'
+            (isDark || onPhoto) ? 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]' : 'text-foreground'
           )}
           >{title}
           </h3>
@@ -198,13 +228,16 @@ export function SpaceViewCard ({ space, isEditing, onOpen, onAddToMenu, onOpenSe
       <div className='relative h-full'>
         <div className='absolute inset-0 grid place-items-center'>
           <div
-            className={cn('w-14 h-14 rounded-[15px] grid place-items-center shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.35)]', onLightSurface ? 'text-foreground/80' : 'text-white')}
-            style={onLightSurface
-              ? { background: 'hsl(0 0% 0% / 0.06)', border: '1px solid hsl(0 0% 0% / 0.15)' }
-              : { background: 'hsl(0 0% 100% / 0.16)', backdropFilter: 'blur(4px)', border: '1px solid hsl(0 0% 100% / 0.28)' }}
+            className={cn('w-14 h-14 rounded-[15px] overflow-hidden grid place-items-center shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.35)]', onLightSurface ? 'text-foreground/80' : 'text-white')}
+            style={space.avatarUrl
+              ? { border: '1px solid hsl(0 0% 100% / 0.28)' }
+              : onLightSurface
+                ? { background: 'hsl(0 0% 0% / 0.06)', border: '1px solid hsl(0 0% 0% / 0.15)' }
+                : { background: 'hsl(0 0% 100% / 0.16)', backdropFilter: 'blur(4px)', border: '1px solid hsl(0 0% 100% / 0.28)' }}
           >
+            {/* The avatar fills the tile rather than floating inside it */}
             {space.avatarUrl
-              ? <Avatar avatarUrl={space.avatarUrl} name={space.name} medium className='!w-10 !h-10' />
+              ? <div className='w-full h-full bg-cover bg-center' style={bgImageStyle(space.avatarUrl)} />
               : space.icon
                 ? <LucideIcon name={space.icon} className='w-7 h-7' />
                 : <div className={cn('w-7 h-7 rounded-full', onLightSurface ? 'bg-black/15' : 'bg-white/20')} />}

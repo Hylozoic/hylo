@@ -244,14 +244,22 @@ function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
 
   const iconTile = (
     <div
-      className='w-14 h-14 rounded-[15px] grid place-items-center shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.35)]'
-      style={bgImageUrl
-        ? { background: 'hsl(0 0% 100% / 0.16)', backdropFilter: 'blur(4px)', color: 'white', border: '1px solid hsl(0 0% 100% / 0.28)' }
-        : { background: col, color: ink, border: `1px solid color-mix(in srgb, ${col} 55%, white)` }}
+      className='w-14 h-14 rounded-[15px] overflow-hidden grid place-items-center shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.35)]'
+      style={presentedView.avatarUrl
+        ? { border: '1px solid hsl(0 0% 100% / 0.28)' }
+        : bgImageUrl
+          ? { background: 'hsl(0 0% 100% / 0.16)', backdropFilter: 'blur(4px)', color: 'white', border: '1px solid hsl(0 0% 100% / 0.28)' }
+          : { background: col, color: ink, border: `1px solid color-mix(in srgb, ${col} 55%, white)` }}
     >
-      <span className='flex items-center justify-center w-[26px] h-[26px] [&>svg]:!w-full [&>svg]:!h-full [&>img]:!w-full [&>img]:!h-full [&>span]:!text-[26px] [&>span]:!leading-none'>
-        <GroupViewIcon view={presentedView} className='!w-[26px] !h-[26px] !mr-0' />
-      </span>
+      {/* An avatar fills the tile — RoundImage hard-codes its own small size, so it
+          can't be scaled up through GroupViewIcon's className. */}
+      {presentedView.avatarUrl
+        ? <div className='w-full h-full bg-cover bg-center' style={bgImageStyle(presentedView.avatarUrl)} />
+        : (
+          <span className='flex items-center justify-center w-[26px] h-[26px] [&>svg]:!w-full [&>svg]:!h-full [&>img]:!w-full [&>img]:!h-full [&>span]:!text-[26px] [&>span]:!leading-none'>
+            <GroupViewIcon view={presentedView} className='!w-[26px] !h-[26px] !mr-0' />
+          </span>
+          )}
     </div>
   )
 
@@ -396,17 +404,16 @@ function MoreSpacesCard ({ onClick, t }) {
   )
 }
 
-/** Nested More Views and Spaces grid with section headers. Supports edit mode actions. */
-function MoreSpacesGrid ({
-  group,
-  groupSlug,
-  navigate,
-  t,
-  isEditing = false,
-  onOpenSettings,
-  onOpenSpaceSettings
-}) {
-  const dispatch = useDispatch()
+/**
+ * Everything behind More Views and Spaces: the visible sections, whether there is
+ * anything there at all, and whether we are still finding out. One hook so the
+ * card that links here can't disagree with what this page would render — the
+ * off-menu views come from groupViews, but the track/round/space buckets need
+ * spaces to have been fetched, so a caller that hasn't fetched them would think
+ * the page was empty.
+ */
+function useMoreSpacesContent (group) {
+  const { t } = useTranslation()
   const sectionsRaw = useSelector(state => getMoreViewsSections(state, group))
   const canManageSpaces = useSelector(state => hasResponsibilityForGroup(state, {
     responsibility: RESP_MANAGE_SPACES,
@@ -427,6 +434,58 @@ function MoreSpacesGrid ({
     isPendingFor([FETCH_GROUP_SPACES, FETCH_GROUP_RELATIONSHIPS], state)
   )
   const hasRelatedGroups = parentGroups.length + childGroups.length + peerGroups.length > 0
+
+  const offMenuViews = useMemo(() => {
+    const views = (sections.offMenuViews || []).filter(view => {
+      if (view.type === 'related-groups' && !hasRelatedGroups) return false
+      return true
+    })
+    return [...views].sort((a, b) =>
+      displayNameForView(GroupViewPresenter(a), t).localeCompare(
+        displayNameForView(GroupViewPresenter(b), t)
+      )
+    )
+  }, [sections.offMenuViews, hasRelatedGroups])
+
+  const showViews = offMenuViews.length > 0
+  const showTracks = sections.trackSpaces?.length > 0
+  const showFundingRounds = sections.fundingRoundSpaces?.length > 0
+  const showOtherSpaces = sections.otherSpaces?.length > 0
+
+  return {
+    sections,
+    offMenuViews,
+    canManageSpaces,
+    pending,
+    showViews,
+    showTracks,
+    showFundingRounds,
+    showOtherSpaces,
+    hasContent: showViews || showTracks || showFundingRounds || showOtherSpaces
+  }
+}
+
+/** Nested More Views and Spaces grid with section headers. Supports edit mode actions. */
+function MoreSpacesGrid ({
+  group,
+  groupSlug,
+  navigate,
+  t,
+  isEditing = false,
+  onOpenSettings,
+  onOpenSpaceSettings
+}) {
+  const dispatch = useDispatch()
+  const {
+    sections,
+    offMenuViews,
+    pending,
+    showViews,
+    showTracks,
+    showFundingRounds,
+    showOtherSpaces,
+    hasContent
+  } = useMoreSpacesContent(group)
   const groupViews = useSelector(state => getGroupViews(state, group))
 
   useEffect(() => {
@@ -510,24 +569,6 @@ function MoreSpacesGrid ({
       console.error('Failed to delete space:', error)
     }
   }, [dispatch, group?.id, t])
-
-  const offMenuViews = useMemo(() => {
-    const views = (sections.offMenuViews || []).filter(view => {
-      if (view.type === 'related-groups' && !hasRelatedGroups) return false
-      return true
-    })
-    return [...views].sort((a, b) =>
-      displayNameForView(GroupViewPresenter(a), t).localeCompare(
-        displayNameForView(GroupViewPresenter(b), t)
-      )
-    )
-  }, [sections.offMenuViews, hasRelatedGroups, t])
-
-  const showViews = offMenuViews.length > 0
-  const showTracks = sections.trackSpaces?.length > 0
-  const showFundingRounds = sections.fundingRoundSpaces?.length > 0
-  const showOtherSpaces = sections.otherSpaces?.length > 0
-  const hasContent = showViews || showTracks || showFundingRounds || showOtherSpaces
 
   if (pending && !hasContent) {
     return <ViewsGridSkeleton />
@@ -661,6 +702,17 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
   useEffect(() => {
     if (!isContextMode && menuGroup?.id) dispatch(fetchGroupViews(menuGroup.id))
   }, [dispatch, menuGroup?.id, isContextMode])
+
+  // Whether to offer More Views and Spaces at all. MoreSpacesGrid fetches these
+  // itself once you are on that level, so only fetch here — where the card lives —
+  // to avoid asking twice.
+  const moreSpaces = useMoreSpacesContent(group)
+  const showMoreSpacesCard = moreSpaces.hasContent || moreSpaces.pending
+  useEffect(() => {
+    if (isContextMode || isMoreSpacesLevel || spaceGroup || !group?.id || !groupSlug) return
+    dispatch(fetchGroupSpaces(group.id))
+    dispatch(fetchGroupRelationships(groupSlug))
+  }, [dispatch, isContextMode, isMoreSpacesLevel, spaceGroup, group?.id, groupSlug])
 
   const groupViews = useSelector(state => isContextMode ? [] : getGroupViews(state, menuGroup))
   const viewsPending = useSelector(state => isPendingFor(FETCH_GROUP_VIEWS, state))
@@ -853,7 +905,7 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
                       t={t}
                     />
                     )}
-                {!isContextMode && !spaceGroup && (
+                {!isContextMode && !spaceGroup && showMoreSpacesCard && (
                   <div className='flex flex-wrap gap-3'>
                     <MoreSpacesCard
                       onClick={() => navigate(groupUrl(groupSlug, 'more-views'))}

@@ -76,7 +76,7 @@ function UnreadDot () {
 // link color so the global link-hover green never shows.
 // Rows sit flush against each other and keep their margin on hover, so hovering
 // never shifts the rows below it.
-const GROUP_VIEW_MENU_ITEM_CLASS = 'flex items-center gap-2 text-base font-semibold text-foreground hover:text-foreground border-2 border-transparent rounded-md p-1 pl-2 my-0 w-full transition-all duration-200 ease-out scale-100 hover:scale-102 active:scale-[0.985] active:translate-y-[0.5px] active:duration-[50ms] opacity-85 hover:opacity-100'
+const GROUP_VIEW_MENU_ITEM_CLASS = 'flex items-center gap-2 text-base font-medium text-foreground hover:text-foreground border-2 border-transparent rounded-md p-1 pl-2 my-0 w-full transition-all duration-200 ease-out scale-100 hover:scale-102 active:scale-[0.985] active:translate-y-[0.5px] active:duration-[50ms] opacity-85 hover:opacity-100'
 
 /** MenuLink overrides when nested inside a styled space row wrapper. hover:text-foreground
  *  pins the anchor's color against the global link-hover green. */
@@ -380,7 +380,7 @@ function GroupViewList ({
             <button
               type='button'
               onClick={handleOpenSpaceSettings}
-              className='flex items-center gap-2 text-base text-foreground hover:text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 w-full transition-all opacity-85 hover:opacity-100'
+              className='flex items-center gap-2 text-base font-medium text-foreground hover:text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 w-full transition-all opacity-85 hover:opacity-100'
             >
               <Settings className='w-4 h-4' />
               <span>{t('Space Settings')}</span>
@@ -600,13 +600,14 @@ export default function ContextMenu (props) {
       )
     : null
 
-  const moreSpacesSection = isGroupContext && group?.id && !showingSpaceMenu
+  // Nothing behind it means no row — admins still reach the page via Edit Menu
+  const moreSpacesSection = isGroupContext && group?.id && !showingSpaceMenu && moreViewsCount > 0
     ? (
       <div className='px-3 pb-2 border-t border-foreground/10 pt-2'>
         {isEditing
           ? (
             <div
-              className='flex items-center gap-2 text-base text-foreground/40 border-2 border-transparent rounded-md p-1 pl-2 w-full cursor-not-allowed opacity-60'
+              className='flex items-center gap-2 text-base font-medium text-foreground/40 border-2 border-transparent rounded-md p-1 pl-2 w-full cursor-not-allowed opacity-60'
               aria-disabled='true'
             >
               <CircleEllipsis className='w-4 h-4 shrink-0' />
@@ -617,7 +618,7 @@ export default function ContextMenu (props) {
           : (
             <MenuLink
               to={groupUrl(groupSlug, 'more-views')}
-              className='flex items-center gap-2 text-base text-foreground hover:text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 w-full transition-all opacity-85 hover:opacity-100'
+              className='flex items-center gap-2 text-base font-medium text-foreground hover:text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 w-full transition-all opacity-85 hover:opacity-100'
             >
               <CircleEllipsis className='w-4 h-4 shrink-0' />
               <span>{t('More Views and Spaces')}</span>
@@ -641,7 +642,7 @@ export default function ContextMenu (props) {
               })
           }
           isEditing={isEditing}
-          className='flex items-center gap-2 text-base text-foreground hover:text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 w-full transition-all opacity-85 hover:opacity-100'
+          className='flex items-center gap-2 text-base font-medium text-foreground hover:text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 w-full transition-all opacity-85 hover:opacity-100'
         >
           <Pencil className='w-4 h-4' />
           <span>{isEditing ? t('Done Editing') : t('Edit Menu')}</span>
