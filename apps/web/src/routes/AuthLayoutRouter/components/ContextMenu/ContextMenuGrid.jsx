@@ -786,7 +786,8 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
         </div>
       )}
 
-      <div className='w-full max-w-[1000px] mx-auto px-4 py-6'>
+      {/* Extra room up top so the first row of cards clears the banner edge */}
+      <div className='w-full max-w-[1000px] mx-auto px-4 pt-10 pb-6'>
         {isNestedLevel && (
           <StickyBackHeader title={nestedTitle} onBack={handleBack} t={t} />
         )}
