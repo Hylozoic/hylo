@@ -497,7 +497,9 @@ export default function ViewContent (props) {
     return null
   }, [streamViewConfig, topicName, t])
 
-  const noPostsMessage = view === 'events' ? t('No {{timeFrame}} events', { timeFrame: timeframe === 'future' ? t('upcoming') : t('past') }) : 'No posts'
+  const noPostsMessage = view === 'events'
+    ? t('No {{timeFrame}} events', { timeFrame: timeframe === 'future' ? t('upcoming') : t('past') })
+    : t('Nothing here yet — be the first to post')
 
   const calendarInitialLoading = (pending || topicBlockingStreams || customViewLoading) && isCalendarViewMode && posts.length === 0
   const calendarFetchingMore = pending && isCalendarViewMode && posts.length > 0

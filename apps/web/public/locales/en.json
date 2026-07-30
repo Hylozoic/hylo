@@ -739,7 +739,7 @@
   "Hi {{firstName}}, click here to create a project": "Hi {{firstName}}, click here to create a project",
   "Hi {{firstName}}, click here to create a proposal": "Hi {{firstName}}, click here to create a proposal",
   "Hi {{firstName}}, click here to create a request": "Hi {{firstName}}, click here to create a request",
-  "Hi {{firstName}}, click here to create a resource": "Hi {{firstName}}, click here to create an resource",
+  "Hi {{firstName}}, click here to create a resource": "Hi {{firstName}}, click here to create a resource",
   "Hi {{firstName}}, click here to create an event": "Hi {{firstName}}, click here to create an event",
   "Hi {{firstName}}, click here to create an offer": "Hi {{firstName}}, click here to create an offer",
   "Hi!\n\nI'm inviting you to join {{name}} on Hylo.\n\n{{name}} is using Hylo for our online community: this is our dedicated space for communication & collaboration.": "Hi!\n\nI'm inviting you to join {{name}} on Hylo.\n\n{{name}} is using Hylo for our online community: this is our dedicated space for communication & collaboration.",
@@ -2483,6 +2483,7 @@
   "Add attachment": "Add attachment",
   "Image viewer": "Image viewer",
   "Next image": "Next image",
+  "Nothing here yet — be the first to post": "Nothing here yet — be the first to post",
   "Previous image": "Previous image",
   "Toggle formatting toolbar": "Toggle formatting toolbar"
 }
