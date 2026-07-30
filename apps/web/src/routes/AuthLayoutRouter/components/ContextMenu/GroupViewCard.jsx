@@ -102,7 +102,8 @@ export function AddCard ({ onClick, label }) {
         'border-2 border-dashed border-foreground/[0.12] hover:border-foreground/30 bg-transparent shadow-none hover:shadow-none items-center justify-center gap-2 text-foreground/50 hover:text-foreground/80'
       )}
     >
-      <span className='w-14 h-14 rounded-[15px] grid place-items-center border-2 border-dashed border-foreground/[0.12]'>
+      {/* The tile keeps its weight so the target still reads while the card outline recedes */}
+      <span className='w-14 h-14 rounded-[15px] grid place-items-center border-2 border-dashed border-foreground/25'>
         <Plus className='w-6 h-6' />
       </span>
       <span className={cn(CARD_TITLE_CLASS, 'px-3')}>{label}</span>

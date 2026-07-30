@@ -2,7 +2,8 @@ import {
   DndContext,
   closestCenter,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors
 } from '@dnd-kit/core'
@@ -24,10 +25,14 @@ import { cn } from 'util/index'
 import GroupViewCard, { CardEditActions } from './GroupViewCard'
 import useViewReorder from './useViewReorder'
 
-// A hold rather than an immediate grab, so a touch drag can be told apart from a
-// scroll. This is also why the card needs no touch-action override — the page
-// still scrolls under a finger until the hold completes.
-const DRAG_ACTIVATION = { delay: 180, tolerance: 8 }
+// Mouse drags start as soon as the pointer travels a few pixels. Touch needs the
+// hold instead, because a finger moving over a card is a scroll until proven
+// otherwise — which is also why the cards need no touch-action override.
+// These have to be separate sensors: a delay constraint on a shared PointerSensor
+// applies the hold to the mouse as well, and any movement inside the delay
+// cancels activation, so an ordinary press-and-drag never starts.
+const MOUSE_ACTIVATION = { distance: 5 }
+const TOUCH_ACTIVATION = { delay: 180, tolerance: 8 }
 
 /** Full-width stand-ins for the text and separator rows, so they reorder with the cards. */
 function FullWidthRow ({ view, spaceGroup, t }) {
@@ -119,7 +124,8 @@ export default function SortableViewsGrid ({
   }, [visibleViews])
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: DRAG_ACTIVATION }),
+    useSensor(MouseSensor, { activationConstraint: MOUSE_ACTIVATION }),
+    useSensor(TouchSensor, { activationConstraint: TOUCH_ACTIVATION }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
 
