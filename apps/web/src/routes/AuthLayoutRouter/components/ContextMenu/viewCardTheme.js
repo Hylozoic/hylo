@@ -36,8 +36,13 @@ export const CARD_TITLE_CLASS = 'text-sm font-bold line-clamp-2 m-0 leading-[1.1
  * themes — each is a mini canvas tinted by its view's brand color, per the
  * one-column dashboard design. Below sm the width is fluid, so the aspect ratio
  * (14/13 — the same proportion as CARD_W/CARD_H) stands in for the fixed size.
+ *
+ * The sub-sm width subtracts half of the grid's gap-3 so two cards fit a row
+ * exactly. It has to be expressed in rem, not px: gap-3 is 0.75rem, so on a
+ * phone (where the root font size is larger) a hardcoded 6px left the pair
+ * fractionally over 100% and wrapped them one per row.
  */
-export const CARD_CLASS = 'group relative flex flex-col overflow-hidden rounded-2xl border transition-all w-[calc(50%-6px)] aspect-[14/13] sm:w-[168px] sm:h-[156px] sm:aspect-auto cursor-pointer hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] active:duration-[50ms]'
+export const CARD_CLASS = 'group relative flex flex-col overflow-hidden rounded-2xl border transition-all w-[calc(50%-0.375rem)] aspect-[14/13] sm:w-[168px] sm:h-[156px] sm:aspect-auto cursor-pointer hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] active:duration-[50ms]'
 
 /** Scheme-dependent card border + resting shadow. */
 export function cardChrome (isDark) {
