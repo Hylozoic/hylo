@@ -126,9 +126,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     bundleIdentifier: IOS_BUNDLE_ID,
     ...(BUILD_NUMBER ? { buildNumber: BUILD_NUMBER } : {}),
     ...(process.env.APPLE_TEAM_ID ? { appleTeamId: process.env.APPLE_TEAM_ID } : {}),
+    infoPlist: {
+      // Same as legacy apps/mobile — only HTTPS via OS APIs; skip export compliance prompt on upload
+      ITSAppUsesNonExemptEncryption: false,
+      ...(ONESIGNAL_APP_ID ? { UIBackgroundModes: ['remote-notification'] } : {})
+    },
     ...(ONESIGNAL_APP_ID
       ? {
-          infoPlist: { UIBackgroundModes: ['remote-notification'] },
           entitlements: {
             'aps-environment': ONESIGNAL_APN_MODE,
             'com.apple.security.application-groups': [`group.${IOS_BUNDLE_ID}.onesignal`]
