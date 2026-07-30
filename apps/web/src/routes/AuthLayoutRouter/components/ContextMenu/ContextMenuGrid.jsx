@@ -127,10 +127,15 @@ function StickyBackHeader ({ title, onBack, t }) {
   )
 }
 
-/** Full-width text header row in the grid menu. */
+/**
+ * Full-width text header row in the grid menu. Owns the space above itself so a
+ * heading sits closer to the cards it labels than to the section before it. The
+ * other callers nest it as the first child of their own gap-3 column, where
+ * `first:` zeroes this out and their wrapper handles the spacing.
+ */
 function TextSection ({ children }) {
   return (
-    <h2 className='text-base font-semibold text-foreground/70 px-1 w-full'>
+    <h2 className='text-base font-semibold text-foreground/70 px-1 w-full mt-3 first:mt-0'>
       {children}
     </h2>
   )
@@ -144,7 +149,10 @@ function SeparatorSection () {
 /** Renders partitioned view sections as a card grid. */
 function ViewsGrid ({ sections, groupSlug, group, spaceGroup, navigate, t }) {
   return (
-    <div className='flex flex-col gap-6'>
+    // Headings and card rows are flat siblings here, so the gap is the heading's
+    // distance from its own cards — it matches the gap between cards, and
+    // TextSection's own top margin is what separates one section from the next.
+    <div className='flex flex-col gap-3'>
       {sections.map((section, index) => {
         if (section.type === 'text') {
           const presented = GroupViewPresenter(section.view)
