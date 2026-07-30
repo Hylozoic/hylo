@@ -79,6 +79,10 @@ function SortableViewItem ({ view, spaceGroup, onOpenSettings, onDelete, t }) {
       style={{ opacity: isDragging ? 0.4 : 1 }}
       className={cn(
         'group relative cursor-grab active:cursor-grabbing',
+        // A card is a drag handle, not text. Without this a touch drag doubles as a
+        // text selection — the hold that starts the drag is also the gesture iOS
+        // uses to select — and the selection is left behind on release.
+        'select-none [-webkit-touch-callout:none]',
         // The wrapper carries the card footprint so the card's sub-sm percentage
         // width has a sized parent to resolve against
         isFullWidth ? 'w-full' : CARD_SIZE_CLASS,
@@ -143,6 +147,8 @@ export default function SortableViewsGrid ({
   const preDragOrder = useRef(null)
 
   const handleDragStart = (e) => {
+    // A selection made just before the press would otherwise survive the drag
+    if (typeof window !== 'undefined') window.getSelection()?.removeAllRanges?.()
     preDragOrder.current = orderedViews
     setActiveId(String(e.active.id))
   }
