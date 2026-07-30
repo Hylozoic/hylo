@@ -1,5 +1,6 @@
 import {
   DndContext,
+  DragOverlay,
   closestCenter,
   KeyboardSensor,
   MouseSensor,
@@ -70,10 +71,13 @@ function SortableViewItem ({ view, spaceGroup, onOpenSettings, onDelete, t }) {
     <div
       ref={setNodeRef}
       style={{
-        transform: CSS.Transform.toString(transform),
+        // Translate, not Transform: Transform carries dnd-kit's scaleX/scaleY, which
+        // stretch each item toward the footprint of whatever it is displacing. With
+        // cards and full-width text rows in one list that distorts badly — a card
+        // scaled into a text row's rect turns into a wide, ~30px-tall sliver.
+        transform: CSS.Translate.toString(transform),
         transition,
-        opacity: isDragging ? 0.5 : 1,
-        zIndex: isDragging ? 20 : undefined
+        opacity: isDragging ? 0.4 : 1
       }}
       className={cn(
         'group relative cursor-grab active:cursor-grabbing',
@@ -130,15 +134,25 @@ export default function SortableViewsGrid ({
   )
 
   const ids = useMemo(() => orderedViews.map(v => String(v.id)), [orderedViews])
+  const [activeId, setActiveId] = useState(null)
+  const activeView = useMemo(
+    () => orderedViews.find(v => String(v.id) === activeId) || null,
+    [orderedViews, activeId]
+  )
 
   return (
     <DndContext
       sensors={sensors}
       collisionDetection={closestCenter}
-      onDragEnd={(e) => handleReorder(e, orderedViews, targetGroupId || group?.id, {
-        setLocalViews: setOrderedViews,
-        parentGroupId: group?.id
-      })}
+      onDragStart={(e) => setActiveId(String(e.active.id))}
+      onDragCancel={() => setActiveId(null)}
+      onDragEnd={(e) => {
+        setActiveId(null)
+        handleReorder(e, orderedViews, targetGroupId || group?.id, {
+          setLocalViews: setOrderedViews,
+          parentGroupId: group?.id
+        })
+      }}
     >
       <SortableContext items={ids} strategy={rectSortingStrategy}>
         <div className='flex flex-wrap gap-3'>
@@ -154,6 +168,15 @@ export default function SortableViewsGrid ({
           ))}
         </div>
       </SortableContext>
+      {/* The dragged item rides along at its natural size, so the in-flow copy never
+          has to be re-fitted around items of a different shape */}
+      <DragOverlay>
+        {activeView
+          ? (activeView.type === 'text' || activeView.type === 'separator'
+              ? <FullWidthRow view={activeView} spaceGroup={spaceGroup} t={t} />
+              : <GroupViewCard view={activeView} isEditing renderEditActions={false} />)
+          : null}
+      </DragOverlay>
     </DndContext>
   )
 }
