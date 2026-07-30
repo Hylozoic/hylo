@@ -86,6 +86,12 @@ export default defineConfig(({ command }) => ({
       cachedChecks: false
     },
     port: process.env.PORT || 3000,
+    // Allow Bonjour/mDNS hostnames so the dev server can be reached from a phone
+    // on the same wifi as http://<machine-name>.local:3000. A leading dot matches
+    // any *.local name, so this works for every machine without per-host config.
+    // Vite already allows bare IPs, but @virtuoso.dev/message-list watermarks the
+    // chat list on an IP host — it treats *.local (like localhost) as development.
+    allowedHosts: ['.local'],
     // https: process.env.HTTPS === 'true' ? {
     //   key: fs.readFileSync(path.resolve(__dirname, `./config/ssl/${process.env.LOCAL_CERT}.key`)),
     //   cert: fs.readFileSync(path.resolve(__dirname, `./config/ssl/${process.env.LOCAL_CERT}.crt`)),
