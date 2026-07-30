@@ -29,7 +29,9 @@ import {
   CARD_H
 } from './viewCardTheme'
 
-const CARD_ACTION_BTN = 'p-1.5 rounded-md bg-background/90 text-foreground/60 hover:text-foreground pointer-events-auto'
+// cursor-pointer is explicit because the toolbar can sit inside a drag handle,
+// where it would otherwise inherit the grab cursor.
+const CARD_ACTION_BTN = 'p-1.5 rounded-md bg-background/90 text-foreground/60 hover:text-foreground pointer-events-auto cursor-pointer'
 
 /**
  * Edit-mode toolbar in the top-right of a card: +, gear, delete.
@@ -138,8 +140,15 @@ export default function GroupViewCard ({ view, isEditing, onAddToMenu, onOpen, o
   return (
     <div
       // renderEditActions false means a wrapper owns the edit chrome and the drag
-      // listeners, so leave the cursor to it rather than forcing default here.
-      className={cn(CARD_CLASS, cardChrome(isDark), isEditing && renderEditActions && 'cursor-default')}
+      // listeners. cursor is an inherited property, but CARD_CLASS sets
+      // cursor-pointer here, and the cursor comes from the element under the
+      // pointer — so it has to be handed back explicitly for the wrapper's
+      // grab/grabbing states to show over the card.
+      className={cn(
+        CARD_CLASS,
+        cardChrome(isDark),
+        isEditing && (renderEditActions ? 'cursor-default' : 'cursor-[inherit]')
+      )}
       style={{
         background: onPhoto ? cardNeutralBg(effectiveColorScheme) : cardGradient(col, effectiveColorScheme),
         // Light mode: border takes the view color — faint at rest, full on hover.
