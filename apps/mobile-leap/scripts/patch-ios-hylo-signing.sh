@@ -72,3 +72,9 @@ content = patch_hylo_app_configs(content)
 pbx.write_text(content)
 print(f"Patched iOS automatic signing (team {team_id}) in project.pbxproj")
 PY
+
+APP_DELEGATE="$APP_ROOT/ios/Hylo/AppDelegate.swift"
+if [ -f "$APP_DELEGATE" ] && grep -q '^#import' "$APP_DELEGATE"; then
+  sed -i '' '/^#import/d' "$APP_DELEGATE"
+  echo "Removed invalid #import lines from AppDelegate.swift (Intercom pre-8.4 expo plugin)"
+fi
