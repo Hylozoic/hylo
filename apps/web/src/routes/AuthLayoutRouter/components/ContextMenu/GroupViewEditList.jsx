@@ -123,7 +123,7 @@ function SortableEditRow ({ view, onSettings, onHide, onDelete, isHome, spaceGro
         <GripVertical className='w-4 h-4' />
       </button>
       <GroupViewIcon view={presentedView} />
-      <span className='flex-1 truncate text-base text-foreground'>
+      <span className='flex-1 truncate text-base font-semibold text-foreground'>
         {displayNameForView(presentedView, t, { spaceGroup })}
         {isHome && <span className='ml-1 text-xs text-foreground/50'>({t('Home')})</span>}
       </span>
@@ -181,7 +181,7 @@ function SortableSpaceEditRow ({
           <GripVertical className='w-4 h-4' />
         </button>
         <GroupViewIcon view={presentedView} />
-        <span className='flex-1 truncate text-base text-foreground'>
+        <span className='flex-1 truncate text-base font-semibold text-foreground'>
           {displayNameForView(presentedView, t)}
         </span>
         <GroupViewEditActions

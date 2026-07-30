@@ -74,7 +74,9 @@ function UnreadDot () {
 // Rows have no background of their own — the MenuRowBackground texture is the only
 // surface (half strength on hover, full when selected). hover:text-foreground pins the
 // link color so the global link-hover green never shows.
-const GROUP_VIEW_MENU_ITEM_CLASS = 'flex items-center gap-2 text-base font-semibold text-foreground hover:text-foreground border-2 border-transparent rounded-md p-1 pl-2 mb-[.3rem] w-full transition-all duration-200 ease-out scale-100 hover:scale-102 active:scale-[0.985] active:translate-y-[0.5px] active:duration-[50ms] opacity-85 hover:opacity-100'
+// Rows sit flush against each other and keep their margin on hover, so hovering
+// never shifts the rows below it.
+const GROUP_VIEW_MENU_ITEM_CLASS = 'flex items-center gap-2 text-base font-semibold text-foreground hover:text-foreground border-2 border-transparent rounded-md p-1 pl-2 my-0 w-full transition-all duration-200 ease-out scale-100 hover:scale-102 active:scale-[0.985] active:translate-y-[0.5px] active:duration-[50ms] opacity-85 hover:opacity-100'
 
 /** MenuLink overrides when nested inside a styled space row wrapper. hover:text-foreground
  *  pins the anchor's color against the global link-hover green. */
@@ -141,13 +143,13 @@ function GroupViewMenuItem ({
   const onPhotoLabelClass = 'text-white hover:text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.65)]'
 
   if (presentedView.type === 'separator') {
-    return <hr className='border-foreground/10 my-1' />
+    return <hr className='border-foreground/10 mt-5 mb-2' />
   }
 
   if (presentedView.type === 'text') {
     return (
       <li className='list-none'>
-        <p className='text-xs text-foreground/40 px-2 mt-3 mb-1 uppercase tracking-wide'>
+        <p className='text-xs text-foreground/40 px-2 mt-8 mb-1.5 uppercase tracking-wide first:mt-2'>
           {displayNameForView(presentedView, t, { spaceGroup })}
         </p>
       </li>

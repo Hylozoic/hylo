@@ -14,25 +14,22 @@ import GroupViewIcon from './GroupViewIcon'
 import {
   viewCardColor,
   inkOn,
-  fieldSeed,
   cardGradient,
   cardFieldTint,
   cardHoverRing,
   cardRestRing,
-  cardNeutralBg
+  cardNeutralBg,
+  cardFadeGradient,
+  cardChrome,
+  cardHoverShadow,
+  cardRestShadow,
+  CARD_CLASS,
+  CARD_FADE_CLASS,
+  CARD_TITLE_CLASS,
+  CARD_W,
+  CARD_H
 } from './viewCardTheme'
 
-const CARD_CLASS = 'group relative flex flex-col overflow-hidden rounded-2xl border transition-all w-[calc(50%-6px)] aspect-[13/11] sm:w-[208px] sm:h-[176px] sm:aspect-auto cursor-pointer hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] active:duration-[50ms]'
-
-/** Scheme-dependent card border + resting shadow. */
-function cardChrome (isDark) {
-  return isDark
-    ? 'border-white/10 shadow-[0_2px_8px_rgba(0,0,0,0.3)]'
-    : 'border-black/10 shadow-[0_2px_8px_rgba(0,0,0,0.12)]'
-}
-
-const cardHoverShadow = (isDark) => isDark ? '0 12px 30px rgba(0,0,0,0.45)' : '0 12px 30px rgba(0,0,0,0.18)'
-const cardRestShadow = (isDark) => isDark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.12)'
 const CARD_ACTION_BTN = 'p-1.5 rounded-md bg-background/90 text-foreground/60 hover:text-foreground pointer-events-auto'
 
 /** Edit-mode action row at the bottom of a card: +, gear, delete. */
@@ -107,7 +104,8 @@ export default function GroupViewCard ({ view, isEditing, onAddToMenu, onOpen, o
       className={cn(CARD_CLASS, cardChrome(isDark), isEditing && 'cursor-default')}
       style={{
         background: cardGradient(col, effectiveColorScheme),
-        ...(!isDark ? { borderColor: hover && !isEditing ? col : `${col}59` } : {}),
+        // Light mode: border takes the view color — faint at rest, full on hover
+        ...(!isDark ? { borderColor: hover && !isEditing ? col : `${col}33` } : {}),
         boxShadow: hover && !isEditing
           ? `${cardHoverShadow(isDark)}, ${cardHoverRing(col)}`
           : `${cardRestShadow(isDark)}, ${cardRestRing(col)}`
@@ -125,7 +123,8 @@ export default function GroupViewCard ({ view, isEditing, onAddToMenu, onOpen, o
         }
       }}
     >
-      <CardIconField view={presented} tint={tint} w={208} h={176} seed={fieldSeed(view.id)} />
+      <CardIconField view={presented} tint={tint} w={CARD_W} h={CARD_H} />
+      <div className={CARD_FADE_CLASS} style={{ background: cardFadeGradient(effectiveColorScheme) }} />
       <div className='relative h-full'>
         <div className='absolute inset-0 grid place-items-center'>
           <div
@@ -139,7 +138,7 @@ export default function GroupViewCard ({ view, isEditing, onAddToMenu, onOpen, o
         </div>
         <div className='absolute left-0 right-0 top-[calc(50%+28px)] bottom-0 flex flex-col items-center justify-center text-center px-3'>
           <h3 className={cn(
-            'text-sm font-bold line-clamp-2 m-0 leading-tight',
+            CARD_TITLE_CLASS,
             isDark ? 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]' : 'text-foreground'
           )}
           >{title}
@@ -171,7 +170,11 @@ export function SpaceViewCard ({ space, isEditing, onOpen, onAddToMenu, onOpenSe
   return (
     <div
       className={cn(CARD_CLASS, cardChrome(isDark), isEditing && 'cursor-default')}
-      style={{ background: cardNeutralBg(effectiveColorScheme) }}
+      style={{
+        background: cardNeutralBg(effectiveColorScheme),
+        // Photo-backed cards read better with a soft white edge than a dark hairline
+        ...(!isDark && bgImageUrl ? { borderColor: 'hsl(0 0% 100% / 0.25)' } : {})
+      }}
       role={isEditing ? undefined : 'button'}
       tabIndex={isEditing ? undefined : 0}
       onClick={() => {
@@ -208,7 +211,7 @@ export function SpaceViewCard ({ space, isEditing, onOpen, onAddToMenu, onOpenSe
           </div>
         </div>
         <div className='absolute left-0 right-0 top-[calc(50%+28px)] bottom-0 flex flex-col items-center justify-center text-center px-3'>
-          <h3 className={cn('text-sm font-bold line-clamp-2 m-0 leading-tight', onLightSurface ? 'text-foreground' : 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]')}>{space.name}</h3>
+          <h3 className={cn(CARD_TITLE_CLASS, onLightSurface ? 'text-foreground' : 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]')}>{space.name}</h3>
           {space.isDraft && (
             <span className={cn('text-[10.5px] font-semibold mt-1', onLightSurface ? 'text-foreground/60' : 'text-white/70 [text-shadow:0_1px_4px_rgba(0,0,0,0.6)]')}>{t('Draft')}</span>
           )}

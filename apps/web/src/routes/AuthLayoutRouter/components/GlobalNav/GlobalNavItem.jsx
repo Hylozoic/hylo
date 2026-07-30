@@ -216,12 +216,16 @@ export default function GlobalNavItem ({
             {stackItems.map((item, i) => (
               <div
                 key={i}
-                className='absolute w-[32px] h-[32px] rounded-md bg-cover bg-center bg-primary border-2 border-primary shadow-sm'
+                className='absolute w-[32px] h-[32px] rounded-md bg-cover bg-center bg-primary'
                 style={{
                   top: i * 8,
                   left: i * 8,
                   zIndex: stackItems.length - i,
-                  backgroundImage: `url(${item.avatarUrl})`
+                  backgroundImage: `url(${item.avatarUrl})`,
+                  // Layers separate by shadow rather than an outline (the old border read
+                  // as white on light themes). Each tile's shadow falls on the one behind
+                  // it, and deeper tiles carry more of it so the stack reads as depth.
+                  boxShadow: `0 ${1 + i}px ${4 + i * 2}px rgba(0,0,0,${Math.min(0.5, 0.3 + i * 0.07)})`
                 }}
               />
             ))}

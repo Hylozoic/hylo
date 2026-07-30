@@ -122,8 +122,12 @@ const VIEW_TYPE_TO_LUCIDE_ICON = {
   'funding-round-submissions': 'ClipboardList',
   'manage-round': 'Settings',
   link: 'ExternalLink',
+  map: 'Map',
   member: 'User',
+  members: 'Users',
   projects: 'Layers',
+  resources: 'PackageOpen',
+  'requests-and-offers': 'Heart',
   text: 'Type',
   separator: 'Minus'
 }
