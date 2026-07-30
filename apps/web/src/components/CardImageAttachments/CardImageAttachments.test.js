@@ -49,18 +49,42 @@ describe('CardImageAttachments', () => {
 
     userEvent.click(screen.getByAltText('Attached image 2'))
 
+    // The lightbox shows only the clicked image, not every attachment
     await waitFor(() => {
-      expect(screen.getAllByTestId('sc-img0')).toHaveLength(2)
-      expect(screen.getAllByTestId('sc-img1')).toHaveLength(2)
-      expect(screen.getAllByTestId('sc-img2')).toHaveLength(3)
+      expect(screen.getByTestId('sc-img1')).toBeInTheDocument()
     })
 
-    const activeSlide = screen.getAllByTestId('sc-img1')[0].closest('[aria-hidden]')
-    expect(activeSlide).toHaveAttribute('aria-hidden', 'false')
+    expect(screen.getByTestId('sc-img1')).toHaveAttribute('src', 'baz')
+    expect(screen.queryByTestId('sc-img0')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('sc-img2')).not.toBeInTheDocument()
+  })
 
-    const inactiveSlides = screen.getAllByTestId(/sc-img[02]/).map(img => img.closest('[aria-hidden]'))
-    inactiveSlides.forEach(slide => {
-      expect(slide).toHaveAttribute('aria-hidden', 'true')
+  it('moves between images in the lightbox', async () => {
+    render(<CardImageAttachments attachments={[
+      { url: 'bar', type: 'image' },
+      { url: 'baz', type: 'image' },
+      { url: 'bonk', type: 'image' }
+    ]}
+           />)
+
+    userEvent.click(screen.getByTestId('first-image'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('sc-img0')).toBeInTheDocument()
+    })
+
+    userEvent.click(screen.getByLabelText('Next image'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('sc-img1')).toHaveAttribute('src', 'baz')
+    })
+
+    // Wraps around from the first image to the last
+    userEvent.click(screen.getByLabelText('Previous image'))
+    userEvent.click(screen.getByLabelText('Previous image'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('sc-img2')).toHaveAttribute('src', 'bonk')
     })
   })
 
