@@ -80,6 +80,17 @@ export function cardBaseColor (scheme = 'dark', alpha = 1) {
   return scheme === 'dark' ? `rgb(13 14 16 / ${alpha})` : `rgb(243 241 234 / ${alpha})`
 }
 
+/** Settles the icon pattern toward the card's base color at the bottom, so the label reads clearly. */
+export function cardFadeGradient (scheme = 'dark') {
+  return `linear-gradient(180deg, transparent 0%, ${cardBaseColor(scheme, 0.5)} 100%)`
+}
+
+/**
+ * The fade overlay itself. Hovering halves it, letting more of the icon
+ * wallpaper through — CARD_CLASS carries `group`, so this needs no JS.
+ */
+export const CARD_FADE_CLASS = 'absolute inset-0 pointer-events-none transition-opacity duration-200 opacity-100 group-hover:opacity-50'
+
 /** Colored inset ring shown on card hover (hex-alpha so it interpolates in transitions). */
 export function cardHoverRing (col) {
   return `inset 0 0 0 1px ${col}8C`

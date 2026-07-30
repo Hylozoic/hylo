@@ -19,11 +19,12 @@ import {
   cardHoverRing,
   cardRestRing,
   cardNeutralBg,
-  cardBaseColor,
+  cardFadeGradient,
   cardChrome,
   cardHoverShadow,
   cardRestShadow,
   CARD_CLASS,
+  CARD_FADE_CLASS,
   CARD_TITLE_CLASS,
   CARD_W,
   CARD_H
@@ -123,8 +124,7 @@ export default function GroupViewCard ({ view, isEditing, onAddToMenu, onOpen, o
       }}
     >
       <CardIconField view={presented} tint={tint} w={CARD_W} h={CARD_H} />
-      {/* Settles the pattern toward the card's base color at the bottom, so the label reads clearly */}
-      <div className='absolute inset-0 pointer-events-none' style={{ background: `linear-gradient(180deg, transparent 0%, ${cardBaseColor(effectiveColorScheme, 0.5)} 100%)` }} />
+      <div className={CARD_FADE_CLASS} style={{ background: cardFadeGradient(effectiveColorScheme) }} />
       <div className='relative h-full'>
         <div className='absolute inset-0 grid place-items-center'>
           <div
