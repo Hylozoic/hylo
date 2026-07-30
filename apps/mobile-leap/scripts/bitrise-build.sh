@@ -85,6 +85,17 @@ yarn workspaces foreach --recursive --from='packages/*' --topological run build
 
 cd apps/mobile-leap
 
+if [ -f .env ]; then
+  set -a
+  # shellcheck disable=SC1091
+  source .env
+  set +a
+fi
+
+export APPLE_TEAM_ID="${APPLE_TEAM_ID:-L4KZBPS2F3}"
+# Release CI must not prebuild with expo-dev-client (USE_EXPO_DEV_CLIENT is local-only).
+unset USE_EXPO_DEV_CLIENT
+
 echo "--- expo prebuild ($PLATFORM)"
 # --clean: always regenerate from app.config.ts (folders are gitignored, never stale in CI)
 # --no-install: node_modules is already installed; pods handled explicitly below
