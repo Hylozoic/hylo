@@ -15,11 +15,15 @@ import { bgImageStyle, cn } from 'util/index'
 // scrim rather than on a panel.
 const LIGHTBOX_CLASS = 'left-0 top-0 translate-x-0 translate-y-0 flex items-center justify-center w-screen h-screen max-w-none gap-0 p-10 bg-transparent shadow-none border-none text-white touch-none'
 // Matches PostDialog's backdrop so both dialogs dim the page the same way.
-const LIGHTBOX_OVERLAY_CLASS = 'bg-darkening/50 dark:bg-darkening/90 backdrop-blur-sm'
+// The class is also the handle the drag gesture uses to dim it, mirroring how
+// PostDetail reaches for .PostDialog-Overlay.
+const LIGHTBOX_OVERLAY_CLASS = 'ImageLightbox-Overlay bg-darkening/50 dark:bg-darkening/90 backdrop-blur-sm'
 
-// Drag-to-dismiss: either a long enough drag, or a quick flick in any direction.
-const DISMISS_DISTANCE_PX = 110
-const DISMISS_VELOCITY_PX_PER_MS = 0.5
+// Drag-to-dismiss constants are lifted from PostDetail's pull-to-close so the
+// lightbox and the post dialog feel identical: the raw drag is dampened, and
+// the dampened distance (not the raw one) is what has to clear the threshold.
+const PULL_THRESHOLD = 100
+const DRAG_DAMPING = 0.45
 // Slack before a touch counts as a drag, so taps still register as clicks.
 const DRAG_SLOP_PX = 8
 
@@ -38,15 +42,15 @@ export default function CardImageAttachments ({
   const [initialSlide, setInitialSlide] = useState(0)
   const [modalVisible, setModalVisible] = useState(false)
 
-  // Vertical offset while dragging the open image, and the in-progress gesture
-  const [dragY, setDragY] = useState(0)
-  const [dragging, setDragging] = useState(false)
+  // The dragged element and the in-progress gesture. Styles are written straight
+  // to the node during a drag (as PostDetail does) rather than through state, so
+  // touchmove doesn't re-render on every frame.
+  const dragTargetRef = useRef(null)
   const dragRef = useRef(null)
 
   const openModal = (e) => {
     if (className === 'post-card') return
     setInitialSlide(e?.currentTarget?.dataset?.index || 0)
-    setDragY(0)
     setModalVisible(true)
   }
 
@@ -57,47 +61,92 @@ export default function CardImageAttachments ({
     setModalVisible(false)
   }
 
+  const overlayEl = () => document.querySelector('.ImageLightbox-Overlay')
+
+  const resetDragStyles = () => {
+    const target = dragTargetRef.current
+    if (target) {
+      target.style.transform = ''
+      target.style.opacity = ''
+      target.style.willChange = ''
+    }
+    const overlay = overlayEl()
+    if (overlay) {
+      overlay.style.backgroundColor = ''
+      overlay.style.backdropFilter = ''
+    }
+  }
+
+  const applyDragStyles = (dampened, progress, direction) => {
+    const target = dragTargetRef.current
+    if (!target) return
+    target.style.transform = `translateY(${direction === 'down' ? dampened : -dampened}px) scale(${Math.max(1 - progress * 0.04, 0.92)})`
+    target.style.opacity = Math.max(1 - progress * 0.4, 0.3)
+    target.style.willChange = 'transform, opacity'
+
+    const overlay = overlayEl()
+    if (overlay) {
+      overlay.style.backgroundColor = `rgba(0, 0, 0, ${Math.max(1 - progress * 0.6, 0.1) * 0.5})`
+      overlay.style.backdropFilter = `blur(${Math.max(12 - progress * 8, 0)}px)`
+    }
+  }
+
   const handleTouchStart = (e) => {
     if (e.touches.length !== 1) return
-    const touch = e.touches[0]
-    dragRef.current = { x: touch.clientX, y: touch.clientY, at: e.timeStamp, locked: false }
+    dragRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, locked: false }
   }
 
   const handleTouchMove = (e) => {
     const drag = dragRef.current
     if (!drag || e.touches.length !== 1) return
-    const touch = e.touches[0]
-    const dy = touch.clientY - drag.y
-    const dx = touch.clientX - drag.x
+    const rawDelta = e.touches[0].clientY - drag.y
+    const dx = e.touches[0].clientX - drag.x
 
     if (!drag.locked) {
-      if (Math.abs(dy) < DRAG_SLOP_PX && Math.abs(dx) < DRAG_SLOP_PX) return
+      if (Math.abs(rawDelta) < DRAG_SLOP_PX && Math.abs(dx) < DRAG_SLOP_PX) return
       // Only claim clearly vertical gestures; anything else is left alone
-      if (Math.abs(dy) <= Math.abs(dx)) {
+      if (Math.abs(rawDelta) <= Math.abs(dx)) {
         dragRef.current = null
         return
       }
       drag.locked = true
-      setDragging(true)
+      const target = dragTargetRef.current
+      if (target) target.style.transition = ''
     }
 
-    setDragY(dy)
+    const dampened = Math.abs(rawDelta) * DRAG_DAMPING
+    applyDragStyles(dampened, Math.min(dampened / PULL_THRESHOLD, 1.5), rawDelta > 0 ? 'down' : 'up')
   }
 
   const handleTouchEnd = (e) => {
     const drag = dragRef.current
     dragRef.current = null
-    setDragging(false)
     if (!drag?.locked) return
 
-    const elapsed = Math.max(1, e.timeStamp - drag.at)
-    const flicked = Math.abs(dragY) / elapsed > DISMISS_VELOCITY_PX_PER_MS
-    if (Math.abs(dragY) > DISMISS_DISTANCE_PX || flicked) {
-      setModalVisible(false)
+    const rawDelta = e.changedTouches[0].clientY - drag.y
+    const dampened = Math.abs(rawDelta) * DRAG_DAMPING
+    const target = dragTargetRef.current
+
+    if (dampened >= PULL_THRESHOLD && target) {
+      // Carry on out of frame, then close once the animation has mostly played
+      target.style.transition = 'transform 0.25s ease-out, opacity 0.25s ease-out'
+      target.style.transform = `translateY(${rawDelta > 0 ? '60vh' : '-60vh'}) scale(0.9)`
+      target.style.opacity = '0'
+      const overlay = overlayEl()
+      if (overlay) {
+        overlay.style.transition = 'background-color 0.25s ease-out, backdrop-filter 0.25s ease-out'
+        overlay.style.backgroundColor = 'transparent'
+        overlay.style.backdropFilter = 'blur(0px)'
+      }
+      setTimeout(() => setModalVisible(false), 200)
       return
     }
+
     // Fell short — spring back
-    setDragY(0)
+    if (target) target.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.3s ease'
+    const overlay = overlayEl()
+    if (overlay) overlay.style.transition = 'background-color 0.3s ease, backdrop-filter 0.3s ease'
+    resetDragStyles()
   }
 
   if (isEmpty(imageAttachments)) return null
@@ -170,15 +219,7 @@ export default function CardImageAttachments ({
           aria-describedby={undefined}
         >
           <DialogTitle className='sr-only'>{t('Image viewer')}</DialogTitle>
-          <div
-            className='w-full h-full'
-            style={{
-              transform: dragY ? `translateY(${dragY}px)` : undefined,
-              // Fades out as it travels, so a drag reads as dismissing rather than scrolling
-              opacity: dragY ? Math.max(0.3, 1 - Math.abs(dragY) / 420) : undefined,
-              transition: dragging ? 'none' : 'transform 200ms ease-out, opacity 200ms ease-out'
-            }}
-          >
+          <div ref={dragTargetRef} className='w-full h-full'>
             <ImageCarousel attachments={imageAttachments} initialSlide={initialSlide} />
           </div>
         </DialogContent>
