@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next'
 import { createSelector } from 'reselect'
 import { debounce, get, groupBy, isEqual, isEmpty } from 'lodash'
 import { pick, pickBy } from 'lodash/fp'
-import { Heart, Layers } from 'lucide-react'
+import { Heart, Layers, Map as MapIcon } from 'lucide-react'
 import bbox from '@turf/bbox'
 import bboxPolygon from '@turf/bbox-polygon'
 import booleanWithin from '@turf/boolean-within'
@@ -235,7 +235,7 @@ function MapExplorer (props) {
   useEffect(() => {
     setHeaderDetails({
       title: t('Map'),
-      icon: 'Globe',
+      icon: <MapIcon />,
       info: ''
     })
   }, [])
