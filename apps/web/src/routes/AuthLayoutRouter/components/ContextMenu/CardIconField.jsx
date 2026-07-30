@@ -6,7 +6,7 @@ import GroupViewIcon from './GroupViewIcon'
  * grid, with alternating rows offset by half an icon width. Every glyph renders
  * at the same faint opacity — plain wallpaper behind the card content.
  */
-export default function CardIconField ({ view, tint, w, h, cell = 17, iconSize = 12, iconClassName = '!w-3 !h-3 !mr-0' }) {
+function CardIconField ({ view, tint, w, h, cell = 17, iconSize = 12, iconClassName = '!w-3 !h-3 !mr-0' }) {
   const { rows, cols, cellX, cellY, pad } = useMemo(() => {
     const nx = Math.max(1, Math.round(w / cell))
     const ny = Math.max(1, Math.round(h / cell))
@@ -54,3 +54,8 @@ export default function CardIconField ({ view, tint, w, h, cell = 17, iconSize =
     </div>
   )
 }
+
+// Memoised because this is the heaviest thing on a card by far — a full grid of
+// icon elements. Its props (the presented view, tint string, and the card size
+// constants) are stable, so a parent re-render costs nothing here.
+export default React.memo(CardIconField)

@@ -115,7 +115,7 @@ export function AddCard ({ onClick, label }) {
 }
 
 /** Card for a GroupView, themed by its postType color. */
-export default function GroupViewCard ({ view, isEditing, onAddToMenu, onOpen, onOpenSettings, onDelete, renderEditActions = true }) {
+function GroupViewCard ({ view, isEditing, onAddToMenu, onOpen, onOpenSettings, onDelete, renderEditActions = true }) {
   const { t } = useTranslation()
   const { effectiveColorScheme } = useAppearance()
   const isDark = effectiveColorScheme === 'dark'
@@ -309,3 +309,6 @@ export function SpaceViewCard ({ space, isEditing, onOpen, onAddToMenu, onOpenSe
     </div>
   )
 }
+
+// Memoised so reordering the grid re-renders only the cards that actually changed
+export default React.memo(GroupViewCard)

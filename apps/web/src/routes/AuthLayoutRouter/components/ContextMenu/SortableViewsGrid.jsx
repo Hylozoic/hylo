@@ -60,8 +60,8 @@ function FullWidthRow ({ view, spaceGroup, t }) {
  * anywhere on the card starts the drag; the toolbar stops pointerdown so its
  * buttons stay clickable instead of becoming drag handles.
  */
-function SortableViewItem ({ view, spaceGroup, onOpenSettings, onDelete, t }) {
-  const presented = GroupViewPresenter(view)
+const SortableViewItem = React.memo(function SortableViewItem ({ view, spaceGroup, onOpenSettings, onDelete, t }) {
+  const presented = useMemo(() => GroupViewPresenter(view), [view])
   const isFullWidth = presented.type === 'text' || presented.type === 'separator'
   const { attributes, listeners, setNodeRef, isDragging } = useSortable({
     id: String(view.id),
@@ -102,7 +102,7 @@ function SortableViewItem ({ view, spaceGroup, onOpenSettings, onDelete, t }) {
       />
     </div>
   )
-}
+})
 
 /**
  * Drag-to-reorder card grid for edit mode — the card equivalent of
