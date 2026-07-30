@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
+import { useNavigate } from 'react-router-dom'
 import { Plus } from 'lucide-react'
 
 import Button from 'components/ui/button'
@@ -13,6 +14,7 @@ import PeopleSelector from 'routes/Messages/PeopleSelector'
 import GroupViewIcon from './GroupViewIcon'
 import AddCollectionDialog from './AddCollectionDialog'
 import AddCustomViewDialog from './AddCustomViewDialog'
+import { menuViewUrl } from './groupViewMenuUrl'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 import { createGroupView } from 'store/actions/groupViews'
 import fetchGroupRelationships from 'store/actions/fetchGroupRelationships'
@@ -70,6 +72,7 @@ function descriptionForViewType (type, t) {
 export default function AddGroupViewDialog ({ group, groupViews, acceptedPostTypes, onClose, onAdd, addToMenu = true }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
+  const navigate = useNavigate()
   const [selectedType, setSelectedType] = useState(null)
   const [linkName, setLinkName] = useState('')
   const [linkUrl, setLinkUrl] = useState('')
@@ -171,14 +174,22 @@ export default function AddGroupViewDialog ({ group, groupViews, acceptedPostTyp
 
     setIsCreating(true)
     try {
-      await dispatch(createGroupView({ groupId: group.id, ...viewData }))
+      const result = await dispatch(createGroupView({ groupId: group.id, ...viewData }))
       onClose()
+      // Open what was just created, rather than leaving the person on the menu
+      const created = result?.payload?.data?.createGroupView
+      const url = created && group?.slug
+        ? menuViewUrl(group.slug, GroupViewPresenter(created))
+        : null
+      // Text and separator rows have nowhere to go, and an external link view
+      // should not fling the person off the site the moment they add it
+      if (url && !/^https?:\/\//.test(url)) navigate(url)
     } catch (error) {
       console.error('Failed to create group view:', error)
     } finally {
       setIsCreating(false)
     }
-  }, [dispatch, group?.id, onAdd, onClose])
+  }, [dispatch, group?.id, group?.slug, navigate, onAdd, onClose])
 
   const handleAdd = useCallback(async () => {
     if (!canAdd || !selectedType) return
