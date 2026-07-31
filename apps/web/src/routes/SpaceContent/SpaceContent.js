@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 
 import Loading from 'components/Loading'
 import { SpaceGroupSlugContext } from 'contexts/SpaceGroupContext'
@@ -13,6 +13,7 @@ import MemberProfile from 'routes/MemberProfile'
 import Members from 'routes/Members'
 import Moderation from 'routes/Moderation'
 import PostDetail from 'routes/PostDetail'
+import SpaceAboutModal from 'routes/SpaceAboutModal'
 import SpaceJoinPage from 'routes/SpaceJoinPage'
 import FundingRoundSubmissionsView from 'routes/FundingRoundSubmissionsView/FundingRoundSubmissionsView'
 import ManageRoundView from 'routes/ManageRoundView/ManageRoundView'
@@ -56,6 +57,7 @@ function resolveSpaceGroup (parentGroup, groupViews, parentSlug, localSlug) {
  */
 export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColumnGroup = false }) {
   const dispatch = useDispatch()
+  const navigate = useNavigate()
   const routeParams = useRouteParams()
   const parentSlug = routeParams.groupSlug
   const localSlug = routeParams.spaceSlug
@@ -155,7 +157,7 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
         <Route path='funding-round-submissions/*' element={<FundingRoundSubmissionsView />} />
         <Route path='manage-round/*' element={<ManageRoundView />} />
         <Route path='moderation/*' element={<Moderation context='groups' />} />
-        <Route path='about/*' element={<GroupDetail context='groups' forCurrentGroup />} />
+        <Route path='about/*' element={<SpaceAboutModal onClose={() => navigate(spaceBase)} />} />
         <Route path={POST_DETAIL_MATCH} element={<PostDetail />} />
         <Route path='*' element={spaceIndexElement} />
       </Routes>
