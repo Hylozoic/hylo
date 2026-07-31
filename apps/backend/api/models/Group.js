@@ -18,7 +18,7 @@ import findOrCreateThread from './post/findOrCreateThread'
 import { groupFilter } from '../graphql/filters'
 import { inviteGroupToGroup } from '../graphql/mutations/group'
 import { findOrCreateLocation } from '../graphql/mutations/location'
-import { whereId } from './group/queryUtils'
+import { applyVisibleMemberUserFilters, whereId } from './group/queryUtils'
 import { getLocaleStrings } from '../../lib/i18n/locales'
 const { createGroupScope } = require('../../lib/scopes')
 
@@ -308,6 +308,7 @@ module.exports = bookshelf.Model.extend(merge({
           'group_memberships.active': true,
           'users.active': true
         })
+        applyVisibleMemberUserFilters(q)
         if (where) {
           q.where(where)
         }
@@ -1726,6 +1727,17 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   updateAllMemberCounts () {
-    return bookshelf.knex.raw('update groups set num_members = (select count(group_memberships.*) from group_memberships inner join users on users.id = group_memberships.user_id where group_memberships.active = true and users.active = true and group_memberships.group_id = groups.id)')
+    return bookshelf.knex.raw(`update groups set num_members = (
+      select count(group_memberships.*)
+      from group_memberships
+      inner join users on users.id = group_memberships.user_id
+      where group_memberships.active = true
+        and users.active = true
+        and users.id != '${User.AXOLOTL_ID}'
+        and users.name is not null
+        and users.name != ''
+        and users.name != 'Deleted User'
+        and group_memberships.group_id = groups.id
+    )`)
   }
 })

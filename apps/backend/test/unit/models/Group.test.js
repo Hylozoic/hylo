@@ -169,6 +169,40 @@ describe('Group', function () {
     })
   })
 
+  describe('members', function () {
+    it('excludes users without a name, deleted-user placeholders, and the axolotl', async function () {
+      const group = await factories.group().save()
+      const validUser = await factories.user({ name: 'Valid Member' }).save()
+      const noNameUser = await User.create({ email: 'ghost-member@test.com', active: false })
+      await bookshelf.knex('users').where({ id: noNameUser.id }).update({ active: true })
+      const deletedPlaceholder = await factories.user({ name: 'Deleted User' }).save()
+      const emptyNameUser = await User.create({ email: 'empty-name@test.com', active: false })
+      await bookshelf.knex('users').where({ id: emptyNameUser.id }).update({ active: true, name: '' })
+
+      const axolotlExists = await bookshelf.knex('users').where({ id: User.AXOLOTL_ID }).first()
+      if (!axolotlExists) {
+        await bookshelf.knex('users').insert({
+          id: User.AXOLOTL_ID,
+          email: 'axolotl@test.com',
+          name: 'Hylo',
+          active: true,
+          email_validated: true
+        })
+      }
+
+      await group.addMembers([
+        validUser.id,
+        noNameUser.id,
+        deletedPlaceholder.id,
+        emptyNameUser.id,
+        User.AXOLOTL_ID
+      ])
+
+      const members = await group.members().fetch()
+      expect(members.pluck('id')).to.deep.equal([validUser.id])
+    })
+  })
+
   describe('updateMembers', function() {
     it('updates members', async function() {
       const group = await factories.group().save()

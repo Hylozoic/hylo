@@ -215,7 +215,7 @@ export const filterAndSortUsers = curry(({ autocomplete, boundingBox, groupId, g
   if (sortBy === 'join') {
     q.orderBy('group_memberships.created_at', order || 'desc')
   } else if (!sortBy || sortBy === 'name') {
-    q.orderByRaw(`lower("users"."name") ${order || 'asc'}`)
+    q.orderByRaw(`lower("users"."name") ${order || 'asc'} NULLS LAST`)
   } else {
     q.orderByRaw(`${sortBy} ${order || 'asc'} NULLS LAST`)
   }

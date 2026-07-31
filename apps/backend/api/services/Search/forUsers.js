@@ -1,5 +1,6 @@
 import { GraphQLError } from 'graphql'
 import { countTotal } from '../../../lib/util/knex'
+import { applyVisibleMemberUserFilters } from '../../models/group/queryUtils'
 import { filterAndSortUsers } from './util'
 
 export default function (opts) {
@@ -8,6 +9,7 @@ export default function (opts) {
     qb.limit(opts.limit || 1000)
     qb.offset(opts.offset || 0)
     qb.where('users.active', '=', true)
+    applyVisibleMemberUserFilters(qb)
 
     filterAndSortUsers({
       autocomplete: opts.autocomplete,
