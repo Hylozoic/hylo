@@ -48,7 +48,7 @@ import { viewShowsUnreadDot, viewUnreadBadgeCount } from 'util/viewUnreadBadges'
 import CardIconField from './CardIconField'
 import GroupViewIcon from './GroupViewIcon'
 import SortableViewsGrid from './SortableViewsGrid'
-import GroupViewCard, { AddCard, SpaceViewCard } from './GroupViewCard'
+import GroupViewCard, { SpaceViewCard } from './GroupViewCard'
 import ViewsGridSkeleton from './ViewsGridSkeleton'
 import {
   viewCardColor,
@@ -73,7 +73,7 @@ import SpaceSettingsModal from './SpaceSettingsModal'
 import AddCollectionDialog from './AddCollectionDialog'
 import AddGroupViewDialog from './AddGroupViewDialog'
 import AddSpaceDialog from './AddSpaceDialog'
-import AddChooserDialog from './AddChooserDialog'
+import AddViewOrSpaceMenu from './AddViewOrSpaceMenu'
 import EditingBottomBar, { EDITING_BAR_BUTTON_CLASS } from './EditingBottomBar'
 import { menuViewUrl } from './groupViewMenuUrl'
 
@@ -692,7 +692,6 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
   const [settingsView, setSettingsView] = useState(null)
   const [showAddView, setShowAddView] = useState(false)
   const [showAddSpace, setShowAddSpace] = useState(false)
-  const [showAddChooser, setShowAddChooser] = useState(false)
   // EditingBottomBar measures this to size itself to the column
   const gridContainerRef = useRef(null)
 
@@ -883,9 +882,13 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
                   onOpenSettings={setSettingsView}
                   onDelete={handleDeleteMenuView}
                 />
-                {/* One Add slot; the chooser explains the view/space distinction */}
+                {/* One Add slot; its menu explains the view/space distinction */}
                 <div className='flex flex-wrap gap-3'>
-                  <AddCard onClick={() => setShowAddChooser(true)} label={t('Add')} />
+                  <AddViewOrSpaceMenu
+                    canAddSpace={!spaceGroup && canManageSpaces}
+                    onChooseView={() => setShowAddView(true)}
+                    onChooseSpace={() => setShowAddSpace(true)}
+                  />
                 </div>
                 {!spaceGroup && (
                   <div className='flex flex-col gap-3 pt-4 border-t border-foreground/10'>
@@ -900,14 +903,6 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
                       onOpenSpaceSettings={(space) => setSettingsView({ type: 'space', linkedGroup: space, name: space.name, icon: space.icon })}
                     />
                   </div>
-                )}
-                {showAddChooser && (
-                  <AddChooserDialog
-                    canAddSpace={!spaceGroup && canManageSpaces}
-                    onChooseView={() => { setShowAddChooser(false); setShowAddView(true) }}
-                    onChooseSpace={() => { setShowAddChooser(false); setShowAddSpace(true) }}
-                    onClose={() => setShowAddChooser(false)}
-                  />
                 )}
                 {showAddView && (
                   <AddGroupViewDialog

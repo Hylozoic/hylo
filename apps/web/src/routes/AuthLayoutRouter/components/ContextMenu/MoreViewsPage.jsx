@@ -28,10 +28,10 @@ import { cn } from 'util/index'
 
 import AddGroupViewDialog from './AddGroupViewDialog'
 import AddSpaceDialog from './AddSpaceDialog'
-import AddChooserDialog from './AddChooserDialog'
+import AddViewOrSpaceMenu from './AddViewOrSpaceMenu'
 import GroupViewSettingsModal from './GroupViewSettingsModal'
 import SpaceSettingsModal from './SpaceSettingsModal'
-import GroupViewCard, { AddCard, SpaceViewCard } from './GroupViewCard'
+import GroupViewCard, { SpaceViewCard } from './GroupViewCard'
 import EditingBottomBar, { EDITING_BAR_BUTTON_CLASS } from './EditingBottomBar'
 import ViewsGridSkeleton from './ViewsGridSkeleton'
 import { menuViewUrl } from './groupViewMenuUrl'
@@ -109,7 +109,6 @@ export default function MoreViewsPage ({ group }) {
 
   const [showAddView, setShowAddView] = useState(false)
   const [showAddSpace, setShowAddSpace] = useState(false)
-  const [showAddChooser, setShowAddChooser] = useState(false)
   const [settingsView, setSettingsView] = useState(null)
   const [settingsSpace, setSettingsSpace] = useState(null)
   const settingsTypeParam = getQuerystringParam('settings', location)
@@ -369,7 +368,11 @@ export default function MoreViewsPage ({ group }) {
       {/* Below the sections, and shown even when empty so there is a way to add the first one */}
       {isEditing && (
         <div className='flex flex-wrap gap-3 mt-6'>
-          <AddCard onClick={() => setShowAddChooser(true)} label={t('Add')} />
+          <AddViewOrSpaceMenu
+            canAddSpace={!isSpaceMoreViews}
+            onChooseView={() => setShowAddView(true)}
+            onChooseSpace={() => setShowAddSpace(true)}
+          />
         </div>
       )}
 
@@ -386,14 +389,6 @@ export default function MoreViewsPage ({ group }) {
         </EditingBottomBar>
       )}
 
-      {showAddChooser && (
-        <AddChooserDialog
-          canAddSpace={!isSpaceMoreViews}
-          onChooseView={() => { setShowAddChooser(false); setShowAddView(true) }}
-          onChooseSpace={() => { setShowAddChooser(false); setShowAddSpace(true) }}
-          onClose={() => setShowAddChooser(false)}
-        />
-      )}
       {showAddView && (
         <AddGroupViewDialog
           group={contentGroup}
