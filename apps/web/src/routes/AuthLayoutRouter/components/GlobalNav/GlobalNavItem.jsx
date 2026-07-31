@@ -279,7 +279,15 @@ export default function GlobalNavItem ({
               bottom: 'auto'
             }}
           >
-            {tooltip}
+            <span className='flex items-center gap-1.5'>
+              <span>{tooltip}</span>
+              {/* A stack's label says how many groups are folded into it */}
+              {hasChildren && (
+                <span className='rounded-full bg-foreground/10 px-1.5 text-xs font-semibold text-foreground/70 leading-5'>
+                  +{childGroups.length}
+                </span>
+              )}
+            </span>
           </TooltipContent>
         )}
       </div>
@@ -313,11 +321,14 @@ export default function GlobalNavItem ({
               role='button'
               tabIndex={0}
             >
+              {/* Tile and label both grow on hover, and on the same 100ms ease-out
+                  the rail uses — hovering here should feel like hovering the rail.
+                  The label grows from its left edge so it opens away from the tile. */}
               <div
-                className='w-14 h-14 shrink-0 rounded-lg bg-cover bg-center bg-primary drop-shadow-md scale-90 group-hover/stacked:scale-100 transition-transform'
+                className='w-14 h-14 shrink-0 rounded-lg bg-cover bg-center bg-primary drop-shadow-md scale-90 group-hover/stacked:scale-100 transition-all duration-100 ease-out'
                 style={{ backgroundImage: `url(${item.avatarUrl})` }}
               />
-              <span className='rounded-md bg-popover text-popover-foreground shadow-md px-3 py-1.5 text-sm font-semibold whitespace-nowrap'>
+              <span className='rounded-md bg-popover text-popover-foreground shadow-md px-3 py-1.5 text-sm font-semibold whitespace-nowrap origin-left transition-all duration-100 ease-out transform group-hover/stacked:scale-110'>
                 {item.name}
               </span>
             </div>
