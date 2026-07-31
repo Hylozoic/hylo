@@ -413,6 +413,10 @@ function SettingsMenu ({ currentUser, triggerClassName, contentSide = 'right', c
   )
 }
 
+// Settings and help sit on one row as small dark squares: they are utilities, not
+// destinations, so they recede against the rail instead of reading as two more tiles.
+const GLOBAL_NAV_UTILITY_BUTTON = 'relative flex items-center justify-center w-8 h-8 shrink-0 rounded-lg bg-black/30 text-white/80 hover:text-white hover:bg-black/50 transition-all cursor-pointer'
+
 export default function GlobalNav (props) {
   const { currentUser } = props
   const { show: showIntercom } = useIntercom()
@@ -1012,45 +1016,49 @@ export default function GlobalNav (props) {
           </PopoverContent>
         </Popover>
 
-        <SettingsMenu currentUser={currentUser} />
+        {/* Settings and help are utilities rather than destinations, so they share a
+            row as small dark squares instead of taking a full-width bright tile each */}
+        <div className='flex items-center justify-center gap-1.5'>
+          <SettingsMenu currentUser={currentUser} triggerClassName={GLOBAL_NAV_UTILITY_BUTTON} />
 
-        <Popover>
-          <PopoverTrigger>
-            <span className={cn('bg-primary relative transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-8 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-2 border-foreground/0 hover:border-foreground/50')}>
-              <HelpCircle className='w-6 h-6' />
-            </span>
-          </PopoverTrigger>
-          <PopoverContent side='right' align='start'>
-            <ul className='flex flex-col gap-2 m-0 p-0'>
-              <li className='w-full'><span className='text-foreground cursor-pointer px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' onClick={handleSupportClick}><MessagesSquare className='h-4 w-4' />{t('Feedback & Support')}</span></li>
-              <li className='w-full'><a className='text-foreground cursor-pointer hover:text-foreground/100 px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' href='https://hylozoic.gitbook.io/hylo/guides/hylo-user-guide' target='_blank' rel='noreferrer'><BookOpen className='h-4 w-4' />{t('User Guide')}</a></li>
-              <li className='w-full'><a className='text-foreground cursor-pointer hover:text-foreground/100 px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' href='http://hylo.com/terms/' target='_blank' rel='noreferrer'><Shield className='h-4 w-4' />{t('Terms & Privacy')}</a></li>
-              {!isWebView() && <li className='w-full'><span className={cn('text-foreground cursor-pointer px-2 py-1 hover:text-foreground/100 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2', styles[appStoreLinkClass])} onClick={downloadApp}><Download className='h-4 w-4' />{t('Download App')}</span></li>}
-              <li className='w-full'><a className='text-foreground cursor-pointer px-2 py-1 hover:text-foreground/100 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' href='https://opencollective.com/hylo' target='_blank' rel='noreferrer'><Heart className='h-4 w-4' />{t('Contribute to Hylo')}</a></li>
-            </ul>
-            {showSupportModal && (
-              <ModalDialog
-                closeModal={() => setShowSupportModal(false)}
-                showModalTitle={false}
-                submitButtonAction={() => {
-                  setShowSupportModal(false)
-                  showPreferences()
-                }}
-                submitButtonText={t('Edit Cookie Preferences')}
-              >
-                <div className='p-4'>
-                  <h2 className='text-xl font-semibold mb-2'>{t('Support Chat Disabled')}</h2>
-                  <p className='text-foreground/70 mb-4'>
-                    {t('To use the support chat you need to enable support cookies in your cookie preferences')}
-                  </p>
-                  <p className='text-foreground/70 mb-2'>
-                    {t('Click below to edit your cookie preferences')}
-                  </p>
-                </div>
-              </ModalDialog>
-            )}
-          </PopoverContent>
-        </Popover>
+          <Popover>
+            <PopoverTrigger>
+              <span className={GLOBAL_NAV_UTILITY_BUTTON}>
+                <HelpCircle className='w-5 h-5' />
+              </span>
+            </PopoverTrigger>
+            <PopoverContent side='right' align='start'>
+              <ul className='flex flex-col gap-2 m-0 p-0'>
+                <li className='w-full'><span className='text-foreground cursor-pointer px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' onClick={handleSupportClick}><MessagesSquare className='h-4 w-4' />{t('Feedback & Support')}</span></li>
+                <li className='w-full'><a className='text-foreground cursor-pointer hover:text-foreground/100 px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' href='https://hylozoic.gitbook.io/hylo/guides/hylo-user-guide' target='_blank' rel='noreferrer'><BookOpen className='h-4 w-4' />{t('User Guide')}</a></li>
+                <li className='w-full'><a className='text-foreground cursor-pointer hover:text-foreground/100 px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' href='http://hylo.com/terms/' target='_blank' rel='noreferrer'><Shield className='h-4 w-4' />{t('Terms & Privacy')}</a></li>
+                {!isWebView() && <li className='w-full'><span className={cn('text-foreground cursor-pointer px-2 py-1 hover:text-foreground/100 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2', styles[appStoreLinkClass])} onClick={downloadApp}><Download className='h-4 w-4' />{t('Download App')}</span></li>}
+                <li className='w-full'><a className='text-foreground cursor-pointer px-2 py-1 hover:text-foreground/100 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' href='https://opencollective.com/hylo' target='_blank' rel='noreferrer'><Heart className='h-4 w-4' />{t('Contribute to Hylo')}</a></li>
+              </ul>
+              {showSupportModal && (
+                <ModalDialog
+                  closeModal={() => setShowSupportModal(false)}
+                  showModalTitle={false}
+                  submitButtonAction={() => {
+                    setShowSupportModal(false)
+                    showPreferences()
+                  }}
+                  submitButtonText={t('Edit Cookie Preferences')}
+                >
+                  <div className='p-4'>
+                    <h2 className='text-xl font-semibold mb-2'>{t('Support Chat Disabled')}</h2>
+                    <p className='text-foreground/70 mb-4'>
+                      {t('To use the support chat you need to enable support cookies in your cookie preferences')}
+                    </p>
+                    <p className='text-foreground/70 mb-2'>
+                      {t('Click below to edit your cookie preferences')}
+                    </p>
+                  </div>
+                </ModalDialog>
+              )}
+            </PopoverContent>
+          </Popover>
+        </div>
       </div>
     </div>
   )

@@ -187,7 +187,9 @@ export default function GlobalNavItem ({
       className={cn(
         'relative transition-all ease-in-out duration-250 overflow-visible',
         'flex flex-col items-center justify-center w-14 h-14 min-h-10',
-        'rounded-lg opacity-60 hover:opacity-100',
+        // Resting icons sat far enough back to read as disabled rather than merely
+        // unselected; selection is carried by the ring and scale, not by dimming.
+        'rounded-lg opacity-85 hover:opacity-100',
         'scale-90 hover:scale-100 text-3xl',
         // Stacks read like the TopNav tabs: no tile background or shadow, just the layered avatars.
         !hasChildren && 'bg-primary drop-shadow-md hover:drop-shadow-lg',
@@ -289,24 +291,38 @@ export default function GlobalNavItem ({
   return (
     <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
       {content}
-      <PopoverContent side='right' align='start' className='w-56 p-1 z-[110]'>
-        <div
-          onClick={handleNavigateTo(url)}
-          className='flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer hover:bg-foreground/10 transition-colors font-medium'
-        >
-          <div className='w-5 h-5 rounded-sm bg-cover bg-center bg-primary shrink-0' style={{ backgroundImage: `url(${img})` }} />
-          <span className='truncate text-sm font-semibold'>{tooltip}</span>
+      {/* Reads as the rail continuing outward rather than a panel laid over it:
+          no surface of its own, group tiles at rail size, and names on the same
+          pills the rail uses for its hover labels. */}
+      <PopoverContent
+        side='right'
+        align='start'
+        className='w-auto max-w-none bg-transparent border-none shadow-none p-0 pl-1 z-[110]'
+      >
+        <div className='flex flex-col gap-2'>
+          {[{ id: 'parent', name: tooltip, avatarUrl: img, to: url }, ...childGroups.map(child => ({
+            id: child.id,
+            name: child.name,
+            avatarUrl: child.avatarUrl,
+            to: `/groups/${child.slug}`
+          }))].map(item => (
+            <div
+              key={item.id}
+              onClick={handleNavigateTo(item.to)}
+              className='flex items-center gap-2 cursor-pointer group/stacked'
+              role='button'
+              tabIndex={0}
+            >
+              <div
+                className='w-14 h-14 shrink-0 rounded-lg bg-cover bg-center bg-primary drop-shadow-md scale-90 group-hover/stacked:scale-100 transition-transform'
+                style={{ backgroundImage: `url(${item.avatarUrl})` }}
+              />
+              <span className='rounded-md bg-popover text-popover-foreground shadow-md px-3 py-1.5 text-sm font-semibold whitespace-nowrap'>
+                {item.name}
+              </span>
+            </div>
+          ))}
         </div>
-        {childGroups.map(child => (
-          <div
-            key={child.id}
-            onClick={handleNavigateTo(`/groups/${child.slug}`)}
-            className='flex items-center gap-2 pl-6 pr-2 py-1.5 rounded-md cursor-pointer hover:bg-foreground/10 transition-colors'
-          >
-            <div className='w-[18px] h-[18px] rounded-sm bg-cover bg-center bg-primary shrink-0' style={{ backgroundImage: `url(${child.avatarUrl})` }} />
-            <span className='truncate text-sm font-semibold text-foreground/70'>{child.name}</span>
-          </div>
-        ))}
       </PopoverContent>
     </Popover>
   )
