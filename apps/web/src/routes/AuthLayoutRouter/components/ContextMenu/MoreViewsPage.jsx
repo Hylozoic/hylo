@@ -6,7 +6,8 @@ import { X } from 'lucide-react'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 
 import { useViewHeader } from 'contexts/ViewHeaderContext'
-import { addQuerystringToPath, groupUrl, localSpaceSlug, spaceHomeUrl } from '@hylo/navigation'
+import { addQuerystringToPath, groupUrl, localSpaceSlug, spaceHomeUrl, spaceUrl } from '@hylo/navigation'
+import { isDrawerNavLayout } from 'util/mobile'
 import fetchGroupRelationships from 'store/actions/fetchGroupRelationships'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
@@ -236,7 +237,14 @@ export default function MoreViewsPage ({ group }) {
       }))
       return
     }
-    navigate(spaceHomeUrl(groupSlug, space), { state: { fromMoreViews: true } })
+    // Where a menu is visible alongside the content, going straight to the space's
+    // home view costs nothing. On a drawer layout it skips the space's menu
+    // entirely — SpaceContent decides what the root should show, so hand it the
+    // root rather than pre-empting it here.
+    navigate(
+      isDrawerNavLayout() ? spaceUrl(groupSlug, local) : spaceHomeUrl(groupSlug, space),
+      { state: { fromMoreViews: true } }
+    )
   }, [navigate, groupSlug, isEditing])
 
   const handleDoneEditing = useCallback(() => {

@@ -25,6 +25,8 @@ import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { getGroupViews } from 'store/selectors/getGroupViews'
 import getMyMemberships from 'store/selectors/getMyMemberships'
 import { localSpaceSlug, spaceUrl, POST_DETAIL_MATCH } from '@hylo/navigation'
+import { viewAcceptedByPostTypes } from 'store/models/GroupView'
+import { isDrawerNavLayout } from 'util/mobile'
 
 /**
  * Resolves a space group from the parent menu or from More Spaces (off-menu spaces).
@@ -48,8 +50,9 @@ function resolveSpaceGroup (parentGroup, groupViews, parentSlug, localSlug) {
 /**
  * Renders space views at /groups/:parentSlug/spaces/:spaceSlug/* while the
  * ContextMenu continues to show the parent group's navigation.
- * For one-column groups, the space index shows ContextMenuGrid (space menu)
- * instead of redirecting to the home view.
+ * The space index shows ContextMenuGrid (the space's own menu) whenever no menu
+ * is visible alongside it — one-column groups, and any drawer-width viewport —
+ * and otherwise redirects to the space's home view.
  */
 export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColumnGroup = false }) {
   const dispatch = useDispatch()
@@ -116,17 +119,24 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
   const spaceBase = spaceUrl(parentSlug, localSlug)
   const resolvedSpace = spaceGroup || linkedSpace
 
+  // Entering a space should land on its menu, not skip straight into a view —
+  // unless a menu is still visible elsewhere. In two column that is the sidebar,
+  // so going to the home view loses nothing. On a drawer layout the sidebar has
+  // slid off screen, so skipping the menu removes the only step where you can see
+  // what the space contains, and the way back is a drawer you have to know about.
+  const visibleSpaceViews = (resolvedSpace?.groupViews?.items || [])
+    .filter(view => view.order != null)
+    .filter(view => viewAcceptedByPostTypes(view.type, resolvedSpace?.acceptedPostTypes))
+  // A menu holding a single card is worse than the view it would open.
+  const showSpaceMenu = (isOneColumnGroup || isDrawerNavLayout()) && visibleSpaceViews.length > 1
+  const spaceIndexElement = showSpaceMenu
+    ? <ContextMenuGrid group={parentGroup} spaceGroup={resolvedSpace} />
+    : <Navigate to={`${spaceBase}${homeRoute}`} replace />
+
   return (
     <SpaceGroupSlugContext.Provider value={spaceFullSlug}>
       <Routes>
-        <Route
-          index
-          element={
-            isOneColumnGroup
-              ? <ContextMenuGrid group={parentGroup} spaceGroup={resolvedSpace} />
-              : <Navigate to={`${spaceBase}${homeRoute}`} replace />
-          }
-        />
+        <Route index element={spaceIndexElement} />
         <Route path='welcome/*' element={<GroupWelcomePage />} />
         <Route path='map/*' element={<MapExplorer context='groups' view='map' />} />
         <Route path='all/*' element={<ViewContent context='groups' view='all' />} />
@@ -147,14 +157,7 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
         <Route path='moderation/*' element={<Moderation context='groups' />} />
         <Route path='about/*' element={<GroupDetail context='groups' forCurrentGroup />} />
         <Route path={POST_DETAIL_MATCH} element={<PostDetail />} />
-        <Route
-          path='*'
-          element={
-            isOneColumnGroup
-              ? <ContextMenuGrid group={parentGroup} spaceGroup={resolvedSpace} />
-              : <Navigate to={`${spaceBase}${homeRoute}`} replace />
-          }
-        />
+        <Route path='*' element={spaceIndexElement} />
       </Routes>
     </SpaceGroupSlugContext.Provider>
   )
