@@ -45,6 +45,8 @@
   "A role must have a valid emoji and name to be saved": "Un rol debe tener un emoji y un nombre válidos para ser guardado",
   "A role must have a valid emoji and name to be updated": "Un rol debe tener un emoji y un nombre válidos para ser actualizado",
   "A short-form chat room experience for quick conversations and real-time discussions": "Una sala de chat en tiempo real para conversaciones rápidas, coordinación e interacción informal. \nLo mejor para grupos que desean un intercambio animado y continuo. \nMás parecido a Slack, Discord o WhatsApp.",
+  "A space is a part of your group with its own members and content — a working group, a cohort, a resource library, or anywhere that membership and focus matter.": "Un espacio es una parte de tu grupo con sus propios miembros y contenido: un grupo de trabajo, una cohorte, una biblioteca de recursos o cualquier lugar donde importen la pertenencia y el enfoque.",
+  "A view is a lens on your group's content — a stream of posts, a filtered list, a link, or another way of surfacing what you want members to see.": "Una vista es una mirada al contenido de tu grupo: un flujo de publicaciones, una lista filtrada, un enlace u otra forma de mostrar lo que quieres que vean las personas del grupo.",
   "About": "Acerca de",
   "About Me": "Acerca de mí",
   "About Video URL": "URL del video de presentación del grupo",

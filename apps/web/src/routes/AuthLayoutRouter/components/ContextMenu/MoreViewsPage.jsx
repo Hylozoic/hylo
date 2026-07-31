@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Pencil } from 'lucide-react'
+import { X } from 'lucide-react'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 
 import { useViewHeader } from 'contexts/ViewHeaderContext'
@@ -28,9 +28,11 @@ import { cn } from 'util/index'
 
 import AddGroupViewDialog from './AddGroupViewDialog'
 import AddSpaceDialog from './AddSpaceDialog'
+import AddChooserDialog from './AddChooserDialog'
 import GroupViewSettingsModal from './GroupViewSettingsModal'
 import SpaceSettingsModal from './SpaceSettingsModal'
 import GroupViewCard, { AddCard, SpaceViewCard } from './GroupViewCard'
+import EditingBottomBar, { EDITING_BAR_BUTTON_CLASS } from './EditingBottomBar'
 import ViewsGridSkeleton from './ViewsGridSkeleton'
 import { menuViewUrl } from './groupViewMenuUrl'
 
@@ -107,6 +109,7 @@ export default function MoreViewsPage ({ group }) {
 
   const [showAddView, setShowAddView] = useState(false)
   const [showAddSpace, setShowAddSpace] = useState(false)
+  const [showAddChooser, setShowAddChooser] = useState(false)
   const [settingsView, setSettingsView] = useState(null)
   const [settingsSpace, setSettingsSpace] = useState(null)
   const settingsTypeParam = getQuerystringParam('settings', location)
@@ -238,23 +241,8 @@ export default function MoreViewsPage ({ group }) {
     navigate(groupUrl(groupSlug))
   }, [navigate, groupSlug])
 
-  // The Done Editing bar is fixed to the viewport bottom; measure the content
-  // column so the fixed bar aligns with it instead of the full viewport.
+  // EditingBottomBar measures this to size itself
   const containerRef = useRef(null)
-  const [barRect, setBarRect] = useState(null)
-  useEffect(() => {
-    if (!isEditing) return
-    const update = () => {
-      const el = containerRef.current
-      if (!el) return
-      const rect = el.getBoundingClientRect()
-      setBarRect({ left: rect.left, width: rect.width })
-    }
-    update()
-    window.addEventListener('resize', update)
-    return () => window.removeEventListener('resize', update)
-  }, [isEditing])
-
   const handleAddViewClose = useCallback(async () => {
     setShowAddView(false)
     if (contentGroup?.id) await dispatch(fetchGroupViews(contentGroup.id))
@@ -381,27 +369,31 @@ export default function MoreViewsPage ({ group }) {
       {/* Below the sections, and shown even when empty so there is a way to add the first one */}
       {isEditing && (
         <div className='flex flex-wrap gap-3 mt-6'>
-          <AddCard onClick={() => setShowAddView(true)} label={t('Add View')} />
-          {!isSpaceMoreViews && <AddCard onClick={() => setShowAddSpace(true)} label={t('Add Space')} />}
+          <AddCard onClick={() => setShowAddChooser(true)} label={t('Add')} />
         </div>
       )}
 
       {isEditing && (
-        <div
-          className='fixed bottom-0 z-30 pt-6 pb-2 px-4 bg-gradient-to-t from-background from-40% to-transparent pointer-events-none'
-          style={barRect ? { left: barRect.left, width: barRect.width } : { left: 0, right: 0 }}
-        >
+        <EditingBottomBar containerRef={containerRef}>
           <button
             type='button'
             onClick={handleDoneEditing}
-            className='pointer-events-auto flex items-center justify-center gap-2 w-full text-base font-medium text-foreground border-2 border-foreground/30 hover:border-foreground/50 hover:bg-card rounded-md px-3 py-2.5 transition-all'
+            className={EDITING_BAR_BUTTON_CLASS}
           >
-            <Pencil className='w-4 h-4' />
+            <X className='w-4 h-4' />
             <span>{t('Done Editing')}</span>
           </button>
-        </div>
+        </EditingBottomBar>
       )}
 
+      {showAddChooser && (
+        <AddChooserDialog
+          canAddSpace={!isSpaceMoreViews}
+          onChooseView={() => { setShowAddChooser(false); setShowAddView(true) }}
+          onChooseSpace={() => { setShowAddChooser(false); setShowAddSpace(true) }}
+          onClose={() => setShowAddChooser(false)}
+        />
+      )}
       {showAddView && (
         <AddGroupViewDialog
           group={contentGroup}

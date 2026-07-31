@@ -1,6 +1,6 @@
 import { cn, bgImageStyle } from 'util/index'
 import { BadgeInfo, Bell, Settings, Users, Pencil, X, CircleEllipsis, ChevronLeft } from 'lucide-react'
-import React, { useMemo, useState, useEffect, useCallback } from 'react'
+import React, { useMemo, useRef, useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
@@ -73,6 +73,8 @@ import SpaceSettingsModal from './SpaceSettingsModal'
 import AddCollectionDialog from './AddCollectionDialog'
 import AddGroupViewDialog from './AddGroupViewDialog'
 import AddSpaceDialog from './AddSpaceDialog'
+import AddChooserDialog from './AddChooserDialog'
+import EditingBottomBar, { EDITING_BAR_BUTTON_CLASS } from './EditingBottomBar'
 import { menuViewUrl } from './groupViewMenuUrl'
 
 /** Synthetic view so the More Views card can use the same icon wallpaper as real views. */
@@ -690,6 +692,9 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
   const [settingsView, setSettingsView] = useState(null)
   const [showAddView, setShowAddView] = useState(false)
   const [showAddSpace, setShowAddSpace] = useState(false)
+  const [showAddChooser, setShowAddChooser] = useState(false)
+  // EditingBottomBar measures this to size itself to the column
+  const gridContainerRef = useRef(null)
 
   // Reset breadcrumb; nested levels use the sticky back bar instead of ViewHeader.
   const { setHeaderDetails } = useViewHeader()
@@ -858,7 +863,7 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
       )}
 
       {/* Extra room up top so the first row of cards clears the banner edge */}
-      <div className='w-full max-w-[1000px] mx-auto px-4 pt-10 pb-6'>
+      <div ref={gridContainerRef} className={cn('w-full max-w-[1000px] mx-auto px-4 pt-10 pb-6', isEditing && 'pb-24')}>
         {isNestedLevel && (
           <StickyBackHeader title={nestedTitle} onBack={handleBack} t={t} />
         )}
@@ -878,12 +883,9 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
                   onOpenSettings={setSettingsView}
                   onDelete={handleDeleteMenuView}
                 />
-                {/* Card-shaped so they read as the next slot in the grid above */}
+                {/* One Add slot; the chooser explains the view/space distinction */}
                 <div className='flex flex-wrap gap-3'>
-                  <AddCard onClick={() => setShowAddView(true)} label={t('Add View')} />
-                  {!spaceGroup && canManageSpaces && (
-                    <AddCard onClick={() => setShowAddSpace(true)} label={t('Add Space')} />
-                  )}
+                  <AddCard onClick={() => setShowAddChooser(true)} label={t('Add')} />
                 </div>
                 {!spaceGroup && (
                   <div className='flex flex-col gap-3 pt-4 border-t border-foreground/10'>
@@ -898,6 +900,14 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
                       onOpenSpaceSettings={(space) => setSettingsView({ type: 'space', linkedGroup: space, name: space.name, icon: space.icon })}
                     />
                   </div>
+                )}
+                {showAddChooser && (
+                  <AddChooserDialog
+                    canAddSpace={!spaceGroup && canManageSpaces}
+                    onChooseView={() => { setShowAddChooser(false); setShowAddView(true) }}
+                    onChooseSpace={() => { setShowAddChooser(false); setShowAddSpace(true) }}
+                    onClose={() => setShowAddChooser(false)}
+                  />
                 )}
                 {showAddView && (
                   <AddGroupViewDialog
@@ -935,25 +945,28 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
               </div>
               )}
 
-        {!isContextMode && canAdminister && !isMoreSpacesLevel && (
+        {/* Editing pins Done to the foot of the column, matching More Views and
+            Spaces; Edit Menu stays in flow, where it isn't competing for attention */}
+        {!isContextMode && canAdminister && !isMoreSpacesLevel && !isEditing && (
           <div className='flex justify-center mt-6'>
             <button
               type='button'
               onClick={toggleEditing}
-              className={cn(
-                'flex items-center gap-1.5 px-4 py-2 rounded-lg border-2 text-sm transition-all',
-                isEditing
-                  ? 'border-selected bg-selected/10 text-selected hover:bg-selected/20'
-                  : 'border-foreground/20 hover:border-foreground/40 text-foreground/60 hover:text-foreground/80'
-              )}
+              className='flex items-center gap-1.5 px-4 py-2 rounded-lg border-2 text-sm transition-all border-foreground/20 hover:border-foreground/40 text-foreground/60 hover:text-foreground/80'
             >
-              {isEditing
-                ? <><X className='w-4 h-4' /> {t('Done Editing')}</>
-                : <><Pencil className='w-4 h-4' /> {t('Edit Menu')}</>}
+              <Pencil className='w-4 h-4' /> {t('Edit Menu')}
             </button>
           </div>
         )}
       </div>
+
+      {!isContextMode && canAdminister && !isMoreSpacesLevel && isEditing && (
+        <EditingBottomBar containerRef={gridContainerRef}>
+          <button type='button' onClick={toggleEditing} className={EDITING_BAR_BUTTON_CLASS}>
+            <X className='w-4 h-4' /> {t('Done Editing')}
+          </button>
+        </EditingBottomBar>
+      )}
 
       {settingsView && (
         settingsView.type === 'space'
