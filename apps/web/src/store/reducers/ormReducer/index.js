@@ -1001,7 +1001,9 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
 
     case UPDATE_COMMENT_PENDING: {
       comment = Comment.withId(meta.id)
-      comment.update(meta.data)
+      if (comment) comment.update(meta.data)
+      const message = Message.withId(meta.id)
+      if (message) message.update(meta.data)
       break
     }
 
