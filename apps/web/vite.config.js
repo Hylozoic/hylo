@@ -86,12 +86,15 @@ export default defineConfig(({ command }) => ({
       cachedChecks: false
     },
     port: process.env.PORT || 3000,
-    // Allow Bonjour/mDNS hostnames so the dev server can be reached from a phone
-    // on the same wifi as http://<machine-name>.local:3000. A leading dot matches
-    // any *.local name, so this works for every machine without per-host config.
-    // Vite already allows bare IPs, but @virtuoso.dev/message-list watermarks the
-    // chat list on an IP host — it treats *.local (like localhost) as development.
-    allowedHosts: ['.local'],
+    // Hostnames the dev server may be reached by, beyond localhost and bare IPs
+    // (which Vite allows unconditionally):
+    //   .local  — Bonjour/mDNS, for a phone on the same wifi
+    //   .ts.net — Tailscale MagicDNS, for a phone anywhere
+    // A leading dot matches any name under that suffix, so neither needs
+    // per-machine configuration. Note @virtuoso.dev/message-list only treats
+    // localhost and *.local as development, so the chat list carries its
+    // missing-license watermark over Tailscale until VITE_VIRTUOSO_KEY is set.
+    allowedHosts: ['.local', '.ts.net'],
     // https: process.env.HTTPS === 'true' ? {
     //   key: fs.readFileSync(path.resolve(__dirname, `./config/ssl/${process.env.LOCAL_CERT}.key`)),
     //   cert: fs.readFileSync(path.resolve(__dirname, `./config/ssl/${process.env.LOCAL_CERT}.crt`)),
