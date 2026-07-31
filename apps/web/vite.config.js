@@ -101,6 +101,15 @@ export default defineConfig(({ command }) => ({
     //   ca: fs.readFileSync(path.resolve(__dirname, `./config/ssl/${process.env.LOCAL_CERT}.pem`)),
     // } : false,
     proxy: {
+      // Sails serves sockets at the default socket.io path. Proxying it lets a
+      // browser on another device connect through this origin — VITE_SOCKET_HOST
+      // is baked into the bundle as localhost, which from a phone means the phone.
+      '/socket.io': {
+        target: proxyTarget,
+        changeOrigin: true,
+        secure: process.env.HTTPS === 'true',
+        ws: true
+      },
       '/noo': {
         target: proxyTarget,
         changeOrigin: true,
