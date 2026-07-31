@@ -116,6 +116,29 @@ export default function GlobalNavItem ({
     }
   }, [checkPosition])
 
+  // Tell GlobalNav when this stack's submenu opens or closes, so the rail can put
+  // its labels away and leave the screen to the submenu.
+  useEffect(() => {
+    if (!hasChildren) return
+    window.dispatchEvent(new CustomEvent('navSubmenuToggle', { detail: popoverOpen }))
+  }, [popoverOpen, hasChildren])
+
+  // Scrolling the rail behind an open submenu dismisses it. Radix focuses the
+  // content on open, which can itself nudge a scroll, so ignore the first moment.
+  useEffect(() => {
+    if (!popoverOpen) return
+    let settled = false
+    const settleTimer = setTimeout(() => { settled = true }, 300)
+    const handleClose = () => {
+      if (settled) setPopoverOpen(false)
+    }
+    window.addEventListener('navSubmenuClose', handleClose)
+    return () => {
+      clearTimeout(settleTimer)
+      window.removeEventListener('navSubmenuClose', handleClose)
+    }
+  }, [popoverOpen])
+
   // Listen for hover suppression from GlobalNav (fired when nav opens on mobile)
   // Blocks ALL hover events regardless of pointerType during the grace period
   useEffect(() => {
@@ -302,12 +325,25 @@ export default function GlobalNavItem ({
       {/* Reads as the rail continuing outward rather than a panel laid over it:
           no surface of its own, group tiles at rail size, and names on the same
           pills the rail uses for its hover labels. */}
+      {/* A group with many children runs past the fold, so the list is bounded by
+          the space Radix reports it has and scrolls within it. overflow-x is hidden
+          rather than visible because a scrolling box cannot have one axis visible —
+          pr-6 leaves the hover-scaled labels room so they aren't clipped. */}
+      {/* Width matches the ContextMenu next door so the submenu never reaches
+          further across the screen than the panel it stands in for. */}
+      {/* Radix portals this, but React still bubbles its events up the component
+          tree to the rail's touch handlers — which would read a scroll in here as a
+          tap on the rail and pop the labels open. Stop them at the boundary. */}
       <PopoverContent
         side='right'
         align='start'
-        className='w-auto max-w-none bg-transparent border-none shadow-none p-0 pl-1 z-[110]'
+        collisionPadding={12}
+        onTouchStart={e => e.stopPropagation()}
+        onTouchMove={e => e.stopPropagation()}
+        onTouchEnd={e => e.stopPropagation()}
+        className='w-auto max-w-[260px] sm:max-w-[300px] bg-transparent border-none shadow-none p-0 pl-1 pr-6 z-[110] max-h-[var(--radix-popover-content-available-height)] overflow-y-auto overflow-x-hidden overscroll-contain'
       >
-        <div className='flex flex-col gap-2'>
+        <div className='flex flex-col gap-2 py-1'>
           {[{ id: 'parent', name: tooltip, avatarUrl: img, to: url }, ...childGroups.map(child => ({
             id: child.id,
             name: child.name,
@@ -317,7 +353,7 @@ export default function GlobalNavItem ({
             <div
               key={item.id}
               onClick={handleNavigateTo(item.to)}
-              className='flex items-center gap-2 cursor-pointer group/stacked'
+              className='flex items-center gap-2 cursor-pointer group/stacked min-w-0'
               role='button'
               tabIndex={0}
             >
@@ -328,7 +364,9 @@ export default function GlobalNavItem ({
                 className='w-14 h-14 shrink-0 rounded-lg bg-cover bg-center bg-primary drop-shadow-md scale-90 group-hover/stacked:scale-100 transition-all duration-100 ease-out'
                 style={{ backgroundImage: `url(${item.avatarUrl})` }}
               />
-              <span className='rounded-md bg-popover text-popover-foreground shadow-md px-3 py-1.5 text-sm font-semibold whitespace-nowrap origin-left transition-all duration-100 ease-out transform group-hover/stacked:scale-110'>
+              {/* min-w-0 lets the label shrink inside the flex row so truncate has
+                  something to act on — without it the pill would push past the cap. */}
+              <span className='rounded-md bg-popover text-popover-foreground shadow-md px-3 py-1.5 text-sm font-semibold min-w-0 truncate origin-left transition-all duration-100 ease-out transform group-hover/stacked:scale-110'>
                 {item.name}
               </span>
             </div>
