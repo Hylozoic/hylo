@@ -80,6 +80,13 @@ export default defineConfig(({ command }) => ({
     exclude: ['@hylo/shared'],
     include: ['**/*.scss']
   },
+  // `vite preview` serves the built bundle instead of 1400-odd dev modules, which
+  // is the difference between seconds and minutes over a relayed Tailscale link.
+  // It enforces the same host check as the dev server, so it needs the same list.
+  preview: {
+    host: '0.0.0.0',
+    allowedHosts: ['.local', '.ts.net']
+  },
   server: {
     // XXX: fix issues finding aliases?
     fs: {
