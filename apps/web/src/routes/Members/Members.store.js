@@ -8,13 +8,13 @@ export const REMOVE_MEMBER = 'REMOVE_MEMBER'
 export const REMOVE_MEMBER_PENDING = REMOVE_MEMBER + '_PENDING'
 
 export const groupMembersQuery = `
-query FetchGroupMembers ($slug: String, $groupId: ID, $first: Int, $sortBy: String, $order: String, $offset: Int, $search: String) {
+query FetchGroupMembers ($slug: String, $groupId: ID, $first: Int, $sortBy: String, $order: String, $offset: Int, $search: String, $groupRoleId: ID) {
   group (slug: $slug) {
     id
     name
     avatarUrl
     memberCount
-    members (first: $first, sortBy: $sortBy, order: $order, offset: $offset, search: $search) {
+    members (first: $first, sortBy: $sortBy, order: $order, offset: $offset, search: $search, groupRoleId: $groupRoleId) {
       items {
         id
         name
@@ -62,17 +62,43 @@ query FetchGroupMembers ($slug: String, $groupId: ID, $first: Int, $sortBy: Stri
   }
 }`
 
-export function fetchGroupMembers ({ slug, groupId, sortBy, order, offset, search, first = 20 }) {
+function defaultOrderForSort (sortBy) {
+  if (sortBy === 'join' || sortBy === 'last_active_at') return 'desc'
+  return 'asc'
+}
+
+export function getMemberQueryProps ({ slug, search, sortBy, groupRoleId }) {
+  return {
+    slug,
+    search,
+    sortBy,
+    groupRoleId: groupRoleId || null,
+    order: defaultOrderForSort(sortBy)
+  }
+}
+
+export function fetchGroupMembers ({ slug, groupId, sortBy, order, offset, search, groupRoleId, first = 20 }) {
   return {
     type: FETCH_MEMBERS,
     graphql: {
       query: groupMembersQuery,
-      variables: { slug, groupId, first, offset, sortBy, order, search }
+      variables: {
+        slug,
+        groupId,
+        first,
+        offset,
+        sortBy,
+        order: order || defaultOrderForSort(sortBy),
+        search,
+        groupRoleId: groupRoleId || null
+      }
     },
     meta: {
       extractModel: 'Group',
       extractQueryResults: {
-        getItems: get('payload.data.group.members')
+        getItems: get('payload.data.group.members'),
+        replace: !offset,
+        getRouteParams: action => getMemberQueryProps(action.meta.graphql.variables)
       }
     }
   }
@@ -98,8 +124,8 @@ export function removeMember (personId, groupId, slug) {
   }
 }
 // I don't know why there is this duplication (see fetchGroupMembers). Not taking the time to refactor.
-export function fetchMembers ({ slug, groupId, sortBy, offset, search }) {
-  return fetchGroupMembers({ slug, groupId, sortBy, offset, search })
+export function fetchMembers ({ slug, groupId, sortBy, offset, search, groupRoleId }) {
+  return fetchGroupMembers({ slug, groupId, sortBy, offset, search, groupRoleId })
 }
 
 export default function reducer (state = {}, action) {
@@ -107,6 +133,11 @@ export default function reducer (state = {}, action) {
 }
 
 const getMemberResults = makeGetQueryResults(FETCH_MEMBERS)
+
+export const getHasFetchedMembers = createSelector(
+  getMemberResults,
+  results => results != null
+)
 
 export const getMembers = makeQueryResultsModelSelector(
   getMemberResults,
