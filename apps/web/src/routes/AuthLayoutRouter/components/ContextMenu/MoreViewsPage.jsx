@@ -247,6 +247,11 @@ export default function MoreViewsPage ({ group }) {
     )
   }, [navigate, groupSlug, isEditing])
 
+  const handleOpenSpaceAbout = useCallback((space) => {
+    const local = localSpaceSlug(groupSlug, space.slug)
+    navigate(spaceUrl(groupSlug, local, '/about'))
+  }, [groupSlug, navigate])
+
   const handleDoneEditing = useCallback(() => {
     navigate(groupUrl(groupSlug))
   }, [navigate, groupSlug])
@@ -330,6 +335,7 @@ export default function MoreViewsPage ({ group }) {
                           isEditing={isEditing}
                           isDeleting={String(deletingSpaceId) === String(space.id)}
                           onOpen={handleOpenSpace}
+                          onOpenAbout={handleOpenSpaceAbout}
                           onAddToMenu={handleAddSpaceToMenu}
                           onOpenSettings={setSettingsSpace}
                           onDelete={handleDeleteSpace}
@@ -349,6 +355,7 @@ export default function MoreViewsPage ({ group }) {
                           isEditing={isEditing}
                           isDeleting={String(deletingSpaceId) === String(space.id)}
                           onOpen={handleOpenSpace}
+                          onOpenAbout={handleOpenSpaceAbout}
                           onAddToMenu={handleAddSpaceToMenu}
                           onOpenSettings={setSettingsSpace}
                           onDelete={handleDeleteSpace}
@@ -368,6 +375,7 @@ export default function MoreViewsPage ({ group }) {
                           isEditing={isEditing}
                           isDeleting={String(deletingSpaceId) === String(space.id)}
                           onOpen={handleOpenSpace}
+                          onOpenAbout={handleOpenSpaceAbout}
                           onAddToMenu={handleAddSpaceToMenu}
                           onOpenSettings={setSettingsSpace}
                           onDelete={handleDeleteSpace}
