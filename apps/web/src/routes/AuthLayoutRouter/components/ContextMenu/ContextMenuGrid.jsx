@@ -2,8 +2,9 @@ import { cn, bgImageStyle } from 'util/index'
 import { BadgeInfo, Settings, Users, Pencil, X, CircleEllipsis, ChevronLeft } from 'lucide-react'
 import React, { useMemo, useRef, useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
+import InviteMembersPopover from 'components/InviteMembersPopover/InviteMembersPopover'
 import GroupViewPresenter, {
   displayNameForView,
   getStaticMenuViews,
@@ -11,7 +12,6 @@ import GroupViewPresenter, {
 } from '@hylo/presenters/GroupViewPresenter'
 import {
   groupUrl,
-  currentUserSettingsUrl,
   addQuerystringToPath,
   localSpaceSlug,
   personUrl,
@@ -275,12 +275,15 @@ function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
     </h3>
   )
 
+  const isMembers = presentedView.type === 'members'
+  const inviteGroup = spaceGroup || group
+
   return (
     <div
       onClick={handleClick}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      className={cn(CARD_CLASS, cardChrome(isDark))}
+      className={cn(CARD_CLASS, cardChrome(isDark), 'group')}
       style={{
         background: bgImageUrl
           ? cardNeutralBg(effectiveColorScheme)
@@ -303,6 +306,16 @@ function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
         }
       }}
     >
+      {isMembers && inviteGroup && (
+        <div className='absolute top-1.5 right-1.5 z-20'>
+          <InviteMembersPopover
+            group={inviteGroup}
+            triggerClassName={lightSurfaceLabels
+              ? 'bg-background/90 text-foreground/70 hover:text-foreground shadow-sm'
+              : 'bg-black/40 text-white hover:text-white shadow-sm'}
+          />
+        </div>
+      )}
       {bgImageUrl
         ? (
           <>
@@ -850,9 +863,18 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
               {displaySubtitle
                 ? <span className='text-sm text-white/80 drop-shadow-md'>{displaySubtitle}</span>
                 : !isContextMode && (
-                  <span className='text-sm flex items-center gap-1 text-white/80 drop-shadow-md'>
+                  <span className='group text-sm flex items-center gap-1 text-white/80 drop-shadow-md'>
                     <Users className='w-4 h-4' />
-                    {t('{{count}} Members', { count: (spaceGroup || group)?.memberCount || 0 })}
+                    <Link
+                      className='text-white/80 underline hover:text-white'
+                      to={groupUrl((spaceGroup || group)?.slug || groupSlug, 'members', {})}
+                    >
+                      {t('{{count}} Members', { count: (spaceGroup || group)?.memberCount || 0 })}
+                    </Link>
+                    <InviteMembersPopover
+                      group={spaceGroup || group}
+                      triggerClassName='text-white hover:text-white'
+                    />
                   </span>
                   )}
             </div>

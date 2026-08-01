@@ -20,6 +20,7 @@ import {
 } from '@hylo/navigation'
 
 import GroupMenuHeader from 'components/GroupMenuHeader'
+import InviteMembersPopover from 'components/InviteMembersPopover/InviteMembersPopover'
 import MenuLink from './MenuLink'
 import GroupViewIcon from './GroupViewIcon'
 import useRouteParams from 'hooks/useRouteParams'
@@ -120,6 +121,7 @@ function visibleSpaceMenuViews (spaceGroup, { includeManageRound = false } = {})
 function GroupViewMenuItem ({
   view,
   parentSlug,
+  group = null,
   spaceGroup = null,
   spaceSlug = null
 }) {
@@ -288,6 +290,7 @@ function GroupViewMenuItem ({
                 key={subView.id}
                 view={subView}
                 parentSlug={parentSlug}
+                group={linkedSpaceGroup}
                 spaceGroup={linkedSpaceGroup}
                 spaceSlug={spaceSlug}
               />
@@ -306,6 +309,53 @@ function GroupViewMenuItem ({
   // mirroring the one-column dashboard cards.
   const isRowActive = Boolean(!isExternal && url && (location.pathname === url || location.pathname.startsWith(`${url}/`)))
   const rowCol = viewCardColor(presentedView)
+  const inviteGroup = spaceGroup || group
+  const showInvite = presentedView.type === 'members' && inviteGroup
+
+  if (showInvite) {
+    return (
+      <li className='list-none'>
+        <div
+          className={cn(
+            GROUP_VIEW_MENU_ITEM_CLASS,
+            'group relative overflow-hidden',
+            isRowActive ? 'opacity-100 font-bold' : 'hover:border-[color:var(--row-border-hover)]'
+          )}
+          style={{
+            '--row-border-hover': `${rowCol}33`,
+            ...(isRowActive ? { borderColor: rowCol } : {})
+          }}
+        >
+          <MenuRowBackground
+            view={presentedView}
+            className={cn('transition-opacity duration-200', isRowActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-50')}
+          />
+          <MenuLink
+            to={isExternal ? null : url}
+            externalLink={isExternal ? url : null}
+            isActive={false}
+            className={cn(
+              GROUP_VIEW_MENU_ITEM_INNER_LINK_CLASS,
+              'relative z-10',
+              isRowActive && activeLabelClass
+            )}
+          >
+            <GroupViewIcon view={presentedView} />
+            <span className='truncate flex-1'>{displayNameForView(presentedView, t, { spaceGroup })}</span>
+            {showUnreadDot && <UnreadDot />}
+          </MenuLink>
+          <InviteMembersPopover
+            group={inviteGroup}
+            className='relative z-10 shrink-0 mr-1'
+            triggerClassName={cn(
+              'text-foreground/50 hover:text-foreground',
+              isRowActive && (effectiveColorScheme === 'dark' ? 'text-white/80 hover:text-white' : 'text-foreground/70 hover:text-foreground')
+            )}
+          />
+        </div>
+      </li>
+    )
+  }
 
   return (
     <li className='list-none'>
@@ -420,6 +470,7 @@ function GroupViewList ({
             key={view.id || index}
             view={view}
             parentSlug={groupSlug}
+            group={group}
             spaceGroup={spaceGroup}
             spaceSlug={spaceSlug}
           />

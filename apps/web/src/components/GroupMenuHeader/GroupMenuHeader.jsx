@@ -125,9 +125,13 @@ export default function GroupMenuHeader ({
             </h1>
           </div>
           {showMembers && (
-            <span className='text-xs align-middle text-white'>
-              <Users className='w-4 h-4 inline mr-1 align-bottom' />
+            <span className='group text-xs align-middle text-white flex items-center gap-1'>
+              <Users className='w-4 h-4 inline align-bottom' />
               <Link className='text-white underline' to={groupUrl(group.slug, 'members', {})} onClick={() => dispatch(toggleNavMenu(false))}>{t('{{count}} Members', { count: group.memberCount })}</Link>
+              <InviteMembersPopover
+                group={group}
+                triggerClassName='text-white hover:text-white'
+              />
             </span>
           )}
         </div>
