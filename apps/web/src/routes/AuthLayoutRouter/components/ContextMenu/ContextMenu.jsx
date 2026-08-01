@@ -349,7 +349,7 @@ function GroupViewMenuItem ({
             className='relative z-10 shrink-0 mr-1'
             triggerClassName={cn(
               'text-foreground/50 hover:text-foreground',
-              isRowActive && (effectiveColorScheme === 'dark' ? 'text-white/80 hover:text-white' : 'text-foreground/70 hover:text-foreground')
+              isRowActive && 'text-foreground/70 hover:text-foreground dark:text-white/80 dark:hover:text-white'
             )}
           />
         </div>

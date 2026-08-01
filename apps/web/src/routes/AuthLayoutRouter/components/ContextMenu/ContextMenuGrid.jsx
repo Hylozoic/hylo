@@ -41,8 +41,7 @@ import { useViewHeader } from 'contexts/ViewHeaderContext'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import fetchGroupRelationships from 'store/actions/fetchGroupRelationships'
-import { createGroupView, deleteGroupView, setGroupViewHidden } from 'store/actions/groupViews'
-import { deleteGroup } from 'routes/GroupSettings/GroupSettings.store'
+import { createGroupView, deleteGroupView, deleteSpace, setGroupViewHidden } from 'store/actions/groupViews'
 import { canHardDeleteView, viewAcceptedByPostTypes } from 'store/models/GroupView'
 import { viewShowsUnreadDot, viewUnreadBadgeCount } from 'util/viewUnreadBadges'
 import GroupNotificationsPopover from 'components/GroupNotificationsPopover/GroupNotificationsPopover'
@@ -503,6 +502,7 @@ function MoreSpacesGrid ({
     hasContent
   } = useMoreSpacesContent(group)
   const groupViews = useSelector(state => getGroupViews(state, group))
+  const [deletingSpaceId, setDeletingSpaceId] = useState(null)
 
   useEffect(() => {
     if (!group?.id || !groupSlug) return
@@ -570,21 +570,24 @@ function MoreSpacesGrid ({
   }, [dispatch, group?.id, t])
 
   const handleDeleteSpace = useCallback(async (space) => {
-    if (!space?.id) return
+    if (!space?.id || deletingSpaceId) return
     const confirmed = window.confirm(
       t('Are you sure you want to permanently delete {{name}}? Posts in this space will no longer be accessible.', {
         name: space.name
       })
     )
     if (!confirmed) return
+    setDeletingSpaceId(space.id)
     try {
-      await dispatch(deleteGroup(space.id))
+      await dispatch(deleteSpace(space.id))
       await dispatch(fetchGroupSpaces(group.id))
       await dispatch(fetchGroupViews(group.id))
     } catch (error) {
       console.error('Failed to delete space:', error)
+    } finally {
+      setDeletingSpaceId(null)
     }
-  }, [dispatch, group?.id, t])
+  }, [dispatch, group?.id, deletingSpaceId, t])
 
   if (pending && !hasContent) {
     return <ViewsGridSkeleton />
@@ -623,6 +626,7 @@ function MoreSpacesGrid ({
                 key={space.id}
                 space={space}
                 isEditing={isEditing}
+                isDeleting={String(deletingSpaceId) === String(space.id)}
                 onOpen={handleOpenSpace}
                 onAddToMenu={handleAddSpaceToMenu}
                 onOpenSettings={onOpenSpaceSettings}
@@ -641,6 +645,7 @@ function MoreSpacesGrid ({
                 key={space.id}
                 space={space}
                 isEditing={isEditing}
+                isDeleting={String(deletingSpaceId) === String(space.id)}
                 onOpen={handleOpenSpace}
                 onAddToMenu={handleAddSpaceToMenu}
                 onOpenSettings={onOpenSpaceSettings}
@@ -659,6 +664,7 @@ function MoreSpacesGrid ({
                 key={space.id}
                 space={space}
                 isEditing={isEditing}
+                isDeleting={String(deletingSpaceId) === String(space.id)}
                 onOpen={handleOpenSpace}
                 onAddToMenu={handleAddSpaceToMenu}
                 onOpenSettings={onOpenSpaceSettings}
