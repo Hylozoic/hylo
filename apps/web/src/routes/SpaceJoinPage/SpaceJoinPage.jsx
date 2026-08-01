@@ -143,85 +143,85 @@ export default function SpaceJoinPage () {
 
         <h1 className='text-2xl font-bold text-foreground'>{spaceGroup.name}</h1>
 
-      {spaceGroup.purpose && (
-        <p className='text-foreground/80 font-medium'>{spaceGroup.purpose}</p>
-      )}
-
-      {spaceGroup.description && (
-        <div className='text-foreground/70 text-sm global-postContent'>
-          <ClickCatcher groupSlug={spaceFullSlug}>
-            <HyloHTML html={spaceGroup.description} />
-          </ClickCatcher>
-        </div>
-      )}
-
-      <div className='flex items-center gap-2 text-foreground/60 mt-2'>
-        <Icon name='People' />
-        <span>{t('{{count}} Members', { count: spaceGroup.memberCount || 0 })}</span>
-      </div>
-
-      <div className='flex items-center gap-2 text-foreground/60'>
-        {spaceGroup.paywall
-          ? <BadgeDollarSign className='w-4 h-4' />
-          : <Icon name={accessibilityIcon(spaceGroup.accessibility)} />}
-        <span>
-          <span>Access:&nbsp;</span>
-          {spaceGroup.paywall
-            ? t('Paid')
-            : spaceGroup.accessibility === GROUP_ACCESSIBILITY.Open
-              ? (requiredRoleNames.length > 0
-                  ? t('Open for {{roles}}', { roles: requiredRoleNames.join(', ') })
-                  : t('Open'))
-              : spaceGroup.accessibility === GROUP_ACCESSIBILITY.Restricted
-                ? t('Restricted - you need to request to join')
-                : t('Invite Only')}
-        </span>
-      </div>
-
-      <div className='w-full mt-4'>
-        {actionError && (
-          <p className='text-sm text-red-500 mb-2'>{actionError}</p>
+        {spaceGroup.purpose && (
+          <p className='text-foreground/80 font-medium'>{spaceGroup.purpose}</p>
         )}
 
-        {spaceGroup.paywall
-          ? (
-            <div className='w-full text-left'>
-              <p className='text-sm text-foreground/70 mb-3 text-center'>{t('Pay to Join Space')}</p>
-              <PaywallOfferingsSection group={spaceGroup} />
-            </div>
-            )
-          : spaceGroup.accessibility === GROUP_ACCESSIBILITY.Open
+        {spaceGroup.description && (
+          <div className='text-foreground/70 text-sm global-postContent'>
+            <ClickCatcher groupSlug={spaceFullSlug}>
+              <HyloHTML html={spaceGroup.description} />
+            </ClickCatcher>
+          </div>
+        )}
+
+        <div className='flex items-center gap-2 text-foreground/60 mt-2'>
+          <Icon name='People' />
+          <span>{t('{{count}} Members', { count: spaceGroup.memberCount || 0 })}</span>
+        </div>
+
+        <div className='flex items-center gap-2 text-foreground/60'>
+          {spaceGroup.paywall
+            ? <BadgeDollarSign className='w-4 h-4' />
+            : <Icon name={accessibilityIcon(spaceGroup.accessibility)} />}
+          <span>
+            <span>Access:&nbsp;</span>
+            {spaceGroup.paywall
+              ? t('Paid')
+              : spaceGroup.accessibility === GROUP_ACCESSIBILITY.Open
+                ? (requiredRoleNames.length > 0
+                    ? t('Open for {{roles}}', { roles: requiredRoleNames.join(', ') })
+                    : t('Open'))
+                : spaceGroup.accessibility === GROUP_ACCESSIBILITY.Restricted
+                  ? t('Restricted - you need to request to join')
+                  : t('Invite Only')}
+          </span>
+        </div>
+
+        <div className='w-full mt-4'>
+          {actionError && (
+            <p className='text-sm text-red-500 mb-2'>{actionError}</p>
+          )}
+
+          {spaceGroup.paywall
             ? (
-              <>
-                {!hasRequiredRole && requiredRoleNames.length > 0 && (
-                  <p className='text-sm text-foreground/60 mb-2'>
-                    {t('You need the {{roles}} role in {{parentName}} to join this space', { roles: requiredRoleNames.join(', '), parentName: parentGroup.name })}
-                  </p>
-                )}
-                <Button variant='secondary' className='w-full' onClick={handleJoinSpace} disabled={joining || !hasRequiredRole}>
-                  {joining ? t('Joining...') : t('Join Space')}
-                </Button>
-              </>
+              <div className='w-full text-left'>
+                <p className='text-sm text-foreground/70 mb-3 text-center'>{t('Pay to Join Space')}</p>
+                <PaywallOfferingsSection group={spaceGroup} />
+              </div>
               )
-            : spaceGroup.accessibility === GROUP_ACCESSIBILITY.Restricted
-              ? hasPendingRequest
-                ? (
-                  <div className='border-2 border-dashed border-selected/100 rounded-md text-center p-4 text-foreground'>
-                    <h3 className='mt-0 text-foreground font-bold mb-2'>{t('Request to join pending')}</h3>
-                    <span>{t('You will be sent an email and notified on your device when the request is approved.')}</span>
-                  </div>
-                  )
-                : (
-                  <Button variant='secondary' className='w-full' onClick={handleRequestToJoin} disabled={requesting}>
-                    {requesting ? t('Requesting...') : t('Request to Join Space')}
+            : spaceGroup.accessibility === GROUP_ACCESSIBILITY.Open
+              ? (
+                <>
+                  {!hasRequiredRole && requiredRoleNames.length > 0 && (
+                    <p className='text-sm text-foreground/60 mb-2'>
+                      {t('You need the {{roles}} role in {{parentName}} to join this space', { roles: requiredRoleNames.join(', '), parentName: parentGroup.name })}
+                    </p>
+                  )}
+                  <Button variant='secondary' className='w-full' onClick={handleJoinSpace} disabled={joining || !hasRequiredRole}>
+                    {joining ? t('Joining...') : t('Join Space')}
                   </Button>
-                  )
-              : (
-                <p className='text-sm text-foreground/60'>
-                  {t('This space is invite only. You need an invitation to join.')}
-                </p>
-                )}
-      </div>
+                </>
+                )
+              : spaceGroup.accessibility === GROUP_ACCESSIBILITY.Restricted
+                ? hasPendingRequest
+                  ? (
+                    <div className='border-2 border-dashed border-selected/100 rounded-md text-center p-4 text-foreground'>
+                      <h3 className='mt-0 text-foreground font-bold mb-2'>{t('Request to join pending')}</h3>
+                      <span>{t('You will be sent an email and notified on your device when the request is approved.')}</span>
+                    </div>
+                    )
+                  : (
+                    <Button variant='secondary' className='w-full' onClick={handleRequestToJoin} disabled={requesting}>
+                      {requesting ? t('Requesting...') : t('Request to Join Space')}
+                    </Button>
+                    )
+                : (
+                  <p className='text-sm text-foreground/60'>
+                    {t('This space is invite only. You need an invitation to join.')}
+                  </p>
+                  )}
+        </div>
       </div>
     </div>
   )
