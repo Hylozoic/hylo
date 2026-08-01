@@ -230,6 +230,7 @@
   "Are you sure you want to leave {{groupName}}": "क्या आप वाकई {{groupName}} छोड़ना चाहते हैं",
   "Are you sure you want to leave {{groupName}}?": "क्या आप वाकई {{groupName}} छोड़ना चाहते हैं?",
   "Are you sure you want to leave {{group_name}}? You will no longer have access to this group's content.": "क्या आप वाकई {{group_name}} छोड़ना चाहते हैं? अब आपको इस समूह की सामग्री तक पहुंच नहीं होगी।",
+  "Are you sure you want to leave {{group_name}}? You will no longer have access to this space's content.": "क्या आप वाकई {{group_name}} छोड़ना चाहते हैं? अब आपको इस स्पेस की सामग्री तक पहुंच नहीं होगी।",
   "Are you sure you want to manually start this phase? This will set ": "क्या आप सुनिश्चित हैं कि आप इस चरण को मैन्युअल रूप से शुरू करना चाहते हैं? यह सेट करेगा",
   "Are you sure you want to permanently delete {{name}}?": "क्या आप वाकई {{name}} को स्थायी रूप से हटाना चाहते हैं?",
   "Are you sure you want to permanently delete {{name}}? Posts in this space will no longer be accessible.": "क्या आप वाकई {{name}} को स्थायी रूप से हटाना चाहते हैं? इस स्पेस की पोस्ट अब उपलब्ध नहीं रहेंगी।",

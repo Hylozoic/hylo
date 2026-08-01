@@ -230,6 +230,7 @@
   "Are you sure you want to leave {{groupName}}": "Tem certeza de que deseja sair de {{groupName}}",
   "Are you sure you want to leave {{groupName}}?": "Tem certeza de que deseja sair de {{groupName}}?",
   "Are you sure you want to leave {{group_name}}? You will no longer have access to this group's content.": "Tem certeza de que deseja sair de {{group_name}}? Você não terá mais acesso ao conteúdo deste grupo.",
+  "Are you sure you want to leave {{group_name}}? You will no longer have access to this space's content.": "Tem certeza de que deseja sair de {{group_name}}? Você não terá mais acesso ao conteúdo deste espaço.",
   "Are you sure you want to manually start this phase? This will set ": "Você tem certeza de que deseja iniciar esta fase manualmente? Isso irá definir",
   "Are you sure you want to permanently delete {{name}}?": "Tem a certeza de que pretende eliminar permanentemente {{name}}?",
   "Are you sure you want to permanently delete {{name}}? Posts in this space will no longer be accessible.": "Tem a certeza de que pretende eliminar permanentemente {{name}}? As publicações neste espaço deixarão de estar acessíveis.",

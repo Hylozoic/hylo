@@ -1,4 +1,4 @@
-import { BadgeInfo, Settings, Users } from 'lucide-react'
+import { Info, Settings, Users } from 'lucide-react'
 import React, { useState, useEffect, useLayoutEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
@@ -135,7 +135,7 @@ export default function GroupMenuHeader ({
             </span>
           )}
         </div>
-        <BadgeInfo className={`text-${textColor} cursor-pointer w-[20px] h-[20px] text-white hover:scale-110 transition-all`} onClick={() => navigateAndClose(groupUrl(group.slug, 'about', {}))} />
+        <Info className={`text-${textColor} cursor-pointer w-[20px] h-[20px] text-white hover:scale-110 transition-all`} onClick={() => navigateAndClose(groupUrl(group.slug, 'about', {}))} />
       </div>
     </div>
   )

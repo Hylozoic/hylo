@@ -245,6 +245,7 @@
   "Are you sure you want to leave {{groupName}}": "Are you sure you want to leave {{groupName}}",
   "Are you sure you want to leave {{groupName}}?": "Are you sure you want to leave {{groupName}}?",
   "Are you sure you want to leave {{group_name}}? You will no longer have access to this group's content.": "Are you sure you want to leave {{group_name}}? You will no longer have access to this group's content.",
+  "Are you sure you want to leave {{group_name}}? You will no longer have access to this space's content.": "Are you sure you want to leave {{group_name}}? You will no longer have access to this space's content.",
   "Are you sure you want to manually start this phase? This will set ": "Are you sure you want to manually start this phase? This will set ",
   "Are you sure you want to permanently delete {{name}}?": "Are you sure you want to permanently delete {{name}}?",
   "Are you sure you want to permanently delete {{name}}? Posts in this space will no longer be accessible.": "Are you sure you want to permanently delete {{name}}? Posts in this space will no longer be accessible.",

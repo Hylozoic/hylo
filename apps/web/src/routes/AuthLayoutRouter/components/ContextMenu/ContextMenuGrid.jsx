@@ -1,5 +1,5 @@
 import { cn, bgImageStyle } from 'util/index'
-import { BadgeInfo, Settings, Users, Pencil, X, CircleEllipsis, ChevronLeft } from 'lucide-react'
+import { Info, Settings, Users, Pencil, X, CircleEllipsis, ChevronLeft } from 'lucide-react'
 import React, { useMemo, useRef, useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
@@ -835,7 +835,7 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
                     onClick={() => navigate(groupUrl(groupSlug, 'about', {}))}
                     aria-label={t('About')}
                   >
-                    <BadgeInfo className='w-6 h-6 text-white drop-shadow-md hover:scale-110 transition-all' />
+                    <Info className='w-6 h-6 text-white drop-shadow-md hover:scale-110 transition-all' />
                   </button>
 
                   {canAdminister && (

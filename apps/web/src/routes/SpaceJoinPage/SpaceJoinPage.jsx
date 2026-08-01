@@ -21,7 +21,7 @@ import fetchForGroup from 'store/actions/fetchForGroup'
 import joinSpace from 'store/actions/joinSpace'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
-import { GROUP_ACCESSIBILITY, accessibilityIcon } from 'store/models/Group'
+import { DEFAULT_BANNER, GROUP_ACCESSIBILITY, accessibilityIcon } from 'store/models/Group'
 
 /**
  * Interstitial shown when a signed-in member of the parent group clicks into a Space
@@ -120,15 +120,28 @@ export default function SpaceJoinPage () {
 
   if (!parentGroup || !spaceGroup || !spaceDetailsLoaded) return <Loading />
 
-  return (
-    <div className='p-6 max-w-[550px] mx-auto flex flex-col items-center text-center gap-3'>
-      {avatar?.avatarUrl
-        ? <Avatar avatarUrl={avatar.avatarUrl} name={avatar.displayName} large />
-        : icon.lucideIcon
-          ? <LucideIcon name={icon.lucideIcon} className='w-16 h-16 text-foreground/70' fallback={<Icon name={icon.lucideIcon} className='text-5xl' />} />
-          : <Icon name={icon.iconName || 'Shapes'} className='text-5xl' />}
+  const bannerUrl = spaceGroup.bannerUrl && spaceGroup.bannerUrl !== DEFAULT_BANNER
+    ? spaceGroup.bannerUrl
+    : null
 
-      <h1 className='text-2xl font-bold text-foreground'>{spaceGroup.name}</h1>
+  return (
+    <div className='w-full'>
+      {bannerUrl && (
+        <div
+          className='w-full h-40 md:h-52 bg-cover bg-center'
+          style={{ backgroundImage: `url(${bannerUrl})` }}
+          role='img'
+          aria-label={spaceGroup.name}
+        />
+      )}
+      <div className='p-6 max-w-[550px] mx-auto flex flex-col items-center text-center gap-3'>
+        {avatar?.avatarUrl
+          ? <Avatar avatarUrl={avatar.avatarUrl} name={avatar.displayName} large />
+          : icon.lucideIcon
+            ? <LucideIcon name={icon.lucideIcon} className='w-16 h-16 text-foreground/70' fallback={<Icon name={icon.lucideIcon} className='text-5xl' />} />
+            : <Icon name={icon.iconName || 'Shapes'} className='text-5xl' />}
+
+        <h1 className='text-2xl font-bold text-foreground'>{spaceGroup.name}</h1>
 
       {spaceGroup.purpose && (
         <p className='text-foreground/80 font-medium'>{spaceGroup.purpose}</p>
@@ -208,6 +221,7 @@ export default function SpaceJoinPage () {
                   {t('This space is invite only. You need an invitation to join.')}
                 </p>
                 )}
+      </div>
       </div>
     </div>
   )
