@@ -18,6 +18,13 @@ import SocketSubscriber from 'components/SocketSubscriber'
 import Loading from 'components/Loading'
 import NotFound from 'components/NotFound'
 import { addSkill, removeSkill } from 'components/SkillsSection/SkillsSection.store'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from 'components/ui/select'
 import JoinSection from './JoinSection'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
@@ -54,6 +61,7 @@ import {
   fetchJoinRequests,
   joinGroup
 } from './GroupDetail.store'
+import { updateMembershipSettings } from 'routes/UserSettings/UserSettings.store'
 import FundingRoundAboutInfo from 'components/FundingRoundAboutInfo/FundingRoundAboutInfo'
 
 import g from './GroupDetail.module.scss'
@@ -179,6 +187,11 @@ function GroupDetail ({ forCurrentGroup = false }) {
   const requestToJoinGroup = useCallback((groupId, questionAnswers) => {
     dispatch(createJoinRequest(groupId, questionAnswers.map(q => ({ questionId: q.questionId, answer: q.answer }))))
   }, [dispatch])
+
+  const updateMySettings = useCallback(changes => {
+    if (!group?.id) return
+    dispatch(updateMembershipSettings(group.id, changes))
+  }, [dispatch, group?.id])
 
   const agreementsSectionRef = useRef(null)
   const [agreementsLinkCopied, setAgreementsLinkCopied] = useState(false)
@@ -366,6 +379,27 @@ function GroupDetail ({ forCurrentGroup = false }) {
               })}
             </div>)
           : ''}
+        {isMember && (
+          <div className='border-2 border-dashed border-foreground/20 rounded-xl p-4 mb-4'>
+            <h3 className='text-xl font-bold py-2'>{t('Notification Settings')}</h3>
+            <div className='flex items-center justify-between gap-2 py-2'>
+              <span>{t('Receive new post notifications in this space for')}</span>
+              <Select
+                value={isMember.settings.postNotifications}
+                onValueChange={value => updateMySettings({ postNotifications: value })}
+              >
+                <SelectTrigger className='inline-flex w-auto'>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value='none'>{t('No Posts')}</SelectItem>
+                  <SelectItem value='important'>{t('Important Posts (Announcements & Mentions)')}</SelectItem>
+                  <SelectItem value='all'>{t('Every Post')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        )}
         {!isAboutCurrentGroup
           ? group.paywall
             ? (

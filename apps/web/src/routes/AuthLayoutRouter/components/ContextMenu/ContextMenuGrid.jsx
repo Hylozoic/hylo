@@ -1,5 +1,5 @@
 import { cn, bgImageStyle } from 'util/index'
-import { BadgeInfo, Bell, Settings, Users, Pencil, X, CircleEllipsis, ChevronLeft } from 'lucide-react'
+import { BadgeInfo, Settings, Users, Pencil, X, CircleEllipsis, ChevronLeft } from 'lucide-react'
 import React, { useMemo, useRef, useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useLocation } from 'react-router-dom'
@@ -45,6 +45,7 @@ import { createGroupView, deleteGroupView, setGroupViewHidden } from 'store/acti
 import { deleteGroup } from 'routes/GroupSettings/GroupSettings.store'
 import { canHardDeleteView, viewAcceptedByPostTypes } from 'store/models/GroupView'
 import { viewShowsUnreadDot, viewUnreadBadgeCount } from 'util/viewUnreadBadges'
+import GroupNotificationsPopover from 'components/GroupNotificationsPopover/GroupNotificationsPopover'
 import CardIconField from './CardIconField'
 import GroupViewIcon from './GroupViewIcon'
 import SortableViewsGrid from './SortableViewsGrid'
@@ -806,9 +807,7 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
 
             {!isContextMode && (
               <div className='absolute top-3 left-1/2 -translate-x-1/2 z-30 w-full max-w-[1000px] px-3 flex items-center justify-between'>
-                <button type='button' onClick={() => navigate(currentUserSettingsUrl('notifications?group=' + group.id))}>
-                  <Bell className='w-6 h-6 text-white drop-shadow-md hover:scale-110 transition-all' />
-                </button>
+                <GroupNotificationsPopover group={group} />
 
                 {/* Matches GroupMenuHeader's affordances — about, then settings */}
                 <div className='flex items-center gap-3'>
