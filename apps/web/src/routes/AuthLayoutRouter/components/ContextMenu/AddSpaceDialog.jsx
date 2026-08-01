@@ -17,7 +17,7 @@ import PostTypePills from 'components/PostTypePills/PostTypePills'
 import TagInput from 'components/TagInput'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import { CUSTOM_VIEW_DEFAULT_POST_TYPES, CUSTOM_VIEW_POST_TYPE_OPTIONS } from 'components/CustomViewForm/customViewFormConstants'
-import { addQuerystringToPath } from '@hylo/navigation'
+import { addQuerystringToPath, localSpaceSlug, spaceUrl } from '@hylo/navigation'
 import { createSpace, createGroupView } from 'store/actions/groupViews'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import { createTrack } from 'store/actions/trackActions'
@@ -288,7 +288,13 @@ export default function AddSpaceDialog ({ group, onClose, addToMenu = true }) {
 
       await dispatch(fetchGroupViews(group.id))
       onClose()
-      navigate(addQuerystringToPath(routerLocation.pathname, { edit: 'true' }))
+      // Land on the space that was just created rather than back on the menu that
+      // created it; fall back to staying put if the mutation returned no slug.
+      if (newSpace?.slug && group?.slug) {
+        navigate(spaceUrl(group.slug, localSpaceSlug(group.slug, newSpace.slug)))
+      } else {
+        navigate(addQuerystringToPath(routerLocation.pathname, { edit: 'true' }))
+      }
     } catch (error) {
       console.error('Failed to create space:', error)
     } finally {

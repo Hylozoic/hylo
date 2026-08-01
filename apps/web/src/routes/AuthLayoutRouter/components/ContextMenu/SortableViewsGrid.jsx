@@ -36,6 +36,13 @@ import { useCommitViewOrder } from './useViewReorder'
 const MOUSE_ACTIVATION = { distance: 5 }
 const TOUCH_ACTIVATION = { delay: 180, tolerance: 8 }
 
+// A card is a drag handle, not prose. Without this the hold that starts a touch
+// drag is also the gesture iOS uses to select text, so the loupe appears and a
+// selection is left behind on release. Needed on the overlay as much as on the
+// item: DragOverlay portals its content out of the wrapper, so the card actually
+// under the finger inherits nothing from it.
+const NO_TEXT_SELECT = 'select-none [-webkit-touch-callout:none]'
+
 /** Full-width stand-ins for the text and separator rows, so they reorder with the cards. */
 function FullWidthRow ({ view, spaceGroup, t }) {
   const presented = GroupViewPresenter(view)
@@ -79,10 +86,7 @@ const SortableViewItem = React.memo(function SortableViewItem ({ view, spaceGrou
       style={{ opacity: isDragging ? 0.4 : 1 }}
       className={cn(
         'group relative cursor-grab active:cursor-grabbing',
-        // A card is a drag handle, not text. Without this a touch drag doubles as a
-        // text selection — the hold that starts the drag is also the gesture iOS
-        // uses to select — and the selection is left behind on release.
-        'select-none [-webkit-touch-callout:none]',
+        NO_TEXT_SELECT,
         // The wrapper carries the card footprint so the card's sub-sm percentage
         // width has a sized parent to resolve against
         isFullWidth ? 'w-full' : CARD_SIZE_CLASS,
@@ -212,7 +216,7 @@ export default function SortableViewsGrid ({
       </SortableContext>
       {/* The dragged item rides along at its natural size, so the in-flow copy never
           has to be re-fitted around items of a different shape */}
-      <DragOverlay>
+      <DragOverlay className={NO_TEXT_SELECT}>
         {activeView
           ? (activeView.type === 'text' || activeView.type === 'separator'
               ? <FullWidthRow view={activeView} spaceGroup={spaceGroup} t={t} />

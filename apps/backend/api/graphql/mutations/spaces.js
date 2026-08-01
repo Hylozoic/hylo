@@ -26,9 +26,13 @@ async function uniqueSlug (baseSlug) {
 /**
  * Require Manage Spaces or Administration on the parent group to manage a space.
  * Does not require space membership (stewards are not auto-added to every space).
+ * @param {object} [opts]
+ * @param {boolean} [opts.includeInactive] - allow inactive (archived) spaces; used by delete
  */
-async function requireSpaceManager (userId, spaceId, action) {
-  const space = await Group.findActive(spaceId)
+async function requireSpaceManager (userId, spaceId, action, { includeInactive = false } = {}) {
+  const space = includeInactive
+    ? await Group.find(spaceId)
+    : await Group.findActive(spaceId)
   if (!space || space.get('type') !== 'space') throw new GraphQLError('Space not found')
 
   const parentId = space.get('parent_id')
@@ -188,18 +192,11 @@ export async function deleteSpace (userId, id, context) {
   if (!userId) throw new GraphQLError('No userId passed into function')
   if (!id) throw new GraphQLError('No id passed into function')
 
-  const space = await requireSpaceManager(userId, id, 'delete this space')
+  // Include inactive so soft-archived leftovers can still be permanently removed.
+  const space = await requireSpaceManager(userId, id, 'delete this space', { includeInactive: true })
   const parentId = space.get('parent_id')
 
-  await bookshelf.transaction(async trx => {
-    await space.save({ active: false }, { patch: true, transacting: trx })
-    await space.removeMembers(await space.members().fetch({ transacting: trx }), { transacting: trx })
-
-    if (parentId) {
-      const menuEntry = await GroupView.where({ type: GroupView.Type.SPACE, linked_group_id: id }).fetch({ transacting: trx })
-      if (menuEntry) await menuEntry.destroy({ transacting: trx })
-    }
-  })
+  await Group.destroySpace(id)
 
   if (parentId) {
     const parentGroup = await Group.find(parentId)

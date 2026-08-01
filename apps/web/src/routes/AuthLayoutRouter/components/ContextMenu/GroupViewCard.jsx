@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Plus, Settings, Trash2 } from 'lucide-react'
+import { Loader2, Plus, Settings, Trash2 } from 'lucide-react'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 
 import LucideIcon from 'components/LucideIcon/LucideIcon'
@@ -94,16 +94,21 @@ export function CardEditActions ({ onAddToMenu, onOpenSettings, onDelete, addLab
 /**
  * Card-shaped add affordance, sized from CARD_CLASS so it sits in a card grid as
  * one more tile. Dashed and unfilled so it reads as a slot rather than a view.
+ *
+ * Forwards its ref and spreads the rest so it can be a Radix `asChild` trigger.
  */
-export function AddCard ({ onClick, label }) {
+export const AddCard = React.forwardRef(function AddCard ({ onClick, label, className, ...props }, ref) {
   return (
     <button
+      ref={ref}
       type='button'
       onClick={onClick}
       className={cn(
         CARD_CLASS,
-        'border-2 border-dashed border-foreground/[0.12] hover:border-foreground/30 bg-transparent shadow-none hover:shadow-none items-center justify-center gap-2 text-foreground/50 hover:text-foreground/80'
+        'border-2 border-dashed border-foreground/[0.12] hover:border-foreground/30 bg-transparent shadow-none hover:shadow-none items-center justify-center gap-2 text-foreground/50 hover:text-foreground/80',
+        className
       )}
+      {...props}
     >
       {/* The tile keeps its weight so the target still reads while the card outline recedes */}
       <span className='w-14 h-14 rounded-[15px] grid place-items-center border-2 border-dashed border-foreground/25'>
@@ -112,7 +117,7 @@ export function AddCard ({ onClick, label }) {
       <span className={cn(CARD_TITLE_CLASS, 'px-3')}>{label}</span>
     </button>
   )
-}
+})
 
 /** Card for a GroupView, themed by its postType color. */
 function GroupViewCard ({ view, isEditing, onAddToMenu, onOpen, onOpenSettings, onDelete, renderEditActions = true }) {
@@ -236,7 +241,7 @@ function GroupViewCard ({ view, isEditing, onAddToMenu, onOpen, onOpenSettings, 
 }
 
 /** Card for an off-menu space: banner image + scrim with a frosted-glass tile. */
-export function SpaceViewCard ({ space, isEditing, onOpen, onAddToMenu, onOpenSettings, onDelete }) {
+export function SpaceViewCard ({ space, isEditing, isDeleting = false, onOpen, onAddToMenu, onOpenSettings, onDelete }) {
   const { t } = useTranslation()
   const { effectiveColorScheme } = useAppearance()
   const isDark = effectiveColorScheme === 'dark'
@@ -245,20 +250,26 @@ export function SpaceViewCard ({ space, isEditing, onOpen, onAddToMenu, onOpenSe
 
   return (
     <div
-      className={cn(CARD_CLASS, cardChrome(isDark), isEditing && 'cursor-default')}
+      className={cn(
+        CARD_CLASS,
+        cardChrome(isDark),
+        isEditing && 'cursor-default',
+        isDeleting && 'pointer-events-none opacity-50'
+      )}
       style={{
         background: cardNeutralBg(effectiveColorScheme),
         // Photo-backed cards read better with a soft white edge than a dark hairline
         ...(!isDark && bgImageUrl ? { borderColor: 'hsl(0 0% 100% / 0.25)' } : {})
       }}
-      role={isEditing ? undefined : 'button'}
-      tabIndex={isEditing ? undefined : 0}
+      aria-busy={isDeleting || undefined}
+      role={isEditing || isDeleting ? undefined : 'button'}
+      tabIndex={isEditing || isDeleting ? undefined : 0}
       onClick={() => {
-        if (isEditing) return
+        if (isEditing || isDeleting) return
         onOpen?.(space)
       }}
       onKeyDown={(e) => {
-        if (isEditing) return
+        if (isEditing || isDeleting) return
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
           onOpen?.(space)
@@ -296,7 +307,12 @@ export function SpaceViewCard ({ space, isEditing, onOpen, onAddToMenu, onOpenSe
           )}
         </div>
       </div>
-      {isEditing && (
+      {isDeleting && (
+        <div className='absolute inset-0 z-20 grid place-items-center bg-background/40 rounded-[inherit]'>
+          <Loader2 className='w-7 h-7 animate-spin text-foreground/70' aria-label={t('Deleting')} />
+        </div>
+      )}
+      {isEditing && !isDeleting && (
         <CardEditActions
           onAddToMenu={onAddToMenu ? () => onAddToMenu(space) : null}
           onOpenSettings={onOpenSettings ? () => onOpenSettings(space) : null}

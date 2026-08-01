@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Pencil } from 'lucide-react'
+import { X } from 'lucide-react'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 
 import { useViewHeader } from 'contexts/ViewHeaderContext'
@@ -10,7 +10,7 @@ import { addQuerystringToPath, groupUrl, localSpaceSlug, spaceHomeUrl } from '@h
 import fetchGroupRelationships from 'store/actions/fetchGroupRelationships'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
-import { createGroupView, deleteGroupView, setGroupViewHidden } from 'store/actions/groupViews'
+import { createGroupView, deleteGroupView, deleteSpace, setGroupViewHidden } from 'store/actions/groupViews'
 import { FETCH_GROUP_RELATIONSHIPS, FETCH_GROUP_SPACES } from 'store/constants'
 import { getGroupViews } from 'store/selectors/getGroupViews'
 import { getMoreViewsSections } from 'store/selectors/getMoreSpacesSections'
@@ -22,15 +22,16 @@ import {
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import isPendingFor from 'store/selectors/isPendingFor'
-import { deleteGroup } from 'routes/GroupSettings/GroupSettings.store'
 import { canHardDeleteView } from 'store/models/GroupView'
 import { cn } from 'util/index'
 
 import AddGroupViewDialog from './AddGroupViewDialog'
 import AddSpaceDialog from './AddSpaceDialog'
+import AddViewOrSpaceMenu from './AddViewOrSpaceMenu'
 import GroupViewSettingsModal from './GroupViewSettingsModal'
 import SpaceSettingsModal from './SpaceSettingsModal'
-import GroupViewCard, { AddCard, SpaceViewCard } from './GroupViewCard'
+import GroupViewCard, { SpaceViewCard } from './GroupViewCard'
+import EditingBottomBar, { EDITING_BAR_BUTTON_CLASS } from './EditingBottomBar'
 import ViewsGridSkeleton from './ViewsGridSkeleton'
 import { menuViewUrl } from './groupViewMenuUrl'
 
@@ -109,6 +110,7 @@ export default function MoreViewsPage ({ group }) {
   const [showAddSpace, setShowAddSpace] = useState(false)
   const [settingsView, setSettingsView] = useState(null)
   const [settingsSpace, setSettingsSpace] = useState(null)
+  const [deletingSpaceId, setDeletingSpaceId] = useState(null)
   const settingsTypeParam = getQuerystringParam('settings', location)
 
   useEffect(() => {
@@ -182,21 +184,24 @@ export default function MoreViewsPage ({ group }) {
   }, [dispatch, contentGroup?.id, groupViews])
 
   const handleDeleteSpace = useCallback(async (space) => {
-    if (!space?.id) return
+    if (!space?.id || deletingSpaceId) return
     const confirmed = window.confirm(
       t('Are you sure you want to permanently delete {{name}}? Posts in this space will no longer be accessible.', {
         name: space.name
       })
     )
     if (!confirmed) return
+    setDeletingSpaceId(space.id)
     try {
-      await dispatch(deleteGroup(space.id))
+      await dispatch(deleteSpace(space.id))
       await dispatch(fetchGroupSpaces(contentGroup.id))
       await dispatch(fetchGroupViews(contentGroup.id))
     } catch (error) {
       console.error('Failed to delete space:', error)
+    } finally {
+      setDeletingSpaceId(null)
     }
-  }, [dispatch, contentGroup?.id, t])
+  }, [dispatch, contentGroup?.id, deletingSpaceId, t])
 
   const handleDeleteView = useCallback(async (view) => {
     if (!canHardDeleteView(view) || !contentGroup?.id) return
@@ -238,23 +243,8 @@ export default function MoreViewsPage ({ group }) {
     navigate(groupUrl(groupSlug))
   }, [navigate, groupSlug])
 
-  // The Done Editing bar is fixed to the viewport bottom; measure the content
-  // column so the fixed bar aligns with it instead of the full viewport.
+  // EditingBottomBar measures this to size itself
   const containerRef = useRef(null)
-  const [barRect, setBarRect] = useState(null)
-  useEffect(() => {
-    if (!isEditing) return
-    const update = () => {
-      const el = containerRef.current
-      if (!el) return
-      const rect = el.getBoundingClientRect()
-      setBarRect({ left: rect.left, width: rect.width })
-    }
-    update()
-    window.addEventListener('resize', update)
-    return () => window.removeEventListener('resize', update)
-  }, [isEditing])
-
   const handleAddViewClose = useCallback(async () => {
     setShowAddView(false)
     if (contentGroup?.id) await dispatch(fetchGroupViews(contentGroup.id))
@@ -330,6 +320,7 @@ export default function MoreViewsPage ({ group }) {
                           key={space.id}
                           space={space}
                           isEditing={isEditing}
+                          isDeleting={String(deletingSpaceId) === String(space.id)}
                           onOpen={handleOpenSpace}
                           onAddToMenu={handleAddSpaceToMenu}
                           onOpenSettings={setSettingsSpace}
@@ -348,6 +339,7 @@ export default function MoreViewsPage ({ group }) {
                           key={space.id}
                           space={space}
                           isEditing={isEditing}
+                          isDeleting={String(deletingSpaceId) === String(space.id)}
                           onOpen={handleOpenSpace}
                           onAddToMenu={handleAddSpaceToMenu}
                           onOpenSettings={setSettingsSpace}
@@ -366,6 +358,7 @@ export default function MoreViewsPage ({ group }) {
                           key={space.id}
                           space={space}
                           isEditing={isEditing}
+                          isDeleting={String(deletingSpaceId) === String(space.id)}
                           onOpen={handleOpenSpace}
                           onAddToMenu={handleAddSpaceToMenu}
                           onOpenSettings={setSettingsSpace}
@@ -381,25 +374,25 @@ export default function MoreViewsPage ({ group }) {
       {/* Below the sections, and shown even when empty so there is a way to add the first one */}
       {isEditing && (
         <div className='flex flex-wrap gap-3 mt-6'>
-          <AddCard onClick={() => setShowAddView(true)} label={t('Add View')} />
-          {!isSpaceMoreViews && <AddCard onClick={() => setShowAddSpace(true)} label={t('Add Space')} />}
+          <AddViewOrSpaceMenu
+            canAddSpace={!isSpaceMoreViews}
+            onChooseView={() => setShowAddView(true)}
+            onChooseSpace={() => setShowAddSpace(true)}
+          />
         </div>
       )}
 
       {isEditing && (
-        <div
-          className='fixed bottom-0 z-30 pt-6 pb-2 px-4 bg-gradient-to-t from-background from-40% to-transparent pointer-events-none'
-          style={barRect ? { left: barRect.left, width: barRect.width } : { left: 0, right: 0 }}
-        >
+        <EditingBottomBar containerRef={containerRef}>
           <button
             type='button'
             onClick={handleDoneEditing}
-            className='pointer-events-auto flex items-center justify-center gap-2 w-full text-base font-medium text-foreground border-2 border-foreground/30 hover:border-foreground/50 hover:bg-card rounded-md px-3 py-2.5 transition-all'
+            className={EDITING_BAR_BUTTON_CLASS}
           >
-            <Pencil className='w-4 h-4' />
+            <X className='w-4 h-4' />
             <span>{t('Done Editing')}</span>
           </button>
-        </div>
+        </EditingBottomBar>
       )}
 
       {showAddView && (

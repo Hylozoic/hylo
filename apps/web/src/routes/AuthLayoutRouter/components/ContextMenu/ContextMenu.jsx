@@ -20,9 +20,9 @@ import {
 } from '@hylo/navigation'
 
 import GroupMenuHeader from 'components/GroupMenuHeader'
+import InviteMembersPopover from 'components/InviteMembersPopover/InviteMembersPopover'
 import MenuLink from './MenuLink'
 import GroupViewIcon from './GroupViewIcon'
-import useAppearance from 'hooks/useAppearance'
 import useRouteParams from 'hooks/useRouteParams'
 import usePublishedOfferings from 'hooks/usePublishedOfferings'
 import GroupViewPresenter, {
@@ -121,14 +121,13 @@ function visibleSpaceMenuViews (spaceGroup, { includeManageRound = false } = {})
 function GroupViewMenuItem ({
   view,
   parentSlug,
+  group = null,
   spaceGroup = null,
   spaceSlug = null
 }) {
   const dispatch = useDispatch()
   const location = useLocation()
   const { t } = useTranslation()
-  const { effectiveColorScheme } = useAppearance()
-  const isDark = effectiveColorScheme === 'dark'
   const presentedView = useMemo(() => GroupViewPresenter(view), [view])
   const myMemberships = useSelector(getMyMemberships)
   const canManageRound = useSelector(state => hasResponsibilityForGroup(state, {
@@ -137,9 +136,14 @@ function GroupViewMenuItem ({
   }))
   // Labels over the revealed row background: white on dark surfaces (and photos),
   // regular foreground on the pale light-mode surface. Hover never changes text color.
-  const activeLabelClass = isDark
-    ? 'text-white hover:text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.65)]'
-    : 'text-foreground'
+  //
+  // Expressed as a dark: variant rather than from effectiveColorScheme on purpose.
+  // That hook resolves through the Redux currentUser, so until it loads the scheme
+  // falls back to 'auto' — the OS. Anyone running Hylo dark with a light OS saw the
+  // label paint near-black and then flip to white when their settings arrived. The
+  // class on documentElement is set in the same breath as the CSS variables, so a
+  // variant can never disagree with the palette it is sitting on.
+  const activeLabelClass = 'text-foreground dark:text-white dark:hover:text-white dark:[text-shadow:0_1px_3px_rgba(0,0,0,0.65)]'
   const onPhotoLabelClass = 'text-white hover:text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.65)]'
 
   if (presentedView.type === 'separator') {
@@ -268,7 +272,10 @@ function GroupViewMenuItem ({
               className={cn(
                 'shrink-0 p-1 pr-1 text-foreground/50 hover:text-foreground border-0 bg-transparent mb-0 rounded-none shadow-none hover:border-0 hover:bg-transparent hover:scale-100',
                 'relative z-10',
-                isSpaceActive && ((spaceBannerUrl || isDark) ? 'text-white/80 hover:text-white' : 'text-foreground/70 hover:text-foreground')
+                // Same reasoning as activeLabelClass — a variant, not the resolved scheme
+                isSpaceActive && (spaceBannerUrl
+                  ? 'text-white/80 hover:text-white'
+                  : 'text-foreground/70 hover:text-foreground dark:text-white/80 dark:hover:text-white')
               )}
             >
               <Info className='w-4 h-4' aria-hidden='true' />
@@ -283,6 +290,7 @@ function GroupViewMenuItem ({
                 key={subView.id}
                 view={subView}
                 parentSlug={parentSlug}
+                group={linkedSpaceGroup}
                 spaceGroup={linkedSpaceGroup}
                 spaceSlug={spaceSlug}
               />
@@ -301,6 +309,53 @@ function GroupViewMenuItem ({
   // mirroring the one-column dashboard cards.
   const isRowActive = Boolean(!isExternal && url && (location.pathname === url || location.pathname.startsWith(`${url}/`)))
   const rowCol = viewCardColor(presentedView)
+  const inviteGroup = spaceGroup || group
+  const showInvite = presentedView.type === 'members' && inviteGroup
+
+  if (showInvite) {
+    return (
+      <li className='list-none'>
+        <div
+          className={cn(
+            GROUP_VIEW_MENU_ITEM_CLASS,
+            'group relative overflow-hidden',
+            isRowActive ? 'opacity-100 font-bold' : 'hover:border-[color:var(--row-border-hover)]'
+          )}
+          style={{
+            '--row-border-hover': `${rowCol}33`,
+            ...(isRowActive ? { borderColor: rowCol } : {})
+          }}
+        >
+          <MenuRowBackground
+            view={presentedView}
+            className={cn('transition-opacity duration-200', isRowActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-50')}
+          />
+          <MenuLink
+            to={isExternal ? null : url}
+            externalLink={isExternal ? url : null}
+            isActive={false}
+            className={cn(
+              GROUP_VIEW_MENU_ITEM_INNER_LINK_CLASS,
+              'relative z-10',
+              isRowActive && activeLabelClass
+            )}
+          >
+            <GroupViewIcon view={presentedView} />
+            <span className='truncate flex-1'>{displayNameForView(presentedView, t, { spaceGroup })}</span>
+            {showUnreadDot && <UnreadDot />}
+          </MenuLink>
+          <InviteMembersPopover
+            group={inviteGroup}
+            className='relative z-10 shrink-0 mr-1'
+            triggerClassName={cn(
+              'text-foreground/50 hover:text-foreground',
+              isRowActive && 'text-foreground/70 hover:text-foreground dark:text-white/80 dark:hover:text-white'
+            )}
+          />
+        </div>
+      </li>
+    )
+  }
 
   return (
     <li className='list-none'>
@@ -415,6 +470,7 @@ function GroupViewList ({
             key={view.id || index}
             view={view}
             parentSlug={groupSlug}
+            group={group}
             spaceGroup={spaceGroup}
             spaceSlug={spaceSlug}
           />
