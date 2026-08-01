@@ -2123,6 +2123,8 @@ type MembershipSettings {
 type Message {
   id: ID
   createdAt: Date
+  # When this message was last edited
+  editedAt: Date
   # The person sending the message
   creator: Person
   # The message thread this message is a part of
