@@ -2,7 +2,7 @@
 
 import data from '@emoji-mart/data'
 import { init, getEmojiDataFromNative } from 'emoji-mart'
-import { difference, filter, get, omitBy, uniqBy, isEmpty, intersection, isUndefined, pick } from 'lodash/fp'
+import { difference, filter, get, omitBy, uniq, uniqBy, isEmpty, intersection, isUndefined, pick } from 'lodash/fp'
 import { DateTime } from 'luxon'
 import format from 'pg-format'
 import { flatten, sortBy } from 'lodash'
@@ -1328,6 +1328,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
     const post = await Post.find(postId)
     if (!post) return
 
+    const inviteeIds = uniq([userId, ...(eventInviteeIds || [])])
+
     // create event invitation for event owner so they get an rsvp email
     const eventInvitation = await EventInvitation.create({
       userId,
@@ -1338,9 +1340,10 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
     // NOTE: method names that are plural affect collections
     // methods that are singular affect a single object
-    await post.updateEventInvitees({ eventInviteeIds, inviterId: userId, params })
+    await post.updateEventInvitees({ eventInviteeIds: inviteeIds, inviterId: userId, params })
     await post.createGroupEventCalendarSubscriptions()
-    await post.sendUserRsvp({ eventInvitationId: eventInvitation.id, eventChanges: { new: true } })
+    const ownerInvitation = await EventInvitation.find({ userId, eventId: postId }) || eventInvitation
+    await post.sendUserRsvp({ eventInvitationId: ownerInvitation.id, eventChanges: { new: true } })
     Queue.classMethod('User', 'createRsvpCalendarSubscription', { userId })
   },
 
@@ -1348,7 +1351,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     const post = await Post.find(postId)
     if (!post) return
 
-    const eventChanged = eventChanges.start_time || eventChanges.end_time || eventChanges.location
+    const eventChanged = eventChanges.start_time || eventChanges.end_time || eventChanges.location || eventChanges.meeting_link
 
     // NOTE: method names that are plural affect collections
     // methods that are singular affect a single object
