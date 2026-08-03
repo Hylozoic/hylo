@@ -564,12 +564,25 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   // The posts to show for a particular user viewing a group's stream or map
-  // includes the direct posts to this group + posts to child groups the user is a member of
+  // includes direct posts to this group + posts to child groups (group_relationships)
+  // and child spaces (groups.parent_id) the user is a member of
   viewPosts (userId) {
     const treeOfGroupsForMember = this.allChildGroups().query(q => {
       q.select('groups.id')
       q.join('group_memberships', 'group_memberships.group_id', 'groups.id')
       q.where('group_memberships.user_id', userId)
+    })
+
+    // Spaces link via parent_id, not group_relationships (see spaces() / spec §3.4)
+    const childSpacesForMember = Group.collection().query(q => {
+      q.select('groups.id')
+      q.join('group_memberships', 'group_memberships.group_id', 'groups.id')
+      q.where({
+        'groups.parent_id': this.id,
+        'groups.type': 'space',
+        'groups.active': true,
+        'group_memberships.user_id': userId
+      })
     })
 
     return Post.collection().query(q => {
@@ -579,7 +592,10 @@ module.exports = bookshelf.Model.extend(merge({
       q.andWhere(q2 => {
         q2.where('groups_posts.group_id', this.id)
         q2.orWhere(q3 => {
-          q3.whereIn('groups_posts.group_id', treeOfGroupsForMember.query())
+          q3.where(q4 => {
+            q4.whereIn('groups_posts.group_id', treeOfGroupsForMember.query())
+            q4.orWhereIn('groups_posts.group_id', childSpacesForMember.query())
+          })
           q3.andWhere('posts.user_id', '!=', User.AXOLOTL_ID)
         })
       })
