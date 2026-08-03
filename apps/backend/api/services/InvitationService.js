@@ -206,32 +206,16 @@ module.exports = {
   async use (userId, token, accessCode) {
     const user = await User.find(userId)
     if (accessCode) {
-      return Group.queryByAccessCode(accessCode)
-        .fetch()
-        .then(group => {
-          // TODO STRIPE: We need to think through how invite links will be impacted by paywall
-          return GroupMembership.forPair(user, group, { includeInactive: true }).fetch()
-            .then(existingMembership => {
-              if (existingMembership) {
-                return existingMembership.get('active')
-                  ? existingMembership
-                  : existingMembership.save({ active: true }, { patch: true }).then(membership => {
-                    // TODO: just use group.addMembers?
-                    group.save({ num_members: group.get('num_members') + 1 }, { patch: true })
-                    Queue.classMethod('Group', 'afterAddMembers', {
-                      groupId: group.id,
-                      newUserIds: [userId],
-                      reactivatedUserIds: [userId]
-                    })
-                    return membership
-                  })
-              }
-              if (group) return user.joinGroup(group, { fromInvitation: true }).then(membership => membership)
-            })
-            .catch(err => {
-              throw new Error(err.message)
-            })
-        })
+      const group = await Group.queryByAccessCode(accessCode).fetch()
+      if (!group) throw new Error('Invalid access code')
+
+      // TODO STRIPE: We need to think through how invite links will be impacted by paywall
+      const existingMembership = await GroupMembership.forPair(user, group, { includeInactive: true }).fetch()
+      if (existingMembership?.get('active')) {
+        return existingMembership
+      }
+      const memberships = await group.addMembers([userId], {})
+      return memberships[0]
     }
 
     if (token) {

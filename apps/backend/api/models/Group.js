@@ -26,7 +26,8 @@ export const GROUP_MEMBERSHIP_ATTR_UPDATE_WHITELIST = [
   'project_role_id',
   'following',
   'settings',
-  'active'
+  'active',
+  'nav_order'
 ]
 
 // For files in the public directory, reference them with the base URL
@@ -730,8 +731,37 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   async removeMembers (usersOrIds, { transacting } = {}) {
-    return this.updateMembers(usersOrIds, { active: false }, { transacting })
-      .then(() => this.save({ num_members: this.get('num_members') - usersOrIds.length }, { transacting }))
+    const userIds = usersOrIds.map(x => x instanceof User ? x.id : x)
+    const roleScopeId = await Group.roleScopeId(this)
+
+    await this.updateMembers(usersOrIds, { active: false, nav_order: null }, { transacting })
+
+    // Role assignments live on the role-scope group (parent for spaces). Only revoke when
+    // leaving that group — not when leaving a child space while still in the parent.
+    if (String(roleScopeId) === String(this.id)) {
+      await Promise.map(userIds, userId =>
+        GroupMembership.revokeAllGroupRoles(userId, roleScopeId, { transacting })
+      )
+      const agreementsQuery = bookshelf.knex('users_groups_agreements')
+        .whereIn('user_id', userIds)
+        .where('group_id', this.id)
+        .update({ accepted: false })
+      if (transacting) agreementsQuery.transacting(transacting)
+      await agreementsQuery
+    }
+
+    // When removed from a parent group, also deactivate memberships in child spaces.
+    if (this.get('type') !== 'space') {
+      const spaces = await this.spaces().fetch({ transacting })
+      await Promise.map(spaces.models, async (space) => {
+        const spaceMemberships = await GroupMembership.forIds(userIds, space.id, { multiple: true }).fetch({ transacting })
+        const activeSpaceUserIds = spaceMemberships.pluck('user_id')
+        if (activeSpaceUserIds.length === 0) return
+        await space.removeMembers(activeSpaceUserIds, { transacting })
+      })
+    }
+
+    return this.save({ num_members: this.get('num_members') - usersOrIds.length }, { transacting })
   },
 
   async toMurmurationsObject () {
@@ -773,6 +803,10 @@ module.exports = bookshelf.Model.extend(merge({
       .query(q => q.whereIn('user_id', userIds)).fetch({ transacting })
 
     const pickedAttrs = pick(omitBy(attrs, isUndefined), GROUP_MEMBERSHIP_ATTR_UPDATE_WHITELIST)
+    const joinFlowReset = { joinQuestionsAnsweredAt: null, showJoinForm: true }
+    if (pickedAttrs.active === false || pickedAttrs.active === true) {
+      joinFlowReset.agreementsAcceptedAt = null
+    }
     const updatedAttribs = Object.assign(
       {},
       pickedAttrs,
@@ -780,7 +814,7 @@ module.exports = bookshelf.Model.extend(merge({
         settings: merge(
           {},
           pickedAttrs.settings || {},
-          { joinQuestionsAnsweredAt: null, showJoinForm: true }
+          joinFlowReset
         )
       } // updateAndSave will merge these with existing settings
     )
