@@ -4,6 +4,7 @@ import { Info, Loader2, Plus, Settings, Trash2 } from 'lucide-react'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 
 import LucideIcon from 'components/LucideIcon/LucideIcon'
+import { Tooltip, TooltipContent, TooltipTrigger } from 'components/ui/tooltip'
 import useAppearance from 'hooks/useAppearance'
 import { DEFAULT_BANNER } from 'store/models/Group'
 import { bgImageStyle, cn } from 'util/index'
@@ -46,46 +47,60 @@ export function CardEditActions ({ onAddToMenu, onOpenSettings, onDelete, addLab
       onPointerDown={(e) => e.stopPropagation()}
     >
       {onAddToMenu && (
-        <button
-          type='button'
-          onClick={(e) => {
-            e.stopPropagation()
-            onAddToMenu()
-          }}
-          className={CARD_ACTION_BTN}
-          aria-label={addLabel}
-          title={addLabel}
-        >
-          <Plus className='w-4 h-4' />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type='button'
+              onClick={(e) => {
+                e.stopPropagation()
+                onAddToMenu()
+              }}
+              className={CARD_ACTION_BTN}
+              aria-label={addLabel}
+            >
+              <Plus className='w-4 h-4' />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>{addLabel}</TooltipContent>
+        </Tooltip>
       )}
       {onOpenSettings && (
-        <button
-          type='button'
-          onClick={(e) => {
-            e.stopPropagation()
-            onOpenSettings()
-          }}
-          className={CARD_ACTION_BTN}
-          aria-label={settingsLabel}
-          title={settingsLabel}
-        >
-          <Settings className='w-4 h-4' />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type='button'
+              onClick={(e) => {
+                e.stopPropagation()
+                onOpenSettings()
+              }}
+              className={CARD_ACTION_BTN}
+              aria-label={settingsLabel}
+            >
+              <Settings className='w-4 h-4' />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>{settingsLabel}</TooltipContent>
+        </Tooltip>
       )}
       {onDelete && (
-        <button
-          type='button'
-          onClick={(e) => {
-            e.stopPropagation()
-            onDelete()
-          }}
-          className={cn(CARD_ACTION_BTN, 'hover:text-destructive')}
-          aria-label={deleteLabel}
-          title={deleteLabel}
-        >
-          <Trash2 className='w-4 h-4' />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type='button'
+              onClick={(e) => {
+                e.stopPropagation()
+                onDelete()
+              }}
+              className={cn(CARD_ACTION_BTN, 'text-destructive hover:text-destructive')}
+              aria-label={deleteLabel}
+            >
+              <Trash2 className='w-4 h-4' />
+            </button>
+          </TooltipTrigger>
+          {/* Red label rather than a red surface — TooltipArrow is fixed to
+              fill-popover, so a recoloured background would leave the arrow behind. */}
+          <TooltipContent className='text-destructive font-semibold'>{deleteLabel}</TooltipContent>
+        </Tooltip>
       )}
     </div>
   )
