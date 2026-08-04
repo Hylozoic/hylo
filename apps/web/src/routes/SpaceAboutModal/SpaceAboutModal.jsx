@@ -10,6 +10,7 @@ import Loading from 'components/Loading'
 import LucideIcon from 'components/LucideIcon/LucideIcon'
 import { Dialog, DialogContent, DialogTitle } from 'components/ui/dialog'
 import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
+import MenuRowBackground from 'routes/AuthLayoutRouter/components/ContextMenu/MenuRowBackground'
 import { avatarForView, iconForView } from '@hylo/presenters/GroupViewPresenter'
 import fetchForGroup from 'store/actions/fetchForGroup'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
@@ -85,7 +86,10 @@ export default function SpaceAboutModal ({ onClose }) {
                       <div className='absolute inset-0' style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.6) 100%)' }} />
                     </>
                     )
-                  : <div className='absolute inset-0 bg-gradient-to-br from-focus/70 to-selected/70' />}
+                  // No banner: the same tinted icon texture the group menu gives this
+                  // space, so the modal is recognisably the space you opened it from
+                  // rather than a generic focus/selected gradient.
+                  : <MenuRowBackground view={spaceView} bannerUrl={null} />}
 
                 <div className='relative z-10 w-[84px] h-[84px] rounded-[22px] grid place-items-center overflow-hidden bg-background/20 backdrop-blur-sm border border-white/25 shadow-lg text-white'>
                   {avatar?.avatarUrl
