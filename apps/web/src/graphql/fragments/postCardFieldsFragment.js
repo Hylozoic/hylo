@@ -26,6 +26,7 @@ export default function postCardFieldsFragment ({ includeGroups = true } = {}) {
   isPublic
   linkPreviewFeatured
   location
+  meetingLink
   myEventResponse
   peopleReactedTotal
   projectManagementLink

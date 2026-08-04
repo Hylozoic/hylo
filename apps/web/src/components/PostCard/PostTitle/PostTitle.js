@@ -1,6 +1,6 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { CircleCheckBig } from 'lucide-react'
+import { CircleCheckBig, Video } from 'lucide-react'
 import { DateTime } from 'luxon'
 import { LocationHelpers } from '@hylo/shared'
 import Highlight from 'components/Highlight'
@@ -13,6 +13,7 @@ export default function PostTitle ({
   highlightProps,
   locationObject,
   location,
+  meetingLink,
   onClick,
   title,
   type,
@@ -27,6 +28,10 @@ export default function PostTitle ({
   const normalizedUrl = looksLikeUrl
     ? (trimmedLocation.startsWith('http') ? trimmedLocation : `https://${trimmedLocation}`)
     : null
+  const trimmedMeetingLink = (meetingLink || '').toString().trim()
+  const normalizedMeetingUrl = trimmedMeetingLink
+    ? (trimmedMeetingLink.startsWith('http') ? trimmedMeetingLink : `https://${trimmedMeetingLink}`)
+    : null
 
   return (
     <Highlight {...highlightProps}>
@@ -39,7 +44,7 @@ export default function PostTitle ({
           <div className='flex items-center text-sm italic'>{t('Completed {{timestamp}}', { timestamp: DateTime.fromISO(post.fulfilledAt).toFormat('DD') })}</div>
         )}
         {location && (
-          <div className={cn('text-xs text-foreground/50 flex min-w-0 items-start gap-1', { [classes.constrained]: constrained, 'mb-2': type !== 'event' })}>
+          <div className={cn('text-xs text-foreground/50 flex min-w-0 items-start gap-1', { [classes.constrained]: constrained, 'mb-2': type !== 'event' && !meetingLink })}>
             <Icon name='Location' className='mt-px w-4 h-4 shrink-0 text-foreground/50 text-xs' dataTestId='icon-Location' />
             {looksLikeUrl
               ? (
@@ -54,6 +59,20 @@ export default function PostTitle ({
                 </a>
                 )
               : <span className='min-w-0 break-words'>{generalLocation}</span>}
+          </div>
+        )}
+        {meetingLink && (
+          <div className={cn('text-xs text-foreground/50 flex min-w-0 items-start gap-1', { [classes.constrained]: constrained, 'mb-2': type !== 'event' })}>
+            <Video className='mt-px w-4 h-4 shrink-0 text-foreground/50' data-testid='icon-Video' />
+            <a
+              className='min-w-0 break-words'
+              href={normalizedMeetingUrl}
+              target='_blank'
+              rel='noopener noreferrer'
+              onClick={(e) => e.stopPropagation()}
+            >
+              {t('Join online')}
+            </a>
           </div>
         )}
       </>
