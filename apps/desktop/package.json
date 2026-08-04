@@ -7,7 +7,7 @@
   "author": "Hylo <hello@hylo.com>",
   "license": "Apache-2.0",
   "engines": {
-    "node": "^20",
+    "node": "^24",
     "yarn": "^4.9.2"
   },
   "scripts": {
