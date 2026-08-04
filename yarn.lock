@@ -36,14 +36,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@airbnb/node-memwatch@npm:^2.0.0":
-  version: 2.0.0
-  resolution: "@airbnb/node-memwatch@npm:2.0.0"
+"@airbnb/node-memwatch@npm:^3.0.0":
+  version: 3.0.0
+  resolution: "@airbnb/node-memwatch@npm:3.0.0"
   dependencies:
     bindings: "npm:^1.5.0"
-    nan: "npm:^2.14.1"
+    nan: "npm:^2.22.0"
     node-gyp: "npm:latest"
-  checksum: 10/86d0780f71b1cad866d926f9e522c612d40210dad879bd3b28affda770d9b16b94c08cfdf66ba5aae36a9db62580bdc157f53d95ef150547742f3a174ed01f34
+  checksum: 10/5b6c08a28e97ffd46bde9148258068c71ef403b530dd614b47ebcffd59c9600c7dde66dd86ae789900a0fff1ffe4e4c68dad120870e73eda2f8df6959730f6de
   languageName: node
   linkType: hard
 
@@ -13162,7 +13162,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "backend@workspace:apps/backend"
   dependencies:
-    "@airbnb/node-memwatch": "npm:^2.0.0"
+    "@airbnb/node-memwatch": "npm:^3.0.0"
     "@babel/cli": "npm:^7.17.6"
     "@babel/core": "npm:^7.17.9"
     "@babel/preset-env": "npm:^7.16.11"
@@ -28439,12 +28439,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"nan@npm:^2.12.1, nan@npm:^2.14.1":
+"nan@npm:^2.12.1":
   version: 2.22.0
   resolution: "nan@npm:2.22.0"
   dependencies:
     node-gyp: "npm:latest"
   checksum: 10/ab165ba910e549fcc21fd561a33f534d86e81ae36c97b1019dcfe506b09692ff867c97794a54b49c9a83b8b485f529f0f58d24966c3a11863c97dc70814f4d50
+  languageName: node
+  linkType: hard
+
+"nan@npm:^2.22.0":
+  version: 2.28.0
+  resolution: "nan@npm:2.28.0"
+  dependencies:
+    node-gyp: "npm:latest"
+  checksum: 10/299ffb18f43cc53b0728cb16ed15e868960168b84d4140b54c8e057c54e6714d0291eee63c02c3cae4bcf5d0d06b6a93fc8717d8d9ae72ad6d4e8eba5ddacc66
   languageName: node
   linkType: hard
 
