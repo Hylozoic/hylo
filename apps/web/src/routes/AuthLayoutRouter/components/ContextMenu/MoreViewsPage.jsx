@@ -10,7 +10,7 @@ import { addQuerystringToPath, groupUrl, localSpaceSlug, spaceHomeUrl } from '@h
 import fetchGroupRelationships from 'store/actions/fetchGroupRelationships'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
-import { createGroupView, deleteGroupView, setGroupViewHidden } from 'store/actions/groupViews'
+import { createGroupView, deleteGroupView, deleteSpace, setGroupViewHidden } from 'store/actions/groupViews'
 import { FETCH_GROUP_RELATIONSHIPS, FETCH_GROUP_SPACES } from 'store/constants'
 import { getGroupViews } from 'store/selectors/getGroupViews'
 import { getMoreViewsSections } from 'store/selectors/getMoreSpacesSections'
@@ -22,7 +22,6 @@ import {
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import isPendingFor from 'store/selectors/isPendingFor'
-import { deleteGroup } from 'routes/GroupSettings/GroupSettings.store'
 import { canHardDeleteView } from 'store/models/GroupView'
 import { cn } from 'util/index'
 
@@ -111,6 +110,7 @@ export default function MoreViewsPage ({ group }) {
   const [showAddSpace, setShowAddSpace] = useState(false)
   const [settingsView, setSettingsView] = useState(null)
   const [settingsSpace, setSettingsSpace] = useState(null)
+  const [deletingSpaceId, setDeletingSpaceId] = useState(null)
   const settingsTypeParam = getQuerystringParam('settings', location)
 
   useEffect(() => {
@@ -184,21 +184,24 @@ export default function MoreViewsPage ({ group }) {
   }, [dispatch, contentGroup?.id, groupViews])
 
   const handleDeleteSpace = useCallback(async (space) => {
-    if (!space?.id) return
+    if (!space?.id || deletingSpaceId) return
     const confirmed = window.confirm(
       t('Are you sure you want to permanently delete {{name}}? Posts in this space will no longer be accessible.', {
         name: space.name
       })
     )
     if (!confirmed) return
+    setDeletingSpaceId(space.id)
     try {
-      await dispatch(deleteGroup(space.id))
+      await dispatch(deleteSpace(space.id))
       await dispatch(fetchGroupSpaces(contentGroup.id))
       await dispatch(fetchGroupViews(contentGroup.id))
     } catch (error) {
       console.error('Failed to delete space:', error)
+    } finally {
+      setDeletingSpaceId(null)
     }
-  }, [dispatch, contentGroup?.id, t])
+  }, [dispatch, contentGroup?.id, deletingSpaceId, t])
 
   const handleDeleteView = useCallback(async (view) => {
     if (!canHardDeleteView(view) || !contentGroup?.id) return
@@ -317,6 +320,7 @@ export default function MoreViewsPage ({ group }) {
                           key={space.id}
                           space={space}
                           isEditing={isEditing}
+                          isDeleting={String(deletingSpaceId) === String(space.id)}
                           onOpen={handleOpenSpace}
                           onAddToMenu={handleAddSpaceToMenu}
                           onOpenSettings={setSettingsSpace}
@@ -335,6 +339,7 @@ export default function MoreViewsPage ({ group }) {
                           key={space.id}
                           space={space}
                           isEditing={isEditing}
+                          isDeleting={String(deletingSpaceId) === String(space.id)}
                           onOpen={handleOpenSpace}
                           onAddToMenu={handleAddSpaceToMenu}
                           onOpenSettings={setSettingsSpace}
@@ -353,6 +358,7 @@ export default function MoreViewsPage ({ group }) {
                           key={space.id}
                           space={space}
                           isEditing={isEditing}
+                          isDeleting={String(deletingSpaceId) === String(space.id)}
                           onOpen={handleOpenSpace}
                           onAddToMenu={handleAddSpaceToMenu}
                           onOpenSettings={setSettingsSpace}

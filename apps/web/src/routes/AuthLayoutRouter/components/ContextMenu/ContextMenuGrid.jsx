@@ -1,9 +1,10 @@
 import { cn, bgImageStyle } from 'util/index'
-import { BadgeInfo, Bell, Settings, Users, Pencil, X, CircleEllipsis, ChevronLeft } from 'lucide-react'
+import { Info, Settings, Users, Pencil, X, CircleEllipsis, ChevronLeft } from 'lucide-react'
 import React, { useMemo, useRef, useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
+import InviteMembersPopover from 'components/InviteMembersPopover/InviteMembersPopover'
 import GroupViewPresenter, {
   displayNameForView,
   getStaticMenuViews,
@@ -11,7 +12,6 @@ import GroupViewPresenter, {
 } from '@hylo/presenters/GroupViewPresenter'
 import {
   groupUrl,
-  currentUserSettingsUrl,
   addQuerystringToPath,
   localSpaceSlug,
   personUrl,
@@ -41,10 +41,10 @@ import { useViewHeader } from 'contexts/ViewHeaderContext'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import fetchGroupRelationships from 'store/actions/fetchGroupRelationships'
-import { createGroupView, deleteGroupView, setGroupViewHidden } from 'store/actions/groupViews'
-import { deleteGroup } from 'routes/GroupSettings/GroupSettings.store'
+import { createGroupView, deleteGroupView, deleteSpace, setGroupViewHidden } from 'store/actions/groupViews'
 import { canHardDeleteView, viewAcceptedByPostTypes } from 'store/models/GroupView'
 import { viewShowsUnreadDot, viewUnreadBadgeCount } from 'util/viewUnreadBadges'
+import GroupNotificationsPopover from 'components/GroupNotificationsPopover/GroupNotificationsPopover'
 import CardIconField from './CardIconField'
 import GroupViewIcon from './GroupViewIcon'
 import SortableViewsGrid from './SortableViewsGrid'
@@ -274,12 +274,15 @@ function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
     </h3>
   )
 
+  const isMembers = presentedView.type === 'members'
+  const inviteGroup = spaceGroup || group
+
   return (
     <div
       onClick={handleClick}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      className={cn(CARD_CLASS, cardChrome(isDark))}
+      className={cn(CARD_CLASS, cardChrome(isDark), 'group')}
       style={{
         background: bgImageUrl
           ? cardNeutralBg(effectiveColorScheme)
@@ -302,6 +305,16 @@ function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
         }
       }}
     >
+      {isMembers && inviteGroup && (
+        <div className='absolute top-1.5 right-1.5 z-20'>
+          <InviteMembersPopover
+            group={inviteGroup}
+            triggerClassName={lightSurfaceLabels
+              ? 'bg-background/90 text-foreground/70 hover:text-foreground shadow-sm'
+              : 'bg-black/40 text-white hover:text-white shadow-sm'}
+          />
+        </div>
+      )}
       {bgImageUrl
         ? (
           <>
@@ -489,6 +502,7 @@ function MoreSpacesGrid ({
     hasContent
   } = useMoreSpacesContent(group)
   const groupViews = useSelector(state => getGroupViews(state, group))
+  const [deletingSpaceId, setDeletingSpaceId] = useState(null)
 
   useEffect(() => {
     if (!group?.id || !groupSlug) return
@@ -556,21 +570,24 @@ function MoreSpacesGrid ({
   }, [dispatch, group?.id, t])
 
   const handleDeleteSpace = useCallback(async (space) => {
-    if (!space?.id) return
+    if (!space?.id || deletingSpaceId) return
     const confirmed = window.confirm(
       t('Are you sure you want to permanently delete {{name}}? Posts in this space will no longer be accessible.', {
         name: space.name
       })
     )
     if (!confirmed) return
+    setDeletingSpaceId(space.id)
     try {
-      await dispatch(deleteGroup(space.id))
+      await dispatch(deleteSpace(space.id))
       await dispatch(fetchGroupSpaces(group.id))
       await dispatch(fetchGroupViews(group.id))
     } catch (error) {
       console.error('Failed to delete space:', error)
+    } finally {
+      setDeletingSpaceId(null)
     }
-  }, [dispatch, group?.id, t])
+  }, [dispatch, group?.id, deletingSpaceId, t])
 
   if (pending && !hasContent) {
     return <ViewsGridSkeleton />
@@ -609,6 +626,7 @@ function MoreSpacesGrid ({
                 key={space.id}
                 space={space}
                 isEditing={isEditing}
+                isDeleting={String(deletingSpaceId) === String(space.id)}
                 onOpen={handleOpenSpace}
                 onAddToMenu={handleAddSpaceToMenu}
                 onOpenSettings={onOpenSpaceSettings}
@@ -627,6 +645,7 @@ function MoreSpacesGrid ({
                 key={space.id}
                 space={space}
                 isEditing={isEditing}
+                isDeleting={String(deletingSpaceId) === String(space.id)}
                 onOpen={handleOpenSpace}
                 onAddToMenu={handleAddSpaceToMenu}
                 onOpenSettings={onOpenSpaceSettings}
@@ -645,6 +664,7 @@ function MoreSpacesGrid ({
                 key={space.id}
                 space={space}
                 isEditing={isEditing}
+                isDeleting={String(deletingSpaceId) === String(space.id)}
                 onOpen={handleOpenSpace}
                 onAddToMenu={handleAddSpaceToMenu}
                 onOpenSettings={onOpenSpaceSettings}
@@ -806,9 +826,7 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
 
             {!isContextMode && (
               <div className='absolute top-3 left-1/2 -translate-x-1/2 z-30 w-full max-w-[1000px] px-3 flex items-center justify-between'>
-                <button type='button' onClick={() => navigate(currentUserSettingsUrl('notifications?group=' + group.id))}>
-                  <Bell className='w-6 h-6 text-white drop-shadow-md hover:scale-110 transition-all' />
-                </button>
+                <GroupNotificationsPopover group={group} />
 
                 {/* Matches GroupMenuHeader's affordances — about, then settings */}
                 <div className='flex items-center gap-3'>
@@ -817,7 +835,7 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
                     onClick={() => navigate(groupUrl(groupSlug, 'about', {}))}
                     aria-label={t('About')}
                   >
-                    <BadgeInfo className='w-6 h-6 text-white drop-shadow-md hover:scale-110 transition-all' />
+                    <Info className='w-6 h-6 text-white drop-shadow-md hover:scale-110 transition-all' />
                   </button>
 
                   {canAdminister && (
@@ -851,9 +869,18 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
               {displaySubtitle
                 ? <span className='text-sm text-white/80 drop-shadow-md'>{displaySubtitle}</span>
                 : !isContextMode && (
-                  <span className='text-sm flex items-center gap-1 text-white/80 drop-shadow-md'>
+                  <span className='group text-sm flex items-center gap-1 text-white/80 drop-shadow-md'>
                     <Users className='w-4 h-4' />
-                    {t('{{count}} Members', { count: (spaceGroup || group)?.memberCount || 0 })}
+                    <Link
+                      className='text-white/80 underline hover:text-white'
+                      to={groupUrl((spaceGroup || group)?.slug || groupSlug, 'members', {})}
+                    >
+                      {t('{{count}} Members', { count: (spaceGroup || group)?.memberCount || 0 })}
+                    </Link>
+                    <InviteMembersPopover
+                      group={spaceGroup || group}
+                      triggerClassName='text-white hover:text-white'
+                    />
                   </span>
                   )}
             </div>

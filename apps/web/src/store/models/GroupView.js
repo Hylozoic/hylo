@@ -39,7 +39,7 @@ export const SOFT_REMOVE_VIEW_TYPES = new Set([
   'welcome'
 ])
 
-/** Types that can be permanently deleted (trash). Spaces are deleted via deleteGroup. */
+/** Types that can be permanently deleted (trash). Spaces are deleted via deleteSpace. */
 export const HARD_DELETE_VIEW_TYPES = new Set([
   'collection',
   'custom',
@@ -85,7 +85,7 @@ export function canDeleteView (view) {
   return true
 }
 
-/** Returns whether a view can be permanently deleted (trash). Spaces use deleteGroup. */
+/** Returns whether a view can be permanently deleted (trash). Spaces use deleteSpace. */
 export function canHardDeleteView (view) {
   if (!canDeleteView(view)) return false
   if (view?.type === 'space') return true

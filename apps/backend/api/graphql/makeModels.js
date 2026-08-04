@@ -1337,7 +1337,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
 
     Message: {
       model: Comment,
-      attributes: ['created_at'],
+      attributes: ['created_at', 'edited_at'],
       relations: [
         { post: { alias: 'messageThread', typename: 'MessageThread' } },
         { user: { alias: 'creator' } }

@@ -25,10 +25,9 @@ import GroupViewIcon from './GroupViewIcon'
 import { GroupViewEditActions } from './GroupViewSettingsModal'
 import { canDeleteView, canHardDeleteView, isSoftRemoveView } from 'store/models/GroupView'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
-import { deleteGroupView, setGroupViewHidden } from 'store/actions/groupViews'
+import { deleteGroupView, deleteSpace, setGroupViewHidden } from 'store/actions/groupViews'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
-import { deleteGroup } from 'routes/GroupSettings/GroupSettings.store'
 import { mergeOrderedViewsFromSource, sortViewsByMenuOrder } from 'store/util/groupViewsOrder'
 import useViewReorder from './useViewReorder'
 
@@ -226,7 +225,7 @@ export default function GroupViewEditList ({ views, group, groupSlug, onSettings
       )
       if (!confirmed) return
       try {
-        await dispatch(deleteGroup(space.id))
+        await dispatch(deleteSpace(space.id))
         await dispatch(fetchGroupSpaces(group.id))
         await dispatch(fetchGroupViews(group.id))
       } catch (error) {

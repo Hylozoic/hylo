@@ -40,10 +40,12 @@ import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMyMemberships from 'store/selectors/getMyMemberships'
 import getMyGroupMembership from 'store/selectors/getMyGroupMembership'
 import { getSignupInProgress } from 'store/selectors/getSignupState'
-import getLastViewedGroup from 'store/selectors/getLastViewedGroup'
+import { getLastViewedGroupPath } from 'store/selectors/getLastViewedGroup'
+import { isSpaceGroup } from 'store/selectors/getMyGroups'
+import orm from 'store/models'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import {
-  POST_DETAIL_MATCH, GROUP_DETAIL_MATCH, postUrl
+  POST_DETAIL_MATCH, GROUP_DETAIL_MATCH, localSpaceSlug, postUrl, spaceUrl
 } from '@hylo/navigation'
 import { CENTER_COLUMN_ID, DETAIL_COLUMN_ID } from 'util/scrolling'
 import {
@@ -225,7 +227,7 @@ export default function AuthLayoutRouter (props) {
   const isPhoneSettings = isPhoneViewport && isOnGroupSettings
   const isDrawerOpen = useSelector(state => get('AuthLayoutRouter.isDrawerOpen', state))
   const isNavOpen = useSelector(state => get('AuthLayoutRouter.isNavOpen', state)) // For mobile nav
-  const lastViewedGroup = useSelector(getLastViewedGroup)
+  const lastViewedGroupPath = useSelector(getLastViewedGroupPath)
   const memberships = useSelector(getMyMemberships)
   const returnToPath = useSelector(getReturnToPath)
   const signupInProgress = useSelector(getSignupInProgress)
@@ -787,6 +789,29 @@ export default function AuthLayoutRouter (props) {
     return <NotFound />
   }
 
+  // Spaces opened as top-level `/groups/:spaceSlug` must nest under their parent.
+  // Covers cold-load restore, bookmarks, and any other bare-space links.
+  if (
+    currentGroupSlug &&
+    currentGroup &&
+    isSpaceGroup(currentGroup) &&
+    currentGroup.parentId &&
+    !location.pathname.includes('/spaces/')
+  ) {
+    const parentMembership = memberships.find(m => String(m.group?.id) === String(currentGroup.parentId))
+    const parentFromOrm = orm.session(store.getState().orm).Group.withId(currentGroup.parentId)
+    const parentSlug = parentMembership?.group?.slug || parentFromOrm?.slug
+    if (parentSlug) {
+      const local = localSpaceSlug(parentSlug, currentGroup.slug)
+      const prefix = `/groups/${currentGroupSlug}`
+      const rest = location.pathname.startsWith(prefix)
+        ? location.pathname.slice(prefix.length)
+        : ''
+      const nestedPath = spaceUrl(parentSlug, local, rest || currentGroup.homeRoute || '/all')
+      return <Navigate to={`${nestedPath}${location.search}`} replace />
+    }
+  }
+
   /* First time viewing a group redirect to welcome page if it exists, otherwise home view */
   // XXX: this is a hack, figure out better way to do this
   if (currentUser && currentGroupMembership && !get('lastViewedAt', currentGroupMembership)) {
@@ -1095,7 +1120,7 @@ export default function AuthLayoutRouter (props) {
                 <Route path='themes' element={<Themes />} />
                 <Route path='notifications' /> {/* XXX: hack because if i dont have this the default route overrides the redirect to /my/notifications above */}
                 {/* **** Default Route (404) **** */}
-                <Route path='*' element={<Navigate to={lastViewedGroup ? `/groups/${lastViewedGroup.slug}` : '/all'} replace />} />
+                <Route path='*' element={<Navigate to={lastViewedGroupPath} replace />} />
               </Routes>
             </div>
 
