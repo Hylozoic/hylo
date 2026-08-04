@@ -85,7 +85,7 @@ const CreateModal = (props) => {
       nodeRef={modalRef}
     >
       <div className={classes.createModal} ref={modalRef}>
-        <div className={classes.createModalWrapper}>
+        <div className={classes.createModalWrapper} id='create-modal-content'>
           <span className='absolute top-6 right-6 p-2 z-10 cursor-pointer' onClick={confirmClose}>
             <Icon name='Ex' />
           </span>
