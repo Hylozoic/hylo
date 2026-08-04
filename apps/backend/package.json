@@ -59,7 +59,7 @@
     "standard": "^17.1.2"
   },
   "dependencies": {
-    "@airbnb/node-memwatch": "^2.0.0",
+    "@airbnb/node-memwatch": "^3.0.0",
     "@babel/core": "^7.17.9",
     "@babel/preset-env": "^7.16.11",
     "@babel/register": "^7.17.7",
