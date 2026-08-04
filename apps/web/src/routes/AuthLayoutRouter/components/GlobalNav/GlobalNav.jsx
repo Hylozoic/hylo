@@ -434,10 +434,21 @@ export default function GlobalNav (props) {
   const pinnedGroups = useMemo(() => sortedGroups.filter(group => group.navOrder != null), [sortedGroups])
   const unpinnedGroups = useMemo(() => sortedGroups.filter(group => group.navOrder == null), [sortedGroups])
   const compactLayout = isCompactLayoutDevice()
-  const appStoreLinkClass = isMobileDevice() ? 'isMobileDevice' : 'isntMobileDevice'
+  // The store links only go anywhere on a phone or tablet, so don't offer the
+  // download at all on desktop
+  const showAppStoreLink = isMobileDevice() && !isWebView()
   const { t } = useTranslation()
   const [navReady, setNavReady] = useState(false)
   const [isContainerHovered, setIsContainerHovered] = useState(false)
+  // A stack's subgroup menu and the rail's labels are alternatives, never both at
+  // once: the submenu already names every group it contains, so labels behind it
+  // are noise. Kept as a ref too for the listeners that outlive a render.
+  const [submenuOpen, setSubmenuOpen] = useState(false)
+  const submenuOpenRef = useRef(false)
+  // Labels give way to the submenu, but the scrim behind them stays: the submenu
+  // reads as the rail continuing outward, so it needs the same ground to sit on.
+  const showLabels = isContainerHovered && !submenuOpen
+  const showScrim = isContainerHovered || submenuOpen
   const [menuTimeoutId, setMenuTimeoutId] = useState(null)
   const hoverDelayTimeoutRef = useRef(null)
   const ignoreTouchRef = useRef(false) // Ignore touch events briefly after nav opens
@@ -483,6 +494,17 @@ export default function GlobalNav (props) {
     }
     window.addEventListener('contextMenuScroll', handleContextMenuScroll)
     return () => window.removeEventListener('contextMenuScroll', handleContextMenuScroll)
+  }, [])
+
+  // A stack opening its submenu takes the rail's labels down with it
+  useEffect(() => {
+    const handleSubmenuToggle = (e) => {
+      submenuOpenRef.current = e.detail
+      setSubmenuOpen(e.detail)
+      if (e.detail) clearHover()
+    }
+    window.addEventListener('navSubmenuToggle', handleSubmenuToggle)
+    return () => window.removeEventListener('navSubmenuToggle', handleSubmenuToggle)
   }, [])
 
   // Add effect to handle menu timeout
@@ -664,6 +686,7 @@ export default function GlobalNav (props) {
     // Ignore touch-originated pointer events — prevents phantom hover/tooltip
     // when the nav slides open and lands under the user's finger
     if (e.pointerType === 'touch' || ignoreTouchRef.current) return
+    if (submenuOpenRef.current) return
 
     // Clear any existing timeout to avoid race conditions
     if (hoverDelayTimeoutRef.current) {
@@ -717,6 +740,8 @@ export default function GlobalNav (props) {
     // Ignore touch events briefly after nav opens to prevent accidental triggers
     // when the nav slides in and a lingering touch event fires
     if (ignoreTouchRef.current) return
+    // The submenu owns the screen while it's open
+    if (submenuOpenRef.current) return
 
     // On touch, show immediately (no delay like desktop mouse hover)
     touchEndedRef.current = false
@@ -744,6 +769,10 @@ export default function GlobalNav (props) {
 
     const handleNavScroll = () => {
       isScrollingRef.current = true
+      // Scrolling the rail means the user has moved on from the stack they opened
+      if (submenuOpenRef.current) {
+        window.dispatchEvent(new CustomEvent('navSubmenuClose'))
+      }
       // While scrolling, cancel any pending close timeout
       if (clearHoverTimeoutRef.current) {
         clearTimeout(clearHoverTimeoutRef.current)
@@ -865,15 +894,15 @@ export default function GlobalNav (props) {
           tooltip={t('My Home')}
           url='/my'
           className={isVisible(0)}
-          showTooltip={isContainerHovered}
+          showTooltip={showLabels}
         />
 
-        <Suspense fallback={<GlobalNavItem className={isVisible(1)} showTooltip={isContainerHovered}><Bell className='w-7 h-7' /></GlobalNavItem>}>
+        <Suspense fallback={<GlobalNavItem className={isVisible(1)} showTooltip={showLabels}><Bell className='w-7 h-7' /></GlobalNavItem>}>
           <NotificationsDropdown renderToggleChildren={showBadge =>
             <GlobalNavItem
               tooltip={t('Activity')}
               className={isVisible(1)}
-              showTooltip={isContainerHovered}
+              showTooltip={showLabels}
               badgeCount={showBadge ? '-' : 0}
             >
               <BadgedIcon name='Notifications' className='!text-primary-foreground cursor-pointer font-md' />
@@ -885,7 +914,7 @@ export default function GlobalNav (props) {
           tooltip={t('Messages')}
           url='/messages'
           className={isVisible(2)}
-          showTooltip={isContainerHovered}
+          showTooltip={showLabels}
           badgeCount={currentUser?.unseenThreadCount || 0}
         >
           <MessagesSquare />
@@ -895,7 +924,7 @@ export default function GlobalNav (props) {
           tooltip={t('The Commons')}
           url='/public'
           className={isVisible(3)}
-          showTooltip={isContainerHovered}
+          showTooltip={showLabels}
         >
           <Globe color='hsl(var(--primary-foreground))' />
         </GlobalNavItem>
@@ -917,8 +946,8 @@ export default function GlobalNav (props) {
                     group={group}
                     index={pinnedIndex}
                     isVisible={isVisible(4 + pinnedIndex)}
-                    showTooltip={isContainerHovered}
-                    isContainerHovered={isContainerHovered}
+                    showTooltip={showLabels}
+                    isContainerHovered={showLabels}
                     groupRefsMap={groupRefsMap}
                   />
                 </RightClickMenuTrigger>
@@ -952,7 +981,7 @@ export default function GlobalNav (props) {
                     tooltip={group.name}
                     url={`/groups/${group.slug}`}
                     className={isVisible(4 + actualIndex)}
-                    showTooltip={isContainerHovered}
+                    showTooltip={showLabels}
                     childGroups={group.childGroups}
                   />
                 </RightClickMenuTrigger>
@@ -971,8 +1000,8 @@ export default function GlobalNav (props) {
           'fixed z-0 bottom-0 w-[400px] h-full',
           'transition-all duration-300 ease-out transform  backdrop-blur-md translate-x-0',
           {
-            'opacity-80 translate-x-0': isContainerHovered,
-            'opacity-0 -translate-x-full': !isContainerHovered
+            'opacity-80 translate-x-0': showScrim,
+            'opacity-0 -translate-x-full': !showScrim
           }
         )}
         style={{
@@ -1032,7 +1061,7 @@ export default function GlobalNav (props) {
                 <li className='w-full'><span className='text-foreground cursor-pointer px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' onClick={handleSupportClick}><MessagesSquare className='h-4 w-4' />{t('Feedback & Support')}</span></li>
                 <li className='w-full'><a className='text-foreground cursor-pointer hover:text-foreground/100 px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' href='https://hylozoic.gitbook.io/hylo/guides/hylo-user-guide' target='_blank' rel='noreferrer'><BookOpen className='h-4 w-4' />{t('User Guide')}</a></li>
                 <li className='w-full'><a className='text-foreground cursor-pointer hover:text-foreground/100 px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' href='http://hylo.com/terms/' target='_blank' rel='noreferrer'><Shield className='h-4 w-4' />{t('Terms & Privacy')}</a></li>
-                {!isWebView() && <li className='w-full'><span className={cn('text-foreground cursor-pointer px-2 py-1 hover:text-foreground/100 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2', styles[appStoreLinkClass])} onClick={downloadApp}><Download className='h-4 w-4' />{t('Download App')}</span></li>}
+                {showAppStoreLink && <li className='w-full'><span className='text-foreground cursor-pointer px-2 py-1 hover:text-foreground/100 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' onClick={downloadApp}><Download className='h-4 w-4' />{t('Download App')}</span></li>}
                 <li className='w-full'><a className='text-foreground cursor-pointer px-2 py-1 hover:text-foreground/100 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' href='https://opencollective.com/hylo' target='_blank' rel='noreferrer'><Heart className='h-4 w-4' />{t('Contribute to Hylo')}</a></li>
               </ul>
               {showSupportModal && (
