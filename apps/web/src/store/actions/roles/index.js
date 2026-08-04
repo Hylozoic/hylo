@@ -101,14 +101,16 @@ export function removeRoleFromMember ({ personId, groupId, roleId }) {
   }
 }
 
-export function fetchGroupRoleDetails ({ id, roleId: groupRoleId }) {
+export const ROLE_MEMBERS_PAGE_SIZE = 20
+
+export function fetchGroupRoleDetails ({ id, roleId: groupRoleId, first = ROLE_MEMBERS_PAGE_SIZE, offset = 0 }) {
   return {
     type: FETCH_GROUP_ROLE_DETAILS,
     graphql: {
-      query: `query fetchGroupRoleDetails ($id: ID, $groupRoleId: ID) {
+      query: `query fetchGroupRoleDetails ($id: ID, $groupRoleId: ID, $first: Int, $offset: Int) {
         group (id: $id) {
           id
-          members (first: 50, groupRoleId: $groupRoleId) {
+          members (first: $first, offset: $offset, groupRoleId: $groupRoleId) {
             hasMore
             items {
               id
@@ -143,7 +145,7 @@ export function fetchGroupRoleDetails ({ id, roleId: groupRoleId }) {
         }
       }`,
       variables: {
-        id, groupRoleId
+        id, groupRoleId, first, offset
       }
     },
     meta: {
@@ -156,14 +158,14 @@ export function fetchGroupRoleDetails ({ id, roleId: groupRoleId }) {
   }
 }
 
-export function fetchMembersForGroupRole ({ id, roleId: groupRoleId }) {
+export function fetchMembersForGroupRole ({ id, roleId: groupRoleId, first = ROLE_MEMBERS_PAGE_SIZE, offset = 0 }) {
   return {
     type: FETCH_MEMBERS_FOR_GROUP_ROLE,
     graphql: {
-      query: `query fetchMembersForGroupRole ($id: ID, $groupRoleId: ID) {
+      query: `query fetchMembersForGroupRole ($id: ID, $groupRoleId: ID, $first: Int, $offset: Int) {
         group (id: $id) {
           id
-          members (first: 50, groupRoleId: $groupRoleId) {
+          members (first: $first, offset: $offset, groupRoleId: $groupRoleId) {
             hasMore
             items {
               id
@@ -191,7 +193,7 @@ export function fetchMembersForGroupRole ({ id, roleId: groupRoleId }) {
         }
       }`,
       variables: {
-        id, groupRoleId
+        id, groupRoleId, first, offset
       }
     },
     meta: {
