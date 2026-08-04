@@ -145,6 +145,12 @@ function GroupViewMenuItem ({
   // variant can never disagree with the palette it is sitting on.
   const activeLabelClass = 'text-foreground dark:text-white dark:hover:text-white dark:[text-shadow:0_1px_3px_rgba(0,0,0,0.65)]'
   const onPhotoLabelClass = 'text-white hover:text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.65)]'
+  // Hovering an unselected space fades its banner in behind the row, so the label
+  // has to go white at the same moment or it is dark text on a photo. No transition
+  // on the colour — it switches at once while the photo fades in under it.
+  // Banner rows only: without one the light-mode surface is a pale wash that white
+  // would disappear into.
+  const onPhotoHoverLabelClass = 'group-hover:text-white hover:text-white group-hover:[text-shadow:0_1px_3px_rgba(0,0,0,0.65)]'
 
   if (presentedView.type === 'separator') {
     return <hr className='border-foreground/10 mt-5 mb-2' />
@@ -258,7 +264,9 @@ function GroupViewMenuItem ({
             className={cn(
               GROUP_VIEW_MENU_ITEM_INNER_LINK_CLASS,
               'relative z-10',
-              isSpaceActive && (spaceBannerUrl ? onPhotoLabelClass : activeLabelClass)
+              isSpaceActive
+                ? (spaceBannerUrl ? onPhotoLabelClass : activeLabelClass)
+                : (spaceBannerUrl ? onPhotoHoverLabelClass : null)
             )}
           >
             <GroupViewIcon view={presentedView} />
@@ -273,9 +281,12 @@ function GroupViewMenuItem ({
                 'shrink-0 p-1 pr-1 text-foreground/50 hover:text-foreground border-0 bg-transparent mb-0 rounded-none shadow-none hover:border-0 hover:bg-transparent hover:scale-100',
                 'relative z-10',
                 // Same reasoning as activeLabelClass — a variant, not the resolved scheme
-                isSpaceActive && (spaceBannerUrl
-                  ? 'text-white/80 hover:text-white'
-                  : 'text-foreground/70 hover:text-foreground dark:text-white/80 dark:hover:text-white')
+                isSpaceActive
+                  ? (spaceBannerUrl
+                      ? 'text-white/80 hover:text-white'
+                      : 'text-foreground/70 hover:text-foreground dark:text-white/80 dark:hover:text-white')
+                  // Rides the same banner fade as the label beside it
+                  : (spaceBannerUrl ? 'group-hover:text-white/80 hover:text-white' : null)
               )}
             >
               <Info className='w-4 h-4' aria-hidden='true' />
