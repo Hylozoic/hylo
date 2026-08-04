@@ -13,7 +13,8 @@ import ScrollListener from 'components/ScrollListener'
 import SwitchStyled from 'components/SwitchStyled'
 import { MembersBootstrapSkeleton } from 'components/Skeleton/RouteBootstrapPlaceholders'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
-import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
+import { useEffectiveGroupSlug, useGroupRouteOpts } from 'contexts/SpaceGroupContext'
+import useRouteParams from 'hooks/useRouteParams'
 import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION, RESP_MANAGE_SPACES } from 'store/constants'
 import { groupUrl } from '@hylo/navigation'
 import { FETCH_MEMBERS, fetchMembers, getMembers, getHasMoreMembers, getHasFetchedMembers, getMemberQueryProps, removeMember } from './Members.store'
@@ -28,7 +29,9 @@ import getFundingRound from 'store/selectors/getFundingRound'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
+import { cn } from 'util/index'
 import { isOneColumnLayout as resolveIsOneColumnLayout } from 'util/navigationLayout'
+import ViewsGridSkeleton from 'routes/AuthLayoutRouter/components/ContextMenu/ViewsGridSkeleton'
 import { CENTER_COLUMN_ID } from 'util/scrolling'
 import orm from 'store/models'
 
@@ -45,6 +48,11 @@ function Members (props) {
 
   const context = props.context
   const slug = useEffectiveGroupSlug()
+  const { parentGroupSlug } = useGroupRouteOpts()
+  const routeParams = useRouteParams()
+  const navLayoutGroup = useSelector(state =>
+    getGroupForSlug(state, parentGroupSlug || routeParams.groupSlug)
+  )
 
   // State selectors
   const group = useSelector(state => getGroupForSlug(state, slug))
@@ -123,10 +131,10 @@ function Members (props) {
 
   const [showAnswers, setShowAnswers] = useState(false)
 
-  // One-column menu style shows the member directory as a grid of square cards.
+  // One-column (card menu) groups use the view-card grid for members.
   const isOneColumnLayout = context === 'groups' && resolveIsOneColumnLayout(
     currentUser?.settings?.groupNavStyle,
-    group?.settings?.layout
+    navLayoutGroup?.settings?.layout
   )
 
   // Action creators
@@ -179,7 +187,7 @@ function Members (props) {
   }
 
   return (
-    <div className='h-auto max-w-[750px] mx-auto' id='members-page'>
+    <div className={cn('h-auto mx-auto', isOneColumnLayout ? 'max-w-[1000px]' : 'max-w-[750px]')} id='members-page'>
       <Helmet>
         <title>{t('Members')} | {group ? `${group.name} | ` : ''}Hylo</title>
       </Helmet>
@@ -243,7 +251,7 @@ function Members (props) {
             </div>
           )}
         </div>
-        <div className={isOneColumnLayout ? 'grid grid-cols-2 sm:grid-cols-3 gap-3' : 'flex flex-col gap-2'}>
+        <div className={isOneColumnLayout ? 'flex flex-wrap gap-3' : 'flex flex-col gap-2'}>
           {isLoading
             ? <MembersListSkeleton isOneColumnLayout={isOneColumnLayout} />
             : members.map(member => (
@@ -274,14 +282,11 @@ function Members (props) {
 }
 
 function MembersListSkeleton ({ isOneColumnLayout }) {
-  const rows = [0, 1, 2, 3, 4, 5, 6]
-
   if (isOneColumnLayout) {
-    return rows.map(i => (
-      <div key={i} className='aspect-square rounded-lg bg-foreground/5 animate-pulse' />
-    ))
+    return <ViewsGridSkeleton count={8} />
   }
 
+  const rows = [0, 1, 2, 3, 4, 5, 6]
   return rows.map(i => (
     <div key={i} className='flex items-center gap-3 py-3 border-b border-foreground/5'>
       <div className='w-11 h-11 rounded-full bg-foreground/10 animate-pulse flex-shrink-0' />
@@ -322,7 +327,7 @@ function sortKeysFactory () {
   return {
     name: 'Name',
     location: 'Location',
-    join: 'Newest',
+    join: 'Join Date',
     last_active_at: 'Last Active'
   }
 }

@@ -23,6 +23,7 @@ query FetchGroupMembers ($slug: String, $groupId: ID, $first: Int, $sortBy: Stri
         location
         tagline
         lastActiveAt
+        enrolledAt
         groupJoinQuestionAnswers (groupId: $groupId) {
           items {
             id
