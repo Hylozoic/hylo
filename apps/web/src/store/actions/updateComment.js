@@ -8,6 +8,7 @@ export default function updateComment (id, text, attachments = []) {
         updateComment(id: $id, data: $data) {
           id
           text
+          editedAt
           attachments {
             type
             url
@@ -29,7 +30,8 @@ export default function updateComment (id, text, attachments = []) {
       id,
       data: {
         text,
-        attachments
+        attachments,
+        editedAt: new Date().toISOString()
       }
     }
   }

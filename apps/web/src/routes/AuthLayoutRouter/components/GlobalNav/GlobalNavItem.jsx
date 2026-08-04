@@ -53,6 +53,7 @@ export default function GlobalNavItem ({
   const itemRef = useRef(null)
   const suppressHoverRef = useRef(false)
   const [isInViewport, setIsInViewport] = useState(true)
+  const [anySubmenuOpen, setAnySubmenuOpen] = useState(false)
   const hasShownInSessionRef = useRef(false)
 
   /**
@@ -73,9 +74,14 @@ export default function GlobalNavItem ({
    * - Immediate restore if already shown in this hover session
    *   (prevents stagger timer reset when scrolling toggles isInViewport)
    * - Hide when neither condition is true
+   *
+   * Direct hover is suppressed while any stack's submenu is open. GlobalNav
+   * already withholds the cascade then, but a direct hover ignored that and put
+   * a single label over the submenu — the submenu is a deliberate, click-driven
+   * state, so an ambient hover affordance yields to it rather than the reverse.
    */
   useEffect(() => {
-    if (isHovered) {
+    if (isHovered && !anySubmenuOpen) {
       setOpen(true)
       setShouldAnimate(true)
       hasShownInSessionRef.current = true
@@ -100,7 +106,7 @@ export default function GlobalNavItem ({
       // parentShowTooltip is true but item is out of viewport
       setOpen(false)
     }
-  }, [parentShowTooltip, isHovered, index, isInViewport])
+  }, [parentShowTooltip, isHovered, index, isInViewport, anySubmenuOpen])
 
   // Listen for the custom navScroll event from parent
   useEffect(() => {
@@ -138,6 +144,15 @@ export default function GlobalNavItem ({
       window.removeEventListener('navSubmenuClose', handleClose)
     }
   }, [popoverOpen])
+
+  // Any stack's submenu being open silences this item's own hover label. Read from
+  // the event GlobalNav already broadcasts rather than threading a prop through
+  // every call site.
+  useEffect(() => {
+    const handleSubmenuToggle = (e) => setAnySubmenuOpen(Boolean(e.detail))
+    window.addEventListener('navSubmenuToggle', handleSubmenuToggle)
+    return () => window.removeEventListener('navSubmenuToggle', handleSubmenuToggle)
+  }, [])
 
   // Listen for hover suppression from GlobalNav (fired when nav opens on mobile)
   // Blocks ALL hover events regardless of pointerType during the grace period

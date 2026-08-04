@@ -120,6 +120,27 @@ export async function pushMessageToSockets (message, thread) {
     }))
 }
 
+export async function pushMessageUpdatedToSockets (message, thread) {
+  const followers = await thread.followers().fetch().then(x => x.models)
+  const userIds = followers.map(x => x.id)
+  const excludingSender = userIds.filter(id => id !== message.get('user_id'))
+
+  const response = refineOne(message,
+    ['id', 'created_at', 'edited_at', 'user_id', 'post_id'],
+    {
+      user_id: 'creator',
+      post_id: 'messageThread'
+    }
+  )
+
+  response.createdAt = response.createdAt && response.createdAt.toString()
+  response.editedAt = response.editedAt && response.editedAt.toString()
+  response.text = message.text({ forUserId: message.get('user_id') })
+
+  return Promise.map(excludingSender, userId =>
+    pushToSockets(userRoom(userId), 'messageUpdated', response))
+}
+
 function pushCommentToSockets (comment) {
   return comment.ensureLoad('user')
     .then(() => pushToSockets(

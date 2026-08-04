@@ -1,14 +1,16 @@
-import { BadgeInfo, Bell, Settings, Users } from 'lucide-react'
+import { Info, Settings, Users } from 'lucide-react'
 import React, { useState, useEffect, useLayoutEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
+import GroupNotificationsPopover from 'components/GroupNotificationsPopover/GroupNotificationsPopover'
+import InviteMembersPopover from 'components/InviteMembersPopover/InviteMembersPopover'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import { RESP_ADMINISTRATION } from 'store/constants'
 import { DEFAULT_BANNER, DEFAULT_AVATAR } from 'store/models/Group'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { bgImageStyle } from 'util/index'
-import { groupUrl, currentUserSettingsUrl } from '@hylo/navigation'
+import { groupUrl } from '@hylo/navigation'
 
 export default function GroupMenuHeader ({
   group
@@ -86,9 +88,7 @@ export default function GroupMenuHeader ({
       <div className='absolute z-10 inset-0 bg-cover bg-center' style={{ ...bgImageStyle(bannerUrl), opacity: 0.5 }} />
       <div className='absolute top-0 left-0 w-full h-full bg-darkening z-0 opacity-80' />
       <div className='absolute top-2 left-2 z-20'>
-        <button onClick={() => navigateAndClose(currentUserSettingsUrl('notifications?group=' + group.id))}>
-          <Bell className='w-6 h-6 text-white drop-shadow-md hover:scale-110 transition-all' />
-        </button>
+        <GroupNotificationsPopover group={group} />
       </div>
       {canAdminister && (
         <div className='absolute top-2 right-2 z-20'>
@@ -125,13 +125,17 @@ export default function GroupMenuHeader ({
             </h1>
           </div>
           {showMembers && (
-            <span className='text-xs align-middle text-white'>
-              <Users className='w-4 h-4 inline mr-1 align-bottom' />
+            <span className='group text-xs align-middle text-white flex items-center gap-1'>
+              <Users className='w-4 h-4 inline align-bottom' />
               <Link className='text-white underline' to={groupUrl(group.slug, 'members', {})} onClick={() => dispatch(toggleNavMenu(false))}>{t('{{count}} Members', { count: group.memberCount })}</Link>
+              <InviteMembersPopover
+                group={group}
+                triggerClassName='text-white hover:text-white'
+              />
             </span>
           )}
         </div>
-        <BadgeInfo className={`text-${textColor} cursor-pointer w-[20px] h-[20px] text-white hover:scale-110 transition-all`} onClick={() => navigateAndClose(groupUrl(group.slug, 'about', {}))} />
+        <Info className={`text-${textColor} cursor-pointer w-[20px] h-[20px] text-white hover:scale-110 transition-all`} onClick={() => navigateAndClose(groupUrl(group.slug, 'about', {}))} />
       </div>
     </div>
   )

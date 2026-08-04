@@ -1,6 +1,7 @@
 import {
   ormSessionReducer,
   RECEIVE_MESSAGE,
+  RECEIVE_MESSAGE_UPDATED,
   RECEIVE_POST,
   RECEIVE_NOTIFICATION
 } from './SocketListener.store'
@@ -61,6 +62,31 @@ describe('SocketListener.store.ormSessionReducer', () => {
     ormSessionReducer(session, action)
     expect(session.MessageThread.withId('7').unreadCount).toBe(1)
     expect(session.Me.first().unseenThreadCount).toBe(0)
+  })
+
+  it('responds to RECEIVE_MESSAGE_UPDATED', () => {
+    session.Message.create({
+      id: '99',
+      text: 'old text',
+      messageThread: '7'
+    })
+    const action = {
+      type: RECEIVE_MESSAGE_UPDATED,
+      payload: {
+        data: {
+          message: {
+            id: '99',
+            text: 'new text',
+            editedAt: '2024-01-01T00:00:00.000Z'
+          }
+        }
+      }
+    }
+
+    ormSessionReducer(session, action)
+    const message = session.Message.withId('99')
+    expect(message.text).toBe('new text')
+    expect(message.editedAt).toBe(new Date('2024-01-01T00:00:00.000Z').toString())
   })
 
   describe('for RECEIVE_POST', () => {

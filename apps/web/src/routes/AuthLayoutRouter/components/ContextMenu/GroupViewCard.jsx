@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Plus, Settings, Trash2 } from 'lucide-react'
+import { Loader2, Plus, Settings, Trash2 } from 'lucide-react'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 
 import LucideIcon from 'components/LucideIcon/LucideIcon'
@@ -241,7 +241,7 @@ function GroupViewCard ({ view, isEditing, onAddToMenu, onOpen, onOpenSettings, 
 }
 
 /** Card for an off-menu space: banner image + scrim with a frosted-glass tile. */
-export function SpaceViewCard ({ space, isEditing, onOpen, onAddToMenu, onOpenSettings, onDelete }) {
+export function SpaceViewCard ({ space, isEditing, isDeleting = false, onOpen, onAddToMenu, onOpenSettings, onDelete }) {
   const { t } = useTranslation()
   const { effectiveColorScheme } = useAppearance()
   const isDark = effectiveColorScheme === 'dark'
@@ -250,20 +250,26 @@ export function SpaceViewCard ({ space, isEditing, onOpen, onAddToMenu, onOpenSe
 
   return (
     <div
-      className={cn(CARD_CLASS, cardChrome(isDark), isEditing && 'cursor-default')}
+      className={cn(
+        CARD_CLASS,
+        cardChrome(isDark),
+        isEditing && 'cursor-default',
+        isDeleting && 'pointer-events-none opacity-50'
+      )}
       style={{
         background: cardNeutralBg(effectiveColorScheme),
         // Photo-backed cards read better with a soft white edge than a dark hairline
         ...(!isDark && bgImageUrl ? { borderColor: 'hsl(0 0% 100% / 0.25)' } : {})
       }}
-      role={isEditing ? undefined : 'button'}
-      tabIndex={isEditing ? undefined : 0}
+      aria-busy={isDeleting || undefined}
+      role={isEditing || isDeleting ? undefined : 'button'}
+      tabIndex={isEditing || isDeleting ? undefined : 0}
       onClick={() => {
-        if (isEditing) return
+        if (isEditing || isDeleting) return
         onOpen?.(space)
       }}
       onKeyDown={(e) => {
-        if (isEditing) return
+        if (isEditing || isDeleting) return
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
           onOpen?.(space)
@@ -301,7 +307,12 @@ export function SpaceViewCard ({ space, isEditing, onOpen, onAddToMenu, onOpenSe
           )}
         </div>
       </div>
-      {isEditing && (
+      {isDeleting && (
+        <div className='absolute inset-0 z-20 grid place-items-center bg-background/40 rounded-[inherit]'>
+          <Loader2 className='w-7 h-7 animate-spin text-foreground/70' aria-label={t('Deleting')} />
+        </div>
+      )}
+      {isEditing && !isDeleting && (
         <CardEditActions
           onAddToMenu={onAddToMenu ? () => onAddToMenu(space) : null}
           onOpenSettings={onOpenSettings ? () => onOpenSettings(space) : null}
