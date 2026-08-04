@@ -23,6 +23,7 @@ const MessageThreadsQuery = gql`
             items {
               id
               createdAt
+              editedAt
               text
               creator {
                 id

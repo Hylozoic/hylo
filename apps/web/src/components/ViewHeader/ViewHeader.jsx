@@ -228,10 +228,10 @@ const ViewHeader = () => {
           navigate(spaceMenu)
           return
         }
-          if (location.state?.fromMoreViews || location.state?.fromMoreSpaces) {
-            navigate(`${groupHome}/more-views`)
-            return
-          }
+        if (location.state?.fromMoreViews || location.state?.fromMoreSpaces) {
+          navigate(`${groupHome}/more-views`)
+          return
+        }
         navigate(groupHome)
         return
       }

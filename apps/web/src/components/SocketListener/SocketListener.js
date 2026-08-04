@@ -8,6 +8,7 @@ import useRouteParams from 'hooks/useRouteParams'
 import {
   receiveThread,
   receiveMessage,
+  receiveMessageUpdated,
   receiveComment,
   receiveNotification,
   receivePost
@@ -48,6 +49,7 @@ const SocketListener = (props) => {
         isMuted: data.isMuted
       }))
     },
+    messageUpdated: data => dispatch(receiveMessageUpdated(convertToMessage(data))),
     newNotification: data => dispatch(receiveNotification(data)),
     // Use the post's group from the socket payload — not the currently viewed group.
     // Space posts arrive on the space room while the parent menu may still be open.
@@ -126,14 +128,16 @@ function convertToMessage (data) {
   if (data.createdAt) {
     return {
       ...data,
-      createdAt: new Date(data.createdAt).toString()
+      createdAt: new Date(data.createdAt).toString(),
+      editedAt: data.editedAt ? new Date(data.editedAt).toString() : undefined
     }
   }
 
-  const { message: { id, created_at: createdAt, text, user_id: userId }, postId } = data
+  const { message: { id, created_at: createdAt, edited_at: editedAt, text, user_id: userId }, postId } = data
   return {
     id,
     createdAt: new Date(createdAt).toString(),
+    editedAt: editedAt ? new Date(editedAt).toString() : undefined,
     text,
     creator: userId,
     messageThread: postId

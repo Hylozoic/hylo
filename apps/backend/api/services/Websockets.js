@@ -6,6 +6,7 @@ const validMessageTypes = [
   'commentAdded',
   'groupUpdated',
   'messageAdded',
+  'messageUpdated',
   'userTyping',
   'newThread',
   'newNotification',
