@@ -102,6 +102,7 @@ function PostHeader (props) {
     id,
     endTime,
     startTime,
+    timezone,
     fulfilledAt,
     savedAt
   } = post
@@ -311,7 +312,12 @@ function PostHeader (props) {
   const canBeCompleted = typesWithCompletion.includes(type) && (type !== 'proposal' || (proposalStatus === PROPOSAL_STATUS_COMPLETED || proposalStatus === PROPOSAL_STATUS_CASUAL))
   const actualEndTime = fulfilledAt && fulfilledAt < endTime ? fulfilledAt : endTime
 
-  const { from, to } = DateTimeHelpers.formatDatePair({ start: startTime, end: actualEndTime, returnAsObj: true })
+  const { from, to } = DateTimeHelpers.formatDatePair({
+    start: startTime,
+    end: actualEndTime,
+    timezone,
+    returnAsObj: true
+  })
 
   const startString = fulfilledAt
     ? false
