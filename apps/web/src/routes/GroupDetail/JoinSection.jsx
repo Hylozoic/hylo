@@ -10,8 +10,7 @@ import { groupUrl, groupDetailUrl } from '@hylo/navigation'
 import PaywallOfferingsSection from './PaywallOfferingsSection'
 
 import Icon from 'components/Icon'
-
-import classes from './GroupDetail.module.scss'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from 'components/ui/tooltip'
 
 /** Agreements list with per-item "I agree" below description; optional "accept all" when more than 3. */
 function AgreementsBarrierBlock ({ agreements, acceptedAgreements, setAcceptedAgreements, introText }) {
@@ -211,32 +210,45 @@ export default function JoinSection ({ accessCode, addSkill, currentUser, fullPa
             </h4>
             {group.prerequisiteGroups.map(prereq => (
               <div key={prereq.id} className='p-3 rounded-lg bg-muted shadow mb-4 xs:p-4'>
-                <Link to={fullPage ? groupUrl(prereq.slug) : groupDetailUrl(prereq.slug, routeParams)} className={cn(classes.groupDetailHeader, classes.prereqHeader)} style={{ backgroundImage: `url(${prereq.bannerUrl || DEFAULT_BANNER})` }}>
-                  <div className={classes.groupTitleContainer}>
-                    <img src={prereq.avatarUrl || DEFAULT_AVATAR} height='50px' width='50px' />
-                    <div>
-                      <div className={classes.groupTitle}>{prereq.name}</div>
-                      <div className={classes.groupContextInfo}>
-                        <span className={classes.groupPrivacy}>
-                          <Icon name={visibilityIcon(prereq.visibility)} className={classes.privacyIcon} />
-                          <div className={classes.privacyTooltip}>
-                            <div>{t(visibilityString(prereq.visibility))} - {t(visibilityDescription(prereq.visibility))}</div>
-                          </div>
-                        </span>
-                        <span className={classes.groupPrivacy}>
-                          <Icon name={accessibilityIcon(prereq.accessibility)} className={classes.privacyIcon} />
-                          <div className={classes.privacyTooltip}>
-                            <div>{t(accessibilityString(prereq.accessibility))} - {t(accessibilityDescription(prereq.accessibility))}</div>
-                          </div>
-                        </span>
-                        {prereq.location}
-                      </div>
+                {/* The avatar and name are anchored inside the banner: the row is
+                    pinned to the banner's bottom edge and the name truncates, so a
+                    long name or a tall avatar can't push the block off the artwork. */}
+                <Link
+                  to={fullPage ? groupUrl(prereq.slug) : groupDetailUrl(prereq.slug, routeParams)}
+                  className='relative block w-full h-[83px] rounded-md overflow-hidden bg-cover bg-center bg-no-repeat mb-3'
+                  style={{ backgroundImage: `url(${prereq.bannerUrl || DEFAULT_BANNER})` }}
+                >
+                  <div className='absolute inset-0 bg-gradient-to-b from-black/0 to-black/70' />
+                  <div className='absolute bottom-0 left-0 right-0 z-10 flex items-end gap-2 p-2'>
+                    <img
+                      src={prereq.avatarUrl || DEFAULT_AVATAR}
+                      alt=''
+                      className='w-[50px] h-[50px] shrink-0 rounded-md object-cover'
+                    />
+                    <div className='min-w-0'>
+                      <div className='text-white text-base font-bold drop-shadow-md truncate'>{prereq.name}</div>
+                      <TooltipProvider delayDuration={300}>
+                        <div className='flex items-center gap-2 text-white/80 text-sm drop-shadow-md min-w-0'>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className='flex items-center'><Icon name={visibilityIcon(prereq.visibility)} /></span>
+                            </TooltipTrigger>
+                            <TooltipContent side='top'>{t(visibilityString(prereq.visibility))} - {t(visibilityDescription(prereq.visibility))}</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className='flex items-center'><Icon name={accessibilityIcon(prereq.accessibility)} /></span>
+                            </TooltipTrigger>
+                            <TooltipContent side='top'>{t(accessibilityString(prereq.accessibility))} - {t(accessibilityDescription(prereq.accessibility))}</TooltipContent>
+                          </Tooltip>
+                          {prereq.location && <span className='truncate'>{prereq.location}</span>}
+                        </div>
+                      </TooltipProvider>
                     </div>
                   </div>
-                  <div className={classes.headerBackground} />
                 </Link>
-                <div className={classes.cta}>
-                  {t('To join')}{' '}{group.name}{' '}{t('visit')}<Link to={fullPage ? groupUrl(prereq.slug) : groupDetailUrl(prereq.slug, routeParams)} className={classes.prereqVisitLink}>{prereq.name}</Link>{' '}{t('and become a member')}
+                <div className='text-left text-foreground/80 font-medium'>
+                  {t('To join')}{' '}{group.name}{' '}{t('visit')}{' '}<Link to={fullPage ? groupUrl(prereq.slug) : groupDetailUrl(prereq.slug, routeParams)} className='inline-block rounded-full border border-foreground/20 bg-background px-2.5 py-0.5 text-foreground hover:border-foreground/40 hover:no-underline'>{prereq.name}</Link>{' '}{t('and become a member')}
                 </div>
               </div>
             ))}
