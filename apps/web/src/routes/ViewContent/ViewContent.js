@@ -474,6 +474,11 @@ export default function ViewContent (props) {
     return postTypesAvailable
   }, [view, isCalendarViewMode, postTypesAvailable])
 
+  const eventDateForCreate = useMemo(() => {
+    if (!isCalendarViewMode || calendarMode !== 'day') return null
+    return DateTimeHelpers.toDateTime(calendarDate, { locale: getLocaleFromLocalStorage() }).toISODate()
+  }, [isCalendarViewMode, calendarMode, calendarDate])
+
   const info = useMemo(() => {
     if (streamViewConfig?.type === 'stream') {
       const topicNames = streamViewConfig.topics || []
@@ -558,6 +563,7 @@ export default function ViewContent (props) {
             firstName={currentUser.firstName()}
             newPost={newPost}
             postTypesAvailable={postTypesForPrompt}
+            eventDate={eventDateForCreate}
           />
         )}
         {!showPaywallBlock && (
