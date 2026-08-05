@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { X } from 'lucide-react'
+import { CircleEllipsis, X } from 'lucide-react'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 
 import { useViewHeader } from 'contexts/ViewHeaderContext'
@@ -116,8 +116,20 @@ export default function MoreViewsPage ({ group }) {
 
   useEffect(() => {
     setHeaderDetails({
-      title: isEditing ? t('More Views and Spaces (Editing)') : t('More Views and Spaces'),
-      icon: '',
+      // Editing state as a pill beside the title rather than baked into it,
+      // and the same icon the menu row carries — without one this header
+      // rendered shorter than every other view's.
+      title: isEditing
+        ? (
+          <span className='flex items-center gap-2'>
+            {t('More Views and Spaces')}
+            <span className='text-xs font-semibold rounded-full border-2 border-foreground/20 bg-foreground/10 text-foreground/70 px-2 py-0.5 leading-none'>
+              {t('Editing')}
+            </span>
+          </span>
+          )
+        : t('More Views and Spaces'),
+      icon: <CircleEllipsis />,
       info: '',
       search: false
     })
