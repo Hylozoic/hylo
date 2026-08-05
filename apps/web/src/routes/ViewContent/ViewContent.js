@@ -557,23 +557,29 @@ export default function ViewContent (props) {
           isCalendarViewMode && 'w-full mx-auto p-1 sm:p-4'
         )}
       >
-        {hasPostPrompt && !showPaywallBlock && (
-          <PostPrompt
-            avatarUrl={currentUser.avatarUrl}
-            firstName={currentUser.firstName()}
-            newPost={newPost}
-            postTypesAvailable={postTypesForPrompt}
-            eventDate={eventDateForCreate}
-          />
-        )}
         {!showPaywallBlock && (
-          <ViewControls
-            routeParams={routeParams} view={view} postTypeFilter={postTypeFilter} postTypesAvailable={postTypesAvailable} customViewType={streamViewConfig?.type}
-            sortBy={sortBy} viewMode={viewMode} searchValue={search}
-            changePostTypeFilter={changePostTypeFilter} context={context} changeSort={changeSort} changeView={changeView} changeSearch={changeSearch}
-            changeChildPostInclusion={changeChildPostInclusion} childPostInclusion={childPostInclusion}
-            changeTimeframe={changeTimeframe} timeframe={timeframe} activePostsOnly={activePostsOnly} changeActivePostsOnly={changeActivePostsOnly}
-          />
+          // Starting a post and re-aiming the stream are the same kind of act, so
+          // they ride together and stay reachable as the stream scrolls. The gradient
+          // fades out downward rather than ending on a hard edge, so posts pass under
+          // it instead of colliding with a bar.
+          <div className='sticky top-0 z-20 bg-gradient-to-b from-background from-40% via-background/85 via-75% to-transparent pb-3'>
+            {hasPostPrompt && (
+              <PostPrompt
+                avatarUrl={currentUser.avatarUrl}
+                firstName={currentUser.firstName()}
+                newPost={newPost}
+                postTypesAvailable={postTypesForPrompt}
+                eventDate={eventDateForCreate}
+              />
+            )}
+            <ViewControls
+              routeParams={routeParams} view={view} postTypeFilter={postTypeFilter} postTypesAvailable={postTypesAvailable} customViewType={streamViewConfig?.type}
+              sortBy={sortBy} viewMode={viewMode} searchValue={search}
+              changePostTypeFilter={changePostTypeFilter} context={context} changeSort={changeSort} changeView={changeView} changeSearch={changeSearch}
+              changeChildPostInclusion={changeChildPostInclusion} childPostInclusion={childPostInclusion}
+              changeTimeframe={changeTimeframe} timeframe={timeframe} activePostsOnly={activePostsOnly} changeActivePostsOnly={changeActivePostsOnly}
+            />
+          </div>
         )}
         {showPaywallBlock
           ? (
