@@ -9,7 +9,6 @@ import EmojiRow from 'components/EmojiRow'
 import EventDate from 'components/PostCard/EventDate'
 import EventRSVP from 'components/PostCard/EventRSVP'
 import Icon from 'components/Icon'
-import Tooltip from 'components/Tooltip'
 import useViewPostDetails from 'hooks/useViewPostDetails'
 import respondToEvent from 'store/actions/respondToEvent'
 import getMe from 'store/selectors/getMe'
@@ -22,7 +21,6 @@ import getMe from 'store/selectors/getMe'
  */
 export default function PostBigGridItem ({
   childPost,
-  childPostFromSpace,
   currentGroupId,
   post,
   currentUser: propCurrentUser
@@ -95,18 +93,6 @@ export default function PostBigGridItem ({
             background: 'linear-gradient(to top, hsl(var(--darkening) / 0.95) 0%, hsl(var(--darkening) / 0.6) 50%, hsl(var(--darkening) / 0.2) 100%)'
           }}
         />
-
-        {/* Child post indicator */}
-        {childPost && (
-          <div
-            className='absolute top-3 right-3 bg-white/90 rounded p-1.5 z-10'
-            data-tooltip-content={t(childPostFromSpace ? 'Post from child space' : 'Post from child group')}
-            data-tooltip-id={'childgroup-tt' + post.id}
-          >
-            <Icon name='Subgroup' className='w-4 h-4' />
-            <Tooltip delay={250} id={'childgroup-tt' + post.id} />
-          </div>
-        )}
 
         {/* Flagged indicator */}
         {isFlagged && (
@@ -186,17 +172,6 @@ export default function PostBigGridItem ({
       )}
       onClick={() => viewPostDetails(post)}
     >
-      {/* Child post indicator */}
-      {childPost && (
-        <div
-          className='absolute top-3 right-3 bg-primary rounded p-1.5 z-10'
-          data-tooltip-content={t(childPostFromSpace ? 'Post from child space' : 'Post from child group')}
-          data-tooltip-id={'childgroup-tt' + post.id}
-        >
-          <Icon name='Subgroup' className='w-4 h-4' />
-          <Tooltip delay={250} id={'childgroup-tt' + post.id} />
-        </div>
-      )}
 
       {/* Flagged overlay */}
       {isFlagged && (

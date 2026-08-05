@@ -52,7 +52,6 @@ export default function PostCard (props) {
   const {
     chat,
     childPost,
-    childPostFromSpace,
     className,
     constrained,
     expanded,
@@ -394,17 +393,6 @@ export default function PostCard (props) {
   // Default layout
   return (
     <>
-      {childPost &&
-        <div className={classes.childPostLabelWrapper}>
-          <div className={classes.childPostLabel}>
-            <Icon name='Subgroup' className={classes.icon} />
-            {/* Name the group rather than its genus; generic label only when the
-                post carries no group data to name */}
-            {childGroupName
-              ? <span><b>{t('in {{groupName}}', { groupName: childGroupName })}</b></span>
-              : <span>{t('Post from')} <b>{t(childPostFromSpace ? 'child space' : 'child group')}</b></span>}
-          </div>
-        </div>}
       <div
         ref={postCardRef}
         className={cn(
@@ -432,6 +420,7 @@ export default function PostCard (props) {
             constrained={constrained}
             hasImage={hasImage}
             onRemovePost={onRemovePost}
+            childGroupName={childGroupName}
           />
         </div>
         <div onClick={onClick}>
@@ -500,7 +489,6 @@ PostCard.propTypes = {
   actionDescriptor: PropTypes.string,
   chat: PropTypes.bool,
   childPost: PropTypes.bool,
-  childPostFromSpace: PropTypes.bool,
   className: PropTypes.string,
   constrained: PropTypes.bool,
   expanded: PropTypes.bool,
