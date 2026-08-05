@@ -324,12 +324,12 @@ export function GroupViewEditActions ({ view, onSettings, onHide, onDelete, clas
               type='button'
               className='p-1 text-foreground/50 hover:text-destructive rounded'
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); onHide(view) }}
-              aria-label={t('Remove from Menu')}
+              aria-label={t('Remove from main menu')}
             >
               <X className='w-4 h-4' />
             </button>
           </TooltipTrigger>
-          <TooltipContent>{t('Remove from Menu')}</TooltipContent>
+          <TooltipContent>{t('Remove from main menu')}</TooltipContent>
         </Tooltip>
       )}
       {hardDeletable && onDelete && (
