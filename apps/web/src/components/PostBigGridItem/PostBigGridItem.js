@@ -52,6 +52,9 @@ export default function PostBigGridItem ({
 
   const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroupId)
   const isEvent = post.type === 'event'
+  // Match the stream card (EventBody): no RSVP on past events or signed-out views
+  const isPastEvent = post.endTime && new Date(post.endTime) < new Date()
+  const showRSVP = isEvent && currentUser && !isPastEvent
 
   // Donation link detection
   const donationMatch = post.donationsLink?.match(/(cash|clover|gofundme|opencollective|paypal|squareup|venmo)/)
@@ -64,7 +67,9 @@ export default function PostBigGridItem ({
     return (
       <div
         className={cn(
-          'h-[400px] w-full rounded-lg shadow-lg relative cursor-pointer',
+          // isolate: DropdownButton carries its own z-20; without a stacking context
+          // here it escapes the card and paints over the pinned stream header
+          'h-[400px] w-full rounded-lg shadow-lg relative isolate cursor-pointer',
           'hover:scale-[1.02] hover:shadow-xl transition-all overflow-hidden border-2 border-transparent hover:border-foreground/50',
           {
             'opacity-60': (isFlagged && !post.clickthrough) || post.fulfilledAt
@@ -129,7 +134,7 @@ export default function PostBigGridItem ({
           </h3>
 
           {/* Event RSVP */}
-          {isEvent && (
+          {showRSVP && (
             <div className='flex items-center justify-between bg-white/10 backdrop-blur-sm rounded-lg p-3 mb-3'>
               <span className='text-white text-sm'>{t('Can you go?')}</span>
               <EventRSVP {...post} respondToEvent={handleRespondToEvent} position='top' />
@@ -165,7 +170,8 @@ export default function PostBigGridItem ({
   return (
     <div
       className={cn(
-        'max-h-[400px] w-full bg-card rounded-lg shadow-lg relative cursor-pointer',
+        // isolate: same stacking containment as the image card above
+        'max-h-[400px] w-full bg-card rounded-lg shadow-lg relative isolate cursor-pointer',
         'hover:scale-[1.02] hover:shadow-xl transition-all overflow-hidden border-2 border-transparent hover:border-foreground/50',
         'flex flex-col',
         { 'opacity-60': (isFlagged && !post.clickthrough) || post.fulfilledAt }
@@ -225,7 +231,7 @@ export default function PostBigGridItem ({
         )}
 
         {/* Event RSVP */}
-        {isEvent && (
+        {showRSVP && (
           <div className='flex items-center justify-between bg-midground/50 border-2 border-dashed border-foreground/20 rounded-lg p-3 mb-2 shrink-0'>
             <span className='text-foreground text-sm'>{t('Can you go?')}</span>
             <EventRSVP {...post} respondToEvent={handleRespondToEvent} position='top' />
