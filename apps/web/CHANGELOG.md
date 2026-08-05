@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Allow group settings to scroll once more
 - Fix post creation timeouts on production
 - 1386 android back button
+- Editing date fields on mobile
 
 ## [6.5.5] - 2026-07-21
 
