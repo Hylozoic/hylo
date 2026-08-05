@@ -388,8 +388,11 @@ function PostHeader (props) {
               delay={250}
               id='post-header-flag-tt'
             />
+            {/* !top-0 on the More icon: the global .icon-More style nudges the glyph down
+                1px for optical centering in inline contexts — here the icon IS the bordered
+                box, so the nudge shifted the whole button 1px below the pill beside it */}
             {dropdownItems.length > 0 &&
-              <Dropdown id='post-header-more-dropdown' toggleChildren={<Icon name='More' dataTestId='post-header-more-icon' className='cursor-pointer border-2 border-foreground/30 rounded-md h-7 w-7 flex items-center justify-center' />} items={dropdownItems} alignRight noOverflow />}
+              <Dropdown id='post-header-more-dropdown' toggleChildren={<Icon name='More' dataTestId='post-header-more-icon' className='cursor-pointer border-2 border-foreground/30 rounded-md h-7 w-7 flex items-center justify-center !top-0' />} items={dropdownItems} alignRight noOverflow />}
             {close &&
               <a className={cn('inline-block cursor-pointer relative px-3 text-xl')} data-testid='post-detail-close' onClick={close}>
                 <Icon name='Ex' className='align-middle' />
