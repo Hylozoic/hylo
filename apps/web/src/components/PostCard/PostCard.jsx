@@ -78,6 +78,12 @@ export default function PostCard (props) {
   const dispatch = useDispatch()
   const navigate = useNavigate()
 
+  // A child post's groups exclude the group being viewed, so the first one —
+  // preferring the space when the post came from one — is where it lives
+  const childGroupName = childPost
+    ? ((post.groups || []).find(g => g.type === 'space') || (post.groups || [])[0])?.name
+    : null
+
   // Chat mode state
   const [isHovered, setIsHovered] = useState(false)
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false)
@@ -392,7 +398,11 @@ export default function PostCard (props) {
         <div className={classes.childPostLabelWrapper}>
           <div className={classes.childPostLabel}>
             <Icon name='Subgroup' className={classes.icon} />
-            <span>{t('Post from')} <b>{t(childPostFromSpace ? 'child space' : 'child group')}</b></span>
+            {/* Name the group rather than its genus; generic label only when the
+                post carries no group data to name */}
+            {childGroupName
+              ? <span><b>{t('in {{groupName}}', { groupName: childGroupName })}</b></span>
+              : <span>{t('Post from')} <b>{t(childPostFromSpace ? 'child space' : 'child group')}</b></span>}
           </div>
         </div>}
       <div

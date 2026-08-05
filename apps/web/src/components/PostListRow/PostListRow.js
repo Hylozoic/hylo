@@ -16,6 +16,7 @@ import { cn } from 'util/index'
  */
 const PostListRow = (props) => {
   const {
+    childPost,
     currentGroupId,
     post,
     expanded
@@ -38,6 +39,10 @@ const PostListRow = (props) => {
 
   const typeLowercase = post.type.toLowerCase()
   const typeName = post.type.charAt(0).toUpperCase() + typeLowercase.slice(1)
+  // Child posts carry only their own groups, never the one being viewed
+  const childGroupName = childPost
+    ? ((post.groups || []).find(g => g.type === 'space') || (post.groups || [])[0])?.name
+    : null
   const unread = false
   const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroupId)
 
@@ -68,9 +73,12 @@ const PostListRow = (props) => {
         <span className={cn('text-base text-foreground truncate font-bold', { 'font-bold': unread })}>
           {creator.name}
         </span>
-        <div className='flex items-center gap-1 text-xs text-foreground/50'>
-          <Icon name={typeName} className='w-3 h-3' />
-          <span className='capitalize'>{typeLowercase}</span>
+        <div className='flex items-center gap-1 text-xs text-foreground/50 min-w-0'>
+          <Icon name={typeName} className='w-3 h-3 shrink-0' />
+          <span className='capitalize shrink-0'>{typeLowercase}</span>
+          {childGroupName && (
+            <span className='truncate'>{t('in {{groupName}}', { groupName: childGroupName })}</span>
+          )}
         </div>
       </div>
 

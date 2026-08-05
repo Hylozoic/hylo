@@ -36,6 +36,11 @@ export default function PostGridItem ({
   const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroupId)
   const viewPostDetails = useViewPostDetails()
 
+  // Child posts carry only their own groups, never the one being viewed
+  const childGroupName = childPost
+    ? ((post.groups || []).find(g => g.type === 'space') || (post.groups || [])[0])?.name
+    : null
+
   // Image card layout - image fills card with title overlay
   if (hasImage) {
     return (
@@ -88,7 +93,11 @@ export default function PostGridItem ({
           </h3>
           <div className='flex items-center gap-1.5 text-xs text-white h-8 min-w-0'>
             <Avatar avatarUrl={creator.avatarUrl} tiny className='flex-shrink-0' />
-            <span className='truncate font-bold min-w-0'>{creator.name}</span>
+            {/* With a group name in the row the creator cedes space at 60% so both stay legible */}
+            <span className={cn('truncate font-bold min-w-0', childGroupName && 'shrink-0 max-w-[60%]')}>{creator.name}</span>
+            {childGroupName && (
+              <span className='truncate text-white/60 min-w-0'>{t('in {{groupName}}', { groupName: childGroupName })}</span>
+            )}
             <span className='text-white/60 ml-auto flex-shrink-0'>{createdTimestampShort}</span>
           </div>
         </div>
@@ -140,7 +149,10 @@ export default function PostGridItem ({
       {/* Footer */}
       <div className='flex items-center gap-1 w-full text-xs h-8 px-3 mt-auto bg-card relative z-10 min-w-0'>
         <Avatar avatarUrl={creator.avatarUrl} tiny className='flex-shrink-0' />
-        <span className='truncate text-foreground font-bold min-w-0'>{creator.name}</span>
+        <span className={cn('truncate text-foreground font-bold min-w-0', childGroupName && 'shrink-0 max-w-[60%]')}>{creator.name}</span>
+        {childGroupName && (
+          <span className='truncate text-foreground/60 min-w-0'>{t('in {{groupName}}', { groupName: childGroupName })}</span>
+        )}
         <span className='text-foreground/70 ml-auto flex-shrink-0'>{createdTimestampShort}</span>
       </div>
     </div>
