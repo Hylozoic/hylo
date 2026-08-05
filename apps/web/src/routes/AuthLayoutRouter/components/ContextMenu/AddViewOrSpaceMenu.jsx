@@ -70,6 +70,9 @@ export default function AddViewOrSpaceMenu ({ onChooseView, onChooseSpace, canAd
         {trigger || <AddCard label={t('Add')} />}
       </DropdownMenuTrigger>
       <DropdownMenuContent
+        // Above the trigger: the Add control sits at the foot of these menus, so a
+        // downward menu lands under the editing bar or off the bottom of the screen
+        side='top'
         align='start'
         className={cn(
           'max-w-[calc(100vw-2rem)] p-1',

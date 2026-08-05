@@ -292,14 +292,6 @@ export default function MoreViewsPage ({ group }) {
 
   return (
     <div ref={containerRef} className={cn('w-full max-w-[980px] mx-auto px-4 py-6', isEditing && 'pb-24')}>
-      {isEditing && (
-        <>
-          <p className='text-sm text-foreground/70 mb-6'>
-            {t('Drag and drop items in the menu on the left to reorder them. The top item is the home view for this group.')}
-          </p>
-        </>
-      )}
-
       {pending && !hasContent
         ? <ViewsGridSkeleton />
         : !hasContent
@@ -400,14 +392,21 @@ export default function MoreViewsPage ({ group }) {
 
       {isEditing && (
         <EditingBottomBar containerRef={containerRef}>
-          <button
-            type='button'
-            onClick={handleDoneEditing}
-            className={EDITING_BAR_BUTTON_CLASS}
-          >
-            <X className='w-4 h-4' />
-            <span>{t('Done Editing')}</span>
-          </button>
+          {/* The reorder hint rides in the bar with the control it explains —
+              hint left, Done Editing right, matching the page's content well */}
+          <div className='w-full max-w-[980px] flex items-center justify-between gap-4'>
+            <p className='text-sm text-foreground/70 m-0 text-left pointer-events-auto'>
+              {t('Drag and drop items in the menu on the left to reorder them. The top item is the home view for this group.')}
+            </p>
+            <button
+              type='button'
+              onClick={handleDoneEditing}
+              className={cn(EDITING_BAR_BUTTON_CLASS, 'shrink-0')}
+            >
+              <X className='w-4 h-4' />
+              <span>{t('Done Editing')}</span>
+            </button>
+          </div>
         </EditingBottomBar>
       )}
 
