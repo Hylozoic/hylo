@@ -84,9 +84,10 @@ const makeFilterDropdown = (selected, options, onChange, t, icon, id) => {
   return (
     <Dropdown
       id={id}
-      className={PILL_CLASS}
+      // Pill styling lives on the toggle span: Dropdown forces inline-block on its
+      // root, which would defeat the flex centering the pill needs.
       toggleChildren={
-        <span className='flex items-center gap-1.5'>
+        <span className={PILL_CLASS}>
           {icon}
           {t(options.find(o => o.id === selected)?.label)}
           <Icon name='ArrowDown' className='opacity-60' />
@@ -159,9 +160,10 @@ const StreamViewControls = ({
   const showChildPostToggle = ![CONTEXT_MY, 'all', 'public'].includes(context)
 
   return (
-    <div className={cn('flex flex-col gap-1 sm:gap-2 p-2 sm:p-4 items-center', { [classes.searchActive]: searchActive || searchValue, [classes.extend]: searchActive && searchValue })}>
-      {/* Sort, filter, lenses, then the display toggles — the prototype's order */}
-      <div className='flex w-full flex-row items-center justify-start flex-wrap gap-2'>
+    <div className={cn('flex flex-col gap-1 sm:gap-2 items-center w-full', { [classes.searchActive]: searchActive || searchValue, [classes.extend]: searchActive && searchValue })}>
+      {/* Right-justified in the pinned header row, opposite the New button.
+          Sort, filter, lenses, then the display toggles — the prototype's order */}
+      <div className='flex w-full flex-row items-center justify-end flex-wrap gap-2'>
         {sortDropdown}
         {filterDropdown}
 
@@ -204,7 +206,7 @@ const StreamViewControls = ({
           )}
         </div>
 
-        <div className={cn(GROUP_CLASS, 'ml-auto')}>
+        <div className={GROUP_CLASS}>
           <ToolBtn active={searchActive} onClick={handleSearchToggle} tooltip={t('Search posts')}>
             <svg {...ico()}><circle cx='11' cy='11' r='7' /><path d='M20 20l-3.5-3.5' /></svg>
           </ToolBtn>

@@ -549,24 +549,21 @@ export default function ViewContent (props) {
         <Route path='post/:postId' element={<PostDialog container={container} />} />
       </Routes>
 
-      <div
-        id='stream-inner-container'
-        className={cn(
-          'flex flex-col flex-1',
-          !isCalendarViewMode && STREAM_MAIN_COLUMN_CLASS,
-          isCalendarViewMode && 'w-full mx-auto p-1 sm:p-4'
-        )}
-      >
-        {!showPaywallBlock && (
-          // Starting a post and re-aiming the stream are the same kind of act, so
-          // they ride together and stay reachable as the stream scrolls. The gradient
-          // fades out downward rather than ending on a hard edge, so posts pass under
-          // it instead of colliding with a bar.
-          // Opaque behind the controls themselves — a translucent backdrop let post
-          // titles and badges show through the toolbar as the stream passed under it.
-          // The fade lives entirely in the padding strip below, so the soft edge is
-          // over empty space.
-          <div className='sticky top-0 z-20 bg-gradient-to-b from-background from-[88%] to-transparent pb-8'>
+      {!showPaywallBlock && (
+        // The pinned header: New on the left, the stream controls right-justified,
+        // one row spanning the full stream pane — outside the width-capped column
+        // below, so it runs from the context menu to the viewport's right edge.
+        // Its backdrop is the theme background fading to transparent: opaque for the
+        // controls' own height, with the fade entirely in the padding strip below,
+        // so posts pass under a soft shadow edge instead of showing through the bar.
+        // A translucent wash of the theme background fading to the SAME color at zero
+        // alpha — to-transparent would interpolate toward transparent black and smudge
+        // grey in light mode. Arbitrary values because theme-background's config has no
+        // <alpha-value> placeholder, so slash-opacity classes are silently ignored.
+        // Heavier wash in dark mode: a light page only needs a whisper of ground, but
+        // the same alpha on a dark background disappears against the dark stream.
+        <div className='sticky top-0 z-20 w-full bg-gradient-to-b from-[hsl(var(--theme-background)/0.1)] dark:from-[hsl(var(--theme-background)/0.5)] to-[hsl(var(--theme-background)/0)]'>
+          <div className='flex flex-row items-start gap-2 px-2 sm:px-4 pt-2 sm:pt-4 pb-6'>
             {hasPostPrompt && (
               <PostPrompt
                 avatarUrl={currentUser.avatarUrl}
@@ -576,15 +573,27 @@ export default function ViewContent (props) {
                 eventDate={eventDateForCreate}
               />
             )}
-            <ViewControls
-              routeParams={routeParams} view={view} postTypeFilter={postTypeFilter} postTypesAvailable={postTypesAvailable} customViewType={streamViewConfig?.type}
-              sortBy={sortBy} viewMode={viewMode} searchValue={search}
-              changePostTypeFilter={changePostTypeFilter} context={context} changeSort={changeSort} changeView={changeView} changeSearch={changeSearch}
-              changeChildPostInclusion={changeChildPostInclusion} childPostInclusion={childPostInclusion}
-              changeTimeframe={changeTimeframe} timeframe={timeframe} activePostsOnly={activePostsOnly} changeActivePostsOnly={changeActivePostsOnly}
-            />
+            <div className='flex-1 min-w-0'>
+              <ViewControls
+                routeParams={routeParams} view={view} postTypeFilter={postTypeFilter} postTypesAvailable={postTypesAvailable} customViewType={streamViewConfig?.type}
+                sortBy={sortBy} viewMode={viewMode} searchValue={search}
+                changePostTypeFilter={changePostTypeFilter} context={context} changeSort={changeSort} changeView={changeView} changeSearch={changeSearch}
+                changeChildPostInclusion={changeChildPostInclusion} childPostInclusion={childPostInclusion}
+                changeTimeframe={changeTimeframe} timeframe={timeframe} activePostsOnly={activePostsOnly} changeActivePostsOnly={changeActivePostsOnly}
+              />
+            </div>
           </div>
+        </div>
+      )}
+
+      <div
+        id='stream-inner-container'
+        className={cn(
+          'flex flex-col flex-1',
+          !isCalendarViewMode && STREAM_MAIN_COLUMN_CLASS,
+          isCalendarViewMode && 'w-full mx-auto p-1 sm:p-4'
         )}
+      >
         {showPaywallBlock
           ? (
             <div className='mt-4'>
