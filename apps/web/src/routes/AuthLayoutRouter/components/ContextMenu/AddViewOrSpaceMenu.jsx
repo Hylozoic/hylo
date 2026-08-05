@@ -1,6 +1,6 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Layers, LayoutGrid } from 'lucide-react'
+import { Layers, LayoutGrid, Plus } from 'lucide-react'
 
 import {
   DropdownMenu,
@@ -8,8 +8,33 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from 'components/ui/dropdown-menu'
+import { cn } from 'util/index'
 
 import { AddCard } from './GroupViewCard'
+
+/**
+ * Trigger for list contexts (the drill-down menu) rather than card grids —
+ * keeps the dashed add affordance that menu already used, now as one control
+ * instead of a separate button per kind.
+ */
+export const AddViewOrSpaceButton = React.forwardRef(({ className, ...props }, ref) => {
+  const { t } = useTranslation()
+  return (
+    <button
+      ref={ref}
+      type='button'
+      className={cn(
+        'flex items-center gap-2 w-full text-base text-foreground border-2 border-dashed border-foreground/30 hover:border-foreground/50 rounded-md p-2 pl-2 mb-2 transition-all opacity-85 hover:opacity-100',
+        className
+      )}
+      {...props}
+    >
+      <Plus className='w-4 h-4' />
+      <span>{t('Add')}</span>
+    </button>
+  )
+})
+AddViewOrSpaceButton.displayName = 'AddViewOrSpaceButton'
 
 /**
  * The single Add slot in a card grid, and the menu it opens. Anchored to the
@@ -19,7 +44,7 @@ import { AddCard } from './GroupViewCard'
  * Each option carries a line explaining what it is, because the view/space
  * distinction is the part people get wrong.
  */
-export default function AddViewOrSpaceMenu ({ onChooseView, onChooseSpace, canAddSpace = true }) {
+export default function AddViewOrSpaceMenu ({ onChooseView, onChooseSpace, canAddSpace = true, trigger }) {
   const { t } = useTranslation()
 
   const options = [
@@ -42,7 +67,7 @@ export default function AddViewOrSpaceMenu ({ onChooseView, onChooseSpace, canAd
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <AddCard label={t('Add')} />
+        {trigger || <AddCard label={t('Add')} />}
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align='start'
