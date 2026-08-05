@@ -67,6 +67,13 @@ exports.hi = {
   textForGroupPeerGroupInviteAccepted: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} ने ${fromGroup.get('name')} और ${toGroup.get('name')} के बीच सहकर्मी संबंध स्वीकार किया`,
   textForJoinRequest: ({ actor, groupName }) => `${actor.get('name')} ने ${groupName} में शामिल होने के लिए कहा`,
   textForMemberJoinedGroup: ({ group, actor }) => `${group.get('name')} में नया सदस्य शामिल हुआ: ${actor.get('name')}`,
+  textForPostModeratedFulfillment: ({ post, actor, reason }) => {
+    const postName = post.summary()
+    if (reason === 'postUnfulfilled') {
+      return `${actor.get('name')} ने आपकी पोस्ट "${postName}" फिर से खोली`
+    }
+    return `${actor.get('name')} ने आपकी पोस्ट "${postName}" बंद कर दी`
+  },
   textForPostMention: ({ groupName, person, postName }) => `${person} ने ${groupName} में पोस्ट "${postName}" में आपका उल्लेख किया`,
   textForPost: ({ firstTag, groupName, person, postName }) => `${person} ने ${groupName} में "${postName}" पोस्ट की${firstTag ? ` #${firstTag}` : ''}`,
   textForTrackCompleted: ({ actor, track }) => `ट्रैक पूर्ण: "${track.get('name')}" ${actor.get('name')} द्वारा पूर्ण किया गया`,

@@ -44,6 +44,8 @@ const TYPE = {
   FollowAdd: 'followAdd', // you are added as a follower
   Follow: 'follow', // someone follows your post
   Unfollow: 'unfollow', // someone leaves your post
+  PostFulfilled: 'postFulfilled', // a moderator closed a post
+  PostUnfulfilled: 'postUnfulfilled', // a moderator reopened a post
   Welcome: 'welcome', // a welcome post
   JoinRequest: 'joinRequest', // Someone asks to join a group
   ApprovedJoinRequest: 'approvedJoinRequest', // A request to join a group is approved
@@ -186,6 +188,9 @@ module.exports = bookshelf.Model.extend({
         return this.sendTrackCompletedPush()
       case 'trackEnrollment':
         return this.sendTrackEnrollmentPush()
+      case 'postFulfilled':
+      case 'postUnfulfilled':
+        return this.sendPostModeratedFulfillmentPush()
       case 'voteReset':
         return this.sendPostPush('voteReset')
       case 'fundingRoundNewSubmission':
@@ -416,6 +421,18 @@ module.exports = bookshelf.Model.extend({
     const path = routeToPath(Frontend.Route.post(projectContribution.relations.project))
     const alertText = PushNotification.textForDonationFrom(projectContribution, locale)
     return this.reader().sendPushNotification(alertText, path)
+  },
+
+  sendPostModeratedFulfillmentPush: async function () {
+    const post = this.post()
+    const activity = this.relations.activity
+    const reader = this.reader()
+    const locale = this.locale()
+    const reason = Notification.priorityReason(activity.get('meta').reasons)
+    const group = await groupForPushRoute(post, activity, reader.id)
+    const path = routeToPath(Frontend.Route.post(post, group))
+    const alertText = PushNotification.textForPostModeratedFulfillment(post, this.actor(), reason, locale)
+    return reader.sendPushNotification(alertText, path)
   },
 
   sendMemberJoinedGroupPush: async function () {
@@ -1347,7 +1364,7 @@ module.exports = bookshelf.Model.extend({
   priorityReason: function (reasons) {
     const orderedLabels = [
       'donation to', 'donation from', 'announcement', 'eventInvitation', 'mention', 'commentMention', 'newComment', 'newContribution', 'chat', 'tag',
-      'newPost', 'follow', 'followAdd', 'unfollow', 'joinRequest', 'approvedJoinRequest', 'groupChildGroupInviteAccepted', 'groupChildGroupInvite',
+      'newPost', 'follow', 'followAdd', 'unfollow', 'postFulfilled', 'postUnfulfilled', 'joinRequest', 'approvedJoinRequest', 'groupChildGroupInviteAccepted', 'groupChildGroupInvite',
       'groupParentGroupJoinRequestAccepted', 'groupParentGroupJoinRequest', 'groupPeerGroupInviteAccepted', 'groupPeerGroupInvite', 'memberJoinedGroup', 'trackCompleted', 'trackEnrollment',
       'fundingRoundNewSubmission', 'fundingRoundPhaseTransition', 'fundingRoundReminder'
     ]

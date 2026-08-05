@@ -67,6 +67,13 @@ exports.pt = {
   textForGroupPeerGroupInviteAccepted: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} aceitou a relação de pares entre ${fromGroup.get('name')} e ${toGroup.get('name')}`,
   textForJoinRequest: ({ actor, groupName }) => `${actor.get('name')} pediu para entrar em ${groupName}`,
   textForMemberJoinedGroup: ({ group, actor }) => `Novo membro entrou em ${group.get('name')}: ${actor.get('name')}`,
+  textForPostModeratedFulfillment: ({ post, actor, reason }) => {
+    const postName = post.summary()
+    if (reason === 'postUnfulfilled') {
+      return `${actor.get('name')} reabriu a sua publicação "${postName}"`
+    }
+    return `${actor.get('name')} fechou a sua publicação "${postName}"`
+  },
   textForPostMention: ({ groupName, person, postName }) => `${person} mencionou você na publicação “${postName}” em ${groupName}`,
   textForPost: ({ firstTag, groupName, person, postName }) => `${person} publicou “${postName}” em ${groupName}${firstTag ? ` #${firstTag}` : ''}`,
   textForTrackCompleted: ({ actor, track }) => `Trilha concluída: “${track.get('name')}” foi concluída por ${actor.get('name')}`,
