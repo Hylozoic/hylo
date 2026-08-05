@@ -562,7 +562,11 @@ export default function ViewContent (props) {
           // they ride together and stay reachable as the stream scrolls. The gradient
           // fades out downward rather than ending on a hard edge, so posts pass under
           // it instead of colliding with a bar.
-          <div className='sticky top-0 z-20 bg-gradient-to-b from-background from-40% via-background/85 via-75% to-transparent pb-3'>
+          // Opaque behind the controls themselves — a translucent backdrop let post
+          // titles and badges show through the toolbar as the stream passed under it.
+          // The fade lives entirely in the padding strip below, so the soft edge is
+          // over empty space.
+          <div className='sticky top-0 z-20 bg-gradient-to-b from-background from-[88%] to-transparent pb-8'>
             {hasPostPrompt && (
               <PostPrompt
                 avatarUrl={currentUser.avatarUrl}
