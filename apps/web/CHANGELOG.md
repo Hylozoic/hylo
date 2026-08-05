@@ -6,6 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.5.6] - 2026-08-04
+
+### Changed
+- If a role has more than 20 people associated, scroll the list and load more at the bottom
+
+### Fixed
+- Allow group settings to scroll once more
+- Fix post creation timeouts on production
+- 1386 android back button
+- Editing date fields on mobile
+
 ## [6.5.5] - 2026-07-21
 
 ### Added
