@@ -1,3 +1,4 @@
+import { Grid2x2, Grid3x3 } from 'lucide-react'
 import React, { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router-dom'
@@ -68,9 +69,8 @@ const ico = (props = {}) => ({
 const VIEW_MODE_ICONS = {
   cards: <svg {...ico()}><rect x='3' y='4' width='18' height='16' rx='2' /><path d='M3 14h18' /></svg>,
   list: <svg {...ico()}><path d='M4 6h16M4 12h16M4 18h16' /></svg>,
-  // The design's masonry pair maps onto the two grid modes the stream already has
-  bigGrid: <svg {...ico()}><rect x='3' y='3' width='7' height='10' rx='1.4' /><rect x='3' y='15' width='7' height='6' rx='1.4' /><rect x='14' y='3' width='7' height='6' rx='1.4' /><rect x='14' y='11' width='7' height='10' rx='1.4' /></svg>,
-  grid: <svg {...ico({ strokeWidth: 1.7 })}><rect x='3' y='3' width='5' height='7' rx='1' /><rect x='3' y='12' width='5' height='4' rx='1' /><rect x='10' y='3' width='4' height='4' rx='1' /><rect x='10' y='9' width='4' height='7' rx='1' /><rect x='16' y='3' width='5' height='5' rx='1' /><rect x='16' y='10' width='5' height='6' rx='1' /></svg>,
+  bigGrid: <Grid2x2 size={15} strokeWidth={1.9} />,
+  grid: <Grid3x3 size={15} strokeWidth={1.9} />,
   calendar: <svg {...ico()}><rect x='3' y='4' width='18' height='17' rx='2' /><path d='M3 9h18M8 2v4M16 2v4' /></svg>
 }
 
