@@ -79,6 +79,66 @@ describe('RoleList', () => {
       expect(screen.getByText('Common roles cannot have their responsibilities edited')).toBeInTheDocument()
     })
   })
+
+  it('loads more members when Load more is clicked', async () => {
+    const props = {
+      clearStewardSuggestions: jest.fn(),
+      fetchStewardSuggestions: jest.fn(),
+      roleId: '1',
+      slug: 'foogroup',
+      suggestions: [],
+      isSystemRole: false,
+      group: { id: 1 },
+      availableResponsibilities: []
+    }
+
+    let fetchMembersCallCount = 0
+
+    mockGraphqlServer.use(
+      graphql.query('fetchGroupRoleDetails', () => {
+        return HttpResponse.json({
+          data: {
+            group: {
+              id: 1,
+              members: {
+                hasMore: true,
+                items: [{ id: 1, name: 'Alice', avatarUrl: null, groupRoles: { items: [] } }]
+              }
+            },
+            responsibilities: []
+          }
+        })
+      }),
+      graphql.query('fetchMembersForGroupRole', () => {
+        fetchMembersCallCount += 1
+        return HttpResponse.json({
+          data: {
+            group: {
+              id: 1,
+              members: {
+                hasMore: false,
+                items: [{ id: 2, name: 'Bob', avatarUrl: null, groupRoles: { items: [] } }]
+              }
+            }
+          }
+        })
+      })
+    )
+
+    render(<RoleList {...props} />, { wrapper: AllTheProviders() })
+
+    await waitFor(() => {
+      expect(screen.getByText('Alice')).toBeInTheDocument()
+    })
+
+    const user = userEvent.setup()
+    await user.click(screen.getByText('Load more members'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Bob')).toBeInTheDocument()
+      expect(fetchMembersCallCount).toBeGreaterThan(0)
+    })
+  })
 })
 
 describe('AddMemberToRole', () => {

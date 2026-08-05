@@ -1,5 +1,5 @@
 import { isEmpty, includes } from 'lodash/fp'
-import React, { useState, useEffect, useRef, useMemo } from 'react'
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import PropTypes from 'prop-types'
 import { useTranslation } from 'react-i18next'
@@ -33,6 +33,7 @@ import KeyControlledItemList from 'components/KeyControlledList/KeyControlledIte
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { keyMap } from 'util/textInput'
 import { cn } from 'util/index'
+import { isAtBottom } from 'util/scrolling'
 import { personUrl } from '@hylo/navigation'
 import { sortCustomGroupRoles, sortSystemGroupRoles, isSystemGroupRole } from '@hylo/hooks/groupRoleHelpers'
 
@@ -458,8 +459,9 @@ function RoleList ({
   const { t } = useTranslation()
   const [membersForRole, setMembersForRole] = useState([])
   const [hasMoreMembers, setHasMoreMembers] = useState(false)
+  const [loadingMoreMembers, setLoadingMoreMembers] = useState(false)
   const [responsibilitiesForRole, setResponsibilitiesForRole] = useState([])
-  const loadingMoreMembers = useRef(false)
+  const loadingMoreMembersRef = useRef(false)
   const dispatch = useDispatch()
   const membersListId = `role-members-${roleId}`
 
@@ -477,9 +479,10 @@ function RoleList ({
     return () => { isMounted = false }
   }, [group.id, roleId, dispatch])
 
-  const fetchMoreMembers = () => {
-    if (loadingMoreMembers.current || !hasMoreMembers) return
-    loadingMoreMembers.current = true
+  const fetchMoreMembers = useCallback(() => {
+    if (loadingMoreMembersRef.current || !hasMoreMembers) return
+    loadingMoreMembersRef.current = true
+    setLoadingMoreMembers(true)
     dispatch(fetchMembersForGroupRole({
       id: group.id,
       roleId,
@@ -496,8 +499,19 @@ function RoleList ({
         setHasMoreMembers(!!members?.hasMore)
       })
       .catch((e) => { console.error('Error fetching more members for role', e) })
-      .finally(() => { loadingMoreMembers.current = false })
-  }
+      .finally(() => {
+        loadingMoreMembersRef.current = false
+        setLoadingMoreMembers(false)
+      })
+  }, [dispatch, group.id, roleId, hasMoreMembers, membersForRole.length])
+
+  useEffect(() => {
+    if (!hasMoreMembers || loadingMoreMembersRef.current) return
+    const listElement = document.getElementById(membersListId)
+    if (!listElement) return
+    const shouldLoadMore = listElement.scrollHeight <= listElement.clientHeight || isAtBottom(250, listElement)
+    if (shouldLoadMore) fetchMoreMembers()
+  }, [membersForRole, hasMoreMembers, membersListId, fetchMoreMembers])
 
   const memberRoleIds = membersForRole.map(mr => mr.id)
 
@@ -562,6 +576,16 @@ function RoleList ({
             />)}
           <ScrollListener onBottom={fetchMoreMembers} elementId={membersListId} />
         </div>
+        {hasMoreMembers && (
+          <button
+            type='button'
+            className='text-sm text-accent/80 hover:text-accent mt-2 disabled:opacity-50'
+            onClick={fetchMoreMembers}
+            disabled={loadingMoreMembers}
+          >
+            {loadingMoreMembers ? t('Loading...') : t('Load more members')}
+          </button>
+        )}
       </div>
       <AddMemberToRole
         fetchSuggestions={fetchStewardSuggestions}
