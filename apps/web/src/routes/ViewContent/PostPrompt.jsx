@@ -45,7 +45,8 @@ export default function PostPrompt (props) {
       aria-label={postPromptString}
       title={postPromptString}
       className={cn(
-        'inline-flex items-center gap-1.5 h-9 px-4 shrink-0 rounded-full box-border',
+        // rounded-md, matching the group context menu's controls
+        'inline-flex items-center gap-1.5 h-9 px-4 shrink-0 rounded-md box-border',
         'bg-background border-2 border-selected text-foreground text-sm font-bold',
         'transition-all hover:scale-105 hover:no-underline',
         className
