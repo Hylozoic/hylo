@@ -351,24 +351,26 @@ function PostHeader (props) {
           <div className='flex flex-wrap justify-between flex-1 text-foreground truncate xs:truncate-none overflow-hidden xs:overflow-visible mr-2 xs:max-w-auto'>
             <Highlight {...highlightProps}>
               <div className='flex flex-col min-w-0'>
-                <Link to={creatorUrl} className={cn('flex whitespace-nowrap items-center text-card-foreground font-bold font-md text-base', { 'text-sm': constrained })} data-tooltip-content={creator.tagline} data-tooltip-id={`announcement-tt-${id}`}>
+                <Link to={creatorUrl} className={cn('flex whitespace-nowrap items-center text-card-foreground font-bold font-md text-base leading-tight', { 'text-sm': constrained })} data-tooltip-content={creator.tagline} data-tooltip-id={`announcement-tt-${id}`}>
                   {creator.name}
                 </Link>
                 {/* Where a child post lives, under the author — replaces the tab that floated above the card */}
                 {childGroupName && (
-                  <span className='text-xs text-foreground/50 truncate'>{t('in {{groupName}}', { groupName: childGroupName })}</span>
+                  <span className='text-xs text-foreground/50 truncate leading-tight'>{t('in {{groupName}}', { groupName: childGroupName })}</span>
                 )}
               </div>
             </Highlight>
             <div className='flex items-center ml-2'>
+              <span className='text-foreground/50 text-2xs whitespace-nowrap mr-3' data-tooltip-id={`dateTip-${id}`} data-tooltip-content={exactCreatedTimestamp}>
+                {createdTimestamp}
+              </span>
               {type !== 'submission' && (
-                <div className='flex items-center gap-1 border-2 border-foreground/20 rounded text-xs capitalize px-1 text-foreground/70 py1 mr-4'>
+                // h-7 (and rounded-md) so the pill and the three-dot toggle read as one control family.
+                // The old py1 was a dead class — the pill never actually had vertical padding.
+                <div className='flex items-center gap-1 border-2 border-foreground/20 rounded-md text-xs capitalize px-1.5 h-7 text-foreground/70'>
                   <Icon name={getPostTypeIcon(type)} className='text-sm' dataTestId={'post-type-' + type.charAt(0).toUpperCase() + type.slice(1)} />
                   {t(type)}
                 </div>)}
-              <span className='text-foreground/50 text-2xs whitespace-nowrap' data-tooltip-id={`dateTip-${id}`} data-tooltip-content={exactCreatedTimestamp}>
-                {createdTimestamp}
-              </span>
               {announcement && (
                 <span className='mt-[-2px]'>
                   <span className='text-2xs mx-3 relative top-[-6px]'>•</span>
@@ -387,7 +389,7 @@ function PostHeader (props) {
               id='post-header-flag-tt'
             />
             {dropdownItems.length > 0 &&
-              <Dropdown id='post-header-more-dropdown' toggleChildren={<Icon name='More' dataTestId='post-header-more-icon' className='cursor-pointer border-2 border-foreground/30 rounded-md p-2' />} items={dropdownItems} alignRight noOverflow />}
+              <Dropdown id='post-header-more-dropdown' toggleChildren={<Icon name='More' dataTestId='post-header-more-icon' className='cursor-pointer border-2 border-foreground/30 rounded-md h-7 w-7 flex items-center justify-center' />} items={dropdownItems} alignRight noOverflow />}
             {close &&
               <a className={cn('inline-block cursor-pointer relative px-3 text-xl')} data-testid='post-detail-close' onClick={close}>
                 <Icon name='Ex' className='align-middle' />
