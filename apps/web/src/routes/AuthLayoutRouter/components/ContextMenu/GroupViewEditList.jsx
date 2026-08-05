@@ -21,6 +21,7 @@ import { useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { addQuerystringToPath, groupUrl, localSpaceSlug } from '@hylo/navigation'
 
+import { Tooltip, TooltipContent, TooltipTrigger } from 'components/ui/tooltip'
 import GroupViewIcon from './GroupViewIcon'
 import { GroupViewEditActions } from './GroupViewSettingsModal'
 import { canDeleteView, canHardDeleteView, isSoftRemoveView } from 'store/models/GroupView'
@@ -164,15 +165,19 @@ function SortableSpaceEditRow ({
           className='opacity-0 group-hover:opacity-100'
         />
         {spaceGroup?.slug && groupSlug && (
-          <button
-            type='button'
-            className='p-1 text-foreground/50 hover:text-foreground'
-            onClick={handleEditSpaceMenu}
-            aria-label={t('Edit space menu')}
-            title={t('Edit space menu')}
-          >
-            <Pencil className='w-4 h-4' />
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type='button'
+                className='p-1 text-foreground/50 hover:text-foreground'
+                onClick={handleEditSpaceMenu}
+                aria-label={t('Edit space menu')}
+              >
+                <Pencil className='w-4 h-4' />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>{t('Edit space menu')}</TooltipContent>
+          </Tooltip>
         )}
       </div>
     </li>

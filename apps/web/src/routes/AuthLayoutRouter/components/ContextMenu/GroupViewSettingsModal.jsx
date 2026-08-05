@@ -5,6 +5,7 @@ import { House, Trash2, X } from 'lucide-react'
 
 import Button from 'components/ui/button'
 import { Input } from 'components/ui/input'
+import { Tooltip, TooltipContent, TooltipTrigger } from 'components/ui/tooltip'
 import CustomViewFormFields from 'components/CustomViewForm/CustomViewFormFields'
 import {
   CUSTOM_VIEW_DEFAULT_POST_TYPES,
@@ -295,39 +296,56 @@ export function GroupViewEditActions ({ view, onSettings, onHide, onDelete, clas
   const hardDeletable = canHardDeleteView(view)
   const softRemovable = removable && isSoftRemoveView(view)
   const showSettings = viewTypeHasSettings(view?.type)
+  // Same tooltip treatment as the card toolbars (CardEditActions): shared Tooltip
+  // components instead of the native title delay, and Delete reads red before you
+  // reach it — label red rather than the surface, since TooltipArrow is fixed to
+  // fill-popover and a recoloured background would leave the arrow behind.
   return (
     <div className={cn('flex items-center gap-1 shrink-0', className)}>
       {showSettings && (
-        <button
-          type='button'
-          className='p-1 text-foreground/50 hover:text-foreground rounded'
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onSettings(view) }}
-          aria-label='Settings'
-        >
-          <SettingsIcon />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type='button'
+              className='p-1 text-foreground/50 hover:text-foreground rounded'
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onSettings(view) }}
+              aria-label={t('Settings')}
+            >
+              <SettingsIcon />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>{t('Settings')}</TooltipContent>
+        </Tooltip>
       )}
       {softRemovable && onHide && (
-        <button
-          type='button'
-          className='p-1 text-foreground/50 hover:text-destructive rounded'
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onHide(view) }}
-          aria-label={t('Remove from Menu')}
-          title={t('Remove from Menu')}
-        >
-          <X className='w-4 h-4' />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type='button'
+              className='p-1 text-foreground/50 hover:text-destructive rounded'
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onHide(view) }}
+              aria-label={t('Remove from Menu')}
+            >
+              <X className='w-4 h-4' />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>{t('Remove from Menu')}</TooltipContent>
+        </Tooltip>
       )}
       {hardDeletable && onDelete && (
-        <button
-          type='button'
-          className='p-1 text-foreground/50 hover:text-destructive rounded'
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(view) }}
-          aria-label={view?.type === 'space' ? t('Delete Space') : t('Delete')}
-          title={view?.type === 'space' ? t('Delete Space') : t('Delete')}
-        >
-          <Trash2 className='w-4 h-4' />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type='button'
+              className='p-1 text-destructive hover:text-destructive rounded'
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(view) }}
+              aria-label={view?.type === 'space' ? t('Delete Space') : t('Delete')}
+            >
+              <Trash2 className='w-4 h-4' />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent className='text-destructive font-semibold'>{view?.type === 'space' ? t('Delete Space') : t('Delete')}</TooltipContent>
+        </Tooltip>
       )}
     </div>
   )
