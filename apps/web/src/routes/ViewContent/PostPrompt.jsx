@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { cn } from 'util/index'
 
 export default function PostPrompt (props) {
-  const { className, firstName = '', postTypesAvailable } = props
+  const { className, firstName = '', postTypesAvailable, eventDate } = props
   const { t } = useTranslation()
   const location = useLocation()
 
@@ -15,9 +15,10 @@ export default function PostPrompt (props) {
     const basePath = location.pathname.replace(/\/create\/.*$/, '')
     const params = new URLSearchParams()
     if (newPostType) params.set('newPostType', newPostType)
+    if (eventDate) params.set('eventDate', eventDate)
     const query = params.toString()
     return `${basePath}/create/post${query ? `?${query}` : ''}`
-  }, [location.pathname, newPostType])
+  }, [location.pathname, newPostType, eventDate])
 
   const postPromptString = useMemo(() => {
     const postPrompts = {

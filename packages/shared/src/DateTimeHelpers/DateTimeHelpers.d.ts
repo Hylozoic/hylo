@@ -31,6 +31,11 @@ export function isSameDay(
   locale?: string
 ): boolean;
 
+export function defaultEventTimesForDate(
+  date: string | Date,
+  locale?: string
+): { startTime: Date; endTime: Date };
+
 export function isSameWeek(
   date1: string | Date | DateTime | Object,
   date2: string | Date | DateTime | Object,
