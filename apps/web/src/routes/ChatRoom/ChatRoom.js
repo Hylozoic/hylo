@@ -741,7 +741,9 @@ export default function ChatRoom (props) {
             <VirtuosoMessageListLicense licenseKey={import.meta.env.VITE_VIRTUOSO_KEY}>
               <VirtuosoMessageList
                 style={{ height: '100%', width: '100%', marginTop: 'auto', overflowX: 'visible' }}
-                className='px-3 sm:px-5'
+                // pb below sm: on phones the last message sat nearly flush against
+                // the composer; desktop already clears it
+                className='px-3 sm:px-5 pb-3 sm:pb-0'
                 ref={messageListRef}
                 context={{
                   currentUser,
