@@ -123,7 +123,9 @@ export default function MoreViewsPage ({ group }) {
         ? (
           <span className='flex items-center gap-2'>
             {t('More Views and Spaces')}
-            <span className='text-xs font-semibold rounded-full border-2 border-foreground/20 bg-foreground/10 text-foreground/70 px-2 py-0.5 leading-none'>
+            {/* Slim enough to sit inside the title's line box — a taller pill overflows
+                the header's fixed height and clips instead of growing it */}
+            <span className='text-xs font-semibold rounded-full border border-foreground/20 bg-foreground/10 text-foreground/70 px-2 py-px leading-none self-center'>
               {t('Editing')}
             </span>
           </span>
