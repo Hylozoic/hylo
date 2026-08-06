@@ -87,10 +87,12 @@ const makeFilterDropdown = (selected, options, onChange, t, icon, id) => {
       // Pill styling lives on the toggle span: Dropdown forces inline-block on its
       // root, which would defeat the flex centering the pill needs.
       toggleChildren={
+        // On phones the pill is just the current label — the glyph and chevron
+        // spend width the row does not have
         <span className={PILL_CLASS}>
-          {icon}
+          {icon && <span className='inline-flex items-center max-sm:hidden'>{icon}</span>}
           {t(options.find(o => o.id === selected)?.label)}
-          <Icon name='ArrowDown' className='opacity-60' />
+          <Icon name='ArrowDown' className='opacity-60 max-sm:hidden' />
         </span>
       }
       items={options.map(({ id, label }) => ({
@@ -167,7 +169,27 @@ const StreamViewControls = ({
         {sortDropdown}
         {filterDropdown}
 
-        <div className={GROUP_CLASS}>
+        {/* Phone: the lens group collapses into a dropdown showing the active lens */}
+        <div className='sm:hidden'>
+          <Dropdown
+            id='view-mode-filter-mobile'
+            toggleChildren={
+              <span className={PILL_CLASS}>
+                {VIEW_MODE_ICONS[viewMode] || VIEW_MODE_ICONS.cards}
+                <Icon name='ArrowDown' className='opacity-60' />
+              </span>
+            }
+            items={[
+              { label: t('Card view'), icon: VIEW_MODE_ICONS.cards, onClick: () => changeView('cards') },
+              { label: t('List view'), icon: VIEW_MODE_ICONS.list, onClick: () => changeView('list') },
+              { label: t('Large Grid'), icon: VIEW_MODE_ICONS.bigGrid, onClick: () => changeView('bigGrid') },
+              { label: t('Small Grid'), icon: VIEW_MODE_ICONS.grid, onClick: () => changeView('grid') },
+              ...(postHasDates ? [{ label: t('Calendar'), icon: VIEW_MODE_ICONS.calendar, onClick: () => changeView('calendar') }] : [])
+            ]}
+          />
+        </div>
+
+        <div className={cn(GROUP_CLASS, 'max-sm:hidden')}>
           <ToolBtn active={viewMode === 'cards'} onClick={() => changeView('cards')} tooltip={t('Card view')}>
             {VIEW_MODE_ICONS.cards}
           </ToolBtn>
