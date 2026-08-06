@@ -1298,7 +1298,7 @@ type Group {
     sortBy: String
   ): FundingRoundQuerySet
 
-  # Posts to display in this group's stream. This includes posts from child groups that the logged in user is a member of
+  # Posts to display in this group's stream. Includes posts from child groups and child spaces that the logged in user is a member of
   viewPosts(
     # Only return posts that are not past their end date and have not been completed
     activePostsOnly: Boolean,

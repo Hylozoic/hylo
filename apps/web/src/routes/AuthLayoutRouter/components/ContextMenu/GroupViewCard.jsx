@@ -1,9 +1,10 @@
 import React, { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Loader2, Plus, Settings, Trash2 } from 'lucide-react'
+import { Info, Loader2, Plus, Settings, Trash2 } from 'lucide-react'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 
 import LucideIcon from 'components/LucideIcon/LucideIcon'
+import { Tooltip, TooltipContent, TooltipTrigger } from 'components/ui/tooltip'
 import useAppearance from 'hooks/useAppearance'
 import { DEFAULT_BANNER } from 'store/models/Group'
 import { bgImageStyle, cn } from 'util/index'
@@ -46,46 +47,60 @@ export function CardEditActions ({ onAddToMenu, onOpenSettings, onDelete, addLab
       onPointerDown={(e) => e.stopPropagation()}
     >
       {onAddToMenu && (
-        <button
-          type='button'
-          onClick={(e) => {
-            e.stopPropagation()
-            onAddToMenu()
-          }}
-          className={CARD_ACTION_BTN}
-          aria-label={addLabel}
-          title={addLabel}
-        >
-          <Plus className='w-4 h-4' />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type='button'
+              onClick={(e) => {
+                e.stopPropagation()
+                onAddToMenu()
+              }}
+              className={CARD_ACTION_BTN}
+              aria-label={addLabel}
+            >
+              <Plus className='w-4 h-4' />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>{addLabel}</TooltipContent>
+        </Tooltip>
       )}
       {onOpenSettings && (
-        <button
-          type='button'
-          onClick={(e) => {
-            e.stopPropagation()
-            onOpenSettings()
-          }}
-          className={CARD_ACTION_BTN}
-          aria-label={settingsLabel}
-          title={settingsLabel}
-        >
-          <Settings className='w-4 h-4' />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type='button'
+              onClick={(e) => {
+                e.stopPropagation()
+                onOpenSettings()
+              }}
+              className={CARD_ACTION_BTN}
+              aria-label={settingsLabel}
+            >
+              <Settings className='w-4 h-4' />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>{settingsLabel}</TooltipContent>
+        </Tooltip>
       )}
       {onDelete && (
-        <button
-          type='button'
-          onClick={(e) => {
-            e.stopPropagation()
-            onDelete()
-          }}
-          className={cn(CARD_ACTION_BTN, 'hover:text-destructive')}
-          aria-label={deleteLabel}
-          title={deleteLabel}
-        >
-          <Trash2 className='w-4 h-4' />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type='button'
+              onClick={(e) => {
+                e.stopPropagation()
+                onDelete()
+              }}
+              className={cn(CARD_ACTION_BTN, 'text-destructive hover:text-destructive')}
+              aria-label={deleteLabel}
+            >
+              <Trash2 className='w-4 h-4' />
+            </button>
+          </TooltipTrigger>
+          {/* Red label rather than a red surface — TooltipArrow is fixed to
+              fill-popover, so a recoloured background would leave the arrow behind. */}
+          <TooltipContent className='text-destructive font-semibold'>{deleteLabel}</TooltipContent>
+        </Tooltip>
       )}
     </div>
   )
@@ -153,7 +168,9 @@ function GroupViewCard ({ view, isEditing, onAddToMenu, onOpen, onOpenSettings, 
       className={cn(
         CARD_CLASS,
         cardChrome(isDark),
-        isEditing && (renderEditActions ? 'cursor-default' : 'cursor-[inherit]'),
+        // Editing means the card is a thing you pick up — grab, and grabbing while held.
+        // The sortable wrapper case inherits so dnd-kit's isDragging cursor wins.
+        isEditing && (renderEditActions ? 'cursor-grab active:cursor-grabbing' : 'cursor-[inherit]'),
         // The wrapper owns the footprint in that case; fill it rather than sizing
         // against a parent that is sizing itself to this card.
         !renderEditActions && CARD_FILL_CLASS
@@ -241,7 +258,7 @@ function GroupViewCard ({ view, isEditing, onAddToMenu, onOpen, onOpenSettings, 
 }
 
 /** Card for an off-menu space: banner image + scrim with a frosted-glass tile. */
-export function SpaceViewCard ({ space, isEditing, isDeleting = false, onOpen, onAddToMenu, onOpenSettings, onDelete }) {
+export function SpaceViewCard ({ space, isEditing, isDeleting = false, onOpen, onOpenAbout, onAddToMenu, onOpenSettings, onDelete }) {
   const { t } = useTranslation()
   const { effectiveColorScheme } = useAppearance()
   const isDark = effectiveColorScheme === 'dark'
@@ -253,7 +270,7 @@ export function SpaceViewCard ({ space, isEditing, isDeleting = false, onOpen, o
       className={cn(
         CARD_CLASS,
         cardChrome(isDark),
-        isEditing && 'cursor-default',
+        isEditing && 'cursor-grab active:cursor-grabbing',
         isDeleting && 'pointer-events-none opacity-50'
       )}
       style={{
@@ -311,6 +328,25 @@ export function SpaceViewCard ({ space, isEditing, isDeleting = false, onOpen, o
         <div className='absolute inset-0 z-20 grid place-items-center bg-background/40 rounded-[inherit]'>
           <Loader2 className='w-7 h-7 animate-spin text-foreground/70' aria-label={t('Deleting')} />
         </div>
+      )}
+      {/* Reachable without opening the space — the card is otherwise the only way in,
+          and a space's description is exactly what you want before deciding to enter.
+          Hidden while editing so it can't collide with the edit toolbar, and while
+          deleting so it can't sit under the spinner. */}
+      {onOpenAbout && !isEditing && !isDeleting && (
+        <button
+          type='button'
+          onClick={(e) => {
+            e.stopPropagation()
+            onOpenAbout(space)
+          }}
+          onKeyDown={(e) => e.stopPropagation()}
+          className='absolute top-2 right-2 z-10 p-1 rounded-md text-white/70 hover:text-white bg-black/25 hover:bg-black/45 backdrop-blur-sm transition-colors'
+          aria-label={t('About')}
+          title={t('About')}
+        >
+          <Info className='w-4 h-4' />
+        </button>
       )}
       {isEditing && !isDeleting && (
         <CardEditActions

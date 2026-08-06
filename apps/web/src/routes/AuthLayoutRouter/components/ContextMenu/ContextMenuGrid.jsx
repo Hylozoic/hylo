@@ -517,6 +517,11 @@ function MoreSpacesGrid ({
     navigate(spaceUrl(groupSlug, local), { state: { fromMoreViews: true } })
   }, [groupSlug, navigate, isEditing])
 
+  const handleOpenSpaceAbout = useCallback((space) => {
+    const local = localSpaceSlug(groupSlug, space.slug)
+    navigate(spaceUrl(groupSlug, local, '/about'))
+  }, [groupSlug, navigate])
+
   const handleOpenView = useCallback((view) => {
     if (isEditing) return
     const presented = GroupViewPresenter(view)
@@ -628,6 +633,7 @@ function MoreSpacesGrid ({
                 isEditing={isEditing}
                 isDeleting={String(deletingSpaceId) === String(space.id)}
                 onOpen={handleOpenSpace}
+                onOpenAbout={handleOpenSpaceAbout}
                 onAddToMenu={handleAddSpaceToMenu}
                 onOpenSettings={onOpenSpaceSettings}
                 onDelete={handleDeleteSpace}
@@ -647,6 +653,7 @@ function MoreSpacesGrid ({
                 isEditing={isEditing}
                 isDeleting={String(deletingSpaceId) === String(space.id)}
                 onOpen={handleOpenSpace}
+                onOpenAbout={handleOpenSpaceAbout}
                 onAddToMenu={handleAddSpaceToMenu}
                 onOpenSettings={onOpenSpaceSettings}
                 onDelete={handleDeleteSpace}
@@ -666,6 +673,7 @@ function MoreSpacesGrid ({
                 isEditing={isEditing}
                 isDeleting={String(deletingSpaceId) === String(space.id)}
                 onOpen={handleOpenSpace}
+                onOpenAbout={handleOpenSpaceAbout}
                 onAddToMenu={handleAddSpaceToMenu}
                 onOpenSettings={onOpenSpaceSettings}
                 onDelete={handleDeleteSpace}

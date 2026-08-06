@@ -210,6 +210,7 @@ function PostEditorInner ({
   const viewId = getQuerystringParam('viewId', urlLocation)
 
   const postType = getQuerystringParam('newPostType', urlLocation)
+  const eventDateParam = getQuerystringParam('eventDate', urlLocation)
   // Prefer explicit newPostType (if still allowed), else top dropdown option (POST_TYPES order)
   const createPostType = (() => {
     const fallback = firstDropdownPostType(allowedPostTypes)
@@ -317,30 +318,43 @@ function PostEditorInner ({
   // replace it when the route changes without touching user-added topics
   const routeTopicIdRef = useRef(topic?.id || null)
 
-  const initialPost = useMemo(() => ({
-    acceptContributions: false,
-    completionAction: 'button',
-    completionActionSettings: currentTrack?.actionDescriptor ? { instructions: t('postCompletionActions.button.instructions', { actionDescriptor: currentTrack?.actionDescriptor }) } : null,
-    details: '',
-    groups: currentGroup ? [currentGroup] : [],
-    isAnonymousVote: false,
-    isPublic: context === 'public',
-    isStrictProposal: false,
-    location: '',
-    locationId: null,
-    proposalOptions: [],
-    quorum: 0,
-    timezone: DateTimeHelpers.dateTimeNow(getLocaleFromLocalStorage()).zoneName,
-    title: '',
-    topics: topic
-      ? [topic]
-      : (generalTopic && postType !== 'action' ? [generalTopic] : []),
-    type: createPostType,
-    votingMethod: VOTING_METHOD_SINGLE,
-    ...(inputPost || {}),
-    startTime: typeof inputPost?.startTime === 'string' ? new Date(inputPost.startTime) : inputPost?.startTime,
-    endTime: typeof inputPost?.endTime === 'string' ? new Date(inputPost.endTime) : inputPost?.endTime
-  }), [inputPost?.id, createPostType, currentGroup, topic, generalTopic, context, postType])
+  const initialPost = useMemo(() => {
+    let prefilledEventTimes = {}
+    if (!editing && createPostType === 'event' && eventDateParam && !inputPost?.startTime) {
+      try {
+        const parsed = DateTimeHelpers.toDateTime(eventDateParam, { locale: getLocaleFromLocalStorage() })
+        if (parsed.isValid) {
+          prefilledEventTimes = DateTimeHelpers.defaultEventTimesForDate(eventDateParam, getLocaleFromLocalStorage())
+        }
+      } catch {}
+    }
+
+    return {
+      acceptContributions: false,
+      completionAction: 'button',
+      completionActionSettings: currentTrack?.actionDescriptor ? { instructions: t('postCompletionActions.button.instructions', { actionDescriptor: currentTrack?.actionDescriptor }) } : null,
+      details: '',
+      groups: currentGroup ? [currentGroup] : [],
+      isAnonymousVote: false,
+      isPublic: context === 'public',
+      isStrictProposal: false,
+      location: '',
+      locationId: null,
+      proposalOptions: [],
+      quorum: 0,
+      timezone: DateTimeHelpers.dateTimeNow(getLocaleFromLocalStorage()).zoneName,
+      title: '',
+      topics: topic
+        ? [topic]
+        : (generalTopic && postType !== 'action' ? [generalTopic] : []),
+      type: createPostType,
+      votingMethod: VOTING_METHOD_SINGLE,
+      ...(inputPost || {}),
+      ...prefilledEventTimes,
+      startTime: typeof inputPost?.startTime === 'string' ? new Date(inputPost.startTime) : (inputPost?.startTime || prefilledEventTimes.startTime),
+      endTime: typeof inputPost?.endTime === 'string' ? new Date(inputPost.endTime) : (inputPost?.endTime || prefilledEventTimes.endTime)
+    }
+  }, [inputPost?.id, createPostType, currentGroup, topic, generalTopic, context, postType, editing, eventDateParam, inputPost?.startTime, inputPost?.endTime, currentTrack?.actionDescriptor, t])
 
   const [currentPost, setCurrentPostState] = useState(initialPost)
   const [editorInitialContent, setEditorInitialContent] = useState(initialPost.details || '')

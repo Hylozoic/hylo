@@ -147,7 +147,7 @@ describe('Group', function () {
       expect(results.length).to.equal(2)
 
       await gm1.refresh()
-      expect(gm1.get('settings')).to.deep.equal({ here: true, there: true, joinQuestionsAnsweredAt: null, showJoinForm: true })
+      expect(gm1.get('settings')).to.deep.equal({ here: true, there: true, agreementsAcceptedAt: null, joinQuestionsAnsweredAt: null, showJoinForm: true })
       expect(await GroupMembership.hasResponsibility(u1.id, group, Responsibility.constants.RESP_ADMINISTRATION)).to.be.true
 
       const gm2 = await group.memberships()
@@ -166,6 +166,94 @@ describe('Group', function () {
       await group.removeMembers(await group.members().fetch())
       const postRemoveMembers = await group.members().fetch()
       expect(postRemoveMembers.length).to.equal(0)
+    })
+
+    it('revokes roles, agreement state, and nav pin', async function() {
+      const group = await factories.group().save()
+      const user = await factories.user().save()
+      await user.joinGroup(group)
+      await GroupRole.setupSystemRoles(group.id)
+      const hostRole = await GroupRole.findSystemRole(group.id, 'Host')
+      await MemberGroupRole.forge({
+        user_id: user.id,
+        group_id: group.id,
+        group_role_id: hostRole.id,
+        active: true
+      }).save()
+
+      const membership = await GroupMembership.forPair(user, group).fetch()
+      membership.addSetting({ agreementsAcceptedAt: new Date().toISOString() })
+      await membership.save({ nav_order: 2 })
+
+      await group.removeMembers([user.id])
+
+      const roles = await MemberGroupRole.where({ user_id: user.id, group_id: group.id }).fetchAll()
+      expect(roles.length).to.equal(0)
+
+      const inactiveMembership = await GroupMembership.forPair(user, group, { includeInactive: true }).fetch()
+      expect(inactiveMembership.get('active')).to.be.false
+      expect(inactiveMembership.getSetting('agreementsAcceptedAt')).to.be.null
+      expect(inactiveMembership.get('nav_order')).to.be.null
+      expect(await GroupMembership.hasResponsibility(user.id, group, Responsibility.constants.RESP_ADD_MEMBERS)).to.be.false
+    })
+
+    it('deactivates memberships in child spaces when removed from parent group', async function() {
+      const group = await factories.group().save()
+      const space = await factories.group({
+        type: 'space',
+        parent_id: group.id,
+        slug: `space-remove-${Date.now()}`
+      }).save()
+      const user = await factories.user().save()
+      const otherUser = await factories.user().save()
+
+      await group.addMembers([user.id, otherUser.id])
+      await space.addMembers([user.id])
+
+      await group.removeMembers([user.id])
+
+      const parentMembership = await GroupMembership.forPair(user, group, { includeInactive: true }).fetch()
+      expect(parentMembership.get('active')).to.be.false
+
+      const spaceMembership = await GroupMembership.forPair(user, space, { includeInactive: true }).fetch()
+      expect(spaceMembership.get('active')).to.be.false
+      expect(spaceMembership.getSetting('showJoinForm')).to.equal(true)
+      expect(spaceMembership.getSetting('joinQuestionsAnsweredAt')).to.be.null
+
+      const otherSpaceMembership = await GroupMembership.forPair(otherUser, space).fetch()
+      expect(otherSpaceMembership).to.not.exist
+    })
+
+    it('does not deactivate parent membership when leaving a space only', async function() {
+      const group = await factories.group().save()
+      const space = await factories.group({
+        type: 'space',
+        parent_id: group.id,
+        slug: `space-leave-${Date.now()}`
+      }).save()
+      const user = await factories.user().save()
+
+      await group.addMembers([user.id])
+      await space.addMembers([user.id])
+      await GroupRole.setupSystemRoles(group.id)
+      const hostRole = await GroupRole.findSystemRole(group.id, 'Host')
+      await MemberGroupRole.forge({
+        user_id: user.id,
+        group_id: group.id,
+        group_role_id: hostRole.id,
+        active: true
+      }).save()
+
+      await space.removeMembers([user.id])
+
+      const parentMembership = await GroupMembership.forPair(user, group).fetch()
+      expect(parentMembership.get('active')).to.be.true
+
+      const spaceMembership = await GroupMembership.forPair(user, space, { includeInactive: true }).fetch()
+      expect(spaceMembership.get('active')).to.be.false
+
+      const roles = await MemberGroupRole.where({ user_id: user.id, group_id: group.id }).fetchAll()
+      expect(roles.length).to.equal(1)
     })
   })
 

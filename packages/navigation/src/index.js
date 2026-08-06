@@ -483,6 +483,7 @@ export function stripComposeModalQueryParams (url) {
     const base = typeof window !== 'undefined' ? window.location.origin : 'http://localhost'
     const u = new URL(url, base)
     u.searchParams.delete('newPostType')
+    u.searchParams.delete('eventDate')
     u.searchParams.delete('sourceDraftId')
     u.searchParams.delete('closePath')
     return `${u.pathname}${u.search}${u.hash}`

@@ -52,7 +52,6 @@ export default function PostCard (props) {
   const {
     chat,
     childPost,
-    childPostFromSpace,
     className,
     constrained,
     expanded,
@@ -77,6 +76,12 @@ export default function PostCard (props) {
   const routeParams = useRouteParams()
   const dispatch = useDispatch()
   const navigate = useNavigate()
+
+  // A child post's groups exclude the group being viewed, so the first one —
+  // preferring the space when the post came from one — is where it lives
+  const childGroupName = childPost
+    ? ((post.groups || []).find(g => g.type === 'space') || (post.groups || [])[0])?.name
+    : null
 
   // Chat mode state
   const [isHovered, setIsHovered] = useState(false)
@@ -388,13 +393,6 @@ export default function PostCard (props) {
   // Default layout
   return (
     <>
-      {childPost &&
-        <div className={classes.childPostLabelWrapper}>
-          <div className={classes.childPostLabel}>
-            <Icon name='Subgroup' className={classes.icon} />
-            <span>{t('Post from')} <b>{t(childPostFromSpace ? 'child space' : 'child group')}</b></span>
-          </div>
-        </div>}
       <div
         ref={postCardRef}
         className={cn(
@@ -422,6 +420,7 @@ export default function PostCard (props) {
             constrained={constrained}
             hasImage={hasImage}
             onRemovePost={onRemovePost}
+            childGroupName={childGroupName}
           />
         </div>
         <div onClick={onClick}>
@@ -490,7 +489,6 @@ PostCard.propTypes = {
   actionDescriptor: PropTypes.string,
   chat: PropTypes.bool,
   childPost: PropTypes.bool,
-  childPostFromSpace: PropTypes.bool,
   className: PropTypes.string,
   constrained: PropTypes.bool,
   expanded: PropTypes.bool,
