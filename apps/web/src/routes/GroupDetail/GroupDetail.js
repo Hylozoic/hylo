@@ -552,11 +552,11 @@ const defaultGroupBody = ({ group, isAboutCurrentGroup, responsibilityTitles, t 
       )}
       {isAboutCurrentGroup && (!group.purpose && !group.description) && responsibilityTitles.includes(RESP_ADMINISTRATION)
         ? (
-          <div className={g.noDescription}>
-            <div>
+          <div className='border-2 border-dashed border-foreground/20 rounded-xl p-4 mb-4'>
+            <div className={g.noDescription}>
               <h4 className='text-xl font-bold py-2'>{t('Your group doesn\'t have a purpose or description')}</h4>
-              <p>{t('Add a purpose, description, location, and more in your group settings')}</p>
-              <Link to={groupUrl(group.slug, 'settings')}>{t('Add a group description')}</Link>
+              <p className='text-foreground'>{t('Add a purpose, description, location, and more in your group settings')}</p>
+              <Link className='text-foreground border-foreground' to={groupUrl(group.slug, 'settings')}>{t('Add a group description')}</Link>
             </div>
           </div>
           )
