@@ -160,7 +160,9 @@ function GroupViewMenuItem ({
   if (presentedView.type === 'text') {
     return (
       <li className='list-none'>
-        <p className='text-xs text-foreground/40 px-2 mt-8 mb-1.5 uppercase tracking-wide first:mt-2'>
+        {/* mt-8 + first:mt-2 was a broken pair: the p is always the first child of its
+            own li, so first: matched every label and mt-8 never applied at all */}
+        <p className='text-xs text-foreground/40 px-2 mt-5 mb-1.5 uppercase tracking-wide'>
           {displayNameForView(presentedView, t, { spaceGroup })}
         </p>
       </li>
