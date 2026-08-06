@@ -832,7 +832,13 @@ const Footer = ({ context }) => {
 const StickyFooter = ({ context }) => {
   const location = useVirtuosoLocation()
   const virtuosoMethods = useVirtuosoMethods()
-  const showJumpButton = location.bottomOffset > 200 || context.newPostCount > 0
+  // Only once the bottom sits well below the fold. A just-arrived message dips
+  // below the fold for a beat before the list auto-scrolls to it — this distance
+  // comfortably exceeds that dip, so the button cannot flash during the settle.
+  // The unread count alone no longer forces the button: near the bottom the
+  // auto-scroll is already taking you there.
+  const JUMP_VISIBLE_BELOW_FOLD_PX = 400
+  const showJumpButton = location.bottomOffset > JUMP_VISIBLE_BELOW_FOLD_PX
   const showLoadingPulse = context.loadingFuture
 
   if (!showJumpButton && !showLoadingPulse) return null

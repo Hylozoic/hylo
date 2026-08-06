@@ -220,9 +220,10 @@ export default function ChatMembersPanel ({ group, latestPost }) {
                         className='block w-[30px] h-[30px] rounded-full bg-cover bg-center bg-midground border-2 border-background'
                         style={person.avatarUrl ? bgImageStyle(person.avatarUrl) : undefined}
                       />
+                      {/* The typing pill sits where the green dot sits: right edge on the avatar's right corner */}
                       {typing
                         ? (
-                          <span className='absolute -bottom-0.5 -left-1 inline-flex items-center gap-[2px] px-[3px] py-[2px] rounded-[5px] bg-background' aria-hidden='true'>
+                          <span className='absolute -bottom-0.5 -right-px inline-flex items-center gap-[2px] px-[3px] py-[2px] rounded-[5px] bg-background' aria-hidden='true'>
                             {[0, 1, 2].map(d => (
                               <span key={d} className='w-[3px] h-[3px] rounded-full bg-foreground animate-typing-dot' style={{ animationDelay: `${d * 160}ms` }} />
                             ))}
