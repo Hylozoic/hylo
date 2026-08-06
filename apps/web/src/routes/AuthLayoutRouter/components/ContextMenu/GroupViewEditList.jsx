@@ -100,9 +100,14 @@ function SortableEditRow ({ view, onSettings, onHide, onDelete, isHome, spaceGro
         {displayNameForView(presentedView, t, { spaceGroup })}
         {/* Same badge treatment as the header's Editing pill */}
         {isHome && (
-          <span className='ml-1 text-xs font-semibold rounded-full border border-foreground/20 bg-foreground/10 text-foreground/70 px-2 py-px leading-none self-center shrink-0'>
-            {t('Home')}
-          </span>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className='ml-1 text-xs font-semibold rounded-full border border-foreground/20 bg-foreground/10 text-foreground/70 px-2 py-px leading-none self-center shrink-0'>
+                {t('Home')}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>{t('When people return to this group, this is what they see first.')}</TooltipContent>
+          </Tooltip>
         )}
       </span>
       <GroupViewEditActions
