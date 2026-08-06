@@ -1270,6 +1270,7 @@
   "Recurring billing interval. Monthly, seasonal, and annual options auto-renew each period. Leave empty for one-time payment with lifetime access.": "Abrechnungsintervall für wiederkehrende Zahlungen. Monatliche, saisonale und jährliche Optionen verlängern sich automatisch. Leer lassen für einmalige Zahlung mit lebenslangem Zugang.",
   "Reject Non-Essential": "Nicht Wesentliches ablehnen",
   "Related Groups": "Verwandte Gruppen",
+  "Related Groups & Spaces": "Verwandte Gruppen & Spaces",
   "Related Groups settings": "Einstellungen für verwandte Gruppen",
   "Relevant skills & interests": "Relevante Fähigkeiten & Interessen",
   "Remove": "Entfernen",

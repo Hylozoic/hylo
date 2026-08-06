@@ -1270,6 +1270,7 @@
   "Recurring billing interval. Monthly, seasonal, and annual options auto-renew each period. Leave empty for one-time payment with lifetime access.": "Intervalle de facturation renouvelable. Les options mensuelles, trimestrielles et annuelles se renouvellent automatiquement à chaque période. Laisser vide pour un paiement unique avec accès à vie.",
   "Reject Non-Essential": "Rejeter les éléments non essentiels",
   "Related Groups": "Groupes connexes",
+  "Related Groups & Spaces": "Groupes et espaces associés",
   "Related Groups settings": "Paramètres des groupes connexes",
   "Relevant skills & interests": "Compétences et intérêts pertinents",
   "Remove": "Supprimer",
