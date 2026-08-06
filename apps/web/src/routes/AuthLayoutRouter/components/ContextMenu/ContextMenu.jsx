@@ -57,6 +57,7 @@ import AddCollectionDialog from './AddCollectionDialog'
 import AddGroupViewDialog from './AddGroupViewDialog'
 import AddSpaceDialog from './AddSpaceDialog'
 import AddViewOrSpaceMenu, { AddViewOrSpaceButton } from './AddViewOrSpaceMenu'
+import TruncatedText from 'components/TruncatedText'
 import { menuViewUrl } from './groupViewMenuUrl'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
@@ -192,7 +193,7 @@ function GroupViewMenuItem ({
             className='flex-1 flex items-center gap-2 text-base text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-2 opacity-85 hover:opacity-100 text-left'
           >
             <GroupViewIcon view={presentedView} />
-            <span className='truncate'>{displayNameForView(presentedView, t, { spaceGroup })}</span>
+            <TruncatedText className='truncate' text={displayNameForView(presentedView, t, { spaceGroup })} />
           </button>
           {mobileAppVersionLabel
             ? <span className='text-xs text-muted-foreground shrink-0 tabular-nums'>v{mobileAppVersionLabel}</span>
@@ -273,7 +274,7 @@ function GroupViewMenuItem ({
             )}
           >
             <GroupViewIcon view={presentedView} />
-            <span className='truncate flex-1'>{displayNameForView(presentedView, t, { spaceGroup })}</span>
+            <TruncatedText className='truncate flex-1' text={displayNameForView(presentedView, t, { spaceGroup })} />
             {spaceUnread && <UnreadDot />}
           </MenuLink>
           {aboutUrl && (
@@ -355,7 +356,7 @@ function GroupViewMenuItem ({
             )}
           >
             <GroupViewIcon view={presentedView} />
-            <span className='truncate flex-1'>{displayNameForView(presentedView, t, { spaceGroup })}</span>
+            <TruncatedText className='truncate flex-1' text={displayNameForView(presentedView, t, { spaceGroup })} />
             {showUnreadDot && <UnreadDot />}
           </MenuLink>
           <InviteMembersPopover
@@ -399,7 +400,7 @@ function GroupViewMenuItem ({
         )}
         >
           <GroupViewIcon view={presentedView} />
-          <span className='truncate flex-1'>{displayNameForView(presentedView, t, { spaceGroup })}</span>
+          <TruncatedText className='truncate flex-1' text={displayNameForView(presentedView, t, { spaceGroup })} />
           {showUnreadDot && <UnreadDot />}
         </span>
       </MenuLink>

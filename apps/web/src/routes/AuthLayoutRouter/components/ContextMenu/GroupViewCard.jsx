@@ -4,6 +4,7 @@ import { Info, Loader2, Plus, Settings, Trash2 } from 'lucide-react'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 
 import LucideIcon from 'components/LucideIcon/LucideIcon'
+import TruncatedText from 'components/TruncatedText'
 import { Tooltip, TooltipContent, TooltipTrigger } from 'components/ui/tooltip'
 import useAppearance from 'hooks/useAppearance'
 import { DEFAULT_BANNER } from 'store/models/Group'
@@ -234,12 +235,14 @@ function GroupViewCard ({ view, isEditing, onAddToMenu, onOpen, onOpenSettings, 
           </div>
         </div>
         <div className='absolute left-0 right-0 top-[calc(50%+28px)] bottom-0 flex flex-col items-center justify-center text-center px-3'>
-          <h3 className={cn(
-            CARD_TITLE_CLASS,
-            (isDark || onPhoto) ? 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]' : 'text-foreground'
-          )}
-          >{title}
-          </h3>
+          <TruncatedText
+            as='h3'
+            className={cn(
+              CARD_TITLE_CLASS,
+              (isDark || onPhoto) ? 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]' : 'text-foreground'
+            )}
+            text={title}
+          />
         </div>
       </div>
       {/* A sortable wrapper renders the toolbar itself, outside the drag listeners */}
@@ -318,7 +321,7 @@ export function SpaceViewCard ({ space, isEditing, isDeleting = false, onOpen, o
           </div>
         </div>
         <div className='absolute left-0 right-0 top-[calc(50%+28px)] bottom-0 flex flex-col items-center justify-center text-center px-3'>
-          <h3 className={cn(CARD_TITLE_CLASS, onLightSurface ? 'text-foreground' : 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]')}>{space.name}</h3>
+          <TruncatedText as='h3' className={cn(CARD_TITLE_CLASS, onLightSurface ? 'text-foreground' : 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]')} text={space.name} />
           {space.isDraft && (
             <span className={cn('text-[10.5px] font-semibold mt-1', onLightSurface ? 'text-foreground/60' : 'text-white/70 [text-shadow:0_1px_4px_rgba(0,0,0,0.6)]')}>{t('Draft')}</span>
           )}
