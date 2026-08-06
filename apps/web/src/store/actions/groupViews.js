@@ -389,6 +389,8 @@ export function updateSpace ({ id, groupId, spaceViewId, name, slug, description
           paywall
           visibility
           accessibility
+          acceptedPostTypes
+          icon
         }
       }`,
       variables: omitBy(isUndefined, { id, name, slug, description, icon, acceptedPostTypes, purpose, location, locationId, visibility, accessibility, requiredRoles, bannerUrl, avatarUrl, paywall })
@@ -397,7 +399,8 @@ export function updateSpace ({ id, groupId, spaceViewId, name, slug, description
       id,
       groupId,
       spaceViewId,
-      data: spaceViewMenuData({ name, description, viewName }),
+      acceptedPostTypes,
+      data: spaceViewMenuData({ name, description, viewName, icon }),
       optimistic: true,
       extractModel: [
         { getRoot: get('updateSpace'), modelName: 'Group' }

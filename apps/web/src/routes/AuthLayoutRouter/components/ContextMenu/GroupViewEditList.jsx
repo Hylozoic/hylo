@@ -24,7 +24,7 @@ import { addQuerystringToPath, groupUrl, localSpaceSlug } from '@hylo/navigation
 import { Tooltip, TooltipContent, TooltipTrigger } from 'components/ui/tooltip'
 import GroupViewIcon from './GroupViewIcon'
 import { GroupViewEditActions } from './GroupViewSettingsModal'
-import { canDeleteView, canHardDeleteView, isSoftRemoveView } from 'store/models/GroupView'
+import { canDeleteView, canHardDeleteView, isSoftRemoveView, viewAcceptedByPostTypes } from 'store/models/GroupView'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 import { deleteGroupView, deleteSpace, setGroupViewHidden } from 'store/actions/groupViews'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
@@ -198,7 +198,12 @@ function SortableSpaceEditRow ({
 export default function GroupViewEditList ({ views, group, groupSlug, onSettings }) {
   const dispatch = useDispatch()
   const { t } = useTranslation()
-  const visibleViews = useMemo(() => sortViewsByOrder((views || []).filter(v => v.order != null)), [views])
+  // Match live menu: hide typed views that the group/space no longer accepts.
+  const visibleViews = useMemo(() => sortViewsByOrder(
+    (views || [])
+      .filter(v => v.order != null)
+      .filter(v => viewAcceptedByPostTypes(v.type, group?.acceptedPostTypes))
+  ), [views, group?.acceptedPostTypes])
   const [orderedViews, setOrderedViews] = useState(visibleViews)
 
   // Merge Redux updates into local order (preserves drag order; full replace on add/delete).

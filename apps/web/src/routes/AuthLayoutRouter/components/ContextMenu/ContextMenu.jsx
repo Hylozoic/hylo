@@ -109,8 +109,8 @@ function findSpaceForSlug (groupViews, group, parentSlug, spaceSlug) {
 }
 
 /** Visible menu views for a space (ordered, post-type filtered), optionally with Manage Round. */
-function visibleSpaceMenuViews (spaceGroup, { includeManageRound = false } = {}) {
-  const spaceViews = (spaceGroup?.groupViews?.items || [])
+function visibleSpaceMenuViews (spaceGroup, { includeManageRound = false, views = null } = {}) {
+  const spaceViews = (views || spaceGroup?.groupViews?.items || [])
     .filter(v => v.order != null)
     .filter(v => viewAcceptedByPostTypes(v.type, spaceGroup?.acceptedPostTypes))
   if (includeManageRound && spaceGroup?.fundingRound?.id) {
@@ -136,6 +136,16 @@ function GroupViewMenuItem ({
     responsibility: RESP_MANAGE_SPACES,
     groupId: view?.linkedGroup?.parentId
   }))
+  // Prefer the space Group's ORM menu / acceptedPostTypes over the parent's nested
+  // linkedGroup copy, which can lag behind hide/delete and space-settings updates.
+  const linkedSpaceGroupId = presentedView.type === 'space' ? presentedView.linkedGroup?.id : null
+  const linkedSpaceSlug = presentedView.type === 'space' ? presentedView.linkedGroup?.slug : null
+  const spaceGroupFromStore = useSelector(state =>
+    linkedSpaceSlug ? getGroupForSlug(state, linkedSpaceSlug) : null
+  )
+  const spaceViewsFromStore = useSelector(state =>
+    linkedSpaceGroupId ? getGroupViews(state, { id: linkedSpaceGroupId }) : []
+  )
   // Labels over the revealed row background: white on dark surfaces (and photos),
   // regular foreground on the pale light-mode surface. Hover never changes text color.
   //
@@ -210,8 +220,11 @@ function GroupViewMenuItem ({
       myMemberships.some(m => m.group.id === linkedSpaceGroup.id)
     )
     const showManageRound = Boolean(linkedSpaceGroup?.fundingRound?.id && canManageRound)
-    const spaceViews = visibleSpaceMenuViews(linkedSpaceGroup)
-      .map(v => GroupViewPresenter(v))
+    // Filter with ORM acceptedPostTypes when available (space settings update that record).
+    const spaceViews = visibleSpaceMenuViews(
+      spaceGroupFromStore || linkedSpaceGroup,
+      { views: spaceViewsFromStore.length > 0 ? spaceViewsFromStore : null }
+    ).map(v => GroupViewPresenter(v))
     const menuSpaceViews = showManageRound
       ? [...spaceViews, GroupViewPresenter(MANAGE_ROUND_VIEW)]
       : spaceViews
@@ -568,10 +581,16 @@ export default function ContextMenu (props) {
     })
   }, [staticMenuViews, fetchedGroupViews, publishedOfferings, canManageSpaces, isEditing])
 
-  const { spaceView: activeSpaceView, spaceGroup: activeSpaceGroup } = useMemo(
+  const { spaceView: activeSpaceView, spaceGroup: linkedActiveSpaceGroup } = useMemo(
     () => findSpaceForSlug(fetchedGroupViews, group, groupSlug, spaceSlug),
     [fetchedGroupViews, group, groupSlug, spaceSlug]
   )
+  // Prefer the ORM space record so acceptedPostTypes updates from Space Settings
+  // apply immediately (nested linkedGroup copies can lag until parent refetch).
+  const spaceGroupFromStore = useSelector(state =>
+    linkedActiveSpaceGroup?.slug ? getGroupForSlug(state, linkedActiveSpaceGroup.slug) : null
+  )
+  const activeSpaceGroup = spaceGroupFromStore || linkedActiveSpaceGroup
   const isSpaceMember = Boolean(
     activeSpaceGroup &&
     myMemberships.some(m => m.group.id === activeSpaceGroup.id)

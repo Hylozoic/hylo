@@ -122,6 +122,7 @@ export function appendGroupViewToMenu (group, newView) {
 /**
  * Optimistically hide (order = null) or show (append) a view in the embedded menu.
  * When hiding, compact remaining ordered views to contiguous 0..n.
+ * Also updates nested space menus under type=space linkedGroup.groupViews.
  */
 export function setGroupViewHiddenInMenu (group, viewId, hidden) {
   if (!group || !viewId) return
@@ -181,11 +182,113 @@ export function setGroupViewHiddenInMenu (group, viewId, hidden) {
   }
 }
 
-/** Remove a view from a group's embedded menu list. */
+/**
+ * Hide/show a view across every loaded group's menu — including nested under a
+ * parent's type=space linkedGroup.groupViews (ContextMenu expanded spaces read that copy).
+ */
+export function setGroupViewHiddenInAllMenus (groups, viewId, hidden) {
+  if (!viewId || typeof hidden !== 'boolean') return
+  const list = typeof groups?.toModelArray === 'function'
+    ? groups.toModelArray()
+    : (groups || [])
+  list.forEach(group => setGroupViewHiddenInMenu(group, viewId, hidden))
+}
+
+/** Remove a view from a group's embedded menu list (or nested space menu). */
 export function removeGroupViewFromMenu (group, viewId) {
   if (!group || !viewId) return
-  const items = (group.groupViews?.items || []).filter(view => String(view.id) !== String(viewId))
-  group.update({ groupViews: { items: structuredClone(items) } })
+  const items = group.groupViews?.items || []
+  const topLevel = items.filter(view => String(view.id) !== String(viewId))
+  if (topLevel.length !== items.length) {
+    group.update({ groupViews: { items: structuredClone(topLevel) } })
+    return
+  }
+
+  let changed = false
+  const newItems = items.map(view => {
+    if (view.type !== 'space' || !view.linkedGroup?.groupViews?.items) return view
+    const nested = view.linkedGroup.groupViews.items.filter(
+      nestedView => String(nestedView.id) !== String(viewId)
+    )
+    if (nested.length === view.linkedGroup.groupViews.items.length) return view
+    changed = true
+    return {
+      ...view,
+      linkedGroup: {
+        ...view.linkedGroup,
+        groupViews: { items: structuredClone(nested) }
+      }
+    }
+  })
+  if (changed) {
+    group.update({ groupViews: { items: structuredClone(newItems) } })
+  }
+}
+
+/**
+ * Remove a view across every loaded group's menu — including nested space menus.
+ */
+export function removeGroupViewFromAllMenus (groups, viewId) {
+  if (!viewId) return
+  const list = typeof groups?.toModelArray === 'function'
+    ? groups.toModelArray()
+    : (groups || [])
+  list.forEach(group => removeGroupViewFromMenu(group, viewId))
+}
+
+/**
+ * Sync a space's acceptedPostTypes onto the space Group and every embedded copy
+ * (parent menu linkedGroup + parent.spaces list) so typed-view filters update immediately.
+ */
+export function syncAcceptedPostTypesInMenus (groups, spaceId, acceptedPostTypes) {
+  if (!spaceId || acceptedPostTypes === undefined) return
+  const list = typeof groups?.toModelArray === 'function'
+    ? groups.toModelArray()
+    : (groups || [])
+
+  list.forEach(group => {
+    if (!group) return
+
+    if (String(group.id) === String(spaceId)) {
+      group.update({ acceptedPostTypes })
+    }
+
+    const menuItems = group.groupViews?.items
+    if (menuItems?.length) {
+      let menuChanged = false
+      const newMenuItems = menuItems.map(view => {
+        if (view.type !== 'space' || String(view.linkedGroup?.id) !== String(spaceId)) return view
+        menuChanged = true
+        return {
+          ...view,
+          linkedGroup: {
+            ...view.linkedGroup,
+            acceptedPostTypes
+          }
+        }
+      })
+      if (menuChanged) {
+        group.update({ groupViews: { items: structuredClone(newMenuItems) } })
+      }
+    }
+
+    const spaces = group.spaces?.items || group.spaces
+    if (Array.isArray(spaces) && spaces.length) {
+      let spacesChanged = false
+      const newSpaces = spaces.map(space => {
+        if (String(space?.id) !== String(spaceId)) return space
+        spacesChanged = true
+        return { ...space, acceptedPostTypes }
+      })
+      if (spacesChanged) {
+        if (group.spaces?.items) {
+          group.update({ spaces: { ...group.spaces, items: structuredClone(newSpaces) } })
+        } else {
+          group.update({ spaces: structuredClone(newSpaces) })
+        }
+      }
+    }
+  })
 }
 
 /**

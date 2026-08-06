@@ -185,7 +185,9 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, group, onC
         }))
       }
 
-      // Always refresh parent menu views so nested space labels (e.g. unit terms) stay in sync
+      // Refresh the space's own views (typed views appear/disappear with acceptedPostTypes)
+      // and the parent menu so nested space labels/copies stay in sync.
+      await dispatch(fetchGroupViews(space.id))
       await dispatch(fetchGroupViews(group.id))
       if (!view?.id) {
         await dispatch(fetchGroupSpaces(group.id))

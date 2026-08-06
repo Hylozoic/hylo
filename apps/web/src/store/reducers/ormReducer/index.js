@@ -118,7 +118,7 @@ import extractModelsFromAction from '../ModelExtractor/extractModelsFromAction'
 import { isPromise } from 'util/index'
 import { homeRoutePathForWidget } from '@hylo/navigation'
 import { reorderTree, replaceHomeWidget } from 'util/contextWidgets'
-import { applyGroupViewsOrder, appendGroupViewToMenu, removeGroupViewFromMenu, setGroupViewHiddenInMenu, updateGroupViewInMenu, updateGroupViewInAllMenus } from 'store/util/groupViewsOrder'
+import { applyGroupViewsOrder, appendGroupViewToMenu, removeGroupViewFromAllMenus, setGroupViewHiddenInAllMenus, syncAcceptedPostTypesInMenus, updateGroupViewInMenu, updateGroupViewInAllMenus } from 'store/util/groupViewsOrder'
 import { groupMenuHasUnreadBadges } from 'util/viewUnreadBadges'
 
 /**
@@ -552,9 +552,9 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     }
 
     case UPDATE_GROUP_VIEW_PENDING: {
-      if (!meta.groupId || !meta.id || !meta.data || Object.keys(meta.data).length === 0) break
-      group = Group.withId(meta.groupId)
-      updateGroupViewInMenu(group, meta.id, meta.data)
+      // Space views also live under parent.groupViews[].linkedGroup.groupViews
+      if (!meta.id || !meta.data || Object.keys(meta.data).length === 0) break
+      updateGroupViewInAllMenus(Group.all(), meta.id, meta.data)
       break
     }
 
@@ -623,9 +623,15 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     }
 
     case UPDATE_SPACE_PENDING: {
-      if (!meta.groupId || !meta.spaceViewId || !meta.data || Object.keys(meta.data).length === 0) break
-      group = Group.withId(meta.groupId)
-      updateGroupViewInMenu(group, meta.spaceViewId, meta.data)
+      // Typed views are filtered by acceptedPostTypes in live + edit menus — sync
+      // the space Group and every nested parent-menu copy immediately on save.
+      if (meta.id && meta.acceptedPostTypes !== undefined) {
+        syncAcceptedPostTypesInMenus(Group.all(), meta.id, meta.acceptedPostTypes)
+      }
+      if (meta.groupId && meta.spaceViewId && meta.data && Object.keys(meta.data).length > 0) {
+        group = Group.withId(meta.groupId)
+        updateGroupViewInMenu(group, meta.spaceViewId, meta.data)
+      }
       break
     }
 
@@ -660,9 +666,9 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     }
 
     case DELETE_GROUP_VIEW: {
-      if (!meta.id || !meta.groupId) break
-      group = Group.withId(meta.groupId)
-      removeGroupViewFromMenu(group, meta.id)
+      // Space views also live under parent.groupViews[].linkedGroup.groupViews
+      if (!meta.id) break
+      removeGroupViewFromAllMenus(Group.all(), meta.id)
       break
     }
 
@@ -1052,9 +1058,10 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     }
 
     case SET_GROUP_VIEW_HIDDEN_PENDING: {
-      if (!meta.id || !meta.groupId || typeof meta.hidden !== 'boolean') break
-      group = Group.withId(meta.groupId)
-      setGroupViewHiddenInMenu(group, meta.id, meta.hidden)
+      // ContextMenu expanded spaces read parent.groupViews[].linkedGroup.groupViews —
+      // patch every loaded menu copy, not only the space Group record.
+      if (!meta.id || typeof meta.hidden !== 'boolean') break
+      setGroupViewHiddenInAllMenus(Group.all(), meta.id, meta.hidden)
       break
     }
 

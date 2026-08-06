@@ -124,9 +124,15 @@ export default function SortableViewsGrid ({
 }) {
   const { t } = useTranslation()
   const commitOrder = useCommitViewOrder(group)
+  const acceptedPostTypes = (spaceGroup || group)?.acceptedPostTypes
+  // Match live menu: hide typed views that the group/space no longer accepts.
   const visibleViews = useMemo(
-    () => sortViewsByMenuOrder((views || []).filter(v => v.order != null)),
-    [views]
+    () => sortViewsByMenuOrder(
+      (views || [])
+        .filter(v => v.order != null)
+        .filter(v => viewAcceptedByPostTypes(v.type, acceptedPostTypes))
+    ),
+    [views, acceptedPostTypes]
   )
   const [orderedViews, setOrderedViews] = useState(visibleViews)
 
