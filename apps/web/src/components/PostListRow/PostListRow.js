@@ -1,9 +1,9 @@
-import { getLocaleFromLocalStorage } from 'util/locale'
-import { DateTimeHelpers, TextHelpers } from '@hylo/shared'
+import { TextHelpers } from '@hylo/shared'
 import { CircleCheckBig } from 'lucide-react'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 
+import EventTimeDisplay from 'components/EventTimeDisplay/EventTimeDisplay'
 import Icon from 'components/Icon'
 import useViewPostDetails from 'hooks/useViewPostDetails'
 import { cn } from 'util/index'
@@ -46,13 +46,25 @@ const PostListRow = (props) => {
   const unread = false
   const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroupId)
 
-  // For events, show the date range
-  const start = DateTimeHelpers.toDateTime(post.startTime, { locale: getLocaleFromLocalStorage() })
-  const end = DateTimeHelpers.toDateTime(post.endTime, { locale: getLocaleFromLocalStorage() })
-  const isSameDay = DateTimeHelpers.isSameDay(start, end)
-  const eventDateDisplay = post.type === 'event'
-    ? (isSameDay ? start.toFormat('MMM d') : `${start.toFormat('MMM d')} - ${end.toFormat('MMM d')}`)
-    : null
+  let subtitle = null
+  if (post.type === 'event' && post.startTime) {
+    subtitle = (
+      <EventTimeDisplay
+        startTime={post.startTime}
+        endTime={post.endTime}
+        timezone={post.timezone}
+        showTooltip
+        tooltipId={`list-event-time-${post.id}`}
+        className='text-xs text-foreground/70'
+      />
+    )
+  } else if (post.type !== 'event') {
+    subtitle = (
+      <span className='text-xs text-foreground/50 line-clamp-1'>
+        {TextHelpers.presentHTMLToText(details, { truncate: 150 })}
+      </span>
+    )
+  }
 
   return (
     <div
@@ -98,18 +110,7 @@ const PostListRow = (props) => {
               )
             : ' '}
         </div>
-        {eventDateDisplay
-          ? (
-            <span className='text-xs text-foreground/70'>
-              <Icon name='Calendar' className='w-3 h-3 inline mr-1' />
-              {eventDateDisplay}
-            </span>
-            )
-          : (
-            <span className='text-xs text-foreground/50 line-clamp-1'>
-              {TextHelpers.presentHTMLToText(details, { truncate: 150 })}
-            </span>
-            )}
+        {subtitle}
       </div>
 
       {/* Column 3: Timestamp */}

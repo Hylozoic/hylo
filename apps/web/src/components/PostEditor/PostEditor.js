@@ -34,6 +34,7 @@ import {
 } from 'components/ui/dialog'
 import LinkPreview from './LinkPreview'
 import { DateTimePicker } from 'components/ui/datetimepicker'
+import TimezoneSelect from 'components/TimezoneSelect/TimezoneSelect'
 import PublicToggle from 'components/PublicToggle'
 import AnonymousVoteToggle from './AnonymousVoteToggle/AnonymousVoteToggle'
 import SliderInput from 'components/SliderInput/SliderInput'
@@ -342,7 +343,7 @@ function PostEditorInner ({
       locationId: null,
       proposalOptions: [],
       quorum: 0,
-      timezone: DateTimeHelpers.dateTimeNow(getLocaleFromLocalStorage()).zoneName,
+      timezone: DateTimeHelpers.getCurrentTimezone(),
       title: '',
       topics: topic
         ? [topic]
@@ -791,15 +792,20 @@ function PostEditorInner ({
    * @param {Date} startTime - The new start time
    * @returns {Date} - The calculated end time
    */
-  const calcEndTime = useCallback((startTime) => {
+  const getPostTimezone = useCallback(() => {
+    return currentPost.timezone || DateTimeHelpers.getCurrentTimezone()
+  }, [currentPost.timezone])
+
+  const calcEndTime = useCallback((startInstant) => {
+    const tz = getPostTimezone()
     let msDiff = 3600000 // ms in one hour
     if (currentPost.startTime && currentPost.endTime) {
-      const start = DateTimeHelpers.toDateTime(currentPost.startTime, { locale: getLocaleFromLocalStorage() })
-      const end = DateTimeHelpers.toDateTime(currentPost.endTime, { locale: getLocaleFromLocalStorage() })
-      msDiff = end.diff(start)
+      const start = DateTimeHelpers.toDateTime(currentPost.startTime, { timezone: tz })
+      const end = DateTimeHelpers.toDateTime(currentPost.endTime, { timezone: tz })
+      msDiff = end.diff(start).milliseconds
     }
-    return DateTimeHelpers.toDateTime(startTime, { locale: getLocaleFromLocalStorage() }).plus({ milliseconds: msDiff }).toJSDate()
-  }, [currentPost.startTime, currentPost.endTime])
+    return DateTimeHelpers.toDateTime(startInstant, { timezone: tz }).plus({ milliseconds: msDiff }).toJSDate()
+  }, [currentPost.startTime, currentPost.endTime, getPostTimezone])
 
   const handlePostTypeSelection = useCallback((type) => {
     if (type === currentPost.type) return
@@ -898,20 +904,35 @@ function PostEditorInner ({
     setCurrentPost(prev => ({ ...prev, acceptContributions: !prev.acceptContributions }))
   }, [setCurrentPost])
 
-  const handleStartTimeChange = (startTime) => {
-    // force endTime to track startTime
+  const handleStartTimeChange = (pickerStart) => {
+    const tz = getPostTimezone()
+    const startTime = DateTimeHelpers.fromPickerDate(pickerStart, tz)
     const endTime = calcEndTime(startTime)
     validateTimeChange(startTime, endTime)
     setCurrentPost(prev => ({ ...prev, startTime, endTime }))
-    endTimeRef.current.setValue(endTime)
+    endTimeRef.current?.setValue(DateTimeHelpers.toPickerDate(endTime, tz))
   }
 
-  const handleEndTimeChange = useCallback((endTime) => {
+  const handleEndTimeChange = useCallback((pickerEnd) => {
+    const tz = getPostTimezone()
+    const endTime = DateTimeHelpers.fromPickerDate(pickerEnd, tz)
     setCurrentPost(prev => {
       validateTimeChange(prev.startTime, endTime)
       return { ...prev, endTime }
     })
-  }, [setCurrentPost, validateTimeChange])
+  }, [getPostTimezone, validateTimeChange])
+
+  const handleTimezoneChange = useCallback((newTimezone) => {
+    setCurrentPost(prev => {
+      const oldTimezone = prev.timezone || DateTimeHelpers.getCurrentTimezone()
+      return {
+        ...prev,
+        timezone: newTimezone,
+        startTime: DateTimeHelpers.preserveWallClockOnTimezoneChange(prev.startTime, oldTimezone, newTimezone),
+        endTime: DateTimeHelpers.preserveWallClockOnTimezoneChange(prev.endTime, oldTimezone, newTimezone)
+      }
+    })
+  }, [])
 
   const handleDonationsLinkChange = useCallback((evt) => {
     const donationsLink = evt.target.value
@@ -1255,6 +1276,13 @@ function PostEditorInner ({
   }, [currentPost, myAdminGroups])
 
   const canHaveTimes = !['discussion', 'action', 'submission'].includes(currentPost.type)
+  const eventTimezone = currentPost.timezone || DateTimeHelpers.getCurrentTimezone()
+  const startTimePickerValue = currentPost.startTime
+    ? DateTimeHelpers.toPickerDate(currentPost.startTime, eventTimezone)
+    : undefined
+  const endTimePickerValue = currentPost.endTime
+    ? DateTimeHelpers.toPickerDate(currentPost.endTime, eventTimezone)
+    : undefined
   const postLocation = currentPost.location || selectedLocation
   const locationPrompt = currentPost.type === 'proposal' ? t('Is there a relevant location for this proposal?') : t('Where is your {{type}} located?', { type: currentPost.type })
   const hasStripeAccount = get('hasStripeAccount', currentUser)
@@ -1638,7 +1666,7 @@ function PostEditorInner ({
             <DateTimePicker
               hourCycle={hourCycle}
               granularity='minute'
-              value={currentPost.startTime}
+              value={startTimePickerValue}
               placeholder={t('Select Start')}
               onChange={handleStartTimeChange}
               onMonthChange={() => {}}
@@ -1648,12 +1676,23 @@ function PostEditorInner ({
               ref={endTimeRef}
               hourCycle={hourCycle}
               granularity='minute'
-              value={currentPost.endTime}
+              value={endTimePickerValue}
               placeholder={t('Select End')}
               onChange={handleEndTimeChange}
               onMonthChange={() => {}}
             />
           </div>
+        </div>
+      )}
+      {currentPost.type === 'event' && (
+        <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
+          <div className='text-xs text-foreground/50 shrink-0'>{t('Timezone')}</div>
+          <TimezoneSelect
+            className='border-none bg-transparent'
+            value={eventTimezone}
+            onChange={handleTimezoneChange}
+            disabled={loading}
+          />
         </div>
       )}
       {canHaveTimes && dateError && (
