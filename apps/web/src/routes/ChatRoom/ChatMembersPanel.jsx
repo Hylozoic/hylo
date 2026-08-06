@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom'
 import Avatar from 'components/Avatar'
 import { Tooltip, TooltipContent, TooltipTrigger } from 'components/ui/tooltip'
 import useRouteParams from 'hooks/useRouteParams'
+import { isMobileDevice } from 'util/mobile'
 import {
   FETCH_MEMBERS,
   fetchMembers,
@@ -105,9 +106,10 @@ export default function ChatMembersPanel ({ group }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [open, close])
 
-  // Focus search as the panel arrives
+  // Focus search as the panel arrives — desktop only: on a phone autofocus
+  // throws the keyboard over the list you just asked to see
   useEffect(() => {
-    if (open) searchInputRef.current?.focus()
+    if (open && !isMobileDevice()) searchInputRef.current?.focus()
   }, [open])
 
   if (!group) return null
@@ -203,7 +205,9 @@ export default function ChatMembersPanel ({ group }) {
                   <button
                     type='button'
                     onClick={(e) => openDM(e, person)}
-                    className='shrink-0 w-7 h-7 grid place-items-center rounded-md text-foreground/50 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 hover:text-foreground hover:bg-foreground/10 transition-all'
+                    // Hidden-until-hover only where hover exists — on touch there is
+                    // no hover to reveal it, so the button stays visible
+                    className='shrink-0 w-7 h-7 grid place-items-center rounded-md text-foreground/50 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 focus-visible:!opacity-100 hover:text-foreground hover:bg-foreground/10 transition-all'
                     aria-label={t('Message Member')}
                   >
                     <MessageCircle className='w-4 h-4' />
