@@ -21,6 +21,7 @@ import NoPosts from 'components/NoPosts'
 import PostDialog from 'components/PostDialog'
 import Tooltip from 'components/Tooltip'
 import Button from 'components/ui/button'
+import ChatMembersPanel from './ChatMembersPanel'
 import ChatPost from './ChatPost'
 import ChatPostNotice from './ChatPostNotice'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
@@ -724,6 +725,9 @@ export default function ChatRoom (props) {
       </Helmet>
 
       <div id='chats' className='my-0 mx-auto h-[calc(100%-130px)] w-full flex flex-col flex-1 relative overflow-hidden px-1'>
+        {/* Member pill + slide-in list; absolute inside this container so the
+            cover blankets the chat pane and nothing else */}
+        <ChatMembersPanel group={group} />
         {initialPostToScrollTo === null || groupLoading || chatViewLoading
           ? (
             <div className='h-full w-full mt-auto overflow-x-visible flex flex-col justify-end min-h-[40vh]'>
