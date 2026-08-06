@@ -658,18 +658,21 @@ export default function ChatRoom (props) {
     }
   }, [chatView?.id, chatView?.lastReadPostId, group?.id])
 
+  // (post.postReactions || []): posts that entered the list optimistically or over
+  // the socket carry no reactions array, and throwing here happens AFTER the API
+  // call fired — the reaction saved but never showed until a refresh
   const handleAddReaction = useCallback((post, emojiFull) => {
-    const optimisticUpdate = { postReactions: [...post.postReactions, { emojiFull, user: { name: currentUser.name, id: currentUser.id } }] }
+    const optimisticUpdate = { postReactions: [...(post.postReactions || []), { emojiFull, user: { name: currentUser.name, id: currentUser.id } }] }
     const newPost = { ...post, ...optimisticUpdate }
     messageListRef.current?.data.map((item) => post.id === item.id || (post.localId && post.localId === item.localId) ? newPost : item)
   }, [currentUser])
 
   const handleRemoveReaction = useCallback((post, emojiFull) => {
-    const postReactions = post.postReactions.filter(reaction => {
+    const postReactions = (post.postReactions || []).filter(reaction => {
       if (reaction.emojiFull === emojiFull && reaction.user.id === currentUser.id) return false
       return true
     })
-    const newPost = { ...post, postReactions: postReactions.filter(reaction => reaction.emojiFull !== emojiFull || reaction.user.id !== currentUser.id) }
+    const newPost = { ...post, postReactions }
     messageListRef.current?.data.map((item) => post.id === item.id || (post.localId && post.localId === item.localId) ? newPost : item)
   }, [currentUser])
 
