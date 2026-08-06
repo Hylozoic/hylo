@@ -58,9 +58,25 @@ export default function ChatPostNotice ({ post, highlighted, className }) {
     >
       <div className='flex items-center gap-2 min-w-0'>
         <Avatar avatarUrl={creator?.avatarUrl} small className='shrink-0' />
-        <Icon name={getPostTypeIcon(type)} className='text-sm shrink-0' style={{ color: accent }} />
-        <span className='text-xs font-bold uppercase tracking-wide truncate' style={{ color: accent }}>
-          {t('{{author}} posted a new {{postType}}', { author: creator?.name, postType: postTypeLabel })}
+        {/* Only the type — icon and word together — carries the type colour; the
+            sentence around it stays neutral. Split the translated sentence around a
+            sentinel so every locale's word order survives (German and Hindi both
+            put words after the type). */}
+        <span className='text-xs font-bold uppercase tracking-wide truncate text-foreground/70'>
+          {(() => {
+            const SENTINEL = '\u241F'
+            const [before, after] = t('{{author}} posted a new {{postType}}', { author: creator?.name, postType: SENTINEL }).split(SENTINEL)
+            return (
+              <>
+                {before}
+                <span className='inline-flex items-baseline gap-1 whitespace-nowrap' style={{ color: accent }}>
+                  <Icon name={getPostTypeIcon(type)} className='text-sm' />
+                  {postTypeLabel}
+                </span>
+                {after}
+              </>
+            )
+          })()}
         </span>
       </div>
       {title && (
