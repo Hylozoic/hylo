@@ -71,12 +71,19 @@ const SocketListener = (props) => {
 
   useEffect(() => {
     const socket = getSocket()
+    // Re-subscribe the user room on every (re)connection — after a server
+    // restart the socket comes back but its room memberships do not
+    const resubscribe = () => reconnect(socket)
     reconnect(socket)
+    socket.on('connect', resubscribe)
+    socket.on('reconnect', resubscribe)
 
     Object.keys(handlers).forEach(socketEvent =>
       socket.on(socketEvent, handlers[socketEvent]))
 
     return () => {
+      socket.off('connect', resubscribe)
+      socket.off('reconnect', resubscribe)
       socket.post(socketUrl('/noo/user/unsubscribe'))
       Object.keys(handlers).forEach(socketEvent =>
         socket.off(socketEvent, handlers[socketEvent]))
