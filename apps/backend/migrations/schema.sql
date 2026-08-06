@@ -1086,6 +1086,41 @@ ALTER SEQUENCE public.event_responses_id_seq OWNED BY public.event_responses.id;
 
 
 --
+-- Name: event_series; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.event_series (
+    id bigint NOT NULL,
+    user_id bigint,
+    recurrence_rule text NOT NULL,
+    timezone character varying(255),
+    start_time timestamp with time zone,
+    is_active boolean DEFAULT true,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone
+);
+
+
+--
+-- Name: event_series_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.event_series_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: event_series_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.event_series_id_seq OWNED BY public.event_series.id;
+
+
+--
 -- Name: extensions; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2679,7 +2714,9 @@ CREATE TABLE public.posts (
     num_people_completed integer DEFAULT 0,
     num_commenters integer DEFAULT 0,
     budget character varying(255),
-    ical_sequence integer
+    ical_sequence integer,
+    event_series_id bigint,
+    original_start_time timestamp with time zone
 );
 
 
@@ -4136,6 +4173,13 @@ ALTER TABLE ONLY public.event_responses ALTER COLUMN id SET DEFAULT nextval('pub
 
 
 --
+-- Name: event_series id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_series ALTER COLUMN id SET DEFAULT nextval('public.event_series_id_seq'::regclass);
+
+
+--
 -- Name: extensions id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -4796,6 +4840,14 @@ ALTER TABLE ONLY public.event_invitations
 
 ALTER TABLE ONLY public.event_responses
     ADD CONSTRAINT event_responses_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: event_series event_series_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_series
+    ADD CONSTRAINT event_series_pkey PRIMARY KEY (id);
 
 
 --
@@ -6168,6 +6220,13 @@ CREATE INDEX notifications_pk_medium_0 ON public.notifications USING btree (id) 
 
 
 --
+-- Name: posts_event_series_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX posts_event_series_id_index ON public.posts USING btree (event_series_id);
+
+
+--
 -- Name: posts_proposal_outcome_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -6796,6 +6855,14 @@ ALTER TABLE ONLY public.event_invitations
 
 ALTER TABLE ONLY public.event_invitations
     ADD CONSTRAINT event_invitations_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id);
+
+
+--
+-- Name: event_series event_series_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_series
+    ADD CONSTRAINT event_series_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) DEFERRABLE INITIALLY DEFERRED;
 
 
 --
@@ -7596,6 +7663,14 @@ ALTER TABLE ONLY public.posts_about_users
 
 ALTER TABLE ONLY public.posts_about_users
     ADD CONSTRAINT posts_about_users_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: posts posts_event_series_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.posts
+    ADD CONSTRAINT posts_event_series_id_foreign FOREIGN KEY (event_series_id) REFERENCES public.event_series(id) DEFERRABLE INITIALLY DEFERRED;
 
 
 --
