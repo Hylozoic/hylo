@@ -17,6 +17,7 @@ import {
   getMembers
 } from 'routes/Members/Members.store'
 import { messagePersonUrl, personUrl } from '@hylo/navigation'
+import { getRoomPresence } from './RoomPresence.store'
 import { bgImageStyle, cn } from 'util/index'
 
 // "Recently active" for the online dot — inside this window someone is treated
@@ -140,6 +141,21 @@ export default function ChatMembersPanel ({ group, latestPost }) {
     if (creator?.id) promote([{ id: creator.id, name: creator.name, avatarUrl: creator.avatarUrl }])
   }, [latestPost?.id])
 
+  // Real presence — the server's live roster for this room. Arrivals promote
+  // into the strip; when someone's last socket leaves, they drop out of it.
+  const presenceMap = useSelector(state => getRoomPresence(state, group?.id))
+  const presentIdsKey = useMemo(() => Object.keys(presenceMap).sort().join(','), [presenceMap])
+  const prevPresentRef = useRef([])
+  useEffect(() => {
+    const present = Object.keys(presenceMap)
+    const prev = prevPresentRef.current
+    prevPresentRef.current = present
+    const arrivals = present.filter(id => !prev.includes(id))
+    if (arrivals.length) promote(arrivals.map(id => ({ id, ...presenceMap[id] })))
+    const departures = prev.filter(id => !present.includes(id))
+    if (departures.length) setActiveIds(cur => cur.filter(id => !departures.includes(id)))
+  }, [presentIdsKey])
+
   const memberIndex = useMemo(() => {
     const map = {}
     ;[...activityMembers, ...members].forEach(m => { map[String(m.id)] = m })
@@ -151,9 +167,13 @@ export default function ChatMembersPanel ({ group, latestPost }) {
     [activeIds, memberIndex]
   )
 
+  // The live roster is the source of truth; the lastActiveAt heuristic backs it
+  // up for the beat before the roster arrives
   const anyOnline = useMemo(
-    () => activityMembers.some(m => isRecentlyActive(m, now)) || members.some(m => isRecentlyActive(m, now)),
-    [activityMembers, members, now]
+    () => presentIdsKey.length > 0 ||
+      activityMembers.some(m => isRecentlyActive(m, now)) ||
+      members.some(m => isRecentlyActive(m, now)),
+    [presentIdsKey, activityMembers, members, now]
   )
 
   const handleScroll = useCallback((e) => {
@@ -202,6 +222,7 @@ export default function ChatMembersPanel ({ group, latestPost }) {
           <div className='flex items-center'>
             {activeMembers.map((person, i) => {
               const typing = typingIds.includes(String(person.id))
+              const present = Boolean(presenceMap[String(person.id)])
               const label = typing ? `${person.name} ${t('is typing...')}` : person.name
               return (
                 <Tooltip key={person.id}>
@@ -229,9 +250,11 @@ export default function ChatMembersPanel ({ group, latestPost }) {
                             ))}
                           </span>
                           )
-                        : (
-                          <span className='absolute bottom-0 -right-px w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-background' aria-hidden='true' />
-                          )}
+                        : present
+                          ? (
+                            <span className='absolute bottom-0 -right-px w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-background' aria-hidden='true' />
+                            )
+                          : null}
                     </button>
                   </TooltipTrigger>
                   <TooltipContent>{label}</TooltipContent>

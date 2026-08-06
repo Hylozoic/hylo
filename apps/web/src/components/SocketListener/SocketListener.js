@@ -19,6 +19,7 @@ import {
   addUserTyping,
   clearUserTyping
 } from 'components/PeopleTyping/PeopleTyping.store'
+import { addMemberPresent, removeMemberPresent, setRoomPresence } from 'routes/ChatRoom/RoomPresence.store'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 
 const SocketListener = (props) => {
@@ -61,7 +62,11 @@ const SocketListener = (props) => {
     newThread: data => dispatch(receiveThread(convertToThread(data))),
     userTyping: ({ userId, userName, isTyping }) => {
       isTyping ? dispatch(addUserTyping(userId, userName)) : dispatch(clearUserTyping(userId))
-    }
+    },
+    // Live room rosters (see RoomPresence.store)
+    roomPresence: ({ groupId, members }) => dispatch(setRoomPresence(groupId, members)),
+    memberPresent: ({ groupId, member }) => dispatch(addMemberPresent(groupId, member)),
+    memberAway: ({ groupId, userId }) => dispatch(removeMemberPresent(groupId, userId))
   }), [currentUser?.id, dispatch, group?.id])
 
   useEffect(() => {
