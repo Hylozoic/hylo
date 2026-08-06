@@ -1836,7 +1836,6 @@
   "When your account is active, use the Paid Offerings tab to create what you want to sell.": "जब आपका खाता सक्रिय हो, तो जो बेचना चाहते हैं उसे बनाने के लिए सशुल्क ऑफ़र टैब का उपयोग करें।",
   "Where do you call home?": "आप अपना घर कहाँ मानते हैं?",
   "Where is your {{type}} located?": "आपका {{type}} कहाँ स्थित है?",
-  "Which of the following skills & interests are relevant to you?": "निम्नलिखित में से कौन से कौशल और रुचियाँ आपके लिए प्रासंगिक हैं?",
   "While you wait": "प्रतीक्षा के दौरान",
   "Whitespace characters are not allowed in chat topic names": "चैट टॉपिक नामों में रिक्ति (whitespace) वर्णों की अनुमति नहीं है",
   "Who Can Submit": "कौन सबमिट कर सकता है",
@@ -2413,5 +2412,6 @@
   "Nothing here yet — be the first to post": "यहाँ अभी कुछ नहीं है — सबसे पहले पोस्ट करें",
   "Previous image": "पिछली छवि",
   "Toggle formatting toolbar": "फ़ॉर्मेटिंग टूलबार टॉगल करें",
-  "Deleting": "हटाया जा रहा है"
+  "Deleting": "हटाया जा रहा है",
+  "{{group.name}} wants to know which skills and interests are relevant to you?": "{{group.name}} जानना चाहता है कि आपके लिए कौन से कौशल और रुचियाँ प्रासंगिक हैं?"
 }

@@ -1923,7 +1923,6 @@
   "When your account is active, use the Paid Offerings tab to create what you want to sell.": "When your account is active, use the Paid Offerings tab to create what you want to sell.",
   "Where do you call home?": "Where do you call home?",
   "Where is your {{type}} located?": "Where is your {{type}} located?",
-  "Which of the following skills & interests are relevant to you?": "Which of the following skills & interests are relevant to you?",
   "While you wait": "While you wait",
   "Whitespace characters are not allowed in chat topic names": "Whitespace characters are not allowed in chat topic names",
   "Who Can Submit": "Who Can Submit",
@@ -2510,5 +2509,6 @@
   "Nothing here yet — be the first to post": "Nothing here yet — be the first to post",
   "Previous image": "Previous image",
   "Toggle formatting toolbar": "Toggle formatting toolbar",
-  "Deleting": "Deleting"
+  "Deleting": "Deleting",
+  "{{group.name}} wants to know which skills and interests are relevant to you?": "{{group.name}} wants to know which skills and interests are relevant to you?"
 }

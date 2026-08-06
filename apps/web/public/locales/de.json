@@ -1835,7 +1835,6 @@
   "When your account is active, use the Paid Offerings tab to create what you want to sell.": "Wenn Ihr Konto aktiv ist, nutzen Sie den Tab „Bezahlte Angebote“, um zu erstellen, was Sie verkaufen möchten.",
   "Where do you call home?": "Wo ist dein Zuhause?",
   "Where is your {{type}} located?": "Wo befindet sich dein {{type}}?",
-  "Which of the following skills & interests are relevant to you?": "Welche der folgenden Fähigkeiten und Interessen sind für dich relevant?",
   "While you wait": "Während Sie warten",
   "Whitespace characters are not allowed in chat topic names": "Leerzeichen sind in Chat-Themennamen nicht erlaubt",
   "Who Can Submit": "Wer kann einreichen",
@@ -2412,5 +2411,6 @@
   "Nothing here yet — be the first to post": "Hier ist noch nichts — poste als Erste:r",
   "Previous image": "Vorheriges Bild",
   "Toggle formatting toolbar": "Formatierungsleiste umschalten",
-  "Deleting": "Wird gelöscht"
+  "Deleting": "Wird gelöscht",
+  "{{group.name}} wants to know which skills and interests are relevant to you?": "{{group.name}} möchte wissen, welche Fähigkeiten und Interessen für dich relevant sind?"
 }

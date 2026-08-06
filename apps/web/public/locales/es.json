@@ -1909,7 +1909,6 @@
   "When your account is active, use the Paid Offerings tab to create what you want to sell.": "Cuando tu cuenta esté activa, usa la pestaña Ofertas de pago para crear lo que quieras vender.",
   "Where do you call home?": "¿A dónde llamas hogar?",
   "Where is your {{type}} located?": "¿Dónde se encuentra tu {{type}}?",
-  "Which of the following skills & interests are relevant to you?": "¿Cuál de las siguientes habilidades e intereses son relevantes para ti?",
   "While you wait": "Mientras esperas",
   "Whitespace characters are not allowed in chat topic names": "Los personajes de espacios en blanco no están permitidos en los nombres de los temas de chat",
   "Who Can Submit": "¿Quién puede enviar?",
@@ -2498,5 +2497,6 @@
   "Nothing here yet — be the first to post": "Aquí no hay nada todavía — sé la primera persona en publicar",
   "Previous image": "Imagen anterior",
   "Toggle formatting toolbar": "Alternar barra de formato",
-  "Deleting": "Eliminando"
+  "Deleting": "Eliminando",
+  "{{group.name}} wants to know which skills and interests are relevant to you?": "{{group.name}} quiere saber qué habilidades e intereses son relevantes para ti?"
 }
