@@ -124,8 +124,9 @@ export default function ChatPost ({
     }
   })
 
+  // Reply means "I'm here to write" — the opened post focuses its comment box
   const showPost = useCallback(() => {
-    viewPostDetails(post)
+    viewPostDetails(post, { focusComment: true })
     setIsLongPress(false)
   }, [post, viewPostDetails])
 
