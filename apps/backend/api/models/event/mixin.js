@@ -8,6 +8,10 @@ export default {
     return this.get('type') === Post.Type.EVENT
   },
 
+  eventSeries: function () {
+    return this.belongsTo(EventSeries, 'event_series_id')
+  },
+
   eventInvitees: function () {
     return this.isEvent()
       ? this.belongsToMany(User).through(EventInvitation, 'event_id', 'user_id').withPivot('response')

@@ -1,27 +1,17 @@
 import React from 'react'
-import { CalendarEvent as CalendarEventType } from 'components/Calendar/calendar-types'
 import { useCalendarContext } from 'components/Calendar/calendar-context'
-import { DateTime, Interval } from 'luxon'
+import { Interval } from 'luxon'
 import { motion, MotionConfig, AnimatePresence } from 'framer-motion'
 import Tooltip from 'components/Tooltip'
 import { DateTimeHelpers } from '@hylo/shared'
 import useViewPostDetails from 'hooks/useViewPostDetails'
 import { cn } from 'util/index'
 import { getLocaleFromLocalStorage } from 'util/locale'
+import { useTranslation } from 'react-i18next'
 
 import classes from './calendar.module.scss'
 
-interface EventPosition {
-  left: string
-  width: string
-  top: string
-  height: string
-}
-
-function getOverlappingEvents (
-  currentEvent: CalendarEventType,
-  events: CalendarEventType[]
-): CalendarEventType[] {
+function getOverlappingEvents (currentEvent, events) {
   const dt1 = DateTimeHelpers.toDateTime(currentEvent.start, { locale: getLocaleFromLocalStorage() })
   return events.filter((event) => {
     if (event.id === currentEvent.id) return true
@@ -31,11 +21,7 @@ function getOverlappingEvents (
   })
 }
 
-function calculateEventPosition (
-  event: CalendarEventType,
-  allEvents: CalendarEventType[],
-  day: Date
-): EventPosition {
+function calculateEventPosition (event, allEvents, day) {
   const overlappingEvents = getOverlappingEvents(event, allEvents)
   const group = overlappingEvents.sort(
     (a, b) => a.start.getTime() - b.start.getTime()
@@ -72,18 +58,21 @@ export default function CalendarEvent ({
   month = false,
   className,
   day
-}: {
-  event: CalendarEventType
-  month?: boolean
-  className?: string
-  day?: Date
 }) {
+  const { t } = useTranslation()
   const { events, date } =
     useCalendarContext()
   const style = month ? {} : calculateEventPosition(event, events, day)
-  // TODO format for multi-day events
-  const timeFormat = { ...DateTime.TIME_SIMPLE, timeZoneName: 'short' as const }
-  const toolTipTitle = `${event.title}<br />${DateTimeHelpers.toDateTime(event.start, { locale: getLocaleFromLocalStorage() }).toLocaleString(timeFormat)} - ${DateTimeHelpers.toDateTime(event.end, { locale: getLocaleFromLocalStorage() }).toLocaleString(timeFormat)}`
+  const locale = getLocaleFromLocalStorage()
+  const { primary, secondary, eventTimezoneLabel, userTimezoneLabel } = DateTimeHelpers.formatEventTimeDisplay({
+    start: event.start,
+    end: event.end,
+    eventTimezone: event.post?.timezone,
+    locale
+  })
+  const toolTipTitle = secondary
+    ? `${event.title}<br />${primary}<br /><span style="opacity:0.7">${t('Event time ({{timezone}})', { timezone: eventTimezoneLabel })}</span><br /><span style="opacity:0.7">${t('Your time ({{timezone}}): {{time}}', { timezone: userTimezoneLabel, time: secondary })}</span>`
+    : `${event.title}<br />${primary}<br /><span style="opacity:0.7">${t('Event time ({{timezone}})', { timezone: eventTimezoneLabel })}</span>`
 
   const viewPostDetails = useViewPostDetails()
 
