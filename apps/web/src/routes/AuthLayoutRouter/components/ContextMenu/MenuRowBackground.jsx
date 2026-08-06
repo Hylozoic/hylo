@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import useAppearance from 'hooks/useAppearance'
 import { bgImageStyle, cn } from 'util/index'
 import GroupViewIcon from './GroupViewIcon'
@@ -11,9 +11,17 @@ import { viewCardColor, hueOf } from './viewCardTheme'
  * view color (post-type brand, or slate grey).
  * Pass opacity/transition classes via `className` to fade.
  */
-export default function MenuRowBackground ({ view, bannerUrl, className }) {
+function MenuRowBackground ({ view, bannerUrl, className }) {
   const { effectiveColorScheme } = useAppearance()
   const isDark = effectiveColorScheme === 'dark'
+
+  // Memoized like CardIconField's tile: 96 glyph spans are not worth re-creating
+  // on every render. Before the early banner return — hooks run unconditionally.
+  const glyphs = useMemo(() => Array.from({ length: 96 }, (_, i) => (
+    <span key={i} className='flex'>
+      <GroupViewIcon view={view} className='!w-[13px] !h-[13px] !mr-0' />
+    </span>
+  )), [view])
 
   if (bannerUrl) {
     return (
@@ -45,13 +53,11 @@ export default function MenuRowBackground ({ view, bannerUrl, className }) {
         className='absolute -top-1.5 -left-1.5 -right-1.5 flex flex-wrap'
         style={{ gap: 7, opacity: 0.12, color: glyphColor, transform: 'rotate(-8deg)', transformOrigin: 'top left' }}
       >
-        {Array.from({ length: 96 }, (_, i) => (
-          <span key={i} className='flex'>
-            <GroupViewIcon view={view} className='!w-[13px] !h-[13px] !mr-0' />
-          </span>
-        ))}
+        {glyphs}
       </div>
       <div className='absolute inset-0' style={{ background: scrim }} />
     </div>
   )
 }
+
+export default React.memo(MenuRowBackground)

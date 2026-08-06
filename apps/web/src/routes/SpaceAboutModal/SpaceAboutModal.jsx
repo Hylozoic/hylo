@@ -18,8 +18,7 @@ import {
   SelectValue
 } from 'components/ui/select'
 import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
-import { cardNeutralBg } from 'routes/AuthLayoutRouter/components/ContextMenu/viewCardTheme'
-import useAppearance from 'hooks/useAppearance'
+import MenuRowBackground from 'routes/AuthLayoutRouter/components/ContextMenu/MenuRowBackground'
 import { avatarForView, iconForView } from '@hylo/presenters/GroupViewPresenter'
 import { leaveGroup } from 'routes/UserSettings/UserGroupsTab/UserGroupsTab.store'
 import { updateMembershipSettings } from 'routes/UserSettings/UserSettings.store'
@@ -51,7 +50,6 @@ function Fact ({ icon, label, value }) {
 export default function SpaceAboutModal ({ onClose }) {
   const dispatch = useDispatch()
   const { t } = useTranslation()
-  const { effectiveColorScheme } = useAppearance()
   const spaceFullSlug = useEffectiveGroupSlug()
   const spaceGroup = useSelector(state => getGroupForSlug(state, spaceFullSlug))
   const detailsLoaded = spaceGroup?.accessibility != null
@@ -93,9 +91,6 @@ export default function SpaceAboutModal ({ onClose }) {
   const bannerUrl = spaceGroup?.bannerUrl && spaceGroup.bannerUrl !== DEFAULT_BANNER
     ? spaceGroup.bannerUrl
     : null
-  // Same backdrop stack as the space card that opened this modal (SpaceViewCard):
-  // banner, else the avatar as cover art, else the cards' neutral surface
-  const headerImageUrl = bannerUrl || spaceGroup?.avatarUrl || null
 
   const accessLabel = !spaceGroup
     ? ''
@@ -119,17 +114,18 @@ export default function SpaceAboutModal ({ onClose }) {
             ? <div className='p-10'><Loading /></div>
             : (
               <>
-                <div
-                  className='relative h-[140px] grid place-items-center overflow-hidden shrink-0'
-                  style={{ background: cardNeutralBg(effectiveColorScheme) }}
-                >
-                  {headerImageUrl && (
-                    <>
-                      <div className='absolute inset-0 bg-cover bg-center' style={bgImageStyle(headerImageUrl)} />
-                      {/* The card's scrim, stop for stop */}
-                      <div className='absolute inset-0' style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.6) 100%)' }} />
-                    </>
-                  )}
+                <div className='relative h-[140px] grid place-items-center overflow-hidden shrink-0'>
+                  {bannerUrl
+                    ? (
+                      <>
+                        <div className='absolute inset-0 bg-cover bg-center' style={bgImageStyle(bannerUrl)} />
+                        {/* The card's scrim, stop for stop */}
+                        <div className='absolute inset-0' style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.6) 100%)' }} />
+                      </>
+                      )
+                    // No banner: the same repeating icon texture the space wears in the
+                    // menu and cards, so the modal is recognisably that space's surface
+                    : <MenuRowBackground view={spaceView} bannerUrl={null} />}
 
                   <div className='relative z-10 w-[84px] h-[84px] rounded-[22px] grid place-items-center overflow-hidden bg-background/20 backdrop-blur-sm border border-white/25 shadow-lg text-white'>
                     {avatar?.avatarUrl

@@ -245,8 +245,15 @@ function GroupViewMenuItem ({
       localSpaceSlug(parentSlug, linkedSpaceGroup.slug) === spaceSlug
     )
     const isExpanded = isSpaceMember && isSpaceActive && hasMultipleSpaceViews
-    const aboutUrl = linkedSpaceGroup
-      ? spaceUrl(parentSlug, localSpaceSlug(parentSlug, linkedSpaceGroup.slug), '/about')
+    // About opens as a ?about=1 overlay. Already inside this space: float it over
+    // the view being looked at. Elsewhere: land on the space with the overlay open.
+    const spaceBasePath = linkedSpaceGroup
+      ? spaceUrl(parentSlug, localSpaceSlug(parentSlug, linkedSpaceGroup.slug))
+      : null
+    const aboutUrl = spaceBasePath
+      ? (location.pathname.startsWith(spaceBasePath)
+          ? addQuerystringToPath(location.pathname, { about: 1 })
+          : addQuerystringToPath(spaceBasePath, { about: 1 }))
       : null
 
     // Active space rows reveal the space's banner photo (uploaded ones only);
