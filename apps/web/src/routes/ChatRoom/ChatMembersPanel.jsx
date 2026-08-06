@@ -244,9 +244,9 @@ export default function ChatMembersPanel ({ group, latestPost }) {
                       {/* The typing pill sits where the green dot sits: right edge on the avatar's right corner */}
                       {typing
                         ? (
-                          <span className='absolute -bottom-0.5 -right-px inline-flex items-center gap-[2px] px-[3px] py-[2px] rounded-[5px] bg-background' aria-hidden='true'>
+                          <span className='absolute -bottom-1 -right-0.5 inline-flex items-center gap-[3px] px-[5px] py-[3px] rounded-md bg-background' aria-hidden='true'>
                             {[0, 1, 2].map(d => (
-                              <span key={d} className='w-[3px] h-[3px] rounded-full bg-foreground animate-typing-dot' style={{ animationDelay: `${d * 160}ms` }} />
+                              <span key={d} className='w-[5px] h-[5px] rounded-full bg-foreground animate-typing-dot' style={{ animationDelay: `${d * 160}ms` }} />
                             ))}
                           </span>
                           )
