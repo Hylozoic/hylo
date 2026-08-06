@@ -69,7 +69,9 @@ export default function ChatPostNotice ({ post, highlighted, className }) {
             return (
               <>
                 {before}
-                <span className='inline-flex items-baseline gap-1 whitespace-nowrap' style={{ color: accent }}>
+                {/* mx breathes on both sides — the sentence's own spaces around the
+                    splice render vanishingly small at this size and tracking */}
+                <span className='inline-flex items-baseline gap-1 mx-1 whitespace-nowrap' style={{ color: accent }}>
                   <Icon name={getPostTypeIcon(type)} className='text-sm' />
                   {postTypeLabel}
                 </span>
