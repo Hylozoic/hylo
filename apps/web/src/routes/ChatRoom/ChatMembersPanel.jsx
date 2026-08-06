@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 
 import Avatar from 'components/Avatar'
+import { getPeopleTyping } from 'components/PeopleTyping/PeopleTyping.store'
 import { Tooltip, TooltipContent, TooltipTrigger } from 'components/ui/tooltip'
 import useRouteParams from 'hooks/useRouteParams'
 import { isMobileDevice } from 'util/mobile'
@@ -28,6 +29,9 @@ function isRecentlyActive (person, now) {
   return now - new Date(person.lastActiveAt).getTime() < RECENTLY_ACTIVE_MS
 }
 
+// The presence strip shows this many overlapping avatars at most
+const MAX_ACTIVE = 5
+
 /**
  * The chat room's member affordance, from the prototype's BDChatScreen: a pill in
  * the top right (member icon, count, and a green dot when anyone is recently
@@ -36,7 +40,7 @@ function isRecentlyActive (person, now) {
  * Mounts inside the chat's relative container; the overlay and panel are
  * absolute within it, so the chat pane is covered but the sidebar is not.
  */
-export default function ChatMembersPanel ({ group }) {
+export default function ChatMembersPanel ({ group, latestPost }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const navigate = useNavigate()
@@ -72,9 +76,85 @@ export default function ChatMembersPanel ({ group }) {
   // refetched when the search term settles
   useEffect(() => { fetchPage(0) }, [fetchPage])
 
+  // ─── Currently-active strip ────────────────────────────────────────────────
+  // Seeded from the most recently active members, then reordered live: someone
+  // typing or posting jumps to the front and the last avatar falls off.
+
+  const activityParams = useMemo(
+    () => getMemberQueryProps({ slug, search: undefined, sortBy: 'last_active_at', groupRoleId: null }),
+    [slug]
+  )
+  const activityMembers = useSelector(state => getMembers(state, activityParams))
+
+  useEffect(() => {
+    if (slug && group?.id) {
+      dispatch(fetchMembers({ slug, groupId: group.id, sortBy: 'last_active_at', offset: 0, groupRoleId: null }))
+    }
+  }, [dispatch, slug, group?.id])
+
+  const [activeIds, setActiveIds] = useState([])
+  // Names/avatars learned from live events for people outside the fetched pages
+  const extraInfoRef = useRef({})
+
+  // A new room starts its strip from scratch
+  useEffect(() => { setActiveIds([]) }, [slug])
+
+  const promote = useCallback((entries) => {
+    const valid = entries.filter(e => e?.id)
+    if (!valid.length) return
+    valid.forEach(e => {
+      const key = String(e.id)
+      extraInfoRef.current[key] = { ...extraInfoRef.current[key], ...e }
+    })
+    setActiveIds(prev => {
+      const ids = valid.map(e => String(e.id))
+      const rest = prev.filter(id => !ids.includes(id))
+      const next = [...ids, ...rest].slice(0, MAX_ACTIVE)
+      return next.length === prev.length && next.every((id, i) => id === prev[i]) ? prev : next
+    })
+  }, [])
+
   // One clock reading per render pass, not per row
   const now = Date.now()
-  const anyOnline = useMemo(() => members.some(m => isRecentlyActive(m, now)), [members, now])
+
+  // Seed once per room, as soon as the activity-sorted page lands
+  const seedIdsKey = useMemo(
+    () => activityMembers.filter(m => isRecentlyActive(m, now)).slice(0, MAX_ACTIVE).map(m => String(m.id)).join(','),
+    [activityMembers]
+  )
+  useEffect(() => {
+    if (activeIds.length === 0 && seedIdsKey) setActiveIds(seedIdsKey.split(','))
+  }, [seedIdsKey])
+
+  // Typing promotes to the front — and marks the avatar with the pulse
+  const peopleTyping = useSelector(getPeopleTyping)
+  const typingIds = useMemo(() => Object.keys(peopleTyping || {}).map(String), [peopleTyping])
+  useEffect(() => {
+    const entries = Object.entries(peopleTyping || {}).map(([id, v]) => ({ id, name: v?.name }))
+    if (entries.length) promote(entries)
+  }, [typingIds.join(','), promote])
+
+  // So does a message arriving
+  useEffect(() => {
+    const creator = latestPost?.creator
+    if (creator?.id) promote([{ id: creator.id, name: creator.name, avatarUrl: creator.avatarUrl }])
+  }, [latestPost?.id])
+
+  const memberIndex = useMemo(() => {
+    const map = {}
+    ;[...activityMembers, ...members].forEach(m => { map[String(m.id)] = m })
+    return map
+  }, [activityMembers, members])
+
+  const activeMembers = useMemo(
+    () => activeIds.map(id => memberIndex[id] || extraInfoRef.current[id]).filter(Boolean),
+    [activeIds, memberIndex]
+  )
+
+  const anyOnline = useMemo(
+    () => activityMembers.some(m => isRecentlyActive(m, now)) || members.some(m => isRecentlyActive(m, now)),
+    [activityMembers, members, now]
+  )
 
   const handleScroll = useCallback((e) => {
     if (!hasMore || pending) return
@@ -116,17 +196,58 @@ export default function ChatMembersPanel ({ group }) {
 
   return (
     <>
-      {/* The pill */}
-      <button
-        type='button'
-        onClick={() => setOpen(true)}
-        className='absolute top-2 right-2 z-30 inline-flex items-center gap-1.5 h-7 pl-2.5 pr-2 rounded-md bg-card/90 backdrop-blur-sm border border-foreground/20 text-foreground text-xs font-semibold cursor-pointer transition-all hover:border-foreground/40 hover:scale-105'
-        aria-label={t('Members')}
-      >
-        <Users className='w-3.5 h-3.5' />
-        {group.memberCount != null && <span>{group.memberCount}</span>}
-        {anyOnline && <span className='w-[7px] h-[7px] rounded-full bg-green-500' aria-hidden='true' />}
-      </button>
+      <div className='absolute top-2 right-2 z-30 flex items-center gap-2'>
+        {/* Currently active — newest activity on the left, typer pulses and takes the top */}
+        {activeMembers.length > 0 && (
+          <div className='flex items-center'>
+            {activeMembers.map((person, i) => {
+              const typing = typingIds.includes(String(person.id))
+              const label = typing ? `${person.name} ${t('is typing...')}` : person.name
+              return (
+                <Tooltip key={person.id}>
+                  <TooltipTrigger asChild>
+                    <button
+                      type='button'
+                      onClick={() => openProfile(person)}
+                      className={cn('relative rounded-full transition-all hover:scale-110 hover:!z-20', i > 0 && '-ml-2')}
+                      style={{ zIndex: typing ? MAX_ACTIVE + 2 : MAX_ACTIVE - i }}
+                      aria-label={label}
+                    >
+                      <span className='block rounded-full border-2 border-background'>
+                        <Avatar avatarUrl={person.avatarUrl} small />
+                      </span>
+                      {typing
+                        ? (
+                          <span className='absolute -bottom-0.5 -left-1 inline-flex items-center gap-[2px] px-[3px] py-[2px] rounded-[5px] bg-background' aria-hidden='true'>
+                            {[0, 1, 2].map(d => (
+                              <span key={d} className='w-[3px] h-[3px] rounded-full bg-foreground animate-typing-dot' style={{ animationDelay: `${d * 160}ms` }} />
+                            ))}
+                          </span>
+                          )
+                        : (
+                          <span className='absolute -bottom-px -right-px w-2 h-2 rounded-full bg-green-500 border-2 border-background' aria-hidden='true' />
+                          )}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>{label}</TooltipContent>
+                </Tooltip>
+              )
+            })}
+          </div>
+        )}
+
+        {/* The pill */}
+        <button
+          type='button'
+          onClick={() => setOpen(true)}
+          className='inline-flex items-center gap-1.5 h-7 pl-2.5 pr-2 rounded-md bg-card/90 backdrop-blur-sm border border-foreground/20 text-foreground text-xs font-semibold cursor-pointer transition-all hover:border-foreground/40 hover:scale-105'
+          aria-label={t('Members')}
+        >
+          <Users className='w-3.5 h-3.5' />
+          {group.memberCount != null && <span>{group.memberCount}</span>}
+          {anyOnline && <span className='w-[7px] h-[7px] rounded-full bg-green-500' aria-hidden='true' />}
+        </button>
+      </div>
 
       {/* Cover over the chat */}
       <div

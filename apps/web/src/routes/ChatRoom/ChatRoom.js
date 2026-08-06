@@ -728,9 +728,9 @@ export default function ChatRoom (props) {
         {/* The stream header's wash, here as a still strip: theme background fading
             to its own colour at zero alpha, so messages scroll under a soft top edge */}
         <div aria-hidden='true' className='absolute top-0 left-0 right-0 h-14 z-20 pointer-events-none bg-gradient-to-b from-[hsl(var(--theme-background)/0.1)] dark:from-[hsl(var(--theme-background)/0.5)] to-[hsl(var(--theme-background)/0)]' />
-        {/* Member pill + slide-in list; absolute inside this container so the
-            cover blankets the chat pane and nothing else */}
-        <ChatMembersPanel group={group} />
+        {/* Member pill + active strip + slide-in list; absolute inside this container
+            so the cover blankets the chat pane and nothing else */}
+        <ChatMembersPanel group={group} latestPost={postsForDisplay[postsForDisplay.length - 1]} />
         {initialPostToScrollTo === null || groupLoading || chatViewLoading
           ? (
             <div className='h-full w-full mt-auto overflow-x-visible flex flex-col justify-end min-h-[40vh]'>
@@ -937,8 +937,13 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
       )}
       {post.type === 'chat'
         ? (
+          // Last message keeps a gap above the composer equal to the list's left
+          // gutter (px-3 sm:px-5). Keyed on !nextData, not numPosts — appended
+          // posts (socket / optimistic send) grow the Virtuoso list before
+          // context.numPosts catches up, which left the newest message flush
+          // against the bottom.
           <div
-            className={cn('max-w-[750px] transition-all mb-0', animationClass, { 'mb-5': index === context.numPosts - 1 })}
+            className={cn('max-w-[750px] transition-all mb-0', animationClass, { 'mb-3 sm:mb-5': !nextData })}
             style={animationStyle}
           >
             <ChatPost
@@ -955,7 +960,7 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
           </div>)
         : (
           <div
-            className={cn('max-w-[750px] my-2', animationClass)}
+            className={cn('max-w-[750px] my-2', animationClass, { 'mb-3 sm:mb-5': !nextData })}
             style={animationStyle}
           >
             <ChatPostNotice
