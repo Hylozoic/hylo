@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { CircleEllipsis, X } from 'lucide-react'
+import { CircleEllipsis, GripVertical, X } from 'lucide-react'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 
 import { useViewHeader } from 'contexts/ViewHeaderContext'
@@ -409,7 +409,8 @@ export default function MoreViewsPage ({ group }) {
           {/* The reorder hint rides in the bar with the control it explains —
               hint left, Done Editing right, matching the page's content well */}
           <div className='w-full max-w-[980px] flex items-center justify-between gap-4'>
-            <p className='text-sm text-foreground/70 m-0 text-left pointer-events-auto'>
+            <p className='flex items-center gap-2 text-sm text-foreground/70 m-0 text-left pointer-events-auto'>
+              <GripVertical className='w-4 h-4 shrink-0 text-foreground/50' />
               {t('Drag and drop items in the menu on the left to reorder them. The top item is the home view for this group.')}
             </p>
             <button

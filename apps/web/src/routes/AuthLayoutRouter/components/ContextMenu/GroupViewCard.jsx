@@ -168,7 +168,9 @@ function GroupViewCard ({ view, isEditing, onAddToMenu, onOpen, onOpenSettings, 
       className={cn(
         CARD_CLASS,
         cardChrome(isDark),
-        isEditing && (renderEditActions ? 'cursor-default' : 'cursor-[inherit]'),
+        // Editing means the card is a thing you pick up — grab, and grabbing while held.
+        // The sortable wrapper case inherits so dnd-kit's isDragging cursor wins.
+        isEditing && (renderEditActions ? 'cursor-grab active:cursor-grabbing' : 'cursor-[inherit]'),
         // The wrapper owns the footprint in that case; fill it rather than sizing
         // against a parent that is sizing itself to this card.
         !renderEditActions && CARD_FILL_CLASS
@@ -268,7 +270,7 @@ export function SpaceViewCard ({ space, isEditing, isDeleting = false, onOpen, o
       className={cn(
         CARD_CLASS,
         cardChrome(isDark),
-        isEditing && 'cursor-default',
+        isEditing && 'cursor-grab active:cursor-grabbing',
         isDeleting && 'pointer-events-none opacity-50'
       )}
       style={{
