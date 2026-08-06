@@ -188,16 +188,28 @@ export function removeGroupViewFromMenu (group, viewId) {
   group.update({ groupViews: { items: structuredClone(items) } })
 }
 
+/**
+ * Merge a reordered in-menu list with existing off-menu views (order = null).
+ * Reorder UIs only pass ordered rows; replacing the whole blob would wipe More Views.
+ */
+export function mergeReorderedWithHidden (existingItems, reorderedItems) {
+  const itemsWithOrder = (reorderedItems || []).map((view, index) => ({ ...view, order: index }))
+  const orderedIds = new Set(itemsWithOrder.map(view => String(view.id)))
+  const hidden = (existingItems || []).filter(view =>
+    view.order == null && !orderedIds.has(String(view.id))
+  )
+  return [...itemsWithOrder, ...hidden]
+}
+
 /** Write a reordered view list into a Group's embedded groupViews (or nested space views). */
 export function applyGroupViewsOrder ({ group, parentGroupId, targetGroupId, reorderedItems, updateHomeRoute = false }) {
   if (!group) return
 
-  const itemsWithOrder = reorderedItems.map((view, index) => ({ ...view, order: index }))
-
   if (String(parentGroupId) === String(targetGroupId)) {
-    const updates = { groupViews: { items: structuredClone(itemsWithOrder) } }
-    if (updateHomeRoute && itemsWithOrder[0]) {
-      updates.homeRoute = homeRoutePathForView(itemsWithOrder[0])
+    const merged = mergeReorderedWithHidden(group.groupViews?.items, reorderedItems)
+    const updates = { groupViews: { items: structuredClone(merged) } }
+    if (updateHomeRoute && merged[0]) {
+      updates.homeRoute = homeRoutePathForView(merged[0])
     }
     group.update(updates)
     return
@@ -206,11 +218,12 @@ export function applyGroupViewsOrder ({ group, parentGroupId, targetGroupId, reo
   const items = group.groupViews?.items || []
   const newItems = items.map(view => {
     if (view.type === 'space' && String(view.linkedGroup?.id) === String(targetGroupId)) {
+      const merged = mergeReorderedWithHidden(view.linkedGroup?.groupViews?.items, reorderedItems)
       return {
         ...view,
         linkedGroup: {
           ...view.linkedGroup,
-          groupViews: { items: structuredClone(itemsWithOrder) }
+          groupViews: { items: structuredClone(merged) }
         }
       }
     }

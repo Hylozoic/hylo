@@ -40,7 +40,7 @@ import { FETCH_FOR_GROUP } from 'store/constants'
 import presentPost from 'store/presenters/presentPost'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
-import { personUrl, postUrl, groupDetailUrl } from '@hylo/navigation'
+import { personUrl, postUrl, groupDetailUrl, spaceHomeUrl } from '@hylo/navigation'
 
 import {
   fetchSavedSearches, deleteSearch, saveSearch, viewSavedSearch
@@ -89,6 +89,9 @@ function presentMember (person, groupId) {
 }
 
 function presentGroup (group) {
+  // locationObject is stored as a plain nested object on .ref from the GraphQL
+  // payload (field key is locationObject, FK column is locationId) — do not
+  // overwrite it with the FK accessor, which is often null for map results.
   return group.ref
 }
 
@@ -346,6 +349,12 @@ function MapExplorer (props) {
 
   const showGroupDetails = useCallback((groupSlug) => navigate(groupDetailUrl(groupSlug, { ...routeParams, view: 'map' }, getQuerystringParam(['hideDrawer', 't', 'group'], location))), [navigate, routeParams, location])
 
+  const showSpace = useCallback((space) => {
+    const parentSlug = space.parentSlug || (space.parentId === group?.id ? groupSlug : null)
+    if (!parentSlug || !space.slug) return
+    navigate(spaceHomeUrl(parentSlug, space))
+  }, [group?.id, groupSlug, navigate])
+
   const gotoMember = useCallback((memberId) => navigate(personUrl(memberId, groupSlug)), [dispatch, groupSlug, navigate])
 
   const toggleDrawer = useCallback(() => {
@@ -431,13 +440,15 @@ function MapExplorer (props) {
       // setSelectedObject(info.object)
       if (info.object.type === 'member') {
         gotoMember(info.object.id)
+      } else if (info.object.type === 'space') {
+        showSpace(info.object)
       } else if (info.object.type === 'group') {
         showGroupDetails(info.object.slug)
       } else {
         showDetails(info.object.id)
       }
     }
-  }, [gotoMember, hideDrawer, showDetails, showGroupDetails, viewport])
+  }, [gotoMember, hideDrawer, showDetails, showGroupDetails, showSpace, viewport])
 
   const creatingPostRef = useRef(false)
 
@@ -488,10 +499,10 @@ function MapExplorer (props) {
       }
       return false
     })
-    const viewGroups = groups.filter(group => {
-      const locationObject = group.locationObject
-      if (group.geoShape) {
-        const coords = group.geoShape.coordinates[0]
+    const viewGroups = groups.filter(mapGroup => {
+      const locationObject = mapGroup.locationObject
+      if (mapGroup.geoShape) {
+        const coords = mapGroup.geoShape.coordinates[0]
         const outOfBounds = []
         coords.forEach((coord, i) => {
           if (!booleanWithin(point(coord), bbox)) {
@@ -506,6 +517,13 @@ function MapExplorer (props) {
       }
       return false
     }).concat(get(group, 'locationObject.center') || get(group, 'geoShape') ? group : [])
+      .map(mapGroup => {
+        // Ensure spaces can navigate to their parent from the current map context
+        if (mapGroup.type === 'space' && !mapGroup.parentGroup?.slug && group && mapGroup.parentId === group.id) {
+          return { ...mapGroup, parentGroup: { id: group.id, slug: group.slug || groupSlug } }
+        }
+        return mapGroup
+      })
 
     setClusterLayer(createIconLayerFromPostsAndMembers({
       members: viewMembers,
@@ -532,7 +550,7 @@ function MapExplorer (props) {
     setGroupsForDrawer(viewGroups)
     setMembersForDrawer(viewMembers)
     setTotalPostsInView(viewPosts.length)
-  }, [members, postsForMap, groups, group, onMapHover, onMapClick, context])
+  }, [members, postsForMap, groups, group, groupSlug, onMapHover, onMapClick, context])
 
   const updateViewportWithBbox = useCallback((bbox, zoom = false) => {
     if (zoom) {
@@ -843,7 +861,11 @@ function MapExplorer (props) {
                 checked={filters.featureTypes[featureType]}
                 onChange={(checked, name) => toggleFeatureType(name, !checked)}
               />
-              <span>{featureType.charAt(0).toUpperCase() + featureType.slice(1)}s</span>
+              <span>
+                {featureType === 'group'
+                  ? t('Related Groups & Spaces')
+                  : featureType.charAt(0).toUpperCase() + featureType.slice(1) + 's'}
+              </span>
             </div>
           )
         })}

@@ -71,6 +71,9 @@ export async function createSpace (userId, { parentGroupId, name, slug, accepted
 
   const space = new Group({
     type: 'space',
+    // Start the cached count at zero — left unset it is NULL, and the join-path
+    // increment (NULL + 1) can never bring it back
+    num_members: 0,
     parent_id: parentGroupId,
     name: name.trim(),
     slug: finalSlug,

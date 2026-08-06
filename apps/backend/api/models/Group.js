@@ -691,8 +691,10 @@ module.exports = bookshelf.Model.extend(merge({
 
     // Increment num_members
     // XXX: num_members is updated every 10 minutes via cron, we are doing this here too for the case that someone joins a group and moderator looks immediately at member count after that
+    // Coalesce: groups created without the column set (early spaces) carried NULL,
+    // and NULL + n is NULL — the count could never self-heal through joins
     if (newUserIds.length > 0 || reactivatedUserIds.length > 0) {
-      await this.save({ num_members: this.get('num_members') + newUserIds.length + reactivatedUserIds.length }, { transacting })
+      await this.save({ num_members: (this.get('num_members') || 0) + newUserIds.length + reactivatedUserIds.length }, { transacting })
     }
 
     Queue.classMethod('Group', 'afterAddMembers', {
@@ -777,7 +779,7 @@ module.exports = bookshelf.Model.extend(merge({
       })
     }
 
-    return this.save({ num_members: this.get('num_members') - usersOrIds.length }, { transacting })
+    return this.save({ num_members: Math.max(0, (this.get('num_members') || 0) - usersOrIds.length) }, { transacting })
   },
 
   async toMurmurationsObject () {

@@ -45,15 +45,16 @@ export default function PostPrompt (props) {
       aria-label={postPromptString}
       title={postPromptString}
       className={cn(
-        // rounded-md, matching the group context menu's controls
-        'inline-flex items-center gap-1.5 h-9 px-4 shrink-0 rounded-md box-border',
+        // rounded-md, matching the group context menu's controls.
+        // Icon-only on phones; the label costs width the control row lacks there
+        'inline-flex items-center gap-1.5 h-9 px-4 max-sm:px-2.5 shrink-0 rounded-md box-border',
         'bg-background border-2 border-selected text-foreground text-sm font-bold',
         'transition-all hover:scale-105 hover:no-underline',
         className
       )}
     >
       <SquarePen className='w-4 h-4' />
-      {t('New')}
+      <span className='max-sm:hidden'>{t('New')}</span>
     </Link>
   )
 }

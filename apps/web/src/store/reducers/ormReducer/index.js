@@ -1356,7 +1356,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       const emojiFull = meta.data.emojiFull
       me = Me.first()
 
-      const optimisticUpdate = { postReactions: [...post.postReactions, { emojiFull, user: { name: me.name, id: me.id } }] }
+      const optimisticUpdate = { postReactions: [...(post.postReactions || []), { emojiFull, user: { name: me.name, id: me.id } }] }
 
       post.update(optimisticUpdate)
 
@@ -1372,7 +1372,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       post = session.Post.withId(meta.postId)
       const emojiFull = meta.data.emojiFull
       me = Me.first()
-      const postReactions = post.postReactions.filter(reaction => {
+      const postReactions = (post.postReactions || []).filter(reaction => {
         if (reaction.emojiFull === emojiFull && reaction.user.id === me.id) return false
         return true
       })
