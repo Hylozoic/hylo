@@ -924,10 +924,13 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
 
   return (
     <>
+      {/* Same shape as the day divider below, in the notification bubble's accent.
+          Arbitrary value for the rule: accent has no <alpha-value> placeholder, so
+          slash-opacity classes on it are silently ignored */}
       {firstUnread &&
-        <div className='w-full relative py-3 text-sm'>
-          <hr className='border-t-2 border-red-500' />
-          <span className='text-red-500 text-center w-full block'>{t('New posts')}</span>
+        <div className='w-full flex items-center my-3'>
+          <div className='text-accent text-xs font-semibold whitespace-nowrap'>{t('New posts')}</div>
+          <div className='grow ml-4 border-t border-dashed border-[hsl(var(--accent)/0.3)]' />
         </div>}
       {displayDay && (
         <div className='w-full flex items-center my-3'>
