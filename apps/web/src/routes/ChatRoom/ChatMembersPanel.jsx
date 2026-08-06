@@ -17,7 +17,7 @@ import {
   getMembers
 } from 'routes/Members/Members.store'
 import { messagePersonUrl, personUrl } from '@hylo/navigation'
-import { cn } from 'util/index'
+import { bgImageStyle, cn } from 'util/index'
 
 // "Recently active" for the online dot — inside this window someone is treated
 // as present. lastActiveAt updates on page loads rather than heartbeats, so a
@@ -209,13 +209,17 @@ export default function ChatMembersPanel ({ group, latestPost }) {
                     <button
                       type='button'
                       onClick={() => openProfile(person)}
-                      className={cn('relative rounded-full transition-all hover:scale-110 hover:!z-20', i > 0 && '-ml-2')}
+                      className={cn('relative block transition-all hover:scale-110 hover:!z-20', i > 0 && '-ml-2')}
                       style={{ zIndex: typing ? MAX_ACTIVE + 2 : MAX_ACTIVE - i }}
                       aria-label={label}
                     >
-                      <span className='block rounded-full border-2 border-background'>
-                        <Avatar avatarUrl={person.avatarUrl} small />
-                      </span>
+                      {/* Explicit 30px block circle, per the design — an inline Avatar's
+                          line box added descender space below the image, which pushed the
+                          "corner" anchors off the avatar entirely */}
+                      <span
+                        className='block w-[30px] h-[30px] rounded-full bg-cover bg-center bg-midground border-2 border-background'
+                        style={person.avatarUrl ? bgImageStyle(person.avatarUrl) : undefined}
+                      />
                       {typing
                         ? (
                           <span className='absolute -bottom-0.5 -left-1 inline-flex items-center gap-[2px] px-[3px] py-[2px] rounded-[5px] bg-background' aria-hidden='true'>
@@ -225,7 +229,7 @@ export default function ChatMembersPanel ({ group, latestPost }) {
                           </span>
                           )
                         : (
-                          <span className='absolute -bottom-px -right-px w-2 h-2 rounded-full bg-green-500 border-2 border-background' aria-hidden='true' />
+                          <span className='absolute bottom-0 -right-px w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-background' aria-hidden='true' />
                           )}
                     </button>
                   </TooltipTrigger>
