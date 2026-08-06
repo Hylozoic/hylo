@@ -366,8 +366,10 @@ export default function ChatPost ({
         )}
         {details && !editing && (
           <ClickCatcher groupSlug={group.slug} onClick={handleClick}>
-            <div className={cn('ml-[42px] max-w-[700px] cursor-text select-text', { 'blur-sm': isFlagged })}>
-              <HyloHTML className='w-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0' html={details} />
+            {/* break-words: an unbroken run (a long URL, a keysmash) must wrap rather
+                than widen the message container — visible mostly on phone widths */}
+            <div className={cn('ml-[42px] max-w-[700px] cursor-text select-text break-words', { 'blur-sm': isFlagged })}>
+              <HyloHTML className='w-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 break-words' html={details} />
             </div>
           </ClickCatcher>
         )}

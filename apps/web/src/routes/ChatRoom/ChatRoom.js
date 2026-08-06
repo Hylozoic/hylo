@@ -409,6 +409,19 @@ export default function ChatRoom (props) {
         [confirmedPost],
         ({ atBottom, scrollInProgress }) => {
           if (atBottom || scrollInProgress) {
+            // 'smooth' scrolls to the item's ESTIMATED height; on narrow screens
+            // the text wraps taller than estimated, so the animation lands shy of
+            // the bottom — half a message showing — and never re-corrects. Snap
+            // the last stretch once the real height is measured, unless the
+            // reader has meanwhile scrolled away.
+            setTimeout(() => {
+              try {
+                const location = messageListRef.current?.getScrollLocation?.()
+                if (location && location.bottomOffset < 200) {
+                  messageListRef.current?.scrollToItem({ index: 'LAST', align: 'end', behavior: 'auto' })
+                }
+              } catch (e) {}
+            }, 350)
             return 'smooth'
           } else {
             // setUnseenMessages((val) => val + 1) TODO
