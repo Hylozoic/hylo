@@ -752,6 +752,8 @@
   "I agree to the above": "उपरोक्त से मैं सहमत हूँ",
   "I'd love to show you how things work, would you like a quick tour?": "मैं आपको दिखाना चाहूँगा कि चीजें कैसे काम करती हैं, क्या आप एक त्वरित टूर लेना चाहेंगे?",
   "in {{groupName}}": "{{groupName}} में",
+  "in {{groupName}} and 1 other": "{{groupName}} और 1 अन्य में",
+  "in {{groupName}} and {{count}} others": "{{groupName}} और {{count}} अन्य में",
   "INVITE": "आमंत्रित करें",
   "IS THIS GROUP A MEMBER OF OTHER GROUPS?": "क्या यह समूह दूसरे समूहों का सदस्य है?",
   "Icon": "आइकॉन",

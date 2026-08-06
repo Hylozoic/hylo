@@ -71,7 +71,7 @@ const selectPostHeaderStateProps = createSelector(
 function PostHeader (props) {
   const {
     chat,
-    childGroupName,
+    childGroupLabel,
     routeParams = {},
     post,
     expanded,
@@ -355,8 +355,8 @@ function PostHeader (props) {
                   {creator.name}
                 </Link>
                 {/* Where a child post lives, under the author — replaces the tab that floated above the card */}
-                {childGroupName && (
-                  <span className='text-xs text-foreground/50 truncate leading-tight'>{t('in {{groupName}}', { groupName: childGroupName })}</span>
+                {childGroupLabel && (
+                  <span className='text-xs text-foreground/50 truncate leading-tight'>{childGroupLabel}</span>
                 )}
               </div>
             </Highlight>

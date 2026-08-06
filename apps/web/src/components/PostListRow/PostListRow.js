@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 
 import Icon from 'components/Icon'
 import useViewPostDetails from 'hooks/useViewPostDetails'
+import childGroupLabel from 'util/childGroupLabel'
 import { cn } from 'util/index'
 
 /**
@@ -39,10 +40,7 @@ const PostListRow = (props) => {
 
   const typeLowercase = post.type.toLowerCase()
   const typeName = post.type.charAt(0).toUpperCase() + typeLowercase.slice(1)
-  // Child posts carry only their own groups, never the one being viewed
-  const childGroupName = childPost
-    ? ((post.groups || []).find(g => g.type === 'space') || (post.groups || [])[0])?.name
-    : null
+  const groupLabel = childPost ? childGroupLabel(post, t) : null
   const unread = false
   const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroupId)
 
@@ -76,8 +74,8 @@ const PostListRow = (props) => {
         <div className='flex items-center gap-1 text-xs text-foreground/50 min-w-0'>
           <Icon name={typeName} className='w-3 h-3 shrink-0' />
           <span className='capitalize shrink-0'>{typeLowercase}</span>
-          {childGroupName && (
-            <span className='truncate'>{t('in {{groupName}}', { groupName: childGroupName })}</span>
+          {groupLabel && (
+            <span className='truncate'>{groupLabel}</span>
           )}
         </div>
       </div>

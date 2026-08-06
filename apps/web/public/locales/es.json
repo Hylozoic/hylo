@@ -776,6 +776,8 @@
   "I agree to the above": "Estoy de acuerdo con lo anterior",
   "I'd love to show you how things work, would you like a quick tour?": "Me encantaría mostrarte cómo funcionan las cosas, ¿te gustaría un recorrido rápido?",
   "in {{groupName}}": "en {{groupName}}",
+  "in {{groupName}} and 1 other": "en {{groupName}} y 1 más",
+  "in {{groupName}} and {{count}} others": "en {{groupName}} y {{count}} más",
   "INVITE": "INVITAR",
   "IS THIS GROUP A MEMBER OF OTHER GROUPS?": "¿ESTE GRUPO ES MIEMBRO DE OTROS GRUPOS?",
   "Icon": "Icono",

@@ -29,6 +29,7 @@ import PostBody from './PostBody'
 import PostFooter from './PostFooter'
 import PostHeader from './PostHeader'
 import PostGroups from './PostGroups'
+import childGroupLabel from 'util/childGroupLabel'
 import { cn } from 'util/index'
 
 import classes from './PostCard.module.scss'
@@ -77,11 +78,7 @@ export default function PostCard (props) {
   const dispatch = useDispatch()
   const navigate = useNavigate()
 
-  // A child post's groups exclude the group being viewed, so the first one —
-  // preferring the space when the post came from one — is where it lives
-  const childGroupName = childPost
-    ? ((post.groups || []).find(g => g.type === 'space') || (post.groups || [])[0])?.name
-    : null
+  const childGroupLabelText = childPost ? childGroupLabel(post, t) : null
 
   // Chat mode state
   const [isHovered, setIsHovered] = useState(false)
@@ -420,7 +417,7 @@ export default function PostCard (props) {
             constrained={constrained}
             hasImage={hasImage}
             onRemovePost={onRemovePost}
-            childGroupName={childGroupName}
+            childGroupLabel={childGroupLabelText}
           />
         </div>
         <div onClick={onClick}>

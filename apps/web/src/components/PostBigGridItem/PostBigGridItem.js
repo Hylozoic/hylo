@@ -10,6 +10,7 @@ import EventDate from 'components/PostCard/EventDate'
 import EventRSVP from 'components/PostCard/EventRSVP'
 import Icon from 'components/Icon'
 import useViewPostDetails from 'hooks/useViewPostDetails'
+import childGroupLabel from 'util/childGroupLabel'
 import respondToEvent from 'store/actions/respondToEvent'
 import getMe from 'store/selectors/getMe'
 
@@ -54,10 +55,7 @@ export default function PostBigGridItem ({
   const isPastEvent = post.endTime && new Date(post.endTime) < new Date()
   const showRSVP = isEvent && currentUser && !isPastEvent
 
-  // Child posts carry only their own groups, never the one being viewed
-  const childGroupName = childPost
-    ? ((post.groups || []).find(g => g.type === 'space') || (post.groups || [])[0])?.name
-    : null
+  const groupLabel = childPost ? childGroupLabel(post, t) : null
 
   // Donation link detection
   const donationMatch = post.donationsLink?.match(/(cash|clover|gofundme|opencollective|paypal|squareup|venmo)/)
@@ -117,8 +115,8 @@ export default function PostBigGridItem ({
             </div>
             <span className='text-white/50 text-xs flex-shrink-0'>{createdTimestampShort}</span>
           </div>
-          {childGroupName && (
-            <div className='text-white/70 text-xs truncate'>{t('in {{groupName}}', { groupName: childGroupName })}</div>
+          {groupLabel && (
+            <div className='text-white/70 text-xs truncate'>{groupLabel}</div>
           )}
           <h3 className='text-white font-bold text-lg line-clamp-2 drop-shadow-md mb-1 mt-0 leading-tight'>
             <span className={cn('flex items-center', { 'opacity-60': (isFlagged && !post.clickthrough) || post.fulfilledAt })}>
@@ -191,8 +189,8 @@ export default function PostBigGridItem ({
               <span className='font-bold text-foreground truncate'>{creator.name}</span>
               <span className='flex-shrink-0'>{createdTimestampShort}</span>
             </div>
-            {childGroupName && (
-              <div className='text-xs text-foreground/50 truncate'>{t('in {{groupName}}', { groupName: childGroupName })}</div>
+            {groupLabel && (
+              <div className='text-xs text-foreground/50 truncate'>{groupLabel}</div>
             )}
             <h3 className='flex items-center text-foreground font-bold text-lg line-clamp-2 mb-1 mt-0 leading-tight'>
               {post.fulfilledAt && <span className='mr-1'><CircleCheckBig className='w-5 text-green-500' /></span>}
