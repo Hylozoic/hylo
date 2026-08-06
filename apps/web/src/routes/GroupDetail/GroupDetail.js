@@ -297,39 +297,39 @@ function GroupDetail ({ forCurrentGroup = false }) {
         <meta name='description' content={TextHelpers.truncateHTML(group.description, MAX_DETAILS_LENGTH)} />
       </Helmet>
 
-      {!isAboutCurrentGroup && (
-        <div className={cn('w-full py-8 px-2 bg-cover bg-center overflow-hidden relative shadow-xl', { 'rounded-xl': fullPage })} style={{ backgroundImage: `url(${group.bannerUrl || DEFAULT_BANNER})` }}>
-          {/* DEPRECATED: Now always show close button when not fullPage */}
-          {!fullPage && /* !isWebView() && */ (
-            <a className={g.close} onClick={closeDetailModal}><Icon name='Ex' /></a>
-          )}
-          <div className='bottom-0 right-0 bg-darkening/50 absolute top-0 left-0 z-0' />
-          <div className='max-w-screen-lg mx-auto flex items-center justify-center flex-col relative z-10'>
-            <img src={group.avatarUrl || DEFAULT_AVATAR} className='w-24 h-24 rounded-xl shadow-xl mt-0 mb-2' />
-            <div>
-              <div className='text-white font-bold text-2xl text-center'>{isAboutCurrentGroup && <span>{t('About')}</span>} {group.name}</div>
-              <div className='text-center'>
-                <div className='flex flex-row justify-center gap-1 text-sm text-white/70'>
-                  <span className={g.groupPrivacy}>
-                    <Icon name={visibilityIcon(group.visibility)} className={g.privacyIcon} />
-                    <div className={g.privacyTooltip}>
-                      <div>{t(visibilityString(group.visibility))} - {t(visibilityDescription(group.visibility))}</div>
-                    </div>
-                  </span>
-                  <span className={g.groupPrivacy}>
-                    <Icon name={accessibilityIcon(group.accessibility)} className={g.privacyIcon} />
-                    <div className={g.privacyTooltip}>
-                      <div>{t(accessibilityString(group.accessibility))} - {t(accessibilityDescription(group.accessibility))}</div>
-                    </div>
-                  </span>
-                  <span className={g.memberCount}>{t('{{count}} Members', { count: group.memberCount })}</span>
-                </div>
-                <span className='text-white/70 text-sm'>{group.location}</span>
+      {/* Banner header on every About, including the current group's own — the
+          sidebar shows the banner too, but this page should stand on its own */}
+      <div className={cn('w-full py-8 px-2 bg-cover bg-center overflow-hidden relative shadow-xl', { 'rounded-xl': fullPage })} style={{ backgroundImage: `url(${group.bannerUrl || DEFAULT_BANNER})` }}>
+        {/* DEPRECATED: Now always show close button when not fullPage */}
+        {!fullPage && /* !isWebView() && */ (
+          <a className={g.close} onClick={closeDetailModal}><Icon name='Ex' /></a>
+        )}
+        <div className='bottom-0 right-0 bg-darkening/50 absolute top-0 left-0 z-0' />
+        <div className='max-w-screen-lg mx-auto flex items-center justify-center flex-col relative z-10'>
+          <img src={group.avatarUrl || DEFAULT_AVATAR} className='w-24 h-24 rounded-xl shadow-xl mt-0 mb-2' />
+          <div>
+            <div className='text-white font-bold text-2xl text-center'>{isAboutCurrentGroup && <span>{t('About')}</span>} {group.name}</div>
+            <div className='text-center'>
+              <div className='flex flex-row justify-center gap-1 text-sm text-white/70'>
+                <span className={g.groupPrivacy}>
+                  <Icon name={visibilityIcon(group.visibility)} className={g.privacyIcon} />
+                  <div className={g.privacyTooltip}>
+                    <div>{t(visibilityString(group.visibility))} - {t(visibilityDescription(group.visibility))}</div>
+                  </div>
+                </span>
+                <span className={g.groupPrivacy}>
+                  <Icon name={accessibilityIcon(group.accessibility)} className={g.privacyIcon} />
+                  <div className={g.privacyTooltip}>
+                    <div>{t(accessibilityString(group.accessibility))} - {t(accessibilityDescription(group.accessibility))}</div>
+                  </div>
+                </span>
+                <span className={g.memberCount}>{t('{{count}} Members', { count: group.memberCount })}</span>
               </div>
+              <span className='text-white/70 text-sm'>{group.location}</span>
             </div>
           </div>
         </div>
-      )}
+      </div>
 
       <div className='p-4'>
         {group.type === GROUP_TYPES.default && defaultGroupBody({ group, isAboutCurrentGroup, t, responsibilityTitles })}
