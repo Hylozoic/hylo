@@ -9,7 +9,7 @@ import { Helmet } from 'react-helmet'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
 import { useLocation, Routes, Route, useNavigate } from 'react-router-dom'
-import { VirtuosoMessageList, VirtuosoMessageListLicense, useCurrentlyRenderedData, useVirtuosoLocation, useVirtuosoMethods } from '@virtuoso.dev/message-list'
+import { VirtuosoMessageList, VirtuosoMessageListLicense, useVirtuosoLocation, useVirtuosoMethods } from '@virtuoso.dev/message-list'
 
 import { getSocket } from 'client/websockets.js'
 import { useLayoutFlags } from 'contexts/LayoutFlagsContext'
@@ -770,7 +770,6 @@ export default function ChatRoom (props) {
                 EmptyPlaceholder={EmptyPlaceholder}
                 Footer={Footer}
                 Header={Header}
-                StickyHeader={StickyHeader}
                 StickyFooter={StickyFooter}
                 ItemContent={ItemContent}
               />
@@ -825,22 +824,6 @@ const Header = ({ context }) => {
 
 const Footer = ({ context }) => {
   return context.loadingFuture ? <div className={styles.loadingContainerBottom}><Loading /></div> : null
-}
-
-const StickyHeader = ({ data, prevData, context }) => {
-  const firstItem = useCurrentlyRenderedData()[0]
-  const createdAt = firstItem?.createdAt ? DateTimeHelpers.toDateTime(firstItem.createdAt, { locale: getLocaleFromLocalStorage() }) : null
-  const displayDay = createdAt && getDisplayDay(createdAt)
-
-  if (!context.loadingPast && !context.loadingFuture && context.numPosts === 0) return null
-
-  return (
-    <div className='!absolute top-0 w-full relative py-4'>
-      <div className={cn('absolute right-0 text-sm text-foreground/50 bg-background/50 hover:bg-background/100 hover:text-foreground/100 rounded-l-[15px] px-[10px] pl-[15px] h-[30px] leading-[30px] min-w-[130px] text-center')}>
-        {displayDay}
-      </div>
-    </div>
-  )
 }
 
 const StickyFooter = ({ context }) => {
@@ -946,7 +929,7 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
       {displayDay && (
         <div className='w-full flex items-center my-3'>
           <div className='text-foreground/40 text-xs whitespace-nowrap'>{displayDay}</div>
-          <div className='grow ml-4 border-t border-dashed border-foreground/15' />
+          <div className='grow ml-4 border-t border-dashed border-foreground/10' />
         </div>
       )}
       {post.type === 'chat'

@@ -118,7 +118,7 @@ export default function ChatMembersPanel ({ group }) {
       <button
         type='button'
         onClick={() => setOpen(true)}
-        className='absolute top-2 right-2 z-30 inline-flex items-center gap-1.5 h-7 pl-2.5 pr-2 rounded-full bg-card/90 backdrop-blur-sm border border-foreground/20 text-foreground text-xs font-semibold cursor-pointer transition-all hover:border-foreground/40 hover:scale-105'
+        className='absolute top-2 right-2 z-30 inline-flex items-center gap-1.5 h-7 pl-2.5 pr-2 rounded-md bg-card/90 backdrop-blur-sm border border-foreground/20 text-foreground text-xs font-semibold cursor-pointer transition-all hover:border-foreground/40 hover:scale-105'
         aria-label={t('Members')}
       >
         <Users className='w-3.5 h-3.5' />
