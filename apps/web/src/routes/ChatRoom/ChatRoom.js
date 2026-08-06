@@ -725,6 +725,9 @@ export default function ChatRoom (props) {
       </Helmet>
 
       <div id='chats' className='my-0 mx-auto h-[calc(100%-130px)] w-full flex flex-col flex-1 relative overflow-hidden px-1'>
+        {/* The stream header's wash, here as a still strip: theme background fading
+            to its own colour at zero alpha, so messages scroll under a soft top edge */}
+        <div aria-hidden='true' className='absolute top-0 left-0 right-0 h-14 z-20 pointer-events-none bg-gradient-to-b from-[hsl(var(--theme-background)/0.1)] dark:from-[hsl(var(--theme-background)/0.5)] to-[hsl(var(--theme-background)/0)]' />
         {/* Member pill + slide-in list; absolute inside this container so the
             cover blankets the chat pane and nothing else */}
         <ChatMembersPanel group={group} />
@@ -781,7 +784,7 @@ export default function ChatRoom (props) {
       <PeopleTyping className='w-full px-3 sm:px-5 text-xs text-foreground/50' />
       {/* Composer floats with margins matching the message gutter (left edge = avatar edge).
           Subtle gradient settles the pane into a darker hue beneath the input. */}
-      <div className='ChatBoxContainer w-full px-3 sm:px-5 pb-3 sm:pb-5 pt-2 overflow-y-auto bg-gradient-to-b from-transparent to-darkening/[0.05] dark:to-darkening/25'>
+      <div className='ChatBoxContainer w-full px-3 sm:px-5 pb-3 sm:pb-5 pt-0 overflow-y-auto bg-gradient-to-b from-transparent to-darkening/[0.05] dark:to-darkening/25'>
         {/* Drafts are scoped per chat topic so switching rooms does not leak text */}
         {group?.id && (
           <ChatEditor

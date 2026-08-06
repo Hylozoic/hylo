@@ -144,8 +144,13 @@ export default function ChatMembersPanel ({ group }) {
         aria-label={t('Members')}
         className={cn(
           'absolute top-0 right-0 bottom-0 z-40 w-[300px] max-w-[85%] bg-background border-l-2 border-foreground/10 flex flex-col overflow-hidden shadow-2xl',
-          'transition-transform duration-300 ease-out',
-          open ? 'translate-x-0' : 'translate-x-full'
+          // Visibility rides the transition: iOS Safari lets a composited transform
+          // escape the ancestor's overflow clip, so a merely-translated panel could
+          // be swiped into view — hidden after the slide-out, it cannot be.
+          'transition-[transform,visibility] duration-300 ease-out',
+          open
+            ? 'translate-x-0 visible'
+            : 'translate-x-full invisible [transition-delay:0s,300ms]'
         )}
       >
         <div className='flex items-center justify-between px-4 pt-3.5 pb-2.5'>
