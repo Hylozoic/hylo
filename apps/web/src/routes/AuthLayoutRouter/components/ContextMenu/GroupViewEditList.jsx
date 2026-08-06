@@ -98,7 +98,12 @@ function SortableEditRow ({ view, onSettings, onHide, onDelete, isHome, spaceGro
       <GroupViewIcon view={presentedView} />
       <span className='flex-1 truncate text-base font-semibold text-foreground'>
         {displayNameForView(presentedView, t, { spaceGroup })}
-        {isHome && <span className='ml-1 text-xs text-foreground/50'>({t('Home')})</span>}
+        {/* Same badge treatment as the header's Editing pill */}
+        {isHome && (
+          <span className='ml-1 text-xs font-semibold rounded-full border border-foreground/20 bg-foreground/10 text-foreground/70 px-2 py-px leading-none self-center shrink-0'>
+            {t('Home')}
+          </span>
+        )}
       </span>
       <GroupViewEditActions
         view={view}
