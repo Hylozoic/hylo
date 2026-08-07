@@ -1,14 +1,17 @@
 import { cn } from 'util/index'
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
 import PropTypes from 'prop-types'
 import { isLegacyWebView } from 'util/webView'
 import Tooltip from 'components/Tooltip'
+import { spaceHomeUrl } from '@hylo/navigation'
 
 import { useLayoutFlags } from 'contexts/LayoutFlagsContext'
 import Dropdown from 'components/Dropdown'
 import { GroupCard } from 'components/Widget/GroupsWidget/GroupsWidget'
 import Icon from 'components/Icon'
+import LucideIcon from 'components/LucideIcon/LucideIcon'
 import Loading from 'components/Loading'
 import Member from 'components/Member'
 import PostCard from 'components/PostCard'
@@ -17,6 +20,26 @@ import { CONTEXT_MY } from 'store/constants'
 import { STREAM_SORT_OPTIONS } from 'util/constants'
 
 import styles from './MapDrawer.module.scss'
+
+/** Compact drawer row for a space with a location (distinct from child GroupCards). */
+function SpaceMapCard ({ space, parentSlug }) {
+  const { t } = useTranslation()
+  if (!parentSlug || !space?.slug) return null
+  return (
+    <Link
+      to={spaceHomeUrl(parentSlug, space)}
+      className='flex items-center gap-3 mb-2 p-3 rounded-lg bg-background border border-foreground/10 hover:border-foreground/25 transition-colors'
+    >
+      <div className='w-10 h-10 rounded-full bg-foreground/5 border border-foreground/15 grid place-items-center shrink-0 text-foreground/80'>
+        <LucideIcon name={space.icon || 'Circle'} className='w-5 h-5' />
+      </div>
+      <div className='min-w-0 flex-1'>
+        <div className='text-sm font-semibold text-foreground truncate'>{space.name}</div>
+        <div className='text-xs text-foreground/50'>{t('Space')}</div>
+      </div>
+    </Link>
+  )
+}
 
 function MapDrawer ({
   changeChildPostInclusion,
@@ -220,13 +243,23 @@ function MapDrawer ({
             ? (
               <div className={styles.contentWrapper}>
                 <div className='overflow-y-scroll pb-10 bg-midground' id='contentList'>
-                  {groups.map(group => (
-                    <GroupCard
-                      key={group.id}
-                      group={group}
-                      routeParams={routeParams}
-                      className='mb-2'
-                    />
+                  {groups.map(g => (
+                    g.type === 'space'
+                      ? (
+                        <SpaceMapCard
+                          key={g.id}
+                          space={g}
+                          parentSlug={g.parentGroup?.slug || (g.parentId === group?.id ? group?.slug : null)}
+                        />
+                        )
+                      : (
+                        <GroupCard
+                          key={g.id}
+                          group={g}
+                          routeParams={routeParams}
+                          className='mb-2'
+                        />
+                        )
                   ))}
                 </div>
               </div>

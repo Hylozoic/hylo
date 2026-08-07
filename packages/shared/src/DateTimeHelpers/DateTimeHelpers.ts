@@ -108,6 +108,23 @@ export const isSameDay = (
   return isSame(date1, date2, 'day')
 }
 
+/** Default start/end for a new event on a given calendar day (1 hour duration). */
+export const defaultEventTimesForDate = (
+  date: string | Date,
+  locale?: string
+): { startTime: Date; endTime: Date } => {
+  const day = toDateTime(date, { locale }).startOf('day')
+  const now = dateTimeNow(locale)
+  let start = isSameDay(day.toJSDate(), now.toJSDate())
+    ? now.plus({ hours: 1 }).startOf('hour')
+    : day.set({ hour: 9, minute: 0, second: 0, millisecond: 0 })
+  if (start <= now) {
+    start = now.plus({ minutes: 30 }).startOf('minute')
+  }
+  const end = start.plus({ hours: 1 })
+  return { startTime: start.toJSDate(), endTime: end.toJSDate() }
+}
+
 export const isSameWeek = (
   date1 : string | Date | DateTime | Object,
   date2 : string | Date | DateTime | Object

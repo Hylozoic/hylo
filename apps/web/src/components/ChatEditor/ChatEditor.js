@@ -506,12 +506,19 @@ function ChatEditorInner ({
           >
             <CaseSensitive className='w-6 h-6' />
           </button>
+          {/* mb-1 matches the Aa toggle beside it — the mb-0.5 rode it visibly off
+              the row's centreline. Ready-to-send fills with the selected colour. */}
           <button
             type='button'
             onClick={doSave}
             disabled={!canSubmit}
             title={!isValid ? invalidMessage.replace(/<br \/>/g, ', ') : undefined}
-            className='p-1.5 mb-0.5 mr-0.5 shrink-0 sticky bottom-1 rounded-lg border border-foreground/20 text-highlight hover:border-foreground/40 disabled:text-muted-foreground disabled:cursor-not-allowed disabled:hover:border-foreground/20 transition-colors'
+            className={cn(
+              'p-1.5 mb-1 mr-0.5 shrink-0 sticky bottom-1 rounded-lg border transition-colors',
+              canSubmit
+                ? 'bg-selected border-selected text-white hover:bg-selected/90'
+                : 'border-foreground/20 text-muted-foreground cursor-not-allowed'
+            )}
             aria-label={t('Post')}
             data-testid='chat-send-button'
           >

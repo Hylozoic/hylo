@@ -1,4 +1,5 @@
 import { cn, bgImageStyle } from 'util/index'
+import { isDrawerNavLayout } from 'util/mobile'
 import { Info, Settings, Users, Pencil, X, CircleEllipsis, ChevronLeft } from 'lucide-react'
 import React, { useMemo, useRef, useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -517,6 +518,11 @@ function MoreSpacesGrid ({
     navigate(spaceUrl(groupSlug, local), { state: { fromMoreViews: true } })
   }, [groupSlug, navigate, isEditing])
 
+  const handleOpenSpaceAbout = useCallback((space) => {
+    const local = localSpaceSlug(groupSlug, space.slug)
+    navigate(spaceUrl(groupSlug, local, '/about'))
+  }, [groupSlug, navigate])
+
   const handleOpenView = useCallback((view) => {
     if (isEditing) return
     const presented = GroupViewPresenter(view)
@@ -628,6 +634,7 @@ function MoreSpacesGrid ({
                 isEditing={isEditing}
                 isDeleting={String(deletingSpaceId) === String(space.id)}
                 onOpen={handleOpenSpace}
+                onOpenAbout={handleOpenSpaceAbout}
                 onAddToMenu={handleAddSpaceToMenu}
                 onOpenSettings={onOpenSpaceSettings}
                 onDelete={handleDeleteSpace}
@@ -647,6 +654,7 @@ function MoreSpacesGrid ({
                 isEditing={isEditing}
                 isDeleting={String(deletingSpaceId) === String(space.id)}
                 onOpen={handleOpenSpace}
+                onOpenAbout={handleOpenSpaceAbout}
                 onAddToMenu={handleAddSpaceToMenu}
                 onOpenSettings={onOpenSpaceSettings}
                 onDelete={handleDeleteSpace}
@@ -666,6 +674,7 @@ function MoreSpacesGrid ({
                 isEditing={isEditing}
                 isDeleting={String(deletingSpaceId) === String(space.id)}
                 onOpen={handleOpenSpace}
+                onOpenAbout={handleOpenSpaceAbout}
                 onAddToMenu={handleAddSpaceToMenu}
                 onOpenSettings={onOpenSpaceSettings}
                 onDelete={handleDeleteSpace}
@@ -817,8 +826,10 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
 
   return (
     <div className='ContextMenuGrid w-full h-full overflow-y-auto' id='context-menu-grid'>
-      {/* Banner — root group/context menu only */}
-      {!isNestedLevel && (
+      {/* Banner — root group/context menu only. Not for a space on a drawer layout:
+          ViewHeader already names the space there, and the two stacked headers read
+          as a mistake on a phone's height */}
+      {!isNestedLevel && !(spaceGroup && isDrawerNavLayout()) && (
         <div className='relative w-full'>
           <div id='context-menu-grid-banner' className='relative h-[220px] overflow-hidden'>
             <div className='absolute inset-0 bg-cover bg-center' style={{ ...bgImageStyle(bannerUrl), opacity: 0.7 }} />

@@ -21,9 +21,10 @@ import { useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { addQuerystringToPath, groupUrl, localSpaceSlug } from '@hylo/navigation'
 
+import { Tooltip, TooltipContent, TooltipTrigger } from 'components/ui/tooltip'
 import GroupViewIcon from './GroupViewIcon'
 import { GroupViewEditActions } from './GroupViewSettingsModal'
-import { canDeleteView, canHardDeleteView, isSoftRemoveView } from 'store/models/GroupView'
+import { canDeleteView, canHardDeleteView, isSoftRemoveView, viewAcceptedByPostTypes } from 'store/models/GroupView'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 import { deleteGroupView, deleteSpace, setGroupViewHidden } from 'store/actions/groupViews'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
@@ -97,7 +98,17 @@ function SortableEditRow ({ view, onSettings, onHide, onDelete, isHome, spaceGro
       <GroupViewIcon view={presentedView} />
       <span className='flex-1 truncate text-base font-semibold text-foreground'>
         {displayNameForView(presentedView, t, { spaceGroup })}
-        {isHome && <span className='ml-1 text-xs text-foreground/50'>({t('Home')})</span>}
+        {/* Same badge treatment as the header's Editing pill */}
+        {isHome && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className='ml-1 text-xs font-semibold rounded-full border border-foreground/20 bg-foreground/10 text-foreground/70 px-2 py-px leading-none self-center shrink-0'>
+                {t('Home')}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>{t('When people return to this group, this is what they see first.')}</TooltipContent>
+          </Tooltip>
+        )}
       </span>
       <GroupViewEditActions
         view={view}
@@ -164,15 +175,19 @@ function SortableSpaceEditRow ({
           className='opacity-0 group-hover:opacity-100'
         />
         {spaceGroup?.slug && groupSlug && (
-          <button
-            type='button'
-            className='p-1 text-foreground/50 hover:text-foreground'
-            onClick={handleEditSpaceMenu}
-            aria-label={t('Edit space menu')}
-            title={t('Edit space menu')}
-          >
-            <Pencil className='w-4 h-4' />
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type='button'
+                className='p-1 text-foreground/50 hover:text-foreground'
+                onClick={handleEditSpaceMenu}
+                aria-label={t('Edit space menu')}
+              >
+                <Pencil className='w-4 h-4' />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>{t('Edit space menu')}</TooltipContent>
+          </Tooltip>
         )}
       </div>
     </li>
@@ -183,7 +198,12 @@ function SortableSpaceEditRow ({
 export default function GroupViewEditList ({ views, group, groupSlug, onSettings }) {
   const dispatch = useDispatch()
   const { t } = useTranslation()
-  const visibleViews = useMemo(() => sortViewsByOrder((views || []).filter(v => v.order != null)), [views])
+  // Match live menu: hide typed views that the group/space no longer accepts.
+  const visibleViews = useMemo(() => sortViewsByOrder(
+    (views || [])
+      .filter(v => v.order != null)
+      .filter(v => viewAcceptedByPostTypes(v.type, group?.acceptedPostTypes))
+  ), [views, group?.acceptedPostTypes])
   const [orderedViews, setOrderedViews] = useState(visibleViews)
 
   // Merge Redux updates into local order (preserves drag order; full replace on add/delete).

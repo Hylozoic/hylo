@@ -40,7 +40,6 @@ import AnonymousVoteToggle from './AnonymousVoteToggle/AnonymousVoteToggle'
 import SliderInput from 'components/SliderInput/SliderInput'
 import { PROJECT_CONTRIBUTIONS } from 'config/featureFlags'
 import useEventCallback from 'hooks/useEventCallback'
-import fetchAllMyGroupsChatRooms from 'store/actions/fetchAllMyGroupsChatRooms'
 import fetchAllMyGroupsSpaces from 'store/actions/fetchAllMyGroupsSpaces'
 import fetchForGroup from 'store/actions/fetchForGroup'
 import {
@@ -58,7 +57,7 @@ import {
   VOTING_METHOD_MULTI_UNRESTRICTED,
   VOTING_METHOD_SINGLE
 } from 'store/models/Post'
-import { DEFAULT_CHAT_TOPIC, GROUP_TYPES } from 'store/models/Group'
+import { GROUP_TYPES } from 'store/models/Group'
 import isPendingFor from 'store/selectors/isPendingFor'
 import getMe from 'store/selectors/getMe'
 import getPost from 'store/selectors/getPost'
@@ -151,7 +150,7 @@ const getMyAdminGroups = createSelector(
 
 function PostEditorInner ({
   context,
-  customTopicName, // When we can't determine topic from the URL. Used for funding round chat rooms
+  customTopicName, // When we can't determine topic from the URL (e.g. funding rounds)
   markAsReadTopicName = null,
   autoFocus = true,
   post: propsPost,
@@ -211,6 +210,7 @@ function PostEditorInner ({
   const viewId = getQuerystringParam('viewId', urlLocation)
 
   const postType = getQuerystringParam('newPostType', urlLocation)
+  const eventDateParam = getQuerystringParam('eventDate', urlLocation)
   // Prefer explicit newPostType (if still allowed), else top dropdown option (POST_TYPES order)
   const createPostType = (() => {
     const fallback = firstDropdownPostType(allowedPostTypes)
@@ -218,7 +218,7 @@ function PostEditorInner ({
     if (allowedPostTypes != null && !allowedPostTypes.includes(postType)) return fallback
     return postType
   })()
-  // TODO: do we still need this topic stuff with chat no longer using topics? is there a different semantic context for drafts now for chat?
+  // Optional topic from URL / caller (e.g. topic stream, funding round). Spaces/views do not load chat rooms.
   const topicName = customTopicName || (routeParams.topicName && decodeURIComponent(routeParams.topicName))
   const topic = useSelector(state => getTopicForCurrentRoute(state, topicName))
 
@@ -233,7 +233,7 @@ function PostEditorInner ({
     skip: !currentUser
   })
 
-  // Stable key used to detect context changes (navigating between chat rooms, etc.)
+  // Stable key used to detect context changes (group / post type)
   const draftContextKey = useMemo(() => {
     if (editing) return `edit:${editingPostId}`
     return `new:${currentGroup?.id || 'none'}:${createPostType || 'none'}`
@@ -254,7 +254,7 @@ function PostEditorInner ({
   }, [saveServerDraft])
 
   const draftLoadedRef = useRef(false)
-  /** True after non-chat post had title or description draft content — delete server draft when both cleared. */
+  /** True after post had title or description draft content — delete server draft when both cleared. */
   const postComposerHadBodyDraftRef = useRef(false)
   const inSessionDraftByTypeRef = useRef({})
   const pendingTypeSwitchRef = useRef(null)
@@ -267,9 +267,6 @@ function PostEditorInner ({
    * null means not hydrated yet — draft effect falls back to currentPost.details.
    */
   const detailsHtmlRef = useRef(null)
-
-  // Default topic for non-chat posts when posting to a group's general stream
-  const generalTopic = useSelector(state => !topicName ? getTopicForCurrentRoute(state, DEFAULT_CHAT_TOPIC) : null)
 
   const linkPreview = useSelector(state => getLinkPreview(state)) // TODO: probably not working?
   const fetchLinkPreviewPending = useSelector(state => isPendingFor(FETCH_LINK_PREVIEW, state))
@@ -318,30 +315,41 @@ function PostEditorInner ({
   // replace it when the route changes without touching user-added topics
   const routeTopicIdRef = useRef(topic?.id || null)
 
-  const initialPost = useMemo(() => ({
-    acceptContributions: false,
-    completionAction: 'button',
-    completionActionSettings: currentTrack?.actionDescriptor ? { instructions: t('postCompletionActions.button.instructions', { actionDescriptor: currentTrack?.actionDescriptor }) } : null,
-    details: '',
-    groups: currentGroup ? [currentGroup] : [],
-    isAnonymousVote: false,
-    isPublic: context === 'public',
-    isStrictProposal: false,
-    location: '',
-    locationId: null,
-    proposalOptions: [],
-    quorum: 0,
-    timezone: DateTimeHelpers.getCurrentTimezone(),
-    title: '',
-    topics: topic
-      ? [topic]
-      : (generalTopic && postType !== 'action' ? [generalTopic] : []),
-    type: createPostType,
-    votingMethod: VOTING_METHOD_SINGLE,
-    ...(inputPost || {}),
-    startTime: typeof inputPost?.startTime === 'string' ? new Date(inputPost.startTime) : inputPost?.startTime,
-    endTime: typeof inputPost?.endTime === 'string' ? new Date(inputPost.endTime) : inputPost?.endTime
-  }), [inputPost?.id, createPostType, currentGroup, topic, generalTopic, context, postType])
+  const initialPost = useMemo(() => {
+    let prefilledEventTimes = {}
+    if (!editing && createPostType === 'event' && eventDateParam && !inputPost?.startTime) {
+      try {
+        const parsed = DateTimeHelpers.toDateTime(eventDateParam, { locale: getLocaleFromLocalStorage() })
+        if (parsed.isValid) {
+          prefilledEventTimes = DateTimeHelpers.defaultEventTimesForDate(eventDateParam, getLocaleFromLocalStorage())
+        }
+      } catch {}
+    }
+
+    return {
+      acceptContributions: false,
+      completionAction: 'button',
+      completionActionSettings: currentTrack?.actionDescriptor ? { instructions: t('postCompletionActions.button.instructions', { actionDescriptor: currentTrack?.actionDescriptor }) } : null,
+      details: '',
+      groups: currentGroup ? [currentGroup] : [],
+      isAnonymousVote: false,
+      isPublic: context === 'public',
+      isStrictProposal: false,
+      location: '',
+      locationId: null,
+      proposalOptions: [],
+      quorum: 0,
+      timezone: DateTimeHelpers.getCurrentTimezone(),
+      title: '',
+      topics: topic ? [topic] : [],
+      type: createPostType,
+      votingMethod: VOTING_METHOD_SINGLE,
+      ...(inputPost || {}),
+      ...prefilledEventTimes,
+      startTime: typeof inputPost?.startTime === 'string' ? new Date(inputPost.startTime) : (inputPost?.startTime || prefilledEventTimes.startTime),
+      endTime: typeof inputPost?.endTime === 'string' ? new Date(inputPost.endTime) : (inputPost?.endTime || prefilledEventTimes.endTime)
+    }
+  }, [inputPost?.id, createPostType, currentGroup, topic, context, editing, eventDateParam, inputPost?.startTime, inputPost?.endTime, currentTrack?.actionDescriptor, t])
 
   const [currentPost, setCurrentPostState] = useState(initialPost)
   const [editorInitialContent, setEditorInitialContent] = useState(initialPost.details || '')
@@ -655,12 +663,11 @@ function PostEditorInner ({
     }
   }, [])
 
-  // Fetch chat rooms + membership spaces so the To field has destinations from every group
+  // Fetch membership spaces so the To field has destinations from every group
   const hasFetchedToFieldDataRef = useRef(false)
   useEffect(() => {
     if (hasFetchedToFieldDataRef.current) return
     hasFetchedToFieldDataRef.current = true
-    dispatch(fetchAllMyGroupsChatRooms())
     Promise.resolve(dispatch(fetchAllMyGroupsSpaces())).finally(() => {
       setMembershipSpacesTick(tick => tick + 1)
     })
@@ -687,7 +694,7 @@ function PostEditorInner ({
         return { ...prev, topics: [topic] }
       }
 
-      // If route topic was removed (navigated away from chatroom), clear route topic reference
+      // If route topic was removed, clear route topic reference
       if (!topic?.id && routeTopicIdRef.current) {
         const priorTopicId = routeTopicIdRef.current
         routeTopicIdRef.current = null
@@ -711,37 +718,6 @@ function PostEditorInner ({
   useEffect(() => {
     setCurrentPost(prev => (prev.sendAnnouncement === announcementSelected ? prev : { ...prev, sendAnnouncement: announcementSelected }))
   }, [announcementSelected, setCurrentPost])
-
-  // Auto-add #general topic when groups are selected for non-chat posts
-  useEffect(() => {
-    if (!selectedGroups || selectedGroups.length === 0) return
-
-    // If we're on a topic stream, the route topic useEffect already handles adding it
-    if (topic?.id) return
-
-    // Action posts should never appear in chat rooms
-    if (postType === 'action') return
-
-    // Find the general topic from any selected group's chatRooms
-    let generalTopic = null
-    for (const group of selectedGroups) {
-      const chatRooms = group.chatRooms?.toModelArray?.() || group.chatRooms || []
-      const generalChatRoom = chatRooms.find(cr => cr?.groupTopic?.topic?.name === DEFAULT_CHAT_TOPIC)
-      if (generalChatRoom?.groupTopic?.topic) {
-        generalTopic = generalChatRoom.groupTopic.topic
-        break
-      }
-    }
-
-    if (!generalTopic) return
-
-    setCurrentPost(prev => {
-      const alreadyHasGeneral = prev.topics?.some(t => t?.name === DEFAULT_CHAT_TOPIC)
-      if (alreadyHasGeneral) return prev
-
-      return { ...prev, topics: [...(prev.topics || []), generalTopic] }
-    })
-  }, [selectedGroups, topic?.id, postType])
 
   /**
    * Resets the editor to its initial state
