@@ -16,7 +16,6 @@ import combine from '@turf/combine'
 import { featureCollection, point } from '@turf/helpers'
 import { isLegacyWebView } from 'util/webView'
 import Dropdown from 'components/Dropdown'
-import CreateMenu from 'components/CreateMenu'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
 import LocationInput from 'components/LocationInput'
@@ -289,13 +288,14 @@ function MapExplorer (props) {
     pitch: 0
   })
 
-  const [createCreatePopupVisible, setCreatePopupVisible] = useState(false)
-  const [createPopupPosition, setCreatePopupPosition] = useState({ top: 0, left: 0, lat: 0, lng: 0 })
-
-  const showCreatePopup = (point, lngLat) => {
-    setCreatePopupPosition({ top: point.y, left: point.x, lat: lngLat.lat, lng: lngLat.lng })
-    setCreatePopupVisible(true)
-  }
+  // Clicking the map to create goes straight into the post editor with the
+  // clicked location prefilled (CreateModal reads lat/lng), no type chooser
+  const goToCreatePostAtLocation = useCallback((lngLat) => {
+    const params = new URLSearchParams(location.search)
+    params.set('lat', lngLat.lat)
+    params.set('lng', lngLat.lng)
+    navigate(`${location.pathname}/create/post?${params.toString()}`)
+  }, [location, navigate])
 
   const updateUrlFromStore = useCallback((params, replace) => {
     const querystringParams = getQuerystringParam(['sortBy', 'search', 'hide', 'topics'], location)
@@ -457,17 +457,16 @@ function MapExplorer (props) {
     setShowFeatureFilters(false)
     setShowLayersSelector(false)
     setShowSavedSearches(false)
-    setCreatePopupVisible(false)
     if (currentUser) {
       creatingPostRef.current = e.point
       setTimeout(() => {
         // Make sure the point is still the same as the one we clicked on
         if (creatingPostRef.current === e.point) {
-          showCreatePopup(e.point, e.lngLat) // Show the popup at the clicked location
+          goToCreatePostAtLocation(e.lngLat)
         }
       }, isAddingItemToMap ? 0 : 1000)
     }
-  }, [isAddingItemToMap, showCreatePopup, currentUser])
+  }, [isAddingItemToMap, goToCreatePostAtLocation, currentUser])
 
   const onMapMouseUp = useCallback(() => {
     if (creatingPostRef.current) {
@@ -693,7 +692,6 @@ function MapExplorer (props) {
     if (!isEqual(centerLocation, newCenter) || !isEqual(zoom, newZoom)) {
       updateView({ centerLocation: newCenter, zoom: newZoom })
     }
-    setCreatePopupVisible(false)
     creatingPostRef.current = false
   }, 300)
 
@@ -978,16 +976,6 @@ function MapExplorer (props) {
         className={classes.helpTipTwo}
       />
 
-      {createCreatePopupVisible && (
-        <div
-          className='absolute w-[200px] bg-background z-50 rounded-md drop-shadow-md p-2 flex flex-col items-center'
-          style={{ top: createPopupPosition.top, left: createPopupPosition.left }}
-          onClick={() => setCreatePopupVisible(false)}
-        >
-          <CreateMenu mapView coordinates={{ lat: createPopupPosition.lat, lng: createPopupPosition.lng }} />
-          <button className='mt-2' onClick={() => setCreatePopupVisible(false)}>Close</button>
-        </div>
-      )}
     </div>
   )
 }

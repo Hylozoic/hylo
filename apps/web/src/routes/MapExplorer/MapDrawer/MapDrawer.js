@@ -86,7 +86,7 @@ function MapPostRow ({ post, routeParams }) {
         </span>
         <span className='text-[10px] text-foreground/50 shrink-0'>{DateTimeHelpers.humanDate(post.createdAt, true)}</span>
       </div>
-      <div className='text-[13px] font-bold text-foreground leading-tight'>{post.title}</div>
+      <div className='text-base font-bold text-foreground leading-tight'>{post.title}</div>
       {firstImage && (
         <div className='mt-2 rounded-lg overflow-hidden aspect-video bg-cover bg-center' style={bgImageStyle(firstImage.url)} />
       )}
@@ -188,12 +188,12 @@ function MapDrawer ({
             onClick={onClose}
             aria-label={t('Close Drawer')}
             data-testid='map-drawer-close'
-            className='w-7 h-7 rounded-md bg-background border-2 border-foreground/20 text-foreground/70 hover:text-foreground hover:border-foreground/50 grid place-items-center shrink-0 transition-all'
+            className='w-9 h-9 rounded-md bg-background border-2 border-foreground/20 text-foreground/70 hover:text-foreground hover:border-foreground/50 grid place-items-center shrink-0 transition-all'
           >
             <X className='w-3.5 h-3.5' />
           </button>
           <input
-            className='bg-input rounded-lg text-foreground placeholder-foreground/40 flex-1 min-w-0 h-7 px-2.5 text-xs transition-all outline-none focus:outline-focus focus:outline-2'
+            className='bg-input rounded-md text-base h-9 text-foreground placeholder-foreground/40 flex-1 min-w-0 px-2 py-0 mb-0 transition-all outline-none border-2 border-foreground/20 hover:border-foreground/50 focus:border-focus'
             type='text'
             onChange={e => setSearch(e.target.value)}
             onFocus={e => setIsSearching(true)}
