@@ -1,11 +1,11 @@
 import { cn } from 'util/index'
 import { get } from 'lodash/fp'
-import { Globe, HelpCircle, PlusCircle, Bell, MessagesSquare, ChevronDown, Settings, LogOut, User, Edit, Users, Mail, Bell as BellIcon, Palette, Languages, UserX, Search, Shield, BookOpen, Download, Heart, Wrench } from 'lucide-react'
+import { Globe, HelpCircle, Plus, PlusCircle, Bell, MessagesSquare, ChevronDown, Settings, LogOut, User, Edit, Users, Mail, Bell as BellIcon, Palette, Languages, UserX, Search, Shield, BookOpen, Download, Heart, Wrench } from 'lucide-react'
 import React, { Suspense, useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useIntercom } from 'react-use-intercom'
 import { useSelector, useDispatch } from 'react-redux'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { replace } from 'redux-first-history'
 import {
   DndContext,
@@ -47,7 +47,6 @@ import {
   DropdownMenuTrigger
 } from 'components/ui/dropdown-menu'
 import BadgedIcon from 'components/BadgedIcon'
-import CreateMenu from 'components/CreateMenu'
 import GlobalNavItem from './GlobalNavItem'
 import GlobalNavTooltipContainer from './GlobalNavTooltipContainer'
 import { getMyGroupsWithChildren } from 'store/selectors/getMyGroups'
@@ -59,7 +58,8 @@ import ModalDialog from 'components/ModalDialog'
 import { pinGroup, unpinGroup, updateGroupNavOrder } from 'store/actions/pinGroup'
 import markGroupAsRead from 'store/actions/markGroupAsRead'
 import logout from 'store/actions/logout'
-import { personUrl } from '@hylo/navigation'
+import { newMessageUrl, personUrl } from '@hylo/navigation'
+import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import { WebViewMessageTypes } from '@hylo/shared'
 import useAppearance from 'hooks/useAppearance'
 import { getLocaleFromLocalStorage } from 'util/locale'
@@ -126,6 +126,73 @@ function SortableGlobalNavItem ({ group, index, isVisible, showTooltip, isContai
 }
 
 const NotificationsDropdown = React.lazy(() => import('./NotificationsDropdown'))
+
+/**
+ * The + menu (per the design): four actions with colored icon tiles instead of
+ * a list of every post type. Controlled popover so choosing a row closes it.
+ */
+function GlobalCreateMenu () {
+  const { t } = useTranslation()
+  const navigate = useNavigate()
+  const dispatch = useDispatch()
+  const location = useLocation()
+  const [open, setOpen] = useState(false)
+
+  const go = (path) => () => {
+    setOpen(false)
+    dispatch(toggleNavMenu(false))
+    navigate(path)
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger>
+        <div className={cn('bg-primary relative z-20 transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-8 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-foreground/0 hover:border-foreground/50')}>
+          <PlusCircle className='w-7 h-7' />
+        </div>
+      </PopoverTrigger>
+      <PopoverContent side='right' align='end' className='w-[210px] p-1.5 rounded-xl'>
+        <CreateMenuRow
+          onClick={go('/create-group')}
+          tileClass='bg-[hsl(200_55%_45%)]'
+          icon={<Plus className='w-4 h-4' />}
+          label={t('Create a group')}
+        />
+        <CreateMenuRow
+          onClick={go(`${location.pathname}/create/post`)}
+          tileClass='bg-[hsl(155_51%_34%)]'
+          icon={<Edit className='w-4 h-4' />}
+          label={t('Create a post')}
+        />
+        <CreateMenuRow
+          onClick={go(newMessageUrl())}
+          tileClass='bg-[hsl(280_40%_42%)]'
+          icon={<Mail className='w-4 h-4' />}
+          label={t('New DM')}
+        />
+        <CreateMenuRow
+          onClick={go('/public/groups')}
+          tileClass='bg-[hsl(0_0%_22%)]'
+          icon={<Globe className='w-4 h-4' />}
+          label={t('Explore Groups')}
+        />
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+function CreateMenuRow ({ onClick, tileClass, icon, label }) {
+  return (
+    <button
+      type='button'
+      onClick={onClick}
+      className='w-full flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-semibold text-foreground/90 hover:text-foreground hover:bg-foreground/10 transition-colors text-left'
+    >
+      <span className={cn('w-7 h-7 rounded-lg grid place-items-center text-white shrink-0', tileClass)}>{icon}</span>
+      {label}
+    </button>
+  )
+}
 
 // Settings Menu Component
 function SettingsMenu ({ currentUser, triggerClassName, contentSide = 'right', contentAlign = 'start' }) {
@@ -1034,16 +1101,7 @@ export default function GlobalNav (props) {
           </div>
         )}
 
-        <Popover>
-          <PopoverTrigger>
-            <div className={cn('bg-primary relative z-20 transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-8 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-foreground/0 hover:border-foreground/50')}>
-              <PlusCircle className='w-7 h-7' />
-            </div>
-          </PopoverTrigger>
-          <PopoverContent side='right' align='center'>
-            <CreateMenu />
-          </PopoverContent>
-        </Popover>
+        <GlobalCreateMenu />
 
         {/* Settings and help are utilities rather than destinations, so they share a
             row as small dark squares instead of taking a full-width bright tile each */}
