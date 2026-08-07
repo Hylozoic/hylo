@@ -22,6 +22,7 @@ import {
 import GroupMenuHeader from 'components/GroupMenuHeader'
 import InviteMembersPopover from 'components/InviteMembersPopover/InviteMembersPopover'
 import MenuLink from './MenuLink'
+import ContextMenuResizer from './ContextMenuResizer'
 import GroupViewIcon from './GroupViewIcon'
 import useRouteParams from 'hooks/useRouteParams'
 import usePublishedOfferings from 'hooks/usePublishedOfferings'
@@ -544,6 +545,8 @@ export default function ContextMenu (props) {
   const canManageSpaces = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_MANAGE_SPACES, groupId: group?.id }))
   const isEditing = getQuerystringParam('edit', location) === 'true' && canAdminister
   const [settingsView, setSettingsView] = useState(null)
+  // The width-drag strip measures its seam position from this element
+  const [menuRootEl, setMenuRootEl] = useState(null)
   const isMoreViewsPath = location.pathname.replace(/\/$/, '').endsWith('/more-views')
   // On More Views page, `?space=` selects a space in the sidebar without leaving the page.
   const spaceSlug = routeSpaceSlug || (isMoreViewsPath ? getQuerystringParam('space', location) : null)
@@ -807,9 +810,10 @@ export default function ContextMenu (props) {
 
   return (
     <div
+      ref={setMenuRootEl}
       className={cn(
         'ContextMenu bg-background relative z-20 isolate pointer-events-auto h-full flex-1 min-w-0',
-        !isPhoneDevice() && 'sm:flex-initial sm:w-[300px]',
+        !isPhoneDevice() && 'sm:flex-initial sm:w-[var(--context-menu-width,300px)]',
         { [classes.mapView]: mapView },
         {
           [classes.showGroupMenu]: isNavOpen,
@@ -822,6 +826,8 @@ export default function ContextMenu (props) {
       style={{ boxShadow: 'inset -15px 0 15px -10px hsl(var(--darkening) / 0.3)' }}
       onScroll={handleScroll}
     >
+      {/* Fixed-position, so the menu's own overflow scrolling never clips it */}
+      {!isPhoneDevice() && <ContextMenuResizer menuEl={menuRootEl} />}
       <div className={cn(
         'relative flex flex-col',
         isSettingsPath ? 'flex-1 min-h-0 overflow-hidden' : 'min-h-full min-h-screen min-h-dvh'
