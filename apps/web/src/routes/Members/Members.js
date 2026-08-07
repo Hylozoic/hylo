@@ -16,16 +16,14 @@ import ScrollListener from 'components/ScrollListener'
 import SwitchStyled from 'components/SwitchStyled'
 import { MembersBootstrapSkeleton } from 'components/Skeleton/RouteBootstrapPlaceholders'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
-import { useEffectiveGroupSlug, useGroupRouteOpts } from 'contexts/SpaceGroupContext'
+import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import usePillRowClamp from 'hooks/usePillRowClamp'
-import useRouteParams from 'hooks/useRouteParams'
 import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION, RESP_MANAGE_SPACES } from 'store/constants'
 import { groupUrl } from '@hylo/navigation'
 import { FETCH_MEMBERS, FETCH_MEMBERS_FOR_GRAPH, fetchMembers, fetchMembersForGraph, getMembers, getGraphMembers, getHasFetchedGraphMembers, getHasMoreMembers, getHasFetchedMembers, getMemberQueryProps, removeMember } from './Members.store'
 import { fetchTrack } from 'store/actions/trackActions'
 import { fetchFundingRound } from 'routes/FundingRounds/FundingRounds.store'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
-import getMe from 'store/selectors/getMe'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import getRolesForGroup from 'store/selectors/getRolesForGroup'
 import getTrack from 'store/selectors/getTrack'
@@ -34,8 +32,6 @@ import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
 import { cn } from 'util/index'
-import { isOneColumnLayout as resolveIsOneColumnLayout } from 'util/navigationLayout'
-import ViewsGridSkeleton from 'routes/AuthLayoutRouter/components/ContextMenu/ViewsGridSkeleton'
 import { CENTER_COLUMN_ID } from 'util/scrolling'
 import orm from 'store/models'
 
@@ -52,15 +48,9 @@ function Members (props) {
 
   const context = props.context
   const slug = useEffectiveGroupSlug()
-  const { parentGroupSlug } = useGroupRouteOpts()
-  const routeParams = useRouteParams()
-  const navLayoutGroup = useSelector(state =>
-    getGroupForSlug(state, parentGroupSlug || routeParams.groupSlug)
-  )
 
   // State selectors
   const group = useSelector(state => getGroupForSlug(state, slug))
-  const currentUser = useSelector(getMe)
   const sortKeys = sortKeysFactory()
   const sortByParam = getQuerystringParam('s', location) || defaultSortBy
   const sortBy = sortKeys[sortByParam] ? sortByParam : defaultSortBy
@@ -141,12 +131,6 @@ function Members (props) {
   const [rolesExpanded, setRolesExpanded] = useState(false)
   const roleClamp = usePillRowClamp(filterableRoles.length + 1, 1, rolesExpanded)
 
-  // One-column (card menu) groups use the view-card grid for members.
-  const isOneColumnLayout = context === 'groups' && resolveIsOneColumnLayout(
-    currentUser?.settings?.groupNavStyle,
-    navLayoutGroup?.settings?.layout
-  )
-
   // Action creators
   const changeSearch = useCallback(term =>
     dispatch(changeQuerystringParam(location, 'q', term)), [location])
@@ -208,7 +192,7 @@ function Members (props) {
   }
 
   return (
-    <div className={cn('h-auto w-full mx-auto', isOneColumnLayout ? 'max-w-[1000px]' : 'max-w-[940px]')} id='members-page'>
+    <div className='h-auto w-full mx-auto max-w-[940px]' id='members-page'>
       <Helmet>
         <title>{t('Members')} | {group ? `${group.name} | ` : ''}Hylo</title>
       </Helmet>
@@ -261,28 +245,26 @@ function Members (props) {
                 onClick: () => changeSort(k)
               }))}
             />
-            {!isOneColumnLayout && (
-              <div className='flex items-center rounded-lg border-2 border-foreground/20 overflow-hidden' role='group' aria-label={t('Layout')}>
-                <button
-                  type='button'
-                  onClick={() => setDisplayMode('card')}
-                  aria-label={t('Cards')}
-                  title={t('Cards')}
-                  className={cn('px-2.5 py-[10px] transition-colors', displayMode === 'card' ? 'bg-selected text-foreground' : 'text-foreground/60 hover:text-foreground hover:bg-foreground/5')}
-                >
-                  <LayoutGrid className='w-4 h-4' />
-                </button>
-                <button
-                  type='button'
-                  onClick={() => setDisplayMode('list')}
-                  aria-label={t('List')}
-                  title={t('List')}
-                  className={cn('px-2.5 py-[10px] transition-colors', displayMode === 'list' ? 'bg-selected text-foreground' : 'text-foreground/60 hover:text-foreground hover:bg-foreground/5')}
-                >
-                  <List className='w-4 h-4' />
-                </button>
-              </div>
-            )}
+            <div className='flex items-center rounded-lg border-2 border-foreground/20 overflow-hidden' role='group' aria-label={t('Layout')}>
+              <button
+                type='button'
+                onClick={() => setDisplayMode('card')}
+                aria-label={t('Cards')}
+                title={t('Cards')}
+                className={cn('px-2.5 py-[10px] transition-colors', displayMode === 'card' ? 'bg-selected text-foreground' : 'text-foreground/60 hover:text-foreground hover:bg-foreground/5')}
+              >
+                <LayoutGrid className='w-4 h-4' />
+              </button>
+              <button
+                type='button'
+                onClick={() => setDisplayMode('list')}
+                aria-label={t('List')}
+                title={t('List')}
+                className={cn('px-2.5 py-[10px] transition-colors', displayMode === 'list' ? 'bg-selected text-foreground' : 'text-foreground/60 hover:text-foreground hover:bg-foreground/5')}
+              >
+                <List className='w-4 h-4' />
+              </button>
+            </div>
           </div>
           {filterableRoles.length > 0 && (
             <div ref={roleClamp.containerRef} className='flex flex-wrap items-center gap-1.5'>
@@ -316,18 +298,16 @@ function Members (props) {
           )}
         </div>
         <MasonryGrid
-          enabled={!isOneColumnLayout && displayMode === 'card'}
+          enabled={displayMode === 'card'}
           gap={12}
           className={cn(
-            isOneColumnLayout
-              ? 'flex flex-wrap gap-3'
-              : displayMode === 'card'
-                ? 'grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] items-start gap-x-3'
-                : 'flex flex-col rounded-xl bg-card overflow-hidden'
+            displayMode === 'card'
+              ? 'grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] items-start gap-x-3'
+              : 'flex flex-col rounded-xl bg-card overflow-hidden'
           )}
         >
           {isLoading
-            ? <MembersListSkeleton isOneColumnLayout={isOneColumnLayout} />
+            ? <MembersListSkeleton />
             : members.map(member => (
               <Member
                 group={group}
@@ -342,7 +322,6 @@ function Members (props) {
                 showFundingRoundRoles={showFundingRoundRoles}
                 submitterRoles={submitterRoles}
                 voterRoles={voterRoles}
-                square={isOneColumnLayout}
                 layout={displayMode === 'list' ? 'row' : 'card'}
               />
             ))}
@@ -366,11 +345,7 @@ function Members (props) {
   )
 }
 
-function MembersListSkeleton ({ isOneColumnLayout }) {
-  if (isOneColumnLayout) {
-    return <ViewsGridSkeleton count={8} />
-  }
-
+function MembersListSkeleton () {
   const rows = [0, 1, 2, 3, 4, 5, 6]
   return rows.map(i => (
     <div key={i} className='flex items-center gap-3 py-3 border-b border-foreground/5'>
