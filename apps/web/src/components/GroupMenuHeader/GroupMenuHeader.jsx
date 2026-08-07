@@ -19,7 +19,8 @@ import { groupUrl } from '@hylo/navigation'
  */
 export default function GroupMenuHeader ({
   group,
-  compact = false
+  compact = false,
+  onCompactClick
 }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -102,6 +103,19 @@ export default function GroupMenuHeader ({
     >
       <div className='absolute z-10 inset-0 bg-cover bg-center' style={{ ...bgImageStyle(bannerUrl), opacity: 0.5 }} />
       <div className='absolute top-0 left-0 w-full h-full bg-darkening z-0 opacity-80' />
+      {/* Compact cover: the stream header's wash flipped so the dark end sits at the
+          bottom, and the whole ducked header acts as the Back control */}
+      <button
+        type='button'
+        onClick={compact ? onCompactClick : undefined}
+        tabIndex={compact ? 0 : -1}
+        aria-label={t('Back')}
+        aria-hidden={!compact}
+        className={cn(
+          'absolute inset-0 z-30 bg-gradient-to-t from-[hsl(var(--theme-background)/0.1)] dark:from-[hsl(var(--theme-background)/0.5)] to-[hsl(var(--theme-background)/0)] transition-opacity duration-300',
+          compact ? 'opacity-100 cursor-pointer' : 'opacity-0 pointer-events-none'
+        )}
+      />
       <div className={cn('absolute top-2 left-2 z-20', controlFade)}>
         <GroupNotificationsPopover group={group} />
       </div>
@@ -160,13 +174,16 @@ export default function GroupMenuHeader ({
               className='inline-flex items-center gap-1 rounded-full bg-white/15 border border-white/25 px-2 py-0.5 text-white hover:bg-white/25 hover:text-white no-underline hover:no-underline transition-colors'
               to={groupUrl(group.slug, 'members', {})}
               onClick={() => dispatch(toggleNavMenu(false))}
+              aria-label={t('{{count}} Members', { count: group.memberCount })}
             >
               <Users className='w-3.5 h-3.5' />
-              {t('{{count}} Members', { count: group.memberCount })}
+              {group.memberCount}
             </Link>
             <InviteMembersPopover
               group={group}
-              triggerClassName='text-white hover:text-white'
+              alwaysVisible
+              triggerLabel={t('Invite')}
+              triggerClassName='rounded-full bg-white/15 border border-white/25 px-2 py-0.5 text-white hover:text-white hover:bg-white/25 hover:scale-100'
             />
           </span>
         </div>

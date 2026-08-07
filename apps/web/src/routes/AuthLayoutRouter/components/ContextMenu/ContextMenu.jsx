@@ -629,6 +629,13 @@ export default function ContextMenu (props) {
   const spaceViewsLoading = viewsPending && spaceMenuViews.length === 0
   const spaceDisplayName = activeSpaceGroup?.name ||
     (activeSpaceView ? displayNameForView(GroupViewPresenter(activeSpaceView), t) : t('Space'))
+  const presentedActiveSpaceView = useMemo(
+    () => activeSpaceView ? GroupViewPresenter(activeSpaceView) : null,
+    [activeSpaceView]
+  )
+  const activeSpaceBannerUrl = activeSpaceGroup?.bannerUrl && activeSpaceGroup.bannerUrl !== DEFAULT_BANNER
+    ? activeSpaceGroup.bannerUrl
+    : null
 
   // Fetch GroupViews and spaces whenever we enter a real group context
   useEffect(() => {
@@ -645,7 +652,22 @@ export default function ContextMenu (props) {
     }
   }, [showingSpaceMenu, activeSpaceGroup?.id, dispatch])
 
+  // Remember where the user was before a space's menu took over, so Back returns
+  // them there — not to a guessed group home. Updated only while no space menu is
+  // active, so entering the space never overwrites the origin.
+  const lastNonSpaceLocationRef = React.useRef(null)
+  useEffect(() => {
+    if (!activeSpaceView) {
+      lastNonSpaceLocationRef.current = `${location.pathname}${location.search}`
+    }
+  }, [location, activeSpaceView])
+
   const handleBackToGroupMenu = useCallback(() => {
+    if (lastNonSpaceLocationRef.current) {
+      navigate(lastNonSpaceLocationRef.current)
+      return
+    }
+    // Deep links have no origin to return to — fall back to the sensible parents
     if (isMoreViewsPath) {
       const moreViews = groupUrl(groupSlug, 'more-views')
       navigate(isEditing ? addQuerystringToPath(moreViews, { edit: 'true' }) : moreViews)
@@ -808,7 +830,7 @@ export default function ContextMenu (props) {
         <div className='absolute inset-0 bg-gradient-to-b from-context-menu-background to-theme-background/10 dark:to-theme-background/40 z-0 pointer-events-none' />
         <div className='ContextDetails w-full z-20 relative shrink-0'>
           {isGroupContext
-            ? <GroupMenuHeader group={group} compact={Boolean(activeSpaceView)} />
+            ? <GroupMenuHeader group={group} compact={Boolean(activeSpaceView)} onCompactClick={handleBackToGroupMenu} />
             : isPublicContext
               ? (
                 <div className='TheCommonsHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md'>
@@ -845,17 +867,60 @@ export default function ContextMenu (props) {
           {showingSpaceMenu
             ? (
               <>
-                <div className='relative z-20 flex flex-col gap-1 px-3 py-2 border-b border-foreground/10'>
+                {/* h-[142px]: with the ducked group header's h-12 this sums to the
+                    full-size header's 190px, so the takeover swaps hierarchy without
+                    moving the menu below */}
+                <div className='SpaceMenuHeader relative z-20 flex flex-col justify-between h-[142px] overflow-hidden border-b border-foreground/10 shadow-md'>
+                  {activeSpaceBannerUrl
+                    ? (
+                      <>
+                        <div className='absolute inset-0 bg-cover bg-center' style={bgImageStyle(activeSpaceBannerUrl)} />
+                        <div className='absolute inset-0' style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.6) 100%)' }} />
+                      </>
+                      )
+                    : presentedActiveSpaceView && (
+                      <MenuRowBackground view={presentedActiveSpaceView} bannerUrl={null} glyphCount={280} />
+                    )}
                   <button
                     type='button'
                     onClick={handleBackToGroupMenu}
-                    className='flex items-center gap-1 self-start text-sm text-foreground/60 hover:text-foreground transition-colors'
+                    className={cn(
+                      'relative z-10 flex items-center gap-1 self-start m-2 px-1.5 py-0.5 rounded-md text-sm backdrop-blur-sm transition-colors',
+                      activeSpaceBannerUrl
+                        ? 'bg-black/25 text-white/90 hover:bg-black/40 hover:text-white'
+                        : 'bg-foreground/10 text-foreground/70 hover:bg-foreground/20 hover:text-foreground dark:text-white/80 dark:hover:text-white'
+                    )}
                     aria-label={t('Back')}
                   >
                     <ChevronLeft className='w-5 h-5' />
                     <span>{t('Back')}</span>
                   </button>
-                  <span className='font-semibold text-foreground truncate'>{spaceDisplayName}</span>
+                  <div className='relative z-10 flex items-center gap-2 p-2 min-w-0'>
+                    <GroupViewIcon view={presentedActiveSpaceView} />
+                    <TruncatedText
+                      className={cn(
+                        'truncate flex-1 font-semibold',
+                        activeSpaceBannerUrl
+                          ? 'text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.65)]'
+                          : 'text-foreground dark:text-white'
+                      )}
+                      text={spaceDisplayName}
+                    />
+                    <button
+                      type='button'
+                      onClick={() => navigate(addQuerystringToPath(location.pathname, { about: 1 }))}
+                      className={cn(
+                        'shrink-0 p-1 transition-colors',
+                        activeSpaceBannerUrl
+                          ? 'text-white/80 hover:text-white'
+                          : 'text-foreground/60 hover:text-foreground dark:text-white/80 dark:hover:text-white'
+                      )}
+                      aria-label={t('About')}
+                      title={t('About')}
+                    >
+                      <Info className='w-4 h-4' />
+                    </button>
+                  </div>
                 </div>
                 {spaceMenuViews.length > 0 || isEditing
                   ? (

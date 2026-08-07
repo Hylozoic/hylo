@@ -22,6 +22,7 @@ export default function InviteMembersPopover ({
   group,
   className,
   triggerClassName,
+  triggerLabel,
   /** When false, parent should use `group` so this fades in on hover. */
   alwaysVisible = false
 }) {
@@ -86,6 +87,7 @@ export default function InviteMembersPopover ({
               )}
             >
               <UserPlus className='w-4 h-4' />
+              {triggerLabel && <span className='ml-1'>{triggerLabel}</span>}
             </button>
           </PopoverTrigger>
         </TooltipTrigger>
