@@ -5,6 +5,7 @@ import { Maximize2, Minimize2, Users } from 'lucide-react'
 import { personUrl } from '@hylo/navigation'
 import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
+import Loading from 'components/Loading'
 import { runSkillsGraph } from './MemberSkillsGraphGenerator'
 import { analyzeSkills, buildGraphNodes, smartThreshold } from './buildGraphData'
 import { cn } from 'util/index'
@@ -14,13 +15,14 @@ import { cn } from 'util/index'
 // their people. The header dropdown sets how many people a skill needs
 // before it earns a node — "1 person" shows everything, the smart default
 // picks whatever keeps the simulation fluid.
-export default function MemberSkillsGraph ({ members, slug, onSkillClick }) {
+export default function MemberSkillsGraph ({ members, loading, slug, onSkillClick }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const containerRef = useRef(null)
   const graphInstanceRef = useRef(null)
   const [userThreshold, setUserThreshold] = useState(null)
   const [expanded, setExpanded] = useState(false)
+  const [building, setBuilding] = useState(false)
 
   const { skillGroups, thresholdOptions } = useMemo(() => analyzeSkills(members), [members])
   const autoThreshold = useMemo(() => smartThreshold(thresholdOptions), [thresholdOptions])
@@ -40,16 +42,30 @@ export default function MemberSkillsGraph ({ members, slug, onSkillClick }) {
       graphInstanceRef.current = null
     }
 
-    if (containerRef.current && nodes.length && links.length) {
-      while (containerRef.current.firstChild) {
-        containerRef.current.removeChild(containerRef.current.firstChild)
-      }
+    const el = containerRef.current
+    if (!el || !nodes.length || !links.length) return
 
-      const { destroy } = runSkillsGraph(containerRef.current, nodes, links, { onSkillClick, onPersonClick: handlePersonClick })
-      graphInstanceRef.current = destroy
-    }
+    // Two frames of headroom so the spinner paints before the synchronous
+    // layout settle blocks the main thread on big graphs
+    setBuilding(true)
+    let cancelled = false
+    let raf2 = 0
+    const raf1 = window.requestAnimationFrame(() => {
+      raf2 = window.requestAnimationFrame(() => {
+        if (cancelled) return
+        while (el.firstChild) {
+          el.removeChild(el.firstChild)
+        }
+        const { destroy } = runSkillsGraph(el, nodes, links, { onSkillClick, onPersonClick: handlePersonClick })
+        graphInstanceRef.current = destroy
+        setBuilding(false)
+      })
+    })
 
     return () => {
+      cancelled = true
+      window.cancelAnimationFrame(raf1)
+      if (raf2) window.cancelAnimationFrame(raf2)
       if (graphInstanceRef.current) {
         graphInstanceRef.current()
         graphInstanceRef.current = null
@@ -66,7 +82,7 @@ export default function MemberSkillsGraph ({ members, slug, onSkillClick }) {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [expanded])
 
-  if (!skillGroups.length) return null
+  if (!loading && !skillGroups.length) return null
 
   const thresholdLabel = (option) =>
     option === 1 ? t('1 person') : t('{{count}}+ people', { count: option })
@@ -78,7 +94,7 @@ export default function MemberSkillsGraph ({ members, slug, onSkillClick }) {
     >
       <div className='flex items-center justify-between bg-card rounded-t-xl border-b border-foreground/10 px-3 py-2'>
         <h2 className='m-0 text-sm font-semibold text-foreground'>{t('Skill map')}</h2>
-        <div className='flex items-center gap-2'>
+        <div className={cn('flex items-center gap-2', loading && 'invisible')}>
           <Dropdown
             id='skills-graph-threshold'
             alignRight
@@ -119,14 +135,26 @@ export default function MemberSkillsGraph ({ members, slug, onSkillClick }) {
         </div>
       </div>
       <div
-        ref={containerRef}
         className={cn(
-          'w-full bg-card bg-[url("/network-map-bg.png")] bg-no-repeat bg-cover rounded-b-xl shadow-2xl',
+          'relative w-full',
           expanded
             ? 'flex-1 min-h-0'
-            : nodes.length < 12 ? 'h-[300px]' : nodes.length < 30 ? 'h-[380px]' : nodes.length < 60 ? 'h-[460px]' : 'h-[560px]'
+            : loading || nodes.length >= 60
+              ? 'h-[560px]'
+              : nodes.length < 12 ? 'h-[300px]' : nodes.length < 30 ? 'h-[380px]' : 'h-[460px]'
         )}
-      />
+      >
+        <div
+          ref={containerRef}
+          className='w-full h-full bg-card bg-[url("/network-map-bg.png")] bg-no-repeat bg-cover rounded-b-xl shadow-2xl'
+        />
+        {(loading || building) && (
+          <div className='absolute inset-0 flex flex-col items-center justify-center gap-1 rounded-b-xl bg-card'>
+            <Loading type='inline' />
+            <span className='text-sm text-foreground/60'>{t('Loading skills map')}</span>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

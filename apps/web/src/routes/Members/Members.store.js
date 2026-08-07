@@ -193,6 +193,11 @@ export const getMembers = makeQueryResultsModelSelector(
 
 const getGraphMemberResults = makeGetQueryResults(FETCH_MEMBERS_FOR_GRAPH)
 
+export const getHasFetchedGraphMembers = createSelector(
+  getGraphMemberResults,
+  results => results != null
+)
+
 export const getGraphMembers = makeQueryResultsModelSelector(
   getGraphMemberResults,
   'Person',

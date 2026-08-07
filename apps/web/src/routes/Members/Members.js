@@ -21,7 +21,7 @@ import usePillRowClamp from 'hooks/usePillRowClamp'
 import useRouteParams from 'hooks/useRouteParams'
 import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION, RESP_MANAGE_SPACES } from 'store/constants'
 import { groupUrl } from '@hylo/navigation'
-import { FETCH_MEMBERS, fetchMembers, fetchMembersForGraph, getMembers, getGraphMembers, getHasMoreMembers, getHasFetchedMembers, getMemberQueryProps, removeMember } from './Members.store'
+import { FETCH_MEMBERS, FETCH_MEMBERS_FOR_GRAPH, fetchMembers, fetchMembersForGraph, getMembers, getGraphMembers, getHasFetchedGraphMembers, getHasMoreMembers, getHasFetchedMembers, getMemberQueryProps, removeMember } from './Members.store'
 import { fetchTrack } from 'store/actions/trackActions'
 import { fetchFundingRound } from 'routes/FundingRounds/FundingRounds.store'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
@@ -73,6 +73,8 @@ function Members (props) {
   )
   const members = useSelector(state => getMembers(state, memberQueryProps))
   const graphMembers = useSelector(state => getGraphMembers(state, { slug }))
+  const graphPending = useSelector(state => state.pending[FETCH_MEMBERS_FOR_GRAPH])
+  const hasFetchedGraphMembers = useSelector(state => getHasFetchedGraphMembers(state, { slug }))
   const hasMore = useSelector(state => getHasMoreMembers(state, memberQueryProps))
   const hasFetched = useSelector(state => getHasFetchedMembers(state, memberQueryProps))
   const pending = useSelector(state => state.pending[FETCH_MEMBERS])
@@ -224,7 +226,12 @@ function Members (props) {
         </div>
       )}
       <div className={classes.content}>
-        <MemberSkillsGraph members={graphMembers} slug={slug} onSkillClick={handleGraphSkillClick} />
+        <MemberSkillsGraph
+          members={graphMembers}
+          loading={Boolean(graphPending) || !hasFetchedGraphMembers}
+          slug={slug}
+          onSkillClick={handleGraphSkillClick}
+        />
         <div className='flex flex-col gap-2 py-4'>
           <div className='flex flex-wrap items-center gap-2'>
             <div className='relative flex-1 min-w-[220px]'>
