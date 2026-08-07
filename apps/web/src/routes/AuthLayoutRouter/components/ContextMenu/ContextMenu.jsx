@@ -63,8 +63,7 @@ import { menuViewUrl } from './groupViewMenuUrl'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { viewAcceptedByPostTypes } from 'store/models/GroupView'
-import { WebViewMessageTypes } from '@hylo/shared'
-import { getMobileAppVersion, sendMessageToWebView } from 'util/webView'
+import { getMobileAppVersion, logoutFromMobileWebView } from 'util/webView'
 import { viewShowsUnreadDot, viewUnreadBadgeCount } from 'util/viewUnreadBadges'
 
 import classes from './ContextMenu.module.scss'
@@ -187,12 +186,7 @@ function GroupViewMenuItem ({
       : ''
 
     const handleLogout = async () => {
-      await dispatch(logout())
-      if (window.HyloMobileV2) {
-        sendMessageToWebView(WebViewMessageTypes.LOGOUT)
-      } else {
-        dispatch(replace('/login', null))
-      }
+      await logoutFromMobileWebView(dispatch, logout(), replace('/login', null))
     }
 
     return (

@@ -52,7 +52,7 @@ import GlobalNavItem from './GlobalNavItem'
 import GlobalNavTooltipContainer from './GlobalNavTooltipContainer'
 import { getMyGroupsWithChildren } from 'store/selectors/getMyGroups'
 import { isCompactLayoutDevice, isMobileDevice, downloadApp } from 'util/mobile'
-import isWebView, { sendMessageToWebView, getMobileAppVersion } from 'util/webView'
+import isWebView, { getMobileAppVersion, logoutFromMobileWebView } from 'util/webView'
 import { getCookieConsent } from 'util/cookieConsent'
 import { useCookieConsent } from 'contexts/CookieConsentContext'
 import ModalDialog from 'components/ModalDialog'
@@ -60,7 +60,6 @@ import { pinGroup, unpinGroup, updateGroupNavOrder } from 'store/actions/pinGrou
 import markGroupAsRead from 'store/actions/markGroupAsRead'
 import logout from 'store/actions/logout'
 import { personUrl } from '@hylo/navigation'
-import { WebViewMessageTypes } from '@hylo/shared'
 import useAppearance from 'hooks/useAppearance'
 import { getLocaleFromLocalStorage } from 'util/locale'
 import updateUserSettings from 'store/actions/updateUserSettings'
@@ -152,12 +151,7 @@ function SettingsMenu ({ currentUser, triggerClassName, contentSide = 'right', c
   }, [])
 
   const handleLogout = async () => {
-    await dispatch(logout())
-    if (window.HyloMobileV2) {
-      sendMessageToWebView(WebViewMessageTypes.LOGOUT)
-    } else {
-      dispatch(replace('/login', null))
-    }
+    await logoutFromMobileWebView(dispatch, logout(), replace('/login', null))
   }
 
   const handleViewProfile = () => {

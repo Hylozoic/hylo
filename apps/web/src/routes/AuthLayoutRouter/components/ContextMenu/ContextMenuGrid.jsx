@@ -19,8 +19,7 @@ import {
   spaceUrl
 } from '@hylo/navigation'
 import { replace } from 'redux-first-history'
-import { WebViewMessageTypes } from '@hylo/shared'
-import { sendMessageToWebView } from 'util/webView'
+import { logoutFromMobileWebView } from 'util/webView'
 import logout from 'store/actions/logout'
 import { DEFAULT_BANNER, DEFAULT_AVATAR } from 'store/models/Group'
 import { getGroupViews } from 'store/selectors/getGroupViews'
@@ -222,12 +221,7 @@ function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
 
   const handleClick = async () => {
     if (isLogout) {
-      await dispatch(logout())
-      if (window.HyloMobileV2) {
-        sendMessageToWebView(WebViewMessageTypes.LOGOUT)
-      } else {
-        dispatch(replace('/login', null))
-      }
+      await logoutFromMobileWebView(dispatch, logout(), replace('/login', null))
       return
     }
     if (isSpace && presentedView.linkedGroup) {
