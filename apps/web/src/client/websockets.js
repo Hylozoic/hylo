@@ -1,27 +1,10 @@
 import curry from 'lodash/curry'
 import socketIOClient from 'socket.io-client'
 import sailsIOClient from 'sails.io.js'
+import resolveSocketHost from './resolveSocketHost.js'
 
 const environment = import.meta.env.PROD || 'development'
-
-/**
- * VITE_SOCKET_HOST is baked into the browser bundle, so its localhost:3001 means
- * *the device running the browser*. That is right on the dev machine and wrong
- * everywhere else — reach the dev server from a phone (over mDNS or Tailscale)
- * and the socket dials the phone. In that case go through the dev server's own
- * origin, which proxies /socket.io onward.
- *
- * Scoped to dev, and to non-localhost pages: production must keep using
- * VITE_SOCKET_HOST because the Node server's /noo proxy pipes HTTP only and
- * never handles a websocket upgrade.
- */
-const isRemoteDevHost = typeof window !== 'undefined' &&
-  import.meta.env.DEV &&
-  !['localhost', '127.0.0.1'].includes(window.location.hostname)
-
-const socketHost = isRemoteDevHost
-  ? window.location.origin
-  : import.meta.env.VITE_SOCKET_HOST
+const socketHost = resolveSocketHost()
 const isClient = typeof window !== 'undefined' && !window.isMock
 
 let socket // client-side singleton

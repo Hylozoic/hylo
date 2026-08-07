@@ -3,6 +3,7 @@ import { readFileSync } from 'fs'
 import lodash from 'lodash'
 
 export default function appMiddleware (req, res, next) {
+  res.set('Cache-Control', 'no-cache')
   return res.status(200).send(html(''))
 }
 

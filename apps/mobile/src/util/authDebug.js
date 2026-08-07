@@ -12,6 +12,12 @@ import Config from 'react-native-config'
 // Remove it (or set false) for production.
 export const AUTH_DEBUG = Config.AUTH_DEBUG === 'true'
 
+// Low-volume Sentry handshake events on staging/review API builds (and when AUTH_DEBUG).
+// Production App Store + prod API stays quiet unless AUTH_DEBUG is explicitly set.
+const apiHost = String(Config.API_HOST || '')
+export const AUTH_HANDSHAKE_TELEMETRY =
+  AUTH_DEBUG || apiHost.includes('staging')
+
 // Indirect console reference — `transform-remove-console` only removes calls
 // whose callee is literally `console.<method>(...)`, so a bound alias survives.
 const rawConsole = typeof global !== 'undefined' ? global.console : undefined
@@ -43,6 +49,24 @@ export function authEvent (message, data) {
   if (!AUTH_DEBUG) return
   rawLog('[auth][event]', message, data || '')
   withSentry(Sentry => Sentry.captureMessage(`[auth] ${message}`, { level: 'info', extra: data }))
+}
+
+/**
+ * WebView auth handshake milestones for Sentry (staging/review builds).
+ * Separate from AUTH_DEBUG so Bitrise review builds get events without verbose jar logs.
+ */
+export function authHandshakeEvent (message, data, level = 'info') {
+  if (!AUTH_HANDSHAKE_TELEMETRY) return
+  rawLog('[auth][handshake]', message, data || '')
+  withSentry(Sentry => {
+    Sentry.addBreadcrumb({
+      category: 'auth-handshake',
+      level: 'info',
+      message,
+      data: data || {}
+    })
+    Sentry.captureMessage(`[auth-handshake] ${message}`, { level, extra: data })
+  })
 }
 
 // Masks a token for logging — never log full credentials. Shows a short prefix

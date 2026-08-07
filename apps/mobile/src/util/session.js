@@ -5,7 +5,7 @@ import CookieManager from '@react-native-cookies/cookies'
 import { isNull, isUndefined, omitBy, reduce } from 'lodash'
 import apiHost from 'util/apiHost'
 import { getTokens, refreshAndSaveTokens } from 'util/tokenStore'
-import { authLog, maskToken, AUTH_DEBUG } from 'util/authDebug'
+import { authLog, maskToken, AUTH_DEBUG, authHandshakeEvent } from 'util/authDebug'
 
 const COOKIE_KEY = Config.SESSION_COOKIE_KEY || 'hylo_session_cookie'
 
@@ -13,10 +13,34 @@ const COOKIE_KEY = Config.SESSION_COOKIE_KEY || 'hylo_session_cookie'
 // Android WebView uses the system CookieManager (useWebKit=false).
 const USE_WEBKIT = Platform.OS === 'ios'
 
+/** Avoid `https://host.com//app` when the base URL has a trailing slash. */
+export function joinWebBaseAndPath (base, path) {
+  const b = String(base || '').replace(/\/+$/, '')
+  let p = String(path || '')
+  if (!p || p === '/') return `${b}/`
+  if (/^https?:\/\//i.test(p)) return p
+  p = p.replace(/^\/+/, '/').replace(/\/{2,}/g, '/')
+  if (!p.startsWith('/')) p = `/${p}`
+  return b + p
+}
+
+/** Normalizes mobile deep-link paths (e.g. `//app` → `/app`). */
+export function normalizeWebPath (path) {
+  if (!path) return '/app'
+  let p = String(path).trim()
+  if (!p.startsWith('/')) p = `/${p}`
+  p = p.replace(/\/{2,}/g, '/')
+  return p || '/app'
+}
+
+function normalizeWebBaseUrl (url) {
+  return String(url || '').replace(/\/+$/, '')
+}
+
 export async function setSessionCookie (resp) {
   const header = resp.headers.get('set-cookie')
 
-  if (!header) return Promise.resolve()
+  if (!header) return null
 
   const newCookies = parseCookies(header)
   const str = await getSessionCookie()
@@ -24,13 +48,7 @@ export async function setSessionCookie (resp) {
   const merged = omitBy({ ...oldCookies, ...newCookies }, invalidPair)
   const cookie = serializeCookie(merged)
   await AsyncStorage.setItem(COOKIE_KEY, cookie)
-
-  // Mirror into the WebView's native cookie jar so in-WebView requests (fetch/XHR
-  // after initial page load) use the same session as the native GraphQL client.
-  syncCookiesToWebView(merged).catch(err =>
-    console.warn('Failed to sync cookies to WebView cookie jar:', err)
-  )
-
+  await syncCookiesToWebView(merged)
   return cookie
 }
 
@@ -90,22 +108,93 @@ export async function logCookieJar (label) {
   }
 }
 
+/**
+ * Where native code mints a browser session from the Keychain access token.
+ * Review/Heroku frontends (*.herokuapp.com) must use same-origin /noo on the web
+ * host so Set-Cookie is rewritten for host-only cookies; direct api-staging calls
+ * return Domain=.hylo.com which the WebView jar rejects on non-hylo pages.
+ */
+export function sessionFromTokenUrl () {
+  const web = String(Config.HYLO_WEB_BASE_URL || '').replace(/\/$/, '')
+  if (web) {
+    try {
+      const { hostname } = new URL(web)
+      if (
+        hostname !== 'localhost' &&
+        !/^[0-9.]+$/.test(hostname) &&
+        !hostname.endsWith('hylo.com')
+      ) {
+        return `${web}/noo/session/from-token`
+      }
+    } catch (e) { /* use API host below */ }
+  }
+  return `${apiHost}/noo/session/from-token`
+}
+
 async function postSessionFromToken (accessToken) {
-  return fetch(`${apiHost}/noo/session/from-token`, {
+  const url = sessionFromTokenUrl()
+  authLog('session/from-token POST', url)
+  const resp = await fetch(url, {
     method: 'POST',
     headers: {
       Accept: 'application/json',
       Authorization: `Bearer ${accessToken}`
     }
   })
+  return { resp, url }
+}
+
+async function persistSessionCookiesFromJar (webBaseUrl) {
+  const jar = await CookieManager.get(webBaseUrl, USE_WEBKIT)
+  const cookieObj = omitBy(
+    Object.values(jar || {}).reduce((m, c) => {
+      if (c?.name && c?.value) m[c.name] = c.value
+      return m
+    }, {}),
+    invalidPair
+  )
+  if (!Object.keys(cookieObj).length) return null
+
+  const cookie = serializeCookie(cookieObj)
+  await AsyncStorage.setItem(COOKIE_KEY, cookie)
+  await syncCookiesToWebView(cookieObj)
+  return cookie
+}
+
+/**
+ * RN fetch often hides Set-Cookie from JS. Push the header into the WebKit/Android
+ * jar when present, then read the jar for the review/staging web host.
+ */
+async function ingestSessionFromTokenResponse (requestUrl, resp) {
+  const setCookie = resp.headers.get('set-cookie')
+  if (setCookie) {
+    try {
+      await CookieManager.setFromResponse(requestUrl, setCookie)
+    } catch (e) {
+      authLog('setFromResponse failed:', e?.message || e)
+    }
+  }
+
+  await setSessionCookie(resp)
+
+  const webBase = normalizeWebBaseUrl(Config.HYLO_WEB_BASE_URL)
+  const fromJar = webBase ? await persistSessionCookiesFromJar(webBase) : null
+  const stored = fromJar || await getSessionCookie()
+
+  authHandshakeEvent('session/from-token cookie ingest', {
+    hadSetCookieHeader: !!setCookie,
+    storedCookieNames: stored
+      ? Object.keys(omitBy(parseCookies(stored), invalidPair)).join(',') || 'none'
+      : 'none'
+  }, stored ? 'info' : 'warning')
+
+  return stored
 }
 
 /**
  * Token-auth WebView handoff: exchanges the native access token for a server
  * session cookie (via POST /noo/session/from-token), persists it, and mirrors it
- * into the WebView's cookie jar so the web app loads authenticated with no login
- * flash. Returns the cookie string, or null when there's no token or the
- * exchange fails (the caller then falls back to any existing cookie).
+ * into the WebView's cookie jar. Returns the cookie string, or null on failure.
  *
  * Retries once after a transparent refresh if the access token has expired.
  */
@@ -114,22 +203,36 @@ export async function sessionCookieFromToken () {
   if (!tokens?.access_token) return null
 
   try {
-    let resp = await postSessionFromToken(tokens.access_token)
+    let { resp, url } = await postSessionFromToken(tokens.access_token)
 
     if (resp.status === 401 && tokens.refresh_token) {
-      // Shared single-flight refresh (see tokenStore.refreshAndSaveTokens): avoids
-      // racing the urql authExchange and spending the rotating refresh token twice.
       tokens = await refreshAndSaveTokens()
-      resp = await postSessionFromToken(tokens.access_token)
+      ;({ resp, url } = await postSessionFromToken(tokens.access_token))
     }
 
-    if (!resp.ok) return null
+    if (!resp.ok) {
+      const tokenUrl = sessionFromTokenUrl()
+      authLog('session/from-token failed', `${resp.status} ${tokenUrl}`)
+      let host = ''
+      try {
+        host = new URL(tokenUrl).host
+      } catch (e) { /* ignore */ }
+      authHandshakeEvent('session/from-token failed', { status: resp.status, host }, 'warning')
+      return null
+    }
 
-    await setSessionCookie(resp)
+    let host = ''
+    try {
+      host = new URL(url).host
+    } catch (e) { /* ignore */ }
+    authHandshakeEvent('session/from-token ok', { status: resp.status, host })
+
+    const cookie = await ingestSessionFromTokenResponse(url, resp)
     await logCookieJar('after from-token sync')
-    return getSessionCookie()
+    return cookie
   } catch (err) {
     console.warn('Failed to derive WebView session from token:', err)
+    authHandshakeEvent('session/from-token error', { message: err?.message || String(err) }, 'warning')
     return null
   }
 }
@@ -151,6 +254,10 @@ function cookieDomainForUrl (url) {
   const noScheme = String(url).replace(/^[a-z]+:\/\//i, '')
   const host = noScheme.split('/')[0].split(':')[0]
   if (!host || host === 'localhost' || /^[0-9.]+$/.test(host)) return undefined
+  // Only widen scope for hylo.com hosts. Review frontends (e.g. *.herokuapp.com) sit on
+  // public-suffix domains where Domain= cookies are rejected by the WebView cookie store
+  // (supercookie protection), silently breaking the session sync — host-only is correct there.
+  if (!host.endsWith('hylo.com')) return undefined
   const labels = host.split('.')
   if (labels.length < 2) return undefined
   return '.' + labels.slice(-2).join('.')
@@ -164,9 +271,19 @@ function cookieDomainForUrl (url) {
 async function syncCookiesToWebView (cookieObj) {
   if (!cookieObj) return
 
-  const urls = [...new Set([Config.HYLO_WEB_BASE_URL, apiHost].filter(Boolean))]
+  const web = Config.HYLO_WEB_BASE_URL
+  const urls = web ? [web] : []
+  // Review/Heroku web hosts only talk to same-origin /noo/graphql — do not mirror
+  // session cookies onto api-staging with Domain=.hylo.com (jar rejects or ignores).
+  if (web && cookieDomainForUrl(web)) {
+    urls.push(apiHost)
+  } else if (!web && apiHost) {
+    urls.push(apiHost)
+  }
 
-  await Promise.all(urls.map(url => {
+  const uniqueUrls = [...new Set(urls.filter(Boolean))]
+
+  await Promise.all(uniqueUrls.map(url => {
     const domain = cookieDomainForUrl(url)
     const secure = /^https:/i.test(url)
 

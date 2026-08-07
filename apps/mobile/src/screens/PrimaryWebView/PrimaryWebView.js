@@ -12,6 +12,8 @@ import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useRouteParams from 'hooks/useRouteParams'
 import useNetworkConnectivity from 'hooks/useNetworkConnectivity'
 import useThemeStore from 'store/themeStore'
+import { authHandshakeEvent } from 'util/authDebug'
+import { normalizeWebPath } from 'util/session'
 
 /**
  * PrimaryWebView - Single full-screen WebView for all authenticated content
@@ -99,6 +101,7 @@ export default function PrimaryWebView() {
       case WebViewMessageTypes.LOGOUT:
         // Web app triggers logout, native handles the actual logout
         console.log('📱 Logout triggered from WebView')
+        authHandshakeEvent('LOGOUT received from web', {}, 'warning')
         setSessionRecovering(false)
         logout()
         break
@@ -160,7 +163,7 @@ export default function PrimaryWebView() {
   // Use originalLinkingPath if available, otherwise path, otherwise fallback to '/app'.
   // Do NOT fallback to '/' — the proxy serves the marketing landing page there for
   // unauthenticated requests, and the React app never loads to fire the LOGOUT guard.
-  const webViewPath = originalLinkingPath || path || '/app'
+  const webViewPath = normalizeWebPath(originalLinkingPath || path || '/app')
 
   if (__DEV__) {
     console.log('📱 PrimaryWebView loading path:', {
@@ -210,6 +213,21 @@ export default function PrimaryWebView() {
   //   3. WebView page loading
   // This replaces the previous three separate loading states that caused visible flashes.
   const showLoadingOverlay = !hasLoadedUser.current || isWebViewLoading || sessionRecovering
+
+  useEffect(() => {
+    if (!showLoadingOverlay) return
+    const delays = [5000, 15000, 30000]
+    const timers = delays.map(ms => setTimeout(() => {
+      authHandshakeEvent('PrimaryWebView loading overlay', {
+        elapsedMs: ms,
+        hasLoadedUser: hasLoadedUser.current,
+        isWebViewLoading,
+        sessionRecovering,
+        userId: currentUser?.id
+      }, 'warning')
+    }, ms))
+    return () => timers.forEach(clearTimeout)
+  }, [showLoadingOverlay, isWebViewLoading, sessionRecovering, currentUser?.id])
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor, paddingBottom: bottomInset }} edges={safeAreaEdges}>
