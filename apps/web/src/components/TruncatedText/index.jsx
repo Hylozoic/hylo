@@ -21,7 +21,15 @@ export default function TruncatedText ({ as: Tag = 'span', text, className }) {
     check()
     const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(check) : null
     observer?.observe(el)
-    return () => observer?.disconnect()
+    // The web font loading widens text without resizing the element — a check
+    // that ran against the fallback font can miss truncation that appears a
+    // beat later, so re-check when fonts settle
+    let cancelled = false
+    document.fonts?.ready?.then(() => { if (!cancelled) check() })
+    return () => {
+      cancelled = true
+      observer?.disconnect()
+    }
   }, [text])
 
   const element = <Tag ref={ref} className={className}>{text}</Tag>
