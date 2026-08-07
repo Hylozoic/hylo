@@ -22,6 +22,7 @@ import { useNavigate } from 'react-router-dom'
 import { addQuerystringToPath, groupUrl, localSpaceSlug } from '@hylo/navigation'
 
 import { Tooltip, TooltipContent, TooltipTrigger } from 'components/ui/tooltip'
+import TruncatedText from 'components/TruncatedText'
 import GroupViewIcon from './GroupViewIcon'
 import { GroupViewEditActions } from './GroupViewSettingsModal'
 import { canDeleteView, canHardDeleteView, isSoftRemoveView, viewAcceptedByPostTypes } from 'store/models/GroupView'
@@ -78,9 +79,11 @@ function SortableEditRow ({ view, onSettings, onHide, onDelete, isHome, spaceGro
         <button type='button' className='p-1 cursor-grab text-foreground/50 shrink-0' {...attributes} {...listeners}>
           <GripVertical className='w-4 h-4' />
         </button>
-        <p className='flex-1 text-xs text-foreground/40 uppercase tracking-wide truncate'>
-          {displayNameForView(presentedView, t, { spaceGroup })}
-        </p>
+        <TruncatedText
+          as='p'
+          className='flex-1 min-w-0 text-xs text-foreground/40 uppercase tracking-wide truncate'
+          text={displayNameForView(presentedView, t, { spaceGroup })}
+        />
         <GroupViewEditActions view={view} onSettings={onSettings} onHide={onHide} onDelete={onDelete} className='opacity-0 group-hover:opacity-100' />
       </li>
     )
@@ -96,13 +99,13 @@ function SortableEditRow ({ view, onSettings, onHide, onDelete, isHome, spaceGro
         <GripVertical className='w-4 h-4' />
       </button>
       <GroupViewIcon view={presentedView} />
-      <span className='flex-1 truncate text-base font-semibold text-foreground'>
-        {displayNameForView(presentedView, t, { spaceGroup })}
+      <span className='flex-1 min-w-0 flex items-center gap-1 text-base font-semibold text-foreground'>
+        <TruncatedText className='truncate min-w-0' text={displayNameForView(presentedView, t, { spaceGroup })} />
         {/* Same badge treatment as the header's Editing pill */}
         {isHome && (
           <Tooltip>
             <TooltipTrigger asChild>
-              <span className='ml-1 text-xs font-semibold rounded-full border border-foreground/20 bg-foreground/10 text-foreground/70 px-2 py-px leading-none self-center shrink-0'>
+              <span className='text-xs font-semibold rounded-full border border-foreground/20 bg-foreground/10 text-foreground/70 px-2 py-px leading-none self-center shrink-0'>
                 {t('Home')}
               </span>
             </TooltipTrigger>
@@ -164,9 +167,7 @@ function SortableSpaceEditRow ({
           <GripVertical className='w-4 h-4' />
         </button>
         <GroupViewIcon view={presentedView} />
-        <span className='flex-1 truncate text-base font-semibold text-foreground'>
-          {displayNameForView(presentedView, t)}
-        </span>
+        <TruncatedText className='flex-1 min-w-0 truncate text-base font-semibold text-foreground' text={displayNameForView(presentedView, t)} />
         <GroupViewEditActions
           view={view}
           onSettings={onSettings}
