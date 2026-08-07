@@ -259,8 +259,14 @@ function GroupViewMenuItem ({
 
     // Active space rows reveal the space's banner photo (uploaded ones only);
     // spaces without a banner fall back to the tinted icon texture.
-    const spaceBannerUrl = linkedSpaceGroup?.bannerUrl && linkedSpaceGroup.bannerUrl !== DEFAULT_BANNER
-      ? linkedSpaceGroup.bannerUrl
+    // Read the store record first with the parent's nested copy as fallback:
+    // right after selecting a space, whichever source is mid-refetch can briefly
+    // drop bannerUrl, and since the label color keys off it (white on photo,
+    // foreground on texture) a one-source read flashed the light-mode label
+    // dark until the banner came back.
+    const spaceBannerCandidate = spaceGroupFromStore?.bannerUrl || linkedSpaceGroup?.bannerUrl
+    const spaceBannerUrl = spaceBannerCandidate && spaceBannerCandidate !== DEFAULT_BANNER
+      ? spaceBannerCandidate
       : null
     const spaceCol = viewCardColor(presentedView)
 
@@ -836,7 +842,10 @@ export default function ContextMenu (props) {
         <div className='absolute inset-0 bg-gradient-to-b from-context-menu-background to-theme-background/10 dark:to-theme-background/40 z-0 pointer-events-none' />
         <div className='ContextDetails w-full z-20 relative shrink-0'>
           {isGroupContext
-            ? <GroupMenuHeader group={group} compact={Boolean(activeSpaceView)} onCompactClick={handleBackToGroupMenu} />
+            /* Duck only when the space really takes the menu over (its own
+               header below) — in-menu spaces expand inline under their row and
+               the full group header should stay */
+            ? <GroupMenuHeader group={group} compact={showingSpaceMenu} onCompactClick={handleBackToGroupMenu} />
             : isPublicContext
               ? (
                 <div className='TheCommonsHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md'>
