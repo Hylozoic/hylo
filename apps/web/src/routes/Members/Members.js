@@ -11,6 +11,7 @@ import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
 import MasonryGrid from 'components/MasonryGrid/MasonryGrid'
 import Member from 'components/Member'
+import MemberSkillsGraph from 'components/MemberSkillsGraph'
 import ScrollListener from 'components/ScrollListener'
 import SwitchStyled from 'components/SwitchStyled'
 import { MembersBootstrapSkeleton } from 'components/Skeleton/RouteBootstrapPlaceholders'
@@ -20,7 +21,7 @@ import usePillRowClamp from 'hooks/usePillRowClamp'
 import useRouteParams from 'hooks/useRouteParams'
 import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION, RESP_MANAGE_SPACES } from 'store/constants'
 import { groupUrl } from '@hylo/navigation'
-import { FETCH_MEMBERS, fetchMembers, getMembers, getHasMoreMembers, getHasFetchedMembers, getMemberQueryProps, removeMember } from './Members.store'
+import { FETCH_MEMBERS, fetchMembers, fetchMembersForGraph, getMembers, getGraphMembers, getHasMoreMembers, getHasFetchedMembers, getMemberQueryProps, removeMember } from './Members.store'
 import { fetchTrack } from 'store/actions/trackActions'
 import { fetchFundingRound } from 'routes/FundingRounds/FundingRounds.store'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
@@ -71,6 +72,7 @@ function Members (props) {
     [slug, search, sortBy, groupRoleId]
   )
   const members = useSelector(state => getMembers(state, memberQueryProps))
+  const graphMembers = useSelector(state => getGraphMembers(state, { slug }))
   const hasMore = useSelector(state => getHasMoreMembers(state, memberQueryProps))
   const hasFetched = useSelector(state => getHasFetchedMembers(state, memberQueryProps))
   const pending = useSelector(state => state.pending[FETCH_MEMBERS])
@@ -128,6 +130,8 @@ function Members (props) {
   }, [dispatch, fundingRoundId])
 
   const [showAnswers, setShowAnswers] = useState(false)
+  // Controlled so graph skill clicks can fill the box; typing stays debounced
+  const [searchValue, setSearchValue] = useState(search || '')
   // Card grid vs compact list, per the members directory design
   const [displayMode, setDisplayMode] = useState('card')
   // Role pills keep to one row behind a More pill until expanded; the count
@@ -169,6 +173,17 @@ function Members (props) {
     fetchMembersAction(0)
   }, [group?.id, slug, sortBy, search, groupRoleId, fetchMembersAction])
 
+  // The skills graph shows the whole membership, unaffected by directory filters
+  useEffect(() => {
+    if (!group?.id || !slug) return
+    dispatch(fetchMembersForGraph({ slug }))
+  }, [dispatch, group?.id, slug])
+
+  const handleGraphSkillClick = useCallback(skillName => {
+    setSearchValue(skillName)
+    changeSearch(skillName)
+  }, [changeSearch])
+
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
     setHeaderDetails({
@@ -209,15 +224,19 @@ function Members (props) {
         </div>
       )}
       <div className={classes.content}>
+        <MemberSkillsGraph members={graphMembers} slug={slug} onSkillClick={handleGraphSkillClick} />
         <div className='flex flex-col gap-2 py-4'>
           <div className='flex flex-wrap items-center gap-2'>
             <div className='relative flex-1 min-w-[220px]'>
               <Search className='absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/40 pointer-events-none' />
               <input
                 placeholder={t('Search name, skill, location, keyword')}
-                className='bg-input/60 focus:bg-input/100 rounded-lg text-foreground placeholder-foreground/40 w-full p-2 pl-9 transition-all outline-none focus:outline-focus focus:outline-2'
-                defaultValue={search}
-                onChange={e => debouncedSearch(e.target.value)}
+                className='bg-input/60 focus:bg-input/100 border-2 border-foreground/20 rounded-lg text-foreground placeholder-foreground/40 w-full p-2 pl-9 transition-all outline-none focus:outline-focus focus:outline-2'
+                value={searchValue}
+                onChange={e => {
+                  setSearchValue(e.target.value)
+                  debouncedSearch(e.target.value)
+                }}
               />
             </div>
             <Dropdown
