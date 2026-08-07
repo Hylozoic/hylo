@@ -4,12 +4,12 @@ import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { push } from 'redux-first-history'
 import { DateTimeHelpers } from '@hylo/shared'
-import { personUrl } from '@hylo/navigation'
+import { messagePersonUrl, personUrl } from '@hylo/navigation'
 import BadgeEmoji from 'components/BadgeEmoji'
 import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
 import useAppearance from 'hooks/useAppearance'
-import { Check, MapPin, Trash2 } from 'lucide-react'
+import { Check, MapPin, MessageCircle, Trash2 } from 'lucide-react'
 import { RESP_REMOVE_MEMBERS } from 'store/constants'
 import { cn, bgImageStyle } from 'util/index'
 import getMe from 'store/selectors/getMe'
@@ -100,6 +100,19 @@ function memberHasRequiredRole (memberRoles, requiredRoles) {
   return memberRoles.some(role => requiredIds.has(String(role.id)))
 }
 
+/** Stable hue from a name, for the bannerless header gradient (per the design). */
+function hueFromName (name) {
+  let hash = 0
+  for (const char of String(name || '')) hash = (hash * 31 + char.charCodeAt(0)) % 360
+  return hash
+}
+
+/** "Mar 2023"-style join date for the card footer. */
+function formatJoinedShort (value) {
+  const date = parseMemberDate(value)
+  return date ? date.toLocaleDateString(undefined, { month: 'short', year: 'numeric' }) : null
+}
+
 function Member ({
   canSeeJoinAnswers,
   className,
@@ -112,7 +125,8 @@ function Member ({
   voterRoles = [],
   showTrackCompletion,
   trackCompletedAt,
-  square
+  square,
+  layout = 'card'
 }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
@@ -255,48 +269,152 @@ function Member ({
     )
   }
 
-  return (
-    <div className={cn('flex flex-col gap-2 bg-card/100 rounded-lg p-2 shadow-lg hover:bg-card/100 transition-all hover:scale-102 relative overflow-hidden', className)} data-testid='member-card'>
-      {removeDropdown}
-      <div onClick={goToPerson(id, group.slug)} className='flex flex-row gap-2 z-10 relative cursor-pointer'>
-        <div className='min-w-16 min-h-16 max-h-16 rounded-full bg-cover' style={bgImageStyle(avatarUrl)} />
-        <div className='flex flex-col gap-0 justify-center flex-1 min-w-0'>
-          <div className='text-base whitespace-nowrap flex flex-row gap-1 items-center flex-wrap'>
-            <span className='font-bold'>{name}</span>
-            <div className='text-sm inline-flex gap-1'>
-              {roles.map(role => (
-                <BadgeEmoji key={role.id + role.common} expanded {...role} responsibilities={role.responsibilities} id={id} />
-              ))}
+  // ─── Design directory card + row (bd-members) ─────────────────────────────
+
+  const isSelf = currentUser && String(currentUser.id) === String(id)
+  const skills = (member.skills || []).map(s => s?.name).filter(Boolean)
+  const joinedShort = formatJoinedShort(enrolledAt)
+  const hue = hueFromName(name)
+
+  const messageButton = (onPhoto) => !isSelf && currentUser && (
+    <button
+      type='button'
+      onClick={(e) => { e.stopPropagation(); dispatch(push(messagePersonUrl(member))) }}
+      className={cn(
+        'shrink-0 w-8 h-8 grid place-items-center rounded-lg border transition-all',
+        onPhoto
+          ? 'bg-black/40 border-white/25 text-white/80 hover:bg-selected/80 hover:border-selected hover:text-white'
+          : 'bg-foreground/5 border-foreground/20 text-foreground/60 hover:bg-selected/20 hover:border-selected hover:text-foreground'
+      )}
+      aria-label={t('Message Member')}
+      title={t('Message Member')}
+    >
+      <MessageCircle className='w-4 h-4' />
+    </button>
+  )
+
+  const trackBlock = showTrackCompletion && (
+    trackCompletedAt
+      ? <div className='text-xs text-selected flex items-center gap-1'><Check className='w-3 h-3' /> {t('Completed {{date}}', { date: new Date(trackCompletedAt).toLocaleDateString() })}</div>
+      : <div className='text-xs text-foreground/50'>{t('Not yet completed')}</div>
+  )
+
+  const fundingRoundBlock = showFundingRoundRoles && (
+    <div className='flex flex-row flex-wrap gap-1.5'>
+      {canSubmit && (
+        <span className='px-2 py-0.5 text-xs bg-selected/20 text-foreground rounded-md'>{t('Can Submit')}</span>
+      )}
+      {canVote && (
+        <span className='px-2 py-0.5 text-xs bg-selected/20 text-foreground rounded-md'>{t('Can Vote')}</span>
+      )}
+      {isViewer && (
+        <span className='px-2 py-0.5 text-xs bg-foreground/10 text-foreground/70 rounded-md'>{t('Viewer')}</span>
+      )}
+    </div>
+  )
+
+  if (layout === 'row') {
+    return (
+      <div className={cn('flex flex-col border-b border-foreground/10 last:border-b-0', className)} data-testid='member-card'>
+        <div onClick={goToPerson(id, group.slug)} className='flex items-center gap-2.5 px-3 py-2.5 cursor-pointer hover:bg-foreground/5 transition-colors min-w-0'>
+          <div className='w-8 h-8 rounded-full bg-cover bg-center shrink-0' style={bgImageStyle(avatarUrl)} />
+          <div className='min-w-0 flex-1'>
+            <div className='flex items-center gap-1.5 min-w-0'>
+              <span className='text-sm font-bold text-foreground truncate'>{name}</span>
+              {isSelf && <span className='text-xs text-selected font-semibold shrink-0'>· {t('You')}</span>}
+              {roles.length > 0 && (
+                <span className='inline-flex gap-0.5 shrink-0'>
+                  {roles.map(role => (
+                    <BadgeEmoji key={role.id + role.common} expanded {...role} responsibilities={role.responsibilities} id={id} />
+                  ))}
+                </span>
+              )}
             </div>
-            <MemberActiveNote lastActiveAt={lastActiveAt} />
+            {location && (
+              <div className='flex items-center gap-1 text-xs text-foreground/50 min-w-0'>
+                <MapPin className='w-3 h-3 shrink-0' /><span className='truncate'>{location}</span>
+              </div>
+            )}
           </div>
-          {location && <div className='text-xs text-foreground/70 flex items-center gap-1'><MapPin className='w-3 h-3' /> {location}</div>}
-          {tagline && <div className='text-base text-foreground/100'>{tagline}</div>}
-          {formatJoinDate(enrolledAt) && (
-            <div className='text-xs text-foreground/50'>{t('Join Date')}: {formatJoinDate(enrolledAt)}</div>
-          )}
-          {showTrackCompletion && (
-            trackCompletedAt
-              ? <div className='text-xs text-selected flex items-center gap-1'><Check className='w-3 h-3' /> {t('Completed {{date}}', { date: new Date(trackCompletedAt).toLocaleDateString() })}</div>
-              : <div className='text-xs text-foreground/50'>{t('Not yet completed')}</div>
-          )}
-          {showFundingRoundRoles && (
-            <div className='flex flex-row flex-wrap gap-1.5 mt-1'>
-              {canSubmit && (
-                <span className='px-2 py-0.5 text-xs bg-selected/20 text-foreground rounded-md'>{t('Can Submit')}</span>
-              )}
-              {canVote && (
-                <span className='px-2 py-0.5 text-xs bg-selected/20 text-foreground rounded-md'>{t('Can Vote')}</span>
-              )}
-              {isViewer && (
-                <span className='px-2 py-0.5 text-xs bg-foreground/10 text-foreground/70 rounded-md'>{t('Viewer')}</span>
-              )}
+          {joinedShort && <span className='hidden sm:block text-xs text-foreground/50 whitespace-nowrap shrink-0'>{joinedShort}</span>}
+          <MemberActiveNote lastActiveAt={lastActiveAt} />
+          {messageButton(false)}
+          {removeDropdown && <div onClick={e => e.stopPropagation()}>{removeDropdown}</div>}
+        </div>
+        {(trackBlock || fundingRoundBlock || joinAnswersBlock) && (
+          <div className='flex flex-col gap-2 px-3 pb-3'>
+            {trackBlock}
+            {fundingRoundBlock}
+            {joinAnswersBlock}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div
+      className={cn('relative flex flex-col overflow-hidden rounded-xl bg-card border border-foreground/20 hover:border-foreground/60 hover:-translate-y-px transition-all cursor-pointer', className)}
+      onClick={goToPerson(id, group.slug)}
+      data-testid='member-card'
+    >
+      {/* Header: the member's own banner behind avatar, name and message — or a
+          gradient tinted by their name when they have none */}
+      <div
+        className='relative p-4 bg-cover bg-center'
+        style={bannerUrl
+          ? bgImageStyle(bannerUrl)
+          : { background: `linear-gradient(135deg, hsl(${hue} 42% 30%), hsl(${(hue + 45) % 360} 38% 22%))` }}
+      >
+        <div className='absolute inset-0' style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.42), rgba(0,0,0,0.66))' }} />
+        <div className='relative flex items-start gap-3'>
+          <div className={cn('w-12 h-12 rounded-full bg-cover bg-center shrink-0 shadow-md', isSelf && 'ring-2 ring-selected')} style={bgImageStyle(avatarUrl)} />
+          <div className='flex-1 min-w-0'>
+            <div className='text-white font-bold text-base leading-tight truncate'>
+              {name}
+              {isSelf && <span className='text-white/70 font-semibold text-xs'> · {t('You')}</span>}
             </div>
-          )}
+            {location && (
+              <div className='flex items-center gap-1 mt-1 text-xs text-white/70 min-w-0'>
+                <MapPin className='w-3 h-3 shrink-0' /><span className='truncate'>{location}</span>
+              </div>
+            )}
+          </div>
+          {messageButton(true)}
+          {removeDropdown && <div onClick={e => e.stopPropagation()}>{removeDropdown}</div>}
         </div>
       </div>
-      {joinAnswersBlock}
-      <div className='absolute inset-0 w-full h-full bg-cover bg-center z-0 opacity-30' style={bgImageStyle(bannerUrl)} />
+
+      <div className='p-4 pt-3 flex flex-col flex-1'>
+        {roles.length > 0 && (
+          <div className='flex flex-wrap gap-1 mb-2'>
+            {roles.map(role => (
+              <BadgeEmoji key={role.id + role.common} expanded {...role} responsibilities={role.responsibilities} id={id} />
+            ))}
+          </div>
+        )}
+        {tagline && <div className='text-sm text-foreground/70 leading-relaxed'>{tagline}</div>}
+        {skills.length > 0 && (
+          <div className='flex flex-wrap gap-1.5 mt-3'>
+            {skills.map(skill => (
+              <span key={skill} className='px-2.5 py-0.5 rounded-full text-xs bg-foreground/5 border border-foreground/15 text-foreground/70'>{skill}</span>
+            ))}
+          </div>
+        )}
+        {(trackBlock || fundingRoundBlock) && (
+          <div className='flex flex-col gap-1.5 mt-3'>
+            {trackBlock}
+            {fundingRoundBlock}
+          </div>
+        )}
+        {joinAnswersBlock && <div className='mt-3'>{joinAnswersBlock}</div>}
+        <div className='mt-auto pt-3'>
+          <div className='border-t border-foreground/10 pt-2.5 flex items-center gap-2 text-xs text-foreground/50'>
+            <MemberActiveNote lastActiveAt={lastActiveAt} />
+            {joinedShort && <span className='ml-auto'>{t('Joined {{date}}', { date: joinedShort })}</span>}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
@@ -319,7 +437,8 @@ Member.propTypes = {
   voterRoles: PropTypes.array,
   showTrackCompletion: bool,
   trackCompletedAt: string,
-  square: bool
+  square: bool,
+  layout: string
 }
 
 export default Member
