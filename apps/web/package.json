@@ -37,7 +37,9 @@
     "parser": "@babel/eslint-parser",
     "ignore": [
       "scripts/templates/*",
-      "src/components/Calendar/calendar-types.ts"
+      "src/components/Calendar/calendar-types.ts",
+      "src/components/Calendar/calendar-util.tsx",
+      "src/components/Calendar/calendar-context.tsx"
     ],
     "global": [
       "afterAll",

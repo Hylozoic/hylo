@@ -308,7 +308,7 @@ function GroupDetail ({ forCurrentGroup = false }) {
         <div className='max-w-screen-lg mx-auto flex items-center justify-center flex-col relative z-10'>
           <img src={group.avatarUrl || DEFAULT_AVATAR} className='w-24 h-24 rounded-xl shadow-xl mt-0 mb-2' />
           <div>
-            <div className='text-white font-bold text-2xl text-center'>{isAboutCurrentGroup && <span>{t('About')}</span>} {group.name}</div>
+            <div className='text-white font-bold text-2xl text-center'>{group.name}</div>
             <div className='text-center'>
               <div className='flex flex-row justify-center gap-1 text-sm text-white/70'>
                 <span className={g.groupPrivacy}>

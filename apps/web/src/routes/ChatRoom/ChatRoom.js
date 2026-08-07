@@ -52,6 +52,18 @@ import styles from './ChatRoom.module.scss'
 // include them under the same avatar and timestamp
 const MAX_MINS_TO_BATCH = 5
 
+// Messages clamp to this width for readability; the drag rail at the clamp edge
+// lets people widen the stream Discord-style. The choice sticks via localStorage.
+const CHAT_WIDTH_KEY = 'hyloChatStreamWidth'
+const DEFAULT_CHAT_WIDTH = 750
+const MIN_CHAT_WIDTH = 480
+// The list's sm+ px-5 gutter — the rail only exists on viewports wide enough
+// that the below-sm gutter never applies, and dragging right stops at a
+// matching gutter's distance from the right edge.
+const CHAT_GUTTER = 20
+// Slack past the clamp edge required before the rail appears at all
+const CHAT_RAIL_SLACK = 40
+
 // IMPORTANT: Use a selector factory so multiple prop-driven queries don't thrash a single memo cache
 // Preserve the order defined by queryResults.ids and transform to presentPost
 const makeGetPostsSelector = () => makeQueryResultsModelSelector(getPostResults, 'Post', p => presentPost(p))
@@ -734,16 +746,111 @@ export default function ChatRoom (props) {
     })
   }, [setHeaderDetails, t])
 
+  // ── Resizable chat width ──────────────────────────────────────────────────
+  const [chatStreamWidth, setChatStreamWidth] = useState(() => {
+    const saved = parseInt(window.localStorage.getItem(CHAT_WIDTH_KEY), 10)
+    return Number.isFinite(saved) ? Math.max(saved, MIN_CHAT_WIDTH) : DEFAULT_CHAT_WIDTH
+  })
+  const [chatPaneEl, setChatPaneEl] = useState(null)
+  const [chatPaneWidth, setChatPaneWidth] = useState(0)
+  const [resizingChatWidth, setResizingChatWidth] = useState(false)
+  const chatResizeDragRef = useRef(null)
+
+  useEffect(() => {
+    if (!chatPaneEl) return
+    const observer = new ResizeObserver(entries => {
+      setChatPaneWidth(entries[0]?.contentRect?.width ?? 0)
+    })
+    observer.observe(chatPaneEl)
+    return () => observer.disconnect()
+  }, [chatPaneEl])
+
+  // Widest the stream may grow: leaves a right gap matching the left gutter
+  const chatAvailableWidth = Math.max(0, chatPaneWidth - CHAT_GUTTER * 2)
+  const effectiveChatWidth = chatAvailableWidth ? Math.min(chatStreamWidth, chatAvailableWidth) : chatStreamWidth
+  // No rail until the pane outgrows the clamp enough for the rail to mean something
+  const showChatWidthRail = chatAvailableWidth >= Math.min(chatStreamWidth, DEFAULT_CHAT_WIDTH) + CHAT_RAIL_SLACK
+
+  const onChatRailPointerDown = useCallback((e) => {
+    e.preventDefault()
+    e.currentTarget.setPointerCapture(e.pointerId)
+    chatResizeDragRef.current = { startX: e.clientX, startWidth: effectiveChatWidth }
+    setResizingChatWidth(true)
+  }, [effectiveChatWidth])
+
+  const onChatRailPointerMove = useCallback((e) => {
+    const drag = chatResizeDragRef.current
+    if (!drag) return
+    const next = Math.min(Math.max(drag.startWidth + e.clientX - drag.startX, MIN_CHAT_WIDTH), chatAvailableWidth)
+    setChatStreamWidth(next)
+  }, [chatAvailableWidth])
+
+  const onChatRailPointerUp = useCallback(() => {
+    if (!chatResizeDragRef.current) return
+    chatResizeDragRef.current = null
+    setResizingChatWidth(false)
+    setChatStreamWidth(width => {
+      window.localStorage.setItem(CHAT_WIDTH_KEY, String(Math.round(width)))
+      return width
+    })
+  }, [])
+
   return (
     <div className={cn('ChatRoom flex-1 min-h-0 shadow-md flex flex-col overflow-hidden items-center justify-center', { [styles.withoutNav]: withoutNav })} ref={setContainer}>
       <Helmet>
         <title>{t('Chat')} | {group?.name ? `${group.name} | ` : ''}Hylo</title>
       </Helmet>
 
-      <div id='chats' className='my-0 mx-auto h-[calc(100%-130px)] w-full flex flex-col flex-1 relative overflow-hidden px-1'>
+      <div
+        id='chats'
+        ref={setChatPaneEl}
+        className='my-0 mx-auto h-[calc(100%-130px)] w-full flex flex-col flex-1 relative overflow-hidden px-1'
+        style={{ '--chat-stream-width': `${effectiveChatWidth}px` }}
+      >
         {/* The stream header's wash, here as a still strip: theme background fading
             to its own colour at zero alpha, so messages scroll under a soft top edge */}
         <div aria-hidden='true' className='absolute top-0 left-0 right-0 h-14 z-20 pointer-events-none bg-gradient-to-b from-[hsl(var(--theme-background)/0.1)] dark:from-[hsl(var(--theme-background)/0.5)] to-[hsl(var(--theme-background)/0)]' />
+        {/* Width rail on the clamp edge. The triangles stay visible as a quiet
+            hint; the dashed line and its wash only surface on hover or drag.
+            left includes the pane's px-1, which offsets content but not
+            absolutely positioned children. */}
+        {showChatWidthRail && (
+          <div
+            role='separator'
+            aria-orientation='vertical'
+            aria-label={t('Adjust chat width')}
+            className={cn(
+              'absolute top-0 bottom-0 z-20 w-[30px] -translate-x-1/2 flex flex-col items-center justify-between group touch-none select-none',
+              resizingChatWidth ? 'cursor-grabbing' : 'cursor-grab'
+            )}
+            style={{ left: 4 + CHAT_GUTTER + effectiveChatWidth }}
+            onPointerDown={onChatRailPointerDown}
+            onPointerMove={onChatRailPointerMove}
+            onPointerUp={onChatRailPointerUp}
+            onPointerCancel={onChatRailPointerUp}
+          >
+            <div className={cn(
+              'absolute inset-0 rounded-lg transition-colors',
+              resizingChatWidth ? 'bg-[hsl(var(--theme-background)/0.2)]' : 'group-hover:bg-[hsl(var(--theme-background)/0.2)]'
+            )}
+            />
+            <div className={cn(
+              'absolute top-[9px] bottom-[9px] left-1/2 -ml-px border-l-2 border-dashed transition-colors',
+              resizingChatWidth ? 'border-foreground/40' : 'border-transparent group-hover:border-foreground/40'
+            )}
+            />
+            <div className={cn(
+              'relative w-0 h-0 border-x-4 border-x-transparent border-t-[6px] transition-colors',
+              resizingChatWidth ? 'border-t-foreground/60' : 'border-t-foreground/30 group-hover:border-t-foreground/60'
+            )}
+            />
+            <div className={cn(
+              'relative w-0 h-0 border-x-4 border-x-transparent border-b-[6px] transition-colors',
+              resizingChatWidth ? 'border-b-foreground/60' : 'border-b-foreground/30 group-hover:border-b-foreground/60'
+            )}
+            />
+          </div>
+        )}
         {/* Member pill + active strip + slide-in list; absolute inside this container
             so the cover blankets the chat pane and nothing else */}
         <ChatMembersPanel group={group} latestPost={postsForDisplay[postsForDisplay.length - 1]} />
@@ -971,7 +1078,7 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
           // context.numPosts catches up, which left the newest message flush
           // against the bottom.
           <div
-            className={cn('max-w-[750px] transition-all mb-0', animationClass, { 'mb-3 sm:mb-5': !nextData })}
+            className={cn('max-w-[var(--chat-stream-width,750px)] transition-all mb-0', animationClass, { 'mb-3 sm:mb-5': !nextData })}
             style={animationStyle}
           >
             <ChatPost
@@ -988,7 +1095,7 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
           </div>)
         : (
           <div
-            className={cn('max-w-[750px] my-2', animationClass, { 'mb-3 sm:mb-5': !nextData })}
+            className={cn('max-w-[var(--chat-stream-width,750px)] my-2', animationClass, { 'mb-3 sm:mb-5': !nextData })}
             style={animationStyle}
           >
             <ChatPostNotice
