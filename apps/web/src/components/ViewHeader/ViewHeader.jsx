@@ -101,7 +101,7 @@ const ViewHeader = () => {
         setIsBannerVisible(false) // simple group view (no banner rendered)
         return
       }
-      observer = new IntersectionObserver(([entry]) => {
+      observer = new window.IntersectionObserver(([entry]) => {
         setIsBannerVisible(entry.isIntersecting)
       }, { threshold: 0 })
       observer.observe(bannerEl)

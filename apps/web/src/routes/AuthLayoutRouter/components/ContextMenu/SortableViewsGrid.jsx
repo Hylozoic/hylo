@@ -19,7 +19,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 
-import { canHardDeleteView } from 'store/models/GroupView'
+import { canHardDeleteView, viewAcceptedByPostTypes } from 'store/models/GroupView'
 import { mergeOrderedViewsFromSource, sortViewsByMenuOrder } from 'store/util/groupViewsOrder'
 import { cn } from 'util/index'
 

@@ -41,7 +41,7 @@ export default function GroupMenuHeader ({
 
   useEffect(() => {
     // Detect the color of the banner and set the text color accordingly
-    const img = new Image()
+    const img = new window.Image()
     img.crossOrigin = 'Anonymous'
     img.src = bannerUrl
     img.onload = () => {
