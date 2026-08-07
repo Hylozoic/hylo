@@ -782,24 +782,26 @@ function MapExplorer (props) {
         {renderTooltip()}
         {pendingPostsMap && <Loading className={classes.loading} />}
       </div>
-      <button
-        data-tooltip-id='helpTip'
-        data-tooltip-content={hideDrawer ? t('Open Drawer') : t('Close Drawer')}
-        className={cn(
-          'border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute top-5 gap-1 text-xs z-40 ',
-          classes.toggleDrawerButton,
-          {
-            [classes.drawerOpen]: !hideDrawer
-          })}
-        onClick={toggleDrawer}
-        data-testid='drawer-toggle-button'
-      >
-        <Icon name='Hamburger' className={classes.openDrawer} />
-        <Icon name='Ex' className={cn({ hidden: hideDrawer, block: !hideDrawer })} />
-      </button>
+      {/* Reopen control only — while the drawer is open, its own X is the
+          single, easy-to-find way to close it (per the design) */}
+      {hideDrawer && (
+        <button
+          data-tooltip-id='helpTip'
+          data-tooltip-content={t('Open Drawer')}
+          className={cn(
+            'border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute top-5 gap-1 text-xs z-40 ',
+            classes.toggleDrawerButton
+          )}
+          onClick={toggleDrawer}
+          data-testid='drawer-toggle-button'
+        >
+          <Icon name='Hamburger' className={classes.openDrawer} />
+        </button>
+      )}
       {!hideDrawer && (
         <MapDrawer
           changeChildPostInclusion={changeChildPostInclusion}
+          onClose={toggleDrawer}
           childPostInclusion={childPostInclusion}
           context={context}
           currentUser={currentUser}

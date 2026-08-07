@@ -261,7 +261,7 @@ function Member ({
           }}
           onMouseEnter={() => setHover(true)}
           onMouseLeave={() => setHover(false)}
-          onClick={goToPerson(id, group.slug)}
+          onClick={goToPerson(id, group?.slug)}
           data-testid='member-card'
         >
           {onPhoto && (
@@ -370,7 +370,7 @@ function Member ({
   if (layout === 'row') {
     return (
       <div className={cn('flex flex-col border-b border-foreground/10 last:border-b-0', className)} data-testid='member-card'>
-        <div onClick={goToPerson(id, group.slug)} className='flex items-center gap-2.5 px-3 py-2.5 cursor-pointer hover:bg-foreground/5 transition-colors min-w-0'>
+        <div onClick={goToPerson(id, group?.slug)} className='flex items-center gap-2.5 px-3 py-2.5 cursor-pointer hover:bg-foreground/5 transition-colors min-w-0'>
           <div className='w-8 h-8 rounded-full bg-cover bg-center shrink-0' style={bgImageStyle(avatarUrl)} />
           <div className='min-w-0 flex-1'>
             <div className='flex items-center gap-1.5 min-w-0'>
@@ -410,7 +410,7 @@ function Member ({
   return (
     <div
       className={cn('relative flex flex-col overflow-hidden rounded-xl bg-card border border-foreground/20 hover:border-foreground/60 hover:-translate-y-px transition-all cursor-pointer', className)}
-      onClick={goToPerson(id, group.slug)}
+      onClick={goToPerson(id, group?.slug)}
       data-testid='member-card'
     >
       {/* Header: the member's own banner behind avatar, name and message — or a
