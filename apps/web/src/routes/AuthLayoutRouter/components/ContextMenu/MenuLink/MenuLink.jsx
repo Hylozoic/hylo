@@ -24,8 +24,11 @@ export default function MenuLink ({ badgeCount = null, to, children, onClick, ex
   }, [onClick])
 
   if (externalLink) {
+    // focus:text-foreground matches the internal Link below — an external link
+    // keeps focus after the jump, and without the pin the row comes back from
+    // the other tab wearing the global link-focus green
     return (
-      <a href={externalLink} target='_blank' rel='noreferrer' onClick={onClick} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave} style={style} className={cn('MenuLink text-foreground', className, { 'opacity-100 border-selected': isCurrentLocation })}>
+      <a href={externalLink} target='_blank' rel='noreferrer' onClick={onClick} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave} style={style} className={cn('MenuLink text-foreground focus:text-foreground visited:text-foreground', className, { 'opacity-100 border-selected': isCurrentLocation })}>
         {children}
         {!isEditing && <ExternalLink className='w-4 h-4' />}
       </a>

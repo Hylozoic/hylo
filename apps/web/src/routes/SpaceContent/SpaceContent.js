@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { Navigate, Route, Routes, useNavigate } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 
 import Loading from 'components/Loading'
 import { SpaceGroupSlugContext } from 'contexts/SpaceGroupContext'
@@ -58,7 +58,19 @@ function resolveSpaceGroup (parentGroup, groupViews, parentSlug, localSlug) {
 export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColumnGroup = false }) {
   const dispatch = useDispatch()
   const navigate = useNavigate()
+  const location = useLocation()
   const routeParams = useRouteParams()
+
+  // The About modal is a querystring overlay (?about=1) so it floats over
+  // whatever view is open — as a sibling route it unmounted the view behind it,
+  // leaving the modal over a blank pane
+  const aboutOpen = new URLSearchParams(location.search).has('about')
+  const closeAbout = () => {
+    const params = new URLSearchParams(location.search)
+    params.delete('about')
+    const search = params.toString()
+    navigate(`${location.pathname}${search ? `?${search}` : ''}`)
+  }
   const parentSlug = routeParams.groupSlug
   const localSlug = routeParams.spaceSlug
 
@@ -133,7 +145,8 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
   const showSpaceMenu = (isOneColumnGroup || isDrawerNavLayout()) && visibleSpaceViews.length > 1
   const spaceIndexElement = showSpaceMenu
     ? <ContextMenuGrid group={parentGroup} spaceGroup={resolvedSpace} />
-    : <Navigate to={`${spaceBase}${homeRoute}`} replace />
+    // Carry the search through the redirect, or landing on home would shed ?about=1
+    : <Navigate to={{ pathname: `${spaceBase}${homeRoute}`, search: location.search }} replace />
 
   return (
     <SpaceGroupSlugContext.Provider value={spaceFullSlug}>
@@ -157,10 +170,12 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
         <Route path='funding-round-submissions/*' element={<FundingRoundSubmissionsView />} />
         <Route path='manage-round/*' element={<ManageRoundView />} />
         <Route path='moderation/*' element={<Moderation context='groups' />} />
-        <Route path='about/*' element={<SpaceAboutModal onClose={() => navigate(spaceBase)} />} />
+        {/* Legacy path links land on the home view with the overlay open */}
+        <Route path='about/*' element={<Navigate to={{ pathname: `${spaceBase}${homeRoute}`, search: '?about=1' }} replace />} />
         <Route path={POST_DETAIL_MATCH} element={<PostDetail />} />
         <Route path='*' element={spaceIndexElement} />
       </Routes>
+      {aboutOpen && <SpaceAboutModal onClose={closeAbout} />}
     </SpaceGroupSlugContext.Provider>
   )
 }

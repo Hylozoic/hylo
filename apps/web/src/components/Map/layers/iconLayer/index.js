@@ -1,9 +1,10 @@
 import { CompositeLayer } from '@deck.gl/core'
 import { IconLayer } from '@deck.gl/layers'
+import { lucideIconDataUrl } from './lucideIconDataUrl'
 
 const defaultGroupUrl = '/assets/default_group_avatar.png'
 
-// Icon Layer for Groups
+// Icon Layer for Groups and Spaces (spaces use Lucide icons at the same size as group avatars)
 export function createIconLayerFromGroups ({ boundingBox, groups, onHover, onClick }) {
   const toMapVariant = url => {
     if (!url) return null
@@ -14,14 +15,20 @@ export function createIconLayerFromGroups ({ boundingBox, groups, onHover, onCli
   }
 
   const data = groups.filter(group => group.locationObject && group.locationObject.center)
-    .map(group => ({
-      id: group.id,
-      slug: group.slug,
-      type: 'group',
-      message: 'Group: ' + group.name,
-      avatarUrl: toMapVariant(group.avatarUrl) || group.avatarUrl,
-      coordinates: [parseFloat(group.locationObject.center.lng), parseFloat(group.locationObject.center.lat)]
-    }))
+    .map(group => {
+      const isSpace = group.type === 'space'
+      return {
+        id: group.id,
+        slug: group.slug,
+        homeRoute: group.homeRoute,
+        parentSlug: group.parentGroup?.slug || null,
+        type: isSpace ? 'space' : 'group',
+        message: (isSpace ? 'Space: ' : 'Group: ') + group.name,
+        avatarUrl: toMapVariant(group.avatarUrl) || group.avatarUrl,
+        icon: group.icon,
+        coordinates: [parseFloat(group.locationObject.center.lng), parseFloat(group.locationObject.center.lat)]
+      }
+    })
 
   return new IconLayer({
     loadOptions: {
@@ -33,7 +40,9 @@ export function createIconLayerFromGroups ({ boundingBox, groups, onHover, onCli
     getPosition: d => d.coordinates,
     // getIcon return an object which contains url to fetch icon of each data point
     getIcon: d => ({
-      url: d.avatarUrl || defaultGroupUrl,
+      url: d.type === 'space'
+        ? lucideIconDataUrl(d.icon)
+        : (d.avatarUrl || defaultGroupUrl),
       width: 42,
       height: 42,
       anchorY: 0

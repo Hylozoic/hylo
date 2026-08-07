@@ -1,3 +1,4 @@
+import { Grid2x2, Grid3x3 } from 'lucide-react'
 import React, { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router-dom'
@@ -68,9 +69,8 @@ const ico = (props = {}) => ({
 const VIEW_MODE_ICONS = {
   cards: <svg {...ico()}><rect x='3' y='4' width='18' height='16' rx='2' /><path d='M3 14h18' /></svg>,
   list: <svg {...ico()}><path d='M4 6h16M4 12h16M4 18h16' /></svg>,
-  // The design's masonry pair maps onto the two grid modes the stream already has
-  bigGrid: <svg {...ico()}><rect x='3' y='3' width='7' height='10' rx='1.4' /><rect x='3' y='15' width='7' height='6' rx='1.4' /><rect x='14' y='3' width='7' height='6' rx='1.4' /><rect x='14' y='11' width='7' height='10' rx='1.4' /></svg>,
-  grid: <svg {...ico({ strokeWidth: 1.7 })}><rect x='3' y='3' width='5' height='7' rx='1' /><rect x='3' y='12' width='5' height='4' rx='1' /><rect x='10' y='3' width='4' height='4' rx='1' /><rect x='10' y='9' width='4' height='7' rx='1' /><rect x='16' y='3' width='5' height='5' rx='1' /><rect x='16' y='10' width='5' height='6' rx='1' /></svg>,
+  bigGrid: <Grid2x2 size={15} strokeWidth={1.9} />,
+  grid: <Grid3x3 size={15} strokeWidth={1.9} />,
   calendar: <svg {...ico()}><rect x='3' y='4' width='18' height='17' rx='2' /><path d='M3 9h18M8 2v4M16 2v4' /></svg>
 }
 
@@ -84,12 +84,15 @@ const makeFilterDropdown = (selected, options, onChange, t, icon, id) => {
   return (
     <Dropdown
       id={id}
-      className={PILL_CLASS}
+      // Pill styling lives on the toggle span: Dropdown forces inline-block on its
+      // root, which would defeat the flex centering the pill needs.
       toggleChildren={
-        <span className='flex items-center gap-1.5'>
-          {icon}
+        // On phones the pill is just the current label — the glyph and chevron
+        // spend width the row does not have
+        <span className={PILL_CLASS}>
+          {icon && <span className='inline-flex items-center max-sm:hidden'>{icon}</span>}
           {t(options.find(o => o.id === selected)?.label)}
-          <Icon name='ArrowDown' className='opacity-60' />
+          <Icon name='ArrowDown' className='opacity-60 max-sm:hidden' />
         </span>
       }
       items={options.map(({ id, label }) => ({
@@ -159,13 +162,34 @@ const StreamViewControls = ({
   const showChildPostToggle = ![CONTEXT_MY, 'all', 'public'].includes(context)
 
   return (
-    <div className={cn('flex flex-col gap-1 sm:gap-2 p-2 sm:p-4 items-center', { [classes.searchActive]: searchActive || searchValue, [classes.extend]: searchActive && searchValue })}>
-      {/* Sort, filter, lenses, then the display toggles — the prototype's order */}
-      <div className='flex w-full flex-row items-center justify-start flex-wrap gap-2'>
+    <div className={cn('flex flex-col gap-1 sm:gap-2 items-center w-full', { [classes.searchActive]: searchActive || searchValue, [classes.extend]: searchActive && searchValue })}>
+      {/* Right-justified in the pinned header row, opposite the New button.
+          Sort, filter, lenses, then the display toggles — the prototype's order */}
+      <div className='flex w-full flex-row items-center justify-end flex-wrap gap-2'>
         {sortDropdown}
         {filterDropdown}
 
-        <div className={GROUP_CLASS}>
+        {/* Phone: the lens group collapses into a dropdown showing the active lens */}
+        <div className='sm:hidden'>
+          <Dropdown
+            id='view-mode-filter-mobile'
+            toggleChildren={
+              <span className={PILL_CLASS}>
+                {VIEW_MODE_ICONS[viewMode] || VIEW_MODE_ICONS.cards}
+                <Icon name='ArrowDown' className='opacity-60' />
+              </span>
+            }
+            items={[
+              { label: t('Card view'), icon: VIEW_MODE_ICONS.cards, onClick: () => changeView('cards') },
+              { label: t('List view'), icon: VIEW_MODE_ICONS.list, onClick: () => changeView('list') },
+              { label: t('Large Grid'), icon: VIEW_MODE_ICONS.bigGrid, onClick: () => changeView('bigGrid') },
+              { label: t('Small Grid'), icon: VIEW_MODE_ICONS.grid, onClick: () => changeView('grid') },
+              ...(postHasDates ? [{ label: t('Calendar'), icon: VIEW_MODE_ICONS.calendar, onClick: () => changeView('calendar') }] : [])
+            ]}
+          />
+        </div>
+
+        <div className={cn(GROUP_CLASS, 'max-sm:hidden')}>
           <ToolBtn active={viewMode === 'cards'} onClick={() => changeView('cards')} tooltip={t('Card view')}>
             {VIEW_MODE_ICONS.cards}
           </ToolBtn>
@@ -204,7 +228,7 @@ const StreamViewControls = ({
           )}
         </div>
 
-        <div className={cn(GROUP_CLASS, 'ml-auto')}>
+        <div className={GROUP_CLASS}>
           <ToolBtn active={searchActive} onClick={handleSearchToggle} tooltip={t('Search posts')}>
             <svg {...ico()}><circle cx='11' cy='11' r='7' /><path d='M20 20l-3.5-3.5' /></svg>
           </ToolBtn>

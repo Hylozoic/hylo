@@ -43,7 +43,11 @@ export default function EditingBottomBar ({ containerRef, children }) {
 
   return (
     <div
-      className='fixed bottom-0 z-30 pt-8 pb-3 px-4 flex justify-center bg-gradient-to-t from-background from-40% to-transparent pointer-events-none'
+      // Same wash as the pinned stream header, mirrored so the shadow originates at
+      // the bottom edge: theme background at 10% alpha (50% in dark, where the wash
+      // would otherwise vanish) fading to the same colour at zero — not `transparent`,
+      // which would interpolate toward transparent black and smudge grey in light mode.
+      className='fixed bottom-0 z-30 pt-8 pb-3 px-4 flex justify-center bg-gradient-to-t from-[hsl(var(--theme-background)/0.1)] dark:from-[hsl(var(--theme-background)/0.5)] to-[hsl(var(--theme-background)/0)] pointer-events-none'
       style={rect ? { left: rect.left, width: rect.width } : { left: 0, right: 0 }}
     >
       {children}
