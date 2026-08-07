@@ -3,6 +3,7 @@ import {
   DragOverlay,
   closestCenter,
   KeyboardSensor,
+  MeasuringStrategy,
   MouseSensor,
   TouchSensor,
   useSensor,
@@ -43,6 +44,13 @@ const TOUCH_ACTIVATION = { delay: 180, tolerance: 8 }
 // under the finger inherits nothing from it.
 const NO_TEXT_SELECT = 'select-none [-webkit-touch-callout:none]'
 
+// The grid reorders its real DOM on drag-over, so droppable rects must be
+// re-measured after every reflow. With the default drag-start-only measuring,
+// collisions keep being computed against the pre-reflow layout and the same
+// swap gets detected (and undone) over and over — the infinite jumping loop
+// when a full-width row lands mid-row and moves everything by a card height.
+const MEASURING = { droppable: { strategy: MeasuringStrategy.Always } }
+
 /** Full-width stand-ins for the text and separator rows, so they reorder with the cards. */
 function FullWidthRow ({ view, spaceGroup, t }) {
   const presented = GroupViewPresenter(view)
@@ -70,7 +78,7 @@ function FullWidthRow ({ view, spaceGroup, t }) {
 const SortableViewItem = React.memo(function SortableViewItem ({ view, spaceGroup, onOpenSettings, onDelete, t }) {
   const presented = useMemo(() => GroupViewPresenter(view), [view])
   const isFullWidth = presented.type === 'text' || presented.type === 'separator'
-  const { attributes, listeners, setNodeRef, isDragging } = useSortable({
+  const { attributes, listeners, setNodeRef, isDragging, isSorting } = useSortable({
     id: String(view.id),
     disabled: !view.id
   })
@@ -90,7 +98,11 @@ const SortableViewItem = React.memo(function SortableViewItem ({ view, spaceGrou
         // The wrapper carries the card footprint so the card's sub-sm percentage
         // width has a sized parent to resolve against
         isFullWidth ? 'w-full' : CARD_SIZE_CLASS,
-        isDragging && 'cursor-grabbing'
+        isDragging && 'cursor-grabbing',
+        // Cards animate a translate on hover (transition-all); a card reflowing
+        // under the stationary pointer mid-drag would trigger it and jitter the
+        // rects the collision math depends on. No pointer events, no hover.
+        isSorting && '[&_*]:pointer-events-none'
       )}
       {...attributes}
       {...listeners}
@@ -160,13 +172,21 @@ export default function SortableViewsGrid ({
     // A selection made just before the press would otherwise survive the drag
     if (typeof window !== 'undefined') window.getSelection()?.removeAllRanges?.()
     preDragOrder.current = orderedViews
+    lastOverId.current = null
     setActiveId(String(e.active.id))
   }
+
+  // The most recent over-target a reorder ran for. arrayMove is symmetric, so
+  // re-processing the same target (after `over` flickers to null crossing a flex
+  // gap) would move the item right back where it came from.
+  const lastOverId = useRef(null)
 
   // Reorder as the pointer moves so the grid reflows for real — this is what keeps
   // a full-width row breaking its line instead of being painted over the cards.
   const handleDragOver = ({ active, over }) => {
     if (!over || active.id === over.id) return
+    if (String(over.id) === lastOverId.current) return
+    lastOverId.current = String(over.id)
     setOrderedViews(prev => {
       const oldIndex = prev.findIndex(v => String(v.id) === String(active.id))
       const newIndex = prev.findIndex(v => String(v.id) === String(over.id))
@@ -201,6 +221,7 @@ export default function SortableViewsGrid ({
     <DndContext
       sensors={sensors}
       collisionDetection={closestCenter}
+      measuring={MEASURING}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragCancel={handleDragCancel}
