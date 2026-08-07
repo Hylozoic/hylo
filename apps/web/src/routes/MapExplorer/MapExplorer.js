@@ -10,7 +10,6 @@ import { pick, pickBy } from 'lodash/fp'
 import { Heart, Layers, Map as MapIcon } from 'lucide-react'
 import bbox from '@turf/bbox'
 import bboxPolygon from '@turf/bbox-polygon'
-import booleanWithin from '@turf/boolean-within'
 import center from '@turf/center'
 import combine from '@turf/combine'
 import { featureCollection, point } from '@turf/helpers'
@@ -20,7 +19,7 @@ import Icon from 'components/Icon'
 import Loading from 'components/Loading'
 import LocationInput from 'components/LocationInput'
 import Map from 'components/Map/Map'
-import { createIconLayerFromPostsAndMembers } from 'components/Map/layers/clusterLayer'
+import { buildClusterLayerData, createIconLayerFromPostsAndMembers } from 'components/Map/layers/clusterLayer'
 import { createIconLayerFromGroups } from 'components/Map/layers/iconLayer'
 import { createPolygonLayerFromGroups } from 'components/Map/layers/polygonLayer'
 import SwitchStyled from 'components/SwitchStyled'
@@ -171,30 +170,33 @@ function MapExplorer (props) {
     sortBy: 'name'
   }), [totalBoundingBoxLoaded, context, groupSlug])
 
-  const members = useSelector(
-    createSelector(
-      (state) => getMembersFilteredByTopics(state, fetchMemberParams),
-      (members) => members.map(m => presentMember(m, groupId))
-    )
-  )
-  const postsForDrawer = useSelector(
-    createSelector(
-      (state) => getSortedFilteredPostsForDrawer(state, fetchPostsForDrawerParams),
-      (posts) => posts.map(p => presentPost(p, groupId))
-    )
-  )
-  const postsForMap = useSelector(
-    createSelector(
-      (state) => getFilteredPostsForMap(state, fetchPostsParams),
-      (posts) => posts.map(p => presentPost(p, groupId))
-    )
-  )
-  const groups = useSelector(
-    createSelector(
-      (state) => getGroupsFilteredByTopics(state, fetchGroupParams),
-      (groups) => groups.map(g => presentGroup(g))
-    )
-  )
+  // Selectors are memoized per param set — recreating them inline on every
+  // render defeated the memoization, so each render re-presented every post
+  // and member and handed the map fresh array identities, cascading into full
+  // recluster + GPU re-upload on every pan. Keep them stable.
+  const membersSelector = useMemo(() => createSelector(
+    (state) => getMembersFilteredByTopics(state, fetchMemberParams),
+    (members) => members.map(m => presentMember(m, groupId))
+  ), [fetchMemberParams, groupId])
+  const members = useSelector(membersSelector)
+
+  const postsForDrawerSelector = useMemo(() => createSelector(
+    (state) => getSortedFilteredPostsForDrawer(state, fetchPostsForDrawerParams),
+    (posts) => posts.map(p => presentPost(p, groupId))
+  ), [fetchPostsForDrawerParams, groupId])
+  const postsForDrawer = useSelector(postsForDrawerSelector)
+
+  const postsForMapSelector = useMemo(() => createSelector(
+    (state) => getFilteredPostsForMap(state, fetchPostsParams),
+    (posts) => posts.map(p => presentPost(p, groupId))
+  ), [fetchPostsParams, groupId])
+  const postsForMap = useSelector(postsForMapSelector)
+
+  const groupsSelector = useMemo(() => createSelector(
+    (state) => getGroupsFilteredByTopics(state, fetchGroupParams),
+    (groups) => groups.map(g => presentGroup(g))
+  ), [fetchGroupParams])
+  const groups = useSelector(groupsSelector)
 
   // Use browser location if center location is not otherwise provided
   const [browserLocation, setBrowserLocation] = useState(null)
@@ -480,41 +482,31 @@ function MapExplorer (props) {
     creatingPostRef.current = false
   }, [])
 
+  // Stable identity across pans: only changes when the fetched features do
+  const clusterLayerData = useMemo(
+    () => buildClusterLayerData({ posts: postsForMap, members }),
+    [postsForMap, members]
+  )
+
   const updatedMapFeatures = useCallback((boundingBox) => {
-    const bbox = bboxPolygon(boundingBox)
-    const viewMembers = members.filter(member => {
-      const locationObject = member.locationObject
-      if (locationObject && locationObject.center) {
-        const centerPoint = point([locationObject.center.lng, locationObject.center.lat])
-        return booleanWithin(centerPoint, bbox)
-      }
-      return false
-    })
-    const viewPosts = postsForMap.filter(post => {
-      const locationObject = post.locationObject
-      if (locationObject && locationObject.center) {
-        const centerPoint = point([locationObject.center.lng, locationObject.center.lat])
-        return booleanWithin(centerPoint, bbox)
-      }
-      return false
-    })
+    // Plain numeric bounds checks: turf's point-in-polygon per item allocated
+    // two GeoJSON objects per feature per pan and was a large share of the lag
+    const [west, south, east, north] = boundingBox
+    const centerWithin = (locationObject) => {
+      const center = locationObject?.center
+      if (!center) return false
+      const lng = parseFloat(center.lng)
+      const lat = parseFloat(center.lat)
+      return lng >= west && lng <= east && lat >= south && lat <= north
+    }
+    const viewMembers = members.filter(member => centerWithin(member.locationObject))
+    const viewPosts = postsForMap.filter(post => centerWithin(post.locationObject))
     const viewGroups = groups.filter(mapGroup => {
-      const locationObject = mapGroup.locationObject
       if (mapGroup.geoShape) {
-        const coords = mapGroup.geoShape.coordinates[0]
-        const outOfBounds = []
-        coords.forEach((coord, i) => {
-          if (!booleanWithin(point(coord), bbox)) {
-            outOfBounds.push(i)
-          }
-        })
-        return outOfBounds.length < coords.length
+        return mapGroup.geoShape.coordinates[0].some(([lng, lat]) =>
+          lng >= west && lng <= east && lat >= south && lat <= north)
       }
-      if (locationObject && locationObject.center) {
-        const centerPoint = point([locationObject.center.lng, locationObject.center.lat])
-        return booleanWithin(centerPoint, bbox)
-      }
-      return false
+      return centerWithin(mapGroup.locationObject)
     }).concat(get(group, 'locationObject.center') || get(group, 'geoShape') ? group : [])
       .map(mapGroup => {
         // Ensure spaces can navigate to their parent from the current map context
@@ -525,8 +517,7 @@ function MapExplorer (props) {
       })
 
     setClusterLayer(createIconLayerFromPostsAndMembers({
-      members: viewMembers,
-      posts: viewPosts,
+      data: clusterLayerData,
       onHover: onMapHover,
       onClick: onMapClick,
       boundingBox
@@ -549,7 +540,7 @@ function MapExplorer (props) {
     setGroupsForDrawer(viewGroups)
     setMembersForDrawer(viewMembers)
     setTotalPostsInView(viewPosts.length)
-  }, [members, postsForMap, groups, group, groupSlug, onMapHover, onMapClick, context])
+  }, [members, postsForMap, groups, group, groupSlug, clusterLayerData, onMapHover, onMapClick, context])
 
   const updateViewportWithBbox = useCallback((bbox, zoom = false) => {
     if (zoom) {
