@@ -1,6 +1,6 @@
 import { CHECK_LOGIN } from 'store/constants'
 import MeQuery from '@graphql/queries/MeQuery'
-import meQueryExtractModel from 'store/actions/meQueryExtractModel'
+import { meQueryExtractModel } from 'store/actions/fetchForCurrentUser'
 
 /**
  * One GraphQL round trip: authSession reads CHECK_LOGIN (network-fresh); bootstrap/ORM

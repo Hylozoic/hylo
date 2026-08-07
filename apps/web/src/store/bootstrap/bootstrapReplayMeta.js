@@ -1,14 +1,15 @@
 import { get } from 'lodash/fp'
+import { meQueryExtractModel } from 'store/actions/fetchForCurrentUser'
 import { groupsMenuDataExtractModel } from 'store/actions/fetchGroupsMenuData'
 
 export const bootstrapReplayEntries = [
   {
     getData: bootstrap => bootstrap?.checkLogin?.data,
-    extractModel: [{ getRoot: get('me'), modelName: 'Me' }]
+    extractModel: meQueryExtractModel
   },
   {
     getData: bootstrap => bootstrap?.currentUser?.data,
-    extractModel: [{ getRoot: get('me'), modelName: 'Me' }]
+    extractModel: meQueryExtractModel
   }
 ]
 

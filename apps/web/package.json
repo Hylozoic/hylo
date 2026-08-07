@@ -38,9 +38,8 @@
     "ignore": [
       "scripts/templates/*",
       "config/jest/**",
-      "src/components/Calendar/calendar-types.ts",
-      "src/components/Calendar/calendar-util.tsx",
-      "src/components/Calendar/calendar-context.tsx"
+      "src/**/*.ts",
+      "src/**/*.tsx"
     ],
     "global": [
       "afterAll",

@@ -1,6 +1,14 @@
+import { get } from 'lodash/fp'
 import { FETCH_FOR_CURRENT_USER } from 'store/constants'
 import MeQuery from '@graphql/queries/MeQuery'
-import meQueryExtractModel from 'store/actions/meQueryExtractModel'
+
+/** Shared ORM extract config for MeQuery (`checkLogin` + `fetchForCurrentUser`). */
+export const meQueryExtractModel = [
+  {
+    getRoot: get('me'),
+    modelName: 'Me'
+  }
+]
 
 /**
  * Fetches the current user. Omits membership childGroups by default
