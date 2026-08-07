@@ -191,7 +191,7 @@ function Members (props) {
   }
 
   return (
-    <div className={cn('h-auto mx-auto', isOneColumnLayout ? 'max-w-[1000px]' : 'max-w-[940px]')} id='members-page'>
+    <div className={cn('h-auto w-full mx-auto', isOneColumnLayout ? 'max-w-[1000px]' : 'max-w-[940px]')} id='members-page'>
       <Helmet>
         <title>{t('Members')} | {group ? `${group.name} | ` : ''}Hylo</title>
       </Helmet>
