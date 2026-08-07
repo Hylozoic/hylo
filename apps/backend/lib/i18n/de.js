@@ -67,6 +67,13 @@ exports.de = {
   textForGroupPeerGroupInviteAccepted: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} hat die Peer-Beziehung zwischen ${fromGroup.get('name')} und ${toGroup.get('name')} angenommen`,
   textForJoinRequest: ({ actor, groupName }) => `${actor.get('name')} möchte ${groupName} beitreten`,
   textForMemberJoinedGroup: ({ group, actor }) => `Neues Mitglied in ${group.get('name')}: ${actor.get('name')}`,
+  textForPostModeratedFulfillment: ({ post, actor, reason }) => {
+    const postName = post.summary()
+    if (reason === 'postUnfulfilled') {
+      return `${actor.get('name')} hat deinen Beitrag „${postName}“ wieder geöffnet`
+    }
+    return `${actor.get('name')} hat deinen Beitrag „${postName}“ geschlossen`
+  },
   textForPostMention: ({ groupName, person, postName }) => `${person} hat dich im Beitrag „${postName}“ in ${groupName} erwähnt`,
   textForPost: ({ firstTag, groupName, person, postName }) => `${person} hat „${postName}“ in ${groupName} veröffentlicht${firstTag ? ` #${firstTag}` : ''}`,
   textForTrackCompleted: ({ actor, track }) => `Lernpfad abgeschlossen: „${track.get('name')}“ von ${actor.get('name')} abgeschlossen`,
