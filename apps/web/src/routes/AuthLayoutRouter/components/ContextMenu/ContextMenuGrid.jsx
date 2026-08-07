@@ -413,7 +413,7 @@ function MoreSpacesCard ({ onClick, t }) {
           </div>
         </div>
         <div className='absolute left-0 right-0 top-[calc(50%+28px)] bottom-0 flex flex-col items-center justify-center text-center px-3'>
-          <h3 className={cn(CARD_TITLE_CLASS, isDark ? 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]' : 'text-foreground')}>{t('More Views and Spaces')}</h3>
+          <h3 className={cn(CARD_TITLE_CLASS, isDark ? 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]' : 'text-foreground')}>{t('More')}</h3>
         </div>
       </div>
     </div>
@@ -821,7 +821,7 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
   }, [isEditing, location.pathname, location.search, navigate])
 
   const nestedTitle = isMoreSpacesLevel
-    ? t('More Views and Spaces')
+    ? t('More')
     : (spaceGroup?.name || t('Space'))
 
   return (
@@ -930,7 +930,7 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
                 </div>
                 {!spaceGroup && (
                   <div className='flex flex-col gap-3 pt-4 border-t border-foreground/10'>
-                    <TextSection>{t('More Views and Spaces')}</TextSection>
+                    <TextSection>{t('More')}</TextSection>
                     <MoreSpacesGrid
                       group={group}
                       groupSlug={groupSlug}
