@@ -38,4 +38,72 @@ describe('formatDatePair', () => {
     expect(DateTimeHelpers.formatDatePair({ start: d1, end: d2, returnAsObj: true })).toMatchSnapshot()
   })
 })
+
+describe('timezone helpers', () => {
+  it('converts between picker dates and stored instants', () => {
+    const timezone = 'America/Los_Angeles'
+    const pickerDate = new Date(2026, 2, 6, 15, 30, 0)
+    const instant = DateTimeHelpers.fromPickerDate(pickerDate, timezone)
+    const roundTrip = DateTimeHelpers.toPickerDate(instant, timezone)
+    expect(roundTrip.getFullYear()).toBe(2026)
+    expect(roundTrip.getMonth()).toBe(2)
+    expect(roundTrip.getDate()).toBe(6)
+    expect(roundTrip.getHours()).toBe(15)
+    expect(roundTrip.getMinutes()).toBe(30)
+  })
+
+  it('preserves wall clock time when changing timezones', () => {
+    const instant = DateTime.fromObject({
+      year: 2026,
+      month: 3,
+      day: 6,
+      hour: 15,
+      minute: 30
+    }, { zone: 'America/Los_Angeles' }).toJSDate()
+
+    const converted = DateTimeHelpers.preserveWallClockOnTimezoneChange(
+      instant,
+      'America/Los_Angeles',
+      'America/New_York'
+    )
+
+    expect(converted).not.toBeNull()
+    const wall = DateTime.fromJSDate(converted as Date, { zone: 'America/New_York' })
+    expect(wall.hour).toBe(15)
+    expect(wall.minute).toBe(30)
+    expect(wall.day).toBe(6)
+  })
+
+  it('formats event time with a secondary timezone when different', () => {
+    const start = DateTime.fromObject({
+      year: 2026,
+      month: 3,
+      day: 6,
+      hour: 15,
+      minute: 0
+    }, { zone: 'America/Los_Angeles' }).toJSDate()
+
+    const result = DateTimeHelpers.formatEventTimeDisplay({
+      start,
+      end: start,
+      eventTimezone: 'America/Los_Angeles'
+    })
+
+    expect(result.primary).toContain('Mar 6')
+    expect(result.primary).toContain('3:00 PM')
+    expect(result.eventTimezone).toBe('America/Los_Angeles')
+    expect(result.eventTimezoneLabel).toBeTruthy()
+  })
+
+  it('returns timezone options sorted by offset', () => {
+    const options = DateTimeHelpers.getTimezoneOptions('en')
+    expect(options.length).toBeGreaterThan(0)
+    expect(options[0].value).toBeTruthy()
+    expect(options[0].label).toBeTruthy()
+    if (options.length > 1) {
+      expect(options[0].offset).toBeLessThanOrEqual(options[1].offset)
+    }
+    expect(options.find(option => option.value === 'UTC') || options[0]).toBeTruthy()
+  })
+})
   

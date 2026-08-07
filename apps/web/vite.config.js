@@ -80,18 +80,45 @@ export default defineConfig(({ command }) => ({
     exclude: ['@hylo/shared'],
     include: ['**/*.scss']
   },
+  // `vite preview` serves the built bundle instead of 1400-odd dev modules, which
+  // is the difference between seconds and minutes over a relayed Tailscale link.
+  // It enforces the same host check as the dev server, so it needs the same list.
+  preview: {
+    host: '0.0.0.0',
+    allowedHosts: ['.local', '.ts.net', '.trycloudflare.com']
+  },
   server: {
     // XXX: fix issues finding aliases?
     fs: {
       cachedChecks: false
     },
     port: process.env.PORT || 3000,
+    // Hostnames the dev server may be reached by, beyond localhost and bare IPs
+    // (which Vite allows unconditionally):
+    //   .local  — Bonjour/mDNS, for a phone on the same wifi
+    //   .ts.net — Tailscale MagicDNS, for a phone anywhere
+    //   .trycloudflare.com — cloudflared quick tunnels, for anyone anywhere
+    //     (cloudflared tunnel --url http://localhost:3000; random public URL)
+    // A leading dot matches any name under that suffix, so none needs
+    // per-machine configuration. Note @virtuoso.dev/message-list only treats
+    // localhost and *.local as development, so the chat list carries its
+    // missing-license watermark over Tailscale until VITE_VIRTUOSO_KEY is set.
+    allowedHosts: ['.local', '.ts.net', '.trycloudflare.com'],
     // https: process.env.HTTPS === 'true' ? {
     //   key: fs.readFileSync(path.resolve(__dirname, `./config/ssl/${process.env.LOCAL_CERT}.key`)),
     //   cert: fs.readFileSync(path.resolve(__dirname, `./config/ssl/${process.env.LOCAL_CERT}.crt`)),
     //   ca: fs.readFileSync(path.resolve(__dirname, `./config/ssl/${process.env.LOCAL_CERT}.pem`)),
     // } : false,
     proxy: {
+      // Sails serves sockets at the default socket.io path. Proxying it lets a
+      // browser on another device connect through this origin — VITE_SOCKET_HOST
+      // is baked into the bundle as localhost, which from a phone means the phone.
+      '/socket.io': {
+        target: proxyTarget,
+        changeOrigin: true,
+        secure: process.env.HTTPS === 'true',
+        ws: true
+      },
       '/noo': {
         target: proxyTarget,
         changeOrigin: true,

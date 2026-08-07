@@ -4,6 +4,7 @@ import {
   CREATE_GROUP_VIEW,
   CREATE_SPACE,
   DELETE_GROUP_VIEW,
+  DELETE_SPACE,
   FETCH_VIEW_POSTS,
   REMOVE_POST_FROM_VIEW,
   REORDER_GROUP_VIEW,
@@ -388,6 +389,8 @@ export function updateSpace ({ id, groupId, spaceViewId, name, slug, description
           paywall
           visibility
           accessibility
+          acceptedPostTypes
+          icon
         }
       }`,
       variables: omitBy(isUndefined, { id, name, slug, description, icon, acceptedPostTypes, purpose, location, locationId, visibility, accessibility, requiredRoles, bannerUrl, avatarUrl, paywall })
@@ -396,11 +399,27 @@ export function updateSpace ({ id, groupId, spaceViewId, name, slug, description
       id,
       groupId,
       spaceViewId,
-      data: spaceViewMenuData({ name, description, viewName }),
+      acceptedPostTypes,
+      data: spaceViewMenuData({ name, description, viewName, icon }),
       optimistic: true,
       extractModel: [
         { getRoot: get('updateSpace'), modelName: 'Group' }
       ]
     }
+  }
+}
+
+export function deleteSpace (id) {
+  return {
+    type: DELETE_SPACE,
+    graphql: {
+      query: `mutation ($id: ID!) {
+        deleteSpace(id: $id) {
+          success
+        }
+      }`,
+      variables: { id }
+    },
+    meta: { id }
   }
 }

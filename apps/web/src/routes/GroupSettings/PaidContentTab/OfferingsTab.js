@@ -139,7 +139,6 @@ const OFFERING_SUBSCRIBERS_QUERY = `
 function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
-  const groupRoles = useMemo(() => group?.groupRoles?.items || [], [group?.groupRoles?.items])
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [editingOffering, setEditingOffering] = useState(null)
   const editFormRef = useRef(null)
@@ -747,7 +746,7 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
               >
                 <option value='all'>{t('All')}</option>
                 <option value='group'>{t('Group access')}</option>
-                                <option value='role'>{t('Role access')}</option>
+                <option value='role'>{t('Role access')}</option>
               </select>
             </div>
             <label className='text-sm text-foreground/70 flex items-center gap-2 cursor-pointer'>

@@ -53,6 +53,7 @@ export default function GlobalNavItem ({
   const itemRef = useRef(null)
   const suppressHoverRef = useRef(false)
   const [isInViewport, setIsInViewport] = useState(true)
+  const [anySubmenuOpen, setAnySubmenuOpen] = useState(false)
   const hasShownInSessionRef = useRef(false)
 
   /**
@@ -73,9 +74,14 @@ export default function GlobalNavItem ({
    * - Immediate restore if already shown in this hover session
    *   (prevents stagger timer reset when scrolling toggles isInViewport)
    * - Hide when neither condition is true
+   *
+   * Direct hover is suppressed while any stack's submenu is open. GlobalNav
+   * already withholds the cascade then, but a direct hover ignored that and put
+   * a single label over the submenu — the submenu is a deliberate, click-driven
+   * state, so an ambient hover affordance yields to it rather than the reverse.
    */
   useEffect(() => {
-    if (isHovered) {
+    if (isHovered && !anySubmenuOpen) {
       setOpen(true)
       setShouldAnimate(true)
       hasShownInSessionRef.current = true
@@ -100,7 +106,7 @@ export default function GlobalNavItem ({
       // parentShowTooltip is true but item is out of viewport
       setOpen(false)
     }
-  }, [parentShowTooltip, isHovered, index, isInViewport])
+  }, [parentShowTooltip, isHovered, index, isInViewport, anySubmenuOpen])
 
   // Listen for the custom navScroll event from parent
   useEffect(() => {
@@ -115,6 +121,38 @@ export default function GlobalNavItem ({
       window.removeEventListener('resize', checkPosition)
     }
   }, [checkPosition])
+
+  // Tell GlobalNav when this stack's submenu opens or closes, so the rail can put
+  // its labels away and leave the screen to the submenu.
+  useEffect(() => {
+    if (!hasChildren) return
+    window.dispatchEvent(new CustomEvent('navSubmenuToggle', { detail: popoverOpen }))
+  }, [popoverOpen, hasChildren])
+
+  // Scrolling the rail behind an open submenu dismisses it. Radix focuses the
+  // content on open, which can itself nudge a scroll, so ignore the first moment.
+  useEffect(() => {
+    if (!popoverOpen) return
+    let settled = false
+    const settleTimer = setTimeout(() => { settled = true }, 300)
+    const handleClose = () => {
+      if (settled) setPopoverOpen(false)
+    }
+    window.addEventListener('navSubmenuClose', handleClose)
+    return () => {
+      clearTimeout(settleTimer)
+      window.removeEventListener('navSubmenuClose', handleClose)
+    }
+  }, [popoverOpen])
+
+  // Any stack's submenu being open silences this item's own hover label. Read from
+  // the event GlobalNav already broadcasts rather than threading a prop through
+  // every call site.
+  useEffect(() => {
+    const handleSubmenuToggle = (e) => setAnySubmenuOpen(Boolean(e.detail))
+    window.addEventListener('navSubmenuToggle', handleSubmenuToggle)
+    return () => window.removeEventListener('navSubmenuToggle', handleSubmenuToggle)
+  }, [])
 
   // Listen for hover suppression from GlobalNav (fired when nav opens on mobile)
   // Blocks ALL hover events regardless of pointerType during the grace period
@@ -187,7 +225,9 @@ export default function GlobalNavItem ({
       className={cn(
         'relative transition-all ease-in-out duration-250 overflow-visible',
         'flex flex-col items-center justify-center w-14 h-14 min-h-10',
-        'rounded-lg opacity-60 hover:opacity-100',
+        // Resting icons sat far enough back to read as disabled rather than merely
+        // unselected; selection is carried by the ring and scale, not by dimming.
+        'rounded-lg opacity-85 hover:opacity-100',
         'scale-90 hover:scale-100 text-3xl',
         // Stacks read like the TopNav tabs: no tile background or shadow, just the layered avatars.
         !hasChildren && 'bg-primary drop-shadow-md hover:drop-shadow-lg',
@@ -216,12 +256,16 @@ export default function GlobalNavItem ({
             {stackItems.map((item, i) => (
               <div
                 key={i}
-                className='absolute w-[32px] h-[32px] rounded-md bg-cover bg-center bg-primary border-2 border-primary shadow-sm'
+                className='absolute w-[32px] h-[32px] rounded-md bg-cover bg-center bg-primary'
                 style={{
                   top: i * 8,
                   left: i * 8,
                   zIndex: stackItems.length - i,
-                  backgroundImage: `url(${item.avatarUrl})`
+                  backgroundImage: `url(${item.avatarUrl})`,
+                  // Layers separate by shadow rather than an outline (the old border read
+                  // as white on light themes). Each tile's shadow falls on the one behind
+                  // it, and deeper tiles carry more of it so the stack reads as depth.
+                  boxShadow: `0 ${1 + i}px ${4 + i * 2}px rgba(0,0,0,${Math.min(0.5, 0.3 + i * 0.07)})`
                 }}
               />
             ))}
@@ -256,7 +300,9 @@ export default function GlobalNavItem ({
           <TooltipContent
             side='right'
             className={cn(
-              'transition-all duration-100 ease-out transform',
+              // font-semibold matches the context menu's row labels. Set here rather
+              // than on the shared TooltipContent so other tooltips are unaffected.
+              'font-semibold transition-all duration-100 ease-out transform',
               {
                 'opacity-80 translate-x-0 scale-80': parentShowTooltip && !isHovered && shouldAnimate,
                 'opacity-100 translate-x-0 scale-110': isHovered,
@@ -271,7 +317,15 @@ export default function GlobalNavItem ({
               bottom: 'auto'
             }}
           >
-            {tooltip}
+            <span className='flex items-center gap-1.5'>
+              <span>{tooltip}</span>
+              {/* A stack's label says how many groups are folded into it */}
+              {hasChildren && (
+                <span className='rounded-full bg-foreground/10 px-1.5 text-xs font-semibold text-foreground/70 leading-5'>
+                  +{childGroups.length}
+                </span>
+              )}
+            </span>
           </TooltipContent>
         )}
       </div>
@@ -283,24 +337,57 @@ export default function GlobalNavItem ({
   return (
     <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
       {content}
-      <PopoverContent side='right' align='start' className='w-56 p-1 z-[110]'>
-        <div
-          onClick={handleNavigateTo(url)}
-          className='flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer hover:bg-foreground/10 transition-colors font-medium'
-        >
-          <div className='w-5 h-5 rounded-sm bg-cover bg-center bg-primary shrink-0' style={{ backgroundImage: `url(${img})` }} />
-          <span className='truncate text-sm'>{tooltip}</span>
+      {/* Reads as the rail continuing outward rather than a panel laid over it:
+          no surface of its own, group tiles at rail size, and names on the same
+          pills the rail uses for its hover labels. */}
+      {/* A group with many children runs past the fold, so the list is bounded by
+          the space Radix reports it has and scrolls within it. overflow-x is hidden
+          rather than visible because a scrolling box cannot have one axis visible —
+          pr-6 leaves the hover-scaled labels room so they aren't clipped. */}
+      {/* Width matches the ContextMenu next door so the submenu never reaches
+          further across the screen than the panel it stands in for. */}
+      {/* Radix portals this, but React still bubbles its events up the component
+          tree to the rail's touch handlers — which would read a scroll in here as a
+          tap on the rail and pop the labels open. Stop them at the boundary. */}
+      <PopoverContent
+        side='right'
+        align='start'
+        arrow={false}
+        collisionPadding={12}
+        onTouchStart={e => e.stopPropagation()}
+        onTouchMove={e => e.stopPropagation()}
+        onTouchEnd={e => e.stopPropagation()}
+        className='w-auto max-w-[260px] sm:max-w-[300px] bg-transparent border-none shadow-none p-0 pl-1 pr-6 z-[110] max-h-[var(--radix-popover-content-available-height)] overflow-y-auto overflow-x-hidden overscroll-contain'
+      >
+        <div className='flex flex-col gap-2 py-1'>
+          {[{ id: 'parent', name: tooltip, avatarUrl: img, to: url }, ...childGroups.map(child => ({
+            id: child.id,
+            name: child.name,
+            avatarUrl: child.avatarUrl,
+            to: `/groups/${child.slug}`
+          }))].map(item => (
+            <div
+              key={item.id}
+              onClick={handleNavigateTo(item.to)}
+              className='flex items-center gap-2 cursor-pointer group/stacked min-w-0'
+              role='button'
+              tabIndex={0}
+            >
+              {/* Tile and label both grow on hover, and on the same 100ms ease-out
+                  the rail uses — hovering here should feel like hovering the rail.
+                  The label grows from its left edge so it opens away from the tile. */}
+              <div
+                className='w-14 h-14 shrink-0 rounded-lg bg-cover bg-center bg-primary drop-shadow-md scale-90 group-hover/stacked:scale-100 transition-all duration-100 ease-out'
+                style={{ backgroundImage: `url(${item.avatarUrl})` }}
+              />
+              {/* min-w-0 lets the label shrink inside the flex row so truncate has
+                  something to act on — without it the pill would push past the cap. */}
+              <span className='rounded-md bg-popover text-popover-foreground shadow-md px-3 py-1.5 text-sm font-semibold min-w-0 truncate origin-left transition-all duration-100 ease-out transform group-hover/stacked:scale-110'>
+                {item.name}
+              </span>
+            </div>
+          ))}
         </div>
-        {childGroups.map(child => (
-          <div
-            key={child.id}
-            onClick={handleNavigateTo(`/groups/${child.slug}`)}
-            className='flex items-center gap-2 pl-6 pr-2 py-1.5 rounded-md cursor-pointer hover:bg-foreground/10 transition-colors'
-          >
-            <div className='w-[18px] h-[18px] rounded-sm bg-cover bg-center bg-primary shrink-0' style={{ backgroundImage: `url(${child.avatarUrl})` }} />
-            <span className='truncate text-sm text-foreground/70'>{child.name}</span>
-          </div>
-        ))}
       </PopoverContent>
     </Popover>
   )

@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next'
 import { createSelector } from 'reselect'
 import { debounce, get, groupBy, isEqual, isEmpty } from 'lodash'
 import { pick, pickBy } from 'lodash/fp'
-import { Heart, Layers } from 'lucide-react'
+import { Heart, Layers, Map as MapIcon } from 'lucide-react'
 import bbox from '@turf/bbox'
 import bboxPolygon from '@turf/bbox-polygon'
 import booleanWithin from '@turf/boolean-within'
@@ -40,7 +40,7 @@ import { FETCH_FOR_GROUP } from 'store/constants'
 import presentPost from 'store/presenters/presentPost'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
-import { personUrl, postUrl, groupDetailUrl } from '@hylo/navigation'
+import { personUrl, postUrl, groupDetailUrl, spaceHomeUrl } from '@hylo/navigation'
 
 import {
   fetchSavedSearches, deleteSearch, saveSearch, viewSavedSearch
@@ -71,7 +71,7 @@ import classes from './MapExplorer.module.scss'
 import 'mapbox-gl/dist/mapbox-gl.css'
 
 const MAP_BASE_LAYERS = [
-  { id: 'light-v11', label: 'Basic (Light)' },
+  { id: 'light-v11', label: 'Basic' },
   { id: 'streets-v12', label: 'Streets' },
   { id: 'satellite-v9', label: 'Satellite' },
   { id: 'satellite-streets-v12', label: 'Satellite + Streets' }
@@ -89,6 +89,9 @@ function presentMember (person, groupId) {
 }
 
 function presentGroup (group) {
+  // locationObject is stored as a plain nested object on .ref from the GraphQL
+  // payload (field key is locationObject, FK column is locationId) — do not
+  // overwrite it with the FK accessor, which is often null for map results.
   return group.ref
 }
 
@@ -140,7 +143,7 @@ function MapExplorer (props) {
       filters.featureTypes = Object.keys(filters.featureTypes).reduce((types, type) => { types[type] = !queryParams.hide.includes(type); return types }, {})
     }
     if (queryParams.topics) {
-      filters.topics = topicsFromPosts.filter(t => queryParams.topics.includes(t.id))
+      filters.topics = topicsFromPosts.filter(topic => queryParams.topics.includes(topic.id))
     }
     return filters
   }, [reduxState.clientFilterParams, queryParams.search, queryParams.sortBy, queryParams.hide, queryParams.topics])
@@ -151,7 +154,7 @@ function MapExplorer (props) {
     slug: groupSlug,
     groupSlugs,
     ...filters,
-    topics: filters.topics.map(t => t.id),
+    topics: filters.topics.map(topic => topic.id),
     types: !isEmpty(filters.featureTypes) ? Object.keys(filters.featureTypes).filter(ft => filters.featureTypes[ft]) : null,
     currentBoundingBox: filters.currentBoundingBox || totalBoundingBoxLoaded
   }), [childPostInclusion, context, groupSlug, groupSlugs, filters, totalBoundingBoxLoaded])
@@ -235,7 +238,7 @@ function MapExplorer (props) {
   useEffect(() => {
     setHeaderDetails({
       title: t('Map'),
-      icon: 'Globe',
+      icon: <MapIcon />,
       info: ''
     })
   }, [])
@@ -302,7 +305,7 @@ function MapExplorer (props) {
       newQueryParams.hide = Object.keys(params.featureTypes).filter(type => !params.featureTypes[type])
     }
     if (params.topics) {
-      newQueryParams.topics = params.topics.map(t => t.id)
+      newQueryParams.topics = params.topics.map(topic => topic.id)
     }
     newQueryParams = pickBy((val, key) => {
       return !isEqual(val, querystringParams[key])
@@ -330,7 +333,7 @@ function MapExplorer (props) {
       return selected
     }, [])
 
-    const topicIds = topics.map(t => t.id)
+    const topicIds = topics.map(topic => topic.id)
 
     const boundingBox = [
       { lat: currentBoundingBox[1], lng: currentBoundingBox[0] },
@@ -345,6 +348,12 @@ function MapExplorer (props) {
   const showDetails = useCallback((postId) => navigate(postUrl(postId, { ...routeParams, view: 'map' }, getQuerystringParam(['hideDrawer', 't', 'group'], location))), [navigate, routeParams, location])
 
   const showGroupDetails = useCallback((groupSlug) => navigate(groupDetailUrl(groupSlug, { ...routeParams, view: 'map' }, getQuerystringParam(['hideDrawer', 't', 'group'], location))), [navigate, routeParams, location])
+
+  const showSpace = useCallback((space) => {
+    const parentSlug = space.parentSlug || (space.parentId === group?.id ? groupSlug : null)
+    if (!parentSlug || !space.slug) return
+    navigate(spaceHomeUrl(parentSlug, space))
+  }, [group?.id, groupSlug, navigate])
 
   const gotoMember = useCallback((memberId) => navigate(personUrl(memberId, groupSlug)), [dispatch, groupSlug, navigate])
 
@@ -431,13 +440,15 @@ function MapExplorer (props) {
       // setSelectedObject(info.object)
       if (info.object.type === 'member') {
         gotoMember(info.object.id)
+      } else if (info.object.type === 'space') {
+        showSpace(info.object)
       } else if (info.object.type === 'group') {
         showGroupDetails(info.object.slug)
       } else {
         showDetails(info.object.id)
       }
     }
-  }, [gotoMember, hideDrawer, showDetails, showGroupDetails, viewport])
+  }, [gotoMember, hideDrawer, showDetails, showGroupDetails, showSpace, viewport])
 
   const creatingPostRef = useRef(false)
 
@@ -488,10 +499,10 @@ function MapExplorer (props) {
       }
       return false
     })
-    const viewGroups = groups.filter(group => {
-      const locationObject = group.locationObject
-      if (group.geoShape) {
-        const coords = group.geoShape.coordinates[0]
+    const viewGroups = groups.filter(mapGroup => {
+      const locationObject = mapGroup.locationObject
+      if (mapGroup.geoShape) {
+        const coords = mapGroup.geoShape.coordinates[0]
         const outOfBounds = []
         coords.forEach((coord, i) => {
           if (!booleanWithin(point(coord), bbox)) {
@@ -506,6 +517,13 @@ function MapExplorer (props) {
       }
       return false
     }).concat(get(group, 'locationObject.center') || get(group, 'geoShape') ? group : [])
+      .map(mapGroup => {
+        // Ensure spaces can navigate to their parent from the current map context
+        if (mapGroup.type === 'space' && !mapGroup.parentGroup?.slug && group && mapGroup.parentId === group.id) {
+          return { ...mapGroup, parentGroup: { id: group.id, slug: group.slug || groupSlug } }
+        }
+        return mapGroup
+      })
 
     setClusterLayer(createIconLayerFromPostsAndMembers({
       members: viewMembers,
@@ -532,7 +550,7 @@ function MapExplorer (props) {
     setGroupsForDrawer(viewGroups)
     setMembersForDrawer(viewMembers)
     setTotalPostsInView(viewPosts.length)
-  }, [members, postsForMap, groups, group, onMapHover, onMapClick, context])
+  }, [members, postsForMap, groups, group, groupSlug, onMapHover, onMapClick, context])
 
   const updateViewportWithBbox = useCallback((bbox, zoom = false) => {
     if (zoom) {
@@ -804,7 +822,7 @@ function MapExplorer (props) {
         <LocationInput saveLocationToDB={false} onChange={handleLocationInputSelection} className='bg-input rounded-lg text-foreground placeholder-foreground/40 w-full p-2 transition-all outline-none mb-0 border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground focus:border-focus hover:scale-105' />
       </div>
       <button className={cn('border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md py-1.5 px-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute bottom-2 sm:bottom-10 left-2 sm:left-5 gap-1 text-xs', classes.toggleFeatureFiltersButton, { [classes.open]: showFeatureFilters, [classes.withoutNav]: withoutNav })} onClick={toggleFeatureFilters}>
-        {t('Features:')} <strong>{possibleFeatureTypes.filter(t => filters.featureTypes[t]).length}/{possibleFeatureTypes.length}</strong>
+        {t('Features:')} <strong>{possibleFeatureTypes.filter(featureType => filters.featureTypes[featureType]).length}/{possibleFeatureTypes.length}</strong>
       </button>
 
       {currentUser && (
@@ -843,7 +861,11 @@ function MapExplorer (props) {
                 checked={filters.featureTypes[featureType]}
                 onChange={(checked, name) => toggleFeatureType(name, !checked)}
               />
-              <span>{featureType.charAt(0).toUpperCase() + featureType.slice(1)}s</span>
+              <span>
+                {featureType === 'group'
+                  ? t('Related Groups & Spaces')
+                  : featureType.charAt(0).toUpperCase() + featureType.slice(1) + 's'}
+              </span>
             </div>
           )
         })}
@@ -882,12 +904,12 @@ function MapExplorer (props) {
             menuAbove
             toggleChildren={(
               <span className={classes.layersDropdownLabel}>
-                {MAP_BASE_LAYERS.find(o => o.id === baseLayerStyle).label}
+                {t(MAP_BASE_LAYERS.find(o => o.id === baseLayerStyle).label)}
                 <Icon name='ArrowDown' />
               </span>
             )}
             items={MAP_BASE_LAYERS.map(({ id, label }) => ({
-              label,
+              label: t(label),
               onClick: () => updateBaseLayerStyle(id)
             }))}
           />

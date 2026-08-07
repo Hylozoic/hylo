@@ -117,13 +117,18 @@ export const COMMON_VIEWS = {
 
 /** View types that use a Lucide icon instead of the Hylo icon font. */
 const VIEW_TYPE_TO_LUCIDE_ICON = {
+  all: 'Activity',
   chat: 'MessageCircleMore',
   collection: 'Layers',
   'funding-round-submissions': 'ClipboardList',
   'manage-round': 'Settings',
   link: 'ExternalLink',
+  map: 'Map',
   member: 'User',
+  members: 'Users',
   projects: 'Layers',
+  resources: 'PackageOpen',
+  'requests-and-offers': 'Heart',
   text: 'Type',
   separator: 'Minus'
 }
@@ -199,11 +204,11 @@ export function iconForView (view) {
     }
     return { iconName: view.icon, lucideIcon: null }
   }
+  // Space group icons are always picked from Lucide (LucideIconPicker), so they
+  // aren't restricted to LUCIDE_ICON_NAMES — that set only disambiguates icons
+  // stored on views, which can still hold legacy Hylo icon font names.
   if (view?.type === 'space' && view.linkedGroup?.icon && !groupHasCustomAvatar(view.linkedGroup.avatarUrl)) {
-    if (LUCIDE_ICON_NAMES.has(view.linkedGroup.icon)) {
-      return { iconName: null, lucideIcon: view.linkedGroup.icon }
-    }
-    return { iconName: view.linkedGroup.icon, lucideIcon: null }
+    return { iconName: null, lucideIcon: view.linkedGroup.icon }
   }
   if (view?.type === 'logout') {
     return { iconName: null, lucideIcon: 'LogOut' }

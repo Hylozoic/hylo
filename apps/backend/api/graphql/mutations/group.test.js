@@ -58,6 +58,10 @@ describe('mutations/group', () => {
         const membership = await GroupMembership.forPair(user2, group,
           { includeInactive: true }).fetch()
         expect(membership.get('active')).to.be.false
+
+        const roles = await MemberGroupRole.where({ user_id: user2.id, group_id: group.id }).fetchAll()
+        expect(roles.length).to.equal(0)
+        expect(await GroupMembership.hasResponsibility(user2.id, group, Responsibility.constants.RESP_ADMINISTRATION)).to.be.false
       })
     })
 

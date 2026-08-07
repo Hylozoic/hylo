@@ -9,7 +9,6 @@ import {
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 import {
   SortableContext,
-  arrayMove,
   sortableKeyboardCoordinates,
   useSortable,
   verticalListSortingStrategy
@@ -22,46 +21,20 @@ import { useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { addQuerystringToPath, groupUrl, localSpaceSlug } from '@hylo/navigation'
 
+import { Tooltip, TooltipContent, TooltipTrigger } from 'components/ui/tooltip'
 import GroupViewIcon from './GroupViewIcon'
 import { GroupViewEditActions } from './GroupViewSettingsModal'
-import { canBeHomeView, canDeleteView, canHardDeleteView, isSoftRemoveView } from 'store/models/GroupView'
+import { canDeleteView, canHardDeleteView, isSoftRemoveView, viewAcceptedByPostTypes } from 'store/models/GroupView'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
-import { deleteGroupView, reorderGroupView, setGroupViewHidden, setHomeView } from 'store/actions/groupViews'
+import { deleteGroupView, deleteSpace, setGroupViewHidden } from 'store/actions/groupViews'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
-import { deleteGroup } from 'routes/GroupSettings/GroupSettings.store'
 import { mergeOrderedViewsFromSource, sortViewsByMenuOrder } from 'store/util/groupViewsOrder'
+import useViewReorder from './useViewReorder'
 
 /** Sort views by menu order for consistent drag indices (hidden last). */
 function sortViewsByOrder (views) {
   return sortViewsByMenuOrder(views)
-}
-
-/** Map a sortable drop to the reorder API params.
- * Uses finalOrder (after arrayMove) so dragging DOWN correctly identifies the
- * item that should follow the moved view, matching backend insert-before semantics. */
-function getReorderParams (finalOrder, newIndex) {
-  if (newIndex === 0) return { type: 'home' }
-  if (newIndex === finalOrder.length - 1) return { addToEnd: true }
-  return { orderInFrontOfViewId: finalOrder[newIndex + 1].id }
-}
-
-/** Call the reorder or setHomeView mutation — Redux is updated optimistically via _PENDING handlers. */
-async function persistViewReorder (dispatch, movedView, params, { parentGroupId, targetGroupId, reorderedItems }) {
-  const syncMeta = { parentGroupId, targetGroupId, reorderedItems }
-  if (params.type === 'home') {
-    await dispatch(setHomeView({ viewId: movedView.id, groupId: targetGroupId, ...syncMeta }))
-    return
-  }
-  if (params.addToEnd) {
-    await dispatch(reorderGroupView({ id: movedView.id, addToEnd: true, ...syncMeta }))
-    return
-  }
-  await dispatch(reorderGroupView({
-    id: movedView.id,
-    orderInFrontOfViewId: params.orderInFrontOfViewId,
-    ...syncMeta
-  }))
 }
 
 /** Single draggable row in edit mode. */
@@ -123,9 +96,19 @@ function SortableEditRow ({ view, onSettings, onHide, onDelete, isHome, spaceGro
         <GripVertical className='w-4 h-4' />
       </button>
       <GroupViewIcon view={presentedView} />
-      <span className='flex-1 truncate text-base text-foreground'>
+      <span className='flex-1 truncate text-base font-semibold text-foreground'>
         {displayNameForView(presentedView, t, { spaceGroup })}
-        {isHome && <span className='ml-1 text-xs text-foreground/50'>({t('Home')})</span>}
+        {/* Same badge treatment as the header's Editing pill */}
+        {isHome && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className='ml-1 text-xs font-semibold rounded-full border border-foreground/20 bg-foreground/10 text-foreground/70 px-2 py-px leading-none self-center shrink-0'>
+                {t('Home')}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>{t('When people return to this group, this is what they see first.')}</TooltipContent>
+          </Tooltip>
+        )}
       </span>
       <GroupViewEditActions
         view={view}
@@ -181,7 +164,7 @@ function SortableSpaceEditRow ({
           <GripVertical className='w-4 h-4' />
         </button>
         <GroupViewIcon view={presentedView} />
-        <span className='flex-1 truncate text-base text-foreground'>
+        <span className='flex-1 truncate text-base font-semibold text-foreground'>
           {displayNameForView(presentedView, t)}
         </span>
         <GroupViewEditActions
@@ -192,15 +175,19 @@ function SortableSpaceEditRow ({
           className='opacity-0 group-hover:opacity-100'
         />
         {spaceGroup?.slug && groupSlug && (
-          <button
-            type='button'
-            className='p-1 text-foreground/50 hover:text-foreground'
-            onClick={handleEditSpaceMenu}
-            aria-label={t('Edit space menu')}
-            title={t('Edit space menu')}
-          >
-            <Pencil className='w-4 h-4' />
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type='button'
+                className='p-1 text-foreground/50 hover:text-foreground'
+                onClick={handleEditSpaceMenu}
+                aria-label={t('Edit space menu')}
+              >
+                <Pencil className='w-4 h-4' />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>{t('Edit space menu')}</TooltipContent>
+          </Tooltip>
         )}
       </div>
     </li>
@@ -211,7 +198,12 @@ function SortableSpaceEditRow ({
 export default function GroupViewEditList ({ views, group, groupSlug, onSettings }) {
   const dispatch = useDispatch()
   const { t } = useTranslation()
-  const visibleViews = useMemo(() => sortViewsByOrder((views || []).filter(v => v.order != null)), [views])
+  // Match live menu: hide typed views that the group/space no longer accepts.
+  const visibleViews = useMemo(() => sortViewsByOrder(
+    (views || [])
+      .filter(v => v.order != null)
+      .filter(v => viewAcceptedByPostTypes(v.type, group?.acceptedPostTypes))
+  ), [views, group?.acceptedPostTypes])
   const [orderedViews, setOrderedViews] = useState(visibleViews)
 
   // Merge Redux updates into local order (preserves drag order; full replace on add/delete).
@@ -224,41 +216,7 @@ export default function GroupViewEditList ({ views, group, groupSlug, onSettings
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
 
-  const handleReorder = useCallback(async (event, listViews, targetGroupId, { setLocalViews, onReordered, parentGroupId } = {}) => {
-    const { active, over } = event
-    if (!over || active.id === over.id) return
-
-    const oldIndex = listViews.findIndex(v => String(v.id) === String(active.id))
-    const newIndex = listViews.findIndex(v => String(v.id) === String(over.id))
-    if (oldIndex === -1 || newIndex === -1) return
-
-    const movedView = listViews[oldIndex]
-    const finalOrder = arrayMove(listViews, oldIndex, newIndex)
-    // External links (and other non-home types) cannot become the home view.
-    if (!canBeHomeView(finalOrder[0])) return
-
-    const params = getReorderParams(finalOrder, newIndex)
-    const resolvedParentGroupId = parentGroupId || group?.id
-
-    const applyLocal = setLocalViews || setOrderedViews
-    applyLocal(finalOrder)
-    onReordered?.(finalOrder)
-
-    try {
-      await persistViewReorder(dispatch, movedView, params, {
-        parentGroupId: resolvedParentGroupId,
-        targetGroupId,
-        reorderedItems: finalOrder
-      })
-    } catch (error) {
-      console.error('Failed to reorder views:', error)
-      applyLocal(listViews)
-      onReordered?.(listViews)
-      if (resolvedParentGroupId) {
-        await dispatch(fetchGroupViews(resolvedParentGroupId))
-      }
-    }
-  }, [dispatch, group?.id])
+  const handleReorder = useViewReorder(group)
 
   const handleHide = useCallback(async (view) => {
     if (!isSoftRemoveView(view) || !canDeleteView(view) || !group?.id) return
@@ -287,7 +245,7 @@ export default function GroupViewEditList ({ views, group, groupSlug, onSettings
       )
       if (!confirmed) return
       try {
-        await dispatch(deleteGroup(space.id))
+        await dispatch(deleteSpace(space.id))
         await dispatch(fetchGroupSpaces(group.id))
         await dispatch(fetchGroupViews(group.id))
       } catch (error) {
@@ -310,7 +268,7 @@ export default function GroupViewEditList ({ views, group, groupSlug, onSettings
     <DndContext
       sensors={sensors}
       collisionDetection={closestCenter}
-      onDragEnd={(e) => handleReorder(e, orderedViews, group.id, { parentGroupId: group.id })}
+      onDragEnd={(e) => handleReorder(e, orderedViews, group.id, { setLocalViews: setOrderedViews, parentGroupId: group.id })}
       modifiers={[restrictToVerticalAxis]}
     >
       <SortableContext items={ids} strategy={verticalListSortingStrategy}>

@@ -18,6 +18,22 @@ import SocketSubscriber from 'components/SocketSubscriber'
 import Loading from 'components/Loading'
 import NotFound from 'components/NotFound'
 import { addSkill, removeSkill } from 'components/SkillsSection/SkillsSection.store'
+import Button from 'components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from 'components/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from 'components/ui/select'
 import JoinSection from './JoinSection'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
@@ -45,7 +61,7 @@ import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForG
 import getRolesForGroup from 'store/selectors/getRolesForGroup'
 import fetchForCurrentUser from 'store/actions/fetchForCurrentUser'
 import { cn, inIframe } from 'util/index'
-import { groupUrl, personUrl, removeGroupFromUrl } from '@hylo/navigation'
+import { groupUrl, personUrl, removeGroupFromUrl, spaceUrl } from '@hylo/navigation'
 import isWebView, { sendMessageToWebView } from 'util/webView'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 
@@ -54,6 +70,9 @@ import {
   fetchJoinRequests,
   joinGroup
 } from './GroupDetail.store'
+import { leaveGroup } from 'routes/UserSettings/UserGroupsTab/UserGroupsTab.store'
+import { updateMembershipSettings } from 'routes/UserSettings/UserSettings.store'
+import GroupMembershipNotificationSettings from 'routes/UserSettings/NotificationSettingsTab/GroupMembershipNotificationSettings'
 import FundingRoundAboutInfo from 'components/FundingRoundAboutInfo/FundingRoundAboutInfo'
 
 import g from './GroupDetail.module.scss'
@@ -180,8 +199,15 @@ function GroupDetail ({ forCurrentGroup = false }) {
     dispatch(createJoinRequest(groupId, questionAnswers.map(q => ({ questionId: q.questionId, answer: q.answer }))))
   }, [dispatch])
 
+  const updateMySettings = useCallback(changes => {
+    if (!group?.id) return
+    dispatch(updateMembershipSettings(group.id, changes))
+  }, [dispatch, group?.id])
+
   const agreementsSectionRef = useRef(null)
   const [agreementsLinkCopied, setAgreementsLinkCopied] = useState(false)
+  const [showLeaveDialog, setShowLeaveDialog] = useState(false)
+  const isSpace = group?.type === GROUP_TYPES.space
 
   const handleCopyAgreementsLink = useCallback(() => {
     const url = `${window.location.origin}${groupUrl(group.slug, 'about')}#agreements`
@@ -190,6 +216,18 @@ function GroupDetail ({ forCurrentGroup = false }) {
       window.setTimeout(() => setAgreementsLinkCopied(false), 2500)
     }).catch(() => {})
   }, [group?.slug])
+
+  const handleConfirmLeave = useCallback(() => {
+    if (!group?.id) return
+    dispatch(leaveGroup(group.id)).then(() => {
+      setShowLeaveDialog(false)
+      if (isSpace && routeParams.groupSlug && routeParams.spaceSlug) {
+        navigate(spaceUrl(routeParams.groupSlug, routeParams.spaceSlug))
+      } else {
+        navigate('/')
+      }
+    })
+  }, [dispatch, group?.id, isSpace, navigate, routeParams.groupSlug, routeParams.spaceSlug])
 
   useEffect(() => {
     if (location.hash !== '#agreements') return
@@ -259,39 +297,39 @@ function GroupDetail ({ forCurrentGroup = false }) {
         <meta name='description' content={TextHelpers.truncateHTML(group.description, MAX_DETAILS_LENGTH)} />
       </Helmet>
 
-      {!isAboutCurrentGroup && (
-        <div className={cn('w-full py-8 px-2 bg-cover bg-center overflow-hidden relative shadow-xl', { 'rounded-xl': fullPage })} style={{ backgroundImage: `url(${group.bannerUrl || DEFAULT_BANNER})` }}>
-          {/* DEPRECATED: Now always show close button when not fullPage */}
-          {!fullPage && /* !isWebView() && */ (
-            <a className={g.close} onClick={closeDetailModal}><Icon name='Ex' /></a>
-          )}
-          <div className='bottom-0 right-0 bg-darkening/50 absolute top-0 left-0 z-0' />
-          <div className='max-w-screen-lg mx-auto flex items-center justify-center flex-col relative z-10'>
-            <img src={group.avatarUrl || DEFAULT_AVATAR} className='w-24 h-24 rounded-xl shadow-xl mt-0 mb-2' />
-            <div>
-              <div className='text-white font-bold text-2xl text-center'>{isAboutCurrentGroup && <span>{t('About')}</span>} {group.name}</div>
-              <div className='text-center'>
-                <div className='flex flex-row justify-center gap-1 text-sm text-white/70'>
-                  <span className={g.groupPrivacy}>
-                    <Icon name={visibilityIcon(group.visibility)} className={g.privacyIcon} />
-                    <div className={g.privacyTooltip}>
-                      <div>{t(visibilityString(group.visibility))} - {t(visibilityDescription(group.visibility))}</div>
-                    </div>
-                  </span>
-                  <span className={g.groupPrivacy}>
-                    <Icon name={accessibilityIcon(group.accessibility)} className={g.privacyIcon} />
-                    <div className={g.privacyTooltip}>
-                      <div>{t(accessibilityString(group.accessibility))} - {t(accessibilityDescription(group.accessibility))}</div>
-                    </div>
-                  </span>
-                  <span className={g.memberCount}>{t('{{count}} Members', { count: group.memberCount })}</span>
-                </div>
-                <span className='text-white/70 text-sm'>{group.location}</span>
+      {/* Banner header on every About, including the current group's own — the
+          sidebar shows the banner too, but this page should stand on its own */}
+      <div className={cn('w-full py-8 px-2 bg-cover bg-center overflow-hidden relative shadow-xl', { 'rounded-xl': fullPage })} style={{ backgroundImage: `url(${group.bannerUrl || DEFAULT_BANNER})` }}>
+        {/* DEPRECATED: Now always show close button when not fullPage */}
+        {!fullPage && /* !isWebView() && */ (
+          <a className={g.close} onClick={closeDetailModal}><Icon name='Ex' /></a>
+        )}
+        <div className='bottom-0 right-0 bg-darkening/50 absolute top-0 left-0 z-0' />
+        <div className='max-w-screen-lg mx-auto flex items-center justify-center flex-col relative z-10'>
+          <img src={group.avatarUrl || DEFAULT_AVATAR} className='w-24 h-24 rounded-xl shadow-xl mt-0 mb-2' />
+          <div>
+            <div className='text-white font-bold text-2xl text-center'>{group.name}</div>
+            <div className='text-center'>
+              <div className='flex flex-row justify-center gap-1 text-sm text-white/70'>
+                <span className={g.groupPrivacy}>
+                  <Icon name={visibilityIcon(group.visibility)} className={g.privacyIcon} />
+                  <div className={g.privacyTooltip}>
+                    <div>{t(visibilityString(group.visibility))} - {t(visibilityDescription(group.visibility))}</div>
+                  </div>
+                </span>
+                <span className={g.groupPrivacy}>
+                  <Icon name={accessibilityIcon(group.accessibility)} className={g.privacyIcon} />
+                  <div className={g.privacyTooltip}>
+                    <div>{t(accessibilityString(group.accessibility))} - {t(accessibilityDescription(group.accessibility))}</div>
+                  </div>
+                </span>
+                <span className={g.memberCount}>{t('{{count}} Members', { count: group.memberCount })}</span>
               </div>
+              <span className='text-white/70 text-sm'>{group.location}</span>
             </div>
           </div>
         </div>
-      )}
+      </div>
 
       <div className='p-4'>
         {group.type === GROUP_TYPES.default && defaultGroupBody({ group, isAboutCurrentGroup, t, responsibilityTitles })}
@@ -366,6 +404,48 @@ function GroupDetail ({ forCurrentGroup = false }) {
               })}
             </div>)
           : ''}
+        {isMember?.settings && (
+          <div className='border-2 border-dashed border-foreground/20 rounded-xl p-4 mb-4'>
+            <h3 className='text-xl font-bold py-2'>{t('Notification Settings')}</h3>
+            {isSpace
+              ? (
+                <div className='flex items-center justify-between gap-2 py-2'>
+                  <span>{t('Receive new post notifications in this space for')}</span>
+                  <Select
+                    value={isMember.settings.postNotifications}
+                    onValueChange={value => updateMySettings({ postNotifications: value })}
+                  >
+                    <SelectTrigger className='inline-flex w-auto'>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value='none'>{t('No Posts')}</SelectItem>
+                      <SelectItem value='important'>{t('Important Posts (Announcements & Mentions)')}</SelectItem>
+                      <SelectItem value='all'>{t('Every Post')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                )
+              : (
+                <GroupMembershipNotificationSettings
+                  id={isMember.id}
+                  settings={isMember.settings}
+                  update={updateMySettings}
+                />
+                )}
+          </div>
+        )}
+        {isMember && isAboutCurrentGroup && (
+          <div className='border-2 border-dashed border-foreground/20 rounded-xl p-4 mb-4 flex justify-center'>
+            <Button
+              variant='outline'
+              onClick={() => setShowLeaveDialog(true)}
+              className='border-accent/20 hover:border-accent/100 text-accent/60 hover:text-accent/100'
+            >
+              {t(isSpace ? 'Leave Space' : 'Leave Group')}
+            </Button>
+          </div>
+        )}
         {!isAboutCurrentGroup
           ? group.paywall
             ? (
@@ -421,6 +501,29 @@ function GroupDetail ({ forCurrentGroup = false }) {
                     )
           : ''}
       </div>
+      <Dialog open={showLeaveDialog} onOpenChange={setShowLeaveDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t(isSpace ? 'Leave Space' : 'Leave Group')}</DialogTitle>
+            <DialogDescription className='text-foreground/70'>
+              {t(
+                isSpace
+                  ? 'Are you sure you want to leave {{group_name}}? You will no longer have access to this space\'s content.'
+                  : 'Are you sure you want to leave {{group_name}}? You will no longer have access to this group\'s content.',
+                { group_name: group.name }
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className='flex gap-2 mt-4'>
+            <Button variant='outline' onClick={() => setShowLeaveDialog(false)}>
+              {t('Cancel')}
+            </Button>
+            <Button variant='destructive' onClick={handleConfirmLeave}>
+              {t(isSpace ? 'Leave Space' : 'Leave Group')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <Tooltip
         backgroundColor='rgba(35, 65, 91, 1.0)'
         effect='solid'
@@ -449,11 +552,11 @@ const defaultGroupBody = ({ group, isAboutCurrentGroup, responsibilityTitles, t 
       )}
       {isAboutCurrentGroup && (!group.purpose && !group.description) && responsibilityTitles.includes(RESP_ADMINISTRATION)
         ? (
-          <div className={g.noDescription}>
-            <div>
+          <div className='border-2 border-dashed border-foreground/20 rounded-xl p-4 mb-4'>
+            <div className={g.noDescription}>
               <h4 className='text-xl font-bold py-2'>{t('Your group doesn\'t have a purpose or description')}</h4>
-              <p>{t('Add a purpose, description, location, and more in your group settings')}</p>
-              <Link to={groupUrl(group.slug, 'settings')}>{t('Add a group description')}</Link>
+              <p className='text-foreground'>{t('Add a purpose, description, location, and more in your group settings')}</p>
+              <Link className='text-foreground border-foreground' to={groupUrl(group.slug, 'settings')}>{t('Add a group description')}</Link>
             </div>
           </div>
           )
