@@ -1,8 +1,8 @@
 import { isPhoneDevice } from 'util/mobile'
 import { get } from 'lodash/fp'
-import { ChevronLeft, CircleEllipsis, Info, Pencil, RefreshCw, Settings } from 'lucide-react'
+import { CircleEllipsis, Info, Pencil, RefreshCw, Settings, Users, X } from 'lucide-react'
 import React, { useEffect, useCallback, useState, useMemo } from 'react'
-import { useLocation, useNavigate, Routes, Route } from 'react-router-dom'
+import { Link, useLocation, useNavigate, Routes, Route } from 'react-router-dom'
 import { replace } from 'redux-first-history'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
@@ -739,7 +739,7 @@ export default function ContextMenu (props) {
               aria-disabled='true'
             >
               <CircleEllipsis className='w-4 h-4 shrink-0' />
-              <span>{t('More Views and Spaces')}</span>
+              <span>{t('More')}</span>
               {moreViewsBadge}
             </div>
             )
@@ -749,7 +749,7 @@ export default function ContextMenu (props) {
               className='flex items-center gap-2 text-base font-medium text-foreground hover:text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 w-full transition-all opacity-85 hover:opacity-100'
             >
               <CircleEllipsis className='w-4 h-4 shrink-0' />
-              <span>{t('More Views and Spaces')}</span>
+              <span>{t('More')}</span>
               {moreViewsBadge}
             </MenuLink>
             )}
@@ -891,32 +891,89 @@ export default function ContextMenu (props) {
                     type='button'
                     onClick={handleBackToGroupMenu}
                     className={cn(
-                      'relative z-10 flex items-center gap-1 self-start m-2 px-1.5 py-0.5 rounded-md text-sm backdrop-blur-sm transition-colors',
+                      'relative z-10 flex items-center self-start m-2 p-1 rounded-md backdrop-blur-sm transition-colors',
                       activeSpaceBannerUrl
                         ? 'bg-black/25 text-white/90 hover:bg-black/40 hover:text-white'
                         : 'bg-foreground/10 text-foreground/70 hover:bg-foreground/20 hover:text-foreground dark:text-white/80 dark:hover:text-white'
                     )}
-                    aria-label={t('Back')}
+                    aria-label={t('Close')}
+                    title={t('Close')}
                   >
-                    <ChevronLeft className='w-5 h-5' />
-                    <span>{t('Back')}</span>
+                    <X className='w-5 h-5' />
                   </button>
-                  <div className='relative z-10 flex items-center gap-2 p-2 min-w-0'>
-                    <GroupViewIcon view={presentedActiveSpaceView} />
-                    <TruncatedText
-                      className={cn(
-                        'truncate flex-1 font-semibold',
+                  {canManageSpaces && activeSpaceView && (
+                    <button
+                      type='button'
+                      onClick={() => setSettingsView(activeSpaceView)}
+                      className='absolute top-2 right-2 z-10'
+                      aria-label={t('Space Settings')}
+                      title={t('Space Settings')}
+                    >
+                      <Settings className={cn(
+                        'w-6 h-6 drop-shadow-md hover:scale-110 transition-all',
                         activeSpaceBannerUrl
-                          ? 'text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.65)]'
-                          : 'text-foreground dark:text-white'
+                          ? 'text-white/90 hover:text-white'
+                          : 'text-foreground/60 hover:text-foreground dark:text-white/80 dark:hover:text-white'
                       )}
-                      text={spaceDisplayName}
-                    />
+                      />
+                    </button>
+                  )}
+                  <div className='relative z-10 flex items-center gap-2 p-2 min-w-0'>
+                    <div
+                      style={presentedActiveSpaceView?.avatarUrl ? bgImageStyle(presentedActiveSpaceView.avatarUrl) : {}}
+                      className={cn(
+                        'h-10 w-10 rounded-lg shadow-md bg-cover bg-center relative overflow-hidden shrink-0 flex items-center justify-center',
+                        !presentedActiveSpaceView?.avatarUrl && 'bg-theme-background'
+                      )}
+                    >
+                      {/* theme-background is dark in every theme, so the icon is always light */}
+                      {!presentedActiveSpaceView?.avatarUrl && (
+                        <GroupViewIcon view={presentedActiveSpaceView} className='w-6 h-6 text-white/90' />
+                      )}
+                    </div>
+                    <div className='flex flex-col flex-1 min-w-0'>
+                      <TruncatedText
+                        className={cn(
+                          'truncate font-bold text-xl/6',
+                          activeSpaceBannerUrl
+                            ? 'text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.65)]'
+                            : 'text-foreground dark:text-white'
+                        )}
+                        text={spaceDisplayName}
+                      />
+                      <span className='flex items-center gap-1 mt-1.5 text-xs'>
+                        <Link
+                          className={cn(
+                            'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 no-underline hover:no-underline transition-colors',
+                            activeSpaceBannerUrl
+                              ? 'bg-white/15 border-white/25 text-white hover:bg-white/25 hover:text-white'
+                              : 'bg-foreground/10 border-foreground/20 text-foreground/80 hover:bg-foreground/20 hover:text-foreground dark:bg-white/15 dark:border-white/25 dark:text-white/90 dark:hover:bg-white/25 dark:hover:text-white'
+                          )}
+                          to={spaceUrl(groupSlug, localSpaceSlug(groupSlug, activeSpaceGroup.slug), 'members')}
+                          onClick={() => dispatch(toggleNavMenu(false))}
+                          aria-label={t('{{count}} Members', { count: activeSpaceGroup.memberCount })}
+                        >
+                          <Users className='w-3.5 h-3.5' />
+                          {activeSpaceGroup.memberCount}
+                        </Link>
+                        <InviteMembersPopover
+                          group={activeSpaceGroup}
+                          alwaysVisible
+                          triggerLabel={t('Invite')}
+                          triggerClassName={cn(
+                            'rounded-full border px-2 py-0.5 hover:scale-100',
+                            activeSpaceBannerUrl
+                              ? 'bg-white/15 border-white/25 text-white hover:bg-white/25 hover:text-white'
+                              : 'bg-foreground/10 border-foreground/20 text-foreground/80 hover:bg-foreground/20 hover:text-foreground dark:bg-white/15 dark:border-white/25 dark:text-white/90 dark:hover:bg-white/25 dark:hover:text-white'
+                          )}
+                        />
+                      </span>
+                    </div>
                     <button
                       type='button'
                       onClick={() => navigate(addQuerystringToPath(location.pathname, { about: 1 }))}
                       className={cn(
-                        'shrink-0 p-1 transition-colors',
+                        'shrink-0 transition-all hover:scale-110',
                         activeSpaceBannerUrl
                           ? 'text-white/80 hover:text-white'
                           : 'text-foreground/60 hover:text-foreground dark:text-white/80 dark:hover:text-white'
@@ -924,7 +981,7 @@ export default function ContextMenu (props) {
                       aria-label={t('About')}
                       title={t('About')}
                     >
-                      <Info className='w-4 h-4' />
+                      <Info className='w-5 h-5' />
                     </button>
                   </div>
                 </div>

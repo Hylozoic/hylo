@@ -96,8 +96,8 @@ export default function GroupMenuHeader ({
   return (
     <div
       className={cn(
-        'GroupMenuHeader relative flex flex-col justify-end p-2 bg-cover shadow-md transition-[height] duration-300 ease-out',
-        compact ? 'h-12' : 'h-[190px]'
+        'GroupMenuHeader group/menuHeader relative flex flex-col justify-end p-2 bg-cover shadow-md transition-[height] duration-300 ease-out',
+        compact ? 'h-12 hover:h-14' : 'h-[190px]'
       )}
       data-testid='group-header'
     >
@@ -112,8 +112,8 @@ export default function GroupMenuHeader ({
         aria-label={t('Back')}
         aria-hidden={!compact}
         className={cn(
-          'absolute inset-0 z-30 bg-gradient-to-t from-[hsl(var(--theme-background)/0.1)] dark:from-[hsl(var(--theme-background)/0.5)] to-[hsl(var(--theme-background)/0)] transition-opacity duration-300',
-          compact ? 'opacity-100 cursor-pointer' : 'opacity-0 pointer-events-none'
+          'absolute inset-0 z-30 bg-gradient-to-t from-[hsl(var(--theme-background)/0.6)] dark:from-[hsl(var(--theme-background)/0.85)] to-[hsl(var(--theme-background)/0.15)] transition-opacity duration-300',
+          compact ? 'opacity-100 cursor-pointer group-hover/menuHeader:opacity-0' : 'opacity-0 pointer-events-none'
         )}
       />
       <div className={cn('absolute top-2 left-2 z-20', controlFade)}>
@@ -167,7 +167,7 @@ export default function GroupMenuHeader ({
           <span
             className={cn(
               'group text-xs align-middle text-white flex items-center gap-1 overflow-hidden transition-all duration-300',
-              (compact || !showMembers) ? 'opacity-0 max-h-0 pointer-events-none' : 'opacity-100 max-h-7 mt-1'
+              (compact || !showMembers) ? 'opacity-0 max-h-0 pointer-events-none' : 'opacity-100 max-h-7 mt-1.5'
             )}
           >
             <Link
