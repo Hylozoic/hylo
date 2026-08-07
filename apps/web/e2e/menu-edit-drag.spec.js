@@ -88,6 +88,25 @@ test('separator drag reflows once and settles; add menu hover matches create men
   expect(distinctLate.size).toBe(1)
   expect(samples[samples.length - 1], 'gap hover must reorder').not.toBe(initialOrder)
 
+  // The break must land at the hovered gap. Earlier reflows shift the layout,
+  // so resolve "the card we are hovering beside" from the live layout: the card
+  // in the pointer's row whose right edge sits just left of the pointer.
+  const holdPoint = { x: target.x + target.width + 6, y: target.y + target.height / 2 }
+  const adjacency = await container.evaluate((el, { x, y }) => {
+    const kids = Array.from(el.children)
+    const texts = kids.map(c => (c.textContent || '').trim().slice(0, 24))
+    let cardIdx = -1
+    kids.forEach((c, i) => {
+      const r = c.getBoundingClientRect()
+      if (r.height > 100 && y >= r.top && y <= r.bottom && x >= r.right - 2 && x - r.right < 40) cardIdx = i
+    })
+    return { texts, cardIdx }
+  }, holdPoint)
+  const sepIdx = adjacency.texts.findIndex(s => s.includes('Common Views'))
+  console.log(`separator at ${sepIdx}, card left of pointer at ${adjacency.cardIdx} (want adjacent)`)
+  expect(adjacency.cardIdx).toBeGreaterThan(-1)
+  expect(sepIdx).toBe(adjacency.cardIdx + 1)
+
   await page.screenshot({ path: path.resolve(screenshotDir, 'menu-drag-1-mid-drag.png') })
   console.log('Screenshot saved: menu-drag-1-mid-drag.png')
 
