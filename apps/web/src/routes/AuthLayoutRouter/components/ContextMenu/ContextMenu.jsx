@@ -647,7 +647,8 @@ export default function ContextMenu (props) {
 
   const handleBackToGroupMenu = useCallback(() => {
     if (isMoreViewsPath) {
-      navigate(addQuerystringToPath(groupUrl(groupSlug, 'more-views'), { edit: 'true' }))
+      const moreViews = groupUrl(groupSlug, 'more-views')
+      navigate(isEditing ? addQuerystringToPath(moreViews, { edit: 'true' }) : moreViews)
       return
     }
     const home = groupUrl(groupSlug)
