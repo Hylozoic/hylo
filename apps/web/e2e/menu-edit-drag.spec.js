@@ -58,14 +58,25 @@ test('separator drag reflows once and settles; add menu hover matches create men
 
   const initialOrder = await orderSignature(container)
 
-  // Drag the separator over the middle of a card in the second card row and hold
+  // Drag the separator over the middle of a card in the second card row.
+  // Card bodies are inert: hovering the center of a card must not reorder.
   await page.mouse.move(sepBox.x + sepBox.width / 2, sepBox.y + sepBox.height / 2)
   await page.mouse.down()
   await page.mouse.move(sepBox.x + sepBox.width / 2, sepBox.y + sepBox.height / 2 + 10, { steps: 3 })
   await page.mouse.move(target.x + target.width / 2, target.y + target.height / 2, { steps: 12 })
+  await page.waitForTimeout(300)
+  // Crossing edges en route may have reordered; once in the inert card body,
+  // wiggling inside it must change nothing.
+  const orderAtCenter = await orderSignature(container)
+  for (const [dx, dy] of [[6, 4], [-8, -3], [5, -5], [-4, 6]]) {
+    await page.mouse.move(target.x + target.width / 2 + dx, target.y + target.height / 2 + dy, { steps: 2 })
+    await page.waitForTimeout(80)
+  }
+  expect(await orderSignature(container), 'card center must not reorder').toBe(orderAtCenter)
 
-  // Sample the DOM order while holding still. Allow the initial reflow, then
-  // require it to stay put — the bug flips the order on every frame.
+  // The gap between this card and the next (or the row edge) is a drop zone —
+  // moving there must reorder, then hold still and require it to stay put.
+  await page.mouse.move(target.x + target.width + 6, target.y + target.height / 2, { steps: 6 })
   const samples = []
   for (let i = 0; i < 8; i++) {
     await page.waitForTimeout(150)
@@ -75,6 +86,7 @@ test('separator drag reflows once and settles; add menu hover matches create men
   const distinctLate = new Set(settled)
   console.log(`late samples distinct orders: ${distinctLate.size} (want 1)`)
   expect(distinctLate.size).toBe(1)
+  expect(samples[samples.length - 1], 'gap hover must reorder').not.toBe(initialOrder)
 
   await page.screenshot({ path: path.resolve(screenshotDir, 'menu-drag-1-mid-drag.png') })
   console.log('Screenshot saved: menu-drag-1-mid-drag.png')

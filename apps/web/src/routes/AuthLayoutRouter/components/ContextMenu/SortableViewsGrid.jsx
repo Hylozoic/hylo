@@ -51,6 +51,39 @@ const NO_TEXT_SELECT = 'select-none [-webkit-touch-callout:none]'
 // when a full-width row lands mid-row and moves everything by a card height.
 const MEASURING = { droppable: { strategy: MeasuringStrategy.Always } }
 
+// How much of an idle item's rect counts as its inert body (per side).
+const CARD_BODY_INSET = 0.28
+
+/**
+ * Reorder only from the spaces between and around the cards. The central body
+ * of every idle item is inert — a pointer resting on a card is browsing, not
+ * aiming, so hovering a card never pushes it aside. This is also what makes the
+ * live reflow stable: when a reorder lands a card under the stationary pointer,
+ * the pointer is in that card's body, which cannot produce a new target, so the
+ * layout cannot bounce back (the oscillation). Keyboard drags have no pointer
+ * and keep plain closest-center.
+ */
+const gapCollisionDetection = (args) => {
+  const { active, droppableRects, droppableContainers, pointerCoordinates } = args
+  if (!pointerCoordinates) return closestCenter(args)
+  for (const container of droppableContainers) {
+    if (String(container.id) === String(active.id)) continue
+    const rect = droppableRects.get(container.id)
+    if (!rect) continue
+    const insetX = Math.max(10, rect.width * CARD_BODY_INSET)
+    const insetY = Math.max(10, rect.height * CARD_BODY_INSET)
+    if (
+      pointerCoordinates.x >= rect.left + insetX &&
+      pointerCoordinates.x <= rect.right - insetX &&
+      pointerCoordinates.y >= rect.top + insetY &&
+      pointerCoordinates.y <= rect.bottom - insetY
+    ) {
+      return []
+    }
+  }
+  return closestCenter(args)
+}
+
 /** Full-width stand-ins for the text and separator rows, so they reorder with the cards. */
 function FullWidthRow ({ view, spaceGroup, t }) {
   const presented = GroupViewPresenter(view)
@@ -173,6 +206,7 @@ export default function SortableViewsGrid ({
     if (typeof window !== 'undefined') window.getSelection()?.removeAllRanges?.()
     preDragOrder.current = orderedViews
     lastOverId.current = null
+    lastReorderDelta.current = null
     setActiveId(String(e.active.id))
   }
 
@@ -180,13 +214,25 @@ export default function SortableViewsGrid ({
   // re-processing the same target (after `over` flickers to null crossing a flex
   // gap) would move the item right back where it came from.
   const lastOverId = useRef(null)
+  // Pointer translation at the last reorder: a reflow can surface a fresh target
+  // under a pointer that hasn't moved, and reordering again from the same spot is
+  // exactly the feedback loop. Require real travel between reorders.
+  const lastReorderDelta = useRef(null)
 
   // Reorder as the pointer moves so the grid reflows for real — this is what keeps
   // a full-width row breaking its line instead of being painted over the cards.
-  const handleDragOver = ({ active, over }) => {
+  const handleDragOver = ({ active, over, delta }) => {
     if (!over || active.id === over.id) return
     if (String(over.id) === lastOverId.current) return
+    if (delta && lastReorderDelta.current) {
+      const travelled = Math.hypot(
+        delta.x - lastReorderDelta.current.x,
+        delta.y - lastReorderDelta.current.y
+      )
+      if (travelled < 6) return
+    }
     lastOverId.current = String(over.id)
+    lastReorderDelta.current = delta || null
     setOrderedViews(prev => {
       const oldIndex = prev.findIndex(v => String(v.id) === String(active.id))
       const newIndex = prev.findIndex(v => String(v.id) === String(over.id))
@@ -220,7 +266,7 @@ export default function SortableViewsGrid ({
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCenter}
+      collisionDetection={gapCollisionDetection}
       measuring={MEASURING}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
