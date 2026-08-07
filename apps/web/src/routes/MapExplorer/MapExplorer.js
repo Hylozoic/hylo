@@ -821,7 +821,7 @@ function MapExplorer (props) {
         />
       )}
       <div className='absolute top-5 left-[74px]'>
-        <LocationInput saveLocationToDB={false} onChange={handleLocationInputSelection} className='bg-input rounded-lg text-foreground placeholder-foreground/40 w-full p-2 transition-all outline-none mb-0 border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground focus:border-focus hover:scale-105' />
+        <LocationInput saveLocationToDB={false} onChange={handleLocationInputSelection} className='bg-input rounded-md text-base h-9 text-foreground placeholder-foreground/40 w-full px-2 py-0 transition-all outline-none mb-0 border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground focus:border-focus hover:scale-105' />
       </div>
       <button className={cn('border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md py-1.5 px-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute bottom-2 sm:bottom-10 left-2 sm:left-5 gap-1 text-xs', classes.toggleFeatureFiltersButton, { [classes.open]: showFeatureFilters, [classes.withoutNav]: withoutNav })} onClick={toggleFeatureFilters}>
         {t('Features:')} <strong>{possibleFeatureTypes.filter(featureType => filters.featureTypes[featureType]).length}/{possibleFeatureTypes.length}</strong>
@@ -831,9 +831,9 @@ function MapExplorer (props) {
         <>
           <button
             onClick={toggleSavedSearches}
-            className={cn('border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute top-5 gap-1 text-xs left-5', { 'border-selected/50 text-selected': showSavedSearches })}
+            className={cn('border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md w-9 h-9 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center justify-center absolute top-5 text-base left-5', { 'border-selected/50 text-selected': showSavedSearches })}
           >
-            <Heart />
+            <Heart className='w-5 h-5' />
           </button>
           {showSavedSearches && (
             <SavedSearches
@@ -937,20 +937,34 @@ function MapExplorer (props) {
       </div>
 
       {currentUser && (
-        <button
-          data-tooltip-id='helpTip'
-          data-tooltip-content='Add item to map'
+        <div
           className={cn(
-            'border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute bottom-10 right-5 gap-1 text-xs',
+            'absolute bottom-10 right-5 flex items-center gap-2',
             classes.drawerAdjacentButton,
-            {
-              [classes.active]: isAddingItemToMap,
-              [classes.drawerOpen]: !hideDrawer
-            })}
-          onClick={handleAddItemToMap}
+            { [classes.drawerOpen]: !hideDrawer }
+          )}
         >
-          <Icon name='Plus' className={cn({ [classes.openDrawer]: !hideDrawer, [classes.closeDrawer]: hideDrawer })} />
-        </button>
+          {/* Placement-mode hint, so the armed + isn't a silent state */}
+          {isAddingItemToMap && (
+            <span className='rounded-full bg-background border-2 border-foreground/20 px-3 py-1 text-xs font-semibold text-foreground shadow-md whitespace-nowrap'>
+              {t('Press where you want to create')}
+            </span>
+          )}
+          <button
+            data-tooltip-id='helpTip'
+            data-tooltip-content='Add item to map'
+            className={cn(
+              'border-2 rounded-md p-2 bg-background transition-all flex items-center gap-1 text-xs',
+              isAddingItemToMap
+                ? 'border-selected bg-selected/20 text-foreground scale-90 translate-y-px shadow-inner opacity-100'
+                : 'border-foreground/20 hover:border-foreground/50 hover:text-foreground text-foreground scale-100 hover:scale-105 opacity-85 hover:opacity-100',
+              { [classes.active]: isAddingItemToMap }
+            )}
+            onClick={handleAddItemToMap}
+          >
+            <Icon name='Plus' className={cn({ [classes.openDrawer]: !hideDrawer, [classes.closeDrawer]: hideDrawer })} />
+          </button>
+        </div>
       )}
       <Tooltip
         delay={550}

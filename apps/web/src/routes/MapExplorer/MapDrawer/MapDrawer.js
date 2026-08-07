@@ -188,7 +188,7 @@ function MapDrawer ({
             onClick={onClose}
             aria-label={t('Close Drawer')}
             data-testid='map-drawer-close'
-            className='w-7 h-7 rounded-lg bg-foreground/10 border border-foreground/20 text-foreground/70 hover:text-foreground hover:border-foreground/40 grid place-items-center shrink-0 transition-colors'
+            className='w-7 h-7 rounded-md bg-background border-2 border-foreground/20 text-foreground/70 hover:text-foreground hover:border-foreground/50 grid place-items-center shrink-0 transition-all'
           >
             <X className='w-3.5 h-3.5' />
           </button>
@@ -252,7 +252,7 @@ function MapDrawer ({
             <DropdownMenuTrigger asChild>
               <button
                 type='button'
-                className='inline-flex items-center gap-1.5 h-7 pl-2 pr-1.5 rounded-lg bg-foreground/5 border border-foreground/20 text-foreground/90 hover:border-foreground/40 transition-colors'
+                className='inline-flex items-center gap-1.5 h-7 pl-2 pr-1.5 rounded-md bg-background border-2 border-foreground/20 text-foreground/90 hover:text-foreground hover:border-foreground/50 transition-all'
                 data-testid='map-lens-dropdown'
               >
                 <currentLens.icon className='w-3.5 h-3.5' />
@@ -283,10 +283,10 @@ function MapDrawer ({
                   data-tooltip-content={childPostInclusion === 'yes' ? t('Hide posts from child groups and spaces') : t('Show posts from child groups and spaces')}
                   data-tooltip-id='childgroup-toggle-tt'
                   className={cn(
-                    'w-7 h-7 rounded-lg border grid place-items-center transition-colors',
+                    'w-7 h-7 rounded-md border-2 grid place-items-center transition-all',
                     childPostInclusion === 'yes'
                       ? 'bg-selected/20 border-selected text-foreground'
-                      : 'bg-foreground/5 border-foreground/20 text-foreground/50 hover:border-foreground/40'
+                      : 'bg-background border-foreground/20 text-foreground/50 hover:text-foreground hover:border-foreground/50'
                   )}
                 >
                   <Icon name='Subgroup' />
@@ -298,7 +298,7 @@ function MapDrawer ({
               id='map-drawer-sort-dropdown'
               alignRight
               toggleChildren={
-                <span className='inline-flex items-center gap-1 h-7 px-2 rounded-lg bg-foreground/5 border border-foreground/20 text-[11.5px] font-semibold text-foreground/80 hover:border-foreground/40 transition-colors whitespace-nowrap'>
+                <span className='inline-flex items-center gap-1 h-7 px-2 rounded-md bg-background border-2 border-foreground/20 text-[11.5px] font-semibold text-foreground/80 hover:text-foreground hover:border-foreground/50 transition-all whitespace-nowrap'>
                   {t(STREAM_SORT_OPTIONS.find(o => o.id === sortBy).label)}
                   <ChevronDown className='w-3 h-3 text-foreground/50' />
                 </span>
