@@ -416,13 +416,13 @@ function Member ({
       {/* Header: the member's own banner behind avatar, name and message — or a
           gradient tinted by their name when they have none */}
       <div
-        className='relative p-4 bg-cover bg-center'
+        className='relative p-3 bg-cover bg-center'
         style={bannerUrl
           ? bgImageStyle(bannerUrl)
           : { background: `linear-gradient(135deg, hsl(${hue} 42% 30%), hsl(${(hue + 45) % 360} 38% 22%))` }}
       >
         <div className='absolute inset-0' style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.42), rgba(0,0,0,0.66))' }} />
-        <div className='relative flex items-start gap-3'>
+        <div className='relative flex items-center gap-3'>
           <div className={cn('w-12 h-12 rounded-full bg-cover bg-center shrink-0 shadow-md', isSelf && 'ring-2 ring-selected')} style={bgImageStyle(avatarUrl)} />
           <div className='flex-1 min-w-0'>
             <div className='text-white font-bold text-base leading-tight truncate'>
@@ -430,12 +430,12 @@ function Member ({
               {isSelf && <span className='text-white/70 font-semibold text-xs'> · {t('You')}</span>}
             </div>
             {location && (
-              <div className='flex items-center gap-1 mt-1 text-xs text-white/70 min-w-0'>
+              <div className='flex items-center gap-1 mt-0.5 text-xs text-white/70 min-w-0'>
                 <MapPin className='w-3 h-3 shrink-0' /><span className='truncate'>{location}</span>
               </div>
             )}
           </div>
-          <div className='flex items-start gap-1.5 shrink-0' onClick={e => e.stopPropagation()}>
+          <div className='flex items-center gap-1.5 shrink-0' onClick={e => e.stopPropagation()}>
             {messageButton(true)}
             {removeDropdown(true)}
           </div>

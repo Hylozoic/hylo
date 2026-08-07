@@ -242,7 +242,7 @@ function Members (props) {
                   onClick={() => setDisplayMode('card')}
                   aria-label={t('Cards')}
                   title={t('Cards')}
-                  className={cn('px-2.5 py-1.5 transition-colors', displayMode === 'card' ? 'bg-selected text-foreground' : 'text-foreground/60 hover:text-foreground hover:bg-foreground/5')}
+                  className={cn('px-2.5 py-[10px] transition-colors', displayMode === 'card' ? 'bg-selected text-foreground' : 'text-foreground/60 hover:text-foreground hover:bg-foreground/5')}
                 >
                   <LayoutGrid className='w-4 h-4' />
                 </button>
@@ -251,7 +251,7 @@ function Members (props) {
                   onClick={() => setDisplayMode('list')}
                   aria-label={t('List')}
                   title={t('List')}
-                  className={cn('px-2.5 py-1.5 transition-colors', displayMode === 'list' ? 'bg-selected text-foreground' : 'text-foreground/60 hover:text-foreground hover:bg-foreground/5')}
+                  className={cn('px-2.5 py-[10px] transition-colors', displayMode === 'list' ? 'bg-selected text-foreground' : 'text-foreground/60 hover:text-foreground hover:bg-foreground/5')}
                 >
                   <List className='w-4 h-4' />
                 </button>
