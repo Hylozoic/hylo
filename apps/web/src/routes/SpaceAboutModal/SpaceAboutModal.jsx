@@ -19,7 +19,7 @@ import {
 } from 'components/ui/select'
 import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import MenuRowBackground from 'routes/AuthLayoutRouter/components/ContextMenu/MenuRowBackground'
-import { avatarForView, iconForView } from '@hylo/presenters/GroupViewPresenter'
+import GroupViewPresenter, { avatarForView, iconForView } from '@hylo/presenters/GroupViewPresenter'
 import { leaveGroup } from 'routes/UserSettings/UserGroupsTab/UserGroupsTab.store'
 import { updateMembershipSettings } from 'routes/UserSettings/UserSettings.store'
 import fetchForGroup from 'store/actions/fetchForGroup'
@@ -85,6 +85,9 @@ export default function SpaceAboutModal ({ onClose }) {
   const spaceView = useMemo(() => spaceGroup
     ? { type: 'space', name: spaceGroup.name, icon: spaceGroup.icon, linkedGroup: spaceGroup }
     : null, [spaceGroup])
+  // GroupViewIcon — and so the banner's glyph wallpaper — reads presenter fields
+  // (lucideIcon, avatarUrl); the raw view shape renders empty glyphs
+  const presentedSpaceView = useMemo(() => spaceView ? GroupViewPresenter(spaceView) : null, [spaceView])
   const avatar = useMemo(() => avatarForView(spaceView), [spaceView])
   const icon = useMemo(() => iconForView(spaceView), [spaceView])
 
@@ -125,7 +128,7 @@ export default function SpaceAboutModal ({ onClose }) {
                       )
                     // No banner: the same repeating icon texture the space wears in the
                     // menu and cards, so the modal is recognisably that space's surface
-                    : <MenuRowBackground view={spaceView} bannerUrl={null} />}
+                    : <MenuRowBackground view={presentedSpaceView} bannerUrl={null} glyphCount={280} />}
 
                   <div className='relative z-10 w-[84px] h-[84px] rounded-[22px] grid place-items-center overflow-hidden bg-background/20 backdrop-blur-sm border border-white/25 shadow-lg text-white'>
                     {avatar?.avatarUrl
