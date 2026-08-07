@@ -2453,6 +2453,8 @@
   "{{action}} was canceled or no user data was found.": "{{action}} was canceled or no user data was found.",
   "1 person": "1 person",
   "{{count}}+ people": "{{count}}+ people",
+  "Zoom in": "Zoom in",
+  "Zoom out": "Zoom out",
   "{{appName}} is asking to have offline access to Hylo": "{{appName}} is asking to have offline access to Hylo",
   "{{appName}} is asking you to confirm previously given authorization": "{{appName}} is asking you to confirm previously given authorization",
   "{{appName}} wants access to your Hylo account": "{{appName}} wants access to your Hylo account",

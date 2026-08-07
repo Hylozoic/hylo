@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { Maximize2, Minimize2, Users } from 'lucide-react'
+import { Maximize2, Minimize2, Minus, Plus, Users } from 'lucide-react'
 import { personUrl } from '@hylo/navigation'
 import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
@@ -38,7 +38,7 @@ export default function MemberSkillsGraph ({ members, loading, slug, onSkillClic
 
   useEffect(() => {
     if (graphInstanceRef.current) {
-      graphInstanceRef.current()
+      graphInstanceRef.current.destroy()
       graphInstanceRef.current = null
     }
 
@@ -56,8 +56,7 @@ export default function MemberSkillsGraph ({ members, loading, slug, onSkillClic
         while (el.firstChild) {
           el.removeChild(el.firstChild)
         }
-        const { destroy } = runSkillsGraph(el, nodes, links, { onSkillClick, onPersonClick: handlePersonClick })
-        graphInstanceRef.current = destroy
+        graphInstanceRef.current = runSkillsGraph(el, nodes, links, { onSkillClick, onPersonClick: handlePersonClick, freeWheelZoom: expanded })
         setBuilding(false)
       })
     })
@@ -67,7 +66,7 @@ export default function MemberSkillsGraph ({ members, loading, slug, onSkillClic
       window.cancelAnimationFrame(raf1)
       if (raf2) window.cancelAnimationFrame(raf2)
       if (graphInstanceRef.current) {
-        graphInstanceRef.current()
+        graphInstanceRef.current.destroy()
         graphInstanceRef.current = null
       }
     }
@@ -146,12 +145,35 @@ export default function MemberSkillsGraph ({ members, loading, slug, onSkillClic
       >
         <div
           ref={containerRef}
-          className='w-full h-full bg-card bg-[url("/network-map-bg.png")] bg-no-repeat bg-cover rounded-b-xl shadow-2xl'
+          className='w-full h-full bg-card bg-[url("/network-map-bg.png")] bg-no-repeat bg-cover rounded-b-xl overflow-hidden shadow-2xl'
         />
         {(loading || building) && (
           <div className='absolute inset-0 flex flex-col items-center justify-center gap-1 rounded-b-xl bg-card'>
             <Loading type='inline' />
             <span className='text-sm text-foreground/60'>{t('Loading skills map')}</span>
+          </div>
+        )}
+        {!loading && !building && (
+          <div className='absolute bottom-3 right-3 flex flex-col rounded-lg border-2 border-foreground/20 bg-card/90 backdrop-blur overflow-hidden'>
+            <button
+              type='button'
+              onClick={() => graphInstanceRef.current?.zoomBy(1.4)}
+              aria-label={t('Zoom in')}
+              title={t('Zoom in')}
+              className='p-2 text-foreground/70 transition-colors hover:text-foreground hover:bg-foreground/5'
+            >
+              <Plus className='w-4 h-4' />
+            </button>
+            <div className='h-px bg-foreground/20' />
+            <button
+              type='button'
+              onClick={() => graphInstanceRef.current?.zoomBy(1 / 1.4)}
+              aria-label={t('Zoom out')}
+              title={t('Zoom out')}
+              className='p-2 text-foreground/70 transition-colors hover:text-foreground hover:bg-foreground/5'
+            >
+              <Minus className='w-4 h-4' />
+            </button>
           </div>
         )}
       </div>

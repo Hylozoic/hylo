@@ -6,7 +6,7 @@ const EDGE_PADDING = 30
 // Canvas 2D renderer: one DOM element no matter how many nodes, so huge
 // groups stay fluid. The physics is plain d3-force; the canvas transform
 // provides pan/zoom; a quadtree provides hover/click hit-testing.
-export function runSkillsGraph (container, nodesData, linksData, { onSkillClick, onPersonClick } = {}) {
+export function runSkillsGraph (container, nodesData, linksData, { onSkillClick, onPersonClick, freeWheelZoom = false } = {}) {
   const links = linksData.map(d => Object.assign({}, d))
   const nodes = nodesData.map(d => Object.assign({}, d))
 
@@ -226,13 +226,22 @@ export function runSkillsGraph (container, nodesData, linksData, { onSkillClick,
 
   simulation.on('tick', ticked)
 
+  const ticksUntilAlpha = (targetAlpha) =>
+    Math.ceil(Math.log(targetAlpha) / Math.log(1 - simulation.alphaDecay()))
+
   if (isLarge) {
     // Settle the layout synchronously and paint once — animating every
     // frame at this node count is what chokes the page
     simulation.stop()
-    const settleTicks = Math.ceil(Math.log(simulation.alphaMin()) / Math.log(1 - simulation.alphaDecay()))
-    simulation.tick(settleTicks)
+    simulation.tick(ticksUntilAlpha(simulation.alphaMin()))
     clampToWorld()
+  } else {
+    // Skip the turbulent opening of the simulation off-screen and animate
+    // only the final gentle easing into place
+    simulation.stop()
+    simulation.tick(ticksUntilAlpha(0.12))
+    clampToWorld()
+    simulation.restart()
   }
   rebuildQuadtree()
   simulation.on('end', rebuildQuadtree)
@@ -240,6 +249,15 @@ export function runSkillsGraph (container, nodesData, linksData, { onSkillClick,
 
   const zoom = d3.zoom()
     .scaleExtent([Math.min(0.9, 0.9 / worldScale), 4])
+    // Inline, plain wheel keeps scrolling the page — zoom needs ctrl/cmd
+    // (trackpad pinch sends ctrlKey, so pinch-to-zoom still works).
+    // Fullscreen frees the wheel since there's no page behind to scroll.
+    .filter(event => {
+      if (event.type === 'wheel') {
+        return freeWheelZoom || event.ctrlKey || event.metaKey
+      }
+      return !event.button
+    })
     .on('zoom', (event) => {
       transform = event.transform
       scheduleDraw()
@@ -293,6 +311,9 @@ export function runSkillsGraph (container, nodesData, linksData, { onSkillClick,
   }
 
   return {
+    zoomBy: (factor) => {
+      d3.select(canvas).transition().duration(200).call(zoom.scaleBy, factor)
+    },
     destroy: () => {
       destroyed = true
       if (raf) window.cancelAnimationFrame(raf)
