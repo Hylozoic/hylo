@@ -318,7 +318,19 @@ export default function makeModels (userId, isAdmin, apiClient) {
           if (!gr || !userId) return false
           const requiredScope = createGroupRoleScope(gr.get('id'), gr.get('group_id'))
           return UserScope.canAccess(userId, requiredScope)
-        }
+        },
+        // Active group members holding this role — mirrors the members-page
+        // groupRoleId filter (same join table) plus the active-membership check
+        membersTotal: gr =>
+          bookshelf.knex('group_memberships_group_roles as mgr')
+            .join('group_memberships as gm', function () {
+              this.on('gm.user_id', 'mgr.user_id').andOn('gm.group_id', 'mgr.group_id')
+            })
+            .where('mgr.group_role_id', gr.id)
+            .where('gm.active', true)
+            .countDistinct('mgr.user_id as total')
+            .first()
+            .then(row => Number(row?.total || 0))
       }
     },
 

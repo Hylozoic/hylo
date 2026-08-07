@@ -268,13 +268,13 @@ function Members (props) {
           </div>
           {filterableRoles.length > 0 && (
             <div ref={roleClamp.containerRef} className='flex flex-wrap items-center gap-1.5'>
-              <RolePill active={!groupRoleId} onClick={() => changeRoleFilter(null)}>
-                {t('All members')}{memberCount ? ` (${memberCount})` : ''}
+              <RolePill active={!groupRoleId} count={memberCount || null} onClick={() => changeRoleFilter(null)}>
+                {t('All members')}
               </RolePill>
               {filterableRoles.slice(0, Math.max(0, roleClamp.visibleCount - 1)).map(role => {
                 const active = String(role.id) === String(groupRoleId)
                 return (
-                  <RolePill key={role.id} active={active} onClick={() => changeRoleFilter(active ? null : role.id)}>
+                  <RolePill key={role.id} active={active} count={role.membersTotal ?? null} onClick={() => changeRoleFilter(active ? null : role.id)}>
                     {roleLabel(role)}
                   </RolePill>
                 )
@@ -359,19 +359,29 @@ function MembersListSkeleton () {
 }
 
 /** Role-filter chip: emoji + name pill, highlighted while its filter is on. */
-function RolePill ({ active, onClick, children }) {
+function RolePill ({ active, onClick, count, children }) {
   return (
     <button
       type='button'
       onClick={onClick}
       className={cn(
-        'rounded-full border-2 px-2.5 py-0.5 text-xs font-medium whitespace-nowrap transition-colors',
+        'inline-flex items-center rounded-full border-2 px-2.5 py-0.5 text-xs font-medium whitespace-nowrap transition-colors',
         active
           ? 'bg-selected border-selected text-foreground'
           : 'border-foreground/20 text-foreground/60 hover:text-foreground hover:border-foreground/40'
       )}
     >
       {children}
+      {count != null && (
+        <span
+          className={cn(
+            'ml-1.5 inline-grid place-items-center min-w-[18px] px-1 py-px rounded-full text-[10px] font-bold tabular-nums',
+            active ? 'bg-background/60 text-foreground' : 'bg-foreground/10 text-foreground/60'
+          )}
+        >
+          {count}
+        </span>
+      )}
     </button>
   )
 }
