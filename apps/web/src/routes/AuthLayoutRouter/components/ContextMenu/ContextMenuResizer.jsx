@@ -5,7 +5,7 @@ import { cn } from 'util/index'
 const STORAGE_KEY = 'hyloContextMenuWidth'
 // The menu's regular sm+ width is the floor — dragging can only widen it
 const MIN_WIDTH = 300
-const MAX_WIDTH = 500
+const MAX_WIDTH = 600
 
 const readSavedWidth = () => {
   const saved = parseInt(window.localStorage.getItem(STORAGE_KEY), 10)
@@ -19,7 +19,7 @@ const readSavedWidth = () => {
  * border, from the top of the viewport to the bottom. Hovering surfaces a wash
  * and a 2px dashed line with a grab cursor. Dragging rewrites the
  * --context-menu-width variable the menu's width class reads, clamped to
- * 300–500px, and the choice persists in localStorage.
+ * 300–600px, and the choice persists in localStorage.
  */
 export default function ContextMenuResizer ({ menuEl }) {
   const { t } = useTranslation()
