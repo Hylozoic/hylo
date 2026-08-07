@@ -128,7 +128,9 @@ export default function SpaceAboutModal ({ onClose }) {
                       )
                     // No banner: the same repeating icon texture the space wears in the
                     // menu and cards, so the modal is recognisably that space's surface
-                    : <MenuRowBackground view={presentedSpaceView} bannerUrl={null} glyphCount={280} />}
+                    // Two rows beyond full coverage: the -8° tilt lifts each row's
+                    // right end, draining the bottom-right corner first
+                    : <MenuRowBackground view={presentedSpaceView} bannerUrl={null} glyphCount={360} />}
 
                   <div className='relative z-10 w-[84px] h-[84px] rounded-[22px] grid place-items-center overflow-hidden bg-background/20 backdrop-blur-sm border border-white/25 shadow-lg text-white'>
                     {avatar?.avatarUrl
