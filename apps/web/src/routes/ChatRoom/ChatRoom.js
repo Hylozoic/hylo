@@ -820,7 +820,7 @@ export default function ChatRoom (props) {
             aria-orientation='vertical'
             aria-label={t('Adjust chat width')}
             className={cn(
-              'absolute top-14 bottom-2 z-20 w-[30px] -translate-x-1/2 flex flex-col items-center justify-between py-1 group touch-none select-none',
+              'absolute top-0 bottom-0 z-20 w-[30px] -translate-x-1/2 flex flex-col items-center justify-between group touch-none select-none',
               resizingChatWidth ? 'cursor-grabbing' : 'cursor-grab'
             )}
             style={{ left: 4 + CHAT_GUTTER + effectiveChatWidth }}
@@ -835,18 +835,18 @@ export default function ChatRoom (props) {
             )}
             />
             <div className={cn(
-              'absolute top-4 bottom-4 left-1/2 -ml-px border-l-2 border-dashed transition-colors',
+              'absolute top-[9px] bottom-[9px] left-1/2 -ml-px border-l-2 border-dashed transition-colors',
               resizingChatWidth ? 'border-foreground/40' : 'border-transparent group-hover:border-foreground/40'
             )}
             />
             <div className={cn(
-              'relative w-0 h-0 border-y-4 border-y-transparent border-r-[6px] transition-colors',
-              resizingChatWidth ? 'border-r-foreground/60' : 'border-r-foreground/30 group-hover:border-r-foreground/60'
+              'relative w-0 h-0 border-x-4 border-x-transparent border-t-[6px] transition-colors',
+              resizingChatWidth ? 'border-t-foreground/60' : 'border-t-foreground/30 group-hover:border-t-foreground/60'
             )}
             />
             <div className={cn(
-              'relative w-0 h-0 border-y-4 border-y-transparent border-r-[6px] transition-colors',
-              resizingChatWidth ? 'border-r-foreground/60' : 'border-r-foreground/30 group-hover:border-r-foreground/60'
+              'relative w-0 h-0 border-x-4 border-x-transparent border-b-[6px] transition-colors',
+              resizingChatWidth ? 'border-b-foreground/60' : 'border-b-foreground/30 group-hover:border-b-foreground/60'
             )}
             />
           </div>
