@@ -808,7 +808,7 @@ export default function ContextMenu (props) {
         <div className='absolute inset-0 bg-gradient-to-b from-context-menu-background to-theme-background/10 dark:to-theme-background/40 z-0 pointer-events-none' />
         <div className='ContextDetails w-full z-20 relative shrink-0'>
           {isGroupContext
-            ? <GroupMenuHeader group={group} />
+            ? <GroupMenuHeader group={group} compact={Boolean(activeSpaceView)} />
             : isPublicContext
               ? (
                 <div className='TheCommonsHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md'>

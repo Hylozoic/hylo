@@ -9,11 +9,17 @@ import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import { RESP_ADMINISTRATION } from 'store/constants'
 import { DEFAULT_BANNER, DEFAULT_AVATAR } from 'store/models/Group'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
-import { bgImageStyle } from 'util/index'
+import { bgImageStyle, cn } from 'util/index'
 import { groupUrl } from '@hylo/navigation'
 
+/**
+ * compact: a space's menu has taken over the context menu — the header ducks to
+ * ViewHeader's height, the avatar shrinks, and the controls (members, invite,
+ * about, settings, notifications) fade out. Everything transitions.
+ */
 export default function GroupMenuHeader ({
-  group
+  group,
+  compact = false
 }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -83,15 +89,24 @@ export default function GroupMenuHeader ({
     return () => clearTimeout(timer)
   }, [group.id])
 
+  // Controls share one fade so compact mode dismisses them in a single motion
+  const controlFade = cn('transition-opacity duration-300', compact && 'opacity-0 pointer-events-none')
+
   return (
-    <div className='GroupMenuHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md' data-testid='group-header'>
+    <div
+      className={cn(
+        'GroupMenuHeader relative flex flex-col justify-end p-2 bg-cover shadow-md transition-[height] duration-300 ease-out',
+        compact ? 'h-12' : 'h-[190px]'
+      )}
+      data-testid='group-header'
+    >
       <div className='absolute z-10 inset-0 bg-cover bg-center' style={{ ...bgImageStyle(bannerUrl), opacity: 0.5 }} />
       <div className='absolute top-0 left-0 w-full h-full bg-darkening z-0 opacity-80' />
-      <div className='absolute top-2 left-2 z-20'>
+      <div className={cn('absolute top-2 left-2 z-20', controlFade)}>
         <GroupNotificationsPopover group={group} />
       </div>
       {canAdminister && (
-        <div className='absolute top-2 right-2 z-20'>
+        <div className={cn('absolute top-2 right-2 z-20', controlFade)}>
           <button onClick={() => navigateAndClose(groupUrl(group.slug, 'settings', {}))}>
             <Settings className='w-6 h-6 text-white drop-shadow-md hover:scale-110 transition-all' />
           </button>
@@ -100,7 +115,11 @@ export default function GroupMenuHeader ({
       <div className='relative flex flex-row items-center text-background z-20'>
         <div
           style={group.avatarUrl !== DEFAULT_AVATAR ? bgImageStyle(avatarUrl) : {}}
-          className={`rounded-lg h-10 w-10 mr-2 shadow-md bg-cover bg-center relative overflow-hidden ${group.avatarUrl === DEFAULT_AVATAR ? 'bg-darkening' : ''}`}
+          className={cn(
+            'rounded-lg mr-2 shadow-md bg-cover bg-center relative overflow-hidden shrink-0 transition-all duration-300',
+            compact ? 'h-7 w-7' : 'h-10 w-10',
+            group.avatarUrl === DEFAULT_AVATAR && 'bg-darkening'
+          )}
         >
           {group.avatarUrl === DEFAULT_AVATAR && (
             <>
@@ -110,7 +129,7 @@ export default function GroupMenuHeader ({
                   background: 'linear-gradient(to bottom right, hsl(var(--focus)), hsl(var(--selected)))'
                 }}
               />
-              <span className='relative z-10 text-white text-xl flex items-center justify-center uppercase h-full drop-shadow-md'>
+              <span className={cn('relative z-10 text-white flex items-center justify-center uppercase h-full drop-shadow-md transition-all duration-300', compact ? 'text-sm' : 'text-xl')}>
                 {group.name.split(/\s+/).length > 1
                   ? `${group.name.split(/\s+/)[0].charAt(0)}${group.name.split(/\s+/)[1].charAt(0)}`
                   : group.name.charAt(0)}
@@ -120,22 +139,41 @@ export default function GroupMenuHeader ({
         </div>
         <div className={`flex flex-col flex-1 text-${textColor} drop-shadow-md overflow-hidden`}>
           <div className='flex items-center'>
-            <h1 ref={groupNameRef} className='GroupMenuHeaderName text-xl/5 font-bold m-0 text-white line-clamp-2'>
+            <h1
+              ref={groupNameRef}
+              className={cn(
+                'GroupMenuHeaderName font-bold m-0 text-white transition-all duration-300',
+                compact ? 'text-base/5 line-clamp-1' : 'text-xl/5 line-clamp-2'
+              )}
+            >
               {group.name}
             </h1>
           </div>
-          {showMembers && (
-            <span className='group text-xs align-middle text-white flex items-center gap-1'>
-              <Users className='w-4 h-4 inline align-bottom' />
-              <Link className='text-white underline' to={groupUrl(group.slug, 'members', {})} onClick={() => dispatch(toggleNavMenu(false))}>{t('{{count}} Members', { count: group.memberCount })}</Link>
-              <InviteMembersPopover
-                group={group}
-                triggerClassName='text-white hover:text-white'
-              />
-            </span>
-          )}
+          {/* Kept mounted so compact mode can collapse it smoothly rather than pop it out */}
+          <span
+            className={cn(
+              'group text-xs align-middle text-white flex items-center gap-1 overflow-hidden transition-all duration-300',
+              (compact || !showMembers) ? 'opacity-0 max-h-0 pointer-events-none' : 'opacity-100 max-h-7 mt-1'
+            )}
+          >
+            <Link
+              className='inline-flex items-center gap-1 rounded-full bg-white/15 border border-white/25 px-2 py-0.5 text-white hover:bg-white/25 hover:text-white no-underline hover:no-underline transition-colors'
+              to={groupUrl(group.slug, 'members', {})}
+              onClick={() => dispatch(toggleNavMenu(false))}
+            >
+              <Users className='w-3.5 h-3.5' />
+              {t('{{count}} Members', { count: group.memberCount })}
+            </Link>
+            <InviteMembersPopover
+              group={group}
+              triggerClassName='text-white hover:text-white'
+            />
+          </span>
         </div>
-        <Info className={`text-${textColor} cursor-pointer w-[20px] h-[20px] text-white hover:scale-110 transition-all`} onClick={() => navigateAndClose(groupUrl(group.slug, 'about', {}))} />
+        <Info
+          className={cn(`text-${textColor} cursor-pointer w-[20px] h-[20px] text-white hover:scale-110 transition-all`, controlFade)}
+          onClick={() => navigateAndClose(groupUrl(group.slug, 'about', {}))}
+        />
       </div>
     </div>
   )
