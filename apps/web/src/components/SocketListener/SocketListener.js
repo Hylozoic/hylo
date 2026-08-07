@@ -3,20 +3,23 @@ import { useEffect, useMemo, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useLocation } from 'react-router-dom'
 import { getSocket, socketUrl } from 'client/websockets.js'
-import rollbar from 'client/rollbar'
+import errorReporter from 'client/errorReporter'
 import useRouteParams from 'hooks/useRouteParams'
 import {
   receiveThread,
   receiveMessage,
+  receiveMessageUpdated,
   receiveComment,
   receiveNotification,
   receivePost
 } from './SocketListener.store'
-import fetchForGroup from 'store/actions/fetchForGroup'
+import fetchGroupViews from 'store/actions/fetchGroupViews'
+import getMe from 'store/selectors/getMe'
 import {
   addUserTyping,
   clearUserTyping
 } from 'components/PeopleTyping/PeopleTyping.store'
+import { addMemberPresent, removeMemberPresent, setRoomPresence } from 'routes/ChatRoom/RoomPresence.store'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 
 const SocketListener = (props) => {
@@ -25,6 +28,7 @@ const SocketListener = (props) => {
   const locationRef = useRef(location)
   const routeParams = useRouteParams()
   const group = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
+  const currentUser = useSelector(getMe)
 
   // Need to keep the location up to date without causing handlers to rerender and us to reconnect to the sockets on every location change
   useEffect(() => {
@@ -33,8 +37,11 @@ const SocketListener = (props) => {
 
   const handlers = useMemo(() => ({
     commentAdded: data => dispatch(receiveComment(data)),
-    groupUpdated: () => {
-      if (group?.slug) dispatch(fetchForGroup(group.slug))
+    groupUpdated: (data) => {
+      if (!group?.id) return
+      if (data?.groupId && String(data.groupId) !== String(group.id)) return
+      if (data?.updatedByUserId && String(data.updatedByUserId) === String(currentUser?.id)) return
+      dispatch(fetchGroupViews(group.id))
     },
     messageAdded: (data) => {
       const message = convertToMessage(data)
@@ -43,22 +50,40 @@ const SocketListener = (props) => {
         isMuted: data.isMuted
       }))
     },
+    messageUpdated: data => dispatch(receiveMessageUpdated(convertToMessage(data))),
     newNotification: data => dispatch(receiveNotification(data)),
-    newPost: data => dispatch(receivePost(data, group.id)),
+    // Use the post's group from the socket payload — not the currently viewed group.
+    // Space posts arrive on the space room while the parent menu may still be open.
+    newPost: data => {
+      const postGroupId = data?.groups?.[0]?.id
+      if (!postGroupId) return
+      dispatch(receivePost(data, postGroupId))
+    },
     newThread: data => dispatch(receiveThread(convertToThread(data))),
     userTyping: ({ userId, userName, isTyping }) => {
       isTyping ? dispatch(addUserTyping(userId, userName)) : dispatch(clearUserTyping(userId))
-    }
-  }), [group?.id, group?.slug])
+    },
+    // Live room rosters (see RoomPresence.store)
+    roomPresence: ({ groupId, members }) => dispatch(setRoomPresence(groupId, members)),
+    memberPresent: ({ groupId, member }) => dispatch(addMemberPresent(groupId, member)),
+    memberAway: ({ groupId, userId }) => dispatch(removeMemberPresent(groupId, userId))
+  }), [currentUser?.id, dispatch, group?.id])
 
   useEffect(() => {
     const socket = getSocket()
+    // Re-subscribe the user room on every (re)connection — after a server
+    // restart the socket comes back but its room memberships do not
+    const resubscribe = () => reconnect(socket)
     reconnect(socket)
+    socket.on('connect', resubscribe)
+    socket.on('reconnect', resubscribe)
 
     Object.keys(handlers).forEach(socketEvent =>
       socket.on(socketEvent, handlers[socketEvent]))
 
     return () => {
+      socket.off('connect', resubscribe)
+      socket.off('reconnect', resubscribe)
       socket.post(socketUrl('/noo/user/unsubscribe'))
       Object.keys(handlers).forEach(socketEvent =>
         socket.off(socketEvent, handlers[socketEvent]))
@@ -72,7 +97,7 @@ const SocketListener = (props) => {
 
     socket.post(socketUrl('/noo/user/subscribe'), (body, jwr) => {
       if (!isEqual(body, {})) {
-        rollbar.error(`Failed to connect SocketListener: ${body}`)
+        errorReporter.error(`Failed to connect SocketListener: ${body}`)
       }
     })
   }
@@ -115,14 +140,16 @@ function convertToMessage (data) {
   if (data.createdAt) {
     return {
       ...data,
-      createdAt: new Date(data.createdAt).toString()
+      createdAt: new Date(data.createdAt).toString(),
+      editedAt: data.editedAt ? new Date(data.editedAt).toString() : undefined
     }
   }
 
-  const { message: { id, created_at: createdAt, text, user_id: userId }, postId } = data
+  const { message: { id, created_at: createdAt, edited_at: editedAt, text, user_id: userId }, postId } = data
   return {
     id,
     createdAt: new Date(createdAt).toString(),
+    editedAt: editedAt ? new Date(editedAt).toString() : undefined,
     text,
     creator: userId,
     messageThread: postId

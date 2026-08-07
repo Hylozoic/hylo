@@ -35,10 +35,16 @@ async function expectGroupWorkspaceShell (page, urlPattern) {
 }
 
 test.describe('Batch D: group workspace', () => {
-  test('GET …/stream loads group stream', async ({ page }) => {
+  test('GET …/stream redirects to group all view', async ({ page }) => {
     await page.goto(groupPublic('/stream'))
     await waitPastRootSessionLoading(page)
-    await expectGroupWorkspaceShell(page, new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/stream`))
+    await expectGroupWorkspaceShell(page, new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/all`))
+  })
+
+  test('GET …/all loads group all view', async ({ page }) => {
+    await page.goto(groupPublic('/all'))
+    await waitPastRootSessionLoading(page)
+    await expectGroupWorkspaceShell(page, new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/all`))
   })
 
   test('GET …/about loads group about', async ({ page }) => {
@@ -119,22 +125,17 @@ test.describe('Batch D: group workspace', () => {
     await expectGroupWorkspaceShell(page, new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/groups`))
   })
 
-  test('GET …/all-views loads all views', async ({ page }) => {
+  test('GET …/all-views redirects away from removed All Views page', async ({ page }) => {
     await page.goto(groupPublic('/all-views'))
     await waitPastRootSessionLoading(page)
-    await expectGroupWorkspaceShell(page, new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/all-views`))
+    await expect(page).not.toHaveURL(new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/all-views/?$`), navTimeout)
+    await expectGroupWorkspaceShell(page, new RegExp(`/groups/${PUBLIC_GROUP_SLUG}`))
   })
 
   test('GET …/tracks loads tracks list', async ({ page }) => {
     await page.goto(groupPublic('/tracks'))
     await waitPastRootSessionLoading(page)
     await expectGroupWorkspaceShell(page, new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/tracks`))
-  })
-
-  test('GET …/funding-rounds loads funding rounds list', async ({ page }) => {
-    await page.goto(groupPublic('/funding-rounds'))
-    await waitPastRootSessionLoading(page)
-    await expectGroupWorkspaceShell(page, new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/funding-rounds`))
   })
 
   test('GET …/chat/:topic opens chat room', async ({ page }) => {
@@ -151,10 +152,10 @@ test.describe('Batch D: group workspace', () => {
     await expect(page).toHaveTitle(/E2E|Hylo/i, uiTimeout)
   })
 
-  test('GET …/stream on private seeded group loads', async ({ page }) => {
+  test('GET …/stream on private seeded group redirects to all', async ({ page }) => {
     await page.goto(groupPrivate('/stream'))
     await waitPastRootSessionLoading(page)
-    await expect(page).toHaveURL(new RegExp(`/groups/${PRIVATE_GROUP_SLUG}/stream`), navTimeout)
+    await expect(page).toHaveURL(new RegExp(`/groups/${PRIVATE_GROUP_SLUG}/all`), navTimeout)
     await expect(page.locator('#center-column')).toBeVisible(uiTimeout)
     await expect(page).toHaveTitle(/E2E|Hylo/i, uiTimeout)
   })

@@ -1,5 +1,6 @@
 import { CREATE_POST } from 'store/constants'
 import CommentFieldsFragment from '@graphql/fragments/CommentFieldsFragment'
+import { syncFundingRoundEmbeddedData } from 'store/util/groupViewsOrder'
 
 export const MODULE_NAME = 'FundingRounds'
 export const ALLOCATE_TOKENS_TO_SUBMISSION = `${MODULE_NAME}/ALLOCATE_TOKENS_TO_SUBMISSION`
@@ -135,7 +136,6 @@ export function fetchFundingRound (id) {
           createdAt
           criteria
           description
-          group { id name slug }
           hideFinalResultsFromParticipants
           isParticipating
           joinedAt
@@ -168,7 +168,18 @@ export function fetchFundingRound (id) {
           }
           votingMethod,
           votingClosesAt,
-          votingOpensAt
+          votingOpensAt,
+          group {
+            id
+            name
+            slug
+            homeRoute
+            memberCount
+            parentGroup {
+              id
+              slug
+            }
+          }
         }
       }`,
       variables: { id }
@@ -324,6 +335,7 @@ export function updateFundingRound (data) {
           updateFundingRound(id: $id, data: $data) {
             id
             phase
+            tokensRemaining
           }
         }
       `,
@@ -335,7 +347,8 @@ export function updateFundingRound (data) {
     meta: {
       id,
       data: rest,
-      optimistic: true
+      optimistic: true,
+      extractModel: 'FundingRound'
     }
   }
 }
@@ -488,9 +501,11 @@ export function allocateTokensToSubmission (postId, tokens, fundingRoundId) {
 }
 
 export function ormSessionReducer (
-  { Post, FundingRound, Role, session },
+  session,
   { type, meta, payload }
 ) {
+  const { Post, FundingRound, Role } = session
+
   switch (type) {
     case CREATE_POST: {
       if (!meta.fundingRoundId || !payload.data.createPost) return
@@ -534,7 +549,7 @@ export function ormSessionReducer (
     case UPDATE_FUNDING_ROUND_PENDING: {
       const round = FundingRound.safeGet({ id: meta.id })
       if (!round) return
-      const data = meta.data
+      const data = { ...meta.data }
       if (data.submitterRoles) {
         data.submitterRoles = data.submitterRoles.map(roleData => {
           let role = Role.withId(roleData?.id)
@@ -553,7 +568,21 @@ export function ormSessionReducer (
           return role.id
         })
       }
-      return round.update(data)
+      round.update(data)
+      // Menus read unit terms from nested linkedGroup.fundingRound blobs, not FundingRound models
+      syncFundingRoundEmbeddedData(session, meta.id, {
+        submissionDescriptor: data.submissionDescriptor,
+        submissionDescriptorPlural: data.submissionDescriptorPlural,
+        publishedAt: data.publishedAt,
+        title: data.title,
+        tokenType: data.tokenType,
+        votingMethod: data.votingMethod,
+        submissionsOpenAt: data.submissionsOpenAt,
+        submissionsCloseAt: data.submissionsCloseAt,
+        votingOpensAt: data.votingOpensAt,
+        votingClosesAt: data.votingClosesAt
+      })
+      return round
     }
 
     case ALLOCATE_TOKENS_TO_SUBMISSION_PENDING: {

@@ -147,7 +147,7 @@ describe('Group', function () {
       expect(results.length).to.equal(2)
 
       await gm1.refresh()
-      expect(gm1.get('settings')).to.deep.equal({ here: true, there: true, joinQuestionsAnsweredAt: null, showJoinForm: true })
+      expect(gm1.get('settings')).to.deep.equal({ here: true, there: true, agreementsAcceptedAt: null, joinQuestionsAnsweredAt: null, showJoinForm: true })
       expect(await GroupMembership.hasResponsibility(u1.id, group, Responsibility.constants.RESP_ADMINISTRATION)).to.be.true
 
       const gm2 = await group.memberships()
@@ -166,6 +166,94 @@ describe('Group', function () {
       await group.removeMembers(await group.members().fetch())
       const postRemoveMembers = await group.members().fetch()
       expect(postRemoveMembers.length).to.equal(0)
+    })
+
+    it('revokes roles, agreement state, and nav pin', async function() {
+      const group = await factories.group().save()
+      const user = await factories.user().save()
+      await user.joinGroup(group)
+      await GroupRole.setupSystemRoles(group.id)
+      const hostRole = await GroupRole.findSystemRole(group.id, 'Host')
+      await MemberGroupRole.forge({
+        user_id: user.id,
+        group_id: group.id,
+        group_role_id: hostRole.id,
+        active: true
+      }).save()
+
+      const membership = await GroupMembership.forPair(user, group).fetch()
+      membership.addSetting({ agreementsAcceptedAt: new Date().toISOString() })
+      await membership.save({ nav_order: 2 })
+
+      await group.removeMembers([user.id])
+
+      const roles = await MemberGroupRole.where({ user_id: user.id, group_id: group.id }).fetchAll()
+      expect(roles.length).to.equal(0)
+
+      const inactiveMembership = await GroupMembership.forPair(user, group, { includeInactive: true }).fetch()
+      expect(inactiveMembership.get('active')).to.be.false
+      expect(inactiveMembership.getSetting('agreementsAcceptedAt')).to.be.null
+      expect(inactiveMembership.get('nav_order')).to.be.null
+      expect(await GroupMembership.hasResponsibility(user.id, group, Responsibility.constants.RESP_ADD_MEMBERS)).to.be.false
+    })
+
+    it('deactivates memberships in child spaces when removed from parent group', async function() {
+      const group = await factories.group().save()
+      const space = await factories.group({
+        type: 'space',
+        parent_id: group.id,
+        slug: `space-remove-${Date.now()}`
+      }).save()
+      const user = await factories.user().save()
+      const otherUser = await factories.user().save()
+
+      await group.addMembers([user.id, otherUser.id])
+      await space.addMembers([user.id])
+
+      await group.removeMembers([user.id])
+
+      const parentMembership = await GroupMembership.forPair(user, group, { includeInactive: true }).fetch()
+      expect(parentMembership.get('active')).to.be.false
+
+      const spaceMembership = await GroupMembership.forPair(user, space, { includeInactive: true }).fetch()
+      expect(spaceMembership.get('active')).to.be.false
+      expect(spaceMembership.getSetting('showJoinForm')).to.equal(true)
+      expect(spaceMembership.getSetting('joinQuestionsAnsweredAt')).to.be.null
+
+      const otherSpaceMembership = await GroupMembership.forPair(otherUser, space).fetch()
+      expect(otherSpaceMembership).to.not.exist
+    })
+
+    it('does not deactivate parent membership when leaving a space only', async function() {
+      const group = await factories.group().save()
+      const space = await factories.group({
+        type: 'space',
+        parent_id: group.id,
+        slug: `space-leave-${Date.now()}`
+      }).save()
+      const user = await factories.user().save()
+
+      await group.addMembers([user.id])
+      await space.addMembers([user.id])
+      await GroupRole.setupSystemRoles(group.id)
+      const hostRole = await GroupRole.findSystemRole(group.id, 'Host')
+      await MemberGroupRole.forge({
+        user_id: user.id,
+        group_id: group.id,
+        group_role_id: hostRole.id,
+        active: true
+      }).save()
+
+      await space.removeMembers([user.id])
+
+      const parentMembership = await GroupMembership.forPair(user, group).fetch()
+      expect(parentMembership.get('active')).to.be.true
+
+      const spaceMembership = await GroupMembership.forPair(user, space, { includeInactive: true }).fetch()
+      expect(spaceMembership.get('active')).to.be.false
+
+      const roles = await MemberGroupRole.where({ user_id: user.id, group_id: group.id }).fetchAll()
+      expect(roles.length).to.equal(1)
     })
   })
 
@@ -198,79 +286,6 @@ describe('Group', function () {
         on "posts"."id" = "groups_posts"."group_id"
         where "groups_posts"."group_id" in
         ${myGroupIdsSqlFragment('42')}`)
-    })
-  })
-
-  describe('.doesMenuUpdate', function () {
-    let group1, group2, post, customView
-
-    before(async function () {
-      // Create test groups
-      group1 = await factories.group().save()
-      group2 = await factories.group().save()
-
-      // Create project post
-      post = await factories.post().save({
-        type: 'project',
-        name: 'Test Project'
-      })
-
-      // Create custom view
-      customView = await factories.customView().save({
-        group_id: group1.id,
-        order: 1
-      })
-
-      // Setup initial context widgets for both groups
-      await group1.setupContextWidgets()
-      await group2.setupContextWidgets()
-    })
-
-    it('updates groups widget order when groups are related', async function () {
-      // Initial check
-      const initialWidgets = await ContextWidget.where({ group_id: group1.id }).fetchAll()
-      const groupsWidget = initialWidgets.find(w => w.get('view') === 'groups')
-      expect(groupsWidget.get('order')).to.be.null
-
-      // Perform update
-      await Group.doesMenuUpdate({ groupIds: [group1.id, group2.id], groupRelation: true })
-
-      // Check result
-      const updatedWidgets = await ContextWidget.where({ group_id: group1.id }).fetchAll()
-      const updatedGroupsWidget = updatedWidgets.find(w => w.get('view') === 'groups')
-      expect(updatedGroupsWidget.get('order')).to.not.be.null
-    })
-
-    it('updates projects widget order when project post is added', async function () {
-      // Initial check
-      const initialWidgets = await ContextWidget.where({ group_id: group1.id }).fetchAll()
-      const projectsWidget = initialWidgets.find(w => w.get('view') === 'projects')
-      expect(projectsWidget.get('order')).to.be.null
-      console.log('this should be a post', post, 'right?????')
-      // Perform update
-      await Group.doesMenuUpdate({ groupIds: [group1.id], post: { type: post.get('type'), location_id: post.get('location_id') } })
-
-      // Check result
-      const updatedWidgets = await ContextWidget.where({ group_id: group1.id }).fetchAll()
-      const updatedProjectsWidget = updatedWidgets.find(w => w.get('view') === 'projects')
-
-      expect(updatedProjectsWidget.get('order')).to.not.be.null
-    })
-
-    it('creates widget for custom view when added', async function () {
-      // Initial check
-      const initialWidgets = await ContextWidget.where({ group_id: group1.id }).fetchAll()
-      const initialCustomViewWidgets = initialWidgets.filter(w => w.get('custom_view_id'))
-      expect(initialCustomViewWidgets).to.be.empty
-
-      // Perform update
-      await Group.doesMenuUpdate({ groupIds: [group1.id], customView })
-
-      // Check result
-      const updatedWidgets = await ContextWidget.where({ group_id: group1.id }).fetchAll()
-      const customViewWidgets = updatedWidgets.filter(w => w.get('custom_view_id'))
-      expect(customViewWidgets).to.not.be.empty
-      expect(customViewWidgets[0].get('custom_view_id')).to.equal(String(customView.id))
     })
   })
 

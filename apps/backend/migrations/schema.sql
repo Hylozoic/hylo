@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 4hjAA3Sl3pGoB6jiTRLpGMoKZfd9B1XvMZqTNTSKcyYGfnYbcWgDnzvsDUnQHd2
+\restrict tUF07NWBIyBoffLToE0SeitR4QkNiJF7GirKbknzPG6fJr35GuUbD46h1N7i2kX
 
 -- Dumped from database version 17.8 (Postgres.app)
 -- Dumped by pg_dump version 18.2 (Postgres.app)
@@ -474,12 +474,13 @@ ALTER SEQUENCE public.collections_id_seq OWNED BY public.collections.id;
 
 CREATE TABLE public.collections_posts (
     id integer NOT NULL,
-    collection_id bigint NOT NULL,
+    collection_id bigint,
     post_id bigint NOT NULL,
     user_id bigint NOT NULL,
     "order" integer DEFAULT 0,
     created_at timestamp with time zone,
-    updated_at timestamp with time zone
+    updated_at timestamp with time zone,
+    view_id bigint
 );
 
 
@@ -1659,6 +1660,83 @@ ALTER SEQUENCE public.group_to_group_join_request_question_answers_id_seq OWNED 
 
 
 --
+-- Name: group_views; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.group_views (
+    id bigint NOT NULL,
+    group_id bigint NOT NULL,
+    name character varying(255),
+    type character varying(255) NOT NULL,
+    "order" integer,
+    icon character varying(255),
+    page_content text,
+    link text,
+    post_id bigint,
+    user_id bigint,
+    linked_group_id bigint,
+    topics jsonb DEFAULT '[]'::jsonb NOT NULL,
+    settings jsonb,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+--
+-- Name: group_views_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.group_views_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: group_views_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.group_views_id_seq OWNED BY public.group_views.id;
+
+
+--
+-- Name: group_views_users; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.group_views_users (
+    id bigint NOT NULL,
+    view_id bigint NOT NULL,
+    user_id bigint NOT NULL,
+    new_post_count integer DEFAULT 0 NOT NULL,
+    last_read_post_id bigint,
+    settings jsonb,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+--
+-- Name: group_views_users_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.group_views_users_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: group_views_users_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.group_views_users_id_seq OWNED BY public.group_views_users.id;
+
+
+--
 -- Name: group_widgets; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1738,7 +1816,13 @@ CREATE TABLE public.groups (
     paywall boolean DEFAULT false,
     stripe_sales_paused boolean DEFAULT false NOT NULL,
     stripe_sales_paused_at timestamp with time zone,
-    stripe_sales_paused_reason text
+    stripe_sales_paused_reason text,
+    parent_id bigint,
+    accepted_post_types jsonb,
+    required_roles jsonb,
+    icon character varying(255),
+    track_id bigint,
+    funding_round_id bigint
 );
 
 
@@ -3497,7 +3581,8 @@ CREATE TABLE public.tracks (
     num_people_completed integer DEFAULT 0,
     completion_role_id bigint,
     action_descriptor character varying(255),
-    access_controlled boolean DEFAULT false
+    access_controlled boolean DEFAULT false,
+    group_id bigint
 );
 
 
@@ -3536,7 +3621,7 @@ CREATE TABLE public.tracks_posts (
     id integer NOT NULL,
     track_id bigint NOT NULL,
     post_id bigint NOT NULL,
-    sort_order integer,
+    sort_order integer DEFAULT 0,
     created_at timestamp with time zone,
     updated_at timestamp with time zone
 );
@@ -4153,6 +4238,20 @@ ALTER TABLE ONLY public.group_to_group_join_questions ALTER COLUMN id SET DEFAUL
 --
 
 ALTER TABLE ONLY public.group_to_group_join_request_question_answers ALTER COLUMN id SET DEFAULT nextval('public.group_to_group_join_request_question_answers_id_seq'::regclass);
+
+
+--
+-- Name: group_views id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_views ALTER COLUMN id SET DEFAULT nextval('public.group_views_id_seq'::regclass);
+
+
+--
+-- Name: group_views_users id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_views_users ALTER COLUMN id SET DEFAULT nextval('public.group_views_users_id_seq'::regclass);
 
 
 --
@@ -4833,6 +4932,30 @@ ALTER TABLE ONLY public.group_to_group_join_questions
 
 ALTER TABLE ONLY public.group_to_group_join_request_question_answers
     ADD CONSTRAINT group_to_group_join_request_question_answers_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: group_views group_views_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_views
+    ADD CONSTRAINT group_views_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: group_views_users group_views_users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_views_users
+    ADD CONSTRAINT group_views_users_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: group_views_users group_views_users_view_id_user_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_views_users
+    ADD CONSTRAINT group_views_users_view_id_user_id_unique UNIQUE (view_id, user_id);
 
 
 --
@@ -5807,10 +5930,73 @@ CREATE INDEX groups_visibility_active_index ON public.groups USING btree (visibi
 
 
 --
+-- Name: idx_collections_posts_view_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_collections_posts_view_id ON public.collections_posts USING btree (view_id);
+
+
+--
+-- Name: idx_collections_posts_view_post; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_collections_posts_view_post ON public.collections_posts USING btree (view_id, post_id) WHERE (view_id IS NOT NULL);
+
+
+--
 -- Name: idx_fts_search; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_fts_search ON public.search_index USING gin (document);
+
+
+--
+-- Name: idx_group_views_group_order; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_group_views_group_order ON public.group_views USING btree (group_id, "order");
+
+
+--
+-- Name: idx_groups_funding_round_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_groups_funding_round_id ON public.groups USING btree (funding_round_id);
+
+
+--
+-- Name: idx_groups_parent_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_groups_parent_id ON public.groups USING btree (parent_id);
+
+
+--
+-- Name: idx_groups_parent_id_type; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_groups_parent_id_type ON public.groups USING btree (parent_id, type);
+
+
+--
+-- Name: idx_groups_track_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_groups_track_id ON public.groups USING btree (track_id);
+
+
+--
+-- Name: idx_gvu_user_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_gvu_user_id ON public.group_views_users USING btree (user_id);
+
+
+--
+-- Name: idx_gvu_view_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_gvu_view_id ON public.group_views_users USING btree (view_id);
 
 
 --
@@ -5860,6 +6046,13 @@ CREATE UNIQUE INDEX idx_search_index_unique ON public.search_index USING btree (
 --
 
 CREATE INDEX idx_search_index_user_id ON public.search_index USING btree (user_id) WHERE (user_id IS NOT NULL);
+
+
+--
+-- Name: idx_tracks_group_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_tracks_group_id ON public.tracks USING btree (group_id);
 
 
 --
@@ -6063,13 +6256,6 @@ CREATE INDEX subscription_change_events_stripe_subscription_id_index ON public.s
 --
 
 CREATE INDEX subscription_change_events_user_id_group_id_index ON public.subscription_change_events USING btree (user_id, group_id);
-
-
---
--- Name: tracks_posts_track_id_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX tracks_posts_track_id_index ON public.tracks_posts USING btree (track_id);
 
 
 --
@@ -6290,6 +6476,14 @@ ALTER TABLE ONLY public.collections_posts
 
 ALTER TABLE ONLY public.collections_posts
     ADD CONSTRAINT collections_posts_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: collections_posts collections_posts_view_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.collections_posts
+    ADD CONSTRAINT collections_posts_view_id_foreign FOREIGN KEY (view_id) REFERENCES public.group_views(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
 
 
 --
@@ -7021,6 +7215,62 @@ ALTER TABLE ONLY public.group_to_group_join_request_question_answers
 
 
 --
+-- Name: group_views group_views_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_views
+    ADD CONSTRAINT group_views_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: group_views group_views_linked_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_views
+    ADD CONSTRAINT group_views_linked_group_id_foreign FOREIGN KEY (linked_group_id) REFERENCES public.groups(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: group_views group_views_post_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_views
+    ADD CONSTRAINT group_views_post_id_foreign FOREIGN KEY (post_id) REFERENCES public.posts(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: group_views group_views_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_views
+    ADD CONSTRAINT group_views_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: group_views_users group_views_users_last_read_post_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_views_users
+    ADD CONSTRAINT group_views_users_last_read_post_id_foreign FOREIGN KEY (last_read_post_id) REFERENCES public.posts(id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: group_views_users group_views_users_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_views_users
+    ADD CONSTRAINT group_views_users_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: group_views_users group_views_users_view_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_views_users
+    ADD CONSTRAINT group_views_users_view_id_foreign FOREIGN KEY (view_id) REFERENCES public.group_views(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+
+--
 -- Name: group_widgets group_widgets_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -7061,11 +7311,27 @@ ALTER TABLE ONLY public.groups
 
 
 --
+-- Name: groups groups_funding_round_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.groups
+    ADD CONSTRAINT groups_funding_round_id_foreign FOREIGN KEY (funding_round_id) REFERENCES public.funding_rounds(id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED;
+
+
+--
 -- Name: groups groups_location_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.groups
     ADD CONSTRAINT groups_location_id_foreign FOREIGN KEY (location_id) REFERENCES public.locations(id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: groups groups_parent_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.groups
+    ADD CONSTRAINT groups_parent_id_foreign FOREIGN KEY (parent_id) REFERENCES public.groups(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
 
 
 --
@@ -7114,6 +7380,14 @@ ALTER TABLE ONLY public.groups_suggested_skills
 
 ALTER TABLE ONLY public.groups_tags
     ADD CONSTRAINT groups_tags_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: groups groups_track_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.groups
+    ADD CONSTRAINT groups_track_id_foreign FOREIGN KEY (track_id) REFERENCES public.tracks(id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED;
 
 
 --
@@ -7589,6 +7863,14 @@ ALTER TABLE ONLY public.tag_follows
 
 
 --
+-- Name: tracks tracks_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tracks
+    ADD CONSTRAINT tracks_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED;
+
+
+--
 -- Name: tracks_posts tracks_posts_post_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -7720,5 +8002,5 @@ ALTER TABLE ONLY public.zapier_triggers
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 4hjAA3Sl3pGoB6jiTRLpGMoKZfd9B1XvMZqTNTSKcyYGfnYbcWgDnzvsDUnQHd2
+\unrestrict tUF07NWBIyBoffLToE0SeitR4QkNiJF7GirKbknzPG6fJr35GuUbD46h1N7i2kX
 

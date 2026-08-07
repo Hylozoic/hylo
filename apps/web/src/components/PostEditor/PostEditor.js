@@ -9,6 +9,7 @@ import { useSelector, useDispatch } from 'react-redux'
 import { useLocation, useParams, useNavigate } from 'react-router-dom'
 import useRouteParams from 'hooks/useRouteParams'
 import useAllowedPostTypesForView from 'hooks/useAllowedPostTypesForView'
+import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import { useTranslation } from 'react-i18next'
 import { Tooltip as ReactTooltip } from 'react-tooltip'
 import { createSelector } from 'reselect'
@@ -33,13 +34,14 @@ import {
 } from 'components/ui/dialog'
 import LinkPreview from './LinkPreview'
 import { DateTimePicker } from 'components/ui/datetimepicker'
+import TimezoneSelect from 'components/TimezoneSelect/TimezoneSelect'
 import PublicToggle from 'components/PublicToggle'
 import AnonymousVoteToggle from './AnonymousVoteToggle/AnonymousVoteToggle'
 import SliderInput from 'components/SliderInput/SliderInput'
 import { PROJECT_CONTRIBUTIONS } from 'config/featureFlags'
 import useEventCallback from 'hooks/useEventCallback'
-import changeQuerystringParam from 'store/actions/changeQuerystringParam'
-import fetchAllMyGroupsChatRooms from 'store/actions/fetchAllMyGroupsChatRooms'
+import fetchAllMyGroupsSpaces from 'store/actions/fetchAllMyGroupsSpaces'
+import fetchForGroup from 'store/actions/fetchForGroup'
 import {
   PROPOSAL_ADVICE,
   PROPOSAL_CONSENSUS,
@@ -50,11 +52,12 @@ import {
   PROPOSAL_TEMPLATES,
   PROPOSAL_YESNO,
   POST_COMPLETION_ACTIONS,
+  POST_TYPES,
   POST_TYPES_SHOW_LOCATION_BY_DEFAULT,
   VOTING_METHOD_MULTI_UNRESTRICTED,
   VOTING_METHOD_SINGLE
 } from 'store/models/Post'
-import { DEFAULT_CHAT_TOPIC } from 'store/models/Group'
+import { GROUP_TYPES } from 'store/models/Group'
 import isPendingFor from 'store/selectors/isPendingFor'
 import getMe from 'store/selectors/getMe'
 import getPost from 'store/selectors/getPost'
@@ -64,7 +67,6 @@ import getTopicForCurrentRoute from 'store/selectors/getTopicForCurrentRoute'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
-import getTrack from 'store/selectors/getTrack'
 import { fetchLocation, ensureLocationIdIfCoordinate } from 'components/LocationInput/LocationInput.store'
 import {
   CREATE_POST,
@@ -94,66 +96,28 @@ import { setQuerystringParam } from '@hylo/navigation'
 import { sanitizeURL } from 'util/url'
 import ActionsBar from './ActionsBar'
 import HyloHTML from 'components/HyloHTML'
-import styles from './PostEditor.module.scss'
 import useDraft, { hasDraftContent, hasPostDraftPayloadContent } from 'hooks/useDraft'
+import { buildPostDraftPayload, mergeDraftIntoPost } from './postDraftUtils'
 
-const serializeTopics = (topics = []) =>
-  (topics || [])
-    .filter(Boolean)
-    .map(topic => ({ id: topic.id, name: topic.name, slug: topic.slug }))
-
-const serializeGroupIds = (groups = []) =>
-  (groups || [])
-    .filter(Boolean)
-    .map(group => group.id)
-
-const normalizeDate = value => {
-  if (!value) return null
-  const date = value instanceof Date ? value : new Date(value)
-  return Number.isNaN(date.getTime()) ? null : date.toISOString()
+/** First post type as shown in PostTypeSelect (POST_TYPES order), among allowed types. */
+function firstDropdownPostType (allowedPostTypes) {
+  const dropdownOrder = Object.keys(POST_TYPES).filter(type => type !== 'action' && type !== 'chat')
+  if (allowedPostTypes == null) return 'discussion'
+  return dropdownOrder.find(type => allowedPostTypes.includes(type)) || 'discussion'
 }
 
-const buildPostDraftPayload = (post = {}) => ({
-  title: post.title || '',
-  details: post.details || '',
-  type: post.type || '',
-  topics: serializeTopics(post.topics),
-  groups: serializeGroupIds(post.groups),
-  isPublic: !!post.isPublic,
-  location: post.location || '',
-  locationId: post.locationId || null,
-  linkPreview: post.linkPreview || null,
-  linkPreviewFeatured: !!post.linkPreviewFeatured,
-  acceptContributions: !!post.acceptContributions,
-  completionAction: post.completionAction || null,
-  completionActionSettings: post.completionActionSettings || null,
-  proposalOptions: (post.proposalOptions || []).map(option => ({ ...option })),
-  startTime: normalizeDate(post.startTime),
-  endTime: normalizeDate(post.endTime),
-  timezone: post.timezone || '',
-  donationsLink: post.donationsLink || '',
-  projectManagementLink: post.projectManagementLink || '',
-  quorum: post.quorum || 0,
-  votingMethod: post.votingMethod || null,
-  sendAnnouncement: !!post.sendAnnouncement,
-  trackId: post.trackId || null
-})
+/** Returns true when a group/space accepts the given post type (null acceptedPostTypes = all). */
+function groupAcceptsPostType (group, postType) {
+  if (!group || !postType) return false
+  const types = group.acceptedPostTypes
+  if (types == null) return true
+  if (!Array.isArray(types) || types.length === 0) return false
+  return types.includes(postType)
+}
 
-const mergeDraftIntoPost = (base, draft, groupOptions = []) => {
-  if (!draft) return base
-  const resolveGroup = (id) => groupOptions.find(group => group.id === id) || base.groups?.find(group => group.id === id) || { id }
-  const draftGroups = Array.isArray(draft.groups) && draft.groups.length > 0
-    ? draft.groups.map(resolveGroup)
-    : base.groups
-  return {
-    ...base,
-    ...draft,
-    topics: draft.topics?.length ? draft.topics.map(topic => ({ ...topic })) : base.topics,
-    groups: draftGroups,
-    proposalOptions: draft.proposalOptions?.length ? draft.proposalOptions.map(option => ({ ...option })) : base.proposalOptions,
-    startTime: draft.startTime ? new Date(draft.startTime) : base.startTime,
-    endTime: draft.endTime ? new Date(draft.endTime) : base.endTime
-  }
+/** Returns true when the group is a space (child of a top-level group). */
+function isSpaceGroup (group) {
+  return !!group && (group.type === GROUP_TYPES.space || !!group.parentId)
 }
 
 const emojiOptions = ['', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟', '✅✅', '👍', '👎', '⁉️', '‼️', '❓', '❗', '🚫', '➡️', '🛑', '✅', '🛑🛑', '🌈', '🔴', '🔵', '🟤', '🟣', '🟢', '🟡', '🟠', '⚫', '⚪', '🤷🤷', '📆', '🤔', '❤️', '👏', '🎉', '🔥', '🤣', '😢', '😡', '🤷', '💃🕺', '⛔', '🙏', '👀', '🙌', '💯', '🔗', '🚀', '💃', '🕺', '🫶💯']
@@ -175,7 +139,6 @@ const getMyAdminGroups = createSelector(
  * PostEditor component for creating and editing various post types (discussions, events, projects, proposals, etc.)
  * @param {Object} props - Component props
  * @param {string} props.context - the overall route context (e.g., 'my', 'groups')
- * @param {boolean} props.modal - Whether the editor is displayed in a modal
  * @param {Object} props.post - Post data when editing an existing post
  * @param {boolean} props.editing - Whether we're editing an existing post
  * @param {Function} props.setIsDirty - Callback to notify parent when content changes
@@ -187,10 +150,9 @@ const getMyAdminGroups = createSelector(
 
 function PostEditorInner ({
   context,
-  customTopicName, // When we can't determine topic from the URL. Used for funding round chat rooms
+  customTopicName, // When we can't determine topic from the URL (e.g. funding rounds)
   markAsReadTopicName = null,
   autoFocus = true,
-  modal = true,
   post: propsPost,
   editing = false,
   setIsDirty = () => {},
@@ -206,42 +168,64 @@ function PostEditorInner ({
   const navigateToForDraft = `${pathname}${search || ''}`
   const routeParams = useParams()
   const parsedRouteParams = useRouteParams()
-  const groupSlug = routeParams.groupSlug || parsedRouteParams.groupSlug
+  // When inside a space, this resolves to the space group's slug so chats/posts go to the space
+  const effectiveGroupSlug = useEffectiveGroupSlug()
+  const groupSlug = effectiveGroupSlug || routeParams.groupSlug || parsedRouteParams.groupSlug
   const navigate = useNavigate()
   const hourCycle = getHourCycle()
   const { t } = useTranslation()
 
   const currentUser = useSelector(getMe)
   const currentGroup = useSelector(state => getGroupForSlug(state, groupSlug))
-  const currentTrack = useSelector(state => getTrack(state, routeParams.trackId))
-  const currentFundingRound = useSelector(state => getFundingRound(state, routeParams.fundingRoundId))
+  // Track / funding-round spaces carry their config on the group itself.
+  const currentTrack = currentGroup?.track || null
+  const currentFundingRound = useSelector(state => {
+    const nested = currentGroup?.fundingRound
+    if (nested?.id) return getFundingRound(state, nested.id) || nested
+    if (routeParams.fundingRoundId) return getFundingRound(state, routeParams.fundingRoundId)
+    return null
+  })
   // Restrict create-modal type options to the current view's post types (e.g. request/offer on requests-and-offers)
+  // intersected with the current group's acceptedPostTypes when set.
   const allowedPostTypesForView = useAllowedPostTypesForView()
-  const allowedPostTypes = (!editing && modal) ? allowedPostTypesForView : null
+  const allowedPostTypes = useMemo(() => {
+    if (editing) return null
+
+    const fromView = allowedPostTypesForView
+    const fromGroup = currentGroup?.acceptedPostTypes
+
+    // null/undefined acceptedPostTypes = group accepts all types
+    if (fromGroup == null) return fromView
+    if (!Array.isArray(fromGroup)) return fromView
+    if (fromView == null) return fromGroup
+    return fromView.filter(type => fromGroup.includes(type))
+  }, [editing, allowedPostTypesForView, currentGroup?.acceptedPostTypes])
+
+  useEffect(() => {
+    if (groupSlug && !currentGroup) dispatch(fetchForGroup(groupSlug))
+  }, [dispatch, groupSlug, currentGroup])
 
   const editingPostId = routeParams.postId
   const fromPostId = getQuerystringParam('fromPostId', urlLocation)
+  const viewId = getQuerystringParam('viewId', urlLocation)
 
   const postType = getQuerystringParam('newPostType', urlLocation)
-  // Prefer explicit newPostType, then the view's first allowed type, then discussion/chat default
-  const createPostType = postType || (modal
-    ? (allowedPostTypesForView?.[0] || 'discussion')
-    : 'chat')
+  const eventDateParam = getQuerystringParam('eventDate', urlLocation)
+  // Prefer explicit newPostType (if still allowed), else top dropdown option (POST_TYPES order)
+  const createPostType = (() => {
+    const fallback = firstDropdownPostType(allowedPostTypes)
+    if (!postType) return fallback
+    if (allowedPostTypes != null && !allowedPostTypes.includes(postType)) return fallback
+    return postType
+  })()
+  // Optional topic from URL / caller (e.g. topic stream, funding round). Spaces/views do not load chat rooms.
   const topicName = customTopicName || (routeParams.topicName && decodeURIComponent(routeParams.topicName))
-  const hiddenTopic = topicName?.startsWith('‡')
   const topic = useSelector(state => getTopicForCurrentRoute(state, topicName))
-  // Draft storage is scoped by semantic context
-  // Inline chat composer scopes by topicId.
-  // For create modal, also scope by topicId when opened from a chat room so each room keeps an independent modal draft.
-  // Non-chat modal composers use a topic-agnostic slot.
-  const openedFromChatRoom = !!topicName
-  const draftTopicId = (!modal || openedFromChatRoom) ? topic?.id : undefined
 
   const { loadedData: serverLoadedData, isLoaded: serverDraftLoaded, saveDraft: saveServerDraft, cancelPendingSave, clearDraft } = useDraft({
     type: 'post',
     postId: editing ? editingPostId : undefined,
     groupId: currentGroup?.id,
-    topicId: draftTopicId,
     postType: editing ? undefined : createPostType,
     isEdit: editing,
     navigateTo: navigateToForDraft,
@@ -249,11 +233,11 @@ function PostEditorInner ({
     skip: !currentUser
   })
 
-  // Stable key used to detect context changes (navigating between chat rooms, etc.)
+  // Stable key used to detect context changes (group / post type)
   const draftContextKey = useMemo(() => {
     if (editing) return `edit:${editingPostId}`
-    return `new:${currentGroup?.id || 'none'}:${draftTopicId || 'none'}:${createPostType || 'none'}`
-  }, [editing, editingPostId, currentGroup?.id, draftTopicId, createPostType])
+    return `new:${currentGroup?.id || 'none'}:${createPostType || 'none'}`
+  }, [editing, editingPostId, currentGroup?.id, createPostType])
 
   const loadDraftJSON = useCallback(() => {
     if (!serverLoadedData) return null
@@ -270,10 +254,7 @@ function PostEditorInner ({
   }, [saveServerDraft])
 
   const draftLoadedRef = useRef(false)
-  const lastSavedChatDetailsRef = useRef('')
-  /** True after chat body had visible draft content this room — delete server draft when cleared. */
-  const chatComposerHadContentRef = useRef(false)
-  /** True after non-chat post had title or description draft content — delete server draft when both cleared. */
+  /** True after post had title or description draft content — delete server draft when both cleared. */
   const postComposerHadBodyDraftRef = useRef(false)
   const inSessionDraftByTypeRef = useRef({})
   const pendingTypeSwitchRef = useRef(null)
@@ -281,9 +262,11 @@ function PostEditorInner ({
   const isSubmittedRef = useRef(false)
   /** Blocks duplicate create/update dispatches before Redux pending state updates. */
   const isSubmittingRef = useRef(false)
-
-  // Default topic to use when not in a chatroom — available immediately from the store
-  const generalTopic = useSelector(state => !topicName ? getTopicForCurrentRoute(state, DEFAULT_CHAT_TOPIC) : null)
+  /**
+   * Latest editor HTML. Kept in a ref so typing does not write into React state on every keystroke.
+   * null means not hydrated yet — draft effect falls back to currentPost.details.
+   */
+  const detailsHtmlRef = useRef(null)
 
   const linkPreview = useSelector(state => getLinkPreview(state)) // TODO: probably not working?
   const fetchLinkPreviewPending = useSelector(state => isPendingFor(FETCH_LINK_PREVIEW, state))
@@ -332,28 +315,41 @@ function PostEditorInner ({
   // replace it when the route changes without touching user-added topics
   const routeTopicIdRef = useRef(topic?.id || null)
 
-  const initialPost = useMemo(() => ({
-    acceptContributions: false,
-    completionAction: 'button',
-    completionActionSettings: currentTrack?.actionDescriptor ? { instructions: t('postCompletionActions.button.instructions', { actionDescriptor: currentTrack?.actionDescriptor }) } : null,
-    details: '',
-    groups: currentGroup ? [currentGroup] : [],
-    isAnonymousVote: false,
-    isPublic: context === 'public',
-    isStrictProposal: false,
-    location: '',
-    locationId: null,
-    proposalOptions: [],
-    quorum: 0,
-    timezone: DateTimeHelpers.dateTimeNow(getLocaleFromLocalStorage()).zoneName,
-    title: '',
-    topics: topic ? [topic] : (generalTopic && postType !== 'action' ? [generalTopic] : []),
-    type: createPostType,
-    votingMethod: VOTING_METHOD_SINGLE,
-    ...(inputPost || {}),
-    startTime: typeof inputPost?.startTime === 'string' ? new Date(inputPost.startTime) : inputPost?.startTime,
-    endTime: typeof inputPost?.endTime === 'string' ? new Date(inputPost.endTime) : inputPost?.endTime
-  }), [inputPost?.id, createPostType, currentGroup, topic, generalTopic, context])
+  const initialPost = useMemo(() => {
+    let prefilledEventTimes = {}
+    if (!editing && createPostType === 'event' && eventDateParam && !inputPost?.startTime) {
+      try {
+        const parsed = DateTimeHelpers.toDateTime(eventDateParam, { locale: getLocaleFromLocalStorage() })
+        if (parsed.isValid) {
+          prefilledEventTimes = DateTimeHelpers.defaultEventTimesForDate(eventDateParam, getLocaleFromLocalStorage())
+        }
+      } catch {}
+    }
+
+    return {
+      acceptContributions: false,
+      completionAction: 'button',
+      completionActionSettings: currentTrack?.actionDescriptor ? { instructions: t('postCompletionActions.button.instructions', { actionDescriptor: currentTrack?.actionDescriptor }) } : null,
+      details: '',
+      groups: currentGroup ? [currentGroup] : [],
+      isAnonymousVote: false,
+      isPublic: context === 'public',
+      isStrictProposal: false,
+      location: '',
+      locationId: null,
+      proposalOptions: [],
+      quorum: 0,
+      timezone: DateTimeHelpers.getCurrentTimezone(),
+      title: '',
+      topics: topic ? [topic] : [],
+      type: createPostType,
+      votingMethod: VOTING_METHOD_SINGLE,
+      ...(inputPost || {}),
+      ...prefilledEventTimes,
+      startTime: typeof inputPost?.startTime === 'string' ? new Date(inputPost.startTime) : (inputPost?.startTime || prefilledEventTimes.startTime),
+      endTime: typeof inputPost?.endTime === 'string' ? new Date(inputPost.endTime) : (inputPost?.endTime || prefilledEventTimes.endTime)
+    }
+  }, [inputPost?.id, createPostType, currentGroup, topic, context, editing, eventDateParam, inputPost?.startTime, inputPost?.endTime, currentTrack?.actionDescriptor, t])
 
   const [currentPost, setCurrentPostState] = useState(initialPost)
   const [editorInitialContent, setEditorInitialContent] = useState(initialPost.details || '')
@@ -369,6 +365,9 @@ function PostEditorInner ({
   const [dateError, setDateError] = useState(false)
   const [showLocation, setShowLocation] = useState(POST_TYPES_SHOW_LOCATION_BY_DEFAULT.includes(initialPost.type) || selectedLocation)
 
+  // Bumped after membership spaces load so To options recompute with parentId/acceptedPostTypes
+  const [membershipSpacesTick, setMembershipSpacesTick] = useState(0)
+
   const groupOptions = useMemo(() => {
     if (!currentUser) return []
 
@@ -382,8 +381,7 @@ function PostEditorInner ({
         return true
       })
       .sort((a, b) => a.name.localeCompare(b.name))
-  }, [currentUser?.memberships])
-  const isChat = currentPost.type === 'chat'
+  }, [currentUser?.memberships, membershipSpacesTick])
   const isAction = currentPost.type === 'action'
   const isSubmission = currentPost.type === 'submission'
 
@@ -404,6 +402,14 @@ function PostEditorInner ({
     }
   }, [])
 
+  // Debounced write of editor HTML into React state. Typing stays in TipTap + detailsHtmlRef;
+  // this only syncs for draft persistence (avoids re-rendering the whole form per keystroke).
+  const syncDetailsToCurrentPost = useRef(
+    debounce(400, (html) => {
+      setCurrentPostState(prev => (prev.details === html ? prev : { ...prev, details: html }))
+    })
+  ).current
+
   const applyPostToEditor = useCallback((nextPost) => {
     let post = nextPost
     if (!editing && currentGroup?.id) {
@@ -412,14 +418,15 @@ function PostEditorInner ({
         post = { ...post, groups: [currentGroup, ...(post.groups || [])] }
       }
     }
+    syncDetailsToCurrentPost.cancel()
     setCurrentPostState(post)
     const details = post.details || ''
+    detailsHtmlRef.current = details
     setHasDescription(hasDraftContent(details))
     setEditorInitialContent(details)
     editorRef.current?.setContent(details)
-    lastSavedChatDetailsRef.current = details
     draftLoadedRef.current = true
-  }, [currentGroup, editing])
+  }, [currentGroup, editing, syncDetailsToCurrentPost])
 
   /**
    * Filters the available group options to find only those groups
@@ -434,10 +441,9 @@ function PostEditorInner ({
 
   useEffect(() => {
     draftLoadedRef.current = false
-    lastSavedChatDetailsRef.current = initialPost.details || ''
-    chatComposerHadContentRef.current = false
+    detailsHtmlRef.current = initialPost.details || ''
     postComposerHadBodyDraftRef.current = false
-  }, [draftContextKey])
+  }, [draftContextKey, initialPost.details])
 
   useEffect(() => {
     if (!serverDraftLoaded || draftLoadedRef.current) return
@@ -477,56 +483,30 @@ function PostEditorInner ({
     })
   }, [currentGroup?.id, editing, setCurrentPost])
 
+  // Flush pending details into currentPost on unmount so drafts are not truncated.
+  useEffect(() => () => {
+    syncDetailsToCurrentPost.flush?.()
+    syncDetailsToCurrentPost.cancel()
+  }, [syncDetailsToCurrentPost])
+
   // Persist structural updates (title, metadata, etc.) whenever the draft changes after initial hydration.
   // When the user edits before the server responds, mark draftLoadedRef = true immediately so the
   // server load effect cannot overwrite their changes when the response eventually arrives.
   //
   // When the payload matches initial values we only reset local dirty state.
   // When title and description are both empty, cancel pending saves and delete the server draft
-  // if the user had draft body content this session (see chat branch above for chat-only rules).
+  // if the user had draft body content this session.
   useEffect(() => {
     if (isSubmittedRef.current) return
     if (typeSwitchDialog) return
-    if (isChat) {
-      const details = currentPost.details || ''
-      const initialDetails = initialPost.details || ''
-      const chatPayload = buildPostDraftPayload(currentPost)
+    // Prefer live editor HTML so title/metadata draft saves include latest typing
+    // even before the debounced details → currentPost sync lands.
+    const details = detailsHtmlRef.current ?? (currentPost.details || '')
+    const postForDraft = details === currentPost.details
+      ? currentPost
+      : { ...currentPost, details }
 
-      // Empty body: cancel pending debounced save (useDraft) and drop server draft if user had typed this visit.
-      // Must run before `details === initialDetails` — both are often '' after the user deletes everything.
-      if (!hasPostDraftPayloadContent(chatPayload)) {
-        saveServerDraft(JSON.stringify(chatPayload))
-        setIsDirty(false)
-        lastSavedChatDetailsRef.current = details
-        if (chatComposerHadContentRef.current) {
-          chatComposerHadContentRef.current = false
-          clearDraft({ deleteOnServer: true }).catch(() => {})
-        }
-        return
-      }
-
-      if (details === initialDetails) {
-        setIsDirty(false)
-        return
-      }
-
-      if (details === lastSavedChatDetailsRef.current) {
-        if (hasPostDraftPayloadContent(chatPayload)) {
-          chatComposerHadContentRef.current = true
-        }
-        setIsDirty(true)
-        return
-      }
-
-      chatComposerHadContentRef.current = true
-      draftLoadedRef.current = true
-      lastSavedChatDetailsRef.current = details
-      saveDraftJSON(chatPayload)
-      setIsDirty(true)
-      return
-    }
-
-    const payload = buildPostDraftPayload(currentPost)
+    const payload = buildPostDraftPayload(postForDraft)
 
     if (!hasPostDraftPayloadContent(payload)) {
       saveServerDraft(JSON.stringify(payload))
@@ -550,14 +530,7 @@ function PostEditorInner ({
       return
     }
     setIsDirty(false)
-  }, [currentPost, initialDraftPayload, initialPost.details, isChat, saveDraftJSON, saveServerDraft, setIsDirty, typeSwitchDialog, clearDraft])
-
-  // Ensure the chat composer keeps keyboard focus when navigating between rooms
-  useEffect(() => {
-    if (modal || !isChat || !autoFocus) return
-    const id = setTimeout(() => editorRef.current?.focus('end'), 150)
-    return () => clearTimeout(id)
-  }, [autoFocus, draftContextKey, isChat, modal])
+  }, [currentPost, initialDraftPayload, saveDraftJSON, saveServerDraft, setIsDirty, typeSwitchDialog, clearDraft])
 
   const selectedGroups = useMemo(() => {
     if (!groupOptions || !currentPost?.groups) return []
@@ -591,117 +564,82 @@ function PostEditorInner ({
   const toOptions = useMemo(() => {
     if (!groupOptions) return []
 
-    // Sort groups so currentGroup appears first, then alphabetically
-    const sortedGroups = [...groupOptions]
-      .filter(Boolean)
+    const postTypeForOptions = currentPost.type
+    const topLevelGroups = groupOptions.filter(g => g && !isSpaceGroup(g))
+    const spaces = groupOptions.filter(g => g && isSpaceGroup(g))
+    const currentTopLevelId = currentGroup?.parentId || currentGroup?.id
+
+    // Current top-level group first, then alphabetically; only groups that accept this post type
+    const sortedTopLevel = [...topLevelGroups]
+      .filter(g => groupAcceptsPostType(g, postTypeForOptions))
       .sort((a, b) => {
-        const aIsCurrent = a.id === currentGroup?.id
-        const bIsCurrent = b.id === currentGroup?.id
+        const aIsCurrent = String(a.id) === String(currentTopLevelId)
+        const bIsCurrent = String(b.id) === String(currentTopLevelId)
         if (aIsCurrent && !bIsCurrent) return -1
         if (!aIsCurrent && bIsCurrent) return 1
         return a.name.localeCompare(b.name)
       })
 
-    // Build a map of selected group IDs to their selected topic names
-    // Only filter out topics for groups that are already selected
-    const selectedGroupIds = new Set((selectedGroups || []).map(g => g?.id).filter(Boolean))
-    const selectedTopicsByGroup = new Map()
+    return sortedTopLevel.flatMap((parent) => {
+      const options = [{
+        id: parent.id,
+        group: parent,
+        name: parent.name,
+        avatarUrl: parent.avatarUrl,
+        allowInPublic: parent.allowInPublic,
+        isSpace: false
+      }]
 
-    // For each selected group, collect its selected topic names
-    if (selectedGroups && currentPost.topics) {
-      selectedGroups.forEach(group => {
-        if (!group?.id) return
-        const groupTopicNames = new Set()
+      const childSpaces = spaces
+        .filter(space =>
+          String(space.parentId) === String(parent.id) &&
+          groupAcceptsPostType(space, postTypeForOptions)
+        )
+        .sort((a, b) => a.name.localeCompare(b.name))
 
-        // Find topics that belong to this group by checking chatRooms
-        group.chatRooms?.toModelArray?.()?.forEach(cr => {
-          const topic = cr?.groupTopic?.topic
-          if (topic && currentPost.topics.some(t => t?.id === topic.id)) {
-            groupTopicNames.add(topic.name)
-          }
+      childSpaces.forEach(space => {
+        options.push({
+          id: space.id,
+          group: space,
+          parentGroup: parent,
+          name: `${parent.name} / ${space.name}`,
+          avatarUrl: parent.avatarUrl,
+          icon: space.icon,
+          allowInPublic: space.allowInPublic,
+          isSpace: true
         })
-
-        if (groupTopicNames.size > 0) {
-          selectedTopicsByGroup.set(group.id, groupTopicNames)
-        }
       })
-    }
 
-    return sortedGroups
-      .map((g) => {
-        if (!g) return []
-        // Only show topic options (like "Group #general"), no group-only options
-        const isGroupSelected = selectedGroupIds.has(g.id)
-        const selectedTopicsForThisGroup = selectedTopicsByGroup.get(g.id) || new Set()
-
-        return (g.chatRooms?.toModelArray() || [])
-          .map((cr) => ({
-            id: cr?.id,
-            group: g,
-            name: g.name + ' #' + cr?.groupTopic?.topic?.name,
-            topic: cr?.groupTopic?.topic,
-            avatarUrl: g.avatarUrl,
-            allowInPublic: g.allowInPublic
-          }))
-          .filter(Boolean)
-          .filter(o => {
-            // Only filter out topics if this group is already selected AND this topic is already selected for this group
-            if (!isGroupSelected) return true // Group not selected, show all topics
-            return !selectedTopicsForThisGroup.has(o.topic?.name) // Group selected, hide only topics already selected for this group
-          })
-          .sort((a, b) => a.name.localeCompare(b.name))
-      }).flat()
-  }, [groupOptions, currentGroup?.id, selectedGroups, currentPost.topics])
+      return options
+    })
+  }, [groupOptions, currentGroup?.id, currentGroup?.parentId, currentPost.type])
 
   const selectedToOptions = useMemo(() => {
     return selectedGroups.map((g) => {
-      if (!g) return []
+      if (!g) return null
 
-      // Get all selected topic options for this group
-      const chatRoomOptions = g.chatRooms?.toModelArray()
-        ?.filter(cr =>
-          cr?.groupTopic?.topic?.id &&
-          currentPost.topics?.some(t => t?.id === cr.groupTopic.topic.id)
-        )
-        ?.map(cr => {
-          if (!cr?.groupTopic?.topic) return null
-          return {
-            id: cr.groupTopic.id,
-            group: g,
-            name: `${g.name} #${cr.groupTopic.topic.name}`,
-            topic: cr.groupTopic.topic,
-            avatarUrl: g.avatarUrl
-          }
-        })
-        .filter(Boolean) || []
-
-      // Fallback: chatRooms haven't loaded yet but we know the topics from context.
-      // Display topic pills directly so the "to" field isn't empty on initial render.
-      if (chatRoomOptions.length === 0 && currentPost.topics?.length > 0) {
-        return currentPost.topics
-          .filter(Boolean)
-          .map(t => ({
-            id: t.id,
-            group: g,
-            name: `${g.name} #${t.name}`,
-            topic: t,
-            avatarUrl: g.avatarUrl
-          }))
-      }
-
-      // Events and other non-chat posts: show the group when no topic is selected
-      if (chatRoomOptions.length === 0 && (!currentPost.topics || currentPost.topics.length === 0)) {
-        return [{
-          id: `group-${g.id}`,
+      if (isSpaceGroup(g)) {
+        const parent = groupOptions.find(p => p && String(p.id) === String(g.parentId))
+        return {
+          id: g.id,
           group: g,
-          name: g.name,
-          avatarUrl: g.avatarUrl
-        }]
+          parentGroup: parent,
+          name: parent ? `${parent.name} / ${g.name}` : g.name,
+          avatarUrl: parent?.avatarUrl || g.avatarUrl,
+          icon: g.icon,
+          isSpace: true
+        }
       }
 
-      return chatRoomOptions
-    }).flat()
-  }, [selectedGroups, currentPost.groups, currentPost.topics])
+      return {
+        id: g.id,
+        group: g,
+        name: g.name,
+        avatarUrl: g.avatarUrl,
+        isSpace: false
+      }
+    }).filter(Boolean)
+  }, [selectedGroups, groupOptions])
 
   useEffect(() => {
     if (currentTrack?.actionDescriptor && !currentPost.completionActionSettings) {
@@ -716,11 +654,7 @@ function PostEditorInner ({
   }, [currentPost.completionActionSettings, currentTrack?.actionDescriptor, setCurrentPost, t])
 
   useEffect(() => {
-    if (autoFocus && isChat) {
-      setTimeout(() => {
-        editorRef.current && editorRef.current.focus()
-      }, 500)
-    } else if (autoFocus) {
+    if (autoFocus) {
       setTimeout(() => { titleInputRef.current && titleInputRef.current.focus() }, 100)
     }
     return () => {
@@ -729,17 +663,15 @@ function PostEditorInner ({
     }
   }, [])
 
-  // Fetch chat rooms if we're not in a chat and we haven't fetched them yet
-  const hasFetchedChatRoomsRef = useRef(false)
+  // Fetch membership spaces so the To field has destinations from every group
+  const hasFetchedToFieldDataRef = useRef(false)
   useEffect(() => {
-    if (
-      currentPost.type !== 'chat' &&
-      !hasFetchedChatRoomsRef.current
-    ) {
-      dispatch(fetchAllMyGroupsChatRooms())
-      hasFetchedChatRoomsRef.current = true
-    }
-  }, [currentPost.type])
+    if (hasFetchedToFieldDataRef.current) return
+    hasFetchedToFieldDataRef.current = true
+    Promise.resolve(dispatch(fetchAllMyGroupsSpaces())).finally(() => {
+      setMembershipSpacesTick(tick => tick + 1)
+    })
+  }, [dispatch])
 
   useEffect(() => {
     setShowLocation(POST_TYPES_SHOW_LOCATION_BY_DEFAULT.includes(initialPost.type) || selectedLocation)
@@ -754,8 +686,7 @@ function PostEditorInner ({
   }, [linkPreview, setCurrentPost])
 
   useEffect(() => {
-    // When switching between chatrooms (route topic changes), reset topics to only the new route topic
-    // This ensures users don't accidentally post to the wrong chatroom
+    // When switching between topic streams (route topic changes), reset topics to only the new route topic
     setCurrentPost(prev => {
       // If route topic changed, reset topics to only contain the new route topic
       if (topic?.id && topic.id !== routeTopicIdRef.current) {
@@ -763,7 +694,7 @@ function PostEditorInner ({
         return { ...prev, topics: [topic] }
       }
 
-      // If route topic was removed (navigated away from chatroom), clear route topic reference
+      // If route topic was removed, clear route topic reference
       if (!topic?.id && routeTopicIdRef.current) {
         const priorTopicId = routeTopicIdRef.current
         routeTopicIdRef.current = null
@@ -788,91 +719,65 @@ function PostEditorInner ({
     setCurrentPost(prev => (prev.sendAnnouncement === announcementSelected ? prev : { ...prev, sendAnnouncement: announcementSelected }))
   }, [announcementSelected, setCurrentPost])
 
-  // Auto-add topic when groups are selected
-  // If we're in a chatroom (topic from URL exists), use that topic
-  // Otherwise, default to #general topic
-  useEffect(() => {
-    if (!selectedGroups || selectedGroups.length === 0) return
-
-    // If we're in a chatroom, the route topic useEffect already handles adding it
-    // So we only need to add #general if we're NOT in a chatroom
-    if (topic?.id) return
-
-    // Action posts should never appear in chat rooms
-    if (postType === 'action') return
-
-    // Find the general topic from any selected group's chatRooms
-    let generalTopic = null
-    for (const group of selectedGroups) {
-      const chatRooms = group.chatRooms?.toModelArray?.() || group.chatRooms || []
-      const generalChatRoom = chatRooms.find(cr => cr?.groupTopic?.topic?.name === DEFAULT_CHAT_TOPIC)
-      if (generalChatRoom?.groupTopic?.topic) {
-        generalTopic = generalChatRoom.groupTopic.topic
-        break
-      }
-    }
-
-    if (!generalTopic) return
-
-    setCurrentPost(prev => {
-      const alreadyHasGeneral = prev.topics?.some(t => t?.name === DEFAULT_CHAT_TOPIC)
-      if (alreadyHasGeneral) return prev
-
-      return { ...prev, topics: [...(prev.topics || []), generalTopic] }
-    })
-  }, [selectedGroups, topic?.id, postType])
-
   /**
    * Resets the editor to its initial state
    * Clears form fields, attachments, and link previews
    */
   const reset = useCallback(() => {
-    editorRef.current?.setContent(initialPost.details)
-    setHasDescription(initialPost.details?.length > 0)
+    syncDetailsToCurrentPost.cancel()
+    const details = initialPost.details || ''
+    detailsHtmlRef.current = details
+    editorRef.current?.setContent(details)
+    setHasDescription(details.length > 0)
     dispatch(clearLinkPreview())
     setCurrentPost(() => ({ ...initialPost, linkPreview: null, linkPreviewFeatured: false }))
-    setEditorInitialContent(initialPost.details || '')
+    setEditorInitialContent(details)
     dispatch(clearAttachments('post', 'new', 'image'))
     dispatch(clearAttachments('post', 'new', 'file'))
     setShowLocation(POST_TYPES_SHOW_LOCATION_BY_DEFAULT.includes(initialPost.type) || selectedLocation)
     setAnnouncementSelected(false)
     setShowAnnouncementModal(false)
     clearDraft()
-    chatComposerHadContentRef.current = false
     postComposerHadBodyDraftRef.current = false
     isSubmittedRef.current = false
     setIsDirty(false)
-    if (autoFocus && isChat) {
-      setTimeout(() => {
-        editorRef.current && editorRef.current.focus()
-      }, 500)
-    } else if (autoFocus) {
+    if (autoFocus) {
       toFieldRef?.current?.reset()
       setTimeout(() => { titleInputRef.current && titleInputRef.current.focus() }, 100)
     } else {
       toFieldRef?.current?.reset()
     }
-  }, [clearDraft, initialPost, autoFocus, isChat, selectedLocation, setCurrentPost])
+  }, [clearDraft, initialPost, autoFocus, selectedLocation, setCurrentPost, syncDetailsToCurrentPost])
 
   /**
    * Calculates an end time based on start time, preserving duration if both times exist
    * @param {Date} startTime - The new start time
    * @returns {Date} - The calculated end time
    */
-  const calcEndTime = useCallback((startTime) => {
+  const getPostTimezone = useCallback(() => {
+    return currentPost.timezone || DateTimeHelpers.getCurrentTimezone()
+  }, [currentPost.timezone])
+
+  const calcEndTime = useCallback((startInstant) => {
+    const tz = getPostTimezone()
     let msDiff = 3600000 // ms in one hour
     if (currentPost.startTime && currentPost.endTime) {
-      const start = DateTimeHelpers.toDateTime(currentPost.startTime, { locale: getLocaleFromLocalStorage() })
-      const end = DateTimeHelpers.toDateTime(currentPost.endTime, { locale: getLocaleFromLocalStorage() })
-      msDiff = end.diff(start)
+      const start = DateTimeHelpers.toDateTime(currentPost.startTime, { timezone: tz })
+      const end = DateTimeHelpers.toDateTime(currentPost.endTime, { timezone: tz })
+      msDiff = end.diff(start).milliseconds
     }
-    return DateTimeHelpers.toDateTime(startTime, { locale: getLocaleFromLocalStorage() }).plus({ milliseconds: msDiff }).toJSDate()
-  }, [currentPost.startTime, currentPost.endTime])
+    return DateTimeHelpers.toDateTime(startInstant, { timezone: tz }).plus({ milliseconds: msDiff }).toJSDate()
+  }, [currentPost.startTime, currentPost.endTime, getPostTimezone])
 
   const handlePostTypeSelection = useCallback((type) => {
     if (type === currentPost.type) return
 
-    const currentPayload = buildPostDraftPayload(currentPost)
+    syncDetailsToCurrentPost.flush?.()
+    const postWithDetails = {
+      ...currentPost,
+      details: detailsHtmlRef.current ?? currentPost.details
+    }
+    const currentPayload = buildPostDraftPayload(postWithDetails)
     inSessionDraftByTypeRef.current[currentPost.type] = currentPayload
     pendingTypeSwitchRef.current = {
       fromType: currentPost.type,
@@ -883,23 +788,20 @@ function PostEditorInner ({
       }
     }
 
-    if (modal) {
-      // Track the post type in the URL. So you can share the url with others. And maybe some other reason I'm forgetting right now
-      navigate({
-        pathname: urlLocation.pathname,
-        search: setQuerystringParam('newPostType', type, urlLocation)
-      }, { replace: true })
-    } else {
-      dispatch(changeQuerystringParam(urlLocation, 'newPostType', null, null, true))
-    }
+    navigate({
+      pathname: urlLocation.pathname,
+      search: setQuerystringParam('newPostType', type, urlLocation)
+    }, { replace: true })
 
-    setCurrentPost(prev => ({ ...prev, type }))
-    if (type === 'chat') {
-      setTimeout(() => { editorRef.current && editorRef.current.focus() }, 100)
-    } else {
-      setTimeout(() => { titleInputRef.current && titleInputRef.current.focus() }, 100)
-    }
-  }, [currentPost, dispatch, modal, navigate, setCurrentPost, urlLocation])
+    setCurrentPost(prev => ({
+      ...prev,
+      type,
+      details: postWithDetails.details,
+      // Drop destinations that do not accept the newly selected post type
+      groups: (prev.groups || []).filter(g => groupAcceptsPostType(g, type))
+    }))
+    setTimeout(() => { titleInputRef.current && titleInputRef.current.focus() }, 100)
+  }, [currentPost, navigate, setCurrentPost, syncDetailsToCurrentPost, urlLocation])
 
   const handleKeepCurrentTypeContent = useCallback(() => {
     if (typeSwitchDialog?.targetType && typeSwitchDialog?.carriedPost) {
@@ -925,11 +827,22 @@ function PostEditorInner ({
     setCurrentPost(prev => (title === prev.title ? prev : { ...prev, title }))
   }, [setCurrentPost])
 
+  /**
+   * TipTap onUpdate handler. Avoid putting full HTML into React state on every keystroke —
+   * that re-renders the entire PostEditor and causes typing lag / out-of-order characters
+   * as content grows. Keep HTML in a ref; only flip hasDescription when emptiness changes;
+   * debounce syncing details into currentPost for draft persistence.
+   */
   const handleDetailsChange = useCallback((html) => {
-    const detailsText = editorRef.current?.getText?.() || ''
-    setHasDescription(detailsText.length > 0)
-    setCurrentPost(prev => ({ ...prev, details: html }))
-  }, [setCurrentPost])
+    detailsHtmlRef.current = html
+    const hasContent = (editorRef.current?.getText?.() || '').length > 0
+    // queueMicrotask: TipTap updates synchronously; deferring avoids render-cycle conflicts
+    // that can surface as characters appearing out of order under load.
+    queueMicrotask(() => {
+      setHasDescription(prev => (prev === hasContent ? prev : hasContent))
+      syncDetailsToCurrentPost(html)
+    })
+  }, [syncDetailsToCurrentPost])
 
   const handleBudgetChange = useCallback((evt) => {
     const budget = evt.target.value
@@ -953,20 +866,35 @@ function PostEditorInner ({
     setCurrentPost(prev => ({ ...prev, acceptContributions: !prev.acceptContributions }))
   }, [setCurrentPost])
 
-  const handleStartTimeChange = (startTime) => {
-    // force endTime to track startTime
+  const handleStartTimeChange = (pickerStart) => {
+    const tz = getPostTimezone()
+    const startTime = DateTimeHelpers.fromPickerDate(pickerStart, tz)
     const endTime = calcEndTime(startTime)
     validateTimeChange(startTime, endTime)
     setCurrentPost(prev => ({ ...prev, startTime, endTime }))
-    endTimeRef.current.setValue(endTime)
+    endTimeRef.current?.setValue(DateTimeHelpers.toPickerDate(endTime, tz))
   }
 
-  const handleEndTimeChange = useCallback((endTime) => {
+  const handleEndTimeChange = useCallback((pickerEnd) => {
+    const tz = getPostTimezone()
+    const endTime = DateTimeHelpers.fromPickerDate(pickerEnd, tz)
     setCurrentPost(prev => {
       validateTimeChange(prev.startTime, endTime)
       return { ...prev, endTime }
     })
-  }, [setCurrentPost, validateTimeChange])
+  }, [getPostTimezone, validateTimeChange])
+
+  const handleTimezoneChange = useCallback((newTimezone) => {
+    setCurrentPost(prev => {
+      const oldTimezone = prev.timezone || DateTimeHelpers.getCurrentTimezone()
+      return {
+        ...prev,
+        timezone: newTimezone,
+        startTime: DateTimeHelpers.preserveWallClockOnTimezoneChange(prev.startTime, oldTimezone, newTimezone),
+        endTime: DateTimeHelpers.preserveWallClockOnTimezoneChange(prev.endTime, oldTimezone, newTimezone)
+      }
+    })
+  }, [])
 
   const handleDonationsLinkChange = useCallback((evt) => {
     const donationsLink = evt.target.value
@@ -1016,46 +944,14 @@ function PostEditorInner ({
   }, [dispatch, setCurrentPost])
 
   const handleAddToOption = useCallback((toOptions) => {
-    const groups = uniqBy('id', toOptions.map(toOption => toOption.group))
-    const topics = uniqBy('id', toOptions.filter(toOption => toOption.topic).map(toOption => toOption.topic))
-    setCurrentPost(prev => ({ ...prev, groups, topics }))
+    const groups = uniqBy('id', toOptions.map(toOption => toOption.group).filter(Boolean))
+    setCurrentPost(prev => ({ ...prev, groups }))
   }, [setCurrentPost])
 
-  /**
-   * Custom delete handler for ToField that implements conditional pill removal
-   * - When removing the #general pill:
-   *   - If there are other topics for that group: just remove #general, keep other topics
-   *   - If #general is the only topic: remove the entire group (all options with this group)
-   * - When removing any other topic pill: just remove that topic
-   */
+  /** Removes a selected group or space destination from the To field. */
   const handleToOptionDelete = useCallback((deletedOption, allSelected) => {
     const groupId = deletedOption.group?.id
-
-    // Group-only pill (no topic), e.g. events
-    if (!deletedOption.topic) {
-      return allSelected.filter(o => o.group?.id !== groupId)
-    }
-
-    // Check if we're deleting the #general pill
-    if (deletedOption.topic?.name === DEFAULT_CHAT_TOPIC) {
-      // Check if there are other topics for this group (beyond #general)
-      const otherTopicsForGroup = allSelected.filter(o =>
-        o.group?.id === groupId &&
-        o.topic &&
-        o.topic?.name !== DEFAULT_CHAT_TOPIC
-      )
-
-      if (otherTopicsForGroup.length > 0) {
-        // There are other topics - just remove #general, keep the group via other topics
-        return allSelected.filter(o => o.topic?.id !== deletedOption.topic?.id)
-      }
-
-      // #general is the only topic - remove the entire group
-      return allSelected.filter(o => o.group?.id !== groupId)
-    }
-
-    // Deleting a non-general topic pill - just remove that topic
-    return allSelected.filter(o => o.topic?.id !== deletedOption.topic?.id)
+    return allSelected.filter(o => o.group?.id !== groupId)
   }, [])
 
   const togglePublic = useCallback(() => {
@@ -1111,14 +1007,8 @@ function PostEditorInner ({
         break
     }
 
-    if (type === 'chat') {
-      if (!hasDescription) {
-        errorMessages.push(t('Chat must have content'))
-      }
-    } else {
-      if (title?.length === 0 || title?.length > MAX_TITLE_LENGTH) {
-        errorMessages.push(t('Title is required'))
-      }
+    if (title?.length === 0 || title?.length > MAX_TITLE_LENGTH) {
+      errorMessages.push(t('Title is required'))
     }
 
     if (groups?.length === 0) {
@@ -1236,8 +1126,9 @@ function PostEditorInner ({
         title,
         topicNames,
         trackId: currentTrack?.id,
-        type,
-        markAsReadTopicName
+        markAsReadTopicName,
+        viewId,
+        type
       }
 
       const saveFunc = isEditing ? updatePost : createPost
@@ -1245,9 +1136,10 @@ function PostEditorInner ({
       if (onSave) onSave(postToSave)
       // Prevent any draft saves triggered by re-renders during or after the mutation.
       isSubmittedRef.current = true
-      // Cancel any in-flight debounced draft save so it cannot fire during the async mutation.
+      // Drop pending details→state sync and cancel in-flight draft save so neither
+      // fires during the async mutation. Save already reads HTML from the editor.
+      syncDetailsToCurrentPost.cancel()
       cancelPendingSave()
-      if (!modal) reset()
 
       const savedPost = await dispatch(saveFunc(postToSave))
       if (!savedPost.error) {
@@ -1266,7 +1158,7 @@ function PostEditorInner ({
       isSubmittingRef.current = false
       throw error
     }
-  }, [afterSave, announcementSelected, cancelPendingSave, clearDraft, currentFundingRound?.id, currentPost, currentTrack?.id, currentUser, dispatch, fileAttachments, imageAttachments, isEditing, modal, onSave, reset, selectedLocation, setIsDirty])
+  }, [afterSave, announcementSelected, cancelPendingSave, clearDraft, currentFundingRound?.id, currentPost, currentTrack?.id, currentUser, dispatch, fileAttachments, imageAttachments, isEditing, onSave, selectedLocation, setIsDirty, syncDetailsToCurrentPost, viewId])
 
   /**
    * Initiates the save process with validation and confirmation checks
@@ -1345,7 +1237,14 @@ function PostEditorInner ({
     return true
   }, [currentPost, myAdminGroups])
 
-  const canHaveTimes = !['discussion', 'chat', 'action', 'submission'].includes(currentPost.type)
+  const canHaveTimes = !['discussion', 'action', 'submission'].includes(currentPost.type)
+  const eventTimezone = currentPost.timezone || DateTimeHelpers.getCurrentTimezone()
+  const startTimePickerValue = currentPost.startTime
+    ? DateTimeHelpers.toPickerDate(currentPost.startTime, eventTimezone)
+    : undefined
+  const endTimePickerValue = currentPost.endTime
+    ? DateTimeHelpers.toPickerDate(currentPost.endTime, eventTimezone)
+    : undefined
   const postLocation = currentPost.location || selectedLocation
   const locationPrompt = currentPost.type === 'proposal' ? t('Is there a relevant location for this proposal?') : t('Where is your {{type}} located?', { type: currentPost.type })
   const hasStripeAccount = get('hasStripeAccount', currentUser)
@@ -1381,7 +1280,7 @@ function PostEditorInner ({
   }, [showSubmissionCriteria, showAllSubmissionCriteria, currentFundingRound?.criteria])
 
   return (
-    <div className={cn('flex flex-col rounded-lg bg-background p-3 shadow-2xl relative gap-4 border-2 border-foreground/30', { 'pb-1 pt-2': !modal, 'gap-2': !modal })}>
+    <div className={cn('flex flex-col rounded-lg bg-background p-3 shadow-2xl relative gap-4 border-2 border-foreground/30')}>
       <div
         className='absolute -top-[20px] left-0 right-0 h-[20px] bg-gradient-to-t from-black/10 to-transparent'
         style={{
@@ -1396,16 +1295,15 @@ function PostEditorInner ({
             )
           : isSubmission
             ? (
-              <div className=''>{isEditing ? t('Edit {{submissionDescriptor}}', { submissionDescriptor: currentFundingRound?.submissionDescriptor }) : t('Add {{submissionDescriptor}}', { submissionDescriptor: currentFundingRound?.submissionDescriptor })}</div>
+              <div className=''>{isEditing ? t('Edit {{submissionDescriptor}}', { submissionDescriptor: currentFundingRound?.submissionDescriptor || t('Submission') }) : t('Add {{submissionDescriptor}}', { submissionDescriptor: currentFundingRound?.submissionDescriptor || t('Submission') })}</div>
               )
             : (
               <PostTypeSelect
                 allowedPostTypes={allowedPostTypes}
                 disabled={loading}
-                includeChat={!modal}
                 postType={currentPost.type}
                 setPostType={handlePostTypeSelection}
-                className={cn({ 'absolute top-3 right-1 z-10': isChat, hidden: !!currentFundingRound })}
+                className={cn({ hidden: !!currentFundingRound })}
               />
               )}
       </div>
@@ -1435,13 +1333,13 @@ function PostEditorInner ({
           )}
         </div>
       )}
-      {!isChat && !isAction && !isSubmission && (
+      {!isAction && !isSubmission && (
         <div
-          className={cn('PostEditorTo flex items-center border-2 border-transparent transition-all', styles.section, { 'border-2 border-focus': toFieldFocused })}
+          className={cn('PostEditorTo flex w-full items-center bg-input rounded p-1 border-2 border-transparent transition-all', { 'border-2 border-focus': toFieldFocused })}
           onClick={handleToFieldContainerClick}
         >
           <div className='text-xs text-foreground/50 px-2'>{t('To')}</div>
-          <div className={cn('border-foreground w-full', styles.sectionGroups)}>
+          <div className='border-foreground w-full'>
             <ToField
               options={toOptions}
               selected={selectedToOptions}
@@ -1456,48 +1354,43 @@ function PostEditorInner ({
           </div>
         </div>
       )}
-      {!isChat && (
-        <div className={cn('PostEditorTitle transition-all border-2 border-transparent', styles.section, { 'border-2 border-focus': titleFocused })}>
-          <div className='text-xs text-foreground/50 px-2'>{t('Title')}</div>
-          <input
-            type='text'
-            className='bg-transparent focus:outline-none flex-1 placeholder:text-foreground/50 border-transparent'
-            value={currentPost.title || ''}
-            onChange={handleTitleChange}
-            disabled={loading}
-            ref={titleInputRef}
-            maxLength={MAX_TITLE_LENGTH}
-            onFocus={() => setTitleFocused(true)}
-            onBlur={() => setTitleFocused(false)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' && event.altKey) {
-                doSave()
-              }
-            }}
-          />
-          {titleLengthError && (
-            <span className={styles.titleError}>{t('Title limited to {{maxTitleLength}} characters', { maxTitleLength: MAX_TITLE_LENGTH })}</span>
-          )}
-        </div>
-      )}
+      <div className={cn('PostEditorTitle flex w-full items-center bg-input rounded p-1 transition-all border-2 border-transparent', { 'border-2 border-focus': titleFocused })}>
+        <div className='text-xs text-foreground/50 px-2'>{t('Title')}</div>
+        <input
+          type='text'
+          className='bg-transparent focus:outline-none flex-1 placeholder:text-foreground/50 border-transparent'
+          value={currentPost.title || ''}
+          onChange={handleTitleChange}
+          disabled={loading}
+          ref={titleInputRef}
+          maxLength={MAX_TITLE_LENGTH}
+          onFocus={() => setTitleFocused(true)}
+          onBlur={() => setTitleFocused(false)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' && event.altKey) {
+              doSave()
+            }
+          }}
+        />
+        {titleLengthError && (
+          <span className='text-black bg-[#FFB949] w-full relative -top-[15px] pb-[2px] px-[10px] rounded-[7px]'>{t('Title limited to {{maxTitleLength}} characters', { maxTitleLength: MAX_TITLE_LENGTH })}</span>
+        )}
+      </div>
       <div className={cn(
-        'PostEditorContent',
-        styles.section,
-        'flex flex-col !items-start border-2 border-transparent shadow-md transition-all duration-200 overflow-x-hidden focus-within:border-2 focus-within:border-focus',
-        { 'max-h-[300px]': !modal }
+        'PostEditorContent w-full bg-input rounded p-1',
+        'flex flex-col !items-start border-2 border-transparent shadow-md transition-all duration-200 overflow-x-hidden focus-within:border-2 focus-within:border-focus'
       )}
       >
         {currentPost.details === null || loading
-          ? <div className={styles.editor}><Loading /></div>
+          ? <div><Loading /></div>
           : <HyloEditor
-              placeholder={isChat ? t('Send a chat to {{topicName}}', { topicName: hiddenTopic ? t('funding round') : '#' + currentPost?.topics?.[0]?.name }) : t('Add a description')}
+              placeholder={t('Add a description')}
               onUpdate={handleDetailsChange}
               onAltEnter={doSave}
               onAddTopic={handleAddTopic}
               onAddLink={handleAddLinkPreview}
               contentHTML={editorInitialContent}
               groupIds={groupIds}
-              menuClassName={cn({ 'pr-16': isChat })}
               showMenu
               readOnly={loading}
               ref={editorRef}
@@ -1531,7 +1424,7 @@ function PostEditorInner ({
       {currentPost.type === 'project' && (
         <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
           <div className='text-xs text-foreground/50 w-[120px]'>{t('Project Members')}</div>
-          <div className={styles.sectionGroups}>
+          <div className='w-full'>
             <MemberSelector
               initialMembers={currentPost.members || []}
               onChange={handleUpdateProjectMembers}
@@ -1543,9 +1436,9 @@ function PostEditorInner ({
           </div>
         </div>
       )}
-      {/* <div className={styles.section}>
-        <div className={styles.sectionLabel}>{t('Topics')}</div>
-        <div className={styles.sectionTopics}>
+      {/* <div className='flex w-full items-center bg-input rounded p-1'>
+        <div className='text-sm text-foreground/80 whitespace-nowrap mr-4'>{t('Topics')}</div>
+        <div>
           <TopicSelector
             forGroups={selectedGroups && selectedGroups.length > 0 ? selectedGroups : (currentPost?.groups || (currentGroup ? [currentGroup] : []))}
             selectedTopics={currentPost.topics}
@@ -1553,8 +1446,8 @@ function PostEditorInner ({
           />
         </div>
       </div> */}
-      {!isChat && !isAction && !isSubmission && (
-        <div className={cn('PostEditorPublic', styles.section)}>
+      {!isAction && !isSubmission && (
+        <div className='PostEditorPublic flex w-full items-center bg-input rounded p-1'>
           <PublicToggle
             togglePublic={togglePublic}
             isPublic={!!currentPost.isPublic}
@@ -1613,7 +1506,7 @@ function PostEditorInner ({
                 >
                   <SelectTrigger className='w-fit p-2 border-2 border-foreground/30 rounded-md'>
                     <SelectValue placeholder={t('Emoji')}>
-                      <span className={cn(styles.optionDropdownLabel, styles.dropdownLabel)}>
+                      <span className='text-base p-[3px] whitespace-nowrap'>
                         {option.emoji || t('Emoji')}
                       </span>
                     </SelectValue>
@@ -1706,7 +1599,7 @@ function PostEditorInner ({
       )}
       {currentPost.type === 'proposal' && (
         <div className='border-2 border-transparent transition-all flex items-center gap-2 bg-input rounded-md p-2'>
-          <div className='text-xs text-foreground/50 w-[100px]'>{t('Quorum')} <Icon name='Info' className={cn(styles.quorumTooltip)} data-tip={t('quorumExplainer')} data-tip-for='quorum-tt' /></div>
+          <div className='text-xs text-foreground/50 w-[100px]'>{t('Quorum')} <Icon name='Info' className='text-xs' data-tip={t('quorumExplainer')} data-tip-for='quorum-tt' /></div>
           <SliderInput percentage={currentPost.quorum || 0} setPercentage={handleSetQuorum} />
           <ReactTooltip
             backgroundColor='rgba(35, 65, 91, 1.0)'
@@ -1735,7 +1628,7 @@ function PostEditorInner ({
             <DateTimePicker
               hourCycle={hourCycle}
               granularity='minute'
-              value={currentPost.startTime}
+              value={startTimePickerValue}
               placeholder={t('Select Start')}
               onChange={handleStartTimeChange}
               onMonthChange={() => {}}
@@ -1745,7 +1638,7 @@ function PostEditorInner ({
               ref={endTimeRef}
               hourCycle={hourCycle}
               granularity='minute'
-              value={currentPost.endTime}
+              value={endTimePickerValue}
               placeholder={t('Select End')}
               onChange={handleEndTimeChange}
               onMonthChange={() => {}}
@@ -1753,8 +1646,19 @@ function PostEditorInner ({
           </div>
         </div>
       )}
+      {currentPost.type === 'event' && (
+        <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
+          <div className='text-xs text-foreground/50 shrink-0'>{t('Timezone')}</div>
+          <TimezoneSelect
+            className='border-none bg-transparent'
+            value={eventTimezone}
+            onChange={handleTimezoneChange}
+            disabled={loading}
+          />
+        </div>
+      )}
       {canHaveTimes && dateError && (
-        <span className={styles.datepickerError}>
+        <span className='text-white bg-destructive w-full ml-[10px] pb-[2px] px-[10px] rounded-[7px]'>
           {t('End Time must be after Start Time')}
         </span>
       )}
@@ -1770,7 +1674,7 @@ function PostEditorInner ({
           <div className='text-xs text-foreground/50'>{t('Location')}</div>
           <LocationInput
             saveLocationToDB
-            inputPosition={modal ? 'top' : 'bottom'}
+            inputPosition='top'
             locationObject={currentPost.locationObject}
             location={postLocation}
             onChange={handleLocationChange}
@@ -1782,7 +1686,7 @@ function PostEditorInner ({
       {currentPost.type === 'event' && (
         <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2'>
           <div className='text-xs text-foreground/50 w-[100px]'>{t('Invite People')}</div>
-          <div className={styles.sectionGroups}>
+          <div className='w-full'>
             <MemberSelector
               initialMembers={currentPost.eventInvitations || []}
               onChange={handleUpdateEventInvitations}
@@ -1795,30 +1699,23 @@ function PostEditorInner ({
       )}
       {currentPost.type === 'project' && currentUser.hasFeature(PROJECT_CONTRIBUTIONS) && (
         <div className='flex items-center border-2 border-transparent transition-all'>
-          <div className={styles.sectionLabel}>{t('Accept Contributions')}</div>
+          <div className='text-sm text-foreground/80 whitespace-nowrap mr-4'>{t('Accept Contributions')}</div>
           {hasStripeAccount && (
-            <div
-              className={cn(styles.sectionGroups, styles.acceptContributions)}
-            >
+            <div className='w-full flex items-center'>
               <Switch
                 value={currentPost.acceptContributions}
                 onClick={handleToggleContributions}
-                className={styles.acceptContributionsSwitch}
+                className='mr-[55px]'
               />
               {!currentPost.acceptContributions && (
-                <div className={styles.acceptContributionsHelp}>
+                <div className='text-[13px] leading-[19px] text-foreground/60'>
                   {t('If you turn Accept Contributions on, people will be able to send money to your Stripe connected account to support this project.')}
                 </div>
               )}
             </div>
           )}
           {!hasStripeAccount && (
-            <div
-              className={cn(
-                styles.sectionGroups,
-                styles.acceptContributionsHelp
-              )}
-            >
+            <div className='w-full text-[13px] leading-[19px] text-foreground/60'>
               {t(`To accept financial contributions for this project, you have
               to connect a Stripe account. Go to`)}
               <a href='/settings/payment'>{t('Settings')}</a>{' '}{t('to set it up.')}
@@ -1829,8 +1726,8 @@ function PostEditorInner ({
       )}
       {currentPost.type === 'project' && (
         <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
-          <div className={cn('text-xs text-foreground/50 w-[100px]', { [styles.warning]: !!currentPost.donationsLink && !sanitizeURL(currentPost.donationsLink) })}>{t('Donation Link')}</div>
-          <div className={styles.sectionGroups}>
+          <div className={cn('text-xs text-foreground/50 w-[100px]', { 'text-destructive': !!currentPost.donationsLink && !sanitizeURL(currentPost.donationsLink) })}>{t('Donation Link')}</div>
+          <div className='w-full'>
             <input
               type='text'
               className='w-full outline-none border-none bg-transparent placeholder:text-foreground/50'
@@ -1844,8 +1741,8 @@ function PostEditorInner ({
       )}
       {currentPost.type === 'project' && (
         <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
-          <div className={cn('text-xs text-foreground/50 w-[160px]', { [styles.warning]: !!currentPost.projectManagementLink && !sanitizeURL(currentPost.projectManagementLink) })}>{t('Project Management')}</div>
-          <div className={styles.sectionGroups}>
+          <div className={cn('text-xs text-foreground/50 w-[160px]', { 'text-destructive': !!currentPost.projectManagementLink && !sanitizeURL(currentPost.projectManagementLink) })}>{t('Project Management')}</div>
+          <div className='w-full'>
             <input
               type='text'
               className='w-full outline-none border-none bg-transparent placeholder:text-foreground/50'
@@ -1862,7 +1759,7 @@ function PostEditorInner ({
           <div className='text-xs text-foreground/50 mr-2 whitespace-nowrap'>
             {t('Budget Total')}{currentPost.type === 'submission' && currentFundingRound?.requireBudget ? '*' : ''}
           </div>
-          <div className={styles.sectionGroups}>
+          <div className='w-full'>
             <input
               type='text'
               className='w-full outline-none border-none bg-transparent placeholder:text-foreground/50'
@@ -1932,7 +1829,9 @@ function PostEditorInner ({
 function CompletionActionSection ({ currentPost, loading, setCurrentPost }) {
   const { t } = useTranslation()
   const routeParams = useRouteParams()
-  const currentTrack = useSelector(state => getTrack(state, routeParams.trackId))
+  const effectiveGroupSlug = useEffectiveGroupSlug()
+  const group = useSelector(state => getGroupForSlug(state, effectiveGroupSlug || routeParams.groupSlug))
+  const currentTrack = group?.track || null
 
   const { completionAction, completionActionSettings } = currentPost
 

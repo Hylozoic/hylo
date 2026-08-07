@@ -12,12 +12,14 @@ import classes from './Dropdown.module.scss'
  */
 const Dropdown = ({ children, className, triangle, items, toggleChildren, alignRight, menuAbove, noOverflow, id }) => {
   const [active, setActive] = useState(false)
+  const [openSubmenuKey, setOpenSubmenuKey] = useState(null)
   const parentRef = useRef(null)
   const { activeDropdownId, openDropdown, closeAllDropdowns } = useDropdown()
 
   useEffect(() => {
     if (activeDropdownId !== id) {
       setActive(false)
+      setOpenSubmenuKey(null)
     }
   }, [activeDropdownId, id])
 
@@ -29,10 +31,12 @@ const Dropdown = ({ children, className, triangle, items, toggleChildren, alignR
     if (!active) {
       closeAllDropdowns()
       openDropdown(id)
+      setActive(true)
     } else {
       closeAllDropdowns()
+      setActive(false)
+      setOpenSubmenuKey(null)
     }
-    setActive(!active)
   }
 
   const handleHide = (e) => {
@@ -41,6 +45,7 @@ const Dropdown = ({ children, className, triangle, items, toggleChildren, alignR
     if (active) {
       closeAllDropdowns()
       setActive(false)
+      setOpenSubmenuKey(null)
     }
     return true
   }
@@ -84,20 +89,82 @@ const Dropdown = ({ children, className, triangle, items, toggleChildren, alignR
       return null
     }
 
-    let menuItems = children || items.map(item =>
-      <li
-        className={cn(
-          'flex items-center px-4 py-2 cursor-pointer select-none',
-          'text-foreground hover:bg-accent/10 transition-colors',
-          'border-b border-foreground/10 last:border-b-0',
-          { 'text-destructive': item.red }
-        )}
-        onClick={item.onClick}
-        key={item.key || item.label}
-      >
-        {renderIcon(item.icon)}
-        <span className='whitespace-nowrap'>{item.label}</span>
-      </li>)
+    let menuItems = children || items.map(item => {
+      if (item.items?.length) {
+        const submenuKey = item.key || item.label
+        const submenuOpen = openSubmenuKey === submenuKey
+        return (
+          <li
+            className={cn(
+              'relative group/submenu flex items-center px-4 py-2 cursor-pointer select-none',
+              'text-foreground hover:bg-accent/10 transition-colors',
+              'border-b border-foreground/10 last:border-b-0'
+            )}
+            key={submenuKey}
+            onClick={(e) => {
+              e.stopPropagation()
+              e.preventDefault()
+              item.onOpen?.()
+              setOpenSubmenuKey(prev => prev === submenuKey ? null : submenuKey)
+            }}
+          >
+            {renderIcon(item.icon)}
+            <span className='whitespace-nowrap flex-1'>{item.label}</span>
+            <span className='ml-2 text-foreground/40'>›</span>
+            <ul
+              className={cn(
+                'absolute top-0 list-none p-0 m-0 rounded-lg overflow-hidden',
+                'bg-card border border-foreground/10 shadow-lg z-40 min-w-[160px]',
+                'opacity-0 invisible group-hover/submenu:opacity-100 group-hover/submenu:visible',
+                { 'opacity-100 visible': submenuOpen },
+                alignRight ? 'right-full mr-1' : 'left-full ml-1'
+              )}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {item.items.map(subItem => (
+                <li
+                  key={subItem.key || subItem.label}
+                  className={cn(
+                    'flex items-center px-4 py-2 cursor-pointer select-none',
+                    'text-foreground hover:bg-accent/10 transition-colors',
+                    'border-b border-foreground/10 last:border-b-0',
+                    { 'text-foreground/40 cursor-default hover:bg-transparent': subItem.disabled }
+                  )}
+                  onClick={(e) => {
+                    if (subItem.disabled) {
+                      e.stopPropagation()
+                      e.preventDefault()
+                      return
+                    }
+                    subItem.onClick?.(e)
+                    handleHide(e)
+                  }}
+                >
+                  {renderIcon(subItem.icon)}
+                  <span className='whitespace-nowrap'>{subItem.label}</span>
+                </li>
+              ))}
+            </ul>
+          </li>
+        )
+      }
+
+      return (
+        <li
+          className={cn(
+            'flex items-center px-4 py-2 cursor-pointer select-none',
+            'text-foreground hover:bg-accent/10 transition-colors',
+            'border-b border-foreground/10 last:border-b-0',
+            { 'text-destructive': item.red }
+          )}
+          onClick={item.onClick}
+          key={item.key || item.label}
+        >
+          {renderIcon(item.icon)}
+          <span className='whitespace-nowrap'>{item.label}</span>
+        </li>
+      )
+    })
 
     if (triangle) {
       const triangleLi = (
@@ -126,10 +193,11 @@ const Dropdown = ({ children, className, triangle, items, toggleChildren, alignR
       >
         <ul
           className={cn(
-            'list-none p-0 m-0 rounded-lg overflow-hidden',
+            'list-none p-0 m-0 rounded-lg',
             'bg-card border border-foreground/10',
             { hidden: !active },
-            { 'overflow-visible': noOverflow }
+            { 'overflow-hidden': !noOverflow },
+            { 'overflow-visible': noOverflow || items?.some(item => item.items?.length) }
           )}
           onClick={handleToggle}
         >

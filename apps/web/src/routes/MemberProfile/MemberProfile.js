@@ -30,6 +30,7 @@ import PostDialog from 'components/PostDialog'
 import SkillsSection from 'components/SkillsSection'
 import SkillsToLearnSection from 'components/SkillsToLearnSection'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
+import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import useViewPostDetails from 'hooks/useViewPostDetails'
 import blockUser from 'store/actions/blockUser'
 import { twitterUrl, AXOLOTL_ID } from 'store/models/Person'
@@ -79,7 +80,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
     FETCH_MEMBER_REACTIONS
   ], state))
   const personLoading = useSelector(state => isPendingFor(fetchPerson, state))
-  const groupSlug = routeParams.groupSlug
+  const groupSlug = useEffectiveGroupSlug()
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
   const roles = useSelector(state => getRolesForGroup(state, { person, groupId: group?.id }))
   const currentUser = useSelector(getMe)

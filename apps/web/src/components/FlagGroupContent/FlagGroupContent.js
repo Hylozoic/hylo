@@ -4,7 +4,8 @@ import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import TextareaAutosize from 'react-textarea-autosize'
 import Button from 'components/ui/button'
-import CheckBox from 'components/CheckBox'
+import Checkbox from 'components/ui/checkbox'
+import { Label } from 'components/ui/label'
 import Icon from 'components/Icon'
 import MultiSelect from 'components/MultiSelect'
 import fetchPlatformAgreements from 'store/actions/fetchPlatformAgreements'
@@ -154,12 +155,16 @@ const FlagGroupContent = ({ onClose, onFlag, linkData, type = 'content' }) => {
               </div>
             </div>
             <div className='flex items-center justify-between pt-2 border-t border-foreground/10'>
-              <CheckBox
-                checked={anonymous}
-                label={t('Anonymous (moderators will see your name)')}
-                onChange={value => setAnonymous(value)}
-                className='text-sm text-foreground/70'
-              />
+              <div className='flex items-center gap-2'>
+                <Checkbox
+                  id='flag-anonymous'
+                  checked={anonymous}
+                  onCheckedChange={value => setAnonymous(!!value)}
+                />
+                <Label htmlFor='flag-anonymous' className='cursor-pointer font-normal text-sm text-foreground/70'>
+                  {t('Anonymous (moderators will see your name)')}
+                </Label>
+              </div>
               <Button
                 variant='secondary'
                 onClick={submit}

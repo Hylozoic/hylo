@@ -9,6 +9,9 @@ import { getEmptyState } from 'store'
 import createRootReducer from 'store/reducers'
 import createMiddleware from 'store/middleware'
 import { LayoutFlagsProvider } from 'contexts/LayoutFlagsContext'
+import { DropdownProvider } from 'contexts/DropdownContext'
+import { ViewHeaderProvider } from 'contexts/ViewHeaderContext/ViewHeaderProvider'
+import { CookieConsentProvider } from 'contexts/CookieConsentContext'
 import { TooltipProvider } from 'components/ui/tooltip'
 
 // Note: This is ran by default via `customRender` below, but it's necessary to manually
@@ -35,25 +38,31 @@ export function generateStore (providedState) {
 export const AllTheProviders = (providedState, initialEntries = []) => ({ children }) => {
   return (
     <LayoutFlagsProvider>
-      <Provider store={generateStore(providedState)}>
-        <TooltipProvider>
-          {initialEntries.length > 0
-            ? (
-              <MemoryRouter initialEntries={initialEntries}>
-                <Routes>
-                  <Route path='*' element={children} />
-                </Routes>
-              </MemoryRouter>
-              )
-            : (
-              <BrowserRouter>
-                <Routes>
-                  <Route path='*' element={children} />
-                </Routes>
-              </BrowserRouter>
-              )}
-        </TooltipProvider>
-      </Provider>
+      <ViewHeaderProvider>
+        <DropdownProvider>
+          <Provider store={generateStore(providedState)}>
+            <CookieConsentProvider>
+              <TooltipProvider>
+                {initialEntries.length > 0
+                  ? (
+                    <MemoryRouter initialEntries={initialEntries}>
+                      <Routes>
+                        <Route path='*' element={children} />
+                      </Routes>
+                    </MemoryRouter>
+                    )
+                  : (
+                    <BrowserRouter>
+                      <Routes>
+                        <Route path='*' element={children} />
+                      </Routes>
+                    </BrowserRouter>
+                    )}
+              </TooltipProvider>
+            </CookieConsentProvider>
+          </Provider>
+        </DropdownProvider>
+      </ViewHeaderProvider>
     </LayoutFlagsProvider>
   )
 }

@@ -33,7 +33,7 @@ export default function PeopleInfo ({
   const sortedPeople = currentUserIsMember && people.length === 2
     ? sortBy(c => c.id !== excludePersonId, people) // me first
     : sortBy(c => c.id === excludePersonId, people) // me last
-  const firstName = person => person.id === excludePersonId ? t('You') : person.name.split(' ')[0]
+  const firstName = person => person.id === excludePersonId ? t('You') : (person.name || '').split(' ')[0]
   const {
     emptyMessage,
     phraseSingular,

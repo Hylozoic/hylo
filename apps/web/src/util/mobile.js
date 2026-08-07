@@ -1,6 +1,6 @@
 import isMobile from 'ismobilejs'
 
-export const APP_STORE_APP_URL = 'https://appsto.re/us/0gcV7.i'
+export const APP_STORE_APP_URL = 'https://apps.apple.com/us/app/hylo/id1002185140'
 export const GOOGLE_PLAY_APP_URL = 'https://play.google.com/store/apps/details?id=com.hylo.hyloandroid'
 
 export function mobileRedirect () {

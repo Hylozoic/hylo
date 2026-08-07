@@ -25,14 +25,17 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
     publicMemberDirectory
     showSuggestedSkills
     showWelcomePage
+    layout
   }
   slug
   type
+  parentId
+  icon
+  acceptedPostTypes
   typeDescriptor
   typeDescriptorPlural
   visibility
   websiteUrl
-  welcomePage
   paywall
   canAccess
   agreements {
@@ -160,6 +163,7 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
           publicMemberDirectory
           showSuggestedSkills
           showWelcomePage
+          layout
         }
         slug
       }

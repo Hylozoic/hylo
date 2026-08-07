@@ -1,6 +1,6 @@
 import { createSelector } from 'reselect'
 import { filter, isFunction } from 'lodash'
-import { Check, Play, CircleDashed, BookmarkCheck, Bookmark, Pencil, Link2, Flag, Copy, Trash2 } from 'lucide-react'
+import { Check, Play, CircleDashed, BookmarkCheck, Bookmark, Pencil, Link2, Flag, Copy, Trash2, Library, LibraryBig } from 'lucide-react'
 import { DateTime } from 'luxon'
 import React, { useCallback, useMemo, useState } from 'react'
 import ReactDOM from 'react-dom'
@@ -18,13 +18,16 @@ import Icon from 'components/Icon'
 import Tooltip from 'components/Tooltip'
 import PostCompletion from '../PostCompletion'
 import { getPostTypeIcon, PROPOSAL_STATUS_CASUAL, PROPOSAL_STATUS_COMPLETED } from 'store/models/Post'
-import { RESP_MANAGE_CONTENT } from 'store/constants'
+import { RESP_ADMINISTRATION, RESP_MANAGE_CONTENT } from 'store/constants'
 import { removePostFromUrl, editPostUrl, duplicatePostUrl, postUrl, groupUrl, personUrl, topicUrl } from '@hylo/navigation'
 import getMe from 'store/selectors/getMe'
 import deletePostAction from 'store/actions/deletePost'
 import removePostAction from 'store/actions/removePost'
+import { addPostToView, fetchViewPosts, removePostFromView } from 'store/actions/groupViews'
 import { getResponsibilityTitlesForGroup } from 'store/selectors/getResponsibilitiesForGroup'
+import { getGroupViewById, getGroupViews } from 'store/selectors/getGroupViews'
 import getRolesForGroup from 'store/selectors/getRolesForGroup'
+import { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 import { cn } from 'util/index'
 import {
   unfulfillPost as unfulfillPostAction,
@@ -68,6 +71,7 @@ const selectPostHeaderStateProps = createSelector(
 function PostHeader (props) {
   const {
     chat,
+    childGroupLabel,
     routeParams = {},
     post,
     expanded,
@@ -99,6 +103,7 @@ function PostHeader (props) {
     id,
     endTime,
     startTime,
+    timezone,
     fulfilledAt,
     savedAt
   } = post
@@ -120,6 +125,21 @@ function PostHeader (props) {
   const canEdit = isCreator
   const canFlag = !isCreator
   const canModerate = !isCreator && responsibilities.includes(RESP_MANAGE_CONTENT)
+  const canCurateCollections = responsibilities.includes(RESP_ADMINISTRATION) ||
+    responsibilities.includes(RESP_MANAGE_CONTENT)
+
+  const groupViews = useSelector(state => getGroupViews(state, group))
+  const collectionViews = useMemo(
+    () => (groupViews || []).filter(view => view.type === 'collection'),
+    [groupViews]
+  )
+  const currentCollectionView = useSelector(state => {
+    const viewId = routeParams?.customViewId
+    if (!viewId || !group) return null
+    const view = getGroupViewById(state, group, viewId)
+    return view?.type === 'collection' ? view : null
+  })
+  const isChatPost = type === 'chat'
 
   const closeUrl = useMemo(
     () => removePostFromUrl(`${window.location.pathname}${window.location.search}`),
@@ -203,6 +223,33 @@ function PostHeader (props) {
   const flagPostFunc = () =>
     canFlag ? () => { setFlaggingVisible(true) } : undefined
 
+  const handleOpenCollectionsSubmenu = useCallback(() => {
+    if (!group?.id) return
+    dispatch(fetchViewPosts(group.id, collectionViews[0]?.id))
+  }, [collectionViews, dispatch, group?.id])
+
+  const handleAddToCollection = useCallback((collectionView) => {
+    if (!group?.id || !collectionView?.id || !id) return
+    const alreadyIn = (collectionView.collectionPosts || []).some(p => String(p.id) === String(id))
+    if (alreadyIn) return
+    dispatch(addPostToView({
+      groupId: group.id,
+      viewId: collectionView.id,
+      postId: id,
+      post
+    }))
+  }, [dispatch, group?.id, id, post])
+
+  const handleRemoveFromCollection = useCallback(() => {
+    if (!group?.id || !currentCollectionView?.id || !id) return
+    if (!window.confirm(t('Remove this post from the collection?'))) return
+    dispatch(removePostFromView({
+      groupId: group.id,
+      viewId: currentCollectionView.id,
+      postId: id
+    }))
+  }, [currentCollectionView?.id, dispatch, group?.id, id, t])
+
   if (type === 'action') {
     return <ActionHeader post={post} isCurrentAction={isCurrentAction} actionDescriptor={actionDescriptor} />
   }
@@ -220,15 +267,44 @@ function PostHeader (props) {
     type: 'post'
   }
 
+  const addToCollectionItem = canCurateCollections && !isChatPost && collectionViews.length > 0
+    ? {
+        icon: <Library className='w-4 h-4 text-foreground' />,
+        label: t('Add to Collection'),
+        onOpen: handleOpenCollectionsSubmenu,
+        items: collectionViews.map(collectionView => {
+          const alreadyIn = (collectionView.collectionPosts || []).some(p => String(p.id) === String(id))
+          return {
+            key: collectionView.id,
+            label: alreadyIn
+              ? t('{{name}} (already added)', { name: displayNameForView(collectionView, t) })
+              : displayNameForView(collectionView, t),
+            disabled: alreadyIn,
+            onClick: () => handleAddToCollection(collectionView)
+          }
+        })
+      }
+    : null
+
+  const removeFromCollectionItem = canCurateCollections && currentCollectionView
+    ? {
+        icon: <LibraryBig className='w-4 h-4 text-foreground' />,
+        label: t('Remove from Collection'),
+        onClick: handleRemoveFromCollection
+      }
+    : null
+
   const dropdownItems = filter([
     { icon: <Pencil className='w-4 h-4 text-foreground' />, label: t('Edit'), onClick: canEdit ? editPost : undefined },
     { icon: <Link2 className='w-4 h-4 text-foreground' />, label: t('Copy Link'), onClick: copyLink },
     { icon: savedAt ? <BookmarkCheck className='w-4 h-4 text-foreground' /> : <Bookmark className='w-4 h-4 text-foreground' />, label: savedAt ? t('Unsave Post') : t('Save Post'), onClick: savedAt ? unsavePost : savePost },
     { icon: <Flag className='w-4 h-4 text-foreground' />, label: t('Flag'), onClick: flagPostFunc() },
     { icon: <Copy className='w-4 h-4 text-foreground' />, label: t('Duplicate'), onClick: duplicatePost },
+    addToCollectionItem,
+    removeFromCollectionItem,
     { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: t('Delete'), onClick: isCreator ? () => deletePost(t('Are you sure you want to delete this post? You cannot undo this.')) : undefined, red: true },
     { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: t('Remove From Group'), onClick: canModerate ? () => removePost(t('Are you sure you want to remove this post? You cannot undo this.')) : undefined, red: true }
-  ], item => isFunction(item.onClick))
+  ], item => item && (isFunction(item.onClick) || item.items?.length))
 
   const typesWithTimes = ['action', 'offer', 'request', 'resource', 'project', 'proposal']
   const canHaveTimes = typesWithTimes.includes(type)
@@ -237,7 +313,12 @@ function PostHeader (props) {
   const canBeCompleted = typesWithCompletion.includes(type) && (type !== 'proposal' || (proposalStatus === PROPOSAL_STATUS_COMPLETED || proposalStatus === PROPOSAL_STATUS_CASUAL))
   const actualEndTime = fulfilledAt && fulfilledAt < endTime ? fulfilledAt : endTime
 
-  const { from, to } = DateTimeHelpers.formatDatePair({ start: startTime, end: actualEndTime, returnAsObj: true })
+  const { from, to } = DateTimeHelpers.formatDatePair({
+    start: startTime,
+    end: actualEndTime,
+    timezone,
+    returnAsObj: true
+  })
 
   const startString = fulfilledAt
     ? false
@@ -275,19 +356,27 @@ function PostHeader (props) {
           <Avatar avatarUrl={creator.avatarUrl} url={creatorUrl} className={cn('mr-3', { 'mr-2': constrained })} medium />
           <div className='flex flex-wrap justify-between flex-1 text-foreground truncate xs:truncate-none overflow-hidden xs:overflow-visible mr-2 xs:max-w-auto'>
             <Highlight {...highlightProps}>
-              <Link to={creatorUrl} className={cn('flex whitespace-nowrap items-center text-card-foreground font-bold font-md text-base', { 'text-sm': constrained })} data-tooltip-content={creator.tagline} data-tooltip-id={`announcement-tt-${id}`}>
-                {creator.name}
-              </Link>
+              <div className='flex flex-col min-w-0'>
+                <Link to={creatorUrl} className={cn('flex whitespace-nowrap items-center text-card-foreground font-bold font-md text-base leading-tight', { 'text-sm': constrained })} data-tooltip-content={creator.tagline} data-tooltip-id={`announcement-tt-${id}`}>
+                  {creator.name}
+                </Link>
+                {/* Where a child post lives, under the author — replaces the tab that floated above the card */}
+                {childGroupLabel && (
+                  <span className='text-xs text-foreground/50 truncate leading-tight'>{childGroupLabel}</span>
+                )}
+              </div>
             </Highlight>
             <div className='flex items-center ml-2'>
+              <span className='text-foreground/50 text-2xs whitespace-nowrap mr-3' data-tooltip-id={`dateTip-${id}`} data-tooltip-content={exactCreatedTimestamp}>
+                {createdTimestamp}
+              </span>
               {type !== 'submission' && (
-                <div className='flex items-center gap-1 border-2 border-foreground/20 rounded text-xs capitalize px-1 text-foreground/70 py1 mr-4'>
+                // h-7 (and rounded-md) so the pill and the three-dot toggle read as one control family.
+                // The old py1 was a dead class — the pill never actually had vertical padding.
+                <div className='flex items-center gap-1 border-2 border-foreground/20 rounded-md text-xs capitalize px-1.5 h-7 text-foreground/70'>
                   <Icon name={getPostTypeIcon(type)} className='text-sm' dataTestId={'post-type-' + type.charAt(0).toUpperCase() + type.slice(1)} />
                   {t(type)}
                 </div>)}
-              <span className='text-foreground/50 text-2xs whitespace-nowrap' data-tooltip-id={`dateTip-${id}`} data-tooltip-content={exactCreatedTimestamp}>
-                {createdTimestamp}
-              </span>
               {announcement && (
                 <span className='mt-[-2px]'>
                   <span className='text-2xs mx-3 relative top-[-6px]'>•</span>
@@ -305,8 +394,11 @@ function PostHeader (props) {
               delay={250}
               id='post-header-flag-tt'
             />
+            {/* !top-0 on the More icon: the global .icon-More style nudges the glyph down
+                1px for optical centering in inline contexts — here the icon IS the bordered
+                box, so the nudge shifted the whole button 1px below the pill beside it */}
             {dropdownItems.length > 0 &&
-              <Dropdown id='post-header-more-dropdown' toggleChildren={<Icon name='More' dataTestId='post-header-more-icon' className='cursor-pointer border-2 border-foreground/30 rounded-md p-2' />} items={dropdownItems} alignRight />}
+              <Dropdown id='post-header-more-dropdown' toggleChildren={<Icon name='More' dataTestId='post-header-more-icon' className='cursor-pointer border-2 border-foreground/30 rounded-md h-7 w-7 flex items-center justify-center !top-0' />} items={dropdownItems} alignRight noOverflow />}
             {close &&
               <a className={cn('inline-block cursor-pointer relative px-3 text-xl')} data-testid='post-detail-close' onClick={close}>
                 <Icon name='Ex' className='align-middle' />

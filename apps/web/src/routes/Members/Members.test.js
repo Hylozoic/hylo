@@ -1,3 +1,8 @@
+import React from 'react'
+import orm from 'store/models'
+import { render, screen, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
+import Members from './Members'
+
 function testProviders () {
   const ormSession = orm.mutableSession(orm.getEmptyState())
   ormSession.Me.create({
@@ -24,3 +29,21 @@ function testProviders () {
 
   return AllTheProviders(reduxState)
 }
+
+describe('Members', () => {
+  it('renders without crashing', () => {
+    const { container } = render(
+      <Members
+        group={{ id: '1', slug: 'goteam', name: 'Go Team' }}
+        members={[]}
+        fetchMembers={jest.fn(() => Promise.resolve({ payload: { data: {} } }))}
+        fetchMemberSuggestions={jest.fn(() => Promise.resolve({ payload: { data: {} } }))}
+        canModerate
+      />,
+      null,
+      testProviders()
+    )
+
+    expect(container.querySelector('#root') || container).toBeTruthy()
+  })
+})

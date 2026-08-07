@@ -64,14 +64,19 @@ const filterMyAndBlockedUserData = async (userId, data) => {
       // Filter out posts that no longer have any comments
       if (key === 'posts_with_new_comments' && object.comments.length === 0) return null
 
-      // Filter out chats that are older than the most recently read chat in that room by this user
-      // Also dont show chats in chat rooms that the user is not following
+      // Filter out chats older than the user's last-read on the group's chat GroupView
       if (key === 'chats') {
         if (!chatRooms[object.topic_name]) {
-          const tag = await Tag.where({ name: object.topic_name }).fetch()
-          chatRooms[object.topic_name] = await TagFollow.where({ tag_id: tag.id, group_id: data.group_id, user_id: userId }).fetch()
+          const chatView = await GroupView.where({
+            group_id: data.group_id,
+            type: GroupView.Type.CHAT
+          }).fetch()
+          chatRooms[object.topic_name] = chatView
+            ? await GroupViewUser.where({ view_id: chatView.id, user_id: userId }).fetch()
+            : null
         }
-        if (!chatRooms[object.topic_name] || object.id <= chatRooms[object.topic_name].get('last_read_post_id')) return null
+        const viewUser = chatRooms[object.topic_name]
+        if (!viewUser || object.id <= viewUser.get('last_read_post_id')) return null
       }
       return object
     }))

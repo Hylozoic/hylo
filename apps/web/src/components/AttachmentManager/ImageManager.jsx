@@ -8,8 +8,6 @@ import { ImagePreview } from './ImagePreview'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import { addAttachment, moveAttachment, removeAttachment } from './AttachmentManager.store'
 
-import classes from './AttachmentManager.module.scss'
-
 export function ImageManager (props) {
   const { t } = useTranslation()
   const {
@@ -49,7 +47,7 @@ export function ImageManager (props) {
       <SortableContext items={images} strategy={horizontalListSortingStrategy}>
         <div className='flex flex-col gap-2 border-t-2 border-dashed border-foreground/20 pt-4 px-4 w-full mx-2'>
           {showLabel && <div className='text-xs text-foreground/70'>{t('Images')}</div>}
-          <div className={classes.imagePreviews}>
+          <div className='flex flex-row flex-wrap items-center'>
             {images.map((attachment, i) =>
               <ImagePreview
                 attachment={attachment}
@@ -57,7 +55,11 @@ export function ImageManager (props) {
                 index={i}
                 key={i}
               />)}
-            {showLoading && uploadAttachmentPending && <div className={classes.addImage}><Loading /></div>}
+            {showLoading && uploadAttachmentPending && (
+              <div className='w-[100px] h-[100px] rounded mr-4 mb-4 pt-4 text-center border-2 border-dashed border-border text-[40px] text-foreground/30 cursor-pointer'>
+                <Loading />
+              </div>
+            )}
             {showAddButton && (
               <UploadAttachmentButton
                 type={type}
@@ -66,7 +68,7 @@ export function ImageManager (props) {
                 onSuccess={handleAddAttachment}
                 allowMultiple
               >
-                <div className={classes.addImage}>+</div>
+                <div className='w-[100px] h-[100px] rounded mr-4 mb-4 pt-4 text-center border-2 border-dashed border-border text-[40px] text-foreground/30 cursor-pointer'>+</div>
               </UploadAttachmentButton>)}
           </div>
         </div>

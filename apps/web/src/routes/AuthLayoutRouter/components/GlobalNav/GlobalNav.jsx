@@ -50,19 +50,26 @@ import BadgedIcon from 'components/BadgedIcon'
 import CreateMenu from 'components/CreateMenu'
 import GlobalNavItem from './GlobalNavItem'
 import GlobalNavTooltipContainer from './GlobalNavTooltipContainer'
-import getMyGroups from 'store/selectors/getMyGroups'
+import { getMyGroupsWithChildren } from 'store/selectors/getMyGroups'
 import { isCompactLayoutDevice, isMobileDevice, downloadApp } from 'util/mobile'
 import isWebView, { sendMessageToWebView, getMobileAppVersion } from 'util/webView'
 import { getCookieConsent } from 'util/cookieConsent'
 import { useCookieConsent } from 'contexts/CookieConsentContext'
 import ModalDialog from 'components/ModalDialog'
 import { pinGroup, unpinGroup, updateGroupNavOrder } from 'store/actions/pinGroup'
+import markGroupAsRead from 'store/actions/markGroupAsRead'
 import logout from 'store/actions/logout'
 import { personUrl } from '@hylo/navigation'
 import { WebViewMessageTypes } from '@hylo/shared'
-import { useTheme } from 'contexts/ThemeContext'
+import useAppearance from 'hooks/useAppearance'
 import { getLocaleFromLocalStorage } from 'util/locale'
 import updateUserSettings from 'store/actions/updateUserSettings'
+import { availableThemes, getAppearanceFromSettings } from 'util/appearance'
+import {
+  NAV_STYLE_GROUP_DEFAULT,
+  NAV_STYLE_ONE_COLUMN,
+  NAV_STYLE_TWO_COLUMN
+} from 'util/navigationLayout'
 
 import styles from './GlobalNav.module.scss'
 
@@ -111,6 +118,7 @@ function SortableGlobalNavItem ({ group, index, isVisible, showTooltip, isContai
         url={`/groups/${group.slug}`}
         className={isVisible}
         showTooltip={isContainerHovered}
+        childGroups={group.childGroups}
         isPinned
       />
     </div>
@@ -120,13 +128,28 @@ function SortableGlobalNavItem ({ group, index, isVisible, showTooltip, isContai
 const NotificationsDropdown = React.lazy(() => import('./NotificationsDropdown'))
 
 // Settings Menu Component
-function SettingsMenu ({ currentUser }) {
+function SettingsMenu ({ currentUser, triggerClassName, contentSide = 'right', contentAlign = 'start' }) {
   const compactLayout = isCompactLayoutDevice()
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const dispatch = useDispatch()
-  const { colorScheme, setColorScheme, currentTheme, setCurrentTheme, availableThemes } = useTheme()
+  const { colorScheme } = useAppearance()
+  const { theme } = getAppearanceFromSettings(currentUser?.settings)
+  const globalNavStyle = currentUser?.settings?.globalNavStyle === 'tabs' ? 'tabs' : 'sidebar'
+  const stackGroups = currentUser?.settings?.stackGroups === true
   const currentLocale = currentUser?.settings?.locale || i18n.language || getLocaleFromLocalStorage() || 'en'
+
+  // Hide the Sidebar/Tabs toggle on phone viewports — tabs are forced off there.
+  const [isPhoneViewport, setIsPhoneViewport] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 639px)').matches
+  )
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const mq = window.matchMedia('(max-width: 639px)')
+    const handler = (e) => setIsPhoneViewport(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
 
   const handleLogout = async () => {
     await dispatch(logout())
@@ -185,19 +208,30 @@ function SettingsMenu ({ currentUser }) {
     }
   }
 
+  const groupNavStyle = currentUser?.settings?.groupNavStyle || NAV_STYLE_GROUP_DEFAULT
+
+  /**
+   * Persists one or more appearance settings on the current user.
+   */
+  const handleSettingChange = (settings) => {
+    if (currentUser) {
+      dispatch(updateUserSettings({ settings }))
+    }
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <span
           data-testid='global-nav-settings-trigger'
-          className={cn('bg-primary relative transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-2 border-foreground/0 hover:border-foreground/50 cursor-pointer', compactLayout ? 'h-10' : 'h-10 sm:h-8')}
+          className={triggerClassName || cn('bg-primary relative transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-2 border-foreground/0 hover:border-foreground/50 cursor-pointer', compactLayout ? 'h-10' : 'h-10 sm:h-8')}
         >
-          <Settings className={cn(compactLayout ? 'w-7 h-7' : 'w-7 h-7 sm:w-6 sm:h-6')} />
+          <Settings className={triggerClassName ? 'w-5 h-5' : cn(compactLayout ? 'w-7 h-7' : 'w-7 h-7 sm:w-6 sm:h-6')} />
         </span>
       </DropdownMenuTrigger>
       <DropdownMenuContent
-        side='right'
-        align='start'
+        side={contentSide}
+        align={contentAlign}
         className={cn(
           'z-[200] bg-card',
           compactLayout
@@ -241,27 +275,88 @@ function SettingsMenu ({ currentUser }) {
             <span>{t('Appearance')}</span>
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent className='z-[200] bg-card'>
-            <div className='px-2 py-1.5 text-sm font-semibold'>{t('Display Mode')}</div>
-            <DropdownMenuRadioGroup value={colorScheme} onValueChange={setColorScheme}>
-              <DropdownMenuRadioItem value='auto'>
-                {t('System')}
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value='light'>
-                {t('Light')}
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value='dark'>
-                {t('Dark')}
-              </DropdownMenuRadioItem>
-            </DropdownMenuRadioGroup>
-            <DropdownMenuSeparator />
-            <div className='px-2 py-1.5 text-sm font-semibold'>{t('Color Scheme')}</div>
-            <DropdownMenuRadioGroup value={currentTheme} onValueChange={setCurrentTheme}>
-              {availableThemes.map(theme => (
-                <DropdownMenuRadioItem key={theme} value={theme} className='capitalize'>
-                  {t(theme)}
-                </DropdownMenuRadioItem>
-              ))}
-            </DropdownMenuRadioGroup>
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                <span>{t('Color Mode')}</span>
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className='z-[200] bg-card'>
+                <DropdownMenuRadioGroup value={colorScheme} onValueChange={value => handleSettingChange({ colorScheme: value })}>
+                  <DropdownMenuRadioItem value='auto'>
+                    {t('System')}
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value='light'>
+                    {t('Light')}
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value='dark'>
+                    {t('Dark')}
+                  </DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                <span>{t('Color Theme')}</span>
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className='z-[200] bg-card'>
+                <DropdownMenuRadioGroup value={theme} onValueChange={value => handleSettingChange({ theme: value })}>
+                  {availableThemes.map(theme => (
+                    <DropdownMenuRadioItem key={theme} value={theme} className='capitalize'>
+                      {t(theme)}
+                    </DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+            {!isPhoneViewport && (
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <span>{t('Global Navigation')}</span>
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className='z-[200] bg-card'>
+                  <DropdownMenuRadioGroup value={globalNavStyle} onValueChange={value => handleSettingChange({ globalNavStyle: value })}>
+                    <DropdownMenuRadioItem value='sidebar'>
+                      {t('Sidebar')}
+                    </DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value='tabs'>
+                      {t('Topbar')}
+                    </DropdownMenuRadioItem>
+                  </DropdownMenuRadioGroup>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+            )}
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                <span>{t('Group Nav Stacking')}</span>
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className='z-[200] bg-card'>
+                <DropdownMenuRadioGroup value={stackGroups ? 'stacked' : 'flat'} onValueChange={value => handleSettingChange({ stackGroups: value === 'stacked' })}>
+                  <DropdownMenuRadioItem value='flat'>
+                    {t('Flat')}
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value='stacked'>
+                    {t('Stacked')}
+                  </DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                <span>{t('Group Menu Style')}</span>
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className='z-[200] bg-card'>
+                <DropdownMenuRadioGroup value={groupNavStyle} onValueChange={value => handleSettingChange({ groupNavStyle: value })}>
+                  <DropdownMenuRadioItem value={NAV_STYLE_GROUP_DEFAULT}>
+                    {t('Group Default')}
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value={NAV_STYLE_TWO_COLUMN}>
+                    {t('Side Menu')}
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value={NAV_STYLE_ONE_COLUMN}>
+                    {t('Card Menu')}
+                  </DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
           </DropdownMenuSubContent>
         </DropdownMenuSub>
         <DropdownMenuSub>
@@ -318,21 +413,42 @@ function SettingsMenu ({ currentUser }) {
   )
 }
 
+// Settings and help sit on one row as small dark squares: they are utilities, not
+// destinations, so they recede against the rail instead of reading as two more tiles.
+const GLOBAL_NAV_UTILITY_BUTTON = 'relative flex items-center justify-center w-8 h-8 shrink-0 rounded-lg bg-black/30 text-white/80 hover:text-white hover:bg-black/50 transition-all cursor-pointer'
+
 export default function GlobalNav (props) {
   const { currentUser } = props
   const { show: showIntercom } = useIntercom()
   const { showPreferences } = useCookieConsent()
   const [showSupportModal, setShowSupportModal] = useState(false)
   const dispatch = useDispatch()
-  const sortedGroups = useSelector(getMyGroups)
+  const stackGroups = currentUser?.settings?.stackGroups === true
+  const rawGroups = useSelector(getMyGroupsWithChildren)
+  // When stacking is off, flatten: every group renders as its own item with no subgroup stack.
+  const sortedGroups = useMemo(
+    () => stackGroups ? rawGroups : rawGroups.map(group => ({ ...group, childGroups: [] })),
+    [rawGroups, stackGroups]
+  )
   const isNavOpen = useSelector(state => get('AuthLayoutRouter.isNavOpen', state))
   const pinnedGroups = useMemo(() => sortedGroups.filter(group => group.navOrder != null), [sortedGroups])
   const unpinnedGroups = useMemo(() => sortedGroups.filter(group => group.navOrder == null), [sortedGroups])
   const compactLayout = isCompactLayoutDevice()
-  const appStoreLinkClass = isMobileDevice() ? 'isMobileDevice' : 'isntMobileDevice'
+  // The store links only go anywhere on a phone or tablet, so don't offer the
+  // download at all on desktop
+  const showAppStoreLink = isMobileDevice() && !isWebView()
   const { t } = useTranslation()
   const [navReady, setNavReady] = useState(false)
   const [isContainerHovered, setIsContainerHovered] = useState(false)
+  // A stack's subgroup menu and the rail's labels are alternatives, never both at
+  // once: the submenu already names every group it contains, so labels behind it
+  // are noise. Kept as a ref too for the listeners that outlive a render.
+  const [submenuOpen, setSubmenuOpen] = useState(false)
+  const submenuOpenRef = useRef(false)
+  // Labels give way to the submenu, but the scrim behind them stays: the submenu
+  // reads as the rail continuing outward, so it needs the same ground to sit on.
+  const showLabels = isContainerHovered && !submenuOpen
+  const showScrim = isContainerHovered || submenuOpen
   const [menuTimeoutId, setMenuTimeoutId] = useState(null)
   const hoverDelayTimeoutRef = useRef(null)
   const ignoreTouchRef = useRef(false) // Ignore touch events briefly after nav opens
@@ -378,6 +494,17 @@ export default function GlobalNav (props) {
     }
     window.addEventListener('contextMenuScroll', handleContextMenuScroll)
     return () => window.removeEventListener('contextMenuScroll', handleContextMenuScroll)
+  }, [])
+
+  // A stack opening its submenu takes the rail's labels down with it
+  useEffect(() => {
+    const handleSubmenuToggle = (e) => {
+      submenuOpenRef.current = e.detail
+      setSubmenuOpen(e.detail)
+      if (e.detail) clearHover()
+    }
+    window.addEventListener('navSubmenuToggle', handleSubmenuToggle)
+    return () => window.removeEventListener('navSubmenuToggle', handleSubmenuToggle)
   }, [])
 
   // Add effect to handle menu timeout
@@ -559,6 +686,7 @@ export default function GlobalNav (props) {
     // Ignore touch-originated pointer events — prevents phantom hover/tooltip
     // when the nav slides open and lands under the user's finger
     if (e.pointerType === 'touch' || ignoreTouchRef.current) return
+    if (submenuOpenRef.current) return
 
     // Clear any existing timeout to avoid race conditions
     if (hoverDelayTimeoutRef.current) {
@@ -612,6 +740,8 @@ export default function GlobalNav (props) {
     // Ignore touch events briefly after nav opens to prevent accidental triggers
     // when the nav slides in and a lingering touch event fires
     if (ignoreTouchRef.current) return
+    // The submenu owns the screen while it's open
+    if (submenuOpenRef.current) return
 
     // On touch, show immediately (no delay like desktop mouse hover)
     touchEndedRef.current = false
@@ -639,6 +769,10 @@ export default function GlobalNav (props) {
 
     const handleNavScroll = () => {
       isScrollingRef.current = true
+      // Scrolling the rail means the user has moved on from the stack they opened
+      if (submenuOpenRef.current) {
+        window.dispatchEvent(new CustomEvent('navSubmenuClose'))
+      }
       // While scrolling, cancel any pending close timeout
       if (clearHoverTimeoutRef.current) {
         clearTimeout(clearHoverTimeoutRef.current)
@@ -675,6 +809,10 @@ export default function GlobalNav (props) {
 
   const handleUnpinGroup = (groupId) => {
     dispatch(unpinGroup(groupId))
+  }
+
+  const handleMarkGroupAsRead = (groupId) => {
+    dispatch(markGroupAsRead(groupId))
   }
 
   // Drag and drop sensors
@@ -756,15 +894,15 @@ export default function GlobalNav (props) {
           tooltip={t('My Home')}
           url='/my'
           className={isVisible(0)}
-          showTooltip={isContainerHovered}
+          showTooltip={showLabels}
         />
 
-        <Suspense fallback={<GlobalNavItem className={isVisible(1)} showTooltip={isContainerHovered}><Bell className='w-7 h-7' /></GlobalNavItem>}>
+        <Suspense fallback={<GlobalNavItem className={isVisible(1)} showTooltip={showLabels}><Bell className='w-7 h-7' /></GlobalNavItem>}>
           <NotificationsDropdown renderToggleChildren={showBadge =>
             <GlobalNavItem
               tooltip={t('Activity')}
               className={isVisible(1)}
-              showTooltip={isContainerHovered}
+              showTooltip={showLabels}
               badgeCount={showBadge ? '-' : 0}
             >
               <BadgedIcon name='Notifications' className='!text-primary-foreground cursor-pointer font-md' />
@@ -776,7 +914,7 @@ export default function GlobalNav (props) {
           tooltip={t('Messages')}
           url='/messages'
           className={isVisible(2)}
-          showTooltip={isContainerHovered}
+          showTooltip={showLabels}
           badgeCount={currentUser?.unseenThreadCount || 0}
         >
           <MessagesSquare />
@@ -786,7 +924,7 @@ export default function GlobalNav (props) {
           tooltip={t('The Commons')}
           url='/public'
           className={isVisible(3)}
-          showTooltip={isContainerHovered}
+          showTooltip={showLabels}
         >
           <Globe color='hsl(var(--primary-foreground))' />
         </GlobalNavItem>
@@ -808,12 +946,13 @@ export default function GlobalNav (props) {
                     group={group}
                     index={pinnedIndex}
                     isVisible={isVisible(4 + pinnedIndex)}
-                    showTooltip={isContainerHovered}
-                    isContainerHovered={isContainerHovered}
+                    showTooltip={showLabels}
+                    isContainerHovered={showLabels}
                     groupRefsMap={groupRefsMap}
                   />
                 </RightClickMenuTrigger>
                 <RightClickMenuContent>
+                  <RightClickMenuItem onClick={() => handleMarkGroupAsRead(group.id)}>{t('Mark as Read')}</RightClickMenuItem>
                   <RightClickMenuItem onClick={() => handleUnpinGroup(group.id)}>{t('Unpin')}</RightClickMenuItem>
                 </RightClickMenuContent>
               </RightClickMenu>
@@ -842,10 +981,12 @@ export default function GlobalNav (props) {
                     tooltip={group.name}
                     url={`/groups/${group.slug}`}
                     className={isVisible(4 + actualIndex)}
-                    showTooltip={isContainerHovered}
+                    showTooltip={showLabels}
+                    childGroups={group.childGroups}
                   />
                 </RightClickMenuTrigger>
                 <RightClickMenuContent>
+                  <RightClickMenuItem onClick={() => handleMarkGroupAsRead(group.id)}>{t('Mark as Read')}</RightClickMenuItem>
                   <RightClickMenuItem onClick={() => handlePinGroup(group.id)}>{t('Pin to top')}</RightClickMenuItem>
                 </RightClickMenuContent>
               </RightClickMenu>
@@ -859,8 +1000,8 @@ export default function GlobalNav (props) {
           'fixed z-0 bottom-0 w-[400px] h-full',
           'transition-all duration-300 ease-out transform  backdrop-blur-md translate-x-0',
           {
-            'opacity-80 translate-x-0': isContainerHovered,
-            'opacity-0 -translate-x-full': !isContainerHovered
+            'opacity-80 translate-x-0': showScrim,
+            'opacity-0 -translate-x-full': !showScrim
           }
         )}
         style={{
@@ -904,48 +1045,52 @@ export default function GlobalNav (props) {
           </PopoverContent>
         </Popover>
 
-        <SettingsMenu currentUser={currentUser} />
+        {/* Settings and help are utilities rather than destinations, so they share a
+            row as small dark squares instead of taking a full-width bright tile each */}
+        <div className='flex items-center justify-center gap-1.5'>
+          <SettingsMenu currentUser={currentUser} triggerClassName={GLOBAL_NAV_UTILITY_BUTTON} />
 
-        <Popover>
-          <PopoverTrigger>
-            <span className={cn('bg-primary relative transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-8 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-2 border-foreground/0 hover:border-foreground/50')}>
-              <HelpCircle className='w-6 h-6' />
-            </span>
-          </PopoverTrigger>
-          <PopoverContent side='right' align='start'>
-            <ul className='flex flex-col gap-2 m-0 p-0'>
-              <li className='w-full'><span className='text-foreground cursor-pointer px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' onClick={handleSupportClick}><MessagesSquare className='h-4 w-4' />{t('Feedback & Support')}</span></li>
-              <li className='w-full'><a className='text-foreground cursor-pointer hover:text-foreground/100 px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' href='https://hylozoic.gitbook.io/hylo/guides/hylo-user-guide' target='_blank' rel='noreferrer'><BookOpen className='h-4 w-4' />{t('User Guide')}</a></li>
-              <li className='w-full'><a className='text-foreground cursor-pointer hover:text-foreground/100 px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' href='http://hylo.com/terms/' target='_blank' rel='noreferrer'><Shield className='h-4 w-4' />{t('Terms & Privacy')}</a></li>
-              {!isWebView() && <li className='w-full'><span className={cn('text-foreground cursor-pointer px-2 py-1 hover:text-foreground/100 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2', styles[appStoreLinkClass])} onClick={downloadApp}><Download className='h-4 w-4' />{t('Download App')}</span></li>}
-              <li className='w-full'><a className='text-foreground cursor-pointer px-2 py-1 hover:text-foreground/100 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' href='https://opencollective.com/hylo' target='_blank' rel='noreferrer'><Heart className='h-4 w-4' />{t('Contribute to Hylo')}</a></li>
-            </ul>
-            {showSupportModal && (
-              <ModalDialog
-                closeModal={() => setShowSupportModal(false)}
-                showModalTitle={false}
-                submitButtonAction={() => {
-                  setShowSupportModal(false)
-                  showPreferences()
-                }}
-                submitButtonText={t('Edit Cookie Preferences')}
-              >
-                <div className='p-4'>
-                  <h2 className='text-xl font-semibold mb-2'>{t('Support Chat Disabled')}</h2>
-                  <p className='text-foreground/70 mb-4'>
-                    {t('To use the support chat you need to enable support cookies in your cookie preferences')}
-                  </p>
-                  <p className='text-foreground/70 mb-2'>
-                    {t('Click below to edit your cookie preferences')}
-                  </p>
-                </div>
-              </ModalDialog>
-            )}
-          </PopoverContent>
-        </Popover>
+          <Popover>
+            <PopoverTrigger>
+              <span className={GLOBAL_NAV_UTILITY_BUTTON}>
+                <HelpCircle className='w-5 h-5' />
+              </span>
+            </PopoverTrigger>
+            <PopoverContent side='right' align='start'>
+              <ul className='flex flex-col gap-2 m-0 p-0'>
+                <li className='w-full'><span className='text-foreground cursor-pointer px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' onClick={handleSupportClick}><MessagesSquare className='h-4 w-4' />{t('Feedback & Support')}</span></li>
+                <li className='w-full'><a className='text-foreground cursor-pointer hover:text-foreground/100 px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' href='https://hylozoic.gitbook.io/hylo/guides/hylo-user-guide' target='_blank' rel='noreferrer'><BookOpen className='h-4 w-4' />{t('User Guide')}</a></li>
+                <li className='w-full'><a className='text-foreground cursor-pointer hover:text-foreground/100 px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' href='http://hylo.com/terms/' target='_blank' rel='noreferrer'><Shield className='h-4 w-4' />{t('Terms & Privacy')}</a></li>
+                {showAppStoreLink && <li className='w-full'><span className='text-foreground cursor-pointer px-2 py-1 hover:text-foreground/100 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' onClick={downloadApp}><Download className='h-4 w-4' />{t('Download App')}</span></li>}
+                <li className='w-full'><a className='text-foreground cursor-pointer px-2 py-1 hover:text-foreground/100 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' href='https://opencollective.com/hylo' target='_blank' rel='noreferrer'><Heart className='h-4 w-4' />{t('Contribute to Hylo')}</a></li>
+              </ul>
+              {showSupportModal && (
+                <ModalDialog
+                  closeModal={() => setShowSupportModal(false)}
+                  showModalTitle={false}
+                  submitButtonAction={() => {
+                    setShowSupportModal(false)
+                    showPreferences()
+                  }}
+                  submitButtonText={t('Edit Cookie Preferences')}
+                >
+                  <div className='p-4'>
+                    <h2 className='text-xl font-semibold mb-2'>{t('Support Chat Disabled')}</h2>
+                    <p className='text-foreground/70 mb-4'>
+                      {t('To use the support chat you need to enable support cookies in your cookie preferences')}
+                    </p>
+                    <p className='text-foreground/70 mb-2'>
+                      {t('Click below to edit your cookie preferences')}
+                    </p>
+                  </div>
+                </ModalDialog>
+              )}
+            </PopoverContent>
+          </Popover>
+        </div>
       </div>
     </div>
   )
 }
 
-export { GlobalNavTooltipContainer }
+export { GlobalNavTooltipContainer, SettingsMenu }

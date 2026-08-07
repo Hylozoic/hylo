@@ -5,7 +5,7 @@
 import React from 'react'
 import { View, FlatList, Text } from 'react-native'
 import { useTranslation } from 'react-i18next'
-import { RESP_MANAGE_TRACKS } from 'store/constants'
+import { RESP_MANAGE_SPACES } from 'store/constants'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useHasResponsibility from '@hylo/hooks/useHasResponsibility'
 import useTracks from '@hylo/hooks/useTracks'
@@ -17,7 +17,7 @@ function Tracks () {
   const { t } = useTranslation()
   const [{ currentGroup }] = useCurrentGroup()
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
-  const canManageTracks = hasResponsibility(RESP_MANAGE_TRACKS)
+  const canManageTracks = hasResponsibility(RESP_MANAGE_SPACES)
   const [tracks, { fetching, error }] = useTracks({
     groupId: currentGroup?.id,
     hideUnpublished: !canManageTracks

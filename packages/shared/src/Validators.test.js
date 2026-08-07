@@ -107,6 +107,19 @@ describe('validateUser', () => {
     it('catches combination of tab and space characters', () => {
       expect(v.validateUser.name(' 	    	     ')).not.toBe(null)
     })
+
+    it('rejects null and undefined', () => {
+      expect(v.validateUser.name(null)).not.toBe(null)
+      expect(v.validateUser.name(undefined)).not.toBe(null)
+    })
+
+    it('rejects empty string', () => {
+      expect(v.validateUser.name('')).not.toBe(null)
+    })
+
+    it('allows a normal name', () => {
+      expect(v.validateUser.name('Ada Lovelace')).toBe(null)
+    })
   })
 })
 

@@ -16,8 +16,9 @@ if (argv.indexOf('--config') < 0) {
   argv.push('--config', 'config/jest.config.js')
 }
 
-// Watch unless on CI or in coverage mode
-if (!process.env.CI && argv.indexOf('--coverage') < 0) {
+// Watch unless on CI, coverage mode, or explicitly disabled
+const watchDisabled = argv.includes('--watchAll=false') || argv.includes('--watch=false')
+if (!process.env.CI && argv.indexOf('--coverage') < 0 && !watchDisabled) {
   argv.push('--watch')
 }
 

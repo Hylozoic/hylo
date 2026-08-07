@@ -8,8 +8,14 @@ export default gql`
       tracksEnrolledIn(autocomplete: $autocomplete, first: $first, offset: $offset, sortBy: $sortBy, order: $order) {
         items {
           ...TrackFields
-          groups {
-            items {
+          space {
+            id
+            avatarUrl
+            name
+            slug
+            type
+            homeRoute
+            parentGroup {
               id
               avatarUrl
               name

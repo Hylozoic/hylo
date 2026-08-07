@@ -12,7 +12,9 @@ import {
   isPublicPath,
   isMapView,
   isGroupsView,
-  origin
+  origin,
+  homeRoutePathForView,
+  groupViewPath
 } from './navigation'
 
 describe('postUrl', () => {
@@ -87,6 +89,16 @@ describe('removeGroupFromUrl', () => {
 describe('editPostUrl', () => {
   it('should return edit action URL with postId', () => {
     const result = editPostUrl('1234', { context: 'groups', groupSlug: 'test' })
+    expect(result).toEqual('/groups/test/post/1234/edit')
+  })
+
+  it('should return edit URL for chat post overlay without doubling post segment', () => {
+    const result = editPostUrl('1234', { context: 'groups', groupSlug: 'test', view: 'chat' })
+    expect(result).toEqual('/groups/test/chat/post/1234/edit')
+  })
+
+  it('should return edit URL for standalone group post detail without doubling post segment', () => {
+    const result = editPostUrl('1234', { context: 'groups', groupSlug: 'test', view: 'post' })
     expect(result).toEqual('/groups/test/post/1234/edit')
   })
 })
@@ -189,5 +201,33 @@ describe('is* functions', () => {
     expect(isPublicPath('/public/something/else')).toBe(true)
     expect(isPublicPath('something/public/else')).toBe(false)
     expect(isPublicPath('something/else/public')).toBe(false)
+  })
+})
+
+describe('homeRoutePathForView', () => {
+  it('returns /all for a missing view', () => {
+    expect(homeRoutePathForView(null)).toEqual('/all')
+  })
+
+  it('returns paths for common home view types', () => {
+    expect(homeRoutePathForView({ type: 'all' })).toEqual('/all')
+    expect(homeRoutePathForView({ type: 'welcome' })).toEqual('/welcome')
+    expect(homeRoutePathForView({ type: 'stream' })).toEqual('/all')
+    expect(homeRoutePathForView({ type: 'custom', id: 12 })).toEqual('/custom/12')
+    expect(homeRoutePathForView({ type: 'collection', id: 34 })).toEqual('/collection/34')
+  })
+
+  it('matches groupViewPath for navigable views', () => {
+    const view = { type: 'track-actions' }
+    expect(homeRoutePathForView(view)).toEqual(groupViewPath(view))
+  })
+
+  it('supports bookshelf-style models', () => {
+    const view = {
+      get (key) {
+        return { type: 'welcome' }[key]
+      }
+    }
+    expect(homeRoutePathForView(view)).toEqual('/welcome')
   })
 })

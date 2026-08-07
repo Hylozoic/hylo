@@ -94,11 +94,16 @@ describe('getMessages', () => {
 
 describe('filterThreadsByParticipant', () => {
   it('works as expected', () => {
-    const mockThread = names => {
+    const mockThread = (names, messages = []) => {
       return {
         participants: {
           toRefArray: function () {
             return names.map(name => ({ name }))
+          }
+        },
+        messages: {
+          toRefArray: function () {
+            return messages
           }
         }
       }
@@ -108,6 +113,7 @@ describe('filterThreadsByParticipant', () => {
     expect(filter(mockThread(['boxhead', 'footballface', 'tvnose']))).toBeTruthy()
     expect(filter(mockThread(['Fearsome Foe', 'jim jam']))).toBeTruthy()
     expect(filter(mockThread(['Tiresome toe', 'jim jam']))).toBeFalsy()
+    expect(filter(mockThread(['jim jam'], [{ text: 'foosball tonight' }]))).toBeTruthy()
 
     const noFilter = filterThreadsByParticipant()
     expect(noFilter(mockThread(['whomever']))).toBeTruthy()

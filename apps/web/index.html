@@ -24,10 +24,44 @@
     <meta name="color-scheme" content="light dark">
 
     <title>Hylo</title>
+
+    <!--
+      Boot indicator. Nothing paints until React mounts, and no stylesheet exists
+      before then either — in dev the CSS arrives through the module graph — so a
+      device in dark mode just shows the browser's dark canvas until the app is
+      ready. That wait scales with latency: a few seconds on a LAN, minutes over a
+      relayed connection where the dev server's ~1400 modules each cost a round
+      trip. Inline here so it costs no request of its own, and delayed so a fast
+      load never flashes it. React clears #root when it mounts, which removes it.
+    -->
+    <style>
+      .boot-indicator {
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .boot-indicator span {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        border: 3px solid rgba(128, 128, 128, 0.25);
+        border-top-color: rgba(128, 128, 128, 0.9);
+        opacity: 0;
+        animation: boot-spin 0.8s linear infinite, boot-appear 0.3s ease-out 0.5s forwards;
+      }
+      @keyframes boot-spin { to { transform: rotate(360deg); } }
+      @keyframes boot-appear { to { opacity: 1; } }
+      @media (prefers-reduced-motion: reduce) {
+        .boot-indicator span { animation: boot-appear 0.3s ease-out 0.5s forwards; }
+      }
+    </style>
   </head>
   <body>
     <!-- if the value of 'root' is ever changed, than also change the value in /src/client/util -->
-    <div id="root" style="height: 100%; overflow: hidden;"></div>
+    <div id="root" style="height: 100%; overflow: hidden;">
+      <div class="boot-indicator" role="status" aria-label="Loading"><span></span></div>
+    </div>
 
     <!--
       This HTML file is a template.
