@@ -197,7 +197,7 @@ export function runSkillsGraph (container, nodesData, linksData, { onSkillClick,
           ctx.globalAlpha = alpha
           ctx.drawImage(sprite, d.x - PERSON_RADIUS, d.y - PERSON_RADIUS, PERSON_RADIUS * 2, PERSON_RADIUS * 2)
         } else {
-          ctx.globalAlpha = alpha * 0.7
+          ctx.globalAlpha = alpha * 0.35
           ctx.beginPath()
           ctx.arc(d.x, d.y, PERSON_RADIUS, 0, Math.PI * 2)
           ctx.fillStyle = mutedColor
