@@ -63,7 +63,8 @@ module.exports.policies = {
 
   GroupController: {
     subscribe:   ['isSocket', 'sessionAuth', 'checkAndSetMembership'],
-    unsubscribe: ['isSocket', 'sessionAuth', 'checkAndSetMembership']
+    unsubscribe: ['isSocket', 'sessionAuth', 'checkAndSetMembership'],
+    typing:      ['isSocket', 'sessionAuth', 'checkAndSetMembership']
   },
 
   MurmurationsController: {

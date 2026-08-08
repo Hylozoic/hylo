@@ -10,8 +10,7 @@ import { groupUrl, groupDetailUrl } from '@hylo/navigation'
 import PaywallOfferingsSection from './PaywallOfferingsSection'
 
 import Icon from 'components/Icon'
-
-import classes from './GroupDetail.module.scss'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from 'components/ui/tooltip'
 
 /** Agreements list with per-item "I agree" below description; optional "accept all" when more than 3. */
 function AgreementsBarrierBlock ({ agreements, acceptedAgreements, setAcceptedAgreements, introText }) {
@@ -199,8 +198,6 @@ export default function JoinSection ({ accessCode, addSkill, currentUser, fullPa
           </div>
         </div>
       )}
-      {group.suggestedSkills && group.suggestedSkills.length > 0 &&
-        <SuggestedSkills addSkill={addSkill} currentUser={currentUser} group={group} removeSkill={removeSkill} />}
       {group.prerequisiteGroups && group.prerequisiteGroups.length > 0
         ? (
           <div className='w-full mb-[100px] border border-dashed p-3 rounded bg-midground'>
@@ -211,32 +208,45 @@ export default function JoinSection ({ accessCode, addSkill, currentUser, fullPa
             </h4>
             {group.prerequisiteGroups.map(prereq => (
               <div key={prereq.id} className='p-3 rounded-lg bg-muted shadow mb-4 xs:p-4'>
-                <Link to={fullPage ? groupUrl(prereq.slug) : groupDetailUrl(prereq.slug, routeParams)} className={cn(classes.groupDetailHeader, classes.prereqHeader)} style={{ backgroundImage: `url(${prereq.bannerUrl || DEFAULT_BANNER})` }}>
-                  <div className={classes.groupTitleContainer}>
-                    <img src={prereq.avatarUrl || DEFAULT_AVATAR} height='50px' width='50px' />
-                    <div>
-                      <div className={classes.groupTitle}>{prereq.name}</div>
-                      <div className={classes.groupContextInfo}>
-                        <span className={classes.groupPrivacy}>
-                          <Icon name={visibilityIcon(prereq.visibility)} className={classes.privacyIcon} />
-                          <div className={classes.privacyTooltip}>
-                            <div>{t(visibilityString(prereq.visibility))} - {t(visibilityDescription(prereq.visibility))}</div>
-                          </div>
-                        </span>
-                        <span className={classes.groupPrivacy}>
-                          <Icon name={accessibilityIcon(prereq.accessibility)} className={classes.privacyIcon} />
-                          <div className={classes.privacyTooltip}>
-                            <div>{t(accessibilityString(prereq.accessibility))} - {t(accessibilityDescription(prereq.accessibility))}</div>
-                          </div>
-                        </span>
-                        {prereq.location}
-                      </div>
+                {/* The avatar and name are anchored inside the banner: the row is
+                    pinned to the banner's bottom edge and the name truncates, so a
+                    long name or a tall avatar can't push the block off the artwork. */}
+                <Link
+                  to={fullPage ? groupUrl(prereq.slug) : groupDetailUrl(prereq.slug, routeParams)}
+                  className='relative block w-full h-[83px] rounded-md overflow-hidden bg-cover bg-center bg-no-repeat mb-3'
+                  style={{ backgroundImage: `url(${prereq.bannerUrl || DEFAULT_BANNER})` }}
+                >
+                  <div className='absolute inset-0 bg-gradient-to-b from-black/0 to-black/70' />
+                  <div className='absolute bottom-0 left-0 right-0 z-10 flex items-end gap-2 p-2'>
+                    <img
+                      src={prereq.avatarUrl || DEFAULT_AVATAR}
+                      alt=''
+                      className='w-[50px] h-[50px] shrink-0 rounded-md object-cover'
+                    />
+                    <div className='min-w-0'>
+                      <div className='text-white text-base font-bold drop-shadow-md truncate'>{prereq.name}</div>
+                      <TooltipProvider delayDuration={300}>
+                        <div className='flex items-center gap-2 text-white/80 text-sm drop-shadow-md min-w-0'>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className='flex items-center'><Icon name={visibilityIcon(prereq.visibility)} /></span>
+                            </TooltipTrigger>
+                            <TooltipContent side='top'>{t(visibilityString(prereq.visibility))} - {t(visibilityDescription(prereq.visibility))}</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className='flex items-center'><Icon name={accessibilityIcon(prereq.accessibility)} /></span>
+                            </TooltipTrigger>
+                            <TooltipContent side='top'>{t(accessibilityString(prereq.accessibility))} - {t(accessibilityDescription(prereq.accessibility))}</TooltipContent>
+                          </Tooltip>
+                          {prereq.location && <span className='truncate'>{prereq.location}</span>}
+                        </div>
+                      </TooltipProvider>
                     </div>
                   </div>
-                  <div className={classes.headerBackground} />
                 </Link>
-                <div className={classes.cta}>
-                  {t('To join')}{' '}{group.name}{' '}{t('visit')}<Link to={fullPage ? groupUrl(prereq.slug) : groupDetailUrl(prereq.slug, routeParams)} className={classes.prereqVisitLink}>{prereq.name}</Link>{' '}{t('and become a member')}
+                <div className='text-left text-foreground/80 font-medium'>
+                  {t('To join')}{' '}{group.name}{' '}{t('visit')}{' '}<Link to={fullPage ? groupUrl(prereq.slug) : groupDetailUrl(prereq.slug, routeParams)} className='inline-block rounded-full border border-foreground/20 bg-background px-2.5 py-0.5 text-foreground hover:border-foreground/40 hover:no-underline'>{prereq.name}</Link>{' '}{t('and become a member')}
                 </div>
               </div>
             ))}
@@ -245,11 +255,31 @@ export default function JoinSection ({ accessCode, addSkill, currentUser, fullPa
         : group.numPrerequisitesLeft
           ? t('This group has prerequisite groups you cannot see, you cannot join this group at this time')
           : group.accessibility === GROUP_ACCESSIBILITY.Open
-            ? <JoinQuestionsAndButtons group={group} joinGroup={joinGroup} joinText={t('Join {{group.name}}', { group })} t={t} />
+            ? (
+              <JoinQuestionsAndButtons
+                addSkill={addSkill}
+                currentUser={currentUser}
+                group={group}
+                joinGroup={joinGroup}
+                joinText={t('Join {{group.name}}', { group })}
+                removeSkill={removeSkill}
+                t={t}
+              />
+              )
             : group.accessibility === GROUP_ACCESSIBILITY.Restricted ||
               group.accessibility === GROUP_ACCESSIBILITY.Closed
               ? hasJoinOrInviteLink
-                ? <JoinQuestionsAndButtons group={group} joinGroup={joinGroup} joinText={t('Join {{group.name}}', { group })} t={t} />
+                ? (
+                  <JoinQuestionsAndButtons
+                    addSkill={addSkill}
+                    currentUser={currentUser}
+                    group={group}
+                    joinGroup={joinGroup}
+                    joinText={t('Join {{group.name}}', { group })}
+                    removeSkill={removeSkill}
+                    t={t}
+                  />
+                  )
                 : group.accessibility === GROUP_ACCESSIBILITY.Restricted
                   ? hasPendingRequest
                     ? (
@@ -258,7 +288,17 @@ export default function JoinSection ({ accessCode, addSkill, currentUser, fullPa
                         <span> {t('You will be sent an email and notified on your device when the request is approved.')}</span>
                       </div>
                       )
-                    : <JoinQuestionsAndButtons group={group} joinGroup={requestToJoinGroup} joinText={t('Request Membership in {{group.name}}', { group })} t={t} />
+                    : (
+                      <JoinQuestionsAndButtons
+                        addSkill={addSkill}
+                        currentUser={currentUser}
+                        group={group}
+                        joinGroup={requestToJoinGroup}
+                        joinText={t('Request Membership in {{group.name}}', { group })}
+                        removeSkill={removeSkill}
+                        t={t}
+                      />
+                      )
                   : (
                     <div className='border-2 border-dashed border-foreground/20 rounded-md text-center p-4 text-foreground mt-4 mb-8'>
                       <p className='m-0'>{t('This group is invite only. You require a join or invite link in order to join.')}</p>
@@ -269,12 +309,15 @@ export default function JoinSection ({ accessCode, addSkill, currentUser, fullPa
   )
 }
 
-function JoinQuestionsAndButtons ({ group, joinGroup, joinText, t }) {
+function JoinQuestionsAndButtons ({ addSkill, currentUser, group, joinGroup, joinText, removeSkill, t }) {
   const agreements = group.agreements || []
   const hasAgreements = agreements.length > 0
   const hasRequiredQuestions = group.settings?.askJoinQuestions && group.joinQuestions?.length > 0
+  const hasSuggestedSkills = group.suggestedSkills?.length > 0
   const hasBarriers = hasAgreements || hasRequiredQuestions
-  const [barriersExpanded, setBarriersExpanded] = useState(!hasBarriers)
+  // Expand for agreements/questions and/or skills — skills stay hidden until Join is clicked
+  const hasExpandableContent = hasBarriers || hasSuggestedSkills
+  const [formExpanded, setFormExpanded] = useState(!hasExpandableContent)
 
   const [barriersState, setBarriersState] = useState(null)
 
@@ -306,26 +349,24 @@ function JoinQuestionsAndButtons ({ group, joinGroup, joinText, t }) {
   }
 
   const handleButtonClick = () => {
-    if (hasBarriers && !barriersExpanded) {
-      setBarriersExpanded(true)
+    if (hasExpandableContent && !formExpanded) {
+      setFormExpanded(true)
     } else if (canJoin) {
       joinGroup(group.id, hasBarriers ? (barriersState?.questionAnswers ?? []) : [])
     }
   }
 
-  const getButtonText = () => {
-    if (hasBarriers && !barriersExpanded) {
-      return joinText
-    }
-    return joinText
-  }
-
-  const isButtonDisabled = barriersExpanded && !canJoin
+  const isButtonDisabled = formExpanded && !canJoin
 
   return (
     <div className='JoinSection-QuestionsAndButton border-2 border-dashed border-foreground/20 rounded-xl p-4 w-full mt-4 mb-8'>
-      {barriersExpanded && (
-        <JoinBarriers group={group} onBarriersStateChange={handleBarriersStateChange} joinIntroCopy />
+      {formExpanded && (
+        <>
+          {hasBarriers &&
+            <JoinBarriers group={group} onBarriersStateChange={handleBarriersStateChange} joinIntroCopy />}
+          {hasSuggestedSkills &&
+            <SuggestedSkills addSkill={addSkill} currentUser={currentUser} group={group} removeSkill={removeSkill} />}
+        </>
       )}
 
       <Button
@@ -336,7 +377,7 @@ function JoinQuestionsAndButtons ({ group, joinGroup, joinText, t }) {
         data-tooltip-content={isButtonDisabled ? getDisabledReason() : ''}
         data-tooltip-id='join-tip'
       >
-        {getButtonText()}
+        {joinText}
       </Button>
     </div>
   )

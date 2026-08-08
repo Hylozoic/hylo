@@ -25,7 +25,9 @@ describe('DeleteSettingsTab', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete Group' }))
 
-    expect(window.confirm).toHaveBeenCalledWith('Are you sure you want to delete the group Hylo?')
+    expect(window.confirm).toHaveBeenCalledWith(
+      'Are you sure you want to delete the group Hylo? This will permanently delete the group and all of its content. This cannot be undone.'
+    )
     expect(deleteGroup).not.toHaveBeenCalled()
   })
 
@@ -36,7 +38,10 @@ describe('DeleteSettingsTab', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete Group' }))
 
-    expect(window.confirm).toHaveBeenCalledWith('Are you sure you want to delete the group Hylo?')
+    expect(window.confirm).toHaveBeenCalledWith(
+      'Are you sure you want to delete the group Hylo? This will permanently delete the group and all of its content. This cannot be undone.'
+    )
     expect(deleteGroup).toHaveBeenCalled()
   })
 })
+

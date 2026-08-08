@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { useSelector } from 'react-redux'
 import { createSelector as ormCreateSelector } from 'redux-orm'
-import { COMMON_VIEWS } from '@hylo/presenters/ContextWidgetPresenter'
+import { COMMON_VIEWS } from 'store/models/GroupView'
 import useRouteParams from 'hooks/useRouteParams'
 import orm from 'store/models'
 

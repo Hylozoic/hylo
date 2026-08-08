@@ -1,3 +1,5 @@
+export { default as GroupViewPresenter } from './GroupViewPresenter.js'
+export * from './GroupViewPresenter.js'
 export { default as ContextWidgetPresenter } from './ContextWidgetPresenter.js'
 export * from './ContextWidgetPresenter.js'
 export { default as GroupPresenter } from './GroupPresenter.js'

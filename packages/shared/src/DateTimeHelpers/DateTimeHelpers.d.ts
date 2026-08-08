@@ -31,6 +31,11 @@ export function isSameDay(
   locale?: string
 ): boolean;
 
+export function defaultEventTimesForDate(
+  date: string | Date,
+  locale?: string
+): { startTime: Date; endTime: Date };
+
 export function isSameWeek(
   date1: string | Date | DateTime | Object,
   date2: string | Date | DateTime | Object,
@@ -83,4 +88,48 @@ export function getHourFromDate(
   use24Hour?: boolean,
   timezone?: string,
   locale?: string
-): string; 
+): string;
+
+export interface TimezoneOption {
+  value: string;
+  label: string;
+  offset: number;
+}
+
+export interface FormatEventTimeDisplayOptions {
+  start: string | Date | DateTime | Object;
+  end?: string | Date | DateTime | Object | boolean;
+  eventTimezone?: string;
+  locale?: string;
+}
+
+export interface FormatEventTimeDisplayResult {
+  primary: string;
+  secondary: string | null;
+  eventTimezone: string;
+  userTimezone: string;
+  eventTimezoneLabel: string;
+  userTimezoneLabel: string;
+}
+
+export function getCurrentTimezone(): string;
+
+export function getSupportedTimezones(): string[];
+
+export function getTimezoneFriendlyName(timezone: string, locale?: string): string;
+
+export function getTimezoneOptions(locale?: string): TimezoneOption[];
+
+export function getTimezoneAbbreviation(timezone: string, locale?: string): string;
+
+export function formatEventTimeDisplay(options: FormatEventTimeDisplayOptions): FormatEventTimeDisplayResult;
+
+export function toPickerDate(instant: string | Date | DateTime | Object, timezone: string): Date;
+
+export function fromPickerDate(pickerDate: Date, timezone: string): Date;
+
+export function preserveWallClockOnTimezoneChange(
+  instant: string | Date | DateTime | Object | null | undefined,
+  fromTimezone: string,
+  toTimezone: string
+): Date | null;

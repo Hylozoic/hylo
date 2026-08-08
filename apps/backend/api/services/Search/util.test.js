@@ -68,7 +68,7 @@ describe('filterAndSortPosts', () => {
     expectEqualQuery(relation, `select * from "posts"
       left join "users" as "post_creators" on "posts"."user_id" = "post_creators"."id"
       where "posts"."type" in ('discussion', 'request', 'offer', 'project', 'proposal', 'event', 'resource')
-      and (((to_tsvector('english', posts.name) @@ to_tsquery('alice:*')) or (to_tsvector('english', posts.description) @@ to_tsquery('alice:*')) or (to_tsvector('english', post_creators.name) @@ to_tsquery('alice:*'))))
+      and (posts.name ilike '%alice%' or posts.description ilike '%alice%' or post_creators.name ilike '%alice%')
       order by "posts"."updated_at" desc`)
   })
 })

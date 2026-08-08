@@ -7,6 +7,8 @@ export function presentFundingRound (fundingRound) {
   if (!fundingRound) return null
   return {
     ...fundingRound,
+    // Prefer the space/group description over the legacy funding-round description field
+    description: fundingRound.group?.description ?? fundingRound.description,
     users: fundingRound.users?.items || [],
     submissions: fundingRound.submissions?.items || []
   }

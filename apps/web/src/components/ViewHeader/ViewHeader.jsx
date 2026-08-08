@@ -3,35 +3,114 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate, useLocation } from 'react-router-dom'
+import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
+import { localSpaceSlug } from '@hylo/navigation'
 import Icon from 'components/Icon'
 import InfoButton from 'components/ui/info'
 import { Command, CommandItem, CommandList } from 'components/ui/command'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useRouteParams from 'hooks/useRouteParams'
+import GroupViewIcon from 'routes/AuthLayoutRouter/components/ContextMenu/GroupViewIcon'
+import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
+import { getGroupViews } from 'store/selectors/getGroupViews'
+import { viewAcceptedByPostTypes } from 'store/models/GroupView'
 import getMe from 'store/selectors/getMe'
 import getPreviousLocation from 'store/selectors/getPreviousLocation'
 import { bgImageStyle, cn } from 'util/index'
-import { performMobileNavBack } from 'util/mobileNavBack'
-import { isCompactLayoutDevice, isPhoneDevice } from 'util/mobile'
+import { isCompactLayoutDevice, isDrawerNavLayout, isPhoneDevice } from 'util/mobile'
+import { isCardMenuPreference, isOneColumnLayout } from 'util/navigationLayout'
+
+/** Resolves the parent menu's space view (or a synthetic one for off-menu spaces). */
+function resolveSpaceMenuView (parentGroup, groupViews, parentSlug, spaceSlug) {
+  if (!spaceSlug || !parentSlug) return null
+
+  const menuSpace = (groupViews || []).find(v =>
+    v.type === 'space' &&
+    localSpaceSlug(parentSlug, v.linkedGroup?.slug) === spaceSlug
+  )
+  if (menuSpace) return menuSpace
+
+  const offMenuSpace = (parentGroup?.spaces?.items || []).find(space =>
+    localSpaceSlug(parentSlug, space.slug) === spaceSlug
+  )
+  if (!offMenuSpace) return null
+
+  return {
+    type: 'space',
+    name: offMenuSpace.name,
+    icon: offMenuSpace.icon,
+    linkedGroup: offMenuSpace
+  }
+}
 
 const ViewHeader = () => {
   const dispatch = useDispatch()
-  const { context, groupSlug } = useRouteParams()
+  const { context, groupSlug, spaceSlug } = useRouteParams()
   const navigate = useNavigate()
   const location = useLocation()
   const { t } = useTranslation()
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
+  const groupViews = useSelector(state => spaceSlug ? getGroupViews(state, group) : null)
   const currentUser = useSelector(getMe)
   const { headerDetails } = useViewHeader()
-  const { backButton, mobileBackButton, title, icon, info, search, centered, headerActions } = headerDetails
+  const { backButton, backTo, mobileBackButton, title, icon, info, search, centered, headerActions, spaceBreadcrumb } = headerDetails
 
   const previousLocation = useSelector(getPreviousLocation)
   const compactLayout = isCompactLayoutDevice()
+  const userGroupNavStyle = currentUser?.settings?.groupNavStyle
+  const isOneColumnGroup = context === 'groups' && isOneColumnLayout(userGroupNavStyle, group?.settings?.layout)
+  const isOneColumnContext = isCardMenuPreference(userGroupNavStyle) && ['my', 'all', 'public'].includes(context)
+  const oneColumn = isOneColumnGroup || isOneColumnContext
+
+  const presentedSpaceView = useMemo(() => {
+    if (spaceBreadcrumb === false) return null
+    const spaceView = resolveSpaceMenuView(group, groupViews, groupSlug, spaceSlug)
+    return spaceView ? GroupViewPresenter(spaceView) : null
+  }, [group, groupViews, groupSlug, spaceSlug, spaceBreadcrumb])
+  const spaceName = presentedSpaceView ? displayNameForView(presentedSpaceView, t) : null
+
+  // A single-view space (e.g. chat-only) opens straight into its one view, so the
+  // breadcrumb shows just the space — repeating the lone view's title is noise.
+  const isSingleViewSpace = useMemo(() => {
+    const spaceGroup = presentedSpaceView?.linkedGroup
+    if (!spaceGroup) return false
+    const visibleViews = (spaceGroup.groupViews?.items || [])
+      .filter(v => v.order != null)
+      .filter(v => viewAcceptedByPostTypes(v.type, spaceGroup.acceptedPostTypes))
+    return visibleViews.length === 1
+  }, [presentedSpaceView])
 
   const [searchValue, setSearchValue] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
   const [activeOptionIndex, setActiveOptionIndex] = useState(0)
+  // For card-menu homes: the dashboard banner already shows avatar/name prominently,
+  // so the redundant breadcrumb header is hidden until the user scrolls past it.
+  const [isBannerVisible, setIsBannerVisible] = useState(true)
+
+  useEffect(() => {
+    if (!oneColumn) {
+      setIsBannerVisible(false) // not on card-menu home → don't hide
+      return
+    }
+    let observer
+    // Wait one frame so the ContextMenuGrid banner has mounted after navigation.
+    const rafId = requestAnimationFrame(() => {
+      const bannerEl = document.getElementById('context-menu-grid-banner')
+      if (!bannerEl) {
+        setIsBannerVisible(false) // simple group view (no banner rendered)
+        return
+      }
+      observer = new window.IntersectionObserver(([entry]) => {
+        setIsBannerVisible(entry.isIntersecting)
+      }, { threshold: 0 })
+      observer.observe(bannerEl)
+    })
+    return () => {
+      cancelAnimationFrame(rafId)
+      if (observer) observer.disconnect()
+    }
+  }, [oneColumn, location.pathname])
 
   const searchContainerRef = useRef(null)
   const searchInputRef = useRef(null)
@@ -120,22 +199,98 @@ const ViewHeader = () => {
   // a back button, we always treat the chevron as \"back\" so it never takes
   // two taps.
   const handleChevronClick = () => {
-    performMobileNavBack({
-      dispatch,
-      navigate,
-      headerDetails,
-      previousLocation
-    })
+    // Phone settings use master-detail navigation:
+    // /settings/<tab>  → back to /settings (the menu)
+    // /settings (root) → exit settings, return to the group home. For normal groups
+    //                    also open the drawer so the user lands on the context menu
+    //                    (widget list) instead of the underlying active view.
+    if (isDrawerNavLayout(window.innerWidth) && groupSlug && location.pathname.startsWith(`/groups/${groupSlug}/settings`)) {
+      const isSettingsRoot = location.pathname === `/groups/${groupSlug}/settings` ||
+        location.pathname === `/groups/${groupSlug}/settings/`
+      if (isSettingsRoot) {
+        navigate(`/groups/${groupSlug}`)
+        if (!isOneColumnGroup) {
+          dispatch(toggleNavMenu(true))
+        }
+      } else {
+        navigate(`/groups/${groupSlug}/settings`)
+      }
+      return
+    }
+
+    // One-column groups: back from a space view → space menu; from a group view → group menu.
+    if (isOneColumnGroup && groupSlug) {
+      const path = location.pathname.replace(/\/$/, '')
+      const groupHome = `/groups/${groupSlug}`
+      if (spaceSlug) {
+        const spaceMenu = `/groups/${groupSlug}/spaces/${spaceSlug}`
+        if (path !== spaceMenu) {
+          navigate(spaceMenu)
+          return
+        }
+        if (location.state?.fromMoreViews || location.state?.fromMoreSpaces) {
+          navigate(`${groupHome}/more-views`)
+          return
+        }
+        navigate(groupHome)
+        return
+      }
+      if (path !== groupHome && path !== `${groupHome}/more-views`) {
+        navigate(groupHome)
+        return
+      }
+      if (path === `${groupHome}/more-views`) {
+        navigate(groupHome)
+        return
+      }
+    }
+
+    // Card-menu My/All/Public: back from a view returns to that context's menu home.
+    if (isOneColumnContext) {
+      const path = location.pathname.replace(/\/$/, '')
+      const contextHome = `/${context}`
+      if (path !== contextHome) {
+        navigate(contextHome)
+        return
+      }
+    }
+
+    // Card-menu layouts render the sidebar inline on phone too — there's no
+    // drawer to toggle, so the chevron should navigate back instead.
+    if (isDrawerNavLayout(window.innerWidth) && !mobileBackButton && !backButton && !oneColumn) {
+      dispatch(toggleNavMenu())
+    } else if (backTo) {
+      navigate(backTo)
+    } else if (centered) {
+      navigate(previousLocation || '/')
+    } else {
+      navigate(-1)
+    }
   }
+
+  // Hide ViewHeader on card-menu levels (homes have their own banner;
+  // nested grids have their own sticky back bar). Show it on actual views.
+  const isOneColumnMenuLevel = useMemo(() => {
+    if (!oneColumn) return false
+    const path = location.pathname.replace(/\/$/, '')
+    if (isOneColumnContext && path === `/${context}`) return true
+    if (!isOneColumnGroup || !groupSlug) return false
+    const groupBase = `/groups/${groupSlug}`
+    if (path === groupBase || path === `${groupBase}/more-views`) return true
+    return Boolean(path.match(new RegExp(`^/groups/${groupSlug}/spaces/[^/]+$`)))
+  }, [oneColumn, isOneColumnContext, isOneColumnGroup, context, groupSlug, location.pathname])
 
   // Hide ViewHeader on phones for messages - MessagesMobile handles its own header
   if (isPhoneDevice() && location.pathname.startsWith('/messages')) {
     return null
   }
 
+  // Light mode surfaces sit close in lightness, so the sticky header needs a
+  // hairline edge plus a stronger shadow to read as a layer above the stream.
   return (
-    <header className={cn('flex flex-row items-center z-20 p-2 sticky top-0 w-full bg-background shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)]', {
-      'justify-center': centered
+    <header className={cn('flex flex-row items-center z-20 p-2 sticky top-0 w-full bg-background border-b border-foreground/[0.08] shadow-[0_4px_14px_0px_rgba(0,0,0,0.16)] dark:border-transparent dark:shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)]', {
+      'justify-center': centered,
+      hidden: (oneColumn && isBannerVisible) || isOneColumnMenuLevel
     })}
     >
       {centered && (backButton || mobileBackButton) && (
@@ -156,7 +311,7 @@ const ViewHeader = () => {
           >
             <ChevronLeft className='w-6 h-6' />
           </button>
-          {context !== 'messages' && (
+          {context !== 'messages' && !oneColumn && (
             <div className={cn('ViewHeaderContextIcon mr-3 w-8 h-8 rounded-lg drop-shadow-md', !compactLayout && 'sm:hidden')}>
               {context === 'groups'
                 ? <div style={bgImageStyle(group?.avatarUrl)} className='w-8 h-8 rounded-lg bg-cover bg-center' />
@@ -170,29 +325,143 @@ const ViewHeader = () => {
         </>
       )}
       {/* )} */}
-      {!centered && icon && (typeof icon === 'string' ? <Icon name={icon} className='mr-3 text-lg' /> : React.cloneElement(icon, { className: 'mr-3 text-lg' }))}
-      <h2
-        className={cn('text-foreground m-0', {
-          'truncate min-w-0 flex-1': typeof title === 'string',
-          'whitespace-nowrap': title?.mobile && title?.desktop,
-          'min-w-0 overflow-x-auto flex-1': React.isValidElement(title),
-          'pl-12': centered && (backButton || mobileBackButton) && compactLayout,
-          'pl-12 sm:pl-0': centered && (backButton || mobileBackButton) && !compactLayout
+      {!centered && !oneColumn && presentedSpaceView && (
+        <>
+          <GroupViewIcon view={presentedSpaceView} className='mr-1 shrink-0 w-5 h-5' />
+          <span className={cn('truncate shrink min-w-0 text-foreground', isSingleViewSpace ? 'font-bold' : 'max-w-[25%]')}>{spaceName}</span>
+          {!isSingleViewSpace && <span className='mx-1.5 shrink-0 text-foreground/40'>{'>'}</span>}
+        </>
+      )}
+      {!centered && !oneColumn && !isSingleViewSpace && icon && (typeof icon === 'string' ? <Icon name={icon} className='mr-3 text-lg' /> : React.cloneElement(icon, { className: 'mr-3 text-lg' }))}
+      {isOneColumnGroup && (() => {
+        // The chevron should only appear when an actual sub-view title is set —
+        // not when title is the empty default ({mobile: '', desktop: ''}) on group home.
+        const hasTitle = typeof title === 'string'
+          ? title.length > 0
+          : React.isValidElement(title)
+            ? true
+            : !!(title?.mobile || title?.desktop)
+        const inSpace = Boolean(presentedSpaceView && spaceSlug)
+        const groupHref = `/groups/${groupSlug}`
+        const spaceHref = `/groups/${groupSlug}/spaces/${spaceSlug}`
+
+        return (
+          <div className='flex items-center gap-1.5 mr-2 min-w-0'>
+            {group?.avatarUrl && (
+              <div
+                className='w-6 h-6 rounded-sm bg-cover bg-center shrink-0 cursor-pointer hover:scale-110 transition-transform'
+                style={bgImageStyle(group.avatarUrl)}
+                onClick={() => navigate(groupHref)}
+              />
+            )}
+            <span
+              className='font-semibold text-foreground/70 cursor-pointer hover:text-foreground transition-colors whitespace-nowrap truncate'
+              onClick={() => navigate(groupHref)}
+            >
+              {group?.name}
+            </span>
+            {inSpace && (
+              <>
+                <span className='text-foreground/30 text-lg shrink-0'>{'>'}</span>
+                <button
+                  type='button'
+                  className='shrink-0 cursor-pointer hover:scale-110 transition-transform'
+                  onClick={() => navigate(spaceHref)}
+                  aria-label={spaceName}
+                >
+                  <GroupViewIcon view={presentedSpaceView} className='!w-5 !h-5 !mr-0' />
+                </button>
+                <span
+                  className='font-semibold text-foreground/70 cursor-pointer hover:text-foreground transition-colors whitespace-nowrap truncate'
+                  onClick={() => navigate(spaceHref)}
+                >
+                  {spaceName}
+                </span>
+              </>
+            )}
+            {hasTitle && <span className='text-foreground/30 text-lg shrink-0'>{'>'}</span>}
+            {hasTitle && icon && (
+              typeof icon === 'string'
+                ? <Icon name={icon} className='text-lg shrink-0' />
+                : React.cloneElement(icon, { className: 'w-5 h-5 shrink-0' })
+            )}
+          </div>
+        )
+      })()}
+      {isOneColumnContext && (() => {
+        const hasTitle = typeof title === 'string'
+          ? title.length > 0
+          : React.isValidElement(title)
+            ? true
+            : !!(title?.mobile || title?.desktop)
+        const contextHref = `/${context}`
+        const contextLabel = context === 'public' ? t('The Commons') : t('My Home')
+
+        return (
+          <div className='flex items-center gap-1.5 mr-2 min-w-0'>
+            {context === 'public'
+              ? (
+                <Globe
+                  className='w-6 h-6 shrink-0 cursor-pointer hover:scale-110 transition-transform'
+                  onClick={() => navigate(contextHref)}
+                />
+                )
+              : currentUser?.avatarUrl && (
+                <div
+                  className='w-6 h-6 rounded-sm bg-cover bg-center shrink-0 cursor-pointer hover:scale-110 transition-transform'
+                  style={bgImageStyle(currentUser.avatarUrl)}
+                  onClick={() => navigate(contextHref)}
+                />
+              )}
+            <span
+              className='font-semibold text-foreground/70 cursor-pointer hover:text-foreground transition-colors whitespace-nowrap truncate'
+              onClick={() => navigate(contextHref)}
+            >
+              {contextLabel}
+            </span>
+            {hasTitle && <span className='text-foreground/30 text-lg shrink-0'>{'>'}</span>}
+            {hasTitle && icon && (
+              typeof icon === 'string'
+                ? <Icon name={icon} className='text-lg shrink-0' />
+                : React.cloneElement(icon, { className: 'w-5 h-5 shrink-0' })
+            )}
+          </div>
+        )
+      })()}
+      <div
+        className={cn('flex items-center min-w-0 gap-1', {
+          'flex-1': !centered && typeof title === 'string',
+          // overflow-y-hidden: overflow-x auto drags the y-axis out of `visible`,
+          // so an element title a pixel taller than the line box (e.g. a badge
+          // pill) would sprout a tiny vertical scrollbar instead of just showing
+          'min-w-0 overflow-x-auto overflow-y-hidden flex-1': !centered && React.isValidElement(title)
         })}
       >
-        {typeof title === 'string' || React.isValidElement(title)
-          ? title
-          : title?.mobile && title?.desktop
-            ? (
-              <>
-                <span className={cn('inline text-sm truncate', !compactLayout && 'sm:hidden')}>{title.mobile}</span>
-                <span className={cn('hidden', !compactLayout && 'sm:inline')}>{title.desktop}</span>
-              </>
-              )
-            : ''}
-      </h2>
+        <h2
+          className={cn('text-foreground font-bold m-0', {
+            'truncate min-w-0': typeof title === 'string',
+            'whitespace-nowrap': title?.mobile && title?.desktop,
+            'min-w-0 overflow-x-auto overflow-y-hidden': React.isValidElement(title),
+            'pl-12': centered && (backButton || mobileBackButton) && compactLayout,
+            'pl-12 sm:pl-0': centered && (backButton || mobileBackButton) && !compactLayout
+          })}
+        >
+          {isSingleViewSpace
+            ? ''
+            : typeof title === 'string' || React.isValidElement(title)
+              ? title
+              : title?.mobile && title?.desktop
+                ? (
+                  <>
+                    <span className={cn('inline text-sm truncate', !compactLayout && 'sm:hidden')}>{title.mobile}</span>
+                    <span className={cn('hidden', !compactLayout && 'sm:inline')}>{title.desktop}</span>
+                  </>
+                  )
+                : ''}
+        </h2>
+        {!centered && info && <InfoButton content={info} className='shrink-0' />}
+      </div>
       {!centered && headerActions && <div className='flex items-center ml-2 shrink-0'>{headerActions}</div>}
-      {!centered && info && <InfoButton content={info} className='ml-2' />}
       {!centered && search && (
         <div className='flex justify-end relative ml-2'>
           <div ref={searchContainerRef} className='relative flex items-center'>

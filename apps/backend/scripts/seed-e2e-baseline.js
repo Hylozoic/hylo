@@ -50,7 +50,7 @@ const SYSTEM_ROLE_DEFINITIONS = [
     name: 'Coordinator',
     emoji: '🪄',
     description: 'Coordinators are empowered to do everything related to group administration.',
-    responsibilities: ['Administration', 'Add Members', 'Remove Members', 'Manage Content', 'Manage Tracks', 'Manage Rounds']
+    responsibilities: ['Administration', 'Add Members', 'Remove Members', 'Manage Content', 'Manage Spaces']
   },
   {
     name: 'Moderator',
@@ -72,8 +72,7 @@ const SYSTEM_RESPONSIBILITY_DEFINITIONS = [
   { title: 'Add Members', description: 'The ability to invite and add new people to the group, and to accept or reject join requests.' },
   { title: 'Remove Members', description: 'The ability to remove a member from the group.' },
   { title: 'Manage Content', description: 'Adjust group topics, custom views and manage content that contradicts the agreements of the group.' },
-  { title: 'Manage Tracks', description: 'Create and manage tracks in the group.' },
-  { title: 'Manage Rounds', description: 'Create and manage funding rounds in the group.' }
+  { title: 'Manage Spaces', description: 'The ability to create and manage spaces (including tracks and funding rounds) within this group.' }
 ]
 
 /**
@@ -208,12 +207,13 @@ async function clearPreviousE2eBaseline (client) {
   )
 
   await client.query(
-    `DELETE FROM groups_tracks
+    `UPDATE groups SET track_id = NULL
      WHERE track_id IN (SELECT id FROM tracks WHERE name = 'E2E Paid Track')
-        OR group_id IN (SELECT id FROM groups WHERE slug = ANY($1::text[]))`,
-    [E2E_GROUP_SLUGS]
+        OR slug = 'e2e-paid-track-space'`
   )
 
+  await client.query(`DELETE FROM group_views WHERE group_id IN (SELECT id FROM groups WHERE slug = 'e2e-paid-track-space')`)
+  await client.query(`DELETE FROM groups WHERE slug = 'e2e-paid-track-space'`)
   await client.query(`DELETE FROM tracks WHERE name = 'E2E Paid Track'`)
 
   await client.query(
@@ -240,11 +240,16 @@ async function clearPreviousE2eBaseline (client) {
   )
 
   await client.query(
-    `UPDATE groups SET stripe_account_id = NULL WHERE slug = ANY($1::text[])`,
+    'UPDATE groups SET stripe_account_id = NULL WHERE slug = ANY($1::text[])',
     [E2E_GROUP_SLUGS]
   )
 
-  await client.query(`DELETE FROM groups WHERE slug = ANY($1::text[])`, [E2E_GROUP_SLUGS])
+  await client.query(
+    `DELETE FROM group_views WHERE group_id IN (SELECT id FROM groups WHERE slug = ANY($1::text[]))`,
+    [E2E_GROUP_SLUGS]
+  )
+
+  await client.query('DELETE FROM groups WHERE slug = ANY($1::text[])', [E2E_GROUP_SLUGS])
 
   await client.query(
     `DELETE FROM linked_account
@@ -252,10 +257,10 @@ async function clearPreviousE2eBaseline (client) {
     [E2E_USER_EMAILS]
   )
 
-  await client.query(`DELETE FROM users WHERE lower(email) = ANY($1::text[])`, [E2E_USER_EMAILS])
+  await client.query('DELETE FROM users WHERE lower(email) = ANY($1::text[])', [E2E_USER_EMAILS])
 
   await client.query(
-    `DELETE FROM stripe_accounts WHERE stripe_account_external_id = $1`,
+    'DELETE FROM stripe_accounts WHERE stripe_account_external_id = $1',
     [E2E_STRIPE_ACCOUNT_EXTERNAL_ID]
   )
 }
@@ -330,10 +335,10 @@ async function main () {
     const pubRes = await client.query(
       `INSERT INTO groups (
         active, created_at, updated_at, name, slug, description,
-        visibility, accessibility, created_by_id, settings, num_members, allow_in_public
+        visibility, accessibility, created_by_id, settings, num_members, allow_in_public, home_route
       ) VALUES (
         true, $1::timestamptz, $1::timestamptz, $2, $3, $4,
-        2, 1, $5, $6::jsonb, 1, true
+        2, 1, $5, $6::jsonb, 1, true, '/all'
       ) RETURNING id`,
       [now, 'E2E Public Group', 'e2e-public-group', 'Deterministic public group for Playwright E2E', userId, emptyGroupSettings]
     )
@@ -342,19 +347,32 @@ async function main () {
     const privRes = await client.query(
       `INSERT INTO groups (
         active, created_at, updated_at, name, slug, description,
-        visibility, accessibility, created_by_id, settings, num_members, allow_in_public
+        visibility, accessibility, created_by_id, settings, num_members, allow_in_public, home_route
       ) VALUES (
         true, $1::timestamptz, $1::timestamptz, $2, $3, $4,
-        0, 1, $5, $6::jsonb, 1, false
+        0, 1, $5, $6::jsonb, 1, false, '/all'
       ) RETURNING id`,
       [now, 'E2E Private Group', 'e2e-private-group', 'Deterministic private group for Playwright E2E', userId, emptyGroupSettings]
     )
     const privateGroupId = privRes.rows[0].id
 
+    // Menu / ContextMenuGrid need ordered group_views rows (Spaces & Views).
+    await client.query(
+      `INSERT INTO group_views (group_id, type, "order", created_at, updated_at)
+       VALUES
+         ($1, 'all', 0, $3::timestamptz, $3::timestamptz),
+         ($1, 'members', 1, $3::timestamptz, $3::timestamptz),
+         ($1, 'map', 2, $3::timestamptz, $3::timestamptz),
+         ($2, 'all', 0, $3::timestamptz, $3::timestamptz),
+         ($2, 'members', 1, $3::timestamptz, $3::timestamptz),
+         ($2, 'map', 2, $3::timestamptz, $3::timestamptz)`,
+      [publicGroupId, privateGroupId, now]
+    )
+
     const publicRoles = await setupSystemRolesForGroup(client, publicGroupId, now)
     const privateRoles = await setupSystemRolesForGroup(client, privateGroupId, now)
 
-    // Maps to Membership.lastViewedAt; without it AuthLayoutRouter replaces deep links with …/stream
+    // Maps to Membership.lastViewedAt; without it AuthLayoutRouter replaces deep links with …/all
     await client.query(
       `INSERT INTO group_memberships (group_id, user_id, active, created_at, updated_at, settings)
        VALUES ($1, $2, true, $3::timestamptz, $3::timestamptz, $4::jsonb),
@@ -503,31 +521,62 @@ async function main () {
       ]
     )
 
-    /** Access-controlled published track + offering granting track scope (Batch P3). Coordinators bypass paywall; use `e2e.track-viewer@hylo.test`. */
+    /** Paid track space + offering granting space membership (Batch P3). Coordinators bypass; use `e2e.track-viewer@hylo.test`. */
+    const paidTrackSpaceRes = await client.query(
+      `INSERT INTO groups (
+        name, slug, type, parent_id, access_code, visibility, accessibility,
+        created_at, updated_at, settings, active, paywall
+      ) VALUES (
+        'E2E Paid Track',
+        'e2e-paid-track-space',
+        'space',
+        $1,
+        $2,
+        1,
+        1,
+        $3::timestamptz,
+        $3::timestamptz,
+        '{}'::jsonb,
+        true,
+        true
+      ) RETURNING id`,
+      [publicGroupId, `e2e-track-${Date.now().toString(36)}`, now]
+    )
+    const paidTrackSpaceId = paidTrackSpaceRes.rows[0].id
+
     const paidTrackRes = await client.query(
       `INSERT INTO tracks (
         name, description, published_at, access_controlled,
         action_descriptor, action_descriptor_plural,
-        created_at, updated_at, settings
+        group_id, created_at, updated_at, settings
       ) VALUES (
         'E2E Paid Track',
         '<p>Deterministic paid track for Batch P3 E2E</p>',
         $1::timestamptz,
-        true,
+        false,
         'Action',
         'Actions',
+        $2,
         $1::timestamptz,
         $1::timestamptz,
         '{}'::jsonb
       ) RETURNING id`,
-      [now]
+      [now, paidTrackSpaceId]
     )
     const paidTrackId = paidTrackRes.rows[0].id
 
     await client.query(
-      `INSERT INTO groups_tracks (track_id, group_id, created_at, updated_at)
-       VALUES ($1, $2, $3::timestamptz, $3::timestamptz)`,
-      [paidTrackId, publicGroupId, now]
+      `UPDATE groups SET track_id = $1 WHERE id = $2`,
+      [paidTrackId, paidTrackSpaceId]
+    )
+
+    await client.query(
+      `INSERT INTO group_views (group_id, type, "order", created_at, updated_at)
+       VALUES
+         ($1, 'about', 0, $2::timestamptz, $2::timestamptz),
+         ($1, 'track-actions', 1, $2::timestamptz, $2::timestamptz),
+         ($1, 'members', 2, $2::timestamptz, $2::timestamptz)`,
+      [paidTrackSpaceId, now]
     )
 
     await client.query(
@@ -565,9 +614,9 @@ async function main () {
         'prod_e2e_track_access_001',
         'price_e2e_track_access_001',
         'E2E Track Access Monthly',
-        'Offering that grants access to the Batch P3 seeded track',
+        'Offering that grants access to the Batch P3 seeded paid track space',
         900,
-        JSON.stringify({ trackIds: [paidTrackId] }),
+        JSON.stringify({ groupIds: [paidTrackSpaceId] }),
         now
       ]
     )
@@ -583,15 +632,23 @@ async function main () {
     const welcomeRes = await client.query(
       `INSERT INTO groups (
         active, created_at, updated_at, name, slug, description,
-        visibility, accessibility, created_by_id, settings, num_members, allow_in_public
+        visibility, accessibility, created_by_id, settings, num_members, allow_in_public, home_route
       ) VALUES (
         true, $1::timestamptz, $1::timestamptz, $2, $3, $4,
-        2, 2, $5, $6::jsonb, 1, true
+        2, 2, $5, $6::jsonb, 1, true, '/all'
       ) RETURNING id`,
       [now, 'E2E Welcome Overlay', 'e2e-welcome-overlay', 'Playwright GroupWelcomeModal E2E', userId, emptyGroupSettings]
     )
     const welcomeGroupId = welcomeRes.rows[0].id
     const welcomeRoles = await setupSystemRolesForGroup(client, welcomeGroupId, now)
+
+    await client.query(
+      `INSERT INTO group_views (group_id, type, "order", created_at, updated_at)
+       VALUES
+         ($1, 'all', 0, $2::timestamptz, $2::timestamptz),
+         ($1, 'members', 1, $2::timestamptz, $2::timestamptz)`,
+      [welcomeGroupId, now]
+    )
 
     await client.query(
       `INSERT INTO group_memberships (group_id, user_id, active, created_at, updated_at, settings)

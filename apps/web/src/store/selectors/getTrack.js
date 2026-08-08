@@ -10,9 +10,8 @@ const getTrack = ormCreateSelector(
       return {
         ...track.ref,
         completionRole: track.completionRole,
-        currentAction: track.currentAction(),
         enrolledUsers: track.enrolledUsers?.toModelArray() || [],
-        posts: track.posts?.toModelArray() || []
+        space: track.space || track.ref.space || null
       }
     }
     return null

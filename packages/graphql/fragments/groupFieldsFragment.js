@@ -27,14 +27,17 @@ export default gql`
       publicMemberDirectory
       showSuggestedSkills
       showWelcomePage
+      layout
     }
     slug
     type
+    parentId
+    icon
+    acceptedPostTypes
     typeDescriptor
     typeDescriptorPlural
     visibility
     websiteUrl
-    welcomePage
     agreements {
       items {
         id

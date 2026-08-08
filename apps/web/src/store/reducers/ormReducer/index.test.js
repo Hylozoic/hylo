@@ -280,7 +280,11 @@ describe('on UPDATE_GROUP_SETTINGS_PENDING', () => {
   const group = session.Group.create({
     id,
     name: 'Old Name',
-    description: 'Old description'
+    description: 'Old description',
+    settings: {
+      showWelcomePage: true,
+      showSuggestedSkills: true
+    }
   })
   session.Membership.create({
     group: group.id,
@@ -309,6 +313,27 @@ describe('on UPDATE_GROUP_SETTINGS_PENDING', () => {
     const group = newSession.Group.withId(id)
     expect(group.name).toEqual(name)
     expect(group.description).toEqual(description)
+  })
+
+  it('merges settings instead of replacing them', () => {
+    const action = {
+      type: UPDATE_GROUP_SETTINGS_PENDING,
+      meta: {
+        id,
+        changes: {
+          settings: {
+            showWelcomePage: false
+          }
+        }
+      }
+    }
+    const newState = ormReducer(session.state, action)
+    const newSession = orm.session(newState)
+    const group = newSession.Group.withId(id)
+    expect(group.settings).toEqual({
+      showWelcomePage: false,
+      showSuggestedSkills: true
+    })
   })
 })
 
@@ -399,10 +424,8 @@ describe('on UPDATE_USER_SETTINGS_PENDING', () => {
     expect(me.location).toEqual('original location')
     expect(me.tagline).toEqual('new tagline')
     expect(me.settings).toEqual({
-      digestFrequency: 'daily',
       dmNotifications: 'both',
-      commentNotifications: 'email',
-      postNotifications: 'important'
+      commentNotifications: 'email'
     })
   })
 })
@@ -665,8 +688,14 @@ describe('on UPDATE_COMMENT_PENDING', () => {
   const commentId = '123'
   const session = orm.session(orm.getEmptyState())
   const theNewText = 'lalala'
+  const editedAt = '2024-03-01T12:00:00.000Z'
 
   session.Comment.create({
+    id: commentId,
+    text: 'ufufuf'
+  })
+
+  session.Message.create({
     id: commentId,
     text: 'ufufuf'
   })
@@ -676,15 +705,20 @@ describe('on UPDATE_COMMENT_PENDING', () => {
     meta: {
       id: commentId,
       data: {
-        text: theNewText
+        text: theNewText,
+        editedAt
       }
     }
   }
 
-  it('updates the text', () => {
+  it('updates the text on Comment and Message', () => {
     const newState = ormReducer(session.state, action)
     const newSession = orm.session(newState)
     const comment = newSession.Comment.withId(commentId)
+    const message = newSession.Message.withId(commentId)
     expect(comment.text).toEqual(theNewText)
+    expect(comment.editedAt).toEqual(editedAt)
+    expect(message.text).toEqual(theNewText)
+    expect(message.editedAt).toEqual(editedAt)
   })
 })

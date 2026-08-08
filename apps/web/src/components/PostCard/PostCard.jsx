@@ -29,6 +29,7 @@ import PostBody from './PostBody'
 import PostFooter from './PostFooter'
 import PostHeader from './PostHeader'
 import PostGroups from './PostGroups'
+import childGroupLabel from 'util/childGroupLabel'
 import { cn } from 'util/index'
 
 import classes from './PostCard.module.scss'
@@ -76,6 +77,8 @@ export default function PostCard (props) {
   const routeParams = useRouteParams()
   const dispatch = useDispatch()
   const navigate = useNavigate()
+
+  const childGroupLabelText = childPost ? childGroupLabel(post, t) : null
 
   // Chat mode state
   const [isHovered, setIsHovered] = useState(false)
@@ -387,13 +390,6 @@ export default function PostCard (props) {
   // Default layout
   return (
     <>
-      {childPost &&
-        <div className={classes.childPostLabelWrapper}>
-          <div className={classes.childPostLabel}>
-            <Icon name='Subgroup' className={classes.icon} />
-            <span>{t('Post from')} <b>{t('child group')}</b></span>
-          </div>
-        </div>}
       <div
         ref={postCardRef}
         className={cn(
@@ -421,6 +417,7 @@ export default function PostCard (props) {
             constrained={constrained}
             hasImage={hasImage}
             onRemovePost={onRemovePost}
+            childGroupLabel={childGroupLabelText}
           />
         </div>
         <div onClick={onClick}>

@@ -4,6 +4,8 @@ import Config from 'react-native-config'
 import useRouteParams from 'hooks/useRouteParams'
 import AutoHeightWebView from 'react-native-autoheight-webview'
 import { getSessionCookie, clearSessionCookie, ensureWebViewCookies, sessionCookieFromToken } from 'util/session'
+import { AUTH_DEBUG } from 'util/authDebug'
+import getNativeSessionId from 'util/nativeSessionId'
 import { parseWebViewMessage, sendMessageFromWebView } from '.'
 import { useAuth } from '@hylo/contexts/AuthContext'
 import { WebViewMessageTypes } from '@hylo/shared'
@@ -86,7 +88,8 @@ const HyloWebView = React.forwardRef(({
     const versionLine = trimmed !== ''
       ? `window.HyloMobileAppVersion=${JSON.stringify(trimmed)};`
       : ''
-    return `${versionLine}window.HyloWebView=true;window.HyloMobileV2=true;true;`
+    const sessionIdLine = `window.HyloNativeSessionId=${JSON.stringify(getNativeSessionId())};`
+    return `${versionLine}${sessionIdLine}window.HyloWebView=true;window.HyloMobileV2=true;true;`
   }, [mobileAppVersion])
 
   // Monitor auth state changes and reset recovery state when auth is restored
@@ -257,6 +260,10 @@ const HyloWebView = React.forwardRef(({
       scrollEnabled={enableScrolling}
       setSupportMultipleWindows={false}
       sharedCookiesEnabled
+      // Staging diagnostics (AUTH_DEBUG=true in .env at build): allows attaching Safari
+      // Web Inspector (iOS 16.4+) / chrome://inspect (Android) to the WebView in
+      // release builds. No-op in production builds where AUTH_DEBUG is unset.
+      webviewDebuggingEnabled={AUTH_DEBUG}
       source={{
         uri,
         headers: { cookie, 'X-Hylo-Mobile': 'v2' }

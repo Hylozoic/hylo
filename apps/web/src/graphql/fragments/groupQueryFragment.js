@@ -60,11 +60,13 @@ export default function groupQueryFragment () {
     }
     slug
     type
+    parentId
+    icon
+    acceptedPostTypes
     typeDescriptor
     typeDescriptorPlural
     visibility
     websiteUrl
-    welcomePage
     paywall
     canAccess
     groupRoles {
@@ -74,6 +76,7 @@ export default function groupQueryFragment () {
         active
         emoji
         groupId
+        membersTotal
         responsibilities {
           items {
             id

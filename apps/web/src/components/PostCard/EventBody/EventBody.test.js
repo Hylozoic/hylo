@@ -1,12 +1,20 @@
 import React from 'react'
+import { DateTimeHelpers } from '@hylo/shared'
 import { render, screen } from 'util/testing/reactTestingLibraryExtended'
 import EventBody from './EventBody'
 
 describe('EventBody', () => {
   it('renders event details correctly', () => {
+    const startTime = '2023-03-06T12:00:00.000Z'
+    const endTime = '2023-03-06T15:00:00.000Z'
+    const timezone = 'UTC'
     const event = {
+      id: '1',
       location: 'Oakland',
       title: 'Test Event',
+      startTime,
+      endTime,
+      timezone,
       groups: [{ id: '1', name: 'Group 1', slug: 'group1' }]
     }
 
@@ -20,15 +28,12 @@ describe('EventBody', () => {
 
     render(<EventBody {...props} />)
 
-    // Check for event title
     expect(screen.getByText('Test Event')).toBeInTheDocument()
-
-    // Check for event time
-    expect(screen.getByText(/Mon, Mar 6, 2023 at 12:00PM - Mon, Mar 6 at 3:00PM GMT/)).toBeInTheDocument()
-
-    // Check for event location
-    expect(screen.getAllByText(/Oakland/)).toHaveLength(2)
+    expect(screen.getByText(DateTimeHelpers.formatEventTimeDisplay({
+      start: startTime,
+      end: endTime,
+      eventTimezone: timezone
+    }).primary)).toBeInTheDocument()
+    expect(screen.getByText(/Oakland/)).toBeInTheDocument()
   })
-
-  // Add more tests as needed
 })

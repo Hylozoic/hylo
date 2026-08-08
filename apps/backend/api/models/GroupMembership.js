@@ -16,9 +16,19 @@ module.exports = bookshelf.Model.extend(Object.assign({
       .withPivot(['accepted'])
   },
 
+  /**
+   * Role assignments for this membership. Spaces inherit assignments from the parent group.
+   */
   membershipGroupRoles () {
-    return this.hasMany(MemberGroupRole, 'group_id', 'group_id')
-      .where({ user_id: this.get('user_id') })
+    const groupId = this.get('group_id')
+    return this.hasMany(MemberGroupRole, 'user_id', 'user_id')
+      .query(q => {
+        q.whereIn('group_memberships_group_roles.group_id', function () {
+          this.select(bookshelf.knex.raw('COALESCE(parent_id, id)'))
+            .from('groups')
+            .where('id', groupId)
+        })
+      })
   },
 
   group () {
@@ -142,8 +152,12 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
   /**
    * Assign the Coordinator system role to a member.
+   * No-op for spaces — they inherit roles from the parent group.
    */
   async assignCoordinatorRole (userId, groupId, { transacting } = {}) {
+    const roleScopeId = await Group.roleScopeId(groupId)
+    if (String(roleScopeId) !== String(groupId)) return
+
     await GroupRole.setupSystemRoles(groupId, { transacting })
     const coordinator = await GroupRole.findSystemRole(groupId, 'Coordinator', { transacting })
     if (!coordinator) return
@@ -175,6 +189,17 @@ module.exports = bookshelf.Model.extend(Object.assign({
       user_id: userId,
       group_id: groupId,
       group_role_id: coordinator.id
+    }).destroy({ require: false, transacting })
+  },
+
+  /**
+   * Remove all group role assignments for a member in a group's role scope.
+   */
+  async revokeAllGroupRoles (userId, groupId, { transacting } = {}) {
+    const roleScopeId = await Group.roleScopeId(groupId)
+    await MemberGroupRole.where({
+      user_id: userId,
+      group_id: roleScopeId
     }).destroy({ require: false, transacting })
   },
 
@@ -218,7 +243,12 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
     if (existingMembership) {
       if (!existingMembership.get('active')) {
-        await existingMembership.save({ active: true }, { patch: true, transacting })
+        const group = groupOrId instanceof Group ? groupOrId : await Group.find(groupId, { transacting })
+        const memberships = await group.addMembers([userId], {}, { transacting })
+        if (assignCoordinator) {
+          await GroupMembership.assignCoordinatorRole(userId, groupId, { transacting })
+        }
+        return memberships[0]
       }
       if (assignCoordinator) {
         await GroupMembership.assignCoordinatorRole(userId, groupId, { transacting })

@@ -16,14 +16,19 @@ export default function checkLogin () {
             name
             settings {
               alreadySeenTour
+              colorScheme
               dmNotifications
               commentNotifications
+              globalNavStyle
+              groupNavStyle
               rsvpCalendarSub
               signupInProgress
+              stackGroups
               streamChildPosts
               streamViewMode
               streamSortBy
               streamPostType
+              theme
             }
           }
         }

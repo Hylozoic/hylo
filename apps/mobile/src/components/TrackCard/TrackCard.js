@@ -10,13 +10,13 @@ import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useHasResponsibility from '@hylo/hooks/useHasResponsibility'
 import useOpenURL from 'hooks/useOpenURL'
 import { groupUrl } from '@hylo/navigation'
-import { RESP_MANAGE_TRACKS } from 'store/constants'
+import { RESP_MANAGE_SPACES } from 'store/constants'
 
 function TrackCard ({ track, groupSlug }) {
   const { t } = useTranslation()
   const [{ currentGroup }] = useCurrentGroup()
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
-  const canEdit = hasResponsibility(RESP_MANAGE_TRACKS)
+  const canEdit = hasResponsibility(RESP_MANAGE_SPACES)
   const openURL = useOpenURL()
 
   // const handlePublishTrack = useCallback((publishedAt) => {

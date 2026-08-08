@@ -24,7 +24,6 @@ require('dotenv').config()
 
 const aws = require('aws-sdk')
 const path = require('path')
-const { parse } = require('url')
 const request = require('request')
 const sharp = require('sharp')
 const { createS3StorageStream } = require('../../lib/uploader/storage')
@@ -52,7 +51,7 @@ const PATH_PREFIX = process.env.UPLOADER_PATH_PREFIX
 const USER_PREFIX = `${PATH_PREFIX}/user/`
 
 // Stats tracking
-let stats = {
+const stats = {
   total: 0,
   processed: 0,
   skipped: 0,
@@ -73,9 +72,9 @@ function getS3Url (key) {
 
   // Apply UPLOADER_HOST if set (same logic as getFinalUrl in storage.js)
   if (process.env.UPLOADER_HOST) {
-    const u = parse(url)
+    const u = new URL(url)
     u.host = process.env.UPLOADER_HOST
-    url = u.format()
+    url = u.toString()
   }
 
   return url
@@ -306,4 +305,3 @@ main().catch(err => {
   console.error('Unhandled error:', err)
   process.exit(1)
 })
-

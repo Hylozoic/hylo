@@ -1,7 +1,7 @@
 import React from 'react'
 import { render, screen, fireEvent } from 'util/testing/reactTestingLibraryExtended'
 import * as LayoutFlagsContext from 'contexts/LayoutFlagsContext'
-import MapDrawer, { TabBar } from './MapDrawer'
+import MapDrawer from './MapDrawer'
 
 const defaultMinProps = {
   context: 'groups',
@@ -27,8 +27,9 @@ describe('MapDrawer', () => {
   it('renders correctly with minimum props', () => {
     render(<MapDrawer {...defaultMinProps} />)
     expect(screen.getByPlaceholderText('Filter by topics and keywords')).toBeInTheDocument()
-    expect(screen.getByText('Posts')).toBeInTheDocument()
-    expect(screen.getByText('Groups')).toBeInTheDocument()
+    // The result-type tabs live in one lens dropdown now, defaulting to All
+    expect(screen.getByTestId('map-lens-dropdown')).toHaveTextContent('All')
+    expect(screen.getByTestId('map-drawer-close')).toBeInTheDocument()
   })
 
   it('renders correctly with lots of content', () => {
@@ -46,9 +47,11 @@ describe('MapDrawer', () => {
       filters: { sortBy: 'created', search: 'hello', topics: [{ id: 1, name: 'food' }] }
     }
     render(<MapDrawer {...props} />)
+    // The default All lens shows posts, groups and people together
     expect(screen.getByText('Post')).toBeInTheDocument()
-    expect(screen.getByText('group one')).toBeInTheDocument()
     expect(screen.getByText('#food')).toBeInTheDocument()
+    expect(screen.getByText('group one')).toBeInTheDocument()
+    expect(screen.getByText('hello')).toBeInTheDocument()
   })
 
   it('updates filters when searching', () => {
@@ -61,19 +64,5 @@ describe('MapDrawer', () => {
     fireEvent.keyUp(searchBox, { key: 'Enter', code: 'Enter', keyCode: 13 })
 
     expect(onUpdateFilters).toHaveBeenCalledWith({ search: 'search' })
-  })
-})
-
-describe('TabBar', () => {
-  it('renders tabs and handles tab selection', () => {
-    const tabs = { Posts: 1, Groups: 2 }
-    const selectTab = jest.fn()
-    render(<TabBar currentTab='Posts' selectTab={selectTab} tabs={tabs} />)
-
-    expect(screen.getByText('Posts')).toHaveClass('tabActive')
-    expect(screen.getByText('Groups')).not.toHaveClass('tabActive')
-
-    fireEvent.click(screen.getByText('Groups'))
-    expect(selectTab).toHaveBeenCalledWith('Groups')
   })
 })

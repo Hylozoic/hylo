@@ -1,29 +1,33 @@
 import React from 'react'
-import { render, screen, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
+import orm from 'store/models'
+import { AllTheProviders, render, screen } from 'util/testing/reactTestingLibraryExtended'
 import ThreadList from './ThreadList'
 import ThreadListItem from './ThreadListItem'
-import orm from 'store/models'
+
+jest.mock('store/actions/fetchThreads', () => {
+  return function fetchThreads () {
+    return {
+      type: 'FETCH_THREADS',
+      payload: Promise.resolve({
+        data: { me: { messageThreads: { items: [] } } }
+      })
+    }
+  }
+})
+
+function emptyProviders () {
+  const ormSession = orm.mutableSession(orm.getEmptyState())
+  ormSession.Me.create({ id: '1', name: 'Test User' })
+  return AllTheProviders({ orm: ormSession.state })
+}
 
 describe('ThreadList', () => {
-  it('renders empty state correctly', () => {
-    render(
-      <ThreadList threads={[]} fetchThreads={jest.fn()} match={{ params: {} }} />
-    )
-    expect(screen.getByText('You have no active messages')).toBeInTheDocument()
-  })
-
-  it('renders search input', () => {
-    render(
-      <ThreadList threads={[]} fetchThreads={jest.fn()} match={{ params: {} }} />
-    )
-    expect(screen.getByPlaceholderText('Search for people...')).toBeInTheDocument()
-  })
-
-  it('renders new message button', () => {
-    render(
-      <ThreadList threads={[]} fetchThreads={jest.fn()} match={{ params: {} }} />
-    )
-    expect(screen.getByText('New')).toBeInTheDocument()
+  it('renders search input and compose link', () => {
+    const { container } = render(<ThreadList />, { wrapper: emptyProviders() })
+    expect(screen.getByPlaceholderText('Search messages...')).toBeInTheDocument()
+    expect(container.querySelector('a[href="/messages/new"]')).toBeInTheDocument()
+    expect(screen.getByText('Inbox')).toBeInTheDocument()
+    expect(screen.getByText('Muted')).toBeInTheDocument()
   })
 })
 

@@ -55,7 +55,9 @@ const daily = now => {
 }
 
 const hourly = now => {
-  const tasks = []
+  const tasks = [
+    GroupViewUser.sendDigests().then(count => sails.log.debug(`Sent ${count} chat digests`))
+  ]
 
   switch (now.hour) {
     case 12:
@@ -73,11 +75,10 @@ const hourly = now => {
 }
 
 const every10minutes = now => {
-  sails.log.debug('Refreshing full-text search index, sending comment digests, updating member counts, updating proposal statuses, distributing funding round tokens, and checking funding round phase transitions')
+  sails.log.debug('Refreshing full-text search index, sending comment digests, updating member counts, updating proposal statuses, and checking funding round phase transitions')
   return [
     FullTextSearch.refreshView(),
     Comment.sendDigests().then(count => sails.log.debug(`Sent ${count} comment/message digests`)),
-    TagFollow.sendDigests().then(count => sails.log.debug(`Sent ${count} chat room digests`)),
     Group.updateAllMemberCounts(),
     Post.updateProposalStatuses(),
     FundingRound.checkPhaseTransitions().then(count => sails.log.debug(`Sent ${count} funding round phase transition notifications`))

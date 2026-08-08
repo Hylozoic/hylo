@@ -6,9 +6,8 @@
     "allowJs": true,
     "allowSyntheticDefaultImports": true,
     "module": "commonjs",
-    "baseUrl": ".",
     "paths": {
-      "*": ["src/*"],
+      "*": ["./src/*"],
       "@/*": ["./src/*"]
     },
     "outDir": "build",

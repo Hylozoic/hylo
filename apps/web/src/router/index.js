@@ -1,7 +1,7 @@
 import React from 'react'
 import { HistoryRouter as Router } from 'redux-first-history/rr6'
 import { Provider } from 'react-redux'
-import { ThemeProvider } from 'contexts/ThemeContext'
+import AppearanceSync from 'components/AppearanceSync'
 import { TooltipProvider } from 'components/ui/tooltip'
 // import { Provider as RollbarProvider, ErrorBoundary } from '@rollbar/react'
 import { LayoutFlagsProvider } from 'contexts/LayoutFlagsContext'
@@ -36,20 +36,19 @@ export default function App () {
   return (
     <LayoutFlagsProvider>
       <Provider store={store}>
-        <ThemeProvider>
-          <TooltipProvider delayDuration={0}>
-            <CookieConsentProvider>
-              <ViewHeaderProvider>
-                <DropdownProvider>
-                  <Router history={history}>
-                    <RootRouter />
-                    <CookiePreferencesPanel />
-                  </Router>
-                </DropdownProvider>
-              </ViewHeaderProvider>
-            </CookieConsentProvider>
-          </TooltipProvider>
-        </ThemeProvider>
+        <AppearanceSync />
+        <TooltipProvider delayDuration={0}>
+          <CookieConsentProvider>
+            <ViewHeaderProvider>
+              <DropdownProvider>
+                <Router history={history}>
+                  <RootRouter />
+                  <CookiePreferencesPanel />
+                </Router>
+              </DropdownProvider>
+            </ViewHeaderProvider>
+          </CookieConsentProvider>
+        </TooltipProvider>
       </Provider>
     </LayoutFlagsProvider>
   )

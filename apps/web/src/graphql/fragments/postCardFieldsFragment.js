@@ -4,6 +4,7 @@ const postGroupsFields = `
     id
     name
     slug
+    type
   }
 `
 
