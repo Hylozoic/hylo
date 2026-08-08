@@ -454,10 +454,10 @@ function Member ({
           {tagline && <div className='text-sm text-foreground/70 leading-relaxed'>{tagline}</div>}
           {skills.length > 0 && (
             <div ref={skillsClamp.containerRef} className='flex flex-wrap gap-1.5 mt-3'>
-              {skills.slice(0, skillsClamp.visibleCount).map(skill => (
+              {skills.map(skill => (
                 <span key={skill} className='px-2.5 py-0.5 rounded-full text-xs bg-foreground/5 border border-foreground/15 text-foreground/70'>{skill}</span>
               ))}
-              {skillsClamp.clamped && (
+              {!skillsExpanded && (
                 <button
                   type='button'
                   onClick={e => { e.stopPropagation(); setSkillsExpanded(true) }}

@@ -271,7 +271,7 @@ function Members (props) {
               <RolePill active={!groupRoleId} count={memberCount || null} onClick={() => changeRoleFilter(null)}>
                 {t('All members')}
               </RolePill>
-              {filterableRoles.slice(0, Math.max(0, roleClamp.visibleCount - 1)).map(role => {
+              {filterableRoles.map(role => {
                 const active = String(role.id) === String(groupRoleId)
                 return (
                   <RolePill key={role.id} active={active} count={role.membersTotal ?? null} onClick={() => changeRoleFilter(active ? null : role.id)}>
@@ -279,7 +279,7 @@ function Members (props) {
                   </RolePill>
                 )
               })}
-              {roleClamp.clamped && (
+              {!rolesExpanded && (
                 <RolePill onClick={() => setRolesExpanded(true)}>
                   {t('More ({{count}})', { count: filterableRoles.length - Math.max(0, roleClamp.visibleCount - 1) })}
                 </RolePill>
