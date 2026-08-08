@@ -63,6 +63,9 @@ const MIN_CHAT_WIDTH = 480
 const CHAT_GUTTER = 20
 // Slack past the clamp edge required before the rail appears at all
 const CHAT_RAIL_SLACK = 40
+// The rail sits wholly right of the stream: its background's left edge IS the
+// stream's endpoint, with the dashed line at the rail's own centre
+const CHAT_RAIL_WIDTH = 30
 
 // IMPORTANT: Use a selector factory so multiple prop-driven queries don't thrash a single memo cache
 // Preserve the order defined by queryResults.ids and transform to presentPost
@@ -765,8 +768,9 @@ export default function ChatRoom (props) {
     return () => observer.disconnect()
   }, [chatPaneEl])
 
-  // Widest the stream may grow: leaves a right gap matching the left gutter
-  const chatAvailableWidth = Math.max(0, chatPaneWidth - CHAT_GUTTER * 2)
+  // Widest the stream may grow: the rail hangs fully right of the stream edge,
+  // so reserve its width (plus the pane's px-1) instead of a mirrored gutter
+  const chatAvailableWidth = Math.max(0, chatPaneWidth - CHAT_GUTTER - CHAT_RAIL_WIDTH - 4)
   const effectiveChatWidth = chatAvailableWidth ? Math.min(chatStreamWidth, chatAvailableWidth) : chatStreamWidth
   // No rail until the pane outgrows the clamp enough for the rail to mean something
   const showChatWidthRail = chatAvailableWidth >= Math.min(chatStreamWidth, DEFAULT_CHAT_WIDTH) + CHAT_RAIL_SLACK
@@ -820,10 +824,10 @@ export default function ChatRoom (props) {
             aria-orientation='vertical'
             aria-label={t('Adjust chat width')}
             className={cn(
-              'absolute top-0 bottom-0 z-20 w-[30px] -translate-x-1/2 flex flex-col items-center justify-between group touch-none select-none',
+              'absolute top-0 bottom-0 z-20 flex flex-col items-center justify-between group touch-none select-none',
               resizingChatWidth ? 'cursor-grabbing' : 'cursor-grab'
             )}
-            style={{ left: 4 + CHAT_GUTTER + effectiveChatWidth }}
+            style={{ left: 4 + CHAT_GUTTER + effectiveChatWidth, width: CHAT_RAIL_WIDTH }}
             onPointerDown={onChatRailPointerDown}
             onPointerMove={onChatRailPointerMove}
             onPointerUp={onChatRailPointerUp}
