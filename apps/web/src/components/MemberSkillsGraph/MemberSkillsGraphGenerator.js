@@ -148,14 +148,40 @@ export function runSkillsGraph (container, nodesData, linksData, { onSkillClick,
     ctx.fillText(text, x, y)
   }
 
+  // The spotlight fades in and out through one global strength value, so
+  // every element's alpha derives from it and link strokes stay batched
+  // (a per-element opacity tween would force one stroke call per link)
+  let spotlightStrength = 0
+  let targetStrength = 0
+  let fadeRaf = 0
+  const fadeTick = () => {
+    fadeRaf = 0
+    const delta = targetStrength - spotlightStrength
+    if (Math.abs(delta) < 0.03) {
+      spotlightStrength = targetStrength
+      if (targetStrength === 0) {
+        spotlightId = null
+        spotlightSet = null
+      }
+    } else {
+      spotlightStrength += delta * 0.25
+      fadeRaf = window.requestAnimationFrame(fadeTick)
+    }
+    draw()
+  }
+  const animateSpotlight = () => {
+    if (!fadeRaf && !destroyed) fadeRaf = window.requestAnimationFrame(fadeTick)
+  }
+
   const draw = () => {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
     ctx.clearRect(0, 0, width, height)
     ctx.translate(width / 2 + transform.x, height / 2 + transform.y)
     ctx.scale(transform.k, transform.k)
 
-    const dimAlpha = 0.12
     const lit = spotlightSet
+    const s = lit ? spotlightStrength : 0
+    const dimAlpha = 1 - s * (1 - 0.12)
 
     // Links: one batched path per pass keeps stroke calls cheap
     const linkPass = (subset, alpha) => {
@@ -171,8 +197,8 @@ export function runSkillsGraph (container, nodesData, linksData, { onSkillClick,
       ctx.stroke()
     }
     if (lit) {
-      linkPass(links.filter(l => l.source.id !== spotlightId && l.target.id !== spotlightId), 0.04)
-      linkPass(links.filter(l => l.source.id === spotlightId || l.target.id === spotlightId), 0.5)
+      linkPass(links.filter(l => l.source.id !== spotlightId && l.target.id !== spotlightId), 0.15 - s * (0.15 - 0.04))
+      linkPass(links.filter(l => l.source.id === spotlightId || l.target.id === spotlightId), 0.15 + s * (0.5 - 0.15))
     } else {
       linkPass(links, 0.15)
     }
@@ -211,7 +237,7 @@ export function runSkillsGraph (container, nodesData, linksData, { onSkillClick,
         ctx.stroke()
         const labelVisible = showPersonLabels || (lit && lit.has(d.id))
         if (labelVisible && transform.k >= 0.6) {
-          drawLabel(d.name, d.x, d.y + PERSON_RADIUS + 3, 9, 400, alpha * 0.8)
+          drawLabel(d.name, d.x, d.y + PERSON_RADIUS + 3, 9, 400, showPersonLabels ? alpha * 0.8 : s * 0.8)
         }
       }
     })
@@ -264,17 +290,25 @@ export function runSkillsGraph (container, nodesData, linksData, { onSkillClick,
     })
   d3.select(canvas).call(zoom)
 
+  // Entering fades the spotlight in, leaving fades it out (the lit set
+  // lingers until the fade completes); hopping between nodes swaps the lit
+  // set at full strength, which reads as crisp rather than flickery
   const spotlight = (d) => {
     const id = d ? d.id : null
-    if (id === spotlightId) return
-    spotlightId = id
-    spotlightSet = d ? neighborIds.get(d.id) : null
-    if (d && isLarge) {
-      nodes.forEach(n => {
-        if (n.type === 'person' && spotlightSet.has(n.id)) loadAvatar(n)
-      })
+    if (id === spotlightId && targetStrength === (d ? 1 : 0)) return
+    if (d) {
+      spotlightId = id
+      spotlightSet = neighborIds.get(d.id)
+      targetStrength = 1
+      if (isLarge) {
+        nodes.forEach(n => {
+          if (n.type === 'person' && spotlightSet.has(n.id)) loadAvatar(n)
+        })
+      }
+    } else {
+      targetStrength = 0
     }
-    scheduleDraw()
+    animateSpotlight()
   }
 
   const onPointerMove = (event) => {
@@ -317,6 +351,7 @@ export function runSkillsGraph (container, nodesData, linksData, { onSkillClick,
     destroy: () => {
       destroyed = true
       if (raf) window.cancelAnimationFrame(raf)
+      if (fadeRaf) window.cancelAnimationFrame(fadeRaf)
       simulation.stop()
       canvas.removeEventListener('mousemove', onPointerMove)
       canvas.removeEventListener('mouseleave', onPointerLeave)
