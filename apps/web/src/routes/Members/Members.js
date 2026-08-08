@@ -195,7 +195,7 @@ function Members (props) {
   }
 
   return (
-    <div className='h-auto w-full mx-auto max-w-[940px]' id='members-page'>
+    <div className='h-auto w-full mx-auto max-w-[940px] pb-28' id='members-page'>
       <Helmet>
         <title>{t('Members')} | {group ? `${group.name} | ` : ''}Hylo</title>
       </Helmet>
