@@ -47,12 +47,14 @@ const INPUT_CLASS = 'w-full rounded-lg border-2 border-foreground/20 bg-input px
 // TagInput renders selected tags and the search field as siblings in one <ul>, with
 // the field last. Reordering it here — field on its own row first, chosen groups as
 // pills underneath — keeps that shared component untouched for its other callers.
+// `relative` on the field's row is what keeps the suggestions dropdown attached to
+// the field rather than to the bottom of the whole control.
 const GROUPS_SELECTOR_CLASS = cn(
   'w-full [&>ul]:flex [&>ul]:flex-wrap [&>ul]:items-center [&>ul]:gap-2 [&>ul]:m-0 [&>ul]:p-0 [&>ul]:list-none',
-  '[&>ul>li:last-child]:order-first [&>ul>li:last-child]:basis-full [&>ul>li:last-child]:w-full',
-  '[&>ul>li:last-child]:rounded-lg [&>ul>li:last-child]:border-2 [&>ul>li:last-child]:border-foreground/20',
-  '[&>ul>li:last-child]:bg-input [&>ul>li:last-child]:px-3 [&>ul>li:last-child]:py-2.5',
+  '[&>ul>li:last-child]:order-first [&>ul>li:last-child]:basis-full [&>ul>li:last-child]:w-full [&>ul>li:last-child]:relative',
   '[&>ul>li:last-child>div]:w-full',
+  '[&_input]:!w-full [&_input]:!rounded-lg [&_input]:!border-2 [&_input]:!border-foreground/20',
+  '[&_input]:!bg-input [&_input]:!px-3 [&_input]:!py-2.5 [&_input]:!text-sm',
   '[&>ul>li:not(:last-child)]:mr-0 [&>ul>li:not(:last-child)]:gap-1.5 [&>ul>li:not(:last-child)]:rounded-full',
   '[&>ul>li:not(:last-child)]:bg-selected/20 [&>ul>li:not(:last-child)]:px-2.5 [&>ul>li:not(:last-child)]:py-1'
 )
@@ -205,7 +207,7 @@ function AdvancedSection ({ settingKey, icon: Icon, label, onHide, children }) {
   const { t } = useTranslation()
   return (
     <div data-advanced-key={settingKey} className='rounded-xl border border-foreground/10 bg-foreground/5 p-4'>
-      <div className='flex items-center gap-2 mb-3'>
+      <div className='flex items-center gap-2 mb-1.5'>
         <Icon className='w-4 h-4 text-selected' />
         <span className='flex-1 text-sm font-bold text-foreground'>{t(label)}</span>
         <button
@@ -234,7 +236,7 @@ function AgreementsEditor ({ agreements, onChange }) {
               value={agreement.title}
               onChange={e => onChange(agreements.map((a, i) => i === index ? { ...a, title: e.target.value } : a))}
               placeholder={t('Agreement title')}
-              className={cn(INPUT_CLASS, 'rounded-b-none border-b-0 font-semibold')}
+              className={cn(INPUT_CLASS, 'rounded-b-none border-b-input font-semibold')}
             />
             <textarea
               rows={2}
@@ -586,6 +588,7 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
             onChange={setParentGroups}
             readOnly={false}
             ref={groupsSelectorRef}
+            placeholder={t('Search groups to add')}
             className={GROUPS_SELECTOR_CLASS}
           />
         </div>
@@ -636,7 +639,7 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
           <UploadAttachmentButton
             type='groupAvatar'
             onInitialUpload={({ url }) => setAvatarUrl(url)}
-            className='absolute left-4 -bottom-9 group'
+            className='absolute left-4 -bottom-9 p-1 rounded-2xl bg-background group'
           >
             <div
               style={bgImageStyle(avatarUrl)}
