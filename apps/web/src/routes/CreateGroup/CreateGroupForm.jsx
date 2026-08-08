@@ -85,43 +85,41 @@ function ParentGroupsEditor ({ options, selected, onChange }) {
     <div className='flex flex-col gap-2'>
       <p className='text-xs text-foreground/60'>{t('groupParentGroupHelpText')}</p>
 
-      {selected.length > 0 && (
-        <div className='flex flex-wrap gap-2'>
-          {selected.map(group => (
-            <span key={group.id} className='inline-flex items-center gap-2 rounded-full bg-selected/20 py-1 pl-1 pr-2.5'>
-              <div style={bgImageStyle(group.avatarUrl)} className='w-5 h-5 rounded-full bg-cover bg-center shrink-0' />
-              <span className='text-sm text-foreground'>{group.name}</span>
-              <button
-                type='button'
-                onClick={() => onChange(selected.filter(g => g.id !== group.id))}
-                aria-label={t('Remove {{name}}', { name: group.name })}
-                className='text-foreground/50 hover:text-foreground transition-colors'
-              >
-                <X className='w-3.5 h-3.5' />
-              </button>
-            </span>
-          ))}
-        </div>
-      )}
+      <div className='flex flex-wrap items-center gap-2'>
+        {selected.map(group => (
+          <span key={group.id} className='inline-flex items-center gap-2 rounded-full bg-selected/20 py-1 pl-1 pr-2.5'>
+            <div style={bgImageStyle(group.avatarUrl)} className='w-5 h-5 rounded-full bg-cover bg-center shrink-0' />
+            <span className='text-sm text-foreground'>{group.name}</span>
+            <button
+              type='button'
+              onClick={() => onChange(selected.filter(g => g.id !== group.id))}
+              aria-label={t('Remove {{name}}', { name: group.name })}
+              className='text-foreground/50 hover:text-foreground transition-colors'
+            >
+              <X className='w-3.5 h-3.5' />
+            </button>
+          </span>
+        ))}
 
-      {isAdding
-        ? (
-          <div ref={fieldRef} onBlur={handleBlur}>
-            <GroupsSelector
-              options={options}
-              selected={selected}
-              onChange={handleChange}
-              readOnly={false}
-              placeholder={t('Search groups to add')}
-              className={GROUPS_SELECTOR_CLASS}
-            />
-          </div>
-          )
-        : (
-          <button type='button' onClick={() => setIsAdding(true)} className={ADD_ROW_CLASS}>
-            <Plus className='w-3 h-3' />{t('Add a parent group')}
-          </button>
-          )}
+        {isAdding
+          ? (
+            <div ref={fieldRef} onBlur={handleBlur} className='flex-1 basis-48 min-w-0'>
+              <GroupsSelector
+                options={options}
+                selected={selected}
+                onChange={handleChange}
+                readOnly={false}
+                placeholder={t('Search groups to add')}
+                className={GROUPS_SELECTOR_CLASS}
+              />
+            </div>
+            )
+          : (
+            <button type='button' onClick={() => setIsAdding(true)} className={cn(ADD_ROW_CLASS, 'px-3 py-1.5 rounded-full')}>
+              <Plus className='w-3 h-3' />{t('Add a parent group')}
+            </button>
+            )}
+      </div>
     </div>
   )
 }
