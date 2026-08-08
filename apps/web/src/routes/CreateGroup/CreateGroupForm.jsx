@@ -44,20 +44,87 @@ const PURPOSE_MAX_LENGTH = 500
 // uses this so the whole modal reads as one set of controls.
 const INPUT_CLASS = 'w-full rounded-lg border-2 border-foreground/20 bg-input px-3 py-2.5 text-sm text-foreground placeholder-foreground/40 focus:outline-none focus:border-focus transition-colors'
 
-// TagInput renders selected tags and the search field as siblings in one <ul>, with
-// the field last. Reordering it here — field on its own row first, chosen groups as
-// pills underneath — keeps that shared component untouched for its other callers.
-// `relative` on the field's row is what keeps the suggestions dropdown attached to
-// the field rather than to the bottom of the whole control.
+// The chosen groups are rendered here as pills instead, so TagInput's own tags are
+// hidden and only its field is used. `relative` on that field's row keeps the
+// suggestion list attached to the field.
 const GROUPS_SELECTOR_CLASS = cn(
-  'w-full [&>ul]:flex [&>ul]:flex-wrap [&>ul]:items-center [&>ul]:gap-2 [&>ul]:m-0 [&>ul]:p-0 [&>ul]:list-none',
-  '[&>ul>li:last-child]:order-first [&>ul>li:last-child]:basis-full [&>ul>li:last-child]:w-full [&>ul>li:last-child]:relative',
+  'w-full [&>ul]:flex [&>ul]:m-0 [&>ul]:p-0 [&>ul]:list-none',
+  '[&>ul>li:not(:last-child)]:hidden',
+  '[&>ul>li:last-child]:relative [&>ul>li:last-child]:w-full [&>ul>li:last-child]:m-0 [&>ul>li:last-child]:p-0',
   '[&>ul>li:last-child>div]:w-full',
   '[&_input]:!w-full [&_input]:!rounded-lg [&_input]:!border-2 [&_input]:!border-foreground/20',
-  '[&_input]:!bg-input [&_input]:!px-3 [&_input]:!py-2.5 [&_input]:!text-sm',
-  '[&>ul>li:not(:last-child)]:mr-0 [&>ul>li:not(:last-child)]:gap-1.5 [&>ul>li:not(:last-child)]:rounded-full',
-  '[&>ul>li:not(:last-child)]:bg-selected/20 [&>ul>li:not(:last-child)]:px-2.5 [&>ul>li:not(:last-child)]:py-1'
+  '[&_input]:!bg-input [&_input]:!px-3 [&_input]:!py-2.5 [&_input]:!text-sm'
 )
+
+const ADD_ROW_CLASS = 'flex items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-foreground/20 py-2 text-xs font-semibold text-foreground/60 hover:border-foreground/40 hover:text-foreground transition-all'
+
+// Parent groups read as a list of what's been added, with the search field appearing
+// only once you ask for it — otherwise an empty field sits there implying work to do.
+function ParentGroupsEditor ({ options, selected, onChange }) {
+  const { t } = useTranslation()
+  const [isAdding, setIsAdding] = useState(false)
+  const fieldRef = useRef()
+
+  useEffect(() => {
+    if (isAdding) fieldRef.current?.querySelector('input')?.focus()
+  }, [isAdding])
+
+  const handleChange = useCallback(groups => {
+    onChange(groups)
+    setIsAdding(false)
+  }, [onChange])
+
+  // A suggestion click blurs the field before it registers, so give it a beat.
+  const handleBlur = useCallback(() => {
+    setTimeout(() => {
+      if (!fieldRef.current?.contains(document.activeElement)) setIsAdding(false)
+    }, 200)
+  }, [])
+
+  return (
+    <div className='flex flex-col gap-2'>
+      <p className='text-xs text-foreground/60'>{t('groupParentGroupHelpText')}</p>
+
+      {selected.length > 0 && (
+        <div className='flex flex-wrap gap-2'>
+          {selected.map(group => (
+            <span key={group.id} className='inline-flex items-center gap-2 rounded-full bg-selected/20 py-1 pl-1 pr-2.5'>
+              <div style={bgImageStyle(group.avatarUrl)} className='w-5 h-5 rounded-full bg-cover bg-center shrink-0' />
+              <span className='text-sm text-foreground'>{group.name}</span>
+              <button
+                type='button'
+                onClick={() => onChange(selected.filter(g => g.id !== group.id))}
+                aria-label={t('Remove {{name}}', { name: group.name })}
+                className='text-foreground/50 hover:text-foreground transition-colors'
+              >
+                <X className='w-3.5 h-3.5' />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {isAdding
+        ? (
+          <div ref={fieldRef} onBlur={handleBlur}>
+            <GroupsSelector
+              options={options}
+              selected={selected}
+              onChange={handleChange}
+              readOnly={false}
+              placeholder={t('Search groups to add')}
+              className={GROUPS_SELECTOR_CLASS}
+            />
+          </div>
+          )
+        : (
+          <button type='button' onClick={() => setIsAdding(true)} className={ADD_ROW_CLASS}>
+            <Plus className='w-3 h-3' />{t('Add a parent group')}
+          </button>
+          )}
+    </div>
+  )
+}
 
 const VISIBILITY_OPTIONS = [
   {
@@ -259,7 +326,7 @@ function AgreementsEditor ({ agreements, onChange }) {
       <button
         type='button'
         onClick={() => onChange([...agreements, { title: '', description: '', order: agreements.length }])}
-        className='flex items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-foreground/20 py-2 text-xs font-semibold text-foreground/60 hover:border-foreground/40 hover:text-foreground transition-all'
+        className={ADD_ROW_CLASS}
       >
         <Plus className='w-3 h-3' />{t('Add an agreement')}
       </button>
@@ -294,7 +361,7 @@ function JoinQuestionsEditor ({ questions, onChange }) {
       <button
         type='button'
         onClick={() => onChange([...questions, { text: '' }])}
-        className='flex items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-foreground/20 py-2 text-xs font-semibold text-foreground/60 hover:border-foreground/40 hover:text-foreground transition-all'
+        className={ADD_ROW_CLASS}
       >
         <Plus className='w-3 h-3' />{t('Add a question')}
       </button>
@@ -359,7 +426,6 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
   const [justRevealed, setJustRevealed] = useState(null)
 
   const slugRef = useRef()
-  const groupsSelectorRef = useRef()
 
   const slugFormatError = useMemo(() => {
     if (!slug) return name ? t('Please enter a URL slug') : false
@@ -580,18 +646,11 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
       defaultSummary: t('No parent groups'),
       hidden: parentGroupOptions.length === 0,
       render: () => (
-        <div className='flex flex-col gap-1.5'>
-          <p className='text-xs text-foreground/60'>{t('groupParentGroupHelpText')}</p>
-          <GroupsSelector
-            options={parentGroupOptions}
-            selected={parentGroups}
-            onChange={setParentGroups}
-            readOnly={false}
-            ref={groupsSelectorRef}
-            placeholder={t('Search groups to add')}
-            className={GROUPS_SELECTOR_CLASS}
-          />
-        </div>
+        <ParentGroupsEditor
+          options={parentGroupOptions}
+          selected={parentGroups}
+          onChange={setParentGroups}
+        />
       )
     },
     {

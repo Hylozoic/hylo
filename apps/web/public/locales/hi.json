@@ -2495,5 +2495,7 @@
   "People requesting to join your group must answer these questions. You and other stewards will be able to see their answers before approving.": "आपके समूह में शामिल होने का अनुरोध करने वालों को इन प्रश्नों का उत्तर देना होगा। स्वीकृति से पहले आप और अन्य स्टीवर्ड उनके उत्तर देख सकेंगे।",
   "People must request to join your group, and be approved by stewards. You can ask applicants questions before they join.": "लोगों को आपके समूह में शामिल होने का अनुरोध करना होगा और स्टीवर्ड द्वारा अनुमोदित होना होगा। आप शामिल होने से पहले उनसे प्रश्न पूछ सकते हैं।",
   "Avatar": "अवतार",
-  "Search groups to add": "जोड़ने के लिए समूह खोजें"
+  "Search groups to add": "जोड़ने के लिए समूह खोजें",
+  "Add a parent group": "एक मूल समूह जोड़ें",
+  "Remove {{name}}": "{{name}} हटाएं"
 }

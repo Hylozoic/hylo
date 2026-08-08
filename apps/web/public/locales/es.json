@@ -2580,5 +2580,7 @@
   "People requesting to join your group must answer these questions. You and other stewards will be able to see their answers before approving.": "Quienes soliciten unirse a tu grupo deberán responder estas preguntas. Tú y otros administradores podréis ver sus respuestas antes de aprobar.",
   "People must request to join your group, and be approved by stewards. You can ask applicants questions before they join.": "Las personas deben solicitar unirse a tu grupo y ser aprobadas por los administradores. Puedes hacerles preguntas antes de que se unan.",
   "Avatar": "Avatar",
-  "Search groups to add": "Buscar grupos para añadir"
+  "Search groups to add": "Buscar grupos para añadir",
+  "Add a parent group": "Añadir un grupo superior",
+  "Remove {{name}}": "Eliminar {{name}}"
 }
