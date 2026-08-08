@@ -663,13 +663,16 @@ export default function ContextMenu (props) {
 
   // Remember where the user was before a space's menu took over, so Back returns
   // them there — not to a guessed group home. Updated only while no space menu is
-  // active, so entering the space never overwrites the origin.
+  // active, so entering the space never overwrites the origin. Guard on the
+  // route's spaceSlug too: on a direct space load activeSpaceView stays null
+  // until group data arrives, and without the guard the space's own URL gets
+  // recorded as the origin — making Close a no-op.
   const lastNonSpaceLocationRef = React.useRef(null)
   useEffect(() => {
-    if (!activeSpaceView) {
+    if (!activeSpaceView && !spaceSlug) {
       lastNonSpaceLocationRef.current = `${location.pathname}${location.search}`
     }
-  }, [location, activeSpaceView])
+  }, [location, activeSpaceView, spaceSlug])
 
   const handleBackToGroupMenu = useCallback(() => {
     if (lastNonSpaceLocationRef.current) {
