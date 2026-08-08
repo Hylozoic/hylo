@@ -106,7 +106,10 @@ function Members (props) {
   })
 
   const filterableRoles = useMemo(() => {
-    const roles = (rolesSourceGroup?.groupRoles?.items || []).filter(role => role.active !== false)
+    // Roles nobody holds aren't useful filters; undefined counts stay visible
+    // so a cache that predates membersTotal doesn't blank the row
+    const roles = (rolesSourceGroup?.groupRoles?.items || [])
+      .filter(role => role.active !== false && role.membersTotal !== 0)
     return [
       ...sortSystemGroupRoles(roles),
       ...sortCustomGroupRoles(roles.filter(role => !isSystemGroupRole(role)))

@@ -15,6 +15,23 @@ query FetchGroupMembers ($slug: String, $groupId: ID, $first: Int, $sortBy: Stri
     name
     avatarUrl
     memberCount
+    groupRoles {
+      items {
+        id
+        name
+        emoji
+        active
+        groupId
+        membersTotal
+        responsibilities {
+          items {
+            id
+            title
+            description
+          }
+        }
+      }
+    }
     members (first: $first, sortBy: $sortBy, order: $order, offset: $offset, search: $search, groupRoleId: $groupRoleId) {
       items {
         id
