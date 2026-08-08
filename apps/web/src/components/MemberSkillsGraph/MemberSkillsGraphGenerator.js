@@ -35,7 +35,7 @@ export function runSkillsGraph (container, nodesData, linksData, { onSkillClick,
     const value = rootStyle.getPropertyValue(name).trim()
     return value ? `hsl(${value})` : fallback
   }
-  const accentColor = themeColor('--accent', '#e0727f')
+  const skillCircleColor = themeColor('--selected', '#69cf94')
   const foregroundColor = themeColor('--foreground', '#2c2c2c')
   const cardColor = themeColor('--card', '#ffffff')
   const mutedColor = themeColor('--muted', '#9ca3af')
@@ -184,11 +184,11 @@ export function runSkillsGraph (container, nodesData, linksData, { onSkillClick,
         ctx.globalAlpha = alpha * 0.25
         ctx.beginPath()
         ctx.arc(d.x, d.y, r, 0, Math.PI * 2)
-        ctx.fillStyle = accentColor
+        ctx.fillStyle = skillCircleColor
         ctx.fill()
         ctx.globalAlpha = alpha
         ctx.lineWidth = 1.5
-        ctx.strokeStyle = accentColor
+        ctx.strokeStyle = skillCircleColor
         ctx.stroke()
         drawLabel(d.name, d.x, d.y + r + 4, 11, 600, alpha)
       } else {
