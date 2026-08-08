@@ -11,7 +11,8 @@ const GroupsSelector = forwardRef(({
   options = [],
   onChange,
   readOnly,
-  groupSettings
+  groupSettings,
+  className
 }, ref) => {
   const { t } = useTranslation()
   const defaultState = { suggestions: [] }
@@ -70,6 +71,7 @@ const GroupsSelector = forwardRef(({
       readOnly={options.length === 0}
       tagType='groups'
       theme={styles}
+      className={className}
     />
   )
 })

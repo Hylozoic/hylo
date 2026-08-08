@@ -2458,7 +2458,6 @@
   "Describe what members are agreeing to": "बताएं कि सदस्य किस बात के लिए सहमत हो रहे हैं",
   "Remove agreement": "समझौता हटाएं",
   "Add an agreement": "एक समझौता जोड़ें",
-  "Asked when someone requests to join, to help stewards decide.": "जब कोई शामिल होने का अनुरोध करता है तब पूछा जाता है, ताकि स्टीवर्ड निर्णय ले सकें।",
   "What would you like to ask people who want to join?": "जो लोग शामिल होना चाहते हैं उनसे आप क्या पूछना चाहेंगे?",
   "Remove question": "प्रश्न हटाएं",
   "Add a question": "एक प्रश्न जोड़ें",
@@ -2477,7 +2476,6 @@
   "Who can see this group?": "इस समूह को कौन देख सकता है?",
   "Who can join this group?": "इस समूह में कौन शामिल हो सकता है?",
   "Advanced settings": "उन्नत सेटिंग्स",
-  "None of this is needed to get started — everything can be changed later in your group settings.": "शुरू करने के लिए इनमें से कुछ भी आवश्यक नहीं है — सब कुछ बाद में आपके समूह की सेटिंग्स में बदला जा सकता है।",
   "Anyone can find and see": "कोई भी इसे ढूंढ और देख सकता है",
   "This group will be exposed to search engines.": "यह समूह सर्च इंजनों को दिखाई देगा।",
   "Visible to related groups": "संबंधित समूहों को दिखाई देता है",
@@ -2487,11 +2485,14 @@
   "Anyone can join instantly": "कोई भी तुरंत शामिल हो सकता है",
   "Anybody who can see the group becomes a member the moment they ask — no review, no waiting.": "जो कोई भी समूह देख सकता है, अनुरोध करते ही सदस्य बन जाता है — कोई समीक्षा नहीं, कोई प्रतीक्षा नहीं।",
   "By request, with approval": "अनुरोध द्वारा, अनुमोदन के साथ",
-  "People fill out a join request and a steward decides. You can ask applicants questions before they join.": "लोग शामिल होने का अनुरोध भरते हैं और एक स्टीवर्ड निर्णय लेता है। आप शामिल होने से पहले उनसे प्रश्न पूछ सकते हैं।",
   "By invitation only": "केवल निमंत्रण द्वारा",
   "Nobody can request to join. Members arrive only when a steward invites them directly or shares an invite link.": "कोई भी शामिल होने का अनुरोध नहीं कर सकता। सदस्य तभी आते हैं जब कोई स्टीवर्ड उन्हें सीधे आमंत्रित करे या निमंत्रण लिंक साझा करे।",
   "Post types": "पोस्ट के प्रकार",
   "Menu views": "मेनू दृश्य",
   "Parent groups": "मूल समूह",
-  "Join questions": "शामिल होने के प्रश्न"
+  "Join questions": "शामिल होने के प्रश्न",
+  "These can be changed later in your group settings.": "इन्हें बाद में आपके समूह की सेटिंग्स में बदला जा सकता है।",
+  "People requesting to join your group must answer these questions. You and other stewards will be able to see their answers before approving.": "आपके समूह में शामिल होने का अनुरोध करने वालों को इन प्रश्नों का उत्तर देना होगा। स्वीकृति से पहले आप और अन्य स्टीवर्ड उनके उत्तर देख सकेंगे।",
+  "People must request to join your group, and be approved by stewards. You can ask applicants questions before they join.": "लोगों को आपके समूह में शामिल होने का अनुरोध करना होगा और स्टीवर्ड द्वारा अनुमोदित होना होगा। आप शामिल होने से पहले उनसे प्रश्न पूछ सकते हैं।",
+  "Avatar": "अवतार"
 }

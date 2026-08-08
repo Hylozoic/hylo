@@ -2458,7 +2458,6 @@
   "Describe what members are agreeing to": "Décrivez ce à quoi les membres s'engagent",
   "Remove agreement": "Supprimer l'accord",
   "Add an agreement": "Ajouter un accord",
-  "Asked when someone requests to join, to help stewards decide.": "Posée lorsque quelqu'un demande à rejoindre le groupe, pour aider les intendants à décider.",
   "What would you like to ask people who want to join?": "Que souhaitez-vous demander aux personnes qui veulent vous rejoindre ?",
   "Remove question": "Supprimer la question",
   "Add a question": "Ajouter une question",
@@ -2477,7 +2476,6 @@
   "Who can see this group?": "Qui peut voir ce groupe ?",
   "Who can join this group?": "Qui peut rejoindre ce groupe ?",
   "Advanced settings": "Paramètres avancés",
-  "None of this is needed to get started — everything can be changed later in your group settings.": "Rien de tout cela n'est nécessaire pour commencer — tout peut être modifié plus tard dans les paramètres du groupe.",
   "Anyone can find and see": "Tout le monde peut le trouver et le voir",
   "This group will be exposed to search engines.": "Ce groupe sera visible par les moteurs de recherche.",
   "Visible to related groups": "Visible par les groupes associés",
@@ -2487,11 +2485,14 @@
   "Anyone can join instantly": "Tout le monde peut rejoindre instantanément",
   "Anybody who can see the group becomes a member the moment they ask — no review, no waiting.": "Toute personne qui voit le groupe en devient membre dès sa demande — sans validation ni attente.",
   "By request, with approval": "Sur demande, avec approbation",
-  "People fill out a join request and a steward decides. You can ask applicants questions before they join.": "Les personnes remplissent une demande d'adhésion et un intendant décide. Vous pouvez leur poser des questions avant leur arrivée.",
   "By invitation only": "Sur invitation uniquement",
   "Nobody can request to join. Members arrive only when a steward invites them directly or shares an invite link.": "Personne ne peut demander à rejoindre. Les membres n'arrivent que si un intendant les invite directement ou partage un lien d'invitation.",
   "Post types": "Types de publication",
   "Menu views": "Vues du menu",
   "Parent groups": "Groupes parents",
-  "Join questions": "Questions d'adhésion"
+  "Join questions": "Questions d'adhésion",
+  "These can be changed later in your group settings.": "Ces éléments peuvent être modifiés plus tard dans les paramètres du groupe.",
+  "People requesting to join your group must answer these questions. You and other stewards will be able to see their answers before approving.": "Les personnes qui demandent à rejoindre votre groupe doivent répondre à ces questions. Vous et les autres intendants pourrez voir leurs réponses avant d'approuver.",
+  "People must request to join your group, and be approved by stewards. You can ask applicants questions before they join.": "Les personnes doivent demander à rejoindre votre groupe et être approuvées par les intendants. Vous pouvez leur poser des questions avant leur arrivée.",
+  "Avatar": "Avatar"
 }

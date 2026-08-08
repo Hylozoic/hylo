@@ -1,6 +1,6 @@
 import { trim } from 'lodash/fp'
 import {
-  ArrowRight, Check, ChevronDown, DoorOpen, EyeOff, Globe, HelpCircle, ImagePlus,
+  ArrowRight, ChevronDown, DoorOpen, EyeOff, Globe, HelpCircle, ImagePlus,
   LayoutGrid, Lock, MapPin, Network, Plus, ScrollText, Shield, Users, X
 } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -40,6 +40,23 @@ const SLUG_CHECK_DEBOUNCE = 300
 const NAME_MAX_LENGTH = 60
 const PURPOSE_MAX_LENGTH = 500
 
+// Every text field in this form — including the ones inside the advanced editors —
+// uses this so the whole modal reads as one set of controls.
+const INPUT_CLASS = 'w-full rounded-lg border-2 border-foreground/20 bg-input px-3 py-2.5 text-sm text-foreground placeholder-foreground/40 focus:outline-none focus:border-focus transition-colors'
+
+// TagInput renders selected tags and the search field as siblings in one <ul>, with
+// the field last. Reordering it here — field on its own row first, chosen groups as
+// pills underneath — keeps that shared component untouched for its other callers.
+const GROUPS_SELECTOR_CLASS = cn(
+  'w-full [&>ul]:flex [&>ul]:flex-wrap [&>ul]:items-center [&>ul]:gap-2 [&>ul]:m-0 [&>ul]:p-0 [&>ul]:list-none',
+  '[&>ul>li:last-child]:order-first [&>ul>li:last-child]:basis-full [&>ul>li:last-child]:w-full',
+  '[&>ul>li:last-child]:rounded-lg [&>ul>li:last-child]:border-2 [&>ul>li:last-child]:border-foreground/20',
+  '[&>ul>li:last-child]:bg-input [&>ul>li:last-child]:px-3 [&>ul>li:last-child]:py-2.5',
+  '[&>ul>li:last-child>div]:w-full',
+  '[&>ul>li:not(:last-child)]:mr-0 [&>ul>li:not(:last-child)]:gap-1.5 [&>ul>li:not(:last-child)]:rounded-full',
+  '[&>ul>li:not(:last-child)]:bg-selected/20 [&>ul>li:not(:last-child)]:px-2.5 [&>ul>li:not(:last-child)]:py-1'
+)
+
 const VISIBILITY_OPTIONS = [
   {
     value: GROUP_VISIBILITY.Public,
@@ -72,7 +89,7 @@ const ACCESSIBILITY_OPTIONS = [
     value: GROUP_ACCESSIBILITY.Restricted,
     icon: Lock,
     title: 'By request, with approval',
-    description: 'People fill out a join request and a steward decides. You can ask applicants questions before they join.'
+    description: 'People must request to join your group, and be approved by stewards. You can ask applicants questions before they join.'
   },
   {
     value: GROUP_ACCESSIBILITY.Closed,
@@ -166,7 +183,7 @@ function AdvancedPill ({ isOpen, icon: Icon, label, defaultSummary, onClick }) {
           : 'border-foreground/20 text-foreground/70 hover:border-foreground/50 hover:text-foreground'
       )}
     >
-      {isOpen ? <Check className='w-3 h-3' /> : <Icon className='w-3 h-3' />}
+      <Icon className='w-3 h-3' />
       {t(label)}
     </button>
   )
@@ -184,10 +201,10 @@ function AdvancedPill ({ isOpen, icon: Icon, label, defaultSummary, onClick }) {
   )
 }
 
-function AdvancedSection ({ icon: Icon, label, onHide, children }) {
+function AdvancedSection ({ settingKey, icon: Icon, label, onHide, children }) {
   const { t } = useTranslation()
   return (
-    <div className='rounded-xl border border-foreground/10 bg-foreground/5 p-4'>
+    <div data-advanced-key={settingKey} className='rounded-xl border border-foreground/10 bg-foreground/5 p-4'>
       <div className='flex items-center gap-2 mb-3'>
         <Icon className='w-4 h-4 text-selected' />
         <span className='flex-1 text-sm font-bold text-foreground'>{t(label)}</span>
@@ -210,28 +227,28 @@ function AgreementsEditor ({ agreements, onChange }) {
   return (
     <div className='flex flex-col gap-2'>
       {agreements.map((agreement, index) => (
-        <div key={index} className='flex items-start gap-2 rounded-lg border border-foreground/10 bg-background p-2'>
-          <div className='flex-1 flex flex-col gap-1.5'>
+        <div key={index} className='flex items-start gap-2'>
+          <div className='flex-1 min-w-0 flex flex-col'>
             <input
               type='text'
               value={agreement.title}
               onChange={e => onChange(agreements.map((a, i) => i === index ? { ...a, title: e.target.value } : a))}
               placeholder={t('Agreement title')}
-              className='w-full bg-transparent text-sm font-semibold text-foreground placeholder-foreground/40 focus:outline-none'
+              className={cn(INPUT_CLASS, 'rounded-b-none border-b-0 font-semibold')}
             />
             <textarea
               rows={2}
               value={agreement.description}
               onChange={e => onChange(agreements.map((a, i) => i === index ? { ...a, description: e.target.value } : a))}
               placeholder={t('Describe what members are agreeing to')}
-              className='w-full resize-none bg-transparent text-[13px] text-foreground/80 placeholder-foreground/40 focus:outline-none'
+              className={cn(INPUT_CLASS, 'resize-none rounded-t-none [border-top-style:dashed]')}
             />
           </div>
           <button
             type='button'
             onClick={() => onChange(agreements.filter((a, i) => i !== index))}
             aria-label={t('Remove agreement')}
-            className='text-foreground/50 hover:text-foreground transition-colors'
+            className='text-foreground/50 hover:text-foreground transition-colors mt-3'
           >
             <X className='w-3.5 h-3.5' />
           </button>
@@ -252,15 +269,15 @@ function JoinQuestionsEditor ({ questions, onChange }) {
   const { t } = useTranslation()
   return (
     <div className='flex flex-col gap-2'>
-      <p className='text-xs text-foreground/60'>{t('Asked when someone requests to join, to help stewards decide.')}</p>
+      <p className='text-xs text-foreground/60'>{t('People requesting to join your group must answer these questions. You and other stewards will be able to see their answers before approving.')}</p>
       {questions.map((question, index) => (
-        <div key={index} className='flex items-center gap-2 rounded-lg border border-foreground/10 bg-background px-3 py-2'>
+        <div key={index} className='flex items-center gap-2'>
           <input
             type='text'
             value={question.text}
             onChange={e => onChange(questions.map((q, i) => i === index ? { ...q, text: e.target.value } : q))}
             placeholder={t('What would you like to ask people who want to join?')}
-            className='flex-1 bg-transparent text-sm text-foreground placeholder-foreground/40 focus:outline-none'
+            className={INPUT_CLASS}
           />
           <button
             type='button'
@@ -332,7 +349,12 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
   const [removedStandardTypes, setRemovedStandardTypes] = useState(new Set())
   const [manualViews, setManualViews] = useState([])
   const [orderedRows, setOrderedRows] = useState([])
-  const [openAdvanced, setOpenAdvanced] = useState(() => new Set())
+  // Opening create-group from inside a group pre-fills that group as a parent, which
+  // isn't a default anyone chose — so show the setting rather than hiding the choice.
+  const [openAdvanced, setOpenAdvanced] = useState(
+    () => new Set(currentGroup && parentGroupOptions.find(p => p.id === currentGroup.id) ? ['parentGroups'] : [])
+  )
+  const [justRevealed, setJustRevealed] = useState(null)
 
   const slugRef = useRef()
   const groupsSelectorRef = useRef()
@@ -403,11 +425,24 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
   const toggleAdvanced = useCallback((key) => {
     setOpenAdvanced(prev => {
       const next = new Set(prev)
-      if (next.has(key)) next.delete(key)
-      else next.add(key)
+      if (next.has(key)) {
+        next.delete(key)
+      } else {
+        next.add(key)
+        setJustRevealed(key)
+      }
       return next
     })
   }, [])
+
+  // Revealed editors append below the pills, often past the fold — bring the new one
+  // into view so clicking a pill visibly does something.
+  useEffect(() => {
+    if (!justRevealed) return
+    const element = document.querySelector(`[data-advanced-key="${justRevealed}"]`)
+    element?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+    setJustRevealed(null)
+  }, [justRevealed])
 
   const onSubmit = async () => {
     if (!isValid || submitting) return
@@ -506,6 +541,7 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
           onChange={setLocationObject}
           saveLocationToDB
           placeholder={t('Where is this group based?')}
+          className={INPUT_CLASS}
         />
       )
     },
@@ -550,6 +586,7 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
             onChange={setParentGroups}
             readOnly={false}
             ref={groupsSelectorRef}
+            className={GROUPS_SELECTOR_CLASS}
           />
         </div>
       )
@@ -603,21 +640,26 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
           >
             <div
               style={bgImageStyle(avatarUrl)}
-              className={cn('w-[72px] h-[72px] rounded-xl border-4 border-background shadow-lg flex items-center justify-center bg-cover bg-center bg-midground hover:bg-darkening/20 transition-all cursor-pointer', { 'border-4': !!avatarUrl })}
+              className={cn(
+                'w-[72px] h-[72px] rounded-xl shadow-lg flex items-center justify-center bg-cover bg-center bg-midground hover:bg-darkening/20 transition-all cursor-pointer',
+                avatarUrl ? 'border-4 border-background' : 'border-2 border-dashed border-foreground/30'
+              )}
             >
               {!avatarUrl && (
-                <div className='flex flex-col items-center justify-center opacity-50 group-hover:opacity-100 transition-opacity'>
+                <div className='flex flex-col items-center justify-center gap-0.5 opacity-50 group-hover:opacity-100 transition-opacity'>
                   <ImagePlus className='w-4 h-4' />
-                  <span className='text-[10px] font-semibold'>{t('Icon')}</span>
+                  <span className='text-[10px] font-semibold'>{t('Avatar')}</span>
                 </div>
               )}
             </div>
           </UploadAttachmentButton>
         </div>
 
-        <div className='grid grid-cols-1 sm:grid-cols-[1.35fr_1fr] gap-3'>
+        <div className='grid grid-cols-1 sm:grid-cols-[1.35fr_1fr] gap-3 items-start'>
           <div className='flex flex-col gap-1'>
-            <label htmlFor='groupName' className='text-xs font-bold text-foreground/80'>{t('Name')}</label>
+            <div className='h-5 flex items-center'>
+              <label htmlFor='groupName' className='text-xs font-bold text-foreground/80'>{t('Name')}</label>
+            </div>
             <input
               autoFocus
               id='groupName'
@@ -629,28 +671,20 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
               onBlur={() => { setIsNameFocused(false); setNameTouched(true) }}
               placeholder={t('Name your group')}
               maxLength={NAME_MAX_LENGTH}
-              className={cn(
-                'w-full rounded-lg border-2 bg-input px-3 py-2.5 text-sm text-foreground placeholder-foreground/40 focus:outline-none transition-colors',
-                isNameFocused ? 'border-focus' : 'border-foreground/20'
-              )}
+              className={cn(INPUT_CLASS, isNameFocused && 'border-focus')}
             />
             {nameError && <span className='text-error text-xs'>{nameError}</span>}
           </div>
 
           <div className='flex flex-col gap-1'>
-            <div className='flex items-center gap-1.5'>
+            <div className='h-5 flex items-center gap-1.5'>
               <label htmlFor='groupSlug' className='text-xs font-bold text-foreground/80'>{t('Handle')}</label>
               <InfoButton
                 className='text-foreground/50'
                 content={t("Your group's unique address on Hylo. It appears in your group URL and lets people mention the group in posts.")}
               />
             </div>
-            <div
-              className={cn(
-                'flex items-center rounded-lg border-2 bg-input px-3 py-2.5 transition-colors',
-                slugError ? 'border-error' : 'border-foreground/20'
-              )}
-            >
+            <div className={cn(INPUT_CLASS, 'flex items-center', slugError && 'border-error')}>
               <span className='text-sm text-foreground/40 shrink-0'>@</span>
               <input
                 id='groupSlug'
@@ -671,8 +705,8 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
           </div>
         </div>
 
-        <div className='flex flex-col gap-1 mt-4'>
-          <div className='flex items-center justify-between'>
+        <div className='flex flex-col gap-1 mt-2'>
+          <div className='h-5 flex items-center justify-between'>
             <label htmlFor='groupPurpose' className='text-xs font-bold text-foreground/80'>{t('Purpose')}</label>
             <span className='text-xs text-foreground/50'>{purpose.length} / {PURPOSE_MAX_LENGTH}</span>
           </div>
@@ -683,7 +717,7 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
             onChange={e => setPurpose(e.target.value)}
             maxLength={PURPOSE_MAX_LENGTH}
             placeholder={t('What is this group for?')}
-            className='w-full resize-none rounded-lg border-2 border-foreground/20 bg-input px-3 py-2.5 text-sm text-foreground placeholder-foreground/40 focus:outline-none focus:border-focus transition-colors'
+            className={cn(INPUT_CLASS, 'resize-none')}
           />
         </div>
 
@@ -728,7 +762,7 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
 
         <div className='mt-6 pt-5 border-t border-foreground/10'>
           <h2 className='text-[15px] font-bold text-foreground mb-1'>{t('Advanced settings')}</h2>
-          <p className='text-xs text-foreground/60 mb-3'>{t('None of this is needed to get started — everything can be changed later in your group settings.')}</p>
+          <p className='text-xs text-foreground/60 mb-3'>{t('These can be changed later in your group settings.')}</p>
 
           <div className='flex flex-wrap gap-2'>
             {advancedSettings.map(setting => (
@@ -748,6 +782,7 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
               {revealedSettings.map(setting => (
                 <AdvancedSection
                   key={setting.key}
+                  settingKey={setting.key}
                   icon={setting.icon}
                   label={setting.label}
                   onHide={() => toggleAdvanced(setting.key)}

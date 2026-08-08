@@ -2543,7 +2543,6 @@
   "Describe what members are agreeing to": "Describe a qué se comprometen los miembros",
   "Remove agreement": "Eliminar acuerdo",
   "Add an agreement": "Añadir un acuerdo",
-  "Asked when someone requests to join, to help stewards decide.": "Se pregunta cuando alguien solicita unirse, para ayudar a decidir a los administradores.",
   "What would you like to ask people who want to join?": "¿Qué te gustaría preguntar a quienes quieren unirse?",
   "Remove question": "Eliminar pregunta",
   "Add a question": "Añadir una pregunta",
@@ -2562,7 +2561,6 @@
   "Who can see this group?": "¿Quién puede ver este grupo?",
   "Who can join this group?": "¿Quién puede unirse a este grupo?",
   "Advanced settings": "Configuración avanzada",
-  "None of this is needed to get started — everything can be changed later in your group settings.": "Nada de esto es necesario para empezar: todo se puede cambiar más adelante en la configuración de tu grupo.",
   "Anyone can find and see": "Cualquiera puede encontrarlo y verlo",
   "This group will be exposed to search engines.": "Este grupo será visible para los motores de búsqueda.",
   "Visible to related groups": "Visible para los grupos relacionados",
@@ -2572,11 +2570,14 @@
   "Anyone can join instantly": "Cualquiera puede unirse al instante",
   "Anybody who can see the group becomes a member the moment they ask — no review, no waiting.": "Cualquiera que pueda ver el grupo se convierte en miembro en cuanto lo solicita: sin revisión ni espera.",
   "By request, with approval": "Por solicitud, con aprobación",
-  "People fill out a join request and a steward decides. You can ask applicants questions before they join.": "Las personas completan una solicitud y un administrador decide. Puedes hacerles preguntas antes de que se unan.",
   "By invitation only": "Solo por invitación",
   "Nobody can request to join. Members arrive only when a steward invites them directly or shares an invite link.": "Nadie puede solicitar unirse. Los miembros llegan solo cuando un administrador los invita directamente o comparte un enlace de invitación.",
   "Post types": "Tipos de publicación",
   "Menu views": "Vistas del menú",
   "Parent groups": "Grupos superiores",
-  "Join questions": "Preguntas de acceso"
+  "Join questions": "Preguntas de acceso",
+  "These can be changed later in your group settings.": "Esto se puede cambiar más adelante en la configuración de tu grupo.",
+  "People requesting to join your group must answer these questions. You and other stewards will be able to see their answers before approving.": "Quienes soliciten unirse a tu grupo deberán responder estas preguntas. Tú y otros administradores podréis ver sus respuestas antes de aprobar.",
+  "People must request to join your group, and be approved by stewards. You can ask applicants questions before they join.": "Las personas deben solicitar unirse a tu grupo y ser aprobadas por los administradores. Puedes hacerles preguntas antes de que se unan.",
+  "Avatar": "Avatar"
 }
