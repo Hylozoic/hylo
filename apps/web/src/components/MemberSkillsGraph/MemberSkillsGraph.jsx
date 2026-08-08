@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { Maximize2, Minimize2, Minus, Plus, Users } from 'lucide-react'
@@ -24,17 +24,30 @@ export default function MemberSkillsGraph ({ members, loading, slug, onSkillClic
   const [expanded, setExpanded] = useState(false)
   const [building, setBuilding] = useState(false)
 
-  const { skillGroups, thresholdOptions } = useMemo(() => analyzeSkills(members), [members])
+  // The ORM selector hands us a fresh members array whenever any Person
+  // changes (e.g. the role-filtered directory fetch below the map), so key
+  // the graph data on content — the map ignores directory filters
+  const membersKey = useMemo(
+    () => members.map(m => `${m.id}:${(m.skills || []).map(s => s.name).join('|')}`).join(','),
+    [members]
+  )
+  const stableMembers = useMemo(() => members, [membersKey])
+
+  const { skillGroups, thresholdOptions } = useMemo(() => analyzeSkills(stableMembers), [stableMembers])
   const autoThreshold = useMemo(() => smartThreshold(thresholdOptions), [thresholdOptions])
   const threshold = userThreshold || autoThreshold
   const { nodes, links } = useMemo(
-    () => buildGraphNodes(members, skillGroups, threshold),
-    [members, skillGroups, threshold]
+    () => buildGraphNodes(stableMembers, skillGroups, threshold),
+    [stableMembers, skillGroups, threshold]
   )
 
-  const handlePersonClick = useCallback(node => {
-    navigate(personUrl(node.personId, slug))
-  }, [navigate, slug])
+  // Latest-callback refs: the parent's handlers change identity with the
+  // querystring, which must not tear down and rebuild the canvas graph
+  const handlersRef = useRef({})
+  handlersRef.current = {
+    onSkillClick,
+    onPersonClick: node => navigate(personUrl(node.personId, slug))
+  }
 
   useEffect(() => {
     if (graphInstanceRef.current) {
@@ -56,7 +69,11 @@ export default function MemberSkillsGraph ({ members, loading, slug, onSkillClic
         while (el.firstChild) {
           el.removeChild(el.firstChild)
         }
-        graphInstanceRef.current = runSkillsGraph(el, nodes, links, { onSkillClick, onPersonClick: handlePersonClick, freeWheelZoom: expanded })
+        graphInstanceRef.current = runSkillsGraph(el, nodes, links, {
+          onSkillClick: skillName => handlersRef.current.onSkillClick?.(skillName),
+          onPersonClick: node => handlersRef.current.onPersonClick(node),
+          freeWheelZoom: expanded
+        })
         setBuilding(false)
       })
     })
@@ -70,7 +87,7 @@ export default function MemberSkillsGraph ({ members, loading, slug, onSkillClic
         graphInstanceRef.current = null
       }
     }
-  }, [nodes, links, onSkillClick, handlePersonClick, expanded])
+  }, [nodes, links, expanded])
 
   useEffect(() => {
     if (!expanded) return
