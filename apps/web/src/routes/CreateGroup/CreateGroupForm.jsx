@@ -865,7 +865,7 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
         <Button
           onClick={onSubmit}
           disabled={!isValid || submitting}
-          className='bg-selected text-white hover:bg-selected/90 disabled:bg-foreground/10 disabled:text-foreground/40'
+          variant='highVisibility'
         >
           {t('Create Group')}
           <ArrowRight className='w-4 h-4 ml-2' />
