@@ -5,13 +5,14 @@ import { Link } from 'react-router-dom'
 import PropTypes from 'prop-types'
 import { isLegacyWebView } from 'util/webView'
 import Tooltip from 'components/Tooltip'
-import { postUrl, spaceHomeUrl } from '@hylo/navigation'
-import { DateTimeHelpers } from '@hylo/shared'
-import { Calendar, Check, ChevronDown, FileText, Heart, LayoutGrid, Layers, MessageCircle, Network, Users, X } from 'lucide-react'
+import { groupDetailUrl, groupUrl, postUrl, spaceHomeUrl } from '@hylo/navigation'
+import { DateTimeHelpers, TextHelpers } from '@hylo/shared'
+import { Calendar, Check, ChevronDown, DollarSign, FileText, Heart, LayoutGrid, Layers, MessageCircle, Network, Users, X } from 'lucide-react'
 
 import { useLayoutFlags } from 'contexts/LayoutFlagsContext'
+import ClickCatcher from 'components/ClickCatcher'
 import Dropdown from 'components/Dropdown'
-import { GroupCard } from 'components/Widget/GroupsWidget/GroupsWidget'
+import HyloHTML from 'components/HyloHTML'
 import Icon from 'components/Icon'
 import LucideIcon from 'components/LucideIcon/LucideIcon'
 import Loading from 'components/Loading'
@@ -25,10 +26,70 @@ import {
   DropdownMenuTrigger
 } from 'components/ui/dropdown-menu'
 import { CONTEXT_MY } from 'store/constants'
+import { DEFAULT_AVATAR, DEFAULT_BANNER } from 'store/models/Group'
 import { POST_TYPES } from 'store/models/Post'
 import { STREAM_SORT_OPTIONS } from 'util/constants'
 
 import styles from './MapDrawer.module.scss'
+
+/**
+ * Group card per the map-list design: the banner fills the card under a dark
+ * wash that lifts on hover, with a centered avatar, name, member count, and a
+ * three-line blurb. The whole card is the link — no View button.
+ */
+function MapGroupCard ({ group, routeParams }) {
+  const { t } = useTranslation()
+  const to = group.memberStatus === 'member'
+    ? groupUrl(group.slug)
+    : groupDetailUrl(group.slug, routeParams)
+  return (
+    <Link
+      to={to}
+      className='group relative block shrink-0 rounded-[11px] overflow-hidden border border-foreground/20 shadow-[0_6px_20px_rgba(0,0,0,0.45)] bg-cover bg-center'
+      style={bgImageStyle(group.bannerUrl || DEFAULT_BANNER)}
+    >
+      <div
+        aria-hidden='true'
+        className='absolute inset-0 transition-opacity duration-150 group-hover:opacity-0'
+        style={{ background: 'linear-gradient(180deg, hsl(28 16% 15% / 0.58), hsl(28 18% 12% / 0.88))' }}
+      />
+      <div
+        aria-hidden='true'
+        className='absolute inset-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100'
+        style={{ background: 'linear-gradient(180deg, hsl(28 16% 15% / 0.44), hsl(28 18% 12% / 0.78))' }}
+      />
+      <div className='relative px-4 pt-[22px] pb-5 flex flex-col items-center text-center'>
+        <div
+          className='w-[66px] h-[66px] rounded-[13px] bg-cover bg-center shadow-[0_3px_12px_rgba(0,0,0,0.45)]'
+          style={bgImageStyle(group.avatarUrl || DEFAULT_AVATAR)}
+        />
+        <div className='mt-[11px] text-[15px] font-bold text-white tracking-[-0.01em] [text-shadow:0_1px_6px_rgba(0,0,0,0.5)]'>
+          {group.name}
+          {group.paywall && (
+            <>
+              <DollarSign
+                className='inline-block ml-1.5 w-3.5 h-3.5'
+                data-tooltip-id={`paywall-tooltip-${group.id}`}
+                data-tooltip-content={t('This group requires payment to join')}
+              />
+              <Tooltip id={`paywall-tooltip-${group.id}`} />
+            </>
+          )}
+        </div>
+        <div className='mt-0.5 text-[11.5px] text-white/70 tabular-nums'>
+          {t('{{count}} members', { count: group.memberCount })}
+        </div>
+        {group.description && (
+          <div className='mt-[9px] text-xs leading-normal text-white/80 line-clamp-3 [text-wrap:pretty]'>
+            <ClickCatcher>
+              <HyloHTML element='span' html={TextHelpers.markdown(group.description)} />
+            </ClickCatcher>
+          </div>
+        )}
+      </div>
+    </Link>
+  )
+}
 
 /** Compact drawer row for a space with a location (distinct from child GroupCards). */
 function SpaceMapCard ({ space, parentSlug }) {
@@ -326,7 +387,7 @@ function MapDrawer ({
             />
           ))}
           {(lens === 'all' || lens === 'groups') && properGroups.map(g => (
-            <GroupCard key={g.id} group={g} routeParams={routeParams} />
+            <MapGroupCard key={g.id} group={g} routeParams={routeParams} />
           ))}
           {showPeople && (lens === 'all' || lens === 'people') && members.length > 0 && (
             <div className='flex flex-col rounded-xl bg-card overflow-hidden'>
