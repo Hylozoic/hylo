@@ -105,7 +105,7 @@ export default function GroupMenuHeader ({
           </button>
         </div>
       )}
-      <div className='relative flex flex-row items-center text-background z-20'>
+      <div className='relative flex flex-row items-start text-background z-20'>
         <div
           style={group.avatarUrl !== DEFAULT_AVATAR ? bgImageStyle(avatarUrl) : {}}
           className={cn(
@@ -170,7 +170,13 @@ export default function GroupMenuHeader ({
           </span>
         </div>
         <Info
-          className={cn(`text-${textColor} cursor-pointer w-[20px] h-[20px] text-white hover:scale-110 transition-all`, controlFade)}
+          className={cn(
+            `text-${textColor} cursor-pointer w-[20px] h-[20px] shrink-0 text-white hover:scale-110 transition-all`,
+            // Sits on the avatar's centre line while the row itself is top-aligned,
+            // so a name that wraps to three lines doesn't drag it down the banner.
+            compact ? 'mt-1' : 'mt-2.5',
+            controlFade
+          )}
           onClick={() => navigateAndClose(groupUrl(group.slug, 'about', {}))}
         />
       </div>
