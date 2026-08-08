@@ -4,6 +4,7 @@ import { POST_TYPES } from 'store/models/Post'
 import Icon from 'components/Icon'
 import classes from './CreateModal.module.scss'
 import { useTranslation } from 'react-i18next'
+import { createGroupModalUrl } from 'routes/CreateGroup/createGroupUrl'
 
 const postTypes = Object.keys(POST_TYPES).filter(t => !['action', 'chat', 'submission'].includes(t))
 
@@ -11,6 +12,9 @@ export default function CreateModalChooser () {
   const location = useLocation()
   const querystringParams = new URLSearchParams(location.search)
   const hasLocation = querystringParams.has('lat') && querystringParams.has('lng')
+  // Drop the trailing /create so the group modal layers over the page this modal
+  // was opened from, rather than stacking on top of the create modal itself.
+  const createGroupPath = createGroupModalUrl({ pathname: location.pathname.replace(/\/create$/, '') || '/', search: '' })
   const { t } = useTranslation()
   // These need to be invoked here so that they get picked up by the translation extractor
   t('What help can you offer?')
@@ -54,7 +58,7 @@ export default function CreateModalChooser () {
       })}
       {/* DEPRECATED: Now always allow group creation */}
       {/* {!isWebView() && ( */}
-      <Link to='/create-group'>
+      <Link to={createGroupPath}>
         <div key='group'>
           <Icon name='Groups' className={classes.postIcon} />
           <b>

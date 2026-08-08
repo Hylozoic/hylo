@@ -55,6 +55,7 @@ import {
 import AllTopics from 'routes/AllTopics'
 import ChatRoom from 'routes/ChatRoom'
 import CreateGroup from 'routes/CreateGroup'
+import CreateGroupModal from 'routes/CreateGroup/CreateGroupModal'
 import GroupDetail from 'routes/GroupDetail'
 import PaymentSuccess from 'routes/GroupDetail/PaymentSuccess'
 import PaymentFailure from 'routes/GroupDetail/PaymentFailure'
@@ -1163,6 +1164,7 @@ export default function AuthLayoutRouter (props) {
         </div>
         <CookieConsentLinker />
       </div>
+      <CreateGroupModal />
       <Toaster
         position={compactLayout ? 'top-center' : 'bottom-left'}
         style={compactLayout ? {} : { left: '80px' }}

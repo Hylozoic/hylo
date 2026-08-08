@@ -60,6 +60,7 @@ import markGroupAsRead from 'store/actions/markGroupAsRead'
 import logout from 'store/actions/logout'
 import { newMessageUrl, personUrl } from '@hylo/navigation'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
+import { createGroupModalUrl } from 'routes/CreateGroup/createGroupUrl'
 import { WebViewMessageTypes } from '@hylo/shared'
 import useAppearance from 'hooks/useAppearance'
 import { getLocaleFromLocalStorage } from 'util/locale'
@@ -153,7 +154,7 @@ function GlobalCreateMenu () {
       </PopoverTrigger>
       <PopoverContent side='right' align='end' className='w-[210px] p-1.5 rounded-xl'>
         <CreateMenuRow
-          onClick={go('/create-group')}
+          onClick={go(createGroupModalUrl(location))}
           tileClass='bg-[hsl(200_55%_45%)]'
           icon={<Plus className='w-4 h-4' />}
           label={t('Create a group')}
