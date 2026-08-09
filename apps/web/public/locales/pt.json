@@ -2512,5 +2512,10 @@
   "What your group is and who it is for": "O que é o seu grupo e para quem ele é",
   "Choose your group's home": "Escolha a página inicial do seu grupo",
   "Additional settings": "Configurações adicionais",
-  "These are the menu your members use. The one at the top is your group's home.": "Este é o menu que os seus membros usam. O primeiro item é a página inicial do seu grupo."
+  "These are the menu your members use. The one at the top is your group's home.": "Este é o menu que os seus membros usam. O primeiro item é a página inicial do seu grupo.",
+  "Mute": "Silenciar",
+  "Important": "Importante",
+  "You won't hear about new posts in this space.": "Você não será avisado sobre novas publicações neste espaço.",
+  "Only announcements and posts that mention you.": "Apenas anúncios e publicações que mencionem você.",
+  "Every new post in this space.": "Todas as novas publicações neste espaço."
 }

@@ -14,6 +14,7 @@ import GroupsSelector from 'components/GroupsSelector'
 import IncludedViewsEditor from 'components/IncludedViewsEditor/IncludedViewsEditor'
 import LocationInput from 'components/LocationInput/LocationInput'
 import PostTypePills from 'components/PostTypePills/PostTypePills'
+import SegmentedPicker from 'components/SegmentedPicker/SegmentedPicker'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import Button from 'components/ui/button'
 import InfoButton from 'components/ui/info'
@@ -214,43 +215,16 @@ function HomeViewPicker ({ value, onChange, customHomeRow }) {
     ]
   }, [customHomeRow, t])
 
-  const selectedIndex = Math.max(0, options.findIndex(option => option.value === value))
-  const selected = options[selectedIndex]
-  // The description sits under the toggle it belongs to.
-  const descriptionAlignment = ['text-left', 'text-center', 'text-right'][selectedIndex]
+  const segments = options.map(option => ({
+    value: option.value,
+    label: option.translated ? option.title : t(option.title),
+    description: option.translated ? option.description : t(option.description),
+    icon: option.icon,
+    renderIcon: option.renderIcon,
+    disabled: option.value === CUSTOM_HOME_VIEW
+  }))
 
-  return (
-    <div className='rounded-lg border-2 border-foreground/20 bg-input p-1'>
-      <div className='flex w-full gap-1'>
-        {options.map(option => {
-          const isSelected = option.value === value
-          const OptionIcon = option.icon
-          return (
-            <button
-              key={option.value}
-              type='button'
-              onClick={() => onChange(option.value)}
-              disabled={option.value === CUSTOM_HOME_VIEW}
-              aria-pressed={isSelected}
-              className={cn(
-                'flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-semibold transition-colors min-w-0',
-                isSelected ? 'bg-selected/25 text-selected' : 'text-foreground/60 hover:text-foreground',
-                option.value === CUSTOM_HOME_VIEW && 'cursor-default'
-              )}
-            >
-              {isSelected && (option.renderIcon
-                ? option.renderIcon('w-4 h-4 shrink-0')
-                : <OptionIcon className='w-4 h-4 shrink-0' />)}
-              <span className='truncate'>{option.translated ? option.title : t(option.title)}</span>
-            </button>
-          )
-        })}
-      </div>
-      <p className={cn('p-2 mt-0 mb-0 text-xs text-foreground/70', descriptionAlignment)}>
-        {selected.translated ? selected.description : t(selected.description)}
-      </p>
-    </div>
-  )
+  return <SegmentedPicker value={value} onChange={onChange} options={segments} />
 }
 
 const ACCESSIBILITY_OPTIONS = [
