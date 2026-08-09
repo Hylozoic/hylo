@@ -150,18 +150,18 @@ const VISIBILITY_OPTIONS = [
 // Icons match what each view carries in the group menu (VIEW_TYPE_TO_LUCIDE_ICON).
 const HOME_VIEW_OPTIONS = [
   {
-    value: 'CHAT',
-    viewType: 'chat',
-    icon: MessageCircleMore,
-    title: 'Chat',
-    description: 'A real-time chat room for quick conversations, coordination and casual interactions.'
-  },
-  {
     value: 'STREAM',
     viewType: 'all',
     icon: Activity,
     title: 'Activity Stream',
     description: "A sorted feed of all your group's posts"
+  },
+  {
+    value: 'CHAT',
+    viewType: 'chat',
+    icon: MessageCircleMore,
+    title: 'Chat',
+    description: 'A real-time chat room for quick conversations, coordination and casual interactions.'
   },
   {
     value: 'MAP',
@@ -463,7 +463,7 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
   const [purpose, setPurpose] = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
   const [bannerUrl, setBannerUrl] = useState('')
-  const [homeView, setHomeView] = useState('CHAT')
+  const [homeView, setHomeView] = useState('STREAM')
   const [visibility, setVisibility] = useState(GROUP_VISIBILITY.Protected)
   const [accessibility, setAccessibility] = useState(GROUP_ACCESSIBILITY.Restricted)
   const [isNameFocused, setIsNameFocused] = useState(false)
@@ -526,12 +526,28 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
     slugRef.current?.select()
   }, [])
 
+  const homeViewType = HOME_VIEW_OPTIONS.find(option => option.value === homeView)?.viewType
+
   const standardViewTypes = useMemo(() => {
     const postTypeViews = CUSTOM_VIEW_POST_TYPE_OPTIONS
       .filter(option => option.postTypes.every(type => postTypes.includes(type)))
       .map(option => POST_TYPE_TO_VIEW_TYPE[option.postTypes[0]])
-    return ['all', 'chat', ...postTypeViews, 'map', 'members'].filter(type => !removedStandardTypes.has(type))
-  }, [postTypes, removedStandardTypes])
+    const types = ['all', 'chat', ...postTypeViews, 'map', 'members'].filter(type => !removedStandardTypes.has(type))
+    // The home view has to be in the menu — removing it elsewhere can't strand the
+    // landing route on a view that was never seeded.
+    return homeViewType && !types.includes(homeViewType) ? [homeViewType, ...types] : types
+  }, [postTypes, removedStandardTypes, homeViewType])
+
+  // Dragging one of the home-capable views to the top of the menu is the same
+  // decision as picking it above, so the two stay in step. Keyed on the row type
+  // rather than the array so a re-ordered-but-identical list can't feed back.
+  const firstStandardType = orderedRows[0]?.kind === 'standard' ? orderedRows[0].type : null
+
+  useEffect(() => {
+    if (!firstStandardType) return
+    const match = HOME_VIEW_OPTIONS.find(option => option.viewType === firstStandardType)
+    if (match) setHomeView(match.value)
+  }, [firstStandardType])
 
   const handleRemoveStandardView = useCallback((type) => {
     setRemovedStandardTypes(prev => new Set(prev).add(type))
@@ -583,9 +599,7 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
     const manualRowsInOrder = orderedRows.filter(row => row.kind === 'manual')
     const standardTypesInOrder = orderedRows.filter(row => row.kind === 'standard').map(row => row.type)
 
-    // The landing route only resolves if its view was seeded, so make sure the chosen
-    // home view is in the list even when it was removed from the menu.
-    const homeViewType = HOME_VIEW_OPTIONS.find(option => option.value === homeView)?.viewType
+    // Belt and braces: the landing route only resolves if its view was seeded.
     const viewTypes = homeViewType && !standardTypesInOrder.includes(homeViewType)
       ? [homeViewType, ...standardTypesInOrder]
       : standardTypesInOrder
@@ -704,6 +718,7 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
           onRemoveManualView={handleRemoveManualView}
           acceptedPostTypes={postTypes}
           onOrderedRowsChange={setOrderedRows}
+          homeViewType={homeViewType}
         />
       )
     },
@@ -738,7 +753,7 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
   ].filter(setting => !setting.hidden), [
     t, locationObject, postTypes, standardViewTypes, manualViews, handleAddView,
     handleRemoveManualView, handleRemoveStandardView, parentGroupOptions, parentGroups,
-    agreements, joinQuestions
+    agreements, joinQuestions, homeViewType
   ])
 
   const revealedSettings = advancedSettings.filter(setting => openAdvanced.has(setting.key))
