@@ -105,7 +105,7 @@ export default function MemberSkillsGraph ({ members, loading, slug, onSkillClic
 
   return (
     <div
-      className={cn(expanded ? 'fixed inset-0 z-[100] bg-background flex flex-col p-3' : 'mb-2')}
+      className={cn(expanded ? 'fixed inset-0 z-[100] bg-background flex flex-col p-3' : 'mt-3 mb-2')}
       data-testid='member-skills-graph'
     >
       <div className='flex items-center justify-between bg-card rounded-t-xl border-b border-foreground/10 px-3 py-2'>
@@ -138,16 +138,6 @@ export default function MemberSkillsGraph ({ members, loading, slug, onSkillClic
               onClick: () => setUserThreshold(option.threshold)
             }))}
           />
-          <button
-            type='button'
-            onClick={() => setExpanded(!expanded)}
-            title={expanded ? t('Close') : t('Enlarge map')}
-            aria-label={expanded ? t('Close') : t('Enlarge map')}
-            data-testid='skills-enlarge-button'
-            className='flex items-center justify-center border-2 border-foreground/20 rounded-lg p-2 text-foreground/70 cursor-pointer transition-colors hover:text-foreground hover:border-foreground/40'
-          >
-            {expanded ? <Minimize2 className='w-4 h-4' /> : <Maximize2 className='w-4 h-4' />}
-          </button>
         </div>
       </div>
       <div
@@ -155,15 +145,27 @@ export default function MemberSkillsGraph ({ members, loading, slug, onSkillClic
           'relative w-full',
           expanded
             ? 'flex-1 min-h-0'
-            : loading || nodes.length >= 60
-              ? 'h-[560px]'
-              : nodes.length < 12 ? 'h-[300px]' : nodes.length < 30 ? 'h-[380px]' : 'h-[460px]'
+            // Phones get a roughly square map whatever the skill count — the taller
+            // sizes below push everything else off the screen. Enlarge is right there.
+            : cn('h-[300px]', loading || nodes.length >= 60
+              ? 'sm:h-[560px]'
+              : nodes.length < 12 ? 'sm:h-[300px]' : nodes.length < 30 ? 'sm:h-[380px]' : 'sm:h-[460px]')
         )}
       >
         <div
           ref={containerRef}
           className='w-full h-full bg-card bg-[url("/network-map-bg.png")] bg-no-repeat bg-cover rounded-b-xl overflow-hidden shadow-2xl'
         />
+        <button
+          type='button'
+          onClick={() => setExpanded(!expanded)}
+          title={expanded ? t('Close') : t('Enlarge map')}
+          aria-label={expanded ? t('Close') : t('Enlarge map')}
+          data-testid='skills-enlarge-button'
+          className='absolute top-3 left-3 flex items-center justify-center rounded-lg border-2 border-foreground/20 bg-card/90 backdrop-blur p-2 text-foreground/70 cursor-pointer transition-colors hover:text-foreground hover:bg-foreground/5'
+        >
+          {expanded ? <Minimize2 className='w-4 h-4' /> : <Maximize2 className='w-4 h-4' />}
+        </button>
         {(loading || building) && (
           <div className='absolute inset-0 flex flex-col items-center justify-center gap-1 rounded-b-xl bg-card'>
             <Loading type='inline' />
