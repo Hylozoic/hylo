@@ -2502,5 +2502,15 @@
   "A sorted feed of all your group's posts": "आपके समूह की सभी पोस्ट का क्रमबद्ध फ़ीड",
   "See where your people, projects, events and more are located": "देखें कि आपके लोग, परियोजनाएँ, कार्यक्रम और बहुत कुछ कहाँ स्थित हैं",
   "Members of this group's parent, child, and related groups can find it and see its join page. Everyone else can't see that it exists. New members will need an invite link to see the group.": "इस समूह के मूल, उप और संबंधित समूहों के सदस्य इसे ढूंढ सकते हैं और इसका जॉइन पेज देख सकते हैं। बाकी किसी को पता नहीं चलता कि यह मौजूद है। नए सदस्यों को समूह देखने के लिए एक निमंत्रण लिंक की आवश्यकता होगी।",
-  "Activity Stream": "गतिविधि स्ट्रीम"
+  "Activity Stream": "गतिविधि स्ट्रीम",
+  "Menu Items": "मेनू आइटम",
+  "Members will land on {{name}} when they enter your group.": "सदस्य आपके समूह में आने पर {{name}} पर पहुँचेंगे।",
+  "All your discussions in one place": "आपकी सभी चर्चाएँ एक ही जगह",
+  "Everything your group has coming up": "आपके समूह में आने वाला सब कुछ",
+  "What people need, and what they can offer": "लोगों को क्या चाहिए, और वे क्या दे सकते हैं",
+  "The resources your group has gathered": "आपके समूह द्वारा एकत्रित संसाधन",
+  "Decisions your group is making together": "आपका समूह मिलकर जो निर्णय ले रहा है",
+  "The work your group has underway": "आपके समूह का चल रहा कार्य",
+  "Everyone who is part of your group": "वे सभी जो आपके समूह का हिस्सा हैं",
+  "What your group is and who it is for": "आपका समूह क्या है और किसके लिए है"
 }

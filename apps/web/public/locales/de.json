@@ -2501,5 +2501,15 @@
   "A sorted feed of all your group's posts": "Ein sortierter Feed aller Beiträge deiner Gruppe",
   "See where your people, projects, events and more are located": "Sieh, wo sich deine Leute, Projekte, Veranstaltungen und mehr befinden",
   "Members of this group's parent, child, and related groups can find it and see its join page. Everyone else can't see that it exists. New members will need an invite link to see the group.": "Mitglieder der übergeordneten, untergeordneten und verbundenen Gruppen können sie finden und ihre Beitrittsseite sehen. Für alle anderen ist sie unsichtbar. Neue Mitglieder benötigen einen Einladungslink, um die Gruppe zu sehen.",
-  "Activity Stream": "Aktivitätsstream"
+  "Activity Stream": "Aktivitätsstream",
+  "Menu Items": "Menüeinträge",
+  "Members will land on {{name}} when they enter your group.": "Mitglieder landen auf {{name}}, wenn sie deine Gruppe betreten.",
+  "All your discussions in one place": "Alle eure Diskussionen an einem Ort",
+  "Everything your group has coming up": "Alles, was in eurer Gruppe ansteht",
+  "What people need, and what they can offer": "Was Menschen brauchen und was sie anbieten können",
+  "The resources your group has gathered": "Die Ressourcen, die eure Gruppe gesammelt hat",
+  "Decisions your group is making together": "Entscheidungen, die eure Gruppe gemeinsam trifft",
+  "The work your group has underway": "Die Arbeit, die in eurer Gruppe läuft",
+  "Everyone who is part of your group": "Alle, die zu eurer Gruppe gehören",
+  "What your group is and who it is for": "Was eure Gruppe ist und für wen sie da ist"
 }

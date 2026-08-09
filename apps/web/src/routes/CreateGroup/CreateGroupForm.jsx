@@ -8,6 +8,8 @@ import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { useLocation, useParams } from 'react-router-dom'
 import { push } from 'redux-first-history'
+import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
+import GroupViewIcon from 'routes/AuthLayoutRouter/components/ContextMenu/GroupViewIcon'
 import GroupsSelector from 'components/GroupsSelector'
 import IncludedViewsEditor from 'components/IncludedViewsEditor/IncludedViewsEditor'
 import LocationInput from 'components/LocationInput/LocationInput'
@@ -145,6 +147,22 @@ const VISIBILITY_OPTIONS = [
   }
 ]
 
+// Stands in for a home view that isn't one of the three below — the backend takes the
+// landing route from the first seeded view, so any menu item can hold the spot.
+const CUSTOM_HOME_VIEW = 'CUSTOM'
+
+// What each of the other menu items is, for when one of them is the home view.
+const VIEW_TYPE_DESCRIPTIONS = {
+  discussions: 'All your discussions in one place',
+  events: 'Everything your group has coming up',
+  'requests-and-offers': 'What people need, and what they can offer',
+  resources: 'The resources your group has gathered',
+  proposals: 'Decisions your group is making together',
+  projects: 'The work your group has underway',
+  members: 'Everyone who is part of your group',
+  about: 'What your group is and who it is for'
+}
+
 // Home view decides the group's landing route. Each value maps to the view type that
 // has to be seeded for that route to resolve.
 // Icons match what each view carries in the group menu (VIEW_TYPE_TO_LUCIDE_ICON).
@@ -173,18 +191,38 @@ const HOME_VIEW_OPTIONS = [
 ]
 
 // One control: a segmented toggle whose selection swaps the description beneath it,
-// rather than three cards each repeating their own explanation.
-function HomeViewPicker ({ value, onChange }) {
+// rather than three cards each repeating their own explanation. Promoting any other
+// menu item to the top makes it the home, so it takes the first segment's place —
+// the segments are shortcuts to the top of the menu, not a separate setting.
+function HomeViewPicker ({ value, onChange, customHomeRow }) {
   const { t } = useTranslation()
-  const selectedIndex = Math.max(0, HOME_VIEW_OPTIONS.findIndex(option => option.value === value))
-  const selected = HOME_VIEW_OPTIONS[selectedIndex]
+
+  const options = useMemo(() => {
+    if (!customHomeRow) return HOME_VIEW_OPTIONS
+    const presented = GroupViewPresenter({ type: customHomeRow.type, name: customHomeRow.name, pageContent: customHomeRow.pageContent })
+    const name = customHomeRow.name || displayNameForView(presented, t)
+    const description = VIEW_TYPE_DESCRIPTIONS[customHomeRow.type]
+    return [
+      {
+        value: CUSTOM_HOME_VIEW,
+        title: name,
+        translated: true,
+        description: description ? t(description) : t('Members will land on {{name}} when they enter your group.', { name }),
+        renderIcon: className => <GroupViewIcon view={presented} className={className} />
+      },
+      ...HOME_VIEW_OPTIONS.slice(1)
+    ]
+  }, [customHomeRow, t])
+
+  const selectedIndex = Math.max(0, options.findIndex(option => option.value === value))
+  const selected = options[selectedIndex]
   // The description sits under the toggle it belongs to.
   const descriptionAlignment = ['text-left', 'text-center', 'text-right'][selectedIndex]
 
   return (
     <div className='rounded-lg border-2 border-foreground/20 bg-input p-1'>
       <div className='flex w-full gap-1'>
-        {HOME_VIEW_OPTIONS.map(option => {
+        {options.map(option => {
           const isSelected = option.value === value
           const OptionIcon = option.icon
           return (
@@ -192,19 +230,25 @@ function HomeViewPicker ({ value, onChange }) {
               key={option.value}
               type='button'
               onClick={() => onChange(option.value)}
+              disabled={option.value === CUSTOM_HOME_VIEW}
               aria-pressed={isSelected}
               className={cn(
-                'flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-semibold transition-colors',
-                isSelected ? 'bg-selected/25 text-selected' : 'text-foreground/60 hover:text-foreground'
+                'flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-semibold transition-colors min-w-0',
+                isSelected ? 'bg-selected/25 text-selected' : 'text-foreground/60 hover:text-foreground',
+                option.value === CUSTOM_HOME_VIEW && 'cursor-default'
               )}
             >
-              {isSelected && <OptionIcon className='w-4 h-4 shrink-0' />}
-              {t(option.title)}
+              {isSelected && (option.renderIcon
+                ? option.renderIcon('w-4 h-4 shrink-0')
+                : <OptionIcon className='w-4 h-4 shrink-0' />)}
+              <span className='truncate'>{option.translated ? option.title : t(option.title)}</span>
             </button>
           )
         })}
       </div>
-      <p className={cn('p-2 mt-0 mb-0 text-xs text-foreground/70', descriptionAlignment)}>{t(selected.description)}</p>
+      <p className={cn('p-2 mt-0 mb-0 text-xs text-foreground/70', descriptionAlignment)}>
+        {selected.translated ? selected.description : t(selected.description)}
+      </p>
     </div>
   )
 }
@@ -532,22 +576,24 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
     const postTypeViews = CUSTOM_VIEW_POST_TYPE_OPTIONS
       .filter(option => option.postTypes.every(type => postTypes.includes(type)))
       .map(option => POST_TYPE_TO_VIEW_TYPE[option.postTypes[0]])
-    const types = ['all', 'chat', ...postTypeViews, 'map', 'members'].filter(type => !removedStandardTypes.has(type))
-    // The home view has to be in the menu — removing it elsewhere can't strand the
-    // landing route on a view that was never seeded.
-    return homeViewType && !types.includes(homeViewType) ? [homeViewType, ...types] : types
-  }, [postTypes, removedStandardTypes, homeViewType])
+    return ['all', 'chat', ...postTypeViews, 'map', 'members'].filter(type => !removedStandardTypes.has(type))
+  }, [postTypes, removedStandardTypes])
 
-  // Dragging one of the home-capable views to the top of the menu is the same
-  // decision as picking it above, so the two stay in step. Keyed on the row type
-  // rather than the array so a re-ordered-but-identical list can't feed back.
-  const firstStandardType = orderedRows[0]?.kind === 'standard' ? orderedRows[0].type : null
+  // Whatever sits at the top of the menu is the home — the backend takes the landing
+  // route from the first seeded view. Keyed on the row rather than the array so a
+  // re-ordered-but-identical list can't feed back into another render.
+  const firstRow = orderedRows[0]
+  const firstRowKey = firstRow?.key || null
 
   useEffect(() => {
-    if (!firstStandardType) return
-    const match = HOME_VIEW_OPTIONS.find(option => option.viewType === firstStandardType)
-    if (match) setHomeView(match.value)
-  }, [firstStandardType])
+    if (!firstRow) return
+    const match = firstRow.kind === 'standard' &&
+      HOME_VIEW_OPTIONS.find(option => option.viewType === firstRow.type)
+    setHomeView(match ? match.value : CUSTOM_HOME_VIEW)
+  }, [firstRowKey])
+
+  // Only set when the home is a view the segmented control doesn't already carry.
+  const customHomeRow = homeView === CUSTOM_HOME_VIEW ? firstRow : null
 
   const handleRemoveStandardView = useCallback((type) => {
     setRemovedStandardTypes(prev => new Set(prev).add(type))
@@ -599,16 +645,19 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
     const manualRowsInOrder = orderedRows.filter(row => row.kind === 'manual')
     const standardTypesInOrder = orderedRows.filter(row => row.kind === 'standard').map(row => row.type)
 
-    // Belt and braces: the landing route only resolves if its view was seeded.
-    const viewTypes = homeViewType && !standardTypesInOrder.includes(homeViewType)
-      ? [homeViewType, ...standardTypesInOrder]
-      : standardTypesInOrder
+    // A menu emptied of standard views would leave nothing to land on, so fall back
+    // to the picked home view rather than seeding no views at all.
+    const viewTypes = standardTypesInOrder.length > 0
+      ? standardTypesInOrder
+      : [homeViewType || 'all']
 
     const { error, payload } = await dispatch(createGroup({
       accessibility,
       avatarUrl: avatarUrl || DEFAULT_AVATAR,
       bannerUrl,
-      homeView,
+      // homeView only names the three built-ins; the landing route itself comes from
+      // the first seeded view, which is what makes any other menu item work as home.
+      homeView: homeView === CUSTOM_HOME_VIEW ? 'STREAM' : homeView,
       name: trim(name),
       slug,
       location: locationObject?.fullText || null,
@@ -707,7 +756,7 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
     {
       key: 'views',
       icon: LayoutGrid,
-      label: 'Menu views',
+      label: 'Menu Items',
       defaultSummary: t('All Activity, Chat, Map, Members'),
       render: () => (
         <IncludedViewsEditor
@@ -889,7 +938,7 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
         <div className='mt-5'>
           <span className='text-xs font-bold text-foreground/80'>{t('Choose your home view')}</span>
           <p className='text-xs text-foreground/60 mt-0.5 mb-2'>{t('Set the default view members see when they enter your group.')}</p>
-          <HomeViewPicker value={homeView} onChange={setHomeView} />
+          <HomeViewPicker value={homeView} onChange={setHomeView} customHomeRow={customHomeRow} />
         </div>
 
         {visibility === GROUP_VISIBILITY.Public && (
