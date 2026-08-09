@@ -83,7 +83,7 @@ function ParentGroupsEditor ({ options, selected, onChange }) {
 
   return (
     <div className='flex flex-col gap-2'>
-      <p className='text-xs text-foreground/60'>{t('groupParentGroupHelpText')}</p>
+      <p className='text-xs text-foreground/60 mb-0'>{t('groupParentGroupHelpText')}</p>
 
       <div className='flex flex-wrap items-center gap-2'>
         {selected.map(group => (
@@ -176,7 +176,10 @@ const HOME_VIEW_OPTIONS = [
 // rather than three cards each repeating their own explanation.
 function HomeViewPicker ({ value, onChange }) {
   const { t } = useTranslation()
-  const selected = HOME_VIEW_OPTIONS.find(option => option.value === value) || HOME_VIEW_OPTIONS[0]
+  const selectedIndex = Math.max(0, HOME_VIEW_OPTIONS.findIndex(option => option.value === value))
+  const selected = HOME_VIEW_OPTIONS[selectedIndex]
+  // The description sits under the toggle it belongs to.
+  const descriptionAlignment = ['text-left', 'text-center', 'text-right'][selectedIndex]
 
   return (
     <div className='rounded-lg border-2 border-foreground/20 bg-input p-1'>
@@ -201,7 +204,7 @@ function HomeViewPicker ({ value, onChange }) {
           )
         })}
       </div>
-      <p className='px-2 pt-2 pb-1 text-xs text-foreground/70'>{t(selected.description)}</p>
+      <p className={cn('p-2 mt-0 mb-0 text-xs text-foreground/70', descriptionAlignment)}>{t(selected.description)}</p>
     </div>
   )
 }
@@ -291,7 +294,7 @@ function SettingSelectRow ({ value, onChange, options, label }) {
             })}
           </PopoverContent>
         </Popover>
-        <p className='text-[13px] leading-snug text-foreground/60 mt-0.5'>{t(selected.description)}</p>
+        <p className='text-[13px] leading-snug text-foreground/60 mt-0.5 mb-0'>{t(selected.description)}</p>
       </div>
     </div>
   )
@@ -397,7 +400,7 @@ function JoinQuestionsEditor ({ questions, onChange }) {
   const { t } = useTranslation()
   return (
     <div className='flex flex-col gap-2'>
-      <p className='text-xs text-foreground/60'>{t('People requesting to join your group must answer these questions. You and other stewards will be able to see their answers before approving.')}</p>
+      <p className='text-xs text-foreground/60 mb-0'>{t('People requesting to join your group must answer these questions. You and other stewards will be able to see their answers before approving.')}</p>
       {questions.map((question, index) => (
         <div key={index} className='flex items-center gap-2'>
           <input
@@ -879,7 +882,7 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
             <h3 className='font-semibold mb-2 text-sm'>{t('Optional') + ': ' + t('Add my group into the commons')}</h3>
             <p className='text-xs opacity-70 mb-2'>{t('commonsExplainerText1')}</p>
             <p className='text-xs opacity-70 mb-3'>{t('commonsExplainerText2')}</p>
-            <p className='text-xs'>
+            <p className='text-xs mb-0'>
               {t('Apply here') + ': '}
               <a
                 href='https://docs.google.com/forms/d/e/1FAIpQLScuxRGl65OMCVkjjsFllWwK4TQjddkufMu9rukIocgmhyHL7w/viewform'
