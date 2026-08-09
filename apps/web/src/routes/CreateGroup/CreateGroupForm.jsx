@@ -1,7 +1,7 @@
 import { trim } from 'lodash/fp'
 import {
-  ArrowRight, ChevronDown, DoorOpen, EyeOff, Globe, HelpCircle, ImagePlus,
-  LayoutGrid, Lock, MapPin, Network, Plus, ScrollText, Shield, Users, X
+  Activity, ArrowRight, ChevronDown, DoorOpen, EyeOff, Globe, HelpCircle, ImagePlus,
+  LayoutGrid, Lock, Map, MapPin, MessageCircleMore, Network, Plus, ScrollText, Shield, Users, X
 } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -135,7 +135,7 @@ const VISIBILITY_OPTIONS = [
     value: GROUP_VISIBILITY.Protected,
     icon: Shield,
     title: 'Visible to related groups',
-    description: "Members of this group's parent, child, and related groups can find it and see its join page. Everyone else can't see that it exists."
+    description: "Members of this group's parent, child, and related groups can find it and see its join page. Everyone else can't see that it exists. New members will need an invite link to see the group."
   },
   {
     value: GROUP_VISIBILITY.Hidden,
@@ -144,6 +144,67 @@ const VISIBILITY_OPTIONS = [
     description: 'Invisible to everyone except its own members and admins of related groups — the only way in is an invitation.'
   }
 ]
+
+// Home view decides the group's landing route. Each value maps to the view type that
+// has to be seeded for that route to resolve.
+// Icons match what each view carries in the group menu (VIEW_TYPE_TO_LUCIDE_ICON).
+const HOME_VIEW_OPTIONS = [
+  {
+    value: 'CHAT',
+    viewType: 'chat',
+    icon: MessageCircleMore,
+    title: 'Chat',
+    description: 'A real-time chat room for quick conversations, coordination and casual interactions.'
+  },
+  {
+    value: 'STREAM',
+    viewType: 'all',
+    icon: Activity,
+    title: 'Activity Stream',
+    description: "A sorted feed of all your group's posts"
+  },
+  {
+    value: 'MAP',
+    viewType: 'map',
+    icon: Map,
+    title: 'Map',
+    description: 'See where your people, projects, events and more are located'
+  }
+]
+
+// One control: a segmented toggle whose selection swaps the description beneath it,
+// rather than three cards each repeating their own explanation.
+function HomeViewPicker ({ value, onChange }) {
+  const { t } = useTranslation()
+  const selected = HOME_VIEW_OPTIONS.find(option => option.value === value) || HOME_VIEW_OPTIONS[0]
+
+  return (
+    <div className='rounded-lg border-2 border-foreground/20 bg-input p-1'>
+      <div className='flex w-full gap-1'>
+        {HOME_VIEW_OPTIONS.map(option => {
+          const isSelected = option.value === value
+          const OptionIcon = option.icon
+          return (
+            <button
+              key={option.value}
+              type='button'
+              onClick={() => onChange(option.value)}
+              aria-pressed={isSelected}
+              className={cn(
+                'flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-semibold transition-colors',
+                isSelected ? 'bg-selected/25 text-selected' : 'text-foreground/60 hover:text-foreground'
+              )}
+            >
+              {isSelected && <OptionIcon className='w-4 h-4 shrink-0' />}
+              {t(option.title)}
+            </button>
+          )
+        })}
+      </div>
+      <p className='px-2 pt-2 pb-1 text-xs text-foreground/70'>{t(selected.description)}</p>
+    </div>
+  )
+}
 
 const ACCESSIBILITY_OPTIONS = [
   {
@@ -399,6 +460,7 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
   const [purpose, setPurpose] = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
   const [bannerUrl, setBannerUrl] = useState('')
+  const [homeView, setHomeView] = useState('CHAT')
   const [visibility, setVisibility] = useState(GROUP_VISIBILITY.Protected)
   const [accessibility, setAccessibility] = useState(GROUP_ACCESSIBILITY.Restricted)
   const [isNameFocused, setIsNameFocused] = useState(false)
@@ -515,10 +577,15 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
     setSubmitting(true)
     setSubmitError(null)
 
-    const standardTypesInOrder = orderedRows.filter(row => row.kind === 'standard').map(row => row.type)
     const manualRowsInOrder = orderedRows.filter(row => row.kind === 'manual')
-    const homeType = standardTypesInOrder[0]
-    const homeView = homeType === 'chat' ? 'CHAT' : homeType === 'map' ? 'MAP' : 'STREAM'
+    const standardTypesInOrder = orderedRows.filter(row => row.kind === 'standard').map(row => row.type)
+
+    // The landing route only resolves if its view was seeded, so make sure the chosen
+    // home view is in the list even when it was removed from the menu.
+    const homeViewType = HOME_VIEW_OPTIONS.find(option => option.value === homeView)?.viewType
+    const viewTypes = homeViewType && !standardTypesInOrder.includes(homeViewType)
+      ? [homeViewType, ...standardTypesInOrder]
+      : standardTypesInOrder
 
     const { error, payload } = await dispatch(createGroup({
       accessibility,
@@ -532,7 +599,7 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
       parentIds: parentGroups.map(g => g.id),
       purpose: trim(purpose),
       acceptedPostTypes: postTypes,
-      viewTypes: standardTypesInOrder,
+      viewTypes,
       visibility
     }))
 
@@ -801,6 +868,12 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
           />
         </div>
 
+        <div className='mt-5'>
+          <span className='text-xs font-bold text-foreground/80'>{t('Choose your home view')}</span>
+          <p className='text-xs text-foreground/60 mt-0.5 mb-2'>{t('Set the default view members see when they enter your group.')}</p>
+          <HomeViewPicker value={homeView} onChange={setHomeView} />
+        </div>
+
         {visibility === GROUP_VISIBILITY.Public && (
           <div className='rounded-xl bg-foreground/5 p-4 mt-5'>
             <h3 className='font-semibold mb-2 text-sm'>{t('Optional') + ': ' + t('Add my group into the commons')}</h3>
@@ -821,8 +894,8 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
         )}
 
         <div className='mt-6 pt-5 border-t border-foreground/10'>
-          <h2 className='text-[15px] font-bold text-foreground mb-1'>{t('Advanced settings')}</h2>
-          <p className='text-xs text-foreground/60 mb-3'>{t('These can be changed later in your group settings.')}</p>
+          <h2 className='text-xs font-bold text-foreground/80'>{t('Advanced settings')}</h2>
+          <p className='text-xs text-foreground/60 mt-0.5 mb-2'>{t('These can be changed later in your group settings.')}</p>
 
           <div className='flex flex-wrap gap-2'>
             {advancedSettings.map(setting => (

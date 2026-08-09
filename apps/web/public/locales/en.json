@@ -2576,7 +2576,6 @@
   "Anyone can find and see": "Anyone can find and see",
   "This group will be exposed to search engines.": "This group will be exposed to search engines.",
   "Visible to related groups": "Visible to related groups",
-  "Members of this group's parent, child, and related groups can find it and see its join page. Everyone else can't see that it exists.": "Members of this group's parent, child, and related groups can find it and see its join page. Everyone else can't see that it exists.",
   "Members only": "Members only",
   "Invisible to everyone except its own members and admins of related groups — the only way in is an invitation.": "Invisible to everyone except its own members and admins of related groups — the only way in is an invitation.",
   "Anyone can join instantly": "Anyone can join instantly",
@@ -2594,5 +2593,11 @@
   "Avatar": "Avatar",
   "Search groups to add": "Search groups to add",
   "Add a parent group": "Add a parent group",
-  "Remove {{name}}": "Remove {{name}}"
+  "Remove {{name}}": "Remove {{name}}",
+  "Set the default view members see when they enter your group.": "Set the default view members see when they enter your group.",
+  "A real-time chat room for quick conversations, coordination and casual interactions.": "A real-time chat room for quick conversations, coordination and casual interactions.",
+  "A sorted feed of all your group's posts": "A sorted feed of all your group's posts",
+  "See where your people, projects, events and more are located": "See where your people, projects, events and more are located",
+  "Members of this group's parent, child, and related groups can find it and see its join page. Everyone else can't see that it exists. New members will need an invite link to see the group.": "Members of this group's parent, child, and related groups can find it and see its join page. Everyone else can't see that it exists. New members will need an invite link to see the group.",
+  "Activity Stream": "Activity Stream"
 }

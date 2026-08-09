@@ -2479,7 +2479,6 @@
   "Anyone can find and see": "कोई भी इसे ढूंढ और देख सकता है",
   "This group will be exposed to search engines.": "यह समूह सर्च इंजनों को दिखाई देगा।",
   "Visible to related groups": "संबंधित समूहों को दिखाई देता है",
-  "Members of this group's parent, child, and related groups can find it and see its join page. Everyone else can't see that it exists.": "इस समूह के मूल, उप और संबंधित समूहों के सदस्य इसे ढूंढ सकते हैं और इसका जॉइन पेज देख सकते हैं। बाकी किसी को पता नहीं चलता कि यह मौजूद है।",
   "Members only": "केवल सदस्यों के लिए",
   "Invisible to everyone except its own members and admins of related groups — the only way in is an invitation.": "इसके अपने सदस्यों और संबंधित समूहों के व्यवस्थापकों को छोड़कर सभी के लिए अदृश्य — अंदर आने का एकमात्र रास्ता निमंत्रण है।",
   "Anyone can join instantly": "कोई भी तुरंत शामिल हो सकता है",
@@ -2497,5 +2496,11 @@
   "Avatar": "अवतार",
   "Search groups to add": "जोड़ने के लिए समूह खोजें",
   "Add a parent group": "एक मूल समूह जोड़ें",
-  "Remove {{name}}": "{{name}} हटाएं"
+  "Remove {{name}}": "{{name}} हटाएं",
+  "Set the default view members see when they enter your group.": "वह डिफ़ॉल्ट दृश्य सेट करें जो सदस्य आपके समूह में आते ही देखते हैं।",
+  "A real-time chat room for quick conversations, coordination and casual interactions.": "त्वरित बातचीत, समन्वय और अनौपचारिक बातचीत के लिए एक रीयल-टाइम चैट रूम।",
+  "A sorted feed of all your group's posts": "आपके समूह की सभी पोस्ट का क्रमबद्ध फ़ीड",
+  "See where your people, projects, events and more are located": "देखें कि आपके लोग, परियोजनाएँ, कार्यक्रम और बहुत कुछ कहाँ स्थित हैं",
+  "Members of this group's parent, child, and related groups can find it and see its join page. Everyone else can't see that it exists. New members will need an invite link to see the group.": "इस समूह के मूल, उप और संबंधित समूहों के सदस्य इसे ढूंढ सकते हैं और इसका जॉइन पेज देख सकते हैं। बाकी किसी को पता नहीं चलता कि यह मौजूद है। नए सदस्यों को समूह देखने के लिए एक निमंत्रण लिंक की आवश्यकता होगी।",
+  "Activity Stream": "गतिविधि स्ट्रीम"
 }

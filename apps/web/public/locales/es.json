@@ -2564,7 +2564,6 @@
   "Anyone can find and see": "Cualquiera puede encontrarlo y verlo",
   "This group will be exposed to search engines.": "Este grupo será visible para los motores de búsqueda.",
   "Visible to related groups": "Visible para los grupos relacionados",
-  "Members of this group's parent, child, and related groups can find it and see its join page. Everyone else can't see that it exists.": "Los miembros de los grupos superiores, subgrupos y grupos relacionados pueden encontrarlo y ver su página de acceso. Nadie más puede saber que existe.",
   "Members only": "Solo para miembros",
   "Invisible to everyone except its own members and admins of related groups — the only way in is an invitation.": "Invisible para todos excepto sus propios miembros y los administradores de grupos relacionados: la única forma de entrar es una invitación.",
   "Anyone can join instantly": "Cualquiera puede unirse al instante",
@@ -2582,5 +2581,11 @@
   "Avatar": "Avatar",
   "Search groups to add": "Buscar grupos para añadir",
   "Add a parent group": "Añadir un grupo superior",
-  "Remove {{name}}": "Eliminar {{name}}"
+  "Remove {{name}}": "Eliminar {{name}}",
+  "Set the default view members see when they enter your group.": "Define la vista predeterminada que ven los miembros al entrar en tu grupo.",
+  "A real-time chat room for quick conversations, coordination and casual interactions.": "Una sala de chat en tiempo real para conversaciones rápidas, coordinación e interacción informal.",
+  "A sorted feed of all your group's posts": "Un feed ordenado con todas las publicaciones de tu grupo",
+  "See where your people, projects, events and more are located": "Mira dónde se encuentran tus personas, proyectos, eventos y más",
+  "Members of this group's parent, child, and related groups can find it and see its join page. Everyone else can't see that it exists. New members will need an invite link to see the group.": "Los miembros de los grupos superiores, subgrupos y grupos relacionados pueden encontrarlo y ver su página de acceso. Nadie más puede saber que existe. Los nuevos miembros necesitarán un enlace de invitación para ver el grupo.",
+  "Activity Stream": "Flujo de actividad"
 }

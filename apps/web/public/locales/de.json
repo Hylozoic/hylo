@@ -2478,7 +2478,6 @@
   "Anyone can find and see": "Jede*r kann sie finden und sehen",
   "This group will be exposed to search engines.": "Diese Gruppe wird für Suchmaschinen sichtbar sein.",
   "Visible to related groups": "Sichtbar für verbundene Gruppen",
-  "Members of this group's parent, child, and related groups can find it and see its join page. Everyone else can't see that it exists.": "Mitglieder der übergeordneten, untergeordneten und verbundenen Gruppen können sie finden und ihre Beitrittsseite sehen. Für alle anderen ist sie unsichtbar.",
   "Members only": "Nur für Mitglieder",
   "Invisible to everyone except its own members and admins of related groups — the only way in is an invitation.": "Für alle unsichtbar außer für die eigenen Mitglieder und Admins verbundener Gruppen – der einzige Weg hinein ist eine Einladung.",
   "Anyone can join instantly": "Jede*r kann sofort beitreten",
@@ -2496,5 +2495,11 @@
   "Avatar": "Avatar",
   "Search groups to add": "Gruppen zum Hinzufügen suchen",
   "Add a parent group": "Übergeordnete Gruppe hinzufügen",
-  "Remove {{name}}": "{{name}} entfernen"
+  "Remove {{name}}": "{{name}} entfernen",
+  "Set the default view members see when they enter your group.": "Lege fest, welche Ansicht Mitglieder beim Betreten deiner Gruppe zuerst sehen.",
+  "A real-time chat room for quick conversations, coordination and casual interactions.": "Ein Echtzeit-Chatraum für schnelle Gespräche, Abstimmung und lockeren Austausch.",
+  "A sorted feed of all your group's posts": "Ein sortierter Feed aller Beiträge deiner Gruppe",
+  "See where your people, projects, events and more are located": "Sieh, wo sich deine Leute, Projekte, Veranstaltungen und mehr befinden",
+  "Members of this group's parent, child, and related groups can find it and see its join page. Everyone else can't see that it exists. New members will need an invite link to see the group.": "Mitglieder der übergeordneten, untergeordneten und verbundenen Gruppen können sie finden und ihre Beitrittsseite sehen. Für alle anderen ist sie unsichtbar. Neue Mitglieder benötigen einen Einladungslink, um die Gruppe zu sehen.",
+  "Activity Stream": "Aktivitätsstream"
 }
