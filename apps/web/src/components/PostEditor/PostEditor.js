@@ -1622,40 +1622,40 @@ function PostEditorInner ({
         />
       )} */}
       {canHaveTimes && (
-        <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
-          <div className='text-xs text-foreground/50'>{currentPost.type === 'proposal' ? t('Voting window') : t('Timeframe')}</div>
-          <div className='flex items-center gap-1 sm:flex-row flex-col justify-start items-center sm:justify-center'>
-            <DateTimePicker
-              hourCycle={hourCycle}
-              granularity='minute'
-              value={startTimePickerValue}
-              placeholder={t('Select Start')}
-              onChange={handleStartTimeChange}
-              onMonthChange={() => {}}
-            />
-            <div className='text-xs text-foreground/50'>{t('to')}</div>
-            <DateTimePicker
-              ref={endTimeRef}
-              hourCycle={hourCycle}
-              granularity='minute'
-              value={endTimePickerValue}
-              placeholder={t('Select End')}
-              onChange={handleEndTimeChange}
-              onMonthChange={() => {}}
+        <>
+          <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
+            <div className='text-xs text-foreground/50'>{currentPost.type === 'proposal' ? t('Voting window') : t('Timeframe')}</div>
+            <div className='flex items-center gap-1 sm:flex-row flex-col justify-start items-center sm:justify-center'>
+              <DateTimePicker
+                hourCycle={hourCycle}
+                granularity='minute'
+                value={startTimePickerValue}
+                placeholder={t('Select Start')}
+                onChange={handleStartTimeChange}
+                onMonthChange={() => {}}
+              />
+              <div className='text-xs text-foreground/50'>{t('to')}</div>
+              <DateTimePicker
+                ref={endTimeRef}
+                hourCycle={hourCycle}
+                granularity='minute'
+                value={endTimePickerValue}
+                placeholder={t('Select End')}
+                onChange={handleEndTimeChange}
+                onMonthChange={() => {}}
+              />
+            </div>
+          </div>
+          <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
+            <div className='text-xs text-foreground/50 shrink-0'>{t('Timezone')}</div>
+            <TimezoneSelect
+              className='border-none bg-transparent'
+              value={eventTimezone}
+              onChange={handleTimezoneChange}
+              disabled={loading}
             />
           </div>
-        </div>
-      )}
-      {currentPost.type === 'event' && (
-        <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
-          <div className='text-xs text-foreground/50 shrink-0'>{t('Timezone')}</div>
-          <TimezoneSelect
-            className='border-none bg-transparent'
-            value={eventTimezone}
-            onChange={handleTimezoneChange}
-            disabled={loading}
-          />
-        </div>
+        </>
       )}
       {canHaveTimes && dateError && (
         <span className='text-white bg-destructive w-full ml-[10px] pb-[2px] px-[10px] rounded-[7px]'>
