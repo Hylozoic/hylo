@@ -334,7 +334,6 @@
   "Choose an offering...": "Angebot auswählen...",
   "Choose the token type for this round. Choosing \"Votes\" (or entering another token name such as \"Points\" or \"Beans) creates a Priority Voting round to establish collective sentiment or priority. Choosing a currency (like \"USD\" or \"ETH\") creates a Co-Budgeting Round where each voter can allocate a specific amount of money to each entry.": "Wählen Sie den Token-Typ für diese Runde aus. Die Auswahl von \"Votes\" (oder die Eingabe eines anderen Token-Namens wie \"Points\" oder \"Beans\") erstellt eine Prioritätsabstimmungsrunde, um kollektive Stimmung oder Priorität festzustellen. Die Auswahl einer Währung (wie \"USD\" oder \"ETH\") erstellt eine Co-Budgeting-Runde, in der jeder Wähler einen bestimmten Geldbetrag auf jeden Eintrag verteilen kann.",
   "Choose which post types this group accepts. Views for turned-off types are hidden from the group menu.": "Wählen Sie aus, welche Beitragstypen diese Gruppe akzeptiert. \nAnsichten für deaktivierte Typen werden im Gruppenmenü ausgeblendet.",
-  "Choose your home view": "Wählen Sie Ihre Home-Ansicht",
   "Claims:": "Ansprüche:",
   "Clear": "Löschen",
   "Clear date": "Datum löschen",
@@ -2511,5 +2510,6 @@
   "Decisions your group is making together": "Entscheidungen, die eure Gruppe gemeinsam trifft",
   "The work your group has underway": "Die Arbeit, die in eurer Gruppe läuft",
   "Everyone who is part of your group": "Alle, die zu eurer Gruppe gehören",
-  "What your group is and who it is for": "Was eure Gruppe ist und für wen sie da ist"
+  "What your group is and who it is for": "Was eure Gruppe ist und für wen sie da ist",
+  "Choose your group's home": "Wähle die Startseite eurer Gruppe"
 }

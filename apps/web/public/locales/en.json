@@ -351,7 +351,6 @@
   "Choose an offering...": "Choose an offering...",
   "Choose the token type for this round. Choosing \"Votes\" (or entering another token name such as \"Points\" or \"Beans) creates a Priority Voting round to establish collective sentiment or priority. Choosing a currency (like \"USD\" or \"ETH\") creates a Co-Budgeting Round where each voter can allocate a specific amount of money to each entry.": "Choose the token type for this round. Choosing \"Votes\" (or entering another token name such as \"Points\" or \"Beans) creates a Priority Voting round to establish collective sentiment or priority. Choosing a currency (like \"USD\" or \"ETH\") creates a Co-Budgeting Round where each voter can allocate a specific amount of money to each entry.",
   "Choose which post types this group accepts. Views for turned-off types are hidden from the group menu.": "Choose which post types this group accepts. Views for turned-off types are hidden from the group menu.",
-  "Choose your home view": "Choose your home view",
   "Claims:": "Claims:",
   "Clear": "Clear",
   "Clear date": "Clear date",
@@ -2609,5 +2608,6 @@
   "Decisions your group is making together": "Decisions your group is making together",
   "The work your group has underway": "The work your group has underway",
   "Everyone who is part of your group": "Everyone who is part of your group",
-  "What your group is and who it is for": "What your group is and who it is for"
+  "What your group is and who it is for": "What your group is and who it is for",
+  "Choose your group's home": "Choose your group's home"
 }

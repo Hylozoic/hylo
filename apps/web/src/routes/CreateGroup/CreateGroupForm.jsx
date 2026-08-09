@@ -936,7 +936,7 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
         </div>
 
         <div className='mt-5'>
-          <span className='text-xs font-bold text-foreground/80'>{t('Choose your home view')}</span>
+          <span className='text-xs font-bold text-foreground/80'>{t("Choose your group's home")}</span>
           <p className='text-xs text-foreground/60 mt-0.5 mb-2'>{t('Set the default view members see when they enter your group.')}</p>
           <HomeViewPicker value={homeView} onChange={setHomeView} customHomeRow={customHomeRow} />
         </div>

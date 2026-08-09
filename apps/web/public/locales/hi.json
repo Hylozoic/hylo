@@ -334,7 +334,6 @@
   "Choose an offering...": "एक ऑफ़र चुनें...",
   "Choose the token type for this round. Choosing \"Votes\" (or entering another token name such as \"Points\" or \"Beans) creates a Priority Voting round to establish collective sentiment or priority. Choosing a currency (like \"USD\" or \"ETH\") creates a Co-Budgeting Round where each voter can allocate a specific amount of money to each entry.": "इस राउंड के लिए टोकन प्रकार चुनें। \"वोट\" चुनने (या \"पॉइंट्स\" या \"बीन्स\" जैसे अन्य टोकन नाम दर्ज करने) से प्राथमिकता मतदान राउंड बनता है ताकि सामूहिक भावना या प्राथमिकता स्थापित की जा सके। एक मुद्रा (जैसे \"USD\" या \"ETH\") चुनने से सह-बजटिंग राउंड बनता है जहाँ प्रत्येक मतदाता प्रत्येक प्रविष्टि को एक विशिष्ट राशि आवंटित कर सकता है।",
   "Choose which post types this group accepts. Views for turned-off types are hidden from the group menu.": "चुनें कि यह समूह किस प्रकार की पोस्ट स्वीकार करता है. \nबंद किए गए प्रकारों के दृश्य समूह मेनू से छिपे हुए हैं।",
-  "Choose your home view": "अपने घर का दृश्य चुनें",
   "Claims:": "दावे:",
   "Clear": "साफ़ करें",
   "Clear date": "तारीख साफ करें",
@@ -2512,5 +2511,6 @@
   "Decisions your group is making together": "आपका समूह मिलकर जो निर्णय ले रहा है",
   "The work your group has underway": "आपके समूह का चल रहा कार्य",
   "Everyone who is part of your group": "वे सभी जो आपके समूह का हिस्सा हैं",
-  "What your group is and who it is for": "आपका समूह क्या है और किसके लिए है"
+  "What your group is and who it is for": "आपका समूह क्या है और किसके लिए है",
+  "Choose your group's home": "अपने समूह का होम चुनें"
 }
