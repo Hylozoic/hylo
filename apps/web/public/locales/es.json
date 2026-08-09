@@ -2559,7 +2559,6 @@
   "What is this group for?": "¿Para qué es este grupo?",
   "Who can see this group?": "¿Quién puede ver este grupo?",
   "Who can join this group?": "¿Quién puede unirse a este grupo?",
-  "Advanced settings": "Configuración avanzada",
   "Anyone can find and see": "Cualquiera puede encontrarlo y verlo",
   "This group will be exposed to search engines.": "Este grupo será visible para los motores de búsqueda.",
   "Visible to related groups": "Visible para los grupos relacionados",
@@ -2574,7 +2573,6 @@
   "Menu views": "Vistas del menú",
   "Parent groups": "Grupos superiores",
   "Join questions": "Preguntas de acceso",
-  "These can be changed later in your group settings.": "Esto se puede cambiar más adelante en la configuración de tu grupo.",
   "People requesting to join your group must answer these questions. You and other stewards will be able to see their answers before approving.": "Quienes soliciten unirse a tu grupo deberán responder estas preguntas. Tú y otros administradores podréis ver sus respuestas antes de aprobar.",
   "People must request to join your group, and be approved by stewards. You can ask applicants questions before they join.": "Las personas deben solicitar unirse a tu grupo y ser aprobadas por los administradores. Puedes hacerles preguntas antes de que se unan.",
   "Avatar": "Avatar",
@@ -2597,5 +2595,7 @@
   "The work your group has underway": "El trabajo que tu grupo tiene en marcha",
   "Everyone who is part of your group": "Todas las personas que forman parte de tu grupo",
   "What your group is and who it is for": "Qué es tu grupo y para quién es",
-  "Choose your group's home": "Elige el inicio de tu grupo"
+  "Choose your group's home": "Elige el inicio de tu grupo",
+  "Additional settings": "Ajustes adicionales",
+  "These are the menu your members use. The one at the top is your group's home.": "Este es el menú que usan tus miembros. El primero es el inicio de tu grupo."
 }

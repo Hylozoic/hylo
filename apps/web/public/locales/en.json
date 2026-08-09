@@ -2571,7 +2571,6 @@
   "What is this group for?": "What is this group for?",
   "Who can see this group?": "Who can see this group?",
   "Who can join this group?": "Who can join this group?",
-  "Advanced settings": "Advanced settings",
   "Anyone can find and see": "Anyone can find and see",
   "This group will be exposed to search engines.": "This group will be exposed to search engines.",
   "Visible to related groups": "Visible to related groups",
@@ -2586,7 +2585,6 @@
   "Menu views": "Menu views",
   "Parent groups": "Parent groups",
   "Join questions": "Join questions",
-  "These can be changed later in your group settings.": "These can be changed later in your group settings.",
   "People requesting to join your group must answer these questions. You and other stewards will be able to see their answers before approving.": "People requesting to join your group must answer these questions. You and other stewards will be able to see their answers before approving.",
   "People must request to join your group, and be approved by stewards. You can ask applicants questions before they join.": "People must request to join your group, and be approved by stewards. You can ask applicants questions before they join.",
   "Avatar": "Avatar",
@@ -2609,5 +2607,7 @@
   "The work your group has underway": "The work your group has underway",
   "Everyone who is part of your group": "Everyone who is part of your group",
   "What your group is and who it is for": "What your group is and who it is for",
-  "Choose your group's home": "Choose your group's home"
+  "Choose your group's home": "Choose your group's home",
+  "Additional settings": "Additional settings",
+  "These are the menu your members use. The one at the top is your group's home.": "These are the menu your members use. The one at the top is your group's home."
 }

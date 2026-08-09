@@ -768,6 +768,8 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
           acceptedPostTypes={postTypes}
           onOrderedRowsChange={setOrderedRows}
           homeViewType={homeViewType}
+          label={t("These are the menu your members use. The one at the top is your group's home.")}
+          labelClassName='text-xs text-foreground/60'
         />
       )
     },
@@ -961,8 +963,7 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
         )}
 
         <div className='mt-6 pt-5 border-t border-foreground/10'>
-          <h2 className='text-xs font-bold text-foreground/80 m-0'>{t('Advanced settings')}</h2>
-          <p className='text-xs text-foreground/60 mt-0.5 mb-2'>{t('These can be changed later in your group settings.')}</p>
+          <h2 className='text-xs font-bold text-foreground/80 m-0 mb-2'>{t('Additional settings')}</h2>
 
           <div className='flex flex-wrap gap-2'>
             {advancedSettings.map(setting => (

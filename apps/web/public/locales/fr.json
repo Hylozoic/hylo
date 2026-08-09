@@ -2474,7 +2474,6 @@
   "What is this group for?": "À quoi sert ce groupe ?",
   "Who can see this group?": "Qui peut voir ce groupe ?",
   "Who can join this group?": "Qui peut rejoindre ce groupe ?",
-  "Advanced settings": "Paramètres avancés",
   "Anyone can find and see": "Tout le monde peut le trouver et le voir",
   "This group will be exposed to search engines.": "Ce groupe sera visible par les moteurs de recherche.",
   "Visible to related groups": "Visible par les groupes associés",
@@ -2489,7 +2488,6 @@
   "Menu views": "Vues du menu",
   "Parent groups": "Groupes parents",
   "Join questions": "Questions d'adhésion",
-  "These can be changed later in your group settings.": "Ces éléments peuvent être modifiés plus tard dans les paramètres du groupe.",
   "People requesting to join your group must answer these questions. You and other stewards will be able to see their answers before approving.": "Les personnes qui demandent à rejoindre votre groupe doivent répondre à ces questions. Vous et les autres intendants pourrez voir leurs réponses avant d'approuver.",
   "People must request to join your group, and be approved by stewards. You can ask applicants questions before they join.": "Les personnes doivent demander à rejoindre votre groupe et être approuvées par les intendants. Vous pouvez leur poser des questions avant leur arrivée.",
   "Avatar": "Avatar",
@@ -2512,5 +2510,7 @@
   "The work your group has underway": "Le travail en cours dans votre groupe",
   "Everyone who is part of your group": "Toutes les personnes qui font partie de votre groupe",
   "What your group is and who it is for": "Ce qu'est votre groupe et à qui il s'adresse",
-  "Choose your group's home": "Choisissez l'accueil de votre groupe"
+  "Choose your group's home": "Choisissez l'accueil de votre groupe",
+  "Additional settings": "Paramètres supplémentaires",
+  "These are the menu your members use. The one at the top is your group's home.": "Voici le menu qu'utilisent vos membres. Le premier élément est l'accueil de votre groupe."
 }

@@ -2474,7 +2474,6 @@
   "What is this group for?": "यह समूह किस लिए है?",
   "Who can see this group?": "इस समूह को कौन देख सकता है?",
   "Who can join this group?": "इस समूह में कौन शामिल हो सकता है?",
-  "Advanced settings": "उन्नत सेटिंग्स",
   "Anyone can find and see": "कोई भी इसे ढूंढ और देख सकता है",
   "This group will be exposed to search engines.": "यह समूह सर्च इंजनों को दिखाई देगा।",
   "Visible to related groups": "संबंधित समूहों को दिखाई देता है",
@@ -2489,7 +2488,6 @@
   "Menu views": "मेनू दृश्य",
   "Parent groups": "मूल समूह",
   "Join questions": "शामिल होने के प्रश्न",
-  "These can be changed later in your group settings.": "इन्हें बाद में आपके समूह की सेटिंग्स में बदला जा सकता है।",
   "People requesting to join your group must answer these questions. You and other stewards will be able to see their answers before approving.": "आपके समूह में शामिल होने का अनुरोध करने वालों को इन प्रश्नों का उत्तर देना होगा। स्वीकृति से पहले आप और अन्य स्टीवर्ड उनके उत्तर देख सकेंगे।",
   "People must request to join your group, and be approved by stewards. You can ask applicants questions before they join.": "लोगों को आपके समूह में शामिल होने का अनुरोध करना होगा और स्टीवर्ड द्वारा अनुमोदित होना होगा। आप शामिल होने से पहले उनसे प्रश्न पूछ सकते हैं।",
   "Avatar": "अवतार",
@@ -2512,5 +2510,7 @@
   "The work your group has underway": "आपके समूह का चल रहा कार्य",
   "Everyone who is part of your group": "वे सभी जो आपके समूह का हिस्सा हैं",
   "What your group is and who it is for": "आपका समूह क्या है और किसके लिए है",
-  "Choose your group's home": "अपने समूह का होम चुनें"
+  "Choose your group's home": "अपने समूह का होम चुनें",
+  "Additional settings": "अतिरिक्त सेटिंग्स",
+  "These are the menu your members use. The one at the top is your group's home.": "यह वह मेनू है जिसे आपके सदस्य उपयोग करते हैं। सबसे ऊपर वाला आपके समूह का होम है।"
 }
