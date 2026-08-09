@@ -246,7 +246,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
                       onClick={() => setShowFullBio(prev => !prev)}
                       className='mt-1 text-sm font-semibold text-focus hover:underline'
                     >
-                      {showFullBio ? t('View less') : t('View more')}
+                      {showFullBio ? t('Read less') : t('Read more')}
                     </button>
                   )}
                 </div>
