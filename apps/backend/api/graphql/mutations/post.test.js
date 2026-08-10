@@ -302,7 +302,7 @@ describe('fulfillPost and unfulfillPost', () => {
     expect(Activity.saveForReasons).to.not.have.been.called
   })
 
-  it('allows a moderator to fulfill a single-group fulfillable post', async () => {
+  it('allows a moderator to fulfill a fulfillable post', async () => {
     await requestPost.save({ fulfilled_at: null }, { patch: true })
 
     const result = await fulfillPost(moderator.id, requestPost.id)
@@ -312,7 +312,7 @@ describe('fulfillPost and unfulfillPost', () => {
     expect(Activity.saveForReasons).to.have.been.called
   })
 
-  it('allows a coordinator to fulfill a single-group fulfillable post', async () => {
+  it('allows a coordinator to fulfill a fulfillable post', async () => {
     const coordinator = await factories.user().save()
     const g = await factories.group().save()
     await assignCoordinator(coordinator, g)
@@ -325,7 +325,27 @@ describe('fulfillPost and unfulfillPost', () => {
     expect(offerPost.get('fulfilled_at')).to.exist
   })
 
-  it('rejects a moderator fulfilling a multi-group post', async () => {
+  it('allows a moderator to fulfill a multi-group post when they have responsibilities in all groups', async () => {
+    await moderator.joinGroup(group2)
+    const moderatorRole2 = await GroupRole.findSystemRole(group2.id, 'Moderator')
+    await MemberGroupRole.forge({
+      user_id: moderator.id,
+      group_id: group2.id,
+      group_role_id: moderatorRole2.id,
+      active: true
+    }).save()
+
+    const multiGroupPost = await factories.post({ type: 'offer', user_id: author.id }).save()
+    await multiGroupPost.groups().attach([group.id, group2.id])
+
+    const result = await fulfillPost(moderator.id, multiGroupPost.id)
+    expect(result).to.deep.equal({ success: true })
+    await multiGroupPost.refresh()
+    expect(multiGroupPost.get('fulfilled_at')).to.exist
+    expect(Activity.saveForReasons).to.have.been.called
+  })
+
+  it('rejects a moderator fulfilling a multi-group post when missing responsibility in one group', async () => {
     const multiGroupPost = await factories.post({ type: 'offer', user_id: author.id }).save()
     await multiGroupPost.groups().attach([group.id, group2.id])
 
@@ -365,7 +385,7 @@ describe('fulfillPost and unfulfillPost', () => {
     expect(Activity.saveForReasons).to.not.have.been.called
   })
 
-  it('allows a moderator to unfulfill a single-group post and notifies the author', async () => {
+  it('allows a moderator to unfulfill a post and notifies the author', async () => {
     await requestPost.save({ fulfilled_at: new Date() }, { patch: true })
 
     const result = await unfulfillPost(moderator.id, requestPost.id)

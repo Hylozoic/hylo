@@ -13,17 +13,21 @@ export function postCanBeFulfilled (post) {
   return true
 }
 
-/** True when user has Administration or Manage Content in the post's sole group. */
+/** True when user has Administration or Manage Content in every group the post belongs to. */
 export async function canFulfillPostAsModerator (userId, post) {
   if (!postCanBeFulfilled(post)) return false
   await post.load('groups')
-  const groups = post.relations.groups
-  if (!groups || groups.length !== 1) return false
-  const group = groups.models[0]
-  const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, group.id)
+  const groups = post.relations.groups?.models || []
+  if (groups.length === 0) return false
+
   const { RESP_ADMINISTRATION, RESP_MANAGE_CONTENT } = Responsibility.constants
-  return responsibilities.includes(RESP_ADMINISTRATION) ||
-    responsibilities.includes(RESP_MANAGE_CONTENT)
+  for (const group of groups) {
+    const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, group.id)
+    const canModerate = responsibilities.includes(RESP_ADMINISTRATION) ||
+      responsibilities.includes(RESP_MANAGE_CONTENT)
+    if (!canModerate) return false
+  }
+  return true
 }
 
 /** Throws when the user cannot fulfill or unfulfill this post. */
@@ -41,7 +45,7 @@ export async function notifyAuthorOfModeratorFulfillment ({ post, actorId, fulfi
 
   await post.load('groups')
   const groups = post.relations.groups?.models || []
-  if (groups.length !== 1) return
+  if (groups.length === 0) return
 
   const reason = fulfilled ? Activity.Reason.PostFulfilled : Activity.Reason.PostUnfulfilled
 

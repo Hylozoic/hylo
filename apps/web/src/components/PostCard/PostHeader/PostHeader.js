@@ -127,15 +127,14 @@ function PostHeader (props) {
   const canCurateCollections = responsibilities.includes(RESP_ADMINISTRATION) ||
     responsibilities.includes(RESP_MANAGE_CONTENT)
 
-  const isSingleGroupPost = postGroups.length === 1
-  const postGroupId = isSingleGroupPost ? postGroups[0].id : null
-  const postGroupResponsibilities = useSelector(state =>
-    postGroupId ? getResponsibilityTitlesForGroup(state, { groupId: postGroupId }) : []
+  const hasModeratorResponsibilitiesInAllPostGroups = useSelector(state =>
+    postGroups.length > 0 && postGroups.every(g => {
+      const groupResponsibilities = getResponsibilityTitlesForGroup(state, { groupId: g.id })
+      return groupResponsibilities.includes(RESP_ADMINISTRATION) ||
+        groupResponsibilities.includes(RESP_MANAGE_CONTENT)
+    })
   )
-  const canCompleteAsModerator = !isCreator && isSingleGroupPost && (
-    postGroupResponsibilities.includes(RESP_ADMINISTRATION) ||
-    postGroupResponsibilities.includes(RESP_MANAGE_CONTENT)
-  )
+  const canCompleteAsModerator = !isCreator && hasModeratorResponsibilitiesInAllPostGroups
   const canCompletePost = isCreator || canCompleteAsModerator
 
   const groupViews = useSelector(state => getGroupViews(state, group))
