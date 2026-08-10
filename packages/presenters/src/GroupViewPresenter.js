@@ -287,7 +287,7 @@ export const MY_CONTEXT_VIEWS = (profileUrl) => [
   { type: 'invitations', context: 'my', icon: 'Mail', name: 'widget-my-invites', id: 'view-my-invites', order: 18 },
   { type: 'transactions', context: 'my', icon: 'CreditCard', name: 'widget-my-transactions', id: 'view-my-transactions', order: 19 },
   { type: 'notifications', context: 'my', icon: 'Bell', name: 'widget-my-notifications', id: 'view-my-notifications', order: 20 },
-  { type: 'appearance', context: 'my', icon: 'Palette', name: 'Appearance', id: 'view-my-appearance', order: 21 },
+  { type: 'appearance', context: 'my', icon: 'Palette', name: 'widget-my-appearance', id: 'view-my-appearance', order: 21 },
   { type: 'locale', context: 'my', icon: 'Languages', name: 'widget-my-locale', id: 'view-my-locale', order: 22 },
   { type: 'blocked-users', context: 'my', icon: 'UserX', name: 'widget-my-blocked-users', id: 'view-my-blocked-users', order: 23 },
   { type: 'saved-searches', context: 'my', icon: 'Search', name: 'widget-my-saved-searches', id: 'view-my-saved-searches', order: 24 },

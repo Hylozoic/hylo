@@ -3,6 +3,35 @@
 import * as DateTimeHelpers from './DateTimeHelpers'
 import { DateTime } from 'luxon'
 
+describe('getLocaleAsString', () => {
+  it('maps all UI locales to full BCP 47 tags', () => {
+    expect(DateTimeHelpers.getLocaleAsString('en')).toBe('en-US')
+    expect(DateTimeHelpers.getLocaleAsString('en-GB')).toBe('en-GB')
+    expect(DateTimeHelpers.getLocaleAsString('es')).toBe('es-ES')
+    expect(DateTimeHelpers.getLocaleAsString('de')).toBe('de-DE')
+    expect(DateTimeHelpers.getLocaleAsString('fr')).toBe('fr-FR')
+    expect(DateTimeHelpers.getLocaleAsString('hi')).toBe('hi-IN')
+    expect(DateTimeHelpers.getLocaleAsString('pt')).toBe('pt-BR')
+    expect(DateTimeHelpers.getLocaleAsString()).toBe('en-US')
+  })
+
+  it('formats numeric dates according to locale', () => {
+    const dt = DateTime.fromObject({ year: 2026, month: 3, day: 16 })
+    expect(
+      dt.setLocale(DateTimeHelpers.getLocaleAsString('en')).toLocaleString(DateTime.DATE_SHORT)
+    ).toBe('3/16/2026')
+    expect(
+      dt.setLocale(DateTimeHelpers.getLocaleAsString('en-GB')).toLocaleString(DateTime.DATE_SHORT)
+    ).toBe('16/03/2026')
+    expect(
+      dt.setLocale(DateTimeHelpers.getLocaleAsString('de')).toLocaleString(DateTime.DATE_SHORT)
+    ).toBe('16.3.2026')
+    expect(
+      dt.setLocale(DateTimeHelpers.getLocaleAsString('fr')).toLocaleString(DateTime.DATE_SHORT)
+    ).toBe('16/03/2026')
+  })
+})
+
 describe('formatDatePair', () => {
   it('displays differences of dates', () => {
     const d1 = DateTime.fromMillis(1551908483315, {zone: 'Etc/GMT'}).set({month: 1, day: 1, hour: 18})

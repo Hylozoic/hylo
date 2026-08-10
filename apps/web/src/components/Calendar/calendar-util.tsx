@@ -11,7 +11,7 @@ import {
   DateTimeHelpers,
   normalizeLocaleToFull
 } from '@hylo/shared'
-import { getLocaleFromLocalStorage } from 'util/locale'
+import { getDateLocale, getLocaleFromLocalStorage } from 'util/locale'
 import { createPostUrl } from '@hylo/navigation'
 import { de, enGB, enUS, es, fr, hi, pt } from 'react-day-picker/locale'
 import type { HyloPost } from './calendar-types'
@@ -58,7 +58,7 @@ export const same = (
   dt2 : Date,
   unit: DateTimeUnit
 ): boolean => {
-  const locale = DateTimeHelpers.getLocaleAsString(getLocaleFromLocalStorage())
+  const locale = getDateLocale()
   const _dt1 = DateTime.fromJSDate(dt1).setLocale(locale)
   const _dt2 = DateTime.fromJSDate(dt2).setLocale(locale)
   return _dt1.hasSame(_dt2, unit)
@@ -69,7 +69,7 @@ export const includes = (
   dt2 : Date,
   dt3 : Date
 ) : boolean => {
-  const locale = DateTimeHelpers.getLocaleAsString(getLocaleFromLocalStorage())
+  const locale = getDateLocale()
   const _dt1 = DateTime.fromJSDate(dt1).setLocale(locale)
   const _dt2 = DateTime.fromJSDate(dt2).setLocale(locale)
   const _dt3 = DateTime.fromJSDate(dt3).setLocale(locale)
@@ -83,7 +83,7 @@ export const inWeek = (
   dt2 : Date,
   dt3 : Date
 ) : boolean => {
-  const locale = DateTimeHelpers.getLocaleAsString(getLocaleFromLocalStorage())
+  const locale = getDateLocale()
   const _dt1 = DateTime.fromJSDate(dt1).setLocale(locale)
   const _dt2 = DateTime.fromJSDate(dt2).setLocale(locale)
   const _dt3 = DateTime.fromJSDate(dt3).setLocale(locale)

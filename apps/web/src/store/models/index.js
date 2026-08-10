@@ -36,9 +36,7 @@ import Track, { Role } from './Track'
 import FundingRound from './FundingRound'
 import Widget from './Widget'
 
-export const orm = new ORM({ stateSelector: state => state.orm })
-
-orm.register(
+const ORM_MODELS = [
   Activity,
   Agreement,
   Attachment,
@@ -95,6 +93,17 @@ orm.register(
   TopicFollow,
   Track,
   Widget
-)
+]
+
+/** Reuse one ORM instance in dev so Vite HMR does not re-register model descriptors. */
+export const orm = typeof globalThis !== 'undefined' && globalThis.__hyloReduxOrm
+  ? globalThis.__hyloReduxOrm
+  : new ORM({ stateSelector: state => state.orm })
+
+if (typeof globalThis !== 'undefined' && !globalThis.__hyloReduxOrmRegistered) {
+  orm.register(...ORM_MODELS)
+  globalThis.__hyloReduxOrm = orm
+  globalThis.__hyloReduxOrmRegistered = true
+}
 
 export default orm

@@ -26,7 +26,8 @@ export interface FormatEventTimeDisplayResult {
 
 let cachedTimezones: string[] | null = null
 
-export const getLocaleAsString = (locale : string ) : string => {
+/** Maps Hylo locale codes (short or full) to BCP 47 tags for Luxon/Intl date formatting. */
+export const getLocaleAsString = (locale?: string): string => {
   return normalizeLocaleToFull(locale || '')
 }
 

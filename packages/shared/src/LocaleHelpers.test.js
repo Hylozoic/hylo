@@ -3,6 +3,9 @@ import {
   LOCALE_EN_GB,
   LOCALE_EN_US,
   LOCALE_ES,
+  LOCALE_FR,
+  LOCALE_HI,
+  LOCALE_PT,
   localeToTranslationKey,
   normalizeLocaleToFull
 } from './LocaleHelpers'
@@ -12,6 +15,9 @@ describe('normalizeLocaleToFull', () => {
     expect(normalizeLocaleToFull('en')).toBe(LOCALE_EN_US)
     expect(normalizeLocaleToFull('es')).toBe(LOCALE_ES)
     expect(normalizeLocaleToFull('de')).toBe(LOCALE_DE)
+    expect(normalizeLocaleToFull('fr')).toBe(LOCALE_FR)
+    expect(normalizeLocaleToFull('hi')).toBe(LOCALE_HI)
+    expect(normalizeLocaleToFull('pt')).toBe(LOCALE_PT)
   })
 
   it('returns canonical full codes', () => {

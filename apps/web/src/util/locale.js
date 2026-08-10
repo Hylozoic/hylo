@@ -53,6 +53,11 @@ export function localeToWord (locale = LOCALE_EN_US) {
   }
 }
 
+/** Returns the BCP 47 locale tag for Luxon/Intl date formatting from the user's Hylo language setting. */
+export function getDateLocale () {
+  return normalizeLocaleToFull(getLocaleFromLocalStorage())
+}
+
 export function getLocaleFromLocalStorage (locale) {
   if (typeof window === 'undefined') return LOCALE_EN_US
 
