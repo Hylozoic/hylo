@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from 'uuid'
 import validator from 'validator'
 import { GraphQLError } from 'graphql'
 import { Validators } from '@hylo/shared'
+import { normalizeLocaleToFull } from '../../lib/localeHelpers'
 import RedisClient from '../services/RedisClient'
 import HasSettings from './mixins/HasSettings'
 import { findThread } from './post/findOrCreateThread'
@@ -372,7 +373,7 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   getLocale: function () {
-    return this.getSetting('locale') || 'en'
+    return normalizeLocaleToFull(this.getSetting('locale') || 'en-US')
   },
 
   joinGroup: async function (group, { assignCoordinator = false, fromInvitation = false, questionAnswers = [], transacting = null } = {}) {

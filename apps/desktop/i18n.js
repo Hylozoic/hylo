@@ -1,8 +1,12 @@
 import i18next from 'i18next'
 import Backend from 'i18next-http-backend'
-import path from 'path'
-import fs from 'fs'
 import { app } from 'electron'
+import {
+  LOCALE_EN_GB,
+  LOCALE_EN_US,
+  LOCALE_ES,
+  localeToTranslationKey
+} from '@hylo/shared'
 
 const initI18n = async () => {
   try {
@@ -11,10 +15,16 @@ const initI18n = async () => {
       .init({
         debug: true, // Enable debug logging
         backend: {
-          loadPath: app.isPackaged ? 'http://hylo.com/locales/{{lng}}.json' : 'http://localhost:3000/locales/{{lng}}.json'
+          loadPath: (lngs) => {
+            const lng = localeToTranslationKey(lngs[0])
+            return app.isPackaged ? `http://hylo.com/locales/${lng}.json` : `http://localhost:3000/locales/${lng}.json`
+          }
         },
-        fallbackLng: 'en',
-        supportedLngs: ['en', 'es'],
+        fallbackLng: {
+          [LOCALE_EN_GB]: [LOCALE_EN_US],
+          default: [LOCALE_EN_US]
+        },
+        supportedLngs: [LOCALE_EN_US, LOCALE_EN_GB, LOCALE_ES, 'en', 'es'],
         nonExplicitSupportedLngs: true,
         interpolation: {
           escapeValue: false

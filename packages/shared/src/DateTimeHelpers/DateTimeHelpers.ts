@@ -1,5 +1,6 @@
 import { DateTime, DateTimeUnit, Info } from 'luxon'
 import prettyDate from 'pretty-date'
+import { normalizeLocaleToFull } from '../LocaleHelpers'
 
 export interface TimezoneOption {
   value: string
@@ -26,14 +27,7 @@ export interface FormatEventTimeDisplayResult {
 let cachedTimezones: string[] | null = null
 
 export const getLocaleAsString = (locale : string ) : string => {
-  switch (locale) {
-    case 'en':
-      return 'en-US'
-    case 'es':
-      return 'es'
-    default:
-      return 'en-US'
-  }
+  return normalizeLocaleToFull(locale || '')
 }
 
 export const dateTimeNow = (locale?: string) : DateTime => {

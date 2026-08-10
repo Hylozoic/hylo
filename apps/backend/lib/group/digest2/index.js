@@ -54,7 +54,7 @@ export const sendToUser = (user, type, data, opts = {}) => {
 
   return personalizeData(user, type, data, opts)
     .then(data => {
-      const locale = user.get('settings')?.locale || 'en-US'
+      const locale = user.getLocale()
       return opts.dryRun || !data
         ? false
         : Email.sendSimpleEmail(user.get('email'), templateId, data, {

@@ -92,7 +92,7 @@ module.exports = {
       name: faker.name.findName(),
       active: true,
       email: faker.internet.email(),
-      settings: {locale: 'en'},
+      settings: {locale: 'en-US'},
     }, attrs))
   },
 

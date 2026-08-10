@@ -1,6 +1,7 @@
 import crypto from 'crypto'
 import socketIoEmitter from 'socket.io-emitter'
 import RedisClient from '../api/services/RedisClient'
+import { normalizeLocaleToFull } from './localeHelpers'
 
 // Singleton socket.io emitter to prevent creating multiple Redis clients
 let socketIoEmitterInstance = null
@@ -26,23 +27,7 @@ module.exports = {
   },
 
   mapLocaleToSendWithUS: function (locale) {
-    const lookup = {
-      en: 'en-US',
-      'en-US': 'en-US',
-      es: 'es-ES',
-      'es-ES': 'es-ES',
-      de: 'de-DE',
-      'de-DE': 'de-DE',
-      fr: 'fr-FR',
-      'fr-FR': 'fr-FR',
-      hi: 'hi-IN',
-      'hi-IN': 'hi-IN',
-      pt: 'pt-BR',
-      'pt-BR': 'pt-BR',
-      'pt-PT': 'pt-PT'
-    }
-
-    return lookup[locale] || 'en-US'
+    return normalizeLocaleToFull(locale)
   }
 
-};
+}

@@ -3,6 +3,7 @@ const { getLocaleStrings } = require('../i18n/locales')
 // Align with recipient locales stored on users / Sendwithus (en-US, es-ES, …).
 const RECIPIENT_LOCALE_TO_I18N = {
   'en-US': 'en',
+  'en-GB': 'en',
   'es-ES': 'es',
   'de-DE': 'de',
   'fr-FR': 'fr',
