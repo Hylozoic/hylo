@@ -1,4 +1,5 @@
 import { cn } from 'util/index'
+import { formatLocalizedDate, formatLocalizedDateRange } from 'util/dateFormat'
 import React, { useMemo } from 'react'
 import { throttle } from 'lodash/fp'
 import { useTranslation } from 'react-i18next'
@@ -132,8 +133,8 @@ export default function PostBodyProposal ({
         {proposalStatus === PROPOSAL_STATUS_CASUAL && !votingComplete && t('Voting open') + ', ' + votePrompt}
 
         <div className='inline-flex items-center gap-1 text-xs pl-1 font-normal text-foreground/70'>
-          {startTime && proposalStatus !== PROPOSAL_STATUS_COMPLETED && `• ${new Date(startTime).toLocaleDateString()} - ${new Date(endTime).toLocaleDateString()}`}
-          {startTime && votingComplete && `${new Date(endTime).toLocaleDateString()}`}
+          {startTime && proposalStatus !== PROPOSAL_STATUS_COMPLETED && `• ${formatLocalizedDateRange(startTime, endTime, { style: 'short' })}`}
+          {startTime && votingComplete && formatLocalizedDate(endTime, { style: 'short' })}
         </div>
       </div>
       <Tooltip

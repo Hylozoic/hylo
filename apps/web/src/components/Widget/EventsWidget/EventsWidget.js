@@ -1,6 +1,5 @@
 import { cn } from 'util/index'
-import { DateTimeHelpers } from '@hylo/shared'
-import { getLocaleFromLocalStorage } from 'util/locale'
+import { formatLocalizedDate } from 'util/dateFormat'
 import React, { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import Icon from 'components/Icon'
@@ -47,7 +46,7 @@ export default ({ items, group, routeParams, isMember }) => {
           <div className={cn(classes.event, { [classes.narrow]: items.length > 1 })} key={e.id}>
             <Link to={postUrl(e.id, routeParams)} onClickCapture={handleOnItemClick}>
               <div className={classes.content}>
-                <div className={classes.time}>{DateTimeHelpers.toDateTime(e.startTime, { locale: getLocaleFromLocalStorage() }).toFormat('MMM d yyyy')}</div>
+                <div className={classes.time}>{formatLocalizedDate(e.startTime, { style: 'dayMonthYear' })}</div>
                 <div className={classes.title}>{e.title}</div>
                 <div className={classes.location}>{e.location}</div>
               </div>
