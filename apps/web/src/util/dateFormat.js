@@ -51,3 +51,11 @@ export function formatLocalizedDateRange (start, end, { style = 'short', locale 
   if (!from) return to
   return `${from} - ${to}`
 }
+
+/** formatDatePair with the user's Hylo locale applied by default. */
+export function formatUserDatePair (options = {}) {
+  return DateTimeHelpers.formatDatePair({
+    ...options,
+    locale: options.locale ?? getDateLocale()
+  })
+}

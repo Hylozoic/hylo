@@ -142,7 +142,7 @@ async function sendDigestForUser ({ post, comments, user }) {
       locale,
       data: {
         count: filtered.length,
-        date: DateTimeHelpers.formatDatePair({ start: filtered[0].get('created_at') }),
+        date: DateTimeHelpers.formatDatePair({ start: filtered[0].get('created_at'), locale }),
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, user),
         participant_avatars: otherAvatarUrls[0],
         participant_names: participantNames,
@@ -174,7 +174,7 @@ async function sendDigestForUser ({ post, comments, user }) {
       locale,
       data: {
         count: commentData.length,
-        date: DateTimeHelpers.formatDatePair({ start: filtered[0].get('created_at'), timezone: post.get('timezone') }),
+        date: DateTimeHelpers.formatDatePair({ start: filtered[0].get('created_at'), timezone: post.get('timezone'), locale }),
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, user),
         post_title: post.summary(),
         post_creator_avatar_url: Frontend.appendQueryString(post.relations.user.get('avatar_url'), clickthroughParams),

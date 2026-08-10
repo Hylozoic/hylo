@@ -1,7 +1,7 @@
 import { CheckCircle2, FileCheck2, Lock, MessageSquare, Vote, ShieldAlert } from 'lucide-react'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { DateTimeHelpers } from '@hylo/shared'
+import { formatUserDatePair } from 'util/dateFormat'
 
 export default function RoundPhaseStatus ({
   round,
@@ -38,7 +38,7 @@ export default function RoundPhaseStatus ({
       )}
 
       {currentPhase === 'open' && submissionsOpenDate && (
-        <span>{t('Submissions open at {{date}}', { date: DateTimeHelpers.formatDatePair({ start: submissionsOpenDate }) })}</span>
+        <span>{t('Submissions open at {{date}}', { date: formatUserDatePair({ start: submissionsOpenDate }) })}</span>
       )}
 
       {currentPhase === 'submissions' && (
@@ -77,12 +77,12 @@ export default function RoundPhaseStatus ({
           )}
           {submissionsCloseDate && (
             <span className='text-sm font-normal pt-0 mt-0 text-foreground/50'>
-              {t('Submissions close at {{date}}', { date: DateTimeHelpers.formatDatePair({ start: submissionsCloseDate }) })}
+              {t('Submissions close at {{date}}', { date: formatUserDatePair({ start: submissionsCloseDate }) })}
             </span>
           )}
           {votingOpensDate && (
             <span className='text-sm font-normal pt-0 mt-0 text-foreground/50'>
-              {t('Voting opens at {{date}}', { date: DateTimeHelpers.formatDatePair({ start: votingOpensDate }) })}
+              {t('Voting opens at {{date}}', { date: formatUserDatePair({ start: votingOpensDate }) })}
             </span>
           )}
         </div>
@@ -115,7 +115,7 @@ export default function RoundPhaseStatus ({
               {votingOpensDate && (
                 <p className='text-sm font-semibold -mt-2 mb-0 pt-0'>
                   {t('Voting begins {{date}}', {
-                    date: DateTimeHelpers.formatDatePair({ start: votingOpensDate })
+                    date: formatUserDatePair({ start: votingOpensDate })
                   })}
                 </p>
               )}
@@ -182,7 +182,7 @@ export default function RoundPhaseStatus ({
               </p>
               {votingClosesDate && (
                 <span className='text-sm font-normal pt-0 mt-0 text-foreground/50'>
-                  {t('Voting closes at {{date}}', { date: DateTimeHelpers.formatDatePair({ start: votingClosesDate }) })}
+                  {t('Voting closes at {{date}}', { date: formatUserDatePair({ start: votingClosesDate }) })}
                 </span>
               )}
             </div>

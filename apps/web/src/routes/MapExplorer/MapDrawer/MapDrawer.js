@@ -6,7 +6,8 @@ import PropTypes from 'prop-types'
 import { isLegacyWebView } from 'util/webView'
 import Tooltip from 'components/Tooltip'
 import { groupDetailUrl, groupUrl, postUrl, spaceHomeUrl } from '@hylo/navigation'
-import { DateTimeHelpers, TextHelpers } from '@hylo/shared'
+import { TextHelpers, DateTimeHelpers } from '@hylo/shared'
+import { formatUserDatePair } from 'util/dateFormat'
 import { Calendar, Check, ChevronDown, DollarSign, FileText, Heart, LayoutGrid, Layers, MessageCircle, Network, Users, X } from 'lucide-react'
 
 import { useLayoutFlags } from 'contexts/LayoutFlagsContext'
@@ -126,7 +127,7 @@ function MapPostRow ({ post, routeParams }) {
   const topicName = post.topics?.[0]?.name
   let eventDates = null
   if (post.type === 'event' && post.startTime) {
-    const { from, to } = DateTimeHelpers.formatDatePair({ start: post.startTime, end: post.endTime, timezone: post.timezone, returnAsObj: true })
+    const { from, to } = formatUserDatePair({ start: post.startTime, end: post.endTime, timezone: post.timezone, returnAsObj: true })
     eventDates = to ? `${from} — ${to}` : from
   }
 

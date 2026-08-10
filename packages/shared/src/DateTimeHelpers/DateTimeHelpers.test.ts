@@ -66,6 +66,15 @@ describe('formatDatePair', () => {
     const d2 = d1.set({hour: 21})
     expect(DateTimeHelpers.formatDatePair({ start: d1, end: d2, returnAsObj: true })).toMatchSnapshot()
   })
+
+  it('orders day before month for non-US locales', () => {
+    const d1 = DateTime.fromObject({ year: 2026, month: 3, day: 16, hour: 13, minute: 30 }, { zone: 'UTC' })
+    const d2 = d1.set({ hour: 15 })
+
+    expect(DateTimeHelpers.formatDatePair({ start: d1, end: d2, locale: 'en-US' })).toContain('Mar 16')
+    expect(DateTimeHelpers.formatDatePair({ start: d1, end: d2, locale: 'en-GB' })).toContain('16 Mar')
+    expect(DateTimeHelpers.formatDatePair({ start: d1, end: d2, locale: 'de' })).toContain('16 Mar')
+  })
 })
 
 describe('timezone helpers', () => {

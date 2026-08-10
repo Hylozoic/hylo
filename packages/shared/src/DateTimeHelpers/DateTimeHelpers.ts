@@ -1,6 +1,6 @@
 import { DateTime, DateTimeUnit, Info } from 'luxon'
 import prettyDate from 'pretty-date'
-import { normalizeLocaleToFull } from '../LocaleHelpers'
+import { LOCALE_EN_US, normalizeLocaleToFull } from '../LocaleHelpers'
 
 export interface TimezoneOption {
   value: string
@@ -164,6 +164,34 @@ export function humanDate (
     .replace(/ month(s?)/, ' mo$1')
 }
 
+/** Whether prose event dates place the day before the month (all locales except en-US). */
+function usesDayBeforeMonth (locale?: string): boolean {
+  return getLocaleAsString(locale) !== LOCALE_EN_US
+}
+
+/** Luxon format strings for formatDatePair, ordered per locale convention. */
+function getDatePairFormats (locale: string | undefined, skipTime: boolean) {
+  const dayFirst = usesDayBeforeMonth(locale)
+  const dateWithYear = dayFirst ? 'ccc d MMM yyyy' : 'ccc MMM d, yyyy'
+  const dateWithoutYear = dayFirst ? 'ccc d MMM' : 'ccc MMM d'
+
+  if (skipTime) {
+    return {
+      withYear: dateWithYear,
+      withoutYear: dateWithoutYear,
+      withYearWithTz: dateWithYear,
+      withoutYearWithTz: dateWithoutYear
+    }
+  }
+
+  return {
+    withYear: `${dateWithYear} '•' t`,
+    withoutYear: `${dateWithoutYear} '•' t`,
+    withYearWithTz: `${dateWithYear} '•' t ZZZZ`,
+    withoutYearWithTz: `${dateWithoutYear} '•' t ZZZZ`
+  }
+}
+
 export interface FormatDatePairOptions {
   start: string | Date | DateTime | Object,
   end?: string | Date | DateTime | Object | boolean,
@@ -185,13 +213,12 @@ export const formatDatePair = ({
   const _end = end ? toDateTime(end, { timezone, locale }) : null
   const now = dateTimeNow(locale)
 
-  // Base formats without timezone
-  const formatWithYear = skipTime ? 'ccc MMM d, yyyy' : "ccc MMM d, yyyy '•' t"
-  const formatWithoutYear = skipTime ? 'ccc MMM d' : "ccc MMM d '•' t"
-
-  // Formats with timezone
-  const formatWithYearWithTz = skipTime ? 'ccc MMM d, yyyy' : "ccc MMM d, yyyy '•' t ZZZZ"
-  const formatWithoutYearWithTz = skipTime ? 'ccc MMM d' : "ccc MMM d '•' t ZZZZ"
+  const {
+    withYear: formatWithYear,
+    withoutYear: formatWithoutYear,
+    withYearWithTz: formatWithYearWithTz,
+    withoutYearWithTz: formatWithoutYearWithTz
+  } = getDatePairFormats(locale, skipTime)
 
   const isSameDay = _end && _start.get('day') === _end.get('day') &&
                     _start.get('month') === _end.get('month') &&
