@@ -7,11 +7,14 @@ describe('EventBody', () => {
   it('renders event details correctly', () => {
     const startTime = '2023-03-06T12:00:00.000Z'
     const endTime = '2023-03-06T15:00:00.000Z'
+    const timezone = 'UTC'
     const event = {
+      id: '1',
       location: 'Oakland',
       title: 'Test Event',
       startTime,
       endTime,
+      timezone,
       groups: [{ id: '1', name: 'Group 1', slug: 'group1' }]
     }
 
@@ -26,8 +29,11 @@ describe('EventBody', () => {
     render(<EventBody {...props} />)
 
     expect(screen.getByText('Test Event')).toBeInTheDocument()
-    expect(screen.getByText(DateTimeHelpers.formatDatePair({ start: startTime, end: endTime }))).toBeInTheDocument()
+    expect(screen.getByText(DateTimeHelpers.formatEventTimeDisplay({
+      start: startTime,
+      end: endTime,
+      eventTimezone: timezone
+    }).primary)).toBeInTheDocument()
     expect(screen.getByText(/Oakland/)).toBeInTheDocument()
   })
 })
-

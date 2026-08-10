@@ -2,10 +2,7 @@ import { cn } from 'util/index'
 import { isEmpty, omit } from 'lodash/fp'
 import PropTypes from 'prop-types'
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react'
-import { useTranslation } from 'react-i18next'
 import { getKeyCode, keyMap } from 'util/textInput'
-
-import classes from './KeyControlledList.module.scss'
 
 const { array, func, object, bool, number, string } = PropTypes
 
@@ -26,7 +23,6 @@ const KeyControlledList = forwardRef(({
   backgroundClassName = 'bg-background border border-foreground/20 rounded-md',
   ...props
 }, ref) => {
-  const { t } = useTranslation()
   const [selectedIndex, setSelectedIndex] = useState(initialSelectedIndex)
 
   useEffect(() => {
@@ -111,7 +107,6 @@ const KeyControlledList = forwardRef(({
 
   return (
     <div className={cn('KeyControlledList w-full')} ref={ref}>
-      {tagType && tagType === 'groups' && <div className={classes.keyListLabel}>{t('Groups')}</div>}
       <ul {...omit(propsToOmit, props)} tabIndex='-1' className={cn('KeyControlledList-list w-full pl-1 max-h-[200px] overflow-scroll', backgroundClassName)}>
         {childrenWithRefs}
       </ul>

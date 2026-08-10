@@ -352,6 +352,7 @@ export default function GlobalNavItem ({
       <PopoverContent
         side='right'
         align='start'
+        arrow={false}
         collisionPadding={12}
         onTouchStart={e => e.stopPropagation()}
         onTouchMove={e => e.stopPropagation()}

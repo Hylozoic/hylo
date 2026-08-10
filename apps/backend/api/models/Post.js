@@ -376,6 +376,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
         details: this.details(),
         groups: refineMany(groups, ['id', 'name', 'slug']),
         linkPreview: refineOne(linkPreview, ['id', 'image_url', 'title', 'description', 'url']),
+        postReactions: [],
         proposalOptions,
         proposalVotes: [],
         topics

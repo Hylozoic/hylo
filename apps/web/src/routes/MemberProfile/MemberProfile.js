@@ -96,6 +96,10 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
   const [showExpandGroupsButton, setShowExpandGroupsButton] = useState(false)
   const groupsRef = useRef(null)
 
+  const [showFullBio, setShowFullBio] = useState(false)
+  const [isBioClamped, setIsBioClamped] = useState(false)
+  const bioRef = useRef(null)
+
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
     setHeaderDetails({
@@ -116,6 +120,21 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
   useEffect(() => {
     checkGroupsHeight()
   })
+
+  // Only offer the toggle when the bio actually outgrows the clamp. Measured against
+  // the live node and re-checked on resize, since a narrower column costs more lines.
+  useEffect(() => {
+    if (showFullBio) return
+
+    const measure = () => {
+      const node = bioRef.current
+      setIsBioClamped(Boolean(node && node.scrollHeight > node.clientHeight + 1))
+    }
+
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [person?.bio, showFullBio])
 
   const checkGroupsHeight = () => {
     if (groupsRef.current && groupsRef.current.scrollHeight > GROUPS_DIV_HEIGHT && !showExpandGroupsButton) {
@@ -208,10 +227,28 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
             <div className='flex items-center flex-col mb-4'>
               {person.tagline && <div className='text-foreground text-center text-lg font-bold max-w-md'>{person.tagline}</div>}
               {person.bio && (
-                <div className={cn('text-foreground text-center max-w-[720px]')}>
-                  <ClickCatcher>
-                    <HyloHTML element='span' html={TextHelpers.markdown(person.bio)} />
-                  </ClickCatcher>
+                <div className='text-foreground text-center max-w-[720px] flex flex-col items-center'>
+                  <div
+                    ref={bioRef}
+                    className={cn('w-full', !showFullBio && 'line-clamp-6')}
+                  >
+                    <ClickCatcher>
+                      <HyloHTML
+                        element='span'
+                        html={TextHelpers.markdown(person.bio)}
+                        className={cn(!showFullBio && 'child:first:mt-0 child:first:mb-0')}
+                      />
+                    </ClickCatcher>
+                  </div>
+                  {(isBioClamped || showFullBio) && (
+                    <button
+                      type='button'
+                      onClick={() => setShowFullBio(prev => !prev)}
+                      className='mt-1 text-sm font-semibold text-focus hover:underline'
+                    >
+                      {showFullBio ? t('Read less') : t('Read more')}
+                    </button>
+                  )}
                 </div>
               )}
             </div>

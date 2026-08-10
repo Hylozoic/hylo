@@ -99,6 +99,16 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
   const [commentEditingActive, setCommentEditingActive] = useState(false)
   const commentFormRef = useRef(null)
 
+  // Opened via a Reply affordance: focus the comment box once it exists. The
+  // delay clears CommentForm's mobile guard, which blurs any focus landing in
+  // the first 500ms after mount. Navigation state, so it never sticks to the URL.
+  const focusCommentRequested = Boolean(location.state?.focusComment)
+  useEffect(() => {
+    if (!focusCommentRequested) return
+    const id = setTimeout(() => commentFormRef.current?.focus?.(), 600)
+    return () => clearTimeout(id)
+  }, [focusCommentRequested])
+
   const activityHeader = useRef(null)
   const { t } = useTranslation()
 

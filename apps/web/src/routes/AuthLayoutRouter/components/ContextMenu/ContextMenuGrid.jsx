@@ -1,4 +1,5 @@
 import { cn, bgImageStyle } from 'util/index'
+import { isDrawerNavLayout } from 'util/mobile'
 import { Info, Settings, Users, Pencil, X, CircleEllipsis, ChevronLeft } from 'lucide-react'
 import React, { useMemo, useRef, useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -412,7 +413,7 @@ function MoreSpacesCard ({ onClick, t }) {
           </div>
         </div>
         <div className='absolute left-0 right-0 top-[calc(50%+28px)] bottom-0 flex flex-col items-center justify-center text-center px-3'>
-          <h3 className={cn(CARD_TITLE_CLASS, isDark ? 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]' : 'text-foreground')}>{t('More Views and Spaces')}</h3>
+          <h3 className={cn(CARD_TITLE_CLASS, isDark ? 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]' : 'text-foreground')}>{t('More')}</h3>
         </div>
       </div>
     </div>
@@ -516,6 +517,11 @@ function MoreSpacesGrid ({
     const local = localSpaceSlug(groupSlug, space.slug)
     navigate(spaceUrl(groupSlug, local), { state: { fromMoreViews: true } })
   }, [groupSlug, navigate, isEditing])
+
+  const handleOpenSpaceAbout = useCallback((space) => {
+    const local = localSpaceSlug(groupSlug, space.slug)
+    navigate(spaceUrl(groupSlug, local, '/about'))
+  }, [groupSlug, navigate])
 
   const handleOpenView = useCallback((view) => {
     if (isEditing) return
@@ -628,6 +634,7 @@ function MoreSpacesGrid ({
                 isEditing={isEditing}
                 isDeleting={String(deletingSpaceId) === String(space.id)}
                 onOpen={handleOpenSpace}
+                onOpenAbout={handleOpenSpaceAbout}
                 onAddToMenu={handleAddSpaceToMenu}
                 onOpenSettings={onOpenSpaceSettings}
                 onDelete={handleDeleteSpace}
@@ -647,6 +654,7 @@ function MoreSpacesGrid ({
                 isEditing={isEditing}
                 isDeleting={String(deletingSpaceId) === String(space.id)}
                 onOpen={handleOpenSpace}
+                onOpenAbout={handleOpenSpaceAbout}
                 onAddToMenu={handleAddSpaceToMenu}
                 onOpenSettings={onOpenSpaceSettings}
                 onDelete={handleDeleteSpace}
@@ -666,6 +674,7 @@ function MoreSpacesGrid ({
                 isEditing={isEditing}
                 isDeleting={String(deletingSpaceId) === String(space.id)}
                 onOpen={handleOpenSpace}
+                onOpenAbout={handleOpenSpaceAbout}
                 onAddToMenu={handleAddSpaceToMenu}
                 onOpenSettings={onOpenSpaceSettings}
                 onDelete={handleDeleteSpace}
@@ -812,13 +821,15 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
   }, [isEditing, location.pathname, location.search, navigate])
 
   const nestedTitle = isMoreSpacesLevel
-    ? t('More Views and Spaces')
+    ? t('More')
     : (spaceGroup?.name || t('Space'))
 
   return (
     <div className='ContextMenuGrid w-full h-full overflow-y-auto' id='context-menu-grid'>
-      {/* Banner — root group/context menu only */}
-      {!isNestedLevel && (
+      {/* Banner — root group/context menu only. Not for a space on a drawer layout:
+          ViewHeader already names the space there, and the two stacked headers read
+          as a mistake on a phone's height */}
+      {!isNestedLevel && !(spaceGroup && isDrawerNavLayout()) && (
         <div className='relative w-full'>
           <div id='context-menu-grid-banner' className='relative h-[220px] overflow-hidden'>
             <div className='absolute inset-0 bg-cover bg-center' style={{ ...bgImageStyle(bannerUrl), opacity: 0.7 }} />
@@ -919,7 +930,7 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
                 </div>
                 {!spaceGroup && (
                   <div className='flex flex-col gap-3 pt-4 border-t border-foreground/10'>
-                    <TextSection>{t('More Views and Spaces')}</TextSection>
+                    <TextSection>{t('More')}</TextSection>
                     <MoreSpacesGrid
                       group={group}
                       groupSlug={groupSlug}

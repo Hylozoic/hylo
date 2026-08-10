@@ -212,7 +212,7 @@ function genYears (yearRange = 50) {
 // ---------- utils end ----------
 /**
  * Returns the nearest dialog/modal DOM node so the popover can portal into it.
- * When body scroll is locked, portaling to `document.body` lets the panel extend past the visible dialog; anchoring to this surface keeps collision detection aligned with what the user actually sees (Post dialog, ModalDialog inner, Radix dialog content).
+ * When body scroll is locked, portaling to `document.body` lets the panel extend past the visible dialog; anchoring to this surface keeps collision detection aligned with what the user actually sees (Post dialog, CreateModal, ModalDialog inner, Radix dialog content).
  */
 function getPopoverSurfaceFromTrigger (triggerEl) {
   if (!triggerEl || typeof triggerEl.closest !== 'function') {
@@ -220,8 +220,9 @@ function getPopoverSurfaceFromTrigger (triggerEl) {
   }
   return (
     triggerEl.closest('#post-dialog-content') ||
+    triggerEl.closest('#create-modal-content') ||
     triggerEl.closest('[data-testid="popup-inner"]') ||
-    triggerEl.closest('[role="dialog"]') ||
+    triggerEl.closest('[role="dialog"][data-state="open"]') ||
     undefined
   )
 }
@@ -575,9 +576,9 @@ const DateTimePicker = React.forwardRef(({ locale = DateTimeHelpers.getLocaleAsS
         sticky='always'
         side='bottom'
         align='start'
-        sideOffset={-6}
+        sideOffset={6}
         collisionPadding={12}
-        className='w-auto p-0 max-h-[min(85dvh,560px)] overflow-y-auto'
+        className='w-auto p-0 z-[1100] max-h-[min(85dvh,560px)] overflow-y-auto'
       >
         <Calendar
           mode='single' selected={displayDate} month={month} onSelect={(newDate) => {

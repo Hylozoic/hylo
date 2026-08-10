@@ -34,12 +34,12 @@ import {
 } from 'components/ui/dialog'
 import LinkPreview from './LinkPreview'
 import { DateTimePicker } from 'components/ui/datetimepicker'
+import TimezoneSelect from 'components/TimezoneSelect/TimezoneSelect'
 import PublicToggle from 'components/PublicToggle'
 import AnonymousVoteToggle from './AnonymousVoteToggle/AnonymousVoteToggle'
 import SliderInput from 'components/SliderInput/SliderInput'
 import { PROJECT_CONTRIBUTIONS } from 'config/featureFlags'
 import useEventCallback from 'hooks/useEventCallback'
-import fetchAllMyGroupsChatRooms from 'store/actions/fetchAllMyGroupsChatRooms'
 import fetchAllMyGroupsSpaces from 'store/actions/fetchAllMyGroupsSpaces'
 import fetchForGroup from 'store/actions/fetchForGroup'
 import {
@@ -57,7 +57,7 @@ import {
   VOTING_METHOD_MULTI_UNRESTRICTED,
   VOTING_METHOD_SINGLE
 } from 'store/models/Post'
-import { DEFAULT_CHAT_TOPIC, GROUP_TYPES } from 'store/models/Group'
+import { GROUP_TYPES } from 'store/models/Group'
 import isPendingFor from 'store/selectors/isPendingFor'
 import getMe from 'store/selectors/getMe'
 import getPost from 'store/selectors/getPost'
@@ -150,7 +150,7 @@ const getMyAdminGroups = createSelector(
 
 function PostEditorInner ({
   context,
-  customTopicName, // When we can't determine topic from the URL. Used for funding round chat rooms
+  customTopicName, // When we can't determine topic from the URL (e.g. funding rounds)
   markAsReadTopicName = null,
   autoFocus = true,
   post: propsPost,
@@ -210,6 +210,7 @@ function PostEditorInner ({
   const viewId = getQuerystringParam('viewId', urlLocation)
 
   const postType = getQuerystringParam('newPostType', urlLocation)
+  const eventDateParam = getQuerystringParam('eventDate', urlLocation)
   // Prefer explicit newPostType (if still allowed), else top dropdown option (POST_TYPES order)
   const createPostType = (() => {
     const fallback = firstDropdownPostType(allowedPostTypes)
@@ -217,7 +218,7 @@ function PostEditorInner ({
     if (allowedPostTypes != null && !allowedPostTypes.includes(postType)) return fallback
     return postType
   })()
-  // TODO: do we still need this topic stuff with chat no longer using topics? is there a different semantic context for drafts now for chat?
+  // Optional topic from URL / caller (e.g. topic stream, funding round). Spaces/views do not load chat rooms.
   const topicName = customTopicName || (routeParams.topicName && decodeURIComponent(routeParams.topicName))
   const topic = useSelector(state => getTopicForCurrentRoute(state, topicName))
 
@@ -232,7 +233,7 @@ function PostEditorInner ({
     skip: !currentUser
   })
 
-  // Stable key used to detect context changes (navigating between chat rooms, etc.)
+  // Stable key used to detect context changes (group / post type)
   const draftContextKey = useMemo(() => {
     if (editing) return `edit:${editingPostId}`
     return `new:${currentGroup?.id || 'none'}:${createPostType || 'none'}`
@@ -253,7 +254,7 @@ function PostEditorInner ({
   }, [saveServerDraft])
 
   const draftLoadedRef = useRef(false)
-  /** True after non-chat post had title or description draft content — delete server draft when both cleared. */
+  /** True after post had title or description draft content — delete server draft when both cleared. */
   const postComposerHadBodyDraftRef = useRef(false)
   const inSessionDraftByTypeRef = useRef({})
   const pendingTypeSwitchRef = useRef(null)
@@ -266,9 +267,6 @@ function PostEditorInner ({
    * null means not hydrated yet — draft effect falls back to currentPost.details.
    */
   const detailsHtmlRef = useRef(null)
-
-  // Default topic for non-chat posts when posting to a group's general stream
-  const generalTopic = useSelector(state => !topicName ? getTopicForCurrentRoute(state, DEFAULT_CHAT_TOPIC) : null)
 
   const linkPreview = useSelector(state => getLinkPreview(state)) // TODO: probably not working?
   const fetchLinkPreviewPending = useSelector(state => isPendingFor(FETCH_LINK_PREVIEW, state))
@@ -318,31 +316,42 @@ function PostEditorInner ({
   // replace it when the route changes without touching user-added topics
   const routeTopicIdRef = useRef(topic?.id || null)
 
-  const initialPost = useMemo(() => ({
-    acceptContributions: false,
-    completionAction: 'button',
-    completionActionSettings: currentTrack?.actionDescriptor ? { instructions: t('postCompletionActions.button.instructions', { actionDescriptor: currentTrack?.actionDescriptor }) } : null,
-    details: '',
-    groups: currentGroup ? [currentGroup] : [],
-    isAnonymousVote: false,
-    isPublic: context === 'public',
-    isStrictProposal: false,
-    location: '',
-    locationId: null,
-    meetingLink: '',
-    proposalOptions: [],
-    quorum: 0,
-    timezone: DateTimeHelpers.dateTimeNow(getLocaleFromLocalStorage()).zoneName,
-    title: '',
-    topics: topic
-      ? [topic]
-      : (generalTopic && postType !== 'action' ? [generalTopic] : []),
-    type: createPostType,
-    votingMethod: VOTING_METHOD_SINGLE,
-    ...(inputPost || {}),
-    startTime: typeof inputPost?.startTime === 'string' ? new Date(inputPost.startTime) : inputPost?.startTime,
-    endTime: typeof inputPost?.endTime === 'string' ? new Date(inputPost.endTime) : inputPost?.endTime
-  }), [inputPost?.id, createPostType, currentGroup, topic, generalTopic, context, postType])
+  const initialPost = useMemo(() => {
+    let prefilledEventTimes = {}
+    if (!editing && createPostType === 'event' && eventDateParam && !inputPost?.startTime) {
+      try {
+        const parsed = DateTimeHelpers.toDateTime(eventDateParam, { locale: getLocaleFromLocalStorage() })
+        if (parsed.isValid) {
+          prefilledEventTimes = DateTimeHelpers.defaultEventTimesForDate(eventDateParam, getLocaleFromLocalStorage())
+        }
+      } catch {}
+    }
+
+    return {
+      acceptContributions: false,
+      completionAction: 'button',
+      completionActionSettings: currentTrack?.actionDescriptor ? { instructions: t('postCompletionActions.button.instructions', { actionDescriptor: currentTrack?.actionDescriptor }) } : null,
+      details: '',
+      groups: currentGroup ? [currentGroup] : [],
+      isAnonymousVote: false,
+      isPublic: context === 'public',
+      isStrictProposal: false,
+      location: '',
+      locationId: null,
+      meetingLink: '',
+      proposalOptions: [],
+      quorum: 0,
+      timezone: DateTimeHelpers.getCurrentTimezone(),
+      title: '',
+      topics: topic ? [topic] : [],
+      type: createPostType,
+      votingMethod: VOTING_METHOD_SINGLE,
+      ...(inputPost || {}),
+      ...prefilledEventTimes,
+      startTime: typeof inputPost?.startTime === 'string' ? new Date(inputPost.startTime) : (inputPost?.startTime || prefilledEventTimes.startTime),
+      endTime: typeof inputPost?.endTime === 'string' ? new Date(inputPost.endTime) : (inputPost?.endTime || prefilledEventTimes.endTime)
+    }
+  }, [inputPost?.id, createPostType, currentGroup, topic, context, editing, eventDateParam, inputPost?.startTime, inputPost?.endTime, currentTrack?.actionDescriptor, t])
 
   const [currentPost, setCurrentPostState] = useState(initialPost)
   const [editorInitialContent, setEditorInitialContent] = useState(initialPost.details || '')
@@ -657,12 +666,11 @@ function PostEditorInner ({
     }
   }, [])
 
-  // Fetch chat rooms + membership spaces so the To field has destinations from every group
+  // Fetch membership spaces so the To field has destinations from every group
   const hasFetchedToFieldDataRef = useRef(false)
   useEffect(() => {
     if (hasFetchedToFieldDataRef.current) return
     hasFetchedToFieldDataRef.current = true
-    dispatch(fetchAllMyGroupsChatRooms())
     Promise.resolve(dispatch(fetchAllMyGroupsSpaces())).finally(() => {
       setMembershipSpacesTick(tick => tick + 1)
     })
@@ -689,7 +697,7 @@ function PostEditorInner ({
         return { ...prev, topics: [topic] }
       }
 
-      // If route topic was removed (navigated away from chatroom), clear route topic reference
+      // If route topic was removed, clear route topic reference
       if (!topic?.id && routeTopicIdRef.current) {
         const priorTopicId = routeTopicIdRef.current
         routeTopicIdRef.current = null
@@ -713,37 +721,6 @@ function PostEditorInner ({
   useEffect(() => {
     setCurrentPost(prev => (prev.sendAnnouncement === announcementSelected ? prev : { ...prev, sendAnnouncement: announcementSelected }))
   }, [announcementSelected, setCurrentPost])
-
-  // Auto-add #general topic when groups are selected for non-chat posts
-  useEffect(() => {
-    if (!selectedGroups || selectedGroups.length === 0) return
-
-    // If we're on a topic stream, the route topic useEffect already handles adding it
-    if (topic?.id) return
-
-    // Action posts should never appear in chat rooms
-    if (postType === 'action') return
-
-    // Find the general topic from any selected group's chatRooms
-    let generalTopic = null
-    for (const group of selectedGroups) {
-      const chatRooms = group.chatRooms?.toModelArray?.() || group.chatRooms || []
-      const generalChatRoom = chatRooms.find(cr => cr?.groupTopic?.topic?.name === DEFAULT_CHAT_TOPIC)
-      if (generalChatRoom?.groupTopic?.topic) {
-        generalTopic = generalChatRoom.groupTopic.topic
-        break
-      }
-    }
-
-    if (!generalTopic) return
-
-    setCurrentPost(prev => {
-      const alreadyHasGeneral = prev.topics?.some(t => t?.name === DEFAULT_CHAT_TOPIC)
-      if (alreadyHasGeneral) return prev
-
-      return { ...prev, topics: [...(prev.topics || []), generalTopic] }
-    })
-  }, [selectedGroups, topic?.id, postType])
 
   /**
    * Resets the editor to its initial state
@@ -780,15 +757,20 @@ function PostEditorInner ({
    * @param {Date} startTime - The new start time
    * @returns {Date} - The calculated end time
    */
-  const calcEndTime = useCallback((startTime) => {
+  const getPostTimezone = useCallback(() => {
+    return currentPost.timezone || DateTimeHelpers.getCurrentTimezone()
+  }, [currentPost.timezone])
+
+  const calcEndTime = useCallback((startInstant) => {
+    const tz = getPostTimezone()
     let msDiff = 3600000 // ms in one hour
     if (currentPost.startTime && currentPost.endTime) {
-      const start = DateTimeHelpers.toDateTime(currentPost.startTime, { locale: getLocaleFromLocalStorage() })
-      const end = DateTimeHelpers.toDateTime(currentPost.endTime, { locale: getLocaleFromLocalStorage() })
-      msDiff = end.diff(start)
+      const start = DateTimeHelpers.toDateTime(currentPost.startTime, { timezone: tz })
+      const end = DateTimeHelpers.toDateTime(currentPost.endTime, { timezone: tz })
+      msDiff = end.diff(start).milliseconds
     }
-    return DateTimeHelpers.toDateTime(startTime, { locale: getLocaleFromLocalStorage() }).plus({ milliseconds: msDiff }).toJSDate()
-  }, [currentPost.startTime, currentPost.endTime])
+    return DateTimeHelpers.toDateTime(startInstant, { timezone: tz }).plus({ milliseconds: msDiff }).toJSDate()
+  }, [currentPost.startTime, currentPost.endTime, getPostTimezone])
 
   const handlePostTypeSelection = useCallback((type) => {
     if (type === currentPost.type) return
@@ -887,20 +869,35 @@ function PostEditorInner ({
     setCurrentPost(prev => ({ ...prev, acceptContributions: !prev.acceptContributions }))
   }, [setCurrentPost])
 
-  const handleStartTimeChange = (startTime) => {
-    // force endTime to track startTime
+  const handleStartTimeChange = (pickerStart) => {
+    const tz = getPostTimezone()
+    const startTime = DateTimeHelpers.fromPickerDate(pickerStart, tz)
     const endTime = calcEndTime(startTime)
     validateTimeChange(startTime, endTime)
     setCurrentPost(prev => ({ ...prev, startTime, endTime }))
-    endTimeRef.current.setValue(endTime)
+    endTimeRef.current?.setValue(DateTimeHelpers.toPickerDate(endTime, tz))
   }
 
-  const handleEndTimeChange = useCallback((endTime) => {
+  const handleEndTimeChange = useCallback((pickerEnd) => {
+    const tz = getPostTimezone()
+    const endTime = DateTimeHelpers.fromPickerDate(pickerEnd, tz)
     setCurrentPost(prev => {
       validateTimeChange(prev.startTime, endTime)
       return { ...prev, endTime }
     })
-  }, [setCurrentPost, validateTimeChange])
+  }, [getPostTimezone, validateTimeChange])
+
+  const handleTimezoneChange = useCallback((newTimezone) => {
+    setCurrentPost(prev => {
+      const oldTimezone = prev.timezone || DateTimeHelpers.getCurrentTimezone()
+      return {
+        ...prev,
+        timezone: newTimezone,
+        startTime: DateTimeHelpers.preserveWallClockOnTimezoneChange(prev.startTime, oldTimezone, newTimezone),
+        endTime: DateTimeHelpers.preserveWallClockOnTimezoneChange(prev.endTime, oldTimezone, newTimezone)
+      }
+    })
+  }, [])
 
   const handleDonationsLinkChange = useCallback((evt) => {
     const donationsLink = evt.target.value
@@ -1255,6 +1252,13 @@ function PostEditorInner ({
   }, [currentPost, myAdminGroups])
 
   const canHaveTimes = !['discussion', 'action', 'submission'].includes(currentPost.type)
+  const eventTimezone = currentPost.timezone || DateTimeHelpers.getCurrentTimezone()
+  const startTimePickerValue = currentPost.startTime
+    ? DateTimeHelpers.toPickerDate(currentPost.startTime, eventTimezone)
+    : undefined
+  const endTimePickerValue = currentPost.endTime
+    ? DateTimeHelpers.toPickerDate(currentPost.endTime, eventTimezone)
+    : undefined
   const postLocation = currentPost.location || selectedLocation
   const locationPrompt = currentPost.type === 'proposal'
     ? t('Is there a relevant location for this proposal?')
@@ -1637,29 +1641,40 @@ function PostEditorInner ({
         />
       )} */}
       {canHaveTimes && (
-        <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
-          <div className='text-xs text-foreground/50'>{currentPost.type === 'proposal' ? t('Voting window') : t('Timeframe')}</div>
-          <div className='flex items-center gap-1 sm:flex-row flex-col justify-start items-center sm:justify-center'>
-            <DateTimePicker
-              hourCycle={hourCycle}
-              granularity='minute'
-              value={currentPost.startTime}
-              placeholder={t('Select Start')}
-              onChange={handleStartTimeChange}
-              onMonthChange={() => {}}
-            />
-            <div className='text-xs text-foreground/50'>{t('to')}</div>
-            <DateTimePicker
-              ref={endTimeRef}
-              hourCycle={hourCycle}
-              granularity='minute'
-              value={currentPost.endTime}
-              placeholder={t('Select End')}
-              onChange={handleEndTimeChange}
-              onMonthChange={() => {}}
+        <>
+          <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
+            <div className='text-xs text-foreground/50'>{currentPost.type === 'proposal' ? t('Voting window') : t('Timeframe')}</div>
+            <div className='flex items-center gap-1 sm:flex-row flex-col justify-start items-center sm:justify-center'>
+              <DateTimePicker
+                hourCycle={hourCycle}
+                granularity='minute'
+                value={startTimePickerValue}
+                placeholder={t('Select Start')}
+                onChange={handleStartTimeChange}
+                onMonthChange={() => {}}
+              />
+              <div className='text-xs text-foreground/50'>{t('to')}</div>
+              <DateTimePicker
+                ref={endTimeRef}
+                hourCycle={hourCycle}
+                granularity='minute'
+                value={endTimePickerValue}
+                placeholder={t('Select End')}
+                onChange={handleEndTimeChange}
+                onMonthChange={() => {}}
+              />
+            </div>
+          </div>
+          <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
+            <div className='text-xs text-foreground/50 shrink-0'>{t('Timezone')}</div>
+            <TimezoneSelect
+              className='border-none bg-transparent'
+              value={eventTimezone}
+              onChange={handleTimezoneChange}
+              disabled={loading}
             />
           </div>
-        </div>
+        </>
       )}
       {canHaveTimes && dateError && (
         <span className='text-white bg-destructive w-full ml-[10px] pb-[2px] px-[10px] rounded-[7px]'>
