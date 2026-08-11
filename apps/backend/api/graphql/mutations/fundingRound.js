@@ -33,18 +33,18 @@ const fixDateFields = (attrs, data) => {
 
 /**
  * True if user can manage funding rounds for this group/space.
- * Spaces inherit Manage Spaces from the parent (stewards editing from the parent menu
+ * Spaces inherit Administration from the parent (stewards editing from the parent menu
  * may not have a membership on the space itself).
  */
 async function canManageFundingRounds (userId, group, { transacting } = {}) {
   if (!group) return false
-  if (await GroupMembership.hasResponsibility(userId, group, Responsibility.constants.RESP_MANAGE_SPACES, { transacting })) {
+  if (await GroupMembership.hasResponsibility(userId, group, Responsibility.constants.RESP_ADMINISTRATION, { transacting })) {
     return true
   }
   const parentId = group.get('parent_id')
   if (!parentId) return false
   const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, parentId)
-  return responsibilities.includes(Responsibility.constants.RESP_MANAGE_SPACES)
+  return responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)
 }
 
 export async function createFundingRound (userId, data) {

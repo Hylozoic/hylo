@@ -581,7 +581,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
               return relation.query(async q => {
                 const postUsers = await PostMembership.where({ post_id: relation.relatedData.parentId }).fetchAll()
                 const hasTracksResponsibility = postUsers.length > 0 && await Promise.any(postUsers.map(postUser => {
-                  return GroupMembership.hasResponsibility(userId, postUser.get('group_id'), Responsibility.constants.RESP_MANAGE_SPACES)
+                  return GroupMembership.hasResponsibility(userId, postUser.get('group_id'), Responsibility.constants.RESP_ADMINISTRATION)
                 }))
                 if (!hasTracksResponsibility) return q.where('user_id', userId)
                 return q

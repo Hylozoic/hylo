@@ -18,7 +18,7 @@ import { MembersBootstrapSkeleton } from 'components/Skeleton/RouteBootstrapPlac
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import usePillRowClamp from 'hooks/usePillRowClamp'
-import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION, RESP_MANAGE_SPACES } from 'store/constants'
+import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
 import { groupUrl } from '@hylo/navigation'
 import { FETCH_MEMBERS, FETCH_MEMBERS_FOR_GRAPH, fetchMembers, fetchMembersForGraph, getMembers, getGraphMembers, getHasFetchedGraphMembers, getHasMoreMembers, getHasFetchedMembers, getMemberQueryProps, removeMember } from './Members.store'
 import { fetchTrack } from 'store/actions/trackActions'
@@ -78,11 +78,11 @@ function Members (props) {
   // Spaces inherit roles from the parent group
   const roleGroupId = group?.parentId || group?.id
 
-  // Track spaces: members with Manage Spaces, or the Moderator/Host system role, can see who completed the track.
+  // Track spaces: members with Administration, or the Moderator/Host system role, can see who completed the track.
   const trackId = group?.track?.id
-  const canManageSpaces = useSelector(state => hasResponsibilityForGroup(state, { groupId: roleGroupId, responsibility: RESP_MANAGE_SPACES }))
+  const canAdminister = useSelector(state => hasResponsibilityForGroup(state, { groupId: roleGroupId, responsibility: RESP_ADMINISTRATION }))
   const myRoleNames = useSelector(state => getRolesForGroup(state, { groupId: roleGroupId }).map(role => role.name))
-  const canSeeTrackCompletion = Boolean(trackId) && (canManageSpaces || myRoleNames.some(name => TRACK_COMPLETION_VISIBLE_ROLES.includes(name)))
+  const canSeeTrackCompletion = Boolean(trackId) && (canAdminister || myRoleNames.some(name => TRACK_COMPLETION_VISIBLE_ROLES.includes(name)))
   const currentTrack = useSelector(state => trackId ? getTrack(state, trackId) : null)
   const completedAtByUserId = useMemo(() => {
     if (!canSeeTrackCompletion) return {}

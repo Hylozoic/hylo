@@ -1615,7 +1615,7 @@ module.exports = bookshelf.Model.extend(merge({
   /**
    * Check if a user has a responsibility that grants full access to group content
    * Full-access responsibilities: Administration, Manage Content
-   * Limited responsibilities (no content access): Manage Spaces, Add Members, etc.
+   * Limited responsibilities (no content access): Add Members, etc.
    *
    * @param {String|Number} userId - User ID to check
    * @param {String|Number} groupId - Group ID to check
