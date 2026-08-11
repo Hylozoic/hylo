@@ -7,12 +7,12 @@
   "description": "Code shared across Hylo applications for consistency of results",
   "scripts": {
     "test": "jest",
-    "build": "echo 'Building shared package' && tsc && echo 'Shared package built'"
+    "build": "echo 'Building shared package' && tsc && find dist/cjs -name '*.js' -exec sh -c 'mv \"$1\" \"${1%.js}.cjs\"' _ {} \\; && echo 'Shared package built'"
   },
   "exports": {
     ".": {
       "import": "./src/index.js",
-      "require": "./dist/cjs/index.js"
+      "require": "./dist/cjs/index.cjs"
     }
   },
   "standard": {
