@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
 import PropTypes from 'prop-types'
 import { get, throttle, find } from 'lodash/fp'
+import { Video } from 'lucide-react'
 import { Helmet } from 'react-helmet'
 import { AnalyticsEvents, TextHelpers } from '@hylo/shared'
 import { PROJECT_CONTRIBUTIONS } from 'config/featureFlags'
@@ -500,6 +501,12 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
   const d = post?.donationsLink ? post.donationsLink.match(/(cash|clover|gofundme|opencollective|paypal|squareup|venmo)/) : null
   const donationService = d ? d[1] : null
 
+  const meetingUrl = useMemo(() => {
+    const link = post?.meetingLink?.trim()
+    if (!link) return null
+    return link.startsWith('http') ? link : `https://${link}`
+  }, [post?.meetingLink])
+
   const { acceptContributions, totalContributions } = post || {}
 
   let people, postPeopleDialogTitle
@@ -587,6 +594,22 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
               togglePeopleDialog={handleTogglePeopleDialog}
               isFlagged={isFlagged}
             />
+          )}
+          {isEvent && meetingUrl && (
+            <div className='border-2 border-foreground/20 rounded-lg p-2 sm:p-3 flex flex-row gap-2 w-[calc(100%-1rem)] sm:w-[calc(100%-2rem)] mx-2 sm:mx-4 mb-2 justify-between border-dashed items-center'>
+              <div className='flex items-center gap-2 text-sm'>
+                <Video className='w-4 h-4 shrink-0 text-foreground/50' />
+                {t('Join this event online')}
+              </div>
+              <a
+                className='inline-block border-2 border-selected/20 rounded-lg p-2 px-4 hover:border-selected/100 transition-all text-selected text-sm whitespace-nowrap'
+                href={meetingUrl}
+                target='_blank'
+                rel='noreferrer'
+              >
+                {t('Join online')}
+              </a>
+            </div>
           )}
           {!isEvent && (
             <PostBody

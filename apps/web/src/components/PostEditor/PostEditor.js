@@ -310,6 +310,7 @@ function PostEditorInner ({
   const editorRef = useRef()
   const toFieldRef = useRef()
   const endTimeRef = useRef()
+  const meetingLinkInputRef = useRef()
 
   // Track the topic that was injected from the current route so we can
   // replace it when the route changes without touching user-added topics
@@ -337,6 +338,7 @@ function PostEditorInner ({
       isStrictProposal: false,
       location: '',
       locationId: null,
+      meetingLink: '',
       proposalOptions: [],
       quorum: 0,
       timezone: DateTimeHelpers.getCurrentTimezone(),
@@ -446,6 +448,7 @@ function PostEditorInner ({
   }, [draftContextKey, initialPost.details])
 
   useEffect(() => {
+    if (isSubmittedRef.current) return
     if (!serverDraftLoaded || draftLoadedRef.current) return
     const activeType = createPostType
     const serverDraft = loadDraftJSON()
@@ -906,6 +909,11 @@ function PostEditorInner ({
     setCurrentPost(prev => ({ ...prev, projectManagementLink }))
   }, [setCurrentPost])
 
+  const handleMeetingLinkChange = useCallback((evt) => {
+    const meetingLink = evt.target.value
+    setCurrentPost(prev => ({ ...prev, meetingLink }))
+  }, [setCurrentPost])
+
   const handleLocationChange = useCallback((locationObject) => {
     setCurrentPost(prev => ({
       ...prev,
@@ -980,7 +988,7 @@ function PostEditorInner ({
    * Checks various conditions based on post type and sets error messages
    */
   const isValid = useMemo(() => {
-    const { type, title, groups, startTime, endTime, donationsLink, projectManagementLink, proposalOptions, budget } = currentPost
+    const { type, title, groups, startTime, endTime, donationsLink, projectManagementLink, meetingLink, proposalOptions, budget } = currentPost
 
     const errorMessages = []
 
@@ -988,6 +996,9 @@ function PostEditorInner ({
       case 'event':
         if (!endTime || !startTime || startTime >= endTime) {
           errorMessages.push(t('Valid start and end time required'))
+        }
+        if (meetingLink?.length > 0 && !sanitizeURL(meetingLink)) {
+          errorMessages.push(t('Video call link must be a valid URL'))
         }
         break
       case 'project':
@@ -1020,7 +1031,7 @@ function PostEditorInner ({
     }
 
     return errorMessages.length === 0
-  }, [hasDescription, currentPost.type, currentPost.title, currentPost.groups, currentPost.startTime, currentPost.endTime, currentPost.donationsLink, currentPost.projectManagementLink, currentPost.proposalOptions, currentPost.budget, currentFundingRound?.requireBudget])
+  }, [hasDescription, currentPost.type, currentPost.title, currentPost.groups, currentPost.startTime, currentPost.endTime, currentPost.donationsLink, currentPost.projectManagementLink, currentPost.meetingLink, currentPost.proposalOptions, currentPost.budget, currentFundingRound?.requireBudget])
 
   // const handleCancel = () => {
   //   if (onCancel) {
@@ -1054,6 +1065,7 @@ function PostEditorInner ({
         linkPreview,
         linkPreviewFeatured,
         locationId,
+        meetingLink,
         members,
         projectManagementLink,
         proposalOptions,
@@ -1084,6 +1096,7 @@ function PostEditorInner ({
         postLocation,
         locationId
       })
+      const meetingLinkValue = meetingLinkInputRef.current?.value ?? meetingLink
 
       const postToSave = {
         id,
@@ -1112,6 +1125,7 @@ function PostEditorInner ({
         localId: uniqueId('post_'), // For optimistic display of the new post
         location: postLocation,
         locationId: actualLocationId,
+        meetingLink: sanitizeURL(meetingLinkValue?.trim()),
         memberIds,
         pending: true, // For optimistic display of the new post
         projectManagementLink: sanitizeURL(projectManagementLink),
@@ -1246,7 +1260,12 @@ function PostEditorInner ({
     ? DateTimeHelpers.toPickerDate(currentPost.endTime, eventTimezone)
     : undefined
   const postLocation = currentPost.location || selectedLocation
-  const locationPrompt = currentPost.type === 'proposal' ? t('Is there a relevant location for this proposal?') : t('Where is your {{type}} located?', { type: currentPost.type })
+  const locationPrompt = currentPost.type === 'proposal'
+    ? t('Is there a relevant location for this proposal?')
+    : currentPost.type === 'event'
+      ? t('Where is the event taking place?')
+      : t('Where is your {{type}} located?', { type: currentPost.type })
+  const locationLabel = currentPost.type === 'event' ? t('Venue') : t('Location')
   const hasStripeAccount = get('hasStripeAccount', currentUser)
 
   /**
@@ -1671,7 +1690,7 @@ function PostEditorInner ({
       )}
       {showLocation && (
         <div className={cn('flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2')}>
-          <div className='text-xs text-foreground/50'>{t('Location')}</div>
+          <div className='text-xs text-foreground/50'>{locationLabel}</div>
           <LocationInput
             saveLocationToDB
             inputPosition='top'
@@ -1680,6 +1699,20 @@ function PostEditorInner ({
             onChange={handleLocationChange}
             placeholder={locationPrompt}
             className='w-full outline-none border-none bg-transparent placeholder:text-foreground/50'
+          />
+        </div>
+      )}
+      {currentPost.type === 'event' && (
+        <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
+          <div className={cn('text-xs text-foreground/50 w-[100px]', { 'text-destructive': !!currentPost.meetingLink && !sanitizeURL(currentPost.meetingLink) })}>{t('Join link')}</div>
+          <input
+            type='text'
+            className='w-full outline-none border-none bg-transparent placeholder:text-foreground/50'
+            placeholder={t('Add a video call link (Zoom, Meet, Jitsi, etc.)')}
+            value={currentPost.meetingLink || ''}
+            onChange={handleMeetingLinkChange}
+            ref={meetingLinkInputRef}
+            disabled={loading}
           />
         </div>
       )}
