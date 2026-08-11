@@ -10,7 +10,6 @@ import CheckBox from 'components/CheckBox'
 import Loading from 'components/Loading'
 import TextInput from 'components/TextInput'
 import { bgImageStyle, cn } from 'util/index'
-import { CENTER_COLUMN_ID } from 'util/scrolling'
 import fetchPeople from 'store/actions/fetchPeople'
 import { FETCH_PEOPLE } from 'store/constants'
 import { invitePeopleToEvent, peopleSelector } from './EventInviteDialog.store'
@@ -29,6 +28,11 @@ const EventInviteDialog = ({
   const dispatch = useDispatch()
   const people = useSelector(state => peopleSelector(state, { forGroups }))
   const pending = useSelector(state => state.pending[FETCH_PEOPLE])
+  // Portal above both center and detail columns (detail is z-60/110)
+  const portalContainer = useMemo(
+    () => (typeof document !== 'undefined' ? document.getElementById('center-column-container') : null),
+    []
+  )
 
   const fetchPeopleDebounced = useMemo(
     () => debounce(300, (args) => dispatch(fetchPeople(args))),
@@ -94,9 +98,9 @@ const EventInviteDialog = ({
 
   return (
     <Dialog.Root defaultOpen onOpenChange={onClose}>
-      <Dialog.Portal container={document.getElementById(CENTER_COLUMN_ID)}>
-        <Dialog.Overlay className='EventInviteDialog-Overlay bg-black/50 absolute left-0 right-0 bottom-0 grid place-items-center overflow-y-auto z-[100] h-full backdrop-blur-sm p-2'>
-          <Dialog.Content className='EventInviteDialog-Content min-w-[300px] w-full bg-background p-3 rounded-md z-[41] max-w-[750px] outline-none relative'>
+      <Dialog.Portal container={portalContainer}>
+        <Dialog.Overlay className='EventInviteDialog-Overlay bg-black/50 absolute inset-0 grid place-items-center overflow-y-auto z-[200] h-full backdrop-blur-sm p-2'>
+          <Dialog.Content className='EventInviteDialog-Content min-w-[300px] w-full bg-background p-3 rounded-md z-[201] max-w-[750px] outline-none relative'>
             <Dialog.Title className='text-xl font-semibold leading-none tracking-tight'>Invite to event: {eventTitle}</Dialog.Title>
             <Dialog.Description className='sr-only'>Invite group members to event: {eventTitle}</Dialog.Description>
             <div className={styles.container}>
