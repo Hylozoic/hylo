@@ -2,9 +2,12 @@ import React from 'react'
 import { DateTimeHelpers } from '@hylo/shared'
 import { getLocaleFromLocalStorage } from 'util/locale'
 
-export default function EventDate ({ startTime }) {
+export default function EventDate ({ startTime, timezone }) {
   if (!startTime) return null
-  const start = DateTimeHelpers.toDateTime(startTime, { locale: getLocaleFromLocalStorage() })
+  const start = DateTimeHelpers.toDateTime(startTime, {
+    timezone: timezone || DateTimeHelpers.getCurrentTimezone(),
+    locale: getLocaleFromLocalStorage()
+  })
   return (
     <div className='w-16 h-16 flex items-center flex-col justify-center bg-white rounded-lg'>
       <div className='bg-error text-white rounded-t-md h-1/2 w-full uppercase items-center justify-center flex font-bold text-lg'>{start.toFormat('MMM')}</div>

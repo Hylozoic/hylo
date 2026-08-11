@@ -9,7 +9,7 @@ import { Helmet } from 'react-helmet'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
 import { useLocation, Routes, Route, useNavigate } from 'react-router-dom'
-import { VirtuosoMessageList, VirtuosoMessageListLicense, useCurrentlyRenderedData, useVirtuosoLocation, useVirtuosoMethods } from '@virtuoso.dev/message-list'
+import { VirtuosoMessageList, VirtuosoMessageListLicense, useVirtuosoLocation, useVirtuosoMethods } from '@virtuoso.dev/message-list'
 
 import { getSocket } from 'client/websockets.js'
 import { useLayoutFlags } from 'contexts/LayoutFlagsContext'
@@ -21,6 +21,7 @@ import NoPosts from 'components/NoPosts'
 import PostDialog from 'components/PostDialog'
 import Tooltip from 'components/Tooltip'
 import Button from 'components/ui/button'
+import ChatMembersPanel from './ChatMembersPanel'
 import ChatPost from './ChatPost'
 import ChatPostNotice from './ChatPostNotice'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
@@ -408,6 +409,19 @@ export default function ChatRoom (props) {
         [confirmedPost],
         ({ atBottom, scrollInProgress }) => {
           if (atBottom || scrollInProgress) {
+            // 'smooth' scrolls to the item's ESTIMATED height; on narrow screens
+            // the text wraps taller than estimated, so the animation lands shy of
+            // the bottom — half a message showing — and never re-corrects. Snap
+            // the last stretch once the real height is measured, unless the
+            // reader has meanwhile scrolled away.
+            setTimeout(() => {
+              try {
+                const location = messageListRef.current?.getScrollLocation?.()
+                if (location && location.bottomOffset < 200) {
+                  messageListRef.current?.scrollToItem({ index: 'LAST', align: 'end', behavior: 'auto' })
+                }
+              } catch (e) {}
+            }, 350)
             return 'smooth'
           } else {
             // setUnseenMessages((val) => val + 1) TODO
@@ -644,18 +658,21 @@ export default function ChatRoom (props) {
     }
   }, [chatView?.id, chatView?.lastReadPostId, group?.id])
 
+  // (post.postReactions || []): posts that entered the list optimistically or over
+  // the socket carry no reactions array, and throwing here happens AFTER the API
+  // call fired — the reaction saved but never showed until a refresh
   const handleAddReaction = useCallback((post, emojiFull) => {
-    const optimisticUpdate = { postReactions: [...post.postReactions, { emojiFull, user: { name: currentUser.name, id: currentUser.id } }] }
+    const optimisticUpdate = { postReactions: [...(post.postReactions || []), { emojiFull, user: { name: currentUser.name, id: currentUser.id } }] }
     const newPost = { ...post, ...optimisticUpdate }
     messageListRef.current?.data.map((item) => post.id === item.id || (post.localId && post.localId === item.localId) ? newPost : item)
   }, [currentUser])
 
   const handleRemoveReaction = useCallback((post, emojiFull) => {
-    const postReactions = post.postReactions.filter(reaction => {
+    const postReactions = (post.postReactions || []).filter(reaction => {
       if (reaction.emojiFull === emojiFull && reaction.user.id === currentUser.id) return false
       return true
     })
-    const newPost = { ...post, postReactions: postReactions.filter(reaction => reaction.emojiFull !== emojiFull || reaction.user.id !== currentUser.id) }
+    const newPost = { ...post, postReactions }
     messageListRef.current?.data.map((item) => post.id === item.id || (post.localId && post.localId === item.localId) ? newPost : item)
   }, [currentUser])
 
@@ -724,6 +741,12 @@ export default function ChatRoom (props) {
       </Helmet>
 
       <div id='chats' className='my-0 mx-auto h-[calc(100%-130px)] w-full flex flex-col flex-1 relative overflow-hidden px-1'>
+        {/* The stream header's wash, here as a still strip: theme background fading
+            to its own colour at zero alpha, so messages scroll under a soft top edge */}
+        <div aria-hidden='true' className='absolute top-0 left-0 right-0 h-14 z-20 pointer-events-none bg-gradient-to-b from-[hsl(var(--theme-background)/0.1)] dark:from-[hsl(var(--theme-background)/0.5)] to-[hsl(var(--theme-background)/0)]' />
+        {/* Member pill + active strip + slide-in list; absolute inside this container
+            so the cover blankets the chat pane and nothing else */}
+        <ChatMembersPanel group={group} latestPost={postsForDisplay[postsForDisplay.length - 1]} />
         {initialPostToScrollTo === null || groupLoading || chatViewLoading
           ? (
             <div className='h-full w-full mt-auto overflow-x-visible flex flex-col justify-end min-h-[40vh]'>
@@ -766,7 +789,6 @@ export default function ChatRoom (props) {
                 EmptyPlaceholder={EmptyPlaceholder}
                 Footer={Footer}
                 Header={Header}
-                StickyHeader={StickyHeader}
                 StickyFooter={StickyFooter}
                 ItemContent={ItemContent}
               />
@@ -775,10 +797,13 @@ export default function ChatRoom (props) {
       </div>
 
       {/* Post chat box */}
-      <PeopleTyping className='w-full px-3 sm:px-5 text-xs text-foreground/50' />
+      {/* pt below sm gives the last message breathing room above the composer —
+          OUTSIDE the message list: padding inside its scroller skews Virtuoso's
+          atBottom check, which pinned the phone one message shy of the bottom */}
+      <PeopleTyping className='w-full px-3 sm:px-5 pt-2 sm:pt-0 text-xs text-foreground/50' />
       {/* Composer floats with margins matching the message gutter (left edge = avatar edge).
           Subtle gradient settles the pane into a darker hue beneath the input. */}
-      <div className='ChatBoxContainer w-full px-3 sm:px-5 pb-3 sm:pb-5 pt-2 overflow-y-auto bg-gradient-to-b from-transparent to-darkening/[0.05] dark:to-darkening/25'>
+      <div className='ChatBoxContainer w-full px-3 sm:px-5 pb-3 sm:pb-5 pt-0 overflow-y-auto bg-gradient-to-b from-transparent to-darkening/[0.05] dark:to-darkening/25'>
         {/* Drafts are scoped per chat topic so switching rooms does not leak text */}
         {group?.id && (
           <ChatEditor
@@ -823,26 +848,16 @@ const Footer = ({ context }) => {
   return context.loadingFuture ? <div className={styles.loadingContainerBottom}><Loading /></div> : null
 }
 
-const StickyHeader = ({ data, prevData, context }) => {
-  const firstItem = useCurrentlyRenderedData()[0]
-  const createdAt = firstItem?.createdAt ? DateTimeHelpers.toDateTime(firstItem.createdAt, { locale: getLocaleFromLocalStorage() }) : null
-  const displayDay = createdAt && getDisplayDay(createdAt)
-
-  if (!context.loadingPast && !context.loadingFuture && context.numPosts === 0) return null
-
-  return (
-    <div className='!absolute top-0 w-full relative py-4'>
-      <div className={cn('absolute right-0 text-sm text-foreground/50 bg-background/50 hover:bg-background/100 hover:text-foreground/100 rounded-l-[15px] px-[10px] pl-[15px] h-[30px] leading-[30px] min-w-[130px] text-center')}>
-        {displayDay}
-      </div>
-    </div>
-  )
-}
-
 const StickyFooter = ({ context }) => {
   const location = useVirtuosoLocation()
   const virtuosoMethods = useVirtuosoMethods()
-  const showJumpButton = location.bottomOffset > 200 || context.newPostCount > 0
+  // Only once the bottom sits well below the fold. A just-arrived message dips
+  // below the fold for a beat before the list auto-scrolls to it — this distance
+  // comfortably exceeds that dip, so the button cannot flash during the settle.
+  // The unread count alone no longer forces the button: near the bottom the
+  // auto-scroll is already taking you there.
+  const JUMP_VISIBLE_BELOW_FOLD_PX = 400
+  const showJumpButton = location.bottomOffset > JUMP_VISIBLE_BELOW_FOLD_PX
   const showLoadingPulse = context.loadingFuture
 
   if (!showJumpButton && !showLoadingPulse) return null
@@ -934,21 +949,29 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
 
   return (
     <>
+      {/* Same shape as the day divider below, in the notification bubble's accent.
+          Arbitrary value for the rule: accent has no <alpha-value> placeholder, so
+          slash-opacity classes on it are silently ignored */}
       {firstUnread &&
-        <div className='w-full relative py-3 text-sm'>
-          <hr className='border-t-2 border-red-500' />
-          <span className='text-red-500 text-center w-full block'>{t('New posts')}</span>
+        <div className='w-full flex items-center my-3'>
+          <div className='text-accent text-xs font-semibold whitespace-nowrap'>{t('New posts')}</div>
+          <div className='grow ml-4 border-t border-dashed border-[hsl(var(--accent)/0.3)]' />
         </div>}
       {displayDay && (
         <div className='w-full flex items-center my-3'>
           <div className='text-foreground/40 text-xs whitespace-nowrap'>{displayDay}</div>
-          <div className='grow ml-4 border-t border-dashed border-foreground/15' />
+          <div className='grow ml-4 border-t border-dashed border-foreground/10' />
         </div>
       )}
       {post.type === 'chat'
         ? (
+          // Last message keeps a gap above the composer equal to the list's left
+          // gutter (px-3 sm:px-5). Keyed on !nextData, not numPosts — appended
+          // posts (socket / optimistic send) grow the Virtuoso list before
+          // context.numPosts catches up, which left the newest message flush
+          // against the bottom.
           <div
-            className={cn('max-w-[750px] transition-all mb-0', animationClass, { 'mb-5': index === context.numPosts - 1 })}
+            className={cn('max-w-[750px] transition-all mb-0', animationClass, { 'mb-3 sm:mb-5': !nextData })}
             style={animationStyle}
           >
             <ChatPost
@@ -965,7 +988,7 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
           </div>)
         : (
           <div
-            className={cn('max-w-[750px] my-2', animationClass)}
+            className={cn('max-w-[750px] my-2', animationClass, { 'mb-3 sm:mb-5': !nextData })}
             style={animationStyle}
           >
             <ChatPostNotice

@@ -52,14 +52,14 @@ export default function AddViewOrSpaceMenu ({ onChooseView, onChooseSpace, canAd
       key: 'view',
       Icon: LayoutGrid,
       title: t('Add View'),
-      description: t('A view is a lens on your group\'s content — a stream of posts, a filtered list, a link, or another way of surfacing what you want members to see.'),
+      description: t('Show your group\'s content - activity streams, curated lists, links and other ways to surface what should be seen.'),
       onChoose: onChooseView
     },
     canAddSpace && {
       key: 'space',
       Icon: Layers,
       title: t('Add Space'),
-      description: t('A space is a part of your group with its own members and content — a working group, a cohort, a resource library, or anywhere that membership and focus matter.'),
+      description: t('A distinct space with its own members and content - chats, working groups, cohorts, resource libraries, teams'),
       onChoose: onChooseSpace
     }
   ].filter(Boolean)
@@ -70,8 +70,17 @@ export default function AddViewOrSpaceMenu ({ onChooseView, onChooseSpace, canAd
         {trigger || <AddCard label={t('Add')} />}
       </DropdownMenuTrigger>
       <DropdownMenuContent
+        // Above the trigger: the Add control sits at the foot of these menus, so a
+        // downward menu lands under the editing bar or off the bottom of the screen
+        side='top'
         align='start'
-        className='w-[320px] max-w-[calc(100vw-2rem)] p-1'
+        className={cn(
+          'max-w-[calc(100vw-2rem)] p-1',
+          // In the drill-down menu the trigger is a full-width row, so the menu
+          // matches it rather than jutting out past the control that opened it.
+          // The card-grid trigger is card-sized, where a fixed width reads better.
+          trigger ? 'w-[var(--radix-dropdown-menu-trigger-width)]' : 'w-[320px]'
+        )}
       >
         {options.map(({ key, Icon, title, description, onChoose }) => (
           <DropdownMenuItem

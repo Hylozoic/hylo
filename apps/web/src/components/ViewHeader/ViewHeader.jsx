@@ -101,7 +101,7 @@ const ViewHeader = () => {
         setIsBannerVisible(false) // simple group view (no banner rendered)
         return
       }
-      observer = new IntersectionObserver(([entry]) => {
+      observer = new window.IntersectionObserver(([entry]) => {
         setIsBannerVisible(entry.isIntersecting)
       }, { threshold: 0 })
       observer.observe(bannerEl)
@@ -431,14 +431,17 @@ const ViewHeader = () => {
       <div
         className={cn('flex items-center min-w-0 gap-1', {
           'flex-1': !centered && typeof title === 'string',
-          'min-w-0 overflow-x-auto flex-1': !centered && React.isValidElement(title)
+          // overflow-y-hidden: overflow-x auto drags the y-axis out of `visible`,
+          // so an element title a pixel taller than the line box (e.g. a badge
+          // pill) would sprout a tiny vertical scrollbar instead of just showing
+          'min-w-0 overflow-x-auto overflow-y-hidden flex-1': !centered && React.isValidElement(title)
         })}
       >
         <h2
           className={cn('text-foreground font-bold m-0', {
             'truncate min-w-0': typeof title === 'string',
             'whitespace-nowrap': title?.mobile && title?.desktop,
-            'min-w-0 overflow-x-auto': React.isValidElement(title),
+            'min-w-0 overflow-x-auto overflow-y-hidden': React.isValidElement(title),
             'pl-12': centered && (backButton || mobileBackButton) && compactLayout,
             'pl-12 sm:pl-0': centered && (backButton || mobileBackButton) && !compactLayout
           })}

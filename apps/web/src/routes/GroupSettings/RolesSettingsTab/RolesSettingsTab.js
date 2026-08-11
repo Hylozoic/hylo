@@ -7,9 +7,12 @@ import {
   addGroupRole,
   addRoleToMember,
   fetchGroupRoleDetails,
+  fetchMembersForGroupRole,
+  ROLE_MEMBERS_PAGE_SIZE,
   removeRoleFromMember,
   updateGroupRole
 } from '../../../store/actions/roles'
+import ScrollListener from 'components/ScrollListener'
 import {
   removeResponsibilityFromRole,
   addResponsibilityToRole,
@@ -454,20 +457,47 @@ function RoleList ({
 }) {
   const { t } = useTranslation()
   const [membersForRole, setMembersForRole] = useState([])
+  const [hasMoreMembers, setHasMoreMembers] = useState(false)
   const [responsibilitiesForRole, setResponsibilitiesForRole] = useState([])
+  const loadingMoreMembers = useRef(false)
   const dispatch = useDispatch()
+  const membersListId = `role-members-${roleId}`
 
   useEffect(() => {
     let isMounted = true
-    dispatch(fetchGroupRoleDetails({ id: group.id, roleId }))
+    dispatch(fetchGroupRoleDetails({ id: group.id, roleId, first: ROLE_MEMBERS_PAGE_SIZE, offset: 0 }))
       .then((response) => {
         if (!isMounted) return
-        setMembersForRole(response?.payload?.data?.group?.members?.items || [])
+        const members = response?.payload?.data?.group?.members
+        setMembersForRole(members?.items || [])
+        setHasMoreMembers(!!members?.hasMore)
         setResponsibilitiesForRole(response?.payload?.data?.responsibilities || [])
       })
       .catch((e) => { console.error('Error fetching group role details', e) })
     return () => { isMounted = false }
   }, [group.id, roleId, dispatch])
+
+  const fetchMoreMembers = () => {
+    if (loadingMoreMembers.current || !hasMoreMembers) return
+    loadingMoreMembers.current = true
+    dispatch(fetchMembersForGroupRole({
+      id: group.id,
+      roleId,
+      first: ROLE_MEMBERS_PAGE_SIZE,
+      offset: membersForRole.length
+    }))
+      .then((response) => {
+        const members = response?.payload?.data?.group?.members
+        const newMembers = members?.items || []
+        setMembersForRole(prev => {
+          const existingIds = new Set(prev.map(member => member.id))
+          return [...prev, ...newMembers.filter(member => !existingIds.has(member.id))]
+        })
+        setHasMoreMembers(!!members?.hasMore)
+      })
+      .catch((e) => { console.error('Error fetching more members for role', e) })
+      .finally(() => { loadingMoreMembers.current = false })
+  }
 
   const memberRoleIds = membersForRole.map(mr => mr.id)
 
@@ -522,7 +552,7 @@ function RoleList ({
         />)}
       <div className='p-2'>
         <h4>{t('Members')}</h4>
-        <div className='flex flex-col gap-2'>
+        <div className='flex flex-col gap-2 max-h-[560px] overflow-y-auto' id={membersListId}>
           {membersForRole.map(m =>
             <RemovableListItem
               item={m}
@@ -530,6 +560,7 @@ function RoleList ({
               removeItem={handleRemoveRoleFromMember}
               key={m.id}
             />)}
+          <ScrollListener onBottom={fetchMoreMembers} elementId={membersListId} />
         </div>
       </div>
       <AddMemberToRole

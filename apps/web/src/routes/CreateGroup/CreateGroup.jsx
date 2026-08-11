@@ -44,7 +44,7 @@ import { groupUrl } from '@hylo/navigation'
 import { onEnter } from 'util/textInput'
 import { createGroup, fetchGroupExists } from './CreateGroup.store'
 
-const STANDARD_VIEW_TYPES = new Set(['all', 'chat', 'map', 'members', 'about', ...Object.values(POST_TYPE_TO_VIEW_TYPE)])
+const STANDARD_VIEW_TYPES = new Set(['all', 'chat', 'map', 'members', ...Object.values(POST_TYPE_TO_VIEW_TYPE)])
 
 const slugValidatorRegex = /^[0-9a-z-]{2,40}$/
 
@@ -177,12 +177,12 @@ function CreateGroup () {
     })
   }
 
-  // Default views for a new group: All Activity (home), Chat, then post-type-driven views, Map, Members, About
+  // Default views for a new group: All Activity (home), Chat, then post-type-driven views, Map, Members
   const standardViewTypes = useMemo(() => {
     const postTypeViews = CUSTOM_VIEW_POST_TYPE_OPTIONS
       .filter(option => option.postTypes.every(type => postTypes.includes(type)))
       .map(option => POST_TYPE_TO_VIEW_TYPE[option.postTypes[0]])
-    return ['all', 'chat', ...postTypeViews, 'map', 'members', 'about'].filter(type => !removedStandardTypes.has(type))
+    return ['all', 'chat', ...postTypeViews, 'map', 'members'].filter(type => !removedStandardTypes.has(type))
   }, [postTypes, removedStandardTypes])
 
   const handleRemoveStandardView = useCallback((type) => {

@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { X } from 'lucide-react'
+import { CircleEllipsis, GripVertical, X } from 'lucide-react'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 
 import { useViewHeader } from 'contexts/ViewHeaderContext'
@@ -116,8 +116,22 @@ export default function MoreViewsPage ({ group }) {
 
   useEffect(() => {
     setHeaderDetails({
-      title: isEditing ? t('More Views and Spaces (Editing)') : t('More Views and Spaces'),
-      icon: '',
+      // Editing state as a pill beside the title rather than baked into it,
+      // and the same icon the menu row carries — without one this header
+      // rendered shorter than every other view's.
+      title: isEditing
+        ? (
+          <span className='flex items-center gap-2'>
+            {t('More Views and Spaces')}
+            {/* Slim enough to sit inside the title's line box — a taller pill overflows
+                the header's fixed height and clips instead of growing it */}
+            <span className='text-xs font-semibold rounded-full border border-foreground/20 bg-foreground/10 text-foreground/70 px-2 py-px leading-none self-center'>
+              {t('Editing')}
+            </span>
+          </span>
+          )
+        : t('More Views and Spaces'),
+      icon: <CircleEllipsis />,
       info: '',
       search: false
     })
@@ -292,14 +306,6 @@ export default function MoreViewsPage ({ group }) {
 
   return (
     <div ref={containerRef} className={cn('w-full max-w-[980px] mx-auto px-4 py-6', isEditing && 'pb-24')}>
-      {isEditing && (
-        <>
-          <p className='text-sm text-foreground/70 mb-6'>
-            {t('Drag and drop items in the menu on the left to reorder them. The top item is the home view for this group.')}
-          </p>
-        </>
-      )}
-
       {pending && !hasContent
         ? <ViewsGridSkeleton />
         : !hasContent
@@ -400,14 +406,22 @@ export default function MoreViewsPage ({ group }) {
 
       {isEditing && (
         <EditingBottomBar containerRef={containerRef}>
-          <button
-            type='button'
-            onClick={handleDoneEditing}
-            className={EDITING_BAR_BUTTON_CLASS}
-          >
-            <X className='w-4 h-4' />
-            <span>{t('Done Editing')}</span>
-          </button>
+          {/* The reorder hint rides in the bar with the control it explains —
+              hint left, Done Editing right, matching the page's content well */}
+          <div className='w-full max-w-[980px] flex items-center justify-between gap-4'>
+            <p className='flex items-center gap-2 text-sm text-foreground/70 m-0 text-left pointer-events-auto'>
+              <GripVertical className='w-4 h-4 shrink-0 text-foreground/50' />
+              {t('Drag and drop items in the menu on the left to reorder them. The top item is the home view for this group.')}
+            </p>
+            <button
+              type='button'
+              onClick={handleDoneEditing}
+              className={cn(EDITING_BAR_BUTTON_CLASS, 'shrink-0')}
+            >
+              <X className='w-4 h-4' />
+              <span>{t('Done Editing')}</span>
+            </button>
+          </div>
         </EditingBottomBar>
       )}
 

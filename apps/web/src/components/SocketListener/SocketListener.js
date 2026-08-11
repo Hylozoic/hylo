@@ -19,6 +19,7 @@ import {
   addUserTyping,
   clearUserTyping
 } from 'components/PeopleTyping/PeopleTyping.store'
+import { addMemberPresent, removeMemberPresent, setRoomPresence } from 'routes/ChatRoom/RoomPresence.store'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 
 const SocketListener = (props) => {
@@ -61,17 +62,28 @@ const SocketListener = (props) => {
     newThread: data => dispatch(receiveThread(convertToThread(data))),
     userTyping: ({ userId, userName, isTyping }) => {
       isTyping ? dispatch(addUserTyping(userId, userName)) : dispatch(clearUserTyping(userId))
-    }
+    },
+    // Live room rosters (see RoomPresence.store)
+    roomPresence: ({ groupId, members }) => dispatch(setRoomPresence(groupId, members)),
+    memberPresent: ({ groupId, member }) => dispatch(addMemberPresent(groupId, member)),
+    memberAway: ({ groupId, userId }) => dispatch(removeMemberPresent(groupId, userId))
   }), [currentUser?.id, dispatch, group?.id])
 
   useEffect(() => {
     const socket = getSocket()
+    // Re-subscribe the user room on every (re)connection — after a server
+    // restart the socket comes back but its room memberships do not
+    const resubscribe = () => reconnect(socket)
     reconnect(socket)
+    socket.on('connect', resubscribe)
+    socket.on('reconnect', resubscribe)
 
     Object.keys(handlers).forEach(socketEvent =>
       socket.on(socketEvent, handlers[socketEvent]))
 
     return () => {
+      socket.off('connect', resubscribe)
+      socket.off('reconnect', resubscribe)
       socket.post(socketUrl('/noo/user/unsubscribe'))
       Object.keys(handlers).forEach(socketEvent =>
         socket.off(socketEvent, handlers[socketEvent]))

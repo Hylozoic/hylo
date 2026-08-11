@@ -5,8 +5,8 @@ import { Helmet } from 'react-helmet'
 import { Link, useLocation } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import { isSystemGroupRole, sortCustomGroupRoles, sortSystemGroupRoles } from '@hylo/hooks/groupRoleHelpers'
+import { LayoutGrid, List, Search } from 'lucide-react'
 import Button from 'components/Button'
-import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
 import Member from 'components/Member'
 import ScrollListener from 'components/ScrollListener'
@@ -116,11 +116,6 @@ function Members (props) {
     ]
   }, [rolesSourceGroup])
 
-  const selectedRole = useMemo(
-    () => filterableRoles.find(role => String(role.id) === String(groupRoleId)),
-    [filterableRoles, groupRoleId]
-  )
-
   useEffect(() => {
     if (trackId) dispatch(fetchTrack(trackId))
   }, [dispatch, trackId])
@@ -130,6 +125,8 @@ function Members (props) {
   }, [dispatch, fundingRoundId])
 
   const [showAnswers, setShowAnswers] = useState(false)
+  // Card grid vs compact list, per the members directory design
+  const [displayMode, setDisplayMode] = useState('card')
 
   // One-column (card menu) groups use the view-card grid for members.
   const isOneColumnLayout = context === 'groups' && resolveIsOneColumnLayout(
@@ -205,53 +202,95 @@ function Members (props) {
         </div>
       )}
       <div className={classes.content}>
-        <div className='flex flex-wrap items-center gap-2 py-4'>
-          <input
-            placeholder={t('Search {{memberCount}} members by name or skills & interests', { memberCount })}
-            className='bg-input/60 focus:bg-input/100 rounded-lg text-foreground placeholder-foreground/40 w-full p-2 transition-all outline-none focus:outline-focus focus:outline-2'
-            defaultValue={search}
-            onChange={e => debouncedSearch(e.target.value)}
-          />
-          <Dropdown
-            id='members-sort-dropdown'
-            className='border-2 border-foreground/20 rounded-lg p-2 text-foreground/100'
-            toggleChildren={<SortLabel text={sortKeys[sortBy]} />}
-            alignRight
-            items={Object.keys(sortKeys).map(k => ({
-              label: t(sortKeys[k]),
-              onClick: () => changeSort(k)
-            }))}
-          />
-          {filterableRoles.length > 0 && (
-            <Dropdown
-              id='members-role-filter-dropdown'
-              className='border-2 border-foreground/20 rounded-lg p-2 text-foreground/100'
-              toggleChildren={<RoleFilterLabel role={selectedRole} />}
-              alignRight
-              items={[
-                {
-                  label: t('All members'),
-                  onClick: () => changeRoleFilter(null)
-                },
-                ...filterableRoles.map(role => ({
-                  label: roleLabel(role),
-                  onClick: () => changeRoleFilter(role.id)
-                }))
-              ]}
-            />
-          )}
-          {canSeeJoinAnswers && (
-            <div className='flex items-center gap-2'>
-              <SwitchStyled
-                checked={showAnswers}
-                onChange={() => setShowAnswers(!showAnswers)}
-                backgroundColor={showAnswers ? '#0DC39F' : '#8B96A4'}
+        <div className='flex flex-col gap-2 py-4'>
+          <div className='flex flex-wrap items-center gap-2'>
+            <div className='relative flex-1 min-w-[220px]'>
+              <Search className='absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/40 pointer-events-none' />
+              <input
+                placeholder={t('Search {{memberCount}} members by name or skills & interests', { memberCount })}
+                className='bg-input/60 focus:bg-input/100 rounded-lg text-foreground placeholder-foreground/40 w-full p-2 pl-9 transition-all outline-none focus:outline-focus focus:outline-2'
+                defaultValue={search}
+                onChange={e => debouncedSearch(e.target.value)}
               />
-              <span className='text-sm font-medium text-foreground/80'>{t('Show Answers')}</span>
+            </div>
+            <div className='flex items-center rounded-lg border-2 border-foreground/20 overflow-hidden' role='group' aria-label={t('Sort by')}>
+              {Object.keys(sortKeys).map(k => (
+                <button
+                  key={k}
+                  type='button'
+                  onClick={() => changeSort(k)}
+                  className={cn(
+                    'px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors',
+                    sortBy === k
+                      ? 'bg-selected text-foreground'
+                      : 'text-foreground/60 hover:text-foreground hover:bg-foreground/5'
+                  )}
+                >
+                  {t(sortKeys[k])}
+                </button>
+              ))}
+            </div>
+            {!isOneColumnLayout && (
+              <div className='flex items-center rounded-lg border-2 border-foreground/20 overflow-hidden' role='group' aria-label={t('Layout')}>
+                <button
+                  type='button'
+                  onClick={() => setDisplayMode('card')}
+                  aria-label={t('Cards')}
+                  title={t('Cards')}
+                  className={cn('px-2.5 py-1.5 transition-colors', displayMode === 'card' ? 'bg-selected text-foreground' : 'text-foreground/60 hover:text-foreground hover:bg-foreground/5')}
+                >
+                  <LayoutGrid className='w-4 h-4' />
+                </button>
+                <button
+                  type='button'
+                  onClick={() => setDisplayMode('list')}
+                  aria-label={t('List')}
+                  title={t('List')}
+                  className={cn('px-2.5 py-1.5 transition-colors', displayMode === 'list' ? 'bg-selected text-foreground' : 'text-foreground/60 hover:text-foreground hover:bg-foreground/5')}
+                >
+                  <List className='w-4 h-4' />
+                </button>
+              </div>
+            )}
+            {canSeeJoinAnswers && (
+              <div className='flex items-center gap-2'>
+                <SwitchStyled
+                  checked={showAnswers}
+                  onChange={() => setShowAnswers(!showAnswers)}
+                  backgroundColor={showAnswers ? '#0DC39F' : '#8B96A4'}
+                />
+                <span className='text-sm font-medium text-foreground/80'>{t('Show Answers')}</span>
+              </div>
+            )}
+          </div>
+          {filterableRoles.length > 0 && (
+            <div className='flex flex-wrap items-center gap-1.5'>
+              <RolePill active={!groupRoleId} onClick={() => changeRoleFilter(null)}>
+                {t('All members')}{memberCount ? ` (${memberCount})` : ''}
+              </RolePill>
+              {filterableRoles.map(role => {
+                const active = String(role.id) === String(groupRoleId)
+                return (
+                  <RolePill key={role.id} active={active} onClick={() => changeRoleFilter(active ? null : role.id)}>
+                    {roleLabel(role)}
+                  </RolePill>
+                )
+              })}
             </div>
           )}
         </div>
-        <div className={isOneColumnLayout ? 'flex flex-wrap gap-3' : 'flex flex-col gap-2'}>
+        <div
+          className={cn(
+            isOneColumnLayout
+              ? 'flex flex-wrap gap-3'
+              : displayMode === 'card'
+                ? 'grid gap-3'
+                : 'flex flex-col rounded-xl border-2 border-foreground/20 bg-card overflow-hidden'
+          )}
+          style={!isOneColumnLayout && displayMode === 'card'
+            ? { gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }
+            : undefined}
+        >
           {isLoading
             ? <MembersListSkeleton isOneColumnLayout={isOneColumnLayout} />
             : members.map(member => (
@@ -269,9 +308,20 @@ function Members (props) {
                 submitterRoles={submitterRoles}
                 voterRoles={voterRoles}
                 square={isOneColumnLayout}
+                layout={displayMode === 'list' ? 'row' : 'card'}
               />
             ))}
         </div>
+        {!isLoading && members.length === 0 && (
+          <div className='py-12 text-center text-sm text-foreground/60'>
+            {t('No results for this search')}
+          </div>
+        )}
+        {!isLoading && members.length > 0 && !search && !groupRoleId && Boolean(memberCount) && (
+          <div className='py-4 text-center text-xs text-foreground/50'>
+            {t('Showing {{count}} of {{total}} members', { count: Math.min(members.length, memberCount), total: memberCount })}
+          </div>
+        )}
       </div>
       <ScrollListener
         onBottom={fetchMore}
@@ -298,24 +348,21 @@ function MembersListSkeleton ({ isOneColumnLayout }) {
   ))
 }
 
-function SortLabel ({ text }) {
-  const { t } = useTranslation()
+/** Role-filter chip: emoji + name pill, highlighted while its filter is on. */
+function RolePill ({ active, onClick, children }) {
   return (
-    <div className='flex items-center w-fit gap-1 text-foreground/70 text-sm'>
-      <span className='whitespace-nowrap'>{t('Sort by')} <strong>{t(text)}</strong></span>
-      <Icon name='ArrowDown' />
-    </div>
-  )
-}
-
-function RoleFilterLabel ({ role }) {
-  const { t } = useTranslation()
-  const label = role ? roleLabel(role) : t('All members')
-  return (
-    <div className='flex items-center w-fit gap-1 text-foreground/70 text-sm'>
-      <span className='whitespace-nowrap'>{t('Filter by role')}: <strong>{label}</strong></span>
-      <Icon name='ArrowDown' />
-    </div>
+    <button
+      type='button'
+      onClick={onClick}
+      className={cn(
+        'rounded-full border-2 px-2.5 py-0.5 text-xs font-medium whitespace-nowrap transition-colors',
+        active
+          ? 'bg-selected border-selected text-foreground'
+          : 'border-foreground/20 text-foreground/60 hover:text-foreground hover:border-foreground/40'
+      )}
+    >
+      {children}
+    </button>
   )
 }
 

@@ -1,8 +1,10 @@
-import { DateTime, Interval, DateTimeUnit } from 'luxon'
+import { DateTime } from 'luxon'
+import type { Interval, DateTimeUnit } from 'luxon'
 import { getLocaleFromLocalStorage } from 'util/locale'
 import { DateTimeHelpers } from '@hylo/shared'
+import { createPostUrl } from '@hylo/navigation'
 import { enUS, es } from 'react-day-picker/locale'
-import { HyloPost } from './calendar-types'
+import type { HyloPost } from './calendar-types'
 
 export const getLocaleAsString = () => {
   switch (getLocaleFromLocalStorage()) {
@@ -105,4 +107,18 @@ export const isMultiday = (
   post: HyloPost
 ) : boolean => {
   return !DateTime.fromISO(post.startTime).hasSame(DateTime.fromISO(post.endTime), 'day')
+}
+
+/** Build create-post URL for a new event on a specific calendar day. */
+export const createEventPostUrl = (
+  routeParams: Record<string, string | string[]>,
+  querystringParams: Record<string, string | string[]>,
+  eventDate: Date
+) => {
+  const eventDateParam = DateTimeHelpers.toDateTime(eventDate, { locale: getLocaleFromLocalStorage() }).toISODate()
+  return createPostUrl(routeParams, {
+    ...querystringParams,
+    newPostType: 'event',
+    eventDate: eventDateParam
+  })
 }
