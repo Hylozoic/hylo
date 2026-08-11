@@ -7,6 +7,8 @@ import { useDispatch, useSelector } from 'react-redux'
 import TextareaAutosize from 'react-textarea-autosize'
 import Avatar from 'components/Avatar'
 import ClickCatcher from 'components/ClickCatcher'
+import CardFileAttachments from 'components/CardFileAttachments'
+import CardImageAttachments from 'components/CardImageAttachments'
 import HyloHTML from 'components/HyloHTML'
 import ProfileCardDialog from 'components/ProfileCardDialog/ProfileCardDialog'
 import { TextHelpers, DateTimeHelpers } from '@hylo/shared'
@@ -26,10 +28,13 @@ export default function Message ({ message, isHeader }) {
   const pending = message.id.slice(0, 13) === 'messageThread'
   const isCreator = currentUser && person?.id === currentUser.id
   const canEdit = isCreator && !pending
+  const attachments = message.attachments?.toRefArray
+    ? message.attachments.toRefArray()
+    : (message.attachments || [])
 
   const text = pending
     ? 'sending...'
-    : TextHelpers.markdown(message.text)
+    : message.text ? TextHelpers.markdown(message.text) : ''
 
   const editedTimestamp = message.editedAt
     ? `${t('edited')} ${DateTimeHelpers.humanDate(message.editedAt)}`
@@ -89,7 +94,7 @@ export default function Message ({ message, isHeader }) {
         {isHeader && (
           <div className='flex justify-between items-center gap-2'>
             <ProfileCardDialog personId={person.id}>
-              <div className='text-foreground font-bold -mb-2 truncate hover:underline'>{person.name}</div>
+              <div className='text-foreground font-bold truncate hover:underline'>{person.name}</div>
             </ProfileCardDialog>
             <div className='flex items-center gap-1 flex-shrink-0'>
               {canEdit && !editing && (
@@ -167,7 +172,15 @@ export default function Message ({ message, isHeader }) {
                   </button>
                 )}
                 <ClickCatcher>
-                  <HyloHTML element='div' className='break-words max-w-full' html={text} />
+                  {attachments.length > 0 && (
+                    <>
+                      <CardImageAttachments attachments={attachments} linked className={cn('mb-2', isHeader && 'mt-2')} />
+                      <CardFileAttachments attachments={attachments} className='mb-2' />
+                    </>
+                  )}
+                  {text && (
+                    <HyloHTML element='div' className='break-words max-w-full' html={text} />
+                  )}
                 </ClickCatcher>
               </>
               )}

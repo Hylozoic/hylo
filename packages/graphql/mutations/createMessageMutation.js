@@ -7,17 +7,25 @@ import { gql } from 'urql'
 export default gql` 
   mutation CreateMessageMutation (
     $messageThreadId: String,
-    $text: String
+    $text: String,
+    $attachments: [AttachmentInput],
     $createdAt: Date
   ) {
     createMessage(data: {
       messageThreadId: $messageThreadId,
-      text: $text
+      text: $text,
+      attachments: $attachments,
       createdAt: $createdAt
     }) {
       createdAt
       id
       text
+      attachments {
+        id
+        position
+        type
+        url
+      }
       creator {
         id
         name

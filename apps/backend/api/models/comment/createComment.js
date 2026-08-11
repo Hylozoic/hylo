@@ -76,6 +76,8 @@ export async function pushMessageToSockets (message, thread) {
   const userIds = followers.map(x => x.id)
   const excludingSender = userIds.filter(id => id !== message.get('user_id'))
 
+  await message.load('media')
+
   let response = refineOne(message,
     ['id', 'created_at', 'user_id', 'post_id', 'comment_id'],
     {
@@ -87,6 +89,12 @@ export async function pushMessageToSockets (message, thread) {
 
   response.createdAt = response.createdAt && response.createdAt.toString()
   response.text = message.text({ forUserId: message.get('user_id') })
+  response.attachments = (message.relations.media || []).map(m => ({
+    id: m.id,
+    type: m.get('type'),
+    url: m.get('url'),
+    position: m.get('position')
+  }))
 
   let socketMessageName
 
