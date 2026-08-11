@@ -2,9 +2,13 @@ import i18next from 'i18next'
 import Backend from 'i18next-http-backend'
 import { app } from 'electron'
 import {
+  LOCALE_DE,
   LOCALE_EN_GB,
   LOCALE_EN_US,
   LOCALE_ES,
+  LOCALE_FR,
+  LOCALE_HI,
+  LOCALE_PT,
   localeToTranslationKey
 } from '@hylo/shared'
 
@@ -24,7 +28,22 @@ const initI18n = async () => {
           [LOCALE_EN_GB]: [LOCALE_EN_US],
           default: [LOCALE_EN_US]
         },
-        supportedLngs: [LOCALE_EN_US, LOCALE_EN_GB, LOCALE_ES, 'en', 'es'],
+        supportedLngs: [
+          LOCALE_EN_US,
+          LOCALE_EN_GB,
+          LOCALE_ES,
+          LOCALE_DE,
+          LOCALE_FR,
+          LOCALE_HI,
+          LOCALE_PT,
+          // Legacy short codes still accepted from older clients/storage
+          'en',
+          'es',
+          'de',
+          'fr',
+          'hi',
+          'pt'
+        ],
         nonExplicitSupportedLngs: true,
         interpolation: {
           escapeValue: false

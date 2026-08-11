@@ -220,23 +220,21 @@ Replace `es-ES` with your locale code.
 
 ### Step 5: Update Locale Mapping (if needed)
 
-If the new locale requires mapping in the backend, update `apps/backend/lib/util.js`:
+If the new locale requires mapping in the backend, update `apps/backend/lib/localeHelpers.js`:
 
 ```javascript
-function mapLocaleToSendWithUS(locale) {
-  const mapping = {
-    'en': 'en-US',
-    'es': 'es-ES',
-    'de': 'de-DE',
-    'fr': 'fr-FR',
-    'hi': 'hi-IN',
-    'pt': 'pt-BR',
-    // Add your new locale mapping here
-    'ja': 'ja-JP'
-  }
-  return mapping[locale] || 'en-US'
+const FULL_LOCALE_LOOKUP = {
+  en: LOCALE_EN_US,
+  'en-US': LOCALE_EN_US,
+  'en-GB': LOCALE_EN_GB,
+  es: LOCALE_ES,
+  // Add your new locale mapping here
+  ja: 'ja-JP',
+  'ja-JP': 'ja-JP'
 }
 ```
+
+SendWithUs and email date formatting both use `normalizeLocaleToFull()` from this module.
 
 ---
 
