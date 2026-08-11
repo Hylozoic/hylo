@@ -50,7 +50,7 @@ const SYSTEM_ROLE_DEFINITIONS = [
     name: 'Coordinator',
     emoji: '🪄',
     description: 'Coordinators are empowered to do everything related to group administration.',
-    responsibilities: ['Administration', 'Add Members', 'Remove Members', 'Manage Content', 'Manage Spaces']
+    responsibilities: ['Administration', 'Add Members', 'Remove Members', 'Manage Content']
   },
   {
     name: 'Moderator',
@@ -68,11 +68,10 @@ const SYSTEM_ROLE_DEFINITIONS = [
 
 /** System responsibilities referenced by SYSTEM_ROLE_DEFINITIONS — schema.sql creates the table but no rows. */
 const SYSTEM_RESPONSIBILITY_DEFINITIONS = [
-  { title: 'Administration', description: 'Allows for editing group settings, exporting data, and deleting the group.' },
+  { title: 'Administration', description: 'Allows for editing group settings, managing the menu and spaces, exporting data, and deleting the group.' },
   { title: 'Add Members', description: 'The ability to invite and add new people to the group, and to accept or reject join requests.' },
   { title: 'Remove Members', description: 'The ability to remove a member from the group.' },
-  { title: 'Manage Content', description: 'Adjust group topics, custom views and manage content that contradicts the agreements of the group.' },
-  { title: 'Manage Spaces', description: 'The ability to create and manage spaces (including tracks and funding rounds) within this group.' }
+  { title: 'Manage Content', description: 'Adjust group topics, custom views and manage content that contradicts the agreements of the group.' }
 ]
 
 /**

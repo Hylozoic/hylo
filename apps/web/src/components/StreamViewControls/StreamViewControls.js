@@ -30,8 +30,8 @@ const TIMEFRAME_OPTIONS = [
 // Toolbar chrome from the prototype's BDStreamToolbar: a 36px row of segmented
 // groups and pills. The prototype hardcodes a dark palette; these carry the same
 // shapes onto the theme tokens so the bar works in both schemes.
-const GROUP_CLASS = 'inline-flex items-center gap-0.5 h-9 p-[3px] box-border rounded-[9px] bg-background border border-foreground/20'
-const PILL_CLASS = 'inline-flex items-center gap-1.5 h-9 px-3 box-border rounded-[9px] bg-background border border-foreground/20 text-foreground text-xs font-semibold cursor-pointer transition-colors hover:border-foreground/40'
+const GROUP_CLASS = 'inline-flex items-center gap-0.5 h-9 p-[3px] box-border rounded-[9px] bg-background border-2 border-foreground/20'
+const PILL_CLASS = 'inline-flex items-center gap-1.5 h-9 px-3 box-border rounded-[9px] bg-background border-2 border-foreground/20 text-foreground text-xs font-semibold cursor-pointer transition-colors hover:border-foreground/40'
 
 /** One segmented-group button. Active reads as the selected green, per the design. */
 function ToolBtn ({ active, onClick, tooltip, children }) {

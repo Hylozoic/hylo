@@ -66,6 +66,7 @@ const queryFragment = `group(slug: $slug, updateLastViewed: $updateLastViewed) {
         active
         emoji
         groupId
+        membersTotal
         type
         responsibilities {
           items {

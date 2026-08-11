@@ -58,7 +58,7 @@ export default function PostTypePills ({ postTypes, onPostTypesChange, label }) 
             >
               <Checkbox
                 checked={isSelected}
-                className='pointer-events-none'
+                className='pointer-events-none border-current data-[state=checked]:border-current [&>span]:text-current'
                 aria-hidden
               />
               <OptionIcon className='w-4 h-4 shrink-0' />

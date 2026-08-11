@@ -424,11 +424,11 @@ export function AddViewButton ({ onClick, className }) {
       type='button'
       onClick={onClick}
       className={cn(
-        'flex items-center gap-2 w-full text-base text-foreground border-2 border-dashed border-foreground/30 hover:border-foreground/50 rounded-md p-2 pl-2 mb-2 transition-all opacity-85 hover:opacity-100',
+        'flex items-center gap-2 w-full min-h-[34px] px-2 text-sm text-foreground border-2 border-dashed border-foreground/30 hover:border-foreground/50 rounded-md transition-all opacity-85 hover:opacity-100',
         className
       )}
     >
-      <Plus className='w-4 h-4' />
+      <Plus className='w-3.5 h-3.5' />
       <span>{t('Add View')}</span>
     </button>
   )

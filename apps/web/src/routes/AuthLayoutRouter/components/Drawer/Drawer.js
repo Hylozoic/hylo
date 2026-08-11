@@ -15,7 +15,8 @@ import getMe from 'store/selectors/getMe'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
 import { RESP_MANAGE_CONTENT } from 'store/constants'
 import { bgImageStyle, cn } from 'util/index'
-import { baseUrl, createGroupUrl, groupUrl } from '@hylo/navigation'
+import { baseUrl, groupUrl } from '@hylo/navigation'
+import { createGroupModalUrl } from 'routes/CreateGroup/createGroupUrl'
 
 // import s from './Drawer.module.scss' // eslint-disable-line no-unused-vars
 import s from './Drawer.module.scss'
@@ -76,7 +77,8 @@ export default function Drawer (props) {
   const toggleDrawer = () => dispatch(toggleDrawerAction())
 
   const goToCreateGroup = () => {
-    navigate(createGroupUrl({ context: props.context }))
+    dispatch(toggleDrawerAction())
+    navigate(createGroupModalUrl(currentLocation))
     return null
   }
 

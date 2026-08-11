@@ -102,12 +102,12 @@ export async function updateTrack (userId, id, data) {
 async function canEdit (track, userId) {
   const space = await track.group().fetch()
   if (!space) return false
-  if (await GroupMembership.hasResponsibility(userId, space.id, Responsibility.constants.RESP_MANAGE_SPACES)) {
+  if (await GroupMembership.hasResponsibility(userId, space.id, Responsibility.constants.RESP_ADMINISTRATION)) {
     return true
   }
-  // Allow parent Manage Spaces without space membership (stewards managing from parent menu)
+  // Allow parent Administration without space membership (stewards managing from parent menu)
   const parentId = space.get('parent_id')
   if (!parentId) return false
   const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, parentId)
-  return responsibilities.includes(Responsibility.constants.RESP_MANAGE_SPACES)
+  return responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)
 }

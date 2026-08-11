@@ -24,7 +24,7 @@ async function uniqueSlug (baseSlug) {
 }
 
 /**
- * Require Manage Spaces or Administration on the parent group to manage a space.
+ * Require Administration on the parent group to manage a space.
  * Does not require space membership (stewards are not auto-added to every space).
  * @param {object} [opts]
  * @param {boolean} [opts.includeInactive] - allow inactive (archived) spaces; used by delete
@@ -39,9 +39,7 @@ async function requireSpaceManager (userId, spaceId, action, { includeInactive =
   if (!parentId) throw new GraphQLError('Space has no parent group')
 
   const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, parentId)
-  const canManage = responsibilities.includes(Responsibility.constants.RESP_MANAGE_SPACES) ||
-    responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)
-  if (!canManage) {
+  if (!responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)) {
     throw new GraphQLError(`You don't have permission to ${action}`)
   }
   return space
@@ -56,7 +54,7 @@ export async function createSpace (userId, { parentGroupId, name, slug, accepted
   if (!parentGroup) throw new GraphQLError('Parent group not found')
 
   const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, parentGroupId)
-  if (!responsibilities.includes(Responsibility.constants.RESP_MANAGE_SPACES)) {
+  if (!responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)) {
     throw new GraphQLError("You don't have permission to create spaces in this group")
   }
 

@@ -40,6 +40,10 @@ exports.es = {
   moderationYouFlaggedAPost: () => 'Has denunciado una publicación',
   moderationYouFlaggedPostEmailContent: ({ post, group }) => `Has denunciado la publicación "${post.summary()}" en el grupo ${group.get('name')} como violando un acuerdo de grupo. \n`,
   moderationYourPostWasFlagged: () => 'Tu publicación fue denunciada',
+  moderationPostClosedEmailSubject: () => 'Tu publicación fue cerrada',
+  moderationPostReopenedEmailSubject: () => 'Tu publicación fue reabierta',
+  moderationPostClosedEmailContent: ({ post, group, actor }) => `${actor.get('name')} cerró tu publicación "${post.summary()}" en el grupo ${group.get('name')}. \n`,
+  moderationPostReopenedEmailContent: ({ post, group, actor }) => `${actor.get('name')} reabrió tu publicación "${post.summary()}" en el grupo ${group.get('name')}. \n`,
   Name: () => 'Nombre',
   newSavedSearchResults: (name) => `Nuevos resultados de búsqueda guardados en ${name}`,
   recentActivityFrom: (name) => `Actividad reciente de ${name}`,
@@ -69,6 +73,13 @@ exports.es = {
   textForGroupPeerGroupInvite: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} invitó a tu grupo ${toGroup.get('name')} a formar una relación de pares con ${fromGroup.get('name')}`,
   textForGroupPeerGroupInviteAccepted: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} aceptó la relación de pares entre ${fromGroup.get('name')} y ${toGroup.get('name')}`,
   textForMemberJoinedGroup: ({ group, actor }) => `Un nuevo miembro se ha unido a ${group.get('name')}: ${actor.get('name')}`,
+  textForPostModeratedFulfillment: ({ post, actor, reason }) => {
+    const postName = post.summary()
+    if (reason === 'postUnfulfilled') {
+      return `${actor.get('name')} reabrió tu publicación "${postName}"`
+    }
+    return `${actor.get('name')} cerró tu publicación "${postName}"`
+  },
   textForPostMention: ({ groupName, person, postName }) => `${person} te mencionó en "${postName}" en ${groupName}`,
   textForPost: ({ firstTag, groupName, person, postName }) => `${person} publicó "${postName}" en ${groupName}${firstTag ? ` #${firstTag}` : ''}`,
   textForTrackCompleted: ({ actor, track }) => `Pista completada: "${track.get('name')}" fue completada por ${actor.get('name')}`,

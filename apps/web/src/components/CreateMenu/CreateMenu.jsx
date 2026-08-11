@@ -5,6 +5,7 @@ import { useDispatch } from 'react-redux'
 import Icon from 'components/Icon'
 import { POST_TYPES } from 'store/models/Post'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
+import { createGroupModalUrl } from 'routes/CreateGroup/createGroupUrl'
 
 const postTypes = Object.keys(POST_TYPES).filter(t => !['action', 'chat', 'submission'].includes(t))
 
@@ -44,7 +45,7 @@ export default function CreateMenu ({ coordinates, mapView }) {
             </Link>
           )
         })}
-        <Link to='/create-group' key='group' className='text-foreground transition-all hover:scale-105 hover:text-foreground group'>
+        <Link to={createGroupModalUrl(location)} key='group' onClick={handleLinkClick} className='text-foreground transition-all hover:scale-105 hover:text-foreground group'>
           <div className='flex text-base items-center p-0 rounded-lg border-2 border-foreground/20 hover:border-foreground/50 transition-all p-1 px-2'>
             <Icon name='Groups' className='mr-2' />
             <span className='text-base'>{t('Group')}</span>

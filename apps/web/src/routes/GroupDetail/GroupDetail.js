@@ -7,8 +7,10 @@ import { Tooltip } from 'react-tooltip'
 // import PropTypes from 'prop-types'
 import { useSelector, useDispatch } from 'react-redux'
 import { TextHelpers, WebViewMessageTypes } from '@hylo/shared'
+import { Bell, BellOff, Megaphone } from 'lucide-react'
 import Avatar from 'components/Avatar'
 import BadgeEmoji from 'components/BadgeEmoji'
+import SegmentedPicker from 'components/SegmentedPicker/SegmentedPicker'
 import ClickCatcher from 'components/ClickCatcher'
 import FarmGroupDetailBody from 'components/FarmGroupDetailBody'
 import GroupAboutVideoEmbed from 'components/GroupAboutVideoEmbed'
@@ -27,13 +29,6 @@ import {
   DialogHeader,
   DialogTitle
 } from 'components/ui/dialog'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from 'components/ui/select'
 import JoinSection from './JoinSection'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
@@ -405,26 +400,22 @@ function GroupDetail ({ forCurrentGroup = false }) {
             </div>)
           : ''}
         {isMember?.settings && (
-          <div className='border-2 border-dashed border-foreground/20 rounded-xl p-4 mb-4'>
-            <h3 className='text-xl font-bold py-2'>{t('Notification Settings')}</h3>
+          <div className='rounded-xl border border-foreground/10 bg-foreground/5 p-4 mb-4'>
+            <div className='flex items-center gap-2 mb-1.5'>
+              <Bell className='w-4 h-4 text-selected' />
+              <span className='text-sm font-bold text-foreground'>{t('Notification Settings')}</span>
+            </div>
             {isSpace
               ? (
-                <div className='flex items-center justify-between gap-2 py-2'>
-                  <span>{t('Receive new post notifications in this space for')}</span>
-                  <Select
-                    value={isMember.settings.postNotifications}
-                    onValueChange={value => updateMySettings({ postNotifications: value })}
-                  >
-                    <SelectTrigger className='inline-flex w-auto'>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value='none'>{t('No Posts')}</SelectItem>
-                      <SelectItem value='important'>{t('Important Posts (Announcements & Mentions)')}</SelectItem>
-                      <SelectItem value='all'>{t('Every Post')}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                <SegmentedPicker
+                  value={isMember.settings.postNotifications}
+                  onChange={value => updateMySettings({ postNotifications: value })}
+                  options={[
+                    { value: 'none', label: t('Mute'), icon: BellOff, description: t("You won't hear about new posts in this space.") },
+                    { value: 'important', label: t('Important'), icon: Megaphone, description: t('Only announcements and posts that mention you.') },
+                    { value: 'all', label: t('All'), icon: Bell, description: t('Every new post in this space.') }
+                  ]}
+                />
                 )
               : (
                 <GroupMembershipNotificationSettings
