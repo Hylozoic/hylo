@@ -14,6 +14,7 @@ import GroupViewIcon from 'routes/AuthLayoutRouter/components/ContextMenu/GroupV
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { getGroupViews } from 'store/selectors/getGroupViews'
+import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import { viewAcceptedByPostTypes } from 'store/models/GroupView'
 import getMe from 'store/selectors/getMe'
 import getPreviousLocation from 'store/selectors/getPreviousLocation'
@@ -46,10 +47,13 @@ function resolveSpaceMenuView (parentGroup, groupViews, parentSlug, spaceSlug) {
 
 const ViewHeader = () => {
   const dispatch = useDispatch()
-  const { context, groupSlug, spaceSlug } = useRouteParams()
+  const { context, groupSlug, spaceSlug: routeSpaceSlug } = useRouteParams()
   const navigate = useNavigate()
   const location = useLocation()
   const { t } = useTranslation()
+  // More Views edit/drill-in uses ?space= on /more-views rather than the space route.
+  const isMoreViewsPath = location.pathname.replace(/\/$/, '').endsWith('/more-views')
+  const spaceSlug = routeSpaceSlug || (isMoreViewsPath ? getQuerystringParam('space', location) : null)
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
   const groupViews = useSelector(state => spaceSlug ? getGroupViews(state, group) : null)
   const currentUser = useSelector(getMe)
@@ -72,14 +76,16 @@ const ViewHeader = () => {
 
   // A single-view space (e.g. chat-only) opens straight into its one view, so the
   // breadcrumb shows just the space — repeating the lone view's title is noise.
+  // More Views is a separate page (space > More Views…), so never collapse it.
   const isSingleViewSpace = useMemo(() => {
+    if (isMoreViewsPath) return false
     const spaceGroup = presentedSpaceView?.linkedGroup
     if (!spaceGroup) return false
     const visibleViews = (spaceGroup.groupViews?.items || [])
       .filter(v => v.order != null)
       .filter(v => viewAcceptedByPostTypes(v.type, spaceGroup.acceptedPostTypes))
     return visibleViews.length === 1
-  }, [presentedSpaceView])
+  }, [presentedSpaceView, isMoreViewsPath])
 
   const [searchValue, setSearchValue] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
