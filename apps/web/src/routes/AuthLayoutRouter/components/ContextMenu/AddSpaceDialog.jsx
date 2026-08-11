@@ -17,7 +17,7 @@ import PostTypePills from 'components/PostTypePills/PostTypePills'
 import TagInput from 'components/TagInput'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import { CUSTOM_VIEW_DEFAULT_POST_TYPES, CUSTOM_VIEW_POST_TYPE_OPTIONS } from 'components/CustomViewForm/customViewFormConstants'
-import { addQuerystringToPath, localSpaceSlug, spaceUrl } from '@hylo/navigation'
+import { addQuerystringToPath, groupUrl, localSpaceSlug } from '@hylo/navigation'
 import { createSpace, createGroupView } from 'store/actions/groupViews'
 import fetchForCurrentUser from 'store/actions/fetchForCurrentUser'
 import fetchForGroup from 'store/actions/fetchForGroup'
@@ -298,10 +298,13 @@ export default function AddSpaceDialog ({ group, onClose, addToMenu = true }) {
         addToMenu === false && group?.slug ? dispatch(fetchForGroup(group.slug)) : Promise.resolve()
       ])
       onClose()
-      // Land on the space that was just created rather than back on the menu that
-      // created it; fall back to staying put if the mutation returned no slug.
+      // Same destination as opening a space while editing: more-views with that
+      // space drilled in, still in edit menu mode. Fall back to staying put.
       if (newSpace?.slug && group?.slug) {
-        navigate(spaceUrl(group.slug, localSpaceSlug(group.slug, newSpace.slug)))
+        navigate(addQuerystringToPath(groupUrl(group.slug, 'more-views'), {
+          edit: 'true',
+          space: localSpaceSlug(group.slug, newSpace.slug)
+        }))
       } else {
         navigate(addQuerystringToPath(routerLocation.pathname, { edit: 'true' }))
       }
