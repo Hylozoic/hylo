@@ -1,5 +1,5 @@
 import { Info, Settings, Users } from 'lucide-react'
-import React, { useState, useEffect, useLayoutEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
@@ -30,8 +30,6 @@ export default function GroupMenuHeader ({
   const [textColor, setTextColor] = useState('background')
   const canAdminister = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADMINISTRATION, groupId: group?.id }))
   const groupNameRef = React.useRef(null)
-  const [showMembers, setShowMembers] = useState(true)
-  const [forceUpdate, setForceUpdate] = useState(0)
 
   // Helper to navigate and close the menu
   const navigateAndClose = useCallback((path) => {
@@ -68,36 +66,17 @@ export default function GroupMenuHeader ({
     }
   }, [bannerUrl])
 
-  // Change React.useLayoutEffect to useLayoutEffect
-  useLayoutEffect(() => {
-    if (groupNameRef.current) {
-      const computedLineHeight = parseInt(window.getComputedStyle(groupNameRef.current).lineHeight)
-      const elementHeight = groupNameRef.current.clientHeight
-      const shouldShowMembers = elementHeight <= computedLineHeight
-      // Only update state if it's different to avoid infinite loops
-      if (shouldShowMembers !== showMembers) {
-        setShowMembers(shouldShowMembers)
-      }
-    }
-  }, [group.id, group.name, forceUpdate, showMembers])
-
-  // Add a second effect to handle potential race conditions
-  useEffect(() => {
-    // Force a measurement update after a short delay
-    const timer = setTimeout(() => {
-      setForceUpdate(prev => prev + 1)
-    }, 50)
-    return () => clearTimeout(timer)
-  }, [group.id])
-
   // Controls share one fade so compact mode dismisses them in a single motion
   const controlFade = cn('transition-opacity duration-300', compact && 'opacity-0 pointer-events-none')
 
   return (
     <div
       className={cn(
-        'GroupMenuHeader relative flex flex-col justify-end p-2 bg-cover shadow-md transition-[height] duration-300 ease-out',
-        compact ? 'h-12' : 'h-[190px]'
+        'GroupMenuHeader group/menuHeader relative flex flex-col justify-end p-2 bg-cover shadow-md transition-[height] duration-300 ease-out',
+        // min-h: names too long even for the banner grow the header rather
+        // than clipping; justify-end keeps the extra lines eating upward into
+        // the banner space first
+        compact ? 'h-12 hover:h-14' : 'min-h-[190px]'
       )}
       data-testid='group-header'
     >
@@ -112,8 +91,8 @@ export default function GroupMenuHeader ({
         aria-label={t('Back')}
         aria-hidden={!compact}
         className={cn(
-          'absolute inset-0 z-30 bg-gradient-to-t from-[hsl(var(--theme-background)/0.1)] dark:from-[hsl(var(--theme-background)/0.5)] to-[hsl(var(--theme-background)/0)] transition-opacity duration-300',
-          compact ? 'opacity-100 cursor-pointer' : 'opacity-0 pointer-events-none'
+          'absolute inset-0 z-30 bg-gradient-to-t from-[hsl(var(--theme-background)/0.6)] dark:from-[hsl(var(--theme-background)/0.85)] to-[hsl(var(--theme-background)/0.15)] transition-opacity duration-300',
+          compact ? 'opacity-100 cursor-pointer group-hover/menuHeader:opacity-0' : 'opacity-0 pointer-events-none'
         )}
       />
       <div className={cn('absolute top-2 left-2 z-20', controlFade)}>
@@ -126,7 +105,7 @@ export default function GroupMenuHeader ({
           </button>
         </div>
       )}
-      <div className='relative flex flex-row items-center text-background z-20'>
+      <div className='relative flex flex-row items-start text-background z-20'>
         <div
           style={group.avatarUrl !== DEFAULT_AVATAR ? bgImageStyle(avatarUrl) : {}}
           className={cn(
@@ -157,7 +136,10 @@ export default function GroupMenuHeader ({
               ref={groupNameRef}
               className={cn(
                 'GroupMenuHeaderName font-bold m-0 text-white transition-all duration-300',
-                compact ? 'text-base/5 line-clamp-1' : 'text-xl/5 line-clamp-2'
+                // Full-size shows the whole name; justify-end anchors the block's
+                // bottom so extra lines grow upward over the banner instead of
+                // pushing the member pills below out of frame
+                compact ? 'text-base/5 line-clamp-1' : 'text-xl/5'
               )}
             >
               {group.name}
@@ -167,7 +149,7 @@ export default function GroupMenuHeader ({
           <span
             className={cn(
               'group text-xs align-middle text-white flex items-center gap-1 overflow-hidden transition-all duration-300',
-              (compact || !showMembers) ? 'opacity-0 max-h-0 pointer-events-none' : 'opacity-100 max-h-7 mt-1'
+              compact ? 'opacity-0 max-h-0 pointer-events-none' : 'opacity-100 max-h-7 mt-1.5'
             )}
           >
             <Link
@@ -188,7 +170,13 @@ export default function GroupMenuHeader ({
           </span>
         </div>
         <Info
-          className={cn(`text-${textColor} cursor-pointer w-[20px] h-[20px] text-white hover:scale-110 transition-all`, controlFade)}
+          className={cn(
+            `text-${textColor} cursor-pointer w-[20px] h-[20px] shrink-0 text-white hover:scale-110 transition-all`,
+            // Sits on the avatar's centre line while the row itself is top-aligned,
+            // so a name that wraps to three lines doesn't drag it down the banner.
+            compact ? 'mt-1' : 'mt-2.5',
+            controlFade
+          )}
           onClick={() => navigateAndClose(groupUrl(group.slug, 'about', {}))}
         />
       </div>

@@ -1,14 +1,13 @@
 /* eslint-disable no-unused-expressions */
 import setup from '../../../test/setup'
 import factories from '../../../test/setup/factories'
-import { assignCoordinator, ensureManageSpacesResponsibility } from '../../../test/setup/roleHelpers'
+import { assignCoordinator } from '../../../test/setup/roleHelpers'
 import { archiveSpace, createSpace, deleteSpace } from './spaces'
 
 describe('space mutations', () => {
   let coordinator, member, parentGroup
 
   before(async () => {
-    await ensureManageSpacesResponsibility()
     coordinator = await factories.user().save()
     member = await factories.user().save()
     parentGroup = await factories.group().save()

@@ -25,7 +25,7 @@ import {
 } from 'routes/GroupSettings/GroupSettings.store'
 import {
   CREATE_GROUP
-} from 'components/CreateGroup/CreateGroup.store'
+} from 'routes/CreateGroup/CreateGroup.store'
 import {
   REMOVE_MEMBER_PENDING
 } from 'routes/Members/Members.store'

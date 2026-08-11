@@ -504,7 +504,18 @@ export default function ViewContent (props) {
 
   const noPostsMessage = view === 'events'
     ? t('No {{timeFrame}} events', { timeFrame: timeframe === 'future' ? t('upcoming') : t('past') })
-    : t('Nothing here yet — be the first to post')
+    : t('Nothing here yet')
+
+  // The empty-state create button pre-selects the view's post type when there
+  // is exactly one (events view, a filtered stream, a single-type custom view)
+  const createFromEmpty = useCallback(() => {
+    const type = postTypeFilter || (postTypesForPrompt?.length === 1 ? postTypesForPrompt[0] : null)
+    const params = { ...querystringParams }
+    if (type) params.newPostType = type
+    dispatch(push(createPostUrl(routeParams, params)))
+  }, [dispatch, routeParams, querystringParams, postTypeFilter, postTypesForPrompt])
+
+  const showEmptyStream = !pending && !topicBlockingStreams && !customViewLoading && posts.length === 0
 
   const calendarInitialLoading = (pending || topicBlockingStreams || customViewLoading) && isCalendarViewMode && posts.length === 0
   const calendarFetchingMore = pending && isCalendarViewMode && posts.length > 0
@@ -621,11 +632,12 @@ export default function ViewContent (props) {
                     'my-[5px] mx-auto overflow-visible w-full',
                     viewMode === 'grid' && 'grid grid-cols-2 min-[426px]:grid-cols-3 items-start gap-x-2 p-2',
                     viewMode === 'bigGrid' && 'grid grid-cols-2 items-start gap-x-2 p-2',
-                    viewMode === 'list' && 'border-2 border-foreground/10 rounded-md bg-card overflow-hidden'
+                    viewMode === 'list' && posts.length > 0 && 'border-2 border-foreground/10 rounded-md bg-card overflow-hidden',
+                    showEmptyStream && 'flex-1 flex flex-col justify-center'
                   )}
                 >
 
-                  {!pending && !topicBlockingStreams && !customViewLoading && posts.length === 0 ? <NoPosts message={noPostsMessage} /> : ''}
+                  {showEmptyStream ? <NoPosts message={noPostsMessage} actionLabel={hasPostPrompt ? t('Create something') : null} onAction={createFromEmpty} /> : ''}
 
                   {posts.map(post => (
                     <ViewComponent

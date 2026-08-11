@@ -98,7 +98,7 @@ export default function FeaturedGroups ({ groupIds = [] }) {
                   />
                 </div>
                 <div className='text-white'>
-                  <h3 className='text-xl font-bold mb-1 flex items-center gap-2'>
+                  <h3 className='text-xl font-bold mb-1 flex items-center gap-2 text-white'>
                     {group.name}
                     {group.paywall && (
                       <>

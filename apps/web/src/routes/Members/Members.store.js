@@ -3,6 +3,7 @@ import { get } from 'lodash/fp'
 import { makeGetQueryResults, makeQueryResultsModelSelector } from 'store/reducers/queryResults'
 
 export const FETCH_MEMBERS = 'FETCH_MEMBERS'
+export const FETCH_MEMBERS_FOR_GRAPH = 'FETCH_MEMBERS_FOR_GRAPH'
 
 export const REMOVE_MEMBER = 'REMOVE_MEMBER'
 export const REMOVE_MEMBER_PENDING = REMOVE_MEMBER + '_PENDING'
@@ -14,6 +15,23 @@ query FetchGroupMembers ($slug: String, $groupId: ID, $first: Int, $sortBy: Stri
     name
     avatarUrl
     memberCount
+    groupRoles {
+      items {
+        id
+        name
+        emoji
+        active
+        groupId
+        membersTotal
+        responsibilities {
+          items {
+            id
+            title
+            description
+          }
+        }
+      }
+    }
     members (first: $first, sortBy: $sortBy, order: $order, offset: $offset, search: $search, groupRoleId: $groupRoleId) {
       items {
         id
@@ -62,6 +80,47 @@ query FetchGroupMembers ($slug: String, $groupId: ID, $first: Int, $sortBy: Stri
     }
   }
 }`
+
+// Lean query for the skills graph: the whole membership with just enough to
+// draw nodes, independent of the paginated/filtered directory list below it
+const membersForGraphQuery = `
+query FetchGroupMembersForGraph ($slug: String, $first: Int) {
+  group (slug: $slug) {
+    id
+    members (first: $first, sortBy: "name", order: "asc") {
+      items {
+        id
+        name
+        avatarUrl
+        skills {
+          items {
+            id
+            name
+          }
+        }
+      }
+      hasMore
+    }
+  }
+}`
+
+export function fetchMembersForGraph ({ slug, first = 2000 }) {
+  return {
+    type: FETCH_MEMBERS_FOR_GRAPH,
+    graphql: {
+      query: membersForGraphQuery,
+      variables: { slug, first }
+    },
+    meta: {
+      extractModel: 'Group',
+      extractQueryResults: {
+        getItems: get('payload.data.group.members'),
+        replace: true,
+        getRouteParams: action => ({ slug: action.meta.graphql.variables.slug })
+      }
+    }
+  }
+}
 
 function defaultOrderForSort (sortBy) {
   if (sortBy === 'join' || sortBy === 'last_active_at') return 'desc'
@@ -142,6 +201,22 @@ export const getHasFetchedMembers = createSelector(
 
 export const getMembers = makeQueryResultsModelSelector(
   getMemberResults,
+  'Person',
+  person => ({
+    ...person.ref,
+    skills: person.skills.toModelArray()
+  })
+)
+
+const getGraphMemberResults = makeGetQueryResults(FETCH_MEMBERS_FOR_GRAPH)
+
+export const getHasFetchedGraphMembers = createSelector(
+  getGraphMemberResults,
+  results => results != null
+)
+
+export const getGraphMembers = makeQueryResultsModelSelector(
+  getGraphMemberResults,
   'Person',
   person => ({
     ...person.ref,

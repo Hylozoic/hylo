@@ -30,7 +30,7 @@ import {
   getParentGroups,
   getPeerGroups
 } from 'store/selectors/getGroupRelationships'
-import { RESP_ADMINISTRATION, RESP_MANAGE_SPACES, FETCH_GROUP_SPACES, FETCH_GROUP_RELATIONSHIPS, FETCH_GROUP_VIEWS } from 'store/constants'
+import { RESP_ADMINISTRATION, FETCH_GROUP_SPACES, FETCH_GROUP_RELATIONSHIPS, FETCH_GROUP_VIEWS } from 'store/constants'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import getMe from 'store/selectors/getMe'
@@ -413,7 +413,7 @@ function MoreSpacesCard ({ onClick, t }) {
           </div>
         </div>
         <div className='absolute left-0 right-0 top-[calc(50%+28px)] bottom-0 flex flex-col items-center justify-center text-center px-3'>
-          <h3 className={cn(CARD_TITLE_CLASS, isDark ? 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]' : 'text-foreground')}>{t('More Views and Spaces')}</h3>
+          <h3 className={cn(CARD_TITLE_CLASS, isDark ? 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]' : 'text-foreground')}>{t('More')}</h3>
         </div>
       </div>
     </div>
@@ -432,7 +432,7 @@ function useMoreSpacesContent (group) {
   const { t } = useTranslation()
   const sectionsRaw = useSelector(state => getMoreViewsSections(state, group))
   const canManageSpaces = useSelector(state => hasResponsibilityForGroup(state, {
-    responsibility: RESP_MANAGE_SPACES,
+    responsibility: RESP_ADMINISTRATION,
     groupId: group?.id
   }))
   const publishedOfferings = usePublishedOfferings(group?.id)
@@ -713,10 +713,6 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
     responsibility: RESP_ADMINISTRATION,
     groupId: (spaceGroup || group)?.id
   }))
-  const canManageSpaces = useSelector(state => hasResponsibilityForGroup(state, {
-    responsibility: RESP_MANAGE_SPACES,
-    groupId: group?.id
-  }))
   const isEditing = !isContextMode && getQuerystringParam('edit', location) === 'true' && canAdminister && !isMoreSpacesLevel
   const [settingsView, setSettingsView] = useState(null)
   const [showAddView, setShowAddView] = useState(false)
@@ -775,11 +771,11 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
     const views = (groupViews || [])
       .filter(view => view.order != null)
       .filter(view => viewAcceptedByPostTypes(view.type, menuGroup?.acceptedPostTypes))
-    if (spaceGroup?.fundingRound?.id && canManageSpaces) {
+    if (spaceGroup?.fundingRound?.id && canAdminister) {
       return [...views, MANAGE_ROUND_VIEW]
     }
     return views
-  }, [isContextMode, context, currentUser?.id, groupViews, menuGroup?.acceptedPostTypes, spaceGroup?.fundingRound?.id, canManageSpaces])
+  }, [isContextMode, context, currentUser?.id, groupViews, menuGroup?.acceptedPostTypes, spaceGroup?.fundingRound?.id, canAdminister])
 
   const sections = useMemo(() => partitionViewsIntoSections(visibleViews), [visibleViews])
 
@@ -821,7 +817,7 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
   }, [isEditing, location.pathname, location.search, navigate])
 
   const nestedTitle = isMoreSpacesLevel
-    ? t('More Views and Spaces')
+    ? t('More')
     : (spaceGroup?.name || t('Space'))
 
   return (
@@ -923,14 +919,14 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
                 {/* One Add slot; its menu explains the view/space distinction */}
                 <div className='flex flex-wrap gap-3'>
                   <AddViewOrSpaceMenu
-                    canAddSpace={!spaceGroup && canManageSpaces}
+                    canAddSpace={!spaceGroup && canAdminister}
                     onChooseView={() => setShowAddView(true)}
                     onChooseSpace={() => setShowAddSpace(true)}
                   />
                 </div>
                 {!spaceGroup && (
                   <div className='flex flex-col gap-3 pt-4 border-t border-foreground/10'>
-                    <TextSection>{t('More Views and Spaces')}</TextSection>
+                    <TextSection>{t('More')}</TextSection>
                     <MoreSpacesGrid
                       group={group}
                       groupSlug={groupSlug}

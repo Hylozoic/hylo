@@ -86,7 +86,8 @@ export default function AddViewOrSpaceMenu ({ onChooseView, onChooseSpace, canAd
           <DropdownMenuItem
             key={key}
             onSelect={onChoose}
-            className='flex items-start gap-2.5 p-2.5 cursor-pointer'
+            // Same hover wash as the global + create menu's rows
+            className='flex items-start gap-2.5 p-2.5 cursor-pointer rounded-lg focus:bg-foreground/10 focus:text-foreground'
           >
             <Icon className='w-4 h-4 shrink-0 mt-0.5 text-foreground/70' />
             <span className='flex flex-col gap-0.5 min-w-0'>
