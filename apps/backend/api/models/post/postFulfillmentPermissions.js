@@ -13,7 +13,7 @@ export function postCanBeFulfilled (post) {
   return true
 }
 
-/** True when user has Administration or Manage Content in every group the post belongs to. */
+/** True when user has Administration or Manage Content in any group the post belongs to. */
 export async function canFulfillPostAsModerator (userId, post) {
   if (!postCanBeFulfilled(post)) return false
   await post.load('groups')
@@ -25,9 +25,9 @@ export async function canFulfillPostAsModerator (userId, post) {
     const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, group.id)
     const canModerate = responsibilities.includes(RESP_ADMINISTRATION) ||
       responsibilities.includes(RESP_MANAGE_CONTENT)
-    if (!canModerate) return false
+    if (canModerate) return true
   }
-  return true
+  return false
 }
 
 /** Throws when the user cannot fulfill or unfulfill this post. */

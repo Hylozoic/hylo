@@ -325,32 +325,33 @@ describe('fulfillPost and unfulfillPost', () => {
     expect(offerPost.get('fulfilled_at')).to.exist
   })
 
-  it('allows a moderator to fulfill a multi-group post when they have responsibilities in all groups', async () => {
-    await moderator.joinGroup(group2)
-    const moderatorRole2 = await GroupRole.findSystemRole(group2.id, 'Moderator')
+  it('allows a moderator to fulfill a multi-group post when they have responsibilities in any one group', async () => {
+    const moderatorOneGroup = await factories.user().save()
+    await moderatorOneGroup.joinGroup(group)
+    const moderatorRoleOneGroup = await GroupRole.findSystemRole(group.id, 'Moderator')
     await MemberGroupRole.forge({
-      user_id: moderator.id,
-      group_id: group2.id,
-      group_role_id: moderatorRole2.id,
+      user_id: moderatorOneGroup.id,
+      group_id: group.id,
+      group_role_id: moderatorRoleOneGroup.id,
       active: true
     }).save()
 
     const multiGroupPost = await factories.post({ type: 'offer', user_id: author.id }).save()
     await multiGroupPost.groups().attach([group.id, group2.id])
 
-    const result = await fulfillPost(moderator.id, multiGroupPost.id)
+    const result = await fulfillPost(moderatorOneGroup.id, multiGroupPost.id)
     expect(result).to.deep.equal({ success: true })
     await multiGroupPost.refresh()
     expect(multiGroupPost.get('fulfilled_at')).to.exist
     expect(Activity.saveForReasons).to.have.been.called
   })
 
-  it('rejects a moderator fulfilling a multi-group post when missing responsibility in one group', async () => {
+  it('rejects a moderator fulfilling a post when they have no responsibilities in any of its groups', async () => {
     const multiGroupPost = await factories.post({ type: 'offer', user_id: author.id }).save()
     await multiGroupPost.groups().attach([group.id, group2.id])
 
     try {
-      await fulfillPost(moderator.id, multiGroupPost.id)
+      await fulfillPost(otherUser.id, multiGroupPost.id)
       expect.fail('should reject')
     } catch (e) {
       expect(e.message).to.equal("You don't have permission to modify this post")
