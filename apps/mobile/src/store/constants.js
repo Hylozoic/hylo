@@ -5,6 +5,3 @@ export const LOGOUT = 'LOGOUT'
 export const RESET_STORE = 'RESET_STORE'
 export const SET_STATE = 'SET_STATE'
 export const UPLOAD = 'UPLOAD'
-
-// Responsibilities
-export const RESP_MANAGE_SPACES = 'Manage Spaces'

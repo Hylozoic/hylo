@@ -1186,8 +1186,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
       }
 
       if (notifyGroup) {
-        const manageSpacesResponsibility = await Responsibility.where({ title: Responsibility.constants.RESP_MANAGE_SPACES }).fetch({ transacting: trx })
-        const stewards = await notifyGroup.membersWithResponsibilities([manageSpacesResponsibility.id]).fetch({ transacting: trx })
+        const adminResponsibility = await Responsibility.where({ title: Responsibility.constants.RESP_ADMINISTRATION }).fetch({ transacting: trx })
+        const stewards = await notifyGroup.membersWithResponsibilities([adminResponsibility.id]).fetch({ transacting: trx })
         const stewardsIds = stewards.pluck('id')
         const activities = stewardsIds.map(stewardId => ({
           reason: 'trackCompleted',

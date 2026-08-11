@@ -35,7 +35,7 @@ import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import logout from 'store/actions/logout'
-import { FETCH_GROUP_VIEWS, RESP_ADMINISTRATION, RESP_MANAGE_SPACES } from 'store/constants'
+import { FETCH_GROUP_VIEWS, RESP_ADMINISTRATION } from 'store/constants'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { getGroupViews } from 'store/selectors/getGroupViews'
 import { getMoreViewsSections } from 'store/selectors/getMoreSpacesSections'
@@ -134,7 +134,7 @@ function GroupViewMenuItem ({
   const presentedView = useMemo(() => GroupViewPresenter(view), [view])
   const myMemberships = useSelector(getMyMemberships)
   const canManageRound = useSelector(state => hasResponsibilityForGroup(state, {
-    responsibility: RESP_MANAGE_SPACES,
+    responsibility: RESP_ADMINISTRATION,
     groupId: view?.linkedGroup?.parentId
   }))
   // Prefer the space Group's ORM menu / acceptedPostTypes over the parent's nested
@@ -445,13 +445,13 @@ function GroupViewList ({
   spaceMenuView = null,
   isEditing,
   onOpenSettings,
-  canManageSpaces,
-  canManageRound = false,
-  hideAddSpace = false
+  canAdminister = false
 }) {
   const { t } = useTranslation()
   const [showAddView, setShowAddView] = useState(false)
   const [showAddSpace, setShowAddSpace] = useState(false)
+  // Spaces cannot nest spaces; Add Space is parent-menu only
+  const canAddSpace = canAdminister && !spaceGroup
 
   const handleOpenSpaceSettings = useCallback(() => {
     if (!spaceGroup || !onOpenSettings) return
@@ -489,11 +489,11 @@ function GroupViewList ({
             trigger={<AddViewOrSpaceButton className='p-1 pl-2' />}
             onChooseView={() => setShowAddView(true)}
             onChooseSpace={() => setShowAddSpace(true)}
-            canAddSpace={canManageSpaces && !hideAddSpace}
+            canAddSpace={canAddSpace}
           />
         </div>
         {showAddView && <AddGroupViewDialog group={group} groupViews={groupViews} acceptedPostTypes={group?.acceptedPostTypes} onClose={() => setShowAddView(false)} />}
-        {showAddSpace && !hideAddSpace && <AddSpaceDialog group={group} onClose={() => setShowAddSpace(false)} />}
+        {showAddSpace && canAddSpace && <AddSpaceDialog group={group} onClose={() => setShowAddSpace(false)} />}
       </div>
     )
   }
@@ -505,7 +505,7 @@ function GroupViewList ({
     .filter(view => viewAcceptedByPostTypes(view.type, group?.acceptedPostTypes))
 
   // Synthetic steward item for funding-round spaces — always last, not in the DB.
-  const menuViews = (spaceGroup?.fundingRound?.id && canManageRound)
+  const menuViews = (spaceGroup?.fundingRound?.id && canAdminister)
     ? [...visibleViews, MANAGE_ROUND_VIEW]
     : visibleViews
 
@@ -548,7 +548,6 @@ export default function ContextMenu (props) {
   const routeSpaceSlug = routeParams.spaceSlug
   const group = useSelector(state => currentGroup || getGroupForSlug(state, groupSlug))
   const canAdminister = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADMINISTRATION, groupId: group?.id }))
-  const canManageSpaces = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_MANAGE_SPACES, groupId: group?.id }))
   const isEditing = getQuerystringParam('edit', location) === 'true' && canAdminister
   const [settingsView, setSettingsView] = useState(null)
   // The width-drag strip measures its seam position from this element
@@ -593,9 +592,9 @@ export default function ContextMenu (props) {
     // Managers always see paywalled spaces; others only when a published offering grants access
     return filterSpaceViewsForMenuVisibility(views, {
       offerings: publishedOfferings,
-      canManageSpaces: canManageSpaces || isEditing
+      canManageSpaces: canAdminister
     })
-  }, [staticMenuViews, fetchedGroupViews, publishedOfferings, canManageSpaces, isEditing])
+  }, [staticMenuViews, fetchedGroupViews, publishedOfferings, canAdminister])
 
   const { spaceView: activeSpaceView, spaceGroup: linkedActiveSpaceGroup } = useMemo(
     () => findSpaceForSlug(fetchedGroupViews, group, groupSlug, spaceSlug),
@@ -913,7 +912,7 @@ export default function ContextMenu (props) {
                   >
                     <X className='w-5 h-5' />
                   </button>
-                  {canManageSpaces && activeSpaceView && (
+                  {canAdminister && activeSpaceView && (
                     <button
                       type='button'
                       onClick={() => setSettingsView(activeSpaceView)}
@@ -1008,9 +1007,7 @@ export default function ContextMenu (props) {
                       spaceMenuView={activeSpaceView}
                       isEditing={isEditing}
                       onOpenSettings={setSettingsView}
-                      canManageSpaces={false}
-                      canManageRound={canManageSpaces}
-                      hideAddSpace
+                      canAdminister={canAdminister}
                     />
                     )
                   : spaceViewsLoading
@@ -1031,7 +1028,7 @@ export default function ContextMenu (props) {
                   spaceSlug={spaceSlug}
                   isEditing={isEditing}
                   onOpenSettings={setSettingsView}
-                  canManageSpaces={canManageSpaces}
+                  canAdminister={canAdminister}
                 />
                 )
               : groupViewsLoading
