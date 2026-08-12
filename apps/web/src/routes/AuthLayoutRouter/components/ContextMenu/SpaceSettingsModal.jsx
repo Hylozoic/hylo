@@ -61,8 +61,11 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, group, onC
   }))
   const [requiredRoles, setRequiredRoles] = useState(() => {
     const roleIds = space?.requiredRoles || []
-    const roleById = new Map((space?.groupRoles?.items || []).map(role => [role.id, role]))
-    return roleIds.map(id => roleById.get(id)).filter(Boolean)
+    const sourceRoles = (space?.groupRoles?.items?.length > 0
+      ? space.groupRoles.items
+      : (group?.groupRoles?.items || []))
+    const roleById = new Map(sourceRoles.map(role => [String(role.id), role]))
+    return roleIds.map(id => roleById.get(String(id))).filter(Boolean)
   })
   const [roleSearchTerm, setRoleSearchTerm] = useState(null)
   const [isSaving, setIsSaving] = useState(false)

@@ -58,9 +58,15 @@ class TagInput extends Component {
 
     this.input = React.createRef()
     this.list = React.createRef()
+    this.blurTimeout = null
   }
 
   input = React.createRef()
+
+  componentWillUnmount () {
+    if (this.blurTimeout) clearTimeout(this.blurTimeout)
+  }
+
   focus = () => {
     if (this.input.current && !this.props.readOnly) {
       this.input.current.focus()
@@ -102,6 +108,7 @@ class TagInput extends Component {
   }
 
   select = choice => {
+    if (this.blurTimeout) clearTimeout(this.blurTimeout)
     this.props.handleAddition(choice)
     this.resetInput()
   }
@@ -119,14 +126,18 @@ class TagInput extends Component {
   }
 
   handleFocus = (e) => {
+    if (this.blurTimeout) clearTimeout(this.blurTimeout)
     this.handleChange('')
     this.props.onFocus?.(e) // Propagate focus up
   }
 
   handleBlur = (e) => {
-    this.input.current.value = ''
-    this.handleChange(null)
-    this.props.onBlur?.(e) // Propagate blur up
+    // Delay so a suggestion click can add the tag before the list unmounts
+    this.blurTimeout = setTimeout(() => {
+      if (this.input.current) this.input.current.value = ''
+      this.handleChange(null)
+      this.props.onBlur?.(e)
+    }, 150)
   }
 
   handleChange = debounce(value => {
@@ -226,7 +237,10 @@ class TagInput extends Component {
               />
             </div>
             {!isEmpty(suggestionsOrError) &&
-              <div className='TagInput-suggestions absolute top-full left-0 w-full z-10'>
+              <div
+                className='TagInput-suggestions absolute top-full left-0 w-full z-10'
+                onMouseDown={event => event.preventDefault()}
+              >
                 <KeyControlledItemList
                   items={suggestionsOrError}
                   tagType={tagType}
