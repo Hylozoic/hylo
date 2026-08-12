@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { BadgeDollarSign, ImagePlus, Layers, MessageCircleMore, Plus, Shapes } from 'lucide-react'
 
@@ -25,7 +25,9 @@ import fetchGroupViews from 'store/actions/fetchGroupViews'
 import { createTrack } from 'store/actions/trackActions'
 import { createFundingRound } from 'routes/FundingRounds/FundingRounds.store'
 import { POST_TYPE_TO_VIEW_TYPE } from 'store/models/GroupView'
+import getMe from 'store/selectors/getMe'
 import { cn } from 'util/index'
+import { isOneColumnLayout } from 'util/navigationLayout'
 
 import FundingRoundSettingsFields from './FundingRoundSettingsFields'
 import { SPACE_ICON_SUGGESTIONS, accessOptionsForGroup, toIsoOrNull } from './spaceFormConstants'
@@ -94,6 +96,11 @@ export default function AddSpaceDialog ({ group, onClose, addToMenu = true }) {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const routerLocation = useLocation()
+  const currentUser = useSelector(getMe)
+  const isOneColumn = isOneColumnLayout(
+    currentUser?.settings?.groupNavStyle,
+    group?.settings?.layout
+  )
 
   const [spaceType, setSpaceType] = useState('custom')
   const [name, setName] = useState('')
@@ -298,8 +305,10 @@ export default function AddSpaceDialog ({ group, onClose, addToMenu = true }) {
         addToMenu === false && group?.slug ? dispatch(fetchForGroup(group.slug)) : Promise.resolve()
       ])
       onClose()
-      // Same destination as opening a space while editing: more-views with that
-      // space drilled in, still in edit menu mode. Fall back to staying put.
+      // Two-column: open the new space's more-views so its included views can be
+      // edited in the center column. One-column: the space is already on the menu
+      // grid — stay there.
+      if (isOneColumn) return
       if (newSpace?.slug && group?.slug) {
         navigate(addQuerystringToPath(groupUrl(group.slug, 'more-views'), {
           edit: 'true',
@@ -313,7 +322,7 @@ export default function AddSpaceDialog ({ group, onClose, addToMenu = true }) {
     } finally {
       setIsCreating(false)
     }
-  }, [dispatch, group?.id, name, description, icon, bannerUrl, purpose, locationObject, postTypes, access, requiredRoles, spaceType, orderedRows, standardViewTypes, onClose, navigate, routerLocation.pathname, addToMenu, frPublishedAt, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frHideFinalResults, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles])
+  }, [dispatch, group?.id, name, description, icon, bannerUrl, purpose, locationObject, postTypes, access, requiredRoles, spaceType, orderedRows, standardViewTypes, onClose, navigate, routerLocation.pathname, addToMenu, isOneColumn, frPublishedAt, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frHideFinalResults, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles])
 
   // Portal above AuthLayout nav stacking so access radios / FR checkboxes remain clickable.
   return createPortal(
