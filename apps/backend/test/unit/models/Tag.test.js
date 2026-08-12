@@ -31,6 +31,32 @@ describe('Tag', () => {
       })
     })
 
+    it('sets tag_names to the lowercased unique names', () => {
+      var post = new Post({
+        name: 'Cached Tags Post'
+      })
+      return post.save()
+      .then(post => Tag.updateForPost(post, ['CacheTagOne', 'cachetagtwo', 'CacheTagOne']))
+      .then(() => post.refresh())
+      .then(() => {
+        expect(post.tagNames()).to.deep.equal(['cachetagone', 'cachetagtwo'])
+      })
+    })
+
+    it('sets tag_names to an empty array when tagNames is empty', () => {
+      var post = new Post({
+        name: 'Clear Tags Post'
+      })
+      var tag = new Tag({ name: 'cleartag' })
+      return Promise.join(post.save(), tag.save(), (post, tag) =>
+        Tag.updateForPost(post, ['cleartag']))
+      .then(() => Tag.updateForPost(post, []))
+      .then(() => post.refresh())
+      .then(() => {
+        expect(post.tagNames()).to.deep.equal([])
+      })
+    })
+
     it('attaches an existing tag from topicNames param', () => {
       var post = new Post({
         name: 'New Tagged Post Two',
@@ -99,6 +125,19 @@ describe('Tag', () => {
           expect(tag).to.exist
           expect(tag.relations.posts.length).to.equal(1)
           expect(tag.relations.posts.models[0].get('name')).to.equal('Tagged Post Keep Tags')
+        })
+    })
+
+    it('does not change tag_names when tagNames is undefined', () => {
+      var post = new Post({
+        name: 'Keep Cache Post',
+        tag_names: ['keepcachetag']
+      })
+      return post.save()
+        .then(() => Tag.updateForPost(post, undefined))
+        .then(() => post.refresh())
+        .then(() => {
+          expect(post.tagNames()).to.deep.equal(['keepcachetag'])
         })
     })
 
@@ -212,6 +251,11 @@ describe('Tag', () => {
       .then(() => p2.load('tags'))
       .then(() => {
         expect(p2.relations.tags.map('id').sort()).to.deep.equal([t1.id, t3.id].sort())
+      })
+      .then(() => Promise.join(p1.refresh(), p2.refresh()))
+      .then(() => {
+        expect(p1.tagNames()).to.deep.equal(['t1'])
+        expect(p2.tagNames()).to.deep.equal(['t1', 't3'])
       })
     })
   })
@@ -327,6 +371,19 @@ describe('Tag', () => {
       .then(tag => Tag.remove(tag.id))
       .then(() => Tag.find({ name: 'foo' }))
       .then(tag => expect(tag).to.be.null)
+    })
+
+    it('rewrites tag_names on affected posts', () => {
+      var post = new Post({ name: 'Remove Cache Post' })
+      var tag = new Tag({ name: 'removeme' })
+      var keep = new Tag({ name: 'keepme' })
+      return Promise.join(post.save(), tag.save(), keep.save())
+      .then(() => Tag.updateForPost(post, ['removeme', 'keepme']))
+      .then(() => Tag.remove(tag.id))
+      .then(() => post.refresh())
+      .then(() => {
+        expect(post.tagNames()).to.deep.equal(['keepme'])
+      })
     })
   })
 })

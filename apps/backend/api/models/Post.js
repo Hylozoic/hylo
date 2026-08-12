@@ -116,6 +116,13 @@ module.exports = bookshelf.Model.extend(Object.assign({
     return this.get('flagged_groups') || []
   },
 
+  /**
+   * Tag names denormalized on posts.tag_names.
+   */
+  tagNames: function () {
+    return this.get('tag_names') || []
+  },
+
   commentsTotal: function () {
     return this.get('num_comments')
   },
@@ -339,7 +346,10 @@ module.exports = bookshelf.Model.extend(Object.assign({
     const { media, groups, linkPreview, tags, user, proposalOptions } = this.relations
 
     const creator = refineOne(user, ['id', 'name', 'avatar_url'])
-    const topics = refineMany(tags, ['id', 'name'])
+    const topics = this.tagNames().map(name => {
+      const tag = tags && tags.find(t => t.get('name') === name)
+      return tag ? refineOne(tag, ['id', 'name']) : { name }
+    })
 
     // TODO: Sanitization -- sanitize details here if not passing through `text` getter
     return Object.assign({},
