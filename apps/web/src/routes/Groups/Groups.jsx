@@ -1,3 +1,4 @@
+import { Network } from 'lucide-react'
 import React, { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Helmet } from 'react-helmet'
@@ -76,7 +77,7 @@ function Groups () {
   useEffect(() => {
     setHeaderDetails({
       title: t('Groups'),
-      icon: 'Groups',
+      icon: <Network />,
       search: true
     })
   }, [])

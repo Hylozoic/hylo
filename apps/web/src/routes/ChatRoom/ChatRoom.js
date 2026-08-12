@@ -1,6 +1,6 @@
 import isMobile from 'ismobilejs'
 import { debounce } from 'lodash/fp'
-import { ChevronDown, Copy, MessageCircleMore, Send } from 'lucide-react'
+import { ChevronDown, Copy, MessageSquareMore, Send } from 'lucide-react'
 import { DateTimeHelpers } from '@hylo/shared'
 import { EditorView } from 'prosemirror-view'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -744,7 +744,7 @@ export default function ChatRoom (props) {
       backButton: false,
       title: t('Chat'),
       headerActions: null,
-      icon: <MessageCircleMore className='w-4 h-4' />,
+      icon: <MessageSquareMore className='w-4 h-4' />,
       info: '',
       search: true
     })

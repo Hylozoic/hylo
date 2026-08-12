@@ -1,3 +1,4 @@
+import { ShieldCheck } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Helmet } from 'react-helmet'
 import { useSelector, useDispatch } from 'react-redux'
@@ -71,7 +72,7 @@ export default function Moderation (props) {
   useEffect(() => {
     setHeaderDetails({
       title: 'Moderation',
-      icon: 'Shield',
+      icon: <ShieldCheck />,
       search: true
     })
   }, [])

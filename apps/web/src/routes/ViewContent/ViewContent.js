@@ -297,7 +297,9 @@ export default function ViewContent (props) {
     : (view === 'all' ? t('view-all') : (systemView?.name || t('view-all')))
   let icon = presentedGroupView?.lucideIcon
     ? <GroupViewIcon view={presentedGroupView} className='w-5 h-5' />
-    : (presentedGroupView?.iconName || systemView?.iconName)
+    : systemView?.lucideIcon
+      ? <GroupViewIcon view={{ lucideIcon: systemView.lucideIcon }} className='w-5 h-5' />
+      : (presentedGroupView?.iconName || systemView?.iconName)
   if (topicName) {
     name = '#' + topicName
   }

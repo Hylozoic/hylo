@@ -1,7 +1,7 @@
 import { trim } from 'lodash/fp'
 import {
   Activity, ArrowRight, ChevronDown, DoorOpen, EyeOff, Globe, HelpCircle, ImagePlus,
-  LayoutGrid, Lock, Map, MapPin, MessageCircleMore, Network, Plus, ScrollText, Shield, Users, X
+  LayoutGrid, Lock, Map, MapPin, MessageSquareMore, Network, Plus, ScrollText, Shield, Users, X
 } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -178,7 +178,7 @@ const HOME_VIEW_OPTIONS = [
   {
     value: 'CHAT',
     viewType: 'chat',
-    icon: MessageCircleMore,
+    icon: MessageSquareMore,
     title: 'Chat',
     description: 'A real-time chat room for quick conversations, coordination and casual interactions.'
   },
