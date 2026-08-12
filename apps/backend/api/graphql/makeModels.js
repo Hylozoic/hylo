@@ -571,7 +571,15 @@ export default function makeModels (userId, isAdmin, apiClient) {
             .first()
           return result?.total ? parseInt(result.total) : 0
         },
-        followersTotal: p => postActiveFollowersCount(p)
+        followersTotal: p => postActiveFollowersCount(p),
+        topics: async p => {
+          const names = p.tagNames()
+          if (!names.length) return []
+          const tags = await Tag.query(q => q.whereIn('name', names)).fetchAll()
+          const byName = {}
+          tags.models.forEach(t => { byName[t.get('name')] = t })
+          return names.map(name => byName[name]).filter(Boolean)
+        }
       },
       relations: [
         { comments: { querySet: true } },
@@ -611,8 +619,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
             alias: 'attachments',
             arguments: ({ type }) => [type]
           }
-        },
-        { tags: { alias: 'topics' } }
+        }
       ],
       filter: postFilter(userId, isAdmin),
       isDefaultTypeForTable: true,

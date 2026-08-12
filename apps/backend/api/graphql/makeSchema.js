@@ -220,7 +220,16 @@ export default async function makeSchema ({ req }) {
         })
         return tagFollow !== null
       }
-     }
+    }
+  }
+
+  if (resolvers.Post && loaders?.tagByName) {
+    resolvers.Post.topics = async (post) => {
+      const names = post.tagNames ? post.tagNames() : (post.get('tag_names') || [])
+      if (!names.length) return []
+      const tags = await Promise.map(names, name => loaders.tagByName.load(name))
+      return tags.filter(Boolean)
+    }
   }
 
   let allResolvers
