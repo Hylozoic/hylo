@@ -155,6 +155,7 @@ function SpaceMenuItemWithMore ({
   const spaceMoreLink = localSpace
     ? addQuerystringToPath(groupUrl(parentSlug, 'more-views'), { space: localSpace })
     : groupUrl(parentSlug, 'more-views')
+  const spaceMemberCount = resolvedSpaceGroup?.memberCount ?? null
 
   return (
     <li className='list-none'>
@@ -209,6 +210,26 @@ function SpaceMenuItemWithMore ({
             <Info className='w-4 h-4' aria-hidden='true' />
             <span className='sr-only'>{t('About')}</span>
           </MenuLink>
+        )}
+        {typeof spaceMemberCount === 'number' && (
+          <span
+            className={cn(
+              'relative z-10 shrink-0 inline-flex items-center gap-0.5 text-xs leading-none rounded-full px-1.5 py-1 mr-1',
+              // Same banner/active color states as the (i) link beside it
+              isSpaceActive
+                ? (spaceBannerUrl
+                    ? 'bg-white/15 text-white/90'
+                    : 'bg-foreground/10 text-foreground/70 dark:bg-white/15 dark:text-white/90')
+                : cn(
+                  'bg-foreground/10 text-foreground/50',
+                  spaceBannerUrl && 'group-hover:bg-white/15 group-hover:text-white/90'
+                )
+            )}
+            aria-label={t('{{count}} Members', { count: spaceMemberCount })}
+          >
+            <Users className='w-3 h-3' aria-hidden='true' />
+            {spaceMemberCount}
+          </span>
         )}
       </div>
       {isSpaceActive && spaceMoreCount > 0 && (
