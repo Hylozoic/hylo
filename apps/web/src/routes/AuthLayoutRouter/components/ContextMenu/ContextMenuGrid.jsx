@@ -49,10 +49,11 @@ import GroupNotificationsPopover from 'components/GroupNotificationsPopover/Grou
 import CardIconField from './CardIconField'
 import GroupViewIcon from './GroupViewIcon'
 import SortableViewsGrid from './SortableViewsGrid'
-import GroupViewCard, { SpaceViewCard } from './GroupViewCard'
+import GroupViewCard, { SpaceViewCard, EventDateStack } from './GroupViewCard'
 import ViewsGridSkeleton from './ViewsGridSkeleton'
 import {
   viewCardColor,
+  eventStartForView,
   inkOn,
   cardGradient,
   cardFieldTint,
@@ -244,6 +245,7 @@ function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
 
   const chatBadgeCount = viewUnreadBadgeCount(presentedView)
   const showUnreadDot = viewShowsUnreadDot(presentedView)
+  const eventStart = eventStartForView(presentedView)
 
   const iconTile = (
     <div
@@ -258,11 +260,13 @@ function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
           can't be scaled up through GroupViewIcon's className. */}
       {presentedView.avatarUrl
         ? <div className='w-full h-full bg-cover bg-center' style={bgImageStyle(presentedView.avatarUrl)} />
-        : (
-          <span className='flex items-center justify-center w-[26px] h-[26px] [&>svg]:!w-full [&>svg]:!h-full [&>img]:!w-full [&>img]:!h-full [&>span]:!text-[26px] [&>span]:!leading-none'>
-            <GroupViewIcon view={presentedView} className='!w-[26px] !h-[26px] !mr-0' />
-          </span>
-          )}
+        : eventStart
+          ? <EventDateStack start={eventStart} />
+          : (
+            <span className='flex items-center justify-center w-[26px] h-[26px] [&>svg]:!w-full [&>svg]:!h-full [&>img]:!w-full [&>img]:!h-full [&>span]:!text-[26px] [&>span]:!leading-none'>
+              <GroupViewIcon view={presentedView} className='!w-[26px] !h-[26px] !mr-0' />
+            </span>
+            )}
     </div>
   )
 
