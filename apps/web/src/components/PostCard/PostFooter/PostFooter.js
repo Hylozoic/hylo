@@ -1,5 +1,6 @@
 import React from 'react'
 import { withTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
 import { cn } from 'util/index'
 import EmojiRow from 'components/EmojiRow'
 import { get } from 'lodash/fp'
@@ -34,6 +35,16 @@ class PostFooter extends React.PureComponent {
     } = this.props
 
     const tooltipId = 'postfooter-tt-' + postId
+    const peopleInfo = (
+      <PeopleInfo
+        constrained={constrained}
+        people={commenters}
+        peopleTotal={commentersTotal}
+        excludePersonId={get('id', currentUser)}
+        small
+        onClick={currentUser ? undefined : (e) => e.stopPropagation()}
+      />
+    )
 
     return (
       <div onClick={onClick} className={cn('w-full text-foreground flex flex-wrap p-1 justify-between items-center', { [classes.constrained]: constrained }, { 'flex-col justify-start items-start gap-2': mapDrawer }, className)} data-testid='post-footer'>
@@ -45,7 +56,17 @@ class PostFooter extends React.PureComponent {
         />
 
         <div className='bg-darkening/5 rounded-lg py-2 mb-1 mr-1 px-2 items-center justify-center flex'>
-          <PeopleInfo constrained={constrained} people={commenters} peopleTotal={commentersTotal} excludePersonId={get('id', currentUser)} small />
+          {currentUser
+            ? peopleInfo
+            : (
+              <Link
+                to={`/login?returnToUrl=${encodeURIComponent(window.location.pathname + window.location.search)}`}
+                className='text-foreground no-underline'
+                onClick={e => e.stopPropagation()}
+              >
+                {peopleInfo}
+              </Link>
+              )}
         </div>
         <Tooltip
           delay={550}

@@ -60,6 +60,7 @@ export function updateUserSettings (changes) {
       query: `mutation ($changes: MeInput) {
         updateMe(changes: $changes) {
           id
+          isProfilePublic
           rsvpCalendarUrl
         }
       }`,

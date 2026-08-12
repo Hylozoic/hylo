@@ -2627,5 +2627,10 @@
   "Only announcements and posts that mention you.": "Only announcements and posts that mention you.",
   "Every new post in this space.": "Every new post in this space.",
   "Read more": "Read more",
-  "Read less": "Read less"
+  "Read less": "Read less",
+  "Make my profile public": "Make my profile public",
+  "When enabled, anyone with the link can view your profile without logging in to Hylo.": "When enabled, anyone with the link can view your profile without logging in to Hylo.",
+  "Shareable link": "Shareable link",
+  "No more posts to load": "No more posts to load",
+  "No posts yet": "No posts yet"
 }

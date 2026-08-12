@@ -102,7 +102,7 @@ const Comments = ({
           )
         : (
           <Link
-            to={`/login?returnToUrl=${encodeURIComponent(window.location.pathname)}`}
+            to={`/login?returnToUrl=${encodeURIComponent(window.location.pathname + window.location.search)}`}
             target={inIframe() ? '_blank' : ''}
             className={cn(classes.signupButton)}
           >

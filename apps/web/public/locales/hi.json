@@ -2530,5 +2530,10 @@
   "Only announcements and posts that mention you.": "केवल घोषणाएँ और वे पोस्ट जिनमें आपका उल्लेख हो।",
   "Every new post in this space.": "इस स्पेस की हर नई पोस्ट।",
   "Read more": "और पढ़ें",
-  "Read less": "कम पढ़ें"
+  "Read less": "कम पढ़ें",
+  "Make my profile public": "मेरी प्रोफ़ाइल सार्वजनिक करें",
+  "When enabled, anyone with the link can view your profile without logging in to Hylo.": "सक्रिय होने पर, लिंक वाला कोई भी व्यक्ति Hylo में लॉग इन किए बिना आपकी प्रोफ़ाइल देख सकता है।",
+  "Shareable link": "साझा करने योग्य लिंक",
+  "No more posts to load": "और पोस्ट लोड करने के लिए नहीं",
+  "No posts yet": "अभी तक कोई पोस्ट नहीं"
 }

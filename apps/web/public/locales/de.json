@@ -2529,5 +2529,10 @@
   "Only announcements and posts that mention you.": "Nur Ankündigungen und Beiträge, die dich erwähnen.",
   "Every new post in this space.": "Jeder neue Beitrag in diesem Space.",
   "Read more": "Weiterlesen",
-  "Read less": "Weniger lesen"
+  "Read less": "Weniger lesen",
+  "Make my profile public": "Mein Profil öffentlich machen",
+  "When enabled, anyone with the link can view your profile without logging in to Hylo.": "Wenn aktiviert, kann jeder mit dem Link dein Profil ansehen, ohne sich bei Hylo anzumelden.",
+  "Shareable link": "Teilbarer Link",
+  "No more posts to load": "Keine weiteren Beiträge",
+  "No posts yet": "Noch keine Beiträge"
 }

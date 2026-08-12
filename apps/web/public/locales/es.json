@@ -975,7 +975,6 @@
   "Month": "Mes",
   "Monthly (recurring)": "Mensual (renovable)",
   "Monthly Revenue": "Ingresos Mensuales",
-  "More": "Más",
   "More ({{count}})": "Más ({{count}})",
   "More Spaces": "Más espacios",
   "More Views and Spaces": "Más vistas y espacios",
@@ -2616,5 +2615,10 @@
   "Only announcements and posts that mention you.": "Solo anuncios y publicaciones que te mencionen.",
   "Every new post in this space.": "Todas las nuevas publicaciones en este espacio.",
   "Read more": "Leer más",
-  "Read less": "Leer menos"
+  "Read less": "Leer menos",
+  "Make my profile public": "Hacer público mi perfil",
+  "When enabled, anyone with the link can view your profile without logging in to Hylo.": "Cuando está activado, cualquiera con el enlace puede ver tu perfil sin iniciar sesión en Hylo.",
+  "Shareable link": "Enlace para compartir",
+  "No more posts to load": "No hay más publicaciones",
+  "No posts yet": "Aún no hay publicaciones"
 }

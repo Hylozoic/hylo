@@ -243,7 +243,7 @@ const CommentForm = forwardRef(function CommentForm ({
           {!currentUser
             ? (
               <Link
-                to={`/login?returnToUrl=${encodeURIComponent(window.location.pathname)}`}
+                to={`/login?returnToUrl=${encodeURIComponent(window.location.pathname + window.location.search)}`}
                 target={inIframe() ? '_blank' : ''}
                 className={classes.signupButton}
               >
