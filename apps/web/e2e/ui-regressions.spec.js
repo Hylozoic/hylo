@@ -8,7 +8,7 @@ test('explorer titles are white in light mode', async ({ page }) => {
   await page.waitForTimeout(6000)
   const color = await page.evaluate(() => {
     const h3 = document.querySelector('h3.text-white')
-    return h3 ? getComputedStyle(h3).color : null
+    return h3 ? window.getComputedStyle(h3).color : null
   })
   console.log('title color:', color)
   expect(color).toBe('rgb(255, 255, 255)')
@@ -22,7 +22,7 @@ test('stream controls use border-2', async ({ page }) => {
   const width = await page.evaluate(() => {
     const pill = [...document.querySelectorAll('button, div')].find(el =>
       el.className && String(el.className).includes('rounded-[9px]'))
-    return pill ? getComputedStyle(pill).borderTopWidth : null
+    return pill ? window.getComputedStyle(pill).borderTopWidth : null
   })
   console.log('control border width:', width)
   expect(width).toBe('2px')

@@ -1,6 +1,6 @@
 import React from 'react'
 import { screen } from '@testing-library/react'
-import { render, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
+import { render } from 'util/testing/reactTestingLibraryExtended'
 import MapExplorer from './MapExplorer'
 
 jest.mock('react-router-dom', () => ({

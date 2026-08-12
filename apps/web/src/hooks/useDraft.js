@@ -26,6 +26,11 @@ export function hasPostDraftPayloadContent (data) {
   if (!obj || typeof obj !== 'object') return false
   if (hasDraftContent(obj.details || '')) return true
   if ((obj.title || '').trim().length > 0) return true
+  if ((obj.meetingLink || '').trim().length > 0) return true
+  if ((obj.location || '').trim().length > 0) return true
+  if ((obj.donationsLink || '').trim().length > 0) return true
+  if ((obj.projectManagementLink || '').trim().length > 0) return true
+  if (obj.startTime || obj.endTime) return true
   return false
 }
 

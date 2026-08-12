@@ -177,6 +177,8 @@ module.exports = bookshelf.Model.extend({
     GroupPeerGroupInviteAccepted: 'groupPeerGroupInviteAccepted',
     TrackCompleted: 'trackCompleted',
     TrackEnrollment: 'trackEnrollment',
+    PostFulfilled: 'postFulfilled',
+    PostUnfulfilled: 'postUnfulfilled',
     FundingRoundNewSubmission: 'fundingRoundNewSubmission', // New submission to a funding round
     FundingRoundPhaseTransition: 'fundingRoundPhaseTransition', // Phase transition in a funding round
     FundingRoundReminder: 'fundingRoundReminder' // Reminder for funding round deadline

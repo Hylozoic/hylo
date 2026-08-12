@@ -106,7 +106,8 @@ function PostHeader (props) {
     startTime,
     timezone,
     fulfilledAt,
-    savedAt
+    savedAt,
+    groups: postGroups = []
   } = post
 
   const { t } = useTranslation()
@@ -128,6 +129,16 @@ function PostHeader (props) {
   const canModerate = !isCreator && responsibilities.includes(RESP_MANAGE_CONTENT)
   const canCurateCollections = responsibilities.includes(RESP_ADMINISTRATION) ||
     responsibilities.includes(RESP_MANAGE_CONTENT)
+
+  const hasModeratorResponsibilitiesInAnyPostGroup = useSelector(state =>
+    postGroups.some(g => {
+      const groupResponsibilities = getResponsibilityTitlesForGroup(state, { groupId: g.id })
+      return groupResponsibilities.includes(RESP_ADMINISTRATION) ||
+        groupResponsibilities.includes(RESP_MANAGE_CONTENT)
+    })
+  )
+  const canCompleteAsModerator = !isCreator && hasModeratorResponsibilitiesInAnyPostGroup
+  const canCompletePost = isCreator || canCompleteAsModerator
 
   const groupViews = useSelector(state => getGroupViews(state, group))
   const collectionViews = useMemo(
@@ -183,22 +194,22 @@ function PostHeader (props) {
   }, [canModerate, id, groupSlug, dispatch, closeUrl, onRemovePost])
 
   const fulfillPost = useCallback(() => {
-    if (!isCreator) return
+    if (!canCompletePost) return
     if (fulfillPostProp) {
       fulfillPostProp(id)
     } else {
       dispatch(fulfillPostAction(id))
     }
-  }, [isCreator, fulfillPostProp, id, dispatch])
+  }, [canCompletePost, fulfillPostProp, id, dispatch])
 
   const unfulfillPost = useCallback(() => {
-    if (!isCreator) return
+    if (!canCompletePost) return
     if (unfulfillPostProp) {
       unfulfillPostProp(id)
     } else {
       dispatch(unfulfillPostAction(id))
     }
-  }, [isCreator, unfulfillPostProp, id, dispatch])
+  }, [canCompletePost, unfulfillPostProp, id, dispatch])
 
   const savePost = useCallback(() => {
     if (savePostProp) {
@@ -415,14 +426,15 @@ function PostHeader (props) {
           </div>
         )}
       </div>
-      {canBeCompleted && canEdit && expanded && (
+      {canBeCompleted && canCompletePost && expanded && (
         <PostCompletion
           type={type}
           startTime={startTime}
           endTime={endTime}
           isFulfilled={!!fulfilledAt}
-          fulfillPost={isCreator ? fulfillPost : undefined}
-          unfulfillPost={isCreator ? unfulfillPost : undefined}
+          isModerator={canCompleteAsModerator}
+          fulfillPost={fulfillPost}
+          unfulfillPost={unfulfillPost}
         />
       )}
       {

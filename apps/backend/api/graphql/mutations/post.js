@@ -2,6 +2,10 @@ import { GraphQLError } from 'graphql'
 import validatePostData from '../../models/post/validatePostData'
 import underlyingCreatePost from '../../models/post/createPost'
 import underlyingUpdatePost from '../../models/post/updatePost'
+import {
+  assertCanFulfillPost,
+  notifyAuthorOfModeratorFulfillment
+} from '../../models/post/postFulfillmentPermissions'
 import { deletePostDraftForCreate } from './draft'
 
 export async function completePost (userId, postId, completionResponse) {
@@ -54,26 +58,28 @@ export function updatePost (userId, { id, data }) {
     .then(validatedData => underlyingUpdatePost(userId, id, validatedData))
 }
 
-export function fulfillPost (userId, postId) {
-  return Post.find(postId)
-    .then(post => {
-      if (post.get('user_id') !== userId) {
-        throw new GraphQLError("You don't have permission to modify this post")
-      }
-      return post.fulfill()
-    })
-    .then(() => ({ success: true }))
+export async function fulfillPost (userId, postId) {
+  const post = await Post.find(postId)
+  await assertCanFulfillPost(userId, post)
+  const isModeratorAction = post.get('user_id') !== userId
+  await post.fulfill()
+  Post.afterRelatedMutation(postId, { changeContext: 'completion' })
+  if (isModeratorAction) {
+    await notifyAuthorOfModeratorFulfillment({ post, actorId: userId, fulfilled: true })
+  }
+  return { success: true }
 }
 
-export function unfulfillPost (userId, postId) {
-  return Post.find(postId)
-    .then(post => {
-      if (post.get('user_id') !== userId) {
-        throw new GraphQLError("You don't have permission to modify this post")
-      }
-      return post.unfulfill()
-    })
-    .then(() => ({ success: true }))
+export async function unfulfillPost (userId, postId) {
+  const post = await Post.find(postId)
+  await assertCanFulfillPost(userId, post)
+  const isModeratorAction = post.get('user_id') !== userId
+  await post.unfulfill()
+  Post.afterRelatedMutation(postId, { changeContext: 'completion' })
+  if (isModeratorAction) {
+    await notifyAuthorOfModeratorFulfillment({ post, actorId: userId, fulfilled: false })
+  }
+  return { success: true }
 }
 
 export async function addProposalVote ({ userId, postId, optionId }) {
@@ -189,6 +195,7 @@ function convertGraphqlPostData (data) {
     parent_post_id: data.parentPostId,
     location_id: data.locationId,
     location: data.location,
+    meeting_link: data.meetingLink,
     is_public: data.isPublic
   }, data))
 }

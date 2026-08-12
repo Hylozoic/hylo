@@ -29,8 +29,14 @@ describe('PostTitle', () => {
     expect(screen.getByTestId('icon-Location')).toBeInTheDocument()
   })
 
+  it('renders meeting link for event posts', () => {
+    render(<PostTitle {...defaultProps} type='event' meetingLink='https://zoom.us/j/123' location='' />)
+    expect(screen.getByText('Join online')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Join online' })).toHaveAttribute('href', 'https://zoom.us/j/123')
+  })
+
   it('applies constrained class when constrained prop is true', () => {
-    render(<PostTitle {...defaultProps} constrained={true} />)
+    render(<PostTitle {...defaultProps} constrained />)
     expect(screen.getByText('Hello there')).toHaveClass('constrained')
   })
 

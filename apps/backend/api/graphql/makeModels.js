@@ -531,6 +531,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'is_public',
         'link_preview_featured',
         'location',
+        'meeting_link',
         'num_people_completed',
         'project_management_link',
         'proposal_outcome',

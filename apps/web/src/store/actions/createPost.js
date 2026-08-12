@@ -24,6 +24,7 @@ export default function createPost (postParams) {
     localId,
     location,
     locationId,
+    meetingLink,
     memberIds = [],
     isAnonymousVote,
     isPublic,
@@ -72,6 +73,7 @@ export default function createPost (postParams) {
         localId: localId || uniqueId('post_'), // to match the optimistically created post and replace it with the real one
         location,
         locationId,
+        meetingLink,
         memberIds,
         projectManagementLink,
         proposalOptions,
