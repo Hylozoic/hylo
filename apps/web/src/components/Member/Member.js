@@ -13,6 +13,7 @@ import usePillRowClamp from 'hooks/usePillRowClamp'
 import { Check, EllipsisVertical, MapPin, MessageCircle, Trash2 } from 'lucide-react'
 import { RESP_REMOVE_MEMBERS } from 'store/constants'
 import { cn, bgImageStyle } from 'util/index'
+import { formatLocalizedDate } from 'util/dateFormat'
 import getMe from 'store/selectors/getMe'
 import { getResponsibilityTitlesForGroup } from 'store/selectors/getResponsibilitiesForGroup'
 import getRolesForGroup from 'store/selectors/getRolesForGroup'
@@ -45,7 +46,7 @@ function parseMemberDate (value) {
 /** Format join date for display. */
 function formatJoinDate (value) {
   const date = parseMemberDate(value)
-  return date ? date.toLocaleDateString() : null
+  return formatLocalizedDate(date, { style: 'short' })
 }
 
 /** Active metadata note — green dot + "Active", or a short relative time like post headers. */
@@ -109,7 +110,7 @@ function hueFromName (name) {
 /** "Mar 2023"-style join date for the card footer. */
 function formatJoinedShort (value) {
   const date = parseMemberDate(value)
-  return date ? date.toLocaleDateString(undefined, { month: 'short', year: 'numeric' }) : null
+  return formatLocalizedDate(date, { style: 'monthYear' })
 }
 
 function Member ({
@@ -344,7 +345,7 @@ function Member ({
 
   const trackBlock = showTrackCompletion && (
     trackCompletedAt
-      ? <div className='text-xs text-selected flex items-center gap-1'><Check className='w-3 h-3' /> {t('Completed {{date}}', { date: new Date(trackCompletedAt).toLocaleDateString() })}</div>
+      ? <div className='text-xs text-selected flex items-center gap-1'><Check className='w-3 h-3' /> {t('Completed {{date}}', { date: formatLocalizedDate(trackCompletedAt, { style: 'short' }) })}</div>
       : <div className='text-xs text-foreground/50'>{t('Not yet completed')}</div>
   )
 

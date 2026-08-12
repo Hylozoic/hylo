@@ -2,7 +2,7 @@
 /* eslint-disable camelcase */
 
 const RedisClient = require('../services/RedisClient')
-const { mapLocaleToSendWithUS } = require('../../lib/util')
+const { normalizeLocaleToFull } = require('../../lib/localeHelpers')
 const { senderNameViaHylo } = require('../../lib/email/senderNameViaHylo')
 
 // See docs/spaces-and-views-engineering-spec.md section 2.6 / 3.2
@@ -191,7 +191,7 @@ module.exports = bookshelf.Model.extend({
 
           if (!user.get('email')) continue
 
-          const locale = mapLocaleToSendWithUS(user.get('settings')?.locale || 'en-US')
+          const locale = normalizeLocaleToFull(user.get('settings')?.locale || 'en-US')
           const clickthroughParams = '?' + new URLSearchParams({
             ctt: 'chat_digest_email',
             cti: user.id,

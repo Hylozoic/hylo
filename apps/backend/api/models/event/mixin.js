@@ -191,14 +191,15 @@ export default {
     const emailTemplate = eventChanges.new ? 'sendEventRsvpEmail' : eventChanges.deleted ? 'sendEventRsvpCancelEmail' : 'sendEventRsvpUpdateEmail'
     const newStart = (eventChanges.start_time || eventChanges.end_time) ? (eventChanges.start_time || this.get('start_time')) : null
     const newEnd = (eventChanges.start_time || eventChanges.end_time) ? (eventChanges.end_time || this.get('end_time')) : null
-    const newDate = newStart && newEnd ? DateTimeHelpers.formatDatePair({ start: newStart, end: newEnd, timezone: this.get('timezone') }) : null
+    const userLocale = user.getLocale()
+    const newDate = newStart && newEnd ? DateTimeHelpers.formatDatePair({ start: newStart, end: newEnd, timezone: this.get('timezone'), locale: userLocale }) : null
     const newLocation = resolveNewLocationForEmail(eventChanges, this)
 
     const rsvpEmailPayload = {
       email: user.get('email'),
       version: 'default',
       data: {
-        date: DateTimeHelpers.formatDatePair({ start: this.get('start_time'), end: this.get('end_time'), timezone: this.get('timezone') }),
+        date: DateTimeHelpers.formatDatePair({ start: this.get('start_time'), end: this.get('end_time'), timezone: this.get('timezone'), locale: userLocale }),
         user_name: user.get('name'),
         event_name: this.title(),
         event_description: this.details(),

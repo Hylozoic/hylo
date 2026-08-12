@@ -8,7 +8,8 @@ import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { push } from 'redux-first-history'
 import { Link } from 'react-router-dom'
-import { TextHelpers, DateTimeHelpers } from '@hylo/shared'
+import { TextHelpers } from '@hylo/shared'
+import { formatUserDatePair } from 'util/dateFormat'
 import Avatar from 'components/Avatar'
 import Dropdown from 'components/Dropdown'
 import Highlight from 'components/Highlight'
@@ -324,7 +325,7 @@ function PostHeader (props) {
   const canBeCompleted = typesWithCompletion.includes(type) && (type !== 'proposal' || (proposalStatus === PROPOSAL_STATUS_COMPLETED || proposalStatus === PROPOSAL_STATUS_CASUAL))
   const actualEndTime = fulfilledAt && fulfilledAt < endTime ? fulfilledAt : endTime
 
-  const { from, to } = DateTimeHelpers.formatDatePair({
+  const { from, to } = formatUserDatePair({
     start: startTime,
     end: actualEndTime,
     timezone,

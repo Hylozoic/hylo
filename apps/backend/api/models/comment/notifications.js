@@ -2,7 +2,7 @@
 import { URL } from 'url'
 import { compact, some, sum, uniq } from 'lodash/fp'
 import { DateTimeHelpers, TextHelpers } from '@hylo/shared'
-import { mapLocaleToSendWithUS } from '../../../lib/util'
+import { normalizeLocaleToFull } from '../../../lib/localeHelpers'
 import { senderNameViaHylo } from '../../../lib/email/senderNameViaHylo'
 import RedisClient from '../../services/RedisClient'
 import { getLocaleStrings } from '../../../lib/i18n/locales'
@@ -99,7 +99,7 @@ async function sendDigestForUser ({ post, comments, user }) {
   // read time.
   let lastReadAt = user.pivot.get('last_read_at')
   if (lastReadAt) lastReadAt = new Date(lastReadAt)
-  const locale = mapLocaleToSendWithUS(user.get('settings')?.locale || 'en-US')
+  const locale = normalizeLocaleToFull(user.get('settings')?.locale || 'en-US')
 
   const filtered = comments.filter(c =>
     c.get('created_at') > (lastReadAt || 0) &&
@@ -142,7 +142,7 @@ async function sendDigestForUser ({ post, comments, user }) {
       locale,
       data: {
         count: filtered.length,
-        date: DateTimeHelpers.formatDatePair({ start: filtered[0].get('created_at') }),
+        date: DateTimeHelpers.formatDatePair({ start: filtered[0].get('created_at'), locale }),
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, user),
         participant_avatars: otherAvatarUrls[0],
         participant_names: participantNames,
@@ -174,7 +174,7 @@ async function sendDigestForUser ({ post, comments, user }) {
       locale,
       data: {
         count: commentData.length,
-        date: DateTimeHelpers.formatDatePair({ start: filtered[0].get('created_at'), timezone: post.get('timezone') }),
+        date: DateTimeHelpers.formatDatePair({ start: filtered[0].get('created_at'), timezone: post.get('timezone'), locale }),
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, user),
         post_title: post.summary(),
         post_creator_avatar_url: Frontend.appendQueryString(post.relations.user.get('avatar_url'), clickthroughParams),

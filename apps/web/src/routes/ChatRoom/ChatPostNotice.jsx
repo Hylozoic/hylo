@@ -1,7 +1,7 @@
 import { ChevronRight } from 'lucide-react'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { DateTimeHelpers } from '@hylo/shared'
+import { formatUserDatePair } from 'util/dateFormat'
 import { POST_TYPES } from '@hylo/presenters/PostPresenter'
 import Avatar from 'components/Avatar'
 import Icon from 'components/Icon'
@@ -25,7 +25,7 @@ export default function ChatPostNotice ({ post, highlighted, className }) {
   const postTypeLabel = t(type)
   const accent = POST_TYPES[type]?.primaryColor || POST_TYPES.discussion.primaryColor
   const timeRange = startTime
-    ? DateTimeHelpers.formatDatePair({ start: startTime, end: endTime, timezone })
+    ? formatUserDatePair({ start: startTime, end: endTime, timezone })
     : null
 
   const handleClick = () => viewPostDetails(post)

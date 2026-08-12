@@ -29,6 +29,7 @@ import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import useDebounce from 'hooks/useDebounce'
 import { parseAccessGrants, offeringHasGroupAccess, offeringHasRoleAccess } from 'util/accessGrants'
 import { queryHyloAPI } from 'util/graphql'
+import { formatLocalizedDate } from 'util/dateFormat'
 
 const EMPTY_LINE_ITEMS = { spaces: [], groups: [], roles: [] }
 
@@ -1041,14 +1042,14 @@ function SubscribersPanel ({ offering, group, t }) {
                       : t('Lapsed')}
                     {subscriber.joinedAt && (
                       <span className='ml-2'>
-                        {t('Joined')}: {new Date(subscriber.joinedAt).toLocaleDateString()}
+                        {t('Joined')}: {formatLocalizedDate(subscriber.joinedAt, { style: 'short' })}
                       </span>
                     )}
                   </p>
                 </div>
                 {subscriber.status === 'lapsed' && subscriber.expiresAt && (
                   <span className='text-xs text-foreground/40'>
-                    {t('Expired')}: {new Date(subscriber.expiresAt).toLocaleDateString()}
+                    {t('Expired')}: {formatLocalizedDate(subscriber.expiresAt, { style: 'short' })}
                   </span>
                 )}
               </div>

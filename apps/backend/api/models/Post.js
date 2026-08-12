@@ -458,7 +458,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
       url: context
         ? Frontend.appendQueryString(Frontend.Route.mapPost(this, context, slug), clickthroughParams)
         : Frontend.appendQueryString(Frontend.Route.post(this, group, '', fundingRound), clickthroughParams),
-      when: this.get('start_time') && DateTimeHelpers.formatDatePair({ start: this.get('start_time'), end: this.get('end_time'), timezone: this.get('timezone') })
+      when: this.get('start_time') && DateTimeHelpers.formatDatePair({ start: this.get('start_time'), end: this.get('end_time'), timezone: this.get('timezone'), locale })
     }
   },
 

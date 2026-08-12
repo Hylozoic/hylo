@@ -61,9 +61,18 @@ import logout from 'store/actions/logout'
 import { newMessageUrl, personUrl } from '@hylo/navigation'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import { createGroupModalUrl } from 'routes/CreateGroup/createGroupUrl'
-import { WebViewMessageTypes } from '@hylo/shared'
+import {
+  WebViewMessageTypes,
+  LOCALE_DE,
+  LOCALE_EN_GB,
+  LOCALE_EN_US,
+  LOCALE_ES,
+  LOCALE_FR,
+  LOCALE_HI,
+  LOCALE_PT
+} from '@hylo/shared'
 import useAppearance from 'hooks/useAppearance'
-import { getLocaleFromLocalStorage } from 'util/locale'
+import { getLocaleFromLocalStorage, normalizeLocaleToFull } from 'util/locale'
 import updateUserSettings from 'store/actions/updateUserSettings'
 import { availableThemes, getAppearanceFromSettings } from 'util/appearance'
 import {
@@ -205,7 +214,9 @@ function SettingsMenu ({ currentUser, triggerClassName, contentSide = 'right', c
   const { theme } = getAppearanceFromSettings(currentUser?.settings)
   const globalNavStyle = currentUser?.settings?.globalNavStyle === 'tabs' ? 'tabs' : 'sidebar'
   const stackGroups = currentUser?.settings?.stackGroups === true
-  const currentLocale = currentUser?.settings?.locale || i18n.language || getLocaleFromLocalStorage() || 'en'
+  const currentLocale = normalizeLocaleToFull(
+    currentUser?.settings?.locale || i18n.language || getLocaleFromLocalStorage()
+  )
 
   // Hide the Sidebar/Tabs toggle on phone viewports — tabs are forced off there.
   const [isPhoneViewport, setIsPhoneViewport] = useState(() =>
@@ -269,10 +280,11 @@ function SettingsMenu ({ currentUser, triggerClassName, contentSide = 'right', c
     : ''
 
   const handleLanguageChange = (locale) => {
-    i18n.changeLanguage(locale)
-    getLocaleFromLocalStorage(locale)
+    const normalizedLocale = normalizeLocaleToFull(locale)
+    i18n.changeLanguage(normalizedLocale)
+    getLocaleFromLocalStorage(normalizedLocale)
     if (currentUser) {
-      dispatch(updateUserSettings({ settings: { locale } }))
+      dispatch(updateUserSettings({ settings: { locale: normalizedLocale } }))
     }
   }
 
@@ -434,22 +446,25 @@ function SettingsMenu ({ currentUser, triggerClassName, contentSide = 'right', c
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent className='z-[200] bg-card'>
             <DropdownMenuRadioGroup value={currentLocale} onValueChange={handleLanguageChange}>
-              <DropdownMenuRadioItem value='en'>
-                🇬🇧 {t('English')}
+              <DropdownMenuRadioItem value={LOCALE_EN_US}>
+                🇺🇸 {t('English')}
               </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value='es'>
+              <DropdownMenuRadioItem value={LOCALE_EN_GB}>
+                🇬🇧 {t('English (UK)')}
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value={LOCALE_ES}>
                 🇪🇸 {t('Spanish')}
               </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value='de'>
+              <DropdownMenuRadioItem value={LOCALE_DE}>
                 🇩🇪 {t('German')}
               </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value='fr'>
+              <DropdownMenuRadioItem value={LOCALE_FR}>
                 🇫🇷 {t('French')}
               </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value='hi'>
+              <DropdownMenuRadioItem value={LOCALE_HI}>
                 🇮🇳 {t('Hindi')}
               </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value='pt'>
+              <DropdownMenuRadioItem value={LOCALE_PT}>
                 🇵🇹 {t('Portuguese')}
               </DropdownMenuRadioItem>
             </DropdownMenuRadioGroup>

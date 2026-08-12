@@ -44,6 +44,7 @@ import { getGroupViews } from 'store/selectors/getGroupViews'
 import { cn } from 'util/index'
 import { groupInviteUrl, groupUrl } from '@hylo/navigation'
 import { isLegacyWebView } from 'util/webView'
+import { formatLocalizedDate } from 'util/dateFormat'
 import { getLocaleFromLocalStorage } from 'util/locale'
 
 import styles from './ChatRoom.module.scss'
@@ -84,7 +85,7 @@ const getDisplayDay = (date) => {
     ? 'Today'
     : date.hasSame(DateTimeHelpers.dateTimeNow(getLocaleFromLocalStorage()).minus({ days: 1 }), 'day')
       ? 'Yesterday'
-      : date.toFormat('MMM dd, yyyy')
+      : formatLocalizedDate(date, { style: 'medium' })
 }
 
 /**
