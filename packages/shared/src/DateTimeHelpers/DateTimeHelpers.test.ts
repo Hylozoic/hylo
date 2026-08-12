@@ -2,32 +2,22 @@
 // This test file is intended to be run with Jest, which provides the describe, it, and expect globals.
 import * as DateTimeHelpers from './DateTimeHelpers'
 import { DateTime } from 'luxon'
+import { normalizeLocaleToFull } from '../LocaleHelpers'
 
-describe('getLocaleAsString', () => {
-  it('maps all UI locales to full BCP 47 tags', () => {
-    expect(DateTimeHelpers.getLocaleAsString('en')).toBe('en-US')
-    expect(DateTimeHelpers.getLocaleAsString('en-GB')).toBe('en-GB')
-    expect(DateTimeHelpers.getLocaleAsString('es')).toBe('es-ES')
-    expect(DateTimeHelpers.getLocaleAsString('de')).toBe('de-DE')
-    expect(DateTimeHelpers.getLocaleAsString('fr')).toBe('fr-FR')
-    expect(DateTimeHelpers.getLocaleAsString('hi')).toBe('hi-IN')
-    expect(DateTimeHelpers.getLocaleAsString('pt')).toBe('pt-BR')
-    expect(DateTimeHelpers.getLocaleAsString()).toBe('en-US')
-  })
-
+describe('locale-aware date formatting', () => {
   it('formats numeric dates according to locale', () => {
     const dt = DateTime.fromObject({ year: 2026, month: 3, day: 16 })
     expect(
-      dt.setLocale(DateTimeHelpers.getLocaleAsString('en')).toLocaleString(DateTime.DATE_SHORT)
+      dt.setLocale(normalizeLocaleToFull('en')).toLocaleString(DateTime.DATE_SHORT)
     ).toBe('3/16/2026')
     expect(
-      dt.setLocale(DateTimeHelpers.getLocaleAsString('en-GB')).toLocaleString(DateTime.DATE_SHORT)
+      dt.setLocale(normalizeLocaleToFull('en-GB')).toLocaleString(DateTime.DATE_SHORT)
     ).toBe('16/03/2026')
     expect(
-      dt.setLocale(DateTimeHelpers.getLocaleAsString('de')).toLocaleString(DateTime.DATE_SHORT)
+      dt.setLocale(normalizeLocaleToFull('de')).toLocaleString(DateTime.DATE_SHORT)
     ).toBe('16.3.2026')
     expect(
-      dt.setLocale(DateTimeHelpers.getLocaleAsString('fr')).toLocaleString(DateTime.DATE_SHORT)
+      dt.setLocale(normalizeLocaleToFull('fr')).toLocaleString(DateTime.DATE_SHORT)
     ).toBe('16/03/2026')
   })
 })
