@@ -84,7 +84,7 @@ export default function ChatPostNotice ({ post, highlighted, className }) {
         </span>
       </div>
       {title && (
-        <div className='font-bold text-foreground truncate'>"{title}"</div>
+        <div className='font-bold text-foreground truncate'>{title}</div>
       )}
       <div className='w-full flex items-center gap-3 min-w-0'>
         {(commentsTotal > 0 || timeRange) && (
