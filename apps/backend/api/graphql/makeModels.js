@@ -318,7 +318,19 @@ export default function makeModels (userId, isAdmin, apiClient) {
           if (!gr || !userId) return false
           const requiredScope = createGroupRoleScope(gr.get('id'), gr.get('group_id'))
           return UserScope.canAccess(userId, requiredScope)
-        }
+        },
+        // Active group members holding this role — mirrors the members-page
+        // groupRoleId filter (same join table) plus the active-membership check
+        membersTotal: gr =>
+          bookshelf.knex('group_memberships_group_roles as mgr')
+            .join('group_memberships as gm', function () {
+              this.on('gm.user_id', 'mgr.user_id').andOn('gm.group_id', 'mgr.group_id')
+            })
+            .where('mgr.group_role_id', gr.id)
+            .where('gm.active', true)
+            .countDistinct('mgr.user_id as total')
+            .first()
+            .then(row => Number(row?.total || 0))
       }
     },
 
@@ -519,6 +531,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'is_public',
         'link_preview_featured',
         'location',
+        'meeting_link',
         'num_people_completed',
         'project_management_link',
         'proposal_outcome',
@@ -558,7 +571,15 @@ export default function makeModels (userId, isAdmin, apiClient) {
             .first()
           return result?.total ? parseInt(result.total) : 0
         },
-        followersTotal: p => postActiveFollowersCount(p)
+        followersTotal: p => postActiveFollowersCount(p),
+        topics: async p => {
+          const names = p.tagNames()
+          if (!names.length) return []
+          const tags = await Tag.query(q => q.whereIn('name', names)).fetchAll()
+          const byName = {}
+          tags.models.forEach(t => { byName[t.get('name')] = t })
+          return names.map(name => byName[name]).filter(Boolean)
+        }
       },
       relations: [
         { comments: { querySet: true } },
@@ -569,7 +590,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
               return relation.query(async q => {
                 const postUsers = await PostMembership.where({ post_id: relation.relatedData.parentId }).fetchAll()
                 const hasTracksResponsibility = postUsers.length > 0 && await Promise.any(postUsers.map(postUser => {
-                  return GroupMembership.hasResponsibility(userId, postUser.get('group_id'), Responsibility.constants.RESP_MANAGE_SPACES)
+                  return GroupMembership.hasResponsibility(userId, postUser.get('group_id'), Responsibility.constants.RESP_ADMINISTRATION)
                 }))
                 if (!hasTracksResponsibility) return q.where('user_id', userId)
                 return q
@@ -598,8 +619,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
             alias: 'attachments',
             arguments: ({ type }) => [type]
           }
-        },
-        { tags: { alias: 'topics' } }
+        }
       ],
       filter: postFilter(userId, isAdmin),
       isDefaultTypeForTable: true,
@@ -1337,7 +1357,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
 
     Message: {
       model: Comment,
-      attributes: ['created_at'],
+      attributes: ['created_at', 'edited_at'],
       relations: [
         { post: { alias: 'messageThread', typename: 'MessageThread' } },
         { user: { alias: 'creator' } }

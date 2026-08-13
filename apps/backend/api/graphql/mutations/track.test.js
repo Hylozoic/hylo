@@ -2,7 +2,7 @@
 import setup from '../../../test/setup'
 import factories from '../../../test/setup/factories'
 import { spyify, unspyify } from '../../../test/setup/helpers'
-import { assignTrackManager, ensureManageTracksResponsibility } from '../../../test/setup/roleHelpers'
+import { assignCoordinator } from '../../../test/setup/roleHelpers'
 import {
   createTrack,
   deleteTrack,
@@ -24,11 +24,10 @@ describe('track mutations', () => {
   })
 
   before(async () => {
-    await ensureManageTracksResponsibility()
     trackManager = await factories.user().save()
     member = await factories.user().save()
     group = await factories.group().save()
-    await assignTrackManager(trackManager, group)
+    await assignCoordinator(trackManager, group)
     await member.joinGroup(group)
   })
 

@@ -8,6 +8,7 @@ import useRouteParams from 'hooks/useRouteParams'
 import {
   receiveThread,
   receiveMessage,
+  receiveMessageUpdated,
   receiveComment,
   receiveNotification,
   receivePost
@@ -18,6 +19,7 @@ import {
   addUserTyping,
   clearUserTyping
 } from 'components/PeopleTyping/PeopleTyping.store'
+import { addMemberPresent, removeMemberPresent, setRoomPresence } from 'routes/ChatRoom/RoomPresence.store'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 
 const SocketListener = (props) => {
@@ -48,6 +50,7 @@ const SocketListener = (props) => {
         isMuted: data.isMuted
       }))
     },
+    messageUpdated: data => dispatch(receiveMessageUpdated(convertToMessage(data))),
     newNotification: data => dispatch(receiveNotification(data)),
     // Use the post's group from the socket payload — not the currently viewed group.
     // Space posts arrive on the space room while the parent menu may still be open.
@@ -59,17 +62,28 @@ const SocketListener = (props) => {
     newThread: data => dispatch(receiveThread(convertToThread(data))),
     userTyping: ({ userId, userName, isTyping }) => {
       isTyping ? dispatch(addUserTyping(userId, userName)) : dispatch(clearUserTyping(userId))
-    }
+    },
+    // Live room rosters (see RoomPresence.store)
+    roomPresence: ({ groupId, members }) => dispatch(setRoomPresence(groupId, members)),
+    memberPresent: ({ groupId, member }) => dispatch(addMemberPresent(groupId, member)),
+    memberAway: ({ groupId, userId }) => dispatch(removeMemberPresent(groupId, userId))
   }), [currentUser?.id, dispatch, group?.id])
 
   useEffect(() => {
     const socket = getSocket()
+    // Re-subscribe the user room on every (re)connection — after a server
+    // restart the socket comes back but its room memberships do not
+    const resubscribe = () => reconnect(socket)
     reconnect(socket)
+    socket.on('connect', resubscribe)
+    socket.on('reconnect', resubscribe)
 
     Object.keys(handlers).forEach(socketEvent =>
       socket.on(socketEvent, handlers[socketEvent]))
 
     return () => {
+      socket.off('connect', resubscribe)
+      socket.off('reconnect', resubscribe)
       socket.post(socketUrl('/noo/user/unsubscribe'))
       Object.keys(handlers).forEach(socketEvent =>
         socket.off(socketEvent, handlers[socketEvent]))
@@ -126,14 +140,16 @@ function convertToMessage (data) {
   if (data.createdAt) {
     return {
       ...data,
-      createdAt: new Date(data.createdAt).toString()
+      createdAt: new Date(data.createdAt).toString(),
+      editedAt: data.editedAt ? new Date(data.editedAt).toString() : undefined
     }
   }
 
-  const { message: { id, created_at: createdAt, text, user_id: userId }, postId } = data
+  const { message: { id, created_at: createdAt, edited_at: editedAt, text, user_id: userId }, postId } = data
   return {
     id,
     createdAt: new Date(createdAt).toString(),
+    editedAt: editedAt ? new Date(editedAt).toString() : undefined,
     text,
     creator: userId,
     messageThread: postId

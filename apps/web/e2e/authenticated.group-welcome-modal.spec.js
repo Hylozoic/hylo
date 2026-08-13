@@ -16,10 +16,10 @@ const WELCOME_GROUP_SLUG = 'e2e-welcome-overlay'
 
 test.describe('Batch M: group welcome modal', () => {
   test('opening seeded group shows welcome overlay', async ({ page }) => {
-    await page.goto(`/groups/${WELCOME_GROUP_SLUG}/stream`)
+    await page.goto(`/groups/${WELCOME_GROUP_SLUG}/all`)
     await waitPastRootSessionLoading(page)
     await expect(page).toHaveURL(
-      new RegExp(`/groups/${WELCOME_GROUP_SLUG}/stream`),
+      new RegExp(`/groups/${WELCOME_GROUP_SLUG}/all`),
       navTimeout
     )
     await expect(page.getByRole('heading', { name: /Welcome to/i })).toBeVisible(uiTimeout)

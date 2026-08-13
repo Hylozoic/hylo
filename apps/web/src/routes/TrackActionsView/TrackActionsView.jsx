@@ -14,7 +14,7 @@ import { useEffectiveGroupSlug, useGroupRouteOpts } from 'contexts/SpaceGroupCon
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useRouteParams from 'hooks/useRouteParams'
 import { fetchViewPosts, reorderViewPost } from 'store/actions/groupViews'
-import { RESP_MANAGE_SPACES } from 'store/constants'
+import { RESP_ADMINISTRATION } from 'store/constants'
 import presentPost from 'store/presenters/presentPost'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { getGroupViews } from 'store/selectors/getGroupViews'
@@ -44,8 +44,8 @@ export default function TrackActionsView () {
   // Roles live on the parent group; prefer parentId / route parent so edit works
   // even before the space record has parentId hydrated in ORM.
   const roleGroupId = group?.parentId || parentGroup?.id || group?.id
-  const canManageSpaces = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_MANAGE_SPACES, groupId: roleGroupId }))
-  const isEditing = getQuerystringParam('edit', location) === 'true' && canManageSpaces
+  const canAdminister = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADMINISTRATION, groupId: roleGroupId }))
+  const isEditing = getQuerystringParam('edit', location) === 'true' && canAdminister
 
   // Posts live on the "track-actions" view's ordered collectionPosts.
   const groupViews = useSelector(state => getGroupViews(state, group))
@@ -100,7 +100,7 @@ export default function TrackActionsView () {
       <Routes>
         <Route path='post/:postId' element={<PostDialog />} />
       </Routes>
-      {canManageSpaces && (
+      {canAdminister && (
         <button
           type='button'
           onClick={toggleEditing}

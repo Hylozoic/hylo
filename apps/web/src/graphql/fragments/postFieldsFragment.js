@@ -113,6 +113,7 @@ const postFieldsFragment = (withComments, withCompletion = false, withAllComplet
   linkPreviewFeatured
   localId
   location
+  meetingLink
   locationObject {
     id
     addressNumber
@@ -171,6 +172,7 @@ const postFieldsFragment = (withComments, withCompletion = false, withAllComplet
     id
     name
     slug
+    type
   }
   attachments {
     type

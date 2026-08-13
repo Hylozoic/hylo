@@ -6,10 +6,14 @@ const validMessageTypes = [
   'commentAdded',
   'groupUpdated',
   'messageAdded',
+  'messageUpdated',
   'userTyping',
   'newThread',
   'newNotification',
-  'newPost'
+  'newPost',
+  // Room presence (see RoomPresence service)
+  'memberPresent',
+  'memberAway'
 ]
 
 var io

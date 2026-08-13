@@ -5,6 +5,7 @@ import getTopicForCurrentRoute from './getTopicForCurrentRoute'
 import getMyMemberships from './getMyMemberships'
 import { getMyGroups, getMyGroupsWithChildren } from './getMyGroups'
 import hasResponsibilityForGroup from './hasResponsibilityForGroup'
+import { getLastViewedGroupPath } from './getLastViewedGroup'
 
 describe('getMe', () => {
   it('returns Me', () => {
@@ -97,8 +98,7 @@ describe('hasResponsibilityForGroup', () => {
           responsibilities: {
             items: [
               { id: 1, title: 'Administration' },
-              { id: 2, title: 'Manage Content' },
-              { id: 3, title: 'Manage Spaces' }
+              { id: 2, title: 'Manage Content' }
             ]
           }
         }]
@@ -123,8 +123,52 @@ describe('hasResponsibilityForGroup', () => {
   it('inherits parent roles when checking a space', () => {
     const space = session.Group.create({ id: 10, type: 'space', parentId: group.id })
     const state = { orm: session.state }
-    const props = { person: me, groupId: space.id, responsibility: 'Manage Spaces' }
+    const props = { person: me, groupId: space.id, responsibility: 'Administration' }
     expect(hasResponsibilityForGroup(state, props)).toEqual(true)
+  })
+})
+
+describe('getLastViewedGroupPath', () => {
+  it('returns nested space path when last viewed group is a space', () => {
+    const session = orm.session(orm.getEmptyState())
+    const me = session.Me.create({ id: 1 })
+    const parent = session.Group.create({ id: '1', name: 'Parent Group', slug: 'parent-group' })
+    const space = session.Group.create({
+      id: '2',
+      name: 'Alpha Space',
+      slug: 'parent-group-alpha',
+      type: 'space',
+      parentId: parent.id,
+      homeRoute: '/all'
+    })
+    session.Membership.create({
+      id: 'm1',
+      group: parent.id,
+      person: me.id,
+      lastViewedAt: '2020-01-01T00:00:00.000Z'
+    })
+    session.Membership.create({
+      id: 'm2',
+      group: space.id,
+      person: me.id,
+      lastViewedAt: '2024-01-01T00:00:00.000Z'
+    })
+
+    expect(getLastViewedGroupPath({ orm: session.state })).toEqual('/groups/parent-group/spaces/alpha/all')
+  })
+
+  it('returns top-level group path for non-space groups', () => {
+    const session = orm.session(orm.getEmptyState())
+    const me = session.Me.create({ id: 1 })
+    const group = session.Group.create({ id: '1', name: 'Parent Group', slug: 'parent-group' })
+    session.Membership.create({
+      id: 'm1',
+      group: group.id,
+      person: me.id,
+      lastViewedAt: '2024-01-01T00:00:00.000Z'
+    })
+
+    expect(getLastViewedGroupPath({ orm: session.state })).toEqual('/groups/parent-group')
   })
 })
 

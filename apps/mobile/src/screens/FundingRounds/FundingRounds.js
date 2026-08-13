@@ -6,9 +6,8 @@ import React, { useCallback } from 'react'
 import { View, FlatList, Text } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useFocusEffect } from '@react-navigation/native'
-import { RESP_MANAGE_SPACES } from 'store/constants'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
-import useHasResponsibility from '@hylo/hooks/useHasResponsibility'
+import useHasResponsibility, { RESP_ADMINISTRATION } from '@hylo/hooks/useHasResponsibility'
 import useFundingRounds from '@hylo/hooks/useFundingRounds'
 import FundingRoundCard from 'components/FundingRoundCard'
 import StreamHeader from '../Stream/StreamHeader'
@@ -18,7 +17,7 @@ function FundingRounds () {
   const { t } = useTranslation()
   const [{ currentGroup }] = useCurrentGroup()
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
-  const canManageRounds = hasResponsibility(RESP_MANAGE_SPACES)
+  const canManageRounds = hasResponsibility(RESP_ADMINISTRATION)
   const [fundingRounds, { fetching, error }, refetchFundingRounds] = useFundingRounds({
     groupId: currentGroup?.id,
     hideUnpublished: !canManageRounds

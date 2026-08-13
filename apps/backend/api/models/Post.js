@@ -2,7 +2,7 @@
 
 import data from '@emoji-mart/data'
 import { init, getEmojiDataFromNative } from 'emoji-mart'
-import { difference, filter, get, omitBy, uniqBy, isEmpty, intersection, isUndefined, pick } from 'lodash/fp'
+import { difference, filter, get, omitBy, uniq, uniqBy, isEmpty, intersection, isUndefined, pick } from 'lodash/fp'
 import { DateTime } from 'luxon'
 import format from 'pg-format'
 import { flatten, sortBy } from 'lodash'
@@ -114,6 +114,13 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
   flaggedGroups: function () {
     return this.get('flagged_groups') || []
+  },
+
+  /**
+   * Tag names denormalized on posts.tag_names.
+   */
+  tagNames: function () {
+    return this.get('tag_names') || []
   },
 
   commentsTotal: function () {
@@ -339,7 +346,10 @@ module.exports = bookshelf.Model.extend(Object.assign({
     const { media, groups, linkPreview, tags, user, proposalOptions } = this.relations
 
     const creator = refineOne(user, ['id', 'name', 'avatar_url'])
-    const topics = refineMany(tags, ['id', 'name'])
+    const topics = this.tagNames().map(name => {
+      const tag = tags && tags.find(t => t.get('name') === name)
+      return tag ? refineOne(tag, ['id', 'name']) : { name }
+    })
 
     // TODO: Sanitization -- sanitize details here if not passing through `text` getter
     return Object.assign({},
@@ -376,6 +386,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
         details: this.details(),
         groups: refineMany(groups, ['id', 'name', 'slug']),
         linkPreview: refineOne(linkPreview, ['id', 'image_url', 'title', 'description', 'url']),
+        postReactions: [],
         proposalOptions,
         proposalVotes: [],
         topics
@@ -447,7 +458,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
       url: context
         ? Frontend.appendQueryString(Frontend.Route.mapPost(this, context, slug), clickthroughParams)
         : Frontend.appendQueryString(Frontend.Route.post(this, group, '', fundingRound), clickthroughParams),
-      when: this.get('start_time') && DateTimeHelpers.formatDatePair({ start: this.get('start_time'), end: this.get('end_time'), timezone: this.get('timezone') })
+      when: this.get('start_time') && DateTimeHelpers.formatDatePair({ start: this.get('start_time'), end: this.get('end_time'), timezone: this.get('timezone'), locale })
     }
   },
 
@@ -1185,8 +1196,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
       }
 
       if (notifyGroup) {
-        const manageSpacesResponsibility = await Responsibility.where({ title: Responsibility.constants.RESP_MANAGE_SPACES }).fetch({ transacting: trx })
-        const stewards = await notifyGroup.membersWithResponsibilities([manageSpacesResponsibility.id]).fetch({ transacting: trx })
+        const adminResponsibility = await Responsibility.where({ title: Responsibility.constants.RESP_ADMINISTRATION }).fetch({ transacting: trx })
+        const stewards = await notifyGroup.membersWithResponsibilities([adminResponsibility.id]).fetch({ transacting: trx })
         const stewardsIds = stewards.pluck('id')
         const activities = stewardsIds.map(stewardId => ({
           reason: 'trackCompleted',
@@ -1328,6 +1339,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
     const post = await Post.find(postId)
     if (!post) return
 
+    const inviteeIds = uniq([userId, ...(eventInviteeIds || [])])
+
     // create event invitation for event owner so they get an rsvp email
     const eventInvitation = await EventInvitation.create({
       userId,
@@ -1338,9 +1351,10 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
     // NOTE: method names that are plural affect collections
     // methods that are singular affect a single object
-    await post.updateEventInvitees({ eventInviteeIds, inviterId: userId, params })
+    await post.updateEventInvitees({ eventInviteeIds: inviteeIds, inviterId: userId, params })
     await post.createGroupEventCalendarSubscriptions()
-    await post.sendUserRsvp({ eventInvitationId: eventInvitation.id, eventChanges: { new: true } })
+    const ownerInvitation = await EventInvitation.find({ userId, eventId: postId }) || eventInvitation
+    await post.sendUserRsvp({ eventInvitationId: ownerInvitation.id, eventChanges: { new: true } })
     Queue.classMethod('User', 'createRsvpCalendarSubscription', { userId })
   },
 
@@ -1348,7 +1362,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     const post = await Post.find(postId)
     if (!post) return
 
-    const eventChanged = eventChanges.start_time || eventChanges.end_time || eventChanges.location
+    const eventChanged = eventChanges.start_time || eventChanges.end_time || eventChanges.location || eventChanges.meeting_link
 
     // NOTE: method names that are plural affect collections
     // methods that are singular affect a single object

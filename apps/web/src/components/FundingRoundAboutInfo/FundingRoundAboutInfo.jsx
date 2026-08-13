@@ -6,7 +6,7 @@ import Loading from 'components/Loading'
 import RoundPhaseStatus from 'routes/FundingRoundSubmissionsView/RoundPhaseStatus'
 import { getRoundPhaseMeta } from 'routes/FundingRoundSubmissionsView/phaseUtils'
 import { fetchFundingRound, FETCH_FUNDING_ROUND } from 'routes/FundingRounds/FundingRounds.store'
-import { DateTimeHelpers } from '@hylo/shared'
+import { formatUserDatePair } from 'util/dateFormat'
 import getFundingRound from 'store/selectors/getFundingRound'
 import getMe from 'store/selectors/getMe'
 import getRolesForGroup from 'store/selectors/getRolesForGroup'
@@ -43,7 +43,7 @@ function RoleList ({ roles, t }) {
 /** Formats a round date for display, or null if unset. */
 function formatRoundDate (value) {
   if (!value) return null
-  return DateTimeHelpers.formatDatePair({ start: value })
+  return formatUserDatePair({ start: value })
 }
 
 /**

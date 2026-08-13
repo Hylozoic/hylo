@@ -23,6 +23,7 @@ export const buildPostDraftPayload = (post = {}) => ({
   isPublic: !!post.isPublic,
   location: post.location || '',
   locationId: post.locationId || null,
+  meetingLink: post.meetingLink || '',
   linkPreview: post.linkPreview || null,
   linkPreviewFeatured: !!post.linkPreviewFeatured,
   acceptContributions: !!post.acceptContributions,

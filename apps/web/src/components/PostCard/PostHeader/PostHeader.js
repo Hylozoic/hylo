@@ -8,7 +8,8 @@ import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { push } from 'redux-first-history'
 import { Link } from 'react-router-dom'
-import { TextHelpers, DateTimeHelpers } from '@hylo/shared'
+import { TextHelpers } from '@hylo/shared'
+import { formatUserDatePair } from 'util/dateFormat'
 import Avatar from 'components/Avatar'
 import Dropdown from 'components/Dropdown'
 import Highlight from 'components/Highlight'
@@ -71,6 +72,7 @@ const selectPostHeaderStateProps = createSelector(
 function PostHeader (props) {
   const {
     chat,
+    childGroupLabel,
     routeParams = {},
     post,
     expanded,
@@ -102,8 +104,10 @@ function PostHeader (props) {
     id,
     endTime,
     startTime,
+    timezone,
     fulfilledAt,
-    savedAt
+    savedAt,
+    groups: postGroups = []
   } = post
 
   const { t } = useTranslation()
@@ -125,6 +129,16 @@ function PostHeader (props) {
   const canModerate = !isCreator && responsibilities.includes(RESP_MANAGE_CONTENT)
   const canCurateCollections = responsibilities.includes(RESP_ADMINISTRATION) ||
     responsibilities.includes(RESP_MANAGE_CONTENT)
+
+  const hasModeratorResponsibilitiesInAnyPostGroup = useSelector(state =>
+    postGroups.some(g => {
+      const groupResponsibilities = getResponsibilityTitlesForGroup(state, { groupId: g.id })
+      return groupResponsibilities.includes(RESP_ADMINISTRATION) ||
+        groupResponsibilities.includes(RESP_MANAGE_CONTENT)
+    })
+  )
+  const canCompleteAsModerator = !isCreator && hasModeratorResponsibilitiesInAnyPostGroup
+  const canCompletePost = isCreator || canCompleteAsModerator
 
   const groupViews = useSelector(state => getGroupViews(state, group))
   const collectionViews = useMemo(
@@ -180,22 +194,22 @@ function PostHeader (props) {
   }, [canModerate, id, groupSlug, dispatch, closeUrl, onRemovePost])
 
   const fulfillPost = useCallback(() => {
-    if (!isCreator) return
+    if (!canCompletePost) return
     if (fulfillPostProp) {
       fulfillPostProp(id)
     } else {
       dispatch(fulfillPostAction(id))
     }
-  }, [isCreator, fulfillPostProp, id, dispatch])
+  }, [canCompletePost, fulfillPostProp, id, dispatch])
 
   const unfulfillPost = useCallback(() => {
-    if (!isCreator) return
+    if (!canCompletePost) return
     if (unfulfillPostProp) {
       unfulfillPostProp(id)
     } else {
       dispatch(unfulfillPostAction(id))
     }
-  }, [isCreator, unfulfillPostProp, id, dispatch])
+  }, [canCompletePost, unfulfillPostProp, id, dispatch])
 
   const savePost = useCallback(() => {
     if (savePostProp) {
@@ -311,7 +325,12 @@ function PostHeader (props) {
   const canBeCompleted = typesWithCompletion.includes(type) && (type !== 'proposal' || (proposalStatus === PROPOSAL_STATUS_COMPLETED || proposalStatus === PROPOSAL_STATUS_CASUAL))
   const actualEndTime = fulfilledAt && fulfilledAt < endTime ? fulfilledAt : endTime
 
-  const { from, to } = DateTimeHelpers.formatDatePair({ start: startTime, end: actualEndTime, returnAsObj: true })
+  const { from, to } = formatUserDatePair({
+    start: startTime,
+    end: actualEndTime,
+    timezone,
+    returnAsObj: true
+  })
 
   const startString = fulfilledAt
     ? false
@@ -349,19 +368,27 @@ function PostHeader (props) {
           <Avatar avatarUrl={creator.avatarUrl} url={creatorUrl} className={cn('mr-3', { 'mr-2': constrained })} medium />
           <div className='flex flex-wrap justify-between flex-1 text-foreground truncate xs:truncate-none overflow-hidden xs:overflow-visible mr-2 xs:max-w-auto'>
             <Highlight {...highlightProps}>
-              <Link to={creatorUrl} className={cn('flex whitespace-nowrap items-center text-card-foreground font-bold font-md text-base', { 'text-sm': constrained })} data-tooltip-content={creator.tagline} data-tooltip-id={`announcement-tt-${id}`}>
-                {creator.name}
-              </Link>
+              <div className='flex flex-col min-w-0'>
+                <Link to={creatorUrl} className={cn('flex whitespace-nowrap items-center text-card-foreground font-bold font-md text-base leading-tight', { 'text-sm': constrained })} data-tooltip-content={creator.tagline} data-tooltip-id={`announcement-tt-${id}`}>
+                  {creator.name}
+                </Link>
+                {/* Where a child post lives, under the author — replaces the tab that floated above the card */}
+                {childGroupLabel && (
+                  <span className='text-xs text-foreground/50 truncate leading-tight'>{childGroupLabel}</span>
+                )}
+              </div>
             </Highlight>
             <div className='flex items-center ml-2'>
+              <span className='text-foreground/50 text-2xs whitespace-nowrap mr-3' data-tooltip-id={`dateTip-${id}`} data-tooltip-content={exactCreatedTimestamp}>
+                {createdTimestamp}
+              </span>
               {type !== 'submission' && (
-                <div className='flex items-center gap-1 border-2 border-foreground/20 rounded text-xs capitalize px-1 text-foreground/70 py1 mr-4'>
+                // h-7 (and rounded-md) so the pill and the three-dot toggle read as one control family.
+                // The old py1 was a dead class — the pill never actually had vertical padding.
+                <div className='flex items-center gap-1 border-2 border-foreground/20 rounded-md text-xs capitalize px-1.5 h-7 text-foreground/70'>
                   <Icon name={getPostTypeIcon(type)} className='text-sm' dataTestId={'post-type-' + type.charAt(0).toUpperCase() + type.slice(1)} />
                   {t(type)}
                 </div>)}
-              <span className='text-foreground/50 text-2xs whitespace-nowrap' data-tooltip-id={`dateTip-${id}`} data-tooltip-content={exactCreatedTimestamp}>
-                {createdTimestamp}
-              </span>
               {announcement && (
                 <span className='mt-[-2px]'>
                   <span className='text-2xs mx-3 relative top-[-6px]'>•</span>
@@ -379,8 +406,11 @@ function PostHeader (props) {
               delay={250}
               id='post-header-flag-tt'
             />
+            {/* !top-0 on the More icon: the global .icon-More style nudges the glyph down
+                1px for optical centering in inline contexts — here the icon IS the bordered
+                box, so the nudge shifted the whole button 1px below the pill beside it */}
             {dropdownItems.length > 0 &&
-              <Dropdown id='post-header-more-dropdown' toggleChildren={<Icon name='More' dataTestId='post-header-more-icon' className='cursor-pointer border-2 border-foreground/30 rounded-md p-2' />} items={dropdownItems} alignRight noOverflow />}
+              <Dropdown id='post-header-more-dropdown' toggleChildren={<Icon name='More' dataTestId='post-header-more-icon' className='cursor-pointer border-2 border-foreground/30 rounded-md h-7 w-7 flex items-center justify-center !top-0' />} items={dropdownItems} alignRight noOverflow />}
             {close &&
               <a className={cn('inline-block cursor-pointer relative px-3 text-xl')} data-testid='post-detail-close' onClick={close}>
                 <Icon name='Ex' className='align-middle' />
@@ -396,14 +426,15 @@ function PostHeader (props) {
           </div>
         )}
       </div>
-      {canBeCompleted && canEdit && expanded && (
+      {canBeCompleted && canCompletePost && expanded && (
         <PostCompletion
           type={type}
           startTime={startTime}
           endTime={endTime}
           isFulfilled={!!fulfilledAt}
-          fulfillPost={isCreator ? fulfillPost : undefined}
-          unfulfillPost={isCreator ? unfulfillPost : undefined}
+          isModerator={canCompleteAsModerator}
+          fulfillPost={fulfillPost}
+          unfulfillPost={unfulfillPost}
         />
       )}
       {

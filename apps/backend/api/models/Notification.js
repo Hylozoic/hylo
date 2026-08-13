@@ -44,6 +44,8 @@ const TYPE = {
   FollowAdd: 'followAdd', // you are added as a follower
   Follow: 'follow', // someone follows your post
   Unfollow: 'unfollow', // someone leaves your post
+  PostFulfilled: 'postFulfilled', // a moderator closed a post
+  PostUnfulfilled: 'postUnfulfilled', // a moderator reopened a post
   Welcome: 'welcome', // a welcome post
   JoinRequest: 'joinRequest', // Someone asks to join a group
   ApprovedJoinRequest: 'approvedJoinRequest', // A request to join a group is approved
@@ -186,6 +188,9 @@ module.exports = bookshelf.Model.extend({
         return this.sendTrackCompletedPush()
       case 'trackEnrollment':
         return this.sendTrackEnrollmentPush()
+      case 'postFulfilled':
+      case 'postUnfulfilled':
+        return this.sendPostModeratedFulfillmentPush()
       case 'voteReset':
         return this.sendPostPush('voteReset')
       case 'fundingRoundNewSubmission':
@@ -418,6 +423,59 @@ module.exports = bookshelf.Model.extend({
     return this.reader().sendPushNotification(alertText, path)
   },
 
+  sendPostModeratedFulfillmentPush: async function () {
+    const post = this.post()
+    const activity = this.relations.activity
+    const reader = this.reader()
+    const locale = this.locale()
+    const reason = Notification.priorityReason(activity.get('meta').reasons)
+    const group = await groupForPushRoute(post, activity, reader.id)
+    const path = routeToPath(Frontend.Route.post(post, group))
+    const alertText = PushNotification.textForPostModeratedFulfillment(post, this.actor(), reason, locale)
+    return reader.sendPushNotification(alertText, path)
+  },
+
+  sendPostModeratedFulfillmentEmail: async function () {
+    const post = this.post()
+    const actor = this.actor()
+    const reader = this.reader()
+    const activity = this.relations.activity
+    const locale = this.locale()
+    const L = getLocaleStrings(locale)
+    const reason = Notification.priorityReason(activity.get('meta').reasons)
+    const isUnfulfilled = reason === 'postUnfulfilled'
+
+    const groupIds = Activity.groupIds(activity)
+    if (isEmpty(groupIds)) throw new Error('no group ids in activity')
+    const group = activity.get('group_id')
+      ? await Group.find(activity.get('group_id'))
+      : await Group.find(groupIds[0])
+
+    const clickthroughParams = '?' + new URLSearchParams({
+      ctt: 'post_moderated_fulfillment_email',
+      cti: reader.id,
+      ctcn: group.get('name')
+    }).toString()
+
+    const postUrl = Frontend.Route.post(post, group) + clickthroughParams
+    const subject = isUnfulfilled
+      ? L.moderationPostReopenedEmailSubject()
+      : L.moderationPostClosedEmailSubject()
+    const body = isUnfulfilled
+      ? L.moderationPostReopenedEmailContent({ post, group, actor })
+      : L.moderationPostClosedEmailContent({ post, group, actor })
+
+    return Email.sendModerationAction({
+      email: reader.get('email'),
+      templateData: {
+        subject,
+        body: body + `${postUrl}\n\n`,
+        post_url: postUrl
+      },
+      locale
+    })
+  },
+
   sendMemberJoinedGroupPush: async function () {
     const group = await this.relations.activity.group().fetch()
     const actor = await this.relations.activity.actor().fetch()
@@ -464,6 +522,9 @@ module.exports = bookshelf.Model.extend({
         return this.sendTrackCompletedEmail()
       case 'trackEnrollment':
         return this.sendTrackEnrollmentEmail()
+      case 'postFulfilled':
+      case 'postUnfulfilled':
+        return this.sendPostModeratedFulfillmentEmail()
       case 'fundingRoundNewSubmission':
         return this.sendFundingRoundNewSubmissionEmail()
       case 'fundingRoundPhaseTransition':
@@ -1347,7 +1408,7 @@ module.exports = bookshelf.Model.extend({
   priorityReason: function (reasons) {
     const orderedLabels = [
       'donation to', 'donation from', 'announcement', 'eventInvitation', 'mention', 'commentMention', 'newComment', 'newContribution', 'chat', 'tag',
-      'newPost', 'follow', 'followAdd', 'unfollow', 'joinRequest', 'approvedJoinRequest', 'groupChildGroupInviteAccepted', 'groupChildGroupInvite',
+      'newPost', 'follow', 'followAdd', 'unfollow', 'postFulfilled', 'postUnfulfilled', 'joinRequest', 'approvedJoinRequest', 'groupChildGroupInviteAccepted', 'groupChildGroupInvite',
       'groupParentGroupJoinRequestAccepted', 'groupParentGroupJoinRequest', 'groupPeerGroupInviteAccepted', 'groupPeerGroupInvite', 'memberJoinedGroup', 'trackCompleted', 'trackEnrollment',
       'fundingRoundNewSubmission', 'fundingRoundPhaseTransition', 'fundingRoundReminder'
     ]

@@ -117,12 +117,14 @@ describe('getEventChanges', () => {
         if (key === 'start_time') return baseStartTime
         if (key === 'end_time') return baseEndTime
         if (key === 'location') return baseLocation
+        if (key === 'meeting_link') return 'https://zoom.us/j/123'
       }
     }
     params = {
       startTime: baseStartTime,
       endTime: baseEndTime,
-      location: baseLocation
+      location: baseLocation,
+      meetingLink: 'https://zoom.us/j/123'
     }
   })
 
@@ -132,6 +134,7 @@ describe('getEventChanges', () => {
     expect(result.start_time).to.equal(false)
     expect(result.end_time).to.equal(false)
     expect(result.location).to.equal(false)
+    expect(result.meeting_link).to.equal(false)
   })
 
   it('returns new value for start_time when it has changed', () => {
@@ -161,12 +164,22 @@ describe('getEventChanges', () => {
     expect(result.location).to.equal(newLocation)
   })
 
+  it('returns new value for meeting_link when it has changed', () => {
+    const newMeetingLink = 'https://meet.google.com/abc-defg-hij'
+    params.meetingLink = newMeetingLink
+
+    const result = getEventChanges({ post, params })
+
+    expect(result.meeting_link).to.equal(newMeetingLink)
+  })
+
   describe('edge cases', () => {
     beforeEach(() => {
       // Reset params to base values before each test
       params.startTime = baseStartTime
       params.endTime = baseEndTime
       params.location = baseLocation
+      params.meetingLink = 'https://zoom.us/j/123'
     })
 
     it('handles empty string location change', () => {

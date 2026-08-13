@@ -1,8 +1,8 @@
-/* global bookshelf, GroupView, User, GroupMembership, TagFollow, Post, Email, Frontend, RichText, sails */
+/* global bookshelf, GroupView, User, GroupMembership, Post, Email, Frontend, RichText, sails */
 /* eslint-disable camelcase */
 
 const RedisClient = require('../services/RedisClient')
-const { mapLocaleToSendWithUS } = require('../../lib/util')
+const { normalizeLocaleToFull } = require('../../lib/localeHelpers')
 const { senderNameViaHylo } = require('../../lib/email/senderNameViaHylo')
 
 // See docs/spaces-and-views-engineering-spec.md section 2.6 / 3.2
@@ -105,8 +105,8 @@ module.exports = bookshelf.Model.extend({
 
   /**
    * Hourly email digests for chat views with unread chat posts.
-   * Notification preference still comes from TagFollow when present; otherwise
-   * membership postNotifications (spaces migrated from chat rooms).
+   * Uses membership postNotifications: all = every chat, important = mentions
+   * (and announcements), none = skip digest.
    */
   sendDigests: async function () {
     const redisClient = RedisClient.create()
@@ -149,23 +149,8 @@ module.exports = bookshelf.Model.extend({
           const membership = await GroupMembership.forPair(userId, groupId).fetch()
           if (!membership || !membership.get('active') || !membership.getSetting('sendEmail')) continue
 
-          const tagFollows = await TagFollow.query(q => {
-            q.where({ user_id: userId, group_id: groupId })
-            q.whereRaw("(settings->>'notifications' = 'all' OR settings->>'notifications' = 'important')")
-          }).fetchAll()
-
-          let notificationsSetting = null
-          if (tagFollows.length > 0) {
-            notificationsSetting = tagFollows.some(tf => tf.getSetting('notifications') === 'all')
-              ? 'all'
-              : 'important'
-          } else {
-            const postNotifications = membership.getSetting('postNotifications')
-            if (postNotifications === 'all' || postNotifications === 'important') {
-              notificationsSetting = postNotifications
-            }
-          }
-          if (!notificationsSetting) continue
+          const postNotifications = membership.getSetting('postNotifications')
+          if (postNotifications !== 'all' && postNotifications !== 'important') continue
 
           const lastReadPostId = viewUser.get('last_read_post_id') || 0
           const posts = await Post.query(q => {
@@ -199,14 +184,14 @@ module.exports = bookshelf.Model.extend({
             }
           })
 
-          if (notificationsSetting === 'important') {
+          if (postNotifications === 'important') {
             postData = postData.filter(p => p.mentionedMe || p.announcement)
             if (postData.length === 0) continue
           }
 
           if (!user.get('email')) continue
 
-          const locale = mapLocaleToSendWithUS(user.get('settings')?.locale || 'en-US')
+          const locale = normalizeLocaleToFull(user.get('settings')?.locale || 'en-US')
           const clickthroughParams = '?' + new URLSearchParams({
             ctt: 'chat_digest_email',
             cti: user.id,

@@ -26,9 +26,13 @@ Object {
       avatarUrl
       description
       geoShape
+      homeRoute
+      icon
       memberCount
       name
+      parentId
       slug
+      type
       locationObject {
         id
         addressNumber
@@ -47,6 +51,10 @@ Object {
         locality
         neighborhood
         region
+      }
+      parentGroup {
+        id
+        slug
       }
     }
   }
@@ -271,6 +279,7 @@ posts: viewPosts(
     id
     name
     slug
+    type
   }
 
   eventInvitations {

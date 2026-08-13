@@ -117,13 +117,18 @@ export const COMMON_VIEWS = {
 
 /** View types that use a Lucide icon instead of the Hylo icon font. */
 const VIEW_TYPE_TO_LUCIDE_ICON = {
+  all: 'Activity',
   chat: 'MessageCircleMore',
   collection: 'Layers',
   'funding-round-submissions': 'ClipboardList',
   'manage-round': 'Settings',
   link: 'ExternalLink',
+  map: 'Map',
   member: 'User',
+  members: 'Users',
   projects: 'Layers',
+  resources: 'PackageOpen',
+  'requests-and-offers': 'Heart',
   text: 'Type',
   separator: 'Minus'
 }
@@ -199,11 +204,11 @@ export function iconForView (view) {
     }
     return { iconName: view.icon, lucideIcon: null }
   }
+  // Space group icons are always picked from Lucide (LucideIconPicker), so they
+  // aren't restricted to LUCIDE_ICON_NAMES — that set only disambiguates icons
+  // stored on views, which can still hold legacy Hylo icon font names.
   if (view?.type === 'space' && view.linkedGroup?.icon && !groupHasCustomAvatar(view.linkedGroup.avatarUrl)) {
-    if (LUCIDE_ICON_NAMES.has(view.linkedGroup.icon)) {
-      return { iconName: null, lucideIcon: view.linkedGroup.icon }
-    }
-    return { iconName: view.linkedGroup.icon, lucideIcon: null }
+    return { iconName: null, lucideIcon: view.linkedGroup.icon }
   }
   if (view?.type === 'logout') {
     return { iconName: null, lucideIcon: 'LogOut' }
@@ -282,7 +287,7 @@ export const MY_CONTEXT_VIEWS = (profileUrl) => [
   { type: 'invitations', context: 'my', icon: 'Mail', name: 'widget-my-invites', id: 'view-my-invites', order: 18 },
   { type: 'transactions', context: 'my', icon: 'CreditCard', name: 'widget-my-transactions', id: 'view-my-transactions', order: 19 },
   { type: 'notifications', context: 'my', icon: 'Bell', name: 'widget-my-notifications', id: 'view-my-notifications', order: 20 },
-  { type: 'appearance', context: 'my', icon: 'Palette', name: 'Appearance', id: 'view-my-appearance', order: 21 },
+  { type: 'appearance', context: 'my', icon: 'Palette', name: 'widget-my-appearance', id: 'view-my-appearance', order: 21 },
   { type: 'locale', context: 'my', icon: 'Languages', name: 'widget-my-locale', id: 'view-my-locale', order: 22 },
   { type: 'blocked-users', context: 'my', icon: 'UserX', name: 'widget-my-blocked-users', id: 'view-my-blocked-users', order: 23 },
   { type: 'saved-searches', context: 'my', icon: 'Search', name: 'widget-my-saved-searches', id: 'view-my-saved-searches', order: 24 },

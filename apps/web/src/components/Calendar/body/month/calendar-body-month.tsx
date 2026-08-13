@@ -1,17 +1,19 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { Plus } from 'lucide-react'
 import { useCalendarContext } from '../../calendar-context'
 import { Interval, Info } from 'luxon'
 import { DateTimeHelpers } from '@hylo/shared'
 import { cn } from '@/lib/utils'
 import CalendarEvent from '../../calendar-event'
 import { AnimatePresence, motion } from 'framer-motion'
-import { eachIntervalDay } from '../../calendar-util'
-import { getLocaleFromLocalStorage } from 'util/locale'
+import { eachIntervalDay, createEventPostUrl } from '../../calendar-util'
+import { getDateLocale, getLocaleFromLocalStorage } from 'util/locale'
 
 export default function CalendarBodyMonth () {
   const { t } = useTranslation()
-  const { date, events, setDate, setMode, updateCalendarView } = useCalendarContext()
+  const { date, events, setDate, setMode, updateCalendarView, routeParams, querystringParams } = useCalendarContext()
 
   const openDayView = (day) => {
     if (updateCalendarView) {
@@ -55,7 +57,7 @@ export default function CalendarBodyMonth () {
         <div className='hidden md:grid grid-cols-7 border-border divide-x divide-border'>
           {[0, 1, 2, 3, 4, 5, 6].map((day) => {
             const luxonDay = (day + 6) % 7
-            const dayName = Info.weekdays('short', { locale: DateTimeHelpers.getLocaleAsString(getLocaleFromLocalStorage()) })[luxonDay]
+            const dayName = Info.weekdays('short', { locale: getDateLocale() })[luxonDay]
             return (
               <div
                 key={dayName}
@@ -85,12 +87,14 @@ export default function CalendarBodyMonth () {
               )
               const isToday = DateTimeHelpers.isSameDay(day, today)
               const isCurrentMonth = DateTimeHelpers.isSameMonth(day, date)
+              const dayLuxon = DateTimeHelpers.toDateTime(day, { locale: getLocaleFromLocalStorage() })
+              const createEventPath = createEventPostUrl(routeParams, querystringParams, day)
 
               return (
                 <div
                   key={day.toISOString()}
                   className={cn(
-                    'relative flex flex-col border-b border-r px-1 py-0 aspect-square cursor-pointer',
+                    'group relative flex flex-col border-b border-r px-1 py-0 aspect-square cursor-pointer',
                     !isCurrentMonth && 'bg-muted hidden md:flex'
                   )}
                   onClick={(e) => {
@@ -106,7 +110,7 @@ export default function CalendarBodyMonth () {
                       !isToday && !isCurrentMonth && 'text-gray-600/50'
                     )}
                   >
-                    {DateTimeHelpers.toDateTime(day, { locale: getLocaleFromLocalStorage() }).toFormat('d')}
+                    {dayLuxon.toFormat('d')}
                   </div>
                   <AnimatePresence mode='wait'>
                     <div className='flex flex-col gap-1'>
@@ -139,6 +143,19 @@ export default function CalendarBodyMonth () {
                       )}
                     </div>
                   </AnimatePresence>
+                  <Link
+                    to={createEventPath}
+                    aria-label={t('Create event on {{date}}', { date: dayLuxon.toFormat('MMM d') })}
+                    className={cn(
+                      'absolute bottom-0.5 right-0.5 z-10 flex min-w-5 min-h-5 items-center justify-center rounded-md',
+                      'text-muted-foreground/70 hover:text-foreground hover:bg-foreground/10',
+                      'opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100',
+                      'focus:opacity-100 transition-opacity'
+                    )}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Plus className='w-5 h-5' strokeWidth={2.5} />
+                  </Link>
                 </div>
               )
             })}

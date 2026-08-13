@@ -2,17 +2,16 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Pencil, Plus, Settings, Trash2 } from 'lucide-react'
+import { CircleEllipsis, GripVertical, X } from 'lucide-react'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 
-import Avatar from 'components/Avatar'
-import LucideIcon from 'components/LucideIcon/LucideIcon'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
-import { addQuerystringToPath, groupUrl, localSpaceSlug, spaceHomeUrl } from '@hylo/navigation'
+import { addQuerystringToPath, groupUrl, localSpaceSlug, spaceHomeUrl, spaceUrl } from '@hylo/navigation'
+import { isDrawerNavLayout } from 'util/mobile'
 import fetchGroupRelationships from 'store/actions/fetchGroupRelationships'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
-import { createGroupView, setGroupViewHidden } from 'store/actions/groupViews'
+import { createGroupView, deleteGroupView, deleteSpace, setGroupViewHidden } from 'store/actions/groupViews'
 import { FETCH_GROUP_RELATIONSHIPS, FETCH_GROUP_SPACES } from 'store/constants'
 import { getGroupViews } from 'store/selectors/getGroupViews'
 import { getMoreViewsSections } from 'store/selectors/getMoreSpacesSections'
@@ -24,225 +23,32 @@ import {
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import isPendingFor from 'store/selectors/isPendingFor'
-import { deleteGroup } from 'routes/GroupSettings/GroupSettings.store'
-import { DEFAULT_BANNER } from 'store/models/Group'
-import { bgImageStyle, cn } from 'util/index'
+import { canHardDeleteView } from 'store/models/GroupView'
+import { cn } from 'util/index'
 
-import useAppearance from 'hooks/useAppearance'
-import CardIconField from './CardIconField'
-import { viewCardColor, inkOn, fieldSeed, cardGradient, cardFieldTint, cardHoverRing, cardRestRing, cardNeutralBg } from './viewCardTheme'
-import GroupViewIcon from './GroupViewIcon'
-import AddGroupViewDialog, { AddViewButton } from './AddGroupViewDialog'
-import AddSpaceDialog, { AddSpaceButton } from './AddSpaceDialog'
+import AddGroupViewDialog from './AddGroupViewDialog'
+import AddSpaceDialog from './AddSpaceDialog'
+import AddViewOrSpaceMenu from './AddViewOrSpaceMenu'
 import GroupViewSettingsModal from './GroupViewSettingsModal'
 import SpaceSettingsModal from './SpaceSettingsModal'
+import GroupViewCard, { SpaceViewCard } from './GroupViewCard'
+import EditingBottomBar, { EDITING_BAR_BUTTON_CLASS } from './EditingBottomBar'
+import ViewsGridSkeleton from './ViewsGridSkeleton'
 import { menuViewUrl } from './groupViewMenuUrl'
 
-// Same postType-themed card treatment as the one-column dashboard (ContextMenuGrid).
-const CARD_CLASS = 'group relative flex flex-col overflow-hidden rounded-2xl border transition-all w-[calc(50%-6px)] aspect-[13/11] sm:w-[208px] sm:h-[176px] sm:aspect-auto cursor-pointer hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] active:duration-[50ms]'
-/** Scheme-dependent card border + resting shadow. */
-const cardChrome = (isDark) => isDark
-  ? 'border-white/10 shadow-[0_2px_8px_rgba(0,0,0,0.3)]'
-  : 'border-black/10 shadow-[0_2px_8px_rgba(0,0,0,0.12)]'
-const cardHoverShadow = (isDark) => isDark ? '0 12px 30px rgba(0,0,0,0.45)' : '0 12px 30px rgba(0,0,0,0.18)'
-// Rest shadow mirrors cardChrome's class values so inline hover shadows transition smoothly
-const cardRestShadow = (isDark) => isDark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.12)'
-
-const CARD_ACTION_BTN = 'p-1.5 rounded-md bg-background/90 text-foreground/60 hover:text-foreground pointer-events-auto'
-
-/** Section heading above a card grid. */
+/** Section heading above a card grid. Sections own the space above them (see SECTION_CLASS). */
 function SectionHeading ({ children }) {
   return (
-    <h2 className='text-base font-semibold text-foreground/70 px-1 w-full mt-6 mb-3 first:mt-0'>
+    <h2 className='text-base font-semibold text-foreground/70 px-1 w-full mb-3'>
       {children}
     </h2>
   )
 }
 
-/** Edit-mode action row at the bottom of a card: +, gear, delete. */
-function CardEditActions ({ onAddToMenu, onOpenSettings, onDelete, addLabel, settingsLabel, deleteLabel }) {
-  return (
-    <div className='absolute bottom-2 right-2 z-10 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none'>
-      {onAddToMenu && (
-        <button
-          type='button'
-          onClick={(e) => {
-            e.stopPropagation()
-            onAddToMenu()
-          }}
-          className={CARD_ACTION_BTN}
-          aria-label={addLabel}
-          title={addLabel}
-        >
-          <Plus className='w-4 h-4' />
-        </button>
-      )}
-      {onOpenSettings && (
-        <button
-          type='button'
-          onClick={(e) => {
-            e.stopPropagation()
-            onOpenSettings()
-          }}
-          className={CARD_ACTION_BTN}
-          aria-label={settingsLabel}
-          title={settingsLabel}
-        >
-          <Settings className='w-4 h-4' />
-        </button>
-      )}
-      {onDelete && (
-        <button
-          type='button'
-          onClick={(e) => {
-            e.stopPropagation()
-            onDelete()
-          }}
-          className={cn(CARD_ACTION_BTN, 'hover:text-destructive')}
-          aria-label={deleteLabel}
-          title={deleteLabel}
-        >
-          <Trash2 className='w-4 h-4' />
-        </button>
-      )}
-    </div>
-  )
-}
-
-/** Card for an off-menu GroupView, themed by its postType color. */
-function ViewCard ({ view, isEditing, onAddToMenu, onOpen, onOpenSettings }) {
-  const { t } = useTranslation()
-  const { effectiveColorScheme } = useAppearance()
-  const isDark = effectiveColorScheme === 'dark'
-  const [hover, setHover] = useState(false)
-  const presented = useMemo(() => GroupViewPresenter(view), [view])
-  const title = displayNameForView(presented, t)
-  const col = viewCardColor(presented)
-  const tint = cardFieldTint(col, effectiveColorScheme)
-  const ink = inkOn(col)
-
-  const handleOpen = () => {
-    if (isEditing) return
-    onOpen(view)
-  }
-
-  return (
-    <div
-      className={cn(CARD_CLASS, cardChrome(isDark), isEditing && 'cursor-default')}
-      style={{
-        background: cardGradient(col, effectiveColorScheme),
-        // Light mode: icon cards take their border from the view color (same as the
-        // icon tile) — softened at rest, full strength on hover (hex-alpha animates)
-        ...(!isDark ? { borderColor: hover && !isEditing ? col : `${col}59` } : {}),
-        // Always set both shadows in matching structure so the transition interpolates
-        boxShadow: hover && !isEditing
-          ? `${cardHoverShadow(isDark)}, ${cardHoverRing(col)}`
-          : `${cardRestShadow(isDark)}, ${cardRestRing(col)}`
-      }}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      role={isEditing ? undefined : 'button'}
-      tabIndex={isEditing ? undefined : 0}
-      onClick={handleOpen}
-      onKeyDown={(e) => {
-        if (isEditing) return
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          onOpen(view)
-        }
-      }}
-    >
-      <CardIconField view={presented} tint={tint} w={208} h={176} seed={fieldSeed(view.id)} />
-      <div className='relative h-full'>
-        <div className='absolute inset-0 grid place-items-center'>
-          <div
-            className='w-14 h-14 rounded-[15px] grid place-items-center shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.35)]'
-            style={{ background: col, color: ink, border: `1px solid color-mix(in srgb, ${col} 55%, white)` }}
-          >
-            <span className='flex items-center justify-center w-[26px] h-[26px] [&>svg]:!w-full [&>svg]:!h-full [&>img]:!w-full [&>img]:!h-full [&>span]:!text-[26px] [&>span]:!leading-none'>
-              <GroupViewIcon view={presented} className='!w-[26px] !h-[26px] !mr-0' />
-            </span>
-          </div>
-        </div>
-        <div className='absolute left-0 right-0 top-[calc(50%+28px)] bottom-0 flex flex-col items-center justify-center text-center px-3'>
-          <h3 className={cn('text-sm font-bold line-clamp-2 m-0 leading-tight', isDark ? 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]' : 'text-foreground')}>{title}</h3>
-        </div>
-      </div>
-      {isEditing && (
-        <CardEditActions
-          onAddToMenu={onAddToMenu ? () => onAddToMenu(view) : null}
-          onOpenSettings={onOpenSettings ? () => onOpenSettings(view) : null}
-          addLabel={t('Add to Menu')}
-          settingsLabel={t('Settings')}
-        />
-      )}
-    </div>
-  )
-}
-
-/** Card for an off-menu space: banner image + scrim with a frosted-glass tile. */
-function SpaceCard ({ space, isEditing, onOpen, onAddToMenu, onOpenSettings, onDelete }) {
-  const { t } = useTranslation()
-  const { effectiveColorScheme } = useAppearance()
-  const isDark = effectiveColorScheme === 'dark'
-  const bgImageUrl = (space.bannerUrl && space.bannerUrl !== DEFAULT_BANNER ? space.bannerUrl : null) || space.avatarUrl || null
-  const onLightSurface = !isDark && !bgImageUrl
-
-  return (
-    <div
-      className={cn(CARD_CLASS, cardChrome(isDark))}
-      style={{ background: cardNeutralBg(effectiveColorScheme) }}
-      role='button'
-      tabIndex={0}
-      onClick={() => onOpen(space)}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          onOpen(space)
-        }
-      }}
-    >
-      {bgImageUrl && (
-        <>
-          <div className='absolute inset-0 bg-cover bg-center' style={bgImageStyle(bgImageUrl)} />
-          <div className='absolute inset-0' style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.6) 100%)' }} />
-        </>
-      )}
-      <div className='relative h-full'>
-        <div className='absolute inset-0 grid place-items-center'>
-          <div
-            className={cn('w-14 h-14 rounded-[15px] grid place-items-center shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.35)]', onLightSurface ? 'text-foreground/80' : 'text-white')}
-            style={onLightSurface
-              ? { background: 'hsl(0 0% 0% / 0.06)', border: '1px solid hsl(0 0% 0% / 0.15)' }
-              : { background: 'hsl(0 0% 100% / 0.16)', backdropFilter: 'blur(4px)', border: '1px solid hsl(0 0% 100% / 0.28)' }}
-          >
-            {space.avatarUrl
-              ? <Avatar avatarUrl={space.avatarUrl} name={space.name} medium className='!w-10 !h-10' />
-              : space.icon
-                ? <LucideIcon name={space.icon} className='w-7 h-7' />
-                : <div className={cn('w-7 h-7 rounded-full', onLightSurface ? 'bg-black/15' : 'bg-white/20')} />}
-          </div>
-        </div>
-        <div className='absolute left-0 right-0 top-[calc(50%+28px)] bottom-0 flex flex-col items-center justify-center text-center px-3'>
-          <h3 className={cn('text-sm font-bold line-clamp-2 m-0 leading-tight', onLightSurface ? 'text-foreground' : 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]')}>{space.name}</h3>
-          {space.isDraft && (
-            <span className={cn('text-[10.5px] font-semibold mt-1', onLightSurface ? 'text-foreground/60' : 'text-white/70 [text-shadow:0_1px_4px_rgba(0,0,0,0.6)]')}>{t('Draft')}</span>
-          )}
-        </div>
-      </div>
-      {isEditing && (
-        <CardEditActions
-          onAddToMenu={onAddToMenu ? () => onAddToMenu(space) : null}
-          onOpenSettings={onOpenSettings ? () => onOpenSettings(space) : null}
-          onDelete={onDelete ? () => onDelete(space) : null}
-          addLabel={t('Add to Menu')}
-          settingsLabel={t('Settings')}
-          deleteLabel={t('Delete Space')}
-        />
-      )}
-    </div>
-  )
-}
+// Space above a section is twice the heading-to-cards gap below it. This lives on
+// the section rather than the heading because the heading is always the first child
+// of its own section, so `first:` there matched every heading and zeroed them all.
+const SECTION_CLASS = 'mt-6 first:mt-0'
 
 /**
  * More Views and Spaces — center-column grid of off-menu views and spaces.
@@ -290,22 +96,42 @@ export default function MoreViewsPage ({ group }) {
   const hasRelatedGroups = parentGroups.length + childGroups.length + peerGroups.length > 0
 
   const offMenuViews = useMemo(() => {
-    return (sections.offMenuViews || []).filter(view => {
+    const views = (sections.offMenuViews || []).filter(view => {
       if (view.type === 'related-groups' && !hasRelatedGroups) return false
       return true
     })
-  }, [sections.offMenuViews, hasRelatedGroups])
+    return [...views].sort((a, b) =>
+      displayNameForView(GroupViewPresenter(a), t).localeCompare(
+        displayNameForView(GroupViewPresenter(b), t)
+      )
+    )
+  }, [sections.offMenuViews, hasRelatedGroups, t])
 
   const [showAddView, setShowAddView] = useState(false)
   const [showAddSpace, setShowAddSpace] = useState(false)
   const [settingsView, setSettingsView] = useState(null)
   const [settingsSpace, setSettingsSpace] = useState(null)
+  const [deletingSpaceId, setDeletingSpaceId] = useState(null)
   const settingsTypeParam = getQuerystringParam('settings', location)
 
   useEffect(() => {
     setHeaderDetails({
-      title: isEditing ? t('More Views and Spaces (Editing)') : t('More Views and Spaces'),
-      icon: '',
+      // Editing state as a pill beside the title rather than baked into it,
+      // and the same icon the menu row carries — without one this header
+      // rendered shorter than every other view's.
+      title: isEditing
+        ? (
+          <span className='flex items-center gap-2'>
+            {t('More')}
+            {/* Slim enough to sit inside the title's line box — a taller pill overflows
+                the header's fixed height and clips instead of growing it */}
+            <span className='text-xs font-semibold rounded-full border border-foreground/20 bg-foreground/10 text-foreground/70 px-2 py-px leading-none self-center'>
+              {t('Editing')}
+            </span>
+          </span>
+          )
+        : t('More'),
+      icon: <CircleEllipsis />,
       info: '',
       search: false
     })
@@ -373,19 +199,34 @@ export default function MoreViewsPage ({ group }) {
   }, [dispatch, contentGroup?.id, groupViews])
 
   const handleDeleteSpace = useCallback(async (space) => {
-    if (!space?.id) return
+    if (!space?.id || deletingSpaceId) return
     const confirmed = window.confirm(
       t('Are you sure you want to permanently delete {{name}}? Posts in this space will no longer be accessible.', {
         name: space.name
       })
     )
     if (!confirmed) return
+    setDeletingSpaceId(space.id)
     try {
-      await dispatch(deleteGroup(space.id))
+      await dispatch(deleteSpace(space.id))
       await dispatch(fetchGroupSpaces(contentGroup.id))
       await dispatch(fetchGroupViews(contentGroup.id))
     } catch (error) {
       console.error('Failed to delete space:', error)
+    } finally {
+      setDeletingSpaceId(null)
+    }
+  }, [dispatch, contentGroup?.id, deletingSpaceId, t])
+
+  const handleDeleteView = useCallback(async (view) => {
+    if (!canHardDeleteView(view) || !contentGroup?.id) return
+    const label = displayNameForView(GroupViewPresenter(view), t)
+    if (!window.confirm(t('Are you sure you want to permanently delete {{name}}?', { name: label }))) return
+    try {
+      await dispatch(deleteGroupView(view.id, contentGroup.id))
+      await dispatch(fetchGroupViews(contentGroup.id))
+    } catch (error) {
+      console.error('Failed to delete view:', error)
     }
   }, [dispatch, contentGroup?.id, t])
 
@@ -410,30 +251,27 @@ export default function MoreViewsPage ({ group }) {
       }))
       return
     }
-    navigate(spaceHomeUrl(groupSlug, space), { state: { fromMoreViews: true } })
+    // Where a menu is visible alongside the content, going straight to the space's
+    // home view costs nothing. On a drawer layout it skips the space's menu
+    // entirely — SpaceContent decides what the root should show, so hand it the
+    // root rather than pre-empting it here.
+    navigate(
+      isDrawerNavLayout() ? spaceUrl(groupSlug, local) : spaceHomeUrl(groupSlug, space),
+      { state: { fromMoreViews: true } }
+    )
   }, [navigate, groupSlug, isEditing])
+
+  const handleOpenSpaceAbout = useCallback((space) => {
+    const local = localSpaceSlug(groupSlug, space.slug)
+    navigate(spaceUrl(groupSlug, local, '/about'))
+  }, [groupSlug, navigate])
 
   const handleDoneEditing = useCallback(() => {
     navigate(groupUrl(groupSlug))
   }, [navigate, groupSlug])
 
-  // The Done Editing bar is fixed to the viewport bottom; measure the content
-  // column so the fixed bar aligns with it instead of the full viewport.
+  // EditingBottomBar measures this to size itself
   const containerRef = useRef(null)
-  const [barRect, setBarRect] = useState(null)
-  useEffect(() => {
-    if (!isEditing) return
-    const update = () => {
-      const el = containerRef.current
-      if (!el) return
-      const rect = el.getBoundingClientRect()
-      setBarRect({ left: rect.left, width: rect.width })
-    }
-    update()
-    window.addEventListener('resize', update)
-    return () => window.removeEventListener('resize', update)
-  }, [isEditing])
-
   const handleAddViewClose = useCallback(async () => {
     setShowAddView(false)
     if (contentGroup?.id) await dispatch(fetchGroupViews(contentGroup.id))
@@ -468,51 +306,42 @@ export default function MoreViewsPage ({ group }) {
 
   return (
     <div ref={containerRef} className={cn('w-full max-w-[980px] mx-auto px-4 py-6', isEditing && 'pb-24')}>
-      {isEditing && (
-        <>
-          <p className='text-sm text-foreground/70 mb-6'>
-            {t('Drag and drop items in the menu on the left to reorder them. The top item is the home view for this group.')}
-          </p>
-          <div className='flex flex-row gap-2 mb-8'>
-            <AddViewButton onClick={() => setShowAddView(true)} className='w-auto flex-1 mb-0' />
-            {!isSpaceMoreViews && <AddSpaceButton onClick={() => setShowAddSpace(true)} className='w-auto flex-1 mb-0' />}
-          </div>
-        </>
-      )}
-
       {pending && !hasContent
-        ? <p className='text-sm text-foreground/40'>{t('Loading…')}</p>
+        ? <ViewsGridSkeleton />
         : !hasContent
             ? <p className='text-sm text-foreground/40'>{t('No more views or spaces')}</p>
             : (
               <div className='flex flex-col'>
                 {showViews && (
-                  <section>
+                  <section className={SECTION_CLASS}>
                     <SectionHeading>{t('Views')}</SectionHeading>
                     <div className='flex flex-wrap gap-3'>
                       {offMenuViews.map(view => (
-                        <ViewCard
+                        <GroupViewCard
                           key={view.id}
                           view={view}
                           isEditing={isEditing}
                           onAddToMenu={handleAddViewToMenu}
                           onOpen={handleOpenView}
                           onOpenSettings={setSettingsView}
+                          onDelete={canHardDeleteView(view) ? handleDeleteView : null}
                         />
                       ))}
                     </div>
                   </section>
                 )}
                 {showTracks && (
-                  <section>
+                  <section className={SECTION_CLASS}>
                     <SectionHeading>{t('Tracks')}</SectionHeading>
                     <div className='flex flex-wrap gap-3'>
                       {sections.trackSpaces.map(space => (
-                        <SpaceCard
+                        <SpaceViewCard
                           key={space.id}
                           space={space}
                           isEditing={isEditing}
+                          isDeleting={String(deletingSpaceId) === String(space.id)}
                           onOpen={handleOpenSpace}
+                          onOpenAbout={handleOpenSpaceAbout}
                           onAddToMenu={handleAddSpaceToMenu}
                           onOpenSettings={setSettingsSpace}
                           onDelete={handleDeleteSpace}
@@ -522,15 +351,17 @@ export default function MoreViewsPage ({ group }) {
                   </section>
                 )}
                 {showFundingRounds && (
-                  <section>
+                  <section className={SECTION_CLASS}>
                     <SectionHeading>{t('Funding Rounds')}</SectionHeading>
                     <div className='flex flex-wrap gap-3'>
                       {sections.fundingRoundSpaces.map(space => (
-                        <SpaceCard
+                        <SpaceViewCard
                           key={space.id}
                           space={space}
                           isEditing={isEditing}
+                          isDeleting={String(deletingSpaceId) === String(space.id)}
                           onOpen={handleOpenSpace}
+                          onOpenAbout={handleOpenSpaceAbout}
                           onAddToMenu={handleAddSpaceToMenu}
                           onOpenSettings={setSettingsSpace}
                           onDelete={handleDeleteSpace}
@@ -540,15 +371,17 @@ export default function MoreViewsPage ({ group }) {
                   </section>
                 )}
                 {showOtherSpaces && (
-                  <section>
+                  <section className={SECTION_CLASS}>
                     <SectionHeading>{t('Other Spaces')}</SectionHeading>
                     <div className='flex flex-wrap gap-3'>
                       {sections.otherSpaces.map(space => (
-                        <SpaceCard
+                        <SpaceViewCard
                           key={space.id}
                           space={space}
                           isEditing={isEditing}
+                          isDeleting={String(deletingSpaceId) === String(space.id)}
                           onOpen={handleOpenSpace}
+                          onOpenAbout={handleOpenSpaceAbout}
                           onAddToMenu={handleAddSpaceToMenu}
                           onOpenSettings={setSettingsSpace}
                           onDelete={handleDeleteSpace}
@@ -560,20 +393,36 @@ export default function MoreViewsPage ({ group }) {
               </div>
               )}
 
+      {/* Below the sections, and shown even when empty so there is a way to add the first one */}
       {isEditing && (
-        <div
-          className='fixed bottom-0 z-30 pt-6 pb-2 px-4 bg-gradient-to-t from-background from-40% to-transparent pointer-events-none'
-          style={barRect ? { left: barRect.left, width: barRect.width } : { left: 0, right: 0 }}
-        >
-          <button
-            type='button'
-            onClick={handleDoneEditing}
-            className='pointer-events-auto flex items-center justify-center gap-2 w-full text-base font-medium text-foreground border-2 border-foreground/30 hover:border-foreground/50 hover:bg-card rounded-md px-3 py-2.5 transition-all'
-          >
-            <Pencil className='w-4 h-4' />
-            <span>{t('Done Editing')}</span>
-          </button>
+        <div className='flex flex-wrap gap-3 mt-6'>
+          <AddViewOrSpaceMenu
+            canAddSpace={!isSpaceMoreViews}
+            onChooseView={() => setShowAddView(true)}
+            onChooseSpace={() => setShowAddSpace(true)}
+          />
         </div>
+      )}
+
+      {isEditing && (
+        <EditingBottomBar containerRef={containerRef}>
+          {/* The reorder hint rides in the bar with the control it explains —
+              hint left, Done Editing right, matching the page's content well */}
+          <div className='w-full max-w-[980px] flex items-center justify-between gap-4'>
+            <p className='flex items-center gap-2 text-sm text-foreground/70 m-0 text-left pointer-events-auto'>
+              <GripVertical className='w-4 h-4 shrink-0 text-foreground/50' />
+              {t('Drag and drop items in the menu on the left to reorder them. The top item is the home view for this group.')}
+            </p>
+            <button
+              type='button'
+              onClick={handleDoneEditing}
+              className={cn(EDITING_BAR_BUTTON_CLASS, 'shrink-0')}
+            >
+              <X className='w-4 h-4' />
+              <span>{t('Done Editing')}</span>
+            </button>
+          </div>
+        </EditingBottomBar>
       )}
 
       {showAddView && (
@@ -582,10 +431,11 @@ export default function MoreViewsPage ({ group }) {
           groupViews={groupViews}
           acceptedPostTypes={contentGroup?.acceptedPostTypes}
           onClose={handleAddViewClose}
+          addToMenu={false}
         />
       )}
       {showAddSpace && (
-        <AddSpaceDialog group={contentGroup} onClose={handleAddSpaceClose} />
+        <AddSpaceDialog group={contentGroup} onClose={handleAddSpaceClose} addToMenu={false} />
       )}
       {settingsView && (
         <GroupViewSettingsModal

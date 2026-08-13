@@ -4,6 +4,7 @@ import {
   CREATE_GROUP_VIEW,
   CREATE_SPACE,
   DELETE_GROUP_VIEW,
+  DELETE_SPACE,
   FETCH_VIEW_POSTS,
   REMOVE_POST_FROM_VIEW,
   REORDER_GROUP_VIEW,
@@ -18,6 +19,12 @@ import { PostFieldsFragment } from 'store/actions/trackActions'
 /** Build embedded menu patch fields from updateGroupView mutation args. */
 function groupViewMenuData ({ name, icon, settings, link, pageContent, topics }) {
   return omitBy(isUndefined, { name, icon, settings, link, pageContent, topics })
+}
+
+/** Coerce GraphQL role ids (strings) to ints for createSpace/updateSpace `[Int]` variables. */
+function toIntRoleIds (ids) {
+  if (ids == null) return ids
+  return ids.map(id => parseInt(id, 10)).filter(Number.isInteger)
 }
 
 /** Build embedded menu patch fields for a space view row from updateSpace args. */
@@ -80,12 +87,12 @@ const groupViewFields = `
   }
 `
 
-/** Create a new view in a group's menu. */
-export function createGroupView ({ groupId, type, name, icon, settings, link, pageContent, topics, orderInFrontOfViewId, addToEnd, linkedGroupId, postId, userId }) {
+/** Create a new view in a group's menu (or off-menu when hidden is true). */
+export function createGroupView ({ groupId, type, name, icon, settings, link, pageContent, topics, orderInFrontOfViewId, addToEnd, linkedGroupId, postId, userId, hidden }) {
   return {
     type: CREATE_GROUP_VIEW,
     graphql: {
-      query: `mutation ($groupId: ID!, $type: String!, $name: String, $icon: String, $settings: JSON, $link: String, $pageContent: String, $topics: [String], $orderInFrontOfViewId: ID, $addToEnd: Boolean, $linkedGroupId: ID, $postId: ID, $userId: ID) {
+      query: `mutation ($groupId: ID!, $type: String!, $name: String, $icon: String, $settings: JSON, $link: String, $pageContent: String, $topics: [String], $orderInFrontOfViewId: ID, $addToEnd: Boolean, $linkedGroupId: ID, $postId: ID, $userId: ID, $hidden: Boolean) {
         createGroupView(
           groupId: $groupId
           type: $type
@@ -100,11 +107,12 @@ export function createGroupView ({ groupId, type, name, icon, settings, link, pa
           linkedGroupId: $linkedGroupId
           postId: $postId
           userId: $userId
+          hidden: $hidden
         ) {
           ${groupViewFields}
         }
       }`,
-      variables: { groupId, type, name, icon, settings, link, pageContent, topics, orderInFrontOfViewId, addToEnd, linkedGroupId, postId, userId }
+      variables: { groupId, type, name, icon, settings, link, pageContent, topics, orderInFrontOfViewId, addToEnd, linkedGroupId, postId, userId, hidden }
     },
     meta: {
       groupId,
@@ -307,11 +315,11 @@ export function fetchViewPosts (groupId, viewId) {
 }
 
 /** Create a child space under a parent group. */
-export function createSpace ({ parentGroupId, name, slug, description, icon, acceptedPostTypes, purpose, location, locationId, visibility, accessibility, requiredRoles, viewTypes, bannerUrl, avatarUrl, paywall }) {
+export function createSpace ({ parentGroupId, name, slug, description, icon, acceptedPostTypes, purpose, location, locationId, visibility, accessibility, requiredRoles, viewTypes, bannerUrl, avatarUrl, paywall, addToMenu }) {
   return {
     type: CREATE_SPACE,
     graphql: {
-      query: `mutation ($parentGroupId: ID!, $name: String!, $slug: String, $description: String, $icon: String, $acceptedPostTypes: [String], $purpose: String, $location: String, $locationId: ID, $visibility: Int, $accessibility: Int, $requiredRoles: [Int], $viewTypes: [String], $bannerUrl: String, $avatarUrl: String, $paywall: Boolean) {
+      query: `mutation ($parentGroupId: ID!, $name: String!, $slug: String, $description: String, $icon: String, $acceptedPostTypes: [String], $purpose: String, $location: String, $locationId: ID, $visibility: Int, $accessibility: Int, $requiredRoles: [Int], $viewTypes: [String], $bannerUrl: String, $avatarUrl: String, $paywall: Boolean, $addToMenu: Boolean) {
         createSpace(
           parentGroupId: $parentGroupId
           name: $name
@@ -329,6 +337,7 @@ export function createSpace ({ parentGroupId, name, slug, description, icon, acc
           bannerUrl: $bannerUrl
           avatarUrl: $avatarUrl
           paywall: $paywall
+          addToMenu: $addToMenu
         ) {
           id
           name
@@ -342,7 +351,7 @@ export function createSpace ({ parentGroupId, name, slug, description, icon, acc
           accessibility
         }
       }`,
-      variables: { parentGroupId, name, slug, description, icon, acceptedPostTypes, purpose, location, locationId, visibility, accessibility, requiredRoles, viewTypes, bannerUrl, avatarUrl, paywall }
+      variables: { parentGroupId, name, slug, description, icon, acceptedPostTypes, purpose, location, locationId, visibility, accessibility, requiredRoles: toIntRoleIds(requiredRoles), viewTypes, bannerUrl, avatarUrl, paywall, addToMenu }
     },
     meta: {
       parentGroupId,
@@ -386,19 +395,37 @@ export function updateSpace ({ id, groupId, spaceViewId, name, slug, description
           paywall
           visibility
           accessibility
+          acceptedPostTypes
+          icon
         }
       }`,
-      variables: omitBy(isUndefined, { id, name, slug, description, icon, acceptedPostTypes, purpose, location, locationId, visibility, accessibility, requiredRoles, bannerUrl, avatarUrl, paywall })
+      variables: omitBy(isUndefined, { id, name, slug, description, icon, acceptedPostTypes, purpose, location, locationId, visibility, accessibility, requiredRoles: toIntRoleIds(requiredRoles), bannerUrl, avatarUrl, paywall })
     },
     meta: {
       id,
       groupId,
       spaceViewId,
-      data: spaceViewMenuData({ name, description, viewName }),
+      acceptedPostTypes,
+      data: spaceViewMenuData({ name, description, viewName, icon }),
       optimistic: true,
       extractModel: [
         { getRoot: get('updateSpace'), modelName: 'Group' }
       ]
     }
+  }
+}
+
+export function deleteSpace (id) {
+  return {
+    type: DELETE_SPACE,
+    graphql: {
+      query: `mutation ($id: ID!) {
+        deleteSpace(id: $id) {
+          success
+        }
+      }`,
+      variables: { id }
+    },
+    meta: { id }
   }
 }

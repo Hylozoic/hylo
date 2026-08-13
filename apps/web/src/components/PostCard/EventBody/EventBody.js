@@ -3,9 +3,9 @@ import { get, filter } from 'lodash/fp'
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
-import { DateTimeHelpers } from '@hylo/shared'
 import EventInviteDialog from 'components/EventInviteDialog'
 import EventDate from '../EventDate'
+import EventTimeDisplay from 'components/EventTimeDisplay/EventTimeDisplay'
 import EventRSVP from '../EventRSVP'
 import PostTitle from '../PostTitle'
 import PostContent from '../PostContent'
@@ -22,7 +22,7 @@ function EventBody (props) {
   const toggleInviteDialog = () => setShowInviteDialog(!showInviteDialog)
 
   const { currentUser, event, isFlagged, respondToEvent, slug, expanded, className, constrained, onClick, togglePeopleDialog } = props
-  const { id, startTime, endTime, eventInvitations, groups } = event
+  const { id, startTime, endTime, timezone, eventInvitations, groups } = event
 
   const firstAttachment = event.attachments?.[0]
   const attachmentType = firstAttachment?.type
@@ -49,7 +49,14 @@ function EventBody (props) {
               <div className={cn('text-xs text-foreground/50 flex flex-row gap-2 items-center')} onClick={onClick}>
                 {isHappeningNow && <div className='bg-selected/10 p-1 rounded-lg text-selected text-xs font-bold flex items-center justify-center inline-block px-2'>{t('Happening now!')}</div>}
                 {!isHappeningNow && isUpcoming && <div className='bg-accent/10 p-1 rounded-lg text-accent text-xs font-bold flex items-center justify-center inline-block px-2'>{t('Upcoming')}</div>}
-                {DateTimeHelpers.formatDatePair({ start: startTime, end: endTime })}
+                <EventTimeDisplay
+                  startTime={startTime}
+                  endTime={endTime}
+                  timezone={timezone}
+                  showSecondary={expanded}
+                  showTooltip={!expanded}
+                  tooltipId={`event-time-${id}`}
+                />
                 {isPastEvent && (
                   <span className={cn('text-sm text-foreground/50 ml-2 px-2 inline-block p-1 rounded-md bg-foreground/10 text-xs')}>{t('Event ended')}</span>
                 )}

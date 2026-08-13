@@ -199,6 +199,24 @@ describe('updateFundingRound', () => {
     }
   })
 
+  it('allows parent Administration to update a funding round space without space membership', async () => {
+    const space = await factories.group({
+      type: 'space',
+      parent_id: group.id,
+      slug: `fr-space-update-${Date.now()}`
+    }).save()
+    const spaceRound = await new FundingRound({
+      title: 'Space Round',
+      group_id: space.id,
+      phase: FundingRound.PHASES.DRAFT,
+      voting_method: 'token_allocation_constant'
+    }).save()
+
+    // moderatorUser is coordinator on parent only — not a member of the space
+    const updatedRound = await updateFundingRound(moderatorUser.id, spaceRound.id, { title: 'Updated Space Round' })
+    expect(updatedRound.get('title')).to.equal('Updated Space Round')
+  })
+
   it('triggers phase transition on update', async () => {
     const now = new Date()
     const pastDate = new Date(now.getTime() - 1000).getTime() // 1 second ago

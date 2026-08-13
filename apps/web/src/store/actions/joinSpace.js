@@ -21,6 +21,15 @@ export default function joinSpace (spaceId) {
           person {
             id
           }
+          settings {
+            agreementsAcceptedAt
+            digestFrequency
+            joinQuestionsAnsweredAt
+            postNotifications
+            sendEmail
+            sendPushNotifications
+            showJoinForm
+          }
         }
       }`,
       variables: { spaceId }

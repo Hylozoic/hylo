@@ -1,44 +1,75 @@
 import { POST_TYPES } from '@hylo/presenters/PostPresenter'
-import { butterflyBush, mediumPurple, pictonBlue, slateGrey } from '@hylo/presenters/colors'
+import { slateGrey } from '@hylo/presenters/colors'
 
 /**
- * Brand color for a dashboard view card, keyed by view type.
- * Post-type views use the canonical POST_TYPES primaryColor tokens; the rest
- * follow the prototype's palette mapped onto existing named colors.
+ * Brand colors for post-type stream views only.
+ * Custom, map, members, chat, all, welcome, etc. use slate grey —
+ * still with the icon-field background, just neutrally tinted.
  */
-const VIEW_TYPE_COLOR = {
-  chat: POST_TYPES.discussion.primaryColor,
+const POST_TYPE_VIEW_COLOR = {
   discussions: POST_TYPES.discussion.primaryColor,
-  stream: POST_TYPES.discussion.primaryColor,
-  'all-activity': POST_TYPES.discussion.primaryColor,
-  posts: POST_TYPES.discussion.primaryColor,
   events: POST_TYPES.event.primaryColor,
   'requests-and-offers': POST_TYPES.request.primaryColor,
   resources: POST_TYPES.resource.primaryColor,
   projects: POST_TYPES.project.primaryColor,
   proposals: POST_TYPES.proposal.primaryColor,
-  decisions: POST_TYPES.proposal.primaryColor,
-  map: butterflyBush,
-  members: butterflyBush,
-  groups: butterflyBush,
-  about: slateGrey,
-  welcome: slateGrey,
-  link: slateGrey,
-  moderation: slateGrey,
-  'track-actions': mediumPurple,
-  tracks: mediumPurple,
-  space: butterflyBush,
-  group: butterflyBush,
-  'funding-round-submissions': POST_TYPES.resource.primaryColor,
-  'manage-round': POST_TYPES.resource.primaryColor,
-  'funding-rounds': POST_TYPES.resource.primaryColor
+  decisions: POST_TYPES.proposal.primaryColor
 }
 
+/** Brand color for a view card — post-type colors, or slate grey for everything else. */
 export function viewCardColor (view) {
-  return VIEW_TYPE_COLOR[view?.type] || pictonBlue
+  return POST_TYPE_VIEW_COLOR[view?.type] || slateGrey
 }
 
-/** Readable icon ink for a solid color tile (dark ink on light brand colors like gold). */
+/**
+ * Card footprint on sm and up. CardIconField uses these to work out how many
+ * glyphs the wallpaper needs, so it has to match CARD_CLASS.
+ */
+export const CARD_W = 168
+export const CARD_H = 156
+
+/** Card title. Tight leading so a wrapped two-line title reads as one block. */
+export const CARD_TITLE_CLASS = 'text-sm font-bold line-clamp-2 m-0 leading-[1.1]'
+
+/**
+ * Shared card footprint and interaction. Cards are deliberately dark in both
+ * themes — each is a mini canvas tinted by its view's brand color, per the
+ * one-column dashboard design. Below sm the width is fluid, so the aspect ratio
+ * (14/13 — the same proportion as CARD_W/CARD_H) stands in for the fixed size.
+ *
+ * The sub-sm width subtracts half of the grid's gap-3 so two cards fit a row
+ * exactly. It has to be expressed in rem, not px: gap-3 is 0.75rem, so on a
+ * phone (where the root font size is larger) a hardcoded 6px left the pair
+ * fractionally over 100% and wrapped them one per row.
+ */
+export const CARD_SIZE_CLASS = 'w-[calc(50%-0.375rem)] aspect-[14/13] sm:w-[168px] sm:h-[156px] sm:aspect-auto'
+
+export const CARD_CLASS = `group relative flex flex-col overflow-hidden rounded-2xl border transition-all ${CARD_SIZE_CLASS} cursor-pointer hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] active:duration-[50ms]`
+
+/**
+ * For a card rendered inside a wrapper that carries CARD_SIZE_CLASS itself (the
+ * sortable grid). The sub-sm width is a percentage of the parent, so a card left
+ * to size itself inside an auto-width wrapper collapses to nothing — the wrapper
+ * takes the size and the card fills it.
+ */
+export const CARD_FILL_CLASS = 'w-full h-full aspect-auto'
+
+/** Scheme-dependent card border + resting shadow. */
+export function cardChrome (isDark) {
+  return isDark
+    ? 'border-white/10 shadow-[0_2px_8px_rgba(0,0,0,0.3)]'
+    : 'border-black/10 shadow-[0_2px_8px_rgba(0,0,0,0.12)]'
+}
+
+export const cardHoverShadow = (isDark) => isDark ? '0 12px 30px rgba(0,0,0,0.45)' : '0 12px 30px rgba(0,0,0,0.18)'
+/** Rest shadow mirrors cardChrome's class values so inline hover shadows transition smoothly. */
+export const cardRestShadow = (isDark) => isDark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.12)'
+
+/**
+ * Readable icon ink for a solid color tile. Light brand colors (gold, for
+ * Resources) need dark ink, but a deep mix of the tile color itself reads as
+ * on-theme where flat black looked like a rendering bug.
+ */
 export function inkOn (hex) {
   const h = (hex || '').replace('#', '')
   if (h.length < 6) return '#ffffff'
@@ -46,12 +77,7 @@ export function inkOn (hex) {
   const g = parseInt(h.slice(2, 4), 16)
   const b = parseInt(h.slice(4, 6), 16)
   const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255
-  return lum > 0.62 ? '#141414' : '#ffffff'
-}
-
-/** Stable per-view seed so each card's icon field gets a distinct pattern. */
-export function fieldSeed (id) {
-  return String(id || '').split('').reduce((a, ch) => a + ch.charCodeAt(0), 0)
+  return lum > 0.62 ? `color-mix(in srgb, ${hex} 32%, #17181a)` : '#ffffff'
 }
 
 /** Card surface gradient tinted by the view color, per color scheme. */
@@ -60,6 +86,25 @@ export function cardGradient (col, scheme = 'dark') {
     ? `linear-gradient(150deg, color-mix(in srgb, ${col} 30%, #16171a), color-mix(in srgb, ${col} 17%, #0d0e10))`
     : `linear-gradient(150deg, color-mix(in srgb, ${col} 24%, #ffffff), color-mix(in srgb, ${col} 11%, #f3f1ea))`
 }
+
+/**
+ * The card surface's base color — the far end of cardGradient — at a given alpha.
+ * Used to fade the icon pattern back into the card toward the bottom.
+ */
+export function cardBaseColor (scheme = 'dark', alpha = 1) {
+  return scheme === 'dark' ? `rgb(13 14 16 / ${alpha})` : `rgb(243 241 234 / ${alpha})`
+}
+
+/** Settles the icon pattern toward the card's base color at the bottom, so the label reads clearly. */
+export function cardFadeGradient (scheme = 'dark') {
+  return `linear-gradient(180deg, transparent 0%, ${cardBaseColor(scheme, 0.5)} 100%)`
+}
+
+/**
+ * The fade overlay itself. Hovering halves it, letting more of the icon
+ * wallpaper through — CARD_CLASS carries `group`, so this needs no JS.
+ */
+export const CARD_FADE_CLASS = 'absolute inset-0 pointer-events-none transition-opacity duration-200 opacity-100 group-hover:opacity-50'
 
 /** Colored inset ring shown on card hover (hex-alpha so it interpolates in transitions). */
 export function cardHoverRing (col) {

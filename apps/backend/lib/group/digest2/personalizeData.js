@@ -115,7 +115,7 @@ const personalizeData = async (user, type, data, opts = {}) => {
   }
   filteredData.num_sections = Object.keys(filteredData).filter(k => Array.isArray(filteredData[k]) && filteredData[k].length > 0).length
 
-  const locale = user.get('settings').locale || 'en'
+  const locale = user.getLocale()
   const clickthroughParams = '?' + new URLSearchParams({
     ctt: 'digest_email',
     cti: user.id,

@@ -185,22 +185,35 @@ input[type="number"] {
   appearance: textfield; /* Standard property for other browsers */
 }
 
+// Phone type scale. Tailwind's text-* and spacing utilities are rem, so this root
+// size is what sets the size of nearly all copy in the app — it used to shrink the
+// scale below the 16px browser default, which left text small on a phone. Note the
+// viewport meta disables pinch-zoom, so there is no way for a reader to compensate.
+// Deliberately no `.text-base` override here: pinning it to a px value stopped the
+// single most common size from responding to this at all.
 @media (max-width: 430px) {
   html {
-    font-size: 15px;
-  }
-
-  .text-base {
-    font-size: 15px;
+    font-size: 17px;
   }
 }
 
+// Genuinely small phones keep the smaller scale so layouts don't overflow.
 @media (max-width: 320px) {
   html {
-    font-size: 14px; // or 12px for even smaller
-  }
-
-  .text-base {
     font-size: 14px;
   }
+}
+
+// The Filestack picker mounts itself on <body>, outside any Radix dialog. A modal
+// Radix dialog sets `pointer-events: none` on the body and aria-hides its siblings,
+// which left the picker visible but dead to clicks when opened from inside one
+// (Create Group). Give it back its interactivity and put it above the dialog.
+[class^="fsp-"],
+[class*=" fsp-"] {
+  pointer-events: auto;
+}
+
+.fsp-picker,
+.fsp-modal {
+  z-index: 1200;
 }

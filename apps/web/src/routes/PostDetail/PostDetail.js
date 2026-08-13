@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
 import PropTypes from 'prop-types'
 import { get, throttle, find } from 'lodash/fp'
+import { Video } from 'lucide-react'
 import { Helmet } from 'react-helmet'
 import { AnalyticsEvents, TextHelpers } from '@hylo/shared'
 import { PROJECT_CONTRIBUTIONS } from 'config/featureFlags'
@@ -34,7 +35,7 @@ import leaveProject from 'store/actions/leaveProject'
 import processStripeToken from 'store/actions/processStripeToken'
 import respondToEvent from 'store/actions/respondToEvent'
 import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
-import { FETCH_POST, RESP_MANAGE_SPACES } from 'store/constants'
+import { FETCH_POST, RESP_ADMINISTRATION } from 'store/constants'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import presentPost from 'store/presenters/presentPost'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
@@ -77,7 +78,7 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
   const groupSlug = useEffectiveGroupSlug() || routeParams.groupSlug
   const commentId = getQuerystringParam('commentId', location) || routeParams.commentId
   const currentGroup = useSelector(state => getGroupForSlug(state, groupSlug))
-  const hasTracksResponsibility = useSelector(state => currentGroup && hasResponsibilityForGroup(state, { groupId: currentGroup.id, responsibility: RESP_MANAGE_SPACES }))
+  const hasTracksResponsibility = useSelector(state => currentGroup && hasResponsibilityForGroup(state, { groupId: currentGroup.id, responsibility: RESP_ADMINISTRATION }))
   const postSelector = useSelector(state => getPost(state, postId))
   const post = useMemo(() => {
     return postSelector ? presentPost(postSelector, get('id', currentGroup)) : null
@@ -97,6 +98,16 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
   const [showCommentLeaveDraftDialog, setShowCommentLeaveDraftDialog] = useState(false)
   const [commentEditingActive, setCommentEditingActive] = useState(false)
   const commentFormRef = useRef(null)
+
+  // Opened via a Reply affordance: focus the comment box once it exists. The
+  // delay clears CommentForm's mobile guard, which blurs any focus landing in
+  // the first 500ms after mount. Navigation state, so it never sticks to the URL.
+  const focusCommentRequested = Boolean(location.state?.focusComment)
+  useEffect(() => {
+    if (!focusCommentRequested) return
+    const id = setTimeout(() => commentFormRef.current?.focus?.(), 600)
+    return () => clearTimeout(id)
+  }, [focusCommentRequested])
 
   const activityHeader = useRef(null)
   const { t } = useTranslation()
@@ -490,6 +501,12 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
   const d = post?.donationsLink ? post.donationsLink.match(/(cash|clover|gofundme|opencollective|paypal|squareup|venmo)/) : null
   const donationService = d ? d[1] : null
 
+  const meetingUrl = useMemo(() => {
+    const link = post?.meetingLink?.trim()
+    if (!link) return null
+    return link.startsWith('http') ? link : `https://${link}`
+  }, [post?.meetingLink])
+
   const { acceptContributions, totalContributions } = post || {}
 
   let people, postPeopleDialogTitle
@@ -577,6 +594,22 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
               togglePeopleDialog={handleTogglePeopleDialog}
               isFlagged={isFlagged}
             />
+          )}
+          {isEvent && meetingUrl && (
+            <div className='border-2 border-foreground/20 rounded-lg p-2 sm:p-3 flex flex-row gap-2 w-[calc(100%-1rem)] sm:w-[calc(100%-2rem)] mx-2 sm:mx-4 mb-2 justify-between border-dashed items-center'>
+              <div className='flex items-center gap-2 text-sm'>
+                <Video className='w-4 h-4 shrink-0 text-foreground/50' />
+                {t('Join this event online')}
+              </div>
+              <a
+                className='inline-block border-2 border-selected/20 rounded-lg p-2 px-4 hover:border-selected/100 transition-all text-selected text-sm whitespace-nowrap'
+                href={meetingUrl}
+                target='_blank'
+                rel='noreferrer'
+              >
+                {t('Join online')}
+              </a>
+            </div>
           )}
           {!isEvent && (
             <PostBody

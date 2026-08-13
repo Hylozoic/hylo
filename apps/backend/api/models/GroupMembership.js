@@ -192,6 +192,17 @@ module.exports = bookshelf.Model.extend(Object.assign({
     }).destroy({ require: false, transacting })
   },
 
+  /**
+   * Remove all group role assignments for a member in a group's role scope.
+   */
+  async revokeAllGroupRoles (userId, groupId, { transacting } = {}) {
+    const roleScopeId = await Group.roleScopeId(groupId)
+    await MemberGroupRole.where({
+      user_id: userId,
+      group_id: roleScopeId
+    }).destroy({ require: false, transacting })
+  },
+
   forMember (userOrId) {
     return this.forIds(userOrId, null, { multiple: true })
   },
@@ -232,7 +243,12 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
     if (existingMembership) {
       if (!existingMembership.get('active')) {
-        await existingMembership.save({ active: true }, { patch: true, transacting })
+        const group = groupOrId instanceof Group ? groupOrId : await Group.find(groupId, { transacting })
+        const memberships = await group.addMembers([userId], {}, { transacting })
+        if (assignCoordinator) {
+          await GroupMembership.assignCoordinatorRole(userId, groupId, { transacting })
+        }
+        return memberships[0]
       }
       if (assignCoordinator) {
         await GroupMembership.assignCoordinatorRole(userId, groupId, { transacting })

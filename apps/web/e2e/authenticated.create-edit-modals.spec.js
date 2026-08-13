@@ -29,10 +29,10 @@ async function expectEditPostShell (page, urlPattern) {
 
 test.describe('Batch J: create modal (chooser)', () => {
   test('GET groups/:slug/:view/create opens chooser', async ({ page }) => {
-    await page.goto(`/groups/${PUBLIC_GROUP_SLUG}/stream/create`)
+    await page.goto(`/groups/${PUBLIC_GROUP_SLUG}/all/create`)
     await expectCreateChooserShell(
       page,
-      new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/stream/create`)
+      new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/all/create`)
     )
   })
 

@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { BadgeDollarSign, ImagePlus, Layers, MessageCircleMore, Plus, Shapes } from 'lucide-react'
 
@@ -17,13 +17,17 @@ import PostTypePills from 'components/PostTypePills/PostTypePills'
 import TagInput from 'components/TagInput'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import { CUSTOM_VIEW_DEFAULT_POST_TYPES, CUSTOM_VIEW_POST_TYPE_OPTIONS } from 'components/CustomViewForm/customViewFormConstants'
-import { addQuerystringToPath } from '@hylo/navigation'
+import { addQuerystringToPath, groupUrl, localSpaceSlug } from '@hylo/navigation'
 import { createSpace, createGroupView } from 'store/actions/groupViews'
+import fetchForCurrentUser from 'store/actions/fetchForCurrentUser'
+import fetchForGroup from 'store/actions/fetchForGroup'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import { createTrack } from 'store/actions/trackActions'
 import { createFundingRound } from 'routes/FundingRounds/FundingRounds.store'
 import { POST_TYPE_TO_VIEW_TYPE } from 'store/models/GroupView'
+import getMe from 'store/selectors/getMe'
 import { cn } from 'util/index'
+import { isOneColumnLayout } from 'util/navigationLayout'
 
 import FundingRoundSettingsFields from './FundingRoundSettingsFields'
 import { SPACE_ICON_SUGGESTIONS, accessOptionsForGroup, toIsoOrNull } from './spaceFormConstants'
@@ -85,12 +89,18 @@ function customSpaceStandardViews (postTypes, removedStandardTypes) {
   return [...base, ...postTypeViews].filter(type => !removedStandardTypes.has(type))
 }
 
-/** Modal for creating a new space under the current group. */
-export default function AddSpaceDialog ({ group, onClose }) {
+/** Modal for creating a new space under the current group.
+ * Pass `addToMenu={false}` when adding from More Views (space view created off-menu). */
+export default function AddSpaceDialog ({ group, onClose, addToMenu = true }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const routerLocation = useLocation()
+  const currentUser = useSelector(getMe)
+  const isOneColumn = isOneColumnLayout(
+    currentUser?.settings?.groupNavStyle,
+    group?.settings?.layout
+  )
 
   const [spaceType, setSpaceType] = useState('custom')
   const [name, setName] = useState('')
@@ -214,7 +224,8 @@ export default function AddSpaceDialog ({ group, onClose }) {
         accessibility: accessOption.accessibility,
         requiredRoles: access === 'role' ? requiredRoles.map(role => role.id) : null,
         paywall: Boolean(accessOption.paywall),
-        viewTypes
+        viewTypes,
+        addToMenu
       }))
 
       const newSpace = result?.payload?.data?.createSpace
@@ -284,15 +295,34 @@ export default function AddSpaceDialog ({ group, onClose }) {
         }
       }
 
-      await dispatch(fetchGroupViews(group.id))
+      // All three before navigating: the menu entry (fetchGroupViews), the
+      // creator's own membership (fetchForCurrentUser — without it SpaceContent
+      // greets the creator with the join page), and for off-menu spaces the
+      // parent's spaces list, which is how the route resolves them.
+      await Promise.all([
+        dispatch(fetchGroupViews(group.id)),
+        dispatch(fetchForCurrentUser()),
+        addToMenu === false && group?.slug ? dispatch(fetchForGroup(group.slug)) : Promise.resolve()
+      ])
       onClose()
-      navigate(addQuerystringToPath(routerLocation.pathname, { edit: 'true' }))
+      // Two-column: open the new space's more-views so its included views can be
+      // edited in the center column. One-column: the space is already on the menu
+      // grid — stay there.
+      if (isOneColumn) return
+      if (newSpace?.slug && group?.slug) {
+        navigate(addQuerystringToPath(groupUrl(group.slug, 'more-views'), {
+          edit: 'true',
+          space: localSpaceSlug(group.slug, newSpace.slug)
+        }))
+      } else {
+        navigate(addQuerystringToPath(routerLocation.pathname, { edit: 'true' }))
+      }
     } catch (error) {
       console.error('Failed to create space:', error)
     } finally {
       setIsCreating(false)
     }
-  }, [dispatch, group?.id, name, description, icon, bannerUrl, purpose, locationObject, postTypes, access, requiredRoles, spaceType, orderedRows, standardViewTypes, onClose, navigate, routerLocation.pathname, frPublishedAt, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frHideFinalResults, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles])
+  }, [dispatch, group?.id, name, description, icon, bannerUrl, purpose, locationObject, postTypes, access, requiredRoles, spaceType, orderedRows, standardViewTypes, onClose, navigate, routerLocation.pathname, addToMenu, isOneColumn, frPublishedAt, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frHideFinalResults, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles])
 
   // Portal above AuthLayout nav stacking so access radios / FR checkboxes remain clickable.
   return createPortal(

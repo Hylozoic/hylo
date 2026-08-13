@@ -24,6 +24,7 @@ export const MessageThreadQuery = gql`
             avatarUrl
           }
           createdAt
+          editedAt
         }
         total
         hasMore

@@ -124,8 +124,9 @@ export default function ChatPost ({
     }
   })
 
+  // Reply means "I'm here to write" — the opened post focuses its comment box
   const showPost = useCallback(() => {
-    viewPostDetails(post)
+    viewPostDetails(post, { focusComment: true })
     setIsLongPress(false)
   }, [post, viewPostDetails])
 
@@ -366,8 +367,10 @@ export default function ChatPost ({
         )}
         {details && !editing && (
           <ClickCatcher groupSlug={group.slug} onClick={handleClick}>
-            <div className={cn('ml-[42px] max-w-[700px] cursor-text select-text', { 'blur-sm': isFlagged })}>
-              <HyloHTML className='w-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0' html={details} />
+            {/* break-words: an unbroken run (a long URL, a keysmash) must wrap rather
+                than widen the message container — visible mostly on phone widths */}
+            <div className={cn('ml-[42px] max-w-[calc(var(--chat-stream-width,750px)-50px)] cursor-text select-text break-words', { 'blur-sm': isFlagged })}>
+              <HyloHTML className='w-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 break-words' html={details} />
             </div>
           </ClickCatcher>
         )}
@@ -377,10 +380,12 @@ export default function ChatPost ({
           id='flag-tt'
         />
         {linkPreview?.url && linkPreviewFeatured && isVideo && (
-          <Feature url={linkPreview.url} />
+          <div className='ml-[42px] mt-2 max-w-[calc(var(--chat-stream-width,750px)-50px)] overflow-hidden rounded-lg'>
+            <Feature url={linkPreview.url} />
+          </div>
         )}
         {linkPreview && !linkPreviewFeatured && (
-          <LinkPreview {...pick(['title', 'description', 'imageUrl', 'url'], linkPreview)} className='px-5 pb-[0.6rem] pl-[42px] block [&>div]:mb-0 max-w-[700px]' />
+          <LinkPreview {...pick(['title', 'description', 'imageUrl', 'url'], linkPreview)} className='px-5 pb-[0.6rem] pl-[42px] block [&>div]:mb-0 max-w-[calc(var(--chat-stream-width,750px)-50px)]' />
         )}
         <CardImageAttachments attachments={post.attachments} isFlagged={isFlagged && !post.clickthrough} forChatPost />
         {!isEmpty(fileAttachments) && (

@@ -29,6 +29,7 @@ import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import useDebounce from 'hooks/useDebounce'
 import { parseAccessGrants, offeringHasGroupAccess, offeringHasRoleAccess } from 'util/accessGrants'
 import { queryHyloAPI } from 'util/graphql'
+import { formatLocalizedDate } from 'util/dateFormat'
 
 const EMPTY_LINE_ITEMS = { spaces: [], groups: [], roles: [] }
 
@@ -139,7 +140,6 @@ const OFFERING_SUBSCRIBERS_QUERY = `
 function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
-  const groupRoles = useMemo(() => group?.groupRoles?.items || [], [group?.groupRoles?.items])
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [editingOffering, setEditingOffering] = useState(null)
   const editFormRef = useRef(null)
@@ -747,7 +747,7 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
               >
                 <option value='all'>{t('All')}</option>
                 <option value='group'>{t('Group access')}</option>
-                                <option value='role'>{t('Role access')}</option>
+                <option value='role'>{t('Role access')}</option>
               </select>
             </div>
             <label className='text-sm text-foreground/70 flex items-center gap-2 cursor-pointer'>
@@ -1042,14 +1042,14 @@ function SubscribersPanel ({ offering, group, t }) {
                       : t('Lapsed')}
                     {subscriber.joinedAt && (
                       <span className='ml-2'>
-                        {t('Joined')}: {new Date(subscriber.joinedAt).toLocaleDateString()}
+                        {t('Joined')}: {formatLocalizedDate(subscriber.joinedAt, { style: 'short' })}
                       </span>
                     )}
                   </p>
                 </div>
                 {subscriber.status === 'lapsed' && subscriber.expiresAt && (
                   <span className='text-xs text-foreground/40'>
-                    {t('Expired')}: {new Date(subscriber.expiresAt).toLocaleDateString()}
+                    {t('Expired')}: {formatLocalizedDate(subscriber.expiresAt, { style: 'short' })}
                   </span>
                 )}
               </div>

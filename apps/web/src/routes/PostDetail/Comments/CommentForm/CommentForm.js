@@ -178,6 +178,9 @@ const CommentForm = forwardRef(function CommentForm ({
   }, [])
 
   useImperativeHandle(ref, () => ({
+    focus: () => {
+      editor.current?.focus?.()
+    },
     hasUnsavedContent: () => {
       const html = editor.current?.getHTML?.() ?? draftRef.current ?? ''
       if (hasDraftContent(html)) return true

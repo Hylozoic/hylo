@@ -467,6 +467,7 @@ export const queryParamWhitelist = [
   'filter',
   'forCollection',
   'groupIds',
+  'groupRoleId',
   'groupSlug',
   'groupSlugs',
   'groupType',

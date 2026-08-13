@@ -5,6 +5,7 @@ import { House, Trash2, X } from 'lucide-react'
 
 import Button from 'components/ui/button'
 import { Input } from 'components/ui/input'
+import { Tooltip, TooltipContent, TooltipTrigger } from 'components/ui/tooltip'
 import CustomViewFormFields from 'components/CustomViewForm/CustomViewFormFields'
 import {
   CUSTOM_VIEW_DEFAULT_POST_TYPES,
@@ -19,7 +20,7 @@ import { setHomeView, updateGroupView } from 'store/actions/groupViews'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import fetchForGroup from 'store/actions/fetchForGroup'
 import { updateGroupSettings } from 'routes/GroupSettings/GroupSettings.store'
-import { canDeleteView, canHardDeleteView, isSoftRemoveView, viewTypeHasSettings } from 'store/models/GroupView'
+import { canDeleteView, canHardDeleteView, canSetAsHomeView, isSoftRemoveView, viewTypeHasSettings } from 'store/models/GroupView'
 import { cn } from 'util/index'
 
 /** Build initial custom view form state from a GroupView record. */
@@ -35,6 +36,11 @@ function customViewFormState (view) {
   }
 }
 
+/** Text for a text view — prefer pageContent, fall back to legacy name from widget migration. */
+function textContentFromView (view) {
+  return view?.pageContent || view?.name || ''
+}
+
 /** Settings modal for editing a single GroupView row. */
 export default function GroupViewSettingsModal ({ view, group, onClose }) {
   const { t } = useTranslation()
@@ -43,7 +49,7 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
   const [name, setName] = useState(view?.name || '')
   const [link, setLink] = useState(view?.link || '')
   const [linkIcon, setLinkIcon] = useState(view?.icon || 'Globe')
-  const [textContent, setTextContent] = useState(view?.pageContent || '')
+  const [textContent, setTextContent] = useState(() => textContentFromView(view))
   const [showWelcomePage, setShowWelcomePage] = useState(group?.settings?.showWelcomePage ?? true)
   const [showPostNoticesInChat, setShowPostNoticesInChat] = useState(group?.settings?.showPostNoticesInChat ?? true)
   const [customForm, setCustomForm] = useState(() => customViewFormState(view))
@@ -53,7 +59,7 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
     setName(view?.name || '')
     setLink(view?.link || '')
     setLinkIcon(view?.icon || 'Globe')
-    setTextContent(view?.pageContent || '')
+    setTextContent(textContentFromView(view))
     setShowWelcomePage(group?.settings?.showWelcomePage ?? true)
     setShowPostNoticesInChat(group?.settings?.showPostNoticesInChat ?? true)
     setCustomForm(customViewFormState(view))
@@ -102,10 +108,12 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
         }))
       } else if (view.type === 'text') {
         const trimmed = textContent.trim() || null
+        // Clear legacy name so migrated text views store content only in pageContent
         await dispatch(updateGroupView({
           id: view.id,
           groupId: group.id,
-          pageContent: trimmed
+          pageContent: trimmed,
+          name: null
         }))
       } else if (view.type === 'custom') {
         await dispatch(updateGroupView({
@@ -173,9 +181,10 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
 
   if (!view) return null
 
-  const title = displayNameForView(view, t, { spaceGroup: spaceGroupForLabel })
-  const isHome = view.order === 0
-  const canBeHome = !isHome && view.type !== 'separator' && view.type !== 'text' && view.type !== 'space'
+  const title = view.type === 'text'
+    ? t('Edit Text View')
+    : displayNameForView(view, t, { spaceGroup: spaceGroupForLabel })
+  const canBeHome = canSetAsHomeView(view)
   const canSaveCustom = customForm.name.trim().length >= 2 && customForm.postTypes.length > 0
   const saveDisabled = view.type === 'custom' ? !canSaveCustom : isSaving
 
@@ -288,46 +297,64 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
   )
 }
 
-/** Inline gear / remove controls shown on hover in edit mode. */
-export function GroupViewEditActions ({ view, onSettings, onDelete, className }) {
+/** Inline gear / remove controls shown on hover in edit mode.
+ * X moves soft-removable views to More Views; trash permanently deletes when allowed. */
+export function GroupViewEditActions ({ view, onSettings, onHide, onDelete, className }) {
   const { t } = useTranslation()
   const removable = canDeleteView(view)
   const hardDeletable = canHardDeleteView(view)
   const softRemovable = removable && isSoftRemoveView(view)
   const showSettings = viewTypeHasSettings(view?.type)
+  // Same tooltip treatment as the card toolbars (CardEditActions): shared Tooltip
+  // components instead of the native title delay, and Delete reads red before you
+  // reach it — label red rather than the surface, since TooltipArrow is fixed to
+  // fill-popover and a recoloured background would leave the arrow behind.
   return (
     <div className={cn('flex items-center gap-1 shrink-0', className)}>
       {showSettings && (
-        <button
-          type='button'
-          className='p-1 text-foreground/50 hover:text-foreground rounded'
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onSettings(view) }}
-          aria-label='Settings'
-        >
-          <SettingsIcon />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type='button'
+              className='p-1 text-foreground/50 hover:text-foreground rounded'
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onSettings(view) }}
+              aria-label={t('Settings')}
+            >
+              <SettingsIcon />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>{t('Settings')}</TooltipContent>
+        </Tooltip>
       )}
-      {softRemovable && (
-        <button
-          type='button'
-          className='p-1 text-foreground/50 hover:text-destructive rounded'
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(view) }}
-          aria-label={t('Remove from Menu')}
-          title={t('Remove from Menu')}
-        >
-          <X className='w-4 h-4' />
-        </button>
+      {softRemovable && onHide && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type='button'
+              className='p-1 text-foreground/50 hover:text-destructive rounded'
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onHide(view) }}
+              aria-label={t('Remove from main menu')}
+            >
+              <X className='w-4 h-4' />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>{t('Remove from main menu')}</TooltipContent>
+        </Tooltip>
       )}
-      {hardDeletable && (
-        <button
-          type='button'
-          className='p-1 text-foreground/50 hover:text-destructive rounded'
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(view) }}
-          aria-label={t('Delete')}
-          title={t('Delete')}
-        >
-          <Trash2 className='w-4 h-4' />
-        </button>
+      {hardDeletable && onDelete && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type='button'
+              className='p-1 text-destructive hover:text-destructive rounded'
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(view) }}
+              aria-label={view?.type === 'space' ? t('Delete Space') : t('Delete')}
+            >
+              <Trash2 className='w-4 h-4' />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent className='text-destructive font-semibold'>{view?.type === 'space' ? t('Delete Space') : t('Delete')}</TooltipContent>
+        </Tooltip>
       )}
     </div>
   )

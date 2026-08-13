@@ -80,9 +80,22 @@ module.exports = {
       }
 
       if (opts.parentSlugs) {
-        qb.join('group_relationships', 'groups.id', '=', 'group_relationships.child_group_id')
-        qb.join('groups as parent_groups', 'parent_groups.id', '=', 'group_relationships.parent_group_id')
-        qb.whereIn('parent_groups.slug', opts.parentSlugs)
+        // Child groups via group_relationships, plus spaces via groups.parent_id
+        // (spaces are not modeled as relationship children — see Group.spaces / spec §3.4)
+        qb.where(q2 => {
+          q2.whereIn('groups.id', function () {
+            this.select('group_relationships.child_group_id')
+              .from('group_relationships')
+              .join('groups as parent_groups', 'parent_groups.id', '=', 'group_relationships.parent_group_id')
+              .whereIn('parent_groups.slug', opts.parentSlugs)
+          })
+          q2.orWhere(q3 => {
+            q3.where('groups.type', 'space')
+            q3.whereIn('groups.parent_id', function () {
+              this.select('id').from('groups').whereIn('slug', opts.parentSlugs)
+            })
+          })
+        })
       }
 
       if (typeof opts.allowedInPublic === 'boolean') {

@@ -1,11 +1,17 @@
 import React, { useMemo } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Plus } from 'lucide-react'
+import { SquarePen } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { cn } from 'util/index'
 
+/**
+ * The stream's create affordance: a compact New button riding in the pinned
+ * header row, per the prototype — replacing the old full-width dashed
+ * "Hi {name}, click here to start a post" banner. The banner's per-type prompt
+ * copy survives as the button's tooltip and accessible name.
+ */
 export default function PostPrompt (props) {
-  const { className, firstName = '', postTypesAvailable } = props
+  const { className, firstName = '', postTypesAvailable, eventDate } = props
   const { t } = useTranslation()
   const location = useLocation()
 
@@ -15,9 +21,10 @@ export default function PostPrompt (props) {
     const basePath = location.pathname.replace(/\/create\/.*$/, '')
     const params = new URLSearchParams()
     if (newPostType) params.set('newPostType', newPostType)
+    if (eventDate) params.set('eventDate', eventDate)
     const query = params.toString()
     return `${basePath}/create/post${query ? `?${query}` : ''}`
-  }, [location.pathname, newPostType])
+  }, [location.pathname, newPostType, eventDate])
 
   const postPromptString = useMemo(() => {
     const postPrompts = {
@@ -33,13 +40,21 @@ export default function PostPrompt (props) {
   }, [firstName, type])
 
   return (
-    <div>
-      <Link to={createPostPath}>
-        <div className={cn('border-2 mt-6 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-2 text-foreground background-black/10 rounded-lg border-dashed relative mb-4 hover:border-t-foreground/100 hover:border-x-foreground/90 transition-all hover:border-b-foreground/80 flex items-center gap-2', className)}>
-          <Plus className='w-4 h-4' />
-          {postPromptString}
-        </div>
-      </Link>
-    </div>
+    <Link
+      to={createPostPath}
+      aria-label={postPromptString}
+      title={postPromptString}
+      className={cn(
+        // rounded-md, matching the group context menu's controls.
+        // Icon-only on phones; the label costs width the control row lacks there
+        'inline-flex items-center gap-1.5 h-9 px-4 max-sm:px-2.5 shrink-0 rounded-md box-border',
+        'bg-background border-2 border-selected text-foreground text-sm font-bold',
+        'transition-all hover:scale-105 hover:no-underline',
+        className
+      )}
+    >
+      <SquarePen className='w-4 h-4' />
+      <span className='max-sm:hidden'>{t('New')}</span>
+    </Link>
   )
 }

@@ -178,6 +178,10 @@ module.exports = bookshelf.Model.extend({
     return getLocaleStrings(locale).textForMemberJoinedGroup({ group, actor })
   },
 
+  textForPostModeratedFulfillment: function (post, actor, reason, locale) {
+    return getLocaleStrings(locale).textForPostModeratedFulfillment({ post, actor, reason })
+  },
+
   textForTrackCompleted: function (track, actor, locale) {
     return getLocaleStrings(locale).textForTrackCompleted({ actor, track })
   },

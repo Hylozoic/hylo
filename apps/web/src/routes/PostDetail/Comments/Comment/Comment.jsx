@@ -151,7 +151,9 @@ function Comment ({
   return (
     <div
       ref={commentRef}
-      className={cn('CommentContainer px-4 py-1 mb-1', { [styles.selectedComment]: selectedCommentId === comment.id })}
+      // px collapses on phones so the avatar sits on the post's own left edge —
+      // the extra indent doubled up with the column's padding on a narrow screen
+      className={cn('CommentContainer px-4 max-sm:px-0 py-1 mb-1', { [styles.selectedComment]: selectedCommentId === comment.id })}
       onMouseEnter={() => { if (!editing) setShowActions(true) }}
       onMouseLeave={() => { if (!isEmojiPickerOpen) { setShowActions(false) } }}
     >

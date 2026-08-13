@@ -7,21 +7,19 @@ import { useTranslation } from 'react-i18next'
 import { createSelector } from 'reselect'
 import { debounce, get, groupBy, isEqual, isEmpty } from 'lodash'
 import { pick, pickBy } from 'lodash/fp'
-import { Heart, Layers } from 'lucide-react'
+import { Heart, Layers, Map as MapIcon } from 'lucide-react'
 import bbox from '@turf/bbox'
 import bboxPolygon from '@turf/bbox-polygon'
-import booleanWithin from '@turf/boolean-within'
 import center from '@turf/center'
 import combine from '@turf/combine'
 import { featureCollection, point } from '@turf/helpers'
 import { isLegacyWebView } from 'util/webView'
 import Dropdown from 'components/Dropdown'
-import CreateMenu from 'components/CreateMenu'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
 import LocationInput from 'components/LocationInput'
 import Map from 'components/Map/Map'
-import { createIconLayerFromPostsAndMembers } from 'components/Map/layers/clusterLayer'
+import { buildClusterLayerData, createIconLayerFromPostsAndMembers } from 'components/Map/layers/clusterLayer'
 import { createIconLayerFromGroups } from 'components/Map/layers/iconLayer'
 import { createPolygonLayerFromGroups } from 'components/Map/layers/polygonLayer'
 import SwitchStyled from 'components/SwitchStyled'
@@ -40,7 +38,7 @@ import { FETCH_FOR_GROUP } from 'store/constants'
 import presentPost from 'store/presenters/presentPost'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
-import { personUrl, postUrl, groupDetailUrl } from '@hylo/navigation'
+import { personUrl, postUrl, groupDetailUrl, spaceHomeUrl } from '@hylo/navigation'
 
 import {
   fetchSavedSearches, deleteSearch, saveSearch, viewSavedSearch
@@ -71,7 +69,7 @@ import classes from './MapExplorer.module.scss'
 import 'mapbox-gl/dist/mapbox-gl.css'
 
 const MAP_BASE_LAYERS = [
-  { id: 'light-v11', label: 'Basic (Light)' },
+  { id: 'light-v11', label: 'Basic' },
   { id: 'streets-v12', label: 'Streets' },
   { id: 'satellite-v9', label: 'Satellite' },
   { id: 'satellite-streets-v12', label: 'Satellite + Streets' }
@@ -89,6 +87,9 @@ function presentMember (person, groupId) {
 }
 
 function presentGroup (group) {
+  // locationObject is stored as a plain nested object on .ref from the GraphQL
+  // payload (field key is locationObject, FK column is locationId) — do not
+  // overwrite it with the FK accessor, which is often null for map results.
   return group.ref
 }
 
@@ -140,7 +141,7 @@ function MapExplorer (props) {
       filters.featureTypes = Object.keys(filters.featureTypes).reduce((types, type) => { types[type] = !queryParams.hide.includes(type); return types }, {})
     }
     if (queryParams.topics) {
-      filters.topics = topicsFromPosts.filter(t => queryParams.topics.includes(t.id))
+      filters.topics = topicsFromPosts.filter(topic => queryParams.topics.includes(topic.id))
     }
     return filters
   }, [reduxState.clientFilterParams, queryParams.search, queryParams.sortBy, queryParams.hide, queryParams.topics])
@@ -151,7 +152,7 @@ function MapExplorer (props) {
     slug: groupSlug,
     groupSlugs,
     ...filters,
-    topics: filters.topics.map(t => t.id),
+    topics: filters.topics.map(topic => topic.id),
     types: !isEmpty(filters.featureTypes) ? Object.keys(filters.featureTypes).filter(ft => filters.featureTypes[ft]) : null,
     currentBoundingBox: filters.currentBoundingBox || totalBoundingBoxLoaded
   }), [childPostInclusion, context, groupSlug, groupSlugs, filters, totalBoundingBoxLoaded])
@@ -169,30 +170,33 @@ function MapExplorer (props) {
     sortBy: 'name'
   }), [totalBoundingBoxLoaded, context, groupSlug])
 
-  const members = useSelector(
-    createSelector(
-      (state) => getMembersFilteredByTopics(state, fetchMemberParams),
-      (members) => members.map(m => presentMember(m, groupId))
-    )
-  )
-  const postsForDrawer = useSelector(
-    createSelector(
-      (state) => getSortedFilteredPostsForDrawer(state, fetchPostsForDrawerParams),
-      (posts) => posts.map(p => presentPost(p, groupId))
-    )
-  )
-  const postsForMap = useSelector(
-    createSelector(
-      (state) => getFilteredPostsForMap(state, fetchPostsParams),
-      (posts) => posts.map(p => presentPost(p, groupId))
-    )
-  )
-  const groups = useSelector(
-    createSelector(
-      (state) => getGroupsFilteredByTopics(state, fetchGroupParams),
-      (groups) => groups.map(g => presentGroup(g))
-    )
-  )
+  // Selectors are memoized per param set — recreating them inline on every
+  // render defeated the memoization, so each render re-presented every post
+  // and member and handed the map fresh array identities, cascading into full
+  // recluster + GPU re-upload on every pan. Keep them stable.
+  const membersSelector = useMemo(() => createSelector(
+    (state) => getMembersFilteredByTopics(state, fetchMemberParams),
+    (members) => members.map(m => presentMember(m, groupId))
+  ), [fetchMemberParams, groupId])
+  const members = useSelector(membersSelector)
+
+  const postsForDrawerSelector = useMemo(() => createSelector(
+    (state) => getSortedFilteredPostsForDrawer(state, fetchPostsForDrawerParams),
+    (posts) => posts.map(p => presentPost(p, groupId))
+  ), [fetchPostsForDrawerParams, groupId])
+  const postsForDrawer = useSelector(postsForDrawerSelector)
+
+  const postsForMapSelector = useMemo(() => createSelector(
+    (state) => getFilteredPostsForMap(state, fetchPostsParams),
+    (posts) => posts.map(p => presentPost(p, groupId))
+  ), [fetchPostsParams, groupId])
+  const postsForMap = useSelector(postsForMapSelector)
+
+  const groupsSelector = useMemo(() => createSelector(
+    (state) => getGroupsFilteredByTopics(state, fetchGroupParams),
+    (groups) => groups.map(g => presentGroup(g))
+  ), [fetchGroupParams])
+  const groups = useSelector(groupsSelector)
 
   // Use browser location if center location is not otherwise provided
   const [browserLocation, setBrowserLocation] = useState(null)
@@ -235,7 +239,7 @@ function MapExplorer (props) {
   useEffect(() => {
     setHeaderDetails({
       title: t('Map'),
-      icon: 'Globe',
+      icon: <MapIcon />,
       info: ''
     })
   }, [])
@@ -286,13 +290,14 @@ function MapExplorer (props) {
     pitch: 0
   })
 
-  const [createCreatePopupVisible, setCreatePopupVisible] = useState(false)
-  const [createPopupPosition, setCreatePopupPosition] = useState({ top: 0, left: 0, lat: 0, lng: 0 })
-
-  const showCreatePopup = (point, lngLat) => {
-    setCreatePopupPosition({ top: point.y, left: point.x, lat: lngLat.lat, lng: lngLat.lng })
-    setCreatePopupVisible(true)
-  }
+  // Clicking the map to create goes straight into the post editor with the
+  // clicked location prefilled (CreateModal reads lat/lng), no type chooser
+  const goToCreatePostAtLocation = useCallback((lngLat) => {
+    const params = new URLSearchParams(location.search)
+    params.set('lat', lngLat.lat)
+    params.set('lng', lngLat.lng)
+    navigate(`${location.pathname}/create/post?${params.toString()}`)
+  }, [location, navigate])
 
   const updateUrlFromStore = useCallback((params, replace) => {
     const querystringParams = getQuerystringParam(['sortBy', 'search', 'hide', 'topics'], location)
@@ -302,7 +307,7 @@ function MapExplorer (props) {
       newQueryParams.hide = Object.keys(params.featureTypes).filter(type => !params.featureTypes[type])
     }
     if (params.topics) {
-      newQueryParams.topics = params.topics.map(t => t.id)
+      newQueryParams.topics = params.topics.map(topic => topic.id)
     }
     newQueryParams = pickBy((val, key) => {
       return !isEqual(val, querystringParams[key])
@@ -330,7 +335,7 @@ function MapExplorer (props) {
       return selected
     }, [])
 
-    const topicIds = topics.map(t => t.id)
+    const topicIds = topics.map(topic => topic.id)
 
     const boundingBox = [
       { lat: currentBoundingBox[1], lng: currentBoundingBox[0] },
@@ -345,6 +350,12 @@ function MapExplorer (props) {
   const showDetails = useCallback((postId) => navigate(postUrl(postId, { ...routeParams, view: 'map' }, getQuerystringParam(['hideDrawer', 't', 'group'], location))), [navigate, routeParams, location])
 
   const showGroupDetails = useCallback((groupSlug) => navigate(groupDetailUrl(groupSlug, { ...routeParams, view: 'map' }, getQuerystringParam(['hideDrawer', 't', 'group'], location))), [navigate, routeParams, location])
+
+  const showSpace = useCallback((space) => {
+    const parentSlug = space.parentSlug || (space.parentId === group?.id ? groupSlug : null)
+    if (!parentSlug || !space.slug) return
+    navigate(spaceHomeUrl(parentSlug, space))
+  }, [group?.id, groupSlug, navigate])
 
   const gotoMember = useCallback((memberId) => navigate(personUrl(memberId, groupSlug)), [dispatch, groupSlug, navigate])
 
@@ -431,13 +442,15 @@ function MapExplorer (props) {
       // setSelectedObject(info.object)
       if (info.object.type === 'member') {
         gotoMember(info.object.id)
+      } else if (info.object.type === 'space') {
+        showSpace(info.object)
       } else if (info.object.type === 'group') {
         showGroupDetails(info.object.slug)
       } else {
         showDetails(info.object.id)
       }
     }
-  }, [gotoMember, hideDrawer, showDetails, showGroupDetails, viewport])
+  }, [gotoMember, hideDrawer, showDetails, showGroupDetails, showSpace, viewport])
 
   const creatingPostRef = useRef(false)
 
@@ -446,17 +459,16 @@ function MapExplorer (props) {
     setShowFeatureFilters(false)
     setShowLayersSelector(false)
     setShowSavedSearches(false)
-    setCreatePopupVisible(false)
     if (currentUser) {
       creatingPostRef.current = e.point
       setTimeout(() => {
         // Make sure the point is still the same as the one we clicked on
         if (creatingPostRef.current === e.point) {
-          showCreatePopup(e.point, e.lngLat) // Show the popup at the clicked location
+          goToCreatePostAtLocation(e.lngLat)
         }
       }, isAddingItemToMap ? 0 : 1000)
     }
-  }, [isAddingItemToMap, showCreatePopup, currentUser])
+  }, [isAddingItemToMap, goToCreatePostAtLocation, currentUser])
 
   const onMapMouseUp = useCallback(() => {
     if (creatingPostRef.current) {
@@ -470,46 +482,42 @@ function MapExplorer (props) {
     creatingPostRef.current = false
   }, [])
 
+  // Stable identity across pans: only changes when the fetched features do
+  const clusterLayerData = useMemo(
+    () => buildClusterLayerData({ posts: postsForMap, members }),
+    [postsForMap, members]
+  )
+
   const updatedMapFeatures = useCallback((boundingBox) => {
-    const bbox = bboxPolygon(boundingBox)
-    const viewMembers = members.filter(member => {
-      const locationObject = member.locationObject
-      if (locationObject && locationObject.center) {
-        const centerPoint = point([locationObject.center.lng, locationObject.center.lat])
-        return booleanWithin(centerPoint, bbox)
+    // Plain numeric bounds checks: turf's point-in-polygon per item allocated
+    // two GeoJSON objects per feature per pan and was a large share of the lag
+    const [west, south, east, north] = boundingBox
+    const centerWithin = (locationObject) => {
+      const center = locationObject?.center
+      if (!center) return false
+      const lng = parseFloat(center.lng)
+      const lat = parseFloat(center.lat)
+      return lng >= west && lng <= east && lat >= south && lat <= north
+    }
+    const viewMembers = members.filter(member => centerWithin(member.locationObject))
+    const viewPosts = postsForMap.filter(post => centerWithin(post.locationObject))
+    const viewGroups = groups.filter(mapGroup => {
+      if (mapGroup.geoShape) {
+        return mapGroup.geoShape.coordinates[0].some(([lng, lat]) =>
+          lng >= west && lng <= east && lat >= south && lat <= north)
       }
-      return false
-    })
-    const viewPosts = postsForMap.filter(post => {
-      const locationObject = post.locationObject
-      if (locationObject && locationObject.center) {
-        const centerPoint = point([locationObject.center.lng, locationObject.center.lat])
-        return booleanWithin(centerPoint, bbox)
-      }
-      return false
-    })
-    const viewGroups = groups.filter(group => {
-      const locationObject = group.locationObject
-      if (group.geoShape) {
-        const coords = group.geoShape.coordinates[0]
-        const outOfBounds = []
-        coords.forEach((coord, i) => {
-          if (!booleanWithin(point(coord), bbox)) {
-            outOfBounds.push(i)
-          }
-        })
-        return outOfBounds.length < coords.length
-      }
-      if (locationObject && locationObject.center) {
-        const centerPoint = point([locationObject.center.lng, locationObject.center.lat])
-        return booleanWithin(centerPoint, bbox)
-      }
-      return false
+      return centerWithin(mapGroup.locationObject)
     }).concat(get(group, 'locationObject.center') || get(group, 'geoShape') ? group : [])
+      .map(mapGroup => {
+        // Ensure spaces can navigate to their parent from the current map context
+        if (mapGroup.type === 'space' && !mapGroup.parentGroup?.slug && group && mapGroup.parentId === group.id) {
+          return { ...mapGroup, parentGroup: { id: group.id, slug: group.slug || groupSlug } }
+        }
+        return mapGroup
+      })
 
     setClusterLayer(createIconLayerFromPostsAndMembers({
-      members: viewMembers,
-      posts: viewPosts,
+      data: clusterLayerData,
       onHover: onMapHover,
       onClick: onMapClick,
       boundingBox
@@ -532,7 +540,7 @@ function MapExplorer (props) {
     setGroupsForDrawer(viewGroups)
     setMembersForDrawer(viewMembers)
     setTotalPostsInView(viewPosts.length)
-  }, [members, postsForMap, groups, group, onMapHover, onMapClick, context])
+  }, [members, postsForMap, groups, group, groupSlug, clusterLayerData, onMapHover, onMapClick, context])
 
   const updateViewportWithBbox = useCallback((bbox, zoom = false) => {
     if (zoom) {
@@ -675,7 +683,6 @@ function MapExplorer (props) {
     if (!isEqual(centerLocation, newCenter) || !isEqual(zoom, newZoom)) {
       updateView({ centerLocation: newCenter, zoom: newZoom })
     }
-    setCreatePopupVisible(false)
     creatingPostRef.current = false
   }, 300)
 
@@ -764,24 +771,26 @@ function MapExplorer (props) {
         {renderTooltip()}
         {pendingPostsMap && <Loading className={classes.loading} />}
       </div>
-      <button
-        data-tooltip-id='helpTip'
-        data-tooltip-content={hideDrawer ? t('Open Drawer') : t('Close Drawer')}
-        className={cn(
-          'border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute top-5 gap-1 text-xs z-40 ',
-          classes.toggleDrawerButton,
-          {
-            [classes.drawerOpen]: !hideDrawer
-          })}
-        onClick={toggleDrawer}
-        data-testid='drawer-toggle-button'
-      >
-        <Icon name='Hamburger' className={classes.openDrawer} />
-        <Icon name='Ex' className={cn({ hidden: hideDrawer, block: !hideDrawer })} />
-      </button>
+      {/* Reopen control only — while the drawer is open, its own X is the
+          single, easy-to-find way to close it (per the design) */}
+      {hideDrawer && (
+        <button
+          data-tooltip-id='helpTip'
+          data-tooltip-content={t('Open Drawer')}
+          className={cn(
+            'border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute top-5 gap-1 text-xs z-40 ',
+            classes.toggleDrawerButton
+          )}
+          onClick={toggleDrawer}
+          data-testid='drawer-toggle-button'
+        >
+          <Icon name='Hamburger' className={classes.openDrawer} />
+        </button>
+      )}
       {!hideDrawer && (
         <MapDrawer
           changeChildPostInclusion={changeChildPostInclusion}
+          onClose={toggleDrawer}
           childPostInclusion={childPostInclusion}
           context={context}
           currentUser={currentUser}
@@ -801,19 +810,19 @@ function MapExplorer (props) {
         />
       )}
       <div className='absolute top-5 left-[74px]'>
-        <LocationInput saveLocationToDB={false} onChange={handleLocationInputSelection} className='bg-input rounded-lg text-foreground placeholder-foreground/40 w-full p-2 transition-all outline-none mb-0 border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground focus:border-focus hover:scale-105' />
+        <LocationInput saveLocationToDB={false} onChange={handleLocationInputSelection} className='bg-input rounded-md text-base h-9 text-foreground placeholder-foreground/40 w-full px-2 py-0 transition-all outline-none mb-0 border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground focus:border-focus hover:scale-105' />
       </div>
       <button className={cn('border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md py-1.5 px-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute bottom-2 sm:bottom-10 left-2 sm:left-5 gap-1 text-xs', classes.toggleFeatureFiltersButton, { [classes.open]: showFeatureFilters, [classes.withoutNav]: withoutNav })} onClick={toggleFeatureFilters}>
-        {t('Features:')} <strong>{possibleFeatureTypes.filter(t => filters.featureTypes[t]).length}/{possibleFeatureTypes.length}</strong>
+        {t('Features:')} <strong>{possibleFeatureTypes.filter(featureType => filters.featureTypes[featureType]).length}/{possibleFeatureTypes.length}</strong>
       </button>
 
       {currentUser && (
         <>
           <button
             onClick={toggleSavedSearches}
-            className={cn('border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute top-5 gap-1 text-xs left-5', { 'border-selected/50 text-selected': showSavedSearches })}
+            className={cn('border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md w-9 h-9 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center justify-center absolute top-5 text-base left-5', { 'border-selected/50 text-selected': showSavedSearches })}
           >
-            <Heart />
+            <Heart className='w-5 h-5' />
           </button>
           {showSavedSearches && (
             <SavedSearches
@@ -843,7 +852,11 @@ function MapExplorer (props) {
                 checked={filters.featureTypes[featureType]}
                 onChange={(checked, name) => toggleFeatureType(name, !checked)}
               />
-              <span>{featureType.charAt(0).toUpperCase() + featureType.slice(1)}s</span>
+              <span>
+                {featureType === 'group'
+                  ? t('Related Groups & Spaces')
+                  : featureType.charAt(0).toUpperCase() + featureType.slice(1) + 's'}
+              </span>
             </div>
           )
         })}
@@ -882,12 +895,12 @@ function MapExplorer (props) {
             menuAbove
             toggleChildren={(
               <span className={classes.layersDropdownLabel}>
-                {MAP_BASE_LAYERS.find(o => o.id === baseLayerStyle).label}
+                {t(MAP_BASE_LAYERS.find(o => o.id === baseLayerStyle).label)}
                 <Icon name='ArrowDown' />
               </span>
             )}
             items={MAP_BASE_LAYERS.map(({ id, label }) => ({
-              label,
+              label: t(label),
               onClick: () => updateBaseLayerStyle(id)
             }))}
           />
@@ -913,20 +926,34 @@ function MapExplorer (props) {
       </div>
 
       {currentUser && (
-        <button
-          data-tooltip-id='helpTip'
-          data-tooltip-content='Add item to map'
+        <div
           className={cn(
-            'border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute bottom-10 right-5 gap-1 text-xs',
+            'absolute bottom-10 right-5 flex items-center gap-2',
             classes.drawerAdjacentButton,
-            {
-              [classes.active]: isAddingItemToMap,
-              [classes.drawerOpen]: !hideDrawer
-            })}
-          onClick={handleAddItemToMap}
+            { [classes.drawerOpen]: !hideDrawer }
+          )}
         >
-          <Icon name='Plus' className={cn({ [classes.openDrawer]: !hideDrawer, [classes.closeDrawer]: hideDrawer })} />
-        </button>
+          {/* Placement-mode hint, so the armed + isn't a silent state */}
+          {isAddingItemToMap && (
+            <span className='rounded-full bg-background border-2 border-foreground/20 px-3 py-1 text-xs font-semibold text-foreground shadow-md whitespace-nowrap'>
+              {t('Press where you want to create')}
+            </span>
+          )}
+          <button
+            data-tooltip-id='helpTip'
+            data-tooltip-content='Add item to map'
+            className={cn(
+              'border-2 rounded-md p-2 bg-background transition-all flex items-center gap-1 text-xs',
+              isAddingItemToMap
+                ? 'border-selected bg-selected/20 text-foreground scale-90 translate-y-px shadow-inner opacity-100'
+                : 'border-foreground/20 hover:border-foreground/50 hover:text-foreground text-foreground scale-100 hover:scale-105 opacity-85 hover:opacity-100',
+              { [classes.active]: isAddingItemToMap }
+            )}
+            onClick={handleAddItemToMap}
+          >
+            <Icon name='Plus' className={cn({ [classes.openDrawer]: !hideDrawer, [classes.closeDrawer]: hideDrawer })} />
+          </button>
+        </div>
       )}
       <Tooltip
         delay={550}
@@ -940,16 +967,6 @@ function MapExplorer (props) {
         className={classes.helpTipTwo}
       />
 
-      {createCreatePopupVisible && (
-        <div
-          className='absolute w-[200px] bg-background z-50 rounded-md drop-shadow-md p-2 flex flex-col items-center'
-          style={{ top: createPopupPosition.top, left: createPopupPosition.left }}
-          onClick={() => setCreatePopupVisible(false)}
-        >
-          <CreateMenu mapView coordinates={{ lat: createPopupPosition.lat, lng: createPopupPosition.lng }} />
-          <button className='mt-2' onClick={() => setCreatePopupVisible(false)}>Close</button>
-        </div>
-      )}
     </div>
   )
 }

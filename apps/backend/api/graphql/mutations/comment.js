@@ -3,7 +3,7 @@ import { merge, trim } from 'lodash'
 import { includes } from 'lodash/fp'
 
 import underlyingDeleteComment from '../../models/comment/deleteComment'
-import underlyingCreateComment from '../../models/comment/createComment'
+import underlyingCreateComment, { pushMessageUpdatedToSockets } from '../../models/comment/createComment'
 import underlyingUpdateComment from '../../models/comment/updateComment'
 import { deleteDraftForContext } from './draft'
 
@@ -101,11 +101,16 @@ export async function updateComment (userId, { id, data }, context) {
   await canUpdateComment(userId, commentToValidate)
 
   const comment = await underlyingUpdateComment(userId, id, data)
+  const post = await Post.find(comment.get('post_id'))
 
   context.pubSub.publish(`comments:postId:${comment.get('post_id')}`, { comment })
 
   if (comment.get('comment_id')) {
     context.pubSub.publish(`comments:commentId:${comment.get('comment_id')}`, { comment })
+  }
+
+  if (post.get('type') === Post.Type.THREAD) {
+    await pushMessageUpdatedToSockets(comment, post)
   }
 
   return comment

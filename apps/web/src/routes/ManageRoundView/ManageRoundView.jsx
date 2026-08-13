@@ -9,7 +9,7 @@ import { useViewHeader } from 'contexts/ViewHeaderContext'
 import SpaceSettingsModal from 'routes/AuthLayoutRouter/components/ContextMenu/SpaceSettingsModal'
 import FundingRoundPhaseManager from 'routes/FundingRoundSubmissionsView/FundingRoundPhaseManager'
 import { FETCH_FUNDING_ROUND, fetchFundingRound } from 'routes/FundingRounds/FundingRounds.store'
-import { RESP_MANAGE_SPACES } from 'store/constants'
+import { RESP_ADMINISTRATION } from 'store/constants'
 import getFundingRound from 'store/selectors/getFundingRound'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
@@ -32,7 +32,7 @@ export default function ManageRoundView () {
   const roundId = round?.id || group?.fundingRound?.id
   const roleGroupId = group?.parentId || parentGroup?.id || group?.id
   const canManageRound = useSelector(state => hasResponsibilityForGroup(state, {
-    responsibility: RESP_MANAGE_SPACES,
+    responsibility: RESP_ADMINISTRATION,
     groupId: roleGroupId
   }))
   const isLoadingRound = useSelector(state => isPendingFor(FETCH_FUNDING_ROUND, state))

@@ -6,6 +6,7 @@ import { updateGroupViewInMenu } from 'store/util/groupViewsOrder'
 
 const MODULE_NAME = 'SocketListener'
 export const RECEIVE_MESSAGE = `${MODULE_NAME}/RECEIVE_MESSAGE`
+export const RECEIVE_MESSAGE_UPDATED = `${MODULE_NAME}/RECEIVE_MESSAGE_UPDATED`
 export const RECEIVE_COMMENT = `${MODULE_NAME}/RECEIVE_COMMENT`
 export const RECEIVE_POST = `${MODULE_NAME}/RECEIVE_POST`
 export const RECEIVE_THREAD = `${MODULE_NAME}/RECEIVE_THREAD`
@@ -23,6 +24,17 @@ export function receiveMessage (message, opts = {}) {
       extractModel: 'Message',
       bumpUnreadCount: opts.bumpUnreadCount,
       isMuted: opts.isMuted
+    }
+  }
+}
+
+export function receiveMessageUpdated (message) {
+  return {
+    type: RECEIVE_MESSAGE_UPDATED,
+    payload: {
+      data: {
+        message
+      }
     }
   }
 }
@@ -112,7 +124,7 @@ function bumpUnreadViewsInMenu (menuGroup, viewItems, postType, showNotices) {
 }
 
 export function ormSessionReducer (session, { meta, type, payload }) {
-  const { Group, MessageThread, Membership, Me } = session
+  const { Group, Message, MessageThread, Membership, Me } = session
   let currentUser
 
   switch (type) {
@@ -138,6 +150,20 @@ export function ormSessionReducer (session, { meta, type, payload }) {
         currentUser = Me.first()
         currentUser.update({
           unseenThreadCount: currentUser.unseenThreadCount + 1
+        })
+      }
+      break
+    }
+
+    case RECEIVE_MESSAGE_UPDATED: {
+      const updatedMessage = payload.data.message
+      const messageId = updatedMessage.id
+      if (Message.idExists(messageId)) {
+        Message.withId(messageId).update({
+          text: updatedMessage.text,
+          editedAt: updatedMessage.editedAt
+            ? new Date(updatedMessage.editedAt).toString()
+            : undefined
         })
       }
       break

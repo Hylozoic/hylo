@@ -1298,7 +1298,7 @@ type Group {
     sortBy: String
   ): FundingRoundQuerySet
 
-  # Posts to display in this group's stream. This includes posts from child groups that the logged in user is a member of
+  # Posts to display in this group's stream. Includes posts from child groups and child spaces that the logged in user is a member of
   viewPosts(
     # Only return posts that are not past their end date and have not been completed
     activePostsOnly: Boolean,
@@ -1612,6 +1612,8 @@ type GroupRole {
   group: Group
   # The id of the group that this role belongs to
   groupId: ID
+  # The number of active group members holding this role
+  membersTotal: Int
   # The name of the role
   name: String
   # system or custom
@@ -2123,6 +2125,8 @@ type MembershipSettings {
 type Message {
   id: ID
   createdAt: Date
+  # When this message was last edited
+  editedAt: Date
   # The person sending the message
   creator: Person
   # The message thread this message is a part of
@@ -2460,6 +2464,8 @@ type Post {
   location: String
   # Object with geocoded location deatils
   locationObject: Location
+  # Video call link for online or hybrid events (Zoom, Meet, Jitsi, etc.)
+  meetingLink: String
   # Logged in user's attendance response to an event post: 'yes', 'maybe' or 'no'
   myEventResponse: String
   # The reactions of the logged-in user to this
@@ -3410,7 +3416,9 @@ type Mutation {
     addToEnd: Boolean,
     linkedGroupId: ID,
     postId: ID,
-    userId: ID
+    userId: ID,
+    # When true, create off-menu (order = null) for More Views
+    hidden: Boolean
   ): GroupView
   # Update a View
   updateGroupView(
@@ -3450,7 +3458,9 @@ type Mutation {
     bannerUrl: String,
     avatarUrl: String,
     # When true, space is Paid access (forces protected + restricted)
-    paywall: Boolean
+    paywall: Boolean,
+    # When false, parent menu space view is created off-menu (More Views). Default true.
+    addToMenu: Boolean
   ): Group
   # Update a Space's settings
   updateSpace(
@@ -4599,6 +4609,8 @@ input PostInput {
   location: String
   # Id to location object with geocoded location deatils
   locationId: ID
+  # Video call link for online or hybrid events (Zoom, Meet, Jitsi, etc.)
+  meetingLink: String
   # Topic name of the chat room the user is currently viewing. When set, that topic follow's last_read_post_id is always updated regardless of new_post_count.
   markAsReadTopicName: String
   # People to add as members to a project type Post

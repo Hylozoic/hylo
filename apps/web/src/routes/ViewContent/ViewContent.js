@@ -83,11 +83,18 @@ function streamConfigFromGroupView (groupView) {
   }
 }
 
+/** Returns true when a stream post belongs only to child groups/spaces, not the current group. */
 function isChildGroupPost ({ context, groupSlug, post }) {
   if ([CONTEXT_MY, 'all', 'public'].includes(context)) return false
   const groupSlugs = post.groups?.map(group => group.slug) || []
   if (groupSlugs.length === 0) return false
   return !groupSlugs.includes(groupSlug)
+}
+
+/** Returns true when a child post comes from a space (group type === 'space'). */
+function isChildSpacePost ({ context, groupSlug, post }) {
+  if (!isChildGroupPost({ context, groupSlug, post })) return false
+  return (post.groups || []).some(group => group.type === 'space')
 }
 
 export default function ViewContent (props) {
@@ -185,7 +192,13 @@ export default function ViewContent (props) {
     return null
   }, [streamViewConfig, systemView])
 
-  const postTypeFilter = useMemo(() => querystringParams.t || postTypesAvailable?.[defaultPostType] ? defaultPostType : undefined, [querystringParams, defaultPostType])
+  // Prefer querystring, then user/view default; ignore defaults outside this view's allowed types
+  const postTypeFilter = useMemo(() => {
+    const selected = querystringParams.t || defaultPostType || undefined
+    if (!selected) return undefined
+    if (postTypesAvailable && !postTypesAvailable.includes(selected)) return undefined
+    return selected
+  }, [querystringParams.t, defaultPostType, postTypesAvailable])
 
   const topics = topic ? [topic.id] : streamViewConfig?.type === 'stream' ? streamViewConfig.topics : []
 
@@ -461,6 +474,11 @@ export default function ViewContent (props) {
     return postTypesAvailable
   }, [view, isCalendarViewMode, postTypesAvailable])
 
+  const eventDateForCreate = useMemo(() => {
+    if (!isCalendarViewMode || calendarMode !== 'day') return null
+    return DateTimeHelpers.toDateTime(calendarDate, { locale: getLocaleFromLocalStorage() }).toISODate()
+  }, [isCalendarViewMode, calendarMode, calendarDate])
+
   const info = useMemo(() => {
     if (streamViewConfig?.type === 'stream') {
       const topicNames = streamViewConfig.topics || []
@@ -484,7 +502,20 @@ export default function ViewContent (props) {
     return null
   }, [streamViewConfig, topicName, t])
 
-  const noPostsMessage = view === 'events' ? t('No {{timeFrame}} events', { timeFrame: timeframe === 'future' ? t('upcoming') : t('past') }) : 'No posts'
+  const noPostsMessage = view === 'events'
+    ? t('No {{timeFrame}} events', { timeFrame: timeframe === 'future' ? t('upcoming') : t('past') })
+    : t('Nothing here yet')
+
+  // The empty-state create button pre-selects the view's post type when there
+  // is exactly one (events view, a filtered stream, a single-type custom view)
+  const createFromEmpty = useCallback(() => {
+    const type = postTypeFilter || (postTypesForPrompt?.length === 1 ? postTypesForPrompt[0] : null)
+    const params = { ...querystringParams }
+    if (type) params.newPostType = type
+    dispatch(push(createPostUrl(routeParams, params)))
+  }, [dispatch, routeParams, querystringParams, postTypeFilter, postTypesForPrompt])
+
+  const showEmptyStream = !pending && !topicBlockingStreams && !customViewLoading && posts.length === 0
 
   const calendarInitialLoading = (pending || topicBlockingStreams || customViewLoading) && isCalendarViewMode && posts.length === 0
   const calendarFetchingMore = pending && isCalendarViewMode && posts.length > 0
@@ -529,6 +560,43 @@ export default function ViewContent (props) {
         <Route path='post/:postId' element={<PostDialog container={container} />} />
       </Routes>
 
+      {!showPaywallBlock && (
+        // The pinned header: New on the left, the stream controls right-justified,
+        // one row spanning the full stream pane — outside the width-capped column
+        // below, so it runs from the context menu to the viewport's right edge.
+        // Its backdrop is the theme background fading to transparent: opaque for the
+        // controls' own height, with the fade entirely in the padding strip below,
+        // so posts pass under a soft shadow edge instead of showing through the bar.
+        // A translucent wash of the theme background fading to the SAME color at zero
+        // alpha — to-transparent would interpolate toward transparent black and smudge
+        // grey in light mode. Arbitrary values because theme-background's config has no
+        // <alpha-value> placeholder, so slash-opacity classes are silently ignored.
+        // Heavier wash in dark mode: a light page only needs a whisper of ground, but
+        // the same alpha on a dark background disappears against the dark stream.
+        <div className='sticky top-0 z-20 w-full bg-gradient-to-b from-[hsl(var(--theme-background)/0.1)] dark:from-[hsl(var(--theme-background)/0.5)] to-[hsl(var(--theme-background)/0)]'>
+          <div className='flex flex-row items-start gap-2 px-2 sm:px-4 pt-2 sm:pt-4 pb-6'>
+            {hasPostPrompt && (
+              <PostPrompt
+                avatarUrl={currentUser.avatarUrl}
+                firstName={currentUser.firstName()}
+                newPost={newPost}
+                postTypesAvailable={postTypesForPrompt}
+                eventDate={eventDateForCreate}
+              />
+            )}
+            <div className='flex-1 min-w-0'>
+              <ViewControls
+                routeParams={routeParams} view={view} postTypeFilter={postTypeFilter} postTypesAvailable={postTypesAvailable} customViewType={streamViewConfig?.type}
+                sortBy={sortBy} viewMode={viewMode} searchValue={search}
+                changePostTypeFilter={changePostTypeFilter} context={context} changeSort={changeSort} changeView={changeView} changeSearch={changeSearch}
+                changeChildPostInclusion={changeChildPostInclusion} childPostInclusion={childPostInclusion}
+                changeTimeframe={changeTimeframe} timeframe={timeframe} activePostsOnly={activePostsOnly} changeActivePostsOnly={changeActivePostsOnly}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       <div
         id='stream-inner-container'
         className={cn(
@@ -537,23 +605,6 @@ export default function ViewContent (props) {
           isCalendarViewMode && 'w-full mx-auto p-1 sm:p-4'
         )}
       >
-        {hasPostPrompt && !showPaywallBlock && (
-          <PostPrompt
-            avatarUrl={currentUser.avatarUrl}
-            firstName={currentUser.firstName()}
-            newPost={newPost}
-            postTypesAvailable={postTypesForPrompt}
-          />
-        )}
-        {!showPaywallBlock && (
-          <ViewControls
-            routeParams={routeParams} view={view} postTypeFilter={postTypeFilter} postTypesAvailable={postTypesAvailable} customViewType={streamViewConfig?.type}
-            sortBy={sortBy} viewMode={viewMode} searchValue={search}
-            changePostTypeFilter={changePostTypeFilter} context={context} changeSort={changeSort} changeView={changeView} changeSearch={changeSearch}
-            changeChildPostInclusion={changeChildPostInclusion} childPostInclusion={childPostInclusion}
-            changeTimeframe={changeTimeframe} timeframe={timeframe} activePostsOnly={activePostsOnly} changeActivePostsOnly={changeActivePostsOnly}
-          />
-        )}
         {showPaywallBlock
           ? (
             <div className='mt-4'>
@@ -581,11 +632,12 @@ export default function ViewContent (props) {
                     'my-[5px] mx-auto overflow-visible w-full',
                     viewMode === 'grid' && 'grid grid-cols-2 min-[426px]:grid-cols-3 items-start gap-x-2 p-2',
                     viewMode === 'bigGrid' && 'grid grid-cols-2 items-start gap-x-2 p-2',
-                    viewMode === 'list' && 'border-2 border-foreground/10 rounded-md bg-card overflow-hidden'
+                    viewMode === 'list' && posts.length > 0 && 'border-2 border-foreground/10 rounded-md bg-card overflow-hidden',
+                    showEmptyStream && 'flex-1 flex flex-col justify-center'
                   )}
                 >
 
-                  {!pending && !topicBlockingStreams && !customViewLoading && posts.length === 0 ? <NoPosts message={noPostsMessage} /> : ''}
+                  {showEmptyStream ? <NoPosts message={noPostsMessage} actionLabel={hasPostPrompt ? t('Create something') : null} onAction={createFromEmpty} /> : ''}
 
                   {posts.map(post => (
                     <ViewComponent
@@ -598,6 +650,7 @@ export default function ViewContent (props) {
                       currentUser={currentUser}
                       querystringParams={querystringParams}
                       childPost={isChildGroupPost({ context, groupSlug, post })}
+                      childPostFromSpace={isChildSpacePost({ context, groupSlug, post })}
                     />
                   ))}
                 </MasonryGrid>

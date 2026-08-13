@@ -78,7 +78,7 @@ describe('SettingsToggles', () => {
     )
     expect(screen.getByText('Test Row')).toBeInTheDocument()
     expect(screen.getByText('Email')).toBeInTheDocument()
-    expect(screen.getByText('Push Notifications')).toBeInTheDocument()
+    expect(screen.getByText('Mobile Push')).toBeInTheDocument()
   })
 })
 

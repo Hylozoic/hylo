@@ -121,9 +121,15 @@ export async function joinGroup (groupId, userId, questionAnswers, accessCode, i
 
   const membership = await user.joinGroup(group, { questionAnswers, fromInvitation: hasValidInvitation })
 
-  // Record agreement acceptance if user accepted agreements during join flow
+  // Record agreement acceptance if user accepted agreements during join flow.
+  // Keep showJoinForm true so the Welcome/purpose modal still shows, but mark
+  // join questions complete so that modal does not re-ask barriers already done.
   if (acceptAgreements && membership) {
     await membership.acceptAgreements()
+    if (!membership.getSetting('joinQuestionsAnsweredAt')) {
+      membership.addSetting({ joinQuestionsAnsweredAt: new Date().toISOString() })
+      await membership.save()
+    }
   }
 
   // Token invitations can attach a group role (e.g. Host). joinGroup marks invites used by

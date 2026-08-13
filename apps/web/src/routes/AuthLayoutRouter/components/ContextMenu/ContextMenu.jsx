@@ -1,8 +1,8 @@
 import { isPhoneDevice } from 'util/mobile'
 import { get } from 'lodash/fp'
-import { ChevronLeft, CircleEllipsis, Info, Pencil, RefreshCw, Settings } from 'lucide-react'
+import { CircleEllipsis, Info, Pencil, RefreshCw, Settings, Users, X } from 'lucide-react'
 import React, { useEffect, useCallback, useState, useMemo } from 'react'
-import { useLocation, useNavigate, Routes, Route } from 'react-router-dom'
+import { Link, useLocation, useNavigate, Routes, Route } from 'react-router-dom'
 import { replace } from 'redux-first-history'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
@@ -20,9 +20,10 @@ import {
 } from '@hylo/navigation'
 
 import GroupMenuHeader from 'components/GroupMenuHeader'
+import InviteMembersPopover from 'components/InviteMembersPopover/InviteMembersPopover'
 import MenuLink from './MenuLink'
+import ContextMenuResizer from './ContextMenuResizer'
 import GroupViewIcon from './GroupViewIcon'
-import useAppearance from 'hooks/useAppearance'
 import useRouteParams from 'hooks/useRouteParams'
 import usePublishedOfferings from 'hooks/usePublishedOfferings'
 import GroupViewPresenter, {
@@ -34,7 +35,7 @@ import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import logout from 'store/actions/logout'
-import { FETCH_GROUP_VIEWS, RESP_ADMINISTRATION, RESP_MANAGE_SPACES } from 'store/constants'
+import { FETCH_GROUP_VIEWS, RESP_ADMINISTRATION } from 'store/constants'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { getGroupViews } from 'store/selectors/getGroupViews'
 import { getMoreViewsSections } from 'store/selectors/getMoreSpacesSections'
@@ -54,8 +55,10 @@ import GroupViewEditList from './GroupViewEditList'
 import GroupViewSettingsModal from './GroupViewSettingsModal'
 import SpaceSettingsModal from './SpaceSettingsModal'
 import AddCollectionDialog from './AddCollectionDialog'
-import AddGroupViewDialog, { AddViewButton } from './AddGroupViewDialog'
-import AddSpaceDialog, { AddSpaceButton } from './AddSpaceDialog'
+import AddGroupViewDialog from './AddGroupViewDialog'
+import AddSpaceDialog from './AddSpaceDialog'
+import AddViewOrSpaceMenu, { AddViewOrSpaceButton } from './AddViewOrSpaceMenu'
+import TruncatedText from 'components/TruncatedText'
 import { menuViewUrl } from './groupViewMenuUrl'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
@@ -73,7 +76,9 @@ function UnreadDot () {
 // Rows have no background of their own — the MenuRowBackground texture is the only
 // surface (half strength on hover, full when selected). hover:text-foreground pins the
 // link color so the global link-hover green never shows.
-const GROUP_VIEW_MENU_ITEM_CLASS = 'flex items-center gap-2 text-base font-semibold text-foreground hover:text-foreground border-2 border-transparent rounded-md p-1 pl-2 mb-[.3rem] w-full transition-all duration-200 ease-out scale-100 hover:scale-102 active:scale-[0.985] active:translate-y-[0.5px] active:duration-[50ms] opacity-85 hover:opacity-100'
+// Rows sit flush against each other and keep their margin on hover, so hovering
+// never shifts the rows below it.
+const GROUP_VIEW_MENU_ITEM_CLASS = 'flex items-center gap-2 text-base font-medium text-foreground hover:text-foreground border-2 border-transparent rounded-md p-1 pl-2 my-0 w-full transition-all duration-200 ease-out scale-100 hover:scale-102 active:scale-[0.985] active:translate-y-[0.5px] active:duration-[50ms] opacity-85 hover:opacity-100'
 
 /** MenuLink overrides when nested inside a styled space row wrapper. hover:text-foreground
  *  pins the anchor's color against the global link-hover green. */
@@ -104,8 +109,8 @@ function findSpaceForSlug (groupViews, group, parentSlug, spaceSlug) {
 }
 
 /** Visible menu views for a space (ordered, post-type filtered), optionally with Manage Round. */
-function visibleSpaceMenuViews (spaceGroup, { includeManageRound = false } = {}) {
-  const spaceViews = (spaceGroup?.groupViews?.items || [])
+function visibleSpaceMenuViews (spaceGroup, { includeManageRound = false, views = null } = {}) {
+  const spaceViews = (views || spaceGroup?.groupViews?.items || [])
     .filter(v => v.order != null)
     .filter(v => viewAcceptedByPostTypes(v.type, spaceGroup?.acceptedPostTypes))
   if (includeManageRound && spaceGroup?.fundingRound?.id) {
@@ -114,39 +119,170 @@ function visibleSpaceMenuViews (spaceGroup, { includeManageRound = false } = {})
   return spaceViews
 }
 
+/** Space row with an optional More link for off-menu space views (single-view spaces). */
+function SpaceMenuItemWithMore ({
+  presentedView,
+  resolvedSpaceGroup,
+  isSpaceActive,
+  spaceLink,
+  aboutUrl,
+  spaceUnread,
+  spaceBannerUrl,
+  spaceCol,
+  parentSlug,
+  localSpace,
+  activeLabelClass,
+  onPhotoLabelClass,
+  onPhotoHoverLabelClass,
+  spaceGroup
+}) {
+  const { t } = useTranslation()
+  const spaceMoreSections = useSelector(state =>
+    resolvedSpaceGroup ? getMoreViewsSections(state, resolvedSpaceGroup) : null
+  )
+  const spaceMoreCount = (spaceMoreSections?.offMenuViews?.length || 0) +
+    (spaceMoreSections?.trackSpaces?.length || 0) +
+    (spaceMoreSections?.fundingRoundSpaces?.length || 0) +
+    (spaceMoreSections?.otherSpaces?.length || 0)
+  const spaceMoreBadge = spaceMoreCount > 0
+    ? (
+      <span className='ml-auto shrink-0 text-xs leading-none text-foreground/50 bg-foreground/10 rounded-full px-1.5 py-1'>
+        {spaceMoreCount}
+      </span>
+      )
+    : null
+  const spaceMoreLink = localSpace
+    ? addQuerystringToPath(groupUrl(parentSlug, 'more-views'), { space: localSpace })
+    : groupUrl(parentSlug, 'more-views')
+
+  return (
+    <li className='list-none'>
+      <div
+        className={cn(
+          GROUP_VIEW_MENU_ITEM_CLASS,
+          'group relative overflow-hidden',
+          isSpaceActive ? 'opacity-100 font-bold' : 'hover:border-[color:var(--row-border-hover)]'
+        )}
+        style={{
+          // Hover border: view color at 20% (white steps over photos). Selected: full strength.
+          '--row-border-hover': spaceBannerUrl ? 'hsl(0 0% 100% / 0.2)' : `${spaceCol}33`,
+          ...(isSpaceActive ? { borderColor: spaceBannerUrl ? 'hsl(0 0% 100% / 0.35)' : spaceCol } : {})
+        }}
+      >
+        <MenuRowBackground
+          view={presentedView}
+          bannerUrl={spaceBannerUrl}
+          className={cn('transition-opacity duration-200', isSpaceActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-50')}
+        />
+        <MenuLink
+          to={spaceLink}
+          isActive={false}
+          className={cn(
+            GROUP_VIEW_MENU_ITEM_INNER_LINK_CLASS,
+            'relative z-10',
+            isSpaceActive
+              ? (spaceBannerUrl ? onPhotoLabelClass : activeLabelClass)
+              : (spaceBannerUrl ? onPhotoHoverLabelClass : null)
+          )}
+        >
+          <GroupViewIcon view={presentedView} />
+          <TruncatedText className='truncate flex-1' text={displayNameForView(presentedView, t, { spaceGroup })} />
+          {spaceUnread && <UnreadDot />}
+        </MenuLink>
+        {aboutUrl && (
+          <MenuLink
+            to={aboutUrl}
+            isActive={false}
+            className={cn(
+              'shrink-0 p-1 pr-1 text-foreground/50 hover:text-foreground border-0 bg-transparent mb-0 rounded-none shadow-none hover:border-0 hover:bg-transparent hover:scale-100',
+              'relative z-10',
+              // Same reasoning as activeLabelClass — a variant, not the resolved scheme
+              isSpaceActive
+                ? (spaceBannerUrl
+                    ? 'text-white/80 hover:text-white'
+                    : 'text-foreground/70 hover:text-foreground dark:text-white/80 dark:hover:text-white')
+                // Rides the same banner fade as the label beside it
+                : (spaceBannerUrl ? 'group-hover:text-white/80 hover:text-white' : null)
+            )}
+          >
+            <Info className='w-4 h-4' aria-hidden='true' />
+            <span className='sr-only'>{t('About')}</span>
+          </MenuLink>
+        )}
+      </div>
+      {isSpaceActive && spaceMoreCount > 0 && (
+        <ul className='pl-4 mt-1'>
+          <li className='list-none'>
+            <MenuLink
+              to={spaceMoreLink}
+              className={cn(GROUP_VIEW_MENU_ITEM_CLASS)}
+            >
+              <CircleEllipsis className='w-4 h-4 shrink-0' />
+              <span>{t('More')}</span>
+              {spaceMoreBadge}
+            </MenuLink>
+          </li>
+        </ul>
+      )}
+    </li>
+  )
+}
+
 /** Renders a single GroupView menu item, including nested space sub-items. */
 function GroupViewMenuItem ({
   view,
   parentSlug,
+  group = null,
   spaceGroup = null,
   spaceSlug = null
 }) {
   const dispatch = useDispatch()
   const location = useLocation()
   const { t } = useTranslation()
-  const { effectiveColorScheme } = useAppearance()
-  const isDark = effectiveColorScheme === 'dark'
   const presentedView = useMemo(() => GroupViewPresenter(view), [view])
   const myMemberships = useSelector(getMyMemberships)
   const canManageRound = useSelector(state => hasResponsibilityForGroup(state, {
-    responsibility: RESP_MANAGE_SPACES,
+    responsibility: RESP_ADMINISTRATION,
     groupId: view?.linkedGroup?.parentId
   }))
+  // Prefer the space Group's ORM menu / acceptedPostTypes over the parent's nested
+  // linkedGroup copy, which can lag behind hide/delete and space-settings updates.
+  const linkedSpaceGroupId = presentedView.type === 'space' ? presentedView.linkedGroup?.id : null
+  const linkedSpaceSlug = presentedView.type === 'space' ? presentedView.linkedGroup?.slug : null
+  const spaceGroupFromStore = useSelector(state =>
+    linkedSpaceSlug ? getGroupForSlug(state, linkedSpaceSlug) : null
+  )
+  const spaceViewsFromStore = useSelector(state =>
+    linkedSpaceGroupId ? getGroupViews(state, { id: linkedSpaceGroupId }) : []
+  )
   // Labels over the revealed row background: white on dark surfaces (and photos),
   // regular foreground on the pale light-mode surface. Hover never changes text color.
-  const activeLabelClass = isDark
-    ? 'text-white hover:text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.65)]'
-    : 'text-foreground'
+  //
+  // Expressed as a dark: variant rather than from effectiveColorScheme on purpose.
+  // That hook resolves through the Redux currentUser, so until it loads the scheme
+  // falls back to 'auto' — the OS. Anyone running Hylo dark with a light OS saw the
+  // label paint near-black and then flip to white when their settings arrived. The
+  // class on documentElement is set in the same breath as the CSS variables, so a
+  // variant can never disagree with the palette it is sitting on.
+  const activeLabelClass = 'text-foreground dark:text-white dark:hover:text-white dark:[text-shadow:0_1px_3px_rgba(0,0,0,0.65)]'
   const onPhotoLabelClass = 'text-white hover:text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.65)]'
+  // Hovering an unselected space fades its banner in behind the row, so the label
+  // has to go white at the same moment or it is dark text on a photo. No transition
+  // on the colour — it switches at once while the photo fades in under it.
+  // Banner rows only: without one the light-mode surface is a pale wash that white
+  // would disappear into.
+  const onPhotoHoverLabelClass = 'group-hover:text-white hover:text-white group-hover:[text-shadow:0_1px_3px_rgba(0,0,0,0.65)]'
 
   if (presentedView.type === 'separator') {
-    return <hr className='border-foreground/10 my-1' />
+    return <hr className='border-t-2 border-foreground/10 mt-5 mb-2' />
   }
 
   if (presentedView.type === 'text') {
     return (
       <li className='list-none'>
-        <p className='text-xs text-foreground/40 px-2 mt-3 mb-1 uppercase tracking-wide'>
+        {/* mt-8 + first:mt-2 was a broken pair: the p is always the first child of its
+            own li, so first: matched every label and mt-8 never applied at all */}
+        <p className='text-xs text-foreground/40 px-2 mt-5 mb-1.5 uppercase tracking-wide'>
           {displayNameForView(presentedView, t, { spaceGroup })}
         </p>
       </li>
@@ -171,7 +307,7 @@ function GroupViewMenuItem ({
             className='flex-1 flex items-center gap-2 text-base text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-2 opacity-85 hover:opacity-100 text-left'
           >
             <GroupViewIcon view={presentedView} />
-            <span className='truncate'>{displayNameForView(presentedView, t, { spaceGroup })}</span>
+            <TruncatedText className='truncate' text={displayNameForView(presentedView, t, { spaceGroup })} />
           </button>
           {mobileAppVersionLabel
             ? <span className='text-xs text-muted-foreground shrink-0 tabular-nums'>v{mobileAppVersionLabel}</span>
@@ -188,19 +324,22 @@ function GroupViewMenuItem ({
       myMemberships.some(m => m.group.id === linkedSpaceGroup.id)
     )
     const showManageRound = Boolean(linkedSpaceGroup?.fundingRound?.id && canManageRound)
-    const spaceViews = visibleSpaceMenuViews(linkedSpaceGroup)
-      .map(v => GroupViewPresenter(v))
+    // Filter with ORM acceptedPostTypes when available (space settings update that record).
+    const resolvedSpaceGroup = spaceGroupFromStore || linkedSpaceGroup
+    const spaceViews = visibleSpaceMenuViews(
+      resolvedSpaceGroup,
+      { views: spaceViewsFromStore.length > 0 ? spaceViewsFromStore : null }
+    ).map(v => GroupViewPresenter(v))
     const menuSpaceViews = showManageRound
       ? [...spaceViews, GroupViewPresenter(MANAGE_ROUND_VIEW)]
       : spaceViews
-    const hasMultipleSpaceViews = menuSpaceViews.length > 1
     const singleSpaceView = menuSpaceViews.length === 1 ? menuSpaceViews[0] : null
     // Space badge = membership unread (same as groups), not aggregated child views.
     const spaceMembership = linkedSpaceGroup &&
       myMemberships.find(m => String(m.group.id) === String(linkedSpaceGroup.id))
     const spaceUnread = (spaceMembership?.newPostCount || 0) > 0
     const spaceHome = linkedSpaceGroup ? spaceHomeUrl(parentSlug, linkedSpaceGroup) : null
-    // Single-view spaces open that view directly; multi-view spaces nest under the row when active.
+    // Single-view spaces open that view directly; multi-view spaces open the space menu drill-in.
     const spaceLink = singleSpaceView && isSpaceMember
       ? menuViewUrl(parentSlug, singleSpaceView, linkedSpaceGroup)
       : spaceHome
@@ -209,79 +348,48 @@ function GroupViewMenuItem ({
       linkedSpaceGroup &&
       localSpaceSlug(parentSlug, linkedSpaceGroup.slug) === spaceSlug
     )
-    const isExpanded = isSpaceMember && isSpaceActive && hasMultipleSpaceViews
-    const aboutUrl = linkedSpaceGroup
-      ? spaceUrl(parentSlug, localSpaceSlug(parentSlug, linkedSpaceGroup.slug), '/about')
+    const localSpace = linkedSpaceGroup
+      ? localSpaceSlug(parentSlug, linkedSpaceGroup.slug)
+      : null
+    // About opens as a ?about=1 overlay. Already inside this space: float it over
+    // the view being looked at. Elsewhere: land on the space with the overlay open.
+    const spaceBasePath = localSpace ? spaceUrl(parentSlug, localSpace) : null
+    const aboutUrl = spaceBasePath
+      ? (location.pathname.startsWith(spaceBasePath)
+          ? addQuerystringToPath(location.pathname, { about: 1 })
+          : addQuerystringToPath(spaceBasePath, { about: 1 }))
       : null
 
     // Active space rows reveal the space's banner photo (uploaded ones only);
     // spaces without a banner fall back to the tinted icon texture.
-    const spaceBannerUrl = linkedSpaceGroup?.bannerUrl && linkedSpaceGroup.bannerUrl !== DEFAULT_BANNER
-      ? linkedSpaceGroup.bannerUrl
+    // Read the store record first with the parent's nested copy as fallback:
+    // right after selecting a space, whichever source is mid-refetch can briefly
+    // drop bannerUrl, and since the label color keys off it (white on photo,
+    // foreground on texture) a one-source read flashed the light-mode label
+    // dark until the banner came back.
+    const spaceBannerCandidate = spaceGroupFromStore?.bannerUrl || linkedSpaceGroup?.bannerUrl
+    const spaceBannerUrl = spaceBannerCandidate && spaceBannerCandidate !== DEFAULT_BANNER
+      ? spaceBannerCandidate
       : null
     const spaceCol = viewCardColor(presentedView)
 
     return (
-      <li className='list-none'>
-        <div
-          className={cn(
-            GROUP_VIEW_MENU_ITEM_CLASS,
-            'group relative overflow-hidden',
-            isSpaceActive ? 'opacity-100 font-bold' : 'hover:border-[color:var(--row-border-hover)]'
-          )}
-          style={{
-            // Hover border: view color at 20% (white steps over photos). Selected: full strength.
-            '--row-border-hover': spaceBannerUrl ? 'hsl(0 0% 100% / 0.2)' : `${spaceCol}33`,
-            ...(isSpaceActive ? { borderColor: spaceBannerUrl ? 'hsl(0 0% 100% / 0.35)' : spaceCol } : {})
-          }}
-        >
-          <MenuRowBackground
-            view={presentedView}
-            bannerUrl={spaceBannerUrl}
-            className={cn('transition-opacity duration-200', isSpaceActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-50')}
-          />
-          <MenuLink
-            to={spaceLink}
-            isActive={false}
-            className={cn(
-              GROUP_VIEW_MENU_ITEM_INNER_LINK_CLASS,
-              'relative z-10',
-              isSpaceActive && (spaceBannerUrl ? onPhotoLabelClass : activeLabelClass)
-            )}
-          >
-            <GroupViewIcon view={presentedView} />
-            <span className='truncate flex-1'>{displayNameForView(presentedView, t, { spaceGroup })}</span>
-            {spaceUnread && <UnreadDot />}
-          </MenuLink>
-          {aboutUrl && (
-            <MenuLink
-              to={aboutUrl}
-              isActive={false}
-              className={cn(
-                'shrink-0 p-1 pr-1 text-foreground/50 hover:text-foreground border-0 bg-transparent mb-0 rounded-none shadow-none hover:border-0 hover:bg-transparent hover:scale-100',
-                'relative z-10',
-                isSpaceActive && ((spaceBannerUrl || isDark) ? 'text-white/80 hover:text-white' : 'text-foreground/70 hover:text-foreground')
-              )}
-            >
-              <Info className='w-4 h-4' aria-hidden='true' />
-              <span className='sr-only'>{t('About')}</span>
-            </MenuLink>
-          )}
-        </div>
-        {isExpanded && (
-          <ul className='pl-4 mt-1'>
-            {menuSpaceViews.map(subView => (
-              <GroupViewMenuItem
-                key={subView.id}
-                view={subView}
-                parentSlug={parentSlug}
-                spaceGroup={linkedSpaceGroup}
-                spaceSlug={spaceSlug}
-              />
-            ))}
-          </ul>
-        )}
-      </li>
+      <SpaceMenuItemWithMore
+        presentedView={presentedView}
+        resolvedSpaceGroup={resolvedSpaceGroup}
+        isSpaceActive={isSpaceActive}
+        spaceLink={spaceLink}
+        aboutUrl={aboutUrl}
+        spaceUnread={spaceUnread}
+        spaceBannerUrl={spaceBannerUrl}
+        spaceCol={spaceCol}
+        parentSlug={parentSlug}
+        localSpace={localSpace}
+        activeLabelClass={activeLabelClass}
+        onPhotoLabelClass={onPhotoLabelClass}
+        onPhotoHoverLabelClass={onPhotoHoverLabelClass}
+        spaceGroup={spaceGroup}
+      />
     )
   }
 
@@ -293,6 +401,53 @@ function GroupViewMenuItem ({
   // mirroring the one-column dashboard cards.
   const isRowActive = Boolean(!isExternal && url && (location.pathname === url || location.pathname.startsWith(`${url}/`)))
   const rowCol = viewCardColor(presentedView)
+  const inviteGroup = spaceGroup || group
+  const showInvite = presentedView.type === 'members' && inviteGroup
+
+  if (showInvite) {
+    return (
+      <li className='list-none'>
+        <div
+          className={cn(
+            GROUP_VIEW_MENU_ITEM_CLASS,
+            'group relative overflow-hidden',
+            isRowActive ? 'opacity-100 font-bold' : 'hover:border-[color:var(--row-border-hover)]'
+          )}
+          style={{
+            '--row-border-hover': `${rowCol}33`,
+            ...(isRowActive ? { borderColor: rowCol } : {})
+          }}
+        >
+          <MenuRowBackground
+            view={presentedView}
+            className={cn('transition-opacity duration-200', isRowActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-50')}
+          />
+          <MenuLink
+            to={isExternal ? null : url}
+            externalLink={isExternal ? url : null}
+            isActive={false}
+            className={cn(
+              GROUP_VIEW_MENU_ITEM_INNER_LINK_CLASS,
+              'relative z-10',
+              isRowActive && activeLabelClass
+            )}
+          >
+            <GroupViewIcon view={presentedView} />
+            <TruncatedText className='truncate flex-1' text={displayNameForView(presentedView, t, { spaceGroup })} />
+            {showUnreadDot && <UnreadDot />}
+          </MenuLink>
+          <InviteMembersPopover
+            group={inviteGroup}
+            className='relative z-10 shrink-0 mr-1'
+            triggerClassName={cn(
+              'text-foreground/50 hover:text-foreground',
+              isRowActive && 'text-foreground/70 hover:text-foreground dark:text-white/80 dark:hover:text-white'
+            )}
+          />
+        </div>
+      </li>
+    )
+  }
 
   return (
     <li className='list-none'>
@@ -322,7 +477,7 @@ function GroupViewMenuItem ({
         )}
         >
           <GroupViewIcon view={presentedView} />
-          <span className='truncate flex-1'>{displayNameForView(presentedView, t, { spaceGroup })}</span>
+          <TruncatedText className='truncate flex-1' text={displayNameForView(presentedView, t, { spaceGroup })} />
           {showUnreadDot && <UnreadDot />}
         </span>
       </MenuLink>
@@ -340,13 +495,13 @@ function GroupViewList ({
   spaceMenuView = null,
   isEditing,
   onOpenSettings,
-  canManageSpaces,
-  canManageRound = false,
-  hideAddSpace = false
+  canAdminister = false
 }) {
   const { t } = useTranslation()
   const [showAddView, setShowAddView] = useState(false)
   const [showAddSpace, setShowAddSpace] = useState(false)
+  // Spaces cannot nest spaces; Add Space is parent-menu only
+  const canAddSpace = canAdminister && !spaceGroup
 
   const handleOpenSpaceSettings = useCallback(() => {
     if (!spaceGroup || !onOpenSettings) return
@@ -372,18 +527,23 @@ function GroupViewList ({
             <button
               type='button'
               onClick={handleOpenSpaceSettings}
-              className='flex items-center gap-2 text-base text-foreground hover:text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 w-full transition-all opacity-85 hover:opacity-100'
+              className='flex items-center gap-2 text-base font-medium text-foreground hover:text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 w-full transition-all opacity-85 hover:opacity-100'
             >
               <Settings className='w-4 h-4' />
               <span>{t('Space Settings')}</span>
             </button>
           )}
-          {/* p-1 matches the Done Editing button height below */}
-          <AddViewButton onClick={() => setShowAddView(true)} className='p-1 pl-2' />
-          {canManageSpaces && !hideAddSpace && <AddSpaceButton onClick={() => setShowAddSpace(true)} className='p-1 pl-2' />}
+          {/* One Add control opening the same view/space chooser the card grids use,
+              rather than a button per kind. p-1 matches the Done Editing button height below */}
+          <AddViewOrSpaceMenu
+            trigger={<AddViewOrSpaceButton className='p-1 pl-2' />}
+            onChooseView={() => setShowAddView(true)}
+            onChooseSpace={() => setShowAddSpace(true)}
+            canAddSpace={canAddSpace}
+          />
         </div>
         {showAddView && <AddGroupViewDialog group={group} groupViews={groupViews} acceptedPostTypes={group?.acceptedPostTypes} onClose={() => setShowAddView(false)} />}
-        {showAddSpace && !hideAddSpace && <AddSpaceDialog group={group} onClose={() => setShowAddSpace(false)} />}
+        {showAddSpace && canAddSpace && <AddSpaceDialog group={group} onClose={() => setShowAddSpace(false)} />}
       </div>
     )
   }
@@ -395,7 +555,7 @@ function GroupViewList ({
     .filter(view => viewAcceptedByPostTypes(view.type, group?.acceptedPostTypes))
 
   // Synthetic steward item for funding-round spaces — always last, not in the DB.
-  const menuViews = (spaceGroup?.fundingRound?.id && canManageRound)
+  const menuViews = (spaceGroup?.fundingRound?.id && canAdminister)
     ? [...visibleViews, MANAGE_ROUND_VIEW]
     : visibleViews
 
@@ -407,6 +567,7 @@ function GroupViewList ({
             key={view.id || index}
             view={view}
             parentSlug={groupSlug}
+            group={group}
             spaceGroup={spaceGroup}
             spaceSlug={spaceSlug}
           />
@@ -437,9 +598,10 @@ export default function ContextMenu (props) {
   const routeSpaceSlug = routeParams.spaceSlug
   const group = useSelector(state => currentGroup || getGroupForSlug(state, groupSlug))
   const canAdminister = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADMINISTRATION, groupId: group?.id }))
-  const canManageSpaces = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_MANAGE_SPACES, groupId: group?.id }))
   const isEditing = getQuerystringParam('edit', location) === 'true' && canAdminister
   const [settingsView, setSettingsView] = useState(null)
+  // The width-drag strip measures its seam position from this element
+  const [menuRootEl, setMenuRootEl] = useState(null)
   const isMoreViewsPath = location.pathname.replace(/\/$/, '').endsWith('/more-views')
   // On More Views page, `?space=` selects a space in the sidebar without leaving the page.
   const spaceSlug = routeSpaceSlug || (isMoreViewsPath ? getQuerystringParam('space', location) : null)
@@ -471,7 +633,7 @@ export default function ContextMenu (props) {
   const fetchedGroupViews = useSelector(state => getGroupViews(state, group))
   const viewsPending = useSelector(state => isPendingFor(FETCH_GROUP_VIEWS, state))
   const groupViewsLoading = viewsPending && fetchedGroupViews.length === 0
-  // Count for the More Views and Spaces badge (off-menu views + tracks + rounds + other spaces)
+  // Count for the group-level More badge (off-menu views + tracks + rounds + other spaces)
   const moreViewsSections = useSelector(state => (isGroupContext && group) ? getMoreViewsSections(state, group) : null)
   const publishedOfferings = usePublishedOfferings(group?.id)
   const menuViews = useMemo(() => {
@@ -480,19 +642,25 @@ export default function ContextMenu (props) {
     // Managers always see paywalled spaces; others only when a published offering grants access
     return filterSpaceViewsForMenuVisibility(views, {
       offerings: publishedOfferings,
-      canManageSpaces: canManageSpaces || isEditing
+      canManageSpaces: canAdminister
     })
-  }, [staticMenuViews, fetchedGroupViews, publishedOfferings, canManageSpaces, isEditing])
+  }, [staticMenuViews, fetchedGroupViews, publishedOfferings, canAdminister])
 
-  const { spaceView: activeSpaceView, spaceGroup: activeSpaceGroup } = useMemo(
+  const { spaceView: activeSpaceView, spaceGroup: linkedActiveSpaceGroup } = useMemo(
     () => findSpaceForSlug(fetchedGroupViews, group, groupSlug, spaceSlug),
     [fetchedGroupViews, group, groupSlug, spaceSlug]
   )
+  // Prefer the ORM space record so acceptedPostTypes updates from Space Settings
+  // apply immediately (nested linkedGroup copies can lag until parent refetch).
+  const spaceGroupFromStore = useSelector(state =>
+    linkedActiveSpaceGroup?.slug ? getGroupForSlug(state, linkedActiveSpaceGroup.slug) : null
+  )
+  const activeSpaceGroup = spaceGroupFromStore || linkedActiveSpaceGroup
   const isSpaceMember = Boolean(
     activeSpaceGroup &&
     myMemberships.some(m => m.group.id === activeSpaceGroup.id)
   )
-  // Ordered (in-menu) spaces nest under the row; off-menu spaces drill into a replaced menu.
+  // Ordered single-view spaces stay in the group menu; multi-view and off-menu spaces drill in.
   const isOrderedMenuSpace = useMemo(() => {
     if (!spaceSlug || !groupSlug) return false
     return (fetchedGroupViews || []).some(view => (
@@ -502,23 +670,41 @@ export default function ContextMenu (props) {
       localSpaceSlug(groupSlug, view.linkedGroup.slug) === spaceSlug
     ))
   }, [fetchedGroupViews, groupSlug, spaceSlug])
+  const spaceMenuViewsFromStore = useSelector(state =>
+    activeSpaceGroup?.id ? getGroupViews(state, activeSpaceGroup) : []
+  )
+  const activeSpaceHasMultipleViews = useMemo(() => {
+    if (!activeSpaceGroup) return false
+    return visibleSpaceMenuViews(activeSpaceGroup, {
+      views: spaceMenuViewsFromStore.length > 0 ? spaceMenuViewsFromStore : null,
+      includeManageRound: Boolean(activeSpaceGroup?.fundingRound?.id && canAdminister)
+    }).length > 1
+  }, [activeSpaceGroup, spaceMenuViewsFromStore, canAdminister])
   const showingSpaceMenu = Boolean(
     isGroupContext &&
     activeSpaceGroup &&
     (isSpaceMember || (isMoreViewsPath && canAdminister)) &&
-    (!isOrderedMenuSpace || (isMoreViewsPath && spaceSlug))
-  )
-  const spaceMenuViewsFromStore = useSelector(state =>
-    showingSpaceMenu ? getGroupViews(state, activeSpaceGroup) : []
+    (!isOrderedMenuSpace || (isMoreViewsPath && spaceSlug) || activeSpaceHasMultipleViews)
   )
   const spaceMenuViews = useMemo(() => {
     if (!showingSpaceMenu) return []
     if (spaceMenuViewsFromStore.length > 0) return spaceMenuViewsFromStore
     return activeSpaceGroup?.groupViews?.items || []
   }, [showingSpaceMenu, spaceMenuViewsFromStore, activeSpaceGroup])
+  // Off-menu count for the space menu's More row (views not shown in the space menu).
+  const spaceMoreViewsSections = useSelector(state =>
+    (showingSpaceMenu && activeSpaceGroup) ? getMoreViewsSections(state, activeSpaceGroup) : null
+  )
   const spaceViewsLoading = viewsPending && spaceMenuViews.length === 0
   const spaceDisplayName = activeSpaceGroup?.name ||
     (activeSpaceView ? displayNameForView(GroupViewPresenter(activeSpaceView), t) : t('Space'))
+  const presentedActiveSpaceView = useMemo(
+    () => activeSpaceView ? GroupViewPresenter(activeSpaceView) : null,
+    [activeSpaceView]
+  )
+  const activeSpaceBannerUrl = activeSpaceGroup?.bannerUrl && activeSpaceGroup.bannerUrl !== DEFAULT_BANNER
+    ? activeSpaceGroup.bannerUrl
+    : null
 
   // Fetch GroupViews and spaces whenever we enter a real group context
   useEffect(() => {
@@ -528,16 +714,35 @@ export default function ContextMenu (props) {
     }
   }, [group?.id, isGroupContext, dispatch])
 
-  // Load the space's own views when the drill-in space menu is active.
+  // Load the space's own views when inside a space (multi-view check + space menu).
   useEffect(() => {
-    if (showingSpaceMenu && activeSpaceGroup?.id) {
+    if (activeSpaceGroup?.id && spaceSlug) {
       dispatch(fetchGroupViews(activeSpaceGroup.id))
     }
-  }, [showingSpaceMenu, activeSpaceGroup?.id, dispatch])
+  }, [activeSpaceGroup?.id, spaceSlug, dispatch])
+
+  // Remember where the user was before a space's menu took over, so Back returns
+  // them there — not to a guessed group home. Updated only while no space menu is
+  // active, so entering the space never overwrites the origin. Guard on the
+  // route's spaceSlug too: on a direct space load activeSpaceView stays null
+  // until group data arrives, and without the guard the space's own URL gets
+  // recorded as the origin — making Close a no-op.
+  const lastNonSpaceLocationRef = React.useRef(null)
+  useEffect(() => {
+    if (!activeSpaceView && !spaceSlug) {
+      lastNonSpaceLocationRef.current = `${location.pathname}${location.search}`
+    }
+  }, [location, activeSpaceView, spaceSlug])
 
   const handleBackToGroupMenu = useCallback(() => {
+    if (lastNonSpaceLocationRef.current) {
+      navigate(lastNonSpaceLocationRef.current)
+      return
+    }
+    // Deep links have no origin to return to — fall back to the sensible parents
     if (isMoreViewsPath) {
-      navigate(addQuerystringToPath(groupUrl(groupSlug, 'more-views'), { edit: 'true' }))
+      const moreViews = groupUrl(groupSlug, 'more-views')
+      navigate(isEditing ? addQuerystringToPath(moreViews, { edit: 'true' }) : moreViews)
       return
     }
     const home = groupUrl(groupSlug)
@@ -555,6 +760,10 @@ export default function ContextMenu (props) {
   const handleScroll = useCallback(() => {
     window.dispatchEvent(new CustomEvent('contextMenuScroll'))
   }, [])
+
+  // Settings menu needs a viewport-bounded height so it can scroll independently of the
+  // underlying view list (which stays mounted behind the settings overlay).
+  const isSettingsPath = location.pathname.includes('/settings')
 
   useEffect(() => {
     if (isEditing) {
@@ -576,10 +785,12 @@ export default function ContextMenu (props) {
     </div>
   )
 
-  const moreViewsCount = (moreViewsSections?.offMenuViews?.length || 0) +
-    (moreViewsSections?.trackSpaces?.length || 0) +
-    (moreViewsSections?.fundingRoundSpaces?.length || 0) +
-    (moreViewsSections?.otherSpaces?.length || 0)
+  // Footer More uses the space's off-menu items when drilled into a space menu.
+  const footerMoreSections = showingSpaceMenu ? spaceMoreViewsSections : moreViewsSections
+  const moreViewsCount = (footerMoreSections?.offMenuViews?.length || 0) +
+    (footerMoreSections?.trackSpaces?.length || 0) +
+    (footerMoreSections?.fundingRoundSpaces?.length || 0) +
+    (footerMoreSections?.otherSpaces?.length || 0)
   const moreViewsBadge = moreViewsCount > 0
     ? (
       <span className='ml-auto shrink-0 text-xs leading-none text-foreground/50 bg-foreground/10 rounded-full px-1.5 py-1'>
@@ -587,28 +798,32 @@ export default function ContextMenu (props) {
       </span>
       )
     : null
+  const moreViewsLink = showingSpaceMenu && spaceSlug
+    ? addQuerystringToPath(groupUrl(groupSlug, 'more-views'), { space: spaceSlug })
+    : groupUrl(groupSlug, 'more-views')
 
-  const moreSpacesSection = isGroupContext && group?.id && !showingSpaceMenu
+  // Hidden when there is nothing behind it — admins still reach the page via Edit Menu
+  const moreSpacesSection = isGroupContext && group?.id && moreViewsCount > 0
     ? (
       <div className='px-3 pb-2 border-t border-foreground/10 pt-2'>
         {isEditing
           ? (
             <div
-              className='flex items-center gap-2 text-base text-foreground/40 border-2 border-transparent rounded-md p-1 pl-2 w-full cursor-not-allowed opacity-60'
+              className='flex items-center gap-2 text-base font-medium text-foreground/40 border-2 border-transparent rounded-md p-1 pl-2 w-full cursor-not-allowed opacity-60'
               aria-disabled='true'
             >
               <CircleEllipsis className='w-4 h-4 shrink-0' />
-              <span>{t('More Views and Spaces')}</span>
+              <span>{t('More')}</span>
               {moreViewsBadge}
             </div>
             )
           : (
             <MenuLink
-              to={groupUrl(groupSlug, 'more-views')}
-              className='flex items-center gap-2 text-base text-foreground hover:text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 w-full transition-all opacity-85 hover:opacity-100'
+              to={moreViewsLink}
+              className='flex items-center gap-2 text-base font-medium text-foreground hover:text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 w-full transition-all opacity-85 hover:opacity-100'
             >
               <CircleEllipsis className='w-4 h-4 shrink-0' />
-              <span>{t('More Views and Spaces')}</span>
+              <span>{t('More')}</span>
               {moreViewsBadge}
             </MenuLink>
             )}
@@ -629,7 +844,7 @@ export default function ContextMenu (props) {
               })
           }
           isEditing={isEditing}
-          className='flex items-center gap-2 text-base text-foreground hover:text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 w-full transition-all opacity-85 hover:opacity-100'
+          className='flex items-center gap-2 text-base font-medium text-foreground hover:text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 w-full transition-all opacity-85 hover:opacity-100'
         >
           <Pencil className='w-4 h-4' />
           <span>{isEditing ? t('Done Editing') : t('Edit Menu')}</span>
@@ -669,21 +884,35 @@ export default function ContextMenu (props) {
 
   return (
     <div
+      ref={setMenuRootEl}
       className={cn(
         'ContextMenu bg-background relative z-20 isolate pointer-events-auto h-full flex-1 min-w-0',
-        !isPhoneDevice() && 'sm:flex-initial sm:w-[300px]',
+        !isPhoneDevice() && 'sm:flex-initial sm:w-[var(--context-menu-width,300px)]',
         { [classes.mapView]: mapView },
-        { [classes.showGroupMenu]: isNavOpen, 'h-screen h-dvh': isPhoneDevice(), '!overflow-y-auto': !location.pathname.includes('/settings'), 'overflow-y-hidden': location.pathname.includes('/settings') },
+        {
+          [classes.showGroupMenu]: isNavOpen,
+          'h-screen h-dvh': isPhoneDevice(),
+          'overflow-y-hidden flex flex-col': isSettingsPath,
+          '!overflow-y-auto': !isSettingsPath
+        },
         className
       )}
       style={{ boxShadow: 'inset -15px 0 15px -10px hsl(var(--darkening) / 0.3)' }}
       onScroll={handleScroll}
     >
-      <div className='relative min-h-full min-h-screen min-h-dvh flex flex-col'>
+      {/* Fixed-position, so the menu's own overflow scrolling never clips it */}
+      {!isPhoneDevice() && <ContextMenuResizer menuEl={menuRootEl} />}
+      <div className={cn(
+        'relative flex flex-col',
+        isSettingsPath ? 'flex-1 min-h-0 overflow-hidden' : 'min-h-full min-h-screen min-h-dvh'
+      )}
+      >
         <div className='absolute inset-0 bg-gradient-to-b from-context-menu-background to-theme-background/10 dark:to-theme-background/40 z-0 pointer-events-none' />
-        <div className='ContextDetails w-full z-20 relative'>
+        <div className='ContextDetails w-full z-20 relative shrink-0'>
           {isGroupContext
-            ? <GroupMenuHeader group={group} />
+            /* Duck only when the space really takes the menu over (its own
+               header below) — single-view in-menu spaces stay in the group list */
+            ? <GroupMenuHeader group={group} compact={showingSpaceMenu} onCompactClick={handleBackToGroupMenu} />
             : isPublicContext
               ? (
                 <div className='TheCommonsHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md'>
@@ -712,7 +941,7 @@ export default function ContextMenu (props) {
                 : null}
         </div>
 
-        <div className='relative z-20 flex flex-col flex-1'>
+        <div className={cn('relative z-20 flex flex-col flex-1', isSettingsPath && 'min-h-0 overflow-hidden')}>
           <Routes>
             <Route path='settings/*' element={<GroupSettingsMenu group={group} groupSlug={groupSlug} />} />
           </Routes>
@@ -720,17 +949,117 @@ export default function ContextMenu (props) {
           {showingSpaceMenu
             ? (
               <>
-                <div className='relative z-20 flex flex-col gap-1 px-3 py-2 border-b border-foreground/10'>
+                {/* h-[142px]: with the ducked group header's h-12 this sums to the
+                    full-size header's 190px, so the takeover swaps hierarchy without
+                    moving the menu below */}
+                <div className='SpaceMenuHeader relative z-20 flex flex-col justify-between h-[142px] overflow-hidden border-b border-foreground/10 shadow-md'>
+                  {activeSpaceBannerUrl
+                    ? (
+                      <>
+                        <div className='absolute inset-0 bg-cover bg-center' style={bgImageStyle(activeSpaceBannerUrl)} />
+                        <div className='absolute inset-0' style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.6) 100%)' }} />
+                      </>
+                      )
+                    : presentedActiveSpaceView && (
+                      <MenuRowBackground view={presentedActiveSpaceView} bannerUrl={null} glyphCount={280} />
+                    )}
                   <button
                     type='button'
                     onClick={handleBackToGroupMenu}
-                    className='flex items-center gap-1 self-start text-sm text-foreground/60 hover:text-foreground transition-colors'
-                    aria-label={t('Back')}
+                    className={cn(
+                      'relative z-10 flex items-center self-start m-2 p-1 rounded-md backdrop-blur-sm transition-colors',
+                      activeSpaceBannerUrl
+                        ? 'bg-black/25 text-white/90 hover:bg-black/40 hover:text-white'
+                        : 'bg-foreground/10 text-foreground/70 hover:bg-foreground/20 hover:text-foreground dark:text-white/80 dark:hover:text-white'
+                    )}
+                    aria-label={t('Close')}
+                    title={t('Close')}
                   >
-                    <ChevronLeft className='w-5 h-5' />
-                    <span>{t('Back')}</span>
+                    <X className='w-5 h-5' />
                   </button>
-                  <span className='font-semibold text-foreground truncate'>{spaceDisplayName}</span>
+                  {canAdminister && activeSpaceView && (
+                    <button
+                      type='button'
+                      onClick={() => setSettingsView(activeSpaceView)}
+                      className='absolute top-2 right-2 z-10'
+                      aria-label={t('Space Settings')}
+                      title={t('Space Settings')}
+                    >
+                      <Settings className={cn(
+                        'w-6 h-6 drop-shadow-md hover:scale-110 transition-all',
+                        activeSpaceBannerUrl
+                          ? 'text-white/90 hover:text-white'
+                          : 'text-foreground/60 hover:text-foreground dark:text-white/80 dark:hover:text-white'
+                      )}
+                      />
+                    </button>
+                  )}
+                  <div className='relative z-10 flex items-center gap-2 p-2 min-w-0'>
+                    <div
+                      style={presentedActiveSpaceView?.avatarUrl ? bgImageStyle(presentedActiveSpaceView.avatarUrl) : {}}
+                      className={cn(
+                        'h-10 w-10 rounded-lg shadow-md bg-cover bg-center relative overflow-hidden shrink-0 flex items-center justify-center',
+                        !presentedActiveSpaceView?.avatarUrl && 'bg-theme-background'
+                      )}
+                    >
+                      {/* theme-background is dark in every theme, so the icon is always light */}
+                      {!presentedActiveSpaceView?.avatarUrl && (
+                        <GroupViewIcon view={presentedActiveSpaceView} className='w-6 h-6 text-white/90' />
+                      )}
+                    </div>
+                    <div className='flex flex-col flex-1 min-w-0'>
+                      <TruncatedText
+                        className={cn(
+                          'truncate font-bold text-xl/6',
+                          activeSpaceBannerUrl
+                            ? 'text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.65)]'
+                            : 'text-foreground dark:text-white'
+                        )}
+                        text={spaceDisplayName}
+                      />
+                      <span className='flex items-center gap-1 mt-1.5 text-xs'>
+                        <Link
+                          className={cn(
+                            'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 no-underline hover:no-underline transition-colors',
+                            activeSpaceBannerUrl
+                              ? 'bg-white/15 border-white/25 text-white hover:bg-white/25 hover:text-white'
+                              : 'bg-foreground/10 border-foreground/20 text-foreground/80 hover:bg-foreground/20 hover:text-foreground dark:bg-white/15 dark:border-white/25 dark:text-white/90 dark:hover:bg-white/25 dark:hover:text-white'
+                          )}
+                          to={spaceUrl(groupSlug, localSpaceSlug(groupSlug, activeSpaceGroup.slug), 'members')}
+                          onClick={() => dispatch(toggleNavMenu(false))}
+                          aria-label={t('{{count}} Members', { count: activeSpaceGroup.memberCount })}
+                        >
+                          <Users className='w-3.5 h-3.5' />
+                          {activeSpaceGroup.memberCount}
+                        </Link>
+                        <InviteMembersPopover
+                          group={activeSpaceGroup}
+                          alwaysVisible
+                          triggerLabel={t('Invite')}
+                          triggerClassName={cn(
+                            'rounded-full border px-2 py-0.5 hover:scale-100',
+                            activeSpaceBannerUrl
+                              ? 'bg-white/15 border-white/25 text-white hover:bg-white/25 hover:text-white'
+                              : 'bg-foreground/10 border-foreground/20 text-foreground/80 hover:bg-foreground/20 hover:text-foreground dark:bg-white/15 dark:border-white/25 dark:text-white/90 dark:hover:bg-white/25 dark:hover:text-white'
+                          )}
+                        />
+                      </span>
+                    </div>
+                    <button
+                      type='button'
+                      onClick={() => navigate(addQuerystringToPath(location.pathname, { about: 1 }))}
+                      className={cn(
+                        'shrink-0 transition-all hover:scale-110',
+                        activeSpaceBannerUrl
+                          ? 'text-white/80 hover:text-white'
+                          : 'text-foreground/60 hover:text-foreground dark:text-white/80 dark:hover:text-white'
+                      )}
+                      aria-label={t('About')}
+                      title={t('About')}
+                    >
+                      <Info className='w-5 h-5' />
+                    </button>
+                  </div>
                 </div>
                 {spaceMenuViews.length > 0 || isEditing
                   ? (
@@ -743,9 +1072,7 @@ export default function ContextMenu (props) {
                       spaceMenuView={activeSpaceView}
                       isEditing={isEditing}
                       onOpenSettings={setSettingsView}
-                      canManageSpaces={false}
-                      canManageRound={canManageSpaces}
-                      hideAddSpace
+                      canAdminister={canAdminister}
                     />
                     )
                   : spaceViewsLoading
@@ -766,7 +1093,7 @@ export default function ContextMenu (props) {
                   spaceSlug={spaceSlug}
                   isEditing={isEditing}
                   onOpenSettings={setSettingsView}
-                  canManageSpaces={canManageSpaces}
+                  canAdminister={canAdminister}
                 />
                 )
               : groupViewsLoading

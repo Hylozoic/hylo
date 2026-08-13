@@ -16,7 +16,7 @@ _Product spec: [Google Doc](https://docs.google.com/document/d/1Oct_l40Jj64dYl5D
 8. [Notifications & Unread Tracking](#8-notifications--unread-tracking)
 9. [Search](#9-search)
 10. [Group & Space Creation](#10-group--space-creation)
-11. [More Spaces](#11-more-spaces)
+11. [More Views & Spaces](#11-more-views)
 12. [Steward Onboarding Prompt](#12-steward-onboarding-prompt)
 13. [Out of Scope / Future Work](#13-out-of-scope--future-work)
 14. [Phased Rollout](#14-phased-rollout)
@@ -138,7 +138,7 @@ Responsibilities are looked up by **`name` AND `type = 'system'`** — never by 
 For each existing group:
 1. Add the `Manage Spaces` responsibility to coordinator role for the group
 2. Migrate admin-only chat room spaces: set `required_roles = [<coordinator role id for that group>]`
-3. Spaces **inherit role definitions from the parent group** — it has the same set of group_roles copied over from the parent group. roles are not customizable per space. |
+3. Spaces **inherit roles from the parent group at lookup time** — they do **not** store their own `groups_roles` or `group_memberships_group_roles` rows. Effective permissions in a space = space membership ∩ parent role responsibilities. Roles are not customizable per space.
 
 ---
 
@@ -294,7 +294,7 @@ Used for two view types:
 | Table | Notes |
 |-------|-------|
 | `context_widgets` | Table kept as read-only recovery reference. All code removed. |
-| `tag_follows` | Kept — may be useful for future features unrelated to chat rooms |
+| `tag_follows` | Kept for chat notification preferences only — unread is not tracked here |
 | `tags` / `group_tags` | Unchanged — topics remain for filtering/search |
 | `group_relationships` | Unchanged — peer/affiliation relationships between groups |
 | `widgets` / `group_widgets` | Unchanged — legacy explore/landing page |
@@ -373,7 +373,7 @@ Replace `setupContextWidgets(trx)` → `setupGroupViews(groupId, template, trx)`
 
 Add `setupSpaceViews(spaceId, acceptedPostTypes, trx)` — seeds views for a newly created space.
 
-Remove `doesMenuUpdate()` entirely — no more auto-promotion of views.
+~~Remove `doesMenuUpdate()` entirely — no more auto-promotion of views.~~
 
 Remove all calls to `setupContextWidgets()` from `Group.create()`.
 
@@ -620,10 +620,10 @@ For each Track, for each group it belongs to (via `groups_tracks`):
 2. Set `tracks.group_id = new_space.id`
 
 2. Create `group_views` rows for the new space:
-   - `type = 'welcome'`, `order = 0`, `page_content = tracks.welcome_message` _(home view — renders track banner + metadata above steward's page_content. `welcome_message` field on Track is moved over to the welcome page_content — stewards can write new content here after migration)_
-   - `type = 'track-actions'`, `order = 1` _(non-deletable action list)_
-   - `type = 'chat'`, `order = 2`
-   - `type = 'members'`, `order = 3` _(renders enrolled_at / completed_at from group_memberships.settings per member)_
+   - `type = 'track-actions'`, `order = 0` _(non-deletable action list)_
+   - `type = 'chat'`, `order = 1`
+   - `type = 'members'`, `order = 2` _(renders enrolled_at / completed_at from group_memberships.settings per member)_
+   - `type = 'welcome'`, `order = 3`, `page_content = tracks.welcome_message` _(home view — renders track banner + metadata above steward's page_content. `welcome_message` field on Track is moved over to the welcome page_content — stewards can write new content here after migration)_
 
 3. **Migrate action ordering via `collection_posts`:** for each row in `tracks_posts` for this track (ordered by `sort_order`), create a `collection_posts` row: `view_id = track-actions-view.id`, `post_id`, `order = tracks_posts.sort_order`.
 
@@ -653,10 +653,10 @@ For each FundingRound (currently `funding_rounds.group_id` = parent group):
    - If `round.deactivated_at` is set: set `groups.active = false` (archives the space)
 
 2. Create `group_views` rows for the new space:
-   - `type = 'welcome'`, `order = 0`, `page_content = null` _(home — renders space description + round banner + criteria + phase/date info below the steward's page_content. Stewards can write their own page_content after migration)_
-   - `type = 'funding-round-submissions'`, `order = 1` _(non-deletable)_
+   - `type = 'funding-round-submissions'`, `order = 0` _(non-deletable)_
    - `type = 'chat'`, `order = 2`
    - `type = 'members'`, `order = 3` _(renders submit/vote role badges per member from round's submitter_roles / voter_roles)_
+   - `type = 'welcome'`, `order = 4`, `page_content = null` _(home — renders space description + round banner + criteria + phase/date info below the steward's page_content. Stewards can write their own page_content after migration)_
 
 3. Update `funding_rounds.group_id = new_space.id`.
 
@@ -753,10 +753,10 @@ For each group and space: `home_route = GroupView.computeHomeRoutePath(homeView,
 | `/groups/:groupSlug/proposals` | `GroupView` (type=proposals) | Unchanged |
 | `/groups/:groupSlug/welcome` | `GroupView` (type=welcome) | **New** |
 | `/groups/:groupSlug/groups` | `GroupView` (type=related-groups) | Unchanged |
-| `/groups/:groupSlug/all-views` | Redirect → `/groups/:groupSlug/more-spaces` | Backward-compat |
-| `/groups/:groupSlug/more-spaces` | `MoreSpaces` | Replaces All Views, Tracks, Funding Rounds, Archive |
-| `/groups/:groupSlug/tracks` | Redirect → `/groups/:groupSlug/more-spaces` | Tracks now in More Spaces |
-| `/groups/:groupSlug/funding-rounds` | Redirect → `/groups/:groupSlug/more-spaces` | Rounds now in More Spaces |
+| `/groups/:groupSlug/all-views` | Redirect → `/groups/:groupSlug/more-views` | Backward-compat |
+| `/groups/:groupSlug/more-views` | `MoreViewsPage` | Replaces All Views, Tracks, Funding Rounds, Archive |
+| `/groups/:groupSlug/tracks` | Redirect → `/groups/:groupSlug/more-views` | Tracks now in More Spaces |
+| `/groups/:groupSlug/funding-rounds` | Redirect → `/groups/:groupSlug/more-views` | Rounds now in More Spaces |
 
 ### 6.2 New space routes
 
@@ -817,11 +817,11 @@ function localSpaceSlug(parentGroup, space) {
 
 ## 7. Frontend Component Changes
 
-### 7.1 `Stream` → `GroupView`
+### 7.1 `Stream` → `ViewContent`
 
-**Rename:** `apps/web/src/routes/Stream/` → `apps/web/src/routes/GroupView/`
+**Rename (done):** `apps/web/src/routes/Stream/` → `apps/web/src/routes/ViewContent/` (shim left at `routes/Stream` for Calendar SCSS / legacy imports)
 
-`GroupView.js` receives a `viewType` prop (from route or `group_view.type`) and renders:
+`ViewContent.js` receives a `view` prop (from route or `group_view.type`) and renders:
 
 ```
 viewType='all'                       → existing Stream UI (or defaultViewMode of the group_view.settings if it exists)
@@ -899,7 +899,7 @@ viewType='group'                     → Navigate to the group
 
   ─────────────────              ← always-visible bottom section (when applicable)
   Join Requests       [●]          ← spaces only: shown when pending join requests exist
-  More Spaces                      ← link to /more-spaces (tracks, rounds, related groups, moderation, drafts, archived spaces)
+  More Views & Spaces             ← link to /more-views (tracks, rounds, moderation, drafts, archived spaces)
 ```
 
 **Not in the menu:** Moderation, All Topics, Tracks list, Funding Rounds list — all live under **More Spaces**.
@@ -928,9 +928,7 @@ viewType='group'                     → Navigate to the group
 
 **For spaces:** when there are pending join requests, show a **Join Requests** menu item with unread indicator → space join request queue.
 
-**For all groups/spaces:** **More Spaces** link → `/groups/:slug/more-spaces` (or space equivalent). Shown when there is anything to display there (off-menu spaces, track/round drafts, related groups, moderation items, archived spaces). Replaces separate Tracks / Funding Rounds
-
-Moderation, and off-menu track/funding-round spaces are **not** `group_views` rows and **not** fake menu views — they render inside the More Spaces page.
+**For all other views and spaces:** **More Views & Spaces** link → `/groups/:slug/more-views` (or space equivalent). Shown when there is anything to display there (off-menu spaces, track/round drafts, moderation, archived spaces). Replaces separate Tracks / Funding Rounds
 
 ### 7.5 Welcome page editing
 
@@ -995,9 +993,11 @@ In the post creation modal:
 Accessible from ContextMenu edit mode ("Add Space" button). Requires **Manage Spaces** responsibility in the parent group (assignable to any role — not limited to Coordinators). To edit, use the gear icon next to the space name when the menu is in edit mode.
 
 **Roles in spaces:**
-- Spaces **inherit role definitions** from the parent group. Per-space custom role sets are **not** supported.
-- The member who **creates a space** becomes its **Coordinator** (same as creating a new group). They assign roles to other space members using the parent group's roles.
-- **Parent group stewards are not automatically added** to every space — membership is explicit (join, invite, or creation).
+- Spaces **inherit roles from the parent group at lookup time**. No `groups_roles` or role-assignment rows are stored on the space. Per-space custom role sets are **not** supported.
+- Joining a space does not change roles; it unlocks the member’s **existing parent-group roles** inside that space.
+- Role editing remains only in the parent group role editor.
+- Space settings (create/update/archive/delete) are gated by **Manage Spaces** or **Administration on the parent** — parent stewards do not need to be space members to manage settings from the parent menu.
+- **Parent group stewards are not automatically added** to every space — membership is explicit (join, invite, or creation). The space creator is added as a space member; their parent roles apply immediately.
 
 **Create/edit Space form:**
 1. Name + slug (auto-generated)
@@ -1027,29 +1027,40 @@ Space invitations surface in **My Invites** (the existing invites UI in the My c
 
 ### Per-view unread counting
 
-When a post is created in a group/space, increment `group_views_users.new_post_count` for matching views for all members:
+When a post is created in a group/space, increment unread for matching surfaces for all members except the author:
 
-| Post type | Views incremented |
+| Post type | Surfaces incremented |
 |-----------|------------------|
-| Any | `all` (All Activity) |
-| `chat` | `chat` |
-| `discussion` | `discussions` |
-| `event` | `events` |
-| `request` or `offer` | `requests-and-offers` |
-| `resource` | `resources` |
-| `proposal` | `proposals` |
-| Any | `custom` views whose `settings.postTypes` includes the type |
+| Any (except none for membership) | `group_memberships.new_post_count` (group/space orange dot) |
+| `chat` | `chat` view (always); also typed views N/A |
+| `discussion` | `discussions` + `chat` (when post notices on) |
+| `event` | `events` + `chat` (when notices on) |
+| `request` or `offer` | `requests-and-offers` + `chat` (when notices on) |
+| `resource` | `resources` + `chat` (when notices on) |
+| `proposal` | `proposals` + `chat` (when notices on) |
+| `project` | `projects` + `chat` (when notices on) |
+
+**Do not** increment `all`, `custom`, or other non-badge views.
+
+When `settings.showPostNoticesInChat === false`, chat only increments for `type === chat`.
 
 ### Resetting unread
 
-- User navigates to a view → call `markViewAsRead(viewId)` → `new_post_count = 0`, update `last_read_post_id`.
-- **All Activity does not cascade-clear other views.** Each view manages its own count independently. Full per-post read tracking is a future feature.
+- **Open group/space** → clear `group_memberships.new_post_count` (`updateLastViewed` / `FETCH_FOR_GROUP`). Does **not** clear per-view badges.
+- **Open typed view** (Events, Proposals, …) → `markViewAsRead(viewId)` → `new_post_count = 0`, advance `last_read_post_id`.
+- **Chat** → `updateGroupViewUser` while scrolling / jump-to-latest (numbered recount). Do not blindly `markViewAsRead` on chat enter.
+- **Mark as Read** (GlobalNav right-click) → `markGroupAsRead(groupId)` zeros membership + every view in the group.
+- All Activity does not cascade-clear other views.
 
 ### Indicators
 
-- **View level:** orange dot with number if `newPostCount > 0`.
-- **Space level:** orange dot if any view in the space has unread. No number.
-- **Group level (global nav):** orange dot if any main-space view or space has unread. No number.
+- **Chat:** orange badge **with number** if `newPostCount > 0`.
+- **Typed common views:** orange **dot** (no number) if `newPostCount > 0`.
+- **All Activity / custom / other views:** no badge.
+- **Space** (in parent menu): orange dot from **space membership** `newPostCount` (same as groups).
+- **Group** (global nav): orange dot if membership `newPostCount > 0`. No number.
+
+Duplication between chat number and typed-view dots when post notices are on is intentional.
 
 ### Notification settings precedence
 
@@ -1107,7 +1118,7 @@ Also filter spaces from group search results when searching for groups.
 - Requires **Manage Spaces** responsibility in the parent group (assignable to any role).
 - Via ContextMenu edit mode "Add Space" button.
 - `createSpace` mutation → creates `groups` row with `type = 'space'`, `parent_id`, then calls `Group.setupSpaceViews()`.
-- Creator becomes the space **Coordinator** and can assign roles to other space members (using parent group's role definitions).
+- Creator is added as a **space member** . Their parent-group roles apply inside the space.
 - Automatically adds a `type = 'space'` `group_views` row in the parent group's menu.
 
 ### Track/Funding Round space creation (after Phase 4)
@@ -1119,29 +1130,26 @@ Creating a new Track or Funding Round automatically creates its space:
 
 ---
 
-## 11. More Spaces
+## 11. More Views and Spaces
 
-Route: `/groups/:groupSlug/more-spaces` (redirects from `/all-views`,`/tracks`, `/funding-rounds`)
+Route: `/groups/:groupSlug/more-views` (Edit Menu: same route with `?edit=true`)
 
-Replaces the old **All Views** grid, separate **Tracks** and **Funding Rounds** pages, **Related Groups**, and **Archive**. A **list** (not grid) organized into sections:
+Center-column **card grid** (same chrome as ContextMenuGrid) of items not in the ordered menu:
 
 | Section | Content |
 |---------|---------|
-| **Track Spaces** | All track spaces — published and draft. Link to space; settings gear opens space settings modal (track management: phases, publish, enrollment, etc.). |
-| **Funding Round Spaces** | All funding round spaces — published and draft. Same settings access as tracks. |
-| **Related Groups** | Peer/affiliation groups connected to this group |
-| **Moderation** | Link to the moderation queue. |
-| **Archived Spaces** | Archived spaces (`active = false`) |
+| **Views** | Soft-removable GroupViews with `order = null` (common stream views, welcome, about, related-groups, moderation, …). Related Groups card is hidden when the group has no relationships. |
+| **Tracks** | Off-menu track spaces (published and draft). |
+| **Funding Rounds** | Off-menu funding round spaces (published and draft). |
+| **Other Spaces** | Other off-menu spaces, including archived (`active = false`). |
 
-**No views appear here.** Views are either in the menu or deleted — there is no archive state for views.
+**Related groups** are only listed via the Related Groups view (not as a More Views section).
 
-**Track / funding round management:**
-- High-level settings (phase dates, publish, enrollment, paywall) → **Space settings modal** (from gear on each row or from the space itself).
-- Adding/reordering track actions → **track-actions view** when viewing as steward.
+**Soft remove vs delete:** Common views and spaces use **X** in edit mode to set `order = null` (appear here). Custom / collection / link / text / separator / post / member / group views are hard-deleted. Spaces can be fully deleted from edit mode with a trash action + warning.
 
-**Access:** More Spaces link in ContextMenu bottom section when there is anything to show. Admins see all applicable items; members see only what their roles and space visibility allow.
+**Navigation:** In-menu space click expands nested views under the row. Clicking a space here drills into the space menu (Back returns to the group).
 
-**Draft track/round spaces** that are not yet in the main menu appear here (not hidden in a separate Archive).
+**Edit mode** (`?edit=true`): help text, Add View / Add Space, Welcome toggles, hover **+** to add to menu, Done Editing.
 
 ---
 
@@ -1169,7 +1177,7 @@ These get a slightly more detailed prompt describing the specific change.
 
 ## 13. Out of Scope / Future Work
 
-- Per-space custom role definitions (spaces inherit parent group roles; creator assigns members to those roles)
+- Per-space custom role definitions (spaces inherit parent group roles at lookup time; role editing stays on the parent)
 - Renaming the word "space" in the UI (e.g. "circles") — not for initial rollout
 - View type aliases (e.g. Events → Calendar, Chat → Watercooler) — ship with consistent names; revisit if demand is high
 - Archiving views (hide without deleting) — views are in menu or deleted; only spaces archive
@@ -1190,85 +1198,116 @@ These get a slightly more detailed prompt describing the specific change.
 
 ## 14. Phased Rollout
 
+Legend: ✅ done · 🟡 partly done · `-` not done
+
 ### Phase 1 — Database & Backend
 
-- Add `parent_id`, `accepted_post_types`, `required_roles`, `track_id`, `funding_round_id` to `groups`
-- add `group_id` to `tracks`
-- Create `group_views`, `group_views_users`, `collection_posts` tables
-- Create `GroupView`, `GroupViewUser`, `CollectionPost` models
-- Update `Group`, `Track`, `FundingRound` models
-- GraphQL: add new types, queries, all mutations in Section 4
-- Run data migration on staging, verify, then production
-- Keep all ContextWidget code active in parallel during transition
+✅ Add `parent_id`, `accepted_post_types`, `required_roles`, `track_id`, `funding_round_id` to `groups` (also shipped: `groups.icon`)
+✅ add `group_id` to `tracks`
+✅ Create `group_views`, `group_views_users` tables (collection ordering uses `collections_posts.view_id`, not a renamed `collection_posts` table)
+✅ Create `GroupView`, `GroupViewUser`, `CollectionPost` models
+✅ Update `Group`, `Track`, `FundingRound` models (space associations / membership path; display-column drops still pending — see Phase 7)
+✅ GraphQL: add new types, queries, all mutations in Section 4 (plus extras: `setGroupViewHidden`, `markGroupAsRead`, `updateGroupViewUser`, `reorderViewPost`)
+✅ Keep all ContextWidget code active in parallel during transition
+✅ Data migration: ContextWidgets → `group_views`; tracks / funding rounds / non-`#general` chats → spaces; `group_views_users` backfill; home routes
+✅ Manage Spaces responsibility (replaces separate Manage Tracks / Rounds for space creation)
 
 ### Phase 2 — Navigation UI (web)
 
-- Rename `Stream` → `GroupView`; update `AuthLayoutRouter` routes
-- Redesign `ContextMenu`: `GroupViewMenuItem`, space expand/collapse, unread dots, bottom section (Join Requests + More Spaces)
-- Add `?edit=yes` mode, welcome view settings in edit mode
-- Remove `WelcomePageTab`, `CustomViewsTab`, `TracksTab` from Group Settings
-- Add accepted post type pill toggles and chat post-notices toggle to GroupSettingsTab
-- `MoreSpaces` page (list layout, sectioned)
-- Navigation package: `groupViewUrl()`, `spaceUrl()`, `localSpaceSlug()`
-- Redirect old routes (`/all-views`, `/tracks`, `/funding-rounds`) → `/more-spaces`
+✅ Rename `Stream` → `ViewContent`; update `AuthLayoutRouter` routes (my/public/all/topics + group/space; group/space `/stream` redirects to `/all`)
+🟡 Redesign `ContextMenu`: `GroupViewMenuItem`, space expand/collapse, unread dots, bottom section (Join Requests + More Views & Spaces) — **still to do:** Join Requests is still under Group Settings menu, not the ContextMenu footer;
+✅ Add edit mode (`?edit=true`), view settings in edit mode
+✅ Remove `WelcomePageTab`, `CustomViewsTab`, `TracksTab` from Group Settings
+🟡 Add accepted post type pill toggles and chat post-notices toggle to GroupSettingsTab — **still to do:** post-type pills are in GroupSettingsTab; `showPostNoticesInChat` toggle lives on chat view settings (`GroupViewSettingsModal`), not GroupSettingsTab
+✅ `MoreViewsPage` (“More Views and Spaces”) — card grid with Views / Tracks / Funding Rounds / Other Spaces sections (spec §11; soft-hide via `order = null`)
+🟡 Navigation package: `groupViewUrl()`, `spaceUrl()`, `localSpaceSlug()` — **still to do:** no `groupViewUrl()` helper by that name; shipped as `spaceUrl()`, `localSpaceSlug()`, `groupViewPath()`, `spaceGroupViewUrl()` (+ web `menuViewUrl`)
+- Redirect old routes (`/all-views`, `/tracks`, `/funding-rounds`) → `/more-views`
+✅ Welcome page loads from welcome type view. Still store whether to show welcome page to new members on first visit in `group.settings.showWelcomePage`
 
 ### Phase 3 — Space Management
 
-- "Add Space" / edit space UI in ContextMenu edit mode
-- Space creation form + mutations wired up
-- Space membership join/leave UI (preview for non-members)
-- Archive/unarchive space UI
-- Space Settings page
-- Space invites in My Invites
+✅ "Add Space" / edit space UI in ContextMenu edit mode (`AddSpaceDialog`, gear → `SpaceSettingsModal`)
+✅ Space creation form + mutations wired up (`createSpace` / `updateSpace` / `setupSpaceViews` + parent menu `type=space` row)
+🟡 Space membership join/leave UI (preview for non-members) — **still to do:** `SpaceJoinPage` interstitial + `joinSpace` done (open / request / role-gated / paid); `leaveSpace` exists on backend but is not wired in the web UI
+- Archive/unarchive space UI (`archiveSpace` exists on backend; web only shows archived spaces in More Views — no archive/unarchive actions)
+✅ Space Settings modal
+🟡 Space invites in My Invites — **still to do:** spaces are groups so generic invite plumbing can apply; no dedicated space invite tab/section in space settings yet, and My Invites has not been verified/updated for a separate Space Invitations section
 
 ### Phase 4 — Paid / Paywalled Spaces
 
 Generalizes the existing track paywall to work for any space. A group with paid content enabled can set any space to "Paid" access. Supports **both one-time payments and subscriptions** (not one-time only).
 
 **Backend:**
-- Existing Stripe offerings/products currently linked to `tracks.id` → change to link to `groups.id` (the space group)
+🟡 Existing Stripe offerings/products currently linked to `tracks.id` → change to link to `groups.id` (the space group) — **still to do:** dual `groupIds` / `trackIds` path still present; full cutover blocked on shipping `migrations/in-progress/20260714120000_paid_spaces_from_tracks.js`
 - "Add Track for an offering" flow → "Add Space for an offering"
-- Offerings support one-time and subscription billing intervals (same as existing paid content infrastructure, generalized to spaces)
-- `track.access_controlled` migration → set `group.paywall = true` on track spaces; migrate existing Stripe product association to the space group id
-- Paywall scope/access check switches from checking track access to checking space membership
+🟡 Offerings support one-time and subscription billing intervals (same as existing paid content infrastructure, generalized to spaces) — **still to do:** billing intervals already exist for paid content; generalization to arbitrary spaces incomplete until Stripe association cutover ships
+🟡 `track.access_controlled` migration → set `group.paywall = true` on track spaces; migrate existing Stripe product association to the space group id — **still to do:** script exists under `migrations/in-progress/` but is not shipped; `Track` / enroll still check `access_controlled`
+🟡 Paywall scope/access check switches from checking track access to checking space membership — **still to do:** space `paywall` flag + join interstitial work; track enroll path not fully retired
 
 **Space join interstitial — paid CTA:**
-- When a non-member views a paywalled space, the interstitial shows the available offerings (same as the current `TrackPaywallOfferingsSection` content, now generalized)
-- Purchasing an offering creates a `group_memberships` row with paid status
+✅ When a non-member views a paywalled space, the interstitial shows the available offerings (`SpaceJoinPage` + `PaywallOfferingsSection`)
+🟡 Purchasing an offering creates a `group_memberships` row with paid status — **still to do:** works for paywalled groups generally; confirm end-to-end for space-group Stripe product ids after cutover migration
 
 **Frontend:**
-- Remove `TrackPaywallOfferingsSection` from `TrackHome.jsx`
-- Create generalized `SpaceJoinInterstitial` component that handles: open join, restricted request, role-gated notice, paid offering, hidden/invite notice
-- "Paid" option in space creation form gated by parent group's paid content setting
+✅ Remove `TrackPaywallOfferingsSection` from `TrackHome.jsx` (`TrackHome` removed entirely)
+✅ Create generalized space join interstitial (`SpaceJoinPage`) that handles: open join, restricted request, role-gated notice, paid offering, hidden/invite notice
+✅ "Paid" option in space creation/edit form gated by parent group's paid content setting
 
 **Migration within this phase:**
-- For each track where `access_controlled = true`: set the track space's `group.paywall = true`, reassign the Stripe product from `tracks.id` to the new space `groups.id`
+🟡 For each track where `access_controlled = true`: set the track space's `group.paywall = true`, reassign the Stripe product from `tracks.id` to the new space `groups.id` — **still to do:** in-progress migration not applied
 
 ### Phase 5 — Tracks & Funding Rounds as Spaces
 
-- Remove tabs from `TrackHome.jsx`, `FundingRoundHome.jsx`
-- `GroupView` rendering for `track-actions` and `funding-round-submissions` types
-- `welcome` view for track/funding round spaces renders special section + page_content
-- Track/Funding Round creation flow auto-creates a space
-- `collection_posts` for track action ordering
-- Track member directory shows `enrolledAt` / `completedAt` from `group_memberships.settings`
-- Funding round member directory shows submit/vote role badges
+✅ Remove tabs from `TrackHome.jsx`, `FundingRoundHome.jsx` (components removed; views live under space routes)
+✅ `GroupView` / `ViewContent` rendering for `track-actions` and `funding-round-submissions` types
+🟡 `welcome` view for track/funding round spaces renders special section + page_content — **still to do:** funding round welcome/about info (`FundingRoundAboutInfo`) shipped; track-specific welcome metadata section (num actions / enrolled / etc.) still incomplete
+✅ Track/Funding Round creation flow auto-creates a space (via `AddSpaceDialog`: `createSpace` then `createTrack` / `createFundingRound`)
+✅ `collections_posts` for track action ordering (`TrackActionsView` + view `collectionPosts`)
+🟡 Track member directory shows `enrolledAt` / `completedAt` from `group_memberships.settings` — **still to do:** `completedAt` shown; `enrolledAt` not shown in Members directory UI
+✅ Funding round member directory shows submit/vote role badges
 
 ### Phase 6 — Post Creation & Content Aggregation
 
-- Space selector in post creation modal
-- `accepted_post_types` enforcement
-- `groups_posts` associations for space posts
-- Main Space "All Activity" aggregates from child spaces user is in
-- Backend search includes child spaces
+✅ Space selector in post creation modal (groups + indented child spaces in To field)
+🟡 `accepted_post_types` enforcement — **still to do:** frontend filters types/spaces in `PostEditor` / menu; backend `createPost` does not yet reject disallowed types
+✅ `groups_posts` associations for space posts (spaces are groups; posts associate normally)
+- Main Space "All Activity" aggregates from child spaces user is in (`viewPosts` / `childPostInclusion` still use `group_relationships` child groups, not `groups.parent_id` spaces). Flag posts from child spaces as from Child Space instead of Child Group.
+- Backend search includes child spaces (and exclude spaces from group search results)
+- Audit / exclude spaces from group list queries (global nav, related groups, explore, My Groups, invitations, profile memberships) — §3.8
 
 ### Phase 7 — Notifications, Cleanup & Mobile
 
-- `group_views_users` unread increment on post creation
-- Per-view unread dots in ContextMenu
-- `markViewAsRead` on view navigation
+✅ `group_views_users` unread increment on post creation (typed views + chat; also decrement on delete)
+✅ Per-view unread dots in ContextMenu (numbered chat; dots for typed views)
+✅ `markViewAsRead` on typed view navigation
+✅ `markGroupAsRead` from GlobalNav
 - Steward onboarding prompt
-- Remove all ContextWidget code (model, GraphQL, frontend)
-- Drop `tracks_posts`, `tracks_users`, `funding_rounds_posts`, `funding_rounds_users`, `groups_tracks` (already empty after Phase 1 migration)
-- Drop `custom_views`, `custom_view_topics`, `collections`, `posts_collections` (already empty after Phase 1 migration)
+🟡 Remove all ContextWidget code (model, GraphQL, frontend) — **still to do:** new menu is default (`useGroupViews`); legacy `ContextMenuOld`, contextWidgets store/actions, GraphQL, and `Group.setupContextWidgets()` (still called from `Group.create`) remain
+✅ Get rid of Group `doesMenuUpdate` method
+🟡 Drop `tracks_posts`, `tracks_users`, `funding_rounds_posts`, `funding_rounds_users`, `groups_tracks` — **still to do:** data migrated; table/column drops live in `migrations/in-progress/20260713120000_spaces_cleanup.js` (not shipped); `groups_tracks` rows cleared but table drop not shipped
+- Drop `custom_views`, `custom_view_topics`, `collections`
+- Remove `collections_posts.collection_id` column
+- Remove `#general` tag from all posts
+✅ Remove `group.welcome_page` / welcome page content columns (migrated onto welcome views)
+- Replace `Group.setupContextWidgets()` on create with `Group.setupGroupViews(groupId, template, trx)` (today: still seeds ContextWidgets; optional `view_types` → `setupSpaceViews`)
 - Mobile app navigation (separate ticket)
+
+---
+
+### Already shipped (major items not listed above)
+
+These landed during implementation and should be treated as part of the current system of record:
+
+| Change | Notes |
+|--------|-------|
+| Route `/more-views` + soft-hide model | Spec §11; menu footer + Edit Menu open More Views and Spaces. Common views/spaces set `order = null` instead of hard-delete. |
+| `ContextMenuGrid` one-column home | Simple groups use a card-grid home dashboard instead of the vertical ContextMenu. |
+| Space role inheritance | Effective permissions = space membership ∩ parent role responsibilities via `COALESCE(parent_id, id)` / `Group.roleScopeId`. No per-space role rows. |
+| `groups.icon` | Lucide/icon string on spaces (and groups) for menu display. |
+| Chat unread recalculation migration | `20260723120000_recalculate_chat_new_post_counts.js` |
+| Off-menu / system view ensure migrations | `20260723140000_*`, `20260723160000_*` — ensure common off-menu views exist for More Views. |
+| Digests via `GroupViewUser` | Space posts included through view-user digest path; parent-group digest template space headers still future work (§8). |
+| `ManageRoundView` synthetic menu item | Steward manage entry for funding rounds outside normal `group_views` rows. |
+| `SpaceGroupContext` / `useEffectiveGroupSlug` | Web routing helper for resolving space vs parent slug in nested space routes. |
+| Paid-space visibility helpers | `util/paidSpaceVisibility.js` + paywall arg on create/update space. |
+| In-progress (unshipped) migrations | `migrations/in-progress/20260713120000_spaces_cleanup.js`, `migrations/in-progress/20260714120000_paid_spaces_from_tracks.js` |

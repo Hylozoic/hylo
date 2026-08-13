@@ -6,6 +6,20 @@ import { mapbox } from 'config/index'
 import useAppearance from 'hooks/useAppearance'
 import NativeTerritoriesLayer from './NativeTerritoriesLayers'
 
+// Map each light-mode base layer to its dark-mode Mapbox style equivalent
+const DARK_MODE_BASE_LAYER_MAP = {
+  'light-v11': 'dark-v11',
+  'streets-v12': 'navigation-night-v1',
+  'satellite-v9': 'satellite-v9',
+  'satellite-streets-v12': 'satellite-streets-v12'
+}
+
+/** Resolve the Mapbox style id for the current theme and selected base layer */
+function getMapStyleId (baseLayerStyle, isDarkMode, darkLayerStyle) {
+  if (!isDarkMode) return baseLayerStyle
+  return DARK_MODE_BASE_LAYER_MAP[baseLayerStyle] || darkLayerStyle
+}
+
 function DeckGLOverlay (props) {
   const overlay = useControl(() => new MapboxOverlay(props))
   overlay.setProps(props)
@@ -65,7 +79,7 @@ const Map = forwardRef(({
       interactiveLayerIds={otherLayers}
       mapboxAccessToken={mapbox.token}
       mapOptions={{ logoPosition: 'bottom-right' }}
-      mapStyle={`mapbox://styles/mapbox/${isDarkMode ? darkLayerStyle : baseLayerStyle}`}
+      mapStyle={`mapbox://styles/mapbox/${getMapStyleId(baseLayerStyle, isDarkMode, darkLayerStyle)}`}
       projection='mercator'
       onLoad={(map) => { map.target.resize(); onLoad && onLoad(map) }}
       onMouseEnter={onMouseEnter}

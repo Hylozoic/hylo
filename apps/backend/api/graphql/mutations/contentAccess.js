@@ -10,6 +10,7 @@
 
 import { GraphQLError } from 'graphql'
 const StripeService = require('../../services/StripeService')
+const { normalizeLocaleToFull } = require('../../../lib/localeHelpers')
 
 /* global ContentAccess, GroupMembership, User, Group, Responsibility, Track, StripeProduct, GroupRole, Frontend, StripeAccount */
 
@@ -222,7 +223,7 @@ module.exports = {
         // Add expiration date if provided
         if (expiresAt) {
           const expiresAtDate = new Date(expiresAt)
-          emailData.expires_at = expiresAtDate.toLocaleDateString(userLocale === 'es' ? 'es-ES' : 'en-US', {
+          emailData.expires_at = expiresAtDate.toLocaleDateString(normalizeLocaleToFull(userLocale), {
             year: 'numeric',
             month: 'long',
             day: 'numeric'
@@ -605,7 +606,7 @@ module.exports = {
           const offeringName = product?.get('name') || 'Paid access'
           const refundCurrency = (refund.currency || access.get('currency') || 'usd').toUpperCase()
           const refundAmountFormatted = formatCurrencyFromMinorUnits(refund.amount, refundCurrency)
-          const refundDate = new Date().toLocaleDateString('en-US', {
+          const refundDate = new Date().toLocaleDateString(normalizeLocaleToFull(refundedUser.getLocale()), {
             year: 'numeric',
             month: 'long',
             day: 'numeric'

@@ -1,5 +1,5 @@
 import { includes, every } from 'lodash/fp'
-import React, { useEffect } from 'react'
+import React, { useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { useLocation } from 'react-router-dom'
@@ -7,18 +7,12 @@ import { createSelector } from 'reselect'
 import Tooltip from 'components/Tooltip'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from 'components/ui/select'
-import InfoButton from 'components/ui/info'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
+import { GROUP_TYPES } from 'store/models/Group'
 import getMe from 'store/selectors/getMe'
 import getMyMemberships from 'store/selectors/getMyMemberships'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
+import GroupMembershipNotificationSettings from './GroupMembershipNotificationSettings'
 import MembershipSettingsRow from './MembershipSettingRow'
 import SettingsToggles from './SettingToggles'
 
@@ -62,6 +56,48 @@ const getAllGroupsSettings = createSelector(
   })
 )
 
+/** True when this membership is a space (child of another group). */
+function isSpaceMembership (membership) {
+  return membership.group?.type === GROUP_TYPES.space
+}
+
+/**
+ * Split memberships into top-level groups and spaces nested under their parent.
+ * Spaces whose parent is not in the list are shown as top-level rows.
+ */
+function nestSpaceMemberships (memberships) {
+  const parentMemberships = []
+  const spacesByParentId = {}
+  const orphanSpaceMemberships = []
+
+  for (const membership of memberships) {
+    if (!isSpaceMembership(membership)) {
+      parentMemberships.push(membership)
+      continue
+    }
+    const parentId = membership.group?.parentId
+    if (parentId == null) {
+      orphanSpaceMemberships.push(membership)
+      continue
+    }
+    const key = String(parentId)
+    if (!spacesByParentId[key]) spacesByParentId[key] = []
+    spacesByParentId[key].push(membership)
+  }
+
+  const parentIds = new Set(parentMemberships.map(m => String(m.group.id)))
+  for (const [parentId, spaces] of Object.entries(spacesByParentId)) {
+    if (!parentIds.has(parentId)) {
+      orphanSpaceMemberships.push(...spaces)
+      delete spacesByParentId[parentId]
+    } else {
+      spaces.sort((a, b) => a.group.name.localeCompare(b.group.name))
+    }
+  }
+
+  return { parentMemberships, spacesByParentId, orphanSpaceMemberships }
+}
+
 function NotificationSettingsTab ({
   currentUser,
   memberships
@@ -74,6 +110,11 @@ function NotificationSettingsTab ({
 
   // Get a group row to jump to from the query params
   const jumpToGroupId = getQuerystringParam('group', location)
+
+  const { parentMemberships, spacesByParentId, orphanSpaceMemberships } = useMemo(
+    () => nestSpaceMemberships(memberships),
+    [memberships]
+  )
 
   const updateUserSetting = settingKey => changes => {
     const currentSettings = getCurrentSettings(me, settingKey)
@@ -103,6 +144,10 @@ function NotificationSettingsTab ({
     }
   }
 
+  const updateSpaceMembershipSettings = (groupId, changes) => {
+    dispatch(updateMembershipSettings(groupId, changes))
+  }
+
   useEffect(() => {
     setTimeout(() => {
       const groupSection = document.getElementById(`group-${jumpToGroupId}`)
@@ -123,6 +168,8 @@ function NotificationSettingsTab ({
   }, [setHeaderDetails])
 
   if (!currentUser) return <Loading />
+
+  const hasGroupRows = parentMemberships.length > 0 || orphanSpaceMemberships.length > 0
 
   return (
     <div>
@@ -146,62 +193,41 @@ function NotificationSettingsTab ({
         </div>
         <div className='text-sm text-foreground/50 mb-2 mt-4'>{t('Default group notifications')}</div>
         <div className='bg-card/100 rounded-lg p-4 shadow-lg mb-4'>
-          <div>
-            <div className='flex items-center text-sm text-foreground/80 mb-2'>
-              <span>{t('These settings apply to all groups. Toggling related group settings will turn off these default settings.')}</span>
-            </div>
-            <div className='border-b-2 border-foreground/20 mb-2 py-2'>
-              <SettingsToggles
-                label={<span className='flex items-center'>Receive group notifications by <InfoButton content='This controls how you receive notifications for all your groups.' /></span>}
-                settings={allGroupsSettings}
-                update={updateAllGroupsAlert}
-              />
-            </div>
-
-            <div className='flex items-center justify-between mt-2 border-b-2 border-foreground/20 pb-2'>
-              <span>{t('Send new post notifications in this group for')}</span>
-              <Select
-                value={allGroupsSettings.postNotifications}
-                onValueChange={value => updateAllGroupsAlert({ postNotifications: value })}
-              >
-                <SelectTrigger className='inline-flex w-auto'>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value='none'>{t('No Posts')}</SelectItem>
-                  <SelectItem value='important'>{t('Important Posts (Announcements & Mentions)')}</SelectItem>
-                  <SelectItem value='all'>{t('Every Post')}</SelectItem>
-                  <SelectItem value='mixed' disabled>{t('~ Mixed ~')}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className='flex items-center justify-between mt-2'>
-              <span className=''>{t('Send me an email digest for this group')}</span>
-              <Select
-                value={allGroupsSettings.digestFrequency}
-                onValueChange={value => updateAllGroupsAlert({ digestFrequency: value })}
-              >
-                <SelectTrigger className='inline-flex w-auto'>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value='daily'>{t('Daily')}</SelectItem>
-                  <SelectItem value='weekly'>{t('Weekly')}</SelectItem>
-                  <SelectItem value='never'>{t('Never')}</SelectItem>
-                  <SelectItem value='mixed' disabled>{t('~ Mixed ~')}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className='flex items-center text-sm text-foreground/80 mb-2'>
+            <span>{t('These settings apply to all groups. Toggling related group settings will turn off these default settings.')}</span>
           </div>
+          <GroupMembershipNotificationSettings
+            id='all-groups'
+            settings={allGroupsSettings}
+            update={updateAllGroupsAlert}
+            showMixed
+            receiveByInfo={t('This controls how you receive notifications for all your groups.')}
+          />
         </div>
-        {memberships.length > 0 && (
+        {hasGroupRows && (
           <div>
             <div className='text-sm text-foreground/50 mb-2'>{t('Group-specific notifications')}</div>
-            {memberships.map(membership => (
+            {parentMemberships.map(membership => {
+              const spaceMemberships = spacesByParentId[String(membership.group.id)] || []
+              const open = String(membership.group.id) === String(jumpToGroupId) ||
+                spaceMemberships.some(s => String(s.group.id) === String(jumpToGroupId))
+              return (
+                <div key={membership.id}>
+                  <MembershipSettingsRow
+                    membership={membership}
+                    open={open}
+                    updateMembershipSettings={changes => dispatch(updateMembershipSettings(membership.group.id, changes))}
+                    spaceMemberships={spaceMemberships}
+                    updateSpaceMembershipSettings={updateSpaceMembershipSettings}
+                  />
+                </div>
+              )
+            })}
+            {orphanSpaceMemberships.map(membership => (
               <div key={membership.id}>
                 <MembershipSettingsRow
                   membership={membership}
-                  open={membership.group.id === jumpToGroupId}
+                  open={String(membership.group.id) === String(jumpToGroupId)}
                   updateMembershipSettings={changes => dispatch(updateMembershipSettings(membership.group.id, changes))}
                 />
               </div>

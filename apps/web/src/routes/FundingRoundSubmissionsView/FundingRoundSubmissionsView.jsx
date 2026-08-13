@@ -20,7 +20,7 @@ import {
   doPhaseTransition,
   needsPhaseTransition
 } from 'routes/FundingRounds/FundingRounds.store'
-import { RESP_MANAGE_SPACES } from 'store/constants'
+import { RESP_ADMINISTRATION } from 'store/constants'
 import orm from 'store/models'
 import presentPost from 'store/presenters/presentPost'
 import getFundingRound from 'store/selectors/getFundingRound'
@@ -70,7 +70,7 @@ export default function FundingRoundSubmissionsView () {
   })
   const roundId = round?.id || group?.fundingRound?.id
   const roleGroupId = group?.parentId || parentGroup?.id || group?.id
-  const canManageRound = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_MANAGE_SPACES, groupId: roleGroupId }))
+  const canManageRound = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADMINISTRATION, groupId: roleGroupId }))
   const isLoadingRound = useSelector(state => isPendingFor(FETCH_FUNDING_ROUND, state))
   const isLoadingSubmissions = useSelector(state => isPendingFor(FETCH_FUNDING_ROUND_SUBMISSIONS, state))
   const [localVoteAmounts, setLocalVoteAmounts] = React.useState({})

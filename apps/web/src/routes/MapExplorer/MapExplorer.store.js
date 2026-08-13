@@ -177,9 +177,13 @@ const groupsQuery = `query (
       avatarUrl
       description
       geoShape
+      homeRoute
+      icon
       memberCount
       name
+      parentId
       slug
+      type
       locationObject {
         id
         addressNumber
@@ -198,6 +202,10 @@ const groupsQuery = `query (
         locality
         neighborhood
         region
+      }
+      parentGroup {
+        id
+        slug
       }
     }
   }

@@ -61,7 +61,7 @@ describe('RoleList', () => {
           data: {
             group: {
               id: 1,
-              members: { items: [] }
+              members: { items: [], hasMore: false }
             },
             responsibilities: []
           }

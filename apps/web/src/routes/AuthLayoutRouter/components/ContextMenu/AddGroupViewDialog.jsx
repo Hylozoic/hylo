@@ -65,8 +65,9 @@ function descriptionForViewType (type, t) {
 
 /** Modal for picking and creating a new group view.
  * Pass `onAdd` to stage the view locally instead of dispatching a mutation — used when
- * building up a not-yet-created group/space (e.g. AddSpaceDialog's Included Views editor). */
-export default function AddGroupViewDialog ({ group, groupViews, acceptedPostTypes, onClose, onAdd }) {
+ * building up a not-yet-created group/space (e.g. AddSpaceDialog's Included Views editor).
+ * Pass `addToMenu={false}` when adding from More Views (creates off-menu; hides text/separator). */
+export default function AddGroupViewDialog ({ group, groupViews, acceptedPostTypes, onClose, onAdd, addToMenu = true }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const [selectedType, setSelectedType] = useState(null)
@@ -114,8 +115,11 @@ export default function AddGroupViewDialog ({ group, groupViews, acceptedPostTyp
   }, [acceptedPostTypes])
 
   const addableViewTypes = useMemo(
-    () => ADDABLE_GROUP_VIEW_TYPES.filter(type => isTypeAcceptable(type) && !isTypeInMenu(type)),
-    [isTypeAcceptable, isTypeInMenu]
+    () => ADDABLE_GROUP_VIEW_TYPES.filter(type => {
+      if (!addToMenu && (type === 'text' || type === 'separator')) return false
+      return isTypeAcceptable(type) && !isTypeInMenu(type)
+    }),
+    [addToMenu, isTypeAcceptable, isTypeInMenu]
   )
 
   const resetTypeFields = useCallback(() => {
@@ -149,6 +153,13 @@ export default function AddGroupViewDialog ({ group, groupViews, acceptedPostTyp
     return true
   }, [selectedType, linkName, linkUrl, textContent])
 
+  /** Placement extras: menu append vs off-menu (More Views). */
+  const placementFields = useMemo(() => (
+    addToMenu
+      ? { addToEnd: true }
+      : { hidden: true }
+  ), [addToMenu])
+
   /** Create a GroupView (or stage via onAdd) and close the dialog. */
   const createView = useCallback(async (viewData) => {
     if (onAdd) {
@@ -161,6 +172,7 @@ export default function AddGroupViewDialog ({ group, groupViews, acceptedPostTyp
     setIsCreating(true)
     try {
       await dispatch(createGroupView({ groupId: group.id, ...viewData }))
+      // Stay in edit menu mode after creating a view (unlike spaces, which navigate in)
       onClose()
     } catch (error) {
       console.error('Failed to create group view:', error)
@@ -189,9 +201,9 @@ export default function AddGroupViewDialog ({ group, groupViews, acceptedPostTyp
       link: selectedType === 'link' ? linkUrl.trim() : null,
       icon: selectedType === 'link' ? linkIcon : null,
       pageContent: selectedType === 'text' ? textContent.trim() : null,
-      addToEnd: true
+      ...placementFields
     })
-  }, [canAdd, createView, group?.id, selectedType, linkName, linkUrl, linkIcon, textContent, onAdd])
+  }, [canAdd, createView, group?.id, selectedType, linkName, linkUrl, linkIcon, textContent, onAdd, placementFields])
 
   const handleSelectPost = useCallback((post) => {
     if (!post?.id || isCreating) return
@@ -199,9 +211,9 @@ export default function AddGroupViewDialog ({ group, groupViews, acceptedPostTyp
       type: 'post',
       name: post.title || null,
       postId: post.id,
-      addToEnd: true
+      ...placementFields
     })
-  }, [createView, isCreating])
+  }, [createView, isCreating, placementFields])
 
   const handleSelectPerson = useCallback((person) => {
     if (!person?.id || isCreating) return
@@ -209,9 +221,9 @@ export default function AddGroupViewDialog ({ group, groupViews, acceptedPostTyp
       type: 'member',
       name: person.name || null,
       userId: person.id,
-      addToEnd: true
+      ...placementFields
     })
-  }, [createView, isCreating])
+  }, [createView, isCreating, placementFields])
 
   const handleSelectGroups = useCallback((selectedGroups) => {
     if (isCreating) return
@@ -221,9 +233,9 @@ export default function AddGroupViewDialog ({ group, groupViews, acceptedPostTyp
       type: 'group',
       name: selectedGroup.name || null,
       linkedGroupId: selectedGroup.id,
-      addToEnd: true
+      ...placementFields
     })
-  }, [createView, isCreating])
+  }, [createView, isCreating, placementFields])
 
   const fetchPeopleForGroup = useCallback(async (autocomplete = '') => {
     if (!group?.id) return
@@ -377,6 +389,7 @@ export default function AddGroupViewDialog ({ group, groupViews, acceptedPostTyp
           onCancel={() => setShowCustomViewDialog(false)}
           onCreated={handleCustomViewCreated}
           onAdd={onAdd ? (viewData) => { onAdd(viewData); handleCustomViewCreated() } : undefined}
+          addToMenu={addToMenu}
         />
       )}
 
@@ -386,6 +399,7 @@ export default function AddGroupViewDialog ({ group, groupViews, acceptedPostTyp
           onCancel={() => setShowCollectionDialog(false)}
           onCreated={handleCollectionCreated}
           onAdd={onAdd ? (viewData) => { onAdd(viewData); handleCollectionCreated() } : undefined}
+          addToMenu={addToMenu}
         />
       )}
     </>
@@ -400,11 +414,11 @@ export function AddViewButton ({ onClick, className }) {
       type='button'
       onClick={onClick}
       className={cn(
-        'flex items-center gap-2 w-full text-base text-foreground border-2 border-dashed border-foreground/30 hover:border-foreground/50 rounded-md p-2 pl-2 mb-2 transition-all opacity-85 hover:opacity-100',
+        'flex items-center gap-2 w-full min-h-[34px] px-2 text-sm text-foreground border-2 border-dashed border-foreground/30 hover:border-foreground/50 rounded-md transition-all opacity-85 hover:opacity-100',
         className
       )}
     >
-      <Plus className='w-4 h-4' />
+      <Plus className='w-3.5 h-3.5' />
       <span>{t('Add View')}</span>
     </button>
   )

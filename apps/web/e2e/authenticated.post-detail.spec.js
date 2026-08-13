@@ -120,9 +120,9 @@ test.describe('Batch E: post detail & dual-column', () => {
  * Isolated `/post/:id` close: `getPostDetailCloseDestination` via ViewHeader back (no in-card X).
  *
  * Scenarios (seeded data):
- * 1. Single group + member → `/groups/e2e-public-group/stream` (post `1`, primary `e2e.user@hylo.test`).
+ * 1. Single group + member → `/groups/e2e-public-group/all` (post `1`, primary `e2e.user@hylo.test`).
  * 2. Many groups + member of none + public → `/public/stream` (post `2`, `e2e.nogroups@hylo.test`).
- * 3. Many groups + member of exactly one post group → that group’s stream (post `3`, primary user).
+ * 3. Many groups + member of exactly one post group → that group’s all view (post `3`, primary user).
  * 4. Many groups + member of several post groups → `/my/groups` (post `4`, primary user).
  */
 test.describe('post detail close navigation', () => {
@@ -136,13 +136,13 @@ test.describe('post detail close navigation', () => {
     await page.locator('header').getByRole('button').first().click()
   }
 
-  test('single group + member: /post/:id close → group stream', async ({ page }) => {
+  test('single group + member: /post/:id close → group all view', async ({ page }) => {
     await prepareMobilePage(page)
     await page.goto(`/post/${E2E_POST_ID}`)
     await waitPastRootSessionLoading(page)
     await expectSeededPostVisible(page)
     await closeIsolatedPostDetail(page)
-    await expect(page).toHaveURL(new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/stream`), navTimeout)
+    await expect(page).toHaveURL(new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/all`), navTimeout)
   })
 
   test('many groups + no memberships + public: close → /public/stream', async ({ browser }) => {
@@ -159,13 +159,13 @@ test.describe('post detail close navigation', () => {
     }
   })
 
-  test('many groups + member of one post group: close → that group stream', async ({ page }) => {
+  test('many groups + member of one post group: close → that group all view', async ({ page }) => {
     await prepareMobilePage(page)
     await page.goto(`/post/${E2E_POST_ONE_MEMBER_MULTI}`)
     await waitPastRootSessionLoading(page)
     await expect(page.getByText(/E2E One-Member Multi Post/i).first()).toBeVisible(uiTimeout)
     await closeIsolatedPostDetail(page)
-    await expect(page).toHaveURL(new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/stream`), navTimeout)
+    await expect(page).toHaveURL(new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/all`), navTimeout)
   })
 
   test('many groups + member of multiple post groups: close → /my/groups', async ({ page }) => {

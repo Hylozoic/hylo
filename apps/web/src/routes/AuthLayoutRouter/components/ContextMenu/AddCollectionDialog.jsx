@@ -35,7 +35,7 @@ function findViewOwnerGroup (parentGroup, viewId) {
 /** Modal for creating or editing a collection GroupView and its posts.
  * Pass `onAdd` to stage a new view locally instead of dispatching mutations (see AddGroupViewDialog).
  * Pass `view` to edit an existing collection. */
-export default function AddCollectionDialog ({ group, view, onCancel, onCreated, onAdd }) {
+export default function AddCollectionDialog ({ group, view, onCancel, onCreated, onAdd, addToMenu = true }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const isEditing = Boolean(view?.id)
@@ -130,7 +130,7 @@ export default function AddCollectionDialog ({ group, view, onCancel, onCreated,
       name: name.trim(),
       icon,
       postIds: posts.map(p => p.id),
-      addToEnd: true
+      ...(addToMenu ? { addToEnd: true } : { hidden: true })
     }
 
     if (onAdd && !isEditing) {
@@ -193,7 +193,7 @@ export default function AddCollectionDialog ({ group, view, onCancel, onCreated,
           type: 'collection',
           name: viewData.name,
           icon,
-          addToEnd: true
+          ...(addToMenu ? { addToEnd: true } : { hidden: true })
         }))
         const viewId = result?.payload?.data?.createGroupView?.id
         if (viewId && posts.length > 0) {
@@ -214,6 +214,7 @@ export default function AddCollectionDialog ({ group, view, onCancel, onCreated,
       setIsSaving(false)
     }
   }, [
+    addToMenu,
     canSave,
     dispatch,
     group?.id,

@@ -26,7 +26,8 @@ export const GROUP_MEMBERSHIP_ATTR_UPDATE_WHITELIST = [
   'project_role_id',
   'following',
   'settings',
-  'active'
+  'active',
+  'nav_order'
 ]
 
 // For files in the public directory, reference them with the base URL
@@ -564,12 +565,25 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   // The posts to show for a particular user viewing a group's stream or map
-  // includes the direct posts to this group + posts to child groups the user is a member of
+  // includes direct posts to this group + posts to child groups (group_relationships)
+  // and child spaces (groups.parent_id) the user is a member of
   viewPosts (userId) {
     const treeOfGroupsForMember = this.allChildGroups().query(q => {
       q.select('groups.id')
       q.join('group_memberships', 'group_memberships.group_id', 'groups.id')
       q.where('group_memberships.user_id', userId)
+    })
+
+    // Spaces link via parent_id, not group_relationships (see spaces() / spec §3.4)
+    const childSpacesForMember = Group.collection().query(q => {
+      q.select('groups.id')
+      q.join('group_memberships', 'group_memberships.group_id', 'groups.id')
+      q.where({
+        'groups.parent_id': this.id,
+        'groups.type': 'space',
+        'groups.active': true,
+        'group_memberships.user_id': userId
+      })
     })
 
     return Post.collection().query(q => {
@@ -579,7 +593,10 @@ module.exports = bookshelf.Model.extend(merge({
       q.andWhere(q2 => {
         q2.where('groups_posts.group_id', this.id)
         q2.orWhere(q3 => {
-          q3.whereIn('groups_posts.group_id', treeOfGroupsForMember.query())
+          q3.where(q4 => {
+            q4.whereIn('groups_posts.group_id', treeOfGroupsForMember.query())
+            q4.orWhereIn('groups_posts.group_id', childSpacesForMember.query())
+          })
           q3.andWhere('posts.user_id', '!=', User.AXOLOTL_ID)
         })
       })
@@ -674,8 +691,10 @@ module.exports = bookshelf.Model.extend(merge({
 
     // Increment num_members
     // XXX: num_members is updated every 10 minutes via cron, we are doing this here too for the case that someone joins a group and moderator looks immediately at member count after that
+    // Coalesce: groups created without the column set (early spaces) carried NULL,
+    // and NULL + n is NULL — the count could never self-heal through joins
     if (newUserIds.length > 0 || reactivatedUserIds.length > 0) {
-      await this.save({ num_members: this.get('num_members') + newUserIds.length + reactivatedUserIds.length }, { transacting })
+      await this.save({ num_members: (this.get('num_members') || 0) + newUserIds.length + reactivatedUserIds.length }, { transacting })
     }
 
     Queue.classMethod('Group', 'afterAddMembers', {
@@ -730,8 +749,37 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   async removeMembers (usersOrIds, { transacting } = {}) {
-    return this.updateMembers(usersOrIds, { active: false }, { transacting })
-      .then(() => this.save({ num_members: this.get('num_members') - usersOrIds.length }, { transacting }))
+    const userIds = usersOrIds.map(x => x instanceof User ? x.id : x)
+    const roleScopeId = await Group.roleScopeId(this)
+
+    await this.updateMembers(usersOrIds, { active: false, nav_order: null }, { transacting })
+
+    // Role assignments live on the role-scope group (parent for spaces). Only revoke when
+    // leaving that group — not when leaving a child space while still in the parent.
+    if (String(roleScopeId) === String(this.id)) {
+      await Promise.map(userIds, userId =>
+        GroupMembership.revokeAllGroupRoles(userId, roleScopeId, { transacting })
+      )
+      const agreementsQuery = bookshelf.knex('users_groups_agreements')
+        .whereIn('user_id', userIds)
+        .where('group_id', this.id)
+        .update({ accepted: false })
+      if (transacting) agreementsQuery.transacting(transacting)
+      await agreementsQuery
+    }
+
+    // When removed from a parent group, also deactivate memberships in child spaces.
+    if (this.get('type') !== 'space') {
+      const spaces = await this.spaces().fetch({ transacting })
+      await Promise.map(spaces.models, async (space) => {
+        const spaceMemberships = await GroupMembership.forIds(userIds, space.id, { multiple: true }).fetch({ transacting })
+        const activeSpaceUserIds = spaceMemberships.pluck('user_id')
+        if (activeSpaceUserIds.length === 0) return
+        await space.removeMembers(activeSpaceUserIds, { transacting })
+      })
+    }
+
+    return this.save({ num_members: Math.max(0, (this.get('num_members') || 0) - usersOrIds.length) }, { transacting })
   },
 
   async toMurmurationsObject () {
@@ -773,6 +821,10 @@ module.exports = bookshelf.Model.extend(merge({
       .query(q => q.whereIn('user_id', userIds)).fetch({ transacting })
 
     const pickedAttrs = pick(omitBy(attrs, isUndefined), GROUP_MEMBERSHIP_ATTR_UPDATE_WHITELIST)
+    const joinFlowReset = { joinQuestionsAnsweredAt: null, showJoinForm: true }
+    if (pickedAttrs.active === false || pickedAttrs.active === true) {
+      joinFlowReset.agreementsAcceptedAt = null
+    }
     const updatedAttribs = Object.assign(
       {},
       pickedAttrs,
@@ -780,7 +832,7 @@ module.exports = bookshelf.Model.extend(merge({
         settings: merge(
           {},
           pickedAttrs.settings || {},
-          { joinQuestionsAnsweredAt: null, showJoinForm: true }
+          joinFlowReset
         )
       } // updateAndSave will merge these with existing settings
     )
@@ -1296,7 +1348,7 @@ module.exports = bookshelf.Model.extend(merge({
       layout: 'two-column'
     }
 
-    const homeRoute = defaultSettings.homeView === 'CHAT' ? '/chat/general' : defaultSettings.homeView === 'MAP' ? '/map' : '/stream'
+    const homeRoute = defaultSettings.homeView === 'CHAT' ? '/chat/general' : defaultSettings.homeView === 'MAP' ? '/map' : '/all'
 
     // eslint-disable-next-line camelcase
     const access_code = attrs.access_code || await Group.getNewAccessCode()
@@ -1385,6 +1437,108 @@ module.exports = bookshelf.Model.extend(merge({
     }
   },
 
+  /**
+   * Permanently delete a space group row and related non-CASCADE FK rows.
+   * Archive (active = false) is handled separately via archiveSpace / deactivate.
+   */
+  async destroySpace (id, { transacting } = {}) {
+    const space = await Group.find(id, { transacting })
+    if (!space || space.get('type') !== 'space') return null
+
+    const run = async (trx) => {
+      const knex = trx || bookshelf.knex
+      const spaceId = space.id
+
+      // Detach / delete rows that block groups.id deletion.
+      // funding_rounds.group_id is NOT NULL, so delete the rounds (and dependents).
+      const fundingRoundIds = await knex('funding_rounds').where({ group_id: spaceId }).pluck('id')
+      if (fundingRoundIds.length > 0) {
+        await knex('activities').whereIn('funding_round_id', fundingRoundIds).update({ funding_round_id: null })
+        await knex('context_widgets').whereIn('view_funding_round_id', fundingRoundIds).update({ view_funding_round_id: null })
+        await knex('funding_rounds_posts').whereIn('funding_round_id', fundingRoundIds).del()
+        await knex('funding_rounds_users').whereIn('funding_round_id', fundingRoundIds).del()
+        await knex('groups').where({ id: spaceId }).update({ funding_round_id: null })
+        await knex('funding_rounds').whereIn('id', fundingRoundIds).del()
+      }
+
+      // tracks.group_id is nullable (ON DELETE SET NULL)
+      await knex('tracks').where({ group_id: spaceId }).update({ group_id: null })
+      await knex('activities').where({ other_group_id: spaceId }).update({ other_group_id: null })
+
+      const activityIds = await knex('activities').where({ group_id: spaceId }).pluck('id')
+      if (activityIds.length > 0) {
+        await knex('notifications').whereIn('activity_id', activityIds).del()
+        await knex('activities').whereIn('id', activityIds).del()
+      }
+
+      const collectionIds = await knex('collections').where({ group_id: spaceId }).pluck('id')
+      if (collectionIds.length > 0) {
+        await knex('collections_posts').whereIn('collection_id', collectionIds).del()
+        await knex('collections').whereIn('id', collectionIds).del()
+      }
+
+      await knex('content_access').where(builder => {
+        builder.where({ group_id: spaceId }).orWhere({ granted_by_group_id: spaceId })
+      }).del()
+
+      const customViewIds = await knex('custom_views').where({ group_id: spaceId }).pluck('id')
+      if (customViewIds.length > 0) {
+        await knex('custom_view_topics').whereIn('custom_view_id', customViewIds).del()
+        await knex('custom_views').whereIn('id', customViewIds).del()
+      }
+
+      await knex('drafts').where({ group_id: spaceId }).del()
+      await knex('group_extensions').where({ group_id: spaceId }).del()
+      await knex('group_invites').where({ group_id: spaceId }).del()
+      await knex('group_join_questions_answers').where({ group_id: spaceId }).del()
+      await knex('group_join_questions').where({ group_id: spaceId }).del()
+      await knex('group_relationship_invites').where(builder => {
+        builder.where({ from_group_id: spaceId }).orWhere({ to_group_id: spaceId })
+      }).del()
+      await knex('group_relationships').where(builder => {
+        builder.where({ parent_group_id: spaceId }).orWhere({ child_group_id: spaceId })
+      }).del()
+      await knex('group_to_group_join_questions').where({ group_id: spaceId }).del()
+      await knex('group_widgets').where({ group_id: spaceId }).del()
+      await knex('groups_agreements').where({ group_id: spaceId }).del()
+      await knex('groups_posts').where({ group_id: spaceId }).del()
+      await knex('groups_suggested_skills').where({ group_id: spaceId }).del()
+      await knex('groups_tags').where({ group_id: spaceId }).del()
+      await knex('groups_tracks').where({ group_id: spaceId }).del()
+      await knex('join_requests').where({ group_id: spaceId }).del()
+      await knex('tag_follows').where({ group_id: spaceId }).del()
+      await knex('users_groups_agreements').where({ group_id: spaceId }).del()
+      await knex('zapier_triggers_groups').where({ group_id: spaceId }).del()
+
+      const roleIds = await knex('groups_roles').where({ group_id: spaceId }).pluck('id')
+      if (roleIds.length > 0) {
+        await knex('group_roles_responsibilities').whereIn('group_role_id', roleIds).del()
+        await knex('group_memberships_group_roles').where({ group_id: spaceId }).del()
+        await knex('groups_roles').whereIn('id', roleIds).del()
+      } else {
+        await knex('group_memberships_group_roles').where({ group_id: spaceId }).del()
+      }
+      await knex('group_memberships').where({ group_id: spaceId }).del()
+
+      const responsibilityIds = await knex('responsibilities').where({ group_id: spaceId }).pluck('id')
+      if (responsibilityIds.length > 0) {
+        await knex('group_roles_responsibilities').whereIn('responsibility_id', responsibilityIds).del()
+        await knex('responsibilities').whereIn('id', responsibilityIds).del()
+      }
+
+      // Explicit even though CASCADE — menu rows on the parent and space views.
+      await knex('group_views').where(builder => {
+        builder.where({ group_id: spaceId }).orWhere({ linked_group_id: spaceId })
+      }).del()
+
+      await knex('groups').where({ id: spaceId }).del()
+      return true
+    }
+
+    if (transacting) return run(transacting)
+    return bookshelf.transaction(run)
+  },
+
   // Maps accepted post types to the GroupView type shown for them, mirroring the
   // grouping used by the legacy ContextWidget menu (offer + request share one view)
   ACCEPTED_POST_TYPE_TO_VIEW_TYPE: POST_TYPE_TO_TYPED_VIEW,
@@ -1461,7 +1615,7 @@ module.exports = bookshelf.Model.extend(merge({
   /**
    * Check if a user has a responsibility that grants full access to group content
    * Full-access responsibilities: Administration, Manage Content
-   * Limited responsibilities (no content access): Manage Spaces, Add Members, etc.
+   * Limited responsibilities (no content access): Add Members, etc.
    *
    * @param {String|Number} userId - User ID to check
    * @param {String|Number} groupId - Group ID to check

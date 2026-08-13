@@ -68,6 +68,8 @@ export const ACTION_FUNDING_ROUND_VOTING_CLOSING = 'fundingRoundVotingClosing'
 export const ACTION_FUNDING_ROUND_NEW_SUBMISSION = 'fundingRoundNewSubmission'
 export const ACTION_FUNDING_ROUND_PHASE_TRANSITION = 'fundingRoundPhaseTransition'
 export const ACTION_FUNDING_ROUND_REMINDER = 'fundingRoundReminder'
+export const ACTION_POST_FULFILLED = 'postFulfilled'
+export const ACTION_POST_UNFULFILLED = 'postUnfulfilled'
 
 export default function NotificationPresenter (notification) {
   return {
@@ -140,6 +142,10 @@ export function titleForNotification (notification, t) {
     case ACTION_FUNDING_ROUND_REMINDER: {
       return t('Funding Round <strong>{{fundingRoundName}}</strong> reminder', { fundingRoundName: fundingRound?.title })
     }
+    case ACTION_POST_FULFILLED:
+      return t('<strong>{{name}}</strong> closed your post', { name })
+    case ACTION_POST_UNFULFILLED:
+      return t('<strong>{{name}}</strong> reopened your post', { name })
     default:
       return null
   }
@@ -219,6 +225,9 @@ export function bodyForNotification (notification, t) {
       }
       break
     }
+    case ACTION_POST_FULFILLED:
+    case ACTION_POST_UNFULFILLED:
+      return t('"<strong>{{postSummary}}</strong>"', { postSummary })
     default:
       return null
   }
@@ -283,6 +292,9 @@ export function urlForNotification ({ id, activity: { action, actor, post, comme
       const tab = action === ACTION_FUNDING_ROUND_PHASE_TRANSITION ? undefined : 'funding-round-submissions'
       return fundingRoundUrl(fundingRound.id, { groupSlug: parentSlug, space, tab })
     }
+    case ACTION_POST_FULFILLED:
+    case ACTION_POST_UNFULFILLED:
+      return primaryPostUrl(post, { groupSlug, homeRoute })
   }
 }
 

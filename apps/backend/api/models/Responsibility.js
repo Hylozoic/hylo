@@ -3,7 +3,6 @@ const RESP_ADMINISTRATION = 'Administration'
 const RESP_ADD_MEMBERS = 'Add Members'
 const RESP_REMOVE_MEMBERS = 'Remove Members'
 const RESP_MANAGE_CONTENT = 'Manage Content'
-const RESP_MANAGE_SPACES = 'Manage Spaces'
 
 module.exports = bookshelf.Model.extend({
   tableName: 'responsibilities',
@@ -23,20 +22,39 @@ module.exports = bookshelf.Model.extend({
     RESP_ADD_MEMBERS,
     RESP_ADMINISTRATION,
     RESP_MANAGE_CONTENT,
-    RESP_REMOVE_MEMBERS,
-    RESP_MANAGE_SPACES
+    RESP_REMOVE_MEMBERS
   },
 
   // Users with these responsibilities we show to users in the sidebar of the group
-  IMPORTANT_RESPONSIBILITIES: [RESP_ADMINISTRATION, RESP_REMOVE_MEMBERS, RESP_MANAGE_CONTENT, RESP_MANAGE_SPACES],
+  IMPORTANT_RESPONSIBILITIES: [RESP_ADMINISTRATION, RESP_REMOVE_MEMBERS, RESP_MANAGE_CONTENT],
 
   fetchAll: function ({ groupId = 0, groupRoleId }) {
+    // Platform responsibilities in a fixed order (Administration first); custom after, by title.
+    const orderByPlatformFirst = (query) => query.orderByRaw(`
+      CASE type
+        WHEN 'system' THEN 0
+        ELSE 1
+      END,
+      CASE title
+        WHEN ? THEN 0
+        WHEN ? THEN 1
+        WHEN ? THEN 2
+        WHEN ? THEN 3
+        ELSE 4
+      END,
+      title ASC
+    `, [RESP_ADMINISTRATION, RESP_ADD_MEMBERS, RESP_REMOVE_MEMBERS, RESP_MANAGE_CONTENT])
+
     if (groupRoleId) {
-      return bookshelf.knex('responsibilities')
-        .join('group_roles_responsibilities', 'responsibilities.id', 'group_roles_responsibilities.responsibility_id')
-        .where('group_roles_responsibilities.group_role_id', groupRoleId)
+      return orderByPlatformFirst(
+        bookshelf.knex('responsibilities')
+          .join('group_roles_responsibilities', 'responsibilities.id', 'group_roles_responsibilities.responsibility_id')
+          .where('group_roles_responsibilities.group_role_id', groupRoleId)
+      )
     }
-    return bookshelf.knex('responsibilities').whereRaw('group_id is NULL or group_id = ?', groupId)
+    return orderByPlatformFirst(
+      bookshelf.knex('responsibilities').whereRaw('group_id is NULL or group_id = ?', groupId)
+    )
   },
 
   /**
@@ -118,7 +136,7 @@ module.exports = bookshelf.Model.extend({
     }, {})
 
     return Object.entries(userCounts)
-      .filter(([_, count]) => count >= 4)
+      .filter(([_, count]) => count >= 3)
       .map(([user_id]) => parseInt(user_id, 10))
   }
 })

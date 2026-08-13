@@ -34,12 +34,12 @@ import {
 } from 'components/ui/dialog'
 import LinkPreview from './LinkPreview'
 import { DateTimePicker } from 'components/ui/datetimepicker'
+import TimezoneSelect from 'components/TimezoneSelect/TimezoneSelect'
 import PublicToggle from 'components/PublicToggle'
 import AnonymousVoteToggle from './AnonymousVoteToggle/AnonymousVoteToggle'
 import SliderInput from 'components/SliderInput/SliderInput'
 import { PROJECT_CONTRIBUTIONS } from 'config/featureFlags'
 import useEventCallback from 'hooks/useEventCallback'
-import fetchAllMyGroupsChatRooms from 'store/actions/fetchAllMyGroupsChatRooms'
 import fetchAllMyGroupsSpaces from 'store/actions/fetchAllMyGroupsSpaces'
 import fetchForGroup from 'store/actions/fetchForGroup'
 import {
@@ -57,7 +57,7 @@ import {
   VOTING_METHOD_MULTI_UNRESTRICTED,
   VOTING_METHOD_SINGLE
 } from 'store/models/Post'
-import { DEFAULT_CHAT_TOPIC, GROUP_TYPES } from 'store/models/Group'
+import { GROUP_TYPES } from 'store/models/Group'
 import isPendingFor from 'store/selectors/isPendingFor'
 import getMe from 'store/selectors/getMe'
 import getPost from 'store/selectors/getPost'
@@ -150,7 +150,7 @@ const getMyAdminGroups = createSelector(
 
 function PostEditorInner ({
   context,
-  customTopicName, // When we can't determine topic from the URL. Used for funding round chat rooms
+  customTopicName, // When we can't determine topic from the URL (e.g. funding rounds)
   markAsReadTopicName = null,
   autoFocus = true,
   post: propsPost,
@@ -210,6 +210,7 @@ function PostEditorInner ({
   const viewId = getQuerystringParam('viewId', urlLocation)
 
   const postType = getQuerystringParam('newPostType', urlLocation)
+  const eventDateParam = getQuerystringParam('eventDate', urlLocation)
   // Prefer explicit newPostType (if still allowed), else top dropdown option (POST_TYPES order)
   const createPostType = (() => {
     const fallback = firstDropdownPostType(allowedPostTypes)
@@ -217,7 +218,7 @@ function PostEditorInner ({
     if (allowedPostTypes != null && !allowedPostTypes.includes(postType)) return fallback
     return postType
   })()
-  // TODO: do we still need this topic stuff with chat no longer using topics? is there a different semantic context for drafts now for chat?
+  // Optional topic from URL / caller (e.g. topic stream, funding round). Spaces/views do not load chat rooms.
   const topicName = customTopicName || (routeParams.topicName && decodeURIComponent(routeParams.topicName))
   const topic = useSelector(state => getTopicForCurrentRoute(state, topicName))
 
@@ -232,7 +233,7 @@ function PostEditorInner ({
     skip: !currentUser
   })
 
-  // Stable key used to detect context changes (navigating between chat rooms, etc.)
+  // Stable key used to detect context changes (group / post type)
   const draftContextKey = useMemo(() => {
     if (editing) return `edit:${editingPostId}`
     return `new:${currentGroup?.id || 'none'}:${createPostType || 'none'}`
@@ -253,7 +254,7 @@ function PostEditorInner ({
   }, [saveServerDraft])
 
   const draftLoadedRef = useRef(false)
-  /** True after non-chat post had title or description draft content — delete server draft when both cleared. */
+  /** True after post had title or description draft content — delete server draft when both cleared. */
   const postComposerHadBodyDraftRef = useRef(false)
   const inSessionDraftByTypeRef = useRef({})
   const pendingTypeSwitchRef = useRef(null)
@@ -261,9 +262,11 @@ function PostEditorInner ({
   const isSubmittedRef = useRef(false)
   /** Blocks duplicate create/update dispatches before Redux pending state updates. */
   const isSubmittingRef = useRef(false)
-
-  // Default topic for non-chat posts when posting to a group's general stream
-  const generalTopic = useSelector(state => !topicName ? getTopicForCurrentRoute(state, DEFAULT_CHAT_TOPIC) : null)
+  /**
+   * Latest editor HTML. Kept in a ref so typing does not write into React state on every keystroke.
+   * null means not hydrated yet — draft effect falls back to currentPost.details.
+   */
+  const detailsHtmlRef = useRef(null)
 
   const linkPreview = useSelector(state => getLinkPreview(state)) // TODO: probably not working?
   const fetchLinkPreviewPending = useSelector(state => isPendingFor(FETCH_LINK_PREVIEW, state))
@@ -307,35 +310,48 @@ function PostEditorInner ({
   const editorRef = useRef()
   const toFieldRef = useRef()
   const endTimeRef = useRef()
+  const meetingLinkInputRef = useRef()
 
   // Track the topic that was injected from the current route so we can
   // replace it when the route changes without touching user-added topics
   const routeTopicIdRef = useRef(topic?.id || null)
 
-  const initialPost = useMemo(() => ({
-    acceptContributions: false,
-    completionAction: 'button',
-    completionActionSettings: currentTrack?.actionDescriptor ? { instructions: t('postCompletionActions.button.instructions', { actionDescriptor: currentTrack?.actionDescriptor }) } : null,
-    details: '',
-    groups: currentGroup ? [currentGroup] : [],
-    isAnonymousVote: false,
-    isPublic: context === 'public',
-    isStrictProposal: false,
-    location: '',
-    locationId: null,
-    proposalOptions: [],
-    quorum: 0,
-    timezone: DateTimeHelpers.dateTimeNow(getLocaleFromLocalStorage()).zoneName,
-    title: '',
-    topics: topic
-      ? [topic]
-      : (generalTopic && postType !== 'action' ? [generalTopic] : []),
-    type: createPostType,
-    votingMethod: VOTING_METHOD_SINGLE,
-    ...(inputPost || {}),
-    startTime: typeof inputPost?.startTime === 'string' ? new Date(inputPost.startTime) : inputPost?.startTime,
-    endTime: typeof inputPost?.endTime === 'string' ? new Date(inputPost.endTime) : inputPost?.endTime
-  }), [inputPost?.id, createPostType, currentGroup, topic, generalTopic, context, postType])
+  const initialPost = useMemo(() => {
+    let prefilledEventTimes = {}
+    if (!editing && createPostType === 'event' && eventDateParam && !inputPost?.startTime) {
+      try {
+        const parsed = DateTimeHelpers.toDateTime(eventDateParam, { locale: getLocaleFromLocalStorage() })
+        if (parsed.isValid) {
+          prefilledEventTimes = DateTimeHelpers.defaultEventTimesForDate(eventDateParam, getLocaleFromLocalStorage())
+        }
+      } catch {}
+    }
+
+    return {
+      acceptContributions: false,
+      completionAction: 'button',
+      completionActionSettings: currentTrack?.actionDescriptor ? { instructions: t('postCompletionActions.button.instructions', { actionDescriptor: currentTrack?.actionDescriptor }) } : null,
+      details: '',
+      groups: currentGroup ? [currentGroup] : [],
+      isAnonymousVote: false,
+      isPublic: context === 'public',
+      isStrictProposal: false,
+      location: '',
+      locationId: null,
+      meetingLink: '',
+      proposalOptions: [],
+      quorum: 0,
+      timezone: DateTimeHelpers.getCurrentTimezone(),
+      title: '',
+      topics: topic ? [topic] : [],
+      type: createPostType,
+      votingMethod: VOTING_METHOD_SINGLE,
+      ...(inputPost || {}),
+      ...prefilledEventTimes,
+      startTime: typeof inputPost?.startTime === 'string' ? new Date(inputPost.startTime) : (inputPost?.startTime || prefilledEventTimes.startTime),
+      endTime: typeof inputPost?.endTime === 'string' ? new Date(inputPost.endTime) : (inputPost?.endTime || prefilledEventTimes.endTime)
+    }
+  }, [inputPost?.id, createPostType, currentGroup, topic, context, editing, eventDateParam, inputPost?.startTime, inputPost?.endTime, currentTrack?.actionDescriptor, t])
 
   const [currentPost, setCurrentPostState] = useState(initialPost)
   const [editorInitialContent, setEditorInitialContent] = useState(initialPost.details || '')
@@ -388,6 +404,14 @@ function PostEditorInner ({
     }
   }, [])
 
+  // Debounced write of editor HTML into React state. Typing stays in TipTap + detailsHtmlRef;
+  // this only syncs for draft persistence (avoids re-rendering the whole form per keystroke).
+  const syncDetailsToCurrentPost = useRef(
+    debounce(400, (html) => {
+      setCurrentPostState(prev => (prev.details === html ? prev : { ...prev, details: html }))
+    })
+  ).current
+
   const applyPostToEditor = useCallback((nextPost) => {
     let post = nextPost
     if (!editing && currentGroup?.id) {
@@ -396,13 +420,15 @@ function PostEditorInner ({
         post = { ...post, groups: [currentGroup, ...(post.groups || [])] }
       }
     }
+    syncDetailsToCurrentPost.cancel()
     setCurrentPostState(post)
     const details = post.details || ''
+    detailsHtmlRef.current = details
     setHasDescription(hasDraftContent(details))
     setEditorInitialContent(details)
     editorRef.current?.setContent(details)
     draftLoadedRef.current = true
-  }, [currentGroup, editing])
+  }, [currentGroup, editing, syncDetailsToCurrentPost])
 
   /**
    * Filters the available group options to find only those groups
@@ -417,10 +443,12 @@ function PostEditorInner ({
 
   useEffect(() => {
     draftLoadedRef.current = false
+    detailsHtmlRef.current = initialPost.details || ''
     postComposerHadBodyDraftRef.current = false
-  }, [draftContextKey])
+  }, [draftContextKey, initialPost.details])
 
   useEffect(() => {
+    if (isSubmittedRef.current) return
     if (!serverDraftLoaded || draftLoadedRef.current) return
     const activeType = createPostType
     const serverDraft = loadDraftJSON()
@@ -458,6 +486,12 @@ function PostEditorInner ({
     })
   }, [currentGroup?.id, editing, setCurrentPost])
 
+  // Flush pending details into currentPost on unmount so drafts are not truncated.
+  useEffect(() => () => {
+    syncDetailsToCurrentPost.flush?.()
+    syncDetailsToCurrentPost.cancel()
+  }, [syncDetailsToCurrentPost])
+
   // Persist structural updates (title, metadata, etc.) whenever the draft changes after initial hydration.
   // When the user edits before the server responds, mark draftLoadedRef = true immediately so the
   // server load effect cannot overwrite their changes when the response eventually arrives.
@@ -468,8 +502,14 @@ function PostEditorInner ({
   useEffect(() => {
     if (isSubmittedRef.current) return
     if (typeSwitchDialog) return
+    // Prefer live editor HTML so title/metadata draft saves include latest typing
+    // even before the debounced details → currentPost sync lands.
+    const details = detailsHtmlRef.current ?? (currentPost.details || '')
+    const postForDraft = details === currentPost.details
+      ? currentPost
+      : { ...currentPost, details }
 
-    const payload = buildPostDraftPayload(currentPost)
+    const payload = buildPostDraftPayload(postForDraft)
 
     if (!hasPostDraftPayloadContent(payload)) {
       saveServerDraft(JSON.stringify(payload))
@@ -626,12 +666,11 @@ function PostEditorInner ({
     }
   }, [])
 
-  // Fetch chat rooms + membership spaces so the To field has destinations from every group
+  // Fetch membership spaces so the To field has destinations from every group
   const hasFetchedToFieldDataRef = useRef(false)
   useEffect(() => {
     if (hasFetchedToFieldDataRef.current) return
     hasFetchedToFieldDataRef.current = true
-    dispatch(fetchAllMyGroupsChatRooms())
     Promise.resolve(dispatch(fetchAllMyGroupsSpaces())).finally(() => {
       setMembershipSpacesTick(tick => tick + 1)
     })
@@ -658,7 +697,7 @@ function PostEditorInner ({
         return { ...prev, topics: [topic] }
       }
 
-      // If route topic was removed (navigated away from chatroom), clear route topic reference
+      // If route topic was removed, clear route topic reference
       if (!topic?.id && routeTopicIdRef.current) {
         const priorTopicId = routeTopicIdRef.current
         routeTopicIdRef.current = null
@@ -683,47 +722,19 @@ function PostEditorInner ({
     setCurrentPost(prev => (prev.sendAnnouncement === announcementSelected ? prev : { ...prev, sendAnnouncement: announcementSelected }))
   }, [announcementSelected, setCurrentPost])
 
-  // Auto-add #general topic when groups are selected for non-chat posts
-  useEffect(() => {
-    if (!selectedGroups || selectedGroups.length === 0) return
-
-    // If we're on a topic stream, the route topic useEffect already handles adding it
-    if (topic?.id) return
-
-    // Action posts should never appear in chat rooms
-    if (postType === 'action') return
-
-    // Find the general topic from any selected group's chatRooms
-    let generalTopic = null
-    for (const group of selectedGroups) {
-      const chatRooms = group.chatRooms?.toModelArray?.() || group.chatRooms || []
-      const generalChatRoom = chatRooms.find(cr => cr?.groupTopic?.topic?.name === DEFAULT_CHAT_TOPIC)
-      if (generalChatRoom?.groupTopic?.topic) {
-        generalTopic = generalChatRoom.groupTopic.topic
-        break
-      }
-    }
-
-    if (!generalTopic) return
-
-    setCurrentPost(prev => {
-      const alreadyHasGeneral = prev.topics?.some(t => t?.name === DEFAULT_CHAT_TOPIC)
-      if (alreadyHasGeneral) return prev
-
-      return { ...prev, topics: [...(prev.topics || []), generalTopic] }
-    })
-  }, [selectedGroups, topic?.id, postType])
-
   /**
    * Resets the editor to its initial state
    * Clears form fields, attachments, and link previews
    */
   const reset = useCallback(() => {
-    editorRef.current?.setContent(initialPost.details)
-    setHasDescription(initialPost.details?.length > 0)
+    syncDetailsToCurrentPost.cancel()
+    const details = initialPost.details || ''
+    detailsHtmlRef.current = details
+    editorRef.current?.setContent(details)
+    setHasDescription(details.length > 0)
     dispatch(clearLinkPreview())
     setCurrentPost(() => ({ ...initialPost, linkPreview: null, linkPreviewFeatured: false }))
-    setEditorInitialContent(initialPost.details || '')
+    setEditorInitialContent(details)
     dispatch(clearAttachments('post', 'new', 'image'))
     dispatch(clearAttachments('post', 'new', 'file'))
     setShowLocation(POST_TYPES_SHOW_LOCATION_BY_DEFAULT.includes(initialPost.type) || selectedLocation)
@@ -739,27 +750,37 @@ function PostEditorInner ({
     } else {
       toFieldRef?.current?.reset()
     }
-  }, [clearDraft, initialPost, autoFocus, selectedLocation, setCurrentPost])
+  }, [clearDraft, initialPost, autoFocus, selectedLocation, setCurrentPost, syncDetailsToCurrentPost])
 
   /**
    * Calculates an end time based on start time, preserving duration if both times exist
    * @param {Date} startTime - The new start time
    * @returns {Date} - The calculated end time
    */
-  const calcEndTime = useCallback((startTime) => {
+  const getPostTimezone = useCallback(() => {
+    return currentPost.timezone || DateTimeHelpers.getCurrentTimezone()
+  }, [currentPost.timezone])
+
+  const calcEndTime = useCallback((startInstant) => {
+    const tz = getPostTimezone()
     let msDiff = 3600000 // ms in one hour
     if (currentPost.startTime && currentPost.endTime) {
-      const start = DateTimeHelpers.toDateTime(currentPost.startTime, { locale: getLocaleFromLocalStorage() })
-      const end = DateTimeHelpers.toDateTime(currentPost.endTime, { locale: getLocaleFromLocalStorage() })
-      msDiff = end.diff(start)
+      const start = DateTimeHelpers.toDateTime(currentPost.startTime, { timezone: tz })
+      const end = DateTimeHelpers.toDateTime(currentPost.endTime, { timezone: tz })
+      msDiff = end.diff(start).milliseconds
     }
-    return DateTimeHelpers.toDateTime(startTime, { locale: getLocaleFromLocalStorage() }).plus({ milliseconds: msDiff }).toJSDate()
-  }, [currentPost.startTime, currentPost.endTime])
+    return DateTimeHelpers.toDateTime(startInstant, { timezone: tz }).plus({ milliseconds: msDiff }).toJSDate()
+  }, [currentPost.startTime, currentPost.endTime, getPostTimezone])
 
   const handlePostTypeSelection = useCallback((type) => {
     if (type === currentPost.type) return
 
-    const currentPayload = buildPostDraftPayload(currentPost)
+    syncDetailsToCurrentPost.flush?.()
+    const postWithDetails = {
+      ...currentPost,
+      details: detailsHtmlRef.current ?? currentPost.details
+    }
+    const currentPayload = buildPostDraftPayload(postWithDetails)
     inSessionDraftByTypeRef.current[currentPost.type] = currentPayload
     pendingTypeSwitchRef.current = {
       fromType: currentPost.type,
@@ -778,11 +799,12 @@ function PostEditorInner ({
     setCurrentPost(prev => ({
       ...prev,
       type,
+      details: postWithDetails.details,
       // Drop destinations that do not accept the newly selected post type
       groups: (prev.groups || []).filter(g => groupAcceptsPostType(g, type))
     }))
     setTimeout(() => { titleInputRef.current && titleInputRef.current.focus() }, 100)
-  }, [currentPost, navigate, setCurrentPost, urlLocation])
+  }, [currentPost, navigate, setCurrentPost, syncDetailsToCurrentPost, urlLocation])
 
   const handleKeepCurrentTypeContent = useCallback(() => {
     if (typeSwitchDialog?.targetType && typeSwitchDialog?.carriedPost) {
@@ -808,11 +830,22 @@ function PostEditorInner ({
     setCurrentPost(prev => (title === prev.title ? prev : { ...prev, title }))
   }, [setCurrentPost])
 
+  /**
+   * TipTap onUpdate handler. Avoid putting full HTML into React state on every keystroke —
+   * that re-renders the entire PostEditor and causes typing lag / out-of-order characters
+   * as content grows. Keep HTML in a ref; only flip hasDescription when emptiness changes;
+   * debounce syncing details into currentPost for draft persistence.
+   */
   const handleDetailsChange = useCallback((html) => {
-    const detailsText = editorRef.current?.getText?.() || ''
-    setHasDescription(detailsText.length > 0)
-    setCurrentPost(prev => ({ ...prev, details: html }))
-  }, [setCurrentPost])
+    detailsHtmlRef.current = html
+    const hasContent = (editorRef.current?.getText?.() || '').length > 0
+    // queueMicrotask: TipTap updates synchronously; deferring avoids render-cycle conflicts
+    // that can surface as characters appearing out of order under load.
+    queueMicrotask(() => {
+      setHasDescription(prev => (prev === hasContent ? prev : hasContent))
+      syncDetailsToCurrentPost(html)
+    })
+  }, [syncDetailsToCurrentPost])
 
   const handleBudgetChange = useCallback((evt) => {
     const budget = evt.target.value
@@ -836,20 +869,35 @@ function PostEditorInner ({
     setCurrentPost(prev => ({ ...prev, acceptContributions: !prev.acceptContributions }))
   }, [setCurrentPost])
 
-  const handleStartTimeChange = (startTime) => {
-    // force endTime to track startTime
+  const handleStartTimeChange = (pickerStart) => {
+    const tz = getPostTimezone()
+    const startTime = DateTimeHelpers.fromPickerDate(pickerStart, tz)
     const endTime = calcEndTime(startTime)
     validateTimeChange(startTime, endTime)
     setCurrentPost(prev => ({ ...prev, startTime, endTime }))
-    endTimeRef.current.setValue(endTime)
+    endTimeRef.current?.setValue(DateTimeHelpers.toPickerDate(endTime, tz))
   }
 
-  const handleEndTimeChange = useCallback((endTime) => {
+  const handleEndTimeChange = useCallback((pickerEnd) => {
+    const tz = getPostTimezone()
+    const endTime = DateTimeHelpers.fromPickerDate(pickerEnd, tz)
     setCurrentPost(prev => {
       validateTimeChange(prev.startTime, endTime)
       return { ...prev, endTime }
     })
-  }, [setCurrentPost, validateTimeChange])
+  }, [getPostTimezone, validateTimeChange])
+
+  const handleTimezoneChange = useCallback((newTimezone) => {
+    setCurrentPost(prev => {
+      const oldTimezone = prev.timezone || DateTimeHelpers.getCurrentTimezone()
+      return {
+        ...prev,
+        timezone: newTimezone,
+        startTime: DateTimeHelpers.preserveWallClockOnTimezoneChange(prev.startTime, oldTimezone, newTimezone),
+        endTime: DateTimeHelpers.preserveWallClockOnTimezoneChange(prev.endTime, oldTimezone, newTimezone)
+      }
+    })
+  }, [])
 
   const handleDonationsLinkChange = useCallback((evt) => {
     const donationsLink = evt.target.value
@@ -859,6 +907,11 @@ function PostEditorInner ({
   const handleProjectManagementLinkChange = useCallback((evt) => {
     const projectManagementLink = evt.target.value
     setCurrentPost(prev => ({ ...prev, projectManagementLink }))
+  }, [setCurrentPost])
+
+  const handleMeetingLinkChange = useCallback((evt) => {
+    const meetingLink = evt.target.value
+    setCurrentPost(prev => ({ ...prev, meetingLink }))
   }, [setCurrentPost])
 
   const handleLocationChange = useCallback((locationObject) => {
@@ -935,7 +988,7 @@ function PostEditorInner ({
    * Checks various conditions based on post type and sets error messages
    */
   const isValid = useMemo(() => {
-    const { type, title, groups, startTime, endTime, donationsLink, projectManagementLink, proposalOptions, budget } = currentPost
+    const { type, title, groups, startTime, endTime, donationsLink, projectManagementLink, meetingLink, proposalOptions, budget } = currentPost
 
     const errorMessages = []
 
@@ -943,6 +996,9 @@ function PostEditorInner ({
       case 'event':
         if (!endTime || !startTime || startTime >= endTime) {
           errorMessages.push(t('Valid start and end time required'))
+        }
+        if (meetingLink?.length > 0 && !sanitizeURL(meetingLink)) {
+          errorMessages.push(t('Video call link must be a valid URL'))
         }
         break
       case 'project':
@@ -975,7 +1031,7 @@ function PostEditorInner ({
     }
 
     return errorMessages.length === 0
-  }, [hasDescription, currentPost.type, currentPost.title, currentPost.groups, currentPost.startTime, currentPost.endTime, currentPost.donationsLink, currentPost.projectManagementLink, currentPost.proposalOptions, currentPost.budget, currentFundingRound?.requireBudget])
+  }, [hasDescription, currentPost.type, currentPost.title, currentPost.groups, currentPost.startTime, currentPost.endTime, currentPost.donationsLink, currentPost.projectManagementLink, currentPost.meetingLink, currentPost.proposalOptions, currentPost.budget, currentFundingRound?.requireBudget])
 
   // const handleCancel = () => {
   //   if (onCancel) {
@@ -1009,6 +1065,7 @@ function PostEditorInner ({
         linkPreview,
         linkPreviewFeatured,
         locationId,
+        meetingLink,
         members,
         projectManagementLink,
         proposalOptions,
@@ -1039,6 +1096,7 @@ function PostEditorInner ({
         postLocation,
         locationId
       })
+      const meetingLinkValue = meetingLinkInputRef.current?.value ?? meetingLink
 
       const postToSave = {
         id,
@@ -1067,6 +1125,7 @@ function PostEditorInner ({
         localId: uniqueId('post_'), // For optimistic display of the new post
         location: postLocation,
         locationId: actualLocationId,
+        meetingLink: sanitizeURL(meetingLinkValue?.trim()),
         memberIds,
         pending: true, // For optimistic display of the new post
         projectManagementLink: sanitizeURL(projectManagementLink),
@@ -1091,7 +1150,9 @@ function PostEditorInner ({
       if (onSave) onSave(postToSave)
       // Prevent any draft saves triggered by re-renders during or after the mutation.
       isSubmittedRef.current = true
-      // Cancel any in-flight debounced draft save so it cannot fire during the async mutation.
+      // Drop pending details→state sync and cancel in-flight draft save so neither
+      // fires during the async mutation. Save already reads HTML from the editor.
+      syncDetailsToCurrentPost.cancel()
       cancelPendingSave()
 
       const savedPost = await dispatch(saveFunc(postToSave))
@@ -1111,7 +1172,7 @@ function PostEditorInner ({
       isSubmittingRef.current = false
       throw error
     }
-  }, [afterSave, announcementSelected, cancelPendingSave, clearDraft, currentFundingRound?.id, currentPost, currentTrack?.id, currentUser, dispatch, fileAttachments, imageAttachments, isEditing, onSave, selectedLocation, setIsDirty, viewId])
+  }, [afterSave, announcementSelected, cancelPendingSave, clearDraft, currentFundingRound?.id, currentPost, currentTrack?.id, currentUser, dispatch, fileAttachments, imageAttachments, isEditing, onSave, selectedLocation, setIsDirty, syncDetailsToCurrentPost, viewId])
 
   /**
    * Initiates the save process with validation and confirmation checks
@@ -1191,8 +1252,20 @@ function PostEditorInner ({
   }, [currentPost, myAdminGroups])
 
   const canHaveTimes = !['discussion', 'action', 'submission'].includes(currentPost.type)
+  const eventTimezone = currentPost.timezone || DateTimeHelpers.getCurrentTimezone()
+  const startTimePickerValue = currentPost.startTime
+    ? DateTimeHelpers.toPickerDate(currentPost.startTime, eventTimezone)
+    : undefined
+  const endTimePickerValue = currentPost.endTime
+    ? DateTimeHelpers.toPickerDate(currentPost.endTime, eventTimezone)
+    : undefined
   const postLocation = currentPost.location || selectedLocation
-  const locationPrompt = currentPost.type === 'proposal' ? t('Is there a relevant location for this proposal?') : t('Where is your {{type}} located?', { type: currentPost.type })
+  const locationPrompt = currentPost.type === 'proposal'
+    ? t('Is there a relevant location for this proposal?')
+    : currentPost.type === 'event'
+      ? t('Where is the event taking place?')
+      : t('Where is your {{type}} located?', { type: currentPost.type })
+  const locationLabel = currentPost.type === 'event' ? t('Venue') : t('Location')
   const hasStripeAccount = get('hasStripeAccount', currentUser)
 
   /**
@@ -1568,29 +1641,40 @@ function PostEditorInner ({
         />
       )} */}
       {canHaveTimes && (
-        <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
-          <div className='text-xs text-foreground/50'>{currentPost.type === 'proposal' ? t('Voting window') : t('Timeframe')}</div>
-          <div className='flex items-center gap-1 sm:flex-row flex-col justify-start items-center sm:justify-center'>
-            <DateTimePicker
-              hourCycle={hourCycle}
-              granularity='minute'
-              value={currentPost.startTime}
-              placeholder={t('Select Start')}
-              onChange={handleStartTimeChange}
-              onMonthChange={() => {}}
-            />
-            <div className='text-xs text-foreground/50'>{t('to')}</div>
-            <DateTimePicker
-              ref={endTimeRef}
-              hourCycle={hourCycle}
-              granularity='minute'
-              value={currentPost.endTime}
-              placeholder={t('Select End')}
-              onChange={handleEndTimeChange}
-              onMonthChange={() => {}}
+        <>
+          <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
+            <div className='text-xs text-foreground/50'>{currentPost.type === 'proposal' ? t('Voting window') : t('Timeframe')}</div>
+            <div className='flex items-center gap-1 sm:flex-row flex-col justify-start items-center sm:justify-center'>
+              <DateTimePicker
+                hourCycle={hourCycle}
+                granularity='minute'
+                value={startTimePickerValue}
+                placeholder={t('Select Start')}
+                onChange={handleStartTimeChange}
+                onMonthChange={() => {}}
+              />
+              <div className='text-xs text-foreground/50'>{t('to')}</div>
+              <DateTimePicker
+                ref={endTimeRef}
+                hourCycle={hourCycle}
+                granularity='minute'
+                value={endTimePickerValue}
+                placeholder={t('Select End')}
+                onChange={handleEndTimeChange}
+                onMonthChange={() => {}}
+              />
+            </div>
+          </div>
+          <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
+            <div className='text-xs text-foreground/50 shrink-0'>{t('Timezone')}</div>
+            <TimezoneSelect
+              className='border-none bg-transparent'
+              value={eventTimezone}
+              onChange={handleTimezoneChange}
+              disabled={loading}
             />
           </div>
-        </div>
+        </>
       )}
       {canHaveTimes && dateError && (
         <span className='text-white bg-destructive w-full ml-[10px] pb-[2px] px-[10px] rounded-[7px]'>
@@ -1606,7 +1690,7 @@ function PostEditorInner ({
       )}
       {showLocation && (
         <div className={cn('flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2')}>
-          <div className='text-xs text-foreground/50'>{t('Location')}</div>
+          <div className='text-xs text-foreground/50'>{locationLabel}</div>
           <LocationInput
             saveLocationToDB
             inputPosition='top'
@@ -1615,6 +1699,20 @@ function PostEditorInner ({
             onChange={handleLocationChange}
             placeholder={locationPrompt}
             className='w-full outline-none border-none bg-transparent placeholder:text-foreground/50'
+          />
+        </div>
+      )}
+      {currentPost.type === 'event' && (
+        <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
+          <div className={cn('text-xs text-foreground/50 w-[100px]', { 'text-destructive': !!currentPost.meetingLink && !sanitizeURL(currentPost.meetingLink) })}>{t('Join link')}</div>
+          <input
+            type='text'
+            className='w-full outline-none border-none bg-transparent placeholder:text-foreground/50'
+            placeholder={t('Add a video call link (Zoom, Meet, Jitsi, etc.)')}
+            value={currentPost.meetingLink || ''}
+            onChange={handleMeetingLinkChange}
+            ref={meetingLinkInputRef}
+            disabled={loading}
           />
         </div>
       )}

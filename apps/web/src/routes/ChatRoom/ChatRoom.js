@@ -9,17 +9,19 @@ import { Helmet } from 'react-helmet'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
 import { useLocation, Routes, Route, useNavigate } from 'react-router-dom'
-import { VirtuosoMessageList, VirtuosoMessageListLicense, useCurrentlyRenderedData, useVirtuosoLocation, useVirtuosoMethods } from '@virtuoso.dev/message-list'
+import { VirtuosoMessageList, VirtuosoMessageListLicense, useVirtuosoLocation, useVirtuosoMethods } from '@virtuoso.dev/message-list'
 
 import { getSocket } from 'client/websockets.js'
 import { useLayoutFlags } from 'contexts/LayoutFlagsContext'
 import ChatEditor from 'components/ChatEditor'
 import Loading from 'components/Loading'
+import PeopleTyping from 'components/PeopleTyping'
 import { StreamSkeleton } from 'components/PostCard/PostCardSkeleton'
 import NoPosts from 'components/NoPosts'
 import PostDialog from 'components/PostDialog'
 import Tooltip from 'components/Tooltip'
 import Button from 'components/ui/button'
+import ChatMembersPanel from './ChatMembersPanel'
 import ChatPost from './ChatPost'
 import ChatPostNotice from './ChatPostNotice'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
@@ -42,6 +44,7 @@ import { getGroupViews } from 'store/selectors/getGroupViews'
 import { cn } from 'util/index'
 import { groupInviteUrl, groupUrl } from '@hylo/navigation'
 import { isLegacyWebView } from 'util/webView'
+import { formatLocalizedDate } from 'util/dateFormat'
 import { getLocaleFromLocalStorage } from 'util/locale'
 
 import styles from './ChatRoom.module.scss'
@@ -49,6 +52,21 @@ import styles from './ChatRoom.module.scss'
 // the maximum amount of time in minutes that can pass between messages to still
 // include them under the same avatar and timestamp
 const MAX_MINS_TO_BATCH = 5
+
+// Messages clamp to this width for readability; the drag rail at the clamp edge
+// lets people widen the stream Discord-style. The choice sticks via localStorage.
+const CHAT_WIDTH_KEY = 'hyloChatStreamWidth'
+const DEFAULT_CHAT_WIDTH = 750
+const MIN_CHAT_WIDTH = 480
+// The list's sm+ px-5 gutter — the rail only exists on viewports wide enough
+// that the below-sm gutter never applies, and dragging right stops at a
+// matching gutter's distance from the right edge.
+const CHAT_GUTTER = 20
+// Slack past the clamp edge required before the rail appears at all
+const CHAT_RAIL_SLACK = 40
+// The rail sits wholly right of the stream: its background's left edge IS the
+// stream's endpoint, with the dashed line at the rail's own centre
+const CHAT_RAIL_WIDTH = 30
 
 // IMPORTANT: Use a selector factory so multiple prop-driven queries don't thrash a single memo cache
 // Preserve the order defined by queryResults.ids and transform to presentPost
@@ -67,7 +85,7 @@ const getDisplayDay = (date) => {
     ? 'Today'
     : date.hasSame(DateTimeHelpers.dateTimeNow(getLocaleFromLocalStorage()).minus({ days: 1 }), 'day')
       ? 'Yesterday'
-      : date.toFormat('MMM dd, yyyy')
+      : formatLocalizedDate(date, { style: 'medium' })
 }
 
 /**
@@ -407,6 +425,19 @@ export default function ChatRoom (props) {
         [confirmedPost],
         ({ atBottom, scrollInProgress }) => {
           if (atBottom || scrollInProgress) {
+            // 'smooth' scrolls to the item's ESTIMATED height; on narrow screens
+            // the text wraps taller than estimated, so the animation lands shy of
+            // the bottom — half a message showing — and never re-corrects. Snap
+            // the last stretch once the real height is measured, unless the
+            // reader has meanwhile scrolled away.
+            setTimeout(() => {
+              try {
+                const location = messageListRef.current?.getScrollLocation?.()
+                if (location && location.bottomOffset < 200) {
+                  messageListRef.current?.scrollToItem({ index: 'LAST', align: 'end', behavior: 'auto' })
+                }
+              } catch (e) {}
+            }, 350)
             return 'smooth'
           } else {
             // setUnseenMessages((val) => val + 1) TODO
@@ -643,18 +674,21 @@ export default function ChatRoom (props) {
     }
   }, [chatView?.id, chatView?.lastReadPostId, group?.id])
 
+  // (post.postReactions || []): posts that entered the list optimistically or over
+  // the socket carry no reactions array, and throwing here happens AFTER the API
+  // call fired — the reaction saved but never showed until a refresh
   const handleAddReaction = useCallback((post, emojiFull) => {
-    const optimisticUpdate = { postReactions: [...post.postReactions, { emojiFull, user: { name: currentUser.name, id: currentUser.id } }] }
+    const optimisticUpdate = { postReactions: [...(post.postReactions || []), { emojiFull, user: { name: currentUser.name, id: currentUser.id } }] }
     const newPost = { ...post, ...optimisticUpdate }
     messageListRef.current?.data.map((item) => post.id === item.id || (post.localId && post.localId === item.localId) ? newPost : item)
   }, [currentUser])
 
   const handleRemoveReaction = useCallback((post, emojiFull) => {
-    const postReactions = post.postReactions.filter(reaction => {
+    const postReactions = (post.postReactions || []).filter(reaction => {
       if (reaction.emojiFull === emojiFull && reaction.user.id === currentUser.id) return false
       return true
     })
-    const newPost = { ...post, postReactions: postReactions.filter(reaction => reaction.emojiFull !== emojiFull || reaction.user.id !== currentUser.id) }
+    const newPost = { ...post, postReactions }
     messageListRef.current?.data.map((item) => post.id === item.id || (post.localId && post.localId === item.localId) ? newPost : item)
   }, [currentUser])
 
@@ -716,13 +750,115 @@ export default function ChatRoom (props) {
     })
   }, [setHeaderDetails, t])
 
+  // ── Resizable chat width ──────────────────────────────────────────────────
+  const [chatStreamWidth, setChatStreamWidth] = useState(() => {
+    const saved = parseInt(window.localStorage.getItem(CHAT_WIDTH_KEY), 10)
+    return Number.isFinite(saved) ? Math.max(saved, MIN_CHAT_WIDTH) : DEFAULT_CHAT_WIDTH
+  })
+  const [chatPaneEl, setChatPaneEl] = useState(null)
+  const [chatPaneWidth, setChatPaneWidth] = useState(0)
+  const [resizingChatWidth, setResizingChatWidth] = useState(false)
+  const chatResizeDragRef = useRef(null)
+
+  useEffect(() => {
+    if (!chatPaneEl) return
+    const observer = new ResizeObserver(entries => {
+      setChatPaneWidth(entries[0]?.contentRect?.width ?? 0)
+    })
+    observer.observe(chatPaneEl)
+    return () => observer.disconnect()
+  }, [chatPaneEl])
+
+  // Widest the stream may grow: the rail hangs fully right of the stream edge,
+  // so reserve its width (plus the pane's px-1) instead of a mirrored gutter
+  const chatAvailableWidth = Math.max(0, chatPaneWidth - CHAT_GUTTER - CHAT_RAIL_WIDTH - 4)
+  const effectiveChatWidth = chatAvailableWidth ? Math.min(chatStreamWidth, chatAvailableWidth) : chatStreamWidth
+  // No rail until the pane outgrows the clamp enough for the rail to mean something
+  const showChatWidthRail = chatAvailableWidth >= Math.min(chatStreamWidth, DEFAULT_CHAT_WIDTH) + CHAT_RAIL_SLACK
+
+  const onChatRailPointerDown = useCallback((e) => {
+    e.preventDefault()
+    e.currentTarget.setPointerCapture(e.pointerId)
+    chatResizeDragRef.current = { startX: e.clientX, startWidth: effectiveChatWidth }
+    setResizingChatWidth(true)
+  }, [effectiveChatWidth])
+
+  const onChatRailPointerMove = useCallback((e) => {
+    const drag = chatResizeDragRef.current
+    if (!drag) return
+    const next = Math.min(Math.max(drag.startWidth + e.clientX - drag.startX, MIN_CHAT_WIDTH), chatAvailableWidth)
+    setChatStreamWidth(next)
+  }, [chatAvailableWidth])
+
+  const onChatRailPointerUp = useCallback(() => {
+    if (!chatResizeDragRef.current) return
+    chatResizeDragRef.current = null
+    setResizingChatWidth(false)
+    setChatStreamWidth(width => {
+      window.localStorage.setItem(CHAT_WIDTH_KEY, String(Math.round(width)))
+      return width
+    })
+  }, [])
+
   return (
     <div className={cn('ChatRoom flex-1 min-h-0 shadow-md flex flex-col overflow-hidden items-center justify-center', { [styles.withoutNav]: withoutNav })} ref={setContainer}>
       <Helmet>
         <title>{t('Chat')} | {group?.name ? `${group.name} | ` : ''}Hylo</title>
       </Helmet>
 
-      <div id='chats' className='my-0 mx-auto h-[calc(100%-130px)] w-full flex flex-col flex-1 relative overflow-hidden px-1'>
+      <div
+        id='chats'
+        ref={setChatPaneEl}
+        className='my-0 mx-auto h-[calc(100%-130px)] w-full flex flex-col flex-1 relative overflow-hidden px-1'
+        style={{ '--chat-stream-width': `${effectiveChatWidth}px` }}
+      >
+        {/* The stream header's wash, here as a still strip: theme background fading
+            to its own colour at zero alpha, so messages scroll under a soft top edge */}
+        <div aria-hidden='true' className='absolute top-0 left-0 right-0 h-14 z-20 pointer-events-none bg-gradient-to-b from-[hsl(var(--theme-background)/0.1)] dark:from-[hsl(var(--theme-background)/0.5)] to-[hsl(var(--theme-background)/0)]' />
+        {/* Width rail on the clamp edge. The triangles stay visible as a quiet
+            hint; the dashed line and its wash only surface on hover or drag.
+            left includes the pane's px-1, which offsets content but not
+            absolutely positioned children. */}
+        {showChatWidthRail && (
+          <div
+            role='separator'
+            aria-orientation='vertical'
+            aria-label={t('Adjust chat width')}
+            className={cn(
+              'absolute top-0 bottom-0 z-20 flex flex-col items-center justify-between group touch-none select-none',
+              resizingChatWidth ? 'cursor-grabbing' : 'cursor-grab'
+            )}
+            style={{ left: 4 + CHAT_GUTTER + effectiveChatWidth, width: CHAT_RAIL_WIDTH }}
+            onPointerDown={onChatRailPointerDown}
+            onPointerMove={onChatRailPointerMove}
+            onPointerUp={onChatRailPointerUp}
+            onPointerCancel={onChatRailPointerUp}
+          >
+            <div className={cn(
+              'absolute inset-0 rounded-lg transition-colors',
+              resizingChatWidth ? 'bg-[hsl(var(--theme-background)/0.2)]' : 'group-hover:bg-[hsl(var(--theme-background)/0.2)]'
+            )}
+            />
+            <div className={cn(
+              'absolute top-[9px] bottom-[9px] left-1/2 -ml-px border-l-2 border-dashed transition-colors',
+              resizingChatWidth ? 'border-foreground/40' : 'border-transparent group-hover:border-foreground/40'
+            )}
+            />
+            <div className={cn(
+              'relative w-0 h-0 border-x-4 border-x-transparent border-t-[6px] transition-colors',
+              resizingChatWidth ? 'border-t-foreground/60' : 'border-t-foreground/30 group-hover:border-t-foreground/60'
+            )}
+            />
+            <div className={cn(
+              'relative w-0 h-0 border-x-4 border-x-transparent border-b-[6px] transition-colors',
+              resizingChatWidth ? 'border-b-foreground/60' : 'border-b-foreground/30 group-hover:border-b-foreground/60'
+            )}
+            />
+          </div>
+        )}
+        {/* Member pill + active strip + slide-in list; absolute inside this container
+            so the cover blankets the chat pane and nothing else */}
+        <ChatMembersPanel group={group} latestPost={postsForDisplay[postsForDisplay.length - 1]} />
         {initialPostToScrollTo === null || groupLoading || chatViewLoading
           ? (
             <div className='h-full w-full mt-auto overflow-x-visible flex flex-col justify-end min-h-[40vh]'>
@@ -765,7 +901,6 @@ export default function ChatRoom (props) {
                 EmptyPlaceholder={EmptyPlaceholder}
                 Footer={Footer}
                 Header={Header}
-                StickyHeader={StickyHeader}
                 StickyFooter={StickyFooter}
                 ItemContent={ItemContent}
               />
@@ -774,9 +909,13 @@ export default function ChatRoom (props) {
       </div>
 
       {/* Post chat box */}
+      {/* pt below sm gives the last message breathing room above the composer —
+          OUTSIDE the message list: padding inside its scroller skews Virtuoso's
+          atBottom check, which pinned the phone one message shy of the bottom */}
+      <PeopleTyping className='w-full px-3 sm:px-5 pt-2 sm:pt-0 text-xs text-foreground/50' />
       {/* Composer floats with margins matching the message gutter (left edge = avatar edge).
           Subtle gradient settles the pane into a darker hue beneath the input. */}
-      <div className='ChatBoxContainer w-full px-3 sm:px-5 pb-3 sm:pb-5 pt-2 overflow-y-auto bg-gradient-to-b from-transparent to-darkening/25'>
+      <div className='ChatBoxContainer w-full px-3 sm:px-5 pb-3 sm:pb-5 pt-0 overflow-y-auto bg-gradient-to-b from-transparent to-darkening/[0.05] dark:to-darkening/25'>
         {/* Drafts are scoped per chat topic so switching rooms does not leak text */}
         {group?.id && (
           <ChatEditor
@@ -821,26 +960,16 @@ const Footer = ({ context }) => {
   return context.loadingFuture ? <div className={styles.loadingContainerBottom}><Loading /></div> : null
 }
 
-const StickyHeader = ({ data, prevData, context }) => {
-  const firstItem = useCurrentlyRenderedData()[0]
-  const createdAt = firstItem?.createdAt ? DateTimeHelpers.toDateTime(firstItem.createdAt, { locale: getLocaleFromLocalStorage() }) : null
-  const displayDay = createdAt && getDisplayDay(createdAt)
-
-  if (!context.loadingPast && !context.loadingFuture && context.numPosts === 0) return null
-
-  return (
-    <div className='!absolute top-0 w-full relative py-4'>
-      <div className={cn('absolute right-0 text-sm text-foreground/50 bg-background/50 hover:bg-background/100 hover:text-foreground/100 rounded-l-[15px] px-[10px] pl-[15px] h-[30px] leading-[30px] min-w-[130px] text-center')}>
-        {displayDay}
-      </div>
-    </div>
-  )
-}
-
 const StickyFooter = ({ context }) => {
   const location = useVirtuosoLocation()
   const virtuosoMethods = useVirtuosoMethods()
-  const showJumpButton = location.bottomOffset > 200 || context.newPostCount > 0
+  // Only once the bottom sits well below the fold. A just-arrived message dips
+  // below the fold for a beat before the list auto-scrolls to it — this distance
+  // comfortably exceeds that dip, so the button cannot flash during the settle.
+  // The unread count alone no longer forces the button: near the bottom the
+  // auto-scroll is already taking you there.
+  const JUMP_VISIBLE_BELOW_FOLD_PX = 400
+  const showJumpButton = location.bottomOffset > JUMP_VISIBLE_BELOW_FOLD_PX
   const showLoadingPulse = context.loadingFuture
 
   if (!showJumpButton && !showLoadingPulse) return null
@@ -932,21 +1061,29 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
 
   return (
     <>
+      {/* Same shape as the day divider below, in the notification bubble's accent.
+          Arbitrary value for the rule: accent has no <alpha-value> placeholder, so
+          slash-opacity classes on it are silently ignored */}
       {firstUnread &&
-        <div className='w-full relative py-3 text-sm'>
-          <hr className='border-t-2 border-red-500' />
-          <span className='text-red-500 text-center w-full block'>{t('New posts')}</span>
+        <div className='w-full flex items-center my-3'>
+          <div className='text-accent text-xs font-semibold whitespace-nowrap'>{t('New posts')}</div>
+          <div className='grow ml-4 border-t border-dashed border-[hsl(var(--accent)/0.3)]' />
         </div>}
       {displayDay && (
         <div className='w-full flex items-center my-3'>
           <div className='text-foreground/40 text-xs whitespace-nowrap'>{displayDay}</div>
-          <div className='grow ml-4 border-t border-dashed border-foreground/15' />
+          <div className='grow ml-4 border-t border-dashed border-foreground/10' />
         </div>
       )}
       {post.type === 'chat'
         ? (
+          // Last message keeps a gap above the composer equal to the list's left
+          // gutter (px-3 sm:px-5). Keyed on !nextData, not numPosts — appended
+          // posts (socket / optimistic send) grow the Virtuoso list before
+          // context.numPosts catches up, which left the newest message flush
+          // against the bottom.
           <div
-            className={cn('max-w-[750px] transition-all mb-0', animationClass, { 'mb-5': index === context.numPosts - 1 })}
+            className={cn('max-w-[var(--chat-stream-width,750px)] transition-all mb-0', animationClass, { 'mb-3 sm:mb-5': !nextData })}
             style={animationStyle}
           >
             <ChatPost
@@ -963,7 +1100,7 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
           </div>)
         : (
           <div
-            className={cn('max-w-[750px] my-2', animationClass)}
+            className={cn('max-w-[var(--chat-stream-width,750px)] my-2', animationClass, { 'mb-3 sm:mb-5': !nextData })}
             style={animationStyle}
           >
             <ChatPostNotice

@@ -3,7 +3,7 @@ import postCardFieldsFragment from '@graphql/fragments/postCardFieldsFragment'
 
 // When includeChildGroupPosts is true we query for viewPosts,
 // which shows all the aggregate posts from current group and any
-// child groups the current user is also a member of. We alias as posts so
+// child groups / spaces the current user is also a member of. We alias as posts so
 // redux-orm sets up the relationship between group and posts correctly
 const groupViewPostsQueryFragment = (includeChildGroupPosts = true, { includeGroups = true, fieldsVariant } = {}) => {
   const itemFields = fieldsVariant === 'chatRoom'

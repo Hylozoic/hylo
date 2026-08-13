@@ -15,7 +15,7 @@ import { composeReducers, handleSetState } from './util'
 // generator-marker-local-store-import
 import AllTopics from 'routes/AllTopics/AllTopics.store'
 import AttachmentManager from 'components/AttachmentManager/AttachmentManager.store'
-import CreateGroup from 'components/CreateGroup/CreateGroup.store'
+import CreateGroup from 'routes/CreateGroup/CreateGroup.store'
 import CreateTopic from 'components/CreateTopic/CreateTopic.store'
 import FullPageModal from 'routes/FullPageModal/FullPageModal.store'
 import MapExplorer from 'routes/MapExplorer/MapExplorer.store'
@@ -26,6 +26,7 @@ import MemberSelector from 'components/MemberSelector/MemberSelector.store'
 import PaidContentTab from 'routes/GroupSettings/PaidContentTab/PaidContentTab.store'
 import RoleSettings from 'routes/GroupSettings/RolesSettingsTab/RolesSettingsTab.store'
 import PeopleTyping from 'components/PeopleTyping/PeopleTyping.store'
+import RoomPresence from 'routes/ChatRoom/RoomPresence.store'
 import PostEditor from 'components/PostEditor/PostEditor.store'
 import AuthLayoutRouter from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import RelatedGroups from 'routes/GroupSettings/RelatedGroupsTab/RelatedGroupsTab.store'
@@ -63,6 +64,7 @@ export const createCombinedReducers = routerReducer => combineReducers({
   PaidContentTab,
   RoleSettings,
   PeopleTyping,
+  RoomPresence,
   AuthLayoutRouter,
   PostEditor,
   RelatedGroups,

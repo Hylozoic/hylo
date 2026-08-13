@@ -17,7 +17,10 @@ export default function SocketSubscriber ({ id, type }) {
     const socket = getSocket()
 
     const subscribe = (oldHandler) => {
-      if (oldHandler) socket.off('reconnect', oldHandler)
+      if (oldHandler) {
+        socket.off('connect', oldHandler)
+        socket.off('reconnect', oldHandler)
+      }
 
       const newHandler = () => {
         const label = `SocketSubscriber(${type})`
@@ -31,6 +34,11 @@ export default function SocketSubscriber ({ id, type }) {
         })
       }
 
+      // 'connect' fires on every successful connection, including reconnections
+      // after a server restart — 'reconnect' alone never reached this socket, so
+      // rooms silently stayed unjoined until a hard refresh. Subscribing twice is
+      // harmless: joins are idempotent server-side.
+      socket.on('connect', newHandler)
       socket.on('reconnect', newHandler)
       newHandler()
 
@@ -39,6 +47,7 @@ export default function SocketSubscriber ({ id, type }) {
 
     const unsubscribe = (oldHandler) => {
       const s = getSocket()
+      s.off('connect', oldHandler)
       s.off('reconnect', oldHandler)
       s.post(socketUrl(`/noo/${type}/${id}/unsubscribe`))
     }

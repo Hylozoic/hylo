@@ -5,6 +5,7 @@ import { useSelector } from 'react-redux'
 import { Link } from 'react-router-dom'
 import { bgImageStyle } from 'util/index'
 import getMe from 'store/selectors/getMe'
+import { createGroupModalUrl } from 'routes/CreateGroup/createGroupUrl'
 
 const WelcomeExplore = () => {
   const currentUser = useSelector(getMe)
@@ -52,7 +53,7 @@ const WelcomeExplore = () => {
           </div>
         </Link>
 
-        <Link to={`/create-group?closePath=${encodeURIComponent('/public')}`}>
+        <Link to={createGroupModalUrl({ pathname: '/public' })}>
           <div className='flex items-center bg-background shadow-lg hover:shadow-xl rounded-lg p-4 mb-4 transition-all duration-300 hover:-translate-y-1 group'>
             <div
               className='min-w-[80px] min-h-[80px] mr-4 rounded-lg transition-all duration-300 shadow-lg group-hover:shadow-[0px_5px_15px_rgba(129,174,101,0.7)] bg-center bg-cover'

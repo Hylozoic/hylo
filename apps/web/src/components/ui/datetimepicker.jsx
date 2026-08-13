@@ -7,8 +7,8 @@ import Button from '@/components/ui/button'
 import { buttonVariants } from '@/components/ui/button-variants'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { getLocaleForDayPicker } from '@/components/Calendar/calendar-util'
-import { getLocaleFromLocalStorage } from 'util/locale'
+import { getHourCycle, getLocaleForDayPicker } from '@/components/Calendar/calendar-util'
+import { getDateLocale } from 'util/locale'
 import { cn } from '@/lib/utils'
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -212,7 +212,7 @@ function genYears (yearRange = 50) {
 // ---------- utils end ----------
 /**
  * Returns the nearest dialog/modal DOM node so the popover can portal into it.
- * When body scroll is locked, portaling to `document.body` lets the panel extend past the visible dialog; anchoring to this surface keeps collision detection aligned with what the user actually sees (Post dialog, ModalDialog inner, Radix dialog content).
+ * When body scroll is locked, portaling to `document.body` lets the panel extend past the visible dialog; anchoring to this surface keeps collision detection aligned with what the user actually sees (Post dialog, CreateModal, ModalDialog inner, Radix dialog content).
  */
 function getPopoverSurfaceFromTrigger (triggerEl) {
   if (!triggerEl || typeof triggerEl.closest !== 'function') {
@@ -220,16 +220,17 @@ function getPopoverSurfaceFromTrigger (triggerEl) {
   }
   return (
     triggerEl.closest('#post-dialog-content') ||
+    triggerEl.closest('#create-modal-content') ||
     triggerEl.closest('[data-testid="popup-inner"]') ||
-    triggerEl.closest('[role="dialog"]') ||
+    triggerEl.closest('[role="dialog"][data-state="open"]') ||
     undefined
   )
 }
 
-function Calendar ({ className, classNames, showOutsideDays = true, yearRange = 50, ...props }) {
+function Calendar ({ className, classNames, showOutsideDays = true, yearRange = 50, dateLocale = getDateLocale(), ...props }) {
   const MONTHS = React.useMemo(() => {
-    return genMonths(DateTimeHelpers.getLocaleAsString())
-  }, [])
+    return genMonths(dateLocale)
+  }, [dateLocale])
   const YEARS = React.useMemo(() => genYears(yearRange), [])
   const disableLeftNavigation = () => {
     const today = new Date()
@@ -483,7 +484,9 @@ const TimePicker = React.forwardRef(({ date, onChange, hourCycle = 24, granulari
   )
 })
 TimePicker.displayName = 'TimePicker'
-const DateTimePicker = React.forwardRef(({ locale = DateTimeHelpers.getLocaleAsString(), defaultPopupValue = new Date(new Date().setMinutes(0, 0, 0)), value, onChange, onMonthChange, hourCycle = 24, yearRange = 50, disabled = false, displayFormat, granularity = 'second', placeholder = 'Pick a date', className, ...props }, ref) => {
+const DateTimePicker = React.forwardRef(({ locale: localeProp, defaultPopupValue = new Date(new Date().setMinutes(0, 0, 0)), value, onChange, onMonthChange, hourCycle: hourCycleProp, yearRange = 50, disabled = false, displayFormat, granularity = 'second', placeholder = 'Pick a date', className, ...props }, ref) => {
+  const locale = localeProp ?? getDateLocale()
+  const hourCycle = hourCycleProp ?? getHourCycle()
   const [month, setMonth] = React.useState(value ?? defaultPopupValue)
   const buttonRef = useRef(null)
   const [displayDate, setDisplayDate] = React.useState(value ?? undefined)
@@ -515,7 +518,7 @@ const DateTimePicker = React.forwardRef(({ locale = DateTimeHelpers.getLocaleAsS
     }
     const diff = newDay.getTime() - defaultPopupValue.getTime()
     const diffInDays = diff / (1000 * 60 * 60 * 24)
-    const newDateFull = DateTimeHelpers.toDateTime(defaultPopupValue, { locale: getLocaleFromLocalStorage() }).plus({ days: Math.ceil(diffInDays) }).toJSDate()
+    const newDateFull = DateTimeHelpers.toDateTime(defaultPopupValue, { locale }).plus({ days: Math.ceil(diffInDays) }).toJSDate()
     newDateFull.setHours(month?.getHours() ?? 0, month?.getMinutes() ?? 0, month?.getSeconds() ?? 0)
     onMonthChange?.(newDay)
     setMonth(newDateFull)
@@ -564,7 +567,7 @@ const DateTimePicker = React.forwardRef(({ locale = DateTimeHelpers.getLocaleAsS
           <CalendarIcon className='mr-2 h-4 w-4' />
           {displayDate
             ? (DateTimeHelpers.toDateTime(displayDate, {
-                locale: getLocaleFromLocalStorage()
+                locale
               }).toFormat(hourCycle === 24 ? initHourFormat.hour24 : initHourFormat.hour12))
             : (<span>{placeholder}</span>)}
         </Button>
@@ -575,11 +578,12 @@ const DateTimePicker = React.forwardRef(({ locale = DateTimeHelpers.getLocaleAsS
         sticky='always'
         side='bottom'
         align='start'
-        sideOffset={-6}
+        sideOffset={6}
         collisionPadding={12}
-        className='w-auto p-0 max-h-[min(85dvh,560px)] overflow-y-auto'
+        className='w-auto p-0 z-[1100] max-h-[min(85dvh,560px)] overflow-y-auto'
       >
         <Calendar
+          dateLocale={locale}
           mode='single' selected={displayDate} month={month} onSelect={(newDate) => {
             if (newDate) {
               newDate.setHours(month?.getHours() ?? 0, month?.getMinutes() ?? 0, month?.getSeconds() ?? 0)

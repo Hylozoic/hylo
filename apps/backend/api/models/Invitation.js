@@ -114,7 +114,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
           inviter_avatar_url: creator.get('avatar_url'),
           inviter_name: creator.get('name'),
           inviter_email: creator.get('email'),
-          locale: creator.get('settings').locale || 'en',
+          locale: creator.getLocale(),
           group_name: group.get('name'),
           group_avatar_url: group.get('avatar_url'),
           group_url: Frontend.Route.group(group),

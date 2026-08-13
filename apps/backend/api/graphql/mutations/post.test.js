@@ -1,7 +1,8 @@
 import '../../../test/setup'
 import setup from '../../../test/setup'
 import factories from '../../../test/setup/factories'
-import { pinPost, removeProposalVote, addProposalVote, swapProposalVote, setProposalOptions, updateProposalOptions, deletePost } from './post'
+import { assignCoordinator } from '../../../test/setup/roleHelpers'
+import { pinPost, removeProposalVote, addProposalVote, swapProposalVote, setProposalOptions, updateProposalOptions, deletePost, fulfillPost, unfulfillPost } from './post'
 import { spyify, unspyify } from '../../../test/setup/helpers'
 
 describe('pinPost', () => {
@@ -248,5 +249,151 @@ describe('deletePost', () => {
     } catch (e) {
       expect(e.message).to.equal("You don't have permission to modify this post")
     }
+  })
+})
+
+describe('fulfillPost and unfulfillPost', () => {
+  let author, moderator, otherUser, group, group2, requestPost, discussionPost
+
+  before(async () => {
+    await setup.clearDb()
+    author = await factories.user().save()
+    moderator = await factories.user().save()
+    otherUser = await factories.user().save()
+    group = await factories.group().save()
+    group2 = await factories.group().save()
+    await GroupRole.setupSystemRoles(group.id)
+    await GroupRole.setupSystemRoles(group2.id)
+    await author.joinGroup(group)
+    await moderator.joinGroup(group)
+    const moderatorRole = await GroupRole.findSystemRole(group.id, 'Moderator')
+    await MemberGroupRole.forge({
+      user_id: moderator.id,
+      group_id: group.id,
+      group_role_id: moderatorRole.id,
+      active: true
+    }).save()
+
+    requestPost = await factories.post({ type: 'request', user_id: author.id }).save()
+    await requestPost.groups().attach(group)
+    discussionPost = await factories.post({ type: 'discussion', user_id: author.id }).save()
+    await discussionPost.groups().attach(group)
+  })
+
+  beforeEach(() => {
+    spyify(Queue, 'classMethod', () => Promise.resolve())
+    spyify(Activity, 'saveForReasons', (activities) => Promise.resolve(activities))
+  })
+
+  afterEach(() => {
+    unspyify(Queue, 'classMethod')
+    unspyify(Activity, 'saveForReasons')
+  })
+
+  it('allows the creator to fulfill a multi-group post', async () => {
+    const multiGroupPost = await factories.post({ type: 'request', user_id: author.id }).save()
+    await multiGroupPost.groups().attach([group.id, group2.id])
+
+    const result = await fulfillPost(author.id, multiGroupPost.id)
+    expect(result).to.deep.equal({ success: true })
+    await multiGroupPost.refresh()
+    expect(multiGroupPost.get('fulfilled_at')).to.exist
+    expect(Queue.classMethod).to.have.been.called.with('Post', 'publishPostUpdates', { postId: multiGroupPost.id, options: { changeContext: 'completion' } })
+    expect(Activity.saveForReasons).to.not.have.been.called
+  })
+
+  it('allows a moderator to fulfill a fulfillable post', async () => {
+    await requestPost.save({ fulfilled_at: null }, { patch: true })
+
+    const result = await fulfillPost(moderator.id, requestPost.id)
+    expect(result).to.deep.equal({ success: true })
+    await requestPost.refresh()
+    expect(requestPost.get('fulfilled_at')).to.exist
+    expect(Activity.saveForReasons).to.have.been.called
+  })
+
+  it('allows a coordinator to fulfill a fulfillable post', async () => {
+    const coordinator = await factories.user().save()
+    const g = await factories.group().save()
+    await assignCoordinator(coordinator, g)
+    const offerPost = await factories.post({ type: 'offer', user_id: author.id }).save()
+    await offerPost.groups().attach(g)
+
+    const result = await fulfillPost(coordinator.id, offerPost.id)
+    expect(result).to.deep.equal({ success: true })
+    await offerPost.refresh()
+    expect(offerPost.get('fulfilled_at')).to.exist
+  })
+
+  it('allows a moderator to fulfill a multi-group post when they have responsibilities in any one group', async () => {
+    const moderatorOneGroup = await factories.user().save()
+    await moderatorOneGroup.joinGroup(group)
+    const moderatorRoleOneGroup = await GroupRole.findSystemRole(group.id, 'Moderator')
+    await MemberGroupRole.forge({
+      user_id: moderatorOneGroup.id,
+      group_id: group.id,
+      group_role_id: moderatorRoleOneGroup.id,
+      active: true
+    }).save()
+
+    const multiGroupPost = await factories.post({ type: 'offer', user_id: author.id }).save()
+    await multiGroupPost.groups().attach([group.id, group2.id])
+
+    const result = await fulfillPost(moderatorOneGroup.id, multiGroupPost.id)
+    expect(result).to.deep.equal({ success: true })
+    await multiGroupPost.refresh()
+    expect(multiGroupPost.get('fulfilled_at')).to.exist
+    expect(Activity.saveForReasons).to.have.been.called
+  })
+
+  it('rejects a moderator fulfilling a post when they have no responsibilities in any of its groups', async () => {
+    const multiGroupPost = await factories.post({ type: 'offer', user_id: author.id }).save()
+    await multiGroupPost.groups().attach([group.id, group2.id])
+
+    try {
+      await fulfillPost(otherUser.id, multiGroupPost.id)
+      expect.fail('should reject')
+    } catch (e) {
+      expect(e.message).to.equal("You don't have permission to modify this post")
+    }
+  })
+
+  it('rejects a user without moderation responsibilities', async () => {
+    await requestPost.save({ fulfilled_at: null }, { patch: true })
+
+    try {
+      await fulfillPost(otherUser.id, requestPost.id)
+      expect.fail('should reject')
+    } catch (e) {
+      expect(e.message).to.equal("You don't have permission to modify this post")
+    }
+  })
+
+  it('rejects a moderator fulfilling a non-fulfillable post type', async () => {
+    try {
+      await fulfillPost(moderator.id, discussionPost.id)
+      expect.fail('should reject')
+    } catch (e) {
+      expect(e.message).to.equal("You don't have permission to modify this post")
+    }
+  })
+
+  it('does not notify the author when they fulfill their own post', async () => {
+    const ownPost = await factories.post({ type: 'resource', user_id: author.id }).save()
+    await ownPost.groups().attach(group)
+
+    await fulfillPost(author.id, ownPost.id)
+    expect(Activity.saveForReasons).to.not.have.been.called
+  })
+
+  it('allows a moderator to unfulfill a post and notifies the author', async () => {
+    await requestPost.save({ fulfilled_at: new Date() }, { patch: true })
+
+    const result = await unfulfillPost(moderator.id, requestPost.id)
+    expect(result).to.deep.equal({ success: true })
+    await requestPost.refresh()
+    expect(requestPost.get('fulfilled_at')).to.not.exist
+    expect(Queue.classMethod).to.have.been.called.with('Post', 'publishPostUpdates', { postId: requestPost.id, options: { changeContext: 'completion' } })
+    expect(Activity.saveForReasons).to.have.been.called
   })
 })

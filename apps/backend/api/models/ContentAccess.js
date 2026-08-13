@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
 const { createTrackScope, createGroupRoleScope, createGroupScope } = require('../../lib/scopes')
 const StripeService = require('../services/StripeService')
+const { normalizeLocaleToFull } = require('../../lib/localeHelpers')
 
 module.exports = bookshelf.Model.extend({
   tableName: 'content_access',
@@ -502,7 +503,7 @@ module.exports = bookshelf.Model.extend({
         // Get subscription details for email from database
         const userLocale = user.getLocale()
         const renewalDateFormatted = renewalDate.toLocaleDateString(
-          userLocale === 'es' ? 'es-ES' : 'en-US',
+          normalizeLocaleToFull(userLocale),
           {
             year: 'numeric',
             month: 'long',
@@ -658,7 +659,7 @@ module.exports = bookshelf.Model.extend({
         const userLocale = user.getLocale()
         const expiresAt = new Date(access.get('expires_at'))
         const expiredAtFormatted = expiresAt.toLocaleDateString(
-          userLocale === 'es' ? 'es-ES' : 'en-US',
+          normalizeLocaleToFull(userLocale),
           {
             year: 'numeric',
             month: 'long',

@@ -27,7 +27,13 @@ export default function reducer (state = defaultState, action) {
     return { ...state, parentIds: action.payload }
   }
   if (action.type === FETCH_GROUP_EXISTS) {
-    return { ...state, slugExists: action.payload.data.groupExists.exists }
+    // Track which slug the answer belongs to: responses can land out of order while
+    // someone is still typing, and a stale `true` would flag an available handle.
+    return {
+      ...state,
+      slugExists: action.payload.data.groupExists.exists,
+      slugChecked: action.meta?.slug
+    }
   }
   if (action.type === CREATE_GROUP) {
     if (!action.error) {
@@ -79,7 +85,8 @@ export function fetchGroupExists (slug) {
       variables: {
         slug
       }
-    }
+    },
+    meta: { slug }
   }
 }
 

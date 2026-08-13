@@ -24,26 +24,28 @@ async function uniqueSlug (baseSlug) {
 }
 
 /**
- * Require Manage Spaces or Administration on the parent group to manage a space.
+ * Require Administration on the parent group to manage a space.
  * Does not require space membership (stewards are not auto-added to every space).
+ * @param {object} [opts]
+ * @param {boolean} [opts.includeInactive] - allow inactive (archived) spaces; used by delete
  */
-async function requireSpaceManager (userId, spaceId, action) {
-  const space = await Group.findActive(spaceId)
+async function requireSpaceManager (userId, spaceId, action, { includeInactive = false } = {}) {
+  const space = includeInactive
+    ? await Group.find(spaceId)
+    : await Group.findActive(spaceId)
   if (!space || space.get('type') !== 'space') throw new GraphQLError('Space not found')
 
   const parentId = space.get('parent_id')
   if (!parentId) throw new GraphQLError('Space has no parent group')
 
   const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, parentId)
-  const canManage = responsibilities.includes(Responsibility.constants.RESP_MANAGE_SPACES) ||
-    responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)
-  if (!canManage) {
+  if (!responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)) {
     throw new GraphQLError(`You don't have permission to ${action}`)
   }
   return space
 }
 
-export async function createSpace (userId, { parentGroupId, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, purpose, location, locationId, viewTypes, bannerUrl, avatarUrl, paywall }, context) {
+export async function createSpace (userId, { parentGroupId, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, purpose, location, locationId, viewTypes, bannerUrl, avatarUrl, paywall, addToMenu = true }, context) {
   if (!userId) throw new GraphQLError('No userId passed into function')
   if (!parentGroupId) throw new GraphQLError('No parentGroupId passed into function')
   if (!name || !name.trim()) throw new GraphQLError('Name cannot be blank')
@@ -52,7 +54,7 @@ export async function createSpace (userId, { parentGroupId, name, slug, accepted
   if (!parentGroup) throw new GraphQLError('Parent group not found')
 
   const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, parentGroupId)
-  if (!responsibilities.includes(Responsibility.constants.RESP_MANAGE_SPACES)) {
+  if (!responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)) {
     throw new GraphQLError("You don't have permission to create spaces in this group")
   }
 
@@ -67,6 +69,9 @@ export async function createSpace (userId, { parentGroupId, name, slug, accepted
 
   const space = new Group({
     type: 'space',
+    // Start the cached count at zero — left unset it is NULL, and the join-path
+    // increment (NULL + 1) can never bring it back
+    num_members: 0,
     parent_id: parentGroupId,
     name: name.trim(),
     slug: finalSlug,
@@ -95,12 +100,18 @@ export async function createSpace (userId, { parentGroupId, name, slug, accepted
     await space.addMembers([userId], { lastReadAt: new Date() }, { transacting: trx })
     await Group.setupSpaceViews(space.id, acceptedPostTypes, viewTypes, { transacting: trx })
 
-    // Add a `type = 'space'` menu entry to the parent group's view list (spec section 2.5)
-    await GroupView.appendToMenu({
+    // Add a `type = 'space'` menu entry to the parent group's view list (spec section 2.5).
+    // When addToMenu is false (Add Space from More Views), create off-menu (order = null).
+    const spaceViewAttrs = {
       group_id: parentGroupId,
       type: GroupView.Type.SPACE,
       linked_group_id: space.id
-    }, { transacting: trx })
+    }
+    if (addToMenu === false) {
+      await GroupView.createOffMenu(spaceViewAttrs, { transacting: trx })
+    } else {
+      await GroupView.appendToMenu(spaceViewAttrs, { transacting: trx })
+    }
   }).catch(err => {
     throw new GraphQLError(`Creation of space failed: ${err.message}`)
   })
@@ -182,18 +193,11 @@ export async function deleteSpace (userId, id, context) {
   if (!userId) throw new GraphQLError('No userId passed into function')
   if (!id) throw new GraphQLError('No id passed into function')
 
-  const space = await requireSpaceManager(userId, id, 'delete this space')
+  // Include inactive so soft-archived leftovers can still be permanently removed.
+  const space = await requireSpaceManager(userId, id, 'delete this space', { includeInactive: true })
   const parentId = space.get('parent_id')
 
-  await bookshelf.transaction(async trx => {
-    await space.save({ active: false }, { patch: true, transacting: trx })
-    await space.removeMembers(await space.members().fetch({ transacting: trx }), { transacting: trx })
-
-    if (parentId) {
-      const menuEntry = await GroupView.where({ type: GroupView.Type.SPACE, linked_group_id: id }).fetch({ transacting: trx })
-      if (menuEntry) await menuEntry.destroy({ transacting: trx })
-    }
-  })
+  await Group.destroySpace(id)
 
   if (parentId) {
     const parentGroup = await Group.find(parentId)

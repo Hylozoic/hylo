@@ -25,7 +25,7 @@ import {
 } from 'routes/GroupSettings/GroupSettings.store'
 import {
   CREATE_GROUP
-} from 'components/CreateGroup/CreateGroup.store'
+} from 'routes/CreateGroup/CreateGroup.store'
 import {
   REMOVE_MEMBER_PENDING
 } from 'routes/Members/Members.store'
@@ -688,8 +688,14 @@ describe('on UPDATE_COMMENT_PENDING', () => {
   const commentId = '123'
   const session = orm.session(orm.getEmptyState())
   const theNewText = 'lalala'
+  const editedAt = '2024-03-01T12:00:00.000Z'
 
   session.Comment.create({
+    id: commentId,
+    text: 'ufufuf'
+  })
+
+  session.Message.create({
     id: commentId,
     text: 'ufufuf'
   })
@@ -699,15 +705,20 @@ describe('on UPDATE_COMMENT_PENDING', () => {
     meta: {
       id: commentId,
       data: {
-        text: theNewText
+        text: theNewText,
+        editedAt
       }
     }
   }
 
-  it('updates the text', () => {
+  it('updates the text on Comment and Message', () => {
     const newState = ormReducer(session.state, action)
     const newSession = orm.session(newState)
     const comment = newSession.Comment.withId(commentId)
+    const message = newSession.Message.withId(commentId)
     expect(comment.text).toEqual(theNewText)
+    expect(comment.editedAt).toEqual(editedAt)
+    expect(message.text).toEqual(theNewText)
+    expect(message.editedAt).toEqual(editedAt)
   })
 })
