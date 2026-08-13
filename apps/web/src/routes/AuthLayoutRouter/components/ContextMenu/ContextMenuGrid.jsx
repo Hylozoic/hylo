@@ -208,12 +208,14 @@ function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
   const isLogout = presentedView.type === 'logout'
   const { effectiveColorScheme } = useAppearance()
 
-  // Avatar-backed cards (spaces, groups, members) show an image; icon cards use
-  // the view color (post-type brand, or slate grey for everything else).
+  // Image-backed cards (spaces, groups, members) show the group's banner when
+  // one is set — even without a custom avatar — falling back to the avatar;
+  // icon cards use the view color (post-type brand, or slate grey otherwise).
   const linkedGroup = presentedView.linkedGroup
-  const bgImageUrl = presentedView.avatarUrl
-    ? (linkedGroup?.bannerUrl || presentedView.avatarUrl)
+  const linkedGroupBanner = linkedGroup?.bannerUrl && linkedGroup.bannerUrl !== DEFAULT_BANNER
+    ? linkedGroup.bannerUrl
     : null
+  const bgImageUrl = linkedGroupBanner || presentedView.avatarUrl || null
   const isDark = effectiveColorScheme === 'dark'
   const col = viewCardColor(presentedView)
   const tint = cardFieldTint(col, effectiveColorScheme)
@@ -257,6 +259,35 @@ function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
     (liveSpaceGroup?.openJoinRequestCount || presentedView.linkedGroup?.openJoinRequestCount || 0) > 0
   )
   const eventStart = eventStartForView(presentedView)
+  const myMemberships = useSelector(getMyMemberships)
+  const isSpaceMember = Boolean(
+    isSpace && linkedGroup &&
+    myMemberships.some(m => String(m.group.id) === String(linkedGroup.id))
+  )
+  const spaceMemberCount = isSpace ? (linkedGroup?.memberCount ?? null) : null
+  // Members see the space's member count; non-members get a + JOIN hint instead
+  const spacePill = isSpace && (typeof spaceMemberCount === 'number' || !isSpaceMember)
+    ? (
+      <span
+        className={cn(
+          'absolute top-1.5 left-1.5 z-10 inline-flex items-center gap-0.5 text-xs leading-none rounded-full px-1.5 py-1',
+          lightSurfaceLabels
+            ? 'bg-black/10 text-foreground/60'
+            : 'bg-black/30 text-white/90 backdrop-blur-sm'
+        )}
+        aria-label={isSpaceMember ? t('{{count}} Members', { count: spaceMemberCount }) : t('Join')}
+      >
+        {isSpaceMember
+          ? (
+            <>
+              <Users className='w-3 h-3' aria-hidden='true' />
+              {spaceMemberCount}
+            </>
+            )
+          : <span className='uppercase text-[10px] font-semibold tracking-wide'>+ {t('Join')}</span>}
+      </span>
+      )
+    : null
 
   const iconTile = (
     <div
@@ -345,6 +376,7 @@ function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
           </>
           )}
 
+      {spacePill}
       {(showUnreadDot || showJoinRequestDot) && (
         <span className='absolute -top-1.5 -right-1.5 z-10 w-3 h-3 rounded-full bg-orange-500 border-2 border-background' />
       )}

@@ -125,6 +125,7 @@ function SpaceMenuItemWithMore ({
   presentedView,
   resolvedSpaceGroup,
   isSpaceActive,
+  isSpaceMember,
   spaceLink,
   aboutUrl,
   spaceUnread,
@@ -214,7 +215,7 @@ function SpaceMenuItemWithMore ({
             <span className='sr-only'>{t('About')}</span>
           </MenuLink>
         )}
-        {typeof spaceMemberCount === 'number' && (
+        {(typeof spaceMemberCount === 'number' || !isSpaceMember) && (
           <span
             className={cn(
               'relative z-10 shrink-0 inline-flex items-center gap-0.5 text-xs leading-none rounded-full px-1.5 py-1 ml-auto mr-1',
@@ -228,10 +229,16 @@ function SpaceMenuItemWithMore ({
                   spaceBannerUrl && 'group-hover:bg-white/15 group-hover:text-white/90'
                 )
             )}
-            aria-label={t('{{count}} Members', { count: spaceMemberCount })}
+            aria-label={isSpaceMember ? t('{{count}} Members', { count: spaceMemberCount }) : t('Join')}
           >
-            <Users className='w-3 h-3' aria-hidden='true' />
-            {spaceMemberCount}
+            {isSpaceMember
+              ? (
+                <>
+                  <Users className='w-3 h-3' aria-hidden='true' />
+                  {spaceMemberCount}
+                </>
+                )
+              : <span className='uppercase text-[10px] font-semibold tracking-wide'>+ {t('Join')}</span>}
           </span>
         )}
       </div>
@@ -414,6 +421,7 @@ function GroupViewMenuItem ({
         presentedView={presentedView}
         resolvedSpaceGroup={resolvedSpaceGroup}
         isSpaceActive={isSpaceActive}
+        isSpaceMember={isSpaceMember}
         spaceLink={spaceLink}
         aboutUrl={aboutUrl}
         spaceUnread={showSpaceDot}
