@@ -120,10 +120,11 @@ export function SignupEmailValidationScreen () {
           keyboardType='number-pad'
           editable={!loading}
           textContentType='oneTimeCode'
+          rootStyle={{ justifyContent: 'center', gap: 10 }}
           renderCell={({ index, symbol, isFocused }) => (
             <Text
               key={index}
-              className={`mx-1 h-12 w-10 rounded border text-center text-xl leading-[48px] text-white ${isFocused ? 'border-white' : 'border-white/40'}`}
+              className={`h-12 w-11 rounded border text-center text-xl leading-[48px] text-white ${isFocused ? 'border-white' : 'border-white/40'}`}
               onLayout={getCellOnLayoutHandler(index)}
             >
               {symbol || (isFocused ? <Cursor /> : ' ')}
@@ -209,12 +210,6 @@ export function SignupUploadAvatarScreen () {
   )
   const [imagePickerPending, setImagePickerPending] = useState(false)
 
-  useFocusEffect(
-    useCallback(() => {
-      navigation.setOptions({ title: t('STEP 2/3') } as never)
-    }, [navigation, t])
-  )
-
   const handleAvatarImageUpload = ({ local, remote }: { local: string, remote: string | null }) => {
     setAvatarImageSource({ uri: local })
     setAvatarUrl(remote || local)
@@ -281,12 +276,6 @@ export function SignupSetLocationScreen () {
   const { currentUser } = useAuth()
   const [locationObject, setLocationObject] = useState<{ id?: string | null, fullText?: string }>()
   const [, updateUserSettings] = useMutation(updateUserSettingsMutation)
-
-  useFocusEffect(
-    useCallback(() => {
-      navigation.setOptions({ title: t('STEP 3/3') } as never)
-    }, [navigation, t])
-  )
 
   const saveAndFinish = async () => {
     await updateUserSettings({

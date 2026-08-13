@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import validator from 'validator'
 import FormattedError from '../../components/FormattedError'
 import { AuthInput, AuthPrimaryButton } from '../../components/auth/AuthScreenParts'
+import KeyboardFriendlyView from '../../components/KeyboardFriendlyView'
 
 const sendPasswordResetMutation = gql`
   mutation SendPasswordReset ($email: String!) {
@@ -53,8 +54,8 @@ export default function ForgotPasswordScreen () {
   }
 
   return (
-    <View className='flex-1 bg-white' style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
-      <ScrollView className='flex-1' contentContainerClassName='pb-8'>
+    <KeyboardFriendlyView className='flex-1 bg-white' style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
+      <ScrollView className='flex-1' keyboardShouldPersistTaps='handled' contentContainerClassName='pb-8'>
         <Text className='mb-6 px-4 pt-4 text-base text-foreground/80'>
           {t('forgotPasswordDescription')}
         </Text>
@@ -77,6 +78,6 @@ export default function ForgotPasswordScreen () {
           loading={submitting}
         />
       </ScrollView>
-    </View>
+    </KeyboardFriendlyView>
   )
 }

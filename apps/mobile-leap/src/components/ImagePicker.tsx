@@ -57,6 +57,7 @@ export default function ImagePicker ({
     const result = await ImagePickerExpo.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsMultipleSelection: false,
+      copyToCacheDirectory: true,
       quality: 0.9
     })
 
@@ -79,6 +80,7 @@ export default function ImagePicker ({
       cameraType: cameraType === 'front'
         ? ImagePickerExpo.CameraType.front
         : ImagePickerExpo.CameraType.back,
+      copyToCacheDirectory: true,
       quality: 0.9
     })
 

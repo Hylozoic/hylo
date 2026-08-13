@@ -6,31 +6,49 @@ type UploadFile = {
   type?: string
 }
 
+// Match apps/mobile upload: XMLHttpRequest + RN FormData { uri, name, type }.
+// Expo fetch uses web FormData, which rejects that file shape ("formData" error).
 export async function uploadFile (type: string, id: string, file: UploadFile) {
-  const formData = new FormData()
-  formData.append('type', type)
-  formData.append('id', id || 'new')
-  formData.append('file', {
-    uri: file.uri,
-    name: file.name ?? 'upload.jpg',
-    type: file.type ?? 'image/jpeg'
-  } as unknown as Blob)
+  const url = `${apiHost}/noo/upload`
+  const filename = file.name || 'upload.jpg'
+  const mimeType = file.type || 'image/jpeg'
 
-  const response = await fetch(`${apiHost}/noo/upload`, {
-    method: 'POST',
-    body: formData
+  return new Promise<{ url: string }>((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    const formData = new FormData()
+
+    formData.append('type', type)
+    formData.append('id', id || 'new')
+    formData.append('file', {
+      uri: file.uri,
+      name: filename,
+      type: mimeType
+    } as unknown as Blob)
+
+    xhr.open('POST', url)
+    xhr.onload = () => {
+      const text = xhr.responseText || ''
+      if (xhr.status === 200) {
+        try {
+          resolve(JSON.parse(text) as { url: string })
+        } catch (err) {
+          reject(err)
+        }
+        return
+      }
+
+      let message = text
+      try {
+        const parsed = JSON.parse(text)
+        message = parsed.message || parsed.error || text
+      } catch {
+        // keep raw text
+      }
+      reject(new Error(message || 'Upload failed'))
+    }
+    xhr.onerror = () => {
+      reject(new Error('Please check your network connection and try again.'))
+    }
+    xhr.send(formData)
   })
-
-  const text = await response.text()
-  if (response.status === 200) {
-    return JSON.parse(text) as { url: string }
-  }
-
-  let message = text
-  try {
-    message = JSON.parse(text).message
-  } catch {
-    // keep raw text
-  }
-  throw new Error(message || 'Upload failed')
 }

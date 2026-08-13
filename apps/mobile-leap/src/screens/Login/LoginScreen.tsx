@@ -12,6 +12,8 @@ import errorMessages from 'util/errorMessages'
 import SocialAuth from '../../components/SocialAuth'
 import FormattedError from '../../components/FormattedError'
 import { AuthBanner, AuthInput, AuthPrimaryButton } from '../../components/auth/AuthScreenParts'
+import KeyboardFriendlyView from '../../components/KeyboardFriendlyView'
+import LocaleSelector from '../../components/LocaleSelector'
 
 const screenHeight = Dimensions.get('window').height
 const logoTopMargin = Math.max(0, (screenHeight - 580) * 0.4)
@@ -70,12 +72,13 @@ export default function LoginScreen () {
   }
 
   return (
-    <View testID='login-screen' className='flex-1 bg-white' style={{ paddingBottom: insets.bottom }}>
+    <KeyboardFriendlyView testID='login-screen' className='flex-1 bg-white' style={{ paddingBottom: insets.bottom }}>
       {bannerError && <AuthBanner message={bannerError} variant='error' topInset={insets.top} />}
       {!bannerError && bannerMessage && <AuthBanner message={bannerMessage} topInset={insets.top} />}
 
       <ScrollView
         className='flex-1'
+        keyboardShouldPersistTaps='handled'
         contentContainerStyle={{
           flexGrow: 1,
           justifyContent: 'center',
@@ -83,6 +86,9 @@ export default function LoginScreen () {
           paddingBottom: 32
         }}
       >
+        <View className='w-full items-start px-4' style={{ marginTop: insets.top + 8 }}>
+          <LocaleSelector />
+        </View>
         <Image
           source={require('../../../assets/merkaba-green-on-white.png')}
           style={{ width: 80, height: 80, marginTop: logoTopMargin, marginBottom: 10 }}
@@ -145,6 +151,6 @@ export default function LoginScreen () {
           </Pressable>
         </View>
       </ScrollView>
-    </View>
+    </KeyboardFriendlyView>
   )
 }

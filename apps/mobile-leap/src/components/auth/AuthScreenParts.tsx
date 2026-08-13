@@ -1,5 +1,7 @@
 import { Pressable, Text, TextInput, View, type ViewProps } from 'react-native'
 import { Entypo } from '@expo/vector-icons'
+import { useHeaderHeight } from '@react-navigation/elements'
+import KeyboardFriendlyView from '../KeyboardFriendlyView'
 
 type AuthBannerProps = {
   message: string
@@ -109,10 +111,13 @@ export function SignupFlowLayout ({
   className,
   ...rest
 }: SignupFlowLayoutProps) {
+  const headerHeight = useHeaderHeight()
+
   return (
-    <View
+    <KeyboardFriendlyView
       className={`flex-1 bg-selected ${className ?? ''}`}
       style={{ paddingTop: topInset, paddingBottom: bottomInset }}
+      keyboardVerticalOffset={headerHeight}
       {...rest}
     >
       <View className='px-5 pt-5'>
@@ -125,7 +130,7 @@ export function SignupFlowLayout ({
           {footer}
         </View>
       )}
-    </View>
+    </KeyboardFriendlyView>
   )
 }
 

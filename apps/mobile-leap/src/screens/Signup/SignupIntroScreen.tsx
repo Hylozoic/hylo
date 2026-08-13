@@ -14,6 +14,8 @@ import useRouteParams from '../../hooks/useRouteParams'
 import FormattedError from '../../components/FormattedError'
 import SocialAuth from '../../components/SocialAuth'
 import { AuthBanner, AuthPrimaryButton } from '../../components/auth/AuthScreenParts'
+import KeyboardFriendlyView from '../../components/KeyboardFriendlyView'
+import LocaleSelector from '../../components/LocaleSelector'
 import { isIOS } from '../../util/platform'
 import validator from 'validator'
 
@@ -106,11 +108,15 @@ export default function SignupIntroScreen () {
   }
 
   return (
-    <View className='flex-1 bg-white' style={{ paddingBottom: insets.bottom }}>
+    <KeyboardFriendlyView className='flex-1 bg-white' style={{ paddingBottom: insets.bottom }}>
       {bannerError && <AuthBanner message={bannerError} variant='error' topInset={insets.top} />}
       {!bannerError && signingUp && <AuthBanner message={t('SIGNING UP')} topInset={insets.top} />}
 
-      <ScrollView className='flex-1'>
+      <View className='absolute left-3 z-20' style={{ top: insets.top + 8 }}>
+        <LocaleSelector compact />
+      </View>
+
+      <ScrollView className='flex-1' keyboardShouldPersistTaps='handled'>
         <ImageBackground
           source={signinBackground}
           style={{ width: '100%', height: heroHeight + insets.top, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 20 }}
@@ -166,6 +172,6 @@ export default function SignupIntroScreen () {
           </View>
         </View>
       </ScrollView>
-    </View>
+    </KeyboardFriendlyView>
   )
 }
