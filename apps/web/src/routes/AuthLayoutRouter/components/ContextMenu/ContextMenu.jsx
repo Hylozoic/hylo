@@ -20,6 +20,7 @@ import {
 } from '@hylo/navigation'
 
 import GroupMenuHeader from 'components/GroupMenuHeader'
+import GroupNotificationsPopover from 'components/GroupNotificationsPopover/GroupNotificationsPopover'
 import InviteMembersPopover from 'components/InviteMembersPopover/InviteMembersPopover'
 import MenuLink from './MenuLink'
 import ContextMenuResizer from './ContextMenuResizer'
@@ -1013,8 +1014,8 @@ export default function ContextMenu (props) {
                 {/* h-[142px]: with the ducked group header's h-12 this sums to the
                     full-size header's 190px, so the takeover swaps hierarchy without
                     moving the menu below */}
-                {/* Closing the space lives in the ducked group header's Back button above */}
-                <div className='SpaceMenuHeader relative z-20 flex flex-col justify-end h-[142px] overflow-hidden border-b border-foreground/10 shadow-md'>
+                {/* Closing the space lives in the ducked group header's back chevron above */}
+                <div className='SpaceMenuHeader relative z-20 flex flex-col justify-between h-[142px] overflow-hidden border-b border-foreground/10 shadow-md'>
                   {activeSpaceBannerUrl
                     ? (
                       <>
@@ -1025,6 +1026,17 @@ export default function ContextMenu (props) {
                     : presentedActiveSpaceView && (
                       <MenuRowBackground view={presentedActiveSpaceView} bannerUrl={null} glyphCount={280} />
                     )}
+                  {/* Where the X used to sit: this space's notification settings */}
+                  <div
+                    className={cn(
+                      'relative z-10 self-start m-2 p-1 rounded-md backdrop-blur-sm transition-colors',
+                      activeSpaceBannerUrl
+                        ? 'bg-black/25 text-white/90 hover:bg-black/40 hover:text-white'
+                        : 'bg-foreground/10 text-foreground/70 hover:bg-foreground/20 hover:text-foreground dark:text-white/80 dark:hover:text-white'
+                    )}
+                  >
+                    <GroupNotificationsPopover group={activeSpaceGroup} className='w-5 h-5' />
+                  </div>
                   {canAdminister && activeSpaceView && (
                     <button
                       type='button'
@@ -1046,7 +1058,8 @@ export default function ContextMenu (props) {
                     <div
                       style={presentedActiveSpaceView?.avatarUrl ? bgImageStyle(presentedActiveSpaceView.avatarUrl) : {}}
                       className={cn(
-                        'h-10 w-10 rounded-lg shadow-md bg-cover bg-center relative overflow-hidden shrink-0 flex items-center justify-center',
+                        // Stretches to the text column's height (name + pills), staying square
+                        'self-stretch h-auto w-auto aspect-square rounded-lg shadow-md bg-cover bg-center relative overflow-hidden shrink-0 flex items-center justify-center',
                         !presentedActiveSpaceView?.avatarUrl && 'bg-theme-background'
                       )}
                     >

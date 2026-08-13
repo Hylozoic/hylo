@@ -119,8 +119,10 @@ export default function GroupMenuHeader ({
           style={group.avatarUrl !== DEFAULT_AVATAR ? bgImageStyle(avatarUrl) : {}}
           className={cn(
             'rounded-lg mr-2 shadow-md bg-cover bg-center relative overflow-hidden shrink-0 transition-all duration-300',
-            // ml-6 clears the back chevron sitting at the header's left edge
-            compact ? 'h-7 w-7 ml-6' : 'h-10 w-10',
+            // ml-6 clears the back chevron sitting at the header's left edge.
+            // Full size: stretch to the text column's height (name + member pill),
+            // staying square so the width follows.
+            compact ? 'h-7 w-7 ml-6' : 'self-stretch h-auto w-auto aspect-square',
             group.avatarUrl === DEFAULT_AVATAR && 'bg-darkening'
           )}
         >
