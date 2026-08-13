@@ -227,18 +227,19 @@ export async function joinSpace (userId, spaceId) {
     throw new GraphQLError('This space requires purchased access to join')
   }
 
-  if (space.get('accessibility') !== Group.Accessibility.OPEN) {
-    throw new GraphQLError('This space requires a request to join')
-  }
-
   const requiredRoles = space.get('required_roles')
-  if (requiredRoles && requiredRoles.length > 0) {
+  const isRoleGated = Array.isArray(requiredRoles) && requiredRoles.length > 0
+
+  if (isRoleGated) {
     const memberRoleIds = await bookshelf.knex('group_memberships_group_roles')
       .where({ user_id: userId, group_id: parentId, active: true })
       .pluck('group_role_id')
-    if (!requiredRoles.some(roleId => memberRoleIds.includes(roleId))) {
+    const memberRoleIdSet = new Set(memberRoleIds.map(id => String(id)))
+    if (!requiredRoles.some(roleId => memberRoleIdSet.has(String(roleId)))) {
       throw new GraphQLError('You do not have the required role to join this space')
     }
+  } else if (space.get('accessibility') !== Group.Accessibility.OPEN) {
+    throw new GraphQLError('This space requires a request to join')
   }
 
   const membership = await user.joinGroup(space, {})

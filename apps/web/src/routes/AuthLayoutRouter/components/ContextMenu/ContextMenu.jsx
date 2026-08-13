@@ -44,7 +44,7 @@ import getMyMemberships from 'store/selectors/getMyMemberships'
 import isPendingFor from 'store/selectors/isPendingFor'
 import { bgImageStyle, cn } from 'util/index'
 import { isOneColumnLayout as resolveIsOneColumnLayout } from 'util/navigationLayout'
-import { filterSpaceViewsForMenuVisibility } from 'util/paidSpaceVisibility'
+import { filterSpaceViewsForMenuVisibility, spaceMenuVisibilityOpts } from 'util/spaceVisibility'
 
 import GroupSettingsMenu from './GroupSettingsMenu'
 import ContextMenuOld from './ContextMenuOld'
@@ -647,12 +647,14 @@ export default function ContextMenu (props) {
   const menuViews = useMemo(() => {
     const views = staticMenuViews || fetchedGroupViews
     if (staticMenuViews) return views
-    // Managers always see paywalled spaces; others only when a published offering grants access
-    return filterSpaceViewsForMenuVisibility(views, {
+    return filterSpaceViewsForMenuVisibility(views, spaceMenuVisibilityOpts({
       offerings: publishedOfferings,
-      canManageSpaces: canAdminister
-    })
-  }, [staticMenuViews, fetchedGroupViews, publishedOfferings, canAdminister])
+      canManageSpaces: canAdminister,
+      memberships: myMemberships,
+      currentUser,
+      parentGroupId: group?.id
+    }))
+  }, [staticMenuViews, fetchedGroupViews, publishedOfferings, canAdminister, myMemberships, currentUser, group?.id])
 
   const { spaceView: activeSpaceView, spaceGroup: linkedActiveSpaceGroup } = useMemo(
     () => findSpaceForSlug(fetchedGroupViews, group, groupSlug, spaceSlug),
