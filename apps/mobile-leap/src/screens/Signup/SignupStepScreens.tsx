@@ -6,7 +6,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
 import { gql, useMutation } from 'urql'
 import { CodeField, Cursor, useBlurOnFulfill, useClearByFocusCell } from 'react-native-confirmation-code-field'
-import { AnalyticsEvents } from '@hylo/shared'
+import { AnalyticsEvents, normalizeLocaleToFull } from '@hylo/shared'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAuth } from '@hylo/contexts/AuthContext'
 import meAuthFieldsFragment from '@hylo/graphql/fragments/meAuthFieldsFragment'
@@ -271,7 +271,7 @@ export function SignupUploadAvatarScreen () {
 
 export function SignupSetLocationScreen () {
   const insets = useSafeAreaInsets()
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const navigation = useNavigation()
   const { currentUser } = useAuth()
   const [locationObject, setLocationObject] = useState<{ id?: string | null, fullText?: string }>()
@@ -282,7 +282,10 @@ export function SignupSetLocationScreen () {
       changes: {
         location: locationObject?.fullText,
         locationId: locationObject?.id,
-        settings: { signupInProgress: false }
+        settings: {
+          signupInProgress: false,
+          locale: normalizeLocaleToFull(i18n.language)
+        }
       }
     })
     trackWithConsent(AnalyticsEvents.SIGNUP_COMPLETE, {}, currentUser)

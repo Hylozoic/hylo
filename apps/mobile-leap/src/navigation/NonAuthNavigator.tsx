@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useNavigation } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '@hylo/contexts/AuthContext'
 import useOpenInitialURL from '../hooks/useOpenInitialURL'
 import ModalHeader from './headers/ModalHeader'
@@ -11,6 +12,7 @@ import SignupNavigator from './SignupNavigator'
 const NonAuthRoot = createNativeStackNavigator()
 
 export default function NonAuthNavigator () {
+  const { t } = useTranslation()
   const navigation = useNavigation()
   const { isAuthenticated, fetching } = useAuth()
 
@@ -37,7 +39,7 @@ export default function NonAuthNavigator () {
         component={ForgotPasswordScreen}
         options={{
           headerShown: true,
-          title: 'Reset Your Password'
+          title: t('Reset Your Password')
         }}
       />
       <NonAuthRoot.Screen

@@ -3,20 +3,29 @@ import { Pressable, Text, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useMutation } from 'urql'
 import { useAuth } from '@hylo/contexts/AuthContext'
+import {
+  UI_LOCALES,
+  localeToFlagEmoji,
+  localeToNameKey,
+  normalizeLocaleToFull
+} from '@hylo/shared'
 import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettingsMutation'
+import { persistLocale } from '../i18n'
 
 export default function LocaleSelector ({ compact = false }: { compact?: boolean }) {
   const { t, i18n } = useTranslation()
   const { currentUser } = useAuth()
   const [, updateUserSettings] = useMutation(updateUserSettingsMutation)
   const [open, setOpen] = useState(false)
-  const selectedLocale = i18n.language?.startsWith('es') ? 'es' : 'en'
+  const selectedLocale = normalizeLocaleToFull(i18n.language)
 
-  const handleSelectLocale = (locale: 'en' | 'es') => {
-    i18n.changeLanguage(locale)
+  const handleSelectLocale = (locale: string) => {
+    const normalizedLocale = normalizeLocaleToFull(locale)
+    i18n.changeLanguage(normalizedLocale)
+    persistLocale(normalizedLocale)
     setOpen(false)
     if (!currentUser) return
-    updateUserSettings({ changes: { settings: { locale } } })
+    updateUserSettings({ changes: { settings: { locale: normalizedLocale } } })
   }
 
   return (
@@ -26,23 +35,27 @@ export default function LocaleSelector ({ compact = false }: { compact?: boolean
         onPress={() => setOpen(!open)}
       >
         <Text className='text-xs text-foreground'>
-          {compact ? '🌐' : `🌐 ${t('Language')}: ${selectedLocale === 'en' ? 'English' : 'Español'}`}
+          {compact
+            ? `🌐 ${localeToFlagEmoji(selectedLocale)}`
+            : `🌐 ${t('Language')}: ${localeToFlagEmoji(selectedLocale)} ${t(localeToNameKey(selectedLocale))}`}
         </Text>
       </Pressable>
       {open && (
-        <View className='absolute left-0 top-10 min-w-[160px] overflow-hidden rounded-md border border-border bg-white'>
-          <Pressable
-            className={`px-3 py-2 ${selectedLocale === 'en' ? 'bg-selected' : ''}`}
-            onPress={() => handleSelectLocale('en')}
-          >
-            <Text className={selectedLocale === 'en' ? 'text-white' : 'text-foreground'}>English</Text>
-          </Pressable>
-          <Pressable
-            className={`px-3 py-2 ${selectedLocale === 'es' ? 'bg-selected' : ''}`}
-            onPress={() => handleSelectLocale('es')}
-          >
-            <Text className={selectedLocale === 'es' ? 'text-white' : 'text-foreground'}>Español</Text>
-          </Pressable>
+        <View className='absolute left-0 top-10 min-w-[200px] overflow-hidden rounded-md border border-border bg-white'>
+          {UI_LOCALES.map(locale => {
+            const selected = selectedLocale === locale
+            return (
+              <Pressable
+                key={locale}
+                className={`px-3 py-2 ${selected ? 'bg-selected' : ''}`}
+                onPress={() => handleSelectLocale(locale)}
+              >
+                <Text className={selected ? 'text-white' : 'text-foreground'}>
+                  {localeToFlagEmoji(locale)} {t(localeToNameKey(locale))}
+                </Text>
+              </Pressable>
+            )
+          })}
         </View>
       )}
     </View>

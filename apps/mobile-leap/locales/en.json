@@ -622,5 +622,19 @@
   "{{name}} requested to join {{groupName}}": "{{name}} requested to join {{groupName}}",
   "{{numParticipants}} Participants allocated {{totalTokens}} {{tokenType}}!": "{{numParticipants}} Participants allocated {{totalTokens}} {{tokenType}}!",
   "{{numPeopleEnrolled}} people enrolled": "{{numPeopleEnrolled}} people enrolled",
-  "{{tokens}} {{tokenType}}": "{{tokens}} {{tokenType}}"
+  "{{tokens}} {{tokenType}}": "{{tokens}} {{tokenType}}",
+  "English": "English",
+  "English (UK)": "English (UK)",
+  "Spanish": "Spanish",
+  "German": "German",
+  "French": "French",
+  "Hindi": "Hindi",
+  "Portuguese": "Portuguese",
+  "Reset Your Password": "Reset Your Password",
+  "Password must be at least 9 characters": "Password must be at least 9 characters",
+  "Please enter a valid email address": "Please enter a valid email address",
+  "Please enter your password": "Please enter your password",
+  "Email address not found": "Email address not found",
+  "Account already exists": "Account already exists",
+  "There was a problem with your request. Please check your email and try again.": "There was a problem with your request. Please check your email and try again."
 }
