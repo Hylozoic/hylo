@@ -2,7 +2,7 @@ export const MODULE_NAME = 'SpaceJoinPage'
 export const JOIN_SPACE = `${MODULE_NAME}/JOIN_SPACE`
 
 /**
- * Join an Open space directly (no approval needed). For Restricted spaces use
+ * Join an Open or role-gated space directly (no approval needed). For Restricted spaces use
  * createJoinRequest instead. Backend enforces parent-group membership and required-role checks.
  * @param spaceId {string} the space (child Group) to join
  */
@@ -17,6 +17,12 @@ export default function joinSpace (spaceId) {
             id
             name
             slug
+            type
+            parentId
+            icon
+            avatarUrl
+            acceptedPostTypes
+            allowInPublic
           }
           person {
             id
