@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-expressions */
 import '../../setup'
 import factories from '../../setup/factories'
 import { spyify, unspyify, mockify } from '../../setup/helpers'
