@@ -1412,6 +1412,8 @@ module.exports = bookshelf.Model.extend(merge({
           const parent = await Group.findActive(parentId, { transacting: trx })
 
           if (parent) {
+            // Spaces are containers inside a group — they can never parent a group
+            if (parent.get('type') === 'space') continue
             // Only allow for adding parent groups that the creator is a moderator of or that are Open
             const parentGroupMembership = await GroupMembership.forIds(userId, parentId, {
               query: q => { q.select('group_memberships.*', 'groups.accessibility as accessibility', 'groups.visibility as visibility') }
