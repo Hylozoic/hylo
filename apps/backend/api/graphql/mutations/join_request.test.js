@@ -1,4 +1,4 @@
-import '../../../test/setup'
+/* eslint-disable no-unused-expressions */
 import setup from '../../../test/setup'
 import factories from '../../../test/setup/factories'
 import { assignCoordinator } from '../../../test/setup/roleHelpers'

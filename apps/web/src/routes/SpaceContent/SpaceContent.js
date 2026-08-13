@@ -141,8 +141,10 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
   const visibleSpaceViews = (resolvedSpace?.groupViews?.items || [])
     .filter(view => view.order != null)
     .filter(view => viewAcceptedByPostTypes(view.type, resolvedSpace?.acceptedPostTypes))
-  // A menu holding a single card is worse than the view it would open.
-  const showSpaceMenu = (isOneColumnGroup || isDrawerNavLayout()) && visibleSpaceViews.length > 1
+  // A menu holding a single card is worse than the view it would open —
+  // unless we're editing, in which case the menu is the point (add/reorder views).
+  const isEditingMenu = new URLSearchParams(location.search).get('edit') === 'true'
+  const showSpaceMenu = (isOneColumnGroup || isDrawerNavLayout()) && (visibleSpaceViews.length > 1 || isEditingMenu)
   const spaceIndexElement = showSpaceMenu
     ? <ContextMenuGrid group={parentGroup} spaceGroup={resolvedSpace} />
     // Carry the search through the redirect, or landing on home would shed ?about=1

@@ -195,6 +195,7 @@ function convertGraphqlPostData (data) {
     parent_post_id: data.parentPostId,
     location_id: data.locationId,
     location: data.location,
+    meeting_link: data.meetingLink,
     is_public: data.isPublic
   }, data))
 }

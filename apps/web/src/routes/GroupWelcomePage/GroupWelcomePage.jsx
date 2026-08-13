@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import ClickCatcher from 'components/ClickCatcher'
 import FundingRoundAboutInfo from 'components/FundingRoundAboutInfo/FundingRoundAboutInfo'
@@ -12,6 +13,7 @@ import { getGroupViews } from 'store/selectors/getGroupViews'
 
 function GroupWelcomePage () {
   const dispatch = useDispatch()
+  const { t } = useTranslation()
   const groupSlug = useEffectiveGroupSlug()
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
   const groupViews = useSelector(state => group ? getGroupViews(state, group) : [])
@@ -32,11 +34,11 @@ function GroupWelcomePage () {
 
   useEffect(() => {
     setHeaderDetails({
-      title: 'Welcome',
+      title: t('Welcome'),
       icon: 'Hand',
       search: true
     })
-  }, [setHeaderDetails])
+  }, [setHeaderDetails, t])
 
   if (!group) return <Loading />
   if (!groupViewsLoaded) return <Loading />

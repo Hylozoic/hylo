@@ -97,6 +97,7 @@ import {
 import {
   CREATE_GROUP
 } from 'routes/CreateGroup/CreateGroup.store'
+import { JOIN_SPACE } from 'store/actions/joinSpace'
 import { FETCH_GROUP_WELCOME_DATA } from 'routes/GroupWelcomeModal/GroupWelcomeModal.store'
 
 import {
@@ -378,6 +379,16 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       }
 
       clearCacheFor(Me, me.id)
+      break
+    }
+
+    case JOIN_SPACE: {
+      me = Me.first()
+      const membershipId = payload?.data?.joinSpace?.id
+      if (me && membershipId) {
+        me.updateAppending({ memberships: [membershipId] })
+        clearCacheFor(Me, me.id)
+      }
       break
     }
 

@@ -1,6 +1,6 @@
 import isMobile from 'ismobilejs'
 import { debounce } from 'lodash/fp'
-import { ChevronDown, Copy, MessageCircleMore, Send } from 'lucide-react'
+import { ChevronDown, Copy, MessageSquareMore, Send } from 'lucide-react'
 import { DateTimeHelpers } from '@hylo/shared'
 import { EditorView } from 'prosemirror-view'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -44,6 +44,7 @@ import { getGroupViews } from 'store/selectors/getGroupViews'
 import { cn } from 'util/index'
 import { groupInviteUrl, groupUrl } from '@hylo/navigation'
 import { isLegacyWebView } from 'util/webView'
+import { formatLocalizedDate } from 'util/dateFormat'
 import { getLocaleFromLocalStorage } from 'util/locale'
 
 import styles from './ChatRoom.module.scss'
@@ -84,7 +85,7 @@ const getDisplayDay = (date) => {
     ? 'Today'
     : date.hasSame(DateTimeHelpers.dateTimeNow(getLocaleFromLocalStorage()).minus({ days: 1 }), 'day')
       ? 'Yesterday'
-      : date.toFormat('MMM dd, yyyy')
+      : formatLocalizedDate(date, { style: 'medium' })
 }
 
 /**
@@ -743,7 +744,7 @@ export default function ChatRoom (props) {
       backButton: false,
       title: t('Chat'),
       headerActions: null,
-      icon: <MessageCircleMore className='w-4 h-4' />,
+      icon: <MessageSquareMore className='w-4 h-4' />,
       info: '',
       search: true
     })

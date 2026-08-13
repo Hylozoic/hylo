@@ -8,6 +8,7 @@ import * as UnreadViewHelpers from './unreadViewHelpers'
 export * from './constants'
 export * from './OfferingHelpers'
 export * from './unreadViewHelpers'
+export * from './LocaleHelpers'
 
 export {
   TextHelpers,

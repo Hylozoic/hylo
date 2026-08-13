@@ -106,6 +106,7 @@ Post.fields = {
   groupsTotal: attr(),
   isPublic: attr(),
   location: attr(),
+  meetingLink: attr(),
   peopleReactedTotal: attr(),
   projectManagementLink: attr(),
   sortOrder: attr(),

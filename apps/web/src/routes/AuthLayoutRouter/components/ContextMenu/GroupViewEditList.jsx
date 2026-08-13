@@ -31,7 +31,9 @@ import { deleteGroupView, deleteSpace, setGroupViewHidden } from 'store/actions/
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import { mergeOrderedViewsFromSource, sortViewsByMenuOrder } from 'store/util/groupViewsOrder'
+import { cn } from 'util/index'
 import useViewReorder from './useViewReorder'
+import useFlashAddedItems, { MENU_FLASH_CLASS } from './useFlashAddedItems'
 
 /** Sort views by menu order for consistent drag indices (hidden last). */
 function sortViewsByOrder (views) {
@@ -39,7 +41,7 @@ function sortViewsByOrder (views) {
 }
 
 /** Single draggable row in edit mode. */
-function SortableEditRow ({ view, onSettings, onHide, onDelete, isHome, spaceGroup = null }) {
+function SortableEditRow ({ view, onSettings, onHide, onDelete, isHome, spaceGroup = null, isFlashing = false }) {
   const { t } = useTranslation()
   const presentedView = GroupViewPresenter(view)
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -53,12 +55,19 @@ function SortableEditRow ({ view, onSettings, onHide, onDelete, isHome, spaceGro
     opacity: isDragging ? 0.5 : 1
   }
 
+  const rowClass = cn(
+    'list-none flex items-center gap-1 border-2 border-dashed border-transparent hover:border-foreground/20 rounded-md p-1 group',
+    isFlashing && MENU_FLASH_CLASS
+  )
+  const flashProps = isFlashing ? { 'data-menu-flash': String(view.id) } : {}
+
   if (presentedView.type === 'separator') {
     return (
       <li
         ref={setNodeRef}
         style={style}
-        className='list-none flex items-center gap-1 border-2 border-dashed border-transparent hover:border-foreground/20 rounded-md p-1 group'
+        className={rowClass}
+        {...flashProps}
       >
         <button type='button' className='p-1 cursor-grab text-foreground/50 shrink-0' {...attributes} {...listeners}>
           <GripVertical className='w-4 h-4' />
@@ -74,7 +83,8 @@ function SortableEditRow ({ view, onSettings, onHide, onDelete, isHome, spaceGro
       <li
         ref={setNodeRef}
         style={style}
-        className='list-none flex items-center gap-1 border-2 border-dashed border-transparent hover:border-foreground/20 rounded-md p-1 group'
+        className={rowClass}
+        {...flashProps}
       >
         <button type='button' className='p-1 cursor-grab text-foreground/50 shrink-0' {...attributes} {...listeners}>
           <GripVertical className='w-4 h-4' />
@@ -93,7 +103,8 @@ function SortableEditRow ({ view, onSettings, onHide, onDelete, isHome, spaceGro
     <li
       ref={setNodeRef}
       style={style}
-      className='list-none flex items-center gap-1 border-2 border-dashed border-transparent hover:border-foreground/20 rounded-md p-1 group'
+      className={rowClass}
+      {...flashProps}
     >
       <button type='button' className='p-1 cursor-grab text-foreground/50 shrink-0' {...attributes} {...listeners}>
         <GripVertical className='w-4 h-4' />
@@ -264,6 +275,8 @@ export default function GroupViewEditList ({ views, group, groupSlug, onSettings
   }, [dispatch, group?.id, t])
 
   const ids = orderedViews.map(v => String(v.id))
+  // Two-column creates a space then opens it, so flashing the sidebar row is noise.
+  const flashingIds = useFlashAddedItems(orderedViews, { skipTypes: ['space'] })
 
   return (
     <DndContext
@@ -295,6 +308,7 @@ export default function GroupViewEditList ({ views, group, groupSlug, onSettings
                 onHide={handleHide}
                 onDelete={handleDelete}
                 isHome={index === 0}
+                isFlashing={flashingIds.has(String(view.id))}
               />
             )
           })}

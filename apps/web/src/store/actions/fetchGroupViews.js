@@ -32,6 +32,7 @@ export default function fetchGroupViews (groupId) {
                 bannerUrl
                 icon
                 homeRoute
+                memberCount
                 description
                 purpose
                 location
@@ -109,7 +110,10 @@ export default function fetchGroupViews (groupId) {
                     lastReadPostId
                     viewPost {
                       id
+                      type
                       title
+                      startTime
+                      timezone
                     }
                     viewUser {
                       id
@@ -127,7 +131,10 @@ export default function fetchGroupViews (groupId) {
               }
               viewPost {
                 id
+                type
                 title
+                startTime
+                timezone
               }
               viewUser {
                 id

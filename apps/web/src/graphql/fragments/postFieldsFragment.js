@@ -113,6 +113,7 @@ const postFieldsFragment = (withComments, withCompletion = false, withAllComplet
   linkPreviewFeatured
   localId
   location
+  meetingLink
   locationObject {
     id
     addressNumber

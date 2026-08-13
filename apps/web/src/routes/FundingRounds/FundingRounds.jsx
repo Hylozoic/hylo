@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import Loading from 'components/Loading'
 import RoundImage from 'components/RoundImage'
-import { DateTimeHelpers } from '@hylo/shared'
+import { formatUserDatePair } from 'util/dateFormat'
 import { fundingRoundUrl } from '@hylo/navigation'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
@@ -32,7 +32,7 @@ const getRoundPhase = (round, t) => {
   }
 
   const toDate = (value) => (value ? new Date(value) : null)
-  const formatDate = (value) => (value ? DateTimeHelpers.formatDatePair({ start: value }) : null)
+  const formatDate = (value) => (value ? formatUserDatePair({ start: value }) : null)
   const now = new Date()
   const submissionsOpenAt = toDate(round.submissionsOpenAt)
   const submissionsCloseAt = toDate(round.submissionsCloseAt)

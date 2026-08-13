@@ -1,11 +1,13 @@
+import { GROUP_ACCESSIBILITY, GROUP_VISIBILITY } from 'store/models/Group'
 import {
   filterSpaceViewsForMenuVisibility,
   filterSpacesForMenuVisibility,
   shouldShowPaywalledSpaceInMenu,
+  shouldShowSpaceInMenu,
   spaceIdsGrantedByPublishedOfferings
-} from './paidSpaceVisibility'
+} from './spaceVisibility'
 
-describe('paidSpaceVisibility', () => {
+describe('spaceVisibility', () => {
   const offerings = [
     { publishStatus: 'published', accessGrants: { groupIds: [101] } },
     { publishStatus: 'unpublished', accessGrants: { groupIds: [202] } }
@@ -64,5 +66,62 @@ describe('paidSpaceVisibility', () => {
     ]
     expect(filterSpacesForMenuVisibility(spaces, { offerings, canManageSpaces: false }).map(s => s.id))
       .toEqual([101, 303])
+  })
+
+  it('hides role-gated spaces from viewers without the role', () => {
+    expect(shouldShowSpaceInMenu({
+      id: 1,
+      requiredRoles: [10],
+      visibility: GROUP_VISIBILITY.Hidden,
+      accessibility: GROUP_ACCESSIBILITY.Closed
+    }, {
+      canManageSpaces: false,
+      viewerRoleIds: new Set(['99']),
+      memberSpaceIds: new Set()
+    })).toBe(false)
+  })
+
+  it('shows role-gated spaces to viewers with the role', () => {
+    expect(shouldShowSpaceInMenu({
+      id: 1,
+      requiredRoles: [10],
+      visibility: GROUP_VISIBILITY.Hidden,
+      accessibility: GROUP_ACCESSIBILITY.Closed
+    }, {
+      canManageSpaces: false,
+      viewerRoleIds: new Set(['10']),
+      memberSpaceIds: new Set()
+    })).toBe(true)
+  })
+
+  it('hides invite-only spaces from non-members', () => {
+    expect(shouldShowSpaceInMenu({
+      id: 1,
+      visibility: GROUP_VISIBILITY.Hidden,
+      accessibility: GROUP_ACCESSIBILITY.Closed
+    }, {
+      canManageSpaces: false,
+      memberSpaceIds: new Set(['2'])
+    })).toBe(false)
+  })
+
+  it('shows invite-only spaces to members', () => {
+    expect(shouldShowSpaceInMenu({
+      id: 1,
+      visibility: GROUP_VISIBILITY.Hidden,
+      accessibility: GROUP_ACCESSIBILITY.Closed
+    }, {
+      canManageSpaces: false,
+      memberSpaceIds: new Set(['1'])
+    })).toBe(true)
+  })
+
+  it('shows hidden and role-gated spaces to managers', () => {
+    expect(shouldShowSpaceInMenu({
+      id: 1,
+      requiredRoles: [10],
+      visibility: GROUP_VISIBILITY.Hidden,
+      accessibility: GROUP_ACCESSIBILITY.Closed
+    }, { canManageSpaces: true })).toBe(true)
   })
 })

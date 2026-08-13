@@ -13,8 +13,10 @@ import useRouteParams from 'hooks/useRouteParams'
 import GroupViewIcon from 'routes/AuthLayoutRouter/components/ContextMenu/GroupViewIcon'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { getGroupViews } from 'store/selectors/getGroupViews'
+import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import { viewAcceptedByPostTypes } from 'store/models/GroupView'
 import getMe from 'store/selectors/getMe'
+import getMyMemberships from 'store/selectors/getMyMemberships'
 import getPreviousLocation from 'store/selectors/getPreviousLocation'
 import { bgImageStyle, cn } from 'util/index'
 import { performMobileNavBack } from 'util/mobileNavBack'
@@ -46,13 +48,17 @@ function resolveSpaceMenuView (parentGroup, groupViews, parentSlug, spaceSlug) {
 
 const ViewHeader = () => {
   const dispatch = useDispatch()
-  const { context, groupSlug, spaceSlug } = useRouteParams()
+  const { context, groupSlug, spaceSlug: routeSpaceSlug } = useRouteParams()
   const navigate = useNavigate()
   const location = useLocation()
   const { t } = useTranslation()
+  // More Views edit/drill-in uses ?space= on /more-views rather than the space route.
+  const isMoreViewsPath = location.pathname.replace(/\/$/, '').endsWith('/more-views')
+  const spaceSlug = routeSpaceSlug || (isMoreViewsPath ? getQuerystringParam('space', location) : null)
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
   const groupViews = useSelector(state => spaceSlug ? getGroupViews(state, group) : null)
   const currentUser = useSelector(getMe)
+  const myMemberships = useSelector(getMyMemberships)
   const { headerDetails } = useViewHeader()
   const { backButton, mobileBackButton, title, icon, info, search, centered, headerActions, spaceBreadcrumb } = headerDetails
 
@@ -63,23 +69,39 @@ const ViewHeader = () => {
   const isOneColumnContext = isCardMenuPreference(userGroupNavStyle) && ['my', 'all', 'public'].includes(context)
   const oneColumn = isOneColumnGroup || isOneColumnContext
 
+  const spaceMenuView = useMemo(
+    () => resolveSpaceMenuView(group, groupViews, groupSlug, spaceSlug),
+    [group, groupViews, groupSlug, spaceSlug]
+  )
   const presentedSpaceView = useMemo(() => {
     if (spaceBreadcrumb === false) return null
-    const spaceView = resolveSpaceMenuView(group, groupViews, groupSlug, spaceSlug)
-    return spaceView ? GroupViewPresenter(spaceView) : null
-  }, [group, groupViews, groupSlug, spaceSlug, spaceBreadcrumb])
+    return spaceMenuView ? GroupViewPresenter(spaceMenuView) : null
+  }, [spaceMenuView, spaceBreadcrumb])
   const spaceName = presentedSpaceView ? displayNameForView(presentedSpaceView, t) : null
+  const isSpaceMember = useMemo(() => {
+    const spaceId = spaceMenuView?.linkedGroup?.id
+    if (!spaceId) return false
+    return myMemberships.some(m => String(m.group?.id) === String(spaceId))
+  }, [spaceMenuView, myMemberships])
+
+  const hasTitle = typeof title === 'string'
+    ? title.length > 0
+    : React.isValidElement(title)
+      ? true
+      : !!(title?.mobile || title?.desktop)
 
   // A single-view space (e.g. chat-only) opens straight into its one view, so the
   // breadcrumb shows just the space — repeating the lone view's title is noise.
+  // More Views is a separate page (space > More Views…), so never collapse it.
   const isSingleViewSpace = useMemo(() => {
+    if (isMoreViewsPath) return false
     const spaceGroup = presentedSpaceView?.linkedGroup
     if (!spaceGroup) return false
     const visibleViews = (spaceGroup.groupViews?.items || [])
       .filter(v => v.order != null)
       .filter(v => viewAcceptedByPostTypes(v.type, spaceGroup.acceptedPostTypes))
     return visibleViews.length === 1
-  }, [presentedSpaceView])
+  }, [presentedSpaceView, isMoreViewsPath])
 
   const [searchValue, setSearchValue] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
@@ -257,8 +279,11 @@ const ViewHeader = () => {
     if (!isOneColumnGroup || !groupSlug) return false
     const groupBase = `/groups/${groupSlug}`
     if (path === groupBase || path === `${groupBase}/more-views`) return true
-    return Boolean(path.match(new RegExp(`^/groups/${groupSlug}/spaces/[^/]+$`)))
-  }, [oneColumn, isOneColumnContext, isOneColumnGroup, context, groupSlug, location.pathname])
+    const isSpaceIndex = Boolean(path.match(new RegExp(`^/groups/${groupSlug}/spaces/[^/]+$`)))
+    // Members see ContextMenuGrid (own back bar) at the space index. The join
+    // interstitial does not, so keep ViewHeader for non-members.
+    return isSpaceIndex && isSpaceMember
+  }, [oneColumn, isOneColumnContext, isOneColumnGroup, context, groupSlug, location.pathname, isSpaceMember])
 
   // Hide ViewHeader on phones for messages - MessagesMobile handles its own header
   if (isPhoneDevice() && location.pathname.startsWith('/messages')) {
@@ -308,19 +333,12 @@ const ViewHeader = () => {
       {!centered && !oneColumn && presentedSpaceView && (
         <>
           <GroupViewIcon view={presentedSpaceView} className='mr-1 shrink-0 w-5 h-5' />
-          <span className={cn('truncate shrink min-w-0 text-foreground', isSingleViewSpace ? 'font-bold' : 'max-w-[25%]')}>{spaceName}</span>
-          {!isSingleViewSpace && <span className='mx-1.5 shrink-0 text-foreground/40'>{'>'}</span>}
+          <span className={cn('truncate shrink min-w-0 text-foreground', (isSingleViewSpace || !hasTitle) ? 'font-bold' : 'max-w-[25%]')}>{spaceName}</span>
+          {!isSingleViewSpace && hasTitle && <span className='mx-1.5 shrink-0 text-foreground/40'>{'>'}</span>}
         </>
       )}
       {!centered && !oneColumn && !isSingleViewSpace && icon && (typeof icon === 'string' ? <Icon name={icon} className='mr-3 text-lg' /> : React.cloneElement(icon, { className: 'mr-3 text-lg' }))}
       {isOneColumnGroup && (() => {
-        // The chevron should only appear when an actual sub-view title is set —
-        // not when title is the empty default ({mobile: '', desktop: ''}) on group home.
-        const hasTitle = typeof title === 'string'
-          ? title.length > 0
-          : React.isValidElement(title)
-            ? true
-            : !!(title?.mobile || title?.desktop)
         const inSpace = Boolean(presentedSpaceView && spaceSlug)
         const groupHref = `/groups/${groupSlug}`
         const spaceHref = `/groups/${groupSlug}/spaces/${spaceSlug}`
@@ -352,7 +370,10 @@ const ViewHeader = () => {
                   <GroupViewIcon view={presentedSpaceView} className='!w-5 !h-5 !mr-0' />
                 </button>
                 <span
-                  className='font-semibold text-foreground/70 cursor-pointer hover:text-foreground transition-colors whitespace-nowrap truncate'
+                  className={cn(
+                    'cursor-pointer hover:text-foreground transition-colors whitespace-nowrap truncate',
+                    hasTitle ? 'font-semibold text-foreground/70' : 'font-bold text-foreground'
+                  )}
                   onClick={() => navigate(spaceHref)}
                 >
                   {spaceName}

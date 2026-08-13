@@ -2662,6 +2662,7 @@ CREATE TABLE public.posts (
     is_public boolean DEFAULT false,
     donations_link character varying(255),
     project_management_link character varying(255),
+    meeting_link character varying(255),
     link_preview_featured boolean DEFAULT false,
     reactions_summary jsonb,
     timezone character varying(255),
@@ -2679,7 +2680,8 @@ CREATE TABLE public.posts (
     num_people_completed integer DEFAULT 0,
     num_commenters integer DEFAULT 0,
     budget character varying(255),
-    ical_sequence integer
+    ical_sequence integer,
+    tag_names text[] DEFAULT '{}'::text[] NOT NULL
 );
 
 

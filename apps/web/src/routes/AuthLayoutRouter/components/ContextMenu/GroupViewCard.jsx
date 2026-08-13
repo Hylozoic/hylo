@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Info, Loader2, Plus, Settings, Trash2 } from 'lucide-react'
+import { Info, Loader2, Pencil, Plus, Settings, Trash2 } from 'lucide-react'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 
 import LucideIcon from 'components/LucideIcon/LucideIcon'
@@ -14,6 +14,7 @@ import CardIconField from './CardIconField'
 import GroupViewIcon from './GroupViewIcon'
 import {
   viewCardColor,
+  eventStartForView,
   inkOn,
   cardGradient,
   cardFieldTint,
@@ -37,11 +38,11 @@ import {
 const CARD_ACTION_BTN = 'p-1.5 rounded-md bg-background/90 text-foreground/60 hover:text-foreground pointer-events-auto cursor-pointer'
 
 /**
- * Edit-mode toolbar in the top-right of a card: +, gear, delete.
+ * Edit-mode toolbar in the top-right of a card: +, gear, pencil (spaces), delete.
  * Stops pointerdown so that when the card itself is a drag handle, pressing a
  * button doesn't begin a drag instead of clicking.
  */
-export function CardEditActions ({ onAddToMenu, onOpenSettings, onDelete, addLabel, settingsLabel, deleteLabel }) {
+export function CardEditActions ({ onAddToMenu, onOpenSettings, onEditMenu, onDelete, addLabel, settingsLabel, editMenuLabel, deleteLabel }) {
   return (
     <div
       className='absolute top-2 right-2 z-10 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none'
@@ -81,6 +82,24 @@ export function CardEditActions ({ onAddToMenu, onOpenSettings, onDelete, addLab
             </button>
           </TooltipTrigger>
           <TooltipContent>{settingsLabel}</TooltipContent>
+        </Tooltip>
+      )}
+      {onEditMenu && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type='button'
+              onClick={(e) => {
+                e.stopPropagation()
+                onEditMenu()
+              }}
+              className={CARD_ACTION_BTN}
+              aria-label={editMenuLabel}
+            >
+              <Pencil className='w-4 h-4' />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>{editMenuLabel}</TooltipContent>
         </Tooltip>
       )}
       {onDelete && (
@@ -135,6 +154,17 @@ export const AddCard = React.forwardRef(function AddCard ({ onClick, label, clas
   )
 })
 
+/** Event post cards replace the tile icon with a date / abbreviated day / time stack. */
+export function EventDateStack ({ start }) {
+  return (
+    <span className='flex flex-col items-center justify-center text-white leading-none'>
+      <span className='text-base font-bold'>{start.toFormat('d')}</span>
+      <span className='text-[10px] font-semibold uppercase mt-0.5'>{start.toFormat('ccc')}</span>
+      <span className='text-[9px] mt-0.5 whitespace-nowrap'>{start.toFormat('t')}</span>
+    </span>
+  )
+}
+
 /** Card for a GroupView, themed by its postType color. */
 function GroupViewCard ({ view, isEditing, onAddToMenu, onOpen, onOpenSettings, onDelete, renderEditActions = true }) {
   const { t } = useTranslation()
@@ -153,6 +183,7 @@ function GroupViewCard ({ view, isEditing, onAddToMenu, onOpen, onOpenSettings, 
     ? (presented.linkedGroup?.bannerUrl || presented.avatarUrl)
     : null
   const onPhoto = Boolean(bgImageUrl)
+  const eventStart = eventStartForView(presented)
 
   const handleOpen = () => {
     if (isEditing) return
@@ -227,11 +258,13 @@ function GroupViewCard ({ view, isEditing, onAddToMenu, onOpen, onOpenSettings, 
                 so it can't be scaled up through GroupViewIcon's className. */}
             {presented.avatarUrl
               ? <div className='w-full h-full bg-cover bg-center' style={bgImageStyle(presented.avatarUrl)} />
-              : (
-                <span className='flex items-center justify-center w-[26px] h-[26px] [&>svg]:!w-full [&>svg]:!h-full [&>img]:!w-full [&>img]:!h-full [&>span]:!text-[26px] [&>span]:!leading-none'>
-                  <GroupViewIcon view={presented} className='!w-[26px] !h-[26px] !mr-0' />
-                </span>
-                )}
+              : eventStart
+                ? <EventDateStack start={eventStart} />
+                : (
+                  <span className='flex items-center justify-center w-[26px] h-[26px] [&>svg]:!w-full [&>svg]:!h-full [&>img]:!w-full [&>img]:!h-full [&>span]:!text-[26px] [&>span]:!leading-none'>
+                    <GroupViewIcon view={presented} className='!w-[26px] !h-[26px] !mr-0' />
+                  </span>
+                  )}
           </div>
         </div>
         <div className='absolute left-0 right-0 top-[calc(50%+28px)] bottom-0 flex flex-col items-center justify-center text-center px-3'>

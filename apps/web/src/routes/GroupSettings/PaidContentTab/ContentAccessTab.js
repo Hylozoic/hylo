@@ -37,6 +37,7 @@ import revokeContentAccess from 'store/actions/revokeContentAccess'
 import refundContentAccess from 'store/actions/refundContentAccess'
 import getTracksForGroup from 'store/selectors/getTracksForGroup'
 import useDebounce from 'hooks/useDebounce'
+import { formatLocalizedDate } from 'util/dateFormat'
 
 /**
  * Content Access Tab Component
@@ -367,8 +368,7 @@ function ContentAccessRecordItem ({ record, t, onActionComplete }) {
   }
 
   const formatDate = (dateString) => {
-    if (!dateString) return null
-    return new Date(dateString).toLocaleDateString()
+    return formatLocalizedDate(dateString, { style: 'short' })
   }
 
   const handleRevoke = async () => {

@@ -1,5 +1,7 @@
+import { ShieldCheck } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Helmet } from 'react-helmet'
+import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
 import { Routes, Route } from 'react-router-dom'
 
@@ -18,6 +20,7 @@ import { cn } from 'util/index'
 
 export default function Moderation (props) {
   const dispatch = useDispatch()
+  const { t } = useTranslation()
   const groupSlug = useEffectiveGroupSlug()
   const context = props.context
 
@@ -70,11 +73,11 @@ export default function Moderation (props) {
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
     setHeaderDetails({
-      title: 'Moderation',
-      icon: 'Shield',
+      title: t('Moderation'),
+      icon: <ShieldCheck />,
       search: true
     })
-  }, [])
+  }, [t])
 
   return (
     <div id='outer-container' className='flex flex-col h-full overflow-auto' ref={setContainer}>

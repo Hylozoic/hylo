@@ -35,7 +35,8 @@ import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import getMe from 'store/selectors/getMe'
 import isPendingFor from 'store/selectors/isPendingFor'
-import { filterMoreSpacesSections } from 'util/paidSpaceVisibility'
+import getMyMemberships from 'store/selectors/getMyMemberships'
+import { filterMoreSpacesSections, filterSpaceViewsForMenuVisibility, spaceMenuVisibilityOpts } from 'util/spaceVisibility'
 import useAppearance from 'hooks/useAppearance'
 import usePublishedOfferings from 'hooks/usePublishedOfferings'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
@@ -49,10 +50,11 @@ import GroupNotificationsPopover from 'components/GroupNotificationsPopover/Grou
 import CardIconField from './CardIconField'
 import GroupViewIcon from './GroupViewIcon'
 import SortableViewsGrid from './SortableViewsGrid'
-import GroupViewCard, { SpaceViewCard } from './GroupViewCard'
+import GroupViewCard, { SpaceViewCard, EventDateStack } from './GroupViewCard'
 import ViewsGridSkeleton from './ViewsGridSkeleton'
 import {
   viewCardColor,
+  eventStartForView,
   inkOn,
   cardGradient,
   cardFieldTint,
@@ -244,6 +246,7 @@ function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
 
   const chatBadgeCount = viewUnreadBadgeCount(presentedView)
   const showUnreadDot = viewShowsUnreadDot(presentedView)
+  const eventStart = eventStartForView(presentedView)
 
   const iconTile = (
     <div
@@ -258,11 +261,13 @@ function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
           can't be scaled up through GroupViewIcon's className. */}
       {presentedView.avatarUrl
         ? <div className='w-full h-full bg-cover bg-center' style={bgImageStyle(presentedView.avatarUrl)} />
-        : (
-          <span className='flex items-center justify-center w-[26px] h-[26px] [&>svg]:!w-full [&>svg]:!h-full [&>img]:!w-full [&>img]:!h-full [&>span]:!text-[26px] [&>span]:!leading-none'>
-            <GroupViewIcon view={presentedView} className='!w-[26px] !h-[26px] !mr-0' />
-          </span>
-          )}
+        : eventStart
+          ? <EventDateStack start={eventStart} />
+          : (
+            <span className='flex items-center justify-center w-[26px] h-[26px] [&>svg]:!w-full [&>svg]:!h-full [&>img]:!w-full [&>img]:!h-full [&>span]:!text-[26px] [&>span]:!leading-none'>
+              <GroupViewIcon view={presentedView} className='!w-[26px] !h-[26px] !mr-0' />
+            </span>
+            )}
     </div>
   )
 
@@ -430,6 +435,8 @@ function MoreSpacesCard ({ onClick, t }) {
  */
 function useMoreSpacesContent (group) {
   const { t } = useTranslation()
+  const currentUser = useSelector(getMe)
+  const myMemberships = useSelector(getMyMemberships)
   const sectionsRaw = useSelector(state => getMoreViewsSections(state, group))
   const canManageSpaces = useSelector(state => hasResponsibilityForGroup(state, {
     responsibility: RESP_ADMINISTRATION,
@@ -437,11 +444,14 @@ function useMoreSpacesContent (group) {
   }))
   const publishedOfferings = usePublishedOfferings(group?.id)
   const sections = useMemo(
-    () => filterMoreSpacesSections(sectionsRaw, {
+    () => filterMoreSpacesSections(sectionsRaw, spaceMenuVisibilityOpts({
       offerings: publishedOfferings,
-      canManageSpaces
-    }),
-    [sectionsRaw, publishedOfferings, canManageSpaces]
+      canManageSpaces,
+      memberships: myMemberships,
+      currentUser,
+      parentGroupId: group?.id
+    })),
+    [sectionsRaw, publishedOfferings, canManageSpaces, myMemberships, currentUser, group?.id]
   )
   const parentGroups = useSelector(state => getParentGroups(state, group))
   const childGroups = useSelector(state => getChildGroups(state, group))
@@ -702,6 +712,7 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
   const location = useLocation()
   const dispatch = useDispatch()
   const currentUser = useSelector(getMe)
+  const myMemberships = useSelector(getMyMemberships)
   const groupSlug = group?.slug
   const isContextMode = Boolean(context) && !group
 
@@ -746,6 +757,14 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
   const groupViews = useSelector(state => isContextMode ? [] : getGroupViews(state, menuGroup))
   const viewsPending = useSelector(state => isPendingFor(FETCH_GROUP_VIEWS, state))
   const viewsLoading = viewsPending && groupViews.length === 0
+  const publishedOfferings = usePublishedOfferings(group?.id)
+  const spaceVisibilityOpts = useMemo(() => spaceMenuVisibilityOpts({
+    offerings: publishedOfferings,
+    canManageSpaces: canAdminister,
+    memberships: myMemberships,
+    currentUser,
+    parentGroupId: group?.id
+  }), [publishedOfferings, canAdminister, myMemberships, currentUser, group?.id])
 
   const handleDeleteMenuView = useCallback(async (view) => {
     if (!canHardDeleteView(view) || !menuGroup?.id) return
@@ -768,14 +787,17 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
         profileUrl
       }) || []
     }
-    const views = (groupViews || [])
-      .filter(view => view.order != null)
-      .filter(view => viewAcceptedByPostTypes(view.type, menuGroup?.acceptedPostTypes))
+    const views = filterSpaceViewsForMenuVisibility(
+      (groupViews || [])
+        .filter(view => view.order != null)
+        .filter(view => viewAcceptedByPostTypes(view.type, menuGroup?.acceptedPostTypes)),
+      spaceVisibilityOpts
+    )
     if (spaceGroup?.fundingRound?.id && canAdminister) {
       return [...views, MANAGE_ROUND_VIEW]
     }
     return views
-  }, [isContextMode, context, currentUser?.id, groupViews, menuGroup?.acceptedPostTypes, spaceGroup?.fundingRound?.id, canAdminister])
+  }, [isContextMode, context, currentUser?.id, groupViews, menuGroup?.acceptedPostTypes, spaceGroup?.fundingRound?.id, canAdminister, spaceVisibilityOpts])
 
   const sections = useMemo(() => partitionViewsIntoSections(visibleViews), [visibleViews])
 

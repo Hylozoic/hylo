@@ -13,7 +13,7 @@ test('members page: counts, hidden empty roles, stable map, padding', async ({ p
 
   // Role pill counts fetched and rendered
   const row = page.locator('div').filter({ has: page.getByRole('button', { name: /All members/ }) }).last()
-  const coordinator = page.getByRole('button', { name: /Coordinator/ })
+  const coordinator = row.getByRole('button', { name: /Coordinator/ })
   await expect(coordinator).toContainText('7')
 
   // Zero-member roles hidden
@@ -21,7 +21,7 @@ test('members page: counts, hidden empty roles, stable map, padding', async ({ p
   await expect(page.getByRole('button', { name: /^👋 Host/ })).toHaveCount(0)
 
   // Bottom padding >= 100px
-  const pad = await page.evaluate(() => parseFloat(getComputedStyle(document.getElementById('members-page')).paddingBottom))
+  const pad = await page.evaluate(() => parseFloat(window.getComputedStyle(document.getElementById('members-page')).paddingBottom))
   console.log('padding-bottom:', pad)
   expect(pad).toBeGreaterThanOrEqual(100)
 
