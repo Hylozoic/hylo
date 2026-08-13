@@ -1001,6 +1001,12 @@ export default function makeModels (userId, isAdmin, apiClient) {
         stewardDescriptorPlural: (g) => g.get('steward_descriptor_plural') || 'Stewards',
         // Get number of prerequisite groups that current user is not a member of yet
         numPrerequisitesLeft: g => g.numPrerequisitesLeft(userId),
+        openJoinRequestCount: async g => {
+          if (!userId) return 0
+          const canAddMembers = await GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADD_MEMBERS)
+          if (!canAddMembers) return 0
+          return g.get('num_open_join_requests') || 0
+        },
         pendingInvitations: (g, { first }) => InvitationService.find({ groupId: g.id, pendingOnly: true }),
         responsibilities: async g => g.availableResponsibilities().fetch(),
         settings: g => mapKeys(camelCase, g.get('settings')),

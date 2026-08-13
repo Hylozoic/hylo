@@ -135,7 +135,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
           access_code: accessCode,
           track_id: newTrack.id,
           created_at: new Date(),
-          num_members: 0
+          num_members: 0,
+          num_open_join_requests: 0
         }, { transacting: trx })
         await newTrack.save({ group_id: copySpace.id }, { patch: true, transacting: trx })
         await Group.setupSpaceViews(copySpace.id, sourceSpace.get('accepted_post_types') || [], ['about', 'track-actions', 'members'], { transacting: trx })

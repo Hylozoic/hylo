@@ -29,11 +29,11 @@ export default function MembershipRequestsTab ({
   const joinRequests = useSelector(state => get('MembershipRequests', state))
 
   const submitAccept = (joinRequestId) => {
-    dispatch(acceptJoinRequest(joinRequestId))
+    dispatch(acceptJoinRequest(joinRequestId, group.id))
   }
 
   const submitDecline = (joinRequestId) => {
-    dispatch(declineJoinRequest(joinRequestId))
+    dispatch(declineJoinRequest(joinRequestId, group.id))
   }
 
   const handleViewMembers = () => {

@@ -69,7 +69,9 @@ exports.de = {
   textForGroupInvitationAccepted: ({ actor, groupName }) => `${actor.get('name')} hat deine Einladung angenommen, ${groupName} beizutreten`,
   textForGroupPeerGroupInvite: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} hat deine Gruppe ${toGroup.get('name')} eingeladen, eine Peer-Beziehung mit ${fromGroup.get('name')} zu bilden`,
   textForGroupPeerGroupInviteAccepted: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} hat die Peer-Beziehung zwischen ${fromGroup.get('name')} und ${toGroup.get('name')} angenommen`,
-  textForJoinRequest: ({ actor, groupName }) => `${actor.get('name')} möchte ${groupName} beitreten`,
+  textForJoinRequest: ({ actor, groupName, parentGroupName }) => parentGroupName
+    ? `${actor.get('name')} möchte ${groupName} in ${parentGroupName} beitreten`
+    : `${actor.get('name')} möchte ${groupName} beitreten`,
   textForMemberJoinedGroup: ({ group, actor }) => `Neues Mitglied in ${group.get('name')}: ${actor.get('name')}`,
   textForPostModeratedFulfillment: ({ post, actor, reason }) => {
     const postName = post.summary()

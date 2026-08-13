@@ -496,6 +496,7 @@
   "are attending": "estan asistiendo",
   "are members": "son miembros",
   "asked to join": "pidió unirme",
+  "asked to join {{spaceName}} in {{groupName}}": "pidió unirse a {{spaceName}} en {{groupName}}",
   "attending": "asistiendo",
   "by": "por",
   "characters max": "caracteres máximo",

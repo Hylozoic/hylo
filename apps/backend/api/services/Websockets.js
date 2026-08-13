@@ -11,6 +11,7 @@ const validMessageTypes = [
   'newThread',
   'newNotification',
   'newPost',
+  'openJoinRequestCountUpdated',
   // Room presence (see RoomPresence service)
   'memberPresent',
   'memberAway'

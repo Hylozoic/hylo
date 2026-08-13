@@ -21,6 +21,7 @@ export default function fetchGroupSpaces (groupId) {
               icon
               bannerUrl
               memberCount
+              openJoinRequestCount
               description
               purpose
               location

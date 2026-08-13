@@ -20,6 +20,7 @@ import { inviteGroupToGroup } from '../graphql/mutations/group'
 import { findOrCreateLocation } from '../graphql/mutations/location'
 import { whereId } from './group/queryUtils'
 import { getLocaleStrings } from '../../lib/i18n/locales'
+import { groupRoom, userRoom, pushToSockets } from '../services/Websockets'
 const { createGroupScope } = require('../../lib/scopes')
 
 export const GROUP_MEMBERSHIP_ATTR_UPDATE_WHITELIST = [
@@ -324,6 +325,11 @@ module.exports = bookshelf.Model.extend(merge({
 
   memberCount: function () {
     return this.get('num_members')
+  },
+
+  /** Cached count of pending (unprocessed) join requests. */
+  openJoinRequestCount: function () {
+    return this.get('num_open_join_requests') || 0
   },
 
   // This returns all members with the given responsibilities (ids or title strings)
@@ -1885,5 +1891,59 @@ module.exports = bookshelf.Model.extend(merge({
 
   updateAllMemberCounts () {
     return bookshelf.knex.raw('update groups set num_members = (select count(group_memberships.*) from group_memberships inner join users on users.id = group_memberships.user_id where group_memberships.active = true and users.active = true and group_memberships.group_id = groups.id)')
+  },
+
+  /**
+   * Atomically adjust the cached pending join-request count.
+   * Uses increment / GREATEST so concurrent create/accept cannot race a read-modify-write.
+   */
+  async adjustOpenJoinRequestCount (groupId, delta, transacting) {
+    if (!groupId || !delta) return
+    const knex = transacting || bookshelf.knex
+    if (delta > 0) {
+      await knex('groups').where('id', groupId).increment('num_open_join_requests', delta)
+    } else {
+      await knex.raw(
+        'UPDATE groups SET num_open_join_requests = GREATEST(0, COALESCE(num_open_join_requests, 0) + ?) WHERE id = ?',
+        [delta, groupId]
+      )
+    }
+    if (!transacting) await Group.broadcastOpenJoinRequestCount(groupId)
+  },
+
+  /**
+   * Push the current open join-request count to group/parent rooms and stewards.
+   */
+  async broadcastOpenJoinRequestCount (groupId) {
+    try {
+      const row = await bookshelf.knex('groups')
+        .where('id', groupId)
+        .select('id', 'parent_id', 'num_open_join_requests')
+        .first()
+      if (!row) return
+
+      const payload = {
+        groupId: String(row.id),
+        openJoinRequestCount: Number(row.num_open_join_requests) || 0
+      }
+      const rooms = [groupRoom(row.id)]
+      if (row.parent_id) rooms.push(groupRoom(row.parent_id))
+
+      const stewardRows = await Responsibility.fetchForGroup(groupId)
+      const stewardIds = [...new Set(
+        stewardRows
+          .filter(r => r.responsibility_title === Responsibility.constants.RESP_ADD_MEMBERS)
+          .map(r => r.user_id)
+      )]
+
+      await Promise.all([
+        ...rooms.map(room => pushToSockets(room, 'openJoinRequestCountUpdated', payload)),
+        ...stewardIds.map(id => pushToSockets(userRoom(id), 'openJoinRequestCountUpdated', payload))
+      ])
+    } catch (err) {
+      if (typeof sails !== 'undefined' && sails.log) {
+        sails.log.error('broadcastOpenJoinRequestCount failed', err)
+      }
+    }
   }
 })

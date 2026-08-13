@@ -57,7 +57,9 @@ exports.es = {
   textForDonationTo: ({ amount, postName }) => `Contribuiste con $${amount} a "${postName}"`,
   textForDonationFrom: ({ amount, actor, postName }) => `${actor.get('name')} contribuyó $${amount} a "${postName}"`,
   textForEventInvitation: ({ actor, postName }) => `${actor.get('name')} te invitó a "${postName}"`,
-  textForJoinRequest: ({ actor, groupName }) => `${actor.get('name')} pidió unirte ${groupName}`,
+  textForJoinRequest: ({ actor, groupName, parentGroupName }) => parentGroupName
+    ? `${actor.get('name')} pidió unirse a ${groupName} en ${parentGroupName}`
+    : `${actor.get('name')} pidió unirte ${groupName}`,
   textForGroupInvitation: ({ actor, groupName }) => `${actor.get('name')} te invitó a unirte ${groupName}`,
   textForGroupInvitationAccepted: ({ actor, groupName }) => `${actor.get('name')} aceptó tu invitación para unirse ${groupName}`,
   textForGroupChildGroupInvite: ({ actor, parentGroup, childGroup }) => `${actor.get('name')} invitó a tu grupo ${childGroup.get('name')} a unirse a su grupo ${parentGroup.get('name')}`,

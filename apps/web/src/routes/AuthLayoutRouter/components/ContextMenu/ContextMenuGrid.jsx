@@ -1,6 +1,6 @@
 import { cn, bgImageStyle } from 'util/index'
 import { isDrawerNavLayout } from 'util/mobile'
-import { Info, Settings, Users, Pencil, X, CircleEllipsis, ChevronLeft } from 'lucide-react'
+import { Info, Settings, Users, Pencil, X, CircleEllipsis, ChevronLeft, UserPlus } from 'lucide-react'
 import React, { useMemo, useRef, useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
@@ -30,12 +30,13 @@ import {
   getParentGroups,
   getPeerGroups
 } from 'store/selectors/getGroupRelationships'
-import { RESP_ADMINISTRATION, FETCH_GROUP_SPACES, FETCH_GROUP_RELATIONSHIPS, FETCH_GROUP_VIEWS } from 'store/constants'
+import { RESP_ADMINISTRATION, RESP_ADD_MEMBERS, FETCH_GROUP_SPACES, FETCH_GROUP_RELATIONSHIPS, FETCH_GROUP_VIEWS } from 'store/constants'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import getMe from 'store/selectors/getMe'
 import isPendingFor from 'store/selectors/isPendingFor'
 import getMyMemberships from 'store/selectors/getMyMemberships'
+import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { filterMoreSpacesSections, filterSpaceViewsForMenuVisibility, spaceMenuVisibilityOpts } from 'util/spaceVisibility'
 import useAppearance from 'hooks/useAppearance'
 import usePublishedOfferings from 'hooks/usePublishedOfferings'
@@ -82,6 +83,7 @@ import { menuViewUrl } from './groupViewMenuUrl'
 
 /** Synthetic view so the More Views card can use the same icon wallpaper as real views. */
 const MORE_SPACES_VIEW = { lucideIcon: 'CircleEllipsis' }
+const JOIN_REQUESTS_VIEW = { lucideIcon: 'UserPlus' }
 
 /**
  * Splits ordered views into grid sections.
@@ -246,6 +248,14 @@ function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
 
   const chatBadgeCount = viewUnreadBadgeCount(presentedView)
   const showUnreadDot = viewShowsUnreadDot(presentedView)
+  const liveSpaceGroup = useSelector(state =>
+    isSpace && presentedView.linkedGroup?.slug
+      ? getGroupForSlug(state, presentedView.linkedGroup.slug)
+      : null
+  )
+  const showJoinRequestDot = isSpace && (
+    (liveSpaceGroup?.openJoinRequestCount || presentedView.linkedGroup?.openJoinRequestCount || 0) > 0
+  )
   const eventStart = eventStartForView(presentedView)
 
   const iconTile = (
@@ -335,7 +345,7 @@ function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
           </>
           )}
 
-      {showUnreadDot && (
+      {(showUnreadDot || showJoinRequestDot) && (
         <span className='absolute -top-1.5 -right-1.5 z-10 w-3 h-3 rounded-full bg-orange-500 border-2 border-background' />
       )}
       {chatBadgeCount != null && (
@@ -419,6 +429,60 @@ function MoreSpacesCard ({ onClick, t }) {
         </div>
         <div className='absolute left-0 right-0 top-[calc(50%+28px)] bottom-0 flex flex-col items-center justify-center text-center px-3'>
           <h3 className={cn(CARD_TITLE_CLASS, isDark ? 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]' : 'text-foreground')}>{t('More')}</h3>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** Card opening Group Settings → Join Requests, shown when there are pending requests. */
+function JoinRequestsCard ({ count, onClick, t }) {
+  const { effectiveColorScheme } = useAppearance()
+  const isDark = effectiveColorScheme === 'dark'
+  const [hover, setHover] = useState(false)
+  const col = viewCardColor(null)
+  const tint = cardFieldTint(col, effectiveColorScheme)
+  return (
+    <div
+      onClick={onClick}
+      className={cn(CARD_CLASS, cardChrome(isDark))}
+      style={{
+        background: cardGradient(col, effectiveColorScheme),
+        ...(!isDark ? { borderColor: hover ? col : `${col}33` } : {}),
+        boxShadow: hover
+          ? `${cardHoverShadow(isDark)}, ${cardHoverRing(col)}`
+          : `${cardRestShadow(isDark)}, ${cardRestRing(col)}`
+      }}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      role='button'
+      tabIndex={0}
+      aria-label={t('Join Requests')}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onClick?.()
+        }
+      }}
+    >
+      <CardIconField view={JOIN_REQUESTS_VIEW} tint={tint} w={CARD_W} h={CARD_H} />
+      <div className={CARD_FADE_CLASS} style={{ background: cardFadeGradient(effectiveColorScheme) }} />
+      {count > 0 && (
+        <span className='absolute -top-1.5 -right-1.5 z-10 min-w-5 h-5 px-1 rounded-full bg-accent text-white text-xs font-bold flex items-center justify-center border-2 border-background'>
+          {count}
+        </span>
+      )}
+      <div className='relative h-full'>
+        <div className='absolute inset-0 grid place-items-center'>
+          <div
+            className='w-14 h-14 rounded-[15px] grid place-items-center shadow-[0_4px_12px_rgba(0,0,0,0.35)]'
+            style={{ background: col, color: inkOn(col), border: `1px solid color-mix(in srgb, ${col} 55%, white)` }}
+          >
+            <UserPlus className='w-7 h-7' />
+          </div>
+        </div>
+        <div className='absolute left-0 right-0 top-[calc(50%+28px)] bottom-0 flex flex-col items-center justify-center text-center px-3'>
+          <h3 className={cn(CARD_TITLE_CLASS, isDark ? 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]' : 'text-foreground')}>{t('Join Requests')}</h3>
         </div>
       </div>
     </div>
@@ -724,6 +788,10 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
     responsibility: RESP_ADMINISTRATION,
     groupId: (spaceGroup || group)?.id
   }))
+  const canAddMembers = useSelector(state => hasResponsibilityForGroup(state, {
+    responsibility: RESP_ADD_MEMBERS,
+    groupId: (spaceGroup || group)?.id
+  }))
   const isEditing = !isContextMode && getQuerystringParam('edit', location) === 'true' && canAdminister && !isMoreSpacesLevel
   const [settingsView, setSettingsView] = useState(null)
   const [showAddView, setShowAddView] = useState(false)
@@ -985,6 +1053,15 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
                       t={t}
                     />
                     )}
+                {!isContextMode && !isEditing && !isMoreSpacesLevel && canAddMembers && (menuGroup?.openJoinRequestCount || 0) > 0 && (
+                  <div className='flex flex-wrap gap-3'>
+                    <JoinRequestsCard
+                      count={menuGroup.openJoinRequestCount}
+                      onClick={() => navigate(groupUrl(menuGroup.slug, 'settings/requests'))}
+                      t={t}
+                    />
+                  </div>
+                )}
                 {!isContextMode && !spaceGroup && showMoreSpacesCard && (
                   <div className='flex flex-wrap gap-3'>
                     <MoreSpacesCard

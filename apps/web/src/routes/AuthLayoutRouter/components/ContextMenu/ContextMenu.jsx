@@ -1,6 +1,6 @@
 import { isPhoneDevice } from 'util/mobile'
 import { get } from 'lodash/fp'
-import { CircleEllipsis, Info, Pencil, RefreshCw, Settings, Users, X } from 'lucide-react'
+import { CircleEllipsis, Info, Pencil, RefreshCw, Settings, UserPlus, Users, X } from 'lucide-react'
 import React, { useEffect, useCallback, useState, useMemo } from 'react'
 import { Link, useLocation, useNavigate, Routes, Route } from 'react-router-dom'
 import { replace } from 'redux-first-history'
@@ -35,7 +35,7 @@ import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import logout from 'store/actions/logout'
-import { FETCH_GROUP_VIEWS, RESP_ADMINISTRATION } from 'store/constants'
+import { FETCH_GROUP_VIEWS, RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { getGroupViews } from 'store/selectors/getGroupViews'
 import { getMoreViewsSections } from 'store/selectors/getMoreSpacesSections'
@@ -364,10 +364,16 @@ function GroupViewMenuItem ({
       ? [...spaceViews, GroupViewPresenter(MANAGE_ROUND_VIEW)]
       : spaceViews
     const singleSpaceView = menuSpaceViews.length === 1 ? menuSpaceViews[0] : null
-    // Space badge = membership unread (same as groups), not aggregated child views.
+    // Space badge = membership unread or pending join requests (same orange dot).
     const spaceMembership = linkedSpaceGroup &&
       myMemberships.find(m => String(m.group.id) === String(linkedSpaceGroup.id))
     const spaceUnread = (spaceMembership?.newPostCount || 0) > 0
+    const spaceJoinRequests = (
+      spaceGroupFromStore?.openJoinRequestCount ||
+      linkedSpaceGroup?.openJoinRequestCount ||
+      0
+    ) > 0
+    const showSpaceDot = spaceUnread || spaceJoinRequests
     const spaceHome = linkedSpaceGroup ? spaceHomeUrl(parentSlug, linkedSpaceGroup) : null
     // Single-view spaces open that view directly; multi-view spaces open the space menu drill-in.
     const spaceLink = singleSpaceView && isSpaceMember
@@ -410,7 +416,7 @@ function GroupViewMenuItem ({
         isSpaceActive={isSpaceActive}
         spaceLink={spaceLink}
         aboutUrl={aboutUrl}
-        spaceUnread={spaceUnread}
+        spaceUnread={showSpaceDot}
         spaceBannerUrl={spaceBannerUrl}
         spaceCol={spaceCol}
         parentSlug={parentSlug}
@@ -812,6 +818,42 @@ export default function ContextMenu (props) {
     ? addQuerystringToPath(groupUrl(groupSlug, 'more-views'), { space: spaceSlug })
     : groupUrl(groupSlug, 'more-views')
 
+  const joinRequestTargetGroup = showingSpaceMenu ? activeSpaceGroup : group
+  const canAddMembers = useSelector(state => hasResponsibilityForGroup(state, {
+    responsibility: RESP_ADD_MEMBERS,
+    groupId: joinRequestTargetGroup?.id
+  }))
+  const joinRequestCount = joinRequestTargetGroup?.openJoinRequestCount || 0
+  const joinRequestsLink = joinRequestTargetGroup?.slug
+    ? groupUrl(joinRequestTargetGroup.slug, 'settings/requests')
+    : null
+  const joinRequestsSection = isGroupContext && joinRequestsLink && canAddMembers && joinRequestCount > 0
+    ? (
+      <div className='px-3 pb-2 border-t border-foreground/10 pt-2'>
+        {isEditing
+          ? (
+            <div
+              className='flex items-center gap-2 text-base font-medium text-foreground/40 border-2 border-transparent rounded-md p-1 pl-2 w-full cursor-not-allowed opacity-60'
+              aria-disabled='true'
+            >
+              <UserPlus className='w-4 h-4 shrink-0' />
+              <span>{t('Join Requests')}</span>
+            </div>
+            )
+          : (
+            <MenuLink
+              to={joinRequestsLink}
+              badgeCount={joinRequestCount}
+              className='flex items-center gap-2 text-base font-medium text-foreground hover:text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 pr-8 w-full transition-all opacity-85 hover:opacity-100'
+            >
+              <UserPlus className='w-4 h-4 shrink-0' />
+              <span>{t('Join Requests')}</span>
+            </MenuLink>
+            )}
+      </div>
+      )
+    : null
+
   // Hidden when there is nothing behind it — admins still reach the page via Edit Menu
   const moreSpacesSection = isGroupContext && group?.id && moreViewsCount > 0
     ? (
@@ -865,6 +907,7 @@ export default function ContextMenu (props) {
 
   const menuFooter = (
     <div className='mt-auto'>
+      {joinRequestsSection}
       {moreSpacesSection}
       {editMenuButton}
       {devToggle}

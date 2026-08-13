@@ -182,6 +182,7 @@ Group.fields = {
   }),
   members: many('Person'),
   memberCount: attr(),
+  openJoinRequestCount: attr(),
   stewards: many({
     to: 'Person',
     relatedName: 'stewardedGroups',

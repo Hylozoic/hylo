@@ -27,6 +27,7 @@
   "<strong>{{groupName}}</strong> has requested to join <strong>{{otherGroupName}}</strong>": "<strong>{{groupName}}</strong> ने <strong>{{otherGroupName}}</strong> में शामिल होने का अनुरोध किया",
   "<strong>{{name}}</strong> approved your request to join {{groupName}}": "<strong>{{name}}</strong> ने आपका {{groupName}} में शामिल होने का अनुरोध स्वीकृत किया",
   "<strong>{{name}}</strong> asked to join {{groupName}}": "<strong>{{name}}</strong> ने {{groupName}} में शामिल होने का अनुरोध किया",
+  "<strong>{{name}}</strong> asked to join {{spaceName}} in {{groupName}}": "<strong>{{name}}</strong> ने {{groupName}} में {{spaceName}} में शामिल होने का अनुरोध किया",
   "<strong>{{name}}</strong> closed your post": "<strong>{{name}}</strong> ने आपकी पोस्ट बंद कर दी",
   "<strong>{{name}}</strong> completed the track": "<strong>{{name}}</strong> ने ट्रैक पूरा किया",
   "<strong>{{name}}</strong> contributed to your project": "<strong>{{name}}</strong> ने आपके प्रोजेक्ट में योगदान दिया",

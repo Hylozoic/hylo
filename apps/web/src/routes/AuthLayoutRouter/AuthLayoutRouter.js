@@ -85,7 +85,8 @@ import SpaceContent from 'routes/SpaceContent'
 import Themes from 'routes/Themes'
 import UserSettings from 'routes/UserSettings'
 import WelcomeWizardRouter from 'routes/WelcomeWizardRouter'
-import { VIEW_DRAFTS } from 'store/constants'
+import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION, VIEW_DRAFTS } from 'store/constants'
+import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { isAtReturnToPath } from 'util/returnToPath'
 import Management from 'routes/Management'
 import { getLocaleFromLocalStorage } from 'util/locale'
@@ -225,6 +226,14 @@ export default function AuthLayoutRouter (props) {
     if (!currentGroupSlug) return false
     return location.pathname.startsWith(`/groups/${currentGroupSlug}/settings`)
   }, [currentGroupSlug, location.pathname])
+  // Parent stewards are not auto-added to spaces; they still need settings (join requests).
+  const canAccessSpaceSettings = useSelector(state => {
+    if (!isSpaceGroup(currentGroup) || !isOnGroupSettings) return false
+    return hasResponsibilityForGroup(state, {
+      responsibility: [RESP_ADD_MEMBERS, RESP_ADMINISTRATION],
+      groupId: currentGroup?.id
+    })
+  })
   const isPhoneSettings = isPhoneViewport && isOnGroupSettings
   const isDrawerOpen = useSelector(state => get('AuthLayoutRouter.isDrawerOpen', state))
   const isNavOpen = useSelector(state => get('AuthLayoutRouter.isNavOpen', state)) // For mobile nav
@@ -797,7 +806,8 @@ export default function AuthLayoutRouter (props) {
     currentGroup &&
     isSpaceGroup(currentGroup) &&
     currentGroup.parentId &&
-    !location.pathname.includes('/spaces/')
+    !location.pathname.includes('/spaces/') &&
+    !isOnGroupSettings
   ) {
     const parentMembership = memberships.find(m => String(m.group?.id) === String(currentGroup.parentId))
     const parentFromOrm = orm.session(store.getState().orm).Group.withId(currentGroup.parentId)
@@ -927,7 +937,7 @@ export default function AuthLayoutRouter (props) {
               </>
             )}
 
-            {(!currentGroupSlug || (currentGroup && currentGroupMembership)) &&
+            {(!currentGroupSlug || (currentGroup && (currentGroupMembership || canAccessSpaceSettings))) &&
               <Routes>
                 {/* Card menu: My/All/Public homes use ContextMenuGrid in the center — no sidebar menu. */}
                 {!isCardMenuUser && <Route path='public/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />}
@@ -1049,7 +1059,7 @@ export default function AuthLayoutRouter (props) {
                        instead of a bare spinner. */
                     currentGroupLoading && !paramPostId
                       ? <RouteBootstrapSkeleton />
-                      : currentGroupSlug && !currentGroupMembership
+                      : currentGroupSlug && !currentGroupMembership && !canAccessSpaceSettings
                         ? <GroupDetail context='groups' group={currentGroup} />
                         : (
                           <Routes>

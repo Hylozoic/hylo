@@ -11,7 +11,8 @@ import {
   receiveMessageUpdated,
   receiveComment,
   receiveNotification,
-  receivePost
+  receivePost,
+  receiveOpenJoinRequestCount
 } from './SocketListener.store'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import getMe from 'store/selectors/getMe'
@@ -52,6 +53,10 @@ const SocketListener = (props) => {
     },
     messageUpdated: data => dispatch(receiveMessageUpdated(convertToMessage(data))),
     newNotification: data => dispatch(receiveNotification(data)),
+    openJoinRequestCountUpdated: (data) => {
+      if (data?.groupId == null || data?.openJoinRequestCount == null) return
+      dispatch(receiveOpenJoinRequestCount(data.groupId, data.openJoinRequestCount))
+    },
     // Use the post's group from the socket payload — not the currently viewed group.
     // Space posts arrive on the space room while the parent menu may still be open.
     newPost: data => {
