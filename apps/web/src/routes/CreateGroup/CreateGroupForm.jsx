@@ -38,6 +38,17 @@ import { nameToSlug, SLUG_MAX_LENGTH, slugValidatorRegex } from './slug'
 
 const STANDARD_VIEW_TYPES = new Set(['all', 'chat', 'map', 'members', ...Object.values(POST_TYPE_TO_VIEW_TYPE)])
 
+/** Seeds the menu in this order, with the chosen home view first so the landing route matches.
+ * `orderedStandardTypes` is empty until Menu Items is opened, so we fall back to the derived defaults. */
+function viewTypesForCreate (orderedStandardTypes, defaultTypes, homeType) {
+  const types = orderedStandardTypes.length > 0 ? orderedStandardTypes : defaultTypes
+  if (types.length === 0) return [homeType || 'all']
+  if (homeType && types.includes(homeType) && types[0] !== homeType) {
+    return [homeType, ...types.filter(type => type !== homeType)]
+  }
+  return types
+}
+
 const SLUG_CHECK_DEBOUNCE = 300
 
 const NAME_MAX_LENGTH = 60
@@ -619,11 +630,9 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
     const manualRowsInOrder = orderedRows.filter(row => row.kind === 'manual')
     const standardTypesInOrder = orderedRows.filter(row => row.kind === 'standard').map(row => row.type)
 
-    // A menu emptied of standard views would leave nothing to land on, so fall back
-    // to the picked home view rather than seeding no views at all.
-    const viewTypes = standardTypesInOrder.length > 0
-      ? standardTypesInOrder
-      : [homeViewType || 'all']
+    // Menu Items only reports `orderedRows` once opened. Until then (and when Post Types
+    // change the derived list), seed All Activity, Chat, type views, Map, and Members.
+    const viewTypes = viewTypesForCreate(standardTypesInOrder, standardViewTypes, homeViewType)
 
     const { error, payload } = await dispatch(createGroup({
       accessibility,
@@ -731,7 +740,9 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
       key: 'views',
       icon: LayoutGrid,
       label: 'Menu Items',
-      defaultSummary: t('All Activity, Chat, Map, Members'),
+      defaultSummary: standardViewTypes
+        .map(type => displayNameForView(GroupViewPresenter({ type }), t))
+        .join(', '),
       render: () => (
         <IncludedViewsEditor
           standardViewTypes={standardViewTypes}
