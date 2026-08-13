@@ -1,8 +1,10 @@
 import * as sessionReducers from './sessionReducers'
 import {
   ACCEPT_GROUP_RELATIONSHIP_INVITE,
+  ACCEPT_JOIN_REQUEST,
   ADD_PROPOSAL_VOTE_PENDING,
   CANCEL_GROUP_RELATIONSHIP_INVITE,
+  CANCEL_JOIN_REQUEST,
   CLEAR_MODERATION_ACTION_PENDING,
   CREATE_COMMENT,
   CREATE_COMMENT_PENDING,
@@ -16,6 +18,7 @@ import {
   CREATE_CONTEXT_WIDGET,
   CREATE_CONTEXT_WIDGET_PENDING,
   CREATE_GROUP_VIEW,
+  DECLINE_JOIN_REQUEST,
   DELETE_DRAFT,
   DELETE_COMMENT_PENDING,
   DELETE_CONTEXT_WIDGET_PENDING,
@@ -121,6 +124,16 @@ import { homeRoutePathForWidget } from '@hylo/navigation'
 import { reorderTree, replaceHomeWidget } from 'util/contextWidgets'
 import { applyGroupViewsOrder, appendGroupViewToMenu, removeGroupViewFromAllMenus, setGroupViewHiddenInAllMenus, syncAcceptedPostTypesInMenus, updateGroupViewInMenu, updateGroupViewInAllMenus } from 'store/util/groupViewsOrder'
 import { groupMenuHasUnreadBadges } from 'util/viewUnreadBadges'
+
+/**
+ * Adjust the cached pending join-request count on a Group ORM record.
+ */
+function adjustOpenJoinRequestCount (session, groupId, delta) {
+  if (!groupId || !delta) return
+  const group = session.Group.idExists(groupId) ? session.Group.withId(groupId) : null
+  if (!group) return
+  group.update({ openJoinRequestCount: Math.max(0, (group.openJoinRequestCount || 0) + delta) })
+}
 
 /**
  * Whether any loaded menu copy for this group still shows unread (own GroupViews
@@ -397,7 +410,19 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         me = Me.first()
         const jr = JoinRequest.create({ group: meta.groupId, user: me.id, status: payload.data.createJoinRequest.request.status })
         me.updateAppending({ joinRequests: [jr] })
+        adjustOpenJoinRequestCount(session, meta.groupId, 1)
       }
+      break
+    }
+
+    case ACCEPT_JOIN_REQUEST:
+    case DECLINE_JOIN_REQUEST:
+      adjustOpenJoinRequestCount(session, meta.groupId, -1)
+      break
+
+    case CANCEL_JOIN_REQUEST: {
+      const canceledRequest = JoinRequest.idExists(meta.id) ? JoinRequest.withId(meta.id) : null
+      adjustOpenJoinRequestCount(session, canceledRequest?.group?.id, -1)
       break
     }
 

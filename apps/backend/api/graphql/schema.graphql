@@ -949,6 +949,8 @@ type Group {
   locationObject: Location
   # Number of members in this group
   memberCount: Int
+  # Cached count of pending join requests. Visible only to members who can add members; 0 otherwise
+  openJoinRequestCount: Int
   # Word used to describe an admin/moderator of this group. Defaults to "Moderator". TODO: remove once mobile app switches to stewardDescriptor
   moderatorDescriptor: String
   # Plural word used to describe admins/moderators of this group. Defaults to "Moderators". TODO: remove once mobile app switches to stewardDescriptor

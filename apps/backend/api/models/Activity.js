@@ -33,7 +33,7 @@ const isChat = activity => {
 }
 
 const mergeByReader = activities => {
-  const fields = ['actor_id', 'group_id']
+  const fields = ['actor_id', 'group_id', 'other_group_id']
   const merged = activities.reduce((acc, activity) => {
     const current = acc[activity.reader_id]
     if (acc[activity.reader_id]) {

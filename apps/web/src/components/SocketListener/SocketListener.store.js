@@ -11,6 +11,7 @@ export const RECEIVE_COMMENT = `${MODULE_NAME}/RECEIVE_COMMENT`
 export const RECEIVE_POST = `${MODULE_NAME}/RECEIVE_POST`
 export const RECEIVE_THREAD = `${MODULE_NAME}/RECEIVE_THREAD`
 export const RECEIVE_NOTIFICATION = `${MODULE_NAME}/RECEIVE_NOTIFICATION`
+export const RECEIVE_OPEN_JOIN_REQUEST_COUNT = `${MODULE_NAME}/RECEIVE_OPEN_JOIN_REQUEST_COUNT`
 
 export function receiveMessage (message, opts = {}) {
   return {
@@ -93,6 +94,14 @@ export function receiveNotification (notification) {
     meta: {
       extractModel: 'Notification'
     }
+  }
+}
+
+/** Set a group's cached open join-request count from a socket payload. */
+export function receiveOpenJoinRequestCount (groupId, openJoinRequestCount) {
+  return {
+    type: RECEIVE_OPEN_JOIN_REQUEST_COUNT,
+    payload: { groupId, openJoinRequestCount }
   }
 }
 
@@ -222,6 +231,46 @@ export function ormSessionReducer (session, { meta, type, payload }) {
         window.electron.setBadgeCount(currentUser.newNotificationCount)
         window.electron.showNotification(notification)
       }
+      break
+    }
+
+    case RECEIVE_OPEN_JOIN_REQUEST_COUNT: {
+      const { groupId, openJoinRequestCount } = payload
+      if (groupId == null || openJoinRequestCount == null) break
+      const count = Math.max(0, Number(openJoinRequestCount) || 0)
+      if (Group.idExists(groupId)) {
+        Group.withId(groupId).update({ openJoinRequestCount: count })
+      }
+      // Nested menu copies can lag behind the normalized Group record.
+      Group.all().toModelArray().forEach(parent => {
+        const items = parent.groupViews?.items
+        if (items?.length) {
+          let changed = false
+          const nextItems = items.map(view => {
+            if (view.type !== 'space' || String(view.linkedGroup?.id) !== String(groupId)) return view
+            changed = true
+            return {
+              ...view,
+              linkedGroup: { ...view.linkedGroup, openJoinRequestCount: count }
+            }
+          })
+          if (changed) {
+            parent.update({ groupViews: { ...parent.groupViews, items: nextItems } })
+          }
+        }
+        const spaces = parent.spaces?.items
+        if (spaces?.length) {
+          let spacesChanged = false
+          const nextSpaces = spaces.map(space => {
+            if (String(space.id) !== String(groupId)) return space
+            spacesChanged = true
+            return { ...space, openJoinRequestCount: count }
+          })
+          if (spacesChanged) {
+            parent.update({ spaces: { ...parent.spaces, items: nextSpaces } })
+          }
+        }
+      })
       break
     }
   }

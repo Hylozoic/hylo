@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react'
+import { useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { Info, Loader2, Pencil, Plus, Settings, Trash2 } from 'lucide-react'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
@@ -8,6 +9,7 @@ import TruncatedText from 'components/TruncatedText'
 import { Tooltip, TooltipContent, TooltipTrigger } from 'components/ui/tooltip'
 import useAppearance from 'hooks/useAppearance'
 import { DEFAULT_BANNER } from 'store/models/Group'
+import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { bgImageStyle, cn } from 'util/index'
 
 import CardIconField from './CardIconField'
@@ -184,6 +186,14 @@ function GroupViewCard ({ view, isEditing, onAddToMenu, onOpen, onOpenSettings, 
     : null
   const onPhoto = Boolean(bgImageUrl)
   const eventStart = eventStartForView(presented)
+  const liveSpaceGroup = useSelector(state =>
+    presented.type === 'space' && presented.linkedGroup?.slug
+      ? getGroupForSlug(state, presented.linkedGroup.slug)
+      : null
+  )
+  const showJoinRequestDot = presented.type === 'space' && (
+    (liveSpaceGroup?.openJoinRequestCount || presented.linkedGroup?.openJoinRequestCount || 0) > 0
+  )
 
   const handleOpen = () => {
     if (isEditing) return
@@ -246,6 +256,9 @@ function GroupViewCard ({ view, isEditing, onAddToMenu, onOpen, onOpenSettings, 
             <div className={CARD_FADE_CLASS} style={{ background: cardFadeGradient(effectiveColorScheme) }} />
           </>
           )}
+      {showJoinRequestDot && !isEditing && (
+        <span className='absolute -top-1.5 -right-1.5 z-10 w-3 h-3 rounded-full bg-orange-500 border-2 border-background' />
+      )}
       <div className='relative h-full'>
         <div className='absolute inset-0 grid place-items-center'>
           <div
@@ -300,6 +313,10 @@ export function SpaceViewCard ({ space, isEditing, isDeleting = false, onOpen, o
   const isDark = effectiveColorScheme === 'dark'
   const bgImageUrl = (space.bannerUrl && space.bannerUrl !== DEFAULT_BANNER ? space.bannerUrl : null) || space.avatarUrl || null
   const onLightSurface = !isDark && !bgImageUrl
+  const liveSpaceGroup = useSelector(state => space?.slug ? getGroupForSlug(state, space.slug) : null)
+  const showJoinRequestDot = (
+    (liveSpaceGroup?.openJoinRequestCount || space?.openJoinRequestCount || 0) > 0
+  )
 
   return (
     <div
@@ -334,6 +351,9 @@ export function SpaceViewCard ({ space, isEditing, isDeleting = false, onOpen, o
           <div className='absolute inset-0 bg-cover bg-center' style={bgImageStyle(bgImageUrl)} />
           <div className='absolute inset-0' style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.6) 100%)' }} />
         </>
+      )}
+      {showJoinRequestDot && !isEditing && !isDeleting && (
+        <span className='absolute -top-1.5 -right-1.5 z-10 w-3 h-3 rounded-full bg-orange-500 border-2 border-background' />
       )}
       <div className='relative h-full'>
         <div className='absolute inset-0 grid place-items-center'>

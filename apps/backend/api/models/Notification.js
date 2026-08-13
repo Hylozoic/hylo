@@ -301,16 +301,18 @@ module.exports = bookshelf.Model.extend({
     return reader.sendPushNotification(alertText, path)
   },
 
-  sendJoinRequestPush: function () {
-    const groupIds = Activity.groupIds(this.relations.activity)
+  sendJoinRequestPush: async function () {
+    const activity = this.relations.activity
     const locale = this.locale()
-    if (isEmpty(groupIds)) throw new Error('no group ids in activity')
-    return Group.find(groupIds[0])
-      .then(group => {
-        const path = routeToPath(Frontend.Route.groupJoinRequests(group))
-        const alertText = PushNotification.textForJoinRequest(group, this.actor(), locale)
-        return this.reader().sendPushNotification(alertText, path)
-      })
+    const groupId = activity.get('group_id')
+    if (!groupId) throw new Error('no group ids in activity')
+    const group = await Group.find(groupId)
+    const parentGroup = activity.get('other_group_id')
+      ? await activity.otherGroup().fetch()
+      : null
+    const path = routeToPath(Frontend.Route.groupJoinRequests(group))
+    const alertText = PushNotification.textForJoinRequest(group, this.actor(), locale, parentGroup)
+    return this.reader().sendPushNotification(alertText, path)
   },
 
   sendGroupChildGroupInvitePush: async function () {
@@ -722,27 +724,34 @@ module.exports = bookshelf.Model.extend({
   sendJoinRequestEmail: async function () {
     const actor = this.actor()
     const reader = this.reader()
-    const groupIds = Activity.groupIds(this.relations.activity)
+    const activity = this.relations.activity
     const locale = this.locale()
-    if (isEmpty(groupIds)) throw new Error('no group ids in activity')
+    const groupId = activity.get('group_id')
+    if (!groupId) throw new Error('no group ids in activity')
 
-    const group = await Group.find(groupIds[0])
+    const group = await Group.find(groupId)
+    const parentGroup = activity.get('other_group_id')
+      ? await activity.otherGroup().fetch()
+      : null
+    const groupLabel = parentGroup
+      ? `${group.get('name')} in ${parentGroup.get('name')}`
+      : group.get('name')
 
     const clickthroughParams = '?' + new URLSearchParams({
       ctt: 'join_request_email',
       cti: reader.id,
-      ctcn: group.get('name'),
+      ctcn: groupLabel,
       check_join_requests: 1
     }).toString()
 
     return Email.sendJoinRequestNotification({
       email: reader.get('email'),
       locale,
-      sender: { name: senderNameViaHylo(group.get('name'), locale) },
+      sender: { name: senderNameViaHylo(groupLabel, locale) },
       data: {
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
         group_avatar_url: group.get('avatar_url'),
-        group_name: group.get('name'),
+        group_name: groupLabel,
         group_url: Frontend.Route.group(group) + clickthroughParams,
         join_question_answers: await GroupJoinQuestionAnswer.latestAnswersFor(group.id, actor.id),
         requester_name: actor.get('name'),

@@ -496,6 +496,7 @@
   "are attending": "are attending",
   "are members": "are members",
   "asked to join": "asked to join",
+  "asked to join {{spaceName}} in {{groupName}}": "asked to join {{spaceName}} in {{groupName}}",
   "attending": "attending",
   "by": "by",
   "characters max": "characters max",

@@ -3,7 +3,8 @@ import {
   RECEIVE_MESSAGE,
   RECEIVE_MESSAGE_UPDATED,
   RECEIVE_POST,
-  RECEIVE_NOTIFICATION
+  RECEIVE_NOTIFICATION,
+  RECEIVE_OPEN_JOIN_REQUEST_COUNT
 } from './SocketListener.store'
 import orm from 'store/models'
 
@@ -180,5 +181,34 @@ describe('SocketListener.store.ormSessionReducer', () => {
     }
     ormSessionReducer(session, action)
     expect(session.Me.first().newNotificationCount).toBe(3)
+  })
+
+  it('sets openJoinRequestCount from RECEIVE_OPEN_JOIN_REQUEST_COUNT', () => {
+    session.Group.create({
+      id: 'space-1',
+      slug: 'the-space',
+      openJoinRequestCount: 0
+    })
+    session.Group.create({
+      id: 'parent-1',
+      slug: 'parent',
+      groupViews: {
+        items: [{
+          id: 'v1',
+          type: 'space',
+          linkedGroup: { id: 'space-1', slug: 'the-space', openJoinRequestCount: 0 }
+        }]
+      },
+      spaces: {
+        items: [{ id: 'space-1', slug: 'the-space', openJoinRequestCount: 0 }]
+      }
+    })
+    ormSessionReducer(session, {
+      type: RECEIVE_OPEN_JOIN_REQUEST_COUNT,
+      payload: { groupId: 'space-1', openJoinRequestCount: 3 }
+    })
+    expect(session.Group.withId('space-1').openJoinRequestCount).toBe(3)
+    expect(session.Group.withId('parent-1').groupViews.items[0].linkedGroup.openJoinRequestCount).toBe(3)
+    expect(session.Group.withId('parent-1').spaces.items[0].openJoinRequestCount).toBe(3)
   })
 })

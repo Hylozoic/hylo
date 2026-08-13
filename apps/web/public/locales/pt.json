@@ -27,6 +27,7 @@
   "<strong>{{groupName}}</strong> has requested to join <strong>{{otherGroupName}}</strong>": "<strong>{{groupName}}</strong> solicitou para ingressar em <strong>{{otherGroupName}}</strong>",
   "<strong>{{name}}</strong> approved your request to join {{groupName}}": "<strong>{{name}}</strong> aprovou sua solicitação para ingressar em {{groupName}}",
   "<strong>{{name}}</strong> asked to join {{groupName}}": "<strong>{{name}}</strong> pediu para entrar em {{groupName}}",
+  "<strong>{{name}}</strong> asked to join {{spaceName}} in {{groupName}}": "<strong>{{name}}</strong> pediu para entrar em {{spaceName}} em {{groupName}}",
   "<strong>{{name}}</strong> closed your post": "<strong>{{name}}</strong> fechou a sua publicação",
   "<strong>{{name}}</strong> completed the track": "<strong>{{name}}</strong> concluiu a trilha",
   "<strong>{{name}}</strong> contributed to your project": "<strong>{{name}}</strong> contribuiu para o seu projeto",

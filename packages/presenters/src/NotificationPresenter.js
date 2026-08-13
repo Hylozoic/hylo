@@ -171,6 +171,13 @@ export function bodyForNotification (notification, t) {
       return t('<strong>{{name}}</strong> wrote: "{{text}}"', { name, text: postSummary })
     }
     case ACTION_JOIN_REQUEST:
+      if (otherGroup?.name) {
+        return t('<strong>{{name}}</strong> asked to join {{spaceName}} in {{groupName}}', {
+          name,
+          spaceName: group.name,
+          groupName: otherGroup.name
+        })
+      }
       return t('<strong>{{name}}</strong> asked to join {{groupName}}', { name, groupName: group.name })
     case ACTION_APPROVED_JOIN_REQUEST:
       return t('<strong>{{name}}</strong> approved your request to join {{groupName}}', { name, groupName: group.name })

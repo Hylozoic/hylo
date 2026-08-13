@@ -151,8 +151,10 @@ export function refineActivity ({ action, actor, comment, group, post, track, me
 
     case ACTION_JOIN_REQUEST:
       return {
-        body: t('asked to join'),
-        group: group.name,
+        body: otherGroup?.name
+          ? t('asked to join {{spaceName}} in {{groupName}}', { spaceName: group.name, groupName: otherGroup.name })
+          : t('asked to join'),
+        group: otherGroup?.name ? undefined : group.name,
         header: t('New join request'),
         nameInHeader: true,
         onPress: () => openURL(`/groups/${group?.slug}/settings/requests`)

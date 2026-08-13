@@ -22,6 +22,7 @@ const queryFragment = `group(slug: $slug, updateLastViewed: $updateLastViewed) {
     invitePath
     location
     memberCount
+    openJoinRequestCount
     stewardDescriptor
     stewardDescriptorPlural
     name

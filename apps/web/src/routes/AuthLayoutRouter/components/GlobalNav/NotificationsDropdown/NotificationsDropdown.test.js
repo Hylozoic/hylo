@@ -60,6 +60,19 @@ const joinRequestNotification = {
   createdAt: new Date(Date.UTC(1995, 11, 17, 3, 23, 0))
 }
 
+const spaceJoinRequestNotification = {
+  id: 31,
+  activity: {
+    actor: u2,
+    action: ACTION_JOIN_REQUEST,
+    meta: {},
+    group: { name: 'The Space', slug: 'the-space' },
+    otherGroup: { name: 'Foomunity', slug: 'foomunity' },
+    unread: true
+  },
+  createdAt: new Date(Date.UTC(1995, 11, 17, 3, 23, 0))
+}
+
 const approvedJoinRequestNotification = {
   id: 4,
   activity: {
@@ -230,6 +243,13 @@ describe('Notification', () => {
     const { container } = render(<NotificationItem notification={joinRequestNotification} />)
     await waitFor(() => {
       expectItemText(container, /asked to join/i, /Foomunity/i)
+    })
+  })
+
+  it('renders a space join request with the space and parent group names', async () => {
+    const { container } = render(<NotificationItem notification={spaceJoinRequestNotification} />)
+    await waitFor(() => {
+      expectItemText(container, /asked to join/i, /The Space/i, /Foomunity/i)
     })
   })
 

@@ -69,7 +69,9 @@ exports.hi = {
   textForGroupInvitationAccepted: ({ actor, groupName }) => `${actor.get('name')} ने ${groupName} में शामिल होने के आपके निमंत्रण को स्वीकार किया`,
   textForGroupPeerGroupInvite: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} ने आपके समूह ${toGroup.get('name')} को ${fromGroup.get('name')} के साथ सहकर्मी संबंध बनाने के लिए आमंत्रित किया`,
   textForGroupPeerGroupInviteAccepted: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} ने ${fromGroup.get('name')} और ${toGroup.get('name')} के बीच सहकर्मी संबंध स्वीकार किया`,
-  textForJoinRequest: ({ actor, groupName }) => `${actor.get('name')} ने ${groupName} में शामिल होने के लिए कहा`,
+  textForJoinRequest: ({ actor, groupName, parentGroupName }) => parentGroupName
+    ? `${actor.get('name')} ने ${parentGroupName} में ${groupName} में शामिल होने के लिए कहा`
+    : `${actor.get('name')} ने ${groupName} में शामिल होने के लिए कहा`,
   textForMemberJoinedGroup: ({ group, actor }) => `${group.get('name')} में नया सदस्य शामिल हुआ: ${actor.get('name')}`,
   textForPostModeratedFulfillment: ({ post, actor, reason }) => {
     const postName = post.summary()

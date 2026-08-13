@@ -144,10 +144,15 @@ module.exports = bookshelf.Model.extend(Object.assign({
     const gm = await this.forPair(userOrId, groupId).fetch(opts)
     const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, groupId)
 
-    if (gm && !responsibilities.includes(responsibility)) {
+    if (!responsibilities.includes(responsibility)) {
       return false
     }
-    return !!gm
+    if (gm) return true
+
+    // Spaces inherit steward access from parent membership
+    const roleScopeId = await Group.roleScopeId(groupId)
+    if (String(roleScopeId) === String(groupId)) return false
+    return this.hasActiveMembership(userOrId, roleScopeId)
   },
 
   /**

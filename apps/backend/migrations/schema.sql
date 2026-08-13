@@ -1793,6 +1793,7 @@ CREATE TABLE public.groups (
     access_code character varying(255),
     settings jsonb,
     num_members integer,
+    num_open_join_requests integer DEFAULT 0 NOT NULL,
     slack_hook_url text,
     slack_team text,
     slack_configure_url text,
