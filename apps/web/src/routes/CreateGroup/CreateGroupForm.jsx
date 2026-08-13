@@ -235,7 +235,8 @@ function HomeViewPicker ({ value, onChange, customHomeRow }) {
     disabled: option.value === CUSTOM_HOME_VIEW
   }))
 
-  return <SegmentedPicker value={value} onChange={onChange} options={segments} />
+  // Container restyled to read like the Additional settings panels
+  return <SegmentedPicker value={value} onChange={onChange} options={segments} className='rounded-xl border border-foreground/10 bg-foreground/5 p-2' />
 }
 
 const ACCESSIBILITY_OPTIONS = [
@@ -477,6 +478,8 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
 
   const parentGroupOptions = useSelector(state => {
     return currentUser?.memberships.toModelArray()
+      // Spaces are containers inside a group — never candidates to parent a new group
+      .filter(m => m.group.type !== 'space')
       .filter(m => m.group.accessibility === GROUP_ACCESSIBILITY.Open ||
         hasResponsibilityForGroup(state, { groupId: m.group.id, responsibility: RESP_ADMINISTRATION }))
       .map(m => m.group)
@@ -902,10 +905,12 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
         </div>
 
         <div className='mt-5'>
-          <div className='flex items-start justify-between gap-2'>
+          {/* items-end + shared mb: the button's bottom sits level with the subtitle,
+              so both keep the same distance to the container below */}
+          <div className='flex items-end justify-between gap-2 mb-2'>
             <div className='min-w-0'>
               <span className='text-xs font-bold text-foreground/80'>{t("Choose your group's home")}</span>
-              <p className='text-xs text-foreground/60 mt-0.5 mb-2'>{t('Set the default view members see when they enter your group.')}</p>
+              <p className='text-xs text-foreground/60 mt-0.5 mb-0'>{t('Set the default view members see when they enter your group.')}</p>
             </div>
             {!showMenuEditor && (
               <button
