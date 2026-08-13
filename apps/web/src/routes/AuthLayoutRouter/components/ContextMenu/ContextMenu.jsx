@@ -181,14 +181,16 @@ function SpaceMenuItemWithMore ({
           isActive={false}
           className={cn(
             GROUP_VIEW_MENU_ITEM_INNER_LINK_CLASS,
-            'relative z-10',
+            // Shrink to the name so the (i) beside it hugs the title instead of
+            // sitting at the row's far edge
+            'flex-initial min-w-0 relative z-10',
             isSpaceActive
               ? (spaceBannerUrl ? onPhotoLabelClass : activeLabelClass)
               : (spaceBannerUrl ? onPhotoHoverLabelClass : null)
           )}
         >
           <GroupViewIcon view={presentedView} />
-          <TruncatedText className='truncate flex-1' text={displayNameForView(presentedView, t, { spaceGroup })} />
+          <TruncatedText className='truncate min-w-0' text={displayNameForView(presentedView, t, { spaceGroup })} />
           {spaceUnread && <UnreadDot />}
         </MenuLink>
         {aboutUrl && (
@@ -196,15 +198,16 @@ function SpaceMenuItemWithMore ({
             to={aboutUrl}
             isActive={false}
             className={cn(
-              'shrink-0 p-1 pr-1 text-foreground/50 hover:text-foreground border-0 bg-transparent mb-0 rounded-none shadow-none hover:border-0 hover:bg-transparent hover:scale-100',
+              // Faint at rest — it sits right next to the title now
+              'shrink-0 p-1 text-foreground/30 hover:text-foreground/70 border-0 bg-transparent mb-0 rounded-none shadow-none hover:border-0 hover:bg-transparent hover:scale-100',
               'relative z-10',
               // Same reasoning as activeLabelClass — a variant, not the resolved scheme
               isSpaceActive
                 ? (spaceBannerUrl
-                    ? 'text-white/80 hover:text-white'
-                    : 'text-foreground/70 hover:text-foreground dark:text-white/80 dark:hover:text-white')
+                    ? 'text-white/60 hover:text-white'
+                    : 'text-foreground/50 hover:text-foreground dark:text-white/60 dark:hover:text-white')
                 // Rides the same banner fade as the label beside it
-                : (spaceBannerUrl ? 'group-hover:text-white/80 hover:text-white' : null)
+                : (spaceBannerUrl ? 'group-hover:text-white/60 hover:text-white' : null)
             )}
           >
             <Info className='w-4 h-4' aria-hidden='true' />
@@ -214,7 +217,7 @@ function SpaceMenuItemWithMore ({
         {typeof spaceMemberCount === 'number' && (
           <span
             className={cn(
-              'relative z-10 shrink-0 inline-flex items-center gap-0.5 text-xs leading-none rounded-full px-1.5 py-1 mr-1',
+              'relative z-10 shrink-0 inline-flex items-center gap-0.5 text-xs leading-none rounded-full px-1.5 py-1 ml-auto mr-1',
               // Same banner/active color states as the (i) link beside it
               isSpaceActive
                 ? (spaceBannerUrl
