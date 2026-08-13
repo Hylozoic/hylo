@@ -1058,8 +1058,9 @@ export default function ContextMenu (props) {
                     <div
                       style={presentedActiveSpaceView?.avatarUrl ? bgImageStyle(presentedActiveSpaceView.avatarUrl) : {}}
                       className={cn(
-                        // Stretches to the text column's height (name + pills), staying square
-                        'self-stretch h-auto w-auto aspect-square rounded-lg shadow-md bg-cover bg-center relative overflow-hidden shrink-0 flex items-center justify-center',
+                        // Sized to the name + pills column beside it (fixed: a bg-image-only
+                        // box has no intrinsic width for a stretched square to grow from)
+                        'h-[52px] w-[52px] rounded-lg shadow-md bg-cover bg-center relative overflow-hidden shrink-0 flex items-center justify-center',
                         !presentedActiveSpaceView?.avatarUrl && 'bg-theme-background'
                       )}
                     >
