@@ -71,8 +71,10 @@ export default function ChatPostNotice ({ post, highlighted, className }) {
             return (
               <>
                 {before}
-                <span className='inline-flex items-baseline gap-1 whitespace-nowrap' style={{ color: accent }}>
-                  <Icon name={getPostTypeIcon(type)} className='text-sm' />
+                <span className='inline-flex items-center gap-1 whitespace-nowrap align-bottom' style={{ color: accent }}>
+                  {/* leading-none strips the icon font's tall line box so the glyph
+                      truly centers against the word beside it */}
+                  <Icon name={getPostTypeIcon(type)} className='text-sm leading-none' />
                   {postTypeLabel}
                 </span>
                 {after}
