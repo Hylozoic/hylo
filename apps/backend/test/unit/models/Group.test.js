@@ -257,6 +257,86 @@ describe('Group', function () {
     })
   })
 
+  describe('viewPosts', function () {
+    async function fetchViewPostIds (group, userId) {
+      const posts = await group.viewPosts(userId).query(q => {
+        q.join('groups_posts', 'groups_posts.post_id', 'posts.id')
+      }).fetch()
+      return posts.map(p => p.id)
+    }
+
+    it('includes posts from child groups and spaces the user is a member of', async function () {
+      const parent = await factories.group().save()
+      const space = await factories.group({
+        type: 'space',
+        parent_id: parent.id,
+        slug: `space-viewposts-${Date.now()}`
+      }).save()
+      const childGroup = await factories.group().save()
+      await parent.addChild(childGroup)
+
+      const user = await factories.user().save()
+      await parent.addMembers([user.id])
+      await space.addMembers([user.id])
+      await childGroup.addMembers([user.id])
+
+      const parentPost = await factories.post({ user_id: user.id }).save()
+      await parentPost.groups().attach(parent.id)
+      const spacePost = await factories.post({ user_id: user.id }).save()
+      await spacePost.groups().attach(space.id)
+      const childGroupPost = await factories.post({ user_id: user.id }).save()
+      await childGroupPost.groups().attach(childGroup.id)
+
+      const ids = await fetchViewPostIds(parent, user.id)
+      expect(ids).to.include(parentPost.id)
+      expect(ids).to.include(spacePost.id)
+      expect(ids).to.include(childGroupPost.id)
+    })
+
+    it('excludes posts from a child space after the user leaves it', async function () {
+      const parent = await factories.group().save()
+      const space = await factories.group({
+        type: 'space',
+        parent_id: parent.id,
+        slug: `space-viewposts-leave-${Date.now()}`
+      }).save()
+      const user = await factories.user().save()
+      await parent.addMembers([user.id])
+      await space.addMembers([user.id])
+
+      const parentPost = await factories.post({ user_id: user.id }).save()
+      await parentPost.groups().attach(parent.id)
+      const spacePost = await factories.post({ user_id: user.id }).save()
+      await spacePost.groups().attach(space.id)
+
+      await space.removeMembers([user.id])
+
+      const ids = await fetchViewPostIds(parent, user.id)
+      expect(ids).to.include(parentPost.id)
+      expect(ids).to.not.include(spacePost.id)
+    })
+
+    it('excludes posts from a child group after the user leaves it', async function () {
+      const parent = await factories.group().save()
+      const childGroup = await factories.group().save()
+      await parent.addChild(childGroup)
+      const user = await factories.user().save()
+      await parent.addMembers([user.id])
+      await childGroup.addMembers([user.id])
+
+      const parentPost = await factories.post({ user_id: user.id }).save()
+      await parentPost.groups().attach(parent.id)
+      const childGroupPost = await factories.post({ user_id: user.id }).save()
+      await childGroupPost.groups().attach(childGroup.id)
+
+      await childGroup.removeMembers([user.id])
+
+      const ids = await fetchViewPostIds(parent, user.id)
+      expect(ids).to.include(parentPost.id)
+      expect(ids).to.not.include(childGroupPost.id)
+    })
+  })
+
   describe('updateMembers', function() {
     it('updates members', async function() {
       const group = await factories.group().save()

@@ -566,12 +566,15 @@ module.exports = bookshelf.Model.extend(merge({
 
   // The posts to show for a particular user viewing a group's stream or map
   // includes direct posts to this group + posts to child groups (group_relationships)
-  // and child spaces (groups.parent_id) the user is a member of
+  // and child spaces (groups.parent_id) the user is an active member of
   viewPosts (userId) {
     const treeOfGroupsForMember = this.allChildGroups().query(q => {
       q.select('groups.id')
       q.join('group_memberships', 'group_memberships.group_id', 'groups.id')
-      q.where('group_memberships.user_id', userId)
+      q.where({
+        'group_memberships.user_id': userId,
+        'group_memberships.active': true
+      })
     })
 
     // Spaces link via parent_id, not group_relationships (see spaces() / spec §3.4)
@@ -582,7 +585,8 @@ module.exports = bookshelf.Model.extend(merge({
         'groups.parent_id': this.id,
         'groups.type': 'space',
         'groups.active': true,
-        'group_memberships.user_id': userId
+        'group_memberships.user_id': userId,
+        'group_memberships.active': true
       })
     })
 
