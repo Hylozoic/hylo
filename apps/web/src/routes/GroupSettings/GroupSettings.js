@@ -5,6 +5,7 @@ import { push } from 'redux-first-history'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
+import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useIsPhoneViewport from 'hooks/useIsPhoneViewport'
 import AppearanceTab from './AppearanceTab/AppearanceTab'
 import AgreementsTab from './AgreementsTab'
@@ -41,7 +42,19 @@ import {
 // On phone, /settings shows this list-of-categories instead of the default tab content.
 // Tapping a category navigates to /settings/<path>; the back chevron there returns here.
 function PhoneSettingsMenuList ({ items, groupSlug }) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
+  const { setHeaderDetails } = useViewHeader()
+
+  useEffect(() => {
+    setHeaderDetails({
+      title: t('Group Settings'),
+      icon: '',
+      info: '',
+      search: false
+    })
+  }, [setHeaderDetails, t])
+
   return (
     <ul className='flex flex-col gap-2 p-0 m-0 list-none'>
       {items.map(item => (
