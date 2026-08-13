@@ -95,6 +95,15 @@ export default function GroupMenuHeader ({
           compact ? 'opacity-100 cursor-pointer group-hover/menuHeader:opacity-0' : 'opacity-0 pointer-events-none'
         )}
       />
+      {/* Back affordance: sits above the compact gradient (z-30) as a sibling, since
+          the content row's own stacking context caps below it. Clicks fall through
+          to the full-header overlay button, which is the actual Back control. */}
+      {compact && (
+        <ChevronLeft
+          className='absolute left-2 top-1/2 -translate-y-1/2 z-40 w-5 h-5 text-white drop-shadow-md pointer-events-none'
+          aria-hidden='true'
+        />
+      )}
       <div className={cn('absolute top-2 left-2 z-20', controlFade)}>
         <GroupNotificationsPopover group={group} />
       </div>
@@ -110,7 +119,8 @@ export default function GroupMenuHeader ({
           style={group.avatarUrl !== DEFAULT_AVATAR ? bgImageStyle(avatarUrl) : {}}
           className={cn(
             'rounded-lg mr-2 shadow-md bg-cover bg-center relative overflow-hidden shrink-0 transition-all duration-300',
-            compact ? 'h-7 w-7' : 'h-10 w-10',
+            // ml-6 clears the back chevron sitting at the header's left edge
+            compact ? 'h-7 w-7 ml-6' : 'h-10 w-10',
             group.avatarUrl === DEFAULT_AVATAR && 'bg-darkening'
           )}
         >
@@ -180,17 +190,6 @@ export default function GroupMenuHeader ({
           )}
           onClick={() => navigateAndClose(groupUrl(group.slug, 'about', {}))}
         />
-        {/* Sits under the full-header overlay button (same action), so it reads as
-            the control while the whole ducked header stays the actual click target */}
-        {compact && (
-          <span
-            className='shrink-0 ml-2 inline-flex items-center gap-0.5 text-xs font-semibold rounded-md border border-white/25 bg-black/25 text-white/90 px-2 py-1 backdrop-blur-sm transition-colors group-hover/menuHeader:bg-black/40 group-hover/menuHeader:text-white'
-            aria-hidden='true'
-          >
-            <ChevronLeft className='w-3.5 h-3.5' />
-            {t('Back')}
-          </span>
-        )}
       </div>
     </div>
   )
