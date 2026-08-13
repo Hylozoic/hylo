@@ -5,6 +5,24 @@ import {
   collectSpaceGroupsFromGroupsQuery
 } from 'store/util/extractNestedGroups'
 
+export const groupsMenuDataExtractModel = [
+  {
+    getRoot: get('groups'),
+    modelName: 'Group',
+    append: true
+  },
+  {
+    getRoot: data => collectLinkedGroupsFromGroupsQuery(get('groups', data)),
+    modelName: 'Group',
+    append: true
+  },
+  {
+    getRoot: data => collectSpaceGroupsFromGroupsQuery(get('groups', data)),
+    modelName: 'Group',
+    append: true
+  }
+]
+
 // Fetches context menu data for a batch of groups.
 // Preloads groupViews, spaces, and legacy contextWidgets so group menus render
 // immediately when switching groups, without waiting for per-group fetches.
@@ -20,23 +38,8 @@ export default function fetchGroupsMenuData (groupIds) {
       }
     },
     meta: {
-      extractModel: [
-        {
-          getRoot: get('groups'),
-          modelName: 'Group',
-          append: true
-        },
-        {
-          getRoot: data => collectLinkedGroupsFromGroupsQuery(get('groups', data)),
-          modelName: 'Group',
-          append: true
-        },
-        {
-          getRoot: data => collectSpaceGroupsFromGroupsQuery(get('groups', data)),
-          modelName: 'Group',
-          append: true
-        }
-      ]
+      groupIds,
+      extractModel: groupsMenuDataExtractModel
     }
   }
 }

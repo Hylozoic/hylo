@@ -291,7 +291,12 @@ export default function ChatRoom (props) {
         // Same re-check as prepend path — switch room before the microtask runs.
         if (epoch !== chatListEpochRef.current) return
         if (offset === 0) {
-          messageListRef.current?.data.append(newPosts, { index: 'LAST', align: 'end' })
+          // append's 2nd arg is scroll behavior or a callback — not ItemLocation (plain object becomes invalid `behavior`)
+          messageListRef.current?.data.append(newPosts, () => ({
+            index: 'LAST',
+            align: 'end',
+            behavior: 'auto'
+          }))
         } else {
           messageListRef.current?.data.append(newPosts)
         }

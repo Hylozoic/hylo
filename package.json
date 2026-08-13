@@ -28,6 +28,7 @@
   },
   "packageManager": "yarn@4.9.2",
   "devDependencies": {
+    "@babel/preset-typescript": "^7.26.0",
     "@types/jest": "^30.0.0",
     "standard": "^17.1.2",
     "ts-jest": "^29.4.0",

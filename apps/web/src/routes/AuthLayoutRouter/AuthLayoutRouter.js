@@ -12,6 +12,7 @@ import {
 } from 'util/textSelectionTouch'
 import mixpanel from 'mixpanel-browser'
 import config, { isDev, isTest } from 'config/index'
+import { mobileAuthBreadcrumb, mobileAuthReport, mobileAuthStuck, scheduleMobileAuthStuckReports } from 'util/mobileAuthTrace'
 import CookieConsentLinker from 'components/CookieConsentLinker'
 import ContextMenu from './components/ContextMenu'
 import CreateModal from 'components/CreateModal'
@@ -36,6 +37,8 @@ import fetchPost from 'store/actions/fetchPost'
 import fetchGroupsMenuData from 'store/actions/fetchGroupsMenuData'
 import fetchThreads from 'store/actions/fetchThreads'
 import getMe from 'store/selectors/getMe'
+import { getBootstrappedFromCheckLogin } from 'store/selectors/getBootstrap'
+import { getAuthSessionUnknown } from 'store/selectors/getAuthSession'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMyMemberships from 'store/selectors/getMyMemberships'
 import getMyGroupMembership from 'store/selectors/getMyGroupMembership'
@@ -232,6 +235,8 @@ export default function AuthLayoutRouter (props) {
   const memberships = useSelector(getMyMemberships)
   const returnToPath = useSelector(getReturnToPath)
   const signupInProgress = useSelector(getSignupInProgress)
+  const bootstrappedFromCheckLogin = useSelector(getBootstrappedFromCheckLogin)
+  const isAuthSessionUnknown = useSelector(getAuthSessionUnknown)
 
   // Stable key for preload effect deps — getMyMemberships returns a new array reference on
   // every ORM update, which would otherwise reset the 4.5s timer indefinitely.
@@ -244,7 +249,7 @@ export default function AuthLayoutRouter (props) {
       .join(',')
   ), [memberships])
 
-  const [currentUserLoading, setCurrentUserLoading] = useState(true)
+  const [currentUserLoading, setCurrentUserLoading] = useState(() => !getMe(store.getState()))
   const [currentGroupLoading, setCurrentGroupLoading] = useState(false)
 
   // Refs for mobile nav drawer animation
@@ -548,18 +553,23 @@ export default function AuthLayoutRouter (props) {
   // hylo-fetch-for-group) and Network (GraphQL response sizes). Compare before/after deploy.
   useEffect(() => {
     (async function () {
+      if (isAuthSessionUnknown) return
+
       if (isDev) performance.mark('hylo-auth-bootstrap-start')
       let bootstrapOk = false
       try {
-        // Parallelise the two independent bootstrap fetches.
-        // If the initial URL contains a post ID, race fetchPost alongside them
-        // so the post data is ready (or nearly ready) by the time the auth shell renders.
         const bootstrapFetches = [
-          dispatch(fetchForCurrentUser()),
+          ...(bootstrappedFromCheckLogin ? [] : [dispatch(fetchForCurrentUser())]),
           ...(paramPostId ? [dispatch(fetchPost(paramPostId))] : [])
         ]
-        await Promise.all(bootstrapFetches)
-        bootstrapOk = true
+        if (bootstrapFetches.length === 0) {
+          bootstrapOk = true
+          mobileAuthBreadcrumb('auth bootstrap skipped fetchForCurrentUser (checkLogin fan-out)')
+        } else {
+          await Promise.all(bootstrapFetches)
+          bootstrapOk = true
+          mobileAuthBreadcrumb('auth bootstrap fetchForCurrentUser ok')
+        }
         if (isDev) {
           performance.mark('hylo-auth-bootstrap-end')
           try {
@@ -571,6 +581,7 @@ export default function AuthLayoutRouter (props) {
       } catch (e) {
         const detail = e?.message || (Array.isArray(e) ? JSON.stringify(e) : String(e))
         console.error('[Hylo auth bootstrap] failed', detail, e)
+        mobileAuthStuck('[Hylo auth bootstrap] failed', { detail })
       } finally {
         setCurrentUserLoading(false)
       }
@@ -589,7 +600,23 @@ export default function AuthLayoutRouter (props) {
     }
     document.addEventListener('visibilitychange', handleVisibilityChange)
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
-  }, [])
+  }, [dispatch, isAuthSessionUnknown, bootstrappedFromCheckLogin, paramPostId])
+
+  useEffect(() => {
+    if (!window.HyloMobileV2 || !currentUserLoading) return
+    mobileAuthBreadcrumb('auth bootstrap loading screen visible')
+
+    const isActive = () => currentUserLoading
+
+    const report = () => {
+      if (!currentUserLoading) return
+      mobileAuthReport('WebView auth still loading (AuthLayoutRouter bootstrap)', {
+        currentUserLoading: true
+      })
+    }
+
+    return scheduleMobileAuthStuckReports(isActive, report)
+  }, [currentUserLoading])
 
   // If the user turns stack-groups on after a flat MeQuery load, refetch so childGroups are available.
   useEffect(() => {

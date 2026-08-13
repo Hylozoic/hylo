@@ -11,6 +11,7 @@ import { CookieConsentProvider } from 'contexts/CookieConsentContext'
 import CookiePreferencesPanel from 'components/CookiePreferencesPanel'
 import store, { history } from '../store'
 import RootRouter from 'routes/RootRouter'
+import RehydrationGate from 'components/RehydrationGate/RehydrationGate'
 
 // same configuration you would create for the Rollbar.js SDK
 // const rollbarConfig = {
@@ -42,7 +43,9 @@ export default function App () {
             <ViewHeaderProvider>
               <DropdownProvider>
                 <Router history={history}>
-                  <RootRouter />
+                  <RehydrationGate>
+                    <RootRouter />
+                  </RehydrationGate>
                   <CookiePreferencesPanel />
                 </Router>
               </DropdownProvider>

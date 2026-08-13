@@ -16,7 +16,9 @@ Web integration points (same plumbing as the old Rollbar client):
 - Socket subscribe failures (`SocketListener`, `SocketSubscriber`)
 - User context after `FETCH_FOR_CURRENT_USER` (`AuthLayoutRouter.store.js`)
 
-Web reporting is **errors only** (`tracesSampleRate: 0`). No performance tracing unless we change that deliberately.
+**Production web:** errors only (`tracesSampleRate: 0`).
+
+**Staging / review web** (`VITE_SENTRY_DEBUG=true`): same gate turns on **browser performance tracing** (pageload Web Vitals, fetch/GraphQL child spans when sampled). See [Performance tracing](#performance-tracing-web) below.
 
 If `VITE_SENTRY_DSN` is missing on a web build, the reporter stays disabled and errors fall back to `console.error` (no Sentry traffic).
 
@@ -46,6 +48,8 @@ When set at build time:
 
 Use on staging and review apps; leave unset or `false` on production web unless you are doing a short, intentional debug window.
 
+When `VITE_SENTRY_DEBUG` is on, web init also enables `browserTracingIntegration()` and sets `tracesSampleRate` (default **1**; override with `VITE_SENTRY_TRACES_SAMPLE_RATE` e.g. `0.2` if quota is a concern). Console: `__hyloSentryStatus.tracing` after load.
+
 ### Mobile: `AUTH_DEBUG=true`
 
 Set in `apps/mobile/.env` (or Bitrise env) **before** building. Not a Sentry env var, but it feeds Sentry on staging builds:
@@ -55,6 +59,52 @@ Set in `apps/mobile/.env` (or Bitrise env) **before** building. Not a Sentry env
 - `webviewDebuggingEnabled` on `HyloWebView` (Safari Web Inspector / Chrome remote debug on physical devices)
 
 Do **not** enable `AUTH_DEBUG` on production store builds.
+
+### Mobile: WebView auth handshake telemetry (automatic on staging API)
+
+When `API_HOST` contains `staging` (typical Bitrise review/staging builds), native code emits low-volume Sentry messages tagged `[auth-handshake]` for:
+
+- `session/from-token` success/failure
+- Cookie bridge, `VERIFY_AUTH`, `SESSION_READY`, `AUTH_SUCCESS`, `LOGOUT`, `WEB_BOOT`
+- `PrimaryWebView` loading overlay at 5s / 15s / 30s
+
+Same events also fire when `AUTH_DEBUG=true`. **Prod API + App Store builds** do not emit these unless `AUTH_DEBUG` is set.
+
+On the **web** side (WebView JS), `mobileAuthReport` fires immediately when a stall starts, then every 5s / 10s while `RootRouter` or `AuthLayoutRouter` is waiting on auth/bootstrap. Search Sentry for `WebView auth still loading` or `VERIFY_AUTH sent to native`.
+
+---
+
+## Performance tracing (web)
+
+Tracing is **off** unless `VITE_SENTRY_DSN` is set **and** `VITE_SENTRY_DEBUG=true` (staging / review). Production keeps `tracesSampleRate: 0` even when DSN is set.
+
+### What you get today (automatic)
+
+With debug + tracing on, Sentry Performance receives:
+
+| Signal | Source |
+|--------|--------|
+| Pageload transaction | `browserTracingIntegration` — TTFB, FCP, LCP, INP (as supported by SDK) |
+| `/noo/graphql` fetch spans | Same integration + `tracePropagationTargets` |
+| Standalone browser vs WebView | Filter `mobileWebView:true` / `nativeSessionId` on transactions (tags set at init) |
+
+Open **Performance → Web Vitals** or **Traces**, filter `environment:staging` or `environment:reviewApp`.
+
+### Options to go further (not all implemented)
+
+| Approach | Effort | Best for |
+|----------|--------|----------|
+| **A. Automatic browser tracing** (current when debug on) | Low | Cold load, GraphQL waterfall on pageload |
+| **B. Custom boot spans** | Low | Auth/bootstrap phases — `withBootSpan('checkLoginAndBootstrap', …)` in `RootRouter` / `AuthLayoutRouter` (`client/errorReporter.js`) |
+| **C. React Router v6 tracing** | Medium | Per-route navigations after first paint — `reactRouterV6BrowserTracingIntegration` wired where `HistoryRouter` is created |
+| **D. Manual transactions** | Medium | One “WebView boot” transaction from first script to `hasLoadedUser` — `Sentry.startInactiveSpan` + end when auth layout ready |
+| **E. Session Replay** | Medium / quota | Reproduce UX stalls alongside traces — `replayIntegration()`; usually sample lower than traces |
+| **F. DevTools only** | None | `performance.mark('hylo-auth-bootstrap')` in `AuthLayoutRouter` (already in dev); no Sentry quota |
+| **G. Native mobile tracing** | Separate | `@sentry/react-native` `tracesSampleRate` gated on `AUTH_DEBUG` or `onStagingAPI` — correlates with WebView via `nativeSessionId` |
+
+**Quota tips:** On review apps with few users, `VITE_SENTRY_TRACES_SAMPLE_RATE=1` is fine. For staging with real traffic, try `0.1`–`0.3`. Use Sentry’s inbound filters or `tracesSampler` in code if you need “always sample WebView, rarely sample desktop”.
+
+**Boot work specifically:** Combine **A + B** — automatic pageload plus named spans for `checkLogin`, `fetchForCurrentUser`, and first group fetch so the Performance waterfall shows auth vs network vs render without enabling full session replay.
 
 ---
 
@@ -146,6 +196,7 @@ Typical workflow: deploy review web with DSN + debug flags → install staging B
 | `VITE_SENTRY_DSN` | ✓ | ✓ | ✓ |
 | `VITE_SENTRY_ENV` | `staging` | `reviewApp` | `production` |
 | `VITE_SENTRY_DEBUG` | `true` | `true` | off |
+| `VITE_SENTRY_TRACES_SAMPLE_RATE` | optional (default `1` when debug on) | optional | off |
 
 | | Staging / review mobile | Production mobile |
 |--|-------------------------|-------------------|

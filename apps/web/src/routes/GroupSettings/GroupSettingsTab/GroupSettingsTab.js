@@ -12,7 +12,7 @@ import Loading from 'components/Loading'
 import { ImageUp, Info } from 'lucide-react'
 import { CUSTOM_VIEW_DEFAULT_POST_TYPES } from 'components/CustomViewForm/customViewFormConstants'
 import { ensureLocationIdIfCoordinate } from 'components/LocationInput/LocationInput.store'
-import EditableMap from 'components/Map/EditableMap/EditableMap'
+import LazyEditableMap from 'components/Map/EditableMap/LazyEditableMap'
 import EditableMapModal from 'components/Map/EditableMap/EditableMapModal'
 import PostTypePills from 'components/PostTypePills/PostTypePills'
 import SettingsControl from 'components/SettingsControl'
@@ -241,7 +241,7 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
           {state.isModal
             ? (
               <EditableMapModal group={group} toggleModal={toggleModal}>
-                <EditableMap
+                <LazyEditableMap
                   locationObject={editableMapLocation}
                   polygon={geoShape}
                   savePolygon={savePolygon}
@@ -250,7 +250,7 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
               </EditableMapModal>
               )
             : (
-              <EditableMap
+              <LazyEditableMap
                 locationObject={editableMapLocation}
                 polygon={geoShape}
                 savePolygon={savePolygon}
