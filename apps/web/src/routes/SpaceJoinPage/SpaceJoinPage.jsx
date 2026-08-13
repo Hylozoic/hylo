@@ -61,12 +61,11 @@ export default function SpaceJoinPage () {
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
     setHeaderDetails({
-      title: spaceGroup?.name || t('Join Space'),
+      title: '',
       icon: '',
-      search: false,
-      spaceBreadcrumb: false
+      search: false
     })
-  }, [spaceGroup?.name, setHeaderDetails, t])
+  }, [setHeaderDetails])
 
   // Required roles are role ids from the parent group — a Space's access is gated by
   // roles the user holds in the parent, not roles on the space itself.
