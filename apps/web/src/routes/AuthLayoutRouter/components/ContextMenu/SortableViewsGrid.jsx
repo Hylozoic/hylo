@@ -16,9 +16,11 @@ import {
   sortableKeyboardCoordinates,
   useSortable
 } from '@dnd-kit/sortable'
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
+import { addQuerystringToPath, localSpaceSlug, spaceUrl } from '@hylo/navigation'
 
 import { canHardDeleteView, viewAcceptedByPostTypes } from 'store/models/GroupView'
 import { mergeOrderedViewsFromSource, sortViewsByMenuOrder } from 'store/util/groupViewsOrder'
@@ -27,6 +29,7 @@ import { cn } from 'util/index'
 import GroupViewCard, { CardEditActions } from './GroupViewCard'
 import { CARD_SIZE_CLASS } from './viewCardTheme'
 import { useCommitViewOrder } from './useViewReorder'
+import useFlashAddedItems, { MENU_FLASH_CLASS } from './useFlashAddedItems'
 
 // Mouse drags start as soon as the pointer travels a few pixels. Touch needs the
 // hold instead, because a finger moving over a card is a scroll until proven
@@ -126,13 +129,14 @@ function FullWidthRow ({ view, spaceGroup, t }) {
  * anywhere on the card starts the drag; the toolbar stops pointerdown so its
  * buttons stay clickable instead of becoming drag handles.
  */
-const SortableViewItem = React.memo(function SortableViewItem ({ view, spaceGroup, onOpenSettings, onDelete, t }) {
+const SortableViewItem = React.memo(function SortableViewItem ({ view, spaceGroup, onOpenSettings, onDelete, onEditSpaceMenu, t, isFlashing = false }) {
   const presented = useMemo(() => GroupViewPresenter(view), [view])
   const isFullWidth = presented.type === 'text' || presented.type === 'separator'
   const { attributes, listeners, setNodeRef, isDragging, isSorting } = useSortable({
     id: String(view.id),
     disabled: !view.id
   })
+  const canEditSpaceMenu = presented.type === 'space' && presented.linkedGroup?.slug && onEditSpaceMenu
 
   return (
     <div
@@ -149,12 +153,15 @@ const SortableViewItem = React.memo(function SortableViewItem ({ view, spaceGrou
         // The wrapper carries the card footprint so the card's sub-sm percentage
         // width has a sized parent to resolve against
         isFullWidth ? 'w-full' : CARD_SIZE_CLASS,
+        !isFullWidth && 'rounded-2xl',
         isDragging && 'cursor-grabbing',
         // Cards animate a translate on hover (transition-all); a card reflowing
         // under the stationary pointer mid-drag would trigger it and jitter the
         // rects the collision math depends on. No pointer events, no hover.
-        isSorting && '[&_*]:pointer-events-none'
+        isSorting && '[&_*]:pointer-events-none',
+        isFlashing && MENU_FLASH_CLASS
       )}
+      data-menu-flash={isFlashing ? String(view.id) : undefined}
       {...attributes}
       {...listeners}
     >
@@ -163,8 +170,10 @@ const SortableViewItem = React.memo(function SortableViewItem ({ view, spaceGrou
         : <GroupViewCard view={view} isEditing renderEditActions={false} />}
       <CardEditActions
         onOpenSettings={onOpenSettings ? () => onOpenSettings(view) : null}
+        onEditMenu={canEditSpaceMenu ? () => onEditSpaceMenu(view) : null}
         onDelete={onDelete && canHardDeleteView(view) ? () => onDelete(view) : null}
         settingsLabel={t('Settings')}
+        editMenuLabel={t('Edit space menu')}
         deleteLabel={t('Delete')}
       />
     </div>
@@ -186,6 +195,7 @@ export default function SortableViewsGrid ({
   onDelete
 }) {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const commitOrder = useCommitViewOrder(group)
   const acceptedPostTypes = (spaceGroup || group)?.acceptedPostTypes
   // Match live menu: hide typed views that the group/space no longer accepts.
@@ -211,6 +221,19 @@ export default function SortableViewsGrid ({
   )
 
   const ids = useMemo(() => orderedViews.map(v => String(v.id)), [orderedViews])
+  const flashingIds = useFlashAddedItems(orderedViews)
+
+  /** Open this space's card menu in edit mode (one-column counterpart of the sidebar pencil). */
+  const handleEditSpaceMenu = useCallback((view) => {
+    const space = view?.linkedGroup
+    const groupSlug = group?.slug
+    if (!groupSlug || !space?.slug) return
+    navigate(addQuerystringToPath(
+      spaceUrl(groupSlug, localSpaceSlug(groupSlug, space.slug)),
+      { edit: 'true' }
+    ))
+  }, [navigate, group?.slug])
+
   const [activeId, setActiveId] = useState(null)
   const activeView = useMemo(
     () => orderedViews.find(v => String(v.id) === activeId) || null,
@@ -315,7 +338,9 @@ export default function SortableViewsGrid ({
               spaceGroup={spaceGroup}
               onOpenSettings={onOpenSettings}
               onDelete={onDelete}
+              onEditSpaceMenu={handleEditSpaceMenu}
               t={t}
+              isFlashing={flashingIds.has(String(view.id))}
             />
           ))}
         </div>

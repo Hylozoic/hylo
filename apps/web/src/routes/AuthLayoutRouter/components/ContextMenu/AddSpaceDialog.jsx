@@ -17,7 +17,7 @@ import PostTypePills from 'components/PostTypePills/PostTypePills'
 import TagInput from 'components/TagInput'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import { CUSTOM_VIEW_DEFAULT_POST_TYPES, CUSTOM_VIEW_POST_TYPE_OPTIONS } from 'components/CustomViewForm/customViewFormConstants'
-import { addQuerystringToPath, groupUrl, localSpaceSlug } from '@hylo/navigation'
+import { addQuerystringToPath, groupUrl, localSpaceSlug, spaceUrl } from '@hylo/navigation'
 import { createSpace, createGroupView } from 'store/actions/groupViews'
 import fetchForCurrentUser from 'store/actions/fetchForCurrentUser'
 import fetchForGroup from 'store/actions/fetchForGroup'
@@ -305,15 +305,14 @@ export default function AddSpaceDialog ({ group, onClose, addToMenu = true }) {
         addToMenu === false && group?.slug ? dispatch(fetchForGroup(group.slug)) : Promise.resolve()
       ])
       onClose()
-      // Two-column: open the new space's more-views so its included views can be
-      // edited in the center column. One-column: the space is already on the menu
-      // grid — stay there.
-      if (isOneColumn) return
+      // Open the new space's menu in edit mode so included views can be arranged.
+      // Two-column: more-views with the space drilled in (sidebar stays the space menu).
+      // One-column: the space's own card-menu grid.
       if (newSpace?.slug && group?.slug) {
-        navigate(addQuerystringToPath(groupUrl(group.slug, 'more-views'), {
-          edit: 'true',
-          space: localSpaceSlug(group.slug, newSpace.slug)
-        }))
+        const local = localSpaceSlug(group.slug, newSpace.slug)
+        navigate(isOneColumn
+          ? addQuerystringToPath(spaceUrl(group.slug, local), { edit: 'true' })
+          : addQuerystringToPath(groupUrl(group.slug, 'more-views'), { edit: 'true', space: local }))
       } else {
         navigate(addQuerystringToPath(routerLocation.pathname, { edit: 'true' }))
       }

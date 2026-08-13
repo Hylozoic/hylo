@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Info, Loader2, Plus, Settings, Trash2 } from 'lucide-react'
+import { Info, Loader2, Pencil, Plus, Settings, Trash2 } from 'lucide-react'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 
 import LucideIcon from 'components/LucideIcon/LucideIcon'
@@ -38,11 +38,11 @@ import {
 const CARD_ACTION_BTN = 'p-1.5 rounded-md bg-background/90 text-foreground/60 hover:text-foreground pointer-events-auto cursor-pointer'
 
 /**
- * Edit-mode toolbar in the top-right of a card: +, gear, delete.
+ * Edit-mode toolbar in the top-right of a card: +, gear, pencil (spaces), delete.
  * Stops pointerdown so that when the card itself is a drag handle, pressing a
  * button doesn't begin a drag instead of clicking.
  */
-export function CardEditActions ({ onAddToMenu, onOpenSettings, onDelete, addLabel, settingsLabel, deleteLabel }) {
+export function CardEditActions ({ onAddToMenu, onOpenSettings, onEditMenu, onDelete, addLabel, settingsLabel, editMenuLabel, deleteLabel }) {
   return (
     <div
       className='absolute top-2 right-2 z-10 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none'
@@ -82,6 +82,24 @@ export function CardEditActions ({ onAddToMenu, onOpenSettings, onDelete, addLab
             </button>
           </TooltipTrigger>
           <TooltipContent>{settingsLabel}</TooltipContent>
+        </Tooltip>
+      )}
+      {onEditMenu && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type='button'
+              onClick={(e) => {
+                e.stopPropagation()
+                onEditMenu()
+              }}
+              className={CARD_ACTION_BTN}
+              aria-label={editMenuLabel}
+            >
+              <Pencil className='w-4 h-4' />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>{editMenuLabel}</TooltipContent>
         </Tooltip>
       )}
       {onDelete && (
