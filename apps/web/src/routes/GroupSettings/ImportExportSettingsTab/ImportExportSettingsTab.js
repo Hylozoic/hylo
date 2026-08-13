@@ -18,11 +18,11 @@ function ImportExportSettingsTab ({ group }) {
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
     setHeaderDetails({
-      title: 'Group Settings > Import Posts by CSV',
+      title: t('Group Settings > Import Posts by CSV'),
       icon: 'Settings',
       info: ''
     })
-  }, [])
+  }, [t])
 
   return (
     <div>
