@@ -316,7 +316,9 @@ export function SignupSetLocationScreen () {
         {locationObject?.fullText || '(None selected)'}
       </Text>
       {!locationObject?.fullText && (
-        <LocationSelector onSelect={setLocationObject} />
+        <View className='flex-1'>
+          <LocationSelector onSelect={setLocationObject} />
+        </View>
       )}
     </SignupFlowLayout>
   )

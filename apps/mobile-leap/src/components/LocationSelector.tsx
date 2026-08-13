@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ActivityIndicator, FlatList, Pressable, Text, TextInput, View } from 'react-native'
+import { useCallback, useEffect, useState } from 'react'
+import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { isEmpty } from 'lodash/fp'
 import { LocationHelpers } from '@hylo/shared'
@@ -17,14 +17,23 @@ type LocationItem = {
 
 async function locationSearch (searchTerm: string, proximity: string) {
   const coordinate = LocationHelpers.parseCoordinate(searchTerm).coordinate
-  const mapboxLocations = coordinate
-    ? await fetchMapboxLocations(`${coordinate.lng},${coordinate.lat}`)
-    : await fetchMapboxLocations(searchTerm, { proximity })
+  let locations: LocationItem[] = []
 
-  const locations: LocationItem[] = (mapboxLocations.features ?? []).map((feature: Parameters<typeof convertMapboxToLocation>[0]) => ({
-    ...convertMapboxToLocation(feature),
-    id: feature.id
-  }))
+  try {
+    const mapboxLocations = coordinate
+      ? await fetchMapboxLocations(`${coordinate.lng},${coordinate.lat}`)
+      : await fetchMapboxLocations(searchTerm, { proximity })
+
+    locations = (mapboxLocations.features ?? []).flatMap((feature: Parameters<typeof convertMapboxToLocation>[0]) => {
+      try {
+        return [{ ...convertMapboxToLocation(feature), id: feature.id }]
+      } catch {
+        return []
+      }
+    })
+  } catch (error) {
+    console.warn('Mapbox location search failed:', error)
+  }
 
   if (coordinate) {
     locations.unshift({ center: { lat: coordinate.lat, lng: coordinate.lng }, fullText: coordinate.string })
@@ -60,7 +69,7 @@ function LocationRow ({
   }
 
   return (
-    <Pressable className='border-t border-selected/30 px-3 py-3' onPress={handlePress}>
+    <Pressable className='border-t border-selected/20 px-3 py-3' onPress={handlePress}>
       <Text className='text-base text-selected'>
         {isGeocoded ? item.fullText : `Use "${item.fullText}" (without mapping)`}
       </Text>
@@ -70,11 +79,15 @@ function LocationRow ({
 
 export default function LocationSelector ({ onSelect }: LocationSelectorProps) {
   const { t } = useTranslation()
-  const [, getLocation] = useCurrentLocation()
+  const [{ currentLocation }, getLocation] = useCurrentLocation()
   const [searchTerm, setSearchTerm] = useState('')
   const [debouncedTerm, setDebouncedTerm] = useState('')
   const [locations, setLocations] = useState<LocationItem[]>([])
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    getLocation()
+  }, [getLocation])
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedTerm(searchTerm.trim()), 300)
@@ -89,7 +102,6 @@ export default function LocationSelector ({ onSelect }: LocationSelectorProps) {
 
     setLoading(true)
     try {
-      const currentLocation = await getLocation()
       const proximity = currentLocation?.coords
         ? `${currentLocation.coords.longitude},${currentLocation.coords.latitude}`
         : '0,0'
@@ -97,39 +109,37 @@ export default function LocationSelector ({ onSelect }: LocationSelectorProps) {
       setLocations(results)
     } catch (error) {
       console.warn('Location search failed:', error)
-      setLocations([])
+      setLocations([{ id: PLAIN_TEXT_LOCATION_ID, fullText: term }])
     } finally {
       setLoading(false)
     }
-  }, [getLocation])
+  }, [currentLocation])
 
   useEffect(() => {
     fetchLocations(debouncedTerm)
   }, [debouncedTerm, fetchLocations])
 
-  const listHeader = useMemo(() => (
-    <TextInput
-      className='rounded-2xl bg-white/80 px-4 py-3 text-base text-selected'
-      placeholder={t('Search for your location')}
-      placeholderTextColor='#33D08999'
-      value={searchTerm}
-      onChangeText={setSearchTerm}
-      autoCapitalize='none'
-      autoCorrect={false}
-    />
-  ), [searchTerm, t])
-
   return (
-    <View>
-      {listHeader}
-      {loading && <ActivityIndicator style={{ marginVertical: 16 }} color='#fff' />}
-      <FlatList
-        data={locations}
-        keyExtractor={(item, index) => `${item.id ?? item.fullText}-${index}`}
-        renderItem={({ item }) => <LocationRow item={item} onPress={onSelect} />}
-        keyboardShouldPersistTaps='handled'
-        style={{ maxHeight: 280 }}
+    <View className='rounded-2xl bg-white/80 p-2'>
+      <TextInput
+        className='rounded-xl bg-white px-4 py-3 text-base text-selected'
+        placeholder={t('Search for your location')}
+        placeholderTextColor='#33D08999'
+        value={searchTerm}
+        onChangeText={setSearchTerm}
+        autoCapitalize='none'
+        autoCorrect={false}
       />
+      {loading && <ActivityIndicator style={{ marginVertical: 12 }} color='#33D089' />}
+      <ScrollView keyboardShouldPersistTaps='handled' style={{ maxHeight: 280 }} nestedScrollEnabled>
+        {locations.map((item, index) => (
+          <LocationRow
+            key={`${item.id ?? item.fullText}-${index}`}
+            item={item}
+            onPress={onSelect}
+          />
+        ))}
+      </ScrollView>
     </View>
   )
 }

@@ -1,6 +1,6 @@
 import { MAPBOX_TOKEN } from 'config'
 
-const MAPBOX_GEOCODING_API_URL = 'https://api.mapbox.com/geocoding/v5/mapbox.places'
+const MAPBOX_GEOCODING_API_URL = 'https://api.tiles.mapbox.com/geocoding/v5/mapbox.places'
 const DEFAULT_PROXIMITY = '0,0'
 
 export async function fetchMapboxLocations (
@@ -19,6 +19,7 @@ export async function fetchMapboxLocations (
   let uri
   if (searchTerm) {
     uri = `${MAPBOX_GEOCODING_API_URL}/${encodeURIComponent(searchTerm)}.json?access_token=${MAPBOX_TOKEN}` +
+      `&autocomplete=true` +
       (proximity ? `&proximity=${proximity}` : '') +
       (bbox ? `&bbox=${bbox}` : '') +
       (types ? `&types=${encodeURIComponent(types)}` : '')
@@ -31,12 +32,16 @@ export async function fetchMapboxLocations (
   const response = await fetch(uri, {
     method: 'GET',
     headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json'
+      Accept: 'application/json'
     }
   })
 
-  return response.json()
+  const payload = await response.json()
+  if (!response.ok) {
+    throw new Error(payload?.message || `Mapbox geocoding failed (${response.status})`)
+  }
+
+  return payload
 }
 
 export function convertMapboxToLocation (mapboxResult: {
@@ -57,9 +62,10 @@ export function convertMapboxToLocation (mapboxResult: {
   const regionObject = context?.find(c => c.id.includes('region'))
   const countryObject = context?.find(c => c.id.includes('country'))
 
+  const placeType = mapboxResult.place_type?.[0]
   const city = placeObject
     ? placeObject.text
-    : mapboxResult.place_type[0] === 'place'
+    : placeType === 'place'
       ? mapboxResult.text
       : ''
 
@@ -68,7 +74,7 @@ export function convertMapboxToLocation (mapboxResult: {
   if (mapboxResult.properties?.address) {
     addressNumber = mapboxResult.properties.address.split(' ')[0]
     addressStreet = mapboxResult.properties.address.split(' ')[1] ?? ''
-  } else if (mapboxResult.place_type[0] === 'address') {
+  } else if (placeType === 'address') {
     addressStreet = mapboxResult.text
     addressNumber = mapboxResult.address ?? ''
   }
