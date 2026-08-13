@@ -1,4 +1,4 @@
-import { Info, Settings, Users } from 'lucide-react'
+import { ChevronLeft, Info, Settings, Users } from 'lucide-react'
 import React, { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
@@ -72,11 +72,11 @@ export default function GroupMenuHeader ({
   return (
     <div
       className={cn(
-        'GroupMenuHeader group/menuHeader relative flex flex-col justify-end p-2 bg-cover shadow-md transition-[height] duration-300 ease-out',
+        'GroupMenuHeader group/menuHeader relative flex flex-col p-2 bg-cover shadow-md transition-[height] duration-300 ease-out',
         // min-h: names too long even for the banner grow the header rather
         // than clipping; justify-end keeps the extra lines eating upward into
-        // the banner space first
-        compact ? 'h-12 hover:h-14' : 'min-h-[190px]'
+        // the banner space first. Compact centers its single row instead.
+        compact ? 'h-12 hover:h-14 justify-center' : 'min-h-[190px] justify-end'
       )}
       data-testid='group-header'
     >
@@ -105,7 +105,7 @@ export default function GroupMenuHeader ({
           </button>
         </div>
       )}
-      <div className='relative flex flex-row items-start text-background z-20'>
+      <div className={cn('relative flex flex-row text-background z-20', compact ? 'items-center' : 'items-start')}>
         <div
           style={group.avatarUrl !== DEFAULT_AVATAR ? bgImageStyle(avatarUrl) : {}}
           className={cn(
@@ -171,14 +171,26 @@ export default function GroupMenuHeader ({
         </div>
         <Info
           className={cn(
-            `text-${textColor} cursor-pointer w-[20px] h-[20px] shrink-0 text-white hover:scale-110 transition-all`,
+            `text-${textColor} cursor-pointer h-[20px] shrink-0 text-white hover:scale-110 transition-all`,
             // Sits on the avatar's centre line while the row itself is top-aligned,
             // so a name that wraps to three lines doesn't drag it down the banner.
-            compact ? 'mt-1' : 'mt-2.5',
+            // Compact collapses its width so the faded-out icon leaves no gap.
+            compact ? 'w-0' : 'w-[20px] mt-2.5',
             controlFade
           )}
           onClick={() => navigateAndClose(groupUrl(group.slug, 'about', {}))}
         />
+        {/* Sits under the full-header overlay button (same action), so it reads as
+            the control while the whole ducked header stays the actual click target */}
+        {compact && (
+          <span
+            className='shrink-0 ml-2 inline-flex items-center gap-0.5 text-xs font-semibold rounded-md border border-white/25 bg-black/25 text-white/90 px-2 py-1 backdrop-blur-sm transition-colors group-hover/menuHeader:bg-black/40 group-hover/menuHeader:text-white'
+            aria-hidden='true'
+          >
+            <ChevronLeft className='w-3.5 h-3.5' />
+            {t('Back')}
+          </span>
+        )}
       </div>
     </div>
   )

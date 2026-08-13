@@ -1,6 +1,6 @@
 import { isPhoneDevice } from 'util/mobile'
 import { get } from 'lodash/fp'
-import { CircleEllipsis, Info, Pencil, RefreshCw, Settings, UserPlus, Users, X } from 'lucide-react'
+import { CircleEllipsis, Info, Pencil, RefreshCw, Settings, UserPlus, Users } from 'lucide-react'
 import React, { useEffect, useCallback, useState, useMemo } from 'react'
 import { Link, useLocation, useNavigate, Routes, Route } from 'react-router-dom'
 import { replace } from 'redux-first-history'
@@ -1013,7 +1013,8 @@ export default function ContextMenu (props) {
                 {/* h-[142px]: with the ducked group header's h-12 this sums to the
                     full-size header's 190px, so the takeover swaps hierarchy without
                     moving the menu below */}
-                <div className='SpaceMenuHeader relative z-20 flex flex-col justify-between h-[142px] overflow-hidden border-b border-foreground/10 shadow-md'>
+                {/* Closing the space lives in the ducked group header's Back button above */}
+                <div className='SpaceMenuHeader relative z-20 flex flex-col justify-end h-[142px] overflow-hidden border-b border-foreground/10 shadow-md'>
                   {activeSpaceBannerUrl
                     ? (
                       <>
@@ -1024,20 +1025,6 @@ export default function ContextMenu (props) {
                     : presentedActiveSpaceView && (
                       <MenuRowBackground view={presentedActiveSpaceView} bannerUrl={null} glyphCount={280} />
                     )}
-                  <button
-                    type='button'
-                    onClick={handleBackToGroupMenu}
-                    className={cn(
-                      'relative z-10 flex items-center self-start m-2 p-1 rounded-md backdrop-blur-sm transition-colors',
-                      activeSpaceBannerUrl
-                        ? 'bg-black/25 text-white/90 hover:bg-black/40 hover:text-white'
-                        : 'bg-foreground/10 text-foreground/70 hover:bg-foreground/20 hover:text-foreground dark:text-white/80 dark:hover:text-white'
-                    )}
-                    aria-label={t('Close')}
-                    title={t('Close')}
-                  >
-                    <X className='w-5 h-5' />
-                  </button>
                   {canAdminister && activeSpaceView && (
                     <button
                       type='button'
