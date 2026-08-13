@@ -522,26 +522,14 @@ function GroupViewList ({
   groupSlug,
   spaceSlug,
   spaceGroup = null,
-  spaceMenuView = null,
   isEditing,
   onOpenSettings,
   canAdminister = false
 }) {
-  const { t } = useTranslation()
   const [showAddView, setShowAddView] = useState(false)
   const [showAddSpace, setShowAddSpace] = useState(false)
   // Spaces cannot nest spaces; Add Space is parent-menu only
   const canAddSpace = canAdminister && !spaceGroup
-
-  const handleOpenSpaceSettings = useCallback(() => {
-    if (!spaceGroup || !onOpenSettings) return
-    onOpenSettings(spaceMenuView || {
-      type: 'space',
-      name: spaceGroup.name,
-      icon: spaceGroup.icon,
-      linkedGroup: spaceGroup
-    })
-  }, [spaceGroup, spaceMenuView, onOpenSettings])
 
   if (isEditing) {
     return (
@@ -553,16 +541,6 @@ function GroupViewList ({
           onSettings={onOpenSettings}
         />
         <div className='px-3 pb-3 flex flex-col gap-1'>
-          {spaceGroup && (
-            <button
-              type='button'
-              onClick={handleOpenSpaceSettings}
-              className='flex items-center gap-2 text-base font-medium text-foreground hover:text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 w-full transition-all opacity-85 hover:opacity-100'
-            >
-              <Settings className='w-4 h-4' />
-              <span>{t('Space Settings')}</span>
-            </button>
-          )}
           {/* One Add control opening the same view/space chooser the card grids use,
               rather than a button per kind. p-1 matches the Done Editing button height below */}
           <AddViewOrSpaceMenu
@@ -1099,7 +1077,6 @@ export default function ContextMenu (props) {
                       groupSlug={groupSlug}
                       spaceSlug={spaceSlug}
                       spaceGroup={activeSpaceGroup}
-                      spaceMenuView={activeSpaceView}
                       isEditing={isEditing}
                       onOpenSettings={setSettingsView}
                       canAdminister={canAdminister}
