@@ -11,6 +11,12 @@
       "runtimeExecutable": "yarn",
       "runtimeArgs": ["web:dev"],
       "port": 3000
+    },
+    {
+      "name": "backend",
+      "runtimeExecutable": "yarn",
+      "runtimeArgs": ["backend:dev"],
+      "port": 3001
     }
   ]
 }

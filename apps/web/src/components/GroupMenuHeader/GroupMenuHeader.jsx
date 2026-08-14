@@ -1,4 +1,4 @@
-import { Info, Settings, Users } from 'lucide-react'
+import { ChevronLeft, Info, Settings, Users } from 'lucide-react'
 import React, { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
@@ -20,6 +20,8 @@ import { groupUrl } from '@hylo/navigation'
 export default function GroupMenuHeader ({
   group,
   compact = false,
+  // One-column takeover: chevron + avatar + name cluster centers in the bar
+  centered = false,
   onCompactClick
 }) {
   const { t } = useTranslation()
@@ -72,11 +74,11 @@ export default function GroupMenuHeader ({
   return (
     <div
       className={cn(
-        'GroupMenuHeader group/menuHeader relative flex flex-col justify-end p-2 bg-cover shadow-md transition-[height] duration-300 ease-out',
+        'GroupMenuHeader group/menuHeader relative flex flex-col p-2 bg-cover shadow-md transition-[height] duration-300 ease-out',
         // min-h: names too long even for the banner grow the header rather
         // than clipping; justify-end keeps the extra lines eating upward into
-        // the banner space first
-        compact ? 'h-12 hover:h-14' : 'min-h-[190px]'
+        // the banner space first. Compact centers its single row instead.
+        compact ? 'h-12 hover:h-14 justify-center' : 'min-h-[190px] justify-end'
       )}
       data-testid='group-header'
     >
@@ -92,9 +94,19 @@ export default function GroupMenuHeader ({
         aria-hidden={!compact}
         className={cn(
           'absolute inset-0 z-30 bg-gradient-to-t from-[hsl(var(--theme-background)/0.6)] dark:from-[hsl(var(--theme-background)/0.85)] to-[hsl(var(--theme-background)/0.15)] transition-opacity duration-300',
-          compact ? 'opacity-100 cursor-pointer group-hover/menuHeader:opacity-0' : 'opacity-0 pointer-events-none'
+          // Rests at half strength so the banner stays readable; hover clears it fully
+          compact ? 'opacity-50 cursor-pointer group-hover/menuHeader:opacity-0' : 'opacity-0 pointer-events-none'
         )}
       />
+      {/* Back affordance: sits above the compact gradient (z-30) as a sibling, since
+          the content row's own stacking context caps below it. Clicks fall through
+          to the full-header overlay button, which is the actual Back control. */}
+      {compact && !centered && (
+        <ChevronLeft
+          className='absolute left-2 top-1/2 -translate-y-1/2 z-40 w-5 h-5 text-white drop-shadow-md pointer-events-none'
+          aria-hidden='true'
+        />
+      )}
       <div className={cn('absolute top-2 left-2 z-20', controlFade)}>
         <GroupNotificationsPopover group={group} />
       </div>
@@ -105,12 +117,27 @@ export default function GroupMenuHeader ({
           </button>
         </div>
       )}
-      <div className='relative flex flex-row items-start text-background z-20'>
+      <div className={cn(
+        'relative flex flex-row text-background',
+        compact ? 'items-center' : 'items-start',
+        // Centered cluster rides above the wash so it reads crisply; it must not
+        // swallow clicks meant for the full-header Back overlay beneath it
+        compact && centered ? 'justify-center z-40 pointer-events-none' : 'z-20'
+      )}
+      >
+        {compact && centered && (
+          <ChevronLeft className='w-5 h-5 text-white drop-shadow-md mr-1 shrink-0 self-center pointer-events-none' aria-hidden='true' />
+        )}
         <div
           style={group.avatarUrl !== DEFAULT_AVATAR ? bgImageStyle(avatarUrl) : {}}
           className={cn(
             'rounded-lg mr-2 shadow-md bg-cover bg-center relative overflow-hidden shrink-0 transition-all duration-300',
-            compact ? 'h-7 w-7' : 'h-10 w-10',
+            // ml-6 clears the back chevron sitting at the header's left edge
+            // (inline when centered, so no clearance needed).
+            // Full size matches the name + member-pill column height. Fixed rather
+            // than self-stretch/aspect-square: a bg-image-only box has no intrinsic
+            // width, so the stretched square collapsed to nothing.
+            compact ? cn('h-7 w-7', !centered && 'ml-6') : 'h-[52px] w-[52px]',
             group.avatarUrl === DEFAULT_AVATAR && 'bg-darkening'
           )}
         >
@@ -130,7 +157,7 @@ export default function GroupMenuHeader ({
             </>
           )}
         </div>
-        <div className={`flex flex-col flex-1 text-${textColor} drop-shadow-md overflow-hidden`}>
+        <div className={cn(`flex flex-col text-${textColor} drop-shadow-md overflow-hidden`, compact && centered ? 'flex-none max-w-[60%]' : 'flex-1')}>
           <div className='flex items-center'>
             <h1
               ref={groupNameRef}
@@ -171,10 +198,11 @@ export default function GroupMenuHeader ({
         </div>
         <Info
           className={cn(
-            `text-${textColor} cursor-pointer w-[20px] h-[20px] shrink-0 text-white hover:scale-110 transition-all`,
+            `text-${textColor} cursor-pointer h-[20px] shrink-0 text-white hover:scale-110 transition-all`,
             // Sits on the avatar's centre line while the row itself is top-aligned,
             // so a name that wraps to three lines doesn't drag it down the banner.
-            compact ? 'mt-1' : 'mt-2.5',
+            // Compact collapses its width so the faded-out icon leaves no gap.
+            compact ? 'w-0' : 'w-[20px] mt-2.5',
             controlFade
           )}
           onClick={() => navigateAndClose(groupUrl(group.slug, 'about', {}))}

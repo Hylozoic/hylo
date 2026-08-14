@@ -47,9 +47,11 @@ import fetchGroupRelationships from 'store/actions/fetchGroupRelationships'
 import { createGroupView, deleteGroupView, deleteSpace, setGroupViewHidden } from 'store/actions/groupViews'
 import { canHardDeleteView, viewAcceptedByPostTypes } from 'store/models/GroupView'
 import { viewShowsUnreadDot, viewUnreadBadgeCount } from 'util/viewUnreadBadges'
+import GroupMenuHeader from 'components/GroupMenuHeader'
 import GroupNotificationsPopover from 'components/GroupNotificationsPopover/GroupNotificationsPopover'
 import CardIconField from './CardIconField'
 import GroupViewIcon from './GroupViewIcon'
+import MenuRowBackground from './MenuRowBackground'
 import SortableViewsGrid from './SortableViewsGrid'
 import GroupViewCard, { SpaceViewCard, EventDateStack } from './GroupViewCard'
 import ViewsGridSkeleton from './ViewsGridSkeleton'
@@ -113,6 +115,105 @@ function partitionViewsIntoSections (views) {
 }
 
 /** Sticky back bar for nested grid levels. */
+/**
+ * Space-level takeover header for the one-column layout, laid out like the
+ * group dashboard banner: identity centered, notifications top-left, about +
+ * settings top-right. Its height plus the ducked group header (h-12) equals
+ * the full group banner (220px), so the takeover swaps hierarchy without
+ * moving the grid below.
+ */
+function SpaceBannerHeader ({ group, spaceGroup, canAdminister, onOpenSettings, navigate, t }) {
+  const location = useLocation()
+  const presentedSpaceView = useMemo(() => GroupViewPresenter({
+    type: 'space', name: spaceGroup.name, icon: spaceGroup.icon, linkedGroup: spaceGroup
+  }), [spaceGroup])
+  const bannerUrl = spaceGroup.bannerUrl && spaceGroup.bannerUrl !== DEFAULT_BANNER ? spaceGroup.bannerUrl : null
+  const localSpace = localSpaceSlug(group.slug, spaceGroup.slug)
+  // White identity over a photo; theme foreground over the pale glyph texture
+  const inkClass = bannerUrl ? 'text-white' : 'text-foreground dark:text-white'
+  const controlClass = bannerUrl
+    ? 'text-white/90 hover:text-white'
+    : 'text-foreground/60 hover:text-foreground dark:text-white/80 dark:hover:text-white'
+  const pillClass = bannerUrl
+    ? 'bg-white/15 border-white/25 text-white hover:bg-white/25 hover:text-white'
+    : 'bg-foreground/10 border-foreground/20 text-foreground/80 hover:bg-foreground/20 hover:text-foreground dark:bg-white/15 dark:border-white/25 dark:text-white/90 dark:hover:bg-white/25 dark:hover:text-white'
+
+  return (
+    <div className='SpaceBannerHeader relative z-20 h-[172px] overflow-hidden border-b border-foreground/10 shadow-md'>
+      {bannerUrl
+        ? (
+          <>
+            <div className='absolute inset-0 bg-cover bg-center' style={bgImageStyle(bannerUrl)} />
+            <div className='absolute inset-0' style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.6) 100%)' }} />
+          </>
+          )
+        : <MenuRowBackground view={presentedSpaceView} bannerUrl={null} glyphCount={360} />}
+
+      {/* Controls bar, mirroring the group banner: bell left, about + settings right */}
+      <div className='absolute top-3 left-1/2 -translate-x-1/2 z-30 w-full max-w-[1000px] px-3 flex items-center justify-between'>
+        <div className={controlClass}>
+          <GroupNotificationsPopover group={spaceGroup} className='w-6 h-6 drop-shadow-md hover:scale-110 transition-all' />
+        </div>
+        <div className='flex items-center gap-3'>
+          <button
+            type='button'
+            onClick={() => navigate(addQuerystringToPath(location.pathname, { about: 1 }))}
+            aria-label={t('About')}
+            title={t('About')}
+          >
+            <Info className={cn('w-6 h-6 drop-shadow-md hover:scale-110 transition-all', controlClass)} />
+          </button>
+          {canAdminister && (
+            <button type='button' onClick={onOpenSettings} aria-label={t('Space Settings')} title={t('Space Settings')}>
+              <Settings className={cn('w-6 h-6 drop-shadow-md hover:scale-110 transition-all', controlClass)} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Identity centered, like the group banner */}
+      <div className='absolute inset-0 z-20 flex flex-col items-center justify-center gap-1'>
+        <div
+          style={presentedSpaceView?.avatarUrl ? bgImageStyle(presentedSpaceView.avatarUrl) : {}}
+          className={cn(
+            'w-14 h-14 rounded-xl shadow-lg bg-cover bg-center overflow-hidden relative grid place-items-center',
+            presentedSpaceView?.avatarUrl
+              ? 'border-2 border-white/30'
+              // Frosted glass, standardized with the space cards' tile
+              : cn(
+                'backdrop-blur-sm border',
+                bannerUrl
+                  ? 'bg-white/15 border-white/25 text-white'
+                  : 'bg-black/5 border-black/15 text-foreground/80 dark:bg-white/15 dark:border-white/25 dark:text-white'
+              )
+          )}
+        >
+          {!presentedSpaceView?.avatarUrl && (
+            <GroupViewIcon view={presentedSpaceView} className='!w-7 !h-7 !mr-0' />
+          )}
+        </div>
+        <h1 className={cn('text-xl font-bold drop-shadow-md m-0 leading-tight max-w-[80%] truncate', inkClass)}>{spaceGroup.name}</h1>
+        <span className={cn('flex items-center gap-1 text-xs', inkClass)}>
+          <Link
+            className={cn('inline-flex items-center gap-1 rounded-full border px-2 py-0.5 no-underline hover:no-underline transition-colors', pillClass)}
+            to={spaceUrl(group.slug, localSpace, 'members')}
+            aria-label={t('{{count}} Members', { count: spaceGroup.memberCount })}
+          >
+            <Users className='w-3.5 h-3.5' />
+            {spaceGroup.memberCount}
+          </Link>
+          <InviteMembersPopover
+            group={spaceGroup}
+            alwaysVisible
+            triggerLabel={t('Invite')}
+            triggerClassName={cn('rounded-full border px-2 py-0.5 hover:scale-100', pillClass)}
+          />
+        </span>
+      </div>
+    </div>
+  )
+}
+
 function StickyBackHeader ({ title, onBack, t }) {
   return (
     <div className='sticky top-0 z-30 -mx-4 px-4 py-3 mb-2 bg-background/95 backdrop-blur-sm border-b border-foreground/10 flex items-center gap-2'>
@@ -208,12 +309,14 @@ function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
   const isLogout = presentedView.type === 'logout'
   const { effectiveColorScheme } = useAppearance()
 
-  // Avatar-backed cards (spaces, groups, members) show an image; icon cards use
-  // the view color (post-type brand, or slate grey for everything else).
+  // Image-backed cards (spaces, groups, members) show the group's banner when
+  // one is set — even without a custom avatar — falling back to the avatar;
+  // icon cards use the view color (post-type brand, or slate grey otherwise).
   const linkedGroup = presentedView.linkedGroup
-  const bgImageUrl = presentedView.avatarUrl
-    ? (linkedGroup?.bannerUrl || presentedView.avatarUrl)
+  const linkedGroupBanner = linkedGroup?.bannerUrl && linkedGroup.bannerUrl !== DEFAULT_BANNER
+    ? linkedGroup.bannerUrl
     : null
+  const bgImageUrl = linkedGroupBanner || presentedView.avatarUrl || null
   const isDark = effectiveColorScheme === 'dark'
   const col = viewCardColor(presentedView)
   const tint = cardFieldTint(col, effectiveColorScheme)
@@ -257,6 +360,35 @@ function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
     (liveSpaceGroup?.openJoinRequestCount || presentedView.linkedGroup?.openJoinRequestCount || 0) > 0
   )
   const eventStart = eventStartForView(presentedView)
+  const myMemberships = useSelector(getMyMemberships)
+  const isSpaceMember = Boolean(
+    isSpace && linkedGroup &&
+    myMemberships.some(m => String(m.group.id) === String(linkedGroup.id))
+  )
+  const spaceMemberCount = isSpace ? (linkedGroup?.memberCount ?? null) : null
+  // Members see the space's member count; non-members get a + JOIN hint instead
+  const spacePill = isSpace && (typeof spaceMemberCount === 'number' || !isSpaceMember)
+    ? (
+      <span
+        className={cn(
+          'absolute top-1.5 left-1.5 z-10 inline-flex items-center gap-0.5 text-xs leading-none rounded-full px-1.5 py-1',
+          lightSurfaceLabels
+            ? 'bg-black/10 text-foreground/60'
+            : 'bg-black/30 text-white/90 backdrop-blur-sm'
+        )}
+        aria-label={isSpaceMember ? t('{{count}} Members', { count: spaceMemberCount }) : t('Join')}
+      >
+        {isSpaceMember
+          ? (
+            <>
+              <Users className='w-3 h-3' aria-hidden='true' />
+              {spaceMemberCount}
+            </>
+            )
+          : <span className='uppercase text-[10px] font-semibold tracking-wide'>+ {t('Join')}</span>}
+      </span>
+      )
+    : null
 
   const iconTile = (
     <div
@@ -345,6 +477,7 @@ function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
           </>
           )}
 
+      {spacePill}
       {(showUnreadDot || showJoinRequestDot) && (
         <span className='absolute -top-1.5 -right-1.5 z-10 w-3 h-3 rounded-full bg-orange-500 border-2 border-background' />
       )}
@@ -912,6 +1045,21 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
 
   return (
     <div className='ContextMenuGrid w-full h-full overflow-y-auto' id='context-menu-grid'>
+      {/* Space level mirrors the two-column takeover: ducked group header (back
+          chevron) with the space's own banner header below it */}
+      {isSpaceLevel && group && spaceGroup && (
+        <>
+          <GroupMenuHeader group={group} compact centered onCompactClick={handleBack} />
+          <SpaceBannerHeader
+            group={group}
+            spaceGroup={spaceGroup}
+            canAdminister={canAdminister}
+            onOpenSettings={() => setSettingsView({ type: 'space', linkedGroup: spaceGroup, name: spaceGroup.name, icon: spaceGroup.icon })}
+            navigate={navigate}
+            t={t}
+          />
+        </>
+      )}
       {/* Banner — root group/context menu only. Not for a space on a drawer layout:
           ViewHeader already names the space there, and the two stacked headers read
           as a mistake on a phone's height */}
@@ -987,7 +1135,8 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
 
       {/* Extra room up top so the first row of cards clears the banner edge */}
       <div ref={gridContainerRef} className={cn('w-full max-w-[1000px] mx-auto px-4 pt-10 pb-6', isEditing && 'pb-24')}>
-        {isNestedLevel && (
+        {/* Space level carries its own takeover headers above; More keeps the bar */}
+        {isMoreSpacesLevel && (
           <StickyBackHeader title={nestedTitle} onBack={handleBack} t={t} />
         )}
 

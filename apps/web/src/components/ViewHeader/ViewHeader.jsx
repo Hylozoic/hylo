@@ -90,6 +90,11 @@ const ViewHeader = () => {
       ? true
       : !!(title?.mobile || title?.desktop)
 
+  // On phones, parent breadcrumb levels collapse to just their icon/avatar so
+  // the current view's title keeps the room. Phone devices always collapse;
+  // desktop browsers collapse only below the sm breakpoint.
+  const parentCrumbNameClass = isPhoneDevice() ? 'hidden' : 'hidden sm:block'
+
   // A single-view space (e.g. chat-only) opens straight into its one view, so the
   // breadcrumb shows just the space — repeating the lone view's title is noise.
   // More Views is a separate page (space > More Views…), so never collapse it.
@@ -285,15 +290,16 @@ const ViewHeader = () => {
     return isSpaceIndex && isSpaceMember
   }, [oneColumn, isOneColumnContext, isOneColumnGroup, context, groupSlug, location.pathname, isSpaceMember])
 
-  // Hide ViewHeader on phones for messages - MessagesMobile handles its own header
-  if (isPhoneDevice() && location.pathname.startsWith('/messages')) {
+  // Messages carries its own headers (thread-list title row + per-conversation
+  // header), so the shared ViewHeader stays out of the way entirely.
+  if (location.pathname.startsWith('/messages')) {
     return null
   }
 
   // Light mode surfaces sit close in lightness, so the sticky header needs a
   // hairline edge plus a stronger shadow to read as a layer above the stream.
   return (
-    <header className={cn('flex flex-row items-center z-20 p-2 sticky top-0 w-full bg-background border-b border-foreground/[0.08] shadow-[0_4px_14px_0px_rgba(0,0,0,0.16)] dark:border-transparent dark:shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)]', {
+    <header className={cn('flex flex-row items-center z-30 p-2 sticky top-0 w-full bg-background border-b border-foreground/[0.08] shadow-[0_4px_14px_0px_rgba(0,0,0,0.16)] dark:border-transparent dark:shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)]', {
       'justify-center': centered,
       hidden: (oneColumn && isBannerVisible) || isOneColumnMenuLevel
     })}
@@ -333,7 +339,13 @@ const ViewHeader = () => {
       {!centered && !oneColumn && presentedSpaceView && (
         <>
           <GroupViewIcon view={presentedSpaceView} className='mr-1 shrink-0 w-5 h-5' />
-          <span className={cn('truncate shrink min-w-0 text-foreground', (isSingleViewSpace || !hasTitle) ? 'font-bold' : 'max-w-[25%]')}>{spaceName}</span>
+          <span className={cn(
+            'truncate shrink min-w-0 text-foreground font-bold',
+            // Parent level: icon-only on phones, name returns at sm+
+            !(isSingleViewSpace || !hasTitle) && cn('max-w-[25%]', parentCrumbNameClass)
+          )}
+          >{spaceName}
+          </span>
           {!isSingleViewSpace && hasTitle && <span className='mx-1.5 shrink-0 text-foreground/40'>{'>'}</span>}
         </>
       )}
@@ -353,7 +365,11 @@ const ViewHeader = () => {
               />
             )}
             <span
-              className='font-semibold text-foreground/70 cursor-pointer hover:text-foreground transition-colors whitespace-nowrap truncate'
+              className={cn(
+                'font-semibold text-foreground/70 cursor-pointer hover:text-foreground transition-colors whitespace-nowrap truncate',
+                // The group is always a parent here — avatar only on phones
+                parentCrumbNameClass
+              )}
               onClick={() => navigate(groupHref)}
             >
               {group?.name}
@@ -372,7 +388,10 @@ const ViewHeader = () => {
                 <span
                   className={cn(
                     'cursor-pointer hover:text-foreground transition-colors whitespace-nowrap truncate',
-                    hasTitle ? 'font-semibold text-foreground/70' : 'font-bold text-foreground'
+                    hasTitle
+                      // Parent level: icon-only on phones
+                      ? cn('font-bold text-foreground/70', parentCrumbNameClass)
+                      : 'font-bold text-foreground'
                   )}
                   onClick={() => navigate(spaceHref)}
                 >
@@ -415,7 +434,11 @@ const ViewHeader = () => {
                 />
               )}
             <span
-              className='font-semibold text-foreground/70 cursor-pointer hover:text-foreground transition-colors whitespace-nowrap truncate'
+              className={cn(
+                'font-semibold text-foreground/70 cursor-pointer hover:text-foreground transition-colors whitespace-nowrap truncate',
+                // Parent level whenever a view title follows — icon-only on phones
+                hasTitle && parentCrumbNameClass
+              )}
               onClick={() => navigate(contextHref)}
             >
               {contextLabel}
@@ -510,7 +533,7 @@ const ViewHeader = () => {
               }}
             />
             {searchOpen && searchOptions.length > 0 && (
-              <Command className='absolute h-fit top-full right-0 mt-2 w-full rounded-lg border border-border bg-popover shadow-lg z-20'>
+              <Command className='absolute h-fit top-full right-0 mt-2 w-full rounded-lg border border-border bg-popover shadow-lg z-50'>
                 <CommandList>
                   {searchOptions.map((option, index) => (
                     <CommandItem

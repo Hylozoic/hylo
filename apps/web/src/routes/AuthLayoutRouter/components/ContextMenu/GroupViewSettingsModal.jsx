@@ -52,6 +52,7 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
   const [textContent, setTextContent] = useState(() => textContentFromView(view))
   const [showWelcomePage, setShowWelcomePage] = useState(group?.settings?.showWelcomePage ?? true)
   const [showPostNoticesInChat, setShowPostNoticesInChat] = useState(group?.settings?.showPostNoticesInChat ?? true)
+  const [showChatActivity, setShowChatActivity] = useState(view?.settings?.showChatActivity !== false)
   const [customForm, setCustomForm] = useState(() => customViewFormState(view))
   const [isSaving, setIsSaving] = useState(false)
 
@@ -62,6 +63,7 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
     setTextContent(textContentFromView(view))
     setShowWelcomePage(group?.settings?.showWelcomePage ?? true)
     setShowPostNoticesInChat(group?.settings?.showPostNoticesInChat ?? true)
+    setShowChatActivity(view?.settings?.showChatActivity !== false)
     setCustomForm(customViewFormState(view))
   }, [
     view?.id,
@@ -98,6 +100,15 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
         if (showPostNoticesInChat !== (group.settings?.showPostNoticesInChat ?? true)) {
           await dispatch(updateGroupSettings(group.id, { settings: { showPostNoticesInChat } }))
         }
+      } else if (view.type === 'all') {
+        await dispatch(updateGroupView({
+          id: view.id,
+          groupId: group.id,
+          settings: {
+            ...(view.settings || {}),
+            showChatActivity
+          }
+        }))
       } else if (view.type === 'link') {
         await dispatch(updateGroupView({
           id: view.id,
@@ -155,6 +166,7 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
     textContent,
     showWelcomePage,
     showPostNoticesInChat,
+    showChatActivity,
     onClose
   ])
 
@@ -231,6 +243,19 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
               />
               <span className='text-sm text-foreground/80'>
                 {t('Show post notices in chat when other post types are created in this group.')}
+              </span>
+            </div>
+          )}
+
+          {view.type === 'all' && (
+            <div className='flex items-center gap-2'>
+              <SwitchStyled
+                checked={showChatActivity}
+                onChange={() => setShowChatActivity(v => !v)}
+                backgroundColor={showChatActivity ? 'hsl(var(--selected))' : 'rgba(0 0 0 / .6)'}
+              />
+              <span className='text-sm text-foreground/80'>
+                {t('Show chat activity in All Activity')}
               </span>
             </div>
           )}

@@ -46,14 +46,22 @@ export default function PeopleSelector (props) {
     return people.filter(c => !selectedPeopleIds.includes(c.id))
   }, [people, selectedPeople])
 
+  // Refocusing after a selection must not count as a fresh focus (which would
+  // reopen the dropdown) — the flag suppresses exactly that one focus event.
+  const justSelectedRef = useRef(false)
+
   const selectPerson = (person) => {
     if (!person || maxParticipantsReached) return
+    justSelectedRef.current = true
+    setTimeout(() => { justSelectedRef.current = false }, 150)
     autocompleteInput.current.focus()
     if (selectedPeople.find(p => p.id === person.id)) return
     setPeopleSearch(null)
     setCurrentMatch(null)
     setCurrentText('')
     props.selectPerson(person)
+    // Adding someone closes the list; typing again reopens it
+    props.onPersonSelected?.()
   }
 
   const removePerson = (person) => {
@@ -65,6 +73,8 @@ export default function PeopleSelector (props) {
 
   const onChange = (e) => {
     const val = e.target.value
+    // Typing (re)opens the dropdown after a selection closed it
+    props.onTyping?.()
     if (!invalidPersonName.exec(val)) {
       setCurrentText(val)
       autocompleteSearch(val)
@@ -112,13 +122,18 @@ export default function PeopleSelector (props) {
     }
   }
 
-  const showLabel = props.showLabel !== false
-  const inputPlaceholder = props.placeholder || (maxParticipantsReached ? t('Group limit reached') : `+ ${t('Add someone')}`)
+  // No recipients yet: invite starting the message. With recipients: offer more.
+  const inputPlaceholder = props.placeholder || (
+    maxParticipantsReached
+      ? t('Group limit reached')
+      : selectedPeople?.length > 0
+        ? t('+ Add someone...')
+        : t('Send a new message to...')
+  )
 
   return (
     <div className='w-full relative' tabIndex='0'>
       <div className='w-full relative flex flex-wrap gap-1'>
-        {showLabel && <span className='p-2'>{t('New Message With')}:</span>}
         {selectedPeople && selectedPeople.map(person =>
           <MatchingPeopleListItem
             avatarUrl={person.avatarUrl}
@@ -127,7 +142,7 @@ export default function PeopleSelector (props) {
             key={person.id}
           />
         )}
-        <div className='relative flex-1 min-w-[150px]'>
+        <div className='relative flex-1 min-w-[150px] sm:max-w-[320px]'>
           <input
             className='w-full bg-darkening/20 focus:bg-input rounded p-2 text-foreground placeholder:text-foreground/50 border-2 border-transparent focus:border-focus transition-all outline-none'
             ref={autocompleteInput}
@@ -139,6 +154,10 @@ export default function PeopleSelector (props) {
             disabled={maxParticipantsReached}
             onFocus={(e) => {
               setSelectedIndex(-1)
+              if (justSelectedRef.current) {
+                justSelectedRef.current = false
+                return
+              }
               props.onFocus?.(e)
             }}
             value={currentText}
@@ -180,6 +199,5 @@ PeopleSelector.propTypes = {
   inputRef: PropTypes.object,
   autoFocus: PropTypes.bool,
   maxParticipantsReached: PropTypes.bool,
-  showLabel: PropTypes.bool,
   placeholder: PropTypes.string
 }

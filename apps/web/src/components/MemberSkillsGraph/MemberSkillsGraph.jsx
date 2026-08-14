@@ -111,6 +111,8 @@ export default function MemberSkillsGraph ({ members, loading, slug, onSkillClic
       <div className='flex items-center justify-between bg-card rounded-t-xl border-b border-foreground/10 px-3 py-2'>
         <h2 className='m-0 text-sm font-semibold text-foreground'>{t('Skill map')}</h2>
         <div className={cn('flex items-center gap-2', loading && 'invisible')}>
+          {/* Names the dropdown's meaning — a bare "2+ people" reads as a mystery */}
+          <span className='text-xs text-foreground/60 whitespace-nowrap'>{t('Skills with')}</span>
           <Dropdown
             id='skills-graph-threshold'
             alignRight

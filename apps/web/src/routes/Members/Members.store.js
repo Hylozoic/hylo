@@ -4,6 +4,7 @@ import { makeGetQueryResults, makeQueryResultsModelSelector } from 'store/reduce
 
 export const FETCH_MEMBERS = 'FETCH_MEMBERS'
 export const FETCH_MEMBERS_FOR_GRAPH = 'FETCH_MEMBERS_FOR_GRAPH'
+export const FETCH_ROLE_MEMBER_COUNTS = 'FETCH_ROLE_MEMBER_COUNTS'
 
 export const REMOVE_MEMBER = 'REMOVE_MEMBER'
 export const REMOVE_MEMBER_PENDING = REMOVE_MEMBER + '_PENDING'
@@ -103,6 +104,30 @@ query FetchGroupMembersForGraph ($slug: String, $first: Int) {
     }
   }
 }`
+
+/**
+ * Per-role member counts scoped to one group (used by spaces, whose role
+ * definitions live on the parent but whose membership is its own): one
+ * aliased query returns every role's in-group total in a single trip.
+ */
+export function fetchRoleMemberCounts ({ slug, roleIds }) {
+  const safeIds = (roleIds || []).filter(id => /^\d+$/.test(String(id)))
+  const fields = safeIds
+    .map(id => `r${id}: members (first: 1, groupRoleId: "${id}") { total }`)
+    .join('\n    ')
+  return {
+    type: FETCH_ROLE_MEMBER_COUNTS,
+    graphql: {
+      query: `query FetchRoleMemberCounts ($slug: String) {
+  group (slug: $slug) {
+    id
+    ${fields}
+  }
+}`,
+      variables: { slug }
+    }
+  }
+}
 
 export function fetchMembersForGraph ({ slug, first = 2000 }) {
   return {

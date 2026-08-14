@@ -264,7 +264,7 @@ export default function ChatPost ({
     <Highlight {...highlightProps}>
       <div
         className={cn(
-          'ChatPost_container rounded-lg pr-[15px] pb-[1px] px-1 py-1 -my-1 -mx-1 pt-1 relative transition-all group cursor-pointer border-2 border-transparent hover:border-foreground/50 select-text max-sm:pl-[15px]',
+          'ChatPost_container rounded-lg pr-[15px] pb-[1px] px-1 py-1 -my-1 -mx-1 pt-1 relative transition-all group cursor-pointer border-2 border-transparent select-text max-sm:pl-[15px]',
           showHeader ? 'py-1 mt-2' : ' ',
           className,
           {

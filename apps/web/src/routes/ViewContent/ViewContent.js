@@ -16,6 +16,7 @@ import Calendar from 'components/Calendar'
 import PostDialog from 'components/PostDialog'
 import PostListRow from 'components/PostListRow'
 import PostCard from 'components/PostCard'
+import ChatActivityCard from 'components/PostCard/ChatActivityCard'
 import MasonryGrid from 'components/MasonryGrid/MasonryGrid'
 import PostGridItem from 'components/PostGridItem'
 import PostBigGridItem from 'components/PostBigGridItem'
@@ -142,6 +143,10 @@ export default function ViewContent (props) {
   )
 
   const groupViews = useSelector(state => getGroupViews(state, group))
+  const showChatActivity = useMemo(() => {
+    const allView = (groupViews || []).find(v => v.type === 'all')
+    return allView?.settings?.showChatActivity !== false
+  }, [groupViews])
   const typedBadgeView = useMemo(() => {
     if (!TYPED_BADGE_VIEW_TYPES.has(view)) return null
     return (groupViews || []).find(v => v.type === view) || null
@@ -165,7 +170,10 @@ export default function ViewContent (props) {
 
   const defaultSortBy = systemView?.defaultSortBy || get('settings.streamSortBy', currentUser) || 'created'
   const defaultViewMode = systemView?.defaultViewMode || get('settings.streamViewMode', currentUser) || 'cards'
-  const defaultPostType = systemView?.defaultPostType || get('settings.streamPostType', currentUser) || undefined
+  // All Activity should not inherit a leftover type filter from other views
+  const defaultPostType = view === 'all'
+    ? undefined
+    : (systemView?.defaultPostType || get('settings.streamPostType', currentUser) || undefined)
   const defaultActivePostsOnly = systemView?.defaultActivePostsOnly || get('settings.activePostsOnly', currentUser) || false
   const defaultChildPostInclusion = get('settings.streamChildPosts', currentUser) || systemView?.defaultChildPostInclusion || 'yes'
 
@@ -195,7 +203,7 @@ export default function ViewContent (props) {
   // Prefer querystring, then user/view default; ignore defaults outside this view's allowed types
   const postTypeFilter = useMemo(() => {
     const selected = querystringParams.t || defaultPostType || undefined
-    if (!selected) return undefined
+    if (!selected || selected === 'all') return undefined
     if (postTypesAvailable && !postTypesAvailable.includes(selected)) return undefined
     return selected
   }, [querystringParams.t, defaultPostType, postTypesAvailable])
@@ -229,6 +237,7 @@ export default function ViewContent (props) {
         filter: postTypeFilter,
         first: 0,
         forCollection: null,
+        groupId: group?.id,
         search,
         slug: groupSlug,
         sortBy,
@@ -238,19 +247,24 @@ export default function ViewContent (props) {
     }
 
     const numPostsToLoad = isMobile.any ? 10 : 20
+    const includeChatActivity = view === 'all' && !postTypeFilter && !isCalendarViewMode && showChatActivity
 
     const params = {
       activePostsOnly,
       childPostInclusion,
       context,
-      filter: postTypeFilter,
+      filter: includeChatActivity
+        ? 'all+notices'
+        : postTypeFilter,
       first: numPostsToLoad,
       forCollection: streamViewConfig?.type === 'collection' ? streamViewConfig.collectionId : null,
+      groupId: group?.id,
       search,
       slug: groupSlug,
       sortBy,
       topics,
-      types: postTypesAvailable
+      // Do not send a types list with all+notices — a stream-only list would hide notices
+      types: includeChatActivity ? undefined : postTypesAvailable
     }
 
     if (isCalendarViewMode) {
@@ -290,7 +304,7 @@ export default function ViewContent (props) {
       }
     }
     return params
-  }, [activePostsOnly, calendarDate, isCalendarViewMode, childPostInclusion, context, streamViewConfig, groupSlug, postTypeFilter, search, sortBy, timeframe, topic?.id, topicName, view])
+  }, [activePostsOnly, calendarDate, isCalendarViewMode, childPostInclusion, context, streamViewConfig, group?.id, groupSlug, postTypeFilter, search, showChatActivity, sortBy, timeframe, topic?.id, topicName, view])
 
   let name = presentedGroupView
     ? displayNameForView(presentedGroupView, t)
@@ -334,7 +348,11 @@ export default function ViewContent (props) {
   }
 
   const postsSelector = useSelector((state) => getPosts(state, fetchPostsParam))
-  const posts = useMemo(() => postsSelector.map(p => presentPost(p, groupId)), [groupId, postsSelector])
+  const posts = useMemo(() => {
+    const presented = postsSelector.map(p => presentPost(p, groupId)).filter(Boolean)
+    if (showChatActivity) return presented
+    return presented.filter(p => p.type !== 'chat_activity')
+  }, [groupId, postsSelector, showChatActivity])
   const hasMore = useSelector(state => getHasMorePosts(state, fetchPostsParam))
   const pending = useSelector(state => state.pending[FETCH_POSTS])
 
@@ -466,7 +484,6 @@ export default function ViewContent (props) {
     prevPathWasCreateRef.current = isCreatePath
   }, [location.pathname, isCalendarViewMode, dispatch, fetchPostsParam, fetchPostsFrom])
 
-  const ViewComponent = viewComponent[viewMode]
   const hasPostPrompt = currentUserHasMemberships && context !== CONTEXT_MY && view !== 'explore'
   // Calendar view applies on both `/events` (default) and `/stream?v=calendar`.
   // Default new-post type to event in calendar mode; `/events` list view uses COMMON_VIEWS postTypes.
@@ -641,20 +658,25 @@ export default function ViewContent (props) {
 
                   {showEmptyStream ? <NoPosts message={noPostsMessage} actionLabel={hasPostPrompt ? t('Create something') : null} onAction={createFromEmpty} /> : ''}
 
-                  {posts.map(post => (
-                    <ViewComponent
-                      className={cn(viewMode === 'cards' && 'max-[425px]:mx-[5px] max-[425px]:mb-2.5')}
-                      routeParams={routeParams}
-                      post={post}
-                      group={group}
-                      key={post.id}
-                      currentGroupId={group && group.id}
-                      currentUser={currentUser}
-                      querystringParams={querystringParams}
-                      childPost={isChildGroupPost({ context, groupSlug, post })}
-                      childPostFromSpace={isChildSpacePost({ context, groupSlug, post })}
-                    />
-                  ))}
+                  {posts.map(post => {
+                    const ViewComponent = post.type === 'chat_activity'
+                      ? ChatActivityCard
+                      : viewComponent[viewMode]
+                    return (
+                      <ViewComponent
+                        className={cn(viewMode === 'cards' && 'max-[425px]:mx-[5px] max-[425px]:mb-2.5')}
+                        routeParams={routeParams}
+                        post={post}
+                        group={group}
+                        key={post.id}
+                        currentGroupId={group && group.id}
+                        currentUser={currentUser}
+                        querystringParams={querystringParams}
+                        childPost={isChildGroupPost({ context, groupSlug, post })}
+                        childPostFromSpace={isChildSpacePost({ context, groupSlug, post })}
+                      />
+                    )
+                  })}
                 </MasonryGrid>
               )}
               {showCalendar && (

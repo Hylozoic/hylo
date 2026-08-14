@@ -607,7 +607,10 @@ module.exports = bookshelf.Model.extend(merge({
             q4.whereIn('groups_posts.group_id', treeOfGroupsForMember.query())
             q4.orWhereIn('groups_posts.group_id', childSpacesForMember.query())
           })
-          q3.andWhere('posts.user_id', '!=', User.AXOLOTL_ID)
+          q3.andWhere(q5 => {
+            q5.where('posts.user_id', '!=', User.AXOLOTL_ID)
+              .orWhereIn('posts.type', Post.NOTICE_TYPES)
+          })
         })
       })
     })
@@ -999,13 +1002,13 @@ module.exports = bookshelf.Model.extend(merge({
 
     // If location_id is explicitly set to something empty then set it to null
     // Otherwise leave it alone
-    saneAttrs.location_id = saneAttrs.hasOwnProperty('location_id') && isEmpty(saneAttrs.location_id) ? null : saneAttrs.location_id
+    saneAttrs.location_id = Object.prototype.hasOwnProperty.call(saneAttrs, 'location_id') && isEmpty(saneAttrs.location_id) ? null : saneAttrs.location_id
 
     // Make sure geometry column goes into the database correctly, converting from GeoJSON
     if (!isEmpty(attributes.geo_shape)) {
       const st = knexPostgis(bookshelf.knex)
       saneAttrs.geo_shape = st.geomFromGeoJSON(attributes.geo_shape)
-    } else if (saneAttrs.hasOwnProperty('geo_shape')) {
+    } else if (Object.prototype.hasOwnProperty.call(saneAttrs, 'geo_shape')) {
       // if geo_shape is explicitly set to an empty value then unset it
       saneAttrs.geo_shape = null
     }
@@ -1409,6 +1412,8 @@ module.exports = bookshelf.Model.extend(merge({
           const parent = await Group.findActive(parentId, { transacting: trx })
 
           if (parent) {
+            // Spaces are containers inside a group — they can never parent a group
+            if (parent.get('type') === 'space') continue
             // Only allow for adding parent groups that the creator is a moderator of or that are Open
             const parentGroupMembership = await GroupMembership.forIds(userId, parentId, {
               query: q => { q.select('group_memberships.*', 'groups.accessibility as accessibility', 'groups.visibility as visibility') }

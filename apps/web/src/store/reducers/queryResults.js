@@ -42,6 +42,7 @@ import {
   FETCH_POSTS_MAP_DRAWER
 } from 'routes/MapExplorer/MapExplorer.store'
 import { FETCH_MEMBERS, REMOVE_MEMBER_PENDING } from 'routes/Members/Members.store'
+import { OPTIMISTIC_NOTICE_PREFIX, parseNoticeData } from 'store/util/chatActivityNotice'
 // reducer
 
 export default function (state = {}, action) {
@@ -76,6 +77,12 @@ export default function (state = {}, action) {
     case RECEIVE_POST:
       root = {
         ...(payload.data[camelCase(type)] || payload.data.post)
+      }
+      if (root.type === 'chat_activity') {
+        const bucketKey = parseNoticeData(root.noticeData)?.bucketKey
+        if (bucketKey) {
+          state = replaceIdInQueryResults(state, `${OPTIMISTIC_NOTICE_PREFIX}${bucketKey}`, root.id)
+        }
       }
       return matchNewPostIntoQueryResults(state, root)
 
@@ -206,7 +213,7 @@ export default function (state = {}, action) {
   return state
 }
 
-export function matchNewPostIntoQueryResults (state, { id, isPublic, type, groups, topics = [] }) {
+export function matchNewPostIntoQueryResults (state, { id, isPublic, type, groups = [], topics = [] }) {
   /* about this:
       we add the post id into queryResult sets that are based on time of
       creation because we know that the post just created is the latest
@@ -215,25 +222,29 @@ export function matchNewPostIntoQueryResults (state, { id, isPublic, type, group
   */
   const queriesToMatch = []
 
-  // All Groups stream w/ topics
-  queriesToMatch.push({ context: 'all' })
-  for (const topic of topics) {
-    queriesToMatch.push(
-      { context: 'all', topic: topic.id }
-    )
+  // All Groups stream w/ topics — skip system notices
+  if (type !== 'chat_activity') {
+    queriesToMatch.push({ context: 'all' })
+    for (const topic of topics) {
+      queriesToMatch.push(
+        { context: 'all', topic: topic.id }
+      )
+    }
+
+    // Public posts stream
+    if (isPublic) {
+      queriesToMatch.push({ context: 'public' })
+    }
   }
 
-  // Public posts stream
-  if (isPublic) {
-    queriesToMatch.push({ context: 'public' })
-  }
-
-  const groupSlugs = groups.map(g => g.slug)
+  const groupSlugs = groups.map(g => g.slug).filter(Boolean)
+  const parentIds = groups.map(g => g.parentId).filter(Boolean).map(String)
 
   // Group streams
   const updatedState = reduce((memo, group) => {
-    // Chat posts only appear in the chat rooms, nowhere else
-    if (type !== 'chat') {
+    // Chat posts only appear in the chat rooms, nowhere else.
+    // chat_activity notices are matched into All Activity below.
+    if (type !== 'chat' && type !== 'chat_activity') {
       queriesToMatch.push(
         // TODO: add types here
         { context: 'groups', slug: group.slug },
@@ -312,20 +323,19 @@ export function matchNewPostIntoQueryResults (state, { id, isPublic, type, group
     }, memo, queriesToMatch)
   }, state, groups)
 
-  // Generically handle queries that filter by a `types` array (e.g. requests-and-offers, projects, resources views).
-  // The existing queriesToMatch logic only covers `filter` (single type); this covers multi-type views.
+  // Typed views (`types` array) and All Activity (`filter: all+notices`) are not
+  // covered by the explicit queriesToMatch list. Move an existing id to the front
+  // when the same chat_activity hour bucket is updated.
   return mapValues(updatedState, (results, key) => {
-    if (!results?.ids || results.ids.includes(id) || type === 'chat') return results
+    if (!results?.ids || type === 'chat') return results
     const keyObject = JSON.parse(key)
-    const typesArray = keyObject.params?.types
-    if (!typesArray || !typesArray.includes(type)) return results
-    if (!groupSlugs.includes(keyObject.params?.slug)) return results
-    return {
-      ...results,
-      ids: [id].concat(results.ids),
-      total: (results.total || results.total === 0) && results.total + 1,
-      hasMore: results.hasMore
-    }
+    if (keyObject.type !== FETCH_POSTS) return results
+    const params = keyObject.params || {}
+    if (!groupSlugs.includes(params.slug) && !(params.groupId && parentIds.includes(String(params.groupId)))) return results
+    const matchesTypes = params.types?.includes(type)
+    const isAllActivity = params.filter === 'all+notices'
+    if (!matchesTypes && !isAllActivity) return results
+    return moveIdToFront(results, id)
   })
 }
 
@@ -373,19 +383,42 @@ export function matchSubCommentsIntoQueryResults (state, { data }) {
   return state
 }
 
+/** Swaps a temporary notice id for the real server id in every result set. */
+function replaceIdInQueryResults (state, fromId, toId) {
+  if (!fromId || String(fromId) === String(toId)) return state
+  const from = String(fromId)
+  const to = String(toId)
+  return mapValues(state, results => {
+    if (!results?.ids) return results
+    if (!results.ids.some(id => String(id) === from)) return results
+    return {
+      ...results,
+      ids: uniq(results.ids.map(id => String(id) === from ? to : id))
+    }
+  })
+}
+
 function prependIdForCreate (state, type, params, id) {
   const key = buildKey(type, params)
   if (!state[key]) return state
-  return !state[key].ids.includes(id)
-    ? {
-        ...state,
-        [key]: {
-          ids: [id].concat(state[key].ids),
-          total: (state[key].total || state[key].total === 0) && state[key].total + 1,
-          hasMore: state[key].hasMore
-        }
-      }
-    : state
+  return {
+    ...state,
+    [key]: moveIdToFront(state[key], id)
+  }
+}
+
+/** Puts `id` at the front of a query-result id list, incrementing total when new. */
+function moveIdToFront (results, id) {
+  const idStr = String(id)
+  const ids = results.ids || []
+  const without = ids.filter(x => String(x) !== idStr)
+  const alreadyHad = without.length !== ids.length
+  return {
+    ...results,
+    ids: [idStr].concat(without),
+    total: alreadyHad ? results.total : (results.total || results.total === 0) && results.total + 1,
+    hasMore: results.hasMore
+  }
 }
 
 function appendId (state, type, params, id) {
@@ -466,6 +499,7 @@ export const queryParamWhitelist = [
   'farmQuery',
   'filter',
   'forCollection',
+  'groupId',
   'groupIds',
   'groupRoleId',
   'groupSlug',

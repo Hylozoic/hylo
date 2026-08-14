@@ -16,7 +16,7 @@ export const defaultTimeRange = type => {
 
 export const isValidPostType = q =>
   q.where(function () {
-    this.whereNotIn('posts.type', ['welcome'])
+    this.whereNotIn('posts.type', ['welcome', ...Post.NOTICE_TYPES])
       .orWhere('posts.type', null)
   })
 

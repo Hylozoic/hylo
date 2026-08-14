@@ -156,13 +156,16 @@ export const AddCard = React.forwardRef(function AddCard ({ onClick, label, clas
   )
 })
 
-/** Event post cards replace the tile icon with a date / abbreviated day / time stack. */
+/** Event post cards replace the tile icon with a month / date / day / time stack. */
 export function EventDateStack ({ start }) {
   return (
     <span className='flex flex-col items-center justify-center text-white leading-none'>
-      <span className='text-base font-bold'>{start.toFormat('d')}</span>
-      <span className='text-[10px] font-semibold uppercase mt-0.5'>{start.toFormat('ccc')}</span>
-      <span className='text-[9px] mt-0.5 whitespace-nowrap'>{start.toFormat('t')}</span>
+      {/* leading-none per line: text-base's own line-height otherwise inflates
+          the stack past the 56px tile and clips the time */}
+      <span className='text-[9px] leading-none font-bold uppercase tracking-wide'>{start.toFormat('MMM')}</span>
+      <span className='text-base leading-none font-bold mt-0.5'>{start.toFormat('d')}</span>
+      <span className='text-[9px] leading-none font-bold uppercase mt-0.5'>{start.toFormat('ccc')}</span>
+      <span className='text-[8px] leading-none mt-0.5 opacity-50 whitespace-nowrap'>{start.toFormat('t')}</span>
     </span>
   )
 }
@@ -179,11 +182,12 @@ function GroupViewCard ({ view, isEditing, onAddToMenu, onOpen, onOpenSettings, 
   const tint = cardFieldTint(col, effectiveColorScheme)
   const ink = inkOn(col)
   // Views backed by a group (spaces, groups, members) show that group's banner as
-  // the card, matching how the one-column grid renders them; icon views keep the
-  // tinted gradient and wallpaper.
-  const bgImageUrl = presented.avatarUrl
-    ? (presented.linkedGroup?.bannerUrl || presented.avatarUrl)
+  // the card when one is set — even without a custom avatar — matching the
+  // one-column grid; icon views keep the tinted gradient and wallpaper.
+  const linkedGroupBanner = presented.linkedGroup?.bannerUrl && presented.linkedGroup.bannerUrl !== DEFAULT_BANNER
+    ? presented.linkedGroup.bannerUrl
     : null
+  const bgImageUrl = linkedGroupBanner || presented.avatarUrl || null
   const onPhoto = Boolean(bgImageUrl)
   const eventStart = eventStartForView(presented)
   const liveSpaceGroup = useSelector(state =>
@@ -265,7 +269,10 @@ function GroupViewCard ({ view, isEditing, onAddToMenu, onOpen, onOpenSettings, 
             className='w-14 h-14 rounded-[15px] overflow-hidden grid place-items-center shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.35)]'
             style={presented.avatarUrl
               ? { border: '1px solid hsl(0 0% 100% / 0.28)' }
-              : { background: col, color: ink, border: `1px solid color-mix(in srgb, ${col} 55%, white)` }}
+              // Frosted glass over a banner photo, matching the one-column grid tile
+              : onPhoto
+                ? { background: 'hsl(0 0% 100% / 0.16)', backdropFilter: 'blur(4px)', color: 'white', border: '1px solid hsl(0 0% 100% / 0.28)' }
+                : { background: col, color: ink, border: `1px solid color-mix(in srgb, ${col} 55%, white)` }}
           >
             {/* An avatar fills the tile — RoundImage hard-codes its own small size,
                 so it can't be scaled up through GroupViewIcon's className. */}

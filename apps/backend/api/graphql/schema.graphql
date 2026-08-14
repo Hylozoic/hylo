@@ -2510,9 +2510,13 @@ type Post {
   topicsTotal: Int
   # NOT USED RIGHT NOW
   totalContributions: Int
-  # Post type: 'discussion', 'event', 'offer', 'project', 'proposal', 'request', or 'resource'
+  # Post type: 'discussion', 'event', 'offer', 'project', 'proposal', 'request', 'resource', or notice types such as 'chat_activity'
   type: String
   updatedAt: Date
+  # JSON payload for system-generated notice posts (chat activity buckets, etc.)
+  noticeData: JSON
+  # Live chat posts previewed on a chat_activity notice, newest first
+  noticePosts: [Post]
 
   # The attachments (images, videos or files) added to the post
   attachments(type: String): [Attachment]

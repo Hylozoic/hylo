@@ -1,6 +1,6 @@
 import { isPhoneDevice } from 'util/mobile'
 import { get } from 'lodash/fp'
-import { CircleEllipsis, Info, Pencil, RefreshCw, Settings, UserPlus, Users, X } from 'lucide-react'
+import { CircleEllipsis, Info, Pencil, RefreshCw, Settings, UserPlus, Users } from 'lucide-react'
 import React, { useEffect, useCallback, useState, useMemo } from 'react'
 import { Link, useLocation, useNavigate, Routes, Route } from 'react-router-dom'
 import { replace } from 'redux-first-history'
@@ -20,6 +20,7 @@ import {
 } from '@hylo/navigation'
 
 import GroupMenuHeader from 'components/GroupMenuHeader'
+import GroupNotificationsPopover from 'components/GroupNotificationsPopover/GroupNotificationsPopover'
 import InviteMembersPopover from 'components/InviteMembersPopover/InviteMembersPopover'
 import MenuLink from './MenuLink'
 import ContextMenuResizer from './ContextMenuResizer'
@@ -125,6 +126,7 @@ function SpaceMenuItemWithMore ({
   presentedView,
   resolvedSpaceGroup,
   isSpaceActive,
+  isSpaceMember,
   spaceLink,
   aboutUrl,
   spaceUnread,
@@ -176,6 +178,15 @@ function SpaceMenuItemWithMore ({
           bannerUrl={spaceBannerUrl}
           className={cn('transition-opacity duration-200', isSpaceActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-50')}
         />
+        {/* Full-row hit area: the whole row opens the space; the title link and
+            embedded controls ((i), pill) sit above it with their own handlers */}
+        <MenuLink
+          to={spaceLink}
+          isActive={false}
+          aria-hidden='true'
+          tabIndex={-1}
+          className='absolute inset-0 z-[5] border-0 bg-transparent p-0 mb-0 rounded-none shadow-none hover:border-0 hover:bg-transparent hover:scale-100'
+        />
         <MenuLink
           to={spaceLink}
           isActive={false}
@@ -214,10 +225,12 @@ function SpaceMenuItemWithMore ({
             <span className='sr-only'>{t('About')}</span>
           </MenuLink>
         )}
-        {typeof spaceMemberCount === 'number' && (
+        {(typeof spaceMemberCount === 'number' || !isSpaceMember) && (
           <span
             className={cn(
-              'relative z-10 shrink-0 inline-flex items-center gap-0.5 text-xs leading-none rounded-full px-1.5 py-1 ml-auto mr-1',
+              // pointer-events-none: clicks land on the full-row link beneath,
+              // so tapping + JOIN opens the space (and its join flow)
+              'relative z-10 shrink-0 inline-flex items-center gap-0.5 text-xs leading-none rounded-full px-1.5 py-1 ml-auto mr-1 pointer-events-none',
               // Same banner/active color states as the (i) link beside it
               isSpaceActive
                 ? (spaceBannerUrl
@@ -228,10 +241,16 @@ function SpaceMenuItemWithMore ({
                   spaceBannerUrl && 'group-hover:bg-white/15 group-hover:text-white/90'
                 )
             )}
-            aria-label={t('{{count}} Members', { count: spaceMemberCount })}
+            aria-label={isSpaceMember ? t('{{count}} Members', { count: spaceMemberCount }) : t('Join')}
           >
-            <Users className='w-3 h-3' aria-hidden='true' />
-            {spaceMemberCount}
+            {isSpaceMember
+              ? (
+                <>
+                  <Users className='w-3 h-3' aria-hidden='true' />
+                  {spaceMemberCount}
+                </>
+                )
+              : <span className='uppercase text-[10px] font-semibold tracking-wide'>+ {t('Join')}</span>}
           </span>
         )}
       </div>
@@ -414,6 +433,7 @@ function GroupViewMenuItem ({
         presentedView={presentedView}
         resolvedSpaceGroup={resolvedSpaceGroup}
         isSpaceActive={isSpaceActive}
+        isSpaceMember={isSpaceMember}
         spaceLink={spaceLink}
         aboutUrl={aboutUrl}
         spaceUnread={showSpaceDot}
@@ -1005,6 +1025,7 @@ export default function ContextMenu (props) {
                 {/* h-[142px]: with the ducked group header's h-12 this sums to the
                     full-size header's 190px, so the takeover swaps hierarchy without
                     moving the menu below */}
+                {/* Closing the space lives in the ducked group header's back chevron above */}
                 <div className='SpaceMenuHeader relative z-20 flex flex-col justify-between h-[142px] overflow-hidden border-b border-foreground/10 shadow-md'>
                   {activeSpaceBannerUrl
                     ? (
@@ -1016,20 +1037,17 @@ export default function ContextMenu (props) {
                     : presentedActiveSpaceView && (
                       <MenuRowBackground view={presentedActiveSpaceView} bannerUrl={null} glyphCount={280} />
                     )}
-                  <button
-                    type='button'
-                    onClick={handleBackToGroupMenu}
+                  {/* Where the X used to sit: this space's notification settings */}
+                  <div
                     className={cn(
-                      'relative z-10 flex items-center self-start m-2 p-1 rounded-md backdrop-blur-sm transition-colors',
+                      'relative z-10 self-start m-2 p-1 rounded-md backdrop-blur-sm transition-colors',
                       activeSpaceBannerUrl
                         ? 'bg-black/25 text-white/90 hover:bg-black/40 hover:text-white'
                         : 'bg-foreground/10 text-foreground/70 hover:bg-foreground/20 hover:text-foreground dark:text-white/80 dark:hover:text-white'
                     )}
-                    aria-label={t('Close')}
-                    title={t('Close')}
                   >
-                    <X className='w-5 h-5' />
-                  </button>
+                    <GroupNotificationsPopover group={activeSpaceGroup} className='w-5 h-5' />
+                  </div>
                   {canAdminister && activeSpaceView && (
                     <button
                       type='button'
@@ -1051,13 +1069,20 @@ export default function ContextMenu (props) {
                     <div
                       style={presentedActiveSpaceView?.avatarUrl ? bgImageStyle(presentedActiveSpaceView.avatarUrl) : {}}
                       className={cn(
-                        'h-10 w-10 rounded-lg shadow-md bg-cover bg-center relative overflow-hidden shrink-0 flex items-center justify-center',
-                        !presentedActiveSpaceView?.avatarUrl && 'bg-theme-background'
+                        // Sized to the name + pills column beside it (fixed: a bg-image-only
+                        // box has no intrinsic width for a stretched square to grow from)
+                        'h-[52px] w-[52px] rounded-lg shadow-md bg-cover bg-center relative overflow-hidden shrink-0 flex items-center justify-center',
+                        // Frosted glass, standardized with the space cards' tile
+                        !presentedActiveSpaceView?.avatarUrl && cn(
+                          'backdrop-blur-sm border',
+                          activeSpaceBannerUrl
+                            ? 'bg-white/15 border-white/25 text-white'
+                            : 'bg-black/5 border-black/15 text-foreground/80 dark:bg-white/15 dark:border-white/25 dark:text-white'
+                        )
                       )}
                     >
-                      {/* theme-background is dark in every theme, so the icon is always light */}
                       {!presentedActiveSpaceView?.avatarUrl && (
-                        <GroupViewIcon view={presentedActiveSpaceView} className='w-6 h-6 text-white/90' />
+                        <GroupViewIcon view={presentedActiveSpaceView} className='w-6 h-6' />
                       )}
                     </div>
                     <div className='flex flex-col flex-1 min-w-0'>

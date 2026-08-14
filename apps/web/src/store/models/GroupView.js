@@ -69,7 +69,7 @@ export function viewAcceptedByPostTypes (viewType, acceptedPostTypes) {
 
 /** View types that have configurable settings in the menu editor. */
 export function viewTypeHasSettings (type) {
-  return ['chat', 'link', 'text', 'custom', 'collection', 'welcome', 'space'].includes(type)
+  return ['all', 'chat', 'link', 'text', 'custom', 'collection', 'welcome', 'space'].includes(type)
 }
 
 /** Soft-removable views use X to move to More Views (may also be hard-deletable). */

@@ -18,6 +18,7 @@ import {
   SelectValue
 } from 'components/ui/select'
 import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
+import useRouteParams from 'hooks/useRouteParams'
 import MenuRowBackground from 'routes/AuthLayoutRouter/components/ContextMenu/MenuRowBackground'
 import GroupViewPresenter, { avatarForView, iconForView } from '@hylo/presenters/GroupViewPresenter'
 import { leaveGroup } from 'routes/UserSettings/UserGroupsTab/UserGroupsTab.store'
@@ -25,21 +26,8 @@ import { updateMembershipSettings } from 'routes/UserSettings/UserSettings.store
 import fetchForGroup from 'store/actions/fetchForGroup'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMyMemberships from 'store/selectors/getMyMemberships'
-import { DEFAULT_BANNER, GROUP_ACCESSIBILITY, accessibilityIcon } from 'store/models/Group'
-import { bgImageStyle } from 'util/index'
-
-/** One fact in the two-up grid under the description. */
-function Fact ({ icon, label, value }) {
-  return (
-    <div className='flex items-center gap-2.5 rounded-lg border border-foreground/10 bg-background/40 px-3 py-2.5 min-w-0'>
-      <span className='shrink-0 text-foreground/60'>{icon}</span>
-      <div className='min-w-0'>
-        <div className='text-[10px] font-bold uppercase tracking-wider text-foreground/50'>{label}</div>
-        <div className='text-sm font-bold text-foreground truncate' title={value}>{value}</div>
-      </div>
-    </div>
-  )
-}
+import { DEFAULT_BANNER, accessibilityIcon, spaceAccessDescription } from 'store/models/Group'
+import { bgImageStyle, cn } from 'util/index'
 
 /**
  * What a space is for, over whatever you were looking at. A modal rather than a
@@ -53,6 +41,24 @@ export default function SpaceAboutModal ({ onClose }) {
   const spaceFullSlug = useEffectiveGroupSlug()
   const spaceGroup = useSelector(state => getGroupForSlug(state, spaceFullSlug))
   const detailsLoaded = spaceGroup?.accessibility != null
+
+  // Access is described in terms of the parent group (its name and roles)
+  const routeParams = useRouteParams()
+  const parentSlug = routeParams.groupSlug
+  const parentGroup = useSelector(state => getGroupForSlug(state, parentSlug))
+  const parentRolesLoaded = parentGroup?.groupRoles != null
+
+  useEffect(() => {
+    if (parentSlug && !parentRolesLoaded) dispatch(fetchForGroup(parentSlug))
+  }, [dispatch, parentSlug, parentRolesLoaded])
+
+  const requiredRoles = useMemo(() => {
+    const ids = spaceGroup?.requiredRoles || []
+    const parentRoles = parentGroup?.groupRoles?.items || []
+    return ids
+      .map(id => parentRoles.find(role => String(role.id) === String(id)))
+      .filter(Boolean)
+  }, [spaceGroup?.requiredRoles, parentGroup?.groupRoles])
 
   // Membership carries the per-space notification settings and makes Leave real
   const myMemberships = useSelector(getMyMemberships)
@@ -95,15 +101,14 @@ export default function SpaceAboutModal ({ onClose }) {
     ? spaceGroup.bannerUrl
     : null
 
-  const accessLabel = !spaceGroup
-    ? ''
-    : spaceGroup.paywall
-      ? t('Paid')
-      : spaceGroup.accessibility === GROUP_ACCESSIBILITY.Open
-        ? t('Open')
-        : spaceGroup.accessibility === GROUP_ACCESSIBILITY.Restricted
-          ? t('Restricted')
-          : t('Invite Only')
+  const accessDescription = spaceGroup && detailsLoaded
+    ? spaceAccessDescription({
+      space: spaceGroup,
+      parentGroupName: parentGroup?.name || '',
+      requiredRoles,
+      t
+    })
+    : ''
 
   return (
     <>
@@ -117,7 +122,9 @@ export default function SpaceAboutModal ({ onClose }) {
             ? <div className='p-10'><Loading /></div>
             : (
               <>
-                <div className='relative h-[140px] grid place-items-center overflow-hidden shrink-0'>
+                {/* Banner laid out like the one-column space banner: identity (tile,
+                    name, member pill) centered over the photo or glyph texture */}
+                <div className='relative h-[172px] grid place-items-center overflow-hidden shrink-0'>
                   {bannerUrl
                     ? (
                       <>
@@ -132,18 +139,35 @@ export default function SpaceAboutModal ({ onClose }) {
                     // right end, draining the bottom-right corner first
                     : <MenuRowBackground view={presentedSpaceView} bannerUrl={null} glyphCount={360} />}
 
-                  <div className='relative z-10 w-[84px] h-[84px] rounded-[22px] grid place-items-center overflow-hidden bg-background/20 backdrop-blur-sm border border-white/25 shadow-lg text-white'>
-                    {avatar?.avatarUrl
-                      ? <div className='w-full h-full bg-cover bg-center' style={bgImageStyle(avatar.avatarUrl)} />
-                      : icon.lucideIcon
-                        ? <LucideIcon name={icon.lucideIcon} className='w-10 h-10' fallback={<Icon name={icon.lucideIcon} className='text-4xl' />} />
-                        : <Icon name={icon.iconName || 'Shapes'} className='text-4xl' />}
+                  <div className='relative z-10 flex flex-col items-center justify-center gap-1 max-w-full px-4'>
+                    <div className={cn(
+                      'w-14 h-14 rounded-xl shadow-lg bg-cover bg-center overflow-hidden relative grid place-items-center backdrop-blur-sm',
+                      bannerUrl ? 'bg-white/15 text-white' : 'bg-black/5 text-foreground/80 dark:bg-white/15 dark:text-white'
+                    )}
+                    >
+                      {avatar?.avatarUrl
+                        ? <div className='w-full h-full bg-cover bg-center' style={bgImageStyle(avatar.avatarUrl)} />
+                        : icon.lucideIcon
+                          ? <LucideIcon name={icon.lucideIcon} className='w-7 h-7' fallback={<Icon name={icon.lucideIcon} className='text-2xl' />} />
+                          : <Icon name={icon.iconName || 'Shapes'} className='text-2xl' />}
+                    </div>
+                    <h1 className={cn('text-xl font-bold drop-shadow-md m-0 leading-tight max-w-full truncate', bannerUrl ? 'text-white' : 'text-foreground dark:text-white')}>
+                      {spaceGroup.name}
+                    </h1>
+                    <span className={cn(
+                      'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs',
+                      bannerUrl
+                        ? 'bg-white/15 border-white/25 text-white'
+                        : 'bg-foreground/10 border-foreground/20 text-foreground/80 dark:bg-white/15 dark:border-white/25 dark:text-white/90'
+                    )}
+                    >
+                      <Users className='w-3.5 h-3.5' />
+                      {spaceGroup.memberCount || 0}
+                    </span>
                   </div>
                 </div>
 
                 <div className='p-7 overflow-y-auto flex-1 min-h-0'>
-                  <h1 className='text-2xl font-bold text-foreground m-0'>{spaceGroup.name}</h1>
-
                   {spaceGroup.purpose && (
                     <p className='text-foreground/80 font-medium mt-2 mb-0'>{spaceGroup.purpose}</p>
                   )}
@@ -156,19 +180,15 @@ export default function SpaceAboutModal ({ onClose }) {
                     </div>
                   )}
 
-                  <div className='grid grid-cols-2 gap-2 mt-5'>
-                    <Fact
-                      icon={<Users className='w-4 h-4' />}
-                      label={t('Members')}
-                      value={String(spaceGroup.memberCount || 0)}
-                    />
-                    <Fact
-                      icon={spaceGroup.paywall
-                        ? <BadgeDollarSign className='w-4 h-4' />
-                        : <Icon name={accessibilityIcon(spaceGroup.accessibility)} />}
-                      label={t('Access')}
-                      value={accessLabel}
-                    />
+                  {/* Members moved to the banner pill; access reads as a sentence */}
+                  <div className='flex items-start gap-2.5 rounded-lg border border-foreground/10 bg-background/40 px-3 py-2.5 mt-5'>
+                    {spaceGroup.paywall
+                      ? <BadgeDollarSign className='w-4 h-4 shrink-0 text-foreground/60 mt-0.5' />
+                      : <Icon name={accessibilityIcon(spaceGroup.accessibility)} className='shrink-0 text-foreground/60 mt-0.5' />}
+                    <div className='min-w-0'>
+                      <div className='text-[10px] font-bold uppercase tracking-wider text-foreground/50'>{t('Access')}</div>
+                      <div className='text-sm font-medium text-foreground'>{accessDescription}</div>
+                    </div>
                   </div>
 
                   {/* Notification settings and Leave — space members see this modal

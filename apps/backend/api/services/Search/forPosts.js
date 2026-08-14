@@ -117,8 +117,12 @@ export default function forPosts (opts) {
     }
 
     if (get(opts.groupIds, 'length') !== 1) {
-      // If not looking at a single group then hide axolotl welcome posts
-      qb.where('posts.user_id', '!=', User.AXOLOTL_ID)
+      // Hide Axolotl welcome posts in multi-group / network streams, but keep
+      // system notice posts (chat activity blocks) which are also Axolotl-authored
+      qb.where(q => {
+        q.where('posts.user_id', '!=', User.AXOLOTL_ID)
+          .orWhereIn('posts.type', Post.NOTICE_TYPES)
+      })
     }
 
     if (opts.parent_post_id) {

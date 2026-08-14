@@ -21,20 +21,24 @@ export default function PeopleList ({ currentMatch, onClick, onMouseOver, people
         const rect = inputElement.getBoundingClientRect()
         setPosition({
           top: rect.bottom + 4,
-          left: rect.left
+          left: rect.left,
+          width: rect.width
         })
       }
 
       updatePosition()
       window.addEventListener('scroll', updatePosition, true)
       window.addEventListener('resize', updatePosition)
-
+      // Adding pills reflows the input inside its row — track it, not just the window
+      const observer = new ResizeObserver(updatePosition)
+      observer.observe(inputElement)
       return () => {
         window.removeEventListener('scroll', updatePosition, true)
         window.removeEventListener('resize', updatePosition)
+        observer.disconnect()
       }
     }
-  }, [inputElement])
+  }, [inputElement, people])
 
   useEffect(() => {
     if (selectedIndex >= 0 && containerRef.current) {
@@ -63,10 +67,12 @@ export default function PeopleList ({ currentMatch, onClick, onMouseOver, people
     }
   }, [selectedIndex])
 
+  // Phones get the input's full width; desktop keeps the compact 320px list
+  const narrow = typeof window !== 'undefined' && window.innerWidth < 640
   const dropdownContent = (
     <div
       ref={containerRef}
-      className='w-[320px] max-h-[400px] overflow-y-auto overflow-x-clip bg-card shadow-xl rounded-lg'
+      className='w-full max-h-[400px] overflow-y-auto overflow-x-clip bg-card shadow-xl rounded-lg'
       tabIndex='-1'
       style={{ pointerEvents: 'auto' }}
     >
@@ -90,8 +96,13 @@ export default function PeopleList ({ currentMatch, onClick, onMouseOver, people
   if (mounted && inputElement && typeof document !== 'undefined') {
     return createPortal(
       <div
+        data-people-selector-dropdown=''
         className='fixed z-[100]'
-        style={{ top: `${position.top}px`, left: `${position.left}px` }}
+        // Narrow screens: span the viewport (small gutter) rather than the input,
+        // which shares its row with the back chevron
+        style={narrow
+          ? { top: `${position.top}px`, left: '8px', width: 'calc(100vw - 16px)' }
+          : { top: `${position.top}px`, left: `${position.left}px`, width: '320px' }}
       >
         {dropdownContent}
       </div>,
@@ -101,7 +112,7 @@ export default function PeopleList ({ currentMatch, onClick, onMouseOver, people
 
   // Mobile: use absolute positioning relative to parent
   return (
-    <div className='absolute top-12 z-[100]'>
+    <div data-people-selector-dropdown='' className='absolute top-12 z-[100] left-0 right-0'>
       {dropdownContent}
     </div>
   )

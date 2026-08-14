@@ -21,6 +21,7 @@ import TrackActionsView from 'routes/TrackActionsView/TrackActionsView'
 import ViewContent from 'routes/ViewContent'
 import ContextMenuGrid from 'routes/AuthLayoutRouter/components/ContextMenu/ContextMenuGrid'
 import fetchForGroup from 'store/actions/fetchForGroup'
+import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { getGroupViews } from 'store/selectors/getGroupViews'
@@ -99,6 +100,15 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
     () => Boolean(spaceGroupId && myMemberships.some(m => m.group.id === spaceGroupId)),
     [spaceGroupId, myMemberships]
   )
+
+  // Cold deep links: fetchForGroup(parentSlug) doesn't include the spaces list,
+  // and the ContextMenu's fetchGroupSpaces may never fire (or hasn't yet), so
+  // linkedSpace can't resolve and the Loading gate below would never clear.
+  useEffect(() => {
+    if (parentGroup?.id && localSlug && !linkedSpace) {
+      dispatch(fetchGroupSpaces(parentGroup.id))
+    }
+  }, [dispatch, parentGroup?.id, localSlug, linkedSpace])
 
   useEffect(() => {
     if (spaceFullSlug && !spaceGroup) {
