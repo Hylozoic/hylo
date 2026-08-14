@@ -20,7 +20,7 @@ import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import usePillRowClamp from 'hooks/usePillRowClamp'
 import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
 import { groupUrl } from '@hylo/navigation'
-import { FETCH_MEMBERS, FETCH_MEMBERS_FOR_GRAPH, fetchMembers, fetchMembersForGraph, getMembers, getGraphMembers, getHasFetchedGraphMembers, getHasMoreMembers, getHasFetchedMembers, getMemberQueryProps, removeMember } from './Members.store'
+import { FETCH_MEMBERS, FETCH_MEMBERS_FOR_GRAPH, fetchMembers, fetchMembersForGraph, fetchRoleMemberCounts, getMembers, getGraphMembers, getHasFetchedGraphMembers, getHasMoreMembers, getHasFetchedMembers, getMemberQueryProps, removeMember } from './Members.store'
 import { fetchTrack } from 'store/actions/trackActions'
 import { fetchFundingRound } from 'routes/FundingRounds/FundingRounds.store'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
@@ -116,6 +116,32 @@ function Members (props) {
     ]
   }, [rolesSourceGroup])
 
+  // Spaces inherit role definitions from the parent, but their membership is
+  // their own — the parent-wide membersTotal on each role would advertise
+  // people who never joined this space. Fetch in-space counts instead.
+  const isSpaceContext = Boolean(group?.parentId)
+  const [spaceRoleCounts, setSpaceRoleCounts] = useState(null)
+  const roleIdsKey = useMemo(() => filterableRoles.map(r => r.id).join(','), [filterableRoles])
+  useEffect(() => {
+    if (!isSpaceContext || !slug || !roleIdsKey) return
+    let cancelled = false
+    dispatch(fetchRoleMemberCounts({ slug, roleIds: roleIdsKey.split(',') })).then(res => {
+      if (cancelled) return
+      const g = res?.payload?.data?.group || {}
+      const counts = {}
+      for (const id of roleIdsKey.split(',')) counts[id] = g[`r${id}`]?.total ?? 0
+      setSpaceRoleCounts(counts)
+    }).catch(() => {})
+    return () => { cancelled = true }
+  }, [isSpaceContext, slug, roleIdsKey, dispatch])
+
+  // In a space: only offer roles someone here actually holds, with real counts
+  const displayedRoles = useMemo(() => {
+    if (!isSpaceContext) return filterableRoles
+    if (!spaceRoleCounts) return filterableRoles
+    return filterableRoles.filter(role => spaceRoleCounts[role.id] > 0)
+  }, [isSpaceContext, filterableRoles, spaceRoleCounts])
+
   useEffect(() => {
     if (trackId) dispatch(fetchTrack(trackId))
   }, [dispatch, trackId])
@@ -132,7 +158,7 @@ function Members (props) {
   // Role pills keep to one row behind a More pill until expanded; the count
   // includes the All-members pill since the hook measures container children
   const [rolesExpanded, setRolesExpanded] = useState(false)
-  const roleClamp = usePillRowClamp(filterableRoles.length + 1, 1, rolesExpanded)
+  const roleClamp = usePillRowClamp(displayedRoles.length + 1, 1, rolesExpanded)
 
   // Action creators
   const changeSearch = useCallback(term =>
@@ -274,17 +300,18 @@ function Members (props) {
               <RolePill active={!groupRoleId} count={memberCount || null} onClick={() => changeRoleFilter(null)}>
                 {t('All members')}
               </RolePill>
-              {filterableRoles.map(role => {
+              {displayedRoles.map(role => {
                 const active = String(role.id) === String(groupRoleId)
+                const count = isSpaceContext ? (spaceRoleCounts?.[role.id] ?? null) : (role.membersTotal ?? null)
                 return (
-                  <RolePill key={role.id} active={active} count={role.membersTotal ?? null} onClick={() => changeRoleFilter(active ? null : role.id)}>
+                  <RolePill key={role.id} active={active} count={count} onClick={() => changeRoleFilter(active ? null : role.id)}>
                     {roleLabel(role)}
                   </RolePill>
                 )
               })}
               {!rolesExpanded && (
                 <RolePill onClick={() => setRolesExpanded(true)}>
-                  {t('More ({{count}})', { count: filterableRoles.length - Math.max(0, roleClamp.visibleCount - 1) })}
+                  {t('More ({{count}})', { count: displayedRoles.length - Math.max(0, roleClamp.visibleCount - 1) })}
                 </RolePill>
               )}
             </div>
