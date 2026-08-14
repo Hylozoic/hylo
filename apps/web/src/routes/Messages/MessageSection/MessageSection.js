@@ -246,7 +246,7 @@ export default class MessageSection extends Component {
                 <Loading />
               </div>
             )}
-            <div className='pt-[20px] mt-auto flex flex-col justify-end w-full min-w-0'>
+            <div className='pt-[20px] mt-auto flex flex-col justify-end w-full min-w-0 max-w-[var(--dm-stream-width,9999px)]'>
               <ClickCatcher>
                 {createMessageList(messages, lastSeenAtTimes[get('id', messageThread)])}
               </ClickCatcher>

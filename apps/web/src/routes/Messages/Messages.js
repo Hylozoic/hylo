@@ -403,56 +403,59 @@ const Messages = () => {
             className='relative flex flex-col flex-1 min-h-0 min-w-0'
             style={{ '--dm-stream-width': `${effectiveDmWidth}px` }}
           >
-            {/* Width rail on the stream's clamp edge, same affordance as chat */}
-            {showDmRail && (
-              <div
-                role='separator'
-                aria-orientation='vertical'
-                aria-label={t('Adjust message width')}
-                className={cn(
-                  'absolute top-0 bottom-0 z-20 flex flex-col items-center justify-between group touch-none select-none',
-                  resizingDmWidth ? 'cursor-grabbing' : 'cursor-grab'
-                )}
-                style={{ left: effectiveDmWidth, width: DM_RAIL_WIDTH }}
-                onPointerDown={onDmRailPointerDown}
-                onPointerMove={onDmRailPointerMove}
-                onPointerUp={onDmRailPointerUp}
-                onPointerCancel={onDmRailPointerUp}
-              >
-                <div className={cn(
-                  'absolute inset-0 rounded-lg transition-colors',
-                  resizingDmWidth ? 'bg-[hsl(var(--theme-background)/0.2)]' : 'group-hover:bg-[hsl(var(--theme-background)/0.2)]'
-                )}
-                />
-                <div className={cn(
-                  'absolute top-[9px] bottom-[9px] left-1/2 -ml-px border-l-2 border-dashed transition-colors',
-                  resizingDmWidth ? 'border-foreground/40' : 'border-transparent group-hover:border-foreground/40'
-                )}
-                />
-                <div className={cn(
-                  'relative w-0 h-0 border-x-4 border-x-transparent border-t-[6px] transition-colors',
-                  resizingDmWidth ? 'border-t-foreground/60' : 'border-t-foreground/30 group-hover:border-t-foreground/60'
-                )}
-                />
-                <div className={cn(
-                  'relative w-0 h-0 border-x-4 border-x-transparent border-b-[6px] transition-colors',
-                  resizingDmWidth ? 'border-b-foreground/60' : 'border-b-foreground/30 group-hover:border-b-foreground/60'
-                )}
-                />
-              </div>
-            )}
-            <MessageSection
-              socket={socket}
-              currentUser={currentUser}
-              fetchMessages={fetchMessagesAction}
-              messages={messages}
-              hasMore={hasMoreMessages}
-              pending={messagesPending}
-              updateThreadReadTime={updateThreadReadTimeAction}
-              messageThread={messageThread}
-            />
+            <div className='relative flex flex-col flex-1 min-h-0 min-w-0'>
+              {/* Width rail on the stream's clamp edge, same affordance as chat.
+                  Bounded to the list so its bottom hint sits above the input. */}
+              {showDmRail && (
+                <div
+                  role='separator'
+                  aria-orientation='vertical'
+                  aria-label={t('Adjust message width')}
+                  className={cn(
+                    'absolute top-0 bottom-0 z-20 flex flex-col items-center justify-between group touch-none select-none',
+                    resizingDmWidth ? 'cursor-grabbing' : 'cursor-grab'
+                  )}
+                  style={{ left: effectiveDmWidth, width: DM_RAIL_WIDTH }}
+                  onPointerDown={onDmRailPointerDown}
+                  onPointerMove={onDmRailPointerMove}
+                  onPointerUp={onDmRailPointerUp}
+                  onPointerCancel={onDmRailPointerUp}
+                >
+                  <div className={cn(
+                    'absolute inset-0 rounded-lg transition-colors',
+                    resizingDmWidth ? 'bg-[hsl(var(--theme-background)/0.2)]' : 'group-hover:bg-[hsl(var(--theme-background)/0.2)]'
+                  )}
+                  />
+                  <div className={cn(
+                    'absolute top-[9px] bottom-[9px] left-1/2 -ml-px border-l-2 border-dashed transition-colors',
+                    resizingDmWidth ? 'border-foreground/40' : 'border-transparent group-hover:border-foreground/40'
+                  )}
+                  />
+                  <div className={cn(
+                    'relative w-0 h-0 border-x-4 border-x-transparent border-t-[6px] transition-colors',
+                    resizingDmWidth ? 'border-t-foreground/60' : 'border-t-foreground/30 group-hover:border-t-foreground/60'
+                  )}
+                  />
+                  <div className={cn(
+                    'relative w-0 h-0 border-x-4 border-x-transparent border-b-[6px] transition-colors',
+                    resizingDmWidth ? 'border-b-foreground/60' : 'border-b-foreground/30 group-hover:border-b-foreground/60'
+                  )}
+                  />
+                </div>
+              )}
+              <MessageSection
+                socket={socket}
+                currentUser={currentUser}
+                fetchMessages={fetchMessagesAction}
+                messages={messages}
+                hasMore={hasMoreMessages}
+                pending={messagesPending}
+                updateThreadReadTime={updateThreadReadTimeAction}
+                messageThread={messageThread}
+              />
+            </div>
             <PeopleTyping className='w-full max-w-[var(--dm-stream-width,9999px)] pl-16 py-1 flex-shrink-0 px-3' />
-            <div className='flex-shrink-0 pb-3 w-full max-w-[var(--dm-stream-width,9999px)]'>
+            <div className='flex-shrink-0 pb-3 w-full'>
               {messageThread?.isMuted && <MutedThreadNotice />}
               <MessageForm
                 disabled={!messageThreadId && participants.length === 0}
