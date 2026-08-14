@@ -178,6 +178,15 @@ function SpaceMenuItemWithMore ({
           bannerUrl={spaceBannerUrl}
           className={cn('transition-opacity duration-200', isSpaceActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-50')}
         />
+        {/* Full-row hit area: the whole row opens the space; the title link and
+            embedded controls ((i), pill) sit above it with their own handlers */}
+        <MenuLink
+          to={spaceLink}
+          isActive={false}
+          aria-hidden='true'
+          tabIndex={-1}
+          className='absolute inset-0 z-[5] border-0 bg-transparent p-0 mb-0 rounded-none shadow-none hover:border-0 hover:bg-transparent hover:scale-100'
+        />
         <MenuLink
           to={spaceLink}
           isActive={false}
@@ -219,7 +228,9 @@ function SpaceMenuItemWithMore ({
         {(typeof spaceMemberCount === 'number' || !isSpaceMember) && (
           <span
             className={cn(
-              'relative z-10 shrink-0 inline-flex items-center gap-0.5 text-xs leading-none rounded-full px-1.5 py-1 ml-auto mr-1',
+              // pointer-events-none: clicks land on the full-row link beneath,
+              // so tapping + JOIN opens the space (and its join flow)
+              'relative z-10 shrink-0 inline-flex items-center gap-0.5 text-xs leading-none rounded-full px-1.5 py-1 ml-auto mr-1 pointer-events-none',
               // Same banner/active color states as the (i) link beside it
               isSpaceActive
                 ? (spaceBannerUrl
