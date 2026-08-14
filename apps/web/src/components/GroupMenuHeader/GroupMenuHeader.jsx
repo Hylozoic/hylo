@@ -92,7 +92,8 @@ export default function GroupMenuHeader ({
         aria-hidden={!compact}
         className={cn(
           'absolute inset-0 z-30 bg-gradient-to-t from-[hsl(var(--theme-background)/0.6)] dark:from-[hsl(var(--theme-background)/0.85)] to-[hsl(var(--theme-background)/0.15)] transition-opacity duration-300',
-          compact ? 'opacity-100 cursor-pointer group-hover/menuHeader:opacity-0' : 'opacity-0 pointer-events-none'
+          // Rests at half strength so the banner stays readable; hover clears it fully
+          compact ? 'opacity-50 cursor-pointer group-hover/menuHeader:opacity-0' : 'opacity-0 pointer-events-none'
         )}
       />
       {/* Back affordance: sits above the compact gradient (z-30) as a sibling, since
