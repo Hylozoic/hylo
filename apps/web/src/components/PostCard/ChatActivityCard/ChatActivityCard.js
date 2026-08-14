@@ -104,7 +104,7 @@ export default function ChatActivityCard ({
           <ChevronRight className='w-4 h-4' />
         </Link>
       </div>
-      <div className='relative pl-3 flex flex-col gap-1 border-l-2 border-selected'>
+      <div className='relative pl-3 flex flex-col gap-1 border-l-2 border-selected min-w-0'>
         {visible.map(message => (
           <ChatActivityMessage key={message.id} post={message} />
         ))}
@@ -132,7 +132,7 @@ export default function ChatActivityCard ({
 function ChatActivityMessage ({ post, faded = false }) {
   const text = TextHelpers.presentHTMLToText(post.details || '', { truncate: 180 })
   return (
-    <p className={cn('text-sm leading-snug m-0', faded ? 'opacity-40' : 'opacity-100')}>
+    <p className={cn('text-sm leading-snug m-0 break-words min-w-0', faded ? 'opacity-40' : 'opacity-100')}>
       <span className='font-bold text-foreground'>{post.creator?.name}</span>
       <span className='text-foreground/70'>: {text}</span>
     </p>
