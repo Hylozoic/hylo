@@ -1072,12 +1072,17 @@ export default function ContextMenu (props) {
                         // Sized to the name + pills column beside it (fixed: a bg-image-only
                         // box has no intrinsic width for a stretched square to grow from)
                         'h-[52px] w-[52px] rounded-lg shadow-md bg-cover bg-center relative overflow-hidden shrink-0 flex items-center justify-center',
-                        !presentedActiveSpaceView?.avatarUrl && 'bg-theme-background'
+                        // Frosted glass, standardized with the space cards' tile
+                        !presentedActiveSpaceView?.avatarUrl && cn(
+                          'backdrop-blur-sm border',
+                          activeSpaceBannerUrl
+                            ? 'bg-white/15 border-white/25 text-white'
+                            : 'bg-black/5 border-black/15 text-foreground/80 dark:bg-white/15 dark:border-white/25 dark:text-white'
+                        )
                       )}
                     >
-                      {/* theme-background is dark in every theme, so the icon is always light */}
                       {!presentedActiveSpaceView?.avatarUrl && (
-                        <GroupViewIcon view={presentedActiveSpaceView} className='w-6 h-6 text-white/90' />
+                        <GroupViewIcon view={presentedActiveSpaceView} className='w-6 h-6' />
                       )}
                     </div>
                     <div className='flex flex-col flex-1 min-w-0'>

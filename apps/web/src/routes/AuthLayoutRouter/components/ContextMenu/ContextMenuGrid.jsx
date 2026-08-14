@@ -176,13 +176,20 @@ function SpaceBannerHeader ({ group, spaceGroup, canAdminister, onOpenSettings, 
         <div
           style={presentedSpaceView?.avatarUrl ? bgImageStyle(presentedSpaceView.avatarUrl) : {}}
           className={cn(
-            'w-14 h-14 rounded-xl shadow-lg bg-cover bg-center border-2 border-white/30 overflow-hidden relative grid place-items-center',
-            !presentedSpaceView?.avatarUrl && 'bg-theme-background'
+            'w-14 h-14 rounded-xl shadow-lg bg-cover bg-center overflow-hidden relative grid place-items-center',
+            presentedSpaceView?.avatarUrl
+              ? 'border-2 border-white/30'
+              // Frosted glass, standardized with the space cards' tile
+              : cn(
+                'backdrop-blur-sm border',
+                bannerUrl
+                  ? 'bg-white/15 border-white/25 text-white'
+                  : 'bg-black/5 border-black/15 text-foreground/80 dark:bg-white/15 dark:border-white/25 dark:text-white'
+              )
           )}
         >
-          {/* theme-background is dark in every theme, so the icon is always light */}
           {!presentedSpaceView?.avatarUrl && (
-            <GroupViewIcon view={presentedSpaceView} className='!w-7 !h-7 !mr-0 text-white/90' />
+            <GroupViewIcon view={presentedSpaceView} className='!w-7 !h-7 !mr-0' />
           )}
         </div>
         <h1 className={cn('text-xl font-bold drop-shadow-md m-0 leading-tight max-w-[80%] truncate', inkClass)}>{spaceGroup.name}</h1>
