@@ -48,6 +48,13 @@ import {
 
 import classes from './Messages.module.scss'
 
+// Message stream width control, mirroring the chat room's
+const DM_STREAM_WIDTH_KEY = 'hylo-dm-stream-width'
+const MIN_DM_STREAM_WIDTH = 400
+const DEFAULT_DM_STREAM_WIDTH = 750
+const DM_RAIL_WIDTH = 14
+const DM_RAIL_SLACK = 40
+
 const Messages = () => {
   const dispatch = useDispatch()
   const location = useLocation()
@@ -102,6 +109,53 @@ const Messages = () => {
   const messageDraftRestoreDoneRef = useRef(false)
   /** Composer had non-empty text this visit (typed or restored) — used to delete server draft when cleared. */
   const messageComposerHadTrimmedContentRef = useRef(false)
+
+  // ── Resizable message stream width (same affordance as the chat room) ────
+  const [dmStreamWidth, setDmStreamWidth] = useState(() => {
+    const saved = parseInt(window.localStorage.getItem(DM_STREAM_WIDTH_KEY), 10)
+    return Number.isFinite(saved) ? Math.max(saved, MIN_DM_STREAM_WIDTH) : DEFAULT_DM_STREAM_WIDTH
+  })
+  const [dmPaneEl, setDmPaneEl] = useState(null)
+  const [dmPaneWidth, setDmPaneWidth] = useState(0)
+  const [resizingDmWidth, setResizingDmWidth] = useState(false)
+  const dmResizeDragRef = useRef(null)
+
+  useEffect(() => {
+    if (!dmPaneEl) return
+    const observer = new ResizeObserver(entries => {
+      setDmPaneWidth(entries[0]?.contentRect?.width ?? 0)
+    })
+    observer.observe(dmPaneEl)
+    return () => observer.disconnect()
+  }, [dmPaneEl])
+
+  const dmAvailableWidth = Math.max(0, dmPaneWidth - DM_RAIL_WIDTH - 4)
+  const effectiveDmWidth = dmAvailableWidth ? Math.min(dmStreamWidth, dmAvailableWidth) : dmStreamWidth
+  const showDmRail = dmAvailableWidth >= Math.min(dmStreamWidth, DEFAULT_DM_STREAM_WIDTH) + DM_RAIL_SLACK
+
+  const onDmRailPointerDown = useCallback((e) => {
+    e.preventDefault()
+    e.currentTarget.setPointerCapture(e.pointerId)
+    dmResizeDragRef.current = { startX: e.clientX, startWidth: effectiveDmWidth }
+    setResizingDmWidth(true)
+  }, [effectiveDmWidth])
+
+  const onDmRailPointerMove = useCallback((e) => {
+    const drag = dmResizeDragRef.current
+    if (!drag) return
+    const next = Math.min(Math.max(drag.startWidth + e.clientX - drag.startX, MIN_DM_STREAM_WIDTH), dmAvailableWidth)
+    setDmStreamWidth(next)
+  }, [dmAvailableWidth])
+
+  const onDmRailPointerUp = useCallback(() => {
+    if (!dmResizeDragRef.current) return
+    dmResizeDragRef.current = null
+    setResizingDmWidth(false)
+    setDmStreamWidth(width => {
+      window.localStorage.setItem(DM_STREAM_WIDTH_KEY, String(Math.round(width)))
+      return width
+    })
+  }, [])
 
   const isRealThread = messageThreadId && messageThreadId !== NEW_THREAD_ID
   const { loadedData: messageDraftData, isLoaded: messageDraftLoaded, saveDraft: saveMessageDraft, clearDraft: clearMessageDraft } = useDraft({
@@ -344,30 +398,74 @@ const Messages = () => {
           <div className='flex-shrink-0 z-20 -mx-3 px-4 py-2 bg-background border-b border-foreground/[0.08] shadow-[0_4px_14px_0px_rgba(0,0,0,0.16)] dark:border-transparent dark:shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)]'>
             {header}
           </div>
-          <MessageSection
-            socket={socket}
-            currentUser={currentUser}
-            fetchMessages={fetchMessagesAction}
-            messages={messages}
-            hasMore={hasMoreMessages}
-            pending={messagesPending}
-            updateThreadReadTime={updateThreadReadTimeAction}
-            messageThread={messageThread}
-          />
-          <PeopleTyping className='w-full pl-16 py-1 flex-shrink-0 px-3' />
-          <div className='flex-shrink-0 px-3 pb-3'>
-            {messageThread?.isMuted && <MutedThreadNotice />}
-            <MessageForm
-              disabled={!messageThreadId && participants.length === 0}
-              onSubmit={sendMessage}
-              onFocus={() => setPeopleSelectorOpen(false)}
+          <div
+            ref={setDmPaneEl}
+            className='relative flex flex-col flex-1 min-h-0 min-w-0'
+            style={{ '--dm-stream-width': `${effectiveDmWidth}px` }}
+          >
+            {/* Width rail on the stream's clamp edge, same affordance as chat */}
+            {showDmRail && (
+              <div
+                role='separator'
+                aria-orientation='vertical'
+                aria-label={t('Adjust message width')}
+                className={cn(
+                  'absolute top-0 bottom-0 z-20 flex flex-col items-center justify-between group touch-none select-none',
+                  resizingDmWidth ? 'cursor-grabbing' : 'cursor-grab'
+                )}
+                style={{ left: effectiveDmWidth, width: DM_RAIL_WIDTH }}
+                onPointerDown={onDmRailPointerDown}
+                onPointerMove={onDmRailPointerMove}
+                onPointerUp={onDmRailPointerUp}
+                onPointerCancel={onDmRailPointerUp}
+              >
+                <div className={cn(
+                  'absolute inset-0 rounded-lg transition-colors',
+                  resizingDmWidth ? 'bg-[hsl(var(--theme-background)/0.2)]' : 'group-hover:bg-[hsl(var(--theme-background)/0.2)]'
+                )}
+                />
+                <div className={cn(
+                  'absolute top-[9px] bottom-[9px] left-1/2 -ml-px border-l-2 border-dashed transition-colors',
+                  resizingDmWidth ? 'border-foreground/40' : 'border-transparent group-hover:border-foreground/40'
+                )}
+                />
+                <div className={cn(
+                  'relative w-0 h-0 border-x-4 border-x-transparent border-t-[6px] transition-colors',
+                  resizingDmWidth ? 'border-t-foreground/60' : 'border-t-foreground/30 group-hover:border-t-foreground/60'
+                )}
+                />
+                <div className={cn(
+                  'relative w-0 h-0 border-x-4 border-x-transparent border-b-[6px] transition-colors',
+                  resizingDmWidth ? 'border-b-foreground/60' : 'border-b-foreground/30 group-hover:border-b-foreground/60'
+                )}
+                />
+              </div>
+            )}
+            <MessageSection
+              socket={socket}
               currentUser={currentUser}
-              ref={formRef}
-              updateMessageText={updateMessageTextAction}
-              messageText={messageText}
-              sendIsTyping={status => isRealThread && sendIsTyping(messageThreadId, status)}
-              pending={messageCreatePending}
+              fetchMessages={fetchMessagesAction}
+              messages={messages}
+              hasMore={hasMoreMessages}
+              pending={messagesPending}
+              updateThreadReadTime={updateThreadReadTimeAction}
+              messageThread={messageThread}
             />
+            <PeopleTyping className='w-full max-w-[var(--dm-stream-width,9999px)] pl-16 py-1 flex-shrink-0 px-3' />
+            <div className='flex-shrink-0 pb-3 w-full max-w-[var(--dm-stream-width,9999px)]'>
+              {messageThread?.isMuted && <MutedThreadNotice />}
+              <MessageForm
+                disabled={!messageThreadId && participants.length === 0}
+                onSubmit={sendMessage}
+                onFocus={() => setPeopleSelectorOpen(false)}
+                currentUser={currentUser}
+                ref={formRef}
+                updateMessageText={updateMessageTextAction}
+                messageText={messageText}
+                sendIsTyping={status => isRealThread && sendIsTyping(messageThreadId, status)}
+                pending={messageCreatePending}
+              />
+            </div>
           </div>
           {socket && isRealThread && <SocketSubscriber type='post' id={messageThreadId} />}
         </div>)}

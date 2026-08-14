@@ -66,41 +66,33 @@ export default function MessagesLayout () {
       <div style={{ width: listWidth }} className='shrink-0 h-full min-h-0 flex'>
         <ThreadList />
       </div>
-      {/* Width rail between inbox and thread, matching the chat room's: quiet
-          triangle hints, dashed line and wash surface on hover or drag */}
-      <div
-        role='separator'
-        aria-orientation='vertical'
-        aria-label={t('Adjust inbox width')}
-        className={cn(
-          'relative shrink-0 w-[14px] h-full touch-none select-none flex flex-col items-center justify-between group',
-          resizing ? 'cursor-grabbing' : 'cursor-grab'
-        )}
-        onPointerDown={onDividerPointerDown}
-        onPointerMove={onDividerPointerMove}
-        onPointerUp={onDividerPointerUp}
-        onPointerCancel={onDividerPointerUp}
-      >
-        <div className={cn(
-          'absolute inset-0 rounded-lg transition-colors',
-          resizing ? 'bg-[hsl(var(--theme-background)/0.2)]' : 'group-hover:bg-[hsl(var(--theme-background)/0.2)]'
-        )}
-        />
-        <div className={cn(
-          'absolute top-[9px] bottom-[9px] left-1/2 -ml-px border-l-2 border-dashed transition-colors',
-          resizing ? 'border-foreground/40' : 'border-transparent group-hover:border-foreground/40'
-        )}
-        />
-        <div className={cn(
-          'relative w-0 h-0 border-x-4 border-x-transparent border-t-[6px] transition-colors',
-          resizing ? 'border-t-foreground/60' : 'border-t-foreground/30 group-hover:border-t-foreground/60'
-        )}
-        />
-        <div className={cn(
-          'relative w-0 h-0 border-x-4 border-x-transparent border-b-[6px] transition-colors',
-          resizing ? 'border-b-foreground/60' : 'border-b-foreground/30 group-hover:border-b-foreground/60'
-        )}
-        />
+      {/* Width rail on the inbox/thread seam. Zero layout width — the hit area
+          overlays the boundary so it never pushes the conversation content. */}
+      <div className='relative shrink-0 w-0 h-full z-30'>
+        <div
+          role='separator'
+          aria-orientation='vertical'
+          aria-label={t('Adjust inbox width')}
+          className={cn(
+            'absolute -left-[7px] top-0 bottom-0 w-[14px] touch-none select-none group',
+            resizing ? 'cursor-grabbing' : 'cursor-grab'
+          )}
+          onPointerDown={onDividerPointerDown}
+          onPointerMove={onDividerPointerMove}
+          onPointerUp={onDividerPointerUp}
+          onPointerCancel={onDividerPointerUp}
+        >
+          <div className={cn(
+            'absolute inset-0 rounded-lg transition-colors',
+            resizing ? 'bg-[hsl(var(--theme-background)/0.2)]' : 'group-hover:bg-[hsl(var(--theme-background)/0.2)]'
+          )}
+          />
+          <div className={cn(
+            'absolute top-[9px] bottom-[9px] left-1/2 -ml-px border-l-2 border-dashed transition-colors',
+            resizing ? 'border-foreground/40' : 'border-transparent group-hover:border-foreground/40'
+          )}
+          />
+        </div>
       </div>
       <div className='flex flex-col flex-1 min-w-0 min-h-0 h-full'>
         {messageThreadId ? <Messages /> : <Loading />}
