@@ -7,6 +7,7 @@ import ClickCatcher from 'components/ClickCatcher'
 import HyloHTML from 'components/HyloHTML'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
+import MenuRowBackground from 'routes/AuthLayoutRouter/components/ContextMenu/MenuRowBackground'
 import LucideIcon from 'components/LucideIcon/LucideIcon'
 import Button from 'components/ui/button'
 import { bgImageStyle, cn } from 'util/index'
@@ -14,7 +15,7 @@ import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { useKeyJoinRequestsByGroupId } from 'hooks/useGetJoinRequests'
 import useRouteParams from 'hooks/useRouteParams'
-import { avatarForView, iconForView } from '@hylo/presenters/GroupViewPresenter'
+import GroupViewPresenter, { avatarForView, iconForView } from '@hylo/presenters/GroupViewPresenter'
 import { createJoinRequest } from 'routes/GroupDetail/GroupDetail.store'
 import PaywallOfferingsSection from 'routes/GroupDetail/PaywallOfferingsSection'
 import fetchForGroup from 'store/actions/fetchForGroup'
@@ -61,6 +62,7 @@ export default function SpaceJoinPage () {
   const spaceView = useMemo(() => spaceGroup
     ? { type: 'space', name: spaceGroup.name, icon: spaceGroup.icon, linkedGroup: spaceGroup }
     : null, [spaceGroup])
+  const presentedSpaceView = useMemo(() => spaceView ? GroupViewPresenter(spaceView) : null, [spaceView])
   const avatar = useMemo(() => avatarForView(spaceView), [spaceView])
   const icon = useMemo(() => iconForView(spaceView), [spaceView])
 
@@ -160,7 +162,9 @@ export default function SpaceJoinPage () {
                 <div className='absolute inset-0' style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.6) 100%)' }} />
               </>
               )
-            : <div className='absolute inset-0 bg-gradient-to-br from-focus/70 to-selected/70' />}
+            // No banner: the same repeating icon texture the space wears in its
+            // About modal, menu row, and cards — one recognisable surface
+            : <MenuRowBackground view={presentedSpaceView} bannerUrl={null} glyphCount={360} />}
 
           <div className='relative z-10 w-[84px] h-[84px] rounded-[22px] grid place-items-center overflow-hidden bg-background/20 backdrop-blur-sm border border-white/25 shadow-lg text-white'>
             {avatar?.avatarUrl
@@ -224,7 +228,7 @@ export default function SpaceJoinPage () {
 
             {canJoinDirectly
               ? (
-                <Button variant='secondary' className='w-full' onClick={handleJoinSpace} disabled={joining}>
+                <Button variant='highVisibility' className='w-full justify-center' onClick={handleJoinSpace} disabled={joining}>
                   {joining ? t('Joining...') : t('Join Space')}
                 </Button>
                 )
@@ -250,7 +254,7 @@ export default function SpaceJoinPage () {
                         </div>
                         )
                       : (
-                        <Button variant='secondary' className='w-full' onClick={handleRequestToJoin} disabled={requesting}>
+                        <Button variant='highVisibility' className='w-full justify-center' onClick={handleRequestToJoin} disabled={requesting}>
                           {requesting ? t('Requesting...') : t('Request to Join Space')}
                         </Button>
                         )
