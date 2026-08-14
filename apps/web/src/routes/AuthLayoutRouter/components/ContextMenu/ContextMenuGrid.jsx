@@ -47,9 +47,12 @@ import fetchGroupRelationships from 'store/actions/fetchGroupRelationships'
 import { createGroupView, deleteGroupView, deleteSpace, setGroupViewHidden } from 'store/actions/groupViews'
 import { canHardDeleteView, viewAcceptedByPostTypes } from 'store/models/GroupView'
 import { viewShowsUnreadDot, viewUnreadBadgeCount } from 'util/viewUnreadBadges'
+import GroupMenuHeader from 'components/GroupMenuHeader'
 import GroupNotificationsPopover from 'components/GroupNotificationsPopover/GroupNotificationsPopover'
+import TruncatedText from 'components/TruncatedText'
 import CardIconField from './CardIconField'
 import GroupViewIcon from './GroupViewIcon'
+import MenuRowBackground from './MenuRowBackground'
 import SortableViewsGrid from './SortableViewsGrid'
 import GroupViewCard, { SpaceViewCard, EventDateStack } from './GroupViewCard'
 import ViewsGridSkeleton from './ViewsGridSkeleton'
@@ -113,6 +116,112 @@ function partitionViewsIntoSections (views) {
 }
 
 /** Sticky back bar for nested grid levels. */
+/**
+ * Space-level takeover header for the one-column layout: the space's banner,
+ * icon, name, members, invite, about, settings, and notifications — mirroring
+ * the two-column space menu header.
+ */
+function SpaceBannerHeader ({ group, spaceGroup, canAdminister, onOpenSettings, navigate, t }) {
+  const location = useLocation()
+  const presentedSpaceView = useMemo(() => GroupViewPresenter({
+    type: 'space', name: spaceGroup.name, icon: spaceGroup.icon, linkedGroup: spaceGroup
+  }), [spaceGroup])
+  const bannerUrl = spaceGroup.bannerUrl && spaceGroup.bannerUrl !== DEFAULT_BANNER ? spaceGroup.bannerUrl : null
+  const localSpace = localSpaceSlug(group.slug, spaceGroup.slug)
+  const pillClass = bannerUrl
+    ? 'bg-white/15 border-white/25 text-white hover:bg-white/25 hover:text-white'
+    : 'bg-foreground/10 border-foreground/20 text-foreground/80 hover:bg-foreground/20 hover:text-foreground dark:bg-white/15 dark:border-white/25 dark:text-white/90 dark:hover:bg-white/25 dark:hover:text-white'
+
+  return (
+    <div className='SpaceBannerHeader relative z-20 flex flex-col justify-between h-[142px] overflow-hidden border-b border-foreground/10 shadow-md'>
+      {bannerUrl
+        ? (
+          <>
+            <div className='absolute inset-0 bg-cover bg-center' style={bgImageStyle(bannerUrl)} />
+            <div className='absolute inset-0' style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.6) 100%)' }} />
+          </>
+          )
+        : <MenuRowBackground view={presentedSpaceView} bannerUrl={null} glyphCount={280} />}
+      <div
+        className={cn(
+          'relative z-10 self-start m-2 p-1 rounded-md backdrop-blur-sm transition-colors',
+          bannerUrl
+            ? 'bg-black/25 text-white/90 hover:bg-black/40 hover:text-white'
+            : 'bg-foreground/10 text-foreground/70 hover:bg-foreground/20 hover:text-foreground dark:text-white/80 dark:hover:text-white'
+        )}
+      >
+        <GroupNotificationsPopover group={spaceGroup} className='w-5 h-5' />
+      </div>
+      {canAdminister && (
+        <button
+          type='button'
+          onClick={onOpenSettings}
+          className='absolute top-2 right-2 z-10'
+          aria-label={t('Space Settings')}
+          title={t('Space Settings')}
+        >
+          <Settings className={cn(
+            'w-6 h-6 drop-shadow-md hover:scale-110 transition-all',
+            bannerUrl ? 'text-white/90 hover:text-white' : 'text-foreground/60 hover:text-foreground dark:text-white/80 dark:hover:text-white'
+          )}
+          />
+        </button>
+      )}
+      <div className='relative z-10 flex items-center gap-2 p-2 min-w-0'>
+        <div
+          style={presentedSpaceView?.avatarUrl ? bgImageStyle(presentedSpaceView.avatarUrl) : {}}
+          className={cn(
+            'h-[52px] w-[52px] rounded-lg shadow-md bg-cover bg-center relative overflow-hidden shrink-0 flex items-center justify-center',
+            !presentedSpaceView?.avatarUrl && 'bg-theme-background'
+          )}
+        >
+          {/* theme-background is dark in every theme, so the icon is always light */}
+          {!presentedSpaceView?.avatarUrl && (
+            <GroupViewIcon view={presentedSpaceView} className='w-6 h-6 text-white/90' />
+          )}
+        </div>
+        <div className='flex flex-col flex-1 min-w-0'>
+          <TruncatedText
+            className={cn(
+              'truncate font-bold text-xl/6',
+              bannerUrl ? 'text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.65)]' : 'text-foreground dark:text-white'
+            )}
+            text={spaceGroup.name}
+          />
+          <span className='flex items-center gap-1 mt-1.5 text-xs'>
+            <Link
+              className={cn('inline-flex items-center gap-1 rounded-full border px-2 py-0.5 no-underline hover:no-underline transition-colors', pillClass)}
+              to={spaceUrl(group.slug, localSpace, 'members')}
+              aria-label={t('{{count}} Members', { count: spaceGroup.memberCount })}
+            >
+              <Users className='w-3.5 h-3.5' />
+              {spaceGroup.memberCount}
+            </Link>
+            <InviteMembersPopover
+              group={spaceGroup}
+              alwaysVisible
+              triggerLabel={t('Invite')}
+              triggerClassName={cn('rounded-full border px-2 py-0.5 hover:scale-100', pillClass)}
+            />
+          </span>
+        </div>
+        <button
+          type='button'
+          onClick={() => navigate(addQuerystringToPath(location.pathname, { about: 1 }))}
+          className={cn(
+            'shrink-0 transition-all hover:scale-110 mr-1',
+            bannerUrl ? 'text-white/80 hover:text-white' : 'text-foreground/60 hover:text-foreground dark:text-white/80 dark:hover:text-white'
+          )}
+          aria-label={t('About')}
+          title={t('About')}
+        >
+          <Info className='w-5 h-5' />
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function StickyBackHeader ({ title, onBack, t }) {
   return (
     <div className='sticky top-0 z-30 -mx-4 px-4 py-3 mb-2 bg-background/95 backdrop-blur-sm border-b border-foreground/10 flex items-center gap-2'>
@@ -944,6 +1053,21 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
 
   return (
     <div className='ContextMenuGrid w-full h-full overflow-y-auto' id='context-menu-grid'>
+      {/* Space level mirrors the two-column takeover: ducked group header (back
+          chevron) with the space's own banner header below it */}
+      {isSpaceLevel && group && spaceGroup && (
+        <>
+          <GroupMenuHeader group={group} compact onCompactClick={handleBack} />
+          <SpaceBannerHeader
+            group={group}
+            spaceGroup={spaceGroup}
+            canAdminister={canAdminister}
+            onOpenSettings={() => setSettingsView({ type: 'space', linkedGroup: spaceGroup, name: spaceGroup.name, icon: spaceGroup.icon })}
+            navigate={navigate}
+            t={t}
+          />
+        </>
+      )}
       {/* Banner — root group/context menu only. Not for a space on a drawer layout:
           ViewHeader already names the space there, and the two stacked headers read
           as a mistake on a phone's height */}
@@ -1019,7 +1143,8 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
 
       {/* Extra room up top so the first row of cards clears the banner edge */}
       <div ref={gridContainerRef} className={cn('w-full max-w-[1000px] mx-auto px-4 pt-10 pb-6', isEditing && 'pb-24')}>
-        {isNestedLevel && (
+        {/* Space level carries its own takeover headers above; More keeps the bar */}
+        {isMoreSpacesLevel && (
           <StickyBackHeader title={nestedTitle} onBack={handleBack} t={t} />
         )}
 
