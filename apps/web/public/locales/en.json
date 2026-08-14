@@ -2782,5 +2782,7 @@
   "No active messages": "No active messages",
   "No muted conversations": "No muted conversations",
   "Send": "Send",
-  "Sending...": "Sending..."
+  "Sending...": "Sending...",
+  "Send a new message to...": "Send a new message to...",
+  "+ Add someone...": "+ Add someone..."
 }

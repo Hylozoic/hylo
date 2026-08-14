@@ -143,10 +143,14 @@ const Messages = () => {
     focusForm()
   }, [messageThreadId])
 
-  // Clicking anywhere outside the recipient picker closes its dropdown
+  // Clicking anywhere outside the recipient picker closes its dropdown.
+  // The dropdown itself portals to document.body, so it needs its own check —
+  // treating it as "outside" here would close it on mousedown and swallow the
+  // click before the person could be selected.
   useEffect(() => {
     if (!peopleSelectorOpen) return
     const handlePointerDown = (e) => {
+      if (e.target.closest?.('[data-people-selector-dropdown]')) return
       if (peopleSelectorRef.current && !peopleSelectorRef.current.contains(e.target)) {
         setPeopleSelectorOpen(false)
       }

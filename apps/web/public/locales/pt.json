@@ -2785,5 +2785,7 @@
   "No active messages": "Nenhuma mensagem ativa",
   "No muted conversations": "Nenhuma conversa silenciada",
   "Send": "Enviar",
-  "Sending...": "Enviando..."
+  "Sending...": "Enviando...",
+  "Send a new message to...": "Enviar uma nova mensagem para...",
+  "+ Add someone...": "+ Adicionar alguém..."
 }

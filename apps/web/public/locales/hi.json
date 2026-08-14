@@ -2785,5 +2785,7 @@
   "No active messages": "कोई सक्रिय संदेश नहीं",
   "No muted conversations": "कोई म्यूट की गई बातचीत नहीं",
   "Send": "भेजें",
-  "Sending...": "भेजा जा रहा है..."
+  "Sending...": "भेजा जा रहा है...",
+  "Send a new message to...": "नया संदेश भेजें...",
+  "+ Add someone...": "+ किसी को जोड़ें..."
 }

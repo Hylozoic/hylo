@@ -90,6 +90,7 @@ export default function PeopleList ({ currentMatch, onClick, onMouseOver, people
   if (mounted && inputElement && typeof document !== 'undefined') {
     return createPortal(
       <div
+        data-people-selector-dropdown=''
         className='fixed z-[100]'
         style={{ top: `${position.top}px`, left: `${position.left}px` }}
       >
@@ -101,7 +102,7 @@ export default function PeopleList ({ currentMatch, onClick, onMouseOver, people
 
   // Mobile: use absolute positioning relative to parent
   return (
-    <div className='absolute top-12 z-[100]'>
+    <div data-people-selector-dropdown='' className='absolute top-12 z-[100]'>
       {dropdownContent}
     </div>
   )

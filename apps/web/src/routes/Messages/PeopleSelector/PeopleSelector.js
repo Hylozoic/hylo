@@ -112,13 +112,18 @@ export default function PeopleSelector (props) {
     }
   }
 
-  const showLabel = props.showLabel !== false
-  const inputPlaceholder = props.placeholder || (maxParticipantsReached ? t('Group limit reached') : `+ ${t('Add someone')}`)
+  // No recipients yet: invite starting the message. With recipients: offer more.
+  const inputPlaceholder = props.placeholder || (
+    maxParticipantsReached
+      ? t('Group limit reached')
+      : selectedPeople?.length > 0
+        ? t('+ Add someone...')
+        : t('Send a new message to...')
+  )
 
   return (
     <div className='w-full relative' tabIndex='0'>
       <div className='w-full relative flex flex-wrap gap-1'>
-        {showLabel && <span className='p-2'>{t('New Message With')}:</span>}
         {selectedPeople && selectedPeople.map(person =>
           <MatchingPeopleListItem
             avatarUrl={person.avatarUrl}
@@ -180,6 +185,5 @@ PeopleSelector.propTypes = {
   inputRef: PropTypes.object,
   autoFocus: PropTypes.bool,
   maxParticipantsReached: PropTypes.bool,
-  showLabel: PropTypes.bool,
   placeholder: PropTypes.string
 }
