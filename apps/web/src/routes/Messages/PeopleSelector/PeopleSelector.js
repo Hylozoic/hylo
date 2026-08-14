@@ -46,14 +46,22 @@ export default function PeopleSelector (props) {
     return people.filter(c => !selectedPeopleIds.includes(c.id))
   }, [people, selectedPeople])
 
+  // Refocusing after a selection must not count as a fresh focus (which would
+  // reopen the dropdown) — the flag suppresses exactly that one focus event.
+  const justSelectedRef = useRef(false)
+
   const selectPerson = (person) => {
     if (!person || maxParticipantsReached) return
+    justSelectedRef.current = true
+    setTimeout(() => { justSelectedRef.current = false }, 150)
     autocompleteInput.current.focus()
     if (selectedPeople.find(p => p.id === person.id)) return
     setPeopleSearch(null)
     setCurrentMatch(null)
     setCurrentText('')
     props.selectPerson(person)
+    // Adding someone closes the list; typing again reopens it
+    props.onPersonSelected?.()
   }
 
   const removePerson = (person) => {
@@ -65,6 +73,8 @@ export default function PeopleSelector (props) {
 
   const onChange = (e) => {
     const val = e.target.value
+    // Typing (re)opens the dropdown after a selection closed it
+    props.onTyping?.()
     if (!invalidPersonName.exec(val)) {
       setCurrentText(val)
       autocompleteSearch(val)
@@ -144,6 +154,10 @@ export default function PeopleSelector (props) {
             disabled={maxParticipantsReached}
             onFocus={(e) => {
               setSelectedIndex(-1)
+              if (justSelectedRef.current) {
+                justSelectedRef.current = false
+                return
+              }
               props.onFocus?.(e)
             }}
             value={currentText}
