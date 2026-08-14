@@ -360,11 +360,9 @@ const ViewHeader = () => {
         <>
           <GroupViewIcon view={presentedSpaceView} className='mr-1 shrink-0 w-5 h-5' />
           <span className={cn(
-            'truncate shrink min-w-0 text-foreground',
-            (isSingleViewSpace || !hasTitle)
-              ? 'font-bold'
-              // Parent level: icon-only on phones, name returns at sm+
-              : cn('max-w-[25%]', parentCrumbNameClass)
+            'truncate shrink min-w-0 text-foreground font-bold',
+            // Parent level: icon-only on phones, name returns at sm+
+            !(isSingleViewSpace || !hasTitle) && cn('max-w-[25%]', parentCrumbNameClass)
           )}
           >{spaceName}
           </span>
@@ -412,7 +410,7 @@ const ViewHeader = () => {
                     'cursor-pointer hover:text-foreground transition-colors whitespace-nowrap truncate',
                     hasTitle
                       // Parent level: icon-only on phones
-                      ? cn('font-semibold text-foreground/70', parentCrumbNameClass)
+                      ? cn('font-bold text-foreground/70', parentCrumbNameClass)
                       : 'font-bold text-foreground'
                   )}
                   onClick={() => navigate(spaceHref)}
