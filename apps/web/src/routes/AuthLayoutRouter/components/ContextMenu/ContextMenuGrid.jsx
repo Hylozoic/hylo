@@ -214,20 +214,22 @@ function SpaceBannerHeader ({ group, spaceGroup, canAdminister, onOpenSettings, 
   )
 }
 
-function StickyBackHeader ({ title, onBack, t }) {
+function StickyBackHeader ({ title, icon, onBack, t }) {
+  // Dressed as ViewHeader (surface, hairline, shadow, chevron + icon + bold
+  // title) — this level hides the real ViewHeader, so the bar stands in for it
   return (
-    <div className='sticky top-0 z-30 -mx-4 px-4 py-3 mb-2 bg-background/95 backdrop-blur-sm border-b border-foreground/10 flex items-center gap-2'>
+    <div className='sticky top-0 z-30 -mx-4 mb-2 p-2 bg-background border-b border-foreground/[0.08] shadow-[0_4px_14px_0px_rgba(0,0,0,0.16)] dark:border-transparent dark:shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)] flex items-center'>
       <button
         type='button'
         onClick={onBack}
-        className='flex items-center gap-1 text-foreground/70 hover:text-foreground transition-colors shrink-0'
+        className='p-2 -ml-1 mr-1 cursor-pointer text-foreground/70 hover:text-foreground transition-colors shrink-0'
         aria-label={t('Back')}
       >
-        <ChevronLeft className='w-5 h-5' />
-        <span className='text-sm font-medium'>{t('Back')}</span>
+        <ChevronLeft className='w-6 h-6' />
       </button>
+      {icon && React.cloneElement(icon, { className: 'w-5 h-5 shrink-0 mr-2' })}
       {title && (
-        <h2 className='text-base font-semibold text-foreground truncate flex-1 text-center pr-14'>
+        <h2 className='text-foreground font-bold m-0 truncate min-w-0'>
           {title}
         </h2>
       )}
@@ -1137,7 +1139,7 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
       <div ref={gridContainerRef} className={cn('w-full max-w-[1000px] mx-auto px-4 pt-10 pb-6', isEditing && 'pb-24')}>
         {/* Space level carries its own takeover headers above; More keeps the bar */}
         {isMoreSpacesLevel && (
-          <StickyBackHeader title={nestedTitle} onBack={handleBack} t={t} />
+          <StickyBackHeader title={nestedTitle} icon={<CircleEllipsis />} onBack={handleBack} t={t} />
         )}
 
         {isMoreSpacesLevel
