@@ -147,7 +147,7 @@ function SpaceBannerHeader ({ group, spaceGroup, canAdminister, onOpenSettings, 
             <div className='absolute inset-0' style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.6) 100%)' }} />
           </>
           )
-        : <MenuRowBackground view={presentedSpaceView} bannerUrl={null} glyphCount={360} />}
+        : <MenuRowBackground view={presentedSpaceView} bannerUrl={null} rows={8} spaced className='rounded-none' />}
 
       {/* Controls bar, mirroring the group banner: bell left, about + settings right */}
       <div className='absolute top-3 left-1/2 -translate-x-1/2 z-30 w-full max-w-[1000px] px-3 flex items-center justify-between'>

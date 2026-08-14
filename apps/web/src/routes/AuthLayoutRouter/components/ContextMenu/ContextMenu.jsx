@@ -1035,7 +1035,7 @@ export default function ContextMenu (props) {
                       </>
                       )
                     : presentedActiveSpaceView && (
-                      <MenuRowBackground view={presentedActiveSpaceView} bannerUrl={null} glyphCount={280} />
+                      <MenuRowBackground view={presentedActiveSpaceView} bannerUrl={null} rows={8} spaced className='rounded-none' />
                     )}
                   {/* Where the X used to sit: this space's notification settings */}
                   <div
