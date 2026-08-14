@@ -2781,5 +2781,9 @@
   "{{count}} members": "{{count}} सदस्य",
   "{{count}} user(s) selected": "{{count}} उपयोगकर्ता चयनित",
   "{{email}} was successfully added to your profile.": "{{email}} आपकी प्रोफ़ाइल में सफलतापूर्वक जोड़ा गया।",
-  "{{group.name}} is a member of {{length}} group": "{{group.name}} {{length}} समूह का सदस्य है"
+  "{{group.name}} is a member of {{length}} group": "{{group.name}} {{length}} समूह का सदस्य है",
+  "No active messages": "कोई सक्रिय संदेश नहीं",
+  "No muted conversations": "कोई म्यूट की गई बातचीत नहीं",
+  "Send": "भेजें",
+  "Sending...": "भेजा जा रहा है..."
 }

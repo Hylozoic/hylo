@@ -2778,5 +2778,9 @@
   "your-email@example.com": "your-email@example.com",
   "{{count}} members": "{{count}} members",
   "{{email}} was successfully added to your profile.": "{{email}} was successfully added to your profile.",
-  "{{group.name}} is a member of {{length}} group": "{{group.name}} is a member of {{length}} group"
+  "{{group.name}} is a member of {{length}} group": "{{group.name}} is a member of {{length}} group",
+  "No active messages": "No active messages",
+  "No muted conversations": "No muted conversations",
+  "Send": "Send",
+  "Sending...": "Sending..."
 }

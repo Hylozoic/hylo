@@ -2781,5 +2781,9 @@
   "{{count}} members": "{{count}} membres",
   "{{count}} user(s) selected": "{{count}} utilisateur(s) sélectionné(s)",
   "{{email}} was successfully added to your profile.": "{{email}} a bien été ajouté à votre profil.",
-  "{{group.name}} is a member of {{length}} group": "{{group.name}} est membre de {{length}} groupe(s)"
+  "{{group.name}} is a member of {{length}} group": "{{group.name}} est membre de {{length}} groupe(s)",
+  "No active messages": "Aucun message actif",
+  "No muted conversations": "Aucune conversation en sourdine",
+  "Send": "Envoyer",
+  "Sending...": "Envoi…"
 }

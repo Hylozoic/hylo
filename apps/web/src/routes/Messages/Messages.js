@@ -1,6 +1,7 @@
 import { cn } from 'util/index'
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Helmet } from 'react-helmet'
+import { useTranslation } from 'react-i18next'
 import { useLocation, useParams } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import { get, isEmpty } from 'lodash/fp'
@@ -51,6 +52,7 @@ const Messages = () => {
   const dispatch = useDispatch()
   const location = useLocation()
   const routeParams = useParams()
+  const { t } = useTranslation()
   const { messageThreadId } = routeParams
 
   // State from mapStateToProps
@@ -91,9 +93,11 @@ const Messages = () => {
   const goToThreadAction = useCallback((threadId) => dispatch(push(messageThreadUrl(threadId))), [dispatch])
 
   const [forNewThread, setForNewThread] = useState(messageThreadId === NEW_THREAD_ID)
-  const [peopleSelectorOpen, setPeopleSelectorOpen] = useState(false)
+  // Starting a new thread opens the recipient picker immediately
+  const [peopleSelectorOpen, setPeopleSelectorOpen] = useState(messageThreadId === NEW_THREAD_ID)
   const [participants, setParticipants] = useState([])
   const formRef = useRef(null)
+  const peopleSelectorRef = useRef(null)
   /** Avoid re-applying server draft whenever draft ORM updates (e.g. after saves). */
   const messageDraftRestoreDoneRef = useRef(false)
   /** Composer had non-empty text this visit (typed or restored) — used to delete server draft when cleared. */
@@ -131,12 +135,25 @@ const Messages = () => {
     if (messageThreadId) {
       const newForNewThread = messageThreadId === NEW_THREAD_ID
       setForNewThread(newForNewThread)
+      setPeopleSelectorOpen(newForNewThread)
       if (!newForNewThread) {
         fetchThreadAction()
       }
     }
     focusForm()
   }, [messageThreadId])
+
+  // Clicking anywhere outside the recipient picker closes its dropdown
+  useEffect(() => {
+    if (!peopleSelectorOpen) return
+    const handlePointerDown = (e) => {
+      if (peopleSelectorRef.current && !peopleSelectorRef.current.contains(e.target)) {
+        setPeopleSelectorOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handlePointerDown)
+    return () => document.removeEventListener('mousedown', handlePointerDown)
+  }, [peopleSelectorOpen])
 
   useEffect(() => {
     messageDraftRestoreDoneRef.current = false
@@ -233,7 +250,7 @@ const Messages = () => {
 
   const header = forNewThread
     ? (
-      <div>
+      <div ref={peopleSelectorRef}>
         <PeopleSelector
           currentUser={currentUser}
           fetchPeople={fetchPeopleAction}
@@ -261,15 +278,17 @@ const Messages = () => {
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
-    // Don't set header details on phones - MessagesMobile handles its own header
+    // Don't set header details on phones - MessagesMobile handles its own header.
+    // The recipients/thread header renders inside the conversation column below,
+    // so the shared ViewHeader (which spans the inbox too) stays a plain title.
     if (!isPhoneDevice()) {
       setHeaderDetails({
-        title: header,
-        icon: messageThreadId ? undefined : 'Messages',
+        title: t('Messages'),
+        icon: 'Messages',
         search: false
       })
     }
-  }, [forNewThread, messageThreadId, peopleSelectorOpen, participants, contacts, messagesPending])
+  }, [t])
 
   // Render mobile version on phones only; tablets use the desktop side-by-side layout
   if (isPhoneDevice()) {
@@ -313,6 +332,11 @@ const Messages = () => {
       </Helmet>
       {messageThreadId && (
         <div className='flex flex-col h-full w-full min-w-0 px-3'>
+          {/* The recipients/thread header belongs to this column only — it must
+              not span the inbox list beside it */}
+          <div className='flex-shrink-0 w-full py-2 border-b border-foreground/10'>
+            {header}
+          </div>
           <MessageSection
             socket={socket}
             currentUser={currentUser}

@@ -2789,5 +2789,9 @@
   "your-email@example.com": "tu-correo@ejemplo.com",
   "{{count}} members": "{{count}} miembros",
   "{{email}} was successfully added to your profile.": "{{email}} se añadió correctamente a tu perfil.",
-  "{{group.name}} is a member of {{length}} group": "{{group.name}} es miembro de {{length}} grupo(s)"
+  "{{group.name}} is a member of {{length}} group": "{{group.name}} es miembro de {{length}} grupo(s)",
+  "No active messages": "No hay mensajes activos",
+  "No muted conversations": "No hay conversaciones silenciadas",
+  "Send": "Enviar",
+  "Sending...": "Enviando..."
 }

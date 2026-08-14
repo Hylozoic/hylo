@@ -3,14 +3,10 @@ import PropTypes from 'prop-types'
 import React, { useState, useRef, forwardRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { throttle } from 'lodash'
-import { get } from 'lodash/fp'
 import TextareaAutosize from 'react-textarea-autosize'
 import { onEnterNoShift } from 'util/textInput'
 import { STARTED_TYPING_INTERVAL } from 'util/constants'
-import RoundImage from 'components/RoundImage'
-import Icon from 'components/Icon'
-import styles from './MessageForm.module.scss'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Send } from 'lucide-react'
 import { isMobileDevice } from 'util/mobile'
 
 const MessageForm = forwardRef((props, ref) => {
@@ -54,15 +50,22 @@ const MessageForm = forwardRef((props, ref) => {
     props.sendIsTyping(true)
   }, STARTED_TYPING_INTERVAL)
 
+  const canSend = Boolean(props.messageText?.trim()) && !props.pending && !props.disabled
+
+  // Styled to match the group chat composer (ChatEditorContent), so DMs and
+  // chat read as one messaging experience.
   return (
     <form
-      className={cn('w-full max-w-[750px] mx-auto flex gap-3 shadow-md p-4 border-2 border-foreground/15 shadow-xlg rounded-xl bg-card transition-all', props.className, { 'border-focus': hasFocus })}
+      className={cn(
+        'w-full max-w-[750px] mx-auto flex items-end gap-2 bg-foreground/5 border border-foreground/10 rounded-xl p-1.5 pl-3 transition-all',
+        props.className,
+        { 'border-foreground/20': hasFocus }
+      )}
       onSubmit={handleSubmit}
     >
-      <RoundImage url={get('avatarUrl', props.currentUser)} medium />
       <TextareaAutosize
         value={props.messageText}
-        className='text-foreground bg-transparent w-full my-2 line-height-2 focus:outline-none mt-0 mb-0'
+        className='text-foreground bg-transparent w-full py-2 line-height-2 focus:outline-none'
         ref={textareaRef}
         minRows={1}
         maxRows={8}
@@ -82,13 +85,23 @@ const MessageForm = forwardRef((props, ref) => {
       />
       {props.pending
         ? (
-          <div className='flex items-center text-sm text-foreground/ 50'>
-            <Loader2 className='w-4 h-4 animate-spin' /> Sending...
+          <div className='flex items-center gap-1 p-1.5 mb-0.5 text-sm text-foreground/50 shrink-0'>
+            <Loader2 className='w-4 h-4 animate-spin' /> {t('Sending...')}
           </div>
           )
         : (
-          <button className={styles.sendButton} data-testid='send-button'>
-            <Icon name='Reply' className={styles.replyIcon} />
+          <button
+            className={cn(
+              'p-1.5 mb-0.5 shrink-0 rounded-lg border transition-colors',
+              canSend
+                ? 'bg-selected border-selected text-white hover:bg-selected/90'
+                : 'border-foreground/20 text-muted-foreground cursor-not-allowed'
+            )}
+            disabled={!canSend}
+            aria-label={t('Send')}
+            data-testid='send-button'
+          >
+            <Send className='w-5 h-5' />
           </button>
           )}
     </form>
@@ -99,7 +112,6 @@ MessageForm.displayName = 'MessageForm'
 
 MessageForm.propTypes = {
   className: PropTypes.string,
-  currentUser: PropTypes.object,
   messageText: PropTypes.string,
   onSubmit: PropTypes.func.isRequired,
   pending: PropTypes.bool,

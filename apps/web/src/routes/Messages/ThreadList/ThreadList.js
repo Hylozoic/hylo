@@ -1,5 +1,5 @@
 import { isEmpty, orderBy } from 'lodash/fp'
-import { SquarePen, Search, SearchX } from 'lucide-react'
+import { CircleOff, SquarePen, Search, SearchX } from 'lucide-react'
 import React, { useCallback, useEffect, useState, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
@@ -90,6 +90,10 @@ function ThreadList () {
         const firstThread = response.payload.data?.me?.messageThreads?.items[0]
         if (firstThread) {
           navigate(`/messages/${firstThread.id}`, { replace: true })
+        } else {
+          // Nothing in the inbox: open the composer with the recipient picker
+          // ready, so a first-time user can start a message immediately
+          navigate('/messages/new', { replace: true })
         }
       }
     })
@@ -170,14 +174,14 @@ function ThreadList () {
         {threadsPending &&
           <Loading type='bottom' />}
         {!threadsPending && isEmpty(threads) && !searchInput && !isMutedTab &&
-          <div className={classes.noConversations}>
-            {t('You have no active messages!')}
-            <Link to='/messages/new' onClick={isPhoneDevice() ? toggleNavMenuAction : undefined}>{t('Send a message')}</Link>
-            {t('to get started.')}
+          <div className='text-center text-foreground/70 border-2 border-dashed border-foreground/20 rounded-lg m-4 p-4 flex flex-col items-center justify-center gap-2'>
+            <CircleOff className='w-6 h-6' />
+            <div>{t('No active messages')}</div>
           </div>}
         {!threadsPending && isEmpty(threads) && !searchInput && isMutedTab &&
-          <div className={classes.noConversations}>
-            {t('You have no muted conversations.')}
+          <div className='text-center text-foreground/70 border-2 border-dashed border-foreground/20 rounded-lg m-4 p-4 flex flex-col items-center justify-center gap-2'>
+            <CircleOff className='w-6 h-6' />
+            <div>{t('No muted conversations')}</div>
           </div>}
         {!threadsPending && isEmpty(threads) && searchInput &&
           <div className='text-center text-foreground border-2 border-dashed border-foreground/20 rounded-lg m-4 p-4 flex flex-col items-center justify-center'>
