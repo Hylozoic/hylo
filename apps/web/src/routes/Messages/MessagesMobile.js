@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Helmet } from 'react-helmet'
-import { useDispatch } from 'react-redux'
+import { useNavigate } from 'react-router-dom'
 import { ChevronLeft } from 'lucide-react'
 import PeopleSelector from './PeopleSelector'
 import Header from './Header'
@@ -9,7 +9,6 @@ import MessageForm from './MessageForm'
 import PeopleTyping from 'components/PeopleTyping'
 import SocketSubscriber from 'components/SocketSubscriber'
 import { sendIsTyping } from 'client/websockets'
-import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import { canAddThreadParticipant } from './messageThreadLimits'
 import MutedThreadNotice from './MutedThreadNotice'
 import { NEW_THREAD_ID } from './Messages.store'
@@ -43,7 +42,6 @@ const MessagesMobile = ({
   addParticipant,
   removeParticipant
 }) => {
-  const dispatch = useDispatch()
   const peopleSelectorInputRef = useRef(null)
   const [viewportHeight, setViewportHeight] = useState(0)
   const [viewportOffset, setViewportOffset] = useState(0)
@@ -129,8 +127,10 @@ const MessagesMobile = ({
     return () => clearTimeout(timer)
   }, [forNewThread, messageThreadId]) // Only depend on forNewThread and messageThreadId, not focusForm
 
+  const navigate = useNavigate()
+  // Back deselects the thread — /messages is the inbox screen on phones
   const handleBack = () => {
-    dispatch(toggleNavMenu())
+    navigate('/messages')
   }
 
   const header = forNewThread
