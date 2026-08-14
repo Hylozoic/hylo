@@ -38,7 +38,7 @@ export default function ThreadListItem ({
   }, [dispatch, id, isUnread])
 
   return (
-    <li className={cn('group flex flex-row items-stretch bg-transparent m-0 hover:scale-[1.02] transition-all hover:bg-selected/50', { [classes.unreadListItem]: isUnread, 'bg-transparent xs:bg-selected': active })}>
+    <li className={cn('group flex flex-row items-stretch bg-transparent my-0 mx-2 rounded-lg overflow-hidden hover:scale-[1.02] transition-all hover:bg-selected/50', { [classes.unreadListItem]: isUnread, 'bg-transparent xs:bg-selected': active })}>
       <Link to={`/messages/${id}`} className='flex flex-row flex-1 min-w-0 p-2' onClick={isPhoneDevice() ? toggleNavMenuAction : undefined}>
         <div className='mr-2 flex flex-col justify-center flex-shrink-0'>
           <ThreadAvatars avatarUrls={avatarUrls} />
