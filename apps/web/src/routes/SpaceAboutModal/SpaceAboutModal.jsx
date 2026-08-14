@@ -137,7 +137,7 @@ export default function SpaceAboutModal ({ onClose }) {
                     // menu and cards, so the modal is recognisably that space's surface
                     // Two rows beyond full coverage: the -8° tilt lifts each row's
                     // right end, draining the bottom-right corner first
-                    : <MenuRowBackground view={presentedSpaceView} bannerUrl={null} glyphCount={360} />}
+                    : <MenuRowBackground view={presentedSpaceView} bannerUrl={null} rows={8} spaced className='rounded-none' />}
 
                   <div className='relative z-10 flex flex-col items-center justify-center gap-1 max-w-full px-4'>
                     <div className={cn(
@@ -181,10 +181,10 @@ export default function SpaceAboutModal ({ onClose }) {
                   )}
 
                   {/* Members moved to the banner pill; access reads as a sentence */}
-                  <div className='flex items-start gap-2.5 rounded-lg border border-foreground/10 bg-background/40 px-3 py-2.5 mt-5'>
+                  <div className='flex items-center gap-2.5 rounded-lg border border-foreground/10 bg-background/40 px-3 py-2.5 mt-5'>
                     {spaceGroup.paywall
-                      ? <BadgeDollarSign className='w-4 h-4 shrink-0 text-foreground/60 mt-0.5' />
-                      : <Icon name={accessibilityIcon(spaceGroup.accessibility)} className='shrink-0 text-foreground/60 mt-0.5' />}
+                      ? <BadgeDollarSign className='w-9 h-9 shrink-0 text-foreground/60' />
+                      : <Icon name={accessibilityIcon(spaceGroup.accessibility)} className='shrink-0 text-foreground/60 text-4xl leading-none' />}
                     <div className='min-w-0'>
                       <div className='text-[10px] font-bold uppercase tracking-wider text-foreground/50'>{t('Access')}</div>
                       <div className='text-sm font-medium text-foreground'>{accessDescription}</div>
