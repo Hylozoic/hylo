@@ -132,7 +132,7 @@ export default function SpaceAboutModal ({ onClose }) {
                     // right end, draining the bottom-right corner first
                     : <MenuRowBackground view={presentedSpaceView} bannerUrl={null} glyphCount={360} />}
 
-                  <div className='relative z-10 w-[84px] h-[84px] rounded-[22px] grid place-items-center overflow-hidden bg-background/20 backdrop-blur-sm border border-white/25 shadow-lg text-white'>
+                  <div className='relative z-10 w-[84px] h-[84px] rounded-[22px] grid place-items-center overflow-hidden bg-background/20 backdrop-blur-sm shadow-lg text-foreground'>
                     {avatar?.avatarUrl
                       ? <div className='w-full h-full bg-cover bg-center' style={bgImageStyle(avatar.avatarUrl)} />
                       : icon.lucideIcon
