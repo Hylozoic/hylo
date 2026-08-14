@@ -20,6 +20,8 @@ import { groupUrl } from '@hylo/navigation'
 export default function GroupMenuHeader ({
   group,
   compact = false,
+  // One-column takeover: chevron + avatar + name cluster centers in the bar
+  centered = false,
   onCompactClick
 }) {
   const { t } = useTranslation()
@@ -99,7 +101,7 @@ export default function GroupMenuHeader ({
       {/* Back affordance: sits above the compact gradient (z-30) as a sibling, since
           the content row's own stacking context caps below it. Clicks fall through
           to the full-header overlay button, which is the actual Back control. */}
-      {compact && (
+      {compact && !centered && (
         <ChevronLeft
           className='absolute left-2 top-1/2 -translate-y-1/2 z-40 w-5 h-5 text-white drop-shadow-md pointer-events-none'
           aria-hidden='true'
@@ -115,16 +117,27 @@ export default function GroupMenuHeader ({
           </button>
         </div>
       )}
-      <div className={cn('relative flex flex-row text-background z-20', compact ? 'items-center' : 'items-start')}>
+      <div className={cn(
+        'relative flex flex-row text-background',
+        compact ? 'items-center' : 'items-start',
+        // Centered cluster rides above the wash so it reads crisply; it must not
+        // swallow clicks meant for the full-header Back overlay beneath it
+        compact && centered ? 'justify-center z-40 pointer-events-none' : 'z-20'
+      )}
+      >
+        {compact && centered && (
+          <ChevronLeft className='w-5 h-5 text-white drop-shadow-md mr-1 shrink-0 self-center pointer-events-none' aria-hidden='true' />
+        )}
         <div
           style={group.avatarUrl !== DEFAULT_AVATAR ? bgImageStyle(avatarUrl) : {}}
           className={cn(
             'rounded-lg mr-2 shadow-md bg-cover bg-center relative overflow-hidden shrink-0 transition-all duration-300',
-            // ml-6 clears the back chevron sitting at the header's left edge.
+            // ml-6 clears the back chevron sitting at the header's left edge
+            // (inline when centered, so no clearance needed).
             // Full size matches the name + member-pill column height. Fixed rather
             // than self-stretch/aspect-square: a bg-image-only box has no intrinsic
             // width, so the stretched square collapsed to nothing.
-            compact ? 'h-7 w-7 ml-6' : 'h-[52px] w-[52px]',
+            compact ? cn('h-7 w-7', !centered && 'ml-6') : 'h-[52px] w-[52px]',
             group.avatarUrl === DEFAULT_AVATAR && 'bg-darkening'
           )}
         >
@@ -144,7 +157,7 @@ export default function GroupMenuHeader ({
             </>
           )}
         </div>
-        <div className={`flex flex-col flex-1 text-${textColor} drop-shadow-md overflow-hidden`}>
+        <div className={cn(`flex flex-col text-${textColor} drop-shadow-md overflow-hidden`, compact && centered ? 'flex-none max-w-[60%]' : 'flex-1')}>
           <div className='flex items-center'>
             <h1
               ref={groupNameRef}

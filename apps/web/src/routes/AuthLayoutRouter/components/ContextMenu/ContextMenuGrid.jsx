@@ -1042,7 +1042,7 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
           chevron) with the space's own banner header below it */}
       {isSpaceLevel && group && spaceGroup && (
         <>
-          <GroupMenuHeader group={group} compact onCompactClick={handleBack} />
+          <GroupMenuHeader group={group} compact centered onCompactClick={handleBack} />
           <SpaceBannerHeader
             group={group}
             spaceGroup={spaceGroup}
