@@ -22,6 +22,8 @@ import fetchForGroup from 'store/actions/fetchForGroup'
 import joinSpace from 'store/actions/joinSpace'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
+import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
+import { RESP_ADMINISTRATION } from 'store/constants'
 import { DEFAULT_BANNER, GROUP_ACCESSIBILITY, accessibilityIcon, spaceAccessDescription } from 'store/models/Group'
 
 /**
@@ -40,6 +42,10 @@ export default function SpaceJoinPage () {
   const parentGroup = useSelector(state => getGroupForSlug(state, parentSlug))
   const spaceGroup = useSelector(state => getGroupForSlug(state, spaceFullSlug))
   const currentUser = useSelector(getMe)
+  const canAdministerParent = useSelector(state => hasResponsibilityForGroup(state, {
+    responsibility: RESP_ADMINISTRATION,
+    groupId: parentGroup?.id
+  }))
   const groupsWithPendingRequests = useKeyJoinRequestsByGroupId()
 
   const spaceDetailsLoaded = spaceGroup?.accessibility != null
@@ -126,6 +132,14 @@ export default function SpaceJoinPage () {
 
   const isRoleGated = !spaceGroup.paywall && (spaceGroup.requiredRoles || []).length > 0
 
+  // Parent-group admins can always join; role-holders and open spaces join directly
+  const canJoinDirectly = canAdministerParent || (
+    !spaceGroup.paywall && (
+      (isRoleGated && hasRequiredRole) ||
+      spaceGroup.accessibility === GROUP_ACCESSIBILITY.Open
+    )
+  )
+
   const accessDescription = spaceAccessDescription({
     space: spaceGroup,
     parentGroupName: parentGroup.name,
@@ -211,30 +225,24 @@ export default function SpaceJoinPage () {
                 <p className='text-sm text-red-500 mb-2'>{actionError}</p>
               )}
 
-              {spaceGroup.paywall
+              {canJoinDirectly
                 ? (
-                  <div className='w-full text-left'>
-                    <p className='text-sm text-foreground/70 mb-3 text-center'>{t('Pay to Join Space')}</p>
-                    <PaywallOfferingsSection group={spaceGroup} />
-                  </div>
+                  <Button variant='highVisibility' className='w-full justify-center' onClick={handleJoinSpace} disabled={joining}>
+                    {joining ? t('Joining...') : t('Join Space')}
+                  </Button>
                   )
-                : isRoleGated
-                  ? hasRequiredRole
+                : spaceGroup.paywall
+                  ? (
+                    <div className='w-full text-left'>
+                      <p className='text-sm text-foreground/70 mb-3 text-center'>{t('Pay to Join Space')}</p>
+                      <PaywallOfferingsSection group={spaceGroup} />
+                    </div>
+                    )
+                  : isRoleGated
                     ? (
-                      <Button variant='highVisibility' className='w-full justify-center' onClick={handleJoinSpace} disabled={joining}>
-                        {joining ? t('Joining...') : t('Join Space')}
-                      </Button>
-                      )
-                    : (
                       <p className='text-sm text-foreground/60'>
                         {t('You do not have a role needed to join this space')}
                       </p>
-                      )
-                  : spaceGroup.accessibility === GROUP_ACCESSIBILITY.Open
-                    ? (
-                      <Button variant='highVisibility' className='w-full justify-center' onClick={handleJoinSpace} disabled={joining}>
-                        {joining ? t('Joining...') : t('Join Space')}
-                      </Button>
                       )
                     : spaceGroup.accessibility === GROUP_ACCESSIBILITY.Restricted
                       ? hasPendingRequest
