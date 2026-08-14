@@ -142,7 +142,7 @@ export default function PeopleSelector (props) {
             key={person.id}
           />
         )}
-        <div className='relative flex-1 min-w-[150px]'>
+        <div className='relative flex-1 min-w-[150px] sm:max-w-[320px]'>
           <input
             className='w-full bg-darkening/20 focus:bg-input rounded p-2 text-foreground placeholder:text-foreground/50 border-2 border-transparent focus:border-focus transition-all outline-none'
             ref={autocompleteInput}

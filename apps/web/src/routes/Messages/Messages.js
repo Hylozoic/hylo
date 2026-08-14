@@ -339,8 +339,9 @@ const Messages = () => {
       {messageThreadId && (
         <div className='flex flex-col h-full w-full min-w-0 px-3'>
           {/* The recipients/thread header belongs to this column only — it must
-              not span the inbox list beside it */}
-          <div className='flex-shrink-0 w-full py-2 border-b border-foreground/10'>
+              not span the inbox list beside it. Styled like ViewHeader: same
+              hairline edge and shadow floating above the message stream. */}
+          <div className='flex-shrink-0 z-20 -mx-3 px-4 py-2 bg-background border-b border-foreground/[0.08] shadow-[0_4px_14px_0px_rgba(0,0,0,0.16)] dark:border-transparent dark:shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)]'>
             {header}
           </div>
           <MessageSection

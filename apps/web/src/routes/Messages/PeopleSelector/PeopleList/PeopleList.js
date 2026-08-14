@@ -29,13 +29,16 @@ export default function PeopleList ({ currentMatch, onClick, onMouseOver, people
       updatePosition()
       window.addEventListener('scroll', updatePosition, true)
       window.addEventListener('resize', updatePosition)
-
+      // Adding pills reflows the input inside its row — track it, not just the window
+      const observer = new ResizeObserver(updatePosition)
+      observer.observe(inputElement)
       return () => {
         window.removeEventListener('scroll', updatePosition, true)
         window.removeEventListener('resize', updatePosition)
+        observer.disconnect()
       }
     }
-  }, [inputElement])
+  }, [inputElement, people])
 
   useEffect(() => {
     if (selectedIndex >= 0 && containerRef.current) {

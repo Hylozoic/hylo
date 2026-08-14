@@ -235,7 +235,9 @@ export default class MessageSection extends Component {
     const isInitialLoad = pending && messages.length === 0
 
     return (
-      <div id='message-list' className='w-full min-w-0 overflow-y-auto relative flex-1 min-h-0 pb-4 px-3' onScroll={this.handleScroll} data-testid='message-section'>
+      // flex-col makes the inner mt-auto real: short threads pin to the bottom
+      // and get pushed up as messages arrive, like chat
+      <div id='message-list' className='w-full min-w-0 overflow-y-auto relative flex-1 min-h-0 pb-4 px-3 flex flex-col' onScroll={this.handleScroll} data-testid='message-section'>
         {isInitialLoad && <Loading />}
         {!isInitialLoad && (
           <>
