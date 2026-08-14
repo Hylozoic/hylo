@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { BadgeDollarSign, ImagePlus, Layers, MessageSquareMore, Plus, Shapes } from 'lucide-react'
+import { BadgeDollarSign, ImagePlus, Layers, MessageCircleMore, Plus, Shapes } from 'lucide-react'
 
 import Button from 'components/ui/button'
 import { Input } from 'components/ui/input'
@@ -45,7 +45,7 @@ const STANDARD_VIEW_TYPES = new Set([
 /** Space types selectable at creation — immutable afterward (no type switch in SpaceSettingsModal). */
 const SPACE_TYPE_OPTIONS = [
   { value: 'custom', labelKey: 'Custom Space', icon: Layers },
-  { value: 'chat', labelKey: 'Chat Space', icon: MessageSquareMore },
+  { value: 'chat', labelKey: 'Chat Space', icon: MessageCircleMore },
   { value: 'track', labelKey: 'Track', icon: Shapes },
   { value: 'funding-round', labelKey: 'Funding Round', icon: BadgeDollarSign }
 ]
@@ -57,7 +57,7 @@ function defaultsForSpaceType (spaceType) {
       return {
         postTypes: [],
         standardViewTypes: ['chat'],
-        icon: 'MessageSquareMore'
+        icon: 'MessageCircleMore'
       }
     case 'track':
       return {
