@@ -49,7 +49,6 @@ import { canHardDeleteView, viewAcceptedByPostTypes } from 'store/models/GroupVi
 import { viewShowsUnreadDot, viewUnreadBadgeCount } from 'util/viewUnreadBadges'
 import GroupMenuHeader from 'components/GroupMenuHeader'
 import GroupNotificationsPopover from 'components/GroupNotificationsPopover/GroupNotificationsPopover'
-import TruncatedText from 'components/TruncatedText'
 import CardIconField from './CardIconField'
 import GroupViewIcon from './GroupViewIcon'
 import MenuRowBackground from './MenuRowBackground'
@@ -117,9 +116,11 @@ function partitionViewsIntoSections (views) {
 
 /** Sticky back bar for nested grid levels. */
 /**
- * Space-level takeover header for the one-column layout: the space's banner,
- * icon, name, members, invite, about, settings, and notifications — mirroring
- * the two-column space menu header.
+ * Space-level takeover header for the one-column layout, laid out like the
+ * group dashboard banner: identity centered, notifications top-left, about +
+ * settings top-right. Its height plus the ducked group header (h-12) equals
+ * the full group banner (220px), so the takeover swaps hierarchy without
+ * moving the grid below.
  */
 function SpaceBannerHeader ({ group, spaceGroup, canAdminister, onOpenSettings, navigate, t }) {
   const location = useLocation()
@@ -128,12 +129,17 @@ function SpaceBannerHeader ({ group, spaceGroup, canAdminister, onOpenSettings, 
   }), [spaceGroup])
   const bannerUrl = spaceGroup.bannerUrl && spaceGroup.bannerUrl !== DEFAULT_BANNER ? spaceGroup.bannerUrl : null
   const localSpace = localSpaceSlug(group.slug, spaceGroup.slug)
+  // White identity over a photo; theme foreground over the pale glyph texture
+  const inkClass = bannerUrl ? 'text-white' : 'text-foreground dark:text-white'
+  const controlClass = bannerUrl
+    ? 'text-white/90 hover:text-white'
+    : 'text-foreground/60 hover:text-foreground dark:text-white/80 dark:hover:text-white'
   const pillClass = bannerUrl
     ? 'bg-white/15 border-white/25 text-white hover:bg-white/25 hover:text-white'
     : 'bg-foreground/10 border-foreground/20 text-foreground/80 hover:bg-foreground/20 hover:text-foreground dark:bg-white/15 dark:border-white/25 dark:text-white/90 dark:hover:bg-white/25 dark:hover:text-white'
 
   return (
-    <div className='SpaceBannerHeader relative z-20 flex flex-col justify-between h-[142px] overflow-hidden border-b border-foreground/10 shadow-md'>
+    <div className='SpaceBannerHeader relative z-20 h-[172px] overflow-hidden border-b border-foreground/10 shadow-md'>
       {bannerUrl
         ? (
           <>
@@ -141,82 +147,61 @@ function SpaceBannerHeader ({ group, spaceGroup, canAdminister, onOpenSettings, 
             <div className='absolute inset-0' style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.6) 100%)' }} />
           </>
           )
-        : <MenuRowBackground view={presentedSpaceView} bannerUrl={null} glyphCount={280} />}
-      <div
-        className={cn(
-          'relative z-10 self-start m-2 p-1 rounded-md backdrop-blur-sm transition-colors',
-          bannerUrl
-            ? 'bg-black/25 text-white/90 hover:bg-black/40 hover:text-white'
-            : 'bg-foreground/10 text-foreground/70 hover:bg-foreground/20 hover:text-foreground dark:text-white/80 dark:hover:text-white'
-        )}
-      >
-        <GroupNotificationsPopover group={spaceGroup} className='w-5 h-5' />
-      </div>
-      {canAdminister && (
-        <button
-          type='button'
-          onClick={onOpenSettings}
-          className='absolute top-2 right-2 z-10'
-          aria-label={t('Space Settings')}
-          title={t('Space Settings')}
-        >
-          <Settings className={cn(
-            'w-6 h-6 drop-shadow-md hover:scale-110 transition-all',
-            bannerUrl ? 'text-white/90 hover:text-white' : 'text-foreground/60 hover:text-foreground dark:text-white/80 dark:hover:text-white'
+        : <MenuRowBackground view={presentedSpaceView} bannerUrl={null} glyphCount={360} />}
+
+      {/* Controls bar, mirroring the group banner: bell left, about + settings right */}
+      <div className='absolute top-3 left-1/2 -translate-x-1/2 z-30 w-full max-w-[1000px] px-3 flex items-center justify-between'>
+        <div className={controlClass}>
+          <GroupNotificationsPopover group={spaceGroup} className='w-6 h-6 drop-shadow-md hover:scale-110 transition-all' />
+        </div>
+        <div className='flex items-center gap-3'>
+          <button
+            type='button'
+            onClick={() => navigate(addQuerystringToPath(location.pathname, { about: 1 }))}
+            aria-label={t('About')}
+            title={t('About')}
+          >
+            <Info className={cn('w-6 h-6 drop-shadow-md hover:scale-110 transition-all', controlClass)} />
+          </button>
+          {canAdminister && (
+            <button type='button' onClick={onOpenSettings} aria-label={t('Space Settings')} title={t('Space Settings')}>
+              <Settings className={cn('w-6 h-6 drop-shadow-md hover:scale-110 transition-all', controlClass)} />
+            </button>
           )}
-          />
-        </button>
-      )}
-      <div className='relative z-10 flex items-center gap-2 p-2 min-w-0'>
+        </div>
+      </div>
+
+      {/* Identity centered, like the group banner */}
+      <div className='absolute inset-0 z-20 flex flex-col items-center justify-center gap-1'>
         <div
           style={presentedSpaceView?.avatarUrl ? bgImageStyle(presentedSpaceView.avatarUrl) : {}}
           className={cn(
-            'h-[52px] w-[52px] rounded-lg shadow-md bg-cover bg-center relative overflow-hidden shrink-0 flex items-center justify-center',
+            'w-14 h-14 rounded-xl shadow-lg bg-cover bg-center border-2 border-white/30 overflow-hidden relative grid place-items-center',
             !presentedSpaceView?.avatarUrl && 'bg-theme-background'
           )}
         >
           {/* theme-background is dark in every theme, so the icon is always light */}
           {!presentedSpaceView?.avatarUrl && (
-            <GroupViewIcon view={presentedSpaceView} className='w-6 h-6 text-white/90' />
+            <GroupViewIcon view={presentedSpaceView} className='!w-7 !h-7 !mr-0 text-white/90' />
           )}
         </div>
-        <div className='flex flex-col flex-1 min-w-0'>
-          <TruncatedText
-            className={cn(
-              'truncate font-bold text-xl/6',
-              bannerUrl ? 'text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.65)]' : 'text-foreground dark:text-white'
-            )}
-            text={spaceGroup.name}
+        <h1 className={cn('text-xl font-bold drop-shadow-md m-0 leading-tight max-w-[80%] truncate', inkClass)}>{spaceGroup.name}</h1>
+        <span className={cn('flex items-center gap-1 text-xs', inkClass)}>
+          <Link
+            className={cn('inline-flex items-center gap-1 rounded-full border px-2 py-0.5 no-underline hover:no-underline transition-colors', pillClass)}
+            to={spaceUrl(group.slug, localSpace, 'members')}
+            aria-label={t('{{count}} Members', { count: spaceGroup.memberCount })}
+          >
+            <Users className='w-3.5 h-3.5' />
+            {spaceGroup.memberCount}
+          </Link>
+          <InviteMembersPopover
+            group={spaceGroup}
+            alwaysVisible
+            triggerLabel={t('Invite')}
+            triggerClassName={cn('rounded-full border px-2 py-0.5 hover:scale-100', pillClass)}
           />
-          <span className='flex items-center gap-1 mt-1.5 text-xs'>
-            <Link
-              className={cn('inline-flex items-center gap-1 rounded-full border px-2 py-0.5 no-underline hover:no-underline transition-colors', pillClass)}
-              to={spaceUrl(group.slug, localSpace, 'members')}
-              aria-label={t('{{count}} Members', { count: spaceGroup.memberCount })}
-            >
-              <Users className='w-3.5 h-3.5' />
-              {spaceGroup.memberCount}
-            </Link>
-            <InviteMembersPopover
-              group={spaceGroup}
-              alwaysVisible
-              triggerLabel={t('Invite')}
-              triggerClassName={cn('rounded-full border px-2 py-0.5 hover:scale-100', pillClass)}
-            />
-          </span>
-        </div>
-        <button
-          type='button'
-          onClick={() => navigate(addQuerystringToPath(location.pathname, { about: 1 }))}
-          className={cn(
-            'shrink-0 transition-all hover:scale-110 mr-1',
-            bannerUrl ? 'text-white/80 hover:text-white' : 'text-foreground/60 hover:text-foreground dark:text-white/80 dark:hover:text-white'
-          )}
-          aria-label={t('About')}
-          title={t('About')}
-        >
-          <Info className='w-5 h-5' />
-        </button>
+        </span>
       </div>
     </div>
   )
