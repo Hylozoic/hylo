@@ -136,32 +136,34 @@ const MessagesMobile = ({
   const header = forNewThread
     ? (
       <div className='flex-shrink-0 bg-midground border-b border-border'>
-        <div className='flex items-center p-3'>
+        {/* Chevron sits inline with the first row of recipient pills; items-start
+            keeps it pinned to that row as the pills wrap */}
+        <div className='flex items-start gap-1 p-3'>
           <button
             onClick={handleBack}
-            className='p-2 -ml-1 mr-2 cursor-pointer'
+            className='p-2 -ml-1 mt-0.5 cursor-pointer shrink-0'
             aria-label='Back to messages'
           >
             <ChevronLeft className='w-6 h-6' />
           </button>
-        </div>
-        <div className='px-3 pb-3 space-y-2'>
-          <PeopleSelector
-            currentUser={currentUser}
-            fetchPeople={fetchPeopleAction}
-            fetchDefaultList={fetchRecentContactsAction}
-            focusMessage={focusForm}
-            setPeopleSearch={setContactsSearchAction}
-            people={contacts}
-            onFocus={() => setPeopleSelectorOpen(true)}
-            selectedPeople={participants}
-            selectPerson={addParticipant}
-            removePerson={removeParticipant}
-            peopleSelectorOpen={peopleSelectorOpen}
-            autoFocus
-            inputRef={peopleSelectorInputRef}
-            maxParticipantsReached={!canAddThreadParticipant(participants, currentUser?.id)}
-          />
+          <div className='flex-1 min-w-0'>
+            <PeopleSelector
+              currentUser={currentUser}
+              fetchPeople={fetchPeopleAction}
+              fetchDefaultList={fetchRecentContactsAction}
+              focusMessage={focusForm}
+              setPeopleSearch={setContactsSearchAction}
+              people={contacts}
+              onFocus={() => setPeopleSelectorOpen(true)}
+              selectedPeople={participants}
+              selectPerson={addParticipant}
+              removePerson={removeParticipant}
+              peopleSelectorOpen={peopleSelectorOpen}
+              autoFocus
+              inputRef={peopleSelectorInputRef}
+              maxParticipantsReached={!canAddThreadParticipant(participants, currentUser?.id)}
+            />
+          </div>
         </div>
       </div>
       )
