@@ -20,10 +20,8 @@ import { createJoinRequest } from 'routes/GroupDetail/GroupDetail.store'
 import PaywallOfferingsSection from 'routes/GroupDetail/PaywallOfferingsSection'
 import fetchForGroup from 'store/actions/fetchForGroup'
 import joinSpace from 'store/actions/joinSpace'
-import { RESP_ADMINISTRATION } from 'store/constants'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
-import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { DEFAULT_BANNER, GROUP_ACCESSIBILITY, accessibilityIcon } from 'store/models/Group'
 
 /**
@@ -42,10 +40,6 @@ export default function SpaceJoinPage () {
   const parentGroup = useSelector(state => getGroupForSlug(state, parentSlug))
   const spaceGroup = useSelector(state => getGroupForSlug(state, spaceFullSlug))
   const currentUser = useSelector(getMe)
-  const canAdministerParent = useSelector(state => hasResponsibilityForGroup(state, {
-    responsibility: RESP_ADMINISTRATION,
-    groupId: parentGroup?.id
-  }))
   const groupsWithPendingRequests = useKeyJoinRequestsByGroupId()
 
   const spaceDetailsLoaded = spaceGroup?.accessibility != null
@@ -131,13 +125,6 @@ export default function SpaceJoinPage () {
     : null
 
   const isRoleGated = !spaceGroup.paywall && (spaceGroup.requiredRoles || []).length > 0
-  // Administration on the parent can join closed, restricted, role-gated, and paywalled spaces
-  const canJoinDirectly = canAdministerParent || (
-    !spaceGroup.paywall && (
-      (isRoleGated && hasRequiredRole) ||
-      spaceGroup.accessibility === GROUP_ACCESSIBILITY.Open
-    )
-  )
 
   const accessLabel = spaceGroup.paywall
     ? t('Paid')
@@ -150,89 +137,87 @@ export default function SpaceJoinPage () {
           : t('Invite Only')
 
   return (
-    <div className='p-6 pb-16 w-full max-w-[620px] mx-auto'>
-      <div className='rounded-2xl border border-foreground/10 bg-card overflow-hidden shadow-lg'>
-        {/* The space's own banner, per the design — a tinted wash when it has none,
-            so the identity block reads the same either way */}
-        <div className='relative h-[140px] grid place-items-center overflow-hidden'>
-          {bannerUrl
-            ? (
-              <>
-                <div className='absolute inset-0 bg-cover bg-center' style={bgImageStyle(bannerUrl)} />
-                <div className='absolute inset-0' style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.6) 100%)' }} />
-              </>
-              )
-            // No banner: the same repeating icon texture the space wears in its
-            // About modal, menu row, and cards — one recognisable surface
-            : <MenuRowBackground view={presentedSpaceView} bannerUrl={null} glyphCount={360} />}
+    // flex-1 fills the center column below the view header (a flex column), so
+    // m-auto centers the card in the visible area; unlike items/justify-center,
+    // auto margins let a card taller than the viewport scroll from its top edge
+    <div className='w-full flex-1 flex'>
+      <div className='m-auto w-full max-w-[840px] p-6'>
+        <div className='rounded-2xl border border-foreground/10 bg-card overflow-hidden shadow-lg'>
+          {/* The space's own banner, per the design — a tinted wash when it has none,
+              so the identity block reads the same either way */}
+          <div className='relative h-[140px] grid place-items-center overflow-hidden'>
+            {bannerUrl
+              ? (
+                <>
+                  <div className='absolute inset-0 bg-cover bg-center' style={bgImageStyle(bannerUrl)} />
+                  <div className='absolute inset-0' style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.6) 100%)' }} />
+                </>
+                )
+              // No banner: the same repeating icon texture the space wears in its
+              // About modal, menu row, and cards — one recognisable surface
+              : <MenuRowBackground view={presentedSpaceView} bannerUrl={null} glyphCount={360} />}
 
-          <div className='relative z-10 w-[84px] h-[84px] rounded-[22px] grid place-items-center overflow-hidden bg-background/20 backdrop-blur-sm border border-white/25 shadow-lg text-white'>
-            {avatar?.avatarUrl
-              ? <div className='w-full h-full bg-cover bg-center' style={bgImageStyle(avatar.avatarUrl)} />
-              : icon.lucideIcon
-                ? <LucideIcon name={icon.lucideIcon} className='w-10 h-10' fallback={<Icon name={icon.lucideIcon} className='text-4xl' />} />
-                : <Icon name={icon.iconName || 'Shapes'} className='text-4xl' />}
+            <div className='relative z-10 w-[84px] h-[84px] rounded-[22px] grid place-items-center overflow-hidden bg-background/20 backdrop-blur-sm border border-white/25 shadow-lg text-white'>
+              {avatar?.avatarUrl
+                ? <div className='w-full h-full bg-cover bg-center' style={bgImageStyle(avatar.avatarUrl)} />
+                : icon.lucideIcon
+                  ? <LucideIcon name={icon.lucideIcon} className='w-10 h-10' fallback={<Icon name={icon.lucideIcon} className='text-4xl' />} />
+                  : <Icon name={icon.iconName || 'Shapes'} className='text-4xl' />}
+            </div>
           </div>
-        </div>
 
-        <div className='p-7 flex flex-col'>
-          <h1 className='text-2xl font-bold text-foreground m-0'>{spaceGroup.name}</h1>
+          <div className='p-7 flex flex-col'>
+            <h1 className='text-2xl font-bold text-foreground m-0'>{spaceGroup.name}</h1>
 
-          {spaceGroup.purpose && (
-            <p className='text-foreground/80 font-medium mt-2 mb-0'>{spaceGroup.purpose}</p>
-          )}
+            {spaceGroup.purpose && (
+              <p className='text-foreground/80 font-medium mt-2 mb-0'>{spaceGroup.purpose}</p>
+            )}
 
-          {spaceGroup.description && (
-            <div className='text-foreground/70 text-sm global-postContent mt-3'>
-              <ClickCatcher groupSlug={spaceFullSlug}>
-                <HyloHTML html={spaceGroup.description} />
-              </ClickCatcher>
-            </div>
-          )}
-
-          {/* Facts as a grid rather than stacked rows, per the design */}
-          <div className='grid grid-cols-2 gap-2 mt-5'>
-            <div className='flex items-center gap-2.5 rounded-lg border border-foreground/10 bg-background/40 px-3 py-2.5'>
-              <Users className='w-4 h-4 shrink-0 text-foreground/60' />
-              <div className='min-w-0'>
-                <div className='text-[10px] font-bold uppercase tracking-wider text-foreground/50'>{t('Members')}</div>
-                <div className='text-sm font-bold text-foreground'>{spaceGroup.memberCount || 0}</div>
+            {spaceGroup.description && (
+              <div className='text-foreground/70 text-sm global-postContent mt-3'>
+                <ClickCatcher groupSlug={spaceFullSlug}>
+                  <HyloHTML html={spaceGroup.description} />
+                </ClickCatcher>
               </div>
-            </div>
-            <div className='flex items-start gap-2.5 rounded-lg border border-foreground/10 bg-background/40 px-3 py-2.5'>
-              {spaceGroup.paywall
-                ? <BadgeDollarSign className='w-4 h-4 shrink-0 text-foreground/60 mt-0.5' />
-                : <Icon name={accessibilityIcon(spaceGroup.accessibility)} className='shrink-0 text-foreground/60 mt-0.5' />}
-              <div className='min-w-0'>
-                <div className='text-[10px] font-bold uppercase tracking-wider text-foreground/50'>{t('Access')}</div>
-                <div className={cn('flex flex-wrap items-center gap-1.5', !isRoleGated && 'truncate')} title={accessLabel}>
-                  <span className='text-sm font-bold text-foreground'>{accessLabel}</span>
-                  {isRoleGated && requiredRoles.map(role => (
-                    <span
-                      key={role.id}
-                      className='inline-flex items-center gap-1 px-2 py-0.5 rounded-full border-2 border-foreground/20 text-xs font-medium text-foreground whitespace-nowrap'
-                    >
-                      {role.emoji && <span>{role.emoji}</span>}
-                      <span>{role.name}</span>
-                    </span>
-                  ))}
+            )}
+
+            {/* Facts as a grid rather than stacked rows, per the design */}
+            <div className='grid grid-cols-2 gap-2 mt-5'>
+              <div className='flex items-center gap-2.5 rounded-lg border border-foreground/10 bg-background/40 px-3 py-2.5'>
+                <Users className='w-4 h-4 shrink-0 text-foreground/60' />
+                <div className='min-w-0'>
+                  <div className='text-[10px] font-bold uppercase tracking-wider text-foreground/50'>{t('Members')}</div>
+                  <div className='text-sm font-bold text-foreground'>{spaceGroup.memberCount || 0}</div>
+                </div>
+              </div>
+              <div className='flex items-start gap-2.5 rounded-lg border border-foreground/10 bg-background/40 px-3 py-2.5'>
+                {spaceGroup.paywall
+                  ? <BadgeDollarSign className='w-4 h-4 shrink-0 text-foreground/60 mt-0.5' />
+                  : <Icon name={accessibilityIcon(spaceGroup.accessibility)} className='shrink-0 text-foreground/60 mt-0.5' />}
+                <div className='min-w-0'>
+                  <div className='text-[10px] font-bold uppercase tracking-wider text-foreground/50'>{t('Access')}</div>
+                  <div className={cn('flex flex-wrap items-center gap-1.5', !isRoleGated && 'truncate')} title={accessLabel}>
+                    <span className='text-sm font-bold text-foreground'>{accessLabel}</span>
+                    {isRoleGated && requiredRoles.map(role => (
+                      <span
+                        key={role.id}
+                        className='inline-flex items-center gap-1 px-2 py-0.5 rounded-full border-2 border-foreground/20 text-xs font-medium text-foreground whitespace-nowrap'
+                      >
+                        {role.emoji && <span>{role.emoji}</span>}
+                        <span>{role.name}</span>
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div className='w-full mt-5'>
-            {actionError && (
-              <p className='text-sm text-red-500 mb-2'>{actionError}</p>
-            )}
+            <div className='w-full mt-5'>
+              {actionError && (
+                <p className='text-sm text-red-500 mb-2'>{actionError}</p>
+              )}
 
-            {canJoinDirectly
-              ? (
-                <Button variant='highVisibility' className='w-full justify-center' onClick={handleJoinSpace} disabled={joining}>
-                  {joining ? t('Joining...') : t('Join Space')}
-                </Button>
-                )
-              : spaceGroup.paywall
+              {spaceGroup.paywall
                 ? (
                   <div className='w-full text-left'>
                     <p className='text-sm text-foreground/70 mb-3 text-center'>{t('Pay to Join Space')}</p>
@@ -240,29 +225,42 @@ export default function SpaceJoinPage () {
                   </div>
                   )
                 : isRoleGated
-                  ? (
-                    <p className='text-sm text-foreground/60'>
-                      {t('You do not have a role needed to join this space')}
-                    </p>
-                    )
-                  : spaceGroup.accessibility === GROUP_ACCESSIBILITY.Restricted
-                    ? hasPendingRequest
-                      ? (
-                        <div className='border-2 border-dashed border-selected/100 rounded-md text-center p-4 text-foreground'>
-                          <h3 className='mt-0 text-foreground font-bold mb-2'>{t('Request to join pending')}</h3>
-                          <span>{t('You will be sent an email and notified on your device when the request is approved.')}</span>
-                        </div>
-                        )
-                      : (
-                        <Button variant='highVisibility' className='w-full justify-center' onClick={handleRequestToJoin} disabled={requesting}>
-                          {requesting ? t('Requesting...') : t('Request to Join Space')}
-                        </Button>
-                        )
+                  ? hasRequiredRole
+                    ? (
+                      <Button variant='highVisibility' className='w-full justify-center' onClick={handleJoinSpace} disabled={joining}>
+                        {joining ? t('Joining...') : t('Join Space')}
+                      </Button>
+                      )
                     : (
                       <p className='text-sm text-foreground/60'>
-                        {t('This space is invite only. You need an invitation to join.')}
+                        {t('You do not have a role needed to join this space')}
                       </p>
-                      )}
+                      )
+                  : spaceGroup.accessibility === GROUP_ACCESSIBILITY.Open
+                    ? (
+                      <Button variant='highVisibility' className='w-full justify-center' onClick={handleJoinSpace} disabled={joining}>
+                        {joining ? t('Joining...') : t('Join Space')}
+                      </Button>
+                      )
+                    : spaceGroup.accessibility === GROUP_ACCESSIBILITY.Restricted
+                      ? hasPendingRequest
+                        ? (
+                          <div className='border-2 border-dashed border-selected/100 rounded-md text-center p-4 text-foreground'>
+                            <h3 className='mt-0 text-foreground font-bold mb-2'>{t('Request to join pending')}</h3>
+                            <span>{t('You will be sent an email and notified on your device when the request is approved.')}</span>
+                          </div>
+                          )
+                        : (
+                          <Button variant='highVisibility' className='w-full justify-center' onClick={handleRequestToJoin} disabled={requesting}>
+                            {requesting ? t('Requesting...') : t('Request to Join Space')}
+                          </Button>
+                          )
+                      : (
+                        <p className='text-sm text-foreground/60'>
+                          {t('This space is invite only. You need an invitation to join.')}
+                        </p>
+                        )}
+            </div>
           </div>
         </div>
       </div>
