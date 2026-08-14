@@ -105,15 +105,16 @@ const ViewHeader = () => {
   // A single-view space (e.g. chat-only) opens straight into its one view, so the
   // breadcrumb shows just the space — repeating the lone view's title is noise.
   // More Views is a separate page (space > More Views…), so never collapse it.
-  const isSingleViewSpace = useMemo(() => {
-    if (isMoreViewsPath) return false
+  const singleSpaceView = useMemo(() => {
+    if (isMoreViewsPath) return null
     const spaceGroup = presentedSpaceView?.linkedGroup
-    if (!spaceGroup) return false
+    if (!spaceGroup) return null
     const visibleViews = (spaceGroup.groupViews?.items || [])
       .filter(v => v.order != null)
       .filter(v => viewAcceptedByPostTypes(v.type, spaceGroup.acceptedPostTypes))
-    return visibleViews.length === 1
+    return visibleViews.length === 1 ? visibleViews[0] : null
   }, [presentedSpaceView, isMoreViewsPath])
+  const isSingleViewSpace = Boolean(singleSpaceView)
 
   // Members/moderation inside a single-view space read as "Space: View"
   const spaceSubSegment = spaceSlug ? (location.pathname.split(`/spaces/${spaceSlug}/`)[1] || '').split('/')[0] : null
@@ -270,22 +271,23 @@ const ViewHeader = () => {
       return
     }
 
-    // Single-view spaces open straight into their lone view — back returns to
-    // wherever the user came from instead of the menu. When that view IS the
-    // group's home there is nowhere sensible to return to, so back opens the
-    // group's main menu instead.
+    // Single-view spaces open straight into their lone (home) view. Back from
+    // any secondary view (members, moderation, …) returns to that home view;
+    // back from the home view itself opens the group menu.
     if (isSingleViewSpace && !backButton && !mobileBackButton && !backTo) {
+      const spaceBase = `/groups/${groupSlug}/spaces/${spaceSlug}`
       const here = location.pathname.replace(/\/$/, '')
-      const homePath = group?.homeRoute ? `/groups/${groupSlug}${group.homeRoute}`.replace(/\/$/, '') : null
-      if (homePath && here === homePath) {
-        if (isOneColumnGroup) {
-          navigate(`/groups/${groupSlug}`)
-        } else {
-          dispatch(toggleNavMenu(true))
-        }
+      const homeSuffix = spaceGroupForMenu?.homeRoute || (singleSpaceView?.type ? `/${singleSpaceView.type}` : '')
+      const homePath = `${spaceBase}${homeSuffix}`.replace(/\/$/, '')
+      if (homeSuffix && here.startsWith(spaceBase) && here !== homePath) {
+        navigate(homePath)
         return
       }
-      navigate(previousLocation || -1)
+      if (isOneColumnGroup) {
+        navigate(`/groups/${groupSlug}`)
+      } else {
+        dispatch(toggleNavMenu(true))
+      }
       return
     }
 
