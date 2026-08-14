@@ -117,12 +117,22 @@ export const filterAndSortPosts = curry((opts, q) => {
     ))
   }
 
-  if (types) {
+  const streamTypes = [DISCUSSION, REQUEST, OFFER, PROJECT, PROPOSAL, EVENT, RESOURCE]
+  const streamTypesWithNotices = [...streamTypes, ...Post.NOTICE_TYPES]
+
+  // all+notices is All Activity with "Show chat activity" on. Blank / "all"
+  // must stay stream types only so turning that setting off actually hides notices.
+  // all+notices must win over a types array (the web client may send both).
+  if (type === 'all+notices') {
+    q.whereIn('posts.type', streamTypesWithNotices)
+  } else if ((!type || type === 'all') && !(types && types.length)) {
+    q.whereIn('posts.type', streamTypes)
+  } else if (types && types.length) {
     q.whereIn('posts.type', types)
   } else if (type === 'chat') {
-    q.whereIn('posts.type', [CHAT, DISCUSSION, REQUEST, OFFER, PROJECT, PROPOSAL, EVENT, RESOURCE])
-  } else if (!type || type === 'all' || type === 'all+welcome') {
-    q.whereIn('posts.type', [DISCUSSION, REQUEST, OFFER, PROJECT, PROPOSAL, EVENT, RESOURCE])
+    q.whereIn('posts.type', [CHAT, ...streamTypes])
+  } else if (type === 'all+welcome') {
+    q.whereIn('posts.type', streamTypes)
   } else {
     if (!includes(values(Post.Type), type)) {
       throw new GraphQLError(`unknown post type: "${type}"`)

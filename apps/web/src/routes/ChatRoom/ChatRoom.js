@@ -1,7 +1,7 @@
 import isMobile from 'ismobilejs'
 import { debounce } from 'lodash/fp'
 import { ChevronDown, Copy, MessageSquareMore, Send } from 'lucide-react'
-import { DateTimeHelpers } from '@hylo/shared'
+import { DateTimeHelpers, postCountsTowardChatUnread } from '@hylo/shared'
 import { EditorView } from 'prosemirror-view'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import CopyToClipboard from 'react-copy-to-clipboard'
@@ -291,7 +291,7 @@ export default function ChatRoom (props) {
         // Same re-check as prepend path — switch room before the microtask runs.
         if (epoch !== chatListEpochRef.current) return
         if (offset === 0) {
-          messageListRef.current?.data.append(newPosts, { index: 'LAST', align: 'end' })
+          messageListRef.current?.data.append(newPosts, () => ({ index: 'LAST', align: 'end', behavior: 'auto' }))
         } else {
           messageListRef.current?.data.append(newPosts)
         }
@@ -403,7 +403,8 @@ export default function ChatRoom (props) {
   const handleNewPostReceived = useCallback((data) => {
     if (!group?.id) return
     if (!data.groups?.some(g => String(g.id) === String(group.id))) return
-    if (data.type !== 'chat' && !showPostNoticesInChat) return
+    // Chat activity cards belong in All Activity, not the chat timeline
+    if (!postCountsTowardChatUnread(data.type, showPostNoticesInChat)) return
     const post = presentPost(data, group.id)
     if (!post) return
 
@@ -1033,6 +1034,7 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
   } = context
   const { t } = useTranslation()
   if (!post) return null
+  if (post.type === 'chat_activity') return null
   const expanded = context.selectedPostId === post.id
   const highlighted = post.id && context.postIdToStartAt === post.id
   const firstUnread = context.latestOldPostId === prevData?.id && post.creator.id !== context.currentUser.id

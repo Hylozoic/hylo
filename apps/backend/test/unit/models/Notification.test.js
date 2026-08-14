@@ -3,8 +3,6 @@ import '../../setup'
 import factories from '../../setup/factories'
 import { spyify, unspyify, mockify } from '../../setup/helpers'
 
-const { model } = factories.mock
-
 const destroyAllPushNotifications = () => {
   return PushNotification.fetchAll()
     .then(pns => pns.map(pn => pn.destroy()))

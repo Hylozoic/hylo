@@ -11729,25 +11729,25 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@virtuoso.dev/gurx@npm:1.1.0":
-  version: 1.1.0
-  resolution: "@virtuoso.dev/gurx@npm:1.1.0"
+"@virtuoso.dev/gurx@npm:^1.2.3":
+  version: 1.2.3
+  resolution: "@virtuoso.dev/gurx@npm:1.2.3"
   peerDependencies:
     react: ">= 16 || >= 17 || >= 18 || >= 19"
     react-dom: ">= 16 || >= 17 || >= 18 || >= 19"
-  checksum: 10/44641c3d85964f90019cff0dfff6dc12cec180828c9b3a0efc4ea2de1df9e1bde0370a63dfb51dc3a9cb8cd5b1e12867b2df0b0c46419932f406ef8e187b7701
+  checksum: 10/b077df3dcc08d4aaa57cf93f75587ca28857892970283b5b2b978ae5b021b52dda8e2f85eba54a66efb1c20a87177bb3f7d453ab0c22139be3afafe66b87abd9
   languageName: node
   linkType: hard
 
-"@virtuoso.dev/message-list@npm:^1.13.3":
-  version: 1.13.3
-  resolution: "@virtuoso.dev/message-list@npm:1.13.3"
+"@virtuoso.dev/message-list@npm:^1.17.1":
+  version: 1.17.1
+  resolution: "@virtuoso.dev/message-list@npm:1.17.1"
   dependencies:
-    "@virtuoso.dev/gurx": "npm:1.1.0"
+    "@virtuoso.dev/gurx": "npm:^1.2.3"
   peerDependencies:
     react: ">= 16 || >= 17 || >= 18 || >= 19"
     react-dom: ">= 16 || >= 17 || >= 18 || >= 19"
-  checksum: 10/d23b07e76c9490e49c3e15d745086b8233c679543bb9f78e16e1cb32062419904aaf3b808237a98dced70f0a0017a147b6ea7647e10ea5cd8872ba67de8928fc
+  checksum: 10/57800f3b5ed351ab32f85d549ed216575f4b3d254f2db2ca5393023591c8413c7748d6c622afa47f281b3d03207fb691723003fe4b933943016d69933b173079
   languageName: node
   linkType: hard
 
@@ -40281,7 +40281,7 @@ __metadata:
     "@types/react-css-modules": "npm:^4.6.8"
     "@typescript-eslint/eslint-plugin": "npm:^8.18.2"
     "@typescript-eslint/parser": "npm:^8.18.2"
-    "@virtuoso.dev/message-list": "npm:^1.13.3"
+    "@virtuoso.dev/message-list": "npm:^1.17.1"
     "@vitejs/plugin-react": "npm:^4.3.3"
     autoprefixer: "npm:10.4.20"
     babel-jest: "npm:^29.7.0"

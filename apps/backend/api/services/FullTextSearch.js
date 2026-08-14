@@ -39,6 +39,7 @@ const createView = (lang, knex) => {
     from posts p
     join users u on u.id = p.user_id
     where p.active = true and u.active = true
+      and p.type not in ('welcome', 'chat_activity')
   ) union (
     select
       ('user-' || u.id::text) as row_key,

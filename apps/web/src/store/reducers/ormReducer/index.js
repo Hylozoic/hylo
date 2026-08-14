@@ -29,6 +29,7 @@ import {
   FETCH_MESSAGES_PENDING,
   FETCH_GROUP_CHAT_ROOMS,
   FETCH_MY_DRAFTS,
+  FETCH_POSTS,
   FETCH_VIEW_POSTS,
   INVITE_CHILD_TO_JOIN_PARENT_GROUP,
   INVITE_PEER_RELATIONSHIP,
@@ -123,6 +124,13 @@ import { isPromise } from 'util/index'
 import { homeRoutePathForWidget } from '@hylo/navigation'
 import { reorderTree, replaceHomeWidget } from 'util/contextWidgets'
 import { applyGroupViewsOrder, appendGroupViewToMenu, removeGroupViewFromAllMenus, setGroupViewHiddenInAllMenus, syncAcceptedPostTypesInMenus, updateGroupViewInMenu, updateGroupViewInAllMenus } from 'store/util/groupViewsOrder'
+import {
+  confirmOptimisticChatInNotice,
+  reconcileChatActivityNoticesAfterFetch,
+  replaceOptimisticChatActivityNotice,
+  snapshotChatActivityNotices,
+  upsertOptimisticChatActivityNotice
+} from 'store/util/chatActivityNotice'
 import { groupMenuHasUnreadBadges } from 'util/viewUnreadBadges'
 
 /**
@@ -217,7 +225,13 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     if (type === FETCH_MY_DRAFTS && meta.replaceAllDrafts) {
       Draft.all().toModelArray().forEach(draft => draft.delete())
     }
+    const preservedChatActivityNotices = type === FETCH_POSTS
+      ? snapshotChatActivityNotices(Post)
+      : []
     extractModelsFromAction(action, session)
+    if (type === FETCH_POSTS) {
+      reconcileChatActivityNoticesAfterFetch(session, preservedChatActivityNotices)
+    }
   }
 
   let me, membership, group, person, post, comment, groupTopic
@@ -474,6 +488,17 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         if (chatGroup && chatView?.id) {
           updateGroupViewInMenu(chatGroup, chatView.id, { newPostCount: 0 })
         }
+        const variables = meta.graphql?.variables || {}
+        const me = Me.first()
+        upsertOptimisticChatActivityNotice(session, {
+          groupId: chatGroupId,
+          chat: {
+            id: variables.localId,
+            details: variables.details,
+            createdAt: new Date().toISOString(),
+            creator: me
+          }
+        })
         break
       }
 
@@ -550,6 +575,16 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
             lastReadPostId: createdPost.id
           })
         }
+        confirmOptimisticChatInNotice(session, {
+          groupId: createdGroupId,
+          localId: createdPost.localId,
+          chat: {
+            id: createdPost.id,
+            details: createdPost.details,
+            createdAt: createdPost.createdAt,
+            creator: createdPost.creator
+          }
+        })
       }
       break
     }
@@ -886,6 +921,10 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     }
 
     case RECEIVE_POST: {
+      if (payload.data?.post?.type === 'chat_activity') {
+        replaceOptimisticChatActivityNotice(session, payload.data.post)
+        break
+      }
       const post = Post.withId(payload.data?.post?.id)
       if (post) {
         post.groups.toModelArray().forEach(g => {

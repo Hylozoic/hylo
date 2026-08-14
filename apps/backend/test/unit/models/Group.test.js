@@ -1,8 +1,9 @@
 /* eslint-disable no-unused-expressions */
+/* eslint-disable camelcase */
 import root from 'root-path'
 import setup from '../../setup'
 import factories from '../../setup/factories'
-import { expectEqualQuery, mockify, spyify, unspyify } from '../../setup/helpers'
+import { expectEqualQuery, spyify, unspyify } from '../../setup/helpers'
 
 export function myGroupIdsSqlFragment (userId) {
   return `(select "groups"."id" from "group_memberships"
@@ -79,28 +80,28 @@ describe('Group', function () {
     })
   })
 
-  describe('.queryByAccessCode', function() {
+  describe('.queryByAccessCode', function () {
     let group
 
-    before(function() {
-      return factories.group({active: true})
-      .save()
-      .then(c => { group = c })
+    before(function () {
+      return factories.group({ active: true })
+        .save()
+        .then(c => { group = c })
     })
 
-    it('finds and fetches a group by accessCode', function() {
+    it('finds and fetches a group by accessCode', function () {
       const groupId = group.get('id')
       const accessCode = group.get('access_code')
       return Group.queryByAccessCode(accessCode)
-      .fetch()
-      .then(c => {
-        return expect(c.id).to.equal(groupId)
-      })
+        .fetch()
+        .then(c => {
+          return expect(c.id).to.equal(groupId)
+        })
     })
   })
 
-  describe('.isSlugValid', function() {
-    it('rejects invalid slugs', function() {
+  describe('.isSlugValid', function () {
+    it('rejects invalid slugs', function () {
       expect(Group.isSlugValid('a b')).to.be.false
       expect(Group.isSlugValid('IAM')).to.be.false
       expect(Group.isSlugValid('wow!')).to.be.false
@@ -110,15 +111,15 @@ describe('Group', function () {
     })
   })
 
-  describe('.deactivate', function() {
-    it('sets active to false and calls Group.deactivate', async function() {
+  describe('.deactivate', function () {
+    it('sets active to false and calls Group.deactivate', async function () {
       const group = await factories.group({ active: true }).save()
       await Group.deactivate(group.id)
       await group.refresh()
       expect(group.get('active')).to.equal(false)
     })
 
-    it('deactivates all child members', async function() {
+    it('deactivates all child members', async function () {
       const group = await factories.group().save()
       const user1 = await factories.user().save()
       const user2 = await factories.user().save()
@@ -157,8 +158,8 @@ describe('Group', function () {
     })
   })
 
-  describe('removeMembers', function() {
-    it('removes child members', async function() {
+  describe('removeMembers', function () {
+    it('removes child members', async function () {
       const group = await factories.group().save()
       const user1 = await factories.user().save()
       const user2 = await factories.user().save()
@@ -168,7 +169,7 @@ describe('Group', function () {
       expect(postRemoveMembers.length).to.equal(0)
     })
 
-    it('revokes roles, agreement state, and nav pin', async function() {
+    it('revokes roles, agreement state, and nav pin', async function () {
       const group = await factories.group().save()
       const user = await factories.user().save()
       await user.joinGroup(group)
@@ -197,7 +198,7 @@ describe('Group', function () {
       expect(await GroupMembership.hasResponsibility(user.id, group, Responsibility.constants.RESP_ADD_MEMBERS)).to.be.false
     })
 
-    it('deactivates memberships in child spaces when removed from parent group', async function() {
+    it('deactivates memberships in child spaces when removed from parent group', async function () {
       const group = await factories.group().save()
       const space = await factories.group({
         type: 'space',
@@ -224,7 +225,7 @@ describe('Group', function () {
       expect(otherSpaceMembership).to.not.exist
     })
 
-    it('does not deactivate parent membership when leaving a space only', async function() {
+    it('does not deactivate parent membership when leaving a space only', async function () {
       const group = await factories.group().save()
       const space = await factories.group({
         type: 'space',
@@ -335,14 +336,51 @@ describe('Group', function () {
       expect(ids).to.include(parentPost.id)
       expect(ids).to.not.include(childGroupPost.id)
     })
+
+    it('includes chat activity notices from child spaces even when authored by Axolotl', async function () {
+      const parent = await factories.group().save()
+      const space = await factories.group({
+        type: 'space',
+        parent_id: parent.id,
+        slug: `space-chat-activity-${Date.now()}`
+      }).save()
+      const user = await factories.user().save()
+      let axolotl = await User.where({ id: User.AXOLOTL_ID }).fetch()
+      if (!axolotl) {
+        axolotl = await factories.user({
+          id: User.AXOLOTL_ID,
+          name: 'Axolotl',
+          email: 'axolotl-viewposts@hylo.com',
+          active: true
+        }).save(null, { method: 'insert' })
+      }
+      await parent.addMembers([user.id])
+      await space.addMembers([user.id])
+
+      const notice = await factories.post({
+        type: Post.Type.CHAT_ACTIVITY,
+        user_id: axolotl.id
+      }).save()
+      await notice.groups().attach(space.id)
+
+      const welcome = await factories.post({
+        type: Post.Type.WELCOME,
+        user_id: axolotl.id
+      }).save()
+      await welcome.groups().attach(space.id)
+
+      const ids = await fetchViewPostIds(parent, user.id)
+      expect(ids).to.include(notice.id)
+      expect(ids).to.not.include(welcome.id)
+    })
   })
 
-  describe('updateMembers', function() {
-    it('updates members', async function() {
+  describe('updateMembers', function () {
+    it('updates members', async function () {
       const group = await factories.group().save()
       const user1 = await factories.user().save()
       const user2 = await factories.user().save()
-      const projectRole = await ProjectRole.forge({name: 'test role'}).save()
+      const projectRole = await ProjectRole.forge({ name: 'test role' }).save()
       const project_role_id = projectRole.id
       const updates = { project_role_id }
       await group.addMembers([user1, user2])
@@ -354,8 +392,8 @@ describe('Group', function () {
     })
   })
 
-  describe('selectIdsForMember', function() {
-    it('produces the expected query clause', function() {
+  describe('selectIdsForMember', function () {
+    it('produces the expected query clause', function () {
       const query = Post.query(q => {
         q.join('groups_posts', 'posts.id', 'groups_posts.group_id')
         q.whereIn('groups_posts.group_id', Group.selectIdsForMember('42'))
@@ -379,10 +417,10 @@ describe('Group', function () {
       await setup.clearDb()
       user = await factories.user().save()
       group = await factories.group().save()
-      
+
       // Get the date limit (one year in the past)
       const dateLimit = Post.eventCalSubDateLimit()
-      
+
       // Create events with future start times (after the date limit)
       const futureDate1 = new Date()
       futureDate1.setFullYear(futureDate1.getFullYear() + 1)
@@ -393,9 +431,9 @@ describe('Group', function () {
 
       // Create event within the past year (should be included)
       const pastYearDate = dateLimit.plus({ hours: 1 }).toJSDate() // 30 days after the limit
-      
+
       // Create event older than one year (should be excluded)
-      const olderThanYearDate = dateLimit.minus({ hours: 1 }).toJSDate() 
+      const olderThanYearDate = dateLimit.minus({ hours: 1 }).toJSDate()
       const oneHour = 3600000 // number of milliseconds in one hour
 
       event1 = await factories.post({
@@ -406,7 +444,7 @@ describe('Group', function () {
         start_time: futureDate1,
         end_time: new Date(futureDate1.getTime() + oneHour)
       }).save()
-      
+
       event2 = await factories.post({
         type: Post.Type.EVENT,
         user_id: user.id,
@@ -415,7 +453,7 @@ describe('Group', function () {
         start_time: futureDate2,
         end_time: new Date(futureDate2.getTime() + oneHour)
       }).save()
-      
+
       event3 = await factories.post({
         type: Post.Type.EVENT,
         user_id: user.id,
@@ -469,7 +507,7 @@ describe('Group', function () {
 
       expect(storageModule.writeStringToS3).to.have.been.called
       expect(calendarContent).to.exist
-      
+
       // Verify all active events are included in the calendar by checking for their UIDs
       expect(calendarContent).to.include(event1.iCalUid())
       expect(calendarContent).to.include(event2.iCalUid())
@@ -481,7 +519,7 @@ describe('Group', function () {
 
       expect(storageModule.writeStringToS3).to.have.been.called
       expect(calendarContent).to.exist
-      
+
       // Verify event within the past year is included
       expect(calendarContent).to.include(eventPastYear.iCalUid())
     })
@@ -491,7 +529,7 @@ describe('Group', function () {
 
       expect(storageModule.writeStringToS3).to.have.been.called
       expect(calendarContent).to.exist
-      
+
       // Verify event older than one year is excluded
       expect(calendarContent).to.not.include(eventOlderThanYear.iCalUid())
     })
@@ -499,28 +537,28 @@ describe('Group', function () {
     it('verifies Post.eventCalSubDateLimit returns date one year in the past', () => {
       const dateLimit = Post.eventCalSubDateLimit()
       const expectedDate = DateTime.now().minus({ years: 1 }).toISO()
-      
+
       // Allow for small time differences (within 1 second)
       const dateLimitTime = new Date(dateLimit).getTime()
       const expectedDateTime = new Date(expectedDate).getTime()
       const timeDiff = Math.abs(dateLimitTime - expectedDateTime)
-      
+
       expect(timeDiff).to.be.below(1000) // Less than 1 second difference
     })
 
     it('excludes inactive events when creating calendar subscription', async () => {
       // Deactivate event2
       await event2.save({ active: false }, { patch: true })
-      
+
       await Group.createEventCalendarSubscription({ groupId: group.id })
 
       expect(storageModule.writeStringToS3).to.have.been.called
       expect(calendarContent).to.exist
-      
+
       // Verify active events are included
       expect(calendarContent).to.include(event1.iCalUid())
       expect(calendarContent).to.include(event3.iCalUid())
-      
+
       // Verify inactive event is excluded
       expect(calendarContent).to.not.include(event2.iCalUid())
     })
@@ -531,12 +569,12 @@ describe('Group', function () {
       // Deactivate event1 and event3
       await event1.save({ active: false }, { patch: true })
       await event3.save({ active: false }, { patch: true })
-      
+
       await Group.createEventCalendarSubscription({ groupId: group.id })
 
       expect(storageModule.writeStringToS3).to.have.been.called
       expect(calendarContent).to.exist
-      
+
       // Verify only active event2 is included
       expect(calendarContent).to.include(event2.iCalUid())
       expect(calendarContent).to.not.include(event1.iCalUid())
@@ -545,9 +583,9 @@ describe('Group', function () {
 
     it('creates calendar_token if it does not exist', async () => {
       const groupWithoutToken = await factories.group().save()
-      
+
       await Group.createEventCalendarSubscription({ groupId: groupWithoutToken.id })
-      
+
       expect(groupWithoutToken.refresh().get('calendar_token')).to.exist
     })
 
@@ -560,9 +598,9 @@ describe('Group', function () {
         // Column might not exist, skip this test
         return
       }
-      
+
       await Group.createEventCalendarSubscription({ groupId: groupWithToken.id })
-      
+
       await groupWithToken.refresh()
       expect(groupWithToken.get('calendar_token')).to.equal(existingToken)
     })

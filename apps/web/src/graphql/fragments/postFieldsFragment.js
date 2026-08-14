@@ -37,6 +37,17 @@ const postFieldsFragment = (withComments, withCompletion = false, withAllComplet
   title
   details
   type
+  noticeData
+  noticePosts {
+    id
+    details
+    createdAt
+    creator {
+      id
+      name
+      avatarUrl
+    }
+  }
   creator {
     id
     name
@@ -173,6 +184,7 @@ const postFieldsFragment = (withComments, withCompletion = false, withAllComplet
     name
     slug
     type
+    parentId
   }
   attachments {
     type

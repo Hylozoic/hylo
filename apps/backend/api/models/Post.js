@@ -12,6 +12,7 @@ import { postRoom, pushToSockets } from '../services/Websockets'
 import { fulfill, unfulfill } from './post/fulfillPost'
 import { decrementNewPostCount } from './post/deletePost'
 import { incrementNewPostCount } from './post/createPost'
+import upsertChatActivityNoticeForPost from './post/upsertChatActivityNotice'
 import EnsureLoad from './mixins/EnsureLoad'
 import { countTotal } from '../../lib/util/knex'
 import { refineMany, refineOne } from './util/relations'
@@ -662,6 +663,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
   },
 
   createActivities: async function (trx) {
+    if (Post.isNoticeType(this.get('type'))) return
+
     await this.load(['groups', 'tags'], { transacting: trx })
     const { tags, groups } = this.relations
     let activitiesToCreate = []
@@ -863,6 +866,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
   Type: {
     ACTION: 'action',
     CHAT: 'chat',
+    CHAT_ACTIVITY: 'chat_activity',
     DISCUSSION: 'discussion',
     EVENT: 'event',
     OFFER: 'offer',
@@ -873,6 +877,12 @@ module.exports = bookshelf.Model.extend(Object.assign({
     SUBMISSION: 'submission',
     THREAD: 'thread',
     WELCOME: 'welcome'
+  },
+
+  NOTICE_TYPES: ['chat_activity'],
+
+  isNoticeType: function (type) {
+    return Post.NOTICE_TYPES.includes(type)
   },
 
   Proposal_Status: {
@@ -1087,7 +1097,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
         Activity.removeForPost(postId, trx),
         Track.removePost(postId, trx),
         Post.where('id', postId).query().update({ active: false, deactivated_at: new Date() }).transacting(trx),
-        Queue.classMethod('Post', 'decrementNewPostCountForDeletedPost', { postId }, 0)
+        Queue.classMethod('Post', 'decrementNewPostCountForDeletedPost', { postId }, 0),
+        Queue.classMethod('Post', 'upsertChatActivityNotice', { postId })
       )),
 
   // Background task to decrement new_post_count when a post is deleted
@@ -1107,7 +1118,17 @@ module.exports = bookshelf.Model.extend(Object.assign({
     }
   },
 
+  // Background task: rebuild the hourly chat activity notice for a chat post
+  upsertChatActivityNotice: async ({ postId }) => {
+    try {
+      await upsertChatActivityNoticeForPost({ postId })
+    } catch (error) {
+      console.error('Error upserting chat activity notice:', error)
+    }
+  },
+
   // Background task to increment new_post_count when a post is created
+
   incrementNewPostCountForCreatedPost: async ({ postId }) => {
     const post = await Post.find(postId, { withRelated: ['groups', 'tags'] })
     if (!post) return
@@ -1241,7 +1262,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
   notifySlack: ({ postId }) =>
     Post.find(postId, { withRelated: ['groups', 'user', 'relatedUsers'] })
       .then(post => {
-        if (!post) return
+        if (!post || Post.isNoticeType(post.get('type'))) return
         const slackCommunities = post.relations.groups.filter(g => g.get('slack_hook_url'))
         return Promise.map(slackCommunities, g => Group.notifySlack(g.id, post))
       }),
@@ -1271,7 +1292,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
   // Background task to fire zapier triggers on new_post
   zapierTriggers: async ({ postId }) => {
     const post = await Post.find(postId, { withRelated: ['groups', 'tags', 'user'] })
-    if (!post) return
+    if (!post || Post.isNoticeType(post.get('type'))) return
 
     const groupIds = post.relations.groups.map(g => g.id)
     const zapierTriggers = await ZapierTrigger.forTypeAndGroups('new_post', groupIds).fetchAll()

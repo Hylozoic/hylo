@@ -22,6 +22,12 @@ export default async function createPost (userId, params) {
       }).catch(function (error) {
         throw error
       }))
+    .then(post => {
+      if (post.get('type') === Post.Type.CHAT) {
+        Queue.classMethod('Post', 'upsertChatActivityNotice', { postId: post.id }, 0)
+      }
+      return post
+    })
 }
 
 export function afterCreatingPost (post, opts) {
@@ -129,6 +135,8 @@ async function addPostToViewCollection (post, viewId, userId, { transacting } = 
  * Called as a background job so large groups do not block createPost.
  */
 export async function incrementNewPostCount (post) {
+  if (Post.isNoticeType(post.get('type'))) return
+
   const { groups } = post.relations
 
   if (!groups || groups.length === 0) {

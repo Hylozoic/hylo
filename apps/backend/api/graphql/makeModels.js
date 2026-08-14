@@ -1,4 +1,5 @@
 /* global FundingRound ContentAccess Draft GroupView GroupViewUser CollectionPost */
+import DataLoader from 'dataloader'
 import { camelCase, isNil, mapKeys, startCase } from 'lodash/fp'
 import pluralize from 'pluralize'
 import { TextHelpers } from '@hylo/shared'
@@ -80,11 +81,34 @@ function filterGroupRolesByGroup (relation, { groupId, slug }) {
   })
 }
 
+/** Parses posts.notice_data whether Postgres returned an object or a JSON string. */
+function parsePostNoticeData (post) {
+  const value = post.get('notice_data')
+  if (!value) return null
+  if (typeof value !== 'string') return value
+  try {
+    return JSON.parse(value)
+  } catch (e) {
+    return null
+  }
+}
+
 export default function makeModels (userId, isAdmin, apiClient) {
   const nonAdminFilter = makeFilterToggle(!isAdmin)
 
   // XXX: for now give super API users more access, in the future track which groups each client can access
   const apiFilter = makeFilterToggle(!apiClient || !apiClient.super)
+
+  // One query per All Activity page for every notice's recentPostIds
+  const noticeChatPostsLoader = new DataLoader(async (ids) => {
+    const posts = await Post.query(q => {
+      q.whereIn('posts.id', ids)
+      q.where('posts.active', true)
+      q.where('posts.type', Post.Type.CHAT)
+    }).fetchAll()
+    const byId = new Map(posts.models.map(post => [String(post.id), post]))
+    return ids.map(id => byId.get(String(id)) || null)
+  }, { cacheKeyFn: id => String(id) })
 
   // Mirrors Post#followers() (following + active posts_users + active users) for GraphQL totals
   async function postActiveFollowersCount (post) {
@@ -558,6 +582,17 @@ export default function makeModels (userId, isAdmin, apiClient) {
           userId && p.isEvent()
             ? p.userEventInvitation(userId).then(eventInvitation => eventInvitation ? eventInvitation.get('response') : '')
             : '',
+        noticeData: p => parsePostNoticeData(p),
+        noticePosts: async p => {
+          try {
+            const ids = parsePostNoticeData(p)?.recentPostIds || []
+            if (!ids.length) return []
+            const posts = await noticeChatPostsLoader.loadMany(ids)
+            return posts.filter(Boolean)
+          } catch (e) {
+            return []
+          }
+        },
         savedAt: p => p.savedAtForUser(userId),
         tokensAllocated: async p => {
           if (!userId) return null

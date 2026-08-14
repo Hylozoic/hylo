@@ -184,6 +184,7 @@ export function ormSessionReducer (session, { meta, type, payload }) {
       const groupId = payload.groupId
       const creatorId = post.creator?.id || post.creatorId
       if (!currentUser || !groupId || String(creatorId) === String(currentUser.id)) break
+      if (post.type === 'chat_activity') break
 
       const increment = obj =>
         obj && obj.update({
