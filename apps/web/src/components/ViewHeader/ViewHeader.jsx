@@ -1,4 +1,4 @@
-import { Globe, ChevronLeft } from 'lucide-react'
+import { Bell, ChevronDown, ChevronLeft, Globe, Settings, ShieldCheck, Users } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
@@ -6,16 +6,23 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 import { localSpaceSlug } from '@hylo/navigation'
 import Icon from 'components/Icon'
+import { Dialog, DialogContent, DialogTitle } from 'components/ui/dialog'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from 'components/ui/dropdown-menu'
 import InfoButton from 'components/ui/info'
 import { Command, CommandItem, CommandList } from 'components/ui/command'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useRouteParams from 'hooks/useRouteParams'
 import GroupViewIcon from 'routes/AuthLayoutRouter/components/ContextMenu/GroupViewIcon'
+import GroupViewSettingsModal from 'routes/AuthLayoutRouter/components/ContextMenu/GroupViewSettingsModal'
+import GroupMembershipNotificationSettings from 'routes/UserSettings/NotificationSettingsTab/GroupMembershipNotificationSettings'
+import { updateMembershipSettings } from 'routes/UserSettings/UserSettings.store'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
+import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { getGroupViews } from 'store/selectors/getGroupViews'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import { viewAcceptedByPostTypes } from 'store/models/GroupView'
+import { RESP_ADMINISTRATION } from 'store/constants'
 import getMe from 'store/selectors/getMe'
 import getMyMemberships from 'store/selectors/getMyMemberships'
 import getPreviousLocation from 'store/selectors/getPreviousLocation'
@@ -107,6 +114,24 @@ const ViewHeader = () => {
       .filter(v => viewAcceptedByPostTypes(v.type, spaceGroup.acceptedPostTypes))
     return visibleViews.length === 1
   }, [presentedSpaceView, isMoreViewsPath])
+
+  // Members/moderation inside a single-view space read as "Space: View"
+  const spaceSubSegment = spaceSlug ? (location.pathname.split(`/spaces/${spaceSlug}/`)[1] || '').split('/')[0] : null
+  const spaceSubViewTitle = isSingleViewSpace && ['members', 'moderation'].includes(spaceSubSegment) && typeof title === 'string'
+    ? title
+    : null
+
+  // Single-view space header menu: settings / notifications / members / moderation
+  const spaceGroupForMenu = spaceMenuView?.linkedGroup
+  const canAdministerSpace = useSelector(state => hasResponsibilityForGroup(state, {
+    responsibility: RESP_ADMINISTRATION, groupId: spaceGroupForMenu?.id
+  }))
+  const spaceMembership = useMemo(
+    () => spaceGroupForMenu ? myMemberships.find(m => String(m.group?.id) === String(spaceGroupForMenu.id)) : null,
+    [myMemberships, spaceGroupForMenu]
+  )
+  const [spaceNotifOpen, setSpaceNotifOpen] = useState(false)
+  const [spaceSettingsOpen, setSpaceSettingsOpen] = useState(false)
 
   const [searchValue, setSearchValue] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
@@ -245,6 +270,25 @@ const ViewHeader = () => {
       return
     }
 
+    // Single-view spaces open straight into their lone view — back returns to
+    // wherever the user came from instead of the menu. When that view IS the
+    // group's home there is nowhere sensible to return to, so back opens the
+    // group's main menu instead.
+    if (isSingleViewSpace && !backButton && !mobileBackButton && !backTo) {
+      const here = location.pathname.replace(/\/$/, '')
+      const homePath = group?.homeRoute ? `/groups/${groupSlug}${group.homeRoute}`.replace(/\/$/, '') : null
+      if (homePath && here === homePath) {
+        if (isOneColumnGroup) {
+          navigate(`/groups/${groupSlug}`)
+        } else {
+          dispatch(toggleNavMenu(true))
+        }
+        return
+      }
+      navigate(previousLocation || -1)
+      return
+    }
+
     // One-column groups: back from a space view → space menu; from a group view → group menu.
     if (isOneColumnGroup && groupSlug) {
       const path = location.pathname.replace(/\/$/, '')
@@ -319,7 +363,7 @@ const ViewHeader = () => {
   // Light mode surfaces sit close in lightness, so the sticky header needs a
   // hairline edge plus a stronger shadow to read as a layer above the stream.
   return (
-    <header className={cn('flex flex-row items-center z-30 p-2 sticky top-0 w-full bg-background border-b border-foreground/[0.08] shadow-[0_4px_14px_0px_rgba(0,0,0,0.16)] dark:border-transparent dark:shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)]', {
+    <header className={cn('flex flex-row items-center z-40 p-2 sticky top-0 w-full bg-background border-b border-foreground/[0.08] shadow-[0_4px_14px_0px_rgba(0,0,0,0.16)] dark:border-transparent dark:shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)]', {
       'justify-center': centered,
       hidden: (oneColumn && isBannerVisible) || isOneColumnMenuLevel
     })}
@@ -359,13 +403,44 @@ const ViewHeader = () => {
       {!centered && !oneColumn && presentedSpaceView && (
         <>
           <GroupViewIcon view={presentedSpaceView} className='mr-1 shrink-0 w-5 h-5' />
-          <span className={cn(
-            'truncate shrink min-w-0 text-foreground font-bold',
-            // Parent level: icon-only on phones, name returns at sm+
-            !(isSingleViewSpace || !hasTitle) && cn('max-w-[25%]', parentCrumbNameClass)
-          )}
-          >{spaceName}
-          </span>
+          {isSingleViewSpace
+            ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button type='button' className='flex items-center gap-0.5 min-w-0 shrink text-foreground font-bold cursor-pointer'>
+                    <span className='truncate min-w-0'>{spaceName}{spaceSubViewTitle ? `: ${spaceSubViewTitle}` : ''}</span>
+                    <ChevronDown className='w-4 h-4 shrink-0 opacity-60' />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align='start'>
+                  {canAdministerSpace && (
+                    <DropdownMenuItem onSelect={() => setSpaceSettingsOpen(true)}>
+                      <Settings className='w-4 h-4 mr-2' />{t('Space Settings')}
+                    </DropdownMenuItem>
+                  )}
+                  {spaceMembership && (
+                    <DropdownMenuItem onSelect={() => setSpaceNotifOpen(true)}>
+                      <Bell className='w-4 h-4 mr-2' />{t('Notifications')}
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem onSelect={() => navigate(`/groups/${groupSlug}/spaces/${spaceSlug}/members`)}>
+                    <Users className='w-4 h-4 mr-2' />{t('Members')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => navigate(`/groups/${groupSlug}/spaces/${spaceSlug}/moderation`)}>
+                    <ShieldCheck className='w-4 h-4 mr-2' />{t('Moderation')}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              )
+            : (
+              <span className={cn(
+                'truncate shrink min-w-0 text-foreground font-bold',
+                // Parent level: icon-only on phones, name returns at sm+
+                hasTitle && cn('max-w-[25%]', parentCrumbNameClass)
+              )}
+              >{spaceName}
+              </span>
+              )}
           {!isSingleViewSpace && hasTitle && <span className='mx-1.5 shrink-0 text-foreground/40'>{'>'}</span>}
         </>
       )}
@@ -576,6 +651,22 @@ const ViewHeader = () => {
             )}
           </div>
         </div>
+      )}
+      {spaceNotifOpen && spaceMembership && spaceGroupForMenu && (
+        <Dialog open onOpenChange={open => { if (!open) setSpaceNotifOpen(false) }}>
+          <DialogContent className='max-w-[22rem]'>
+            <DialogTitle>{t('Notification Settings for {{name}}', { name: spaceGroupForMenu.name })}</DialogTitle>
+            <GroupMembershipNotificationSettings
+              id={spaceMembership.id}
+              settings={spaceMembership.settings}
+              update={changes => dispatch(updateMembershipSettings(spaceGroupForMenu.id, changes))}
+              compact
+            />
+          </DialogContent>
+        </Dialog>
+      )}
+      {spaceSettingsOpen && spaceMenuView && (
+        <GroupViewSettingsModal view={spaceMenuView} group={group} onClose={() => setSpaceSettingsOpen(false)} />
       )}
     </header>
   )
