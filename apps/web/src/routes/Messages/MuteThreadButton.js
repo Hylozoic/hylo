@@ -58,7 +58,7 @@ export default function MuteThreadButton ({ threadId, isMuted, className, onComp
           onClick={handleClick}
           aria-label={isMuted ? t('Unmute conversation') : t('Mute conversation')}
           className={cn(
-            'flex items-center justify-center w-9 h-9 rounded-lg transition-all scale-100 hover:scale-105',
+            'flex items-center justify-center w-7 h-7 rounded-lg transition-all scale-100 hover:scale-105',
             'bg-darkening/20 hover:bg-selected/80 text-foreground/60 hover:text-foreground',
             className
           )}
