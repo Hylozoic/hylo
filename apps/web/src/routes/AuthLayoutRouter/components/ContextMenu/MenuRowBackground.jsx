@@ -14,17 +14,18 @@ import { viewCardColor, hueOf } from './viewCardTheme'
 // Each row holds enough glyphs to cover the widest surface (join page card at
 // 840px); overflow-hidden clips the rest. Odd rows shift by half the glyph
 // pitch so the texture reads as a diagonal lattice rather than a grid.
-const GLYPHS_PER_ROW = 48
-const GLYPH_PITCH = 20 // 13px glyph + 7px gap
 
 // rows defaults to enough for a menu row; taller surfaces pass more.
-// spaced doubles the row pitch for banner-height surfaces.
+// spaced doubles the pitch on both axes for banner-height surfaces —
+// half as many glyphs covering the same area.
 function MenuRowBackground ({ view, bannerUrl, className, rows = 6, spaced = false }) {
   const { effectiveColorScheme } = useAppearance()
   const isDark = effectiveColorScheme === 'dark'
 
-  // Row pitch is glyph height (13) + gap: 7 → 20, doubled → 40
-  const rowGap = spaced ? 27 : 7
+  // Pitch is glyph size (13) + gap: 20, doubled to 40 when spaced
+  const pitch = spaced ? 40 : 20
+  const gap = pitch - 13
+  const cols = spaced ? 24 : 48
 
   // Memoized like CardIconField's tile: the glyph spans are not worth re-creating
   // on every render. Before the early banner return — hooks run unconditionally.
@@ -32,15 +33,15 @@ function MenuRowBackground ({ view, bannerUrl, className, rows = 6, spaced = fal
     <div
       key={r}
       className='flex shrink-0'
-      style={{ gap: 7, marginTop: r === 0 ? 0 : rowGap, marginLeft: r % 2 ? -(GLYPH_PITCH / 2) : 0 }}
+      style={{ gap, marginTop: r === 0 ? 0 : gap, marginLeft: r % 2 ? -(pitch / 2) : 0 }}
     >
-      {Array.from({ length: GLYPHS_PER_ROW }, (_, i) => (
+      {Array.from({ length: cols }, (_, i) => (
         <span key={i} className='flex shrink-0'>
           <GroupViewIcon view={view} className='!w-[13px] !h-[13px] !mr-0' />
         </span>
       ))}
     </div>
-  )), [view, rows, rowGap])
+  )), [view, rows, gap, pitch, cols])
 
   if (bannerUrl) {
     return (
