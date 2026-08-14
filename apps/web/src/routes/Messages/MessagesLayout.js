@@ -57,7 +57,8 @@ export default function MessagesLayout () {
   }, [])
 
   if (isPhoneDevice()) {
-    if (!messageThreadId) return <Loading />
+    // No thread picked: the inbox IS the screen (no auto-selected conversation)
+    if (!messageThreadId) return <ThreadList />
     return <Messages />
   }
 

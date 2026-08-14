@@ -102,7 +102,11 @@ function ThreadList () {
       if (!messageThreadId && !debouncedSearch && !isMutedTab) {
         const firstThread = response.payload.data?.me?.messageThreads?.items[0]
         if (firstThread) {
-          navigate(`/messages/${firstThread.id}`, { replace: true })
+          // Desktop's split view wants a conversation showing; on a phone the
+          // inbox itself is the screen, so opening one uninvited is jarring
+          if (!isPhoneDevice()) {
+            navigate(`/messages/${firstThread.id}`, { replace: true })
+          }
         } else {
           // Nothing in the inbox: open the composer with the recipient picker
           // ready, so a first-time user can start a message immediately
