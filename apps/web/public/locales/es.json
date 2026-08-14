@@ -2796,5 +2796,10 @@
   "Sending...": "Enviando...",
   "Send a new message to...": "Enviar un nuevo mensaje a...",
   "+ Add someone...": "+ Añadir a alguien...",
-  "Skills with": "Habilidades con"
+  "Skills with": "Habilidades con",
+  "A paid membership is required to join this space": "Se requiere una membresía de pago para unirse a este espacio",
+  "Only {{roleNames}} may join this space": "Solo {{roleNames}} pueden unirse a este espacio",
+  "Anyone in {{groupName}} can access this space": "Cualquier persona en {{groupName}} puede acceder a este espacio",
+  "Members of {{groupName}} must request to join and be approved": "Los miembros de {{groupName}} deben solicitar unirse y ser aprobados",
+  "You must be invited to join this space": "Necesitas una invitación para unirte a este espacio"
 }

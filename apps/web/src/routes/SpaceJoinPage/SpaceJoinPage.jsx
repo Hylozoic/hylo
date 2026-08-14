@@ -22,7 +22,7 @@ import fetchForGroup from 'store/actions/fetchForGroup'
 import joinSpace from 'store/actions/joinSpace'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
-import { DEFAULT_BANNER, GROUP_ACCESSIBILITY, accessibilityIcon } from 'store/models/Group'
+import { DEFAULT_BANNER, GROUP_ACCESSIBILITY, accessibilityIcon, spaceAccessDescription } from 'store/models/Group'
 
 /**
  * Interstitial shown when a signed-in member of the parent group clicks into a Space
@@ -126,15 +126,12 @@ export default function SpaceJoinPage () {
 
   const isRoleGated = !spaceGroup.paywall && (spaceGroup.requiredRoles || []).length > 0
 
-  const accessLabel = spaceGroup.paywall
-    ? t('Paid')
-    : isRoleGated
-      ? t('Open to Roles')
-      : spaceGroup.accessibility === GROUP_ACCESSIBILITY.Open
-        ? t('Open')
-        : spaceGroup.accessibility === GROUP_ACCESSIBILITY.Restricted
-          ? t('Restricted - you need to request to join')
-          : t('Invite Only')
+  const accessDescription = spaceAccessDescription({
+    space: spaceGroup,
+    parentGroupName: parentGroup.name,
+    requiredRoles,
+    t
+  })
 
   return (
     // flex-1 fills the center column below the view header (a flex column), so
@@ -143,9 +140,9 @@ export default function SpaceJoinPage () {
     <div className='w-full flex-1 flex'>
       <div className='m-auto w-full max-w-[840px] p-6'>
         <div className='rounded-2xl border border-foreground/10 bg-card overflow-hidden shadow-lg'>
-          {/* The space's own banner, per the design — a tinted wash when it has none,
-              so the identity block reads the same either way */}
-          <div className='relative h-[140px] grid place-items-center overflow-hidden'>
+          {/* Banner laid out like the one-column space banner: identity (tile,
+              name, member pill) centered over the photo or glyph texture */}
+          <div className='relative h-[172px] grid place-items-center overflow-hidden'>
             {bannerUrl
               ? (
                 <>
@@ -157,18 +154,35 @@ export default function SpaceJoinPage () {
               // About modal, menu row, and cards — one recognisable surface
               : <MenuRowBackground view={presentedSpaceView} bannerUrl={null} glyphCount={360} />}
 
-            <div className='relative z-10 w-[84px] h-[84px] rounded-[22px] grid place-items-center overflow-hidden bg-background/20 backdrop-blur-sm shadow-lg text-foreground'>
-              {avatar?.avatarUrl
-                ? <div className='w-full h-full bg-cover bg-center' style={bgImageStyle(avatar.avatarUrl)} />
-                : icon.lucideIcon
-                  ? <LucideIcon name={icon.lucideIcon} className='w-10 h-10' fallback={<Icon name={icon.lucideIcon} className='text-4xl' />} />
-                  : <Icon name={icon.iconName || 'Shapes'} className='text-4xl' />}
+            <div className='relative z-10 flex flex-col items-center justify-center gap-1 max-w-full px-4'>
+              <div className={cn(
+                'w-14 h-14 rounded-xl shadow-lg bg-cover bg-center overflow-hidden relative grid place-items-center backdrop-blur-sm',
+                bannerUrl ? 'bg-white/15 text-white' : 'bg-black/5 text-foreground/80 dark:bg-white/15 dark:text-white'
+              )}
+              >
+                {avatar?.avatarUrl
+                  ? <div className='w-full h-full bg-cover bg-center' style={bgImageStyle(avatar.avatarUrl)} />
+                  : icon.lucideIcon
+                    ? <LucideIcon name={icon.lucideIcon} className='w-7 h-7' fallback={<Icon name={icon.lucideIcon} className='text-2xl' />} />
+                    : <Icon name={icon.iconName || 'Shapes'} className='text-2xl' />}
+              </div>
+              <h1 className={cn('text-xl font-bold drop-shadow-md m-0 leading-tight max-w-full truncate', bannerUrl ? 'text-white' : 'text-foreground dark:text-white')}>
+                {spaceGroup.name}
+              </h1>
+              <span className={cn(
+                'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs',
+                bannerUrl
+                  ? 'bg-white/15 border-white/25 text-white'
+                  : 'bg-foreground/10 border-foreground/20 text-foreground/80 dark:bg-white/15 dark:border-white/25 dark:text-white/90'
+              )}
+              >
+                <Users className='w-3.5 h-3.5' />
+                {spaceGroup.memberCount || 0}
+              </span>
             </div>
           </div>
 
           <div className='p-7 flex flex-col'>
-            <h1 className='text-2xl font-bold text-foreground m-0'>{spaceGroup.name}</h1>
-
             {spaceGroup.purpose && (
               <p className='text-foreground/80 font-medium mt-2 mb-0'>{spaceGroup.purpose}</p>
             )}
@@ -181,34 +195,14 @@ export default function SpaceJoinPage () {
               </div>
             )}
 
-            {/* Facts as a grid rather than stacked rows, per the design */}
-            <div className='grid grid-cols-2 gap-2 mt-5'>
-              <div className='flex items-center gap-2.5 rounded-lg border border-foreground/10 bg-background/40 px-3 py-2.5'>
-                <Users className='w-4 h-4 shrink-0 text-foreground/60' />
-                <div className='min-w-0'>
-                  <div className='text-[10px] font-bold uppercase tracking-wider text-foreground/50'>{t('Members')}</div>
-                  <div className='text-sm font-bold text-foreground'>{spaceGroup.memberCount || 0}</div>
-                </div>
-              </div>
-              <div className='flex items-start gap-2.5 rounded-lg border border-foreground/10 bg-background/40 px-3 py-2.5'>
-                {spaceGroup.paywall
-                  ? <BadgeDollarSign className='w-4 h-4 shrink-0 text-foreground/60 mt-0.5' />
-                  : <Icon name={accessibilityIcon(spaceGroup.accessibility)} className='shrink-0 text-foreground/60 mt-0.5' />}
-                <div className='min-w-0'>
-                  <div className='text-[10px] font-bold uppercase tracking-wider text-foreground/50'>{t('Access')}</div>
-                  <div className={cn('flex flex-wrap items-center gap-1.5', !isRoleGated && 'truncate')} title={accessLabel}>
-                    <span className='text-sm font-bold text-foreground'>{accessLabel}</span>
-                    {isRoleGated && requiredRoles.map(role => (
-                      <span
-                        key={role.id}
-                        className='inline-flex items-center gap-1 px-2 py-0.5 rounded-full border-2 border-foreground/20 text-xs font-medium text-foreground whitespace-nowrap'
-                      >
-                        {role.emoji && <span>{role.emoji}</span>}
-                        <span>{role.name}</span>
-                      </span>
-                    ))}
-                  </div>
-                </div>
+            {/* Members moved to the banner pill; access reads as a sentence */}
+            <div className='flex items-start gap-2.5 rounded-lg border border-foreground/10 bg-background/40 px-3 py-2.5 mt-5'>
+              {spaceGroup.paywall
+                ? <BadgeDollarSign className='w-4 h-4 shrink-0 text-foreground/60 mt-0.5' />
+                : <Icon name={accessibilityIcon(spaceGroup.accessibility)} className='shrink-0 text-foreground/60 mt-0.5' />}
+              <div className='min-w-0'>
+                <div className='text-[10px] font-bold uppercase tracking-wider text-foreground/50'>{t('Access')}</div>
+                <div className='text-sm font-medium text-foreground'>{accessDescription}</div>
               </div>
             </div>
 

@@ -2788,5 +2788,10 @@
   "Sending...": "भेजा जा रहा है...",
   "Send a new message to...": "नया संदेश भेजें...",
   "+ Add someone...": "+ किसी को जोड़ें...",
-  "Skills with": "कौशल जिनमें"
+  "Skills with": "कौशल जिनमें",
+  "A paid membership is required to join this space": "इस स्पेस से जुड़ने के लिए सशुल्क सदस्यता आवश्यक है",
+  "Only {{roleNames}} may join this space": "केवल {{roleNames}} ही इस स्पेस से जुड़ सकते हैं",
+  "Anyone in {{groupName}} can access this space": "{{groupName}} में कोई भी इस स्पेस तक पहुंच सकता है",
+  "Members of {{groupName}} must request to join and be approved": "{{groupName}} के सदस्यों को जुड़ने का अनुरोध करना होगा और स्वीकृति प्राप्त करनी होगी",
+  "You must be invited to join this space": "इस स्पेस से जुड़ने के लिए आपको आमंत्रित किया जाना आवश्यक है"
 }
