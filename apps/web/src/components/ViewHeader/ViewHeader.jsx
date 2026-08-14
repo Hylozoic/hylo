@@ -310,8 +310,9 @@ const ViewHeader = () => {
     return isSpaceIndex && isSpaceMember
   }, [oneColumn, isOneColumnContext, isOneColumnGroup, context, groupSlug, location.pathname, isSpaceMember])
 
-  // Hide ViewHeader on phones for messages - MessagesMobile handles its own header
-  if (isPhoneDevice() && location.pathname.startsWith('/messages')) {
+  // Messages carries its own headers (thread-list title row + per-conversation
+  // header), so the shared ViewHeader stays out of the way entirely.
+  if (location.pathname.startsWith('/messages')) {
     return null
   }
 

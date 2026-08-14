@@ -1,5 +1,5 @@
 import { isEmpty, orderBy } from 'lodash/fp'
-import { CircleOff, SquarePen, Search, SearchX } from 'lucide-react'
+import { CircleOff, SquarePen, Search, SearchX, X } from 'lucide-react'
 import React, { useCallback, useEffect, useState, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
@@ -11,6 +11,7 @@ import getMe from 'store/selectors/getMe'
 import isPendingFor from 'store/selectors/isPendingFor'
 import useDebounce from 'hooks/useDebounce'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
+import getPreviousLocation from 'store/selectors/getPreviousLocation'
 import {
   setThreadSearch,
   getThreadSearch,
@@ -38,6 +39,18 @@ function ThreadList () {
   const routeParams = useParams()
   const navigate = useNavigate()
   const { messageThreadId } = routeParams
+
+  const previousLocation = useSelector(getPreviousLocation)
+  // Where the X returns to: wherever the user was when they entered Messages.
+  // Captured once on mount so navigating between threads doesn't retarget it.
+  // previousLocation is a history location object, not a path string.
+  const previousPath = previousLocation
+    ? `${previousLocation.pathname || ''}${previousLocation.search || ''}`
+    : ''
+  const returnToRef = useRef(
+    previousPath && !previousPath.startsWith('/messages') ? previousPath : '/'
+  )
+  const handleClose = () => navigate(returnToRef.current)
 
   const threads = useSelector(state => getThreads(state))
   const threadsPending = useSelector(state => isPendingFor(fetchThreads, state))
@@ -111,9 +124,31 @@ function ThreadList () {
       style={{ boxShadow: 'inset -15px 0 15px -10px hsl(var(--darkening) / 0.3)' }}
       onClick={handleContainerClick}
     >
-      <div className={cn(classes.header, 'flex items-center gap-3')}>
-        <div className={cn('bg-darkening/20 p-2 relative border-2 transition-all border-transparent rounded flex items-center flex-1', { 'border-2 border-focus': isSearchFocused })}>
-          <Search width={20} height={20} />
+      {/* Title row: X back to wherever the user came from, then New Message */}
+      <div className='flex items-center gap-2 px-3 pt-3 pb-1'>
+        <button
+          type='button'
+          onClick={handleClose}
+          aria-label={t('Close')}
+          title={t('Close')}
+          className='w-8 h-8 grid place-items-center rounded-lg bg-darkening/20 text-foreground/70 hover:text-foreground hover:bg-darkening/40 transition-colors shrink-0'
+        >
+          <X className='w-4 h-4' />
+        </button>
+        <h2 className='flex-1 m-0 text-lg font-bold text-foreground truncate'>{t('Messages')}</h2>
+        <Link
+          className='w-8 h-8 grid place-items-center rounded-lg bg-selected text-white hover:text-white scale-100 hover:scale-105 transition-all flex-shrink-0'
+          to='/messages/new'
+          aria-label={t('New Message')}
+          onClick={isPhoneDevice() ? toggleNavMenuAction : undefined}
+        >
+          <SquarePen className='w-4 h-4' />
+        </Link>
+      </div>
+      {/* Search on its own row */}
+      <div className='px-3 py-1'>
+        <div className={cn('bg-darkening/20 p-2 relative border-2 transition-all border-transparent rounded flex items-center w-full', { 'border-2 border-focus': isSearchFocused })}>
+          <Search width={18} height={18} />
           <input
             ref={searchInputRef}
             type='text'
@@ -125,16 +160,13 @@ function ThreadList () {
             className='bg-transparent border-foreground pl-2 text-foreground placeholder:text-foreground/50 outline-none border-none w-full'
           />
         </div>
-        <Link className='bg-darkening/20 rounded-lg text-foreground flex justify-center items-center w-10 h-10 hover:bg-selected/100 scale-100 hover:scale-105 transition-all hover:text-foreground flex-shrink-0' to='/messages/new' onClick={isPhoneDevice() ? toggleNavMenuAction : undefined}>
-          <SquarePen />
-        </Link>
       </div>
-      <div className='flex gap-2 px-2 py-1'>
+      <div className='flex gap-1.5 px-3 py-1.5'>
         <button
           type='button'
           onClick={handleSelectInboxTab}
           className={cn(
-            'flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-all',
+            'rounded-md px-3 py-1 text-xs font-semibold transition-all',
             !isMutedTab ? 'bg-selected text-foreground' : 'bg-darkening/20 text-foreground/70 hover:bg-selected/50'
           )}
         >
@@ -144,7 +176,7 @@ function ThreadList () {
           type='button'
           onClick={handleSelectMutedTab}
           className={cn(
-            'flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-all',
+            'rounded-md px-3 py-1 text-xs font-semibold transition-all',
             isMutedTab ? 'bg-selected text-foreground' : 'bg-darkening/20 text-foreground/70 hover:bg-selected/50'
           )}
         >
