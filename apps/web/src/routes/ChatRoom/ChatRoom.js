@@ -810,7 +810,7 @@ export default function ChatRoom (props) {
       <div
         id='chats'
         ref={setChatPaneEl}
-        className='my-0 mx-auto h-[calc(100%-130px)] w-full flex flex-col flex-1 relative overflow-hidden px-1'
+        className='my-0 mx-auto h-[calc(100%-130px)] w-full flex flex-col flex-1 relative overflow-hidden overflow-x-clip px-1'
         style={{ '--chat-stream-width': `${effectiveChatWidth}px` }}
       >
         {/* The stream header's wash, here as a still strip: theme background fading
