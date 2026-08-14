@@ -351,7 +351,7 @@ const Messages = () => {
             updateThreadReadTime={updateThreadReadTimeAction}
             messageThread={messageThread}
           />
-          <PeopleTyping className='w-full mx-auto max-w-[750px] pl-16 py-1 flex-shrink-0 px-3' />
+          <PeopleTyping className='w-full pl-16 py-1 flex-shrink-0 px-3' />
           <div className='flex-shrink-0 px-3 pb-3'>
             {messageThread?.isMuted && <MutedThreadNotice />}
             <MessageForm

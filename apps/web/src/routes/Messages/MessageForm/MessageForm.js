@@ -57,7 +57,7 @@ const MessageForm = forwardRef((props, ref) => {
   return (
     <form
       className={cn(
-        'w-full max-w-[750px] mx-auto flex items-end gap-2 bg-foreground/5 border border-foreground/10 rounded-xl p-1.5 pl-3 transition-all',
+        'w-full flex items-end gap-2 bg-foreground/5 border border-foreground/10 rounded-xl p-1.5 pl-3 transition-all',
         props.className,
         { 'border-foreground/20': hasFocus }
       )}

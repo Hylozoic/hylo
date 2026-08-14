@@ -118,8 +118,8 @@ function ThreadList () {
   return (
     <div
       className={cn(
-        'bg-background h-full flex flex-col flex-wrap overflow-hidden min-w-0',
-        isPhoneDevice() ? 'w-full' : 'w-[300px] flex-shrink-0'
+        // Width comes from MessagesLayout's resizable wrapper on desktop
+        'bg-background h-full flex flex-col flex-wrap overflow-hidden min-w-0 w-full'
       )}
       style={{ boxShadow: 'inset -15px 0 15px -10px hsl(var(--darkening) / 0.3)' }}
       onClick={handleContainerClick}
