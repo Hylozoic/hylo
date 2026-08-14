@@ -296,7 +296,7 @@ function Member ({
               {roles.length > 0 && (
                 <div className='inline-flex gap-0.5 justify-center'>
                   {roles.map(role => (
-                    <BadgeEmoji key={role.id + role.common} expanded {...role} responsibilities={role.responsibilities} id={id} />
+                    <BadgeEmoji key={role.id + role.common} expanded showName {...role} responsibilities={role.responsibilities} id={id} />
                   ))}
                 </div>
               )}
@@ -380,7 +380,7 @@ function Member ({
               {roles.length > 0 && (
                 <span className='inline-flex gap-0.5 shrink-0'>
                   {roles.map(role => (
-                    <BadgeEmoji key={role.id + role.common} expanded {...role} responsibilities={role.responsibilities} id={id} />
+                    <BadgeEmoji key={role.id + role.common} expanded showName {...role} responsibilities={role.responsibilities} id={id} />
                   ))}
                 </span>
               )}
@@ -448,7 +448,7 @@ function Member ({
           {roles.length > 0 && (
             <div className='flex flex-wrap gap-1 mb-2'>
               {roles.map(role => (
-                <BadgeEmoji key={role.id + role.common} expanded {...role} responsibilities={role.responsibilities} id={id} />
+                <BadgeEmoji key={role.id + role.common} expanded showName {...role} responsibilities={role.responsibilities} id={id} />
               ))}
             </div>
           )}

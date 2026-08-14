@@ -200,10 +200,10 @@ export const filterAndSortUsers = curry(({ autocomplete, boundingBox, groupId, g
 
   if (groupRoleId) {
     q.leftJoin('group_memberships_group_roles', 'group_memberships_group_roles.user_id', '=', 'users.id')
+    // A group_role_id belongs to exactly one group, so it scopes itself; adding
+    // the queried group's id here broke spaces, whose role assignments live on
+    // the parent group while the membership being filtered is the space's own
     q.where('group_memberships_group_roles.group_role_id', '=', groupRoleId)
-    if (groupId) {
-      q.andWhere('group_memberships_group_roles.group_id', '=', groupId)
-    }
   }
 
   if (search) {
