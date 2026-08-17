@@ -20,7 +20,7 @@ import Tooltip from 'components/Tooltip'
 import PostCompletion from '../PostCompletion'
 import { getPostTypeIcon, PROPOSAL_STATUS_CASUAL, PROPOSAL_STATUS_COMPLETED } from 'store/models/Post'
 import { RESP_ADMINISTRATION, RESP_MANAGE_CONTENT } from 'store/constants'
-import { removePostFromUrl, editPostUrl, duplicatePostUrl, postUrl, groupUrl, personUrl, topicUrl } from '@hylo/navigation'
+import { removePostFromUrl, editPostUrl, duplicatePostUrl, postUrl, groupUrl, personUrl, topicUrl, spaceUrl } from '@hylo/navigation'
 import getMe from 'store/selectors/getMe'
 import deletePostAction from 'store/actions/deletePost'
 import removePostAction from 'store/actions/removePost'
@@ -29,6 +29,7 @@ import { getResponsibilityTitlesForGroup } from 'store/selectors/getResponsibili
 import { getGroupViewById, getGroupViews } from 'store/selectors/getGroupViews'
 import getRolesForGroup from 'store/selectors/getRolesForGroup'
 import { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
+import { useEffectiveGroupSlug, useGroupRouteOpts } from 'contexts/SpaceGroupContext'
 import { cn } from 'util/index'
 import {
   unfulfillPost as unfulfillPostAction,
@@ -113,16 +114,21 @@ function PostHeader (props) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const [flaggingVisible, setFlaggingVisible] = useState(false)
+  const effectiveGroupSlug = useEffectiveGroupSlug()
+  const groupSlug = effectiveGroupSlug || routeParams.groupSlug
+  const { parentGroupSlug, spaceSlug } = useGroupRouteOpts()
 
   const {
     currentUser,
     group,
-    moderationActionsGroupUrl = '',
+    moderationActionsGroupUrl: groupModerationUrl = '',
     postUrl,
     responsibilities
-  } = useSelector(state => selectPostHeaderStateProps(state, props))
+  } = useSelector(state => selectPostHeaderStateProps(state, { ...props, groupSlug, routeParams }))
 
-  const groupSlug = routeParams.groupSlug
+  const moderationActionsGroupUrl = spaceSlug && parentGroupSlug
+    ? spaceUrl(parentGroupSlug, spaceSlug, '/moderation')
+    : groupModerationUrl
   const isCreator = currentUser && creator && currentUser.id === creator.id
   const canEdit = isCreator
   const canFlag = !isCreator
@@ -274,7 +280,7 @@ function PostHeader (props) {
 
   const creatorUrl = personUrl(creator.id, routeParams.groupSlug)
   const flagPostData = {
-    slug: routeParams.groupSlug,
+    slug: groupSlug,
     id,
     type: 'post'
   }

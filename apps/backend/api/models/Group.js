@@ -113,7 +113,14 @@ module.exports = bookshelf.Model.extend(merge({
 
   // ******** Getters ******* //
 
+  /**
+   * Active agreements for this group. Spaces inherit the parent group's agreements.
+   */
   agreements: function () {
+    const parentId = this.get('parent_id')
+    if (parentId) {
+      return Group.forge({ id: parentId }).agreements()
+    }
     return this.belongsToMany(Agreement).through(GroupAgreement)
       .where('groups_agreements.active', true)
       .withPivot(['order']).query(q => {
@@ -1016,7 +1023,7 @@ module.exports = bookshelf.Model.extend(merge({
     this.set(saneAttrs)
     await this.validate()
     await bookshelf.transaction(async transacting => {
-      if (changes.agreements) {
+      if (changes.agreements && this.get('type') !== 'space' && !this.get('parent_id')) {
         const currentAgreementIds = (await this.agreements().fetch({ transacting })).pluck('id')
         const newAgreementIds = []
 

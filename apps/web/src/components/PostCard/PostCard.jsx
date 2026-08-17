@@ -195,7 +195,7 @@ export default function PostCard (props) {
   const postType = get('type', post)
   const postTypeName = postType?.charAt(0).toUpperCase() + postType?.slice(1)
   const isEvent = postType === 'event'
-  const isFlagged = group && post.flaggedGroups && post.flaggedGroups.includes(group.id)
+  const isFlagged = group && post.flaggedGroups && post.flaggedGroups.some(id => String(id) === String(group.id))
 
   const hasImage = post.attachments?.find(a => a.type === 'image') || false
 

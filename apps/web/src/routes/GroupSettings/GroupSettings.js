@@ -29,6 +29,7 @@ import { isLegacyWebView, sendMessageToWebView } from 'util/webView'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
 import { allGroupsUrl, groupUrl } from '@hylo/navigation'
 import presentGroup from 'store/presenters/presentGroup'
+import { GROUP_TYPES } from 'store/models/Group'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { getParentGroups } from 'store/selectors/getGroupRelationships'
 import getMe from 'store/selectors/getMe'
@@ -120,6 +121,8 @@ export default function GroupSettings () {
   if (!responsibilities.includes(RESP_ADMINISTRATION) && !responsibilities.includes(RESP_ADD_MEMBERS)) push(groupUrl(slug))
   if (!responsibilities.includes(RESP_ADMINISTRATION) && responsibilities.includes(RESP_ADD_MEMBERS)) push('settings/invite')
 
+  const isSpace = group.type === GROUP_TYPES.space || !!group.parentId
+
   const groupDetailsTab = (
     <GroupSettingsTab
       fetchLocation={fetchLocationAction}
@@ -135,7 +138,7 @@ export default function GroupSettings () {
   // labels and visibility follow the user's permissions automatically.
   const phoneMenuItems = compact([
     canAdminister && { name: t('Group Details'), path: 'details' },
-    canAdminister && { name: t('Agreements'), path: 'agreements' },
+    canAdminister && !isSpace && { name: t('Agreements'), path: 'agreements' },
     canAdminister && { name: t('Responsibilities'), path: 'responsibilities' },
     canAdminister && { name: t('Roles & Badges'), path: 'roles' },
     canAdminister && { name: t('Privacy & Access'), path: 'privacy' },
@@ -248,7 +251,7 @@ export default function GroupSettings () {
       content={compact([
         canAdminister ? overallSettings : null,
         canAdminister ? detailsSettings : null,
-        canAdminister ? agreementSettings : null,
+        canAdminister && !isSpace ? agreementSettings : null,
         canAdminister ? responsibilitiesSettings : null,
         canAdminister ? rolesSettings : null,
         canAdminister ? accessSettings : null,

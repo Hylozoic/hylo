@@ -27,17 +27,15 @@ export default function Moderation (props) {
   const [container, setContainer] = useState(null)
 
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
-  const groupId = group?.id || 0
 
   const pendingModerationActions = useSelector(state => state.pending[FETCH_MODERATION_ACTIONS])
 
   const fetchModerationActionParams = useMemo(() => {
     return {
       slug: groupSlug,
-      groupId,
       sortBy: 'created'
     }
-  }, [groupSlug, groupId])
+  }, [groupSlug])
 
   const moderationActions = useSelector(state => {
     return getModerationActions(state, fetchModerationActionParams)
@@ -53,7 +51,11 @@ export default function Moderation (props) {
   }, [pendingModerationActions, hasMoreModerationActions, fetchModerationActionParams])
 
   const handleClearModerationAction = useCallback((modAction) => {
-    dispatch(clearModerationAction({ postId: modAction?.post?.id, moderationActionId: modAction?.id, groupId: group?.id }))
+    dispatch(clearModerationAction({
+      postId: modAction?.post?.id,
+      moderationActionId: modAction?.id,
+      groupId: modAction?.groupId || modAction?.group?.id || group?.id
+    }))
   }, [group?.id])
 
   useEffect(() => {

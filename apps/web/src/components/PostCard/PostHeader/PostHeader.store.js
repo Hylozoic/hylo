@@ -112,8 +112,8 @@ export function unsavePost (postId) {
 
 export const getGroup = ormCreateSelector(
   orm,
-  (_, { routeParams }) => routeParams,
-  (session, { groupSlug }) => session.Group.safeGet({ slug: groupSlug })
+  (_, props) => props.groupSlug || props.routeParams?.groupSlug,
+  (session, slug) => slug ? session.Group.safeGet({ slug }) : null
 )
 
 export function ormSessionReducer ({ Group, Post }, { type, meta }) {
