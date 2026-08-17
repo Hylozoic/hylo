@@ -160,12 +160,11 @@ export const AddCard = React.forwardRef(function AddCard ({ onClick, label, clas
 export function EventDateStack ({ start }) {
   return (
     <span className='flex flex-col items-center justify-center text-white leading-none'>
-      {/* leading-none per line: text-base's own line-height otherwise inflates
-          the stack past the 56px tile and clips the time */}
+      {/* leading-none per line: text-lg's own line-height otherwise inflates
+          the stack past the 56px tile and clips the bottom row */}
       <span className='text-[9px] leading-none font-bold uppercase tracking-wide'>{start.toFormat('MMM')}</span>
-      <span className='text-base leading-none font-bold mt-0.5'>{start.toFormat('d')}</span>
-      <span className='text-[9px] leading-none font-bold uppercase mt-0.5'>{start.toFormat('ccc')}</span>
-      <span className='text-[8px] leading-none mt-0.5 opacity-50 whitespace-nowrap'>{start.toFormat('t')}</span>
+      <span className='text-xl leading-none font-bold mt-px'>{start.toFormat('d')}</span>
+      <span className='text-[9px] leading-none font-bold uppercase mt-px'>{start.toFormat('ccc')}</span>
     </span>
   )
 }
