@@ -7,6 +7,7 @@ import { SpaceGroupSlugContext } from 'contexts/SpaceGroupContext'
 import useRouteParams from 'hooks/useRouteParams'
 import ChatRoom from 'routes/ChatRoom'
 import GroupDetail from 'routes/GroupDetail'
+import MembershipRequestsTab from 'routes/GroupSettings/MembershipRequestsTab'
 import GroupWelcomePage from 'routes/GroupWelcomePage'
 import MapExplorer from 'routes/MapExplorer'
 import MemberProfile from 'routes/MemberProfile'
@@ -26,6 +27,8 @@ import fetchGroupViews from 'store/actions/fetchGroupViews'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { getGroupViews } from 'store/selectors/getGroupViews'
 import getMyMemberships from 'store/selectors/getMyMemberships'
+import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
+import { RESP_ADD_MEMBERS } from 'store/constants'
 import { localSpaceSlug, spaceUrl, POST_DETAIL_MATCH } from '@hylo/navigation'
 import { viewAcceptedByPostTypes } from 'store/models/GroupView'
 import { isDrawerNavLayout } from 'util/mobile'
@@ -100,6 +103,10 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
     () => Boolean(spaceGroupId && myMemberships.some(m => m.group.id === spaceGroupId)),
     [spaceGroupId, myMemberships]
   )
+  const canAddSpaceMembers = useSelector(state => hasResponsibilityForGroup(state, {
+    responsibility: RESP_ADD_MEMBERS,
+    groupId: spaceGroupId
+  }))
 
   // Cold deep links: fetchForGroup(parentSlug) doesn't include the spaces list,
   // and the ContextMenu's fetchGroupSpaces may never fire (or hasn't yet), so
@@ -131,6 +138,7 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
       <SpaceGroupSlugContext.Provider value={spaceFullSlug}>
         <Routes>
           <Route path='about/*' element={<GroupDetail context='groups' forCurrentGroup />} />
+          {canAddSpaceMembers && <Route path='requests' element={<MembershipRequestsTab />} />}
           <Route path='*' element={<SpaceJoinPage />} />
         </Routes>
       </SpaceGroupSlugContext.Provider>
@@ -177,6 +185,7 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
         <Route path='collection/:customViewId/*' element={<ViewContent context='groups' view='collection' />} />
         <Route path='members/:personId/*' element={<MemberProfile context='groups' />} />
         <Route path='members/*' element={<Members context='groups' />} />
+        <Route path='requests' element={<MembershipRequestsTab />} />
         <Route path='chat/*' element={<ChatRoom context='groups' showHomeWelcome={false} />} />
         <Route path='track-actions/*' element={<TrackActionsView />} />
         <Route path='funding-round-submissions/*' element={<FundingRoundSubmissionsView />} />

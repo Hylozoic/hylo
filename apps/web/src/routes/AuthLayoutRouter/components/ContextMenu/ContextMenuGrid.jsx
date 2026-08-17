@@ -1208,7 +1208,11 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
                   <div className='flex flex-wrap gap-3'>
                     <JoinRequestsCard
                       count={menuGroup.openJoinRequestCount}
-                      onClick={() => navigate(groupUrl(menuGroup.slug, 'settings/requests'))}
+                      onClick={() => navigate(
+                        spaceGroup
+                          ? spaceUrl(groupSlug, localSpaceSlug(groupSlug, spaceGroup.slug), 'requests')
+                          : groupUrl(groupSlug, 'requests')
+                      )}
                       t={t}
                     />
                   </div>

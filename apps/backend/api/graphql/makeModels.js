@@ -387,7 +387,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'created_at',
         'updated_at'
       ],
-      relations: ['post', 'reporter', 'agreements', 'platformAgreements'],
+      relations: ['post', 'reporter', 'agreements', 'platformAgreements', 'group'],
       getters: {
         anonymous: ma => ma.get('anonymous') === 'true'
       },

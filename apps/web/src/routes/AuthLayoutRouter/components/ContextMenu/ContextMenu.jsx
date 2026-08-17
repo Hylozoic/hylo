@@ -844,9 +844,9 @@ export default function ContextMenu (props) {
     groupId: joinRequestTargetGroup?.id
   }))
   const joinRequestCount = joinRequestTargetGroup?.openJoinRequestCount || 0
-  const joinRequestsLink = joinRequestTargetGroup?.slug
-    ? groupUrl(joinRequestTargetGroup.slug, 'settings/requests')
-    : null
+  const joinRequestsLink = showingSpaceMenu && spaceSlug
+    ? spaceUrl(groupSlug, spaceSlug, 'requests')
+    : (group?.slug ? groupUrl(group.slug, 'requests') : null)
   const joinRequestsSection = isGroupContext && joinRequestsLink && canAddMembers && joinRequestCount > 0
     ? (
       <div className='px-3 pb-2 border-t border-foreground/10 pt-2'>

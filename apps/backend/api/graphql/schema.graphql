@@ -210,7 +210,9 @@ type Query {
     offset: Int,
     # Determines sort order
     sortBy: String,
-    # Only return moderation actions for this group by URL slug
+    # Group or space URL slug. A space returns only its own actions. A group also
+    # includes child-space actions the viewer is a member of, or all child spaces
+    # if they have the Manage Content responsibility.
     slug: String
 
   ): ModerationActionQuerySet

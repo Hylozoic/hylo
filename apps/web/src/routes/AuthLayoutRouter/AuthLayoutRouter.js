@@ -60,6 +60,7 @@ import GroupDetail from 'routes/GroupDetail'
 import PaymentSuccess from 'routes/GroupDetail/PaymentSuccess'
 import PaymentFailure from 'routes/GroupDetail/PaymentFailure'
 import GroupSettings from 'routes/GroupSettings'
+import MembershipRequestsTab from 'routes/GroupSettings/MembershipRequestsTab'
 import GroupWelcomeModal from 'routes/GroupWelcomeModal'
 import GroupWelcomePage from 'routes/GroupWelcomePage'
 import Groups from 'routes/Groups'
@@ -1089,6 +1090,7 @@ export default function AuthLayoutRouter (props) {
                             <Route path='payment/cancel' element={<PaymentFailure />} />
                             <Route path='payment/failure' element={<PaymentFailure />} />
                             <Route path='settings/*' element={<GroupSettings context='groups' />} />
+                            <Route path='requests' element={<MembershipRequestsTab />} />
                             <Route
                               path='more-views'
                               element={
