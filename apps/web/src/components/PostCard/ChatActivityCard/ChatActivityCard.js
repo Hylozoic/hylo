@@ -59,7 +59,7 @@ export default function ChatActivityCard ({
   return (
     <div
       className={cn(
-        'rounded-lg bg-card p-3 mb-2.5 cursor-pointer border border-foreground/10 hover:border-foreground/20',
+        'rounded-xl bg-card/50 dark:bg-card/100 hover:bg-card/100 border-2 border-card/30 hover:border-foreground/50 shadow-xl hover:shadow-2xl transition-all duration-400 p-3 mb-4 cursor-pointer',
         className
       )}
       data-testid='chat-activity-card'
