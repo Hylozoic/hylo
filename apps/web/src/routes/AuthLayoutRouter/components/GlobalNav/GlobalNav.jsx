@@ -157,7 +157,7 @@ function GlobalCreateMenu () {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger aria-label={t('Create')} data-testid='global-nav-create'>
-        <div className={cn('bg-primary relative z-20 transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-8 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-foreground/0 hover:border-foreground/50')}>
+        <div className={cn('bg-[hsl(0_0%_17%)] text-white relative z-20 transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-8 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-foreground/0 hover:border-foreground/50')}>
           <PlusCircle className='w-7 h-7' />
         </div>
       </PopoverTrigger>
@@ -957,17 +957,19 @@ export default function GlobalNav (props) {
         <Suspense fallback={<GlobalNavItem className={isVisible(1)} showTooltip={showLabels}><Bell className='w-7 h-7' /></GlobalNavItem>}>
           <NotificationsDropdown renderToggleChildren={showBadge =>
             <GlobalNavItem
+              darkTile
               tooltip={t('Activity')}
               className={isVisible(1)}
               showTooltip={showLabels}
               badgeCount={showBadge ? '-' : 0}
             >
-              <BadgedIcon name='Notifications' className='!text-primary-foreground cursor-pointer font-md' />
+              <BadgedIcon name='Notifications' className='!text-white cursor-pointer font-md' />
             </GlobalNavItem>}
           />
         </Suspense>
 
         <GlobalNavItem
+          darkTile
           tooltip={t('Messages')}
           url='/messages'
           className={isVisible(2)}
@@ -978,12 +980,13 @@ export default function GlobalNav (props) {
         </GlobalNavItem>
 
         <GlobalNavItem
+          darkTile
           tooltip={t('The Commons')}
           url='/public'
           className={isVisible(3)}
           showTooltip={showLabels}
         >
-          <Globe color='hsl(var(--primary-foreground))' />
+          <Globe />
         </GlobalNavItem>
 
         {/* Pinned Groups Section - Sortable */}
