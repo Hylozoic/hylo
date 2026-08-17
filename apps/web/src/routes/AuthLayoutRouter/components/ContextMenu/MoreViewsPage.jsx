@@ -6,8 +6,7 @@ import { CircleEllipsis, GripVertical, X } from 'lucide-react'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 
 import { useViewHeader } from 'contexts/ViewHeaderContext'
-import { addQuerystringToPath, groupUrl, localSpaceSlug, spaceHomeUrl, spaceUrl } from '@hylo/navigation'
-import { isDrawerNavLayout } from 'util/mobile'
+import { addQuerystringToPath, groupUrl, localSpaceSlug, spaceUrl } from '@hylo/navigation'
 import fetchGroupRelationships from 'store/actions/fetchGroupRelationships'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
@@ -34,7 +33,7 @@ import SpaceSettingsModal from './SpaceSettingsModal'
 import GroupViewCard, { SpaceViewCard } from './GroupViewCard'
 import EditingBottomBar, { EDITING_BAR_BUTTON_CLASS } from './EditingBottomBar'
 import ViewsGridSkeleton from './ViewsGridSkeleton'
-import { menuViewUrl, externalLinkHref } from './groupViewMenuUrl'
+import { menuViewUrl, externalLinkHref, spaceEntryUrl } from './groupViewMenuUrl'
 
 /** Section heading above a card grid. Sections own the space above them (see SECTION_CLASS). */
 function SectionHeading ({ children }) {
@@ -257,13 +256,9 @@ export default function MoreViewsPage ({ group }) {
       return
     }
     // Where a menu is visible alongside the content, going straight to the space's
-    // home view costs nothing. On a drawer layout it skips the space's menu
-    // entirely — SpaceContent decides what the root should show, so hand it the
-    // root rather than pre-empting it here.
-    navigate(
-      isDrawerNavLayout() ? spaceUrl(groupSlug, local) : spaceHomeUrl(groupSlug, space),
-      { state: { fromMoreViews: true } }
-    )
+    // home view costs nothing. On a drawer layout SpaceContent shows the space's
+    // own menu at the index, so don't skip ahead to home.
+    navigate(spaceEntryUrl(groupSlug, space), { state: { fromMoreViews: true } })
   }, [navigate, groupSlug, isEditing])
 
   const handleOpenSpaceAbout = useCallback((space) => {
@@ -325,6 +320,8 @@ export default function MoreViewsPage ({ group }) {
                         <GroupViewCard
                           key={view.id}
                           view={view}
+                          group={contentGroup}
+                          spaceGroup={isSpaceMoreViews ? contentGroup : null}
                           isEditing={isEditing}
                           onAddToMenu={handleAddViewToMenu}
                           onOpen={handleOpenView}

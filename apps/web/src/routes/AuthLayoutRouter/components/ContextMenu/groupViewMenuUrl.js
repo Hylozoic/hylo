@@ -1,12 +1,28 @@
 import {
   groupUrl,
+  localSpaceSlug,
   postUrl,
   personUrl,
   spaceHomeUrl,
   spaceGroupViewUrl,
+  spaceUrl,
   viewUrl
 } from '@hylo/navigation'
+import { isDrawerNavLayout } from 'util/mobile'
 import { sanitizeURL } from 'util/url'
+
+/**
+ * URL for opening a space from a menu.
+ * On a drawer layout (mobile) the space index is the space's own menu (SpaceContent);
+ * alongside a visible sidebar, go straight to the home view.
+ */
+export function spaceEntryUrl (parentSlug, spaceGroup) {
+  if (!parentSlug || !spaceGroup?.slug) return parentSlug ? groupUrl(parentSlug) : '/'
+  if (isDrawerNavLayout()) {
+    return spaceUrl(parentSlug, localSpaceSlug(parentSlug, spaceGroup.slug))
+  }
+  return spaceHomeUrl(parentSlug, spaceGroup)
+}
 
 /**
  * Absolute http(s) href for a stored link, adding https:// when the value has no scheme.
@@ -79,7 +95,7 @@ export function groupViewUrl (groupSlug, view) {
     case 'manage-round':
       return groupUrl(groupSlug, 'manage-round')
     case 'space':
-      return view.linkedGroup ? spaceHomeUrl(groupSlug, view.linkedGroup) : groupUrl(groupSlug)
+      return view.linkedGroup ? spaceEntryUrl(groupSlug, view.linkedGroup) : groupUrl(groupSlug)
     case 'link':
       return externalLinkHref(view) || view.link || null
     default:
@@ -93,10 +109,10 @@ export function menuViewUrl (parentSlug, view, spaceGroup = null) {
   if (spaceGroup) {
     const url = spaceGroupViewUrl(parentSlug, spaceGroup, view)
     if (url) return url
-    return spaceHomeUrl(parentSlug, spaceGroup)
+    return spaceEntryUrl(parentSlug, spaceGroup)
   }
   if (view?.type === 'space' && view.linkedGroup) {
-    return spaceHomeUrl(parentSlug, view.linkedGroup)
+    return spaceEntryUrl(parentSlug, view.linkedGroup)
   }
   return groupViewUrl(parentSlug, view)
 }

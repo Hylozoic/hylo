@@ -1,4 +1,4 @@
-import { isPhoneDevice } from 'util/mobile'
+import { isDrawerNavLayout, isPhoneDevice } from 'util/mobile'
 import { get } from 'lodash/fp'
 import { CircleEllipsis, Info, Pencil, RefreshCw, Settings, UserPlus, Users } from 'lucide-react'
 import React, { useEffect, useCallback, useState, useMemo } from 'react'
@@ -13,7 +13,6 @@ import {
   PUBLIC_CONTEXT_SLUG,
   groupUrl,
   localSpaceSlug,
-  spaceHomeUrl,
   spaceUrl,
   addQuerystringToPath,
   personUrl
@@ -60,7 +59,7 @@ import AddGroupViewDialog from './AddGroupViewDialog'
 import AddSpaceDialog from './AddSpaceDialog'
 import AddViewOrSpaceMenu, { AddViewOrSpaceButton } from './AddViewOrSpaceMenu'
 import TruncatedText from 'components/TruncatedText'
-import { menuViewUrl, externalLinkHref } from './groupViewMenuUrl'
+import { menuViewUrl, externalLinkHref, spaceEntryUrl } from './groupViewMenuUrl'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { viewAcceptedByPostTypes } from 'store/models/GroupView'
@@ -128,6 +127,7 @@ function SpaceMenuItemWithMore ({
   isSpaceActive,
   isSpaceMember,
   spaceLink,
+  keepNavOpen,
   aboutUrl,
   spaceUnread,
   spaceBannerUrl,
@@ -183,6 +183,7 @@ function SpaceMenuItemWithMore ({
         <MenuLink
           to={spaceLink}
           isActive={false}
+          keepNavOpen={keepNavOpen}
           aria-hidden='true'
           tabIndex={-1}
           className='absolute inset-0 z-[5] border-0 bg-transparent p-0 mb-0 rounded-none shadow-none hover:border-0 hover:bg-transparent hover:scale-100'
@@ -190,6 +191,7 @@ function SpaceMenuItemWithMore ({
         <MenuLink
           to={spaceLink}
           isActive={false}
+          keepNavOpen={keepNavOpen}
           className={cn(
             GROUP_VIEW_MENU_ITEM_INNER_LINK_CLASS,
             // Shrink to the name so the (i) beside it hugs the title instead of
@@ -393,11 +395,14 @@ function GroupViewMenuItem ({
       0
     ) > 0
     const showSpaceDot = spaceUnread || spaceJoinRequests
-    const spaceHome = linkedSpaceGroup ? spaceHomeUrl(parentSlug, linkedSpaceGroup) : null
-    // Single-view spaces open that view directly; multi-view spaces open the space menu drill-in.
+    // Single-view spaces open that view directly. Multi-view spaces open the
+    // space menu: the drawer stays open on mobile, and the URL is the space
+    // index so dismissing the drawer still shows that menu rather than home.
+    const drillIntoSpaceMenu = isSpaceMember && !singleSpaceView
+    const keepNavOpen = drillIntoSpaceMenu && isDrawerNavLayout()
     const spaceLink = singleSpaceView && isSpaceMember
       ? menuViewUrl(parentSlug, singleSpaceView, linkedSpaceGroup)
-      : spaceHome
+      : spaceEntryUrl(parentSlug, linkedSpaceGroup)
     const isSpaceActive = Boolean(
       spaceSlug &&
       linkedSpaceGroup &&
@@ -435,6 +440,7 @@ function GroupViewMenuItem ({
         isSpaceActive={isSpaceActive}
         isSpaceMember={isSpaceMember}
         spaceLink={spaceLink}
+        keepNavOpen={keepNavOpen}
         aboutUrl={aboutUrl}
         spaceUnread={showSpaceDot}
         spaceBannerUrl={spaceBannerUrl}
