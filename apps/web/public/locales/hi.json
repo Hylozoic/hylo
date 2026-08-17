@@ -2796,5 +2796,7 @@
   "Members of {{groupName}} must request to join and be approved": "{{groupName}} के सदस्यों को जुड़ने का अनुरोध करना होगा और स्वीकृति प्राप्त करनी होगी",
   "You must be invited to join this space": "इस स्पेस से जुड़ने के लिए आपको आमंत्रित किया जाना आवश्यक है",
   "Recently in": "हाल ही में",
-  "View activity": "गतिविधि देखें"
+  "View activity": "गतिविधि देखें",
+  "Leave {{name}}": "{{name}} छोड़ें",
+  "Are you sure you want to leave {{group_name}}?": "क्या आप वाकई {{group_name}} छोड़ना चाहते हैं?"
 }

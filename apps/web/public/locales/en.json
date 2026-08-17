@@ -2793,5 +2793,7 @@
   "Members of {{groupName}} must request to join and be approved": "Members of {{groupName}} must request to join and be approved",
   "You must be invited to join this space": "You must be invited to join this space",
   "Recently in": "Recently in",
-  "View activity": "View activity"
+  "View activity": "View activity",
+  "Leave {{name}}": "Leave {{name}}",
+  "Are you sure you want to leave {{group_name}}?": "Are you sure you want to leave {{group_name}}?"
 }

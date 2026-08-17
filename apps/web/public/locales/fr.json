@@ -2796,5 +2796,7 @@
   "Members of {{groupName}} must request to join and be approved": "Les membres de {{groupName}} doivent demander à rejoindre et être approuvés",
   "You must be invited to join this space": "Vous devez être invité pour rejoindre cet espace",
   "Recently in": "Récemment dans",
-  "View activity": "Voir l'activité"
+  "View activity": "Voir l'activité",
+  "Leave {{name}}": "Quitter {{name}}",
+  "Are you sure you want to leave {{group_name}}?": "Êtes-vous sûr de vouloir quitter {{group_name}} ?"
 }
