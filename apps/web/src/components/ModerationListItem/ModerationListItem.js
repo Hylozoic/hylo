@@ -67,7 +67,7 @@ const ModerationListItem = ({
   }
 
   return (
-    <div className='rounded-xl p-4 flex flex-col transition-all bg-card/40 border-2 border-card/30 shadow-md hover:shadow-lg mb-4 relative hover:z-50 hover:scale-[1.02] duration-400'>
+    <div className='rounded-xl p-4 flex flex-col transition-all bg-card/40 border-2 border-card/30 shadow-md hover:shadow-lg mb-4 relative hover:z-[2] hover:scale-[1.02] duration-400'>
       <div className='flex items-center justify-between border-b border-foreground/10 pb-4'>
         <div className='flex items-center gap-2'>
           {anonymous && !canModerate
