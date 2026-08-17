@@ -146,6 +146,8 @@ export default function GroupAboutView ({
   isSpace = false,
   // Space modal: close before navigating anywhere (settings page, member profile)
   onBeforeNavigate,
+  // Rendered inside a dialog: the compact member list fits better than cards
+  inDialog = false,
   initialTab = 'about',
   className
 }) {
@@ -194,8 +196,8 @@ export default function GroupAboutView ({
   if (!group) return null
 
   const tabs = [
-    { id: 'moderation', label: t('Moderation'), icon: ShieldCheck },
     { id: 'about', label: t('About'), icon: Info },
+    { id: 'moderation', label: t('Moderation'), icon: ShieldCheck },
     { id: 'notifications', label: t('Notification Settings'), icon: Bell, hidden: !membership },
     { id: 'members', label: t('Members'), icon: Users },
     { id: 'settings', label: t('Settings'), icon: Settings, hidden: !showSettings }
@@ -314,7 +316,7 @@ export default function GroupAboutView ({
       {activeTab === 'members'
         ? (
           <div className='flex-1 min-h-0'>
-            <Members context='groups' />
+            <Members context='groups' defaultDisplayMode={inDialog ? 'list' : 'card'} />
           </div>
           )
         : (

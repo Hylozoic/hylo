@@ -154,7 +154,7 @@ function Members (props) {
   // Controlled so graph skill clicks can fill the box; typing stays debounced
   const [searchValue, setSearchValue] = useState(search || '')
   // Card grid vs compact list, per the members directory design
-  const [displayMode, setDisplayMode] = useState('card')
+  const [displayMode, setDisplayMode] = useState(props.defaultDisplayMode || 'card')
   // Role pills keep to one row behind a More pill until expanded; the count
   // includes the All-members pill since the hook measures container children
   const [rolesExpanded, setRolesExpanded] = useState(false)

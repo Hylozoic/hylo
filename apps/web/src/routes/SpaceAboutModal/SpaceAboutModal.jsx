@@ -46,6 +46,7 @@ export default function SpaceAboutModal ({ onClose }) {
                 group={spaceGroup}
                 parentGroup={parentGroup}
                 isSpace
+                inDialog
                 onBeforeNavigate={onClose}
               />
             </div>
