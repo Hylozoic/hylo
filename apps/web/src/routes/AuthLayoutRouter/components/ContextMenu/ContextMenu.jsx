@@ -1081,10 +1081,10 @@ export default function ContextMenu (props) {
                         'h-[52px] w-[52px] rounded-lg shadow-md bg-cover bg-center relative overflow-hidden shrink-0 flex items-center justify-center',
                         // Frosted glass, standardized with the space cards' tile
                         !presentedActiveSpaceView?.avatarUrl && cn(
-                          'backdrop-blur-sm border',
+                          'backdrop-blur-sm',
                           activeSpaceBannerUrl
-                            ? 'bg-white/15 border-white/25 text-white'
-                            : 'bg-black/5 border-black/15 text-foreground/80 dark:bg-white/15 dark:border-white/25 dark:text-white'
+                            ? 'bg-white/15 text-white'
+                            : 'bg-black/5 text-foreground/80 dark:bg-white/15 dark:text-white'
                         )
                       )}
                     >

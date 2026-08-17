@@ -261,7 +261,8 @@ export default function GroupAboutView ({
               />
               )}
           <div className={cn('flex-1 min-w-0 [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]', bannerUrl || !isSpace ? 'text-white' : 'text-foreground dark:text-white [text-shadow:none]')}>
-            <h1 className='m-0 text-2xl sm:text-[27px] font-bold leading-tight truncate'>{group.name}</h1>
+            {/* Color repeated on the h1: a global heading rule otherwise overrides the inherited ink */}
+            <h1 className={cn('m-0 text-2xl sm:text-[27px] font-bold leading-tight truncate', bannerUrl || !isSpace ? 'text-white' : 'text-foreground dark:text-white')}>{group.name}</h1>
             <div className='flex items-center flex-wrap gap-x-2.5 gap-y-1 mt-1.5 text-[13px] opacity-95'>
               <span className='inline-flex items-center gap-1.5'>
                 <Icon name={isSpace ? accessibilityIcon(group.accessibility) : visibilityIcon(group.visibility)} className='text-sm leading-none' />
@@ -298,7 +299,7 @@ export default function GroupAboutView ({
                 type='button'
                 onClick={() => handleTab(item.id)}
                 className={cn(
-                  'inline-flex items-center gap-2 px-3.5 py-2 rounded-lg whitespace-nowrap text-[13px] font-semibold border transition-colors',
+                  'inline-flex items-center gap-2 px-3.5 py-2 rounded-lg whitespace-nowrap text-[13px] font-semibold border-2 transition-colors',
                   on
                     ? 'bg-selected/20 border-selected/50 text-foreground'
                     : 'border-transparent text-foreground/60 hover:text-foreground hover:bg-foreground/5'

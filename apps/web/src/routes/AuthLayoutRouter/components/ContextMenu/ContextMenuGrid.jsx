@@ -181,10 +181,10 @@ function SpaceBannerHeader ({ group, spaceGroup, canAdminister, onOpenSettings, 
               ? 'border-2 border-white/30'
               // Frosted glass, standardized with the space cards' tile
               : cn(
-                'backdrop-blur-sm border',
+                'backdrop-blur-sm',
                 bannerUrl
-                  ? 'bg-white/15 border-white/25 text-white'
-                  : 'bg-black/5 border-black/15 text-foreground/80 dark:bg-white/15 dark:border-white/25 dark:text-white'
+                  ? 'bg-white/15 text-white'
+                  : 'bg-black/5 text-foreground/80 dark:bg-white/15 dark:text-white'
               )
           )}
         >
