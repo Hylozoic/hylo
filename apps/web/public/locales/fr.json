@@ -2794,5 +2794,7 @@
   "Only {{roleNames}} may join this space": "Seuls {{roleNames}} peuvent rejoindre cet espace",
   "Anyone in {{groupName}} can access this space": "Tous les membres de {{groupName}} peuvent accéder à cet espace",
   "Members of {{groupName}} must request to join and be approved": "Les membres de {{groupName}} doivent demander à rejoindre et être approuvés",
-  "You must be invited to join this space": "Vous devez être invité pour rejoindre cet espace"
+  "You must be invited to join this space": "Vous devez être invité pour rejoindre cet espace",
+  "Recently in": "Récemment dans",
+  "View activity": "Voir l'activité"
 }

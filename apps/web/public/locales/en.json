@@ -2791,5 +2791,7 @@
   "Only {{roleNames}} may join this space": "Only {{roleNames}} may join this space",
   "Anyone in {{groupName}} can access this space": "Anyone in {{groupName}} can access this space",
   "Members of {{groupName}} must request to join and be approved": "Members of {{groupName}} must request to join and be approved",
-  "You must be invited to join this space": "You must be invited to join this space"
+  "You must be invited to join this space": "You must be invited to join this space",
+  "Recently in": "Recently in",
+  "View activity": "View activity"
 }
