@@ -24,6 +24,7 @@ import {
   getPeerGroups
 } from 'store/selectors/getGroupRelationships'
 import { cn } from 'util/index'
+import { sanitizeURL } from 'util/url'
 
 /** View types that can be added from the menu editor without picking an entity. */
 const ADDABLE_GROUP_VIEW_TYPES = [
@@ -198,7 +199,7 @@ export default function AddGroupViewDialog ({ group, groupViews, acceptedPostTyp
     await createView({
       type: selectedType,
       name: selectedType === 'link' ? linkName.trim() : null,
-      link: selectedType === 'link' ? linkUrl.trim() : null,
+      link: selectedType === 'link' ? (sanitizeURL(linkUrl.trim()) || linkUrl.trim()) : null,
       icon: selectedType === 'link' ? linkIcon : null,
       pageContent: selectedType === 'text' ? textContent.trim() : null,
       ...placementFields

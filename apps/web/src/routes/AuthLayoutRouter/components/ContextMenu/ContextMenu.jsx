@@ -60,7 +60,7 @@ import AddGroupViewDialog from './AddGroupViewDialog'
 import AddSpaceDialog from './AddSpaceDialog'
 import AddViewOrSpaceMenu, { AddViewOrSpaceButton } from './AddViewOrSpaceMenu'
 import TruncatedText from 'components/TruncatedText'
-import { menuViewUrl } from './groupViewMenuUrl'
+import { menuViewUrl, externalLinkHref } from './groupViewMenuUrl'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { viewAcceptedByPostTypes } from 'store/models/GroupView'
@@ -452,7 +452,8 @@ function GroupViewMenuItem ({
   const url = menuViewUrl(parentSlug, presentedView, spaceGroup)
   const chatBadgeCount = viewUnreadBadgeCount(presentedView)
   const showUnreadDot = viewShowsUnreadDot(presentedView)
-  const isExternal = presentedView.type === 'link' && url && /^https?:\/\//.test(url)
+  const externalHref = externalLinkHref(presentedView)
+  const isExternal = Boolean(externalHref)
   // The selected row reveals a postType-tinted icon-texture background,
   // mirroring the one-column dashboard cards.
   const isRowActive = Boolean(!isExternal && url && (location.pathname === url || location.pathname.startsWith(`${url}/`)))
@@ -480,7 +481,7 @@ function GroupViewMenuItem ({
           />
           <MenuLink
             to={isExternal ? null : url}
-            externalLink={isExternal ? url : null}
+            externalLink={externalHref}
             isActive={false}
             className={cn(
               GROUP_VIEW_MENU_ITEM_INNER_LINK_CLASS,
@@ -509,7 +510,7 @@ function GroupViewMenuItem ({
     <li className='list-none'>
       <MenuLink
         to={isExternal ? null : url}
-        externalLink={isExternal ? url : null}
+        externalLink={externalHref}
         isActive={false}
         badgeCount={chatBadgeCount}
         className={cn(

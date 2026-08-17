@@ -34,7 +34,7 @@ import SpaceSettingsModal from './SpaceSettingsModal'
 import GroupViewCard, { SpaceViewCard } from './GroupViewCard'
 import EditingBottomBar, { EDITING_BAR_BUTTON_CLASS } from './EditingBottomBar'
 import ViewsGridSkeleton from './ViewsGridSkeleton'
-import { menuViewUrl } from './groupViewMenuUrl'
+import { menuViewUrl, externalLinkHref } from './groupViewMenuUrl'
 
 /** Section heading above a card grid. Sections own the space above them (see SECTION_CLASS). */
 function SectionHeading ({ children }) {
@@ -233,6 +233,11 @@ export default function MoreViewsPage ({ group }) {
   /** Open a view (works in edit mode too — leaves edit and navigates to the view). */
   const handleOpenView = useCallback((view) => {
     const presented = GroupViewPresenter(view)
+    const href = externalLinkHref(presented)
+    if (href) {
+      window.open(href, '_blank', 'noopener,noreferrer')
+      return
+    }
     const url = menuViewUrl(
       groupSlug,
       presented,

@@ -81,7 +81,7 @@ import AddGroupViewDialog from './AddGroupViewDialog'
 import AddSpaceDialog from './AddSpaceDialog'
 import AddViewOrSpaceMenu from './AddViewOrSpaceMenu'
 import EditingBottomBar, { EDITING_BAR_BUTTON_CLASS } from './EditingBottomBar'
-import { menuViewUrl } from './groupViewMenuUrl'
+import { menuViewUrl, externalLinkHref } from './groupViewMenuUrl'
 
 /** Synthetic view so the More Views card can use the same icon wallpaper as real views. */
 const MORE_SPACES_VIEW = { lucideIcon: 'CircleEllipsis' }
@@ -570,7 +570,7 @@ function MoreSpacesCard ({ onClick, t }) {
   )
 }
 
-/** Card opening Group Settings → Join Requests, shown when there are pending requests. */
+/** Card opening Join Requests, shown when there are pending requests. */
 function JoinRequestsCard ({ count, onClick, t }) {
   const { effectiveColorScheme } = useAppearance()
   const isDark = effectiveColorScheme === 'dark'
@@ -735,6 +735,11 @@ function MoreSpacesGrid ({
   const handleOpenView = useCallback((view) => {
     if (isEditing) return
     const presented = GroupViewPresenter(view)
+    const href = externalLinkHref(presented)
+    if (href) {
+      window.open(href, '_blank', 'noopener,noreferrer')
+      return
+    }
     const url = menuViewUrl(groupSlug, presented)
     if (url) navigate(url)
   }, [groupSlug, navigate, isEditing])

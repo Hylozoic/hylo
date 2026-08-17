@@ -6,10 +6,21 @@ import {
   spaceGroupViewUrl,
   viewUrl
 } from '@hylo/navigation'
+import { sanitizeURL } from 'util/url'
+
+/**
+ * Absolute http(s) href for a stored link, adding https:// when the value has no scheme.
+ * Returns null for missing, internal (e.g. /u/123), or non-http(s) values.
+ */
+export function externalLinkHref (view) {
+  if (!view?.link) return null
+  const href = sanitizeURL(view.link)
+  return href && /^https?:\/\//i.test(href) ? href : null
+}
 
 /** Resolves a URL for static My/Public/All context menu views. */
 export function contextViewUrl (view) {
-  if (view?.link) return view.link
+  if (view?.link) return externalLinkHref(view) || view.link
   if (view?.context && view?.type) {
     return viewUrl(view.type, { context: view.context })
   }
@@ -70,7 +81,7 @@ export function groupViewUrl (groupSlug, view) {
     case 'space':
       return view.linkedGroup ? spaceHomeUrl(groupSlug, view.linkedGroup) : groupUrl(groupSlug)
     case 'link':
-      return view.link || null
+      return externalLinkHref(view) || view.link || null
     default:
       return groupUrl(groupSlug, view.type || 'all')
   }

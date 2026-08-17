@@ -1082,7 +1082,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'order',
         'icon',
         'page_content',
-        'link',
         'topics',
         'settings'
       ],
@@ -1093,6 +1092,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'viewUser'
       ],
       getters: {
+        // Protocol-less values like google.com become https:// so every client gets a clickable URL.
+        link: gv => TextHelpers.sanitizeURL(gv.get('link')) || gv.get('link'),
         // collectionPosts resolves to the actual Posts (not the join rows) per the GraphQL schema.
         // Re-applies the same visibility rules as every other Post query (active, membership,
         // public, blocked-user) since this is a custom getter and bypasses the generic Post filter.

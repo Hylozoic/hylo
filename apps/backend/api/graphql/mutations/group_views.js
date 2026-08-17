@@ -1,6 +1,6 @@
 import { GraphQLError } from 'graphql'
 import { notifyGroupUpdated } from './notifyGroupUpdated'
-import { recountPostTypesForView, TYPED_BADGE_VIEW_TYPES } from '@hylo/shared'
+import { recountPostTypesForView, TYPED_BADGE_VIEW_TYPES, TextHelpers } from '@hylo/shared'
 
 // Spaces & Views mutations — see docs/spaces-and-views-engineering-spec.md section 4.4
 
@@ -9,6 +9,14 @@ const BADGE_VIEW_TYPES = ['chat', ...TYPED_BADGE_VIEW_TYPES]
 /** node-pg binds a JS array as a Postgres array type; in jsonb that becomes `{}` for []. */
 function topicsForJsonb (topics) {
   return JSON.stringify(topics ?? [])
+}
+
+/** Adds https:// to a stored link when the user omitted a scheme. */
+function sanitizedLink (link) {
+  if (link === undefined) return undefined
+  if (link == null || link === '') return link
+  const trimmed = String(link).trim()
+  return TextHelpers.sanitizeURL(trimmed) || trimmed
 }
 
 /**
@@ -108,7 +116,7 @@ export async function createGroupView ({ userId, groupId, type, name, icon, sett
     name,
     icon,
     settings,
-    link,
+    link: sanitizedLink(link),
     page_content: pageContent,
     topics: topicsForJsonb(topics),
     linked_group_id: linkedGroupId,
@@ -147,7 +155,7 @@ export async function updateGroupView ({ userId, id, name, icon, settings, link,
   if (name !== undefined) changes.name = name
   if (icon !== undefined) changes.icon = icon
   if (settings !== undefined) changes.settings = settings
-  if (link !== undefined) changes.link = link
+  if (link !== undefined) changes.link = sanitizedLink(link)
   if (pageContent !== undefined) changes.page_content = pageContent
   if (topics !== undefined) changes.topics = topicsForJsonb(topics)
 
