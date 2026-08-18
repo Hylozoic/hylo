@@ -48,7 +48,7 @@ const CARD_ACTION_BTN = 'p-1.5 rounded-md bg-background/90 text-foreground/60 ho
  * Stops pointerdown so that when the card itself is a drag handle, pressing a
  * button doesn't begin a drag instead of clicking.
  */
-export function CardEditActions ({ onAddToMenu, onOpenSettings, onEditMenu, onDelete, addLabel, settingsLabel, editMenuLabel, deleteLabel }) {
+export function CardEditActions ({ onAddToMenu, onOpenSettings, onHide, onEditMenu, onDelete, addLabel, settingsLabel, hideLabel, editMenuLabel, deleteLabel }) {
   return (
     <div
       className='absolute top-2 right-2 z-10 flex items-center gap-1 opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 transition-opacity pointer-events-none'
