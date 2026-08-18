@@ -466,7 +466,8 @@ export default function GroupAboutView ({
       {/* Panel */}
       {activeTab === 'members' || activeTab === 'related-groups'
         ? (
-          <div className='flex-1 min-h-0'>
+          /* Same column as the nav, so every tab's content shares one width */
+          <div className='flex-1 min-h-0 w-full max-w-[808px] mx-auto'>
             {activeTab === 'members' && (
               <Members context='groups' defaultDisplayMode={inDialog ? 'list' : 'card'} />
             )}
