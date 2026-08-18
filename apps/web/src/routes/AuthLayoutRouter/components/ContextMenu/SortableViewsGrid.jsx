@@ -18,11 +18,13 @@ import {
 } from '@dnd-kit/sortable'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 import { addQuerystringToPath, localSpaceSlug, spaceUrl } from '@hylo/navigation'
 
-import { canHardDeleteView } from 'store/models/GroupView'
+import { canDeleteView, canHardDeleteView, isSoftRemoveView } from 'store/models/GroupView'
+import { setGroupViewHidden } from 'store/actions/groupViews'
 import { mergeOrderedViewsFromSource, sortViewsByMenuOrder } from 'store/util/groupViewsOrder'
 import { cn } from 'util/index'
 
@@ -137,6 +139,7 @@ const SortableViewItem = React.memo(function SortableViewItem ({ view, group, sp
     disabled: !view.id
   })
   const canEditSpaceMenu = presented.type === 'space' && presented.linkedGroup?.slug && onEditSpaceMenu
+  const canHide = onHide && isSoftRemoveView(view) && canDeleteView(view)
 
   return (
     <div
@@ -170,9 +173,11 @@ const SortableViewItem = React.memo(function SortableViewItem ({ view, group, sp
         : <GroupViewCard view={view} group={group} spaceGroup={spaceGroup} isEditing />}
       <CardEditActions
         onOpenSettings={onOpenSettings ? () => onOpenSettings(view) : null}
+        onHide={canHide ? () => onHide(view) : null}
         onEditMenu={canEditSpaceMenu ? () => onEditSpaceMenu(view) : null}
         onDelete={onDelete && canHardDeleteView(view) ? () => onDelete(view) : null}
         settingsLabel={t('Settings')}
+        hideLabel={t('Remove from main menu')}
         editMenuLabel={t('Edit space menu')}
         deleteLabel={t('Delete')}
       />
@@ -195,6 +200,7 @@ export default function SortableViewsGrid ({
   onDelete
 }) {
   const { t } = useTranslation()
+  const dispatch = useDispatch()
   const navigate = useNavigate()
   const commitOrder = useCommitViewOrder(group)
   const visibleViews = useMemo(
@@ -218,6 +224,22 @@ export default function SortableViewsGrid ({
 
   const ids = useMemo(() => orderedViews.map(v => String(v.id)), [orderedViews])
   const flashingIds = useFlashAddedItems(orderedViews)
+
+  /** Move a space off the main menu into More Spaces (same as the two-column X). */
+  const handleHide = useCallback(async (view) => {
+    if (!isSoftRemoveView(view) || !canDeleteView(view) || !group?.id) return
+    const label = displayNameForView(view, t)
+    if (!window.confirm(t('Are you sure you want to remove {{name}} from the menu?', { name: label }))) return
+    try {
+      await dispatch(setGroupViewHidden({
+        id: view.id,
+        groupId: group.id,
+        hidden: true
+      }))
+    } catch (error) {
+      console.error('Failed to remove view from menu:', error)
+    }
+  }, [dispatch, group?.id, t])
 
   /** Open this space's card menu in edit mode (one-column counterpart of the sidebar pencil). */
   const handleEditSpaceMenu = useCallback((view) => {
@@ -334,6 +356,7 @@ export default function SortableViewsGrid ({
               group={group}
               spaceGroup={spaceGroup}
               onOpenSettings={onOpenSettings}
+              onHide={handleHide}
               onDelete={onDelete}
               onEditSpaceMenu={handleEditSpaceMenu}
               t={t}

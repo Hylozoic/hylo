@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import { useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
-import { ExternalLink, Info, Loader2, Pencil, Plus, Settings, Trash2, Users } from 'lucide-react'
+import { ExternalLink, Info, Loader2, Pencil, Plus, Settings, Trash2, Users, X } from 'lucide-react'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 
 import InviteMembersPopover from 'components/InviteMembersPopover/InviteMembersPopover'
@@ -44,7 +44,7 @@ import {
 const CARD_ACTION_BTN = 'p-1.5 rounded-md bg-background/90 text-foreground/60 hover:text-foreground pointer-events-auto cursor-pointer'
 
 /**
- * Edit-mode toolbar in the top-right of a card: +, gear, pencil (spaces), delete.
+ * Edit-mode toolbar in the top-right of a card: +, gear, X (spaces), pencil, delete.
  * Stops pointerdown so that when the card itself is a drag handle, pressing a
  * button doesn't begin a drag instead of clicking.
  */
@@ -88,6 +88,24 @@ export function CardEditActions ({ onAddToMenu, onOpenSettings, onEditMenu, onDe
             </button>
           </TooltipTrigger>
           <TooltipContent>{settingsLabel}</TooltipContent>
+        </Tooltip>
+      )}
+      {onHide && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type='button'
+              onClick={(e) => {
+                e.stopPropagation()
+                onHide()
+              }}
+              className={cn(CARD_ACTION_BTN, 'hover:text-destructive')}
+              aria-label={hideLabel}
+            >
+              <X className='w-4 h-4' />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>{hideLabel}</TooltipContent>
         </Tooltip>
       )}
       {onEditMenu && (

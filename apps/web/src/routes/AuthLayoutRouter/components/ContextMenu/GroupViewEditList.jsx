@@ -263,7 +263,7 @@ export default function GroupViewEditList ({ views, group, groupSlug, onSettings
       return
     }
     const label = displayNameForView(view, t)
-    if (!window.confirm(t('Are you sure you want to permanently delete {{name}}?', { name: label }))) return
+    if (!window.confirm(t('Are you sure you want to delete {{name}}?', { name: label }))) return
     try {
       await dispatch(deleteGroupView(view.id, group.id))
     } catch (error) {

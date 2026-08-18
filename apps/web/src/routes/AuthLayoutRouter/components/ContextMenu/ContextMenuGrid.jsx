@@ -660,7 +660,7 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
   const handleDeleteMenuView = useCallback(async (view) => {
     if (!canHardDeleteView(view) || !menuGroup?.id) return
     const label = displayNameForView(GroupViewPresenter(view), t)
-    if (!window.confirm(t('Are you sure you want to permanently delete {{name}}?', { name: label }))) return
+    if (!window.confirm(t('Are you sure you want to delete {{name}}?', { name: label }))) return
     try {
       await dispatch(deleteGroupView(view.id, menuGroup.id))
       await dispatch(fetchGroupViews(menuGroup.id))
