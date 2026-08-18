@@ -2801,5 +2801,10 @@
   "Recently in": "Récemment dans",
   "View activity": "Voir l'activité",
   "Leave {{name}}": "Quitter {{name}}",
-  "Are you sure you want to leave {{group_name}}?": "Êtes-vous sûr de vouloir quitter {{group_name}} ?"
+  "Are you sure you want to leave {{group_name}}?": "Êtes-vous sûr de vouloir quitter {{group_name}} ?",
+  "Open in a new tab": "Ouvrir dans un nouvel onglet",
+  "Copied": "Copié",
+  "Copy link": "Copier le lien",
+  "Link copied": "Lien copié",
+  "Steward": "Intendant"
 }

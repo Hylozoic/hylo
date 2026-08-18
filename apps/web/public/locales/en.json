@@ -2798,5 +2798,10 @@
   "Recently in": "Recently in",
   "View activity": "View activity",
   "Leave {{name}}": "Leave {{name}}",
-  "Are you sure you want to leave {{group_name}}?": "Are you sure you want to leave {{group_name}}?"
+  "Are you sure you want to leave {{group_name}}?": "Are you sure you want to leave {{group_name}}?",
+  "Open in a new tab": "Open in a new tab",
+  "Copied": "Copied",
+  "Copy link": "Copy link",
+  "Link copied": "Link copied",
+  "Steward": "Steward"
 }

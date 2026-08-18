@@ -2801,5 +2801,10 @@
   "Recently in": "हाल ही में",
   "View activity": "गतिविधि देखें",
   "Leave {{name}}": "{{name}} छोड़ें",
-  "Are you sure you want to leave {{group_name}}?": "क्या आप वाकई {{group_name}} छोड़ना चाहते हैं?"
+  "Are you sure you want to leave {{group_name}}?": "क्या आप वाकई {{group_name}} छोड़ना चाहते हैं?",
+  "Open in a new tab": "नए टैब में खोलें",
+  "Copied": "कॉपी किया गया",
+  "Copy link": "लिंक कॉपी करें",
+  "Link copied": "लिंक कॉपी किया गया",
+  "Steward": "संरक्षक"
 }
