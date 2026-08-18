@@ -51,6 +51,7 @@ export default function fetchGroupSpaces (groupId) {
                   name
                   order
                   icon
+                  settings
                   newPostCount
                   lastReadPostId
                   pageContent

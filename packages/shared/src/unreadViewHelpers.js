@@ -29,6 +29,7 @@ export const NO_BADGE_VIEW_TYPES = [
   'all',
   'custom',
   'collection',
+  'space-collection',
   'welcome',
   'map',
   'members',

@@ -3,7 +3,7 @@ jest.mock('util/mobile', () => ({
 }))
 
 import { isDrawerNavLayout } from 'util/mobile'
-import { externalLinkHref, spaceEntryUrl } from './groupViewMenuUrl'
+import { externalLinkHref, groupViewUrl, spaceEntryUrl } from './groupViewMenuUrl'
 
 describe('externalLinkHref', () => {
   it('adds https:// when the stored link has no scheme', () => {
@@ -41,5 +41,12 @@ describe('spaceEntryUrl', () => {
 
   it('falls back to the parent group when the space is missing', () => {
     expect(spaceEntryUrl('parent', null)).toBe('/groups/parent')
+  })
+})
+
+describe('groupViewUrl', () => {
+  it('includes the view id for space-collection routes', () => {
+    expect(groupViewUrl('building-hylo', { type: 'space-collection', id: '99' }))
+      .toBe('/groups/building-hylo/space-collection/99')
   })
 })

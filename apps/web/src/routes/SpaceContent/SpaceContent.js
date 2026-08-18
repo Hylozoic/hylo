@@ -18,6 +18,7 @@ import FundingRoundSubmissionsView from 'routes/FundingRoundSubmissionsView/Fund
 import ManageRoundView from 'routes/ManageRoundView/ManageRoundView'
 import TrackActionsView from 'routes/TrackActionsView/TrackActionsView'
 import ViewContent from 'routes/ViewContent'
+import SpaceCollection from 'routes/SpaceCollection'
 import ContextMenuGrid from 'routes/AuthLayoutRouter/components/ContextMenu/ContextMenuGrid'
 import fetchForGroup from 'store/actions/fetchForGroup'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
@@ -118,12 +119,11 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
   if (!parentGroup || !localSlug) return <Loading />
   if (!linkedSpace) return <Loading />
 
-  // Non-members: about page is public-ish; everything else is the join interstitial
+  // Non-members (including /about from a card's (i)): join interstitial only.
   if (!isSpaceMember) {
     return (
       <SpaceGroupSlugContext.Provider value={spaceFullSlug}>
         <Routes>
-          <Route path='about/*' element={<GroupAboutPage />} />
           {canAddSpaceMembers && <Route path='requests' element={<MembershipRequestsTab />} />}
           <Route path='*' element={<SpaceJoinPage />} />
         </Routes>
@@ -167,6 +167,7 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
         <Route path='requests-and-offers/*' element={<ViewContent context='groups' view='requests-and-offers' />} />
         <Route path='custom/:customViewId/*' element={<ViewContent context='groups' view='custom' />} />
         <Route path='collection/:customViewId/*' element={<ViewContent context='groups' view='collection' />} />
+        <Route path='space-collection/:viewId/*' element={<SpaceCollection group={resolvedSpace} parentGroup={parentGroup} />} />
         <Route path='members/:personId/*' element={<MemberProfile context='groups' />} />
         <Route path='members/*' element={<Members context='groups' />} />
         <Route path='requests' element={<MembershipRequestsTab />} />

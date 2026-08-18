@@ -168,6 +168,7 @@ query FetchGroupsMenuData (
                 name
                 order
                 icon
+                settings
                 newPostCount
                 lastReadPostId
                 viewPost {
@@ -238,6 +239,7 @@ query FetchGroupsMenuData (
               name
               order
               icon
+              settings
               newPostCount
               lastReadPostId
               pageContent

@@ -72,6 +72,7 @@ const groupViewFields = `
         name
         order
         icon
+        settings
         newPostCount
         viewPost {
           id

@@ -82,6 +82,8 @@ export function groupViewUrl (groupSlug, view) {
       return groupUrl(groupSlug, `custom/${view.id}`)
     case 'collection':
       return groupUrl(groupSlug, `collection/${view.id}`)
+    case 'space-collection':
+      return groupUrl(groupSlug, `space-collection/${view.id}`)
     case 'track-actions':
       return groupUrl(groupSlug, 'track-actions')
     case 'funding-round-submissions':

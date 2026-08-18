@@ -43,6 +43,7 @@ describe('unreadViewHelpers', () => {
     it('returns null for non-badge views', () => {
       expect(recountPostTypesForView('all')).toBe(null)
       expect(recountPostTypesForView('custom')).toBe(null)
+      expect(recountPostTypesForView('space-collection')).toBe(null)
     })
   })
 
