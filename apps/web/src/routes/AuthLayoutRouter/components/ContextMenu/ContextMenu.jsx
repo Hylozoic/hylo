@@ -946,7 +946,7 @@ export default function ContextMenu (props) {
     <div
       ref={setMenuRootEl}
       className={cn(
-        'ContextMenu bg-background relative z-20 isolate pointer-events-auto h-full flex-1 min-w-0',
+        'ContextMenu bg-background bg-gradient-to-b from-context-menu-background to-theme-background/10 dark:to-theme-background/40 relative z-20 isolate pointer-events-auto h-full flex-1 min-w-0',
         !isPhoneDevice() && 'sm:flex-initial sm:w-[var(--context-menu-width,300px)]',
         { [classes.mapView]: mapView },
         {
@@ -967,7 +967,6 @@ export default function ContextMenu (props) {
         isSettingsPath ? 'flex-1 min-h-0 overflow-hidden' : 'min-h-full min-h-screen min-h-dvh'
       )}
       >
-        <div className='absolute inset-0 bg-gradient-to-b from-context-menu-background to-theme-background/10 dark:to-theme-background/40 z-0 pointer-events-none' />
         <div className='ContextDetails w-full z-20 relative shrink-0'>
           {isGroupContext
             /* Duck only when the space really takes the menu over (its own
