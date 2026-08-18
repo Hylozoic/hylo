@@ -17,6 +17,7 @@ import {
   getMembers
 } from 'routes/Members/Members.store'
 import { messagePersonUrl, personUrl } from '@hylo/navigation'
+import getMe from 'store/selectors/getMe'
 import { getRoomPresence } from './RoomPresence.store'
 import { bgImageStyle, cn } from 'util/index'
 
@@ -162,18 +163,24 @@ export default function ChatMembersPanel ({ group, latestPost }) {
     return map
   }, [activityMembers, members])
 
+  const currentUser = useSelector(getMe)
+
+  // The strip's precondition is being online right now: only people on the
+  // live roster render (minus yourself), ordered by most recent activity —
+  // the latest typer is promoted to the front.
   const activeMembers = useMemo(
-    () => activeIds.map(id => memberIndex[id] || extraInfoRef.current[id]).filter(Boolean),
-    [activeIds, memberIndex]
+    () => activeIds
+      .filter(id => presenceMap[String(id)] && String(id) !== String(currentUser?.id))
+      .map(id => memberIndex[id] || extraInfoRef.current[id] || presenceMap[String(id)])
+      .filter(Boolean),
+    [activeIds, memberIndex, presentIdsKey, currentUser?.id]
   )
 
-  // The live roster is the source of truth; the lastActiveAt heuristic backs it
-  // up for the beat before the roster arrives
+  // The live roster is the source of truth: the pill's dot means someone else
+  // is genuinely connected right now
   const anyOnline = useMemo(
-    () => presentIdsKey.length > 0 ||
-      activityMembers.some(m => isRecentlyActive(m, now)) ||
-      members.some(m => isRecentlyActive(m, now)),
-    [presentIdsKey, activityMembers, members, now]
+    () => Object.keys(presenceMap).some(id => String(id) !== String(currentUser?.id)),
+    [presentIdsKey, currentUser?.id]
   )
 
   const handleScroll = useCallback((e) => {

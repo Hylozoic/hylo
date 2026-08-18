@@ -22,6 +22,7 @@ import fetchForGroup from 'store/actions/fetchForGroup'
 import { updateGroupSettings } from 'routes/GroupSettings/GroupSettings.store'
 import { canDeleteView, canHardDeleteView, canSetAsHomeView, isSoftRemoveView, viewTypeHasSettings } from 'store/models/GroupView'
 import { cn } from 'util/index'
+import { sanitizeURL } from 'util/url'
 
 /** Build initial custom view form state from a GroupView record. */
 function customViewFormState (view) {
@@ -110,11 +111,12 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
           }
         }))
       } else if (view.type === 'link') {
+        const trimmedLink = link.trim()
         await dispatch(updateGroupView({
           id: view.id,
           groupId: group.id,
           name: name.trim() || null,
-          link: link.trim() || null,
+          link: trimmedLink ? (sanitizeURL(trimmedLink) || trimmedLink) : null,
           icon: linkIcon
         }))
       } else if (view.type === 'text') {
@@ -323,7 +325,7 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
 }
 
 /** Inline gear / remove controls shown on hover in edit mode.
- * X moves soft-removable views to More Views; trash permanently deletes when allowed. */
+ * X moves spaces to More Spaces; trash permanently deletes when allowed. */
 export function GroupViewEditActions ({ view, onSettings, onHide, onDelete, className }) {
   const { t } = useTranslation()
   const removable = canDeleteView(view)

@@ -59,7 +59,7 @@ export default function ChatActivityCard ({
   return (
     <div
       className={cn(
-        'rounded-lg bg-card p-3 mb-2.5 cursor-pointer border border-foreground/10 hover:border-foreground/20',
+        'group rounded-xl bg-card/50 dark:bg-card/100 hover:bg-card/100 border-2 border-card/30 hover:border-foreground/50 shadow-xl hover:shadow-2xl transition-all duration-400 p-3 mb-4 cursor-pointer',
         className
       )}
       data-testid='chat-activity-card'
@@ -78,12 +78,9 @@ export default function ChatActivityCard ({
           <MessageSquareMore className='w-3.5 h-3.5' />
         </span>
         <div className='flex-1 min-w-0 text-sm truncate'>
-          <span className='uppercase tracking-wide text-foreground/50 text-xs font-semibold'>{t('CHAT ACTIVITY')}</span>
+          <span className='text-foreground/50'>{t('Recently in')}</span>
           {groupName && (
-            <>
-              <span className='text-foreground/50'> · </span>
-              <span className='font-bold text-foreground'>{groupName}</span>
-            </>
+            <span className='font-bold text-foreground'> {groupName}</span>
           )}
         </div>
         {timestamp && (
@@ -95,16 +92,8 @@ export default function ChatActivityCard ({
             {timestamp}
           </span>
         )}
-        <Link
-          to={chatUrl}
-          className='text-selected text-sm font-semibold shrink-0 flex items-center gap-0.5'
-          onClick={(e) => e.stopPropagation()}
-        >
-          {t('Open')}
-          <ChevronRight className='w-4 h-4' />
-        </Link>
       </div>
-      <div className='relative pl-3 flex flex-col gap-1 border-l-2 border-selected'>
+      <div className='relative pl-3 flex flex-col gap-1 border-l-2 border-selected min-w-0'>
         {visible.map(message => (
           <ChatActivityMessage key={message.id} post={message} />
         ))}
@@ -116,6 +105,16 @@ export default function ChatActivityCard ({
             <div className='absolute inset-0 bg-gradient-to-b from-transparent to-card pointer-events-none' />
           </div>
         )}
+      </div>
+      <div className='flex justify-end mt-1'>
+        <Link
+          to={chatUrl}
+          className='text-selected text-sm font-semibold flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity'
+          onClick={(e) => e.stopPropagation()}
+        >
+          {t('View activity')}
+          <ChevronRight className='w-4 h-4' />
+        </Link>
       </div>
       {exactTimestamp && (
         <Tooltip
@@ -132,7 +131,7 @@ export default function ChatActivityCard ({
 function ChatActivityMessage ({ post, faded = false }) {
   const text = TextHelpers.presentHTMLToText(post.details || '', { truncate: 180 })
   return (
-    <p className={cn('text-sm leading-snug m-0', faded ? 'opacity-40' : 'opacity-100')}>
+    <p className={cn('text-sm leading-snug m-0 break-words min-w-0', faded ? 'opacity-40' : 'opacity-100')}>
       <span className='font-bold text-foreground'>{post.creator?.name}</span>
       <span className='text-foreground/70'>: {text}</span>
     </p>

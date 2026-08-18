@@ -53,7 +53,7 @@ module.exports = {
       .then(user => pushToSockets(
         groupRoom(group.id),
         'userTyping',
-        { userId: user.id, userName: user.get('name'), isTyping },
+        { userId: user.id, userName: user.get('name'), isTyping, groupId: String(group.id) },
         socket
       ))
       .then(() => res.ok({}))

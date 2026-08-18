@@ -69,6 +69,7 @@ import { leaveGroup } from 'routes/UserSettings/UserGroupsTab/UserGroupsTab.stor
 import { updateMembershipSettings } from 'routes/UserSettings/UserSettings.store'
 import GroupMembershipNotificationSettings from 'routes/UserSettings/NotificationSettingsTab/GroupMembershipNotificationSettings'
 import FundingRoundAboutInfo from 'components/FundingRoundAboutInfo/FundingRoundAboutInfo'
+import SpaceSettingsModal from 'routes/AuthLayoutRouter/components/ContextMenu/SpaceSettingsModal'
 
 import g from './GroupDetail.module.scss'
 import m from '../MapExplorer/MapDrawer/MapDrawer.module.scss' // eslint-disable-line no-unused-vars
@@ -202,6 +203,7 @@ function GroupDetail ({ forCurrentGroup = false }) {
   const agreementsSectionRef = useRef(null)
   const [agreementsLinkCopied, setAgreementsLinkCopied] = useState(false)
   const [showLeaveDialog, setShowLeaveDialog] = useState(false)
+  const [showSpaceSettings, setShowSpaceSettings] = useState(false)
   const isSpace = group?.type === GROUP_TYPES.space
 
   const handleCopyAgreementsLink = useCallback(() => {
@@ -304,6 +306,16 @@ function GroupDetail ({ forCurrentGroup = false }) {
           <img src={group.avatarUrl || DEFAULT_AVATAR} className='w-24 h-24 rounded-xl shadow-xl mt-0 mb-2' />
           <div>
             <div className='text-white font-bold text-2xl text-center'>{group.name}</div>
+            {isSpace && isAboutCurrentGroup && responsibilityTitles.includes(RESP_ADMINISTRATION) && (
+              <div className='flex justify-center mt-2'>
+                <Button
+                  variant='secondary'
+                  onClick={() => setShowSpaceSettings(true)}
+                >
+                  {t('Space Settings')}
+                </Button>
+              </div>
+            )}
             <div className='text-center'>
               <div className='flex flex-row justify-center gap-1 text-sm text-white/70'>
                 <span className={g.groupPrivacy}>
@@ -492,6 +504,13 @@ function GroupDetail ({ forCurrentGroup = false }) {
                     )
           : ''}
       </div>
+      {showSpaceSettings && (
+        <SpaceSettingsModal
+          space={group}
+          group={group}
+          onClose={() => setShowSpaceSettings(false)}
+        />
+      )}
       <Dialog open={showLeaveDialog} onOpenChange={setShowLeaveDialog}>
         <DialogContent>
           <DialogHeader>

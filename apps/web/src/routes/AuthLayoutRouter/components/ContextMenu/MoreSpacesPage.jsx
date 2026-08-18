@@ -3,38 +3,27 @@ import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { CircleEllipsis, GripVertical, X } from 'lucide-react'
-import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 
 import { useViewHeader } from 'contexts/ViewHeaderContext'
-import { addQuerystringToPath, groupUrl, localSpaceSlug, spaceHomeUrl, spaceUrl } from '@hylo/navigation'
-import { isDrawerNavLayout } from 'util/mobile'
-import fetchGroupRelationships from 'store/actions/fetchGroupRelationships'
+import { addQuerystringToPath, groupUrl, localSpaceSlug, spaceUrl } from '@hylo/navigation'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
-import { createGroupView, deleteGroupView, deleteSpace, setGroupViewHidden } from 'store/actions/groupViews'
-import { FETCH_GROUP_RELATIONSHIPS, FETCH_GROUP_SPACES } from 'store/constants'
+import { createGroupView, deleteSpace, setGroupViewHidden } from 'store/actions/groupViews'
+import { FETCH_GROUP_SPACES } from 'store/constants'
 import { getGroupViews } from 'store/selectors/getGroupViews'
 import { getMoreViewsSections } from 'store/selectors/getMoreSpacesSections'
-import {
-  getChildGroups,
-  getParentGroups,
-  getPeerGroups
-} from 'store/selectors/getGroupRelationships'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import isPendingFor from 'store/selectors/isPendingFor'
-import { canHardDeleteView } from 'store/models/GroupView'
 import { cn } from 'util/index'
 
-import AddGroupViewDialog from './AddGroupViewDialog'
 import AddSpaceDialog from './AddSpaceDialog'
 import AddViewOrSpaceMenu from './AddViewOrSpaceMenu'
-import GroupViewSettingsModal from './GroupViewSettingsModal'
 import SpaceSettingsModal from './SpaceSettingsModal'
-import GroupViewCard, { SpaceViewCard } from './GroupViewCard'
+import { SpaceViewCard } from './GroupViewCard'
 import EditingBottomBar, { EDITING_BAR_BUTTON_CLASS } from './EditingBottomBar'
 import ViewsGridSkeleton from './ViewsGridSkeleton'
-import { menuViewUrl } from './groupViewMenuUrl'
+import { spaceEntryUrl } from './groupViewMenuUrl'
 
 /** Section heading above a card grid. Sections own the space above them (see SECTION_CLASS). */
 function SectionHeading ({ children }) {
@@ -51,10 +40,10 @@ function SectionHeading ({ children }) {
 const SECTION_CLASS = 'mt-6 first:mt-0'
 
 /**
- * More Views and Spaces — center-column grid of off-menu views and spaces.
- * With ?edit=true, shows Edit Menu chrome (help, add buttons, welcome toggles, + / trash).
+ * More Spaces — center-column grid of off-menu spaces (tracks, funding rounds, other).
+ * With ?edit=true, shows Edit Menu chrome (add space, welcome toggles, + / trash).
  */
-export default function MoreViewsPage ({ group }) {
+export default function MoreSpacesPage ({ group }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const navigate = useNavigate()
@@ -64,7 +53,7 @@ export default function MoreViewsPage ({ group }) {
   const isEditing = getQuerystringParam('edit', location) === 'true'
   const spaceSlugParam = getQuerystringParam('space', location)
 
-  // Resolve optional space drill-in (?space=) so center column shows that space's more-views.
+  // Resolve optional space drill-in (?space=) so center column shows that space's more-spaces.
   const spaceFromList = useMemo(() => {
     if (!spaceSlugParam || !groupSlug) return null
     const fromViews = (group?.groupViews?.items || []).find(view =>
@@ -82,37 +71,15 @@ export default function MoreViewsPage ({ group }) {
     spaceFromList?.slug ? getGroupForSlug(state, spaceFromList.slug) : null
   )
   const contentGroup = spaceGroupFromStore || spaceFromList || group
-  const isSpaceMoreViews = Boolean(spaceSlugParam && contentGroup && contentGroup.id !== group?.id)
+  const isSpaceMoreSpaces = Boolean(spaceSlugParam && contentGroup && contentGroup.id !== group?.id)
 
   const groupViews = useSelector(state => getGroupViews(state, contentGroup))
   const sections = useSelector(state => getMoreViewsSections(state, contentGroup))
-  const parentGroups = useSelector(state => getParentGroups(state, contentGroup))
-  const childGroups = useSelector(state => getChildGroups(state, contentGroup))
-  const peerGroups = useSelector(state => getPeerGroups(state, contentGroup))
-  const pending = useSelector(state =>
-    isPendingFor([FETCH_GROUP_SPACES, FETCH_GROUP_RELATIONSHIPS], state)
-  )
+  const pending = useSelector(state => isPendingFor(FETCH_GROUP_SPACES, state))
 
-  const hasRelatedGroups = parentGroups.length + childGroups.length + peerGroups.length > 0
-
-  const offMenuViews = useMemo(() => {
-    const views = (sections.offMenuViews || []).filter(view => {
-      if (view.type === 'related-groups' && !hasRelatedGroups) return false
-      return true
-    })
-    return [...views].sort((a, b) =>
-      displayNameForView(GroupViewPresenter(a), t).localeCompare(
-        displayNameForView(GroupViewPresenter(b), t)
-      )
-    )
-  }, [sections.offMenuViews, hasRelatedGroups, t])
-
-  const [showAddView, setShowAddView] = useState(false)
   const [showAddSpace, setShowAddSpace] = useState(false)
-  const [settingsView, setSettingsView] = useState(null)
   const [settingsSpace, setSettingsSpace] = useState(null)
   const [deletingSpaceId, setDeletingSpaceId] = useState(null)
-  const settingsTypeParam = getQuerystringParam('settings', location)
 
   useEffect(() => {
     setHeaderDetails({
@@ -122,7 +89,7 @@ export default function MoreViewsPage ({ group }) {
       title: isEditing
         ? (
           <span className='flex items-center gap-2'>
-            {t('More')}
+            {t('More Spaces')}
             {/* Slim enough to sit inside the title's line box — a taller pill overflows
                 the header's fixed height and clips instead of growing it */}
             <span className='text-xs font-semibold rounded-full border border-foreground/20 bg-foreground/10 text-foreground/70 px-2 py-px leading-none self-center'>
@@ -130,7 +97,7 @@ export default function MoreViewsPage ({ group }) {
             </span>
           </span>
           )
-        : t('More'),
+        : t('More Spaces'),
       icon: <CircleEllipsis />,
       info: '',
       search: false
@@ -141,35 +108,13 @@ export default function MoreViewsPage ({ group }) {
     if (!group?.id || !groupSlug) return
     dispatch(fetchGroupViews(group.id))
     dispatch(fetchGroupSpaces(group.id))
-    dispatch(fetchGroupRelationships(groupSlug))
   }, [dispatch, group?.id, groupSlug])
 
   useEffect(() => {
-    if (!isSpaceMoreViews || !contentGroup?.id) return
+    if (!isSpaceMoreSpaces || !contentGroup?.id) return
     dispatch(fetchGroupViews(contentGroup.id))
     if (contentGroup.slug) dispatch(fetchGroupSpaces(contentGroup.id))
-  }, [dispatch, isSpaceMoreViews, contentGroup?.id, contentGroup?.slug])
-
-  // Open welcome (or other) settings when arriving with ?settings=<type>
-  useEffect(() => {
-    if (!settingsTypeParam || !groupViews?.length) return
-    const match = groupViews.find(v => v.type === settingsTypeParam)
-    if (match) setSettingsView(match)
-  }, [settingsTypeParam, groupViews])
-
-  const handleAddViewToMenu = useCallback(async (view) => {
-    if (!contentGroup?.id || !view?.id) return
-    try {
-      await dispatch(setGroupViewHidden({
-        id: view.id,
-        groupId: contentGroup.id,
-        hidden: false
-      }))
-      await dispatch(fetchGroupViews(contentGroup.id))
-    } catch (error) {
-      console.error('Failed to add view to menu:', error)
-    }
-  }, [dispatch, contentGroup?.id])
+  }, [dispatch, isSpaceMoreSpaces, contentGroup?.id, contentGroup?.slug])
 
   const handleAddSpaceToMenu = useCallback(async (space) => {
     if (!contentGroup?.id || !space?.id) return
@@ -218,47 +163,16 @@ export default function MoreViewsPage ({ group }) {
     }
   }, [dispatch, contentGroup?.id, deletingSpaceId, t])
 
-  const handleDeleteView = useCallback(async (view) => {
-    if (!canHardDeleteView(view) || !contentGroup?.id) return
-    const label = displayNameForView(GroupViewPresenter(view), t)
-    if (!window.confirm(t('Are you sure you want to permanently delete {{name}}?', { name: label }))) return
-    try {
-      await dispatch(deleteGroupView(view.id, contentGroup.id))
-      await dispatch(fetchGroupViews(contentGroup.id))
-    } catch (error) {
-      console.error('Failed to delete view:', error)
-    }
-  }, [dispatch, contentGroup?.id, t])
-
-  /** Open a view (works in edit mode too — leaves edit and navigates to the view). */
-  const handleOpenView = useCallback((view) => {
-    const presented = GroupViewPresenter(view)
-    const url = menuViewUrl(
-      groupSlug,
-      presented,
-      isSpaceMoreViews ? contentGroup : null
-    )
-    if (url) navigate(url)
-  }, [navigate, groupSlug, isSpaceMoreViews, contentGroup])
-
-  /** Open space home, or in edit mode open that space's more-views still editing. */
+  /** Open space home, or in edit mode open that space's home with its menu editing. */
   const handleOpenSpace = useCallback((space) => {
-    const local = localSpaceSlug(groupSlug, space.slug)
     if (isEditing) {
-      navigate(addQuerystringToPath(groupUrl(groupSlug, 'more-views'), {
-        edit: 'true',
-        space: local
-      }))
+      navigate(addQuerystringToPath(spaceEntryUrl(groupSlug, space), { edit: 'true' }))
       return
     }
     // Where a menu is visible alongside the content, going straight to the space's
-    // home view costs nothing. On a drawer layout it skips the space's menu
-    // entirely — SpaceContent decides what the root should show, so hand it the
-    // root rather than pre-empting it here.
-    navigate(
-      isDrawerNavLayout() ? spaceUrl(groupSlug, local) : spaceHomeUrl(groupSlug, space),
-      { state: { fromMoreViews: true } }
-    )
+    // home view costs nothing. On a drawer layout SpaceContent shows the space's
+    // own menu at the index, so don't skip ahead to home.
+    navigate(spaceEntryUrl(groupSlug, space), { state: { fromMoreViews: true } })
   }, [navigate, groupSlug, isEditing])
 
   const handleOpenSpaceAbout = useCallback((space) => {
@@ -272,11 +186,6 @@ export default function MoreViewsPage ({ group }) {
 
   // EditingBottomBar measures this to size itself
   const containerRef = useRef(null)
-  const handleAddViewClose = useCallback(async () => {
-    setShowAddView(false)
-    if (contentGroup?.id) await dispatch(fetchGroupViews(contentGroup.id))
-  }, [dispatch, contentGroup?.id])
-
   const handleAddSpaceClose = useCallback(async () => {
     setShowAddSpace(false)
     if (contentGroup?.id) {
@@ -286,50 +195,24 @@ export default function MoreViewsPage ({ group }) {
   }, [dispatch, contentGroup?.id])
 
   const handleCloseSettings = useCallback(async () => {
-    setSettingsView(null)
     setSettingsSpace(null)
-    if (settingsTypeParam) {
-      navigate(addQuerystringToPath(groupUrl(groupSlug, 'more-views'), {
-        edit: 'true',
-        ...(spaceSlugParam ? { space: spaceSlugParam } : {})
-      }), { replace: true })
-    }
     if (contentGroup?.id) await dispatch(fetchGroupViews(contentGroup.id))
     if (group?.id) await dispatch(fetchGroupSpaces(group.id))
-  }, [dispatch, contentGroup?.id, group?.id, groupSlug, navigate, settingsTypeParam, spaceSlugParam])
+  }, [dispatch, contentGroup?.id, group?.id])
 
-  const showViews = offMenuViews.length > 0
   const showTracks = sections.trackSpaces.length > 0
   const showFundingRounds = sections.fundingRoundSpaces.length > 0
   const showOtherSpaces = sections.otherSpaces.length > 0
-  const hasContent = showViews || showTracks || showFundingRounds || showOtherSpaces
+  const hasContent = showTracks || showFundingRounds || showOtherSpaces
 
   return (
     <div ref={containerRef} className={cn('w-full max-w-[980px] mx-auto px-4 py-6', isEditing && 'pb-24')}>
       {pending && !hasContent
         ? <ViewsGridSkeleton />
         : !hasContent
-            ? <p className='text-sm text-foreground/40'>{t('No more views or spaces')}</p>
+            ? <p className='text-sm text-foreground/40'>{t('No more spaces')}</p>
             : (
               <div className='flex flex-col'>
-                {showViews && (
-                  <section className={SECTION_CLASS}>
-                    <SectionHeading>{t('Views')}</SectionHeading>
-                    <div className='flex flex-wrap gap-3'>
-                      {offMenuViews.map(view => (
-                        <GroupViewCard
-                          key={view.id}
-                          view={view}
-                          isEditing={isEditing}
-                          onAddToMenu={handleAddViewToMenu}
-                          onOpen={handleOpenView}
-                          onOpenSettings={setSettingsView}
-                          onDelete={canHardDeleteView(view) ? handleDeleteView : null}
-                        />
-                      ))}
-                    </div>
-                  </section>
-                )}
                 {showTracks && (
                   <section className={SECTION_CLASS}>
                     <SectionHeading>{t('Tracks')}</SectionHeading>
@@ -394,11 +277,10 @@ export default function MoreViewsPage ({ group }) {
               )}
 
       {/* Below the sections, and shown even when empty so there is a way to add the first one */}
-      {isEditing && (
+      {isEditing && !isSpaceMoreSpaces && (
         <div className='flex flex-wrap gap-3 mt-6'>
           <AddViewOrSpaceMenu
-            canAddSpace={!isSpaceMoreViews}
-            onChooseView={() => setShowAddView(true)}
+            canAddSpace
             onChooseSpace={() => setShowAddSpace(true)}
           />
         </div>
@@ -408,8 +290,8 @@ export default function MoreViewsPage ({ group }) {
         <EditingBottomBar containerRef={containerRef}>
           {/* The reorder hint rides in the bar with the control it explains —
               hint left, Done Editing right, matching the page's content well */}
-          <div className='w-full max-w-[980px] flex items-center justify-between gap-4'>
-            <p className='flex items-center gap-2 text-sm text-foreground/70 m-0 text-left pointer-events-auto'>
+          <div className='w-full max-w-[980px] flex items-center justify-end sm:justify-between gap-4'>
+            <p className='hidden sm:flex items-center gap-2 text-sm text-foreground/70 m-0 text-left pointer-events-auto'>
               <GripVertical className='w-4 h-4 shrink-0 text-foreground/50' />
               {t('Drag and drop items in the menu on the left to reorder them. The top item is the home view for this group.')}
             </p>
@@ -425,24 +307,8 @@ export default function MoreViewsPage ({ group }) {
         </EditingBottomBar>
       )}
 
-      {showAddView && (
-        <AddGroupViewDialog
-          group={contentGroup}
-          groupViews={groupViews}
-          acceptedPostTypes={contentGroup?.acceptedPostTypes}
-          onClose={handleAddViewClose}
-          addToMenu={false}
-        />
-      )}
       {showAddSpace && (
         <AddSpaceDialog group={contentGroup} onClose={handleAddSpaceClose} addToMenu={false} />
-      )}
-      {settingsView && (
-        <GroupViewSettingsModal
-          view={settingsView}
-          group={contentGroup}
-          onClose={handleCloseSettings}
-        />
       )}
       {settingsSpace && (
         <SpaceSettingsModal

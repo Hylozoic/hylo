@@ -18,11 +18,13 @@ import {
 } from '@dnd-kit/sortable'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 import { addQuerystringToPath, localSpaceSlug, spaceUrl } from '@hylo/navigation'
 
-import { canHardDeleteView, viewAcceptedByPostTypes } from 'store/models/GroupView'
+import { canDeleteView, canHardDeleteView, isSoftRemoveView } from 'store/models/GroupView'
+import { setGroupViewHidden } from 'store/actions/groupViews'
 import { mergeOrderedViewsFromSource, sortViewsByMenuOrder } from 'store/util/groupViewsOrder'
 import { cn } from 'util/index'
 
@@ -129,7 +131,7 @@ function FullWidthRow ({ view, spaceGroup, t }) {
  * anywhere on the card starts the drag; the toolbar stops pointerdown so its
  * buttons stay clickable instead of becoming drag handles.
  */
-const SortableViewItem = React.memo(function SortableViewItem ({ view, spaceGroup, onOpenSettings, onDelete, onEditSpaceMenu, t, isFlashing = false }) {
+const SortableViewItem = React.memo(function SortableViewItem ({ view, group, spaceGroup, onOpenSettings, onHide, onDelete, onEditSpaceMenu, t, isFlashing = false }) {
   const presented = useMemo(() => GroupViewPresenter(view), [view])
   const isFullWidth = presented.type === 'text' || presented.type === 'separator'
   const { attributes, listeners, setNodeRef, isDragging, isSorting } = useSortable({
@@ -137,6 +139,7 @@ const SortableViewItem = React.memo(function SortableViewItem ({ view, spaceGrou
     disabled: !view.id
   })
   const canEditSpaceMenu = presented.type === 'space' && presented.linkedGroup?.slug && onEditSpaceMenu
+  const canHide = onHide && isSoftRemoveView(view) && canDeleteView(view)
 
   return (
     <div
@@ -167,12 +170,14 @@ const SortableViewItem = React.memo(function SortableViewItem ({ view, spaceGrou
     >
       {isFullWidth
         ? <FullWidthRow view={view} spaceGroup={spaceGroup} t={t} />
-        : <GroupViewCard view={view} isEditing renderEditActions={false} />}
+        : <GroupViewCard view={view} group={group} spaceGroup={spaceGroup} isEditing />}
       <CardEditActions
         onOpenSettings={onOpenSettings ? () => onOpenSettings(view) : null}
+        onHide={canHide ? () => onHide(view) : null}
         onEditMenu={canEditSpaceMenu ? () => onEditSpaceMenu(view) : null}
         onDelete={onDelete && canHardDeleteView(view) ? () => onDelete(view) : null}
         settingsLabel={t('Settings')}
+        hideLabel={t('Remove from main menu')}
         editMenuLabel={t('Edit space menu')}
         deleteLabel={t('Delete')}
       />
@@ -195,17 +200,14 @@ export default function SortableViewsGrid ({
   onDelete
 }) {
   const { t } = useTranslation()
+  const dispatch = useDispatch()
   const navigate = useNavigate()
   const commitOrder = useCommitViewOrder(group)
-  const acceptedPostTypes = (spaceGroup || group)?.acceptedPostTypes
-  // Match live menu: hide typed views that the group/space no longer accepts.
   const visibleViews = useMemo(
     () => sortViewsByMenuOrder(
-      (views || [])
-        .filter(v => v.order != null)
-        .filter(v => viewAcceptedByPostTypes(v.type, acceptedPostTypes))
+      (views || []).filter(v => v.order != null)
     ),
-    [views, acceptedPostTypes]
+    [views]
   )
   const [orderedViews, setOrderedViews] = useState(visibleViews)
 
@@ -222,6 +224,22 @@ export default function SortableViewsGrid ({
 
   const ids = useMemo(() => orderedViews.map(v => String(v.id)), [orderedViews])
   const flashingIds = useFlashAddedItems(orderedViews)
+
+  /** Move a space off the main menu into More Spaces (same as the two-column X). */
+  const handleHide = useCallback(async (view) => {
+    if (!isSoftRemoveView(view) || !canDeleteView(view) || !group?.id) return
+    const label = displayNameForView(view, t)
+    if (!window.confirm(t('Are you sure you want to remove {{name}} from the menu?', { name: label }))) return
+    try {
+      await dispatch(setGroupViewHidden({
+        id: view.id,
+        groupId: group.id,
+        hidden: true
+      }))
+    } catch (error) {
+      console.error('Failed to remove view from menu:', error)
+    }
+  }, [dispatch, group?.id, t])
 
   /** Open this space's card menu in edit mode (one-column counterpart of the sidebar pencil). */
   const handleEditSpaceMenu = useCallback((view) => {
@@ -335,8 +353,10 @@ export default function SortableViewsGrid ({
             <SortableViewItem
               key={view.id}
               view={view}
+              group={group}
               spaceGroup={spaceGroup}
               onOpenSettings={onOpenSettings}
+              onHide={handleHide}
               onDelete={onDelete}
               onEditSpaceMenu={handleEditSpaceMenu}
               t={t}
@@ -351,7 +371,7 @@ export default function SortableViewsGrid ({
         {activeView
           ? (activeView.type === 'text' || activeView.type === 'separator'
               ? <FullWidthRow view={activeView} spaceGroup={spaceGroup} t={t} />
-              : <GroupViewCard view={activeView} isEditing renderEditActions={false} />)
+              : <GroupViewCard view={activeView} group={group} spaceGroup={spaceGroup} isEditing />)
           : null}
       </DragOverlay>
     </DndContext>

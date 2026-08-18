@@ -498,7 +498,7 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
   const isEvent = useMemo(() => get('type', post) === 'event', [post])
 
   // TODO: if not in a group should show as flagged if flagged in any of my groups
-  const isFlagged = useMemo(() => post?.flaggedGroups && post.flaggedGroups.includes(currentGroup?.id), [post, currentGroup])
+  const isFlagged = useMemo(() => post?.flaggedGroups && post.flaggedGroups.some(id => String(id) === String(currentGroup?.id)), [post, currentGroup])
 
   const projectManagementTool = useMemo(() => {
     const m = post?.projectManagementLink ? post.projectManagementLink.match(/(asana|trello|airtable|clickup|confluence|teamwork|notion|wrike|zoho)/) : null

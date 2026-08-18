@@ -1,6 +1,7 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSelector } from 'react-redux'
+import { Link } from 'react-router-dom'
 
 import { agreementsURL, RESP_MANAGE_CONTENT } from 'store/constants'
 import getPlatformAgreements from 'store/selectors/getPlatformAgreements'
@@ -8,13 +9,15 @@ import getMe from 'store/selectors/getMe'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import useRouteParams from 'hooks/useRouteParams'
 import Avatar from 'components/Avatar/Avatar'
+import LucideIcon from 'components/LucideIcon/LucideIcon'
 import MultiSelect from 'components/MultiSelect/MultiSelect'
-import { groupUrl } from '@hylo/navigation'
+import { groupUrl, localSpaceSlug, spaceUrl } from '@hylo/navigation'
 import Button from 'components/ui/button'
 import PostListRow from 'components/PostListRow'
 import { cn } from 'util/index'
 import { format } from 'date-fns'
 
+/** Renders a flagged post in the moderation queue, including its source space when viewed from a parent group. */
 const ModerationListItem = ({
   moderationAction,
   handleClearModerationAction,
@@ -25,7 +28,18 @@ const ModerationListItem = ({
   const { t } = useTranslation()
   const currentUser = useSelector(getMe)
   const routeParams = useRouteParams()
-  const canModerate = useSelector((state) => hasResponsibilityForGroup(state, { groupId: group.id, responsibility: [RESP_MANAGE_CONTENT] }))
+  const actionGroup = moderationAction.group
+  const actionGroupId = moderationAction.groupId || actionGroup?.id || group?.id
+  const canModerate = useSelector((state) => hasResponsibilityForGroup(state, { groupId: actionGroupId, responsibility: [RESP_MANAGE_CONTENT] }))
+  const isFromChildSpace = Boolean(
+    actionGroup &&
+    group &&
+    String(actionGroup.id) !== String(group.id) &&
+    (actionGroup.type === 'space' || actionGroup.parentId)
+  )
+  const spaceModerationUrl = isFromChildSpace
+    ? spaceUrl(group.slug, localSpaceSlug(group.slug, actionGroup.slug), '/moderation')
+    : null
 
   const {
     agreements,
@@ -53,7 +67,7 @@ const ModerationListItem = ({
   }
 
   return (
-    <div className='rounded-xl p-4 flex flex-col transition-all bg-card/40 border-2 border-card/30 shadow-md hover:shadow-lg mb-4 relative hover:z-50 hover:scale-[1.02] duration-400'>
+    <div className='rounded-xl p-4 flex flex-col transition-all bg-card/40 border-2 border-card/30 shadow-md hover:shadow-lg mb-4 relative hover:z-[2] hover:scale-[1.02] duration-400'>
       <div className='flex items-center justify-between border-b border-foreground/10 pb-4'>
         <div className='flex items-center gap-2'>
           {anonymous && !canModerate
@@ -65,9 +79,19 @@ const ModerationListItem = ({
                   <span className='over:text-accent/80 font-medium text-foreground'>{reporter.name}</span>
                 </Button>
               </div>)}
-          <div className='text-foreground/50 text-sm flex flex-row gap-1 items-center'>
+          <div className='text-foreground/50 text-sm flex flex-row gap-1 items-center flex-wrap'>
             <span>{t('reported this on')}</span>
             <span>{format(new Date(createdAt), 'MMM d, yyyy')}</span>
+            {spaceModerationUrl && (
+              <Link
+                to={spaceModerationUrl}
+                className='inline-flex items-center gap-1 text-sm text-foreground/70 hover:text-foreground'
+                data-testid='moderation-action-space'
+              >
+                <LucideIcon name={actionGroup.icon || 'Layers'} className='w-4 h-4' />
+                <span>{t('In {{name}}', { name: actionGroup.name })}</span>
+              </Link>
+            )}
           </div>
         </div>
         <span className={cn('px-3 py-1 rounded-full text-sm font-medium', statusClasses[status])}>
@@ -86,7 +110,7 @@ const ModerationListItem = ({
           <div className='rounded-lg p-0 h-98 overflow-hidden shadow-xl border-2 border-foreground/10 border-b-0'>
             <PostListRow
               post={post}
-              currentGroupId={group && group.id}
+              currentGroupId={actionGroupId}
               currentUser={currentUser}
               routeParams={routeParams}
             />

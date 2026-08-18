@@ -93,6 +93,7 @@ query FetchGroupMembersForGraph ($slug: String, $first: Int) {
         id
         name
         avatarUrl
+        lastActiveAt
         skills {
           items {
             id

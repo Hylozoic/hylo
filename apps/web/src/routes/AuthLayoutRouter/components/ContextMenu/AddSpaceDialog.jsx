@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { BadgeDollarSign, ImagePlus, Layers, MessageSquareMore, Plus, Shapes } from 'lucide-react'
+import { BadgeDollarSign, ImagePlus, Layers, MessageCircleMore, Plus, Shapes } from 'lucide-react'
 
 import Button from 'components/ui/button'
 import { Input } from 'components/ui/input'
@@ -17,11 +17,12 @@ import PostTypePills from 'components/PostTypePills/PostTypePills'
 import TagInput from 'components/TagInput'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import { CUSTOM_VIEW_DEFAULT_POST_TYPES, CUSTOM_VIEW_POST_TYPE_OPTIONS } from 'components/CustomViewForm/customViewFormConstants'
-import { addQuerystringToPath, groupUrl, localSpaceSlug, spaceUrl } from '@hylo/navigation'
-import { createSpace, createGroupView } from 'store/actions/groupViews'
+import { addQuerystringToPath, localSpaceSlug, spaceHomeUrl, spaceUrl } from '@hylo/navigation'
+import { createSpace, createGroupView, updateGroupView } from 'store/actions/groupViews'
 import fetchForCurrentUser from 'store/actions/fetchForCurrentUser'
 import fetchForGroup from 'store/actions/fetchForGroup'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
+import { updateGroupSettings } from 'routes/GroupSettings/GroupSettings.store'
 import { createTrack } from 'store/actions/trackActions'
 import { createFundingRound } from 'routes/FundingRounds/FundingRounds.store'
 import { POST_TYPE_TO_VIEW_TYPE } from 'store/models/GroupView'
@@ -45,7 +46,7 @@ const STANDARD_VIEW_TYPES = new Set([
 /** Space types selectable at creation — immutable afterward (no type switch in SpaceSettingsModal). */
 const SPACE_TYPE_OPTIONS = [
   { value: 'custom', labelKey: 'Custom Space', icon: Layers },
-  { value: 'chat', labelKey: 'Chat Space', icon: MessageSquareMore },
+  { value: 'chat', labelKey: 'Chat Space', icon: MessageCircleMore },
   { value: 'track', labelKey: 'Track', icon: Shapes },
   { value: 'funding-round', labelKey: 'Funding Round', icon: BadgeDollarSign }
 ]
@@ -57,7 +58,7 @@ function defaultsForSpaceType (spaceType) {
       return {
         postTypes: [],
         standardViewTypes: ['chat'],
-        icon: 'MessageSquareMore'
+        icon: 'MessageCircleMore'
       }
     case 'track':
       return {
@@ -113,6 +114,7 @@ export default function AddSpaceDialog ({ group, onClose, addToMenu = true }) {
   const [removedStandardTypes, setRemovedStandardTypes] = useState(() => new Set())
   const [presetStandardViews, setPresetStandardViews] = useState(null)
   const [manualViews, setManualViews] = useState([])
+  const [welcomeExtras, setWelcomeExtras] = useState(null)
   const [orderedRows, setOrderedRows] = useState([])
   const [access, setAccess] = useState('open')
   const [requiredRoles, setRequiredRoles] = useState([])
@@ -174,16 +176,28 @@ export default function AddSpaceDialog ({ group, onClose, addToMenu = true }) {
     return customSpaceStandardViews(postTypes, removedStandardTypes)
   }, [presetStandardViews, postTypes, removedStandardTypes])
 
+  /** Removes a standard view unless it is the current home (top) view. */
   const handleRemoveStandardView = useCallback((type) => {
-    if (type === 'all' || type === 'track-actions' || type === 'funding-round-submissions') return
+    if (type === 'track-actions' || type === 'funding-round-submissions') return
+    const homeRow = orderedRows[0]
+    if (homeRow?.kind === 'standard' && homeRow.type === type) return
     setRemovedStandardTypes(prev => new Set(prev).add(type))
-  }, [])
+    if (type === 'welcome') setWelcomeExtras(null)
+  }, [orderedRows])
 
+  /** Removes a staged custom/link/text view unless it is the current home (top) view. */
   const handleRemoveManualView = useCallback((key) => {
+    if (orderedRows[0]?.key === key) return
     setManualViews(prev => prev.filter(view => view.key !== key))
-  }, [])
+  }, [orderedRows])
 
   const handleAddView = useCallback((viewData) => {
+    if (viewData.type === 'welcome') {
+      setWelcomeExtras({
+        pageContent: viewData.pageContent,
+        showWelcomePage: viewData.showWelcomePage
+      })
+    }
     if (STANDARD_VIEW_TYPES.has(viewData.type)) {
       setRemovedStandardTypes(prev => {
         const next = new Set(prev)
@@ -295,6 +309,24 @@ export default function AddSpaceDialog ({ group, onClose, addToMenu = true }) {
         }
       }
 
+      if (newSpace?.id && welcomeExtras) {
+        const viewsResult = await dispatch(fetchGroupViews(newSpace.id))
+        const createdViews = viewsResult?.payload?.data?.group?.groupViews?.items || []
+        const welcomeView = createdViews.find(view => view.type === 'welcome')
+        if (welcomeView?.id && welcomeExtras.pageContent) {
+          await dispatch(updateGroupView({
+            id: welcomeView.id,
+            groupId: newSpace.id,
+            pageContent: welcomeExtras.pageContent
+          }))
+        }
+        if (welcomeExtras.showWelcomePage !== undefined) {
+          await dispatch(updateGroupSettings(newSpace.id, {
+            settings: { showWelcomePage: welcomeExtras.showWelcomePage }
+          }))
+        }
+      }
+
       // All three before navigating: the menu entry (fetchGroupViews), the
       // creator's own membership (fetchForCurrentUser — without it SpaceContent
       // greets the creator with the join page), and for off-menu spaces the
@@ -306,13 +338,13 @@ export default function AddSpaceDialog ({ group, onClose, addToMenu = true }) {
       ])
       onClose()
       // Open the new space's menu in edit mode so included views can be arranged.
-      // Two-column: more-views with the space drilled in (sidebar stays the space menu).
+      // Two-column: the space's home (sidebar becomes the space menu).
       // One-column: the space's own card-menu grid.
       if (newSpace?.slug && group?.slug) {
         const local = localSpaceSlug(group.slug, newSpace.slug)
         navigate(isOneColumn
           ? addQuerystringToPath(spaceUrl(group.slug, local), { edit: 'true' })
-          : addQuerystringToPath(groupUrl(group.slug, 'more-views'), { edit: 'true', space: local }))
+          : addQuerystringToPath(spaceHomeUrl(group.slug, newSpace), { edit: 'true' }))
       } else {
         navigate(addQuerystringToPath(routerLocation.pathname, { edit: 'true' }))
       }
@@ -321,7 +353,7 @@ export default function AddSpaceDialog ({ group, onClose, addToMenu = true }) {
     } finally {
       setIsCreating(false)
     }
-  }, [dispatch, group?.id, name, description, icon, bannerUrl, purpose, locationObject, postTypes, access, requiredRoles, spaceType, orderedRows, standardViewTypes, onClose, navigate, routerLocation.pathname, addToMenu, isOneColumn, frPublishedAt, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frHideFinalResults, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles])
+  }, [dispatch, group?.id, name, description, icon, bannerUrl, purpose, locationObject, postTypes, access, requiredRoles, spaceType, orderedRows, standardViewTypes, welcomeExtras, onClose, navigate, routerLocation.pathname, addToMenu, isOneColumn, frPublishedAt, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frHideFinalResults, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles])
 
   // Portal above AuthLayout nav stacking so access radios / FR checkboxes remain clickable.
   return createPortal(

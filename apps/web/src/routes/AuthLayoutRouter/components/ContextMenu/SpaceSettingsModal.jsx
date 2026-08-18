@@ -34,7 +34,7 @@ function toDateOrNull (value) {
 /** Modal for editing an existing space's settings — same fields as AddSpaceDialog's creation form,
  * plus Track / Funding Round settings when the space is backed by either.
  * Accepts `space` directly (e.g. More Spaces) and optional parent-menu `view` when the space is on the menu. */
-export default function SpaceSettingsModal ({ space: spaceProp, view, group, onClose }) {
+export default function SpaceSettingsModal ({ space: spaceProp, view, group, onClose, inline = false }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const space = spaceProp || view?.linkedGroup
@@ -205,277 +205,283 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, group, onC
 
   if (!space) return null
 
+  const panel = (
+    <div className={inline ? 'flex flex-col' : 'bg-midground rounded-lg shadow-lg p-4 w-full max-w-md sm:max-w-[40rem] max-h-[85vh] flex flex-col'}>
+      {!inline && <h2 className='text-lg font-semibold mb-4'>{modalTitle}</h2>}
+
+      <div className={inline ? 'flex flex-col gap-3' : 'flex flex-col gap-3 overflow-y-auto flex-1 min-h-0 p-1 -m-1'}>
+        <UploadAttachmentButton
+          type='groupBanner'
+          onInitialUpload={({ url }) => setBannerUrl(url)}
+          className='w-full group'
+        >
+          <div
+            className={cn('relative w-full h-[20vh] flex flex-col items-center justify-center border-2 border-dashed border-foreground/50 rounded-lg shadow-md bg-cover bg-center bg-darkening/0 hover:bg-darkening/20 scale-1 hover:scale-105 transition-all cursor-pointer', { 'border-none': !!bannerUrl })}
+            style={{ backgroundImage: `url(${bannerUrl})` }}
+          >
+            <div className='flex flex-col items-center justify-center gap-1'>
+              <ImagePlus className='inline-block' />
+              <span className='ml-2 text-xs opacity-40 group-hover:opacity-100 transition-all'>{t('Set space banner')}</span>
+            </div>
+          </div>
+        </UploadAttachmentButton>
+
+        <div className='flex flex-col gap-1'>
+          <label className='text-sm text-foreground/70'>{t('Icon')}</label>
+          <div className='flex flex-wrap items-center gap-2'>
+            {SPACE_ICON_SUGGESTIONS.map(iconName => (
+              <button
+                key={iconName}
+                type='button'
+                onClick={() => setIcon(iconName)}
+                aria-label={iconName}
+                className={cn(
+                  'flex items-center justify-center rounded-md border-2 p-2 transition-all',
+                  icon === iconName
+                    ? 'border-selected bg-selected/20'
+                    : 'border-foreground/20 hover:border-foreground/50'
+                )}
+              >
+                <LucideIcon name={iconName} className='w-4 h-4' />
+              </button>
+            ))}
+            <LucideIconPicker value={icon} onChange={setIcon} className='w-auto px-2 shrink-0' />
+          </div>
+        </div>
+
+        <div className='flex flex-col gap-1'>
+          <label className='text-sm text-foreground/70'>{t('Name')}</label>
+          <Input
+            value={name}
+            onChange={e => setName(e.target.value)}
+            placeholder={t('Space name')}
+          />
+        </div>
+
+        <div className='flex flex-col gap-1'>
+          <label className='text-sm text-foreground/70'>{t('Purpose')}</label>
+          <Input
+            value={purpose}
+            onChange={e => setPurpose(e.target.value)}
+            placeholder={t('What is this space for?')}
+          />
+        </div>
+
+        <div className='flex flex-col gap-1'>
+          <label className='text-sm text-foreground/70'>{t('Description')}</label>
+          <textarea
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+            placeholder={t('Description (optional)')}
+            rows={3}
+            className='w-full rounded-md border border-foreground/20 bg-input p-2 text-sm text-foreground'
+          />
+        </div>
+
+        <div className='flex flex-col gap-1'>
+          <label className='text-sm text-foreground/70'>{t('Location')}</label>
+          <LocationInput
+            locationObject={locationObject}
+            location={locationObject?.fullText || ''}
+            onChange={setLocationObject}
+            className='bg-input rounded-md text-foreground placeholder-foreground/40 w-full p-2 text-sm'
+          />
+        </div>
+
+        <PostTypePills
+          postTypes={postTypes}
+          onPostTypesChange={setPostTypes}
+          label={t('Accepted post types')}
+        />
+
+        <div className='flex flex-col gap-2'>
+          <label className='text-sm text-foreground/70'>{t('Access')}</label>
+          <RadioGroup value={access} onValueChange={setAccess}>
+            {accessOptions.map(option => (
+              <div key={option.value} className='flex flex-col gap-1 mb-2'>
+                <div className='flex items-start gap-2'>
+                  <RadioGroupItem value={option.value} id={`space-settings-access-${option.value}`} className='mt-0.5 shrink-0' />
+                  <Label htmlFor={`space-settings-access-${option.value}`} className='cursor-pointer flex flex-wrap items-baseline gap-x-2'>
+                    <span>{t(option.labelKey)}</span>
+                    <span className='text-xs font-normal text-foreground/50'>{t(option.descKey)}</span>
+                  </Label>
+                </div>
+                {option.value === 'role' && access === 'role' && (
+                  <div className='ml-6 mt-1 flex flex-row items-center relative border-2 border-transparent shadow-md transition-all duration-200 group focus-within:border-focus bg-input rounded-md'>
+                    <TagInput
+                      tags={requiredRoles.map(role => ({ ...role, name: role.label || `${role.emoji} ${role.name}` }))}
+                      suggestions={roleSuggestions}
+                      handleInputChange={setRoleSearchTerm}
+                      handleAddition={(role) => {
+                        setRequiredRoles(prev => [...prev, role])
+                        setRoleSearchTerm('')
+                      }}
+                      handleDelete={(role) => {
+                        setRequiredRoles(prev => prev.filter(r => r.id !== role.id))
+                      }}
+                      placeholder={t('Search roles/badges')}
+                      allowNewTags={false}
+                      renderSuggestion={renderRoleSuggestion}
+                      onFocus={() => setRoleSearchTerm('')}
+                      onBlur={() => setRoleSearchTerm(null)}
+                    />
+                  </div>
+                )}
+              </div>
+            ))}
+          </RadioGroup>
+        </div>
+
+        {track?.id && (
+          <div className='flex flex-col gap-3 border-t-2 border-foreground/10 pt-3 mt-1'>
+            <h3 className='text-base font-semibold'>{t('Track Settings')}</h3>
+
+            <div className='flex flex-col relative border-2 border-transparent shadow-md transition-all duration-200 focus-within:border-2 group focus-within:border-focus bg-input rounded-tr-md rounded-br-md rounded-bl-md mb-2'>
+              <h3 className='px-2 py-1 text-xs text-foreground/60 absolute -top-[36px] -translate-x-[2px] bg-input rounded-t-md border-t-2 border-x-2 border-transparent border-b-0 group-focus-within:text-foreground/80 group-focus-within:border-t-focus group-focus-within:border-x-focus transition-colors duration-200'>
+                {t('Completion Message')}
+              </h3>
+              <HyloEditor
+                key={track.id}
+                containerClassName='mt-2'
+                contentHTML={track.completionMessage}
+                className='h-full p-2 border-border border-2 border-dashed min-h-20 mt-1'
+                extendedMenu
+                groupIds={[space.id]}
+                placeholder={t('This message will be shown to members who complete the track')}
+                ref={completionMessageEditorRef}
+                showMenu
+                type='trackCompletionMessage'
+              />
+            </div>
+
+            <div>
+              <label className='text-sm text-foreground/70'>{t('Completion badge or role')}</label>
+              <div className='flex flex-row items-center relative p-1 border-transparent transition-all duration-200 group focus-within:border-focus mt-1'>
+                <Select
+                  onValueChange={(roleId) => {
+                    const role = roles.find(r => r.id === roleId)
+                    if (role) setCompletionRole(role)
+                  }}
+                  value={completionRole?.id || ''}
+                >
+                  <SelectTrigger className='w-fit border-2 bg-input border-foreground/30 rounded-md p-2 text-base'>
+                    <SelectValue>
+                      {selectedCompletionRole ? `${selectedCompletionRole.emoji} ${selectedCompletionRole.name}` : t('Select a badge or role given to members who complete the track')}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {roles.map((role) => (
+                      <SelectItem key={role.id} value={role.id}>
+                        {role.emoji} {role.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
+              <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 focus-within:border-focus'>
+                <div className='text-xs text-foreground/50 w-[90px]'>{t('Unit term')}</div>
+                <input
+                  className='p-2 border-none bg-transparent w-full outline-none'
+                  maxLength='40'
+                  name='actionDescriptor'
+                  onChange={e => setActionDescriptor(e.target.value)}
+                  value={actionDescriptor}
+                  type='text'
+                />
+              </div>
+              <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 focus-within:border-focus'>
+                <div className='text-xs text-foreground/50 w-[90px]'>{t('Unit term plural')}</div>
+                <input
+                  className='p-2 border-none bg-transparent w-full outline-none'
+                  maxLength='40'
+                  name='actionDescriptorPlural'
+                  onChange={e => setActionDescriptorPlural(e.target.value)}
+                  value={actionDescriptorPlural}
+                  type='text'
+                />
+              </div>
+            </div>
+
+            <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
+              <div className='flex items-center gap-2'>
+                <button
+                  type='button'
+                  className={cn('p-2 rounded-md transition-colors', publishedAt ? 'bg-foreground/10' : 'bg-accent text-white')}
+                  onClick={() => setPublishedAt(null)}
+                >
+                  <EyeOff className='w-5 h-5' />
+                </button>
+                <button
+                  type='button'
+                  className={cn('p-2 rounded-md transition-colors', publishedAt ? 'bg-accent text-white' : 'bg-foreground/10')}
+                  onClick={() => setPublishedAt(new Date().toISOString())}
+                >
+                  <Eye className='w-5 h-5' />
+                </button>
+                <span>{publishedAt ? t('Published') : t('Unpublished')}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {fundingRound?.id && (
+          <FundingRoundSettingsFields
+            publishedAt={frPublishedAt}
+            setPublishedAt={setFrPublishedAt}
+            submissionDescriptor={frSubmissionDescriptor}
+            setSubmissionDescriptor={setFrSubmissionDescriptor}
+            submissionDescriptorPlural={frSubmissionDescriptorPlural}
+            setSubmissionDescriptorPlural={setFrSubmissionDescriptorPlural}
+            submissionsOpenAt={frSubmissionsOpenAt}
+            setSubmissionsOpenAt={setFrSubmissionsOpenAt}
+            submissionsCloseAt={frSubmissionsCloseAt}
+            setSubmissionsCloseAt={setFrSubmissionsCloseAt}
+            votingOpensAt={frVotingOpensAt}
+            setVotingOpensAt={setFrVotingOpensAt}
+            votingClosesAt={frVotingClosesAt}
+            setVotingClosesAt={setFrVotingClosesAt}
+            votingMethod={frVotingMethod}
+            setVotingMethod={setFrVotingMethod}
+            totalTokens={frTotalTokens}
+            setTotalTokens={setFrTotalTokens}
+            tokenType={frTokenType}
+            setTokenType={setFrTokenType}
+            allowSelfVoting={frAllowSelfVoting}
+            setAllowSelfVoting={setFrAllowSelfVoting}
+            hideFinalResults={frHideFinalResults}
+            setHideFinalResults={setFrHideFinalResults}
+            submitterRoles={frSubmitterRoles}
+            setSubmitterRoles={setFrSubmitterRoles}
+            voterRoles={frVoterRoles}
+            setVoterRoles={setFrVoterRoles}
+            roles={roles}
+            criteriaEditorRef={frCriteriaEditorRef}
+            groupIds={[space.id]}
+            editorKey={fundingRound.id}
+            initialCriteria={fundingRound.criteria}
+          />
+        )}
+      </div>
+
+      <div className='flex justify-end gap-2 mt-4 pt-2 border-t border-foreground/10'>
+        <Button variant='primary' onClick={onClose}>{t('Cancel')}</Button>
+        <Button variant='secondary' disabled={!name.trim() || isSaving} onClick={handleSave}>
+          {isSaving ? t('Saving...') : t('Save')}
+        </Button>
+      </div>
+    </div>
+  )
+
+  if (inline) return panel
+
   // Portal above AuthLayout nav stacking (nav is z-50); otherwise the left edge of the
   // centered panel sits under GlobalNav/ContextMenu and radio/checkbox hit targets miss.
   return createPortal(
     <div className='fixed inset-0 z-[1100] flex items-center justify-center bg-darkening/50 pointer-events-auto'>
-      <div className='bg-midground rounded-lg shadow-lg p-4 w-full max-w-md sm:max-w-[40rem] max-h-[85vh] flex flex-col'>
-        <h2 className='text-lg font-semibold mb-4'>{modalTitle}</h2>
-
-        <div className='flex flex-col gap-3 overflow-y-auto flex-1 min-h-0 p-1 -m-1'>
-          <UploadAttachmentButton
-            type='groupBanner'
-            onInitialUpload={({ url }) => setBannerUrl(url)}
-            className='w-full group'
-          >
-            <div
-              className={cn('relative w-full h-[20vh] flex flex-col items-center justify-center border-2 border-dashed border-foreground/50 rounded-lg shadow-md bg-cover bg-center bg-darkening/0 hover:bg-darkening/20 scale-1 hover:scale-105 transition-all cursor-pointer', { 'border-none': !!bannerUrl })}
-              style={{ backgroundImage: `url(${bannerUrl})` }}
-            >
-              <div className='flex flex-col items-center justify-center gap-1'>
-                <ImagePlus className='inline-block' />
-                <span className='ml-2 text-xs opacity-40 group-hover:opacity-100 transition-all'>{t('Set space banner')}</span>
-              </div>
-            </div>
-          </UploadAttachmentButton>
-
-          <div className='flex flex-col gap-1'>
-            <label className='text-sm text-foreground/70'>{t('Icon')}</label>
-            <div className='flex flex-wrap items-center gap-2'>
-              {SPACE_ICON_SUGGESTIONS.map(iconName => (
-                <button
-                  key={iconName}
-                  type='button'
-                  onClick={() => setIcon(iconName)}
-                  aria-label={iconName}
-                  className={cn(
-                    'flex items-center justify-center rounded-md border-2 p-2 transition-all',
-                    icon === iconName
-                      ? 'border-selected bg-selected/20'
-                      : 'border-foreground/20 hover:border-foreground/50'
-                  )}
-                >
-                  <LucideIcon name={iconName} className='w-4 h-4' />
-                </button>
-              ))}
-              <LucideIconPicker value={icon} onChange={setIcon} className='w-auto px-2 shrink-0' />
-            </div>
-          </div>
-
-          <div className='flex flex-col gap-1'>
-            <label className='text-sm text-foreground/70'>{t('Name')}</label>
-            <Input
-              value={name}
-              onChange={e => setName(e.target.value)}
-              placeholder={t('Space name')}
-            />
-          </div>
-
-          <div className='flex flex-col gap-1'>
-            <label className='text-sm text-foreground/70'>{t('Purpose')}</label>
-            <Input
-              value={purpose}
-              onChange={e => setPurpose(e.target.value)}
-              placeholder={t('What is this space for?')}
-            />
-          </div>
-
-          <div className='flex flex-col gap-1'>
-            <label className='text-sm text-foreground/70'>{t('Description')}</label>
-            <textarea
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-              placeholder={t('Description (optional)')}
-              rows={3}
-              className='w-full rounded-md border border-foreground/20 bg-input p-2 text-sm text-foreground'
-            />
-          </div>
-
-          <div className='flex flex-col gap-1'>
-            <label className='text-sm text-foreground/70'>{t('Location')}</label>
-            <LocationInput
-              locationObject={locationObject}
-              location={locationObject?.fullText || ''}
-              onChange={setLocationObject}
-              className='bg-input rounded-md text-foreground placeholder-foreground/40 w-full p-2 text-sm'
-            />
-          </div>
-
-          <PostTypePills
-            postTypes={postTypes}
-            onPostTypesChange={setPostTypes}
-            label={t('Accepted post types')}
-          />
-
-          <div className='flex flex-col gap-2'>
-            <label className='text-sm text-foreground/70'>{t('Access')}</label>
-            <RadioGroup value={access} onValueChange={setAccess}>
-              {accessOptions.map(option => (
-                <div key={option.value} className='flex flex-col gap-1 mb-2'>
-                  <div className='flex items-start gap-2'>
-                    <RadioGroupItem value={option.value} id={`space-settings-access-${option.value}`} className='mt-0.5 shrink-0' />
-                    <Label htmlFor={`space-settings-access-${option.value}`} className='cursor-pointer flex flex-wrap items-baseline gap-x-2'>
-                      <span>{t(option.labelKey)}</span>
-                      <span className='text-xs font-normal text-foreground/50'>{t(option.descKey)}</span>
-                    </Label>
-                  </div>
-                  {option.value === 'role' && access === 'role' && (
-                    <div className='ml-6 mt-1 flex flex-row items-center relative border-2 border-transparent shadow-md transition-all duration-200 group focus-within:border-focus bg-input rounded-md'>
-                      <TagInput
-                        tags={requiredRoles.map(role => ({ ...role, name: role.label || `${role.emoji} ${role.name}` }))}
-                        suggestions={roleSuggestions}
-                        handleInputChange={setRoleSearchTerm}
-                        handleAddition={(role) => {
-                          setRequiredRoles(prev => [...prev, role])
-                          setRoleSearchTerm('')
-                        }}
-                        handleDelete={(role) => {
-                          setRequiredRoles(prev => prev.filter(r => r.id !== role.id))
-                        }}
-                        placeholder={t('Search roles/badges')}
-                        allowNewTags={false}
-                        renderSuggestion={renderRoleSuggestion}
-                        onFocus={() => setRoleSearchTerm('')}
-                        onBlur={() => setRoleSearchTerm(null)}
-                      />
-                    </div>
-                  )}
-                </div>
-              ))}
-            </RadioGroup>
-          </div>
-
-          {track?.id && (
-            <div className='flex flex-col gap-3 border-t-2 border-foreground/10 pt-3 mt-1'>
-              <h3 className='text-base font-semibold'>{t('Track Settings')}</h3>
-
-              <div className='flex flex-col relative border-2 border-transparent shadow-md transition-all duration-200 focus-within:border-2 group focus-within:border-focus bg-input rounded-tr-md rounded-br-md rounded-bl-md mb-2'>
-                <h3 className='px-2 py-1 text-xs text-foreground/60 absolute -top-[36px] -translate-x-[2px] bg-input rounded-t-md border-t-2 border-x-2 border-transparent border-b-0 group-focus-within:text-foreground/80 group-focus-within:border-t-focus group-focus-within:border-x-focus transition-colors duration-200'>
-                  {t('Completion Message')}
-                </h3>
-                <HyloEditor
-                  key={track.id}
-                  containerClassName='mt-2'
-                  contentHTML={track.completionMessage}
-                  className='h-full p-2 border-border border-2 border-dashed min-h-20 mt-1'
-                  extendedMenu
-                  groupIds={[space.id]}
-                  placeholder={t('This message will be shown to members who complete the track')}
-                  ref={completionMessageEditorRef}
-                  showMenu
-                  type='trackCompletionMessage'
-                />
-              </div>
-
-              <div>
-                <label className='text-sm text-foreground/70'>{t('Completion badge or role')}</label>
-                <div className='flex flex-row items-center relative p-1 border-transparent transition-all duration-200 group focus-within:border-focus mt-1'>
-                  <Select
-                    onValueChange={(roleId) => {
-                      const role = roles.find(r => r.id === roleId)
-                      if (role) setCompletionRole(role)
-                    }}
-                    value={completionRole?.id || ''}
-                  >
-                    <SelectTrigger className='w-fit border-2 bg-input border-foreground/30 rounded-md p-2 text-base'>
-                      <SelectValue>
-                        {selectedCompletionRole ? `${selectedCompletionRole.emoji} ${selectedCompletionRole.name}` : t('Select a badge or role given to members who complete the track')}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {roles.map((role) => (
-                        <SelectItem key={role.id} value={role.id}>
-                          {role.emoji} {role.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
-                <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 focus-within:border-focus'>
-                  <div className='text-xs text-foreground/50 w-[90px]'>{t('Unit term')}</div>
-                  <input
-                    className='p-2 border-none bg-transparent w-full outline-none'
-                    maxLength='40'
-                    name='actionDescriptor'
-                    onChange={e => setActionDescriptor(e.target.value)}
-                    value={actionDescriptor}
-                    type='text'
-                  />
-                </div>
-                <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 focus-within:border-focus'>
-                  <div className='text-xs text-foreground/50 w-[90px]'>{t('Unit term plural')}</div>
-                  <input
-                    className='p-2 border-none bg-transparent w-full outline-none'
-                    maxLength='40'
-                    name='actionDescriptorPlural'
-                    onChange={e => setActionDescriptorPlural(e.target.value)}
-                    value={actionDescriptorPlural}
-                    type='text'
-                  />
-                </div>
-              </div>
-
-              <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
-                <div className='flex items-center gap-2'>
-                  <button
-                    type='button'
-                    className={cn('p-2 rounded-md transition-colors', publishedAt ? 'bg-foreground/10' : 'bg-accent text-white')}
-                    onClick={() => setPublishedAt(null)}
-                  >
-                    <EyeOff className='w-5 h-5' />
-                  </button>
-                  <button
-                    type='button'
-                    className={cn('p-2 rounded-md transition-colors', publishedAt ? 'bg-accent text-white' : 'bg-foreground/10')}
-                    onClick={() => setPublishedAt(new Date().toISOString())}
-                  >
-                    <Eye className='w-5 h-5' />
-                  </button>
-                  <span>{publishedAt ? t('Published') : t('Unpublished')}</span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {fundingRound?.id && (
-            <FundingRoundSettingsFields
-              publishedAt={frPublishedAt}
-              setPublishedAt={setFrPublishedAt}
-              submissionDescriptor={frSubmissionDescriptor}
-              setSubmissionDescriptor={setFrSubmissionDescriptor}
-              submissionDescriptorPlural={frSubmissionDescriptorPlural}
-              setSubmissionDescriptorPlural={setFrSubmissionDescriptorPlural}
-              submissionsOpenAt={frSubmissionsOpenAt}
-              setSubmissionsOpenAt={setFrSubmissionsOpenAt}
-              submissionsCloseAt={frSubmissionsCloseAt}
-              setSubmissionsCloseAt={setFrSubmissionsCloseAt}
-              votingOpensAt={frVotingOpensAt}
-              setVotingOpensAt={setFrVotingOpensAt}
-              votingClosesAt={frVotingClosesAt}
-              setVotingClosesAt={setFrVotingClosesAt}
-              votingMethod={frVotingMethod}
-              setVotingMethod={setFrVotingMethod}
-              totalTokens={frTotalTokens}
-              setTotalTokens={setFrTotalTokens}
-              tokenType={frTokenType}
-              setTokenType={setFrTokenType}
-              allowSelfVoting={frAllowSelfVoting}
-              setAllowSelfVoting={setFrAllowSelfVoting}
-              hideFinalResults={frHideFinalResults}
-              setHideFinalResults={setFrHideFinalResults}
-              submitterRoles={frSubmitterRoles}
-              setSubmitterRoles={setFrSubmitterRoles}
-              voterRoles={frVoterRoles}
-              setVoterRoles={setFrVoterRoles}
-              roles={roles}
-              criteriaEditorRef={frCriteriaEditorRef}
-              groupIds={[space.id]}
-              editorKey={fundingRound.id}
-              initialCriteria={fundingRound.criteria}
-            />
-          )}
-        </div>
-
-        <div className='flex justify-end gap-2 mt-4 pt-2 border-t border-foreground/10'>
-          <Button variant='primary' onClick={onClose}>{t('Cancel')}</Button>
-          <Button variant='secondary' disabled={!name.trim() || isSaving} onClick={handleSave}>
-            {isSaving ? t('Saving...') : t('Save')}
-          </Button>
-        </div>
-      </div>
+      {panel}
     </div>,
     document.body
   )

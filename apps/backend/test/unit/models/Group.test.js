@@ -611,4 +611,33 @@ describe('Group', function () {
       expect(storageModule.writeStringToS3).to.not.have.been.called
     })
   })
+
+  describe('.agreements', function () {
+    let user, parent, space
+
+    before(async function () {
+      user = await factories.user().save()
+      parent = await factories.group({ active: true }).save()
+      await user.joinGroup(parent)
+      await parent.update({ agreements: [{ title: 'Be kind', description: 'Please be kind' }] }, user.id)
+      space = await factories.group({ active: true, type: 'space', parent_id: parent.id }).save()
+    })
+
+    it('returns the parent group agreements for a space', async function () {
+      const parentAgreements = await parent.agreements().fetch()
+      const spaceAgreements = await space.agreements().fetch()
+      expect(spaceAgreements.length).to.equal(parentAgreements.length)
+      expect(spaceAgreements.length).to.be.above(0)
+      expect(spaceAgreements.models[0].id).to.equal(parentAgreements.models[0].id)
+      expect(spaceAgreements.models[0].get('title')).to.equal('Be kind')
+    })
+
+    it('does not copy agreements onto the space when updating', async function () {
+      await space.update({ agreements: [{ title: 'Space only', description: 'Should not save' }] }, user.id)
+      const ownRows = await GroupAgreement.where({ group_id: space.id }).fetchAll()
+      expect(ownRows.length).to.equal(0)
+      const spaceAgreements = await space.agreements().fetch()
+      expect(spaceAgreements.models[0].get('title')).to.equal('Be kind')
+    })
+  })
 })

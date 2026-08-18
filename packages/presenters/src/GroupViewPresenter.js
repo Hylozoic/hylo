@@ -69,7 +69,7 @@ export const COMMON_VIEWS = {
     iconName: 'Globe'
   },
   members: {
-    name: 'Members',
+    name: 'Active Members',
     iconName: 'People'
   },
   moderation: {
@@ -122,7 +122,7 @@ export const COMMON_VIEWS = {
 /** View types that use a Lucide icon instead of the Hylo icon font. */
 const VIEW_TYPE_TO_LUCIDE_ICON = {
   all: 'Activity',
-  chat: 'MessageSquareMore',
+  chat: 'MessageCircleMore',
   collection: 'Layers',
   'funding-round-submissions': 'ClipboardList',
   'manage-round': 'Settings',
