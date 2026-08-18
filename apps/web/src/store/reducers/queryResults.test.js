@@ -11,6 +11,8 @@ import { FETCH_MEMBERS } from 'routes/Members/Members.store'
 import {
   REMOVE_POST_PENDING
 } from 'store/constants'
+import { RECEIVE_POST } from 'components/SocketListener/SocketListener.store'
+import { OPTIMISTIC_NOTICE_PREFIX } from 'store/util/chatActivityNotice'
 
 const variables = { activePostsOnly: false, context: 'groups', slug: 'foo', sortBy: 'name' }
 
@@ -273,6 +275,72 @@ describe('matchNewPostIntoQueryResults', () => {
       }
     })
   })
+
+  it('moves a chat_activity notice to the front of All Activity', () => {
+    const state = {
+      '{"type":"FETCH_POSTS","params":{"childPostInclusion":"yes","context":"groups","filter":"all+notices","slug":"bar","sortBy":"created"}}': {
+        hasMore: true,
+        ids: ['18', 'notice-1', '11'],
+        total: 3
+      }
+    }
+    const post = {
+      id: 'notice-1',
+      type: 'chat_activity',
+      groups: [{ slug: 'bar' }]
+    }
+    expect(matchNewPostIntoQueryResults(state, post)).toEqual({
+      '{"type":"FETCH_POSTS","params":{"childPostInclusion":"yes","context":"groups","filter":"all+notices","slug":"bar","sortBy":"created"}}': {
+        hasMore: true,
+        ids: ['notice-1', '18', '11'],
+        total: 3
+      }
+    })
+  })
+
+  it('prepends a new chat_activity notice onto All Activity', () => {
+    const state = {
+      '{"type":"FETCH_POSTS","params":{"childPostInclusion":"yes","context":"groups","filter":"all+notices","slug":"bar","sortBy":"created"}}': {
+        hasMore: true,
+        ids: ['18', '11'],
+        total: 2
+      }
+    }
+    const post = {
+      id: 'notice-2',
+      type: 'chat_activity',
+      groups: [{ slug: 'bar' }]
+    }
+    expect(matchNewPostIntoQueryResults(state, post)).toEqual({
+      '{"type":"FETCH_POSTS","params":{"childPostInclusion":"yes","context":"groups","filter":"all+notices","slug":"bar","sortBy":"created"}}': {
+        hasMore: true,
+        ids: ['notice-2', '18', '11'],
+        total: 3
+      }
+    })
+  })
+
+  it('matches a space notice into the parent group All Activity', () => {
+    const state = {
+      '{"type":"FETCH_POSTS","params":{"childPostInclusion":"yes","context":"groups","filter":"all+notices","groupId":"1","slug":"parent","sortBy":"created"}}': {
+        hasMore: true,
+        ids: ['18', '11'],
+        total: 2
+      }
+    }
+    const post = {
+      id: 'notice-3',
+      type: 'chat_activity',
+      groups: [{ slug: 'space', parentId: '1' }]
+    }
+    expect(matchNewPostIntoQueryResults(state, post)).toEqual({
+      '{"type":"FETCH_POSTS","params":{"childPostInclusion":"yes","context":"groups","filter":"all+notices","groupId":"1","slug":"parent","sortBy":"created"}}': {
+        hasMore: true,
+        ids: ['notice-3', '18', '11'],
+        total: 3
+      }
+    })
+  })
 })
 
 describe('matchNewThreadIntoQueryResults', () => {
@@ -293,6 +361,39 @@ describe('matchNewThreadIntoQueryResults', () => {
         ids: ['27', '20', '21'],
         total: false
       }
+    })
+  })
+})
+
+describe('RECEIVE_POST chat_activity', () => {
+  it('replaces an optimistic notice id and moves the real card to the front', () => {
+    const allActivityKey = '{"type":"FETCH_POSTS","params":{"childPostInclusion":"yes","context":"groups","filter":"all+notices","slug":"bar","sortBy":"created"}}'
+    const optimisticId = `${OPTIMISTIC_NOTICE_PREFIX}10:2026-08-14T04`
+    const state = {
+      [allActivityKey]: {
+        hasMore: true,
+        ids: [optimisticId, '18', '11'],
+        total: 3
+      }
+    }
+    const action = {
+      type: RECEIVE_POST,
+      payload: {
+        data: {
+          post: {
+            id: '500',
+            type: 'chat_activity',
+            noticeData: { bucketKey: '10:2026-08-14T04' },
+            groups: [{ slug: 'bar' }]
+          }
+        }
+      }
+    }
+
+    expect(queryResults(state, action)[allActivityKey]).toEqual({
+      hasMore: true,
+      ids: ['500', '18', '11'],
+      total: 3
     })
   })
 })

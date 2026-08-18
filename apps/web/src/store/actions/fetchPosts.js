@@ -17,6 +17,7 @@ export default function fetchPosts ({
   filter,
   first,
   forCollection,
+  groupId,
   interactedWithBy,
   mentionsOf,
   offset,
@@ -76,9 +77,15 @@ export default function fetchPosts ({
     },
     meta: {
       slug,
+      groupId,
       extractModel,
       extractQueryResults: {
-        getItems
+        getItems,
+        getRouteParams: ({ meta }) => {
+          const params = { ...meta.graphql.variables }
+          if (meta.groupId) params.groupId = meta.groupId
+          return params
+        }
       }
     }
   }

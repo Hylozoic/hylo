@@ -36,6 +36,10 @@ import RoundPhaseStatus from './RoundPhaseStatus'
 import SubmissionCard from './SubmissionCard'
 import { getRoundPhaseMeta } from './phaseUtils'
 
+// Stable reference for the no-round branch below — a fresh [] each call reads as a
+// changed selection and rerenders on every store event.
+const EMPTY_POSTS = []
+
 const getPosts = ormCreateSelector(
   orm,
   (session, round, sortByTokens) => round.submissions,
@@ -122,7 +126,7 @@ export default function FundingRoundSubmissionsView () {
 
   const { currentPhase } = getRoundPhaseMeta(round || {})
   const shouldSortByTokens = currentPhase === 'completed' && (!round?.hideFinalResultsFromParticipants || canManageRound)
-  const posts = useSelector(state => round ? getPosts(state, round, shouldSortByTokens) : [])
+  const posts = useSelector(state => round ? getPosts(state, round, shouldSortByTokens) : EMPTY_POSTS)
 
   const postsForDisplay = useMemo(() => {
     if (!round) return []

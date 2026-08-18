@@ -54,7 +54,17 @@ export default function SocketSubscriber ({ id, type }) {
 
     const reconnectHandler = subscribe()
 
-    return () => unsubscribe(reconnectHandler)
+    // Waking the tab re-posts the (idempotent) subscribe: the server answers
+    // with a fresh roster, reconciling any presence events missed while asleep
+    const handleVisible = () => {
+      if (document.visibilityState === 'visible') reconnectHandler()
+    }
+    document.addEventListener('visibilitychange', handleVisible)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisible)
+      unsubscribe(reconnectHandler)
+    }
   }, [id, type])
 
   return null

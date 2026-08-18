@@ -1,4 +1,5 @@
 /* global FundingRound ContentAccess Draft GroupView GroupViewUser CollectionPost */
+import DataLoader from 'dataloader'
 import { camelCase, isNil, mapKeys, startCase } from 'lodash/fp'
 import pluralize from 'pluralize'
 import { TextHelpers } from '@hylo/shared'
@@ -80,11 +81,34 @@ function filterGroupRolesByGroup (relation, { groupId, slug }) {
   })
 }
 
+/** Parses posts.notice_data whether Postgres returned an object or a JSON string. */
+function parsePostNoticeData (post) {
+  const value = post.get('notice_data')
+  if (!value) return null
+  if (typeof value !== 'string') return value
+  try {
+    return JSON.parse(value)
+  } catch (e) {
+    return null
+  }
+}
+
 export default function makeModels (userId, isAdmin, apiClient) {
   const nonAdminFilter = makeFilterToggle(!isAdmin)
 
   // XXX: for now give super API users more access, in the future track which groups each client can access
   const apiFilter = makeFilterToggle(!apiClient || !apiClient.super)
+
+  // One query per All Activity page for every notice's recentPostIds
+  const noticeChatPostsLoader = new DataLoader(async (ids) => {
+    const posts = await Post.query(q => {
+      q.whereIn('posts.id', ids)
+      q.where('posts.active', true)
+      q.where('posts.type', Post.Type.CHAT)
+    }).fetchAll()
+    const byId = new Map(posts.models.map(post => [String(post.id), post]))
+    return ids.map(id => byId.get(String(id)) || null)
+  }, { cacheKeyFn: id => String(id) })
 
   // Mirrors Post#followers() (following + active posts_users + active users) for GraphQL totals
   async function postActiveFollowersCount (post) {
@@ -363,7 +387,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'created_at',
         'updated_at'
       ],
-      relations: ['post', 'reporter', 'agreements', 'platformAgreements'],
+      relations: ['post', 'reporter', 'agreements', 'platformAgreements', 'group'],
       getters: {
         anonymous: ma => ma.get('anonymous') === 'true'
       },
@@ -558,6 +582,17 @@ export default function makeModels (userId, isAdmin, apiClient) {
           userId && p.isEvent()
             ? p.userEventInvitation(userId).then(eventInvitation => eventInvitation ? eventInvitation.get('response') : '')
             : '',
+        noticeData: p => parsePostNoticeData(p),
+        noticePosts: async p => {
+          try {
+            const ids = parsePostNoticeData(p)?.recentPostIds || []
+            if (!ids.length) return []
+            const posts = await noticeChatPostsLoader.loadMany(ids)
+            return posts.filter(Boolean)
+          } catch (e) {
+            return []
+          }
+        },
         savedAt: p => p.savedAtForUser(userId),
         tokensAllocated: async p => {
           if (!userId) return null
@@ -1001,6 +1036,12 @@ export default function makeModels (userId, isAdmin, apiClient) {
         stewardDescriptorPlural: (g) => g.get('steward_descriptor_plural') || 'Stewards',
         // Get number of prerequisite groups that current user is not a member of yet
         numPrerequisitesLeft: g => g.numPrerequisitesLeft(userId),
+        openJoinRequestCount: async g => {
+          if (!userId) return 0
+          const canAddMembers = await GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADD_MEMBERS)
+          if (!canAddMembers) return 0
+          return g.get('num_open_join_requests') || 0
+        },
         pendingInvitations: (g, { first }) => InvitationService.find({ groupId: g.id, pendingOnly: true }),
         responsibilities: async g => g.availableResponsibilities().fetch(),
         settings: g => mapKeys(camelCase, g.get('settings')),
@@ -1041,7 +1082,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'order',
         'icon',
         'page_content',
-        'link',
         'topics',
         'settings'
       ],
@@ -1052,6 +1092,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'viewUser'
       ],
       getters: {
+        // Protocol-less values like google.com become https:// so every client gets a clickable URL.
+        link: gv => TextHelpers.sanitizeURL(gv.get('link')) || gv.get('link'),
         // collectionPosts resolves to the actual Posts (not the join rows) per the GraphQL schema.
         // Re-applies the same visibility rules as every other Post query (active, membership,
         // public, blocked-user) since this is a custom getter and bypasses the generic Post filter.

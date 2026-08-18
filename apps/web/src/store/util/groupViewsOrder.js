@@ -293,7 +293,7 @@ export function syncAcceptedPostTypesInMenus (groups, spaceId, acceptedPostTypes
 
 /**
  * Merge a reordered in-menu list with existing off-menu views (order = null).
- * Reorder UIs only pass ordered rows; replacing the whole blob would wipe More Views.
+ * Reorder UIs only pass ordered rows; replacing the whole blob would wipe off-menu spaces.
  */
 export function mergeReorderedWithHidden (existingItems, reorderedItems) {
   const itemsWithOrder = (reorderedItems || []).map((view, index) => ({ ...view, order: index }))

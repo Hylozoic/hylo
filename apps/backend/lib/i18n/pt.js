@@ -69,7 +69,9 @@ exports.pt = {
   textForGroupInvitationAccepted: ({ actor, groupName }) => `${actor.get('name')} aceitou seu convite para entrar em ${groupName}`,
   textForGroupPeerGroupInvite: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} convidou seu grupo ${toGroup.get('name')} a formar uma relação de pares com ${fromGroup.get('name')}`,
   textForGroupPeerGroupInviteAccepted: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} aceitou a relação de pares entre ${fromGroup.get('name')} e ${toGroup.get('name')}`,
-  textForJoinRequest: ({ actor, groupName }) => `${actor.get('name')} pediu para entrar em ${groupName}`,
+  textForJoinRequest: ({ actor, groupName, parentGroupName }) => parentGroupName
+    ? `${actor.get('name')} pediu para entrar em ${groupName} em ${parentGroupName}`
+    : `${actor.get('name')} pediu para entrar em ${groupName}`,
   textForMemberJoinedGroup: ({ group, actor }) => `Novo membro entrou em ${group.get('name')}: ${actor.get('name')}`,
   textForPostModeratedFulfillment: ({ post, actor, reason }) => {
     const postName = post.summary()

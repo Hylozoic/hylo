@@ -100,6 +100,60 @@ describe('Activity', function () {
       expect(actual).to.deep.equal(expected)
     })
 
+    it('returns an in-app notification for a chat when postNotifications = all', async () => {
+      const memberships = [
+        {
+          settings: { postNotifications: 'all' },
+          relations: {
+            group: { id: 1 }
+          }
+        }
+      ]
+
+      const activity = model({
+        meta: { reasons: ['chat'] },
+        post_id: 1,
+        relations: {
+          post: {
+            relations: {
+              groups: [{ id: 1 }]
+            }
+          },
+          reader: mockUser(memberships, userSettings)
+        }
+      })
+
+      const actual = await Activity.generateNotificationMedia(activity)
+      expect(actual).to.deep.equal([Notification.MEDIUM.InApp])
+    })
+
+    it('does not notify for a chat when postNotifications = none', async () => {
+      const memberships = [
+        {
+          settings: { sendEmail: true, sendPushNotifications: true, postNotifications: 'none' },
+          relations: {
+            group: { id: 1 }
+          }
+        }
+      ]
+
+      const activity = model({
+        meta: { reasons: ['chat'] },
+        post_id: 1,
+        relations: {
+          post: {
+            relations: {
+              groups: [{ id: 1 }]
+            }
+          },
+          reader: mockUser(memberships, userSettings)
+        }
+      })
+
+      const actual = await Activity.generateNotificationMedia(activity)
+      expect(actual).to.deep.equal([])
+    })
+
     it('returns a push and email for an announcement post if post_notifications = important', async () => {
       const memberships = [
         {

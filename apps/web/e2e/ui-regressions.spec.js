@@ -40,9 +40,9 @@ test('directly loaded space closes to group home', async ({ page }) => {
   console.log('space href:', href)
   expect(href).not.toBeNull()
 
-  // Direct-load the space-menu takeover (more-views ?space= shows the
+  // Direct-load the space-menu takeover (more-spaces ?space= shows the
   // SpaceMenuHeader with its X) with no in-app history to return to
-  await page.goto('/groups/building-hylo/more-views?space=test-space')
+  await page.goto('/groups/building-hylo/more-spaces?space=test-space')
   await page.waitForLoadState('domcontentloaded')
   await page.waitForTimeout(6000)
   await page.screenshot({ path: 'e2e/screenshots/space-direct.png' })

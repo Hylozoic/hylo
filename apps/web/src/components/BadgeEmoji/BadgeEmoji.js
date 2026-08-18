@@ -4,7 +4,7 @@ import { cn } from 'util/index'
 import Tooltip from 'components/Tooltip'
 import classes from './badgeEmoji.module.scss'
 
-export default function Badge ({ emoji, expanded, className, common, border, onClick, name, id, responsibilities = [] }) {
+export default function Badge ({ emoji, expanded, className, common, border, onClick, name, id, showName = false, responsibilities = [] }) {
   if (!emoji) return null
 
   // TODO: why is this items?
@@ -41,14 +41,24 @@ export default function Badge ({ emoji, expanded, className, common, border, onC
       <span
         className={cn(
           className,
-          expanded ? 'border-2 border-selected/20 p-[1px] rounded-sm bg-selected/10 text-xs hover:cursor-pointer hover:bg-selected/30 hover:border-selected/40 hover:scale-105 transition-all' : classes.badgeCollapsed,
-          { [classes.border]: border, 'bg-focus/10 border-focus/20 hover:bg-focus/30 hover:border-focus/40': common }
+          // Neutral, desaturated chip per the style guide: a quiet surface behind
+          // the emoji that reads in both themes, border unsaturated
+          expanded
+            ? cn(
+              'inline-flex items-center gap-1 py-0.5 rounded-full text-xs bg-foreground/10 border border-foreground/15 hover:cursor-pointer hover:bg-foreground/20 hover:border-foreground/25 hover:scale-105 transition-all',
+              showName && name ? 'px-1.5' : 'px-1'
+            )
+            : classes.badgeCollapsed,
+          { [classes.border]: border }
         )}
         onClick={onClick}
         data-tooltip-id={tooltipId}
         data-tooltip-position-strategy='fixed'
       >
-        <span className={expanded ? 'text-xs' : classes.badgeSymbolCollapsed}>{emoji}</span>
+        <span className={expanded ? 'text-xs leading-none' : classes.badgeSymbolCollapsed}>{emoji}</span>
+        {expanded && showName && name && (
+          <span className='text-xs leading-none text-foreground/80 whitespace-nowrap'>{name}</span>
+        )}
       </span>
       {typeof document !== 'undefined' && createPortal(tooltipContent, document.body)}
     </>

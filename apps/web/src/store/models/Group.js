@@ -23,6 +23,25 @@ export function accessibilityDescription (a) {
   }
 }
 
+/**
+ * Human-readable access sentence for a space, shown on the join page and about
+ * modal. requiredRoles are resolved role objects from the parent group.
+ */
+export function spaceAccessDescription ({ space, parentGroupName, requiredRoles = [], t }) {
+  if (space.paywall) return t('A paid membership is required to join this space')
+  if (requiredRoles.length > 0) {
+    const roleNames = requiredRoles.map(role => [role.emoji, role.name].filter(Boolean).join(' ')).join(', ')
+    return t('Only {{roleNames}} may join this space', { roleNames })
+  }
+  if (space.accessibility === GROUP_ACCESSIBILITY.Open) {
+    return t('Anyone in {{groupName}} can access this space', { groupName: parentGroupName })
+  }
+  if (space.accessibility === GROUP_ACCESSIBILITY.Restricted) {
+    return t('Members of {{groupName}} must request to join and be approved', { groupName: parentGroupName })
+  }
+  return t('You must be invited to join this space')
+}
+
 export function accessibilityIcon (a) {
   switch (a) {
     case GROUP_ACCESSIBILITY.Closed:
@@ -182,6 +201,7 @@ Group.fields = {
   }),
   members: many('Person'),
   memberCount: attr(),
+  openJoinRequestCount: attr(),
   stewards: many({
     to: 'Person',
     relatedName: 'stewardedGroups',
@@ -191,6 +211,7 @@ Group.fields = {
   stewardDescriptor: attr(),
   stewardDescriptorPlural: attr(),
   name: attr(),
+  parentGroup: fk({ to: 'Group', as: 'parentGroup', relatedName: 'childSpaceGroups' }),
   parentId: attr(),
   openOffersAndRequests: many({
     to: 'Post',

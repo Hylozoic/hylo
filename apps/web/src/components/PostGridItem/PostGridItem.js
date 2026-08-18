@@ -32,7 +32,7 @@ export default function PostGridItem ({
   const imageUrl = hasImage ? firstAttachment.url : null
 
   const { t } = useTranslation()
-  const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroupId)
+  const isFlagged = post.flaggedGroups && post.flaggedGroups.some(id => String(id) === String(currentGroupId))
   const viewPostDetails = useViewPostDetails()
 
   const groupLabel = childPost ? childGroupLabel(post, t) : null

@@ -26,18 +26,26 @@ function sortViewsByMenuOrder (views) {
   })
 }
 
+/** Builds a fresh getGroupViews selector.
+ * redux-orm memoizes exactly one result per selector, so components that render many
+ * instances against different groups evict each other's cache and get a new array every
+ * render. Those should hold their own instance — see useGroupViews. */
+export function makeGetGroupViews () {
+  return ormCreateSelector(
+    orm,
+    (state, group) => group?.id,
+    (session, groupId) => {
+      if (!groupId) return []
+      const group = session.Group.withId(groupId)
+      if (!group) return []
+      return sortViewsByMenuOrder(group.groupViews?.items || [])
+    }
+  )
+}
+
 /** Returns the ordered GroupView items for a given group object, or [] if not yet loaded.
  * Includes hidden views (order = null) at the end — filter for the live menu separately. */
-export const getGroupViews = ormCreateSelector(
-  orm,
-  (state, group) => group?.id,
-  (session, groupId) => {
-    if (!groupId) return []
-    const group = session.Group.withId(groupId)
-    if (!group) return []
-    return sortViewsByMenuOrder(group.groupViews?.items || [])
-  }
-)
+export const getGroupViews = makeGetGroupViews()
 
 /** Returns a single GroupView from a group's menu (including nested space views). */
 export const getGroupViewById = ormCreateSelector(

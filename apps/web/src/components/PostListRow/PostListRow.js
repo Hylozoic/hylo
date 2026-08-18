@@ -42,7 +42,7 @@ const PostListRow = (props) => {
   const typeName = post.type.charAt(0).toUpperCase() + typeLowercase.slice(1)
   const groupLabel = childPost ? childGroupLabel(post, t) : null
   const unread = false
-  const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroupId)
+  const isFlagged = post.flaggedGroups && post.flaggedGroups.some(id => String(id) === String(currentGroupId))
 
   let subtitle = null
   if (post.type === 'event' && post.startTime) {

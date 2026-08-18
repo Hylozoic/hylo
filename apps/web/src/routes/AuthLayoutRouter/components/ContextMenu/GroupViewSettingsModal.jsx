@@ -22,6 +22,7 @@ import fetchForGroup from 'store/actions/fetchForGroup'
 import { updateGroupSettings } from 'routes/GroupSettings/GroupSettings.store'
 import { canDeleteView, canHardDeleteView, canSetAsHomeView, isSoftRemoveView, viewTypeHasSettings } from 'store/models/GroupView'
 import { cn } from 'util/index'
+import { sanitizeURL } from 'util/url'
 
 /** Build initial custom view form state from a GroupView record. */
 function customViewFormState (view) {
@@ -52,6 +53,7 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
   const [textContent, setTextContent] = useState(() => textContentFromView(view))
   const [showWelcomePage, setShowWelcomePage] = useState(group?.settings?.showWelcomePage ?? true)
   const [showPostNoticesInChat, setShowPostNoticesInChat] = useState(group?.settings?.showPostNoticesInChat ?? true)
+  const [showChatActivity, setShowChatActivity] = useState(view?.settings?.showChatActivity !== false)
   const [customForm, setCustomForm] = useState(() => customViewFormState(view))
   const [isSaving, setIsSaving] = useState(false)
 
@@ -62,6 +64,7 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
     setTextContent(textContentFromView(view))
     setShowWelcomePage(group?.settings?.showWelcomePage ?? true)
     setShowPostNoticesInChat(group?.settings?.showPostNoticesInChat ?? true)
+    setShowChatActivity(view?.settings?.showChatActivity !== false)
     setCustomForm(customViewFormState(view))
   }, [
     view?.id,
@@ -98,12 +101,22 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
         if (showPostNoticesInChat !== (group.settings?.showPostNoticesInChat ?? true)) {
           await dispatch(updateGroupSettings(group.id, { settings: { showPostNoticesInChat } }))
         }
+      } else if (view.type === 'all') {
+        await dispatch(updateGroupView({
+          id: view.id,
+          groupId: group.id,
+          settings: {
+            ...(view.settings || {}),
+            showChatActivity
+          }
+        }))
       } else if (view.type === 'link') {
+        const trimmedLink = link.trim()
         await dispatch(updateGroupView({
           id: view.id,
           groupId: group.id,
           name: name.trim() || null,
-          link: link.trim() || null,
+          link: trimmedLink ? (sanitizeURL(trimmedLink) || trimmedLink) : null,
           icon: linkIcon
         }))
       } else if (view.type === 'text') {
@@ -155,6 +168,7 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
     textContent,
     showWelcomePage,
     showPostNoticesInChat,
+    showChatActivity,
     onClose
   ])
 
@@ -235,6 +249,19 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
             </div>
           )}
 
+          {view.type === 'all' && (
+            <div className='flex items-center gap-2'>
+              <SwitchStyled
+                checked={showChatActivity}
+                onChange={() => setShowChatActivity(v => !v)}
+                backgroundColor={showChatActivity ? 'hsl(var(--selected))' : 'rgba(0 0 0 / .6)'}
+              />
+              <span className='text-sm text-foreground/80'>
+                {t('Show chat activity in All Activity')}
+              </span>
+            </div>
+          )}
+
           {view.type === 'link' && (
             <>
               <div className='flex flex-col gap-1'>
@@ -298,7 +325,7 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
 }
 
 /** Inline gear / remove controls shown on hover in edit mode.
- * X moves soft-removable views to More Views; trash permanently deletes when allowed. */
+ * X moves spaces to More Spaces; trash permanently deletes when allowed. */
 export function GroupViewEditActions ({ view, onSettings, onHide, onDelete, className }) {
   const { t } = useTranslation()
   const removable = canDeleteView(view)

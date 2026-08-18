@@ -42,6 +42,7 @@ export default function groupQueryFragment () {
     invitePath
     location
     memberCount
+    openJoinRequestCount
     stewardDescriptor
     stewardDescriptorPlural
     name

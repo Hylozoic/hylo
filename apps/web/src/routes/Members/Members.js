@@ -2,10 +2,11 @@ import { debounce, get } from 'lodash/fp'
 import React, { useEffect, useLayoutEffect, useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Helmet } from 'react-helmet'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import { isSystemGroupRole, sortCustomGroupRoles, sortSystemGroupRoles } from '@hylo/hooks/groupRoleHelpers'
 import { LayoutGrid, List, Search } from 'lucide-react'
+import CurrentlyActivePills, { DEFAULT_ACTIVE_MAX } from 'components/CurrentlyActiveMembers/CurrentlyActivePills'
 import Button from 'components/Button'
 import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
@@ -19,8 +20,8 @@ import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import usePillRowClamp from 'hooks/usePillRowClamp'
 import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
-import { groupUrl } from '@hylo/navigation'
-import { FETCH_MEMBERS, FETCH_MEMBERS_FOR_GRAPH, fetchMembers, fetchMembersForGraph, getMembers, getGraphMembers, getHasFetchedGraphMembers, getHasMoreMembers, getHasFetchedMembers, getMemberQueryProps, removeMember } from './Members.store'
+import { groupUrl, personUrl } from '@hylo/navigation'
+import { FETCH_MEMBERS, FETCH_MEMBERS_FOR_GRAPH, fetchMembers, fetchMembersForGraph, fetchRecentlyActiveMembers, fetchRoleMemberCounts, getMembers, getGraphMembers, getHasFetchedGraphMembers, getHasMoreMembers, getHasFetchedMembers, getMemberQueryProps, getRecentlyActiveMembers, removeMember } from './Members.store'
 import { fetchTrack } from 'store/actions/trackActions'
 import { fetchFundingRound } from 'routes/FundingRounds/FundingRounds.store'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
@@ -45,6 +46,7 @@ function Members (props) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const location = useLocation()
+  const navigate = useNavigate()
 
   const context = props.context
   const slug = useEffectiveGroupSlug()
@@ -63,6 +65,11 @@ function Members (props) {
   )
   const members = useSelector(state => getMembers(state, memberQueryProps))
   const graphMembers = useSelector(state => getGraphMembers(state, { slug }))
+  const recentlyActiveFetched = useSelector(state => getRecentlyActiveMembers(state, { slug, first: DEFAULT_ACTIVE_MAX }))
+  const currentlyActiveMembers = useMemo(
+    () => (recentlyActiveFetched || []).slice(0, DEFAULT_ACTIVE_MAX),
+    [recentlyActiveFetched]
+  )
   const graphPending = useSelector(state => state.pending[FETCH_MEMBERS_FOR_GRAPH])
   const hasFetchedGraphMembers = useSelector(state => getHasFetchedGraphMembers(state, { slug }))
   const hasMore = useSelector(state => getHasMoreMembers(state, memberQueryProps))
@@ -116,6 +123,32 @@ function Members (props) {
     ]
   }, [rolesSourceGroup])
 
+  // Spaces inherit role definitions from the parent, but their membership is
+  // their own — the parent-wide membersTotal on each role would advertise
+  // people who never joined this space. Fetch in-space counts instead.
+  const isSpaceContext = Boolean(group?.parentId)
+  const [spaceRoleCounts, setSpaceRoleCounts] = useState(null)
+  const roleIdsKey = useMemo(() => filterableRoles.map(r => r.id).join(','), [filterableRoles])
+  useEffect(() => {
+    if (!isSpaceContext || !slug || !roleIdsKey) return
+    let cancelled = false
+    dispatch(fetchRoleMemberCounts({ slug, roleIds: roleIdsKey.split(',') })).then(res => {
+      if (cancelled) return
+      const g = res?.payload?.data?.group || {}
+      const counts = {}
+      for (const id of roleIdsKey.split(',')) counts[id] = g[`r${id}`]?.total ?? 0
+      setSpaceRoleCounts(counts)
+    }).catch(() => {})
+    return () => { cancelled = true }
+  }, [isSpaceContext, slug, roleIdsKey, dispatch])
+
+  // In a space: only offer roles someone here actually holds, with real counts
+  const displayedRoles = useMemo(() => {
+    if (!isSpaceContext) return filterableRoles
+    if (!spaceRoleCounts) return filterableRoles
+    return filterableRoles.filter(role => spaceRoleCounts[role.id] > 0)
+  }, [isSpaceContext, filterableRoles, spaceRoleCounts])
+
   useEffect(() => {
     if (trackId) dispatch(fetchTrack(trackId))
   }, [dispatch, trackId])
@@ -128,11 +161,11 @@ function Members (props) {
   // Controlled so graph skill clicks can fill the box; typing stays debounced
   const [searchValue, setSearchValue] = useState(search || '')
   // Card grid vs compact list, per the members directory design
-  const [displayMode, setDisplayMode] = useState('card')
+  const [displayMode, setDisplayMode] = useState(props.defaultDisplayMode || 'card')
   // Role pills keep to one row behind a More pill until expanded; the count
   // includes the All-members pill since the hook measures container children
   const [rolesExpanded, setRolesExpanded] = useState(false)
-  const roleClamp = usePillRowClamp(filterableRoles.length + 1, 1, rolesExpanded)
+  const roleClamp = usePillRowClamp(displayedRoles.length + 1, 1, rolesExpanded)
 
   // Action creators
   const changeSearch = useCallback(term =>
@@ -162,6 +195,11 @@ function Members (props) {
     fetchMembersAction(0)
   }, [group?.id, slug, sortBy, search, groupRoleId, fetchMembersAction])
 
+  useEffect(() => {
+    if (!slug) return
+    dispatch(fetchRecentlyActiveMembers({ slug, first: DEFAULT_ACTIVE_MAX }))
+  }, [dispatch, slug])
+
   // The skills graph shows the whole membership, unaffected by directory filters
   useEffect(() => {
     if (!group?.id || !slug) return
@@ -174,14 +212,16 @@ function Members (props) {
   }, [changeSearch])
 
   const { setHeaderDetails } = useViewHeader()
+  const isAboutMembersTab = /\/about\/members/.test(location.pathname)
+  const pageTitle = isAboutMembersTab ? t('Members') : t('Member Directory')
   useEffect(() => {
     setHeaderDetails({
-      title: t('Member Directory'),
+      title: pageTitle,
       icon: '',
       info: '',
       search: true
     })
-  }, [t])
+  }, [t, pageTitle])
 
   const fetchMore = () => {
     if (pending || members.length === 0 || !hasMore) return
@@ -197,8 +237,18 @@ function Members (props) {
   return (
     <div className='h-auto w-full mx-auto max-w-[940px] pb-28' id='members-page'>
       <Helmet>
-        <title>{t('Members')} | {group ? `${group.name} | ` : ''}Hylo</title>
+        <title>{pageTitle} | {group ? `${group.name} | ` : ''}Hylo</title>
       </Helmet>
+      {currentlyActiveMembers.length > 0 && (
+        <div className='px-4 pt-4'>
+          <h3 className='text-sm font-semibold text-foreground/70 mb-2'>{t('Currently Active')}</h3>
+          <CurrentlyActivePills
+            members={currentlyActiveMembers}
+            max={DEFAULT_ACTIVE_MAX}
+            onPersonClick={person => navigate(personUrl(person.id, slug))}
+          />
+        </div>
+      )}
       {myResponsibilityTitles.includes(RESP_ADD_MEMBERS) && (
         <div className='flex items-center justify-between p-2'>
           <Link to={groupUrl(slug, 'settings/invite')}>
@@ -274,17 +324,18 @@ function Members (props) {
               <RolePill active={!groupRoleId} count={memberCount || null} onClick={() => changeRoleFilter(null)}>
                 {t('All members')}
               </RolePill>
-              {filterableRoles.map(role => {
+              {displayedRoles.map(role => {
                 const active = String(role.id) === String(groupRoleId)
+                const count = isSpaceContext ? (spaceRoleCounts?.[role.id] ?? null) : (role.membersTotal ?? null)
                 return (
-                  <RolePill key={role.id} active={active} count={role.membersTotal ?? null} onClick={() => changeRoleFilter(active ? null : role.id)}>
+                  <RolePill key={role.id} active={active} count={count} onClick={() => changeRoleFilter(active ? null : role.id)}>
                     {roleLabel(role)}
                   </RolePill>
                 )
               })}
               {!rolesExpanded && (
                 <RolePill onClick={() => setRolesExpanded(true)}>
-                  {t('More ({{count}})', { count: filterableRoles.length - Math.max(0, roleClamp.visibleCount - 1) })}
+                  {t('More ({{count}})', { count: displayedRoles.length - Math.max(0, roleClamp.visibleCount - 1) })}
                 </RolePill>
               )}
             </div>

@@ -322,6 +322,24 @@ describe('Post', function () {
         })
     })
 
+    it('creates activity for group members of a chat', () => {
+      const post = factories.post({user_id: u.id, type: Post.Type.CHAT})
+
+      return post.save()
+        .then(() => post.groups().attach(c.id))
+        .then(() => post.createActivities())
+        .then(() => Activity.where({post_id: post.id}).fetchAll())
+        .then(activities => {
+          expect(activities.length).to.equal(2)
+          expect(activities.pluck('reader_id').sort()).to.deep.equal([u2.id, u3.id].sort())
+          activities.forEach(activity => {
+            expect(activity.get('actor_id')).to.equal(u.id)
+            expect(activity.get('meta')).to.deep.equal({reasons: ['chat']})
+            expect(activity.get('unread')).to.equal(true)
+          })
+        })
+    })
+
     it('creates an activity for a tag follower', () => {
       const post = factories.post({
         user_id: u.id

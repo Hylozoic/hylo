@@ -15,6 +15,17 @@ describe('createPost', () => {
 
     expect(action.graphql.query).toMatch(/\$meetingLink:\s*String/)
     expect(action.graphql.query).toMatch(/meetingLink:\s*\$meetingLink/)
-    expect(action.graphql.variables.meetingLink).to.equal('https://zoom.us/j/123456789')
+    expect(action.graphql.variables.meetingLink).toEqual('https://zoom.us/j/123456789')
+  })
+
+  it('does not wait on chatActivityNotice in the create mutation', () => {
+    const action = createPost({
+      groups: [{ id: '1' }],
+      details: '<p>hi</p>',
+      type: 'chat'
+    })
+
+    expect(action.graphql.query).not.toMatch(/chatActivityNotice \{/)
+    expect(action.meta.extractModel.modelName).toEqual('Post')
   })
 })

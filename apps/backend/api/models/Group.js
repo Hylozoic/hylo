@@ -20,6 +20,7 @@ import { inviteGroupToGroup } from '../graphql/mutations/group'
 import { findOrCreateLocation } from '../graphql/mutations/location'
 import { whereId } from './group/queryUtils'
 import { getLocaleStrings } from '../../lib/i18n/locales'
+import { groupRoom, userRoom, pushToSockets } from '../services/Websockets'
 const { createGroupScope } = require('../../lib/scopes')
 
 export const GROUP_MEMBERSHIP_ATTR_UPDATE_WHITELIST = [
@@ -112,7 +113,14 @@ module.exports = bookshelf.Model.extend(merge({
 
   // ******** Getters ******* //
 
+  /**
+   * Active agreements for this group. Spaces inherit the parent group's agreements.
+   */
   agreements: function () {
+    const parentId = this.get('parent_id')
+    if (parentId) {
+      return Group.forge({ id: parentId }).agreements()
+    }
     return this.belongsToMany(Agreement).through(GroupAgreement)
       .where('groups_agreements.active', true)
       .withPivot(['order']).query(q => {
@@ -324,6 +332,11 @@ module.exports = bookshelf.Model.extend(merge({
 
   memberCount: function () {
     return this.get('num_members')
+  },
+
+  /** Cached count of pending (unprocessed) join requests. */
+  openJoinRequestCount: function () {
+    return this.get('num_open_join_requests') || 0
   },
 
   // This returns all members with the given responsibilities (ids or title strings)
@@ -566,12 +579,15 @@ module.exports = bookshelf.Model.extend(merge({
 
   // The posts to show for a particular user viewing a group's stream or map
   // includes direct posts to this group + posts to child groups (group_relationships)
-  // and child spaces (groups.parent_id) the user is a member of
+  // and child spaces (groups.parent_id) the user is an active member of
   viewPosts (userId) {
     const treeOfGroupsForMember = this.allChildGroups().query(q => {
       q.select('groups.id')
       q.join('group_memberships', 'group_memberships.group_id', 'groups.id')
-      q.where('group_memberships.user_id', userId)
+      q.where({
+        'group_memberships.user_id': userId,
+        'group_memberships.active': true
+      })
     })
 
     // Spaces link via parent_id, not group_relationships (see spaces() / spec §3.4)
@@ -582,7 +598,8 @@ module.exports = bookshelf.Model.extend(merge({
         'groups.parent_id': this.id,
         'groups.type': 'space',
         'groups.active': true,
-        'group_memberships.user_id': userId
+        'group_memberships.user_id': userId,
+        'group_memberships.active': true
       })
     })
 
@@ -597,7 +614,10 @@ module.exports = bookshelf.Model.extend(merge({
             q4.whereIn('groups_posts.group_id', treeOfGroupsForMember.query())
             q4.orWhereIn('groups_posts.group_id', childSpacesForMember.query())
           })
-          q3.andWhere('posts.user_id', '!=', User.AXOLOTL_ID)
+          q3.andWhere(q5 => {
+            q5.where('posts.user_id', '!=', User.AXOLOTL_ID)
+              .orWhereIn('posts.type', Post.NOTICE_TYPES)
+          })
         })
       })
     })
@@ -989,13 +1009,13 @@ module.exports = bookshelf.Model.extend(merge({
 
     // If location_id is explicitly set to something empty then set it to null
     // Otherwise leave it alone
-    saneAttrs.location_id = saneAttrs.hasOwnProperty('location_id') && isEmpty(saneAttrs.location_id) ? null : saneAttrs.location_id
+    saneAttrs.location_id = Object.prototype.hasOwnProperty.call(saneAttrs, 'location_id') && isEmpty(saneAttrs.location_id) ? null : saneAttrs.location_id
 
     // Make sure geometry column goes into the database correctly, converting from GeoJSON
     if (!isEmpty(attributes.geo_shape)) {
       const st = knexPostgis(bookshelf.knex)
       saneAttrs.geo_shape = st.geomFromGeoJSON(attributes.geo_shape)
-    } else if (saneAttrs.hasOwnProperty('geo_shape')) {
+    } else if (Object.prototype.hasOwnProperty.call(saneAttrs, 'geo_shape')) {
       // if geo_shape is explicitly set to an empty value then unset it
       saneAttrs.geo_shape = null
     }
@@ -1003,7 +1023,7 @@ module.exports = bookshelf.Model.extend(merge({
     this.set(saneAttrs)
     await this.validate()
     await bookshelf.transaction(async transacting => {
-      if (changes.agreements) {
+      if (changes.agreements && this.get('type') !== 'space' && !this.get('parent_id')) {
         const currentAgreementIds = (await this.agreements().fetch({ transacting })).pluck('id')
         const newAgreementIds = []
 
@@ -1388,7 +1408,6 @@ module.exports = bookshelf.Model.extend(merge({
       if (data.view_types) {
         await Group.setupSpaceViews(group.id, attrs.accepted_post_types, data.view_types, { transacting: trx })
       }
-      await GroupView.ensureOffMenuSystemViews(group.id, { transacting: trx })
 
       // Set lastReadAt when creating a new group to mark creator as having viewed the group already
       await group.addMembers([userId], { assignCoordinator: true, lastReadAt: new Date() }, { transacting: trx })
@@ -1399,6 +1418,8 @@ module.exports = bookshelf.Model.extend(merge({
           const parent = await Group.findActive(parentId, { transacting: trx })
 
           if (parent) {
+            // Spaces are containers inside a group — they can never parent a group
+            if (parent.get('type') === 'space') continue
             // Only allow for adding parent groups that the creator is a moderator of or that are Open
             const parentGroupMembership = await GroupMembership.forIds(userId, parentId, {
               query: q => { q.select('group_memberships.*', 'groups.accessibility as accessibility', 'groups.visibility as visibility') }
@@ -1586,8 +1607,6 @@ module.exports = bookshelf.Model.extend(merge({
         updated_at: now
       }).save(null, { transacting })
     }
-
-    await GroupView.ensureOffMenuSystemViews(spaceId, { transacting })
 
     // Persist home_route from the order-0 view so redirects work without loading all views
     if (rows.length > 0) {
@@ -1881,5 +1900,59 @@ module.exports = bookshelf.Model.extend(merge({
 
   updateAllMemberCounts () {
     return bookshelf.knex.raw('update groups set num_members = (select count(group_memberships.*) from group_memberships inner join users on users.id = group_memberships.user_id where group_memberships.active = true and users.active = true and group_memberships.group_id = groups.id)')
+  },
+
+  /**
+   * Atomically adjust the cached pending join-request count.
+   * Uses increment / GREATEST so concurrent create/accept cannot race a read-modify-write.
+   */
+  async adjustOpenJoinRequestCount (groupId, delta, transacting) {
+    if (!groupId || !delta) return
+    const knex = transacting || bookshelf.knex
+    if (delta > 0) {
+      await knex('groups').where('id', groupId).increment('num_open_join_requests', delta)
+    } else {
+      await knex.raw(
+        'UPDATE groups SET num_open_join_requests = GREATEST(0, COALESCE(num_open_join_requests, 0) + ?) WHERE id = ?',
+        [delta, groupId]
+      )
+    }
+    if (!transacting) await Group.broadcastOpenJoinRequestCount(groupId)
+  },
+
+  /**
+   * Push the current open join-request count to group/parent rooms and stewards.
+   */
+  async broadcastOpenJoinRequestCount (groupId) {
+    try {
+      const row = await bookshelf.knex('groups')
+        .where('id', groupId)
+        .select('id', 'parent_id', 'num_open_join_requests')
+        .first()
+      if (!row) return
+
+      const payload = {
+        groupId: String(row.id),
+        openJoinRequestCount: Number(row.num_open_join_requests) || 0
+      }
+      const rooms = [groupRoom(row.id)]
+      if (row.parent_id) rooms.push(groupRoom(row.parent_id))
+
+      const stewardRows = await Responsibility.fetchForGroup(groupId)
+      const stewardIds = [...new Set(
+        stewardRows
+          .filter(r => r.responsibility_title === Responsibility.constants.RESP_ADD_MEMBERS)
+          .map(r => r.user_id)
+      )]
+
+      await Promise.all([
+        ...rooms.map(room => pushToSockets(room, 'openJoinRequestCountUpdated', payload)),
+        ...stewardIds.map(id => pushToSockets(userRoom(id), 'openJoinRequestCountUpdated', payload))
+      ])
+    } catch (err) {
+      if (typeof sails !== 'undefined' && sails.log) {
+        sails.log.error('broadcastOpenJoinRequestCount failed', err)
+      }
+    }
   }
 })

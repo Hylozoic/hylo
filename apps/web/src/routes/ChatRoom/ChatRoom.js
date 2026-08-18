@@ -1,7 +1,7 @@
 import isMobile from 'ismobilejs'
 import { debounce } from 'lodash/fp'
-import { ChevronDown, Copy, MessageCircleMore, Send } from 'lucide-react'
-import { DateTimeHelpers } from '@hylo/shared'
+import { ChevronDown, Copy, MessageSquareMore, Send } from 'lucide-react'
+import { DateTimeHelpers, postAppearsInChat } from '@hylo/shared'
 import { EditorView } from 'prosemirror-view'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import CopyToClipboard from 'react-copy-to-clipboard'
@@ -291,7 +291,7 @@ export default function ChatRoom (props) {
         // Same re-check as prepend path — switch room before the microtask runs.
         if (epoch !== chatListEpochRef.current) return
         if (offset === 0) {
-          messageListRef.current?.data.append(newPosts, { index: 'LAST', align: 'end' })
+          messageListRef.current?.data.append(newPosts, () => ({ index: 'LAST', align: 'end', behavior: 'auto' }))
         } else {
           messageListRef.current?.data.append(newPosts)
         }
@@ -403,7 +403,8 @@ export default function ChatRoom (props) {
   const handleNewPostReceived = useCallback((data) => {
     if (!group?.id) return
     if (!data.groups?.some(g => String(g.id) === String(group.id))) return
-    if (data.type !== 'chat' && !showPostNoticesInChat) return
+    // Chat activity cards belong in All Activity, not the chat timeline
+    if (!postAppearsInChat(data.type, showPostNoticesInChat)) return
     const post = presentPost(data, group.id)
     if (!post) return
 
@@ -744,7 +745,7 @@ export default function ChatRoom (props) {
       backButton: false,
       title: t('Chat'),
       headerActions: null,
-      icon: <MessageCircleMore className='w-4 h-4' />,
+      icon: <MessageSquareMore className='w-4 h-4' />,
       info: '',
       search: true
     })
@@ -809,7 +810,7 @@ export default function ChatRoom (props) {
       <div
         id='chats'
         ref={setChatPaneEl}
-        className='my-0 mx-auto h-[calc(100%-130px)] w-full flex flex-col flex-1 relative overflow-hidden px-1'
+        className='my-0 mx-auto min-h-0 w-full flex flex-col flex-1 relative overflow-hidden overflow-x-clip px-1'
         style={{ '--chat-stream-width': `${effectiveChatWidth}px` }}
       >
         {/* The stream header's wash, here as a still strip: theme background fading
@@ -912,10 +913,10 @@ export default function ChatRoom (props) {
       {/* pt below sm gives the last message breathing room above the composer —
           OUTSIDE the message list: padding inside its scroller skews Virtuoso's
           atBottom check, which pinned the phone one message shy of the bottom */}
-      <PeopleTyping className='w-full px-3 sm:px-5 pt-2 sm:pt-0 text-xs text-foreground/50' />
+      <PeopleTyping groupId={group?.id} className='w-full px-3 sm:px-5 pt-2 sm:pt-0 text-xs text-foreground/50' />
       {/* Composer floats with margins matching the message gutter (left edge = avatar edge).
           Subtle gradient settles the pane into a darker hue beneath the input. */}
-      <div className='ChatBoxContainer w-full px-3 sm:px-5 pb-3 sm:pb-5 pt-0 overflow-y-auto bg-gradient-to-b from-transparent to-darkening/[0.05] dark:to-darkening/25'>
+      <div className='ChatBoxContainer w-full shrink-0 px-3 sm:px-5 pb-3 sm:pb-5 pt-0 bg-gradient-to-b from-transparent to-darkening/[0.05] dark:to-darkening/25'>
         {/* Drafts are scoped per chat topic so switching rooms does not leak text */}
         {group?.id && (
           <ChatEditor
@@ -1033,6 +1034,7 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
   } = context
   const { t } = useTranslation()
   if (!post) return null
+  if (post.type === 'chat_activity') return null
   const expanded = context.selectedPostId === post.id
   const highlighted = post.id && context.postIdToStartAt === post.id
   const firstUnread = context.latestOldPostId === prevData?.id && post.creator.id !== context.currentUser.id

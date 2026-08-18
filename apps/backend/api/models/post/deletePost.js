@@ -35,9 +35,8 @@ export async function decrementNewPostCount (post) {
       }
     }
 
-    // Chat view: always for type=chat; also for other post types when notices are on
-    const showNotices = (group.get('settings') || {}).showPostNoticesInChat !== false
-    if (postCountsTowardChatUnread(postType, showNotices)) {
+    // Chat view badge: chat posts only
+    if (postCountsTowardChatUnread(postType)) {
       const chatView = await GroupView.where({
         group_id: group.id,
         type: GroupView.Type.CHAT

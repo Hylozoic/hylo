@@ -26,6 +26,8 @@ Object {
   "linkPreview": null,
   "location": undefined,
   "members": Array [],
+  "noticeData": null,
+  "noticePosts": Array [],
   "proposalOptions": Array [],
   "topics": Array [],
 }

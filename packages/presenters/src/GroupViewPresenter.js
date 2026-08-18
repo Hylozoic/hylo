@@ -1,3 +1,5 @@
+import { POST_TYPES } from './PostPresenter.js'
+
 /** Default icon names for GroupView types (Hylo icon font or Lucide via GroupViewIcon). */
 const VIEW_TYPE_TO_ICON_NAME = {
   about: 'Info',
@@ -35,6 +37,7 @@ export const COMMON_VIEWS = {
   proposals: {
     name: 'Proposals',
     iconName: 'Proposal',
+    lucideIcon: 'Vote',
     defaultViewMode: 'cards',
     postTypes: ['proposal'],
     defaultSortBy: 'created'
@@ -66,12 +69,13 @@ export const COMMON_VIEWS = {
     iconName: 'Globe'
   },
   members: {
-    name: 'Members',
+    name: 'Active Members',
     iconName: 'People'
   },
   moderation: {
     name: 'Moderation',
-    iconName: 'Shield'
+    iconName: 'Shield',
+    lucideIcon: 'ShieldCheck'
   },
   projects: {
     name: 'Projects',
@@ -126,7 +130,10 @@ const VIEW_TYPE_TO_LUCIDE_ICON = {
   map: 'Map',
   member: 'User',
   members: 'Users',
+  moderation: 'ShieldCheck',
   projects: 'Layers',
+  proposals: 'Vote',
+  'related-groups': 'Network',
   resources: 'PackageOpen',
   'requests-and-offers': 'Heart',
   text: 'Type',
@@ -149,16 +156,20 @@ const LUCIDE_ICON_NAMES = new Set([
   'LogOut',
   'Mail',
   'MessageCircleMore',
+  'MessageSquareMore',
   'Minus',
+  'Network',
   'Palette',
   'Search',
   'Settings',
   'Shapes',
   'Shield',
+  'ShieldCheck',
   'Type',
   'User',
   'UserX',
-  'Users'
+  'Users',
+  'Vote'
 ])
 
 /** Translates a stored view name when it is a view-* or widget-* locale key. */
@@ -212,6 +223,10 @@ export function iconForView (view) {
   }
   if (view?.type === 'logout') {
     return { iconName: null, lucideIcon: 'LogOut' }
+  }
+  // Post views take the shared post's type icon (discussion, request, event, …)
+  if (view?.type === 'post' && POST_TYPES[view.viewPost?.type]?.iconName) {
+    return { iconName: POST_TYPES[view.viewPost.type].iconName, lucideIcon: null }
   }
   if (VIEW_TYPE_TO_LUCIDE_ICON[view?.type]) {
     return { iconName: null, lucideIcon: VIEW_TYPE_TO_LUCIDE_ICON[view.type] }

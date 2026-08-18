@@ -1,7 +1,7 @@
 import { trim } from 'lodash/fp'
 import {
   Activity, ArrowRight, ChevronDown, DoorOpen, EyeOff, Globe, HelpCircle, ImagePlus,
-  LayoutGrid, Lock, Map, MapPin, MessageCircleMore, Network, Plus, ScrollText, Shield, Users, X
+  LayoutGrid, Lock, Map, MapPin, MessageCircleMore, Network, Plus, ScrollText, Settings, Shield, Users, X
 } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -37,6 +37,17 @@ import { createGroup, fetchGroupExists } from './CreateGroup.store'
 import { nameToSlug, SLUG_MAX_LENGTH, slugValidatorRegex } from './slug'
 
 const STANDARD_VIEW_TYPES = new Set(['all', 'chat', 'map', 'members', ...Object.values(POST_TYPE_TO_VIEW_TYPE)])
+
+/** Seeds the menu in this order, with the chosen home view first so the landing route matches.
+ * `orderedStandardTypes` is empty until Menu Items is opened, so we fall back to the derived defaults. */
+function viewTypesForCreate (orderedStandardTypes, defaultTypes, homeType) {
+  const types = orderedStandardTypes.length > 0 ? orderedStandardTypes : defaultTypes
+  if (types.length === 0) return [homeType || 'all']
+  if (homeType && types.includes(homeType) && types[0] !== homeType) {
+    return [homeType, ...types.filter(type => type !== homeType)]
+  }
+  return types
+}
 
 const SLUG_CHECK_DEBOUNCE = 300
 
@@ -224,7 +235,8 @@ function HomeViewPicker ({ value, onChange, customHomeRow }) {
     disabled: option.value === CUSTOM_HOME_VIEW
   }))
 
-  return <SegmentedPicker value={value} onChange={onChange} options={segments} />
+  // Container restyled to read like the Additional settings panels
+  return <SegmentedPicker value={value} onChange={onChange} options={segments} className='rounded-xl border border-foreground/10 bg-foreground/5 p-2' />
 }
 
 const ACCESSIBILITY_OPTIONS = [
@@ -466,6 +478,8 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
 
   const parentGroupOptions = useSelector(state => {
     return currentUser?.memberships.toModelArray()
+      // Spaces are containers inside a group — never candidates to parent a new group
+      .filter(m => m.group.type !== 'space')
       .filter(m => m.group.accessibility === GROUP_ACCESSIBILITY.Open ||
         hasResponsibilityForGroup(state, { groupId: m.group.id, responsibility: RESP_ADMINISTRATION }))
       .map(m => m.group)
@@ -505,6 +519,8 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
     () => new Set(currentGroup && parentGroupOptions.find(p => p.id === currentGroup.id) ? ['parentGroups'] : [])
   )
   const [justRevealed, setJustRevealed] = useState(null)
+  // Edit menu swaps the home-view picker for the menu-items editor in place
+  const [showMenuEditor, setShowMenuEditor] = useState(false)
 
   const slugRef = useRef()
 
@@ -619,11 +635,9 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
     const manualRowsInOrder = orderedRows.filter(row => row.kind === 'manual')
     const standardTypesInOrder = orderedRows.filter(row => row.kind === 'standard').map(row => row.type)
 
-    // A menu emptied of standard views would leave nothing to land on, so fall back
-    // to the picked home view rather than seeding no views at all.
-    const viewTypes = standardTypesInOrder.length > 0
-      ? standardTypesInOrder
-      : [homeViewType || 'all']
+    // Menu Items only reports `orderedRows` once opened. Until then (and when Post Types
+    // change the derived list), seed All Activity, Chat, type views, Map, and Members.
+    const viewTypes = viewTypesForCreate(standardTypesInOrder, standardViewTypes, homeViewType)
 
     const { error, payload } = await dispatch(createGroup({
       accessibility,
@@ -728,26 +742,6 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
       )
     },
     {
-      key: 'views',
-      icon: LayoutGrid,
-      label: 'Menu Items',
-      defaultSummary: t('All Activity, Chat, Map, Members'),
-      render: () => (
-        <IncludedViewsEditor
-          standardViewTypes={standardViewTypes}
-          onRemoveStandardType={handleRemoveStandardView}
-          manualViews={manualViews}
-          onAddView={handleAddView}
-          onRemoveManualView={handleRemoveManualView}
-          acceptedPostTypes={postTypes}
-          onOrderedRowsChange={setOrderedRows}
-          homeViewType={homeViewType}
-          label={t("These are the menu your members use. The one at the top is your group's home.")}
-          labelClassName='text-xs text-foreground/60'
-        />
-      )
-    },
-    {
       key: 'parentGroups',
       icon: Network,
       label: 'Parent groups',
@@ -776,9 +770,8 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
       render: () => <JoinQuestionsEditor questions={joinQuestions} onChange={setJoinQuestions} />
     }
   ].filter(setting => !setting.hidden), [
-    t, locationObject, postTypes, standardViewTypes, manualViews, handleAddView,
-    handleRemoveManualView, handleRemoveStandardView, parentGroupOptions, parentGroups,
-    agreements, joinQuestions, homeViewType
+    t, locationObject, postTypes, parentGroupOptions, parentGroups,
+    agreements, joinQuestions
   ])
 
   const revealedSettings = advancedSettings.filter(setting => openAdvanced.has(setting.key))
@@ -912,9 +905,47 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
         </div>
 
         <div className='mt-5'>
-          <span className='text-xs font-bold text-foreground/80'>{t("Choose your group's home")}</span>
-          <p className='text-xs text-foreground/60 mt-0.5 mb-2'>{t('Set the default view members see when they enter your group.')}</p>
-          <HomeViewPicker value={homeView} onChange={setHomeView} customHomeRow={customHomeRow} />
+          {/* items-end + shared mb: the button's bottom sits level with the subtitle,
+              so both keep the same distance to the container below */}
+          <div className='flex items-end justify-between gap-2 mb-2'>
+            <div className='min-w-0'>
+              <span className='text-xs font-bold text-foreground/80'>{t("Choose your group's home")}</span>
+              <p className='text-xs text-foreground/60 mt-0.5 mb-0'>{t('Set the default view members see when they enter your group.')}</p>
+            </div>
+            {!showMenuEditor && (
+              <button
+                type='button'
+                onClick={() => setShowMenuEditor(true)}
+                className='shrink-0 flex items-center gap-1.5 text-xs font-semibold text-foreground/70 hover:text-foreground border border-foreground/20 hover:border-foreground/40 rounded-md px-2 py-1 transition-colors'
+              >
+                <Settings className='w-3.5 h-3.5' />
+                {t('Edit Menu')}
+              </button>
+            )}
+          </div>
+          {showMenuEditor
+            ? (
+              <AdvancedSection
+                settingKey='views'
+                icon={Settings}
+                label='Menu Items'
+                onHide={() => setShowMenuEditor(false)}
+              >
+                <IncludedViewsEditor
+                  standardViewTypes={standardViewTypes}
+                  onRemoveStandardType={handleRemoveStandardView}
+                  manualViews={manualViews}
+                  onAddView={handleAddView}
+                  onRemoveManualView={handleRemoveManualView}
+                  acceptedPostTypes={postTypes}
+                  onOrderedRowsChange={setOrderedRows}
+                  homeViewType={homeViewType}
+                  label={t("These are the menu your members use. The one at the top is your group's home.")}
+                  labelClassName='text-xs text-foreground/60'
+                />
+              </AdvancedSection>
+              )
+            : <HomeViewPicker value={homeView} onChange={setHomeView} customHomeRow={customHomeRow} />}
         </div>
 
         {visibility === GROUP_VISIBILITY.Public && (

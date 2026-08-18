@@ -1,10 +1,10 @@
-import { Globe, ChevronLeft } from 'lucide-react'
+import { ChevronLeft, Globe, Info } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate, useLocation } from 'react-router-dom'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
-import { localSpaceSlug } from '@hylo/navigation'
+import { localSpaceSlug, spaceUrl } from '@hylo/navigation'
 import Icon from 'components/Icon'
 import InfoButton from 'components/ui/info'
 import { Command, CommandItem, CommandList } from 'components/ui/command'
@@ -15,8 +15,8 @@ import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { getGroupViews } from 'store/selectors/getGroupViews'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
-import { viewAcceptedByPostTypes } from 'store/models/GroupView'
 import getMe from 'store/selectors/getMe'
+import getMyMemberships from 'store/selectors/getMyMemberships'
 import getPreviousLocation from 'store/selectors/getPreviousLocation'
 import { bgImageStyle, cn } from 'util/index'
 import { isCompactLayoutDevice, isDrawerNavLayout, isPhoneDevice } from 'util/mobile'
@@ -51,12 +51,13 @@ const ViewHeader = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const { t } = useTranslation()
-  // More Views edit/drill-in uses ?space= on /more-views rather than the space route.
-  const isMoreViewsPath = location.pathname.replace(/\/$/, '').endsWith('/more-views')
-  const spaceSlug = routeSpaceSlug || (isMoreViewsPath ? getQuerystringParam('space', location) : null)
+  // More Spaces drill-in uses ?space= on /more-spaces rather than the space route.
+  const isMoreSpacesPath = location.pathname.replace(/\/$/, '').endsWith('/more-spaces')
+  const spaceSlug = routeSpaceSlug || (isMoreSpacesPath ? getQuerystringParam('space', location) : null)
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
   const groupViews = useSelector(state => spaceSlug ? getGroupViews(state, group) : null)
   const currentUser = useSelector(getMe)
+  const myMemberships = useSelector(getMyMemberships)
   const { headerDetails } = useViewHeader()
   const { backButton, backTo, mobileBackButton, title, icon, info, search, centered, headerActions, spaceBreadcrumb } = headerDetails
 
@@ -67,25 +68,52 @@ const ViewHeader = () => {
   const isOneColumnContext = isCardMenuPreference(userGroupNavStyle) && ['my', 'all', 'public'].includes(context)
   const oneColumn = isOneColumnGroup || isOneColumnContext
 
+  const spaceMenuView = useMemo(
+    () => resolveSpaceMenuView(group, groupViews, groupSlug, spaceSlug),
+    [group, groupViews, groupSlug, spaceSlug]
+  )
   const presentedSpaceView = useMemo(() => {
     if (spaceBreadcrumb === false) return null
-    const spaceView = resolveSpaceMenuView(group, groupViews, groupSlug, spaceSlug)
-    return spaceView ? GroupViewPresenter(spaceView) : null
-  }, [group, groupViews, groupSlug, spaceSlug, spaceBreadcrumb])
+    return spaceMenuView ? GroupViewPresenter(spaceMenuView) : null
+  }, [spaceMenuView, spaceBreadcrumb])
   const spaceName = presentedSpaceView ? displayNameForView(presentedSpaceView, t) : null
+  const isSpaceMember = useMemo(() => {
+    const spaceId = spaceMenuView?.linkedGroup?.id
+    if (!spaceId) return false
+    return myMemberships.some(m => String(m.group?.id) === String(spaceId))
+  }, [spaceMenuView, myMemberships])
+
+  const hasTitle = typeof title === 'string'
+    ? title.length > 0
+    : React.isValidElement(title)
+      ? true
+      : !!(title?.mobile || title?.desktop)
+
+  // On phones, parent breadcrumb levels collapse to just their icon/avatar so
+  // the current view's title keeps the room. Phone devices always collapse;
+  // desktop browsers collapse only below the sm breakpoint.
+  const parentCrumbNameClass = isPhoneDevice() ? 'hidden' : 'hidden sm:block'
 
   // A single-view space (e.g. chat-only) opens straight into its one view, so the
   // breadcrumb shows just the space — repeating the lone view's title is noise.
-  // More Views is a separate page (space > More Views…), so never collapse it.
-  const isSingleViewSpace = useMemo(() => {
-    if (isMoreViewsPath) return false
+  // More Spaces is a separate page (space > More…), so never collapse it.
+  const singleSpaceView = useMemo(() => {
+    if (isMoreSpacesPath) return null
     const spaceGroup = presentedSpaceView?.linkedGroup
-    if (!spaceGroup) return false
+    if (!spaceGroup) return null
     const visibleViews = (spaceGroup.groupViews?.items || [])
       .filter(v => v.order != null)
-      .filter(v => viewAcceptedByPostTypes(v.type, spaceGroup.acceptedPostTypes))
-    return visibleViews.length === 1
-  }, [presentedSpaceView, isMoreViewsPath])
+    return visibleViews.length === 1 ? visibleViews[0] : null
+  }, [presentedSpaceView, isMoreSpacesPath])
+  const isSingleViewSpace = Boolean(singleSpaceView)
+
+  // Members inside a single-view space read as "Space: View"
+  const spaceSubSegment = spaceSlug ? (location.pathname.split(`/spaces/${spaceSlug}/`)[1] || '').split('/')[0] : null
+  const spaceSubViewTitle = isSingleViewSpace && ['members', 'about'].includes(spaceSubSegment) && typeof title === 'string'
+    ? title
+    : null
+
+  const spaceAboutUrl = groupSlug && spaceSlug ? spaceUrl(groupSlug, spaceSlug, 'about') : null
 
   const [searchValue, setSearchValue] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
@@ -224,6 +252,26 @@ const ViewHeader = () => {
       return
     }
 
+    // Single-view spaces open straight into their lone (home) view. Back from
+    // any secondary view (members, moderation, …) returns to that home view;
+    // back from the home view itself opens the group menu.
+    if (isSingleViewSpace && !backButton && !mobileBackButton && !backTo) {
+      const spaceBase = `/groups/${groupSlug}/spaces/${spaceSlug}`
+      const here = location.pathname.replace(/\/$/, '')
+      const homeSuffix = presentedSpaceView?.linkedGroup?.homeRoute || (singleSpaceView?.type ? `/${singleSpaceView.type}` : '')
+      const homePath = `${spaceBase}${homeSuffix}`.replace(/\/$/, '')
+      if (homeSuffix && here.startsWith(spaceBase) && here !== homePath) {
+        navigate(homePath)
+        return
+      }
+      if (isOneColumnGroup) {
+        navigate(`/groups/${groupSlug}`)
+      } else {
+        dispatch(toggleNavMenu(true))
+      }
+      return
+    }
+
     // One-column groups: back from a space view → space menu; from a group view → group menu.
     if (isOneColumnGroup && groupSlug) {
       const path = location.pathname.replace(/\/$/, '')
@@ -234,18 +282,18 @@ const ViewHeader = () => {
           navigate(spaceMenu)
           return
         }
-        if (location.state?.fromMoreViews || location.state?.fromMoreSpaces) {
-          navigate(`${groupHome}/more-views`)
+        if (location.state?.fromMoreSpaces) {
+          navigate(`${groupHome}/more-spaces`)
           return
         }
         navigate(groupHome)
         return
       }
-      if (path !== groupHome && path !== `${groupHome}/more-views`) {
+      if (path !== groupHome && path !== `${groupHome}/more-spaces`) {
         navigate(groupHome)
         return
       }
-      if (path === `${groupHome}/more-views`) {
+      if (path === `${groupHome}/more-spaces`) {
         navigate(groupHome)
         return
       }
@@ -282,19 +330,23 @@ const ViewHeader = () => {
     if (isOneColumnContext && path === `/${context}`) return true
     if (!isOneColumnGroup || !groupSlug) return false
     const groupBase = `/groups/${groupSlug}`
-    if (path === groupBase || path === `${groupBase}/more-views`) return true
-    return Boolean(path.match(new RegExp(`^/groups/${groupSlug}/spaces/[^/]+$`)))
-  }, [oneColumn, isOneColumnContext, isOneColumnGroup, context, groupSlug, location.pathname])
+    if (path === groupBase || path === `${groupBase}/more-spaces`) return true
+    const isSpaceIndex = Boolean(path.match(new RegExp(`^/groups/${groupSlug}/spaces/[^/]+$`)))
+    // Members see ContextMenuGrid (own back bar) at the space index. The join
+    // interstitial does not, so keep ViewHeader for non-members.
+    return isSpaceIndex && isSpaceMember
+  }, [oneColumn, isOneColumnContext, isOneColumnGroup, context, groupSlug, location.pathname, isSpaceMember])
 
-  // Hide ViewHeader on phones for messages - MessagesMobile handles its own header
-  if (isPhoneDevice() && location.pathname.startsWith('/messages')) {
+  // Messages carries its own headers (thread-list title row + per-conversation
+  // header), so the shared ViewHeader stays out of the way entirely.
+  if (location.pathname.startsWith('/messages')) {
     return null
   }
 
   // Light mode surfaces sit close in lightness, so the sticky header needs a
   // hairline edge plus a stronger shadow to read as a layer above the stream.
   return (
-    <header className={cn('flex flex-row items-center z-20 p-2 sticky top-0 w-full bg-background border-b border-foreground/[0.08] shadow-[0_4px_14px_0px_rgba(0,0,0,0.16)] dark:border-transparent dark:shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)]', {
+    <header className={cn('flex flex-row items-center z-40 p-2 sticky top-0 w-full bg-context-menu-background border-b border-foreground/[0.08] shadow-[0_4px_14px_0px_rgba(0,0,0,0.16)] dark:border-transparent dark:shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)]', {
       'justify-center': centered,
       hidden: (oneColumn && isBannerVisible) || isOneColumnMenuLevel
     })}
@@ -334,19 +386,28 @@ const ViewHeader = () => {
       {!centered && !oneColumn && presentedSpaceView && (
         <>
           <GroupViewIcon view={presentedSpaceView} className='mr-1 shrink-0 w-5 h-5' />
-          <span className={cn('truncate shrink min-w-0 text-foreground', isSingleViewSpace ? 'font-bold' : 'max-w-[25%]')}>{spaceName}</span>
-          {!isSingleViewSpace && <span className='mx-1.5 shrink-0 text-foreground/40'>{'>'}</span>}
+          <span className={cn(
+            'truncate shrink min-w-0 text-foreground font-bold',
+            !isSingleViewSpace && hasTitle && cn('max-w-[25%]', parentCrumbNameClass)
+          )}
+          >
+            {spaceName}{isSingleViewSpace && spaceSubViewTitle ? `: ${spaceSubViewTitle}` : ''}
+          </span>
+          {spaceAboutUrl && (
+            <button
+              type='button'
+              className='ml-1 p-0.5 shrink-0 text-foreground/50 hover:text-foreground'
+              onClick={() => navigate(spaceAboutUrl)}
+              aria-label={t('About')}
+            >
+              <Info className='w-4 h-4' />
+            </button>
+          )}
+          {!isSingleViewSpace && hasTitle && <span className='mx-1.5 shrink-0 text-foreground/40'>{'>'}</span>}
         </>
       )}
       {!centered && !oneColumn && !isSingleViewSpace && icon && (typeof icon === 'string' ? <Icon name={icon} className='mr-3 text-lg' /> : React.cloneElement(icon, { className: 'mr-3 text-lg' }))}
       {isOneColumnGroup && (() => {
-        // The chevron should only appear when an actual sub-view title is set —
-        // not when title is the empty default ({mobile: '', desktop: ''}) on group home.
-        const hasTitle = typeof title === 'string'
-          ? title.length > 0
-          : React.isValidElement(title)
-            ? true
-            : !!(title?.mobile || title?.desktop)
         const inSpace = Boolean(presentedSpaceView && spaceSlug)
         const groupHref = `/groups/${groupSlug}`
         const spaceHref = `/groups/${groupSlug}/spaces/${spaceSlug}`
@@ -361,7 +422,11 @@ const ViewHeader = () => {
               />
             )}
             <span
-              className='font-semibold text-foreground/70 cursor-pointer hover:text-foreground transition-colors whitespace-nowrap truncate'
+              className={cn(
+                'font-semibold text-foreground/70 cursor-pointer hover:text-foreground transition-colors whitespace-nowrap truncate',
+                // The group is always a parent here — avatar only on phones
+                parentCrumbNameClass
+              )}
               onClick={() => navigate(groupHref)}
             >
               {group?.name}
@@ -378,11 +443,25 @@ const ViewHeader = () => {
                   <GroupViewIcon view={presentedSpaceView} className='!w-5 !h-5 !mr-0' />
                 </button>
                 <span
-                  className='font-semibold text-foreground/70 cursor-pointer hover:text-foreground transition-colors whitespace-nowrap truncate'
+                  className={cn(
+                    'cursor-pointer hover:text-foreground transition-colors whitespace-nowrap truncate',
+                    hasTitle
+                      // Parent level: icon-only on phones
+                      ? cn('font-bold text-foreground/70', parentCrumbNameClass)
+                      : 'font-bold text-foreground'
+                  )}
                   onClick={() => navigate(spaceHref)}
                 >
                   {spaceName}
                 </span>
+                <button
+                  type='button'
+                  className='p-0.5 shrink-0 text-foreground/50 hover:text-foreground'
+                  onClick={() => navigate(`${spaceHref}/about`)}
+                  aria-label={t('About')}
+                >
+                  <Info className='w-4 h-4' />
+                </button>
               </>
             )}
             {hasTitle && <span className='text-foreground/30 text-lg shrink-0'>{'>'}</span>}
@@ -420,7 +499,11 @@ const ViewHeader = () => {
                 />
               )}
             <span
-              className='font-semibold text-foreground/70 cursor-pointer hover:text-foreground transition-colors whitespace-nowrap truncate'
+              className={cn(
+                'font-semibold text-foreground/70 cursor-pointer hover:text-foreground transition-colors whitespace-nowrap truncate',
+                // Parent level whenever a view title follows — icon-only on phones
+                hasTitle && parentCrumbNameClass
+              )}
               onClick={() => navigate(contextHref)}
             >
               {contextLabel}
@@ -515,7 +598,7 @@ const ViewHeader = () => {
               }}
             />
             {searchOpen && searchOptions.length > 0 && (
-              <Command className='absolute h-fit top-full right-0 mt-2 w-full rounded-lg border border-border bg-popover shadow-lg z-20'>
+              <Command className='absolute h-fit top-full right-0 mt-2 w-full rounded-lg border border-border bg-popover shadow-lg z-50'>
                 <CommandList>
                   {searchOptions.map((option, index) => (
                     <CommandItem

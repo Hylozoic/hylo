@@ -7,6 +7,8 @@ import { Link } from 'react-router-dom'
 import { TextHelpers } from '@hylo/shared'
 import Badge from 'components/Badge'
 import RoundImage from 'components/RoundImage'
+import TruncatedText from 'components/TruncatedText'
+import { Tooltip, TooltipContent, TooltipTrigger } from 'components/ui/tooltip'
 import { participantAttributes } from 'store/models/MessageThread'
 import { cn } from 'util/index'
 import { isPhoneDevice } from 'util/mobile'
@@ -38,16 +40,17 @@ export default function ThreadListItem ({
   }, [dispatch, id, isUnread])
 
   return (
-    <li className={cn('group flex flex-row items-stretch bg-transparent m-0 hover:scale-[1.02] transition-all hover:bg-selected/50', { [classes.unreadListItem]: isUnread, 'bg-transparent xs:bg-selected': active })}>
+    <li className={cn('group flex flex-row items-stretch bg-transparent my-0 mx-2 rounded-lg overflow-hidden transition-colors hover:bg-selected/50', { [classes.unreadListItem]: isUnread, 'bg-transparent xs:bg-selected': active })}>
       <Link to={`/messages/${id}`} className='flex flex-row flex-1 min-w-0 p-2' onClick={isPhoneDevice() ? toggleNavMenuAction : undefined}>
         <div className='mr-2 flex flex-col justify-center flex-shrink-0'>
           <ThreadAvatars avatarUrls={avatarUrls} />
         </div>
         <div className='w-full flex flex-col justify-center min-w-0'>
-          <div className='w-full flex-shrink-0'>
+          {/* Names truncate with a full-list tooltip; timestamp holds the right edge */}
+          <div className='w-full flex items-baseline gap-2 flex-shrink-0 mb-2'>
             <ThreadNames names={names} unreadCount={unreadCount} active={active} />
+            <span className='text-xs text-foreground/70 shrink-0'>{TextHelpers.humanDate(get('createdAt', latestMessage), true)}</span>
           </div>
-          <div className='text-xs text-foreground opacity-70 mb-2 flex-shrink-0'>{TextHelpers.humanDate(get('createdAt', latestMessage), true)}</div>
           <div className={cn('text-sm text-foreground opacity-40 group-hover:opacity-100 leading-4 min-w-0 overflow-hidden', { 'opacity-100 font-bold': unreadCount > 0 }, { 'opacity-100': active })}>
             <div className='line-clamp-2 break-words'>{latestMessagePreview}</div>
           </div>
@@ -56,19 +59,23 @@ export default function ThreadListItem ({
       <div className='flex flex-col items-center justify-center flex-shrink-0 gap-1 pr-2 py-2'>
         {unreadCount > 0 && <Badge number={unreadCount} expanded />}
         <div className='hidden flex-col items-center gap-1 group-hover:flex group-focus-within:flex'>
-          <button
-            type='button'
-            onClick={handleToggleReadStatus}
-            aria-label={isUnread ? t('Mark as read') : t('Mark as unread')}
-            title={isUnread ? t('Mark as read') : t('Mark as unread')}
-            className={cn(
-              'flex items-center justify-center w-9 h-9 rounded-lg transition-all scale-100 hover:scale-105',
-              'bg-darkening/20 hover:bg-selected/80 text-foreground/60 hover:text-foreground',
-              { 'text-foreground': isUnread }
-            )}
-          >
-            {isUnread ? <MailOpen className='w-4 h-4' /> : <Mail className='w-4 h-4' />}
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type='button'
+                onClick={handleToggleReadStatus}
+                aria-label={isUnread ? t('Mark as read') : t('Mark as unread')}
+                className={cn(
+                  'flex items-center justify-center w-7 h-7 rounded-lg transition-all scale-100 hover:scale-105',
+                  'bg-darkening/20 hover:bg-selected/80 text-foreground/60 hover:text-foreground',
+                  { 'text-foreground': isUnread }
+                )}
+              >
+                {isUnread ? <MailOpen className='w-4 h-4' /> : <Mail className='w-4 h-4' />}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>{isUnread ? t('Mark as read') : t('Mark as unread')}</TooltipContent>
+          </Tooltip>
           <MuteThreadButton threadId={id} isMuted={isMuted} />
         </div>
       </div>
@@ -121,5 +128,13 @@ function ThreadAvatars ({ avatarUrls }) {
 }
 
 function ThreadNames ({ names, unreadCount, active }) {
-  return <div className={cn('text-foreground/80 font-bold truncate group-hover:text-foreground/100 w-full', { 'text-foreground/100': unreadCount > 0 }, { 'text-foreground/100': active })}>{names}</div>
+  // Same treatment as truncated space/view names in the group context menu:
+  // a tooltip with the full recipient list, only when it actually overflows
+  return (
+    <TruncatedText
+      as='div'
+      className={cn('flex-1 min-w-0 text-foreground/80 font-bold truncate group-hover:text-foreground/100', { 'text-foreground/100': unreadCount > 0 }, { 'text-foreground/100': active })}
+      text={names}
+    />
+  )
 }

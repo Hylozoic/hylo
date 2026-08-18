@@ -20,6 +20,8 @@ export default function fetchGroupSpaces (groupId) {
               avatarUrl
               icon
               bannerUrl
+              memberCount
+              openJoinRequestCount
               description
               purpose
               location
@@ -54,7 +56,10 @@ export default function fetchGroupSpaces (groupId) {
                   pageContent
                   viewPost {
                     id
+                    type
                     title
+                    startTime
+                    timezone
                   }
                   viewUser {
                     id

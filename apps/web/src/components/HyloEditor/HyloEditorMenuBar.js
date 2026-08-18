@@ -222,16 +222,18 @@ export default function HyloEditorMenuBar ({ className, editor, extendedMenu, ty
         hideOnMobile
       />
 
-      <div className={cn('bg-foreground bg-opacity-30 w-px')} />
+      <div className={cn('bg-foreground bg-opacity-30 w-px hidden xs:block')} />
 
       <HyloEditorMenuBarButton
         Icon={Undo2}
         onClick={() => editor.chain().focus().undo().run()}
+        hideOnMobile
       />
 
       <HyloEditorMenuBarButton
         Icon={Redo2}
         onClick={() => editor.chain().focus().redo().run()}
+        hideOnMobile
       />
 
       <HyloEditorMenuBarButton
@@ -239,6 +241,7 @@ export default function HyloEditorMenuBar ({ className, editor, extendedMenu, ty
         onClick={() => {
           editor.chain().focus().clearNodes().unsetAllMarks().run()
         }}
+        hideOnMobile
       />
     </div>
   )

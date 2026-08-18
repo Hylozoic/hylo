@@ -46,7 +46,7 @@ export function fetchJoinRequests (groupId) {
   }
 }
 
-export function acceptJoinRequest (joinRequestId) {
+export function acceptJoinRequest (joinRequestId, groupId) {
   return {
     type: ACCEPT_JOIN_REQUEST,
     graphql: {
@@ -59,12 +59,13 @@ export function acceptJoinRequest (joinRequestId) {
     },
     meta: {
       joinRequestId,
+      groupId,
       optimistic: true
     }
   }
 }
 
-export function declineJoinRequest (joinRequestId) {
+export function declineJoinRequest (joinRequestId, groupId) {
   return {
     type: DECLINE_JOIN_REQUEST,
     graphql: {
@@ -77,6 +78,7 @@ export function declineJoinRequest (joinRequestId) {
     },
     meta: {
       joinRequestId,
+      groupId,
       optimistic: true
     }
   }

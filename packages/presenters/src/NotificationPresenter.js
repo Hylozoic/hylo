@@ -2,7 +2,7 @@ import { convert as convertHtmlToText } from 'html-to-text'
 import find from 'lodash/find.js'
 import get from 'lodash/fp/get.js'
 import truncText from 'trunc-text'
-import { primaryPostUrl, groupUrl, personUrl, trackUrl, fundingRoundUrl } from '@hylo/navigation'
+import { primaryPostUrl, groupUrl, personUrl, trackUrl, fundingRoundUrl, localSpaceSlug } from '@hylo/navigation'
 
 // Used by web and electron. Once everyone is on URQL switch over to PostPresenter
 function presentPost (post) {
@@ -90,8 +90,11 @@ export function titleForNotification (notification, t) {
       return t('New comment on "<strong>{{postSummary}}</strong>" in {{groupName}}', { postSummary, groupName: group?.name })
     case ACTION_CHAT: {
       const topicReason = find(reasons, r => r.startsWith('chat: '))
-      const topic = topicReason.split(': ')[1]
-      return t('New chat in {{groupName}} <strong>#{{name}}</strong>', { groupName: group?.name, name: topic })
+      const topic = topicReason?.split(': ')[1]
+      if (topic) {
+        return t('New chat in {{groupName}} <strong>#{{name}}</strong>', { groupName: group?.name, name: topic })
+      }
+      return t('New chat in <strong>{{name}}</strong>', { name: group?.name })
     }
     case ACTION_TAG: {
       const tagReason = find(reasons, r => r.startsWith('tag: '))
@@ -171,6 +174,13 @@ export function bodyForNotification (notification, t) {
       return t('<strong>{{name}}</strong> wrote: "{{text}}"', { name, text: postSummary })
     }
     case ACTION_JOIN_REQUEST:
+      if (otherGroup?.name) {
+        return t('<strong>{{name}}</strong> asked to join {{spaceName}} in {{groupName}}', {
+          name,
+          spaceName: group.name,
+          groupName: otherGroup.name
+        })
+      }
       return t('<strong>{{name}}</strong> asked to join {{groupName}}', { name, groupName: group.name })
     case ACTION_APPROVED_JOIN_REQUEST:
       return t('<strong>{{name}}</strong> approved your request to join {{groupName}}', { name, groupName: group.name })
@@ -233,6 +243,23 @@ export function bodyForNotification (notification, t) {
   }
 }
 
+/**
+ * Post notification links must use the nested space path when the activity
+ * group is a space. `/groups/:spaceSlug/...` loads the space as a top-level
+ * group and remounts the app before AuthLayoutRouter redirects.
+ */
+function groupPostUrlOpts (group, groupSlug, homeRoute) {
+  const parentSlug = group?.parentGroup?.slug
+  if (parentSlug && (group?.type === 'space' || group?.parentId)) {
+    return {
+      groupSlug: parentSlug,
+      spaceSlug: localSpaceSlug(parentSlug, group.slug),
+      homeRoute: homeRoute || get('homeRoute', group)
+    }
+  }
+  return { groupSlug, homeRoute }
+}
+
 export function urlForNotification ({ id, activity: { action, actor, post, comment, group, fundingRound, meta: { reasons }, otherGroup, track } }) {
   const groupSlug = get('slug', group) ||
     // 2020-06-03 - LEJ
@@ -245,15 +272,16 @@ export function urlForNotification ({ id, activity: { action, actor, post, comme
 
   const homeRoute = get('homeRoute', group)
   const otherGroupSlug = get('slug', otherGroup)
+  const postOpts = groupPostUrlOpts(group, groupSlug, homeRoute)
   post = presentPost(post)
 
   switch (action) {
     case ACTION_ANNOUNCEMENT:
-      return primaryPostUrl(post, { groupSlug, homeRoute })
+      return primaryPostUrl(post, postOpts)
     case ACTION_APPROVED_JOIN_REQUEST:
       return groupUrl(groupSlug)
     case ACTION_EVENT_INVITATION:
-      return primaryPostUrl(post, { groupSlug, homeRoute })
+      return primaryPostUrl(post, postOpts)
     case ACTION_GROUP_CHILD_GROUP_INVITE:
       return groupUrl(groupSlug, 'settings/relationships')
     case ACTION_GROUP_CHILD_GROUP_INVITE_ACCEPTED:
@@ -270,16 +298,16 @@ export function urlForNotification ({ id, activity: { action, actor, post, comme
       return groupUrl(groupSlug, 'settings/requests')
     case ACTION_NEW_COMMENT:
     case ACTION_COMMENT_MENTION:
-      return primaryPostUrl(post, { commentId: comment.id, groupSlug, homeRoute })
+      return primaryPostUrl(post, { commentId: comment.id, ...postOpts })
     case ACTION_CHAT:
     case ACTION_NEW_POST:
     case ACTION_MENTION: {
-      return primaryPostUrl(post, { groupSlug, homeRoute })
+      return primaryPostUrl(post, postOpts)
     }
     case ACTION_MEMBER_JOINED_GROUP:
       return personUrl(actor.id, groupSlug)
     case ACTION_TAG: {
-      return primaryPostUrl(post, { groupSlug, homeRoute })
+      return primaryPostUrl(post, postOpts)
     }
     case ACTION_TRACK_COMPLETED:
     case ACTION_TRACK_ENROLLMENT:
@@ -294,7 +322,7 @@ export function urlForNotification ({ id, activity: { action, actor, post, comme
     }
     case ACTION_POST_FULFILLED:
     case ACTION_POST_UNFULFILLED:
-      return primaryPostUrl(post, { groupSlug, homeRoute })
+      return primaryPostUrl(post, postOpts)
   }
 }
 

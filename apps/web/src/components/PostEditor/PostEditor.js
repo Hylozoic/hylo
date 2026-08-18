@@ -60,6 +60,7 @@ import {
 import { GROUP_TYPES } from 'store/models/Group'
 import isPendingFor from 'store/selectors/isPendingFor'
 import getMe from 'store/selectors/getMe'
+import getMyMemberships from 'store/selectors/getMyMemberships'
 import getPost from 'store/selectors/getPost'
 import presentPost from 'store/presenters/presentPost'
 import getFundingRound from 'store/selectors/getFundingRound'
@@ -120,6 +121,11 @@ function isSpaceGroup (group) {
   return !!group && (group.type === GROUP_TYPES.space || !!group.parentId)
 }
 
+/** Compares group ids as strings so GraphQL/ORM number vs string ids still match. */
+function sameGroupId (a, b) {
+  return a != null && b != null && String(a) === String(b)
+}
+
 const emojiOptions = ['', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟', '✅✅', '👍', '👎', '⁉️', '‼️', '❓', '❗', '🚫', '➡️', '🛑', '✅', '🛑🛑', '🌈', '🔴', '🔵', '🟤', '🟣', '🟢', '🟡', '🟠', '⚫', '⚪', '🤷🤷', '📆', '🤔', '❤️', '👏', '🎉', '🔥', '🤣', '😢', '😡', '🤷', '💃🕺', '⛔', '🙏', '👀', '🙌', '💯', '🔗', '🚀', '💃', '🕺', '🫶💯']
 const MAX_TITLE_LENGTH = 80
 
@@ -176,6 +182,7 @@ function PostEditorInner ({
   const { t } = useTranslation()
 
   const currentUser = useSelector(getMe)
+  const myMemberships = useSelector(getMyMemberships)
   const currentGroup = useSelector(state => getGroupForSlug(state, groupSlug))
   // Track / funding-round spaces carry their config on the group itself.
   const currentTrack = currentGroup?.track || null
@@ -370,20 +377,27 @@ function PostEditorInner ({
   // Bumped after membership spaces load so To options recompute with parentId/acceptedPostTypes
   const [membershipSpacesTick, setMembershipSpacesTick] = useState(0)
 
+  // Use Membership rows (same source as SpaceContent after join), not Me.memberships.
+  // joinSpace extracts a Membership but does not append it to Me.memberships, so the
+  // To field would otherwise stay empty until a later Me refetch.
   const groupOptions = useMemo(() => {
-    if (!currentUser) return []
-
-    return currentUser.memberships.toModelArray()
+    const groups = (myMemberships || [])
       .map((m) => m.group)
       .filter((g) => {
+        if (!g) return false
         // Filter out paywalled groups where user doesn't have access
-        if (g?.paywall && g?.canAccess === false) {
+        if (g.paywall && g.canAccess === false) {
           return false
         }
         return true
       })
-      .sort((a, b) => a.name.localeCompare(b.name))
-  }, [currentUser?.memberships, membershipSpacesTick])
+
+    if (currentGroup?.id && !groups.some(g => sameGroupId(g.id, currentGroup.id))) {
+      groups.push(currentGroup)
+    }
+
+    return groups.sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+  }, [myMemberships, currentGroup, membershipSpacesTick])
   const isAction = currentPost.type === 'action'
   const isSubmission = currentPost.type === 'submission'
 
@@ -415,7 +429,7 @@ function PostEditorInner ({
   const applyPostToEditor = useCallback((nextPost) => {
     let post = nextPost
     if (!editing && currentGroup?.id) {
-      const hasCurrentGroup = post.groups?.some(g => g?.id === currentGroup.id)
+      const hasCurrentGroup = post.groups?.some(g => sameGroupId(g?.id, currentGroup.id))
       if (!hasCurrentGroup) {
         post = { ...post, groups: [currentGroup, ...(post.groups || [])] }
       }
@@ -481,10 +495,11 @@ function PostEditorInner ({
   useEffect(() => {
     if (editing || !currentGroup?.id) return
     setCurrentPost(prev => {
-      if (prev.groups?.length > 0) return prev
-      return { ...prev, groups: [currentGroup] }
+      const hasCurrentGroup = prev.groups?.some(g => sameGroupId(g?.id, currentGroup.id))
+      if (hasCurrentGroup) return prev
+      return { ...prev, groups: [currentGroup, ...(prev.groups || [])] }
     })
-  }, [currentGroup?.id, editing, setCurrentPost])
+  }, [currentGroup, editing, setCurrentPost])
 
   // Flush pending details into currentPost on unmount so drafts are not truncated.
   useEffect(() => () => {
@@ -538,7 +553,7 @@ function PostEditorInner ({
   const selectedGroups = useMemo(() => {
     if (!groupOptions || !currentPost?.groups) return []
     return groupOptions.filter((g) =>
-      g && currentPost.groups.some((g2) => g2 && g.id === g2.id)
+      g && currentPost.groups.some((g2) => g2 && sameGroupId(g.id, g2.id))
     )
   }, [currentPost?.groups, groupOptions])
 

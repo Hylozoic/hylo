@@ -25,8 +25,6 @@ export default function EventTimeDisplay ({
   const tooltipId = tooltipIdProp || generatedTooltipId
   const locale = getLocaleFromLocalStorage()
 
-  if (!startTime) return null
-
   const {
     primary,
     secondary,
@@ -41,6 +39,8 @@ export default function EventTimeDisplay ({
     }),
     [startTime, endTime, timezone, locale]
   )
+
+  if (!startTime) return null
 
   const primaryIncludesTimezone = eventTimezoneLabel && primary.includes(eventTimezoneLabel)
   const eventTimeLabel = showTimezoneLabel && !primaryIncludesTimezone && (

@@ -35,7 +35,7 @@ function findViewOwnerGroup (parentGroup, viewId) {
 /** Modal for creating or editing a collection GroupView and its posts.
  * Pass `onAdd` to stage a new view locally instead of dispatching mutations (see AddGroupViewDialog).
  * Pass `view` to edit an existing collection. */
-export default function AddCollectionDialog ({ group, view, onCancel, onCreated, onAdd, addToMenu = true }) {
+export default function AddCollectionDialog ({ group, view, onCancel, onCreated, onAdd }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const isEditing = Boolean(view?.id)
@@ -130,7 +130,7 @@ export default function AddCollectionDialog ({ group, view, onCancel, onCreated,
       name: name.trim(),
       icon,
       postIds: posts.map(p => p.id),
-      ...(addToMenu ? { addToEnd: true } : { hidden: true })
+      addToEnd: true
     }
 
     if (onAdd && !isEditing) {
@@ -193,7 +193,7 @@ export default function AddCollectionDialog ({ group, view, onCancel, onCreated,
           type: 'collection',
           name: viewData.name,
           icon,
-          ...(addToMenu ? { addToEnd: true } : { hidden: true })
+          addToEnd: true
         }))
         const viewId = result?.payload?.data?.createGroupView?.id
         if (viewId && posts.length > 0) {
@@ -214,7 +214,6 @@ export default function AddCollectionDialog ({ group, view, onCancel, onCreated,
       setIsSaving(false)
     }
   }, [
-    addToMenu,
     canSave,
     dispatch,
     group?.id,
@@ -246,7 +245,7 @@ export default function AddCollectionDialog ({ group, view, onCancel, onCreated,
   const canBeHome = isEditing && view?.order !== 0
 
   return (
-    <div className='fixed inset-0 z-[60] flex items-center justify-center bg-darkening/50 p-4'>
+    <div className='fixed inset-0 z-[1100] flex items-center justify-center bg-darkening/50 p-4 pointer-events-auto'>
       <div className='bg-midground rounded-lg shadow-lg p-5 w-full max-w-md max-h-[85vh] flex flex-col'>
         <h2 className='text-lg font-semibold mb-4'>{t('Collection')}</h2>
 

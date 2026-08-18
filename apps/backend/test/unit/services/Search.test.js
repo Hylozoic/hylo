@@ -47,14 +47,25 @@ describe('Search', function () {
         offset 7`)
     })
 
-    it('includes only basic post types by default', () => {
+    it('includes stream post types without notices by default', () => {
       var query = Search.forPosts({groups: 9}).query().toString()
       expect(query).to.contain('"posts"."type" in (\'discussion\', \'request\', \'offer\', \'project\', \'proposal\', \'event\', \'resource\')')
     })
 
-    it('includes only basic post types when type is "all"', () => {
+    it('includes stream post types without notices when type is "all"', () => {
       var query = Search.forPosts({groups: 9, type: 'all'}).query().toString()
       expect(query).to.contain('"posts"."type" in (\'discussion\', \'request\', \'offer\', \'project\', \'proposal\', \'event\', \'resource\')')
+    })
+
+    it('includes stream post types and notices when type is "all+notices"', () => {
+      var query = Search.forPosts({groups: 9, type: 'all+notices'}).query().toString()
+      expect(query).to.contain('"posts"."type" in (\'discussion\', \'request\', \'offer\', \'project\', \'proposal\', \'event\', \'resource\', \'chat_activity\')')
+    })
+
+    it('keeps Axolotl notice posts in multi-group streams', () => {
+      const query = Search.forPosts({ groupIds: [9, 12] }).query().toString()
+      expect(query).to.contain(`"posts"."user_id" != '${User.AXOLOTL_ID}'`)
+      expect(query).to.contain("'chat_activity'")
     })
 
     it('accepts an option to change the name of the total column', () => {

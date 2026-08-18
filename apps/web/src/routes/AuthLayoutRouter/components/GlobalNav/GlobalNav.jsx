@@ -156,7 +156,7 @@ function GlobalCreateMenu () {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger aria-label={t('Create')} data-testid='global-nav-create'>
-        <div className={cn('bg-primary relative z-20 transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-8 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-foreground/0 hover:border-foreground/50')}>
+        <div className={cn('bg-[hsl(0_0%_17%)] text-white relative z-20 transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-8 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-foreground/0 hover:border-foreground/50')}>
           <PlusCircle className='w-7 h-7' />
         </div>
       </PopoverTrigger>
@@ -530,7 +530,6 @@ export default function GlobalNav (props) {
   const hoverDelayTimeoutRef = useRef(null)
   const ignoreTouchRef = useRef(false) // Ignore touch events briefly after nav opens
   const [isOverflowing, setIsOverflowing] = useState(false)
-  const [scrollbarWidth, setScrollbarWidth] = useState(0)
   const [hiddenBadgeCount, setHiddenBadgeCount] = useState(0)
   const navContainerRef = useRef(null)
   const groupRefsMap = useRef(new Map())
@@ -609,47 +608,25 @@ export default function GlobalNav (props) {
     }
   }, [isContainerHovered])
 
-  // Detect scrollbar width and if the nav container is overflowing
+  // Detect if the nav container is overflowing (drives the top fade indicator).
+  // The scrollbar itself is hidden via CSS, so no width compensation is needed
+  // and the icon column stays symmetric inside its padding.
   useEffect(() => {
     const container = navContainerRef.current
     if (!container) return
 
-    const checkOverflowAndScrollbar = () => {
-      const hasOverflow = container.scrollHeight > container.clientHeight
-      setIsOverflowing(hasOverflow)
-
-      if (hasOverflow) {
-        // Detect scrollbar width by comparing offsetWidth (includes scrollbar) with clientWidth (excludes scrollbar)
-        // This tells us if the scrollbar is currently taking up layout space
-        const width = container.offsetWidth - container.clientWidth
-
-        // If width is 0, scrollbar is overlay-only (not taking space)
-        // If width > 0, scrollbar is always visible (taking space) - we need to compensate
-        setScrollbarWidth(width > 0 ? width : 0)
-      } else {
-        setScrollbarWidth(0)
-      }
+    const checkOverflow = () => {
+      setIsOverflowing(container.scrollHeight > container.clientHeight)
     }
 
-    // Initial check
-    checkOverflowAndScrollbar()
-
-    // Use a small delay to ensure layout is complete
-    const timeoutId = setTimeout(checkOverflowAndScrollbar, 100)
-
-    const resizeObserver = new ResizeObserver(() => {
-      // Small delay to ensure scrollbar state is updated
-      setTimeout(checkOverflowAndScrollbar, 50)
-    })
+    checkOverflow()
+    const resizeObserver = new ResizeObserver(checkOverflow)
     resizeObserver.observe(container)
-
-    // Also check on window resize to catch scrollbar visibility changes
-    window.addEventListener('resize', checkOverflowAndScrollbar)
+    window.addEventListener('resize', checkOverflow)
 
     return () => {
-      clearTimeout(timeoutId)
       resizeObserver.disconnect()
-      window.removeEventListener('resize', checkOverflowAndScrollbar)
+      window.removeEventListener('resize', checkOverflow)
     }
   }, [sortedGroups.length])
 
@@ -951,15 +928,12 @@ export default function GlobalNav (props) {
       <div
         ref={navContainerRef}
         className={cn(
+          // Scrollbar hidden (scrolling still works) so it never eats layout space
+          // and the tiles stay horizontally centered in the rail
           'pt-4 flex flex-col items-center relative z-10 px-3 overflow-x-visible overflow-y-scroll grow',
+          '[scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
           styles.globalNavContainer
         )}
-        style={{
-          // When scrollbar is taking up space (always visible), add padding to compensate
-          // This keeps content centered regardless of scrollbar visibility mode
-          paddingRight: scrollbarWidth > 0 ? `calc(0.75rem - ${scrollbarWidth}px + 2px)` : undefined,
-          paddingLeft: scrollbarWidth > 0 ? `calc(1.5rem - ${scrollbarWidth}px + 1px)` : undefined
-        }}
         onClick={handleClick}
         onPointerLeave={handleContainerPointerLeave}
         onPointerEnter={handleContainerPointerEnter}
@@ -977,17 +951,19 @@ export default function GlobalNav (props) {
         <Suspense fallback={<GlobalNavItem className={isVisible(1)} showTooltip={showLabels}><Bell className='w-7 h-7' /></GlobalNavItem>}>
           <NotificationsDropdown renderToggleChildren={showBadge =>
             <GlobalNavItem
+              darkTile
               tooltip={t('Activity')}
               className={isVisible(1)}
               showTooltip={showLabels}
               badgeCount={showBadge ? '-' : 0}
             >
-              <BadgedIcon name='Notifications' className='!text-primary-foreground cursor-pointer font-md' />
+              <BadgedIcon name='Notifications' className='!text-white cursor-pointer font-md' />
             </GlobalNavItem>}
           />
         </Suspense>
 
         <GlobalNavItem
+          darkTile
           tooltip={t('Messages')}
           url='/messages'
           className={isVisible(2)}
@@ -998,12 +974,13 @@ export default function GlobalNav (props) {
         </GlobalNavItem>
 
         <GlobalNavItem
+          darkTile
           tooltip={t('The Commons')}
           url='/public'
           className={isVisible(3)}
           showTooltip={showLabels}
         >
-          <Globe color='hsl(var(--primary-foreground))' />
+          <Globe />
         </GlobalNavItem>
 
         {/* Pinned Groups Section - Sortable */}

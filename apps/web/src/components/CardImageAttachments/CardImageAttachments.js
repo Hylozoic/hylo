@@ -13,11 +13,13 @@ import { bgImageStyle, cn } from 'util/index'
 // scrolling the page behind it.
 // text-white is inherited by the dialog's close button, which now sits on the
 // scrim rather than on a panel.
-const LIGHTBOX_CLASS = 'left-0 top-0 translate-x-0 translate-y-0 flex items-center justify-center w-screen h-screen max-w-none gap-0 p-10 bg-transparent shadow-none border-none text-white touch-none'
+// z sits above PostDialog (overlay 100 / content 101) so the scrim actually
+// dims the post when the lightbox opens from inside it
+const LIGHTBOX_CLASS = 'left-0 top-0 translate-x-0 translate-y-0 z-[151] flex items-center justify-center w-screen h-screen max-w-none gap-0 p-10 bg-transparent shadow-none border-none text-white touch-none'
 // Matches PostDialog's backdrop so both dialogs dim the page the same way.
 // The class is also the handle the drag gesture uses to dim it, mirroring how
 // PostDetail reaches for .PostDialog-Overlay.
-const LIGHTBOX_OVERLAY_CLASS = 'ImageLightbox-Overlay bg-darkening/50 dark:bg-darkening/90 backdrop-blur-sm'
+const LIGHTBOX_OVERLAY_CLASS = 'ImageLightbox-Overlay z-[150] bg-darkening/50 dark:bg-darkening/90 backdrop-blur-sm'
 
 // Drag-to-dismiss constants are lifted from PostDetail's pull-to-close so the
 // lightbox and the post dialog feel identical: the raw drag is dampened, and
@@ -181,14 +183,21 @@ export default function CardImageAttachments ({
             )
           : (
             <>
-              <img
-                src={firstImageUrl}
-                alt='Attached image 1'
-                className='block mx-auto my-0 w-full h-auto max-h-[500px] object-cover rounded-xl shadow-2xl cursor-pointer'
-                data-index={0}
-                onClick={openModal}
-                data-testid='first-image'
-              />
+              {/* The full image always shows (object-contain), capped at half the
+                  screen. When the cap letterboxes it, the same image fills the
+                  gap as a blurred, darkened cover instead of an awkward crop. */}
+              <div className='relative overflow-hidden rounded-xl shadow-2xl'>
+                <div aria-hidden='true' className='absolute inset-0 bg-cover bg-center scale-110 blur-2xl' style={bgImageStyle(firstImageUrl)} />
+                <div aria-hidden='true' className='absolute inset-0 bg-black/40' />
+                <img
+                  src={firstImageUrl}
+                  alt='Attached image 1'
+                  className='relative block mx-auto my-0 w-full h-auto max-h-[50vh] object-contain cursor-pointer'
+                  data-index={0}
+                  onClick={openModal}
+                  data-testid='first-image'
+                />
+              </div>
               <div className='absolute w-full bottom-[15px] right-0 flex overflow-x-auto py-2.5 pl-2 cursor-pointer'>
                 <div className='flex flex-row ml-auto'>
                   {!isEmpty(otherImageUrls) && otherImageUrls.map((url, index) =>

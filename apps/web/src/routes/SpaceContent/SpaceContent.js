@@ -1,19 +1,18 @@
 import React, { useEffect, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 
 import Loading from 'components/Loading'
 import { SpaceGroupSlugContext } from 'contexts/SpaceGroupContext'
 import useRouteParams from 'hooks/useRouteParams'
 import ChatRoom from 'routes/ChatRoom'
-import GroupDetail from 'routes/GroupDetail'
+import GroupAboutPage from 'routes/GroupAboutPage'
+import MembershipRequestsTab from 'routes/GroupSettings/MembershipRequestsTab'
 import GroupWelcomePage from 'routes/GroupWelcomePage'
 import MapExplorer from 'routes/MapExplorer'
 import MemberProfile from 'routes/MemberProfile'
 import Members from 'routes/Members'
-import Moderation from 'routes/Moderation'
 import PostDetail from 'routes/PostDetail'
-import SpaceAboutModal from 'routes/SpaceAboutModal'
 import SpaceJoinPage from 'routes/SpaceJoinPage'
 import FundingRoundSubmissionsView from 'routes/FundingRoundSubmissionsView/FundingRoundSubmissionsView'
 import ManageRoundView from 'routes/ManageRoundView/ManageRoundView'
@@ -21,12 +20,14 @@ import TrackActionsView from 'routes/TrackActionsView/TrackActionsView'
 import ViewContent from 'routes/ViewContent'
 import ContextMenuGrid from 'routes/AuthLayoutRouter/components/ContextMenu/ContextMenuGrid'
 import fetchForGroup from 'store/actions/fetchForGroup'
+import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { getGroupViews } from 'store/selectors/getGroupViews'
 import getMyMemberships from 'store/selectors/getMyMemberships'
+import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
+import { RESP_ADD_MEMBERS } from 'store/constants'
 import { localSpaceSlug, spaceUrl, POST_DETAIL_MATCH } from '@hylo/navigation'
-import { viewAcceptedByPostTypes } from 'store/models/GroupView'
 import { isDrawerNavLayout } from 'util/mobile'
 
 /**
@@ -57,20 +58,9 @@ function resolveSpaceGroup (parentGroup, groupViews, parentSlug, localSlug) {
  */
 export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColumnGroup = false }) {
   const dispatch = useDispatch()
-  const navigate = useNavigate()
   const location = useLocation()
   const routeParams = useRouteParams()
 
-  // The About modal is a querystring overlay (?about=1) so it floats over
-  // whatever view is open — as a sibling route it unmounted the view behind it,
-  // leaving the modal over a blank pane
-  const aboutOpen = new URLSearchParams(location.search).has('about')
-  const closeAbout = () => {
-    const params = new URLSearchParams(location.search)
-    params.delete('about')
-    const search = params.toString()
-    navigate(`${location.pathname}${search ? `?${search}` : ''}`)
-  }
   const parentSlug = routeParams.groupSlug
   const localSlug = routeParams.spaceSlug
 
@@ -99,6 +89,19 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
     () => Boolean(spaceGroupId && myMemberships.some(m => m.group.id === spaceGroupId)),
     [spaceGroupId, myMemberships]
   )
+  const canAddSpaceMembers = useSelector(state => hasResponsibilityForGroup(state, {
+    responsibility: RESP_ADD_MEMBERS,
+    groupId: spaceGroupId
+  }))
+
+  // Cold deep links: fetchForGroup(parentSlug) doesn't include the spaces list,
+  // and the ContextMenu's fetchGroupSpaces may never fire (or hasn't yet), so
+  // linkedSpace can't resolve and the Loading gate below would never clear.
+  useEffect(() => {
+    if (parentGroup?.id && localSlug && !linkedSpace) {
+      dispatch(fetchGroupSpaces(parentGroup.id))
+    }
+  }, [dispatch, parentGroup?.id, localSlug, linkedSpace])
 
   useEffect(() => {
     if (spaceFullSlug && !spaceGroup) {
@@ -115,12 +118,13 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
   if (!parentGroup || !localSlug) return <Loading />
   if (!linkedSpace) return <Loading />
 
-  // Non-members: about page is public-ish (GroupDetail); everything else is the join interstitial
+  // Non-members: about page is public-ish; everything else is the join interstitial
   if (!isSpaceMember) {
     return (
       <SpaceGroupSlugContext.Provider value={spaceFullSlug}>
         <Routes>
-          <Route path='about/*' element={<GroupDetail context='groups' forCurrentGroup />} />
+          <Route path='about/*' element={<GroupAboutPage />} />
+          {canAddSpaceMembers && <Route path='requests' element={<MembershipRequestsTab />} />}
           <Route path='*' element={<SpaceJoinPage />} />
         </Routes>
       </SpaceGroupSlugContext.Provider>
@@ -140,12 +144,12 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
   // what the space contains, and the way back is a drawer you have to know about.
   const visibleSpaceViews = (resolvedSpace?.groupViews?.items || [])
     .filter(view => view.order != null)
-    .filter(view => viewAcceptedByPostTypes(view.type, resolvedSpace?.acceptedPostTypes))
-  // A menu holding a single card is worse than the view it would open.
-  const showSpaceMenu = (isOneColumnGroup || isDrawerNavLayout()) && visibleSpaceViews.length > 1
+  // A menu holding a single card is worse than the view it would open —
+  // unless we're editing, in which case the menu is the point (add/reorder views).
+  const isEditingMenu = new URLSearchParams(location.search).get('edit') === 'true'
+  const showSpaceMenu = (isOneColumnGroup || isDrawerNavLayout()) && (visibleSpaceViews.length > 1 || isEditingMenu)
   const spaceIndexElement = showSpaceMenu
     ? <ContextMenuGrid group={parentGroup} spaceGroup={resolvedSpace} />
-    // Carry the search through the redirect, or landing on home would shed ?about=1
     : <Navigate to={{ pathname: `${spaceBase}${homeRoute}`, search: location.search }} replace />
 
   return (
@@ -165,17 +169,16 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
         <Route path='collection/:customViewId/*' element={<ViewContent context='groups' view='collection' />} />
         <Route path='members/:personId/*' element={<MemberProfile context='groups' />} />
         <Route path='members/*' element={<Members context='groups' />} />
+        <Route path='requests' element={<MembershipRequestsTab />} />
         <Route path='chat/*' element={<ChatRoom context='groups' showHomeWelcome={false} />} />
         <Route path='track-actions/*' element={<TrackActionsView />} />
         <Route path='funding-round-submissions/*' element={<FundingRoundSubmissionsView />} />
         <Route path='manage-round/*' element={<ManageRoundView />} />
-        <Route path='moderation/*' element={<Moderation context='groups' />} />
-        {/* Legacy path links land on the home view with the overlay open */}
-        <Route path='about/*' element={<Navigate to={{ pathname: `${spaceBase}${homeRoute}`, search: '?about=1' }} replace />} />
+        <Route path='moderation/*' element={<Navigate to='about/moderation' replace />} />
+        <Route path='about/*' element={<GroupAboutPage />} />
         <Route path={POST_DETAIL_MATCH} element={<PostDetail />} />
         <Route path='*' element={spaceIndexElement} />
       </Routes>
-      {aboutOpen && <SpaceAboutModal onClose={closeAbout} />}
     </SpaceGroupSlugContext.Provider>
   )
 }
