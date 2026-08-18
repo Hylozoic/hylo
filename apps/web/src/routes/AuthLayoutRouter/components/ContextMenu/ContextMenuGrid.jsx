@@ -23,8 +23,6 @@ import { WebViewMessageTypes } from '@hylo/shared'
 import { sendMessageToWebView } from 'util/webView'
 import logout from 'store/actions/logout'
 import { DEFAULT_BANNER, DEFAULT_AVATAR } from 'store/models/Group'
-import { getGroupViews } from 'store/selectors/getGroupViews'
-import { getMoreViewsSections } from 'store/selectors/getMoreSpacesSections'
 import { RESP_ADMINISTRATION, RESP_ADD_MEMBERS, FETCH_GROUP_SPACES, FETCH_GROUP_VIEWS } from 'store/constants'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
@@ -34,6 +32,8 @@ import getMyMemberships from 'store/selectors/getMyMemberships'
 import { filterMoreSpacesSections, filterSpaceViewsForMenuVisibility, spaceMenuVisibilityOpts } from 'util/spaceVisibility'
 import useAppearance from 'hooks/useAppearance'
 import usePublishedOfferings from 'hooks/usePublishedOfferings'
+import useGroupViews from 'hooks/useGroupViews'
+import useMoreSpacesSections from 'hooks/useMoreSpacesSections'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
@@ -78,6 +78,13 @@ const MORE_SPACES_VIEW = { lucideIcon: 'CircleEllipsis' }
 const JOIN_REQUESTS_VIEW = { lucideIcon: 'UserPlus' }
 
 /**
+ * True for views that cannot fit a card cell and must occupy their own row.
+ */
+function isFullWidthGridView (view) {
+  return view?.type === 'text' || view?.type === 'separator'
+}
+
+/**
  * Splits ordered views into grid sections.
  * Text and separator views break the grid onto their own full-width rows;
  * views between breaks flow in a shared wrap grid.
@@ -93,7 +100,7 @@ function partitionViewsIntoSections (views) {
   }
 
   for (const view of views) {
-    if (view.type === 'text' || view.type === 'separator') {
+    if (isFullWidthGridView(view)) {
       flushGrid()
       sections.push({ type: view.type, view })
       continue
@@ -365,7 +372,7 @@ function JoinRequestsCard ({ count, onClick, t }) {
       <CardIconField view={JOIN_REQUESTS_VIEW} tint={tint} w={CARD_W} h={CARD_H} />
       <div className={CARD_FADE_CLASS} style={{ background: cardFadeGradient(effectiveColorScheme) }} />
       {count > 0 && (
-        <span className='absolute -top-1.5 -right-1.5 z-10 min-w-5 h-5 px-1 rounded-full bg-accent text-white text-xs font-bold flex items-center justify-center border-2 border-background'>
+        <span className='absolute top-1.5 right-1.5 z-10 min-w-5 h-5 px-1 rounded-full bg-accent text-white text-xs font-bold flex items-center justify-center border-2 border-background'>
           {count}
         </span>
       )}
@@ -396,7 +403,7 @@ function JoinRequestsCard ({ count, onClick, t }) {
 function useMoreSpacesContent (group) {
   const currentUser = useSelector(getMe)
   const myMemberships = useSelector(getMyMemberships)
-  const sectionsRaw = useSelector(state => getMoreViewsSections(state, group))
+  const sectionsRaw = useMoreSpacesSections(group)
   const canManageSpaces = useSelector(state => hasResponsibilityForGroup(state, {
     responsibility: RESP_ADMINISTRATION,
     groupId: group?.id
@@ -448,7 +455,7 @@ function MoreSpacesGrid ({
     showOtherSpaces,
     hasContent
   } = useMoreSpacesContent(group)
-  const groupViews = useSelector(state => getGroupViews(state, group))
+  const groupViews = useGroupViews(group)
   const [deletingSpaceId, setDeletingSpaceId] = useState(null)
 
   useEffect(() => {
@@ -460,7 +467,7 @@ function MoreSpacesGrid ({
   const handleOpenSpace = useCallback((space) => {
     if (isEditing) return
     const local = localSpaceSlug(groupSlug, space.slug)
-    navigate(spaceUrl(groupSlug, local), { state: { fromMoreViews: true } })
+    navigate(spaceUrl(groupSlug, local), { state: { fromMoreSpaces: true } })
   }, [groupSlug, navigate, isEditing])
 
   const handleOpenSpaceAbout = useCallback((space) => {
@@ -645,7 +652,7 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
     dispatch(fetchGroupSpaces(group.id))
   }, [dispatch, isContextMode, isMoreSpacesLevel, spaceGroup, group?.id, groupSlug])
 
-  const groupViews = useSelector(state => isContextMode ? [] : getGroupViews(state, menuGroup))
+  const groupViews = useGroupViews(isContextMode ? null : menuGroup)
   const viewsPending = useSelector(state => isPendingFor(FETCH_GROUP_VIEWS, state))
   const viewsLoading = viewsPending && groupViews.length === 0
   const publishedOfferings = usePublishedOfferings(group?.id)
@@ -705,7 +712,7 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
     : null
 
   const handleBack = useCallback(() => {
-    if (isSpaceLevel && location.state?.fromMoreViews) {
+    if (isSpaceLevel && location.state?.fromMoreSpaces) {
       navigate(groupUrl(groupSlug, 'more-spaces'))
       return
     }
@@ -934,8 +941,8 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
               </div>
               )}
 
-        {/* Editing pins Done to the foot of the column, matching More Views and
-            Spaces; Edit Menu stays in flow, where it isn't competing for attention */}
+        {/* Editing pins Done to the foot of the column, matching More Spaces;
+            Edit Menu stays in flow, where it isn't competing for attention */}
         {!isContextMode && canAdminister && !isMoreSpacesLevel && !isEditing && (
           <div className='flex justify-center mt-6'>
             <button

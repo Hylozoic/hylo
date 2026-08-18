@@ -20,6 +20,7 @@ import {
 
 import GroupMenuHeader from 'components/GroupMenuHeader'
 import GroupNotificationsPopover from 'components/GroupNotificationsPopover/GroupNotificationsPopover'
+import CurrentlyActiveMembers, { MENU_ACTIVE_MAX } from 'components/CurrentlyActiveMembers'
 import InviteMembersPopover from 'components/InviteMembersPopover/InviteMembersPopover'
 import MenuLink from './MenuLink'
 import ContextMenuResizer from './ContextMenuResizer'
@@ -470,27 +471,12 @@ function GroupViewMenuItem ({
             view={presentedView}
             className={cn('transition-opacity duration-200', isRowActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-50')}
           />
-          <MenuLink
-            to={isExternal ? null : url}
-            externalLink={externalHref}
-            isActive={false}
-            className={cn(
-              GROUP_VIEW_MENU_ITEM_INNER_LINK_CLASS,
-              'relative z-10',
-              isRowActive && activeLabelClass
-            )}
-          >
-            <GroupViewIcon view={presentedView} />
-            <TruncatedText className='truncate flex-1' text={displayNameForView(presentedView, t, { spaceGroup })} />
-            {showUnreadDot && <UnreadDot />}
-          </MenuLink>
-          <InviteMembersPopover
+          <CurrentlyActiveMembers
             group={inviteGroup}
-            className='relative z-10 shrink-0 mr-1'
-            triggerClassName={cn(
-              'text-foreground/50 hover:text-foreground',
-              isRowActive && 'text-foreground/70 hover:text-foreground dark:text-white/80 dark:hover:text-white'
-            )}
+            max={MENU_ACTIVE_MAX}
+            membersUrl={url}
+            profileGroupSlug={parentSlug}
+            className='relative z-10 flex-1 min-w-0 mr-1'
           />
         </div>
       </li>

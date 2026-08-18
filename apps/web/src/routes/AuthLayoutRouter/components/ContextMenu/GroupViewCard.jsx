@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { ExternalLink, Info, Loader2, Pencil, Plus, Settings, Trash2, Users, X } from 'lucide-react'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 
-import InviteMembersPopover from 'components/InviteMembersPopover/InviteMembersPopover'
+import CurrentlyActiveMembers, { DEFAULT_ACTIVE_MAX } from 'components/CurrentlyActiveMembers'
 import LucideIcon from 'components/LucideIcon/LucideIcon'
 import TruncatedText from 'components/TruncatedText'
 import { Tooltip, TooltipContent, TooltipTrigger } from 'components/ui/tooltip'
@@ -17,7 +17,7 @@ import { bgImageStyle, cn } from 'util/index'
 
 import CardIconField from './CardIconField'
 import GroupViewIcon from './GroupViewIcon'
-import { externalLinkHref } from './groupViewMenuUrl'
+import { externalLinkHref, menuViewUrl } from './groupViewMenuUrl'
 import {
   viewCardColor,
   eventStartForView,
@@ -242,8 +242,11 @@ function GroupViewCard ({
     myMemberships.some(m => String(m.group.id) === String(linkedGroup.id))
   )
   const spaceMemberCount = isSpace ? (linkedGroup?.memberCount ?? null) : null
+  const isMembers = presented.type === 'members'
   const inviteGroup = spaceGroup || group
-  const showInvite = !isEditing && presented.type === 'members' && inviteGroup
+  const membersUrl = isMembers && group?.slug
+    ? menuViewUrl(group.slug, presented, spaceGroup)
+    : null
 
   const handleOpen = () => {
     if (isEditing) return
@@ -323,6 +326,59 @@ function GroupViewCard ({
       )
     : null
 
+  let cardBody
+  if (hasExtraContent) {
+    cardBody = (
+      <div className='relative h-full flex flex-col p-2 sm:p-3'>
+        <div className='flex-1 flex flex-col items-center justify-center gap-1.5 text-center'>
+          {iconTile}
+          {label}
+        </div>
+        <p className={cn(
+          'm-0 px-1 text-xs line-clamp-2 leading-relaxed',
+          lightSurfaceLabels ? 'text-foreground/70' : 'text-white/70 [text-shadow:0_1px_4px_rgba(0,0,0,0.6)]'
+        )}
+        >{welcomeText}
+        </p>
+      </div>
+    )
+  } else if (isMembers) {
+    cardBody = (
+      <div className='relative h-full flex flex-col p-2 sm:p-3'>
+        <div className='text-center shrink-0 pt-0.5'>
+          {label}
+        </div>
+        <div
+          className='flex-1 flex items-center min-w-0 mt-1'
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+        >
+          <CurrentlyActiveMembers
+            group={inviteGroup}
+            max={DEFAULT_ACTIVE_MAX}
+            membersUrl={isEditing ? undefined : membersUrl}
+            profileGroupSlug={group?.slug}
+            showInvite={false}
+            stacked
+            interactive={!isEditing}
+            className='w-full'
+          />
+        </div>
+      </div>
+    )
+  } else {
+    cardBody = (
+      <div className='relative h-full'>
+        <div className='absolute inset-0 grid place-items-center'>
+          {iconTile}
+        </div>
+        <div className='absolute left-0 right-0 top-[calc(50%+28px)] bottom-0 flex flex-col items-center justify-center text-center px-3'>
+          {label}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div
       // SortableViewsGrid owns the edit chrome and drag listeners. cursor is
@@ -362,16 +418,6 @@ function GroupViewCard ({
         }
       }}
     >
-      {showInvite && (
-        <div className='absolute top-1.5 right-1.5 z-20'>
-          <InviteMembersPopover
-            group={inviteGroup}
-            triggerClassName={lightSurfaceLabels
-              ? 'bg-background/90 text-foreground/70 hover:text-foreground shadow-sm'
-              : 'bg-black/40 text-white hover:text-white shadow-sm'}
-          />
-        </div>
-      )}
       {onPhoto
         ? (
           <>
@@ -387,38 +433,14 @@ function GroupViewCard ({
           )}
       {spacePill}
       {!isEditing && (showUnreadDot || showJoinRequestDot) && (
-        <span className='absolute -top-1.5 -right-1.5 z-10 w-3 h-3 rounded-full bg-orange-500 border-2 border-background' />
+        <span className='absolute top-1.5 right-1.5 z-10 w-3 h-3 rounded-full bg-orange-500 border-2 border-background' />
       )}
       {!isEditing && chatBadgeCount != null && (
-        <span className='absolute -top-1.5 -right-1.5 z-10 min-w-5 h-5 px-1 rounded-full bg-accent text-white text-xs font-bold flex items-center justify-center border-2 border-background'>
+        <span className='absolute top-1.5 right-1.5 z-10 min-w-5 h-5 px-1 rounded-full bg-accent text-white text-xs font-bold flex items-center justify-center border-2 border-background'>
           {chatBadgeCount}
         </span>
       )}
-      {hasExtraContent
-        ? (
-          <div className='relative h-full flex flex-col p-2 sm:p-3'>
-            <div className='flex-1 flex flex-col items-center justify-center gap-1.5 text-center'>
-              {iconTile}
-              {label}
-            </div>
-            <p className={cn(
-              'm-0 px-1 text-xs line-clamp-2 leading-relaxed',
-              lightSurfaceLabels ? 'text-foreground/70' : 'text-white/70 [text-shadow:0_1px_4px_rgba(0,0,0,0.6)]'
-            )}
-            >{welcomeText}
-            </p>
-          </div>
-          )
-        : (
-          <div className='relative h-full'>
-            <div className='absolute inset-0 grid place-items-center'>
-              {iconTile}
-            </div>
-            <div className='absolute left-0 right-0 top-[calc(50%+28px)] bottom-0 flex flex-col items-center justify-center text-center px-3'>
-              {label}
-            </div>
-          </div>
-          )}
+      {cardBody}
     </div>
   )
 }
@@ -470,7 +492,7 @@ export function SpaceViewCard ({ space, isEditing, isDeleting = false, onOpen, o
         </>
       )}
       {showJoinRequestDot && !isEditing && !isDeleting && (
-        <span className='absolute -top-1.5 -right-1.5 z-10 w-3 h-3 rounded-full bg-orange-500 border-2 border-background' />
+        <span className='absolute top-1.5 left-1.5 z-10 w-3 h-3 rounded-full bg-orange-500 border-2 border-background' />
       )}
       <div className='relative h-full'>
         <div className='absolute inset-0 grid place-items-center'>

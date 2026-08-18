@@ -498,6 +498,7 @@ export const queryParamWhitelist = [
   'createdBy',
   'farmQuery',
   'filter',
+  'first',
   'forCollection',
   'groupId',
   'groupIds',
