@@ -649,7 +649,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
   },
 
   pushTypingToSockets: function (userId, userName, isTyping, socketToExclude) {
-    pushToSockets(postRoom(this.id), 'userTyping', { userId, userName, isTyping }, socketToExclude)
+    pushToSockets(postRoom(this.id), 'userTyping', { userId, userName, isTyping, postId: String(this.id) }, socketToExclude)
   },
 
   copy: function (attrs) {

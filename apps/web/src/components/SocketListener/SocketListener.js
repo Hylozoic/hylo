@@ -65,8 +65,8 @@ const SocketListener = (props) => {
       dispatch(receivePost(data, postGroupId))
     },
     newThread: data => dispatch(receiveThread(convertToThread(data))),
-    userTyping: ({ userId, userName, isTyping }) => {
-      isTyping ? dispatch(addUserTyping(userId, userName)) : dispatch(clearUserTyping(userId))
+    userTyping: ({ userId, userName, isTyping, groupId, postId }) => {
+      isTyping ? dispatch(addUserTyping(userId, userName, { groupId, postId })) : dispatch(clearUserTyping(userId))
     },
     // Live room rosters (see RoomPresence.store)
     roomPresence: ({ groupId, members }) => dispatch(setRoomPresence(groupId, members)),

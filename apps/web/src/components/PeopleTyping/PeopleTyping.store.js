@@ -17,6 +17,8 @@ export default function reducer (state = defaultState, action) {
         ...state,
         [payload.id]: {
           name: payload.name,
+          groupId: payload.groupId,
+          postId: payload.postId,
           timestamp: Date.now()
         }
       }
@@ -27,10 +29,10 @@ export default function reducer (state = defaultState, action) {
   }
 }
 
-export function addUserTyping (id, name) {
+export function addUserTyping (id, name, context = {}) {
   return {
     type: ADD_USER_TYPING,
-    payload: { id, name }
+    payload: { id, name, groupId: context.groupId, postId: context.postId }
   }
 }
 

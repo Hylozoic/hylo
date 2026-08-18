@@ -215,7 +215,7 @@ const MessagesMobile = ({
               updateThreadReadTime={updateThreadReadTimeAction}
               messageThread={messageThread}
             />
-            <PeopleTyping className='w-full mx-auto max-w-[750px] pl-16 py-1 flex-shrink-0 px-3' />
+            <PeopleTyping postId={messageThreadId} className='w-full mx-auto max-w-[750px] pl-16 py-1 flex-shrink-0 px-3' />
             <div className='flex-shrink-0 px-3 pb-3 bg-background border-t border-border' style={{ pointerEvents: 'auto' }}>
               {messageThread?.isMuted && <MutedThreadNotice />}
               <MessageForm
