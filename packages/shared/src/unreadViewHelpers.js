@@ -68,26 +68,35 @@ export const TYPED_VIEW_TO_POST_TYPES = Object.entries(POST_TYPE_TO_TYPED_VIEW).
 export const VIEW_TYPE_TO_POST_TYPES = TYPED_VIEW_TO_POST_TYPES
 
 /**
- * Whether a new post should increment the chat unread count for a group.
- * - notices on (default): chat + discussion/request/offer/… (CHAT_VISIBLE_POST_TYPES)
- * - notices off: chat posts only
+ * Whether a post belongs in the chat timeline (live append + fetch filter).
+ * Notices on (default): chat + discussion/request/offer/… (CHAT_VISIBLE_POST_TYPES).
+ * Notices off: chat posts only.
  */
-export function postCountsTowardChatUnread (postType, showPostNoticesInChat = true) {
+export function postAppearsInChat (postType, showPostNoticesInChat = true) {
   if (showPostNoticesInChat) return CHAT_VISIBLE_POST_TYPES.includes(postType)
   return postType === 'chat'
 }
 
+/**
+ * Whether a new post should increment the chat view's unread badge.
+ * Chat messages only — typed posts badge their own view, even when they also
+ * appear as notices in the chat stream.
+ */
+export function postCountsTowardChatUnread (postType) {
+  return postType === 'chat'
+}
+
 /** Post types to use when recounting chat unread for a group. */
-export function chatRecountPostTypes (showPostNoticesInChat = true) {
-  return showPostNoticesInChat ? CHAT_VISIBLE_POST_TYPES : ['chat']
+export function chatRecountPostTypes () {
+  return ['chat']
 }
 
 /**
  * Post types that should be counted toward new_post_count for a view.
  * Returns null when the view never tracks unread (caller should set count to 0).
  */
-export function recountPostTypesForView (viewType, showPostNoticesInChat = true) {
-  if (viewType === 'chat') return chatRecountPostTypes(showPostNoticesInChat)
+export function recountPostTypesForView (viewType) {
+  if (viewType === 'chat') return chatRecountPostTypes()
   if (TYPED_VIEW_TO_POST_TYPES[viewType]) return TYPED_VIEW_TO_POST_TYPES[viewType]
   return null
 }

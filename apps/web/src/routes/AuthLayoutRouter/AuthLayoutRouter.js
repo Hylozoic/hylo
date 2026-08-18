@@ -182,14 +182,6 @@ export default function AuthLayoutRouter (props) {
   const currentGroup = useSelector(state => getGroupForSlug(state, currentGroupSlug))
   const currentGroupMembership = useSelector(state => getMyGroupMembership(state, currentGroupSlug))
 
-  // Space posts are pushed to the space's group socket room — subscribe while the parent is open
-  // so ContextMenu can show real-time badges for spaces and nested space views.
-  const spaceSocketGroupIds = useMemo(() => {
-    const items = currentGroup?.groupViews?.items || []
-    return items
-      .filter(view => view.type === 'space' && view.linkedGroup?.id)
-      .map(view => String(view.linkedGroup.id))
-  }, [currentGroup?.groupViews?.items])
   const currentUser = useSelector(getMe)
   const globalNavStyle = currentUser?.settings?.globalNavStyle === 'tabs' ? 'tabs' : 'sidebar'
   const stackGroups = currentUser?.settings?.stackGroups === true
@@ -1166,9 +1158,6 @@ export default function AuthLayoutRouter (props) {
             </div>
             <SocketListener location={location} groupSlug={currentGroupSlug} />
             <SocketSubscriber type='group' id={get('slug', currentGroup)} />
-            {spaceSocketGroupIds.map(spaceGroupId => (
-              <SocketSubscriber key={`space-socket-${spaceGroupId}`} type='group' id={spaceGroupId} />
-            ))}
           </div>
         </div>
         <CookieConsentLinker />

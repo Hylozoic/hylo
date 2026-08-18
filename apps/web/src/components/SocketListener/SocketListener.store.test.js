@@ -122,12 +122,20 @@ describe('SocketListener.store.ormSessionReducer', () => {
       }
     })
 
-    it('updates membership and GroupView unread counts', () => {
+    it('updates membership and typed-view unread, not chat', () => {
       ormSessionReducer(session, action)
       expect(session.Membership.withId('1').newPostCount).toBe(1)
       const views = session.Group.withId('1').groupViews.items
       expect(views.find(v => v.type === 'discussions').newPostCount).toBe(1)
+      expect(views.find(v => v.type === 'chat').newPostCount).toBe(0)
+    })
+
+    it('bumps the chat badge for chat posts', () => {
+      action.payload.data.post.type = 'chat'
+      ormSessionReducer(session, action)
+      const views = session.Group.withId('1').groupViews.items
       expect(views.find(v => v.type === 'chat').newPostCount).toBe(1)
+      expect(views.find(v => v.type === 'discussions').newPostCount).toBe(0)
     })
 
     it('ignores posts created by the current user', () => {
@@ -169,7 +177,7 @@ describe('SocketListener.store.ormSessionReducer', () => {
 
       const nested = session.Group.withId('99').groupViews.items[0].linkedGroup.groupViews.items
       expect(nested.find(v => v.type === 'discussions').newPostCount).toBe(1)
-      expect(nested.find(v => v.type === 'chat').newPostCount).toBe(1)
+      expect(nested.find(v => v.type === 'chat').newPostCount).toBe(0)
       expect(session.Membership.withId('1').newPostCount).toBe(1)
     })
   })

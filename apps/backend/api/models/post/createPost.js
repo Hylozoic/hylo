@@ -173,9 +173,8 @@ export async function incrementNewPostCount (post) {
       }
     }
 
-    // Chat view: always for type=chat; also for other post types when notices are on
-    const showNotices = (group.get('settings') || {}).showPostNoticesInChat !== false
-    if (postCountsTowardChatUnread(postType, showNotices)) {
+    // Chat view badge: chat posts only (typed posts badge their own view)
+    if (postCountsTowardChatUnread(postType)) {
       const chatView = await GroupView.where({
         group_id: group.id,
         type: GroupView.Type.CHAT
@@ -212,12 +211,29 @@ async function notifyAndMarkAuthorRead (post, localId, trx) {
   // room it's being pushed to.
   const payload = post.getNewPostSocketPayload()
   payload.localId = localId
-  const notifySockets = payload.groups.map(g => {
-    return pushToSockets(
+  const rooms = new Set()
+  const notifySockets = []
+  payload.groups.forEach(g => {
+    rooms.add(String(g.id))
+    notifySockets.push(pushToSockets(
       groupRoom(g.id),
       'newPost',
       Object.assign({}, payload, { groups: [g] })
-    )
+    ))
+  })
+  // Space posts also go to the parent room so the parent menu can badge
+  // without every client joining every space room.
+  groups.models.forEach(group => {
+    const parentId = group.get('parent_id')
+    if (!parentId || rooms.has(String(parentId))) return
+    rooms.add(String(parentId))
+    const g = payload.groups.find(p => String(p.id) === String(group.id))
+    if (!g) return
+    notifySockets.push(pushToSockets(
+      groupRoom(parentId),
+      'newPost',
+      Object.assign({}, payload, { groups: [g] })
+    ))
   })
 
   const groupTagsQuery = GroupTag.query(q => {
@@ -247,8 +263,7 @@ async function notifyAndMarkAuthorRead (post, localId, trx) {
       }
     }
 
-    const showNotices = (group.get('settings') || {}).showPostNoticesInChat !== false
-    if (postCountsTowardChatUnread(postType, showNotices)) {
+    if (postCountsTowardChatUnread(postType)) {
       const chatView = await GroupView.where({
         group_id: group.id,
         type: GroupView.Type.CHAT

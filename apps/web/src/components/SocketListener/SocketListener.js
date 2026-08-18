@@ -58,7 +58,8 @@ const SocketListener = (props) => {
       dispatch(receiveOpenJoinRequestCount(data.groupId, data.openJoinRequestCount))
     },
     // Use the post's group from the socket payload — not the currently viewed group.
-    // Space posts arrive on the space room while the parent menu may still be open.
+    // Space posts are also pushed to the parent room so the parent menu can badge
+    // without joining every space room.
     newPost: data => {
       const postGroupId = data?.groups?.[0]?.id
       if (!postGroupId) return
