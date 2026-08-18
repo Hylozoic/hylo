@@ -48,12 +48,12 @@ test('group menu shows member pills on space rows and updated icons', async ({ p
     path: path.resolve(screenshotDir, 'menu-1-group-context-menu.png')
   })
 
-  await page.goto('/groups/building-hylo/more-views')
+  await page.goto('/groups/building-hylo/more-spaces')
   await page.waitForLoadState('networkidle')
   await page.waitForTimeout(1000)
 
   await page.screenshot({
-    path: path.resolve(screenshotDir, 'menu-2-more-views.png'),
+    path: path.resolve(screenshotDir, 'menu-2-more-spaces.png'),
     fullPage: true
   })
 

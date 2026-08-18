@@ -64,8 +64,6 @@ export function groupViewUrl (groupSlug, view) {
       return groupUrl(groupSlug, 'map')
     case 'members':
       return groupUrl(groupSlug, 'members')
-    case 'about':
-      return groupUrl(groupSlug, 'about')
     case 'welcome':
       return groupUrl(groupSlug, 'welcome')
     case 'discussions':
@@ -78,10 +76,6 @@ export function groupViewUrl (groupSlug, view) {
       return groupUrl(groupSlug, 'resources')
     case 'requests-and-offers':
       return groupUrl(groupSlug, 'requests-and-offers')
-    case 'related-groups':
-      return groupUrl(groupSlug, 'groups')
-    case 'moderation':
-      return groupUrl(groupSlug, 'moderation')
     case 'decisions':
       return groupUrl(groupSlug, 'decisions')
     case 'custom':

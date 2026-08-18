@@ -325,7 +325,7 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
 }
 
 /** Inline gear / remove controls shown on hover in edit mode.
- * X moves soft-removable views to More Views; trash permanently deletes when allowed. */
+ * X moves spaces to More Spaces; trash permanently deletes when allowed. */
 export function GroupViewEditActions ({ view, onSettings, onHide, onDelete, className }) {
   const { t } = useTranslation()
   const removable = canDeleteView(view)

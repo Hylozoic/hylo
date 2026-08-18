@@ -111,14 +111,11 @@ export function filterMoreSpacesSections (sections, opts) {
   const fundingRoundSpaces = filterSpacesForMenuVisibility(sections.fundingRoundSpaces, opts)
   const otherSpaces = filterSpacesForMenuVisibility(sections.otherSpaces, opts)
   const archivedSpaces = filterSpacesForMenuVisibility(sections.archivedSpaces, opts)
-  const offMenuViews = sections.offMenuViews || []
-  const hasAny = offMenuViews.length +
-    trackSpaces.length +
+  const hasAny = trackSpaces.length +
     fundingRoundSpaces.length +
     otherSpaces.length +
     archivedSpaces.length > 0
   return {
-    offMenuViews,
     trackSpaces,
     fundingRoundSpaces,
     otherSpaces,

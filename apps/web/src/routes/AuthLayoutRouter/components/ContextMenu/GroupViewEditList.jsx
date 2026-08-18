@@ -19,13 +19,14 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
-import { addQuerystringToPath, groupUrl, localSpaceSlug } from '@hylo/navigation'
+import { addQuerystringToPath } from '@hylo/navigation'
+import { spaceEntryUrl } from './groupViewMenuUrl'
 
 import { Tooltip, TooltipContent, TooltipTrigger } from 'components/ui/tooltip'
 import TruncatedText from 'components/TruncatedText'
 import GroupViewIcon from './GroupViewIcon'
 import { GroupViewEditActions } from './GroupViewSettingsModal'
-import { canDeleteView, canHardDeleteView, isSoftRemoveView, viewAcceptedByPostTypes } from 'store/models/GroupView'
+import { canDeleteView, canHardDeleteView, isSoftRemoveView } from 'store/models/GroupView'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 import { deleteGroupView, deleteSpace, setGroupViewHidden } from 'store/actions/groupViews'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
@@ -39,6 +40,9 @@ import useFlashAddedItems, { MENU_FLASH_CLASS } from './useFlashAddedItems'
 function sortViewsByOrder (views) {
   return sortViewsByMenuOrder(views)
 }
+
+// Pointer devices keep the hover-reveal; touch has no hover, so the icons stay up.
+const EDIT_ACTIONS_CLASS = 'opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100'
 
 /** Single draggable row in edit mode. */
 function SortableEditRow ({ view, onSettings, onHide, onDelete, isHome, spaceGroup = null, isFlashing = false }) {
@@ -73,7 +77,7 @@ function SortableEditRow ({ view, onSettings, onHide, onDelete, isHome, spaceGro
           <GripVertical className='w-4 h-4' />
         </button>
         <hr className='flex-1 border-foreground/10' />
-        <GroupViewEditActions view={view} onSettings={onSettings} onHide={onHide} onDelete={onDelete} className='opacity-0 group-hover:opacity-100' />
+        <GroupViewEditActions view={view} onSettings={onSettings} onHide={onHide} onDelete={onDelete} className={EDIT_ACTIONS_CLASS} />
       </li>
     )
   }
@@ -94,7 +98,7 @@ function SortableEditRow ({ view, onSettings, onHide, onDelete, isHome, spaceGro
           className='flex-1 min-w-0 text-xs text-foreground/40 uppercase tracking-wide truncate'
           text={displayNameForView(presentedView, t, { spaceGroup })}
         />
-        <GroupViewEditActions view={view} onSettings={onSettings} onHide={onHide} onDelete={onDelete} className='opacity-0 group-hover:opacity-100' />
+        <GroupViewEditActions view={view} onSettings={onSettings} onHide={onHide} onDelete={onDelete} className={EDIT_ACTIONS_CLASS} />
       </li>
     )
   }
@@ -129,7 +133,7 @@ function SortableEditRow ({ view, onSettings, onHide, onDelete, isHome, spaceGro
         onSettings={onSettings}
         onHide={onHide}
         onDelete={onDelete}
-        className='opacity-0 group-hover:opacity-100'
+        className={EDIT_ACTIONS_CLASS}
       />
     </li>
   )
@@ -159,17 +163,13 @@ function SortableSpaceEditRow ({
     opacity: isDragging ? 0.5 : 1
   }
 
-  /** Open this space's more-views page in edit mode (same as More Views space click). */
+  /** Open this space's home with its menu in edit mode. */
   const handleEditSpaceMenu = useCallback((e) => {
     e.preventDefault()
     e.stopPropagation()
     if (!groupSlug || !spaceGroup?.slug) return
-    const local = localSpaceSlug(groupSlug, spaceGroup.slug)
-    navigate(addQuerystringToPath(groupUrl(groupSlug, 'more-views'), {
-      edit: 'true',
-      space: local
-    }))
-  }, [navigate, groupSlug, spaceGroup?.slug])
+    navigate(addQuerystringToPath(spaceEntryUrl(groupSlug, spaceGroup), { edit: 'true' }))
+  }, [navigate, groupSlug, spaceGroup])
 
   return (
     <li ref={setNodeRef} style={style} className='list-none'>
@@ -184,7 +184,7 @@ function SortableSpaceEditRow ({
           onSettings={onSettings}
           onHide={onHide}
           onDelete={onDelete}
-          className='opacity-0 group-hover:opacity-100'
+          className={EDIT_ACTIONS_CLASS}
         />
         {spaceGroup?.slug && groupSlug && (
           <Tooltip>
@@ -210,12 +210,9 @@ function SortableSpaceEditRow ({
 export default function GroupViewEditList ({ views, group, groupSlug, onSettings }) {
   const dispatch = useDispatch()
   const { t } = useTranslation()
-  // Match live menu: hide typed views that the group/space no longer accepts.
   const visibleViews = useMemo(() => sortViewsByOrder(
-    (views || [])
-      .filter(v => v.order != null)
-      .filter(v => viewAcceptedByPostTypes(v.type, group?.acceptedPostTypes))
-  ), [views, group?.acceptedPostTypes])
+    (views || []).filter(v => v.order != null)
+  ), [views])
   const [orderedViews, setOrderedViews] = useState(visibleViews)
 
   // Merge Redux updates into local order (preserves drag order; full replace on add/delete).

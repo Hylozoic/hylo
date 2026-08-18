@@ -1,6 +1,5 @@
 import { createSelector as ormCreateSelector } from 'redux-orm'
 import orm from 'store/models'
-import { SOFT_REMOVE_VIEW_TYPES, viewAcceptedByPostTypes } from 'store/models/GroupView'
 
 /** Returns ids of space groups linked from ordered (in-menu) space views only. */
 export function getMenuSpaceIds (groupViews) {
@@ -48,25 +47,13 @@ export function categorizeOffMenuSpaces (spaces, menuSpaceIds) {
   return { trackSpaces, fundingRoundSpaces, otherSpaces, archivedSpaces }
 }
 
-/** Off-menu soft-removable GroupViews (order = null), excluding space rows. */
-export function getOffMenuViews (groupViews, acceptedPostTypes) {
-  const items = Array.isArray(groupViews) ? groupViews : (groupViews?.items || [])
-  return items
-    .filter(view => view.order == null)
-    .filter(view => view.type !== 'space')
-    .filter(view => SOFT_REMOVE_VIEW_TYPES.has(view.type))
-    .filter(view => viewAcceptedByPostTypes(view.type, acceptedPostTypes))
-    .sort((a, b) => (a.name || a.type || '').localeCompare(b.name || b.type || ''))
-}
-
-/** Returns sections for More Views and Spaces (views + off-menu spaces). */
+/** Returns sections for More Spaces (off-menu spaces only). */
 export const getMoreViewsSections = ormCreateSelector(
   orm,
   (state, group) => group,
   (session, group) => {
     if (!group) {
       return {
-        offMenuViews: [],
         trackSpaces: [],
         fundingRoundSpaces: [],
         otherSpaces: [],
@@ -78,18 +65,14 @@ export const getMoreViewsSections = ormCreateSelector(
     const menuSpaceIds = getMenuSpaceIds(group.groupViews)
     const spaces = group.spaces?.items || []
     const spaceSections = categorizeOffMenuSpaces(spaces, menuSpaceIds)
-    const offMenuViews = getOffMenuViews(group.groupViews, group.acceptedPostTypes)
-    // Fold archived into Other Spaces for the page (no separate Archived section).
     const otherSpaces = [...spaceSections.otherSpaces, ...spaceSections.archivedSpaces]
       .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
 
-    const hasAny = offMenuViews.length +
-      spaceSections.trackSpaces.length +
+    const hasAny = spaceSections.trackSpaces.length +
       spaceSections.fundingRoundSpaces.length +
       otherSpaces.length > 0
 
     return {
-      offMenuViews,
       trackSpaces: spaceSections.trackSpaces,
       fundingRoundSpaces: spaceSections.fundingRoundSpaces,
       otherSpaces,
@@ -99,8 +82,8 @@ export const getMoreViewsSections = ormCreateSelector(
   }
 )
 
-/** @deprecated Use getMoreViewsSections — kept for transitional callers. */
+/** @deprecated Use getMoreViewsSections. */
 export const getMoreSpacesSections = getMoreViewsSections
 
-/** @deprecated Edit menu now uses the same More Views sections. */
+/** @deprecated Edit menu now uses the same More Spaces sections. */
 export const getEditMenuOffMenuSections = getMoreViewsSections

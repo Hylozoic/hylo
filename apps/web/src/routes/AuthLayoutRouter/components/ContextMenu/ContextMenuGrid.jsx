@@ -25,45 +25,35 @@ import logout from 'store/actions/logout'
 import { DEFAULT_BANNER, DEFAULT_AVATAR } from 'store/models/Group'
 import { getGroupViews } from 'store/selectors/getGroupViews'
 import { getMoreViewsSections } from 'store/selectors/getMoreSpacesSections'
-import {
-  getChildGroups,
-  getParentGroups,
-  getPeerGroups
-} from 'store/selectors/getGroupRelationships'
-import { RESP_ADMINISTRATION, RESP_ADD_MEMBERS, FETCH_GROUP_SPACES, FETCH_GROUP_RELATIONSHIPS, FETCH_GROUP_VIEWS } from 'store/constants'
+import { RESP_ADMINISTRATION, RESP_ADD_MEMBERS, FETCH_GROUP_SPACES, FETCH_GROUP_VIEWS } from 'store/constants'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import getMe from 'store/selectors/getMe'
 import isPendingFor from 'store/selectors/isPendingFor'
 import getMyMemberships from 'store/selectors/getMyMemberships'
-import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { filterMoreSpacesSections, filterSpaceViewsForMenuVisibility, spaceMenuVisibilityOpts } from 'util/spaceVisibility'
 import useAppearance from 'hooks/useAppearance'
 import usePublishedOfferings from 'hooks/usePublishedOfferings'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
-import fetchGroupRelationships from 'store/actions/fetchGroupRelationships'
 import { createGroupView, deleteGroupView, deleteSpace, setGroupViewHidden } from 'store/actions/groupViews'
-import { canHardDeleteView, viewAcceptedByPostTypes } from 'store/models/GroupView'
-import { viewShowsUnreadDot, viewUnreadBadgeCount } from 'util/viewUnreadBadges'
+import { canHardDeleteView } from 'store/models/GroupView'
 import GroupMenuHeader from 'components/GroupMenuHeader'
 import GroupNotificationsPopover from 'components/GroupNotificationsPopover/GroupNotificationsPopover'
 import CardIconField from './CardIconField'
 import GroupViewIcon from './GroupViewIcon'
 import MenuRowBackground from './MenuRowBackground'
 import SortableViewsGrid from './SortableViewsGrid'
-import GroupViewCard, { SpaceViewCard, EventDateStack } from './GroupViewCard'
+import GroupViewCard, { SpaceViewCard } from './GroupViewCard'
 import ViewsGridSkeleton from './ViewsGridSkeleton'
 import {
   viewCardColor,
-  eventStartForView,
   inkOn,
   cardGradient,
   cardFieldTint,
   cardHoverRing,
   cardRestRing,
-  cardNeutralBg,
   cardFadeGradient,
   cardChrome,
   cardHoverShadow,
@@ -81,9 +71,9 @@ import AddGroupViewDialog from './AddGroupViewDialog'
 import AddSpaceDialog from './AddSpaceDialog'
 import AddViewOrSpaceMenu from './AddViewOrSpaceMenu'
 import EditingBottomBar, { EDITING_BAR_BUTTON_CLASS } from './EditingBottomBar'
-import { menuViewUrl, externalLinkHref } from './groupViewMenuUrl'
+import { menuViewUrl } from './groupViewMenuUrl'
 
-/** Synthetic view so the More Views card can use the same icon wallpaper as real views. */
+/** Synthetic view so the More Spaces card can use the same icon wallpaper as real views. */
 const MORE_SPACES_VIEW = { lucideIcon: 'CircleEllipsis' }
 const JOIN_REQUESTS_VIEW = { lucideIcon: 'UserPlus' }
 
@@ -123,7 +113,6 @@ function partitionViewsIntoSections (views) {
  * moving the grid below.
  */
 function SpaceBannerHeader ({ group, spaceGroup, canAdminister, onOpenSettings, navigate, t }) {
-  const location = useLocation()
   const presentedSpaceView = useMemo(() => GroupViewPresenter({
     type: 'space', name: spaceGroup.name, icon: spaceGroup.icon, linkedGroup: spaceGroup
   }), [spaceGroup])
@@ -157,7 +146,7 @@ function SpaceBannerHeader ({ group, spaceGroup, canAdminister, onOpenSettings, 
         <div className='flex items-center gap-3'>
           <button
             type='button'
-            onClick={() => navigate(addQuerystringToPath(location.pathname, { about: 1 }))}
+            onClick={() => navigate(spaceUrl(group.slug, localSpace, 'about'))}
             aria-label={t('About')}
             title={t('About')}
           >
@@ -257,7 +246,7 @@ function SeparatorSection () {
 }
 
 /** Renders partitioned view sections as a card grid. */
-function ViewsGrid ({ sections, groupSlug, group, spaceGroup, navigate, t }) {
+function ViewsGrid ({ sections, group, spaceGroup, onOpen, t }) {
   return (
     // Headings and card rows are flat siblings here, so the gap is the heading's
     // distance from its own cards — it matches the gap between cards, and
@@ -278,14 +267,12 @@ function ViewsGrid ({ sections, groupSlug, group, spaceGroup, navigate, t }) {
         return (
           <div key={`grid-${index}`} className='flex flex-wrap gap-3'>
             {section.views.map(view => (
-              <ViewCard
+              <GroupViewCard
                 key={view.id}
                 view={view}
-                groupSlug={groupSlug}
                 group={group}
                 spaceGroup={spaceGroup}
-                navigate={navigate}
-                t={t}
+                onOpen={onOpen}
               />
             ))}
           </div>
@@ -295,232 +282,7 @@ function ViewsGrid ({ sections, groupSlug, group, spaceGroup, navigate, t }) {
   )
 }
 
-/** Single navigable view card in the grid. */
-function ViewCard ({ view, groupSlug, group, spaceGroup, navigate, t }) {
-  const dispatch = useDispatch()
-  const [hover, setHover] = useState(false)
-  const presentedView = useMemo(() => GroupViewPresenter(view), [view])
-  const title = displayNameForView(presentedView, t, { spaceGroup })
-  const url = menuViewUrl(groupSlug, presentedView, spaceGroup)
-  const isExternal = presentedView.type === 'link' && url && /^https?:\/\//.test(url)
-  const isWelcome = presentedView.type === 'welcome'
-  const welcomeText = isWelcome && (presentedView.pageContent || group?.welcomePage)
-    ? (presentedView.pageContent || group.welcomePage).replace(/<[^>]*>/g, '').trim()
-    : null
-  const isSpace = presentedView.type === 'space'
-  const isLogout = presentedView.type === 'logout'
-  const { effectiveColorScheme } = useAppearance()
-
-  // Image-backed cards (spaces, groups, members) show the group's banner when
-  // one is set — even without a custom avatar — falling back to the avatar;
-  // icon cards use the view color (post-type brand, or slate grey otherwise).
-  const linkedGroup = presentedView.linkedGroup
-  const linkedGroupBanner = linkedGroup?.bannerUrl && linkedGroup.bannerUrl !== DEFAULT_BANNER
-    ? linkedGroup.bannerUrl
-    : null
-  const bgImageUrl = linkedGroupBanner || presentedView.avatarUrl || null
-  const isDark = effectiveColorScheme === 'dark'
-  const col = viewCardColor(presentedView)
-  const tint = cardFieldTint(col, effectiveColorScheme)
-  const ink = inkOn(col)
-  // Photo-backed cards keep white-on-scrim labels in both schemes.
-  const lightSurfaceLabels = !isDark && !bgImageUrl
-  // Map/welcome cards keep their extra content, so their icon+label stay in a
-  // flowing column; plain cards center the tile exactly per the design.
-  const hasExtraContent = Boolean(isWelcome && welcomeText)
-
-  const handleClick = async () => {
-    if (isLogout) {
-      await dispatch(logout())
-      if (window.HyloMobileV2) {
-        sendMessageToWebView(WebViewMessageTypes.LOGOUT)
-      } else {
-        dispatch(replace('/login', null))
-      }
-      return
-    }
-    if (isSpace && presentedView.linkedGroup) {
-      const local = localSpaceSlug(groupSlug, presentedView.linkedGroup.slug)
-      navigate(spaceUrl(groupSlug, local))
-      return
-    }
-    if (isExternal && url) {
-      window.open(url, '_blank', 'noopener,noreferrer')
-      return
-    }
-    if (url) navigate(url)
-  }
-
-  const chatBadgeCount = viewUnreadBadgeCount(presentedView)
-  const showUnreadDot = viewShowsUnreadDot(presentedView)
-  const liveSpaceGroup = useSelector(state =>
-    isSpace && presentedView.linkedGroup?.slug
-      ? getGroupForSlug(state, presentedView.linkedGroup.slug)
-      : null
-  )
-  const showJoinRequestDot = isSpace && (
-    (liveSpaceGroup?.openJoinRequestCount || presentedView.linkedGroup?.openJoinRequestCount || 0) > 0
-  )
-  const eventStart = eventStartForView(presentedView)
-  const myMemberships = useSelector(getMyMemberships)
-  const isSpaceMember = Boolean(
-    isSpace && linkedGroup &&
-    myMemberships.some(m => String(m.group.id) === String(linkedGroup.id))
-  )
-  const spaceMemberCount = isSpace ? (linkedGroup?.memberCount ?? null) : null
-  // Members see the space's member count; non-members get a + JOIN hint instead
-  const spacePill = isSpace && (typeof spaceMemberCount === 'number' || !isSpaceMember)
-    ? (
-      <span
-        className={cn(
-          'absolute top-1.5 left-1.5 z-10 inline-flex items-center gap-0.5 text-xs leading-none rounded-full px-1.5 py-1',
-          lightSurfaceLabels
-            ? 'bg-black/10 text-foreground/60'
-            : 'bg-black/30 text-white/90 backdrop-blur-sm'
-        )}
-        aria-label={isSpaceMember ? t('{{count}} Members', { count: spaceMemberCount }) : t('Join')}
-      >
-        {isSpaceMember
-          ? (
-            <>
-              <Users className='w-3 h-3' aria-hidden='true' />
-              {spaceMemberCount}
-            </>
-            )
-          : <span className='uppercase text-[10px] font-semibold tracking-wide'>+ {t('Join')}</span>}
-      </span>
-      )
-    : null
-
-  const iconTile = (
-    <div
-      className='w-14 h-14 rounded-[15px] overflow-hidden grid place-items-center shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.35)]'
-      style={presentedView.avatarUrl
-        ? { border: '1px solid hsl(0 0% 100% / 0.28)' }
-        : bgImageUrl
-          ? { background: 'hsl(0 0% 100% / 0.16)', backdropFilter: 'blur(4px)', color: 'white', border: '1px solid hsl(0 0% 100% / 0.28)' }
-          : { background: col, color: ink, border: `1px solid color-mix(in srgb, ${col} 55%, white)` }}
-    >
-      {/* An avatar fills the tile — RoundImage hard-codes its own small size, so it
-          can't be scaled up through GroupViewIcon's className. */}
-      {presentedView.avatarUrl
-        ? <div className='w-full h-full bg-cover bg-center' style={bgImageStyle(presentedView.avatarUrl)} />
-        : eventStart
-          ? <EventDateStack start={eventStart} />
-          : (
-            <span className='flex items-center justify-center w-[26px] h-[26px] [&>svg]:!w-full [&>svg]:!h-full [&>img]:!w-full [&>img]:!h-full [&>span]:!text-[26px] [&>span]:!leading-none'>
-              <GroupViewIcon view={presentedView} className='!w-[26px] !h-[26px] !mr-0' />
-            </span>
-            )}
-    </div>
-  )
-
-  const label = (
-    <h3 className={cn(
-      CARD_TITLE_CLASS,
-      lightSurfaceLabels ? 'text-foreground' : 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]'
-    )}
-    >{title}
-    </h3>
-  )
-
-  const isMembers = presentedView.type === 'members'
-  const inviteGroup = spaceGroup || group
-
-  return (
-    <div
-      onClick={handleClick}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      className={cn(CARD_CLASS, cardChrome(isDark), 'group')}
-      style={{
-        background: bgImageUrl
-          ? cardNeutralBg(effectiveColorScheme)
-          : cardGradient(col, effectiveColorScheme),
-        // Light mode: icon cards take their border from the view color (brand or grey)
-        // Light mode: icon cards take the view color — faint at rest, full on hover
-        ...(!isDark && !bgImageUrl ? { borderColor: hover ? col : `${col}33` } : {}),
-        // Photo-backed cards read better with a soft white edge than a dark hairline
-        ...(!isDark && bgImageUrl ? { borderColor: `hsl(0 0% 100% / ${hover ? 0.55 : 0.25})` } : {}),
-        boxShadow: hover
-          ? `${cardHoverShadow(isDark)}, ${bgImageUrl ? cardRestRing(col) : cardHoverRing(col)}`
-          : `${cardRestShadow(isDark)}, ${cardRestRing(col)}`
-      }}
-      role='button'
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          handleClick()
-        }
-      }}
-    >
-      {isMembers && inviteGroup && (
-        <div className='absolute top-1.5 right-1.5 z-20'>
-          <InviteMembersPopover
-            group={inviteGroup}
-            triggerClassName={lightSurfaceLabels
-              ? 'bg-background/90 text-foreground/70 hover:text-foreground shadow-sm'
-              : 'bg-black/40 text-white hover:text-white shadow-sm'}
-          />
-        </div>
-      )}
-      {bgImageUrl
-        ? (
-          <>
-            <div className='absolute inset-0 bg-cover bg-center' style={bgImageStyle(bgImageUrl)} />
-            <div className='absolute inset-0' style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.6) 100%)' }} />
-          </>
-          )
-        : (
-          <>
-            <CardIconField view={presentedView} tint={tint} w={CARD_W} h={CARD_H} />
-            <div className={CARD_FADE_CLASS} style={{ background: cardFadeGradient(effectiveColorScheme) }} />
-          </>
-          )}
-
-      {spacePill}
-      {(showUnreadDot || showJoinRequestDot) && (
-        <span className='absolute -top-1.5 -right-1.5 z-10 w-3 h-3 rounded-full bg-orange-500 border-2 border-background' />
-      )}
-      {chatBadgeCount != null && (
-        <span className='absolute -top-1.5 -right-1.5 z-10 min-w-5 h-5 px-1 rounded-full bg-accent text-white text-xs font-bold flex items-center justify-center border-2 border-background'>
-          {chatBadgeCount}
-        </span>
-      )}
-
-      {hasExtraContent
-        ? (
-          <div className='relative h-full flex flex-col p-2 sm:p-3'>
-            <div className='flex-1 flex flex-col items-center justify-center gap-1.5 text-center'>
-              {iconTile}
-              {label}
-            </div>
-            {isWelcome && welcomeText && (
-              <p className={cn(
-                'm-0 px-1 text-xs line-clamp-2 leading-relaxed',
-                lightSurfaceLabels ? 'text-foreground/70' : 'text-white/70 [text-shadow:0_1px_4px_rgba(0,0,0,0.6)]'
-              )}
-              >{welcomeText}
-              </p>
-            )}
-          </div>
-          )
-        : (
-          <div className='relative h-full'>
-            <div className='absolute inset-0 grid place-items-center'>
-              {iconTile}
-            </div>
-            <div className='absolute left-0 right-0 top-[calc(50%+28px)] bottom-0 flex flex-col items-center justify-center text-center px-3'>
-              {label}
-            </div>
-          </div>
-          )}
-    </div>
-  )
-}
-
-/** Card opening the More Views and Spaces nested grid. */
+/** Card opening the More Spaces nested grid. */
 function MoreSpacesCard ({ onClick, t }) {
   const { effectiveColorScheme } = useAppearance()
   const isDark = effectiveColorScheme === 'dark'
@@ -563,7 +325,7 @@ function MoreSpacesCard ({ onClick, t }) {
           </div>
         </div>
         <div className='absolute left-0 right-0 top-[calc(50%+28px)] bottom-0 flex flex-col items-center justify-center text-center px-3'>
-          <h3 className={cn(CARD_TITLE_CLASS, isDark ? 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]' : 'text-foreground')}>{t('More')}</h3>
+          <h3 className={cn(CARD_TITLE_CLASS, isDark ? 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]' : 'text-foreground')}>{t('More Spaces')}</h3>
         </div>
       </div>
     </div>
@@ -625,15 +387,13 @@ function JoinRequestsCard ({ count, onClick, t }) {
 }
 
 /**
- * Everything behind More Views and Spaces: the visible sections, whether there is
+ * Everything behind More Spaces: the visible sections, whether there is
  * anything there at all, and whether we are still finding out. One hook so the
  * card that links here can't disagree with what this page would render — the
- * off-menu views come from groupViews, but the track/round/space buckets need
- * spaces to have been fetched, so a caller that hasn't fetched them would think
- * the page was empty.
+ * track/round/space buckets need spaces to have been fetched, so a caller that
+ * hasn't fetched them would think the page was empty.
  */
 function useMoreSpacesContent (group) {
-  const { t } = useTranslation()
   const currentUser = useSelector(getMe)
   const myMemberships = useSelector(getMyMemberships)
   const sectionsRaw = useSelector(state => getMoreViewsSections(state, group))
@@ -652,45 +412,24 @@ function useMoreSpacesContent (group) {
     })),
     [sectionsRaw, publishedOfferings, canManageSpaces, myMemberships, currentUser, group?.id]
   )
-  const parentGroups = useSelector(state => getParentGroups(state, group))
-  const childGroups = useSelector(state => getChildGroups(state, group))
-  const peerGroups = useSelector(state => getPeerGroups(state, group))
-  const pending = useSelector(state =>
-    isPendingFor([FETCH_GROUP_SPACES, FETCH_GROUP_RELATIONSHIPS], state)
-  )
-  const hasRelatedGroups = parentGroups.length + childGroups.length + peerGroups.length > 0
+  const pending = useSelector(state => isPendingFor(FETCH_GROUP_SPACES, state))
 
-  const offMenuViews = useMemo(() => {
-    const views = (sections.offMenuViews || []).filter(view => {
-      if (view.type === 'related-groups' && !hasRelatedGroups) return false
-      return true
-    })
-    return [...views].sort((a, b) =>
-      displayNameForView(GroupViewPresenter(a), t).localeCompare(
-        displayNameForView(GroupViewPresenter(b), t)
-      )
-    )
-  }, [sections.offMenuViews, hasRelatedGroups])
-
-  const showViews = offMenuViews.length > 0
   const showTracks = sections.trackSpaces?.length > 0
   const showFundingRounds = sections.fundingRoundSpaces?.length > 0
   const showOtherSpaces = sections.otherSpaces?.length > 0
 
   return {
     sections,
-    offMenuViews,
     canManageSpaces,
     pending,
-    showViews,
     showTracks,
     showFundingRounds,
     showOtherSpaces,
-    hasContent: showViews || showTracks || showFundingRounds || showOtherSpaces
+    hasContent: showTracks || showFundingRounds || showOtherSpaces
   }
 }
 
-/** Nested More Views and Spaces grid with section headers. Supports edit mode actions. */
+/** Nested More Spaces grid with section headers. Supports edit mode actions. */
 function MoreSpacesGrid ({
   group,
   groupSlug,
@@ -703,9 +442,7 @@ function MoreSpacesGrid ({
   const dispatch = useDispatch()
   const {
     sections,
-    offMenuViews,
     pending,
-    showViews,
     showTracks,
     showFundingRounds,
     showOtherSpaces,
@@ -717,7 +454,6 @@ function MoreSpacesGrid ({
   useEffect(() => {
     if (!group?.id || !groupSlug) return
     dispatch(fetchGroupSpaces(group.id))
-    dispatch(fetchGroupRelationships(groupSlug))
     dispatch(fetchGroupViews(group.id))
   }, [dispatch, group?.id, groupSlug])
 
@@ -731,28 +467,6 @@ function MoreSpacesGrid ({
     const local = localSpaceSlug(groupSlug, space.slug)
     navigate(spaceUrl(groupSlug, local, '/about'))
   }, [groupSlug, navigate])
-
-  const handleOpenView = useCallback((view) => {
-    if (isEditing) return
-    const presented = GroupViewPresenter(view)
-    const href = externalLinkHref(presented)
-    if (href) {
-      window.open(href, '_blank', 'noopener,noreferrer')
-      return
-    }
-    const url = menuViewUrl(groupSlug, presented)
-    if (url) navigate(url)
-  }, [groupSlug, navigate, isEditing])
-
-  const handleAddViewToMenu = useCallback(async (view) => {
-    if (!group?.id || !view?.id) return
-    try {
-      await dispatch(setGroupViewHidden({ id: view.id, groupId: group.id, hidden: false }))
-      await dispatch(fetchGroupViews(group.id))
-    } catch (error) {
-      console.error('Failed to add view to menu:', error)
-    }
-  }, [dispatch, group?.id])
 
   const handleAddSpaceToMenu = useCallback(async (space) => {
     if (!group?.id || !space?.id) return
@@ -776,18 +490,6 @@ function MoreSpacesGrid ({
       console.error('Failed to add space to menu:', error)
     }
   }, [dispatch, group?.id, groupViews])
-
-  const handleDeleteView = useCallback(async (view) => {
-    if (!canHardDeleteView(view) || !group?.id) return
-    const label = displayNameForView(GroupViewPresenter(view), t)
-    if (!window.confirm(t('Are you sure you want to permanently delete {{name}}?', { name: label }))) return
-    try {
-      await dispatch(deleteGroupView(view.id, group.id))
-      await dispatch(fetchGroupViews(group.id))
-    } catch (error) {
-      console.error('Failed to delete view:', error)
-    }
-  }, [dispatch, group?.id, t])
 
   const handleDeleteSpace = useCallback(async (space) => {
     if (!space?.id || deletingSpaceId) return
@@ -819,24 +521,6 @@ function MoreSpacesGrid ({
 
   return (
     <div className='flex flex-col gap-6'>
-      {showViews && (
-        <div className='flex flex-col gap-3'>
-          <TextSection>{t('Views')}</TextSection>
-          <div className='flex flex-wrap gap-3'>
-            {offMenuViews.map(view => (
-              <GroupViewCard
-                key={view.id}
-                view={view}
-                isEditing={isEditing}
-                onAddToMenu={handleAddViewToMenu}
-                onOpen={handleOpenView}
-                onOpenSettings={onOpenSettings}
-                onDelete={canHardDeleteView(view) ? handleDeleteView : null}
-              />
-            ))}
-          </div>
-        </div>
-      )}
       {showTracks && (
         <div className='flex flex-col gap-3'>
           <TextSection>{t('Tracks')}</TextSection>
@@ -920,7 +604,7 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
   const groupSlug = group?.slug
   const isContextMode = Boolean(context) && !group
 
-  const isMoreSpacesLevel = !isContextMode && !spaceGroup && location.pathname.replace(/\/$/, '').endsWith('/more-views')
+  const isMoreSpacesLevel = !isContextMode && !spaceGroup && location.pathname.replace(/\/$/, '').endsWith('/more-spaces')
   const isSpaceLevel = Boolean(spaceGroup)
   const isNestedLevel = isMoreSpacesLevel || isSpaceLevel
 
@@ -951,7 +635,7 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
     if (!isContextMode && menuGroup?.id) dispatch(fetchGroupViews(menuGroup.id))
   }, [dispatch, menuGroup?.id, isContextMode])
 
-  // Whether to offer More Views and Spaces at all. MoreSpacesGrid fetches these
+  // Whether to offer More Spaces at all. MoreSpacesGrid fetches these
   // itself once you are on that level, so only fetch here — where the card lives —
   // to avoid asking twice.
   const moreSpaces = useMoreSpacesContent(group)
@@ -959,7 +643,6 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
   useEffect(() => {
     if (isContextMode || isMoreSpacesLevel || spaceGroup || !group?.id || !groupSlug) return
     dispatch(fetchGroupSpaces(group.id))
-    dispatch(fetchGroupRelationships(groupSlug))
   }, [dispatch, isContextMode, isMoreSpacesLevel, spaceGroup, group?.id, groupSlug])
 
   const groupViews = useSelector(state => isContextMode ? [] : getGroupViews(state, menuGroup))
@@ -996,16 +679,14 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
       }) || []
     }
     const views = filterSpaceViewsForMenuVisibility(
-      (groupViews || [])
-        .filter(view => view.order != null)
-        .filter(view => viewAcceptedByPostTypes(view.type, menuGroup?.acceptedPostTypes)),
+      (groupViews || []).filter(view => view.order != null),
       spaceVisibilityOpts
     )
     if (spaceGroup?.fundingRound?.id && canAdminister) {
       return [...views, MANAGE_ROUND_VIEW]
     }
     return views
-  }, [isContextMode, context, currentUser?.id, groupViews, menuGroup?.acceptedPostTypes, spaceGroup?.fundingRound?.id, canAdminister, spaceVisibilityOpts])
+  }, [isContextMode, context, currentUser?.id, groupViews, spaceGroup?.fundingRound?.id, canAdminister, spaceVisibilityOpts])
 
   const sections = useMemo(() => partitionViewsIntoSections(visibleViews), [visibleViews])
 
@@ -1025,7 +706,7 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
 
   const handleBack = useCallback(() => {
     if (isSpaceLevel && location.state?.fromMoreViews) {
-      navigate(groupUrl(groupSlug, 'more-views'))
+      navigate(groupUrl(groupSlug, 'more-spaces'))
       return
     }
     if (isSpaceLevel || isMoreSpacesLevel) {
@@ -1046,8 +727,29 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
     navigate(addQuerystringToPath(location.pathname, { edit: 'true' }))
   }, [isEditing, location.pathname, location.search, navigate])
 
+  /** Open a menu card: logout, space grid, or the view's route. External links are handled by GroupViewCard. */
+  const handleOpenMenuView = useCallback(async (view) => {
+    const presented = GroupViewPresenter(view)
+    if (presented.type === 'logout') {
+      await dispatch(logout())
+      if (window.HyloMobileV2) {
+        sendMessageToWebView(WebViewMessageTypes.LOGOUT)
+      } else {
+        dispatch(replace('/login', null))
+      }
+      return
+    }
+    if (presented.type === 'space' && presented.linkedGroup) {
+      const local = localSpaceSlug(groupSlug, presented.linkedGroup.slug)
+      navigate(spaceUrl(groupSlug, local))
+      return
+    }
+    const url = menuViewUrl(groupSlug, presented, spaceGroup)
+    if (url) navigate(url)
+  }, [dispatch, groupSlug, navigate, spaceGroup])
+
   const nestedTitle = isMoreSpacesLevel
-    ? t('More')
+    ? t('More Spaces')
     : (spaceGroup?.name || t('Space'))
 
   return (
@@ -1172,7 +874,7 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
                 </div>
                 {!spaceGroup && (
                   <div className='flex flex-col gap-3 pt-4 border-t border-foreground/10'>
-                    <TextSection>{t('More')}</TextSection>
+                    <TextSection>{t('More Spaces')}</TextSection>
                     <MoreSpacesGrid
                       group={group}
                       groupSlug={groupSlug}
@@ -1202,10 +904,9 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
                   : (
                     <ViewsGrid
                       sections={sections}
-                      groupSlug={groupSlug}
                       group={menuGroup}
                       spaceGroup={spaceGroup}
-                      navigate={navigate}
+                      onOpen={handleOpenMenuView}
                       t={t}
                     />
                     )}
@@ -1225,7 +926,7 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
                 {!isContextMode && !spaceGroup && showMoreSpacesCard && (
                   <div className='flex flex-wrap gap-3'>
                     <MoreSpacesCard
-                      onClick={() => navigate(groupUrl(groupSlug, 'more-views'))}
+                      onClick={() => navigate(groupUrl(groupSlug, 'more-spaces'))}
                       t={t}
                     />
                   </div>

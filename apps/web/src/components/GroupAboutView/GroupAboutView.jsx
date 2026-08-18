@@ -1,5 +1,5 @@
-import { Bell, Info, LogOut, MapPin, Settings, ShieldCheck, Users } from 'lucide-react'
-import React, { useCallback, useMemo, useState } from 'react'
+import { Bell, Info, LogOut, MapPin, Network, Settings, ShieldCheck, Users } from 'lucide-react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
@@ -16,13 +16,20 @@ import { updateMembershipSettings } from 'routes/UserSettings/UserSettings.store
 import { leaveGroup } from 'routes/UserSettings/UserGroupsTab/UserGroupsTab.store'
 import MenuRowBackground from 'routes/AuthLayoutRouter/components/ContextMenu/MenuRowBackground'
 import SpaceSettingsModal from 'routes/AuthLayoutRouter/components/ContextMenu/SpaceSettingsModal'
+import Groups from 'routes/Groups'
 import Members from 'routes/Members'
 import Moderation from 'routes/Moderation'
 import GroupViewPresenter, { avatarForView, iconForView } from '@hylo/presenters/GroupViewPresenter'
 import { groupUrl } from '@hylo/navigation'
 import { RESP_ADMINISTRATION } from 'store/constants'
+import fetchGroupRelationships from 'store/actions/fetchGroupRelationships'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import getMyMemberships from 'store/selectors/getMyMemberships'
+import {
+  getChildGroups,
+  getParentGroups,
+  getPeerGroups
+} from 'store/selectors/getGroupRelationships'
 import {
   DEFAULT_AVATAR, DEFAULT_BANNER,
   accessibilityDescription, accessibilityIcon,
@@ -149,12 +156,15 @@ export default function GroupAboutView ({
   // Rendered inside a dialog: the compact member list fits better than cards
   inDialog = false,
   initialTab = 'about',
+  tab: tabProp,
+  onTabChange,
   className
 }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const navigate = useNavigate()
-  const [tab, setTab] = useState(initialTab)
+  const [localTab, setLocalTab] = useState(initialTab)
+  const tab = tabProp ?? localTab
   const [showLeaveDialog, setShowLeaveDialog] = useState(false)
 
   const myMemberships = useSelector(getMyMemberships)
@@ -169,6 +179,16 @@ export default function GroupAboutView ({
     responsibility: RESP_ADMINISTRATION, groupId: parentGroup?.id
   }))
   const showSettings = isSpace ? (canAdminister || canAdministerParent) : canAdminister
+
+  useEffect(() => {
+    if (isSpace || !group?.slug) return
+    dispatch(fetchGroupRelationships(group.slug))
+  }, [dispatch, isSpace, group?.slug])
+
+  const parentGroups = useSelector(state => getParentGroups(state, group))
+  const childGroups = useSelector(state => getChildGroups(state, group))
+  const peerGroups = useSelector(state => getPeerGroups(state, group))
+  const hasRelatedGroups = !isSpace && (parentGroups.length + childGroups.length + peerGroups.length) > 0
 
   const bannerUrl = group?.bannerUrl && group.bannerUrl !== DEFAULT_BANNER ? group.bannerUrl : null
   const spaceView = useMemo(() => isSpace && group
@@ -200,6 +220,7 @@ export default function GroupAboutView ({
     { id: 'moderation', label: t('Moderation'), icon: ShieldCheck },
     { id: 'notifications', label: t('Notification Settings'), icon: Bell, hidden: !membership },
     { id: 'members', label: t('Members'), icon: Users },
+    { id: 'related-groups', label: t('Related Groups'), icon: Network, hidden: !hasRelatedGroups },
     { id: 'settings', label: t('Settings'), icon: Settings, hidden: !showSettings }
   ].filter(item => !item.hidden)
 
@@ -209,7 +230,11 @@ export default function GroupAboutView ({
       openGroupSettings()
       return
     }
-    setTab(id)
+    if (onTabChange) {
+      onTabChange(id)
+      return
+    }
+    setLocalTab(id)
   }
 
   const activeTab = tabs.some(item => item.id === tab) ? tab : 'about'
@@ -314,10 +339,13 @@ export default function GroupAboutView ({
       </div>
 
       {/* Panel */}
-      {activeTab === 'members'
+      {activeTab === 'members' || activeTab === 'related-groups'
         ? (
           <div className='flex-1 min-h-0'>
-            <Members context='groups' defaultDisplayMode={inDialog ? 'list' : 'card'} />
+            {activeTab === 'members' && (
+              <Members context='groups' defaultDisplayMode={inDialog ? 'list' : 'card'} />
+            )}
+            {activeTab === 'related-groups' && <Groups context='groups' />}
           </div>
           )
         : (
@@ -341,6 +369,7 @@ export default function GroupAboutView ({
                     settings={membership.settings}
                     update={changes => dispatch(updateMembershipSettings(group.id, changes))}
                     compact
+                    postsOnly={isSpace}
                   />
                 </AboutCard>
               )}
@@ -350,7 +379,7 @@ export default function GroupAboutView ({
                     inline
                     space={group}
                     group={parentGroup}
-                    onClose={() => setTab('about')}
+                    onClose={() => handleTab('about')}
                   />
                 </AboutCard>
               )}

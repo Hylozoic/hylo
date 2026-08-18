@@ -22,7 +22,7 @@ import { useNavigate } from 'react-router-dom'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 import { addQuerystringToPath, localSpaceSlug, spaceUrl } from '@hylo/navigation'
 
-import { canHardDeleteView, viewAcceptedByPostTypes } from 'store/models/GroupView'
+import { canHardDeleteView } from 'store/models/GroupView'
 import { mergeOrderedViewsFromSource, sortViewsByMenuOrder } from 'store/util/groupViewsOrder'
 import { cn } from 'util/index'
 
@@ -129,7 +129,7 @@ function FullWidthRow ({ view, spaceGroup, t }) {
  * anywhere on the card starts the drag; the toolbar stops pointerdown so its
  * buttons stay clickable instead of becoming drag handles.
  */
-const SortableViewItem = React.memo(function SortableViewItem ({ view, spaceGroup, onOpenSettings, onDelete, onEditSpaceMenu, t, isFlashing = false }) {
+const SortableViewItem = React.memo(function SortableViewItem ({ view, group, spaceGroup, onOpenSettings, onDelete, onEditSpaceMenu, t, isFlashing = false }) {
   const presented = useMemo(() => GroupViewPresenter(view), [view])
   const isFullWidth = presented.type === 'text' || presented.type === 'separator'
   const { attributes, listeners, setNodeRef, isDragging, isSorting } = useSortable({
@@ -167,7 +167,7 @@ const SortableViewItem = React.memo(function SortableViewItem ({ view, spaceGrou
     >
       {isFullWidth
         ? <FullWidthRow view={view} spaceGroup={spaceGroup} t={t} />
-        : <GroupViewCard view={view} isEditing renderEditActions={false} />}
+        : <GroupViewCard view={view} group={group} spaceGroup={spaceGroup} isEditing />}
       <CardEditActions
         onOpenSettings={onOpenSettings ? () => onOpenSettings(view) : null}
         onEditMenu={canEditSpaceMenu ? () => onEditSpaceMenu(view) : null}
@@ -197,15 +197,11 @@ export default function SortableViewsGrid ({
   const { t } = useTranslation()
   const navigate = useNavigate()
   const commitOrder = useCommitViewOrder(group)
-  const acceptedPostTypes = (spaceGroup || group)?.acceptedPostTypes
-  // Match live menu: hide typed views that the group/space no longer accepts.
   const visibleViews = useMemo(
     () => sortViewsByMenuOrder(
-      (views || [])
-        .filter(v => v.order != null)
-        .filter(v => viewAcceptedByPostTypes(v.type, acceptedPostTypes))
+      (views || []).filter(v => v.order != null)
     ),
-    [views, acceptedPostTypes]
+    [views]
   )
   const [orderedViews, setOrderedViews] = useState(visibleViews)
 
@@ -335,6 +331,7 @@ export default function SortableViewsGrid ({
             <SortableViewItem
               key={view.id}
               view={view}
+              group={group}
               spaceGroup={spaceGroup}
               onOpenSettings={onOpenSettings}
               onDelete={onDelete}
@@ -351,7 +348,7 @@ export default function SortableViewsGrid ({
         {activeView
           ? (activeView.type === 'text' || activeView.type === 'separator'
               ? <FullWidthRow view={activeView} spaceGroup={spaceGroup} t={t} />
-              : <GroupViewCard view={activeView} isEditing renderEditActions={false} />)
+              : <GroupViewCard view={activeView} group={group} spaceGroup={spaceGroup} isEditing />)
           : null}
       </DragOverlay>
     </DndContext>

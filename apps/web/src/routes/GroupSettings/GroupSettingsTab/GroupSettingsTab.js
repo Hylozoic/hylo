@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { TextHelpers } from '@hylo/shared'
-import { addQuerystringToPath, groupUrl } from '@hylo/navigation'
+import { groupUrl } from '@hylo/navigation'
 import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
@@ -282,10 +282,7 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
             <button
               type='button'
               className='text-sm text-selected hover:underline self-start ml-12'
-              onClick={() => navigate(addQuerystringToPath(groupUrl(group.slug, 'more-views'), {
-                edit: 'true',
-                settings: 'welcome'
-              }))}
+              onClick={() => navigate(groupUrl(group.slug, 'welcome'))}
             >
               {t('Edit Welcome Page Content')}
             </button>

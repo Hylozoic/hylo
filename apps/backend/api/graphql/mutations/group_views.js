@@ -105,9 +105,9 @@ export async function createGroupView ({ userId, groupId, type, name, icon, sett
 
   await requireAdmin(userId, groupId, 'create views')
 
-  // Text and separator cannot live in More Views.
-  if (hidden && (type === 'text' || type === 'separator')) {
-    throw new GraphQLError('Text and separator views cannot be added to More Views')
+  // Only space rows can live off-menu (More Spaces). Views are in the menu or deleted.
+  if (hidden && type !== GroupView.Type.SPACE) {
+    throw new GraphQLError('Only spaces can be added off-menu')
   }
 
   const attrs = {
@@ -191,15 +191,14 @@ export async function deleteGroupView (userId, id, context) {
   if (['track-actions', 'funding-round-submissions'].includes(viewType)) {
     throw new GraphQLError('This view cannot be deleted')
   }
-  // System views soft-remove to More Views; user-created types can be hard-deleted.
-  if (GroupView.SYSTEM_VIEW_TYPES.includes(viewType)) {
-    throw new GraphQLError('This view cannot be deleted — remove it from the menu instead')
-  }
 
-  await view.destroy()
-    .catch(err => {
-      throw new GraphQLError(`Deletion of view failed: ${err.message}`)
-    })
+  await bookshelf.transaction(async trx => {
+    await view.destroy({ transacting: trx })
+    const remaining = await GroupView.findForGroup(groupId, { transacting: trx })
+    await GroupView.applyOrder(remaining.map(v => Number(v.id)), { groupId, trx })
+  }).catch(err => {
+    throw new GraphQLError(`Deletion of view failed: ${err.message}`)
+  })
 
   const group = await Group.find(groupId)
   notifyGroupUpdated(context, group, groupId)
@@ -229,9 +228,10 @@ export async function reorderGroupView (userId, id, orderInFrontOfViewId, addToE
 }
 
 /**
- * Hide or show a view in the group's menu.
- * Hidden views keep their content (order = null) and appear grayed in edit mode.
- * Showing appends the view to the end of the ordered menu.
+ * Hide or show a space in the parent group's menu.
+ * Hidden spaces keep their content (order = null) and appear in More Spaces.
+ * Showing appends the space to the end of the ordered menu.
+ * Views cannot be hidden — delete them instead.
  */
 export async function setGroupViewHidden (userId, id, hidden, context) {
   if (!userId) throw new GraphQLError('No userId passed into function')
@@ -240,6 +240,10 @@ export async function setGroupViewHidden (userId, id, hidden, context) {
 
   const view = await GroupView.where({ id }).fetch()
   if (!view) throw new GraphQLError('View not found')
+
+  if (view.get('type') !== GroupView.Type.SPACE) {
+    throw new GraphQLError('Only spaces can be hidden from the menu')
+  }
 
   const groupId = view.get('group_id')
   await requireAdmin(userId, groupId, 'update views')

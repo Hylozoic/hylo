@@ -69,7 +69,7 @@ export const COMMON_VIEWS = {
     iconName: 'Globe'
   },
   members: {
-    name: 'Members',
+    name: 'Active Members',
     iconName: 'People'
   },
   moderation: {

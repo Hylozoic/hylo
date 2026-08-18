@@ -3425,7 +3425,7 @@ type Mutation {
     linkedGroupId: ID,
     postId: ID,
     userId: ID,
-    # When true, create off-menu (order = null) for More Views
+    # When true, create off-menu (order = null). Only valid for type = space (More Spaces).
     hidden: Boolean
   ): GroupView
   # Update a View
@@ -3444,7 +3444,7 @@ type Mutation {
   deleteGroupView(id: ID!): GenericResult
   # Reorder a View within its Group's or Space's menu
   reorderGroupView(id: ID!, orderInFrontOfViewId: ID, addToEnd: Boolean): GenericResult
-  # Hide (order = null) or show a View in the menu. Hidden views keep their content.
+  # Hide (order = null) or show a Space in the parent menu. Only valid for type = space.
   setGroupViewHidden(id: ID!, hidden: Boolean!): GroupView
   # Set a View as the home view for its Group or Space
   setHomeView(viewId: ID!, groupId: ID!): GenericResult

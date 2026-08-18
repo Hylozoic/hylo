@@ -1408,7 +1408,6 @@ module.exports = bookshelf.Model.extend(merge({
       if (data.view_types) {
         await Group.setupSpaceViews(group.id, attrs.accepted_post_types, data.view_types, { transacting: trx })
       }
-      await GroupView.ensureOffMenuSystemViews(group.id, { transacting: trx })
 
       // Set lastReadAt when creating a new group to mark creator as having viewed the group already
       await group.addMembers([userId], { assignCoordinator: true, lastReadAt: new Date() }, { transacting: trx })
@@ -1608,8 +1607,6 @@ module.exports = bookshelf.Model.extend(merge({
         updated_at: now
       }).save(null, { transacting })
     }
-
-    await GroupView.ensureOffMenuSystemViews(spaceId, { transacting })
 
     // Persist home_route from the order-0 view so redirects work without loading all views
     if (rows.length > 0) {

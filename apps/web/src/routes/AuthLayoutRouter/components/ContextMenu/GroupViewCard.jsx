@@ -1,19 +1,23 @@
 import React, { useMemo, useState } from 'react'
 import { useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
-import { Info, Loader2, Pencil, Plus, Settings, Trash2 } from 'lucide-react'
+import { ExternalLink, Info, Loader2, Pencil, Plus, Settings, Trash2, Users } from 'lucide-react'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 
+import InviteMembersPopover from 'components/InviteMembersPopover/InviteMembersPopover'
 import LucideIcon from 'components/LucideIcon/LucideIcon'
 import TruncatedText from 'components/TruncatedText'
 import { Tooltip, TooltipContent, TooltipTrigger } from 'components/ui/tooltip'
 import useAppearance from 'hooks/useAppearance'
 import { DEFAULT_BANNER } from 'store/models/Group'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
+import getMyMemberships from 'store/selectors/getMyMemberships'
+import { viewShowsUnreadDot, viewUnreadBadgeCount } from 'util/viewUnreadBadges'
 import { bgImageStyle, cn } from 'util/index'
 
 import CardIconField from './CardIconField'
 import GroupViewIcon from './GroupViewIcon'
+import { externalLinkHref } from './groupViewMenuUrl'
 import {
   viewCardColor,
   eventStartForView,
@@ -47,7 +51,7 @@ const CARD_ACTION_BTN = 'p-1.5 rounded-md bg-background/90 text-foreground/60 ho
 export function CardEditActions ({ onAddToMenu, onOpenSettings, onEditMenu, onDelete, addLabel, settingsLabel, editMenuLabel, deleteLabel }) {
   return (
     <div
-      className='absolute top-2 right-2 z-10 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none'
+      className='absolute top-2 right-2 z-10 flex items-center gap-1 opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 transition-opacity pointer-events-none'
       onPointerDown={(e) => e.stopPropagation()}
     >
       {onAddToMenu && (
@@ -169,56 +173,150 @@ export function EventDateStack ({ start }) {
   )
 }
 
-/** Card for a GroupView, themed by its postType color. */
-function GroupViewCard ({ view, isEditing, onAddToMenu, onOpen, onOpenSettings, onDelete, renderEditActions = true }) {
+/** Card for a GroupView on the one-column grid, themed by its postType color. */
+function GroupViewCard ({
+  view,
+  isEditing,
+  onOpen,
+  group = null,
+  spaceGroup = null
+}) {
   const { t } = useTranslation()
   const { effectiveColorScheme } = useAppearance()
   const isDark = effectiveColorScheme === 'dark'
   const [hover, setHover] = useState(false)
   const presented = useMemo(() => GroupViewPresenter(view), [view])
-  const title = displayNameForView(presented, t)
+  const title = displayNameForView(presented, t, { spaceGroup })
+  const externalHref = externalLinkHref(presented)
   const col = viewCardColor(presented)
   const tint = cardFieldTint(col, effectiveColorScheme)
   const ink = inkOn(col)
   // Views backed by a group (spaces, groups, members) show that group's banner as
   // the card when one is set — even without a custom avatar — matching the
   // one-column grid; icon views keep the tinted gradient and wallpaper.
-  const linkedGroupBanner = presented.linkedGroup?.bannerUrl && presented.linkedGroup.bannerUrl !== DEFAULT_BANNER
-    ? presented.linkedGroup.bannerUrl
+  const linkedGroup = presented.linkedGroup
+  const linkedGroupBanner = linkedGroup?.bannerUrl && linkedGroup.bannerUrl !== DEFAULT_BANNER
+    ? linkedGroup.bannerUrl
     : null
   const bgImageUrl = linkedGroupBanner || presented.avatarUrl || null
   const onPhoto = Boolean(bgImageUrl)
+  const lightSurfaceLabels = !isDark && !onPhoto
   const eventStart = eventStartForView(presented)
+  const isSpace = presented.type === 'space'
+  const isWelcome = presented.type === 'welcome'
+  const welcomeText = !isEditing && isWelcome && (presented.pageContent || group?.welcomePage)
+    ? (presented.pageContent || group.welcomePage).replace(/<[^>]*>/g, '').trim()
+    : null
+  const hasExtraContent = Boolean(welcomeText)
   const liveSpaceGroup = useSelector(state =>
-    presented.type === 'space' && presented.linkedGroup?.slug
-      ? getGroupForSlug(state, presented.linkedGroup.slug)
+    isSpace && linkedGroup?.slug
+      ? getGroupForSlug(state, linkedGroup.slug)
       : null
   )
-  const showJoinRequestDot = presented.type === 'space' && (
-    (liveSpaceGroup?.openJoinRequestCount || presented.linkedGroup?.openJoinRequestCount || 0) > 0
+  const showJoinRequestDot = isSpace && (
+    (liveSpaceGroup?.openJoinRequestCount || linkedGroup?.openJoinRequestCount || 0) > 0
   )
+  const chatBadgeCount = viewUnreadBadgeCount(presented)
+  const showUnreadDot = viewShowsUnreadDot(presented)
+  const myMemberships = useSelector(getMyMemberships)
+  const isSpaceMember = Boolean(
+    isSpace && linkedGroup &&
+    myMemberships.some(m => String(m.group.id) === String(linkedGroup.id))
+  )
+  const spaceMemberCount = isSpace ? (linkedGroup?.memberCount ?? null) : null
+  const inviteGroup = spaceGroup || group
+  const showInvite = !isEditing && presented.type === 'members' && inviteGroup
 
   const handleOpen = () => {
     if (isEditing) return
+    if (externalHref) {
+      window.open(externalHref, '_blank', 'noopener,noreferrer')
+      return
+    }
     onOpen?.(view)
   }
 
+  const iconTile = (
+    <div
+      className='w-14 h-14 rounded-[15px] overflow-hidden grid place-items-center shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.35)]'
+      style={presented.avatarUrl
+        ? { border: '1px solid hsl(0 0% 100% / 0.28)' }
+        : onPhoto
+          ? { background: 'hsl(0 0% 100% / 0.16)', backdropFilter: 'blur(4px)', color: 'white', border: '1px solid hsl(0 0% 100% / 0.28)' }
+          : { background: col, color: ink, border: `1px solid color-mix(in srgb, ${col} 55%, white)` }}
+    >
+      {/* An avatar fills the tile — RoundImage hard-codes its own small size,
+          so it can't be scaled up through GroupViewIcon's className. */}
+      {presented.avatarUrl
+        ? <div className='w-full h-full bg-cover bg-center' style={bgImageStyle(presented.avatarUrl)} />
+        : eventStart
+          ? <EventDateStack start={eventStart} />
+          : (
+            <span className='flex items-center justify-center w-[26px] h-[26px] [&>svg]:!w-full [&>svg]:!h-full [&>img]:!w-full [&>img]:!h-full [&>span]:!text-[26px] [&>span]:!leading-none'>
+              <GroupViewIcon view={presented} className='!w-[26px] !h-[26px] !mr-0' />
+            </span>
+            )}
+    </div>
+  )
+
+  const label = (
+    <span className='inline-flex items-center justify-center gap-1 max-w-full'>
+      <TruncatedText
+        as='h3'
+        className={cn(
+          CARD_TITLE_CLASS,
+          'w-fit min-w-0',
+          lightSurfaceLabels ? 'text-foreground' : 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]'
+        )}
+        text={title}
+      />
+      {externalHref && (
+        <ExternalLink
+          className={cn(
+            'w-3.5 h-3.5 shrink-0',
+            lightSurfaceLabels ? 'text-foreground/70' : 'text-white [filter:drop-shadow(0_1px_4px_rgba(0,0,0,0.7))]'
+          )}
+          aria-hidden='true'
+        />
+      )}
+    </span>
+  )
+
+  const spacePill = !isEditing && isSpace && (typeof spaceMemberCount === 'number' || !isSpaceMember)
+    ? (
+      <span
+        className={cn(
+          'absolute top-1.5 left-1.5 z-10 inline-flex items-center gap-0.5 text-xs leading-none rounded-full px-1.5 py-1',
+          lightSurfaceLabels
+            ? 'bg-black/10 text-foreground/60'
+            : 'bg-black/30 text-white/90 backdrop-blur-sm'
+        )}
+        aria-label={isSpaceMember ? t('{{count}} Members', { count: spaceMemberCount }) : t('Join')}
+      >
+        {isSpaceMember
+          ? (
+            <>
+              <Users className='w-3 h-3' aria-hidden='true' />
+              {spaceMemberCount}
+            </>
+            )
+          : <span className='uppercase text-[10px] font-semibold tracking-wide'>+ {t('Join')}</span>}
+      </span>
+      )
+    : null
+
   return (
     <div
-      // renderEditActions false means a wrapper owns the edit chrome and the drag
-      // listeners. cursor is an inherited property, but CARD_CLASS sets
-      // cursor-pointer here, and the cursor comes from the element under the
-      // pointer — so it has to be handed back explicitly for the wrapper's
-      // grab/grabbing states to show over the card.
+      // SortableViewsGrid owns the edit chrome and drag listeners. cursor is
+      // inherited, but CARD_CLASS sets cursor-pointer here, so it has to be
+      // handed back for the wrapper's grab/grabbing states to show over the card.
       className={cn(
         CARD_CLASS,
         cardChrome(isDark),
-        // Editing means the card is a thing you pick up — grab, and grabbing while held.
-        // The sortable wrapper case inherits so dnd-kit's isDragging cursor wins.
-        isEditing && (renderEditActions ? 'cursor-grab active:cursor-grabbing' : 'cursor-[inherit]'),
-        // The wrapper owns the footprint in that case; fill it rather than sizing
-        // against a parent that is sizing itself to this card.
-        !renderEditActions && CARD_FILL_CLASS
+        isEditing && 'cursor-[inherit]',
+        // The wrapper owns the footprint; fill it rather than sizing against a
+        // parent that is sizing itself to this card.
+        isEditing && CARD_FILL_CLASS
       )}
       style={{
         background: onPhoto ? cardNeutralBg(effectiveColorScheme) : cardGradient(col, effectiveColorScheme),
@@ -242,10 +340,20 @@ function GroupViewCard ({ view, isEditing, onAddToMenu, onOpen, onOpenSettings, 
         if (isEditing) return
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
-          onOpen?.(view)
+          handleOpen()
         }
       }}
     >
+      {showInvite && (
+        <div className='absolute top-1.5 right-1.5 z-20'>
+          <InviteMembersPopover
+            group={inviteGroup}
+            triggerClassName={lightSurfaceLabels
+              ? 'bg-background/90 text-foreground/70 hover:text-foreground shadow-sm'
+              : 'bg-black/40 text-white hover:text-white shadow-sm'}
+          />
+        </div>
+      )}
       {onPhoto
         ? (
           <>
@@ -259,55 +367,40 @@ function GroupViewCard ({ view, isEditing, onAddToMenu, onOpen, onOpenSettings, 
             <div className={CARD_FADE_CLASS} style={{ background: cardFadeGradient(effectiveColorScheme) }} />
           </>
           )}
-      {showJoinRequestDot && !isEditing && (
+      {spacePill}
+      {!isEditing && (showUnreadDot || showJoinRequestDot) && (
         <span className='absolute -top-1.5 -right-1.5 z-10 w-3 h-3 rounded-full bg-orange-500 border-2 border-background' />
       )}
-      <div className='relative h-full'>
-        <div className='absolute inset-0 grid place-items-center'>
-          <div
-            className='w-14 h-14 rounded-[15px] overflow-hidden grid place-items-center shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.35)]'
-            style={presented.avatarUrl
-              ? { border: '1px solid hsl(0 0% 100% / 0.28)' }
-              // Frosted glass over a banner photo, matching the one-column grid tile
-              : onPhoto
-                ? { background: 'hsl(0 0% 100% / 0.16)', backdropFilter: 'blur(4px)', color: 'white', border: '1px solid hsl(0 0% 100% / 0.28)' }
-                : { background: col, color: ink, border: `1px solid color-mix(in srgb, ${col} 55%, white)` }}
-          >
-            {/* An avatar fills the tile — RoundImage hard-codes its own small size,
-                so it can't be scaled up through GroupViewIcon's className. */}
-            {presented.avatarUrl
-              ? <div className='w-full h-full bg-cover bg-center' style={bgImageStyle(presented.avatarUrl)} />
-              : eventStart
-                ? <EventDateStack start={eventStart} />
-                : (
-                  <span className='flex items-center justify-center w-[26px] h-[26px] [&>svg]:!w-full [&>svg]:!h-full [&>img]:!w-full [&>img]:!h-full [&>span]:!text-[26px] [&>span]:!leading-none'>
-                    <GroupViewIcon view={presented} className='!w-[26px] !h-[26px] !mr-0' />
-                  </span>
-                  )}
-          </div>
-        </div>
-        <div className='absolute left-0 right-0 top-[calc(50%+28px)] bottom-0 flex flex-col items-center justify-center text-center px-3'>
-          <TruncatedText
-            as='h3'
-            className={cn(
-              CARD_TITLE_CLASS,
-              (isDark || onPhoto) ? 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]' : 'text-foreground'
-            )}
-            text={title}
-          />
-        </div>
-      </div>
-      {/* A sortable wrapper renders the toolbar itself, outside the drag listeners */}
-      {isEditing && renderEditActions && (
-        <CardEditActions
-          onAddToMenu={onAddToMenu ? () => onAddToMenu(view) : null}
-          onOpenSettings={onOpenSettings ? () => onOpenSettings(view) : null}
-          onDelete={onDelete ? () => onDelete(view) : null}
-          addLabel={t('Add to Menu')}
-          settingsLabel={t('Settings')}
-          deleteLabel={t('Delete')}
-        />
+      {!isEditing && chatBadgeCount != null && (
+        <span className='absolute -top-1.5 -right-1.5 z-10 min-w-5 h-5 px-1 rounded-full bg-accent text-white text-xs font-bold flex items-center justify-center border-2 border-background'>
+          {chatBadgeCount}
+        </span>
       )}
+      {hasExtraContent
+        ? (
+          <div className='relative h-full flex flex-col p-2 sm:p-3'>
+            <div className='flex-1 flex flex-col items-center justify-center gap-1.5 text-center'>
+              {iconTile}
+              {label}
+            </div>
+            <p className={cn(
+              'm-0 px-1 text-xs line-clamp-2 leading-relaxed',
+              lightSurfaceLabels ? 'text-foreground/70' : 'text-white/70 [text-shadow:0_1px_4px_rgba(0,0,0,0.6)]'
+            )}
+            >{welcomeText}
+            </p>
+          </div>
+          )
+        : (
+          <div className='relative h-full'>
+            <div className='absolute inset-0 grid place-items-center'>
+              {iconTile}
+            </div>
+            <div className='absolute left-0 right-0 top-[calc(50%+28px)] bottom-0 flex flex-col items-center justify-center text-center px-3'>
+              {label}
+            </div>
+          </div>
+          )}
     </div>
   )
 }

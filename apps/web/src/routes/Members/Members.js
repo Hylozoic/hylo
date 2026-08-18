@@ -6,6 +6,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import { isSystemGroupRole, sortCustomGroupRoles, sortSystemGroupRoles } from '@hylo/hooks/groupRoleHelpers'
 import { LayoutGrid, List, Search } from 'lucide-react'
+import Avatar from 'components/Avatar'
 import Button from 'components/Button'
 import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
@@ -19,7 +20,7 @@ import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import usePillRowClamp from 'hooks/usePillRowClamp'
 import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
-import { groupUrl } from '@hylo/navigation'
+import { groupUrl, personUrl } from '@hylo/navigation'
 import { FETCH_MEMBERS, FETCH_MEMBERS_FOR_GRAPH, fetchMembers, fetchMembersForGraph, fetchRoleMemberCounts, getMembers, getGraphMembers, getHasFetchedGraphMembers, getHasMoreMembers, getHasFetchedMembers, getMemberQueryProps, removeMember } from './Members.store'
 import { fetchTrack } from 'store/actions/trackActions'
 import { fetchFundingRound } from 'routes/FundingRounds/FundingRounds.store'
@@ -38,6 +39,17 @@ import orm from 'store/models'
 import classes from './Members.module.scss'
 
 const defaultSortBy = 'name'
+const RECENTLY_ACTIVE_MS = 15 * 60 * 1000
+const MAX_ACTIVE_AVATARS = 8
+
+/** Members whose lastActiveAt falls inside the recently-active window. */
+function recentlyActiveMembers (members) {
+  const now = Date.now()
+  return (members || []).filter(person => {
+    if (!person?.lastActiveAt) return false
+    return now - new Date(person.lastActiveAt).getTime() < RECENTLY_ACTIVE_MS
+  })
+}
 // TODO: should be by responsibility, not role
 const TRACK_COMPLETION_VISIBLE_ROLES = ['Moderator', 'Host']
 
@@ -63,6 +75,10 @@ function Members (props) {
   )
   const members = useSelector(state => getMembers(state, memberQueryProps))
   const graphMembers = useSelector(state => getGraphMembers(state, { slug }))
+  const currentlyActiveMembers = useMemo(
+    () => recentlyActiveMembers(graphMembers.length > 0 ? graphMembers : members),
+    [graphMembers, members]
+  )
   const graphPending = useSelector(state => state.pending[FETCH_MEMBERS_FOR_GRAPH])
   const hasFetchedGraphMembers = useSelector(state => getHasFetchedGraphMembers(state, { slug }))
   const hasMore = useSelector(state => getHasMoreMembers(state, memberQueryProps))
@@ -200,14 +216,16 @@ function Members (props) {
   }, [changeSearch])
 
   const { setHeaderDetails } = useViewHeader()
+  const isAboutMembersTab = /\/about\/members/.test(location.pathname)
+  const pageTitle = isAboutMembersTab ? t('Members') : t('Active Members')
   useEffect(() => {
     setHeaderDetails({
-      title: t('Member Directory'),
+      title: pageTitle,
       icon: '',
       info: '',
       search: true
     })
-  }, [t])
+  }, [t, pageTitle])
 
   const fetchMore = () => {
     if (pending || members.length === 0 || !hasMore) return
@@ -223,8 +241,29 @@ function Members (props) {
   return (
     <div className='h-auto w-full mx-auto max-w-[940px] pb-28' id='members-page'>
       <Helmet>
-        <title>{t('Members')} | {group ? `${group.name} | ` : ''}Hylo</title>
+        <title>{pageTitle} | {group ? `${group.name} | ` : ''}Hylo</title>
       </Helmet>
+      {currentlyActiveMembers.length > 0 && (
+        <div className='px-4 pt-4'>
+          <h3 className='text-sm font-semibold text-foreground/70 mb-2'>{t('Currently Active')}</h3>
+          <div className='flex items-center'>
+            {currentlyActiveMembers.slice(0, MAX_ACTIVE_AVATARS).map((person, index) => (
+              <Avatar
+                key={person.id}
+                url={personUrl(person.id, slug)}
+                avatarUrl={person.avatarUrl}
+                medium
+                className={cn(index > 0 && '-ml-2', 'ring-2 ring-background rounded-full')}
+              />
+            ))}
+            {currentlyActiveMembers.length > MAX_ACTIVE_AVATARS && (
+              <span className='ml-2 text-sm text-foreground/60'>
+                +{currentlyActiveMembers.length - MAX_ACTIVE_AVATARS}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
       {myResponsibilityTitles.includes(RESP_ADD_MEMBERS) && (
         <div className='flex items-center justify-between p-2'>
           <Link to={groupUrl(slug, 'settings/invite')}>
