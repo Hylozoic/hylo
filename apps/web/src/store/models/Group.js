@@ -211,6 +211,7 @@ Group.fields = {
   stewardDescriptor: attr(),
   stewardDescriptorPlural: attr(),
   name: attr(),
+  parentGroup: fk({ to: 'Group', as: 'parentGroup', relatedName: 'childSpaceGroups' }),
   parentId: attr(),
   openOffersAndRequests: many({
     to: 'Post',

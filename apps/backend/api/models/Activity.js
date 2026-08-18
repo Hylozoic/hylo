@@ -1,4 +1,4 @@
-import { values, omit, filter, includes, isEmpty, get, trim } from 'lodash'
+import { values, omit, filter, includes, isEmpty, get } from 'lodash'
 
 const isNewPost = activity => {
   const reasons = activity.get('meta').reasons
@@ -43,7 +43,7 @@ const mergeByReader = activities => {
       current.reasons.push(activity.reason)
     } else {
       acc[activity.reader_id] = Object.assign(
-        {reasons: [activity.reason]}, omit(activity, 'reason'))
+        { reasons: [activity.reason] }, omit(activity, 'reason'))
     }
     return acc
   }, {})
@@ -51,15 +51,15 @@ const mergeByReader = activities => {
 }
 
 const removeForRelation = (model) => (id, trx) => {
-  const trxOpt = {transacting: trx, require: false}
+  const trxOpt = { transacting: trx, require: false }
   return Activity.where(`${model}_id`, id).query()
-  .pluck('id').transacting(trx)
-  .then(ids => {
-    // TODO: New Activity count needs to be decremented
-    // if inApp medium is used-- see User#decNewNotificationCount
-    return Notification.where('activity_id', 'in', ids).destroy(trxOpt)
-    .then(() => Activity.where('id', 'in', ids).destroy(trxOpt))
-  })
+    .pluck('id').transacting(trx)
+    .then(ids => {
+      // TODO: New Activity count needs to be decremented
+      // if inApp medium is used-- see User#decNewNotificationCount
+      return Notification.where('activity_id', 'in', ids).destroy(trxOpt)
+        .then(() => Activity.where('id', 'in', ids).destroy(trxOpt))
+    })
 }
 
 module.exports = bookshelf.Model.extend({
@@ -147,7 +147,7 @@ module.exports = bookshelf.Model.extend({
         created_at: new Date(),
         medium,
         user_id: this.get('reader_id')
-      }).save({}, {transacting: trx}))
+      }).save({}, { transacting: trx }))
   },
 
   contributionAmount: async function () {
@@ -185,27 +185,27 @@ module.exports = bookshelf.Model.extend({
   },
 
   find: function (id, options) {
-    return this.where({id}).fetch(options)
+    return this.where({ id }).fetch(options)
   },
 
   filterInactiveContent: q => {
     q.whereRaw('(comments.active = true or comments.id is null)')
-    .leftJoin('comments', function () {
-      this.on('comments.id', '=', 'activities.comment_id')
-    })
+      .leftJoin('comments', function () {
+        this.on('comments.id', '=', 'activities.comment_id')
+      })
 
     q.whereRaw('(posts.active = true or posts.id is null)')
-    .leftJoin('posts', function () {
-      this.on('posts.id', '=', 'activities.post_id')
-    })
+      .leftJoin('posts', function () {
+        this.on('posts.id', '=', 'activities.post_id')
+      })
   },
 
   joinWithGroup: (groupId, q) => {
     q.where('groups_posts.group_id', groupId)
-    .join('groups_posts', function () {
-      this.on('comments.post_id', 'groups_posts.post_id')
-      .orOn('posts.id', 'groups_posts.post_id')
-    })
+      .join('groups_posts', function () {
+        this.on('comments.post_id', 'groups_posts.post_id')
+          .orOn('posts.id', 'groups_posts.post_id')
+      })
   },
 
   forComment: function (comment, userId, action) {
@@ -220,7 +220,7 @@ module.exports = bookshelf.Model.extend({
       actor_id: comment.get('user_id'),
       comment_id: comment.id,
       post_id: comment.get('post_id'),
-      meta: {reasons: [action]},
+      meta: { reasons: [action] },
       created_at: comment.get('created_at')
     })
   },
@@ -230,7 +230,7 @@ module.exports = bookshelf.Model.extend({
       reader_id: userId,
       actor_id: post.get('user_id'),
       post_id: post.id,
-      meta: {reasons: [this.Reason.Mention]},
+      meta: { reasons: [this.Reason.Mention] },
       created_at: post.get('created_at')
     })
   },
@@ -240,7 +240,7 @@ module.exports = bookshelf.Model.extend({
       reader_id: userId,
       actor_id: follow.get('added_by_id'),
       post_id: follow.get('post_id'),
-      meta: {reasons: [this.Reason.FollowAdd]},
+      meta: { reasons: [this.Reason.FollowAdd] },
       created_at: follow.get('added_at')
     })
   },
@@ -250,7 +250,7 @@ module.exports = bookshelf.Model.extend({
       reader_id: userId,
       actor_id: follow.get('user_id'),
       post_id: follow.get('post_id'),
-      meta: {reasons: [this.Reason.Follow]},
+      meta: { reasons: [this.Reason.Follow] },
       created_at: follow.get('added_at')
     })
   },
@@ -260,7 +260,7 @@ module.exports = bookshelf.Model.extend({
       reader_id: post.get('user_id'),
       actor_id: unfollowerId,
       post_id: post.id,
-      meta: {reasons: [this.Reason.Unfollow]},
+      meta: { reasons: [this.Reason.Unfollow] },
       created_at: new Date()
     })
   },
@@ -319,26 +319,16 @@ module.exports = bookshelf.Model.extend({
       filter(relevantMemberships, mem => mem.getSetting(key))
 
     let emailable = membershipsPermitting('sendEmail')
-    let pushable = membershipsPermitting('sendPushNotifications')
+    const pushable = membershipsPermitting('sendPushNotifications')
 
     // Send notifications if not just about a new post, or notifications for all new posts are on, or notifications for important posts are on and its an announcement or mention
     let sendNotification = true
     if (isChat(activity)) {
       emailable = false // XXX: we don't send emails for chats, they go out in an hourly digest
+    }
 
-      // Whether to send any notifications for this chat
-      const reasons = activity.get('meta').reasons
-      const topicName = trim(filter(reasons, reason => reason.match(/^chat/))[0].split(':')[1])
-      const topic = await Tag.where({ name: topicName }).fetch()
-      const chatRoom = await TagFollow.where({
-        tag_id: topic.id,
-        group_id: groups[0],
-        user_id: user.id
-      }).fetch()
-      const chatRoomSetting = chatRoom.getSetting('notifications')
-      sendNotification = chatRoomSetting === 'all' || (chatRoomSetting === 'important' && (isAnnouncement(activity) || isMention(activity)))
-    } else if (isNewPost(activity)) {
-      // Whether to send any notifications for this new post
+    if (isChat(activity) || isNewPost(activity)) {
+      // Chat rooms are GroupViews now; use the same membership postNotifications setting as posts
       const newPostsSetting = relevantMemberships.reduce((acc, mem) => {
         const setting = mem.getSetting('postNotifications')
         if (setting === 'all') return 'all'

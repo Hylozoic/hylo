@@ -1048,6 +1048,7 @@
   "New Post at this location": "Nouveau message à cet endroit",
   "New Submission to Funding Round <strong>{{fundingRoundName}}</strong>": "Nouvelle soumission pour le tour de financement <strong>{{fundingRoundName}}</strong>",
   "New announcement in <strong>{{groupName}}</strong>": "Nouvelle annonce dans <strong>{{groupName}}</strong>",
+  "New chat in <strong>{{name}}</strong>": "Nouvelle discussion dans <strong>{{name}}</strong>",
   "New chat in {{groupName}} <strong>#{{name}}</strong>": "Nouvelle discussion dans {{groupName}} <strong>#{{name}}</strong>",
   "New comment on \"<strong>{{postSummary}}</strong>\" in {{groupName}}": "Nouveau commentaire sur \\\"<strong>{{postSummary}}</strong>\\\" dans {{groupName}}",
   "New markets": "Nouveaux marchés",

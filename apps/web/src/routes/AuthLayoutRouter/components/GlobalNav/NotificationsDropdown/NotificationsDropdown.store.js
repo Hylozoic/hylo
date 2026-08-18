@@ -55,6 +55,13 @@ export function fetchNotifications (first = 20, offset = 0) {
                 id
                 name
                 slug
+                homeRoute
+                type
+                parentId
+                parentGroup {
+                  id
+                  slug
+                }
               }
               otherGroup {
                 id
