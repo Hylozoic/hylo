@@ -91,7 +91,7 @@ function customSpaceStandardViews (postTypes, removedStandardTypes) {
 }
 
 /** Modal for creating a new space under the current group.
- * Pass `addToMenu={false}` when adding from More Views (space view created off-menu). */
+ * Pass `addToMenu={false}` when adding from More Spaces (space view created off-menu). */
 export default function AddSpaceDialog ({ group, onClose, addToMenu = true }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()

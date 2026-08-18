@@ -47,43 +47,48 @@ export function categorizeOffMenuSpaces (spaces, menuSpaceIds) {
   return { trackSpaces, fundingRoundSpaces, otherSpaces, archivedSpaces }
 }
 
-/** Returns sections for More Spaces (off-menu spaces only). */
-export const getMoreViewsSections = ormCreateSelector(
-  orm,
-  (state, group) => group,
-  (session, group) => {
-    if (!group) {
+/** Builds a fresh getMoreSpacesSections selector.
+ * redux-orm memoizes exactly one result per selector, so components that render many
+ * instances against different groups evict each other's cache and get a new object every
+ * render. Those should hold their own instance — see useMoreSpacesSections. */
+export function makeGetMoreSpacesSections () {
+  return ormCreateSelector(
+    orm,
+    (state, group) => group,
+    (session, group) => {
+      if (!group) {
+        return {
+          trackSpaces: [],
+          fundingRoundSpaces: [],
+          otherSpaces: [],
+          archivedSpaces: [],
+          hasAny: false
+        }
+      }
+
+      const menuSpaceIds = getMenuSpaceIds(group.groupViews)
+      const spaces = group.spaces?.items || []
+      const spaceSections = categorizeOffMenuSpaces(spaces, menuSpaceIds)
+      const otherSpaces = [...spaceSections.otherSpaces, ...spaceSections.archivedSpaces]
+        .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+
+      const hasAny = spaceSections.trackSpaces.length +
+        spaceSections.fundingRoundSpaces.length +
+        otherSpaces.length > 0
+
       return {
-        trackSpaces: [],
-        fundingRoundSpaces: [],
-        otherSpaces: [],
+        trackSpaces: spaceSections.trackSpaces,
+        fundingRoundSpaces: spaceSections.fundingRoundSpaces,
+        otherSpaces,
         archivedSpaces: [],
-        hasAny: false
+        hasAny
       }
     }
+  )
+}
 
-    const menuSpaceIds = getMenuSpaceIds(group.groupViews)
-    const spaces = group.spaces?.items || []
-    const spaceSections = categorizeOffMenuSpaces(spaces, menuSpaceIds)
-    const otherSpaces = [...spaceSections.otherSpaces, ...spaceSections.archivedSpaces]
-      .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
-
-    const hasAny = spaceSections.trackSpaces.length +
-      spaceSections.fundingRoundSpaces.length +
-      otherSpaces.length > 0
-
-    return {
-      trackSpaces: spaceSections.trackSpaces,
-      fundingRoundSpaces: spaceSections.fundingRoundSpaces,
-      otherSpaces,
-      archivedSpaces: [],
-      hasAny
-    }
-  }
-)
-
-/** @deprecated Use getMoreViewsSections. */
-export const getMoreSpacesSections = getMoreViewsSections
+/** Returns sections for More Spaces (off-menu spaces only). */
+export const getMoreSpacesSections = makeGetMoreSpacesSections()
 
 /** @deprecated Edit menu now uses the same More Spaces sections. */
-export const getEditMenuOffMenuSections = getMoreViewsSections
+export const getEditMenuOffMenuSections = getMoreSpacesSections

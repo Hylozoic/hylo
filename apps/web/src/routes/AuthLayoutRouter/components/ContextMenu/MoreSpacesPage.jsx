@@ -11,7 +11,7 @@ import fetchGroupViews from 'store/actions/fetchGroupViews'
 import { createGroupView, deleteSpace, setGroupViewHidden } from 'store/actions/groupViews'
 import { FETCH_GROUP_SPACES } from 'store/constants'
 import { getGroupViews } from 'store/selectors/getGroupViews'
-import { getMoreViewsSections } from 'store/selectors/getMoreSpacesSections'
+import { getMoreSpacesSections } from 'store/selectors/getMoreSpacesSections'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import isPendingFor from 'store/selectors/isPendingFor'
@@ -74,7 +74,7 @@ export default function MoreSpacesPage ({ group }) {
   const isSpaceMoreSpaces = Boolean(spaceSlugParam && contentGroup && contentGroup.id !== group?.id)
 
   const groupViews = useSelector(state => getGroupViews(state, contentGroup))
-  const sections = useSelector(state => getMoreViewsSections(state, contentGroup))
+  const sections = useSelector(state => getMoreSpacesSections(state, contentGroup))
   const pending = useSelector(state => isPendingFor(FETCH_GROUP_SPACES, state))
 
   const [showAddSpace, setShowAddSpace] = useState(false)
@@ -172,7 +172,7 @@ export default function MoreSpacesPage ({ group }) {
     // Where a menu is visible alongside the content, going straight to the space's
     // home view costs nothing. On a drawer layout SpaceContent shows the space's
     // own menu at the index, so don't skip ahead to home.
-    navigate(spaceEntryUrl(groupSlug, space), { state: { fromMoreViews: true } })
+    navigate(spaceEntryUrl(groupSlug, space), { state: { fromMoreSpaces: true } })
   }, [navigate, groupSlug, isEditing])
 
   const handleOpenSpaceAbout = useCallback((space) => {

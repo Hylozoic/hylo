@@ -9,14 +9,14 @@ import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
-import { getGroupViews } from 'store/selectors/getGroupViews'
+import useGroupViews from 'hooks/useGroupViews'
 
 function GroupWelcomePage () {
   const dispatch = useDispatch()
   const { t } = useTranslation()
   const groupSlug = useEffectiveGroupSlug()
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
-  const groupViews = useSelector(state => group ? getGroupViews(state, group) : [])
+  const groupViews = useGroupViews(group)
   const groupId = group?.id
   const groupViewsLoaded = group?.groupViews != null
   const welcomeHtml = useMemo(() => {

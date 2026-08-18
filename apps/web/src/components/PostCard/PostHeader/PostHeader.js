@@ -26,8 +26,9 @@ import deletePostAction from 'store/actions/deletePost'
 import removePostAction from 'store/actions/removePost'
 import { addPostToView, fetchViewPosts, removePostFromView } from 'store/actions/groupViews'
 import { getResponsibilityTitlesForGroup } from 'store/selectors/getResponsibilitiesForGroup'
-import { getGroupViewById, getGroupViews } from 'store/selectors/getGroupViews'
+import { getGroupViewById } from 'store/selectors/getGroupViews'
 import getRolesForGroup from 'store/selectors/getRolesForGroup'
+import useGroupViews from 'hooks/useGroupViews'
 import { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 import { useEffectiveGroupSlug, useGroupRouteOpts } from 'contexts/SpaceGroupContext'
 import { cn } from 'util/index'
@@ -146,7 +147,7 @@ function PostHeader (props) {
   const canCompleteAsModerator = !isCreator && hasModeratorResponsibilitiesInAnyPostGroup
   const canCompletePost = isCreator || canCompleteAsModerator
 
-  const groupViews = useSelector(state => getGroupViews(state, group))
+  const groupViews = useGroupViews(group)
   const collectionViews = useMemo(
     () => (groupViews || []).filter(view => view.type === 'collection'),
     [groupViews]
