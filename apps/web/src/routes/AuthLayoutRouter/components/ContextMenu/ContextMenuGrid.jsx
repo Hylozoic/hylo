@@ -23,8 +23,6 @@ import { WebViewMessageTypes } from '@hylo/shared'
 import { sendMessageToWebView } from 'util/webView'
 import logout from 'store/actions/logout'
 import { DEFAULT_BANNER, DEFAULT_AVATAR } from 'store/models/Group'
-import { getGroupViews } from 'store/selectors/getGroupViews'
-import { getMoreViewsSections } from 'store/selectors/getMoreSpacesSections'
 import { RESP_ADMINISTRATION, RESP_ADD_MEMBERS, FETCH_GROUP_SPACES, FETCH_GROUP_VIEWS } from 'store/constants'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
@@ -34,10 +32,12 @@ import getMyMemberships from 'store/selectors/getMyMemberships'
 import { filterMoreSpacesSections, filterSpaceViewsForMenuVisibility, spaceMenuVisibilityOpts } from 'util/spaceVisibility'
 import useAppearance from 'hooks/useAppearance'
 import usePublishedOfferings from 'hooks/usePublishedOfferings'
+import useGroupViews from 'hooks/useGroupViews'
+import useMoreSpacesSections from 'hooks/useMoreSpacesSections'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
-import { createGroupView, deleteGroupView, deleteSpace, setGroupViewHidden } from 'store/actions/groupViews'
+import { createGroupView, deleteGroupView, deleteSpace, setGroupViewHidden, updateGroupView } from 'store/actions/groupViews'
 import { canHardDeleteView } from 'store/models/GroupView'
 import GroupMenuHeader from 'components/GroupMenuHeader'
 import GroupNotificationsPopover from 'components/GroupNotificationsPopover/GroupNotificationsPopover'
@@ -67,15 +67,25 @@ import {
 import GroupViewSettingsModal from './GroupViewSettingsModal'
 import SpaceSettingsModal from './SpaceSettingsModal'
 import AddCollectionDialog from './AddCollectionDialog'
+import AddSpaceCollectionDialog from './AddSpaceCollectionDialog'
 import AddGroupViewDialog from './AddGroupViewDialog'
 import AddSpaceDialog from './AddSpaceDialog'
 import AddViewOrSpaceMenu from './AddViewOrSpaceMenu'
 import EditingBottomBar, { EDITING_BAR_BUTTON_CLASS } from './EditingBottomBar'
-import { menuViewUrl } from './groupViewMenuUrl'
+import { menuViewUrl, isParentGroupPath } from './groupViewMenuUrl'
+import getPreviousLocation from 'store/selectors/getPreviousLocation'
+import { appendSpaceId, spaceCollectionViews } from 'util/spaceCollection'
 
 /** Synthetic view so the More Spaces card can use the same icon wallpaper as real views. */
 const MORE_SPACES_VIEW = { lucideIcon: 'CircleEllipsis' }
 const JOIN_REQUESTS_VIEW = { lucideIcon: 'UserPlus' }
+
+/**
+ * True for views that cannot fit a card cell and must occupy their own row.
+ */
+function isFullWidthGridView (view) {
+  return view?.type === 'text' || view?.type === 'separator'
+}
 
 /**
  * Splits ordered views into grid sections.
@@ -93,7 +103,7 @@ function partitionViewsIntoSections (views) {
   }
 
   for (const view of views) {
-    if (view.type === 'text' || view.type === 'separator') {
+    if (isFullWidthGridView(view)) {
       flushGrid()
       sections.push({ type: view.type, view })
       continue
@@ -365,7 +375,7 @@ function JoinRequestsCard ({ count, onClick, t }) {
       <CardIconField view={JOIN_REQUESTS_VIEW} tint={tint} w={CARD_W} h={CARD_H} />
       <div className={CARD_FADE_CLASS} style={{ background: cardFadeGradient(effectiveColorScheme) }} />
       {count > 0 && (
-        <span className='absolute -top-1.5 -right-1.5 z-10 min-w-5 h-5 px-1 rounded-full bg-accent text-white text-xs font-bold flex items-center justify-center border-2 border-background'>
+        <span className='absolute top-1.5 right-1.5 z-10 min-w-5 h-5 px-1 rounded-full bg-accent text-white text-xs font-bold flex items-center justify-center border-2 border-background'>
           {count}
         </span>
       )}
@@ -396,7 +406,7 @@ function JoinRequestsCard ({ count, onClick, t }) {
 function useMoreSpacesContent (group) {
   const currentUser = useSelector(getMe)
   const myMemberships = useSelector(getMyMemberships)
-  const sectionsRaw = useSelector(state => getMoreViewsSections(state, group))
+  const sectionsRaw = useMoreSpacesSections(group)
   const canManageSpaces = useSelector(state => hasResponsibilityForGroup(state, {
     responsibility: RESP_ADMINISTRATION,
     groupId: group?.id
@@ -448,7 +458,7 @@ function MoreSpacesGrid ({
     showOtherSpaces,
     hasContent
   } = useMoreSpacesContent(group)
-  const groupViews = useSelector(state => getGroupViews(state, group))
+  const groupViews = useGroupViews(group)
   const [deletingSpaceId, setDeletingSpaceId] = useState(null)
 
   useEffect(() => {
@@ -460,7 +470,7 @@ function MoreSpacesGrid ({
   const handleOpenSpace = useCallback((space) => {
     if (isEditing) return
     const local = localSpaceSlug(groupSlug, space.slug)
-    navigate(spaceUrl(groupSlug, local), { state: { fromMoreViews: true } })
+    navigate(spaceUrl(groupSlug, local), { state: { fromMoreSpaces: true } })
   }, [groupSlug, navigate, isEditing])
 
   const handleOpenSpaceAbout = useCallback((space) => {
@@ -488,6 +498,30 @@ function MoreSpacesGrid ({
       await dispatch(fetchGroupSpaces(group.id))
     } catch (error) {
       console.error('Failed to add space to menu:', error)
+    }
+  }, [dispatch, group?.id, groupViews])
+
+  const collectionViews = useMemo(
+    () => spaceCollectionViews(groupViews).map(view => ({
+      id: view.id,
+      name: displayNameForView(view, t),
+      settings: view.settings
+    })),
+    [groupViews, t]
+  )
+
+  const handleAddToCollection = useCallback(async (space, collectionView) => {
+    if (!group?.id || !space?.id || !collectionView?.id) return
+    const fullView = (groupViews || []).find(v => String(v.id) === String(collectionView.id))
+    if (!fullView) return
+    try {
+      await dispatch(updateGroupView({
+        id: fullView.id,
+        groupId: group.id,
+        settings: appendSpaceId(fullView.settings, space.id)
+      }))
+    } catch (error) {
+      console.error('Failed to add space to collection:', error)
     }
   }, [dispatch, group?.id, groupViews])
 
@@ -534,6 +568,8 @@ function MoreSpacesGrid ({
                 onOpen={handleOpenSpace}
                 onOpenAbout={handleOpenSpaceAbout}
                 onAddToMenu={handleAddSpaceToMenu}
+                onAddToCollection={handleAddToCollection}
+                collectionViews={collectionViews}
                 onOpenSettings={onOpenSpaceSettings}
                 onDelete={handleDeleteSpace}
               />
@@ -554,6 +590,8 @@ function MoreSpacesGrid ({
                 onOpen={handleOpenSpace}
                 onOpenAbout={handleOpenSpaceAbout}
                 onAddToMenu={handleAddSpaceToMenu}
+                onAddToCollection={handleAddToCollection}
+                collectionViews={collectionViews}
                 onOpenSettings={onOpenSpaceSettings}
                 onDelete={handleDeleteSpace}
               />
@@ -574,6 +612,8 @@ function MoreSpacesGrid ({
                 onOpen={handleOpenSpace}
                 onOpenAbout={handleOpenSpaceAbout}
                 onAddToMenu={handleAddSpaceToMenu}
+                onAddToCollection={handleAddToCollection}
+                collectionViews={collectionViews}
                 onOpenSettings={onOpenSpaceSettings}
                 onDelete={handleDeleteSpace}
               />
@@ -601,6 +641,7 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
   const dispatch = useDispatch()
   const currentUser = useSelector(getMe)
   const myMemberships = useSelector(getMyMemberships)
+  const previousLocation = useSelector(getPreviousLocation)
   const groupSlug = group?.slug
   const isContextMode = Boolean(context) && !group
 
@@ -645,7 +686,7 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
     dispatch(fetchGroupSpaces(group.id))
   }, [dispatch, isContextMode, isMoreSpacesLevel, spaceGroup, group?.id, groupSlug])
 
-  const groupViews = useSelector(state => isContextMode ? [] : getGroupViews(state, menuGroup))
+  const groupViews = useGroupViews(isContextMode ? null : menuGroup)
   const viewsPending = useSelector(state => isPendingFor(FETCH_GROUP_VIEWS, state))
   const viewsLoading = viewsPending && groupViews.length === 0
   const publishedOfferings = usePublishedOfferings(group?.id)
@@ -705,16 +746,16 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
     : null
 
   const handleBack = useCallback(() => {
-    if (isSpaceLevel && location.state?.fromMoreViews) {
-      navigate(groupUrl(groupSlug, 'more-spaces'))
-      return
-    }
     if (isSpaceLevel || isMoreSpacesLevel) {
+      if (isParentGroupPath(previousLocation?.pathname, groupSlug)) {
+        navigate(previousLocation)
+        return
+      }
       navigate(groupUrl(groupSlug))
       return
     }
     navigate(-1)
-  }, [isSpaceLevel, isMoreSpacesLevel, location.state, groupSlug, navigate])
+  }, [isSpaceLevel, isMoreSpacesLevel, previousLocation, groupSlug, navigate])
 
   const toggleEditing = useCallback(() => {
     if (isEditing) {
@@ -934,8 +975,8 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
               </div>
               )}
 
-        {/* Editing pins Done to the foot of the column, matching More Views and
-            Spaces; Edit Menu stays in flow, where it isn't competing for attention */}
+        {/* Editing pins Done to the foot of the column, matching More Spaces;
+            Edit Menu stays in flow, where it isn't competing for attention */}
         {!isContextMode && canAdminister && !isMoreSpacesLevel && !isEditing && (
           <div className='flex justify-center mt-6'>
             <button
@@ -976,13 +1017,22 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
                 onCreated={() => setSettingsView(null)}
               />
               )
-            : (
-              <GroupViewSettingsModal
-                view={settingsView}
-                group={menuGroup}
-                onClose={() => setSettingsView(null)}
-              />
-              )
+            : settingsView.type === 'space-collection'
+              ? (
+                <AddSpaceCollectionDialog
+                  group={menuGroup}
+                  view={settingsView}
+                  onCancel={() => setSettingsView(null)}
+                  onCreated={() => setSettingsView(null)}
+                />
+                )
+              : (
+                <GroupViewSettingsModal
+                  view={settingsView}
+                  group={menuGroup}
+                  onClose={() => setSettingsView(null)}
+                />
+                )
       )}
     </div>
   )

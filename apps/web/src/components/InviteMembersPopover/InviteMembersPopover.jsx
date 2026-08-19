@@ -80,7 +80,7 @@ export default function InviteMembersPopover ({
               className={cn(
                 'inline-flex items-center justify-center rounded-md p-1 transition-all',
                 'hover:scale-110 hover:bg-background/20',
-                !alwaysVisible && !open && 'opacity-0 group-hover:opacity-100',
+                !alwaysVisible && !open && '[@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100',
                 (alwaysVisible || open) && 'opacity-100',
                 className,
                 triggerClassName

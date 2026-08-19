@@ -102,7 +102,7 @@ export async function createSpace (userId, { parentGroupId, name, slug, accepted
     await Group.setupSpaceViews(space.id, acceptedPostTypes, viewTypes, { transacting: trx })
 
     // Add a `type = 'space'` menu entry to the parent group's view list (spec section 2.5).
-    // When addToMenu is false (Add Space from More Views), create off-menu (order = null).
+    // When addToMenu is false (Add Space from More Spaces), create off-menu (order = null).
     const spaceViewAttrs = {
       group_id: parentGroupId,
       type: GroupView.Type.SPACE,

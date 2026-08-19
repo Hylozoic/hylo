@@ -8,10 +8,10 @@ import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { addQuerystringToPath, groupUrl, localSpaceSlug, spaceUrl } from '@hylo/navigation'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
-import { createGroupView, deleteSpace, setGroupViewHidden } from 'store/actions/groupViews'
+import { createGroupView, deleteSpace, setGroupViewHidden, updateGroupView } from 'store/actions/groupViews'
 import { FETCH_GROUP_SPACES } from 'store/constants'
 import { getGroupViews } from 'store/selectors/getGroupViews'
-import { getMoreViewsSections } from 'store/selectors/getMoreSpacesSections'
+import { getMoreSpacesSections } from 'store/selectors/getMoreSpacesSections'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import isPendingFor from 'store/selectors/isPendingFor'
@@ -24,6 +24,8 @@ import { SpaceViewCard } from './GroupViewCard'
 import EditingBottomBar, { EDITING_BAR_BUTTON_CLASS } from './EditingBottomBar'
 import ViewsGridSkeleton from './ViewsGridSkeleton'
 import { spaceEntryUrl } from './groupViewMenuUrl'
+import { appendSpaceId, spaceCollectionViews } from 'util/spaceCollection'
+import { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 
 /** Section heading above a card grid. Sections own the space above them (see SECTION_CLASS). */
 function SectionHeading ({ children }) {
@@ -74,7 +76,7 @@ export default function MoreSpacesPage ({ group }) {
   const isSpaceMoreSpaces = Boolean(spaceSlugParam && contentGroup && contentGroup.id !== group?.id)
 
   const groupViews = useSelector(state => getGroupViews(state, contentGroup))
-  const sections = useSelector(state => getMoreViewsSections(state, contentGroup))
+  const sections = useSelector(state => getMoreSpacesSections(state, contentGroup))
   const pending = useSelector(state => isPendingFor(FETCH_GROUP_SPACES, state))
 
   const [showAddSpace, setShowAddSpace] = useState(false)
@@ -143,6 +145,30 @@ export default function MoreSpacesPage ({ group }) {
     }
   }, [dispatch, contentGroup?.id, groupViews])
 
+  const collectionViews = useMemo(
+    () => spaceCollectionViews(groupViews).map(view => ({
+      id: view.id,
+      name: displayNameForView(view, t),
+      settings: view.settings
+    })),
+    [groupViews, t]
+  )
+
+  const handleAddToCollection = useCallback(async (space, collectionView) => {
+    if (!contentGroup?.id || !space?.id || !collectionView?.id) return
+    const fullView = (groupViews || []).find(v => String(v.id) === String(collectionView.id))
+    if (!fullView) return
+    try {
+      await dispatch(updateGroupView({
+        id: fullView.id,
+        groupId: contentGroup.id,
+        settings: appendSpaceId(fullView.settings, space.id)
+      }))
+    } catch (error) {
+      console.error('Failed to add space to collection:', error)
+    }
+  }, [dispatch, contentGroup?.id, groupViews])
+
   const handleDeleteSpace = useCallback(async (space) => {
     if (!space?.id || deletingSpaceId) return
     const confirmed = window.confirm(
@@ -172,7 +198,7 @@ export default function MoreSpacesPage ({ group }) {
     // Where a menu is visible alongside the content, going straight to the space's
     // home view costs nothing. On a drawer layout SpaceContent shows the space's
     // own menu at the index, so don't skip ahead to home.
-    navigate(spaceEntryUrl(groupSlug, space), { state: { fromMoreViews: true } })
+    navigate(spaceEntryUrl(groupSlug, space), { state: { fromMoreSpaces: true } })
   }, [navigate, groupSlug, isEditing])
 
   const handleOpenSpaceAbout = useCallback((space) => {
@@ -226,6 +252,8 @@ export default function MoreSpacesPage ({ group }) {
                           onOpen={handleOpenSpace}
                           onOpenAbout={handleOpenSpaceAbout}
                           onAddToMenu={handleAddSpaceToMenu}
+                          onAddToCollection={handleAddToCollection}
+                          collectionViews={collectionViews}
                           onOpenSettings={setSettingsSpace}
                           onDelete={handleDeleteSpace}
                         />
@@ -246,6 +274,8 @@ export default function MoreSpacesPage ({ group }) {
                           onOpen={handleOpenSpace}
                           onOpenAbout={handleOpenSpaceAbout}
                           onAddToMenu={handleAddSpaceToMenu}
+                          onAddToCollection={handleAddToCollection}
+                          collectionViews={collectionViews}
                           onOpenSettings={setSettingsSpace}
                           onDelete={handleDeleteSpace}
                         />
@@ -266,6 +296,8 @@ export default function MoreSpacesPage ({ group }) {
                           onOpen={handleOpenSpace}
                           onOpenAbout={handleOpenSpaceAbout}
                           onAddToMenu={handleAddSpaceToMenu}
+                          onAddToCollection={handleAddToCollection}
+                          collectionViews={collectionViews}
                           onOpenSettings={setSettingsSpace}
                           onDelete={handleDeleteSpace}
                         />

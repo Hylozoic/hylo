@@ -1,7 +1,7 @@
 import { DateTime } from 'luxon'
 import formatData from '../../../lib/group/digest2/formatData'
 import personalizeData from '../../../lib/group/digest2/personalizeData'
-import { defaultTimezone, shouldSendData, getRecipients } from '../../../lib/group/digest2/util'
+import { defaultTimezone, shouldSendData, getRecipients, parseGroupIds } from '../../../lib/group/digest2/util'
 import { sendDigest, sendAllDigests } from '../../../lib/group/digest2'
 import factories from '../../setup/factories'
 import { spyify, unspyify } from '../../setup/helpers'
@@ -36,7 +36,7 @@ const u4 = model({
   avatar_url: 'http://cnn.com/man.png'
 })
 
-const group = model({ slug: 'foo' })
+const group = model({ id: 1, slug: 'foo', name: 'Foo Group' })
 
 const linkPreview = model({
   id: '1',
@@ -174,7 +174,18 @@ describe('group digest v2', () => {
             type: 'chat',
             user: u2.attributes,
             url: Frontend.Route.post({id: 78}, group),
-            comments: []
+            comments: [],
+            source_group_id: 1,
+            source_group_name: 'Foo Group',
+            chat_url: Frontend.Route.chat(group)
+          }
+        ],
+        chat_rooms: [
+          {
+            name: 'Foo Group',
+            num_new_chats: 1,
+            url: Frontend.Route.chat(group),
+            space_id: null
           }
         ],
         requests: [
@@ -293,6 +304,48 @@ describe('group digest v2', () => {
       expect(formatData(group, data)).to.deep.equal(expected)
     })
 
+    it('labels posts from child spaces', () => {
+      const space = model({
+        id: 99,
+        name: 'Garden',
+        slug: 'foo-garden',
+        type: 'space',
+        relations: { parentGroup: group }
+      })
+      const data = {
+        spaces: [space],
+        comments: [],
+        posts: [
+          model({
+            id: 20,
+            name: 'Compost help',
+            summary: () => 'Compost help',
+            details: () => {},
+            type: 'request',
+            relations: {
+              user: u1,
+              groups: { models: [space] }
+            },
+            presentForEmail: ({ group: sourceGroup }) => ({
+              id: 20,
+              title: 'Compost help',
+              user: u1.attributes,
+              url: Frontend.Route.post({ id: 20 }, sourceGroup),
+              comments: [],
+              type: 'request',
+              space_id: sourceGroup.id,
+              space_name: sourceGroup.get('name')
+            })
+          })
+        ]
+      }
+
+      const result = formatData(group, data)
+      expect(result.requests).to.have.length(1)
+      expect(result.requests[0].space_id).to.equal(99)
+      expect(result.requests[0].space_name).to.equal('Garden')
+    })
+
     it('makes sure links are fully qualified', () => {
       const data = {
         posts: [
@@ -329,6 +382,7 @@ describe('group digest v2', () => {
         discussions: [],
         proposals: [],
         chats: [],
+        chat_rooms: [],
         requests: [
           {
             id: 1,
@@ -417,7 +471,164 @@ describe('group digest v2', () => {
         expect(newData.post_creation_action_url).to.equal(Frontend.Route.emailPostForm())
         expect(newData.email_settings_url).to.contain('/notifications?')
         expect(newData.subject).to.be.a('string')
+        expect(newData.chat_rooms).to.deep.equal([])
+        expect(newData.chats).to.equal(undefined)
       })
+    })
+
+    it('drops space posts the recipient is not a member of and keeps parent posts', async () => {
+      const parentGroup = await factories.group().save()
+      const space = await factories.group({
+        type: 'space',
+        parent_id: parentGroup.id,
+        name: 'Garden'
+      }).save()
+
+      const data = {
+        group_id: parentGroup.id,
+        group_name: parentGroup.get('name'),
+        group_url: 'https://www.hylo.com/groups/foo',
+        requests: [],
+        events: [],
+        projects: [],
+        resources: [],
+        chats: [],
+        posts_with_new_comments: [],
+        offers: [],
+        discussions: [
+          {
+            id: 11,
+            title: 'Parent discussion',
+            user: u4.attributes,
+            comments: [],
+            url: 'https://www.hylo.com/all/post/11'
+          },
+          {
+            id: 12,
+            title: 'Space discussion',
+            user: u4.attributes,
+            comments: [],
+            url: 'https://www.hylo.com/all/post/12',
+            space_id: space.id,
+            space_name: 'Garden'
+          }
+        ]
+      }
+
+      const newData = await personalizeData(user, 'daily', data)
+      expect(newData.discussions.map(d => d.id)).to.deep.equal([11])
+    })
+
+    it('keeps space posts when the recipient is a member of the space', async () => {
+      const member = await factories.user({ avatar_url: 'http://google.com/logo.png' }).save()
+      const parentGroup = await factories.group().save()
+      const space = await factories.group({
+        type: 'space',
+        parent_id: parentGroup.id,
+        name: 'Garden'
+      }).save()
+      await space.addMembers([member.id], {
+        settings: { sendEmail: true, digestFrequency: 'daily' }
+      })
+
+      const data = {
+        group_id: parentGroup.id,
+        group_name: parentGroup.get('name'),
+        group_url: 'https://www.hylo.com/groups/foo',
+        requests: [],
+        events: [],
+        projects: [],
+        resources: [],
+        chats: [],
+        posts_with_new_comments: [],
+        offers: [],
+        discussions: [
+          {
+            id: 13,
+            title: 'Space discussion',
+            user: u4.attributes,
+            comments: [],
+            url: 'https://www.hylo.com/all/post/13',
+            space_id: space.id,
+            space_name: 'Garden'
+          }
+        ]
+      }
+
+      const newData = await personalizeData(member, 'daily', data)
+      expect(newData.discussions).to.have.length(1)
+      expect(newData.discussions[0].id).to.equal(13)
+    })
+
+    it('groups chats by source group and keeps unread chats when there is no last-read row', async () => {
+      const data = {
+        group_id: '77',
+        group_name: 'foo',
+        group_url: 'https://www.hylo.com/groups/foo',
+        requests: [],
+        events: [],
+        projects: [],
+        resources: [],
+        posts_with_new_comments: [],
+        offers: [],
+        discussions: [],
+        chats: [
+          {
+            id: 101,
+            title: 'hi',
+            type: 'chat',
+            user: u4.attributes,
+            comments: [],
+            url: 'https://www.hylo.com/groups/foo/chat',
+            source_group_id: 77,
+            source_group_name: 'foo',
+            chat_url: 'https://www.hylo.com/groups/foo/chat'
+          },
+          {
+            id: 102,
+            title: 'again',
+            type: 'chat',
+            user: u3.attributes,
+            comments: [],
+            url: 'https://www.hylo.com/groups/foo/chat',
+            source_group_id: 77,
+            source_group_name: 'foo',
+            chat_url: 'https://www.hylo.com/groups/foo/chat'
+          },
+          {
+            id: 103,
+            title: 'there',
+            type: 'chat',
+            user: u3.attributes,
+            comments: [],
+            url: 'https://www.hylo.com/groups/foo/spaces/garden/chat',
+            source_group_id: 88,
+            source_group_name: 'Garden',
+            chat_url: 'https://www.hylo.com/groups/foo/spaces/garden/chat',
+            space_id: 88,
+            space_name: 'Garden'
+          }
+        ]
+      }
+
+      const newData = await personalizeData(user, 'daily', data)
+      // Space chat is dropped because the user is not a member of space 88
+      expect(newData.chat_rooms).to.have.length(1)
+      expect(newData.chat_rooms[0].name).to.equal('foo')
+      expect(newData.chat_rooms[0].num_new_chats).to.equal(2)
+      expect(newData.chats).to.equal(undefined)
+    })
+  })
+
+  describe('parseGroupIds', () => {
+    it('parses a single id, comma-separated ids, and arrays', () => {
+      expect(parseGroupIds('123')).to.deep.equal(['123'])
+      expect(parseGroupIds('123,456')).to.deep.equal(['123', '456'])
+      expect(parseGroupIds(['123', '456,789'])).to.deep.equal(['123', '456', '789'])
+      expect(parseGroupIds(123)).to.deep.equal(['123'])
+      expect(parseGroupIds('--group=36243')).to.deep.equal(['36243'])
+      expect(parseGroupIds(['--group=123', '456'])).to.deep.equal(['123', '456'])
+      expect(parseGroupIds(null)).to.deep.equal([])
     })
   })
 
@@ -430,6 +641,13 @@ describe('group digest v2', () => {
     it('is true if there is some data', () => {
       const data = {discussions: [{id: 'foo'}]}
       return shouldSendData(data).then(val => expect(val).to.be.true)
+    })
+
+    it('is true for proposal-only or chat-room-only data', () => {
+      return Promise.all([
+        shouldSendData({ proposals: [{ id: 1 }] }).then(val => expect(val).to.be.true),
+        shouldSendData({ chat_rooms: [{ name: 'foo', num_new_chats: 2 }] }).then(val => expect(val).to.be.true)
+      ])
     })
   })
 
@@ -464,12 +682,6 @@ describe('group digest v2', () => {
 
     it('calls SendWithUs with expected data', function () {
       this.timeout(10000)
-      const params = new URLSearchParams({
-        ctt: 'digest_email',
-        cti: u1.id,
-        ctcn: group.get('name')
-      })
-      const clickthroughParams = `?${params.toString()}`
       return sendAllDigests('daily').then(result => {
         expect(result).to.deep.equal([[group.id, 1]])
         expect(Email.sendSimpleEmail).to.have.been.called()
@@ -483,6 +695,75 @@ describe('group digest v2', () => {
         expect(args[2].recipient).to.deep.equal(u1.pick('avatar_url', 'name'))
         expect(args[2].email_settings_url).to.contain('/notifications?')
       })
+    })
+
+    it('does not send a separate digest for child spaces', async function () {
+      this.timeout(10000)
+      const space = await factories.group({
+        type: 'space',
+        parent_id: group.id,
+        name: 'Garden'
+      }).save()
+      const spacePost = await factories.post({
+        created_at: DateTime.now().setZone(defaultTimezone).startOf('day').plus({ hours: 6 }).toISO(),
+        user_id: u2.id,
+        type: 'discussion'
+      }).save()
+      await PostMembership.forge({ post_id: spacePost.id, group_id: space.id }).save()
+      await space.addMembers([u1.id], {
+        settings: { sendEmail: true, digestFrequency: 'daily' }
+      })
+
+      const result = await sendAllDigests('daily')
+      const ids = result.map(pair => pair[0])
+      expect(ids).to.include(group.id)
+      expect(ids).to.not.include(space.id)
+    })
+
+    it('sends only for the given group ids', async function () {
+      this.timeout(10000)
+      const otherGroup = await factories.group({ avatar_url: 'bar' }).save()
+      const otherPost = await factories.post({
+        created_at: DateTime.now().setZone(defaultTimezone).startOf('day').plus({ hours: 6 }).toISO(),
+        user_id: u2.id,
+        type: 'discussion'
+      }).save()
+      await PostMembership.forge({ post_id: otherPost.id, group_id: otherGroup.id }).save()
+      await otherGroup.addMembers([u1.id], {
+        settings: { sendEmail: true, digestFrequency: 'daily' }
+      })
+
+      const result = await sendAllDigests('daily', { groupIds: [group.id] })
+      const ids = result.map(pair => pair[0])
+      expect(ids).to.deep.equal([group.id])
+    })
+  })
+
+  describe('upcomingPostReminders', () => {
+    it('excludes events from ending soon and includes requests', async function () {
+      this.timeout(10000)
+      const g = await factories.group().save()
+      const author = await factories.user().save()
+      const now = DateTime.now().setZone(defaultTimezone)
+      const event = await factories.post({
+        user_id: author.id,
+        type: 'event',
+        start_time: now.minus({ days: 1 }).toJSDate(),
+        end_time: now.plus({ days: 1 }).toJSDate(),
+        active: true
+      }).save()
+      const request = await factories.post({
+        user_id: author.id,
+        type: 'request',
+        start_time: now.minus({ days: 1 }).toJSDate(),
+        end_time: now.plus({ days: 1 }).toJSDate(),
+        active: true
+      }).save()
+      await PostMembership.forge({ post_id: event.id, group_id: g.id }).save()
+      await PostMembership.forge({ post_id: request.id, group_id: g.id }).save()
+
+      const result = await Post.upcomingPostReminders(g, 'daily')
+      expect(result.endingSoon.map(p => p.get('type'))).to.deep.equal(['request'])
     })
   })
 

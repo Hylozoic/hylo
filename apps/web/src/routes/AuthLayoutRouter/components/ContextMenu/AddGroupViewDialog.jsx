@@ -13,6 +13,7 @@ import PostSelector from 'components/PostSelector'
 import PeopleSelector from 'routes/Messages/PeopleSelector'
 import GroupViewIcon from './GroupViewIcon'
 import AddCollectionDialog from './AddCollectionDialog'
+import AddSpaceCollectionDialog from './AddSpaceCollectionDialog'
 import AddCustomViewDialog from './AddCustomViewDialog'
 import AddWelcomeViewDialog from './AddWelcomeViewDialog'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
@@ -46,6 +47,7 @@ const COMMON_VIEW_TYPES = [
 const CUSTOM_VIEW_TYPES = [
   'custom',
   'collection',
+  'space-collection',
   'link',
   'post',
   'member',
@@ -77,6 +79,7 @@ export default function AddGroupViewDialog ({ group, groupViews, onClose, onAdd 
   const [textContent, setTextContent] = useState('')
   const [showCustomViewDialog, setShowCustomViewDialog] = useState(false)
   const [showCollectionDialog, setShowCollectionDialog] = useState(false)
+  const [showSpaceCollectionDialog, setShowSpaceCollectionDialog] = useState(false)
   const [showWelcomeViewDialog, setShowWelcomeViewDialog] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
   const [people, setPeople] = useState([])
@@ -145,7 +148,7 @@ export default function AddGroupViewDialog ({ group, groupViews, onClose, onAdd 
     if (ENTITY_VIEW_TYPES.has(selectedType)) return false
     if (selectedType === 'link') return Boolean(linkName.trim() && linkUrl.trim())
     if (selectedType === 'text') return Boolean(textContent.trim())
-    if (selectedType === 'custom' || selectedType === 'collection') return true
+    if (selectedType === 'custom' || selectedType === 'collection' || selectedType === 'space-collection') return true
     return true
   }, [selectedType, linkName, linkUrl, textContent])
 
@@ -183,6 +186,11 @@ export default function AddGroupViewDialog ({ group, groupViews, onClose, onAdd 
 
     if (selectedType === 'collection') {
       setShowCollectionDialog(true)
+      return
+    }
+
+    if (selectedType === 'space-collection') {
+      setShowSpaceCollectionDialog(true)
       return
     }
 
@@ -255,6 +263,11 @@ export default function AddGroupViewDialog ({ group, groupViews, onClose, onAdd 
 
   const handleCollectionCreated = useCallback(() => {
     setShowCollectionDialog(false)
+    onClose()
+  }, [onClose])
+
+  const handleSpaceCollectionCreated = useCallback(() => {
+    setShowSpaceCollectionDialog(false)
     onClose()
   }, [onClose])
 
@@ -398,7 +411,7 @@ export default function AddGroupViewDialog ({ group, groupViews, onClose, onAdd 
               <Button variant='secondary' disabled={!canAdd || isCreating} onClick={handleAdd}>
                 {isCreating
                   ? t('Creating...')
-                  : (selectedType === 'custom' || selectedType === 'collection' || selectedType === 'welcome')
+                  : (selectedType === 'custom' || selectedType === 'collection' || selectedType === 'space-collection' || selectedType === 'welcome')
                       ? t('Next')
                       : t('Add View')}
               </Button>
@@ -422,6 +435,15 @@ export default function AddGroupViewDialog ({ group, groupViews, onClose, onAdd 
           onCancel={() => setShowCollectionDialog(false)}
           onCreated={handleCollectionCreated}
           onAdd={onAdd ? (viewData) => { onAdd(viewData); handleCollectionCreated() } : undefined}
+        />
+      )}
+
+      {showSpaceCollectionDialog && (
+        <AddSpaceCollectionDialog
+          group={group}
+          onCancel={() => setShowSpaceCollectionDialog(false)}
+          onCreated={handleSpaceCollectionCreated}
+          onAdd={onAdd ? (viewData) => { onAdd(viewData); handleSpaceCollectionCreated() } : undefined}
         />
       )}
 

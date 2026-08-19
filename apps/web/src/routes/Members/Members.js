@@ -2,11 +2,11 @@ import { debounce, get } from 'lodash/fp'
 import React, { useEffect, useLayoutEffect, useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Helmet } from 'react-helmet'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import { isSystemGroupRole, sortCustomGroupRoles, sortSystemGroupRoles } from '@hylo/hooks/groupRoleHelpers'
 import { LayoutGrid, List, Search } from 'lucide-react'
-import Avatar from 'components/Avatar'
+import CurrentlyActivePills, { DEFAULT_ACTIVE_MAX } from 'components/CurrentlyActiveMembers/CurrentlyActivePills'
 import Button from 'components/Button'
 import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
@@ -21,7 +21,7 @@ import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import usePillRowClamp from 'hooks/usePillRowClamp'
 import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
 import { groupUrl, personUrl } from '@hylo/navigation'
-import { FETCH_MEMBERS, FETCH_MEMBERS_FOR_GRAPH, fetchMembers, fetchMembersForGraph, fetchRoleMemberCounts, getMembers, getGraphMembers, getHasFetchedGraphMembers, getHasMoreMembers, getHasFetchedMembers, getMemberQueryProps, removeMember } from './Members.store'
+import { FETCH_MEMBERS, FETCH_MEMBERS_FOR_GRAPH, fetchMembers, fetchMembersForGraph, fetchRecentlyActiveMembers, fetchRoleMemberCounts, getMembers, getGraphMembers, getHasFetchedGraphMembers, getHasMoreMembers, getHasFetchedMembers, getMemberQueryProps, getRecentlyActiveMembers, removeMember } from './Members.store'
 import { fetchTrack } from 'store/actions/trackActions'
 import { fetchFundingRound } from 'routes/FundingRounds/FundingRounds.store'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
@@ -39,17 +39,6 @@ import orm from 'store/models'
 import classes from './Members.module.scss'
 
 const defaultSortBy = 'name'
-const RECENTLY_ACTIVE_MS = 15 * 60 * 1000
-const MAX_ACTIVE_AVATARS = 8
-
-/** Members whose lastActiveAt falls inside the recently-active window. */
-function recentlyActiveMembers (members) {
-  const now = Date.now()
-  return (members || []).filter(person => {
-    if (!person?.lastActiveAt) return false
-    return now - new Date(person.lastActiveAt).getTime() < RECENTLY_ACTIVE_MS
-  })
-}
 // TODO: should be by responsibility, not role
 const TRACK_COMPLETION_VISIBLE_ROLES = ['Moderator', 'Host']
 
@@ -57,6 +46,7 @@ function Members (props) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const location = useLocation()
+  const navigate = useNavigate()
 
   const context = props.context
   const slug = useEffectiveGroupSlug()
@@ -75,9 +65,10 @@ function Members (props) {
   )
   const members = useSelector(state => getMembers(state, memberQueryProps))
   const graphMembers = useSelector(state => getGraphMembers(state, { slug }))
+  const recentlyActiveFetched = useSelector(state => getRecentlyActiveMembers(state, { slug, first: DEFAULT_ACTIVE_MAX }))
   const currentlyActiveMembers = useMemo(
-    () => recentlyActiveMembers(graphMembers.length > 0 ? graphMembers : members),
-    [graphMembers, members]
+    () => (recentlyActiveFetched || []).slice(0, DEFAULT_ACTIVE_MAX),
+    [recentlyActiveFetched]
   )
   const graphPending = useSelector(state => state.pending[FETCH_MEMBERS_FOR_GRAPH])
   const hasFetchedGraphMembers = useSelector(state => getHasFetchedGraphMembers(state, { slug }))
@@ -204,6 +195,11 @@ function Members (props) {
     fetchMembersAction(0)
   }, [group?.id, slug, sortBy, search, groupRoleId, fetchMembersAction])
 
+  useEffect(() => {
+    if (!slug) return
+    dispatch(fetchRecentlyActiveMembers({ slug, first: DEFAULT_ACTIVE_MAX }))
+  }, [dispatch, slug])
+
   // The skills graph shows the whole membership, unaffected by directory filters
   useEffect(() => {
     if (!group?.id || !slug) return
@@ -217,7 +213,7 @@ function Members (props) {
 
   const { setHeaderDetails } = useViewHeader()
   const isAboutMembersTab = /\/about\/members/.test(location.pathname)
-  const pageTitle = isAboutMembersTab ? t('Members') : t('Active Members')
+  const pageTitle = isAboutMembersTab ? t('Members') : t('Member Directory')
   useEffect(() => {
     setHeaderDetails({
       title: pageTitle,
@@ -246,22 +242,11 @@ function Members (props) {
       {currentlyActiveMembers.length > 0 && (
         <div className='px-4 pt-4'>
           <h3 className='text-sm font-semibold text-foreground/70 mb-2'>{t('Currently Active')}</h3>
-          <div className='flex items-center'>
-            {currentlyActiveMembers.slice(0, MAX_ACTIVE_AVATARS).map((person, index) => (
-              <Avatar
-                key={person.id}
-                url={personUrl(person.id, slug)}
-                avatarUrl={person.avatarUrl}
-                medium
-                className={cn(index > 0 && '-ml-2', 'ring-2 ring-background rounded-full')}
-              />
-            ))}
-            {currentlyActiveMembers.length > MAX_ACTIVE_AVATARS && (
-              <span className='ml-2 text-sm text-foreground/60'>
-                +{currentlyActiveMembers.length - MAX_ACTIVE_AVATARS}
-              </span>
-            )}
-          </div>
+          <CurrentlyActivePills
+            members={currentlyActiveMembers}
+            max={DEFAULT_ACTIVE_MAX}
+            onPersonClick={person => navigate(personUrl(person.id, slug))}
+          />
         </div>
       )}
       {myResponsibilityTitles.includes(RESP_ADD_MEMBERS) && (

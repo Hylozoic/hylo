@@ -1,7 +1,7 @@
 import isMobile from 'ismobilejs'
 import { debounce } from 'lodash/fp'
 import { ChevronDown, Copy, MessageSquareMore, Send } from 'lucide-react'
-import { DateTimeHelpers, postCountsTowardChatUnread } from '@hylo/shared'
+import { DateTimeHelpers, postAppearsInChat } from '@hylo/shared'
 import { EditorView } from 'prosemirror-view'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import CopyToClipboard from 'react-copy-to-clipboard'
@@ -404,7 +404,7 @@ export default function ChatRoom (props) {
     if (!group?.id) return
     if (!data.groups?.some(g => String(g.id) === String(group.id))) return
     // Chat activity cards belong in All Activity, not the chat timeline
-    if (!postCountsTowardChatUnread(data.type, showPostNoticesInChat)) return
+    if (!postAppearsInChat(data.type, showPostNoticesInChat)) return
     const post = presentPost(data, group.id)
     if (!post) return
 

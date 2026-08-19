@@ -55,6 +55,7 @@ module.exports = bookshelf.Model.extend({
     RESOURCES: 'resources',
     SEPARATOR: 'separator',
     SPACE: 'space',
+    SPACE_COLLECTION: 'space-collection',
     TEXT: 'text',
     TRACK_ACTIONS: 'track-actions',
     WELCOME: 'welcome'

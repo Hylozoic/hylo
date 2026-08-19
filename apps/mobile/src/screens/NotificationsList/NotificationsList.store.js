@@ -2,7 +2,7 @@ import { gql } from 'urql'
 import { find, pick } from 'lodash/fp'
 import { TextHelpers } from '@hylo/shared'
 import { openURL } from 'hooks/useOpenURL'
-import { personUrl, chatUrl, groupUrl } from '@hylo/navigation'
+import { personUrl, chatUrl, groupUrl, localSpaceSlug } from '@hylo/navigation'
 
 export const ACTION_ANNOUNCEMENT = 'announcement'
 export const ACTION_APPROVED_JOIN_REQUEST = 'approvedJoinRequest'
@@ -48,6 +48,18 @@ export const NOTIFICATIONS_WHITELIST = [
 
 export const NOTIFICATION_TEXT_MAX = 76
 
+function groupChatUrlOpts (group) {
+  const parentSlug = group?.parentGroup?.slug
+  if (parentSlug && (group?.type === 'space' || group?.parentId)) {
+    return {
+      context: 'group',
+      groupSlug: parentSlug,
+      spaceSlug: localSpaceSlug(parentSlug, group.slug)
+    }
+  }
+  return { context: 'group', groupSlug: group?.slug }
+}
+
 export const markActivityReadMutation = gql`
   mutation ($id: ID) {
     markActivityRead(id: $id) {
@@ -88,12 +100,12 @@ export function refineActivity ({ action, actor, comment, group, post, track, me
   switch (action) {
     case ACTION_CHAT: {
       const topicReason = find(r => r.startsWith('chat: '), meta.reasons)
-      const topic = topicReason.split(': ')[1]
+      const topic = topicReason?.split(': ')[1]
       return {
         body: `${t('wrote:')} "${truncateHTML(post.details)}"`,
         header: t('New Chat')+':',
         objectName: group.name,
-        onPress: () => openURL(chatUrl(topic, { context: 'group', groupSlug: group?.slug }) + `?postId=${post.id}`)
+        onPress: () => openURL(chatUrl(topic, groupChatUrlOpts(group)) + `?postId=${post.id}`)
       }
     }
 
@@ -136,7 +148,7 @@ export function refineActivity ({ action, actor, comment, group, post, track, me
         body: `${t('wrote:')} "${truncateHTML(post.details)}"`,
         header: t('New Post in'),
         objectName: topic,
-        onPress: () => openURL(chatUrl(topic, { context: 'group', groupSlug: group?.slug }) + `?postId=${post.id}`)
+        onPress: () => openURL(chatUrl(topic, groupChatUrlOpts(group)) + `?postId=${post.id}`)
       }
     }
 

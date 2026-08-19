@@ -107,8 +107,14 @@ const gapCollisionDetection = (args) => {
   return candidates.length ? [candidates[0]] : []
 }
 
-/** Full-width stand-ins for the text and separator rows, so they reorder with the cards. */
-function FullWidthRow ({ view, spaceGroup, t }) {
+/** True for views that occupy a full wrap-grid row instead of a card cell. */
+function isFullWidthGridView (view) {
+  const type = view?.type
+  return type === 'text' || type === 'separator'
+}
+
+/** Full-width stand-ins for text and separator rows so they reorder with the cards. */
+function FullWidthRow ({ view, group, spaceGroup, t }) {
   const presented = GroupViewPresenter(view)
 
   if (presented.type === 'separator') {
@@ -133,7 +139,7 @@ function FullWidthRow ({ view, spaceGroup, t }) {
  */
 const SortableViewItem = React.memo(function SortableViewItem ({ view, group, spaceGroup, onOpenSettings, onHide, onDelete, onEditSpaceMenu, t, isFlashing = false }) {
   const presented = useMemo(() => GroupViewPresenter(view), [view])
-  const isFullWidth = presented.type === 'text' || presented.type === 'separator'
+  const isFullWidth = isFullWidthGridView(presented)
   const { attributes, listeners, setNodeRef, isDragging, isSorting } = useSortable({
     id: String(view.id),
     disabled: !view.id
@@ -169,7 +175,7 @@ const SortableViewItem = React.memo(function SortableViewItem ({ view, group, sp
       {...listeners}
     >
       {isFullWidth
-        ? <FullWidthRow view={view} spaceGroup={spaceGroup} t={t} />
+        ? <FullWidthRow view={view} group={group} spaceGroup={spaceGroup} t={t} />
         : <GroupViewCard view={view} group={group} spaceGroup={spaceGroup} isEditing />}
       <CardEditActions
         onOpenSettings={onOpenSettings ? () => onOpenSettings(view) : null}
@@ -369,8 +375,8 @@ export default function SortableViewsGrid ({
           has to be re-fitted around items of a different shape */}
       <DragOverlay className={NO_TEXT_SELECT}>
         {activeView
-          ? (activeView.type === 'text' || activeView.type === 'separator'
-              ? <FullWidthRow view={activeView} spaceGroup={spaceGroup} t={t} />
+          ? (isFullWidthGridView(activeView)
+              ? <FullWidthRow view={activeView} group={group} spaceGroup={spaceGroup} t={t} />
               : <GroupViewCard view={activeView} group={group} spaceGroup={spaceGroup} isEditing />)
           : null}
       </DragOverlay>

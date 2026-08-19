@@ -2,7 +2,7 @@
  * Visual verification for menu changes (dev-stack only):
  * - member-count pill after the (i) on space rows in the group context menu
  * - new lucide icons: chat, proposals, related-groups, moderation
- * - post-view cards themed by post type / event date stack (More Views + one-column grid)
+ * - post-view cards themed by post type / event date stack (More Spaces + one-column grid)
  */
 import { test, expect } from '@playwright/test'
 import dotenv from 'dotenv'

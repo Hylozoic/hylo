@@ -330,11 +330,7 @@ export async function updateGroupViewUser (userId, viewId, { lastReadPostId } = 
   if (lastReadPostId != null) {
     updates.last_read_post_id = lastReadPostId
     const groupId = view.get('group_id')
-    const group = await Group.find(groupId)
-    const showNotices = group
-      ? (group.get('settings') || {}).showPostNoticesInChat !== false
-      : true
-    const postTypes = recountPostTypesForView(view.get('type'), showNotices)
+    const postTypes = recountPostTypesForView(view.get('type'))
 
     if (!postTypes) {
       updates.new_post_count = 0

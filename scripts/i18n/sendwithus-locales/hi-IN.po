@@ -101,6 +101,14 @@ msgstr "पिछले में यह हुआ: "
 msgid "in "
 msgstr "में "
 
+#, python-format
+msgid "in %(post_space)s"
+msgstr "%(post_space)s में"
+
+#, python-format
+msgid "in %(post_space_name)s"
+msgstr "%(post_space_name)s में"
+
 msgid "Jump to "
 msgstr "यहाँ जाएं "
 
@@ -114,6 +122,14 @@ msgstr "%(topic_num_new_chats)s नई चैट में"
 #, python-format
 msgid "%(topic_num_new_chats)s new chat in"
 msgstr "%(topic_num_new_chats)s नई चैट में"
+
+#, python-format
+msgid "%(room_num_new_chats)s new chats in"
+msgstr "%(room_num_new_chats)s नई चैट में"
+
+#, python-format
+msgid "%(room_num_new_chats)s new chat in"
+msgstr "%(room_num_new_chats)s नई चैट में"
 
 #, python-format
 msgid "%(post_comment_count)s new comments in"
@@ -214,6 +230,24 @@ msgstr "ऑफर"
 msgid "Resources"
 msgstr "संसाधन"
 
+msgid "Discussions"
+msgstr "चर्चाएँ"
+
+msgid "Events"
+msgstr "इवेंट्स"
+
+msgid "Projects"
+msgstr "परियोजनाएँ"
+
+msgid "Proposals"
+msgstr "प्रस्ताव"
+
+msgid "Upcoming Reminders"
+msgstr "आगामी रिमाइंडर"
+
+msgid "Ending Soon"
+msgstr "जल्द समाप्त"
+
 msgid "All Topics"
 msgstr "सभी विषय"
 
@@ -245,6 +279,9 @@ msgstr "वोट करें"
 
 msgid "Reply"
 msgstr "जवाब दें"
+
+msgid "View"
+msgstr "देखें"
 
 msgid "Jump to section:"
 msgstr "सेक्शन पर जाएं:"
@@ -811,8 +848,8 @@ msgid "Join the conversation or change your notifications"
 msgstr "बातचीत में शामिल हों या नोटिफिकेशन बदलें"
 
 #, python-format
-msgid "New chats in %(group_name)s #%(chat_topic)s"
-msgstr "%(group_name)s #%(chat_topic)s में नई चैट"
+msgid "New chats in %(group_name)s"
+msgstr "%(group_name)s में नई चैट"
 
 #, python-format
 msgid "%(count)s new comments on"

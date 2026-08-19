@@ -490,7 +490,7 @@
   "Your {{tokenType}}": "Your {{tokenType}}",
   "action": "action",
   "and": "and",
-  "announcementExplainer": "This means that all members of this group will receive an instant email and push notification about this Post. \n (This feature is available to stewards only.)",
+  "announcementExplainer": "This marks the post as important and notifies everyone who hasn't turned off post notifications.",
   "approved your request to join": "approved your request to join",
   "are a member": "are a member",
   "are attending": "are attending",

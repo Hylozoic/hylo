@@ -164,6 +164,17 @@ describe('createUrl', () => {
   })
 })
 
+describe('primaryPostUrl for space chat', () => {
+  it('uses the nested space chat path', () => {
+    const expected = '/groups/building-hylo/spaces/garden/chat?postId=123'
+    const actual = primaryPostUrl({ id: '123', type: 'chat' }, {
+      groupSlug: 'building-hylo',
+      spaceSlug: 'garden'
+    })
+    expect(actual).toEqual(expected)
+  })
+})
+
 describe('primaryPostUrl with comment', () => {
   it('returns correct path', () => {
     const expected = '/all/post/123/comments/456'
@@ -215,6 +226,7 @@ describe('homeRoutePathForView', () => {
     expect(homeRoutePathForView({ type: 'stream' })).toEqual('/all')
     expect(homeRoutePathForView({ type: 'custom', id: 12 })).toEqual('/custom/12')
     expect(homeRoutePathForView({ type: 'collection', id: 34 })).toEqual('/collection/34')
+    expect(homeRoutePathForView({ type: 'space-collection', id: 56 })).toEqual('/space-collection/56')
   })
 
   it('matches groupViewPath for navigable views', () => {

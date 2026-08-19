@@ -37,7 +37,7 @@ export function viewAcceptedByPostTypes (viewType, acceptedPostTypes) {
 
 /** View types that have configurable settings in the menu editor. */
 export function viewTypeHasSettings (type) {
-  return ['all', 'chat', 'link', 'text', 'custom', 'collection', 'welcome', 'space'].includes(type)
+  return ['all', 'chat', 'link', 'text', 'custom', 'collection', 'space-collection', 'welcome', 'space'].includes(type)
 }
 
 /** Soft-removable items use X to move to More Spaces (spaces only). */

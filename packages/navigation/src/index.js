@@ -110,10 +110,10 @@ export function createUrl (opts = {}, querystringParams = {}) {
 }
 
 // For specific views of a group like 'map', or 'projects'
-export function viewUrl (view, { context, groupSlug, defaultUrl, customViewId }) {
+export function viewUrl (view, { context, groupSlug, defaultUrl, customViewId, spaceSlug }) {
   if (!view) return '/'
 
-  const base = baseUrl({ context, groupSlug, defaultUrl })
+  const base = baseUrl({ context, groupSlug, defaultUrl, spaceSlug })
 
   return `${base}/${view}${customViewId ? '/' + customViewId : ''}`
 }
@@ -148,6 +148,8 @@ export function groupViewPath (view) {
       return `/custom/${view.id}`
     case 'collection':
       return `/collection/${view.id}`
+    case 'space-collection':
+      return `/space-collection/${view.id}`
     case 'link':
       return null
     case 'manage-round':

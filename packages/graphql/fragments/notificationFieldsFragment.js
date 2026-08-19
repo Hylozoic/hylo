@@ -29,6 +29,12 @@ export default gql`
         name
         slug
         homeRoute
+        type
+        parentId
+        parentGroup {
+          id
+          slug
+        }
       }
       otherGroup {
         id

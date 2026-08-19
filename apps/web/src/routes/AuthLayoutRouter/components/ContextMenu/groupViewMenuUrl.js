@@ -43,6 +43,14 @@ export function contextViewUrl (view) {
   return null
 }
 
+/** True when pathname is a view of this group, not a nested space. */
+export function isParentGroupPath (pathname, groupSlug) {
+  if (!pathname || !groupSlug) return false
+  const base = `/groups/${groupSlug}`
+  if (pathname === base || pathname === `${base}/`) return true
+  return pathname.startsWith(`${base}/`) && !pathname.startsWith(`${base}/spaces/`)
+}
+
 /** Maps a GroupView to its URL within a group's route tree. Falls back to the group home. */
 export function groupViewUrl (groupSlug, view) {
   if (!view || !groupSlug) return groupUrl(groupSlug)
@@ -82,6 +90,8 @@ export function groupViewUrl (groupSlug, view) {
       return groupUrl(groupSlug, `custom/${view.id}`)
     case 'collection':
       return groupUrl(groupSlug, `collection/${view.id}`)
+    case 'space-collection':
+      return groupUrl(groupSlug, `space-collection/${view.id}`)
     case 'track-actions':
       return groupUrl(groupSlug, 'track-actions')
     case 'funding-round-submissions':

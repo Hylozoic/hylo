@@ -103,7 +103,7 @@ export function filterSpaceViewsForMenuVisibility (views, opts) {
 }
 
 /**
- * Filters More Views and Spaces section lists for spaces the viewer should not see.
+ * Filters More Spaces section lists for spaces the viewer should not see.
  */
 export function filterMoreSpacesSections (sections, opts) {
   if (!sections) return sections

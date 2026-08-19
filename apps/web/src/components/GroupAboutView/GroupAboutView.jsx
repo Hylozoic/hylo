@@ -1,10 +1,11 @@
-import { Bell, Info, LogOut, MapPin, Network, Settings, ShieldCheck, Users } from 'lucide-react'
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { BadgeDollarSign, Bell, Check, ChevronRight, Copy, ExternalLink, Info, Link2, LogOut, MapPin, Network, Settings, ShieldCheck, Users } from 'lucide-react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 
 import ClickCatcher from 'components/ClickCatcher'
+import FundingRoundAboutInfo from 'components/FundingRoundAboutInfo/FundingRoundAboutInfo'
 import HyloHTML from 'components/HyloHTML'
 import Icon from 'components/Icon'
 import LucideIcon from 'components/LucideIcon/LucideIcon'
@@ -36,13 +37,15 @@ import {
   visibilityDescription, visibilityIcon,
   spaceAccessDescription
 } from 'store/models/Group'
+import presentGroup from 'store/presenters/presentGroup'
 import { bgImageStyle, cn } from 'util/index'
 
 /**
  * Shared About surface for groups and spaces, per the redesign: a banner with
- * the identity, then a tab menu that imports each template inline — Moderation,
- * About, Notification Settings, Members — plus Settings (groups navigate to the
- * settings page; spaces edit inline underneath).
+ * the identity, then a tab menu that imports each template inline — About,
+ * Round Details (funding-round spaces), Moderation, Notification Settings,
+ * Members — plus Settings (groups navigate to the settings page; spaces edit
+ * inline underneath).
  */
 
 function AboutCard ({ title, action, children, className }) {
@@ -59,9 +62,36 @@ function AboutCard ({ title, action, children, className }) {
   )
 }
 
-function AboutPanel ({ group, parentGroup, isSpace, membership, onLeave, t }) {
+function GhostButton ({ icon: IconCmp, children, onClick }) {
+  return (
+    <button
+      type='button'
+      onClick={onClick}
+      className='inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-foreground/20 text-foreground/70 hover:text-foreground hover:border-foreground/40 text-xs font-semibold transition-colors'
+    >
+      {IconCmp && <IconCmp className='w-3.5 h-3.5' />}
+      {children}
+    </button>
+  )
+}
+
+function AboutPanel ({ group, parentGroup, isSpace, membership, onLeave, onOpenMembers, t }) {
+  const [urlCopied, setUrlCopied] = useState(false)
+  const [agreementsLinkCopied, setAgreementsLinkCopied] = useState(false)
   const stewards = group.stewards && group.stewards.length > 0 ? group.stewards : null
   const agreements = group.agreements?.length ? group.agreements : null
+  const websiteUrl = group.websiteUrl
+
+  const copyWebsite = () => {
+    navigator.clipboard?.writeText(websiteUrl)
+    setUrlCopied(true)
+    setTimeout(() => setUrlCopied(false), 1600)
+  }
+  const copyAgreementsLink = () => {
+    navigator.clipboard?.writeText(`${window.location.origin}${groupUrl(group.slug, 'about', {})}#agreements`)
+    setAgreementsLinkCopied(true)
+    setTimeout(() => setAgreementsLinkCopied(false), 1600)
+  }
 
   return (
     <div className='flex flex-col gap-4'>
@@ -70,22 +100,64 @@ function AboutPanel ({ group, parentGroup, isSpace, membership, onLeave, t }) {
           <p className='m-0 text-sm leading-relaxed text-foreground/80'>{group.purpose}</p>
         </AboutCard>
       )}
-      {group.description && (
+      {(group.description || websiteUrl) && (
         <AboutCard title={t('Description')}>
-          <div className='text-sm leading-relaxed text-foreground/80 global-postContent'>
-            <ClickCatcher groupSlug={group.slug}>
-              <HyloHTML html={group.description} />
-            </ClickCatcher>
-          </div>
+          {group.description && (
+            <div className='text-sm leading-relaxed text-foreground/80 global-postContent'>
+              <ClickCatcher groupSlug={group.slug}>
+                <HyloHTML html={group.description} />
+              </ClickCatcher>
+            </div>
+          )}
+          {websiteUrl && (
+            <>
+              <div className='mt-4 text-[10.5px] font-bold uppercase tracking-widest text-foreground/50'>{t('Website')}</div>
+              {/* The design's segmented link row: open + copy share one control */}
+              <div className='inline-flex items-stretch mt-2 rounded-lg border border-foreground/20 bg-background/40 overflow-hidden max-w-full'>
+                <a
+                  href={websiteUrl}
+                  target='_blank'
+                  rel='noreferrer'
+                  className='inline-flex items-center gap-2 px-3 py-2 text-[13px] font-semibold text-focus hover:text-focus no-underline hover:no-underline truncate'
+                >
+                  <Link2 className='w-3.5 h-3.5 shrink-0' />
+                  <span className='truncate'>{websiteUrl}</span>
+                </a>
+                <a
+                  href={websiteUrl}
+                  target='_blank'
+                  rel='noreferrer'
+                  title={t('Open in a new tab')}
+                  className='grid place-items-center w-9 border-l border-foreground/15 text-foreground/60 hover:text-foreground'
+                >
+                  <ExternalLink className='w-3.5 h-3.5' />
+                </a>
+                <button
+                  type='button'
+                  onClick={copyWebsite}
+                  title={urlCopied ? t('Copied') : t('Copy link')}
+                  className={cn('grid place-items-center w-9 border-l border-foreground/15 hover:text-foreground', urlCopied ? 'text-selected' : 'text-foreground/60')}
+                >
+                  {urlCopied ? <Check className='w-3.5 h-3.5' /> : <Copy className='w-3.5 h-3.5' />}
+                </button>
+              </div>
+            </>
+          )}
         </AboutCard>
       )}
       {stewards && (
-        <AboutCard title={t('Stewards')}>
+        <AboutCard
+          title={group.stewardDescriptorPlural || t('Stewards')}
+          action={<GhostButton icon={Users} onClick={onOpenMembers}>{t('All members')}</GhostButton>}
+        >
           <div className='flex flex-wrap gap-2'>
             {stewards.map(steward => (
-              <div key={steward.id} className='flex items-center gap-2 pl-1.5 pr-3.5 py-1 rounded-full border border-foreground/15 bg-background/40'>
+              <div key={steward.id} className='flex items-center gap-2 pl-1.5 pr-3.5 py-1.5 rounded-full border border-foreground/15 bg-background/40'>
                 <RoundImage url={steward.avatarUrl} small />
-                <span className='text-sm font-semibold text-foreground'>{steward.name}</span>
+                <div>
+                  <div className='text-sm font-semibold text-foreground leading-tight'>{steward.name}</div>
+                  <div className='text-[11px] text-foreground/55 leading-tight'>{group.stewardDescriptor || t('Steward')}</div>
+                </div>
               </div>
             ))}
           </div>
@@ -117,7 +189,10 @@ function AboutPanel ({ group, parentGroup, isSpace, membership, onLeave, t }) {
         </div>
       </AboutCard>
       {agreements && (
-        <AboutCard title={t('Agreements')}>
+        <AboutCard
+          title={t('Agreements')}
+          action={<GhostButton icon={agreementsLinkCopied ? Check : Copy} onClick={copyAgreementsLink}>{agreementsLinkCopied ? t('Link copied') : t('Copy link')}</GhostButton>}
+        >
           <div className='flex flex-col gap-4'>
             {agreements.map((agreement, i) => (
               <div key={agreement.id || i} className='flex gap-3'>
@@ -167,6 +242,15 @@ export default function GroupAboutView ({
   const tab = tabProp ?? localTab
   const [showLeaveDialog, setShowLeaveDialog] = useState(false)
 
+  // The raw ORM group keeps relations as query sets; the panel needs arrays
+  const presentedGroup = useMemo(() => {
+    try {
+      return presentGroup(group) || group
+    } catch (e) {
+      return group
+    }
+  }, [group])
+
   const myMemberships = useSelector(getMyMemberships)
   const membership = useMemo(
     () => group?.id ? myMemberships.find(m => String(m.group?.id) === String(group.id)) : null,
@@ -179,6 +263,7 @@ export default function GroupAboutView ({
     responsibility: RESP_ADMINISTRATION, groupId: parentGroup?.id
   }))
   const showSettings = isSpace ? (canAdminister || canAdministerParent) : canAdminister
+  const isFundingRoundSpace = Boolean(isSpace && group?.fundingRound?.id)
 
   useEffect(() => {
     if (isSpace || !group?.slug) return
@@ -213,10 +298,44 @@ export default function GroupAboutView ({
     navigate(groupUrl(group.slug, 'settings', {}))
   }, [navigate, group?.slug, onBeforeNavigate])
 
+  // A tab pushed fully out of view gets a More affordance on the rail's edge
+  const tabRailRef = useRef(null)
+  const [tabsOverflow, setTabsOverflow] = useState(false)
+  const updateTabsOverflow = useCallback(() => {
+    const el = tabRailRef.current
+    if (!el) return
+    setTabsOverflow(el.scrollWidth - el.clientWidth - el.scrollLeft > 8)
+  }, [])
+  useEffect(() => {
+    updateTabsOverflow()
+    const el = tabRailRef.current
+    if (!el) return
+    // Watch the children too: font swaps and late-arriving tabs change the
+    // content width without resizing the rail element itself
+    const observer = new ResizeObserver(updateTabsOverflow)
+    observer.observe(el)
+    Array.from(el.children).forEach(child => observer.observe(child))
+    const mutations = new MutationObserver(() => {
+      Array.from(el.children).forEach(child => observer.observe(child))
+      updateTabsOverflow()
+    })
+    mutations.observe(el, { childList: true })
+    document.fonts?.ready?.then(updateTabsOverflow)
+    el.addEventListener('scroll', updateTabsOverflow, { passive: true })
+    window.addEventListener('resize', updateTabsOverflow)
+    return () => {
+      observer.disconnect()
+      mutations.disconnect()
+      el.removeEventListener('scroll', updateTabsOverflow)
+      window.removeEventListener('resize', updateTabsOverflow)
+    }
+  }, [updateTabsOverflow])
+
   if (!group) return null
 
   const tabs = [
     { id: 'about', label: t('About'), icon: Info },
+    { id: 'round-details', label: t('Round Details'), icon: BadgeDollarSign, hidden: !isFundingRoundSpace },
     { id: 'moderation', label: t('Moderation'), icon: ShieldCheck },
     { id: 'notifications', label: t('Notification Settings'), icon: Bell, hidden: !membership },
     { id: 'members', label: t('Members'), icon: Users },
@@ -289,11 +408,6 @@ export default function GroupAboutView ({
             {/* Color repeated on the h1: a global heading rule otherwise overrides the inherited ink */}
             <h1 className={cn('m-0 text-2xl sm:text-[27px] font-bold leading-tight truncate', bannerUrl || !isSpace ? 'text-white' : 'text-foreground dark:text-white')}>{group.name}</h1>
             <div className='flex items-center flex-wrap gap-x-2.5 gap-y-1 mt-1.5 text-[13px] opacity-95'>
-              <span className='inline-flex items-center gap-1.5'>
-                <Icon name={isSpace ? accessibilityIcon(group.accessibility) : visibilityIcon(group.visibility)} className='text-sm leading-none' />
-                {isSpace ? t('Space') : t('Group')}
-              </span>
-              <span className='opacity-50'>·</span>
               <span>{t('{{count}} Members', { count: group.memberCount || 0 })}</span>
               {!isSpace && group.location && (
                 <>
@@ -313,8 +427,8 @@ export default function GroupAboutView ({
       </div>
 
       {/* Tab menu */}
-      <div className='sticky top-0 z-20 shrink-0 bg-background shadow-[0_4px_14px_0px_rgba(0,0,0,0.16)] dark:shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)]'>
-        <div className='max-w-[808px] mx-auto px-4 sm:px-6 py-2 flex gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'>
+      <div className='sticky top-0 z-20 shrink-0 relative bg-context-menu-background shadow-[0_4px_14px_0px_rgba(0,0,0,0.16)] dark:shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)]'>
+        <div ref={tabRailRef} className='max-w-[808px] mx-auto px-4 sm:px-6 py-2 flex gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'>
           {tabs.map(item => {
             const on = item.id === activeTab && !(item.id === 'settings' && !isSpace)
             const TabIcon = item.icon
@@ -336,6 +450,17 @@ export default function GroupAboutView ({
             )
           })}
         </div>
+        {tabsOverflow && (
+          <button
+            type='button'
+            onClick={() => tabRailRef.current?.scrollBy({ left: 240, behavior: 'smooth' })}
+            aria-label={t('More')}
+            className='absolute right-0 top-0 bottom-0 z-10 flex items-center gap-0.5 pl-10 pr-2 text-[13px] font-semibold text-foreground/70 hover:text-foreground bg-gradient-to-l from-context-menu-background via-context-menu-background/95 to-transparent'
+          >
+            {t('More')}
+            <ChevronRight className='w-4 h-4' />
+          </button>
+        )}
       </div>
 
       {/* Panel */}
@@ -353,12 +478,19 @@ export default function GroupAboutView ({
             <div className='max-w-[760px] mx-auto'>
               {activeTab === 'about' && (
                 <AboutPanel
-                  group={group}
+                  group={presentedGroup}
                   parentGroup={parentGroup}
                   isSpace={isSpace}
                   membership={membership}
                   onLeave={() => setShowLeaveDialog(true)}
+                  onOpenMembers={() => handleTab('members')}
                   t={t}
+                />
+              )}
+              {activeTab === 'round-details' && isFundingRoundSpace && (
+                <FundingRoundAboutInfo
+                  fundingRoundId={group.fundingRound.id}
+                  roleGroupId={group.parentId || parentGroup?.id || group.id}
                 />
               )}
               {activeTab === 'moderation' && <Moderation context='groups' />}

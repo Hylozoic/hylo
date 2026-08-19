@@ -1,9 +1,9 @@
-/* global bookshelf, GroupView, User, GroupMembership, Post, Email, Frontend, RichText, sails */
+/* global bookshelf, Group, GroupView, User, GroupMembership, Post, Email, Frontend, RichText, sails */
 /* eslint-disable camelcase */
 
-const RedisClient = require('../services/RedisClient')
-const { normalizeLocaleToFull } = require('../../lib/localeHelpers')
-const { senderNameViaHylo } = require('../../lib/email/senderNameViaHylo')
+import RedisClient from '../services/RedisClient'
+import { normalizeLocaleToFull } from '../../lib/localeHelpers'
+import { senderNameViaHylo } from '../../lib/email/senderNameViaHylo'
 
 // See docs/spaces-and-views-engineering-spec.md section 2.6 / 3.2
 
@@ -71,6 +71,7 @@ module.exports = bookshelf.Model.extend({
 
   // Increment new_post_count for every given user's row for a view. Rows are
   // created on demand for users who don't have one yet (e.g. legacy members).
+  // Also bumps updated_at so hourly chat digest can see the room as recently active.
   incrementNewPostCount: async function (viewId, userIds, { transacting } = {}) {
     if (!userIds || userIds.length === 0) return
 
@@ -78,10 +79,16 @@ module.exports = bookshelf.Model.extend({
       await GroupViewUser.findOrCreate(viewId, userId, { transacting })
     }
 
+    // Single update: knex .increment() after .update() can replace the SET
+    // clause instead of merging, which dropped updated_at and made only the
+    // most recently touched room look "new" to the digest.
     await bookshelf.knex('group_views_users')
       .where('view_id', viewId)
       .whereIn('user_id', userIds)
-      .increment('new_post_count', 1)
+      .update({
+        new_post_count: bookshelf.knex.raw('new_post_count + 1'),
+        updated_at: new Date()
+      })
       .modify(q => { if (transacting) q.transacting(transacting) })
   },
 
@@ -104,7 +111,52 @@ module.exports = bookshelf.Model.extend({
   },
 
   /**
+   * Label for the hourly chat digest: the group name, or "Parent > Space" for spaces.
+   */
+  chatRoomDisplayName: function (group) {
+    if (!group) return 'chat'
+    const name = group.get('name')
+    if (group.get('type') !== 'space') return name
+    const parent = group.relations?.parentGroup ||
+      (typeof group.related === 'function' ? group.related('parentGroup') : null)
+    const parentName = parent && typeof parent.get === 'function' ? parent.get('name') : null
+    if (!parentName) return name
+    return `${parentName} > ${name}`
+  },
+
+  /**
+   * Avatar URL for the chat digest pill. Spaces usually have a Lucide icon, not
+   * an avatar image — fall back to the parent group's avatar so the pill still
+   * shows the group icon.
+   */
+  chatRoomAvatarUrl: function (group) {
+    if (!group) return null
+    const own = group.get('avatar_url')
+    if (own) return own
+    if (group.get('type') !== 'space') return null
+    const parent = group.relations?.parentGroup ||
+      (typeof group.related === 'function' ? group.related('parentGroup') : null)
+    return (parent && typeof parent.get === 'function' ? parent.get('avatar_url') : null) || null
+  },
+
+  /**
+   * Ensure a space has its parent group attached for chatRoomDisplayName / URLs.
+   * Nested withRelated on the self-referential Group.parentGroup often comes back empty.
+   */
+  ensureParentGroup: async function (group) {
+    if (!group || group.get('type') !== 'space') return group
+    const loaded = group.relations?.parentGroup
+    if (loaded && loaded.get('name')) return group
+    const parentId = group.get('parent_id')
+    if (!parentId) return group
+    const parent = await Group.find(parentId)
+    if (parent) group.relations.parentGroup = parent
+    return group
+  },
+
+  /**
    * Hourly email digests for chat views with unread chat posts.
+   * Sends one email per chat view (parent group chat and each space chat).
    * Uses membership postNotifications: all = every chat, important = mentions
    * (and announcements), none = skip digest.
    */
@@ -126,20 +178,24 @@ module.exports = bookshelf.Model.extend({
         q.join('group_views', 'group_views.id', 'group_views_users.view_id')
         q.where('group_views.type', GroupView.Type.CHAT)
         q.where('group_views_users.new_post_count', '>', 0)
+        // incrementNewPostCount bumps this timestamp; group_views.updated_at
+        // only changes when the view itself is edited, so it is not a chat signal.
         q.where('group_views_users.updated_at', '>', lastSentAt)
         q.select('group_views_users.*')
       }).fetchAll({
-        withRelated: ['user', 'view', 'view.group']
+        withRelated: ['user', 'view', 'view.group', 'view.group.parentGroup']
       })
 
       sails.log.info(`GroupViewUser.sendDigests: checking ${chatViewUsers.length} chat views updated since ${lastSentAt.toISOString()}`)
 
-      for (const viewUser of chatViewUsers) {
+      for (const viewUser of chatViewUsers.models) {
         try {
           const user = viewUser.relations.user
           const view = viewUser.relations.view
           const group = view?.relations?.group
           if (!user || !view || !group) continue
+
+          await GroupViewUser.ensureParentGroup(group)
 
           const userId = viewUser.get('user_id')
           const groupId = view.get('group_id')
@@ -152,11 +208,16 @@ module.exports = bookshelf.Model.extend({
           const postNotifications = membership.getSetting('postNotifications')
           if (postNotifications !== 'all' && postNotifications !== 'important') continue
 
-          const lastReadPostId = viewUser.get('last_read_post_id') || 0
+          const settings = Object.assign({}, viewUser.get('settings') || {})
+          const lastReadPostId = Number(viewUser.get('last_read_post_id')) || 0
+          const lastDigestPostId = Number(settings.lastChatDigestPostId) || 0
+          const afterPostId = Math.max(lastReadPostId, lastDigestPostId)
+          // Per-room watermark, not the global lastSentAt. A shared timestamp
+          // made the second room's chats look already-sent after the first room emailed.
           const posts = await Post.query(q => {
             q.join('groups_posts', 'posts.id', 'groups_posts.post_id')
-            q.where('posts.created_at', '>', lastSentAt)
-            q.where('posts.id', '>', lastReadPostId)
+            q.where('posts.created_at', '>', oneDayAgo)
+            q.where('posts.id', '>', afterPostId)
             q.where('posts.type', Post.Type.CHAT)
             q.where('posts.active', true)
             q.where('groups_posts.group_id', groupId)
@@ -192,39 +253,53 @@ module.exports = bookshelf.Model.extend({
           if (!user.get('email')) continue
 
           const locale = normalizeLocaleToFull(user.get('settings')?.locale || 'en-US')
+          const chatRoomName = GroupViewUser.chatRoomDisplayName(group)
           const clickthroughParams = '?' + new URLSearchParams({
             ctt: 'chat_digest_email',
             cti: user.id,
-            ctcn: group.get('name')
+            ctcn: chatRoomName
           }).toString()
 
           const result = await Email.sendChatDigest({
             email: user.get('email'),
             locale,
+            version: 'Spaces',
             sender: {
-              name: senderNameViaHylo(group.get('name'), locale),
+              name: senderNameViaHylo(chatRoomName, locale),
               reply_to: 'DoNotReply@hylo.com'
             },
             data: {
               count: postData.length,
-              chat_topic: view.get('name') || group.get('name') || 'chat',
+              chat_room_name: chatRoomName,
               chat_room_url: Frontend.appendQueryString(
-                Frontend.Route.post(posts.models[posts.models.length - 1], group),
+                Frontend.Route.chat(group),
                 clickthroughParams
               ),
               email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, user),
-              group_name: group.get('name'),
-              group_avatar_url: Frontend.appendQueryString(group.get('avatar_url'), clickthroughParams),
+              group_name: chatRoomName,
+              group_avatar_url: Frontend.appendQueryString(
+                GroupViewUser.chatRoomAvatarUrl(group),
+                clickthroughParams
+              ),
               posts: postData
             }
           })
-          if (result) numSent += 1
+          if (result !== false) {
+            const maxPostId = posts.models.reduce(
+              (maxId, post) => Math.max(maxId, Number(post.id)),
+              lastDigestPostId
+            )
+            await viewUser.save({
+              settings: Object.assign({}, settings, { lastChatDigestPostId: maxPostId })
+            }, { patch: true })
+            numSent += 1
+            sails.log.info(`GroupViewUser.sendDigests: sent ${chatRoomName} to user ${userId}`)
+          }
         } catch (err) {
           sails.log.error(
             `GroupViewUser.sendDigests: error sending digest for group_views_users ${viewUser.id} (view ${viewUser.get('view_id')}, user ${viewUser.get('user_id')}): ${err.message}`,
             err.stack
           )
-          throw err
         }
       }
 

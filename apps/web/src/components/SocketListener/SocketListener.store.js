@@ -109,7 +109,7 @@ export function receiveOpenJoinRequestCount (groupId, openJoinRequestCount) {
  * Bump typed + chat view unread counts for views in `viewItems`, writing through
  * `menuGroup`'s embedded menu (works for top-level and nested space menus).
  */
-function bumpUnreadViewsInMenu (menuGroup, viewItems, postType, showNotices) {
+function bumpUnreadViewsInMenu (menuGroup, viewItems, postType) {
   if (!menuGroup || !viewItems?.length) return
 
   const typedViewType = POST_TYPE_TO_VIEW_TYPE[postType]
@@ -122,7 +122,7 @@ function bumpUnreadViewsInMenu (menuGroup, viewItems, postType, showNotices) {
     }
   }
 
-  if (postCountsTowardChatUnread(postType, showNotices)) {
+  if (postCountsTowardChatUnread(postType)) {
     const chatView = viewItems.find(view => view.type === 'chat')
     if (chatView) {
       updateGroupViewInMenu(menuGroup, chatView.id, {
@@ -199,8 +199,7 @@ export function ormSessionReducer (session, { meta, type, payload }) {
 
       // Direct menu on the post's group (when that group's views are loaded)
       if (postGroup?.groupViews?.items?.length) {
-        const showNotices = postGroup.settings?.showPostNoticesInChat !== false
-        bumpUnreadViewsInMenu(postGroup, postGroup.groupViews.items, postType, showNotices)
+        bumpUnreadViewsInMenu(postGroup, postGroup.groupViews.items, postType)
       }
 
       // Parent menus embed space views under type=space linkedGroup — patch those too
@@ -213,8 +212,7 @@ export function ormSessionReducer (session, { meta, type, payload }) {
           if (String(view.linkedGroup?.id) !== String(groupId)) return
           const nestedItems = view.linkedGroup.groupViews?.items
           if (!nestedItems?.length) return
-          const showNotices = view.linkedGroup.settings?.showPostNoticesInChat !== false
-          bumpUnreadViewsInMenu(parentGroup, nestedItems, postType, showNotices)
+          bumpUnreadViewsInMenu(parentGroup, nestedItems, postType)
         })
       })
       break

@@ -50,12 +50,13 @@ module.exports = {
     const { body: { isTyping }, socket } = req
 
     return User.find(req.session.userId)
-      .then(user => pushToSockets(
-        groupRoom(group.id),
-        'userTyping',
-        { userId: user.id, userName: user.get('name'), isTyping, groupId: String(group.id) },
-        socket
-      ))
+      .then(user => {
+        const payload = { userId: user.id, userName: user.get('name'), isTyping, groupId: String(group.id) }
+        const rooms = [groupRoom(group.id)]
+        const parentId = group.get('parent_id')
+        if (parentId) rooms.push(groupRoom(parentId))
+        return Promise.all(rooms.map(room => pushToSockets(room, 'userTyping', payload, socket)))
+      })
       .then(() => res.ok({}))
   }
 }

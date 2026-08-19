@@ -18,7 +18,7 @@ import { countTotal } from '../../lib/util/knex'
 import { refineMany, refineOne } from './util/relations'
 import ProjectMixin from './project/mixin'
 import EventMixin, { eventClassMethods } from './event/mixin'
-import { defaultTimezone } from '../../lib/group/digest2/util'
+import { defaultTimezone, wherePostedInGroups } from '../../lib/group/digest2/util'
 import { publishPostUpdate } from '../../lib/postSubscriptionPublisher'
 
 init({ data })
@@ -432,6 +432,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
   presentForEmail: function ({ clickthroughParams = '', context, fundingRound, group, type = 'full', locale }) {
     const { media, tags, linkPreview, user } = this.relations
     const slug = group?.get('slug')
+    const isSpace = group && typeof group.get === 'function' && group.get('type') === 'space'
 
     return {
       id: parseInt(this.id),
@@ -447,6 +448,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
       month: type !== 'oneline' && this.get('start_time') && DateTimeHelpers.getMonthFromDate(this.get('start_time'), this.get('timezone')),
       topic_name: type !== 'oneline' && this.get('type') === 'chat' ? tags?.first()?.get('name') : '',
       type: this.get('type'),
+      space_id: isSpace ? group.id : null,
+      space_name: isSpace ? group.get('name') : null,
       start_time: type === 'oneline' && this.get('start_time') && DateTimeHelpers.formatDatePair({ start: this.get('start_time'), timezone: this.get('timezone'), locale }),
       title: this.summary(),
       unfollow_url: Frontend.appendQueryString(Frontend.Route.unfollow(this, group), clickthroughParams),
@@ -666,7 +669,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     if (Post.isNoticeType(this.get('type'))) return
 
     await this.load(['groups', 'tags'], { transacting: trx })
-    const { tags, groups } = this.relations
+    const { groups } = this.relations
     let activitiesToCreate = []
 
     const mentions = RichText.getUserMentions(this.details())
@@ -680,24 +683,20 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
     // Activities get created for every chat or post, and then we decide whether to send notifications for them in Activity.generateNotificationMedia
     if (this.get('type') === Post.Type.CHAT) {
-      const tagFollows = await TagFollow.query(qb => {
-        qb.join('group_memberships', 'group_memberships.group_id', 'tag_follows.group_id')
-        qb.where('group_memberships.active', true)
-        qb.whereRaw('group_memberships.user_id = tag_follows.user_id')
-        qb.whereIn('tag_id', tags.map('id'))
-        qb.whereIn('tag_follows.group_id', groups.map('id'))
-      })
-        .fetchAll({ withRelated: ['tag'], transacting: trx })
-
-      const tagFollowers = tagFollows.map(tagFollow => ({
-        reader_id: tagFollow.get('user_id'),
-        post_id: this.id,
-        actor_id: this.get('user_id'),
-        group_id: tagFollow.get('group_id'),
-        reason: `chat: ${tagFollow.relations.tag.get('name')}`
+      // Chat is a GroupView now, not a topic. Notify group/space members;
+      // generateNotificationMedia applies postNotifications (all / important / none).
+      const members = await Promise.all(groups.map(async group => {
+        const userIds = await group.members().fetch().then(u => u.pluck('id'))
+        return userIds.map(userId => ({
+          reader_id: userId,
+          post_id: this.id,
+          actor_id: this.get('user_id'),
+          group_id: group.id,
+          reason: 'chat'
+        }))
       }))
 
-      activitiesToCreate = activitiesToCreate.concat(tagFollowers)
+      activitiesToCreate = activitiesToCreate.concat(flatten(members))
     } else if (this.get('type') !== Post.Type.ACTION && this.get('type') !== Post.Type.SUBMISSION) {
       // Non-chat posts are sent to all members of the groups the post is in
       // XXX: no notifications sent for Actions right now
@@ -1003,33 +1002,36 @@ module.exports = bookshelf.Model.extend(Object.assign({
     })
   },
 
-  upcomingPostReminders: async function (group, digestType) {
+  upcomingPostReminders: async function (group, digestType, spaceIds = []) {
     const startTime = DateTime.now().setZone(defaultTimezone).toISO()
     // If daily digest show posts that have reminders in the next 2 days
     // If weekly digest show posts that have reminders in the next 7 days
     const endTime = digestType === 'daily'
       ? DateTime.now().setZone(defaultTimezone).plus({ days: 2 }).endOf('day').toISO()
       : DateTime.now().setZone(defaultTimezone).plus({ days: 7 }).endOf('day').toISO()
+    const groupIds = [group.id, ...spaceIds].filter(id => id != null)
 
-    const startingSoon = await group.posts().query(function (qb) {
+    const startingSoon = await Post.collection().query(function (qb) {
+      wherePostedInGroups(qb, groupIds)
       qb.whereRaw('(posts.start_time between ? and ?)', [startTime, endTime])
       qb.whereIn('posts.type', ['event', 'offer', 'project', 'proposal', 'resource', 'request'])
       qb.where('posts.fulfilled_at', null)
       qb.where('posts.active', true)
       qb.orderBy('posts.start_time', 'asc')
     })
-      .fetch({ withRelated: ['user'] })
+      .fetch({ withRelated: ['user', 'groups'] })
       .then(get('models'))
 
-    const endingSoon = await group.posts().query(function (qb) {
+    const endingSoon = await Post.collection().query(function (qb) {
+      wherePostedInGroups(qb, groupIds)
       qb.whereRaw('(posts.end_time between ? and ?)', [startTime, endTime])
-      qb.whereRaw('(posts.start_time < ?)', startTime) // Explicitly cast to timestamp with time zone
-      qb.whereIn('posts.type', ['event', 'offer', 'project', 'proposal', 'resource', 'request'])
+      qb.whereRaw('(posts.start_time < ?)', startTime)
+      qb.whereIn('posts.type', ['request', 'offer', 'resource', 'proposal'])
       qb.where('posts.fulfilled_at', null)
       qb.where('posts.active', true)
       qb.orderBy('posts.end_time', 'asc')
     })
-      .fetch({ withRelated: ['user'] })
+      .fetch({ withRelated: ['user', 'groups'] })
       .then(get('models'))
 
     return {

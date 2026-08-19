@@ -82,6 +82,7 @@ import PostDetail from 'routes/PostDetail'
 import Search from 'routes/Search'
 import ViewContent from 'routes/ViewContent'
 import SpaceContent from 'routes/SpaceContent'
+import SpaceCollection from 'routes/SpaceCollection'
 import Themes from 'routes/Themes'
 import UserSettings from 'routes/UserSettings'
 import WelcomeWizardRouter from 'routes/WelcomeWizardRouter'
@@ -182,14 +183,6 @@ export default function AuthLayoutRouter (props) {
   const currentGroup = useSelector(state => getGroupForSlug(state, currentGroupSlug))
   const currentGroupMembership = useSelector(state => getMyGroupMembership(state, currentGroupSlug))
 
-  // Space posts are pushed to the space's group socket room — subscribe while the parent is open
-  // so ContextMenu can show real-time badges for spaces and nested space views.
-  const spaceSocketGroupIds = useMemo(() => {
-    const items = currentGroup?.groupViews?.items || []
-    return items
-      .filter(view => view.type === 'space' && view.linkedGroup?.id)
-      .map(view => String(view.linkedGroup.id))
-  }, [currentGroup?.groupViews?.items])
   const currentUser = useSelector(getMe)
   const globalNavStyle = currentUser?.settings?.globalNavStyle === 'tabs' ? 'tabs' : 'sidebar'
   const stackGroups = currentUser?.settings?.stackGroups === true
@@ -1078,6 +1071,7 @@ export default function AuthLayoutRouter (props) {
                             <Route path='explore/*' element={<LandingPage />} />
                             <Route path='custom/:customViewId/*' element={<ViewContent context='groups' view='custom' />} />
                             <Route path='collection/:customViewId/*' element={<ViewContent context='groups' view='collection' />} />
+                            <Route path='space-collection/:viewId/*' element={<SpaceCollection group={currentGroup} />} />
                             <Route path='groups/*' element={<Navigate to='about/related-groups' replace />} />
                             <Route path='members/create/*' element={<Members context='groups' />} />
                             <Route path='members/:personId/*' element={<MemberProfile context='groups' />} />
@@ -1100,6 +1094,11 @@ export default function AuthLayoutRouter (props) {
                             />
                             {!isOneColumnGroup && <Route path={POST_DETAIL_MATCH} element={<PostDetail />} />}
                             <Route path='moderation/*' element={<Navigate to='about/moderation' replace />} />
+                            {/* Legacy All Views / Tracks / Funding Rounds / All Topics → More Spaces */}
+                            <Route path='all-views/*' element={<Navigate to={`/groups/${currentGroupSlug}/more-spaces`} replace />} />
+                            <Route path='tracks/*' element={<Navigate to={`/groups/${currentGroupSlug}/more-spaces`} replace />} />
+                            <Route path='funding-rounds/*' element={<Navigate to={`/groups/${currentGroupSlug}/more-spaces`} replace />} />
+                            <Route path='all-topics/*' element={<Navigate to={`/groups/${currentGroupSlug}/more-spaces`} replace />} />
                             <Route path='*' element={isOneColumnGroup ? <ContextMenuGrid group={currentGroup} /> : <Navigate to={`/groups/${currentGroupSlug}${currentGroup?.homeRoute || '/all'}`} replace />} />
                           </Routes>
                           )
@@ -1166,9 +1165,6 @@ export default function AuthLayoutRouter (props) {
             </div>
             <SocketListener location={location} groupSlug={currentGroupSlug} />
             <SocketSubscriber type='group' id={get('slug', currentGroup)} />
-            {spaceSocketGroupIds.map(spaceGroupId => (
-              <SocketSubscriber key={`space-socket-${spaceGroupId}`} type='group' id={spaceGroupId} />
-            ))}
           </div>
         </div>
         <CookieConsentLinker />
