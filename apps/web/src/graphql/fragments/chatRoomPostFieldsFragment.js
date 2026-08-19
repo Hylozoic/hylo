@@ -11,6 +11,13 @@ export default function chatRoomPostFieldsFragment () {
   endTime
   flaggedGroups
   linkPreviewFeatured
+  postMemberships {
+    id
+    pinned
+    group {
+      id
+    }
+  }
   savedAt
   startTime
   timezone

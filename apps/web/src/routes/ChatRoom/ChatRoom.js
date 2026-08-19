@@ -22,6 +22,7 @@ import PostDialog from 'components/PostDialog'
 import Tooltip from 'components/Tooltip'
 import Button from 'components/ui/button'
 import ChatMembersPanel from './ChatMembersPanel'
+import PinnedPostChips from './PinnedPostChips'
 import ChatPost from './ChatPost'
 import ChatPostNotice from './ChatPostNotice'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
@@ -31,7 +32,7 @@ import fetchForGroup from 'store/actions/fetchForGroup'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import fetchPosts from 'store/actions/fetchPosts'
 import updateGroupViewUser from 'store/actions/updateGroupViewUser'
-import { FETCH_POSTS, RESP_ADD_MEMBERS } from 'store/constants'
+import { FETCH_POSTS, RESP_ADD_MEMBERS, RESP_MANAGE_CONTENT } from 'store/constants'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
 import presentPost from 'store/presenters/presentPost'
 import { makeDropQueryResults, makeQueryResultsModelSelector } from 'store/reducers/queryResults'
@@ -41,6 +42,7 @@ import getMe from 'store/selectors/getMe'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import { getPostResults } from 'store/selectors/getPosts'
 import { getGroupViews } from 'store/selectors/getGroupViews'
+import getPinnedPosts from 'store/selectors/getPinnedPosts'
 import { cn } from 'util/index'
 import { groupInviteUrl, groupUrl } from '@hylo/navigation'
 import { isLegacyWebView } from 'util/webView'
@@ -147,6 +149,15 @@ export default function ChatRoom (props) {
 
   const chatViewLoading = !!group?.id && !chatView
   const groupLoading = !!groupSlug && !group
+
+  const canModerateContent = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_MANAGE_CONTENT, groupId: group?.id }))
+  const pinnedPosts = useSelector(state => getPinnedPosts(state, group?.id))
+
+  // Pinned posts can be older than the loaded window — fetch them directly
+  useEffect(() => {
+    if (!group?.id || !groupSlug) return
+    dispatch(fetchPosts({ context: 'groups', slug: groupSlug, childPostInclusion: 'no', pinned: true, first: 20, sortBy: 'created' }))
+  }, [dispatch, group?.id, groupSlug])
 
   const querystringParams = getQuerystringParam(['search', 'postId'], location)
   const search = querystringParams?.search
@@ -816,6 +827,13 @@ export default function ChatRoom (props) {
         {/* The stream header's wash, here as a still strip: theme background fading
             to its own colour at zero alpha, so messages scroll under a soft top edge */}
         <div aria-hidden='true' className='absolute top-0 left-0 right-0 h-14 z-20 pointer-events-none bg-gradient-to-b from-[hsl(var(--theme-background)/0.1)] dark:from-[hsl(var(--theme-background)/0.5)] to-[hsl(var(--theme-background)/0)]' />
+        {/* Pinned posts ride the top edge as chips, left of the presence cluster */}
+        <PinnedPostChips
+          posts={pinnedPosts}
+          groupId={group?.id}
+          canModerate={canModerateContent}
+          className='absolute top-1.5 left-3 right-24 sm:right-[240px] z-30'
+        />
         {/* Width rail on the clamp edge. The triangles stay visible as a quiet
             hint; the dashed line and its wash only surface on hover or drag.
             left includes the pane's px-1, which offsets content but not

@@ -1,6 +1,6 @@
 import { createSelector } from 'reselect'
 import { filter, isFunction } from 'lodash'
-import { Check, Play, CircleDashed, BookmarkCheck, Bookmark, Pencil, Link2, Flag, Copy, Trash2, Library, LibraryBig } from 'lucide-react'
+import { Check, Play, CircleDashed, BookmarkCheck, Bookmark, Pencil, Link2, Flag, Copy, Pin, PinOff, Trash2, Library, LibraryBig } from 'lucide-react'
 import { DateTime } from 'luxon'
 import React, { useCallback, useMemo, useState } from 'react'
 import ReactDOM from 'react-dom'
@@ -31,6 +31,7 @@ import getRolesForGroup from 'store/selectors/getRolesForGroup'
 import useGroupViews from 'hooks/useGroupViews'
 import { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 import { useEffectiveGroupSlug, useGroupRouteOpts } from 'contexts/SpaceGroupContext'
+import pinPostAction from 'store/actions/pinPost'
 import { cn } from 'util/index'
 import {
   unfulfillPost as unfulfillPostAction,
@@ -134,6 +135,12 @@ function PostHeader (props) {
   const canEdit = isCreator
   const canFlag = !isCreator
   const canModerate = !isCreator && responsibilities.includes(RESP_MANAGE_CONTENT)
+  // Pinning is per-group content curation — creators who moderate can pin too
+  const canPin = !!group?.id && responsibilities.includes(RESP_MANAGE_CONTENT)
+  const pinned = !!post.postMemberships?.find?.(pm => String(pm.group) === String(group?.id))?.pinned
+  const handlePinPost = useCallback(() => {
+    dispatch(pinPostAction(id, group.id))
+  }, [dispatch, id, group?.id])
   const canCurateCollections = responsibilities.includes(RESP_ADMINISTRATION) ||
     responsibilities.includes(RESP_MANAGE_CONTENT)
 
@@ -316,6 +323,7 @@ function PostHeader (props) {
   const dropdownItems = filter([
     { icon: <Pencil className='w-4 h-4 text-foreground' />, label: t('Edit'), onClick: canEdit ? editPost : undefined },
     { icon: <Link2 className='w-4 h-4 text-foreground' />, label: t('Copy Link'), onClick: copyLink },
+    { icon: pinned ? <PinOff className='w-4 h-4 text-foreground' /> : <Pin className='w-4 h-4 text-foreground' />, label: pinned ? t('Unpin') : t('Pin'), onClick: canPin ? handlePinPost : undefined },
     { icon: savedAt ? <BookmarkCheck className='w-4 h-4 text-foreground' /> : <Bookmark className='w-4 h-4 text-foreground' />, label: savedAt ? t('Unsave Post') : t('Save Post'), onClick: savedAt ? unsavePost : savePost },
     { icon: <Flag className='w-4 h-4 text-foreground' />, label: t('Flag'), onClick: flagPostFunc() },
     { icon: <Copy className='w-4 h-4 text-foreground' />, label: t('Duplicate'), onClick: duplicatePost },
@@ -408,6 +416,12 @@ function PostHeader (props) {
           </div>
 
           <div className={cn('flex items-center justify-end ml-auto', { hidden: constrained })}>
+            {pinned && (
+              <span className='inline-flex items-center gap-1 px-2 py-0.5 mr-2 rounded-md text-[9.5px] font-bold uppercase tracking-wider bg-[hsl(45_45%_90%)] dark:bg-[hsl(45_45%_18%)] border border-[hsl(45_45%_60%)] dark:border-[hsl(45_45%_34%)] text-[hsl(45_60%_35%)] dark:text-[hsl(45_65%_72%)]'>
+                <svg width='9' height='9' viewBox='0 0 24 24' fill='currentColor' aria-hidden='true'><path d='M14 2l1 5 4 3-1 2-5-1-4 6-1-1 4-6-3-4 2-1 3-4z' transform='rotate(15 12 12)' /></svg>
+                {t('Pinned')}
+              </span>
+            )}
             {isFlagged && <Link to={moderationActionsGroupUrl} className='text-decoration-none' data-tooltip-content={t('See why this post was flagged')} data-tooltip-id='post-header-flag-tt'><Icon name='Flag' className='top-1 mr-3 text-xl text-accent font-bold' /></Link>}
             <Tooltip
               delay={250}
@@ -417,7 +431,7 @@ function PostHeader (props) {
                 1px for optical centering in inline contexts — here the icon IS the bordered
                 box, so the nudge shifted the whole button 1px below the pill beside it */}
             {dropdownItems.length > 0 &&
-              <Dropdown id='post-header-more-dropdown' toggleChildren={<Icon name='More' dataTestId='post-header-more-icon' className='cursor-pointer border-2 border-foreground/30 rounded-md h-7 w-7 flex items-center justify-center !top-0' />} items={dropdownItems} alignRight noOverflow />}
+              <Dropdown id='post-header-more-dropdown' toggleChildren={<Icon name='More' dataTestId='post-header-more-icon' className='cursor-pointer border-2 border-foreground/30 rounded-md h-7 w-7 flex items-center justify-center !top-0' />} items={dropdownItems} alignRight noOverflow portal />}
             {close &&
               <a className={cn('inline-block cursor-pointer relative px-3 text-xl')} data-testid='post-detail-close' onClick={close}>
                 <Icon name='Ex' className='align-middle' />

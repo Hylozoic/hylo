@@ -25,6 +25,7 @@ import {
   DELETE_GROUP_VIEW,
   DELETE_GROUP_RELATIONSHIP,
   DELETE_POST_PENDING,
+  PIN_POST_PENDING,
   FETCH_GROUP_DETAILS_PENDING,
   FETCH_MESSAGES_PENDING,
   FETCH_GROUP_CHAT_ROOMS,
@@ -215,6 +216,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     MessageThread,
     Person,
     Post,
+    PostMembership,
     PostCommenter,
     ProjectMember,
     Skill,
@@ -764,6 +766,25 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     case DELETE_GROUP_TOPIC_PENDING: {
       groupTopic = GroupTopic.withId(meta.id)
       groupTopic.delete()
+      break
+    }
+
+    case PIN_POST_PENDING: {
+      const post = Post.withId(meta.postId)
+      if (!post) break
+      const membership = post.postMemberships?.toModelArray?.().find(pm =>
+        String(pm.group?.id ?? pm.group) === String(meta.groupId))
+      if (membership) {
+        membership.update({ pinned: !membership.ref.pinned })
+      } else {
+        // The post arrived via a fetch without memberships — create one so the
+        // optimistic pin is visible immediately
+        const created = PostMembership.create({ id: `pin:${meta.postId}:${meta.groupId}`, pinned: true, group: meta.groupId })
+        post.postMemberships.add(created)
+      }
+      // Touch the post row: selectors that only watch the Post table (getPost)
+      // must invalidate so the badge and chips update without a reload
+      post.update({ pinTouch: (post.ref.pinTouch || 0) + 1 })
       break
     }
 

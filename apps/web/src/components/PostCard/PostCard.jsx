@@ -193,6 +193,7 @@ export default function PostCard (props) {
   }, [post, viewPostDetails])
 
   const postType = get('type', post)
+  const pinnedInGroup = !!post.postMemberships?.find?.(pm => String(pm.group) === String(group?.id))?.pinned
   const postTypeName = postType?.charAt(0).toUpperCase() + postType?.slice(1)
   const isEvent = postType === 'event'
   const isFlagged = group && post.flaggedGroups && post.flaggedGroups.some(id => String(id) === String(group.id))
@@ -307,6 +308,7 @@ export default function PostCard (props) {
           ref={postCardRef}
           className={cn(
             'PostCard group/post-card rounded-xl cursor-pointer p-1 ml-12 relative flex flex-col transition-all bg-card/50 dark:bg-card/100 hover:bg-card/100 border-2 border-card/30 shadow-xl hover:shadow-2xl hover:shadow-lg mb-4 hover:z-[2] hover:scale-101 duration-400 hover:border-foreground/50',
+            pinnedInGroup && 'ring-1 ring-inset ring-[hsl(45_60%_45%_/_0.45)]',
             classes[postType],
             {
               [classes.expanded]: expanded,
@@ -394,6 +396,7 @@ export default function PostCard (props) {
         ref={postCardRef}
         className={cn(
           'PostCard group/post-card rounded-xl cursor-pointer p-1 relative flex flex-col transition-all bg-card/50 dark:bg-card/100 hover:bg-card/100 border-2 border-card/30 shadow-xl hover:shadow-2xl hover:shadow-lg mb-4 relative hover:z-[2] hover:scale-101 duration-400 hover:border-foreground/50',
+          pinnedInGroup && 'ring-1 ring-inset ring-[hsl(45_60%_45%_/_0.45)]',
           classes[postType],
           {
             [classes.expanded]: expanded,

@@ -1,5 +1,5 @@
 import { filter, isEmpty, isFunction, pick } from 'lodash/fp'
-import { BookmarkCheck, Bookmark, Check, Flag, MessageCircle, Pencil, Trash2, X } from 'lucide-react'
+import { BookmarkCheck, Bookmark, Check, Flag, MessageCircle, Pencil, Pin, PinOff, Trash2, X } from 'lucide-react'
 import { DateTimeHelpers } from '@hylo/shared'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -34,6 +34,7 @@ import { groupUrl, personUrl, spaceUrl } from '@hylo/navigation'
 import { useGroupRouteOpts } from 'contexts/SpaceGroupContext'
 import { getLocaleFromLocalStorage } from 'util/locale'
 import { hasActiveTextSelection, hasReadableContentSelection } from 'util/textSelectionTouch'
+import pinPostAction from 'store/actions/pinPost'
 import { cn } from 'util/index'
 
 export default function ChatPost ({
@@ -223,12 +224,18 @@ export default function ChatPost ({
     }
   }, [savedAt, id])
 
+  const pinned = !!post.postMemberships?.find?.(pm => String(pm.group) === String(group.id))?.pinned
+  const handlePinPost = useCallback(() => {
+    dispatch(pinPostAction(id, group.id))
+  }, [dispatch, id, group.id])
+
   const actionItems = filter(item => isFunction(item.onClick), [
     // { icon: 'Copy', label: 'Copy Link', onClick: copyLink },
     { icon: <MessageCircle className='w-4 h-4 text-foreground' />, label: 'Reply', onClick: showPost, tooltip: 'Reply to post' },
     // TODO: Edit disabled in mobile environments due to issue with keyboard management and autofocus of field
     { icon: <Pencil className='w-4 h-4 text-foreground' />, label: 'Edit', onClick: (isCreator && !isLongPress) ? editPost : null, tooltip: 'Edit post' },
     { icon: savedAt ? <BookmarkCheck className='w-4 h-4 text-foreground' /> : <Bookmark className='w-4 h-4 text-foreground' />, label: savedAt ? t('Unsave Post') : t('Save Post'), onClick: handleSavePost, tooltip: savedAt ? 'Unsave post' : 'Save post' },
+    { icon: pinned ? <PinOff className='w-4 h-4 text-foreground' /> : <Pin className='w-4 h-4 text-foreground' />, label: pinned ? 'Unpin' : 'Pin', onClick: currentUserResponsibilities.includes(RESP_MANAGE_CONTENT) ? handlePinPost : null, tooltip: pinned ? 'Unpin from this room' : 'Pin to this room' },
     { icon: <Flag className='w-4 h-4 text-foreground' />, label: 'Flag', onClick: !isCreator ? () => { setFlaggingVisible(true) } : null, tooltip: 'Flag post' },
     { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: 'Delete', onClick: isCreator ? deletePostWithConfirm : null, red: true, tooltip: 'Delete post' },
     { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: 'Remove From Group', onClick: !isCreator && currentUserResponsibilities.includes(RESP_MANAGE_CONTENT) ? removePostWithConfirm : null, red: true, tooltip: 'Remove post from group' }
@@ -334,7 +341,14 @@ export default function ChatPost ({
               <Avatar avatarUrl={creator.avatarUrl} medium />
             </div>
             <div className='ml-[42px] flex items-baseline gap-2'>
-              <div className='font-bold cursor-pointer' onClick={showCreator}>{creator.name}</div>
+              <div className='font-bold cursor-pointer flex items-center gap-1.5' onClick={showCreator}>
+                {creator.name}
+                {pinned && (
+                  <svg width='10' height='10' viewBox='0 0 24 24' fill='hsl(45 65% 55%)' className='shrink-0' aria-hidden='true'>
+                    <path d='M14 2l1 5 4 3-1 2-5-1-4 6-1-1 4-6-3-4 2-1 3-4z' transform='rotate(15 12 12)' />
+                  </svg>
+                )}
+              </div>
               <div className='text-xs text-foreground/50'>
                 {DateTimeHelpers.toDateTime(createdAt, { locale: getLocaleFromLocalStorage() }).toFormat('t')}
                 {editedAt && <span>&nbsp;({t('edited')} {DateTimeHelpers.toDateTime(editedAt, { locale: getLocaleFromLocalStorage() }).toFormat('t')})</span>}

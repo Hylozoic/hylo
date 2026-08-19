@@ -33,6 +33,7 @@ export default function presentPost (post, groupId) {
       createdTimestamp: createdAtHumanDate,
       createdTimestampShort: createdAtHumanDateShort,
       creator: post.creator, // needed to load the creator object
+      postMemberships: (rawPost ? post.postMemberships?.items || post.postMemberships || [] : (post.postMemberships?.toRefArray?.() || [])),
       commenters: (rawPost ? post.commenters?.items || [] : (post.commenters?.toModelArray?.() || [])),
       completionResponses: (rawPost ? post.completionResponses?.items || [] : post.completionResponses?.toModelArray() || []),
       editedTimestamp: post.editedAt ? `Edited ${editedAtHumanDate}` : null,

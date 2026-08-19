@@ -25,6 +25,13 @@ export default function postCardFieldsFragment ({ includeGroups = true } = {}) {
   fulfilledAt
   isAnonymousVote
   isPublic
+  postMemberships {
+    id
+    pinned
+    group {
+      id
+    }
+  }
   linkPreviewFeatured
   location
   meetingLink
