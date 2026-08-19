@@ -72,6 +72,8 @@ import AddGroupViewDialog from './AddGroupViewDialog'
 import AddSpaceDialog from './AddSpaceDialog'
 import AddViewOrSpaceMenu from './AddViewOrSpaceMenu'
 import EditingBottomBar, { EDITING_BAR_BUTTON_CLASS } from './EditingBottomBar'
+import { menuViewUrl, isParentGroupPath } from './groupViewMenuUrl'
+import getPreviousLocation from 'store/selectors/getPreviousLocation'
 import { appendSpaceId, spaceCollectionViews } from 'util/spaceCollection'
 
 /** Synthetic view so the More Spaces card can use the same icon wallpaper as real views. */
@@ -639,6 +641,7 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
   const dispatch = useDispatch()
   const currentUser = useSelector(getMe)
   const myMemberships = useSelector(getMyMemberships)
+  const previousLocation = useSelector(getPreviousLocation)
   const groupSlug = group?.slug
   const isContextMode = Boolean(context) && !group
 
@@ -743,16 +746,16 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
     : null
 
   const handleBack = useCallback(() => {
-    if (isSpaceLevel && location.state?.fromMoreSpaces) {
-      navigate(groupUrl(groupSlug, 'more-spaces'))
-      return
-    }
     if (isSpaceLevel || isMoreSpacesLevel) {
+      if (isParentGroupPath(previousLocation?.pathname, groupSlug)) {
+        navigate(previousLocation)
+        return
+      }
       navigate(groupUrl(groupSlug))
       return
     }
     navigate(-1)
-  }, [isSpaceLevel, isMoreSpacesLevel, location.state, groupSlug, navigate])
+  }, [isSpaceLevel, isMoreSpacesLevel, previousLocation, groupSlug, navigate])
 
   const toggleEditing = useCallback(() => {
     if (isEditing) {
