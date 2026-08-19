@@ -18,7 +18,7 @@ import { countTotal } from '../../lib/util/knex'
 import { refineMany, refineOne } from './util/relations'
 import ProjectMixin from './project/mixin'
 import EventMixin, { eventClassMethods } from './event/mixin'
-import { defaultTimezone } from '../../lib/group/digest2/util'
+import { defaultTimezone, wherePostedInGroups } from '../../lib/group/digest2/util'
 import { publishPostUpdate } from '../../lib/postSubscriptionPublisher'
 
 init({ data })
@@ -432,6 +432,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
   presentForEmail: function ({ clickthroughParams = '', context, fundingRound, group, type = 'full', locale }) {
     const { media, tags, linkPreview, user } = this.relations
     const slug = group?.get('slug')
+    const isSpace = group && typeof group.get === 'function' && group.get('type') === 'space'
 
     return {
       id: parseInt(this.id),
@@ -447,6 +448,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
       month: type !== 'oneline' && this.get('start_time') && DateTimeHelpers.getMonthFromDate(this.get('start_time'), this.get('timezone')),
       topic_name: type !== 'oneline' && this.get('type') === 'chat' ? tags?.first()?.get('name') : '',
       type: this.get('type'),
+      space_id: isSpace ? group.id : null,
+      space_name: isSpace ? group.get('name') : null,
       start_time: type === 'oneline' && this.get('start_time') && DateTimeHelpers.formatDatePair({ start: this.get('start_time'), timezone: this.get('timezone'), locale }),
       title: this.summary(),
       unfollow_url: Frontend.appendQueryString(Frontend.Route.unfollow(this, group), clickthroughParams),
@@ -999,33 +1002,36 @@ module.exports = bookshelf.Model.extend(Object.assign({
     })
   },
 
-  upcomingPostReminders: async function (group, digestType) {
+  upcomingPostReminders: async function (group, digestType, spaceIds = []) {
     const startTime = DateTime.now().setZone(defaultTimezone).toISO()
     // If daily digest show posts that have reminders in the next 2 days
     // If weekly digest show posts that have reminders in the next 7 days
     const endTime = digestType === 'daily'
       ? DateTime.now().setZone(defaultTimezone).plus({ days: 2 }).endOf('day').toISO()
       : DateTime.now().setZone(defaultTimezone).plus({ days: 7 }).endOf('day').toISO()
+    const groupIds = [group.id, ...spaceIds].filter(id => id != null)
 
-    const startingSoon = await group.posts().query(function (qb) {
+    const startingSoon = await Post.collection().query(function (qb) {
+      wherePostedInGroups(qb, groupIds)
       qb.whereRaw('(posts.start_time between ? and ?)', [startTime, endTime])
       qb.whereIn('posts.type', ['event', 'offer', 'project', 'proposal', 'resource', 'request'])
       qb.where('posts.fulfilled_at', null)
       qb.where('posts.active', true)
       qb.orderBy('posts.start_time', 'asc')
     })
-      .fetch({ withRelated: ['user'] })
+      .fetch({ withRelated: ['user', 'groups'] })
       .then(get('models'))
 
-    const endingSoon = await group.posts().query(function (qb) {
+    const endingSoon = await Post.collection().query(function (qb) {
+      wherePostedInGroups(qb, groupIds)
       qb.whereRaw('(posts.end_time between ? and ?)', [startTime, endTime])
-      qb.whereRaw('(posts.start_time < ?)', startTime) // Explicitly cast to timestamp with time zone
-      qb.whereIn('posts.type', ['event', 'offer', 'project', 'proposal', 'resource', 'request'])
+      qb.whereRaw('(posts.start_time < ?)', startTime)
+      qb.whereIn('posts.type', ['request', 'offer', 'resource', 'proposal'])
       qb.where('posts.fulfilled_at', null)
       qb.where('posts.active', true)
       qb.orderBy('posts.end_time', 'asc')
     })
-      .fetch({ withRelated: ['user'] })
+      .fetch({ withRelated: ['user', 'groups'] })
       .then(get('models'))
 
     return {

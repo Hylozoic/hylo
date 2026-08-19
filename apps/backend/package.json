@@ -22,6 +22,7 @@
     "start": "node --optimize_for_size --gc_interval=100 app.js",
     "console": "node console.js",
     "cron": "node cron.js",
+    "digest:daily": "node scripts/sendDailyDigest.js",
     "generate-rsa-key-base64": "openssl genrsa 2048 | base64",
     "worker": "node --optimize_for_size --gc_interval=100 worker.js",
     "migrate": "node migrations/scripts/updateMigrationsTable.js && node ./node_modules/.bin/knex migrate:latest",

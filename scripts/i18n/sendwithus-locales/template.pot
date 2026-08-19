@@ -91,6 +91,14 @@ msgstr ""
 msgid "in "
 msgstr ""
 
+#, python-format
+msgid "in %(post_space)s"
+msgstr ""
+
+#, python-format
+msgid "in %(post_space_name)s"
+msgstr ""
+
 msgid "Jump to "
 msgstr ""
 
@@ -121,6 +129,14 @@ msgstr ""
 
 #, python-format
 msgid "%(topic_num_new_chats)s new chat in"
+msgstr ""
+
+#, python-format
+msgid "%(room_num_new_chats)s new chats in"
+msgstr ""
+
+#, python-format
+msgid "%(room_num_new_chats)s new chat in"
 msgstr ""
 
 #, python-format
@@ -216,6 +232,24 @@ msgstr ""
 msgid "Resources"
 msgstr ""
 
+msgid "Discussions"
+msgstr ""
+
+msgid "Events"
+msgstr ""
+
+msgid "Projects"
+msgstr ""
+
+msgid "Proposals"
+msgstr ""
+
+msgid "Upcoming Reminders"
+msgstr ""
+
+msgid "Ending Soon"
+msgstr ""
+
 msgid "All Topics"
 msgstr ""
 
@@ -248,6 +282,9 @@ msgid "Vote"
 msgstr ""
 
 msgid "Reply"
+msgstr ""
+
+msgid "View"
 msgstr ""
 
 msgid "Jump to section:"
@@ -900,7 +937,7 @@ msgid "%(body_text)s"
 msgstr ""
 
 #, python-format
-msgid "New chats in %(group_name)s #%(chat_topic)s"
+msgid "New chats in %(group_name)s"
 msgstr ""
 
 #, python-format
