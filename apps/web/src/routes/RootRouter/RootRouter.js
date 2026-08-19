@@ -21,7 +21,11 @@ import checkLoginAndBootstrap from 'store/actions/checkLoginAndBootstrap'
 import { getAuthorized } from 'store/selectors/getSignupState'
 import { getAuthSessionUnknown } from 'store/selectors/getAuthSession'
 import { hasBootstrapCache, getBootstrapRehydrated } from 'store/selectors/getBootstrap'
-import { sendMessageToWebView } from 'util/webView'
+import {
+  clearMobileWebViewUserLogout,
+  isMobileWebViewUserLogoutInProgress,
+  sendMessageToWebView
+} from 'util/webView'
 import { mobileAuthBreadcrumb, mobileAuthReport, mobileAuthStuck, scheduleMobileAuthStuckReports } from 'util/mobileAuthTrace'
 
 if (!isTest && config.mixpanel.token) {
@@ -186,8 +190,10 @@ export default function RootRouter () {
   useEffect(() => {
     if (isAuthSessionUnknown) return
     if (!window.HyloMobileV2) return
+    if (isMobileWebViewUserLogoutInProgress()) return
 
     if (isAuthorized) {
+      clearMobileWebViewUserLogout()
       writeMobileReauthAttempts(0)
       writeMobileRecovering(false)
       setMobileRecovering(false)
@@ -251,6 +257,10 @@ export default function RootRouter () {
     bootstrapCache &&
     bootstrapRehydrated &&
     !mobileRecovering
+
+  if (isMobileWebViewUserLogoutInProgress()) {
+    return <Loading type='fullscreen' />
+  }
 
   if (showOptimisticAuthShell) {
     return (

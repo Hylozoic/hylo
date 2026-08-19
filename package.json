@@ -13,11 +13,13 @@
     "migrate": "yarn workspace backend migrate",
     "migrate-up": "yarn workspace backend migrate-up",
     "web:dev": "yarn build-packages && yarn workspace web run dev",
-    "mobile:dev": "yarn build-packages && yarn workspace mobile start",
-    "mobile:pod-install": "yarn workspace mobile pod-install",
-    "mobile:android": "yarn build-packages && yarn workspace mobile run android",
-    "mobile:clean": "yarn workspace mobile run clean",
-    "mobile:ios": "yarn build-packages && yarn workspace mobile run ios",
+    "mobile:dev": "yarn build-packages && yarn workspace mobile-leap start",
+    "mobile:ios": "yarn workspace mobile-leap ios",
+    "mobile:android": "yarn workspace mobile-leap android",
+    "mobile-leap:dev": "yarn workspace mobile-leap start",
+    "mobile-leap:dev-client": "yarn workspace mobile-leap start:dev-client",
+    "mobile-leap:ios": "yarn workspace mobile-leap ios",
+    "mobile-leap:android": "yarn workspace mobile-leap android",
     "desktop": "yarn workspace desktop start",
     "desktop:build": "yarn workspace desktop make",
     "reset": "rm -rf **/node_modules **/.yarn/cache **/yarn.lock && yarn install",
@@ -46,7 +48,7 @@
     "htmlparser2": "9.1.0",
     "entities": "4.5.0",
     "nativewind/react-native-css-interop": "0.1.22",
-    "react-native-reanimated": "3.18.0"
+    "mobile-leap@workspace:apps/mobile-leap>react-native-reanimated": "4.3.1"
   },
   "version": "1.0.0",
   "dependencies": {
