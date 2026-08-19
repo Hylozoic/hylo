@@ -468,6 +468,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
               mentionsOf,
               offset,
               order,
+              pinned,
               savedBy,
               search,
               sortBy,
@@ -492,6 +493,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
                 mentionsOf,
                 offset,
                 order,
+                pinned,
                 savedBy,
                 search,
                 showPinnedFirst: false,
@@ -677,6 +679,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         mentionsOf,
         offset,
         order,
+        pinned,
         proposalOutcome,
         proposalStatus,
         savedBy,
@@ -705,6 +708,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
           onlyMyGroups: context === 'all' || context === 'my',
           onlyPublic: context === 'public',
           order,
+          pinned,
           proposalOutcome,
           proposalStatus,
           savedBy,
@@ -839,7 +843,9 @@ export default function makeModels (userId, isAdmin, apiClient) {
                 isFulfilled,
                 order,
                 search,
-                showPinnedFirst: false, // XXX: we have removed pinning for now, but plan to bring back.
+                // Pinned posts lead the aggregate stream too; chat stays chronological.
+                // util's primaryGroupId queryContext keeps child-group pins out.
+                showPinnedFirst: filter !== 'chat',
                 sortBy,
                 topic,
                 topics,
@@ -954,7 +960,9 @@ export default function makeModels (userId, isAdmin, apiClient) {
                 isFulfilled,
                 order,
                 search,
-                showPinnedFirst: false, // XXX: we have removed pinning for now, but plan to bring back.
+                // Pinned posts lead the aggregate stream too; chat stays chronological.
+                // util's primaryGroupId queryContext keeps child-group pins out.
+                showPinnedFirst: filter !== 'chat',
                 sortBy,
                 topic,
                 topics,

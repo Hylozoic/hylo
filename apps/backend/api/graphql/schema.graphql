@@ -346,6 +346,8 @@ type Query {
     offset: Int,
     # Determines sort order, either 'ASC' or 'DESC'
     order: String,
+    # Only return posts pinned in the group
+    pinned: Boolean,
     # Return posts that these users have saved
     savedBy: [ID],
     # Return posts whose name or description match the search term
@@ -1239,6 +1241,8 @@ type Group {
     offset: Int,
     # Determines sort order, either 'ASC' or 'DESC'
     order: String,
+    # Only return posts pinned in the group
+    pinned: Boolean,
     # Only return posts that have been saved by these users
     savedBy: [ID],
     # Only load posts whose content matches this search string

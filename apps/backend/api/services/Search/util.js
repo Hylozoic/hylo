@@ -15,6 +15,7 @@ export const filterAndSortPosts = curry((opts, q) => {
     isAnnouncement,
     isFulfilled,
     order,
+    pinned,
     savedBy,
     search,
     showPinnedFirst,
@@ -170,6 +171,11 @@ export const filterAndSortPosts = curry((opts, q) => {
   if (boundingBox) {
     q.join('locations', 'locations.id', '=', 'posts.location_id')
     q.whereRaw('locations.center && ST_MakeEnvelope(?, ?, ?, ?, 4326)', [boundingBox[0].lng, boundingBox[0].lat, boundingBox[1].lng, boundingBox[1].lat])
+  }
+
+  // Only pinned posts — the chat room's pinned chip row fetches with this
+  if (pinned) {
+    q.whereNotNull('groups_posts.pinned_at')
   }
 
   // This is used to make sure that when viewing posts from child groups too, only pin ones from the parent group
