@@ -43,7 +43,7 @@ Terminal 2:
 yarn web:dev
 ```
 
-8. Mobile app specific setup [here](./apps/mobile/README.md)
+8. Mobile app specific setup [here](./apps/mobile-leap/README.md)
 
 9. Desktop app specific setup [here](./apps/desktop/README.md)
 
