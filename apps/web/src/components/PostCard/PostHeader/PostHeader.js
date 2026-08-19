@@ -144,10 +144,16 @@ function PostHeader (props) {
   const atPinCap = pinnedPostIds.length >= MAX_PINNED_POSTS_PER_VIEW && !pinned
   const canShowPin = !!group?.id &&
     !!pinnableView?.id &&
-    belongsToCurrentGroup &&
     responsibilities.includes(RESP_MANAGE_CONTENT)
-  const pinAtCap = canShowPin && atPinCap
-  const canPin = canShowPin && (pinned || !atPinCap)
+  const fromChildView = (postGroups || []).length > 0 && !belongsToCurrentGroup
+  const fromChildSpace = fromChildView && (postGroups || []).some(g => g.type === 'space')
+  const pinDisabled = canShowPin && !pinned && (fromChildView || atPinCap)
+  const pinTooltip = fromChildView
+    ? (fromChildSpace
+        ? t('You cannot pin a post from a space to this view')
+        : t('You cannot pin a post from a child group to this view'))
+    : (atPinCap ? t('You can only pin 3 posts') : undefined)
+  const canPin = canShowPin && !pinDisabled
   const handlePinPost = useCallback(() => {
     if (!pinnableView?.id || !group?.id) return
     dispatch(pinPostAction(id, pinnableView.id, group.id, post))
@@ -334,7 +340,7 @@ function PostHeader (props) {
   const dropdownItems = filter([
     { icon: <Pencil className='w-4 h-4 text-foreground' />, label: t('Edit'), onClick: canEdit ? editPost : undefined },
     { icon: <Link2 className='w-4 h-4 text-foreground' />, label: t('Copy Link'), onClick: copyLink },
-    { icon: pinned ? <PinOff className='w-4 h-4 text-foreground' /> : <Pin className={cn('w-4 h-4', pinAtCap ? 'text-foreground/40' : 'text-foreground')} />, label: pinned ? t('Unpin from View') : t('Pin to View'), onClick: canPin ? handlePinPost : undefined, disabled: pinAtCap, tooltip: pinAtCap ? t('You can only pin 3 posts') : undefined },
+    { icon: pinned ? <PinOff className='w-4 h-4 text-foreground' /> : <Pin className={cn('w-4 h-4', pinDisabled ? 'text-foreground/40' : 'text-foreground')} />, label: pinned ? t('Unpin from View') : t('Pin to View'), onClick: canPin ? handlePinPost : undefined, disabled: pinDisabled, tooltip: pinTooltip },
     { icon: savedAt ? <BookmarkCheck className='w-4 h-4 text-foreground' /> : <Bookmark className='w-4 h-4 text-foreground' />, label: savedAt ? t('Unsave Post') : t('Save Post'), onClick: savedAt ? unsavePost : savePost },
     { icon: <Flag className='w-4 h-4 text-foreground' />, label: t('Flag'), onClick: flagPostFunc() },
     { icon: <Copy className='w-4 h-4 text-foreground' />, label: t('Duplicate'), onClick: duplicatePost },
