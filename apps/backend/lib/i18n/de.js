@@ -39,6 +39,10 @@ exports.de = {
   moderationYouFlaggedAPost: () => 'Du hast einen Beitrag gemeldet',
   moderationYouFlaggedPostEmailContent: ({ post, group }) => `Du hast den Beitrag „${post.summary()}“ in der Gruppe ${group.get('name')} als Verstoß gegen eine Gruppenvereinbarung gemeldet. \n`,
   moderationYourPostWasFlagged: () => 'Dein Beitrag wurde gemeldet',
+  moderationPostClosedEmailSubject: () => 'Dein Beitrag wurde geschlossen',
+  moderationPostReopenedEmailSubject: () => 'Dein Beitrag wurde wieder geöffnet',
+  moderationPostClosedEmailContent: ({ post, group, actor }) => `${actor.get('name')} hat deinen Beitrag „${post.summary()}“ in der Gruppe ${group.get('name')} geschlossen. \n`,
+  moderationPostReopenedEmailContent: ({ post, group, actor }) => `${actor.get('name')} hat deinen Beitrag „${post.summary()}“ in der Gruppe ${group.get('name')} wieder geöffnet. \n`,
   Name: () => 'Name',
   newSavedSearchResults: (name) => `Neue Ergebnisse für die gespeicherte Suche in ${name}`,
   textForApprovedJoinRequest: ({ actor, groupName }) => `${actor.get('name')} hat deine Anfrage angenommen, ${groupName} beizutreten`,
@@ -65,8 +69,17 @@ exports.de = {
   textForGroupInvitationAccepted: ({ actor, groupName }) => `${actor.get('name')} hat deine Einladung angenommen, ${groupName} beizutreten`,
   textForGroupPeerGroupInvite: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} hat deine Gruppe ${toGroup.get('name')} eingeladen, eine Peer-Beziehung mit ${fromGroup.get('name')} zu bilden`,
   textForGroupPeerGroupInviteAccepted: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} hat die Peer-Beziehung zwischen ${fromGroup.get('name')} und ${toGroup.get('name')} angenommen`,
-  textForJoinRequest: ({ actor, groupName }) => `${actor.get('name')} möchte ${groupName} beitreten`,
+  textForJoinRequest: ({ actor, groupName, parentGroupName }) => parentGroupName
+    ? `${actor.get('name')} möchte ${groupName} in ${parentGroupName} beitreten`
+    : `${actor.get('name')} möchte ${groupName} beitreten`,
   textForMemberJoinedGroup: ({ group, actor }) => `Neues Mitglied in ${group.get('name')}: ${actor.get('name')}`,
+  textForPostModeratedFulfillment: ({ post, actor, reason }) => {
+    const postName = post.summary()
+    if (reason === 'postUnfulfilled') {
+      return `${actor.get('name')} hat deinen Beitrag „${postName}“ wieder geöffnet`
+    }
+    return `${actor.get('name')} hat deinen Beitrag „${postName}“ geschlossen`
+  },
   textForPostMention: ({ groupName, person, postName }) => `${person} hat dich im Beitrag „${postName}“ in ${groupName} erwähnt`,
   textForPost: ({ firstTag, groupName, person, postName }) => `${person} hat „${postName}“ in ${groupName} veröffentlicht${firstTag ? ` #${firstTag}` : ''}`,
   textForTrackCompleted: ({ actor, track }) => `Lernpfad abgeschlossen: „${track.get('name')}“ von ${actor.get('name')} abgeschlossen`,

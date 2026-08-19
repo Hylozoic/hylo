@@ -1,10 +1,9 @@
-import { DateTimeHelpers } from '@hylo/shared'
 import React, { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { push } from 'redux-first-history'
-import { getLocaleFromLocalStorage } from 'util/locale'
+import { formatLocalizedDate } from 'util/dateFormat'
 import { CircleOff } from 'lucide-react'
 import GroupButton from 'components/GroupButton'
 import Loading from 'components/Loading'
@@ -152,7 +151,7 @@ function GroupInvite ({ acceptInvite, declineInvite, invite }) {
         </div>
         <div className='flex items-center justify-between border-t-2 border-foreground/10 pt-3'>
           <span className='text-sm text-foreground/50'>
-            {t('Sent')} {DateTimeHelpers.toDateTime(createdAt, { locale: getLocaleFromLocalStorage() }).toFormat('MM-dd-yyyy')}
+            {t('Sent')} {formatLocalizedDate(createdAt, { style: 'short' })}
           </span>
           <div className='flex items-center gap-3'>
             <button
@@ -192,7 +191,7 @@ function JoinRequest ({ joinRequest, cancelJoinRequest }) {
         </div>
         <div className='flex items-center justify-between border-t-2 border-foreground/10 pt-3'>
           <span className='text-sm text-foreground/50'>
-            {t('You requested to join')} {DateTimeHelpers.toDateTime(createdAt, { locale: getLocaleFromLocalStorage() }).toFormat('yyyy-MM-dd')}
+            {t('You requested to join')} {formatLocalizedDate(createdAt, { style: 'short' })}
           </span>
           {joinRequest.status === JOIN_REQUEST_STATUS.Pending && (
             <button

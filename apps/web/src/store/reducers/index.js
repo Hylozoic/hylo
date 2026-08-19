@@ -17,7 +17,7 @@ import { composeReducers, handleSetState } from './util'
 // generator-marker-local-store-import
 import AllTopics from 'routes/AllTopics/AllTopics.store'
 import AttachmentManager from 'components/AttachmentManager/AttachmentManager.store'
-import CreateGroup from 'components/CreateGroup/CreateGroup.store'
+import CreateGroup from 'routes/CreateGroup/CreateGroup.store'
 import CreateTopic from 'components/CreateTopic/CreateTopic.store'
 import FullPageModal from 'routes/FullPageModal/FullPageModal.store'
 import MapExplorer from 'routes/MapExplorer/MapExplorer.store'

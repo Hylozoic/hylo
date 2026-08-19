@@ -1,6 +1,23 @@
-import { get } from 'lodash/fp'
+import { get, pick } from 'lodash/fp'
 
 export const MODULE_NAME = 'GroupSettings'
+
+// Must match GroupSettingsInput in schema.graphql. Read-only fields like
+// agreementsLastUpdatedAt live on GroupSettings but are not writable.
+const GROUP_SETTINGS_INPUT_FIELDS = [
+  'allowGroupInvites',
+  'askGroupToGroupJoinQuestions',
+  'askJoinQuestions',
+  'defaultDigestFrequency',
+  'hideExtensionData',
+  'layout',
+  'locationDisplayPrecision',
+  'publicMemberDirectory',
+  'publishMurmurationsProfile',
+  'showSuggestedSkills',
+  'showWelcomePage',
+  'showPostNoticesInChat'
+]
 
 export const DELETE_GROUP = `${MODULE_NAME}/DELETE_GROUP`
 export const FETCH_GROUP_SETTINGS = `${MODULE_NAME}/FETCH_GROUP_SETTINGS`
@@ -252,6 +269,10 @@ export function updateGroupSettings (id, changes) {
   if (changes.prerequisiteGroups) {
     changes.prerequisiteGroupIds = changes.prerequisiteGroups.map(g => g.id)
     delete changes.prerequisiteGroups
+  }
+
+  if (changes.settings) {
+    changes.settings = pick(GROUP_SETTINGS_INPUT_FIELDS, changes.settings)
   }
 
   return {

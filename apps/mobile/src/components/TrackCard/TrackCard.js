@@ -7,16 +7,15 @@ import { useTranslation } from 'react-i18next'
 // DEPRECATED: lucide-react-native removed
 // import { Users, UserCheck } from 'lucide-react-native'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
-import useHasResponsibility from '@hylo/hooks/useHasResponsibility'
+import useHasResponsibility, { RESP_ADMINISTRATION } from '@hylo/hooks/useHasResponsibility'
 import useOpenURL from 'hooks/useOpenURL'
 import { groupUrl } from '@hylo/navigation'
-import { RESP_MANAGE_SPACES } from 'store/constants'
 
 function TrackCard ({ track, groupSlug }) {
   const { t } = useTranslation()
   const [{ currentGroup }] = useCurrentGroup()
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
-  const canEdit = hasResponsibility(RESP_MANAGE_SPACES)
+  const canEdit = hasResponsibility(RESP_ADMINISTRATION)
   const openURL = useOpenURL()
 
   // const handlePublishTrack = useCallback((publishedAt) => {

@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test'
 import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading.js'
 
 /**
- * Batch P3 — paid track space (member without Coordinator / Manage Spaces).
+ * Batch P3 — paid track space (member without Coordinator / Administration).
  * Seed: `E2E Paid Track` space with paywall + offering granting that space.
  * User: `e2e.track-viewer@hylo.test`.
  */

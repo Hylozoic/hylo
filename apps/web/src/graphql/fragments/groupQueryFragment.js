@@ -42,6 +42,7 @@ export default function groupQueryFragment () {
     invitePath
     location
     memberCount
+    openJoinRequestCount
     stewardDescriptor
     stewardDescriptorPlural
     name
@@ -76,6 +77,7 @@ export default function groupQueryFragment () {
         active
         emoji
         groupId
+        membersTotal
         responsibilities {
           items {
             id

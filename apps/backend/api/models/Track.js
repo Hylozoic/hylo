@@ -135,7 +135,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
           access_code: accessCode,
           track_id: newTrack.id,
           created_at: new Date(),
-          num_members: 0
+          num_members: 0,
+          num_open_join_requests: 0
         }, { transacting: trx })
         await newTrack.save({ group_id: copySpace.id }, { patch: true, transacting: trx })
         await Group.setupSpaceViews(copySpace.id, sourceSpace.get('accepted_post_types') || [], ['about', 'track-actions', 'members'], { transacting: trx })
@@ -255,11 +256,11 @@ module.exports = bookshelf.Model.extend(Object.assign({
       if (!notifyGroup) {
         return membership
       }
-      const manageSpacesResponsibility = await Responsibility.where({ title: Responsibility.constants.RESP_MANAGE_SPACES }).fetch({ transacting: trx })
-      if (!manageSpacesResponsibility) {
+      const adminResponsibility = await Responsibility.where({ title: Responsibility.constants.RESP_ADMINISTRATION }).fetch({ transacting: trx })
+      if (!adminResponsibility) {
         return membership
       }
-      const stewards = await notifyGroup.membersWithResponsibilities([manageSpacesResponsibility.id]).fetch({ transacting: trx })
+      const stewards = await notifyGroup.membersWithResponsibilities([adminResponsibility.id]).fetch({ transacting: trx })
       const stewardsIds = stewards.pluck('id')
       const activities = stewardsIds.map(stewardId => ({
         reason: 'trackEnrollment',

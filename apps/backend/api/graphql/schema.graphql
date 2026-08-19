@@ -210,7 +210,9 @@ type Query {
     offset: Int,
     # Determines sort order
     sortBy: String,
-    # Only return moderation actions for this group by URL slug
+    # Group or space URL slug. A space returns only its own actions. A group also
+    # includes child-space actions the viewer is a member of, or all child spaces
+    # if they have the Manage Content responsibility.
     slug: String
 
   ): ModerationActionQuerySet
@@ -949,6 +951,8 @@ type Group {
   locationObject: Location
   # Number of members in this group
   memberCount: Int
+  # Cached count of pending join requests. Visible only to members who can add members; 0 otherwise
+  openJoinRequestCount: Int
   # Word used to describe an admin/moderator of this group. Defaults to "Moderator". TODO: remove once mobile app switches to stewardDescriptor
   moderatorDescriptor: String
   # Plural word used to describe admins/moderators of this group. Defaults to "Moderators". TODO: remove once mobile app switches to stewardDescriptor
@@ -1612,6 +1616,8 @@ type GroupRole {
   group: Group
   # The id of the group that this role belongs to
   groupId: ID
+  # The number of active group members holding this role
+  membersTotal: Int
   # The name of the role
   name: String
   # system or custom
@@ -2462,6 +2468,8 @@ type Post {
   location: String
   # Object with geocoded location deatils
   locationObject: Location
+  # Video call link for online or hybrid events (Zoom, Meet, Jitsi, etc.)
+  meetingLink: String
   # Logged in user's attendance response to an event post: 'yes', 'maybe' or 'no'
   myEventResponse: String
   # The reactions of the logged-in user to this
@@ -2504,9 +2512,13 @@ type Post {
   topicsTotal: Int
   # NOT USED RIGHT NOW
   totalContributions: Int
-  # Post type: 'discussion', 'event', 'offer', 'project', 'proposal', 'request', or 'resource'
+  # Post type: 'discussion', 'event', 'offer', 'project', 'proposal', 'request', 'resource', or notice types such as 'chat_activity'
   type: String
   updatedAt: Date
+  # JSON payload for system-generated notice posts (chat activity buckets, etc.)
+  noticeData: JSON
+  # Live chat posts previewed on a chat_activity notice, newest first
+  noticePosts: [Post]
 
   # The attachments (images, videos or files) added to the post
   attachments(type: String): [Attachment]
@@ -3413,7 +3425,7 @@ type Mutation {
     linkedGroupId: ID,
     postId: ID,
     userId: ID,
-    # When true, create off-menu (order = null) for More Views
+    # When true, create off-menu (order = null). Only valid for type = space (More Spaces).
     hidden: Boolean
   ): GroupView
   # Update a View
@@ -3432,7 +3444,7 @@ type Mutation {
   deleteGroupView(id: ID!): GenericResult
   # Reorder a View within its Group's or Space's menu
   reorderGroupView(id: ID!, orderInFrontOfViewId: ID, addToEnd: Boolean): GenericResult
-  # Hide (order = null) or show a View in the menu. Hidden views keep their content.
+  # Hide (order = null) or show a Space in the parent menu. Only valid for type = space.
   setGroupViewHidden(id: ID!, hidden: Boolean!): GroupView
   # Set a View as the home view for its Group or Space
   setHomeView(viewId: ID!, groupId: ID!): GenericResult
@@ -4605,6 +4617,8 @@ input PostInput {
   location: String
   # Id to location object with geocoded location deatils
   locationId: ID
+  # Video call link for online or hybrid events (Zoom, Meet, Jitsi, etc.)
+  meetingLink: String
   # Topic name of the chat room the user is currently viewing. When set, that topic follow's last_read_post_id is always updated regardless of new_post_count.
   markAsReadTopicName: String
   # People to add as members to a project type Post

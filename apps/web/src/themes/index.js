@@ -375,7 +375,7 @@ export const stoneTheme = {
     ...baseTheme.light,
     darkening: '0 0% 4%',
     background: '0 0% 92%',
-    'context-menu-background': '0 0% 76%',
+    'context-menu-background': '0 0% 84%',
     midground: '0 0% 96%',
     foreground: '0 0% 10%',
     primary: '0 0% 94%',

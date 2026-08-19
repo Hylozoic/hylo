@@ -3,6 +3,7 @@ import {
   DragOverlay,
   closestCenter,
   KeyboardSensor,
+  MeasuringStrategy,
   MouseSensor,
   TouchSensor,
   useSensor,
@@ -15,17 +16,22 @@ import {
   sortableKeyboardCoordinates,
   useSortable
 } from '@dnd-kit/sortable'
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useDispatch } from 'react-redux'
+import { useNavigate } from 'react-router-dom'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
+import { addQuerystringToPath, localSpaceSlug, spaceUrl } from '@hylo/navigation'
 
-import { canHardDeleteView, viewAcceptedByPostTypes } from 'store/models/GroupView'
+import { canDeleteView, canHardDeleteView, isSoftRemoveView } from 'store/models/GroupView'
+import { setGroupViewHidden } from 'store/actions/groupViews'
 import { mergeOrderedViewsFromSource, sortViewsByMenuOrder } from 'store/util/groupViewsOrder'
 import { cn } from 'util/index'
 
 import GroupViewCard, { CardEditActions } from './GroupViewCard'
 import { CARD_SIZE_CLASS } from './viewCardTheme'
 import { useCommitViewOrder } from './useViewReorder'
+import useFlashAddedItems, { MENU_FLASH_CLASS } from './useFlashAddedItems'
 
 // Mouse drags start as soon as the pointer travels a few pixels. Touch needs the
 // hold instead, because a finger moving over a card is a scroll until proven
@@ -43,8 +49,72 @@ const TOUCH_ACTIVATION = { delay: 180, tolerance: 8 }
 // under the finger inherits nothing from it.
 const NO_TEXT_SELECT = 'select-none [-webkit-touch-callout:none]'
 
-/** Full-width stand-ins for the text and separator rows, so they reorder with the cards. */
-function FullWidthRow ({ view, spaceGroup, t }) {
+// The grid reorders its real DOM on drag-over, so droppable rects must be
+// re-measured after every reflow. With the default drag-start-only measuring,
+// collisions keep being computed against the pre-reflow layout and the same
+// swap gets detected (and undone) over and over — the infinite jumping loop
+// when a full-width row lands mid-row and moves everything by a card height.
+const MEASURING = { droppable: { strategy: MeasuringStrategy.Always } }
+
+// How much of an idle item's rect counts as its inert body (per side).
+const CARD_BODY_INSET = 0.28
+
+/**
+ * Reorder only from the spaces between and around the cards. The central body
+ * of every idle item is inert — a pointer resting on a card is browsing, not
+ * aiming, so hovering a card never pushes it aside. This is also what makes the
+ * live reflow stable: when a reorder lands a card under the stationary pointer,
+ * the pointer is in that card's body, which cannot produce a new target, so the
+ * layout cannot bounce back (the oscillation).
+ *
+ * Everything is anchored to the pointer, never to the dragged item's rect — a
+ * full-width row's rect is centered on the container, so rect-based collision
+ * (closestCenter) kept picking targets nowhere near the pointer. The winning
+ * collision carries which side of the target the pointer is on, so the drop
+ * lands at exactly the gap being hovered. Keyboard drags have no pointer and
+ * keep plain closest-center.
+ */
+const gapCollisionDetection = (args) => {
+  const { active, droppableRects, droppableContainers, pointerCoordinates } = args
+  if (!pointerCoordinates) return closestCenter(args)
+  const candidates = []
+  for (const container of droppableContainers) {
+    if (String(container.id) === String(active.id)) continue
+    const rect = droppableRects.get(container.id)
+    if (!rect) continue
+    const insetX = Math.max(10, rect.width * CARD_BODY_INSET)
+    const insetY = Math.max(10, rect.height * CARD_BODY_INSET)
+    if (
+      pointerCoordinates.x >= rect.left + insetX &&
+      pointerCoordinates.x <= rect.right - insetX &&
+      pointerCoordinates.y >= rect.top + insetY &&
+      pointerCoordinates.y <= rect.bottom - insetY
+    ) {
+      return []
+    }
+    const cx = rect.left + rect.width / 2
+    const cy = rect.top + rect.height / 2
+    const withinRow = pointerCoordinates.y >= rect.top && pointerCoordinates.y <= rect.bottom
+    const side = withinRow
+      ? (pointerCoordinates.x < cx ? 'before' : 'after')
+      : (pointerCoordinates.y < cy ? 'before' : 'after')
+    candidates.push({
+      id: container.id,
+      data: { side, value: Math.hypot(pointerCoordinates.x - cx, pointerCoordinates.y - cy) }
+    })
+  }
+  candidates.sort((a, b) => a.data.value - b.data.value)
+  return candidates.length ? [candidates[0]] : []
+}
+
+/** True for views that occupy a full wrap-grid row instead of a card cell. */
+function isFullWidthGridView (view) {
+  const type = view?.type
+  return type === 'text' || type === 'separator'
+}
+
+/** Full-width stand-ins for text and separator rows so they reorder with the cards. */
+function FullWidthRow ({ view, group, spaceGroup, t }) {
   const presented = GroupViewPresenter(view)
 
   if (presented.type === 'separator') {
@@ -67,13 +137,15 @@ function FullWidthRow ({ view, spaceGroup, t }) {
  * anywhere on the card starts the drag; the toolbar stops pointerdown so its
  * buttons stay clickable instead of becoming drag handles.
  */
-const SortableViewItem = React.memo(function SortableViewItem ({ view, spaceGroup, onOpenSettings, onDelete, t }) {
+const SortableViewItem = React.memo(function SortableViewItem ({ view, group, spaceGroup, onOpenSettings, onHide, onDelete, onEditSpaceMenu, t, isFlashing = false }) {
   const presented = useMemo(() => GroupViewPresenter(view), [view])
-  const isFullWidth = presented.type === 'text' || presented.type === 'separator'
-  const { attributes, listeners, setNodeRef, isDragging } = useSortable({
+  const isFullWidth = isFullWidthGridView(presented)
+  const { attributes, listeners, setNodeRef, isDragging, isSorting } = useSortable({
     id: String(view.id),
     disabled: !view.id
   })
+  const canEditSpaceMenu = presented.type === 'space' && presented.linkedGroup?.slug && onEditSpaceMenu
+  const canHide = onHide && isSoftRemoveView(view) && canDeleteView(view)
 
   return (
     <div
@@ -90,18 +162,29 @@ const SortableViewItem = React.memo(function SortableViewItem ({ view, spaceGrou
         // The wrapper carries the card footprint so the card's sub-sm percentage
         // width has a sized parent to resolve against
         isFullWidth ? 'w-full' : CARD_SIZE_CLASS,
-        isDragging && 'cursor-grabbing'
+        !isFullWidth && 'rounded-2xl',
+        isDragging && 'cursor-grabbing',
+        // Cards animate a translate on hover (transition-all); a card reflowing
+        // under the stationary pointer mid-drag would trigger it and jitter the
+        // rects the collision math depends on. No pointer events, no hover.
+        isSorting && '[&_*]:pointer-events-none',
+        isFlashing && MENU_FLASH_CLASS
       )}
+      data-menu-flash={isFlashing ? String(view.id) : undefined}
       {...attributes}
       {...listeners}
     >
       {isFullWidth
-        ? <FullWidthRow view={view} spaceGroup={spaceGroup} t={t} />
-        : <GroupViewCard view={view} isEditing renderEditActions={false} />}
+        ? <FullWidthRow view={view} group={group} spaceGroup={spaceGroup} t={t} />
+        : <GroupViewCard view={view} group={group} spaceGroup={spaceGroup} isEditing />}
       <CardEditActions
         onOpenSettings={onOpenSettings ? () => onOpenSettings(view) : null}
+        onHide={canHide ? () => onHide(view) : null}
+        onEditMenu={canEditSpaceMenu ? () => onEditSpaceMenu(view) : null}
         onDelete={onDelete && canHardDeleteView(view) ? () => onDelete(view) : null}
         settingsLabel={t('Settings')}
+        hideLabel={t('Remove from main menu')}
+        editMenuLabel={t('Edit space menu')}
         deleteLabel={t('Delete')}
       />
     </div>
@@ -123,16 +206,14 @@ export default function SortableViewsGrid ({
   onDelete
 }) {
   const { t } = useTranslation()
+  const dispatch = useDispatch()
+  const navigate = useNavigate()
   const commitOrder = useCommitViewOrder(group)
-  const acceptedPostTypes = (spaceGroup || group)?.acceptedPostTypes
-  // Match live menu: hide typed views that the group/space no longer accepts.
   const visibleViews = useMemo(
     () => sortViewsByMenuOrder(
-      (views || [])
-        .filter(v => v.order != null)
-        .filter(v => viewAcceptedByPostTypes(v.type, acceptedPostTypes))
+      (views || []).filter(v => v.order != null)
     ),
-    [views, acceptedPostTypes]
+    [views]
   )
   const [orderedViews, setOrderedViews] = useState(visibleViews)
 
@@ -148,6 +229,35 @@ export default function SortableViewsGrid ({
   )
 
   const ids = useMemo(() => orderedViews.map(v => String(v.id)), [orderedViews])
+  const flashingIds = useFlashAddedItems(orderedViews)
+
+  /** Move a space off the main menu into More Spaces (same as the two-column X). */
+  const handleHide = useCallback(async (view) => {
+    if (!isSoftRemoveView(view) || !canDeleteView(view) || !group?.id) return
+    const label = displayNameForView(view, t)
+    if (!window.confirm(t('Are you sure you want to remove {{name}} from the menu?', { name: label }))) return
+    try {
+      await dispatch(setGroupViewHidden({
+        id: view.id,
+        groupId: group.id,
+        hidden: true
+      }))
+    } catch (error) {
+      console.error('Failed to remove view from menu:', error)
+    }
+  }, [dispatch, group?.id, t])
+
+  /** Open this space's card menu in edit mode (one-column counterpart of the sidebar pencil). */
+  const handleEditSpaceMenu = useCallback((view) => {
+    const space = view?.linkedGroup
+    const groupSlug = group?.slug
+    if (!groupSlug || !space?.slug) return
+    navigate(addQuerystringToPath(
+      spaceUrl(groupSlug, localSpaceSlug(groupSlug, space.slug)),
+      { edit: 'true' }
+    ))
+  }, [navigate, group?.slug])
+
   const [activeId, setActiveId] = useState(null)
   const activeView = useMemo(
     () => orderedViews.find(v => String(v.id) === activeId) || null,
@@ -160,18 +270,54 @@ export default function SortableViewsGrid ({
     // A selection made just before the press would otherwise survive the drag
     if (typeof window !== 'undefined') window.getSelection()?.removeAllRanges?.()
     preDragOrder.current = orderedViews
+    lastOverId.current = null
+    lastReorderDelta.current = null
     setActiveId(String(e.active.id))
   }
 
+  // The most recent over-target a reorder ran for. arrayMove is symmetric, so
+  // re-processing the same target (after `over` flickers to null crossing a flex
+  // gap) would move the item right back where it came from.
+  const lastOverId = useRef(null)
+  // Pointer translation at the last reorder: a reflow can surface a fresh target
+  // under a pointer that hasn't moved, and reordering again from the same spot is
+  // exactly the feedback loop. Require real travel between reorders.
+  const lastReorderDelta = useRef(null)
+
   // Reorder as the pointer moves so the grid reflows for real — this is what keeps
   // a full-width row breaking its line instead of being painted over the cards.
-  const handleDragOver = ({ active, over }) => {
-    if (!over || active.id === over.id) return
+  // The winning collision says which side of the target the pointer is on; the
+  // dragged item is inserted at exactly that boundary.
+  const handleDragOver = ({ active, over, delta, collisions }) => {
+    if (!over || String(active.id) === String(over.id)) return
+    const side = collisions?.[0]?.data?.side || 'before'
+    const overKey = `${over.id}:${side}`
+    if (overKey === lastOverId.current) return
+    if (delta && lastReorderDelta.current) {
+      const travelled = Math.hypot(
+        delta.x - lastReorderDelta.current.x,
+        delta.y - lastReorderDelta.current.y
+      )
+      if (travelled < 6) return
+    }
+    const oldIndex = orderedViews.findIndex(v => String(v.id) === String(active.id))
+    const overIndex = orderedViews.findIndex(v => String(v.id) === String(over.id))
+    if (oldIndex === -1 || overIndex === -1) return
+    let insertIndex = side === 'after' ? overIndex + 1 : overIndex
+    if (oldIndex < insertIndex) insertIndex -= 1
+    // Both sides of one gap name the same slot; landing where we already are
+    // still marks the key handled so the pair can't ping-pong.
+    lastOverId.current = overKey
+    if (insertIndex === oldIndex) return
+    lastReorderDelta.current = delta || null
     setOrderedViews(prev => {
-      const oldIndex = prev.findIndex(v => String(v.id) === String(active.id))
-      const newIndex = prev.findIndex(v => String(v.id) === String(over.id))
-      if (oldIndex === -1 || newIndex === -1) return prev
-      return arrayMove(prev, oldIndex, newIndex)
+      const from = prev.findIndex(v => String(v.id) === String(active.id))
+      const to = prev.findIndex(v => String(v.id) === String(over.id))
+      if (from === -1 || to === -1) return prev
+      let target = side === 'after' ? to + 1 : to
+      if (from < target) target -= 1
+      if (target === from) return prev
+      return arrayMove(prev, from, target)
     })
   }
 
@@ -200,7 +346,8 @@ export default function SortableViewsGrid ({
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCenter}
+      collisionDetection={gapCollisionDetection}
+      measuring={MEASURING}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragCancel={handleDragCancel}
@@ -212,10 +359,14 @@ export default function SortableViewsGrid ({
             <SortableViewItem
               key={view.id}
               view={view}
+              group={group}
               spaceGroup={spaceGroup}
               onOpenSettings={onOpenSettings}
+              onHide={handleHide}
               onDelete={onDelete}
+              onEditSpaceMenu={handleEditSpaceMenu}
               t={t}
+              isFlashing={flashingIds.has(String(view.id))}
             />
           ))}
         </div>
@@ -224,9 +375,9 @@ export default function SortableViewsGrid ({
           has to be re-fitted around items of a different shape */}
       <DragOverlay className={NO_TEXT_SELECT}>
         {activeView
-          ? (activeView.type === 'text' || activeView.type === 'separator'
-              ? <FullWidthRow view={activeView} spaceGroup={spaceGroup} t={t} />
-              : <GroupViewCard view={activeView} isEditing renderEditActions={false} />)
+          ? (isFullWidthGridView(activeView)
+              ? <FullWidthRow view={activeView} group={group} spaceGroup={spaceGroup} t={t} />
+              : <GroupViewCard view={activeView} group={group} spaceGroup={spaceGroup} isEditing />)
           : null}
       </DragOverlay>
     </DndContext>

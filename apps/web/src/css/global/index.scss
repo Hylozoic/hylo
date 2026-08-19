@@ -203,3 +203,17 @@ input[type="number"] {
     font-size: 14px;
   }
 }
+
+// The Filestack picker mounts itself on <body>, outside any Radix dialog. A modal
+// Radix dialog sets `pointer-events: none` on the body and aria-hides its siblings,
+// which left the picker visible but dead to clicks when opened from inside one
+// (Create Group). Give it back its interactivity and put it above the dialog.
+[class^="fsp-"],
+[class*=" fsp-"] {
+  pointer-events: auto;
+}
+
+.fsp-picker,
+.fsp-modal {
+  z-index: 1200;
+}

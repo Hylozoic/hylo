@@ -2,10 +2,11 @@ import { cn } from 'util/index'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import PropTypes from 'prop-types'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import Slider from 'react-slick'
 import { TextHelpers } from '@hylo/shared'
-import { createGroupUrl, groupUrl, groupDetailUrl } from '@hylo/navigation'
+import { groupUrl, groupDetailUrl } from '@hylo/navigation'
+import { createGroupModalUrl } from 'routes/CreateGroup/createGroupUrl'
 import { DEFAULT_BANNER, DEFAULT_AVATAR } from 'store/models/Group'
 import ClickCatcher from 'components/ClickCatcher'
 import HyloHTML from 'components/HyloHTML'
@@ -38,6 +39,7 @@ const sliderSettings = {
 
 const GroupsWidget = ({ items = [], routeParams }) => {
   const { t } = useTranslation()
+  const location = useLocation()
 
   return (
     <div className={classes.groups}>
@@ -45,7 +47,7 @@ const GroupsWidget = ({ items = [], routeParams }) => {
         {items && items.map(group => <GroupCard key={group.id} group={group} routeParams={routeParams} />)}
         <div className={classes.createGroup}>
           <div>
-            <Link to={createGroupUrl(routeParams)}>{t('+ Create Group')}</Link>
+            <Link to={createGroupModalUrl(location)}>{t('+ Create Group')}</Link>
             {/* might have to make this conditional, to suit a wider range of uses */}
           </div>
         </div>

@@ -39,6 +39,10 @@ exports.en = {
   moderationYouFlaggedAPost: () => 'You flagged a post',
   moderationYouFlaggedPostEmailContent: ({ post, group }) => `You flagged post "${post.summary()}" in group ${group.get('name')} as violating a group agreement. \n`,
   moderationYourPostWasFlagged: () => 'Your post was flagged',
+  moderationPostClosedEmailSubject: () => 'Your post was closed',
+  moderationPostReopenedEmailSubject: () => 'Your post was reopened',
+  moderationPostClosedEmailContent: ({ post, group, actor }) => `${actor.get('name')} closed your post "${post.summary()}" in group ${group.get('name')}. \n`,
+  moderationPostReopenedEmailContent: ({ post, group, actor }) => `${actor.get('name')} reopened your post "${post.summary()}" in group ${group.get('name')}. \n`,
   Name: () => 'Name',
   newSavedSearchResults: (name) => `New saved search results in ${name}`,
   textForApprovedJoinRequest: ({ actor, groupName }) => `${actor.get('name')} approved your request to join ${groupName}`,
@@ -65,8 +69,17 @@ exports.en = {
   textForGroupInvitationAccepted: ({ actor, groupName }) => `${actor.get('name')} accepted your invitation to join ${groupName}`,
   textForGroupPeerGroupInvite: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} invited your group ${toGroup.get('name')} to form a peer relationship with ${fromGroup.get('name')}`,
   textForGroupPeerGroupInviteAccepted: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} accepted the peer relationship between ${fromGroup.get('name')} and ${toGroup.get('name')}`,
-  textForJoinRequest: ({ actor, groupName }) => `${actor.get('name')} asked to join ${groupName}`,
+  textForJoinRequest: ({ actor, groupName, parentGroupName }) => parentGroupName
+    ? `${actor.get('name')} asked to join ${groupName} in ${parentGroupName}`
+    : `${actor.get('name')} asked to join ${groupName}`,
   textForMemberJoinedGroup: ({ group, actor }) => `New member has joined ${group.get('name')}: ${actor.get('name')}`,
+  textForPostModeratedFulfillment: ({ post, actor, reason }) => {
+    const postName = post.summary()
+    if (reason === 'postUnfulfilled') {
+      return `${actor.get('name')} reopened your post "${postName}"`
+    }
+    return `${actor.get('name')} closed your post "${postName}"`
+  },
   textForPostMention: ({ groupName, person, postName }) => `${person} mentioned you in post "${postName}" in ${groupName}`,
   textForPost: ({ firstTag, groupName, person, postName }) => `${person} posted "${postName}" in ${groupName}${firstTag ? ` #${firstTag}` : ''}`,
   textForTrackCompleted: ({ actor, track }) => `Track completed: "${track.get('name')}" was completed by ${actor.get('name')}`,

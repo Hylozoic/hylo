@@ -1,7 +1,7 @@
 import isMobile from 'ismobilejs'
 import { debounce } from 'lodash/fp'
-import { ChevronDown, Copy, MessageCircleMore, Send } from 'lucide-react'
-import { DateTimeHelpers } from '@hylo/shared'
+import { ChevronDown, Copy, MessageSquareMore, Send } from 'lucide-react'
+import { DateTimeHelpers, postAppearsInChat } from '@hylo/shared'
 import { EditorView } from 'prosemirror-view'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import CopyToClipboard from 'react-copy-to-clipboard'
@@ -44,6 +44,7 @@ import { getGroupViews } from 'store/selectors/getGroupViews'
 import { cn } from 'util/index'
 import { groupInviteUrl, groupUrl } from '@hylo/navigation'
 import { isLegacyWebView } from 'util/webView'
+import { formatLocalizedDate } from 'util/dateFormat'
 import { getLocaleFromLocalStorage } from 'util/locale'
 
 import styles from './ChatRoom.module.scss'
@@ -63,6 +64,9 @@ const MIN_CHAT_WIDTH = 480
 const CHAT_GUTTER = 20
 // Slack past the clamp edge required before the rail appears at all
 const CHAT_RAIL_SLACK = 40
+// The rail sits wholly right of the stream: its background's left edge IS the
+// stream's endpoint, with the dashed line at the rail's own centre
+const CHAT_RAIL_WIDTH = 30
 
 // IMPORTANT: Use a selector factory so multiple prop-driven queries don't thrash a single memo cache
 // Preserve the order defined by queryResults.ids and transform to presentPost
@@ -81,7 +85,7 @@ const getDisplayDay = (date) => {
     ? 'Today'
     : date.hasSame(DateTimeHelpers.dateTimeNow(getLocaleFromLocalStorage()).minus({ days: 1 }), 'day')
       ? 'Yesterday'
-      : date.toFormat('MMM dd, yyyy')
+      : formatLocalizedDate(date, { style: 'medium' })
 }
 
 /**
@@ -404,7 +408,8 @@ export default function ChatRoom (props) {
   const handleNewPostReceived = useCallback((data) => {
     if (!group?.id) return
     if (!data.groups?.some(g => String(g.id) === String(group.id))) return
-    if (data.type !== 'chat' && !showPostNoticesInChat) return
+    // Chat activity cards belong in All Activity, not the chat timeline
+    if (!postAppearsInChat(data.type, showPostNoticesInChat)) return
     const post = presentPost(data, group.id)
     if (!post) return
 
@@ -745,7 +750,7 @@ export default function ChatRoom (props) {
       backButton: false,
       title: t('Chat'),
       headerActions: null,
-      icon: <MessageCircleMore className='w-4 h-4' />,
+      icon: <MessageSquareMore className='w-4 h-4' />,
       info: '',
       search: true
     })
@@ -770,8 +775,9 @@ export default function ChatRoom (props) {
     return () => observer.disconnect()
   }, [chatPaneEl])
 
-  // Widest the stream may grow: leaves a right gap matching the left gutter
-  const chatAvailableWidth = Math.max(0, chatPaneWidth - CHAT_GUTTER * 2)
+  // Widest the stream may grow: the rail hangs fully right of the stream edge,
+  // so reserve its width (plus the pane's px-1) instead of a mirrored gutter
+  const chatAvailableWidth = Math.max(0, chatPaneWidth - CHAT_GUTTER - CHAT_RAIL_WIDTH - 4)
   const effectiveChatWidth = chatAvailableWidth ? Math.min(chatStreamWidth, chatAvailableWidth) : chatStreamWidth
   // No rail until the pane outgrows the clamp enough for the rail to mean something
   const showChatWidthRail = chatAvailableWidth >= Math.min(chatStreamWidth, DEFAULT_CHAT_WIDTH) + CHAT_RAIL_SLACK
@@ -809,7 +815,7 @@ export default function ChatRoom (props) {
       <div
         id='chats'
         ref={setChatPaneEl}
-        className='my-0 mx-auto h-[calc(100%-130px)] w-full flex flex-col flex-1 relative overflow-hidden px-1'
+        className='my-0 mx-auto min-h-0 w-full flex flex-col flex-1 relative overflow-hidden overflow-x-clip px-1'
         style={{ '--chat-stream-width': `${effectiveChatWidth}px` }}
       >
         {/* The stream header's wash, here as a still strip: theme background fading
@@ -825,10 +831,10 @@ export default function ChatRoom (props) {
             aria-orientation='vertical'
             aria-label={t('Adjust chat width')}
             className={cn(
-              'absolute top-14 bottom-2 z-20 w-[30px] -translate-x-1/2 flex flex-col items-center justify-between py-1 group touch-none select-none',
+              'absolute top-0 bottom-0 z-20 flex flex-col items-center justify-between group touch-none select-none',
               resizingChatWidth ? 'cursor-grabbing' : 'cursor-grab'
             )}
-            style={{ left: 4 + CHAT_GUTTER + effectiveChatWidth }}
+            style={{ left: 4 + CHAT_GUTTER + effectiveChatWidth, width: CHAT_RAIL_WIDTH }}
             onPointerDown={onChatRailPointerDown}
             onPointerMove={onChatRailPointerMove}
             onPointerUp={onChatRailPointerUp}
@@ -840,18 +846,18 @@ export default function ChatRoom (props) {
             )}
             />
             <div className={cn(
-              'absolute top-4 bottom-4 left-1/2 -ml-px border-l-2 border-dashed transition-colors',
+              'absolute top-[9px] bottom-[9px] left-1/2 -ml-px border-l-2 border-dashed transition-colors',
               resizingChatWidth ? 'border-foreground/40' : 'border-transparent group-hover:border-foreground/40'
             )}
             />
             <div className={cn(
-              'relative w-0 h-0 border-y-4 border-y-transparent border-r-[6px] transition-colors',
-              resizingChatWidth ? 'border-r-foreground/60' : 'border-r-foreground/30 group-hover:border-r-foreground/60'
+              'relative w-0 h-0 border-x-4 border-x-transparent border-t-[6px] transition-colors',
+              resizingChatWidth ? 'border-t-foreground/60' : 'border-t-foreground/30 group-hover:border-t-foreground/60'
             )}
             />
             <div className={cn(
-              'relative w-0 h-0 border-y-4 border-y-transparent border-r-[6px] transition-colors',
-              resizingChatWidth ? 'border-r-foreground/60' : 'border-r-foreground/30 group-hover:border-r-foreground/60'
+              'relative w-0 h-0 border-x-4 border-x-transparent border-b-[6px] transition-colors',
+              resizingChatWidth ? 'border-b-foreground/60' : 'border-b-foreground/30 group-hover:border-b-foreground/60'
             )}
             />
           </div>
@@ -912,10 +918,10 @@ export default function ChatRoom (props) {
       {/* pt below sm gives the last message breathing room above the composer —
           OUTSIDE the message list: padding inside its scroller skews Virtuoso's
           atBottom check, which pinned the phone one message shy of the bottom */}
-      <PeopleTyping className='w-full px-3 sm:px-5 pt-2 sm:pt-0 text-xs text-foreground/50' />
+      <PeopleTyping groupId={group?.id} className='w-full px-3 sm:px-5 pt-2 sm:pt-0 text-xs text-foreground/50' />
       {/* Composer floats with margins matching the message gutter (left edge = avatar edge).
           Subtle gradient settles the pane into a darker hue beneath the input. */}
-      <div className='ChatBoxContainer w-full px-3 sm:px-5 pb-3 sm:pb-5 pt-0 overflow-y-auto bg-gradient-to-b from-transparent to-darkening/[0.05] dark:to-darkening/25'>
+      <div className='ChatBoxContainer w-full shrink-0 px-3 sm:px-5 pb-3 sm:pb-5 pt-0 bg-gradient-to-b from-transparent to-darkening/[0.05] dark:to-darkening/25'>
         {/* Drafts are scoped per chat topic so switching rooms does not leak text */}
         {group?.id && (
           <ChatEditor
@@ -1033,6 +1039,7 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
   } = context
   const { t } = useTranslation()
   if (!post) return null
+  if (post.type === 'chat_activity') return null
   const expanded = context.selectedPostId === post.id
   const highlighted = post.id && context.postIdToStartAt === post.id
   const firstUnread = context.latestOldPostId === prevData?.id && post.creator.id !== context.currentUser.id

@@ -49,7 +49,7 @@ export default function PostBigGridItem ({
   const hasFile = firstAttachment?.type === 'file'
   const numAttachments = attachments?.length || 0
 
-  const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroupId)
+  const isFlagged = post.flaggedGroups && post.flaggedGroups.some(id => String(id) === String(currentGroupId))
   const isEvent = post.type === 'event'
   // Match the stream card (EventBody): no RSVP on past events or signed-out views
   const isPastEvent = post.endTime && new Date(post.endTime) < new Date()

@@ -8,7 +8,8 @@ import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { push } from 'redux-first-history'
 import { Link } from 'react-router-dom'
-import { TextHelpers, DateTimeHelpers } from '@hylo/shared'
+import { TextHelpers } from '@hylo/shared'
+import { formatUserDatePair } from 'util/dateFormat'
 import Avatar from 'components/Avatar'
 import Dropdown from 'components/Dropdown'
 import Highlight from 'components/Highlight'
@@ -19,15 +20,17 @@ import Tooltip from 'components/Tooltip'
 import PostCompletion from '../PostCompletion'
 import { getPostTypeIcon, PROPOSAL_STATUS_CASUAL, PROPOSAL_STATUS_COMPLETED } from 'store/models/Post'
 import { RESP_ADMINISTRATION, RESP_MANAGE_CONTENT } from 'store/constants'
-import { removePostFromUrl, editPostUrl, duplicatePostUrl, postUrl, groupUrl, personUrl, topicUrl } from '@hylo/navigation'
+import { removePostFromUrl, editPostUrl, duplicatePostUrl, postUrl, groupUrl, personUrl, topicUrl, spaceUrl } from '@hylo/navigation'
 import getMe from 'store/selectors/getMe'
 import deletePostAction from 'store/actions/deletePost'
 import removePostAction from 'store/actions/removePost'
 import { addPostToView, fetchViewPosts, removePostFromView } from 'store/actions/groupViews'
 import { getResponsibilityTitlesForGroup } from 'store/selectors/getResponsibilitiesForGroup'
-import { getGroupViewById, getGroupViews } from 'store/selectors/getGroupViews'
+import { getGroupViewById } from 'store/selectors/getGroupViews'
 import getRolesForGroup from 'store/selectors/getRolesForGroup'
+import useGroupViews from 'hooks/useGroupViews'
 import { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
+import { useEffectiveGroupSlug, useGroupRouteOpts } from 'contexts/SpaceGroupContext'
 import { cn } from 'util/index'
 import {
   unfulfillPost as unfulfillPostAction,
@@ -105,22 +108,28 @@ function PostHeader (props) {
     startTime,
     timezone,
     fulfilledAt,
-    savedAt
+    savedAt,
+    groups: postGroups = []
   } = post
 
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const [flaggingVisible, setFlaggingVisible] = useState(false)
+  const effectiveGroupSlug = useEffectiveGroupSlug()
+  const groupSlug = effectiveGroupSlug || routeParams.groupSlug
+  const { parentGroupSlug, spaceSlug } = useGroupRouteOpts()
 
   const {
     currentUser,
     group,
-    moderationActionsGroupUrl = '',
+    moderationActionsGroupUrl: groupModerationUrl = '',
     postUrl,
     responsibilities
-  } = useSelector(state => selectPostHeaderStateProps(state, props))
+  } = useSelector(state => selectPostHeaderStateProps(state, { ...props, groupSlug, routeParams }))
 
-  const groupSlug = routeParams.groupSlug
+  const moderationActionsGroupUrl = spaceSlug && parentGroupSlug
+    ? spaceUrl(parentGroupSlug, spaceSlug, '/moderation')
+    : groupModerationUrl
   const isCreator = currentUser && creator && currentUser.id === creator.id
   const canEdit = isCreator
   const canFlag = !isCreator
@@ -128,7 +137,17 @@ function PostHeader (props) {
   const canCurateCollections = responsibilities.includes(RESP_ADMINISTRATION) ||
     responsibilities.includes(RESP_MANAGE_CONTENT)
 
-  const groupViews = useSelector(state => getGroupViews(state, group))
+  const hasModeratorResponsibilitiesInAnyPostGroup = useSelector(state =>
+    postGroups.some(g => {
+      const groupResponsibilities = getResponsibilityTitlesForGroup(state, { groupId: g.id })
+      return groupResponsibilities.includes(RESP_ADMINISTRATION) ||
+        groupResponsibilities.includes(RESP_MANAGE_CONTENT)
+    })
+  )
+  const canCompleteAsModerator = !isCreator && hasModeratorResponsibilitiesInAnyPostGroup
+  const canCompletePost = isCreator || canCompleteAsModerator
+
+  const groupViews = useGroupViews(group)
   const collectionViews = useMemo(
     () => (groupViews || []).filter(view => view.type === 'collection'),
     [groupViews]
@@ -182,22 +201,22 @@ function PostHeader (props) {
   }, [canModerate, id, groupSlug, dispatch, closeUrl, onRemovePost])
 
   const fulfillPost = useCallback(() => {
-    if (!isCreator) return
+    if (!canCompletePost) return
     if (fulfillPostProp) {
       fulfillPostProp(id)
     } else {
       dispatch(fulfillPostAction(id))
     }
-  }, [isCreator, fulfillPostProp, id, dispatch])
+  }, [canCompletePost, fulfillPostProp, id, dispatch])
 
   const unfulfillPost = useCallback(() => {
-    if (!isCreator) return
+    if (!canCompletePost) return
     if (unfulfillPostProp) {
       unfulfillPostProp(id)
     } else {
       dispatch(unfulfillPostAction(id))
     }
-  }, [isCreator, unfulfillPostProp, id, dispatch])
+  }, [canCompletePost, unfulfillPostProp, id, dispatch])
 
   const savePost = useCallback(() => {
     if (savePostProp) {
@@ -262,7 +281,7 @@ function PostHeader (props) {
 
   const creatorUrl = personUrl(creator.id, routeParams.groupSlug)
   const flagPostData = {
-    slug: routeParams.groupSlug,
+    slug: groupSlug,
     id,
     type: 'post'
   }
@@ -313,7 +332,7 @@ function PostHeader (props) {
   const canBeCompleted = typesWithCompletion.includes(type) && (type !== 'proposal' || (proposalStatus === PROPOSAL_STATUS_COMPLETED || proposalStatus === PROPOSAL_STATUS_CASUAL))
   const actualEndTime = fulfilledAt && fulfilledAt < endTime ? fulfilledAt : endTime
 
-  const { from, to } = DateTimeHelpers.formatDatePair({
+  const { from, to } = formatUserDatePair({
     start: startTime,
     end: actualEndTime,
     timezone,
@@ -414,14 +433,15 @@ function PostHeader (props) {
           </div>
         )}
       </div>
-      {canBeCompleted && canEdit && expanded && (
+      {canBeCompleted && canCompletePost && expanded && (
         <PostCompletion
           type={type}
           startTime={startTime}
           endTime={endTime}
           isFulfilled={!!fulfilledAt}
-          fulfillPost={isCreator ? fulfillPost : undefined}
-          unfulfillPost={isCreator ? unfulfillPost : undefined}
+          isModerator={canCompleteAsModerator}
+          fulfillPost={fulfillPost}
+          unfulfillPost={unfulfillPost}
         />
       )}
       {

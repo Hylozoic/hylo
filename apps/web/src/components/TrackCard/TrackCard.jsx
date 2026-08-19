@@ -9,7 +9,7 @@ import useRouteParams from 'hooks/useRouteParams'
 import { duplicateTrack, updateTrack } from 'store/actions/trackActions'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
-import { RESP_MANAGE_SPACES } from 'store/constants'
+import { RESP_ADMINISTRATION } from 'store/constants'
 import { trackUrl } from '@hylo/navigation'
 import { cn } from 'util/index'
 
@@ -27,7 +27,7 @@ function TrackCard ({ track }) {
   const parentFromSpace = track.space?.parentGroup
   const responsibilityGroupId = routeGroup?.id || parentFromSpace?.id || track.space?.id
   const viewTrackUrl = trackUrl(track.id, { groupSlug: parentSlug, space: track.space })
-  const canEdit = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_MANAGE_SPACES, groupId: responsibilityGroupId }))
+  const canEdit = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADMINISTRATION, groupId: responsibilityGroupId }))
   const dispatch = useDispatch()
   const navigate = useNavigate()
 
@@ -43,7 +43,7 @@ function TrackCard ({ track }) {
   }, [routeParams, parentSlug, track.space, track.id, dispatch, navigate, t])
 
   const handlePublishTrack = useCallback((publishedAt) => {
-    if (confirm(publishedAt ? t('Are you sure you want to publish this track?') : t('Are you sure you want to unpublish this track?'))) {
+    if (window.confirm(publishedAt ? t('Are you sure you want to publish this track?') : t('Are you sure you want to unpublish this track?'))) {
       dispatch(updateTrack({ trackId: track.id, publishedAt }))
     }
   }, [track.id])

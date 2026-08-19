@@ -5,6 +5,7 @@ const postGroupsFields = `
     name
     slug
     type
+    parentId
   }
 `
 
@@ -26,7 +27,19 @@ export default function postCardFieldsFragment ({ includeGroups = true } = {}) {
   isPublic
   linkPreviewFeatured
   location
+  meetingLink
   myEventResponse
+  noticeData
+  noticePosts {
+    id
+    details
+    createdAt
+    creator {
+      id
+      name
+      avatarUrl
+    }
+  }
   peopleReactedTotal
   projectManagementLink
   proposalOutcome

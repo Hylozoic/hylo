@@ -5,33 +5,24 @@ import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 
 import Avatar from 'components/Avatar'
+import CurrentlyActivePills, { DEFAULT_ACTIVE_MAX, isRecentlyActive } from 'components/CurrentlyActiveMembers/CurrentlyActivePills'
 import { getPeopleTyping } from 'components/PeopleTyping/PeopleTyping.store'
 import { Tooltip, TooltipContent, TooltipTrigger } from 'components/ui/tooltip'
 import useRouteParams from 'hooks/useRouteParams'
 import { isMobileDevice } from 'util/mobile'
+import { cn } from 'util/index'
 import {
   FETCH_MEMBERS,
   fetchMembers,
+  fetchRecentlyActiveMembers,
   getHasMoreMembers,
   getMemberQueryProps,
-  getMembers
+  getMembers,
+  getRecentlyActiveMembers
 } from 'routes/Members/Members.store'
 import { messagePersonUrl, personUrl } from '@hylo/navigation'
+import getMe from 'store/selectors/getMe'
 import { getRoomPresence } from './RoomPresence.store'
-import { bgImageStyle, cn } from 'util/index'
-
-// "Recently active" for the online dot — inside this window someone is treated
-// as present. lastActiveAt updates on page loads rather than heartbeats, so a
-// tight window would flicker people offline mid-session.
-const RECENTLY_ACTIVE_MS = 15 * 60 * 1000
-
-function isRecentlyActive (person, now) {
-  if (!person?.lastActiveAt) return false
-  return now - new Date(person.lastActiveAt).getTime() < RECENTLY_ACTIVE_MS
-}
-
-// The presence strip shows this many overlapping avatars at most
-const MAX_ACTIVE = 5
 
 /**
  * The chat room's member affordance, from the prototype's BDChatScreen: a pill in
@@ -73,25 +64,21 @@ export default function ChatMembersPanel ({ group, latestPost }) {
     dispatch(fetchMembers({ slug, groupId: group.id, sortBy: 'name', offset, search: debouncedSearch || undefined, groupRoleId: null }))
   }, [dispatch, slug, group?.id, debouncedSearch])
 
-  // First page up front so the pill's online dot has data before the panel opens;
-  // refetched when the search term settles
+  // Directory page for the drawer; the presence strip uses a separate lean fetch.
+  // Refetched when the search term settles.
   useEffect(() => { fetchPage(0) }, [fetchPage])
 
   // ─── Currently-active strip ────────────────────────────────────────────────
   // Seeded from the most recently active members, then reordered live: someone
   // typing or posting jumps to the front and the last avatar falls off.
 
-  const activityParams = useMemo(
-    () => getMemberQueryProps({ slug, search: undefined, sortBy: 'last_active_at', groupRoleId: null }),
-    [slug]
-  )
-  const activityMembers = useSelector(state => getMembers(state, activityParams))
+  const activityMembers = useSelector(state => getRecentlyActiveMembers(state, { slug, first: DEFAULT_ACTIVE_MAX }))
 
   useEffect(() => {
-    if (slug && group?.id) {
-      dispatch(fetchMembers({ slug, groupId: group.id, sortBy: 'last_active_at', offset: 0, groupRoleId: null }))
+    if (slug) {
+      dispatch(fetchRecentlyActiveMembers({ slug, first: DEFAULT_ACTIVE_MAX }))
     }
-  }, [dispatch, slug, group?.id])
+  }, [dispatch, slug])
 
   const [activeIds, setActiveIds] = useState([])
   // Names/avatars learned from live events for people outside the fetched pages
@@ -110,7 +97,7 @@ export default function ChatMembersPanel ({ group, latestPost }) {
     setActiveIds(prev => {
       const ids = valid.map(e => String(e.id))
       const rest = prev.filter(id => !ids.includes(id))
-      const next = [...ids, ...rest].slice(0, MAX_ACTIVE)
+      const next = [...ids, ...rest].slice(0, DEFAULT_ACTIVE_MAX)
       return next.length === prev.length && next.every((id, i) => id === prev[i]) ? prev : next
     })
   }, [])
@@ -118,13 +105,22 @@ export default function ChatMembersPanel ({ group, latestPost }) {
   // One clock reading per render pass, not per row
   const now = Date.now()
 
-  // Seed once per room, as soon as the activity-sorted page lands
+  // Seed from the last-active fetch. Merge with anyone already promoted by
+  // typing/presence so a live roster that arrives first cannot block the pills.
   const seedIdsKey = useMemo(
-    () => activityMembers.filter(m => isRecentlyActive(m, now)).slice(0, MAX_ACTIVE).map(m => String(m.id)).join(','),
+    () => activityMembers.slice(0, DEFAULT_ACTIVE_MAX).map(m => String(m.id)).join(','),
     [activityMembers]
   )
   useEffect(() => {
-    if (activeIds.length === 0 && seedIdsKey) setActiveIds(seedIdsKey.split(','))
+    if (!seedIdsKey) return
+    const seeded = seedIdsKey.split(',')
+    setActiveIds(prev => {
+      if (prev.length === 0) return seeded
+      const have = new Set(prev)
+      const rest = seeded.filter(id => !have.has(id))
+      if (!rest.length) return prev
+      return [...prev, ...rest].slice(0, DEFAULT_ACTIVE_MAX)
+    })
   }, [seedIdsKey])
 
   // Typing promotes to the front — and marks the avatar with the pulse
@@ -141,9 +137,9 @@ export default function ChatMembersPanel ({ group, latestPost }) {
     if (creator?.id) promote([{ id: creator.id, name: creator.name, avatarUrl: creator.avatarUrl }])
   }, [latestPost?.id])
 
-  // Real presence — the server's live roster for this room. Arrivals promote
-  // into the strip; when someone's last socket leaves, they drop out of it.
-  const presenceMap = useSelector(state => getRoomPresence(state, group?.id))
+  // Parent roster stands in for the space: anyone in the parent group sees
+  // this space's posts live, so they count as present here too.
+  const presenceMap = useSelector(state => getRoomPresence(state, group?.id, group?.parentId))
   const presentIdsKey = useMemo(() => Object.keys(presenceMap).sort().join(','), [presenceMap])
   const prevPresentRef = useRef([])
   useEffect(() => {
@@ -162,18 +158,22 @@ export default function ChatMembersPanel ({ group, latestPost }) {
     return map
   }, [activityMembers, members])
 
+  const currentUser = useSelector(getMe)
+
+  // Same people as the menu strip (most recently active). Typing and presence
+  // decorate the avatars; they are not a gate. Requiring the socket roster
+  // hid the pills when you were alone or presence had not arrived yet.
   const activeMembers = useMemo(
-    () => activeIds.map(id => memberIndex[id] || extraInfoRef.current[id]).filter(Boolean),
-    [activeIds, memberIndex]
+    () => activeIds
+      .map(id => memberIndex[id] || extraInfoRef.current[id] || presenceMap[String(id)])
+      .filter(Boolean),
+    [activeIds, memberIndex, presenceMap]
   )
 
-  // The live roster is the source of truth; the lastActiveAt heuristic backs it
-  // up for the beat before the roster arrives
+  // Green dot on the count pill: someone else is on the live roster
   const anyOnline = useMemo(
-    () => presentIdsKey.length > 0 ||
-      activityMembers.some(m => isRecentlyActive(m, now)) ||
-      members.some(m => isRecentlyActive(m, now)),
-    [presentIdsKey, activityMembers, members, now]
+    () => Object.keys(presenceMap).some(id => String(id) !== String(currentUser?.id)),
+    [presentIdsKey, currentUser?.id]
   )
 
   const handleScroll = useCallback((e) => {
@@ -219,49 +219,13 @@ export default function ChatMembersPanel ({ group, latestPost }) {
       <div className='absolute top-2 right-2 z-30 flex items-center gap-2'>
         {/* Currently active — newest activity on the left, typer pulses and takes the top */}
         {activeMembers.length > 0 && (
-          <div className='flex items-center'>
-            {activeMembers.map((person, i) => {
-              const typing = typingIds.includes(String(person.id))
-              const present = Boolean(presenceMap[String(person.id)])
-              const label = typing ? `${person.name} ${t('is typing...')}` : person.name
-              return (
-                <Tooltip key={person.id}>
-                  <TooltipTrigger asChild>
-                    <button
-                      type='button'
-                      onClick={() => openProfile(person)}
-                      className={cn('relative block transition-all hover:scale-110 hover:!z-20', i > 0 && '-ml-2')}
-                      style={{ zIndex: typing ? MAX_ACTIVE + 2 : MAX_ACTIVE - i }}
-                      aria-label={label}
-                    >
-                      {/* Explicit 30px block circle, per the design — an inline Avatar's
-                          line box added descender space below the image, which pushed the
-                          "corner" anchors off the avatar entirely */}
-                      <span
-                        className='block w-[30px] h-[30px] rounded-full bg-cover bg-center bg-midground border-2 border-background'
-                        style={person.avatarUrl ? bgImageStyle(person.avatarUrl) : undefined}
-                      />
-                      {/* The typing pill sits where the green dot sits: right edge on the avatar's right corner */}
-                      {typing
-                        ? (
-                          <span className='absolute -bottom-1 -right-0.5 inline-flex items-center gap-[3px] px-[5px] py-[3px] rounded-md bg-background' aria-hidden='true'>
-                            {[0, 1, 2].map(d => (
-                              <span key={d} className='w-[5px] h-[5px] rounded-full bg-foreground animate-typing-dot' style={{ animationDelay: `${d * 160}ms` }} />
-                            ))}
-                          </span>
-                          )
-                        : present
-                          ? (
-                            <span className='absolute bottom-0 -right-px w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-background' aria-hidden='true' />
-                            )
-                          : null}
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent>{label}</TooltipContent>
-                </Tooltip>
-              )
-            })}
-          </div>
+          <CurrentlyActivePills
+            members={activeMembers}
+            max={DEFAULT_ACTIVE_MAX}
+            onPersonClick={openProfile}
+            typingIds={typingIds}
+            presenceMap={presenceMap}
+          />
         )}
 
         {/* The pill */}

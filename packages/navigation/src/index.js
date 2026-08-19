@@ -109,15 +109,11 @@ export function createUrl (opts = {}, querystringParams = {}) {
   return addQuerystringToPath(url, querystringParams)
 }
 
-export function createGroupUrl (opts) {
-  return baseUrl(opts) + '/create/group'
-}
-
 // For specific views of a group like 'map', or 'projects'
-export function viewUrl (view, { context, groupSlug, defaultUrl, customViewId }) {
+export function viewUrl (view, { context, groupSlug, defaultUrl, customViewId, spaceSlug }) {
   if (!view) return '/'
 
-  const base = baseUrl({ context, groupSlug, defaultUrl })
+  const base = baseUrl({ context, groupSlug, defaultUrl, spaceSlug })
 
   return `${base}/${view}${customViewId ? '/' + customViewId : ''}`
 }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Helmet } from 'react-helmet'
-import { useDispatch } from 'react-redux'
+import { useNavigate } from 'react-router-dom'
 import { ChevronLeft } from 'lucide-react'
 import PeopleSelector from './PeopleSelector'
 import Header from './Header'
@@ -9,7 +9,6 @@ import MessageForm from './MessageForm'
 import PeopleTyping from 'components/PeopleTyping'
 import SocketSubscriber from 'components/SocketSubscriber'
 import { sendIsTyping } from 'client/websockets'
-import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import { canAddThreadParticipant } from './messageThreadLimits'
 import MutedThreadNotice from './MutedThreadNotice'
 import { NEW_THREAD_ID } from './Messages.store'
@@ -43,7 +42,6 @@ const MessagesMobile = ({
   addParticipant,
   removeParticipant
 }) => {
-  const dispatch = useDispatch()
   const peopleSelectorInputRef = useRef(null)
   const [viewportHeight, setViewportHeight] = useState(0)
   const [viewportOffset, setViewportOffset] = useState(0)
@@ -129,39 +127,45 @@ const MessagesMobile = ({
     return () => clearTimeout(timer)
   }, [forNewThread, messageThreadId]) // Only depend on forNewThread and messageThreadId, not focusForm
 
+  const navigate = useNavigate()
+  // Back deselects the thread — /messages is the inbox screen on phones
   const handleBack = () => {
-    dispatch(toggleNavMenu())
+    navigate('/messages')
   }
 
   const header = forNewThread
     ? (
       <div className='flex-shrink-0 bg-midground border-b border-border'>
-        <div className='flex items-center p-3'>
+        {/* Chevron sits inline with the first row of recipient pills; items-start
+            keeps it pinned to that row as the pills wrap */}
+        <div className='flex items-start gap-1 p-3'>
           <button
             onClick={handleBack}
-            className='p-2 -ml-1 mr-2 cursor-pointer'
+            className='p-2 -ml-1 mt-0.5 cursor-pointer shrink-0'
             aria-label='Back to messages'
           >
             <ChevronLeft className='w-6 h-6' />
           </button>
-        </div>
-        <div className='px-3 pb-3 space-y-2'>
-          <PeopleSelector
-            currentUser={currentUser}
-            fetchPeople={fetchPeopleAction}
-            fetchDefaultList={fetchRecentContactsAction}
-            focusMessage={focusForm}
-            setPeopleSearch={setContactsSearchAction}
-            people={contacts}
-            onFocus={() => setPeopleSelectorOpen(true)}
-            selectedPeople={participants}
-            selectPerson={addParticipant}
-            removePerson={removeParticipant}
-            peopleSelectorOpen={peopleSelectorOpen}
-            autoFocus
-            inputRef={peopleSelectorInputRef}
-            maxParticipantsReached={!canAddThreadParticipant(participants, currentUser?.id)}
-          />
+          <div className='flex-1 min-w-0'>
+            <PeopleSelector
+              currentUser={currentUser}
+              fetchPeople={fetchPeopleAction}
+              fetchDefaultList={fetchRecentContactsAction}
+              focusMessage={focusForm}
+              setPeopleSearch={setContactsSearchAction}
+              people={contacts}
+              onFocus={() => setPeopleSelectorOpen(true)}
+              onTyping={() => setPeopleSelectorOpen(true)}
+              onPersonSelected={() => setPeopleSelectorOpen(false)}
+              selectedPeople={participants}
+              selectPerson={addParticipant}
+              removePerson={removeParticipant}
+              peopleSelectorOpen={peopleSelectorOpen}
+              autoFocus
+              inputRef={peopleSelectorInputRef}
+              maxParticipantsReached={!canAddThreadParticipant(participants, currentUser?.id)}
+            />
+          </div>
         </div>
       </div>
       )
@@ -211,7 +215,7 @@ const MessagesMobile = ({
               updateThreadReadTime={updateThreadReadTimeAction}
               messageThread={messageThread}
             />
-            <PeopleTyping className='w-full mx-auto max-w-[750px] pl-16 py-1 flex-shrink-0 px-3' />
+            <PeopleTyping postId={messageThreadId} className='w-full mx-auto max-w-[750px] pl-16 py-1 flex-shrink-0 px-3' />
             <div className='flex-shrink-0 px-3 pb-3 bg-background border-t border-border' style={{ pointerEvents: 'auto' }}>
               {messageThread?.isMuted && <MutedThreadNotice />}
               <MessageForm

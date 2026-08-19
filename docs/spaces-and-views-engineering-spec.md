@@ -1309,5 +1309,5 @@ These landed during implementation and should be treated as part of the current 
 | Digests via `GroupViewUser` | Space posts included through view-user digest path; parent-group digest template space headers still future work (§8). |
 | `ManageRoundView` synthetic menu item | Steward manage entry for funding rounds outside normal `group_views` rows. |
 | `SpaceGroupContext` / `useEffectiveGroupSlug` | Web routing helper for resolving space vs parent slug in nested space routes. |
-| Paid-space visibility helpers | `util/paidSpaceVisibility.js` + paywall arg on create/update space. |
+| Space visibility helpers | `util/spaceVisibility.js` + paywall arg on create/update space. |
 | In-progress (unshipped) migrations | `migrations/in-progress/20260713120000_spaces_cleanup.js`, `migrations/in-progress/20260714120000_paid_spaces_from_tracks.js` |

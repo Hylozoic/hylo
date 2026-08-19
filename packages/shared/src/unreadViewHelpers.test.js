@@ -1,5 +1,6 @@
 import {
   CHAT_VISIBLE_POST_TYPES,
+  postAppearsInChat,
   postCountsTowardChatUnread,
   recountPostTypesForView,
   POST_TYPE_TO_TYPED_VIEW,
@@ -7,26 +8,31 @@ import {
 } from './unreadViewHelpers'
 
 describe('unreadViewHelpers', () => {
-  describe('postCountsTowardChatUnread', () => {
+  describe('postAppearsInChat', () => {
     it('includes chat-visible types when notices are on', () => {
-      expect(postCountsTowardChatUnread('chat', true)).toBe(true)
-      expect(postCountsTowardChatUnread('discussion', true)).toBe(true)
-      expect(postCountsTowardChatUnread('action', true)).toBe(false)
+      expect(postAppearsInChat('chat', true)).toBe(true)
+      expect(postAppearsInChat('discussion', true)).toBe(true)
+      expect(postAppearsInChat('action', true)).toBe(false)
     })
 
     it('only includes chat when notices are off', () => {
-      expect(postCountsTowardChatUnread('chat', false)).toBe(true)
-      expect(postCountsTowardChatUnread('discussion', false)).toBe(false)
+      expect(postAppearsInChat('chat', false)).toBe(true)
+      expect(postAppearsInChat('discussion', false)).toBe(false)
+    })
+  })
+
+  describe('postCountsTowardChatUnread', () => {
+    it('is true only for chat posts', () => {
+      expect(postCountsTowardChatUnread('chat')).toBe(true)
+      expect(postCountsTowardChatUnread('discussion')).toBe(false)
+      expect(postCountsTowardChatUnread('action')).toBe(false)
     })
   })
 
   describe('recountPostTypesForView', () => {
-    it('returns chat-visible types for chat with notices on', () => {
-      expect(recountPostTypesForView('chat', true)).toEqual(CHAT_VISIBLE_POST_TYPES)
-    })
-
-    it('returns only chat for chat with notices off', () => {
-      expect(recountPostTypesForView('chat', false)).toEqual(['chat'])
+    it('returns only chat for the chat view', () => {
+      expect(recountPostTypesForView('chat')).toEqual(['chat'])
+      expect(recountPostTypesForView('chat')).not.toEqual(CHAT_VISIBLE_POST_TYPES)
     })
 
     it('returns typed post types for common views', () => {

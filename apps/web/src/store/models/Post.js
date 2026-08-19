@@ -106,6 +106,7 @@ Post.fields = {
   groupsTotal: attr(),
   isPublic: attr(),
   location: attr(),
+  meetingLink: attr(),
   peopleReactedTotal: attr(),
   projectManagementLink: attr(),
   sortOrder: attr(),
@@ -115,6 +116,8 @@ Post.fields = {
   tokensAllocated: attr(), // Tokens allocated by current user in a funding round
   totalTokensAllocated: attr(), // Total tokens allocated to this post in a funding round
   type: attr(),
+  noticeData: attr(),
+  noticePosts: attr(),
   completedAt: attr(),
   completionAction: attr(),
   completionActionSettings: attr(),

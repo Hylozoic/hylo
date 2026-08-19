@@ -1,5 +1,7 @@
+import { ShieldCheck } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Helmet } from 'react-helmet'
+import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
 import { Routes, Route } from 'react-router-dom'
 
@@ -18,23 +20,22 @@ import { cn } from 'util/index'
 
 export default function Moderation (props) {
   const dispatch = useDispatch()
+  const { t } = useTranslation()
   const groupSlug = useEffectiveGroupSlug()
   const context = props.context
 
   const [container, setContainer] = useState(null)
 
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
-  const groupId = group?.id || 0
 
   const pendingModerationActions = useSelector(state => state.pending[FETCH_MODERATION_ACTIONS])
 
   const fetchModerationActionParams = useMemo(() => {
     return {
       slug: groupSlug,
-      groupId,
       sortBy: 'created'
     }
-  }, [groupSlug, groupId])
+  }, [groupSlug])
 
   const moderationActions = useSelector(state => {
     return getModerationActions(state, fetchModerationActionParams)
@@ -50,7 +51,11 @@ export default function Moderation (props) {
   }, [pendingModerationActions, hasMoreModerationActions, fetchModerationActionParams])
 
   const handleClearModerationAction = useCallback((modAction) => {
-    dispatch(clearModerationAction({ postId: modAction?.post?.id, moderationActionId: modAction?.id, groupId: group?.id }))
+    dispatch(clearModerationAction({
+      postId: modAction?.post?.id,
+      moderationActionId: modAction?.id,
+      groupId: modAction?.groupId || modAction?.group?.id || group?.id
+    }))
   }, [group?.id])
 
   useEffect(() => {
@@ -70,11 +75,11 @@ export default function Moderation (props) {
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
     setHeaderDetails({
-      title: 'Moderation',
-      icon: 'Shield',
+      title: t('Moderation'),
+      icon: <ShieldCheck />,
       search: true
     })
-  }, [])
+  }, [t])
 
   return (
     <div id='outer-container' className='flex flex-col h-full overflow-auto' ref={setContainer}>

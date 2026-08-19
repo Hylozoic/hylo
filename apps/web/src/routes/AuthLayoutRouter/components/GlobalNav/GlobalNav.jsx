@@ -1,11 +1,11 @@
 import { cn } from 'util/index'
 import { get } from 'lodash/fp'
-import { Globe, HelpCircle, PlusCircle, Bell, MessagesSquare, ChevronDown, Settings, LogOut, User, Edit, Users, Mail, Bell as BellIcon, Palette, Languages, UserX, Search, Shield, BookOpen, Download, Heart, Wrench } from 'lucide-react'
+import { Globe, HelpCircle, Plus, PlusCircle, Bell, MessagesSquare, ChevronDown, Settings, LogOut, User, Edit, Users, Mail, Bell as BellIcon, Palette, Languages, UserX, Search, Shield, BookOpen, Download, Heart, Wrench } from 'lucide-react'
 import React, { Suspense, useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useIntercom } from 'react-use-intercom'
 import { useSelector, useDispatch } from 'react-redux'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { replace } from 'redux-first-history'
 import {
   DndContext,
@@ -47,7 +47,6 @@ import {
   DropdownMenuTrigger
 } from 'components/ui/dropdown-menu'
 import BadgedIcon from 'components/BadgedIcon'
-import CreateMenu from 'components/CreateMenu'
 import GlobalNavItem from './GlobalNavItem'
 import GlobalNavTooltipContainer from './GlobalNavTooltipContainer'
 import { getMyGroupsWithChildren } from 'store/selectors/getMyGroups'
@@ -59,10 +58,21 @@ import ModalDialog from 'components/ModalDialog'
 import { pinGroup, unpinGroup, updateGroupNavOrder } from 'store/actions/pinGroup'
 import markGroupAsRead from 'store/actions/markGroupAsRead'
 import logout from 'store/actions/logout'
-import { personUrl } from '@hylo/navigation'
-import { WebViewMessageTypes } from '@hylo/shared'
+import { newMessageUrl, personUrl } from '@hylo/navigation'
+import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
+import { createGroupModalUrl } from 'routes/CreateGroup/createGroupUrl'
+import {
+  WebViewMessageTypes,
+  LOCALE_DE,
+  LOCALE_EN_GB,
+  LOCALE_EN_US,
+  LOCALE_ES,
+  LOCALE_FR,
+  LOCALE_HI,
+  LOCALE_PT
+} from '@hylo/shared'
 import useAppearance from 'hooks/useAppearance'
-import { getLocaleFromLocalStorage } from 'util/locale'
+import { getLocaleFromLocalStorage, normalizeLocaleToFull } from 'util/locale'
 import updateUserSettings from 'store/actions/updateUserSettings'
 import { availableThemes, getAppearanceFromSettings } from 'util/appearance'
 import {
@@ -127,6 +137,73 @@ function SortableGlobalNavItem ({ group, index, isVisible, showTooltip, isContai
 
 const NotificationsDropdown = React.lazy(() => import('./NotificationsDropdown'))
 
+/**
+ * The + menu (per the design): four actions with colored icon tiles instead of
+ * a list of every post type. Controlled popover so choosing a row closes it.
+ */
+function GlobalCreateMenu () {
+  const { t } = useTranslation()
+  const navigate = useNavigate()
+  const dispatch = useDispatch()
+  const location = useLocation()
+  const [open, setOpen] = useState(false)
+
+  const go = (path) => () => {
+    setOpen(false)
+    dispatch(toggleNavMenu(false))
+    navigate(path)
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger aria-label={t('Create')} data-testid='global-nav-create'>
+        <div className={cn('bg-[hsl(0_0%_17%)] text-white relative z-20 transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-8 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-foreground/0 hover:border-foreground/50')}>
+          <PlusCircle className='w-7 h-7' />
+        </div>
+      </PopoverTrigger>
+      <PopoverContent side='right' align='end' className='w-[210px] p-1.5 rounded-xl'>
+        <CreateMenuRow
+          onClick={go(createGroupModalUrl(location))}
+          tileClass='bg-[hsl(200_55%_45%)]'
+          icon={<Plus className='w-4 h-4' />}
+          label={t('Create a group')}
+        />
+        <CreateMenuRow
+          onClick={go(`${location.pathname}/create/post`)}
+          tileClass='bg-[hsl(155_51%_34%)]'
+          icon={<Edit className='w-4 h-4' />}
+          label={t('Create a post')}
+        />
+        <CreateMenuRow
+          onClick={go(newMessageUrl())}
+          tileClass='bg-[hsl(280_40%_42%)]'
+          icon={<Mail className='w-4 h-4' />}
+          label={t('New DM')}
+        />
+        <CreateMenuRow
+          onClick={go('/public/groups')}
+          tileClass='bg-[hsl(0_0%_22%)]'
+          icon={<Globe className='w-4 h-4' />}
+          label={t('Explore Groups')}
+        />
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+function CreateMenuRow ({ onClick, tileClass, icon, label }) {
+  return (
+    <button
+      type='button'
+      onClick={onClick}
+      className='w-full flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-semibold text-foreground/90 hover:text-foreground hover:bg-foreground/10 transition-colors text-left'
+    >
+      <span className={cn('w-7 h-7 rounded-lg grid place-items-center text-white shrink-0', tileClass)}>{icon}</span>
+      {label}
+    </button>
+  )
+}
+
 // Settings Menu Component
 function SettingsMenu ({ currentUser, triggerClassName, contentSide = 'right', contentAlign = 'start' }) {
   const compactLayout = isCompactLayoutDevice()
@@ -137,7 +214,9 @@ function SettingsMenu ({ currentUser, triggerClassName, contentSide = 'right', c
   const { theme } = getAppearanceFromSettings(currentUser?.settings)
   const globalNavStyle = currentUser?.settings?.globalNavStyle === 'tabs' ? 'tabs' : 'sidebar'
   const stackGroups = currentUser?.settings?.stackGroups === true
-  const currentLocale = currentUser?.settings?.locale || i18n.language || getLocaleFromLocalStorage() || 'en'
+  const currentLocale = normalizeLocaleToFull(
+    currentUser?.settings?.locale || i18n.language || getLocaleFromLocalStorage()
+  )
 
   // Hide the Sidebar/Tabs toggle on phone viewports — tabs are forced off there.
   const [isPhoneViewport, setIsPhoneViewport] = useState(() =>
@@ -201,10 +280,11 @@ function SettingsMenu ({ currentUser, triggerClassName, contentSide = 'right', c
     : ''
 
   const handleLanguageChange = (locale) => {
-    i18n.changeLanguage(locale)
-    getLocaleFromLocalStorage(locale)
+    const normalizedLocale = normalizeLocaleToFull(locale)
+    i18n.changeLanguage(normalizedLocale)
+    getLocaleFromLocalStorage(normalizedLocale)
     if (currentUser) {
-      dispatch(updateUserSettings({ settings: { locale } }))
+      dispatch(updateUserSettings({ settings: { locale: normalizedLocale } }))
     }
   }
 
@@ -366,22 +446,25 @@ function SettingsMenu ({ currentUser, triggerClassName, contentSide = 'right', c
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent className='z-[200] bg-card'>
             <DropdownMenuRadioGroup value={currentLocale} onValueChange={handleLanguageChange}>
-              <DropdownMenuRadioItem value='en'>
-                🇬🇧 {t('English')}
+              <DropdownMenuRadioItem value={LOCALE_EN_US}>
+                🇺🇸 {t('English')}
               </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value='es'>
+              <DropdownMenuRadioItem value={LOCALE_EN_GB}>
+                🇬🇧 {t('English (UK)')}
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value={LOCALE_ES}>
                 🇪🇸 {t('Spanish')}
               </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value='de'>
+              <DropdownMenuRadioItem value={LOCALE_DE}>
                 🇩🇪 {t('German')}
               </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value='fr'>
+              <DropdownMenuRadioItem value={LOCALE_FR}>
                 🇫🇷 {t('French')}
               </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value='hi'>
+              <DropdownMenuRadioItem value={LOCALE_HI}>
                 🇮🇳 {t('Hindi')}
               </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value='pt'>
+              <DropdownMenuRadioItem value={LOCALE_PT}>
                 🇵🇹 {t('Portuguese')}
               </DropdownMenuRadioItem>
             </DropdownMenuRadioGroup>
@@ -453,7 +536,6 @@ export default function GlobalNav (props) {
   const hoverDelayTimeoutRef = useRef(null)
   const ignoreTouchRef = useRef(false) // Ignore touch events briefly after nav opens
   const [isOverflowing, setIsOverflowing] = useState(false)
-  const [scrollbarWidth, setScrollbarWidth] = useState(0)
   const [hiddenBadgeCount, setHiddenBadgeCount] = useState(0)
   const navContainerRef = useRef(null)
   const groupRefsMap = useRef(new Map())
@@ -532,47 +614,25 @@ export default function GlobalNav (props) {
     }
   }, [isContainerHovered])
 
-  // Detect scrollbar width and if the nav container is overflowing
+  // Detect if the nav container is overflowing (drives the top fade indicator).
+  // The scrollbar itself is hidden via CSS, so no width compensation is needed
+  // and the icon column stays symmetric inside its padding.
   useEffect(() => {
     const container = navContainerRef.current
     if (!container) return
 
-    const checkOverflowAndScrollbar = () => {
-      const hasOverflow = container.scrollHeight > container.clientHeight
-      setIsOverflowing(hasOverflow)
-
-      if (hasOverflow) {
-        // Detect scrollbar width by comparing offsetWidth (includes scrollbar) with clientWidth (excludes scrollbar)
-        // This tells us if the scrollbar is currently taking up layout space
-        const width = container.offsetWidth - container.clientWidth
-
-        // If width is 0, scrollbar is overlay-only (not taking space)
-        // If width > 0, scrollbar is always visible (taking space) - we need to compensate
-        setScrollbarWidth(width > 0 ? width : 0)
-      } else {
-        setScrollbarWidth(0)
-      }
+    const checkOverflow = () => {
+      setIsOverflowing(container.scrollHeight > container.clientHeight)
     }
 
-    // Initial check
-    checkOverflowAndScrollbar()
-
-    // Use a small delay to ensure layout is complete
-    const timeoutId = setTimeout(checkOverflowAndScrollbar, 100)
-
-    const resizeObserver = new ResizeObserver(() => {
-      // Small delay to ensure scrollbar state is updated
-      setTimeout(checkOverflowAndScrollbar, 50)
-    })
+    checkOverflow()
+    const resizeObserver = new ResizeObserver(checkOverflow)
     resizeObserver.observe(container)
-
-    // Also check on window resize to catch scrollbar visibility changes
-    window.addEventListener('resize', checkOverflowAndScrollbar)
+    window.addEventListener('resize', checkOverflow)
 
     return () => {
-      clearTimeout(timeoutId)
       resizeObserver.disconnect()
-      window.removeEventListener('resize', checkOverflowAndScrollbar)
+      window.removeEventListener('resize', checkOverflow)
     }
   }, [sortedGroups.length])
 
@@ -874,15 +934,12 @@ export default function GlobalNav (props) {
       <div
         ref={navContainerRef}
         className={cn(
+          // Scrollbar hidden (scrolling still works) so it never eats layout space
+          // and the tiles stay horizontally centered in the rail
           'pt-4 flex flex-col items-center relative z-10 px-3 overflow-x-visible overflow-y-scroll grow',
+          '[scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
           styles.globalNavContainer
         )}
-        style={{
-          // When scrollbar is taking up space (always visible), add padding to compensate
-          // This keeps content centered regardless of scrollbar visibility mode
-          paddingRight: scrollbarWidth > 0 ? `calc(0.75rem - ${scrollbarWidth}px + 2px)` : undefined,
-          paddingLeft: scrollbarWidth > 0 ? `calc(1.5rem - ${scrollbarWidth}px + 1px)` : undefined
-        }}
         onClick={handleClick}
         onPointerLeave={handleContainerPointerLeave}
         onPointerEnter={handleContainerPointerEnter}
@@ -900,17 +957,19 @@ export default function GlobalNav (props) {
         <Suspense fallback={<GlobalNavItem className={isVisible(1)} showTooltip={showLabels}><Bell className='w-7 h-7' /></GlobalNavItem>}>
           <NotificationsDropdown renderToggleChildren={showBadge =>
             <GlobalNavItem
+              darkTile
               tooltip={t('Activity')}
               className={isVisible(1)}
               showTooltip={showLabels}
               badgeCount={showBadge ? '-' : 0}
             >
-              <BadgedIcon name='Notifications' className='!text-primary-foreground cursor-pointer font-md' />
+              <BadgedIcon name='Notifications' className='!text-white cursor-pointer font-md' />
             </GlobalNavItem>}
           />
         </Suspense>
 
         <GlobalNavItem
+          darkTile
           tooltip={t('Messages')}
           url='/messages'
           className={isVisible(2)}
@@ -921,12 +980,13 @@ export default function GlobalNav (props) {
         </GlobalNavItem>
 
         <GlobalNavItem
+          darkTile
           tooltip={t('The Commons')}
           url='/public'
           className={isVisible(3)}
           showTooltip={showLabels}
         >
-          <Globe color='hsl(var(--primary-foreground))' />
+          <Globe />
         </GlobalNavItem>
 
         {/* Pinned Groups Section - Sortable */}
@@ -1034,16 +1094,7 @@ export default function GlobalNav (props) {
           </div>
         )}
 
-        <Popover>
-          <PopoverTrigger>
-            <div className={cn('bg-primary relative z-20 transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-8 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-foreground/0 hover:border-foreground/50')}>
-              <PlusCircle className='w-7 h-7' />
-            </div>
-          </PopoverTrigger>
-          <PopoverContent side='right' align='center'>
-            <CreateMenu />
-          </PopoverContent>
-        </Popover>
+        <GlobalCreateMenu />
 
         {/* Settings and help are utilities rather than destinations, so they share a
             row as small dark squares instead of taking a full-width bright tile each */}

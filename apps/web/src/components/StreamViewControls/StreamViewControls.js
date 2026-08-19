@@ -30,8 +30,8 @@ const TIMEFRAME_OPTIONS = [
 // Toolbar chrome from the prototype's BDStreamToolbar: a 36px row of segmented
 // groups and pills. The prototype hardcodes a dark palette; these carry the same
 // shapes onto the theme tokens so the bar works in both schemes.
-const GROUP_CLASS = 'inline-flex items-center gap-0.5 h-9 p-[3px] box-border rounded-[9px] bg-background border border-foreground/20'
-const PILL_CLASS = 'inline-flex items-center gap-1.5 h-9 px-3 box-border rounded-[9px] bg-background border border-foreground/20 text-foreground text-xs font-semibold cursor-pointer transition-colors hover:border-foreground/40'
+const GROUP_CLASS = 'inline-flex items-center gap-0.5 h-8 sm:h-9 p-[3px] box-border rounded-[9px] bg-background border-2 border-foreground/20 shrink-0'
+const PILL_CLASS = 'inline-flex items-center gap-1 sm:gap-1.5 h-8 sm:h-9 px-2 sm:px-3 box-border rounded-[9px] bg-background border-2 border-foreground/20 text-foreground text-xs font-semibold cursor-pointer transition-colors hover:border-foreground/40 whitespace-nowrap'
 
 /** One segmented-group button. Active reads as the selected green, per the design. */
 function ToolBtn ({ active, onClick, tooltip, children }) {
@@ -91,7 +91,7 @@ const makeFilterDropdown = (selected, options, onChange, t, icon, id) => {
         // spend width the row does not have
         <span className={PILL_CLASS}>
           {icon && <span className='inline-flex items-center max-sm:hidden'>{icon}</span>}
-          {t(options.find(o => o.id === selected)?.label)}
+          <span className='truncate max-sm:max-w-[88px]'>{t(options.find(o => o.id === selected)?.label)}</span>
           <Icon name='ArrowDown' className='opacity-60 max-sm:hidden' />
         </span>
       }
@@ -165,7 +165,7 @@ const StreamViewControls = ({
     <div className={cn('flex flex-col gap-1 sm:gap-2 items-center w-full', { [classes.searchActive]: searchActive || searchValue, [classes.extend]: searchActive && searchValue })}>
       {/* Right-justified in the pinned header row, opposite the New button.
           Sort, filter, lenses, then the display toggles — the prototype's order */}
-      <div className='flex w-full flex-row items-center justify-end flex-wrap gap-2'>
+      <div className='flex w-full flex-row items-center justify-end flex-nowrap sm:flex-wrap min-w-0 gap-1 sm:gap-2'>
         {sortDropdown}
         {filterDropdown}
 

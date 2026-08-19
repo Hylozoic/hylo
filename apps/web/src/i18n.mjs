@@ -3,6 +3,28 @@ import { initReactI18next } from 'react-i18next'
 import LanguageDetector from 'i18next-browser-languagedetector'
 
 import Backend from 'i18next-http-backend'
+import {
+  LOCALE_DE,
+  LOCALE_EN_GB,
+  LOCALE_EN_US,
+  LOCALE_ES,
+  LOCALE_FR,
+  LOCALE_HI,
+  LOCALE_PT,
+  localeToTranslationKey,
+  normalizeLocaleToFull
+} from '@hylo/shared'
+
+if (typeof window !== 'undefined') {
+  const stored = window.localStorage.getItem('hylo-i18n-lng')
+  if (stored) {
+    const normalized = normalizeLocaleToFull(stored)
+    if (normalized !== stored) {
+      window.localStorage.setItem('hylo-i18n-lng', normalized)
+    }
+  }
+}
+
 i18n
   // load translation using http -> see /public/locales (i.e. https://github.com/i18next/react-i18next/tree/master/example/react/public/locales)
   // learn more: https://github.com/i18next/i18next-http-backend
@@ -16,7 +38,10 @@ i18n
   // for all options read: https://www.i18next.com/overview/configuration-options
   .init({
     backend: {
-      loadPath: `${process.env.PUBLIC_URL}/locales/{{lng}}.json`
+      loadPath: (lngs) => {
+        const lng = localeToTranslationKey(lngs[0])
+        return `${process.env.PUBLIC_URL}/locales/${lng}.json`
+      }
     },
     debug: process.env.NODE_ENV === 'development' || !import.meta.env.PROD,
     detection: {
@@ -24,18 +49,37 @@ i18n
       order: ['cookie', 'localStorage', 'sessionStorage', 'navigator', 'htmlTag'],
       lookupCookie: 'hylo-i18n-lng',
       lookupLocalStorage: 'hylo-i18n-lng',
-      lookupSessionStorage: 'hylo-i18n-lng'
+      lookupSessionStorage: 'hylo-i18n-lng',
+      convertDetectedLanguage: (lng) => normalizeLocaleToFull(lng)
     },
-    fallbackLng: 'en',
+    fallbackLng: {
+      'en-GB': [LOCALE_EN_US],
+      default: [LOCALE_EN_US]
+    },
     keySeparator: false,
     nsSeparator: false,
-    supportedLngs: ['en', 'es', 'de', 'fr', 'hi', 'pt'],
+    supportedLngs: [
+      LOCALE_EN_US,
+      LOCALE_EN_GB,
+      LOCALE_ES,
+      LOCALE_DE,
+      LOCALE_FR,
+      LOCALE_HI,
+      LOCALE_PT,
+      // Legacy short codes still accepted from older clients/storage
+      'en',
+      'es',
+      'de',
+      'fr',
+      'hi',
+      'pt'
+    ],
     nonExplicitSupportedLngs: true,
     interpolation: {
       escapeValue: false // not needed for react as it escapes by default
     },
     defaultNS: false,
-    preload: ['en']
+    preload: [LOCALE_EN_US]
   })
 
 export default i18n

@@ -12,6 +12,12 @@
 
 module.exports.sockets = {
 
+  // Presence freshness: with the defaults a silently-dead connection (sleeping
+  // laptop, dropped VPN) stays "online" for ~45-90s. Tighter ping cycle caps
+  // that at ~25s without meaningful overhead.
+  pingInterval: 10000,
+  pingTimeout: 15000,
+
   /***************************************************************************
   *                                                                          *
   * This custom onDisconnect function will be run each time a socket         *

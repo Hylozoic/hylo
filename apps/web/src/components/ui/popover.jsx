@@ -23,7 +23,7 @@ const PopoverContent = React.forwardRef(({ className, align = 'center', sideOffs
       {...props}
     >
       {children}
-      {arrow && <PopoverArrow className='fill-popover' />}
+      {arrow && <PopoverArrow className='fill-card' />}
     </PopoverPrimitive.Content>
   </PopoverPrimitive.Portal>
 ))

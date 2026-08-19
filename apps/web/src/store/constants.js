@@ -216,7 +216,6 @@ export const RESP_ADD_MEMBERS = 'Add Members'
 export const RESP_ADMINISTRATION = 'Administration'
 export const RESP_MANAGE_CONTENT = 'Manage Content'
 export const RESP_REMOVE_MEMBERS = 'Remove Members'
-export const RESP_MANAGE_SPACES = 'Manage Spaces'
 export const RESPOND_TO_EVENT = 'RESPOND_TO_EVENT'
 export const RESPOND_TO_EVENT_PENDING = 'RESPOND_TO_EVENT' + _PENDING
 export const SAVE_SEARCH = 'SAVE_SEARCH'

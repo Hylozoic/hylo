@@ -1,8 +1,10 @@
 import * as sessionReducers from './sessionReducers'
 import {
   ACCEPT_GROUP_RELATIONSHIP_INVITE,
+  ACCEPT_JOIN_REQUEST,
   ADD_PROPOSAL_VOTE_PENDING,
   CANCEL_GROUP_RELATIONSHIP_INVITE,
+  CANCEL_JOIN_REQUEST,
   CLEAR_MODERATION_ACTION_PENDING,
   CREATE_COMMENT,
   CREATE_COMMENT_PENDING,
@@ -16,6 +18,7 @@ import {
   CREATE_CONTEXT_WIDGET,
   CREATE_CONTEXT_WIDGET_PENDING,
   CREATE_GROUP_VIEW,
+  DECLINE_JOIN_REQUEST,
   DELETE_DRAFT,
   DELETE_COMMENT_PENDING,
   DELETE_CONTEXT_WIDGET_PENDING,
@@ -26,6 +29,7 @@ import {
   FETCH_MESSAGES_PENDING,
   FETCH_GROUP_CHAT_ROOMS,
   FETCH_MY_DRAFTS,
+  FETCH_POSTS,
   FETCH_VIEW_POSTS,
   INVITE_CHILD_TO_JOIN_PARENT_GROUP,
   INVITE_PEER_RELATIONSHIP,
@@ -96,7 +100,8 @@ import {
 } from 'routes/GroupSettings/GroupSettings.store'
 import {
   CREATE_GROUP
-} from 'components/CreateGroup/CreateGroup.store'
+} from 'routes/CreateGroup/CreateGroup.store'
+import { JOIN_SPACE } from 'store/actions/joinSpace'
 import { FETCH_GROUP_WELCOME_DATA } from 'routes/GroupWelcomeModal/GroupWelcomeModal.store'
 
 import {
@@ -119,7 +124,24 @@ import { isPromise } from 'util/index'
 import { homeRoutePathForWidget } from '@hylo/navigation'
 import { reorderTree, replaceHomeWidget } from 'util/contextWidgets'
 import { applyGroupViewsOrder, appendGroupViewToMenu, removeGroupViewFromAllMenus, setGroupViewHiddenInAllMenus, syncAcceptedPostTypesInMenus, updateGroupViewInMenu, updateGroupViewInAllMenus } from 'store/util/groupViewsOrder'
+import {
+  confirmOptimisticChatInNotice,
+  reconcileChatActivityNoticesAfterFetch,
+  replaceOptimisticChatActivityNotice,
+  snapshotChatActivityNotices,
+  upsertOptimisticChatActivityNotice
+} from 'store/util/chatActivityNotice'
 import { groupMenuHasUnreadBadges } from 'util/viewUnreadBadges'
+
+/**
+ * Adjust the cached pending join-request count on a Group ORM record.
+ */
+function adjustOpenJoinRequestCount (session, groupId, delta) {
+  if (!groupId || !delta) return
+  const group = session.Group.idExists(groupId) ? session.Group.withId(groupId) : null
+  if (!group) return
+  group.update({ openJoinRequestCount: Math.max(0, (group.openJoinRequestCount || 0) + delta) })
+}
 
 /**
  * Whether any loaded menu copy for this group still shows unread (own GroupViews
@@ -203,7 +225,13 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     if (type === FETCH_MY_DRAFTS && meta.replaceAllDrafts) {
       Draft.all().toModelArray().forEach(draft => draft.delete())
     }
+    const preservedChatActivityNotices = type === FETCH_POSTS
+      ? snapshotChatActivityNotices(Post)
+      : []
     extractModelsFromAction(action, session)
+    if (type === FETCH_POSTS) {
+      reconcileChatActivityNoticesAfterFetch(session, preservedChatActivityNotices)
+    }
   }
 
   let me, membership, group, person, post, comment, groupTopic
@@ -381,12 +409,34 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       break
     }
 
+    case JOIN_SPACE: {
+      me = Me.first()
+      const membershipId = payload?.data?.joinSpace?.id
+      if (me && membershipId) {
+        me.updateAppending({ memberships: [membershipId] })
+        clearCacheFor(Me, me.id)
+      }
+      break
+    }
+
     case CREATE_JOIN_REQUEST: {
       if (payload.data.createJoinRequest.request) {
         me = Me.first()
         const jr = JoinRequest.create({ group: meta.groupId, user: me.id, status: payload.data.createJoinRequest.request.status })
         me.updateAppending({ joinRequests: [jr] })
+        adjustOpenJoinRequestCount(session, meta.groupId, 1)
       }
+      break
+    }
+
+    case ACCEPT_JOIN_REQUEST:
+    case DECLINE_JOIN_REQUEST:
+      adjustOpenJoinRequestCount(session, meta.groupId, -1)
+      break
+
+    case CANCEL_JOIN_REQUEST: {
+      const canceledRequest = JoinRequest.idExists(meta.id) ? JoinRequest.withId(meta.id) : null
+      adjustOpenJoinRequestCount(session, canceledRequest?.group?.id, -1)
       break
     }
 
@@ -438,6 +488,17 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         if (chatGroup && chatView?.id) {
           updateGroupViewInMenu(chatGroup, chatView.id, { newPostCount: 0 })
         }
+        const variables = meta.graphql?.variables || {}
+        const me = Me.first()
+        upsertOptimisticChatActivityNotice(session, {
+          groupId: chatGroupId,
+          chat: {
+            id: variables.localId,
+            details: variables.details,
+            createdAt: new Date().toISOString(),
+            creator: me
+          }
+        })
         break
       }
 
@@ -514,6 +575,16 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
             lastReadPostId: createdPost.id
           })
         }
+        confirmOptimisticChatInNotice(session, {
+          groupId: createdGroupId,
+          localId: createdPost.localId,
+          chat: {
+            id: createdPost.id,
+            details: createdPost.details,
+            createdAt: createdPost.createdAt,
+            creator: createdPost.creator
+          }
+        })
       }
       break
     }
@@ -850,6 +921,10 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     }
 
     case RECEIVE_POST: {
+      if (payload.data?.post?.type === 'chat_activity') {
+        replaceOptimisticChatActivityNotice(session, payload.data.post)
+        break
+      }
       const post = Post.withId(payload.data?.post?.id)
       if (post) {
         post.groups.toModelArray().forEach(g => {

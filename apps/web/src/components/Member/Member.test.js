@@ -43,7 +43,7 @@ describe('Member Component', () => {
       />
     )
 
-    expect(screen.getByText(/Join Date:/)).toBeInTheDocument()
+    expect(screen.getByText(/Joined/)).toBeInTheDocument()
     expect(screen.getByText(/Last Active:/)).toBeInTheDocument()
     expect(screen.queryByText('Active')).not.toBeInTheDocument()
   })

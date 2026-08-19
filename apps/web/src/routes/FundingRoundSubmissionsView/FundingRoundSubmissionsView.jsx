@@ -20,7 +20,7 @@ import {
   doPhaseTransition,
   needsPhaseTransition
 } from 'routes/FundingRounds/FundingRounds.store'
-import { RESP_MANAGE_SPACES } from 'store/constants'
+import { RESP_ADMINISTRATION } from 'store/constants'
 import orm from 'store/models'
 import presentPost from 'store/presenters/presentPost'
 import getFundingRound from 'store/selectors/getFundingRound'
@@ -35,6 +35,10 @@ import { seededShuffle } from 'util/seededRandom'
 import RoundPhaseStatus from './RoundPhaseStatus'
 import SubmissionCard from './SubmissionCard'
 import { getRoundPhaseMeta } from './phaseUtils'
+
+// Stable reference for the no-round branch below — a fresh [] each call reads as a
+// changed selection and rerenders on every store event.
+const EMPTY_POSTS = []
 
 const getPosts = ormCreateSelector(
   orm,
@@ -70,7 +74,7 @@ export default function FundingRoundSubmissionsView () {
   })
   const roundId = round?.id || group?.fundingRound?.id
   const roleGroupId = group?.parentId || parentGroup?.id || group?.id
-  const canManageRound = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_MANAGE_SPACES, groupId: roleGroupId }))
+  const canManageRound = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADMINISTRATION, groupId: roleGroupId }))
   const isLoadingRound = useSelector(state => isPendingFor(FETCH_FUNDING_ROUND, state))
   const isLoadingSubmissions = useSelector(state => isPendingFor(FETCH_FUNDING_ROUND_SUBMISSIONS, state))
   const [localVoteAmounts, setLocalVoteAmounts] = React.useState({})
@@ -122,7 +126,7 @@ export default function FundingRoundSubmissionsView () {
 
   const { currentPhase } = getRoundPhaseMeta(round || {})
   const shouldSortByTokens = currentPhase === 'completed' && (!round?.hideFinalResultsFromParticipants || canManageRound)
-  const posts = useSelector(state => round ? getPosts(state, round, shouldSortByTokens) : [])
+  const posts = useSelector(state => round ? getPosts(state, round, shouldSortByTokens) : EMPTY_POSTS)
 
   const postsForDisplay = useMemo(() => {
     if (!round) return []

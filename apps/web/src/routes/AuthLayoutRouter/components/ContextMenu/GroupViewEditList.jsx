@@ -19,26 +19,33 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
-import { addQuerystringToPath, groupUrl, localSpaceSlug } from '@hylo/navigation'
+import { addQuerystringToPath } from '@hylo/navigation'
+import { spaceEntryUrl } from './groupViewMenuUrl'
 
 import { Tooltip, TooltipContent, TooltipTrigger } from 'components/ui/tooltip'
+import TruncatedText from 'components/TruncatedText'
 import GroupViewIcon from './GroupViewIcon'
 import { GroupViewEditActions } from './GroupViewSettingsModal'
-import { canDeleteView, canHardDeleteView, isSoftRemoveView, viewAcceptedByPostTypes } from 'store/models/GroupView'
+import { canDeleteView, canHardDeleteView, isSoftRemoveView } from 'store/models/GroupView'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 import { deleteGroupView, deleteSpace, setGroupViewHidden } from 'store/actions/groupViews'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import { mergeOrderedViewsFromSource, sortViewsByMenuOrder } from 'store/util/groupViewsOrder'
+import { cn } from 'util/index'
 import useViewReorder from './useViewReorder'
+import useFlashAddedItems, { MENU_FLASH_CLASS } from './useFlashAddedItems'
 
 /** Sort views by menu order for consistent drag indices (hidden last). */
 function sortViewsByOrder (views) {
   return sortViewsByMenuOrder(views)
 }
 
+// Pointer devices keep the hover-reveal; touch has no hover, so the icons stay up.
+const EDIT_ACTIONS_CLASS = 'opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100'
+
 /** Single draggable row in edit mode. */
-function SortableEditRow ({ view, onSettings, onHide, onDelete, isHome, spaceGroup = null }) {
+function SortableEditRow ({ view, onSettings, onHide, onDelete, isHome, spaceGroup = null, isFlashing = false }) {
   const { t } = useTranslation()
   const presentedView = GroupViewPresenter(view)
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -52,18 +59,25 @@ function SortableEditRow ({ view, onSettings, onHide, onDelete, isHome, spaceGro
     opacity: isDragging ? 0.5 : 1
   }
 
+  const rowClass = cn(
+    'list-none flex items-center gap-1 border-2 border-dashed border-transparent hover:border-foreground/20 rounded-md p-1 group',
+    isFlashing && MENU_FLASH_CLASS
+  )
+  const flashProps = isFlashing ? { 'data-menu-flash': String(view.id) } : {}
+
   if (presentedView.type === 'separator') {
     return (
       <li
         ref={setNodeRef}
         style={style}
-        className='list-none flex items-center gap-1 border-2 border-dashed border-transparent hover:border-foreground/20 rounded-md p-1 group'
+        className={rowClass}
+        {...flashProps}
       >
         <button type='button' className='p-1 cursor-grab text-foreground/50 shrink-0' {...attributes} {...listeners}>
           <GripVertical className='w-4 h-4' />
         </button>
         <hr className='flex-1 border-foreground/10' />
-        <GroupViewEditActions view={view} onSettings={onSettings} onHide={onHide} onDelete={onDelete} className='opacity-0 group-hover:opacity-100' />
+        <GroupViewEditActions view={view} onSettings={onSettings} onHide={onHide} onDelete={onDelete} className={EDIT_ACTIONS_CLASS} />
       </li>
     )
   }
@@ -73,15 +87,18 @@ function SortableEditRow ({ view, onSettings, onHide, onDelete, isHome, spaceGro
       <li
         ref={setNodeRef}
         style={style}
-        className='list-none flex items-center gap-1 border-2 border-dashed border-transparent hover:border-foreground/20 rounded-md p-1 group'
+        className={rowClass}
+        {...flashProps}
       >
         <button type='button' className='p-1 cursor-grab text-foreground/50 shrink-0' {...attributes} {...listeners}>
           <GripVertical className='w-4 h-4' />
         </button>
-        <p className='flex-1 text-xs text-foreground/40 uppercase tracking-wide truncate'>
-          {displayNameForView(presentedView, t, { spaceGroup })}
-        </p>
-        <GroupViewEditActions view={view} onSettings={onSettings} onHide={onHide} onDelete={onDelete} className='opacity-0 group-hover:opacity-100' />
+        <TruncatedText
+          as='p'
+          className='flex-1 min-w-0 text-xs text-foreground/40 uppercase tracking-wide truncate'
+          text={displayNameForView(presentedView, t, { spaceGroup })}
+        />
+        <GroupViewEditActions view={view} onSettings={onSettings} onHide={onHide} onDelete={onDelete} className={EDIT_ACTIONS_CLASS} />
       </li>
     )
   }
@@ -90,19 +107,20 @@ function SortableEditRow ({ view, onSettings, onHide, onDelete, isHome, spaceGro
     <li
       ref={setNodeRef}
       style={style}
-      className='list-none flex items-center gap-1 border-2 border-dashed border-transparent hover:border-foreground/20 rounded-md p-1 group'
+      className={rowClass}
+      {...flashProps}
     >
       <button type='button' className='p-1 cursor-grab text-foreground/50 shrink-0' {...attributes} {...listeners}>
         <GripVertical className='w-4 h-4' />
       </button>
       <GroupViewIcon view={presentedView} />
-      <span className='flex-1 truncate text-base font-semibold text-foreground'>
-        {displayNameForView(presentedView, t, { spaceGroup })}
+      <span className='flex-1 min-w-0 flex items-center gap-1 text-base font-semibold text-foreground'>
+        <TruncatedText className='truncate min-w-0' text={displayNameForView(presentedView, t, { spaceGroup })} />
         {/* Same badge treatment as the header's Editing pill */}
         {isHome && (
           <Tooltip>
             <TooltipTrigger asChild>
-              <span className='ml-1 text-xs font-semibold rounded-full border border-foreground/20 bg-foreground/10 text-foreground/70 px-2 py-px leading-none self-center shrink-0'>
+              <span className='text-xs font-semibold rounded-full border border-foreground/20 bg-foreground/10 text-foreground/70 px-2 py-px leading-none self-center shrink-0'>
                 {t('Home')}
               </span>
             </TooltipTrigger>
@@ -115,7 +133,7 @@ function SortableEditRow ({ view, onSettings, onHide, onDelete, isHome, spaceGro
         onSettings={onSettings}
         onHide={onHide}
         onDelete={onDelete}
-        className='opacity-0 group-hover:opacity-100'
+        className={EDIT_ACTIONS_CLASS}
       />
     </li>
   )
@@ -145,17 +163,13 @@ function SortableSpaceEditRow ({
     opacity: isDragging ? 0.5 : 1
   }
 
-  /** Open this space's more-views page in edit mode (same as More Views space click). */
+  /** Open this space's home with its menu in edit mode. */
   const handleEditSpaceMenu = useCallback((e) => {
     e.preventDefault()
     e.stopPropagation()
     if (!groupSlug || !spaceGroup?.slug) return
-    const local = localSpaceSlug(groupSlug, spaceGroup.slug)
-    navigate(addQuerystringToPath(groupUrl(groupSlug, 'more-views'), {
-      edit: 'true',
-      space: local
-    }))
-  }, [navigate, groupSlug, spaceGroup?.slug])
+    navigate(addQuerystringToPath(spaceEntryUrl(groupSlug, spaceGroup), { edit: 'true' }))
+  }, [navigate, groupSlug, spaceGroup])
 
   return (
     <li ref={setNodeRef} style={style} className='list-none'>
@@ -164,15 +178,13 @@ function SortableSpaceEditRow ({
           <GripVertical className='w-4 h-4' />
         </button>
         <GroupViewIcon view={presentedView} />
-        <span className='flex-1 truncate text-base font-semibold text-foreground'>
-          {displayNameForView(presentedView, t)}
-        </span>
+        <TruncatedText className='flex-1 min-w-0 truncate text-base font-semibold text-foreground' text={displayNameForView(presentedView, t)} />
         <GroupViewEditActions
           view={view}
           onSettings={onSettings}
           onHide={onHide}
           onDelete={onDelete}
-          className='opacity-0 group-hover:opacity-100'
+          className={EDIT_ACTIONS_CLASS}
         />
         {spaceGroup?.slug && groupSlug && (
           <Tooltip>
@@ -198,12 +210,9 @@ function SortableSpaceEditRow ({
 export default function GroupViewEditList ({ views, group, groupSlug, onSettings }) {
   const dispatch = useDispatch()
   const { t } = useTranslation()
-  // Match live menu: hide typed views that the group/space no longer accepts.
   const visibleViews = useMemo(() => sortViewsByOrder(
-    (views || [])
-      .filter(v => v.order != null)
-      .filter(v => viewAcceptedByPostTypes(v.type, group?.acceptedPostTypes))
-  ), [views, group?.acceptedPostTypes])
+    (views || []).filter(v => v.order != null)
+  ), [views])
   const [orderedViews, setOrderedViews] = useState(visibleViews)
 
   // Merge Redux updates into local order (preserves drag order; full replace on add/delete).
@@ -254,7 +263,7 @@ export default function GroupViewEditList ({ views, group, groupSlug, onSettings
       return
     }
     const label = displayNameForView(view, t)
-    if (!window.confirm(t('Are you sure you want to permanently delete {{name}}?', { name: label }))) return
+    if (!window.confirm(t('Are you sure you want to delete {{name}}?', { name: label }))) return
     try {
       await dispatch(deleteGroupView(view.id, group.id))
     } catch (error) {
@@ -263,6 +272,8 @@ export default function GroupViewEditList ({ views, group, groupSlug, onSettings
   }, [dispatch, group?.id, t])
 
   const ids = orderedViews.map(v => String(v.id))
+  // Two-column creates a space then opens it, so flashing the sidebar row is noise.
+  const flashingIds = useFlashAddedItems(orderedViews, { skipTypes: ['space'] })
 
   return (
     <DndContext
@@ -294,6 +305,7 @@ export default function GroupViewEditList ({ views, group, groupSlug, onSettings
                 onHide={handleHide}
                 onDelete={handleDelete}
                 isHome={index === 0}
+                isFlashing={flashingIds.has(String(view.id))}
               />
             )
           })}

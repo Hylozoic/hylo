@@ -199,7 +199,7 @@ describe('updateFundingRound', () => {
     }
   })
 
-  it('allows parent Manage Spaces to update a funding round space without space membership', async () => {
+  it('allows parent Administration to update a funding round space without space membership', async () => {
     const space = await factories.group({
       type: 'space',
       parent_id: group.id,

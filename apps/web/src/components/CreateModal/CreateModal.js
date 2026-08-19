@@ -6,7 +6,6 @@ import getPreviousLocation from 'store/selectors/getPreviousLocation'
 import UnsavedDraftLeaveDialog from 'components/UnsavedDraftLeaveDialog/UnsavedDraftLeaveDialog'
 import { useRegisterHardwareBackHandler } from 'util/hardwareBackHandler'
 import CreateModalChooser from './CreateModalChooser'
-import CreateGroup from 'components/CreateGroup'
 import Icon from 'components/Icon'
 import PostEditor from 'components/PostEditor'
 import { removeCreateEditModalFromUrl, stripComposeModalQueryParams } from '@hylo/navigation'
@@ -116,7 +115,6 @@ const CreateModal = (props) => {
                     />
                   )}
                 />
-                <Route path='group' element={<CreateGroup {...props} />} />
                 <Route path='*' element={<CreateModalChooser {...props} />} />
               </Routes>
               )}

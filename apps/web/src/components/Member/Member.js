@@ -7,11 +7,13 @@ import { DateTimeHelpers } from '@hylo/shared'
 import { messagePersonUrl, personUrl } from '@hylo/navigation'
 import BadgeEmoji from 'components/BadgeEmoji'
 import Dropdown from 'components/Dropdown'
-import Icon from 'components/Icon'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from 'components/ui/dialog'
 import useAppearance from 'hooks/useAppearance'
-import { Check, MapPin, MessageCircle, Trash2 } from 'lucide-react'
+import usePillRowClamp from 'hooks/usePillRowClamp'
+import { Check, EllipsisVertical, MapPin, MessageCircle, Trash2 } from 'lucide-react'
 import { RESP_REMOVE_MEMBERS } from 'store/constants'
 import { cn, bgImageStyle } from 'util/index'
+import { formatLocalizedDate } from 'util/dateFormat'
 import getMe from 'store/selectors/getMe'
 import { getResponsibilityTitlesForGroup } from 'store/selectors/getResponsibilitiesForGroup'
 import getRolesForGroup from 'store/selectors/getRolesForGroup'
@@ -26,8 +28,6 @@ import {
   CARD_CLASS,
   CARD_TITLE_CLASS
 } from 'routes/AuthLayoutRouter/components/ContextMenu/viewCardTheme'
-
-import classes from './Member.module.scss'
 
 const { bool, object, string, shape } = PropTypes
 
@@ -46,7 +46,7 @@ function parseMemberDate (value) {
 /** Format join date for display. */
 function formatJoinDate (value) {
   const date = parseMemberDate(value)
-  return date ? date.toLocaleDateString() : null
+  return formatLocalizedDate(date, { style: 'short' })
 }
 
 /** Active metadata note — green dot + "Active", or a short relative time like post headers. */
@@ -110,7 +110,7 @@ function hueFromName (name) {
 /** "Mar 2023"-style join date for the card footer. */
 function formatJoinedShort (value) {
   const date = parseMemberDate(value)
-  return date ? date.toLocaleDateString(undefined, { month: 'short', year: 'numeric' }) : null
+  return formatLocalizedDate(date, { style: 'monthYear' })
 }
 
 function Member ({
@@ -145,27 +145,77 @@ function Member ({
     dispatch(push(personUrl(id, slug)))
   }, [dispatch])
 
-  const handleRemoveClick = useCallback((e, id, name) => {
-    e.preventDefault()
-
-    if (window.confirm(t('are you sure you want to remove {{name}}?', { name }))) {
-      removeMember(id)
-    }
-  }, [removeMember, t])
-
   const { id, name, location, tagline, avatarUrl, bannerUrl, enrolledAt, lastActiveAt } = member
   const canSubmit = showFundingRoundRoles && memberHasRequiredRole(roles, submitterRoles)
   const canVote = showFundingRoundRoles && memberHasRequiredRole(roles, voterRoles)
   const isViewer = showFundingRoundRoles && !canSubmit && !canVote
 
-  const removeDropdown = currentUserResponsibilities.includes(RESP_REMOVE_MEMBERS) && (
+  const skills = (member.skills || []).map(s => s?.name).filter(Boolean)
+  const [skillsExpanded, setSkillsExpanded] = useState(false)
+  const skillsClamp = usePillRowClamp(skills.length, 3, skillsExpanded)
+
+  const [confirmingRemove, setConfirmingRemove] = useState(false)
+  const canRemove = Boolean(removeMember) && currentUserResponsibilities.includes(RESP_REMOVE_MEMBERS)
+
+  const confirmRemove = useCallback(() => {
+    setConfirmingRemove(false)
+    removeMember(member.id)
+  }, [removeMember, member.id])
+
+  const removeDropdown = (onPhoto) => canRemove && (
     <Dropdown
       id='member-dropdown'
       alignRight
-      className={classes.dropdown}
-      toggleChildren={<Icon name='More' />}
-      items={[{ icon: <Trash2 className='w-4 h-4 text-destructive' />, label: t('Remove'), onClick: (e) => handleRemoveClick(e, id, name), red: true }]}
+      toggleChildren={
+        <span className={cn(
+          'w-8 h-8 grid place-items-center rounded-lg border transition-all',
+          onPhoto
+            ? 'bg-black/40 border-white/25 text-white/80 hover:bg-black/60 hover:border-white/50 hover:text-white'
+            : 'bg-foreground/5 border-foreground/20 text-foreground/60 hover:bg-foreground/10 hover:border-foreground/40 hover:text-foreground'
+        )}
+        >
+          <EllipsisVertical className='w-4 h-4' />
+        </span>
+      }
+      items={[{ icon: <Trash2 className='w-4 h-4 text-destructive' />, label: t('Remove member from group'), onClick: () => setConfirmingRemove(true), red: true }]}
     />
+  )
+
+  // Rendered through a portal, so it lives outside the card's click target
+  const removeConfirmDialog = canRemove && (
+    <Dialog open={confirmingRemove} onOpenChange={setConfirmingRemove}>
+      <DialogContent className='max-w-md'>
+        <DialogHeader>
+          <DialogTitle>{t('Remove member')}</DialogTitle>
+        </DialogHeader>
+        <DialogDescription asChild>
+          <div className='flex flex-wrap items-center gap-1.5 text-sm text-foreground/80'>
+            <span>{t('You are about to permanently remove')}</span>
+            <span className='inline-flex items-center gap-1.5 font-semibold text-foreground'>
+              <span className='w-6 h-6 rounded-full bg-cover bg-center inline-block shrink-0' style={bgImageStyle(avatarUrl)} />
+              {name}
+            </span>
+            <span>{t('from the group. Are you sure?')}</span>
+          </div>
+        </DialogDescription>
+        <DialogFooter>
+          <button
+            type='button'
+            onClick={confirmRemove}
+            className='rounded-md bg-destructive text-white px-3 py-1.5 text-sm font-medium hover:opacity-90 transition-opacity'
+          >
+            {t('Remove')}
+          </button>
+          <button
+            type='button'
+            onClick={() => setConfirmingRemove(false)}
+            className='rounded-md border-2 border-foreground/20 px-3 py-1.5 text-sm font-medium text-foreground hover:border-foreground/50 transition-all'
+          >
+            {t('Cancel')}
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 
   const showJoinAnswersBlock = canSeeJoinAnswers && showAnswers && member.groupJoinQuestionAnswers?.items?.length > 0
@@ -212,7 +262,7 @@ function Member ({
           }}
           onMouseEnter={() => setHover(true)}
           onMouseLeave={() => setHover(false)}
-          onClick={goToPerson(id, group.slug)}
+          onClick={goToPerson(id, group?.slug)}
           data-testid='member-card'
         >
           {onPhoto && (
@@ -221,9 +271,9 @@ function Member ({
               <div className='absolute inset-0' style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.6) 100%)' }} />
             </>
           )}
-          {removeDropdown && (
+          {canRemove && (
             <div className='absolute top-2 right-2 z-20' onClick={e => e.stopPropagation()}>
-              {removeDropdown}
+              {removeDropdown(true)}
             </div>
           )}
           <div className='relative h-full'>
@@ -246,7 +296,7 @@ function Member ({
               {roles.length > 0 && (
                 <div className='inline-flex gap-0.5 justify-center'>
                   {roles.map(role => (
-                    <BadgeEmoji key={role.id + role.common} expanded {...role} responsibilities={role.responsibilities} id={id} />
+                    <BadgeEmoji key={role.id + role.common} expanded showName {...role} responsibilities={role.responsibilities} id={id} />
                   ))}
                 </div>
               )}
@@ -265,6 +315,7 @@ function Member ({
           </div>
         </div>
         {joinAnswersBlock}
+        {removeConfirmDialog}
       </div>
     )
   }
@@ -272,7 +323,6 @@ function Member ({
   // ─── Design directory card + row (bd-members) ─────────────────────────────
 
   const isSelf = currentUser && String(currentUser.id) === String(id)
-  const skills = (member.skills || []).map(s => s?.name).filter(Boolean)
   const joinedShort = formatJoinedShort(enrolledAt)
   const hue = hueFromName(name)
 
@@ -295,7 +345,7 @@ function Member ({
 
   const trackBlock = showTrackCompletion && (
     trackCompletedAt
-      ? <div className='text-xs text-selected flex items-center gap-1'><Check className='w-3 h-3' /> {t('Completed {{date}}', { date: new Date(trackCompletedAt).toLocaleDateString() })}</div>
+      ? <div className='text-xs text-selected flex items-center gap-1'><Check className='w-3 h-3' /> {t('Completed {{date}}', { date: formatLocalizedDate(trackCompletedAt, { style: 'short' }) })}</div>
       : <div className='text-xs text-foreground/50'>{t('Not yet completed')}</div>
   )
 
@@ -313,10 +363,15 @@ function Member ({
     </div>
   )
 
+  // With nothing to show between them, the banner sits directly on the footer's
+  // dividing line instead of an empty padded block
+  const hasCardBody = roles.length > 0 || Boolean(tagline) || skills.length > 0 ||
+    Boolean(trackBlock) || Boolean(fundingRoundBlock) || Boolean(joinAnswersBlock)
+
   if (layout === 'row') {
     return (
       <div className={cn('flex flex-col border-b border-foreground/10 last:border-b-0', className)} data-testid='member-card'>
-        <div onClick={goToPerson(id, group.slug)} className='flex items-center gap-2.5 px-3 py-2.5 cursor-pointer hover:bg-foreground/5 transition-colors min-w-0'>
+        <div onClick={goToPerson(id, group?.slug)} className='flex items-center gap-2.5 px-3 py-2.5 cursor-pointer hover:bg-foreground/5 transition-colors min-w-0'>
           <div className='w-8 h-8 rounded-full bg-cover bg-center shrink-0' style={bgImageStyle(avatarUrl)} />
           <div className='min-w-0 flex-1'>
             <div className='flex items-center gap-1.5 min-w-0'>
@@ -325,7 +380,7 @@ function Member ({
               {roles.length > 0 && (
                 <span className='inline-flex gap-0.5 shrink-0'>
                   {roles.map(role => (
-                    <BadgeEmoji key={role.id + role.common} expanded {...role} responsibilities={role.responsibilities} id={id} />
+                    <BadgeEmoji key={role.id + role.common} expanded showName {...role} responsibilities={role.responsibilities} id={id} />
                   ))}
                 </span>
               )}
@@ -339,7 +394,7 @@ function Member ({
           {joinedShort && <span className='hidden sm:block text-xs text-foreground/50 whitespace-nowrap shrink-0'>{joinedShort}</span>}
           <MemberActiveNote lastActiveAt={lastActiveAt} />
           {messageButton(false)}
-          {removeDropdown && <div onClick={e => e.stopPropagation()}>{removeDropdown}</div>}
+          {canRemove && <div onClick={e => e.stopPropagation()}>{removeDropdown(false)}</div>}
         </div>
         {(trackBlock || fundingRoundBlock || joinAnswersBlock) && (
           <div className='flex flex-col gap-2 px-3 pb-3'>
@@ -348,6 +403,7 @@ function Member ({
             {joinAnswersBlock}
           </div>
         )}
+        {removeConfirmDialog}
       </div>
     )
   }
@@ -355,19 +411,19 @@ function Member ({
   return (
     <div
       className={cn('relative flex flex-col overflow-hidden rounded-xl bg-card border border-foreground/20 hover:border-foreground/60 hover:-translate-y-px transition-all cursor-pointer', className)}
-      onClick={goToPerson(id, group.slug)}
+      onClick={goToPerson(id, group?.slug)}
       data-testid='member-card'
     >
       {/* Header: the member's own banner behind avatar, name and message — or a
           gradient tinted by their name when they have none */}
       <div
-        className='relative p-4 bg-cover bg-center'
+        className='relative p-3 bg-cover bg-center'
         style={bannerUrl
           ? bgImageStyle(bannerUrl)
           : { background: `linear-gradient(135deg, hsl(${hue} 42% 30%), hsl(${(hue + 45) % 360} 38% 22%))` }}
       >
         <div className='absolute inset-0' style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.42), rgba(0,0,0,0.66))' }} />
-        <div className='relative flex items-start gap-3'>
+        <div className='relative flex items-center gap-3'>
           <div className={cn('w-12 h-12 rounded-full bg-cover bg-center shrink-0 shadow-md', isSelf && 'ring-2 ring-selected')} style={bgImageStyle(avatarUrl)} />
           <div className='flex-1 min-w-0'>
             <div className='text-white font-bold text-base leading-tight truncate'>
@@ -375,46 +431,60 @@ function Member ({
               {isSelf && <span className='text-white/70 font-semibold text-xs'> · {t('You')}</span>}
             </div>
             {location && (
-              <div className='flex items-center gap-1 mt-1 text-xs text-white/70 min-w-0'>
+              <div className='flex items-center gap-1 mt-0.5 text-xs text-white/70 min-w-0'>
                 <MapPin className='w-3 h-3 shrink-0' /><span className='truncate'>{location}</span>
               </div>
             )}
           </div>
-          {messageButton(true)}
-          {removeDropdown && <div onClick={e => e.stopPropagation()}>{removeDropdown}</div>}
+          <div className='flex items-center gap-1.5 shrink-0' onClick={e => e.stopPropagation()}>
+            {messageButton(true)}
+            {removeDropdown(true)}
+          </div>
         </div>
       </div>
 
-      <div className='p-4 pt-3 flex flex-col flex-1'>
-        {roles.length > 0 && (
-          <div className='flex flex-wrap gap-1 mb-2'>
-            {roles.map(role => (
-              <BadgeEmoji key={role.id + role.common} expanded {...role} responsibilities={role.responsibilities} id={id} />
-            ))}
-          </div>
-        )}
-        {tagline && <div className='text-sm text-foreground/70 leading-relaxed'>{tagline}</div>}
-        {skills.length > 0 && (
-          <div className='flex flex-wrap gap-1.5 mt-3'>
-            {skills.map(skill => (
-              <span key={skill} className='px-2.5 py-0.5 rounded-full text-xs bg-foreground/5 border border-foreground/15 text-foreground/70'>{skill}</span>
-            ))}
-          </div>
-        )}
-        {(trackBlock || fundingRoundBlock) && (
-          <div className='flex flex-col gap-1.5 mt-3'>
-            {trackBlock}
-            {fundingRoundBlock}
-          </div>
-        )}
-        {joinAnswersBlock && <div className='mt-3'>{joinAnswersBlock}</div>}
-        <div className='mt-auto pt-3'>
-          <div className='border-t border-foreground/10 pt-2.5 flex items-center gap-2 text-xs text-foreground/50'>
-            <MemberActiveNote lastActiveAt={lastActiveAt} />
-            {joinedShort && <span className='ml-auto'>{t('Joined {{date}}', { date: joinedShort })}</span>}
-          </div>
+      {hasCardBody && (
+        <div className='p-4 pt-3 flex flex-col'>
+          {roles.length > 0 && (
+            <div className='flex flex-wrap gap-1 mb-2'>
+              {roles.map(role => (
+                <BadgeEmoji key={role.id + role.common} expanded showName {...role} responsibilities={role.responsibilities} id={id} />
+              ))}
+            </div>
+          )}
+          {tagline && <div className='text-sm text-foreground/70 leading-relaxed'>{tagline}</div>}
+          {skills.length > 0 && (
+            <div ref={skillsClamp.containerRef} className='flex flex-wrap gap-1.5 mt-3'>
+              {skills.map(skill => (
+                <span key={skill} className='px-2.5 py-0.5 rounded-full text-xs bg-foreground/5 border border-foreground/15 text-foreground/70'>{skill}</span>
+              ))}
+              {!skillsExpanded && (
+                <button
+                  type='button'
+                  onClick={e => { e.stopPropagation(); setSkillsExpanded(true) }}
+                  className='px-2.5 py-0.5 rounded-full text-xs bg-foreground/10 border border-foreground/15 text-foreground/70 hover:bg-foreground/15 hover:text-foreground transition-colors'
+                >
+                  {t('({{count}} more...)', { count: skills.length - skillsClamp.visibleCount })}
+                </button>
+              )}
+            </div>
+          )}
+          {(trackBlock || fundingRoundBlock) && (
+            <div className='flex flex-col gap-1.5 mt-3'>
+              {trackBlock}
+              {fundingRoundBlock}
+            </div>
+          )}
+          {joinAnswersBlock && <div className='mt-3'>{joinAnswersBlock}</div>}
+        </div>
+      )}
+      <div className='px-4 pb-3'>
+        <div className='border-t border-foreground/10 pt-2.5 flex items-center gap-2 text-xs text-foreground/50'>
+          <MemberActiveNote lastActiveAt={lastActiveAt} />
+          {joinedShort && <span className='ml-auto'>{t('Joined {{date}}', { date: joinedShort })}</span>}
         </div>
       </div>
+      {removeConfirmDialog}
     </div>
   )
 }

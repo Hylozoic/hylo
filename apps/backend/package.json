@@ -233,7 +233,7 @@
       "PostMembership",
       "PostUser",
       "ProjectRole",
-      "ProjectContributions",
+      "ProjectContribution",
       "ProposalOption",
       "ProposalVote",
       "PushNotification",

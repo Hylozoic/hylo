@@ -7,7 +7,7 @@ import Loading from 'components/Loading'
 import TrackCard from 'components/TrackCard'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import fetchGroupTracks, { FETCH_GROUP_TRACKS } from 'store/actions/fetchGroupTracks'
-import { RESP_MANAGE_SPACES } from 'store/constants'
+import { RESP_ADMINISTRATION } from 'store/constants'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getTracks from 'store/selectors/getTracksForGroup'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
@@ -18,7 +18,7 @@ function Tracks () {
   const { t } = useTranslation()
   const routeParams = useParams()
   const currentGroup = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
-  const canManageTracks = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_MANAGE_SPACES, groupId: currentGroup?.id }))
+  const canManageTracks = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADMINISTRATION, groupId: currentGroup?.id }))
 
   const tracks = useSelector(state => getTracks(state, { groupId: currentGroup.id }))
   const tracksToDisplay = useMemo(() => canManageTracks ? tracks : tracks.filter(track => track.publishedAt), [canManageTracks, tracks])

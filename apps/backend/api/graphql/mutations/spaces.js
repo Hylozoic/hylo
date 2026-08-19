@@ -24,7 +24,7 @@ async function uniqueSlug (baseSlug) {
 }
 
 /**
- * Require Manage Spaces or Administration on the parent group to manage a space.
+ * Require Administration on the parent group to manage a space.
  * Does not require space membership (stewards are not auto-added to every space).
  * @param {object} [opts]
  * @param {boolean} [opts.includeInactive] - allow inactive (archived) spaces; used by delete
@@ -39,9 +39,7 @@ async function requireSpaceManager (userId, spaceId, action, { includeInactive =
   if (!parentId) throw new GraphQLError('Space has no parent group')
 
   const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, parentId)
-  const canManage = responsibilities.includes(Responsibility.constants.RESP_MANAGE_SPACES) ||
-    responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)
-  if (!canManage) {
+  if (!responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)) {
     throw new GraphQLError(`You don't have permission to ${action}`)
   }
   return space
@@ -56,7 +54,7 @@ export async function createSpace (userId, { parentGroupId, name, slug, accepted
   if (!parentGroup) throw new GraphQLError('Parent group not found')
 
   const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, parentGroupId)
-  if (!responsibilities.includes(Responsibility.constants.RESP_MANAGE_SPACES)) {
+  if (!responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)) {
     throw new GraphQLError("You don't have permission to create spaces in this group")
   }
 
@@ -74,6 +72,7 @@ export async function createSpace (userId, { parentGroupId, name, slug, accepted
     // Start the cached count at zero — left unset it is NULL, and the join-path
     // increment (NULL + 1) can never bring it back
     num_members: 0,
+    num_open_join_requests: 0,
     parent_id: parentGroupId,
     name: name.trim(),
     slug: finalSlug,
@@ -103,7 +102,7 @@ export async function createSpace (userId, { parentGroupId, name, slug, accepted
     await Group.setupSpaceViews(space.id, acceptedPostTypes, viewTypes, { transacting: trx })
 
     // Add a `type = 'space'` menu entry to the parent group's view list (spec section 2.5).
-    // When addToMenu is false (Add Space from More Views), create off-menu (order = null).
+    // When addToMenu is false (Add Space from More Spaces), create off-menu (order = null).
     const spaceViewAttrs = {
       group_id: parentGroupId,
       type: GroupView.Type.SPACE,
@@ -225,21 +224,29 @@ export async function joinSpace (userId, spaceId) {
     throw new GraphQLError('You must be a member of the parent group to join this space')
   }
 
-  if (space.get('paywall')) {
-    throw new GraphQLError('This space requires purchased access to join')
-  }
+  // Administration on the parent can join any space (closed, restricted, role-gated, paywalled)
+  // without requesting or holding a required role
+  const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, parentId)
+  const canAdministerParent = responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)
 
-  if (space.get('accessibility') !== Group.Accessibility.OPEN) {
-    throw new GraphQLError('This space requires a request to join')
-  }
+  if (!canAdministerParent) {
+    if (space.get('paywall')) {
+      throw new GraphQLError('This space requires purchased access to join')
+    }
 
-  const requiredRoles = space.get('required_roles')
-  if (requiredRoles && requiredRoles.length > 0) {
-    const memberRoleIds = await bookshelf.knex('group_memberships_group_roles')
-      .where({ user_id: userId, group_id: parentId, active: true })
-      .pluck('group_role_id')
-    if (!requiredRoles.some(roleId => memberRoleIds.includes(roleId))) {
-      throw new GraphQLError('You do not have the required role to join this space')
+    const requiredRoles = space.get('required_roles')
+    const isRoleGated = Array.isArray(requiredRoles) && requiredRoles.length > 0
+
+    if (isRoleGated) {
+      const memberRoleIds = await bookshelf.knex('group_memberships_group_roles')
+        .where({ user_id: userId, group_id: parentId, active: true })
+        .pluck('group_role_id')
+      const memberRoleIdSet = new Set(memberRoleIds.map(id => String(id)))
+      if (!requiredRoles.some(roleId => memberRoleIdSet.has(String(roleId)))) {
+        throw new GraphQLError('You do not have the required role to join this space')
+      }
+    } else if (space.get('accessibility') !== Group.Accessibility.OPEN) {
+      throw new GraphQLError('This space requires a request to join')
     }
   }
 

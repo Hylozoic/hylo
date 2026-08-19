@@ -86,6 +86,15 @@ export function fetchModerationActions ({ slug, offset, sortBy, first = 20 }) {
             groupId
             status
             createdAt
+            group {
+              id
+              name
+              slug
+              avatarUrl
+              icon
+              type
+              parentId
+            }
             post {
               id
               title
@@ -125,7 +134,7 @@ export function fetchModerationActions ({ slug, offset, sortBy, first = 20 }) {
       slug,
       extractModel: 'ModerationAction',
       extractQueryResults: {
-        getItems: get('payload.data.items.moderationActions')
+        getItems: get('payload.data.moderationActions')
       }
     }
   }

@@ -22,6 +22,7 @@ import fetchForGroup from 'store/actions/fetchForGroup'
 import { updateGroupSettings } from 'routes/GroupSettings/GroupSettings.store'
 import { canDeleteView, canHardDeleteView, canSetAsHomeView, isSoftRemoveView, viewTypeHasSettings } from 'store/models/GroupView'
 import { cn } from 'util/index'
+import { sanitizeURL } from 'util/url'
 
 /** Build initial custom view form state from a GroupView record. */
 function customViewFormState (view) {
@@ -36,6 +37,11 @@ function customViewFormState (view) {
   }
 }
 
+/** Text for a text view — prefer pageContent, fall back to legacy name from widget migration. */
+function textContentFromView (view) {
+  return view?.pageContent || view?.name || ''
+}
+
 /** Settings modal for editing a single GroupView row. */
 export default function GroupViewSettingsModal ({ view, group, onClose }) {
   const { t } = useTranslation()
@@ -44,9 +50,10 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
   const [name, setName] = useState(view?.name || '')
   const [link, setLink] = useState(view?.link || '')
   const [linkIcon, setLinkIcon] = useState(view?.icon || 'Globe')
-  const [textContent, setTextContent] = useState(view?.pageContent || '')
+  const [textContent, setTextContent] = useState(() => textContentFromView(view))
   const [showWelcomePage, setShowWelcomePage] = useState(group?.settings?.showWelcomePage ?? true)
   const [showPostNoticesInChat, setShowPostNoticesInChat] = useState(group?.settings?.showPostNoticesInChat ?? true)
+  const [showChatActivity, setShowChatActivity] = useState(view?.settings?.showChatActivity !== false)
   const [customForm, setCustomForm] = useState(() => customViewFormState(view))
   const [isSaving, setIsSaving] = useState(false)
 
@@ -54,9 +61,10 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
     setName(view?.name || '')
     setLink(view?.link || '')
     setLinkIcon(view?.icon || 'Globe')
-    setTextContent(view?.pageContent || '')
+    setTextContent(textContentFromView(view))
     setShowWelcomePage(group?.settings?.showWelcomePage ?? true)
     setShowPostNoticesInChat(group?.settings?.showPostNoticesInChat ?? true)
+    setShowChatActivity(view?.settings?.showChatActivity !== false)
     setCustomForm(customViewFormState(view))
   }, [
     view?.id,
@@ -93,20 +101,32 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
         if (showPostNoticesInChat !== (group.settings?.showPostNoticesInChat ?? true)) {
           await dispatch(updateGroupSettings(group.id, { settings: { showPostNoticesInChat } }))
         }
+      } else if (view.type === 'all') {
+        await dispatch(updateGroupView({
+          id: view.id,
+          groupId: group.id,
+          settings: {
+            ...(view.settings || {}),
+            showChatActivity
+          }
+        }))
       } else if (view.type === 'link') {
+        const trimmedLink = link.trim()
         await dispatch(updateGroupView({
           id: view.id,
           groupId: group.id,
           name: name.trim() || null,
-          link: link.trim() || null,
+          link: trimmedLink ? (sanitizeURL(trimmedLink) || trimmedLink) : null,
           icon: linkIcon
         }))
       } else if (view.type === 'text') {
         const trimmed = textContent.trim() || null
+        // Clear legacy name so migrated text views store content only in pageContent
         await dispatch(updateGroupView({
           id: view.id,
           groupId: group.id,
-          pageContent: trimmed
+          pageContent: trimmed,
+          name: null
         }))
       } else if (view.type === 'custom') {
         await dispatch(updateGroupView({
@@ -148,6 +168,7 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
     textContent,
     showWelcomePage,
     showPostNoticesInChat,
+    showChatActivity,
     onClose
   ])
 
@@ -174,7 +195,9 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
 
   if (!view) return null
 
-  const title = displayNameForView(view, t, { spaceGroup: spaceGroupForLabel })
+  const title = view.type === 'text'
+    ? t('Edit Text View')
+    : displayNameForView(view, t, { spaceGroup: spaceGroupForLabel })
   const canBeHome = canSetAsHomeView(view)
   const canSaveCustom = customForm.name.trim().length >= 2 && customForm.postTypes.length > 0
   const saveDisabled = view.type === 'custom' ? !canSaveCustom : isSaving
@@ -222,6 +245,19 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
               />
               <span className='text-sm text-foreground/80'>
                 {t('Show post notices in chat when other post types are created in this group.')}
+              </span>
+            </div>
+          )}
+
+          {view.type === 'all' && (
+            <div className='flex items-center gap-2'>
+              <SwitchStyled
+                checked={showChatActivity}
+                onChange={() => setShowChatActivity(v => !v)}
+                backgroundColor={showChatActivity ? 'hsl(var(--selected))' : 'rgba(0 0 0 / .6)'}
+              />
+              <span className='text-sm text-foreground/80'>
+                {t('Show chat activity in All Activity')}
               </span>
             </div>
           )}
@@ -289,7 +325,7 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
 }
 
 /** Inline gear / remove controls shown on hover in edit mode.
- * X moves soft-removable views to More Views; trash permanently deletes when allowed. */
+ * X moves spaces to More Spaces; trash permanently deletes when allowed. */
 export function GroupViewEditActions ({ view, onSettings, onHide, onDelete, className }) {
   const { t } = useTranslation()
   const removable = canDeleteView(view)

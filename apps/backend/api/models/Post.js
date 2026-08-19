@@ -2,7 +2,7 @@
 
 import data from '@emoji-mart/data'
 import { init, getEmojiDataFromNative } from 'emoji-mart'
-import { difference, filter, get, omitBy, uniqBy, isEmpty, intersection, isUndefined, pick } from 'lodash/fp'
+import { difference, filter, get, omitBy, uniq, uniqBy, isEmpty, intersection, isUndefined, pick } from 'lodash/fp'
 import { DateTime } from 'luxon'
 import format from 'pg-format'
 import { flatten, sortBy } from 'lodash'
@@ -12,6 +12,7 @@ import { postRoom, pushToSockets } from '../services/Websockets'
 import { fulfill, unfulfill } from './post/fulfillPost'
 import { decrementNewPostCount } from './post/deletePost'
 import { incrementNewPostCount } from './post/createPost'
+import upsertChatActivityNoticeForPost from './post/upsertChatActivityNotice'
 import EnsureLoad from './mixins/EnsureLoad'
 import { countTotal } from '../../lib/util/knex'
 import { refineMany, refineOne } from './util/relations'
@@ -114,6 +115,13 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
   flaggedGroups: function () {
     return this.get('flagged_groups') || []
+  },
+
+  /**
+   * Tag names denormalized on posts.tag_names.
+   */
+  tagNames: function () {
+    return this.get('tag_names') || []
   },
 
   commentsTotal: function () {
@@ -339,7 +347,10 @@ module.exports = bookshelf.Model.extend(Object.assign({
     const { media, groups, linkPreview, tags, user, proposalOptions } = this.relations
 
     const creator = refineOne(user, ['id', 'name', 'avatar_url'])
-    const topics = refineMany(tags, ['id', 'name'])
+    const topics = this.tagNames().map(name => {
+      const tag = tags && tags.find(t => t.get('name') === name)
+      return tag ? refineOne(tag, ['id', 'name']) : { name }
+    })
 
     // TODO: Sanitization -- sanitize details here if not passing through `text` getter
     return Object.assign({},
@@ -448,7 +459,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
       url: context
         ? Frontend.appendQueryString(Frontend.Route.mapPost(this, context, slug), clickthroughParams)
         : Frontend.appendQueryString(Frontend.Route.post(this, group, '', fundingRound), clickthroughParams),
-      when: this.get('start_time') && DateTimeHelpers.formatDatePair({ start: this.get('start_time'), end: this.get('end_time'), timezone: this.get('timezone') })
+      when: this.get('start_time') && DateTimeHelpers.formatDatePair({ start: this.get('start_time'), end: this.get('end_time'), timezone: this.get('timezone'), locale })
     }
   },
 
@@ -638,7 +649,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
   },
 
   pushTypingToSockets: function (userId, userName, isTyping, socketToExclude) {
-    pushToSockets(postRoom(this.id), 'userTyping', { userId, userName, isTyping }, socketToExclude)
+    pushToSockets(postRoom(this.id), 'userTyping', { userId, userName, isTyping, postId: String(this.id) }, socketToExclude)
   },
 
   copy: function (attrs) {
@@ -652,8 +663,10 @@ module.exports = bookshelf.Model.extend(Object.assign({
   },
 
   createActivities: async function (trx) {
+    if (Post.isNoticeType(this.get('type'))) return
+
     await this.load(['groups', 'tags'], { transacting: trx })
-    const { tags, groups } = this.relations
+    const { groups } = this.relations
     let activitiesToCreate = []
 
     const mentions = RichText.getUserMentions(this.details())
@@ -667,24 +680,20 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
     // Activities get created for every chat or post, and then we decide whether to send notifications for them in Activity.generateNotificationMedia
     if (this.get('type') === Post.Type.CHAT) {
-      const tagFollows = await TagFollow.query(qb => {
-        qb.join('group_memberships', 'group_memberships.group_id', 'tag_follows.group_id')
-        qb.where('group_memberships.active', true)
-        qb.whereRaw('group_memberships.user_id = tag_follows.user_id')
-        qb.whereIn('tag_id', tags.map('id'))
-        qb.whereIn('tag_follows.group_id', groups.map('id'))
-      })
-        .fetchAll({ withRelated: ['tag'], transacting: trx })
-
-      const tagFollowers = tagFollows.map(tagFollow => ({
-        reader_id: tagFollow.get('user_id'),
-        post_id: this.id,
-        actor_id: this.get('user_id'),
-        group_id: tagFollow.get('group_id'),
-        reason: `chat: ${tagFollow.relations.tag.get('name')}`
+      // Chat is a GroupView now, not a topic. Notify group/space members;
+      // generateNotificationMedia applies postNotifications (all / important / none).
+      const members = await Promise.all(groups.map(async group => {
+        const userIds = await group.members().fetch().then(u => u.pluck('id'))
+        return userIds.map(userId => ({
+          reader_id: userId,
+          post_id: this.id,
+          actor_id: this.get('user_id'),
+          group_id: group.id,
+          reason: 'chat'
+        }))
       }))
 
-      activitiesToCreate = activitiesToCreate.concat(tagFollowers)
+      activitiesToCreate = activitiesToCreate.concat(flatten(members))
     } else if (this.get('type') !== Post.Type.ACTION && this.get('type') !== Post.Type.SUBMISSION) {
       // Non-chat posts are sent to all members of the groups the post is in
       // XXX: no notifications sent for Actions right now
@@ -853,6 +862,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
   Type: {
     ACTION: 'action',
     CHAT: 'chat',
+    CHAT_ACTIVITY: 'chat_activity',
     DISCUSSION: 'discussion',
     EVENT: 'event',
     OFFER: 'offer',
@@ -863,6 +873,12 @@ module.exports = bookshelf.Model.extend(Object.assign({
     SUBMISSION: 'submission',
     THREAD: 'thread',
     WELCOME: 'welcome'
+  },
+
+  NOTICE_TYPES: ['chat_activity'],
+
+  isNoticeType: function (type) {
+    return Post.NOTICE_TYPES.includes(type)
   },
 
   Proposal_Status: {
@@ -1077,7 +1093,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
         Activity.removeForPost(postId, trx),
         Track.removePost(postId, trx),
         Post.where('id', postId).query().update({ active: false, deactivated_at: new Date() }).transacting(trx),
-        Queue.classMethod('Post', 'decrementNewPostCountForDeletedPost', { postId }, 0)
+        Queue.classMethod('Post', 'decrementNewPostCountForDeletedPost', { postId }, 0),
+        Queue.classMethod('Post', 'upsertChatActivityNotice', { postId })
       )),
 
   // Background task to decrement new_post_count when a post is deleted
@@ -1097,7 +1114,17 @@ module.exports = bookshelf.Model.extend(Object.assign({
     }
   },
 
+  // Background task: rebuild the hourly chat activity notice for a chat post
+  upsertChatActivityNotice: async ({ postId }) => {
+    try {
+      await upsertChatActivityNoticeForPost({ postId })
+    } catch (error) {
+      console.error('Error upserting chat activity notice:', error)
+    }
+  },
+
   // Background task to increment new_post_count when a post is created
+
   incrementNewPostCountForCreatedPost: async ({ postId }) => {
     const post = await Post.find(postId, { withRelated: ['groups', 'tags'] })
     if (!post) return
@@ -1186,8 +1213,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
       }
 
       if (notifyGroup) {
-        const manageSpacesResponsibility = await Responsibility.where({ title: Responsibility.constants.RESP_MANAGE_SPACES }).fetch({ transacting: trx })
-        const stewards = await notifyGroup.membersWithResponsibilities([manageSpacesResponsibility.id]).fetch({ transacting: trx })
+        const adminResponsibility = await Responsibility.where({ title: Responsibility.constants.RESP_ADMINISTRATION }).fetch({ transacting: trx })
+        const stewards = await notifyGroup.membersWithResponsibilities([adminResponsibility.id]).fetch({ transacting: trx })
         const stewardsIds = stewards.pluck('id')
         const activities = stewardsIds.map(stewardId => ({
           reason: 'trackCompleted',
@@ -1231,7 +1258,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
   notifySlack: ({ postId }) =>
     Post.find(postId, { withRelated: ['groups', 'user', 'relatedUsers'] })
       .then(post => {
-        if (!post) return
+        if (!post || Post.isNoticeType(post.get('type'))) return
         const slackCommunities = post.relations.groups.filter(g => g.get('slack_hook_url'))
         return Promise.map(slackCommunities, g => Group.notifySlack(g.id, post))
       }),
@@ -1261,7 +1288,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
   // Background task to fire zapier triggers on new_post
   zapierTriggers: async ({ postId }) => {
     const post = await Post.find(postId, { withRelated: ['groups', 'tags', 'user'] })
-    if (!post) return
+    if (!post || Post.isNoticeType(post.get('type'))) return
 
     const groupIds = post.relations.groups.map(g => g.id)
     const zapierTriggers = await ZapierTrigger.forTypeAndGroups('new_post', groupIds).fetchAll()
@@ -1329,6 +1356,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
     const post = await Post.find(postId)
     if (!post) return
 
+    const inviteeIds = uniq([userId, ...(eventInviteeIds || [])])
+
     // create event invitation for event owner so they get an rsvp email
     const eventInvitation = await EventInvitation.create({
       userId,
@@ -1339,9 +1368,10 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
     // NOTE: method names that are plural affect collections
     // methods that are singular affect a single object
-    await post.updateEventInvitees({ eventInviteeIds, inviterId: userId, params })
+    await post.updateEventInvitees({ eventInviteeIds: inviteeIds, inviterId: userId, params })
     await post.createGroupEventCalendarSubscriptions()
-    await post.sendUserRsvp({ eventInvitationId: eventInvitation.id, eventChanges: { new: true } })
+    const ownerInvitation = await EventInvitation.find({ userId, eventId: postId }) || eventInvitation
+    await post.sendUserRsvp({ eventInvitationId: ownerInvitation.id, eventChanges: { new: true } })
     Queue.classMethod('User', 'createRsvpCalendarSubscription', { userId })
   },
 
@@ -1349,7 +1379,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     const post = await Post.find(postId)
     if (!post) return
 
-    const eventChanged = eventChanges.start_time || eventChanges.end_time || eventChanges.location
+    const eventChanged = eventChanges.start_time || eventChanges.end_time || eventChanges.location || eventChanges.meeting_link
 
     // NOTE: method names that are plural affect collections
     // methods that are singular affect a single object

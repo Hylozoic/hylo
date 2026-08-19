@@ -39,6 +39,10 @@ exports.hi = {
   moderationYouFlaggedAPost: () => 'आपने एक पोस्ट रिपोर्ट की',
   moderationYouFlaggedPostEmailContent: ({ post, group }) => `आपने समूह ${group.get('name')} में पोस्ट "${post.summary()}" को समूह समझौते का उल्लंघन बताकर रिपोर्ट किया। \n`,
   moderationYourPostWasFlagged: () => 'आपकी पोस्ट रिपोर्ट की गई',
+  moderationPostClosedEmailSubject: () => 'आपकी पोस्ट बंद कर दी गई',
+  moderationPostReopenedEmailSubject: () => 'आपकी पोस्ट फिर से खोल दी गई',
+  moderationPostClosedEmailContent: ({ post, group, actor }) => `${actor.get('name')} ने ${group.get('name')} समूह में आपकी पोस्ट "${post.summary()}" बंद कर दी। \n`,
+  moderationPostReopenedEmailContent: ({ post, group, actor }) => `${actor.get('name')} ने ${group.get('name')} समूह में आपकी पोस्ट "${post.summary()}" फिर से खोली। \n`,
   Name: () => 'नाम',
   newSavedSearchResults: (name) => `${name} में सहेजी खोज के नए परिणाम`,
   textForApprovedJoinRequest: ({ actor, groupName }) => `${actor.get('name')} ने ${groupName} में शामिल होने के आपके अनुरोध को मंजूर किया`,
@@ -65,8 +69,17 @@ exports.hi = {
   textForGroupInvitationAccepted: ({ actor, groupName }) => `${actor.get('name')} ने ${groupName} में शामिल होने के आपके निमंत्रण को स्वीकार किया`,
   textForGroupPeerGroupInvite: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} ने आपके समूह ${toGroup.get('name')} को ${fromGroup.get('name')} के साथ सहकर्मी संबंध बनाने के लिए आमंत्रित किया`,
   textForGroupPeerGroupInviteAccepted: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} ने ${fromGroup.get('name')} और ${toGroup.get('name')} के बीच सहकर्मी संबंध स्वीकार किया`,
-  textForJoinRequest: ({ actor, groupName }) => `${actor.get('name')} ने ${groupName} में शामिल होने के लिए कहा`,
+  textForJoinRequest: ({ actor, groupName, parentGroupName }) => parentGroupName
+    ? `${actor.get('name')} ने ${parentGroupName} में ${groupName} में शामिल होने के लिए कहा`
+    : `${actor.get('name')} ने ${groupName} में शामिल होने के लिए कहा`,
   textForMemberJoinedGroup: ({ group, actor }) => `${group.get('name')} में नया सदस्य शामिल हुआ: ${actor.get('name')}`,
+  textForPostModeratedFulfillment: ({ post, actor, reason }) => {
+    const postName = post.summary()
+    if (reason === 'postUnfulfilled') {
+      return `${actor.get('name')} ने आपकी पोस्ट "${postName}" फिर से खोली`
+    }
+    return `${actor.get('name')} ने आपकी पोस्ट "${postName}" बंद कर दी`
+  },
   textForPostMention: ({ groupName, person, postName }) => `${person} ने ${groupName} में पोस्ट "${postName}" में आपका उल्लेख किया`,
   textForPost: ({ firstTag, groupName, person, postName }) => `${person} ने ${groupName} में "${postName}" पोस्ट की${firstTag ? ` #${firstTag}` : ''}`,
   textForTrackCompleted: ({ actor, track }) => `ट्रैक पूर्ण: "${track.get('name')}" ${actor.get('name')} द्वारा पूर्ण किया गया`,

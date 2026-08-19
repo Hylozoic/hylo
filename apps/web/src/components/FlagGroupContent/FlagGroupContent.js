@@ -16,11 +16,16 @@ import getGroupForDetail from 'store/selectors/getGroupForDetails'
 import getPlatformAgreements from 'store/selectors/getPlatformAgreements'
 import { groupUrl } from '@hylo/navigation'
 import Tooltip from 'components/Tooltip'
+import { useEffectiveGroupSlug, useGroupRouteOpts } from 'contexts/SpaceGroupContext'
+import getGroupForSlug from 'store/selectors/getGroupForSlug'
 
 const FlagGroupContent = ({ onClose, onFlag, linkData, type = 'content' }) => {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const { id, slug } = linkData || {}
+  const effectiveGroupSlug = useEffectiveGroupSlug()
+  const { parentGroupSlug, spaceSlug } = useGroupRouteOpts()
+  const groupSlug = effectiveGroupSlug || slug
 
   useEffect(() => {
     dispatch(fetchPlatformAgreements())
@@ -38,11 +43,21 @@ const FlagGroupContent = ({ onClose, onFlag, linkData, type = 'content' }) => {
   }, [])
 
   const platformAgreements = useSelector(getPlatformAgreements)
-  const currentGroup = useSelector(state => getGroupForDetail(state, { slug }))
+  const currentGroup = useSelector(state => getGroupForDetail(state, { slug: groupSlug }))
+  const parentGroup = useSelector(state => {
+    if (spaceSlug && parentGroupSlug) return getGroupForSlug(state, parentGroupSlug)
+    return null
+  })
   const group = presentGroup(currentGroup)
+  const agreementsSource = presentGroup(parentGroup) || group
 
-  const agreements = group?.agreements || []
-  const groupAgreementsUrl = group ? groupUrl(group.slug) + '/about' : ''
+  const agreements = (agreementsSource?.agreements?.length
+    ? agreementsSource.agreements
+    : group?.agreements) || []
+  const agreementsGroupName = agreementsSource?.name || group?.name
+  const groupAgreementsUrl = agreementsSource
+    ? groupUrl(agreementsSource.slug) + '/about#agreements'
+    : ''
 
   const [anonymous, setAnonymous] = useState(false)
   const [explanation, setExplanation] = useState('')
@@ -115,7 +130,7 @@ const FlagGroupContent = ({ onClose, onFlag, linkData, type = 'content' }) => {
             />
             {group && agreements.length > 0 && (
               <div className='space-y-3'>
-                <h3 className='text-base font-medium'>{t('Not permitted in {{groupName}}', { groupName: group?.name })}</h3>
+                <h3 className='text-base font-medium'>{t('Not permitted in {{groupName}}', { groupName: agreementsGroupName })}</h3>
                 <a
                   href={groupAgreementsUrl}
                   target='_blank'

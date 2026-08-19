@@ -1,14 +1,13 @@
 /* eslint-disable no-unused-expressions */
 import setup from '../../../test/setup'
 import factories from '../../../test/setup/factories'
-import { assignCoordinator, ensureManageSpacesResponsibility } from '../../../test/setup/roleHelpers'
-import { archiveSpace, createSpace, deleteSpace } from './spaces'
+import { assignCoordinator } from '../../../test/setup/roleHelpers'
+import { archiveSpace, createSpace, deleteSpace, joinSpace, leaveSpace } from './spaces'
 
 describe('space mutations', () => {
   let coordinator, member, parentGroup
 
   before(async () => {
-    await ensureManageSpacesResponsibility()
     coordinator = await factories.user().save()
     member = await factories.user().save()
     parentGroup = await factories.group().save()
@@ -88,6 +87,69 @@ describe('space mutations', () => {
 
       expect(await Group.find(space.id)).to.not.be.null
       await deleteSpace(coordinator.id, space.id, {})
+    })
+  })
+
+  describe('joinSpace', () => {
+    async function createAndLeaveSpace (attrs) {
+      const space = await createSpace(coordinator.id, {
+        parentGroupId: parentGroup.id,
+        name: `Join ${Date.now()}`,
+        ...attrs
+      }, {})
+      await leaveSpace(coordinator.id, space.id)
+      return space
+    }
+
+    it('lets Administration join a restricted space without requesting', async () => {
+      const space = await createAndLeaveSpace({ accessibility: Group.Accessibility.RESTRICTED })
+
+      const membership = await joinSpace(coordinator.id, space.id)
+      expect(membership).to.be.ok
+
+      try {
+        await joinSpace(member.id, space.id)
+        expect.fail('should throw')
+      } catch (e) {
+        expect(e.message).to.match(/request to join/)
+      }
+    })
+
+    it('lets Administration join a closed space', async () => {
+      const space = await createAndLeaveSpace({ accessibility: Group.Accessibility.CLOSED })
+
+      const membership = await joinSpace(coordinator.id, space.id)
+      expect(membership).to.be.ok
+
+      try {
+        await joinSpace(member.id, space.id)
+        expect.fail('should throw')
+      } catch (e) {
+        expect(e.message).to.match(/request to join/)
+      }
+    })
+
+    it('lets Administration join a role-gated space without the required role', async () => {
+      const gatedRole = await GroupRole.forge({
+        group_id: parentGroup.id,
+        name: 'Gated',
+        emoji: '🔑',
+        type: GroupRole.TYPE_CUSTOM
+      }).save()
+      const space = await createAndLeaveSpace({
+        accessibility: Group.Accessibility.OPEN,
+        requiredRoles: [gatedRole.id]
+      })
+
+      const membership = await joinSpace(coordinator.id, space.id)
+      expect(membership).to.be.ok
+
+      try {
+        await joinSpace(member.id, space.id)
+        expect.fail('should throw')
+      } catch (e) {
+        expect(e.message).to.match(/required role/)
+      }
     })
   })
 })

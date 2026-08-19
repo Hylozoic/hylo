@@ -101,8 +101,12 @@ module.exports = bookshelf.Model.extend({
     return getLocaleStrings(locale).textForEventInvitation({ actor, postName })
   },
 
-  textForJoinRequest: function (group, actor, locale) {
-    return getLocaleStrings(locale).textForJoinRequest({ actor, groupName: group.get('name') })
+  textForJoinRequest: function (group, actor, locale, parentGroup) {
+    return getLocaleStrings(locale).textForJoinRequest({
+      actor,
+      groupName: group.get('name'),
+      parentGroupName: parentGroup ? parentGroup.get('name') : null
+    })
   },
 
   textForApprovedJoinRequest: function (group, actor, locale) {
@@ -176,6 +180,10 @@ module.exports = bookshelf.Model.extend({
 
   textForMemberJoinedGroup: function (group, actor, locale) {
     return getLocaleStrings(locale).textForMemberJoinedGroup({ group, actor })
+  },
+
+  textForPostModeratedFulfillment: function (post, actor, reason, locale) {
+    return getLocaleStrings(locale).textForPostModeratedFulfillment({ post, actor, reason })
   },
 
   textForTrackCompleted: function (track, actor, locale) {

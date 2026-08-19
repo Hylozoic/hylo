@@ -32,6 +32,9 @@ export default function GlobalNavItem ({
   children,
   className,
   badgeCount = 0,
+  // System buttons (create, notifications, messages, commons) keep the dark-mode
+  // tile in both schemes — the light tiles read as too loud on the rail
+  darkTile = false,
   img,
   tooltip,
   url,
@@ -230,7 +233,7 @@ export default function GlobalNavItem ({
         'rounded-lg opacity-85 hover:opacity-100',
         'scale-90 hover:scale-100 text-3xl',
         // Stacks read like the TopNav tabs: no tile background or shadow, just the layered avatars.
-        !hasChildren && 'bg-primary drop-shadow-md hover:drop-shadow-lg',
+        !hasChildren && cn('drop-shadow-md hover:drop-shadow-lg', darkTile ? 'bg-[hsl(0_0%_17%)] text-white' : 'bg-primary'),
         {
           'border-3 border-selected opacity-100 scale-110 hover:scale-110': selected,
           'border-3 border-accent opacity-100 scale-100 hover:scale-105': badgeCount > 0 || badgeCount === '!' || badgeCount === '-',

@@ -30,7 +30,8 @@ import updatePost from 'store/actions/updatePost'
 import getMe from 'store/selectors/getMe'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
 import { RESP_MANAGE_CONTENT } from 'store/constants'
-import { groupUrl, personUrl } from '@hylo/navigation'
+import { groupUrl, personUrl, spaceUrl } from '@hylo/navigation'
+import { useGroupRouteOpts } from 'contexts/SpaceGroupContext'
 import { getLocaleFromLocalStorage } from 'util/locale'
 import { hasActiveTextSelection, hasReadableContentSelection } from 'util/textSelectionTouch'
 import { cn } from 'util/index'
@@ -70,6 +71,7 @@ export default function ChatPost ({
   const isPressDevice = !window.matchMedia('(hover: hover) and (pointer: fine)').matches
   const currentUser = useSelector(getMe)
   const currentUserResponsibilities = useSelector(state => getResponsibilitiesForGroup(state, { person: currentUser, groupId: group.id })).map(r => r.title)
+  const { parentGroupSlug, spaceSlug } = useGroupRouteOpts()
 
   const [editing, setEditing] = useState(false)
   const [isVideo, setIsVideo] = useState()
@@ -79,7 +81,7 @@ export default function ChatPost ({
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false)
 
   const isCreator = currentUser.id === creator.id
-  const isFlagged = useMemo(() => group && post.flaggedGroups && post.flaggedGroups.includes(group.id), [group, post.flaggedGroups])
+  const isFlagged = useMemo(() => group && post.flaggedGroups && post.flaggedGroups.some(id => String(id) === String(group.id)), [group, post.flaggedGroups])
 
   const postGroups = useMemo(() => {
     if (groups?.length) return groups
@@ -234,7 +236,9 @@ export default function ChatPost ({
 
   const myEmojis = useMemo(() => postReactions ? postReactions.filter(reaction => reaction.user.id === currentUser.id).map((reaction) => reaction.emojiFull) : [], [postReactions, currentUser])
 
-  const moderationActionsGroupUrl = group && groupUrl(group.slug, 'moderation')
+  const moderationActionsGroupUrl = spaceSlug && parentGroupSlug
+    ? spaceUrl(parentGroupSlug, spaceSlug, '/moderation')
+    : (group && groupUrl(group.slug, 'moderation'))
 
   const handleMouseEnter = () => {
     if (!editing) setIsHovered(true)
@@ -264,7 +268,7 @@ export default function ChatPost ({
     <Highlight {...highlightProps}>
       <div
         className={cn(
-          'ChatPost_container rounded-lg pr-[15px] pb-[1px] px-1 py-1 -my-1 -mx-1 pt-1 relative transition-all group cursor-pointer border-2 border-transparent hover:border-foreground/50 select-text max-sm:pl-[15px]',
+          'ChatPost_container rounded-lg pr-[15px] pb-[1px] px-1 py-1 -my-1 -mx-1 pt-1 relative transition-all group cursor-pointer border-2 border-transparent select-text max-sm:pl-[15px]',
           showHeader ? 'py-1 mt-2' : ' ',
           className,
           {
@@ -369,7 +373,7 @@ export default function ChatPost ({
           <ClickCatcher groupSlug={group.slug} onClick={handleClick}>
             {/* break-words: an unbroken run (a long URL, a keysmash) must wrap rather
                 than widen the message container — visible mostly on phone widths */}
-            <div className={cn('ml-[42px] max-w-[700px] cursor-text select-text break-words', { 'blur-sm': isFlagged })}>
+            <div className={cn('ml-[42px] max-w-[calc(var(--chat-stream-width,750px)-50px)] cursor-text select-text break-words', { 'blur-sm': isFlagged })}>
               <HyloHTML className='w-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 break-words' html={details} />
             </div>
           </ClickCatcher>
@@ -380,12 +384,12 @@ export default function ChatPost ({
           id='flag-tt'
         />
         {linkPreview?.url && linkPreviewFeatured && isVideo && (
-          <div className='ml-[42px] mt-2 max-w-[700px] overflow-hidden rounded-lg'>
+          <div className='ml-[42px] mt-2 max-w-[calc(var(--chat-stream-width,750px)-50px)] overflow-hidden rounded-lg'>
             <Feature url={linkPreview.url} />
           </div>
         )}
         {linkPreview && !linkPreviewFeatured && (
-          <LinkPreview {...pick(['title', 'description', 'imageUrl', 'url'], linkPreview)} className='px-5 pb-[0.6rem] pl-[42px] block [&>div]:mb-0 max-w-[700px]' />
+          <LinkPreview {...pick(['title', 'description', 'imageUrl', 'url'], linkPreview)} className='px-5 pb-[0.6rem] pl-[42px] block [&>div]:mb-0 max-w-[calc(var(--chat-stream-width,750px)-50px)]' />
         )}
         <CardImageAttachments attachments={post.attachments} isFlagged={isFlagged && !post.clickthrough} forChatPost />
         {!isEmpty(fileAttachments) && (

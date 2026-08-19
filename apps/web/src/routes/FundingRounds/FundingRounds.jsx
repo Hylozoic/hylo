@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import Loading from 'components/Loading'
 import RoundImage from 'components/RoundImage'
-import { DateTimeHelpers } from '@hylo/shared'
+import { formatUserDatePair } from 'util/dateFormat'
 import { fundingRoundUrl } from '@hylo/navigation'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
@@ -13,7 +13,7 @@ import fetchGroupFundingRounds, { FETCH_GROUP_FUNDING_ROUNDS } from 'store/actio
 import getFundingRoundsForGroup from 'store/selectors/getFundingRoundsForGroup'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import isPendingFor from 'store/selectors/isPendingFor'
-import { RESP_MANAGE_SPACES } from 'store/constants'
+import { RESP_ADMINISTRATION } from 'store/constants'
 import { cn } from 'util/index'
 import { joinFundingRound, leaveFundingRound } from './FundingRounds.store'
 
@@ -32,7 +32,7 @@ const getRoundPhase = (round, t) => {
   }
 
   const toDate = (value) => (value ? new Date(value) : null)
-  const formatDate = (value) => (value ? DateTimeHelpers.formatDatePair({ start: value }) : null)
+  const formatDate = (value) => (value ? formatUserDatePair({ start: value }) : null)
   const now = new Date()
   const submissionsOpenAt = toDate(round.submissionsOpenAt)
   const submissionsCloseAt = toDate(round.submissionsCloseAt)
@@ -86,7 +86,7 @@ function FundingRounds () {
   const routeParams = useParams()
   const navigate = useNavigate()
   const currentGroup = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
-  const canManage = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_MANAGE_SPACES, groupId: currentGroup?.id }))
+  const canManage = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADMINISTRATION, groupId: currentGroup?.id }))
   const groupSlug = routeParams.groupSlug
 
   const rounds = useSelector(state => getFundingRoundsForGroup(state, { groupId: currentGroup.id }))

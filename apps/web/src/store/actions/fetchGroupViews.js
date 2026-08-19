@@ -9,6 +9,7 @@ export default function fetchGroupViews (groupId) {
       query: `query FetchGroupViews ($groupId: ID) {
         group(id: $groupId) {
           id
+          openJoinRequestCount
           groupViews {
             items {
               id
@@ -32,6 +33,8 @@ export default function fetchGroupViews (groupId) {
                 bannerUrl
                 icon
                 homeRoute
+                memberCount
+                openJoinRequestCount
                 description
                 purpose
                 location
@@ -109,7 +112,10 @@ export default function fetchGroupViews (groupId) {
                     lastReadPostId
                     viewPost {
                       id
+                      type
                       title
+                      startTime
+                      timezone
                     }
                     viewUser {
                       id
@@ -127,7 +133,10 @@ export default function fetchGroupViews (groupId) {
               }
               viewPost {
                 id
+                type
                 title
+                startTime
+                timezone
               }
               viewUser {
                 id

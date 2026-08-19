@@ -164,6 +164,17 @@ describe('createUrl', () => {
   })
 })
 
+describe('primaryPostUrl for space chat', () => {
+  it('uses the nested space chat path', () => {
+    const expected = '/groups/building-hylo/spaces/garden/chat?postId=123'
+    const actual = primaryPostUrl({ id: '123', type: 'chat' }, {
+      groupSlug: 'building-hylo',
+      spaceSlug: 'garden'
+    })
+    expect(actual).toEqual(expected)
+  })
+})
+
 describe('primaryPostUrl with comment', () => {
   it('returns correct path', () => {
     const expected = '/all/post/123/comments/456'

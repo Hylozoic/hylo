@@ -7,8 +7,10 @@ import { Tooltip } from 'react-tooltip'
 // import PropTypes from 'prop-types'
 import { useSelector, useDispatch } from 'react-redux'
 import { TextHelpers, WebViewMessageTypes } from '@hylo/shared'
+import { Bell, BellOff, Megaphone } from 'lucide-react'
 import Avatar from 'components/Avatar'
 import BadgeEmoji from 'components/BadgeEmoji'
+import SegmentedPicker from 'components/SegmentedPicker/SegmentedPicker'
 import ClickCatcher from 'components/ClickCatcher'
 import FarmGroupDetailBody from 'components/FarmGroupDetailBody'
 import GroupAboutVideoEmbed from 'components/GroupAboutVideoEmbed'
@@ -27,13 +29,6 @@ import {
   DialogHeader,
   DialogTitle
 } from 'components/ui/dialog'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from 'components/ui/select'
 import JoinSection from './JoinSection'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
@@ -74,6 +69,7 @@ import { leaveGroup } from 'routes/UserSettings/UserGroupsTab/UserGroupsTab.stor
 import { updateMembershipSettings } from 'routes/UserSettings/UserSettings.store'
 import GroupMembershipNotificationSettings from 'routes/UserSettings/NotificationSettingsTab/GroupMembershipNotificationSettings'
 import FundingRoundAboutInfo from 'components/FundingRoundAboutInfo/FundingRoundAboutInfo'
+import SpaceSettingsModal from 'routes/AuthLayoutRouter/components/ContextMenu/SpaceSettingsModal'
 
 import g from './GroupDetail.module.scss'
 import m from '../MapExplorer/MapDrawer/MapDrawer.module.scss' // eslint-disable-line no-unused-vars
@@ -207,6 +203,7 @@ function GroupDetail ({ forCurrentGroup = false }) {
   const agreementsSectionRef = useRef(null)
   const [agreementsLinkCopied, setAgreementsLinkCopied] = useState(false)
   const [showLeaveDialog, setShowLeaveDialog] = useState(false)
+  const [showSpaceSettings, setShowSpaceSettings] = useState(false)
   const isSpace = group?.type === GROUP_TYPES.space
 
   const handleCopyAgreementsLink = useCallback(() => {
@@ -309,6 +306,16 @@ function GroupDetail ({ forCurrentGroup = false }) {
           <img src={group.avatarUrl || DEFAULT_AVATAR} className='w-24 h-24 rounded-xl shadow-xl mt-0 mb-2' />
           <div>
             <div className='text-white font-bold text-2xl text-center'>{group.name}</div>
+            {isSpace && isAboutCurrentGroup && responsibilityTitles.includes(RESP_ADMINISTRATION) && (
+              <div className='flex justify-center mt-2'>
+                <Button
+                  variant='secondary'
+                  onClick={() => setShowSpaceSettings(true)}
+                >
+                  {t('Space Settings')}
+                </Button>
+              </div>
+            )}
             <div className='text-center'>
               <div className='flex flex-row justify-center gap-1 text-sm text-white/70'>
                 <span className={g.groupPrivacy}>
@@ -405,26 +412,22 @@ function GroupDetail ({ forCurrentGroup = false }) {
             </div>)
           : ''}
         {isMember?.settings && (
-          <div className='border-2 border-dashed border-foreground/20 rounded-xl p-4 mb-4'>
-            <h3 className='text-xl font-bold py-2'>{t('Notification Settings')}</h3>
+          <div className='rounded-xl border border-foreground/10 bg-foreground/5 p-4 mb-4'>
+            <div className='flex items-center gap-2 mb-1.5'>
+              <Bell className='w-4 h-4 text-selected' />
+              <span className='text-sm font-bold text-foreground'>{t('Notification Settings')}</span>
+            </div>
             {isSpace
               ? (
-                <div className='flex items-center justify-between gap-2 py-2'>
-                  <span>{t('Receive new post notifications in this space for')}</span>
-                  <Select
-                    value={isMember.settings.postNotifications}
-                    onValueChange={value => updateMySettings({ postNotifications: value })}
-                  >
-                    <SelectTrigger className='inline-flex w-auto'>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value='none'>{t('No Posts')}</SelectItem>
-                      <SelectItem value='important'>{t('Important Posts (Announcements & Mentions)')}</SelectItem>
-                      <SelectItem value='all'>{t('Every Post')}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                <SegmentedPicker
+                  value={isMember.settings.postNotifications}
+                  onChange={value => updateMySettings({ postNotifications: value })}
+                  options={[
+                    { value: 'none', label: t('Mute'), icon: BellOff, description: t("You won't hear about new posts in this space.") },
+                    { value: 'important', label: t('Important'), icon: Megaphone, description: t('Only announcements and posts that mention you.') },
+                    { value: 'all', label: t('All'), icon: Bell, description: t('Every new post in this space.') }
+                  ]}
+                />
                 )
               : (
                 <GroupMembershipNotificationSettings
@@ -501,6 +504,13 @@ function GroupDetail ({ forCurrentGroup = false }) {
                     )
           : ''}
       </div>
+      {showSpaceSettings && (
+        <SpaceSettingsModal
+          space={group}
+          group={group}
+          onClose={() => setShowSpaceSettings(false)}
+        />
+      )}
       <Dialog open={showLeaveDialog} onOpenChange={setShowLeaveDialog}>
         <DialogContent>
           <DialogHeader>

@@ -3,7 +3,7 @@ import { GROUP_ACCESSIBILITY, GROUP_VISIBILITY } from 'store/models/Group'
 /** Suggested icons covering common space archetypes (chat, circle, team, local group, etc). */
 export const SPACE_ICON_SUGGESTIONS = [
   'Circle',
-  'MessageCircleMore',
+  'MessageSquareMore',
   'Shapes',
   'BadgeDollarSign',
   'Layers',
