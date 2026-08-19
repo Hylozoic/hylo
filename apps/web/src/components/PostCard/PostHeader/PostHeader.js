@@ -393,10 +393,19 @@ function PostHeader (props) {
                 )}
               </div>
             </Highlight>
-            <div className='flex items-center ml-2'>
+            {/* Wraps rather than clips: on phones the badge drops to the next
+                line instead of getting cropped by the header's overflow-hidden */}
+            <div className='flex items-center flex-wrap gap-y-1 ml-2'>
               <span className='text-foreground/50 text-2xs whitespace-nowrap mr-3' data-tooltip-id={`dateTip-${id}`} data-tooltip-content={exactCreatedTimestamp}>
                 {createdTimestamp}
               </span>
+              {/* Phones keep just the gold pin square; the label returns at xs */}
+              {pinned && (
+                <span title={t('Pinned')} className='inline-flex items-center shrink-0 gap-1 h-7 px-1.5 xs:px-2 mr-2 rounded-md text-[9.5px] font-bold uppercase tracking-wider bg-[hsl(45_45%_90%)] dark:bg-[hsl(45_45%_18%)] border border-[hsl(45_45%_60%)] dark:border-[hsl(45_45%_34%)] text-[hsl(45_60%_35%)] dark:text-[hsl(45_65%_72%)]'>
+                  <svg width='10' height='10' viewBox='0 0 24 24' fill='currentColor' aria-hidden='true'><path d='M14 2l1 5 4 3-1 2-5-1-4 6-1-1 4-6-3-4 2-1 3-4z' transform='rotate(15 12 12)' /></svg>
+                  <span className='hidden xs:inline'>{t('Pinned')}</span>
+                </span>
+              )}
               {type !== 'submission' && (
                 // h-7 (and rounded-md) so the pill and the three-dot toggle read as one control family.
                 // The old py1 was a dead class — the pill never actually had vertical padding.
@@ -404,6 +413,7 @@ function PostHeader (props) {
                   <Icon name={getPostTypeIcon(type)} className='text-sm' dataTestId={'post-type-' + type.charAt(0).toUpperCase() + type.slice(1)} />
                   {t(type)}
                 </div>)}
+
               {announcement && (
                 <span className='mt-[-2px]'>
                   <span className='text-2xs mx-3 relative top-[-6px]'>•</span>
@@ -416,12 +426,6 @@ function PostHeader (props) {
           </div>
 
           <div className={cn('flex items-center justify-end ml-auto', { hidden: constrained })}>
-            {pinned && (
-              <span className='inline-flex items-center gap-1 h-6 px-2 mr-2 rounded-md text-[9.5px] font-bold uppercase tracking-wider bg-[hsl(45_45%_90%)] dark:bg-[hsl(45_45%_18%)] border border-[hsl(45_45%_60%)] dark:border-[hsl(45_45%_34%)] text-[hsl(45_60%_35%)] dark:text-[hsl(45_65%_72%)]'>
-                <svg width='9' height='9' viewBox='0 0 24 24' fill='currentColor' aria-hidden='true'><path d='M14 2l1 5 4 3-1 2-5-1-4 6-1-1 4-6-3-4 2-1 3-4z' transform='rotate(15 12 12)' /></svg>
-                {t('Pinned')}
-              </span>
-            )}
             {isFlagged && <Link to={moderationActionsGroupUrl} className='text-decoration-none' data-tooltip-content={t('See why this post was flagged')} data-tooltip-id='post-header-flag-tt'><Icon name='Flag' className='top-1 mr-3 text-xl text-accent font-bold' /></Link>}
             <Tooltip
               delay={250}
