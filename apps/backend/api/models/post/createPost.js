@@ -2,6 +2,7 @@ import { GraphQLError } from 'graphql'
 import { flatten, merge, pick, uniq } from 'lodash'
 import setupPostAttrs from './setupPostAttrs'
 import updateChildren from './updateChildren'
+import { assertGroupsAcceptPostType } from './validatePostData'
 import { groupRoom, pushToSockets } from '../../services/Websockets'
 import {
   POST_TYPE_TO_TYPED_VIEW,
@@ -9,6 +10,7 @@ import {
 } from '@hylo/shared'
 
 export default async function createPost (userId, params) {
+  await assertGroupsAcceptPostType(params.group_ids, params.type)
   return setupPostAttrs(userId, merge(Post.newPostAttrs(), params), true)
     .then(attrs => bookshelf.transaction(transacting =>
       Post.create(attrs, { transacting })
