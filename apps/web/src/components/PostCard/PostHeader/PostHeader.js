@@ -417,7 +417,7 @@ function PostHeader (props) {
 
           <div className={cn('flex items-center justify-end ml-auto', { hidden: constrained })}>
             {pinned && (
-              <span className='inline-flex items-center gap-1 px-2 py-0.5 mr-2 rounded-md text-[9.5px] font-bold uppercase tracking-wider bg-[hsl(45_45%_90%)] dark:bg-[hsl(45_45%_18%)] border border-[hsl(45_45%_60%)] dark:border-[hsl(45_45%_34%)] text-[hsl(45_60%_35%)] dark:text-[hsl(45_65%_72%)]'>
+              <span className='inline-flex items-center gap-1 h-6 px-2 mr-2 rounded-md text-[9.5px] font-bold uppercase tracking-wider bg-[hsl(45_45%_90%)] dark:bg-[hsl(45_45%_18%)] border border-[hsl(45_45%_60%)] dark:border-[hsl(45_45%_34%)] text-[hsl(45_60%_35%)] dark:text-[hsl(45_65%_72%)]'>
                 <svg width='9' height='9' viewBox='0 0 24 24' fill='currentColor' aria-hidden='true'><path d='M14 2l1 5 4 3-1 2-5-1-4 6-1-1 4-6-3-4 2-1 3-4z' transform='rotate(15 12 12)' /></svg>
                 {t('Pinned')}
               </span>
@@ -433,8 +433,8 @@ function PostHeader (props) {
             {dropdownItems.length > 0 &&
               <Dropdown id='post-header-more-dropdown' toggleChildren={<Icon name='More' dataTestId='post-header-more-icon' className='cursor-pointer border-2 border-foreground/30 rounded-md h-7 w-7 flex items-center justify-center !top-0' />} items={dropdownItems} alignRight noOverflow portal />}
             {close &&
-              <a className={cn('inline-block cursor-pointer relative px-3 text-xl')} data-testid='post-detail-close' onClick={close}>
-                <Icon name='Ex' className='align-middle' />
+              <a className='flex items-center justify-center cursor-pointer h-7 px-3 text-xl' data-testid='post-detail-close' onClick={close}>
+                <Icon name='Ex' className='leading-none !top-0' />
               </a>}
           </div>
         </div>
