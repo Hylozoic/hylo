@@ -1,9 +1,10 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { CircleCheckBig } from 'lucide-react'
+import { CircleCheckBig, Pin } from 'lucide-react'
 import { TextHelpers } from '@hylo/shared'
 import Avatar from 'components/Avatar'
 import Icon from 'components/Icon'
+import useCurrentPinnableView from 'hooks/useCurrentPinnableView'
 import useViewPostDetails from 'hooks/useViewPostDetails'
 import childGroupLabel from 'util/childGroupLabel'
 import { cn } from 'util/index'
@@ -34,6 +35,8 @@ export default function PostGridItem ({
   const { t } = useTranslation()
   const isFlagged = post.flaggedGroups && post.flaggedGroups.some(id => String(id) === String(currentGroupId))
   const viewPostDetails = useViewPostDetails()
+  const pinnableView = useCurrentPinnableView()
+  const pinnedInView = (pinnableView?.pinnedPostIds || []).map(pid => String(pid)).includes(String(post.id))
 
   const groupLabel = childPost ? childGroupLabel(post, t) : null
 
@@ -72,6 +75,7 @@ export default function PostGridItem ({
         {/* Content overlay at bottom */}
         <div className='absolute bottom-0 left-0 right-0 p-3 z-10 pb-0'>
           <h3 className='flex items-center text-white font-bold text-sm line-clamp-2 drop-shadow-md mb-0 mt-0 leading-tight'>
+            {pinnedInView && <Pin className='w-3.5 h-3.5 mr-1 shrink-0 text-[hsl(45_80%_70%)]' strokeWidth={2.5} aria-hidden='true' />}
             {post.fulfilledAt && <span className='mr-1'><CircleCheckBig className='w-4 text-green-500' /></span>}
             {title}
           </h3>
@@ -111,6 +115,7 @@ export default function PostGridItem ({
       {/* Content */}
       <div className='p-3 flex-1 flex flex-col min-h-0 overflow-hidden pb-0'>
         <h3 className='flex items-center text-foreground font-bold text-sm line-clamp-2 mb-1 mt-0 shrink-0 leading-tight'>
+          {pinnedInView && <Pin className='w-3.5 h-3.5 mr-1 shrink-0 text-[hsl(45_65%_45%)] dark:text-[hsl(45_65%_62%)]' strokeWidth={2.5} aria-hidden='true' />}
           {post.fulfilledAt && <span className='mr-1'><CircleCheckBig className='w-4 text-green-500' /></span>}
           {title}
         </h3>

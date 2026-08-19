@@ -216,6 +216,7 @@
       "GroupToGroupJoinQuestion",
       "GroupToGroupJoinRequestQuestionAnswer",
       "GroupView",
+      "GroupViewPin",
       "GroupViewUser",
       "GroupWidget",
       "Invitation",

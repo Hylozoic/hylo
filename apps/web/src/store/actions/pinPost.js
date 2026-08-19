@@ -1,23 +1,25 @@
 import { PIN_POST } from 'store/constants'
 
 /**
- * Toggles a post's pinned state within one group (server toggles
- * groups_posts.pinned_at; RESP_MANAGE_CONTENT is required).
+ * Toggles a post's pinned state on one view (server toggles group_view_pins;
+ * RESP_MANAGE_CONTENT is required).
  */
-export default function pinPost (postId, groupId) {
+export default function pinPost (postId, viewId, groupId, post) {
   return {
     type: PIN_POST,
     graphql: {
-      query: `mutation PinPost ($postId: ID, $groupId: ID) {
-        pinPost(postId: $postId, groupId: $groupId) {
+      query: `mutation PinPost ($postId: ID, $viewId: ID) {
+        pinPost(postId: $postId, viewId: $viewId) {
           success
         }
       }`,
-      variables: { postId, groupId }
+      variables: { postId, viewId }
     },
     meta: {
       postId,
+      viewId,
       groupId,
+      post,
       optimistic: true
     }
   }

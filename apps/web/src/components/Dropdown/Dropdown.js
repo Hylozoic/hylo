@@ -5,6 +5,7 @@ import { cn } from 'util/index'
 import { isEmpty } from 'lodash'
 import { position } from 'util/scrolling'
 import { useDropdown } from 'contexts/DropdownContext'
+import Tooltip from 'components/Tooltip'
 import classes from './Dropdown.module.scss'
 
 /**
@@ -163,9 +164,20 @@ const Dropdown = ({ children, className, triangle, items, toggleChildren, alignR
             'flex items-center px-4 py-2 cursor-pointer select-none',
             'text-foreground hover:bg-accent/10 transition-colors',
             'border-b border-foreground/10 last:border-b-0',
-            { 'text-destructive': item.red }
+            { 'text-destructive': item.red },
+            { 'text-foreground/40 cursor-default hover:bg-transparent': item.disabled }
           )}
-          onClick={item.onClick}
+          onClick={(e) => {
+            if (item.disabled) {
+              e.stopPropagation()
+              e.preventDefault()
+              return
+            }
+            item.onClick?.(e)
+          }}
+          data-tooltip-id={item.tooltip ? `dropdown-tt-${id}` : undefined}
+          data-tooltip-content={item.tooltip}
+          title={item.tooltip}
           key={item.key || item.label}
         >
           {renderIcon(item.icon)}
@@ -192,6 +204,9 @@ const Dropdown = ({ children, className, triangle, items, toggleChildren, alignR
       <span className={cn('flex items-center cursor-pointer gap-2', { [classes.toggled]: active })} onClick={handleToggle} data-testid='dropdown-toggle'>
         {toggleChildren}
       </span>
+      {items?.some(item => item.tooltip) && (
+        <Tooltip delay={200} id={`dropdown-tt-${id}`} position='left' />
+      )}
       {portal && active && anchorRect
         ? createPortal(
           <div

@@ -604,7 +604,6 @@ module.exports = bookshelf.Model.extend(merge({
     })
 
     return Post.collection().query(q => {
-      q.queryContext({ primaryGroupId: this.id }) // To help with sorting pinned posts
       q.join('users', 'posts.user_id', 'users.id')
       q.where('users.active', true)
       q.andWhere(q2 => {

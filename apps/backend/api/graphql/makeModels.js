@@ -1,4 +1,4 @@
-/* global FundingRound ContentAccess Draft GroupView GroupViewUser CollectionPost */
+/* global FundingRound ContentAccess Draft GroupView GroupViewUser GroupViewPin CollectionPost */
 import DataLoader from 'dataloader'
 import { camelCase, isNil, mapKeys, startCase } from 'lodash/fp'
 import pluralize from 'pluralize'
@@ -468,7 +468,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
               mentionsOf,
               offset,
               order,
-              pinned,
               savedBy,
               search,
               sortBy,
@@ -493,10 +492,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
                 mentionsOf,
                 offset,
                 order,
-                pinned,
                 savedBy,
                 search,
-                showPinnedFirst: false,
                 sortBy,
                 topic,
                 topics,
@@ -679,7 +676,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
         mentionsOf,
         offset,
         order,
-        pinned,
         proposalOutcome,
         proposalStatus,
         savedBy,
@@ -708,7 +704,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
           onlyMyGroups: context === 'all' || context === 'my',
           onlyPublic: context === 'public',
           order,
-          pinned,
           proposalOutcome,
           proposalStatus,
           savedBy,
@@ -843,9 +838,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
                 isFulfilled,
                 order,
                 search,
-                // Pinned posts lead the aggregate stream too; chat stays chronological.
-                // util's primaryGroupId queryContext keeps child-group pins out.
-                showPinnedFirst: filter !== 'chat',
                 sortBy,
                 topic,
                 topics,
@@ -960,9 +952,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
                 isFulfilled,
                 order,
                 search,
-                // Pinned posts lead the aggregate stream too; chat stays chronological.
-                // util's primaryGroupId queryContext keeps child-group pins out.
-                showPinnedFirst: filter !== 'chat',
                 sortBy,
                 topic,
                 topics,
@@ -974,7 +963,13 @@ export default function makeModels (userId, isAdmin, apiClient) {
         { widgets: { querySet: true } },
         { groupExtensions: { querySet: true } },
         // Spaces & Views (see docs/spaces-and-views-engineering-spec.md section 4.2)
-        { groupViews: { querySet: true } },
+        { groupViews: {
+          querySet: true,
+          filter: (relation, { id } = {}) => {
+            if (!id) return relation
+            return relation.query(q => q.where('group_views.id', id))
+          }
+        } },
         { spaces: { querySet: true } },
         'parentGroup',
         'track',
@@ -1107,6 +1102,19 @@ export default function makeModels (userId, isAdmin, apiClient) {
         // public, blocked-user) since this is a custom getter and bypasses the generic Post filter.
         collectionPosts: async gv => {
           const rows = await gv.collectionPosts().fetch()
+          const postIds = rows.map(row => row.get('post_id'))
+          if (postIds.length === 0) return []
+
+          const posts = await postFilter(userId, isAdmin)(Post.query(q => q.whereIn('posts.id', postIds))).fetchAll()
+          const postsById = new Map(posts.map(post => [String(post.id), post]))
+          return postIds.map(id => postsById.get(String(id))).filter(Boolean)
+        },
+        pinnedPostIds: async gv => {
+          const rows = await gv.pins().fetch()
+          return rows.map(row => row.get('post_id'))
+        },
+        pinnedPosts: async gv => {
+          const rows = await gv.pins().fetch()
           const postIds = rows.map(row => row.get('post_id'))
           if (postIds.length === 0) return []
 

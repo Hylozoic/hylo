@@ -325,6 +325,20 @@ Data has moved; **all of these tables still exist in the database.** Dropping th
 | `group_relationships` | Unchanged — peer/affiliation relationships between groups. Spaces do **not** use this. |
 | `widgets` / `group_widgets` | Unchanged — legacy explore/landing page |
 
+### 2.10 `group_view_pins` — per-view pinned posts
+
+```sql
+CREATE TABLE group_view_pins (
+  id         bigserial PRIMARY KEY,
+  view_id    bigint NOT NULL REFERENCES group_views(id) ON DELETE CASCADE,
+  post_id    bigint NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+  pinned_at  timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (view_id, post_id)
+);
+```
+
+Replaces `groups_posts.pinned_at` (dropped). Max **3 pins per view**. The post must have a `groups_posts` row for the view's own group (no pinning child-space posts onto a parent view). Mutation: `pinPost(postId, viewId)` (toggles). Display: `GroupView.pinnedPosts` (separate query). Stream/grid/list show full cards at the top (omitted from the rest of the feed). Chat and calendar use a chips row; calendar events also stay in their natural calendar positions. Pinnable types: `all`, typed post views, `chat`, `custom`, `collection`.
+
 ---
 
 ## 3. Backend Models
@@ -340,6 +354,7 @@ linkedGroup()     → belongsTo(Group, 'linked_group_id')
 viewPost()        → belongsTo(Post, 'post_id')
 viewUser()        → belongsTo(User, 'user_id')
 collectionPosts() → hasMany(CollectionPost, 'view_id').orderBy('order', 'asc')
+pins()            → hasMany(GroupViewPin, 'view_id').orderBy('pinned_at', 'desc')
 viewsUsers()      → hasMany(GroupViewUser, 'view_id')
 ```
 
@@ -1512,7 +1527,6 @@ These get a slightly more detailed prompt describing the specific change.
 - Group and space templates UI (hardcoded defaults today)
 - Per-view notification settings — `group_views_users.settings` exists and is written but never read (§8)
 - Digest emails grouping space posts under space section headers (inline `in {{space}}` labels ship instead)
-- Pinned posts per view (coming soon)
 - Kanban view mode
 - Promote a Space to a Group (architecture supports it; no UI)
 - Analytics per space

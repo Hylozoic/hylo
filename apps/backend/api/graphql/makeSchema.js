@@ -713,7 +713,7 @@ export function makeMutations ({ fetchOne }) {
 
     messageGroupStewards: (root, { groupId }, context) => messageGroupStewards(context.currentUserId, groupId),
 
-    pinPost: (root, { postId, groupId }, context) => pinPost(context.currentUserId, postId, groupId),
+    pinPost: (root, { postId, viewId }, context) => pinPost(context.currentUserId, postId, viewId),
 
     peopleTyping,
 

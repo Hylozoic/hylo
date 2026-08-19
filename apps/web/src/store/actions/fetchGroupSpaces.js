@@ -54,6 +54,7 @@ export default function fetchGroupSpaces (groupId) {
                   settings
                   newPostCount
                   lastReadPostId
+                  pinnedPostIds
                   pageContent
                   viewPost {
                     id

@@ -31,6 +31,7 @@ import useRouteParams from 'hooks/useRouteParams'
 import fetchForGroup from 'store/actions/fetchForGroup'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import fetchPosts from 'store/actions/fetchPosts'
+import fetchViewPinnedPosts from 'store/actions/fetchViewPinnedPosts'
 import updateGroupViewUser from 'store/actions/updateGroupViewUser'
 import { FETCH_POSTS, RESP_ADD_MEMBERS, RESP_MANAGE_CONTENT } from 'store/constants'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
@@ -42,7 +43,6 @@ import getMe from 'store/selectors/getMe'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import { getPostResults } from 'store/selectors/getPosts'
 import { getGroupViews } from 'store/selectors/getGroupViews'
-import getPinnedPosts from 'store/selectors/getPinnedPosts'
 import { cn } from 'util/index'
 import { groupInviteUrl, groupUrl } from '@hylo/navigation'
 import { isLegacyWebView } from 'util/webView'
@@ -151,13 +151,12 @@ export default function ChatRoom (props) {
   const groupLoading = !!groupSlug && !group
 
   const canModerateContent = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_MANAGE_CONTENT, groupId: group?.id }))
-  const pinnedPosts = useSelector(state => getPinnedPosts(state, group?.id))
+  const pinnedPosts = chatView?.pinnedPosts || []
 
-  // Pinned posts can be older than the loaded window — fetch them directly
   useEffect(() => {
-    if (!group?.id || !groupSlug) return
-    dispatch(fetchPosts({ context: 'groups', slug: groupSlug, childPostInclusion: 'no', pinned: true, first: 20, sortBy: 'created' }))
-  }, [dispatch, group?.id, groupSlug])
+    if (!group?.id || !chatView?.id) return
+    dispatch(fetchViewPinnedPosts(group.id, chatView.id))
+  }, [dispatch, group?.id, chatView?.id])
 
   const querystringParams = getQuerystringParam(['search', 'postId'], location)
   const search = querystringParams?.search
@@ -830,6 +829,7 @@ export default function ChatRoom (props) {
         {/* Pinned posts ride the top edge as chips, left of the presence cluster */}
         <PinnedPostChips
           posts={pinnedPosts}
+          viewId={chatView?.id}
           groupId={group?.id}
           canModerate={canModerateContent}
           className='absolute top-1.5 left-3 right-24 sm:right-[240px] z-30'

@@ -85,6 +85,7 @@ query FetchGroupsMenuData (
           settings
           newPostCount
           lastReadPostId
+          pinnedPostIds
           linkedGroup {
             id
             name
@@ -171,6 +172,7 @@ query FetchGroupsMenuData (
                 settings
                 newPostCount
                 lastReadPostId
+                pinnedPostIds
                 viewPost {
                   id
                   title
@@ -242,6 +244,7 @@ query FetchGroupsMenuData (
               settings
               newPostCount
               lastReadPostId
+              pinnedPostIds
               pageContent
               viewPost {
                 id

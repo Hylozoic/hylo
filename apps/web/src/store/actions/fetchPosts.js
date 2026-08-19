@@ -22,7 +22,6 @@ export default function fetchPosts ({
   mentionsOf,
   offset,
   order,
-  pinned,
   savedBy,
   search,
   slug,
@@ -67,7 +66,6 @@ export default function fetchPosts ({
         mentionsOf,
         offset,
         order,
-        pinned,
         savedBy,
         search,
         slug,
@@ -94,7 +92,6 @@ export default function fetchPosts ({
 }
 
 const groupQuery = (childPostInclusion, { includeGroups = true, fieldsVariant } = {}) => `query GroupPostsQuery (
-  ${childPostInclusion ? '' : '$pinned: Boolean,'}
   $activePostsOnly: Boolean,
   $afterTime: Date,
   $beforeTime: Date,

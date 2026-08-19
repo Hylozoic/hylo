@@ -1,6 +1,6 @@
 import { filter, isEmpty, isFunction, pick } from 'lodash/fp'
 import { BookmarkCheck, Bookmark, Check, Flag, MessageCircle, Pencil, Pin, PinOff, Trash2, X } from 'lucide-react'
-import { DateTimeHelpers } from '@hylo/shared'
+import { DateTimeHelpers, MAX_PINNED_POSTS_PER_VIEW } from '@hylo/shared'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
@@ -35,6 +35,7 @@ import { useGroupRouteOpts } from 'contexts/SpaceGroupContext'
 import { getLocaleFromLocalStorage } from 'util/locale'
 import { hasActiveTextSelection, hasReadableContentSelection } from 'util/textSelectionTouch'
 import pinPostAction from 'store/actions/pinPost'
+import useCurrentPinnableView from 'hooks/useCurrentPinnableView'
 import { cn } from 'util/index'
 
 export default function ChatPost ({
@@ -56,7 +57,6 @@ export default function ChatPost ({
     details,
     editedAt,
     fileAttachments,
-    groups, // TODO: why pass this in, why not pull from getGroupFromSlug?
     id,
     linkPreview,
     linkPreviewFeatured,
@@ -72,6 +72,7 @@ export default function ChatPost ({
   const isPressDevice = !window.matchMedia('(hover: hover) and (pointer: fine)').matches
   const currentUser = useSelector(getMe)
   const currentUserResponsibilities = useSelector(state => getResponsibilitiesForGroup(state, { person: currentUser, groupId: group.id })).map(r => r.title)
+  const pinnableView = useCurrentPinnableView()
   const { parentGroupSlug, spaceSlug } = useGroupRouteOpts()
 
   const [editing, setEditing] = useState(false)
@@ -85,9 +86,9 @@ export default function ChatPost ({
   const isFlagged = useMemo(() => group && post.flaggedGroups && post.flaggedGroups.some(id => String(id) === String(group.id)), [group, post.flaggedGroups])
 
   const postGroups = useMemo(() => {
-    if (groups?.length) return groups
+    if (post.groups?.length) return post.groups
     return group ? [{ id: group.id, name: group.name, slug: group.slug }] : []
-  }, [groups, group])
+  }, [post.groups, group])
 
   const groupIds = useMemo(() => postGroups.map(g => g.id), [postGroups])
 
@@ -224,18 +225,26 @@ export default function ChatPost ({
     }
   }, [savedAt, id])
 
-  const pinned = !!post.postMemberships?.find?.(pm => String(pm.group) === String(group.id))?.pinned
+  const pinnedPostIds = (pinnableView?.pinnedPostIds || []).map(pid => String(pid))
+  const pinned = pinnedPostIds.includes(String(id))
+  const atPinCap = pinnedPostIds.length >= MAX_PINNED_POSTS_PER_VIEW && !pinned
+  const canShowPin = currentUserResponsibilities.includes(RESP_MANAGE_CONTENT) &&
+    !!pinnableView?.id &&
+    !!group?.id
+  const pinAtCap = canShowPin && atPinCap
+  const canPin = canShowPin && (pinned || !atPinCap)
   const handlePinPost = useCallback(() => {
-    dispatch(pinPostAction(id, group.id))
-  }, [dispatch, id, group.id])
+    if (!pinnableView?.id || !group?.id) return
+    dispatch(pinPostAction(id, pinnableView.id, group.id, post))
+  }, [dispatch, id, pinnableView?.id, group?.id, post])
 
-  const actionItems = filter(item => isFunction(item.onClick), [
+  const actionItems = filter(item => isFunction(item.onClick) || item.disabled, [
     // { icon: 'Copy', label: 'Copy Link', onClick: copyLink },
     { icon: <MessageCircle className='w-4 h-4 text-foreground' />, label: 'Reply', onClick: showPost, tooltip: 'Reply to post' },
     // TODO: Edit disabled in mobile environments due to issue with keyboard management and autofocus of field
     { icon: <Pencil className='w-4 h-4 text-foreground' />, label: 'Edit', onClick: (isCreator && !isLongPress) ? editPost : null, tooltip: 'Edit post' },
     { icon: savedAt ? <BookmarkCheck className='w-4 h-4 text-foreground' /> : <Bookmark className='w-4 h-4 text-foreground' />, label: savedAt ? t('Unsave Post') : t('Save Post'), onClick: handleSavePost, tooltip: savedAt ? 'Unsave post' : 'Save post' },
-    { icon: pinned ? <PinOff className='w-4 h-4 text-foreground' /> : <Pin className='w-4 h-4 text-foreground' />, label: pinned ? 'Unpin' : 'Pin', onClick: currentUserResponsibilities.includes(RESP_MANAGE_CONTENT) ? handlePinPost : null, tooltip: pinned ? 'Unpin from this room' : 'Pin to this room' },
+    { icon: pinned ? <PinOff className='w-4 h-4 text-foreground' /> : <Pin className={cn('w-4 h-4', pinAtCap ? 'text-foreground/40' : 'text-foreground')} />, label: pinned ? t('Unpin from View') : t('Pin to View'), onClick: canPin ? handlePinPost : null, disabled: pinAtCap, tooltip: pinAtCap ? t('You can only pin 3 posts') : (pinned ? t('Unpin from View') : t('Pin to View')) },
     { icon: <Flag className='w-4 h-4 text-foreground' />, label: 'Flag', onClick: !isCreator ? () => { setFlaggingVisible(true) } : null, tooltip: 'Flag post' },
     { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: 'Delete', onClick: isCreator ? deletePostWithConfirm : null, red: true, tooltip: 'Delete post' },
     { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: 'Remove From Group', onClick: !isCreator && currentUserResponsibilities.includes(RESP_MANAGE_CONTENT) ? removePostWithConfirm : null, red: true, tooltip: 'Remove post from group' }
@@ -301,13 +310,16 @@ export default function ChatPost ({
           {actionItems.map(item => (
             <button
               key={item.label}
-              onClick={handleActionItemClick(item.onClick)}
+              type='button'
+              onClick={item.disabled ? (e) => { e.stopPropagation(); e.preventDefault() } : handleActionItemClick(item.onClick)}
               className={cn(
                 'h-6 flex justify-center items-center rounded-lg bg-card hover:scale-110 transition-all border-2 border-transparent hover:border-foreground/50 shadow-lg hover:cursor-pointer',
-                item.label === 'Reply' ? 'gap-1 px-2' : 'w-6'
+                item.label === 'Reply' ? 'gap-1 px-2' : 'w-6',
+                item.disabled && 'opacity-40 cursor-default hover:scale-100 hover:border-transparent'
               )}
               data-tooltip-content={item.label !== 'Reply' ? item.tooltip : undefined}
               data-tooltip-id='action-tt'
+              title={item.disabled ? item.tooltip : undefined}
             >
               {item.icon}
               {item.label === 'Reply' && <span className='text-xs text-foreground'>{t('Reply')}</span>}
@@ -344,9 +356,7 @@ export default function ChatPost ({
               <div className='font-bold cursor-pointer flex items-center gap-1.5' onClick={showCreator}>
                 {creator.name}
                 {pinned && (
-                  <svg width='10' height='10' viewBox='0 0 24 24' fill='hsl(45 65% 55%)' className='shrink-0' aria-hidden='true'>
-                    <path d='M14 2l1 5 4 3-1 2-5-1-4 6-1-1 4-6-3-4 2-1 3-4z' transform='rotate(15 12 12)' />
-                  </svg>
+                  <Pin className='w-3.5 h-3.5 shrink-0 text-[hsl(45_65%_45%)] dark:text-[hsl(45_65%_62%)]' strokeWidth={2.5} aria-hidden='true' />
                 )}
               </div>
               <div className='text-xs text-foreground/50'>

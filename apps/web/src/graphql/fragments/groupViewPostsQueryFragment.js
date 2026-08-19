@@ -12,7 +12,6 @@ const groupViewPostsQueryFragment = (includeChildGroupPosts = true, { includeGro
 
   return `
 ${includeChildGroupPosts ? 'posts: viewPosts(' : 'posts('}
-  ${includeChildGroupPosts ? '' : 'pinned: $pinned,'}
   activePostsOnly: $activePostsOnly,
   afterTime: $afterTime,
   beforeTime: $beforeTime,

@@ -121,13 +121,6 @@ const postFieldsFragment = (withComments, withCompletion = false, withAllComplet
     title
     url
   }
-  postMemberships {
-    id
-    pinned
-    group {
-      id
-    }
-  }
   linkPreviewFeatured
   localId
   location

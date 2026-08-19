@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { push } from 'redux-first-history'
 import { Link } from 'react-router-dom'
-import { TextHelpers } from '@hylo/shared'
+import { MAX_PINNED_POSTS_PER_VIEW, TextHelpers } from '@hylo/shared'
 import { formatUserDatePair } from 'util/dateFormat'
 import Avatar from 'components/Avatar'
 import Dropdown from 'components/Dropdown'
@@ -29,6 +29,7 @@ import { getResponsibilityTitlesForGroup } from 'store/selectors/getResponsibili
 import { getGroupViewById } from 'store/selectors/getGroupViews'
 import getRolesForGroup from 'store/selectors/getRolesForGroup'
 import useGroupViews from 'hooks/useGroupViews'
+import useCurrentPinnableView from 'hooks/useCurrentPinnableView'
 import { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 import { useEffectiveGroupSlug, useGroupRouteOpts } from 'contexts/SpaceGroupContext'
 import pinPostAction from 'store/actions/pinPost'
@@ -135,12 +136,22 @@ function PostHeader (props) {
   const canEdit = isCreator
   const canFlag = !isCreator
   const canModerate = !isCreator && responsibilities.includes(RESP_MANAGE_CONTENT)
-  // Pinning is per-group content curation — creators who moderate can pin too
-  const canPin = !!group?.id && responsibilities.includes(RESP_MANAGE_CONTENT)
-  const pinned = !!post.postMemberships?.find?.(pm => String(pm.group) === String(group?.id))?.pinned
+  const pinnableView = useCurrentPinnableView()
+  const belongsToCurrentGroup = (postGroups || []).length === 0 ||
+    (postGroups || []).some(g => String(g.id) === String(group?.id) || g.slug === group?.slug)
+  const pinnedPostIds = (pinnableView?.pinnedPostIds || []).map(pid => String(pid))
+  const pinned = pinnedPostIds.includes(String(id))
+  const atPinCap = pinnedPostIds.length >= MAX_PINNED_POSTS_PER_VIEW && !pinned
+  const canShowPin = !!group?.id &&
+    !!pinnableView?.id &&
+    belongsToCurrentGroup &&
+    responsibilities.includes(RESP_MANAGE_CONTENT)
+  const pinAtCap = canShowPin && atPinCap
+  const canPin = canShowPin && (pinned || !atPinCap)
   const handlePinPost = useCallback(() => {
-    dispatch(pinPostAction(id, group.id))
-  }, [dispatch, id, group?.id])
+    if (!pinnableView?.id || !group?.id) return
+    dispatch(pinPostAction(id, pinnableView.id, group.id, post))
+  }, [dispatch, id, pinnableView?.id, group?.id, post])
   const canCurateCollections = responsibilities.includes(RESP_ADMINISTRATION) ||
     responsibilities.includes(RESP_MANAGE_CONTENT)
 
@@ -323,7 +334,7 @@ function PostHeader (props) {
   const dropdownItems = filter([
     { icon: <Pencil className='w-4 h-4 text-foreground' />, label: t('Edit'), onClick: canEdit ? editPost : undefined },
     { icon: <Link2 className='w-4 h-4 text-foreground' />, label: t('Copy Link'), onClick: copyLink },
-    { icon: pinned ? <PinOff className='w-4 h-4 text-foreground' /> : <Pin className='w-4 h-4 text-foreground' />, label: pinned ? t('Unpin') : t('Pin'), onClick: canPin ? handlePinPost : undefined },
+    { icon: pinned ? <PinOff className='w-4 h-4 text-foreground' /> : <Pin className={cn('w-4 h-4', pinAtCap ? 'text-foreground/40' : 'text-foreground')} />, label: pinned ? t('Unpin from View') : t('Pin to View'), onClick: canPin ? handlePinPost : undefined, disabled: pinAtCap, tooltip: pinAtCap ? t('You can only pin 3 posts') : undefined },
     { icon: savedAt ? <BookmarkCheck className='w-4 h-4 text-foreground' /> : <Bookmark className='w-4 h-4 text-foreground' />, label: savedAt ? t('Unsave Post') : t('Save Post'), onClick: savedAt ? unsavePost : savePost },
     { icon: <Flag className='w-4 h-4 text-foreground' />, label: t('Flag'), onClick: flagPostFunc() },
     { icon: <Copy className='w-4 h-4 text-foreground' />, label: t('Duplicate'), onClick: duplicatePost },
@@ -331,7 +342,7 @@ function PostHeader (props) {
     removeFromCollectionItem,
     { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: t('Delete'), onClick: isCreator ? () => deletePost(t('Are you sure you want to delete this post? You cannot undo this.')) : undefined, red: true },
     { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: t('Remove From Group'), onClick: canModerate ? () => removePost(t('Are you sure you want to remove this post? You cannot undo this.')) : undefined, red: true }
-  ], item => item && (isFunction(item.onClick) || item.items?.length))
+  ], item => item && (isFunction(item.onClick) || item.disabled || item.items?.length))
 
   const typesWithTimes = ['action', 'offer', 'request', 'resource', 'project', 'proposal']
   const canHaveTimes = typesWithTimes.includes(type)
@@ -402,7 +413,7 @@ function PostHeader (props) {
               {/* Phones keep just the gold pin square; the label returns at xs */}
               {pinned && (
                 <span title={t('Pinned')} className='inline-flex items-center shrink-0 gap-1 h-7 px-1.5 xs:px-2 mr-2 rounded-md text-[9.5px] font-bold uppercase tracking-wider bg-[hsl(45_45%_90%)] dark:bg-[hsl(45_45%_18%)] border border-[hsl(45_45%_60%)] dark:border-[hsl(45_45%_34%)] text-[hsl(45_60%_35%)] dark:text-[hsl(45_65%_72%)]'>
-                  <svg width='10' height='10' viewBox='0 0 24 24' fill='currentColor' aria-hidden='true'><path d='M14 2l1 5 4 3-1 2-5-1-4 6-1-1 4-6-3-4 2-1 3-4z' transform='rotate(15 12 12)' /></svg>
+                  <Pin className='w-3.5 h-3.5' strokeWidth={2.5} aria-hidden='true' />
                   <span className='hidden xs:inline'>{t('Pinned')}</span>
                 </span>
               )}

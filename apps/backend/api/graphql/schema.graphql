@@ -346,8 +346,6 @@ type Query {
     offset: Int,
     # Determines sort order, either 'ASC' or 'DESC'
     order: String,
-    # Only return posts pinned in the group
-    pinned: Boolean,
     # Return posts that these users have saved
     savedBy: [ID],
     # Return posts whose name or description match the search term
@@ -1048,7 +1046,10 @@ type Group {
   customViews: CustomViewQuerySet
 
   # Spaces & Views: the ordered list of this Group's/Space's own views. `type = 'space'` entries include a `linkedGroup` with its own `groupViews`
-  groupViews: GroupViewQuerySet
+  groupViews(
+    # If set, return only this view
+    id: ID
+  ): GroupViewQuerySet
 
   # Spaces & Views: all child Spaces of this Group (including archived ones)
   spaces: GroupQuerySet
@@ -1241,8 +1242,6 @@ type Group {
     offset: Int,
     # Determines sort order, either 'ASC' or 'DESC'
     order: String,
-    # Only return posts pinned in the group
-    pinned: Boolean,
     # Only return posts that have been saved by these users
     savedBy: [ID],
     # Only load posts whose content matches this search string
@@ -1412,6 +1411,10 @@ type GroupView {
   settings: JSON
   # Posts in this view, for 'collection' and 'track-actions' type views
   collectionPosts: [Post]
+  # Post ids pinned to this view (max 3). Cheap to load with the menu.
+  pinnedPostIds: [ID]
+  # Posts pinned to this view, newest pin first. Separate from the stream query.
+  pinnedPosts: [Post]
   # The Space (or Group) this view links to, for 'space' and 'group' type views
   linkedGroup: Group
   # The Post this view points at, for 'post' type views
@@ -2582,8 +2585,6 @@ type PostMembership {
   id: ID
   # The group this post was posted in
   group: Group
-  # Whether this post is set to pinned in the group by a moderator
-  pinned: Boolean
 }
 
 # Relationship of a user to a post, indicating "following the post". Created when a user comments on or reacts to a post
@@ -3636,8 +3637,8 @@ type Mutation {
   markThreadUnread(messageThreadId: ID): MessageThread,
   # Send a message to all the stewards of a Group
   messageGroupStewards(groupId: ID): ID
-  # Pin a post within a Group. Only a group moderator can call this.
-  pinPost(postId: ID, groupId: ID): GenericResult
+  # Pin a post to a View. Only a group moderator can call this. Toggles if already pinned. Max 3 per view.
+  pinPost(postId: ID, viewId: ID): GenericResult
   # Called when typing in front end, matches with peopleTyping subscription
   peopleTyping(messageThreadId: ID, postId: ID, commentId: ID): GenericResult,
   # NOT USED RIGHT NOW

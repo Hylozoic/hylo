@@ -1660,6 +1660,37 @@ ALTER SEQUENCE public.group_to_group_join_request_question_answers_id_seq OWNED 
 
 
 --
+-- Name: group_view_pins; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.group_view_pins (
+    id bigint NOT NULL,
+    view_id bigint NOT NULL,
+    post_id bigint NOT NULL,
+    pinned_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: group_view_pins_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.group_view_pins_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: group_view_pins_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.group_view_pins_id_seq OWNED BY public.group_view_pins.id;
+
+
+--
 -- Name: group_views; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1902,7 +1933,6 @@ ALTER SEQUENCE public.groups_id_seq OWNED BY public.groups.id;
 CREATE TABLE public.groups_posts (
     post_id bigint NOT NULL,
     id integer NOT NULL,
-    pinned_at timestamp with time zone,
     group_id bigint NOT NULL
 );
 
@@ -4244,6 +4274,13 @@ ALTER TABLE ONLY public.group_to_group_join_request_question_answers ALTER COLUM
 
 
 --
+-- Name: group_view_pins id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_view_pins ALTER COLUMN id SET DEFAULT nextval('public.group_view_pins_id_seq'::regclass);
+
+
+--
 -- Name: group_views id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -4935,6 +4972,22 @@ ALTER TABLE ONLY public.group_to_group_join_questions
 
 ALTER TABLE ONLY public.group_to_group_join_request_question_answers
     ADD CONSTRAINT group_to_group_join_request_question_answers_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: group_view_pins group_view_pins_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_view_pins
+    ADD CONSTRAINT group_view_pins_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: group_view_pins group_view_pins_view_id_post_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_view_pins
+    ADD CONSTRAINT group_view_pins_view_id_post_id_unique UNIQUE (view_id, post_id);
 
 
 --
@@ -5951,6 +6004,13 @@ CREATE UNIQUE INDEX idx_collections_posts_view_post ON public.collections_posts 
 --
 
 CREATE INDEX idx_fts_search ON public.search_index USING gin (document);
+
+
+--
+-- Name: idx_group_view_pins_post_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_group_view_pins_post_id ON public.group_view_pins USING btree (post_id);
 
 
 --
@@ -7215,6 +7275,22 @@ ALTER TABLE ONLY public.group_to_group_join_request_question_answers
 
 ALTER TABLE ONLY public.group_to_group_join_request_question_answers
     ADD CONSTRAINT group_to_group_join_request_question_answers_question_id_foreig FOREIGN KEY (question_id) REFERENCES public.questions(id);
+
+
+--
+-- Name: group_view_pins group_view_pins_post_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_view_pins
+    ADD CONSTRAINT group_view_pins_post_id_foreign FOREIGN KEY (post_id) REFERENCES public.posts(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: group_view_pins group_view_pins_view_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_view_pins
+    ADD CONSTRAINT group_view_pins_view_id_foreign FOREIGN KEY (view_id) REFERENCES public.group_views(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
 
 
 --
