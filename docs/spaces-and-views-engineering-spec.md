@@ -928,10 +928,12 @@ There is no dedicated `/settings` route for a space; space settings open as a mo
 | `/groups/:slug/groups/*` | `about/related-groups` |
 | `/groups/:slug/moderation/*` | `about/moderation` |
 | `/groups/:parentSlug/spaces/:spaceSlug/moderation/*` | `about/moderation` |
+| `/groups/:slug/all-views/*` | `/groups/:slug/more-spaces` |
+| `/groups/:slug/tracks/*` | `/groups/:slug/more-spaces` |
+| `/groups/:slug/funding-rounds/*` | `/groups/:slug/more-spaces` |
+| `/groups/:slug/all-topics/*` | `/groups/:slug/more-spaces` |
 | `/groups/:spaceSlug/…` (a space accessed as a top-level slug) | `/groups/:parentSlug/spaces/:localSlug/…` |
 | Unknown group sub-path | Group catch-all → `homeRoute` (two-column) or `ContextMenuGrid` (one-column) |
-
-`/all-views`, `/tracks`, `/funding-rounds`, and `/all-topics` have **no dedicated redirect**; they fall through the group catch-all to the home view. Adding explicit redirects to `/more-spaces` is outstanding (§14).
 
 `/all/stream` and `/public/stream` are still real routes — the `stream` name is retained for the All and Public contexts.
 
@@ -1249,7 +1251,7 @@ The map shows posts with locations from the current group/space, related groups 
 - **Chat posts:** no destination selector — created from the chat composer in the current chat view; the group/space is implicit.
 - **Non-chat posts:** a `groups_posts` row per selected group or space.
 
-Backend enforcement of `accepted_post_types` in `createPost` is **not implemented** — the restriction is currently frontend-only (§14).
+`createPost` rejects when any destination group's `accepted_post_types` does not include the post type (`{group name} does not accept {type} posts`). `null` accepts all types; `[]` accepts none of the steward-configured types (discussion, event, resource, project, proposal, request, offer). Chat, action, and submission posts are not restricted by this setting, so chat spaces and track / funding-round spaces with `[]` still accept those special types. Existing posts remain editable if a steward later narrows the list.
 
 ### 7.14 Space invites
 
@@ -1558,12 +1560,12 @@ The old Phase 1–7 framing has been retired — the phases interleaved in pract
 - **`space-collection` view type** — new curated space list (`settings.spaceIds`) replacing the old `tracks` / `funding-rounds` widget views, with `SpaceCollection` route, `SpaceSelector` component, `AddSpaceCollectionDialog`, `util/spaceCollection.js`, and migration backfill (§2.5)
 - **`migrations/scripts/rollbackSpecificMigration.js`** — `yarn rollback:specific <filename>` rolls back one recorded migration without touching later ones
 - **`migrations/in-progress/20260713120000_spaces_cleanup.js`** — untracked; see §14.4
+- **Legacy route redirects** — `/all-views`, `/tracks`, `/funding-rounds`, `/all-topics` now redirect to `/more-spaces` (§6.3)
 
 ### 14.3 Remaining work
 
 | Item | Notes |
 |------|-------|
-| Backend `accepted_post_types` enforcement | `createPost` does not reject disallowed types; the restriction is frontend-only (§7.13) |
 | Exclude spaces from group-list queries | Global nav, related groups, explore, My Groups, invitations, profile memberships (§3.8) |
 | Archive / unarchive space UI | `archiveSpace` exists on the backend; the web app only *displays* archived spaces in More Spaces |
 | `leaveSpace` not wired in web | The UI uses the generic `leaveGroup` mutation from the About page instead |
@@ -1571,9 +1573,7 @@ The old Phase 1–7 framing has been retired — the phases interleaved in pract
 | Track welcome metadata | The `welcome` view doesn't render num actions / enrolled / completed for track spaces (§7.2) |
 | `enrolledAt` in track member directory | Shown as a generic "Joined" date, not track enrollment (§7.2) |
 | Track / round metadata on `SpaceJoinPage` | No action count, enrolled count, or phase dates on the interstitial (§7.9) |
-| Legacy route redirects | `/all-views`, `/tracks`, `/funding-rounds`, `/all-topics` fall through the catch-all instead of redirecting to `/more-spaces` |
 | Steward onboarding prompt | Not started (§12) |
-| Group / space templates | No template system; `Group.create` uses the creator's explicit view list (§10) |
 | **Mobile app** | Still entirely on `contextWidgets` + `widgetUrl`. But not using any of it, since its now a web view wrapper. We can remove this code. |
 
 ### 14.4 Cleanup checklist
