@@ -772,7 +772,20 @@ module.exports = bookshelf.Model.extend(merge({
     const userIds = usersOrIds.map(x => x instanceof User ? x.id : x)
     const roleScopeId = await Group.roleScopeId(this)
 
+    // Runs first, while the memberships it settles are still active
+    await this.settleParticipation(userIds, { transacting })
+
     await this.updateMembers(usersOrIds, { active: false, nav_order: null }, { transacting })
+
+    // Per-view unread rows would otherwise survive as frozen badge signals: unread
+    // increments skip inactive members, but the parent group's badge check matches
+    // group_views_users on user_id alone, so a leftover count can never be cleared.
+    const viewUsersQuery = bookshelf.knex('group_views_users')
+      .whereIn('user_id', userIds)
+      .whereIn('view_id', bookshelf.knex('group_views').where('group_id', this.id).select('id'))
+      .del()
+    if (transacting) viewUsersQuery.transacting(transacting)
+    await viewUsersQuery
 
     // Role assignments live on the role-scope group (parent for spaces). Only revoke when
     // leaving that group — not when leaving a child space while still in the parent.
@@ -800,6 +813,36 @@ module.exports = bookshelf.Model.extend(merge({
     }
 
     return this.save({ num_members: Math.max(0, (this.get('num_members') || 0) - usersOrIds.length) }, { transacting })
+  },
+
+  /**
+   * Settle track enrollment / funding round participation for members leaving this space.
+   * Lives here rather than in Track.leave / FundingRound.leave so every departure path is
+   * covered — direct leave, moderator removal, and the parent-group cascade in removeMembers.
+   * Must be called before memberships are deactivated: only currently active members count.
+   */
+  async settleParticipation (userIds, { transacting } = {}) {
+    const participation = [
+      this.get('track_id') && { table: 'tracks', column: 'num_people_enrolled', id: this.get('track_id'), setting: 'completedAt' },
+      this.get('funding_round_id') && { table: 'funding_rounds', column: 'num_participants', id: this.get('funding_round_id'), setting: 'tokensRemaining' }
+    ].filter(Boolean)
+    if (participation.length === 0) return
+
+    const memberships = await GroupMembership.forIds(userIds, this.id, { multiple: true }).fetch({ transacting })
+    if (memberships.length === 0) return
+
+    await Promise.map(memberships.models, async membership => {
+      participation.forEach(({ setting }) => membership.removeSetting(setting))
+      await membership.save({ settings: membership.get('settings') }, { patch: true, transacting })
+    })
+
+    await Promise.map(participation, async ({ table, column, id }) => {
+      const query = bookshelf.knex(table)
+        .where('id', id)
+        .update({ [column]: bookshelf.knex.raw('greatest(0, coalesce(??, 0) - ?)', [column, memberships.length]) })
+      if (transacting) query.transacting(transacting)
+      await query
+    })
   },
 
   async toMurmurationsObject () {

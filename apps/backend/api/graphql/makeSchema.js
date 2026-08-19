@@ -94,7 +94,6 @@ import {
   muteMessageThread,
   unmuteMessageThread,
   leaveProject,
-  leaveSpace,
   leaveTrack,
   logout,
   markActivityRead,
@@ -603,8 +602,6 @@ export function makeMutations ({ fetchOne }) {
     deleteSpace: (root, { id }, context) => deleteSpace(context.currentUserId, id, context),
 
     joinSpace: (root, { spaceId }, context) => joinSpace(context.currentUserId, spaceId),
-
-    leaveSpace: (root, { spaceId }, context) => leaveSpace(context.currentUserId, spaceId),
 
     createInvitation: (root, { groupId, data }, context) => createInvitation(context.currentUserId, groupId, data), // consider sending locale from the frontend here
 

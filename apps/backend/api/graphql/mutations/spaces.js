@@ -265,18 +265,3 @@ export async function joinSpace (userId, spaceId) {
 
   return membership
 }
-
-export async function leaveSpace (userId, spaceId) {
-  if (!userId) throw new GraphQLError('No userId passed into function')
-  if (!spaceId) throw new GraphQLError('No spaceId passed into function')
-
-  const space = await Group.find(spaceId)
-  if (!space) throw new GraphQLError('Space not found')
-
-  const user = await User.find(userId)
-  if (!user) throw new GraphQLError('User not found')
-
-  await user.leaveGroup(space)
-
-  return { success: true }
-}

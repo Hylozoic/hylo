@@ -3499,8 +3499,6 @@ type Mutation {
   deleteSpace(id: ID!): GenericResult
   # Join a Space (creates a group membership + per-view unread rows)
   joinSpace(spaceId: ID!): Membership
-  # Leave a Space
-  leaveSpace(spaceId: ID!): GenericResult
   # Update the current logged in user's last-read position for a chat GroupView, recalculating newPostCount
   updateGroupViewUser(viewId: ID!, lastReadPostId: ID): GroupView
   # Mark a View as read for the current logged in user

@@ -450,7 +450,7 @@ These are still present and still wired into GraphQL:
 - `space()` → inverse lookup via `Group.track_id`
 - `enrolledUsers()` → `group_memberships` on the track space (replaces the old `users()` on `tracks_users`)
 - `actionPosts()` / `addPost()` / `removePost()` → `CollectionPost` rows on the space's `track-actions` view (replaces `tracks_posts`)
-- `enroll()` / `leave()` → space membership; `enrolledAt` / `completedAt` in `group_memberships.settings`
+- `enroll()` / `leave()` → space membership; `enrolledAt` / `completedAt` in `group_memberships.settings`. `leave()` only drops the space membership — `num_people_enrolled` and `completedAt` are settled by `Group.removeMembers` so that any departure path, including leaving the parent group, keeps the count honest (§3.9)
 - `canAccess()` — still consults `access_controlled`; the paid-spaces migration zeroed the flag and set `groups.paywall` on the space instead, but the track code path has not been retired
 
 `name`, `description`, `banner_url`, and `welcome_message` are **still columns on `tracks`** and still read in places such as `Track.duplicate` and `Track.create`. Display values should come from `track.group.*`. Dropping the columns is §14 cleanup.
@@ -465,7 +465,7 @@ These are still present and still wired into GraphQL:
 - `group()` → `belongsTo(Group, 'group_id')` — the round's space
 - `users()` → `group_memberships` on the round space (replaces `funding_rounds_users`); `tokensRemaining` in `group_memberships.settings`
 - `submissions()` → `groups_posts` on the space filtered to submission posts (replaces `funding_rounds_posts`)
-- `join()` / `leave()` → space membership
+- `join()` / `leave()` → space membership; as with tracks, `leave()` defers `num_participants` and `tokensRemaining` to `Group.removeMembers` (§3.9)
 - `criteria`, phase dates, voting config, `submitter_roles`, `voter_roles`, and `deactivated_at` remain on the round
 
 `title`, `banner_url`, and `description` are still columns; display values should come from `round.group.*`.
@@ -491,6 +491,22 @@ Because spaces are rows in `groups`, every query that lists groups will include 
 | Cross-group post "To" field | **Done in the frontend** — `PostEditor` nests spaces under their parent group |
 
 > Remaining task: audit `Group.find`, `fetchGroups`, and `groupSlug` lookups across `apps/backend/api` for the "Not done" rows above.
+
+---
+
+### 3.9 Leaving a group or space — `Group.removeMembers`
+
+There is no space-specific leave mutation. All teardown lives in `Group.removeMembers`, which is the single choke point every departure passes through: the `leaveGroup` mutation, moderator removal via `GroupService.removeMember`, `Track.leave` / `FundingRound.leave`, `Group.deactivate`, and the parent-group cascade inside `removeMembers` itself.
+
+In order:
+
+1. `settleParticipation(userIds)` — runs **first**, while the memberships are still active. For a track space it decrements `tracks.num_people_enrolled` and drops `completedAt` from each membership's settings; for a funding round space, `funding_rounds.num_participants` and `tokensRemaining`. Only currently active memberships count, so a repeated removal is a no-op. It must run before deactivation both for that count and because `updateMembers` rewrites settings.
+2. `updateMembers(..., { active: false, nav_order: null })` — deactivates, unpins, and resets the join flow (`showJoinForm`, `joinQuestionsAnsweredAt`, `agreementsAcceptedAt`).
+3. Deletes the departing users' `group_views_users` rows for this group's views. Required, not housekeeping: unread increments skip inactive members, so a leftover `new_post_count` freezes rather than drains, and `groupHasUnreadBadgeSignals` matches child-space view rows on `user_id` alone. A stale row would keep the **parent** group's badge lit forever, since `markGroupAsRead` requires membership and only walks the target group's own views.
+4. Revokes roles and resets agreements — **only** when `roleScopeId === this.id`, so leaving a child space never strips parent-group roles (§3.4).
+5. For non-space groups, cascades into child spaces by calling `space.removeMembers()`, which repeats all of the above per space.
+
+Putting steps 1 and 3 here rather than in a mutation is what makes the cascade correct: leaving a parent group settles the track counters of every child track space it drops you from, and no caller can forget to do it.
 
 ---
 
@@ -594,7 +610,8 @@ deleteSpace(id: ID!): GenericResult
 
 # Space membership
 joinSpace(spaceId: ID!): Membership
-leaveSpace(spaceId: ID!): GenericResult
+# Leaving is the generic leaveGroup(id: ID!): ID — spaces need no dedicated mutation,
+# because all space-specific teardown lives in Group.removeMembers (see §3.9)
 
 # Unread
 markViewAsRead(viewId: ID!): GroupView
@@ -1236,7 +1253,7 @@ A banner plus a horizontal tab rail at `/groups/:slug/about/:tab` (and the same 
 | `related-groups` | `<Groups />` | Groups only, and only when relationships exist; `/groups/*` redirects here |
 | `settings` | Groups: navigates to `/settings`. Spaces: opens `SpaceSettingsModal` inline | |
 
-Leave Group / Leave Space also lives here, using the generic `leaveGroup` mutation.
+Leave Group / Leave Space also lives here, using the generic `leaveGroup` mutation — spaces need no dedicated one (§3.9).
 
 ### 7.12 Map view — spaces on the map
 
@@ -1561,6 +1578,7 @@ The old Phase 1–7 framing has been retired — the phases interleaved in pract
 - **`migrations/scripts/rollbackSpecificMigration.js`** — `yarn rollback:specific <filename>` rolls back one recorded migration without touching later ones
 - **`migrations/in-progress/20260713120000_spaces_cleanup.js`** — untracked; see §14.4
 - **Legacy route redirects** — `/all-views`, `/tracks`, `/funding-rounds`, `/all-topics` now redirect to `/more-spaces` (§6.3)
+- **Leave teardown consolidated into `Group.removeMembers`** — deletes departing members' `group_views_users` rows and settles track / funding round counters and membership settings, so the parent-group cascade and moderator removal get the same treatment as an explicit leave; `Track.leave` / `FundingRound.leave` no longer adjust their own counts, and the redundant `leaveSpace` mutation is gone (§3.9)
 
 ### 14.3 Remaining work
 
@@ -1568,7 +1586,6 @@ The old Phase 1–7 framing has been retired — the phases interleaved in pract
 |------|-------|
 | Exclude spaces from group-list queries | Global nav, related groups, explore, My Groups, invitations, profile memberships (§3.8) |
 | Archive / unarchive space UI | `archiveSpace` exists on the backend; the web app only *displays* archived spaces in More Spaces |
-| `leaveSpace` not wired in web | The UI uses the generic `leaveGroup` mutation from the About page instead |
 | Space invitations | No dedicated invite section in space forms; My Invites has no Space Invitations section (§7.14) |
 | Track welcome metadata | The `welcome` view doesn't render num actions / enrolled / completed for track spaces (§7.2) |
 | `enrolledAt` in track member directory | Shown as a generic "Joined" date, not track enrollment (§7.2) |
