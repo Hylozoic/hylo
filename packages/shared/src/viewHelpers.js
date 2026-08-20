@@ -1,5 +1,5 @@
 /**
- * Post-type ↔ view-type helpers for unread badges.
+ * Shared GroupView helpers: post-type ↔ view-type maps, unread badges, pinning.
  * Chat-visible types match Search util type=chat / ChatRoom filter.
  */
 
@@ -24,11 +24,29 @@ export const TYPED_BADGE_VIEW_TYPES = [
   'requests-and-offers'
 ]
 
+/** View types that can have pinned posts. */
+export const PINNABLE_VIEW_TYPES = [
+  'all',
+  'discussions',
+  'events',
+  'requests-and-offers',
+  'resources',
+  'proposals',
+  'projects',
+  'chat',
+  'custom',
+  'collection'
+]
+
+/** Max pins stored on a single view. A fourth pin is rejected. */
+export const MAX_PINNED_POSTS_PER_VIEW = 3
+
 /** View types that never show unread badges. */
 export const NO_BADGE_VIEW_TYPES = [
   'all',
   'custom',
   'collection',
+  'space-collection',
   'welcome',
   'map',
   'members',

@@ -101,6 +101,14 @@ msgstr "Here's what's happened in the last "
 msgid "in "
 msgstr "in "
 
+#, python-format
+msgid "in %(post_space)s"
+msgstr "in %(post_space)s"
+
+#, python-format
+msgid "in %(post_space_name)s"
+msgstr "in %(post_space_name)s"
+
 msgid "Jump to "
 msgstr "Jump to "
 
@@ -114,6 +122,14 @@ msgstr "%(topic_num_new_chats)s new chats in"
 #, python-format
 msgid "%(topic_num_new_chats)s new chat in"
 msgstr "%(topic_num_new_chats)s new chat in"
+
+#, python-format
+msgid "%(room_num_new_chats)s new chats in"
+msgstr "%(room_num_new_chats)s new chats in"
+
+#, python-format
+msgid "%(room_num_new_chats)s new chat in"
+msgstr "%(room_num_new_chats)s new chat in"
 
 #, python-format
 msgid "%(post_comment_count)s new comments in"
@@ -214,6 +230,24 @@ msgstr "Offers"
 msgid "Resources"
 msgstr "Resources"
 
+msgid "Discussions"
+msgstr "Discussions"
+
+msgid "Events"
+msgstr "Events"
+
+msgid "Projects"
+msgstr "Projects"
+
+msgid "Proposals"
+msgstr "Proposals"
+
+msgid "Upcoming Reminders"
+msgstr "Upcoming Reminders"
+
+msgid "Ending Soon"
+msgstr "Ending Soon"
+
 msgid "All Topics"
 msgstr "All Topics"
 
@@ -247,6 +281,9 @@ msgstr "Vote"
 
 msgid "Reply"
 msgstr "Reply"
+
+msgid "View"
+msgstr "View"
 
 msgid "Jump to section:"
 msgstr "Jump to section:"
@@ -851,8 +888,8 @@ msgid "Join the conversation or change your notifications"
 msgstr "Join the conversation or change your notifications"
 
 #, python-format
-msgid "New chats in %(group_name)s #%(chat_topic)s"
-msgstr "New chats in %(group_name)s #%(chat_topic)s"
+msgid "New chats in %(group_name)s"
+msgstr "New chats in %(group_name)s"
 
 #, python-format
 msgid "%(count)s new comments on"

@@ -406,9 +406,8 @@ module.exports = bookshelf.Model.extend({
         return null
       }
 
-      await round.save({ num_participants: Math.max(0, (round.get('num_participants') || 0) - 1) }, { transacting })
-      membership.removeSetting('tokensRemaining')
-      await membership.save({ settings: membership.get('settings') }, { patch: true, transacting })
+      // num_participants and the tokensRemaining setting are settled by Group.removeMembers,
+      // so that leaving the parent group cascades the same way.
       await space.removeMembers([userId], { transacting })
       return membership
     })

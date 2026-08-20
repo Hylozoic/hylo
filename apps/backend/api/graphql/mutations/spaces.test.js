@@ -2,7 +2,7 @@
 import setup from '../../../test/setup'
 import factories from '../../../test/setup/factories'
 import { assignCoordinator } from '../../../test/setup/roleHelpers'
-import { archiveSpace, createSpace, deleteSpace, joinSpace, leaveSpace } from './spaces'
+import { archiveSpace, createSpace, deleteSpace, joinSpace } from './spaces'
 
 describe('space mutations', () => {
   let coordinator, member, parentGroup
@@ -97,7 +97,7 @@ describe('space mutations', () => {
         name: `Join ${Date.now()}`,
         ...attrs
       }, {})
-      await leaveSpace(coordinator.id, space.id)
+      await space.removeMembers([coordinator.id])
       return space
     }
 

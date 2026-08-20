@@ -102,9 +102,7 @@ export default function FundingRoundAboutInfo ({ fundingRoundId, roleGroupId }) 
     : Array.isArray(round.submissions) ? round.submissions.length : 0
 
   return (
-    <div className='flex flex-col gap-4 border-2 border-dashed border-foreground/20 rounded-xl p-4 mb-4'>
-      <h3 className='text-xl font-bold m-0'>{t('Funding Round')}</h3>
-
+    <div className='flex flex-col gap-4'>
       <RoundPhaseStatus
         round={round}
         currentPhase={currentPhase}

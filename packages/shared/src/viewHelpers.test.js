@@ -1,13 +1,15 @@
 import {
   CHAT_VISIBLE_POST_TYPES,
+  MAX_PINNED_POSTS_PER_VIEW,
+  PINNABLE_VIEW_TYPES,
   postAppearsInChat,
   postCountsTowardChatUnread,
   recountPostTypesForView,
   POST_TYPE_TO_TYPED_VIEW,
   POST_TYPE_TO_VIEW_TYPE
-} from './unreadViewHelpers'
+} from './viewHelpers'
 
-describe('unreadViewHelpers', () => {
+describe('viewHelpers', () => {
   describe('postAppearsInChat', () => {
     it('includes chat-visible types when notices are on', () => {
       expect(postAppearsInChat('chat', true)).toBe(true)
@@ -43,10 +45,18 @@ describe('unreadViewHelpers', () => {
     it('returns null for non-badge views', () => {
       expect(recountPostTypesForView('all')).toBe(null)
       expect(recountPostTypesForView('custom')).toBe(null)
+      expect(recountPostTypesForView('space-collection')).toBe(null)
     })
   })
 
   it('aliases POST_TYPE_TO_VIEW_TYPE to POST_TYPE_TO_TYPED_VIEW', () => {
     expect(POST_TYPE_TO_VIEW_TYPE).toBe(POST_TYPE_TO_TYPED_VIEW)
+  })
+
+  it('lists pinnable view types and a max of 3 pins', () => {
+    expect(PINNABLE_VIEW_TYPES).toEqual(expect.arrayContaining([
+      'all', 'discussions', 'chat', 'custom', 'collection'
+    ]))
+    expect(MAX_PINNED_POSTS_PER_VIEW).toBe(3)
   })
 })

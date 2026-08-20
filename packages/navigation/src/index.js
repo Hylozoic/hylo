@@ -148,6 +148,8 @@ export function groupViewPath (view) {
       return `/custom/${view.id}`
     case 'collection':
       return `/collection/${view.id}`
+    case 'space-collection':
+      return `/space-collection/${view.id}`
     case 'link':
       return null
     case 'manage-round':

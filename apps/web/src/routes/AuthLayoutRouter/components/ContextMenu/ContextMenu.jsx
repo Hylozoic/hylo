@@ -56,11 +56,13 @@ import GroupViewEditList from './GroupViewEditList'
 import GroupViewSettingsModal from './GroupViewSettingsModal'
 import SpaceSettingsModal from './SpaceSettingsModal'
 import AddCollectionDialog from './AddCollectionDialog'
+import AddSpaceCollectionDialog from './AddSpaceCollectionDialog'
 import AddGroupViewDialog from './AddGroupViewDialog'
 import AddSpaceDialog from './AddSpaceDialog'
 import AddViewOrSpaceMenu, { AddViewOrSpaceButton } from './AddViewOrSpaceMenu'
 import TruncatedText from 'components/TruncatedText'
-import { menuViewUrl, externalLinkHref, spaceEntryUrl } from './groupViewMenuUrl'
+import { menuViewUrl, externalLinkHref, spaceEntryUrl, isParentGroupPath } from './groupViewMenuUrl'
+import getPreviousLocation from 'store/selectors/getPreviousLocation'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { WebViewMessageTypes } from '@hylo/shared'
@@ -202,7 +204,7 @@ function SpaceMenuItemWithMore ({
           <TruncatedText className='truncate min-w-0' text={displayNameForView(presentedView, t, { spaceGroup })} />
           {spaceUnread && <UnreadDot />}
         </MenuLink>
-        {aboutUrl && (
+        {aboutUrl && isSpaceMember && (
           <MenuLink
             to={aboutUrl}
             isActive={false}
@@ -720,33 +722,17 @@ export default function ContextMenu (props) {
     }
   }, [activeSpaceGroup?.id, spaceSlug, dispatch])
 
-  // Remember where the user was before a space's menu took over, so Back returns
-  // them there — not to a guessed group home. Updated only while no space menu is
-  // active, so entering the space never overwrites the origin. Guard on the
-  // route's spaceSlug too: on a direct space load activeSpaceView stays null
-  // until group data arrives, and without the guard the space's own URL gets
-  // recorded as the origin — making Close a no-op.
-  const lastNonSpaceLocationRef = React.useRef(null)
-  useEffect(() => {
-    if (!activeSpaceView && !spaceSlug) {
-      lastNonSpaceLocationRef.current = `${location.pathname}${location.search}`
-    }
-  }, [location, activeSpaceView, spaceSlug])
-
+  const previousLocation = useSelector(getPreviousLocation)
+  // Return to the previous page only when it is a view of this parent group.
+  // Other origins (another group, All, a notification deep link) go to home.
   const handleBackToGroupMenu = useCallback(() => {
-    if (lastNonSpaceLocationRef.current) {
-      navigate(lastNonSpaceLocationRef.current)
-      return
-    }
-    // Deep links have no origin to return to — fall back to the sensible parents
-    if (isMoreSpacesPath) {
-      const moreSpaces = groupUrl(groupSlug, 'more-spaces')
-      navigate(isEditing ? addQuerystringToPath(moreSpaces, { edit: 'true' }) : moreSpaces)
+    if (isParentGroupPath(previousLocation?.pathname, groupSlug)) {
+      navigate(previousLocation)
       return
     }
     const home = groupUrl(groupSlug)
     navigate(isEditing ? addQuerystringToPath(home, { edit: 'true' }) : home)
-  }, [navigate, groupSlug, isEditing, isMoreSpacesPath])
+  }, [navigate, groupSlug, isEditing, previousLocation])
 
   // Allow scroll events to pass through to ContextMenu even when a modal post dialog is open
   useEffect(() => {
@@ -1163,13 +1149,22 @@ export default function ContextMenu (props) {
                     onCreated={() => setSettingsView(null)}
                   />
                   )
-                : (
-                  <GroupViewSettingsModal
-                    view={settingsView}
-                    group={showingSpaceMenu ? activeSpaceGroup : group}
-                    onClose={() => setSettingsView(null)}
-                  />
-                  )
+                : settingsView.type === 'space-collection'
+                  ? (
+                    <AddSpaceCollectionDialog
+                      group={showingSpaceMenu ? activeSpaceGroup : group}
+                      view={settingsView}
+                      onCancel={() => setSettingsView(null)}
+                      onCreated={() => setSettingsView(null)}
+                    />
+                    )
+                  : (
+                    <GroupViewSettingsModal
+                      view={settingsView}
+                      group={showingSpaceMenu ? activeSpaceGroup : group}
+                      onClose={() => setSettingsView(null)}
+                    />
+                    )
           )}
         </div>
 

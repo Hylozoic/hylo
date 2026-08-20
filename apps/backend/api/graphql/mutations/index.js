@@ -59,8 +59,7 @@ export {
   updateSpace,
   archiveSpace,
   deleteSpace,
-  joinSpace,
-  leaveSpace
+  joinSpace
 } from './spaces'
 export {
   respondToEvent,

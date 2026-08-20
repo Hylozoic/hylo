@@ -1,10 +1,11 @@
-import { Bell, Check, ChevronRight, Copy, ExternalLink, Info, Link2, LogOut, MapPin, Network, Settings, ShieldCheck, Users } from 'lucide-react'
+import { BadgeDollarSign, Bell, Check, ChevronRight, Copy, ExternalLink, Info, Link2, LogOut, MapPin, Network, Settings, ShieldCheck, Users } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 
 import ClickCatcher from 'components/ClickCatcher'
+import FundingRoundAboutInfo from 'components/FundingRoundAboutInfo/FundingRoundAboutInfo'
 import HyloHTML from 'components/HyloHTML'
 import Icon from 'components/Icon'
 import LucideIcon from 'components/LucideIcon/LucideIcon'
@@ -41,9 +42,10 @@ import { bgImageStyle, cn } from 'util/index'
 
 /**
  * Shared About surface for groups and spaces, per the redesign: a banner with
- * the identity, then a tab menu that imports each template inline — Moderation,
- * About, Notification Settings, Members — plus Settings (groups navigate to the
- * settings page; spaces edit inline underneath).
+ * the identity, then a tab menu that imports each template inline — About,
+ * Round Details (funding-round spaces), Moderation, Notification Settings,
+ * Members — plus Settings (groups navigate to the settings page; spaces edit
+ * inline underneath).
  */
 
 function AboutCard ({ title, action, children, className }) {
@@ -261,6 +263,7 @@ export default function GroupAboutView ({
     responsibility: RESP_ADMINISTRATION, groupId: parentGroup?.id
   }))
   const showSettings = isSpace ? (canAdminister || canAdministerParent) : canAdminister
+  const isFundingRoundSpace = Boolean(isSpace && group?.fundingRound?.id)
 
   useEffect(() => {
     if (isSpace || !group?.slug) return
@@ -332,6 +335,7 @@ export default function GroupAboutView ({
 
   const tabs = [
     { id: 'about', label: t('About'), icon: Info },
+    { id: 'round-details', label: t('Round Details'), icon: BadgeDollarSign, hidden: !isFundingRoundSpace },
     { id: 'moderation', label: t('Moderation'), icon: ShieldCheck },
     { id: 'notifications', label: t('Notification Settings'), icon: Bell, hidden: !membership },
     { id: 'members', label: t('Members'), icon: Users },
@@ -462,7 +466,8 @@ export default function GroupAboutView ({
       {/* Panel */}
       {activeTab === 'members' || activeTab === 'related-groups'
         ? (
-          <div className='flex-1 min-h-0'>
+          /* Same column as the nav, so every tab's content shares one width */
+          <div className='flex-1 min-h-0 w-full max-w-[808px] mx-auto'>
             {activeTab === 'members' && (
               <Members context='groups' defaultDisplayMode={inDialog ? 'list' : 'card'} />
             )}
@@ -481,6 +486,12 @@ export default function GroupAboutView ({
                   onLeave={() => setShowLeaveDialog(true)}
                   onOpenMembers={() => handleTab('members')}
                   t={t}
+                />
+              )}
+              {activeTab === 'round-details' && isFundingRoundSpace && (
+                <FundingRoundAboutInfo
+                  fundingRoundId={group.fundingRound.id}
+                  roleGroupId={group.parentId || parentGroup?.id || group.id}
                 />
               )}
               {activeTab === 'moderation' && <Moderation context='groups' />}

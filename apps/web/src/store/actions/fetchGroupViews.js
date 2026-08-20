@@ -23,6 +23,7 @@ export default function fetchGroupViews (groupId) {
               settings
               newPostCount
               lastReadPostId
+              pinnedPostIds
               linkedGroup {
                 id
                 name
@@ -108,8 +109,10 @@ export default function fetchGroupViews (groupId) {
                     name
                     order
                     icon
+                    settings
                     newPostCount
                     lastReadPostId
+                    pinnedPostIds
                     viewPost {
                       id
                       type

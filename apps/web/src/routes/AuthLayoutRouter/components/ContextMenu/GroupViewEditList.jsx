@@ -14,7 +14,7 @@ import {
   verticalListSortingStrategy
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { GripVertical, Pencil } from 'lucide-react'
+import { Ellipsis, GripVertical, Pencil } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
@@ -23,12 +23,23 @@ import { addQuerystringToPath } from '@hylo/navigation'
 import { spaceEntryUrl } from './groupViewMenuUrl'
 
 import { Tooltip, TooltipContent, TooltipTrigger } from 'components/ui/tooltip'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger
+} from 'components/ui/dropdown-menu'
 import TruncatedText from 'components/TruncatedText'
 import GroupViewIcon from './GroupViewIcon'
 import { GroupViewEditActions } from './GroupViewSettingsModal'
-import { canDeleteView, canHardDeleteView, isSoftRemoveView } from 'store/models/GroupView'
+import { canDeleteView, canHardDeleteView, isSoftRemoveView, viewTypeHasSettings } from 'store/models/GroupView'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
-import { deleteGroupView, deleteSpace, setGroupViewHidden } from 'store/actions/groupViews'
+import { deleteGroupView, deleteSpace, setGroupViewHidden, updateGroupView } from 'store/actions/groupViews'
+import { appendSpaceId, collectionsWithoutSpace, spaceCollectionViews } from 'util/spaceCollection'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import { mergeOrderedViewsFromSource, sortViewsByMenuOrder } from 'store/util/groupViewsOrder'
@@ -139,11 +150,89 @@ function SortableEditRow ({ view, onSettings, onHide, onDelete, isHome, spaceGro
   )
 }
 
+/** Overflow for space rows: settings, add to collection, remove, delete. Pencil stays outside. */
+function SpaceEditRowMenu ({
+  view,
+  space,
+  collectionViews,
+  onSettings,
+  onAddToCollection,
+  onHide,
+  onDelete
+}) {
+  const { t } = useTranslation()
+  const showSettings = viewTypeHasSettings(view?.type)
+  const removable = canDeleteView(view)
+  const hardDeletable = canHardDeleteView(view)
+  const softRemovable = removable && isSoftRemoveView(view)
+  const availableCollections = collectionsWithoutSpace(collectionViews, space?.id)
+
+  return (
+    <DropdownMenu modal={false}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <DropdownMenuTrigger asChild>
+            <button
+              type='button'
+              className='p-1 text-foreground/50 hover:text-foreground rounded'
+              onPointerDown={(e) => e.stopPropagation()}
+              aria-label={t('More actions')}
+            >
+              <Ellipsis className='w-4 h-4' />
+            </button>
+          </DropdownMenuTrigger>
+        </TooltipTrigger>
+        <TooltipContent>{t('More actions')}</TooltipContent>
+      </Tooltip>
+      <DropdownMenuContent align='end' className='z-[200]' onClick={(e) => e.stopPropagation()}>
+        {showSettings && (
+          <DropdownMenuItem onSelect={() => onSettings?.(view)}>
+            {t('Settings')}
+          </DropdownMenuItem>
+        )}
+        {availableCollections.length > 0 && (
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>{t('Add to Collection')}</DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className='z-[200]'>
+              {availableCollections.map(collectionView => (
+                <DropdownMenuItem
+                  key={collectionView.id}
+                  onSelect={() => onAddToCollection?.(space, collectionView)}
+                >
+                  {collectionView.name}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+        )}
+        {softRemovable && onHide && (
+          <DropdownMenuItem onSelect={() => onHide(view)}>
+            {t('Remove from main menu')}
+          </DropdownMenuItem>
+        )}
+        {hardDeletable && onDelete && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className='text-destructive focus:text-destructive'
+              onSelect={() => onDelete(view)}
+            >
+              {t('Delete Space')}
+            </DropdownMenuItem>
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
 /** Space row — pencil drills into that space's menu in edit mode (no nested expand). */
 function SortableSpaceEditRow ({
   view,
   groupSlug,
+  collectionViews,
   onSettings,
+  onAddToCollection,
   onHide,
   onDelete
 }) {
@@ -179,28 +268,32 @@ function SortableSpaceEditRow ({
         </button>
         <GroupViewIcon view={presentedView} />
         <TruncatedText className='flex-1 min-w-0 truncate text-base font-semibold text-foreground' text={displayNameForView(presentedView, t)} />
-        <GroupViewEditActions
-          view={view}
-          onSettings={onSettings}
-          onHide={onHide}
-          onDelete={onDelete}
-          className={EDIT_ACTIONS_CLASS}
-        />
-        {spaceGroup?.slug && groupSlug && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                type='button'
-                className='p-1 text-foreground/50 hover:text-foreground'
-                onClick={handleEditSpaceMenu}
-                aria-label={t('Edit space menu')}
-              >
-                <Pencil className='w-4 h-4' />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent>{t('Edit space menu')}</TooltipContent>
-          </Tooltip>
-        )}
+        <div className={cn('flex items-center shrink-0', EDIT_ACTIONS_CLASS)}>
+          <SpaceEditRowMenu
+            view={view}
+            space={spaceGroup}
+            collectionViews={collectionViews}
+            onSettings={onSettings}
+            onAddToCollection={onAddToCollection}
+            onHide={onHide}
+            onDelete={onDelete}
+          />
+          {spaceGroup?.slug && groupSlug && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type='button'
+                  className='p-1 text-foreground/50 hover:text-foreground'
+                  onClick={handleEditSpaceMenu}
+                  aria-label={t('Edit space menu')}
+                >
+                  <Pencil className='w-4 h-4' />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>{t('Edit space menu')}</TooltipContent>
+            </Tooltip>
+          )}
+        </div>
       </div>
     </li>
   )
@@ -241,6 +334,30 @@ export default function GroupViewEditList ({ views, group, groupSlug, onSettings
       console.error('Failed to remove view from menu:', error)
     }
   }, [dispatch, group?.id, t])
+
+  const collectionViews = useMemo(
+    () => spaceCollectionViews(views).map(view => ({
+      id: view.id,
+      name: displayNameForView(view, t),
+      settings: view.settings
+    })),
+    [views, t]
+  )
+
+  const handleAddToCollection = useCallback(async (space, collectionView) => {
+    if (!group?.id || !space?.id || !collectionView?.id) return
+    const fullView = (views || []).find(v => String(v.id) === String(collectionView.id))
+    if (!fullView) return
+    try {
+      await dispatch(updateGroupView({
+        id: fullView.id,
+        groupId: group.id,
+        settings: appendSpaceId(fullView.settings, space.id)
+      }))
+    } catch (error) {
+      console.error('Failed to add space to collection:', error)
+    }
+  }, [dispatch, group?.id, views])
 
   const handleDelete = useCallback(async (view) => {
     if (!canHardDeleteView(view) || !group?.id) return
@@ -291,7 +408,9 @@ export default function GroupViewEditList ({ views, group, groupSlug, onSettings
                   key={view.id}
                   view={view}
                   groupSlug={groupSlug || group?.slug}
+                  collectionViews={collectionViews}
                   onSettings={onSettings}
+                  onAddToCollection={handleAddToCollection}
                   onHide={handleHide}
                   onDelete={handleDelete}
                 />

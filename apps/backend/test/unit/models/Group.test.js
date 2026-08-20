@@ -256,6 +256,135 @@ describe('Group', function () {
       const roles = await MemberGroupRole.where({ user_id: user.id, group_id: group.id }).fetchAll()
       expect(roles.length).to.equal(1)
     })
+
+    async function addChatView (group, userId, newPostCount) {
+      const view = await GroupView.forge({
+        group_id: group.id,
+        type: GroupView.Type.CHAT,
+        name: 'Chat',
+        order: 0
+      }).save()
+      await GroupViewUser.forge({
+        view_id: view.id,
+        user_id: userId,
+        new_post_count: newPostCount
+      }).save()
+      return view
+    }
+
+    it('deletes per-view unread rows so no stale badge signal survives', async function () {
+      const group = await factories.group().save()
+      const user = await factories.user().save()
+      await group.addMembers([user.id])
+      const view = await addChatView(group, user.id, 3)
+
+      await group.removeMembers([user.id])
+
+      const rows = await GroupViewUser.where({ view_id: view.id, user_id: user.id }).fetchAll()
+      expect(rows.length).to.equal(0)
+    })
+
+    it('deletes child space view unread rows when removed from the parent group', async function () {
+      const group = await factories.group().save()
+      const space = await factories.group({
+        type: 'space',
+        parent_id: group.id,
+        slug: `space-unread-${Date.now()}`
+      }).save()
+      const user = await factories.user().save()
+      const otherUser = await factories.user().save()
+      await group.addMembers([user.id, otherUser.id])
+      await space.addMembers([user.id, otherUser.id])
+      const view = await addChatView(space, user.id, 4)
+      await GroupViewUser.forge({ view_id: view.id, user_id: otherUser.id, new_post_count: 4 }).save()
+
+      await group.removeMembers([user.id])
+
+      const rows = await GroupViewUser.where({ view_id: view.id }).fetchAll()
+      expect(rows.map(r => String(r.get('user_id')))).to.deep.equal([String(otherUser.id)])
+    })
+
+    it('settles track enrollment when leaving a track space', async function () {
+      const group = await factories.group().save()
+      const track = await Track.forge({ name: 'Enrolled Track', group_id: null }).save()
+      const space = await factories.group({
+        type: 'space',
+        parent_id: group.id,
+        track_id: track.id,
+        slug: `space-track-${Date.now()}`
+      }).save()
+      await track.save({ group_id: space.id, num_people_enrolled: 2 }, { patch: true })
+
+      const user = await factories.user().save()
+      await group.addMembers([user.id])
+      await space.addMembers([user.id])
+      const membership = await GroupMembership.forPair(user, space).fetch()
+      membership.addSetting({ completedAt: new Date().toISOString() })
+      await membership.save()
+
+      await space.removeMembers([user.id])
+
+      await track.refresh()
+      expect(track.get('num_people_enrolled')).to.equal(1)
+
+      const inactiveMembership = await GroupMembership.forPair(user, space, { includeInactive: true }).fetch()
+      expect(inactiveMembership.getSetting('completedAt')).to.be.undefined
+    })
+
+    it('settles funding round participation when the parent group cascade removes the member', async function () {
+      const group = await factories.group().save()
+      const space = await factories.group({
+        type: 'space',
+        parent_id: group.id,
+        slug: `space-round-${Date.now()}`
+      }).save()
+      const round = await FundingRound.forge({
+        group_id: space.id,
+        title: 'Cascading Round',
+        voting_method: 'quadratic',
+        num_participants: 1,
+        created_at: new Date(),
+        updated_at: new Date()
+      }).save()
+      await space.save({ funding_round_id: round.id }, { patch: true })
+
+      const user = await factories.user().save()
+      await group.addMembers([user.id])
+      await space.addMembers([user.id])
+      const membership = await GroupMembership.forPair(user, space).fetch()
+      membership.addSetting({ tokensRemaining: 7 })
+      await membership.save()
+
+      await group.removeMembers([user.id])
+
+      await round.refresh()
+      expect(round.get('num_participants')).to.equal(0)
+
+      const inactiveMembership = await GroupMembership.forPair(user, space, { includeInactive: true }).fetch()
+      expect(inactiveMembership.getSetting('tokensRemaining')).to.be.undefined
+    })
+
+    it('does not decrement participation for an already inactive member', async function () {
+      const group = await factories.group().save()
+      const track = await Track.forge({ name: 'Idempotent Track', group_id: null }).save()
+      const space = await factories.group({
+        type: 'space',
+        parent_id: group.id,
+        track_id: track.id,
+        slug: `space-track-twice-${Date.now()}`
+      }).save()
+      await track.save({ group_id: space.id, num_people_enrolled: 1 }, { patch: true })
+
+      const user = await factories.user().save()
+      await group.addMembers([user.id])
+      await space.addMembers([user.id])
+
+      await space.removeMembers([user.id])
+      await space.removeMembers([user.id])
+
+      await track.refresh()
+      expect(track.get('num_people_enrolled')).to.equal(0)
+    })
   })
 
   describe('viewPosts', function () {

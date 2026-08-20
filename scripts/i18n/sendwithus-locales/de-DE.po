@@ -101,6 +101,14 @@ msgstr "Das ist in den letzten passiert: "
 msgid "in "
 msgstr "in "
 
+#, python-format
+msgid "in %(post_space)s"
+msgstr "in %(post_space)s"
+
+#, python-format
+msgid "in %(post_space_name)s"
+msgstr "in %(post_space_name)s"
+
 msgid "Jump to "
 msgstr "Springen zu "
 
@@ -114,6 +122,14 @@ msgstr "%(topic_num_new_chats)s neue Chats in"
 #, python-format
 msgid "%(topic_num_new_chats)s new chat in"
 msgstr "%(topic_num_new_chats)s neuer Chat in"
+
+#, python-format
+msgid "%(room_num_new_chats)s new chats in"
+msgstr "%(room_num_new_chats)s neue Chats in"
+
+#, python-format
+msgid "%(room_num_new_chats)s new chat in"
+msgstr "%(room_num_new_chats)s neuer Chat in"
 
 #, python-format
 msgid "%(post_comment_count)s new comments in"
@@ -214,6 +230,24 @@ msgstr "Angebote"
 msgid "Resources"
 msgstr "Ressourcen"
 
+msgid "Discussions"
+msgstr "Diskussionen"
+
+msgid "Events"
+msgstr "Veranstaltungen"
+
+msgid "Projects"
+msgstr "Projekte"
+
+msgid "Proposals"
+msgstr "Vorschläge"
+
+msgid "Upcoming Reminders"
+msgstr "Anstehende Erinnerungen"
+
+msgid "Ending Soon"
+msgstr "Endet bald"
+
 msgid "All Topics"
 msgstr "Alle Themen"
 
@@ -245,6 +279,9 @@ msgstr "Abstimmen"
 
 msgid "Reply"
 msgstr "Antworten"
+
+msgid "View"
+msgstr "Ansehen"
 
 msgid "Jump to section:"
 msgstr "Zu Abschnitt springen:"
@@ -811,8 +848,8 @@ msgid "Join the conversation or change your notifications"
 msgstr "Am Gespräch teilnehmen oder Benachrichtigungen ändern"
 
 #, python-format
-msgid "New chats in %(group_name)s #%(chat_topic)s"
-msgstr "Neue Chats in %(group_name)s #%(chat_topic)s"
+msgid "New chats in %(group_name)s"
+msgstr "Neue Chats in %(group_name)s"
 
 #, python-format
 msgid "%(count)s new comments on"

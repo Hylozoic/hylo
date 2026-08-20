@@ -1,4 +1,4 @@
-/* global bookshelf, Group, Post, User, GroupViewUser, CollectionPost, GroupView */
+/* global bookshelf, Group, Post, User, GroupViewUser, CollectionPost, GroupViewPin, GroupView */
 /* eslint-disable camelcase */
 
 const { homeRoutePathForView } = require('@hylo/navigation')
@@ -30,6 +30,10 @@ module.exports = bookshelf.Model.extend({
     return this.hasMany(CollectionPost, 'view_id').query(q => q.orderBy('order', 'asc'))
   },
 
+  pins () {
+    return this.hasMany(GroupViewPin, 'view_id').query(q => q.orderBy('pinned_at', 'desc'))
+  },
+
   viewsUsers () {
     return this.hasMany(GroupViewUser, 'view_id')
   }
@@ -55,6 +59,7 @@ module.exports = bookshelf.Model.extend({
     RESOURCES: 'resources',
     SEPARATOR: 'separator',
     SPACE: 'space',
+    SPACE_COLLECTION: 'space-collection',
     TEXT: 'text',
     TRACK_ACTIONS: 'track-actions',
     WELCOME: 'welcome'

@@ -94,7 +94,6 @@ import {
   muteMessageThread,
   unmuteMessageThread,
   leaveProject,
-  leaveSpace,
   leaveTrack,
   logout,
   markActivityRead,
@@ -604,8 +603,6 @@ export function makeMutations ({ fetchOne }) {
 
     joinSpace: (root, { spaceId }, context) => joinSpace(context.currentUserId, spaceId),
 
-    leaveSpace: (root, { spaceId }, context) => leaveSpace(context.currentUserId, spaceId),
-
     createInvitation: (root, { groupId, data }, context) => createInvitation(context.currentUserId, groupId, data), // consider sending locale from the frontend here
 
     createJoinRequest: (root, { groupId, questionAnswers }, context) => createJoinRequest(context.currentUserId, groupId, questionAnswers),
@@ -716,7 +713,7 @@ export function makeMutations ({ fetchOne }) {
 
     messageGroupStewards: (root, { groupId }, context) => messageGroupStewards(context.currentUserId, groupId),
 
-    pinPost: (root, { postId, groupId }, context) => pinPost(context.currentUserId, postId, groupId),
+    pinPost: (root, { postId, viewId }, context) => pinPost(context.currentUserId, postId, viewId),
 
     peopleTyping,
 

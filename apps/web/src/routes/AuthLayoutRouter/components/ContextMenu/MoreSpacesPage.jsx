@@ -8,7 +8,7 @@ import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { addQuerystringToPath, groupUrl, localSpaceSlug, spaceUrl } from '@hylo/navigation'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
-import { createGroupView, deleteSpace, setGroupViewHidden } from 'store/actions/groupViews'
+import { createGroupView, deleteSpace, setGroupViewHidden, updateGroupView } from 'store/actions/groupViews'
 import { FETCH_GROUP_SPACES } from 'store/constants'
 import { getGroupViews } from 'store/selectors/getGroupViews'
 import { getMoreSpacesSections } from 'store/selectors/getMoreSpacesSections'
@@ -24,6 +24,8 @@ import { SpaceViewCard } from './GroupViewCard'
 import EditingBottomBar, { EDITING_BAR_BUTTON_CLASS } from './EditingBottomBar'
 import ViewsGridSkeleton from './ViewsGridSkeleton'
 import { spaceEntryUrl } from './groupViewMenuUrl'
+import { appendSpaceId, spaceCollectionViews } from 'util/spaceCollection'
+import { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 
 /** Section heading above a card grid. Sections own the space above them (see SECTION_CLASS). */
 function SectionHeading ({ children }) {
@@ -143,6 +145,30 @@ export default function MoreSpacesPage ({ group }) {
     }
   }, [dispatch, contentGroup?.id, groupViews])
 
+  const collectionViews = useMemo(
+    () => spaceCollectionViews(groupViews).map(view => ({
+      id: view.id,
+      name: displayNameForView(view, t),
+      settings: view.settings
+    })),
+    [groupViews, t]
+  )
+
+  const handleAddToCollection = useCallback(async (space, collectionView) => {
+    if (!contentGroup?.id || !space?.id || !collectionView?.id) return
+    const fullView = (groupViews || []).find(v => String(v.id) === String(collectionView.id))
+    if (!fullView) return
+    try {
+      await dispatch(updateGroupView({
+        id: fullView.id,
+        groupId: contentGroup.id,
+        settings: appendSpaceId(fullView.settings, space.id)
+      }))
+    } catch (error) {
+      console.error('Failed to add space to collection:', error)
+    }
+  }, [dispatch, contentGroup?.id, groupViews])
+
   const handleDeleteSpace = useCallback(async (space) => {
     if (!space?.id || deletingSpaceId) return
     const confirmed = window.confirm(
@@ -226,6 +252,8 @@ export default function MoreSpacesPage ({ group }) {
                           onOpen={handleOpenSpace}
                           onOpenAbout={handleOpenSpaceAbout}
                           onAddToMenu={handleAddSpaceToMenu}
+                          onAddToCollection={handleAddToCollection}
+                          collectionViews={collectionViews}
                           onOpenSettings={setSettingsSpace}
                           onDelete={handleDeleteSpace}
                         />
@@ -246,6 +274,8 @@ export default function MoreSpacesPage ({ group }) {
                           onOpen={handleOpenSpace}
                           onOpenAbout={handleOpenSpaceAbout}
                           onAddToMenu={handleAddSpaceToMenu}
+                          onAddToCollection={handleAddToCollection}
+                          collectionViews={collectionViews}
                           onOpenSettings={setSettingsSpace}
                           onDelete={handleDeleteSpace}
                         />
@@ -266,6 +296,8 @@ export default function MoreSpacesPage ({ group }) {
                           onOpen={handleOpenSpace}
                           onOpenAbout={handleOpenSpaceAbout}
                           onAddToMenu={handleAddSpaceToMenu}
+                          onAddToCollection={handleAddToCollection}
+                          collectionViews={collectionViews}
                           onOpenSettings={setSettingsSpace}
                           onDelete={handleDeleteSpace}
                         />

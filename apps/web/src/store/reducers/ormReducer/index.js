@@ -25,12 +25,14 @@ import {
   DELETE_GROUP_VIEW,
   DELETE_GROUP_RELATIONSHIP,
   DELETE_POST_PENDING,
+  PIN_POST_PENDING,
   FETCH_GROUP_DETAILS_PENDING,
   FETCH_MESSAGES_PENDING,
   FETCH_GROUP_CHAT_ROOMS,
   FETCH_MY_DRAFTS,
   FETCH_POSTS,
   FETCH_VIEW_POSTS,
+  FETCH_VIEW_PINNED_POSTS,
   INVITE_CHILD_TO_JOIN_PARENT_GROUP,
   INVITE_PEER_RELATIONSHIP,
   JOIN_PROJECT_PENDING,
@@ -192,6 +194,18 @@ function clearMembershipIfMenuHasNoUnread (session, groupId) {
     )
     if (embedsSpace) clearOne(parent.id)
   })
+}
+
+/** Plain creator fields so an optimistic pin survives leaving the ORM session. */
+function snapshotPinnedPost (post) {
+  if (!post) return post
+  const creator = post.creator?.ref || post.creator
+  return {
+    ...post,
+    creator: creator
+      ? { id: creator.id, name: creator.name, avatarUrl: creator.avatarUrl }
+      : post.creator
+  }
 }
 
 export default function ormReducer (state = orm.getEmptyState(), action) {
@@ -764,6 +778,44 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     case DELETE_GROUP_TOPIC_PENDING: {
       groupTopic = GroupTopic.withId(meta.id)
       groupTopic.delete()
+      break
+    }
+
+    case PIN_POST_PENDING: {
+      const group = meta.groupId ? Group.withId(meta.groupId) : null
+      if (!group || !meta.viewId) break
+      const items = group.groupViews?.items || []
+      const view = items.find(v => String(v.id) === String(meta.viewId)) ||
+        items.flatMap(v => v.linkedGroup?.groupViews?.items || []).find(v => String(v.id) === String(meta.viewId))
+      if (!view) break
+      const ids = (view.pinnedPostIds || []).map(id => String(id))
+      const postId = String(meta.postId)
+      const alreadyPinned = ids.includes(postId)
+      const nextIds = alreadyPinned
+        ? ids.filter(id => id !== postId)
+        : [postId, ...ids]
+      const nextPosts = alreadyPinned
+        ? (view.pinnedPosts || []).filter(p => String(p.id) !== postId)
+        : [snapshotPinnedPost(meta.post), ...(view.pinnedPosts || [])].filter(Boolean)
+      updateGroupViewInMenu(group, meta.viewId, {
+        pinnedPostIds: nextIds,
+        pinnedPosts: nextPosts
+      })
+      break
+    }
+
+    case FETCH_VIEW_PINNED_POSTS: {
+      const items = payload.data?.group?.groupViews?.items || []
+      const targetGroup = Group.withId(meta.groupId)
+      if (!targetGroup) break
+      items.forEach(viewData => {
+        if (viewData?.id != null) {
+          updateGroupViewInMenu(targetGroup, viewData.id, {
+            pinnedPostIds: viewData.pinnedPostIds,
+            pinnedPosts: viewData.pinnedPosts
+          })
+        }
+      })
       break
     }
 

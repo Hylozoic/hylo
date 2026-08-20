@@ -28,6 +28,7 @@ const url = function () {
  * @param {string} queryFragment `?ctt=...&cti=...` or `ctt=...&cti=...`
  */
 const appendQueryString = function (baseUrl, queryFragment) {
+  if (baseUrl == null || baseUrl === '') return baseUrl
   if (queryFragment == null || queryFragment === '') return baseUrl
   const q = String(queryFragment).replace(/^\?+/, '').replace(/^&+/, '') // Remove any leading ? or & from the queryFragment
   if (!q) return baseUrl

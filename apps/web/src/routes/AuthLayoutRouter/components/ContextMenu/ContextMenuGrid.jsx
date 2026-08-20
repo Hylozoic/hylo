@@ -37,7 +37,7 @@ import useMoreSpacesSections from 'hooks/useMoreSpacesSections'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
-import { createGroupView, deleteGroupView, deleteSpace, setGroupViewHidden } from 'store/actions/groupViews'
+import { createGroupView, deleteGroupView, deleteSpace, setGroupViewHidden, updateGroupView } from 'store/actions/groupViews'
 import { canHardDeleteView } from 'store/models/GroupView'
 import GroupMenuHeader from 'components/GroupMenuHeader'
 import GroupNotificationsPopover from 'components/GroupNotificationsPopover/GroupNotificationsPopover'
@@ -67,11 +67,14 @@ import {
 import GroupViewSettingsModal from './GroupViewSettingsModal'
 import SpaceSettingsModal from './SpaceSettingsModal'
 import AddCollectionDialog from './AddCollectionDialog'
+import AddSpaceCollectionDialog from './AddSpaceCollectionDialog'
 import AddGroupViewDialog from './AddGroupViewDialog'
 import AddSpaceDialog from './AddSpaceDialog'
 import AddViewOrSpaceMenu from './AddViewOrSpaceMenu'
 import EditingBottomBar, { EDITING_BAR_BUTTON_CLASS } from './EditingBottomBar'
-import { menuViewUrl } from './groupViewMenuUrl'
+import { menuViewUrl, isParentGroupPath } from './groupViewMenuUrl'
+import getPreviousLocation from 'store/selectors/getPreviousLocation'
+import { appendSpaceId, spaceCollectionViews } from 'util/spaceCollection'
 
 /** Synthetic view so the More Spaces card can use the same icon wallpaper as real views. */
 const MORE_SPACES_VIEW = { lucideIcon: 'CircleEllipsis' }
@@ -498,6 +501,30 @@ function MoreSpacesGrid ({
     }
   }, [dispatch, group?.id, groupViews])
 
+  const collectionViews = useMemo(
+    () => spaceCollectionViews(groupViews).map(view => ({
+      id: view.id,
+      name: displayNameForView(view, t),
+      settings: view.settings
+    })),
+    [groupViews, t]
+  )
+
+  const handleAddToCollection = useCallback(async (space, collectionView) => {
+    if (!group?.id || !space?.id || !collectionView?.id) return
+    const fullView = (groupViews || []).find(v => String(v.id) === String(collectionView.id))
+    if (!fullView) return
+    try {
+      await dispatch(updateGroupView({
+        id: fullView.id,
+        groupId: group.id,
+        settings: appendSpaceId(fullView.settings, space.id)
+      }))
+    } catch (error) {
+      console.error('Failed to add space to collection:', error)
+    }
+  }, [dispatch, group?.id, groupViews])
+
   const handleDeleteSpace = useCallback(async (space) => {
     if (!space?.id || deletingSpaceId) return
     const confirmed = window.confirm(
@@ -541,6 +568,8 @@ function MoreSpacesGrid ({
                 onOpen={handleOpenSpace}
                 onOpenAbout={handleOpenSpaceAbout}
                 onAddToMenu={handleAddSpaceToMenu}
+                onAddToCollection={handleAddToCollection}
+                collectionViews={collectionViews}
                 onOpenSettings={onOpenSpaceSettings}
                 onDelete={handleDeleteSpace}
               />
@@ -561,6 +590,8 @@ function MoreSpacesGrid ({
                 onOpen={handleOpenSpace}
                 onOpenAbout={handleOpenSpaceAbout}
                 onAddToMenu={handleAddSpaceToMenu}
+                onAddToCollection={handleAddToCollection}
+                collectionViews={collectionViews}
                 onOpenSettings={onOpenSpaceSettings}
                 onDelete={handleDeleteSpace}
               />
@@ -581,6 +612,8 @@ function MoreSpacesGrid ({
                 onOpen={handleOpenSpace}
                 onOpenAbout={handleOpenSpaceAbout}
                 onAddToMenu={handleAddSpaceToMenu}
+                onAddToCollection={handleAddToCollection}
+                collectionViews={collectionViews}
                 onOpenSettings={onOpenSpaceSettings}
                 onDelete={handleDeleteSpace}
               />
@@ -608,6 +641,7 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
   const dispatch = useDispatch()
   const currentUser = useSelector(getMe)
   const myMemberships = useSelector(getMyMemberships)
+  const previousLocation = useSelector(getPreviousLocation)
   const groupSlug = group?.slug
   const isContextMode = Boolean(context) && !group
 
@@ -712,16 +746,16 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
     : null
 
   const handleBack = useCallback(() => {
-    if (isSpaceLevel && location.state?.fromMoreSpaces) {
-      navigate(groupUrl(groupSlug, 'more-spaces'))
-      return
-    }
     if (isSpaceLevel || isMoreSpacesLevel) {
+      if (isParentGroupPath(previousLocation?.pathname, groupSlug)) {
+        navigate(previousLocation)
+        return
+      }
       navigate(groupUrl(groupSlug))
       return
     }
     navigate(-1)
-  }, [isSpaceLevel, isMoreSpacesLevel, location.state, groupSlug, navigate])
+  }, [isSpaceLevel, isMoreSpacesLevel, previousLocation, groupSlug, navigate])
 
   const toggleEditing = useCallback(() => {
     if (isEditing) {
@@ -983,13 +1017,22 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
                 onCreated={() => setSettingsView(null)}
               />
               )
-            : (
-              <GroupViewSettingsModal
-                view={settingsView}
-                group={menuGroup}
-                onClose={() => setSettingsView(null)}
-              />
-              )
+            : settingsView.type === 'space-collection'
+              ? (
+                <AddSpaceCollectionDialog
+                  group={menuGroup}
+                  view={settingsView}
+                  onCancel={() => setSettingsView(null)}
+                  onCreated={() => setSettingsView(null)}
+                />
+                )
+              : (
+                <GroupViewSettingsModal
+                  view={settingsView}
+                  group={menuGroup}
+                  onClose={() => setSettingsView(null)}
+                />
+                )
       )}
     </div>
   )

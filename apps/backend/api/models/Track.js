@@ -295,9 +295,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
       if (!membership || !membership.get('active')) {
         return null
       }
-      await track.save({ num_people_enrolled: Math.max(0, track.get('num_people_enrolled') - 1) }, { transacting: trx })
-      membership.removeSetting('completedAt')
-      await membership.save({ settings: membership.get('settings') }, { patch: true, transacting: trx })
+      // num_people_enrolled and the completedAt setting are settled by Group.removeMembers,
+      // so that leaving the parent group cascades the same way.
       await space.removeMembers([userId], { transacting: trx })
       return membership
     })

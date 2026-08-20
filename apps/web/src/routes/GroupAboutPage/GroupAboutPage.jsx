@@ -13,7 +13,7 @@ import { groupUrl, spaceUrl } from '@hylo/navigation'
 import fetchGroupDetails from 'store/actions/fetchGroupDetails'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 
-/** Tab id from /about/<tab> so about/moderation, about/members, about/related-groups land correctly. */
+/** Tab id from /about/<tab> so about/moderation, about/members, about/round-details land correctly. */
 function tabFromPath (pathname) {
   const path = pathname.replace(/\/$/, '')
   if (path.endsWith('/moderation')) return 'moderation'
@@ -21,6 +21,7 @@ function tabFromPath (pathname) {
   if (path.endsWith('/related-groups')) return 'related-groups'
   if (path.endsWith('/notifications')) return 'notifications'
   if (path.endsWith('/settings')) return 'settings'
+  if (path.endsWith('/round-details')) return 'round-details'
   return 'about'
 }
 
