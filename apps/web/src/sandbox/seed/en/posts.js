@@ -4,7 +4,8 @@ import {
   CHAT_SPACE_ID,
   FUNDING_SPACE_ID,
   MAIN_GROUP_ID,
-  SIMPLE_GROUP_ID
+  SIMPLE_GROUP_ID,
+  STAFF_GROUP_ID
 } from './groups'
 import { FUNDING_ROUND_ID } from './fundingRounds'
 
@@ -14,6 +15,7 @@ import { FUNDING_ROUND_ID } from './fundingRounds'
  */
 export function buildPosts (peopleById, meId) {
   const me = peopleById[meId]
+  const p002 = peopleById[sid('person', '002')]
   const p003 = peopleById[sid('person', '003')]
   const p004 = peopleById[sid('person', '004')]
   const p005 = peopleById[sid('person', '005')]
@@ -30,6 +32,8 @@ export function buildPosts (peopleById, meId) {
   const p016 = peopleById[sid('person', '016')]
   const p017 = peopleById[sid('person', '017')]
   const p018 = peopleById[sid('person', '018')]
+  const p019 = peopleById[sid('person', '019')]
+  const p020 = peopleById[sid('person', '020')]
 
   return {
     mainStream: [
@@ -128,15 +132,38 @@ export function buildPosts (peopleById, meId) {
     fundingSubmissions: [
       fundingSubmission('001', p016, FUNDING_SPACE_ID, -86400 * 5, 24, {
         title: 'Bay Area Mycorrhizal Mapping Project',
-        details: '<p>A community science initiative to map fungal networks across the Bay Area bioregion, partnering with urban farms, community gardens, and restoration projects to build a shared soil health database.</p>'
+        budget: '$6,500',
+        commentCount: 3,
+        reactionCount: 5,
+        details: '<p>A community science initiative to map fungal networks across the Bay Area bioregion. We partner with urban farms, community gardens, and creek restoration crews to sample soil, identify mycorrhizal species, and publish open data anyone can use.</p><p><strong>What we&#39;ll do with the grant:</strong></p><ul><li>Train 12 neighborhood soil stewards in field sampling</li><li>Build a shared map of soil health indicators across 8 sites</li><li>Host two public workshops on fungi and watershed resilience</li></ul><p>Led by Lucia Mendez with support from King City growers and East Bay restoration groups.</p>'
       }),
       fundingSubmission('002', p017, FUNDING_SPACE_ID, -86400 * 4, 18, {
         title: 'Regenerative Agriculture Education Series',
-        details: '<p>A six-part online course connecting Bay Area farmers with permaculture designers and soil scientists, with a focus on transitioning conventional operations toward regenerative practices.</p>'
+        budget: '$4,200',
+        commentCount: 2,
+        reactionCount: 3,
+        details: '<p>A six-part learning series connecting Bay Area farmers with permaculture designers and soil scientists. Each session pairs a farm visit with a practical design lab — cover crops, compost systems, water retention, and cooperative marketing.</p><p>We&#39;re especially focused on operators who want to transition leased land toward regenerative practices without taking on debt. Sessions will be recorded and shared under a Creative Commons license.</p>'
       }),
       fundingSubmission('003', p018, FUNDING_SPACE_ID, -86400 * 3, 22, {
         title: 'POC-Led Urban Farming Network',
-        details: '<p>Seed funding to connect and resource BIPOC-led urban farming projects across Oakland, Richmond, and East Palo Alto — supporting land access, equipment sharing, and peer mentorship.</p>'
+        budget: '$8,000',
+        commentCount: 4,
+        reactionCount: 6,
+        details: '<p>Seed funding to connect and resource BIPOC-led urban farming projects across Oakland, Richmond, and East Palo Alto. The network coordinates equipment sharing, peer mentorship, and collective purchasing for soil amendments and irrigation supplies.</p><p><strong>Year-one priorities:</strong></p><ul><li>Launch a shared tool library with 3 anchor farms</li><li>Fund stipends for 6 mentorship pairings</li><li>Publish a land-access resource guide for new growers</li></ul>'
+      }),
+      fundingSubmission('004', p019, FUNDING_SPACE_ID, -86400 * 2, 15, {
+        title: 'East Bay Community Forest Stewardship Fund',
+        budget: '$7,500',
+        commentCount: 2,
+        reactionCount: 4,
+        details: '<p>Supports the neighborhood land trust securing a hillside parcel in the East Bay hills — the same community forest campaign Terran has been crowdfunding on the main stream. This grant covers native plant nursery costs, volunteer stewardship training, and signage for public trail access.</p><p>Funds stay with the land trust and are released as milestones are met: site assessment, planting days, and the first season of community monitoring.</p>'
+      }),
+      fundingSubmission('005', p020, FUNDING_SPACE_ID, -86400 * 1, 12, {
+        title: 'Indigenous Cultural Fire & Land Return Coalition',
+        budget: '$5,800',
+        commentCount: 1,
+        reactionCount: 2,
+        details: '<p>A coalition of Indigenous land stewards, cultural fire practitioners, and bioregional organizers building capacity for good-fire workshops and land-return advocacy in the Bay Area. Grant funds cover training materials, travel for elders, and coordination with existing prescribed-burn crews.</p><p>This work reconnects cultural fire knowledge with watershed health — reducing catastrophic wildfire risk while restoring oak woodland and grassland ecologies our communities depend on.</p>'
       })
     ],
     simpleGroupChat: [
@@ -213,6 +240,63 @@ export function buildPosts (peopleById, meId) {
         reactionCount: 1
       })
     ],
+    staffGroupChat: [
+      chatPost('staff', '001', me, STAFF_GROUP_ID, -7200, 'Morning team — who is facilitating the Fruitvale skill-share on Thursday?'),
+      chatPost('staff', '002', p003, STAFF_GROUP_ID, -7000, 'I can take it. Maya, can you bring the leftover zines from last month?'),
+      chatPost('staff', '003', p003, STAFF_GROUP_ID, -6800, 'I&#39;ll take notes and drop surplus numbers in the shared folder after.'),
+      chatPost('staff', '004', p004, STAFF_GROUP_ID, -6600, 'Studio key is with Ezra today. Text if you need the cupboard unlocked.'),
+      chatPost('staff', '005', p005, STAFF_GROUP_ID, -6400, 'Reminder: worker-owner huddle Monday 10am. Agenda is season fund + who is on call for gigs.'),
+      chatPost('staff', '006', me, STAFF_GROUP_ID, -6200, 'Love it. Drop asks in the stream too — bookkeeping help, workshop hosts, all welcome.')
+    ],
+    staffGroupStream: [
+      discussionPost('staff-201', me, STAFF_GROUP_ID, -86400 * 50, {
+        title: 'Holistica is now worker-owned',
+        details: '<p>Today is a huge day — we are formally organizing Holistica as a worker-owned cooperative.</p><p>We will use this space to coordinate our shared work: neighborhood gatherings, skill-shares, and facilitation for groups who want help working together in person. We will never sell anyone&#39;s data, we will never sell out, and we work in deep partnership with people building a world that works for all.</p><p>If you want to help host, keep the books, or take on a neighborhood gig, get in touch. We will hold a design jam soon to decide how we share surplus and how we take on work together.</p>',
+        announcement: true,
+        commentCount: 1,
+        reactionCount: 3
+      }),
+      requestPost('staff-202', me, STAFF_GROUP_ID, -86400 * 42, {
+        title: 'Season fund ready to go',
+        details: '<p>We finally got a campaign up to cover shared costs for the studio and sliding-scale workshops. We&#39;d love some feedback before we send it more widely.</p><p>We are raising community contributions through our fiscal sponsor with the hope of at least covering studio rent, currently around $900/month. If you feel called to give, we would be forever grateful.</p>',
+        commentCount: 3,
+        reactionCount: 3
+      }),
+      discussionPost('staff-203', p004, STAFF_GROUP_ID, -86400 * 40, {
+        title: 'Thank you',
+        details: '<p>Just want to share that I love that you all are bringing this cooperative back to life.</p><p>I was around as a design advisor when we were figuring out how we make decisions together. It&#39;s something I&#39;ve kept my eye on for a while.</p><p>Would be happy to give any feedback on how we host and how we share the work going forward.</p>',
+        commentCount: 0,
+        reactionCount: 2
+      }),
+      eventPost('staff-204', me, STAFF_GROUP_ID, -86400 * 36, {
+        title: 'Holistica season launch gathering',
+        details: '<p>Dear friends,</p><p>It is with great excitement that we are announcing the launch of our season fund! We are looking to raise community support so we can keep hosting sliding-scale workshops and neighborhood gatherings this year.</p><p>To celebrate we are hosting a virtual launch gathering. We will walk through the season plan and bring in partners who are hosting with us.</p><p>Feel free to join when you can. Link will be posted on the day!</p>',
+        location: 'Online',
+        upcoming: false,
+        commentCount: 4,
+        reactionCount: 2
+      }),
+      requestPost('staff-205', me, STAFF_GROUP_ID, -86400 * 34, {
+        title: 'Launching our season fund',
+        details: '<p>Today&#39;s the big day — we&#39;re launching our season fund for Holistica.</p><p>We are looking to raise $100k from our wider community so we can pay facilitation stipends, cover studio rent, and keep workshops sliding-scale. A small cooperative only works if the village around it is in.</p><p>This is not just about money. It is even more important to build relationships with anyone who shares this way of working. If you want to facilitate, keep books, or connect us with a neighborhood that needs a gathering, please get in touch.</p><p>Thank you for your support. We are just at the beginning of this season together.</p><p>In solidarity,<br/>Maya, Kai, Elena<br/>Holistica worker-owners</p>',
+        commentCount: 6,
+        reactionCount: 4
+      }),
+      eventPost('staff-206', me, STAFF_GROUP_ID, -86400 * 28, {
+        title: 'Season wrap and member celebration',
+        details: '<p>Join us to celebrate the season fund and everyone who signed up as a supporting member. As we keep offering Holistica&#39;s gatherings as a gift to neighborhoods that want to work together, it means the world that so many of you want to come along.</p><p>Here&#39;s what we&#39;re planning:</p><p>- Campaign wrap with numbers, lessons, and plans for the next season</p><p>- Maya will walk through how we&#39;re hosting gatherings this season</p><p>- Meet the worker-owners</p><p>- Get involved: we are inviting supporting members into facilitation, bookkeeping, and outreach</p>',
+        location: 'Online',
+        upcoming: false,
+        commentCount: 3,
+        reactionCount: 2
+      }),
+      resourcePost('staff-207', me, STAFF_GROUP_ID, -86400 * 20, {
+        title: '10 minute Holistica walkthrough to share',
+        details: '<p>I made a video that goes through how we work at Holistica for new worker-owners (it doesn&#39;t cover every internal process).</p><p>Feel free to share around!</p><p>We will make one for hosting partners soon, and a shorter one that leaves out the joining process.</p>',
+        commentCount: 3,
+        reactionCount: 2
+      })
+    ],
     byId: null // filled below
   }
 }
@@ -226,7 +310,7 @@ function basePost (id, creator, groupId, createdAt_offset, type, extras = {}) {
     createdAt_offset,
     updatedAt_offset: createdAt_offset + 3600,
     creator,
-    groups: [{ id: groupId, name: groupId === MAIN_GROUP_ID ? 'Terran Collective' : 'East Bay Connect' }],
+    groups: [{ id: groupId, name: groupDisplayName(groupId) }],
     groupsTotal: 1,
     commentsTotal: extras.commentCount || 0,
     commentersTotal: extras.commentCount || 0,
@@ -238,6 +322,14 @@ function basePost (id, creator, groupId, createdAt_offset, type, extras = {}) {
     announcement: extras.announcement || false,
     ...extras.fields
   }
+}
+
+function groupDisplayName (groupId) {
+  if (groupId === MAIN_GROUP_ID) return 'Terran Collective'
+  if (groupId === STAFF_GROUP_ID) return 'Holistica Staff'
+  if (groupId === FUNDING_SPACE_ID) return 'Bioregional Grants'
+  if (groupId === CHAT_SPACE_ID) return 'General'
+  return 'East Bay Connect'
 }
 
 function discussionPost (num, creator, groupId, createdAt_offset, extras = {}) {
@@ -311,8 +403,10 @@ function fundingSubmission (num, creator, groupId, createdAt_offset, tokensAlloc
   return basePost(`fr-${num}`, creator, groupId, createdAt_offset, 'project', {
     title: extras.title,
     details: extras.details,
+    commentCount: extras.commentCount || 0,
+    reactionCount: extras.reactionCount || 0,
     fields: {
-      budget: '$5,000',
+      budget: extras.budget || '$5,000',
       fundingRound: { id: FUNDING_ROUND_ID, title: 'Bioregional Grants Round 1' },
       tokensAllocated,
       totalTokensAllocated: tokensAllocated + 8

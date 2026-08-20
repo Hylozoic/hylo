@@ -166,6 +166,10 @@ function defaultQuery (rootField, variables, seed) {
       return { data: { search: { items: [], total: 0, hasMore: false } } }
     case 'notifications':
       return { data: { notifications: paginate(seed.notifications || [], variables.first, variables.offset) } }
+    case 'fundingRound':
+      return { data: { fundingRound: presentFundingRound(seed, variables.id) } }
+    case 'track':
+      return { data: { track: presentTrack(seed, variables.id) } }
     default:
       return { data: rootField ? { [rootField]: emptyForField(rootField) } : {} }
   }
@@ -196,6 +200,12 @@ function handleMutation (operationName, rootField, variables, seed) {
       return { data: { reactOn: { id: sid('reaction', String(Date.now())) } } }
     case 'deleteReaction':
       return { data: { deleteReaction: true } }
+    case 'completePost':
+      return { data: { completePost: completePost(seed, variables) } }
+    case 'enrollInTrack':
+      return { data: { enrollInTrack: enrollInTrack(seed, variables) } }
+    case 'leaveTrack':
+      return { data: { leaveTrack: leaveTrack(seed, variables) } }
     case 'updateMe':
       return { data: { updateMe: updateMe(seed, variables) } }
     case 'createMessage':
@@ -239,25 +249,120 @@ function presentMe (seed) {
   return seed.me
 }
 
+function presentFundingRound (seed, id) {
+  if (!id || String(id) !== String(seed.fundingRound.id)) return null
+  const fundingSpace = seed.groups.spaces.funding
+  return {
+    ...seed.fundingRound,
+    group: {
+      id: fundingSpace.id,
+      name: fundingSpace.name,
+      slug: fundingSpace.slug,
+      homeRoute: fundingSpace.homeRoute,
+      memberCount: fundingSpace.memberCount,
+      parentGroup: {
+        id: seed.groups.main.id,
+        slug: seed.groups.main.slug
+      }
+    }
+  }
+}
+
+function presentTrack (seed, id) {
+  if (!id || String(id) !== String(seed.track.id)) return null
+  const trackSpace = seed.groups.spaces.track
+  return {
+    ...seed.track,
+    space: {
+      id: trackSpace.id,
+      slug: trackSpace.slug,
+      type: trackSpace.type,
+      homeRoute: trackSpace.homeRoute,
+      parentGroup: {
+        id: seed.groups.main.id,
+        slug: seed.groups.main.slug
+      }
+    },
+    enrolledUsers: {
+      items: [{
+        id: seed.ids.me,
+        name: seed.peopleById[seed.ids.me]?.name,
+        avatarUrl: seed.peopleById[seed.ids.me]?.avatarUrl,
+        enrolledAt: seed.track.publishedAt,
+        completedAt: null
+      }],
+      total: seed.track.numPeopleEnrolled || 1,
+      hasMore: false
+    }
+  }
+}
+
+function presentTrackActionPosts (seed) {
+  return (seed.track.actions || []).map(action => presentPost(seed, findPost(seed, action.id) || action))
+}
+
+function presentSpaceLinkedGroup (seed, linkedGroup) {
+  if (!linkedGroup?.id) return linkedGroup
+  const space = seed.groups.all.find(g => String(g.id) === String(linkedGroup.id))
+  if (!space) return linkedGroup
+
+  return {
+    ...linkedGroup,
+    groupViews: { items: presentGroupViews(seed, space) },
+    track: String(space.id) === String(seed.groups.spaces.track.id)
+      ? presentTrack(seed, seed.track.id)
+      : (linkedGroup.track || null),
+    fundingRound: String(space.id) === String(seed.groups.spaces.funding.id)
+      ? presentFundingRound(seed, seed.fundingRound.id)
+      : (linkedGroup.fundingRound || null)
+  }
+}
+
+function presentGroupView (seed, view) {
+  const enriched = view.type === 'space' && view.linkedGroup
+    ? { ...view, linkedGroup: presentSpaceLinkedGroup(seed, view.linkedGroup) }
+    : { ...view }
+
+  if (enriched.type === 'track-actions') {
+    return { ...enriched, collectionPosts: presentTrackActionPosts(seed) }
+  }
+
+  if (Array.isArray(enriched.collectionPosts)) {
+    return {
+      ...enriched,
+      collectionPosts: enriched.collectionPosts.map(p => presentPost(seed, findPost(seed, p.id) || p))
+    }
+  }
+
+  return enriched
+}
+
+function presentGroupViews (seed, group) {
+  const views = seed.groupViews[group.id] || []
+  return views.map(view => presentGroupView(seed, view))
+}
+
 function presentGroup (seed, group) {
   if (!group) return null
   const me = seed.peopleById[seed.ids.me]
+  const members = membersForGroup(seed, group)
   return {
     ...group,
     canAccess: true,
+    memberCount: group.type === 'space' ? members.length : group.memberCount,
     agreements: group.agreements || { items: [] },
     contextWidgets: group.contextWidgets || { items: [] },
-    groupViews: { items: seed.groupViews[group.id] || [] },
+    groupViews: { items: presentGroupViews(seed, group) },
     groupRoles: { items: seed.groups.roles.filter(role => !role.groupId || role.groupId === group.id || role.groupId === seed.groups.main.id) },
     stewards: { items: [me] },
-    members: paginate(membersForGroup(seed, group), 20, 0),
+    members: paginate(members, 20, 0),
     spaces: {
       items: group.id === seed.groups.main.id
         ? [seed.groups.spaces.chat, seed.groups.spaces.track, seed.groups.spaces.funding]
         : []
     },
-    fundingRound: group.id === seed.groups.spaces.funding.id ? seed.fundingRound : group.fundingRound || null,
-    track: group.id === seed.groups.spaces.track.id ? seed.track : group.track || null
+    fundingRound: group.id === seed.groups.spaces.funding.id ? presentFundingRound(seed, seed.fundingRound.id) : group.fundingRound || null,
+    track: group.id === seed.groups.spaces.track.id ? presentTrack(seed, seed.track.id) : group.track || null
   }
 }
 
@@ -337,6 +442,11 @@ function listPosts (seed, variables) {
       if (wantsChat) return seed.posts.simpleGroupChat
       return [...(seed.posts.simpleGroupStream || []), ...seed.posts.simpleGroupChat]
     }
+    if (group.id === seed.groups.staff.id) {
+      const wantsChat = variables.types?.length === 1 && variables.types[0] === 'chat'
+      if (wantsChat) return seed.posts.staffGroupChat
+      return [...(seed.posts.staffGroupStream || []), ...seed.posts.staffGroupChat]
+    }
     if (group.id === seed.groups.spaces.chat.id) return seed.posts.chatSpace
     if (group.id === seed.groups.spaces.funding.id) return seed.posts.fundingSubmissions
     if (group.id === seed.groups.spaces.track.id) return seed.track.actions
@@ -366,6 +476,31 @@ function membersForGroup (seed, group) {
       ...seed.people.filter(p => p.starterGroup)
     ]
   }
+  if (group.id === seed.groups.staff.id) {
+    return [
+      me,
+      ...seed.people.filter(p => p.staffGroup)
+    ]
+  }
+  const namedTerran = seed.people.filter(p => !p.starterGroup && p.avatarUrl)
+  if (group.id === seed.groups.spaces.chat.id) {
+    return [me, ...namedTerran]
+  }
+  if (group.id === seed.groups.spaces.track.id) {
+    return [me, ...namedTerran.slice(6, 16)]
+  }
+  if (group.id === seed.groups.spaces.funding.id) {
+    const ids = new Set([
+      sid('person', '002'),
+      sid('person', '003'),
+      sid('person', '005'),
+      sid('person', '007'),
+      sid('person', '010'),
+      sid('person', '012'),
+      sid('person', '016')
+    ])
+    return [me, ...seed.people.filter(p => ids.has(p.id))]
+  }
   return [
     me,
     ...seed.people.filter(p => !p.starterGroup)
@@ -392,6 +527,43 @@ function findPerson (seed, id) {
 
 function findThread (seed, id) {
   return seed.messageThreads.find(t => String(t.id) === String(id)) || null
+}
+
+function completePost (seed, variables) {
+  const post = findPost(seed, variables.postId)
+  if (!post) return null
+
+  const completionResponse = variables.completionResponse
+    ? JSON.parse(variables.completionResponse)
+    : []
+  const completedAt = new Date().toISOString()
+
+  post.completedAt = completedAt
+  post.completionResponse = completionResponse
+
+  const action = (seed.track.actions || []).find(item => String(item.id) === String(post.id))
+  if (action) {
+    action.completedAt = completedAt
+    action.completionResponse = completionResponse
+  }
+
+  return {
+    id: post.id,
+    completedAt,
+    completionResponse
+  }
+}
+
+function enrollInTrack (seed, variables) {
+  if (String(variables.trackId) !== String(seed.track.id)) return null
+  seed.track.isEnrolled = true
+  return { id: seed.track.id, isEnrolled: true }
+}
+
+function leaveTrack (seed, variables) {
+  if (String(variables.trackId) !== String(seed.track.id)) return null
+  seed.track.isEnrolled = false
+  return { id: seed.track.id, isEnrolled: false }
 }
 
 function paginate (items = [], first = 20, offset = 0) {
@@ -431,6 +603,10 @@ function createPost (seed, variables) {
     if (post.type === 'chat') seed.posts.simpleGroupChat.unshift(post)
     else (seed.posts.simpleGroupStream || (seed.posts.simpleGroupStream = [])).unshift(post)
   }
+  else if (group.id === seed.groups.staff.id) {
+    if (post.type === 'chat') seed.posts.staffGroupChat.unshift(post)
+    else (seed.posts.staffGroupStream || (seed.posts.staffGroupStream = [])).unshift(post)
+  }
   else if (group.id === seed.groups.spaces.chat.id) seed.posts.chatSpace.unshift(post)
   return presentPost(seed, post)
 }
@@ -446,7 +622,7 @@ function updatePost (seed, variables) {
 function deletePost (seed, variables) {
   const id = variables.id
   delete seed.posts.byId[id]
-  const lists = [seed.posts.mainStream, seed.posts.chatSpace, seed.posts.simpleGroupChat, seed.posts.simpleGroupStream, seed.posts.fundingSubmissions].filter(Boolean)
+  const lists = [seed.posts.mainStream, seed.posts.chatSpace, seed.posts.simpleGroupChat, seed.posts.simpleGroupStream, seed.posts.staffGroupChat, seed.posts.staffGroupStream, seed.posts.fundingSubmissions].filter(Boolean)
   for (const list of lists) {
     const idx = list.findIndex(p => String(p.id) === String(id))
     if (idx !== -1) list.splice(idx, 1)

@@ -39,6 +39,11 @@ export function buildEnSeed () {
     postCollections.byId[action.id] = action
   }
 
+  const trackActionsView = (groupViews[groups.spaces.track.id] || []).find(view => view.type === 'track-actions')
+  if (trackActionsView) {
+    trackActionsView.collectionPosts = trackActions
+  }
+
   const commentsByPostId = buildCommentsByPostId(peopleMap, ME_ID)
   const reactionsByPostId = buildReactionsByPostId(peopleMap, ME_ID)
   const proposalData = buildProposalData()
@@ -76,12 +81,14 @@ export function buildEnSeed () {
       all: [
         groups.main,
         groups.simple,
+        groups.staff,
         groups.spaces.chat,
         groups.spaces.track,
         groups.spaces.funding
       ],
       main: groups.main,
       simple: groups.simple,
+      staff: groups.staff,
       spaces: groups.spaces,
       roles: groups.groupRoles
     },

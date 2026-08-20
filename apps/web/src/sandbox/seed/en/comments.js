@@ -16,6 +16,7 @@ export function buildCommentsByPostId (peopleById, meId) {
   const p009 = peopleById[sid('person', '009')]
   const p010 = peopleById[sid('person', '010')]
   const p012 = peopleById[sid('person', '012')]
+  const p018 = peopleById[sid('person', '018')]
   const p019 = peopleById[sid('person', '019')]
   const p020 = peopleById[sid('person', '020')]
   const cleo = peopleById[sid('person', 'starter', '001')]
@@ -234,6 +235,103 @@ export function buildCommentsByPostId (peopleById, meId) {
     [sid('post', 'simple-111')]: [
       comment('111-c01', anjali, -86400 * 30,
         '<p>Doing a good job. &lt;3</p>')
+    ],
+
+    [sid('post', 'staff-201')]: [
+      comment('s201-c01', p004, -86400 * 49,
+        '<p>Thanks Elena, Maya. This is a great write up. I&#39;m particularly excited by how we&#39;ll share surplus and take on gigs together.</p>')
+    ],
+
+    [sid('post', 'staff-202')]: [
+      comment('s202-c01', p005, -86400 * 41,
+        '<p>Hi! I&#39;m planning to post next week about using Holistica for neighborhood gatherings. Anything else I should particularly mention? Have you found someone for the books yet?</p>'),
+      comment('s202-c02', me, -86400 * 41 + 500,
+        '<p>that sounds great, thanks! no, sadly we have not... still working on it. really should only take a day or two to settle once we find someone.</p>'),
+      comment('s202-c03', p003, -86400 * 40,
+        '<p>Beyond giving, I would be happy to contribute time. What might be the best way for me to help with hosting?</p>')
+    ],
+
+    [sid('post', 'staff-204')]: [
+      comment('s204-c01', p010, -86400 * 35,
+        '<p>Can&#39;t make this but would love to see the recording.</p>'),
+      comment('s204-c02', me, -86400 * 35 + 400,
+        '<p>it will be recorded on Zoom — I&#39;ll drop the link here after.</p>'),
+      comment('s204-c03', p002, -86400 * 34,
+        '<p>Following for the recording link when available.</p>'),
+      comment('s204-c04', me, -86400 * 33,
+        '<p>Video is up in the shared folder. Thank you everyone who came.</p>')
+    ],
+
+    [sid('post', 'staff-205')]: [
+      comment('s205-c01', me, -86400 * 33 + 1000,
+        '<p>The zoom info is in chat — join when you can.</p>'),
+      comment('s205-c02', p010, -86400 * 33 + 2000,
+        '<p>Great gathering!</p>'),
+      comment('s205-c03', p003, -86400 * 32,
+        '<p>Such a heartwarming evening.</p>'),
+      comment('s205-c04', p006, -86400 * 31,
+        '<p>hey I would give but sending USD will get me a big charge — any way to contribute outside the US?</p>'),
+      comment('s205-c05', me, -86400 * 31 + 500,
+        '<p>Does PayPal work better? you could also give here: http://paypal.me/holistica</p>'),
+      comment('s205-c06', p006, -86400 * 30,
+        '<p>yep PayPal is perfect, sorted!</p>')
+    ],
+
+    [sid('post', 'staff-206')]: [
+      comment('s206-c01', p007, -86400 * 27,
+        '<p>Will you be providing a recording of the gathering? Its a bit late on a weekday for me (Europe)</p>'),
+      comment('s206-c02', me, -86400 * 26,
+        '<p>yes definitely!</p>'),
+      comment('s206-c03', me, -86400 * 24,
+        '<p>We had some zoom bombers in the middle that we want to edit out before posting. Soon!</p>')
+    ],
+
+    [sid('post', 'staff-207')]: [
+      comment('s207-c01', p002, -86400 * 19,
+        '<p>Hooray thank you!!!!</p>'),
+      comment('s207-c02', p002, -86400 * 18,
+        '<p>Hi Elena, is it possible for me to download the video?</p>'),
+      comment('s207-c03', me, -86400 * 18 + 400,
+        '<p>You should be able to by clicking on the 3 dots next to Copy Link. I can also drop it in the shared folder.</p>')
+    ],
+
+    [sid('post', 'fr-001')]: [
+      comment('fr001-c01', p002, -86400 * 4 + 1000,
+        '<p>Love the community science angle — we have two gardens in Oakland that would love to be sampling sites.</p>'),
+      comment('fr001-c02', p007, -86400 * 4 + 2000,
+        '<p>Would the open data integrate with existing watershed monitoring projects?</p>'),
+      comment('fr001-c03', peopleById[sid('person', '016')], -86400 * 4 + 3000,
+        '<p>Yes! We&#39;re designing the schema to export to common GIS formats. Happy to connect offline about your sites.</p>')
+    ],
+
+    [sid('post', 'fr-002')]: [
+      comment('fr002-c01', p004, -86400 * 3 + 1000,
+        '<p>This is exactly what our cooperative farm network needs — practical, place-based learning without the debt trap.</p>'),
+      comment('fr002-c02', me, -86400 * 3 + 2000,
+        '<p>Strong submission. The CC licensing makes this easy to share with partner groups outside Terran too.</p>')
+    ],
+
+    [sid('post', 'fr-003')]: [
+      comment('fr003-c01', p003, -86400 * 2 + 1000,
+        '<p>The tool library idea is brilliant. Richmond has several farms that could anchor this.</p>'),
+      comment('fr003-c02', p008, -86400 * 2 + 1500,
+        '<p>Would mentorship stipends prioritize growers who are just getting land access?</p>'),
+      comment('fr003-c03', p018, -86400 * 2 + 2500,
+        '<p>Yes — that&#39;s the core of the design. We&#39;re pairing experienced operators with folks on year-one leases.</p>'),
+      comment('fr003-c04', p012, -86400 * 2 + 3500,
+        '<p>Putting a big chunk of my tokens here. This network could outlast any single grant cycle.</p>')
+    ],
+
+    [sid('post', 'fr-004')]: [
+      comment('fr004-c01', me, -86400 * 1 + 1000,
+        '<p>Great to see the forest campaign show up here too — ties the stream conversation to real allocation.</p>'),
+      comment('fr004-c02', p006, -86400 * 1 + 2000,
+        '<p>The milestone-based release gives me confidence the funds stay accountable to the land trust.</p>')
+    ],
+
+    [sid('post', 'fr-005')]: [
+      comment('fr005-c01', p009, -86400 + 1000,
+        '<p>Important work. Cultural fire practitioners have been under-resourced for too long in this bioregion.</p>')
     ]
   }
 }
@@ -338,6 +436,68 @@ export function buildReactionsByPostId (peopleById, meId) {
     ],
     [sid('post', 'simple-111')]: [
       reaction('111-r01', pick(sid('person', 'starter', '003')), '👍', -86400 * 30)
+    ],
+    [sid('post', 'staff-201')]: [
+      reaction('s201-r01', pick(sid('person', '004')), '👍', -86400 * 49),
+      reaction('s201-r02', pick(sid('person', '002')), '👍', -86400 * 49 + 500),
+      reaction('s201-r03', pick(sid('person', '003')), '❤️', -86400 * 48)
+    ],
+    [sid('post', 'staff-202')]: [
+      reaction('s202-r01', pick(meId), '👍', -86400 * 41),
+      reaction('s202-r02', pick(sid('person', '005')), '👍', -86400 * 41 + 500),
+      reaction('s202-r03', pick(sid('person', '004')), '👍', -86400 * 40)
+    ],
+    [sid('post', 'staff-203')]: [
+      reaction('s203-r01', pick(meId), '👍', -86400 * 39),
+      reaction('s203-r02', pick(sid('person', '003')), '👍', -86400 * 39 + 500)
+    ],
+    [sid('post', 'staff-204')]: [
+      reaction('s204-r01', pick(sid('person', '002')), '👍', -86400 * 35),
+      reaction('s204-r02', pick(sid('person', '010')), '👍', -86400 * 35 + 500)
+    ],
+    [sid('post', 'staff-205')]: [
+      reaction('s205-r01', pick(sid('person', '002')), '👍', -86400 * 33),
+      reaction('s205-r02', pick(sid('person', '003')), '👍', -86400 * 33 + 500),
+      reaction('s205-r03', pick(meId), '🙌', -86400 * 32),
+      reaction('s205-r04', pick(sid('person', '010')), '👍', -86400 * 32 + 500)
+    ],
+    [sid('post', 'staff-206')]: [
+      reaction('s206-r01', pick(sid('person', '005')), '👍', -86400 * 27),
+      reaction('s206-r02', pick(sid('person', '007')), '👍', -86400 * 26)
+    ],
+    [sid('post', 'staff-207')]: [
+      reaction('s207-r01', pick(sid('person', '002')), '👍', -86400 * 19),
+      reaction('s207-r02', pick(sid('person', '004')), '👍', -86400 * 18)
+    ],
+    [sid('post', 'fr-001')]: [
+      reaction('fr001-r01', pick(sid('person', '002')), '👍', -86400 * 4),
+      reaction('fr001-r02', pick(sid('person', '007')), '👍', -86400 * 4 + 500),
+      reaction('fr001-r03', pick(meId), '🌱', -86400 * 4 + 1000),
+      reaction('fr001-r04', pick(sid('person', '010')), '👍', -86400 * 3),
+      reaction('fr001-r05', pick(sid('person', '012')), '❤️', -86400 * 3 + 500)
+    ],
+    [sid('post', 'fr-002')]: [
+      reaction('fr002-r01', pick(sid('person', '004')), '👍', -86400 * 3),
+      reaction('fr002-r02', pick(meId), '👍', -86400 * 3 + 500),
+      reaction('fr002-r03', pick(sid('person', '011')), '🌱', -86400 * 2)
+    ],
+    [sid('post', 'fr-003')]: [
+      reaction('fr003-r01', pick(sid('person', '003')), '❤️', -86400 * 2),
+      reaction('fr003-r02', pick(sid('person', '008')), '👍', -86400 * 2 + 500),
+      reaction('fr003-r03', pick(sid('person', '012')), '👍', -86400 * 2 + 1000),
+      reaction('fr003-r04', pick(meId), '🙌', -86400 * 1),
+      reaction('fr003-r05', pick(sid('person', '005')), '👍', -86400 * 1 + 500),
+      reaction('fr003-r06', pick(sid('person', '014')), '❤️', -86400)
+    ],
+    [sid('post', 'fr-004')]: [
+      reaction('fr004-r01', pick(meId), '👍', -86400 * 1),
+      reaction('fr004-r02', pick(sid('person', '006')), '❤️', -86400 * 1 + 500),
+      reaction('fr004-r03', pick(sid('person', '002')), '👍', -86400),
+      reaction('fr004-r04', pick(sid('person', '013')), '🌱', -86400 + 500)
+    ],
+    [sid('post', 'fr-005')]: [
+      reaction('fr005-r01', pick(sid('person', '009')), '👍', -86400),
+      reaction('fr005-r02', pick(sid('person', '015')), '👍', -86400 + 500)
     ]
   }
 }

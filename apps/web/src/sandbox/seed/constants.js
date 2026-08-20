@@ -15,6 +15,9 @@ export const MAIN_GROUP_SLUG = 'terran-collective'
 /** Stable slug for the simpler community group */
 export const SIMPLE_GROUP_SLUG = 'eastbayconnect'
 
+/** Stable slug for the worker-owned staff cooperative */
+export const STAFF_GROUP_SLUG = 'holistica-staff'
+
 /** Main group member count (includes sandbox Me) */
 export const MAIN_GROUP_MEMBER_COUNT = 127
 

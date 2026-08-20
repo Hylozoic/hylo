@@ -16,6 +16,10 @@ export function buildTrack () {
     publishedAt_offset: -86400 * 30,
     accessControlled: false,
     canAccess: true,
+    isEnrolled: true,
+    didComplete: false,
+    numPeopleEnrolled: 11,
+    welcomeMessage: 'Take these four steps at your own pace. Completing them is how you become a full Terran.',
     completionRole: {
       id: MAIN_COORDINATOR_ROLE_ID,
       name: 'Coordinator',
@@ -65,9 +69,23 @@ function trackActionPost (id, order, creator) {
     type: 'discussion',
     trackOrder: order,
     completionAction: 'button',
+    completedAt: null,
+    completionResponse: null,
     creator,
+    groups: [{ id: TRACK_SPACE_ID, name: 'New Member Orientation', slug: 'new-member-orientation' }],
+    groupsTotal: 1,
     createdAt_offset: -86400 * (20 - order),
+    updatedAt_offset: -86400 * (20 - order) + 3600,
     commentsTotal: 0,
-    postReactionsTotal: 0
+    commentersTotal: 0,
+    postReactionsTotal: 0,
+    peopleReactedTotal: 0,
+    followersTotal: 0,
+    topicsTotal: 0,
+    isPublic: false,
+    announcement: false,
+    attachments: [],
+    comments: { items: [], total: 0, hasMore: false },
+    completionResponses: { items: [], total: 0, hasMore: false }
   }
 }

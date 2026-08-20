@@ -1,5 +1,6 @@
 import {
   ADD_POST_TO_VIEW_PENDING,
+  COMPLETE_POST_PENDING,
   CREATE_POST,
   DELETE_POST_PENDING,
   REMOVE_POST_FROM_VIEW_PENDING,
@@ -99,6 +100,29 @@ export function ormSessionReducer ({ Group }, { type, meta, payload }) {
       updateGroupViewInMenu(group, viewId, {
         collectionPosts: posts.filter(p => String(p.id) !== String(postId))
       })
+      break
+    }
+
+    case COMPLETE_POST_PENDING: {
+      const { postId, completionResponse } = meta
+      if (!postId) return
+
+      const groups = Group.all().toModelArray()
+      for (const group of groups) {
+        const items = group.groupViews?.items || []
+        for (const view of items) {
+          if (view.type !== 'track-actions' || !Array.isArray(view.collectionPosts)) continue
+          const index = view.collectionPosts.findIndex(p => String(p.id) === String(postId))
+          if (index === -1) continue
+          const posts = [...view.collectionPosts]
+          posts[index] = {
+            ...posts[index],
+            completedAt: new Date().toISOString(),
+            completionResponse
+          }
+          updateGroupViewInMenu(group, view.id, { collectionPosts: posts })
+        }
+      }
       break
     }
   }

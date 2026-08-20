@@ -1,13 +1,15 @@
 import {
   MAIN_GROUP_MEMBER_COUNT,
   MAIN_GROUP_SLUG,
-  SIMPLE_GROUP_SLUG
+  SIMPLE_GROUP_SLUG,
+  STAFF_GROUP_SLUG
 } from '../constants'
 import { sid } from '../helpers'
 import { ME_ID } from './people'
 
 export const MAIN_GROUP_ID = sid('group', 'main')
 export const SIMPLE_GROUP_ID = sid('group', 'simple')
+export const STAFF_GROUP_ID = sid('group', 'staff')
 export const CHAT_SPACE_ID = sid('space', 'chat')
 export const TRACK_SPACE_ID = sid('space', 'track')
 export const FUNDING_SPACE_ID = sid('space', 'funding')
@@ -100,6 +102,45 @@ export function buildGroups () {
         layout: 'default'
       }
     },
+    staff: {
+      id: STAFF_GROUP_ID,
+      slug: STAFF_GROUP_SLUG,
+      name: 'Holistica Staff',
+      description: 'Together, we use this space to coordinate our skills and resources as worker-owners at Holistica — a small cooperative that hosts neighborhood gatherings, skill-shares, and facilitation for groups who want help working together in person.',
+      purpose: 'Coordinate shared work as a small workers cooperative.',
+      avatarUrl: 'https://hylo-staging.s3.amazonaws.com/evo-uploads/user/41415/groupAvatar/37887/logoipsum-429.png',
+      bannerUrl: 'https://d3ngex8q79bk55.cloudfront.net/evo-uploads/user/16325/communityBanner/29/ethereal.jpg',
+      icon: 'HeartHandshake',
+      type: null,
+      parentId: null,
+      memberCount: 8,
+      postCount: 13,
+      visibility: 1,
+      accessibility: 1,
+      canAccess: true,
+      allowInPublic: true,
+      paywall: false,
+      homeRoute: '/chat',
+      location: 'Oakland, California, United States',
+      locationObject: {
+        id: sid('location', 'staff'),
+        fullText: 'Oakland, California, United States',
+        city: 'Oakland',
+        region: 'California',
+        country: 'United States',
+        center: { lat: 37.8044, lng: -122.2712 },
+        bbox: { lat: 37.8044, lng: -122.2712 }
+      },
+      stewardDescriptor: 'Worker-owner',
+      stewardDescriptorPlural: 'Worker-owners',
+      createdAt_offset: -86400 * 400,
+      acceptedPostTypes: ['chat', 'discussion', 'request', 'offer', 'project', 'resource', 'event'],
+      settings: {
+        showSuggestedSkills: false,
+        showWelcomePage: false,
+        layout: 'default'
+      }
+    },
     spaces: {
       chat: {
         id: CHAT_SPACE_ID,
@@ -112,7 +153,7 @@ export function buildGroups () {
         icon: 'MessageCircle',
         type: 'space',
         parentId: MAIN_GROUP_ID,
-        memberCount: MAIN_GROUP_MEMBER_COUNT,
+        memberCount: 20,
         postCount: 8,
         visibility: 0,
         accessibility: 1,
@@ -131,7 +172,7 @@ export function buildGroups () {
         icon: 'Route',
         type: 'space',
         parentId: MAIN_GROUP_ID,
-        memberCount: MAIN_GROUP_MEMBER_COUNT,
+        memberCount: 11,
         postCount: 0,
         visibility: 0,
         accessibility: 1,
@@ -143,15 +184,15 @@ export function buildGroups () {
         id: FUNDING_SPACE_ID,
         slug: 'bioregional-grants',
         name: 'Bioregional Grants',
-        description: 'Community-directed funding for regenerative projects in the Bay Area bioregion. Members vote to allocate tokens to projects they believe in.',
-        purpose: 'Channel community resources toward the highest-impact regenerative work.',
-        avatarUrl: null,
-        bannerUrl: null,
+        description: '<p>Participatory grants for regenerative work in the Bay Area bioregion. Members propose projects, discuss them openly, and allocate <strong>Regen Tokens</strong> through community voting — no grant committee, just collective stewardship of shared resources.</p><p>Round 1 is now in the voting phase. Browse submissions, read the plans, and allocate your tokens to the work you believe will heal people, land, and watersheds here.</p>',
+        purpose: 'Channel community resources toward the highest-impact regenerative work through participatory budgeting.',
+        avatarUrl: 'https://d3ngex8q79bk55.cloudfront.net/community/1054/avatar/1439885454281_BF_logo_final.jpg',
+        bannerUrl: 'https://d3ngex8q79bk55.cloudfront.net/community/1054/banner/1439885439995_BF-Logo_W.jpg',
         icon: 'Coins',
         type: 'space',
         parentId: MAIN_GROUP_ID,
-        memberCount: MAIN_GROUP_MEMBER_COUNT,
-        postCount: 3,
+        memberCount: 8,
+        postCount: 5,
         visibility: 0,
         accessibility: 1,
         homeRoute: '/funding-round-submissions',
@@ -282,6 +323,41 @@ export function buildMemberships (groups) {
         childGroups: { items: [] }
       }
     },
+    {
+      id: sid('membership', 'staff'),
+      lastViewedAt_offset: -5400,
+      navOrder: 2,
+      newPostCount: 2,
+      person: { id: ME_ID },
+      settings: {
+        agreementsAcceptedAt_offset: -86400 * 10,
+        digestFrequency: 'daily',
+        joinQuestionsAnsweredAt_offset: -86400 * 10,
+        postNotifications: 'all',
+        sendEmail: true,
+        sendPushNotifications: true,
+        showJoinForm: false
+      },
+      group: {
+        id: groups.staff.id,
+        slug: groups.staff.slug,
+        name: groups.staff.name,
+        avatarUrl: groups.staff.avatarUrl,
+        bannerUrl: groups.staff.bannerUrl,
+        icon: groups.staff.icon,
+        type: groups.staff.type,
+        parentId: groups.staff.parentId,
+        memberCount: groups.staff.memberCount,
+        homeRoute: groups.staff.homeRoute,
+        stewardDescriptor: groups.staff.stewardDescriptor,
+        stewardDescriptorPlural: groups.staff.stewardDescriptorPlural,
+        allowInPublic: groups.staff.allowInPublic,
+        acceptedPostTypes: groups.staff.acceptedPostTypes,
+        canAccess: true,
+        settings: groups.staff.settings,
+        childGroups: { items: [] }
+      }
+    },
     ...['chat', 'track', 'funding'].map((key, index) => {
       const space = groups.spaces[key]
       return {
@@ -351,6 +427,13 @@ export function buildGroupViews (groups, track, fundingRound) {
       viewItem(sid('view', 'simple-requests'), 'requests-and-offers', 'Requests & Offers', 2, { icon: 'HandHeart' }),
       viewItem(sid('view', 'simple-projects'), 'projects', 'Projects', 3, { icon: 'Layers' }),
       viewItem(sid('view', 'simple-members'), 'members', 'Members', 4, { icon: 'Users' })
+    ],
+    [groups.staff.id]: [
+      viewItem(sid('view', 'staff-chat'), 'chat', 'Chat', 0, { icon: 'MessageCircle' }),
+      viewItem(sid('view', 'staff-all'), 'all', 'All Activity', 1, { icon: 'LayoutList' }),
+      viewItem(sid('view', 'staff-requests'), 'requests-and-offers', 'Requests & Offers', 2, { icon: 'HandHeart' }),
+      viewItem(sid('view', 'staff-events'), 'events', 'Events', 3, { icon: 'Calendar' }),
+      viewItem(sid('view', 'staff-members'), 'members', 'Members', 4, { icon: 'Users' })
     ]
   }
 }

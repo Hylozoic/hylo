@@ -72,7 +72,8 @@ const REAL_PEOPLE = [
     avatarUrl: av('ava-wright'),
     bio: null,
     tagline: null,
-    location: 'Vermont, United States'
+    location: 'Vermont, United States',
+    staffGroup: true
   },
   {
     id: sid('person', '003'),
@@ -80,7 +81,8 @@ const REAL_PEOPLE = [
     avatarUrl: av('blake-riley'),
     bio: 'Regenerative engineering and communication in mixed realities.',
     tagline: 'Breath',
-    location: 'Berlin'
+    location: 'Berlin',
+    staffGroup: true
   },
   {
     id: sid('person', '004'),
@@ -88,7 +90,8 @@ const REAL_PEOPLE = [
     avatarUrl: av('lyle-kauffman'),
     bio: 'Working on how to use maps, apps, stories to build networks and local communities',
     tagline: 'Socialreporter',
-    location: 'Greater London, England, United Kingdom'
+    location: 'Greater London, England, United Kingdom',
+    staffGroup: true
   },
   {
     id: sid('person', '005'),
@@ -96,7 +99,8 @@ const REAL_PEOPLE = [
     avatarUrl: av('lana-steiner'),
     bio: 'Utopian Strategist — Circular Economy Enthusiast. World Fair Advocate.',
     tagline: '',
-    location: 'Seattle, Washington'
+    location: 'Seattle, Washington',
+    staffGroup: true
   },
   {
     id: sid('person', '006'),
@@ -136,7 +140,8 @@ const REAL_PEOPLE = [
     avatarUrl: av('ethan-campbell'),
     bio: null,
     tagline: null,
-    location: 'Oakland, California, United States'
+    location: 'Oakland, California, United States',
+    staffGroup: true
   },
   {
     id: sid('person', '011'),
