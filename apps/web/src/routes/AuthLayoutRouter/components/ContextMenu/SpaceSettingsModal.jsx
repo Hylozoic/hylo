@@ -17,6 +17,7 @@ import PostTypePills from 'components/PostTypePills/PostTypePills'
 import TagInput from 'components/TagInput'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import { updateFundingRound, fetchFundingRound } from 'routes/FundingRounds/FundingRounds.store'
+import { localSpaceSlug } from '@hylo/navigation'
 import { updateSpace } from 'store/actions/groupViews'
 import { updateTrack, fetchTrack } from 'store/actions/trackActions'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
@@ -28,6 +29,7 @@ import { groupRolesForPicker } from '@hylo/hooks/groupRoleHelpers'
 import { cn } from 'util/index'
 
 import FundingRoundSettingsFields from './FundingRoundSettingsFields'
+import SpaceSlugField from './SpaceSlugField'
 import { SPACE_ICON_SUGGESTIONS, accessOptionsForGroup, accessValueForSpace, toIsoOrNull } from './spaceFormConstants'
 
 function toDateOrNull (value) {
@@ -87,6 +89,9 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
       : t('Space Settings')
 
   const [name, setName] = useState(space?.name || view?.name || '')
+  const [slug, setSlug] = useState(() => localSpaceSlug(parentGroup?.slug, space?.slug))
+  const [slugValid, setSlugValid] = useState(true)
+  const [showSlugError, setShowSlugError] = useState(false)
   const [icon, setIcon] = useState(space?.icon || SPACE_ICON_SUGGESTIONS[0])
   const [bannerUrl, setBannerUrl] = useState(space?.bannerUrl || '')
   const [purpose, setPurpose] = useState(space?.purpose || '')
@@ -212,6 +217,10 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
 
   const handleSave = useCallback(async () => {
     if (!name.trim() || !space?.id || !parentGroup?.id) return
+    if (!slugValid) {
+      setShowSlugError(true)
+      return
+    }
     setIsSaving(true)
     try {
       const accessOption = accessOptions.find(option => option.value === access)
@@ -223,6 +232,7 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
         groupId: parentGroup.id,
         spaceViewId: view?.id,
         name: trimmedName,
+        slug,
         description: description || null,
         icon,
         bannerUrl: bannerUrl || null,
@@ -282,7 +292,7 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
     } finally {
       setIsSaving(false)
     }
-  }, [dispatch, space?.id, parentGroup?.id, view?.id, name, description, icon, bannerUrl, purpose, locationObject, postTypes, access, accessOptions, requiredRoles, track?.id, actionDescriptor, actionDescriptorPlural, completionRole, publishedAt, fundingRound?.id, frPublishedAt, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frHideFinalResults, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles, onClose])
+  }, [dispatch, space?.id, parentGroup?.id, view?.id, name, slug, slugValid, description, icon, bannerUrl, purpose, locationObject, postTypes, access, accessOptions, requiredRoles, track?.id, actionDescriptor, actionDescriptorPlural, completionRole, publishedAt, fundingRound?.id, frPublishedAt, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frHideFinalResults, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles, onClose])
 
   if (!space) return null
 
@@ -338,6 +348,15 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
             placeholder={t('Space name')}
           />
         </div>
+
+        <SpaceSlugField
+          parentSlug={parentGroup?.slug}
+          value={slug}
+          onChange={setSlug}
+          currentStoredSlug={space.slug}
+          onValidityChange={setSlugValid}
+          forceShowError={showSlugError}
+        />
 
         <div className='flex flex-col gap-1'>
           <label className='text-sm text-foreground/70'>{t('Purpose')}</label>

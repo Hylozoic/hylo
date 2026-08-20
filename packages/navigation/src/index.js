@@ -127,6 +127,13 @@ export function localSpaceSlug (parentSlug, spaceFullSlug) {
   return spaceFullSlug.startsWith(prefix) ? spaceFullSlug.slice(prefix.length) : spaceFullSlug
 }
 
+/** Stored space slug (`{parentSlug}-{localSlug}`). Does not double-prefix. */
+export function storedSpaceSlug (parentSlug, localSlug) {
+  if (!parentSlug || !localSlug) return localSlug || ''
+  const prefix = `${parentSlug}-`
+  return localSlug.startsWith(prefix) ? localSlug : `${prefix}${localSlug}`
+}
+
 /** Path segment for a GroupView within a group or space (e.g. /chat, /custom/123). */
 export function groupViewPath (view) {
   if (!view) return ''
