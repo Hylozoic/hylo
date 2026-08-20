@@ -65,7 +65,9 @@ exports.fr = {
   textForGroupParentGroupJoinRequestAcceptedParentMember: ({ parentGroup, childGroup }) => `Le groupe ${childGroup.get('name')} vient de rejoindre votre groupe ${parentGroup.get('name')} !`,
   textForGroupParentGroupJoinRequestAcceptedChildMember: ({ parentGroup, childGroup }) => `Votre groupe ${childGroup.get('name')} a rejoint ${parentGroup.get('name')}.`,
   textForEventInvitation: ({ actor, postName }) => `${actor.get('name')} vous a invité·e à « ${postName} »`,
-  textForGroupInvitation: ({ actor, groupName }) => `${actor.get('name')} vous a invité·e à rejoindre ${groupName}`,
+  textForGroupInvitation: ({ actor, groupName, parentGroupName }) => parentGroupName
+    ? `${actor.get('name')} vous a invité·e à les rejoindre dans l'espace ${groupName} de ${parentGroupName}`
+    : `${actor.get('name')} vous a invité·e à les rejoindre dans ${groupName}`,
   textForGroupInvitationAccepted: ({ actor, groupName }) => `${actor.get('name')} a accepté votre invitation à rejoindre ${groupName}`,
   textForGroupPeerGroupInvite: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} a invité votre groupe ${toGroup.get('name')} à former un lien de pairs avec ${fromGroup.get('name')}`,
   textForGroupPeerGroupInviteAccepted: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} a accepté le lien de pairs entre ${fromGroup.get('name')} et ${toGroup.get('name')}`,

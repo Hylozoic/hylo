@@ -17,7 +17,7 @@ describe('InviteSettingsTab', () => {
       />
     )
 
-    expect(screen.getByText('Grow your group')).toBeInTheDocument()
+    expect(screen.getByText('Invite people on Hylo')).toBeInTheDocument()
     expect(screen.getByText('Share a Join Link')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Generate a Link|Reset Link/i })).toBeInTheDocument()
   })

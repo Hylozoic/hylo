@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import GroupNotificationsPopover from 'components/GroupNotificationsPopover/GroupNotificationsPopover'
-import InviteMembersPopover from 'components/InviteMembersPopover/InviteMembersPopover'
+import InviteMembersDialog from 'components/InviteMembersDialog/InviteMembersDialog'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import { RESP_ADMINISTRATION } from 'store/constants'
 import { DEFAULT_BANNER, DEFAULT_AVATAR } from 'store/models/Group'
@@ -188,7 +188,7 @@ export default function GroupMenuHeader ({
               <Users className='w-3.5 h-3.5' />
               {group.memberCount}
             </Link>
-            <InviteMembersPopover
+            <InviteMembersDialog
               group={group}
               alwaysVisible
               triggerLabel={t('Invite')}

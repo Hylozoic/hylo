@@ -2,7 +2,7 @@ import { convert as convertHtmlToText } from 'html-to-text'
 import find from 'lodash/find.js'
 import get from 'lodash/fp/get.js'
 import truncText from 'trunc-text'
-import { primaryPostUrl, groupUrl, personUrl, trackUrl, fundingRoundUrl, localSpaceSlug } from '@hylo/navigation'
+import { primaryPostUrl, groupUrl, personUrl, trackUrl, fundingRoundUrl, localSpaceSlug, spaceUrl } from '@hylo/navigation'
 
 // Used by web and electron. Once everyone is on URQL switch over to PostPresenter
 function presentPost (post) {
@@ -52,6 +52,7 @@ export const ACTION_DONATION_FROM = 'donation from'
 export const ACTION_EVENT_INVITATION = 'eventInvitation'
 export const ACTION_GROUP_CHILD_GROUP_INVITE = 'groupChildGroupInvite'
 export const ACTION_GROUP_CHILD_GROUP_INVITE_ACCEPTED = 'groupChildGroupInviteAccepted'
+export const ACTION_GROUP_INVITATION = 'groupInvitation'
 export const ACTION_GROUP_PARENT_GROUP_JOIN_REQUEST = 'groupParentGroupJoinRequest'
 export const ACTION_GROUP_PARENT_GROUP_JOIN_REQUEST_ACCEPTED = 'groupParentGroupJoinRequestAccepted'
 export const ACTION_GROUP_PEER_GROUP_INVITE = 'groupPeerGroupInvite'
@@ -105,6 +106,8 @@ export function titleForNotification (notification, t) {
       return t('New post in <strong>{{name}}</strong>', { name: group.name })
     case ACTION_JOIN_REQUEST:
       return t('New Join Request')
+    case ACTION_GROUP_INVITATION:
+      return t('New Invitation')
     case ACTION_APPROVED_JOIN_REQUEST:
       return t('Join Request Approved')
     case ACTION_MENTION:
@@ -182,6 +185,15 @@ export function bodyForNotification (notification, t) {
         })
       }
       return t('<strong>{{name}}</strong> asked to join {{groupName}}', { name, groupName: group.name })
+    case ACTION_GROUP_INVITATION:
+      if (otherGroup?.name) {
+        return t('<strong>{{name}}</strong> has invited you to join them in space {{spaceName}} in {{groupName}}', {
+          name,
+          spaceName: group.name,
+          groupName: otherGroup.name
+        })
+      }
+      return t('<strong>{{name}}</strong> has invited you to join them in {{groupName}}', { name, groupName: group.name })
     case ACTION_APPROVED_JOIN_REQUEST:
       return t('<strong>{{name}}</strong> approved your request to join {{groupName}}', { name, groupName: group.name })
     case ACTION_DONATION_TO:
@@ -294,8 +306,15 @@ export function urlForNotification ({ id, activity: { action, actor, post, comme
       return groupUrl(otherGroupSlug, 'settings/relationships')
     case ACTION_GROUP_PEER_GROUP_INVITE_ACCEPTED:
       return groupUrl(groupSlug)
-    case ACTION_JOIN_REQUEST:
+    case ACTION_JOIN_REQUEST: {
+      const parentSlug = group?.parentGroup?.slug || otherGroupSlug
+      if (parentSlug && groupSlug) {
+        return spaceUrl(parentSlug, localSpaceSlug(parentSlug, groupSlug), 'requests')
+      }
       return groupUrl(groupSlug, 'settings/requests')
+    }
+    case ACTION_GROUP_INVITATION:
+      return '/my/invitations'
     case ACTION_NEW_COMMENT:
     case ACTION_COMMENT_MENTION:
       return primaryPostUrl(post, { commentId: comment.id, ...postOpts })

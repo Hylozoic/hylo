@@ -27,6 +27,7 @@ import {
   DELETE_POST_PENDING,
   PIN_POST_PENDING,
   FETCH_GROUP_DETAILS_PENDING,
+  FETCH_GROUP_VIEWS,
   FETCH_MESSAGES_PENDING,
   FETCH_GROUP_CHAT_ROOMS,
   FETCH_MY_DRAFTS,
@@ -125,7 +126,7 @@ import extractModelsFromAction from '../ModelExtractor/extractModelsFromAction'
 import { isPromise } from 'util/index'
 import { homeRoutePathForWidget } from '@hylo/navigation'
 import { reorderTree, replaceHomeWidget } from 'util/contextWidgets'
-import { applyGroupViewsOrder, appendGroupViewToMenu, removeGroupViewFromAllMenus, setGroupViewHiddenInAllMenus, syncAcceptedPostTypesInMenus, updateGroupViewInMenu, updateGroupViewInAllMenus } from 'store/util/groupViewsOrder'
+import { applyGroupViewsOrder, appendGroupViewToMenu, preserveViewLoadedPosts, removeGroupViewFromAllMenus, setGroupViewHiddenInAllMenus, syncAcceptedPostTypesInMenus, updateGroupViewInMenu, updateGroupViewInAllMenus } from 'store/util/groupViewsOrder'
 import {
   confirmOptimisticChatInNotice,
   reconcileChatActivityNoticesAfterFetch,
@@ -197,6 +198,40 @@ function clearMembershipIfMenuHasNoUnread (session, groupId) {
 }
 
 /** Plain creator fields so an optimistic pin survives leaving the ORM session. */
+function snapshotViewLoadedPostsForFetchGroupViews (Group, meta) {
+  const groupId = meta.graphql?.variables?.groupId
+  if (!groupId) return null
+
+  const snapshots = []
+  const snapshotGroupViews = (id) => {
+    const group = Group.withId(id)
+    if (!group?.groupViews?.items?.length) return
+    if (snapshots.some(snapshot => String(snapshot.groupId) === String(id))) return
+    snapshots.push({
+      groupId: id,
+      items: structuredClone(group.groupViews.items)
+    })
+  }
+
+  snapshotGroupViews(groupId)
+  Group.withId(groupId)?.groupViews?.items?.forEach(view => {
+    if (view.type === 'space' && view.linkedGroup?.id) {
+      snapshotGroupViews(view.linkedGroup.id)
+    }
+  })
+
+  return snapshots.length ? snapshots : null
+}
+
+function restoreViewLoadedPostsAfterFetchGroupViews (Group, snapshots) {
+  snapshots.forEach(({ groupId, items: existingItems }) => {
+    const updatedGroup = Group.withId(groupId)
+    if (!updatedGroup?.groupViews?.items) return
+    const mergedItems = preserveViewLoadedPosts(existingItems, updatedGroup.groupViews.items)
+    updatedGroup.update({ groupViews: { items: structuredClone(mergedItems) } })
+  })
+}
+
 function snapshotPinnedPost (post) {
   if (!post) return post
   const creator = post.creator?.ref || post.creator
@@ -242,9 +277,15 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     const preservedChatActivityNotices = type === FETCH_POSTS
       ? snapshotChatActivityNotices(Post)
       : []
+    const preservedViewPostsSnapshots = type === FETCH_GROUP_VIEWS
+      ? snapshotViewLoadedPostsForFetchGroupViews(Group, meta)
+      : null
     extractModelsFromAction(action, session)
     if (type === FETCH_POSTS) {
       reconcileChatActivityNoticesAfterFetch(session, preservedChatActivityNotices)
+    }
+    if (preservedViewPostsSnapshots?.length) {
+      restoreViewLoadedPostsAfterFetchGroupViews(Group, preservedViewPostsSnapshots)
     }
   }
 
@@ -1448,8 +1489,12 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
 
     case USE_INVITATION: {
       me = Me.first()
-      me.updateAppending({ memberships: [payload.data.useInvitation.membership.id] })
-      Invitation.filter({ email: me.email, group: payload.data.useInvitation.membership.group.id }).delete()
+      const membership = payload.data?.useInvitation?.membership
+      if (me && membership?.id) {
+        me.updateAppending({ memberships: [membership.id] })
+        clearCacheFor(Me, me.id)
+        Invitation.filter({ email: me.email, group: membership.group.id }).delete()
+      }
       break
     }
 

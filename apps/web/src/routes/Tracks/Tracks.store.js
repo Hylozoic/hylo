@@ -1,6 +1,7 @@
 import { COMPLETE_POST_PENDING, CREATE_POST } from 'store/constants'
-import { ENROLL_IN_TRACK_PENDING, LEAVE_TRACK_PENDING, UPDATE_TRACK_PENDING } from 'store/actions/trackActions'
+import { CREATE_TRACK, ENROLL_IN_TRACK_PENDING, LEAVE_TRACK_PENDING, UPDATE_TRACK_PENDING } from 'store/actions/trackActions'
 import clearCacheFor from 'store/reducers/ormReducer/clearCacheFor'
+import { updateTrackActionCompletionInMenus } from 'routes/TrackActionsView/TrackActionsView.store'
 
 function appendCompletionRoleToMe ({ Me, Group, Track, meta }) {
   const { completionRoleId, completionRole, groupId, trackId } = meta
@@ -54,9 +55,19 @@ export function ormSessionReducer (
 ) {
   switch (type) {
     case COMPLETE_POST_PENDING: {
+      const completedAt = new Date().toISOString()
       const post = Post.safeGet({ id: meta.postId })
-      if (!post) return
-      post.update({ completedAt: new Date().toISOString(), completionResponse: meta.completionResponse })
+      if (post) {
+        post.update({ completedAt, completionResponse: meta.completionResponse })
+      }
+
+      updateTrackActionCompletionInMenus({
+        Group,
+        postId: meta.postId,
+        completedAt,
+        completionResponse: meta.completionResponse,
+        groupIds: meta.groupId
+      })
 
       if (meta.trackCompleted && meta.trackId) {
         const track = Track.safeGet({ id: meta.trackId })
@@ -65,6 +76,29 @@ export function ormSessionReducer (
         }
         appendCompletionRoleToMe({ Me, Group, Track, meta })
       }
+      break
+    }
+
+    case CREATE_TRACK: {
+      const createdTrack = payload?.data?.createTrack
+      const groupId = meta.groupId
+      if (!createdTrack?.id || !groupId) break
+      const group = Group.withId(groupId)
+      if (!group) break
+      group.update({
+        track: {
+          id: createdTrack.id,
+          name: createdTrack.name,
+          actionDescriptor: createdTrack.actionDescriptor,
+          actionDescriptorPlural: createdTrack.actionDescriptorPlural,
+          bannerUrl: createdTrack.bannerUrl,
+          completionMessage: createdTrack.completionMessage,
+          completionRole: createdTrack.completionRole,
+          description: createdTrack.description,
+          publishedAt: createdTrack.publishedAt,
+          welcomeMessage: createdTrack.welcomeMessage
+        }
+      })
       break
     }
 

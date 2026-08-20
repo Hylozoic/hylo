@@ -49,6 +49,7 @@ const TYPE = {
   Welcome: 'welcome', // a welcome post
   JoinRequest: 'joinRequest', // Someone asks to join a group
   ApprovedJoinRequest: 'approvedJoinRequest', // A request to join a group is approved
+  GroupInvitation: 'groupInvitation', // An existing Hylo user is invited to a group or space
   GroupChildGroupInvite: 'groupChildGroupInvite', // A child group is invited to join a parent group
   GroupChildGroupInviteAccepted: 'groupChildGroupInviteAccepted',
   GroupParentGroupJoinRequest: 'groupParentGroupJoinRequest', // A child group is requesting to join a parent group
@@ -171,6 +172,8 @@ module.exports = bookshelf.Model.extend({
         return this.sendGroupPeerGroupInviteAcceptedPush()
       case 'joinRequest':
         return this.sendJoinRequestPush()
+      case 'groupInvitation':
+        return this.sendGroupInvitationPush()
       case 'memberJoinedGroup':
         return this.sendMemberJoinedGroupPush()
       case 'mention':
@@ -310,8 +313,23 @@ module.exports = bookshelf.Model.extend({
     const parentGroup = activity.get('other_group_id')
       ? await activity.otherGroup().fetch()
       : null
+    if (parentGroup) group.relations.parentGroup = parentGroup
     const path = routeToPath(Frontend.Route.groupJoinRequests(group))
     const alertText = PushNotification.textForJoinRequest(group, this.actor(), locale, parentGroup)
+    return this.reader().sendPushNotification(alertText, path)
+  },
+
+  sendGroupInvitationPush: async function () {
+    const activity = this.relations.activity
+    const locale = this.locale()
+    const groupId = activity.get('group_id')
+    if (!groupId) throw new Error('no group ids in activity')
+    const group = await Group.find(groupId)
+    const parentGroup = activity.get('other_group_id')
+      ? await activity.otherGroup().fetch()
+      : null
+    const path = routeToPath(Frontend.Route.myInvitations())
+    const alertText = PushNotification.textForGroupInvitation(group, this.actor(), locale, parentGroup)
     return this.reader().sendPushNotification(alertText, path)
   },
 
@@ -733,6 +751,7 @@ module.exports = bookshelf.Model.extend({
     const parentGroup = activity.get('other_group_id')
       ? await activity.otherGroup().fetch()
       : null
+    if (parentGroup) group.relations.parentGroup = parentGroup
     const groupLabel = parentGroup
       ? `${group.get('name')} in ${parentGroup.get('name')}`
       : group.get('name')
@@ -1417,7 +1436,7 @@ module.exports = bookshelf.Model.extend({
   priorityReason: function (reasons) {
     const orderedLabels = [
       'donation to', 'donation from', 'announcement', 'eventInvitation', 'mention', 'commentMention', 'newComment', 'newContribution', 'chat', 'tag',
-      'newPost', 'follow', 'followAdd', 'unfollow', 'postFulfilled', 'postUnfulfilled', 'joinRequest', 'approvedJoinRequest', 'groupChildGroupInviteAccepted', 'groupChildGroupInvite',
+      'newPost', 'follow', 'followAdd', 'unfollow', 'postFulfilled', 'postUnfulfilled', 'joinRequest', 'approvedJoinRequest', 'groupInvitation', 'groupChildGroupInviteAccepted', 'groupChildGroupInvite',
       'groupParentGroupJoinRequestAccepted', 'groupParentGroupJoinRequest', 'groupPeerGroupInviteAccepted', 'groupPeerGroupInvite', 'memberJoinedGroup', 'trackCompleted', 'trackEnrollment',
       'fundingRoundNewSubmission', 'fundingRoundPhaseTransition', 'fundingRoundReminder'
     ]

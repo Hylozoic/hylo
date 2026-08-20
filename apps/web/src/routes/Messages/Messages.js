@@ -318,7 +318,6 @@ const Messages = () => {
           people={contacts}
           onFocus={() => setPeopleSelectorOpen(true)}
           onTyping={() => setPeopleSelectorOpen(true)}
-          onPersonSelected={() => setPeopleSelectorOpen(false)}
           selectedPeople={participants}
           selectPerson={addParticipant}
           removePerson={removeParticipant}

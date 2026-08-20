@@ -226,6 +226,8 @@ export function fetchGroupSettings (slug) {
             items {
               id
               email
+              name
+              userId
               createdAt
               lastSentAt
             }

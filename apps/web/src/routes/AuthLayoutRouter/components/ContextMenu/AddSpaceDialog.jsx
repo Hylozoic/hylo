@@ -327,12 +327,13 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
         }
       }
 
-      // All three before navigating: the menu entry (fetchGroupViews), the
-      // creator's own membership (fetchForCurrentUser — without it SpaceContent
-      // greets the creator with the join page), and for off-menu spaces the
-      // parent's spaces list, which is how the route resolves them.
+      // Before navigating: parent menu (fetchGroupViews), the new space's own
+      // views + track/FR config, the creator's membership (fetchForCurrentUser —
+      // without it SpaceContent greets the creator with the join page), and for
+      // off-menu spaces the parent's spaces list, which is how the route resolves them.
       await Promise.all([
         dispatch(fetchGroupViews(group.id)),
+        newSpace?.id ? dispatch(fetchGroupViews(newSpace.id)) : Promise.resolve(),
         dispatch(fetchForCurrentUser()),
         addToMenu === false && group?.slug ? dispatch(fetchForGroup(group.slug)) : Promise.resolve()
       ])

@@ -1,11 +1,12 @@
-var root = require('root-path')
+/* eslint-disable no-unused-expressions */
+const root = require('root-path')
 require(root('test/setup'))
 const factories = require(root('test/setup/factories'))
 const { mockify } = require(root('test/setup/helpers'))
-var InvitationService = require(root('api/services/InvitationService'))
+const InvitationService = require(root('api/services/InvitationService'))
 
 describe('InvitationService', () => {
-  var group, inviter, invitee, invitation
+  let group, inviter, invitee, invitation
 
   before(() => {
     inviter = factories.user()
@@ -25,17 +26,17 @@ describe('InvitationService', () => {
 
     it('should find a group by a valid accessCode', () => {
       return InvitationService.check(null, group.get('access_code'))
-      .then(result =>
-        expect(result.valid).to.equal(true)
-      )
+        .then(result =>
+          expect(result.valid).to.equal(true)
+        )
     })
 
     it('should find a group by a valid token', () => {
       const token = invitation.get('token')
       return InvitationService.check(token, null)
-      .then(result =>
-        expect(result.valid).to.equal(true)
-      )
+        .then(result =>
+          expect(result.valid).to.equal(true)
+        )
     })
 
     it('should find a group by accessCode if both an accessCode and token are provided', () => {
@@ -50,9 +51,9 @@ describe('InvitationService', () => {
       const token = invitation.get('token')
       const accessCode = 'badaccesscode'
       return InvitationService.check(token, accessCode)
-      .then(result =>
-        expect(result.valid).to.equal(false)
-      )
+        .then(result =>
+          expect(result.valid).to.equal(false)
+        )
     })
   })
 
@@ -68,24 +69,24 @@ describe('InvitationService', () => {
     it('should join the invitee to group if access_code is valid', function () {
       const accessCode = group.get('access_code')
       return InvitationService.use(invitee.get('id'), null, accessCode)
-      .then(membership =>
-        expect(membership.attributes).to.contain({
-          user_id: invitee.get('id'),
-          active: true
-        })
-      )
+        .then(membership =>
+          expect(membership.attributes).to.contain({
+            user_id: invitee.get('id'),
+            active: true
+          })
+        )
     })
 
     it('should join the invitee to group if token is valid', function () {
       const userId = invitee.get('id')
       const token = invitation.get('token')
       return InvitationService.use(userId, token, null)
-      .then(membership =>
-        expect(membership.attributes).to.contain({
-          user_id: invitee.get('id'),
-          active: true
-        })
-      )
+        .then(membership =>
+          expect(membership.attributes).to.contain({
+            user_id: invitee.get('id'),
+            active: true
+          })
+        )
     })
 
     it('should join the invitee to group by accessCode if both an accessCode and token are provided', function () {
@@ -93,21 +94,21 @@ describe('InvitationService', () => {
       const token = invitation.get('token')
       const accessCode = group.get('access_code')
       return InvitationService.use(userId, token, accessCode)
-      .then(membership => {
-        return invitation.refresh()
-        .then(updatedInvitation => {
-          expect(updatedInvitation.get('used_by_id')).to.equal(invitee.get('id'))
-          return expect(membership.attributes).to.contain({
-            user_id: invitee.get('id'),
-            active: true
-          })
+        .then(membership => {
+          return invitation.refresh()
+            .then(updatedInvitation => {
+              expect(updatedInvitation.get('used_by_id')).to.equal(invitee.get('id'))
+              return expect(membership.attributes).to.contain({
+                user_id: invitee.get('id'),
+                active: true
+              })
+            })
         })
-      })
     })
   })
 
   describe('create', () => {
-    let queuedCalls = []
+    const queuedCalls = []
     const subject = 'Join us'
     const message = "You'll like it. It's safe."
 
@@ -124,34 +125,85 @@ describe('InvitationService', () => {
         subject,
         message
       })
-      .then(results => {
-        expect(results).to.deep.equal([
-          {email: 'foo', error: 'not a valid email address'},
-          {email: 'bar', error: 'not a valid email address'},
-          {email: 'foo@foo.com', lastSentAt: undefined, createdAt: undefined, id: results[2].id},
-          {email: 'bar@bar.com', lastSentAt: undefined, createdAt: undefined, id: results[3].id}
-        ])
+        .then(results => {
+          expect(results).to.deep.equal([
+            { email: 'foo', error: 'not a valid email address' },
+            { email: 'bar', error: 'not a valid email address' },
+            { email: 'foo@foo.com', lastSentAt: undefined, createdAt: undefined, id: results[2].id },
+            { email: 'bar@bar.com', lastSentAt: undefined, createdAt: undefined, id: results[3].id }
+          ])
 
-        expect(Queue.classMethod).to.have.been.called.exactly(2)
-        const firstInvitation = queuedCalls[0][2].invitation
-        const secondInvitation = queuedCalls[1][2].invitation
-        expect(queuedCalls).to.deep.equal([
-          [
-            'Invitation',
-            'createAndSend',
-            {
-              invitation: firstInvitation
-            }
-          ],
-          [
-            'Invitation',
-            'createAndSend',
-            {
-              invitation: secondInvitation
-            }
-          ]
-        ])
+          expect(Queue.classMethod).to.have.been.called.exactly(2)
+          const firstInvitation = queuedCalls[0][2].invitation
+          const secondInvitation = queuedCalls[1][2].invitation
+          expect(queuedCalls).to.deep.equal([
+            [
+              'Invitation',
+              'createAndSend',
+              {
+                invitation: firstInvitation
+              }
+            ],
+            [
+              'Invitation',
+              'createAndSend',
+              {
+                invitation: secondInvitation
+              }
+            ]
+          ])
+        })
+    })
+
+    it('creates an in-app notification when inviting an existing user by id', async () => {
+      const results = await InvitationService.create({
+        sessionUserId: inviter.id,
+        groupId: group.id,
+        userIds: [invitee.id],
+        subject,
+        message
       })
+      expect(results[0].error).to.be.undefined
+      const activity = await Activity.where({
+        reader_id: invitee.id,
+        actor_id: inviter.id,
+        group_id: group.id
+      }).fetch()
+      expect(activity).to.exist
+      expect(activity.get('meta').reasons).to.include('groupInvitation')
+    })
+
+    it('does not create an in-app notification for email-only invites', async () => {
+      const emailOnlyUser = await factories.user().save()
+      await InvitationService.create({
+        sessionUserId: inviter.id,
+        groupId: group.id,
+        emails: [emailOnlyUser.get('email')],
+        subject,
+        message
+      })
+      const activity = await Activity.where({
+        reader_id: emailOnlyUser.id,
+        group_id: group.id
+      }).fetch()
+      expect(activity).to.be.null
+    })
+
+    it('includes the parent group on space invitation notifications', async () => {
+      const parent = await factories.group().save()
+      const space = await factories.group({ type: 'space', parent_id: parent.id }).save()
+      await InvitationService.create({
+        sessionUserId: inviter.id,
+        groupId: space.id,
+        userIds: [invitee.id],
+        subject,
+        message
+      })
+      const activity = await Activity.where({
+        reader_id: invitee.id,
+        group_id: space.id
+      }).fetch()
+      expect(activity.get('other_group_id')).to.equal(parent.id)
     })
   })
 })

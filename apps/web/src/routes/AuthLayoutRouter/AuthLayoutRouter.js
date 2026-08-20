@@ -87,8 +87,7 @@ import SpaceCollection from 'routes/SpaceCollection'
 import Themes from 'routes/Themes'
 import UserSettings from 'routes/UserSettings'
 import WelcomeWizardRouter from 'routes/WelcomeWizardRouter'
-import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION, VIEW_DRAFTS } from 'store/constants'
-import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
+import { VIEW_DRAFTS } from 'store/constants'
 import { isAtReturnToPath } from 'util/returnToPath'
 import Management from 'routes/Management'
 import { getLocaleFromLocalStorage } from 'util/locale'
@@ -220,14 +219,6 @@ export default function AuthLayoutRouter (props) {
     if (!currentGroupSlug) return false
     return location.pathname.startsWith(`/groups/${currentGroupSlug}/settings`)
   }, [currentGroupSlug, location.pathname])
-  // Parent stewards are not auto-added to spaces; they still need settings (join requests).
-  const canAccessSpaceSettings = useSelector(state => {
-    if (!isSpaceGroup(currentGroup) || !isOnGroupSettings) return false
-    return hasResponsibilityForGroup(state, {
-      responsibility: [RESP_ADD_MEMBERS, RESP_ADMINISTRATION],
-      groupId: currentGroup?.id
-    })
-  })
   const isPhoneSettings = isPhoneViewport && isOnGroupSettings
   const isDrawerOpen = useSelector(state => get('AuthLayoutRouter.isDrawerOpen', state))
   const isNavOpen = useSelector(state => get('AuthLayoutRouter.isNavOpen', state)) // For mobile nav
@@ -796,13 +787,14 @@ export default function AuthLayoutRouter (props) {
 
   // Spaces opened as top-level `/groups/:spaceSlug` must nest under their parent.
   // Covers cold-load restore, bookmarks, and any other bare-space links.
+  // Spaces have no Group Settings page — map leftover `/settings` URLs (join
+  // requests used to live there) onto the nested space routes.
   if (
     currentGroupSlug &&
     currentGroup &&
     isSpaceGroup(currentGroup) &&
     currentGroup.parentId &&
-    !location.pathname.includes('/spaces/') &&
-    !isOnGroupSettings
+    !location.pathname.includes('/spaces/')
   ) {
     const parentMembership = memberships.find(m => String(m.group?.id) === String(currentGroup.parentId))
     const parentFromOrm = orm.session(store.getState().orm).Group.withId(currentGroup.parentId)
@@ -813,7 +805,16 @@ export default function AuthLayoutRouter (props) {
       const rest = location.pathname.startsWith(prefix)
         ? location.pathname.slice(prefix.length)
         : ''
-      const nestedPath = spaceUrl(parentSlug, local, rest || currentGroup.homeRoute || '/all')
+      const restPath = rest.replace(/\/$/, '')
+      let destPath
+      if (restPath === '/settings' || restPath.startsWith('/settings/')) {
+        destPath = (restPath === '/settings/requests' || restPath.startsWith('/settings/requests'))
+          ? '/requests'
+          : ''
+      } else {
+        destPath = rest || currentGroup.homeRoute || '/all'
+      }
+      const nestedPath = spaceUrl(parentSlug, local, destPath)
       return <Navigate to={`${nestedPath}${location.search}`} replace />
     }
   }
@@ -933,7 +934,7 @@ export default function AuthLayoutRouter (props) {
               </>
             )}
 
-            {(!currentGroupSlug || (currentGroup && (currentGroupMembership || canAccessSpaceSettings))) &&
+            {(!currentGroupSlug || (currentGroup && currentGroupMembership)) &&
               <Routes>
                 {/* Card menu: My/All/Public homes use ContextMenuGrid in the center — no sidebar menu. */}
                 {!isCardMenuUser && <Route path='public/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />}
@@ -1055,7 +1056,7 @@ export default function AuthLayoutRouter (props) {
                        instead of a bare spinner. */
                     currentGroupLoading && !paramPostId
                       ? <RouteBootstrapSkeleton />
-                      : currentGroupSlug && !currentGroupMembership && !canAccessSpaceSettings
+                      : currentGroupSlug && !currentGroupMembership
                         ? <GroupDetail context='groups' group={currentGroup} />
                         : (
                           <Routes>

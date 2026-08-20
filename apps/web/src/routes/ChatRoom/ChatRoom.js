@@ -8,7 +8,7 @@ import CopyToClipboard from 'react-copy-to-clipboard'
 import { Helmet } from 'react-helmet'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
-import { useLocation, Routes, Route, useNavigate } from 'react-router-dom'
+import { useLocation, Routes, Route } from 'react-router-dom'
 import { VirtuosoMessageList, VirtuosoMessageListLicense, useVirtuosoLocation, useVirtuosoMethods } from '@virtuoso.dev/message-list'
 
 import { getSocket } from 'client/websockets.js'
@@ -21,6 +21,7 @@ import NoPosts from 'components/NoPosts'
 import PostDialog from 'components/PostDialog'
 import Tooltip from 'components/Tooltip'
 import Button from 'components/ui/button'
+import InviteMembersDialog from 'components/InviteMembersDialog/InviteMembersDialog'
 import ChatMembersPanel from './ChatMembersPanel'
 import PinnedPostChips from './PinnedPostChips'
 import ChatPost from './ChatPost'
@@ -44,7 +45,7 @@ import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import { getPostResults } from 'store/selectors/getPosts'
 import { getGroupViews } from 'store/selectors/getGroupViews'
 import { cn } from 'util/index'
-import { groupInviteUrl, groupUrl } from '@hylo/navigation'
+import { groupInviteUrl } from '@hylo/navigation'
 import { isLegacyWebView } from 'util/webView'
 import { formatLocalizedDate } from 'util/dateFormat'
 import { getLocaleFromLocalStorage } from 'util/locale'
@@ -1135,7 +1136,6 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
 
 const HomeChatWelcome = ({ group }) => {
   const { t } = useTranslation()
-  const navigate = useNavigate()
   const canAddMembers = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADD_MEMBERS, groupId: group?.id }))
 
   return (
@@ -1146,7 +1146,9 @@ const HomeChatWelcome = ({ group }) => {
       <div className='flex gap-2 items-center justify-center'>
         {canAddMembers && (
           <>
-            <Button onClick={() => navigate(groupUrl(group.slug, 'settings/invite'))}><Send /> {t('Send Invites')}</Button>
+            <InviteMembersDialog group={group}>
+              <Button><Send /> {t('Send Invites')}</Button>
+            </InviteMembersDialog>
             <CopyToClipboard text={groupInviteUrl(group)}>
               <Button><Copy /> {t('Copy Invite Link')}</Button>
             </CopyToClipboard>

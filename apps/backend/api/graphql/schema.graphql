@@ -81,7 +81,11 @@ type Query {
     # Number of PersonConnections to load
     first: Int,
     # Start loading at this offset
-    offset: Int
+    offset: Int,
+    # Return connections whose names match this string
+    autocomplete: String,
+    # Exclude people who are already members of this group
+    excludeGroupId: ID
   ): PersonConnectionQuerySet
 
 
@@ -527,6 +531,7 @@ type ActivityMeta {
       'announcement' = an announcement was posted
       'approvedJoinRequest' = your request to join a group was approved
       'joinRequest' = there is a reques to join one of your groups
+      'groupInvitation' = an existing Hylo user was invited to join a group or space
       'groupChildGroupInvite' = someone invited a group to join one of your groups
       'groupChildGroupInviteAccepted' = a child group accepted the invite to join one of your groups
       'groupParentGroupJoinRequest' = someone requested to join one of your groups to a new parent group
@@ -559,6 +564,7 @@ type Activity {
       'announcement' = an announcement was posted
       'approvedJoinRequest' = your request to join a group was approved
       'joinRequest' = there is a reques to join one of your groups
+      'groupInvitation' = an existing Hylo user was invited to join a group or space
       'groupChildGroupInvite' = someone invited a group to join one of your groups
       'groupChildGroupInviteAccepted' = a child group accepted the invite to join one of your groups
       'groupParentGroupJoinRequest' = someone requested to join one of your groups to a new parent group
@@ -1107,6 +1113,8 @@ type Group {
     autocomplete: String
     # Return only people within the geographic bounding box
     boundingBox: [PointInput],
+    # Exclude people who are already members of this group (e.g. parent members not yet in a space)
+    excludeGroupId: ID,
     # Return members with a specific groupRole
     groupRoleId: ID,
     # Number of people to return
@@ -1745,6 +1753,10 @@ type Invitation {
   creator: Person
   # The email address being invited
   email: String
+  # Name of the Hylo user this invitation was sent to, if they have an account
+  name: String
+  # Hylo user id for this invitation, if the email matches an existing account
+  userId: ID
   # NOT USED?
   error: String
   # Which group they are being invited to
@@ -3515,7 +3527,7 @@ type Mutation {
   # Reorder a Post within a View
   reorderViewPost(viewId: ID!, postId: ID!, order: Int!): GenericResult
 
-  # Invite an email address to join a Group
+  # Invite email addresses and/or existing people to join a Group
   createInvitation(groupId: ID, data: InviteInput): CreatedInvitations
   # Ask to join a Group
   createJoinRequest(groupId: ID, questionAnswers: [QuestionAnswerInput]): CreatedRequest
@@ -4457,6 +4469,8 @@ input InappropriateContentInput {
 
 input InviteInput {
   emails: [String]
+  # Existing Hylo users to invite by id (their account email is used)
+  userIds: [ID]
   message: String
   # Assign Coordinator system role when the invitation is used
   assignCoordinator: Boolean

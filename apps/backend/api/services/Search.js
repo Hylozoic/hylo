@@ -96,6 +96,10 @@ module.exports = {
             })
           })
         })
+      } else if (opts.groupType !== 'space' && !opts.groupIds) {
+        // List UIs (explore, public map) should not treat spaces as groups.
+        // parentSlugs, groupType='space', and explicit groupIds keep spaces (§3.8).
+        Group.excludeSpaces(qb)
       }
 
       if (typeof opts.allowedInPublic === 'boolean') {

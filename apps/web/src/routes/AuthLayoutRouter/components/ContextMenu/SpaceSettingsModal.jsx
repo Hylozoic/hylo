@@ -477,10 +477,17 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, group, onC
 
   if (inline) return panel
 
+  const handleBackdropClick = (event) => {
+    if (event.target === event.currentTarget) onClose()
+  }
+
   // Portal above AuthLayout nav stacking (nav is z-50); otherwise the left edge of the
   // centered panel sits under GlobalNav/ContextMenu and radio/checkbox hit targets miss.
   return createPortal(
-    <div className='fixed inset-0 z-[1100] flex items-center justify-center bg-darkening/50 pointer-events-auto'>
+    <div
+      className='fixed inset-0 z-[1100] flex items-center justify-center bg-darkening/50 pointer-events-auto'
+      onClick={handleBackdropClick}
+    >
       {panel}
     </div>,
     document.body
