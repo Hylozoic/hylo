@@ -544,15 +544,16 @@ function ActionMenu ({ widget }) {
   const { t } = useTranslation()
   const { group } = useContextMenuContext()
   const navigate = useNavigate()
+  const location = useLocation()
 
   const dispatch = useDispatch()
 
   const handleEditWidget = useCallback((e) => {
     e.preventDefault()
-    const url = window.location.pathname
+    const url = location.pathname
     const editWidgetUrl = addQuerystringToPath(url, { 'edit-widget-id': widget.id, cme: 'yes' })
     navigate(editWidgetUrl)
-  }, [widget.id, group.id])
+  }, [widget.id, group.id, location.pathname, navigate])
 
   const handleRemoveWidget = useCallback((e) => {
     e.preventDefault()

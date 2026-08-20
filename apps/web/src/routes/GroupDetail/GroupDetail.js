@@ -245,7 +245,7 @@ function GroupDetail ({ forCurrentGroup = false }) {
   }, [fetchGroup])
 
   const closeDetailModal = () => {
-    const newUrl = removeGroupFromUrl(window.location.pathname)
+    const newUrl = removeGroupFromUrl(`${location.pathname}`)
     navigate(newUrl)
   }
 

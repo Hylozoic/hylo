@@ -7,21 +7,21 @@ export const FUNDING_ROUND_ID = sid('funding-round', 'spring')
 export function buildFundingRound () {
   return {
     id: FUNDING_ROUND_ID,
-    title: PLACEHOLDER_NAME,
-    description: PLACEHOLDER_COPY,
-    criteria: PLACEHOLDER_COPY,
+    title: 'Bioregional Grants Round 1',
+    description: 'Community-directed funding for regenerative projects in the Bay Area bioregion. Members vote to allocate tokens to projects they believe will have the most positive impact.',
+    criteria: 'Projects should:\n• Be led by or deeply connected to Bay Area communities\n• Demonstrate clear regenerative impact on people, place, or ecosystem\n• Have a realistic plan and budget\n• Benefit people beyond the project team',
     groupId: FUNDING_SPACE_ID,
     phase: 'voting',
     allowSelfVoting: false,
     hideFinalResultsFromParticipants: false,
     votingMethod: 'token_allocation_constant',
     totalTokens: 100,
-    tokenType: PLACEHOLDER_NAME,
+    tokenType: 'Regen Token',
     maxTokenAllocation: 40,
     minTokenAllocation: 1,
     requireBudget: true,
-    submissionDescriptor: PLACEHOLDER_NAME,
-    submissionDescriptorPlural: PLACEHOLDER_NAME,
+    submissionDescriptor: 'Project',
+    submissionDescriptorPlural: 'Projects',
     numParticipants: 28,
     numSubmissions: 3,
     submissionsTotal: 3,
@@ -37,11 +37,11 @@ export function buildFundingRound () {
     votingClosesAt_offset: 86400 * 7,
     tokensDistributedAt_offset: -86400 * 6,
     submitterRoles: [
-      { id: MAIN_MEMBER_ROLE_ID, name: PLACEHOLDER_NAME, emoji: '👤' }
+      { id: MAIN_MEMBER_ROLE_ID, name: 'Member', emoji: '🌱' }
     ],
     voterRoles: [
-      { id: MAIN_MEMBER_ROLE_ID, name: PLACEHOLDER_NAME, emoji: '👤' },
-      { id: MAIN_COORDINATOR_ROLE_ID, name: PLACEHOLDER_NAME, emoji: '⭐' }
+      { id: MAIN_MEMBER_ROLE_ID, name: 'Member', emoji: '🌱' },
+      { id: MAIN_COORDINATOR_ROLE_ID, name: 'Coordinator', emoji: '🪄' }
     ]
   }
 }

@@ -7,7 +7,7 @@ import ReactDOM from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { push } from 'redux-first-history'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { TextHelpers } from '@hylo/shared'
 import { formatUserDatePair } from 'util/dateFormat'
 import Avatar from 'components/Avatar'
@@ -114,6 +114,7 @@ function PostHeader (props) {
 
   const { t } = useTranslation()
   const dispatch = useDispatch()
+  const location = useLocation()
   const [flaggingVisible, setFlaggingVisible] = useState(false)
   const effectiveGroupSlug = useEffectiveGroupSlug()
   const groupSlug = effectiveGroupSlug || routeParams.groupSlug
@@ -161,8 +162,8 @@ function PostHeader (props) {
   const isChatPost = type === 'chat'
 
   const closeUrl = useMemo(
-    () => removePostFromUrl(`${window.location.pathname}${window.location.search}`),
-    []
+    () => removePostFromUrl(`${location.pathname}${location.search}`),
+    [location.pathname, location.search]
   )
 
   const editPost = useCallback(() => {

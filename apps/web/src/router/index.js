@@ -9,8 +9,9 @@ import { ViewHeaderProvider } from 'contexts/ViewHeaderContext/ViewHeaderProvide
 import { DropdownProvider } from 'contexts/DropdownContext'
 import { CookieConsentProvider } from 'contexts/CookieConsentContext'
 import CookiePreferencesPanel from 'components/CookiePreferencesPanel'
-import store, { history } from '../store'
+import store, { history, sandboxBasename } from '../store'
 import RootRouter from 'routes/RootRouter'
+import { Helmet } from 'react-helmet'
 
 // same configuration you would create for the Rollbar.js SDK
 // const rollbarConfig = {
@@ -41,7 +42,12 @@ export default function App () {
           <CookieConsentProvider>
             <ViewHeaderProvider>
               <DropdownProvider>
-                <Router history={history}>
+                <Router history={history} basename={sandboxBasename}>
+                  {sandboxBasename && (
+                    <Helmet>
+                      <meta name='robots' content='noindex, nofollow' />
+                    </Helmet>
+                  )}
                   <RootRouter />
                   <CookiePreferencesPanel />
                 </Router>

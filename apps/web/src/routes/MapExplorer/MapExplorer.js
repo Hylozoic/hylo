@@ -895,7 +895,7 @@ function MapExplorer (props) {
             menuAbove
             toggleChildren={(
               <span className={classes.layersDropdownLabel}>
-                {t(MAP_BASE_LAYERS.find(o => o.id === baseLayerStyle).label)}
+                {t(MAP_BASE_LAYERS.find(o => o.id === baseLayerStyle)?.label || '')}
                 <Icon name='ArrowDown' />
               </span>
             )}

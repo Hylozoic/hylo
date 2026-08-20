@@ -1,11 +1,9 @@
 import {
   MAIN_GROUP_MEMBER_COUNT,
   MAIN_GROUP_SLUG,
-  PLACEHOLDER_COPY,
-  PLACEHOLDER_NAME,
   SIMPLE_GROUP_SLUG
 } from '../constants'
-import { defaultLocationObject, sid } from '../helpers'
+import { sid } from '../helpers'
 import { ME_ID } from './people'
 
 export const MAIN_GROUP_ID = sid('group', 'main')
@@ -27,57 +25,75 @@ export function buildGroups () {
     main: {
       id: MAIN_GROUP_ID,
       slug: MAIN_GROUP_SLUG,
-      name: PLACEHOLDER_NAME,
-      description: PLACEHOLDER_COPY,
-      purpose: PLACEHOLDER_COPY,
-      avatarUrl: null,
-      bannerUrl: null,
+      name: 'Terran Collective',
+      description: 'Terran Collective is a community of care and practice. We are technologists, community organizers, entrepreneurs, activists, and artists with a vision for all beings thriving.\n\nOur mission is to amplify cooperation among people working to regenerate our communities and our planet. We do this by building systems and tools that foster trust and collaboration, starting in the Bay Area bioregion.\n\nLearn more about our scopes of practice at terran.io',
+      purpose: 'Amplify cooperation among people working to regenerate our communities and our planet.',
+      avatarUrl: 'https://d3ngex8q79bk55.cloudfront.net/evo-uploads/user/7650/communityAvatar/4009/67693087_721022015049461_910517523265355776_o.jpg',
+      bannerUrl: 'https://d3ngex8q79bk55.cloudfront.net/evo-uploads/user/7650/communityBanner/4009/67691464_10102112860412601_1245997620619378688_o-2.jpg',
       icon: 'Users',
       type: null,
       parentId: null,
       memberCount: MAIN_GROUP_MEMBER_COUNT,
       postCount: 12,
-      visibility: 0,
+      visibility: 2,
       accessibility: 1,
-      allowInPublic: false,
+      canAccess: true,
+      allowInPublic: true,
       paywall: false,
+      location: 'Oakland, California, United States',
+      locationObject: {
+        id: mainLocationId,
+        fullText: 'Oakland, California, United States',
+        city: 'Oakland',
+        region: 'California',
+        country: 'United States',
+        center: { lat: 37.8044, lng: -122.2712 },
+        bbox: { lat: 37.8044, lng: -122.2712 }
+      },
       homeRoute: '/stream',
-      location: PLACEHOLDER_COPY.slice(0, 60),
-      locationObject: defaultLocationObject(mainLocationId),
       stewardDescriptor: 'Coordinator',
       stewardDescriptorPlural: 'Coordinators',
       createdAt_offset: -86400 * 180,
       acceptedPostTypes: ['discussion', 'event', 'proposal', 'request', 'offer', 'project', 'resource'],
       settings: {
         showSuggestedSkills: true,
-        showWelcomePage: true,
+        showWelcomePage: false,
         layout: 'default'
       }
     },
     simple: {
       id: SIMPLE_GROUP_ID,
       slug: SIMPLE_GROUP_SLUG,
-      name: PLACEHOLDER_NAME,
-      description: PLACEHOLDER_COPY,
-      purpose: PLACEHOLDER_COPY,
-      avatarUrl: null,
-      bannerUrl: null,
+      name: 'East Bay Connect',
+      description: 'East Bay Connect is a space for everyone in our community to get great stuff happening.\n\nAs part of the vision of the It Takes A Town movement, East Bay Connect\'s goal is to create a culture where sharing, generosity and responsiveness to each other is the norm. When everyone is contributing according to their abilities, resources and skills, our community becomes a richer and more connected place for us all. This is a safe, respectful community space for everyone in the East Bay.',
+      purpose: 'Create a culture where sharing, generosity and responsiveness is the norm.',
+      avatarUrl: 'https://d3ngex8q79bk55.cloudfront.net/evo-uploads/user/29919/communityAvatar/5649/2484%20Connect%20%282%29.png',
+      bannerUrl: 'https://d3ngex8q79bk55.cloudfront.net/evo-uploads/user/29919/communityBanner/5649/Joanna%20May%20Wollumbin%20photo%202020_vivid50.jpg',
       icon: 'Sprout',
       type: null,
       parentId: null,
-      memberCount: 4,
-      postCount: 5,
-      visibility: 0,
-      accessibility: 1,
-      allowInPublic: false,
+      memberCount: 48,
+      postCount: 19,
+      visibility: 2,
+      accessibility: 2,
+      canAccess: true,
+      allowInPublic: true,
       paywall: false,
       homeRoute: '/chat',
-      location: null,
-      locationObject: null,
-      stewardDescriptor: 'Moderator',
-      stewardDescriptorPlural: 'Moderators',
-      createdAt_offset: -86400 * 7,
-      acceptedPostTypes: ['chat'],
+      location: 'Oakland, California, United States',
+      locationObject: {
+        id: sid('location', 'simple'),
+        fullText: 'Oakland, California, United States',
+        city: 'Oakland',
+        region: 'California',
+        country: 'United States',
+        center: { lat: 37.8106, lng: -122.2473 },
+        bbox: { lat: 37.8106, lng: -122.2473 }
+      },
+      stewardDescriptor: 'Organizer',
+      stewardDescriptorPlural: 'Organizers',
+      createdAt_offset: -86400 * 200,
+      acceptedPostTypes: ['chat', 'discussion', 'request', 'offer', 'project', 'resource', 'event'],
       settings: {
         showSuggestedSkills: false,
         showWelcomePage: false,
@@ -87,10 +103,10 @@ export function buildGroups () {
     spaces: {
       chat: {
         id: CHAT_SPACE_ID,
-        slug: 'general-chat',
-        name: PLACEHOLDER_NAME,
-        description: PLACEHOLDER_COPY,
-        purpose: PLACEHOLDER_COPY,
+        slug: 'general',
+        name: 'General',
+        description: 'The main chat channel for Terran Collective — share news, updates, and anything on your mind.',
+        purpose: 'Open conversation for the whole community.',
         avatarUrl: null,
         bannerUrl: null,
         icon: 'MessageCircle',
@@ -106,10 +122,10 @@ export function buildGroups () {
       },
       track: {
         id: TRACK_SPACE_ID,
-        slug: 'onboarding-track',
-        name: PLACEHOLDER_NAME,
-        description: PLACEHOLDER_COPY,
-        purpose: PLACEHOLDER_COPY,
+        slug: 'new-member-orientation',
+        name: 'New Member Orientation',
+        description: 'A guided onboarding track to help new members get oriented in Terran Collective — learn our tools, culture, and how to get involved.',
+        purpose: 'Help new members find their footing and their people.',
         avatarUrl: null,
         bannerUrl: null,
         icon: 'Route',
@@ -125,10 +141,10 @@ export function buildGroups () {
       },
       funding: {
         id: FUNDING_SPACE_ID,
-        slug: 'spring-grants',
-        name: PLACEHOLDER_NAME,
-        description: PLACEHOLDER_COPY,
-        purpose: PLACEHOLDER_COPY,
+        slug: 'bioregional-grants',
+        name: 'Bioregional Grants',
+        description: 'Community-directed funding for regenerative projects in the Bay Area bioregion. Members vote to allocate tokens to projects they believe in.',
+        purpose: 'Channel community resources toward the highest-impact regenerative work.',
         avatarUrl: null,
         bannerUrl: null,
         icon: 'Coins',
@@ -146,16 +162,16 @@ export function buildGroups () {
     groupRoles: [
       {
         id: MAIN_COORDINATOR_ROLE_ID,
-        name: PLACEHOLDER_NAME,
-        emoji: '⭐',
+        name: 'Coordinator',
+        emoji: '🪄',
         active: true,
         groupId: MAIN_GROUP_ID,
         responsibilities: { items: [] }
       },
       {
         id: MAIN_MEMBER_ROLE_ID,
-        name: PLACEHOLDER_NAME,
-        emoji: '👤',
+        name: 'Member',
+        emoji: '🌱',
         active: true,
         groupId: MAIN_GROUP_ID,
         responsibilities: { items: [] }
@@ -199,6 +215,7 @@ export function buildMemberships (groups) {
         stewardDescriptorPlural: groups.main.stewardDescriptorPlural,
         allowInPublic: groups.main.allowInPublic,
         acceptedPostTypes: groups.main.acceptedPostTypes,
+        canAccess: true,
         settings: groups.main.settings,
         childGroups: {
           items: [
@@ -260,10 +277,47 @@ export function buildMemberships (groups) {
         stewardDescriptorPlural: groups.simple.stewardDescriptorPlural,
         allowInPublic: groups.simple.allowInPublic,
         acceptedPostTypes: groups.simple.acceptedPostTypes,
+        canAccess: true,
         settings: groups.simple.settings,
         childGroups: { items: [] }
       }
-    }
+    },
+    ...['chat', 'track', 'funding'].map((key, index) => {
+      const space = groups.spaces[key]
+      return {
+        id: sid('membership', key),
+        lastViewedAt_offset: -3600 - index * 60,
+        navOrder: null,
+        newPostCount: 0,
+        person: { id: ME_ID },
+        settings: {
+          agreementsAcceptedAt_offset: -86400 * 30,
+          digestFrequency: 'weekly',
+          joinQuestionsAnsweredAt_offset: -86400 * 30,
+          postNotifications: 'all',
+          sendEmail: true,
+          sendPushNotifications: true,
+          showJoinForm: false
+        },
+        group: {
+          id: space.id,
+          slug: space.slug,
+          name: space.name,
+          avatarUrl: space.avatarUrl,
+          bannerUrl: space.bannerUrl,
+          icon: space.icon,
+          type: space.type,
+          parentId: space.parentId,
+          memberCount: space.memberCount,
+          homeRoute: space.homeRoute,
+          allowInPublic: false,
+          acceptedPostTypes: space.acceptedPostTypes,
+          canAccess: true,
+          settings: { layout: 'default' },
+          childGroups: { items: [] }
+        }
+      }
+    })
   ]
 }
 
@@ -274,25 +328,29 @@ export function buildGroupViews (groups, track, fundingRound) {
   const { main, spaces } = groups
   return {
     [main.id]: [
-      viewItem(sid('view', 'stream'), 'stream', PLACEHOLDER_NAME, 0, { icon: 'LayoutList' }),
-      viewItem(sid('view', 'map'), 'map', PLACEHOLDER_NAME, 1, { icon: 'Map' }),
-      viewItem(sid('view', 'events'), 'events', PLACEHOLDER_NAME, 2, { icon: 'Calendar' }),
-      viewItem(sid('view', 'members'), 'members', PLACEHOLDER_NAME, 3, { icon: 'Users' }),
+      viewItem(sid('view', 'stream'), 'stream', 'Stream', 0, { icon: 'LayoutList' }),
+      viewItem(sid('view', 'map'), 'map', 'Map', 1, { icon: 'Map' }),
+      viewItem(sid('view', 'events'), 'events', 'Events', 2, { icon: 'Calendar' }),
+      viewItem(sid('view', 'members'), 'members', 'Members', 3, { icon: 'Users' }),
       spaceViewItem(sid('view', 'chat-space'), spaces.chat, 4),
       spaceViewItem(sid('view', 'track-space'), spaces.track, 5, { track }),
       spaceViewItem(sid('view', 'funding-space'), spaces.funding, 6, { fundingRound })
     ],
     [spaces.chat.id]: [
-      viewItem(sid('view', 'chat-main'), 'chat', PLACEHOLDER_NAME, 0, { icon: 'MessageCircle' })
+      viewItem(sid('view', 'chat-main'), 'chat', 'Chat', 0, { icon: 'MessageCircle' })
     ],
     [spaces.track.id]: [
-      viewItem(sid('view', 'track-actions'), 'track-actions', PLACEHOLDER_NAME, 0, { icon: 'Route' })
+      viewItem(sid('view', 'track-actions'), 'track-actions', 'Orientation Steps', 0, { icon: 'Route' })
     ],
     [spaces.funding.id]: [
-      viewItem(sid('view', 'fr-submissions'), 'funding-round-submissions', PLACEHOLDER_NAME, 0, { icon: 'Coins' })
+      viewItem(sid('view', 'fr-submissions'), 'funding-round-submissions', 'Grant Submissions', 0, { icon: 'Coins' })
     ],
     [groups.simple.id]: [
-      viewItem(sid('view', 'simple-chat'), 'chat', PLACEHOLDER_NAME, 0, { icon: 'MessageCircle' })
+      viewItem(sid('view', 'simple-chat'), 'chat', 'Chat', 0, { icon: 'MessageCircle' }),
+      viewItem(sid('view', 'simple-all'), 'all', 'All Activity', 1, { icon: 'LayoutList' }),
+      viewItem(sid('view', 'simple-requests'), 'requests-and-offers', 'Requests & Offers', 2, { icon: 'HandHeart' }),
+      viewItem(sid('view', 'simple-projects'), 'projects', 'Projects', 3, { icon: 'Layers' }),
+      viewItem(sid('view', 'simple-members'), 'members', 'Members', 4, { icon: 'Users' })
     ]
   }
 }
@@ -316,7 +374,7 @@ function viewItem (id, type, name, order, extras = {}) {
 }
 
 function spaceViewItem (id, space, order, extras = {}) {
-  return viewItem(id, 'linkedGroup', space.name, order, {
+  return viewItem(id, 'space', space.name, order, {
     icon: space.icon,
     linkedGroup: {
       id: space.id,

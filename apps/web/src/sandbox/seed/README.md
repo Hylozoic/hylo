@@ -2,7 +2,11 @@
 
 Editable demo content for `/sandbox`. Loaded by the mock GraphQL engine (Phase 1+).
 
-## Placeholder rules
+## Trying it
+
+With `yarn web:dev` running, open `/sandbox`. Phase 0 intercepts GraphQL in the browser — nothing is written to the database. Reload resets demo state.
+
+Edit copy in `en/*.js` (names = `%%%%%%%%%%%%`, prose = 200 `*`).
 
 | Field type | Placeholder | Example |
 |---|---|---|

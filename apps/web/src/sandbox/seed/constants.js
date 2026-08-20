@@ -7,16 +7,15 @@
 export const PLACEHOLDER_NAME = '%%%%%%%%%%%%'
 
 /** 200-character body/comment/description placeholder — replace * blocks with real copy */
-export const PLACEHOLDER_COPY = '*'.repeat(200)
+export const PLACEHOLDER_COPY = '*'.repeat(100)
 
 /** Stable slug for the primary demo group */
-export const MAIN_GROUP_SLUG = 'demo-community'
+export const MAIN_GROUP_SLUG = 'terran-collective'
 
-/** Stable slug for the simpler “just created” group */
-export const SIMPLE_GROUP_SLUG = 'starter-circle'
+/** Stable slug for the simpler community group */
+export const SIMPLE_GROUP_SLUG = 'eastbayconnect'
 
 /** Main group member count (includes sandbox Me) */
-export const MAIN_GROUP_MEMBER_COUNT = 45
+export const MAIN_GROUP_MEMBER_COUNT = 127
 
-/** ID prefix — keeps sandbox entities obvious in devtools */
-export const SANDBOX_ID_PREFIX = 'sandbox'
+/** Sandbox entity ids are numeric (see sid() in helpers.js) so Hylo URL helpers match them */

@@ -1,17 +1,18 @@
-import { materializeTimestamps } from '../helpers'
 import { PLACEHOLDER_COPY, PLACEHOLDER_NAME } from '../constants'
-import { buildMe, buildPeople, meAsPerson, peopleById, ME_ID } from './people'
+import { buildMe, buildPeople, peopleById, ME_ID } from './people'
 import {
   buildGroups,
   buildGroupViews,
   buildMemberships,
-  MAIN_GROUP_ID
+  MAIN_GROUP_ID,
+  MAIN_COORDINATOR_ROLE_ID
 } from './groups'
 import { buildTrack, buildTrackActions, TRACK_ID } from './tracks'
 import { buildFundingRound, FUNDING_ROUND_ID } from './fundingRounds'
 import { buildPosts, indexPosts } from './posts'
 import { buildCommentsByPostId, buildReactionsByPostId, buildProposalData } from './comments'
 import { buildMessageThreads } from './messageThreads'
+import { buildNotifications, unreadNotificationCount } from './notifications'
 
 /**
  * Assemble the full English sandbox seed.
@@ -45,6 +46,14 @@ export function buildEnSeed () {
   attachCommentsAndReactions(postCollections.byId, commentsByPostId, reactionsByPostId, proposalData)
 
   const messageThreads = buildMessageThreads(peopleMap)
+  const notifications = buildNotifications({
+    peopleById: peopleMap,
+    meId: ME_ID,
+    groups,
+    postsById: postCollections.byId,
+    track,
+    fundingRound
+  })
 
   return {
     meta: {
@@ -55,8 +64,14 @@ export function buildEnSeed () {
         copy: '200 characters of *'
       }
     },
-    me: { ...me, memberships },
+    me: {
+      ...me,
+      newNotificationCount: unreadNotificationCount(notifications),
+      memberships,
+      groupRoles: { items: groups.groupRoles.filter(role => role.id === MAIN_COORDINATOR_ROLE_ID) }
+    },
     people,
+    peopleById: peopleMap,
     groups: {
       all: [
         groups.main,
@@ -83,6 +98,7 @@ export function buildEnSeed () {
     posts: postCollections,
     proposals: proposalData,
     messageThreads,
+    notifications,
     // Convenience exports for mock resolvers
     ids: {
       me: ME_ID,
@@ -97,9 +113,12 @@ function attachCommentsAndReactions (postsById, commentsByPostId, reactionsByPos
   for (const [postId, comments] of Object.entries(commentsByPostId)) {
     const post = postsById[postId]
     if (!post) continue
-    post.comments = { items: comments, total: comments.length, hasMore: false }
-    post.commentsTotal = comments.length
-    post.commentersTotal = comments.length
+    const items = comments.map(c => normalizeComment(c, postId))
+    const commenters = uniqueCommenters(items)
+    post.comments = { items, total: items.length, hasMore: false }
+    post.commentsTotal = countComments(items)
+    post.commenters = commenters.slice(0, 3)
+    post.commentersTotal = commenters.length
   }
 
   for (const [postId, reactions] of Object.entries(reactionsByPostId)) {
@@ -119,6 +138,47 @@ function attachCommentsAndReactions (postsById, commentsByPostId, reactionsByPos
     post.proposalStatus = data.proposalStatus
     post.votingMethod = data.votingMethod
   }
+}
+
+function normalizeComment (comment, postId, parentId = null) {
+  const rawChildren = Array.isArray(comment.childComments)
+    ? comment.childComments
+    : (comment.childComments?.items || [])
+  const children = rawChildren.map(child => normalizeComment(child, postId, comment.id))
+  return {
+    ...comment,
+    parentComment: parentId ? { id: parentId } : null,
+    post: { id: postId },
+    attachments: comment.attachments || [],
+    commentReactions: comment.commentReactions || [],
+    childComments: { items: children, total: children.length, hasMore: false }
+  }
+}
+
+function uniqueCommenters (comments) {
+  const seen = new Set()
+  const people = []
+  for (const comment of comments) {
+    const person = comment.creator
+    if (person?.id && !seen.has(String(person.id))) {
+      seen.add(String(person.id))
+      people.push({ id: person.id, name: person.name, avatarUrl: person.avatarUrl })
+    }
+    const nested = comment.childComments?.items || []
+    for (const child of uniqueCommenters(nested)) {
+      if (!seen.has(String(child.id))) {
+        seen.add(String(child.id))
+        people.push(child)
+      }
+    }
+  }
+  return people
+}
+
+function countComments (comments) {
+  return comments.reduce((sum, comment) => {
+    return sum + 1 + (comment.childComments?.items?.length || 0)
+  }, 0)
 }
 
 function summarizeReactions (reactions) {

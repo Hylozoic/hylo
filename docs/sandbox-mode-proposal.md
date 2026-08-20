@@ -1,6 +1,6 @@
 # Sandbox Mode — Design Proposal
 
-**Status:** Proposal / pre-implementation
+**Status:** In progress (Phase 0)
 **Scope:** `apps/web` (inherited by `apps/mobile` and `apps/mobile-leap` via WebView)
 **Related:** `docs/bootstrap-persist-redux-proposal.md`, `docs/sentry-setup.md`
 
@@ -402,9 +402,10 @@ refactor.
 ## 9. Phasing
 
 **Phase 0 — spike (2–3 days).** Validates the riskiest assumption cheaply.
-`/sandbox` route, mode flag, transport swap in `apiMiddleware`, hardcoded `me` + one group +
-five posts, hand-written handlers (Option B), no schema execution. Success = `AuthLayoutRouter`
-renders the real app shell against fake data with **no component changes**.
+`/sandbox` route, mode flag, transport swap in `apiMiddleware`, seed-backed hand-written
+handlers (Option B), no schema execution. Success = `AuthLayoutRouter` renders the real app
+shell against fake data with **no component changes**. **Done** — visit `/sandbox` with the
+web dev server running.
 
 **Phase 1 — mock engine.** Schema load, `addMocksToSchema` + `MockStore`, wire `loadSandboxSeed()`
 (resolvers read from `apps/web/src/sandbox/seed/`), Tier 1 resolvers with list/filter/pagination
@@ -419,6 +420,53 @@ placeholders with real copy, mobile entry point (D15).
 
 **Phase 4 — payoff.** Point the existing Playwright suite at sandbox mode for fast,
 deterministic, DB-free E2E runs.
+
+---
+
+## 12. Implementation TODOs
+
+Check these off as they land. Phase 0 is the current target: prove the real `AuthLayoutRouter`
+renders against fake data with no component-level sandbox flags.
+
+### Phase 0 — spike (transport + basename + seed handlers)
+
+- [x] Detect sandbox from `/sandbox` pathname (`isSandboxMode`)
+- [x] Wire `basename: '/sandbox'` via `redux-first-history` + `HistoryRouter` (not `createBrowserHistory`)
+- [x] Swap `apiMiddleware` `fetchJSON` → sandbox transport (dynamic import, main bundle stays clean)
+- [x] Hand-written GraphQL handlers over existing seed (CheckLogin, Me, groups, posts, threads, mutations)
+- [x] Configurable response delay (~150–250ms, 0 in tests)
+- [x] Stub sockets in sandbox
+- [x] Skip Mixpanel init/track; skip Intercom boot
+- [x] Tag Sentry with `sandbox: true`
+- [x] Skip cookie consent
+- [x] `noindex` on `/sandbox`
+- [x] Basename fixes: GroupDetail, ContextMenuOld, CreateTopic
+- [x] Basename hardening: PostHeader, SkillsSection, SkillsToLearnSection (`from` + `navigate`)
+
+### Phase 1 — schema-driven mock engine
+
+- [ ] Copy/import `schema.graphql` into the web sandbox chunk; CI assert it matches backend
+- [ ] `addMocksToSchema` + `MockStore` over `loadSandboxSeed()`
+- [ ] Hand-written resolvers for Tier 1 list/filter/pagination + create/edit/delete post/comment/react
+- [ ] Unknown fields resolve via mocks (no crash)
+
+### Phase 2 — hardening
+
+- [ ] `window.fetch` guard for `/noo/*` escape hatches
+- [ ] Upload blob picker (or disable with Tier 3 UX)
+- [ ] Conversion CTA after 3 user-created posts (D14)
+- [ ] Remaining Tier 2 mutation semantics (join, RSVP, save, mute, DMs, settings)
+
+### Phase 3 — product polish
+
+- [ ] Demo banner + reset + signup CTA (i18n chrome strings in all 6 locales)
+- [ ] Tier 3 UX patterns A–D on listed surfaces
+- [ ] Replace seed placeholders with real copy
+- [ ] Mobile “Try the demo” entry (D15)
+
+### Phase 4 — payoff
+
+- [ ] Playwright can run against `/sandbox` without a live API/DB
 
 ---
 

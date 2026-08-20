@@ -1,4 +1,4 @@
-import { PLACEHOLDER_COPY, PLACEHOLDER_NAME, SANDBOX_ID_PREFIX } from './constants'
+import { PLACEHOLDER_COPY, PLACEHOLDER_NAME } from './constants'
 
 /**
  * Wrap plain placeholder copy as HTML for rich-text post/comment bodies.
@@ -8,10 +8,97 @@ export function htmlCopy (text = PLACEHOLDER_COPY) {
 }
 
 /**
- * Build a sandbox-scoped string id.
+ * Kind prefixes so generated ids stay unique and purely numeric (Hylo URLs
+ * and helpers like removePostFromUrl only match /\\d+/).
  */
-export function sid (...parts) {
-  return [SANDBOX_ID_PREFIX, ...parts].join('-')
+const KIND = {
+  me: 1,
+  person: 10,
+  role: 11,
+  location: 12,
+  track: 13,
+  'track-action': 14,
+  'funding-round': 15,
+  'proposal-option': 16,
+  vote: 17,
+  notification: 18,
+  activity: 19,
+  group: 20,
+  space: 21,
+  post: 30,
+  comment: 40,
+  reaction: 50,
+  thread: 60,
+  msg: 70,
+  membership: 80,
+  view: 90,
+  mut: 99
+}
+
+const TOKEN = {
+  main: 1,
+  simple: 2,
+  chat: 3,
+  track: 4,
+  funding: 5,
+  coordinator: 1,
+  member: 2,
+  onboarding: 1,
+  spring: 1,
+  group: 1,
+  starter: 90,
+  dm: 2,
+  dm2: 2,
+  dm3: 3,
+  g: 1,
+  stream: 1,
+  map: 2,
+  events: 3,
+  members: 4,
+  'chat-space': 5,
+  'track-space': 6,
+  'funding-space': 7,
+  'chat-main': 8,
+  'track-actions': 9,
+  'fr-submissions': 10,
+  'simple-chat': 11,
+  post: 30,
+  fr: 6,
+  c: 7,
+  r: 8,
+  v: 9
+}
+
+function tokenToInt (token) {
+  const value = String(token)
+  if (/^\d+$/.test(value)) return parseInt(value, 10)
+  if (TOKEN[value] != null) return TOKEN[value]
+  let h = 0
+  for (let i = 0; i < value.length; i++) h = ((h << 5) - h) + value.charCodeAt(i)
+  return Math.abs(h) % 1000
+}
+
+/**
+ * Flatten hyphenated segments so sid('post', 'chat-001') !== sid('post', '001').
+ */
+function flattenParts (parts) {
+  return parts.flatMap(part => String(part).split('-').filter(Boolean))
+}
+
+/**
+ * Build a stable numeric sandbox id. Always digits so routing and close-url
+ * helpers treat demo entities like production ids.
+ */
+export function sid (kind, ...rest) {
+  if (rest.length === 1 && /^\d{10,}$/.test(String(rest[0]))) {
+    return String(rest[0])
+  }
+  const kindN = KIND[kind] ?? 98
+  let suffix = 0
+  for (const part of flattenParts(rest)) {
+    suffix = suffix * 1000 + (tokenToInt(part) % 1000)
+  }
+  return String(kindN * 1000000 + suffix)
 }
 
 /**

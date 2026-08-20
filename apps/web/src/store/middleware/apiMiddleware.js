@@ -1,5 +1,6 @@
 import fetch from 'isomorphic-fetch'
 import { debugCheckLogin } from 'config/index'
+import { isSandboxMode } from 'sandbox/isSandbox'
 
 export default function apiMiddleware (req) {
   return store => next => action => {
@@ -10,7 +11,9 @@ export default function apiMiddleware (req) {
     const { path, params, method } = payload.api
     const cookie = req && req.headers.cookie
 
-    let promise = fetchJSON(path, params, { method, cookie, host: getHost() })
+    let promise = isSandboxMode()
+      ? sandboxFetch(path, params, method)
+      : fetchJSON(path, params, { method, cookie, host: getHost() })
 
     if (meta && meta.then) {
       promise = promise.then(meta.then)
@@ -18,6 +21,15 @@ export default function apiMiddleware (req) {
 
     return next({ ...action, payload: promise })
   }
+}
+
+/**
+ * Lazy-load the sandbox transport so the mock engine is not in the main bundle.
+ */
+function sandboxFetch (path, params, method) {
+  return import('sandbox/transport').then(({ sandboxTransport }) =>
+    sandboxTransport(path, params, method)
+  )
 }
 
 export function getHost () {
