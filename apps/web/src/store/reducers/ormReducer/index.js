@@ -1448,8 +1448,12 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
 
     case USE_INVITATION: {
       me = Me.first()
-      me.updateAppending({ memberships: [payload.data.useInvitation.membership.id] })
-      Invitation.filter({ email: me.email, group: payload.data.useInvitation.membership.group.id }).delete()
+      const membership = payload.data?.useInvitation?.membership
+      if (me && membership?.id) {
+        me.updateAppending({ memberships: [membership.id] })
+        clearCacheFor(Me, me.id)
+        Invitation.filter({ email: me.email, group: membership.group.id }).delete()
+      }
       break
     }
 

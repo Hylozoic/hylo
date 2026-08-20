@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { Link, useNavigate } from 'react-router-dom'
 
-import InviteMembersPopover from 'components/InviteMembersPopover/InviteMembersPopover'
+import InviteMembersDialog from 'components/InviteMembersDialog/InviteMembersDialog'
 import CurrentlyActivePills, {
   DEFAULT_ACTIVE_MAX,
   isRecentlyActive
@@ -25,6 +25,7 @@ import { cn } from 'util/index'
  */
 export default function CurrentlyActiveMembers ({
   group,
+  parentGroup,
   max = DEFAULT_ACTIVE_MAX,
   membersUrl,
   profileGroupSlug,
@@ -153,8 +154,9 @@ export default function CurrentlyActiveMembers ({
             '[&:has([data-state=open])]:max-w-[2rem] [&:has([data-state=open])]:ml-1'
           )}
         >
-          <InviteMembersPopover
+          <InviteMembersDialog
             group={group}
+            parentGroup={parentGroup}
             alwaysVisible
             triggerClassName='text-foreground/50 hover:text-foreground'
           />

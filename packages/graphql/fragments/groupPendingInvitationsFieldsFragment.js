@@ -7,6 +7,8 @@ export default gql`
       items {
         id
         email
+        name
+        userId
         createdAt
         lastSentAt
       }

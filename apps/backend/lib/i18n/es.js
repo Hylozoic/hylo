@@ -60,7 +60,9 @@ exports.es = {
   textForJoinRequest: ({ actor, groupName, parentGroupName }) => parentGroupName
     ? `${actor.get('name')} pidió unirse a ${groupName} en ${parentGroupName}`
     : `${actor.get('name')} pidió unirte ${groupName}`,
-  textForGroupInvitation: ({ actor, groupName }) => `${actor.get('name')} te invitó a unirte ${groupName}`,
+  textForGroupInvitation: ({ actor, groupName, parentGroupName }) => parentGroupName
+    ? `${actor.get('name')} te ha invitado a unirte al espacio ${groupName} en ${parentGroupName}`
+    : `${actor.get('name')} te ha invitado a unirte a ${groupName}`,
   textForGroupInvitationAccepted: ({ actor, groupName }) => `${actor.get('name')} aceptó tu invitación para unirse ${groupName}`,
   textForGroupChildGroupInvite: ({ actor, parentGroup, childGroup }) => `${actor.get('name')} invitó a tu grupo ${childGroup.get('name')} a unirse a su grupo ${parentGroup.get('name')}`,
   textForGroupChildGroupInviteAcceptedParentModerator: ({ actor, parentGroup, childGroup }) => `${actor.get('name')} aceptó su invitación de su grupo ${childGroup.get('name')} para unirse a su grupo ${parentGroup.get('name')}`,

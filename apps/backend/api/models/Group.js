@@ -167,6 +167,7 @@ module.exports = bookshelf.Model.extend(merge({
           'groups.active': true
         }
       })
+      .query(q => Group.excludeSpaces(q))
       .orderBy('groups.name', 'asc')
   },
 
@@ -407,6 +408,7 @@ module.exports = bookshelf.Model.extend(merge({
           'groups.active': true
         }
       })
+      .query(q => Group.excludeSpaces(q))
       .withPivot(['settings'])
       .orderBy('groups.name', 'asc')
   },
@@ -443,7 +445,8 @@ module.exports = bookshelf.Model.extend(merge({
         .where('group_relationships.relationship_type', Group.RelationshipType.PEER_TO_PEER)
         .where('groups.active', true)
         .where('groups.id', '!=', groupId)
-        .orderBy('groups.name', 'asc')
+      Group.excludeSpaces(qb)
+      qb.orderBy('groups.name', 'asc')
     })
   },
 
@@ -503,7 +506,8 @@ module.exports = bookshelf.Model.extend(merge({
             qb4.andWhere(groupId, 'in', selectStewardedGroupIds)
           })
         })
-        .orderBy('groups.name', 'asc')
+      Group.excludeSpaces(qb)
+      qb.orderBy('groups.name', 'asc')
     })
   },
 
@@ -1862,6 +1866,19 @@ module.exports = bookshelf.Model.extend(merge({
       },
       multiple: true
     }).query()
+  },
+
+  /**
+   * Restrict a groups query to non-space rows. Matches digest recipient
+   * filtering: type is null or anything other than 'space'. Do not filter on
+   * parent_id — list UIs that fetch by id (featured, menu preload) and any
+   * top-level group that happens to have parent_id set must still appear.
+   */
+  excludeSpaces (q) {
+    q.where(function () {
+      this.whereNull('groups.type').orWhere('groups.type', '<>', 'space')
+    })
+    return q
   },
 
   /**

@@ -487,9 +487,9 @@ These are still present and still wired into GraphQL:
 
 ---
 
-### 3.8 Queries that should exclude spaces — **mostly not done**
+### 3.8 Queries that should exclude spaces
 
-Because spaces are rows in `groups`, every query that lists groups will include them unless filtered. This audit is largely outstanding.
+Because spaces are rows in `groups`, every query that lists groups will include them unless filtered. `me.memberships` and `Group.selectIdsForMember` stay inclusive — they power nav nesting, PostEditor, unread, and post visibility.
 
 | Query / Context | Status |
 |-----------------|--------|
@@ -497,15 +497,13 @@ Because spaces are rows in `groups`, every query that lists groups will include 
 | Group search by parent | **Done, inverted intentionally** — `services/Search.js` deliberately *includes* spaces via `parent_id` when `parentSlugs` is given, so a group search covers its spaces |
 | Moderation search | **Done** — includes spaces via `parent_id` so space reports appear in the parent queue |
 | `groupFilter` visibility | **Done, deliberately permissive** — join managers can see spaces of groups they manage |
-| Global nav groups list | Not done |
-| Related Groups view | Not done |
-| Group explore / group-type search results | Not done — an optional `groupType` filter exists but is caller-driven |
-| "My Groups" | Not done — `Group.selectIdsForMember` returns all active memberships including spaces |
-| Group invitations | Not done — no separate Space Invitations section |
-| `Group.memberships()` on user profile | Not done |
+| Global nav groups list | **Done in the frontend** — `getMyGroupsWithChildren` nests spaces under their parent; `me.memberships` still returns spaces |
+| Related Groups view | **Done** — `childGroups` / `parentGroups` / `peerGroups` use `Group.excludeSpaces`; selectors also drop `isSpaceGroup` |
+| Group explore / group-type search results | **Done** — `Search.forGroups` excludes spaces by default; skipped when `parentSlugs` is set or `groupType === 'space'` |
+| "My Groups" | **Done in the frontend** — same selector as global nav. Do **not** filter `selectIdsForMember` (visibility) |
+| Group invitations | **Done in the frontend** — My Invites splits group vs space invites/requests. Dedicated space-invite forms are still §7.14 |
+| Profile memberships | **Done** — `Person.memberships` (not `Me.memberships`) uses `Group.excludeSpaces`; profile presenter also filters |
 | Cross-group post "To" field | **Done in the frontend** — `PostEditor` nests spaces under their parent group |
-
-> Remaining task: audit `Group.find`, `fetchGroups`, and `groupSlug` lookups across `apps/backend/api` for the "Not done" rows above.
 
 ---
 
@@ -1287,7 +1285,7 @@ The map shows posts with locations from the current group/space, related groups 
 
 ### 7.14 Space invites
 
-Spaces are groups, so the generic invite plumbing applies. There is no dedicated space invite section in the space forms, and My Invites has not been given a separate Space Invitations section (§3.8, §14).
+Spaces are groups, so the generic invite plumbing applies. There is no dedicated space invite section in the space forms. My Invites splits group vs space invitations and join requests (§3.8). Dedicated space-invite forms are still outstanding (§14).
 
 ### 7.15 Chat presence and active members
 
@@ -1303,7 +1301,7 @@ Two data sources:
 
 ## 8. Notifications & Unread Tracking
 
-Shared post-type ↔ view-type mapping lives in `packages/shared/src/unreadViewHelpers.js` so the backend counter and the frontend badge logic can't drift.
+Shared post-type ↔ view-type mapping lives in `packages/shared/src/viewHelpers.js` so the backend counter and the frontend badge logic can't drift.
 
 ### Per-view unread counting
 
@@ -1429,7 +1427,7 @@ if (opts.parentSlugs) {
 
 Moderation search does the same via `forModerationActions.js`, so reports from spaces surface in the parent group's queue.
 
-**Excluding spaces from group search results is not done** — see §3.8.
+**Explore / public group search excludes spaces.** `Search.forGroups` applies `Group.excludeSpaces` unless `parentSlugs` is set or `groupType === 'space'`. See §3.8.
 
 ---
 
@@ -1561,11 +1559,12 @@ The old Phase 1–7 framing has been retired — the phases interleaved in pract
 - Space role inheritance via `Group.roleScopeId` (`parent_id || id`) — no per-space role rows
 - `doesMenuUpdate` replaced by `notifyGroupUpdated` socket push
 - Full GraphQL surface for views and spaces (§4.4), including `setGroupViewHidden`, `markGroupAsRead`, `updateGroupViewUser`
-- Per-view unread increment on create and decrement on delete, via shared `unreadViewHelpers`
+- Per-view unread increment on create and decrement on delete, via shared `viewHelpers`
 - Hourly chat digest (`GroupViewUser.sendDigests`)
 - Chat activity notice posts (`upsertChatActivityNotice`)
 - `num_open_join_requests` maintenance and socket broadcast
 - Group and moderation search include child spaces via `parent_id`
+- Explore / public `Search.forGroups` excludes spaces by default (`Group.excludeSpaces`); `Person.memberships` and related-group relations do the same (§3.8)
 - Track and funding round logic moved onto space membership and `collections_posts`
 
 **Web**
@@ -1583,6 +1582,7 @@ The old Phase 1–7 framing has been retired — the phases interleaved in pract
 - Welcome page from the `welcome` view; `WelcomePageTab`, `CustomViewsTab`, `TracksTab` removed
 - `CurrentlyActiveMembers` presence strip plus socket `RoomPresence`
 - Space visibility helpers (`util/spaceVisibility.js`), `SpaceGroupContext` / `useEffectiveGroupSlug`
+- My Invites splits group vs space invitations and join requests; profile "Hylo Groups" excludes spaces (§3.8)
 
 ### 14.2 In flight (uncommitted on `spaces-and-views`)
 
@@ -1593,14 +1593,15 @@ The old Phase 1–7 framing has been retired — the phases interleaved in pract
 - **`migrations/in-progress/20260713120000_spaces_cleanup.js`** — untracked; see §14.4
 - **Legacy route redirects** — `/all-views`, `/tracks`, `/funding-rounds`, `/all-topics` now redirect to `/more-spaces` (§6.3)
 - **Leave teardown consolidated into `Group.removeMembers`** — deletes departing members' `group_views_users` rows and settles track / funding round counters and membership settings, so the parent-group cascade and moderator removal get the same treatment as an explicit leave; `Track.leave` / `FundingRound.leave` no longer adjust their own counts, and the redundant `leaveSpace` mutation is gone (§3.9)
+- **Exclude spaces from group-list queries** — `Search.forGroups` / `Person.memberships` / related-group relations use `Group.excludeSpaces`; My Invites splits group vs space lists (§3.8)
 
 ### 14.3 Remaining work
 
 | Item | Notes |
 |------|-------|
-| Exclude spaces from group-list queries | Global nav, related groups, explore, My Groups, invitations, profile memberships (§3.8) |
 | Archive / unarchive space UI | `archiveSpace` exists on the backend; the web app only *displays* archived spaces in More Spaces |
-| Space invitations | No dedicated invite section in space forms; My Invites has no Space Invitations section (§7.14) |
+| Draft funding rounds and tracks | Or maybe any space can be a draft? |
+| Space invitations | No dedicated invite section in space forms; My Invites now splits group vs space invites (§7.14) |
 | Track welcome metadata | The `welcome` view doesn't render num actions / enrolled / completed for track spaces (§7.2) |
 | `enrolledAt` in track member directory | Shown as a generic "Joined" date, not track enrollment (§7.2) |
 | Track / round metadata on `SpaceJoinPage` | No action count, enrolled count, or phase dates on the interstitial (§7.9) |

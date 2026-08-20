@@ -65,7 +65,9 @@ exports.hi = {
   textForGroupParentGroupJoinRequestAcceptedParentMember: ({ parentGroup, childGroup }) => `समूह ${childGroup.get('name')} अभी आपके समूह ${parentGroup.get('name')} में शामिल हुआ!`,
   textForGroupParentGroupJoinRequestAcceptedChildMember: ({ parentGroup, childGroup }) => `आपका समूह ${childGroup.get('name')} ${parentGroup.get('name')} में शामिल हो गया।`,
   textForEventInvitation: ({ actor, postName }) => `${actor.get('name')} ने आपको "${postName}" के लिए आमंत्रित किया`,
-  textForGroupInvitation: ({ actor, groupName }) => `${actor.get('name')} ने आपको ${groupName} में शामिल होने के लिए आमंत्रित किया`,
+  textForGroupInvitation: ({ actor, groupName, parentGroupName }) => parentGroupName
+    ? `${actor.get('name')} ने आपको ${parentGroupName} के स्पेस ${groupName} में उनके साथ शामिल होने के लिए आमंत्रित किया है`
+    : `${actor.get('name')} ने आपको ${groupName} में उनके साथ शामिल होने के लिए आमंत्रित किया है`,
   textForGroupInvitationAccepted: ({ actor, groupName }) => `${actor.get('name')} ने ${groupName} में शामिल होने के आपके निमंत्रण को स्वीकार किया`,
   textForGroupPeerGroupInvite: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} ने आपके समूह ${toGroup.get('name')} को ${fromGroup.get('name')} के साथ सहकर्मी संबंध बनाने के लिए आमंत्रित किया`,
   textForGroupPeerGroupInviteAccepted: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} ने ${fromGroup.get('name')} और ${toGroup.get('name')} के बीच सहकर्मी संबंध स्वीकार किया`,

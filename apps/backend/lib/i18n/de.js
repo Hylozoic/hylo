@@ -65,7 +65,9 @@ exports.de = {
   textForGroupParentGroupJoinRequestAcceptedParentMember: ({ parentGroup, childGroup }) => `Die Gruppe ${childGroup.get('name')} ist deiner Gruppe ${parentGroup.get('name')} beigetreten!`,
   textForGroupParentGroupJoinRequestAcceptedChildMember: ({ parentGroup, childGroup }) => `Deine Gruppe ${childGroup.get('name')} ist ${parentGroup.get('name')} beigetreten.`,
   textForEventInvitation: ({ actor, postName }) => `${actor.get('name')} hat dich zu „${postName}“ eingeladen`,
-  textForGroupInvitation: ({ actor, groupName }) => `${actor.get('name')} hat dich eingeladen, ${groupName} beizutreten`,
+  textForGroupInvitation: ({ actor, groupName, parentGroupName }) => parentGroupName
+    ? `${actor.get('name')} hat dich eingeladen, ihnen im Space ${groupName} in ${parentGroupName} beizutreten`
+    : `${actor.get('name')} hat dich eingeladen, ihnen in ${groupName} beizutreten`,
   textForGroupInvitationAccepted: ({ actor, groupName }) => `${actor.get('name')} hat deine Einladung angenommen, ${groupName} beizutreten`,
   textForGroupPeerGroupInvite: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} hat deine Gruppe ${toGroup.get('name')} eingeladen, eine Peer-Beziehung mit ${fromGroup.get('name')} zu bilden`,
   textForGroupPeerGroupInviteAccepted: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} hat die Peer-Beziehung zwischen ${fromGroup.get('name')} und ${toGroup.get('name')} angenommen`,

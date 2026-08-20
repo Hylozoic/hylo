@@ -136,6 +136,11 @@ module.exports = {
     },
 
     groupJoinRequests: function (group) {
+      const isGroupObject = group && typeof group.get === 'function'
+      const isSpace = isGroupObject && group.get('type') === 'space'
+      if (isSpace) {
+        return this.space(group, '/requests')
+      }
       return this.groupSettings(group) + '/requests'
     },
 
@@ -161,6 +166,10 @@ module.exports = {
       }
 
       return url(`${contextUrl}/map/post/${getModelId(post)}`)
+    },
+
+    myInvitations: function () {
+      return url('/my/invitations')
     },
 
     notificationsSettings: function (clickthroughParams, user) {

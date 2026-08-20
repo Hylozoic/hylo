@@ -87,7 +87,7 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
 
   const myMemberships = useSelector(getMyMemberships)
   const isSpaceMember = useMemo(
-    () => Boolean(spaceGroupId && myMemberships.some(m => m.group.id === spaceGroupId)),
+    () => Boolean(spaceGroupId && myMemberships.some(m => String(m.group?.id) === String(spaceGroupId))),
     [spaceGroupId, myMemberships]
   )
   const canAddSpaceMembers = useSelector(state => hasResponsibilityForGroup(state, {
@@ -119,12 +119,18 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
   if (!parentGroup || !localSlug) return <Loading />
   if (!linkedSpace) return <Loading />
 
+  const spaceBase = spaceUrl(parentSlug, localSlug)
+  const settingsRedirect = <Navigate to={spaceBase} replace />
+  const settingsRequestsRedirect = <Navigate to={`${spaceBase}/requests`} replace />
+
   // Non-members (including /about from a card's (i)): join interstitial only.
   if (!isSpaceMember) {
     return (
       <SpaceGroupSlugContext.Provider value={spaceFullSlug}>
         <Routes>
           {canAddSpaceMembers && <Route path='requests' element={<MembershipRequestsTab />} />}
+          {canAddSpaceMembers && <Route path='settings/requests' element={settingsRequestsRedirect} />}
+          <Route path='settings/*' element={settingsRedirect} />
           <Route path='*' element={<SpaceJoinPage />} />
         </Routes>
       </SpaceGroupSlugContext.Provider>
@@ -134,7 +140,6 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
   if (spaceFullSlug && (!spaceGroup || needsSpaceGroupViews)) return <Loading />
 
   const homeRoute = spaceGroup?.homeRoute || linkedSpace?.homeRoute || '/welcome'
-  const spaceBase = spaceUrl(parentSlug, localSlug)
   const resolvedSpace = spaceGroup || linkedSpace
 
   // Entering a space should land on its menu, not skip straight into a view —
@@ -171,6 +176,8 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
         <Route path='members/:personId/*' element={<MemberProfile context='groups' />} />
         <Route path='members/*' element={<Members context='groups' />} />
         <Route path='requests' element={<MembershipRequestsTab />} />
+        <Route path='settings/requests' element={settingsRequestsRedirect} />
+        <Route path='settings/*' element={settingsRedirect} />
         <Route path='chat/*' element={<ChatRoom context='groups' showHomeWelcome={false} />} />
         <Route path='track-actions/*' element={<TrackActionsView />} />
         <Route path='funding-round-submissions/*' element={<FundingRoundSubmissionsView />} />

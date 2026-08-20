@@ -1,4 +1,4 @@
-/* global FundingRound ContentAccess Draft GroupView GroupViewUser GroupViewPin CollectionPost */
+/* global FundingRound ContentAccess Draft GroupView GroupViewUser CollectionPost */
 import DataLoader from 'dataloader'
 import { camelCase, isNil, mapKeys, startCase } from 'lodash/fp'
 import pluralize from 'pluralize'
@@ -424,7 +424,11 @@ export default function makeModels (userId, isAdmin, apiClient) {
         name: p => p.get('name') || ''
       },
       relations: [
-        'memberships',
+        {
+          memberships: {
+            filter: relation => relation.query(q => Group.excludeSpaces(q))
+          }
+        },
         {
           groupJoinQuestionAnswers: {
             querySet: true,
@@ -798,8 +802,17 @@ export default function makeModels (userId, isAdmin, apiClient) {
         {
           members: {
             querySet: true,
-            filter: (relation, { id, autocomplete, boundingBox, groupRoleId, order, search, sortBy }) =>
-              relation.query(filterAndSortUsers({ autocomplete, boundingBox, groupId: relation.relatedData.parentId, groupRoleId, order, search, sortBy }))
+            filter: (relation, { id, autocomplete, boundingBox, excludeGroupId, groupRoleId, order, search, sortBy }) =>
+              relation.query(q => {
+                filterAndSortUsers({ autocomplete, boundingBox, groupId: relation.relatedData.parentId, groupRoleId, order, search, sortBy })(q)
+                if (excludeGroupId) {
+                  q.whereNotIn('users.id',
+                    bookshelf.knex('group_memberships')
+                      .select('user_id')
+                      .where({ group_id: excludeGroupId, active: true })
+                  )
+                }
+              })
           }
         },
         { parentGroups: { querySet: true } },
@@ -963,13 +976,15 @@ export default function makeModels (userId, isAdmin, apiClient) {
         { widgets: { querySet: true } },
         { groupExtensions: { querySet: true } },
         // Spaces & Views (see docs/spaces-and-views-engineering-spec.md section 4.2)
-        { groupViews: {
-          querySet: true,
-          filter: (relation, { id } = {}) => {
-            if (!id) return relation
-            return relation.query(q => q.where('group_views.id', id))
+        {
+          groupViews: {
+            querySet: true,
+            filter: (relation, { id } = {}) => {
+              if (!id) return relation
+              return relation.query(q => q.where('group_views.id', id))
+            }
           }
-        } },
+        },
         { spaces: { querySet: true } },
         'parentGroup',
         'track',
@@ -1276,6 +1291,28 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'last_sent_at',
         'token'
       ],
+      getters: {
+        name: i => {
+          if (!i) return null
+          if (typeof i.get !== 'function') return i.name || null
+          if (i.get('invitee_name')) return i.get('invitee_name')
+          const email = i.get('email')
+          if (!email) return null
+          return User.query(q => q.whereRaw('lower(email) = ?', [email.toLowerCase()]).limit(1))
+            .fetch({ require: false })
+            .then(u => u ? u.get('name') : null)
+        },
+        userId: i => {
+          if (!i) return null
+          if (typeof i.get !== 'function') return i.userId || null
+          if (i.get('invitee_id')) return i.get('invitee_id')
+          const email = i.get('email')
+          if (!email) return null
+          return User.query(q => q.whereRaw('lower(email) = ?', [email.toLowerCase()]).limit(1))
+            .fetch({ require: false })
+            .then(u => u ? u.id : null)
+        }
+      },
       relations: [
         'creator',
         'group'
@@ -1718,7 +1755,26 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'updated_at'
       ],
       relations: [{ otherUser: { alias: 'person' } }],
-      fetchMany: () => UserConnection,
+      fetchMany: ({ autocomplete, excludeGroupId } = {}) => UserConnection.query(q => {
+        if (autocomplete) {
+          const term = String(autocomplete).trim().replace(/[%_]/g, '')
+          if (term) {
+            q.whereExists(function () {
+              this.select(bookshelf.knex.raw('1'))
+                .from('users')
+                .whereRaw('users.id = user_connections.other_user_id')
+                .andWhere('users.name', 'ilike', `%${term}%`)
+            })
+          }
+        }
+        if (excludeGroupId) {
+          q.whereNotIn('user_connections.other_user_id',
+            bookshelf.knex('group_memberships')
+              .select('user_id')
+              .where({ group_id: excludeGroupId, active: true })
+          )
+        }
+      }),
       filter: relation => {
         return relation.query(q => {
           if (userId) {

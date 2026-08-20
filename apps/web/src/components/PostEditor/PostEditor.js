@@ -1680,7 +1680,7 @@ function PostEditorInner ({
               />
             </div>
           </div>
-          <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
+          <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md py-0 px-2 gap-2'>
             <div className='text-xs text-foreground/50 shrink-0'>{t('Timezone')}</div>
             <TimezoneSelect
               className='border-none bg-transparent'

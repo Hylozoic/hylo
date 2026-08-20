@@ -21,7 +21,7 @@ import {
 import GroupMenuHeader from 'components/GroupMenuHeader'
 import GroupNotificationsPopover from 'components/GroupNotificationsPopover/GroupNotificationsPopover'
 import CurrentlyActiveMembers, { MENU_ACTIVE_MAX } from 'components/CurrentlyActiveMembers'
-import InviteMembersPopover from 'components/InviteMembersPopover/InviteMembersPopover'
+import InviteMembersDialog from 'components/InviteMembersDialog/InviteMembersDialog'
 import MenuLink from './MenuLink'
 import ContextMenuResizer from './ContextMenuResizer'
 import GroupViewIcon from './GroupViewIcon'
@@ -278,7 +278,8 @@ function GroupViewMenuItem ({
   parentSlug,
   group = null,
   spaceGroup = null,
-  spaceSlug = null
+  spaceSlug = null,
+  parentGroup = null
 }) {
   const dispatch = useDispatch()
   const location = useLocation()
@@ -475,6 +476,7 @@ function GroupViewMenuItem ({
           />
           <CurrentlyActiveMembers
             group={inviteGroup}
+            parentGroup={spaceGroup ? parentGroup : null}
             max={MENU_ACTIVE_MAX}
             membersUrl={url}
             profileGroupSlug={parentSlug}
@@ -528,6 +530,7 @@ function GroupViewList ({
   groupSlug,
   spaceSlug,
   spaceGroup = null,
+  parentGroup = null,
   isEditing,
   onOpenSettings,
   canAdminister = false
@@ -582,6 +585,7 @@ function GroupViewList ({
             group={group}
             spaceGroup={spaceGroup}
             spaceSlug={spaceSlug}
+            parentGroup={parentGroup}
           />
         ))}
       </ul>
@@ -748,7 +752,8 @@ export default function ContextMenu (props) {
 
   // Settings menu needs a viewport-bounded height so it can scroll independently of the
   // underlying view list (which stays mounted behind the settings overlay).
-  const isSettingsPath = location.pathname.includes('/settings')
+  // Match only the group's Group Settings URL — not a space About tab (`…/about/settings`).
+  const isSettingsPath = Boolean(groupSlug && location.pathname.startsWith(`/groups/${groupSlug}/settings`))
 
   useEffect(() => {
     if (isEditing) {
@@ -886,14 +891,14 @@ export default function ContextMenu (props) {
 
   // Simple groups don't use the vertical widget context menu — their home dashboard
   // (ContextMenuGrid) replaces it. Only render the settings menu when on /settings.
-  if (isOneColumnLayout && !location.pathname.includes('/settings')) {
+  if (isOneColumnLayout && !isSettingsPath) {
     return null
   }
 
   // One-column layout on settings: only show the settings menu, not the full context menu.
   // Wrap in a sized container so the (position:fixed) menu reserves flex space and the
   // center column shifts over instead of rendering underneath it.
-  if (isOneColumnLayout && location.pathname.includes('/settings')) {
+  if (isOneColumnLayout && isSettingsPath) {
     return (
       <div className='relative z-20 h-full flex-shrink-0 w-[260px] sm:w-[300px]'>
         <GroupSettingsMenu group={group} groupSlug={groupSlug} isOneColumn />
@@ -1059,8 +1064,9 @@ export default function ContextMenu (props) {
                           <Users className='w-3.5 h-3.5' />
                           {activeSpaceGroup.memberCount}
                         </Link>
-                        <InviteMembersPopover
+                        <InviteMembersDialog
                           group={activeSpaceGroup}
+                          parentGroup={group}
                           alwaysVisible
                           triggerLabel={t('Invite')}
                           triggerClassName={cn(
@@ -1096,6 +1102,7 @@ export default function ContextMenu (props) {
                       groupSlug={groupSlug}
                       spaceSlug={spaceSlug}
                       spaceGroup={activeSpaceGroup}
+                      parentGroup={group}
                       isEditing={isEditing}
                       onOpenSettings={setSettingsView}
                       canAdminister={canAdminister}

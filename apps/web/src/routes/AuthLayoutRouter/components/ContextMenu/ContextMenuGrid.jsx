@@ -5,7 +5,7 @@ import React, { useMemo, useRef, useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
-import InviteMembersPopover from 'components/InviteMembersPopover/InviteMembersPopover'
+import InviteMembersDialog from 'components/InviteMembersDialog/InviteMembersDialog'
 import GroupViewPresenter, {
   displayNameForView,
   getStaticMenuViews,
@@ -201,8 +201,9 @@ function SpaceBannerHeader ({ group, spaceGroup, canAdminister, onOpenSettings, 
             <Users className='w-3.5 h-3.5' />
             {spaceGroup.memberCount}
           </Link>
-          <InviteMembersPopover
+          <InviteMembersDialog
             group={spaceGroup}
+            parentGroup={group}
             alwaysVisible
             triggerLabel={t('Invite')}
             triggerClassName={cn('rounded-full border px-2 py-0.5 hover:scale-100', pillClass)}
@@ -872,8 +873,9 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
                     >
                       {t('{{count}} Members', { count: (spaceGroup || group)?.memberCount || 0 })}
                     </Link>
-                    <InviteMembersPopover
+                    <InviteMembersDialog
                       group={spaceGroup || group}
+                      parentGroup={spaceGroup ? group : null}
                       triggerClassName='text-white hover:text-white'
                     />
                   </span>
