@@ -961,11 +961,14 @@ export default function ChatRoom (props) {
 /** * Virtuoso Components ***/
 const EmptyPlaceholder = ({ context }) => {
   const { t } = useTranslation()
+  // Virtuoso can paint this before initialData lands. If Redux already has
+  // posts, stay blank rather than flashing the empty-room copy.
+  if (context.numPosts > 0) return null
   return (
     <div className='mx-auto flex flex-col items-center justify-center max-w-[750px] h-full min-h-[50vh]'>
       {!context.loadedPast || !context.loadedFuture || !context.hasFetchedForCurrentRoom
         ? <StreamSkeleton columnVariant='chat' />
-        : context.showHomeWelcome && context.numPosts === 0
+        : context.showHomeWelcome
           ? <HomeChatWelcome group={context.group} />
           : <NoPosts className={styles.noPosts} icon='message-dashed' message={t('No messages yet. Start the conversation!')} />}
     </div>

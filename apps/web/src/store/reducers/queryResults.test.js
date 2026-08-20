@@ -276,6 +276,37 @@ describe('matchNewPostIntoQueryResults', () => {
     })
   })
 
+  it('prepends a chat post onto group chat room results without a topic', () => {
+    const chatKey = '{"type":"FETCH_POSTS","params":{"childPostInclusion":"no","context":"groups","filter":"chat","first":25,"order":"desc","slug":"bar","sortBy":"id"}}'
+    const allActivityKey = '{"type":"FETCH_POSTS","params":{"childPostInclusion":"yes","context":"groups","filter":"all+notices","slug":"bar","sortBy":"created"}}'
+    const state = {
+      [chatKey]: {
+        hasMore: false,
+        ids: ['18', '11'],
+        total: 2
+      },
+      [allActivityKey]: {
+        hasMore: true,
+        ids: ['18', '11'],
+        total: 2
+      }
+    }
+    const post = { id: '99', type: 'chat', groups: [{ slug: 'bar' }] }
+
+    expect(matchNewPostIntoQueryResults(state, post)).toEqual({
+      [chatKey]: {
+        hasMore: false,
+        ids: ['99', '18', '11'],
+        total: 3
+      },
+      [allActivityKey]: {
+        hasMore: true,
+        ids: ['18', '11'],
+        total: 2
+      }
+    })
+  })
+
   it('moves a chat_activity notice to the front of All Activity', () => {
     const state = {
       '{"type":"FETCH_POSTS","params":{"childPostInclusion":"yes","context":"groups","filter":"all+notices","slug":"bar","sortBy":"created"}}': {
