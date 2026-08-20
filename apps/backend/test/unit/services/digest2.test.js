@@ -476,88 +476,93 @@ describe('group digest v2', () => {
       })
     })
 
-    it('drops space posts the recipient is not a member of and keeps parent posts', async () => {
-      const parentGroup = await factories.group().save()
-      const space = await factories.group({
-        type: 'space',
-        parent_id: parentGroup.id,
-        name: 'Garden'
-      }).save()
+    describe('space post filtering', () => {
+      let recipient, parentGroup, space
 
-      const data = {
-        group_id: parentGroup.id,
-        group_name: parentGroup.get('name'),
-        group_url: 'https://www.hylo.com/groups/foo',
-        requests: [],
-        events: [],
-        projects: [],
-        resources: [],
-        chats: [],
-        posts_with_new_comments: [],
-        offers: [],
-        discussions: [
-          {
-            id: 11,
-            title: 'Parent discussion',
-            user: u4.attributes,
-            comments: [],
-            url: 'https://www.hylo.com/all/post/11'
-          },
-          {
-            id: 12,
-            title: 'Space discussion',
-            user: u4.attributes,
-            comments: [],
-            url: 'https://www.hylo.com/all/post/12',
-            space_id: space.id,
-            space_name: 'Garden'
-          }
-        ]
-      }
-
-      const newData = await personalizeData(user, 'daily', data)
-      expect(newData.discussions.map(d => d.id)).to.deep.equal([11])
-    })
-
-    it('keeps space posts when the recipient is a member of the space', async () => {
-      const member = await factories.user({ avatar_url: 'http://google.com/logo.png' }).save()
-      const parentGroup = await factories.group().save()
-      const space = await factories.group({
-        type: 'space',
-        parent_id: parentGroup.id,
-        name: 'Garden'
-      }).save()
-      await space.addMembers([member.id], {
-        settings: { sendEmail: true, digestFrequency: 'daily' }
+      before(async () => {
+        await setup.clearDb()
+        recipient = await factories.user({ avatar_url: 'http://google.com/logo.png' }).save()
+        parentGroup = await factories.group({ slug: `digest-parent-${Date.now()}` }).save()
+        space = await factories.group({
+          type: 'space',
+          parent_id: parentGroup.id,
+          slug: `digest-garden-${Date.now()}`,
+          name: 'Garden'
+        }).save()
       })
 
-      const data = {
-        group_id: parentGroup.id,
-        group_name: parentGroup.get('name'),
-        group_url: 'https://www.hylo.com/groups/foo',
-        requests: [],
-        events: [],
-        projects: [],
-        resources: [],
-        chats: [],
-        posts_with_new_comments: [],
-        offers: [],
-        discussions: [
-          {
-            id: 13,
-            title: 'Space discussion',
-            user: u4.attributes,
-            comments: [],
-            url: 'https://www.hylo.com/all/post/13',
-            space_id: space.id,
-            space_name: 'Garden'
-          }
-        ]
-      }
+      it('drops space posts the recipient is not a member of and keeps parent posts', async () => {
+        const data = {
+          group_id: parentGroup.id,
+          group_name: parentGroup.get('name'),
+          group_url: 'https://www.hylo.com/groups/foo',
+          requests: [],
+          events: [],
+          projects: [],
+          resources: [],
+          chats: [],
+          posts_with_new_comments: [],
+          offers: [],
+          discussions: [
+            {
+              id: 11,
+              title: 'Parent discussion',
+              user: u4.attributes,
+              comments: [],
+              url: 'https://www.hylo.com/all/post/11'
+            },
+            {
+              id: 12,
+              title: 'Space discussion',
+              user: u4.attributes,
+              comments: [],
+              url: 'https://www.hylo.com/all/post/12',
+              space_id: space.id,
+              space_name: 'Garden'
+            }
+          ]
+        }
 
-      const newData = await personalizeData(member, 'daily', data)
-      expect(newData.discussions).to.have.length(1)
-      expect(newData.discussions[0].id).to.equal(13)
+        const newData = await personalizeData(recipient, 'daily', data)
+        expect(newData.discussions.map(d => d.id)).to.deep.equal([11])
+      })
+
+      it('keeps space posts when the recipient is a member of the space', async () => {
+        await parentGroup.addMembers([recipient.id], {
+          settings: { sendEmail: true, digestFrequency: 'daily' }
+        })
+        await space.addMembers([recipient.id], {
+          settings: { sendEmail: true, digestFrequency: 'daily' }
+        })
+
+        const data = {
+          group_id: parentGroup.id,
+          group_name: parentGroup.get('name'),
+          group_url: 'https://www.hylo.com/groups/foo',
+          requests: [],
+          events: [],
+          projects: [],
+          resources: [],
+          chats: [],
+          posts_with_new_comments: [],
+          offers: [],
+          discussions: [
+            {
+              id: 13,
+              title: 'Space discussion',
+              user: u4.attributes,
+              comments: [],
+              url: 'https://www.hylo.com/all/post/13',
+              space_id: space.id,
+              space_name: 'Garden'
+            }
+          ]
+        }
+
+        const newData = await personalizeData(recipient, 'daily', data)
+        expect(newData.discussions).to.have.length(1)
+        expect(newData.discussions[0].id).to.equal(13)
+      })
     })
 
     it('groups chats by source group and keeps unread chats when there is no last-read row', async () => {
