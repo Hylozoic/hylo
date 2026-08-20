@@ -1,16 +1,18 @@
 import PropTypes from 'prop-types'
 import React, { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { cn } from 'util/index'
 import { isEmpty } from 'lodash'
 import { position } from 'util/scrolling'
 import { useDropdown } from 'contexts/DropdownContext'
+import Tooltip from 'components/Tooltip'
 import classes from './Dropdown.module.scss'
 
 /**
  * Dropdown component that renders a toggleable menu with optional icons
  * Supports both Lucide React icons (as JSX elements) and legacy string icon names
  */
-const Dropdown = ({ children, className, triangle, items, toggleChildren, alignRight, menuAbove, noOverflow, id }) => {
+const Dropdown = ({ children, className, triangle, items, toggleChildren, alignRight, menuAbove, noOverflow, portal, id }) => {
   const [active, setActive] = useState(false)
   const [openSubmenuKey, setOpenSubmenuKey] = useState(null)
   const parentRef = useRef(null)
@@ -23,10 +25,17 @@ const Dropdown = ({ children, className, triangle, items, toggleChildren, alignR
     }
   }, [activeDropdownId, id])
 
+  // Portal mode: the menu escapes overflow-clipping ancestors (post dialog on
+  // phones); anchored via fixed coordinates measured at open
+  const [anchorRect, setAnchorRect] = useState(null)
+
   const handleToggle = (event) => {
     if (event) {
       event.stopPropagation()
       event.preventDefault()
+    }
+    if (portal && parentRef.current) {
+      setAnchorRect(parentRef.current.getBoundingClientRect())
     }
     if (!active) {
       closeAllDropdowns()
@@ -155,9 +164,20 @@ const Dropdown = ({ children, className, triangle, items, toggleChildren, alignR
             'flex items-center px-4 py-2 cursor-pointer select-none',
             'text-foreground hover:bg-accent/10 transition-colors',
             'border-b border-foreground/10 last:border-b-0',
-            { 'text-destructive': item.red }
+            { 'text-destructive': item.red },
+            { 'text-foreground/40 cursor-default hover:bg-transparent': item.disabled }
           )}
-          onClick={item.onClick}
+          onClick={(e) => {
+            if (item.disabled) {
+              e.stopPropagation()
+              e.preventDefault()
+              return
+            }
+            item.onClick?.(e)
+          }}
+          data-tooltip-id={item.tooltip ? `dropdown-tt-${id}` : undefined}
+          data-tooltip-content={item.tooltip}
+          title={item.tooltip}
           key={item.key || item.label}
         >
           {renderIcon(item.icon)}
@@ -184,26 +204,53 @@ const Dropdown = ({ children, className, triangle, items, toggleChildren, alignR
       <span className={cn('flex items-center cursor-pointer gap-2', { [classes.toggled]: active })} onClick={handleToggle} data-testid='dropdown-toggle'>
         {toggleChildren}
       </span>
-      <div
-        className={cn(
-          'absolute z-30 shadow-lg rounded-lg',
-          alignRight ? 'right-0' : 'left-0',
-          { 'bottom-4': menuAbove }
-        )}
-      >
-        <ul
-          className={cn(
-            'list-none p-0 m-0 rounded-lg',
-            'bg-card border border-foreground/10',
-            { hidden: !active },
-            { 'overflow-hidden': !noOverflow },
-            { 'overflow-visible': noOverflow || items?.some(item => item.items?.length) }
+      {items?.some(item => item.tooltip) && (
+        <Tooltip delay={200} id={`dropdown-tt-${id}`} position='left' />
+      )}
+      {portal && active && anchorRect
+        ? createPortal(
+          <div
+            className='fixed z-[300] shadow-lg rounded-lg'
+            style={{
+              top: anchorRect.bottom + 4,
+              ...(alignRight
+                ? { right: Math.max(8, window.innerWidth - anchorRect.right) }
+                : { left: anchorRect.left }),
+              maxHeight: `calc(100vh - ${anchorRect.bottom + 16}px)`,
+              overflowY: 'auto'
+            }}
+          >
+            <ul
+              className='list-none p-0 m-0 rounded-lg bg-card border border-foreground/10 overflow-hidden'
+              onClick={handleToggle}
+            >
+              {renderMenuItems()}
+            </ul>
+          </div>,
+          document.body
+        )
+        : (
+          <div
+            className={cn(
+              'absolute z-30 shadow-lg rounded-lg',
+              alignRight ? 'right-0' : 'left-0',
+              { 'bottom-4': menuAbove }
+            )}
+          >
+            <ul
+              className={cn(
+                'list-none p-0 m-0 rounded-lg',
+                'bg-card border border-foreground/10',
+                { hidden: !active },
+                { 'overflow-hidden': !noOverflow },
+                { 'overflow-visible': noOverflow || items?.some(item => item.items?.length) }
+              )}
+              onClick={handleToggle}
+            >
+              {renderMenuItems()}
+            </ul>
+          </div>
           )}
-          onClick={handleToggle}
-        >
-          {renderMenuItems()}
-        </ul>
-      </div>
     </div>
   )
 }
@@ -216,6 +263,7 @@ Dropdown.propTypes = {
   alignRight: PropTypes.bool,
   menuAbove: PropTypes.bool,
   noOverflow: PropTypes.bool,
+  portal: PropTypes.bool,
   id: PropTypes.string
 }
 

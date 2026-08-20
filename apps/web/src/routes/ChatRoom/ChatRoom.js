@@ -8,7 +8,7 @@ import CopyToClipboard from 'react-copy-to-clipboard'
 import { Helmet } from 'react-helmet'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
-import { useLocation, Routes, Route, useNavigate } from 'react-router-dom'
+import { useLocation, Routes, Route } from 'react-router-dom'
 import { VirtuosoMessageList, VirtuosoMessageListLicense, useVirtuosoLocation, useVirtuosoMethods } from '@virtuoso.dev/message-list'
 
 import { getSocket } from 'client/websockets.js'
@@ -21,17 +21,21 @@ import NoPosts from 'components/NoPosts'
 import PostDialog from 'components/PostDialog'
 import Tooltip from 'components/Tooltip'
 import Button from 'components/ui/button'
+import InviteMembersDialog from 'components/InviteMembersDialog/InviteMembersDialog'
 import ChatMembersPanel from './ChatMembersPanel'
+import PinnedPostChips from './PinnedPostChips'
 import ChatPost from './ChatPost'
 import ChatPostNotice from './ChatPostNotice'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import useRouteParams from 'hooks/useRouteParams'
+import useGroupViews from 'hooks/useGroupViews'
 import fetchForGroup from 'store/actions/fetchForGroup'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import fetchPosts from 'store/actions/fetchPosts'
+import fetchViewPinnedPosts from 'store/actions/fetchViewPinnedPosts'
 import updateGroupViewUser from 'store/actions/updateGroupViewUser'
-import { FETCH_POSTS, RESP_ADD_MEMBERS } from 'store/constants'
+import { FETCH_POSTS, RESP_ADD_MEMBERS, RESP_MANAGE_CONTENT } from 'store/constants'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
 import presentPost from 'store/presenters/presentPost'
 import { makeDropQueryResults, makeQueryResultsModelSelector } from 'store/reducers/queryResults'
@@ -40,9 +44,8 @@ import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import { getPostResults } from 'store/selectors/getPosts'
-import { getGroupViews } from 'store/selectors/getGroupViews'
 import { cn } from 'util/index'
-import { groupInviteUrl, groupUrl } from '@hylo/navigation'
+import { groupInviteUrl } from '@hylo/navigation'
 import { isLegacyWebView } from 'util/webView'
 import { formatLocalizedDate } from 'util/dateFormat'
 import { getLocaleFromLocalStorage } from 'util/locale'
@@ -141,12 +144,20 @@ export default function ChatRoom (props) {
 
   const currentUser = useSelector(getMe)
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
-  const groupViews = useSelector(state => getGroupViews(state, group))
+  const groupViews = useGroupViews(group)
   const chatView = groupViews.find(v => v.type === 'chat') || null
   const showPostNoticesInChat = group?.settings?.showPostNoticesInChat ?? true
 
   const chatViewLoading = !!group?.id && !chatView
   const groupLoading = !!groupSlug && !group
+
+  const canModerateContent = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_MANAGE_CONTENT, groupId: group?.id }))
+  const pinnedPosts = chatView?.pinnedPosts || []
+
+  useEffect(() => {
+    if (!group?.id || !chatView?.id) return
+    dispatch(fetchViewPinnedPosts(group.id, chatView.id))
+  }, [dispatch, group?.id, chatView?.id])
 
   const querystringParams = getQuerystringParam(['search', 'postId'], location)
   const search = querystringParams?.search
@@ -816,6 +827,14 @@ export default function ChatRoom (props) {
         {/* The stream header's wash, here as a still strip: theme background fading
             to its own colour at zero alpha, so messages scroll under a soft top edge */}
         <div aria-hidden='true' className='absolute top-0 left-0 right-0 h-14 z-20 pointer-events-none bg-gradient-to-b from-[hsl(var(--theme-background)/0.1)] dark:from-[hsl(var(--theme-background)/0.5)] to-[hsl(var(--theme-background)/0)]' />
+        {/* Pinned posts ride the top edge as chips, left of the presence cluster */}
+        <PinnedPostChips
+          posts={pinnedPosts}
+          viewId={chatView?.id}
+          groupId={group?.id}
+          canModerate={canModerateContent}
+          className='absolute top-1.5 left-3 right-24 sm:right-[240px] z-30'
+        />
         {/* Width rail on the clamp edge. The triangles stay visible as a quiet
             hint; the dashed line and its wash only surface on hover or drag.
             left includes the pane's px-1, which offsets content but not
@@ -942,11 +961,14 @@ export default function ChatRoom (props) {
 /** * Virtuoso Components ***/
 const EmptyPlaceholder = ({ context }) => {
   const { t } = useTranslation()
+  // Virtuoso can paint this before initialData lands. If Redux already has
+  // posts, stay blank rather than flashing the empty-room copy.
+  if (context.numPosts > 0) return null
   return (
     <div className='mx-auto flex flex-col items-center justify-center max-w-[750px] h-full min-h-[50vh]'>
       {!context.loadedPast || !context.loadedFuture || !context.hasFetchedForCurrentRoom
         ? <StreamSkeleton columnVariant='chat' />
-        : context.showHomeWelcome && context.numPosts === 0
+        : context.showHomeWelcome
           ? <HomeChatWelcome group={context.group} />
           : <NoPosts className={styles.noPosts} icon='message-dashed' message={t('No messages yet. Start the conversation!')} />}
     </div>
@@ -1117,7 +1139,6 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
 
 const HomeChatWelcome = ({ group }) => {
   const { t } = useTranslation()
-  const navigate = useNavigate()
   const canAddMembers = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADD_MEMBERS, groupId: group?.id }))
 
   return (
@@ -1128,7 +1149,9 @@ const HomeChatWelcome = ({ group }) => {
       <div className='flex gap-2 items-center justify-center'>
         {canAddMembers && (
           <>
-            <Button onClick={() => navigate(groupUrl(group.slug, 'settings/invite'))}><Send /> {t('Send Invites')}</Button>
+            <InviteMembersDialog group={group}>
+              <Button><Send /> {t('Send Invites')}</Button>
+            </InviteMembersDialog>
             <CopyToClipboard text={groupInviteUrl(group)}>
               <Button><Copy /> {t('Copy Invite Link')}</Button>
             </CopyToClipboard>

@@ -356,6 +356,8 @@ export default function AddGroupViewDialog ({ group, groupViews, onClose, onAdd 
               removePerson={() => {}}
               peopleSelectorOpen={peopleSelectorOpen}
               onFocus={() => setPeopleSelectorOpen(true)}
+              onTyping={() => setPeopleSelectorOpen(true)}
+              dropdownClassName='z-[1200]'
               autoFocus
             />
           </div>
@@ -375,12 +377,25 @@ export default function AddGroupViewDialog ({ group, groupViews, onClose, onAdd 
     )
   }
 
+  /** Closes the dialog when the dimmed overlay (not the panel) is clicked. */
+  const handleBackdropClick = (event) => {
+    if (event.target === event.currentTarget) onClose()
+  }
+
   // Portal above AuthLayout nav stacking so the dialog is not trapped behind GlobalNav.
   return createPortal(
     <>
-      <div className='fixed inset-0 z-[1100] flex items-center justify-center bg-darkening/50 pointer-events-auto'>
-        <div className='bg-midground rounded-lg shadow-lg p-4 w-full max-w-md max-h-[80vh] flex flex-col'>
-          <h2 className='text-lg font-semibold mb-4'>{t('Add View')}</h2>
+      <div
+        className='fixed inset-0 z-[1100] flex items-center justify-center bg-darkening/50 pointer-events-auto'
+        onClick={handleBackdropClick}
+      >
+        <div
+          role='dialog'
+          aria-modal='true'
+          aria-labelledby='add-group-view-dialog-title'
+          className='relative bg-midground rounded-lg shadow-lg p-4 w-full max-w-md max-h-[80vh] flex flex-col'
+        >
+          <h2 id='add-group-view-dialog-title' className='text-lg font-semibold mb-4'>{t('Add View')}</h2>
 
           <div className='flex flex-col gap-1 overflow-y-auto flex-1 min-h-0'>
             {commonViewTypes.length > 0 && (

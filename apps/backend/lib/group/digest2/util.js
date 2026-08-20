@@ -154,10 +154,10 @@ export const getPostsAndComments = async (group, startTime, endTime, digestType,
     .whereNull('funding_rounds.deactivated_at')
     .select(
       'funding_rounds.id as funding_round_id',
-      'funding_rounds.title as funding_round_title',
+      'groups.name as funding_round_title',
       bookshelf.knex.raw('COUNT(posts.id) as submission_count')
     )
-    .groupBy('funding_rounds.id', 'funding_rounds.title')
+    .groupBy('funding_rounds.id', 'groups.name')
     .then(rows => rows.map(row => ({
       fundingRoundId: row.funding_round_id,
       fundingRoundTitle: row.funding_round_title,

@@ -2,11 +2,12 @@ import { debounce, get } from 'lodash/fp'
 import React, { useEffect, useLayoutEffect, useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Helmet } from 'react-helmet'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import { isSystemGroupRole, sortCustomGroupRoles, sortSystemGroupRoles } from '@hylo/hooks/groupRoleHelpers'
 import { LayoutGrid, List, Search } from 'lucide-react'
 import CurrentlyActivePills, { DEFAULT_ACTIVE_MAX } from 'components/CurrentlyActiveMembers/CurrentlyActivePills'
+import InviteMembersDialog from 'components/InviteMembersDialog/InviteMembersDialog'
 import Button from 'components/Button'
 import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
@@ -20,7 +21,7 @@ import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import usePillRowClamp from 'hooks/usePillRowClamp'
 import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
-import { groupUrl, personUrl } from '@hylo/navigation'
+import { personUrl } from '@hylo/navigation'
 import { FETCH_MEMBERS, FETCH_MEMBERS_FOR_GRAPH, fetchMembers, fetchMembersForGraph, fetchRecentlyActiveMembers, fetchRoleMemberCounts, getMembers, getGraphMembers, getHasFetchedGraphMembers, getHasMoreMembers, getHasFetchedMembers, getMemberQueryProps, getRecentlyActiveMembers, removeMember } from './Members.store'
 import { fetchTrack } from 'store/actions/trackActions'
 import { fetchFundingRound } from 'routes/FundingRounds/FundingRounds.store'
@@ -251,7 +252,10 @@ function Members (props) {
       )}
       {myResponsibilityTitles.includes(RESP_ADD_MEMBERS) && (
         <div className='flex items-center justify-between p-2'>
-          <Link to={groupUrl(slug, 'settings/invite')}>
+          <InviteMembersDialog
+            group={group}
+            parentGroup={group?.parentId ? rolesSourceGroup : null}
+          >
             <Button
               className={classes.invite}
               color='green-white-green-border'
@@ -259,7 +263,7 @@ function Members (props) {
             >
               <Icon name='Invite' className={classes.inviteIcon} /> {t('Invite People')}
             </Button>
-          </Link>
+          </InviteMembersDialog>
         </div>
       )}
       <div className={classes.content}>

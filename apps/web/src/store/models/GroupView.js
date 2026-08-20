@@ -91,5 +91,7 @@ GroupView.fields = {
   topics: attr(),
   settings: attr(),
   newPostCount: attr(),
-  lastReadPostId: attr()
+  lastReadPostId: attr(),
+  pinnedPostIds: attr(),
+  pinnedPosts: attr()
 }

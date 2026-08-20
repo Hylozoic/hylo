@@ -255,7 +255,7 @@ function ContentAccessTab ({ group, offerings = [] }) {
                       <option value='all'>{t('All Tracks')}</option>
                       {tracks?.map(track => (
                         <option key={track.id} value={track.id}>
-                          {track.name}
+                          {track.space?.name}
                         </option>
                       ))}
                     </select>
@@ -414,7 +414,7 @@ function ContentAccessRecordItem ({ record, t, onActionComplete }) {
               <div className='font-medium text-foreground break-words [overflow-wrap:anywhere]'>{user?.name}</div>
               <div className='text-sm text-foreground/70 break-words [overflow-wrap:anywhere]'>
                 {offering && <span>{offering.name}</span>}
-                {track && <span> • {track.name}</span>}
+                {track && <span> • {track.space?.name}</span>}
                 {role && <span> • {role.emoji} {role.name}</span>}
               </div>
             </div>
@@ -724,7 +724,7 @@ function GrantAccessForm ({ group, offerings, tracks, onSuccess, onCancel }) {
             <option value=''>{t('Choose a track...')}</option>
             {tracks?.map(track => (
               <option key={track.id} value={track.id}>
-                {track.name} {track.accessControlled && `(${t('Access Controlled')})`}
+                {track.space?.name} {track.accessControlled && `(${t('Access Controlled')})`}
               </option>
             ))}
           </select>

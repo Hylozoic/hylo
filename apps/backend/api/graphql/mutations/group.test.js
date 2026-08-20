@@ -137,15 +137,8 @@ describe('mutations/group', () => {
       const hasAdministration = await GroupMembership.hasResponsibility(user.id, group, Responsibility.constants.RESP_ADMINISTRATION)
       expect(hasAdministration).to.be.true
 
-      const generalTopic = await group.tags().fetchOne()
-      expect(generalTopic).to.exist
-      expect(generalTopic.get('name')).to.equal('general')
-      expect(generalTopic.pivot.get('is_default')).to.equal(true)
-
-      const user2 = await membership.user().fetch()
-      const generalTagFollow = await user2.tagFollows().fetchOne()
-      expect(generalTagFollow).to.exist
-      expect(generalTagFollow.get('tag_id')).to.equal(generalTopic.id)
+      const chatView = await GroupView.where({ group_id: group.id, type: GroupView.Type.CHAT }).fetch()
+      expect(chatView).to.exist
     })
 
     it('creates inside a parent group if user can moderate the parent or parent is open', () => {

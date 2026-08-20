@@ -130,12 +130,10 @@ export function fetchFundingRound (id) {
         fundingRound (id: $id) {
           id
           allowSelfVoting
-          bannerUrl
           canSubmit
           canVote
           createdAt
           criteria
-          description
           hideFinalResultsFromParticipants
           isParticipating
           joinedAt
@@ -155,7 +153,6 @@ export function fetchFundingRound (id) {
           }
           submissionsCloseAt,
           submissionsOpenAt,
-          title,
           tokenType,
           tokensRemaining,
           totalTokens,
@@ -267,14 +264,14 @@ export function createFundingRound (data) {
       query: `mutation CreateFundingRound($data: FundingRoundInput) {
         createFundingRound(data: $data) {
           id,
-          bannerUrl,
           createdAt,
           criteria,
-          description,
           group {
             id
             name
             slug
+            bannerUrl
+            description
           }
           maxTokenAllocation,
           minTokenAllocation,
@@ -291,7 +288,6 @@ export function createFundingRound (data) {
           }
           submissionsCloseAt,
           submissionsOpenAt,
-          title,
           tokenType,
           totalTokens,
           totalTokensAllocated,
@@ -574,7 +570,6 @@ export function ormSessionReducer (
         submissionDescriptor: data.submissionDescriptor,
         submissionDescriptorPlural: data.submissionDescriptorPlural,
         publishedAt: data.publishedAt,
-        title: data.title,
         tokenType: data.tokenType,
         votingMethod: data.votingMethod,
         submissionsOpenAt: data.submissionsOpenAt,

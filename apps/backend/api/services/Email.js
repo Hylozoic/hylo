@@ -9,7 +9,6 @@ const sendEmail = opts =>
   new Promise((resolve, reject) =>
     api.send(opts, (err, resp) => err ? reject(err) : resolve(resp)))
     .then((resp) => {
-      console.log('Email sent', opts)
       return resp || true
     })
     .catch(err => {

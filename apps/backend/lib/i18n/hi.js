@@ -65,7 +65,9 @@ exports.hi = {
   textForGroupParentGroupJoinRequestAcceptedParentMember: ({ parentGroup, childGroup }) => `समूह ${childGroup.get('name')} अभी आपके समूह ${parentGroup.get('name')} में शामिल हुआ!`,
   textForGroupParentGroupJoinRequestAcceptedChildMember: ({ parentGroup, childGroup }) => `आपका समूह ${childGroup.get('name')} ${parentGroup.get('name')} में शामिल हो गया।`,
   textForEventInvitation: ({ actor, postName }) => `${actor.get('name')} ने आपको "${postName}" के लिए आमंत्रित किया`,
-  textForGroupInvitation: ({ actor, groupName }) => `${actor.get('name')} ने आपको ${groupName} में शामिल होने के लिए आमंत्रित किया`,
+  textForGroupInvitation: ({ actor, groupName, parentGroupName }) => parentGroupName
+    ? `${actor.get('name')} ने आपको ${parentGroupName} के स्पेस ${groupName} में उनके साथ शामिल होने के लिए आमंत्रित किया है`
+    : `${actor.get('name')} ने आपको ${groupName} में उनके साथ शामिल होने के लिए आमंत्रित किया है`,
   textForGroupInvitationAccepted: ({ actor, groupName }) => `${actor.get('name')} ने ${groupName} में शामिल होने के आपके निमंत्रण को स्वीकार किया`,
   textForGroupPeerGroupInvite: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} ने आपके समूह ${toGroup.get('name')} को ${fromGroup.get('name')} के साथ सहकर्मी संबंध बनाने के लिए आमंत्रित किया`,
   textForGroupPeerGroupInviteAccepted: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} ने ${fromGroup.get('name')} और ${toGroup.get('name')} के बीच सहकर्मी संबंध स्वीकार किया`,
@@ -82,18 +84,18 @@ exports.hi = {
   },
   textForPostMention: ({ groupName, person, postName }) => `${person} ने ${groupName} में पोस्ट "${postName}" में आपका उल्लेख किया`,
   textForPost: ({ firstTag, groupName, person, postName }) => `${person} ने ${groupName} में "${postName}" पोस्ट की${firstTag ? ` #${firstTag}` : ''}`,
-  textForTrackCompleted: ({ actor, track }) => `ट्रैक पूर्ण: "${track.get('name')}" ${actor.get('name')} द्वारा पूर्ण किया गया`,
-  textForTrackEnrollment: ({ actor, track }) => `ट्रैक नामांकन: "${track.get('name')}" में ${actor.get('name')} ने नामांकन लिया`,
+  textForTrackCompleted: ({ actor, trackName }) => `ट्रैक पूर्ण: "${trackName}" ${actor.get('name')} द्वारा पूर्ण किया गया`,
+  textForTrackEnrollment: ({ actor, trackName }) => `ट्रैक नामांकन: "${trackName}" में ${actor.get('name')} ने नामांकन लिया`,
   textForVoteReset: ({ person, postName, groupName }) => `${person} ने ${groupName} में प्रस्ताव: "${postName}" के विकल्प बदल दिए। वोट रीसेट हो गए हैं`,
-  textForFundingRoundNewSubmission: ({ fundingRound, post, actor }) => `${actor.get('name')} ने "${fundingRound.get('title')}" के लिए "${post.summary()}" जमा किया`,
-  textForFundingRoundPhaseTransition: ({ fundingRound, phase }) => {
+  textForFundingRoundNewSubmission: ({ fundingRoundTitle, post, actor }) => `${actor.get('name')} ने "${fundingRoundTitle}" के लिए "${post.summary()}" जमा किया`,
+  textForFundingRoundPhaseTransition: ({ fundingRoundTitle, phase }) => {
     const phaseMessages = {
       submissions: 'प्रस्तुत अब खुले हैं',
       discussion: 'प्रस्तुत बंद हो चुके हैं और चर्चाएँ खुली हैं',
       voting: 'मतदान अब खुला है',
       completed: 'मतदान बंद हो गया है और राउंड समाप्त हो गया'
     }
-    return `${fundingRound.get('title')}: ${phaseMessages[phase] || 'स्थिति अपडेट की गई'}`
+    return `${fundingRoundTitle}: ${phaseMessages[phase] || 'स्थिति अपडेट की गई'}`
   },
   textForFundingRoundReminder: ({ reminderType }) => {
     const reminderMessages = {

@@ -14,8 +14,12 @@ import {
   isGroupsView,
   origin,
   homeRoutePathForView,
-  groupViewPath
-} from './navigation'
+  groupViewPath,
+  spaceHomeRoutePath,
+  spaceHomeUrl,
+  localSpaceSlug,
+  storedSpaceSlug
+} from './index'
 
 describe('postUrl', () => {
   it('should default to displaying the all groups context', () => {
@@ -241,5 +245,49 @@ describe('homeRoutePathForView', () => {
       }
     }
     expect(homeRoutePathForView(view)).toEqual('/welcome')
+  })
+})
+
+describe('spaceHomeRoutePath', () => {
+  it('uses the order-0 view when present', () => {
+    expect(spaceHomeRoutePath({
+      homeRoute: '/all',
+      groupViews: { items: [{ type: 'track-actions', order: 0 }] }
+    })).toEqual('/track-actions')
+  })
+
+  it('uses homeRoute when views are not loaded', () => {
+    expect(spaceHomeRoutePath({ homeRoute: '/track-actions' })).toEqual('/track-actions')
+  })
+
+  it('falls back to track-actions for a track space', () => {
+    expect(spaceHomeRoutePath({ track: { id: '1' } })).toEqual('/track-actions')
+  })
+})
+
+describe('spaceHomeUrl', () => {
+  it('nests the home path under the parent space URL', () => {
+    expect(spaceHomeUrl('parent', { slug: 'parent-track', homeRoute: '/track-actions' }))
+      .toEqual('/groups/parent/spaces/track/track-actions')
+  })
+})
+
+describe('localSpaceSlug', () => {
+  it('strips a matching parent prefix from the stored slug', () => {
+    expect(localSpaceSlug('my-community', 'my-community-general')).toEqual('general')
+  })
+
+  it('returns the slug unchanged when it is not prefixed', () => {
+    expect(localSpaceSlug('my-community', 'general')).toEqual('general')
+  })
+})
+
+describe('storedSpaceSlug', () => {
+  it('prefixes the local slug with the parent slug', () => {
+    expect(storedSpaceSlug('my-community', 'general')).toEqual('my-community-general')
+  })
+
+  it('does not double-prefix an already stored slug', () => {
+    expect(storedSpaceSlug('my-community', 'my-community-general')).toEqual('my-community-general')
   })
 })

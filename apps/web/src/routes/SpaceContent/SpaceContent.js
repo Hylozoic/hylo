@@ -5,6 +5,7 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import Loading from 'components/Loading'
 import { SpaceGroupSlugContext } from 'contexts/SpaceGroupContext'
 import useRouteParams from 'hooks/useRouteParams'
+import useGroupViews from 'hooks/useGroupViews'
 import ChatRoom from 'routes/ChatRoom'
 import GroupAboutPage from 'routes/GroupAboutPage'
 import MembershipRequestsTab from 'routes/GroupSettings/MembershipRequestsTab'
@@ -24,11 +25,10 @@ import fetchForGroup from 'store/actions/fetchForGroup'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
-import { getGroupViews } from 'store/selectors/getGroupViews'
 import getMyMemberships from 'store/selectors/getMyMemberships'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { RESP_ADD_MEMBERS } from 'store/constants'
-import { localSpaceSlug, spaceUrl, POST_DETAIL_MATCH } from '@hylo/navigation'
+import { localSpaceSlug, spaceHomeRoutePath, spaceUrl, POST_DETAIL_MATCH } from '@hylo/navigation'
 import { isDrawerNavLayout } from 'util/mobile'
 
 /**
@@ -67,7 +67,7 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
 
   const parentGroupFromStore = useSelector(state => getGroupForSlug(state, parentSlug))
   const parentGroup = parentGroupProp || parentGroupFromStore
-  const groupViews = useSelector(state => getGroupViews(state, parentGroup))
+  const groupViews = useGroupViews(parentGroup)
 
   const linkedSpace = useMemo(
     () => resolveSpaceGroup(parentGroup, groupViews, parentSlug, localSlug),
@@ -80,14 +80,19 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
   const spaceGroupViewsLoaded = spaceGroup?.groupViews != null
   // Nested parent/space fetches may populate groupViews without lastReadPostId. ChatRoom
   // restores scroll from that field — wait for a views fetch that includes it.
+  // Nested linkedGroup.groupViews copies (from a parent fetch) may omit lastReadPostId
+  // while still carrying newPostCount. A dedicated space fetchGroupViews always requests
+  // both — only block on partial nested copies, not when lastReadPostId is simply null.
   const spaceChatMissingLastRead = (spaceGroup?.groupViews?.items || []).some(
-    view => view.type === 'chat' && !Object.prototype.hasOwnProperty.call(view, 'lastReadPostId')
+    view => view.type === 'chat' &&
+      view.newPostCount !== undefined &&
+      !Object.prototype.hasOwnProperty.call(view, 'lastReadPostId')
   )
   const needsSpaceGroupViews = !spaceGroupViewsLoaded || spaceChatMissingLastRead
 
   const myMemberships = useSelector(getMyMemberships)
   const isSpaceMember = useMemo(
-    () => Boolean(spaceGroupId && myMemberships.some(m => m.group.id === spaceGroupId)),
+    () => Boolean(spaceGroupId && myMemberships.some(m => String(m.group?.id) === String(spaceGroupId))),
     [spaceGroupId, myMemberships]
   )
   const canAddSpaceMembers = useSelector(state => hasResponsibilityForGroup(state, {
@@ -119,12 +124,18 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
   if (!parentGroup || !localSlug) return <Loading />
   if (!linkedSpace) return <Loading />
 
+  const spaceBase = spaceUrl(parentSlug, localSlug)
+  const settingsRedirect = <Navigate to={spaceBase} replace />
+  const settingsRequestsRedirect = <Navigate to={`${spaceBase}/requests`} replace />
+
   // Non-members (including /about from a card's (i)): join interstitial only.
   if (!isSpaceMember) {
     return (
       <SpaceGroupSlugContext.Provider value={spaceFullSlug}>
         <Routes>
           {canAddSpaceMembers && <Route path='requests' element={<MembershipRequestsTab />} />}
+          {canAddSpaceMembers && <Route path='settings/requests' element={settingsRequestsRedirect} />}
+          <Route path='settings/*' element={settingsRedirect} />
           <Route path='*' element={<SpaceJoinPage />} />
         </Routes>
       </SpaceGroupSlugContext.Provider>
@@ -133,9 +144,13 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
 
   if (spaceFullSlug && (!spaceGroup || needsSpaceGroupViews)) return <Loading />
 
-  const homeRoute = spaceGroup?.homeRoute || linkedSpace?.homeRoute || '/welcome'
-  const spaceBase = spaceUrl(parentSlug, localSlug)
   const resolvedSpace = spaceGroup || linkedSpace
+  const homeRoute = spaceHomeRoutePath({
+    homeRoute: spaceGroup?.homeRoute || linkedSpace?.homeRoute,
+    groupViews: spaceGroup?.groupViews || linkedSpace?.groupViews,
+    track: spaceGroup?.track || linkedSpace?.track,
+    fundingRound: spaceGroup?.fundingRound || linkedSpace?.fundingRound
+  })
 
   // Entering a space should land on its menu, not skip straight into a view —
   // unless a menu is still visible elsewhere. In two column that is the sidebar,
@@ -171,6 +186,8 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
         <Route path='members/:personId/*' element={<MemberProfile context='groups' />} />
         <Route path='members/*' element={<Members context='groups' />} />
         <Route path='requests' element={<MembershipRequestsTab />} />
+        <Route path='settings/requests' element={settingsRequestsRedirect} />
+        <Route path='settings/*' element={settingsRedirect} />
         <Route path='chat/*' element={<ChatRoom context='groups' showHomeWelcome={false} />} />
         <Route path='track-actions/*' element={<TrackActionsView />} />
         <Route path='funding-round-submissions/*' element={<FundingRoundSubmissionsView />} />

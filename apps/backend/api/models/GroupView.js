@@ -1,4 +1,4 @@
-/* global bookshelf, Group, Post, User, GroupViewUser, CollectionPost, GroupView */
+/* global bookshelf, Group, Post, User, GroupViewUser, CollectionPost, GroupViewPin, GroupView */
 /* eslint-disable camelcase */
 
 const { homeRoutePathForView } = require('@hylo/navigation')
@@ -28,6 +28,10 @@ module.exports = bookshelf.Model.extend({
 
   collectionPosts () {
     return this.hasMany(CollectionPost, 'view_id').query(q => q.orderBy('order', 'asc'))
+  },
+
+  pins () {
+    return this.hasMany(GroupViewPin, 'view_id').query(q => q.orderBy('pinned_at', 'desc'))
   },
 
   viewsUsers () {

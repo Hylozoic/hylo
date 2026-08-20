@@ -60,7 +60,9 @@ exports.es = {
   textForJoinRequest: ({ actor, groupName, parentGroupName }) => parentGroupName
     ? `${actor.get('name')} pidió unirse a ${groupName} en ${parentGroupName}`
     : `${actor.get('name')} pidió unirte ${groupName}`,
-  textForGroupInvitation: ({ actor, groupName }) => `${actor.get('name')} te invitó a unirte ${groupName}`,
+  textForGroupInvitation: ({ actor, groupName, parentGroupName }) => parentGroupName
+    ? `${actor.get('name')} te ha invitado a unirte al espacio ${groupName} en ${parentGroupName}`
+    : `${actor.get('name')} te ha invitado a unirte a ${groupName}`,
   textForGroupInvitationAccepted: ({ actor, groupName }) => `${actor.get('name')} aceptó tu invitación para unirse ${groupName}`,
   textForGroupChildGroupInvite: ({ actor, parentGroup, childGroup }) => `${actor.get('name')} invitó a tu grupo ${childGroup.get('name')} a unirse a su grupo ${parentGroup.get('name')}`,
   textForGroupChildGroupInviteAcceptedParentModerator: ({ actor, parentGroup, childGroup }) => `${actor.get('name')} aceptó su invitación de su grupo ${childGroup.get('name')} para unirse a su grupo ${parentGroup.get('name')}`,
@@ -84,18 +86,18 @@ exports.es = {
   },
   textForPostMention: ({ groupName, person, postName }) => `${person} te mencionó en "${postName}" en ${groupName}`,
   textForPost: ({ firstTag, groupName, person, postName }) => `${person} publicó "${postName}" en ${groupName}${firstTag ? ` #${firstTag}` : ''}`,
-  textForTrackCompleted: ({ actor, track }) => `Pista completada: "${track.get('name')}" fue completada por ${actor.get('name')}`,
-  textForTrackEnrollment: ({ actor, track }) => `Inscripción en pista: "${track.get('name')}" fue inscrita por ${actor.get('name')}`,
+  textForTrackCompleted: ({ actor, trackName }) => `Pista completada: "${trackName}" fue completada por ${actor.get('name')}`,
+  textForTrackEnrollment: ({ actor, trackName }) => `Inscripción en pista: "${trackName}" fue inscrita por ${actor.get('name')}`,
   textForVoteReset: ({ person, postName, groupName }) => `${person} cambió las opciones de propuesta: "${postName}" en ${groupName}. Esto ha reiniciado los votos`,
-  textForFundingRoundNewSubmission: ({ fundingRound, post, actor }) => `${actor.get('name')} presentó "${post.summary()}" a "${fundingRound.get('title')}"`,
-  textForFundingRoundPhaseTransition: ({ fundingRound, phase }) => {
+  textForFundingRoundNewSubmission: ({ fundingRoundTitle, post, actor }) => `${actor.get('name')} presentó "${post.summary()}" a "${fundingRoundTitle}"`,
+  textForFundingRoundPhaseTransition: ({ fundingRoundTitle, phase }) => {
     const phaseMessages = {
       submissions: 'Las presentaciones están ahora abiertas',
       discussion: 'Las presentaciones han cerrado y las discusiones están abiertas',
       voting: 'La votación está ahora abierta',
       completed: 'La votación ha cerrado y la ronda ha terminado'
     }
-    return `${fundingRound.get('title')}: ${phaseMessages[phase] || 'Estado actualizado'}`
+    return `${fundingRoundTitle}: ${phaseMessages[phase] || 'Estado actualizado'}`
   },
   textForFundingRoundReminder: ({ reminderType }) => {
     const reminderMessages = {

@@ -1,5 +1,6 @@
 import {
   mergeReorderedWithHidden,
+  preserveViewLoadedPosts,
   removeGroupViewFromMenu,
   setGroupViewHiddenInMenu,
   syncAcceptedPostTypesInMenus
@@ -16,6 +17,24 @@ function makeGroup (groupViews) {
     }
   }
 }
+
+describe('preserveViewLoadedPosts', () => {
+  it('keeps collectionPosts when refreshed groupViews omit them', () => {
+    const existing = [
+      {
+        id: 'actions',
+        type: 'track-actions',
+        collectionPosts: [{ id: 'p1', completedAt: null }]
+      }
+    ]
+    const refreshed = [{ id: 'actions', type: 'track-actions', order: 0 }]
+
+    const merged = preserveViewLoadedPosts(existing, refreshed)
+
+    expect(merged[0].collectionPosts).toEqual([{ id: 'p1', completedAt: null }])
+    expect(merged[0].order).toBe(0)
+  })
+})
 
 describe('setGroupViewHiddenInMenu', () => {
   it('hides a nested space view on the parent menu copy', () => {

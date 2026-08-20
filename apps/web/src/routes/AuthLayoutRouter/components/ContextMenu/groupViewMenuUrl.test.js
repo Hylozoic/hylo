@@ -39,6 +39,20 @@ describe('spaceEntryUrl', () => {
     expect(spaceEntryUrl('parent', space)).toBe('/groups/parent/spaces/space')
   })
 
+  it('uses a track space home view when homeRoute is missing', () => {
+    const trackSpace = { slug: 'parent-track', track: { id: '1' } }
+    expect(spaceEntryUrl('parent', trackSpace)).toBe('/groups/parent/spaces/track/track-actions')
+  })
+
+  it('uses the order-0 view when homeRoute is stale', () => {
+    const trackSpace = {
+      slug: 'parent-track',
+      homeRoute: '/all',
+      groupViews: { items: [{ type: 'track-actions', order: 0 }, { type: 'chat', order: 1 }] }
+    }
+    expect(spaceEntryUrl('parent', trackSpace)).toBe('/groups/parent/spaces/track/track-actions')
+  })
+
   it('falls back to the parent group when the space is missing', () => {
     expect(spaceEntryUrl('parent', null)).toBe('/groups/parent')
   })

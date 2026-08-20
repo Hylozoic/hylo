@@ -20,7 +20,7 @@ import Button from 'components/ui/button'
 import InfoButton from 'components/ui/info'
 import { Popover, PopoverContent, PopoverTrigger } from 'components/ui/popover'
 import { Tooltip, TooltipContent, TooltipTrigger } from 'components/ui/tooltip'
-import { CUSTOM_VIEW_POST_TYPE_OPTIONS } from 'components/CustomViewForm/customViewFormConstants'
+import { CUSTOM_VIEW_DEFAULT_POST_TYPES, CUSTOM_VIEW_POST_TYPE_OPTIONS } from 'components/CustomViewForm/customViewFormConstants'
 import { createGroupView } from 'store/actions/groupViews'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import { RESP_ADMINISTRATION } from 'store/constants'
@@ -509,7 +509,7 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
   )
   const [agreements, setAgreements] = useState([])
   const [joinQuestions, setJoinQuestions] = useState([])
-  const [postTypes, setPostTypes] = useState(['discussion', 'event', 'request', 'offer'])
+  const [postTypes, setPostTypes] = useState([...CUSTOM_VIEW_DEFAULT_POST_TYPES])
   const [removedStandardTypes, setRemovedStandardTypes] = useState(new Set())
   const [manualViews, setManualViews] = useState([])
   const [orderedRows, setOrderedRows] = useState([])

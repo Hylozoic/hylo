@@ -20,7 +20,8 @@ module.exports = {
       qb.where('funding_rounds.deactivated_at', null)
 
       if (opts.search) {
-        qb.whereRaw('funding_rounds.title ilike ?', opts.search + '%')
+        qb.join('groups', 'groups.id', 'funding_rounds.group_id')
+        qb.whereRaw('groups.name ilike ?', opts.search + '%')
       }
 
       if (opts.limit || opts.first) {
@@ -96,6 +97,10 @@ module.exports = {
             })
           })
         })
+      } else if (opts.groupType !== 'space' && !opts.groupIds) {
+        // List UIs (explore, public map) should not treat spaces as groups.
+        // parentSlugs, groupType='space', and explicit groupIds keep spaces (§3.8).
+        Group.excludeSpaces(qb)
       }
 
       if (typeof opts.allowedInPublic === 'boolean') {
@@ -193,7 +198,8 @@ module.exports = {
       qb.where('tracks.deactivated_at', null)
 
       if (opts.autocomplete) {
-        qb.whereRaw('tracks.name ilike ?', opts.autocomplete + '%')
+        qb.join('groups', 'groups.id', 'tracks.group_id')
+        qb.whereRaw('groups.name ilike ?', opts.autocomplete + '%')
       }
 
       // if (opts.enrolled) {

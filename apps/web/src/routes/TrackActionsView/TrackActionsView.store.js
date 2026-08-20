@@ -1,11 +1,46 @@
 import {
   ADD_POST_TO_VIEW_PENDING,
+  CREATE_COMMENT_PENDING,
   CREATE_POST,
   DELETE_POST_PENDING,
+  REACT_ON_POST_PENDING,
   REMOVE_POST_FROM_VIEW_PENDING,
   REORDER_VIEW_POST_PENDING
 } from 'store/constants'
 import { updateGroupViewInMenu } from 'store/util/groupViewsOrder'
+
+function normalizeGroupIds (groupIds) {
+  if (!groupIds) return []
+  return (Array.isArray(groupIds) ? groupIds : [groupIds]).filter(Boolean).map(String)
+}
+
+/** Patch completion fields on a post in track-actions collectionPosts for the given groups. */
+export function updateTrackActionCompletionInMenus ({ Group, postId, completedAt, completionResponse, groupIds }) {
+  if (!postId) return
+
+  let updated = false
+  const patchGroup = (group) => {
+    if (!group || updated) return
+    const actionsView = group.groupViews?.items?.find(view => view.type === 'track-actions')
+    if (!actionsView?.collectionPosts) return
+    if (!actionsView.collectionPosts.some(post => String(post.id) === String(postId))) return
+
+    updateGroupViewInMenu(group, actionsView.id, {
+      collectionPosts: actionsView.collectionPosts.map(post =>
+        String(post.id) === String(postId)
+          ? { ...post, completedAt, completionResponse }
+          : post
+      )
+    })
+    updated = true
+  }
+
+  normalizeGroupIds(groupIds).forEach(groupId => patchGroup(Group.withId(groupId)))
+
+  if (!updated) {
+    Group.all().toModelArray().forEach(patchGroup)
+  }
+}
 
 /** Finds a view's raw collectionPosts array within a group's embedded menu (top-level or nested space menu). */
 function findCollectionPosts (group, viewId) {
@@ -24,8 +59,34 @@ function findCollectionPosts (group, viewId) {
  * Optimistically updates a view's raw collectionPosts (a plain attribute, not
  * a normalized Post relation — see fetchViewPosts) for reordering and removal.
  */
-export function ormSessionReducer ({ Group }, { type, meta, payload }) {
+export function ormSessionReducer ({ Group, Post }, { type, meta, payload }) {
   switch (type) {
+    case CREATE_COMMENT_PENDING: {
+      const post = Post.withId(meta.postId)
+      if (post?.completionAction !== 'comment') break
+      updateTrackActionCompletionInMenus({
+        Group,
+        postId: meta.postId,
+        completedAt: new Date().toISOString(),
+        completionResponse: [meta.text],
+        groupIds: meta.analytics?.groupId
+      })
+      break
+    }
+
+    case REACT_ON_POST_PENDING: {
+      const post = Post.withId(meta.postId)
+      if (post?.completionAction !== 'reaction') break
+      updateTrackActionCompletionInMenus({
+        Group,
+        postId: meta.postId,
+        completedAt: post.completedAt || new Date().toISOString(),
+        completionResponse: post.completionResponse || [meta.data?.emojiFull],
+        groupIds: meta.analytics?.groupId
+      })
+      break
+    }
+
     case CREATE_POST: {
       const { groupIds, viewId } = meta
       const createdPost = payload?.data?.createPost

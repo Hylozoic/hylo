@@ -5,7 +5,6 @@ export default gql`
     fundingRound(id: $id) {
       id
       allowSelfVoting
-      bannerUrl
       canSubmit
       canVote
       createdAt
@@ -15,6 +14,7 @@ export default gql`
         name
         slug
         description
+        bannerUrl
       }
       hideFinalResultsFromParticipants
       isParticipating
@@ -129,7 +129,6 @@ export default gql`
       }
       submissionsCloseAt
       submissionsOpenAt
-      title
       tokenType
       tokensRemaining
       totalTokens

@@ -6,13 +6,16 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 import { localSpaceSlug, spaceUrl } from '@hylo/navigation'
 import Icon from 'components/Icon'
+import LucideIcon from 'components/LucideIcon/LucideIcon'
 import InfoButton from 'components/ui/info'
 import { Command, CommandItem, CommandList } from 'components/ui/command'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useRouteParams from 'hooks/useRouteParams'
+import useGroupViews from 'hooks/useGroupViews'
 import GroupViewIcon from 'routes/AuthLayoutRouter/components/ContextMenu/GroupViewIcon'
+import { hueOf, viewCardColor } from 'routes/AuthLayoutRouter/components/ContextMenu/viewCardTheme'
+import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
-import { getGroupViews } from 'store/selectors/getGroupViews'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import getMe from 'store/selectors/getMe'
 import getMyMemberships from 'store/selectors/getMyMemberships'
@@ -45,6 +48,29 @@ function resolveSpaceMenuView (parentGroup, groupViews, parentSlug, spaceSlug) {
   }
 }
 
+/**
+ * The prototype's icon chrome: the view icon on a tile tinted to its
+ * post-type color (slate for custom and non-post views).
+ */
+function ViewIconTile ({ icon, hue, className }) {
+  if (!icon) return null
+  return (
+    <span
+      className={cn(
+        'w-8 h-8 rounded-[9px] grid place-items-center shrink-0 border',
+        'bg-[hsl(var(--vh-hue)_48%_90%)] border-[hsl(var(--vh-hue)_40%_70%)] text-[hsl(var(--vh-hue)_45%_35%)]',
+        'dark:bg-[hsl(var(--vh-hue)_40%_26%)] dark:border-[hsl(var(--vh-hue)_40%_42%)] dark:text-[hsl(var(--vh-hue)_60%_82%)]',
+        className
+      )}
+      style={{ '--vh-hue': hue }}
+    >
+      {typeof icon === 'string'
+        ? <LucideIcon name={icon} className='w-[18px] h-[18px]' fallback={<Icon name={icon} className='text-lg leading-none' />} />
+        : React.cloneElement(icon, { className: 'w-[18px] h-[18px]' })}
+    </span>
+  )
+}
+
 const ViewHeader = () => {
   const dispatch = useDispatch()
   const { context, groupSlug, spaceSlug: routeSpaceSlug } = useRouteParams()
@@ -55,7 +81,7 @@ const ViewHeader = () => {
   const isMoreSpacesPath = location.pathname.replace(/\/$/, '').endsWith('/more-spaces')
   const spaceSlug = routeSpaceSlug || (isMoreSpacesPath ? getQuerystringParam('space', location) : null)
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
-  const groupViews = useSelector(state => spaceSlug ? getGroupViews(state, group) : null)
+  const groupViews = useGroupViews(spaceSlug ? group : null)
   const currentUser = useSelector(getMe)
   const myMemberships = useSelector(getMyMemberships)
   const { headerDetails } = useViewHeader()
@@ -114,6 +140,15 @@ const ViewHeader = () => {
     : null
 
   const spaceAboutUrl = groupSlug && spaceSlug ? spaceUrl(groupSlug, spaceSlug, 'about') : null
+
+  // The view's brand hue, from the path segment naming the view
+  const viewHue = useMemo(() => {
+    const parts = location.pathname.split('/').filter(Boolean)
+    let rest = parts
+    if (parts[0] === 'groups') rest = parts[2] === 'spaces' ? parts.slice(4) : parts.slice(2)
+    else if (['all', 'my', 'public'].includes(parts[0])) rest = parts.slice(1)
+    return hueOf(viewCardColor({ type: rest[0] || null }))
+  }, [location.pathname])
 
   const [searchValue, setSearchValue] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
@@ -405,7 +440,7 @@ const ViewHeader = () => {
           {!isSingleViewSpace && hasTitle && <span className='mx-1.5 shrink-0 text-foreground/40'>{'>'}</span>}
         </>
       )}
-      {!centered && !oneColumn && !isSingleViewSpace && icon && (typeof icon === 'string' ? <Icon name={icon} className='mr-3 text-lg' /> : React.cloneElement(icon, { className: 'mr-3 text-lg' }))}
+      {!centered && !oneColumn && !isSingleViewSpace && icon && <ViewIconTile icon={icon} hue={viewHue} className='mr-3' />}
       {isOneColumnGroup && (() => {
         const inSpace = Boolean(presentedSpaceView && spaceSlug)
         const groupHref = `/groups/${groupSlug}`
@@ -464,11 +499,7 @@ const ViewHeader = () => {
               </>
             )}
             {hasTitle && <span className='text-foreground/30 text-lg shrink-0'>{'>'}</span>}
-            {hasTitle && icon && (
-              typeof icon === 'string'
-                ? <Icon name={icon} className='text-lg shrink-0' />
-                : React.cloneElement(icon, { className: 'w-5 h-5 shrink-0' })
-            )}
+            {hasTitle && icon && <ViewIconTile icon={icon} hue={viewHue} />}
           </div>
         )
       })()}
@@ -508,11 +539,7 @@ const ViewHeader = () => {
               {contextLabel}
             </span>
             {hasTitle && <span className='text-foreground/30 text-lg shrink-0'>{'>'}</span>}
-            {hasTitle && icon && (
-              typeof icon === 'string'
-                ? <Icon name={icon} className='text-lg shrink-0' />
-                : React.cloneElement(icon, { className: 'w-5 h-5 shrink-0' })
-            )}
+            {hasTitle && icon && <ViewIconTile icon={icon} hue={viewHue} />}
           </div>
         )
       })()}

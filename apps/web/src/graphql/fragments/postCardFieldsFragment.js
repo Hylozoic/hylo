@@ -1,4 +1,3 @@
-// TODO: do we need postMembership? depends on how pinning works. not in chat room probably
 const postGroupsFields = `
   groups {
     id

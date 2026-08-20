@@ -17,6 +17,7 @@ import PostDialog from 'components/PostDialog'
 import PostListRow from 'components/PostListRow'
 import PostCard from 'components/PostCard'
 import ChatActivityCard from 'components/PostCard/ChatActivityCard'
+import PinnedPostChips from 'routes/ChatRoom/PinnedPostChips'
 import MasonryGrid from 'components/MasonryGrid/MasonryGrid'
 import PostGridItem from 'components/PostGridItem'
 import PostBigGridItem from 'components/PostBigGridItem'
@@ -30,19 +31,23 @@ import ViewControls from 'components/StreamViewControls'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { useEffectiveGroupSlug, useGroupRouteOpts } from 'contexts/SpaceGroupContext'
 import useRouteParams from 'hooks/useRouteParams'
+import useCurrentPinnableView from 'hooks/useCurrentPinnableView'
+import useGroupViews from 'hooks/useGroupViews'
 import { updateUserSettings } from 'routes/UserSettings/UserSettings.store'
 import GroupViewIcon from 'routes/AuthLayoutRouter/components/ContextMenu/GroupViewIcon'
 import changeQuerystringParam, { changeQuerystringParams } from 'store/actions/changeQuerystringParam'
 import fetchGroupTopic from 'store/actions/fetchGroupTopic'
 import fetchTopic from 'store/actions/fetchTopic'
 import fetchPosts from 'store/actions/fetchPosts'
+import fetchViewPinnedPosts from 'store/actions/fetchViewPinnedPosts'
 // import toggleGroupTopicSubscribe from 'store/actions/toggleGroupTopicSubscribe'
-import { FETCH_POSTS, FETCH_TOPIC, FETCH_GROUP_TOPIC, CONTEXT_MY, VIEW_MENTIONS, VIEW_ANNOUNCEMENTS, VIEW_INTERACTIONS, VIEW_POSTS, VIEW_SAVED_POSTS, VIEW_DRAFTS } from 'store/constants'
+import { FETCH_POSTS, FETCH_TOPIC, FETCH_GROUP_TOPIC, CONTEXT_MY, VIEW_MENTIONS, VIEW_ANNOUNCEMENTS, VIEW_INTERACTIONS, VIEW_POSTS, VIEW_SAVED_POSTS, VIEW_DRAFTS, RESP_MANAGE_CONTENT } from 'store/constants'
 import presentPost from 'store/presenters/presentPost'
 import { makeDropQueryResults } from 'store/reducers/queryResults'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
-import { getGroupViews, getGroupViewById } from 'store/selectors/getGroupViews'
+import { getGroupViewById } from 'store/selectors/getGroupViews'
 import getMe from 'store/selectors/getMe'
+import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import getMyMemberships from 'store/selectors/getMyMemberships'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import { getHasMorePosts, getPosts } from 'store/selectors/getPosts'
@@ -142,7 +147,7 @@ export default function ViewContent (props) {
     [groupView]
   )
 
-  const groupViews = useSelector(state => getGroupViews(state, group))
+  const groupViews = useGroupViews(group)
   const showChatActivity = useMemo(() => {
     const allView = (groupViews || []).find(v => v.type === 'all')
     return allView?.settings?.showChatActivity !== false
@@ -151,6 +156,14 @@ export default function ViewContent (props) {
     if (!TYPED_BADGE_VIEW_TYPES.has(view)) return null
     return (groupViews || []).find(v => v.type === view) || null
   }, [groupViews, view])
+
+  const pinnableView = useCurrentPinnableView()
+  const canModerateContent = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_MANAGE_CONTENT, groupId: group?.id }))
+
+  useEffect(() => {
+    if (!group?.id || !pinnableView?.id) return
+    dispatch(fetchViewPinnedPosts(group.id, pinnableView.id))
+  }, [dispatch, group?.id, pinnableView?.id])
 
   // Clear typed-view unread when opening Events/Proposals/etc.
   useEffect(() => {
@@ -353,6 +366,22 @@ export default function ViewContent (props) {
     if (showChatActivity) return presented
     return presented.filter(p => p.type !== 'chat_activity')
   }, [groupId, postsSelector, showChatActivity])
+  const pinnedPosts = useMemo(() => {
+    return (pinnableView?.pinnedPosts || []).map(p => presentPost(p, groupId)).filter(Boolean)
+  }, [groupId, pinnableView?.pinnedPosts])
+  // Stream/grid/list: pinned cards sit above the feed. Prefer the feed copy so
+  // ORM-backed fields (creator avatar) stay intact after an optimistic pin.
+  const streamPosts = useMemo(() => {
+    if (isCalendarViewMode) return posts
+    const order = (pinnableView?.pinnedPostIds || []).map(id => String(id))
+    if (order.length === 0 && pinnedPosts.length === 0) return posts
+    const ids = order.length ? order : pinnedPosts.map(p => String(p.id))
+    const feedById = new Map(posts.map(p => [String(p.id), p]))
+    const pinById = new Map(pinnedPosts.map(p => [String(p.id), p]))
+    const top = ids.map(id => feedById.get(id) || pinById.get(id)).filter(Boolean)
+    const topIds = new Set(top.map(p => String(p.id)))
+    return [...top, ...posts.filter(p => !topIds.has(String(p.id)))]
+  }, [isCalendarViewMode, pinnableView?.pinnedPostIds, pinnedPosts, posts])
   const hasMore = useSelector(state => getHasMorePosts(state, fetchPostsParam))
   const pending = useSelector(state => state.pending[FETCH_POSTS])
 
@@ -534,7 +563,7 @@ export default function ViewContent (props) {
     dispatch(push(createPostUrl(routeParams, params)))
   }, [dispatch, routeParams, querystringParams, postTypeFilter, postTypesForPrompt])
 
-  const showEmptyStream = !pending && !topicBlockingStreams && !customViewLoading && posts.length === 0
+  const showEmptyStream = !pending && !topicBlockingStreams && !customViewLoading && streamPosts.length === 0
 
   const calendarInitialLoading = (pending || topicBlockingStreams || customViewLoading) && isCalendarViewMode && posts.length === 0
   const calendarFetchingMore = pending && isCalendarViewMode && posts.length > 0
@@ -632,6 +661,15 @@ export default function ViewContent (props) {
             )
           : (
             <>
+              {isCalendarViewMode && (
+                <PinnedPostChips
+                  posts={pinnedPosts}
+                  viewId={pinnableView?.id}
+                  groupId={group?.id}
+                  canModerate={canModerateContent}
+                  className='px-1 pb-1'
+                />
+              )}
               {calendarFetchingMore && (
                 <div
                   aria-live='polite'
@@ -651,14 +689,14 @@ export default function ViewContent (props) {
                     'my-[5px] mx-auto overflow-visible w-full',
                     viewMode === 'grid' && 'grid grid-cols-2 min-[426px]:grid-cols-3 items-start gap-x-2 p-2',
                     viewMode === 'bigGrid' && 'grid grid-cols-2 items-start gap-x-2 p-2',
-                    viewMode === 'list' && posts.length > 0 && 'border-2 border-foreground/10 rounded-md bg-card overflow-hidden',
+                    viewMode === 'list' && streamPosts.length > 0 && 'border-2 border-foreground/10 rounded-md bg-card overflow-hidden',
                     showEmptyStream && 'flex-1 flex flex-col justify-center'
                   )}
                 >
 
                   {showEmptyStream ? <NoPosts message={noPostsMessage} actionLabel={hasPostPrompt ? t('Create something') : null} onAction={createFromEmpty} /> : ''}
 
-                  {posts.map(post => {
+                  {streamPosts.map(post => {
                     const ViewComponent = post.type === 'chat_activity'
                       ? ChatActivityCard
                       : viewComponent[viewMode]

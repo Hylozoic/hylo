@@ -23,18 +23,14 @@ export default gql`
         items {
           id
           allowSelfVoting
-          bannerUrl
           createdAt
           criteria
           group {
             id
-            description
+            name
             slug
-            homeRoute
-            parentGroup {
-              id
-              slug
-            }
+            description
+            bannerUrl
           }
           isParticipating
           hideFinalResultsFromParticipants
@@ -49,7 +45,6 @@ export default gql`
           submissionDescriptorPlural
           submissionsCloseAt
           submissionsOpenAt
-          title
           tokenType
           totalTokens
           totalTokensAllocated

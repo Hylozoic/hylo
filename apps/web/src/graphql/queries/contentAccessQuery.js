@@ -64,7 +64,9 @@ export default `
         }
         track {
           id
-          name
+          space {
+            name
+          }
         }
         groupRole {
           id

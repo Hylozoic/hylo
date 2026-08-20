@@ -48,6 +48,7 @@ const groupViewFields = `
   settings
   newPostCount
   lastReadPostId
+  pinnedPostIds
   viewPost {
     id
     title
@@ -74,6 +75,7 @@ const groupViewFields = `
         icon
         settings
         newPostCount
+        pinnedPostIds
         viewPost {
           id
           title

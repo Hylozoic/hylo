@@ -75,21 +75,19 @@ module.exports = bookshelf.Model.extend({
   incrementNewPostCount: async function (viewId, userIds, { transacting } = {}) {
     if (!userIds || userIds.length === 0) return
 
-    for (const userId of userIds) {
-      await GroupViewUser.findOrCreate(viewId, userId, { transacting })
-    }
+    const ids = userIds.map(id => Number(id)).filter(id => Number.isFinite(id))
+    if (ids.length === 0) return
 
-    // Single update: knex .increment() after .update() can replace the SET
-    // clause instead of merging, which dropped updated_at and made only the
-    // most recently touched room look "new" to the digest.
-    await bookshelf.knex('group_views_users')
-      .where('view_id', viewId)
-      .whereIn('user_id', userIds)
-      .update({
-        new_post_count: bookshelf.knex.raw('new_post_count + 1'),
-        updated_at: new Date()
-      })
-      .modify(q => { if (transacting) q.transacting(transacting) })
+    const now = new Date()
+    const query = bookshelf.knex.raw(`
+      INSERT INTO group_views_users (view_id, user_id, new_post_count, created_at, updated_at)
+      SELECT ?, u.id, 1, ?, ?
+      FROM unnest(?::bigint[]) AS u(id)
+      ON CONFLICT (view_id, user_id) DO UPDATE SET
+        new_post_count = group_views_users.new_post_count + 1,
+        updated_at = EXCLUDED.updated_at
+    `, [viewId, now, now, ids])
+    await (transacting ? query.transacting(transacting) : query)
   },
 
   // Decrement new_post_count for users who had not yet read past this post.

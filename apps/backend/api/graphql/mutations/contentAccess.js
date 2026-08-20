@@ -151,7 +151,7 @@ module.exports = {
           accessType = 'track'
           const track = await Track.find(trackId)
           if (track) {
-            accessName = track.get('name')
+            accessName = await track.displayName()
             // Track access is always within a group context
             const trackGroupId = track.get('group_id')
             contextGroup = await Group.find(trackGroupId)

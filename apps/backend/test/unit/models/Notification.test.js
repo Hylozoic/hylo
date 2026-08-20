@@ -79,6 +79,12 @@ describe('Notification', function () {
             actor_id: actor.id,
             group_id: group.id
           },
+          groupInvitation: {
+            meta: { reasons: ['groupInvitation'] },
+            reader_id: reader.id,
+            actor_id: actor.id,
+            group_id: group.id
+          },
           mention: {
             post_id: post.id,
             meta: { reasons: ['mention'] },
@@ -240,7 +246,42 @@ describe('Notification', function () {
       expect(pns.length).to.equal(1)
       const pn = pns.first()
       expect(pn.get('alert')).to.equal('Joe asked to join The Space in Parent Group')
-      expect(pn.get('path')).to.contain(`/groups/${space.get('slug')}/settings/requests`)
+      expect(pn.get('path')).to.contain(`/groups/${parentGroup.get('slug')}/spaces/${space.get('slug')}/requests`)
+    })
+
+    it('sends a push for a group invitation', () => {
+      return preloadNotification(activities.groupInvitation, Notification.MEDIUM.Push)
+        .then(notification => notification.send())
+        .then(() => PushNotification.where({ user_id: reader.id }).fetchAll())
+        .then(pns => {
+          expect(pns.length).to.equal(1)
+          const pn = pns.first()
+          expect(pn.get('alert')).to.equal('Joe has invited you to join them in My Group')
+          expect(pn.get('path')).to.contain('/my/invitations')
+        })
+    })
+
+    it('sends a push for a space invitation naming the space and parent group', async () => {
+      const parentGroup = await factories.group({ name: 'Parent Group', slug: `parent-inv-${Date.now()}` }).save()
+      const space = await factories.group({
+        name: 'The Space',
+        slug: `the-space-inv-${Date.now()}`,
+        type: 'space',
+        parent_id: parentGroup.id
+      }).save()
+      const notification = await preloadNotification({
+        meta: { reasons: ['groupInvitation'] },
+        reader_id: reader.id,
+        actor_id: actor.id,
+        group_id: space.id,
+        other_group_id: parentGroup.id
+      }, Notification.MEDIUM.Push)
+      await notification.send()
+      const pns = await PushNotification.where({ user_id: reader.id }).fetchAll()
+      expect(pns.length).to.equal(1)
+      const pn = pns.first()
+      expect(pn.get('alert')).to.equal('Joe has invited you to join them in space The Space in Parent Group')
+      expect(pn.get('path')).to.contain('/my/invitations')
     })
 
     it('sends a push for an approved join request', () => {
@@ -338,7 +379,7 @@ describe('Notification', function () {
           group_name: 'The Space in Parent Group',
           requester_name: 'Joe'
         })
-        expect(opts.data.settings_url).to.contain(`/groups/${space.get('slug')}/settings/requests`)
+        expect(opts.data.settings_url).to.contain(`/groups/${parentGroup.get('slug')}/spaces/${space.get('slug')}/requests`)
       })
       const notification = await preloadNotification({
         meta: { reasons: ['joinRequest'] },
@@ -424,6 +465,10 @@ describe('Notification', function () {
 
     it('returns the empty string as a fallthrough', () => {
       expect(Notification.priorityReason(['wat', 'lol'])).to.equal('')
+    })
+
+    it('recognizes groupInvitation', () => {
+      expect(Notification.priorityReason(['groupInvitation'])).to.equal('groupInvitation')
     })
   })
 

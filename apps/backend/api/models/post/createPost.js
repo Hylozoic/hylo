@@ -86,8 +86,9 @@ export function afterCreatingPost (post, opts) {
 
     opts.trackId && Track.addPost(post, opts.trackId, { ...trxOpts, userId }),
 
-    // Explicit view collection link (e.g. track-actions / funding-round-submissions / collection views)
-    opts.viewId && addPostToViewCollection(post, opts.viewId, userId, trxOpts),
+    // Track.addPost already links the post into the track-actions view — skip viewId
+    // to avoid a parallel duplicate insert into collections_posts.
+    opts.viewId && !opts.trackId && addPostToViewCollection(post, opts.viewId, userId, trxOpts),
 
     opts.fundingRoundId && post.get('type') === Post.Type.SUBMISSION && FundingRound.addPost(post, opts.fundingRoundId, userId, trxOpts)
   ]))
@@ -148,50 +149,59 @@ export async function incrementNewPostCount (post) {
   const postType = post.get('type')
   const authorId = post.get('user_id')
   const typedViewType = POST_TYPE_TO_TYPED_VIEW[postType]
+  const groupIds = groups.map('id')
 
-  const groupMembershipQuery = GroupMembership.query(q => {
-    q.whereIn('group_id', groups.map('id'))
-    q.whereNot('group_memberships.user_id', authorId)
-    q.where('group_memberships.active', true)
-  }).query()
+  const memberRows = await bookshelf.knex('group_memberships')
+    .whereIn('group_id', groupIds)
+    .whereNot('user_id', authorId)
+    .where('active', true)
+    .select('group_id', 'user_id')
 
-  const viewIncrements = Promise.map(groups.models, async group => {
-    const memberIds = await bookshelf.knex('group_memberships')
-      .where({ group_id: group.id, active: true })
-      .whereNot('user_id', authorId)
-      .pluck('user_id')
-    if (memberIds.length === 0) return
+  const membersByGroup = new Map()
+  for (const row of memberRows) {
+    const key = String(row.group_id)
+    if (!membersByGroup.has(key)) membersByGroup.set(key, [])
+    membersByGroup.get(key).push(row.user_id)
+  }
 
-    const jobs = []
+  const viewTypes = []
+  if (typedViewType) viewTypes.push(typedViewType)
+  if (postCountsTowardChatUnread(postType)) viewTypes.push(GroupView.Type.CHAT)
 
-    // Typed common views (discussions, events, …) — one job per matching view
+  const views = viewTypes.length === 0
+    ? []
+    : (await GroupView.query(q => {
+        q.whereIn('group_id', groupIds)
+        q.whereIn('type', viewTypes)
+      }).fetchAll()).models
+
+  const viewsByGroupType = new Map()
+  for (const view of views) {
+    viewsByGroupType.set(`${String(view.get('group_id'))}:${view.get('type')}`, view)
+  }
+
+  const jobs = []
+  for (const group of groups.models) {
+    const memberIds = membersByGroup.get(String(group.id)) || []
+    if (memberIds.length === 0) continue
+
     if (typedViewType) {
-      const typedView = await GroupView.where({
-        group_id: group.id,
-        type: typedViewType
-      }).fetch()
-      if (typedView) {
-        jobs.push(GroupViewUser.incrementNewPostCount(typedView.id, memberIds))
-      }
+      const typedView = viewsByGroupType.get(`${String(group.id)}:${typedViewType}`)
+      if (typedView) jobs.push(GroupViewUser.incrementNewPostCount(typedView.id, memberIds))
     }
-
-    // Chat view badge: chat posts only (typed posts badge their own view)
     if (postCountsTowardChatUnread(postType)) {
-      const chatView = await GroupView.where({
-        group_id: group.id,
-        type: GroupView.Type.CHAT
-      }).fetch()
-      if (chatView) {
-        jobs.push(GroupViewUser.incrementNewPostCount(chatView.id, memberIds))
-      }
+      const chatView = viewsByGroupType.get(`${String(group.id)}:${GroupView.Type.CHAT}`)
+      if (chatView) jobs.push(GroupViewUser.incrementNewPostCount(chatView.id, memberIds))
     }
-
-    return Promise.all(jobs)
-  })
+  }
 
   return Promise.all([
-    groupMembershipQuery.update({ updated_at: new Date() }).increment('new_post_count'),
-    viewIncrements
+    GroupMembership.query(q => {
+      q.whereIn('group_id', groupIds)
+      q.whereNot('group_memberships.user_id', authorId)
+      q.where('group_memberships.active', true)
+    }).query().update({ updated_at: new Date() }).increment('new_post_count'),
+    Promise.all(jobs)
   ])
 }
 

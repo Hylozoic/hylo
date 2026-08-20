@@ -1,6 +1,6 @@
 import { isDrawerNavLayout, isPhoneDevice } from 'util/mobile'
 import { get } from 'lodash/fp'
-import { CircleEllipsis, Info, Pencil, RefreshCw, Settings, UserPlus, Users } from 'lucide-react'
+import { CircleEllipsis, Info, Pencil, Settings, UserPlus, Users } from 'lucide-react'
 import React, { useEffect, useCallback, useState, useMemo } from 'react'
 import { Link, useLocation, useNavigate, Routes, Route } from 'react-router-dom'
 import { replace } from 'redux-first-history'
@@ -21,7 +21,7 @@ import {
 import GroupMenuHeader from 'components/GroupMenuHeader'
 import GroupNotificationsPopover from 'components/GroupNotificationsPopover/GroupNotificationsPopover'
 import CurrentlyActiveMembers, { MENU_ACTIVE_MAX } from 'components/CurrentlyActiveMembers'
-import InviteMembersPopover from 'components/InviteMembersPopover/InviteMembersPopover'
+import InviteMembersDialog from 'components/InviteMembersDialog/InviteMembersDialog'
 import MenuLink from './MenuLink'
 import ContextMenuResizer from './ContextMenuResizer'
 import GroupViewIcon from './GroupViewIcon'
@@ -48,7 +48,6 @@ import { isOneColumnLayout as resolveIsOneColumnLayout } from 'util/navigationLa
 import { filterSpaceViewsForMenuVisibility, spaceMenuVisibilityOpts } from 'util/spaceVisibility'
 
 import GroupSettingsMenu from './GroupSettingsMenu'
-import ContextMenuOld from './ContextMenuOld'
 import MenuRowBackground from './MenuRowBackground'
 import { viewCardColor } from './viewCardTheme'
 import { DEFAULT_BANNER } from 'store/models/Group'
@@ -278,7 +277,8 @@ function GroupViewMenuItem ({
   parentSlug,
   group = null,
   spaceGroup = null,
-  spaceSlug = null
+  spaceSlug = null,
+  parentGroup = null
 }) {
   const dispatch = useDispatch()
   const location = useLocation()
@@ -397,8 +397,8 @@ function GroupViewMenuItem ({
     const drillIntoSpaceMenu = isSpaceMember && !singleSpaceView
     const keepNavOpen = drillIntoSpaceMenu && isDrawerNavLayout()
     const spaceLink = singleSpaceView && isSpaceMember
-      ? menuViewUrl(parentSlug, singleSpaceView, linkedSpaceGroup)
-      : spaceEntryUrl(parentSlug, linkedSpaceGroup)
+      ? menuViewUrl(parentSlug, singleSpaceView, resolvedSpaceGroup)
+      : spaceEntryUrl(parentSlug, resolvedSpaceGroup)
     const isSpaceActive = Boolean(
       spaceSlug &&
       linkedSpaceGroup &&
@@ -475,6 +475,7 @@ function GroupViewMenuItem ({
           />
           <CurrentlyActiveMembers
             group={inviteGroup}
+            parentGroup={spaceGroup ? parentGroup : null}
             max={MENU_ACTIVE_MAX}
             membersUrl={url}
             profileGroupSlug={parentSlug}
@@ -528,6 +529,7 @@ function GroupViewList ({
   groupSlug,
   spaceSlug,
   spaceGroup = null,
+  parentGroup = null,
   isEditing,
   onOpenSettings,
   canAdminister = false
@@ -582,6 +584,7 @@ function GroupViewList ({
             group={group}
             spaceGroup={spaceGroup}
             spaceSlug={spaceSlug}
+            parentGroup={parentGroup}
           />
         ))}
       </ul>
@@ -589,8 +592,7 @@ function GroupViewList ({
   )
 }
 
-/** Primary ContextMenu for Phase 2+. Fetches GroupViews and renders the new menu.
- *  A dev toggle at the bottom allows switching to ContextMenuOld (ContextWidgets) for comparison. */
+/** Primary ContextMenu. Fetches GroupViews and renders the group/space menu. */
 export default function ContextMenu (props) {
   const {
     className,
@@ -630,9 +632,6 @@ export default function ContextMenu (props) {
 
   const isNavOpen = useSelector(state => get('AuthLayoutRouter.isNavOpen', state))
   const toggleNavMenuAction = useCallback(() => dispatch(toggleNavMenu()), [dispatch])
-
-  // Dev toggle: false = old ContextWidgets menu, true = new GroupViews menu
-  const [showGroupViewsMenu, setShowGroupViewsMenu] = useState(true)
 
   const staticMenuViews = useMemo(() => {
     return getStaticMenuViews({
@@ -707,13 +706,19 @@ export default function ContextMenu (props) {
     ? activeSpaceGroup.bannerUrl
     : null
 
-  // Fetch GroupViews and spaces whenever we enter a real group context
+  // Menu views on every group navigation. Off-menu spaces are loaded when More
+  // Spaces or edit mode opens — they overlap heavily with this query.
   useEffect(() => {
     if (group?.id && isGroupContext) {
       dispatch(fetchGroupViews(group.id))
-      dispatch(fetchGroupSpaces(group.id))
     }
   }, [group?.id, isGroupContext, dispatch])
+
+  useEffect(() => {
+    if (group?.id && isGroupContext && isEditing) {
+      dispatch(fetchGroupSpaces(group.id))
+    }
+  }, [group?.id, isGroupContext, isEditing, dispatch])
 
   // Load the space's own views when inside a space (multi-view check + space menu).
   useEffect(() => {
@@ -746,29 +751,17 @@ export default function ContextMenu (props) {
     window.dispatchEvent(new CustomEvent('contextMenuScroll'))
   }, [])
 
+  // Settings menu needs a viewport-bounded height so it can scroll independently of the
+  // underlying view list (which stays mounted behind the settings overlay).
+  // Match only the group's Group Settings URL — not a space About tab (`…/about/settings`).
+  const isSettingsPath = Boolean(groupSlug && location.pathname.startsWith(`/groups/${groupSlug}/settings`))
+
   useEffect(() => {
     if (isEditing) {
       const element = document.querySelector('.ContextMenu')
       if (element) element.scrollTop = element.scrollHeight
     }
   }, [isEditing])
-
-  // Settings menu needs a viewport-bounded height so it can scroll independently of the
-  // underlying view list (which stays mounted behind the settings overlay).
-  const isSettingsPath = location.pathname.includes('/settings')
-
-  const devToggle = (
-    <div className='px-3 py-2 border-t border-foreground/10'>
-      <button
-        className='w-full flex items-center justify-center gap-2 text-xs text-foreground/50 hover:text-foreground border border-foreground/20 hover:border-foreground/50 rounded-md px-2 py-1 transition-all'
-        onClick={() => setShowGroupViewsMenu(v => !v)}
-        title='Dev: switch between new GroupViews and legacy ContextWidgets menu'
-      >
-        <RefreshCw className='w-3 h-3' />
-        {showGroupViewsMenu ? t('Switch to Legacy Menu') : t('Switch to New Menu')}
-      </button>
-    </div>
-  )
 
   // Footer More uses the space's off-menu items when drilled into a space menu.
   const footerMoreSections = showingSpaceMenu ? spaceMoreSpacesSections : moreSpacesSections
@@ -880,29 +873,24 @@ export default function ContextMenu (props) {
       {joinRequestsSection}
       {moreSpacesSection}
       {editMenuButton}
-      {devToggle}
     </div>
   )
 
   // Simple groups don't use the vertical widget context menu — their home dashboard
   // (ContextMenuGrid) replaces it. Only render the settings menu when on /settings.
-  if (isOneColumnLayout && !location.pathname.includes('/settings')) {
+  if (isOneColumnLayout && !isSettingsPath) {
     return null
   }
 
   // One-column layout on settings: only show the settings menu, not the full context menu.
   // Wrap in a sized container so the (position:fixed) menu reserves flex space and the
   // center column shifts over instead of rendering underneath it.
-  if (isOneColumnLayout && location.pathname.includes('/settings')) {
+  if (isOneColumnLayout && isSettingsPath) {
     return (
       <div className='relative z-20 h-full flex-shrink-0 w-[260px] sm:w-[300px]'>
         <GroupSettingsMenu group={group} groupSlug={groupSlug} isOneColumn />
       </div>
     )
-  }
-
-  if (!showGroupViewsMenu) {
-    return <ContextMenuOld {...props} devToggle={devToggle} />
   }
 
   return (
@@ -1059,8 +1047,9 @@ export default function ContextMenu (props) {
                           <Users className='w-3.5 h-3.5' />
                           {activeSpaceGroup.memberCount}
                         </Link>
-                        <InviteMembersPopover
+                        <InviteMembersDialog
                           group={activeSpaceGroup}
+                          parentGroup={group}
                           alwaysVisible
                           triggerLabel={t('Invite')}
                           triggerClassName={cn(
@@ -1096,6 +1085,7 @@ export default function ContextMenu (props) {
                       groupSlug={groupSlug}
                       spaceSlug={spaceSlug}
                       spaceGroup={activeSpaceGroup}
+                      parentGroup={group}
                       isEditing={isEditing}
                       onOpenSettings={setSettingsView}
                       canAdminister={canAdminister}
@@ -1136,7 +1126,7 @@ export default function ContextMenu (props) {
                 <SpaceSettingsModal
                   view={settingsView}
                   space={settingsView.linkedGroup}
-                  group={group}
+                  parentGroup={group}
                   onClose={() => setSettingsView(null)}
                 />
                 )

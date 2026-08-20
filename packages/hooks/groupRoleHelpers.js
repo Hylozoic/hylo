@@ -25,6 +25,22 @@ export function sortSystemGroupRoles (roles) {
 }
 
 /**
+ * Active group roles for pickers: system roles (Coordinator, Moderator, Host) first, then custom.
+ */
+export function groupRolesForPicker (roles) {
+  const active = (roles || []).filter(role => role?.id != null && role.active !== false)
+    .map(role => SYSTEM_ROLE_NAMES.includes(role.name) ? { ...role, type: 'system' } : role)
+  return [
+    ...sortSystemGroupRoles(active),
+    ...sortCustomGroupRoles(active.filter(role => !isSystemGroupRole(role)))
+  ].map(role => ({
+    ...role,
+    id: String(role.id),
+    label: `${role.emoji || ''} ${role.name}`.trim()
+  }))
+}
+
+/**
  * Sort custom group roles by id, with unsaved roles (no id) last.
  */
 export function sortCustomGroupRoles (roles) {
