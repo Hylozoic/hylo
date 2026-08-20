@@ -10,6 +10,53 @@ export default function fetchGroupViews (groupId) {
         group(id: $groupId) {
           id
           openJoinRequestCount
+          track {
+            id
+            name
+            actionDescriptor
+            actionDescriptorPlural
+            completionMessage
+            completionRole {
+              id
+              name
+              emoji
+            }
+            publishedAt
+            accessControlled
+            canAccess
+          }
+          fundingRound {
+            id
+            title
+            publishedAt
+            phase
+            allowSelfVoting
+            hideFinalResultsFromParticipants
+            votingMethod
+            totalTokens
+            tokenType
+            maxTokenAllocation
+            minTokenAllocation
+            requireBudget
+            submissionDescriptor
+            submissionDescriptorPlural
+            submissionsOpenAt
+            submissionsCloseAt
+            votingOpensAt
+            votingClosesAt
+            criteria
+            description
+            submitterRoles {
+              id
+              emoji
+              name
+            }
+            voterRoles {
+              id
+              emoji
+              name
+            }
+          }
           groupViews {
             items {
               id

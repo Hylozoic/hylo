@@ -86,8 +86,9 @@ export function afterCreatingPost (post, opts) {
 
     opts.trackId && Track.addPost(post, opts.trackId, { ...trxOpts, userId }),
 
-    // Explicit view collection link (e.g. track-actions / funding-round-submissions / collection views)
-    opts.viewId && addPostToViewCollection(post, opts.viewId, userId, trxOpts),
+    // Track.addPost already links the post into the track-actions view — skip viewId
+    // to avoid a parallel duplicate insert into collections_posts.
+    opts.viewId && !opts.trackId && addPostToViewCollection(post, opts.viewId, userId, trxOpts),
 
     opts.fundingRoundId && post.get('type') === Post.Type.SUBMISSION && FundingRound.addPost(post, opts.fundingRoundId, userId, trxOpts)
   ]))

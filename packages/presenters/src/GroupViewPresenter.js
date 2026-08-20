@@ -113,6 +113,16 @@ export const COMMON_VIEWS = {
     name: 'Tracks',
     iconName: 'Shapes'
   },
+  'track-actions': {
+    name: 'Actions',
+    iconName: 'Shapes',
+    postTypes: ['action']
+  },
+  'funding-round-submissions': {
+    name: 'Submissions',
+    iconName: 'ClipboardList',
+    postTypes: ['submission']
+  },
   welcome: {
     name: 'Welcome',
     iconName: 'Hand'

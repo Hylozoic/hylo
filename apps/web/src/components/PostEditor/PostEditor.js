@@ -204,8 +204,13 @@ function PostEditorInner ({
     // null/undefined acceptedPostTypes = group accepts all types
     if (fromGroup == null) return fromView
     if (!Array.isArray(fromGroup)) return fromView
-    if (fromView == null) return fromGroup
-    return fromView.filter(type => fromGroup.includes(type))
+    // Typed views (track-actions, funding-round-submissions) keep their post type even when
+    // the space has empty acceptedPostTypes (track/FR spaces do not use stream post types).
+    if (fromView != null) {
+      if (fromGroup.length === 0) return fromView
+      return fromView.filter(type => fromGroup.includes(type))
+    }
+    return fromGroup
   }, [editing, allowedPostTypesForView, currentGroup?.acceptedPostTypes])
 
   useEffect(() => {

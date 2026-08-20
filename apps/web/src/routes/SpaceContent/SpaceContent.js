@@ -80,8 +80,13 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
   const spaceGroupViewsLoaded = spaceGroup?.groupViews != null
   // Nested parent/space fetches may populate groupViews without lastReadPostId. ChatRoom
   // restores scroll from that field — wait for a views fetch that includes it.
+  // Nested linkedGroup.groupViews copies (from a parent fetch) may omit lastReadPostId
+  // while still carrying newPostCount. A dedicated space fetchGroupViews always requests
+  // both — only block on partial nested copies, not when lastReadPostId is simply null.
   const spaceChatMissingLastRead = (spaceGroup?.groupViews?.items || []).some(
-    view => view.type === 'chat' && !Object.prototype.hasOwnProperty.call(view, 'lastReadPostId')
+    view => view.type === 'chat' &&
+      view.newPostCount !== undefined &&
+      !Object.prototype.hasOwnProperty.call(view, 'lastReadPostId')
   )
   const needsSpaceGroupViews = !spaceGroupViewsLoaded || spaceChatMissingLastRead
 

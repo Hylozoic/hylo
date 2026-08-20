@@ -13,6 +13,7 @@ import PostDialog from 'components/PostDialog'
 import { useEffectiveGroupSlug, useGroupRouteOpts } from 'contexts/SpaceGroupContext'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useRouteParams from 'hooks/useRouteParams'
+import fetchGroupViews from 'store/actions/fetchGroupViews'
 import { fetchViewPosts, reorderViewPost } from 'store/actions/groupViews'
 import { RESP_ADMINISTRATION } from 'store/constants'
 import presentPost from 'store/presenters/presentPost'
@@ -58,9 +59,19 @@ export default function TrackActionsView () {
   }, [view?.collectionPosts])
   const currentActionId = posts.find(p => !p.completedAt)?.id
 
+  const groupViewsLoaded = group?.groupViews != null
+
   useEffect(() => {
-    if (group?.id && viewId) dispatch(fetchViewPosts(group.id, viewId))
-  }, [group?.id, viewId])
+    if (group?.id && !groupViewsLoaded) {
+      dispatch(fetchGroupViews(group.id))
+    }
+  }, [dispatch, group?.id, groupViewsLoaded])
+
+  useEffect(() => {
+    if (group?.id && viewId && !postsLoaded) {
+      dispatch(fetchViewPosts(group.id, viewId))
+    }
+  }, [dispatch, group?.id, viewId, postsLoaded])
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
@@ -88,8 +99,7 @@ export default function TrackActionsView () {
     navigate(addQuerystringToPath(location.pathname, { edit: isEditing ? null : 'true' }), { replace: true })
   }
 
-  if (!group || (viewId && !postsLoaded)) return <Loading />
-  if (!trackId) return null
+  if (!group || !groupViewsLoaded || !trackId || (viewId && !postsLoaded)) return <Loading />
 
   const { accessControlled, canAccess } = currentTrack
   const hasAccess = accessControlled ? canAccess !== false : true
