@@ -45,7 +45,6 @@ describe('track mutations', () => {
         groupId: space.id,
         publishedAt: Date.now().toString()
       })
-      expect(track.get('name')).to.equal('Onboarding')
       expect(String(track.get('group_id'))).to.equal(String(space.id))
       await space.refresh()
       expect(String(space.get('track_id'))).to.equal(String(track.id))
@@ -55,11 +54,10 @@ describe('track mutations', () => {
   describe('updateTrack and deleteTrack', () => {
     it('updates when user can manage tracks', async () => {
       const track = await createTrack(trackManager.id, {
-        name: 'Original',
         groupId: group.id
       })
-      const updated = await updateTrack(trackManager.id, track.id, { name: 'Renamed' })
-      expect(updated.get('name')).to.equal('Renamed')
+      const updated = await updateTrack(trackManager.id, track.id, { actionDescriptor: 'Step' })
+      expect(updated.get('action_descriptor')).to.equal('Step')
     })
 
     it('rejects update when user cannot manage tracks', async () => {
@@ -111,7 +109,6 @@ describe('track mutations', () => {
         groupId: space.id
       })
       const copy = await duplicateTrack(trackManager.id, track.id)
-      expect(copy.get('name')).to.match(/\(copy\)/)
       expect(copy.get('group_id')).to.exist
     })
   })

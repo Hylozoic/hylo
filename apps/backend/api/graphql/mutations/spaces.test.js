@@ -59,7 +59,6 @@ describe('space mutations', () => {
       }, {})
       const round = await FundingRound.forge({
         group_id: space.id,
-        title: 'Round to delete',
         voting_method: 'quadratic',
         created_at: new Date(),
         updated_at: new Date()

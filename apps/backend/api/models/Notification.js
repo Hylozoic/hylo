@@ -247,7 +247,8 @@ module.exports = bookshelf.Model.extend({
     const track = this.track()
     const locale = this.locale()
     const path = routeToPath(Frontend.Route.track(track))
-    const alertText = PushNotification.textForTrackCompleted(track, this.actor(), locale)
+    const trackName = await track.displayName()
+    const alertText = PushNotification.textForTrackCompleted(trackName, this.actor(), locale)
     return this.reader().sendPushNotification(alertText, path)
   },
 
@@ -255,7 +256,8 @@ module.exports = bookshelf.Model.extend({
     const track = this.track()
     const locale = this.locale()
     const path = routeToPath(Frontend.Route.track(track))
-    const alertText = PushNotification.textForTrackEnrollment(track, this.actor(), locale)
+    const trackName = await track.displayName()
+    const alertText = PushNotification.textForTrackEnrollment(trackName, this.actor(), locale)
     return this.reader().sendPushNotification(alertText, path)
   },
 
@@ -1086,11 +1088,12 @@ module.exports = bookshelf.Model.extend({
     const actor = this.actor()
     const track = this.track()
     const locale = this.locale()
+    const trackName = await track.displayName()
 
     const clickthroughParams = '?' + new URLSearchParams({
       ctt: 'track_completed_email',
       cti: reader.id,
-      ctcn: track.get('name')
+      ctcn: trackName
     }).toString()
 
     return Email.sendTrackCompletedEmail({
@@ -1102,7 +1105,7 @@ module.exports = bookshelf.Model.extend({
         completer_name: actor.get('name'),
         completer_avatar_url: actor.get('avatar_url'),
         completer_profile_url: Frontend.Route.profile(actor) + clickthroughParams,
-        track_name: track.get('name'),
+        track_name: trackName,
         track_url: Frontend.Route.track(track) + clickthroughParams
       }
     })
@@ -1113,11 +1116,12 @@ module.exports = bookshelf.Model.extend({
     const actor = this.actor()
     const track = this.track()
     const locale = this.locale()
+    const trackName = await track.displayName()
 
     const clickthroughParams = '?' + new URLSearchParams({
       ctt: 'track_enrollment_email',
       cti: reader.id,
-      ctcn: track.get('name')
+      ctcn: trackName
     }).toString()
 
     return Email.sendTrackEnrollmentEmail({
@@ -1129,7 +1133,7 @@ module.exports = bookshelf.Model.extend({
         enrollee_name: actor.get('name'),
         enrollee_avatar_url: actor.get('avatar_url'),
         enrollee_profile_url: Frontend.Route.profile(actor) + clickthroughParams,
-        track_name: track.get('name'),
+        track_name: trackName,
         track_url: Frontend.Route.track(track) + clickthroughParams
       }
     })
@@ -1141,8 +1145,9 @@ module.exports = bookshelf.Model.extend({
     const actor = this.actor()
     const locale = this.locale()
     const group = await fundingRound.group().fetch({ withRelated: ['parentGroup'] })
+    const fundingRoundTitle = group ? group.get('name') : ''
     const path = routeToPath(Frontend.Route.fundingRound(fundingRound, group))
-    const alertText = PushNotification.textForFundingRoundNewSubmission(fundingRound, post, actor, locale)
+    const alertText = PushNotification.textForFundingRoundNewSubmission(fundingRoundTitle, post, actor, locale)
     return this.reader().sendPushNotification(alertText, path)
   },
 
@@ -1165,7 +1170,7 @@ module.exports = bookshelf.Model.extend({
       sender: { name: senderNameViaHylo(group.get('name'), locale) },
       data: {
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
-        funding_round_title: fundingRound.get('title'),
+        funding_round_title: group.get('name'),
         funding_round_url: Frontend.Route.fundingRound(fundingRound, group) + clickthroughParams,
         group_name: group.get('name'),
         group_avatar_url: group.get('avatar_url'),
@@ -1182,7 +1187,7 @@ module.exports = bookshelf.Model.extend({
     const path = routeToPath(Frontend.Route.fundingRound(fundingRound, group))
     const meta = this.relations.activity.get('meta')
     const phase = meta.phase
-    const alertText = PushNotification.textForFundingRoundPhaseTransition(fundingRound, phase, locale)
+    const alertText = PushNotification.textForFundingRoundPhaseTransition(group.get('name'), phase, locale)
     return this.reader().sendPushNotification(alertText, path)
   },
 
@@ -1206,7 +1211,7 @@ module.exports = bookshelf.Model.extend({
 
     const data = {
       email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
-      funding_round_title: fundingRound.get('title'),
+      funding_round_title: group.get('name'),
       funding_round_url: Frontend.Route.fundingRound(fundingRound, group) + clickthroughParams,
       group_name: group.get('name'),
       group_avatar_url: group.get('avatar_url')
@@ -1255,7 +1260,7 @@ module.exports = bookshelf.Model.extend({
     const path = routeToPath(Frontend.Route.fundingRound(fundingRound, group))
     const meta = this.relations.activity.get('meta')
     const reminderType = meta.reminderType
-    const alertText = PushNotification.textForFundingRoundReminder(fundingRound, reminderType, locale)
+    const alertText = PushNotification.textForFundingRoundReminder(group.get('name'), reminderType, locale)
     return this.reader().sendPushNotification(alertText, path)
   },
 
@@ -1282,7 +1287,7 @@ module.exports = bookshelf.Model.extend({
       sender: { name: senderNameViaHylo(group.get('name'), locale) },
       data: {
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
-        funding_round_title: fundingRound.get('title'),
+        funding_round_title: group.get('name'),
         funding_round_url: Frontend.Route.fundingRound(fundingRound, group) + clickthroughParams,
         group_name: group.get('name'),
         group_avatar_url: group.get('avatar_url'),
@@ -1334,8 +1339,12 @@ module.exports = bookshelf.Model.extend({
             ),
             topics: post?.relations?.tags?.map(t => refineOne(t, ['id', 'name'])) || []
           },
-          track: refineOne(track, ['id', 'name']),
-          fundingRound: refineOne(fundingRound, ['id', 'title'])
+          track: track
+            ? { id: String(track.id), space: { name: await track.displayName() } }
+            : null,
+          fundingRound: fundingRound
+            ? { id: String(fundingRound.id), group: { name: await fundingRound.displayName() } }
+            : null
         }
       )
     }

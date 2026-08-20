@@ -315,14 +315,14 @@ function OfferingCard ({ offering, group, checkoutLoading, onPurchase, isPurchas
                         key={track.id}
                         className='inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-selected/20 text-foreground text-sm'
                       >
-                        {track.bannerUrl && (
+                        {track.space?.bannerUrl && (
                           <img
-                            src={track.bannerUrl}
-                            alt={track.name}
+                            src={track.space.bannerUrl}
+                            alt={track.space?.name}
                             className='w-5 h-5 rounded object-cover'
                           />
                         )}
-                        <span>{track.name}</span>
+                        <span>{track.space?.name}</span>
                       </div>
                     ))}
                   </div>

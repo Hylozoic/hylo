@@ -84,18 +84,18 @@ exports.fr = {
   },
   textForPostMention: ({ groupName, person, postName }) => `${person} vous a mentionné·e dans la publication « ${postName} » dans ${groupName}`,
   textForPost: ({ firstTag, groupName, person, postName }) => `${person} a publié « ${postName} » dans ${groupName}${firstTag ? ` #${firstTag}` : ''}`,
-  textForTrackCompleted: ({ actor, track }) => `Parcours terminé : « ${track.get('name')} » complété par ${actor.get('name')}`,
-  textForTrackEnrollment: ({ actor, track }) => `Inscription au parcours : « ${track.get('name')} » par ${actor.get('name')}`,
+  textForTrackCompleted: ({ actor, trackName }) => `Parcours terminé : « ${trackName} » complété par ${actor.get('name')}`,
+  textForTrackEnrollment: ({ actor, trackName }) => `Inscription au parcours : « ${trackName} » par ${actor.get('name')}`,
   textForVoteReset: ({ person, postName, groupName }) => `${person} a modifié les options de la proposition « ${postName} » dans ${groupName}. Les votes ont été réinitialisés`,
-  textForFundingRoundNewSubmission: ({ fundingRound, post, actor }) => `${actor.get('name')} a soumis « ${post.summary()} » pour « ${fundingRound.get('title')} »`,
-  textForFundingRoundPhaseTransition: ({ fundingRound, phase }) => {
+  textForFundingRoundNewSubmission: ({ fundingRoundTitle, post, actor }) => `${actor.get('name')} a soumis « ${post.summary()} » pour « ${fundingRoundTitle} »`,
+  textForFundingRoundPhaseTransition: ({ fundingRoundTitle, phase }) => {
     const phaseMessages = {
       submissions: 'Les contributions sont ouvertes',
       discussion: 'Les contributions sont closes, les discussions sont ouvertes',
       voting: 'Le vote est ouvert',
       completed: 'Le vote est clos, la manche est terminée'
     }
-    return `${fundingRound.get('title')} : ${phaseMessages[phase] || 'Statut mis à jour'}`
+    return `${fundingRoundTitle} : ${phaseMessages[phase] || 'Statut mis à jour'}`
   },
   textForFundingRoundReminder: ({ reminderType }) => {
     const reminderMessages = {

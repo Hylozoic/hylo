@@ -11,11 +11,11 @@ import InfoButton from 'components/ui/info'
 import { Command, CommandItem, CommandList } from 'components/ui/command'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useRouteParams from 'hooks/useRouteParams'
+import useGroupViews from 'hooks/useGroupViews'
 import GroupViewIcon from 'routes/AuthLayoutRouter/components/ContextMenu/GroupViewIcon'
 import { hueOf, viewCardColor } from 'routes/AuthLayoutRouter/components/ContextMenu/viewCardTheme'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
-import { getGroupViews } from 'store/selectors/getGroupViews'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import getMe from 'store/selectors/getMe'
 import getMyMemberships from 'store/selectors/getMyMemberships'
@@ -80,7 +80,7 @@ const ViewHeader = () => {
   const isMoreSpacesPath = location.pathname.replace(/\/$/, '').endsWith('/more-spaces')
   const spaceSlug = routeSpaceSlug || (isMoreSpacesPath ? getQuerystringParam('space', location) : null)
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
-  const groupViews = useSelector(state => spaceSlug ? getGroupViews(state, group) : null)
+  const groupViews = useGroupViews(spaceSlug ? group : null)
   const currentUser = useSelector(getMe)
   const myMemberships = useSelector(getMyMemberships)
   const { headerDetails } = useViewHeader()

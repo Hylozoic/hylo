@@ -306,7 +306,7 @@ describe('Group', function () {
 
     it('settles track enrollment when leaving a track space', async function () {
       const group = await factories.group().save()
-      const track = await Track.forge({ name: 'Enrolled Track', group_id: null }).save()
+      const track = await Track.forge({ group_id: null }).save()
       const space = await factories.group({
         type: 'space',
         parent_id: group.id,
@@ -340,7 +340,6 @@ describe('Group', function () {
       }).save()
       const round = await FundingRound.forge({
         group_id: space.id,
-        title: 'Cascading Round',
         voting_method: 'quadratic',
         num_participants: 1,
         created_at: new Date(),
@@ -366,7 +365,7 @@ describe('Group', function () {
 
     it('does not decrement participation for an already inactive member', async function () {
       const group = await factories.group().save()
-      const track = await Track.forge({ name: 'Idempotent Track', group_id: null }).save()
+      const track = await Track.forge({ group_id: null }).save()
       const space = await factories.group({
         type: 'space',
         parent_id: group.id,

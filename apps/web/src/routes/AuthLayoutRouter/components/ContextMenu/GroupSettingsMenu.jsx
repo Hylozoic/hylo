@@ -48,7 +48,7 @@ export default function GroupSettingsMenu ({ group, groupSlug, isOneColumn = fal
     canAdminister && { title: 'Roles & Badges', url: 'settings/roles' },
     canAdminister && { title: 'Privacy & Access', url: 'settings/privacy' },
     canAddMembers && !isSpace && { title: 'Invitations', url: 'settings/invite' },
-    canAddMembers && { title: 'Join Requests', url: 'settings/requests' },
+    canAddMembers && { title: 'Join Requests', url: isSpace ? 'requests' : 'settings/requests' },
     canAdminister && { title: 'Related Groups', url: 'settings/relationships' },
     canAdminister && { title: 'Export Data', url: 'settings/export' },
     canAdminister && { title: 'Appearance & Layout', url: 'settings/appearance' },

@@ -1,7 +1,7 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { Eye, EyeOff, ImagePlus } from 'lucide-react'
 
 import Button from 'components/ui/button'
@@ -16,11 +16,15 @@ import LocationInput from 'components/LocationInput/LocationInput'
 import PostTypePills from 'components/PostTypePills/PostTypePills'
 import TagInput from 'components/TagInput'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
-import { updateFundingRound } from 'routes/FundingRounds/FundingRounds.store'
+import { updateFundingRound, fetchFundingRound } from 'routes/FundingRounds/FundingRounds.store'
 import { updateSpace } from 'store/actions/groupViews'
-import { updateTrack } from 'store/actions/trackActions'
+import { updateTrack, fetchTrack } from 'store/actions/trackActions'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
+import getFundingRound from 'store/selectors/getFundingRound'
+import getGroupForSlug from 'store/selectors/getGroupForSlug'
+import getTrack from 'store/selectors/getTrack'
+import { groupRolesForPicker } from '@hylo/hooks/groupRoleHelpers'
 import { cn } from 'util/index'
 
 import FundingRoundSettingsFields from './FundingRoundSettingsFields'
@@ -31,15 +35,51 @@ function toDateOrNull (value) {
   return value instanceof Date ? value : new Date(value)
 }
 
+function hasTrackSettings (track) {
+  return Boolean(track && Object.prototype.hasOwnProperty.call(track, 'completionMessage'))
+}
+
+function hasFundingRoundSettings (round) {
+  return Boolean(round && Object.prototype.hasOwnProperty.call(round, 'criteria'))
+}
+
+function roleItems (g) {
+  if (!g) return []
+  return g.groupRoles?.items || g.ref?.groupRoles?.items || []
+}
+
 /** Modal for editing an existing space's settings — same fields as AddSpaceDialog's creation form,
  * plus Track / Funding Round settings when the space is backed by either.
- * Accepts `space` directly (e.g. More Spaces) and optional parent-menu `view` when the space is on the menu. */
-export default function SpaceSettingsModal ({ space: spaceProp, view, group, onClose, inline = false }) {
+ * `parentGroup` is the containing group (never the space). `space` can be passed directly
+ * (e.g. More Spaces) or taken from optional parent-menu `view.linkedGroup`. */
+export default function SpaceSettingsModal ({ space: spaceProp, view, parentGroup: parentGroupProp, onClose, inline = false }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
-  const space = spaceProp || view?.linkedGroup
-  const track = space?.track
-  const fundingRound = space?.fundingRound
+  const passedSpace = spaceProp || view?.linkedGroup
+  const spaceFromStore = useSelector(state => {
+    const slug = passedSpace?.slug
+    if (!slug) return null
+    return getGroupForSlug(state, slug)?.ref || null
+  })
+  const parentFromStore = useSelector(state => {
+    const slug = parentGroupProp?.slug
+    if (!slug) return null
+    return getGroupForSlug(state, slug)?.ref || null
+  })
+  const parentGroup = parentFromStore || parentGroupProp
+  // Prefer the normalized Group so track / fundingRound survive slim linkedGroup payloads.
+  const space = (passedSpace || spaceFromStore)
+    ? {
+        ...passedSpace,
+        ...spaceFromStore,
+        track: spaceFromStore?.track || passedSpace?.track,
+        fundingRound: spaceFromStore?.fundingRound || passedSpace?.fundingRound
+      }
+    : null
+  const fetchedTrack = useSelector(state => space?.track?.id ? getTrack(state, space.track.id) : null)
+  const fetchedRound = useSelector(state => space?.fundingRound?.id ? getFundingRound(state, space.fundingRound.id) : null)
+  const track = fetchedTrack || space?.track
+  const fundingRound = fetchedRound || space?.fundingRound
   const modalTitle = track
     ? t('Track Space Settings')
     : fundingRound
@@ -61,9 +101,7 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, group, onC
   }))
   const [requiredRoles, setRequiredRoles] = useState(() => {
     const roleIds = space?.requiredRoles || []
-    const sourceRoles = (space?.groupRoles?.items?.length > 0
-      ? space.groupRoles.items
-      : (group?.groupRoles?.items || []))
+    const sourceRoles = roleItems(parentGroup)
     const roleById = new Map(sourceRoles.map(role => [String(role.id), role]))
     return roleIds.map(id => roleById.get(String(id))).filter(Boolean)
   })
@@ -78,8 +116,8 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, group, onC
   const completionMessageEditorRef = useRef(null)
 
   const accessOptions = useMemo(
-    () => accessOptionsForGroup(group, { includePaid: Boolean(space?.paywall) }),
-    [group, space?.paywall]
+    () => accessOptionsForGroup(parentGroup, { includePaid: Boolean(space?.paywall) }),
+    [parentGroup, space?.paywall]
   )
 
   // Funding Round settings
@@ -99,18 +137,61 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, group, onC
   const [frVoterRoles, setFrVoterRoles] = useState(fundingRound?.voterRoles || [])
   const frCriteriaEditorRef = useRef(null)
 
-  // Spaces created before roles were set up on them (e.g. migrated Track spaces) may have no
-  // group_roles rows yet — fall back to the parent group's roles rather than showing an empty list.
-  const roles = useMemo(() => {
-    const spaceRoles = space?.groupRoles?.items || []
-    const sourceRoles = spaceRoles.length > 0 ? spaceRoles : (group?.groupRoles?.items || [])
-    return sourceRoles.map(role => ({ ...role, type: 'group', label: `${role.emoji} ${role.name}` }))
-  }, [space?.groupRoles?.items, group?.groupRoles?.items])
+  useEffect(() => {
+    const trackId = space?.track?.id
+    if (!trackId || fetchedTrack?.id) return
+    if (hasTrackSettings(spaceFromStore?.track) || hasTrackSettings(passedSpace?.track)) return
+    dispatch(fetchTrack(trackId))
+  }, [dispatch, space?.track?.id, fetchedTrack?.id, spaceFromStore?.track, passedSpace?.track])
+
+  useEffect(() => {
+    const roundId = space?.fundingRound?.id
+    if (!roundId || fetchedRound?.id) return
+    if (hasFundingRoundSettings(spaceFromStore?.fundingRound) || hasFundingRoundSettings(passedSpace?.fundingRound)) return
+    dispatch(fetchFundingRound(roundId))
+  }, [dispatch, space?.fundingRound?.id, fetchedRound?.id, spaceFromStore?.fundingRound, passedSpace?.fundingRound])
+
+  // Hydrate track / round fields if they arrive after the modal opened (slim menu payload first).
+  useEffect(() => {
+    if (!track?.id) return
+    setActionDescriptor(track.actionDescriptor || 'Action')
+    setActionDescriptorPlural(track.actionDescriptorPlural || 'Actions')
+    setPublishedAt(track.publishedAt || null)
+    if (hasTrackSettings(track)) setCompletionRole(track.completionRole || null)
+  }, [track?.id, track?.completionMessage, track?.completionRole?.id, track?.actionDescriptor, track?.actionDescriptorPlural, track?.publishedAt])
+
+  const roundIsFull = hasFundingRoundSettings(fundingRound)
+  useEffect(() => {
+    if (!fundingRound?.id) return
+    setFrPublishedAt(fundingRound.publishedAt || null)
+    setFrSubmissionDescriptor(fundingRound.submissionDescriptor || 'Submission')
+    setFrSubmissionDescriptorPlural(fundingRound.submissionDescriptorPlural || 'Submissions')
+    if (!roundIsFull) return
+    setFrSubmissionsOpenAt(toDateOrNull(fundingRound.submissionsOpenAt))
+    setFrSubmissionsCloseAt(toDateOrNull(fundingRound.submissionsCloseAt))
+    setFrVotingOpensAt(toDateOrNull(fundingRound.votingOpensAt))
+    setFrVotingClosesAt(toDateOrNull(fundingRound.votingClosesAt))
+    setFrVotingMethod(fundingRound.votingMethod || 'token_allocation_constant')
+    setFrTotalTokens(fundingRound.totalTokens ?? '')
+    setFrTokenType(fundingRound.tokenType || 'Votes')
+    setFrAllowSelfVoting(!!fundingRound.allowSelfVoting)
+    setFrHideFinalResults(!!fundingRound.hideFinalResultsFromParticipants)
+    setFrSubmitterRoles(fundingRound.submitterRoles || [])
+    setFrVoterRoles(fundingRound.voterRoles || [])
+    // Full round object is read when roundIsFull flips; avoid depending on the selector's new object each render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fundingRound?.id, roundIsFull])
+
+  // Spaces inherit role definitions from the parent group (no per-space groups_roles rows).
+  const roles = useMemo(
+    () => groupRolesForPicker(roleItems(parentGroup)),
+    [parentGroup]
+  )
 
   const roleSuggestions = useMemo(() => {
     if (roleSearchTerm === null) return []
     const unselectedRoles = roles.filter(role => !requiredRoles.some(selected => selected.id === role.id))
-    if (!roleSearchTerm) return unselectedRoles.slice(0, 5)
+    if (!roleSearchTerm) return unselectedRoles
     const searchLower = roleSearchTerm.toLowerCase()
     return unselectedRoles.filter(role => role.name.toLowerCase().includes(searchLower))
   }, [roleSearchTerm, roles, requiredRoles])
@@ -125,12 +206,12 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, group, onC
   ), [])
 
   const selectedCompletionRole = useMemo(
-    () => (completionRole?.id ? roles.find(role => role.id === completionRole.id) : null),
+    () => (completionRole?.id ? roles.find(role => String(role.id) === String(completionRole.id)) : null),
     [completionRole, roles]
   )
 
   const handleSave = useCallback(async () => {
-    if (!name.trim() || !space?.id || !group?.id) return
+    if (!name.trim() || !space?.id || !parentGroup?.id) return
     setIsSaving(true)
     try {
       const accessOption = accessOptions.find(option => option.value === access)
@@ -139,7 +220,7 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, group, onC
       // Space menu labels use linkedGroup.name — do not snapshot the name onto group_views.
       await dispatch(updateSpace({
         id: space.id,
-        groupId: group.id,
+        groupId: parentGroup.id,
         spaceViewId: view?.id,
         name: trimmedName,
         description: description || null,
@@ -191,9 +272,9 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, group, onC
       // Refresh the space's own views (typed views appear/disappear with acceptedPostTypes)
       // and the parent menu so nested space labels/copies stay in sync.
       await dispatch(fetchGroupViews(space.id))
-      await dispatch(fetchGroupViews(group.id))
+      await dispatch(fetchGroupViews(parentGroup.id))
       if (!view?.id) {
-        await dispatch(fetchGroupSpaces(group.id))
+        await dispatch(fetchGroupSpaces(parentGroup.id))
       }
       onClose()
     } catch (error) {
@@ -201,7 +282,7 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, group, onC
     } finally {
       setIsSaving(false)
     }
-  }, [dispatch, space?.id, group?.id, view?.id, name, description, icon, bannerUrl, purpose, locationObject, postTypes, access, accessOptions, requiredRoles, track?.id, actionDescriptor, actionDescriptorPlural, completionRole, publishedAt, fundingRound?.id, frPublishedAt, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frHideFinalResults, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles, onClose])
+  }, [dispatch, space?.id, parentGroup?.id, view?.id, name, description, icon, bannerUrl, purpose, locationObject, postTypes, access, accessOptions, requiredRoles, track?.id, actionDescriptor, actionDescriptorPlural, completionRole, publishedAt, fundingRound?.id, frPublishedAt, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frHideFinalResults, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles, onClose])
 
   if (!space) return null
 
@@ -341,7 +422,7 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, group, onC
                 {t('Completion Message')}
               </h3>
               <HyloEditor
-                key={track.id}
+                key={`${track.id}-${hasTrackSettings(track) ? 'full' : 'slim'}`}
                 containerClassName='mt-2'
                 contentHTML={track.completionMessage}
                 className='h-full p-2 border-border border-2 border-dashed min-h-20 mt-1'
@@ -359,19 +440,24 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, group, onC
               <div className='flex flex-row items-center relative p-1 border-transparent transition-all duration-200 group focus-within:border-focus mt-1'>
                 <Select
                   onValueChange={(roleId) => {
-                    const role = roles.find(r => r.id === roleId)
+                    if (roleId === 'none') {
+                      setCompletionRole(null)
+                      return
+                    }
+                    const role = roles.find(r => String(r.id) === String(roleId))
                     if (role) setCompletionRole(role)
                   }}
-                  value={completionRole?.id || ''}
+                  value={completionRole?.id ? String(completionRole.id) : 'none'}
                 >
                   <SelectTrigger className='w-fit border-2 bg-input border-foreground/30 rounded-md p-2 text-base'>
                     <SelectValue>
-                      {selectedCompletionRole ? `${selectedCompletionRole.emoji} ${selectedCompletionRole.name}` : t('Select a badge or role given to members who complete the track')}
+                      {selectedCompletionRole ? `${selectedCompletionRole.emoji} ${selectedCompletionRole.name}` : t('None')}
                     </SelectValue>
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className='z-[1200]'>
+                    <SelectItem value='none'>{t('None')}</SelectItem>
                     {roles.map((role) => (
-                      <SelectItem key={role.id} value={role.id}>
+                      <SelectItem key={role.id} value={String(role.id)}>
                         {role.emoji} {role.name}
                       </SelectItem>
                     ))}
@@ -460,7 +546,7 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, group, onC
             roles={roles}
             criteriaEditorRef={frCriteriaEditorRef}
             groupIds={[space.id]}
-            editorKey={fundingRound.id}
+            editorKey={`${fundingRound.id}-${roundIsFull ? 'full' : 'slim'}`}
             initialCriteria={fundingRound.criteria}
           />
         )}

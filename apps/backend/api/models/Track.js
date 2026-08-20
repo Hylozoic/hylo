@@ -96,9 +96,18 @@ module.exports = bookshelf.Model.extend(Object.assign({
     return membership && membership.get('active') ? membership.get('settings') : null
   },
 
-  // Getter to override access to the welcome_message attribute and sanitize the HTML
-  welcomeMessage: function () {
-    return RichText.processHTML(this.get('welcome_message'))
+  /** Display name lives on the Track space group. */
+  displayName: async function ({ transacting } = {}) {
+    if (this.relations.group) return this.relations.group.get('name') || ''
+    const space = await this.group().fetch({ transacting })
+    return space ? space.get('name') : ''
+  },
+
+  /** Description lives on the Track space group. */
+  displayDescription: async function ({ transacting } = {}) {
+    if (this.relations.group) return this.relations.group.get('description') || ''
+    const space = await this.group().fetch({ transacting })
+    return space ? space.get('description') : ''
   },
 
   /** Ordered action Posts from the Track space's track-actions view. */
@@ -113,7 +122,6 @@ module.exports = bookshelf.Model.extend(Object.assign({
       delete newTrack.attributes.id
       delete newTrack.id
       await newTrack.save({
-        name: this.get('name') + ' (copy)',
         num_actions: 0,
         num_people_enrolled: 0,
         num_people_completed: 0,
@@ -130,7 +138,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
         delete copySpace.id
         const accessCode = await Group.getNewAccessCode()
         await copySpace.save({
-          name: (sourceSpace.get('name') || newTrack.get('name')) + ' (copy)',
+          name: (sourceSpace.get('name') || 'Track') + ' (copy)',
           slug: `${sourceSpace.get('slug')}-copy-${Date.now()}`.slice(0, 40),
           access_code: accessCode,
           track_id: newTrack.id,
@@ -212,6 +220,14 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
   create: async function (attrs, { transacting } = {}) {
     attrs.settings = attrs.settings || { }
+    // Dual-write display fields onto leftover NOT NULL columns until the
+    // in-progress drop-column migration ships. Source of truth is the space group.
+    if (!attrs.name) {
+      const space = attrs.group_id ? await Group.find(attrs.group_id, { transacting }) : null
+      attrs.name = (space && space.get('name')) || 'Untitled'
+      if (attrs.description === undefined) attrs.description = space ? space.get('description') : null
+      if (attrs.banner_url === undefined) attrs.banner_url = space ? space.get('banner_url') : null
+    }
     return this.forge(Object.assign({ created_at: new Date() }, attrs)).save({}, { transacting })
   },
 

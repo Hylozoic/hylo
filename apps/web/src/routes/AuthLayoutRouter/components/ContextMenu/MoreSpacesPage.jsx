@@ -10,8 +10,8 @@ import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import { createGroupView, deleteSpace, setGroupViewHidden, updateGroupView } from 'store/actions/groupViews'
 import { FETCH_GROUP_SPACES } from 'store/constants'
-import { getGroupViews } from 'store/selectors/getGroupViews'
-import { getMoreSpacesSections } from 'store/selectors/getMoreSpacesSections'
+import useGroupViews from 'hooks/useGroupViews'
+import useMoreSpacesSections from 'hooks/useMoreSpacesSections'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import isPendingFor from 'store/selectors/isPendingFor'
@@ -75,8 +75,8 @@ export default function MoreSpacesPage ({ group }) {
   const contentGroup = spaceGroupFromStore || spaceFromList || group
   const isSpaceMoreSpaces = Boolean(spaceSlugParam && contentGroup && contentGroup.id !== group?.id)
 
-  const groupViews = useSelector(state => getGroupViews(state, contentGroup))
-  const sections = useSelector(state => getMoreSpacesSections(state, contentGroup))
+  const groupViews = useGroupViews(contentGroup)
+  const sections = useMoreSpacesSections(contentGroup)
   const pending = useSelector(state => isPendingFor(FETCH_GROUP_SPACES, state))
 
   const [showAddSpace, setShowAddSpace] = useState(false)
@@ -345,7 +345,7 @@ export default function MoreSpacesPage ({ group }) {
       {settingsSpace && (
         <SpaceSettingsModal
           space={settingsSpace}
-          group={group}
+          parentGroup={group}
           onClose={handleCloseSettings}
         />
       )}

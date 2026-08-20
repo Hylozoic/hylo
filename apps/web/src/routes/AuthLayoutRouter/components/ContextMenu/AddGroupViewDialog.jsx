@@ -377,10 +377,18 @@ export default function AddGroupViewDialog ({ group, groupViews, onClose, onAdd 
     )
   }
 
+  /** Closes the dialog when the dimmed overlay (not the panel) is clicked. */
+  const handleBackdropClick = (event) => {
+    if (event.target === event.currentTarget) onClose()
+  }
+
   // Portal above AuthLayout nav stacking so the dialog is not trapped behind GlobalNav.
   return createPortal(
     <>
-      <div className='fixed inset-0 z-[1100] flex items-center justify-center bg-darkening/50 pointer-events-auto'>
+      <div
+        className='fixed inset-0 z-[1100] flex items-center justify-center bg-darkening/50 pointer-events-auto'
+        onClick={handleBackdropClick}
+      >
         <div
           role='dialog'
           aria-modal='true'

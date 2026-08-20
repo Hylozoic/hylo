@@ -89,6 +89,3 @@ export function makeGetMoreSpacesSections () {
 
 /** Returns sections for More Spaces (off-menu spaces only). */
 export const getMoreSpacesSections = makeGetMoreSpacesSections()
-
-/** @deprecated Edit menu now uses the same More Spaces sections. */
-export const getEditMenuOffMenuSections = getMoreSpacesSections

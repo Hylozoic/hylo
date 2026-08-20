@@ -32,6 +32,7 @@ import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { useEffectiveGroupSlug, useGroupRouteOpts } from 'contexts/SpaceGroupContext'
 import useRouteParams from 'hooks/useRouteParams'
 import useCurrentPinnableView from 'hooks/useCurrentPinnableView'
+import useGroupViews from 'hooks/useGroupViews'
 import { updateUserSettings } from 'routes/UserSettings/UserSettings.store'
 import GroupViewIcon from 'routes/AuthLayoutRouter/components/ContextMenu/GroupViewIcon'
 import changeQuerystringParam, { changeQuerystringParams } from 'store/actions/changeQuerystringParam'
@@ -44,7 +45,7 @@ import { FETCH_POSTS, FETCH_TOPIC, FETCH_GROUP_TOPIC, CONTEXT_MY, VIEW_MENTIONS,
 import presentPost from 'store/presenters/presentPost'
 import { makeDropQueryResults } from 'store/reducers/queryResults'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
-import { getGroupViews, getGroupViewById } from 'store/selectors/getGroupViews'
+import { getGroupViewById } from 'store/selectors/getGroupViews'
 import getMe from 'store/selectors/getMe'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import getMyMemberships from 'store/selectors/getMyMemberships'
@@ -146,7 +147,7 @@ export default function ViewContent (props) {
     [groupView]
   )
 
-  const groupViews = useSelector(state => getGroupViews(state, group))
+  const groupViews = useGroupViews(group)
   const showChatActivity = useMemo(() => {
     const allView = (groupViews || []).find(v => v.type === 'all')
     return allView?.settings?.showChatActivity !== false

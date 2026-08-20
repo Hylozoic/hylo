@@ -53,7 +53,7 @@ export default function FundingRoundSettingsFields ({
   const submitterRoleSuggestions = useMemo(() => {
     if (submitterRoleSearch === null) return []
     const unselected = roles.filter(role => !submitterRoles.some(selected => selected.id === role.id))
-    if (!submitterRoleSearch) return unselected.slice(0, 5)
+    if (!submitterRoleSearch) return unselected
     const searchLower = submitterRoleSearch.toLowerCase()
     return unselected.filter(role => role.name.toLowerCase().includes(searchLower))
   }, [submitterRoleSearch, roles, submitterRoles])
@@ -61,7 +61,7 @@ export default function FundingRoundSettingsFields ({
   const voterRoleSuggestions = useMemo(() => {
     if (voterRoleSearch === null) return []
     const unselected = roles.filter(role => !voterRoles.some(selected => selected.id === role.id))
-    if (!voterRoleSearch) return unselected.slice(0, 5)
+    if (!voterRoleSearch) return unselected
     const searchLower = voterRoleSearch.toLowerCase()
     return unselected.filter(role => role.name.toLowerCase().includes(searchLower))
   }, [voterRoleSearch, roles, voterRoles])
@@ -147,7 +147,7 @@ export default function FundingRoundSettingsFields ({
           <SelectTrigger className='w-full border-2 bg-input border-foreground/30 rounded-md p-2 text-base mt-1'>
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className='z-[1200]'>
             <SelectItem value='token_allocation_constant'>{t('Same number of tokens per voter')}</SelectItem>
             <SelectItem value='token_allocation_divide'>{t('Divide total tokens evenly among voters')}</SelectItem>
           </SelectContent>

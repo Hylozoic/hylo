@@ -19,6 +19,7 @@ import {
   spaceUrl
 } from '@hylo/navigation'
 import { replace } from 'redux-first-history'
+import { menuViewUrl, spaceEntryUrl, isParentGroupPath } from './groupViewMenuUrl'
 import { WebViewMessageTypes } from '@hylo/shared'
 import { sendMessageToWebView } from 'util/webView'
 import logout from 'store/actions/logout'
@@ -72,7 +73,6 @@ import AddGroupViewDialog from './AddGroupViewDialog'
 import AddSpaceDialog from './AddSpaceDialog'
 import AddViewOrSpaceMenu from './AddViewOrSpaceMenu'
 import EditingBottomBar, { EDITING_BAR_BUTTON_CLASS } from './EditingBottomBar'
-import { menuViewUrl, isParentGroupPath } from './groupViewMenuUrl'
 import getPreviousLocation from 'store/selectors/getPreviousLocation'
 import { appendSpaceId, spaceCollectionViews } from 'util/spaceCollection'
 
@@ -470,8 +470,7 @@ function MoreSpacesGrid ({
 
   const handleOpenSpace = useCallback((space) => {
     if (isEditing) return
-    const local = localSpaceSlug(groupSlug, space.slug)
-    navigate(spaceUrl(groupSlug, local), { state: { fromMoreSpaces: true } })
+    navigate(spaceEntryUrl(groupSlug, space), { state: { fromMoreSpaces: true } })
   }, [groupSlug, navigate, isEditing])
 
   const handleOpenSpaceAbout = useCallback((space) => {
@@ -782,8 +781,7 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
       return
     }
     if (presented.type === 'space' && presented.linkedGroup) {
-      const local = localSpaceSlug(groupSlug, presented.linkedGroup.slug)
-      navigate(spaceUrl(groupSlug, local))
+      navigate(spaceEntryUrl(groupSlug, presented.linkedGroup))
       return
     }
     const url = menuViewUrl(groupSlug, presented, spaceGroup)
@@ -1006,7 +1004,7 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
             <SpaceSettingsModal
               view={settingsView}
               space={settingsView.linkedGroup}
-              group={group}
+              parentGroup={group}
               onClose={() => setSettingsView(null)}
             />
             )

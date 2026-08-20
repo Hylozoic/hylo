@@ -511,7 +511,7 @@ export default function GroupAboutView ({
                   <SpaceSettingsModal
                     inline
                     space={group}
-                    group={parentGroup}
+                    parentGroup={parentGroup}
                     onClose={() => handleTab('about')}
                   />
                 </AboutCard>

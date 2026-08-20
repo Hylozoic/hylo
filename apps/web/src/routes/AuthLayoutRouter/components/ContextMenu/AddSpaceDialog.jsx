@@ -26,6 +26,7 @@ import { updateGroupSettings } from 'routes/GroupSettings/GroupSettings.store'
 import { createTrack } from 'store/actions/trackActions'
 import { createFundingRound } from 'routes/FundingRounds/FundingRounds.store'
 import { POST_TYPE_TO_VIEW_TYPE } from 'store/models/GroupView'
+import { groupRolesForPicker } from '@hylo/hooks/groupRoleHelpers'
 import getMe from 'store/selectors/getMe'
 import { cn } from 'util/index'
 import { isOneColumnLayout } from 'util/navigationLayout'
@@ -149,13 +150,15 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
     setIcon(defaults.icon)
   }, [])
 
-  const groupRoles = useMemo(() => group?.groupRoles?.items || [], [group?.groupRoles?.items])
-  const roles = useMemo(() => groupRoles.map(role => ({ ...role, type: 'group', label: `${role.emoji} ${role.name}` })), [groupRoles])
+  const roles = useMemo(
+    () => groupRolesForPicker(group?.groupRoles?.items),
+    [group?.groupRoles?.items]
+  )
 
   const roleSuggestions = useMemo(() => {
     if (roleSearchTerm === null) return []
     const unselectedRoles = roles.filter(role => !requiredRoles.some(selected => selected.id === role.id))
-    if (!roleSearchTerm) return unselectedRoles.slice(0, 5)
+    if (!roleSearchTerm) return unselectedRoles
     const searchLower = roleSearchTerm.toLowerCase()
     return unselectedRoles.filter(role => role.name.toLowerCase().includes(searchLower))
   }, [roleSearchTerm, roles, requiredRoles])
@@ -247,14 +250,12 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
       if (newSpace?.id && spaceType === 'track') {
         await dispatch(createTrack({
           groupId: newSpace.id,
-          name: name.trim(),
           actionDescriptor: 'Action',
           actionDescriptorPlural: 'Actions'
         }))
       } else if (newSpace?.id && spaceType === 'funding-round') {
         await dispatch(createFundingRound({
           groupId: newSpace.id,
-          title: name.trim(),
           publishedAt: toIsoOrNull(frPublishedAt),
           submissionsOpenAt: toIsoOrNull(frSubmissionsOpenAt),
           submissionsCloseAt: toIsoOrNull(frSubmissionsCloseAt),
@@ -360,9 +361,17 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
     }
   }, [dispatch, group?.id, name, description, icon, bannerUrl, purpose, locationObject, postTypes, access, requiredRoles, spaceType, orderedRows, standardViewTypes, welcomeExtras, onClose, onCreated, navigate, routerLocation.pathname, addToMenu, isOneColumn, frPublishedAt, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frHideFinalResults, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles])
 
+  /** Closes the dialog when the dimmed overlay (not the panel) is clicked. */
+  const handleBackdropClick = (event) => {
+    if (event.target === event.currentTarget) onClose()
+  }
+
   // Portal above AuthLayout nav stacking so access radios / FR checkboxes remain clickable.
   return createPortal(
-    <div className='fixed inset-0 z-[1100] flex items-center justify-center bg-darkening/50 pointer-events-auto'>
+    <div
+      className='fixed inset-0 z-[1100] flex items-center justify-center bg-darkening/50 pointer-events-auto'
+      onClick={handleBackdropClick}
+    >
       <div className='bg-midground rounded-lg shadow-lg p-4 w-full max-w-md sm:max-w-[40rem] max-h-[85vh] flex flex-col'>
         <h2 className='text-lg font-semibold mb-4'>{t('Add Space')}</h2>
 

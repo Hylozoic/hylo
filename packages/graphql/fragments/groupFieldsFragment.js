@@ -59,27 +59,6 @@ export default gql`
         visibility
       }
     }
-    customViews {
-      items {
-        id
-        activePostsOnly
-        collectionId
-        defaultSort
-        defaultViewMode
-        externalLink
-        groupId
-        isActive
-        icon
-        name
-        order
-        postTypes
-        topics {
-          id
-          name
-        }
-        type
-      }
-    }
     locationObject {
       id
       addressNumber

@@ -117,7 +117,7 @@ module.exports = bookshelf.Model.extend({
   }
 
 }, {
-  addToGroup: ({ group_id, tag_id, user_id, description, is_default, isSubscribing, isChatRoom }, opts) => {
+  addToGroup: ({ group_id, tag_id, user_id, description, is_default, isSubscribing }, opts) => {
     return GroupTag.where({ group_id, tag_id }).fetch(opts)
       .tap(groupTag => groupTag ||
         GroupTag.create({ group_id, tag_id, user_id, description, is_default }, opts)
@@ -127,7 +127,7 @@ module.exports = bookshelf.Model.extend({
       // the result
       .then(groupTag => groupTag && groupTag.save({ updated_at: new Date(), is_default }, opts))
       .then(() => user_id && isSubscribing &&
-        TagFollow.findOrCreate({ groupId: group_id, tagId: tag_id, userId: user_id, isSubscribing, isChatRoom }, opts))
+        TagFollow.findOrCreate({ groupId: group_id, tagId: tag_id, userId: user_id }, opts))
   },
 
   isValidTag (text) {

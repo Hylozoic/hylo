@@ -18,10 +18,8 @@ query (
       items {
         id
         allowSelfVoting
-        bannerUrl
         createdAt
         criteria
-        description
         isParticipating
         hideFinalResultsFromParticipants
         maxTokenAllocation
@@ -37,7 +35,6 @@ query (
         submissionDescriptorPlural
         submissionsCloseAt
         submissionsOpenAt
-        title
         tokenType
         totalTokens
         totalTokensAllocated
@@ -47,7 +44,9 @@ query (
         votingClosesAt
         group {
           id
+          name
           slug
+          bannerUrl
           description
           homeRoute
           parentGroup {

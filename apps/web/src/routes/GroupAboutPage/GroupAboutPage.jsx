@@ -58,7 +58,7 @@ export default function GroupAboutPage () {
 
   useEffect(() => {
     if (!groupSlug) return
-    dispatch(fetchGroupDetails({ slug: groupSlug, withContextWidgets: false, withWidgets: false, withPrerequisites: false }))
+    dispatch(fetchGroupDetails({ slug: groupSlug, withWidgets: false, withPrerequisites: false }))
   }, [dispatch, groupSlug])
 
   if (!group) return <Loading />

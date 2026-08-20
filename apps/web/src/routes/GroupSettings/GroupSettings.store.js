@@ -105,31 +105,6 @@ export function fetchGroupSettings (slug) {
               avatarUrl
             }
           }
-          customViews {
-            items {
-              id
-              activePostsOnly
-              collectionId
-              collection {
-                id
-                name
-              }
-              defaultSort
-              defaultViewMode
-              externalLink
-              groupId
-              isActive
-              icon
-              name
-              order
-              postTypes
-              topics {
-                id
-                name
-              }
-              type
-            }
-          }
           groupRelationshipInvitesFrom {
             items {
               id
@@ -303,30 +278,6 @@ export function updateGroupSettings (id, changes) {
               description
               order
               title
-            }
-          }
-          customViews {
-            items {
-              id
-              activePostsOnly
-              collectionId
-              collection {
-                id
-              }
-              defaultSort
-              defaultViewMode
-              externalLink
-              groupId
-              isActive
-              icon
-              name
-              postTypes
-              order
-              topics {
-                id
-                name
-              }
-              type
             }
           }
           groupToGroupJoinQuestions {

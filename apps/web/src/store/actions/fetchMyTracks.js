@@ -17,13 +17,10 @@ query FetchMyTracks (
         id
         accessControlled
         canAccess
-        bannerUrl
         actionDescriptor
         actionDescriptorPlural
-        description
         didComplete
         isEnrolled
-        name
         numActions
         numPeopleCompleted
         numPeopleEnrolled
@@ -34,6 +31,8 @@ query FetchMyTracks (
           type
           homeRoute
           avatarUrl
+          bannerUrl
+          description
           name
           parentGroup {
             id

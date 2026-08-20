@@ -29,8 +29,6 @@ describe('Content Access Mutations', () => {
       publish_status: 'published'
     }).save()
     track = await Track.forge({
-      name: 'Test Track',
-      description: 'Test Track Description',
       group_id: group.id
     }).save()
 

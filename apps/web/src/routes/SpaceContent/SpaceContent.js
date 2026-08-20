@@ -5,6 +5,7 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import Loading from 'components/Loading'
 import { SpaceGroupSlugContext } from 'contexts/SpaceGroupContext'
 import useRouteParams from 'hooks/useRouteParams'
+import useGroupViews from 'hooks/useGroupViews'
 import ChatRoom from 'routes/ChatRoom'
 import GroupAboutPage from 'routes/GroupAboutPage'
 import MembershipRequestsTab from 'routes/GroupSettings/MembershipRequestsTab'
@@ -24,11 +25,10 @@ import fetchForGroup from 'store/actions/fetchForGroup'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
-import { getGroupViews } from 'store/selectors/getGroupViews'
 import getMyMemberships from 'store/selectors/getMyMemberships'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { RESP_ADD_MEMBERS } from 'store/constants'
-import { localSpaceSlug, spaceUrl, POST_DETAIL_MATCH } from '@hylo/navigation'
+import { localSpaceSlug, spaceHomeRoutePath, spaceUrl, POST_DETAIL_MATCH } from '@hylo/navigation'
 import { isDrawerNavLayout } from 'util/mobile'
 
 /**
@@ -67,7 +67,7 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
 
   const parentGroupFromStore = useSelector(state => getGroupForSlug(state, parentSlug))
   const parentGroup = parentGroupProp || parentGroupFromStore
-  const groupViews = useSelector(state => getGroupViews(state, parentGroup))
+  const groupViews = useGroupViews(parentGroup)
 
   const linkedSpace = useMemo(
     () => resolveSpaceGroup(parentGroup, groupViews, parentSlug, localSlug),
@@ -144,8 +144,13 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
 
   if (spaceFullSlug && (!spaceGroup || needsSpaceGroupViews)) return <Loading />
 
-  const homeRoute = spaceGroup?.homeRoute || linkedSpace?.homeRoute || '/welcome'
   const resolvedSpace = spaceGroup || linkedSpace
+  const homeRoute = spaceHomeRoutePath({
+    homeRoute: spaceGroup?.homeRoute || linkedSpace?.homeRoute,
+    groupViews: spaceGroup?.groupViews || linkedSpace?.groupViews,
+    track: spaceGroup?.track || linkedSpace?.track,
+    fundingRound: spaceGroup?.fundingRound || linkedSpace?.fundingRound
+  })
 
   // Entering a space should land on its menu, not skip straight into a view —
   // unless a menu is still visible elsewhere. In two column that is the sidebar,

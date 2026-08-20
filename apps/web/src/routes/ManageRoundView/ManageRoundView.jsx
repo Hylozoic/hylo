@@ -74,13 +74,12 @@ export default function ManageRoundView () {
           space={{
             ...(group.ref || group),
             acceptedPostTypes: group.acceptedPostTypes,
-            groupRoles: group.groupRoles,
             locationObject: group.locationObject,
             requiredRoles: group.requiredRoles,
             fundingRound: round,
             track: group.track
           }}
-          group={parentGroup}
+          parentGroup={parentGroup}
           onClose={() => setSettingsOpen(false)}
         />
       )}

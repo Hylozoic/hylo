@@ -6,22 +6,14 @@ import groupJoinQuestionsFieldsFragment from '../fragments/groupJoinQuestionsFie
 import groupPendingInvitationsFieldsFragment from '../fragments/groupPendingInvitationsFieldsFragment'
 import groupPrerequisiteGroupsFieldsFragment from '../fragments/groupPrerequisiteGroupsFieldsFragment'
 import groupWidgetsFieldsFragment from '../fragments/groupWidgetsFieldsFragment'
-import groupContextWidgetsFieldsFragment from '../fragments/groupContextWidgetsFieldsFragment'
 
-// Note: The previous defaults args for fetchGroupDetails were:
-// withExtensions = true,
-// withWidgets = false,
-// withTopics = true,
-// withJoinQuestions = true,
-// withPrerequisites = true
 export default function groupDetailsQueryMaker ({
   withExtensions = false,
   withWidgets = false,
   withTopics = false,
   withJoinQuestions = false,
   withPrerequisiteGroups = false,
-  withPendingInvitations = false,
-  withContextWidgets = false
+  withPendingInvitations = false
 } = {}) {
   return gql`
     query GroupDetailsQuery ($slug: String, $id: ID) {
@@ -29,7 +21,6 @@ export default function groupDetailsQueryMaker ({
         ...GroupFieldsFragment
         ${withExtensions ? '...GroupGroupExtensionsFieldsFragment' : ''}
         ${withWidgets ? '...GroupWidgetsFieldsFragment' : ''}
-        ${withContextWidgets ? '...GroupContextWidgetsFieldsFragment' : ''}
         ${withTopics ? '...GroupGroupTopicsFieldsFragment' : ''}
         ${withJoinQuestions ? '...GroupJoinQuestionsFieldsFragment' : ''}
         ${withPrerequisiteGroups ? '...GroupPrerequisiteGroupsFieldsFragment' : ''}
@@ -39,7 +30,6 @@ export default function groupDetailsQueryMaker ({
     ${groupFieldsFragment}
     ${withExtensions ? groupGroupExtensionsFieldsFragment : ''}
     ${withWidgets ? groupWidgetsFieldsFragment : ''}
-    ${withContextWidgets ? groupContextWidgetsFieldsFragment : ''}
     ${withTopics ? groupGroupTopicsFieldsFragment : ''}
     ${withJoinQuestions ? groupJoinQuestionsFieldsFragment : ''}
     ${withPrerequisiteGroups ? groupPrerequisiteGroupsFieldsFragment : ''}

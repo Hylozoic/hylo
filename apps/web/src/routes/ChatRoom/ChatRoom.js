@@ -29,6 +29,7 @@ import ChatPostNotice from './ChatPostNotice'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import useRouteParams from 'hooks/useRouteParams'
+import useGroupViews from 'hooks/useGroupViews'
 import fetchForGroup from 'store/actions/fetchForGroup'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import fetchPosts from 'store/actions/fetchPosts'
@@ -43,7 +44,6 @@ import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import { getPostResults } from 'store/selectors/getPosts'
-import { getGroupViews } from 'store/selectors/getGroupViews'
 import { cn } from 'util/index'
 import { groupInviteUrl } from '@hylo/navigation'
 import { isLegacyWebView } from 'util/webView'
@@ -144,7 +144,7 @@ export default function ChatRoom (props) {
 
   const currentUser = useSelector(getMe)
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
-  const groupViews = useSelector(state => getGroupViews(state, group))
+  const groupViews = useGroupViews(group)
   const chatView = groupViews.find(v => v.type === 'chat') || null
   const showPostNoticesInChat = group?.settings?.showPostNoticesInChat ?? true
 

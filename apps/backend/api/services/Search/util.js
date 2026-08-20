@@ -91,14 +91,13 @@ export const filterAndSortPosts = curry((opts, q) => {
   }
 
   if (forCollection) {
-    // GroupView collections use view_id; legacy Collection rows still use collection_id
     q.join('collections_posts', (j) => {
       j.on('collections_posts.post_id', '=', 'posts.id')
-      j.andOn(bookshelf.knex.raw('(collections_posts.view_id = ? OR collections_posts.collection_id = ?)', [forCollection, forCollection]))
+      j.andOn(bookshelf.knex.raw('collections_posts.view_id = ?', [forCollection]))
     })
     q.whereIn('posts.id', bookshelf.knex.raw(
-      'select post_id from collections_posts where view_id = ? OR collection_id = ?',
-      [forCollection, forCollection]
+      'select post_id from collections_posts where view_id = ?',
+      [forCollection]
     ))
   }
 
@@ -111,8 +110,8 @@ export const filterAndSortPosts = curry((opts, q) => {
 
   if (collectionToFilterOut) {
     q.whereNotIn('posts.id', bookshelf.knex.raw(
-      'select post_id from collections_posts where view_id = ? OR collection_id = ?',
-      [collectionToFilterOut, collectionToFilterOut]
+      'select post_id from collections_posts where view_id = ?',
+      [collectionToFilterOut]
     ))
   }
 
