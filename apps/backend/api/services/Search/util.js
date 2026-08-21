@@ -175,7 +175,7 @@ export const filterAndSortPosts = curry((opts, q) => {
   }
 })
 
-export const filterAndSortUsers = curry(({ autocomplete, boundingBox, groupId, groupRoleId, order, search, sortBy }, q) => {
+export const filterAndSortUsers = curry(({ autocomplete, boundingBox, groupId, groupRoleId, order, search, sortBy, trackCompleted }, q) => {
   if (autocomplete) {
     const query = chain(autocomplete.split(/\s*\s/)) // split on whitespace
       .map(word => word.replace(/[,;|:&()!\\]+/, ''))
@@ -197,6 +197,15 @@ export const filterAndSortUsers = curry(({ autocomplete, boundingBox, groupId, g
     // the queried group's id here broke spaces, whose role assignments live on
     // the parent group while the membership being filtered is the space's own
     q.where('group_memberships_group_roles.group_role_id', '=', groupRoleId)
+  }
+
+  // Track space membership: completedAt lives on group_memberships.settings
+  if (typeof trackCompleted === 'boolean') {
+    if (trackCompleted) {
+      q.whereRaw("(group_memberships.settings->>'completedAt') is not null")
+    } else {
+      q.whereRaw("(group_memberships.settings->>'completedAt') is null")
+    }
   }
 
   if (search) {

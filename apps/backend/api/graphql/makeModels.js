@@ -770,9 +770,9 @@ export default function makeModels (userId, isAdmin, apiClient) {
         {
           members: {
             querySet: true,
-            filter: (relation, { id, autocomplete, boundingBox, excludeGroupId, groupRoleId, order, search, sortBy }) =>
+            filter: (relation, { id, autocomplete, boundingBox, excludeGroupId, groupRoleId, order, search, sortBy, trackCompleted }) =>
               relation.query(q => {
-                filterAndSortUsers({ autocomplete, boundingBox, groupId: relation.relatedData.parentId, groupRoleId, order, search, sortBy })(q)
+                filterAndSortUsers({ autocomplete, boundingBox, groupId: relation.relatedData.parentId, groupRoleId, order, search, sortBy, trackCompleted })(q)
                 if (excludeGroupId) {
                   q.whereNotIn('users.id',
                     bookshelf.knex('group_memberships')

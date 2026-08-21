@@ -11,7 +11,8 @@ describe('getMemberQueryProps', () => {
       sortBy: 'name',
       order: 'asc',
       search: undefined,
-      groupRoleId: null
+      groupRoleId: null,
+      trackCompleted: null
     }
 
     const lookupProps = getMemberQueryProps({
@@ -27,6 +28,7 @@ describe('getMemberQueryProps', () => {
       slug: 'building-hylo',
       sortBy: 'name',
       groupRoleId: null,
+      trackCompleted: null,
       order: 'asc'
     })
     expect(storeParams).toEqual(lookupProps)
@@ -35,5 +37,10 @@ describe('getMemberQueryProps', () => {
 
   it('uses desc order for join date sort', () => {
     expect(getMemberQueryProps({ slug: 'foo', sortBy: 'join' }).order).toBe('desc')
+  })
+
+  it('keeps a boolean trackCompleted filter in the cache key', () => {
+    expect(getMemberQueryProps({ slug: 'foo', trackCompleted: true }).trackCompleted).toBe(true)
+    expect(getMemberQueryProps({ slug: 'foo', trackCompleted: false }).trackCompleted).toBe(false)
   })
 })

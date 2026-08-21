@@ -13,7 +13,7 @@ export const REMOVE_MEMBER = 'REMOVE_MEMBER'
 export const REMOVE_MEMBER_PENDING = REMOVE_MEMBER + '_PENDING'
 
 export const groupMembersQuery = `
-query FetchGroupMembers ($slug: String, $groupId: ID, $first: Int, $sortBy: String, $order: String, $offset: Int, $search: String, $groupRoleId: ID) {
+query FetchGroupMembers ($slug: String, $groupId: ID, $first: Int, $sortBy: String, $order: String, $offset: Int, $search: String, $groupRoleId: ID, $trackCompleted: Boolean) {
   group (slug: $slug) {
     id
     name
@@ -36,7 +36,7 @@ query FetchGroupMembers ($slug: String, $groupId: ID, $first: Int, $sortBy: Stri
         }
       }
     }
-    members (first: $first, sortBy: $sortBy, order: $order, offset: $offset, search: $search, groupRoleId: $groupRoleId) {
+    members (first: $first, sortBy: $sortBy, order: $order, offset: $offset, search: $search, groupRoleId: $groupRoleId, trackCompleted: $trackCompleted) {
       items {
         id
         name
@@ -200,17 +200,18 @@ function defaultOrderForSort (sortBy) {
   return 'asc'
 }
 
-export function getMemberQueryProps ({ slug, search, sortBy, groupRoleId }) {
+export function getMemberQueryProps ({ slug, search, sortBy, groupRoleId, trackCompleted }) {
   return {
     slug,
     search,
     sortBy,
     groupRoleId: groupRoleId || null,
+    trackCompleted: typeof trackCompleted === 'boolean' ? trackCompleted : null,
     order: defaultOrderForSort(sortBy)
   }
 }
 
-export function fetchGroupMembers ({ slug, groupId, sortBy, order, offset, search, groupRoleId, first = 20 }) {
+export function fetchGroupMembers ({ slug, groupId, sortBy, order, offset, search, groupRoleId, trackCompleted, first = 20 }) {
   return {
     type: FETCH_MEMBERS,
     graphql: {
@@ -223,7 +224,8 @@ export function fetchGroupMembers ({ slug, groupId, sortBy, order, offset, searc
         sortBy,
         order: order || defaultOrderForSort(sortBy),
         search,
-        groupRoleId: groupRoleId || null
+        groupRoleId: groupRoleId || null,
+        trackCompleted: typeof trackCompleted === 'boolean' ? trackCompleted : null
       }
     },
     meta: {
@@ -257,8 +259,8 @@ export function removeMember (personId, groupId, slug) {
   }
 }
 // I don't know why there is this duplication (see fetchGroupMembers). Not taking the time to refactor.
-export function fetchMembers ({ slug, groupId, sortBy, offset, search, groupRoleId }) {
-  return fetchGroupMembers({ slug, groupId, sortBy, offset, search, groupRoleId })
+export function fetchMembers ({ slug, groupId, sortBy, offset, search, groupRoleId, trackCompleted }) {
+  return fetchGroupMembers({ slug, groupId, sortBy, offset, search, groupRoleId, trackCompleted })
 }
 
 export default function reducer (state = {}, action) {

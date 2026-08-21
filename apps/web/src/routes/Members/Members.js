@@ -30,7 +30,7 @@ import getRolesForGroup from 'store/selectors/getRolesForGroup'
 import getTrack from 'store/selectors/getTrack'
 import getFundingRound from 'store/selectors/getFundingRound'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
-import changeQuerystringParam from 'store/actions/changeQuerystringParam'
+import changeQuerystringParam, { changeQuerystringParams } from 'store/actions/changeQuerystringParam'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
 import { cn } from 'util/index'
 import { CENTER_COLUMN_ID } from 'util/scrolling'
@@ -58,10 +58,12 @@ function Members (props) {
   const sortBy = sortKeys[sortByParam] ? sortByParam : defaultSortBy
   const search = getQuerystringParam('q', location)
   const groupRoleId = getQuerystringParam('r', location) || null
+  const trackCompletedParam = getQuerystringParam('tc', location)
+  const trackCompleted = trackCompletedParam === 'completed' ? true : trackCompletedParam === 'not' ? false : null
   const memberCount = useSelector(state => get('memberCount', group))
   const memberQueryProps = useMemo(
-    () => getMemberQueryProps({ slug, search, sortBy, groupRoleId }),
-    [slug, search, sortBy, groupRoleId]
+    () => getMemberQueryProps({ slug, search, sortBy, groupRoleId, trackCompleted }),
+    [slug, search, sortBy, groupRoleId, trackCompleted]
   )
   const members = useSelector(state => getMembers(state, memberQueryProps))
   const graphMembers = useSelector(state => getGraphMembers(state, { slug }))
@@ -167,7 +169,12 @@ function Members (props) {
   // Role pills keep to one row behind a More pill until expanded; the count
   // includes the All-members pill since the hook measures container children
   const [rolesExpanded, setRolesExpanded] = useState(false)
-  const roleClamp = usePillRowClamp(displayedRoles.length + 1, 1, rolesExpanded)
+  const trackPillCount = canSeeTrackCompletion ? 2 : 0
+  const roleClamp = usePillRowClamp(displayedRoles.length + 1 + trackPillCount, 1, rolesExpanded)
+  const completedCount = canSeeTrackCompletion ? (currentTrack?.numPeopleCompleted ?? null) : null
+  const notCompletedCount = canSeeTrackCompletion && currentTrack && memberCount != null
+    ? Math.max(0, memberCount - (currentTrack.numPeopleCompleted || 0))
+    : null
 
   // Action creators
   const changeSearch = useCallback(term =>
@@ -176,6 +183,11 @@ function Members (props) {
     dispatch(changeQuerystringParam(location, 's', sort, 'name')), [location, dispatch])
   const changeRoleFilter = useCallback(roleId =>
     dispatch(changeQuerystringParam(location, 'r', roleId, null)), [location, dispatch])
+  const changeTrackCompletionFilter = useCallback(value =>
+    dispatch(changeQuerystringParam(location, 'tc', value, null)), [location, dispatch])
+  const clearMemberFilters = useCallback(() => {
+    dispatch(changeQuerystringParams(location, { r: null, tc: null }))
+  }, [location, dispatch])
   const removeMemberAction = useCallback((id) => {
     if (!group?.id) return
     // We pass slug and group.id because slug is needed to optimistically update the query results, which are based on slug
@@ -184,18 +196,18 @@ function Members (props) {
   }, [dispatch, group?.id, slug])
   const fetchMembersAction = useCallback((offset = 0) => {
     if (!group?.id || !slug) return
-    dispatch(fetchMembers({ slug, groupId: group.id, sortBy, offset, search, groupRoleId }))
-  }, [dispatch, slug, group?.id, sortBy, search, groupRoleId])
+    dispatch(fetchMembers({ slug, groupId: group.id, sortBy, offset, search, groupRoleId, trackCompleted }))
+  }, [dispatch, slug, group?.id, sortBy, search, groupRoleId, trackCompleted])
 
   useLayoutEffect(() => {
     const centerColumn = document.getElementById(CENTER_COLUMN_ID)
     if (centerColumn) centerColumn.scrollTop = 0
-  }, [slug, sortBy, search, groupRoleId])
+  }, [slug, sortBy, search, groupRoleId, trackCompleted])
 
   useEffect(() => {
     if (!group?.id || !slug) return
     fetchMembersAction(0)
-  }, [group?.id, slug, sortBy, search, groupRoleId, fetchMembersAction])
+  }, [group?.id, slug, sortBy, search, groupRoleId, trackCompleted, fetchMembersAction])
 
   useEffect(() => {
     if (!slug) return
@@ -322,11 +334,29 @@ function Members (props) {
               </button>
             </div>
           </div>
-          {filterableRoles.length > 0 && (
+          {(displayedRoles.length > 0 || canSeeTrackCompletion) && (
             <div ref={roleClamp.containerRef} className='flex flex-wrap items-center gap-1.5'>
-              <RolePill active={!groupRoleId} count={memberCount || null} onClick={() => changeRoleFilter(null)}>
+              <RolePill active={!groupRoleId && trackCompleted == null} count={memberCount || null} onClick={clearMemberFilters}>
                 {t('All members')}
               </RolePill>
+              {canSeeTrackCompletion && (
+                <>
+                  <RolePill
+                    active={trackCompleted === true}
+                    count={completedCount}
+                    onClick={() => changeTrackCompletionFilter(trackCompleted === true ? null : 'completed')}
+                  >
+                    {t('Completed Track')}
+                  </RolePill>
+                  <RolePill
+                    active={trackCompleted === false}
+                    count={notCompletedCount}
+                    onClick={() => changeTrackCompletionFilter(trackCompleted === false ? null : 'not')}
+                  >
+                    {t('Not Completed Track')}
+                  </RolePill>
+                </>
+              )}
               {displayedRoles.map(role => {
                 const active = String(role.id) === String(groupRoleId)
                 const count = isSpaceContext ? (spaceRoleCounts?.[role.id] ?? null) : (role.membersTotal ?? null)
@@ -338,7 +368,7 @@ function Members (props) {
               })}
               {!rolesExpanded && (
                 <RolePill onClick={() => setRolesExpanded(true)}>
-                  {t('More ({{count}})', { count: displayedRoles.length - Math.max(0, roleClamp.visibleCount - 1) })}
+                  {t('More ({{count}})', { count: displayedRoles.length + trackPillCount - Math.max(0, roleClamp.visibleCount - 1) })}
                 </RolePill>
               )}
             </div>
@@ -388,7 +418,7 @@ function Members (props) {
             {t('No results for this search')}
           </div>
         )}
-        {!isLoading && members.length > 0 && !search && !groupRoleId && Boolean(memberCount) && (
+        {!isLoading && members.length > 0 && !search && !groupRoleId && trackCompleted == null && Boolean(memberCount) && (
           <div className='py-4 text-center text-xs text-foreground/50'>
             {t('Showing {{count}} of {{total}} members', { count: Math.min(members.length, memberCount), total: memberCount })}
           </div>

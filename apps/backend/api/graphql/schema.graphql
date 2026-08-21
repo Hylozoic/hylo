@@ -967,6 +967,8 @@ type Group {
     excludeGroupId: ID,
     # Return members with a specific groupRole
     groupRoleId: ID,
+    # Track space only: true = members who completed the track, false = members who have not
+    trackCompleted: Boolean,
     # Number of people to return
     first: Int,
     # For pagination, return people after this offset in the query results
