@@ -1,7 +1,7 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { Tooltip, TooltipContent, TooltipTrigger } from 'components/ui/tooltip'
-import { bgImageStyle, cn } from 'util/index'
+import { bgImageStyle, cn, parseApiDate } from 'util/index'
 
 /** lastActiveAt within this window counts as currently active. */
 export const RECENTLY_ACTIVE_MS = 15 * 60 * 1000
@@ -14,13 +14,15 @@ export const MENU_ACTIVE_MAX = 8
  * True when a person's lastActiveAt falls inside the currently-active window.
  */
 export function isRecentlyActive (person, now = Date.now()) {
-  if (!person?.lastActiveAt) return false
-  return now - new Date(person.lastActiveAt).getTime() < RECENTLY_ACTIVE_MS
+  const date = parseApiDate(person?.lastActiveAt)
+  if (!date) return false
+  return now - date.getTime() < RECENTLY_ACTIVE_MS
 }
 
 /**
  * Overlapping avatar strip for currently-active members. Newest on the left.
- * Optional typing pulse and presence dots are for chat; the menu omits them.
+ * A green dot marks anyone live in the room (presenceMap, chat only) or active
+ * within the recently-active window. The typing pulse replaces the dot.
  */
 export default function CurrentlyActivePills ({
   members = [],
@@ -31,6 +33,7 @@ export default function CurrentlyActivePills ({
   interactive = true
 }) {
   const { t } = useTranslation()
+  const now = Date.now()
   const shown = max != null ? members.slice(0, max) : members
   if (shown.length === 0) return null
 
@@ -38,7 +41,7 @@ export default function CurrentlyActivePills ({
     <div className='flex items-center shrink-0'>
       {shown.map((person, i) => {
         const typing = typingIds.includes(String(person.id))
-        const present = Boolean(presenceMap[String(person.id)])
+        const present = Boolean(presenceMap[String(person.id)]) || isRecentlyActive(person, now)
         const label = typing ? `${person.name} ${t('is typing...')}` : person.name
         const z = typing ? shown.length + 2 : shown.length - i
         return (

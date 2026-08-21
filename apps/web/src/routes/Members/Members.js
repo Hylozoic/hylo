@@ -6,7 +6,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import { isSystemGroupRole, sortCustomGroupRoles, sortSystemGroupRoles } from '@hylo/hooks/groupRoleHelpers'
 import { LayoutGrid, List, Search } from 'lucide-react'
-import CurrentlyActivePills, { DEFAULT_ACTIVE_MAX } from 'components/CurrentlyActiveMembers/CurrentlyActivePills'
+import CurrentlyActivePills, { DEFAULT_ACTIVE_MAX, isRecentlyActive } from 'components/CurrentlyActiveMembers/CurrentlyActivePills'
 import InviteMembersDialog from 'components/InviteMembersDialog/InviteMembersDialog'
 import Button from 'components/Button'
 import Dropdown from 'components/Dropdown'
@@ -67,8 +67,10 @@ function Members (props) {
   const members = useSelector(state => getMembers(state, memberQueryProps))
   const graphMembers = useSelector(state => getGraphMembers(state, { slug }))
   const recentlyActiveFetched = useSelector(state => getRecentlyActiveMembers(state, { slug, first: DEFAULT_ACTIVE_MAX }))
+  // The heading says "Currently Active", so only people inside the active
+  // window belong here — the API sorts by last_active_at but does not filter.
   const currentlyActiveMembers = useMemo(
-    () => (recentlyActiveFetched || []).slice(0, DEFAULT_ACTIVE_MAX),
+    () => (recentlyActiveFetched || []).filter(m => isRecentlyActive(m)).slice(0, DEFAULT_ACTIVE_MAX),
     [recentlyActiveFetched]
   )
   const graphPending = useSelector(state => state.pending[FETCH_MEMBERS_FOR_GRAPH])
