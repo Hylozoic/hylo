@@ -8,7 +8,6 @@ import { isSystemGroupRole, sortCustomGroupRoles, sortSystemGroupRoles } from '@
 import { LayoutGrid, List, Search } from 'lucide-react'
 import CurrentlyActivePills, { DEFAULT_ACTIVE_MAX, isRecentlyActive } from 'components/CurrentlyActiveMembers/CurrentlyActivePills'
 import InviteMembersDialog from 'components/InviteMembersDialog/InviteMembersDialog'
-import Button from 'components/Button'
 import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
 import MasonryGrid from 'components/MasonryGrid/MasonryGrid'
@@ -217,14 +216,28 @@ function Members (props) {
   const { setHeaderDetails } = useViewHeader()
   const isAboutMembersTab = /\/about\/members/.test(location.pathname)
   const pageTitle = isAboutMembersTab ? t('Members') : t('Member Directory')
+  const canAddMembers = myResponsibilityTitles.includes(RESP_ADD_MEMBERS)
+  const inviteParentGroup = group?.parentId ? rolesSourceGroup : null
   useEffect(() => {
     setHeaderDetails({
       title: pageTitle,
-      icon: '',
+      // Canonical members-view icon, same one the group menu uses for this view
+      icon: 'Users',
       info: '',
-      search: true
+      search: true,
+      headerActions: canAddMembers
+        ? (
+          <InviteMembersDialog
+            group={group}
+            parentGroup={inviteParentGroup}
+            alwaysVisible
+            triggerLabel={t('Invite')}
+            triggerClassName='rounded-full border px-2 py-0.5 hover:scale-100 bg-foreground/10 border-foreground/20 text-foreground/80 hover:bg-foreground/20 hover:text-foreground dark:bg-white/15 dark:border-white/25 dark:text-white/90 dark:hover:bg-white/25 dark:hover:text-white'
+          />
+          )
+        : null
     })
-  }, [t, pageTitle])
+  }, [t, pageTitle, canAddMembers, group?.id, inviteParentGroup?.id])
 
   const fetchMore = () => {
     if (pending || members.length === 0 || !hasMore) return
@@ -250,22 +263,6 @@ function Members (props) {
             max={DEFAULT_ACTIVE_MAX}
             onPersonClick={person => navigate(personUrl(person.id, slug))}
           />
-        </div>
-      )}
-      {myResponsibilityTitles.includes(RESP_ADD_MEMBERS) && (
-        <div className='flex items-center justify-between p-2'>
-          <InviteMembersDialog
-            group={group}
-            parentGroup={group?.parentId ? rolesSourceGroup : null}
-          >
-            <Button
-              className={classes.invite}
-              color='green-white-green-border'
-              narrow
-            >
-              <Icon name='Invite' className={classes.inviteIcon} /> {t('Invite People')}
-            </Button>
-          </InviteMembersDialog>
         </div>
       )}
       <div className={classes.content}>
