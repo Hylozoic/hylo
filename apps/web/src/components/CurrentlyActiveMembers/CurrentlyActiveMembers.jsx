@@ -97,7 +97,8 @@ export default function CurrentlyActiveMembers ({
   )
   const countClass = cn(
     'inline-flex items-center gap-1.5 h-7 pl-2.5 pr-2 rounded-md bg-card/90 backdrop-blur-sm border border-foreground/20 text-foreground text-xs font-semibold transition-all shrink-0',
-    interactive && 'hover:border-foreground/40 hover:scale-105 cursor-pointer',
+    // hover:text-foreground pins the anchor colour against the global link-hover green
+    interactive && 'hover:border-foreground/40 hover:text-foreground hover:scale-105 cursor-pointer',
     !interactive && 'cursor-inherit'
   )
 
