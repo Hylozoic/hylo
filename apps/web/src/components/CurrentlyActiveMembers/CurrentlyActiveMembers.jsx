@@ -49,9 +49,9 @@ export default function CurrentlyActiveMembers ({
     dispatch(fetchRecentlyActiveMembers({ slug, first: max }))
   }, [dispatch, slug, max])
 
-  // The API already returns the N most recently active people. Filtering that
-  // short list by a 15-minute window left the strip empty whenever lastActiveAt
-  // was missing or a bit stale. The green dot still uses the live window.
+  // The API already returns the N most recently active people, and the strip
+  // shows all of them so the widget is never empty. Who is actually online is
+  // carried by the green dots on the avatars and on the count pill.
   const activeMembers = useMemo(
     () => (fetched || []).slice(0, max),
     [fetched, max]
@@ -97,7 +97,8 @@ export default function CurrentlyActiveMembers ({
   )
   const countClass = cn(
     'inline-flex items-center gap-1.5 h-7 pl-2.5 pr-2 rounded-md bg-card/90 backdrop-blur-sm border border-foreground/20 text-foreground text-xs font-semibold transition-all shrink-0',
-    interactive && 'hover:border-foreground/40 hover:scale-105 cursor-pointer',
+    // hover:text-foreground pins the anchor colour against the global link-hover green
+    interactive && 'hover:border-foreground/40 hover:text-foreground hover:scale-105 cursor-pointer',
     !interactive && 'cursor-inherit'
   )
 

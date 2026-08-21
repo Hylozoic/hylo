@@ -510,6 +510,7 @@ export const queryParamWhitelist = [
   'filter',
   'first',
   'forCollection',
+  'fundingRoundCapability',
   'groupId',
   'groupIds',
   'groupRoleId',
@@ -529,6 +530,7 @@ export const queryParamWhitelist = [
   'sortBy',
   'topic',
   'topics',
+  'trackCompleted',
   'type', // TODO: why do we have type & filter? should only need one
   'types',
   'page',

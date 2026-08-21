@@ -45,3 +45,19 @@ export const validateEmail = email => {
   const re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
   return re.test(email.toLowerCase())
 }
+
+/**
+ * Parse a date value coming from the API. Date fields are declared as GraphQL
+ * `String`, so they arrive as epoch milliseconds in a string ("1787331729720")
+ * rather than ISO — `new Date()` cannot parse that form on its own.
+ * Returns null for missing or unparseable values.
+ */
+export function parseApiDate (value) {
+  if (!value) return null
+  const date = value instanceof Date
+    ? value
+    : /^\d+$/.test(String(value))
+      ? new Date(parseInt(value, 10))
+      : new Date(value)
+  return Number.isNaN(date.getTime()) ? null : date
+}

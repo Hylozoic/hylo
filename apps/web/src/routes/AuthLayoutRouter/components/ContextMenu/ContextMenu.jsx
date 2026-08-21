@@ -80,6 +80,10 @@ function UnreadDot () {
 // link color so the global link-hover green never shows.
 // Rows sit flush against each other and keep their margin on hover, so hovering
 // never shifts the rows below it.
+/* The banner fades into the plane colour set by the .plane class below it;
+ * --menu-plane inherits, so the two can never drift apart. */
+const MENU_PLANE_FADE_STYLE = { backgroundImage: 'linear-gradient(to bottom, transparent, var(--menu-plane))' }
+
 const GROUP_VIEW_MENU_ITEM_CLASS = 'flex items-center gap-2 text-base font-medium text-foreground hover:text-foreground border-2 border-transparent rounded-md p-1 pl-2 my-0 w-full transition-all duration-200 ease-out scale-100 hover:scale-102 active:scale-[0.985] active:translate-y-[0.5px] active:duration-[50ms] opacity-85 hover:opacity-100'
 
 /** MenuLink overrides when nested inside a styled space row wrapper. hover:text-foreground
@@ -915,43 +919,74 @@ export default function ContextMenu (props) {
       {!isPhoneDevice() && <ContextMenuResizer menuEl={menuRootEl} />}
       <div className={cn(
         'relative flex flex-col',
+        // Flat wrap color in the gutters around the inset menu card. The
+        // banner (below) only lives at the top and fades into this.
+        isGroupContext && classes.plane,
         isSettingsPath ? 'flex-1 min-h-0 overflow-hidden' : 'min-h-full min-h-screen min-h-dvh'
       )}
       >
-        <div className='ContextDetails w-full z-20 relative shrink-0'>
-          {isGroupContext
+        <div className='relative z-10 shrink-0'>
+          {/* Banner fills the header and overflows slightly so it wraps the
+              top of the menu card, then fades into the wrap background. */}
+          {isGroupContext && group && (
+            <div className='absolute inset-x-0 top-0 -bottom-8 z-0 pointer-events-none'>
+              <div className='absolute inset-0 bg-darkening opacity-80' />
+              <div
+                className='absolute inset-0 bg-cover bg-center'
+                style={{ ...bgImageStyle(group.bannerUrl || DEFAULT_BANNER), opacity: 0.5 }}
+              />
+              <div className='absolute inset-x-0 bottom-0 h-8' style={MENU_PLANE_FADE_STYLE} />
+            </div>
+          )}
+          <div className='ContextDetails w-full relative z-10'>
+            {isGroupContext
             /* Duck only when the space really takes the menu over (its own
                header below) — single-view in-menu spaces stay in the group list */
-            ? <GroupMenuHeader group={group} compact={showingSpaceMenu} onCompactClick={handleBackToGroupMenu} />
-            : isPublicContext
               ? (
-                <div className='TheCommonsHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md'>
-                  <div className='absolute inset-0 z-10 bg-cover' style={{ ...bgImageStyle('/the-commons.jpg'), opacity: 0.8 }} />
-                  <div className='absolute top-0 left-0 w-full h-full bg-darkening z-0' />
-                  <div className='flex flex-col text-foreground drop-shadow-md overflow-hidden relative z-20'>
-                    <h2 className='text-white font-bold leading-3 text-lg drop-shadow-md'>{t('The Commons')}</h2>
-                  </div>
-                </div>
+                <GroupMenuHeader
+                  group={group}
+                  compact={showingSpaceMenu}
+                  hideBanner
+                  onCompactClick={handleBackToGroupMenu}
+                />
                 )
-              : (isMyContext || isAllContext)
-                  ? (
-                    <div className='MyHomeHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md'>
-                      <div className='absolute inset-0 z-10 bg-cover bg-center' style={{ ...bgImageStyle(currentUser?.bannerUrl || '/default-user-banner.svg'), opacity: 0.8 }} />
-                      <div className='absolute top-0 left-0 w-full h-full bg-darkening z-0 opacity-100' />
-                      <div className='flex flex-col text-foreground drop-shadow-md overflow-hidden relative z-20'>
-                        <h2 className='text-white font-bold leading-3 text-lg drop-shadow-md'>{t('My Home')}</h2>
-                        {currentUser?.name && (
-                          <p className='text-white/90 text-sm drop-shadow-md mt-1 truncate'>
-                            {currentUser.name}{currentUser.email ? ` (${currentUser.email})` : ''}
-                          </p>
-                        )}
-                      </div>
+              : isPublicContext
+                ? (
+                  <div className='TheCommonsHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md'>
+                    <div className='absolute inset-0 z-10 bg-cover' style={{ ...bgImageStyle('/the-commons.jpg'), opacity: 0.8 }} />
+                    <div className='absolute top-0 left-0 w-full h-full bg-darkening z-0' />
+                    <div className='flex flex-col text-foreground drop-shadow-md overflow-hidden relative z-20'>
+                      <h2 className='text-white font-bold leading-3 text-lg drop-shadow-md'>{t('The Commons')}</h2>
                     </div>
-                    )
-                  : null}
+                  </div>
+                  )
+                : (isMyContext || isAllContext)
+                    ? (
+                      <div className='MyHomeHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md'>
+                        <div className='absolute inset-0 z-10 bg-cover bg-center' style={{ ...bgImageStyle(currentUser?.bannerUrl || '/default-user-banner.svg'), opacity: 0.8 }} />
+                        <div className='absolute top-0 left-0 w-full h-full bg-darkening z-0 opacity-100' />
+                        <div className='flex flex-col text-foreground drop-shadow-md overflow-hidden relative z-20'>
+                          <h2 className='text-white font-bold leading-3 text-lg drop-shadow-md'>{t('My Home')}</h2>
+                          {currentUser?.name && (
+                            <p className='text-white/90 text-sm drop-shadow-md mt-1 truncate'>
+                              {currentUser.name}{currentUser.email ? ` (${currentUser.email})` : ''}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      )
+                    : null}
+          </div>
         </div>
 
-        <div className={cn('relative z-20 flex flex-col flex-1', isSettingsPath && 'min-h-0 overflow-hidden')}>
+        <div className={cn(
+          'relative z-10 flex flex-col flex-1',
+          // Inset card: banner wraps its top corners, background color wraps
+          // the rest. No overflow-hidden so dropdowns/modals are not clipped.
+          isGroupContext && 'mx-2 mb-2 rounded-2xl bg-background bg-gradient-to-b from-context-menu-background to-theme-background/10 dark:to-theme-background/40 shadow-md',
+          isSettingsPath && 'min-h-0 overflow-hidden'
+        )}
+        >
           <Routes>
             <Route path='settings/*' element={<GroupSettingsMenu group={group} groupSlug={groupSlug} />} />
           </Routes>
@@ -963,7 +998,7 @@ export default function ContextMenu (props) {
                     full-size header's 190px, so the takeover swaps hierarchy without
                     moving the menu below */}
                 {/* Closing the space lives in the ducked group header's back chevron above */}
-                <div className='SpaceMenuHeader relative z-20 flex flex-col justify-between h-[142px] overflow-hidden border-b border-foreground/10 shadow-md'>
+                <div className='SpaceMenuHeader relative z-20 flex flex-col justify-between h-[142px] overflow-hidden rounded-t-2xl border-b border-foreground/10 shadow-md'>
                   {activeSpaceBannerUrl
                     ? (
                       <>

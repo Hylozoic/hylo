@@ -57,7 +57,7 @@ function ViewIconTile ({ icon, hue, className }) {
   return (
     <span
       className={cn(
-        'w-8 h-8 rounded-[9px] grid place-items-center shrink-0 border',
+        'w-8 h-8 rounded-[9px] grid place-items-center shrink-0 border-2',
         'bg-[hsl(var(--vh-hue)_48%_90%)] border-[hsl(var(--vh-hue)_40%_70%)] text-[hsl(var(--vh-hue)_45%_35%)]',
         'dark:bg-[hsl(var(--vh-hue)_40%_26%)] dark:border-[hsl(var(--vh-hue)_40%_42%)] dark:text-[hsl(var(--vh-hue)_60%_82%)]',
         className

@@ -211,8 +211,12 @@ function genYears (yearRange = 50) {
 }
 // ---------- utils end ----------
 /**
- * Returns the nearest dialog/modal DOM node so the popover can portal into it.
- * When body scroll is locked, portaling to `document.body` lets the panel extend past the visible dialog; anchoring to this surface keeps collision detection aligned with what the user actually sees (Post dialog, CreateModal, ModalDialog inner, Radix dialog content).
+ * Returns the nearest dialog DOM node so the popover can portal into it.
+ * CreateModal is skipped on purpose: it uses `overflow` + `backdrop-filter`, which
+ * in Safari becomes a containing block for `position: fixed` and shifts the calendar
+ * to the right of its trigger. Portaling to `document.body` keeps coordinates
+ * viewport-relative, matching Chrome. Radix dialogs (Post dialog, ModalDialog) still
+ * need an in-dialog portal because they lock body scroll.
  */
 function getPopoverSurfaceFromTrigger (triggerEl) {
   if (!triggerEl || typeof triggerEl.closest !== 'function') {
@@ -220,11 +224,52 @@ function getPopoverSurfaceFromTrigger (triggerEl) {
   }
   return (
     triggerEl.closest('#post-dialog-content') ||
-    triggerEl.closest('#create-modal-content') ||
     triggerEl.closest('[data-testid="popup-inner"]') ||
     triggerEl.closest('[role="dialog"][data-state="open"]') ||
     undefined
   )
+}
+
+/**
+ * Shifts the calendar so its box stays inside the visual viewport. Radix flip/shift
+ * only moves it to the other side of the trigger, so a tall picker can still hang
+ * off the top or bottom of the screen.
+ */
+function clampPopoverToViewport (contentEl, padding = 12) {
+  if (!contentEl) return
+  const wrapper = contentEl.parentElement
+  if (!wrapper) return
+  if (wrapper.style.transform?.includes('-200%')) return
+
+  const visualViewport = window.visualViewport
+  const viewportTop = visualViewport?.offsetTop ?? 0
+  const viewportLeft = visualViewport?.offsetLeft ?? 0
+  const viewportHeight = visualViewport?.height ?? window.innerHeight
+  const viewportWidth = visualViewport?.width ?? window.innerWidth
+  const minTop = viewportTop + padding
+  const minLeft = viewportLeft + padding
+  const maxBottom = viewportTop + viewportHeight - padding
+  const maxRight = viewportLeft + viewportWidth - padding
+
+  const rect = wrapper.getBoundingClientRect()
+  let shiftY = 0
+  let shiftX = 0
+  if (rect.bottom > maxBottom) {
+    shiftY = maxBottom - rect.bottom
+  }
+  if (rect.top + shiftY < minTop) {
+    shiftY = minTop - rect.top
+  }
+  if (rect.right > maxRight) {
+    shiftX = maxRight - rect.right
+  }
+  if (rect.left + shiftX < minLeft) {
+    shiftX = minLeft - rect.left
+  }
+
+  contentEl.style.position = 'relative'
+  contentEl.style.top = `${shiftY}px`
+  contentEl.style.left = `${shiftX}px`
 }
 
 function Calendar ({ className, classNames, showOutsideDays = true, yearRange = 50, dateLocale = getDateLocale(), ...props }) {
@@ -492,6 +537,7 @@ const DateTimePicker = React.forwardRef(({ locale: localeProp, defaultPopupValue
   const [displayDate, setDisplayDate] = React.useState(value ?? undefined)
   const [popoverOpen, setPopoverOpen] = React.useState(false)
   const [popoverSurface, setPopoverSurface] = React.useState(undefined)
+  const popoverContentRef = useRef(null)
   onMonthChange ||= onChange
 
   // Sync internal state when value prop changes externally (e.g., when cleared)
@@ -548,7 +594,7 @@ const DateTimePicker = React.forwardRef(({ locale: localeProp, defaultPopupValue
   }
 
   /**
-   * Resolves portal + collision boundary to the visible dialog surface when the trigger sits inside a modal so the calendar is not positioned against the full viewport while scroll is locked on `body`.
+   * Resolves portal + collision boundary to the visible dialog surface when the trigger sits inside a Radix dialog so the calendar is not positioned against the full viewport while scroll is locked on `body`.
    */
   const handlePopoverOpenChange = React.useCallback((nextOpen) => {
     setPopoverOpen(nextOpen)
@@ -560,10 +606,43 @@ const DateTimePicker = React.forwardRef(({ locale: localeProp, defaultPopupValue
     }
   }, [])
 
+  /**
+   * After Radix places the calendar, keep it fully on-screen by shifting it toward
+   * the middle of the visual viewport whenever it would overflow the top or bottom.
+   */
+  React.useLayoutEffect(() => {
+    if (!popoverOpen) return undefined
+
+    let observer
+    const runClamp = () => {
+      clampPopoverToViewport(popoverContentRef.current)
+      const wrapper = popoverContentRef.current?.parentElement
+      if (wrapper && !observer) {
+        observer = new MutationObserver(runClamp)
+        observer.observe(wrapper, { attributes: true, attributeFilter: ['style'] })
+      }
+    }
+    runClamp()
+    const rafId = window.requestAnimationFrame(runClamp)
+    const visualViewport = window.visualViewport
+    window.addEventListener('resize', runClamp)
+    window.addEventListener('scroll', runClamp, true)
+    visualViewport?.addEventListener('resize', runClamp)
+    visualViewport?.addEventListener('scroll', runClamp)
+    return () => {
+      window.cancelAnimationFrame(rafId)
+      observer?.disconnect()
+      window.removeEventListener('resize', runClamp)
+      window.removeEventListener('scroll', runClamp, true)
+      visualViewport?.removeEventListener('resize', runClamp)
+      visualViewport?.removeEventListener('scroll', runClamp)
+    }
+  }, [popoverOpen])
+
   return (
     <Popover open={popoverOpen} onOpenChange={handlePopoverOpenChange}>
       <PopoverTrigger asChild disabled={disabled}>
-        <Button variant='outline' className={cn('min-h-11 sm:min-h-10 justify-start text-left font-normal touch-manipulation', !displayDate && 'text-muted-foreground', className)} ref={buttonRef}>
+        <Button variant='outline' className={cn('min-h-11 sm:min-h-10 max-w-full justify-start text-left font-normal touch-manipulation', !displayDate && 'text-muted-foreground', className)} ref={buttonRef}>
           <CalendarIcon className='mr-2 h-4 w-4' />
           {displayDate
             ? (DateTimeHelpers.toDateTime(displayDate, {
@@ -573,6 +652,7 @@ const DateTimePicker = React.forwardRef(({ locale: localeProp, defaultPopupValue
         </Button>
       </PopoverTrigger>
       <PopoverContent
+        ref={popoverContentRef}
         container={popoverSurface}
         collisionBoundary={popoverSurface}
         sticky='always'
@@ -580,7 +660,7 @@ const DateTimePicker = React.forwardRef(({ locale: localeProp, defaultPopupValue
         align='start'
         sideOffset={6}
         collisionPadding={12}
-        className='w-auto p-0 z-[1100] max-h-[min(85dvh,560px)] overflow-y-auto'
+        className='w-auto p-0 z-[1100] max-h-[min(560px,calc(100dvh-24px))] overflow-y-auto'
       >
         <Calendar
           dateLocale={locale}
