@@ -343,6 +343,8 @@
   "Cancel Invite": "Cancel Invite",
   "Cancel Request": "Cancel Request",
   "Canceled": "Canceled",
+  "Cannot Submit": "Cannot Submit",
+  "Cannot Vote": "Cannot Vote",
   "Cannot allocate more than {{max}} tokens per submission": "Cannot allocate more than {{max}} tokens per submission",
   "Cannot update offering: missing offering ID": "Cannot update offering: missing offering ID",
   "Cannot vote on your own submission": "Cannot vote on your own submission",

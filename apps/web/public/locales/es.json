@@ -343,6 +343,8 @@
   "Cancel Request": "Cancelar solicitud",
   "Canceled": "Cancelado",
   "Canceled Join Requests": "Solicitudes de unión canceladas",
+  "Cannot Submit": "No puede enviar",
+  "Cannot Vote": "No puede votar",
   "Cannot allocate more than {{max}} tokens per submission": "No se pueden asignar más de {{max}} tokens por envío.",
   "Cannot update offering: missing offering ID": "No se puede actualizar la oferta: falta el ID de la oferta",
   "Cannot vote on your own submission": "No puedes votar por tu propia presentación",

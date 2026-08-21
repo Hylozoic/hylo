@@ -12,7 +12,8 @@ describe('getMemberQueryProps', () => {
       order: 'asc',
       search: undefined,
       groupRoleId: null,
-      trackCompleted: null
+      trackCompleted: null,
+      fundingRoundCapability: null
     }
 
     const lookupProps = getMemberQueryProps({
@@ -29,6 +30,7 @@ describe('getMemberQueryProps', () => {
       sortBy: 'name',
       groupRoleId: null,
       trackCompleted: null,
+      fundingRoundCapability: null,
       order: 'asc'
     })
     expect(storeParams).toEqual(lookupProps)
@@ -42,5 +44,10 @@ describe('getMemberQueryProps', () => {
   it('keeps a boolean trackCompleted filter in the cache key', () => {
     expect(getMemberQueryProps({ slug: 'foo', trackCompleted: true }).trackCompleted).toBe(true)
     expect(getMemberQueryProps({ slug: 'foo', trackCompleted: false }).trackCompleted).toBe(false)
+  })
+
+  it('keeps a fundingRoundCapability filter in the cache key', () => {
+    expect(getMemberQueryProps({ slug: 'foo', fundingRoundCapability: 'submit' }).fundingRoundCapability).toBe('submit')
+    expect(getMemberQueryProps({ slug: 'foo', fundingRoundCapability: 'notSubmit' }).fundingRoundCapability).toBe('notSubmit')
   })
 })

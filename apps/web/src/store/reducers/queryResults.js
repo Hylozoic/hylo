@@ -510,6 +510,7 @@ export const queryParamWhitelist = [
   'filter',
   'first',
   'forCollection',
+  'fundingRoundCapability',
   'groupId',
   'groupIds',
   'groupRoleId',

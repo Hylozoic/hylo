@@ -328,6 +328,8 @@
   "Cancel Invite": "Annuler l'invitation",
   "Cancel Request": "Annuler la demande",
   "Canceled": "Annulé",
+  "Cannot Submit": "Ne peut pas soumettre",
+  "Cannot Vote": "Ne peut pas voter",
   "Cannot allocate more than {{max}} tokens per submission": "Impossible d'allouer plus de {{max}} jetons par soumission",
   "Cannot update offering: missing offering ID": "Impossible de mettre à jour l’offre : ID de l’offre manquant",
   "Cannot vote on your own submission": "Vous ne pouvez pas voter sur votre propre soumission.",

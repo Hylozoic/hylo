@@ -328,6 +328,8 @@
   "Cancel Invite": "Einladung abbrechen",
   "Cancel Request": "Anfrage abbrechen",
   "Canceled": "Abgebrochen",
+  "Cannot Submit": "Kann nicht einreichen",
+  "Cannot Vote": "Kann nicht abstimmen",
   "Cannot allocate more than {{max}} tokens per submission": "Kann nicht mehr als {{max}} Tokens pro Einreichung zugewiesen werden.",
   "Cannot update offering: missing offering ID": "Angebot konnte nicht aktualisiert werden: fehlende Angebot-ID",
   "Cannot vote on your own submission": "Sie können nicht für Ihre eigene Einreichung abstimmen.",

@@ -328,6 +328,8 @@
   "Cancel Invite": "निमंत्रण रद्द करें",
   "Cancel Request": "अनुरोध रद्द करें",
   "Canceled": "रद्द किया गया",
+  "Cannot Submit": "जमा नहीं कर सकते",
+  "Cannot Vote": "मतदान नहीं कर सकते",
   "Cannot allocate more than {{max}} tokens per submission": "एक सबमिशन पर {{max}} टोकन से अधिक आवंटित नहीं किया जा सकता",
   "Cannot update offering: missing offering ID": "ऑफ़र अपडेट नहीं हो सका: ऑफ़र ID गायब है",
   "Cannot vote on your own submission": "आप अपनी खुद की सबमिशन पर वोट नहीं कर सकते।",
