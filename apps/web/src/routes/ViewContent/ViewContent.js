@@ -89,11 +89,11 @@ function streamConfigFromGroupView (groupView) {
   }
 }
 
-/** Returns true when a stream post belongs only to child groups/spaces, not the current group. */
+/** Returns true when a post's groups should be shown: child-group posts in /groups, or any post in /my, /all, /public. */
 function isChildGroupPost ({ context, groupSlug, post }) {
-  if ([CONTEXT_MY, 'all', 'public'].includes(context)) return false
   const groupSlugs = post.groups?.map(group => group.slug) || []
   if (groupSlugs.length === 0) return false
+  if ([CONTEXT_MY, 'all', 'public'].includes(context)) return true
   return !groupSlugs.includes(groupSlug)
 }
 
