@@ -65,6 +65,13 @@ test.describe('Batch H: My streams & redirect', () => {
     await expectAuthedShell(page, /\/my\/tracks/)
     await expect(page.getByText('My Tracks').first()).toBeVisible(uiTimeout)
   })
+
+  test('GET /my/funding-rounds loads My Funding Rounds shell', async ({ page }) => {
+    await page.goto('/my/funding-rounds')
+    await waitPastRootSessionLoading(page)
+    await expectAuthedShell(page, /\/my\/funding-rounds/)
+    await expect(page.getByText('My Funding Rounds').first()).toBeVisible(uiTimeout)
+  })
 })
 
 test.describe('Batch H: User settings under /my/*', () => {

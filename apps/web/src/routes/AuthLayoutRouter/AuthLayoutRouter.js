@@ -75,7 +75,7 @@ import MemberProfile from 'routes/MemberProfile'
 import Members from 'routes/Members'
 import MessagesLayout from 'routes/Messages/MessagesLayout'
 import ThreadList from 'routes/Messages/ThreadList'
-import MyTracks from 'routes/MyTracks'
+import MySpaceCollection from 'routes/MySpaceCollection'
 import MyTransactions from 'routes/MyTransactions'
 import OfferingDetails from 'routes/OfferingDetails/OfferingDetails'
 import PostDetail from 'routes/PostDetail'
@@ -1034,7 +1034,7 @@ export default function AuthLayoutRouter (props) {
                 {/* Must be before `public/*` — otherwise `/public/post/:id/edit` matches `public/*` and redirects away */}
                 <Route path='public/post/:postId/edit/*' element={<ViewContent context='public' />} />
                 <Route path='public/post/:postId/create/*' element={<ViewContent context='public' />} />
-                <Route path='all' element={isCardMenuUser ? <ContextMenuGrid context='all' /> : <ViewContent context='my' />} />
+                <Route path='all' element={isCardMenuUser ? <ContextMenuGrid context='all' /> : <Navigate to='/all/stream' replace />} />
                 <Route path='all/*' element={<ViewContent context='my' />} />
                 <Route path='public' element={isCardMenuUser ? <ContextMenuGrid context='public' /> : <Navigate to='/public/stream' replace />} />
                 <Route path='public/*' element={<Navigate to='/public/stream' replace />} />
@@ -1113,7 +1113,8 @@ export default function AuthLayoutRouter (props) {
                 <Route path='my/announcements/*' element={<ViewContent context='my' view='announcements' />} />
                 <Route path='my/mentions/*' element={<ViewContent context='my' view='mentions' />} />
                 <Route path='my/saved-posts/*' element={<ViewContent context='my' view='saved-posts' />} />
-                <Route path='my/tracks/*' element={<MyTracks />} />
+                <Route path='my/tracks/*' element={<MySpaceCollection kind='track' />} />
+                <Route path='my/funding-rounds/*' element={<MySpaceCollection kind='funding-round' />} />
                 <Route path='my/transactions' element={<MyTransactions />} />
                 <Route path='my/*' element={<UserSettings />} />
                 <Route path='my' element={isCardMenuUser ? <ContextMenuGrid context='my' /> : <Navigate to='/my/posts' replace />} />

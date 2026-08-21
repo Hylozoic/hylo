@@ -42,6 +42,22 @@ export function myHomeUrl () {
   return '/my'
 }
 
+/** Landing path for the My Home button (All My Groups Activity). */
+export function myHomeLandingUrl () {
+  return '/all/stream'
+}
+
+/** True when the current route is the My Home menu (My or All My Groups). */
+export function isMyHomeContext (context) {
+  return context === ALL_GROUPS_CONTEXT_SLUG || context === MY_CONTEXT_SLUG
+}
+
+/** True when the pathname is under My Home (`/all` or `/my`). */
+export function isMyHomePath (pathname = '') {
+  return pathname === '/all' || pathname === '/my' ||
+    pathname.startsWith('/all/') || pathname.startsWith('/my/')
+}
+
 export function searchUrl () {
   return '/search'
 }
