@@ -1533,7 +1533,6 @@
   "Send Invites": "Einladungen senden",
   "Send Invites via email": "Einladungen per E-Mail senden",
   "Send It": "Senden",
-  "Send a chat to {{groupName}}": "Sende einen Chat an {{groupName}}",
   "Send a message": "Nachricht senden",
   "Send me a digest": "Sende mir eine Zusammenfassung",
   "Send notifications for each new post in your group?": "Benachrichtigungen bei jedem neuen Beitrag in deiner Gruppe senden?",
@@ -2819,5 +2818,6 @@
   "widget-public-stream": "Öffentlicher Stream",
   "widget-public-groups": "Öffentliche Gruppen",
   "widget-public-map": "Öffentliche Karte",
-  "widget-public-events": "Öffentliche Veranstaltungen"
+  "widget-public-events": "Öffentliche Veranstaltungen",
+  "Chat with {{groupName}}": "Chatte mit {{groupName}}"
 }

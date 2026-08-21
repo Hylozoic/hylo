@@ -1606,7 +1606,6 @@
   "Send Invites": "Send Invites",
   "Send Invites via email": "Send Invites via email",
   "Send It": "Send It",
-  "Send a chat to {{groupName}}": "Send a chat to {{groupName}}",
   "Send a message": "Send a message",
   "Send me a digest": "Send me a digest",
   "Send notifications for each new post in your group?": "Send notifications for each new post in your group?",
@@ -2817,5 +2816,6 @@
   "widget-public-stream": "Public Stream",
   "widget-public-groups": "Public Groups",
   "widget-public-map": "Public Map",
-  "widget-public-events": "Public Events"
+  "widget-public-events": "Public Events",
+  "Chat with {{groupName}}": "Chat with {{groupName}}"
 }

@@ -1533,7 +1533,6 @@
   "Send Invites": "निमंत्रण भेजें",
   "Send Invites via email": "ईमेल के माध्यम से निमंत्रण भेजें",
   "Send It": "इसे भेजें",
-  "Send a chat to {{groupName}}": "{{groupName}} पर चैट भेजें",
   "Send a message": "संदेश भेजें",
   "Send me a digest": "मुझे डाइजेस्ट भेजें",
   "Send notifications for each new post in your group?": "क्या आपके समूह में हर नई पोस्ट के लिए सूचनाएँ भेजें?",
@@ -2819,5 +2818,6 @@
   "widget-public-stream": "सार्वजनिक स्ट्रीम",
   "widget-public-groups": "सार्वजनिक समूह",
   "widget-public-map": "सार्वजनिक मानचित्र",
-  "widget-public-events": "सार्वजनिक कार्यक्रम"
+  "widget-public-events": "सार्वजनिक कार्यक्रम",
+  "Chat with {{groupName}}": "{{groupName}} के साथ चैट करें"
 }

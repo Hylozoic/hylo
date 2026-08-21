@@ -1595,7 +1595,6 @@
   "Send Invites": "Enviar invitaciones",
   "Send Invites via email": "Enviar invitaciones por correo electrónico",
   "Send It": "Envíalo",
-  "Send a chat to {{groupName}}": "Enviar un chat a {{groupName}}",
   "Send a message": "enviar un mensaje",
   "Send me a digest": "Envíame un resumen",
   "Send notifications for each new post in your group?": "¿Enviar notificaciones por cada nueva publicación en tu grupo?",
@@ -2828,5 +2827,6 @@
   "widget-public-stream": "Frujo Público",
   "widget-public-groups": "Grupos Públicos",
   "widget-public-map": "Mapa Público",
-  "widget-public-events": "Eventos públicos"
+  "widget-public-events": "Eventos públicos",
+  "Chat with {{groupName}}": "Chatea con {{groupName}}"
 }
