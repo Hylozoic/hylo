@@ -39,7 +39,7 @@ export function getPostTypeIcon (type) {
   const typeIconMap = {
     chat: 'Messages',
     offer: 'Offer',
-    request: 'HandRaised',
+    request: 'Heart',
     resource: 'Resource',
     project: 'Project',
     proposal: 'Proposal',
