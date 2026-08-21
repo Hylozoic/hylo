@@ -933,22 +933,22 @@ export default function ContextMenu (props) {
                   </div>
                 </div>
                 )
-              : isMyContext
-                ? (
-                  <div className='MyHomeHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md'>
-                    <div className='absolute inset-0 z-10 bg-cover bg-center' style={{ ...bgImageStyle(currentUser?.bannerUrl || '/default-user-banner.svg'), opacity: 0.8 }} />
-                    <div className='absolute top-0 left-0 w-full h-full bg-darkening z-0 opacity-100' />
-                    <div className='flex flex-col text-foreground drop-shadow-md overflow-hidden relative z-20'>
-                      <h2 className='text-white font-bold leading-3 text-lg drop-shadow-md'>{t('My Home')}</h2>
-                      {currentUser?.name && (
-                        <p className='text-white/90 text-sm drop-shadow-md mt-1 truncate'>
-                          {currentUser.name}{currentUser.email ? ` (${currentUser.email})` : ''}
-                        </p>
-                      )}
+              : (isMyContext || isAllContext)
+                  ? (
+                    <div className='MyHomeHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md'>
+                      <div className='absolute inset-0 z-10 bg-cover bg-center' style={{ ...bgImageStyle(currentUser?.bannerUrl || '/default-user-banner.svg'), opacity: 0.8 }} />
+                      <div className='absolute top-0 left-0 w-full h-full bg-darkening z-0 opacity-100' />
+                      <div className='flex flex-col text-foreground drop-shadow-md overflow-hidden relative z-20'>
+                        <h2 className='text-white font-bold leading-3 text-lg drop-shadow-md'>{t('My Home')}</h2>
+                        {currentUser?.name && (
+                          <p className='text-white/90 text-sm drop-shadow-md mt-1 truncate'>
+                            {currentUser.name}{currentUser.email ? ` (${currentUser.email})` : ''}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  )
-                : null}
+                    )
+                  : null}
         </div>
 
         <div className={cn('relative z-20 flex flex-col flex-1', isSettingsPath && 'min-h-0 overflow-hidden')}>

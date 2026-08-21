@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate, useLocation } from 'react-router-dom'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
-import { localSpaceSlug, spaceUrl } from '@hylo/navigation'
+import { localSpaceSlug, spaceUrl, myHomeLandingUrl } from '@hylo/navigation'
 import Icon from 'components/Icon'
 import LucideIcon from 'components/LucideIcon/LucideIcon'
 import InfoButton from 'components/ui/info'
@@ -22,7 +22,7 @@ import getMyMemberships from 'store/selectors/getMyMemberships'
 import getPreviousLocation from 'store/selectors/getPreviousLocation'
 import { bgImageStyle, cn } from 'util/index'
 import { performMobileNavBack } from 'util/mobileNavBack'
-import { isCompactLayoutDevice, isPhoneDevice } from 'util/mobile'
+import { isCompactLayoutDevice, isDrawerNavLayout, isPhoneDevice } from 'util/mobile'
 import { isCardMenuPreference, isOneColumnLayout } from 'util/navigationLayout'
 
 /** Resolves the parent menu's space view (or a synthetic one for off-menu spaces). */
@@ -85,7 +85,7 @@ const ViewHeader = () => {
   const currentUser = useSelector(getMe)
   const myMemberships = useSelector(getMyMemberships)
   const { headerDetails } = useViewHeader()
-  const { backButton, mobileBackButton, title, icon, info, search, centered, headerActions, spaceBreadcrumb } = headerDetails
+  const { backButton, backTo, mobileBackButton, title, icon, info, search, centered, headerActions, spaceBreadcrumb } = headerDetails
 
   const previousLocation = useSelector(getPreviousLocation)
   const compactLayout = isCompactLayoutDevice()
@@ -509,7 +509,7 @@ const ViewHeader = () => {
           : React.isValidElement(title)
             ? true
             : !!(title?.mobile || title?.desktop)
-        const contextHref = `/${context}`
+        const contextHref = context === 'public' ? '/public' : myHomeLandingUrl()
         const contextLabel = context === 'public' ? t('The Commons') : t('My Home')
 
         return (
