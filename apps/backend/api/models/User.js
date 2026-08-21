@@ -390,7 +390,8 @@ module.exports = bookshelf.Model.extend(merge({
           digestFrequency: defaultDigestFrequency,
           sendEmail: true,
           sendPushNotifications: true,
-          showJoinForm: true
+          showJoinForm: true,
+          lastReadAt: null
         }
       },
       { transacting })

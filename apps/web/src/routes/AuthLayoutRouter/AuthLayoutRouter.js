@@ -810,7 +810,15 @@ export default function AuthLayoutRouter (props) {
           ? '/requests'
           : ''
       } else {
-        destPath = rest || currentGroup.homeRoute || '/all'
+        // First join/view: send to welcome when shown to new members, not the home view.
+        // Nested `/spaces/` URLs never hit the group lastViewedAt check below (that
+        // check is for the parent slug), so this remount is the space equivalent.
+        const isFirstVisit = currentGroupMembership && !get('lastViewedAt', currentGroupMembership)
+        destPath = rest || (
+          isFirstVisit && currentGroup?.settings?.showWelcomePage
+            ? '/welcome'
+            : (currentGroup.homeRoute || '/all')
+        )
       }
       const nestedPath = spaceUrl(parentSlug, local, destPath)
       return <Navigate to={`${nestedPath}${location.search}`} replace />

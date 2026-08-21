@@ -845,6 +845,8 @@ module.exports = bookshelf.Model.extend(merge({
     const joinFlowReset = { joinQuestionsAnsweredAt: null, showJoinForm: true }
     if (pickedAttrs.active === false || pickedAttrs.active === true) {
       joinFlowReset.agreementsAcceptedAt = null
+      // Treat leave/rejoin as a first visit so welcome ("show to new members") shows again
+      joinFlowReset.lastReadAt = null
     }
     const updatedAttribs = Object.assign(
       {},

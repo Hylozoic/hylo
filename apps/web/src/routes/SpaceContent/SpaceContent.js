@@ -21,15 +21,27 @@ import TrackActionsView from 'routes/TrackActionsView/TrackActionsView'
 import ViewContent from 'routes/ViewContent'
 import SpaceCollection from 'routes/SpaceCollection'
 import ContextMenuGrid from 'routes/AuthLayoutRouter/components/ContextMenu/ContextMenuGrid'
+import { setMembershipLastViewedAt } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import fetchForGroup from 'store/actions/fetchForGroup'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
+import getMe from 'store/selectors/getMe'
 import getMyMemberships from 'store/selectors/getMyMemberships'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { RESP_ADD_MEMBERS } from 'store/constants'
 import { localSpaceSlug, spaceHomeRoutePath, spaceUrl, POST_DETAIL_MATCH } from '@hylo/navigation'
 import { isDrawerNavLayout } from 'util/mobile'
+
+/**
+ * New members land on welcome when the space has a welcome view and "show to new
+ * members" is on. The setting defaults on; only an explicit false skips it.
+ */
+function shouldLandOnWelcome (spaceGroup, membership, onWelcomePath) {
+  if (!membership || membership.lastViewedAt || onWelcomePath) return false
+  if (spaceGroup?.settings?.showWelcomePage === false) return false
+  return (spaceGroup?.groupViews?.items || []).some(view => view.type === 'welcome')
+}
 
 /**
  * Resolves a space group from the parent menu or from More Spaces (off-menu spaces).
@@ -91,14 +103,20 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
   const needsSpaceGroupViews = !spaceGroupViewsLoaded || spaceChatMissingLastRead
 
   const myMemberships = useSelector(getMyMemberships)
+  const currentUser = useSelector(getMe)
   const isSpaceMember = useMemo(
     () => Boolean(spaceGroupId && myMemberships.some(m => String(m.group?.id) === String(spaceGroupId))),
     [spaceGroupId, myMemberships]
+  )
+  const spaceMembership = useMemo(
+    () => myMemberships.find(m => String(m.group?.id) === String(spaceGroupId)),
+    [myMemberships, spaceGroupId]
   )
   const canAddSpaceMembers = useSelector(state => hasResponsibilityForGroup(state, {
     responsibility: RESP_ADD_MEMBERS,
     groupId: spaceGroupId
   }))
+  const onWelcomePath = Boolean(localSlug && location.pathname.includes(`/spaces/${localSlug}/welcome`))
 
   // Cold deep links: fetchForGroup(parentSlug) doesn't include the spaces list,
   // and the ContextMenu's fetchGroupSpaces may never fire (or hasn't yet), so
@@ -120,6 +138,17 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
       dispatch(fetchGroupViews(spaceGroupId))
     }
   }, [dispatch, isSpaceMember, spaceGroupId, needsSpaceGroupViews])
+
+  // Record first visit only after any welcome redirect, so lastViewedAt is not
+  // set while we still intend to send the member to /welcome.
+  useEffect(() => {
+    if (!isSpaceMember || !spaceGroupId || !currentUser?.id || !spaceFullSlug) return
+    if (!spaceMembership || spaceMembership.lastViewedAt) return
+    if (spaceGroup?.groupViews == null) return
+    if (shouldLandOnWelcome(spaceGroup, spaceMembership, onWelcomePath)) return
+    dispatch(setMembershipLastViewedAt(spaceGroupId, currentUser.id, new Date().toISOString()))
+    dispatch(fetchForGroup(spaceFullSlug))
+  }, [dispatch, isSpaceMember, spaceGroupId, currentUser?.id, spaceFullSlug, spaceMembership, spaceGroup, onWelcomePath])
 
   if (!parentGroup || !localSlug) return <Loading />
   if (!linkedSpace) return <Loading />
@@ -166,6 +195,10 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
   const spaceIndexElement = showSpaceMenu
     ? <ContextMenuGrid group={parentGroup} spaceGroup={resolvedSpace} />
     : <Navigate to={{ pathname: `${spaceBase}${homeRoute}`, search: location.search }} replace />
+
+  if (shouldLandOnWelcome(resolvedSpace, spaceMembership, onWelcomePath)) {
+    return <Navigate to={`${spaceBase}/welcome${location.search}`} replace />
+  }
 
   return (
     <SpaceGroupSlugContext.Provider value={spaceFullSlug}>

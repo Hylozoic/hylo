@@ -148,13 +148,28 @@ describe('Group', function () {
       expect(results.length).to.equal(2)
 
       await gm1.refresh()
-      expect(gm1.get('settings')).to.deep.equal({ here: true, there: true, agreementsAcceptedAt: null, joinQuestionsAnsweredAt: null, showJoinForm: true })
+      expect(gm1.get('settings')).to.deep.equal({ here: true, there: true, agreementsAcceptedAt: null, joinQuestionsAnsweredAt: null, showJoinForm: true, lastReadAt: null })
       expect(await GroupMembership.hasResponsibility(u1.id, group, Responsibility.constants.RESP_ADMINISTRATION)).to.be.true
 
       const gm2 = await group.memberships()
         .query(q => q.where('user_id', u2.id)).fetchOne()
       expect(gm2.get('settings')).to.deep.equal({ agreementsAcceptedAt: null, joinQuestionsAnsweredAt: null, showJoinForm: true, there: true })
       expect(await GroupMembership.hasResponsibility(u2.id, group, Responsibility.constants.RESP_ADMINISTRATION)).to.be.true
+    })
+
+    it('clears lastReadAt so a rejoining member is treated as a first visit', async function () {
+      const viewedAt = new Date().toISOString()
+      await u1.joinGroup(group)
+      let membership = await GroupMembership.forPair(u1, group).fetch()
+      membership.addSetting({ lastReadAt: viewedAt })
+      await membership.save()
+
+      await group.removeMembers([u1.id])
+      await u1.joinGroup(group)
+
+      membership = await GroupMembership.forPair(u1, group).fetch()
+      expect(membership.get('active')).to.be.true
+      expect(membership.getSetting('lastReadAt')).to.be.null
     })
   })
 
