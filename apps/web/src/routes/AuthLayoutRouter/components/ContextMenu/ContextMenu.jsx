@@ -925,7 +925,8 @@ export default function ContextMenu (props) {
         isSettingsPath ? 'flex-1 min-h-0 overflow-hidden' : 'min-h-full min-h-screen min-h-dvh'
       )}
       >
-        <div className='relative z-10 shrink-0'>
+        {/* Above ContextMenuCloseBg (z-10) so item taps are not swallowed on mobile */}
+        <div className='relative z-20 shrink-0'>
           {/* Banner fills the header and overflows slightly so it wraps the
               top of the menu card, then fades into the wrap background. */}
           {isGroupContext && group && (
@@ -980,7 +981,7 @@ export default function ContextMenu (props) {
         </div>
 
         <div className={cn(
-          'relative z-10 flex flex-col flex-1',
+          'relative z-20 flex flex-col flex-1',
           // Inset card: banner wraps its top corners, background color wraps
           // the rest. No overflow-hidden so dropdowns/modals are not clipped.
           isGroupContext && 'mx-2 mb-2 rounded-2xl bg-background bg-gradient-to-b from-context-menu-background to-theme-background/10 dark:to-theme-background/40 shadow-md',
