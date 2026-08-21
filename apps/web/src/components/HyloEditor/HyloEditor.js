@@ -219,8 +219,13 @@ const HyloEditor = React.forwardRef(({
 
   useEffect(() => {
     if (!editor) return
-    if (groupIds) editor.extensionStorage.mention.groupIds = groupIds
-  }, [groupIds])
+    if (editor.extensionStorage.mention) {
+      editor.extensionStorage.mention.groupIds = groupIds
+    }
+    if (editor.extensionStorage.topic) {
+      editor.extensionStorage.topic.groupIds = groupIds
+    }
+  }, [editor, groupIds])
 
   useEffect(() => {
     if (!editor) return
