@@ -460,6 +460,34 @@ describe('Group', function () {
       expect(ids).to.not.include(spacePost.id)
     })
 
+    it('excludes posts from peer groups even when the user is a member of both', async function () {
+      const group = await factories.group().save()
+      const peerGroup = await factories.group().save()
+      await GroupRelationship.forge({
+        parent_group_id: group.id,
+        child_group_id: peerGroup.id,
+        relationship_type: Group.RelationshipType.PEER_TO_PEER,
+        active: true
+      }).save()
+
+      const user = await factories.user().save()
+      await group.addMembers([user.id])
+      await peerGroup.addMembers([user.id])
+
+      const groupPost = await factories.post({ user_id: user.id }).save()
+      await groupPost.groups().attach(group.id)
+      const peerPost = await factories.post({ user_id: user.id }).save()
+      await peerPost.groups().attach(peerGroup.id)
+
+      const idsFromGroup = await fetchViewPostIds(group, user.id)
+      expect(idsFromGroup).to.include(groupPost.id)
+      expect(idsFromGroup).to.not.include(peerPost.id)
+
+      const idsFromPeer = await fetchViewPostIds(peerGroup, user.id)
+      expect(idsFromPeer).to.include(peerPost.id)
+      expect(idsFromPeer).to.not.include(groupPost.id)
+    })
+
     it('excludes posts from a child group after the user leaves it', async function () {
       const parent = await factories.group().save()
       const childGroup = await factories.group().save()

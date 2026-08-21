@@ -127,8 +127,10 @@ module.exports = bookshelf.Model.extend(merge({
       })
   },
 
-  // The full tree of child groups + grandchild groups, etc. includes the root group too
+  // The full tree of child groups + grandchild groups, etc. includes the root group too.
+  // Parent-child only — peer relationships share this table and must not appear in streams.
   allChildGroups () {
+    const parentChild = Group.RelationshipType.PARENT_CHILD
     return Group.collection().query(q => {
       q.where('groups.active', true)
 
@@ -136,17 +138,19 @@ module.exports = bookshelf.Model.extend(merge({
       q.whereRaw(`groups.id in (
         WITH RECURSIVE group_nodes(id, child, all_child_ids) AS (
             SELECT id, child_group_id, ARRAY[child_group_id]
-            FROM group_relationships WHERE parent_group_id = ? and active = true
+            FROM group_relationships
+            WHERE parent_group_id = ? AND active = true AND relationship_type = ?
         UNION ALL
             SELECT child_nodes.id, child_nodes.child_group_id, all_child_ids||child_nodes.child_group_id
             FROM group_relationships child_nodes
             JOIN group_nodes n
               ON n.child = child_nodes.parent_group_id
               AND child_nodes.active = true
+              AND child_nodes.relationship_type = ?
               AND child_nodes.child_group_id <> ALL (all_child_ids)
         )
         select distinct unnest(all_child_ids) as child_id from group_nodes order by child_id
-      )`, [this.id])
+      )`, [this.id, parentChild, parentChild])
     })
   },
 
