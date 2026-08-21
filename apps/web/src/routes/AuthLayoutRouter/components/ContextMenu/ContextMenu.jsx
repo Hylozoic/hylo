@@ -915,14 +915,37 @@ export default function ContextMenu (props) {
       {!isPhoneDevice() && <ContextMenuResizer menuEl={menuRootEl} />}
       <div className={cn(
         'relative flex flex-col',
+        // Flat wrap color in the gutters around the inset menu card. The
+        // banner (below) only lives at the top and fades into this.
+        isGroupContext && 'bg-background',
         isSettingsPath ? 'flex-1 min-h-0 overflow-hidden' : 'min-h-full min-h-screen min-h-dvh'
       )}
       >
-        <div className='ContextDetails w-full z-20 relative shrink-0'>
+        <div className='relative z-10 shrink-0'>
+          {/* Banner fills the header and overflows slightly so it wraps the
+              top of the menu card, then fades into the wrap background. */}
+          {isGroupContext && group && (
+            <div className='absolute inset-x-0 top-0 -bottom-8 z-0 pointer-events-none'>
+              <div className='absolute inset-0 bg-darkening opacity-80' />
+              <div
+                className='absolute inset-0 bg-cover bg-center'
+                style={{ ...bgImageStyle(group.bannerUrl || DEFAULT_BANNER), opacity: 0.5 }}
+              />
+              <div className='absolute inset-x-0 bottom-0 h-8 bg-gradient-to-b from-transparent to-background' />
+            </div>
+          )}
+          <div className='ContextDetails w-full relative z-10'>
           {isGroupContext
             /* Duck only when the space really takes the menu over (its own
                header below) — single-view in-menu spaces stay in the group list */
-            ? <GroupMenuHeader group={group} compact={showingSpaceMenu} onCompactClick={handleBackToGroupMenu} />
+            ? (
+              <GroupMenuHeader
+                group={group}
+                compact={showingSpaceMenu}
+                hideBanner
+                onCompactClick={handleBackToGroupMenu}
+              />
+              )
             : isPublicContext
               ? (
                 <div className='TheCommonsHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md'>
@@ -949,9 +972,17 @@ export default function ContextMenu (props) {
                     </div>
                     )
                   : null}
+          </div>
         </div>
 
-        <div className={cn('relative z-20 flex flex-col flex-1', isSettingsPath && 'min-h-0 overflow-hidden')}>
+        <div className={cn(
+          'relative z-10 flex flex-col flex-1',
+          // Inset card: banner wraps its top corners, background color wraps
+          // the rest. No overflow-hidden so dropdowns/modals are not clipped.
+          isGroupContext && 'mx-2 mb-2 rounded-2xl bg-background bg-gradient-to-b from-context-menu-background to-theme-background/10 dark:to-theme-background/40 shadow-md',
+          isSettingsPath && 'min-h-0 overflow-hidden'
+        )}
+        >
           <Routes>
             <Route path='settings/*' element={<GroupSettingsMenu group={group} groupSlug={groupSlug} />} />
           </Routes>
@@ -963,7 +994,7 @@ export default function ContextMenu (props) {
                     full-size header's 190px, so the takeover swaps hierarchy without
                     moving the menu below */}
                 {/* Closing the space lives in the ducked group header's back chevron above */}
-                <div className='SpaceMenuHeader relative z-20 flex flex-col justify-between h-[142px] overflow-hidden border-b border-foreground/10 shadow-md'>
+                <div className='SpaceMenuHeader relative z-20 flex flex-col justify-between h-[142px] overflow-hidden rounded-t-2xl border-b border-foreground/10 shadow-md'>
                   {activeSpaceBannerUrl
                     ? (
                       <>
