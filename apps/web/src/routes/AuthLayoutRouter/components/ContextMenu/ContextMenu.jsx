@@ -80,6 +80,10 @@ function UnreadDot () {
 // link color so the global link-hover green never shows.
 // Rows sit flush against each other and keep their margin on hover, so hovering
 // never shifts the rows below it.
+/* The banner fades into the plane colour set by the .plane class below it;
+ * --menu-plane inherits, so the two can never drift apart. */
+const MENU_PLANE_FADE_STYLE = { backgroundImage: 'linear-gradient(to bottom, transparent, var(--menu-plane))' }
+
 const GROUP_VIEW_MENU_ITEM_CLASS = 'flex items-center gap-2 text-base font-medium text-foreground hover:text-foreground border-2 border-transparent rounded-md p-1 pl-2 my-0 w-full transition-all duration-200 ease-out scale-100 hover:scale-102 active:scale-[0.985] active:translate-y-[0.5px] active:duration-[50ms] opacity-85 hover:opacity-100'
 
 /** MenuLink overrides when nested inside a styled space row wrapper. hover:text-foreground
@@ -917,7 +921,7 @@ export default function ContextMenu (props) {
         'relative flex flex-col',
         // Flat wrap color in the gutters around the inset menu card. The
         // banner (below) only lives at the top and fades into this.
-        isGroupContext && 'bg-background',
+        isGroupContext && classes.plane,
         isSettingsPath ? 'flex-1 min-h-0 overflow-hidden' : 'min-h-full min-h-screen min-h-dvh'
       )}
       >
@@ -931,47 +935,47 @@ export default function ContextMenu (props) {
                 className='absolute inset-0 bg-cover bg-center'
                 style={{ ...bgImageStyle(group.bannerUrl || DEFAULT_BANNER), opacity: 0.5 }}
               />
-              <div className='absolute inset-x-0 bottom-0 h-8 bg-gradient-to-b from-transparent to-background' />
+              <div className='absolute inset-x-0 bottom-0 h-8' style={MENU_PLANE_FADE_STYLE} />
             </div>
           )}
           <div className='ContextDetails w-full relative z-10'>
-          {isGroupContext
+            {isGroupContext
             /* Duck only when the space really takes the menu over (its own
                header below) — single-view in-menu spaces stay in the group list */
-            ? (
-              <GroupMenuHeader
-                group={group}
-                compact={showingSpaceMenu}
-                hideBanner
-                onCompactClick={handleBackToGroupMenu}
-              />
-              )
-            : isPublicContext
               ? (
-                <div className='TheCommonsHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md'>
-                  <div className='absolute inset-0 z-10 bg-cover' style={{ ...bgImageStyle('/the-commons.jpg'), opacity: 0.8 }} />
-                  <div className='absolute top-0 left-0 w-full h-full bg-darkening z-0' />
-                  <div className='flex flex-col text-foreground drop-shadow-md overflow-hidden relative z-20'>
-                    <h2 className='text-white font-bold leading-3 text-lg drop-shadow-md'>{t('The Commons')}</h2>
-                  </div>
-                </div>
+                <GroupMenuHeader
+                  group={group}
+                  compact={showingSpaceMenu}
+                  hideBanner
+                  onCompactClick={handleBackToGroupMenu}
+                />
                 )
-              : (isMyContext || isAllContext)
-                  ? (
-                    <div className='MyHomeHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md'>
-                      <div className='absolute inset-0 z-10 bg-cover bg-center' style={{ ...bgImageStyle(currentUser?.bannerUrl || '/default-user-banner.svg'), opacity: 0.8 }} />
-                      <div className='absolute top-0 left-0 w-full h-full bg-darkening z-0 opacity-100' />
-                      <div className='flex flex-col text-foreground drop-shadow-md overflow-hidden relative z-20'>
-                        <h2 className='text-white font-bold leading-3 text-lg drop-shadow-md'>{t('My Home')}</h2>
-                        {currentUser?.name && (
-                          <p className='text-white/90 text-sm drop-shadow-md mt-1 truncate'>
-                            {currentUser.name}{currentUser.email ? ` (${currentUser.email})` : ''}
-                          </p>
-                        )}
-                      </div>
+              : isPublicContext
+                ? (
+                  <div className='TheCommonsHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md'>
+                    <div className='absolute inset-0 z-10 bg-cover' style={{ ...bgImageStyle('/the-commons.jpg'), opacity: 0.8 }} />
+                    <div className='absolute top-0 left-0 w-full h-full bg-darkening z-0' />
+                    <div className='flex flex-col text-foreground drop-shadow-md overflow-hidden relative z-20'>
+                      <h2 className='text-white font-bold leading-3 text-lg drop-shadow-md'>{t('The Commons')}</h2>
                     </div>
-                    )
-                  : null}
+                  </div>
+                  )
+                : (isMyContext || isAllContext)
+                    ? (
+                      <div className='MyHomeHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md'>
+                        <div className='absolute inset-0 z-10 bg-cover bg-center' style={{ ...bgImageStyle(currentUser?.bannerUrl || '/default-user-banner.svg'), opacity: 0.8 }} />
+                        <div className='absolute top-0 left-0 w-full h-full bg-darkening z-0 opacity-100' />
+                        <div className='flex flex-col text-foreground drop-shadow-md overflow-hidden relative z-20'>
+                          <h2 className='text-white font-bold leading-3 text-lg drop-shadow-md'>{t('My Home')}</h2>
+                          {currentUser?.name && (
+                            <p className='text-white/90 text-sm drop-shadow-md mt-1 truncate'>
+                              {currentUser.name}{currentUser.email ? ` (${currentUser.email})` : ''}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      )
+                    : null}
           </div>
         </div>
 
