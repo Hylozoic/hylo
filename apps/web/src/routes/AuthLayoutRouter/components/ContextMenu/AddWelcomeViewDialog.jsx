@@ -1,4 +1,5 @@
 import React, { useCallback, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 
@@ -51,7 +52,8 @@ export default function AddWelcomeViewDialog ({ group, onCancel, onCreated, onAd
     }
   }, [dispatch, group, onAdd, onCreated, showWelcomePage])
 
-  return (
+  // Portal above AuthLayout nav stacking so the dialog is not trapped behind GlobalNav.
+  return createPortal(
     <div className='fixed inset-0 z-[1100] flex items-center justify-center bg-darkening/50 p-4 pointer-events-auto'>
       <div className='bg-midground rounded-lg shadow-lg p-4 w-full max-w-[750px] h-[calc(100vh-2rem)] flex flex-col'>
         <h2 className='text-lg font-semibold mb-4 shrink-0'>{t('Welcome Page')}</h2>
@@ -86,6 +88,7 @@ export default function AddWelcomeViewDialog ({ group, onCancel, onCreated, onAd
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
