@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 import { House, Trash2, X } from 'lucide-react'
@@ -203,9 +204,10 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
   const canSaveCustom = customForm.name.trim().length >= 2 && customForm.postTypes.length > 0
   const saveDisabled = view.type === 'custom' ? !canSaveCustom : isSaving
 
-  return (
+  // Portal above AuthLayout nav stacking so the dialog is not trapped behind GlobalNav.
+  return createPortal(
     <div className={cn(
-      'fixed inset-0 z-50 flex items-center justify-center bg-darkening/50',
+      'fixed inset-0 z-[1100] flex items-center justify-center bg-darkening/50 pointer-events-auto',
       isWelcome && 'p-4'
     )}>
       <div className={cn(
@@ -330,7 +332,8 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 
