@@ -72,8 +72,10 @@ export default function CurrentlyActiveMembers ({
 
   /**
    * Count pill: custom handler (chat drawer) or the members view URL.
+   * Stops propagation so the row handler below does not fire it a second time.
    */
   const handleCountClick = (e) => {
+    e.stopPropagation()
     if (!interactive) {
       e.preventDefault()
       return
@@ -85,6 +87,22 @@ export default function CurrentlyActiveMembers ({
     }
     dispatch(toggleNavMenu(false))
   }
+
+  /**
+   * The whole row opens the directory — only the avatars and the invite control
+   * do something else, and both already stop propagation.
+   */
+  const handleRowClick = () => {
+    if (!interactive) return
+    if (onCountClick) {
+      onCountClick()
+      return
+    }
+    if (!membersUrl) return
+    dispatch(toggleNavMenu(false))
+    navigate(membersUrl)
+  }
+  const rowOpensDirectory = interactive && Boolean(onCountClick || membersUrl)
 
   if (!group) return null
 
@@ -132,11 +150,14 @@ export default function CurrentlyActiveMembers ({
     : null
 
   return (
-    <div className={cn(
-      'group flex min-w-0 w-full',
-      stacked ? 'flex-col items-center gap-1.5' : 'items-center',
-      className
-    )}
+    <div
+      className={cn(
+        'group flex min-w-0 w-full',
+        stacked ? 'flex-col items-center gap-1.5' : 'items-center',
+        rowOpensDirectory && 'cursor-pointer',
+        className
+      )}
+      onClick={rowOpensDirectory ? handleRowClick : undefined}
     >
       <div className={cn('min-w-0 overflow-hidden', stacked ? 'w-full flex justify-center' : 'flex-1')}>
         <CurrentlyActivePills
