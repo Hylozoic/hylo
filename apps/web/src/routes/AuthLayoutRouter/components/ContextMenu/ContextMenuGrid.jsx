@@ -218,7 +218,7 @@ function StickyBackHeader ({ title, icon, onBack, t }) {
   // Dressed as ViewHeader (surface, hairline, shadow, chevron + icon + bold
   // title) — this level hides the real ViewHeader, so the bar stands in for it
   return (
-    <div className='sticky top-0 z-30 -mx-4 mb-2 p-2 bg-background border-b border-foreground/[0.08] shadow-[0_4px_14px_0px_rgba(0,0,0,0.16)] dark:border-transparent dark:shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)] flex items-center'>
+    <div className='sticky top-0 z-30 -mx-4 mb-2 p-2 bg-background border-b border-foreground/[0.08] shadow-header dark:border-transparent dark:shadow-header-dark flex items-center'>
       <button
         type='button'
         onClick={onBack}
