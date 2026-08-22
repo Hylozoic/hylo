@@ -32,16 +32,7 @@ import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup
 import { RESP_ADD_MEMBERS } from 'store/constants'
 import { localSpaceSlug, spaceHomeRoutePath, spaceUrl, POST_DETAIL_MATCH } from '@hylo/navigation'
 import { isDrawerNavLayout } from 'util/mobile'
-
-/**
- * New members land on welcome when the space has a welcome view and "show to new
- * members" is on. The setting defaults on; only an explicit false skips it.
- */
-function shouldLandOnWelcome (spaceGroup, membership, onWelcomePath) {
-  if (!membership || membership.lastViewedAt || onWelcomePath) return false
-  if (spaceGroup?.settings?.showWelcomePage === false) return false
-  return (spaceGroup?.groupViews?.items || []).some(view => view.type === 'welcome')
-}
+import shouldLandOnWelcome from 'util/shouldLandOnWelcome'
 
 /**
  * Resolves a space group from the parent menu or from More Spaces (off-menu spaces).
@@ -145,7 +136,7 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
     if (!isSpaceMember || !spaceGroupId || !currentUser?.id || !spaceFullSlug) return
     if (!spaceMembership || spaceMembership.lastViewedAt) return
     if (spaceGroup?.groupViews == null) return
-    if (shouldLandOnWelcome(spaceGroup, spaceMembership, onWelcomePath)) return
+    if (shouldLandOnWelcome(spaceGroup, spaceMembership, { onWelcomePath })) return
     dispatch(setMembershipLastViewedAt(spaceGroupId, currentUser.id, new Date().toISOString()))
     dispatch(fetchForGroup(spaceFullSlug))
   }, [dispatch, isSpaceMember, spaceGroupId, currentUser?.id, spaceFullSlug, spaceMembership, spaceGroup, onWelcomePath])
@@ -196,7 +187,7 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
     ? <ContextMenuGrid group={parentGroup} spaceGroup={resolvedSpace} />
     : <Navigate to={{ pathname: `${spaceBase}${homeRoute}`, search: location.search }} replace />
 
-  if (shouldLandOnWelcome(resolvedSpace, spaceMembership, onWelcomePath)) {
+  if (shouldLandOnWelcome(resolvedSpace, spaceMembership, { onWelcomePath })) {
     return <Navigate to={`${spaceBase}/welcome${location.search}`} replace />
   }
 

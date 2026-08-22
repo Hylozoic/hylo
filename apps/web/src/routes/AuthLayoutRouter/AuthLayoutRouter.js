@@ -32,6 +32,7 @@ import checkForNewNotifications from 'store/actions/checkForNewNotifications'
 import setReturnToPath from 'store/actions/setReturnToPath'
 import fetchForCurrentUser from 'store/actions/fetchForCurrentUser'
 import fetchForGroup from 'store/actions/fetchForGroup'
+import fetchGroupViews from 'store/actions/fetchGroupViews'
 import fetchPost from 'store/actions/fetchPost'
 import fetchGroupsMenuData from 'store/actions/fetchGroupsMenuData'
 import fetchThreads from 'store/actions/fetchThreads'
@@ -95,8 +96,10 @@ import { isLegacyWebView } from 'util/webView'
 import store from 'store'
 import { setMembershipLastViewedAt, toggleNavMenu } from './AuthLayoutRouter.store'
 import { Toaster } from 'components/ui/sonner'
+import useGroupViews from 'hooks/useGroupViews'
 import useNewAppVersion from 'hooks/useNewAppVersion'
 import useMobileHardwareBack from 'hooks/useMobileHardwareBack'
+import shouldLandOnWelcome from 'util/shouldLandOnWelcome'
 
 import classes from './AuthLayoutRouter.module.scss'
 
@@ -181,6 +184,27 @@ export default function AuthLayoutRouter (props) {
   const dispatch = useDispatch()
   const currentGroup = useSelector(state => getGroupForSlug(state, currentGroupSlug))
   const currentGroupMembership = useSelector(state => getMyGroupMembership(state, currentGroupSlug))
+  const groupViews = useGroupViews(currentGroup)
+  const onWelcomePath = Boolean(
+    currentGroupSlug &&
+    location.pathname.includes(`/groups/${currentGroupSlug}/welcome`)
+  )
+  const isFirstGroupVisit = Boolean(
+    currentGroup &&
+    currentGroupMembership &&
+    !isSpaceGroup(currentGroup) &&
+    !get('lastViewedAt', currentGroupMembership)
+  )
+  const landOnWelcome = shouldLandOnWelcome(currentGroup, currentGroupMembership, {
+    onWelcomePath,
+    views: groupViews
+  })
+  const pendingWelcomeDecision = Boolean(
+    isFirstGroupVisit &&
+    currentGroup?.settings?.showWelcomePage !== false &&
+    currentGroup?.groupViews == null &&
+    !onWelcomePath
+  )
 
   const currentUser = useSelector(getMe)
   const globalNavStyle = currentUser?.settings?.globalNavStyle === 'tabs' ? 'tabs' : 'sidebar'
@@ -657,6 +681,21 @@ export default function AuthLayoutRouter (props) {
     }
   }, [currentGroupSlug, dispatch])
 
+  useEffect(() => {
+    if (!isFirstGroupVisit || !currentGroup?.id) return
+    if (currentGroup.groupViews != null) return
+    dispatch(fetchGroupViews(currentGroup.id))
+  }, [dispatch, isFirstGroupVisit, currentGroup?.id, currentGroup?.groupViews])
+
+  // Record first visit only after any welcome redirect, so lastViewedAt is not
+  // set while we still intend to send the member to /welcome.
+  useEffect(() => {
+    if (!isFirstGroupVisit || !currentUser?.id || !currentGroup?.id) return
+    if (currentGroup.groupViews == null) return
+    if (landOnWelcome) return
+    dispatch(setMembershipLastViewedAt(currentGroup.id, currentUser.id, new Date().toISOString()))
+  }, [dispatch, isFirstGroupVisit, currentUser?.id, currentGroup?.id, currentGroup?.groupViews, landOnWelcome])
+
   // Redirect to stream if user is a member but doesn't have access (expired subscription)
   useEffect(() => {
     if (currentGroupSlug && currentGroupMembership && currentGroup?.paywall && currentGroup?.canAccess === false) {
@@ -825,16 +864,9 @@ export default function AuthLayoutRouter (props) {
     }
   }
 
-  /* First time viewing a group redirect to welcome page if it exists, otherwise home view */
-  // XXX: this is a hack, figure out better way to do this
-  if (currentUser && currentGroupMembership && !get('lastViewedAt', currentGroupMembership)) {
-    const lastViewedAt = (new Date()).toISOString()
-    dispatch(setMembershipLastViewedAt(currentGroup.id, currentUser.id, lastViewedAt))
-    if (currentGroup?.settings?.showWelcomePage) {
-      navigate(`/groups/${currentGroupSlug}/welcome`, { replace: true })
-    } else {
-      navigate(`/groups/${currentGroupSlug}${currentGroup?.homeRoute || '/all'}`, { replace: true })
-    }
+  /* First time viewing a group: welcome page when shown to new members, otherwise home */
+  if (isFirstGroupVisit && landOnWelcome) {
+    return <Navigate to={`/groups/${currentGroupSlug}/welcome${location.search}`} replace />
   }
 
   return (
@@ -1108,7 +1140,18 @@ export default function AuthLayoutRouter (props) {
                             <Route path='tracks/*' element={<Navigate to={`/groups/${currentGroupSlug}/more-spaces`} replace />} />
                             <Route path='funding-rounds/*' element={<Navigate to={`/groups/${currentGroupSlug}/more-spaces`} replace />} />
                             <Route path='all-topics/*' element={<Navigate to={`/groups/${currentGroupSlug}/more-spaces`} replace />} />
-                            <Route path='*' element={isOneColumnGroup ? <ContextMenuGrid group={currentGroup} /> : <Navigate to={`/groups/${currentGroupSlug}${currentGroup?.homeRoute || '/all'}`} replace />} />
+                            <Route
+                              path='*'
+                              element={
+                                pendingWelcomeDecision
+                                  ? <RouteBootstrapSkeleton />
+                                  : landOnWelcome
+                                    ? <Navigate to={`/groups/${currentGroupSlug}/welcome${location.search}`} replace />
+                                    : isOneColumnGroup
+                                      ? <ContextMenuGrid group={currentGroup} />
+                                      : <Navigate to={`/groups/${currentGroupSlug}${currentGroup?.homeRoute || '/all'}`} replace />
+                              }
+                            />
                           </Routes>
                           )
                     }
