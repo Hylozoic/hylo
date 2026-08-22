@@ -97,8 +97,10 @@ export default function CurrentlyActiveMembers ({
   )
   const countClass = cn(
     'inline-flex items-center gap-1.5 h-7 pl-2.5 pr-2 rounded-md bg-card/90 backdrop-blur-sm border border-foreground/20 text-foreground text-xs font-semibold transition-all shrink-0',
-    // hover:text-foreground pins the anchor colour against the global link-hover green
-    interactive && 'hover:border-foreground/40 hover:text-foreground hover:scale-105 cursor-pointer',
+    // The global link rule paints BOTH a:hover and a:focus with --selected, and
+    // the focus colour sticks after a click until something else takes focus —
+    // so both states have to be pinned back to the foreground colour.
+    interactive && 'hover:border-foreground/40 hover:text-foreground focus:text-foreground hover:scale-105 cursor-pointer',
     !interactive && 'cursor-inherit'
   )
 
