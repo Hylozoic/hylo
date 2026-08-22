@@ -124,6 +124,8 @@ export default function MemberSkillsGraph ({ members, loading, slug, onSkillClic
 
   const thresholdLabel = (option) =>
     option === 1 ? t('1 person') : t('{{count}}+ people', { count: option })
+  /* Phones have no room for the noun, and "Skills with" already sits beside it. */
+  const thresholdLabelShort = (option) => (option === 1 ? '1' : `${option}+`)
 
   return (
     <div
@@ -150,7 +152,8 @@ export default function MemberSkillsGraph ({ members, loading, slug, onSkillClic
                 className='flex items-center gap-1 border-2 border-foreground/20 rounded-lg p-2 text-sm text-foreground/70 cursor-pointer transition-colors hover:text-foreground hover:border-foreground/40'
               >
                 <Users className='w-4 h-4 opacity-70' />
-                <span className='whitespace-nowrap'>{thresholdLabel(threshold)}</span>
+                <span className='whitespace-nowrap sm:hidden'>{thresholdLabelShort(threshold)}</span>
+                <span className='whitespace-nowrap hidden sm:inline'>{thresholdLabel(threshold)}</span>
                 <Icon name='ArrowDown' className='opacity-60' />
               </span>
           }
