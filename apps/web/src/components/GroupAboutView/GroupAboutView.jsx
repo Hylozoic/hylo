@@ -207,14 +207,16 @@ function AboutPanel ({ group, parentGroup, isSpace, membership, onLeave, onOpenM
         </AboutCard>
       )}
       {membership && (
-        <div className='border-2 border-dashed border-foreground/15 rounded-xl p-4 flex justify-center'>
+        <div className='border-2 border-dashed border-foreground/15 rounded-xl p-4 flex justify-center min-w-0'>
           <Button
             variant='outline'
             onClick={onLeave}
-            className='border-accent/20 hover:border-accent/100 text-accent/60 hover:text-accent/100 flex items-center gap-2'
+            className='border-accent/20 hover:border-accent/100 text-accent/60 hover:text-accent/100 flex items-center gap-2 h-auto max-w-full min-w-0 whitespace-normal'
           >
-            <LogOut className='w-4 h-4' />
-            {isSpace ? t('Leave Space') : t('Leave {{name}}', { name: group.name })}
+            <LogOut className='w-4 h-4 shrink-0' />
+            <span className='text-left break-words'>
+              {isSpace ? t('Leave Space') : t('Leave {{name}}', { name: group.name })}
+            </span>
           </Button>
         </div>
       )}
