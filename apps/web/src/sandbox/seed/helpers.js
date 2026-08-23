@@ -61,6 +61,8 @@ const TOKEN = {
   'funding-space': 7,
   'chat-main': 8,
   'track-actions': 9,
+  'track-chat': 14,
+  'track-members': 15,
   'fr-submissions': 10,
   'simple-chat': 11,
   'staff-chat': 13,
@@ -145,16 +147,28 @@ export function materializeTimestamps (value, now = Date.now()) {
 }
 
 /**
- * Default Mapbox-friendly location for demo groups (Portland-ish).
+ * Mapbox-friendly location for demo groups and posts in the East Bay.
  */
-export function defaultLocationObject (id) {
+export function bayLocation (id, { fullText, city, lat, lng }) {
   return {
     id,
-    fullText: PLACEHOLDER_COPY.slice(0, 80),
-    city: PLACEHOLDER_NAME,
-    region: PLACEHOLDER_NAME,
-    country: PLACEHOLDER_NAME,
-    center: { lat: 45.5231, lng: -122.6765 },
-    bbox: { lat: 45.5231, lng: -122.6765 }
+    fullText,
+    city,
+    region: 'California',
+    country: 'United States',
+    center: { lat, lng },
+    bbox: { lat, lng }
   }
+}
+
+/**
+ * Default Mapbox-friendly location for demo posts (downtown Oakland).
+ */
+export function defaultLocationObject (id) {
+  return bayLocation(id, {
+    fullText: 'Oakland, California, United States',
+    city: 'Oakland',
+    lat: 37.8044,
+    lng: -122.2712
+  })
 }

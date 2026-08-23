@@ -1,4 +1,3 @@
-import { PLACEHOLDER_COPY, PLACEHOLDER_NAME } from '../constants'
 import { sid } from '../helpers'
 import { MAIN_COORDINATOR_ROLE_ID, TRACK_SPACE_ID } from './groups'
 
@@ -12,63 +11,96 @@ export function buildTrack () {
     groupId: TRACK_SPACE_ID,
     actionDescriptor: 'Orientation Step',
     actionDescriptorPlural: 'Orientation Steps',
-    completionMessage: "Congratulations — you've completed the New Member Orientation! 🌱 You're now a full Terran. Welcome to the community. Jump into the chat, join a project, and don't hesitate to reach out to any of our Coordinators.",
+    completionMessage: 'Congratulations — you\'ve completed the New Member Orientation! 🌱 You\'re now a full Terran. Welcome to the community. Jump into the chat, join a project, and don\'t hesitate to reach out to any of our Coordinators.',
     publishedAt_offset: -86400 * 30,
     accessControlled: false,
     canAccess: true,
     isEnrolled: true,
     didComplete: false,
     numPeopleEnrolled: 11,
-    welcomeMessage: 'Take these four steps at your own pace. Completing them is how you become a full Terran.',
+    welcomeMessage: 'Take these steps at your own pace. Completing them is how you become a full Terran.',
     completionRole: {
       id: MAIN_COORDINATOR_ROLE_ID,
       name: 'Coordinator',
       emoji: '🪄'
     },
-    numActions: 4,
+    numActions: 5,
     numPeopleCompleted: 12
   }
 }
 
-/** Ordered track action posts (discussion-type completion steps) */
+/** Ordered track action posts (type=action, each with a completion action). */
 export function buildTrackActions (peopleById, meId) {
   const creator = peopleById[meId]
-  return [
-    trackActionPost(sid('track-action', '001'), 0, creator),
-    trackActionPost(sid('track-action', '002'), 1, creator),
-    trackActionPost(sid('track-action', '003'), 2, creator),
-    trackActionPost(sid('track-action', '004'), 3, creator)
-  ]
+  return TRACK_ACTION_CONTENT.map((content, order) =>
+    trackActionPost(sid('track-action', String(order + 1).padStart(3, '0')), order, creator, content)
+  )
 }
 
 const TRACK_ACTION_CONTENT = [
   {
     title: 'Introduce yourself',
-    details: '<p>Head to the General chat and write a short introduction — who you are, where you\'re from, and what brought you to Terran Collective. We love knowing what lights you up! 🌟</p>'
+    details: 'Head to the General chat and write a short introduction — who you are, where you\'re from, and what brought you to Terran Collective. We love knowing what lights you up! 🌟',
+    completionAction: 'comment',
+    completionActionSettings: {
+      instructions: 'Leave a comment here once you\'ve introduced yourself in chat.'
+    }
   },
   {
     title: 'Explore the stream',
-    details: '<p>Browse the main Stream to get a feel for the kinds of conversations, projects, and events happening in the community. React to something that resonates with you — emoji reactions are a great first step into the conversation.</p>'
+    details: 'Browse the main Stream to get a feel for the kinds of conversations, projects, and events happening in the community. React to something that resonates with you — emoji reactions are a great first step into the conversation.',
+    completionAction: 'reaction',
+    completionActionSettings: {
+      instructions: 'React to this step with an emoji once you\'ve explored the stream.'
+    }
   },
   {
-    title: 'Find a project or discussion to join',
-    details: '<p>Is there a project, request, or discussion you\'d like to contribute to? Leave a comment, offer your skills, or simply let the person know you\'re interested. Collaboration starts with saying hello.</p>'
+    title: 'How do you want to get involved?',
+    details: 'Terran is a bioregional community of practice. Pick the doorway that feels most true right now — you can always change course later.',
+    completionAction: 'selectOne',
+    completionActionSettings: {
+      instructions: 'Select one option to complete this Orientation Step.',
+      options: [
+        'Land stewardship and restoration',
+        'Community organizing and mutual aid',
+        'Culture, gatherings, and story',
+        'I\'m still exploring'
+      ]
+    }
   },
   {
-    title: 'Meet a Coordinator',
-    details: '<p>Send a direct message to one of our Coordinators and introduce yourself. They\'re here to help you find your footing and connect you with the parts of Terran Collective that matter most to you.</p>'
+    title: 'Skills and gifts you can share',
+    details: 'What can you offer this season? Select every gift you\'re happy to bring — even a little time counts.',
+    completionAction: 'selectMultiple',
+    completionActionSettings: {
+      instructions: 'Select one or more options to complete this Orientation Step.',
+      options: [
+        'Facilitation and hosting',
+        'Growing food or tending soil',
+        'Design, writing, or media',
+        'Care work and community support'
+      ]
+    }
+  },
+  {
+    title: 'You\'re ready to participate',
+    details: 'That\'s the orientation. Mark this step complete when you\'re ready to jump into Terran as a full member — chat, projects, and coordinators are all open to you.',
+    completionAction: 'button',
+    completionActionSettings: {
+      instructions: 'Click the button to mark this Orientation Step as complete.'
+    }
   }
 ]
 
-function trackActionPost (id, order, creator) {
-  const content = TRACK_ACTION_CONTENT[order] || TRACK_ACTION_CONTENT[0]
+function trackActionPost (id, order, creator, content) {
   return {
     id,
     title: content.title,
     details: content.details,
-    type: 'discussion',
+    type: 'action',
     trackOrder: order,
-    completionAction: 'button',
+    completionAction: content.completionAction,
+    completionActionSettings: content.completionActionSettings,
     completedAt: null,
     completionResponse: null,
     creator,

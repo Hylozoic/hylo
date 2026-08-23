@@ -29,7 +29,7 @@ import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useRouteParams from 'hooks/useRouteParams'
 import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
-import { locationObjectToViewport } from 'util/geo'
+import { locationCenter, locationObjectToViewport } from 'util/geo'
 import { isMobileDevice } from 'util/mobile'
 import { generateViewParams } from 'util/savedSearch'
 import { updateUserSettings } from 'routes/UserSettings/UserSettings.store'
@@ -77,7 +77,8 @@ const MAP_BASE_LAYERS = [
 
 function presentMember (person, groupId) {
   return {
-    ...pick(['id', 'name', 'avatarUrl', 'groupRoles', 'locationObject', 'tagline', 'skills'], person.ref),
+    ...pick(['id', 'name', 'avatarUrl', 'groupRoles', 'tagline', 'skills'], person.ref),
+    locationObject: person.locationObject?.ref || person.ref.locationObject || null,
     type: 'member',
     skills: person.skills.toModelArray(),
     group: person.memberships.first()
@@ -87,10 +88,10 @@ function presentMember (person, groupId) {
 }
 
 function presentGroup (group) {
-  // locationObject is stored as a plain nested object on .ref from the GraphQL
-  // payload (field key is locationObject, FK column is locationId) — do not
-  // overwrite it with the FK accessor, which is often null for map results.
-  return group.ref
+  return {
+    ...group.ref,
+    locationObject: group.locationObject?.ref || group.ref.locationObject || null
+  }
 }
 
 function MapExplorer (props) {
@@ -221,19 +222,22 @@ function MapExplorer (props) {
   }, [])
 
   const centerParam = getQuerystringParam('center', location)
+  const groupCenter = locationCenter(group?.locationObject)
+  const userCenter = locationCenter(currentUser?.locationObject)
   const centerLocation = useMemo(() => {
     if (centerParam) {
       const decodedCenter = decodeURIComponent(centerParam).split(',')
       return { lat: parseFloat(decodedCenter[0]), lng: parseFloat(decodedCenter[1]) }
     }
 
-    // TODO: figure out how to priotize group location over current user location, when current user loads first
-    return reduxState.centerLocation ||
-      group?.locationObject?.center ||
-      currentUser?.locationObject?.center ||
+    // Prefer the current group's location so a group map is not stuck on a
+    // previous pan or the Africa fallback (35.44, 7.92).
+    return groupCenter ||
+      reduxState.centerLocation ||
+      userCenter ||
       browserLocation ||
       { lat: 35.442845, lng: 7.916598 }
-  }, [centerParam, reduxState.centerLocation, group?.locationObject?.center, currentUser?.locationObject?.center, browserLocation])
+  }, [centerParam, groupCenter, reduxState.centerLocation, userCenter, browserLocation])
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
@@ -289,6 +293,7 @@ function MapExplorer (props) {
     bearing: 0,
     pitch: 0
   })
+  const didFitGroupLocation = useRef(false)
 
   // Clicking the map to create goes straight into the post editor with the
   // clicked location prefilled (CreateModal reads lat/lng), no type chooser
@@ -551,15 +556,19 @@ function MapExplorer (props) {
   }, [viewport])
 
   useEffect(() => {
-    if (!groupPending && centerLocation) {
-      setViewport({
-        ...viewport,
-        latitude: centerLocation.lat,
-        longitude: centerLocation.lng,
-        zoom
-      })
-    }
-  }, [groupPending])
+    didFitGroupLocation.current = false
+  }, [group?.id])
+
+  useEffect(() => {
+    if (centerParam || groupPending || !groupCenter || didFitGroupLocation.current) return
+    didFitGroupLocation.current = true
+    setViewport(current => ({
+      ...current,
+      latitude: groupCenter.lat,
+      longitude: groupCenter.lng,
+      zoom: current.zoom > 2 ? current.zoom : 10
+    }))
+  }, [centerParam, groupPending, groupCenter?.lat, groupCenter?.lng])
 
   /* Lifecycle methods */
   useEffect(() => {

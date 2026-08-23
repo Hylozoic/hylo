@@ -222,7 +222,7 @@ function handleMutation (operationName, rootField, variables, seed) {
           findOrCreateLocation: {
             id: sid('location', String(Date.now())),
             fullText: variables.data?.fullText || '',
-            center: { lat: 45.5231, lng: -122.6765 }
+            center: { lat: 37.8044, lng: -122.2712 }
           }
         }
       }
@@ -449,7 +449,11 @@ function listPosts (seed, variables) {
     }
     if (group.id === seed.groups.spaces.chat.id) return seed.posts.chatSpace
     if (group.id === seed.groups.spaces.funding.id) return seed.posts.fundingSubmissions
-    if (group.id === seed.groups.spaces.track.id) return seed.track.actions
+    if (group.id === seed.groups.spaces.track.id) {
+      const wantsChat = variables.types?.length === 1 && variables.types[0] === 'chat'
+      if (wantsChat) return []
+      return seed.track.actions
+    }
   }
   if (variables.context === 'public') return []
   if (variables.context === 'my') {

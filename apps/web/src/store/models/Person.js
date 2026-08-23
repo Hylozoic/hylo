@@ -36,7 +36,7 @@ Person.fields = {
   linkedinUrl: attr(),
   url: attr(),
   location: attr(),
-  locationId: fk({
+  locationObject: fk({
     to: 'Location',
     as: 'locationObject'
   }),

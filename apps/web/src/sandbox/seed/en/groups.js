@@ -82,15 +82,15 @@ export function buildGroups () {
       allowInPublic: true,
       paywall: false,
       homeRoute: '/chat',
-      location: 'Oakland, California, United States',
+      location: 'Lake Merritt, Oakland, California, United States',
       locationObject: {
         id: sid('location', 'simple'),
-        fullText: 'Oakland, California, United States',
+        fullText: 'Lake Merritt, Oakland, California, United States',
         city: 'Oakland',
         region: 'California',
         country: 'United States',
-        center: { lat: 37.8106, lng: -122.2473 },
-        bbox: { lat: 37.8106, lng: -122.2473 }
+        center: { lat: 37.8016, lng: -122.2583 },
+        bbox: { lat: 37.8016, lng: -122.2583 }
       },
       stewardDescriptor: 'Organizer',
       stewardDescriptorPlural: 'Organizers',
@@ -121,15 +121,15 @@ export function buildGroups () {
       allowInPublic: true,
       paywall: false,
       homeRoute: '/chat',
-      location: 'Oakland, California, United States',
+      location: 'Temescal, Oakland, California, United States',
       locationObject: {
         id: sid('location', 'staff'),
-        fullText: 'Oakland, California, United States',
+        fullText: 'Temescal, Oakland, California, United States',
         city: 'Oakland',
         region: 'California',
         country: 'United States',
-        center: { lat: 37.8044, lng: -122.2712 },
-        bbox: { lat: 37.8044, lng: -122.2712 }
+        center: { lat: 37.8370, lng: -122.2623 },
+        bbox: { lat: 37.8370, lng: -122.2623 }
       },
       stewardDescriptor: 'Worker-owner',
       stewardDescriptorPlural: 'Worker-owners',
@@ -169,16 +169,16 @@ export function buildGroups () {
         purpose: 'Help new members find their footing and their people.',
         avatarUrl: null,
         bannerUrl: null,
-        icon: 'Route',
+        icon: 'Shapes',
         type: 'space',
         parentId: MAIN_GROUP_ID,
         memberCount: 11,
-        postCount: 0,
+        postCount: 5,
         visibility: 0,
         accessibility: 1,
         homeRoute: '/track-actions',
         createdAt_offset: -86400 * 60,
-        acceptedPostTypes: ['discussion']
+        acceptedPostTypes: []
       },
       funding: {
         id: FUNDING_SPACE_ID,
@@ -416,7 +416,9 @@ export function buildGroupViews (groups, track, fundingRound) {
       viewItem(sid('view', 'chat-main'), 'chat', 'Chat', 0, { icon: 'MessageCircle' })
     ],
     [spaces.track.id]: [
-      viewItem(sid('view', 'track-actions'), 'track-actions', 'Orientation Steps', 0, { icon: 'Route' })
+      viewItem(sid('view', 'track-actions'), 'track-actions', 'Orientation Steps', 0, { icon: 'Shapes' }),
+      viewItem(sid('view', 'track-chat'), 'chat', 'Chat', 1, { icon: 'MessageCircle' }),
+      viewItem(sid('view', 'track-members'), 'members', 'Members', 2, { icon: 'Users' })
     ],
     [spaces.funding.id]: [
       viewItem(sid('view', 'fr-submissions'), 'funding-round-submissions', 'Grant Submissions', 0, { icon: 'Coins' })

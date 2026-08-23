@@ -126,14 +126,22 @@ describe('sandbox GraphQL handlers', () => {
   it('returns orientation steps as collectionPosts on the track space', () => {
     const trackSpace = seed.groups.spaces.track
     const result = handleGraphql({
-      query: 'query ($groupId: ID) { group(id: $groupId) { id track { id name } groupViews { items { id type collectionPosts { id title } } } } }',
+      query: 'query ($groupId: ID) { group(id: $groupId) { id track { id name } groupViews { items { id type collectionPosts { id title type completionAction } } } } }',
       variables: { groupId: trackSpace.id }
     }, seed)
 
     expect(result.data.group.track.name).toBe('New Member Orientation')
     const actionsView = result.data.group.groupViews.items.find(view => view.type === 'track-actions')
-    expect(actionsView.collectionPosts.length).toBe(4)
+    expect(actionsView.collectionPosts.length).toBe(5)
     expect(actionsView.collectionPosts[0].title).toBe('Introduce yourself')
+    expect(actionsView.collectionPosts[0].type).toBe('action')
+    expect(actionsView.collectionPosts.map(post => post.completionAction)).toEqual([
+      'comment',
+      'reaction',
+      'selectOne',
+      'selectMultiple',
+      'button'
+    ])
   })
 
   it('keeps track orientation steps when parent menu data is refetched', () => {
@@ -150,7 +158,7 @@ describe('sandbox GraphQL handlers', () => {
     expect(trackSpaceView.linkedGroup.track.name).toBe('New Member Orientation')
     expect(trackSpaceView.linkedGroup.track.isEnrolled).toBe(true)
     const actionsView = trackSpaceView.linkedGroup.groupViews.items.find(view => view.type === 'track-actions')
-    expect(actionsView.collectionPosts.length).toBe(4)
+    expect(actionsView.collectionPosts.length).toBe(5)
   })
 
   it('persists track step completion in the sandbox seed', () => {

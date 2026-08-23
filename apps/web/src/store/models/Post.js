@@ -137,7 +137,7 @@ Post.fields = {
     throughFields: ['post', 'follower']
   }),
   groups: many('Group'),
-  locationId: fk({
+  locationObject: fk({
     to: 'Location',
     as: 'locationObject'
   }),

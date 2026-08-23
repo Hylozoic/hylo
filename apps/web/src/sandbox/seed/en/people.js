@@ -28,7 +28,15 @@ export function buildMe () {
     newNotificationCount: 4,
     unseenThreadCount: 1,
     location: 'Oakland, California, United States',
-    locationObject: null,
+    locationObject: {
+      id: sid('location', 'me'),
+      fullText: 'Oakland, California, United States',
+      city: 'Oakland',
+      region: 'California',
+      country: 'United States',
+      center: { lat: 37.8044, lng: -122.2712 },
+      bbox: { lat: 37.8044, lng: -122.2712 }
+    },
     bio: 'Community organizer and technologist working toward a more regenerative Bay Area bioregion. Coordinator at Terran Collective.',
     tagline: 'Bioregional coordinator',
     contactEmail: null,
