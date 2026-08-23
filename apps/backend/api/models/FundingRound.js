@@ -328,7 +328,18 @@ module.exports = bookshelf.Model.extend({
     }
     let roundUser = await FundingRoundUser.where({ funding_round_id: roundId, user_id: userId }).fetch({ transacting })
     if (!roundUser) {
-      roundUser = await FundingRoundUser.create({ funding_round_id: roundId, user_id: userId }, { transacting })
+      const createAttrs = { funding_round_id: roundId, user_id: userId }
+      const canAllocateOnJoin = round.get('allow_late_joiners')
+        && round.get('voting_method') === 'token_allocation_constant'
+        && round.get('phase') === FundingRound.PHASES.VOTING
+        && round.get('total_tokens')
+
+      // Late joiners only receive tokens when the round is already in voting
+      if (canAllocateOnJoin && await round.canUserVote(userId)) {
+        createAttrs.tokens_remaining = round.get('total_tokens')
+      }
+
+      roundUser = await FundingRoundUser.create(createAttrs, { transacting })
       await round.save({ num_participants: round.get('num_participants') + 1 }, { transacting })
 
       // XXX: don't send notifications for joining a funding round for now
@@ -348,21 +359,35 @@ module.exports = bookshelf.Model.extend({
     return roundUser
   },
 
-  leave: async function (roundId, userId) {
+  // Remove a participant and clear any votes they cast in this round
+  leave: async function (roundId, userId, { transacting } = {}) {
+    if (!transacting) {
+      return bookshelf.transaction(async transacting => {
+        return await FundingRound.leave(roundId, userId, { transacting })
+      })
+    }
+
     const round = await FundingRound.find(roundId)
     if (!round) {
       throw new GraphQLError('Funding round not found')
     }
-    return FundingRoundUser.where({ funding_round_id: roundId, user_id: userId })
-      .fetch()
-      .then(roundUser => {
-        if (roundUser) {
-          roundUser.destroy()
-          round.save({ num_participants: round.get('num_participants') - 1 })
-          return true
-        }
-        return null
-      })
+
+    const roundUser = await FundingRoundUser.where({ funding_round_id: roundId, user_id: userId }).fetch({ transacting })
+    if (!roundUser) return null
+
+    const submissions = await round.submissions().fetch({ transacting })
+    const submissionIds = submissions.pluck('id')
+    if (submissionIds.length > 0) {
+      await bookshelf.knex('posts_users')
+        .whereIn('post_id', submissionIds)
+        .where({ user_id: userId })
+        .update({ tokens_allocated_to: 0 })
+        .transacting(transacting)
+    }
+
+    await roundUser.destroy({ transacting })
+    await round.save({ num_participants: round.get('num_participants') - 1 }, { transacting })
+    return true
   },
 
   // Distribute tokens to all users in a funding round

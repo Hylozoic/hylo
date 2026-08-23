@@ -22,6 +22,7 @@ export default gql`
       ) {
         items {
           id
+          allowLateJoiners
           allowSelfVoting
           bannerUrl
           createdAt

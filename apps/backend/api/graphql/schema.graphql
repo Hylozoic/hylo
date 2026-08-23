@@ -2992,6 +2992,8 @@ type FundingRound {
   id: ID
   # Whether participants can vote on their own submissions
   allowSelfVoting: Boolean
+  # Whether people who join during the voting phase receive tokens and can vote
+  allowLateJoiners: Boolean
   # The URL for the banner image of the round
   bannerUrl: String
   # Whether the current user can submit to this funding round
@@ -4526,6 +4528,8 @@ input RoleSelectionInput {
 input FundingRoundInput {
   # Whether participants can vote on their own submissions
   allowSelfVoting: Boolean
+  # Whether people who join during the voting phase receive tokens and can vote
+  allowLateJoiners: Boolean
   # The URL for the banner image of the round
   bannerUrl: String
   # Criteria for submitting projects/submissions
