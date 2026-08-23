@@ -104,6 +104,7 @@ function FundingRoundEditor (props) {
   const canManage = useSelector(state => currentGroup && hasResponsibilityForGroup(state, { groupId: currentGroup.id, responsibility: RESP_MANAGE_ROUNDS }))
 
   const [fundingRoundState, setFundingRoundState] = useState({
+    allowLateJoiners: false,
     allowSelfVoting: false,
     bannerUrl: null,
     criteria: '',
@@ -129,6 +130,7 @@ function FundingRoundEditor (props) {
   })
 
   const {
+    allowLateJoiners,
     allowSelfVoting,
     bannerUrl,
     criteria,
@@ -274,6 +276,17 @@ function FundingRoundEditor (props) {
     setEdited(prev => prev || !isEqual(prev[key], value))
   }, [submissionsOpenAt, submissionsCloseAt, votingOpensAt, votingClosesAt])
 
+  const isConstantAllocation = votingMethod === 'token_allocation_constant'
+
+  const handleVotingMethodChange = useCallback((value) => {
+    setFundingRoundState(prev => ({
+      ...prev,
+      votingMethod: value,
+      allowLateJoiners: value === 'token_allocation_constant' ? prev.allowLateJoiners : false
+    }))
+    setEdited(true)
+  }, [])
+
   const handleAllowSelfVotingChange = useCallback((checked) => {
     const currentValue = allowSelfVoting
     const isVotingPhase = editingRound?.phase === 'voting' || editingRound?.phase === 'completed'
@@ -310,6 +323,7 @@ function FundingRoundEditor (props) {
 
     const result = await dispatch(save({
       id: editingRound?.id,
+      allowLateJoiners: isConstantAllocation && allowLateJoiners,
       allowSelfVoting,
       bannerUrl,
       criteria: criteriaHTML,
@@ -355,6 +369,7 @@ function FundingRoundEditor (props) {
 
     const result = await dispatch(save({
       id: editingRound?.id,
+      allowLateJoiners: isConstantAllocation && allowLateJoiners,
       bannerUrl,
       criteria: criteriaHTML,
       description: descriptionHTML,
@@ -400,6 +415,7 @@ function FundingRoundEditor (props) {
 
     const result = await dispatch(save({
       id: editingRound?.id,
+      allowLateJoiners: isConstantAllocation && allowLateJoiners,
       bannerUrl,
       criteria: criteriaHTML,
       description: descriptionHTML,
@@ -579,6 +595,15 @@ function FundingRoundEditor (props) {
           />
         </div>
 
+        <div>
+          <CheckBox
+            label={t('Allow people who join during voting to receive tokens and vote')}
+            checked={isConstantAllocation && allowLateJoiners}
+            disabled={!isConstantAllocation}
+            onChange={updateFundingRoundState('allowLateJoiners')}
+          />
+        </div>
+
       </div>
 
       <div className='flex flex-col gap-2 mt-1 border-t-2 border-foreground/10 p-2'>
@@ -685,7 +710,7 @@ function FundingRoundEditor (props) {
         )}
 
         <h3>{t('How should the {{tokenType}} be distributed to voters? If "divide evenly" is selected, the total {{tokenType}} will be divided among the voters who have joined the round by the time it begins.', { tokenType })}</h3>
-        <RadioGroup onValueChange={updateFundingRoundState('votingMethod')} value={votingMethod || ''}>
+        <RadioGroup onValueChange={handleVotingMethodChange} value={votingMethod || ''}>
           {tokenAllocationOptions.map((option) => (
             <div key={option.value} className='flex items-center gap-2 mb-2 cursor-pointer'>
               <RadioGroupItem value={option.value} id={`radio-${option.value}`} />

@@ -17,6 +17,7 @@ query (
     fundingRounds (first: $first, offset: $offset, order: $order, sortBy: $sortBy, published: $published, search: $search) {
       items {
         id
+        allowLateJoiners
         allowSelfVoting
         bannerUrl
         createdAt

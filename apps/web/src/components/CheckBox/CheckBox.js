@@ -10,7 +10,7 @@ export default function CheckBox ({ checked, onChange, className, label, labelCl
   const iconName = checked ? 'Checkmark' : 'Empty'
 
   return (
-    <label className={cn('cursor-pointer mb-0 align-middle', labelClass)}>
+    <label className={cn('mb-0 align-middle', disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer', labelClass)}>
       {labelLeft && label}
       <Icon name={iconName} className={cn('align-middle pr-2 text-selected border-primary-foreground/80', { 'pl-2': labelLeft, 'text-primary-foreground/50': !checked })} dataTestId={`icon-${iconName}`} />
       {!noInput &&

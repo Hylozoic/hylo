@@ -37,6 +37,33 @@ describe('createFundingRound', () => {
     expect(round).to.exist
     expect(round.get('title')).to.equal(data.title)
     expect(round.get('group_id')).to.equal(group.id)
+    expect(round.get('allow_late_joiners')).to.not.be.true
+  })
+
+  it('saves allowLateJoiners when voting method is token_allocation_constant', async () => {
+    const data = {
+      title: 'Late Joiner Round',
+      groupId: group.id,
+      votingMethod: 'token_allocation_constant',
+      totalTokens: 100,
+      allowLateJoiners: true
+    }
+
+    const round = await createFundingRound(moderatorUser.id, data)
+    expect(round.get('allow_late_joiners')).to.be.true
+  })
+
+  it('forces allowLateJoiners off when voting method is token_allocation_divide', async () => {
+    const data = {
+      title: 'Divide Round',
+      groupId: group.id,
+      votingMethod: 'token_allocation_divide',
+      totalTokens: 100,
+      allowLateJoiners: true
+    }
+
+    const round = await createFundingRound(moderatorUser.id, data)
+    expect(round.get('allow_late_joiners')).to.be.false
   })
 
   it('throws error when title is missing', async () => {
@@ -198,6 +225,15 @@ describe('updateFundingRound', () => {
     }
   })
 
+  it('clears allowLateJoiners when voting method changes to token_allocation_divide', async () => {
+    await round.save({ allow_late_joiners: true }, { patch: true })
+
+    const updatedRound = await updateFundingRound(moderatorUser.id, round.id, {
+      votingMethod: 'token_allocation_divide'
+    })
+    expect(updatedRound.get('allow_late_joiners')).to.be.false
+  })
+
   it('triggers phase transition on update', async () => {
     const now = new Date()
     const pastDate = new Date(now.getTime() - 1000).getTime() // 1 second ago
@@ -295,6 +331,72 @@ describe('joinFundingRound', () => {
 
     expect(roundUser).to.exist
   })
+
+  it('does not allocate tokens when joining before voting', async () => {
+    await round.save({ allow_late_joiners: true, total_tokens: 100 }, { patch: true })
+    await joinFundingRound(user.id, round.id)
+
+    const roundUser = await FundingRoundUser.where({
+      user_id: user.id,
+      funding_round_id: round.id
+    }).fetch()
+
+    expect(roundUser.get('tokens_remaining') || 0).to.equal(0)
+  })
+
+  it('allocates tokens when joining during voting if allowLateJoiners is on', async () => {
+    await round.save({
+      allow_late_joiners: true,
+      phase: FundingRound.PHASES.VOTING,
+      total_tokens: 100,
+      voting_method: 'token_allocation_constant'
+    }, { patch: true })
+
+    await joinFundingRound(user.id, round.id)
+
+    const roundUser = await FundingRoundUser.where({
+      user_id: user.id,
+      funding_round_id: round.id
+    }).fetch()
+
+    expect(roundUser.get('tokens_remaining')).to.equal(100)
+  })
+
+  it('does not allocate tokens when joining during voting if allowLateJoiners is off', async () => {
+    await round.save({
+      allow_late_joiners: false,
+      phase: FundingRound.PHASES.VOTING,
+      total_tokens: 100,
+      voting_method: 'token_allocation_constant'
+    }, { patch: true })
+
+    await joinFundingRound(user.id, round.id)
+
+    const roundUser = await FundingRoundUser.where({
+      user_id: user.id,
+      funding_round_id: round.id
+    }).fetch()
+
+    expect(roundUser.get('tokens_remaining') || 0).to.equal(0)
+  })
+
+  it('does not allocate tokens to late joiners when voting method is token_allocation_divide', async () => {
+    await round.save({
+      allow_late_joiners: true,
+      phase: FundingRound.PHASES.VOTING,
+      total_tokens: 100,
+      voting_method: 'token_allocation_divide'
+    }, { patch: true })
+
+    await joinFundingRound(user.id, round.id)
+
+    const roundUser = await FundingRoundUser.where({
+      user_id: user.id,
+      funding_round_id: round.id
+    }).fetch()
+
+    expect(roundUser.get('tokens_remaining') || 0).to.equal(0)
+  })
 })
 
 describe('leaveFundingRound', () => {
@@ -337,6 +439,59 @@ describe('leaveFundingRound', () => {
     }).fetch()
 
     expect(roundUser).to.not.exist
+  })
+
+  it('clears the user\'s votes so a later rejoin cannot keep them', async () => {
+    const otherVoter = factories.user()
+    const submission = factories.post({ type: Post.Type.SUBMISSION })
+    await Promise.all([otherVoter.save(), submission.save()])
+    await otherVoter.joinGroup(group)
+    await group.posts().attach(submission)
+    await bookshelf.knex('funding_rounds_posts').insert({
+      funding_round_id: round.id,
+      post_id: submission.id
+    })
+
+    await round.save({
+      allow_late_joiners: true,
+      phase: FundingRound.PHASES.VOTING,
+      total_tokens: 100,
+      voting_method: 'token_allocation_constant',
+      voting_opens_at: new Date(Date.now() - 10000)
+    }, { patch: true })
+
+    await FundingRoundUser.where({
+      user_id: user.id,
+      funding_round_id: round.id
+    }).fetch().then(roundUser => roundUser.save({ tokens_remaining: 100 }))
+
+    await FundingRound.join(round.id, otherVoter.id)
+    await FundingRoundUser.where({
+      user_id: otherVoter.id,
+      funding_round_id: round.id
+    }).fetch().then(roundUser => roundUser.save({ tokens_remaining: 100 }))
+
+    await allocateTokensToSubmission(user.id, submission.id, 40)
+    await allocateTokensToSubmission(otherVoter.id, submission.id, 25)
+
+    await leaveFundingRound(user.id, round.id)
+
+    const leftUserAllocation = await PostUser.find(submission.id, user.id)
+    expect(leftUserAllocation.get('tokens_allocated_to') || 0).to.equal(0)
+
+    const otherAllocation = await PostUser.find(submission.id, otherVoter.id)
+    expect(otherAllocation.get('tokens_allocated_to')).to.equal(25)
+
+    await joinFundingRound(user.id, round.id)
+
+    const rejoinedUser = await FundingRoundUser.where({
+      user_id: user.id,
+      funding_round_id: round.id
+    }).fetch()
+    expect(rejoinedUser.get('tokens_remaining')).to.equal(100)
+
+    const rejoinedAllocation = await PostUser.find(submission.id, user.id)
+    expect(rejoinedAllocation.get('tokens_allocated_to') || 0).to.equal(0)
   })
 })
 

@@ -19,9 +19,10 @@ export default function RoundPhaseStatus ({
   const votingOpensDate = round.votingOpensAt
   const votingClosesDate = round.votingClosesAt
 
-  // Check if user joined after voting started
+  // Late joiners cannot vote unless the round decided they can
   const joinedAfterVotingStarted = round.joinedAt && votingOpensDate &&
     new Date(round.joinedAt) > new Date(votingOpensDate)
+  const cannotVoteAsLateJoiner = joinedAfterVotingStarted && !round.allowLateJoiners
 
   if (!round) return null
 
@@ -133,7 +134,7 @@ export default function RoundPhaseStatus ({
               </span>
               {t('Voting in progress')}
             </h2>
-            {canVote && !joinedAfterVotingStarted && currentTokensRemaining != null && (
+            {canVote && !cannotVoteAsLateJoiner && currentTokensRemaining != null && (
               <div className='bg-selected/20 border-2 border-selected rounded-md py-1 px-2 font-bold text-sm'>
                 {t('You have {{tokens}} {{tokenType}} remaining', {
                   tokens: currentTokensRemaining,
@@ -142,7 +143,7 @@ export default function RoundPhaseStatus ({
               </div>
             )}
           </div>
-          {!canVote && voterRoles && voterRoles.length > 0 && !joinedAfterVotingStarted && (
+          {!canVote && voterRoles && voterRoles.length > 0 && !cannotVoteAsLateJoiner && (
             <div className='w-full bg-amber-500/20 border-2 border-amber-500/40 rounded-md p-3 flex items-start gap-2'>
               <ShieldAlert className='w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5' />
               <div className='flex flex-col gap-1'>
@@ -157,7 +158,7 @@ export default function RoundPhaseStatus ({
               </div>
             </div>
           )}
-          {joinedAfterVotingStarted && (
+          {cannotVoteAsLateJoiner && (
             <div className='w-full bg-amber-500/20 border-2 border-amber-500/40 rounded-md p-3 flex items-start gap-2'>
               <ShieldAlert className='w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5' />
               <div className='flex flex-col gap-1'>
@@ -172,7 +173,7 @@ export default function RoundPhaseStatus ({
               </div>
             </div>
           )}
-          {canVote && !joinedAfterVotingStarted && (
+          {canVote && !cannotVoteAsLateJoiner && (
             <div>
               <p className='text-sm text-foreground/80 mt-0 mb-0 pt-0 font-normal'>
                 {t('Allocate your {{tokenType}} to the {{submissionDescriptorPlural}} you think deserve support.', {
@@ -193,7 +194,7 @@ export default function RoundPhaseStatus ({
               numSubmissions: round.numSubmissions || 0
             })}
           </span>
-          {canVote && !joinedAfterVotingStarted && (
+          {canVote && !cannotVoteAsLateJoiner && (
             <div className='flex flex-row gap-3 opacity-50'>
               {typeof round.minTokenAllocation === 'number' && round.minTokenAllocation > 0 && (
                 <p className='text-xs text-foreground/80 mb-1 font-normal pt-0 mt-0 border-r-2 border-foreground/20 pr-2'>
