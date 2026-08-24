@@ -2,7 +2,6 @@ import { POST_TYPES } from './PostPresenter.js'
 
 /** Default icon names for GroupView types (Hylo icon font or Lucide via GroupViewIcon). */
 const VIEW_TYPE_TO_ICON_NAME = {
-  about: 'Info',
   all: 'Stream',
   discussions: 'Message',
   events: 'Calendar',
@@ -11,7 +10,6 @@ const VIEW_TYPE_TO_ICON_NAME = {
   moderation: 'Shield',
   post: 'Posticon',
   proposals: 'Proposal',
-  'related-groups': 'Groups',
   group: 'Groups',
   groups: 'Groups',
   'requests-and-offers': 'Request',
@@ -144,7 +142,6 @@ const VIEW_TYPE_TO_LUCIDE_ICON = {
   moderation: 'ShieldCheck',
   projects: 'Layers',
   proposals: 'Vote',
-  'related-groups': 'Network',
   resources: 'PackageOpen',
   'requests-and-offers': 'Heart',
   text: 'Type',

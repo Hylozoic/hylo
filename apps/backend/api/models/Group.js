@@ -888,7 +888,6 @@ module.exports = bookshelf.Model.extend(merge({
     return Promise.map(existingMemberships.models, ms => ms.updateAndSave(updatedAttribs, { transacting }))
   },
 
-
   update: async function (changes, updatedByUserId) {
     const whitelist = [
       'about_video_uri', 'accepted_post_types', 'active', 'access_code', 'accessibility', 'avatar_url', 'banner_url',

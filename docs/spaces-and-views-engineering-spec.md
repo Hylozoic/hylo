@@ -233,7 +233,8 @@ CREATE INDEX idx_group_views_group_order ON group_views(group_id, "order");
 
 **`space-collection`** is a steward-curated, ordered list of spaces, stored as `settings.spaceIds` (an array of space group ids, order-significant). It replaces the old `tracks` and `funding-rounds` widget views: the data migration converts each of those widgets into a `space-collection` view carrying `migratedFrom`, then backfills `spaceIds` with that group's track or round spaces once the spaces exist. Unlike `collection` (which holds posts via `collections_posts`), a space-collection stores its membership inline in `settings`. Route: `/space-collection/:viewId`.
 
-**Types that no longer exist:** `about`, `moderation`, `related-groups`. These are tabs on the About page (§7.11); the `20260817140000_drop_off_menu_views` migration deleted every row of those types. `all-topics` was never migrated.
+**Types that no longer exist:** `about`, `moderation`, `related-groups`. These are tabs on the About page (§7.11). `
+`all-topics` was never migrated.
 
 `GroupView.NON_NAVIGABLE_TYPES = ['link', 'text', 'separator', 'space']` — these don't resolve to their own route.
 
@@ -667,6 +668,7 @@ Pending cleanup (§14):
 | `20260813120000_add_num_open_join_requests.js` | Added the cached join request count |
 | `20260813130000_add_notice_data_to_posts.js` + `20260813140000_backfill_chat_activity_notices.js` | Chat activity notice posts (§8) |
 | `20260817140000_drop_off_menu_views.js` | **Reversed the off-menu view model.** Deleted every `group_views` row with `order IS NULL` except `type = 'space'`, plus all `about` / `moderation` / `related-groups` rows. Irreversible by design. |
+| `20260824120000_drop_about_and_related_groups_views.js` | Deletes leftover `about` / `related-groups` rows, remaps `home_route`|
 
 The two `20260723` "ensure off-menu views" migrations were reduced to no-ops rather than deleted, so that databases which already recorded those filenames (staging) don't attempt to run different code under the same name, and so production never inserts rows that `20260817140000` would immediately delete.
 

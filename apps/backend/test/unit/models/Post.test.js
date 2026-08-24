@@ -630,7 +630,7 @@ describe('Post', function () {
       spyify(Queue, 'classMethod')
       const callOrder = []
       const postInstance = await Post.find(post.id)
-      
+
       postInstance.updateEventInvitees = spy(async () => {
         callOrder.push('updateEventInvitees')
       })
@@ -839,7 +839,7 @@ describe('Post', function () {
     it('calls all post methods in correct order when significant change occur', async () => {
       const callOrder = []
       const postInstance = await Post.find(post.id)
-      
+
       postInstance.updateEventInvitees = spy(async () => {
         callOrder.push('updateEventInvitees')
       })
@@ -952,7 +952,7 @@ describe('Post', function () {
     it('calls all post methods in correct order', async () => {
       const callOrder = []
       const postInstance = await Post.find(post.id)
-      
+
       postInstance.sendUserRsvps = spy(async () => {
         callOrder.push('sendUserRsvps')
       })
@@ -1058,7 +1058,7 @@ describe('Post', function () {
         group_id: space.id
       })
       await space.save({ track_id: track.id }, { patch: true })
-      await Group.setupSpaceViews(space.id, ['action'], ['about', 'track-actions', 'members'])
+      await Group.setupSpaceViews(space.id, ['action'], ['track-actions', 'members', 'welcome'])
       a1 = await factories.post({ type: Post.Type.ACTION, user_id: trackManager.id }).save()
       a2 = await factories.post({ type: Post.Type.ACTION, user_id: trackManager.id }).save()
       await a1.groups().attach(space)

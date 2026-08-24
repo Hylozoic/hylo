@@ -572,10 +572,13 @@ async function main () {
     await client.query(
       `INSERT INTO group_views (group_id, type, "order", created_at, updated_at)
        VALUES
-         ($1, 'about', 0, $2::timestamptz, $2::timestamptz),
-         ($1, 'track-actions', 1, $2::timestamptz, $2::timestamptz),
-         ($1, 'members', 2, $2::timestamptz, $2::timestamptz)`,
+         ($1, 'track-actions', 0, $2::timestamptz, $2::timestamptz),
+         ($1, 'members', 1, $2::timestamptz, $2::timestamptz)`,
       [paidTrackSpaceId, now]
+    )
+    await client.query(
+      `UPDATE groups SET home_route = '/track-actions' WHERE id = $1`,
+      [paidTrackSpaceId]
     )
 
     await client.query(
