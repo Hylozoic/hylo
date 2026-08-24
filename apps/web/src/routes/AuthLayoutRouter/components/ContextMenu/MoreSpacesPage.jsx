@@ -102,7 +102,7 @@ export default function MoreSpacesPage ({ group }) {
         : t('More Spaces'),
       icon: <CircleEllipsis />,
       info: '',
-      search: false
+      search: true
     })
   }, [setHeaderDetails, t, isEditing])
 

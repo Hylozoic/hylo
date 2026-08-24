@@ -381,14 +381,14 @@ const ViewHeader = () => {
   // Light mode surfaces sit close in lightness, so the sticky header needs a
   // hairline edge plus a stronger shadow to read as a layer above the stream.
   return (
-    <header className={cn('flex flex-row items-center z-40 p-2 sticky top-0 w-full bg-context-menu-background border-b border-foreground/[0.08] shadow-header dark:border-transparent dark:shadow-header-dark', {
+    <header className={cn('ViewHeader flex flex-row items-center z-40 p-2 sticky top-0 w-full bg-context-menu-background border-b border-foreground/[0.08] shadow-header dark:border-transparent dark:shadow-header-dark', {
       'justify-center': centered,
       hidden: (oneColumn && isBannerVisible) || isOneColumnMenuLevel
     })}
     >
       {centered && (backButton || mobileBackButton) && (
         <button
-          className={cn('p-2 -ml-1 cursor-pointer absolute left-0 z-10 bg-background', !compactLayout && 'sm:hidden', !compactLayout && backButton && 'sm:block')}
+          className={cn('p-2 -ml-1 cursor-pointer absolute left-0 z-10', !compactLayout && 'sm:hidden', !compactLayout && backButton && 'sm:block')}
           onClick={handleChevronClick}
         >
           <ChevronLeft className='w-6 h-6' />
