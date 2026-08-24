@@ -52,6 +52,8 @@ export default function presentPost (post, groupId) {
       groups: (rawPost ? post.groups || [] : (post.groups?.toModelArray?.() || [])),
       linkPreview: post.linkPreview, // needed to load the link preview object
       location: post.location, // needed to load the location object
+      // GraphQL locationObject is stored nested on .ref; the locationId FK is usually empty
+      locationObject: rawPost ? post.locationObject : (post.ref?.locationObject || post.locationObject?.ref || post.locationObject),
       members: (rawPost ? post.members?.items || [] : (post.members?.toModelArray?.() || [])).map(person => {
         return {
           ...(rawPost ? person : person.ref),

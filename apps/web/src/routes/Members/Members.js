@@ -1,5 +1,5 @@
 import { debounce, get } from 'lodash/fp'
-import React, { useEffect, useLayoutEffect, useCallback, useMemo, useState } from 'react'
+import React, { useEffect, useLayoutEffect, useCallback, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Helmet } from 'react-helmet'
 import { useLocation, useNavigate } from 'react-router-dom'
@@ -21,6 +21,7 @@ import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import usePillRowClamp from 'hooks/usePillRowClamp'
 import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
 import { personUrl } from '@hylo/navigation'
+import { isPhoneDevice } from 'util/mobile'
 import { FETCH_MEMBERS, FETCH_MEMBERS_FOR_GRAPH, fetchMembers, fetchMembersForGraph, fetchRecentlyActiveMembers, fetchRoleMemberCounts, fetchFundingRoundMemberCounts, getMembers, getGraphMembers, getHasFetchedGraphMembers, getHasMoreMembers, getHasFetchedMembers, getMemberQueryProps, getRecentlyActiveMembers, removeMember } from './Members.store'
 import { fetchTrack } from 'store/actions/trackActions'
 import { fetchFundingRound } from 'routes/FundingRounds/FundingRounds.store'
@@ -185,7 +186,9 @@ function Members (props) {
   // Controlled so graph skill clicks can fill the box; typing stays debounced
   const [searchValue, setSearchValue] = useState(search || '')
   // Card grid vs compact list, per the members directory design
-  const [displayMode, setDisplayMode] = useState(props.defaultDisplayMode || 'card')
+  const [displayMode, setDisplayMode] = useState(props.defaultDisplayMode || (isPhoneDevice() ? 'list' : 'card'))
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
+  const searchInputRef = useRef(null)
   // Role pills keep to one row behind a More pill until expanded; the count
   // includes the All-members pill since the hook measures container children
   const [rolesExpanded, setRolesExpanded] = useState(false)
@@ -281,6 +284,12 @@ function Members (props) {
 
   const debouncedSearch = debounce(300, changeSearch)
 
+  const openMobileSearch = () => {
+    setMobileSearchOpen(true)
+    // the input only exists once open, so focus on the next tick
+    setTimeout(() => searchInputRef.current?.focus(), 0)
+  }
+
   if (!group?.id) {
     return <MembersBootstrapSkeleton />
   }
@@ -309,9 +318,29 @@ function Members (props) {
         />
         <div className='flex flex-col gap-2 py-4'>
           <div className='flex flex-wrap items-center gap-2'>
-            <div className='relative flex-1 min-w-[220px]'>
+            {/* Phones start as just a button so the controls fit one row; tapping
+                it hands the full row to the input. Desktop is unchanged. */}
+            <button
+              type='button'
+              onClick={openMobileSearch}
+              aria-label={t('Search')}
+              title={t('Search')}
+              data-testid='members-search-button'
+              className={cn(
+                'sm:hidden shrink-0 flex items-center justify-center w-10 h-10 rounded-lg border-2 border-foreground/20 text-foreground/60 transition-colors hover:text-foreground',
+                mobileSearchOpen && 'hidden'
+              )}
+            >
+              <Search className='w-4 h-4' />
+            </button>
+            <div className={cn(
+              'relative sm:flex-1 sm:min-w-[220px]',
+              mobileSearchOpen ? 'w-full' : 'hidden sm:block'
+            )}
+            >
               <Search className='absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/40 pointer-events-none' />
               <input
+                ref={searchInputRef}
                 placeholder={t('Search name, skill, location, keyword')}
                 className='bg-input/60 focus:bg-input/100 border-2 border-foreground/20 rounded-lg text-foreground placeholder-foreground/40 w-full p-2 pl-9 transition-all outline-none focus:outline-focus focus:outline-2'
                 value={searchValue}
@@ -319,6 +348,7 @@ function Members (props) {
                   setSearchValue(e.target.value)
                   debouncedSearch(e.target.value)
                 }}
+                onBlur={() => { if (!searchValue) setMobileSearchOpen(false) }}
               />
             </div>
             <Dropdown

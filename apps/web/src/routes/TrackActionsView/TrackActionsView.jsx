@@ -166,7 +166,7 @@ export default function TrackActionsView () {
                 ? <Loading />
                 : displayedPosts.map(post => (
                   <PostCard key={post.id} post={post} isCurrentAction={currentActionId === post.id} actionDescriptor={currentTrack.actionDescriptor} />
-                  ))
+                ))
             )}
       </div>
     </div>

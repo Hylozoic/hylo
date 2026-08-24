@@ -29,6 +29,13 @@ export default {
       // => @media (min-width: 1536px) { ... }
     },
     extend: {
+      boxShadow: {
+        // Sticky headers and menu bars that must read as a layer above the
+        // content scrolling under them. The dark variant needs a much heavier
+        // alpha: a 0.1 shadow is invisible against a dark surface.
+        header: '0 4px 14px 0 rgba(0, 0, 0, 0.16)',
+        'header-dark': '0 6px 18px 0 rgba(0, 0, 0, 0.45)'
+      },
       scale: {
         101: '1.01',
         102: '1.02'

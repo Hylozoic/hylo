@@ -552,7 +552,7 @@ function GroupViewList ({
           groupSlug={groupSlug}
           onSettings={onOpenSettings}
         />
-        <div className='px-3 pb-3 flex flex-col gap-1'>
+        <div className='px-1.5 pb-1.5 flex flex-col gap-1'>
           {/* One Add control opening the same view/space chooser the card grids use,
               rather than a button per kind. p-1 matches the Done Editing button height below */}
           <AddViewOrSpaceMenu
@@ -579,7 +579,7 @@ function GroupViewList ({
 
   return (
     <div className='relative flex flex-col z-20'>
-      <ul className='m-0 p-3 mb-6'>
+      <ul className='m-0 p-1.5 mb-6'>
         {menuViews.map((view, index) => (
           <GroupViewMenuItem
             key={view.id || index}
@@ -795,7 +795,7 @@ export default function ContextMenu (props) {
     : (group?.slug ? groupUrl(group.slug, 'requests') : null)
   const joinRequestsSection = isGroupContext && joinRequestsLink && canAddMembers && joinRequestCount > 0
     ? (
-      <div className='px-3 pb-2 border-t border-foreground/10 pt-2'>
+      <div className='px-1.5 pb-2 border-t border-foreground/10 pt-2'>
         {isEditing
           ? (
             <div
@@ -826,7 +826,7 @@ export default function ContextMenu (props) {
   // so the row reads as selected instead of disabled.
   const moreSpacesSection = isGroupContext && group?.id && moreSpacesCount > 0 && !(showingSpaceMenu && isEditing)
     ? (
-      <div className='px-3 pb-2 border-t border-foreground/10 pt-2'>
+      <div className='px-1.5 pb-2 border-t border-foreground/10 pt-2'>
         <MenuLink
           to={moreSpacesLink}
           isActive={isMoreSpacesPath}
@@ -852,7 +852,7 @@ export default function ContextMenu (props) {
   const stayOnCurrentView = isDrawerNavLayout() || showingSpaceMenu
   const editMenuButton = canAdminister && isGroupContext && group?.id
     ? (
-      <div className='px-3 pb-2 border-t border-foreground/10 pt-2'>
+      <div className='px-1.5 pb-2 border-t border-foreground/10 pt-2'>
         <MenuLink
           to={
             stayOnCurrentView
@@ -984,7 +984,7 @@ export default function ContextMenu (props) {
           'relative z-20 flex flex-col flex-1',
           // Inset card: banner wraps its top corners, background color wraps
           // the rest. No overflow-hidden so dropdowns/modals are not clipped.
-          isGroupContext && 'mx-2 mb-2 rounded-2xl bg-background bg-gradient-to-b from-context-menu-background to-theme-background/10 dark:to-theme-background/40 shadow-md',
+          isGroupContext && 'mx-2 mb-2 rounded-xl bg-background bg-gradient-to-b from-context-menu-background to-theme-background/10 dark:to-theme-background/40 shadow-md',
           isSettingsPath && 'min-h-0 overflow-hidden'
         )}
         >
@@ -999,7 +999,7 @@ export default function ContextMenu (props) {
                     full-size header's 190px, so the takeover swaps hierarchy without
                     moving the menu below */}
                 {/* Closing the space lives in the ducked group header's back chevron above */}
-                <div className='SpaceMenuHeader relative z-20 flex flex-col justify-between h-[142px] overflow-hidden rounded-t-2xl border-b border-foreground/10 shadow-md'>
+                <div className='SpaceMenuHeader relative z-20 flex flex-col justify-between h-[142px] overflow-hidden rounded-t-xl border-b border-foreground/10 shadow-md'>
                   {activeSpaceBannerUrl
                     ? (
                       <>

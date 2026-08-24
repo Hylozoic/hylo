@@ -32,6 +32,12 @@ import FundingRoundSettingsFields from './FundingRoundSettingsFields'
 import SpaceSlugField from './SpaceSlugField'
 import { SPACE_ICON_SUGGESTIONS, accessOptionsForGroup, accessValueForSpace, toIsoOrNull } from './spaceFormConstants'
 
+/* Same field chrome and label treatment as the group creation modal, so
+ * creating a group and editing a space read as one family of forms.
+ * Kept in sync with INPUT_CLASS in routes/CreateGroup/CreateGroupForm. */
+const INPUT_CLASS = 'w-full rounded-lg border-2 border-foreground/20 bg-input px-3 py-2.5 text-sm text-foreground placeholder-foreground/40 focus:outline-none focus:border-focus transition-colors'
+const FIELD_LABEL_CLASS = 'text-xs font-bold text-foreground/80'
+
 function toDateOrNull (value) {
   if (!value) return null
   return value instanceof Date ? value : new Date(value)
@@ -318,7 +324,7 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
         </UploadAttachmentButton>
 
         <div className='flex flex-col gap-1'>
-          <label className='text-sm text-foreground/70'>{t('Icon')}</label>
+          <label className={FIELD_LABEL_CLASS}>{t('Icon')}</label>
           <div className='flex flex-wrap items-center gap-2'>
             {SPACE_ICON_SUGGESTIONS.map(iconName => (
               <button
@@ -341,8 +347,9 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
         </div>
 
         <div className='flex flex-col gap-1'>
-          <label className='text-sm text-foreground/70'>{t('Name')}</label>
+          <label className={FIELD_LABEL_CLASS}>{t('Name')}</label>
           <Input
+            className={INPUT_CLASS}
             value={name}
             onChange={e => setName(e.target.value)}
             placeholder={t('Space name')}
@@ -359,8 +366,9 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
         />
 
         <div className='flex flex-col gap-1'>
-          <label className='text-sm text-foreground/70'>{t('Purpose')}</label>
+          <label className={FIELD_LABEL_CLASS}>{t('Purpose')}</label>
           <Input
+            className={INPUT_CLASS}
             value={purpose}
             onChange={e => setPurpose(e.target.value)}
             placeholder={t('What is this space for?')}
@@ -368,23 +376,23 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
         </div>
 
         <div className='flex flex-col gap-1'>
-          <label className='text-sm text-foreground/70'>{t('Description')}</label>
+          <label className={FIELD_LABEL_CLASS}>{t('Description')}</label>
           <textarea
             value={description}
             onChange={e => setDescription(e.target.value)}
             placeholder={t('Description (optional)')}
             rows={3}
-            className='w-full rounded-md border border-foreground/20 bg-input p-2 text-sm text-foreground'
+            className={cn(INPUT_CLASS, 'min-h-[80px] resize-none')}
           />
         </div>
 
         <div className='flex flex-col gap-1'>
-          <label className='text-sm text-foreground/70'>{t('Location')}</label>
+          <label className={FIELD_LABEL_CLASS}>{t('Location')}</label>
           <LocationInput
             locationObject={locationObject}
             location={locationObject?.fullText || ''}
             onChange={setLocationObject}
-            className='bg-input rounded-md text-foreground placeholder-foreground/40 w-full p-2 text-sm'
+            className={INPUT_CLASS}
           />
         </div>
 
@@ -395,7 +403,7 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
         />
 
         <div className='flex flex-col gap-2'>
-          <label className='text-sm text-foreground/70'>{t('Access')}</label>
+          <label className={FIELD_LABEL_CLASS}>{t('Access')}</label>
           <RadioGroup value={access} onValueChange={setAccess}>
             {accessOptions.map(option => (
               <div key={option.value} className='flex flex-col gap-1 mb-2'>
@@ -455,7 +463,7 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
             </div>
 
             <div>
-              <label className='text-sm text-foreground/70'>{t('Completion badge or role')}</label>
+              <label className={FIELD_LABEL_CLASS}>{t('Completion badge or role')}</label>
               <div className='flex flex-row items-center relative p-1 border-transparent transition-all duration-200 group focus-within:border-focus mt-1'>
                 <Select
                   onValueChange={(roleId) => {
