@@ -138,6 +138,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
   const [frTotalTokens, setFrTotalTokens] = useState(100)
   const [frTokenType, setFrTokenType] = useState('Votes')
   const [frAllowSelfVoting, setFrAllowSelfVoting] = useState(false)
+  const [frAllowLateJoiners, setFrAllowLateJoiners] = useState(false)
   const [frHideFinalResults, setFrHideFinalResults] = useState(false)
   const [frSubmissionDescriptor, setFrSubmissionDescriptor] = useState('Submission')
   const [frSubmissionDescriptorPlural, setFrSubmissionDescriptorPlural] = useState('Submissions')
@@ -276,6 +277,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
           totalTokens: frTotalTokens === '' ? null : Number(frTotalTokens),
           tokenType: frTokenType,
           allowSelfVoting: frAllowSelfVoting,
+          allowLateJoiners: frAllowLateJoiners,
           hideFinalResultsFromParticipants: frHideFinalResults,
           submissionDescriptor: frSubmissionDescriptor,
           submissionDescriptorPlural: frSubmissionDescriptorPlural,
@@ -370,7 +372,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
     } finally {
       setIsCreating(false)
     }
-  }, [dispatch, group?.id, name, slug, slugValid, description, icon, bannerUrl, purpose, locationObject, postTypes, access, requiredRoles, spaceType, orderedRows, standardViewTypes, welcomeExtras, onClose, onCreated, navigate, routerLocation.pathname, addToMenu, isOneColumn, frPublishedAt, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frHideFinalResults, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles])
+  }, [dispatch, group?.id, name, slug, slugValid, description, icon, bannerUrl, purpose, locationObject, postTypes, access, requiredRoles, spaceType, orderedRows, standardViewTypes, welcomeExtras, onClose, onCreated, navigate, routerLocation.pathname, addToMenu, isOneColumn, frPublishedAt, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frAllowLateJoiners, frHideFinalResults, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles])
 
   /** Closes the dialog when the dimmed overlay (not the panel) is clicked. */
   const handleBackdropClick = (event) => {
@@ -582,6 +584,8 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
               setTokenType={setFrTokenType}
               allowSelfVoting={frAllowSelfVoting}
               setAllowSelfVoting={setFrAllowSelfVoting}
+              allowLateJoiners={frAllowLateJoiners}
+              setAllowLateJoiners={setFrAllowLateJoiners}
               hideFinalResults={frHideFinalResults}
               setHideFinalResults={setFrHideFinalResults}
               submitterRoles={frSubmitterRoles}

@@ -563,7 +563,7 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
           className={classes.header}
           post={post}
           routeParams={routeParams}
-          close={inPostDialog ? attemptClose : undefined}
+          close={isIsolatedPostView ? undefined : attemptClose}
           expanded
           isFlagged={isFlagged}
           hasImage={hasImage}
@@ -581,7 +581,7 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
               currentUser={currentUser}
               post={post}
               routeParams={routeParams}
-              close={inPostDialog ? attemptClose : undefined}
+              close={isIsolatedPostView ? undefined : attemptClose}
               isFlagged={isFlagged}
             />
           </div>

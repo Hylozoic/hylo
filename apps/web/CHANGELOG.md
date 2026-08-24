@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+- Funding round setting to allow people who join during voting to get tokens and vote
+
 ## [6.5.6] - 2026-08-04
 
 ### Changed

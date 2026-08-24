@@ -2950,6 +2950,8 @@ type UserTransactionQuerySet {
 # A participatory funding round
 type FundingRound {
   id: ID
+  # Whether people who join during the voting phase receive tokens and can vote
+  allowLateJoiners: Boolean
   # Whether participants can vote on their own submissions
   allowSelfVoting: Boolean
   # Whether the current user can submit to this funding round
@@ -4437,6 +4439,8 @@ input RoleSelectionInput {
 }
 
 input FundingRoundInput {
+  # Whether people who join during the voting phase receive tokens and can vote
+  allowLateJoiners: Boolean
   # Whether participants can vote on their own submissions
   allowSelfVoting: Boolean
   # Criteria for submitting projects/submissions

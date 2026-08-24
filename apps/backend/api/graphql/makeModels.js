@@ -1521,6 +1521,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
     FundingRound: {
       model: FundingRound,
       attributes: [
+        'allow_late_joiners',
         'allow_self_voting',
         'created_at',
         'criteria',

@@ -348,8 +348,6 @@ function PostEditorInner ({
       isAnonymousVote: false,
       isPublic: context === 'public',
       isStrictProposal: false,
-      location: '',
-      locationId: null,
       meetingLink: '',
       proposalOptions: [],
       quorum: 0,
@@ -360,10 +358,12 @@ function PostEditorInner ({
       votingMethod: VOTING_METHOD_SINGLE,
       ...(inputPost || {}),
       ...prefilledEventTimes,
+      location: inputPost?.location || selectedLocation || '',
+      locationId: inputPost?.locationId || null,
       startTime: typeof inputPost?.startTime === 'string' ? new Date(inputPost.startTime) : (inputPost?.startTime || prefilledEventTimes.startTime),
       endTime: typeof inputPost?.endTime === 'string' ? new Date(inputPost.endTime) : (inputPost?.endTime || prefilledEventTimes.endTime)
     }
-  }, [inputPost?.id, createPostType, currentGroup, topic, context, editing, eventDateParam, inputPost?.startTime, inputPost?.endTime, currentTrack?.actionDescriptor, t])
+  }, [inputPost?.id, inputPost?.location, inputPost?.locationId, createPostType, currentGroup, topic, context, editing, eventDateParam, inputPost?.startTime, inputPost?.endTime, currentTrack?.actionDescriptor, selectedLocation, t])
 
   const [currentPost, setCurrentPostState] = useState(initialPost)
   const [editorInitialContent, setEditorInitialContent] = useState(initialPost.details || '')
@@ -1112,8 +1112,8 @@ function PostEditorInner ({
         fileAttachments && fileAttachments.map((attachment) => attachment.url)
       const postLocation = currentPost.location || selectedLocation
       const actualLocationId = await ensureLocationIdIfCoordinate({
-        fetchLocation,
-        postLocation,
+        fetchLocation: (data) => dispatch(fetchLocation(data)),
+        location: postLocation,
         locationId
       })
       const meetingLinkValue = meetingLinkInputRef.current?.value ?? meetingLink

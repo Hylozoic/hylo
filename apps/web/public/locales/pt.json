@@ -256,6 +256,7 @@
   "Allocate your {{tokenType}} to the {{submissionDescriptor}} you think deserve support": "Alocar seu {{tokenType}} para o {{submissionDescriptor}} que você acha que merece apoio.",
   "Allow": "Permitir",
   "Allow participants to vote on their own submissions": "Permitir que os participantes votem em suas próprias submissões",
+  "Allow people who join during voting to receive tokens and vote": "Permitir que as pessoas que participam durante a votação recebam tokens e votem",
   "Allow-in-Commons form": "Formulário Allow-in-Commons",
   "allViewsTooltipChatRoom": "Chat Room",
   "allViewsTooltipContainer": "Container",

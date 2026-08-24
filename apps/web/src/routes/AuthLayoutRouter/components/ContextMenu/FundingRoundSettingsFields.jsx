@@ -34,6 +34,8 @@ export default function FundingRoundSettingsFields ({
   setTokenType,
   allowSelfVoting,
   setAllowSelfVoting,
+  allowLateJoiners,
+  setAllowLateJoiners,
   hideFinalResults,
   setHideFinalResults,
   submitterRoles,
@@ -143,7 +145,10 @@ export default function FundingRoundSettingsFields ({
 
       <div>
         <label className='text-sm text-foreground/70'>{t('Voting method')}</label>
-        <Select value={votingMethod} onValueChange={setVotingMethod}>
+        <Select value={votingMethod} onValueChange={value => {
+          setVotingMethod(value)
+          if (value !== 'token_allocation_constant') setAllowLateJoiners(false)
+        }}>
           <SelectTrigger className='w-full border-2 bg-input border-foreground/30 rounded-md p-2 text-base mt-1'>
             <SelectValue />
           </SelectTrigger>
@@ -185,6 +190,23 @@ export default function FundingRoundSettingsFields ({
           />
           <Label htmlFor='fr-allow-self-voting' className='cursor-pointer font-normal'>
             {t('Allow participants to vote on their own submissions')}
+          </Label>
+        </div>
+        <div className='flex items-center gap-2'>
+          <Checkbox
+            id='fr-allow-late-joiners'
+            checked={votingMethod === 'token_allocation_constant' && !!allowLateJoiners}
+            disabled={votingMethod !== 'token_allocation_constant'}
+            onCheckedChange={checked => setAllowLateJoiners(!!checked)}
+          />
+          <Label
+            htmlFor='fr-allow-late-joiners'
+            className={cn(
+              'cursor-pointer font-normal',
+              votingMethod !== 'token_allocation_constant' && 'opacity-50 cursor-not-allowed'
+            )}
+          >
+            {t('Allow people who join during voting to receive tokens and vote')}
           </Label>
         </div>
         <div className='flex items-center gap-2'>

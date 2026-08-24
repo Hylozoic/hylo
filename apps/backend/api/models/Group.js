@@ -782,6 +782,8 @@ module.exports = bookshelf.Model.extend(merge({
    * Lives here rather than in Track.leave / FundingRound.leave so every departure path is
    * covered — direct leave, moderator removal, and the parent-group cascade in removeMembers.
    * Must be called before memberships are deactivated: only currently active members count.
+   * For funding rounds, also zeroes any tokens the leavers allocated to submissions so a
+   * later rejoin cannot keep those votes.
    */
   async settleParticipation (userIds, { transacting } = {}) {
     const participation = [
@@ -792,6 +794,25 @@ module.exports = bookshelf.Model.extend(merge({
 
     const memberships = await GroupMembership.forIds(userIds, this.id, { multiple: true }).fetch({ transacting })
     if (memberships.length === 0) return
+
+    const fundingRoundId = this.get('funding_round_id')
+    if (fundingRoundId) {
+      const submissionIdsQuery = bookshelf.knex('groups_posts')
+        .join('posts', 'posts.id', 'groups_posts.post_id')
+        .where('groups_posts.group_id', this.id)
+        .where('posts.type', Post.Type.SUBMISSION)
+        .pluck('posts.id')
+      if (transacting) submissionIdsQuery.transacting(transacting)
+      const submissionIds = await submissionIdsQuery
+      if (submissionIds.length > 0) {
+        const votesQuery = bookshelf.knex('posts_users')
+          .whereIn('post_id', submissionIds)
+          .whereIn('user_id', userIds)
+          .update({ tokens_allocated_to: 0 })
+        if (transacting) votesQuery.transacting(transacting)
+        await votesQuery
+      }
+    }
 
     await Promise.map(memberships.models, async membership => {
       participation.forEach(({ setting }) => membership.removeSetting(setting))

@@ -16,7 +16,9 @@ const staticPages = [
   '/terms',
   '/privacy',
   '/murmurations.json',
-  '/funding.json'
+  '/funding.json',
+  '/regional-resilience',
+  '/blog'
 ]
 
 export const IOS_SITE_ASSOCIATION_FILE = 'apple-app-site-association'
@@ -101,9 +103,12 @@ export const handleStaticPages = server => {
 
   server.use((req, res, next) => {
     // Astro bundles JS/CSS under /_astro; images and other public assets
-    // live under /v5 (and any other top-level public folders)
-    if (!req.originalUrl.startsWith('/_astro') &&
-        !req.originalUrl.startsWith('/v5')
+    // live under /v5. Blog posts live under /blog/*.
+    const path = req.originalUrl.split('?')[0]
+    const isBlogPath = path === '/blog' || path.startsWith('/blog/')
+    if (!path.startsWith('/_astro') &&
+        !path.startsWith('/v5') &&
+        !isBlogPath
     ) {
       return next()
     }

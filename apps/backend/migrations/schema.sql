@@ -1050,7 +1050,8 @@ CREATE TABLE public.funding_rounds (
     phase character varying(255) DEFAULT 'draft'::character varying,
     deactivated_at timestamp with time zone,
     hide_final_results_from_participants boolean DEFAULT false,
-    allow_self_voting boolean DEFAULT false
+    allow_self_voting boolean DEFAULT false,
+    allow_late_joiners boolean DEFAULT false
 );
 
 

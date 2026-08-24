@@ -69,6 +69,11 @@ export async function createFundingRound (userId, data) {
     attrs.voter_roles = JSON.stringify(data.voterRoles)
   }
 
+  // Late-joiner token allocation is only valid for a fixed per-voter token count
+  if (attrs.voting_method !== 'token_allocation_constant') {
+    attrs.allow_late_joiners = false
+  }
+
   const round = await FundingRound.create(fixDateFields(attrs, data), userId)
 
   // If this round is for a Space that isn't already backed by a round, link it (spec section
@@ -99,6 +104,13 @@ export async function updateFundingRound (userId, id, data) {
     }
     if (data.voterRoles) {
       updatedAttrs.voter_roles = JSON.stringify(data.voterRoles || [])
+    }
+
+    const votingMethod = updatedAttrs.voting_method !== undefined
+      ? updatedAttrs.voting_method
+      : round.get('voting_method')
+    if (votingMethod !== 'token_allocation_constant') {
+      updatedAttrs.allow_late_joiners = false
     }
 
     // Check if allow_self_voting is being changed from true to false during voting phase

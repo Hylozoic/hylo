@@ -70,7 +70,7 @@ export const FETCH_SEARCH = `${MODULE_NAME}/FETCH_SEARCH`
 
 const searchQuery =
 `query Search ($search: String, $type: String, $offset: Int, $groupIds: [ID]) {
-  search(term: $search, first: 10, type: $type, offset: $offset, groupIds: $groupIds ) {
+  search(term: $search, first: 20, type: $type, offset: $offset, groupIds: $groupIds ) {
     total
     hasMore
     items {

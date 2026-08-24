@@ -77,6 +77,7 @@ const queryFragment = `group(slug: $slug, updateLastViewed: $updateLastViewed) {
       publishedAt
       phase
       allowSelfVoting
+      allowLateJoiners
       hideFinalResultsFromParticipants
       votingMethod
       totalTokens
