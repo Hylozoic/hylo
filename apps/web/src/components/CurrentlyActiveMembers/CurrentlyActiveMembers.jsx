@@ -49,9 +49,9 @@ export default function CurrentlyActiveMembers ({
     dispatch(fetchRecentlyActiveMembers({ slug, first: max }))
   }, [dispatch, slug, max])
 
-  // The API already returns the N most recently active people. Filtering that
-  // short list by a 15-minute window left the strip empty whenever lastActiveAt
-  // was missing or a bit stale. The green dot still uses the live window.
+  // The API already returns the N most recently active people, and the strip
+  // shows all of them so the widget is never empty. Who is actually online is
+  // carried by the green dots on the avatars and on the count pill.
   const activeMembers = useMemo(
     () => (fetched || []).slice(0, max),
     [fetched, max]
@@ -72,8 +72,10 @@ export default function CurrentlyActiveMembers ({
 
   /**
    * Count pill: custom handler (chat drawer) or the members view URL.
+   * Stops propagation so the row handler below does not fire it a second time.
    */
   const handleCountClick = (e) => {
+    e.stopPropagation()
     if (!interactive) {
       e.preventDefault()
       return
@@ -86,6 +88,22 @@ export default function CurrentlyActiveMembers ({
     dispatch(toggleNavMenu(false))
   }
 
+  /**
+   * The whole row opens the directory — only the avatars and the invite control
+   * do something else, and both already stop propagation.
+   */
+  const handleRowClick = () => {
+    if (!interactive) return
+    if (onCountClick) {
+      onCountClick()
+      return
+    }
+    if (!membersUrl) return
+    dispatch(toggleNavMenu(false))
+    navigate(membersUrl)
+  }
+  const rowOpensDirectory = interactive && Boolean(onCountClick || membersUrl)
+
   if (!group) return null
 
   const countInner = (
@@ -97,7 +115,10 @@ export default function CurrentlyActiveMembers ({
   )
   const countClass = cn(
     'inline-flex items-center gap-1.5 h-7 pl-2.5 pr-2 rounded-md bg-card/90 backdrop-blur-sm border border-foreground/20 text-foreground text-xs font-semibold transition-all shrink-0',
-    interactive && 'hover:border-foreground/40 hover:scale-105 cursor-pointer',
+    // The global link rule paints BOTH a:hover and a:focus with --selected, and
+    // the focus colour sticks after a click until something else takes focus —
+    // so both states have to be pinned back to the foreground colour.
+    interactive && 'hover:border-foreground/40 hover:text-foreground focus:text-foreground hover:scale-105 cursor-pointer',
     !interactive && 'cursor-inherit'
   )
 
@@ -129,11 +150,14 @@ export default function CurrentlyActiveMembers ({
     : null
 
   return (
-    <div className={cn(
-      'group flex min-w-0 w-full',
-      stacked ? 'flex-col items-center gap-1.5' : 'items-center',
-      className
-    )}
+    <div
+      className={cn(
+        'group flex min-w-0 w-full',
+        stacked ? 'flex-col items-center gap-1.5' : 'items-center',
+        rowOpensDirectory && 'cursor-pointer',
+        className
+      )}
+      onClick={rowOpensDirectory ? handleRowClick : undefined}
     >
       <div className={cn('min-w-0 overflow-hidden', stacked ? 'w-full flex justify-center' : 'flex-1')}>
         <CurrentlyActivePills

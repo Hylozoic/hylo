@@ -137,16 +137,16 @@ export function titleForNotification (notification, t) {
     case ACTION_MEMBER_JOINED_GROUP:
       return t('New Member joined <strong>{{groupName}}</strong>', { groupName: group.name })
     case ACTION_TRACK_COMPLETED:
-      return t('Track <strong>{{trackName}}</strong> Completed', { trackName: track.name })
+      return t('Track <strong>{{trackName}}</strong> Completed', { trackName: track?.space?.name })
     case ACTION_TRACK_ENROLLMENT:
-      return t('New Enrollment in Track <strong>{{trackName}}</strong>', { trackName: track.name })
+      return t('New Enrollment in Track <strong>{{trackName}}</strong>', { trackName: track?.space?.name })
     case ACTION_FUNDING_ROUND_NEW_SUBMISSION:
-      return t('New Submission to Funding Round <strong>{{fundingRoundName}}</strong>', { fundingRoundName: fundingRound?.title })
+      return t('New Submission to Funding Round <strong>{{fundingRoundName}}</strong>', { fundingRoundName: fundingRound?.group?.name })
     case ACTION_FUNDING_ROUND_PHASE_TRANSITION: {
-      return t('Funding Round <strong>{{fundingRoundName}}</strong>', { fundingRoundName: fundingRound?.title })
+      return t('Funding Round <strong>{{fundingRoundName}}</strong>', { fundingRoundName: fundingRound?.group?.name })
     }
     case ACTION_FUNDING_ROUND_REMINDER: {
-      return t('Funding Round <strong>{{fundingRoundName}}</strong> reminder', { fundingRoundName: fundingRound?.title })
+      return t('Funding Round <strong>{{fundingRoundName}}</strong> reminder', { fundingRoundName: fundingRound?.group?.name })
     }
     case ACTION_POST_FULFILLED:
       return t('<strong>{{name}}</strong> closed your post', { name })

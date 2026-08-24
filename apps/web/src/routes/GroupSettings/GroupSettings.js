@@ -196,22 +196,16 @@ export default function GroupSettings () {
     component: <PrivacySettingsTab group={group} slug={group.slug} updateGroupSettings={updateGroupSettingsAction} parentGroups={parentGroups} fetchPending={fetchPending} />
   }
 
-  // const topicsSettings = {
-  //   name: t('Topics'),
-  //   path: 'topics',
-  //   component: <TopicsSettingsTab group={group} />
-  // }
-
   const inviteSettings = {
     name: t('Invite'),
     path: 'invite',
     component: <InviteSettingsTab group={group} />
   }
 
-  const joinRequestSettings = {
+  const joinRequestsSettings = {
     name: t('Join Requests'),
     path: 'requests',
-    component: <MembershipRequestsTab group={group} currentUser={currentUser} />
+    component: <MembershipRequestsTab group={group} />
   }
 
   const relatedGroupsSettings = {
@@ -260,9 +254,8 @@ export default function GroupSettings () {
         canAdminister ? responsibilitiesSettings : null,
         canAdminister ? rolesSettings : null,
         canAdminister ? accessSettings : null,
-        // canAdminister ? topicsSettings : null, TODO: hide for now, we may want to bring back
         canAddMembers && !isSpace ? inviteSettings : null,
-        canAddMembers ? joinRequestSettings : null,
+        canAddMembers ? joinRequestsSettings : null,
         canAdminister ? relatedGroupsSettings : null,
         canAdminister ? importSettings : null,
         canAdminister ? exportSettings : null,

@@ -107,7 +107,7 @@ ALTER TABLE tracks ADD COLUMN group_id bigint REFERENCES groups(id) ON DELETE SE
 CREATE INDEX idx_tracks_group_id ON tracks(group_id);
 ```
 
-**Not yet shipped** — lives in `migrations/in-progress/20260713120000_spaces_cleanup.js`:
+**Shipped:** `20260820120000_drop_track_round_display_columns.js`:
 
 ```sql
 ALTER TABLE tracks
@@ -134,7 +134,7 @@ ALTER TABLE tracks
 
 A funding round is now a space. `funding_rounds.group_id` was **repointed from the parent group to the round's space** during migration. Rounds get a special view type `funding-round-submissions`.
 
-**Not yet shipped** — same in-progress cleanup migration:
+**Shipped:** `20260820120000_drop_track_round_display_columns.js`:
 
 ```sql
 ALTER TABLE funding_rounds
@@ -572,21 +572,21 @@ type CollectionPost {
 ### 4.2 `Group` type additions
 
 ```graphql
-groupViews: [GroupView]       # ordered list; type='space' entries include linkedGroup with its groupViews
+groupViews(id: ID, menuOnly: Boolean): GroupViewQuerySet  # menuOnly omits order-null (off-menu) views
 spaces: [Group]               # all child spaces (including archived)
 parentGroup: Group
 parentId: ID
 acceptedPostTypes: [String]
 icon: String
 homeRoute: String
-openJoinRequestCount: Int     # only resolved for users with the Add Members responsibility
+openJoinRequestCount: Int     # reads groups.num_open_join_requests
 track: Track
 fundingRound: FundingRound
 ```
 
-### 4.3 Legacy types still in the schema (to remove)
+### 4.3 Legacy types (removed)
 
-Pending cleanup (§14): `ContextWidget` + `ContextWidgetQuerySet`, `CustomView`, `Collection`, `CollectionsPost`, and the `Group` fields `contextWidgets`, `chatRooms`, `homeWidget`, `customViews`.
+`ContextWidget`, `CustomView`, `Collection`, and `CollectionsPost` GraphQL types, plus `Group.contextWidgets` / `chatRooms` / `homeWidget` / `customViews`, were deleted. See §14.3.
 
 ### 4.4 Mutations
 
@@ -670,7 +670,7 @@ Pending cleanup (§14):
 
 The two `20260723` "ensure off-menu views" migrations were reduced to no-ops rather than deleted, so that databases which already recorded those filenames (staging) don't attempt to run different code under the same name, and so production never inserts rows that `20260817140000` would immediately delete.
 
-**Not yet shipped:** `migrations/in-progress/20260713120000_spaces_cleanup.js` — drops `tracks_posts`, `tracks_users`, `funding_rounds_posts`, `funding_rounds_users` and the display columns that moved to the space group. See §14.
+**Shipped:** `20260819130000_drop_legacy_track_round_join_tables.js` drops `tracks_posts`, `tracks_users`, `funding_rounds_posts`, `funding_rounds_users`. `20260820120000_drop_track_round_display_columns.js` drops the display columns that moved to the space group (`down` restores them from the space group). See §14.3.
 
 ---
 
@@ -1024,7 +1024,7 @@ There is **no** `groupViewUrl()` in the package, contrary to an earlier version 
 
 ### 7.1 `Stream` → `ViewContent`
 
-`apps/web/src/routes/Stream/` was renamed to `apps/web/src/routes/ViewContent/`. A one-line shim remains at `routes/Stream/index.js` because Calendar still imports `Stream.module.scss` from that folder.
+`apps/web/src/routes/Stream/` was renamed to `apps/web/src/routes/ViewContent/`.
 
 `ViewContent.js` takes a `view` prop (from the route) and renders the appropriate post-stream UI, using per-type defaults from `COMMON_VIEWS` in `packages/presenters/src/GroupViewPresenter.js`:
 
@@ -1070,7 +1070,7 @@ A view's own `settings.defaultViewMode` overrides the `COMMON_VIEWS` default; th
 
 `apps/web/src/routes/AuthLayoutRouter/components/ContextMenu/ContextMenu.jsx`
 
-**Data loaded:** `group.groupViews` — a single ordered list of both regular views and `type = 'space'` entries, via the `useGroupViews` hook. For each space entry, `linkedGroup.groupViews` is also loaded so the menu knows whether the space has one view or several.
+**Data loaded:** `group.groupViews(menuOnly: true)` via `fetchGroupViews` / `useGroupViews` — ordered menu views only. Space menus load that space's views in a second `fetchGroupViews` call. Off-menu spaces load lazily via `fetchGroupSpaces` when More Spaces or edit mode opens.
 
 **Menu structure:**
 ```
@@ -1590,12 +1590,39 @@ The old Phase 1–7 framing has been retired — the phases interleaved in pract
 - **`cron.js`** — weekly digest fired on day-of-month instead of weekday; fixed to `weekday === 3`
 - **`space-collection` view type** — new curated space list (`settings.spaceIds`) replacing the old `tracks` / `funding-rounds` widget views, with `SpaceCollection` route, `SpaceSelector` component, `AddSpaceCollectionDialog`, `util/spaceCollection.js`, and migration backfill (§2.5)
 - **`migrations/scripts/rollbackSpecificMigration.js`** — `yarn rollback:specific <filename>` rolls back one recorded migration without touching later ones
-- **`migrations/in-progress/20260713120000_spaces_cleanup.js`** — untracked; see §14.4
+- **Legacy table drops (parked)** — `migrations/in-progress/`: `20260819130000` (join tables), `20260819140000` (ContextWidget / CustomView / Collection / `groups_tracks` + indexes), `20260820120000` (track/round display columns; reversible from the space group), `20260820130000` (`networks` / `networks_users`). Knex does not run this folder. Create still dual-writes `tracks.name` / `funding_rounds.title` so production NOT NULL columns stay valid.
 - **Legacy route redirects** — `/all-views`, `/tracks`, `/funding-rounds`, `/all-topics` now redirect to `/more-spaces` (§6.3)
 - **Leave teardown consolidated into `Group.removeMembers`** — deletes departing members' `group_views_users` rows and settles track / funding round counters and membership settings, so the parent-group cascade and moderator removal get the same treatment as an explicit leave; `Track.leave` / `FundingRound.leave` no longer adjust their own counts, and the redundant `leaveSpace` mutation is gone (§3.9)
 - **Exclude spaces from group-list queries** — `Search.forGroups` / `Person.memberships` / related-group relations use `Group.excludeSpaces`; My Invites splits group vs space lists (§3.8)
 
 ### 14.3 Remaining work
+
+Two findings changed the cleanup order that this section previously assumed:
+
+1. **The original `20260713120000_spaces_cleanup.js` was not safe to ship as one migration.** It dropped `tracks.name` / `description` / `banner_url` / `welcome_message` and `funding_rounds.title` / `banner_url` / `description` while live reads still used those columns (notification copy, all six `lib/i18n/*.js` files, Stripe checkout metadata, search autocomplete, weekly digest SQL). Display reads had to move onto the space group *before* those columns could drop.
+2. **Mobile needed no ContextWidget migration, only deletion.** `AuthRootNavigator` mounts only `PrimaryWebView`; every native screen that read `customViews` / `contextWidgets` was unreachable. That unblocked CustomView removal entirely — there was no step-2 mobile port.
+
+**Cleanup order (landed, each phase left the tree green)**
+
+1. Safe deletions: dead mobile native tree, orphaned web files (`NavLink`, `TopicNavigation`, `TopicsSettingsTab`, Tracks/FundingRounds pages, Stream shim), dead redux, stale widget/nav i18n. Join Requests remains both a settings tab and the standalone `/requests` page.
+2. Stop fetching `contextWidgets` / `chatRooms` in production queries.
+3. Remove the legacy menu stack (`ContextMenuOld`, provider, `useGatherItems`, WidgetIconResolver, ormReducer widget branches).
+4. Repoint TagFollow chat-room check and Group welcome sync off `ContextWidget`; `Group.create()` calls `setupSpaceViews` only.
+5. Delete the ContextWidget backend/package surface. (`GroupWidget` / `group_widgets` is a separate explore-page system and stays.)
+6. Display reads live on the space group (`track.space.name` / `fundingRound.group.name`). Writes still dual-write the old columns so production NOT NULL `tracks.name` / `funding_rounds.title` stay valid until the parked drop. Clients still see convenience `name`/`title` from presenters.
+7. Remove CustomView and legacy Collection (`CollectionsPost` / `collection_id`). Keep `CollectionPost` (keyed by `view_id`) and the `customViewId` **route param** (it names a `group_views.id`).
+8. Park drop migrations in `migrations/in-progress/` (join tables, leftover views tables + indexes, display columns, networks). Move them back after production soak.
+9. Perf: DataLoader batching for unread + pins, `groupViews(menuOnly:)`, bulk-upsert `incrementNewPostCount`, `openJoinRequestCount` off `groups.num_open_join_requests`; frontend trims `linkedGroup`, lazy-loads `fetchGroupSpaces`, per-component view selectors, narrower `groupUpdated` handler.
+
+**Gated follow-up**
+
+- Keep `tracks.deactivated_at`, `tracks.access_controlled`, and `funding_rounds.deactivated_at` — those are still live.
+
+**Open decisions (not acted on)**
+
+- `group_memberships.new_post_count` is a second unread counter still written alongside `group_views_users.new_post_count`. Decide whether membership badges still need it before dropping the column.
+
+**Product remaining**
 
 | Item | Notes |
 |------|-------|
@@ -1606,43 +1633,5 @@ The old Phase 1–7 framing has been retired — the phases interleaved in pract
 | `enrolledAt` in track member directory | Shown as a generic "Joined" date, not track enrollment (§7.2) |
 | Track / round metadata on `SpaceJoinPage` | No action count, enrolled count, or phase dates on the interstitial (§7.9) |
 | Steward onboarding prompt | Not started (§12) |
-| **Mobile app** | Still entirely on `contextWidgets` + `widgetUrl`. But not using any of it, since its now a web view wrapper. We can remove this code. |
-
-### 14.4 Cleanup checklist
-
-The largest remaining chunk. Roughly in dependency order.
-
-**1. Ship the legacy table cleanup migration**
-
-Move `migrations/in-progress/20260713120000_spaces_cleanup.js` into `migrations/`. It drops `tracks_posts`, `tracks_users`, `funding_rounds_posts`, `funding_rounds_users`, and the display columns `funding_rounds.title` / `banner_url` / `description` and `tracks.name` / `description` / `banner_url` / `welcome_message`.
-
-Before shipping, decide on three things it does **not** currently handle:
-- `groups_tracks` — rows were cleared but the table is not dropped, and `Group.destroySpace` still cleans it
-- `tracks.deactivated_at` and `funding_rounds.deactivated_at` — still read by `Track.enroll`, `FundingRound.find`, and phase transitions
-- `tracks.access_controlled` — zeroed by the paid-spaces migration but still checked by `Track.canAccess`
-
-Also confirm no code still reads the dropped display columns (`Track.duplicate` and `Track.create` currently touch `name`).
-
-**2. Migrate mobile off ContextWidgets** — prerequisite for step 3. `apps/mobile/src/components/ContextMenu/ContextMenu.js`, `hooks/useHandleCurrentGroup.js`, `screens/AllViews/AllViews.js`.
-
-**3. Remove the ContextWidget stack**
-- Backend: `api/models/ContextWidget.js`, the six context widget mutations, the `contextWidgets` query, `Group.contextWidgets` / `chatRooms` / `homeWidget` GraphQL fields, and the `setupContextWidgets(trx)` call in `Group.create()`
-- Web: `ContextMenuOld.jsx`, `ContextMenuProvider.jsx`, `ContextMenuContext.js`, the `showGroupViewsMenu` dev toggle, `store/actions/contextWidgets/`, `fetchContextWidgets.js`, `WidgetIconResolver`, the contextWidget GraphQL fragments and ormReducer branches
-- Packages: `presenters/src/ContextWidgetPresenter.js`, and `widgetUrl` / `homeRoutePathForWidget` / `findHomeWidget` in `@hylo/navigation` (`groupHomeUrl` needs rewiring off `findHomeWidget`)
-- Then drop the `context_widgets` table
-
-**4. Remove the CustomView / Collection stack**
-- Models `CustomView.js`, `CustomViewTopic.js`, `Collection.js`, `CollectionsPost.js`
-- GraphQL types `CustomView`, `Collection`, `CollectionsPost`, queries `customView` / `collection`, and mutations `createCollection`, `addPostToCollection`, `removePostFromCollection`, `reorderPostInCollection`
-- Then drop `custom_views`, `custom_view_topics`, `collections`, and the `collections_posts.collection_id` column (making `view_id` `NOT NULL`)
-
-**5. Remove `#general`** — delete `posts_tags` rows for the `#general` tag. Specified in Step 9 of §5 but never executed.
-
-**6. Orphaned and stale frontend files**
-- `ContextMenu/NavLink/` and `ContextMenu/TopicNavigation/` — unreferenced outside their own tests
-- `routes/Stream/index.js` shim — removable once Calendar stops importing `Stream.module.scss` from that folder
-- Stale `"More Views and Spaces"` i18n string across all six locale files (the page is now "More Spaces")
-- `getEditMenuOffMenuSections` — deprecated alias of `getMoreSpacesSections`
-- `GroupSettingsMenu` still routes Join Requests to `settings/requests`, in parallel with the `/requests` route
-
-**7. Retire the remaining track-scoped Stripe path** — `access_grants.trackIds` is still read by `makeModels.js`, `StripeController.js`, and `util/accessGrants.js` for pre-migration rows. Once confident all rows are reminted to `groupIds`, drop the `trackIds` branches and the `stripe_products.track_id` column.
+| Remove `#general` | Delete `posts_tags` rows for the `#general` tag. Specified in Step 9 of §5 but never executed |
+| Retire track-scoped Stripe path | `access_grants.trackIds` is still read for pre-migration rows. Once confident all rows are reminted to `groupIds`, drop the `trackIds` branches and `stripe_products.track_id` |

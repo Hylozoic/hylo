@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 import { House, Trash2, X } from 'lucide-react'
@@ -195,6 +196,7 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
 
   if (!view) return null
 
+  const isWelcome = view.type === 'welcome'
   const title = view.type === 'text'
     ? t('Edit Text View')
     : displayNameForView(view, t, { spaceGroup: spaceGroupForLabel })
@@ -202,18 +204,27 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
   const canSaveCustom = customForm.name.trim().length >= 2 && customForm.postTypes.length > 0
   const saveDisabled = view.type === 'custom' ? !canSaveCustom : isSaving
 
-  return (
-    <div className='fixed inset-0 z-50 flex items-center justify-center bg-darkening/50'>
-      <div className='bg-midground rounded-lg shadow-lg p-4 w-full max-w-lg max-h-[85vh] overflow-y-auto'>
-        <h2 className='text-lg font-semibold mb-4 flex items-center gap-2'>
+  // Portal above AuthLayout nav stacking so the dialog is not trapped behind GlobalNav.
+  return createPortal(
+    <div className={cn(
+      'fixed inset-0 z-[1100] flex items-center justify-center bg-darkening/50 pointer-events-auto',
+      isWelcome && 'p-4'
+    )}>
+      <div className={cn(
+        'bg-midground rounded-lg shadow-lg p-4 w-full',
+        isWelcome
+          ? 'max-w-[750px] h-[calc(100vh-2rem)] flex flex-col'
+          : 'max-w-lg max-h-[85vh] overflow-y-auto'
+      )}>
+        <h2 className='text-lg font-semibold mb-4 flex items-center gap-2 shrink-0'>
           <GroupViewIcon view={view} />
           {title}
         </h2>
 
-        <div className='flex flex-col gap-3'>
-          {view.type === 'welcome' && (
+        <div className={cn('flex flex-col gap-3', isWelcome && 'flex-1 min-h-0')}>
+          {isWelcome && (
             <>
-              <div className='flex items-center gap-2'>
+              <div className='flex items-center gap-2 shrink-0'>
                 <SwitchStyled
                   checked={showWelcomePage}
                   onChange={() => setShowWelcomePage(v => !v)}
@@ -226,7 +237,8 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
               <HyloEditor
                 key={view.id}
                 contentHTML={view.pageContent || ''}
-                className='min-h-32 p-2 border border-foreground/20 rounded-lg bg-input'
+                className='min-h-0 flex-1 overflow-y-auto p-2 [&_.ProseMirror]:min-h-full'
+                containerClassName='hyloEditor flex flex-col flex-1 min-h-0 border border-foreground/20 rounded-lg bg-input'
                 extendedMenu
                 groupIds={[group.id]}
                 ref={welcomeEditorRef}
@@ -306,7 +318,7 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
           )}
         </div>
 
-        <div className='flex flex-wrap gap-2 mt-4 pt-4 border-t border-foreground/10'>
+        <div className='flex flex-wrap gap-2 mt-4 pt-4 border-t border-foreground/10 shrink-0'>
           <Button variant='primary' onClick={onClose}>{t('Cancel')}</Button>
           {canBeHome && (
             <Button variant='secondary' onClick={handleSetHome} className='flex items-center gap-1'>
@@ -320,7 +332,8 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 

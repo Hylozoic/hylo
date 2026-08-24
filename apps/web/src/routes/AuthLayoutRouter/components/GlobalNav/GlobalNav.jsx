@@ -59,7 +59,7 @@ import ModalDialog from 'components/ModalDialog'
 import { pinGroup, unpinGroup, updateGroupNavOrder } from 'store/actions/pinGroup'
 import markGroupAsRead from 'store/actions/markGroupAsRead'
 import logout from 'store/actions/logout'
-import { newMessageUrl, personUrl } from '@hylo/navigation'
+import { newMessageUrl, personUrl, myHomeLandingUrl } from '@hylo/navigation'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import { createGroupModalUrl } from 'routes/CreateGroup/createGroupUrl'
 import {
@@ -950,7 +950,7 @@ export default function GlobalNav (props) {
         <GlobalNavItem
           img={get('avatarUrl', currentUser)}
           tooltip={t('My Home')}
-          url='/my'
+          url={myHomeLandingUrl()}
           className={isVisible(0)}
           showTooltip={showLabels}
         />

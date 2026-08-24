@@ -23,7 +23,7 @@ import { savePost, unsavePost } from 'components/PostCard/PostHeader/PostHeader.
 import getMe from 'store/selectors/getMe'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
 import { createSelector } from 'reselect'
-import { RESP_MANAGE_CONTENT } from 'store/constants'
+import { CONTEXT_MY, RESP_MANAGE_CONTENT } from 'store/constants'
 import { groupUrl, personUrl, editPostUrl } from '@hylo/navigation'
 import EventBody from './EventBody'
 import PostBody from './PostBody'
@@ -79,7 +79,8 @@ export default function PostCard (props) {
   const dispatch = useDispatch()
   const navigate = useNavigate()
 
-  const childGroupLabelText = childPost ? childGroupLabel(post, t) : null
+  const showPostedInGroups = childPost || [CONTEXT_MY, 'all', 'public'].includes(routeParams.context)
+  const childGroupLabelText = showPostedInGroups ? childGroupLabel(post, t) : null
 
   // Chat mode state
   const [isHovered, setIsHovered] = useState(false)

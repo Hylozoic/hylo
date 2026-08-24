@@ -39,8 +39,8 @@ const SocketListener = (props) => {
   const handlers = useMemo(() => ({
     commentAdded: data => dispatch(receiveComment(data)),
     groupUpdated: (data) => {
-      if (!group?.id) return
-      if (data?.groupId && String(data.groupId) !== String(group.id)) return
+      if (!group?.id || !data?.groupId) return
+      if (String(data.groupId) !== String(group.id)) return
       if (data?.updatedByUserId && String(data.updatedByUserId) === String(currentUser?.id)) return
       dispatch(fetchGroupViews(group.id))
     },

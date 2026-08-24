@@ -473,7 +473,7 @@ function ChatEditorInner ({
             {currentPost.details === null || loading
               ? <div><Loading /></div>
               : <HyloEditor
-                  placeholder={t('Send a chat to {{groupName}}', { groupName: currentGroup?.name })}
+                  placeholder={t('Chat with {{groupName}}', { groupName: currentGroup?.name })}
                   onUpdate={handleDetailsChange}
                   onAltEnter={doSave}
                   onAddTopic={handleAddTopic}

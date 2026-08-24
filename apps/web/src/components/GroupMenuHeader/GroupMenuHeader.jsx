@@ -16,13 +16,16 @@ import { groupUrl } from '@hylo/navigation'
  * compact: a space's menu has taken over the context menu — the header ducks to
  * ViewHeader's height, the avatar shrinks, and the controls (members, invite,
  * about, settings, notifications) fade out. Everything transitions.
+ * hideBanner: the parent paints the group banner (so it can wrap around the
+ * menu card); skip this header's own image and darkening overlay.
  */
 export default function GroupMenuHeader ({
   group,
   compact = false,
   // One-column takeover: chevron + avatar + name cluster centers in the bar
   centered = false,
-  onCompactClick
+  onCompactClick,
+  hideBanner = false
 }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -74,18 +77,27 @@ export default function GroupMenuHeader ({
   return (
     <div
       className={cn(
-        'GroupMenuHeader group/menuHeader relative flex flex-col p-2 bg-cover shadow-md transition-[height] duration-300 ease-out',
+        'GroupMenuHeader group/menuHeader relative flex flex-col p-2 bg-cover transition-[height] duration-300 ease-out',
         // min-h: names too long even for the banner grow the header rather
         // than clipping; justify-end keeps the extra lines eating upward into
         // the banner space first. Compact centers its single row instead.
-        compact ? 'h-12 hover:h-14 justify-center' : 'min-h-[190px] justify-end'
+        // No shadow when the parent owns the banner — a line here would cut
+        // across the wrap around the menu card.
+        compact ? 'h-12 hover:h-14 justify-center' : 'min-h-[190px] justify-end',
+        !compact && !hideBanner && 'shadow-md'
       )}
       data-testid='group-header'
     >
-      <div className='absolute z-10 inset-0 bg-cover bg-center' style={{ ...bgImageStyle(bannerUrl), opacity: 0.5 }} />
-      <div className='absolute top-0 left-0 w-full h-full bg-darkening z-0 opacity-80' />
+      {!hideBanner && (
+        <>
+          <div className='absolute z-10 inset-0 bg-cover bg-center' style={{ ...bgImageStyle(bannerUrl), opacity: 0.5 }} />
+          <div className='absolute top-0 left-0 w-full h-full bg-darkening z-0 opacity-80' />
+        </>
+      )}
       {/* Compact cover: the stream header's wash flipped so the dark end sits at the
-          bottom, and the whole ducked header acts as the Back control */}
+          bottom, and the whole ducked header acts as the Back control. Skip the
+          wash when the parent owns the banner — otherwise it is a darker stripe
+          above the wrap. */}
       <button
         type='button'
         onClick={compact ? onCompactClick : undefined}
@@ -93,9 +105,10 @@ export default function GroupMenuHeader ({
         aria-label={t('Back')}
         aria-hidden={!compact}
         className={cn(
-          'absolute inset-0 z-30 bg-gradient-to-t from-[hsl(var(--theme-background)/0.6)] dark:from-[hsl(var(--theme-background)/0.85)] to-[hsl(var(--theme-background)/0.15)] transition-opacity duration-300',
-          // Rests at half strength so the banner stays readable; hover clears it fully
-          compact ? 'opacity-50 cursor-pointer group-hover/menuHeader:opacity-0' : 'opacity-0 pointer-events-none'
+          'absolute inset-0 z-30 transition-opacity duration-300',
+          compact ? 'cursor-pointer' : 'opacity-0 pointer-events-none',
+          !hideBanner && 'bg-gradient-to-t from-[hsl(var(--theme-background)/0.6)] dark:from-[hsl(var(--theme-background)/0.85)] to-[hsl(var(--theme-background)/0.15)]',
+          compact && !hideBanner && 'opacity-50 group-hover/menuHeader:opacity-0'
         )}
       />
       {/* Back affordance: sits above the compact gradient (z-30) as a sibling, since

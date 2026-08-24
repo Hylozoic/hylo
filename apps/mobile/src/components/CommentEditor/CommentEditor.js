@@ -164,6 +164,7 @@ export const CommentEditor = React.forwardRef(({
       <ScrollView contentContainerStyle={[styles.editor, isModal && { paddingBottom: safeAreaInsets.bottom }]}>
         <HyloEditorWebView
           placeholder={t('Write a comment')}
+          groupIds={post?.groups?.map(group => group.id).filter(Boolean)}
           readOnly={submitting}
           ref={setEditorRef}
           widthOffset={isIOS ? 34 : 38}

@@ -1008,10 +1008,12 @@ module.exports = {
             let track = null
             let trackName = null
             let trackUrl = null
+            let trackSpace = null
             if (isTrackPurchase && trackId) {
               track = await Track.find(trackId)
               if (track) {
-                trackName = track.get('name')
+                trackSpace = await track.group().fetch()
+                trackName = trackSpace ? trackSpace.get('name') : ''
                 trackUrl = Frontend.Route.track(track, group)
               }
             }
@@ -1102,9 +1104,9 @@ module.exports = {
                 data: {
                   user_name: user.get('name'),
                   track_name: trackName,
-                  track_description: track.get('description'),
+                  track_description: trackSpace ? trackSpace.get('description') : '',
                   track_url: trackUrl,
-                  track_image_url: track.get('image_url') || group.get('avatar_url'),
+                  track_image_url: (trackSpace && (trackSpace.get('banner_url') || trackSpace.get('avatar_url'))) || group.get('avatar_url'),
                   group_name: group.get('name'),
                   group_url: Frontend.Route.group(group),
                   offering_name: offering.get('name'),

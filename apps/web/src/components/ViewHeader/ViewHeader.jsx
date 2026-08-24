@@ -4,23 +4,24 @@ import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate, useLocation } from 'react-router-dom'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
-import { localSpaceSlug, spaceUrl } from '@hylo/navigation'
+import { localSpaceSlug, spaceUrl, myHomeLandingUrl } from '@hylo/navigation'
 import Icon from 'components/Icon'
 import LucideIcon from 'components/LucideIcon/LucideIcon'
 import InfoButton from 'components/ui/info'
 import { Command, CommandItem, CommandList } from 'components/ui/command'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useRouteParams from 'hooks/useRouteParams'
+import useGroupViews from 'hooks/useGroupViews'
 import GroupViewIcon from 'routes/AuthLayoutRouter/components/ContextMenu/GroupViewIcon'
 import { hueOf, viewCardColor } from 'routes/AuthLayoutRouter/components/ContextMenu/viewCardTheme'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
-import { getGroupViews } from 'store/selectors/getGroupViews'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import getMe from 'store/selectors/getMe'
 import getMyMemberships from 'store/selectors/getMyMemberships'
 import getPreviousLocation from 'store/selectors/getPreviousLocation'
 import { bgImageStyle, cn } from 'util/index'
+import { performMobileNavBack } from 'util/mobileNavBack'
 import { isCompactLayoutDevice, isDrawerNavLayout, isPhoneDevice } from 'util/mobile'
 import { isCardMenuPreference, isOneColumnLayout } from 'util/navigationLayout'
 
@@ -56,7 +57,7 @@ function ViewIconTile ({ icon, hue, className }) {
   return (
     <span
       className={cn(
-        'w-8 h-8 rounded-[9px] grid place-items-center shrink-0 border',
+        'w-8 h-8 rounded-[9px] grid place-items-center shrink-0 border-2',
         'bg-[hsl(var(--vh-hue)_48%_90%)] border-[hsl(var(--vh-hue)_40%_70%)] text-[hsl(var(--vh-hue)_45%_35%)]',
         'dark:bg-[hsl(var(--vh-hue)_40%_26%)] dark:border-[hsl(var(--vh-hue)_40%_42%)] dark:text-[hsl(var(--vh-hue)_60%_82%)]',
         className
@@ -80,7 +81,7 @@ const ViewHeader = () => {
   const isMoreSpacesPath = location.pathname.replace(/\/$/, '').endsWith('/more-spaces')
   const spaceSlug = routeSpaceSlug || (isMoreSpacesPath ? getQuerystringParam('space', location) : null)
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
-  const groupViews = useSelector(state => spaceSlug ? getGroupViews(state, group) : null)
+  const groupViews = useGroupViews(spaceSlug ? group : null)
   const currentUser = useSelector(getMe)
   const myMemberships = useSelector(getMyMemberships)
   const { headerDetails } = useViewHeader()
@@ -380,7 +381,7 @@ const ViewHeader = () => {
   // Light mode surfaces sit close in lightness, so the sticky header needs a
   // hairline edge plus a stronger shadow to read as a layer above the stream.
   return (
-    <header className={cn('flex flex-row items-center z-40 p-2 sticky top-0 w-full bg-context-menu-background border-b border-foreground/[0.08] shadow-[0_4px_14px_0px_rgba(0,0,0,0.16)] dark:border-transparent dark:shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)]', {
+    <header className={cn('flex flex-row items-center z-40 p-2 sticky top-0 w-full bg-context-menu-background border-b border-foreground/[0.08] shadow-header dark:border-transparent dark:shadow-header-dark', {
       'justify-center': centered,
       hidden: (oneColumn && isBannerVisible) || isOneColumnMenuLevel
     })}
@@ -509,7 +510,7 @@ const ViewHeader = () => {
           : React.isValidElement(title)
             ? true
             : !!(title?.mobile || title?.desktop)
-        const contextHref = `/${context}`
+        const contextHref = context === 'public' ? '/public' : myHomeLandingUrl()
         const contextLabel = context === 'public' ? t('The Commons') : t('My Home')
 
         return (

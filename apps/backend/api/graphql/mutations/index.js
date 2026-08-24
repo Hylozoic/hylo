@@ -12,12 +12,6 @@ export {
   deleteDraft
 } from './draft'
 export {
-  createCollection,
-  addPostToCollection,
-  reorderPostInCollection,
-  removePostFromCollection
-} from './collection'
-export {
   grantContentAccess,
   revokeContentAccess,
   refundContentAccess,
@@ -31,14 +25,6 @@ export {
   updateComment,
   canUpdateComment
 } from './comment'
-export {
-  createContextWidget,
-  deleteContextWidget,
-  updateContextWidget,
-  removeWidgetFromMenu,
-  reorderContextWidget,
-  setHomeWidget
-} from './context_widgets'
 export {
   createGroupView,
   updateGroupView,

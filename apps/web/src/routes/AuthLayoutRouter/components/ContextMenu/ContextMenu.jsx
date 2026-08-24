@@ -1,6 +1,6 @@
 import { isDrawerNavLayout, isPhoneDevice } from 'util/mobile'
 import { get } from 'lodash/fp'
-import { CircleEllipsis, Info, Pencil, RefreshCw, Settings, UserPlus, Users } from 'lucide-react'
+import { CircleEllipsis, Info, Pencil, Settings, UserPlus, Users } from 'lucide-react'
 import React, { useEffect, useCallback, useState, useMemo } from 'react'
 import { Link, useLocation, useNavigate, Routes, Route } from 'react-router-dom'
 import { replace } from 'redux-first-history'
@@ -48,7 +48,6 @@ import { isOneColumnLayout as resolveIsOneColumnLayout } from 'util/navigationLa
 import { filterSpaceViewsForMenuVisibility, spaceMenuVisibilityOpts } from 'util/spaceVisibility'
 
 import GroupSettingsMenu from './GroupSettingsMenu'
-import ContextMenuOld from './ContextMenuOld'
 import MenuRowBackground from './MenuRowBackground'
 import { viewCardColor } from './viewCardTheme'
 import { DEFAULT_BANNER } from 'store/models/Group'
@@ -81,6 +80,10 @@ function UnreadDot () {
 // link color so the global link-hover green never shows.
 // Rows sit flush against each other and keep their margin on hover, so hovering
 // never shifts the rows below it.
+/* The banner fades into the plane colour set by the .plane class below it;
+ * --menu-plane inherits, so the two can never drift apart. */
+const MENU_PLANE_FADE_STYLE = { backgroundImage: 'linear-gradient(to bottom, transparent, var(--menu-plane))' }
+
 const GROUP_VIEW_MENU_ITEM_CLASS = 'flex items-center gap-2 text-base font-medium text-foreground hover:text-foreground border-2 border-transparent rounded-md p-1 pl-2 my-0 w-full transition-all duration-200 ease-out scale-100 hover:scale-102 active:scale-[0.985] active:translate-y-[0.5px] active:duration-[50ms] opacity-85 hover:opacity-100'
 
 /** MenuLink overrides when nested inside a styled space row wrapper. hover:text-foreground
@@ -398,8 +401,8 @@ function GroupViewMenuItem ({
     const drillIntoSpaceMenu = isSpaceMember && !singleSpaceView
     const keepNavOpen = drillIntoSpaceMenu && isDrawerNavLayout()
     const spaceLink = singleSpaceView && isSpaceMember
-      ? menuViewUrl(parentSlug, singleSpaceView, linkedSpaceGroup)
-      : spaceEntryUrl(parentSlug, linkedSpaceGroup)
+      ? menuViewUrl(parentSlug, singleSpaceView, resolvedSpaceGroup)
+      : spaceEntryUrl(parentSlug, resolvedSpaceGroup)
     const isSpaceActive = Boolean(
       spaceSlug &&
       linkedSpaceGroup &&
@@ -549,7 +552,7 @@ function GroupViewList ({
           groupSlug={groupSlug}
           onSettings={onOpenSettings}
         />
-        <div className='px-3 pb-3 flex flex-col gap-1'>
+        <div className='px-1.5 pb-1.5 flex flex-col gap-1'>
           {/* One Add control opening the same view/space chooser the card grids use,
               rather than a button per kind. p-1 matches the Done Editing button height below */}
           <AddViewOrSpaceMenu
@@ -576,7 +579,7 @@ function GroupViewList ({
 
   return (
     <div className='relative flex flex-col z-20'>
-      <ul className='m-0 p-3 mb-6'>
+      <ul className='m-0 p-1.5 mb-6'>
         {menuViews.map((view, index) => (
           <GroupViewMenuItem
             key={view.id || index}
@@ -593,8 +596,7 @@ function GroupViewList ({
   )
 }
 
-/** Primary ContextMenu for Phase 2+. Fetches GroupViews and renders the new menu.
- *  A dev toggle at the bottom allows switching to ContextMenuOld (ContextWidgets) for comparison. */
+/** Primary ContextMenu. Fetches GroupViews and renders the group/space menu. */
 export default function ContextMenu (props) {
   const {
     className,
@@ -634,9 +636,6 @@ export default function ContextMenu (props) {
 
   const isNavOpen = useSelector(state => get('AuthLayoutRouter.isNavOpen', state))
   const toggleNavMenuAction = useCallback(() => dispatch(toggleNavMenu()), [dispatch])
-
-  // Dev toggle: false = old ContextWidgets menu, true = new GroupViews menu
-  const [showGroupViewsMenu, setShowGroupViewsMenu] = useState(true)
 
   const staticMenuViews = useMemo(() => {
     return getStaticMenuViews({
@@ -711,13 +710,19 @@ export default function ContextMenu (props) {
     ? activeSpaceGroup.bannerUrl
     : null
 
-  // Fetch GroupViews and spaces whenever we enter a real group context
+  // Menu views on every group navigation. Off-menu spaces are loaded when More
+  // Spaces or edit mode opens — they overlap heavily with this query.
   useEffect(() => {
     if (group?.id && isGroupContext) {
       dispatch(fetchGroupViews(group.id))
-      dispatch(fetchGroupSpaces(group.id))
     }
   }, [group?.id, isGroupContext, dispatch])
+
+  useEffect(() => {
+    if (group?.id && isGroupContext && isEditing) {
+      dispatch(fetchGroupSpaces(group.id))
+    }
+  }, [group?.id, isGroupContext, isEditing, dispatch])
 
   // Load the space's own views when inside a space (multi-view check + space menu).
   useEffect(() => {
@@ -762,19 +767,6 @@ export default function ContextMenu (props) {
     }
   }, [isEditing])
 
-  const devToggle = (
-    <div className='px-3 py-2 border-t border-foreground/10'>
-      <button
-        className='w-full flex items-center justify-center gap-2 text-xs text-foreground/50 hover:text-foreground border border-foreground/20 hover:border-foreground/50 rounded-md px-2 py-1 transition-all'
-        onClick={() => setShowGroupViewsMenu(v => !v)}
-        title='Dev: switch between new GroupViews and legacy ContextWidgets menu'
-      >
-        <RefreshCw className='w-3 h-3' />
-        {showGroupViewsMenu ? t('Switch to Legacy Menu') : t('Switch to New Menu')}
-      </button>
-    </div>
-  )
-
   // Footer More uses the space's off-menu items when drilled into a space menu.
   const footerMoreSections = showingSpaceMenu ? spaceMoreSpacesSections : moreSpacesSections
   const moreSpacesCount = (footerMoreSections?.trackSpaces?.length || 0) +
@@ -803,7 +795,7 @@ export default function ContextMenu (props) {
     : (group?.slug ? groupUrl(group.slug, 'requests') : null)
   const joinRequestsSection = isGroupContext && joinRequestsLink && canAddMembers && joinRequestCount > 0
     ? (
-      <div className='px-3 pb-2 border-t border-foreground/10 pt-2'>
+      <div className='px-1.5 pb-2 border-t border-foreground/10 pt-2'>
         {isEditing
           ? (
             <div
@@ -834,7 +826,7 @@ export default function ContextMenu (props) {
   // so the row reads as selected instead of disabled.
   const moreSpacesSection = isGroupContext && group?.id && moreSpacesCount > 0 && !(showingSpaceMenu && isEditing)
     ? (
-      <div className='px-3 pb-2 border-t border-foreground/10 pt-2'>
+      <div className='px-1.5 pb-2 border-t border-foreground/10 pt-2'>
         <MenuLink
           to={moreSpacesLink}
           isActive={isMoreSpacesPath}
@@ -860,7 +852,7 @@ export default function ContextMenu (props) {
   const stayOnCurrentView = isDrawerNavLayout() || showingSpaceMenu
   const editMenuButton = canAdminister && isGroupContext && group?.id
     ? (
-      <div className='px-3 pb-2 border-t border-foreground/10 pt-2'>
+      <div className='px-1.5 pb-2 border-t border-foreground/10 pt-2'>
         <MenuLink
           to={
             stayOnCurrentView
@@ -885,7 +877,6 @@ export default function ContextMenu (props) {
       {joinRequestsSection}
       {moreSpacesSection}
       {editMenuButton}
-      {devToggle}
     </div>
   )
 
@@ -904,10 +895,6 @@ export default function ContextMenu (props) {
         <GroupSettingsMenu group={group} groupSlug={groupSlug} isOneColumn />
       </div>
     )
-  }
-
-  if (!showGroupViewsMenu) {
-    return <ContextMenuOld {...props} devToggle={devToggle} />
   }
 
   return (
@@ -932,43 +919,75 @@ export default function ContextMenu (props) {
       {!isPhoneDevice() && <ContextMenuResizer menuEl={menuRootEl} />}
       <div className={cn(
         'relative flex flex-col',
+        // Flat wrap color in the gutters around the inset menu card. The
+        // banner (below) only lives at the top and fades into this.
+        isGroupContext && classes.plane,
         isSettingsPath ? 'flex-1 min-h-0 overflow-hidden' : 'min-h-full min-h-screen min-h-dvh'
       )}
       >
-        <div className='ContextDetails w-full z-20 relative shrink-0'>
-          {isGroupContext
+        {/* Above ContextMenuCloseBg (z-10) so item taps are not swallowed on mobile */}
+        <div className='relative z-20 shrink-0'>
+          {/* Banner fills the header and overflows slightly so it wraps the
+              top of the menu card, then fades into the wrap background. */}
+          {isGroupContext && group && (
+            <div className='absolute inset-x-0 top-0 -bottom-8 z-0 pointer-events-none'>
+              <div className='absolute inset-0 bg-darkening opacity-80' />
+              <div
+                className='absolute inset-0 bg-cover bg-center'
+                style={{ ...bgImageStyle(group.bannerUrl || DEFAULT_BANNER), opacity: 0.5 }}
+              />
+              <div className='absolute inset-x-0 bottom-0 h-8' style={MENU_PLANE_FADE_STYLE} />
+            </div>
+          )}
+          <div className='ContextDetails w-full relative z-10'>
+            {isGroupContext
             /* Duck only when the space really takes the menu over (its own
                header below) — single-view in-menu spaces stay in the group list */
-            ? <GroupMenuHeader group={group} compact={showingSpaceMenu} onCompactClick={handleBackToGroupMenu} />
-            : isPublicContext
               ? (
-                <div className='TheCommonsHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md'>
-                  <div className='absolute inset-0 z-10 bg-cover' style={{ ...bgImageStyle('/the-commons.jpg'), opacity: 0.8 }} />
-                  <div className='absolute top-0 left-0 w-full h-full bg-darkening z-0' />
-                  <div className='flex flex-col text-foreground drop-shadow-md overflow-hidden relative z-20'>
-                    <h2 className='text-white font-bold leading-3 text-lg drop-shadow-md'>{t('The Commons')}</h2>
-                  </div>
-                </div>
+                <GroupMenuHeader
+                  group={group}
+                  compact={showingSpaceMenu}
+                  hideBanner
+                  onCompactClick={handleBackToGroupMenu}
+                />
                 )
-              : isMyContext
+              : isPublicContext
                 ? (
-                  <div className='MyHomeHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md'>
-                    <div className='absolute inset-0 z-10 bg-cover bg-center' style={{ ...bgImageStyle(currentUser?.bannerUrl || '/default-user-banner.svg'), opacity: 0.8 }} />
-                    <div className='absolute top-0 left-0 w-full h-full bg-darkening z-0 opacity-100' />
+                  <div className='TheCommonsHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md'>
+                    <div className='absolute inset-0 z-10 bg-cover' style={{ ...bgImageStyle('/the-commons.jpg'), opacity: 0.8 }} />
+                    <div className='absolute top-0 left-0 w-full h-full bg-darkening z-0' />
                     <div className='flex flex-col text-foreground drop-shadow-md overflow-hidden relative z-20'>
-                      <h2 className='text-white font-bold leading-3 text-lg drop-shadow-md'>{t('My Home')}</h2>
-                      {currentUser?.name && (
-                        <p className='text-white/90 text-sm drop-shadow-md mt-1 truncate'>
-                          {currentUser.name}{currentUser.email ? ` (${currentUser.email})` : ''}
-                        </p>
-                      )}
+                      <h2 className='text-white font-bold leading-3 text-lg drop-shadow-md'>{t('The Commons')}</h2>
                     </div>
                   </div>
                   )
-                : null}
+                : (isMyContext || isAllContext)
+                    ? (
+                      <div className='MyHomeHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md'>
+                        <div className='absolute inset-0 z-10 bg-cover bg-center' style={{ ...bgImageStyle(currentUser?.bannerUrl || '/default-user-banner.svg'), opacity: 0.8 }} />
+                        <div className='absolute top-0 left-0 w-full h-full bg-darkening z-0 opacity-100' />
+                        <div className='flex flex-col text-foreground drop-shadow-md overflow-hidden relative z-20'>
+                          <h2 className='text-white font-bold leading-3 text-lg drop-shadow-md'>{t('My Home')}</h2>
+                          {currentUser?.name && (
+                            <p className='text-white/90 text-sm drop-shadow-md mt-1 truncate'>
+                              {currentUser.name}{currentUser.email ? ` (${currentUser.email})` : ''}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      )
+                    : null}
+          </div>
         </div>
 
-        <div className={cn('relative z-20 flex flex-col flex-1', isSettingsPath && 'min-h-0 overflow-hidden')}>
+        <div className={cn(
+          'relative z-20 flex flex-col flex-1',
+          // Inset card: banner wraps its top corners, background color wraps
+          // the rest. No overflow-hidden so dropdowns/modals are not clipped.
+          isGroupContext && 'mx-2 mb-2 rounded-xl bg-background bg-gradient-to-b from-context-menu-background to-theme-background/10 dark:to-theme-background/40 shadow-md',
+          isSettingsPath && 'min-h-0 overflow-hidden'
+        )}
+        >
           <Routes>
             <Route path='settings/*' element={<GroupSettingsMenu group={group} groupSlug={groupSlug} />} />
           </Routes>
@@ -980,7 +999,7 @@ export default function ContextMenu (props) {
                     full-size header's 190px, so the takeover swaps hierarchy without
                     moving the menu below */}
                 {/* Closing the space lives in the ducked group header's back chevron above */}
-                <div className='SpaceMenuHeader relative z-20 flex flex-col justify-between h-[142px] overflow-hidden border-b border-foreground/10 shadow-md'>
+                <div className='SpaceMenuHeader relative z-20 flex flex-col justify-between h-[142px] overflow-hidden rounded-t-xl border-b border-foreground/10 shadow-md'>
                   {activeSpaceBannerUrl
                     ? (
                       <>
@@ -1143,7 +1162,7 @@ export default function ContextMenu (props) {
                 <SpaceSettingsModal
                   view={settingsView}
                   space={settingsView.linkedGroup}
-                  group={group}
+                  parentGroup={group}
                   onClose={() => setSettingsView(null)}
                 />
                 )

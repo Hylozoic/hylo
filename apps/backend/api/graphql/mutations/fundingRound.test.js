@@ -36,19 +36,7 @@ describe('createFundingRound', () => {
 
     const round = await createFundingRound(moderatorUser.id, data)
     expect(round).to.exist
-    expect(round.get('title')).to.equal(data.title)
     expect(round.get('group_id')).to.equal(group.id)
-  })
-
-  it('throws error when title is missing', async () => {
-    const data = { groupId: group.id, votingMethod: 'token_allocation_constant', totalTokens: 100 }
-
-    try {
-      await createFundingRound(moderatorUser.id, data)
-      expect.fail('should reject')
-    } catch (e) {
-      expect(e.message).to.match(/title is required/)
-    }
   })
 
   it('throws error when groupId is missing', async () => {
@@ -146,11 +134,11 @@ describe('updateFundingRound', () => {
     }).save()
   })
 
-  it('updates a funding round title', async () => {
-    const data = { title: 'Updated Title' }
+  it('updates a funding round criteria', async () => {
+    const data = { criteria: 'Updated criteria' }
 
     const updatedRound = await updateFundingRound(moderatorUser.id, round.id, data)
-    expect(updatedRound.get('title')).to.equal('Updated Title')
+    expect(updatedRound.get('criteria')).to.equal('Updated criteria')
   })
 
   it('updates funding round dates', async () => {
@@ -213,8 +201,8 @@ describe('updateFundingRound', () => {
     }).save()
 
     // moderatorUser is coordinator on parent only — not a member of the space
-    const updatedRound = await updateFundingRound(moderatorUser.id, spaceRound.id, { title: 'Updated Space Round' })
-    expect(updatedRound.get('title')).to.equal('Updated Space Round')
+    const updatedRound = await updateFundingRound(moderatorUser.id, spaceRound.id, { criteria: 'Updated Space Round' })
+    expect(updatedRound.get('criteria')).to.equal('Updated Space Round')
   })
 
   it('triggers phase transition on update', async () => {

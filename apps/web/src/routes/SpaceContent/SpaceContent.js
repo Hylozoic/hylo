@@ -5,6 +5,7 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import Loading from 'components/Loading'
 import { SpaceGroupSlugContext } from 'contexts/SpaceGroupContext'
 import useRouteParams from 'hooks/useRouteParams'
+import useGroupViews from 'hooks/useGroupViews'
 import ChatRoom from 'routes/ChatRoom'
 import GroupAboutPage from 'routes/GroupAboutPage'
 import MembershipRequestsTab from 'routes/GroupSettings/MembershipRequestsTab'
@@ -20,16 +21,18 @@ import TrackActionsView from 'routes/TrackActionsView/TrackActionsView'
 import ViewContent from 'routes/ViewContent'
 import SpaceCollection from 'routes/SpaceCollection'
 import ContextMenuGrid from 'routes/AuthLayoutRouter/components/ContextMenu/ContextMenuGrid'
+import { setMembershipLastViewedAt } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import fetchForGroup from 'store/actions/fetchForGroup'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
-import { getGroupViews } from 'store/selectors/getGroupViews'
+import getMe from 'store/selectors/getMe'
 import getMyMemberships from 'store/selectors/getMyMemberships'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { RESP_ADD_MEMBERS } from 'store/constants'
-import { localSpaceSlug, spaceUrl, POST_DETAIL_MATCH } from '@hylo/navigation'
+import { localSpaceSlug, spaceHomeRoutePath, spaceUrl, POST_DETAIL_MATCH } from '@hylo/navigation'
 import { isDrawerNavLayout } from 'util/mobile'
+import shouldLandOnWelcome from 'util/shouldLandOnWelcome'
 
 /**
  * Resolves a space group from the parent menu or from More Spaces (off-menu spaces).
@@ -67,7 +70,7 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
 
   const parentGroupFromStore = useSelector(state => getGroupForSlug(state, parentSlug))
   const parentGroup = parentGroupProp || parentGroupFromStore
-  const groupViews = useSelector(state => getGroupViews(state, parentGroup))
+  const groupViews = useGroupViews(parentGroup)
 
   const linkedSpace = useMemo(
     () => resolveSpaceGroup(parentGroup, groupViews, parentSlug, localSlug),
@@ -91,14 +94,20 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
   const needsSpaceGroupViews = !spaceGroupViewsLoaded || spaceChatMissingLastRead
 
   const myMemberships = useSelector(getMyMemberships)
+  const currentUser = useSelector(getMe)
   const isSpaceMember = useMemo(
     () => Boolean(spaceGroupId && myMemberships.some(m => String(m.group?.id) === String(spaceGroupId))),
     [spaceGroupId, myMemberships]
+  )
+  const spaceMembership = useMemo(
+    () => myMemberships.find(m => String(m.group?.id) === String(spaceGroupId)),
+    [myMemberships, spaceGroupId]
   )
   const canAddSpaceMembers = useSelector(state => hasResponsibilityForGroup(state, {
     responsibility: RESP_ADD_MEMBERS,
     groupId: spaceGroupId
   }))
+  const onWelcomePath = Boolean(localSlug && location.pathname.includes(`/spaces/${localSlug}/welcome`))
 
   // Cold deep links: fetchForGroup(parentSlug) doesn't include the spaces list,
   // and the ContextMenu's fetchGroupSpaces may never fire (or hasn't yet), so
@@ -120,6 +129,17 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
       dispatch(fetchGroupViews(spaceGroupId))
     }
   }, [dispatch, isSpaceMember, spaceGroupId, needsSpaceGroupViews])
+
+  // Record first visit only after any welcome redirect, so lastViewedAt is not
+  // set while we still intend to send the member to /welcome.
+  useEffect(() => {
+    if (!isSpaceMember || !spaceGroupId || !currentUser?.id || !spaceFullSlug) return
+    if (!spaceMembership || spaceMembership.lastViewedAt) return
+    if (spaceGroup?.groupViews == null) return
+    if (shouldLandOnWelcome(spaceGroup, spaceMembership, { onWelcomePath })) return
+    dispatch(setMembershipLastViewedAt(spaceGroupId, currentUser.id, new Date().toISOString()))
+    dispatch(fetchForGroup(spaceFullSlug))
+  }, [dispatch, isSpaceMember, spaceGroupId, currentUser?.id, spaceFullSlug, spaceMembership, spaceGroup, onWelcomePath])
 
   if (!parentGroup || !localSlug) return <Loading />
   if (!linkedSpace) return <Loading />
@@ -144,8 +164,13 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
 
   if (spaceFullSlug && (!spaceGroup || needsSpaceGroupViews)) return <Loading />
 
-  const homeRoute = spaceGroup?.homeRoute || linkedSpace?.homeRoute || '/welcome'
   const resolvedSpace = spaceGroup || linkedSpace
+  const homeRoute = spaceHomeRoutePath({
+    homeRoute: spaceGroup?.homeRoute || linkedSpace?.homeRoute,
+    groupViews: spaceGroup?.groupViews || linkedSpace?.groupViews,
+    track: spaceGroup?.track || linkedSpace?.track,
+    fundingRound: spaceGroup?.fundingRound || linkedSpace?.fundingRound
+  })
 
   // Entering a space should land on its menu, not skip straight into a view —
   // unless a menu is still visible elsewhere. In two column that is the sidebar,
@@ -161,6 +186,10 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
   const spaceIndexElement = showSpaceMenu
     ? <ContextMenuGrid group={parentGroup} spaceGroup={resolvedSpace} />
     : <Navigate to={{ pathname: `${spaceBase}${homeRoute}`, search: location.search }} replace />
+
+  if (shouldLandOnWelcome(resolvedSpace, spaceMembership, { onWelcomePath })) {
+    return <Navigate to={`${spaceBase}/welcome${location.search}`} replace />
+  }
 
   return (
     <SpaceGroupSlugContext.Provider value={spaceFullSlug}>

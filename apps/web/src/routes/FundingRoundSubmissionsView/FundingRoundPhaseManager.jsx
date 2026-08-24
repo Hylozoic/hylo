@@ -377,7 +377,7 @@ export default function FundingRoundPhaseManager ({ round, spaceName, onOpenSett
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      const titleSource = spaceName || round.title
+      const titleSource = spaceName
       const safeTitle = titleSource
         ? titleSource.replace(/[^a-z0-9]+/gi, '_').replace(/_{2,}/g, '_').replace(/^_|_$/g, '')
         : 'funding_round'

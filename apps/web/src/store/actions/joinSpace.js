@@ -28,6 +28,7 @@ export default function joinSpace (spaceId) {
           person {
             id
           }
+          lastViewedAt
           settings {
             agreementsAcceptedAt
             digestFrequency

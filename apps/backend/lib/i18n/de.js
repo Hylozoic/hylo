@@ -84,18 +84,18 @@ exports.de = {
   },
   textForPostMention: ({ groupName, person, postName }) => `${person} hat dich im Beitrag „${postName}“ in ${groupName} erwähnt`,
   textForPost: ({ firstTag, groupName, person, postName }) => `${person} hat „${postName}“ in ${groupName} veröffentlicht${firstTag ? ` #${firstTag}` : ''}`,
-  textForTrackCompleted: ({ actor, track }) => `Lernpfad abgeschlossen: „${track.get('name')}“ von ${actor.get('name')} abgeschlossen`,
-  textForTrackEnrollment: ({ actor, track }) => `Lernpfad-Teilnahme: „${track.get('name')}“ von ${actor.get('name')} begonnen`,
+  textForTrackCompleted: ({ actor, trackName }) => `Lernpfad abgeschlossen: „${trackName}“ von ${actor.get('name')} abgeschlossen`,
+  textForTrackEnrollment: ({ actor, trackName }) => `Lernpfad-Teilnahme: „${trackName}“ von ${actor.get('name')} begonnen`,
   textForVoteReset: ({ person, postName, groupName }) => `${person} hat die Optionen für den Vorschlag „${postName}“ in ${groupName} geändert. Die Stimmen wurden zurückgesetzt`,
-  textForFundingRoundNewSubmission: ({ fundingRound, post, actor }) => `${actor.get('name')} hat „${post.summary()}“ für „${fundingRound.get('title')}“ eingereicht`,
-  textForFundingRoundPhaseTransition: ({ fundingRound, phase }) => {
+  textForFundingRoundNewSubmission: ({ fundingRoundTitle, post, actor }) => `${actor.get('name')} hat „${post.summary()}“ für „${fundingRoundTitle}“ eingereicht`,
+  textForFundingRoundPhaseTransition: ({ fundingRoundTitle, phase }) => {
     const phaseMessages = {
       submissions: 'Einreichungen sind jetzt offen',
       discussion: 'Einreichungen sind geschlossen, Diskussionen sind offen',
       voting: 'Abstimmung ist jetzt offen',
       completed: 'Abstimmung ist geschlossen, die Runde ist beendet'
     }
-    return `${fundingRound.get('title')}: ${phaseMessages[phase] || 'Status aktualisiert'}`
+    return `${fundingRoundTitle}: ${phaseMessages[phase] || 'Status aktualisiert'}`
   },
   textForFundingRoundReminder: ({ reminderType }) => {
     const reminderMessages = {

@@ -148,13 +148,28 @@ describe('Group', function () {
       expect(results.length).to.equal(2)
 
       await gm1.refresh()
-      expect(gm1.get('settings')).to.deep.equal({ here: true, there: true, agreementsAcceptedAt: null, joinQuestionsAnsweredAt: null, showJoinForm: true })
+      expect(gm1.get('settings')).to.deep.equal({ here: true, there: true, agreementsAcceptedAt: null, joinQuestionsAnsweredAt: null, showJoinForm: true, lastReadAt: null })
       expect(await GroupMembership.hasResponsibility(u1.id, group, Responsibility.constants.RESP_ADMINISTRATION)).to.be.true
 
       const gm2 = await group.memberships()
         .query(q => q.where('user_id', u2.id)).fetchOne()
       expect(gm2.get('settings')).to.deep.equal({ agreementsAcceptedAt: null, joinQuestionsAnsweredAt: null, showJoinForm: true, there: true })
       expect(await GroupMembership.hasResponsibility(u2.id, group, Responsibility.constants.RESP_ADMINISTRATION)).to.be.true
+    })
+
+    it('clears lastReadAt so a rejoining member is treated as a first visit', async function () {
+      const viewedAt = new Date().toISOString()
+      await u1.joinGroup(group)
+      let membership = await GroupMembership.forPair(u1, group).fetch()
+      membership.addSetting({ lastReadAt: viewedAt })
+      await membership.save()
+
+      await group.removeMembers([u1.id])
+      await u1.joinGroup(group)
+
+      membership = await GroupMembership.forPair(u1, group).fetch()
+      expect(membership.get('active')).to.be.true
+      expect(membership.getSetting('lastReadAt')).to.be.null
     })
   })
 
@@ -306,7 +321,7 @@ describe('Group', function () {
 
     it('settles track enrollment when leaving a track space', async function () {
       const group = await factories.group().save()
-      const track = await Track.forge({ name: 'Enrolled Track', group_id: null }).save()
+      const track = await Track.forge({ group_id: null }).save()
       const space = await factories.group({
         type: 'space',
         parent_id: group.id,
@@ -340,7 +355,6 @@ describe('Group', function () {
       }).save()
       const round = await FundingRound.forge({
         group_id: space.id,
-        title: 'Cascading Round',
         voting_method: 'quadratic',
         num_participants: 1,
         created_at: new Date(),
@@ -366,7 +380,7 @@ describe('Group', function () {
 
     it('does not decrement participation for an already inactive member', async function () {
       const group = await factories.group().save()
-      const track = await Track.forge({ name: 'Idempotent Track', group_id: null }).save()
+      const track = await Track.forge({ group_id: null }).save()
       const space = await factories.group({
         type: 'space',
         parent_id: group.id,
@@ -444,6 +458,34 @@ describe('Group', function () {
       const ids = await fetchViewPostIds(parent, user.id)
       expect(ids).to.include(parentPost.id)
       expect(ids).to.not.include(spacePost.id)
+    })
+
+    it('excludes posts from peer groups even when the user is a member of both', async function () {
+      const group = await factories.group().save()
+      const peerGroup = await factories.group().save()
+      await GroupRelationship.forge({
+        parent_group_id: group.id,
+        child_group_id: peerGroup.id,
+        relationship_type: Group.RelationshipType.PEER_TO_PEER,
+        active: true
+      }).save()
+
+      const user = await factories.user().save()
+      await group.addMembers([user.id])
+      await peerGroup.addMembers([user.id])
+
+      const groupPost = await factories.post({ user_id: user.id }).save()
+      await groupPost.groups().attach(group.id)
+      const peerPost = await factories.post({ user_id: user.id }).save()
+      await peerPost.groups().attach(peerGroup.id)
+
+      const idsFromGroup = await fetchViewPostIds(group, user.id)
+      expect(idsFromGroup).to.include(groupPost.id)
+      expect(idsFromGroup).to.not.include(peerPost.id)
+
+      const idsFromPeer = await fetchViewPostIds(peerGroup, user.id)
+      expect(idsFromPeer).to.include(peerPost.id)
+      expect(idsFromPeer).to.not.include(groupPost.id)
     })
 
     it('excludes posts from a child group after the user leaves it', async function () {

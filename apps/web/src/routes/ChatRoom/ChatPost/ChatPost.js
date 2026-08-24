@@ -38,6 +38,22 @@ import pinPostAction from 'store/actions/pinPost'
 import useCurrentPinnableView from 'hooks/useCurrentPinnableView'
 import { cn } from 'util/index'
 
+// Tall messages are clipped to this height until the reader asks for the rest,
+// so one long post can't push the rest of the conversation off screen
+const MAX_COLLAPSED_DETAILS_HEIGHT = 200
+// Only clip when doing so buys back meaningful height — a message a hair over
+// the limit would otherwise gain a "See More" that hides a single line
+const COLLAPSE_SLACK = 40
+// Fade the clipped text itself rather than painting a gradient over it: the
+// row's background shifts between default, hover and highlighted states
+const COLLAPSED_DETAILS_FADE = 'linear-gradient(to bottom, black calc(100% - 40px), transparent)'
+const collapsedDetailsStyle = {
+  maxHeight: MAX_COLLAPSED_DETAILS_HEIGHT,
+  overflow: 'hidden',
+  maskImage: COLLAPSED_DETAILS_FADE,
+  WebkitMaskImage: COLLAPSED_DETAILS_FADE
+}
+
 export default function ChatPost ({
   className,
   group,
@@ -81,6 +97,9 @@ export default function ChatPost ({
   const [isLongPress, setIsLongPress] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false)
+  const [detailsOverflowing, setDetailsOverflowing] = useState(false)
+  const [detailsExpanded, setDetailsExpanded] = useState(false)
+  const detailsRef = useRef()
 
   const isCreator = currentUser.id === creator.id
   const isFlagged = useMemo(() => group && post.flaggedGroups && post.flaggedGroups.some(id => String(id) === String(group.id)), [group, post.flaggedGroups])
@@ -97,6 +116,23 @@ export default function ChatPost ({
       setIsVideo(ReactPlayer.canPlay(linkPreview?.url))
     }
   }, [linkPreview?.url])
+
+  // Measure rather than count characters: what matters is the height on screen,
+  // which shifts with images, embeds and the reader's chosen stream width
+  useEffect(() => {
+    const element = detailsRef.current
+    if (!element) return
+    const measure = () => setDetailsOverflowing(element.offsetHeight > MAX_COLLAPSED_DETAILS_HEIGHT + COLLAPSE_SLACK)
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [details, editing])
+
+  const handleToggleDetails = useCallback((event) => {
+    event.stopPropagation()
+    setDetailsExpanded(expanded => !expanded)
+  }, [])
 
   const handleClick = event => {
     if (hasActiveTextSelection() || hasReadableContentSelection()) return
@@ -394,13 +430,30 @@ export default function ChatPost ({
           </div>
         )}
         {details && !editing && (
-          <ClickCatcher groupSlug={group.slug} onClick={handleClick}>
-            {/* break-words: an unbroken run (a long URL, a keysmash) must wrap rather
-                than widen the message container — visible mostly on phone widths */}
-            <div className={cn('ml-[42px] max-w-[calc(var(--chat-stream-width,750px)-50px)] cursor-text select-text break-words', { 'blur-sm': isFlagged })}>
-              <HyloHTML className='w-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 break-words' html={details} />
-            </div>
-          </ClickCatcher>
+          <>
+            <ClickCatcher groupSlug={group.slug} onClick={handleClick}>
+              {/* break-words: an unbroken run (a long URL, a keysmash) must wrap rather
+                  than widen the message container — visible mostly on phone widths */}
+              <div
+                className={cn('ml-[42px] max-w-[calc(var(--chat-stream-width,750px)-50px)] cursor-text select-text break-words', { 'blur-sm': isFlagged })}
+                style={detailsOverflowing && !detailsExpanded ? collapsedDetailsStyle : undefined}
+              >
+                {/* Inner wrapper stays unclipped so its height is the message's true height */}
+                <div ref={detailsRef}>
+                  <HyloHTML className='w-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 break-words' html={details} />
+                </div>
+              </div>
+            </ClickCatcher>
+            {detailsOverflowing && (
+              <button
+                type='button'
+                onClick={handleToggleDetails}
+                className='block ml-[42px] mt-1 text-xs font-semibold text-focus hover:underline'
+              >
+                {detailsExpanded ? t('See Less') : t('See More')}
+              </button>
+            )}
+          </>
         )}
         {isFlagged && <Link to={moderationActionsGroupUrl} className='absolute top-[calc(50%-14px)] ml-[50%] text-decoration-none' data-tooltip-content={t('See why this post was flagged')} data-tooltip-id='flag-tt'><Icon name='Flag' className='text-xl text-accent font-bold' /></Link>}
         <Tooltip

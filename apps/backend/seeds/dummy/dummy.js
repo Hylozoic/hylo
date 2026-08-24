@@ -194,26 +194,7 @@ exports.seed = (knex) => warning(knex)
       })
     }
 
-    // Add chat rooms to main group
-    const homeWidget = await knex('context_widgets').insert({
-      group_id: group.id,
-      type: 'home',
-      title: 'widget-home',
-      order: 1
-    })
-    await knex('context_widgets').insert({
-      type: 'viewChat',
-      view_chat_id: general.id,
-      group_id: group.id,
-      parent_id: homeWidget.id,
-      order: 1
-    })
-    await knex('context_widgets').insert({
-      type: 'viewChat',
-      view_chat_id: regeneration.id,
-      group_id: group.id,
-      order: 2
-    })
+    // Chat rooms are GroupViews of type chat, seeded by Group.setupSpaceViews
   })
   .then(() => addUsersToGroups(knex))
   .then(() => createThreads(knex))

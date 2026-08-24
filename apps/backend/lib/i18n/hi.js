@@ -84,18 +84,18 @@ exports.hi = {
   },
   textForPostMention: ({ groupName, person, postName }) => `${person} ने ${groupName} में पोस्ट "${postName}" में आपका उल्लेख किया`,
   textForPost: ({ firstTag, groupName, person, postName }) => `${person} ने ${groupName} में "${postName}" पोस्ट की${firstTag ? ` #${firstTag}` : ''}`,
-  textForTrackCompleted: ({ actor, track }) => `ट्रैक पूर्ण: "${track.get('name')}" ${actor.get('name')} द्वारा पूर्ण किया गया`,
-  textForTrackEnrollment: ({ actor, track }) => `ट्रैक नामांकन: "${track.get('name')}" में ${actor.get('name')} ने नामांकन लिया`,
+  textForTrackCompleted: ({ actor, trackName }) => `ट्रैक पूर्ण: "${trackName}" ${actor.get('name')} द्वारा पूर्ण किया गया`,
+  textForTrackEnrollment: ({ actor, trackName }) => `ट्रैक नामांकन: "${trackName}" में ${actor.get('name')} ने नामांकन लिया`,
   textForVoteReset: ({ person, postName, groupName }) => `${person} ने ${groupName} में प्रस्ताव: "${postName}" के विकल्प बदल दिए। वोट रीसेट हो गए हैं`,
-  textForFundingRoundNewSubmission: ({ fundingRound, post, actor }) => `${actor.get('name')} ने "${fundingRound.get('title')}" के लिए "${post.summary()}" जमा किया`,
-  textForFundingRoundPhaseTransition: ({ fundingRound, phase }) => {
+  textForFundingRoundNewSubmission: ({ fundingRoundTitle, post, actor }) => `${actor.get('name')} ने "${fundingRoundTitle}" के लिए "${post.summary()}" जमा किया`,
+  textForFundingRoundPhaseTransition: ({ fundingRoundTitle, phase }) => {
     const phaseMessages = {
       submissions: 'प्रस्तुत अब खुले हैं',
       discussion: 'प्रस्तुत बंद हो चुके हैं और चर्चाएँ खुली हैं',
       voting: 'मतदान अब खुला है',
       completed: 'मतदान बंद हो गया है और राउंड समाप्त हो गया'
     }
-    return `${fundingRound.get('title')}: ${phaseMessages[phase] || 'स्थिति अपडेट की गई'}`
+    return `${fundingRoundTitle}: ${phaseMessages[phase] || 'स्थिति अपडेट की गई'}`
   },
   textForFundingRoundReminder: ({ reminderType }) => {
     const reminderMessages = {

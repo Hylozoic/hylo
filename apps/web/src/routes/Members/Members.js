@@ -1,14 +1,13 @@
 import { debounce, get } from 'lodash/fp'
-import React, { useEffect, useLayoutEffect, useCallback, useMemo, useState } from 'react'
+import React, { useEffect, useLayoutEffect, useCallback, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Helmet } from 'react-helmet'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import { isSystemGroupRole, sortCustomGroupRoles, sortSystemGroupRoles } from '@hylo/hooks/groupRoleHelpers'
 import { LayoutGrid, List, Search } from 'lucide-react'
-import CurrentlyActivePills, { DEFAULT_ACTIVE_MAX } from 'components/CurrentlyActiveMembers/CurrentlyActivePills'
+import CurrentlyActivePills, { DEFAULT_ACTIVE_MAX, isRecentlyActive } from 'components/CurrentlyActiveMembers/CurrentlyActivePills'
 import InviteMembersDialog from 'components/InviteMembersDialog/InviteMembersDialog'
-import Button from 'components/Button'
 import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
 import MasonryGrid from 'components/MasonryGrid/MasonryGrid'
@@ -22,7 +21,8 @@ import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import usePillRowClamp from 'hooks/usePillRowClamp'
 import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
 import { personUrl } from '@hylo/navigation'
-import { FETCH_MEMBERS, FETCH_MEMBERS_FOR_GRAPH, fetchMembers, fetchMembersForGraph, fetchRecentlyActiveMembers, fetchRoleMemberCounts, getMembers, getGraphMembers, getHasFetchedGraphMembers, getHasMoreMembers, getHasFetchedMembers, getMemberQueryProps, getRecentlyActiveMembers, removeMember } from './Members.store'
+import { isPhoneDevice } from 'util/mobile'
+import { FETCH_MEMBERS, FETCH_MEMBERS_FOR_GRAPH, fetchMembers, fetchMembersForGraph, fetchRecentlyActiveMembers, fetchRoleMemberCounts, fetchFundingRoundMemberCounts, getMembers, getGraphMembers, getHasFetchedGraphMembers, getHasMoreMembers, getHasFetchedMembers, getMemberQueryProps, getRecentlyActiveMembers, removeMember } from './Members.store'
 import { fetchTrack } from 'store/actions/trackActions'
 import { fetchFundingRound } from 'routes/FundingRounds/FundingRounds.store'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
@@ -31,7 +31,7 @@ import getRolesForGroup from 'store/selectors/getRolesForGroup'
 import getTrack from 'store/selectors/getTrack'
 import getFundingRound from 'store/selectors/getFundingRound'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
-import changeQuerystringParam from 'store/actions/changeQuerystringParam'
+import changeQuerystringParam, { changeQuerystringParams } from 'store/actions/changeQuerystringParam'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
 import { cn } from 'util/index'
 import { CENTER_COLUMN_ID } from 'util/scrolling'
@@ -42,6 +42,7 @@ import classes from './Members.module.scss'
 const defaultSortBy = 'name'
 // TODO: should be by responsibility, not role
 const TRACK_COMPLETION_VISIBLE_ROLES = ['Moderator', 'Host']
+const FUNDING_ROUND_CAPABILITIES = ['submit', 'notSubmit', 'vote', 'notVote']
 
 function Members (props) {
   const { t } = useTranslation()
@@ -59,16 +60,22 @@ function Members (props) {
   const sortBy = sortKeys[sortByParam] ? sortByParam : defaultSortBy
   const search = getQuerystringParam('q', location)
   const groupRoleId = getQuerystringParam('r', location) || null
+  const trackCompletedParam = getQuerystringParam('tc', location)
+  const trackCompleted = trackCompletedParam === 'completed' ? true : trackCompletedParam === 'not' ? false : null
+  const fundingRoundCapabilityParam = getQuerystringParam('fr', location)
+  const fundingRoundCapability = FUNDING_ROUND_CAPABILITIES.includes(fundingRoundCapabilityParam) ? fundingRoundCapabilityParam : null
   const memberCount = useSelector(state => get('memberCount', group))
   const memberQueryProps = useMemo(
-    () => getMemberQueryProps({ slug, search, sortBy, groupRoleId }),
-    [slug, search, sortBy, groupRoleId]
+    () => getMemberQueryProps({ slug, search, sortBy, groupRoleId, trackCompleted, fundingRoundCapability }),
+    [slug, search, sortBy, groupRoleId, trackCompleted, fundingRoundCapability]
   )
   const members = useSelector(state => getMembers(state, memberQueryProps))
   const graphMembers = useSelector(state => getGraphMembers(state, { slug }))
   const recentlyActiveFetched = useSelector(state => getRecentlyActiveMembers(state, { slug, first: DEFAULT_ACTIVE_MAX }))
+  // The heading says "Currently Active", so only people inside the active
+  // window belong here — the API sorts by last_active_at but does not filter.
   const currentlyActiveMembers = useMemo(
-    () => (recentlyActiveFetched || []).slice(0, DEFAULT_ACTIVE_MAX),
+    () => (recentlyActiveFetched || []).filter(m => isRecentlyActive(m)).slice(0, DEFAULT_ACTIVE_MAX),
     [recentlyActiveFetched]
   )
   const graphPending = useSelector(state => state.pending[FETCH_MEMBERS_FOR_GRAPH])
@@ -103,6 +110,7 @@ function Members (props) {
   const showFundingRoundRoles = Boolean(fundingRoundId)
   const submitterRoles = fundingRound?.submitterRoles || []
   const voterRoles = fundingRound?.voterRoles || []
+  const [fundingRoundCounts, setFundingRoundCounts] = useState(null)
 
   const rolesSourceGroup = useSelector(state => {
     if (!group) return null
@@ -158,15 +166,39 @@ function Members (props) {
     if (fundingRoundId) dispatch(fetchFundingRound(fundingRoundId))
   }, [dispatch, fundingRoundId])
 
+  useEffect(() => {
+    if (!showFundingRoundRoles || !slug) return
+    let cancelled = false
+    dispatch(fetchFundingRoundMemberCounts({ slug })).then(res => {
+      if (cancelled) return
+      const g = res?.payload?.data?.group || {}
+      setFundingRoundCounts({
+        submit: g.canSubmit?.total ?? 0,
+        notSubmit: g.notSubmit?.total ?? 0,
+        vote: g.canVote?.total ?? 0,
+        notVote: g.notVote?.total ?? 0
+      })
+    }).catch(() => {})
+    return () => { cancelled = true }
+  }, [showFundingRoundRoles, slug, dispatch])
+
   const [showAnswers, setShowAnswers] = useState(false)
   // Controlled so graph skill clicks can fill the box; typing stays debounced
   const [searchValue, setSearchValue] = useState(search || '')
   // Card grid vs compact list, per the members directory design
-  const [displayMode, setDisplayMode] = useState(props.defaultDisplayMode || 'card')
+  const [displayMode, setDisplayMode] = useState(props.defaultDisplayMode || (isPhoneDevice() ? 'list' : 'card'))
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
+  const searchInputRef = useRef(null)
   // Role pills keep to one row behind a More pill until expanded; the count
   // includes the All-members pill since the hook measures container children
   const [rolesExpanded, setRolesExpanded] = useState(false)
-  const roleClamp = usePillRowClamp(displayedRoles.length + 1, 1, rolesExpanded)
+  const trackPillCount = canSeeTrackCompletion ? 2 : 0
+  const fundingRoundPillCount = showFundingRoundRoles ? 4 : 0
+  const roleClamp = usePillRowClamp(displayedRoles.length + 1 + trackPillCount + fundingRoundPillCount, 1, rolesExpanded)
+  const completedCount = canSeeTrackCompletion ? (currentTrack?.numPeopleCompleted ?? null) : null
+  const notCompletedCount = canSeeTrackCompletion && currentTrack && memberCount != null
+    ? Math.max(0, memberCount - (currentTrack.numPeopleCompleted || 0))
+    : null
 
   // Action creators
   const changeSearch = useCallback(term =>
@@ -175,6 +207,13 @@ function Members (props) {
     dispatch(changeQuerystringParam(location, 's', sort, 'name')), [location, dispatch])
   const changeRoleFilter = useCallback(roleId =>
     dispatch(changeQuerystringParam(location, 'r', roleId, null)), [location, dispatch])
+  const changeTrackCompletionFilter = useCallback(value =>
+    dispatch(changeQuerystringParam(location, 'tc', value, null)), [location, dispatch])
+  const changeFundingRoundCapabilityFilter = useCallback(value =>
+    dispatch(changeQuerystringParam(location, 'fr', value, null)), [location, dispatch])
+  const clearMemberFilters = useCallback(() => {
+    dispatch(changeQuerystringParams(location, { r: null, tc: null, fr: null }))
+  }, [location, dispatch])
   const removeMemberAction = useCallback((id) => {
     if (!group?.id) return
     // We pass slug and group.id because slug is needed to optimistically update the query results, which are based on slug
@@ -183,18 +222,18 @@ function Members (props) {
   }, [dispatch, group?.id, slug])
   const fetchMembersAction = useCallback((offset = 0) => {
     if (!group?.id || !slug) return
-    dispatch(fetchMembers({ slug, groupId: group.id, sortBy, offset, search, groupRoleId }))
-  }, [dispatch, slug, group?.id, sortBy, search, groupRoleId])
+    dispatch(fetchMembers({ slug, groupId: group.id, sortBy, offset, search, groupRoleId, trackCompleted, fundingRoundCapability }))
+  }, [dispatch, slug, group?.id, sortBy, search, groupRoleId, trackCompleted, fundingRoundCapability])
 
   useLayoutEffect(() => {
     const centerColumn = document.getElementById(CENTER_COLUMN_ID)
     if (centerColumn) centerColumn.scrollTop = 0
-  }, [slug, sortBy, search, groupRoleId])
+  }, [slug, sortBy, search, groupRoleId, trackCompleted, fundingRoundCapability])
 
   useEffect(() => {
     if (!group?.id || !slug) return
     fetchMembersAction(0)
-  }, [group?.id, slug, sortBy, search, groupRoleId, fetchMembersAction])
+  }, [group?.id, slug, sortBy, search, groupRoleId, trackCompleted, fundingRoundCapability, fetchMembersAction])
 
   useEffect(() => {
     if (!slug) return
@@ -215,14 +254,28 @@ function Members (props) {
   const { setHeaderDetails } = useViewHeader()
   const isAboutMembersTab = /\/about\/members/.test(location.pathname)
   const pageTitle = isAboutMembersTab ? t('Members') : t('Member Directory')
+  const canAddMembers = myResponsibilityTitles.includes(RESP_ADD_MEMBERS)
+  const inviteParentGroup = group?.parentId ? rolesSourceGroup : null
   useEffect(() => {
     setHeaderDetails({
       title: pageTitle,
-      icon: '',
+      // Canonical members-view icon, same one the group menu uses for this view
+      icon: 'Users',
       info: '',
-      search: true
+      search: true,
+      headerActions: canAddMembers
+        ? (
+          <InviteMembersDialog
+            group={group}
+            parentGroup={inviteParentGroup}
+            alwaysVisible
+            triggerLabel={t('Invite')}
+            triggerClassName='rounded-full border px-2 py-0.5 hover:scale-100 bg-foreground/10 border-foreground/20 text-foreground/80 hover:bg-foreground/20 hover:text-foreground dark:bg-white/15 dark:border-white/25 dark:text-white/90 dark:hover:bg-white/25 dark:hover:text-white'
+          />
+          )
+        : null
     })
-  }, [t, pageTitle])
+  }, [t, pageTitle, canAddMembers, group?.id, inviteParentGroup?.id])
 
   const fetchMore = () => {
     if (pending || members.length === 0 || !hasMore) return
@@ -230,6 +283,12 @@ function Members (props) {
   }
 
   const debouncedSearch = debounce(300, changeSearch)
+
+  const openMobileSearch = () => {
+    setMobileSearchOpen(true)
+    // the input only exists once open, so focus on the next tick
+    setTimeout(() => searchInputRef.current?.focus(), 0)
+  }
 
   if (!group?.id) {
     return <MembersBootstrapSkeleton />
@@ -250,22 +309,6 @@ function Members (props) {
           />
         </div>
       )}
-      {myResponsibilityTitles.includes(RESP_ADD_MEMBERS) && (
-        <div className='flex items-center justify-between p-2'>
-          <InviteMembersDialog
-            group={group}
-            parentGroup={group?.parentId ? rolesSourceGroup : null}
-          >
-            <Button
-              className={classes.invite}
-              color='green-white-green-border'
-              narrow
-            >
-              <Icon name='Invite' className={classes.inviteIcon} /> {t('Invite People')}
-            </Button>
-          </InviteMembersDialog>
-        </div>
-      )}
       <div className={classes.content}>
         <MemberSkillsGraph
           members={graphMembers}
@@ -275,9 +318,29 @@ function Members (props) {
         />
         <div className='flex flex-col gap-2 py-4'>
           <div className='flex flex-wrap items-center gap-2'>
-            <div className='relative flex-1 min-w-[220px]'>
+            {/* Phones start as just a button so the controls fit one row; tapping
+                it hands the full row to the input. Desktop is unchanged. */}
+            <button
+              type='button'
+              onClick={openMobileSearch}
+              aria-label={t('Search')}
+              title={t('Search')}
+              data-testid='members-search-button'
+              className={cn(
+                'sm:hidden shrink-0 flex items-center justify-center w-10 h-10 rounded-lg border-2 border-foreground/20 text-foreground/60 transition-colors hover:text-foreground',
+                mobileSearchOpen && 'hidden'
+              )}
+            >
+              <Search className='w-4 h-4' />
+            </button>
+            <div className={cn(
+              'relative sm:flex-1 sm:min-w-[220px]',
+              mobileSearchOpen ? 'w-full' : 'hidden sm:block'
+            )}
+            >
               <Search className='absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/40 pointer-events-none' />
               <input
+                ref={searchInputRef}
                 placeholder={t('Search name, skill, location, keyword')}
                 className='bg-input/60 focus:bg-input/100 border-2 border-foreground/20 rounded-lg text-foreground placeholder-foreground/40 w-full p-2 pl-9 transition-all outline-none focus:outline-focus focus:outline-2'
                 value={searchValue}
@@ -285,6 +348,7 @@ function Members (props) {
                   setSearchValue(e.target.value)
                   debouncedSearch(e.target.value)
                 }}
+                onBlur={() => { if (!searchValue) setMobileSearchOpen(false) }}
               />
             </div>
             <Dropdown
@@ -323,11 +387,61 @@ function Members (props) {
               </button>
             </div>
           </div>
-          {filterableRoles.length > 0 && (
+          {(displayedRoles.length > 0 || canSeeTrackCompletion || showFundingRoundRoles) && (
             <div ref={roleClamp.containerRef} className='flex flex-wrap items-center gap-1.5'>
-              <RolePill active={!groupRoleId} count={memberCount || null} onClick={() => changeRoleFilter(null)}>
+              <RolePill active={!groupRoleId && trackCompleted == null && !fundingRoundCapability} count={memberCount || null} onClick={clearMemberFilters}>
                 {t('All members')}
               </RolePill>
+              {canSeeTrackCompletion && (
+                <>
+                  <RolePill
+                    active={trackCompleted === true}
+                    count={completedCount}
+                    onClick={() => changeTrackCompletionFilter(trackCompleted === true ? null : 'completed')}
+                  >
+                    {t('Completed Track')}
+                  </RolePill>
+                  <RolePill
+                    active={trackCompleted === false}
+                    count={notCompletedCount}
+                    onClick={() => changeTrackCompletionFilter(trackCompleted === false ? null : 'not')}
+                  >
+                    {t('Not Completed Track')}
+                  </RolePill>
+                </>
+              )}
+              {showFundingRoundRoles && (
+                <>
+                  <RolePill
+                    active={fundingRoundCapability === 'submit'}
+                    count={fundingRoundCounts?.submit ?? null}
+                    onClick={() => changeFundingRoundCapabilityFilter(fundingRoundCapability === 'submit' ? null : 'submit')}
+                  >
+                    {t('Can Submit')}
+                  </RolePill>
+                  <RolePill
+                    active={fundingRoundCapability === 'notSubmit'}
+                    count={fundingRoundCounts?.notSubmit ?? null}
+                    onClick={() => changeFundingRoundCapabilityFilter(fundingRoundCapability === 'notSubmit' ? null : 'notSubmit')}
+                  >
+                    {t('Cannot Submit')}
+                  </RolePill>
+                  <RolePill
+                    active={fundingRoundCapability === 'vote'}
+                    count={fundingRoundCounts?.vote ?? null}
+                    onClick={() => changeFundingRoundCapabilityFilter(fundingRoundCapability === 'vote' ? null : 'vote')}
+                  >
+                    {t('Can Vote')}
+                  </RolePill>
+                  <RolePill
+                    active={fundingRoundCapability === 'notVote'}
+                    count={fundingRoundCounts?.notVote ?? null}
+                    onClick={() => changeFundingRoundCapabilityFilter(fundingRoundCapability === 'notVote' ? null : 'notVote')}
+                  >
+                    {t('Cannot Vote')}
+                  </RolePill>
+                </>
+              )}
               {displayedRoles.map(role => {
                 const active = String(role.id) === String(groupRoleId)
                 const count = isSpaceContext ? (spaceRoleCounts?.[role.id] ?? null) : (role.membersTotal ?? null)
@@ -339,7 +453,7 @@ function Members (props) {
               })}
               {!rolesExpanded && (
                 <RolePill onClick={() => setRolesExpanded(true)}>
-                  {t('More ({{count}})', { count: displayedRoles.length - Math.max(0, roleClamp.visibleCount - 1) })}
+                  {t('More ({{count}})', { count: displayedRoles.length + trackPillCount + fundingRoundPillCount - Math.max(0, roleClamp.visibleCount - 1) })}
                 </RolePill>
               )}
             </div>
@@ -389,7 +503,7 @@ function Members (props) {
             {t('No results for this search')}
           </div>
         )}
-        {!isLoading && members.length > 0 && !search && !groupRoleId && Boolean(memberCount) && (
+        {!isLoading && members.length > 0 && !search && !groupRoleId && trackCompleted == null && !fundingRoundCapability && Boolean(memberCount) && (
           <div className='py-4 text-center text-xs text-foreground/50'>
             {t('Showing {{count}} of {{total}} members', { count: Math.min(members.length, memberCount), total: memberCount })}
           </div>

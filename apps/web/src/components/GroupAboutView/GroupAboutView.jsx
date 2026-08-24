@@ -207,14 +207,16 @@ function AboutPanel ({ group, parentGroup, isSpace, membership, onLeave, onOpenM
         </AboutCard>
       )}
       {membership && (
-        <div className='border-2 border-dashed border-foreground/15 rounded-xl p-4 flex justify-center'>
+        <div className='border-2 border-dashed border-foreground/15 rounded-xl p-4 flex justify-center min-w-0'>
           <Button
             variant='outline'
             onClick={onLeave}
-            className='border-accent/20 hover:border-accent/100 text-accent/60 hover:text-accent/100 flex items-center gap-2'
+            className='border-accent/20 hover:border-accent/100 text-accent/60 hover:text-accent/100 flex items-center gap-2 h-auto max-w-full min-w-0 whitespace-normal'
           >
-            <LogOut className='w-4 h-4' />
-            {isSpace ? t('Leave Space') : t('Leave {{name}}', { name: group.name })}
+            <LogOut className='w-4 h-4 shrink-0' />
+            <span className='text-left break-words'>
+              {isSpace ? t('Leave Space') : t('Leave {{name}}', { name: group.name })}
+            </span>
           </Button>
         </div>
       )}
@@ -427,7 +429,7 @@ export default function GroupAboutView ({
       </div>
 
       {/* Tab menu */}
-      <div className='sticky top-0 z-20 shrink-0 relative bg-context-menu-background shadow-[0_4px_14px_0px_rgba(0,0,0,0.16)] dark:shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)]'>
+      <div className='sticky top-0 z-20 shrink-0 relative bg-context-menu-background shadow-header dark:shadow-header-dark'>
         <div ref={tabRailRef} className='max-w-[808px] mx-auto px-4 sm:px-6 py-2 flex gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'>
           {tabs.map(item => {
             const on = item.id === activeTab && !(item.id === 'settings' && !isSpace)
@@ -511,7 +513,7 @@ export default function GroupAboutView ({
                   <SpaceSettingsModal
                     inline
                     space={group}
-                    group={parentGroup}
+                    parentGroup={parentGroup}
                     onClose={() => handleTab('about')}
                   />
                 </AboutCard>

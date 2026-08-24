@@ -18,9 +18,11 @@ const query = `
         buyButtonText
         tracks {
           id
-          name
-          bannerUrl
-          description
+          space {
+            name
+            bannerUrl
+            description
+          }
         }
         roles {
           id

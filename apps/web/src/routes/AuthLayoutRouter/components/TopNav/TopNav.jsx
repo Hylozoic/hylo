@@ -19,7 +19,7 @@ import BadgedIcon from 'components/BadgedIcon'
 import CreateMenu from 'components/CreateMenu'
 import { getMyGroupsWithChildren } from 'store/selectors/getMyGroups'
 import useRouteParams from 'hooks/useRouteParams'
-import { baseUrl } from '@hylo/navigation'
+import { baseUrl, myHomeLandingUrl, isMyHomeContext } from '@hylo/navigation'
 import { DEFAULT_AVATAR } from 'store/models/Group'
 import { SettingsMenu } from '../GlobalNav/GlobalNav'
 import { pinGroup } from 'store/actions/pinGroup'
@@ -188,9 +188,10 @@ export default function TopNav ({ currentUser }) {
   const currentBase = baseUrl({ context: routeParams.context, groupSlug: routeParams.groupSlug })
 
   // A group tab is active when its own group is open OR when one of its stacked subgroups is the active group.
-  const isGroupTabActive = useCallback((tab) =>
-    currentBase === tab.url || (tab.childGroups || []).some(child => child.slug === routeParams.groupSlug),
-  [currentBase, routeParams.groupSlug])
+  const isGroupTabActive = useCallback((tab) => {
+    if (tab.key === 'home') return isMyHomeContext(routeParams.context)
+    return currentBase === tab.url || (tab.childGroups || []).some(child => child.slug === routeParams.groupSlug)
+  }, [currentBase, routeParams.context, routeParams.groupSlug])
 
   const handleNavigate = useCallback((url) => {
     if (url) navigate(url)
@@ -198,7 +199,7 @@ export default function TopNav ({ currentUser }) {
 
   // Fixed tabs (always shown)
   const fixedTabs = useMemo(() => [
-    { key: 'home', label: t('My Home'), url: '/my', img: get('avatarUrl', currentUser) },
+    { key: 'home', label: t('My Home'), url: myHomeLandingUrl(), img: get('avatarUrl', currentUser) },
     { key: 'messages', label: t('Messages'), url: '/messages', badgeCount: currentUser?.unseenThreadCount || 0 },
     { key: 'commons', label: t('The Commons'), url: '/public' }
   ], [currentUser, t])

@@ -3,7 +3,7 @@ import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { isEmpty } from 'lodash/fp'
 import { Pencil, Plus, Shapes } from 'lucide-react'
-import React, { useEffect, useMemo } from 'react'
+import React, { useEffect, useMemo, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
@@ -52,12 +52,17 @@ export default function TrackActionsView () {
   const groupViews = useSelector(state => getGroupViews(state, group))
   const view = groupViews.find(v => v.type === 'track-actions')
   const viewId = view?.id
-  const postsLoaded = view?.collectionPosts !== undefined
+  const collectionPosts = view?.collectionPosts
+  const postsMissing = collectionPosts === undefined
   const posts = useMemo(() => {
-    if (isEmpty(view?.collectionPosts)) return []
-    return view.collectionPosts.map(p => presentPost(p))
-  }, [view?.collectionPosts])
-  const currentActionId = posts.find(p => !p.completedAt)?.id
+    if (collectionPosts === undefined) return null
+    if (isEmpty(collectionPosts)) return []
+    return collectionPosts.map(p => presentPost(p))
+  }, [collectionPosts])
+  const cachedPostsRef = useRef([])
+  if (posts !== null) cachedPostsRef.current = posts
+  const displayedPosts = posts !== null ? posts : cachedPostsRef.current
+  const currentActionId = displayedPosts.find(p => !p.completedAt)?.id
 
   const groupViewsLoaded = group?.groupViews != null
 
@@ -67,11 +72,16 @@ export default function TrackActionsView () {
     }
   }, [dispatch, group?.id, groupViewsLoaded])
 
+  // Refresh in place: keep showing the current list while posts fetch.
   useEffect(() => {
-    if (group?.id && viewId && !postsLoaded) {
-      dispatch(fetchViewPosts(group.id, viewId))
-    }
-  }, [dispatch, group?.id, viewId, postsLoaded])
+    if (!group?.id || !viewId) return
+    dispatch(fetchViewPosts(group.id, viewId))
+  }, [dispatch, group?.id, viewId])
+
+  useEffect(() => {
+    if (!group?.id || !viewId || !postsMissing) return
+    dispatch(fetchViewPosts(group.id, viewId))
+  }, [dispatch, group?.id, viewId, postsMissing])
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
@@ -99,7 +109,7 @@ export default function TrackActionsView () {
     navigate(addQuerystringToPath(location.pathname, { edit: isEditing ? null : 'true' }), { replace: true })
   }
 
-  if (!group || !groupViewsLoaded || !trackId || (viewId && !postsLoaded)) return <Loading />
+  if (!group || !groupViewsLoaded || !trackId) return <Loading />
 
   const { accessControlled, canAccess } = currentTrack
   const hasAccess = accessControlled ? canAccess !== false : true
@@ -136,8 +146,8 @@ export default function TrackActionsView () {
                 collisionDetection={closestCorners}
                 modifiers={[restrictToVerticalAxis]}
               >
-                <SortableContext items={posts.map(p => p.id)} strategy={verticalListSortingStrategy}>
-                  {posts.map(post => (
+                <SortableContext items={displayedPosts.map(p => p.id)} strategy={verticalListSortingStrategy}>
+                  {displayedPosts.map(post => (
                     <ActionSummary key={post.id} post={post} trackId={trackId} groupId={group.id} viewId={viewId} />
                   ))}
                 </SortableContext>
@@ -152,9 +162,11 @@ export default function TrackActionsView () {
             </>
             )
           : (
-              posts.map(post => (
-                <PostCard key={post.id} post={post} isCurrentAction={currentActionId === post.id} actionDescriptor={currentTrack.actionDescriptor} />
-              ))
+              postsMissing && displayedPosts.length === 0
+                ? <Loading />
+                : displayedPosts.map(post => (
+                  <PostCard key={post.id} post={post} isCurrentAction={currentActionId === post.id} actionDescriptor={currentTrack.actionDescriptor} />
+                ))
             )}
       </div>
     </div>

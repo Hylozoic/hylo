@@ -323,15 +323,25 @@ export function matchNewPostIntoQueryResults (state, { id, isPublic, type, group
     }, memo, queriesToMatch)
   }, state, groups)
 
-  // Typed views (`types` array) and All Activity (`filter: all+notices`) are not
-  // covered by the explicit queriesToMatch list. Move an existing id to the front
-  // when the same chat_activity hour bucket is updated.
+  // Typed views (`types` array), All Activity (`filter: all+notices`) and the
+  // group/space chat rooms are not covered by the explicit queriesToMatch list:
+  // their keys carry params (`first`, no `topic`) the templates above omit.
+  // Move an existing id to the front when the same chat_activity hour bucket is updated.
   return mapValues(updatedState, (results, key) => {
-    if (!results?.ids || type === 'chat') return results
+    if (!results?.ids) return results
     const keyObject = JSON.parse(key)
     if (keyObject.type !== FETCH_POSTS) return results
     const params = keyObject.params || {}
     if (!groupSlugs.includes(params.slug) && !(params.groupId && parentIds.includes(String(params.groupId)))) return results
+
+    if (type === 'chat') {
+      if (params.filter !== 'chat') return results
+      if (params.search) return results
+      if (params.types && !params.types.includes('chat')) return results
+      if (params.topic && !topics.some(t => String(t.id) === String(params.topic))) return results
+      return moveIdToFront(results, id)
+    }
+
     const matchesTypes = params.types?.includes(type)
     const isAllActivity = params.filter === 'all+notices'
     if (!matchesTypes && !isAllActivity) return results
@@ -500,6 +510,7 @@ export const queryParamWhitelist = [
   'filter',
   'first',
   'forCollection',
+  'fundingRoundCapability',
   'groupId',
   'groupIds',
   'groupRoleId',
@@ -519,6 +530,7 @@ export const queryParamWhitelist = [
   'sortBy',
   'topic',
   'topics',
+  'trackCompleted',
   'type', // TODO: why do we have type & filter? should only need one
   'types',
   'page',

@@ -28,15 +28,6 @@ export const REQUIRED_EDIT_POST_MATCH = ':detail(post)/:postId/:action(edit)'
 export const GROUP_DETAIL_MATCH = 'group/:detailGroupSlug'
 export const OPTIONAL_GROUP_MATCH = ':detail(group)?/(:detailGroupSlug)?'
 
-// TODO: have to have this here because otherwise the presenters package loads navigation package and visa versa which is a circular dependency
-export function findHomeWidget (group) {
-  if (!group?.contextWidgets) {
-    throw new Error('Group has no contextWidgets')
-  }
-  const homeWidget = group.contextWidgets.items.find(w => w.type === 'home')
-  return group.contextWidgets.items.find(w => w.parentId === homeWidget.id)
-}
-
 // Fundamental URL paths
 
 export function allGroupsUrl () {
@@ -49,6 +40,22 @@ export function publicGroupsUrl () {
 
 export function myHomeUrl () {
   return '/my'
+}
+
+/** Landing path for the My Home button (All My Groups Activity). */
+export function myHomeLandingUrl () {
+  return '/all/stream'
+}
+
+/** True when the current route is the My Home menu (My or All My Groups). */
+export function isMyHomeContext (context) {
+  return context === ALL_GROUPS_CONTEXT_SLUG || context === MY_CONTEXT_SLUG
+}
+
+/** True when the pathname is under My Home (`/all` or `/my`). */
+export function isMyHomePath (pathname = '') {
+  return pathname === '/all' || pathname === '/my' ||
+    pathname.startsWith('/all/') || pathname.startsWith('/my/')
 }
 
 export function searchUrl () {
@@ -136,6 +143,13 @@ export function localSpaceSlug (parentSlug, spaceFullSlug) {
   return spaceFullSlug.startsWith(prefix) ? spaceFullSlug.slice(prefix.length) : spaceFullSlug
 }
 
+/** Stored space slug (`{parentSlug}-{localSlug}`). Does not double-prefix. */
+export function storedSpaceSlug (parentSlug, localSlug) {
+  if (!parentSlug || !localSlug) return localSlug || ''
+  const prefix = `${parentSlug}-`
+  return localSlug.startsWith(prefix) ? localSlug : `${prefix}${localSlug}`
+}
+
 /** Path segment for a GroupView within a group or space (e.g. /chat, /custom/123). */
 export function groupViewPath (view) {
   if (!view) return ''
@@ -201,12 +215,22 @@ export function spaceGroupViewUrl (parentSlug, spaceGroup, view) {
   return spaceUrl(parentSlug, local, path)
 }
 
+/** Home view path for a space (`groups.home_route`), with fallbacks when the field was omitted. */
+export function spaceHomeRoutePath (spaceGroup) {
+  if (!spaceGroup) return '/all'
+  const homeView = (spaceGroup.groupViews?.items || []).find(view => view.order === 0)
+  if (homeView) return homeRoutePathForView(homeView)
+  if (spaceGroup.homeRoute) return spaceGroup.homeRoute
+  if (spaceGroup.track?.id) return '/track-actions'
+  if (spaceGroup.fundingRound?.id) return '/funding-round-submissions'
+  return '/all'
+}
+
 /** URL for a space's home view. */
 export function spaceHomeUrl (parentSlug, spaceGroup) {
   if (!parentSlug || !spaceGroup) return '/'
   const local = localSpaceSlug(parentSlug, spaceGroup.slug)
-  const homeRoute = spaceGroup.homeRoute || '/all'
-  return spaceUrl(parentSlug, local, homeRoute)
+  return spaceUrl(parentSlug, local, spaceHomeRoutePath(spaceGroup))
 }
 
 export function groupDetailUrl (slug, opts = {}, querystringParams = {}) {
@@ -221,7 +245,9 @@ export function groupInviteUrl (group) {
 }
 
 export function groupHomeUrl ({ group, routeParams }) {
-  return widgetUrl({ ...routeParams, widget: findHomeWidget(group) })
+  const slug = group?.slug || routeParams?.groupSlug
+  const home = (group?.homeRoute || '/all').replace(/^\//, '')
+  return groupUrl(slug, home)
 }
 
 // Post URLS
@@ -340,57 +366,6 @@ export function chatUrl (_chatName, { context, groupSlug, spaceSlug } = {}) {
 
 export function customViewUrl (customViewId, rootPath, { context, groupSlug }) {
   return `${baseUrl({ context, groupSlug })}/custom/${customViewId}`
-}
-
-/**
- * Compute the home route path (e.g. /stream, /map, /chat/general) from a context widget.
- * Mirrors backend ContextWidget.computeHomeRoutePath for optimistic updates.
- */
-export function homeRoutePathForWidget (widget) {
-  if (!widget) return '/all'
-  if (widget.view) return '/' + widget.view
-  if (widget.viewChat) return '/chat'
-  if (widget.customView) return '/custom/' + widget.customView.id
-  if (widget.viewTrack) return '/track-actions'
-  if (widget.viewFundingRound) return '/funding-round-submissions'
-  return '/stream'
-}
-
-export function widgetUrl ({ widget, rootPath, groupSlug: providedSlug, context = 'group' }) {
-  if (!widget) return null
-
-  const groupSlug = isStaticContext(providedSlug) ? null : providedSlug
-  let url = ''
-  if (widget.url) return widget.url
-  if (widget.view === 'about') {
-    url = viewUrl('about', { groupSlug, context })
-  } else if (widget.view) {
-    url = viewUrl(widget.view, { groupSlug, context: widget.context || context })
-  } else if (widget.viewGroup) {
-    url = groupUrl(widget.viewGroup.slug)
-  } else if (widget.viewUser) {
-    url = personUrl(widget.viewUser.id, groupSlug)
-  } else if (widget.viewPost) {
-    url = postUrl(widget.viewPost.id, { groupSlug, context })
-  } else if (widget.viewChat) {
-    url = viewUrl('chat', { groupSlug, context: widget.context || context })
-  } else if (widget.customView) {
-    url = customViewUrl(widget.customView.id, rootPath, { context, groupSlug })
-  } else if (widget.viewTrack) {
-    url = trackUrl(widget.viewTrack.id, {
-      context,
-      groupSlug,
-      space: widget.viewTrack.space
-    })
-  } else if (widget.viewFundingRound) {
-    url = fundingRoundUrl(widget.viewFundingRound.id, {
-      context,
-      groupSlug,
-      space: widget.viewFundingRound.group
-    })
-  }
-
-  return url
 }
 
 /**
