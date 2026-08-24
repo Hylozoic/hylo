@@ -141,6 +141,7 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
   const [frTotalTokens, setFrTotalTokens] = useState(fundingRound?.totalTokens ?? '')
   const [frTokenType, setFrTokenType] = useState(fundingRound?.tokenType || 'Votes')
   const [frAllowSelfVoting, setFrAllowSelfVoting] = useState(!!fundingRound?.allowSelfVoting)
+  const [frAllowLateJoiners, setFrAllowLateJoiners] = useState(!!fundingRound?.allowLateJoiners)
   const [frHideFinalResults, setFrHideFinalResults] = useState(!!fundingRound?.hideFinalResultsFromParticipants)
   const [frSubmissionDescriptor, setFrSubmissionDescriptor] = useState(fundingRound?.submissionDescriptor || 'Submission')
   const [frSubmissionDescriptorPlural, setFrSubmissionDescriptorPlural] = useState(fundingRound?.submissionDescriptorPlural || 'Submissions')
@@ -186,6 +187,7 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
     setFrTotalTokens(fundingRound.totalTokens ?? '')
     setFrTokenType(fundingRound.tokenType || 'Votes')
     setFrAllowSelfVoting(!!fundingRound.allowSelfVoting)
+    setFrAllowLateJoiners(!!fundingRound.allowLateJoiners)
     setFrHideFinalResults(!!fundingRound.hideFinalResultsFromParticipants)
     setFrSubmitterRoles(fundingRound.submitterRoles || [])
     setFrVoterRoles(fundingRound.voterRoles || [])
@@ -276,6 +278,7 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
           totalTokens: frTotalTokens === '' ? null : Number(frTotalTokens),
           tokenType: frTokenType,
           allowSelfVoting: frAllowSelfVoting,
+          allowLateJoiners: frAllowLateJoiners,
           hideFinalResultsFromParticipants: frHideFinalResults,
           submissionDescriptor: frSubmissionDescriptor,
           submissionDescriptorPlural: frSubmissionDescriptorPlural,
@@ -298,7 +301,7 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
     } finally {
       setIsSaving(false)
     }
-  }, [dispatch, space?.id, parentGroup?.id, view?.id, name, slug, slugValid, description, icon, bannerUrl, purpose, locationObject, postTypes, access, accessOptions, requiredRoles, track?.id, actionDescriptor, actionDescriptorPlural, completionRole, publishedAt, fundingRound?.id, frPublishedAt, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frHideFinalResults, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles, onClose])
+  }, [dispatch, space?.id, parentGroup?.id, view?.id, name, slug, slugValid, description, icon, bannerUrl, purpose, locationObject, postTypes, access, accessOptions, requiredRoles, track?.id, actionDescriptor, actionDescriptorPlural, completionRole, publishedAt, fundingRound?.id, frPublishedAt, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frAllowLateJoiners, frHideFinalResults, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles, onClose])
 
   if (!space) return null
 
@@ -564,6 +567,8 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
             setTokenType={setFrTokenType}
             allowSelfVoting={frAllowSelfVoting}
             setAllowSelfVoting={setFrAllowSelfVoting}
+            allowLateJoiners={frAllowLateJoiners}
+            setAllowLateJoiners={setFrAllowLateJoiners}
             hideFinalResults={frHideFinalResults}
             setHideFinalResults={setFrHideFinalResults}
             submitterRoles={frSubmitterRoles}

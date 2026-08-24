@@ -25,9 +25,10 @@ export default function RoundPhaseStatus ({
   const votingOpensDate = round?.votingOpensAt
   const votingClosesDate = round?.votingClosesAt
 
-  // Check if user joined after voting started
+  // Late joiners cannot vote unless the round allocates tokens to them
   const joinedAfterVotingStarted = round?.joinedAt && votingOpensDate &&
     new Date(round.joinedAt) > new Date(votingOpensDate)
+  const cannotVoteAsLateJoiner = joinedAfterVotingStarted && !round?.allowLateJoiners
 
   if (!round) return null
 
@@ -143,7 +144,7 @@ export default function RoundPhaseStatus ({
               </View>
               <Text className='text-xl font-bold text-selected'>{t('Voting in progress')}</Text>
             </View>
-            {canVote && !joinedAfterVotingStarted && currentTokensRemaining != null && (
+            {canVote && !cannotVoteAsLateJoiner && currentTokensRemaining != null && (
               <View className='bg-selected/20 border-2 border-selected rounded-md py-1 px-2'>
                 <Text className='text-sm font-bold text-foreground'>
                   {t('{{tokens}} {{tokenType}}', {
@@ -154,7 +155,7 @@ export default function RoundPhaseStatus ({
               </View>
             )}
           </View>
-          {!canVote && voterRoles && voterRoles.length > 0 && !joinedAfterVotingStarted && (
+          {!canVote && voterRoles && voterRoles.length > 0 && !cannotVoteAsLateJoiner && (
             <View className='w-full bg-amber-500/20 border-2 border-amber-500/40 rounded-md p-3 flex-row gap-2'>
               <ShieldAlert className='w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5' />
               <View className='flex-1 gap-1'>
@@ -169,7 +170,7 @@ export default function RoundPhaseStatus ({
               </View>
             </View>
           )}
-          {joinedAfterVotingStarted && (
+          {cannotVoteAsLateJoiner && (
             <View className='w-full bg-amber-500/20 border-2 border-amber-500/40 rounded-md p-3 flex-row gap-2'>
               <ShieldAlert className='w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5' />
               <View className='flex-1 gap-1'>
@@ -184,7 +185,7 @@ export default function RoundPhaseStatus ({
               </View>
             </View>
           )}
-          {canVote && !joinedAfterVotingStarted && (
+          {canVote && !cannotVoteAsLateJoiner && (
             <View>
               <Text className='text-sm text-foreground/80'>
                 {t('Allocate your {{tokenType}} to the {{submissionDescriptor}} you think deserve support', {
@@ -199,7 +200,7 @@ export default function RoundPhaseStatus ({
               )}
             </View>
           )}
-          {canVote && !joinedAfterVotingStarted && (round.minTokenAllocation || round.maxTokenAllocation) && (
+          {canVote && !cannotVoteAsLateJoiner && (round.minTokenAllocation || round.maxTokenAllocation) && (
             <View className='flex-row gap-3 opacity-50'>
               {round.minTokenAllocation && (
                 <Text className='text-xs text-foreground/80 border-r-2 border-foreground/20 pr-2'>

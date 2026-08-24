@@ -129,6 +129,7 @@ export function fetchFundingRound (id) {
       query: `query ($id: ID) {
         fundingRound (id: $id) {
           id
+          allowLateJoiners
           allowSelfVoting
           canSubmit
           canVote
@@ -264,6 +265,7 @@ export function createFundingRound (data) {
       query: `mutation CreateFundingRound($data: FundingRoundInput) {
         createFundingRound(data: $data) {
           id,
+          allowLateJoiners,
           createdAt,
           criteria,
           group {
@@ -358,6 +360,7 @@ export function joinFundingRound (id) {
           joinFundingRound(id: $id) {
             id
             isParticipating
+            tokensRemaining
           }
         }
       `,
@@ -366,7 +369,8 @@ export function joinFundingRound (id) {
       }
     },
     meta: {
-      id
+      id,
+      extractModel: 'FundingRound'
     }
   }
 }

@@ -398,11 +398,24 @@ module.exports = bookshelf.Model.extend({
     await membership.save({ created_at: new Date() }, { patch: true, transacting })
     await round.save({ num_participants: (round.get('num_participants') || 0) + 1 }, { transacting })
 
+    const canAllocateOnJoin = round.get('allow_late_joiners')
+      && round.get('voting_method') === 'token_allocation_constant'
+      && round.get('phase') === FundingRound.PHASES.VOTING
+      && round.get('total_tokens')
+
+    // Late joiners only receive tokens when the round is already in voting
+    if (canAllocateOnJoin && await round.canUserVote(userId)) {
+      membership.addSetting({ tokensRemaining: round.get('total_tokens') })
+      await membership.save({ settings: membership.get('settings') }, { transacting, patch: true })
+    }
+
     return membership
   },
 
   /**
    * Leave a funding round by leaving its space (deactivates membership).
+   * Votes and tokensRemaining are settled by Group.removeMembers so parent-group
+   * cascade (and moderator removal) follow the same path.
    */
   leave: async function (roundId, userId) {
     return bookshelf.transaction(async transacting => {
@@ -418,8 +431,6 @@ module.exports = bookshelf.Model.extend({
         return null
       }
 
-      // num_participants and the tokensRemaining setting are settled by Group.removeMembers,
-      // so that leaving the parent group cascades the same way.
       await space.removeMembers([userId], { transacting })
       return membership
     })

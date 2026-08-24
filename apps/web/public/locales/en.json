@@ -204,6 +204,7 @@
   "Allocate your {{tokenType}} to the {{submissionDescriptor}} you think deserve support": "Allocate your {{tokenType}} to the {{submissionDescriptor}} you think deserve support",
   "Allow": "Allow",
   "Allow participants to vote on their own submissions": "Allow participants to vote on their own submissions",
+  "Allow people who join during voting to receive tokens and vote": "Allow people who join during voting to receive tokens and vote",
   "Allow-in-Commons form": "Allow-in-Commons form",
   "Almost done setting up your profile! Click the above profile icon to upload a custom profile image. Your profile image will be visible when you post or comment in groups.": "Almost done setting up your profile! Click the above profile icon to upload a custom profile image. Your profile image will be visible when you post or comment in groups.",
   "Already Invited": "Already Invited",

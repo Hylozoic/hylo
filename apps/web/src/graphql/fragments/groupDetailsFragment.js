@@ -58,6 +58,7 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
     publishedAt
     phase
     allowSelfVoting
+    allowLateJoiners
     hideFinalResultsFromParticipants
     votingMethod
     totalTokens
