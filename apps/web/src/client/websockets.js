@@ -2,6 +2,8 @@ import curry from 'lodash/curry'
 import socketIOClient from 'socket.io-client'
 import sailsIOClient from 'sails.io.js'
 
+import { isSandboxMode } from 'sandbox/isSandbox'
+
 const environment = import.meta.env.PROD || 'development'
 
 /**
@@ -22,7 +24,7 @@ const isRemoteDevHost = typeof window !== 'undefined' &&
 const socketHost = isRemoteDevHost
   ? window.location.origin
   : import.meta.env.VITE_SOCKET_HOST
-const isClient = typeof window !== 'undefined' && !window.isMock
+const isClient = typeof window !== 'undefined' && !window.isMock && !isSandboxMode()
 
 let socket // client-side singleton
 let socketHeartbeatStarted = false

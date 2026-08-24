@@ -53,6 +53,7 @@ import { getMyGroupsWithChildren } from 'store/selectors/getMyGroups'
 import { isCompactLayoutDevice, isMobileDevice, downloadApp } from 'util/mobile'
 import isWebView, { sendMessageToWebView, getMobileAppVersion } from 'util/webView'
 import { getCookieConsent } from 'util/cookieConsent'
+import { isSandboxMode } from 'sandbox/isSandbox'
 import { useCookieConsent } from 'contexts/CookieConsentContext'
 import ModalDialog from 'components/ModalDialog'
 import { pinGroup, unpinGroup, updateGroupNavOrder } from 'store/actions/pinGroup'
@@ -979,15 +980,17 @@ export default function GlobalNav (props) {
           <MessagesSquare />
         </GlobalNavItem>
 
-        <GlobalNavItem
-          darkTile
-          tooltip={t('The Commons')}
-          url='/public'
-          className={isVisible(3)}
-          showTooltip={showLabels}
-        >
-          <Globe />
-        </GlobalNavItem>
+        {!isSandboxMode() && (
+          <GlobalNavItem
+            darkTile
+            tooltip={t('The Commons')}
+            url='/public'
+            className={isVisible(3)}
+            showTooltip={showLabels}
+          >
+            <Globe />
+          </GlobalNavItem>
+        )}
 
         {/* Pinned Groups Section - Sortable */}
         <DndContext

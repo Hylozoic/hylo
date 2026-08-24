@@ -12,6 +12,7 @@ import {
 } from 'util/textSelectionTouch'
 import mixpanel from 'mixpanel-browser'
 import config, { isDev, isTest } from 'config/index'
+import { isSandboxMode } from 'sandbox/isSandbox'
 import CookieConsentLinker from 'components/CookieConsentLinker'
 import ContextMenu from './components/ContextMenu'
 import CreateModal from 'components/CreateModal'
@@ -621,7 +622,7 @@ export default function AuthLayoutRouter (props) {
     if (currentUser?.settings?.locale) {
       getLocaleFromLocalStorage(currentUser?.settings?.locale)
     }
-    if (!config.mixpanel.token || !currentUser?.id) return
+    if (isSandboxMode() || !config.mixpanel.token || !currentUser?.id) return
     mixpanel.identify(currentUser.id)
     mixpanel.people.set({
       $name: currentUser.name,
@@ -631,7 +632,7 @@ export default function AuthLayoutRouter (props) {
   }, [currentUser?.email, currentUser?.id, currentUser?.location, currentUser?.name, currentUser?.settings?.locale])
 
   useEffect(() => {
-    if (!config.mixpanel.token) return
+    if (isSandboxMode() || !config.mixpanel.token) return
     // Add all current group membershps to mixpanel user
     mixpanel.set_group('groupId', memberships.map(m => m.group.id))
 
@@ -766,10 +767,11 @@ export default function AuthLayoutRouter (props) {
 
   if (currentUserLoading) {
     return (
-      <div data-testid='loading-screen' className={cn('flex flex-row items-stretch bg-midground h-full', { 'h-[100dvh]': compactLayout })}>
+      <div data-testid='loading-screen' className={cn('flex flex-row items-stretch bg-midground h-full', { 'h-[100dvh]': compactLayout && !isSandboxMode() })}>
         <Helmet>
-          <title>Hylo</title>
+          <title>{isSandboxMode() ? 'Hylo Demo' : 'Hylo'}</title>
           <meta name='description' content='Prosocial Coordination for a Thriving Planet' />
+          {isSandboxMode() && <meta name='robots' content='noindex, nofollow' />}
         </Helmet>
         <BootstrapShell withoutNav={withoutNav} className='flex-1 min-h-0' />
       </div>
@@ -870,7 +872,7 @@ export default function AuthLayoutRouter (props) {
   }
 
   return (
-    <IntercomProvider appId={isTest ? '' : config.intercom.appId} autoBoot autoBootProps={intercomProps}>
+    <IntercomProvider appId={isTest || isSandboxMode() ? '' : config.intercom.appId} autoBoot={!isSandboxMode()} autoBootProps={intercomProps}>
       {/* Pull-to-refresh indicator - shows during and after gesture */}
       {(isPulling || isRefreshing) && (
         <div className='fixed top-4 left-1/2 -translate-x-1/2 z-50'>
@@ -893,8 +895,9 @@ export default function AuthLayoutRouter (props) {
         </div>
       )}
       <Helmet>
-        <title>{currentGroup ? `${currentGroup.name} | ` : ''}Hylo</title>
+        <title>{currentGroup ? `${currentGroup.name} | ` : ''}{isSandboxMode() ? 'Hylo Demo' : 'Hylo'}</title>
         <meta name='description' content='Prosocial Coordination for a Thriving Planet' />
+        {isSandboxMode() && <meta name='robots' content='noindex, nofollow' />}
         {currentUser && (
           <script id='greencheck' type='application/json'>
             {`{ 'id': '${currentUser.id}', 'fullname': '${currentUser.name}', 'description': '${currentUser.tagline}', 'image': '${currentUser.avatarUrl}' }`}
@@ -920,7 +923,7 @@ export default function AuthLayoutRouter (props) {
         {/* )} */}
       </Routes>
 
-      <div className={cn('flex items-stretch bg-midground h-full', isTabNav ? 'flex-col' : 'flex-row', { 'h-[100dvh]': compactLayout, [classes.mapView]: isMapView, [classes.detailOpen]: hasDetail })}>
+      <div className={cn('flex items-stretch bg-midground h-full', isTabNav ? 'flex-col' : 'flex-row', { 'h-[100dvh]': compactLayout && !isSandboxMode(), [classes.mapView]: isMapView, [classes.detailOpen]: hasDetail })}>
         {/* Top tab nav bar (when tab mode is active) */}
         {isTabNav && !withoutNav && (
           <TopNav currentUser={currentUser} />

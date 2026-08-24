@@ -60,6 +60,7 @@ export default {
     '^router/(.*)$': '<rootDir>/src/router/$1',
     '^routes/(.*)$': '<rootDir>/src/routes/$1',
     '^store/(.*)$': '<rootDir>/src/store/$1',
+    '^sandbox/(.*)$': '<rootDir>/src/sandbox/$1',
     '^util/(.*)$': '<rootDir>/src/util/$1'
   },
   watchPlugins: [

@@ -20,8 +20,9 @@ import checkLogin from 'store/actions/checkLogin'
 import { getAuthorized } from 'store/selectors/getSignupState'
 import { getAuthSessionUnknown } from 'store/selectors/getAuthSession'
 import { sendMessageToWebView } from 'util/webView'
+import { isSandboxMode } from 'sandbox/isSandbox'
 
-if (!isTest && config.mixpanel.token) {
+if (!isTest && config.mixpanel.token && !isSandboxMode()) {
   mixpanel.init(config.mixpanel.token, { debug: !isProduction })
 }
 
@@ -202,7 +203,7 @@ export default function RootRouter () {
     return <BootstrapShell />
   }
 
-  if (isAuthorized) {
+  if (isAuthorized || isSandboxMode()) {
     return (
       <Routes>
         {/* If authenticated we still need to do oauth stuff when requested */}

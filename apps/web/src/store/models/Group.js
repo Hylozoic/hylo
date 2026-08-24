@@ -187,7 +187,7 @@ Group.fields = {
   id: attr(),
   joinQuestions: many('GroupJoinQuestion'),
   location: attr(),
-  locationId: fk({
+  locationObject: fk({
     to: 'Location',
     as: 'locationObject'
   }),
