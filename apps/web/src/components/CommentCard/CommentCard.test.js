@@ -72,6 +72,26 @@ describe('CommentCard', () => {
     })
   })
 
+  it('strips HTML from untitled post details in the header', () => {
+    const propsWithMentionDetails = {
+      ...defaultProps,
+      comment: {
+        ...defaultProps.comment,
+        post: {
+          id: 77,
+          title: '',
+          details: '<p><span data-type="mention" class="mention" data-id="44944" data-label="clareattwell001">clareattwell001</span> shared an article</p>'
+        }
+      }
+    }
+
+    render(<CommentCard {...propsWithMentionDetails} />)
+
+    expect(screen.queryByText(/data-type="mention"/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/<p>/)).not.toBeInTheDocument()
+    expect(screen.getByText(/clareattwell001/)).toBeInTheDocument()
+  })
+
   it('calls viewPostDetails when clicked', () => {
     render(<CommentCard {...defaultProps} />)
 
