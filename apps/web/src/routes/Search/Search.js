@@ -171,6 +171,7 @@ export default function Search (props) {
               searchResult={sr}
               term={searchForInput}
               showPerson={showPerson}
+              childPost={!groupSlug}
             />)}
           {showErrorState && (
             <SearchStatus
@@ -250,7 +251,8 @@ function SearchStatus ({ imageSrc, message, subtitle, variant = 'empty' }) {
 function SearchResult ({
   searchResult,
   term = '',
-  showPerson
+  showPerson,
+  childPost
 }) {
   const { type, content } = searchResult
   if (!content) {
@@ -280,6 +282,7 @@ function SearchResult ({
           className={classes.postcardExpand}
           post={content}
           highlightProps={highlightProps}
+          childPost={childPost}
         />
       )
       break
