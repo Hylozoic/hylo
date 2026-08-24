@@ -12,10 +12,10 @@ export function handleGraphql ({ query, variables = {} }, seed) {
     return handleMutation(operationName, rootField, variables, seed)
   }
 
-  return handleQuery(operationName, rootField, variables, seed)
+  return handleQuery(operationName, rootField, variables, seed, query)
 }
 
-function handleQuery (operationName, rootField, variables, seed) {
+function handleQuery (operationName, rootField, variables, seed, query) {
   switch (operationName) {
     case 'CheckLogin':
     case 'MeQuery':
@@ -34,20 +34,11 @@ function handleQuery (operationName, rootField, variables, seed) {
     case 'FetchGroups':
       return { data: { groups: presentGroupQuerySet(seed, variables) } }
 
-    case 'GroupPostsQuery': {
-      const group = findGroup(seed, variables)
-      return {
-        data: {
-          group: {
-            ...presentGroup(seed, group),
-            posts: presentPostQuerySet(seed, { ...variables, groupId: group?.id, slug: group?.slug })
-          }
-        }
-      }
-    }
+    case 'GroupPostsQuery':
+      return presentGroupPostsResponse(seed, variables)
 
     case 'PostsQuery':
-      return { data: { posts: presentPostQuerySet(seed, variables) } }
+      return { data: { posts: presentPostsForMapOrStream(seed, variables) } }
 
     case 'FetchPost':
     case 'CommentsQuery':
@@ -140,20 +131,75 @@ function handleQuery (operationName, rootField, variables, seed) {
       return { data: { notifications: paginate(seed.notifications || [], variables.first, variables.offset) } }
 
     default:
-      return defaultQuery(rootField, variables, seed)
+      return defaultQuery(rootField, variables, seed, query)
   }
 }
 
-function defaultQuery (rootField, variables, seed) {
+/**
+ * MapExplorer and similar callers use anonymous `query (...) { group { posts: viewPosts(...) } }`
+ * documents. Attach posts whenever the document asks for posts/viewPosts.
+ */
+function queryRequestsGroupPosts (query = '') {
+  return /\b(?:posts|viewPosts)\s*[(:{]/.test(String(query))
+}
+
+function hasValidLocationObject (post) {
+  const center = post?.locationObject?.center
+  if (!center) return false
+  const lat = Number(center.lat)
+  const lng = Number(center.lng)
+  return Number.isFinite(lat) && Number.isFinite(lng)
+}
+
+/** Map queries pass boundingBox; drop posts that cannot be plotted. */
+function presentPostsForMapOrStream (seed, variables) {
+  const posts = presentPostQuerySet(seed, variables)
+  if (variables.boundingBox == null) return posts
+  const items = (posts.items || []).filter(hasValidLocationObject)
+  return {
+    ...posts,
+    items,
+    total: items.length,
+    hasMore: false
+  }
+}
+
+function presentGroupPostsResponse (seed, variables, { requireLocation } = {}) {
+  const group = findGroup(seed, variables)
+  let posts = presentPostQuerySet(seed, { ...variables, groupId: group?.id, slug: group?.slug })
+  if (requireLocation || variables.boundingBox != null) {
+    const items = (posts.items || []).filter(hasValidLocationObject)
+    posts = {
+      ...posts,
+      items,
+      total: items.length,
+      hasMore: false
+    }
+  }
+  return {
+    data: {
+      group: {
+        ...presentGroup(seed, group),
+        posts
+      }
+    }
+  }
+}
+
+function defaultQuery (rootField, variables, seed, query) {
   switch (rootField) {
     case 'me':
       return { data: { me: presentMe(seed) } }
     case 'group':
+      if (queryRequestsGroupPosts(query)) {
+        // Map icon + drawer queries are anonymous; only return posts that can plot.
+        return presentGroupPostsResponse(seed, variables, { requireLocation: true })
+      }
       return { data: { group: presentGroup(seed, findGroup(seed, variables)) } }
     case 'groups':
       return { data: { groups: presentGroupQuerySet(seed, variables) } }
     case 'posts':
-      return { data: { posts: presentPostQuerySet(seed, variables) } }
+      return { data: { posts: presentPostsForMapOrStream(seed, variables) } }
     case 'post':
       return { data: { post: presentPost(seed, findPost(seed, variables.id)) } }
     case 'person':

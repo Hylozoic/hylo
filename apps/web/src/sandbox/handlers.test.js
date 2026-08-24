@@ -36,6 +36,45 @@ describe('sandbox GraphQL handlers', () => {
     expect(/^\d+$/.test(result.data.group.posts.items[0].id)).toBe(true)
   })
 
+  it('returns only located posts for anonymous MapExplorer group/viewPosts queries', () => {
+    const result = handleGraphql({
+      query: `query (
+        $boundingBox: [PointInput],
+        $first: Int,
+        $slug: String
+      ) {
+        group(slug: $slug, updateLastViewed: true) {
+          id
+          slug
+          posts: viewPosts(boundingBox: $boundingBox, first: $first) {
+            hasMore
+            total
+            items { id title type locationObject { id center { lat lng } } }
+          }
+        }
+      }`,
+      variables: { slug: MAIN_GROUP_SLUG, first: 500 }
+    }, seed)
+
+    expect(result.data.group.slug).toBe(MAIN_GROUP_SLUG)
+    expect(result.data.group.posts.items.length).toBeGreaterThan(0)
+    expect(result.data.group.posts.items.every(post => {
+      const { lat, lng } = post.locationObject?.center || {}
+      return Number.isFinite(Number(lat)) && Number.isFinite(Number(lng))
+    })).toBe(true)
+    expect(result.data.group.posts.items.length).toBeLessThan(seed.posts.mainStream.length)
+  })
+
+  it('does not attach posts to anonymous group queries that only ask for group fields', () => {
+    const result = handleGraphql({
+      query: 'query ($slug: String) { group(slug: $slug) { id slug name } }',
+      variables: { slug: MAIN_GROUP_SLUG }
+    }, seed)
+
+    expect(result.data.group.slug).toBe(MAIN_GROUP_SLUG)
+    expect(result.data.group.posts).toBeUndefined()
+  })
+
   it('creates a post that then appears in the stream', () => {
     const created = handleGraphql({
       query: 'mutation CreatePost { createPost(data: {}) { id title } }',

@@ -27,6 +27,14 @@ export default function postCardFieldsFragment ({ includeGroups = true } = {}) {
   linkPreviewFeatured
   location
   meetingLink
+  locationObject {
+    id
+    center {
+      lat
+      lng
+    }
+    fullText
+  }
   myEventResponse
   noticeData
   noticePosts {
