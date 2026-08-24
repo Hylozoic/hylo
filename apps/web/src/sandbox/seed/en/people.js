@@ -1,5 +1,5 @@
 import { PLACEHOLDER_COPY, PLACEHOLDER_NAME } from '../constants'
-import { personStub, sid } from '../helpers'
+import { bayLocation, personStub, sid } from '../helpers'
 
 export const ME_ID = sid('me')
 
@@ -8,6 +8,10 @@ const AVATAR_BASE = 'https://www.untitledui.com/images/avatars'
 /** Returns a webp avatar URL from the Untitled UI free avatar set */
 function av (slug) {
   return AVATAR_BASE + '/' + slug + '?w=288&h=288&q=75&fm=webp'
+}
+
+function memberLocation (token, { fullText, city, lat, lng }) {
+  return bayLocation(sid('location', 'member', token), { fullText, city, lat, lng })
 }
 
 /**
@@ -28,15 +32,12 @@ export function buildMe () {
     newNotificationCount: 4,
     unseenThreadCount: 1,
     location: 'Oakland, California, United States',
-    locationObject: {
-      id: sid('location', 'me'),
+    locationObject: memberLocation('me', {
       fullText: 'Oakland, California, United States',
       city: 'Oakland',
-      region: 'California',
-      country: 'United States',
-      center: { lat: 37.8044, lng: -122.2712 },
-      bbox: { lat: 37.8044, lng: -122.2712 }
-    },
+      lat: 37.8044,
+      lng: -122.2712
+    }),
     bio: 'Community organizer and technologist working toward a more regenerative Bay Area bioregion. Coordinator at Terran Collective.',
     tagline: 'Bioregional coordinator',
     contactEmail: null,
@@ -80,7 +81,13 @@ const REAL_PEOPLE = [
     avatarUrl: av('ava-wright'),
     bio: null,
     tagline: null,
-    location: 'Vermont, United States',
+    location: 'Temescal, Oakland, California, United States',
+    locationObject: memberLocation('002', {
+      fullText: 'Temescal, Oakland, California, United States',
+      city: 'Oakland',
+      lat: 37.8345,
+      lng: -122.2610
+    }),
     staffGroup: true
   },
   {
@@ -116,7 +123,13 @@ const REAL_PEOPLE = [
     avatarUrl: av('koray-okumus'),
     bio: null,
     tagline: null,
-    location: 'Kodiak, Alaska, United States'
+    location: 'SoMa, San Francisco, California, United States',
+    locationObject: memberLocation('006', {
+      fullText: 'SoMa, San Francisco, California, United States',
+      city: 'San Francisco',
+      lat: 37.7785,
+      lng: -122.4056
+    })
   },
   {
     id: sid('person', '007'),
@@ -124,7 +137,13 @@ const REAL_PEOPLE = [
     avatarUrl: av('maxwell-tan'),
     bio: 'Social entrepreneur. Ph.D in Social computing and collaboration software.',
     tagline: null,
-    location: 'San Francisco, USA'
+    location: 'Mission Dolores, San Francisco, California, United States',
+    locationObject: memberLocation('007', {
+      fullText: 'Mission Dolores, San Francisco, California, United States',
+      city: 'San Francisco',
+      lat: 37.7599,
+      lng: -122.4269
+    })
   },
   {
     id: sid('person', '008'),
@@ -132,7 +151,13 @@ const REAL_PEOPLE = [
     avatarUrl: av('marvin-robbins'),
     bio: null,
     tagline: null,
-    location: 'Berkeley, California'
+    location: 'Berkeley, California, United States',
+    locationObject: memberLocation('008', {
+      fullText: 'Berkeley, California, United States',
+      city: 'Berkeley',
+      lat: 37.8688,
+      lng: -122.2675
+    })
   },
   {
     id: sid('person', '009'),
@@ -140,7 +165,13 @@ const REAL_PEOPLE = [
     avatarUrl: av('amelie-laurent'),
     bio: null,
     tagline: null,
-    location: 'Richmond, California'
+    location: 'Richmond, California, United States',
+    locationObject: memberLocation('009', {
+      fullText: 'Richmond, California, United States',
+      city: 'Richmond',
+      lat: 37.9358,
+      lng: -122.3477
+    })
   },
   {
     id: sid('person', '010'),
@@ -148,7 +179,13 @@ const REAL_PEOPLE = [
     avatarUrl: av('ethan-campbell'),
     bio: null,
     tagline: null,
-    location: 'Oakland, California, United States',
+    location: 'Fruitvale, Oakland, California, United States',
+    locationObject: memberLocation('010', {
+      fullText: 'Fruitvale, Oakland, California, United States',
+      city: 'Oakland',
+      lat: 37.7756,
+      lng: -122.2241
+    }),
     staffGroup: true
   },
   {
@@ -173,7 +210,13 @@ const REAL_PEOPLE = [
     avatarUrl: av('marco-gross'),
     bio: 'Experience designer and community organizer. Co-founder of an award-winning VR studio. Now a full time food artist — creating rituals around food, crafting stories to engage and create wonder.',
     tagline: 'The future is always first an idea',
-    location: null
+    location: 'Potrero Hill, San Francisco, California, United States',
+    locationObject: memberLocation('013', {
+      fullText: 'Potrero Hill, San Francisco, California, United States',
+      city: 'San Francisco',
+      lat: 37.7576,
+      lng: -122.4014
+    })
   },
   {
     id: sid('person', '014'),
@@ -288,9 +331,21 @@ export function buildPeople () {
 
 /** Lookup map built after people list is assembled */
 export function peopleById (people, me) {
-  const map = { [me.id]: personStub(me.id, { name: me.name, avatarUrl: me.avatarUrl }) }
+  const map = {
+    [me.id]: personStub(me.id, {
+      name: me.name,
+      avatarUrl: me.avatarUrl,
+      location: me.location,
+      locationObject: me.locationObject
+    })
+  }
   for (const p of people) {
-    map[p.id] = personStub(p.id, { name: p.name, avatarUrl: p.avatarUrl })
+    map[p.id] = personStub(p.id, {
+      name: p.name,
+      avatarUrl: p.avatarUrl,
+      location: p.location,
+      locationObject: p.locationObject
+    })
   }
   return map
 }

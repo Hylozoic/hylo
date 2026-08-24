@@ -530,6 +530,7 @@ function MapExplorer (props) {
       }
       return centerWithin(mapGroup.locationObject)
     }).concat(getLocationCenter(group) || group?.geoShape || group?.ref?.geoShape ? presentGroup(group) : [])
+      .filter((mapGroup, index, list) => list.findIndex(g => String(g.id) === String(mapGroup.id)) === index)
       .map(mapGroup => {
         // Ensure spaces can navigate to their parent from the current map context
         if (mapGroup.type === 'space' && !mapGroup.parentGroup?.slug && group && mapGroup.parentId === group.id) {

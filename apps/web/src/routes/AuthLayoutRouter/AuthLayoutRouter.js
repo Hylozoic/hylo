@@ -767,9 +767,9 @@ export default function AuthLayoutRouter (props) {
 
   if (currentUserLoading) {
     return (
-      <div data-testid='loading-screen' className={cn('flex flex-row items-stretch bg-midground h-full', { 'h-[100dvh]': compactLayout })}>
+      <div data-testid='loading-screen' className={cn('flex flex-row items-stretch bg-midground h-full', { 'h-[100dvh]': compactLayout && !isSandboxMode() })}>
         <Helmet>
-          <title>Hylo</title>
+          <title>{isSandboxMode() ? 'Hylo Demo' : 'Hylo'}</title>
           <meta name='description' content='Prosocial Coordination for a Thriving Planet' />
           {isSandboxMode() && <meta name='robots' content='noindex, nofollow' />}
         </Helmet>
@@ -895,7 +895,7 @@ export default function AuthLayoutRouter (props) {
         </div>
       )}
       <Helmet>
-        <title>{currentGroup ? `${currentGroup.name} | ` : ''}Hylo</title>
+        <title>{currentGroup ? `${currentGroup.name} | ` : ''}{isSandboxMode() ? 'Hylo Demo' : 'Hylo'}</title>
         <meta name='description' content='Prosocial Coordination for a Thriving Planet' />
         {isSandboxMode() && <meta name='robots' content='noindex, nofollow' />}
         {currentUser && (
@@ -923,7 +923,7 @@ export default function AuthLayoutRouter (props) {
         {/* )} */}
       </Routes>
 
-      <div className={cn('flex items-stretch bg-midground h-full', isTabNav ? 'flex-col' : 'flex-row', { 'h-[100dvh]': compactLayout, [classes.mapView]: isMapView, [classes.detailOpen]: hasDetail })}>
+      <div className={cn('flex items-stretch bg-midground h-full', isTabNav ? 'flex-col' : 'flex-row', { 'h-[100dvh]': compactLayout && !isSandboxMode(), [classes.mapView]: isMapView, [classes.detailOpen]: hasDetail })}>
         {/* Top tab nav bar (when tab mode is active) */}
         {isTabNav && !withoutNav && (
           <TopNav currentUser={currentUser} />

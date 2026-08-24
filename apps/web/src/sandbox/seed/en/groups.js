@@ -4,7 +4,7 @@ import {
   SIMPLE_GROUP_SLUG,
   STAFF_GROUP_SLUG
 } from '../constants'
-import { sid } from '../helpers'
+import { bayLocation, sid } from '../helpers'
 import { ME_ID } from './people'
 
 export const MAIN_GROUP_ID = sid('group', 'main')
@@ -42,16 +42,13 @@ export function buildGroups () {
       canAccess: true,
       allowInPublic: true,
       paywall: false,
-      location: 'Oakland, California, United States',
-      locationObject: {
-        id: mainLocationId,
-        fullText: 'Oakland, California, United States',
+      location: 'Downtown Oakland, California, United States',
+      locationObject: bayLocation(mainLocationId, {
+        fullText: 'Downtown Oakland, California, United States',
         city: 'Oakland',
-        region: 'California',
-        country: 'United States',
-        center: { lat: 37.8044, lng: -122.2712 },
-        bbox: { lat: 37.8044, lng: -122.2712 }
-      },
+        lat: 37.8044,
+        lng: -122.2712
+      }),
       homeRoute: '/stream',
       stewardDescriptor: 'Coordinator',
       stewardDescriptorPlural: 'Coordinators',
@@ -82,16 +79,13 @@ export function buildGroups () {
       allowInPublic: true,
       paywall: false,
       homeRoute: '/chat',
-      location: 'Lake Merritt, Oakland, California, United States',
-      locationObject: {
-        id: sid('location', 'simple'),
-        fullText: 'Lake Merritt, Oakland, California, United States',
-        city: 'Oakland',
-        region: 'California',
-        country: 'United States',
-        center: { lat: 37.8016, lng: -122.2583 },
-        bbox: { lat: 37.8016, lng: -122.2583 }
-      },
+      location: 'Berkeley, California, United States',
+      locationObject: bayLocation(sid('location', 'simple'), {
+        fullText: 'Berkeley, California, United States',
+        city: 'Berkeley',
+        lat: 37.8715,
+        lng: -122.2730
+      }),
       stewardDescriptor: 'Organizer',
       stewardDescriptorPlural: 'Organizers',
       createdAt_offset: -86400 * 200,
@@ -122,15 +116,12 @@ export function buildGroups () {
       paywall: false,
       homeRoute: '/chat',
       location: 'Temescal, Oakland, California, United States',
-      locationObject: {
-        id: sid('location', 'staff'),
+      locationObject: bayLocation(sid('location', 'staff'), {
         fullText: 'Temescal, Oakland, California, United States',
         city: 'Oakland',
-        region: 'California',
-        country: 'United States',
-        center: { lat: 37.8370, lng: -122.2623 },
-        bbox: { lat: 37.8370, lng: -122.2623 }
-      },
+        lat: 37.8370,
+        lng: -122.2623
+      }),
       stewardDescriptor: 'Worker-owner',
       stewardDescriptorPlural: 'Worker-owners',
       createdAt_offset: -86400 * 400,

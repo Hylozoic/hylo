@@ -36,7 +36,7 @@ const KIND = {
 }
 
 const TOKEN = {
-  main: 1,
+  main: 101,
   simple: 2,
   chat: 3,
   track: 4,
@@ -56,6 +56,8 @@ const TOKEN = {
   map: 2,
   events: 3,
   members: 4,
+  // Compound view/space tokens — looked up whole before hyphen-splitting so
+  // staff-chat and staff-events do not both become staff(12)+chat/events(3).
   'chat-space': 5,
   'track-space': 6,
   'funding-space': 7,
@@ -65,7 +67,15 @@ const TOKEN = {
   'track-members': 15,
   'fr-submissions': 10,
   'simple-chat': 11,
+  'simple-all': 20,
+  'simple-requests': 21,
+  'simple-projects': 22,
+  'simple-members': 23,
   'staff-chat': 13,
+  'staff-all': 16,
+  'staff-requests': 18,
+  'staff-events': 17,
+  'staff-members': 19,
   post: 30,
   fr: 6,
   c: 7,
@@ -84,9 +94,14 @@ function tokenToInt (token) {
 
 /**
  * Flatten hyphenated segments so sid('post', 'chat-001') !== sid('post', '001').
+ * Prefer explicit compound TOKEN keys (e.g. staff-chat) over splitting.
  */
 function flattenParts (parts) {
-  return parts.flatMap(part => String(part).split('-').filter(Boolean))
+  return parts.flatMap(part => {
+    const value = String(part)
+    if (TOKEN[value] != null) return [value]
+    return value.split('-').filter(Boolean)
+  })
 }
 
 /**
@@ -148,6 +163,7 @@ export function materializeTimestamps (value, now = Date.now()) {
 
 /**
  * Mapbox-friendly location for demo groups and posts in the East Bay.
+ * bbox is the two-corner Point list GraphQL / MapExplorer expect, not a single { lat, lng }.
  */
 export function bayLocation (id, { fullText, city, lat, lng }) {
   return {
@@ -157,7 +173,10 @@ export function bayLocation (id, { fullText, city, lat, lng }) {
     region: 'California',
     country: 'United States',
     center: { lat, lng },
-    bbox: { lat, lng }
+    bbox: [
+      { lng: lng - 0.012, lat: lat - 0.008 },
+      { lng: lng + 0.012, lat: lat + 0.008 }
+    ]
   }
 }
 
