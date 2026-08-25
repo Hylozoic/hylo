@@ -204,6 +204,49 @@ function CreateMenuRow ({ onClick, tileClass, icon, label }) {
   )
 }
 
+/**
+ * Nested settings. Desktop uses a side flyout; compact expands inline so the
+ * panel never leaves the parent menu (phones have no room to the left or right).
+ */
+function SettingsSubMenu ({ compact, icon, label, children }) {
+  const [open, setOpen] = useState(false)
+
+  if (!compact) {
+    return (
+      <DropdownMenuSub>
+        <DropdownMenuSubTrigger>
+          {icon}
+          <span>{label}</span>
+        </DropdownMenuSubTrigger>
+        <DropdownMenuSubContent className='z-[200] bg-card'>
+          {children}
+        </DropdownMenuSubContent>
+      </DropdownMenuSub>
+    )
+  }
+
+  return (
+    <>
+      <DropdownMenuItem
+        className='flex flex-row items-center'
+        onSelect={(event) => {
+          event.preventDefault()
+          setOpen(prev => !prev)
+        }}
+      >
+        {icon}
+        <span className='flex-1'>{label}</span>
+        <ChevronDown className={cn('ml-auto h-4 w-4 shrink-0 transition-transform', open && 'rotate-180')} />
+      </DropdownMenuItem>
+      {open && (
+        <div className='pl-4'>
+          {children}
+        </div>
+      )}
+    </>
+  )
+}
+
 // Settings Menu Component
 function SettingsMenu ({ currentUser, triggerClassName, contentSide = 'right', contentAlign = 'start' }) {
   const compactLayout = isCompactLayoutDevice()
@@ -349,127 +392,90 @@ function SettingsMenu ({ currentUser, triggerClassName, contentSide = 'right', c
           <BellIcon className='mr-2 h-4 w-4' />
           <span>{t('Notifications')}</span>
         </DropdownMenuItem>
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger>
-            <Palette className='mr-2 h-4 w-4' />
-            <span>{t('Appearance')}</span>
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent className='z-[200] bg-card'>
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <span>{t('Color Mode')}</span>
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent className='z-[200] bg-card'>
-                <DropdownMenuRadioGroup value={colorScheme} onValueChange={value => handleSettingChange({ colorScheme: value })}>
-                  <DropdownMenuRadioItem value='auto'>
-                    {t('System')}
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value='light'>
-                    {t('Light')}
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value='dark'>
-                    {t('Dark')}
-                  </DropdownMenuRadioItem>
-                </DropdownMenuRadioGroup>
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <span>{t('Color Theme')}</span>
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent className='z-[200] bg-card'>
-                <DropdownMenuRadioGroup value={theme} onValueChange={value => handleSettingChange({ theme: value })}>
-                  {availableThemes.map(theme => (
-                    <DropdownMenuRadioItem key={theme} value={theme} className='capitalize'>
-                      {t(theme)}
-                    </DropdownMenuRadioItem>
-                  ))}
-                </DropdownMenuRadioGroup>
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
-            {!isPhoneViewport && (
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger>
-                  <span>{t('Global Navigation')}</span>
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent className='z-[200] bg-card'>
-                  <DropdownMenuRadioGroup value={globalNavStyle} onValueChange={value => handleSettingChange({ globalNavStyle: value })}>
-                    <DropdownMenuRadioItem value='sidebar'>
-                      {t('Sidebar')}
-                    </DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value='tabs'>
-                      {t('Topbar')}
-                    </DropdownMenuRadioItem>
-                  </DropdownMenuRadioGroup>
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
-            )}
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <span>{t('Group Nav Stacking')}</span>
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent className='z-[200] bg-card'>
-                <DropdownMenuRadioGroup value={stackGroups ? 'stacked' : 'flat'} onValueChange={value => handleSettingChange({ stackGroups: value === 'stacked' })}>
-                  <DropdownMenuRadioItem value='flat'>
-                    {t('Flat')}
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value='stacked'>
-                    {t('Stacked')}
-                  </DropdownMenuRadioItem>
-                </DropdownMenuRadioGroup>
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <span>{t('Group Menu Style')}</span>
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent className='z-[200] bg-card'>
-                <DropdownMenuRadioGroup value={groupNavStyle} onValueChange={value => handleSettingChange({ groupNavStyle: value })}>
-                  <DropdownMenuRadioItem value={NAV_STYLE_GROUP_DEFAULT}>
-                    {t('Group Default')}
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value={NAV_STYLE_TWO_COLUMN}>
-                    {t('Side Menu')}
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value={NAV_STYLE_ONE_COLUMN}>
-                    {t('Card Menu')}
-                  </DropdownMenuRadioItem>
-                </DropdownMenuRadioGroup>
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger>
-            <Languages className='mr-2 h-4 w-4' />
-            <span>{t('Language')}</span>
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent className='z-[200] bg-card'>
-            <DropdownMenuRadioGroup value={currentLocale} onValueChange={handleLanguageChange}>
-              <DropdownMenuRadioItem value={LOCALE_EN_US}>
-                🇺🇸 {t('English')}
+        <SettingsSubMenu compact={compactLayout} icon={<Palette className='mr-2 h-4 w-4' />} label={t('Appearance')}>
+          <SettingsSubMenu compact={compactLayout} label={t('Color Mode')}>
+            <DropdownMenuRadioGroup value={colorScheme} onValueChange={value => handleSettingChange({ colorScheme: value })}>
+              <DropdownMenuRadioItem value='auto'>
+                {t('System')}
               </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value={LOCALE_EN_GB}>
-                🇬🇧 {t('English (UK)')}
+              <DropdownMenuRadioItem value='light'>
+                {t('Light')}
               </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value={LOCALE_ES}>
-                🇪🇸 {t('Spanish')}
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value={LOCALE_DE}>
-                🇩🇪 {t('German')}
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value={LOCALE_FR}>
-                🇫🇷 {t('French')}
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value={LOCALE_HI}>
-                🇮🇳 {t('Hindi')}
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value={LOCALE_PT}>
-                🇵🇹 {t('Portuguese')}
+              <DropdownMenuRadioItem value='dark'>
+                {t('Dark')}
               </DropdownMenuRadioItem>
             </DropdownMenuRadioGroup>
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
+          </SettingsSubMenu>
+          <SettingsSubMenu compact={compactLayout} label={t('Color Theme')}>
+            <DropdownMenuRadioGroup value={theme} onValueChange={value => handleSettingChange({ theme: value })}>
+              {availableThemes.map(theme => (
+                <DropdownMenuRadioItem key={theme} value={theme} className='capitalize'>
+                  {t(theme)}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          </SettingsSubMenu>
+          {!isPhoneViewport && (
+            <SettingsSubMenu compact={compactLayout} label={t('Global Navigation')}>
+              <DropdownMenuRadioGroup value={globalNavStyle} onValueChange={value => handleSettingChange({ globalNavStyle: value })}>
+                <DropdownMenuRadioItem value='sidebar'>
+                  {t('Sidebar')}
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value='tabs'>
+                  {t('Topbar')}
+                </DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </SettingsSubMenu>
+          )}
+          <SettingsSubMenu compact={compactLayout} label={t('Group Nav Stacking')}>
+            <DropdownMenuRadioGroup value={stackGroups ? 'stacked' : 'flat'} onValueChange={value => handleSettingChange({ stackGroups: value === 'stacked' })}>
+              <DropdownMenuRadioItem value='flat'>
+                {t('Flat')}
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value='stacked'>
+                {t('Stacked')}
+              </DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+          </SettingsSubMenu>
+          <SettingsSubMenu compact={compactLayout} label={t('Group Menu Style')}>
+            <DropdownMenuRadioGroup value={groupNavStyle} onValueChange={value => handleSettingChange({ groupNavStyle: value })}>
+              <DropdownMenuRadioItem value={NAV_STYLE_GROUP_DEFAULT}>
+                {t('Group Default')}
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value={NAV_STYLE_TWO_COLUMN}>
+                {t('Side Menu')}
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value={NAV_STYLE_ONE_COLUMN}>
+                {t('Card Menu')}
+              </DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+          </SettingsSubMenu>
+        </SettingsSubMenu>
+        <SettingsSubMenu compact={compactLayout} icon={<Languages className='mr-2 h-4 w-4' />} label={t('Language')}>
+          <DropdownMenuRadioGroup value={currentLocale} onValueChange={handleLanguageChange}>
+            <DropdownMenuRadioItem value={LOCALE_EN_US}>
+              🇺🇸 {t('English')}
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value={LOCALE_EN_GB}>
+              🇬🇧 {t('English (UK)')}
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value={LOCALE_ES}>
+              🇪🇸 {t('Spanish')}
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value={LOCALE_DE}>
+              🇩🇪 {t('German')}
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value={LOCALE_FR}>
+              🇫🇷 {t('French')}
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value={LOCALE_HI}>
+              🇮🇳 {t('Hindi')}
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value={LOCALE_PT}>
+              🇵🇹 {t('Portuguese')}
+            </DropdownMenuRadioItem>
+          </DropdownMenuRadioGroup>
+        </SettingsSubMenu>
         <DropdownMenuItem onClick={handleBlockedUsers}>
           <UserX className='mr-2 h-4 w-4' />
           <span>{t('Blocked Users')}</span>
