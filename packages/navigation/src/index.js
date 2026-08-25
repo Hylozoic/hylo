@@ -62,6 +62,28 @@ export function searchUrl () {
   return '/search'
 }
 
+const NON_GROUP_SLUGS = [ALL_GROUPS_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG, SEARCH_CONTEXT_SLUG, MY_CONTEXT_SLUG, MESSAGES_CONTEXT_SLUG]
+
+/**
+ * Search URL for a hashtag, scoped to the current group when one is present.
+ * @param {string} tagName Tag name with or without a leading #
+ * @param {{ groupSlug?: string, from?: string }} [opts]
+ * @returns {string}
+ */
+export function tagSearchUrl (tagName, { groupSlug, from } = {}) {
+  const raw = typeof tagName === 'string' ? tagName.trim() : ''
+  const name = raw.startsWith('#') ? raw.slice(1) : raw
+  if (!name) return searchUrl()
+
+  const isRealGroup = groupSlug && !NON_GROUP_SLUGS.includes(groupSlug)
+
+  return addQuerystringToPath(searchUrl(), {
+    t: `#${name}`,
+    groupSlug: isRealGroup ? groupSlug : undefined,
+    from: from && !from.startsWith('/search') ? from : undefined
+  })
+}
+
 export function baseUrl ({
   context,
   customViewId,
