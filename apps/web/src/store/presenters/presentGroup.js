@@ -1,5 +1,3 @@
-import presentTopic from 'store/presenters/presentTopic'
-
 export default function presentGroup (group) {
   if (!group) return null
   return {

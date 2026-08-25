@@ -5,12 +5,12 @@ import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 
 import Avatar from 'components/Avatar'
-import CurrentlyActivePills, { DEFAULT_ACTIVE_MAX, isRecentlyActive } from 'components/CurrentlyActiveMembers/CurrentlyActivePills'
+import CurrentlyActivePills, { DEFAULT_ACTIVE_MAX } from 'components/CurrentlyActiveMembers/CurrentlyActivePills'
 import { getPeopleTyping } from 'components/PeopleTyping/PeopleTyping.store'
 import { Tooltip, TooltipContent, TooltipTrigger } from 'components/ui/tooltip'
 import useRouteParams from 'hooks/useRouteParams'
 import { isMobileDevice } from 'util/mobile'
-import { cn } from 'util/index'
+import { cn, isRecentlyActive } from 'util/index'
 import {
   FETCH_MEMBERS,
   fetchMembers,

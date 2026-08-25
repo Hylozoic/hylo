@@ -5,17 +5,14 @@ import { useDispatch, useSelector } from 'react-redux'
 import { Link, useNavigate } from 'react-router-dom'
 
 import InviteMembersDialog from 'components/InviteMembersDialog/InviteMembersDialog'
-import CurrentlyActivePills, {
-  DEFAULT_ACTIVE_MAX,
-  isRecentlyActive
-} from './CurrentlyActivePills'
+import CurrentlyActivePills, { DEFAULT_ACTIVE_MAX } from './CurrentlyActivePills'
 import { personUrl } from '@hylo/navigation'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import {
   fetchRecentlyActiveMembers,
   getRecentlyActiveMembers
 } from 'routes/Members/Members.store'
-import { cn } from 'util/index'
+import { cn, isRecentlyActive } from 'util/index'
 
 /**
  * Currently-active members widget: overlapping avatars, a count pill that opens
