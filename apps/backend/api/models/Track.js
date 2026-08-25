@@ -147,7 +147,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
           num_open_join_requests: 0
         }, { transacting: trx })
         await newTrack.save({ group_id: copySpace.id }, { patch: true, transacting: trx })
-        await Group.setupSpaceViews(copySpace.id, sourceSpace.get('accepted_post_types') || [], ['about', 'track-actions', 'members'], { transacting: trx })
+        await Group.setupSpaceViews(copySpace.id, sourceSpace.get('accepted_post_types') || [], ['track-actions', 'members', 'welcome'], { transacting: trx })
       }
 
       // Duplicate actions from the track-actions collections_posts list

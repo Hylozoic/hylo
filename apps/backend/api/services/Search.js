@@ -256,7 +256,7 @@ module.exports = {
 }
 
 const fetchGroupAccess = (userId, { groupIds }) => {
-  if (groupIds) return Promise.resolve({ groupIds })
+  if (groupIds && groupIds.length > 0) return Promise.resolve({ groupIds })
   return Promise.resolve({ userId })
 }
 

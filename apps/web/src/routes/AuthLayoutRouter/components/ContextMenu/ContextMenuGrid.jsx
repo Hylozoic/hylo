@@ -218,7 +218,7 @@ function StickyBackHeader ({ title, icon, onBack, t }) {
   // Dressed as ViewHeader (surface, hairline, shadow, chevron + icon + bold
   // title) — this level hides the real ViewHeader, so the bar stands in for it
   return (
-    <div className='sticky top-0 z-30 -mx-4 mb-2 p-2 bg-background border-b border-foreground/[0.08] shadow-header dark:border-transparent dark:shadow-header-dark flex items-center'>
+    <div className='sticky top-0 z-30 p-2 bg-context-menu-background border-b border-foreground/[0.08] shadow-[0_4px_14px_0px_rgba(0,0,0,0.16)] dark:border-transparent dark:shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)] flex items-center'>
       <button
         type='button'
         onClick={onBack}
@@ -680,7 +680,9 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
   // itself once you are on that level, so only fetch here — where the card lives —
   // to avoid asking twice.
   const moreSpaces = useMoreSpacesContent(group)
-  const showMoreSpacesCard = moreSpaces.hasContent || moreSpaces.pending
+  // Wait until spaces have loaded — pending would flash the card then hide it
+  // when this group has nothing behind More Spaces.
+  const showMoreSpacesCard = moreSpaces.hasContent
   useEffect(() => {
     if (isContextMode || isMoreSpacesLevel || spaceGroup || !group?.id || !groupSlug) return
     dispatch(fetchGroupSpaces(group.id))
@@ -883,13 +885,13 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
         </div>
       )}
 
-      {/* Extra room up top so the first row of cards clears the banner edge */}
-      <div ref={gridContainerRef} className={cn('w-full max-w-[1000px] mx-auto px-4 pt-10 pb-6', isEditing && 'pb-24')}>
-        {/* Space level carries its own takeover headers above; More keeps the bar */}
-        {isMoreSpacesLevel && (
-          <StickyBackHeader title={nestedTitle} icon={<CircleEllipsis />} onBack={handleBack} t={t} />
-        )}
+      {/* More Spaces has no banner — keep the back bar flush with the top */}
+      {isMoreSpacesLevel && (
+        <StickyBackHeader title={nestedTitle} icon={<CircleEllipsis />} onBack={handleBack} t={t} />
+      )}
 
+      {/* Extra room up top so the first row of cards clears the banner edge */}
+      <div ref={gridContainerRef} className={cn('w-full max-w-[1000px] mx-auto px-4 pb-6', isMoreSpacesLevel ? 'pt-4' : 'pt-10', isEditing && 'pb-24')}>
         {isMoreSpacesLevel
           ? <MoreSpacesGrid group={group} groupSlug={groupSlug} navigate={navigate} t={t} />
           : isEditing

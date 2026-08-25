@@ -171,8 +171,7 @@ const VIEW_TYPE_DESCRIPTIONS = {
   resources: 'The resources your group has gathered',
   proposals: 'Decisions your group is making together',
   projects: 'The work your group has underway',
-  members: 'Everyone who is part of your group',
-  about: 'What your group is and who it is for'
+  members: 'Everyone who is part of your group'
 }
 
 // Home view decides the group's landing route. Each value maps to the view type that

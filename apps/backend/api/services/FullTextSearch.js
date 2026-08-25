@@ -94,12 +94,14 @@ const applyMemberGroupFilter = (subquery, groupAccess) => {
   }
 }
 
-// Restrict FTS candidates to content the user can see: their groups plus public posts.
+// Restrict FTS candidates to content the user can see.
+// Explicit groupIds are a search scope: only that group's posts, members, and comments.
+// Unscoped (member) search also includes public posts and comments on public posts.
 const applyGroupAccessFilter = (qb, groupAccess) => {
-  qb.andWhere(function () {
-    const hasMemberGroups = groupAccess.userId ||
-      (groupAccess.groupIds && groupAccess.groupIds.length > 0)
+  const hasExplicitGroupIds = groupAccess.groupIds && groupAccess.groupIds.length > 0
+  const hasMemberGroups = groupAccess.userId || hasExplicitGroupIds
 
+  qb.andWhere(function () {
     if (hasMemberGroups) {
       this.whereIn('post_id', function () {
         this.select('post_id').from('groups_posts')
@@ -116,15 +118,18 @@ const applyGroupAccessFilter = (qb, groupAccess) => {
           applyMemberGroupFilter(this, groupAccess)
         })
     }
-    this.orWhereIn('post_id', function () {
-      this.select('id').from('posts').where({ is_public: true, active: true })
-    })
-      .orWhereIn('comment_id', function () {
-        this.select('c.id')
-          .from('comments as c')
-          .join('posts as p', 'p.id', 'c.post_id')
-          .where({ 'p.is_public': true, 'c.active': true })
+
+    if (!hasExplicitGroupIds) {
+      this.orWhereIn('post_id', function () {
+        this.select('id').from('posts').where({ is_public: true, active: true })
       })
+        .orWhereIn('comment_id', function () {
+          this.select('c.id')
+            .from('comments as c')
+            .join('posts as p', 'p.id', 'c.post_id')
+            .where({ 'p.is_public': true, 'c.active': true })
+        })
+    }
   })
 }
 
