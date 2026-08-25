@@ -45,10 +45,11 @@ export default function Search (props) {
   const groupSlug = getQuerystringParam('groupSlug', location) || ''
   const group = useSelector(state => groupSlug && getGroupForSlug(state, groupSlug))
   const previousLocation = useSelector(getPreviousLocation)
-  const groupIds = useMemo(() => group ? [group.id] : null, [group.id])
+  const groupIds = useMemo(() => group?.id ? [group.id] : null, [group?.id])
   const [searchForInput, setSearchForInput] = useState(searchFromQueryString)
   const [filter, setFilter] = useState('all')
   const searchTermReady = searchForInput.trim().length >= MIN_SEARCH_TERM_LENGTH
+  const groupScopeReady = !groupSlug || !!groupIds
   const queryResultProps = { search: searchForInput, type: filter, groupIds }
   const searchResults = useSelector(state => getSearchResults(state, queryResultProps))
   const hasFetched = useSelector(state => getHasFetchedSearchResults(state, queryResultProps))
@@ -56,9 +57,9 @@ export default function Search (props) {
   const searchError = useSelector(state => getSearchError(state, queryResultProps))
   const searchErrorMessage = searchError ? formatSearchErrorMessage(searchError, t) : null
   const pending = useSelector(state => !!state.pending[FETCH_SEARCH])
-  const showLoading = searchTermReady && !searchError && (pending || !hasFetched)
-  const showEmptyState = searchTermReady && hasFetched && !pending && !searchError && searchResults.length === 0
-  const showErrorState = searchTermReady && !pending && searchError && searchResults.length === 0
+  const showLoading = searchTermReady && !searchError && (!groupScopeReady || pending || !hasFetched)
+  const showEmptyState = searchTermReady && groupScopeReady && hasFetched && !pending && !searchError && searchResults.length === 0
+  const showErrorState = searchTermReady && groupScopeReady && !pending && searchError && searchResults.length === 0
   const inputRef = useRef(null)
   const requestedOffsetRef = useRef(null)
 
@@ -78,18 +79,18 @@ export default function Search (props) {
   )
 
   const fetchSearchResultsAction = useCallback(() => {
-    if (!searchTermReady) return
+    if (!searchTermReady || !groupScopeReady) return
     requestedOffsetRef.current = null
     return fetchSearchResultsDebounced({ search: searchForInput, filter, groupIds })
-  }, [fetchSearchResultsDebounced, searchForInput, filter, groupIds, searchTermReady])
+  }, [fetchSearchResultsDebounced, searchForInput, filter, groupIds, searchTermReady, groupScopeReady])
 
   const fetchMoreSearchResults = useCallback(() => {
-    if (!searchTermReady || !hasMore || pending) return
+    if (!searchTermReady || !groupScopeReady || !hasMore || pending) return
     const offset = searchResults.length
     if (requestedOffsetRef.current === offset) return
     requestedOffsetRef.current = offset
     dispatch(fetchSearchResults({ search: searchForInput, filter, offset, groupIds }))
-  }, [dispatch, searchTermReady, hasMore, pending, searchResults.length, searchForInput, filter, groupIds])
+  }, [dispatch, searchTermReady, groupScopeReady, hasMore, pending, searchResults.length, searchForInput, filter, groupIds])
 
   useEffect(() => {
     fetchSearchResultsAction()
@@ -180,7 +181,7 @@ export default function Search (props) {
         )}
         <TabBar setSearchFilter={setFilter} filter={filter} />
         <div className='w-full'>
-          {searchResults.map(sr =>
+          {groupScopeReady && searchResults.map(sr =>
             <SearchResult
               key={sr.id}
               searchResult={sr}
