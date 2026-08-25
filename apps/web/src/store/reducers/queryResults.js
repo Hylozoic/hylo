@@ -10,10 +10,13 @@ import { mapValues, camelCase } from 'lodash'
 import orm from 'store/models'
 import { createSelector as ormCreateSelector } from 'redux-orm'
 import {
+  FETCH_MODERATION_ACTIONS,
   FETCH_POST,
   FETCH_POSTS,
   FETCH_TOPICS,
   FETCH_DEFAULT_TOPICS,
+  CREATE_MODERATION_ACTION,
+  CREATE_MODERATION_ACTION_PENDING,
   CREATE_POST,
   CREATE_PROJECT,
   DROP_QUERY_RESULTS,
@@ -72,6 +75,28 @@ export default function (state = {}, action) {
   //
 
   switch (type) {
+    case CREATE_MODERATION_ACTION_PENDING: {
+      const tempId = meta?.tempId
+      if (!tempId) return state
+      const slugs = uniq((meta.slugs || []).filter(Boolean))
+      return slugs.reduce((memo, slug) => {
+        return prependIdForCreate(memo, FETCH_MODERATION_ACTIONS, { slug, sortBy: 'created' }, tempId)
+      }, state)
+    }
+
+    case CREATE_MODERATION_ACTION: {
+      const createdId = payload?.data?.createModerationAction?.id
+      if (!createdId) return state
+      let nextState = state
+      if (meta?.tempId) {
+        nextState = replaceIdInQueryResults(nextState, meta.tempId, createdId)
+      }
+      const slugs = uniq((meta.slugs || []).filter(Boolean))
+      return slugs.reduce((memo, slug) => {
+        return prependIdForCreate(memo, FETCH_MODERATION_ACTIONS, { slug, sortBy: 'created' }, createdId)
+      }, nextState)
+    }
+
     case CREATE_PROJECT:
     case CREATE_POST:
     case RECEIVE_POST:
