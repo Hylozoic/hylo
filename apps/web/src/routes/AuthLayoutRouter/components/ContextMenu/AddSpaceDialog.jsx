@@ -397,7 +397,9 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
       onClick={handleBackdropClick}
     >
       <div className='bg-midground rounded-lg shadow-lg p-4 w-full max-w-md sm:max-w-[40rem] max-h-[85vh] flex flex-col'>
-        <h2 className='text-lg font-semibold mb-4'>{t('Add Space')}</h2>
+        <h2 className='text-lg font-semibold mb-4'>
+          {addToMenu ? t('Create a new space in the main menu') : t('Create a new space in More Spaces')}
+        </h2>
 
         <div className='flex flex-col gap-3 overflow-y-auto flex-1 min-h-0 p-1 -m-1'>
           <div className='grid grid-cols-2 sm:grid-cols-4 gap-2'>
