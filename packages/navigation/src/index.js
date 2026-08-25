@@ -44,7 +44,7 @@ export function myHomeUrl () {
 
 /** Landing path for the My Home button (All My Groups Activity). */
 export function myHomeLandingUrl () {
-  return '/all/stream'
+  return '/all/all'
 }
 
 /** True when the current route is the My Home menu (My or All My Groups). */
@@ -168,9 +168,6 @@ export function groupViewPath (view) {
       return null
     case 'manage-round':
       return '/manage-round'
-    case 'stream':
-      // Legacy view type — GroupView type is now `all`
-      return '/all'
     default:
       return view.type ? `/${view.type}` : '/all'
   }
@@ -187,7 +184,7 @@ function normalizeGroupView (view) {
 
 /**
  * Route path suffix stored in groups.home_route for a GroupView
- * (e.g. /stream, /custom/123, /welcome).
+ * (e.g. /all, /custom/123, /welcome).
  * Shared by backend GroupView.computeHomeRoutePath and frontend optimistic updates.
  */
 export function homeRoutePathForView (view) {
@@ -253,7 +250,7 @@ export function groupHomeUrl ({ group, routeParams }) {
 // Post URLS
 export function postUrl (id, opts = {}, querystringParams = {}) {
   const action = get('action', opts)
-  // Standalone /groups/:slug/post/:id uses "post" as a path segment, not a stream view name
+  // Standalone /groups/:slug/post/:id uses "post" as a path segment, not a all activity view name
   const urlOpts = opts.view === 'post' ? { ...opts, view: undefined } : opts
   let result
   if (urlOpts.context === '') {
@@ -282,7 +279,7 @@ export function duplicatePostUrl (id, opts = {}) {
 
 // Given a post return the the main way to view the post
 // Chats go to the chat room scrolled to the post
-// Posts go to the stream with the post opened
+// Posts go to the all activity stream with the post opened
 export function primaryPostUrl (post, opts = {}, querystringParams = {}) {
   let result = baseUrl(opts)
   const postId = get('id', post) || post

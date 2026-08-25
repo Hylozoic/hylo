@@ -14,7 +14,6 @@ const VIEW_TYPE_TO_ICON_NAME = {
   groups: 'Groups',
   'requests-and-offers': 'Request',
   resources: 'Document',
-  stream: 'Stream',
   'track-actions': 'Shapes',
   tracks: 'Shapes',
   welcome: 'Hand',
@@ -95,12 +94,6 @@ export const COMMON_VIEWS = {
     iconName: 'Document',
     defaultViewMode: 'grid',
     postTypes: ['resource'],
-    defaultSortBy: 'created'
-  },
-  stream: {
-    name: 'Stream',
-    iconName: 'Stream',
-    defaultViewMode: 'cards',
     defaultSortBy: 'created'
   },
   topics: {
@@ -280,7 +273,7 @@ export function displayNameForView (view, t, { spaceGroup } = {}) {
 
 /** Static menu views for the Public context (The Commons). */
 export const PUBLIC_CONTEXT_VIEWS = [
-  { type: 'stream', context: 'public', icon: 'Stream', name: 'view-public-stream', id: 'view-public-stream', order: 1 },
+  { type: 'all', context: 'public', icon: 'Stream', name: 'view-public-all', id: 'view-public-all', order: 1 },
   { type: 'groups', context: 'public', icon: 'Groups', name: 'view-public-groups', id: 'view-public-groups', order: 2 },
   { type: 'map', context: 'public', name: 'view-public-map', id: 'view-public-map', order: 3 },
   { type: 'events', context: 'public', name: 'view-public-events', id: 'view-public-events', order: 4 }
@@ -291,7 +284,7 @@ export const PUBLIC_CONTEXT_VIEWS = [
  * Flat ordered list with text headers as section breaks (same shape as group menus).
  */
 export const MY_CONTEXT_VIEWS = (profileUrl) => [
-  { type: 'stream', context: 'all', name: 'view-my-groups-stream', id: 'view-my-groups-stream', order: 1 },
+  { type: 'all', context: 'all', name: 'view-my-groups-all', id: 'view-my-groups-all', order: 1 },
   { type: 'map', context: 'all', name: 'view-my-groups-map', id: 'view-my-groups-map', order: 2 },
   { type: 'events', context: 'all', name: 'view-my-groups-events', id: 'view-my-groups-events', order: 3 },
   { type: 'text', name: 'view-my-content', id: 'view-my-content', order: 4 },

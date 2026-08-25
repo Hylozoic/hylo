@@ -758,7 +758,7 @@ async function main () {
       `INSERT INTO posts (name, description, type, created_at, updated_at, user_id, active, visibility, is_public)
        VALUES ($1, $2, 'discussion', $3::timestamptz, $3::timestamptz, $4, true, 0, true)
        RETURNING id`,
-      ['E2E Multi Public Post', 'Dual-group public post for close → /public/stream', now, userId]
+      ['E2E Multi Public Post', 'Dual-group public post for close → /public/all', now, userId]
     )
     const postMultiPublicId = postMultiPublicRes.rows[0].id
     await client.query(

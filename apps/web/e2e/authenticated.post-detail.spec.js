@@ -121,7 +121,7 @@ test.describe('Batch E: post detail & dual-column', () => {
  *
  * Scenarios (seeded data):
  * 1. Single group + member → `/groups/e2e-public-group/all` (post `1`, primary `e2e.user@hylo.test`).
- * 2. Many groups + member of none + public → `/public/stream` (post `2`, `e2e.nogroups@hylo.test`).
+ * 2. Many groups + member of none + public → `/public/all` (post `2`, `e2e.nogroups@hylo.test`).
  * 3. Many groups + member of exactly one post group → that group’s all view (post `3`, primary user).
  * 4. Many groups + member of several post groups → `/my/groups` (post `4`, primary user).
  */
@@ -145,7 +145,7 @@ test.describe('post detail close navigation', () => {
     await expect(page).toHaveURL(new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/all`), navTimeout)
   })
 
-  test('many groups + no memberships + public: close → /public/stream', async ({ browser }) => {
+  test('many groups + no memberships + public: close → /public/all', async ({ browser }) => {
     const { context, page } = await newLoggedOutContext(browser, devices['Pixel 5'])
     try {
       await loginOnPage(page, E2E_NOGROUPS_EMAIL)
@@ -153,7 +153,7 @@ test.describe('post detail close navigation', () => {
       await waitPastRootSessionLoading(page)
       await expect(page.getByText(/E2E Multi Public Post/i).first()).toBeVisible(uiTimeout)
       await closeIsolatedPostDetail(page)
-      await expect(page).toHaveURL(/\/public\/stream/, navTimeout)
+      await expect(page).toHaveURL(/\/public\/all/, navTimeout)
     } finally {
       await context.close()
     }

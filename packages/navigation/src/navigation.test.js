@@ -227,7 +227,6 @@ describe('homeRoutePathForView', () => {
   it('returns paths for common home view types', () => {
     expect(homeRoutePathForView({ type: 'all' })).toEqual('/all')
     expect(homeRoutePathForView({ type: 'welcome' })).toEqual('/welcome')
-    expect(homeRoutePathForView({ type: 'stream' })).toEqual('/all')
     expect(homeRoutePathForView({ type: 'custom', id: 12 })).toEqual('/custom/12')
     expect(homeRoutePathForView({ type: 'collection', id: 34 })).toEqual('/collection/34')
     expect(homeRoutePathForView({ type: 'space-collection', id: 56 })).toEqual('/space-collection/56')

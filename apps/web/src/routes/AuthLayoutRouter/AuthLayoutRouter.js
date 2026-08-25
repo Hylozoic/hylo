@@ -1057,8 +1057,10 @@ export default function AuthLayoutRouter (props) {
                 <Route path='members/:personId/*' element={<MemberProfile />} />
                 <Route path='all/members/:personId/*' element={<MemberProfile />} />
                 {/* **** All and Public Routes **** */}
-                <Route path='all/stream/*' element={<ViewContent context='all' />} />
-                <Route path='public/stream/*' element={<ViewContent context='public' />} />
+                <Route path='all/all/*' element={<ViewContent context='all' view='all' />} />
+                <Route path='all/stream/*' element={<RedirectStreamToAll basePath='/all' />} />
+                <Route path='public/all/*' element={<ViewContent context='public' view='all' />} />
+                <Route path='public/stream/*' element={<RedirectStreamToAll basePath='/public' />} />
                 <Route path='all/projects/*' element={<ViewContent context='all' view='projects' />} />
                 <Route path='public/projects/*' element={<ViewContent context='public' view='projects' />} />
                 <Route path='all/proposals/*' element={<ViewContent context='all' view='proposals' />} />
@@ -1074,10 +1076,10 @@ export default function AuthLayoutRouter (props) {
                 {/* Must be before `public/*` — otherwise `/public/post/:id/edit` matches `public/*` and redirects away */}
                 <Route path='public/post/:postId/edit/*' element={<ViewContent context='public' />} />
                 <Route path='public/post/:postId/create/*' element={<ViewContent context='public' />} />
-                <Route path='all' element={isCardMenuUser ? <ContextMenuGrid context='all' /> : <Navigate to='/all/stream' replace />} />
+                <Route path='all' element={isCardMenuUser ? <ContextMenuGrid context='all' /> : <Navigate to='/all/all' replace />} />
                 <Route path='all/*' element={<ViewContent context='my' />} />
-                <Route path='public' element={isCardMenuUser ? <ContextMenuGrid context='public' /> : <Navigate to='/public/stream' replace />} />
-                <Route path='public/*' element={<Navigate to='/public/stream' replace />} />
+                <Route path='public' element={isCardMenuUser ? <ContextMenuGrid context='public' /> : <Navigate to='/public/all' replace />} />
+                <Route path='public/*' element={<Navigate to='/public/all' replace />} />
                 {/* Must be before `groups/:groupSlug/*` so `/groups/:slug/offerings/:id` is not handled only by the group splat + inner Navigate-to-stream */}
                 <Route path='groups/:groupSlug/offerings/:offeringId' element={<OfferingDetails />} />
                 {/* **** Group Routes **** */}
