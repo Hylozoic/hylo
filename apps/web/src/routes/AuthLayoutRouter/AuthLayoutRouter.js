@@ -1115,7 +1115,7 @@ export default function AuthLayoutRouter (props) {
                             <Route path='custom/:customViewId/*' element={<ViewContent context='groups' view='custom' />} />
                             <Route path='collection/:customViewId/*' element={<ViewContent context='groups' view='collection' />} />
                             <Route path='space-collection/:viewId/*' element={<SpaceCollection group={currentGroup} />} />
-                            <Route path='groups/*' element={<Navigate to='about/related-groups' replace />} />
+                            <Route path='groups/*' element={<Navigate to={`/groups/${currentGroupSlug}/about/related-groups`} replace />} />
                             <Route path='members/create/*' element={<Members context='groups' />} />
                             <Route path='members/:personId/*' element={<MemberProfile context='groups' />} />
                             <Route path='members/*' element={<Members context='groups' />} />
@@ -1136,7 +1136,7 @@ export default function AuthLayoutRouter (props) {
                               }
                             />
                             {!isOneColumnGroup && <Route path={POST_DETAIL_MATCH} element={<PostDetail />} />}
-                            <Route path='moderation/*' element={<Navigate to='about/moderation' replace />} />
+                            <Route path='moderation/*' element={<Navigate to={`/groups/${currentGroupSlug}/about/moderation`} replace />} />
                             {/* Legacy All Views / Tracks / Funding Rounds / All Topics → More Spaces */}
                             <Route path='all-views/*' element={<Navigate to={`/groups/${currentGroupSlug}/more-spaces`} replace />} />
                             <Route path='tracks/*' element={<Navigate to={`/groups/${currentGroupSlug}/more-spaces`} replace />} />

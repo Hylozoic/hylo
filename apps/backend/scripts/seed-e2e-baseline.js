@@ -360,11 +360,13 @@ async function main () {
       `INSERT INTO group_views (group_id, type, "order", created_at, updated_at)
        VALUES
          ($1, 'all', 0, $3::timestamptz, $3::timestamptz),
-         ($1, 'members', 1, $3::timestamptz, $3::timestamptz),
-         ($1, 'map', 2, $3::timestamptz, $3::timestamptz),
+         ($1, 'chat', 1, $3::timestamptz, $3::timestamptz),
+         ($1, 'members', 2, $3::timestamptz, $3::timestamptz),
+         ($1, 'map', 3, $3::timestamptz, $3::timestamptz),
          ($2, 'all', 0, $3::timestamptz, $3::timestamptz),
-         ($2, 'members', 1, $3::timestamptz, $3::timestamptz),
-         ($2, 'map', 2, $3::timestamptz, $3::timestamptz)`,
+         ($2, 'chat', 1, $3::timestamptz, $3::timestamptz),
+         ($2, 'members', 2, $3::timestamptz, $3::timestamptz),
+         ($2, 'map', 3, $3::timestamptz, $3::timestamptz)`,
       [publicGroupId, privateGroupId, now]
     )
 

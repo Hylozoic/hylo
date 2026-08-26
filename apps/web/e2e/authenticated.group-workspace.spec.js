@@ -119,10 +119,10 @@ test.describe('Batch D: group workspace', () => {
     await expectGroupWorkspaceShell(page, new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/members`))
   })
 
-  test('GET …/groups loads nested groups list', async ({ page }) => {
+  test('GET …/groups redirects to about/related-groups', async ({ page }) => {
     await page.goto(groupPublic('/groups'))
     await waitPastRootSessionLoading(page)
-    await expectGroupWorkspaceShell(page, new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/groups`))
+    await expectGroupWorkspaceShell(page, new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/about/related-groups`))
   })
 
   test('GET …/all-views redirects to more-spaces', async ({ page }) => {
@@ -149,10 +149,10 @@ test.describe('Batch D: group workspace', () => {
     await expectGroupWorkspaceShell(page, new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/more-spaces`))
   })
 
-  test('GET …/chat/:topic opens chat room', async ({ page }) => {
-    await page.goto(groupPublic('/chat/general'))
+  test('GET …/chat opens chat room', async ({ page }) => {
+    await page.goto(groupPublic('/chat'))
     await waitPastRootSessionLoading(page)
-    await expectGroupWorkspaceShell(page, new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/chat/general`))
+    await expectGroupWorkspaceShell(page, new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/chat/?$`))
   })
 
   test('GET …/settings opens group settings', async ({ page }) => {

@@ -216,7 +216,7 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
         <Route path='track-actions/*' element={<TrackActionsView />} />
         <Route path='funding-round-submissions/*' element={<FundingRoundSubmissionsView />} />
         <Route path='manage-round/*' element={<ManageRoundView />} />
-        <Route path='moderation/*' element={<Navigate to='about/moderation' replace />} />
+        <Route path='moderation/*' element={<Navigate to={`${spaceBase}/about/moderation`} replace />} />
         <Route path='about/*' element={<GroupAboutPage />} />
         <Route path={POST_DETAIL_MATCH} element={<PostDetail />} />
         <Route path='*' element={spaceIndexElement} />
