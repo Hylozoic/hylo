@@ -538,6 +538,7 @@ function GroupViewList ({
   onOpenSettings,
   canAdminister = false
 }) {
+  const { t } = useTranslation()
   const [showAddView, setShowAddView] = useState(false)
   const [showAddSpace, setShowAddSpace] = useState(false)
   // Spaces cannot nest spaces; Add Space is parent-menu only
@@ -556,7 +557,7 @@ function GroupViewList ({
           {/* One Add control opening the same view/space chooser the card grids use,
               rather than a button per kind. p-1 matches the Done Editing button height below */}
           <AddViewOrSpaceMenu
-            trigger={<AddViewOrSpaceButton className='p-1 pl-2' />}
+            trigger={<AddViewOrSpaceButton className='p-1 pl-2' label={t('Add to Menu')} />}
             onChooseView={() => setShowAddView(true)}
             onChooseSpace={() => setShowAddSpace(true)}
             canAddSpace={canAddSpace}

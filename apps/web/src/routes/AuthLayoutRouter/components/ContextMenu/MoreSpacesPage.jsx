@@ -18,9 +18,8 @@ import isPendingFor from 'store/selectors/isPendingFor'
 import { cn } from 'util/index'
 
 import AddSpaceDialog from './AddSpaceDialog'
-import AddViewOrSpaceMenu from './AddViewOrSpaceMenu'
 import SpaceSettingsModal from './SpaceSettingsModal'
-import { SpaceViewCard } from './GroupViewCard'
+import { AddCard, SpaceViewCard } from './GroupViewCard'
 import EditingBottomBar, { EDITING_BAR_BUTTON_CLASS } from './EditingBottomBar'
 import ViewsGridSkeleton from './ViewsGridSkeleton'
 import { spaceEntryUrl } from './groupViewMenuUrl'
@@ -311,9 +310,9 @@ export default function MoreSpacesPage ({ group }) {
       {/* Below the sections, and shown even when empty so there is a way to add the first one */}
       {isEditing && !isSpaceMoreSpaces && (
         <div className='flex flex-wrap gap-3 mt-6'>
-          <AddViewOrSpaceMenu
-            canAddSpace
-            onChooseSpace={() => setShowAddSpace(true)}
+          <AddCard
+            label={t('Add to More Spaces')}
+            onClick={() => setShowAddSpace(true)}
           />
         </div>
       )}
