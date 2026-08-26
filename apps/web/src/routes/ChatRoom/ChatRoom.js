@@ -1,10 +1,9 @@
 import isMobile from 'ismobilejs'
 import { debounce } from 'lodash/fp'
-import { ChevronDown, Copy, MessageSquareMore, Send } from 'lucide-react'
+import { ChevronDown, MessageSquareMore } from 'lucide-react'
 import { DateTimeHelpers, postAppearsInChat } from '@hylo/shared'
 import { EditorView } from 'prosemirror-view'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import CopyToClipboard from 'react-copy-to-clipboard'
 import { Helmet } from 'react-helmet'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
@@ -17,11 +16,8 @@ import ChatEditor from 'components/ChatEditor'
 import Loading from 'components/Loading'
 import PeopleTyping from 'components/PeopleTyping'
 import { StreamSkeleton } from 'components/PostCard/PostCardSkeleton'
-import NoPosts from 'components/NoPosts'
 import PostDialog from 'components/PostDialog'
 import Tooltip from 'components/Tooltip'
-import Button from 'components/ui/button'
-import InviteMembersDialog from 'components/InviteMembersDialog/InviteMembersDialog'
 import ChatMembersPanel from './ChatMembersPanel'
 import PinnedPostChips from './PinnedPostChips'
 import ChatPost from './ChatPost'
@@ -35,7 +31,7 @@ import fetchGroupViews from 'store/actions/fetchGroupViews'
 import fetchPosts from 'store/actions/fetchPosts'
 import fetchViewPinnedPosts from 'store/actions/fetchViewPinnedPosts'
 import updateGroupViewUser from 'store/actions/updateGroupViewUser'
-import { FETCH_POSTS, RESP_ADD_MEMBERS, RESP_MANAGE_CONTENT } from 'store/constants'
+import { FETCH_POSTS, RESP_MANAGE_CONTENT } from 'store/constants'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
 import presentPost from 'store/presenters/presentPost'
 import { makeDropQueryResults, makeQueryResultsModelSelector } from 'store/reducers/queryResults'
@@ -45,7 +41,6 @@ import getMe from 'store/selectors/getMe'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import { getPostResults } from 'store/selectors/getPosts'
 import { cn } from 'util/index'
-import { groupInviteUrl } from '@hylo/navigation'
 import { isLegacyWebView } from 'util/webView'
 import { formatLocalizedDate } from 'util/dateFormat'
 import { getLocaleFromLocalStorage } from 'util/locale'
@@ -135,7 +130,6 @@ export default function ChatRoom (props) {
 
   const effectiveGroupSlug = useEffectiveGroupSlug()
   const groupSlug = props.groupSlug || effectiveGroupSlug
-  const showHomeWelcome = props.showHomeWelcome ?? !props.groupSlug
   const { postId: selectedPostId } = routeParams
 
   const context = props.context || routeParams.context
@@ -909,8 +903,7 @@ export default function ChatRoom (props) {
                   handleRemoveReaction,
                   loadToLatest,
                   postIdToStartAt,
-                  selectedPostId,
-                  showHomeWelcome
+                  selectedPostId
                 }}
                 initialData={postsForDisplay}
                 initialLocation={{ index: initialPostToScrollTo, align: 'start-no-overflow' }}
@@ -960,7 +953,6 @@ export default function ChatRoom (props) {
 
 /** * Virtuoso Components ***/
 const EmptyPlaceholder = ({ context }) => {
-  const { t } = useTranslation()
   // Virtuoso can paint this before initialData lands. If Redux already has
   // posts, stay blank rather than flashing the empty-room copy.
   if (context.numPosts > 0) return null
@@ -968,9 +960,7 @@ const EmptyPlaceholder = ({ context }) => {
     <div className='mx-auto flex flex-col items-center justify-center max-w-[750px] h-full min-h-[50vh]'>
       {!context.loadedPast || !context.loadedFuture || !context.hasFetchedForCurrentRoom
         ? <StreamSkeleton columnVariant='chat' />
-        : context.showHomeWelcome
-          ? <HomeChatWelcome group={context.group} />
-          : <NoPosts className={styles.noPosts} icon='message-dashed' message={t('No messages yet. Start the conversation!')} />}
+        : <EmptyChatWelcome />}
     </div>
   )
 }
@@ -1137,27 +1127,13 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
   )
 }
 
-const HomeChatWelcome = ({ group }) => {
+const EmptyChatWelcome = () => {
   const { t } = useTranslation()
-  const canAddMembers = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADD_MEMBERS, groupId: group?.id }))
 
   return (
     <div className='mx-auto px-4 max-w-[500px] flex flex-col items-center justify-center'>
-      <img src='/home-chat-welcome.png' alt='Golden Starburst' />
-      <h1 className='text-center'>{t('homeChatWelcomeTitle')}</h1>
-      <p className='text-center'>{t('homeChatWelcomeDescription', { group_name: group.name })}</p>
-      <div className='flex gap-2 items-center justify-center'>
-        {canAddMembers && (
-          <>
-            <InviteMembersDialog group={group}>
-              <Button><Send /> {t('Send Invites')}</Button>
-            </InviteMembersDialog>
-            <CopyToClipboard text={groupInviteUrl(group)}>
-              <Button><Copy /> {t('Copy Invite Link')}</Button>
-            </CopyToClipboard>
-          </>
-        )}
-      </div>
+      <img src='/home-chat-welcome.png' alt='' />
+      <h1 className='text-center'>{t('It\'s quiet in here, start the conversation.')}</h1>
     </div>
   )
 }

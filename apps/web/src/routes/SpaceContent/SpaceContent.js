@@ -212,7 +212,7 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
         <Route path='requests' element={<MembershipRequestsTab />} />
         <Route path='settings/requests' element={settingsRequestsRedirect} />
         <Route path='settings/*' element={settingsRedirect} />
-        <Route path='chat/*' element={<ChatRoom context='groups' showHomeWelcome={false} />} />
+        <Route path='chat/*' element={<ChatRoom context='groups' />} />
         <Route path='track-actions/*' element={<TrackActionsView />} />
         <Route path='funding-round-submissions/*' element={<FundingRoundSubmissionsView />} />
         <Route path='manage-round/*' element={<ManageRoundView />} />
