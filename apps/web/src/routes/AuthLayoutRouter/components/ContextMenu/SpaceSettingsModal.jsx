@@ -192,7 +192,6 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
     setFrSubmitterRoles(fundingRound.submitterRoles || [])
     setFrVoterRoles(fundingRound.voterRoles || [])
     // Full round object is read when roundIsFull flips; avoid depending on the selector's new object each render.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fundingRound?.id, roundIsFull])
 
   // Spaces inherit role definitions from the parent group (no per-space groups_roles rows).

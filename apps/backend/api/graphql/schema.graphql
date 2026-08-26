@@ -2001,6 +2001,8 @@ type MembershipSettings {
 # A direct message sent in a specific thread
 type Message {
   id: ID
+  attachments(type: String): [Attachment]
+  attachmentsTotal: Int
   createdAt: Date
   # When this message was last edited
   editedAt: Date
@@ -4245,6 +4247,7 @@ input MembershipSettingsInput {
 
 # Data for updating a message in a direct message thread
 input MessageInput {
+  attachments: [AttachmentInput]
   # When this thread was created
   createdAt: Date
   # The ID of the thread to update/edit

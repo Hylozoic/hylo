@@ -1366,7 +1366,13 @@ export default function makeModels (userId, isAdmin, apiClient) {
       attributes: ['created_at', 'edited_at'],
       relations: [
         { post: { alias: 'messageThread', typename: 'MessageThread' } },
-        { user: { alias: 'creator' } }
+        { user: { alias: 'creator' } },
+        {
+          media: {
+            alias: 'attachments',
+            arguments: ({ type }) => [type]
+          }
+        }
       ],
       filter: messageFilter(userId)
     },

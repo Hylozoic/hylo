@@ -145,10 +145,13 @@ export default function FundingRoundSettingsFields ({
 
       <div>
         <label className='text-sm text-foreground/70'>{t('Voting method')}</label>
-        <Select value={votingMethod} onValueChange={value => {
-          setVotingMethod(value)
-          if (value !== 'token_allocation_constant') setAllowLateJoiners(false)
-        }}>
+        <Select
+          value={votingMethod}
+          onValueChange={value => {
+            setVotingMethod(value)
+            if (value !== 'token_allocation_constant') setAllowLateJoiners(false)
+          }}
+        >
           <SelectTrigger className='w-full border-2 bg-input border-foreground/30 rounded-md p-2 text-base mt-1'>
             <SelectValue />
           </SelectTrigger>
