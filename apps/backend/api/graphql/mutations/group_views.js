@@ -149,12 +149,37 @@ export async function updateGroupView ({ userId, id, name, icon, settings, link,
   if (!view) throw new GraphQLError('View not found')
 
   const groupId = view.get('group_id')
-  await requireAdmin(userId, groupId, 'update views')
+  const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, groupId)
+  const { RESP_ADMINISTRATION, RESP_MANAGE_CONTENT } = Responsibility.constants
+  const isAdmin = responsibilities.includes(RESP_ADMINISTRATION)
+  const incomingSettings = settings
+  const hasOtherViewFields = name !== undefined || icon !== undefined || link !== undefined ||
+    pageContent !== undefined || topics !== undefined || orderInFrontOfViewId || addToEnd
+  const isSpaceCollectionSpaceIdsUpdate = view.get('type') === GroupView.Type.SPACE_COLLECTION &&
+    incomingSettings != null &&
+    Array.isArray(incomingSettings.spaceIds) &&
+    !hasOtherViewFields
+
+  if (!isAdmin) {
+    if (!responsibilities.includes(RESP_MANAGE_CONTENT) || !isSpaceCollectionSpaceIdsUpdate) {
+      throw new GraphQLError("You don't have permission to update views for this group")
+    }
+  }
 
   const changes = {}
   if (name !== undefined) changes.name = name
   if (icon !== undefined) changes.icon = icon
-  if (settings !== undefined) changes.settings = settings
+  if (settings !== undefined) {
+    if (!isAdmin && isSpaceCollectionSpaceIdsUpdate) {
+      const currentSettings = view.get('settings') || {}
+      changes.settings = {
+        ...currentSettings,
+        spaceIds: incomingSettings.spaceIds.map(spaceId => String(spaceId))
+      }
+    } else {
+      changes.settings = settings
+    }
+  }
   if (link !== undefined) changes.link = sanitizedLink(link)
   if (pageContent !== undefined) changes.page_content = pageContent
   if (topics !== undefined) changes.topics = topicsForJsonb(topics)

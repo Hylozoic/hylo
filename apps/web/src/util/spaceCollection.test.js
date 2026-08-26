@@ -2,6 +2,7 @@ import {
   appendSpaceId,
   parseViewSettings,
   removeSpaceId,
+  reorderVisibleSpaceIds,
   resolveSpacesByIds,
   collectionsWithoutSpace,
   spaceCollectionViews,
@@ -63,5 +64,11 @@ describe('spaceCollection helpers', () => {
     ]
     expect(collectionsWithoutSpace(views, 2).map(v => v.id)).toEqual(['b'])
     expect(collectionsWithoutSpace(views, '9')).toHaveLength(2)
+  })
+
+  it('reorders visible space ids without dropping hidden ones', () => {
+    expect(reorderVisibleSpaceIds(['hidden', 'a', 'b'], ['a', 'b'], 1, 0)).toEqual(['hidden', 'b', 'a'])
+    expect(reorderVisibleSpaceIds(['a', 'hidden', 'b'], ['a', 'b'], 0, 1)).toEqual(['b', 'hidden', 'a'])
+    expect(reorderVisibleSpaceIds(['a', 'b'], ['a', 'b'], 0, 1)).toEqual(['b', 'a'])
   })
 })

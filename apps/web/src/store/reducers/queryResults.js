@@ -28,6 +28,7 @@ import {
   FETCH_COMMENTS,
   REMOVE_POST_PENDING,
   REMOVE_POST_FROM_VIEW_PENDING,
+  REORDER_VIEW_POST_PENDING,
   SAVE_POST_PENDING,
   UNSAVE_POST_PENDING,
   FULFILL_POST_PENDING,
@@ -168,6 +169,21 @@ export default function (state = {}, action) {
           ids: results.ids.filter(id => String(id) !== String(meta.postId)),
           total: (results.total || results.total === 0) && results.total - 1
         }
+      })
+
+    case REORDER_VIEW_POST_PENDING:
+      return mapValues(state, (results, key) => {
+        const keyObject = JSON.parse(key)
+        if (String(get('params.forCollection', keyObject)) !== String(meta.viewId)) return results
+        if (get('params.sortBy', keyObject) && get('params.sortBy', keyObject) !== 'order') return results
+        const ids = results.ids || []
+        const fromIndex = ids.findIndex(id => String(id) === String(meta.postId))
+        if (fromIndex === -1 || fromIndex === meta.order) return results
+        const next = [...ids]
+        const [moved] = next.splice(fromIndex, 1)
+        const insertAt = Math.max(0, Math.min(meta.order, next.length))
+        next.splice(insertAt, 0, moved)
+        return { ...results, ids: next }
       })
 
     case UNSAVE_POST_PENDING:

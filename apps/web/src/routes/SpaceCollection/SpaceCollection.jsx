@@ -28,7 +28,7 @@ import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupVi
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import { updateGroupView } from 'store/actions/groupViews'
-import { FETCH_GROUP_SPACES, RESP_ADMINISTRATION } from 'store/constants'
+import { FETCH_GROUP_SPACES, RESP_ADMINISTRATION, RESP_MANAGE_CONTENT } from 'store/constants'
 import { getGroupViewById } from 'store/selectors/getGroupViews'
 import getMe from 'store/selectors/getMe'
 import getMyMemberships from 'store/selectors/getMyMemberships'
@@ -36,6 +36,7 @@ import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import isPendingFor from 'store/selectors/isPendingFor'
 import usePublishedOfferings from 'hooks/usePublishedOfferings'
+import CollectionDragHandle from 'components/CollectionDragHandle'
 import SpaceSelector from 'components/SpaceSelector'
 import Button from 'components/ui/button'
 import { cn } from 'util/index'
@@ -46,6 +47,7 @@ import {
 import {
   appendSpaceId,
   removeSpaceId,
+  reorderVisibleSpaceIds,
   resolveSpacesByIds,
   spaceIdsFromSettings,
   withSpaceIds
@@ -84,7 +86,12 @@ export default function SpaceCollection ({ group, parentGroup }) {
     responsibility: RESP_ADMINISTRATION,
     groupId: ownerGroup?.id
   }))
+  const canManageContent = useSelector(state => hasResponsibilityForGroup(state, {
+    responsibility: [RESP_ADMINISTRATION, RESP_MANAGE_CONTENT],
+    groupId: ownerGroup?.id
+  }))
   const isEditing = isEditingRequested && canAdminister
+  const canReorder = canManageContent
 
   const view = useSelector(state => getGroupViewById(state, ownerGroup, viewId))
   const pending = useSelector(state => isPendingFor(FETCH_GROUP_SPACES, state))
@@ -212,11 +219,12 @@ export default function SpaceCollection ({ group, parentGroup }) {
     const { active, over } = event
     setActiveId(null)
     if (!over || active.id === over.id) return
-    const oldIndex = collectionSpaces.findIndex(s => String(s.id) === String(active.id))
-    const newIndex = collectionSpaces.findIndex(s => String(s.id) === String(over.id))
+    const visibleIds = collectionSpaces.map(s => String(s.id))
+    const oldIndex = visibleIds.indexOf(String(active.id))
+    const newIndex = visibleIds.indexOf(String(over.id))
     if (oldIndex === -1 || newIndex === -1) return
-    persistSpaceIds(arrayMove(collectionSpaces.map(s => String(s.id)), oldIndex, newIndex))
-  }, [collectionSpaces, persistSpaceIds])
+    persistSpaceIds(reorderVisibleSpaceIds(spaceIds, visibleIds, oldIndex, newIndex))
+  }, [collectionSpaces, persistSpaceIds, spaceIds])
 
   const activeSpace = collectionSpaces.find(s => String(s.id) === String(activeId))
   const hasContent = collectionSpaces.length > 0
@@ -227,7 +235,7 @@ export default function SpaceCollection ({ group, parentGroup }) {
         ? <ViewsGridSkeleton />
         : !hasContent
             ? <p className='text-sm text-foreground/40'>{t('No spaces in this collection')}</p>
-            : isEditing
+            : canReorder
               ? (
                 <DndContext
                   sensors={sensors}
@@ -241,31 +249,33 @@ export default function SpaceCollection ({ group, parentGroup }) {
                         <SortableSpaceCard
                           key={space.id}
                           space={space}
-                          isEditing
+                          isEditing={isEditing}
                           onOpen={handleOpenSpace}
                           onOpenAbout={handleOpenSpaceAbout}
-                          onRemove={handleRemoveFromCollection}
+                          onRemove={isEditing ? handleRemoveFromCollection : null}
                         />
                       ))}
-                      <button
-                        type='button'
-                        onClick={() => setShowPicker(true)}
-                        className={cn(
-                          CARD_CLASS,
-                          cardChrome(effectiveColorScheme === 'dark'),
-                          'border-dashed border-foreground/30 hover:border-foreground/50 bg-transparent items-center justify-center text-foreground/60 hover:text-foreground'
-                        )}
-                      >
-                        <Plus className='w-6 h-6' />
-                        <span className='text-sm font-semibold mt-1'>{t('Add spaces')}</span>
-                      </button>
+                      {isEditing && (
+                        <button
+                          type='button'
+                          onClick={() => setShowPicker(true)}
+                          className={cn(
+                            CARD_CLASS,
+                            cardChrome(effectiveColorScheme === 'dark'),
+                            'border-dashed border-foreground/30 hover:border-foreground/50 bg-transparent items-center justify-center text-foreground/60 hover:text-foreground'
+                          )}
+                        >
+                          <Plus className='w-6 h-6' />
+                          <span className='text-sm font-semibold mt-1'>{t('Add spaces')}</span>
+                        </button>
+                      )}
                     </div>
                   </SortableContext>
                   <DragOverlay>
                     {activeSpace
                       ? (
                         <div className={CARD_SIZE_CLASS}>
-                          <SpaceViewCard space={activeSpace} isEditing />
+                          <SpaceViewCard space={activeSpace} isEditing={isEditing} />
                         </div>
                         )
                       : null}
@@ -306,7 +316,7 @@ export default function SpaceCollection ({ group, parentGroup }) {
           <div className='w-full max-w-[980px] flex items-center justify-end sm:justify-between gap-4'>
             <p className='hidden sm:flex items-center gap-2 text-sm text-foreground/70 m-0 text-left pointer-events-auto'>
               <GripVertical className='w-4 h-4 shrink-0 text-foreground/50' />
-              {t('Drag cards to reorder this collection.')}
+              {t('Drag to reorder')}
             </p>
             <button
               type='button'
@@ -375,7 +385,7 @@ function SortableSpaceCard ({ space, isEditing, onOpen, onOpenAbout, onRemove })
   }
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <div ref={setNodeRef} style={style} className='relative group'>
       <SpaceViewCard
         space={space}
         isEditing={isEditing}
@@ -383,6 +393,11 @@ function SortableSpaceCard ({ space, isEditing, onOpen, onOpenAbout, onRemove })
         onOpenAbout={onOpenAbout}
         onHide={onRemove ? () => onRemove(space) : null}
         hideLabel={t('Remove from collection')}
+      />
+      <CollectionDragHandle
+        attributes={attributes}
+        listeners={listeners}
+        className='absolute left-1 top-1/2 -translate-y-1/2 z-20'
       />
     </div>
   )

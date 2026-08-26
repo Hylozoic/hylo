@@ -12,7 +12,9 @@ import {
   CREATE_MODERATION_ACTION,
   CREATE_MODERATION_ACTION_PENDING,
   FETCH_MODERATION_ACTIONS,
-  REMOVE_POST_PENDING
+  FETCH_POSTS,
+  REMOVE_POST_PENDING,
+  REORDER_VIEW_POST_PENDING
 } from 'store/constants'
 import { RECEIVE_POST } from 'components/SocketListener/SocketListener.store'
 import { OPTIMISTIC_NOTICE_PREFIX } from 'store/util/chatActivityNotice'
@@ -557,5 +559,29 @@ describe('CREATE_MODERATION_ACTION optimistic query results', () => {
 
     expect(nextState[groupKey].ids).toEqual(['99', '10'])
     expect(nextState[parentKey].ids).toEqual(['10'])
+  })
+})
+
+describe('REORDER_VIEW_POST_PENDING', () => {
+  const viewId = 'view-1'
+  const orderKey = buildKey(FETCH_POSTS, { forCollection: viewId, sortBy: 'order' })
+  const createdKey = buildKey(FETCH_POSTS, { forCollection: viewId, sortBy: 'created' })
+  const otherKey = buildKey(FETCH_POSTS, { slug: 'other' })
+
+  const initialState = {
+    [orderKey]: { ids: ['a', 'b', 'c'], total: 3, hasMore: false },
+    [createdKey]: { ids: ['c', 'b', 'a'], total: 3, hasMore: false },
+    [otherKey]: { ids: ['a', 'b'], total: 2, hasMore: false }
+  }
+
+  it('moves the post in manual-order collection results only', () => {
+    const nextState = queryResults(initialState, {
+      type: REORDER_VIEW_POST_PENDING,
+      meta: { viewId, postId: 'a', order: 2 }
+    })
+
+    expect(nextState[orderKey].ids).toEqual(['b', 'c', 'a'])
+    expect(nextState[createdKey].ids).toEqual(['c', 'b', 'a'])
+    expect(nextState[otherKey].ids).toEqual(['a', 'b'])
   })
 })

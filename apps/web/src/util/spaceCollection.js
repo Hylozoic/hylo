@@ -38,6 +38,23 @@ export function removeSpaceId (settings, spaceId) {
 }
 
 /**
+ * Reorder the visible slice of a space-collection without dropping ids the
+ * current viewer cannot see (drafts, hidden spaces, etc.).
+ */
+export function reorderVisibleSpaceIds (fullIds, visibleIds, oldIndex, newIndex) {
+  if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) {
+    return fullIds.map(id => String(id))
+  }
+  const visible = visibleIds.map(id => String(id))
+  const nextVisible = [...visible]
+  const [moved] = nextVisible.splice(oldIndex, 1)
+  nextVisible.splice(newIndex, 0, moved)
+  const visibleSet = new Set(visible)
+  let visibleIndex = 0
+  return fullIds.map(id => visibleSet.has(String(id)) ? nextVisible[visibleIndex++] : String(id))
+}
+
+/**
  * Resolve ordered space objects from a group's spaces list.
  * Drops ids that no longer resolve (deleted spaces).
  */

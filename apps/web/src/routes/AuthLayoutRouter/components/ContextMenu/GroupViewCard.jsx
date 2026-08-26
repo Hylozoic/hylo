@@ -619,7 +619,6 @@ export function SpaceViewCard ({
       className={cn(
         CARD_CLASS,
         cardChrome(isDark),
-        isEditing && 'cursor-grab active:cursor-grabbing',
         isDeleting && 'pointer-events-none opacity-50'
       )}
       style={{
