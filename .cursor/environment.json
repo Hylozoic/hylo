@@ -1,0 +1,15 @@
+{
+  "name": "Hylo Monorepo",
+  "install": "bash .cursor/install.sh",
+  "start": "bash .cursor/start.sh",
+  "terminals": [
+    {
+      "name": "backend",
+      "command": "bash -lc 'cd apps/backend && yarn dev'"
+    },
+    {
+      "name": "web",
+      "command": "bash -lc 'cd apps/web && yarn dev'"
+    }
+  ]
+}
