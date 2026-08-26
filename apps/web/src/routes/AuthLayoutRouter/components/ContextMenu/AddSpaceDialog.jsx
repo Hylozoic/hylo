@@ -6,14 +6,12 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { BadgeDollarSign, ImagePlus, Layers, MessageCircleMore, Plus, Shapes } from 'lucide-react'
 
 import Button from 'components/ui/button'
+import { FIELD_LABEL_CLASS, INPUT_CLASS } from 'components/ui/form-field'
 import { Input } from 'components/ui/input'
-import { Label } from 'components/ui/label'
-import { RadioGroup, RadioGroupItem } from 'components/ui/radio-group'
 import IncludedViewsEditor from 'components/IncludedViewsEditor/IncludedViewsEditor'
-import LucideIcon from 'components/LucideIcon/LucideIcon'
-import LucideIconPicker from 'components/LucideIconPicker/LucideIconPicker'
 import LocationInput from 'components/LocationInput/LocationInput'
 import PostTypePills from 'components/PostTypePills/PostTypePills'
+import SettingSelectRow from 'components/SettingSelectRow/SettingSelectRow'
 import TagInput from 'components/TagInput'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import { CUSTOM_VIEW_DEFAULT_POST_TYPES, CUSTOM_VIEW_POST_TYPE_OPTIONS } from 'components/CustomViewForm/customViewFormConstants'
@@ -33,9 +31,10 @@ import { cn } from 'util/index'
 import { isOneColumnLayout } from 'util/navigationLayout'
 
 import FundingRoundSettingsFields from './FundingRoundSettingsFields'
+import SpaceIconRow from './SpaceIconRow'
 import SpaceSlugField from './SpaceSlugField'
 import TrackSettingsFields from './TrackSettingsFields'
-import { SPACE_ICON_SUGGESTIONS, accessOptionsForGroup, toIsoOrNull } from './spaceFormConstants'
+import { accessOptionsForGroup, toIsoOrNull } from './spaceFormConstants'
 
 const STANDARD_VIEW_TYPES = new Set([
   'all',
@@ -168,6 +167,16 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
   const roles = useMemo(
     () => groupRolesForPicker(group?.groupRoles?.items),
     [group?.groupRoles?.items]
+  )
+
+  const accessSelectOptions = useMemo(
+    () => accessOptionsForGroup(group).map(option => ({
+      value: option.value,
+      icon: option.icon,
+      title: option.labelKey,
+      description: option.descKey
+    })),
+    [group]
   )
 
   const roleSuggestions = useMemo(() => {
@@ -441,32 +450,12 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
             </div>
           </UploadAttachmentButton>
 
-          <div className='flex flex-col gap-1'>
-            <label className='text-sm text-foreground/70'>{t('Icon')}</label>
-            <div className='flex flex-wrap items-center gap-2'>
-              {SPACE_ICON_SUGGESTIONS.map(iconName => (
-                <button
-                  key={iconName}
-                  type='button'
-                  onClick={() => setIcon(iconName)}
-                  aria-label={iconName}
-                  className={cn(
-                    'flex items-center justify-center rounded-md border-2 p-2 transition-all',
-                    icon === iconName
-                      ? 'border-selected bg-selected/20'
-                      : 'border-foreground/20 hover:border-foreground/50'
-                  )}
-                >
-                  <LucideIcon name={iconName} className='w-4 h-4' />
-                </button>
-              ))}
-              <LucideIconPicker value={icon} onChange={setIcon} className='w-auto px-2 shrink-0' />
-            </div>
-          </div>
+          <SpaceIconRow value={icon} onChange={setIcon} />
 
           <div className='flex flex-col gap-1'>
-            <label className='text-sm text-foreground/70'>{t('Name')}</label>
+            <label className={FIELD_LABEL_CLASS}>{t('Name')}</label>
             <Input
+              className={INPUT_CLASS}
               value={name}
               onChange={e => {
                 const newName = e.target.value
@@ -489,8 +478,9 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
           />
 
           <div className='flex flex-col gap-1'>
-            <label className='text-sm text-foreground/70'>{t('Purpose')}</label>
+            <label className={FIELD_LABEL_CLASS}>{t('Purpose')}</label>
             <Input
+              className={INPUT_CLASS}
               value={purpose}
               onChange={e => setPurpose(e.target.value)}
               placeholder={t('What is this space for?')}
@@ -498,23 +488,23 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
           </div>
 
           <div className='flex flex-col gap-1'>
-            <label className='text-sm text-foreground/70'>{t('Description')}</label>
+            <label className={FIELD_LABEL_CLASS}>{t('Description')}</label>
             <textarea
               value={description}
               onChange={e => setDescription(e.target.value)}
               placeholder={t('Description (optional)')}
               rows={3}
-              className='w-full rounded-md border border-foreground/20 bg-input p-2 text-sm text-foreground'
+              className={cn(INPUT_CLASS, 'min-h-[80px] resize-none')}
             />
           </div>
 
           <div className='flex flex-col gap-1'>
-            <label className='text-sm text-foreground/70'>{t('Location')}</label>
+            <label className={FIELD_LABEL_CLASS}>{t('Location')}</label>
             <LocationInput
               locationObject={locationObject}
               location={locationObject?.fullText || ''}
               onChange={setLocationObject}
-              className='bg-input rounded-md text-foreground placeholder-foreground/40 w-full p-2 text-sm'
+              className={INPUT_CLASS}
             />
           </div>
 
@@ -536,41 +526,35 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
           />
 
           <div className='flex flex-col gap-2'>
-            <label className='text-sm text-foreground/70'>{t('Access')}</label>
-            <RadioGroup value={access} onValueChange={setAccess}>
-              {accessOptionsForGroup(group).map(option => (
-                <div key={option.value} className='flex flex-col gap-1 mb-2'>
-                  <div className='flex items-start gap-2'>
-                    <RadioGroupItem value={option.value} id={`space-access-${option.value}`} className='mt-0.5 shrink-0' />
-                    <Label htmlFor={`space-access-${option.value}`} className='cursor-pointer flex flex-wrap items-baseline gap-x-2'>
-                      <span>{t(option.labelKey)}</span>
-                      <span className='text-xs font-normal text-foreground/50'>{t(option.descKey)}</span>
-                    </Label>
-                  </div>
-                  {option.value === 'role' && access === 'role' && (
-                    <div className='ml-6 mt-1 flex flex-row items-center relative border-2 border-transparent shadow-md transition-all duration-200 group focus-within:border-focus bg-input rounded-md'>
-                      <TagInput
-                        tags={requiredRoles.map(role => ({ ...role, name: role.label || `${role.emoji} ${role.name}` }))}
-                        suggestions={roleSuggestions}
-                        handleInputChange={setRoleSearchTerm}
-                        handleAddition={(role) => {
-                          setRequiredRoles(prev => [...prev, role])
-                          setRoleSearchTerm('')
-                        }}
-                        handleDelete={(role) => {
-                          setRequiredRoles(prev => prev.filter(r => r.id !== role.id))
-                        }}
-                        placeholder={t('Search roles/badges')}
-                        allowNewTags={false}
-                        renderSuggestion={renderRoleSuggestion}
-                        onFocus={() => setRoleSearchTerm('')}
-                        onBlur={() => setRoleSearchTerm(null)}
-                      />
-                    </div>
-                  )}
-                </div>
-              ))}
-            </RadioGroup>
+            <label className={FIELD_LABEL_CLASS}>{t('Access')}</label>
+            <SettingSelectRow
+              label='Access'
+              value={access}
+              onChange={setAccess}
+              options={accessSelectOptions}
+              popoverClassName='z-[1200]'
+            />
+            {access === 'role' && (
+              <div className='ml-12 flex flex-row items-center relative border-2 border-transparent shadow-md transition-all duration-200 group focus-within:border-focus bg-input rounded-md'>
+                <TagInput
+                  tags={requiredRoles.map(role => ({ ...role, name: role.label || `${role.emoji} ${role.name}` }))}
+                  suggestions={roleSuggestions}
+                  handleInputChange={setRoleSearchTerm}
+                  handleAddition={(role) => {
+                    setRequiredRoles(prev => [...prev, role])
+                    setRoleSearchTerm('')
+                  }}
+                  handleDelete={(role) => {
+                    setRequiredRoles(prev => prev.filter(r => r.id !== role.id))
+                  }}
+                  placeholder={t('Search roles/badges')}
+                  allowNewTags={false}
+                  renderSuggestion={renderRoleSuggestion}
+                  onFocus={() => setRoleSearchTerm('')}
+                  onBlur={() => setRoleSearchTerm(null)}
+                />
+              </div>
+            )}
           </div>
 
           {spaceType === 'track' && (
