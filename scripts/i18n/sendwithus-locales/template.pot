@@ -869,7 +869,7 @@ msgstr ""
 msgid "Your request to join %(group_pill)s was approved by %(approver_pill)s!"
 msgstr ""
 
-msgid "Now's a great time to introduce yourself in the chat."
+msgid "Introduce yourself to the group"
 msgstr ""
 
 msgid "Jump in"

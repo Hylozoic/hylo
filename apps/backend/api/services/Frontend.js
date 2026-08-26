@@ -127,6 +127,20 @@ module.exports = {
       return url('/groups/%s', getSlug(group))
     },
 
+    /**
+     * URL for a group's configured home view (`home_route`).
+     * Spaces use Route.space so they land under the parent group.
+     */
+    groupHome: function (group) {
+      const isGroupObject = group && typeof group.get === 'function'
+      const isSpace = isGroupObject && group.get('type') === 'space'
+      if (isSpace) {
+        return this.space(group)
+      }
+      const homeRoute = isGroupObject ? (group.get('home_route') || '/all') : '/all'
+      return this.group(group) + normalizeViewPath(homeRoute)
+    },
+
     groupRelationships: function (group) {
       return this.group(group) + '/groups'
     },
