@@ -17,11 +17,10 @@ query (
     fundingRounds (first: $first, offset: $offset, order: $order, sortBy: $sortBy, published: $published, search: $search) {
       items {
         id
+        allowLateJoiners
         allowSelfVoting
-        bannerUrl
         createdAt
         criteria
-        description
         isParticipating
         hideFinalResultsFromParticipants
         maxTokenAllocation
@@ -37,7 +36,6 @@ query (
         submissionDescriptorPlural
         submissionsCloseAt
         submissionsOpenAt
-        title
         tokenType
         totalTokens
         totalTokensAllocated
@@ -47,7 +45,9 @@ query (
         votingClosesAt
         group {
           id
+          name
           slug
+          bannerUrl
           description
           homeRoute
           parentGroup {

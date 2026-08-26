@@ -58,12 +58,21 @@ import ModalDialog from 'components/ModalDialog'
 import { pinGroup, unpinGroup, updateGroupNavOrder } from 'store/actions/pinGroup'
 import markGroupAsRead from 'store/actions/markGroupAsRead'
 import logout from 'store/actions/logout'
-import { newMessageUrl, personUrl } from '@hylo/navigation'
+import { newMessageUrl, personUrl, myHomeLandingUrl } from '@hylo/navigation'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import { createGroupModalUrl } from 'routes/CreateGroup/createGroupUrl'
-import { WebViewMessageTypes } from '@hylo/shared'
+import {
+  WebViewMessageTypes,
+  LOCALE_DE,
+  LOCALE_EN_GB,
+  LOCALE_EN_US,
+  LOCALE_ES,
+  LOCALE_FR,
+  LOCALE_HI,
+  LOCALE_PT
+} from '@hylo/shared'
 import useAppearance from 'hooks/useAppearance'
-import { getLocaleFromLocalStorage } from 'util/locale'
+import { getLocaleFromLocalStorage, normalizeLocaleToFull } from 'util/locale'
 import updateUserSettings from 'store/actions/updateUserSettings'
 import { availableThemes, getAppearanceFromSettings } from 'util/appearance'
 import {
@@ -148,7 +157,7 @@ function GlobalCreateMenu () {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger aria-label={t('Create')} data-testid='global-nav-create'>
-        <div className={cn('bg-primary relative z-20 transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-8 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-foreground/0 hover:border-foreground/50')}>
+        <div className={cn('bg-[hsl(0_0%_17%)] text-white relative z-20 transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-8 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-foreground/0 hover:border-foreground/50')}>
           <PlusCircle className='w-7 h-7' />
         </div>
       </PopoverTrigger>
@@ -195,6 +204,49 @@ function CreateMenuRow ({ onClick, tileClass, icon, label }) {
   )
 }
 
+/**
+ * Nested settings. Desktop uses a side flyout; compact expands inline so the
+ * panel never leaves the parent menu (phones have no room to the left or right).
+ */
+function SettingsSubMenu ({ compact, icon, label, children }) {
+  const [open, setOpen] = useState(false)
+
+  if (!compact) {
+    return (
+      <DropdownMenuSub>
+        <DropdownMenuSubTrigger>
+          {icon}
+          <span>{label}</span>
+        </DropdownMenuSubTrigger>
+        <DropdownMenuSubContent className='z-[200] bg-card'>
+          {children}
+        </DropdownMenuSubContent>
+      </DropdownMenuSub>
+    )
+  }
+
+  return (
+    <>
+      <DropdownMenuItem
+        className='flex flex-row items-center'
+        onSelect={(event) => {
+          event.preventDefault()
+          setOpen(prev => !prev)
+        }}
+      >
+        {icon}
+        <span className='flex-1'>{label}</span>
+        <ChevronDown className={cn('ml-auto h-4 w-4 shrink-0 transition-transform', open && 'rotate-180')} />
+      </DropdownMenuItem>
+      {open && (
+        <div className='pl-4'>
+          {children}
+        </div>
+      )}
+    </>
+  )
+}
+
 // Settings Menu Component
 function SettingsMenu ({ currentUser, triggerClassName, contentSide = 'right', contentAlign = 'start' }) {
   const compactLayout = isCompactLayoutDevice()
@@ -205,7 +257,9 @@ function SettingsMenu ({ currentUser, triggerClassName, contentSide = 'right', c
   const { theme } = getAppearanceFromSettings(currentUser?.settings)
   const globalNavStyle = currentUser?.settings?.globalNavStyle === 'tabs' ? 'tabs' : 'sidebar'
   const stackGroups = currentUser?.settings?.stackGroups === true
-  const currentLocale = currentUser?.settings?.locale || i18n.language || getLocaleFromLocalStorage() || 'en'
+  const currentLocale = normalizeLocaleToFull(
+    currentUser?.settings?.locale || i18n.language || getLocaleFromLocalStorage()
+  )
 
   // Hide the Sidebar/Tabs toggle on phone viewports — tabs are forced off there.
   const [isPhoneViewport, setIsPhoneViewport] = useState(() =>
@@ -269,10 +323,11 @@ function SettingsMenu ({ currentUser, triggerClassName, contentSide = 'right', c
     : ''
 
   const handleLanguageChange = (locale) => {
-    i18n.changeLanguage(locale)
-    getLocaleFromLocalStorage(locale)
+    const normalizedLocale = normalizeLocaleToFull(locale)
+    i18n.changeLanguage(normalizedLocale)
+    getLocaleFromLocalStorage(normalizedLocale)
     if (currentUser) {
-      dispatch(updateUserSettings({ settings: { locale } }))
+      dispatch(updateUserSettings({ settings: { locale: normalizedLocale } }))
     }
   }
 
@@ -337,124 +392,90 @@ function SettingsMenu ({ currentUser, triggerClassName, contentSide = 'right', c
           <BellIcon className='mr-2 h-4 w-4' />
           <span>{t('Notifications')}</span>
         </DropdownMenuItem>
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger>
-            <Palette className='mr-2 h-4 w-4' />
-            <span>{t('Appearance')}</span>
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent className='z-[200] bg-card'>
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <span>{t('Color Mode')}</span>
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent className='z-[200] bg-card'>
-                <DropdownMenuRadioGroup value={colorScheme} onValueChange={value => handleSettingChange({ colorScheme: value })}>
-                  <DropdownMenuRadioItem value='auto'>
-                    {t('System')}
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value='light'>
-                    {t('Light')}
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value='dark'>
-                    {t('Dark')}
-                  </DropdownMenuRadioItem>
-                </DropdownMenuRadioGroup>
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <span>{t('Color Theme')}</span>
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent className='z-[200] bg-card'>
-                <DropdownMenuRadioGroup value={theme} onValueChange={value => handleSettingChange({ theme: value })}>
-                  {availableThemes.map(theme => (
-                    <DropdownMenuRadioItem key={theme} value={theme} className='capitalize'>
-                      {t(theme)}
-                    </DropdownMenuRadioItem>
-                  ))}
-                </DropdownMenuRadioGroup>
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
-            {!isPhoneViewport && (
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger>
-                  <span>{t('Global Navigation')}</span>
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent className='z-[200] bg-card'>
-                  <DropdownMenuRadioGroup value={globalNavStyle} onValueChange={value => handleSettingChange({ globalNavStyle: value })}>
-                    <DropdownMenuRadioItem value='sidebar'>
-                      {t('Sidebar')}
-                    </DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value='tabs'>
-                      {t('Topbar')}
-                    </DropdownMenuRadioItem>
-                  </DropdownMenuRadioGroup>
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
-            )}
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <span>{t('Group Nav Stacking')}</span>
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent className='z-[200] bg-card'>
-                <DropdownMenuRadioGroup value={stackGroups ? 'stacked' : 'flat'} onValueChange={value => handleSettingChange({ stackGroups: value === 'stacked' })}>
-                  <DropdownMenuRadioItem value='flat'>
-                    {t('Flat')}
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value='stacked'>
-                    {t('Stacked')}
-                  </DropdownMenuRadioItem>
-                </DropdownMenuRadioGroup>
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <span>{t('Group Menu Style')}</span>
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent className='z-[200] bg-card'>
-                <DropdownMenuRadioGroup value={groupNavStyle} onValueChange={value => handleSettingChange({ groupNavStyle: value })}>
-                  <DropdownMenuRadioItem value={NAV_STYLE_GROUP_DEFAULT}>
-                    {t('Group Default')}
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value={NAV_STYLE_TWO_COLUMN}>
-                    {t('Side Menu')}
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value={NAV_STYLE_ONE_COLUMN}>
-                    {t('Card Menu')}
-                  </DropdownMenuRadioItem>
-                </DropdownMenuRadioGroup>
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger>
-            <Languages className='mr-2 h-4 w-4' />
-            <span>{t('Language')}</span>
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent className='z-[200] bg-card'>
-            <DropdownMenuRadioGroup value={currentLocale} onValueChange={handleLanguageChange}>
-              <DropdownMenuRadioItem value='en'>
-                🇬🇧 {t('English')}
+        <SettingsSubMenu compact={compactLayout} icon={<Palette className='mr-2 h-4 w-4' />} label={t('Appearance')}>
+          <SettingsSubMenu compact={compactLayout} label={t('Color Mode')}>
+            <DropdownMenuRadioGroup value={colorScheme} onValueChange={value => handleSettingChange({ colorScheme: value })}>
+              <DropdownMenuRadioItem value='auto'>
+                {t('System')}
               </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value='es'>
-                🇪🇸 {t('Spanish')}
+              <DropdownMenuRadioItem value='light'>
+                {t('Light')}
               </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value='de'>
-                🇩🇪 {t('German')}
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value='fr'>
-                🇫🇷 {t('French')}
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value='hi'>
-                🇮🇳 {t('Hindi')}
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value='pt'>
-                🇵🇹 {t('Portuguese')}
+              <DropdownMenuRadioItem value='dark'>
+                {t('Dark')}
               </DropdownMenuRadioItem>
             </DropdownMenuRadioGroup>
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
+          </SettingsSubMenu>
+          <SettingsSubMenu compact={compactLayout} label={t('Color Theme')}>
+            <DropdownMenuRadioGroup value={theme} onValueChange={value => handleSettingChange({ theme: value })}>
+              {availableThemes.map(theme => (
+                <DropdownMenuRadioItem key={theme} value={theme} className='capitalize'>
+                  {t(theme)}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          </SettingsSubMenu>
+          {!isPhoneViewport && (
+            <SettingsSubMenu compact={compactLayout} label={t('Global Navigation')}>
+              <DropdownMenuRadioGroup value={globalNavStyle} onValueChange={value => handleSettingChange({ globalNavStyle: value })}>
+                <DropdownMenuRadioItem value='sidebar'>
+                  {t('Sidebar')}
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value='tabs'>
+                  {t('Topbar')}
+                </DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </SettingsSubMenu>
+          )}
+          <SettingsSubMenu compact={compactLayout} label={t('Group Nav Stacking')}>
+            <DropdownMenuRadioGroup value={stackGroups ? 'stacked' : 'flat'} onValueChange={value => handleSettingChange({ stackGroups: value === 'stacked' })}>
+              <DropdownMenuRadioItem value='flat'>
+                {t('Flat')}
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value='stacked'>
+                {t('Stacked')}
+              </DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+          </SettingsSubMenu>
+          <SettingsSubMenu compact={compactLayout} label={t('Group Menu Style')}>
+            <DropdownMenuRadioGroup value={groupNavStyle} onValueChange={value => handleSettingChange({ groupNavStyle: value })}>
+              <DropdownMenuRadioItem value={NAV_STYLE_GROUP_DEFAULT}>
+                {t('Group Default')}
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value={NAV_STYLE_TWO_COLUMN}>
+                {t('Side Menu')}
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value={NAV_STYLE_ONE_COLUMN}>
+                {t('Card Menu')}
+              </DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+          </SettingsSubMenu>
+        </SettingsSubMenu>
+        <SettingsSubMenu compact={compactLayout} icon={<Languages className='mr-2 h-4 w-4' />} label={t('Language')}>
+          <DropdownMenuRadioGroup value={currentLocale} onValueChange={handleLanguageChange}>
+            <DropdownMenuRadioItem value={LOCALE_EN_US}>
+              🇺🇸 {t('English')}
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value={LOCALE_EN_GB}>
+              🇬🇧 {t('English (UK)')}
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value={LOCALE_ES}>
+              🇪🇸 {t('Spanish')}
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value={LOCALE_DE}>
+              🇩🇪 {t('German')}
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value={LOCALE_FR}>
+              🇫🇷 {t('French')}
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value={LOCALE_HI}>
+              🇮🇳 {t('Hindi')}
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value={LOCALE_PT}>
+              🇵🇹 {t('Portuguese')}
+            </DropdownMenuRadioItem>
+          </DropdownMenuRadioGroup>
+        </SettingsSubMenu>
         <DropdownMenuItem onClick={handleBlockedUsers}>
           <UserX className='mr-2 h-4 w-4' />
           <span>{t('Blocked Users')}</span>
@@ -521,7 +542,6 @@ export default function GlobalNav (props) {
   const hoverDelayTimeoutRef = useRef(null)
   const ignoreTouchRef = useRef(false) // Ignore touch events briefly after nav opens
   const [isOverflowing, setIsOverflowing] = useState(false)
-  const [scrollbarWidth, setScrollbarWidth] = useState(0)
   const [hiddenBadgeCount, setHiddenBadgeCount] = useState(0)
   const navContainerRef = useRef(null)
   const groupRefsMap = useRef(new Map())
@@ -600,47 +620,25 @@ export default function GlobalNav (props) {
     }
   }, [isContainerHovered])
 
-  // Detect scrollbar width and if the nav container is overflowing
+  // Detect if the nav container is overflowing (drives the top fade indicator).
+  // The scrollbar itself is hidden via CSS, so no width compensation is needed
+  // and the icon column stays symmetric inside its padding.
   useEffect(() => {
     const container = navContainerRef.current
     if (!container) return
 
-    const checkOverflowAndScrollbar = () => {
-      const hasOverflow = container.scrollHeight > container.clientHeight
-      setIsOverflowing(hasOverflow)
-
-      if (hasOverflow) {
-        // Detect scrollbar width by comparing offsetWidth (includes scrollbar) with clientWidth (excludes scrollbar)
-        // This tells us if the scrollbar is currently taking up layout space
-        const width = container.offsetWidth - container.clientWidth
-
-        // If width is 0, scrollbar is overlay-only (not taking space)
-        // If width > 0, scrollbar is always visible (taking space) - we need to compensate
-        setScrollbarWidth(width > 0 ? width : 0)
-      } else {
-        setScrollbarWidth(0)
-      }
+    const checkOverflow = () => {
+      setIsOverflowing(container.scrollHeight > container.clientHeight)
     }
 
-    // Initial check
-    checkOverflowAndScrollbar()
-
-    // Use a small delay to ensure layout is complete
-    const timeoutId = setTimeout(checkOverflowAndScrollbar, 100)
-
-    const resizeObserver = new ResizeObserver(() => {
-      // Small delay to ensure scrollbar state is updated
-      setTimeout(checkOverflowAndScrollbar, 50)
-    })
+    checkOverflow()
+    const resizeObserver = new ResizeObserver(checkOverflow)
     resizeObserver.observe(container)
-
-    // Also check on window resize to catch scrollbar visibility changes
-    window.addEventListener('resize', checkOverflowAndScrollbar)
+    window.addEventListener('resize', checkOverflow)
 
     return () => {
-      clearTimeout(timeoutId)
       resizeObserver.disconnect()
-      window.removeEventListener('resize', checkOverflowAndScrollbar)
+      window.removeEventListener('resize', checkOverflow)
     }
   }, [sortedGroups.length])
 
@@ -942,15 +940,12 @@ export default function GlobalNav (props) {
       <div
         ref={navContainerRef}
         className={cn(
+          // Scrollbar hidden (scrolling still works) so it never eats layout space
+          // and the tiles stay horizontally centered in the rail
           'pt-4 flex flex-col items-center relative z-10 px-3 overflow-x-visible overflow-y-scroll grow',
+          '[scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
           styles.globalNavContainer
         )}
-        style={{
-          // When scrollbar is taking up space (always visible), add padding to compensate
-          // This keeps content centered regardless of scrollbar visibility mode
-          paddingRight: scrollbarWidth > 0 ? `calc(0.75rem - ${scrollbarWidth}px + 2px)` : undefined,
-          paddingLeft: scrollbarWidth > 0 ? `calc(1.5rem - ${scrollbarWidth}px + 1px)` : undefined
-        }}
         onClick={handleClick}
         onPointerLeave={handleContainerPointerLeave}
         onPointerEnter={handleContainerPointerEnter}
@@ -960,7 +955,7 @@ export default function GlobalNav (props) {
         <GlobalNavItem
           img={get('avatarUrl', currentUser)}
           tooltip={t('My Home')}
-          url='/my'
+          url={myHomeLandingUrl()}
           className={isVisible(0)}
           showTooltip={showLabels}
         />
@@ -968,17 +963,19 @@ export default function GlobalNav (props) {
         <Suspense fallback={<GlobalNavItem className={isVisible(1)} showTooltip={showLabels}><Bell className='w-7 h-7' /></GlobalNavItem>}>
           <NotificationsDropdown renderToggleChildren={showBadge =>
             <GlobalNavItem
+              darkTile
               tooltip={t('Activity')}
               className={isVisible(1)}
               showTooltip={showLabels}
               badgeCount={showBadge ? '-' : 0}
             >
-              <BadgedIcon name='Notifications' className='!text-primary-foreground cursor-pointer font-md' />
+              <BadgedIcon name='Notifications' className='!text-white cursor-pointer font-md' />
             </GlobalNavItem>}
           />
         </Suspense>
 
         <GlobalNavItem
+          darkTile
           tooltip={t('Messages')}
           url='/messages'
           className={isVisible(2)}
@@ -989,12 +986,13 @@ export default function GlobalNav (props) {
         </GlobalNavItem>
 
         <GlobalNavItem
+          darkTile
           tooltip={t('The Commons')}
           url='/public'
           className={isVisible(3)}
           showTooltip={showLabels}
         >
-          <Globe color='hsl(var(--primary-foreground))' />
+          <Globe />
         </GlobalNavItem>
 
         {/* Pinned Groups Section - Sortable */}

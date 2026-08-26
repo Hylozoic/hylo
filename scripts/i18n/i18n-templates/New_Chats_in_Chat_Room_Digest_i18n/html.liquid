@@ -3,7 +3,8 @@
 {% snippet "macro: actor_pill" %}
 
 <p>
-  {% set group_chat_pill = actor_pill(group_name + ' #' + chat_topic, group_avatar_url, chat_room_url) %}
+  {% set room_label = group_name or chat_room_name %}
+  {% set group_chat_pill = actor_pill(room_label, group_avatar_url, chat_room_url) %}
   {% if count > 1 %}
     {% trans %}{{count}} new chats in{% endtrans %} {{group_chat_pill}} {# on {{date}} #}
   {% else %}

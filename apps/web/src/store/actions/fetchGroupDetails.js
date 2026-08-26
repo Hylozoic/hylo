@@ -11,7 +11,6 @@ import groupDetailsFragment from '@graphql/fragments/groupDetailsFragment'
  * @param withTopics {boolean} include group topics
  * @param withJoinQuestions {boolean} include join questions
  * @param withPrerequisites {boolean} include prerequisites
- * @param withContextWidgets {boolean} include context widgets
  */
 export default function fetchGroupDetails ({
   slug,
@@ -21,15 +20,14 @@ export default function fetchGroupDetails ({
   withWidgets = false,
   withTopics = true,
   withJoinQuestions = true,
-  withPrerequisites = true,
-  withContextWidgets = true
+  withPrerequisites = true
 }) {
   return {
     type: FETCH_GROUP_DETAILS,
     graphql: {
       query: `query GroupDetailsQuery ($slug: String, $accessCode: String, $invitationToken: String) {
         group(slug: $slug, accessCode: $accessCode, invitationToken: $invitationToken) {
-          ${groupDetailsFragment({ withTopics, withJoinQuestions, withPrerequisites, withExtensions, withWidgets, withContextWidgets })}
+          ${groupDetailsFragment({ withTopics, withJoinQuestions, withPrerequisites, withExtensions, withWidgets })}
         }
       }`,
       variables: { slug, accessCode, invitationToken }

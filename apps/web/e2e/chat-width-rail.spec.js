@@ -16,7 +16,7 @@ test('chat width rail sits wholly right of the stream edge', async ({ page }) =>
     const rail = document.querySelector('[aria-label="Adjust chat width"]')
     const paneRect = pane.getBoundingClientRect()
     const railRect = rail.getBoundingClientRect()
-    const streamWidth = parseFloat(getComputedStyle(pane).getPropertyValue('--chat-stream-width'))
+    const streamWidth = parseFloat(window.getComputedStyle(pane).getPropertyValue('--chat-stream-width'))
     return {
       railLeftInPane: railRect.left - paneRect.left,
       railWidth: railRect.width,
@@ -40,7 +40,7 @@ test('chat width rail sits wholly right of the stream edge', async ({ page }) =>
   const after = await page.evaluate(() => {
     const pane = document.getElementById('chats')
     const rail = document.querySelector('[aria-label="Adjust chat width"]')
-    const streamWidth = parseFloat(getComputedStyle(pane).getPropertyValue('--chat-stream-width'))
+    const streamWidth = parseFloat(window.getComputedStyle(pane).getPropertyValue('--chat-stream-width'))
     return { railLeftInPane: rail.getBoundingClientRect().left - pane.getBoundingClientRect().left, streamWidth }
   })
   console.log(JSON.stringify(after))

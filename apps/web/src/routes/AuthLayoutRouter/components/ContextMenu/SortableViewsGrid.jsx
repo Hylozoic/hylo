@@ -16,17 +16,22 @@ import {
   sortableKeyboardCoordinates,
   useSortable
 } from '@dnd-kit/sortable'
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useDispatch } from 'react-redux'
+import { useNavigate } from 'react-router-dom'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
+import { addQuerystringToPath, localSpaceSlug, spaceUrl } from '@hylo/navigation'
 
-import { canHardDeleteView, viewAcceptedByPostTypes } from 'store/models/GroupView'
+import { canDeleteView, canHardDeleteView, isSoftRemoveView } from 'store/models/GroupView'
+import { setGroupViewHidden } from 'store/actions/groupViews'
 import { mergeOrderedViewsFromSource, sortViewsByMenuOrder } from 'store/util/groupViewsOrder'
 import { cn } from 'util/index'
 
 import GroupViewCard, { CardEditActions } from './GroupViewCard'
 import { CARD_SIZE_CLASS } from './viewCardTheme'
 import { useCommitViewOrder } from './useViewReorder'
+import useFlashAddedItems, { MENU_FLASH_CLASS } from './useFlashAddedItems'
 
 // Mouse drags start as soon as the pointer travels a few pixels. Touch needs the
 // hold instead, because a finger moving over a card is a scroll until proven
@@ -102,8 +107,14 @@ const gapCollisionDetection = (args) => {
   return candidates.length ? [candidates[0]] : []
 }
 
-/** Full-width stand-ins for the text and separator rows, so they reorder with the cards. */
-function FullWidthRow ({ view, spaceGroup, t }) {
+/** True for views that occupy a full wrap-grid row instead of a card cell. */
+function isFullWidthGridView (view) {
+  const type = view?.type
+  return type === 'text' || type === 'separator'
+}
+
+/** Full-width stand-ins for text and separator rows so they reorder with the cards. */
+function FullWidthRow ({ view, group, spaceGroup, t }) {
   const presented = GroupViewPresenter(view)
 
   if (presented.type === 'separator') {
@@ -126,13 +137,15 @@ function FullWidthRow ({ view, spaceGroup, t }) {
  * anywhere on the card starts the drag; the toolbar stops pointerdown so its
  * buttons stay clickable instead of becoming drag handles.
  */
-const SortableViewItem = React.memo(function SortableViewItem ({ view, spaceGroup, onOpenSettings, onDelete, t }) {
+const SortableViewItem = React.memo(function SortableViewItem ({ view, group, spaceGroup, onOpenSettings, onHide, onDelete, onEditSpaceMenu, t, isFlashing = false }) {
   const presented = useMemo(() => GroupViewPresenter(view), [view])
-  const isFullWidth = presented.type === 'text' || presented.type === 'separator'
+  const isFullWidth = isFullWidthGridView(presented)
   const { attributes, listeners, setNodeRef, isDragging, isSorting } = useSortable({
     id: String(view.id),
     disabled: !view.id
   })
+  const canEditSpaceMenu = presented.type === 'space' && presented.linkedGroup?.slug && onEditSpaceMenu
+  const canHide = onHide && isSoftRemoveView(view) && canDeleteView(view)
 
   return (
     <div
@@ -149,22 +162,29 @@ const SortableViewItem = React.memo(function SortableViewItem ({ view, spaceGrou
         // The wrapper carries the card footprint so the card's sub-sm percentage
         // width has a sized parent to resolve against
         isFullWidth ? 'w-full' : CARD_SIZE_CLASS,
+        !isFullWidth && 'rounded-2xl',
         isDragging && 'cursor-grabbing',
         // Cards animate a translate on hover (transition-all); a card reflowing
         // under the stationary pointer mid-drag would trigger it and jitter the
         // rects the collision math depends on. No pointer events, no hover.
-        isSorting && '[&_*]:pointer-events-none'
+        isSorting && '[&_*]:pointer-events-none',
+        isFlashing && MENU_FLASH_CLASS
       )}
+      data-menu-flash={isFlashing ? String(view.id) : undefined}
       {...attributes}
       {...listeners}
     >
       {isFullWidth
-        ? <FullWidthRow view={view} spaceGroup={spaceGroup} t={t} />
-        : <GroupViewCard view={view} isEditing renderEditActions={false} />}
+        ? <FullWidthRow view={view} group={group} spaceGroup={spaceGroup} t={t} />
+        : <GroupViewCard view={view} group={group} spaceGroup={spaceGroup} isEditing />}
       <CardEditActions
         onOpenSettings={onOpenSettings ? () => onOpenSettings(view) : null}
+        onHide={canHide ? () => onHide(view) : null}
+        onEditMenu={canEditSpaceMenu ? () => onEditSpaceMenu(view) : null}
         onDelete={onDelete && canHardDeleteView(view) ? () => onDelete(view) : null}
         settingsLabel={t('Settings')}
+        hideLabel={t('Remove from main menu')}
+        editMenuLabel={t('Edit space menu')}
         deleteLabel={t('Delete')}
       />
     </div>
@@ -186,16 +206,14 @@ export default function SortableViewsGrid ({
   onDelete
 }) {
   const { t } = useTranslation()
+  const dispatch = useDispatch()
+  const navigate = useNavigate()
   const commitOrder = useCommitViewOrder(group)
-  const acceptedPostTypes = (spaceGroup || group)?.acceptedPostTypes
-  // Match live menu: hide typed views that the group/space no longer accepts.
   const visibleViews = useMemo(
     () => sortViewsByMenuOrder(
-      (views || [])
-        .filter(v => v.order != null)
-        .filter(v => viewAcceptedByPostTypes(v.type, acceptedPostTypes))
+      (views || []).filter(v => v.order != null)
     ),
-    [views, acceptedPostTypes]
+    [views]
   )
   const [orderedViews, setOrderedViews] = useState(visibleViews)
 
@@ -211,6 +229,35 @@ export default function SortableViewsGrid ({
   )
 
   const ids = useMemo(() => orderedViews.map(v => String(v.id)), [orderedViews])
+  const flashingIds = useFlashAddedItems(orderedViews)
+
+  /** Move a space off the main menu into More Spaces (same as the two-column X). */
+  const handleHide = useCallback(async (view) => {
+    if (!isSoftRemoveView(view) || !canDeleteView(view) || !group?.id) return
+    const label = displayNameForView(view, t)
+    if (!window.confirm(t('Are you sure you want to remove {{name}} from the menu?', { name: label }))) return
+    try {
+      await dispatch(setGroupViewHidden({
+        id: view.id,
+        groupId: group.id,
+        hidden: true
+      }))
+    } catch (error) {
+      console.error('Failed to remove view from menu:', error)
+    }
+  }, [dispatch, group?.id, t])
+
+  /** Open this space's card menu in edit mode (one-column counterpart of the sidebar pencil). */
+  const handleEditSpaceMenu = useCallback((view) => {
+    const space = view?.linkedGroup
+    const groupSlug = group?.slug
+    if (!groupSlug || !space?.slug) return
+    navigate(addQuerystringToPath(
+      spaceUrl(groupSlug, localSpaceSlug(groupSlug, space.slug)),
+      { edit: 'true' }
+    ))
+  }, [navigate, group?.slug])
+
   const [activeId, setActiveId] = useState(null)
   const activeView = useMemo(
     () => orderedViews.find(v => String(v.id) === activeId) || null,
@@ -312,10 +359,14 @@ export default function SortableViewsGrid ({
             <SortableViewItem
               key={view.id}
               view={view}
+              group={group}
               spaceGroup={spaceGroup}
               onOpenSettings={onOpenSettings}
+              onHide={handleHide}
               onDelete={onDelete}
+              onEditSpaceMenu={handleEditSpaceMenu}
               t={t}
+              isFlashing={flashingIds.has(String(view.id))}
             />
           ))}
         </div>
@@ -324,9 +375,9 @@ export default function SortableViewsGrid ({
           has to be re-fitted around items of a different shape */}
       <DragOverlay className={NO_TEXT_SELECT}>
         {activeView
-          ? (activeView.type === 'text' || activeView.type === 'separator'
-              ? <FullWidthRow view={activeView} spaceGroup={spaceGroup} t={t} />
-              : <GroupViewCard view={activeView} isEditing renderEditActions={false} />)
+          ? (isFullWidthGridView(activeView)
+              ? <FullWidthRow view={activeView} group={group} spaceGroup={spaceGroup} t={t} />
+              : <GroupViewCard view={activeView} group={group} spaceGroup={spaceGroup} isEditing />)
           : null}
       </DragOverlay>
     </DndContext>

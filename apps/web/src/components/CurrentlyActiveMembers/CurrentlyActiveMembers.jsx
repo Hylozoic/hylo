@@ -1,0 +1,188 @@
+import { Users } from 'lucide-react'
+import React, { useEffect, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
+import { useDispatch, useSelector } from 'react-redux'
+import { Link, useNavigate } from 'react-router-dom'
+
+import InviteMembersDialog from 'components/InviteMembersDialog/InviteMembersDialog'
+import CurrentlyActivePills, { DEFAULT_ACTIVE_MAX } from './CurrentlyActivePills'
+import { personUrl } from '@hylo/navigation'
+import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
+import {
+  fetchRecentlyActiveMembers,
+  getRecentlyActiveMembers
+} from 'routes/Members/Members.store'
+import { cn, isRecentlyActive } from 'util/index'
+
+/**
+ * Currently-active members widget: overlapping avatars, a count pill that opens
+ * the members view, and an invite control for stewards (hover on pointer, always
+ * visible on touch). Fetches only `max` people from the API.
+ * Pass `stacked` to put the count under the avatar row (one-column cards).
+ */
+export default function CurrentlyActiveMembers ({
+  group,
+  parentGroup,
+  max = DEFAULT_ACTIVE_MAX,
+  membersUrl,
+  profileGroupSlug,
+  onCountClick,
+  showCount = true,
+  showInvite = true,
+  interactive = true,
+  stacked = false,
+  className
+}) {
+  const { t } = useTranslation()
+  const dispatch = useDispatch()
+  const navigate = useNavigate()
+  const slug = group?.slug
+  const countSlug = profileGroupSlug || slug
+
+  const fetched = useSelector(state => getRecentlyActiveMembers(state, { slug, first: max }))
+
+  useEffect(() => {
+    if (!slug) return
+    dispatch(fetchRecentlyActiveMembers({ slug, first: max }))
+  }, [dispatch, slug, max])
+
+  // The API already returns the N most recently active people, and the strip
+  // shows all of them so the widget is never empty. Who is actually online is
+  // carried by the green dots on the avatars and on the count pill.
+  const activeMembers = useMemo(
+    () => (fetched || []).slice(0, max),
+    [fetched, max]
+  )
+  const anyOnline = useMemo(
+    () => activeMembers.some(m => isRecentlyActive(m)),
+    [activeMembers]
+  )
+
+  /**
+   * Opens a member profile and closes the mobile drawer so the profile is visible.
+   */
+  const handlePersonClick = (person) => {
+    if (!interactive || !person?.id) return
+    dispatch(toggleNavMenu(false))
+    navigate(personUrl(person.id, countSlug))
+  }
+
+  /**
+   * Count pill: custom handler (chat drawer) or the members view URL.
+   * Stops propagation so the row handler below does not fire it a second time.
+   */
+  const handleCountClick = (e) => {
+    e.stopPropagation()
+    if (!interactive) {
+      e.preventDefault()
+      return
+    }
+    if (onCountClick) {
+      e.preventDefault()
+      onCountClick()
+      return
+    }
+    dispatch(toggleNavMenu(false))
+  }
+
+  /**
+   * The whole row opens the directory — only the avatars and the invite control
+   * do something else, and both already stop propagation.
+   */
+  const handleRowClick = () => {
+    if (!interactive) return
+    if (onCountClick) {
+      onCountClick()
+      return
+    }
+    if (!membersUrl) return
+    dispatch(toggleNavMenu(false))
+    navigate(membersUrl)
+  }
+  const rowOpensDirectory = interactive && Boolean(onCountClick || membersUrl)
+
+  if (!group) return null
+
+  const countInner = (
+    <>
+      <Users className='w-3.5 h-3.5' />
+      {group.memberCount != null && <span>{group.memberCount}</span>}
+      {anyOnline && <span className='w-[7px] h-[7px] rounded-full bg-green-500' aria-hidden='true' />}
+    </>
+  )
+  const countClass = cn(
+    'inline-flex items-center gap-1.5 h-7 pl-2.5 pr-2 rounded-md bg-card/90 backdrop-blur-sm border border-foreground/20 text-foreground text-xs font-semibold transition-all shrink-0',
+    // The global link rule paints BOTH a:hover and a:focus with --selected, and
+    // the focus colour sticks after a click until something else takes focus —
+    // so both states have to be pinned back to the foreground colour.
+    interactive && 'hover:border-foreground/40 hover:text-foreground focus:text-foreground hover:scale-105 cursor-pointer',
+    !interactive && 'cursor-inherit'
+  )
+
+  const countEl = showCount
+    ? (
+        membersUrl && interactive
+          ? (
+            <Link
+              to={membersUrl}
+              onClick={handleCountClick}
+              className={cn(countClass, !stacked && 'ml-2')}
+              aria-label={t('Members')}
+            >
+              {countInner}
+            </Link>
+            )
+          : (
+            <button
+              type='button'
+              onClick={onCountClick}
+              disabled={!interactive}
+              className={cn(countClass, !stacked && 'ml-2')}
+              aria-label={t('Members')}
+            >
+              {countInner}
+            </button>
+            )
+      )
+    : null
+
+  return (
+    <div
+      className={cn(
+        'group flex min-w-0 w-full',
+        stacked ? 'flex-col items-center gap-1.5' : 'items-center',
+        rowOpensDirectory && 'cursor-pointer',
+        className
+      )}
+      onClick={rowOpensDirectory ? handleRowClick : undefined}
+    >
+      <div className={cn('min-w-0 overflow-hidden', stacked ? 'w-full flex justify-center' : 'flex-1')}>
+        <CurrentlyActivePills
+          members={activeMembers}
+          max={max}
+          onPersonClick={handlePersonClick}
+          interactive={interactive}
+        />
+      </div>
+      {countEl}
+      {showInvite && interactive && !stacked && (
+        <div
+          className={cn(
+            'shrink-0 overflow-hidden transition-[max-width,margin] duration-200 ease-out',
+            'max-w-0',
+            '[@media(hover:hover)]:group-hover:max-w-[2rem] [@media(hover:hover)]:group-hover:ml-1',
+            '[@media(hover:none)]:max-w-[2rem] [@media(hover:none)]:ml-1',
+            '[&:has([data-state=open])]:max-w-[2rem] [&:has([data-state=open])]:ml-1'
+          )}
+        >
+          <InviteMembersDialog
+            group={group}
+            parentGroup={parentGroup}
+            alwaysVisible
+            triggerClassName='text-foreground/50 hover:text-foreground'
+          />
+        </div>
+      )}
+    </div>
+  )
+}

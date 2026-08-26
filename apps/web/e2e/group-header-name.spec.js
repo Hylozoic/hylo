@@ -28,7 +28,7 @@ test('long group names show fully with pills intact', async ({ page }) => {
     const h1 = document.querySelector('.GroupMenuHeaderName')
     const header = document.querySelector('.GroupMenuHeader')
     const pill = header?.querySelector('a[href*="/members"]')
-    const style = getComputedStyle(h1)
+    const style = window.getComputedStyle(h1)
     return {
       text: h1.textContent,
       clamp: style.webkitLineClamp,

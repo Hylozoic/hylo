@@ -1,10 +1,11 @@
 import { TextHelpers } from '@hylo/shared'
-import { CircleCheckBig } from 'lucide-react'
+import { CircleCheckBig, Pin } from 'lucide-react'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 
 import EventTimeDisplay from 'components/EventTimeDisplay/EventTimeDisplay'
 import Icon from 'components/Icon'
+import useCurrentPinnableView from 'hooks/useCurrentPinnableView'
 import useViewPostDetails from 'hooks/useViewPostDetails'
 import childGroupLabel from 'util/childGroupLabel'
 import { cn } from 'util/index'
@@ -33,6 +34,8 @@ const PostListRow = (props) => {
 
   const { t } = useTranslation()
   const viewPostDetails = useViewPostDetails()
+  const pinnableView = useCurrentPinnableView()
+  const pinnedInView = (pinnableView?.pinnedPostIds || []).map(pid => String(pid)).includes(String(post.id))
 
   if (!creator) {
     return null
@@ -42,7 +45,7 @@ const PostListRow = (props) => {
   const typeName = post.type.charAt(0).toUpperCase() + typeLowercase.slice(1)
   const groupLabel = childPost ? childGroupLabel(post, t) : null
   const unread = false
-  const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroupId)
+  const isFlagged = post.flaggedGroups && post.flaggedGroups.some(id => String(id) === String(currentGroupId))
 
   let subtitle = null
   if (post.type === 'event' && post.startTime) {
@@ -97,6 +100,7 @@ const PostListRow = (props) => {
         <div className='flex items-center gap-2'>
           {isFlagged && <Icon name='Flag' className='w-3 h-3 text-destructive shrink-0' />}
           <span className={cn('flex items-center text-base text-foreground truncate font-bold', { 'font-bold': unread })}>
+            {pinnedInView && <Pin className='w-3.5 h-3.5 mr-1 shrink-0 text-[hsl(45_65%_45%)] dark:text-[hsl(45_65%_62%)]' strokeWidth={2.5} aria-hidden='true' />}
             {post.fulfilledAt && <span className='mr-1'><CircleCheckBig className='w-4 text-green-500' /></span>}
             {title}
           </span>

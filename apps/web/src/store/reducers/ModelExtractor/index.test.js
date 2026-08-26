@@ -183,3 +183,55 @@ describe('append option', () => {
       .toEqual(['3', '4', '5'])
   })
 })
+
+describe('locationObject foreign key', () => {
+  it('keeps nested location when GraphQL omits location id (map posts query)', () => {
+    const session = orm.session(orm.getEmptyState())
+    const extractor = new ModelExtractor(session)
+    extractor.walk({
+      id: '10',
+      title: 'Has a place',
+      locationObject: {
+        center: { lat: 37.7, lng: -122.4 }
+      }
+    }, 'Post')
+    expect(extractor.mergedNodes()).toEqual([
+      {
+        modelName: 'Post',
+        payload: {
+          id: '10',
+          title: 'Has a place',
+          locationObject: {
+            center: { lat: 37.7, lng: -122.4 }
+          }
+        }
+      }
+    ])
+  })
+
+  it('keeps nested locationObject even when it includes id (FK field is locationId)', () => {
+    const session = orm.session(orm.getEmptyState())
+    const extractor = new ModelExtractor(session)
+    extractor.walk({
+      id: '10',
+      title: 'Has a place',
+      locationObject: {
+        id: '99',
+        center: { lat: 37.7, lng: -122.4 }
+      }
+    }, 'Post')
+    expect(extractor.mergedNodes()).toEqual([
+      {
+        modelName: 'Post',
+        payload: {
+          id: '10',
+          title: 'Has a place',
+          locationObject: {
+            id: '99',
+            center: { lat: 37.7, lng: -122.4 }
+          }
+        }
+      }
+    ])
+  })
+})

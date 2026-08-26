@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 import { DateTimeHelpers } from '@hylo/shared'
+import { formatUserDatePair } from 'util/dateFormat'
 import Button from 'components/ui/button'
 import {
   Dialog,
@@ -376,7 +377,7 @@ export default function FundingRoundPhaseManager ({ round, spaceName, onOpenSett
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      const titleSource = spaceName || round.title
+      const titleSource = spaceName
       const safeTitle = titleSource
         ? titleSource.replace(/[^a-z0-9]+/gi, '_').replace(/_{2,}/g, '_').replace(/^_|_$/g, '')
         : 'funding_round'
@@ -452,7 +453,7 @@ export default function FundingRoundPhaseManager ({ round, spaceName, onOpenSett
                     )}
                     {phase.endDate && (
                       <span className='px-2 py-0.5 text-xs text-foreground bg-foreground/20 rounded-full font-medium'>
-                        {phase.endDate.toFormat('ccc MMM d, yyyy')}
+                        {formatUserDatePair({ start: phase.endDate, skipTime: true })}
                       </span>
                     )}
                   </div>

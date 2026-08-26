@@ -1,26 +1,40 @@
-import { DateTimeHelpers } from '@hylo/shared'
 import React, { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { push } from 'redux-first-history'
-import { getLocaleFromLocalStorage } from 'util/locale'
+import { formatLocalizedDate } from 'util/dateFormat'
 import { CircleOff } from 'lucide-react'
 import GroupButton from 'components/GroupButton'
 import Loading from 'components/Loading'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { JOIN_REQUEST_STATUS } from 'store/models/JoinRequest'
-import { currentUserSettingsUrl, personUrl, groupUrl } from '@hylo/navigation'
+import { currentUserSettingsUrl, personUrl, groupUrl, spaceHomeUrl } from '@hylo/navigation'
 import acceptInvitation from 'store/actions/acceptInvitation'
 import { FETCH_MY_REQUESTS_AND_INVITES } from 'store/constants'
+import { isSpaceGroup } from 'store/selectors/getMyGroups'
 import {
   cancelJoinRequest,
   declineInvite,
   fetchMyInvitesAndRequests,
   getPendingGroupInvites,
+  getPendingSpaceInvites,
   getPendingJoinRequests,
+  getPendingSpaceJoinRequests,
   getRejectedJoinRequests
 } from './ManageInvitesTab.store'
+
+/**
+ * After accepting an invite, go to the space home when the invite is for a space,
+ * otherwise the group home. `/groups/:spaceSlug` remounts the space as a top-level
+ * group and shows SpaceJoinPage instead of entering the space.
+ */
+function destinationAfterInvite (group) {
+  if (isSpaceGroup(group) && group.parentGroup?.slug) {
+    return spaceHomeUrl(group.parentGroup.slug, group)
+  }
+  return groupUrl(group.slug)
+}
 
 function ManageInvitesTab () {
   const { t } = useTranslation()
@@ -28,13 +42,15 @@ function ManageInvitesTab () {
 
   // const canceledJoinRequests = useSelector(getCanceledJoinRequests)
   const pendingGroupInvites = useSelector(getPendingGroupInvites)
+  const pendingSpaceInvites = useSelector(getPendingSpaceInvites)
   const pendingJoinRequests = useSelector(getPendingJoinRequests)
+  const pendingSpaceJoinRequests = useSelector(getPendingSpaceJoinRequests)
   const rejectedJoinRequests = useSelector(getRejectedJoinRequests)
   const loading = useSelector(state => state.pending[FETCH_MY_REQUESTS_AND_INVITES])
 
-  const acceptInvite = (invitationToken, groupSlug) => {
+  const acceptInvite = (invitationToken, group) => {
     dispatch(acceptInvitation({ invitationToken }))
-      .then(() => dispatch(push(groupUrl(groupSlug))))
+      .then(() => dispatch(push(destinationAfterInvite(group))))
   }
 
   const handleCancelJoinRequest = (params) => dispatch(cancelJoinRequest(params))
@@ -87,6 +103,26 @@ function ManageInvitesTab () {
       </section>
 
       <section className='bg-transparent'>
+        <h2 className='text-xl font-semibold mb-4'>{t('Invitations to Join Spaces')}</h2>
+        <div className='space-y-4'>
+          {pendingSpaceInvites.map(invite =>
+            <GroupInvite
+              acceptInvite={acceptInvite}
+              declineInvite={handleDeclineInvite}
+              invite={invite}
+              key={invite.id}
+            />
+          )}
+          {pendingSpaceInvites.length === 0 && (
+            <div className='text-foreground/50 flex flex-col items-center justify-center gap-4 p-4 border-2 border-foreground/10 bg-card/20 rounded-lg'>
+              <CircleOff className='w-16 h-16 text-foreground/50' />
+              <span>{t('No active invitations to join spaces')}</span>
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className='bg-transparent'>
         <h2 className='text-xl font-semibold mb-4'>{t('Your Open Requests to Join Groups')}</h2>
         <div className='space-y-4'>
           {pendingJoinRequests.map((jr) =>
@@ -100,6 +136,25 @@ function ManageInvitesTab () {
             <div className='text-foreground/50 flex flex-col items-center justify-center gap-4 p-4 border-2 border-foreground/10 bg-card/20 rounded-lg'>
               <CircleOff className='w-16 h-16 text-foreground/50' />
               <span>{t('No active requests to join groups')}</span>
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className='bg-transparent'>
+        <h2 className='text-xl font-semibold mb-4'>{t('Your Open Requests to Join Spaces')}</h2>
+        <div className='space-y-4'>
+          {pendingSpaceJoinRequests.map((jr) =>
+            <JoinRequest
+              joinRequest={jr}
+              cancelJoinRequest={handleCancelJoinRequest}
+              key={jr.id}
+            />
+          )}
+          {pendingSpaceJoinRequests.length === 0 && (
+            <div className='text-foreground/50 flex flex-col items-center justify-center gap-4 p-4 border-2 border-foreground/10 bg-card/20 rounded-lg'>
+              <CircleOff className='w-16 h-16 text-foreground/50' />
+              <span>{t('No active requests to join spaces')}</span>
             </div>
           )}
         </div>
@@ -129,6 +184,7 @@ function ManageInvitesTab () {
 function GroupInvite ({ acceptInvite, declineInvite, invite }) {
   const { creator, createdAt, group, id, token } = invite
   const { t } = useTranslation()
+  const isSpace = isSpaceGroup(group)
 
   const decline = () => {
     if (window.confirm(t('Are you sure you want to decline the invitation to join {{groupName}}?', { groupName: group.name }))) {
@@ -152,7 +208,7 @@ function GroupInvite ({ acceptInvite, declineInvite, invite }) {
         </div>
         <div className='flex items-center justify-between border-t-2 border-foreground/10 pt-3'>
           <span className='text-sm text-foreground/50'>
-            {t('Sent')} {DateTimeHelpers.toDateTime(createdAt, { locale: getLocaleFromLocalStorage() }).toFormat('MM-dd-yyyy')}
+            {t('Sent')} {formatLocalizedDate(createdAt, { style: 'short' })}
           </span>
           <div className='flex items-center gap-3'>
             <button
@@ -162,10 +218,10 @@ function GroupInvite ({ acceptInvite, declineInvite, invite }) {
               {t('Decline')}
             </button>
             <button
-              onClick={() => acceptInvite(token, group.slug)}
+              onClick={() => acceptInvite(token, group)}
               className='border-2 border-selected/20 hover:border-selected/100 text-selected p-2 rounded-lg transition-all'
             >
-              {t('Join group')}
+              {t(isSpace ? 'Join Space' : 'Join group')}
             </button>
           </div>
         </div>
@@ -192,7 +248,7 @@ function JoinRequest ({ joinRequest, cancelJoinRequest }) {
         </div>
         <div className='flex items-center justify-between border-t-2 border-foreground/10 pt-3'>
           <span className='text-sm text-foreground/50'>
-            {t('You requested to join')} {DateTimeHelpers.toDateTime(createdAt, { locale: getLocaleFromLocalStorage() }).toFormat('yyyy-MM-dd')}
+            {t('You requested to join')} {formatLocalizedDate(createdAt, { style: 'short' })}
           </span>
           {joinRequest.status === JOIN_REQUEST_STATUS.Pending && (
             <button

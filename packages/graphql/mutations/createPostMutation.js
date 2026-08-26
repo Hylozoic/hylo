@@ -34,6 +34,7 @@ export default gql`
     $timezone: String,
     $location: String,
     $locationId: ID,
+    $meetingLink: String,
     $isPublic: Boolean,
     $fundingRoundId: ID,
     $markAsReadTopicName: String
@@ -59,6 +60,7 @@ export default gql`
       timezone: $timezone,
       location: $location,
       locationId: $locationId,
+      meetingLink: $meetingLink,
       isPublic: $isPublic,
       fundingRoundId: $fundingRoundId,
       markAsReadTopicName: $markAsReadTopicName

@@ -14,8 +14,13 @@ import {
   isGroupsView,
   origin,
   homeRoutePathForView,
-  groupViewPath
-} from './navigation'
+  groupViewPath,
+  spaceHomeRoutePath,
+  spaceHomeUrl,
+  localSpaceSlug,
+  storedSpaceSlug,
+  tagSearchUrl
+} from './index'
 
 describe('postUrl', () => {
   it('should default to displaying the all groups context', () => {
@@ -164,6 +169,17 @@ describe('createUrl', () => {
   })
 })
 
+describe('primaryPostUrl for space chat', () => {
+  it('uses the nested space chat path', () => {
+    const expected = '/groups/building-hylo/spaces/garden/chat?postId=123'
+    const actual = primaryPostUrl({ id: '123', type: 'chat' }, {
+      groupSlug: 'building-hylo',
+      spaceSlug: 'garden'
+    })
+    expect(actual).toEqual(expected)
+  })
+})
+
 describe('primaryPostUrl with comment', () => {
   it('returns correct path', () => {
     const expected = '/all/post/123/comments/456'
@@ -212,9 +228,9 @@ describe('homeRoutePathForView', () => {
   it('returns paths for common home view types', () => {
     expect(homeRoutePathForView({ type: 'all' })).toEqual('/all')
     expect(homeRoutePathForView({ type: 'welcome' })).toEqual('/welcome')
-    expect(homeRoutePathForView({ type: 'stream' })).toEqual('/all')
     expect(homeRoutePathForView({ type: 'custom', id: 12 })).toEqual('/custom/12')
     expect(homeRoutePathForView({ type: 'collection', id: 34 })).toEqual('/collection/34')
+    expect(homeRoutePathForView({ type: 'space-collection', id: 56 })).toEqual('/space-collection/56')
   })
 
   it('matches groupViewPath for navigable views', () => {
@@ -229,5 +245,71 @@ describe('homeRoutePathForView', () => {
       }
     }
     expect(homeRoutePathForView(view)).toEqual('/welcome')
+  })
+})
+
+describe('spaceHomeRoutePath', () => {
+  it('uses the order-0 view when present', () => {
+    expect(spaceHomeRoutePath({
+      homeRoute: '/all',
+      groupViews: { items: [{ type: 'track-actions', order: 0 }] }
+    })).toEqual('/track-actions')
+  })
+
+  it('uses homeRoute when views are not loaded', () => {
+    expect(spaceHomeRoutePath({ homeRoute: '/track-actions' })).toEqual('/track-actions')
+  })
+
+  it('falls back to track-actions for a track space', () => {
+    expect(spaceHomeRoutePath({ track: { id: '1' } })).toEqual('/track-actions')
+  })
+})
+
+describe('spaceHomeUrl', () => {
+  it('nests the home path under the parent space URL', () => {
+    expect(spaceHomeUrl('parent', { slug: 'parent-track', homeRoute: '/track-actions' }))
+      .toEqual('/groups/parent/spaces/track/track-actions')
+  })
+})
+
+describe('localSpaceSlug', () => {
+  it('strips a matching parent prefix from the stored slug', () => {
+    expect(localSpaceSlug('my-community', 'my-community-general')).toEqual('general')
+  })
+
+  it('returns the slug unchanged when it is not prefixed', () => {
+    expect(localSpaceSlug('my-community', 'general')).toEqual('general')
+  })
+})
+
+describe('storedSpaceSlug', () => {
+  it('prefixes the local slug with the parent slug', () => {
+    expect(storedSpaceSlug('my-community', 'general')).toEqual('my-community-general')
+  })
+
+  it('does not double-prefix an already stored slug', () => {
+    expect(storedSpaceSlug('my-community', 'my-community-general')).toEqual('my-community-general')
+  })
+})
+
+describe('tagSearchUrl', () => {
+  it('searches the current group for a hashtag', () => {
+    expect(tagSearchUrl('climate', { groupSlug: 'awesome-team' }))
+      .toEqual('/search?t=%23climate&groupSlug=awesome-team')
+  })
+
+  it('accepts a tag that already has a leading hash', () => {
+    expect(tagSearchUrl('#climate', { groupSlug: 'awesome-team' }))
+      .toEqual('/search?t=%23climate&groupSlug=awesome-team')
+  })
+
+  it('omits groupSlug for all/public context slugs', () => {
+    expect(tagSearchUrl('climate', { groupSlug: 'all' })).toEqual('/search?t=%23climate')
+    expect(tagSearchUrl('climate', { groupSlug: 'public' })).toEqual('/search?t=%23climate')
+  })
+
+  it('returns /search when the tag is empty', () => {
+    expect(tagSearchUrl('')).toEqual('/search')
+    expect(tagSearchUrl('#')).toEqual('/search')
   })
 })

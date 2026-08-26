@@ -12,7 +12,8 @@ import useAppearance from 'hooks/useAppearance'
 import usePillRowClamp from 'hooks/usePillRowClamp'
 import { Check, EllipsisVertical, MapPin, MessageCircle, Trash2 } from 'lucide-react'
 import { RESP_REMOVE_MEMBERS } from 'store/constants'
-import { cn, bgImageStyle } from 'util/index'
+import { cn, bgImageStyle, parseApiDate, isRecentlyActive } from 'util/index'
+import { formatLocalizedDate } from 'util/dateFormat'
 import getMe from 'store/selectors/getMe'
 import { getResponsibilityTitlesForGroup } from 'store/selectors/getResponsibilitiesForGroup'
 import getRolesForGroup from 'store/selectors/getRolesForGroup'
@@ -30,31 +31,21 @@ import {
 
 const { bool, object, string, shape } = PropTypes
 
-const ACTIVE_WITHIN_MS = 4 * 60 * 1000
-
-/** Parse a member date value (ISO string or epoch ms). */
-function parseMemberDate (value) {
-  if (!value) return null
-  const date = /^\d+$/.test(String(value))
-    ? new Date(parseInt(value, 10))
-    : new Date(value)
-  if (Number.isNaN(date.getTime())) return null
-  return date
-}
-
 /** Format join date for display. */
 function formatJoinDate (value) {
-  const date = parseMemberDate(value)
-  return date ? date.toLocaleDateString() : null
+  const date = parseApiDate(value)
+  return formatLocalizedDate(date, { style: 'short' })
 }
 
 /** Active metadata note — green dot + "Active", or a short relative time like post headers. */
 function MemberActiveNote ({ lastActiveAt, onPhoto = false }) {
   const { t } = useTranslation()
-  const date = parseMemberDate(lastActiveAt)
+  const date = parseApiDate(lastActiveAt)
   if (!date) return null
 
-  const isActive = Date.now() - date.getTime() < ACTIVE_WITHIN_MS
+  // Same window as the currently-active avatar strips, so a green dot here and
+  // a green dot in the sidebar never disagree about who is online.
+  const isActive = isRecentlyActive({ lastActiveAt }, Date.now())
   const relativeTime = DateTimeHelpers.humanDate(date, true)
 
   return (
@@ -108,8 +99,8 @@ function hueFromName (name) {
 
 /** "Mar 2023"-style join date for the card footer. */
 function formatJoinedShort (value) {
-  const date = parseMemberDate(value)
-  return date ? date.toLocaleDateString(undefined, { month: 'short', year: 'numeric' }) : null
+  const date = parseApiDate(value)
+  return formatLocalizedDate(date, { style: 'monthYear' })
 }
 
 function Member ({
@@ -295,7 +286,7 @@ function Member ({
               {roles.length > 0 && (
                 <div className='inline-flex gap-0.5 justify-center'>
                   {roles.map(role => (
-                    <BadgeEmoji key={role.id + role.common} expanded {...role} responsibilities={role.responsibilities} id={id} />
+                    <BadgeEmoji key={role.id + role.common} expanded showName {...role} responsibilities={role.responsibilities} id={id} />
                   ))}
                 </div>
               )}
@@ -344,7 +335,7 @@ function Member ({
 
   const trackBlock = showTrackCompletion && (
     trackCompletedAt
-      ? <div className='text-xs text-selected flex items-center gap-1'><Check className='w-3 h-3' /> {t('Completed {{date}}', { date: new Date(trackCompletedAt).toLocaleDateString() })}</div>
+      ? <div className='text-xs text-selected flex items-center gap-1'><Check className='w-3 h-3' /> {t('Completed {{date}}', { date: formatLocalizedDate(trackCompletedAt, { style: 'short' }) })}</div>
       : <div className='text-xs text-foreground/50'>{t('Not yet completed')}</div>
   )
 
@@ -379,7 +370,7 @@ function Member ({
               {roles.length > 0 && (
                 <span className='inline-flex gap-0.5 shrink-0'>
                   {roles.map(role => (
-                    <BadgeEmoji key={role.id + role.common} expanded {...role} responsibilities={role.responsibilities} id={id} />
+                    <BadgeEmoji key={role.id + role.common} expanded showName {...role} responsibilities={role.responsibilities} id={id} />
                   ))}
                 </span>
               )}
@@ -447,7 +438,7 @@ function Member ({
           {roles.length > 0 && (
             <div className='flex flex-wrap gap-1 mb-2'>
               {roles.map(role => (
-                <BadgeEmoji key={role.id + role.common} expanded {...role} responsibilities={role.responsibilities} id={id} />
+                <BadgeEmoji key={role.id + role.common} expanded showName {...role} responsibilities={role.responsibilities} id={id} />
               ))}
             </div>
           )}

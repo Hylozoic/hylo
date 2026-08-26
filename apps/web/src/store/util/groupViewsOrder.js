@@ -293,7 +293,7 @@ export function syncAcceptedPostTypesInMenus (groups, spaceId, acceptedPostTypes
 
 /**
  * Merge a reordered in-menu list with existing off-menu views (order = null).
- * Reorder UIs only pass ordered rows; replacing the whole blob would wipe More Views.
+ * Reorder UIs only pass ordered rows; replacing the whole blob would wipe off-menu spaces.
  */
 export function mergeReorderedWithHidden (existingItems, reorderedItems) {
   const itemsWithOrder = (reorderedItems || []).map((view, index) => ({ ...view, order: index }))
@@ -395,5 +395,37 @@ export function syncFundingRoundEmbeddedData (session, fundingRoundId, patch) {
     if (Object.keys(updates).length > 0) {
       group.update(updates)
     }
+  })
+}
+
+/** Keep loaded view posts when groupViews are refreshed without collectionPosts/pinnedPosts. */
+export function preserveViewLoadedPosts (existingItems, newItems) {
+  if (!existingItems?.length || !newItems?.length) return newItems
+
+  const existingById = new Map(existingItems.map(view => [String(view.id), view]))
+
+  return newItems.map(newView => {
+    const existing = existingById.get(String(newView.id))
+    if (!existing) return newView
+
+    const merged = { ...newView }
+    if (existing.collectionPosts !== undefined && newView.collectionPosts === undefined) {
+      merged.collectionPosts = existing.collectionPosts
+    }
+    if (existing.pinnedPosts !== undefined && newView.pinnedPosts === undefined) {
+      merged.pinnedPosts = existing.pinnedPosts
+    }
+    if (newView.type === 'space' && newView.linkedGroup?.groupViews?.items) {
+      const existingSpaceItems = existing.linkedGroup?.groupViews?.items
+      if (existingSpaceItems?.length) {
+        merged.linkedGroup = {
+          ...merged.linkedGroup,
+          groupViews: {
+            items: preserveViewLoadedPosts(existingSpaceItems, newView.linkedGroup.groupViews.items)
+          }
+        }
+      }
+    }
+    return merged
   })
 }

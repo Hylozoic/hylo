@@ -31,6 +31,16 @@
   border-radius: 3px;
 }
 
+// The app never scrolls horizontally at the document level. `clip` (not
+// `hidden`) forbids even gesture/programmatic panning without creating a new
+// scroll container — iOS Safari otherwise lets composited transforms (e.g.
+// off-canvas slide-in panels parked past the right edge) extend the page's
+// scrollable overflow beyond the viewport even when an ancestor clips them.
+html, body {
+  overflow-x: clip;
+  max-width: 100vw;
+}
+
 body, body * {
   scrollbar-color: transparent;
   ::-webkit-scrollbar {

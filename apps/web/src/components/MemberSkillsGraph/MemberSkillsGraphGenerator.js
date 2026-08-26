@@ -30,7 +30,7 @@ export function runSkillsGraph (container, nodesData, linksData, { onSkillClick,
   const skillRadius = d => 7 + Math.sqrt(d.count || 1) * 3
 
   // Canvas can't resolve CSS variables, so resolve the theme colors up front
-  const rootStyle = getComputedStyle(document.documentElement)
+  const rootStyle = window.getComputedStyle(document.documentElement)
   const themeColor = (name, fallback) => {
     const value = rootStyle.getPropertyValue(name).trim()
     return value ? `hsl(${value})` : fallback
@@ -39,7 +39,7 @@ export function runSkillsGraph (container, nodesData, linksData, { onSkillClick,
   const foregroundColor = themeColor('--foreground', '#2c2c2c')
   const cardColor = themeColor('--card', '#ffffff')
   const mutedColor = themeColor('--muted', '#9ca3af')
-  const fontFamily = getComputedStyle(container).fontFamily || 'sans-serif'
+  const fontFamily = window.getComputedStyle(container).fontFamily || 'sans-serif'
 
   const canvas = document.createElement('canvas')
   canvas.width = Math.round(width * dpr)
@@ -72,7 +72,7 @@ export function runSkillsGraph (container, nodesData, linksData, { onSkillClick,
   const loadAvatar = (d) => {
     if (!d.avatarUrl || sprites.has(d.id)) return
     sprites.set(d.id, null)
-    const img = new Image()
+    const img = new window.Image()
     img.crossOrigin = 'anonymous'
     img.onload = () => {
       if (destroyed) return

@@ -4,8 +4,8 @@ export default gql`
   query FetchFundingRoundQuery($id: ID) {
     fundingRound(id: $id) {
       id
+      allowLateJoiners
       allowSelfVoting
-      bannerUrl
       canSubmit
       canVote
       createdAt
@@ -15,6 +15,7 @@ export default gql`
         name
         slug
         description
+        bannerUrl
       }
       hideFinalResultsFromParticipants
       isParticipating
@@ -129,7 +130,6 @@ export default gql`
       }
       submissionsCloseAt
       submissionsOpenAt
-      title
       tokenType
       tokensRemaining
       totalTokens

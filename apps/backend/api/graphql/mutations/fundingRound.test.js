@@ -36,19 +36,34 @@ describe('createFundingRound', () => {
 
     const round = await createFundingRound(moderatorUser.id, data)
     expect(round).to.exist
-    expect(round.get('title')).to.equal(data.title)
     expect(round.get('group_id')).to.equal(group.id)
+    expect(round.get('allow_late_joiners')).to.not.be.true
   })
 
-  it('throws error when title is missing', async () => {
-    const data = { groupId: group.id, votingMethod: 'token_allocation_constant', totalTokens: 100 }
-
-    try {
-      await createFundingRound(moderatorUser.id, data)
-      expect.fail('should reject')
-    } catch (e) {
-      expect(e.message).to.match(/title is required/)
+  it('saves allowLateJoiners when voting method is token_allocation_constant', async () => {
+    const data = {
+      title: 'Late Joiner Round',
+      groupId: group.id,
+      votingMethod: 'token_allocation_constant',
+      totalTokens: 100,
+      allowLateJoiners: true
     }
+
+    const round = await createFundingRound(moderatorUser.id, data)
+    expect(round.get('allow_late_joiners')).to.be.true
+  })
+
+  it('forces allowLateJoiners off when voting method is token_allocation_divide', async () => {
+    const data = {
+      title: 'Divide Round',
+      groupId: group.id,
+      votingMethod: 'token_allocation_divide',
+      totalTokens: 100,
+      allowLateJoiners: true
+    }
+
+    const round = await createFundingRound(moderatorUser.id, data)
+    expect(round.get('allow_late_joiners')).to.be.false
   })
 
   it('throws error when groupId is missing', async () => {
@@ -146,11 +161,11 @@ describe('updateFundingRound', () => {
     }).save()
   })
 
-  it('updates a funding round title', async () => {
-    const data = { title: 'Updated Title' }
+  it('updates a funding round criteria', async () => {
+    const data = { criteria: 'Updated criteria' }
 
     const updatedRound = await updateFundingRound(moderatorUser.id, round.id, data)
-    expect(updatedRound.get('title')).to.equal('Updated Title')
+    expect(updatedRound.get('criteria')).to.equal('Updated criteria')
   })
 
   it('updates funding round dates', async () => {
@@ -213,8 +228,17 @@ describe('updateFundingRound', () => {
     }).save()
 
     // moderatorUser is coordinator on parent only — not a member of the space
-    const updatedRound = await updateFundingRound(moderatorUser.id, spaceRound.id, { title: 'Updated Space Round' })
-    expect(updatedRound.get('title')).to.equal('Updated Space Round')
+    const updatedRound = await updateFundingRound(moderatorUser.id, spaceRound.id, { criteria: 'Updated Space Round' })
+    expect(updatedRound.get('criteria')).to.equal('Updated Space Round')
+  })
+
+  it('clears allowLateJoiners when voting method changes to token_allocation_divide', async () => {
+    await round.save({ allow_late_joiners: true }, { patch: true })
+
+    const updatedRound = await updateFundingRound(moderatorUser.id, round.id, {
+      votingMethod: 'token_allocation_divide'
+    })
+    expect(updatedRound.get('allow_late_joiners')).to.be.false
   })
 
   it('triggers phase transition on update', async () => {
@@ -315,6 +339,56 @@ describe('joinFundingRound', () => {
     expect(membership).to.exist
     expect(membership.get('active')).to.equal(true)
   })
+
+  it('does not allocate tokens when joining before voting', async () => {
+    await round.save({ allow_late_joiners: true, total_tokens: 100 }, { patch: true })
+    await joinFundingRound(user.id, round.id)
+
+    const membership = await GroupMembership.forPair(user.id, space).fetch()
+    expect(membership.get('settings')?.tokensRemaining || 0).to.equal(0)
+  })
+
+  it('allocates tokens when joining during voting if allowLateJoiners is on', async () => {
+    await round.save({
+      allow_late_joiners: true,
+      phase: FundingRound.PHASES.VOTING,
+      total_tokens: 100,
+      voting_method: 'token_allocation_constant'
+    }, { patch: true })
+
+    await joinFundingRound(user.id, round.id)
+
+    const membership = await GroupMembership.forPair(user.id, space).fetch()
+    expect(membership.get('settings').tokensRemaining).to.equal(100)
+  })
+
+  it('does not allocate tokens when joining during voting if allowLateJoiners is off', async () => {
+    await round.save({
+      allow_late_joiners: false,
+      phase: FundingRound.PHASES.VOTING,
+      total_tokens: 100,
+      voting_method: 'token_allocation_constant'
+    }, { patch: true })
+
+    await joinFundingRound(user.id, round.id)
+
+    const membership = await GroupMembership.forPair(user.id, space).fetch()
+    expect(membership.get('settings')?.tokensRemaining || 0).to.equal(0)
+  })
+
+  it('does not allocate tokens to late joiners when voting method is token_allocation_divide', async () => {
+    await round.save({
+      allow_late_joiners: true,
+      phase: FundingRound.PHASES.VOTING,
+      total_tokens: 100,
+      voting_method: 'token_allocation_divide'
+    }, { patch: true })
+
+    await joinFundingRound(user.id, round.id)
+
+    const membership = await GroupMembership.forPair(user.id, space).fetch()
+    expect(membership.get('settings')?.tokensRemaining || 0).to.equal(0)
+  })
 })
 
 describe('leaveFundingRound', () => {
@@ -358,6 +432,50 @@ describe('leaveFundingRound', () => {
     expect(membership).to.not.exist
     const inactive = await GroupMembership.forPair(user.id, space, { includeInactive: true }).fetch()
     expect(inactive.get('active')).to.equal(false)
+  })
+
+  it('clears the user\'s votes so a later rejoin cannot keep them', async () => {
+    const otherVoter = factories.user()
+    const submission = factories.post({ type: Post.Type.SUBMISSION })
+    await Promise.all([otherVoter.save(), submission.save()])
+    await otherVoter.joinGroup(parentGroup)
+    await space.posts().attach(submission)
+
+    await round.save({
+      allow_late_joiners: true,
+      phase: FundingRound.PHASES.VOTING,
+      total_tokens: 100,
+      voting_method: 'token_allocation_constant',
+      voting_opens_at: new Date(Date.now() - 10000)
+    }, { patch: true })
+
+    const userMembership = await GroupMembership.forPair(user.id, space).fetch()
+    userMembership.addSetting({ tokensRemaining: 100 })
+    await userMembership.save({ settings: userMembership.get('settings') }, { patch: true })
+
+    await FundingRound.join(round.id, otherVoter.id)
+    const otherMembership = await GroupMembership.forPair(otherVoter.id, space).fetch()
+    otherMembership.addSetting({ tokensRemaining: 100 })
+    await otherMembership.save({ settings: otherMembership.get('settings') }, { patch: true })
+
+    await allocateTokensToSubmission(user.id, submission.id, 40)
+    await allocateTokensToSubmission(otherVoter.id, submission.id, 25)
+
+    await leaveFundingRound(user.id, round.id)
+
+    const leftUserAllocation = await PostUser.find(submission.id, user.id)
+    expect(leftUserAllocation.get('tokens_allocated_to') || 0).to.equal(0)
+
+    const otherAllocation = await PostUser.find(submission.id, otherVoter.id)
+    expect(otherAllocation.get('tokens_allocated_to')).to.equal(25)
+
+    await joinFundingRound(user.id, round.id)
+
+    const rejoinedMembership = await GroupMembership.forPair(user.id, space).fetch()
+    expect(rejoinedMembership.get('settings').tokensRemaining).to.equal(100)
+
+    const rejoinedAllocation = await PostUser.find(submission.id, user.id)
+    expect(rejoinedAllocation.get('tokens_allocated_to') || 0).to.equal(0)
   })
 })
 

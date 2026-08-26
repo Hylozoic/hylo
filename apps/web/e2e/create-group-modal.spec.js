@@ -17,7 +17,7 @@ async function openCreateGroup (page, url) {
 
 test.describe('Create Group modal', () => {
   test('opens from the global nav and generates a handle from the name', async ({ page }) => {
-    await page.goto('/public/stream')
+    await page.goto('/public/all')
     await expect(page.locator('#center-column-container')).toBeVisible({ timeout: 60000 })
     await page.getByTestId('global-nav-create').click()
     await page.getByText('Create a group', { exact: true }).click()
@@ -34,7 +34,7 @@ test.describe('Create Group modal', () => {
   })
 
   test('reveals advanced settings inline', async ({ page }) => {
-    const dialog = await openCreateGroup(page, `/public/stream?createGroup=true&name=${encodeURIComponent('Watershed Council')}`)
+    const dialog = await openCreateGroup(page, `/public/all?createGroup=true&name=${encodeURIComponent('Watershed Council')}`)
 
     await dialog.getByRole('button', { name: 'Agreements', exact: true }).click()
     await dialog.getByRole('button', { name: 'Join questions', exact: true }).click()
@@ -44,7 +44,7 @@ test.describe('Create Group modal', () => {
   })
 
   test('flags a handle that is already taken', async ({ page }) => {
-    const dialog = await openCreateGroup(page, '/public/stream?createGroup=true')
+    const dialog = await openCreateGroup(page, '/public/all?createGroup=true')
 
     await dialog.locator('#groupName').fill(SEEDED_GROUP_NAME)
     await expect(dialog.locator('#groupSlug')).toHaveValue(SEEDED_GROUP_SLUG)
@@ -54,11 +54,11 @@ test.describe('Create Group modal', () => {
   })
 
   test('closing the modal returns to the page underneath', async ({ page }) => {
-    const dialog = await openCreateGroup(page, '/public/stream?createGroup=true')
+    const dialog = await openCreateGroup(page, '/public/all?createGroup=true')
 
     await dialog.getByRole('button', { name: 'Cancel' }).click()
     await expect(page.getByRole('dialog')).toBeHidden()
-    await expect(page).toHaveURL(/\/public\/stream$/)
+    await expect(page).toHaveURL(/\/public\/all$/)
   })
 
   test('still renders as a standalone page', async ({ page }) => {

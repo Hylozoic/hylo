@@ -15,13 +15,11 @@ import getMe from 'store/selectors/getMe'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
 import { RESP_MANAGE_CONTENT } from 'store/constants'
 import { bgImageStyle, cn } from 'util/index'
-import { baseUrl, groupUrl } from '@hylo/navigation'
+import { baseUrl, groupUrl, myHomeLandingUrl, isMyHomePath } from '@hylo/navigation'
 import { createGroupModalUrl } from 'routes/CreateGroup/createGroupUrl'
 
 // import s from './Drawer.module.scss' // eslint-disable-line no-unused-vars
 import s from './Drawer.module.scss'
-
-const myPath = '/my'
 
 export default function Drawer (props) {
   const navigate = useNavigate()
@@ -70,7 +68,7 @@ export default function Drawer (props) {
     id: MY_HOME_ID,
     name: t('My Home'),
     groups: [],
-    explicitPath: myPath,
+    explicitPath: myHomeLandingUrl(),
     avatarUrl: MY_HOME_AVATAR_PATH
   }
 
@@ -146,8 +144,10 @@ export function ContextRow ({
   const imageStyle = bgImageStyle(avatarUrl || DEFAULT_AVATAR)
   const showBadge = newPostCount > 0
   const path = explicitPath || baseUrl({ context, groupSlug: slug })
+  const isCurrent = currentLocation?.pathname === path ||
+    (explicitPath === myHomeLandingUrl() && isMyHomePath(currentLocation?.pathname))
   return (
-    <li className={cn(s.contextRow, { [s.currentContext]: currentLocation?.pathname === path || (path.includes(myPath) && currentLocation?.pathname.includes(myPath)) })}>
+    <li className={cn(s.contextRow, { [s.currentContext]: isCurrent })}>
       <Link to={path} className={s.contextRowLink} title={name}>
         <div className={s.contextRowAvatar} style={imageStyle} />
         <span className={s.groupName}>{name}</span>

@@ -1,5 +1,6 @@
 import { DateTime, DateTimeUnit, Info } from 'luxon'
 import prettyDate from 'pretty-date'
+import { LOCALE_EN_US, normalizeLocaleToFull } from '../LocaleHelpers'
 
 export interface TimezoneOption {
   value: string
@@ -25,19 +26,8 @@ export interface FormatEventTimeDisplayResult {
 
 let cachedTimezones: string[] | null = null
 
-export const getLocaleAsString = (locale : string ) : string => {
-  switch (locale) {
-    case 'en':
-      return 'en-US'
-    case 'es':
-      return 'es'
-    default:
-      return 'en-US'
-  }
-}
-
 export const dateTimeNow = (locale?: string) : DateTime => {
-  return DateTime.now().setLocale(getLocaleAsString(locale || ''))
+  return DateTime.now().setLocale(normalizeLocaleToFull(locale))
 }
 
 export interface ToDateTimeOptions {
@@ -54,10 +44,10 @@ export const toDateTime = (
   const _dt = dt instanceof DateTime
     ? dt
     : dt instanceof Date
-      ? DateTime.fromJSDate(dt, zoneOption).setLocale(getLocaleAsString(locale || ''))
+      ? DateTime.fromJSDate(dt, zoneOption).setLocale(normalizeLocaleToFull(locale))
       : typeof dt === 'string'
-        ? DateTime.fromISO(dt, zoneOption).setLocale(getLocaleAsString(locale || ''))
-        : DateTime.fromObject(dt, zoneOption).setLocale(getLocaleAsString(locale || ''))
+        ? DateTime.fromISO(dt, zoneOption).setLocale(normalizeLocaleToFull(locale))
+        : DateTime.fromObject(dt, zoneOption).setLocale(normalizeLocaleToFull(locale))
   if (_dt.invalidReason) {
     throw new Error(`Invalid date: ${_dt.invalidReason}`)
   }
@@ -169,6 +159,34 @@ export function humanDate (
     .replace(/ month(s?)/, ' mo$1')
 }
 
+/** Whether prose event dates place the day before the month (all locales except en-US). */
+function usesDayBeforeMonth (locale?: string): boolean {
+  return normalizeLocaleToFull(locale) !== LOCALE_EN_US
+}
+
+/** Luxon format strings for formatDatePair, ordered per locale convention. */
+function getDatePairFormats (locale: string | undefined, skipTime: boolean) {
+  const dayFirst = usesDayBeforeMonth(locale)
+  const dateWithYear = dayFirst ? 'ccc d MMM yyyy' : 'ccc MMM d, yyyy'
+  const dateWithoutYear = dayFirst ? 'ccc d MMM' : 'ccc MMM d'
+
+  if (skipTime) {
+    return {
+      withYear: dateWithYear,
+      withoutYear: dateWithoutYear,
+      withYearWithTz: dateWithYear,
+      withoutYearWithTz: dateWithoutYear
+    }
+  }
+
+  return {
+    withYear: `${dateWithYear} '•' t`,
+    withoutYear: `${dateWithoutYear} '•' t`,
+    withYearWithTz: `${dateWithYear} '•' t ZZZZ`,
+    withoutYearWithTz: `${dateWithoutYear} '•' t ZZZZ`
+  }
+}
+
 export interface FormatDatePairOptions {
   start: string | Date | DateTime | Object,
   end?: string | Date | DateTime | Object | boolean,
@@ -190,13 +208,12 @@ export const formatDatePair = ({
   const _end = end ? toDateTime(end, { timezone, locale }) : null
   const now = dateTimeNow(locale)
 
-  // Base formats without timezone
-  const formatWithYear = skipTime ? 'ccc MMM d, yyyy' : "ccc MMM d, yyyy '•' t"
-  const formatWithoutYear = skipTime ? 'ccc MMM d' : "ccc MMM d '•' t"
-
-  // Formats with timezone
-  const formatWithYearWithTz = skipTime ? 'ccc MMM d, yyyy' : "ccc MMM d, yyyy '•' t ZZZZ"
-  const formatWithoutYearWithTz = skipTime ? 'ccc MMM d' : "ccc MMM d '•' t ZZZZ"
+  const {
+    withYear: formatWithYear,
+    withoutYear: formatWithoutYear,
+    withYearWithTz: formatWithYearWithTz,
+    withoutYearWithTz: formatWithoutYearWithTz
+  } = getDatePairFormats(locale, skipTime)
 
   const isSameDay = _end && _start.get('day') === _end.get('day') &&
                     _start.get('month') === _end.get('month') &&
@@ -305,7 +322,7 @@ export function getSupportedTimezones (): string[] {
 
 /** Returns a human-readable timezone name for display in selectors. */
 export function getTimezoneFriendlyName (timezone: string, locale?: string): string {
-  const loc = getLocaleAsString(locale || '')
+  const loc = normalizeLocaleToFull(locale)
   try {
     const parts = new Intl.DateTimeFormat(loc, {
       timeZone: timezone,
@@ -321,7 +338,7 @@ export function getTimezoneFriendlyName (timezone: string, locale?: string): str
 
 /** Builds sorted timezone options for selectors, labeled with offset and friendly name. */
 export function getTimezoneOptions (locale?: string): TimezoneOption[] {
-  const loc = getLocaleAsString(locale || '')
+  const loc = normalizeLocaleToFull(locale)
   const now = DateTime.now()
   return getSupportedTimezones().map(timezone => {
     const zoned = now.setZone(timezone)

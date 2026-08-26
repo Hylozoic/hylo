@@ -17,7 +17,6 @@ export const filterAndSortPosts = curry((opts, q) => {
     order,
     savedBy,
     search,
-    showPinnedFirst,
     sortBy = 'updated',
     topic,
     type,
@@ -92,14 +91,13 @@ export const filterAndSortPosts = curry((opts, q) => {
   }
 
   if (forCollection) {
-    // GroupView collections use view_id; legacy Collection rows still use collection_id
     q.join('collections_posts', (j) => {
       j.on('collections_posts.post_id', '=', 'posts.id')
-      j.andOn(bookshelf.knex.raw('(collections_posts.view_id = ? OR collections_posts.collection_id = ?)', [forCollection, forCollection]))
+      j.andOn(bookshelf.knex.raw('collections_posts.view_id = ?', [forCollection]))
     })
     q.whereIn('posts.id', bookshelf.knex.raw(
-      'select post_id from collections_posts where view_id = ? OR collection_id = ?',
-      [forCollection, forCollection]
+      'select post_id from collections_posts where view_id = ?',
+      [forCollection]
     ))
   }
 
@@ -112,17 +110,27 @@ export const filterAndSortPosts = curry((opts, q) => {
 
   if (collectionToFilterOut) {
     q.whereNotIn('posts.id', bookshelf.knex.raw(
-      'select post_id from collections_posts where view_id = ? OR collection_id = ?',
-      [collectionToFilterOut, collectionToFilterOut]
+      'select post_id from collections_posts where view_id = ?',
+      [collectionToFilterOut]
     ))
   }
 
-  if (types) {
+  const streamTypes = [DISCUSSION, REQUEST, OFFER, PROJECT, PROPOSAL, EVENT, RESOURCE]
+  const streamTypesWithNotices = [...streamTypes, ...Post.NOTICE_TYPES]
+
+  // all+notices is All Activity with "Show chat activity" on. Blank / "all"
+  // must stay stream types only so turning that setting off actually hides notices.
+  // all+notices must win over a types array (the web client may send both).
+  if (type === 'all+notices') {
+    q.whereIn('posts.type', streamTypesWithNotices)
+  } else if ((!type || type === 'all') && !(types && types.length)) {
+    q.whereIn('posts.type', streamTypes)
+  } else if (types && types.length) {
     q.whereIn('posts.type', types)
   } else if (type === 'chat') {
-    q.whereIn('posts.type', [CHAT, DISCUSSION, REQUEST, OFFER, PROJECT, PROPOSAL, EVENT, RESOURCE])
-  } else if (!type || type === 'all' || type === 'all+welcome') {
-    q.whereIn('posts.type', [DISCUSSION, REQUEST, OFFER, PROJECT, PROPOSAL, EVENT, RESOURCE])
+    q.whereIn('posts.type', [CHAT, ...streamTypes])
+  } else if (type === 'all+welcome') {
+    q.whereIn('posts.type', streamTypes)
   } else {
     if (!includes(values(Post.Type), type)) {
       throw new GraphQLError(`unknown post type: "${type}"`)
@@ -162,17 +170,50 @@ export const filterAndSortPosts = curry((opts, q) => {
     q.whereRaw('locations.center && ST_MakeEnvelope(?, ?, ?, ?, 4326)', [boundingBox[0].lng, boundingBox[0].lat, boundingBox[1].lng, boundingBox[1].lat])
   }
 
-  // This is used to make sure that when viewing posts from child groups too, only pin ones from the parent group
-  const primaryGroupId = q.queryContext()?.primaryGroupId
-
-  if (showPinnedFirst) {
-    q.orderByRaw(`${primaryGroupId ? `case when groups_posts.group_id = ${primaryGroupId} then groups_posts.pinned_at end desc nulls last` : 'groups_posts.pinned_at desc nulls last'}, ${sort || 'posts.updated_at'} ${order || (sortBy === 'order' ? 'asc' : 'desc')}`)
-  } else if (sort) {
+  if (sort) {
     q.orderBy(sort, order || (sortBy === 'order' ? 'asc' : 'desc'))
   }
 })
 
-export const filterAndSortUsers = curry(({ autocomplete, boundingBox, groupId, groupRoleId, order, search, sortBy }, q) => {
+const FUNDING_ROUND_CAPABILITIES = ['submit', 'vote', 'notSubmit', 'notVote']
+
+/** SQL: empty role list = everyone; otherwise the user holds one of those parent-group roles. */
+function userHasFundingRoundRoleSql (rolesColumn) {
+  return `(
+    jsonb_array_length(coalesce(fr.${rolesColumn}, '[]'::jsonb)) = 0
+    OR EXISTS (
+      SELECT 1
+      FROM jsonb_array_elements(coalesce(fr.${rolesColumn}, '[]'::jsonb)) AS role
+      INNER JOIN group_memberships_group_roles gmgr
+        ON gmgr.user_id = users.id
+        AND gmgr.group_id = coalesce(g.parent_id, g.id)
+        AND (role->>'id') ~ '^[0-9]+$'
+        AND gmgr.group_role_id = (role->>'id')::bigint
+    )
+  )`
+}
+
+function applyFundingRoundCapabilityFilter (q, groupId, capability) {
+  const canSubmit = userHasFundingRoundRoleSql('submitter_roles')
+  const canVote = userHasFundingRoundRoleSql('voter_roles')
+  const conditions = {
+    submit: canSubmit,
+    vote: canVote,
+    notSubmit: `NOT ${canSubmit}`,
+    notVote: `NOT ${canVote}`
+  }
+  q.whereRaw(`
+    EXISTS (
+      SELECT 1
+      FROM groups g
+      INNER JOIN funding_rounds fr ON fr.id = g.funding_round_id
+      WHERE g.id = ?
+        AND (${conditions[capability]})
+    )
+  `, [groupId])
+}
+
+export const filterAndSortUsers = curry(({ autocomplete, boundingBox, groupId, groupRoleId, order, search, sortBy, trackCompleted, fundingRoundCapability }, q) => {
   if (autocomplete) {
     const query = chain(autocomplete.split(/\s*\s/)) // split on whitespace
       .map(word => word.replace(/[,;|:&()!\\]+/, ''))
@@ -190,10 +231,26 @@ export const filterAndSortUsers = curry(({ autocomplete, boundingBox, groupId, g
 
   if (groupRoleId) {
     q.leftJoin('group_memberships_group_roles', 'group_memberships_group_roles.user_id', '=', 'users.id')
+    // A group_role_id belongs to exactly one group, so it scopes itself; adding
+    // the queried group's id here broke spaces, whose role assignments live on
+    // the parent group while the membership being filtered is the space's own
     q.where('group_memberships_group_roles.group_role_id', '=', groupRoleId)
-    if (groupId) {
-      q.andWhere('group_memberships_group_roles.group_id', '=', groupId)
+  }
+
+  // Track space membership: completedAt lives on group_memberships.settings
+  if (typeof trackCompleted === 'boolean') {
+    if (trackCompleted) {
+      q.whereRaw("(group_memberships.settings->>'completedAt') is not null")
+    } else {
+      q.whereRaw("(group_memberships.settings->>'completedAt') is null")
     }
+  }
+
+  if (fundingRoundCapability) {
+    if (!FUNDING_ROUND_CAPABILITIES.includes(fundingRoundCapability)) {
+      throw new GraphQLError(`Cannot filter by fundingRoundCapability "${fundingRoundCapability}"`)
+    }
+    applyFundingRoundCapabilityFilter(q, groupId, fundingRoundCapability)
   }
 
   if (search) {

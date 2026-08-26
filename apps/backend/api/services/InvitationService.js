@@ -3,15 +3,29 @@ import validator from 'validator'
 import { TextHelpers } from '@hylo/shared'
 import { get, isEmpty, map, merge } from 'lodash/fp'
 
+/**
+ * Sends an in-app notification to an existing Hylo user invited by user id.
+ */
+function notifyExistingUser ({ actorId, invitee, group }) {
+  const parentId = group.get('parent_id')
+  return Activity.saveForReasons([{
+    actor_id: actorId,
+    reader_id: invitee.id,
+    group_id: group.id,
+    ...(parentId ? { other_group_id: parentId } : {}),
+    reason: Activity.Reason.GroupInvitation
+  }])
+}
+
 module.exports = {
   checkPermission: (userId, invitationId) => {
     return Invitation.find(invitationId, { withRelated: 'group' })
-    .then(async (invitation) => {
-      if (!invitation) throw new GraphQLError('Invitation not found')
-      const { group } = invitation.relations
-      const user = await User.find(userId)
-      return user.get('email') === invitation.get('email') || (GroupMembership.hasResponsibility(userId, group, Responsibility.constants.RESP_ADD_MEMBERS))
-    })
+      .then(async (invitation) => {
+        if (!invitation) throw new GraphQLError('Invitation not found')
+        const { group } = invitation.relations
+        const user = await User.find(userId)
+        return user.get('email') === invitation.get('email') || (GroupMembership.hasResponsibility(userId, group, Responsibility.constants.RESP_ADD_MEMBERS))
+      })
   },
 
   findById: (invitationId) => {
@@ -20,41 +34,45 @@ module.exports = {
 
   find: ({ groupId, limit, offset, pendingOnly = false, includeExpired = false }) => {
     return Group.find(groupId)
-    .then(group => Invitation.query(qb => {
-      qb.limit(limit || 20)
-      qb.offset(offset || 0)
-      qb.where('group_id', group.get('id'))
-      qb.leftJoin('users', 'users.id', 'group_invites.used_by_id')
-      qb.select(bookshelf.knex.raw(`
-        group_invites.*,
-        count(*) over () as total,
-        users.id as joined_user_id,
-        users.name as joined_user_name,
-        users.avatar_url as joined_user_avatar_url
-      `))
+      .then(group => Invitation.query(qb => {
+        qb.limit(limit || 20)
+        qb.offset(offset || 0)
+        qb.where('group_id', group.get('id'))
+        qb.leftJoin('users', 'users.id', 'group_invites.used_by_id')
+        qb.select(bookshelf.knex.raw(`
+          group_invites.*,
+          count(*) over () as total,
+          users.id as joined_user_id,
+          users.name as joined_user_name,
+          users.avatar_url as joined_user_avatar_url,
+          (select name from users where lower(users.email) = lower(group_invites.email) limit 1) as invitee_name,
+          (select id from users where lower(users.email) = lower(group_invites.email) limit 1) as invitee_id
+        `))
 
-      pendingOnly && qb.whereNull('used_by_id')
+        pendingOnly && qb.whereNull('used_by_id')
 
-      !includeExpired && qb.whereNull('expired_by_id')
+        !includeExpired && qb.whereNull('expired_by_id')
 
-      qb.orderBy('created_at', 'desc')
+        qb.orderBy('created_at', 'desc')
       }).fetchAll({ withRelated: ['user'] }))
-    .then(invitations => ({
-      total: invitations.length > 0 ? Number(invitations.first().get('total')) : 0,
-      items: invitations.map(i => {
+      .then(invitations => ({
+        total: invitations.length > 0 ? Number(invitations.first().get('total')) : 0,
+        items: invitations.map(i => {
           let user = i.relations.user
-        if (isEmpty(user) && i.get('joined_user_id')) {
-          user = {
-            id: i.get('joined_user_id'),
-            name: i.get('joined_user_name'),
-            avatar_url: i.get('joined_user_avatar_url')
+          if (isEmpty(user) && i.get('joined_user_id')) {
+            user = {
+              id: i.get('joined_user_id'),
+              name: i.get('joined_user_name'),
+              avatar_url: i.get('joined_user_avatar_url')
+            }
           }
-        }
-        return merge(i.pick('id', 'email', 'created_at', 'last_sent_at'), {
-          user: !isEmpty(user) ? user.pick('id', 'name', 'avatar_url') : null
+          return merge(i.pick('id', 'email', 'created_at', 'last_sent_at'), {
+            user: !isEmpty(user) ? user.pick('id', 'name', 'avatar_url') : null,
+            name: i.get('invitee_name') || null,
+            userId: i.get('invitee_id') || null
+          })
         })
-      })
-    }))
+      }))
   },
 
   /**
@@ -75,7 +93,12 @@ module.exports = {
       Group.find(groupId),
       tagName && Tag.find({ name: tagName }),
       (users, group, tag) => {
-        const concatenatedEmails = emails.concat(map(u => u.get('email'), get('models', users)))
+        const invitedUsers = get('models', users) || []
+        const usersByEmail = {}
+        invitedUsers.forEach(u => {
+          usersByEmail[u.get('email').toLowerCase()] = u
+        })
+        const concatenatedEmails = emails.concat(map(u => u.get('email'), invitedUsers))
 
         return Promise.map(concatenatedEmails, email => {
           if (!validator.isEmail(email)) {
@@ -102,12 +125,22 @@ module.exports = {
             .then(invitation => invitation.refresh({ withRelated: ['creator', 'group', 'tag'] }).then(() => invitation))
             .then(invitation => {
               return Queue.classMethod('Invitation', 'createAndSend', { invitation })
-                .then(() => ({
-                  email,
-                  id: invitation.id,
-                  createdAt: invitation.created_at,
-                  lastSentAt: invitation.last_sent_at
-                }))
+                .then(async () => {
+                  const invitee = usersByEmail[email.toLowerCase()]
+                  if (invitee && String(invitee.id) !== String(sessionUserId)) {
+                    try {
+                      await notifyExistingUser({ actorId: sessionUserId, invitee, group })
+                    } catch (err) {
+                      console.error('Error creating invitation notification', err)
+                    }
+                  }
+                  return {
+                    email,
+                    id: invitation.id,
+                    createdAt: invitation.created_at,
+                    lastSentAt: invitation.last_sent_at
+                  }
+                })
                 .catch(err => ({ email, error: err.message }))
             })
         })

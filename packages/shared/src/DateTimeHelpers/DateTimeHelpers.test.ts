@@ -2,6 +2,25 @@
 // This test file is intended to be run with Jest, which provides the describe, it, and expect globals.
 import * as DateTimeHelpers from './DateTimeHelpers'
 import { DateTime } from 'luxon'
+import { normalizeLocaleToFull } from '../LocaleHelpers'
+
+describe('locale-aware date formatting', () => {
+  it('formats numeric dates according to locale', () => {
+    const dt = DateTime.fromObject({ year: 2026, month: 3, day: 16 })
+    expect(
+      dt.setLocale(normalizeLocaleToFull('en')).toLocaleString(DateTime.DATE_SHORT)
+    ).toBe('3/16/2026')
+    expect(
+      dt.setLocale(normalizeLocaleToFull('en-GB')).toLocaleString(DateTime.DATE_SHORT)
+    ).toBe('16/03/2026')
+    expect(
+      dt.setLocale(normalizeLocaleToFull('de')).toLocaleString(DateTime.DATE_SHORT)
+    ).toBe('16.3.2026')
+    expect(
+      dt.setLocale(normalizeLocaleToFull('fr')).toLocaleString(DateTime.DATE_SHORT)
+    ).toBe('16/03/2026')
+  })
+})
 
 describe('formatDatePair', () => {
   it('displays differences of dates', () => {
@@ -36,6 +55,15 @@ describe('formatDatePair', () => {
     const d1 = DateTime.fromMillis(1551908483315, {zone: 'Etc/GMT'}).set({month: 1, day: 1, hour: 18})
     const d2 = d1.set({hour: 21})
     expect(DateTimeHelpers.formatDatePair({ start: d1, end: d2, returnAsObj: true })).toMatchSnapshot()
+  })
+
+  it('orders day before month for non-US locales', () => {
+    const d1 = DateTime.fromObject({ year: 2026, month: 3, day: 16, hour: 13, minute: 30 }, { zone: 'UTC' })
+    const d2 = d1.set({ hour: 15 })
+
+    expect(DateTimeHelpers.formatDatePair({ start: d1, end: d2, locale: 'en-US' })).toContain('Mar 16')
+    expect(DateTimeHelpers.formatDatePair({ start: d1, end: d2, locale: 'en-GB' })).toContain('16 Mar')
+    expect(DateTimeHelpers.formatDatePair({ start: d1, end: d2, locale: 'de' })).toContain('16 Mar')
   })
 })
 

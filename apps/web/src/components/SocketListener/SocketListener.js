@@ -11,7 +11,8 @@ import {
   receiveMessageUpdated,
   receiveComment,
   receiveNotification,
-  receivePost
+  receivePost,
+  receiveOpenJoinRequestCount
 } from './SocketListener.store'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import getMe from 'store/selectors/getMe'
@@ -38,8 +39,8 @@ const SocketListener = (props) => {
   const handlers = useMemo(() => ({
     commentAdded: data => dispatch(receiveComment(data)),
     groupUpdated: (data) => {
-      if (!group?.id) return
-      if (data?.groupId && String(data.groupId) !== String(group.id)) return
+      if (!group?.id || !data?.groupId) return
+      if (String(data.groupId) !== String(group.id)) return
       if (data?.updatedByUserId && String(data.updatedByUserId) === String(currentUser?.id)) return
       dispatch(fetchGroupViews(group.id))
     },
@@ -52,16 +53,21 @@ const SocketListener = (props) => {
     },
     messageUpdated: data => dispatch(receiveMessageUpdated(convertToMessage(data))),
     newNotification: data => dispatch(receiveNotification(data)),
+    openJoinRequestCountUpdated: (data) => {
+      if (data?.groupId == null || data?.openJoinRequestCount == null) return
+      dispatch(receiveOpenJoinRequestCount(data.groupId, data.openJoinRequestCount))
+    },
     // Use the post's group from the socket payload — not the currently viewed group.
-    // Space posts arrive on the space room while the parent menu may still be open.
+    // Space posts are also pushed to the parent room so the parent menu can badge
+    // without joining every space room.
     newPost: data => {
       const postGroupId = data?.groups?.[0]?.id
       if (!postGroupId) return
       dispatch(receivePost(data, postGroupId))
     },
     newThread: data => dispatch(receiveThread(convertToThread(data))),
-    userTyping: ({ userId, userName, isTyping }) => {
-      isTyping ? dispatch(addUserTyping(userId, userName)) : dispatch(clearUserTyping(userId))
+    userTyping: ({ userId, userName, isTyping, groupId, postId }) => {
+      isTyping ? dispatch(addUserTyping(userId, userName, { groupId, postId })) : dispatch(clearUserTyping(userId))
     },
     // Live room rosters (see RoomPresence.store)
     roomPresence: ({ groupId, members }) => dispatch(setRoomPresence(groupId, members)),

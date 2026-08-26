@@ -1,4 +1,5 @@
 /* global FundingRound ContentAccess Draft GroupView GroupViewUser CollectionPost */
+import DataLoader from 'dataloader'
 import { camelCase, isNil, mapKeys, startCase } from 'lodash/fp'
 import pluralize from 'pluralize'
 import { TextHelpers } from '@hylo/shared'
@@ -80,11 +81,58 @@ function filterGroupRolesByGroup (relation, { groupId, slug }) {
   })
 }
 
+/** Parses posts.notice_data whether Postgres returned an object or a JSON string. */
+function parsePostNoticeData (post) {
+  const value = post.get('notice_data')
+  if (!value) return null
+  if (typeof value !== 'string') return value
+  try {
+    return JSON.parse(value)
+  } catch (e) {
+    return null
+  }
+}
+
 export default function makeModels (userId, isAdmin, apiClient) {
   const nonAdminFilter = makeFilterToggle(!isAdmin)
 
   // XXX: for now give super API users more access, in the future track which groups each client can access
   const apiFilter = makeFilterToggle(!apiClient || !apiClient.super)
+
+  // One query per All Activity page for every notice's recentPostIds
+  const noticeChatPostsLoader = new DataLoader(async (ids) => {
+    const posts = await Post.query(q => {
+      q.whereIn('posts.id', ids)
+      q.where('posts.active', true)
+      q.where('posts.type', Post.Type.CHAT)
+    }).fetchAll()
+    const byId = new Map(posts.models.map(post => [String(post.id), post]))
+    return ids.map(id => byId.get(String(id)) || null)
+  }, { cacheKeyFn: id => String(id) })
+
+  const groupViewUserLoader = new DataLoader(async (viewIds) => {
+    if (!userId) return viewIds.map(() => null)
+    const rows = await bookshelf.knex('group_views_users')
+      .where({ user_id: userId })
+      .whereIn('view_id', viewIds)
+      .select('view_id', 'new_post_count', 'last_read_post_id')
+    const byView = new Map(rows.map(row => [String(row.view_id), row]))
+    return viewIds.map(id => byView.get(String(id)) || null)
+  }, { cacheKeyFn: id => String(id) })
+
+  const pinnedPostIdsLoader = new DataLoader(async (viewIds) => {
+    const rows = await bookshelf.knex('group_view_pins')
+      .whereIn('view_id', viewIds)
+      .orderBy('pinned_at', 'desc')
+      .select('view_id', 'post_id')
+    const byView = new Map()
+    for (const row of rows) {
+      const key = String(row.view_id)
+      if (!byView.has(key)) byView.set(key, [])
+      byView.get(key).push(row.post_id)
+    }
+    return viewIds.map(id => byView.get(String(id)) || [])
+  }, { cacheKeyFn: id => String(id) })
 
   // Mirrors Post#followers() (following + active posts_users + active users) for GraphQL totals
   async function postActiveFollowersCount (post) {
@@ -136,51 +184,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
       }
     },
 
-    ContextWidget: {
-      model: ContextWidget,
-      attributes: [
-        'id',
-        'auto_added',
-        'title',
-        'type',
-        'order',
-        'visibility',
-        'view',
-        'icon',
-        'created_at',
-        'parent_id',
-        'updated_at',
-        'secondaryNumber'
-      ],
-      relations: [
-        'customView',
-        'ownerGroup',
-        'parentWidget',
-        { children: { alias: 'childWidgets', querySet: true } },
-        'viewGroup',
-        'viewPost',
-        'viewUser',
-        'viewChat',
-        'viewFundingRound',
-        'viewTrack'
-      ],
-      getters: {
-        // XXX: has to be a getter not a relation because belongsTo doesn't support multiple keys
-        groupTopic: cw => cw.groupTopic().fetch(),
-        highlightNumber: cw => cw.highlightNumber(userId),
-        topicFollow: cw => cw.topicFollow(userId).fetch()
-      },
-      fetchMany: ({ groupId, includeUnordered }) => {
-        return ContextWidget.collection().query(q => {
-          q.where({ group_id: groupId })
-          if (!includeUnordered) {
-            q.whereNotNull('order')
-          }
-          q.orderBy('order', 'asc')
-          q.orderBy('id', 'asc')
-        })
-      }
-    },
 
     Me: {
       model: User,
@@ -363,7 +366,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'created_at',
         'updated_at'
       ],
-      relations: ['post', 'reporter', 'agreements', 'platformAgreements'],
+      relations: ['post', 'reporter', 'agreements', 'platformAgreements', 'group'],
       getters: {
         anonymous: ma => ma.get('anonymous') === 'true'
       },
@@ -400,7 +403,11 @@ export default function makeModels (userId, isAdmin, apiClient) {
         name: p => p.get('name') || ''
       },
       relations: [
-        'memberships',
+        {
+          memberships: {
+            filter: relation => relation.query(q => Group.excludeSpaces(q))
+          }
+        },
         {
           groupJoinQuestionAnswers: {
             querySet: true,
@@ -470,7 +477,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
                 order,
                 savedBy,
                 search,
-                showPinnedFirst: false,
                 sortBy,
                 topic,
                 topics,
@@ -531,6 +537,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'is_public',
         'link_preview_featured',
         'location',
+        'meeting_link',
         'num_people_completed',
         'project_management_link',
         'proposal_outcome',
@@ -557,6 +564,17 @@ export default function makeModels (userId, isAdmin, apiClient) {
           userId && p.isEvent()
             ? p.userEventInvitation(userId).then(eventInvitation => eventInvitation ? eventInvitation.get('response') : '')
             : '',
+        noticeData: p => parsePostNoticeData(p),
+        noticePosts: async p => {
+          try {
+            const ids = parsePostNoticeData(p)?.recentPostIds || []
+            if (!ids.length) return []
+            const posts = await noticeChatPostsLoader.loadMany(ids)
+            return posts.filter(Boolean)
+          } catch (e) {
+            return []
+          }
+        },
         savedAt: p => p.savedAtForUser(userId),
         tokensAllocated: async p => {
           if (!userId) return null
@@ -570,7 +588,15 @@ export default function makeModels (userId, isAdmin, apiClient) {
             .first()
           return result?.total ? parseInt(result.total) : 0
         },
-        followersTotal: p => postActiveFollowersCount(p)
+        followersTotal: p => postActiveFollowersCount(p),
+        topics: async p => {
+          const names = p.tagNames()
+          if (!names.length) return []
+          const tags = await Tag.query(q => q.whereIn('name', names)).fetchAll()
+          const byName = {}
+          tags.models.forEach(t => { byName[t.get('name')] = t })
+          return names.map(name => byName[name]).filter(Boolean)
+        }
       },
       relations: [
         { comments: { querySet: true } },
@@ -610,8 +636,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
             alias: 'attachments',
             arguments: ({ type }) => [type]
           }
-        },
-        { tags: { alias: 'topics' } }
+        }
       ],
       filter: postFilter(userId, isAdmin),
       isDefaultTypeForTable: true,
@@ -688,7 +713,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'created_at',
         'description',
         'home_route',
-        'homeWidget',
         'icon',
         'location',
         'geo_shape',
@@ -711,17 +735,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
       relations: [
         { activeMembers: { querySet: true } },
         { agreements: { querySet: true } },
-        { chatRooms: { querySet: true } },
         { childGroups: { querySet: true } },
-        { contextWidgets: { querySet: true } },
-        {
-          customViews: {
-            querySet: true,
-            filter: relation => relation.query(q => {
-              q.orderBy('id', 'asc')
-            })
-          }
-        },
         { groupRelationshipInvitesFrom: { querySet: true } },
         { groupRelationshipInvitesTo: { querySet: true } },
         { groupRoles: { querySet: true } },
@@ -756,8 +770,17 @@ export default function makeModels (userId, isAdmin, apiClient) {
         {
           members: {
             querySet: true,
-            filter: (relation, { id, autocomplete, boundingBox, groupRoleId, order, search, sortBy }) =>
-              relation.query(filterAndSortUsers({ autocomplete, boundingBox, groupId: relation.relatedData.parentId, groupRoleId, order, search, sortBy }))
+            filter: (relation, { id, autocomplete, boundingBox, excludeGroupId, groupRoleId, order, search, sortBy, trackCompleted, fundingRoundCapability }) =>
+              relation.query(q => {
+                filterAndSortUsers({ autocomplete, boundingBox, groupId: relation.relatedData.parentId, groupRoleId, order, search, sortBy, trackCompleted, fundingRoundCapability })(q)
+                if (excludeGroupId) {
+                  q.whereNotIn('users.id',
+                    bookshelf.knex('group_memberships')
+                      .select('user_id')
+                      .where({ group_id: excludeGroupId, active: true })
+                  )
+                }
+              })
           }
         },
         { parentGroups: { querySet: true } },
@@ -796,7 +819,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
                 isFulfilled,
                 order,
                 search,
-                showPinnedFirst: false, // XXX: we have removed pinning for now, but plan to bring back.
                 sortBy,
                 topic,
                 topics,
@@ -844,7 +866,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
                 })
 
                 if (autocomplete) {
-                  q.whereRaw('tracks.name ilike ?', autocomplete + '%')
+                  q.join('groups', 'groups.id', 'tracks.group_id')
+                  q.whereRaw('groups.name ilike ?', autocomplete + '%')
                 }
 
                 if (!isNil(published)) {
@@ -911,7 +934,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
                 isFulfilled,
                 order,
                 search,
-                showPinnedFirst: false, // XXX: we have removed pinning for now, but plan to bring back.
                 sortBy,
                 topic,
                 topics,
@@ -923,7 +945,18 @@ export default function makeModels (userId, isAdmin, apiClient) {
         { widgets: { querySet: true } },
         { groupExtensions: { querySet: true } },
         // Spaces & Views (see docs/spaces-and-views-engineering-spec.md section 4.2)
-        { groupViews: { querySet: true } },
+        {
+          groupViews: {
+            querySet: true,
+            filter: (relation, { id, menuOnly } = {}) => {
+              if (!id && !menuOnly) return relation
+              return relation.query(q => {
+                if (id) q.where('group_views.id', id)
+                if (menuOnly) q.whereNotNull('group_views.order')
+              })
+            }
+          }
+        },
         { spaces: { querySet: true } },
         'parentGroup',
         'track',
@@ -933,7 +966,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
         eventCalendarUrl: g => g.eventCalendarUrl(),
         // commonRoles: async g => g.commonRoles(),
         canAccess: g => g ? g.canAccess(userId) : false,
-        homeWidget: g => g.homeWidget(),
         stripeDashboardUrl: g => g.stripeDashboardUrl(),
         invitePath: g =>
           userId && GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADD_MEMBERS)
@@ -993,6 +1025,10 @@ export default function makeModels (userId, isAdmin, apiClient) {
         stewardDescriptorPlural: (g) => g.get('steward_descriptor_plural') || 'Stewards',
         // Get number of prerequisite groups that current user is not a member of yet
         numPrerequisitesLeft: g => g.numPrerequisitesLeft(userId),
+        openJoinRequestCount: g => {
+          if (!userId) return 0
+          return g.get('num_open_join_requests') || 0
+        },
         pendingInvitations: (g, { first }) => InvitationService.find({ groupId: g.id, pendingOnly: true }),
         responsibilities: async g => g.availableResponsibilities().fetch(),
         settings: g => mapKeys(camelCase, g.get('settings')),
@@ -1033,7 +1069,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'order',
         'icon',
         'page_content',
-        'link',
         'topics',
         'settings'
       ],
@@ -1044,6 +1079,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'viewUser'
       ],
       getters: {
+        // Protocol-less values like google.com become https:// so every client gets a clickable URL.
+        link: gv => TextHelpers.sanitizeURL(gv.get('link')) || gv.get('link'),
         // collectionPosts resolves to the actual Posts (not the join rows) per the GraphQL schema.
         // Re-applies the same visibility rules as every other Post query (active, membership,
         // public, blocked-user) since this is a custom getter and bypasses the generic Post filter.
@@ -1056,15 +1093,24 @@ export default function makeModels (userId, isAdmin, apiClient) {
           const postsById = new Map(posts.map(post => [String(post.id), post]))
           return postIds.map(id => postsById.get(String(id))).filter(Boolean)
         },
+        pinnedPostIds: gv => pinnedPostIdsLoader.load(gv.id),
+        pinnedPosts: async gv => {
+          const postIds = await pinnedPostIdsLoader.load(gv.id)
+          if (postIds.length === 0) return []
+
+          const posts = await postFilter(userId, isAdmin)(Post.query(q => q.whereIn('posts.id', postIds))).fetchAll()
+          const postsById = new Map(posts.map(post => [String(post.id), post]))
+          return postIds.map(id => postsById.get(String(id))).filter(Boolean)
+        },
         newPostCount: async gv => {
           if (!userId) return 0
-          const viewUser = await GroupViewUser.where({ view_id: gv.id, user_id: userId }).fetch()
-          return viewUser ? viewUser.get('new_post_count') : 0
+          const row = await groupViewUserLoader.load(gv.id)
+          return row ? (row.new_post_count || 0) : 0
         },
         lastReadPostId: async gv => {
           if (!userId) return null
-          const viewUser = await GroupViewUser.where({ view_id: gv.id, user_id: userId }).fetch()
-          return viewUser ? viewUser.get('last_read_post_id') : null
+          const row = await groupViewUserLoader.load(gv.id)
+          return row ? row.last_read_post_id : null
         }
       }
     },
@@ -1147,60 +1193,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
       relations: ['createdBy', 'fromGroup', 'toGroup']
     },
 
-    CustomView: {
-      model: CustomView,
-      attributes: [
-        'active_posts_only',
-        'collection_id',
-        'default_sort',
-        'default_view_mode',
-        'group_id',
-        'icon',
-        'is_active',
-        'name',
-        'order',
-        'post_types',
-        'type',
-        'search_text'
-      ],
-      getters: {
-        externalLink: customView => TextHelpers.sanitizeURL(customView.get('external_link'))
-      },
-      relations: [
-        'collection',
-        'group',
-        { tags: { alias: 'topics' } }
-      ]
-    },
-
-    Collection: {
-      model: Collection,
-      attributes: [
-        'created_at',
-        'name',
-        'updated_at'
-      ],
-      relations: [
-        'group',
-        { linkedPosts: { querySet: true } },
-        { posts: { querySet: true } },
-        'user'
-      ]
-    },
-
-    CollectionsPost: {
-      model: CollectionsPost,
-      attributes: [
-        'created_at',
-        'order',
-        'updated_at'
-      ],
-      relations: [
-        'post',
-        'user'
-      ]
-    },
-
     Invitation: {
       model: Invitation,
       attributes: [
@@ -1210,6 +1202,28 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'last_sent_at',
         'token'
       ],
+      getters: {
+        name: i => {
+          if (!i) return null
+          if (typeof i.get !== 'function') return i.name || null
+          if (i.get('invitee_name')) return i.get('invitee_name')
+          const email = i.get('email')
+          if (!email) return null
+          return User.query(q => q.whereRaw('lower(email) = ?', [email.toLowerCase()]).limit(1))
+            .fetch({ require: false })
+            .then(u => u ? u.get('name') : null)
+        },
+        userId: i => {
+          if (!i) return null
+          if (typeof i.get !== 'function') return i.userId || null
+          if (i.get('invitee_id')) return i.get('invitee_id')
+          const email = i.get('email')
+          if (!email) return null
+          return User.query(q => q.whereRaw('lower(email) = ?', [email.toLowerCase()]).limit(1))
+            .fetch({ require: false })
+            .then(u => u ? u.id : null)
+        }
+      },
       relations: [
         'creator',
         'group'
@@ -1485,17 +1499,13 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'action_descriptor',
         'action_descriptor_plural',
         'created_at',
-        'banner_url',
         'completion_message',
         'deactivated_at',
-        'description',
-        'name',
         'num_actions',
         'num_people_completed',
         'num_people_enrolled',
         'published_at',
-        'updated_at',
-        'welcome_message'
+        'updated_at'
       ],
       relations: [
         'completionRole',
@@ -1517,11 +1527,10 @@ export default function makeModels (userId, isAdmin, apiClient) {
     FundingRound: {
       model: FundingRound,
       attributes: [
+        'allow_late_joiners',
         'allow_self_voting',
-        'banner_url',
         'created_at',
         'criteria',
-        'description',
         'hide_final_results_from_participants',
         'max_token_allocation',
         'min_token_allocation',
@@ -1532,7 +1541,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'submission_descriptor',
         'submissions_close_at',
         'submissions_open_at',
-        'title',
         'token_type',
         'total_tokens',
         'updated_at',
@@ -1658,7 +1666,26 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'updated_at'
       ],
       relations: [{ otherUser: { alias: 'person' } }],
-      fetchMany: () => UserConnection,
+      fetchMany: ({ autocomplete, excludeGroupId } = {}) => UserConnection.query(q => {
+        if (autocomplete) {
+          const term = String(autocomplete).trim().replace(/[%_]/g, '')
+          if (term) {
+            q.whereExists(function () {
+              this.select(bookshelf.knex.raw('1'))
+                .from('users')
+                .whereRaw('users.id = user_connections.other_user_id')
+                .andWhere('users.name', 'ilike', `%${term}%`)
+            })
+          }
+        }
+        if (excludeGroupId) {
+          q.whereNotIn('user_connections.other_user_id',
+            bookshelf.knex('group_memberships')
+              .select('user_id')
+              .where({ group_id: excludeGroupId, active: true })
+          )
+        }
+      }),
       filter: relation => {
         return relation.query(q => {
           if (userId) {

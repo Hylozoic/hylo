@@ -1,6 +1,6 @@
 import { GraphQLError } from 'graphql'
 import { notifyGroupUpdated } from './notifyGroupUpdated'
-import { recountPostTypesForView, TYPED_BADGE_VIEW_TYPES } from '@hylo/shared'
+import { recountPostTypesForView, TYPED_BADGE_VIEW_TYPES, TextHelpers } from '@hylo/shared'
 
 // Spaces & Views mutations — see docs/spaces-and-views-engineering-spec.md section 4.4
 
@@ -9,6 +9,14 @@ const BADGE_VIEW_TYPES = ['chat', ...TYPED_BADGE_VIEW_TYPES]
 /** node-pg binds a JS array as a Postgres array type; in jsonb that becomes `{}` for []. */
 function topicsForJsonb (topics) {
   return JSON.stringify(topics ?? [])
+}
+
+/** Adds https:// to a stored link when the user omitted a scheme. */
+function sanitizedLink (link) {
+  if (link === undefined) return undefined
+  if (link == null || link === '') return link
+  const trimmed = String(link).trim()
+  return TextHelpers.sanitizeURL(trimmed) || trimmed
 }
 
 /**
@@ -97,9 +105,9 @@ export async function createGroupView ({ userId, groupId, type, name, icon, sett
 
   await requireAdmin(userId, groupId, 'create views')
 
-  // Text and separator cannot live in More Views.
-  if (hidden && (type === 'text' || type === 'separator')) {
-    throw new GraphQLError('Text and separator views cannot be added to More Views')
+  // Only space rows can live off-menu (More Spaces). Views are in the menu or deleted.
+  if (hidden && type !== GroupView.Type.SPACE) {
+    throw new GraphQLError('Only spaces can be added off-menu')
   }
 
   const attrs = {
@@ -108,7 +116,7 @@ export async function createGroupView ({ userId, groupId, type, name, icon, sett
     name,
     icon,
     settings,
-    link,
+    link: sanitizedLink(link),
     page_content: pageContent,
     topics: topicsForJsonb(topics),
     linked_group_id: linkedGroupId,
@@ -141,13 +149,38 @@ export async function updateGroupView ({ userId, id, name, icon, settings, link,
   if (!view) throw new GraphQLError('View not found')
 
   const groupId = view.get('group_id')
-  await requireAdmin(userId, groupId, 'update views')
+  const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, groupId)
+  const { RESP_ADMINISTRATION, RESP_MANAGE_CONTENT } = Responsibility.constants
+  const isAdmin = responsibilities.includes(RESP_ADMINISTRATION)
+  const incomingSettings = settings
+  const hasOtherViewFields = name !== undefined || icon !== undefined || link !== undefined ||
+    pageContent !== undefined || topics !== undefined || orderInFrontOfViewId || addToEnd
+  const isSpaceCollectionSpaceIdsUpdate = view.get('type') === GroupView.Type.SPACE_COLLECTION &&
+    incomingSettings != null &&
+    Array.isArray(incomingSettings.spaceIds) &&
+    !hasOtherViewFields
+
+  if (!isAdmin) {
+    if (!responsibilities.includes(RESP_MANAGE_CONTENT) || !isSpaceCollectionSpaceIdsUpdate) {
+      throw new GraphQLError("You don't have permission to update views for this group")
+    }
+  }
 
   const changes = {}
   if (name !== undefined) changes.name = name
   if (icon !== undefined) changes.icon = icon
-  if (settings !== undefined) changes.settings = settings
-  if (link !== undefined) changes.link = link
+  if (settings !== undefined) {
+    if (!isAdmin && isSpaceCollectionSpaceIdsUpdate) {
+      const currentSettings = view.get('settings') || {}
+      changes.settings = {
+        ...currentSettings,
+        spaceIds: incomingSettings.spaceIds.map(spaceId => String(spaceId))
+      }
+    } else {
+      changes.settings = settings
+    }
+  }
+  if (link !== undefined) changes.link = sanitizedLink(link)
   if (pageContent !== undefined) changes.page_content = pageContent
   if (topics !== undefined) changes.topics = topicsForJsonb(topics)
 
@@ -183,15 +216,14 @@ export async function deleteGroupView (userId, id, context) {
   if (['track-actions', 'funding-round-submissions'].includes(viewType)) {
     throw new GraphQLError('This view cannot be deleted')
   }
-  // System views soft-remove to More Views; user-created types can be hard-deleted.
-  if (GroupView.SYSTEM_VIEW_TYPES.includes(viewType)) {
-    throw new GraphQLError('This view cannot be deleted — remove it from the menu instead')
-  }
 
-  await view.destroy()
-    .catch(err => {
-      throw new GraphQLError(`Deletion of view failed: ${err.message}`)
-    })
+  await bookshelf.transaction(async trx => {
+    await view.destroy({ transacting: trx })
+    const remaining = await GroupView.findForGroup(groupId, { transacting: trx })
+    await GroupView.applyOrder(remaining.map(v => Number(v.id)), { groupId, trx })
+  }).catch(err => {
+    throw new GraphQLError(`Deletion of view failed: ${err.message}`)
+  })
 
   const group = await Group.find(groupId)
   notifyGroupUpdated(context, group, groupId)
@@ -221,9 +253,10 @@ export async function reorderGroupView (userId, id, orderInFrontOfViewId, addToE
 }
 
 /**
- * Hide or show a view in the group's menu.
- * Hidden views keep their content (order = null) and appear grayed in edit mode.
- * Showing appends the view to the end of the ordered menu.
+ * Hide or show a space in the parent group's menu.
+ * Hidden spaces keep their content (order = null) and appear in More Spaces.
+ * Showing appends the space to the end of the ordered menu.
+ * Views cannot be hidden — delete them instead.
  */
 export async function setGroupViewHidden (userId, id, hidden, context) {
   if (!userId) throw new GraphQLError('No userId passed into function')
@@ -232,6 +265,10 @@ export async function setGroupViewHidden (userId, id, hidden, context) {
 
   const view = await GroupView.where({ id }).fetch()
   if (!view) throw new GraphQLError('View not found')
+
+  if (view.get('type') !== GroupView.Type.SPACE) {
+    throw new GraphQLError('Only spaces can be hidden from the menu')
+  }
 
   const groupId = view.get('group_id')
   await requireAdmin(userId, groupId, 'update views')
@@ -318,11 +355,7 @@ export async function updateGroupViewUser (userId, viewId, { lastReadPostId } = 
   if (lastReadPostId != null) {
     updates.last_read_post_id = lastReadPostId
     const groupId = view.get('group_id')
-    const group = await Group.find(groupId)
-    const showNotices = group
-      ? (group.get('settings') || {}).showPostNoticesInChat !== false
-      : true
-    const postTypes = recountPostTypesForView(view.get('type'), showNotices)
+    const postTypes = recountPostTypesForView(view.get('type'))
 
     if (!postTypes) {
       updates.new_post_count = 0

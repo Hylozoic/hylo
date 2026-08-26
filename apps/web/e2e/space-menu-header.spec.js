@@ -27,11 +27,11 @@ test('space menu header shows icon box, pills, X close, and hover-reveal cover',
   await page.getByRole('button', { name: /sign\s*in/i }).click()
   await expect(page.locator('#center-column-container')).toBeVisible({ timeout: 60000 })
 
-  await page.goto('/groups/building-hylo/more-views')
+  await page.goto('/groups/building-hylo/more-spaces')
   await page.waitForLoadState('networkidle')
 
   await page.screenshot({
-    path: path.resolve(screenshotDir, 'space-menu-0-more-views.png')
+    path: path.resolve(screenshotDir, 'space-menu-0-more-spaces.png')
   })
 
   // Find a space card in any of the space sections (Tracks / Funding Rounds / Other Spaces)
@@ -44,7 +44,7 @@ test('space menu header shows icon box, pills, X close, and hover-reveal cover',
       break
     }
   }
-  expect(card, 'no space sections found on the More Views page for this group').not.toBeNull()
+  expect(card, 'no space sections found on the More Spaces page for this group').not.toBeNull()
 
   await card.click()
   const spaceHeader = page.locator('.SpaceMenuHeader')

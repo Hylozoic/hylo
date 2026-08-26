@@ -1,5 +1,7 @@
 import { POST_TYPES } from '@hylo/presenters/PostPresenter'
 import { slateGrey } from '@hylo/presenters/colors'
+import { DateTimeHelpers } from '@hylo/shared'
+import { getLocaleFromLocalStorage } from 'util/locale'
 
 /**
  * Brand colors for post-type stream views only.
@@ -16,9 +18,23 @@ const POST_TYPE_VIEW_COLOR = {
   decisions: POST_TYPES.proposal.primaryColor
 }
 
-/** Brand color for a view card — post-type colors, or slate grey for everything else. */
+/** Brand color for a view card — post-type colors, or slate grey for everything else.
+ *  Post views take the shared post's own type color. */
 export function viewCardColor (view) {
+  if (view?.type === 'post') {
+    const postTypeColor = POST_TYPES[view.viewPost?.type]?.primaryColor
+    if (postTypeColor) return postTypeColor
+  }
   return POST_TYPE_VIEW_COLOR[view?.type] || slateGrey
+}
+
+/** Start DateTime for an event shared as a post view, or null. */
+export function eventStartForView (view) {
+  if (view?.type !== 'post' || view.viewPost?.type !== 'event' || !view.viewPost.startTime) return null
+  return DateTimeHelpers.toDateTime(view.viewPost.startTime, {
+    timezone: view.viewPost.timezone || DateTimeHelpers.getCurrentTimezone(),
+    locale: getLocaleFromLocalStorage()
+  })
 }
 
 /**

@@ -1,4 +1,4 @@
-import { afterCreatingPost } from './createPost'
+import createPost, { afterCreatingPost } from './createPost'
 const rootPath = require('root-path')
 const setup = require(rootPath('test/setup'))
 const factories = require(rootPath('test/setup/factories'))
@@ -70,6 +70,46 @@ describe('afterCreatingPost', () => {
     .then(() => expect(post.relations.groups.length).to.equal(1))
     .catch(err => {
       throw err
+    })
+  })
+})
+
+describe('createPost accepted_post_types', () => {
+  let user, restrictedGroup
+
+  before(() =>
+    setup.clearDb()
+      .then(() => Promise.props({
+        u: new User({ name: 'U1', email: 'apt@b.c', active: true }).save(),
+        g: new Group({ slug: 'apt-events-only', name: 'Events Only', accepted_post_types: ['event'] }).save()
+      }))
+      .then(props => {
+        user = props.u
+        restrictedGroup = props.g
+        return user.joinGroup(restrictedGroup)
+      })
+  )
+
+  it('rejects a type the destination group does not accept', () => {
+    return createPost(user.id, {
+      name: 'Nope',
+      type: Post.Type.DISCUSSION,
+      group_ids: [restrictedGroup.id]
+    })
+      .then(() => expect.fail('should reject'))
+      .catch(e => expect(e.message).to.match(/Events Only does not accept discussion posts/))
+  })
+
+  it('creates the post when the group accepts the type', () => {
+    return createPost(user.id, {
+      name: 'Party',
+      type: Post.Type.EVENT,
+      group_ids: [restrictedGroup.id],
+      startTime: Date.now() + 86400000,
+      endTime: Date.now() + 90000000
+    }).then(post => {
+      expect(post).to.exist
+      expect(post.get('type')).to.equal(Post.Type.EVENT)
     })
   })
 })

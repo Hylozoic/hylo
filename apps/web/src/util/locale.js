@@ -1,46 +1,76 @@
-export function localeToFlagEmoji (locale = 'en') {
-  const code = locale.length > 2 ? locale.split('-')[0] : locale
+import {
+  LOCALE_DE,
+  LOCALE_EN_GB,
+  LOCALE_EN_US,
+  LOCALE_ES,
+  LOCALE_FR,
+  LOCALE_HI,
+  LOCALE_PT,
+  normalizeLocaleToFull
+} from '@hylo/shared'
 
-  switch (code) {
-    case 'en':
+export { normalizeLocaleToFull, localeToTranslationKey } from '@hylo/shared'
+
+export function localeToFlagEmoji (locale = LOCALE_EN_US) {
+  switch (normalizeLocaleToFull(locale)) {
+    case LOCALE_EN_GB:
       return '🇬🇧'
-    case 'es':
+    case LOCALE_EN_US:
+      return '🇺🇸'
+    case LOCALE_ES:
       return '🇪🇸'
-    case 'de':
+    case LOCALE_DE:
       return '🇩🇪'
-    case 'fr':
+    case LOCALE_FR:
       return '🇫🇷'
-    case 'hi':
+    case LOCALE_HI:
       return '🇮🇳'
-    case 'pt':
+    case LOCALE_PT:
       return '🇵🇹'
     default:
-      return '🇬🇧'
+      return '🇺🇸'
   }
 }
 
-export function localeToWord (locale = 'en') {
-  const code = locale.length > 2 ? locale.split('-')[0] : locale
-
-  switch (code) {
-    case 'en':
+export function localeToWord (locale = LOCALE_EN_US) {
+  switch (normalizeLocaleToFull(locale)) {
+    case LOCALE_EN_GB:
+      return 'English (UK)'
+    case LOCALE_EN_US:
       return 'English'
-    case 'es':
+    case LOCALE_ES:
       return 'Spanish'
-    case 'de':
+    case LOCALE_DE:
       return 'German'
-    case 'fr':
+    case LOCALE_FR:
       return 'French'
-    case 'hi':
+    case LOCALE_HI:
       return 'Hindi'
-    case 'pt':
+    case LOCALE_PT:
       return 'Portuguese'
     default:
       return 'English'
   }
 }
 
+/** Returns the BCP 47 locale tag for Luxon/Intl date formatting from the user's Hylo language setting. */
+export function getDateLocale () {
+  return normalizeLocaleToFull(getLocaleFromLocalStorage())
+}
+
 export function getLocaleFromLocalStorage (locale) {
-  if (locale) window.localStorage.setItem('hylo-i18n-lng', locale)
-  return window.localStorage.getItem('hylo-i18n-lng') || 'en'
+  if (typeof window === 'undefined') return LOCALE_EN_US
+
+  if (locale) {
+    const normalized = normalizeLocaleToFull(locale)
+    window.localStorage.setItem('hylo-i18n-lng', normalized)
+    return normalized
+  }
+
+  const stored = window.localStorage.getItem('hylo-i18n-lng')
+  const normalized = normalizeLocaleToFull(stored || LOCALE_EN_US)
+  if (stored && stored !== normalized) {
+    window.localStorage.setItem('hylo-i18n-lng', normalized)
+  }
+  return normalized
 }

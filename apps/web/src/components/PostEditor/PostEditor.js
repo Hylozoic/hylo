@@ -60,6 +60,7 @@ import {
 import { GROUP_TYPES } from 'store/models/Group'
 import isPendingFor from 'store/selectors/isPendingFor'
 import getMe from 'store/selectors/getMe'
+import getMyMemberships from 'store/selectors/getMyMemberships'
 import getPost from 'store/selectors/getPost'
 import presentPost from 'store/presenters/presentPost'
 import getFundingRound from 'store/selectors/getFundingRound'
@@ -120,6 +121,11 @@ function isSpaceGroup (group) {
   return !!group && (group.type === GROUP_TYPES.space || !!group.parentId)
 }
 
+/** Compares group ids as strings so GraphQL/ORM number vs string ids still match. */
+function sameGroupId (a, b) {
+  return a != null && b != null && String(a) === String(b)
+}
+
 const emojiOptions = ['', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟', '✅✅', '👍', '👎', '⁉️', '‼️', '❓', '❗', '🚫', '➡️', '🛑', '✅', '🛑🛑', '🌈', '🔴', '🔵', '🟤', '🟣', '🟢', '🟡', '🟠', '⚫', '⚪', '🤷🤷', '📆', '🤔', '❤️', '👏', '🎉', '🔥', '🤣', '😢', '😡', '🤷', '💃🕺', '⛔', '🙏', '👀', '🙌', '💯', '🔗', '🚀', '💃', '🕺', '🫶💯']
 const MAX_TITLE_LENGTH = 80
 
@@ -176,6 +182,7 @@ function PostEditorInner ({
   const { t } = useTranslation()
 
   const currentUser = useSelector(getMe)
+  const myMemberships = useSelector(getMyMemberships)
   const currentGroup = useSelector(state => getGroupForSlug(state, groupSlug))
   // Track / funding-round spaces carry their config on the group itself.
   const currentTrack = currentGroup?.track || null
@@ -197,8 +204,13 @@ function PostEditorInner ({
     // null/undefined acceptedPostTypes = group accepts all types
     if (fromGroup == null) return fromView
     if (!Array.isArray(fromGroup)) return fromView
-    if (fromView == null) return fromGroup
-    return fromView.filter(type => fromGroup.includes(type))
+    // Typed views (track-actions, funding-round-submissions) keep their post type even when
+    // the space has empty acceptedPostTypes (track/FR spaces do not use stream post types).
+    if (fromView != null) {
+      if (fromGroup.length === 0) return fromView
+      return fromView.filter(type => fromGroup.includes(type))
+    }
+    return fromGroup
   }, [editing, allowedPostTypesForView, currentGroup?.acceptedPostTypes])
 
   useEffect(() => {
@@ -310,6 +322,7 @@ function PostEditorInner ({
   const editorRef = useRef()
   const toFieldRef = useRef()
   const endTimeRef = useRef()
+  const meetingLinkInputRef = useRef()
 
   // Track the topic that was injected from the current route so we can
   // replace it when the route changes without touching user-added topics
@@ -335,8 +348,7 @@ function PostEditorInner ({
       isAnonymousVote: false,
       isPublic: context === 'public',
       isStrictProposal: false,
-      location: '',
-      locationId: null,
+      meetingLink: '',
       proposalOptions: [],
       quorum: 0,
       timezone: DateTimeHelpers.getCurrentTimezone(),
@@ -346,10 +358,12 @@ function PostEditorInner ({
       votingMethod: VOTING_METHOD_SINGLE,
       ...(inputPost || {}),
       ...prefilledEventTimes,
+      location: inputPost?.location || selectedLocation || '',
+      locationId: inputPost?.locationId || null,
       startTime: typeof inputPost?.startTime === 'string' ? new Date(inputPost.startTime) : (inputPost?.startTime || prefilledEventTimes.startTime),
       endTime: typeof inputPost?.endTime === 'string' ? new Date(inputPost.endTime) : (inputPost?.endTime || prefilledEventTimes.endTime)
     }
-  }, [inputPost?.id, createPostType, currentGroup, topic, context, editing, eventDateParam, inputPost?.startTime, inputPost?.endTime, currentTrack?.actionDescriptor, t])
+  }, [inputPost?.id, inputPost?.location, inputPost?.locationId, createPostType, currentGroup, topic, context, editing, eventDateParam, inputPost?.startTime, inputPost?.endTime, currentTrack?.actionDescriptor, selectedLocation, t])
 
   const [currentPost, setCurrentPostState] = useState(initialPost)
   const [editorInitialContent, setEditorInitialContent] = useState(initialPost.details || '')
@@ -368,20 +382,27 @@ function PostEditorInner ({
   // Bumped after membership spaces load so To options recompute with parentId/acceptedPostTypes
   const [membershipSpacesTick, setMembershipSpacesTick] = useState(0)
 
+  // Use Membership rows (same source as SpaceContent after join), not Me.memberships.
+  // joinSpace extracts a Membership but does not append it to Me.memberships, so the
+  // To field would otherwise stay empty until a later Me refetch.
   const groupOptions = useMemo(() => {
-    if (!currentUser) return []
-
-    return currentUser.memberships.toModelArray()
+    const groups = (myMemberships || [])
       .map((m) => m.group)
       .filter((g) => {
+        if (!g) return false
         // Filter out paywalled groups where user doesn't have access
-        if (g?.paywall && g?.canAccess === false) {
+        if (g.paywall && g.canAccess === false) {
           return false
         }
         return true
       })
-      .sort((a, b) => a.name.localeCompare(b.name))
-  }, [currentUser?.memberships, membershipSpacesTick])
+
+    if (currentGroup?.id && !groups.some(g => sameGroupId(g.id, currentGroup.id))) {
+      groups.push(currentGroup)
+    }
+
+    return groups.sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+  }, [myMemberships, currentGroup, membershipSpacesTick])
   const isAction = currentPost.type === 'action'
   const isSubmission = currentPost.type === 'submission'
 
@@ -413,7 +434,7 @@ function PostEditorInner ({
   const applyPostToEditor = useCallback((nextPost) => {
     let post = nextPost
     if (!editing && currentGroup?.id) {
-      const hasCurrentGroup = post.groups?.some(g => g?.id === currentGroup.id)
+      const hasCurrentGroup = post.groups?.some(g => sameGroupId(g?.id, currentGroup.id))
       if (!hasCurrentGroup) {
         post = { ...post, groups: [currentGroup, ...(post.groups || [])] }
       }
@@ -446,6 +467,7 @@ function PostEditorInner ({
   }, [draftContextKey, initialPost.details])
 
   useEffect(() => {
+    if (isSubmittedRef.current) return
     if (!serverDraftLoaded || draftLoadedRef.current) return
     const activeType = createPostType
     const serverDraft = loadDraftJSON()
@@ -478,10 +500,11 @@ function PostEditorInner ({
   useEffect(() => {
     if (editing || !currentGroup?.id) return
     setCurrentPost(prev => {
-      if (prev.groups?.length > 0) return prev
-      return { ...prev, groups: [currentGroup] }
+      const hasCurrentGroup = prev.groups?.some(g => sameGroupId(g?.id, currentGroup.id))
+      if (hasCurrentGroup) return prev
+      return { ...prev, groups: [currentGroup, ...(prev.groups || [])] }
     })
-  }, [currentGroup?.id, editing, setCurrentPost])
+  }, [currentGroup, editing, setCurrentPost])
 
   // Flush pending details into currentPost on unmount so drafts are not truncated.
   useEffect(() => () => {
@@ -535,7 +558,7 @@ function PostEditorInner ({
   const selectedGroups = useMemo(() => {
     if (!groupOptions || !currentPost?.groups) return []
     return groupOptions.filter((g) =>
-      g && currentPost.groups.some((g2) => g2 && g.id === g2.id)
+      g && currentPost.groups.some((g2) => g2 && sameGroupId(g.id, g2.id))
     )
   }, [currentPost?.groups, groupOptions])
 
@@ -906,6 +929,11 @@ function PostEditorInner ({
     setCurrentPost(prev => ({ ...prev, projectManagementLink }))
   }, [setCurrentPost])
 
+  const handleMeetingLinkChange = useCallback((evt) => {
+    const meetingLink = evt.target.value
+    setCurrentPost(prev => ({ ...prev, meetingLink }))
+  }, [setCurrentPost])
+
   const handleLocationChange = useCallback((locationObject) => {
     setCurrentPost(prev => ({
       ...prev,
@@ -980,7 +1008,7 @@ function PostEditorInner ({
    * Checks various conditions based on post type and sets error messages
    */
   const isValid = useMemo(() => {
-    const { type, title, groups, startTime, endTime, donationsLink, projectManagementLink, proposalOptions, budget } = currentPost
+    const { type, title, groups, startTime, endTime, donationsLink, projectManagementLink, meetingLink, proposalOptions, budget } = currentPost
 
     const errorMessages = []
 
@@ -988,6 +1016,9 @@ function PostEditorInner ({
       case 'event':
         if (!endTime || !startTime || startTime >= endTime) {
           errorMessages.push(t('Valid start and end time required'))
+        }
+        if (meetingLink?.length > 0 && !sanitizeURL(meetingLink)) {
+          errorMessages.push(t('Video call link must be a valid URL'))
         }
         break
       case 'project':
@@ -1020,7 +1051,7 @@ function PostEditorInner ({
     }
 
     return errorMessages.length === 0
-  }, [hasDescription, currentPost.type, currentPost.title, currentPost.groups, currentPost.startTime, currentPost.endTime, currentPost.donationsLink, currentPost.projectManagementLink, currentPost.proposalOptions, currentPost.budget, currentFundingRound?.requireBudget])
+  }, [hasDescription, currentPost.type, currentPost.title, currentPost.groups, currentPost.startTime, currentPost.endTime, currentPost.donationsLink, currentPost.projectManagementLink, currentPost.meetingLink, currentPost.proposalOptions, currentPost.budget, currentFundingRound?.requireBudget])
 
   // const handleCancel = () => {
   //   if (onCancel) {
@@ -1054,6 +1085,7 @@ function PostEditorInner ({
         linkPreview,
         linkPreviewFeatured,
         locationId,
+        meetingLink,
         members,
         projectManagementLink,
         proposalOptions,
@@ -1080,10 +1112,11 @@ function PostEditorInner ({
         fileAttachments && fileAttachments.map((attachment) => attachment.url)
       const postLocation = currentPost.location || selectedLocation
       const actualLocationId = await ensureLocationIdIfCoordinate({
-        fetchLocation,
-        postLocation,
+        fetchLocation: (data) => dispatch(fetchLocation(data)),
+        location: postLocation,
         locationId
       })
+      const meetingLinkValue = meetingLinkInputRef.current?.value ?? meetingLink
 
       const postToSave = {
         id,
@@ -1112,6 +1145,7 @@ function PostEditorInner ({
         localId: uniqueId('post_'), // For optimistic display of the new post
         location: postLocation,
         locationId: actualLocationId,
+        meetingLink: sanitizeURL(meetingLinkValue?.trim()),
         memberIds,
         pending: true, // For optimistic display of the new post
         projectManagementLink: sanitizeURL(projectManagementLink),
@@ -1246,7 +1280,12 @@ function PostEditorInner ({
     ? DateTimeHelpers.toPickerDate(currentPost.endTime, eventTimezone)
     : undefined
   const postLocation = currentPost.location || selectedLocation
-  const locationPrompt = currentPost.type === 'proposal' ? t('Is there a relevant location for this proposal?') : t('Where is your {{type}} located?', { type: currentPost.type })
+  const locationPrompt = currentPost.type === 'proposal'
+    ? t('Is there a relevant location for this proposal?')
+    : currentPost.type === 'event'
+      ? t('Where is the event taking place?')
+      : t('Where is your {{type}} located?', { type: currentPost.type })
+  const locationLabel = currentPost.type === 'event' ? t('Venue') : t('Location')
   const hasStripeAccount = get('hasStripeAccount', currentUser)
 
   /**
@@ -1623,9 +1662,9 @@ function PostEditorInner ({
       )} */}
       {canHaveTimes && (
         <>
-          <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
-            <div className='text-xs text-foreground/50'>{currentPost.type === 'proposal' ? t('Voting window') : t('Timeframe')}</div>
-            <div className='flex items-center gap-1 sm:flex-row flex-col justify-start items-center sm:justify-center'>
+          <div className='flex flex-wrap items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 min-w-0'>
+            <div className='text-xs text-foreground/50 shrink-0'>{currentPost.type === 'proposal' ? t('Voting window') : t('Timeframe')}</div>
+            <div className='flex flex-1 flex-wrap items-center gap-1 min-w-0'>
               <DateTimePicker
                 hourCycle={hourCycle}
                 granularity='minute'
@@ -1634,7 +1673,7 @@ function PostEditorInner ({
                 onChange={handleStartTimeChange}
                 onMonthChange={() => {}}
               />
-              <div className='text-xs text-foreground/50'>{t('to')}</div>
+              <div className='text-xs text-foreground/50 shrink-0'>{t('to')}</div>
               <DateTimePicker
                 ref={endTimeRef}
                 hourCycle={hourCycle}
@@ -1646,7 +1685,7 @@ function PostEditorInner ({
               />
             </div>
           </div>
-          <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
+          <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md py-0 px-2 gap-2'>
             <div className='text-xs text-foreground/50 shrink-0'>{t('Timezone')}</div>
             <TimezoneSelect
               className='border-none bg-transparent'
@@ -1671,7 +1710,7 @@ function PostEditorInner ({
       )}
       {showLocation && (
         <div className={cn('flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2')}>
-          <div className='text-xs text-foreground/50'>{t('Location')}</div>
+          <div className='text-xs text-foreground/50'>{locationLabel}</div>
           <LocationInput
             saveLocationToDB
             inputPosition='top'
@@ -1680,6 +1719,20 @@ function PostEditorInner ({
             onChange={handleLocationChange}
             placeholder={locationPrompt}
             className='w-full outline-none border-none bg-transparent placeholder:text-foreground/50'
+          />
+        </div>
+      )}
+      {currentPost.type === 'event' && (
+        <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
+          <div className={cn('text-xs text-foreground/50 w-[100px]', { 'text-destructive': !!currentPost.meetingLink && !sanitizeURL(currentPost.meetingLink) })}>{t('Join link')}</div>
+          <input
+            type='text'
+            className='w-full outline-none border-none bg-transparent placeholder:text-foreground/50'
+            placeholder={t('Add a video call link (Zoom, Meet, Jitsi, etc.)')}
+            value={currentPost.meetingLink || ''}
+            onChange={handleMeetingLinkChange}
+            ref={meetingLinkInputRef}
+            disabled={loading}
           />
         </div>
       )}

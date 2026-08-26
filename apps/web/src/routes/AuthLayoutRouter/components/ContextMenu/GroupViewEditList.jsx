@@ -14,32 +14,49 @@ import {
   verticalListSortingStrategy
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { GripVertical, Pencil } from 'lucide-react'
+import { Ellipsis, GripVertical, Pencil } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
-import { addQuerystringToPath, groupUrl, localSpaceSlug } from '@hylo/navigation'
+import { addQuerystringToPath } from '@hylo/navigation'
+import { spaceEntryUrl } from './groupViewMenuUrl'
 
 import { Tooltip, TooltipContent, TooltipTrigger } from 'components/ui/tooltip'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger
+} from 'components/ui/dropdown-menu'
 import TruncatedText from 'components/TruncatedText'
 import GroupViewIcon from './GroupViewIcon'
 import { GroupViewEditActions } from './GroupViewSettingsModal'
-import { canDeleteView, canHardDeleteView, isSoftRemoveView, viewAcceptedByPostTypes } from 'store/models/GroupView'
+import { canDeleteView, canHardDeleteView, isSoftRemoveView, viewTypeHasSettings } from 'store/models/GroupView'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
-import { deleteGroupView, deleteSpace, setGroupViewHidden } from 'store/actions/groupViews'
+import { deleteGroupView, deleteSpace, setGroupViewHidden, updateGroupView } from 'store/actions/groupViews'
+import { appendSpaceId, collectionsWithoutSpace, spaceCollectionViews } from 'util/spaceCollection'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import { mergeOrderedViewsFromSource, sortViewsByMenuOrder } from 'store/util/groupViewsOrder'
+import { cn } from 'util/index'
 import useViewReorder from './useViewReorder'
+import useFlashAddedItems, { MENU_FLASH_CLASS } from './useFlashAddedItems'
 
 /** Sort views by menu order for consistent drag indices (hidden last). */
 function sortViewsByOrder (views) {
   return sortViewsByMenuOrder(views)
 }
 
+// Pointer devices keep the hover-reveal; touch has no hover, so the icons stay up.
+const EDIT_ACTIONS_CLASS = 'opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100'
+
 /** Single draggable row in edit mode. */
-function SortableEditRow ({ view, onSettings, onHide, onDelete, isHome, spaceGroup = null }) {
+function SortableEditRow ({ view, onSettings, onHide, onDelete, isHome, spaceGroup = null, isFlashing = false }) {
   const { t } = useTranslation()
   const presentedView = GroupViewPresenter(view)
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -53,18 +70,25 @@ function SortableEditRow ({ view, onSettings, onHide, onDelete, isHome, spaceGro
     opacity: isDragging ? 0.5 : 1
   }
 
+  const rowClass = cn(
+    'list-none flex items-center gap-1 border-2 border-dashed border-transparent hover:border-foreground/20 rounded-md p-1 group',
+    isFlashing && MENU_FLASH_CLASS
+  )
+  const flashProps = isFlashing ? { 'data-menu-flash': String(view.id) } : {}
+
   if (presentedView.type === 'separator') {
     return (
       <li
         ref={setNodeRef}
         style={style}
-        className='list-none flex items-center gap-1 border-2 border-dashed border-transparent hover:border-foreground/20 rounded-md p-1 group'
+        className={rowClass}
+        {...flashProps}
       >
         <button type='button' className='p-1 cursor-grab text-foreground/50 shrink-0' {...attributes} {...listeners}>
           <GripVertical className='w-4 h-4' />
         </button>
         <hr className='flex-1 border-foreground/10' />
-        <GroupViewEditActions view={view} onSettings={onSettings} onHide={onHide} onDelete={onDelete} className='opacity-0 group-hover:opacity-100' />
+        <GroupViewEditActions view={view} onSettings={onSettings} onHide={onHide} onDelete={onDelete} className={EDIT_ACTIONS_CLASS} />
       </li>
     )
   }
@@ -74,7 +98,8 @@ function SortableEditRow ({ view, onSettings, onHide, onDelete, isHome, spaceGro
       <li
         ref={setNodeRef}
         style={style}
-        className='list-none flex items-center gap-1 border-2 border-dashed border-transparent hover:border-foreground/20 rounded-md p-1 group'
+        className={rowClass}
+        {...flashProps}
       >
         <button type='button' className='p-1 cursor-grab text-foreground/50 shrink-0' {...attributes} {...listeners}>
           <GripVertical className='w-4 h-4' />
@@ -84,7 +109,7 @@ function SortableEditRow ({ view, onSettings, onHide, onDelete, isHome, spaceGro
           className='flex-1 min-w-0 text-xs text-foreground/40 uppercase tracking-wide truncate'
           text={displayNameForView(presentedView, t, { spaceGroup })}
         />
-        <GroupViewEditActions view={view} onSettings={onSettings} onHide={onHide} onDelete={onDelete} className='opacity-0 group-hover:opacity-100' />
+        <GroupViewEditActions view={view} onSettings={onSettings} onHide={onHide} onDelete={onDelete} className={EDIT_ACTIONS_CLASS} />
       </li>
     )
   }
@@ -93,7 +118,8 @@ function SortableEditRow ({ view, onSettings, onHide, onDelete, isHome, spaceGro
     <li
       ref={setNodeRef}
       style={style}
-      className='list-none flex items-center gap-1 border-2 border-dashed border-transparent hover:border-foreground/20 rounded-md p-1 group'
+      className={rowClass}
+      {...flashProps}
     >
       <button type='button' className='p-1 cursor-grab text-foreground/50 shrink-0' {...attributes} {...listeners}>
         <GripVertical className='w-4 h-4' />
@@ -118,9 +144,85 @@ function SortableEditRow ({ view, onSettings, onHide, onDelete, isHome, spaceGro
         onSettings={onSettings}
         onHide={onHide}
         onDelete={onDelete}
-        className='opacity-0 group-hover:opacity-100'
+        className={EDIT_ACTIONS_CLASS}
       />
     </li>
+  )
+}
+
+/** Overflow for space rows: settings, add to collection, remove, delete. Pencil stays outside. */
+function SpaceEditRowMenu ({
+  view,
+  space,
+  collectionViews,
+  onSettings,
+  onAddToCollection,
+  onHide,
+  onDelete
+}) {
+  const { t } = useTranslation()
+  const showSettings = viewTypeHasSettings(view?.type)
+  const removable = canDeleteView(view)
+  const hardDeletable = canHardDeleteView(view)
+  const softRemovable = removable && isSoftRemoveView(view)
+  const availableCollections = collectionsWithoutSpace(collectionViews, space?.id)
+
+  return (
+    <DropdownMenu modal={false}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <DropdownMenuTrigger asChild>
+            <button
+              type='button'
+              className='p-1 text-foreground/50 hover:text-foreground rounded'
+              onPointerDown={(e) => e.stopPropagation()}
+              aria-label={t('More actions')}
+            >
+              <Ellipsis className='w-4 h-4' />
+            </button>
+          </DropdownMenuTrigger>
+        </TooltipTrigger>
+        <TooltipContent>{t('More actions')}</TooltipContent>
+      </Tooltip>
+      <DropdownMenuContent align='end' className='z-[200]' onClick={(e) => e.stopPropagation()}>
+        {showSettings && (
+          <DropdownMenuItem onSelect={() => onSettings?.(view)}>
+            {t('Settings')}
+          </DropdownMenuItem>
+        )}
+        {availableCollections.length > 0 && (
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>{t('Add to Collection')}</DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className='z-[200]'>
+              {availableCollections.map(collectionView => (
+                <DropdownMenuItem
+                  key={collectionView.id}
+                  onSelect={() => onAddToCollection?.(space, collectionView)}
+                >
+                  {collectionView.name}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+        )}
+        {softRemovable && onHide && (
+          <DropdownMenuItem onSelect={() => onHide(view)}>
+            {t('Remove from main menu')}
+          </DropdownMenuItem>
+        )}
+        {hardDeletable && onDelete && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className='text-destructive focus:text-destructive'
+              onSelect={() => onDelete(view)}
+            >
+              {t('Delete Space')}
+            </DropdownMenuItem>
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
 
@@ -128,7 +230,9 @@ function SortableEditRow ({ view, onSettings, onHide, onDelete, isHome, spaceGro
 function SortableSpaceEditRow ({
   view,
   groupSlug,
+  collectionViews,
   onSettings,
+  onAddToCollection,
   onHide,
   onDelete
 }) {
@@ -148,17 +252,13 @@ function SortableSpaceEditRow ({
     opacity: isDragging ? 0.5 : 1
   }
 
-  /** Open this space's more-views page in edit mode (same as More Views space click). */
+  /** Open this space's home with its menu in edit mode. */
   const handleEditSpaceMenu = useCallback((e) => {
     e.preventDefault()
     e.stopPropagation()
     if (!groupSlug || !spaceGroup?.slug) return
-    const local = localSpaceSlug(groupSlug, spaceGroup.slug)
-    navigate(addQuerystringToPath(groupUrl(groupSlug, 'more-views'), {
-      edit: 'true',
-      space: local
-    }))
-  }, [navigate, groupSlug, spaceGroup?.slug])
+    navigate(addQuerystringToPath(spaceEntryUrl(groupSlug, spaceGroup), { edit: 'true' }))
+  }, [navigate, groupSlug, spaceGroup])
 
   return (
     <li ref={setNodeRef} style={style} className='list-none'>
@@ -168,28 +268,32 @@ function SortableSpaceEditRow ({
         </button>
         <GroupViewIcon view={presentedView} />
         <TruncatedText className='flex-1 min-w-0 truncate text-base font-semibold text-foreground' text={displayNameForView(presentedView, t)} />
-        <GroupViewEditActions
-          view={view}
-          onSettings={onSettings}
-          onHide={onHide}
-          onDelete={onDelete}
-          className='opacity-0 group-hover:opacity-100'
-        />
-        {spaceGroup?.slug && groupSlug && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                type='button'
-                className='p-1 text-foreground/50 hover:text-foreground'
-                onClick={handleEditSpaceMenu}
-                aria-label={t('Edit space menu')}
-              >
-                <Pencil className='w-4 h-4' />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent>{t('Edit space menu')}</TooltipContent>
-          </Tooltip>
-        )}
+        <div className={cn('flex items-center shrink-0', EDIT_ACTIONS_CLASS)}>
+          <SpaceEditRowMenu
+            view={view}
+            space={spaceGroup}
+            collectionViews={collectionViews}
+            onSettings={onSettings}
+            onAddToCollection={onAddToCollection}
+            onHide={onHide}
+            onDelete={onDelete}
+          />
+          {spaceGroup?.slug && groupSlug && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type='button'
+                  className='p-1 text-foreground/50 hover:text-foreground'
+                  onClick={handleEditSpaceMenu}
+                  aria-label={t('Edit space menu')}
+                >
+                  <Pencil className='w-4 h-4' />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>{t('Edit space menu')}</TooltipContent>
+            </Tooltip>
+          )}
+        </div>
       </div>
     </li>
   )
@@ -199,12 +303,9 @@ function SortableSpaceEditRow ({
 export default function GroupViewEditList ({ views, group, groupSlug, onSettings }) {
   const dispatch = useDispatch()
   const { t } = useTranslation()
-  // Match live menu: hide typed views that the group/space no longer accepts.
   const visibleViews = useMemo(() => sortViewsByOrder(
-    (views || [])
-      .filter(v => v.order != null)
-      .filter(v => viewAcceptedByPostTypes(v.type, group?.acceptedPostTypes))
-  ), [views, group?.acceptedPostTypes])
+    (views || []).filter(v => v.order != null)
+  ), [views])
   const [orderedViews, setOrderedViews] = useState(visibleViews)
 
   // Merge Redux updates into local order (preserves drag order; full replace on add/delete).
@@ -234,6 +335,30 @@ export default function GroupViewEditList ({ views, group, groupSlug, onSettings
     }
   }, [dispatch, group?.id, t])
 
+  const collectionViews = useMemo(
+    () => spaceCollectionViews(views).map(view => ({
+      id: view.id,
+      name: displayNameForView(view, t),
+      settings: view.settings
+    })),
+    [views, t]
+  )
+
+  const handleAddToCollection = useCallback(async (space, collectionView) => {
+    if (!group?.id || !space?.id || !collectionView?.id) return
+    const fullView = (views || []).find(v => String(v.id) === String(collectionView.id))
+    if (!fullView) return
+    try {
+      await dispatch(updateGroupView({
+        id: fullView.id,
+        groupId: group.id,
+        settings: appendSpaceId(fullView.settings, space.id)
+      }))
+    } catch (error) {
+      console.error('Failed to add space to collection:', error)
+    }
+  }, [dispatch, group?.id, views])
+
   const handleDelete = useCallback(async (view) => {
     if (!canHardDeleteView(view) || !group?.id) return
     if (view.type === 'space') {
@@ -255,7 +380,7 @@ export default function GroupViewEditList ({ views, group, groupSlug, onSettings
       return
     }
     const label = displayNameForView(view, t)
-    if (!window.confirm(t('Are you sure you want to permanently delete {{name}}?', { name: label }))) return
+    if (!window.confirm(t('Are you sure you want to delete {{name}}?', { name: label }))) return
     try {
       await dispatch(deleteGroupView(view.id, group.id))
     } catch (error) {
@@ -264,6 +389,8 @@ export default function GroupViewEditList ({ views, group, groupSlug, onSettings
   }, [dispatch, group?.id, t])
 
   const ids = orderedViews.map(v => String(v.id))
+  // Two-column creates a space then opens it, so flashing the sidebar row is noise.
+  const flashingIds = useFlashAddedItems(orderedViews, { skipTypes: ['space'] })
 
   return (
     <DndContext
@@ -281,7 +408,9 @@ export default function GroupViewEditList ({ views, group, groupSlug, onSettings
                   key={view.id}
                   view={view}
                   groupSlug={groupSlug || group?.slug}
+                  collectionViews={collectionViews}
                   onSettings={onSettings}
+                  onAddToCollection={handleAddToCollection}
                   onHide={handleHide}
                   onDelete={handleDelete}
                 />
@@ -295,6 +424,7 @@ export default function GroupViewEditList ({ views, group, groupSlug, onSettings
                 onHide={handleHide}
                 onDelete={handleDelete}
                 isHome={index === 0}
+                isFlashing={flashingIds.has(String(view.id))}
               />
             )
           })}

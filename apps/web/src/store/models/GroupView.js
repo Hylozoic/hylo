@@ -12,43 +12,11 @@ export { POST_TYPE_TO_VIEW_TYPE, VIEW_TYPE_TO_POST_TYPES }
 const NON_DELETABLE_TYPES = ['track-actions', 'funding-round-submissions']
 
 /**
- * Can soft-remove from the menu (order = null) → More Views / Spaces.
- * Text and separator cannot live in More Views — only Context Menu or hard delete.
+ * Can soft-remove from the menu (order = null) → More Spaces.
+ * Only spaces can live off-menu. Views are in the menu or deleted.
  */
 export const SOFT_REMOVE_VIEW_TYPES = new Set([
-  'all',
-  'about',
-  'chat',
-  'collection',
-  'custom',
-  'discussions',
-  'events',
-  'group',
-  'link',
-  'map',
-  'member',
-  'members',
-  'moderation',
-  'post',
-  'projects',
-  'proposals',
-  'related-groups',
-  'requests-and-offers',
-  'resources',
-  'space',
-  'welcome'
-])
-
-/** Types that can be permanently deleted (trash). Spaces are deleted via deleteSpace. */
-export const HARD_DELETE_VIEW_TYPES = new Set([
-  'collection',
-  'custom',
-  'group',
-  'link',
-  'member',
-  'post',
-  'separator',
-  'text'
+  'space'
 ])
 
 /** Types that cannot be the group's home view (no navigable route / not a landing page). */
@@ -69,10 +37,10 @@ export function viewAcceptedByPostTypes (viewType, acceptedPostTypes) {
 
 /** View types that have configurable settings in the menu editor. */
 export function viewTypeHasSettings (type) {
-  return ['chat', 'link', 'text', 'custom', 'collection', 'welcome', 'space'].includes(type)
+  return ['all', 'chat', 'link', 'text', 'custom', 'collection', 'space-collection', 'welcome', 'space'].includes(type)
 }
 
-/** Soft-removable views use X to move to More Views (may also be hard-deletable). */
+/** Soft-removable items use X to move to More Spaces (spaces only). */
 export function isSoftRemoveView (view) {
   return SOFT_REMOVE_VIEW_TYPES.has(view?.type)
 }
@@ -87,9 +55,7 @@ export function canDeleteView (view) {
 
 /** Returns whether a view can be permanently deleted (trash). Spaces use deleteSpace. */
 export function canHardDeleteView (view) {
-  if (!canDeleteView(view)) return false
-  if (view?.type === 'space') return true
-  return HARD_DELETE_VIEW_TYPES.has(view?.type)
+  return canDeleteView(view)
 }
 
 /** Returns whether this view type is allowed as the group/space home view. */
@@ -125,5 +91,7 @@ GroupView.fields = {
   topics: attr(),
   settings: attr(),
   newPostCount: attr(),
-  lastReadPostId: attr()
+  lastReadPostId: attr(),
+  pinnedPostIds: attr(),
+  pinnedPosts: attr()
 }

@@ -109,26 +109,32 @@ module.exports = bookshelf.Model.extend({
       ? `${reporteeL.moderationFlaggedPostEmailContent({ post, group })}`
       : `${reporteeL.moderationClearedPostEmailContent({ post, group })}`
 
-    Queue.classMethod('Email', 'sendModerationAction', {
-      email: reporter.get('email'),
-      templateData: {
-        subject: reporterSubject,
-        body: reporterMessageContent +
-        `${link}\n\n`,
-        post_url: link
-      },
-      locale: reporterLocale
-    })
+    const emailsEnabled = process.env.EMAIL_NOTIFICATIONS_ENABLED === 'true'
 
-    Queue.classMethod('Email', 'sendModerationAction', {
-      email: reportee.get('email'),
-      templateData: {
-        subject: reporteeSubject,
-        body: reporteeMessageContent +
-        `${link}\n\n`
-      },
-      locale: reporteeLocale
-    })
+    if (emailsEnabled || (await User.isTester(reporter.id))) {
+      Queue.classMethod('Email', 'sendModerationAction', {
+        email: reporter.get('email'),
+        templateData: {
+          subject: reporterSubject,
+          body: reporterMessageContent +
+          `${link}\n\n`,
+          post_url: link
+        },
+        locale: reporterLocale
+      })
+    }
+
+    if (emailsEnabled || (await User.isTester(reportee.id))) {
+      Queue.classMethod('Email', 'sendModerationAction', {
+        email: reportee.get('email'),
+        templateData: {
+          subject: reporteeSubject,
+          body: reporteeMessageContent +
+          `${link}\n\n`
+        },
+        locale: reporteeLocale
+      })
+    }
   },
 
   async sendToModerators ({ moderationActionId, postId, groupId, anonymous }) {

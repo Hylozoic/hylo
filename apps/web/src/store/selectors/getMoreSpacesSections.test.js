@@ -1,7 +1,6 @@
 import {
   categorizeOffMenuSpaces,
-  getMenuSpaceIds,
-  getOffMenuViews
+  getMenuSpaceIds
 } from './getMoreSpacesSections'
 
 describe('getMenuSpaceIds', () => {
@@ -35,19 +34,5 @@ describe('categorizeOffMenuSpaces', () => {
     expect(result.trackSpaces.find(s => s.id === '13').isDraft).toBe(false)
     expect(result.otherSpaces.map(s => s.id)).toEqual(['14'])
     expect(result.archivedSpaces.map(s => s.id)).toEqual(['15'])
-  })
-})
-
-describe('getOffMenuViews', () => {
-  it('returns soft-removable views with order null', () => {
-    const views = getOffMenuViews([
-      { id: '1', type: 'all', order: 0 },
-      { id: '2', type: 'chat', order: null },
-      { id: '3', type: 'custom', order: null },
-      { id: '4', type: 'moderation', order: null },
-      { id: '5', type: 'space', order: null, linkedGroup: { id: '9' } }
-    ], null)
-
-    expect(views.map(v => v.type).sort()).toEqual(['chat', 'moderation'])
   })
 })

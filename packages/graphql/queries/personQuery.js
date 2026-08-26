@@ -85,6 +85,8 @@ export default gql`
           slug
           avatarUrl
           memberCount
+          type
+          parentId
         }
         person {
           id

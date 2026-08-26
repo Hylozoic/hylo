@@ -17,4 +17,14 @@ describe('transformPathname', () => {
     const result = transformPathname(actual)
     expect(result).toEqual(expected)
   })
+
+  it('forwards /blog to /blog/index.html', () => {
+    const result = transformPathname('/blog')
+    expect(result).toEqual(`${process.env.PROXY_HOST}/blog/index.html`)
+  })
+
+  it('forwards /blog/my-post to /blog/my-post/index.html', () => {
+    const result = transformPathname('/blog/my-post')
+    expect(result).toEqual(`${process.env.PROXY_HOST}/blog/my-post/index.html`)
+  })
 })

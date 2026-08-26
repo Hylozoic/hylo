@@ -2,13 +2,14 @@ import { cn } from 'util/index'
 import React, { useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
-import { CircleCheckBig } from 'lucide-react'
+import { CircleCheckBig, Pin } from 'lucide-react'
 import { TextHelpers } from '@hylo/shared'
 import Avatar from 'components/Avatar'
 import EmojiRow from 'components/EmojiRow'
 import EventDate from 'components/PostCard/EventDate'
 import EventRSVP from 'components/PostCard/EventRSVP'
 import Icon from 'components/Icon'
+import useCurrentPinnableView from 'hooks/useCurrentPinnableView'
 import useViewPostDetails from 'hooks/useViewPostDetails'
 import childGroupLabel from 'util/childGroupLabel'
 import respondToEvent from 'store/actions/respondToEvent'
@@ -30,6 +31,8 @@ export default function PostBigGridItem ({
   const dispatch = useDispatch()
   const currentUser = useSelector(getMe) || propCurrentUser
   const viewPostDetails = useViewPostDetails()
+  const pinnableView = useCurrentPinnableView()
+  const pinnedInView = (pinnableView?.pinnedPostIds || []).map(pid => String(pid)).includes(String(post.id))
 
   const handleRespondToEvent = useCallback((response) => {
     dispatch(respondToEvent(post, response))
@@ -49,7 +52,7 @@ export default function PostBigGridItem ({
   const hasFile = firstAttachment?.type === 'file'
   const numAttachments = attachments?.length || 0
 
-  const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroupId)
+  const isFlagged = post.flaggedGroups && post.flaggedGroups.some(id => String(id) === String(currentGroupId))
   const isEvent = post.type === 'event'
   // Match the stream card (EventBody): no RSVP on past events or signed-out views
   const isPastEvent = post.endTime && new Date(post.endTime) < new Date()
@@ -120,6 +123,7 @@ export default function PostBigGridItem ({
           )}
           <h3 className='text-white font-bold text-lg line-clamp-2 drop-shadow-md mb-1 mt-0 leading-tight'>
             <span className={cn('flex items-center', { 'opacity-60': (isFlagged && !post.clickthrough) || post.fulfilledAt })}>
+              {pinnedInView && <Pin className='w-4 h-4 mr-1 shrink-0 text-[hsl(45_80%_70%)]' strokeWidth={2.5} aria-hidden='true' />}
               {post.fulfilledAt && <span className='mr-1'><CircleCheckBig className='w-5 text-green-500' /></span>}
               {title}
             </span>
@@ -193,6 +197,7 @@ export default function PostBigGridItem ({
               <div className='text-xs text-foreground/50 truncate'>{groupLabel}</div>
             )}
             <h3 className='flex items-center text-foreground font-bold text-lg line-clamp-2 mb-1 mt-0 leading-tight'>
+              {pinnedInView && <Pin className='w-4 h-4 mr-1 shrink-0 text-[hsl(45_65%_45%)] dark:text-[hsl(45_65%_62%)]' strokeWidth={2.5} aria-hidden='true' />}
               {post.fulfilledAt && <span className='mr-1'><CircleCheckBig className='w-5 text-green-500' /></span>}
               {title}
             </h3>

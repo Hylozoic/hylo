@@ -11,7 +11,7 @@ Role.fields = {
 
 class Track extends Model {
   toString () {
-    return `Track: ${this.name}`
+    return `Track: ${this.space?.name || this.id}`
   }
 }
 
@@ -22,17 +22,13 @@ Track.modelName = 'Track'
 Track.fields = {
   actionDescriptor: attr(),
   actionDescriptorPlural: attr(),
-  bannerUrl: attr(),
   completionMessage: attr(),
   completionRole: fk('Role', 'tracks'),
-  description: attr(),
   enrolledUsers: many('Person'),
-  name: attr(),
   numActions: attr(),
   numPeopleCompleted: attr(),
   numPeopleEnrolled: attr(),
   publishedAt: attr(),
   // Embedded space Group (tracks.group_id) — not a normalized relation
-  space: attr(),
-  welcomeMessage: attr()
+  space: attr()
 }

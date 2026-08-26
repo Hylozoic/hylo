@@ -17,6 +17,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 /* global bookshelf, StripeAccount, StripeProduct, ContentAccess, GroupMembership, Group, User, Track, Frontend, SubscriptionChangeEvent */
 
 const Email = require('../services/Email')
+const { normalizeLocaleToFull } = require('../../lib/localeHelpers')
 
 // Dispute rate thresholds matching Stripe's own early-warning and critical levels
 const DISPUTE_RATE_WARNING_THRESHOLD = 0.0075 // 0.75% — Stripe early warning
@@ -978,7 +979,7 @@ module.exports = {
 
             // Format purchase date
             const purchaseDate = new Date(session.created * 1000)
-            const formattedPurchaseDate = purchaseDate.toLocaleDateString(userLocale === 'es' ? 'es-ES' : 'en-US', {
+            const formattedPurchaseDate = purchaseDate.toLocaleDateString(normalizeLocaleToFull(userLocale), {
               year: 'numeric',
               month: 'long',
               day: 'numeric'
@@ -1007,10 +1008,12 @@ module.exports = {
             let track = null
             let trackName = null
             let trackUrl = null
+            let trackSpace = null
             if (isTrackPurchase && trackId) {
               track = await Track.find(trackId)
               if (track) {
-                trackName = track.get('name')
+                trackSpace = await track.group().fetch()
+                trackName = trackSpace ? trackSpace.get('name') : ''
                 trackUrl = Frontend.Route.track(track, group)
               }
             }
@@ -1046,7 +1049,7 @@ module.exports = {
 
                 if (subscription.current_period_end) {
                   const renewalDateObj = new Date(subscription.current_period_end * 1000)
-                  renewalDate = renewalDateObj.toLocaleDateString(userLocale === 'es' ? 'es-ES' : 'en-US', {
+                  renewalDate = renewalDateObj.toLocaleDateString(normalizeLocaleToFull(userLocale), {
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric'
@@ -1101,9 +1104,9 @@ module.exports = {
                 data: {
                   user_name: user.get('name'),
                   track_name: trackName,
-                  track_description: track.get('description'),
+                  track_description: trackSpace ? trackSpace.get('description') : '',
                   track_url: trackUrl,
-                  track_image_url: track.get('image_url') || group.get('avatar_url'),
+                  track_image_url: (trackSpace && (trackSpace.get('banner_url') || trackSpace.get('avatar_url'))) || group.get('avatar_url'),
                   group_name: group.get('name'),
                   group_url: Frontend.Route.group(group),
                   offering_name: offering.get('name'),
@@ -1162,7 +1165,7 @@ module.exports = {
                   } else if (duration === 'annual') {
                     expiresAtDate.setFullYear(expiresAtDate.getFullYear() + 1)
                   }
-                  emailData.expires_at = expiresAtDate.toLocaleDateString(userLocale === 'es' ? 'es-ES' : 'en-US', {
+                  emailData.expires_at = expiresAtDate.toLocaleDateString(normalizeLocaleToFull(userLocale), {
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric'
@@ -1606,7 +1609,7 @@ module.exports = {
           const userLocale = user.getLocale()
           const cancelledAt = new Date()
           const cancelledAtFormatted = cancelledAt.toLocaleDateString(
-            userLocale === 'es' ? 'es-ES' : 'en-US',
+            normalizeLocaleToFull(userLocale),
             {
               year: 'numeric',
               month: 'long',
@@ -1630,7 +1633,7 @@ module.exports = {
           }
 
           const accessEndsAtFormatted = accessEndsAt.toLocaleDateString(
-            userLocale === 'es' ? 'es-ES' : 'en-US',
+            normalizeLocaleToFull(userLocale),
             {
               year: 'numeric',
               month: 'long',
@@ -1708,7 +1711,7 @@ module.exports = {
                 const adminLocale = admin.getLocale()
 
                 const cancelledAtFormattedForAdmin = cancelledAt.toLocaleDateString(
-                  adminLocale === 'es' ? 'es-ES' : 'en-US',
+                  normalizeLocaleToFull(adminLocale),
                   {
                     year: 'numeric',
                     month: 'long',
@@ -1717,7 +1720,7 @@ module.exports = {
                 )
 
                 const accessEndsAtFormattedForAdmin = accessEndsAt.toLocaleDateString(
-                  adminLocale === 'es' ? 'es-ES' : 'en-US',
+                  normalizeLocaleToFull(adminLocale),
                   {
                     year: 'numeric',
                     month: 'long',
@@ -1908,7 +1911,7 @@ module.exports = {
           const userLocale = user.getLocale()
           const paymentDate = new Date(invoice.created * 1000)
           const paymentDateFormatted = paymentDate.toLocaleDateString(
-            userLocale === 'es' ? 'es-ES' : 'en-US',
+            normalizeLocaleToFull(userLocale),
             {
               year: 'numeric',
               month: 'long',
@@ -1917,7 +1920,7 @@ module.exports = {
           )
 
           const nextRenewalDateFormatted = newExpiresAt.toLocaleDateString(
-            userLocale === 'es' ? 'es-ES' : 'en-US',
+            normalizeLocaleToFull(userLocale),
             {
               year: 'numeric',
               month: 'long',
@@ -2167,7 +2170,7 @@ module.exports = {
           if (invoice.next_payment_attempt) {
             const retryDate = new Date(invoice.next_payment_attempt * 1000)
             retryDateFormatted = retryDate.toLocaleDateString(
-              userLocale === 'es' ? 'es-ES' : 'en-US',
+              normalizeLocaleToFull(userLocale),
               {
                 year: 'numeric',
                 month: 'long',
@@ -2180,7 +2183,7 @@ module.exports = {
           let accessEndsDateFormatted = null
           if (accessEndsDate) {
             accessEndsDateFormatted = accessEndsDate.toLocaleDateString(
-              userLocale === 'es' ? 'es-ES' : 'en-US',
+              normalizeLocaleToFull(userLocale),
               {
                 year: 'numeric',
                 month: 'long',
