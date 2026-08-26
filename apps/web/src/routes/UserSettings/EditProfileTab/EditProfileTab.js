@@ -161,24 +161,6 @@ function EditProfileTab ({
       </Helmet>
 
       <div className='space-y-6'>
-        <div className='flex items-center justify-between gap-4 border border-foreground/10 rounded-lg p-4'>
-          <div className='space-y-1'>
-            <h4 className='text-foreground font-medium'>{t('Make my profile public')}</h4>
-            <p className='text-foreground/70 text-sm'>
-              {t('When enabled, anyone with the link can view your profile without logging in to Hylo.')}
-            </p>
-            {isProfilePublic && (
-              <p className='text-xs text-muted-foreground mt-1 break-all'>
-                {t('Shareable link')}: {publicProfileUrl}
-              </p>
-            )}
-          </div>
-          <Switch
-            checked={!!isProfilePublic}
-            onCheckedChange={handleProfilePublicChange}
-          />
-        </div>
-
         <div>
           <label className='text-sm text-foreground/50 block mb-2'>{t('Banner and Avatar Images')}</label>
           <div className='relative'>
@@ -310,6 +292,24 @@ function EditProfileTab ({
               />
             </div>
           </div>
+        </div>
+
+        <div className='flex items-center justify-between gap-4 border border-foreground/10 rounded-lg p-4'>
+          <div className='space-y-1'>
+            <h4 className='text-foreground font-medium'>{t('Make my profile public')}</h4>
+            <p className='text-foreground/70 text-sm'>
+              {t('When enabled, anyone with the link can view your profile without logging in to Hylo.')}
+            </p>
+            {isProfilePublic && (
+              <p className='text-xs text-muted-foreground mt-1 break-all'>
+                {t('Shareable link')}: {publicProfileUrl}
+              </p>
+            )}
+          </div>
+          <Switch
+            checked={!!isProfilePublic}
+            onCheckedChange={handleProfilePublicChange}
+          />
         </div>
       </div>
 

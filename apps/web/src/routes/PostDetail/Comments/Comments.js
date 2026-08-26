@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo } from 'react'
 import { func, object, string } from 'prop-types'
+import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { Link } from 'react-router-dom'
 import { useResizeDetector } from 'react-resize-detector'
@@ -21,6 +22,10 @@ import getMe from 'store/selectors/getMe'
 
 import classes from './Comments.module.scss'
 
+/**
+ * Renders the post comment thread for logged-in users.
+ * Anonymous viewers only see a commenter count and a login CTA — no comments are fetched or shown.
+ */
 const Comments = ({
   selectedCommentId,
   post,
@@ -29,6 +34,7 @@ const Comments = ({
   scrollToBottom,
   onCommentEditingChange
 }) => {
+  const { t } = useTranslation()
   const dispatch = useDispatch()
 
   const selectorProps = useMemo(() => ({ post }), [post])
@@ -52,12 +58,13 @@ const Comments = ({
   }, [dispatch, post, scrollToBottom])
 
   useEffect(() => {
+    if (!currentUser) return
     if (!selectedCommentId || comments.length === 0 || commentsPending) return
     const allIds = comments.flatMap(c => [c.id, ...c.childComments.map(cc => cc.id)])
     if (!allIds.includes(selectedCommentId.toString())) {
       fetchComments()
     }
-  }, [selectedCommentId, commentsPending, fetchComments])
+  }, [currentUser, selectedCommentId, commentsPending, fetchComments])
 
   const { ref, width } = useResizeDetector({ handleHeight: false })
 
@@ -67,6 +74,31 @@ const Comments = ({
 
   const style = {
     width: width + 'px'
+  }
+
+  const loginUrl = `/login?returnToUrl=${encodeURIComponent(window.location.pathname + window.location.search)}`
+  const commentersTotal = post.commentersTotal || 0
+
+  // Anonymous: count only + invite login. Do not fetch or render comment bodies.
+  if (!currentUser) {
+    const countLabel = commentersTotal === 0
+      ? t('No comments yet')
+      : commentersTotal === 1
+        ? t('{{count}} person commented', { count: 1 })
+        : t('{{count}} people commented', { count: commentersTotal })
+
+    return (
+      <div className={classes.comments} ref={ref} data-testid='comments-login-prompt'>
+        <p className='text-center text-foreground/70 text-sm mb-3'>{countLabel}</p>
+        <Link
+          to={loginUrl}
+          target={inIframe() ? '_blank' : ''}
+          className={cn(classes.signupButton)}
+        >
+          {t('Log in to see comments')}
+        </Link>
+      </div>
+    )
   }
 
   return (
@@ -89,28 +121,16 @@ const Comments = ({
           onEditingChange={onCommentEditingChange}
         />
       ))}
-      {currentUser
-        ? (
-          <div className={cn('CommentFormWrapper bg-transparent relative bottom-0 w-full px-4 pb-0 z-10')} style={style}>
-            <CommentForm
-              ref={commentFormRef}
-              currentUser={currentUser}
-              createComment={createComment}
-              groupIds={groupIds}
-              postId={post.id}
-            />
-            <PeopleTyping className={cn(classes.peopleTyping)} />
-          </div>
-          )
-        : (
-          <Link
-            to={`/login?returnToUrl=${encodeURIComponent(window.location.pathname + window.location.search)}`}
-            target={inIframe() ? '_blank' : ''}
-            className={cn(classes.signupButton)}
-          >
-            Join Hylo to respond
-          </Link>
-          )}
+      <div className={cn('CommentFormWrapper bg-transparent relative bottom-0 w-full px-4 pb-0 z-10')} style={style}>
+        <CommentForm
+          ref={commentFormRef}
+          currentUser={currentUser}
+          createComment={createComment}
+          groupIds={groupIds}
+          postId={post.id}
+        />
+        <PeopleTyping className={cn(classes.peopleTyping)} />
+      </div>
     </div>
   )
 }

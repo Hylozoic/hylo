@@ -2868,5 +2868,9 @@
   "When enabled, anyone with the link can view your profile without logging in to Hylo.": "When enabled, anyone with the link can view your profile without logging in to Hylo.",
   "Shareable link": "Shareable link",
   "No more posts to load": "No more posts to load",
-  "No posts yet": "No posts yet"
+  "No posts yet": "No posts yet",
+  "No comments yet": "No comments yet",
+  "{{count}} person commented": "{{count}} person commented",
+  "Log in to see comments": "Log in to see comments",
+  "{{count}} people commented": "{{count}} people commented"
 }

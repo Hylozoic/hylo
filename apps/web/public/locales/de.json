@@ -2871,5 +2871,9 @@
   "When enabled, anyone with the link can view your profile without logging in to Hylo.": "Wenn aktiviert, kann jeder mit dem Link dein Profil ansehen, ohne sich bei Hylo anzumelden.",
   "Shareable link": "Teilbarer Link",
   "No more posts to load": "Keine weiteren Beiträge",
-  "No posts yet": "Noch keine Beiträge"
+  "No posts yet": "Noch keine Beiträge",
+  "No comments yet": "Noch keine Kommentare",
+  "{{count}} person commented": "{{count}} Person hat kommentiert",
+  "Log in to see comments": "Melde dich an, um Kommentare zu sehen",
+  "{{count}} people commented": "{{count}} Personen haben kommentiert"
 }

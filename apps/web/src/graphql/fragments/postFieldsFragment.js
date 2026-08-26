@@ -68,15 +68,15 @@ const postFieldsFragment = (withComments, withCompletion = false, withAllComplet
   projectManagementLink
   myEventResponse
   savedAt
-  commenters(first: 3) {
+  commentersTotal
+  commentsTotal
+  ${withComments
+? `commenters(first: 3) {
     id
     name
     avatarUrl
   }
-  commentersTotal
-  commentsTotal
-  ${withComments
-? `comments(first: 10, order: "desc") {
+  comments(first: 10, order: "desc") {
     items {
       ${CommentFieldsFragment}
       childComments(first: ${INITIAL_SUBCOMMENTS_DISPLAYED}, order: "desc") {
@@ -174,10 +174,12 @@ const postFieldsFragment = (withComments, withCompletion = false, withAllComplet
   postReactions {
     emojiFull
     id
-    user {
+    ${withComments
+? `user {
       id
       name
-    }
+    }`
+: ''}
   }
   groups {
     id
