@@ -2,6 +2,7 @@ import { GraphQLError } from 'graphql'
 import { flatten, merge, pick, uniq } from 'lodash'
 import setupPostAttrs from './setupPostAttrs'
 import updateChildren from './updateChildren'
+import { assertGroupsAcceptPostType } from './validatePostData'
 import { groupRoom, pushToSockets } from '../../services/Websockets'
 import {
   POST_TYPE_TO_TYPED_VIEW,
@@ -9,6 +10,7 @@ import {
 } from '@hylo/shared'
 
 export default async function createPost (userId, params) {
+  await assertGroupsAcceptPostType(params.group_ids, params.type)
   return setupPostAttrs(userId, merge(Post.newPostAttrs(), params), true)
     .then(attrs => bookshelf.transaction(transacting =>
       Post.create(attrs, { transacting })
@@ -22,6 +24,12 @@ export default async function createPost (userId, params) {
       }).catch(function (error) {
         throw error
       }))
+    .then(post => {
+      if (post.get('type') === Post.Type.CHAT) {
+        Queue.classMethod('Post', 'upsertChatActivityNotice', { postId: post.id }, 0)
+      }
+      return post
+    })
 }
 
 export function afterCreatingPost (post, opts) {
@@ -78,8 +86,9 @@ export function afterCreatingPost (post, opts) {
 
     opts.trackId && Track.addPost(post, opts.trackId, { ...trxOpts, userId }),
 
-    // Explicit view collection link (e.g. track-actions / funding-round-submissions / collection views)
-    opts.viewId && addPostToViewCollection(post, opts.viewId, userId, trxOpts),
+    // Track.addPost already links the post into the track-actions view — skip viewId
+    // to avoid a parallel duplicate insert into collections_posts.
+    opts.viewId && !opts.trackId && addPostToViewCollection(post, opts.viewId, userId, trxOpts),
 
     opts.fundingRoundId && post.get('type') === Post.Type.SUBMISSION && FundingRound.addPost(post, opts.fundingRoundId, userId, trxOpts)
   ]))
@@ -129,6 +138,8 @@ async function addPostToViewCollection (post, viewId, userId, { transacting } = 
  * Called as a background job so large groups do not block createPost.
  */
 export async function incrementNewPostCount (post) {
+  if (Post.isNoticeType(post.get('type'))) return
+
   const { groups } = post.relations
 
   if (!groups || groups.length === 0) {
@@ -138,51 +149,59 @@ export async function incrementNewPostCount (post) {
   const postType = post.get('type')
   const authorId = post.get('user_id')
   const typedViewType = POST_TYPE_TO_TYPED_VIEW[postType]
+  const groupIds = groups.map('id')
 
-  const groupMembershipQuery = GroupMembership.query(q => {
-    q.whereIn('group_id', groups.map('id'))
-    q.whereNot('group_memberships.user_id', authorId)
-    q.where('group_memberships.active', true)
-  }).query()
+  const memberRows = await bookshelf.knex('group_memberships')
+    .whereIn('group_id', groupIds)
+    .whereNot('user_id', authorId)
+    .where('active', true)
+    .select('group_id', 'user_id')
 
-  const viewIncrements = Promise.map(groups.models, async group => {
-    const memberIds = await bookshelf.knex('group_memberships')
-      .where({ group_id: group.id, active: true })
-      .whereNot('user_id', authorId)
-      .pluck('user_id')
-    if (memberIds.length === 0) return
+  const membersByGroup = new Map()
+  for (const row of memberRows) {
+    const key = String(row.group_id)
+    if (!membersByGroup.has(key)) membersByGroup.set(key, [])
+    membersByGroup.get(key).push(row.user_id)
+  }
 
-    const jobs = []
+  const viewTypes = []
+  if (typedViewType) viewTypes.push(typedViewType)
+  if (postCountsTowardChatUnread(postType)) viewTypes.push(GroupView.Type.CHAT)
 
-    // Typed common views (discussions, events, …) — one job per matching view
+  const views = viewTypes.length === 0
+    ? []
+    : (await GroupView.query(q => {
+        q.whereIn('group_id', groupIds)
+        q.whereIn('type', viewTypes)
+      }).fetchAll()).models
+
+  const viewsByGroupType = new Map()
+  for (const view of views) {
+    viewsByGroupType.set(`${String(view.get('group_id'))}:${view.get('type')}`, view)
+  }
+
+  const jobs = []
+  for (const group of groups.models) {
+    const memberIds = membersByGroup.get(String(group.id)) || []
+    if (memberIds.length === 0) continue
+
     if (typedViewType) {
-      const typedView = await GroupView.where({
-        group_id: group.id,
-        type: typedViewType
-      }).fetch()
-      if (typedView) {
-        jobs.push(GroupViewUser.incrementNewPostCount(typedView.id, memberIds))
-      }
+      const typedView = viewsByGroupType.get(`${String(group.id)}:${typedViewType}`)
+      if (typedView) jobs.push(GroupViewUser.incrementNewPostCount(typedView.id, memberIds))
     }
-
-    // Chat view: always for type=chat; also for other post types when notices are on
-    const showNotices = (group.get('settings') || {}).showPostNoticesInChat !== false
-    if (postCountsTowardChatUnread(postType, showNotices)) {
-      const chatView = await GroupView.where({
-        group_id: group.id,
-        type: GroupView.Type.CHAT
-      }).fetch()
-      if (chatView) {
-        jobs.push(GroupViewUser.incrementNewPostCount(chatView.id, memberIds))
-      }
+    if (postCountsTowardChatUnread(postType)) {
+      const chatView = viewsByGroupType.get(`${String(group.id)}:${GroupView.Type.CHAT}`)
+      if (chatView) jobs.push(GroupViewUser.incrementNewPostCount(chatView.id, memberIds))
     }
-
-    return Promise.all(jobs)
-  })
+  }
 
   return Promise.all([
-    groupMembershipQuery.update({ updated_at: new Date() }).increment('new_post_count'),
-    viewIncrements
+    GroupMembership.query(q => {
+      q.whereIn('group_id', groupIds)
+      q.whereNot('group_memberships.user_id', authorId)
+      q.where('group_memberships.active', true)
+    }).query().update({ updated_at: new Date() }).increment('new_post_count'),
+    Promise.all(jobs)
   ])
 }
 
@@ -204,12 +223,29 @@ async function notifyAndMarkAuthorRead (post, localId, trx) {
   // room it's being pushed to.
   const payload = post.getNewPostSocketPayload()
   payload.localId = localId
-  const notifySockets = payload.groups.map(g => {
-    return pushToSockets(
+  const rooms = new Set()
+  const notifySockets = []
+  payload.groups.forEach(g => {
+    rooms.add(String(g.id))
+    notifySockets.push(pushToSockets(
       groupRoom(g.id),
       'newPost',
       Object.assign({}, payload, { groups: [g] })
-    )
+    ))
+  })
+  // Space posts also go to the parent room so the parent menu can badge
+  // without every client joining every space room.
+  groups.models.forEach(group => {
+    const parentId = group.get('parent_id')
+    if (!parentId || rooms.has(String(parentId))) return
+    rooms.add(String(parentId))
+    const g = payload.groups.find(p => String(p.id) === String(group.id))
+    if (!g) return
+    notifySockets.push(pushToSockets(
+      groupRoom(parentId),
+      'newPost',
+      Object.assign({}, payload, { groups: [g] })
+    ))
   })
 
   const groupTagsQuery = GroupTag.query(q => {
@@ -239,8 +275,7 @@ async function notifyAndMarkAuthorRead (post, localId, trx) {
       }
     }
 
-    const showNotices = (group.get('settings') || {}).showPostNoticesInChat !== false
-    if (postCountsTowardChatUnread(postType, showNotices)) {
+    if (postCountsTowardChatUnread(postType)) {
       const chatView = await GroupView.where({
         group_id: group.id,
         type: GroupView.Type.CHAT

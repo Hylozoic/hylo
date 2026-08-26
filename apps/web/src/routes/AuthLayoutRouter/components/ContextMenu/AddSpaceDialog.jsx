@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { BadgeDollarSign, ImagePlus, Layers, MessageCircleMore, Plus, Shapes } from 'lucide-react'
 
@@ -17,17 +17,23 @@ import PostTypePills from 'components/PostTypePills/PostTypePills'
 import TagInput from 'components/TagInput'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import { CUSTOM_VIEW_DEFAULT_POST_TYPES, CUSTOM_VIEW_POST_TYPE_OPTIONS } from 'components/CustomViewForm/customViewFormConstants'
-import { addQuerystringToPath, groupUrl, localSpaceSlug } from '@hylo/navigation'
-import { createSpace, createGroupView } from 'store/actions/groupViews'
+import { addQuerystringToPath, localSpaceSlug, spaceHomeUrl, spaceUrl } from '@hylo/navigation'
+import { nameToSlug } from 'routes/CreateGroup/slug'
+import { createSpace, createGroupView, updateGroupView } from 'store/actions/groupViews'
 import fetchForCurrentUser from 'store/actions/fetchForCurrentUser'
 import fetchForGroup from 'store/actions/fetchForGroup'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
+import { updateGroupSettings } from 'routes/GroupSettings/GroupSettings.store'
 import { createTrack } from 'store/actions/trackActions'
 import { createFundingRound } from 'routes/FundingRounds/FundingRounds.store'
 import { POST_TYPE_TO_VIEW_TYPE } from 'store/models/GroupView'
+import { groupRolesForPicker } from '@hylo/hooks/groupRoleHelpers'
+import getMe from 'store/selectors/getMe'
 import { cn } from 'util/index'
+import { isOneColumnLayout } from 'util/navigationLayout'
 
 import FundingRoundSettingsFields from './FundingRoundSettingsFields'
+import SpaceSlugField from './SpaceSlugField'
 import { SPACE_ICON_SUGGESTIONS, accessOptionsForGroup, toIsoOrNull } from './spaceFormConstants'
 
 const STANDARD_VIEW_TYPES = new Set([
@@ -88,15 +94,24 @@ function customSpaceStandardViews (postTypes, removedStandardTypes) {
 }
 
 /** Modal for creating a new space under the current group.
- * Pass `addToMenu={false}` when adding from More Views (space view created off-menu). */
-export default function AddSpaceDialog ({ group, onClose, addToMenu = true }) {
+ * Pass `addToMenu={false}` when adding from More Spaces (space view created off-menu). */
+export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu = true }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const routerLocation = useLocation()
+  const currentUser = useSelector(getMe)
+  const isOneColumn = isOneColumnLayout(
+    currentUser?.settings?.groupNavStyle,
+    group?.settings?.layout
+  )
 
   const [spaceType, setSpaceType] = useState('custom')
   const [name, setName] = useState('')
+  const [slug, setSlug] = useState('')
+  const [slugCustomized, setSlugCustomized] = useState(false)
+  const [slugValid, setSlugValid] = useState(false)
+  const [showSlugError, setShowSlugError] = useState(false)
   const [icon, setIcon] = useState(() => defaultsForSpaceType('custom').icon)
   const [bannerUrl, setBannerUrl] = useState('')
   const [purpose, setPurpose] = useState('')
@@ -106,6 +121,7 @@ export default function AddSpaceDialog ({ group, onClose, addToMenu = true }) {
   const [removedStandardTypes, setRemovedStandardTypes] = useState(() => new Set())
   const [presetStandardViews, setPresetStandardViews] = useState(null)
   const [manualViews, setManualViews] = useState([])
+  const [welcomeExtras, setWelcomeExtras] = useState(null)
   const [orderedRows, setOrderedRows] = useState([])
   const [access, setAccess] = useState('open')
   const [requiredRoles, setRequiredRoles] = useState([])
@@ -122,6 +138,7 @@ export default function AddSpaceDialog ({ group, onClose, addToMenu = true }) {
   const [frTotalTokens, setFrTotalTokens] = useState(100)
   const [frTokenType, setFrTokenType] = useState('Votes')
   const [frAllowSelfVoting, setFrAllowSelfVoting] = useState(false)
+  const [frAllowLateJoiners, setFrAllowLateJoiners] = useState(false)
   const [frHideFinalResults, setFrHideFinalResults] = useState(false)
   const [frSubmissionDescriptor, setFrSubmissionDescriptor] = useState('Submission')
   const [frSubmissionDescriptorPlural, setFrSubmissionDescriptorPlural] = useState('Submissions')
@@ -140,13 +157,15 @@ export default function AddSpaceDialog ({ group, onClose, addToMenu = true }) {
     setIcon(defaults.icon)
   }, [])
 
-  const groupRoles = useMemo(() => group?.groupRoles?.items || [], [group?.groupRoles?.items])
-  const roles = useMemo(() => groupRoles.map(role => ({ ...role, type: 'group', label: `${role.emoji} ${role.name}` })), [groupRoles])
+  const roles = useMemo(
+    () => groupRolesForPicker(group?.groupRoles?.items),
+    [group?.groupRoles?.items]
+  )
 
   const roleSuggestions = useMemo(() => {
     if (roleSearchTerm === null) return []
     const unselectedRoles = roles.filter(role => !requiredRoles.some(selected => selected.id === role.id))
-    if (!roleSearchTerm) return unselectedRoles.slice(0, 5)
+    if (!roleSearchTerm) return unselectedRoles
     const searchLower = roleSearchTerm.toLowerCase()
     return unselectedRoles.filter(role => role.name.toLowerCase().includes(searchLower))
   }, [roleSearchTerm, roles, requiredRoles])
@@ -167,16 +186,28 @@ export default function AddSpaceDialog ({ group, onClose, addToMenu = true }) {
     return customSpaceStandardViews(postTypes, removedStandardTypes)
   }, [presetStandardViews, postTypes, removedStandardTypes])
 
+  /** Removes a standard view unless it is the current home (top) view. */
   const handleRemoveStandardView = useCallback((type) => {
-    if (type === 'all' || type === 'track-actions' || type === 'funding-round-submissions') return
+    if (type === 'track-actions' || type === 'funding-round-submissions') return
+    const homeRow = orderedRows[0]
+    if (homeRow?.kind === 'standard' && homeRow.type === type) return
     setRemovedStandardTypes(prev => new Set(prev).add(type))
-  }, [])
+    if (type === 'welcome') setWelcomeExtras(null)
+  }, [orderedRows])
 
+  /** Removes a staged custom/link/text view unless it is the current home (top) view. */
   const handleRemoveManualView = useCallback((key) => {
+    if (orderedRows[0]?.key === key) return
     setManualViews(prev => prev.filter(view => view.key !== key))
-  }, [])
+  }, [orderedRows])
 
   const handleAddView = useCallback((viewData) => {
+    if (viewData.type === 'welcome') {
+      setWelcomeExtras({
+        pageContent: viewData.pageContent,
+        showWelcomePage: viewData.showWelcomePage
+      })
+    }
     if (STANDARD_VIEW_TYPES.has(viewData.type)) {
       setRemovedStandardTypes(prev => {
         const next = new Set(prev)
@@ -195,6 +226,10 @@ export default function AddSpaceDialog ({ group, onClose, addToMenu = true }) {
 
   const handleCreate = useCallback(async () => {
     if (!name.trim() || !group?.id) return
+    if (!slugValid) {
+      setShowSlugError(true)
+      return
+    }
     setIsCreating(true)
     try {
       const accessOption = accessOptionsForGroup(group).find(option => option.value === access)
@@ -206,6 +241,7 @@ export default function AddSpaceDialog ({ group, onClose, addToMenu = true }) {
       const result = await dispatch(createSpace({
         parentGroupId: group.id,
         name: name.trim(),
+        slug,
         description: description || null,
         icon,
         bannerUrl: bannerUrl || null,
@@ -226,14 +262,12 @@ export default function AddSpaceDialog ({ group, onClose, addToMenu = true }) {
       if (newSpace?.id && spaceType === 'track') {
         await dispatch(createTrack({
           groupId: newSpace.id,
-          name: name.trim(),
           actionDescriptor: 'Action',
           actionDescriptorPlural: 'Actions'
         }))
       } else if (newSpace?.id && spaceType === 'funding-round') {
         await dispatch(createFundingRound({
           groupId: newSpace.id,
-          title: name.trim(),
           publishedAt: toIsoOrNull(frPublishedAt),
           submissionsOpenAt: toIsoOrNull(frSubmissionsOpenAt),
           submissionsCloseAt: toIsoOrNull(frSubmissionsCloseAt),
@@ -243,6 +277,7 @@ export default function AddSpaceDialog ({ group, onClose, addToMenu = true }) {
           totalTokens: frTotalTokens === '' ? null : Number(frTotalTokens),
           tokenType: frTokenType,
           allowSelfVoting: frAllowSelfVoting,
+          allowLateJoiners: frAllowLateJoiners,
           hideFinalResultsFromParticipants: frHideFinalResults,
           submissionDescriptor: frSubmissionDescriptor,
           submissionDescriptorPlural: frSubmissionDescriptorPlural,
@@ -288,23 +323,47 @@ export default function AddSpaceDialog ({ group, onClose, addToMenu = true }) {
         }
       }
 
-      // All three before navigating: the menu entry (fetchGroupViews), the
-      // creator's own membership (fetchForCurrentUser — without it SpaceContent
-      // greets the creator with the join page), and for off-menu spaces the
-      // parent's spaces list, which is how the route resolves them.
+      if (newSpace?.id && welcomeExtras) {
+        const viewsResult = await dispatch(fetchGroupViews(newSpace.id))
+        const createdViews = viewsResult?.payload?.data?.group?.groupViews?.items || []
+        const welcomeView = createdViews.find(view => view.type === 'welcome')
+        if (welcomeView?.id && welcomeExtras.pageContent) {
+          await dispatch(updateGroupView({
+            id: welcomeView.id,
+            groupId: newSpace.id,
+            pageContent: welcomeExtras.pageContent
+          }))
+        }
+        if (welcomeExtras.showWelcomePage !== undefined) {
+          await dispatch(updateGroupSettings(newSpace.id, {
+            settings: { showWelcomePage: welcomeExtras.showWelcomePage }
+          }))
+        }
+      }
+
+      // Before navigating: parent menu (fetchGroupViews), the new space's own
+      // views + track/FR config, the creator's membership (fetchForCurrentUser —
+      // without it SpaceContent greets the creator with the join page), and for
+      // off-menu spaces the parent's spaces list, which is how the route resolves them.
       await Promise.all([
         dispatch(fetchGroupViews(group.id)),
+        newSpace?.id ? dispatch(fetchGroupViews(newSpace.id)) : Promise.resolve(),
         dispatch(fetchForCurrentUser()),
         addToMenu === false && group?.slug ? dispatch(fetchForGroup(group.slug)) : Promise.resolve()
       ])
       onClose()
-      // Same destination as opening a space while editing: more-views with that
-      // space drilled in, still in edit menu mode. Fall back to staying put.
+      if (onCreated) {
+        onCreated(newSpace)
+        return
+      }
+      // Open the new space's menu in edit mode so included views can be arranged.
+      // Two-column: the space's home (sidebar becomes the space menu).
+      // One-column: the space's own card-menu grid.
       if (newSpace?.slug && group?.slug) {
-        navigate(addQuerystringToPath(groupUrl(group.slug, 'more-views'), {
-          edit: 'true',
-          space: localSpaceSlug(group.slug, newSpace.slug)
-        }))
+        const local = localSpaceSlug(group.slug, newSpace.slug)
+        navigate(isOneColumn
+          ? addQuerystringToPath(spaceUrl(group.slug, local), { edit: 'true' })
+          : addQuerystringToPath(spaceHomeUrl(group.slug, newSpace), { edit: 'true' }))
       } else {
         navigate(addQuerystringToPath(routerLocation.pathname, { edit: 'true' }))
       }
@@ -313,11 +372,19 @@ export default function AddSpaceDialog ({ group, onClose, addToMenu = true }) {
     } finally {
       setIsCreating(false)
     }
-  }, [dispatch, group?.id, name, description, icon, bannerUrl, purpose, locationObject, postTypes, access, requiredRoles, spaceType, orderedRows, standardViewTypes, onClose, navigate, routerLocation.pathname, addToMenu, frPublishedAt, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frHideFinalResults, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles])
+  }, [dispatch, group?.id, name, slug, slugValid, description, icon, bannerUrl, purpose, locationObject, postTypes, access, requiredRoles, spaceType, orderedRows, standardViewTypes, welcomeExtras, onClose, onCreated, navigate, routerLocation.pathname, addToMenu, isOneColumn, frPublishedAt, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frAllowLateJoiners, frHideFinalResults, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles])
+
+  /** Closes the dialog when the dimmed overlay (not the panel) is clicked. */
+  const handleBackdropClick = (event) => {
+    if (event.target === event.currentTarget) onClose()
+  }
 
   // Portal above AuthLayout nav stacking so access radios / FR checkboxes remain clickable.
   return createPortal(
-    <div className='fixed inset-0 z-[1100] flex items-center justify-center bg-darkening/50 pointer-events-auto'>
+    <div
+      className='fixed inset-0 z-[1100] flex items-center justify-center bg-darkening/50 pointer-events-auto'
+      onClick={handleBackdropClick}
+    >
       <div className='bg-midground rounded-lg shadow-lg p-4 w-full max-w-md sm:max-w-[40rem] max-h-[85vh] flex flex-col'>
         <h2 className='text-lg font-semibold mb-4'>{t('Add Space')}</h2>
 
@@ -388,10 +455,25 @@ export default function AddSpaceDialog ({ group, onClose, addToMenu = true }) {
             <label className='text-sm text-foreground/70'>{t('Name')}</label>
             <Input
               value={name}
-              onChange={e => setName(e.target.value)}
+              onChange={e => {
+                const newName = e.target.value
+                setName(newName)
+                if (!slugCustomized) setSlug(nameToSlug(newName))
+              }}
               placeholder={t('Space name')}
             />
           </div>
+
+          <SpaceSlugField
+            parentSlug={group?.slug}
+            value={slug}
+            onChange={(next) => {
+              setSlug(next)
+              setSlugCustomized(true)
+            }}
+            onValidityChange={setSlugValid}
+            forceShowError={showSlugError}
+          />
 
           <div className='flex flex-col gap-1'>
             <label className='text-sm text-foreground/70'>{t('Purpose')}</label>
@@ -502,6 +584,8 @@ export default function AddSpaceDialog ({ group, onClose, addToMenu = true }) {
               setTokenType={setFrTokenType}
               allowSelfVoting={frAllowSelfVoting}
               setAllowSelfVoting={setFrAllowSelfVoting}
+              allowLateJoiners={frAllowLateJoiners}
+              setAllowLateJoiners={setFrAllowLateJoiners}
               hideFinalResults={frHideFinalResults}
               setHideFinalResults={setFrHideFinalResults}
               submitterRoles={frSubmitterRoles}

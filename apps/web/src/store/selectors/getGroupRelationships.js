@@ -1,12 +1,19 @@
 import { createSelector as ormCreateSelector } from 'redux-orm'
 import orm from 'store/models'
 import { GROUP_RELATIONSHIP_TYPE } from 'store/models/GroupRelationshipInvite'
+import { isSpaceGroup } from 'store/selectors/getMyGroups'
+
+/** Related-group lists should never include spaces (§3.8). */
+function excludeSpaces (groups) {
+  return groups.filter(g => !isSpaceGroup(g.ref || g))
+}
 
 export const getChildGroups = ormCreateSelector(
   orm,
   (state, group) => group,
   (session, group) => {
-    return group?.childGroups?.toModelArray().sort((a, b) => a.name.localeCompare(b.name)) || []
+    return excludeSpaces(group?.childGroups?.toModelArray() || [])
+      .sort((a, b) => a.name.localeCompare(b.name))
   }
 )
 
@@ -14,7 +21,8 @@ export const getParentGroups = ormCreateSelector(
   orm,
   (state, group) => group,
   (session, group) => {
-    return group?.parentGroups?.toModelArray().sort((a, b) => a.name.localeCompare(b.name)) || []
+    return excludeSpaces(group?.parentGroups?.toModelArray() || [])
+      .sort((a, b) => a.name.localeCompare(b.name))
   }
 )
 
@@ -22,7 +30,8 @@ export const getPeerGroups = ormCreateSelector(
   orm,
   (state, group) => group,
   (session, group) => {
-    return group?.peerGroups?.toModelArray().sort((a, b) => a.name.localeCompare(b.name)) || []
+    return excludeSpaces(group?.peerGroups?.toModelArray() || [])
+      .sort((a, b) => a.name.localeCompare(b.name))
   }
 )
 

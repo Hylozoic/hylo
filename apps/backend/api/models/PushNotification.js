@@ -101,8 +101,20 @@ module.exports = bookshelf.Model.extend({
     return getLocaleStrings(locale).textForEventInvitation({ actor, postName })
   },
 
-  textForJoinRequest: function (group, actor, locale) {
-    return getLocaleStrings(locale).textForJoinRequest({ actor, groupName: group.get('name') })
+  textForJoinRequest: function (group, actor, locale, parentGroup) {
+    return getLocaleStrings(locale).textForJoinRequest({
+      actor,
+      groupName: group.get('name'),
+      parentGroupName: parentGroup ? parentGroup.get('name') : null
+    })
+  },
+
+  textForGroupInvitation: function (group, actor, locale, parentGroup) {
+    return getLocaleStrings(locale).textForGroupInvitation({
+      actor,
+      groupName: group.get('name'),
+      parentGroupName: parentGroup ? parentGroup.get('name') : null
+    })
   },
 
   textForApprovedJoinRequest: function (group, actor, locale) {
@@ -182,23 +194,23 @@ module.exports = bookshelf.Model.extend({
     return getLocaleStrings(locale).textForPostModeratedFulfillment({ post, actor, reason })
   },
 
-  textForTrackCompleted: function (track, actor, locale) {
-    return getLocaleStrings(locale).textForTrackCompleted({ actor, track })
+  textForTrackCompleted: function (trackName, actor, locale) {
+    return getLocaleStrings(locale).textForTrackCompleted({ actor, trackName })
   },
 
-  textForTrackEnrollment: function (track, actor, locale) {
-    return getLocaleStrings(locale).textForTrackEnrollment({ actor, track })
+  textForTrackEnrollment: function (trackName, actor, locale) {
+    return getLocaleStrings(locale).textForTrackEnrollment({ actor, trackName })
   },
 
-  textForFundingRoundNewSubmission: function (fundingRound, post, actor, locale) {
-    return getLocaleStrings(locale).textForFundingRoundNewSubmission({ fundingRound, post, actor })
+  textForFundingRoundNewSubmission: function (fundingRoundTitle, post, actor, locale) {
+    return getLocaleStrings(locale).textForFundingRoundNewSubmission({ fundingRoundTitle, post, actor })
   },
 
-  textForFundingRoundPhaseTransition: function (fundingRound, phase, locale) {
-    return getLocaleStrings(locale).textForFundingRoundPhaseTransition({ fundingRound, phase })
+  textForFundingRoundPhaseTransition: function (fundingRoundTitle, phase, locale) {
+    return getLocaleStrings(locale).textForFundingRoundPhaseTransition({ fundingRoundTitle, phase })
   },
 
-  textForFundingRoundReminder: function (fundingRound, reminderType, locale) {
-    return fundingRound.get('title') + ': ' + getLocaleStrings(locale).textForFundingRoundReminder({ reminderType })
+  textForFundingRoundReminder: function (fundingRoundTitle, reminderType, locale) {
+    return fundingRoundTitle + ': ' + getLocaleStrings(locale).textForFundingRoundReminder({ reminderType })
   }
 })

@@ -1,19 +1,54 @@
 import {
   groupUrl,
+  localSpaceSlug,
   postUrl,
   personUrl,
   spaceHomeUrl,
   spaceGroupViewUrl,
+  spaceUrl,
   viewUrl
 } from '@hylo/navigation'
+import { isDrawerNavLayout } from 'util/mobile'
+import { sanitizeURL } from 'util/url'
+
+/**
+ * URL for opening a space from a menu.
+ * On a drawer layout (mobile) the space index is the space's own menu (SpaceContent);
+ * alongside a visible sidebar, go straight to the home view.
+ */
+export function spaceEntryUrl (parentSlug, spaceGroup) {
+  if (!parentSlug || !spaceGroup?.slug) return parentSlug ? groupUrl(parentSlug) : '/'
+  if (isDrawerNavLayout()) {
+    return spaceUrl(parentSlug, localSpaceSlug(parentSlug, spaceGroup.slug))
+  }
+  return spaceHomeUrl(parentSlug, spaceGroup)
+}
+
+/**
+ * Absolute http(s) href for a stored link, adding https:// when the value has no scheme.
+ * Returns null for missing, internal (e.g. /u/123), or non-http(s) values.
+ */
+export function externalLinkHref (view) {
+  if (!view?.link) return null
+  const href = sanitizeURL(view.link)
+  return href && /^https?:\/\//i.test(href) ? href : null
+}
 
 /** Resolves a URL for static My/Public/All context menu views. */
 export function contextViewUrl (view) {
-  if (view?.link) return view.link
+  if (view?.link) return externalLinkHref(view) || view.link
   if (view?.context && view?.type) {
     return viewUrl(view.type, { context: view.context })
   }
   return null
+}
+
+/** True when pathname is a view of this group, not a nested space. */
+export function isParentGroupPath (pathname, groupSlug) {
+  if (!pathname || !groupSlug) return false
+  const base = `/groups/${groupSlug}`
+  if (pathname === base || pathname === `${base}/`) return true
+  return pathname.startsWith(`${base}/`) && !pathname.startsWith(`${base}/spaces/`)
 }
 
 /** Maps a GroupView to its URL within a group's route tree. Falls back to the group home. */
@@ -37,8 +72,6 @@ export function groupViewUrl (groupSlug, view) {
       return groupUrl(groupSlug, 'map')
     case 'members':
       return groupUrl(groupSlug, 'members')
-    case 'about':
-      return groupUrl(groupSlug, 'about')
     case 'welcome':
       return groupUrl(groupSlug, 'welcome')
     case 'discussions':
@@ -51,16 +84,14 @@ export function groupViewUrl (groupSlug, view) {
       return groupUrl(groupSlug, 'resources')
     case 'requests-and-offers':
       return groupUrl(groupSlug, 'requests-and-offers')
-    case 'related-groups':
-      return groupUrl(groupSlug, 'groups')
-    case 'moderation':
-      return groupUrl(groupSlug, 'moderation')
     case 'decisions':
       return groupUrl(groupSlug, 'decisions')
     case 'custom':
       return groupUrl(groupSlug, `custom/${view.id}`)
     case 'collection':
       return groupUrl(groupSlug, `collection/${view.id}`)
+    case 'space-collection':
+      return groupUrl(groupSlug, `space-collection/${view.id}`)
     case 'track-actions':
       return groupUrl(groupSlug, 'track-actions')
     case 'funding-round-submissions':
@@ -68,9 +99,9 @@ export function groupViewUrl (groupSlug, view) {
     case 'manage-round':
       return groupUrl(groupSlug, 'manage-round')
     case 'space':
-      return view.linkedGroup ? spaceHomeUrl(groupSlug, view.linkedGroup) : groupUrl(groupSlug)
+      return view.linkedGroup ? spaceEntryUrl(groupSlug, view.linkedGroup) : groupUrl(groupSlug)
     case 'link':
-      return view.link || null
+      return externalLinkHref(view) || view.link || null
     default:
       return groupUrl(groupSlug, view.type || 'all')
   }
@@ -82,10 +113,10 @@ export function menuViewUrl (parentSlug, view, spaceGroup = null) {
   if (spaceGroup) {
     const url = spaceGroupViewUrl(parentSlug, spaceGroup, view)
     if (url) return url
-    return spaceHomeUrl(parentSlug, spaceGroup)
+    return spaceEntryUrl(parentSlug, spaceGroup)
   }
   if (view?.type === 'space' && view.linkedGroup) {
-    return spaceHomeUrl(parentSlug, view.linkedGroup)
+    return spaceEntryUrl(parentSlug, view.linkedGroup)
   }
   return groupViewUrl(parentSlug, view)
 }

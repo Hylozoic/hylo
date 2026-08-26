@@ -27,6 +27,7 @@ const CommentForm = forwardRef(function CommentForm ({
   className,
   placeholder,
   editorContent,
+  groupIds,
   postId
 }, ref) {
   const { t } = useTranslation()
@@ -231,6 +232,7 @@ const CommentForm = forwardRef(function CommentForm ({
             onAltEnter={handleSubmit}
             containerClassName='min-w-0'
             className='w-full min-w-0 max-h-[200px] overflow-y-auto cursor-text [&_.ProseMirror]:w-full'
+            groupIds={groupIds}
             readOnly={!currentUser}
             blurOnScroll={false}
             onUpdate={handleEditorUpdate}

@@ -22,11 +22,9 @@ export default function CommentCard ({
   const { creator, post, slug, createdAt, editedAt, attachments } = comment
   const timestamp = useMemo(() => (editedAt ? 'Edited ' : 'Commented ') + TextHelpers.humanDate(editedAt || createdAt), [editedAt, createdAt])
   const postTitle = useMemo(() => {
-    return post.title
-      ? TextHelpers.truncateText(post.title, 25)
-      : post.details
-        ? TextHelpers.truncateHTML(post.details, 25)
-        : 'a post' // Fallback when both title and details are empty
+    if (post.title) return TextHelpers.truncateText(post.title, 25)
+    const detailsText = TextHelpers.presentHTMLToText(post.details, { truncate: 25 }).replace(/\n/g, ' ').trim()
+    return detailsText || 'a post'
   }, [post.title, post.details])
 
   const commentText = useMemo(() => expanded ? comment.text : TextHelpers.truncateHTML(comment.text, 144), [expanded, comment.text])

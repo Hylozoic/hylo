@@ -20,10 +20,8 @@ query (
         id
         accessControlled
         canAccess
-        bannerUrl
         actionDescriptor
         actionDescriptorPlural
-        description
         completionMessage
         completionRole {
           id
@@ -32,15 +30,16 @@ query (
         }
         didComplete
         isEnrolled
-        name
         numActions
         numPeopleCompleted
         numPeopleEnrolled
         publishedAt
         userSettings
-        welcomeMessage
         space {
           id
+          name
+          bannerUrl
+          description
           slug
           type
           homeRoute

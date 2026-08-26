@@ -23,26 +23,6 @@ module.exports = {
       socketIoEmitterInstance = socketIoEmitter(RedisClient.create())
     }
     return socketIoEmitterInstance
-  },
-
-  mapLocaleToSendWithUS: function (locale) {
-    const lookup = {
-      en: 'en-US',
-      'en-US': 'en-US',
-      es: 'es-ES',
-      'es-ES': 'es-ES',
-      de: 'de-DE',
-      'de-DE': 'de-DE',
-      fr: 'fr-FR',
-      'fr-FR': 'fr-FR',
-      hi: 'hi-IN',
-      'hi-IN': 'hi-IN',
-      pt: 'pt-BR',
-      'pt-BR': 'pt-BR',
-      'pt-PT': 'pt-PT'
-    }
-
-    return lookup[locale] || 'en-US'
   }
 
-};
+}

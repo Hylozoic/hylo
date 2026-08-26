@@ -49,7 +49,9 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
   async acceptAgreements (transacting) {
     const groupId = this.get('group_id')
-    const groupAgreements = await GroupAgreement.where({ group_id: groupId }).fetchAll({ transacting })
+    // Spaces inherit parent agreements, so record acceptance against the parent
+    const agreementGroupId = await Group.roleScopeId(groupId)
+    const groupAgreements = await GroupAgreement.where({ group_id: agreementGroupId }).fetchAll({ transacting })
 
     // Only set agreementsAcceptedAt if the group actually has agreements
     // This prevents falsely recording acceptance when there's nothing to accept
@@ -60,7 +62,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     this.addSetting({ agreementsAcceptedAt: (new Date()).toISOString() })
 
     for (const ga of groupAgreements) {
-      const attrs = { group_id: groupId, user_id: this.get('user_id'), agreement_id: ga.get('agreement_id') }
+      const attrs = { group_id: agreementGroupId, user_id: this.get('user_id'), agreement_id: ga.get('agreement_id') }
       await UserGroupAgreement
         .where(attrs)
         .fetch({ transacting })
@@ -144,10 +146,15 @@ module.exports = bookshelf.Model.extend(Object.assign({
     const gm = await this.forPair(userOrId, groupId).fetch(opts)
     const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, groupId)
 
-    if (gm && !responsibilities.includes(responsibility)) {
+    if (!responsibilities.includes(responsibility)) {
       return false
     }
-    return !!gm
+    if (gm) return true
+
+    // Spaces inherit steward access from parent membership
+    const roleScopeId = await Group.roleScopeId(groupId)
+    if (String(roleScopeId) === String(groupId)) return false
+    return this.hasActiveMembership(userOrId, roleScopeId)
   },
 
   /**

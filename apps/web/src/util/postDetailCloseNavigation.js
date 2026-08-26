@@ -55,11 +55,11 @@ export function getPostDetailCloseDestination ({ pathname, search = '', post, me
       return { pathname: groupUrl(groups[0].slug, 'all'), search: '' }
     }
     if (!isPublic) return fallback
-    return { pathname: '/public/stream', search: '' }
+    return { pathname: '/public/all', search: '' }
   }
 
   if (nM === 0) {
-    if (isPublic) return { pathname: '/public/stream', search: '' }
+    if (isPublic) return { pathname: '/public/all', search: '' }
     return { pathname: '/my/groups', search: '' }
   }
 

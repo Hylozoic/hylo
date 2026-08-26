@@ -30,6 +30,7 @@ Person.fields = {
   bio: attr(),
   avatarUrl: attr(),
   bannerUrl: attr(),
+  lastActiveAt: attr(),
   twitterName: attr(),
   facebookUrl: attr(),
   linkedinUrl: attr(),

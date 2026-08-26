@@ -3,8 +3,9 @@ import React, { useEffect, useMemo } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { push } from 'redux-first-history'
 import { useTranslation } from 'react-i18next'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
+import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useIsPhoneViewport from 'hooks/useIsPhoneViewport'
 import AppearanceTab from './AppearanceTab/AppearanceTab'
 import AgreementsTab from './AgreementsTab'
@@ -26,8 +27,9 @@ import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
 import { WebViewMessageTypes } from '@hylo/shared'
 import { isLegacyWebView, sendMessageToWebView } from 'util/webView'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
-import { allGroupsUrl, groupUrl } from '@hylo/navigation'
+import { allGroupsUrl, groupUrl, spaceHomeUrl } from '@hylo/navigation'
 import presentGroup from 'store/presenters/presentGroup'
+import { GROUP_TYPES } from 'store/models/Group'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { getParentGroups } from 'store/selectors/getGroupRelationships'
 import getMe from 'store/selectors/getMe'
@@ -41,7 +43,19 @@ import {
 // On phone, /settings shows this list-of-categories instead of the default tab content.
 // Tapping a category navigates to /settings/<path>; the back chevron there returns here.
 function PhoneSettingsMenuList ({ items, groupSlug }) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
+  const { setHeaderDetails } = useViewHeader()
+
+  useEffect(() => {
+    setHeaderDetails({
+      title: t('Group Settings'),
+      icon: '',
+      info: '',
+      search: false
+    })
+  }, [setHeaderDetails, t])
+
   return (
     <ul className='flex flex-col gap-2 p-0 m-0 list-none'>
       {items.map(item => (
@@ -104,8 +118,15 @@ export default function GroupSettings () {
 
   if (!group) return <Loading />
 
+  const isSpace = group.type === GROUP_TYPES.space || !!group.parentId
+  if (isSpace) {
+    const parentSlug = rawGroup?.parentGroup?.slug || parentGroups[0]?.slug
+    if (!parentSlug) return <Loading />
+    return <Navigate to={spaceHomeUrl(parentSlug, group)} replace />
+  }
+
   if (!responsibilities.includes(RESP_ADMINISTRATION) && !responsibilities.includes(RESP_ADD_MEMBERS)) push(groupUrl(slug))
-  if (!responsibilities.includes(RESP_ADMINISTRATION) && responsibilities.includes(RESP_ADD_MEMBERS)) push('settings/invite')
+  if (!responsibilities.includes(RESP_ADMINISTRATION) && responsibilities.includes(RESP_ADD_MEMBERS) && !isSpace) push('settings/invite')
 
   const groupDetailsTab = (
     <GroupSettingsTab
@@ -122,11 +143,11 @@ export default function GroupSettings () {
   // labels and visibility follow the user's permissions automatically.
   const phoneMenuItems = compact([
     canAdminister && { name: t('Group Details'), path: 'details' },
-    canAdminister && { name: t('Agreements'), path: 'agreements' },
+    canAdminister && !isSpace && { name: t('Agreements'), path: 'agreements' },
     canAdminister && { name: t('Responsibilities'), path: 'responsibilities' },
     canAdminister && { name: t('Roles & Badges'), path: 'roles' },
     canAdminister && { name: t('Privacy & Access'), path: 'privacy' },
-    canAddMembers && { name: t('Invite'), path: 'invite' },
+    canAddMembers && !isSpace && { name: t('Invite'), path: 'invite' },
     canAddMembers && { name: t('Join Requests'), path: 'requests' },
     canAdminister && { name: t('Related Groups'), path: 'relationships' },
     canAdminister && { name: t('Export Data'), path: 'export' },
@@ -175,22 +196,16 @@ export default function GroupSettings () {
     component: <PrivacySettingsTab group={group} slug={group.slug} updateGroupSettings={updateGroupSettingsAction} parentGroups={parentGroups} fetchPending={fetchPending} />
   }
 
-  // const topicsSettings = {
-  //   name: t('Topics'),
-  //   path: 'topics',
-  //   component: <TopicsSettingsTab group={group} />
-  // }
-
   const inviteSettings = {
     name: t('Invite'),
     path: 'invite',
     component: <InviteSettingsTab group={group} />
   }
 
-  const joinRequestSettings = {
+  const joinRequestsSettings = {
     name: t('Join Requests'),
     path: 'requests',
-    component: <MembershipRequestsTab group={group} currentUser={currentUser} />
+    component: <MembershipRequestsTab group={group} />
   }
 
   const relatedGroupsSettings = {
@@ -235,13 +250,12 @@ export default function GroupSettings () {
       content={compact([
         canAdminister ? overallSettings : null,
         canAdminister ? detailsSettings : null,
-        canAdminister ? agreementSettings : null,
+        canAdminister && !isSpace ? agreementSettings : null,
         canAdminister ? responsibilitiesSettings : null,
         canAdminister ? rolesSettings : null,
         canAdminister ? accessSettings : null,
-        // canAdminister ? topicsSettings : null, TODO: hide for now, we may want to bring back
-        canAddMembers ? inviteSettings : null,
-        canAddMembers ? joinRequestSettings : null,
+        canAddMembers && !isSpace ? inviteSettings : null,
+        canAddMembers ? joinRequestsSettings : null,
         canAdminister ? relatedGroupsSettings : null,
         canAdminister ? importSettings : null,
         canAdminister ? exportSettings : null,

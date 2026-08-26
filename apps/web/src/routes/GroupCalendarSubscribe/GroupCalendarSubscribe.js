@@ -80,16 +80,15 @@ export default function GroupCalendarSubscribe ({ eventCalendarUrl, buttonLabel 
 
   return (
     <>
-      <Button
-        variant='outline'
-        color='green-white-green-border'
-        narrow
+      {/* Quiet tonal button, matching the context menu's utility rows */}
+      <button
+        type='button'
         onClick={handleButtonClick}
-        className='rounded-md mt-4 flex items-center gap-2'
+        className='w-full mt-4 flex items-center justify-center gap-2 px-3 py-2 rounded-lg border-2 border-foreground/20 bg-transparent text-foreground/70 hover:text-foreground hover:border-foreground/50 text-sm font-medium transition-all cursor-pointer'
       >
-        <Rss size={18} />
+        <Rss size={16} />
         {buttonLabel}
-      </Button>
+      </button>
       {modalVisible && (
         <ModalDialog
           closeModal={handleCloseModal}

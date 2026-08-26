@@ -6,6 +6,7 @@ import ReactDOM from 'react-dom'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import useRouteParams from 'hooks/useRouteParams'
+import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import deletePost from 'store/actions/deletePost'
 import removePost from 'store/actions/removePost'
@@ -29,6 +30,7 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
   const location = useLocation()
   const navigate = useNavigate()
   const routeParams = useRouteParams()
+  const groupSlug = useEffectiveGroupSlug() || routeParams.groupSlug
   const querystringParams = getQuerystringParam(['tab'], location)
   const dispatch = useDispatch()
   const currentUser = useSelector(getMe)
@@ -39,10 +41,10 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
 
   const isFlagged = useMemo(() => post.flaggedGroups?.length > 0, [post.flaggedGroups])
   const flagPostData = useMemo(() => ({
-    slug: routeParams.groupSlug,
+    slug: groupSlug,
     id: post.id,
     type: 'post'
-  }), [routeParams.groupSlug, post.id])
+  }), [groupSlug, post.id])
 
   // Calculate available tokens including currently allocated tokens for this submission
   const availableTokens = useMemo(() => {

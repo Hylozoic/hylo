@@ -71,7 +71,19 @@ posts: viewPosts(
   isPublic
   linkPreviewFeatured
   location
+  meetingLink
   myEventResponse
+  noticeData
+  noticePosts {
+    id
+    details
+    createdAt
+    creator {
+      id
+      name
+      avatarUrl
+    }
+  }
   peopleReactedTotal
   projectManagementLink
   proposalOutcome
@@ -105,6 +117,8 @@ posts: viewPosts(
     id
     name
     slug
+    type
+    parentId
   }
 
   eventInvitations {
@@ -207,7 +221,9 @@ posts: viewPosts(
     "extractModel": "Group",
     "extractQueryResults": Object {
       "getItems": [Function],
+      "getRouteParams": [Function],
     },
+    "groupId": undefined,
     "slug": undefined,
   },
   "type": "FETCH_POSTS",
@@ -290,7 +306,19 @@ posts(
   isPublic
   linkPreviewFeatured
   location
+  meetingLink
   myEventResponse
+  noticeData
+  noticePosts {
+    id
+    details
+    createdAt
+    creator {
+      id
+      name
+      avatarUrl
+    }
+  }
   peopleReactedTotal
   projectManagementLink
   proposalOutcome
@@ -324,6 +352,8 @@ posts(
     id
     name
     slug
+    type
+    parentId
   }
 
   eventInvitations {
@@ -425,7 +455,9 @@ posts(
     "extractModel": "Post",
     "extractQueryResults": Object {
       "getItems": [Function],
+      "getRouteParams": [Function],
     },
+    "groupId": undefined,
     "slug": undefined,
   },
   "type": "FETCH_POSTS",

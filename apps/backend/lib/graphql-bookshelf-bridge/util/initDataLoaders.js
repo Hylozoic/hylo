@@ -23,6 +23,16 @@ export default function initDataLoaders (spec) {
     { cacheKeyFn: _ => Math.random().toString() }
   )
 
+  // DataLoader for Tag lookups by name (Post.topics from tag_names)
+  loaders.tagByName = new DataLoader(
+    async (names) => {
+      const tags = await Tag.query(q => q.whereIn('name', names)).fetchAll()
+      const byName = {}
+      tags.models.forEach(tag => { byName[tag.get('name')] = tag })
+      return names.map(name => byName[name] || null)
+    }
+  )
+
   // DataLoader for TagFollow lookups by (groupId, tagId, userId) tuples
   // To prevent duplicate lookups of the same TagFollow in one session
   loaders.tagFollow = new DataLoader(

@@ -4,6 +4,8 @@ import orm from 'store/models'
 export const MODULE_NAME = 'InviteSettingsTab'
 export const CREATE_INVITATIONS = `${MODULE_NAME}/CREATE_INVITATIONS`
 export const CREATE_INVITATIONS_PENDING = `${MODULE_NAME}/CREATE_INVITATIONS_PENDING`
+export const FETCH_PENDING_INVITATIONS = `${MODULE_NAME}/FETCH_PENDING_INVITATIONS`
+export const FETCH_INVITEABLE_PEOPLE = `${MODULE_NAME}/FETCH_INVITEABLE_PEOPLE`
 
 export const EXPIRE_INVITATION = `${MODULE_NAME}/EXPIRE_INVITATION`
 export const EXPIRE_INVITATION_PENDING = `${MODULE_NAME}/EXPIRE_INVITATION_PENDING`
@@ -29,7 +31,7 @@ export default function reducer (state = defaultState, action) {
   }
 }
 
-export function createInvitations (groupId, emails, message, groupRoleId = null) {
+export function createInvitations (groupId, emails, message, groupRoleId = null, userIds = []) {
   return {
     type: CREATE_INVITATIONS,
     graphql: {
@@ -48,6 +50,7 @@ export function createInvitations (groupId, emails, message, groupRoleId = null)
         groupId,
         data: {
           emails,
+          userIds,
           message,
           groupRoleId
         }
@@ -57,6 +60,92 @@ export function createInvitations (groupId, emails, message, groupRoleId = null)
       groupId,
       emails,
       optimistic: true
+    }
+  }
+}
+
+/** Loads invitePath and pending invitations so the invite UI works outside Group Settings. */
+export function fetchPendingInvitations (groupId) {
+  return {
+    type: FETCH_PENDING_INVITATIONS,
+    graphql: {
+      query: `query ($id: ID) {
+        group (id: $id) {
+          id
+          invitePath
+          pendingInvitations {
+            hasMore
+            items {
+              id
+              email
+              name
+              userId
+              createdAt
+              lastSentAt
+            }
+          }
+        }
+      }`,
+      variables: { id: groupId }
+    },
+    meta: {
+      extractModel: 'Group'
+    }
+  }
+}
+
+export const INVITEABLE_PEOPLE_PAGE_SIZE = 15
+
+/**
+ * People who can be invited: connections not already in the group, or (for spaces)
+ * parent-group members not already in the space. Loads one page at a time.
+ */
+export function fetchInviteablePeople ({
+  groupId,
+  parentGroupId,
+  autocomplete = '',
+  first = INVITEABLE_PEOPLE_PAGE_SIZE,
+  offset = 0
+}) {
+  if (parentGroupId) {
+    return {
+      type: FETCH_INVITEABLE_PEOPLE,
+      graphql: {
+        query: `query ($parentGroupId: ID, $groupId: ID, $autocomplete: String, $first: Int, $offset: Int) {
+          group (id: $parentGroupId) {
+            id
+            members (first: $first, offset: $offset, autocomplete: $autocomplete, sortBy: "name", order: "asc", excludeGroupId: $groupId) {
+              hasMore
+              items {
+                id
+                name
+                avatarUrl
+              }
+            }
+          }
+        }`,
+        variables: { parentGroupId, groupId, autocomplete, first, offset }
+      }
+    }
+  }
+
+  return {
+    type: FETCH_INVITEABLE_PEOPLE,
+    graphql: {
+      query: `query ($groupId: ID, $autocomplete: String, $first: Int, $offset: Int) {
+        connections (first: $first, offset: $offset, autocomplete: $autocomplete, excludeGroupId: $groupId) {
+          hasMore
+          items {
+            id
+            person {
+              id
+              name
+              avatarUrl
+            }
+          }
+        }
+      }`,
+      variables: { groupId, autocomplete, first, offset }
     }
   }
 }
@@ -162,6 +251,7 @@ export function ormSessionReducer (session, { type, meta, payload }) {
       payload.data.createInvitation.invitations.forEach(i =>
         Invitation.create({
           email: i.email,
+          name: i.name || null,
           id: i.id,
           createdAt: new Date().toString(),
           group: meta.groupId

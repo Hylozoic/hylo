@@ -25,7 +25,11 @@ Object {
   "imageAttachments": Array [],
   "linkPreview": null,
   "location": undefined,
+  "locationObject": null,
   "members": Array [],
+  "noticeData": null,
+  "noticePosts": Array [],
+  "postMemberships": Array [],
   "proposalOptions": Array [],
   "topics": Array [],
 }

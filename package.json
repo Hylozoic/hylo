@@ -9,6 +9,7 @@
     "shared:build": "yarn workspace @hylo/shared build",
     "backend:dev": "yarn build-packages && yarn workspace backend run dev",
     "cron": "yarn workspace backend cron",
+    "digest:daily": "yarn workspace backend digest:daily",
     "worker": "yarn workspace backend worker",
     "migrate": "yarn workspace backend migrate",
     "migrate-up": "yarn workspace backend migrate-up",

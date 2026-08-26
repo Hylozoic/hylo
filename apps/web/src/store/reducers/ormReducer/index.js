@@ -1,8 +1,10 @@
 import * as sessionReducers from './sessionReducers'
 import {
   ACCEPT_GROUP_RELATIONSHIP_INVITE,
+  ACCEPT_JOIN_REQUEST,
   ADD_PROPOSAL_VOTE_PENDING,
   CANCEL_GROUP_RELATIONSHIP_INVITE,
+  CANCEL_JOIN_REQUEST,
   CLEAR_MODERATION_ACTION_PENDING,
   CREATE_COMMENT,
   CREATE_COMMENT_PENDING,
@@ -10,23 +12,25 @@ import {
   CREATE_MESSAGE,
   CREATE_MESSAGE_PENDING,
   CREATE_POST,
+  CREATE_MODERATION_ACTION,
   CREATE_MODERATION_ACTION_PENDING,
   CREATE_POST_PENDING,
   CREATE_PROJECT_PENDING,
-  CREATE_CONTEXT_WIDGET,
-  CREATE_CONTEXT_WIDGET_PENDING,
   CREATE_GROUP_VIEW,
+  DECLINE_JOIN_REQUEST,
   DELETE_DRAFT,
   DELETE_COMMENT_PENDING,
-  DELETE_CONTEXT_WIDGET_PENDING,
   DELETE_GROUP_VIEW,
   DELETE_GROUP_RELATIONSHIP,
   DELETE_POST_PENDING,
+  PIN_POST_PENDING,
   FETCH_GROUP_DETAILS_PENDING,
+  FETCH_GROUP_VIEWS,
   FETCH_MESSAGES_PENDING,
-  FETCH_GROUP_CHAT_ROOMS,
   FETCH_MY_DRAFTS,
+  FETCH_POSTS,
   FETCH_VIEW_POSTS,
+  FETCH_VIEW_PINNED_POSTS,
   INVITE_CHILD_TO_JOIN_PARENT_GROUP,
   INVITE_PEER_RELATIONSHIP,
   JOIN_PROJECT_PENDING,
@@ -46,12 +50,10 @@ import {
   REQUEST_FOR_CHILD_TO_JOIN_PARENT_GROUP,
   RESET_NEW_POST_COUNT_PENDING,
   RESPOND_TO_EVENT_PENDING,
-  REMOVE_WIDGET_FROM_MENU_PENDING,
   REORDER_GROUP_VIEW_PENDING,
   SWAP_PROPOSAL_VOTE_PENDING,
   SET_GROUP_VIEW_HIDDEN_PENDING,
   SET_HOME_VIEW_PENDING,
-  SET_HOME_WIDGET_PENDING,
   TOGGLE_GROUP_TOPIC_SUBSCRIBE_PENDING,
   UPDATE_COMMENT_PENDING,
   UPDATE_GROUP_TOPIC_PENDING,
@@ -66,7 +68,6 @@ import {
   USE_INVITATION,
   UPDATE_PROPOSAL_OUTCOME_PENDING,
   UPDATE_MEMBERSHIP_NAV_ORDER_PENDING,
-  UPDATE_CONTEXT_WIDGET_PENDING,
   UPDATE_GROUP_VIEW_PENDING,
   UPDATE_GROUP_VIEW_USER,
   UPDATE_GROUP_VIEW_USER_PENDING,
@@ -97,6 +98,7 @@ import {
 import {
   CREATE_GROUP
 } from 'routes/CreateGroup/CreateGroup.store'
+import { JOIN_SPACE } from 'store/actions/joinSpace'
 import { FETCH_GROUP_WELCOME_DATA } from 'routes/GroupWelcomeModal/GroupWelcomeModal.store'
 
 import {
@@ -116,10 +118,25 @@ import clearCacheFor from './clearCacheFor'
 import { find, get, values } from 'lodash/fp'
 import extractModelsFromAction from '../ModelExtractor/extractModelsFromAction'
 import { isPromise } from 'util/index'
-import { homeRoutePathForWidget } from '@hylo/navigation'
-import { reorderTree, replaceHomeWidget } from 'util/contextWidgets'
-import { applyGroupViewsOrder, appendGroupViewToMenu, removeGroupViewFromAllMenus, setGroupViewHiddenInAllMenus, syncAcceptedPostTypesInMenus, updateGroupViewInMenu, updateGroupViewInAllMenus } from 'store/util/groupViewsOrder'
+import { applyGroupViewsOrder, appendGroupViewToMenu, preserveViewLoadedPosts, removeGroupViewFromAllMenus, setGroupViewHiddenInAllMenus, syncAcceptedPostTypesInMenus, updateGroupViewInMenu, updateGroupViewInAllMenus } from 'store/util/groupViewsOrder'
+import {
+  confirmOptimisticChatInNotice,
+  reconcileChatActivityNoticesAfterFetch,
+  replaceOptimisticChatActivityNotice,
+  snapshotChatActivityNotices,
+  upsertOptimisticChatActivityNotice
+} from 'store/util/chatActivityNotice'
 import { groupMenuHasUnreadBadges } from 'util/viewUnreadBadges'
+
+/**
+ * Adjust the cached pending join-request count on a Group ORM record.
+ */
+function adjustOpenJoinRequestCount (session, groupId, delta) {
+  if (!groupId || !delta) return
+  const group = session.Group.idExists(groupId) ? session.Group.withId(groupId) : null
+  if (!group) return
+  group.update({ openJoinRequestCount: Math.max(0, (group.openJoinRequestCount || 0) + delta) })
+}
 
 /**
  * Whether any loaded menu copy for this group still shows unread (own GroupViews
@@ -172,6 +189,52 @@ function clearMembershipIfMenuHasNoUnread (session, groupId) {
   })
 }
 
+/** Plain creator fields so an optimistic pin survives leaving the ORM session. */
+function snapshotViewLoadedPostsForFetchGroupViews (Group, meta) {
+  const groupId = meta.groupId || meta.graphql?.variables?.groupId
+  if (!groupId) return null
+
+  const snapshots = []
+  const snapshotGroupViews = (id) => {
+    const group = Group.withId(id)
+    if (!group?.groupViews?.items?.length) return
+    if (snapshots.some(snapshot => String(snapshot.groupId) === String(id))) return
+    snapshots.push({
+      groupId: id,
+      items: structuredClone(group.groupViews.items)
+    })
+  }
+
+  snapshotGroupViews(groupId)
+  Group.withId(groupId)?.groupViews?.items?.forEach(view => {
+    if (view.type === 'space' && view.linkedGroup?.id) {
+      snapshotGroupViews(view.linkedGroup.id)
+    }
+  })
+
+  return snapshots.length ? snapshots : null
+}
+
+function restoreViewLoadedPostsAfterFetchGroupViews (Group, snapshots) {
+  snapshots.forEach(({ groupId, items: existingItems }) => {
+    const updatedGroup = Group.withId(groupId)
+    if (!updatedGroup?.groupViews?.items) return
+    const mergedItems = preserveViewLoadedPosts(existingItems, updatedGroup.groupViews.items)
+    updatedGroup.update({ groupViews: { items: structuredClone(mergedItems) } })
+  })
+}
+
+function snapshotPinnedPost (post) {
+  if (!post) return post
+  const creator = post.creator?.ref || post.creator
+  return {
+    ...post,
+    creator: creator
+      ? { id: creator.id, name: creator.name, avatarUrl: creator.avatarUrl }
+      : post.creator
+  }
+}
+
 export default function ormReducer (state = orm.getEmptyState(), action) {
   const session = orm.session(state)
   const { payload, type, meta, error } = action
@@ -203,7 +266,19 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     if (type === FETCH_MY_DRAFTS && meta.replaceAllDrafts) {
       Draft.all().toModelArray().forEach(draft => draft.delete())
     }
+    const preservedChatActivityNotices = type === FETCH_POSTS
+      ? snapshotChatActivityNotices(Post)
+      : []
+    const preservedViewPostsSnapshots = type === FETCH_GROUP_VIEWS
+      ? snapshotViewLoadedPostsForFetchGroupViews(Group, meta)
+      : null
     extractModelsFromAction(action, session)
+    if (type === FETCH_POSTS) {
+      reconcileChatActivityNoticesAfterFetch(session, preservedChatActivityNotices)
+    }
+    if (preservedViewPostsSnapshots?.length) {
+      restoreViewLoadedPostsAfterFetchGroupViews(Group, preservedViewPostsSnapshots)
+    }
   }
 
   let me, membership, group, person, post, comment, groupTopic
@@ -381,12 +456,34 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       break
     }
 
+    case JOIN_SPACE: {
+      me = Me.first()
+      const membershipId = payload?.data?.joinSpace?.id
+      if (me && membershipId) {
+        me.updateAppending({ memberships: [membershipId] })
+        clearCacheFor(Me, me.id)
+      }
+      break
+    }
+
     case CREATE_JOIN_REQUEST: {
       if (payload.data.createJoinRequest.request) {
         me = Me.first()
         const jr = JoinRequest.create({ group: meta.groupId, user: me.id, status: payload.data.createJoinRequest.request.status })
         me.updateAppending({ joinRequests: [jr] })
+        adjustOpenJoinRequestCount(session, meta.groupId, 1)
       }
+      break
+    }
+
+    case ACCEPT_JOIN_REQUEST:
+    case DECLINE_JOIN_REQUEST:
+      adjustOpenJoinRequestCount(session, meta.groupId, -1)
+      break
+
+    case CANCEL_JOIN_REQUEST: {
+      const canceledRequest = JoinRequest.idExists(meta.id) ? JoinRequest.withId(meta.id) : null
+      adjustOpenJoinRequestCount(session, canceledRequest?.group?.id, -1)
       break
     }
 
@@ -422,7 +519,67 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
           post.update({ flaggedGroups: flaggedGroups || [meta?.data?.groupId] })
           post.update({ moderationActions: moderationActions || [meta?.data] })
         }
+
+        if (meta.tempId) {
+          const reporter = Me.first()
+          const actionGroup = Group.withId(meta.data.groupId)
+          const creator = post?.creator
+          session.ModerationAction.create({
+            id: meta.tempId,
+            postId: meta.data.postId,
+            groupId: meta.data.groupId,
+            status: 'active',
+            text: meta.data.text,
+            anonymous: meta.data.anonymous,
+            createdAt: new Date().toISOString(),
+            group: actionGroup
+              ? {
+                  id: actionGroup.id,
+                  name: actionGroup.name,
+                  slug: actionGroup.slug,
+                  avatarUrl: actionGroup.avatarUrl,
+                  icon: actionGroup.icon,
+                  type: actionGroup.type,
+                  parentId: actionGroup.parentId
+                }
+              : null,
+            post: post
+              ? {
+                  id: post.id,
+                  title: post.title,
+                  details: post.details,
+                  type: post.type,
+                  creator: creator
+                    ? { id: creator.id, name: creator.name, avatarUrl: creator.avatarUrl }
+                    : null,
+                  groups: [{ id: meta.data.groupId }],
+                  flaggedGroups: post.flaggedGroups
+                }
+              : { id: meta.data.postId },
+            reporter: reporter
+              ? { id: reporter.id, name: reporter.name, avatarUrl: reporter.avatarUrl }
+              : null,
+            agreements: (meta.data.agreements || []).map(id => {
+              const agreement = session.Agreement.withId(id)
+              return agreement
+                ? { id: agreement.id, description: agreement.description, order: agreement.order, title: agreement.title }
+                : { id }
+            }),
+            platformAgreements: (meta.data.platformAgreements || []).map(id => ({ id }))
+          })
+        }
       }
+      break
+    }
+
+    case CREATE_MODERATION_ACTION: {
+      const created = payload?.data?.createModerationAction
+      if (!created?.id || !meta.tempId || String(created.id) === String(meta.tempId)) break
+      const temp = session.ModerationAction.withId(meta.tempId)
+      if (!temp) break
+      const attrs = { ...temp.ref, id: created.id }
+      temp.delete()
+      session.ModerationAction.create(attrs)
       break
     }
 
@@ -438,53 +595,20 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         if (chatGroup && chatView?.id) {
           updateGroupViewInMenu(chatGroup, chatView.id, { newPostCount: 0 })
         }
+        const variables = meta.graphql?.variables || {}
+        const me = Me.first()
+        upsertOptimisticChatActivityNotice(session, {
+          groupId: chatGroupId,
+          chat: {
+            id: variables.localId,
+            details: variables.details,
+            createdAt: new Date().toISOString(),
+            creator: me
+          }
+        })
         break
       }
 
-      const groupIds = Array.isArray(meta.groupIds) ? meta.groupIds : [meta.groupId]
-
-      groupIds.forEach(groupId => {
-        const group = Group.withId(groupId)
-        if (!group) return
-
-        const allWidgets = group.contextWidgets?.items
-        if (!allWidgets) return
-
-        const autoViewWidget = allWidgets.find(w => w.type === 'auto-view')
-        if (!autoViewWidget) return
-
-        let widgetToMove = null
-
-        if (postType === 'request' || postType === 'offer') {
-          widgetToMove = allWidgets.find(w => w.view === 'requests-and-offers')
-        } else if (postType === 'discussion') {
-          widgetToMove = allWidgets.find(w => w.view === 'discussions')
-        } else if (postType === 'project') {
-          widgetToMove = allWidgets.find(w => w.view === 'projects')
-        } else if (postType === 'proposal') {
-          widgetToMove = allWidgets.find(w => w.view === 'proposals')
-        } else if (postType === 'event') {
-          widgetToMove = allWidgets.find(w => w.view === 'events')
-        } else if (postType === 'resource') {
-          widgetToMove = allWidgets.find(w => w.view === 'resources')
-        }
-
-        if (widgetToMove && !widgetToMove.autoAdded) {
-          const newWidgetPosition = {
-            ...widgetToMove,
-            parentId: autoViewWidget.id,
-            addToEnd: true
-          }
-
-          const reorderedWidgets = reorderTree({
-            widgetToBeMovedId: widgetToMove.id,
-            newWidgetPosition,
-            allWidgets
-          })
-
-          group.update({ contextWidgets: { items: structuredClone(reorderedWidgets) } })
-        }
-      })
       break
     }
 
@@ -514,32 +638,17 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
             lastReadPostId: createdPost.id
           })
         }
+        confirmOptimisticChatInNotice(session, {
+          groupId: createdGroupId,
+          localId: createdPost.localId,
+          chat: {
+            id: createdPost.id,
+            details: createdPost.details,
+            createdAt: createdPost.createdAt,
+            creator: createdPost.creator
+          }
+        })
       }
-      break
-    }
-
-    case CREATE_CONTEXT_WIDGET_PENDING: {
-      const group = Group.withId(meta.groupId)
-      const allWidgets = group.contextWidgets.items
-
-      const newWidgetPosition = {
-        id: 'creating',
-        addToEnd: meta.data.addToEnd
-      }
-
-      allWidgets.push(newWidgetPosition)
-      const reorderedWidgets = reorderTree({ widgetToBeMovedId: 'creating', newWidgetPosition, allWidgets })
-      group.update({ contextWidgets: { items: structuredClone(reorderedWidgets) } })
-      break
-    }
-
-    case CREATE_CONTEXT_WIDGET: {
-      const group = Group.withId(meta.groupId)
-      const allWidgets = group.contextWidgets.items
-      const reorderedWidgets = allWidgets.filter(widget => widget.id !== 'creating')
-      reorderedWidgets.push(payload.data.createContextWidget)
-      group.update({ contextWidgets: { items: structuredClone(reorderedWidgets) } })
-
       break
     }
 
@@ -657,14 +766,6 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       break
     }
 
-    case DELETE_CONTEXT_WIDGET_PENDING: {
-      const group = Group.withId(meta.groupId)
-      const allWidgets = group.contextWidgets.items
-      const newWidgets = allWidgets.filter(widget => parseInt(widget.id) !== parseInt(meta.contextWidgetId))
-      group.update({ contextWidgets: { items: structuredClone(newWidgets) } })
-      break
-    }
-
     case DELETE_GROUP_VIEW: {
       // Space views also live under parent.groupViews[].linkedGroup.groupViews
       if (!meta.id) break
@@ -693,6 +794,44 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     case DELETE_GROUP_TOPIC_PENDING: {
       groupTopic = GroupTopic.withId(meta.id)
       groupTopic.delete()
+      break
+    }
+
+    case PIN_POST_PENDING: {
+      const group = meta.groupId ? Group.withId(meta.groupId) : null
+      if (!group || !meta.viewId) break
+      const items = group.groupViews?.items || []
+      const view = items.find(v => String(v.id) === String(meta.viewId)) ||
+        items.flatMap(v => v.linkedGroup?.groupViews?.items || []).find(v => String(v.id) === String(meta.viewId))
+      if (!view) break
+      const ids = (view.pinnedPostIds || []).map(id => String(id))
+      const postId = String(meta.postId)
+      const alreadyPinned = ids.includes(postId)
+      const nextIds = alreadyPinned
+        ? ids.filter(id => id !== postId)
+        : [postId, ...ids]
+      const nextPosts = alreadyPinned
+        ? (view.pinnedPosts || []).filter(p => String(p.id) !== postId)
+        : [snapshotPinnedPost(meta.post), ...(view.pinnedPosts || [])].filter(Boolean)
+      updateGroupViewInMenu(group, meta.viewId, {
+        pinnedPostIds: nextIds,
+        pinnedPosts: nextPosts
+      })
+      break
+    }
+
+    case FETCH_VIEW_PINNED_POSTS: {
+      const items = payload.data?.group?.groupViews?.items || []
+      const targetGroup = Group.withId(meta.groupId)
+      if (!targetGroup) break
+      items.forEach(viewData => {
+        if (viewData?.id != null) {
+          updateGroupViewInMenu(targetGroup, viewData.id, {
+            pinnedPostIds: viewData.pinnedPostIds,
+            pinnedPosts: viewData.pinnedPosts
+          })
+        }
+      })
       break
     }
 
@@ -751,12 +890,6 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         // of messages works as expected
         Message.filter({ messageThread: meta.id }).delete()
       }
-      break
-    }
-
-    case FETCH_GROUP_CHAT_ROOMS: {
-      const me = Me.first()
-      clearCacheFor(Me, me.id)
       break
     }
 
@@ -850,6 +983,10 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     }
 
     case RECEIVE_POST: {
+      if (payload.data?.post?.type === 'chat_activity') {
+        replaceOptimisticChatActivityNotice(session, payload.data.post)
+        break
+      }
       const post = Post.withId(payload.data?.post?.id)
       if (post) {
         post.groups.toModelArray().forEach(g => {
@@ -917,14 +1054,6 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       break
     }
 
-    case REMOVE_WIDGET_FROM_MENU_PENDING: {
-      group = Group.withId(meta.groupId)
-      const contextWidgets = group.contextWidgets.items
-      const newContextWidgets = reorderTree({ widgetToBeMovedId: meta.contextWidgetId, newWidgetPosition: { remove: true }, allWidgets: contextWidgets })
-      group.update({ contextWidgets: { items: structuredClone(newContextWidgets) } })
-      break
-    }
-
     case REQUEST_FOR_CHILD_TO_JOIN_PARENT_GROUP: {
       const newGroupRelationship = payload.data.requestToAddGroupToParent.groupRelationship
       if (newGroupRelationship) {
@@ -952,19 +1081,6 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     case RESPOND_TO_EVENT_PENDING: {
       const event = Post.withId(meta.id)
       event.update({ myEventResponse: meta.response })
-      break
-    }
-
-    case SET_HOME_WIDGET_PENDING: {
-      group = Group.withId(meta.groupId)
-      const contextWidgets = group.contextWidgets.items
-
-      const newWidgets = replaceHomeWidget({ widgets: contextWidgets, newHomeWidgetId: meta.contextWidgetId })
-      group.update({ contextWidgets: { items: structuredClone(newWidgets) } })
-
-      const homeWidget = contextWidgets.find(w => w.id === meta.contextWidgetId)
-      const homeRoute = homeRoutePathForWidget(homeWidget)
-      group.update({ homeRoute })
       break
     }
 
@@ -1013,38 +1129,6 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       break
     }
 
-    case UPDATE_CONTEXT_WIDGET_PENDING: {
-      const group = Group.withId(meta.groupId)
-      let allWidgets = group.contextWidgets.items
-      let resultingWidgets = []
-
-      const widgetToBeMoved = allWidgets.find(widget => widget.id === meta.contextWidgetId)
-
-      if (meta.data.title || meta.data.visibility) {
-        widgetToBeMoved.title = meta.data.title
-        widgetToBeMoved.visibility = meta.data.visibility
-        allWidgets = allWidgets.map(widget => {
-          if (widget.id === widgetToBeMoved.id) {
-            return widgetToBeMoved
-          }
-          return widget
-        })
-      }
-      if (meta.data.addToEnd || meta.data.orderInFrontOfWidgetId) {
-        const newWidgetPosition = {
-          id: meta.contextWidgetId,
-          addToEnd: meta.data.addToEnd,
-          orderInFrontOfWidgetId: meta.data.orderInFrontOfWidgetId,
-          parentId: meta.data.parentId || null
-        }
-        resultingWidgets = reorderTree({ widgetToBeMovedId: widgetToBeMoved.id, newWidgetPosition, allWidgets })
-      } else {
-        resultingWidgets = allWidgets
-      }
-      Group.update({ contextWidgets: { items: structuredClone(resultingWidgets) } })
-      break
-    }
-
     case REORDER_GROUP_VIEW_PENDING: {
       if (!meta.parentGroupId || !meta.targetGroupId || !meta.reorderedItems) break
       group = Group.withId(meta.parentGroupId)
@@ -1081,10 +1165,6 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     case UPDATE_GROUP_SETTINGS: {
       // Set new join questions in the ORM
       if (payload.data.updateGroupSettings && (payload.data.updateGroupSettings.joinQuestions || payload.data.updateGroupSettings.prerequisiteGroups)) {
-        group = Group.withId(meta.id)
-        clearCacheFor(Group, meta.id)
-      }
-      if (payload.data.updateGroupSettings && (payload.data.updateGroupSettings.customViews)) {
         group = Group.withId(meta.id)
         clearCacheFor(Group, meta.id)
       }
@@ -1321,8 +1401,12 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
 
     case USE_INVITATION: {
       me = Me.first()
-      me.updateAppending({ memberships: [payload.data.useInvitation.membership.id] })
-      Invitation.filter({ email: me.email, group: payload.data.useInvitation.membership.group.id }).delete()
+      const membership = payload.data?.useInvitation?.membership
+      if (me && membership?.id) {
+        me.updateAppending({ memberships: [membership.id] })
+        clearCacheFor(Me, me.id)
+        Invitation.filter({ email: me.email, group: membership.group.id }).delete()
+      }
       break
     }
 

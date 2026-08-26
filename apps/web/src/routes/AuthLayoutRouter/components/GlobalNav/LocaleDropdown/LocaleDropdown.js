@@ -1,4 +1,14 @@
 import React from 'react'
+import {
+  LOCALE_DE,
+  LOCALE_EN_GB,
+  LOCALE_EN_US,
+  LOCALE_ES,
+  LOCALE_FR,
+  LOCALE_HI,
+  LOCALE_PT,
+  normalizeLocaleToFull
+} from '@hylo/shared'
 import { getLocaleFromLocalStorage } from 'util/locale'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
@@ -12,10 +22,11 @@ export default function LocaleDropdown ({ renderToggleChildren, className }) {
   const currentUser = useSelector(getMe)
 
   const handleLocaleChange = (locale) => {
-    i18n.changeLanguage(locale)
-    if (!currentUser) return getLocaleFromLocalStorage(locale)
-    dispatch(updateUserSettings({ settings: { locale } }))
-      .then(() => getLocaleFromLocalStorage(locale))
+    const normalizedLocale = normalizeLocaleToFull(locale)
+    i18n.changeLanguage(normalizedLocale)
+    if (!currentUser) return getLocaleFromLocalStorage(normalizedLocale)
+    dispatch(updateUserSettings({ settings: { locale: normalizedLocale } }))
+      .then(() => getLocaleFromLocalStorage(normalizedLocale))
   }
 
   return (
@@ -26,34 +37,39 @@ export default function LocaleDropdown ({ renderToggleChildren, className }) {
       alignRight
       items={[
         {
-          key: 'en',
-          label: '🇬🇧 ' + t('English'),
-          onClick: () => handleLocaleChange('en')
+          key: LOCALE_EN_US,
+          label: '🇺🇸 ' + t('English'),
+          onClick: () => handleLocaleChange(LOCALE_EN_US)
         },
         {
-          key: 'es',
+          key: LOCALE_EN_GB,
+          label: '🇬🇧 ' + t('English (UK)'),
+          onClick: () => handleLocaleChange(LOCALE_EN_GB)
+        },
+        {
+          key: LOCALE_ES,
           label: '🇪🇸 ' + t('Spanish'),
-          onClick: () => handleLocaleChange('es')
+          onClick: () => handleLocaleChange(LOCALE_ES)
         },
         {
-          key: 'de',
+          key: LOCALE_DE,
           label: '🇩🇪 ' + t('German'),
-          onClick: () => handleLocaleChange('de')
+          onClick: () => handleLocaleChange(LOCALE_DE)
         },
         {
-          key: 'fr',
+          key: LOCALE_FR,
           label: '🇫🇷 ' + t('French'),
-          onClick: () => handleLocaleChange('fr')
+          onClick: () => handleLocaleChange(LOCALE_FR)
         },
         {
-          key: 'hi',
+          key: LOCALE_HI,
           label: '🇮🇳 ' + t('Hindi'),
-          onClick: () => handleLocaleChange('hi')
+          onClick: () => handleLocaleChange(LOCALE_HI)
         },
         {
-          key: 'pt',
+          key: LOCALE_PT,
           label: '🇵🇹 ' + t('Portuguese'),
-          onClick: () => handleLocaleChange('pt')
+          onClick: () => handleLocaleChange(LOCALE_PT)
         }
       ]}
     />

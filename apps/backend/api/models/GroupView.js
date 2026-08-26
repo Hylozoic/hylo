@@ -1,4 +1,4 @@
-/* global bookshelf, Group, Post, User, GroupViewUser, CollectionPost, GroupView */
+/* global bookshelf, Group, Post, User, GroupViewUser, CollectionPost, GroupViewPin, GroupView */
 /* eslint-disable camelcase */
 
 const { homeRoutePathForView } = require('@hylo/navigation')
@@ -30,13 +30,16 @@ module.exports = bookshelf.Model.extend({
     return this.hasMany(CollectionPost, 'view_id').query(q => q.orderBy('order', 'asc'))
   },
 
+  pins () {
+    return this.hasMany(GroupViewPin, 'view_id').query(q => q.orderBy('pinned_at', 'desc'))
+  },
+
   viewsUsers () {
     return this.hasMany(GroupViewUser, 'view_id')
   }
 
 }, {
   Type: {
-    ABOUT: 'about',
     ALL: 'all',
     CHAT: 'chat',
     COLLECTION: 'collection',
@@ -49,81 +52,23 @@ module.exports = bookshelf.Model.extend({
     MAP: 'map',
     MEMBER: 'member',
     MEMBERS: 'members',
-    MODERATION: 'moderation',
     POST: 'post',
     PROJECTS: 'projects',
     PROPOSALS: 'proposals',
-    RELATED_GROUPS: 'related-groups',
     REQUESTS_AND_OFFERS: 'requests-and-offers',
     RESOURCES: 'resources',
     SEPARATOR: 'separator',
     SPACE: 'space',
+    SPACE_COLLECTION: 'space-collection',
     TEXT: 'text',
     TRACK_ACTIONS: 'track-actions',
     WELCOME: 'welcome'
   },
 
-  // Soft-removed from the menu (order = null) and shown in More Views / Spaces.
-  // Text and separator cannot live in More Views — Context Menu or hard delete only.
+  // Only spaces can live off-menu (order = null) — that's More Spaces.
+  // Views are either in the menu or deleted.
   SOFT_REMOVE_TYPES: [
-    'all',
-    'about',
-    'chat',
-    'collection',
-    'custom',
-    'discussions',
-    'events',
-    'group',
-    'link',
-    'map',
-    'member',
-    'members',
-    'moderation',
-    'post',
-    'projects',
-    'proposals',
-    'related-groups',
-    'requests-and-offers',
-    'resources',
-    'space',
-    'welcome'
-  ],
-
-  // System views that must soft-remove only (cannot be hard-deleted).
-  SYSTEM_VIEW_TYPES: [
-    'all',
-    'about',
-    'chat',
-    'discussions',
-    'events',
-    'map',
-    'members',
-    'moderation',
-    'projects',
-    'proposals',
-    'related-groups',
-    'requests-and-offers',
-    'resources',
-    'space',
-    'welcome'
-  ],
-
-  /**
-   * Common views that should always exist as GroupView rows. Missing types are inserted
-   * with order = null (More Views). Types already present (any order) are left alone.
-   */
-  OFF_MENU_COMMON_TYPES: [
-    'discussions',
-    'events',
-    'map',
-    'members',
-    'moderation',
-    'projects',
-    'proposals',
-    'related-groups',
-    'requests-and-offers',
-    'resources',
-    'welcome'
+    'space'
   ],
 
   // View types that are not real routes / don't get their own GroupView page
@@ -161,7 +106,8 @@ module.exports = bookshelf.Model.extend({
   },
 
   /**
-   * Insert a new view off-menu (order = null) for More Views / Spaces.
+   * Insert a new view off-menu (order = null). Used only for space menu rows
+   * that live in More Spaces rather than the parent menu.
    */
   createOffMenu: async function (attrs, { transacting } = {}) {
     const now = new Date()
@@ -256,32 +202,5 @@ module.exports = bookshelf.Model.extend({
       WHERE id IN (${newOrderedIds.join(',')})
     `
     await bookshelf.knex.raw(query).transacting(trx)
-  },
-
-  /**
-   * Ensure every common view type exists for the group (order = null → More Views).
-   * Idempotent — skips types that already have a row (in-menu or off-menu).
-   * Called on group/space create and by migrations for existing groups.
-   */
-  ensureOffMenuSystemViews: async function (groupId, { transacting } = {}) {
-    if (!groupId) return
-
-    const types = GroupView.OFF_MENU_COMMON_TYPES
-    const existing = await GroupView.where({ group_id: groupId })
-      .query(q => q.whereIn('type', types))
-      .fetchAll({ transacting })
-    const existingTypes = new Set(existing.map(v => v.get('type')))
-    const now = new Date()
-
-    for (const type of types) {
-      if (existingTypes.has(type)) continue
-      await GroupView.forge({
-        group_id: groupId,
-        type,
-        order: null,
-        created_at: now,
-        updated_at: now
-      }).save(null, { transacting, method: 'insert' })
-    }
   }
 })

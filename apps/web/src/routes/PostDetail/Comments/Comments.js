@@ -38,6 +38,7 @@ const Comments = ({
   const currentUser = useSelector(getMe)
   const hasMore = useSelector(state => getHasMoreComments(state, { id: post.id }))
   const total = useSelector(state => getTotalComments(state, { id: post.id }))
+  const groupIds = useMemo(() => post.groups?.map(g => g.id).filter(Boolean), [post.groups])
 
   const cursor = comments.length > 0 ? comments[0].id : null
 
@@ -95,6 +96,7 @@ const Comments = ({
               ref={commentFormRef}
               currentUser={currentUser}
               createComment={createComment}
+              groupIds={groupIds}
               postId={post.id}
             />
             <PeopleTyping className={cn(classes.peopleTyping)} />

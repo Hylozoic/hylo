@@ -17,7 +17,7 @@ import ContextMenu from './components/ContextMenu'
 import CreateModal from 'components/CreateModal'
 import GlobalNav from './components/GlobalNav'
 import ContextMenuGrid from './components/ContextMenu/ContextMenuGrid'
-import MoreViewsPage from './components/ContextMenu/MoreViewsPage'
+import MoreSpacesPage from './components/ContextMenu/MoreSpacesPage'
 import TopNav from './components/TopNav'
 import NotFound from 'components/NotFound'
 import SocketListener from 'components/SocketListener'
@@ -32,6 +32,7 @@ import checkForNewNotifications from 'store/actions/checkForNewNotifications'
 import setReturnToPath from 'store/actions/setReturnToPath'
 import fetchForCurrentUser from 'store/actions/fetchForCurrentUser'
 import fetchForGroup from 'store/actions/fetchForGroup'
+import fetchGroupViews from 'store/actions/fetchGroupViews'
 import fetchPost from 'store/actions/fetchPost'
 import fetchGroupsMenuData from 'store/actions/fetchGroupsMenuData'
 import fetchThreads from 'store/actions/fetchThreads'
@@ -56,13 +57,14 @@ import AllTopics from 'routes/AllTopics'
 import ChatRoom from 'routes/ChatRoom'
 import CreateGroup from 'routes/CreateGroup'
 import CreateGroupModal from 'routes/CreateGroup/CreateGroupModal'
+import GroupAboutPage from 'routes/GroupAboutPage'
 import GroupDetail from 'routes/GroupDetail'
 import PaymentSuccess from 'routes/GroupDetail/PaymentSuccess'
 import PaymentFailure from 'routes/GroupDetail/PaymentFailure'
 import GroupSettings from 'routes/GroupSettings'
+import MembershipRequestsTab from 'routes/GroupSettings/MembershipRequestsTab'
 import GroupWelcomeModal from 'routes/GroupWelcomeModal'
 import GroupWelcomePage from 'routes/GroupWelcomePage'
-import Groups from 'routes/Groups'
 import GroupExplorer from 'routes/GroupExplorer'
 import Drawer from './components/Drawer'
 import JoinGroup from 'routes/JoinGroup'
@@ -74,14 +76,14 @@ import MemberProfile from 'routes/MemberProfile'
 import Members from 'routes/Members'
 import MessagesLayout from 'routes/Messages/MessagesLayout'
 import ThreadList from 'routes/Messages/ThreadList'
-import Moderation from 'routes/Moderation'
-import MyTracks from 'routes/MyTracks'
+import MySpaceCollection from 'routes/MySpaceCollection'
 import MyTransactions from 'routes/MyTransactions'
 import OfferingDetails from 'routes/OfferingDetails/OfferingDetails'
 import PostDetail from 'routes/PostDetail'
 import Search from 'routes/Search'
 import ViewContent from 'routes/ViewContent'
 import SpaceContent from 'routes/SpaceContent'
+import SpaceCollection from 'routes/SpaceCollection'
 import Themes from 'routes/Themes'
 import UserSettings from 'routes/UserSettings'
 import WelcomeWizardRouter from 'routes/WelcomeWizardRouter'
@@ -94,8 +96,10 @@ import { isLegacyWebView } from 'util/webView'
 import store from 'store'
 import { setMembershipLastViewedAt, toggleNavMenu } from './AuthLayoutRouter.store'
 import { Toaster } from 'components/ui/sonner'
+import useGroupViews from 'hooks/useGroupViews'
 import useNewAppVersion from 'hooks/useNewAppVersion'
 import useMobileHardwareBack from 'hooks/useMobileHardwareBack'
+import shouldLandOnWelcome from 'util/shouldLandOnWelcome'
 
 import classes from './AuthLayoutRouter.module.scss'
 
@@ -180,15 +184,28 @@ export default function AuthLayoutRouter (props) {
   const dispatch = useDispatch()
   const currentGroup = useSelector(state => getGroupForSlug(state, currentGroupSlug))
   const currentGroupMembership = useSelector(state => getMyGroupMembership(state, currentGroupSlug))
+  const groupViews = useGroupViews(currentGroup)
+  const onWelcomePath = Boolean(
+    currentGroupSlug &&
+    location.pathname.includes(`/groups/${currentGroupSlug}/welcome`)
+  )
+  const isFirstGroupVisit = Boolean(
+    currentGroup &&
+    currentGroupMembership &&
+    !isSpaceGroup(currentGroup) &&
+    !get('lastViewedAt', currentGroupMembership)
+  )
+  const landOnWelcome = shouldLandOnWelcome(currentGroup, currentGroupMembership, {
+    onWelcomePath,
+    views: groupViews
+  })
+  const pendingWelcomeDecision = Boolean(
+    isFirstGroupVisit &&
+    currentGroup?.settings?.showWelcomePage !== false &&
+    currentGroup?.groupViews == null &&
+    !onWelcomePath
+  )
 
-  // Space posts are pushed to the space's group socket room — subscribe while the parent is open
-  // so ContextMenu can show real-time badges for spaces and nested space views.
-  const spaceSocketGroupIds = useMemo(() => {
-    const items = currentGroup?.groupViews?.items || []
-    return items
-      .filter(view => view.type === 'space' && view.linkedGroup?.id)
-      .map(view => String(view.linkedGroup.id))
-  }, [currentGroup?.groupViews?.items])
   const currentUser = useSelector(getMe)
   const globalNavStyle = currentUser?.settings?.globalNavStyle === 'tabs' ? 'tabs' : 'sidebar'
   const stackGroups = currentUser?.settings?.stackGroups === true
@@ -202,14 +219,14 @@ export default function AuthLayoutRouter (props) {
   // Card menu for My / All / Public when the user explicitly chose one-column.
   const isOneColumnContext = isCardMenuUser && ['my', 'all', 'public'].includes(pathMatchParams?.context)
   const isOneColumnNav = isOneColumnGroup || isOneColumnContext
-  // For simple groups: menu levels (home, more-views, space menu) and settings show
+  // For simple groups: menu levels (home, more-spaces, space menu) and settings show
   // the inline sidebar; everything else ("a view") takes the full viewport with no sidebar.
   const isSimpleGroupHomeOrSettings = useMemo(() => {
     if (!currentGroupSlug) return false
     const path = location.pathname.replace(/\/$/, '')
     const groupBase = `/groups/${currentGroupSlug}`
     if (path === groupBase || path.startsWith(`${groupBase}/settings`)) return true
-    if (path === `${groupBase}/more-views`) return true
+    if (path === `${groupBase}/more-spaces`) return true
     // Space menu root: /groups/:slug/spaces/:spaceSlug (no further view path)
     const spaceMenuMatch = path.match(new RegExp(`^/groups/${currentGroupSlug}/spaces/[^/]+$`))
     return Boolean(spaceMenuMatch)
@@ -664,6 +681,21 @@ export default function AuthLayoutRouter (props) {
     }
   }, [currentGroupSlug, dispatch])
 
+  useEffect(() => {
+    if (!isFirstGroupVisit || !currentGroup?.id) return
+    if (currentGroup.groupViews != null) return
+    dispatch(fetchGroupViews(currentGroup.id))
+  }, [dispatch, isFirstGroupVisit, currentGroup?.id, currentGroup?.groupViews])
+
+  // Record first visit only after any welcome redirect, so lastViewedAt is not
+  // set while we still intend to send the member to /welcome.
+  useEffect(() => {
+    if (!isFirstGroupVisit || !currentUser?.id || !currentGroup?.id) return
+    if (currentGroup.groupViews == null) return
+    if (landOnWelcome) return
+    dispatch(setMembershipLastViewedAt(currentGroup.id, currentUser.id, new Date().toISOString()))
+  }, [dispatch, isFirstGroupVisit, currentUser?.id, currentGroup?.id, currentGroup?.groupViews, landOnWelcome])
+
   // Redirect to stream if user is a member but doesn't have access (expired subscription)
   useEffect(() => {
     if (currentGroupSlug && currentGroupMembership && currentGroup?.paywall && currentGroup?.canAccess === false) {
@@ -792,6 +824,8 @@ export default function AuthLayoutRouter (props) {
 
   // Spaces opened as top-level `/groups/:spaceSlug` must nest under their parent.
   // Covers cold-load restore, bookmarks, and any other bare-space links.
+  // Spaces have no Group Settings page — map leftover `/settings` URLs (join
+  // requests used to live there) onto the nested space routes.
   if (
     currentGroupSlug &&
     currentGroup &&
@@ -808,21 +842,31 @@ export default function AuthLayoutRouter (props) {
       const rest = location.pathname.startsWith(prefix)
         ? location.pathname.slice(prefix.length)
         : ''
-      const nestedPath = spaceUrl(parentSlug, local, rest || currentGroup.homeRoute || '/all')
+      const restPath = rest.replace(/\/$/, '')
+      let destPath
+      if (restPath === '/settings' || restPath.startsWith('/settings/')) {
+        destPath = (restPath === '/settings/requests' || restPath.startsWith('/settings/requests'))
+          ? '/requests'
+          : ''
+      } else {
+        // First join/view: send to welcome when shown to new members, not the home view.
+        // Nested `/spaces/` URLs never hit the group lastViewedAt check below (that
+        // check is for the parent slug), so this remount is the space equivalent.
+        const isFirstVisit = currentGroupMembership && !get('lastViewedAt', currentGroupMembership)
+        destPath = rest || (
+          isFirstVisit && currentGroup?.settings?.showWelcomePage
+            ? '/welcome'
+            : (currentGroup.homeRoute || '/all')
+        )
+      }
+      const nestedPath = spaceUrl(parentSlug, local, destPath)
       return <Navigate to={`${nestedPath}${location.search}`} replace />
     }
   }
 
-  /* First time viewing a group redirect to welcome page if it exists, otherwise home view */
-  // XXX: this is a hack, figure out better way to do this
-  if (currentUser && currentGroupMembership && !get('lastViewedAt', currentGroupMembership)) {
-    const lastViewedAt = (new Date()).toISOString()
-    dispatch(setMembershipLastViewedAt(currentGroup.id, currentUser.id, lastViewedAt))
-    if (currentGroup?.settings?.showWelcomePage) {
-      navigate(`/groups/${currentGroupSlug}/welcome`, { replace: true })
-    } else {
-      navigate(`/groups/${currentGroupSlug}${currentGroup?.homeRoute || '/all'}`, { replace: true })
-    }
+  /* First time viewing a group: welcome page when shown to new members, otherwise home */
+  if (isFirstGroupVisit && landOnWelcome) {
+    return <Navigate to={`/groups/${currentGroupSlug}/welcome${location.search}`} replace />
   }
 
   return (
@@ -1013,8 +1057,10 @@ export default function AuthLayoutRouter (props) {
                 <Route path='members/:personId/*' element={<MemberProfile />} />
                 <Route path='all/members/:personId/*' element={<MemberProfile />} />
                 {/* **** All and Public Routes **** */}
-                <Route path='all/stream/*' element={<ViewContent context='all' />} />
-                <Route path='public/stream/*' element={<ViewContent context='public' />} />
+                <Route path='all/all/*' element={<ViewContent context='all' view='all' />} />
+                <Route path='all/stream/*' element={<RedirectStreamToAll basePath='/all' />} />
+                <Route path='public/all/*' element={<ViewContent context='public' view='all' />} />
+                <Route path='public/stream/*' element={<RedirectStreamToAll basePath='/public' />} />
                 <Route path='all/projects/*' element={<ViewContent context='all' view='projects' />} />
                 <Route path='public/projects/*' element={<ViewContent context='public' view='projects' />} />
                 <Route path='all/proposals/*' element={<ViewContent context='all' view='proposals' />} />
@@ -1030,10 +1076,10 @@ export default function AuthLayoutRouter (props) {
                 {/* Must be before `public/*` — otherwise `/public/post/:id/edit` matches `public/*` and redirects away */}
                 <Route path='public/post/:postId/edit/*' element={<ViewContent context='public' />} />
                 <Route path='public/post/:postId/create/*' element={<ViewContent context='public' />} />
-                <Route path='all' element={isCardMenuUser ? <ContextMenuGrid context='all' /> : <ViewContent context='my' />} />
+                <Route path='all' element={isCardMenuUser ? <ContextMenuGrid context='all' /> : <Navigate to='/all/all' replace />} />
                 <Route path='all/*' element={<ViewContent context='my' />} />
-                <Route path='public' element={isCardMenuUser ? <ContextMenuGrid context='public' /> : <Navigate to='/public/stream' replace />} />
-                <Route path='public/*' element={<Navigate to='/public/stream' replace />} />
+                <Route path='public' element={isCardMenuUser ? <ContextMenuGrid context='public' /> : <Navigate to='/public/all' replace />} />
+                <Route path='public/*' element={<Navigate to='/public/all' replace />} />
                 {/* Must be before `groups/:groupSlug/*` so `/groups/:slug/offerings/:id` is not handled only by the group splat + inner Navigate-to-stream */}
                 <Route path='groups/:groupSlug/offerings/:offeringId' element={<OfferingDetails />} />
                 {/* **** Group Routes **** */}
@@ -1054,7 +1100,7 @@ export default function AuthLayoutRouter (props) {
                         : (
                           <Routes>
                             <Route path='spaces/:spaceSlug/*' element={<SpaceContent parentGroup={currentGroup} isOneColumnGroup={isOneColumnGroup} />} />
-                            <Route path='about/*' element={<GroupDetail context='groups' forCurrentGroup />} />
+                            <Route path='about/*' element={<GroupAboutPage />} />
                             <Route path='welcome/*' element={<GroupWelcomePage />} />
                             <Route path='map/*' element={<MapExplorer context='groups' view='map' />} />
                             <Route path='all/*' element={<ViewContent context='groups' view='all' />} />
@@ -1068,7 +1114,8 @@ export default function AuthLayoutRouter (props) {
                             <Route path='explore/*' element={<LandingPage />} />
                             <Route path='custom/:customViewId/*' element={<ViewContent context='groups' view='custom' />} />
                             <Route path='collection/:customViewId/*' element={<ViewContent context='groups' view='collection' />} />
-                            <Route path='groups/*' element={<Groups context='groups' />} />
+                            <Route path='space-collection/:viewId/*' element={<SpaceCollection group={currentGroup} />} />
+                            <Route path='groups/*' element={<Navigate to='about/related-groups' replace />} />
                             <Route path='members/create/*' element={<Members context='groups' />} />
                             <Route path='members/:personId/*' element={<MemberProfile context='groups' />} />
                             <Route path='members/*' element={<Members context='groups' />} />
@@ -1079,19 +1126,34 @@ export default function AuthLayoutRouter (props) {
                             <Route path='payment/cancel' element={<PaymentFailure />} />
                             <Route path='payment/failure' element={<PaymentFailure />} />
                             <Route path='settings/*' element={<GroupSettings context='groups' />} />
+                            <Route path='requests' element={<MembershipRequestsTab />} />
                             <Route
-                              path='more-views'
+                              path='more-spaces'
                               element={
                                 isOneColumnGroup
                                   ? <ContextMenuGrid group={currentGroup} />
-                                  : <MoreViewsPage group={currentGroup} />
+                                  : <MoreSpacesPage group={currentGroup} />
                               }
                             />
-                            <Route path='all-views' element={<Navigate to={`/groups/${currentGroupSlug}/more-views`} replace />} />
-                            <Route path='all-views/*' element={<Navigate to={`/groups/${currentGroupSlug}/more-views`} replace />} />
                             {!isOneColumnGroup && <Route path={POST_DETAIL_MATCH} element={<PostDetail />} />}
-                            <Route path='moderation/*' element={<Moderation context='groups' />} />
-                            <Route path='*' element={isOneColumnGroup ? <ContextMenuGrid group={currentGroup} /> : <Navigate to={`/groups/${currentGroupSlug}${currentGroup?.homeRoute || '/all'}`} replace />} />
+                            <Route path='moderation/*' element={<Navigate to='about/moderation' replace />} />
+                            {/* Legacy All Views / Tracks / Funding Rounds / All Topics → More Spaces */}
+                            <Route path='all-views/*' element={<Navigate to={`/groups/${currentGroupSlug}/more-spaces`} replace />} />
+                            <Route path='tracks/*' element={<Navigate to={`/groups/${currentGroupSlug}/more-spaces`} replace />} />
+                            <Route path='funding-rounds/*' element={<Navigate to={`/groups/${currentGroupSlug}/more-spaces`} replace />} />
+                            <Route path='all-topics/*' element={<Navigate to={`/groups/${currentGroupSlug}/more-spaces`} replace />} />
+                            <Route
+                              path='*'
+                              element={
+                                pendingWelcomeDecision
+                                  ? <RouteBootstrapSkeleton />
+                                  : landOnWelcome
+                                    ? <Navigate to={`/groups/${currentGroupSlug}/welcome${location.search}`} replace />
+                                    : isOneColumnGroup
+                                      ? <ContextMenuGrid group={currentGroup} />
+                                      : <Navigate to={`/groups/${currentGroupSlug}${currentGroup?.homeRoute || '/all'}`} replace />
+                              }
+                            />
                           </Routes>
                           )
                     }
@@ -1104,7 +1166,8 @@ export default function AuthLayoutRouter (props) {
                 <Route path='my/announcements/*' element={<ViewContent context='my' view='announcements' />} />
                 <Route path='my/mentions/*' element={<ViewContent context='my' view='mentions' />} />
                 <Route path='my/saved-posts/*' element={<ViewContent context='my' view='saved-posts' />} />
-                <Route path='my/tracks/*' element={<MyTracks />} />
+                <Route path='my/tracks/*' element={<MySpaceCollection kind='track' />} />
+                <Route path='my/funding-rounds/*' element={<MySpaceCollection kind='funding-round' />} />
                 <Route path='my/transactions' element={<MyTransactions />} />
                 <Route path='my/*' element={<UserSettings />} />
                 <Route path='my' element={isCardMenuUser ? <ContextMenuGrid context='my' /> : <Navigate to='/my/posts' replace />} />
@@ -1157,9 +1220,6 @@ export default function AuthLayoutRouter (props) {
             </div>
             <SocketListener location={location} groupSlug={currentGroupSlug} />
             <SocketSubscriber type='group' id={get('slug', currentGroup)} />
-            {spaceSocketGroupIds.map(spaceGroupId => (
-              <SocketSubscriber key={`space-socket-${spaceGroupId}`} type='group' id={spaceGroupId} />
-            ))}
           </div>
         </div>
         <CookieConsentLinker />

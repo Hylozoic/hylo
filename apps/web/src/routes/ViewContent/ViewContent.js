@@ -7,8 +7,27 @@ import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
 import { Routes, Route, useLocation } from 'react-router-dom'
 import { push } from 'redux-first-history'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  MouseSensor,
+  TouchSensor,
+  useSensor,
+  useSensors
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  rectSortingStrategy,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 import { COMMON_VIEWS } from 'store/models/GroupView'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
+import CollectionDragHandle from 'components/CollectionDragHandle'
 import Loading from 'components/Loading'
 import NoPosts from 'components/NoPosts'
 import { DateTimeHelpers } from '@hylo/shared'
@@ -16,6 +35,8 @@ import Calendar from 'components/Calendar'
 import PostDialog from 'components/PostDialog'
 import PostListRow from 'components/PostListRow'
 import PostCard from 'components/PostCard'
+import ChatActivityCard from 'components/PostCard/ChatActivityCard'
+import PinnedPostChips from 'routes/ChatRoom/PinnedPostChips'
 import MasonryGrid from 'components/MasonryGrid/MasonryGrid'
 import PostGridItem from 'components/PostGridItem'
 import PostBigGridItem from 'components/PostBigGridItem'
@@ -29,19 +50,24 @@ import ViewControls from 'components/StreamViewControls'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { useEffectiveGroupSlug, useGroupRouteOpts } from 'contexts/SpaceGroupContext'
 import useRouteParams from 'hooks/useRouteParams'
+import useCurrentPinnableView from 'hooks/useCurrentPinnableView'
+import useGroupViews from 'hooks/useGroupViews'
 import { updateUserSettings } from 'routes/UserSettings/UserSettings.store'
 import GroupViewIcon from 'routes/AuthLayoutRouter/components/ContextMenu/GroupViewIcon'
 import changeQuerystringParam, { changeQuerystringParams } from 'store/actions/changeQuerystringParam'
 import fetchGroupTopic from 'store/actions/fetchGroupTopic'
 import fetchTopic from 'store/actions/fetchTopic'
 import fetchPosts from 'store/actions/fetchPosts'
+import fetchViewPinnedPosts from 'store/actions/fetchViewPinnedPosts'
+import { reorderViewPost } from 'store/actions/groupViews'
 // import toggleGroupTopicSubscribe from 'store/actions/toggleGroupTopicSubscribe'
-import { FETCH_POSTS, FETCH_TOPIC, FETCH_GROUP_TOPIC, CONTEXT_MY, VIEW_MENTIONS, VIEW_ANNOUNCEMENTS, VIEW_INTERACTIONS, VIEW_POSTS, VIEW_SAVED_POSTS, VIEW_DRAFTS } from 'store/constants'
+import { FETCH_POSTS, FETCH_TOPIC, FETCH_GROUP_TOPIC, CONTEXT_MY, VIEW_MENTIONS, VIEW_ANNOUNCEMENTS, VIEW_INTERACTIONS, VIEW_POSTS, VIEW_SAVED_POSTS, VIEW_DRAFTS, RESP_ADMINISTRATION, RESP_MANAGE_CONTENT } from 'store/constants'
 import presentPost from 'store/presenters/presentPost'
 import { makeDropQueryResults } from 'store/reducers/queryResults'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
-import { getGroupViews, getGroupViewById } from 'store/selectors/getGroupViews'
+import { getGroupViewById } from 'store/selectors/getGroupViews'
 import getMe from 'store/selectors/getMe'
+import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import getMyMemberships from 'store/selectors/getMyMemberships'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import { getHasMorePosts, getPosts } from 'store/selectors/getPosts'
@@ -65,6 +91,9 @@ const viewComponent = {
 
 const dropPostResults = makeDropQueryResults(FETCH_POSTS)
 
+const MOUSE_ACTIVATION = { distance: 5 }
+const TOUCH_ACTIVATION = { delay: 180, tolerance: 8 }
+
 /** Maps a custom/collection GroupView into the stream config shape ViewContent expects. */
 function streamConfigFromGroupView (groupView) {
   if (!groupView || !['custom', 'collection'].includes(groupView.type)) return null
@@ -83,11 +112,11 @@ function streamConfigFromGroupView (groupView) {
   }
 }
 
-/** Returns true when a stream post belongs only to child groups/spaces, not the current group. */
+/** Returns true when a post's groups should be shown: child-group posts in /groups, or any post in /my, /all, /public. */
 function isChildGroupPost ({ context, groupSlug, post }) {
-  if ([CONTEXT_MY, 'all', 'public'].includes(context)) return false
   const groupSlugs = post.groups?.map(group => group.slug) || []
   if (groupSlugs.length === 0) return false
+  if ([CONTEXT_MY, 'all', 'public'].includes(context)) return true
   return !groupSlugs.includes(groupSlug)
 }
 
@@ -141,11 +170,27 @@ export default function ViewContent (props) {
     [groupView]
   )
 
-  const groupViews = useSelector(state => getGroupViews(state, group))
+  const groupViews = useGroupViews(group)
+  const showChatActivity = useMemo(() => {
+    const allView = (groupViews || []).find(v => v.type === 'all')
+    return allView?.settings?.showChatActivity !== false
+  }, [groupViews])
   const typedBadgeView = useMemo(() => {
     if (!TYPED_BADGE_VIEW_TYPES.has(view)) return null
     return (groupViews || []).find(v => v.type === view) || null
   }, [groupViews, view])
+
+  const pinnableView = useCurrentPinnableView()
+  const canModerateContent = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_MANAGE_CONTENT, groupId: group?.id }))
+  const canManageCollection = useSelector(state => hasResponsibilityForGroup(state, {
+    responsibility: [RESP_ADMINISTRATION, RESP_MANAGE_CONTENT],
+    groupId: group?.id
+  }))
+
+  useEffect(() => {
+    if (!group?.id || !pinnableView?.id) return
+    dispatch(fetchViewPinnedPosts(group.id, pinnableView.id))
+  }, [dispatch, group?.id, pinnableView?.id])
 
   // Clear typed-view unread when opening Events/Proposals/etc.
   useEffect(() => {
@@ -165,7 +210,10 @@ export default function ViewContent (props) {
 
   const defaultSortBy = systemView?.defaultSortBy || get('settings.streamSortBy', currentUser) || 'created'
   const defaultViewMode = systemView?.defaultViewMode || get('settings.streamViewMode', currentUser) || 'cards'
-  const defaultPostType = systemView?.defaultPostType || get('settings.streamPostType', currentUser) || undefined
+  // All Activity should not inherit a leftover type filter from other views
+  const defaultPostType = view === 'all'
+    ? undefined
+    : (systemView?.defaultPostType || get('settings.streamPostType', currentUser) || undefined)
   const defaultActivePostsOnly = systemView?.defaultActivePostsOnly || get('settings.activePostsOnly', currentUser) || false
   const defaultChildPostInclusion = get('settings.streamChildPosts', currentUser) || systemView?.defaultChildPostInclusion || 'yes'
 
@@ -175,7 +223,8 @@ export default function ViewContent (props) {
   const configuredViewMode = querystringParams.v || streamViewConfig?.defaultViewMode || defaultViewMode
   const viewMode = configuredViewMode === 'map' ? 'cards' : configuredViewMode
   const isCalendarViewMode = viewMode === 'calendar'
-  let sortBy = querystringParams.s || streamViewConfig?.defaultSort || defaultSortBy
+  const collectionDefaultSort = streamViewConfig?.type === 'collection' ? 'order' : defaultSortBy
+  let sortBy = querystringParams.s || streamViewConfig?.defaultSort || collectionDefaultSort
   if (!streamViewConfig && sortBy === 'order') {
     sortBy = 'updated'
   }
@@ -195,7 +244,7 @@ export default function ViewContent (props) {
   // Prefer querystring, then user/view default; ignore defaults outside this view's allowed types
   const postTypeFilter = useMemo(() => {
     const selected = querystringParams.t || defaultPostType || undefined
-    if (!selected) return undefined
+    if (!selected || selected === 'all') return undefined
     if (postTypesAvailable && !postTypesAvailable.includes(selected)) return undefined
     return selected
   }, [querystringParams.t, defaultPostType, postTypesAvailable])
@@ -229,6 +278,7 @@ export default function ViewContent (props) {
         filter: postTypeFilter,
         first: 0,
         forCollection: null,
+        groupId: group?.id,
         search,
         slug: groupSlug,
         sortBy,
@@ -238,19 +288,24 @@ export default function ViewContent (props) {
     }
 
     const numPostsToLoad = isMobile.any ? 10 : 20
+    const includeChatActivity = view === 'all' && !postTypeFilter && !isCalendarViewMode && showChatActivity
 
     const params = {
       activePostsOnly,
       childPostInclusion,
       context,
-      filter: postTypeFilter,
+      filter: includeChatActivity
+        ? 'all+notices'
+        : postTypeFilter,
       first: numPostsToLoad,
       forCollection: streamViewConfig?.type === 'collection' ? streamViewConfig.collectionId : null,
+      groupId: group?.id,
       search,
       slug: groupSlug,
       sortBy,
       topics,
-      types: postTypesAvailable
+      // Do not send a types list with all+notices — a stream-only list would hide notices
+      types: includeChatActivity ? undefined : postTypesAvailable
     }
 
     if (isCalendarViewMode) {
@@ -290,14 +345,16 @@ export default function ViewContent (props) {
       }
     }
     return params
-  }, [activePostsOnly, calendarDate, isCalendarViewMode, childPostInclusion, context, streamViewConfig, groupSlug, postTypeFilter, search, sortBy, timeframe, topic?.id, topicName, view])
+  }, [activePostsOnly, calendarDate, isCalendarViewMode, childPostInclusion, context, streamViewConfig, group?.id, groupSlug, postTypeFilter, search, showChatActivity, sortBy, timeframe, topic?.id, topicName, view])
 
   let name = presentedGroupView
     ? displayNameForView(presentedGroupView, t)
     : (view === 'all' ? t('view-all') : (systemView?.name || t('view-all')))
   let icon = presentedGroupView?.lucideIcon
     ? <GroupViewIcon view={presentedGroupView} className='w-5 h-5' />
-    : (presentedGroupView?.iconName || systemView?.iconName)
+    : systemView?.lucideIcon
+      ? <GroupViewIcon view={{ lucideIcon: systemView.lucideIcon }} className='w-5 h-5' />
+      : (presentedGroupView?.iconName || systemView?.iconName)
   if (topicName) {
     name = '#' + topicName
   }
@@ -332,9 +389,65 @@ export default function ViewContent (props) {
   }
 
   const postsSelector = useSelector((state) => getPosts(state, fetchPostsParam))
-  const posts = useMemo(() => postsSelector.map(p => presentPost(p, groupId)), [groupId, postsSelector])
+  const posts = useMemo(() => {
+    const presented = postsSelector.map(p => presentPost(p, groupId)).filter(Boolean)
+    if (showChatActivity) return presented
+    return presented.filter(p => p.type !== 'chat_activity')
+  }, [groupId, postsSelector, showChatActivity])
+  const pinnedPosts = useMemo(() => {
+    return (pinnableView?.pinnedPosts || []).map(p => presentPost(p, groupId)).filter(Boolean)
+  }, [groupId, pinnableView?.pinnedPosts])
+  // Stream/grid/list: pinned cards sit above the feed. Prefer the feed copy so
+  // ORM-backed fields (creator avatar) stay intact after an optimistic pin.
+  const streamPosts = useMemo(() => {
+    if (isCalendarViewMode) return posts
+    // Manual collection order is the source of truth; don't lift pins above it.
+    if (streamViewConfig?.type === 'collection' && sortBy === 'order') return posts
+    const order = (pinnableView?.pinnedPostIds || []).map(id => String(id))
+    if (order.length === 0 && pinnedPosts.length === 0) return posts
+    const ids = order.length ? order : pinnedPosts.map(p => String(p.id))
+    const feedById = new Map(posts.map(p => [String(p.id), p]))
+    const pinById = new Map(pinnedPosts.map(p => [String(p.id), p]))
+    const top = ids.map(id => feedById.get(id) || pinById.get(id)).filter(Boolean)
+    const topIds = new Set(top.map(p => String(p.id)))
+    return [...top, ...posts.filter(p => !topIds.has(String(p.id)))]
+  }, [isCalendarViewMode, pinnableView?.pinnedPostIds, pinnedPosts, posts, sortBy, streamViewConfig?.type])
   const hasMore = useSelector(state => getHasMorePosts(state, fetchPostsParam))
   const pending = useSelector(state => state.pending[FETCH_POSTS])
+
+  const collectionSensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: MOUSE_ACTIVATION }),
+    useSensor(TouchSensor, { activationConstraint: TOUCH_ACTIVATION }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
+
+  const canReorderCollection = Boolean(
+    streamViewConfig?.type === 'collection' &&
+    streamViewConfig?.collectionId &&
+    group?.id &&
+    canManageCollection &&
+    sortBy === 'order' &&
+    !isCalendarViewMode &&
+    !search &&
+    !postTypeFilter &&
+    streamPosts.length > 1
+  )
+  const isGridCollectionView = viewMode === 'grid' || viewMode === 'bigGrid'
+
+  const handleCollectionDragEnd = useCallback((event) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const viewId = streamViewConfig?.collectionId
+    if (!viewId || !group?.id) return
+    const overIndex = over.data.current?.sortable?.index
+    if (overIndex == null) return
+    dispatch(reorderViewPost({
+      groupId: group.id,
+      viewId,
+      postId: active.id,
+      order: overIndex
+    }))
+  }, [dispatch, group?.id, streamViewConfig?.collectionId])
 
   const fetchPostsFrom = useCallback((offset) => {
     if (pending && offset > 0) return
@@ -464,7 +577,6 @@ export default function ViewContent (props) {
     prevPathWasCreateRef.current = isCreatePath
   }, [location.pathname, isCalendarViewMode, dispatch, fetchPostsParam, fetchPostsFrom])
 
-  const ViewComponent = viewComponent[viewMode]
   const hasPostPrompt = currentUserHasMemberships && context !== CONTEXT_MY && view !== 'explore'
   // Calendar view applies on both `/events` (default) and `/stream?v=calendar`.
   // Default new-post type to event in calendar mode; `/events` list view uses COMMON_VIEWS postTypes.
@@ -515,7 +627,7 @@ export default function ViewContent (props) {
     dispatch(push(createPostUrl(routeParams, params)))
   }, [dispatch, routeParams, querystringParams, postTypeFilter, postTypesForPrompt])
 
-  const showEmptyStream = !pending && !topicBlockingStreams && !customViewLoading && posts.length === 0
+  const showEmptyStream = !pending && !topicBlockingStreams && !customViewLoading && streamPosts.length === 0
 
   const calendarInitialLoading = (pending || topicBlockingStreams || customViewLoading) && isCalendarViewMode && posts.length === 0
   const calendarFetchingMore = pending && isCalendarViewMode && posts.length > 0
@@ -613,6 +725,15 @@ export default function ViewContent (props) {
             )
           : (
             <>
+              {isCalendarViewMode && (
+                <PinnedPostChips
+                  posts={pinnedPosts}
+                  viewId={pinnableView?.id}
+                  groupId={group?.id}
+                  canModerate={canModerateContent}
+                  className='px-1 pb-1'
+                />
+              )}
               {calendarFetchingMore && (
                 <div
                   aria-live='polite'
@@ -625,35 +746,24 @@ export default function ViewContent (props) {
                 </div>
               )}
               {!isCalendarViewMode && (
-                <MasonryGrid
-                  enabled={viewMode === 'grid' || viewMode === 'bigGrid'}
-                  gap={8}
-                  className={cn(
-                    'my-[5px] mx-auto overflow-visible w-full',
-                    viewMode === 'grid' && 'grid grid-cols-2 min-[426px]:grid-cols-3 items-start gap-x-2 p-2',
-                    viewMode === 'bigGrid' && 'grid grid-cols-2 items-start gap-x-2 p-2',
-                    viewMode === 'list' && posts.length > 0 && 'border-2 border-foreground/10 rounded-md bg-card overflow-hidden',
-                    showEmptyStream && 'flex-1 flex flex-col justify-center'
-                  )}
-                >
-
-                  {showEmptyStream ? <NoPosts message={noPostsMessage} actionLabel={hasPostPrompt ? t('Create something') : null} onAction={createFromEmpty} /> : ''}
-
-                  {posts.map(post => (
-                    <ViewComponent
-                      className={cn(viewMode === 'cards' && 'max-[425px]:mx-[5px] max-[425px]:mb-2.5')}
-                      routeParams={routeParams}
-                      post={post}
-                      group={group}
-                      key={post.id}
-                      currentGroupId={group && group.id}
-                      currentUser={currentUser}
-                      querystringParams={querystringParams}
-                      childPost={isChildGroupPost({ context, groupSlug, post })}
-                      childPostFromSpace={isChildSpacePost({ context, groupSlug, post })}
-                    />
-                  ))}
-                </MasonryGrid>
+                <CollectionPostsGrid
+                  canReorder={canReorderCollection}
+                  sensors={collectionSensors}
+                  isGridView={isGridCollectionView}
+                  onDragEnd={handleCollectionDragEnd}
+                  streamPosts={streamPosts}
+                  viewMode={viewMode}
+                  showEmptyStream={showEmptyStream}
+                  noPostsMessage={noPostsMessage}
+                  hasPostPrompt={hasPostPrompt}
+                  onCreateFromEmpty={createFromEmpty}
+                  routeParams={routeParams}
+                  group={group}
+                  currentUser={currentUser}
+                  querystringParams={querystringParams}
+                  context={context}
+                  groupSlug={groupSlug}
+                />
               )}
               {showCalendar && (
                 <div className='calendarView'>
@@ -696,6 +806,122 @@ export default function ViewContent (props) {
             </>
             )}
       </div>
+    </div>
+  )
+}
+
+/** Stream/grid/list of collection posts, with optional handle-only reorder. */
+function CollectionPostsGrid ({
+  canReorder,
+  sensors,
+  isGridView,
+  onDragEnd,
+  streamPosts,
+  viewMode,
+  showEmptyStream,
+  noPostsMessage,
+  hasPostPrompt,
+  onCreateFromEmpty,
+  routeParams,
+  group,
+  currentUser,
+  querystringParams,
+  context,
+  groupSlug
+}) {
+  const { t } = useTranslation()
+  const gridClassName = cn(
+    'my-[5px] mx-auto overflow-visible w-full',
+    viewMode === 'grid' && 'grid grid-cols-2 min-[426px]:grid-cols-3 items-start gap-x-2 p-2',
+    viewMode === 'bigGrid' && 'grid grid-cols-2 items-start gap-x-2 p-2',
+    viewMode === 'list' && streamPosts.length > 0 && 'border-2 border-foreground/10 rounded-md bg-card overflow-hidden',
+    showEmptyStream && 'flex-1 flex flex-col justify-center'
+  )
+
+  const postItems = streamPosts.map(post => {
+    const ViewComponent = post.type === 'chat_activity'
+      ? ChatActivityCard
+      : viewComponent[viewMode]
+    const card = (
+      <ViewComponent
+        className={cn(viewMode === 'cards' && 'max-[425px]:mx-[5px] max-[425px]:mb-2.5')}
+        routeParams={routeParams}
+        post={post}
+        group={group}
+        currentGroupId={group && group.id}
+        currentUser={currentUser}
+        querystringParams={querystringParams}
+        childPost={isChildGroupPost({ context, groupSlug, post })}
+        childPostFromSpace={isChildSpacePost({ context, groupSlug, post })}
+      />
+    )
+
+    if (!canReorder) {
+      return <React.Fragment key={post.id}>{card}</React.Fragment>
+    }
+
+    return (
+      <SortableCollectionPost key={post.id} id={post.id}>
+        {card}
+      </SortableCollectionPost>
+    )
+  })
+
+  const grid = (
+    <MasonryGrid
+      enabled={viewMode === 'grid' || viewMode === 'bigGrid'}
+      gap={8}
+      className={gridClassName}
+    >
+      {showEmptyStream ? <NoPosts message={noPostsMessage} actionLabel={hasPostPrompt ? t('Create something') : null} onAction={onCreateFromEmpty} /> : ''}
+      {postItems}
+    </MasonryGrid>
+  )
+
+  if (!canReorder) return grid
+
+  return (
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      modifiers={isGridView ? undefined : [restrictToVerticalAxis]}
+      onDragEnd={onDragEnd}
+    >
+      <SortableContext
+        items={streamPosts.map(post => post.id)}
+        strategy={isGridView ? rectSortingStrategy : verticalListSortingStrategy}
+      >
+        {grid}
+      </SortableContext>
+    </DndContext>
+  )
+}
+
+/** Positions a hover-revealed drag handle over a collection post. */
+function SortableCollectionPost ({ id, children }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform && { ...transform, scaleY: 1 }),
+    transition,
+    opacity: isDragging ? 0.4 : 1
+  }
+
+  return (
+    <div ref={setNodeRef} style={style} className='relative group'>
+      {children}
+      <CollectionDragHandle
+        attributes={attributes}
+        listeners={listeners}
+        className='absolute left-1 top-2 z-20'
+      />
     </div>
   )
 }

@@ -21,6 +21,12 @@ function groupViewMenuData ({ name, icon, settings, link, pageContent, topics })
   return omitBy(isUndefined, { name, icon, settings, link, pageContent, topics })
 }
 
+/** Coerce GraphQL role ids (strings) to ints for createSpace/updateSpace `[Int]` variables. */
+function toIntRoleIds (ids) {
+  if (ids == null) return ids
+  return ids.map(id => parseInt(id, 10)).filter(Number.isInteger)
+}
+
 /** Build embedded menu patch fields for a space view row from updateSpace args. */
 function spaceViewMenuData ({ name, description, viewName, icon }) {
   const linkedGroup = omitBy(isUndefined, { name, description, icon })
@@ -42,6 +48,7 @@ const groupViewFields = `
   settings
   newPostCount
   lastReadPostId
+  pinnedPostIds
   viewPost {
     id
     title
@@ -66,7 +73,9 @@ const groupViewFields = `
         name
         order
         icon
+        settings
         newPostCount
+        pinnedPostIds
         viewPost {
           id
           title
@@ -345,7 +354,7 @@ export function createSpace ({ parentGroupId, name, slug, description, icon, acc
           accessibility
         }
       }`,
-      variables: { parentGroupId, name, slug, description, icon, acceptedPostTypes, purpose, location, locationId, visibility, accessibility, requiredRoles, viewTypes, bannerUrl, avatarUrl, paywall, addToMenu }
+      variables: { parentGroupId, name, slug, description, icon, acceptedPostTypes, purpose, location, locationId, visibility, accessibility, requiredRoles: toIntRoleIds(requiredRoles), viewTypes, bannerUrl, avatarUrl, paywall, addToMenu }
     },
     meta: {
       parentGroupId,
@@ -393,7 +402,7 @@ export function updateSpace ({ id, groupId, spaceViewId, name, slug, description
           icon
         }
       }`,
-      variables: omitBy(isUndefined, { id, name, slug, description, icon, acceptedPostTypes, purpose, location, locationId, visibility, accessibility, requiredRoles, bannerUrl, avatarUrl, paywall })
+      variables: omitBy(isUndefined, { id, name, slug, description, icon, acceptedPostTypes, purpose, location, locationId, visibility, accessibility, requiredRoles: toIntRoleIds(requiredRoles), bannerUrl, avatarUrl, paywall })
     },
     meta: {
       id,

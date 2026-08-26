@@ -416,15 +416,13 @@ function ChatEditorInner ({
   return (
     <div className='flex flex-col relative gap-2'>
       <div className='ChatEditorContent w-full bg-foreground/5 border border-foreground/10 rounded-xl p-1.5 flex flex-col !items-start transition-all duration-200 overflow-x-hidden max-h-[300px] focus-within:border-foreground/20'>
-        {/* items-end pins the controls to the container bottom as the input grows;
-            the small bottom margins center them against a single-line input */}
-        <div className='w-full flex items-end gap-1'>
+        <div className='w-full flex items-center gap-1'>
           {/* Attachment menu — plain + icon before the input text */}
           <Popover open={attachMenuOpen} onOpenChange={setAttachMenuOpen}>
             <PopoverTrigger asChild>
               <button
                 type='button'
-                className='p-1.5 mb-1 shrink-0 sticky bottom-1 text-foreground/50 hover:text-foreground transition-colors'
+                className='p-1.5 shrink-0 text-foreground/50 hover:text-foreground transition-colors'
                 aria-label={t('Add attachment')}
                 data-testid='chat-attach-button'
               >
@@ -475,7 +473,7 @@ function ChatEditorInner ({
             {currentPost.details === null || loading
               ? <div><Loading /></div>
               : <HyloEditor
-                  placeholder={t('Send a chat to {{groupName}}', { groupName: currentGroup?.name })}
+                  placeholder={t('Chat with {{groupName}}', { groupName: currentGroup?.name })}
                   onUpdate={handleDetailsChange}
                   onAltEnter={doSave}
                   onAddTopic={handleAddTopic}
@@ -495,7 +493,7 @@ function ChatEditorInner ({
             type='button'
             onClick={() => setShowToolbar(v => !v)}
             className={cn(
-              'p-1.5 mb-1 shrink-0 sticky bottom-1 rounded-md transition-colors',
+              'p-1.5 shrink-0 rounded-md transition-colors',
               showToolbar
                 ? 'bg-foreground/15 text-foreground'
                 : 'text-foreground/40 hover:text-foreground hover:bg-foreground/5'
@@ -506,15 +504,14 @@ function ChatEditorInner ({
           >
             <CaseSensitive className='w-6 h-6' />
           </button>
-          {/* mb-1 matches the Aa toggle beside it — the mb-0.5 rode it visibly off
-              the row's centreline. Ready-to-send fills with the selected colour. */}
+          {/* Ready-to-send fills with the selected colour. */}
           <button
             type='button'
             onClick={doSave}
             disabled={!canSubmit}
             title={!isValid ? invalidMessage.replace(/<br \/>/g, ', ') : undefined}
             className={cn(
-              'p-1.5 mb-1 mr-0.5 shrink-0 sticky bottom-1 rounded-lg border transition-colors',
+              'p-1.5 shrink-0 rounded-lg border transition-colors',
               canSubmit
                 ? 'bg-selected border-selected text-white hover:bg-selected/90'
                 : 'border-foreground/20 text-muted-foreground cursor-not-allowed'

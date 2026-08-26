@@ -65,11 +65,15 @@ exports.pt = {
   textForGroupParentGroupJoinRequestAcceptedParentMember: ({ parentGroup, childGroup }) => `O grupo ${childGroup.get('name')} acabou de entrar no seu grupo ${parentGroup.get('name')}!`,
   textForGroupParentGroupJoinRequestAcceptedChildMember: ({ parentGroup, childGroup }) => `Seu grupo ${childGroup.get('name')} entrou em ${parentGroup.get('name')}.`,
   textForEventInvitation: ({ actor, postName }) => `${actor.get('name')} convidou você para “${postName}”`,
-  textForGroupInvitation: ({ actor, groupName }) => `${actor.get('name')} convidou você a entrar em ${groupName}`,
+  textForGroupInvitation: ({ actor, groupName, parentGroupName }) => parentGroupName
+    ? `${actor.get('name')} convidou você para se juntar a eles no espaço ${groupName} em ${parentGroupName}`
+    : `${actor.get('name')} convidou você para se juntar a eles em ${groupName}`,
   textForGroupInvitationAccepted: ({ actor, groupName }) => `${actor.get('name')} aceitou seu convite para entrar em ${groupName}`,
   textForGroupPeerGroupInvite: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} convidou seu grupo ${toGroup.get('name')} a formar uma relação de pares com ${fromGroup.get('name')}`,
   textForGroupPeerGroupInviteAccepted: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} aceitou a relação de pares entre ${fromGroup.get('name')} e ${toGroup.get('name')}`,
-  textForJoinRequest: ({ actor, groupName }) => `${actor.get('name')} pediu para entrar em ${groupName}`,
+  textForJoinRequest: ({ actor, groupName, parentGroupName }) => parentGroupName
+    ? `${actor.get('name')} pediu para entrar em ${groupName} em ${parentGroupName}`
+    : `${actor.get('name')} pediu para entrar em ${groupName}`,
   textForMemberJoinedGroup: ({ group, actor }) => `Novo membro entrou em ${group.get('name')}: ${actor.get('name')}`,
   textForPostModeratedFulfillment: ({ post, actor, reason }) => {
     const postName = post.summary()
@@ -80,18 +84,18 @@ exports.pt = {
   },
   textForPostMention: ({ groupName, person, postName }) => `${person} mencionou você na publicação “${postName}” em ${groupName}`,
   textForPost: ({ firstTag, groupName, person, postName }) => `${person} publicou “${postName}” em ${groupName}${firstTag ? ` #${firstTag}` : ''}`,
-  textForTrackCompleted: ({ actor, track }) => `Trilha concluída: “${track.get('name')}” foi concluída por ${actor.get('name')}`,
-  textForTrackEnrollment: ({ actor, track }) => `Inscrição na trilha: “${track.get('name')}” por ${actor.get('name')}`,
+  textForTrackCompleted: ({ actor, trackName }) => `Trilha concluída: “${trackName}” foi concluída por ${actor.get('name')}`,
+  textForTrackEnrollment: ({ actor, trackName }) => `Inscrição na trilha: “${trackName}” por ${actor.get('name')}`,
   textForVoteReset: ({ person, postName, groupName }) => `${person} alterou as opções da proposta: “${postName}” em ${groupName}. Os votos foram zerados`,
-  textForFundingRoundNewSubmission: ({ fundingRound, post, actor }) => `${actor.get('name')} enviou “${post.summary()}” para “${fundingRound.get('title')}”`,
-  textForFundingRoundPhaseTransition: ({ fundingRound, phase }) => {
+  textForFundingRoundNewSubmission: ({ fundingRoundTitle, post, actor }) => `${actor.get('name')} enviou “${post.summary()}” para “${fundingRoundTitle}”`,
+  textForFundingRoundPhaseTransition: ({ fundingRoundTitle, phase }) => {
     const phaseMessages = {
       submissions: 'As inscrições estão abertas',
       discussion: 'As inscrições encerraram e as discussões estão abertas',
       voting: 'A votação está aberta',
       completed: 'A votação encerrou e a rodada terminou'
     }
-    return `${fundingRound.get('title')}: ${phaseMessages[phase] || 'Status atualizado'}`
+    return `${fundingRoundTitle}: ${phaseMessages[phase] || 'Status atualizado'}`
   },
   textForFundingRoundReminder: ({ reminderType }) => {
     const reminderMessages = {

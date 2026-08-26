@@ -1,5 +1,6 @@
 import { GraphQLError } from 'graphql'
 import { v4 as uuidv4 } from 'uuid'
+import { localSpaceSlug, storedSpaceSlug } from '@hylo/navigation'
 import { notifyGroupUpdated } from './notifyGroupUpdated'
 
 // Space mutations — see docs/spaces-and-views-engineering-spec.md section 4.4 / 10
@@ -13,14 +14,24 @@ function slugify (name) {
     .slice(0, 40) || 'space'
 }
 
+/** First unused groups.slug. Stored space slugs include the parent prefix, so do not cap at 40. */
 async function uniqueSlug (baseSlug) {
   let slug = baseSlug
   let suffix = 2
   while (await Group.where({ slug }).fetch()) {
-    slug = `${baseSlug}-${suffix}`.slice(0, 40)
+    slug = `${baseSlug}-${suffix}`
     suffix += 1
   }
   return slug
+}
+
+/** Local URL slug, then globally unique `{parentSlug}-{localSlug}` for storage. */
+async function uniqueStoredSpaceSlug (parentSlug, requestedSlug, name) {
+  const requestedLocal = requestedSlug ? localSpaceSlug(parentSlug, requestedSlug) : ''
+  const localSlug = requestedLocal && Group.isSlugValid(requestedLocal)
+    ? requestedLocal
+    : slugify(name)
+  return uniqueSlug(storedSpaceSlug(parentSlug, localSlug))
 }
 
 /**
@@ -58,7 +69,7 @@ export async function createSpace (userId, { parentGroupId, name, slug, accepted
     throw new GraphQLError("You don't have permission to create spaces in this group")
   }
 
-  const finalSlug = await uniqueSlug(slug && Group.isSlugValid(slug) ? slug : slugify(name))
+  const finalSlug = await uniqueStoredSpaceSlug(parentGroup.get('slug'), slug, name)
   const isPaywalled = Boolean(paywall)
   const spaceVisibility = isPaywalled
     ? Group.Visibility.PROTECTED
@@ -72,6 +83,7 @@ export async function createSpace (userId, { parentGroupId, name, slug, accepted
     // Start the cached count at zero — left unset it is NULL, and the join-path
     // increment (NULL + 1) can never bring it back
     num_members: 0,
+    num_open_join_requests: 0,
     parent_id: parentGroupId,
     name: name.trim(),
     slug: finalSlug,
@@ -101,7 +113,7 @@ export async function createSpace (userId, { parentGroupId, name, slug, accepted
     await Group.setupSpaceViews(space.id, acceptedPostTypes, viewTypes, { transacting: trx })
 
     // Add a `type = 'space'` menu entry to the parent group's view list (spec section 2.5).
-    // When addToMenu is false (Add Space from More Views), create off-menu (order = null).
+    // When addToMenu is false (Add Space from More Spaces), create off-menu (order = null).
     const spaceViewAttrs = {
       group_id: parentGroupId,
       type: GroupView.Type.SPACE,
@@ -130,9 +142,15 @@ export async function updateSpace (userId, { id, name, slug, acceptedPostTypes, 
 
   const changes = {}
   if (name !== undefined && name.trim()) changes.name = name.trim()
-  if (slug !== undefined && slug !== space.get('slug')) {
-    if (!Group.isSlugValid(slug)) throw new GraphQLError('Slug is invalid')
-    changes.slug = await uniqueSlug(slug)
+  if (slug !== undefined) {
+    const parent = await Group.find(space.get('parent_id'))
+    const parentSlug = parent?.get('slug')
+    const localSlug = localSpaceSlug(parentSlug, slug)
+    if (!Group.isSlugValid(localSlug)) throw new GraphQLError('Slug is invalid')
+    const prefixed = storedSpaceSlug(parentSlug, localSlug)
+    if (prefixed !== space.get('slug')) {
+      changes.slug = await uniqueSlug(prefixed)
+    }
   }
   if (acceptedPostTypes !== undefined) changes.accepted_post_types = acceptedPostTypes
   if (visibility !== undefined) changes.visibility = visibility
@@ -154,7 +172,9 @@ export async function updateSpace (userId, { id, name, slug, acceptedPostTypes, 
     }
   }
 
-  await space.save(changes, { patch: true })
+  if (Object.keys(changes).length > 0) {
+    await space.save(changes, { patch: true })
+  }
 
   const parentId = space.get('parent_id')
   if (parentId) {
@@ -223,21 +243,29 @@ export async function joinSpace (userId, spaceId) {
     throw new GraphQLError('You must be a member of the parent group to join this space')
   }
 
-  if (space.get('paywall')) {
-    throw new GraphQLError('This space requires purchased access to join')
-  }
+  // Administration on the parent can join any space (closed, restricted, role-gated, paywalled)
+  // without requesting or holding a required role
+  const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, parentId)
+  const canAdministerParent = responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)
 
-  if (space.get('accessibility') !== Group.Accessibility.OPEN) {
-    throw new GraphQLError('This space requires a request to join')
-  }
+  if (!canAdministerParent) {
+    if (space.get('paywall')) {
+      throw new GraphQLError('This space requires purchased access to join')
+    }
 
-  const requiredRoles = space.get('required_roles')
-  if (requiredRoles && requiredRoles.length > 0) {
-    const memberRoleIds = await bookshelf.knex('group_memberships_group_roles')
-      .where({ user_id: userId, group_id: parentId, active: true })
-      .pluck('group_role_id')
-    if (!requiredRoles.some(roleId => memberRoleIds.includes(roleId))) {
-      throw new GraphQLError('You do not have the required role to join this space')
+    const requiredRoles = space.get('required_roles')
+    const isRoleGated = Array.isArray(requiredRoles) && requiredRoles.length > 0
+
+    if (isRoleGated) {
+      const memberRoleIds = await bookshelf.knex('group_memberships_group_roles')
+        .where({ user_id: userId, group_id: parentId, active: true })
+        .pluck('group_role_id')
+      const memberRoleIdSet = new Set(memberRoleIds.map(id => String(id)))
+      if (!requiredRoles.some(roleId => memberRoleIdSet.has(String(roleId)))) {
+        throw new GraphQLError('You do not have the required role to join this space')
+      }
+    } else if (space.get('accessibility') !== Group.Accessibility.OPEN) {
+      throw new GraphQLError('This space requires a request to join')
     }
   }
 
@@ -255,19 +283,4 @@ export async function joinSpace (userId, spaceId) {
   }
 
   return membership
-}
-
-export async function leaveSpace (userId, spaceId) {
-  if (!userId) throw new GraphQLError('No userId passed into function')
-  if (!spaceId) throw new GraphQLError('No spaceId passed into function')
-
-  const space = await Group.find(spaceId)
-  if (!space) throw new GraphQLError('Space not found')
-
-  const user = await User.find(userId)
-  if (!user) throw new GraphQLError('User not found')
-
-  await user.leaveGroup(space)
-
-  return { success: true }
 }

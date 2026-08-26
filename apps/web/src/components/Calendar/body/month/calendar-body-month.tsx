@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils'
 import CalendarEvent from '../../calendar-event'
 import { AnimatePresence, motion } from 'framer-motion'
 import { eachIntervalDay, createEventPostUrl } from '../../calendar-util'
-import { getLocaleFromLocalStorage } from 'util/locale'
+import { getDateLocale, getLocaleFromLocalStorage } from 'util/locale'
 
 export default function CalendarBodyMonth () {
   const { t } = useTranslation()
@@ -57,7 +57,7 @@ export default function CalendarBodyMonth () {
         <div className='hidden md:grid grid-cols-7 border-border divide-x divide-border'>
           {[0, 1, 2, 3, 4, 5, 6].map((day) => {
             const luxonDay = (day + 6) % 7
-            const dayName = Info.weekdays('short', { locale: DateTimeHelpers.getLocaleAsString(getLocaleFromLocalStorage()) })[luxonDay]
+            const dayName = Info.weekdays('short', { locale: getDateLocale() })[luxonDay]
             return (
               <div
                 key={dayName}

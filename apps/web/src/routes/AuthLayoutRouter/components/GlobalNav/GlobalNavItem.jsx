@@ -14,7 +14,7 @@ import { useNavigate } from 'react-router-dom'
 import useRouteParams from 'hooks/useRouteParams'
 import { DEFAULT_AVATAR } from 'store/models/Group'
 import { cn } from 'util/index'
-import { baseUrl } from '@hylo/navigation'
+import { baseUrl, myHomeLandingUrl, isMyHomeContext } from '@hylo/navigation'
 
 /**
  * GlobalNavItem component renders a navigation item with tooltip and hover animations
@@ -32,6 +32,9 @@ export default function GlobalNavItem ({
   children,
   className,
   badgeCount = 0,
+  // System buttons (create, notifications, messages, commons) keep the dark-mode
+  // tile in both schemes — the light tiles read as too loud on the rail
+  darkTile = false,
   img,
   tooltip,
   url,
@@ -44,8 +47,12 @@ export default function GlobalNavItem ({
   const routeParams = useRouteParams()
   const hasChildren = childGroups && childGroups.length > 0
   // A stack is selected when its parent group is active OR when one of its stacked subgroups is the active group.
-  const selected = baseUrl({ context: routeParams.context, groupSlug: routeParams.groupSlug }) === url ||
-    (hasChildren && childGroups.some(child => child.slug === routeParams.groupSlug))
+  const selected = url === myHomeLandingUrl()
+    ? isMyHomeContext(routeParams.context)
+    : (
+        baseUrl({ context: routeParams.context, groupSlug: routeParams.groupSlug }) === url ||
+        (hasChildren && childGroups.some(child => child.slug === routeParams.groupSlug))
+      )
   const [isHovered, setIsHovered] = useState(false)
   const [open, setOpen] = useState(false)
   const [popoverOpen, setPopoverOpen] = useState(false)
@@ -230,7 +237,7 @@ export default function GlobalNavItem ({
         'rounded-lg opacity-85 hover:opacity-100',
         'scale-90 hover:scale-100 text-3xl',
         // Stacks read like the TopNav tabs: no tile background or shadow, just the layered avatars.
-        !hasChildren && 'bg-primary drop-shadow-md hover:drop-shadow-lg',
+        !hasChildren && cn('drop-shadow-md hover:drop-shadow-lg', darkTile ? 'bg-[hsl(0_0%_17%)] text-white' : 'bg-primary'),
         {
           'border-3 border-selected opacity-100 scale-110 hover:scale-110': selected,
           'border-3 border-accent opacity-100 scale-100 hover:scale-105': badgeCount > 0 || badgeCount === '!' || badgeCount === '-',

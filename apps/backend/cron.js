@@ -44,26 +44,30 @@ const daily = now => {
     return count
   }))
 
-  switch (now.day) {
-    case 3:
-      sails.log.debug('Sending weekly digests')
-      tasks.push(sendAndLogDigests('weekly'))
-      tasks.push(sendSavedSearchDigests('weekly'))
-      break
-  }
   return tasks
 }
 
 const hourly = now => {
   const tasks = [
-    GroupViewUser.sendDigests().then(count => sails.log.debug(`Sent ${count} chat digests`))
+    GroupViewUser.sendDigests()
+      .then(count => sails.log.debug(`Sent ${count} chat digests`))
+      .catch(err => {
+        sails.log.error('Chat digest job failed; continuing hourly tasks', err)
+        return 0
+      })
   ]
 
   switch (now.hour) {
-    case 12:
+    case 15:
       sails.log.debug('Sending daily digests')
       tasks.push(sendAndLogDigests('daily'))
       tasks.push(sendSavedSearchDigests('daily'))
+      // Luxon weekday: 1 = Monday ... 3 = Wednesday. (now.day is the day of month.)
+      if (now.weekday === 3) {
+        sails.log.debug('Sending weekly digests')
+        tasks.push(sendAndLogDigests('weekly'))
+        tasks.push(sendSavedSearchDigests('weekly'))
+      }
       break
     case 13:
       sails.log.debug('Resending invites')

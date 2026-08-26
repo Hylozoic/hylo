@@ -1,4 +1,4 @@
-import '../../../test/setup'
+/* eslint-disable no-unused-expressions */
 import setup from '../../../test/setup'
 import factories from '../../../test/setup/factories'
 import { assignCoordinator } from '../../../test/setup/roleHelpers'
@@ -20,7 +20,10 @@ describe('join_request mutations', () => {
     await assignCoordinator(moderator, group)
   })
 
-  after(async () => setup.clearDb())
+  after(async function () {
+    this.timeout(10000)
+    await setup.clearDb()
+  })
 
   describe('createJoinRequest', () => {
     it('creates a pending join request', async () => {
@@ -28,12 +31,16 @@ describe('join_request mutations', () => {
       expect(result.request.get('status')).to.equal(JoinRequest.STATUS.Pending)
       expect(result.request.get('user_id')).to.equal(applicant.id)
       expect(result.request.get('group_id')).to.equal(group.id)
+      await group.refresh()
+      expect(group.get('num_open_join_requests')).to.equal(1)
     })
 
     it('returns the existing pending request instead of creating a duplicate', async () => {
       const first = await createJoinRequest(applicant.id, group.id, [])
       const second = await createJoinRequest(applicant.id, group.id, [])
       expect(second.request.id).to.equal(first.request.id)
+      await group.refresh()
+      expect(group.get('num_open_join_requests')).to.equal(1)
     })
 
     it('throws when parameters are invalid', async () => {
@@ -50,11 +57,15 @@ describe('join_request mutations', () => {
     it('accepts when moderator has Add Members responsibility', async () => {
       const requester = await factories.user().save()
       const jr = await createJoinRequest(requester.id, group.id, [])
+      await group.refresh()
+      const countBeforeAccept = group.get('num_open_join_requests')
       await acceptJoinRequest(moderator.id, jr.request.id)
       const refreshed = await JoinRequest.find(jr.request.id)
       expect(refreshed.get('status')).to.equal(JoinRequest.STATUS.Accepted)
       const gm = await GroupMembership.forPair(requester.id, group.id).fetch()
       expect(gm).to.exist
+      await group.refresh()
+      expect(group.get('num_open_join_requests')).to.equal(countBeforeAccept - 1)
     })
 
     it('rejects when user cannot add members', async () => {
@@ -89,6 +100,8 @@ describe('join_request mutations', () => {
       expect(out.success).to.equal(true)
       const refreshed = await JoinRequest.find(jr.request.id)
       expect(refreshed.get('status')).to.equal(JoinRequest.STATUS.Canceled)
+      await g3.refresh()
+      expect(g3.get('num_open_join_requests')).to.equal(0)
     })
 
     it('rejects when another user tries to cancel', async () => {
@@ -112,6 +125,8 @@ describe('join_request mutations', () => {
       const jr = await createJoinRequest(requester.id, g5.id, [])
       const declined = await declineJoinRequest(moderator.id, jr.request.id)
       expect(declined.get('status')).to.equal(JoinRequest.STATUS.Rejected)
+      await g5.refresh()
+      expect(g5.get('num_open_join_requests')).to.equal(0)
     })
 
     it('rejects when user is not a moderator', async () => {
@@ -124,6 +139,51 @@ describe('join_request mutations', () => {
       } catch (e) {
         expect(e.message).to.match(/do not have permission/)
       }
+    })
+  })
+
+  describe('space join requests', () => {
+    let parentGroup, space, parentSteward
+
+    before(async () => {
+      parentGroup = await factories.group({ name: 'Parent Group' }).save()
+      space = await factories.group({
+        name: 'The Space',
+        type: 'space',
+        parent_id: parentGroup.id,
+        slug: `space-jr-${Date.now()}`
+      }).save()
+      parentSteward = await factories.user().save()
+      await assignCoordinator(parentSteward, parentGroup)
+    })
+
+    it('notifies parent coordinators who are not space members', async () => {
+      const spaceRequester = await factories.user().save()
+      await createJoinRequest(spaceRequester.id, space.id, [])
+      const activities = await Activity.where({
+        reader_id: parentSteward.id,
+        group_id: space.id
+      }).fetchAll()
+      const joinRequestActivity = activities.find(a => {
+        const reasons = a.get('meta')?.reasons || []
+        return reasons.includes('joinRequest')
+      })
+      expect(joinRequestActivity).to.exist
+      expect(String(joinRequestActivity.get('other_group_id'))).to.equal(String(parentGroup.id))
+      expect(String(joinRequestActivity.get('actor_id'))).to.equal(String(spaceRequester.id))
+      const notifications = await Notification.where({
+        activity_id: joinRequestActivity.id,
+        user_id: parentSteward.id
+      }).fetchAll()
+      expect(notifications.length).to.be.at.least(1)
+    })
+
+    it('lets a parent coordinator accept without space membership', async () => {
+      const spaceRequester = await factories.user().save()
+      const { request } = await createJoinRequest(spaceRequester.id, space.id, [])
+      await acceptJoinRequest(parentSteward.id, request.id)
+      const refreshed = await JoinRequest.find(request.id)
+      expect(refreshed.get('status')).to.equal(JoinRequest.STATUS.Accepted)
     })
   })
 })

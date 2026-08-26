@@ -1,9 +1,9 @@
+import { isPhoneDevice } from 'util/mobile'
+import { getPostDetailCloseDestination, memberGroupIdsFromMe, shouldUseSmartPostClose } from './postDetailCloseNavigation'
+
 jest.mock('util/mobile', () => ({
   isPhoneDevice: jest.fn(() => false)
 }))
-
-import { isPhoneDevice } from 'util/mobile'
-import { getPostDetailCloseDestination, memberGroupIdsFromMe, shouldUseSmartPostClose } from './postDetailCloseNavigation'
 
 function meWithGroups (groupIds) {
   return {
@@ -31,23 +31,23 @@ describe('getPostDetailCloseDestination', () => {
     })
   })
 
-  it('single group + not a member + public → /public/stream', () => {
+  it('single group + not a member + public → /public/all', () => {
     const me = meWithGroups([])
     const post = { isPublic: true, groups: [{ id: '10', slug: 'alpha' }] }
     expect(getPostDetailCloseDestination({ ...base, post, me })).toEqual({
-      pathname: '/public/stream',
+      pathname: '/public/all',
       search: ''
     })
   })
 
-  it('many groups + member of none + public → /public/stream', () => {
+  it('many groups + member of none + public → /public/all', () => {
     const me = meWithGroups([])
     const post = {
       isPublic: true,
       groups: [{ id: '1', slug: 'a' }, { id: '2', slug: 'b' }]
     }
     expect(getPostDetailCloseDestination({ ...base, post, me })).toEqual({
-      pathname: '/public/stream',
+      pathname: '/public/all',
       search: ''
     })
   })

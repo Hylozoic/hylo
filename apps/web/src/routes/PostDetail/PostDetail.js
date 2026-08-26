@@ -18,6 +18,7 @@ import {
   PostGroups,
   EventBody
 } from 'components/PostCard'
+import { chatUrlForActivityPost } from 'components/PostCard/ChatActivityCard'
 import ScrollListener from 'components/ScrollListener'
 import Comments from './Comments'
 import SocketSubscriber from 'components/SocketSubscriber'
@@ -28,7 +29,7 @@ import PeopleInfo from 'components/PostCard/PeopleInfo'
 import ProjectContributions from './ProjectContributions'
 import PostPeopleDialog from 'components/PostPeopleDialog'
 import useRouteParams from 'hooks/useRouteParams'
-import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
+import { useEffectiveGroupSlug, useGroupRouteOpts } from 'contexts/SpaceGroupContext'
 import fetchPost from 'store/actions/fetchPost'
 import joinProject from 'store/actions/joinProject'
 import leaveProject from 'store/actions/leaveProject'
@@ -76,6 +77,7 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
   const postId = routeParams.postId || getQuerystringParam('fromPostId', location)
   const { view } = routeParams
   const groupSlug = useEffectiveGroupSlug() || routeParams.groupSlug
+  const { parentGroupSlug } = useGroupRouteOpts()
   const commentId = getQuerystringParam('commentId', location) || routeParams.commentId
   const currentGroup = useSelector(state => getGroupForSlug(state, groupSlug))
   const hasTracksResponsibility = useSelector(state => currentGroup && hasResponsibilityForGroup(state, { groupId: currentGroup.id, responsibility: RESP_ADMINISTRATION }))
@@ -111,6 +113,11 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
 
   const activityHeader = useRef(null)
   const { t } = useTranslation()
+
+  useEffect(() => {
+    if (post?.type !== 'chat_activity') return
+    navigate(chatUrlForActivityPost(post, parentGroupSlug || groupSlug), { replace: true })
+  }, [groupSlug, navigate, parentGroupSlug, post])
 
   const postDetailCloseDestination = useMemo(() => {
     return post
@@ -491,7 +498,7 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
   const isEvent = useMemo(() => get('type', post) === 'event', [post])
 
   // TODO: if not in a group should show as flagged if flagged in any of my groups
-  const isFlagged = useMemo(() => post?.flaggedGroups && post.flaggedGroups.includes(currentGroup?.id), [post, currentGroup])
+  const isFlagged = useMemo(() => post?.flaggedGroups && post.flaggedGroups.some(id => String(id) === String(currentGroup?.id)), [post, currentGroup])
 
   const projectManagementTool = useMemo(() => {
     const m = post?.projectManagementLink ? post.projectManagementLink.match(/(asana|trello|airtable|clickup|confluence|teamwork|notion|wrike|zoho)/) : null
@@ -556,7 +563,7 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
           className={classes.header}
           post={post}
           routeParams={routeParams}
-          close={inPostDialog ? attemptClose : undefined}
+          close={isIsolatedPostView ? undefined : attemptClose}
           expanded
           isFlagged={isFlagged}
           hasImage={hasImage}
@@ -574,7 +581,7 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
               currentUser={currentUser}
               post={post}
               routeParams={routeParams}
-              close={inPostDialog ? attemptClose : undefined}
+              close={isIsolatedPostView ? undefined : attemptClose}
               isFlagged={isFlagged}
             />
           </div>

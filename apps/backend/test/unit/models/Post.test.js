@@ -322,6 +322,24 @@ describe('Post', function () {
         })
     })
 
+    it('creates activity for group members of a chat', () => {
+      const post = factories.post({user_id: u.id, type: Post.Type.CHAT})
+
+      return post.save()
+        .then(() => post.groups().attach(c.id))
+        .then(() => post.createActivities())
+        .then(() => Activity.where({post_id: post.id}).fetchAll())
+        .then(activities => {
+          expect(activities.length).to.equal(2)
+          expect(activities.pluck('reader_id').sort()).to.deep.equal([u2.id, u3.id].sort())
+          activities.forEach(activity => {
+            expect(activity.get('actor_id')).to.equal(u.id)
+            expect(activity.get('meta')).to.deep.equal({reasons: ['chat']})
+            expect(activity.get('unread')).to.equal(true)
+          })
+        })
+    })
+
     it('creates an activity for a tag follower', () => {
       const post = factories.post({
         user_id: u.id
@@ -612,7 +630,7 @@ describe('Post', function () {
       spyify(Queue, 'classMethod')
       const callOrder = []
       const postInstance = await Post.find(post.id)
-      
+
       postInstance.updateEventInvitees = spy(async () => {
         callOrder.push('updateEventInvitees')
       })
@@ -821,7 +839,7 @@ describe('Post', function () {
     it('calls all post methods in correct order when significant change occur', async () => {
       const callOrder = []
       const postInstance = await Post.find(post.id)
-      
+
       postInstance.updateEventInvitees = spy(async () => {
         callOrder.push('updateEventInvitees')
       })
@@ -934,7 +952,7 @@ describe('Post', function () {
     it('calls all post methods in correct order', async () => {
       const callOrder = []
       const postInstance = await Post.find(post.id)
-      
+
       postInstance.sendUserRsvps = spy(async () => {
         callOrder.push('sendUserRsvps')
       })
@@ -1040,7 +1058,7 @@ describe('Post', function () {
         group_id: space.id
       })
       await space.save({ track_id: track.id }, { patch: true })
-      await Group.setupSpaceViews(space.id, ['action'], ['about', 'track-actions', 'members'])
+      await Group.setupSpaceViews(space.id, ['action'], ['track-actions', 'members', 'welcome'])
       a1 = await factories.post({ type: Post.Type.ACTION, user_id: trackManager.id }).save()
       a2 = await factories.post({ type: Post.Type.ACTION, user_id: trackManager.id }).save()
       await a1.groups().attach(space)

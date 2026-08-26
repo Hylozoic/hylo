@@ -48,14 +48,14 @@ export default function AddViewOrSpaceMenu ({ onChooseView, onChooseSpace, canAd
   const { t } = useTranslation()
 
   const options = [
-    {
+    onChooseView && {
       key: 'view',
       Icon: LayoutGrid,
       title: t('Add View'),
       description: t('Show your group\'s content - activity streams, curated lists, links and other ways to surface what should be seen.'),
       onChoose: onChooseView
     },
-    canAddSpace && {
+    canAddSpace && onChooseSpace && {
       key: 'space',
       Icon: Layers,
       title: t('Add Space'),
@@ -65,7 +65,7 @@ export default function AddViewOrSpaceMenu ({ onChooseView, onChooseSpace, canAd
   ].filter(Boolean)
 
   return (
-    <DropdownMenu>
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
         {trigger || <AddCard label={t('Add')} />}
       </DropdownMenuTrigger>
@@ -74,8 +74,10 @@ export default function AddViewOrSpaceMenu ({ onChooseView, onChooseSpace, canAd
         // downward menu lands under the editing bar or off the bottom of the screen
         side='top'
         align='start'
+        // The mobile drawer is z-[101]; default menu content is z-50 and opens
+        // behind it. modal={false} keeps the same tap from dismissing instantly.
         className={cn(
-          'max-w-[calc(100vw-2rem)] p-1',
+          'z-[200] max-w-[calc(100vw-2rem)] p-1',
           // In the drill-down menu the trigger is a full-width row, so the menu
           // matches it rather than jutting out past the control that opened it.
           // The card-grid trigger is card-sized, where a fixed width reads better.

@@ -49,6 +49,7 @@ const TYPE = {
   Welcome: 'welcome', // a welcome post
   JoinRequest: 'joinRequest', // Someone asks to join a group
   ApprovedJoinRequest: 'approvedJoinRequest', // A request to join a group is approved
+  GroupInvitation: 'groupInvitation', // An existing Hylo user is invited to a group or space
   GroupChildGroupInvite: 'groupChildGroupInvite', // A child group is invited to join a parent group
   GroupChildGroupInviteAccepted: 'groupChildGroupInviteAccepted',
   GroupParentGroupJoinRequest: 'groupParentGroupJoinRequest', // A child group is requesting to join a parent group
@@ -171,6 +172,8 @@ module.exports = bookshelf.Model.extend({
         return this.sendGroupPeerGroupInviteAcceptedPush()
       case 'joinRequest':
         return this.sendJoinRequestPush()
+      case 'groupInvitation':
+        return this.sendGroupInvitationPush()
       case 'memberJoinedGroup':
         return this.sendMemberJoinedGroupPush()
       case 'mention':
@@ -244,7 +247,8 @@ module.exports = bookshelf.Model.extend({
     const track = this.track()
     const locale = this.locale()
     const path = routeToPath(Frontend.Route.track(track))
-    const alertText = PushNotification.textForTrackCompleted(track, this.actor(), locale)
+    const trackName = await track.displayName()
+    const alertText = PushNotification.textForTrackCompleted(trackName, this.actor(), locale)
     return this.reader().sendPushNotification(alertText, path)
   },
 
@@ -252,7 +256,8 @@ module.exports = bookshelf.Model.extend({
     const track = this.track()
     const locale = this.locale()
     const path = routeToPath(Frontend.Route.track(track))
-    const alertText = PushNotification.textForTrackEnrollment(track, this.actor(), locale)
+    const trackName = await track.displayName()
+    const alertText = PushNotification.textForTrackEnrollment(trackName, this.actor(), locale)
     return this.reader().sendPushNotification(alertText, path)
   },
 
@@ -301,16 +306,33 @@ module.exports = bookshelf.Model.extend({
     return reader.sendPushNotification(alertText, path)
   },
 
-  sendJoinRequestPush: function () {
-    const groupIds = Activity.groupIds(this.relations.activity)
+  sendJoinRequestPush: async function () {
+    const activity = this.relations.activity
     const locale = this.locale()
-    if (isEmpty(groupIds)) throw new Error('no group ids in activity')
-    return Group.find(groupIds[0])
-      .then(group => {
-        const path = routeToPath(Frontend.Route.groupJoinRequests(group))
-        const alertText = PushNotification.textForJoinRequest(group, this.actor(), locale)
-        return this.reader().sendPushNotification(alertText, path)
-      })
+    const groupId = activity.get('group_id')
+    if (!groupId) throw new Error('no group ids in activity')
+    const group = await Group.find(groupId)
+    const parentGroup = activity.get('other_group_id')
+      ? await activity.otherGroup().fetch()
+      : null
+    if (parentGroup) group.relations.parentGroup = parentGroup
+    const path = routeToPath(Frontend.Route.groupJoinRequests(group))
+    const alertText = PushNotification.textForJoinRequest(group, this.actor(), locale, parentGroup)
+    return this.reader().sendPushNotification(alertText, path)
+  },
+
+  sendGroupInvitationPush: async function () {
+    const activity = this.relations.activity
+    const locale = this.locale()
+    const groupId = activity.get('group_id')
+    if (!groupId) throw new Error('no group ids in activity')
+    const group = await Group.find(groupId)
+    const parentGroup = activity.get('other_group_id')
+      ? await activity.otherGroup().fetch()
+      : null
+    const path = routeToPath(Frontend.Route.myInvitations())
+    const alertText = PushNotification.textForGroupInvitation(group, this.actor(), locale, parentGroup)
+    return this.reader().sendPushNotification(alertText, path)
   },
 
   sendGroupChildGroupInvitePush: async function () {
@@ -722,27 +744,35 @@ module.exports = bookshelf.Model.extend({
   sendJoinRequestEmail: async function () {
     const actor = this.actor()
     const reader = this.reader()
-    const groupIds = Activity.groupIds(this.relations.activity)
+    const activity = this.relations.activity
     const locale = this.locale()
-    if (isEmpty(groupIds)) throw new Error('no group ids in activity')
+    const groupId = activity.get('group_id')
+    if (!groupId) throw new Error('no group ids in activity')
 
-    const group = await Group.find(groupIds[0])
+    const group = await Group.find(groupId)
+    const parentGroup = activity.get('other_group_id')
+      ? await activity.otherGroup().fetch()
+      : null
+    if (parentGroup) group.relations.parentGroup = parentGroup
+    const groupLabel = parentGroup
+      ? `${group.get('name')} in ${parentGroup.get('name')}`
+      : group.get('name')
 
     const clickthroughParams = '?' + new URLSearchParams({
       ctt: 'join_request_email',
       cti: reader.id,
-      ctcn: group.get('name'),
+      ctcn: groupLabel,
       check_join_requests: 1
     }).toString()
 
     return Email.sendJoinRequestNotification({
       email: reader.get('email'),
       locale,
-      sender: { name: senderNameViaHylo(group.get('name'), locale) },
+      sender: { name: senderNameViaHylo(groupLabel, locale) },
       data: {
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
         group_avatar_url: group.get('avatar_url'),
-        group_name: group.get('name'),
+        group_name: groupLabel,
         group_url: Frontend.Route.group(group) + clickthroughParams,
         join_question_answers: await GroupJoinQuestionAnswer.latestAnswersFor(group.id, actor.id),
         requester_name: actor.get('name'),
@@ -761,6 +791,9 @@ module.exports = bookshelf.Model.extend({
 
     if (isEmpty(groupIds)) throw new Error('no group ids in activity')
     const group = await Group.find(groupIds[0])
+    if (group.get('type') === 'space') {
+      await group.load(['parentGroup'])
+    }
 
     const clickthroughParams = '?' + new URLSearchParams({
       ctt: 'approved_join_request_email',
@@ -776,7 +809,7 @@ module.exports = bookshelf.Model.extend({
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
         group_avatar_url: group.get('avatar_url'),
         group_name: group.get('name'),
-        group_url: Frontend.Route.group(group) + clickthroughParams,
+        group_url: Frontend.Route.groupHome(group) + clickthroughParams,
         approver_name: actor.get('name'),
         approver_avatar_url: actor.get('avatar_url'),
         approver_profile_url: Frontend.Route.profile(actor) + clickthroughParams
@@ -1058,11 +1091,12 @@ module.exports = bookshelf.Model.extend({
     const actor = this.actor()
     const track = this.track()
     const locale = this.locale()
+    const trackName = await track.displayName()
 
     const clickthroughParams = '?' + new URLSearchParams({
       ctt: 'track_completed_email',
       cti: reader.id,
-      ctcn: track.get('name')
+      ctcn: trackName
     }).toString()
 
     return Email.sendTrackCompletedEmail({
@@ -1074,7 +1108,7 @@ module.exports = bookshelf.Model.extend({
         completer_name: actor.get('name'),
         completer_avatar_url: actor.get('avatar_url'),
         completer_profile_url: Frontend.Route.profile(actor) + clickthroughParams,
-        track_name: track.get('name'),
+        track_name: trackName,
         track_url: Frontend.Route.track(track) + clickthroughParams
       }
     })
@@ -1085,11 +1119,12 @@ module.exports = bookshelf.Model.extend({
     const actor = this.actor()
     const track = this.track()
     const locale = this.locale()
+    const trackName = await track.displayName()
 
     const clickthroughParams = '?' + new URLSearchParams({
       ctt: 'track_enrollment_email',
       cti: reader.id,
-      ctcn: track.get('name')
+      ctcn: trackName
     }).toString()
 
     return Email.sendTrackEnrollmentEmail({
@@ -1101,7 +1136,7 @@ module.exports = bookshelf.Model.extend({
         enrollee_name: actor.get('name'),
         enrollee_avatar_url: actor.get('avatar_url'),
         enrollee_profile_url: Frontend.Route.profile(actor) + clickthroughParams,
-        track_name: track.get('name'),
+        track_name: trackName,
         track_url: Frontend.Route.track(track) + clickthroughParams
       }
     })
@@ -1113,8 +1148,9 @@ module.exports = bookshelf.Model.extend({
     const actor = this.actor()
     const locale = this.locale()
     const group = await fundingRound.group().fetch({ withRelated: ['parentGroup'] })
+    const fundingRoundTitle = group ? group.get('name') : ''
     const path = routeToPath(Frontend.Route.fundingRound(fundingRound, group))
-    const alertText = PushNotification.textForFundingRoundNewSubmission(fundingRound, post, actor, locale)
+    const alertText = PushNotification.textForFundingRoundNewSubmission(fundingRoundTitle, post, actor, locale)
     return this.reader().sendPushNotification(alertText, path)
   },
 
@@ -1137,7 +1173,7 @@ module.exports = bookshelf.Model.extend({
       sender: { name: senderNameViaHylo(group.get('name'), locale) },
       data: {
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
-        funding_round_title: fundingRound.get('title'),
+        funding_round_title: group.get('name'),
         funding_round_url: Frontend.Route.fundingRound(fundingRound, group) + clickthroughParams,
         group_name: group.get('name'),
         group_avatar_url: group.get('avatar_url'),
@@ -1154,7 +1190,7 @@ module.exports = bookshelf.Model.extend({
     const path = routeToPath(Frontend.Route.fundingRound(fundingRound, group))
     const meta = this.relations.activity.get('meta')
     const phase = meta.phase
-    const alertText = PushNotification.textForFundingRoundPhaseTransition(fundingRound, phase, locale)
+    const alertText = PushNotification.textForFundingRoundPhaseTransition(group.get('name'), phase, locale)
     return this.reader().sendPushNotification(alertText, path)
   },
 
@@ -1178,7 +1214,7 @@ module.exports = bookshelf.Model.extend({
 
     const data = {
       email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
-      funding_round_title: fundingRound.get('title'),
+      funding_round_title: group.get('name'),
       funding_round_url: Frontend.Route.fundingRound(fundingRound, group) + clickthroughParams,
       group_name: group.get('name'),
       group_avatar_url: group.get('avatar_url')
@@ -1227,7 +1263,7 @@ module.exports = bookshelf.Model.extend({
     const path = routeToPath(Frontend.Route.fundingRound(fundingRound, group))
     const meta = this.relations.activity.get('meta')
     const reminderType = meta.reminderType
-    const alertText = PushNotification.textForFundingRoundReminder(fundingRound, reminderType, locale)
+    const alertText = PushNotification.textForFundingRoundReminder(group.get('name'), reminderType, locale)
     return this.reader().sendPushNotification(alertText, path)
   },
 
@@ -1254,7 +1290,7 @@ module.exports = bookshelf.Model.extend({
       sender: { name: senderNameViaHylo(group.get('name'), locale) },
       data: {
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
-        funding_round_title: fundingRound.get('title'),
+        funding_round_title: group.get('name'),
         funding_round_url: Frontend.Route.fundingRound(fundingRound, group) + clickthroughParams,
         group_name: group.get('name'),
         group_avatar_url: group.get('avatar_url'),
@@ -1306,8 +1342,12 @@ module.exports = bookshelf.Model.extend({
             ),
             topics: post?.relations?.tags?.map(t => refineOne(t, ['id', 'name'])) || []
           },
-          track: refineOne(track, ['id', 'name']),
-          fundingRound: refineOne(fundingRound, ['id', 'title'])
+          track: track
+            ? { id: String(track.id), space: { name: await track.displayName() } }
+            : null,
+          fundingRound: fundingRound
+            ? { id: String(fundingRound.id), group: { name: await fundingRound.displayName() } }
+            : null
         }
       )
     }
@@ -1408,7 +1448,7 @@ module.exports = bookshelf.Model.extend({
   priorityReason: function (reasons) {
     const orderedLabels = [
       'donation to', 'donation from', 'announcement', 'eventInvitation', 'mention', 'commentMention', 'newComment', 'newContribution', 'chat', 'tag',
-      'newPost', 'follow', 'followAdd', 'unfollow', 'postFulfilled', 'postUnfulfilled', 'joinRequest', 'approvedJoinRequest', 'groupChildGroupInviteAccepted', 'groupChildGroupInvite',
+      'newPost', 'follow', 'followAdd', 'unfollow', 'postFulfilled', 'postUnfulfilled', 'joinRequest', 'approvedJoinRequest', 'groupInvitation', 'groupChildGroupInviteAccepted', 'groupChildGroupInvite',
       'groupParentGroupJoinRequestAccepted', 'groupParentGroupJoinRequest', 'groupPeerGroupInviteAccepted', 'groupPeerGroupInvite', 'memberJoinedGroup', 'trackCompleted', 'trackEnrollment',
       'fundingRoundNewSubmission', 'fundingRoundPhaseTransition', 'fundingRoundReminder'
     ]
