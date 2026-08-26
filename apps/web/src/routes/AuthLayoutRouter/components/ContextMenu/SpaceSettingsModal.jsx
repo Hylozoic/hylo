@@ -2,14 +2,12 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
-import { Eye, EyeOff, ImagePlus } from 'lucide-react'
+import { ImagePlus } from 'lucide-react'
 
 import Button from 'components/ui/button'
 import { Input } from 'components/ui/input'
 import { Label } from 'components/ui/label'
 import { RadioGroup, RadioGroupItem } from 'components/ui/radio-group'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'components/ui/select'
-import HyloEditor from 'components/HyloEditor'
 import LucideIcon from 'components/LucideIcon/LucideIcon'
 import LucideIconPicker from 'components/LucideIconPicker/LucideIconPicker'
 import LocationInput from 'components/LocationInput/LocationInput'
@@ -30,6 +28,7 @@ import { cn } from 'util/index'
 
 import FundingRoundSettingsFields from './FundingRoundSettingsFields'
 import SpaceSlugField from './SpaceSlugField'
+import TrackSettingsFields from './TrackSettingsFields'
 import { SPACE_ICON_SUGGESTIONS, accessOptionsForGroup, accessValueForSpace, toIsoOrNull } from './spaceFormConstants'
 
 /* Same field chrome and label treatment as the group creation modal, so
@@ -57,7 +56,7 @@ function roleItems (g) {
 }
 
 /** Modal for editing an existing space's settings — same fields as AddSpaceDialog's creation form,
- * plus Track / Funding Round settings when the space is backed by either.
+ * including Track / Funding Round settings when the space is backed by either.
  * `parentGroup` is the containing group (never the space). `space` can be passed directly
  * (e.g. More Spaces) or taken from optional parent-menu `view.linkedGroup`. */
 export default function SpaceSettingsModal ({ space: spaceProp, view, parentGroup: parentGroupProp, onClose, inline = false }) {
@@ -216,11 +215,6 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
       </a>
     </li>
   ), [])
-
-  const selectedCompletionRole = useMemo(
-    () => (completionRole?.id ? roles.find(role => String(role.id) === String(completionRole.id)) : null),
-    [completionRole, roles]
-  )
 
   const handleSave = useCallback(async () => {
     if (!name.trim() || !space?.id || !parentGroup?.id) return
@@ -443,103 +437,21 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
         </div>
 
         {track?.id && (
-          <div className='flex flex-col gap-3 border-t-2 border-foreground/10 pt-3 mt-1'>
-            <h3 className='text-base font-semibold'>{t('Track Settings')}</h3>
-
-            <div className='flex flex-col relative border-2 border-transparent shadow-md transition-all duration-200 focus-within:border-2 group focus-within:border-focus bg-input rounded-tr-md rounded-br-md rounded-bl-md mb-2'>
-              <h3 className='px-2 py-1 text-xs text-foreground/60 absolute -top-[36px] -translate-x-[2px] bg-input rounded-t-md border-t-2 border-x-2 border-transparent border-b-0 group-focus-within:text-foreground/80 group-focus-within:border-t-focus group-focus-within:border-x-focus transition-colors duration-200'>
-                {t('Completion Message')}
-              </h3>
-              <HyloEditor
-                key={`${track.id}-${hasTrackSettings(track) ? 'full' : 'slim'}`}
-                containerClassName='mt-2'
-                contentHTML={track.completionMessage}
-                className='h-full p-2 border-border border-2 border-dashed min-h-20 mt-1'
-                extendedMenu
-                groupIds={[space.id]}
-                placeholder={t('This message will be shown to members who complete the track')}
-                ref={completionMessageEditorRef}
-                showMenu
-                type='trackCompletionMessage'
-              />
-            </div>
-
-            <div>
-              <label className={FIELD_LABEL_CLASS}>{t('Completion badge or role')}</label>
-              <div className='flex flex-row items-center relative p-1 border-transparent transition-all duration-200 group focus-within:border-focus mt-1'>
-                <Select
-                  onValueChange={(roleId) => {
-                    if (roleId === 'none') {
-                      setCompletionRole(null)
-                      return
-                    }
-                    const role = roles.find(r => String(r.id) === String(roleId))
-                    if (role) setCompletionRole(role)
-                  }}
-                  value={completionRole?.id ? String(completionRole.id) : 'none'}
-                >
-                  <SelectTrigger className='w-fit border-2 bg-input border-foreground/30 rounded-md p-2 text-base'>
-                    <SelectValue>
-                      {selectedCompletionRole ? `${selectedCompletionRole.emoji} ${selectedCompletionRole.name}` : t('None')}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent className='z-[1200]'>
-                    <SelectItem value='none'>{t('None')}</SelectItem>
-                    {roles.map((role) => (
-                      <SelectItem key={role.id} value={String(role.id)}>
-                        {role.emoji} {role.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
-              <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 focus-within:border-focus'>
-                <div className='text-xs text-foreground/50 w-[90px]'>{t('Unit term')}</div>
-                <input
-                  className='p-2 border-none bg-transparent w-full outline-none'
-                  maxLength='40'
-                  name='actionDescriptor'
-                  onChange={e => setActionDescriptor(e.target.value)}
-                  value={actionDescriptor}
-                  type='text'
-                />
-              </div>
-              <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 focus-within:border-focus'>
-                <div className='text-xs text-foreground/50 w-[90px]'>{t('Unit term plural')}</div>
-                <input
-                  className='p-2 border-none bg-transparent w-full outline-none'
-                  maxLength='40'
-                  name='actionDescriptorPlural'
-                  onChange={e => setActionDescriptorPlural(e.target.value)}
-                  value={actionDescriptorPlural}
-                  type='text'
-                />
-              </div>
-            </div>
-
-            <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
-              <div className='flex items-center gap-2'>
-                <button
-                  type='button'
-                  className={cn('p-2 rounded-md transition-colors', publishedAt ? 'bg-foreground/10' : 'bg-accent text-white')}
-                  onClick={() => setPublishedAt(null)}
-                >
-                  <EyeOff className='w-5 h-5' />
-                </button>
-                <button
-                  type='button'
-                  className={cn('p-2 rounded-md transition-colors', publishedAt ? 'bg-accent text-white' : 'bg-foreground/10')}
-                  onClick={() => setPublishedAt(new Date().toISOString())}
-                >
-                  <Eye className='w-5 h-5' />
-                </button>
-                <span>{publishedAt ? t('Published') : t('Unpublished')}</span>
-              </div>
-            </div>
-          </div>
+          <TrackSettingsFields
+            actionDescriptor={actionDescriptor}
+            setActionDescriptor={setActionDescriptor}
+            actionDescriptorPlural={actionDescriptorPlural}
+            setActionDescriptorPlural={setActionDescriptorPlural}
+            completionRole={completionRole}
+            setCompletionRole={setCompletionRole}
+            publishedAt={publishedAt}
+            setPublishedAt={setPublishedAt}
+            roles={roles}
+            completionMessageEditorRef={completionMessageEditorRef}
+            groupIds={[space.id]}
+            editorKey={`${track.id}-${hasTrackSettings(track) ? 'full' : 'slim'}`}
+            initialCompletionMessage={track.completionMessage}
+          />
         )}
 
         {fundingRound?.id && (

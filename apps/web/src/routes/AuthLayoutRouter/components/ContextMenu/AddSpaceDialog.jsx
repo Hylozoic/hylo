@@ -34,6 +34,7 @@ import { isOneColumnLayout } from 'util/navigationLayout'
 
 import FundingRoundSettingsFields from './FundingRoundSettingsFields'
 import SpaceSlugField from './SpaceSlugField'
+import TrackSettingsFields from './TrackSettingsFields'
 import { SPACE_ICON_SUGGESTIONS, accessOptionsForGroup, toIsoOrNull } from './spaceFormConstants'
 
 const STANDARD_VIEW_TYPES = new Set([
@@ -145,6 +146,13 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
   const [frSubmitterRoles, setFrSubmitterRoles] = useState([])
   const [frVoterRoles, setFrVoterRoles] = useState([])
   const frCriteriaEditorRef = useRef(null)
+
+  // Track settings (only used when creating a track space)
+  const [actionDescriptor, setActionDescriptor] = useState('Action')
+  const [actionDescriptorPlural, setActionDescriptorPlural] = useState('Actions')
+  const [completionRole, setCompletionRole] = useState(null)
+  const [trackPublishedAt, setTrackPublishedAt] = useState(null)
+  const completionMessageEditorRef = useRef(null)
 
   /** Switches space type and resets post types / included views / icon to that type's defaults. */
   const handleSpaceTypeChange = useCallback((value) => {
@@ -262,8 +270,11 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
       if (newSpace?.id && spaceType === 'track') {
         await dispatch(createTrack({
           groupId: newSpace.id,
-          actionDescriptor: 'Action',
-          actionDescriptorPlural: 'Actions'
+          actionDescriptor,
+          actionDescriptorPlural,
+          completionMessage: completionMessageEditorRef.current?.getHTML?.() || null,
+          completionRole,
+          publishedAt: trackPublishedAt ? new Date(trackPublishedAt) : null
         }))
       } else if (newSpace?.id && spaceType === 'funding-round') {
         await dispatch(createFundingRound({
@@ -372,7 +383,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
     } finally {
       setIsCreating(false)
     }
-  }, [dispatch, group?.id, name, slug, slugValid, description, icon, bannerUrl, purpose, locationObject, postTypes, access, requiredRoles, spaceType, orderedRows, standardViewTypes, welcomeExtras, onClose, onCreated, navigate, routerLocation.pathname, addToMenu, isOneColumn, frPublishedAt, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frAllowLateJoiners, frHideFinalResults, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles])
+  }, [dispatch, group?.id, name, slug, slugValid, description, icon, bannerUrl, purpose, locationObject, postTypes, access, requiredRoles, spaceType, orderedRows, standardViewTypes, welcomeExtras, onClose, onCreated, navigate, routerLocation.pathname, addToMenu, isOneColumn, actionDescriptor, actionDescriptorPlural, completionRole, trackPublishedAt, frPublishedAt, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frAllowLateJoiners, frHideFinalResults, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles])
 
   /** Closes the dialog when the dimmed overlay (not the panel) is clicked. */
   const handleBackdropClick = (event) => {
@@ -559,6 +570,23 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
               ))}
             </RadioGroup>
           </div>
+
+          {spaceType === 'track' && (
+            <TrackSettingsFields
+              actionDescriptor={actionDescriptor}
+              setActionDescriptor={setActionDescriptor}
+              actionDescriptorPlural={actionDescriptorPlural}
+              setActionDescriptorPlural={setActionDescriptorPlural}
+              completionRole={completionRole}
+              setCompletionRole={setCompletionRole}
+              publishedAt={trackPublishedAt}
+              setPublishedAt={setTrackPublishedAt}
+              roles={roles}
+              completionMessageEditorRef={completionMessageEditorRef}
+              groupIds={group?.id ? [group.id] : []}
+              editorKey='create'
+            />
+          )}
 
           {spaceType === 'funding-round' && (
             <FundingRoundSettingsFields
