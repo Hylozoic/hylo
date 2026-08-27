@@ -130,7 +130,7 @@ export default function CurrentlyActiveMembers ({
             <Link
               to={membersUrl}
               onClick={handleCountClick}
-              className={cn(countClass, !stacked && 'ml-2')}
+              className={countClass}
               aria-label={t('Members')}
             >
               {countInner}
@@ -141,7 +141,7 @@ export default function CurrentlyActiveMembers ({
               type='button'
               onClick={onCountClick}
               disabled={!interactive}
-              className={cn(countClass, !stacked && 'ml-2')}
+              className={countClass}
               aria-label={t('Members')}
             >
               {countInner}
