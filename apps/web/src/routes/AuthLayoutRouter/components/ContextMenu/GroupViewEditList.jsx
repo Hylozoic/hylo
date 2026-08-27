@@ -427,7 +427,7 @@ export default function GroupViewEditList ({ views, group, groupSlug, onSettings
       modifiers={[restrictToVerticalAxis]}
     >
       <SortableContext items={ids} strategy={verticalListSortingStrategy}>
-        <ul className='m-0 p-3 mb-2'>
+        <ul className='m-0 p-3 mb-2' data-tour='edit-menu-list'>
           {orderedViews.map((view, index) => {
             if (view.type === 'space') {
               return (

@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
 import useTour from 'tours/useTour'
 import { GROUP_CREATOR_TOUR_ID, GROUP_WELCOME_TOUR_ID, groupCreatorTourSteps, groupWelcomeTourSteps } from 'tours/groupTours'
+import { MENU_EDIT_TOUR_ID, menuEditTourSteps } from 'tours/menuEditTour'
 
 import {
   ALL_GROUPS_CONTEXT_SLUG,
@@ -571,7 +572,7 @@ function GroupViewList ({
           groupSlug={groupSlug}
           onSettings={onOpenSettings}
         />
-        <div className='px-1.5 pb-1.5 flex flex-col gap-1'>
+        <div className='px-1.5 pb-1.5 flex flex-col gap-1' data-tour='add-to-menu'>
           {/* One Add control opening the same view/space chooser the card grids use,
               rather than a button per kind. p-1 matches the Done Editing button height below */}
           <AddViewOrSpaceMenu
@@ -659,20 +660,33 @@ export default function ContextMenu (props) {
   )
   const profileUrl = personUrl(currentUser?.id, groupSlug)
 
-  // Guided first-visit tours: the creator of a brand-new group (sole member,
-  // administers) gets the steward tour; everyone else gets the member tour.
-  // Held until the group welcome modal (agreements / join questions) closes.
+  // Guided first-visit tours, offered via a floating invitation: the creator
+  // of a brand-new group (sole member, administers) gets the steward tour;
+  // everyone else gets the member tour. Held until the group welcome modal
+  // (agreements / join questions) closes. Two-column only — the card grid
+  // renders none of these anchors.
   const isNewlyCreatedGroup = canAdminister && group?.memberCount === 1
   const groupTourSteps = useMemo(
     () => isNewlyCreatedGroup ? groupCreatorTourSteps(t) : groupWelcomeTourSteps(t),
     [isNewlyCreatedGroup, t]
   )
-  useTour({
+  const { invitation: groupTourInvitation } = useTour({
     id: isNewlyCreatedGroup ? GROUP_CREATOR_TOUR_ID : GROUP_WELCOME_TOUR_ID,
     steps: groupTourSteps,
     autoStart: true,
-    enabled: isGroupContext && !!group?.id,
+    inviteMessage: isNewlyCreatedGroup
+      ? t('Your group is ready — want a quick tour?')
+      : t('New here? Take a quick tour of this group.'),
+    enabled: isGroupContext && !!group?.id && !isOneColumnLayout && !isEditing,
     blockedBySelectors: ['[data-testid="group-welcome-modal"]']
+  })
+  const menuEditSteps = useMemo(() => menuEditTourSteps(t), [t])
+  const { invitation: menuEditInvitation } = useTour({
+    id: MENU_EDIT_TOUR_ID,
+    steps: menuEditSteps,
+    autoStart: true,
+    inviteMessage: t('First time editing the menu? Take a quick tour.'),
+    enabled: isGroupContext && !!group?.id && !isOneColumnLayout && isEditing
   })
 
   const isNavOpen = useSelector(state => get('AuthLayoutRouter.isNavOpen', state))
@@ -876,6 +890,7 @@ export default function ContextMenu (props) {
         <MenuLink
           to={moreSpacesLink}
           isActive={isMoreSpacesPath}
+          data-tour='more-spaces'
           className='flex items-center gap-2 text-base font-medium text-foreground hover:text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 w-full transition-all opacity-85 hover:opacity-100'
         >
           <CircleEllipsis className='w-4 h-4 shrink-0' />
@@ -963,6 +978,8 @@ export default function ContextMenu (props) {
       onScroll={handleScroll}
       data-tour='group-menu'
     >
+      {groupTourInvitation}
+      {menuEditInvitation}
       {/* Fixed-position, so the menu's own overflow scrolling never clips it */}
       {!isPhoneDevice() && <ContextMenuResizer menuEl={menuRootEl} />}
       <div className={cn(

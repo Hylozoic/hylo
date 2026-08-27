@@ -536,7 +536,7 @@ export default function GlobalNav (props) {
   const { t } = useTranslation()
   const [helpOpen, setHelpOpen] = useState(false)
   const tourSteps = useMemo(() => globalChromeTourSteps(t), [t])
-  const { startTour } = useTour({ id: GLOBAL_CHROME_TOUR_ID, steps: tourSteps, autoStart: true })
+  const { startTour } = useTour({ id: GLOBAL_CHROME_TOUR_ID, steps: tourSteps, autoStart: true, mode: 'auto' })
   const handleTakeTour = useCallback(() => {
     setHelpOpen(false)
     // Let the popover finish closing before the overlay measures the anchors

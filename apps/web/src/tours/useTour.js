@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { driver } from 'driver.js'
 import 'driver.js/dist/driver.css'
 import './tours.css'
 import getMe from 'store/selectors/getMe'
 import updateUserSettings from 'store/actions/updateUserSettings'
+import TourInvitation from './TourInvitation'
 
 /**
  * Guided tours built on driver.js. Each tour is a short, contextual sequence of
@@ -19,6 +20,21 @@ import updateUserSettings from 'store/actions/updateUserSettings'
  */
 // Only one tour may run at a time; auto-starts wait for the active one to end
 let tourActive = false
+
+// …and only one invitation on screen at a time
+let inviteActive = false
+
+// A timed-out (ignored) invitation may offer itself again on a later visit,
+// but only so many times before staying quiet for good. Device-local on
+// purpose: politeness bookkeeping, not user data.
+const OFFER_LIMIT = 2
+const offerKey = id => `hylo-tour-offers:${id}`
+function offerCount (id) {
+  try { return Number(window.localStorage.getItem(offerKey(id))) || 0 } catch (e) { return 0 }
+}
+function bumpOfferCount (id) {
+  try { window.localStorage.setItem(offerKey(id), String(offerCount(id) + 1)) } catch (e) {}
+}
 
 // Present in the DOM is not enough: on phones the nav rail and group menu are
 // mounted but off-canvas, and highlighting an off-screen anchor floats the
@@ -45,6 +61,11 @@ export default function useTour ({
   steps,
   autoStart = false,
   autoStartDelay = 2000,
+  // 'invite' (default) offers a floating invitation first; 'auto' drives the
+  // tour directly and is reserved for the very first, blank-slate tour
+  mode = 'invite',
+  // Copy for the invitation, e.g. "Your group is ready — want a quick tour?"
+  inviteMessage,
   // Extra gate the caller computes (right context, data loaded, …)
   enabled = true,
   // Selectors that block auto-start while present (e.g. an open welcome modal)
@@ -99,11 +120,41 @@ export default function useTour ({
     return true
   }, [markSeen, steps])
 
+  const [inviteOpen, setInviteOpen] = useState(false)
+
+  // If the surface unmounts while its invitation is up, release the slot
+  useEffect(() => {
+    if (!inviteOpen) return
+    return () => { inviteActive = false }
+  }, [inviteOpen])
+
+  const closeInvite = useCallback(() => {
+    inviteActive = false
+    setInviteOpen(false)
+  }, [])
+
+  const acceptInvite = useCallback(() => {
+    closeInvite()
+    startTour()
+  }, [closeInvite, startTour])
+
+  const declineInvite = useCallback(() => {
+    closeInvite()
+    markSeen()
+  }, [closeInvite, markSeen])
+
+  const timeoutInvite = useCallback(() => {
+    closeInvite()
+    bumpOfferCount(id)
+  }, [closeInvite, id])
+
   useEffect(() => {
     if (!autoStart || !enabled || seen || !currentUser || signupInProgress) return
     // Automated browsers (Playwright/Selenium) skip auto-fire so the overlay
     // never intercepts unrelated tests; tour specs start tours explicitly
     if (typeof navigator !== 'undefined' && navigator.webdriver) return
+    // Ignored (timed-out) invitations only re-offer so many times
+    if (mode === 'invite' && offerCount(id) >= OFFER_LIMIT) return
     // Hold the countdown until the app is actually visible and free: the boot
     // loading screen (index.html) removes itself once its fade finishes, another
     // tour may be mid-run, and callers can name overlays (welcome modal) that
@@ -114,12 +165,22 @@ export default function useTour ({
     const clearToStart = () =>
       !document.getElementById('hylo-boot-loader') &&
       !tourActive &&
+      !inviteActive &&
       !blockedBySelectors.some(selector => document.querySelector(selector))
-    // startTour is a no-op while every anchor is off-screen (phone nav closed),
-    // so keep retrying quietly until the surface is actually visible
+    const anchorsAvailable = () =>
+      steps.some(step => !step.element || isAnchorVisible(document.querySelector(step.element)))
+    // Both paths are no-ops while every anchor is off-screen (phone nav
+    // closed), so keep retrying quietly until the surface is actually visible
     const attempt = () => {
       if (cancelled) return
-      if (!(clearToStart() && startTour())) {
+      if (mode === 'invite') {
+        if (clearToStart() && anchorsAvailable()) {
+          inviteActive = true
+          setInviteOpen(true)
+        } else {
+          timer = setTimeout(attempt, 1000)
+        }
+      } else if (!(clearToStart() && startTour())) {
         timer = setTimeout(attempt, 1000)
       }
     }
@@ -134,7 +195,7 @@ export default function useTour ({
       clearInterval(poll)
       clearTimeout(timer)
     }
-  }, [autoStart, enabled, seen, !!currentUser, signupInProgress, startTour, autoStartDelay])
+  }, [autoStart, enabled, seen, !!currentUser, signupInProgress, startTour, autoStartDelay, mode, id])
 
   useEffect(() => {
     return () => {
@@ -145,5 +206,16 @@ export default function useTour ({
     }
   }, [])
 
-  return { startTour, seen }
+  const invitation = inviteOpen
+    ? (
+      <TourInvitation
+        message={inviteMessage}
+        onAccept={acceptInvite}
+        onDecline={declineInvite}
+        onTimeout={timeoutInvite}
+      />
+      )
+    : null
+
+  return { startTour, seen, invitation }
 }
