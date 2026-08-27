@@ -130,6 +130,9 @@
         el.setAttribute('stroke-linecap', 'round')
         el.setAttribute('stroke-dasharray', e.len)
         el.setAttribute('stroke-dashoffset', e.len)
+        // A fully-offset dash still paints its round cap as a dot — keep the
+        // line hidden until it starts drawing (the React source returned null)
+        el.setAttribute('visibility', 'hidden')
         zoomG.appendChild(el)
         return el
       })
@@ -175,12 +178,14 @@
             sx = 1 + 0.13 * sq; sy = 1 - 0.13 * sq
           }
           var sc = 0.12 + 0.88 * outBack(p)
+          rings[i].setAttribute('visibility', p > 0 ? 'visible' : 'hidden')
           rings[i].setAttribute('opacity', clamp(p / 0.5, 0, 1))
           rings[i].setAttribute('transform', 'translate(' + x + ' ' + y + ') scale(' + (sx * sc) + ' ' + (sy * sc) + ')')
         }
         for (var k = 0; k < EDGES.length; k++) {
           var ed = EDGES[k]
           var ep = outQuart(clamp((t - (AT[ed.arrival] + EDGE_LEAD + ed.order * EDGE_STAGGER)) / EDGE_DUR, 0, 1))
+          lines[k].setAttribute('visibility', ep > 0 ? 'visible' : 'hidden')
           lines[k].setAttribute('stroke-dashoffset', ed.len * (1 - ep))
         }
         var wp = clamp((t - (CUES.Name + 0.25)) / 0.8, 0, 1)
@@ -194,18 +199,22 @@
           zoom = 1 + 0.30 * inOutSine(up)
         }
         zoomG.setAttribute('transform', 'translate(78 113) scale(' + zoom * 0.62 + ') translate(-78 -113)')
-        var minShow = reduced ? 0.3 : MIN_SHOW
+        // Reduced motion: the finished lockup still arrives with a gentle
+        // fade-in rather than popping in fully formed
+        var fadeIn = reduced ? inOutSine(clamp(T / 0.6, 0, 1)) : 1
+        var minShow = reduced ? 1.0 : MIN_SHOW
         if (readyFlag && T >= minShow && fadeStart == null) fadeStart = T
+        var fadeOut = 1
         if (fadeStart != null) {
-          var f = 1 - inOutSine(clamp((T - fadeStart) / FADE, 0, 1))
-          host.style.opacity = f
+          fadeOut = 1 - inOutSine(clamp((T - fadeStart) / FADE, 0, 1))
           host.style.pointerEvents = 'none'
           host.setAttribute('aria-hidden', 'true')
-          if (f <= 0) {
-            stopped = true
-            if (host.parentNode) host.parentNode.removeChild(host)
-            return
-          }
+        }
+        host.style.opacity = fadeIn * fadeOut
+        if (fadeStart != null && fadeOut <= 0) {
+          stopped = true
+          if (host.parentNode) host.parentNode.removeChild(host)
+          return
         }
         window.requestAnimationFrame(frame)
       }
