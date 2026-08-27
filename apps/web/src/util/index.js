@@ -61,3 +61,15 @@ export function parseApiDate (value) {
       : new Date(value)
   return Number.isNaN(date.getTime()) ? null : date
 }
+
+/** lastActiveAt within this window counts as currently active. */
+export const RECENTLY_ACTIVE_MS = 15 * 60 * 1000
+
+/**
+ * True when a person's lastActiveAt falls inside the currently-active window.
+ */
+export function isRecentlyActive (person, now = Date.now()) {
+  const date = parseApiDate(person?.lastActiveAt)
+  if (!date) return false
+  return now - date.getTime() < RECENTLY_ACTIVE_MS
+}

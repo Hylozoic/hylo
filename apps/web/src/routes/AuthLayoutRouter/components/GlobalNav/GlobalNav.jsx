@@ -148,6 +148,7 @@ function GlobalCreateMenu () {
   const dispatch = useDispatch()
   const location = useLocation()
   const [open, setOpen] = useState(false)
+  const compactLayout = isCompactLayoutDevice()
 
   const go = (path) => () => {
     setOpen(false)
@@ -162,7 +163,11 @@ function GlobalCreateMenu () {
           <PlusCircle className='w-7 h-7' />
         </div>
       </PopoverTrigger>
-      <PopoverContent side='right' align='end' className='w-[210px] p-1.5 rounded-xl'>
+      <PopoverContent
+        side={compactLayout ? 'top' : 'right'}
+        align={compactLayout ? 'center' : 'end'}
+        className='w-[210px] p-1.5 rounded-xl'
+      >
         <CreateMenuRow
           onClick={go(createGroupModalUrl(location))}
           tileClass='bg-[hsl(200_55%_45%)]'

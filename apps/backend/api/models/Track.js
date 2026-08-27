@@ -125,7 +125,6 @@ module.exports = bookshelf.Model.extend(Object.assign({
         num_actions: 0,
         num_people_enrolled: 0,
         num_people_completed: 0,
-        published_at: null,
         group_id: null
       }, { transacting: trx })
 
@@ -142,6 +141,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
           slug: `${sourceSpace.get('slug')}-copy-${Date.now()}`.slice(0, 40),
           access_code: accessCode,
           track_id: newTrack.id,
+          status: Group.Status.DRAFT,
           created_at: new Date(),
           num_members: 0,
           num_open_join_requests: 0
@@ -240,12 +240,13 @@ module.exports = bookshelf.Model.extend(Object.assign({
       if (!track || track.get('deactivated_at') !== null) {
         throw new GraphQLError('Track not found')
       }
-      if (!track.get('published_at')) {
-        throw new GraphQLError('Track is not published')
-      }
       const space = await track.group().fetch({ transacting: trx })
       if (!space) {
         throw new GraphQLError('Track space not found')
+      }
+      const status = space.get('status')
+      if (status === Group.Status.DRAFT || status === Group.Status.ARCHIVED) {
+        throw new GraphQLError('Track is not published')
       }
 
       let membership = await GroupMembership.forPair(userId, space, { includeInactive: true }).fetch({ transacting: trx })
@@ -328,7 +329,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     const space = await Group.find(track.get('group_id'), { transacting })
     if (!space) return
 
-    await space.save({ active: false }, { patch: true, transacting })
+    await space.save({ status: Group.Status.ARCHIVED }, { patch: true, transacting })
   },
 
   // When a post is deactivated, remove it from any track-actions collections and update num_actions

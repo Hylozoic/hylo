@@ -618,7 +618,7 @@ const DateTimePicker = React.forwardRef(({ locale: localeProp, defaultPopupValue
       clampPopoverToViewport(popoverContentRef.current)
       const wrapper = popoverContentRef.current?.parentElement
       if (wrapper && !observer) {
-        observer = new MutationObserver(runClamp)
+        observer = new window.MutationObserver(runClamp)
         observer.observe(wrapper, { attributes: true, attributeFilter: ['style'] })
       }
     }

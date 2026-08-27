@@ -20,7 +20,7 @@ import Tooltip from 'components/Tooltip'
 import PostCompletion from '../PostCompletion'
 import { getPostTypeIcon, PROPOSAL_STATUS_CASUAL, PROPOSAL_STATUS_COMPLETED } from 'store/models/Post'
 import { RESP_ADMINISTRATION, RESP_MANAGE_CONTENT } from 'store/constants'
-import { removePostFromUrl, editPostUrl, duplicatePostUrl, postUrl, groupUrl, personUrl, topicUrl, spaceUrl } from '@hylo/navigation'
+import { removePostFromUrl, editPostUrl, duplicatePostUrl, postUrl, groupUrl, personUrl, tagSearchUrl, spaceUrl } from '@hylo/navigation'
 import getMe from 'store/selectors/getMe'
 import deletePostAction from 'store/actions/deletePost'
 import removePostAction from 'store/actions/removePost'
@@ -535,7 +535,7 @@ export function TopicsLine ({ topics, slug, newLine }) {
       {topics.slice(0, 3).map(t =>
         <Link
           className='py:2 px-3 xs:px-2 flex items-center border rounded-md mt-2 ml-2 bg-white text-xs mr-3'
-          to={topicUrl(t.name, { groupSlug: slug })}
+          to={tagSearchUrl(t.name, { groupSlug: slug })}
           key={t.name}
         >
           #{t.name}

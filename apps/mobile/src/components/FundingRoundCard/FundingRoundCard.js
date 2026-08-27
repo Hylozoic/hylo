@@ -13,7 +13,7 @@ import { fundingRoundUrl } from '@hylo/navigation'
 
 // Get phase information for a funding round
 function getRoundPhase (round, t) {
-  if (!round?.publishedAt) {
+  if (round?.phase === 'draft' || round?.group?.status === 'draft' || round?.group?.status === 'archived') {
     return {
       key: 'draft',
       label: t('Draft'),

@@ -12,6 +12,7 @@ import {
   CREATE_MESSAGE,
   CREATE_MESSAGE_PENDING,
   CREATE_POST,
+  CREATE_MODERATION_ACTION,
   CREATE_MODERATION_ACTION_PENDING,
   CREATE_POST_PENDING,
   CREATE_PROJECT_PENDING,
@@ -518,7 +519,67 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
           post.update({ flaggedGroups: flaggedGroups || [meta?.data?.groupId] })
           post.update({ moderationActions: moderationActions || [meta?.data] })
         }
+
+        if (meta.tempId) {
+          const reporter = Me.first()
+          const actionGroup = Group.withId(meta.data.groupId)
+          const creator = post?.creator
+          session.ModerationAction.create({
+            id: meta.tempId,
+            postId: meta.data.postId,
+            groupId: meta.data.groupId,
+            status: 'active',
+            text: meta.data.text,
+            anonymous: meta.data.anonymous,
+            createdAt: new Date().toISOString(),
+            group: actionGroup
+              ? {
+                  id: actionGroup.id,
+                  name: actionGroup.name,
+                  slug: actionGroup.slug,
+                  avatarUrl: actionGroup.avatarUrl,
+                  icon: actionGroup.icon,
+                  type: actionGroup.type,
+                  parentId: actionGroup.parentId
+                }
+              : null,
+            post: post
+              ? {
+                  id: post.id,
+                  title: post.title,
+                  details: post.details,
+                  type: post.type,
+                  creator: creator
+                    ? { id: creator.id, name: creator.name, avatarUrl: creator.avatarUrl }
+                    : null,
+                  groups: [{ id: meta.data.groupId }],
+                  flaggedGroups: post.flaggedGroups
+                }
+              : { id: meta.data.postId },
+            reporter: reporter
+              ? { id: reporter.id, name: reporter.name, avatarUrl: reporter.avatarUrl }
+              : null,
+            agreements: (meta.data.agreements || []).map(id => {
+              const agreement = session.Agreement.withId(id)
+              return agreement
+                ? { id: agreement.id, description: agreement.description, order: agreement.order, title: agreement.title }
+                : { id }
+            }),
+            platformAgreements: (meta.data.platformAgreements || []).map(id => ({ id }))
+          })
+        }
       }
+      break
+    }
+
+    case CREATE_MODERATION_ACTION: {
+      const created = payload?.data?.createModerationAction
+      if (!created?.id || !meta.tempId || String(created.id) === String(meta.tempId)) break
+      const temp = session.ModerationAction.withId(meta.tempId)
+      if (!temp) break
+      const attrs = { ...temp.ref, id: created.id }
+      temp.delete()
+      session.ModerationAction.create(attrs)
       break
     }
 

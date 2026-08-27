@@ -1,9 +1,9 @@
+import { isPhoneDevice } from 'util/mobile'
+import { getPostDetailCloseDestination, memberGroupIdsFromMe, shouldUseSmartPostClose } from './postDetailCloseNavigation'
+
 jest.mock('util/mobile', () => ({
   isPhoneDevice: jest.fn(() => false)
 }))
-
-import { isPhoneDevice } from 'util/mobile'
-import { getPostDetailCloseDestination, memberGroupIdsFromMe, shouldUseSmartPostClose } from './postDetailCloseNavigation'
 
 function meWithGroups (groupIds) {
   return {

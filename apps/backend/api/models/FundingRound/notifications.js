@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-/* global FundingRound, Activity, Responsibility, bookshelf */
+/* global FundingRound, Activity, Responsibility, bookshelf, Group */
 import { DateTime } from 'luxon'
 
 /**
@@ -41,7 +41,9 @@ export const sendReminderNotifications = async () => {
     q.where('deactivated_at', null)
     q.whereNotNull('submissions_close_at')
     q.whereBetween('submissions_close_at', [threeDaysFromNowStart.toJSDate(), threeDaysFromNowEnd.toJSDate()])
-    q.whereNotNull('published_at')
+    q.join('groups', 'groups.id', 'funding_rounds.group_id')
+    q.whereIn('groups.status', Group.PUBLISHED_STATUSES)
+    q.where('groups.active', true)
   }).fetchAll({ withRelated: ['group', 'users'] })
 
   for (const round of submissionsClosing3Days.models) {
@@ -89,7 +91,9 @@ export const sendReminderNotifications = async () => {
     q.where('deactivated_at', null)
     q.whereNotNull('submissions_close_at')
     q.whereBetween('submissions_close_at', [oneDayFromNowStart.toJSDate(), oneDayFromNowEnd.toJSDate()])
-    q.whereNotNull('published_at')
+    q.join('groups', 'groups.id', 'funding_rounds.group_id')
+    q.whereIn('groups.status', Group.PUBLISHED_STATUSES)
+    q.where('groups.active', true)
   }).fetchAll({ withRelated: ['group', 'users'] })
 
   for (const round of submissionsClosing1Day.models) {
@@ -146,7 +150,9 @@ export const sendReminderNotifications = async () => {
     q.where('deactivated_at', null)
     q.whereNotNull('voting_closes_at')
     q.whereBetween('voting_closes_at', [threeDaysFromNowStart.toJSDate(), threeDaysFromNowEnd.toJSDate()])
-    q.whereNotNull('published_at')
+    q.join('groups', 'groups.id', 'funding_rounds.group_id')
+    q.whereIn('groups.status', Group.PUBLISHED_STATUSES)
+    q.where('groups.active', true)
   }).fetchAll({ withRelated: ['group', 'users'] })
 
   for (const round of votingClosing3Days.models) {
@@ -194,7 +200,9 @@ export const sendReminderNotifications = async () => {
     q.where('deactivated_at', null)
     q.whereNotNull('voting_closes_at')
     q.whereBetween('voting_closes_at', [oneDayFromNowStart.toJSDate(), oneDayFromNowEnd.toJSDate()])
-    q.whereNotNull('published_at')
+    q.join('groups', 'groups.id', 'funding_rounds.group_id')
+    q.whereIn('groups.status', Group.PUBLISHED_STATUSES)
+    q.where('groups.active', true)
   }).fetchAll({ withRelated: ['group', 'users'] })
 
   console.log('votingClosing1Day', votingClosing1Day.models.length)

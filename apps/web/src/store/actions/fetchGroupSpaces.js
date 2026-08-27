@@ -16,6 +16,7 @@ export default function fetchGroupSpaces (groupId) {
               name
               slug
               type
+              status
               parentId
               avatarUrl
               icon
@@ -44,6 +45,7 @@ export default function fetchGroupSpaces (groupId) {
               }
               active
               homeRoute
+              menuViewCount
               groupViews {
                 items {
                   id
@@ -80,13 +82,11 @@ export default function fetchGroupSpaces (groupId) {
                 id
                 actionDescriptor
                 actionDescriptorPlural
-                publishedAt
                 accessControlled
                 canAccess
               }
               fundingRound {
                 id
-                publishedAt
                 phase
                 submissionDescriptor
                 submissionDescriptorPlural

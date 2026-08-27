@@ -13,6 +13,7 @@ import {
   PUBLIC_CONTEXT_SLUG,
   groupUrl,
   localSpaceSlug,
+  spaceHomeUrl,
   spaceUrl,
   addQuerystringToPath,
   personUrl
@@ -124,6 +125,17 @@ function visibleSpaceMenuViews (spaceGroup, { includeManageRound = false, views 
   return spaceViews
 }
 
+/** On-menu view count: loaded views if present, otherwise Group.menuViewCount. */
+function knownMenuViewCount (spaceGroup, storeViews = [], nestedCount) {
+  if (storeViews.length > 0) {
+    return storeViews.filter(v => v.order != null).length
+  }
+  if (spaceGroup?.groupViews != null) {
+    return (spaceGroup.groupViews.items || []).filter(v => v.order != null).length
+  }
+  return Number(spaceGroup?.menuViewCount ?? nestedCount) || 0
+}
+
 /** Space row with an optional More link for off-menu space views (single-view spaces). */
 function SpaceMenuItemWithMore ({
   presentedView,
@@ -145,9 +157,11 @@ function SpaceMenuItemWithMore ({
 }) {
   const { t } = useTranslation()
   const spaceMoreSections = useMoreSpacesSections(resolvedSpaceGroup)
-  const spaceMoreCount = (spaceMoreSections?.trackSpaces?.length || 0) +
+  const spaceMoreCount = (spaceMoreSections?.draftSpaces?.length || 0) +
+    (spaceMoreSections?.trackSpaces?.length || 0) +
     (spaceMoreSections?.fundingRoundSpaces?.length || 0) +
-    (spaceMoreSections?.otherSpaces?.length || 0)
+    (spaceMoreSections?.otherSpaces?.length || 0) +
+    (spaceMoreSections?.archivedSpaces?.length || 0)
   const spaceMoreBadge = spaceMoreCount > 0
     ? (
       <span className='ml-auto shrink-0 text-xs leading-none text-foreground/50 bg-foreground/10 rounded-full px-1.5 py-1'>
@@ -377,14 +391,12 @@ function GroupViewMenuItem ({
     const showManageRound = Boolean(linkedSpaceGroup?.fundingRound?.id && canManageRound)
     // Filter with ORM acceptedPostTypes when available (space settings update that record).
     const resolvedSpaceGroup = spaceGroupFromStore || linkedSpaceGroup
-    const spaceViews = visibleSpaceMenuViews(
+    const viewCount = knownMenuViewCount(
       resolvedSpaceGroup,
-      { views: spaceViewsFromStore.length > 0 ? spaceViewsFromStore : null }
-    ).map(v => GroupViewPresenter(v))
-    const menuSpaceViews = showManageRound
-      ? [...spaceViews, GroupViewPresenter(MANAGE_ROUND_VIEW)]
-      : spaceViews
-    const singleSpaceView = menuSpaceViews.length === 1 ? menuSpaceViews[0] : null
+      spaceViewsFromStore,
+      linkedSpaceGroup?.menuViewCount
+    )
+    const menuCount = viewCount + (showManageRound ? 1 : 0)
     // Space badge = membership unread or pending join requests (same orange dot).
     const spaceMembership = linkedSpaceGroup &&
       myMemberships.find(m => String(m.group.id) === String(linkedSpaceGroup.id))
@@ -395,15 +407,19 @@ function GroupViewMenuItem ({
       0
     ) > 0
     const showSpaceDot = spaceUnread || spaceJoinRequests
-    // Single-view spaces open that view directly. Multi-view spaces open the
+    // Single-view spaces open homeRoute directly. Multi-view spaces open the
     // space menu: the drawer stays open on mobile, and the URL is the space
     // index so dismissing the drawer still shows that menu rather than home.
-    const drillIntoSpaceMenu = isSpaceMember && !singleSpaceView
+    // Unknown count (0) is not multi-view — treating it as drill-in kept the
+    // parent menu open on the first tap (URL changed, drawer stayed).
+    const drillIntoSpaceMenu = isSpaceMember && menuCount > 1
     const keepNavOpen = drillIntoSpaceMenu && isDrawerNavLayout()
-    const spaceLink = singleSpaceView && isSpaceMember
-      ? menuViewUrl(parentSlug, singleSpaceView, resolvedSpaceGroup)
+    const spaceLink = isSpaceMember && menuCount <= 1
+      ? spaceHomeUrl(parentSlug, resolvedSpaceGroup)
       : spaceEntryUrl(parentSlug, resolvedSpaceGroup)
-    const isSpaceActive = Boolean(
+    // No selected state in the drawer layout — the drawer closed when this
+    // space opened, so the highlight would be stale when it reopens.
+    const isSpaceActive = !isDrawerNavLayout() && Boolean(
       spaceSlug &&
       linkedSpaceGroup &&
       localSpaceSlug(parentSlug, linkedSpaceGroup.slug) === spaceSlug
@@ -455,7 +471,7 @@ function GroupViewMenuItem ({
   const isExternal = Boolean(externalHref)
   // The selected row reveals a postType-tinted icon-texture background,
   // mirroring the one-column dashboard cards.
-  const isRowActive = Boolean(!isExternal && url && (location.pathname === url || location.pathname.startsWith(`${url}/`)))
+  const isRowActive = !isDrawerNavLayout() && Boolean(!isExternal && url && (location.pathname === url || location.pathname.startsWith(`${url}/`)))
   const rowCol = viewCardColor(presentedView)
   const inviteGroup = spaceGroup || group
 
@@ -538,6 +554,7 @@ function GroupViewList ({
   onOpenSettings,
   canAdminister = false
 }) {
+  const { t } = useTranslation()
   const [showAddView, setShowAddView] = useState(false)
   const [showAddSpace, setShowAddSpace] = useState(false)
   // Spaces cannot nest spaces; Add Space is parent-menu only
@@ -556,7 +573,7 @@ function GroupViewList ({
           {/* One Add control opening the same view/space chooser the card grids use,
               rather than a button per kind. p-1 matches the Done Editing button height below */}
           <AddViewOrSpaceMenu
-            trigger={<AddViewOrSpaceButton className='p-1 pl-2' />}
+            trigger={<AddViewOrSpaceButton className='p-1 pl-2' label={t('Add to Menu')} />}
             onChooseView={() => setShowAddView(true)}
             onChooseSpace={() => setShowAddSpace(true)}
             canAddSpace={canAddSpace}
@@ -624,6 +641,12 @@ export default function ContextMenu (props) {
   // On More Spaces page, `?space=` selects a space in the sidebar without leaving the page.
   const spaceSlug = routeSpaceSlug || (isMoreSpacesPath ? getQuerystringParam('space', location) : null)
 
+  // Opening a space (or switching group) swaps the menu's whole content while the
+  // panel element persists — without this it presents the new menu mid-scroll.
+  useEffect(() => {
+    if (menuRootEl) menuRootEl.scrollTop = 0
+  }, [menuRootEl, groupSlug, spaceSlug])
+
   const isPublicContext = routeParams.context === PUBLIC_CONTEXT_SLUG
   const isMyContext = routeParams.context === MY_CONTEXT_SLUG
   const isAllContext = routeParams.context === ALL_GROUPS_CONTEXT_SLUG
@@ -681,11 +704,14 @@ export default function ContextMenu (props) {
   const spaceMenuViewsFromStore = useGroupViews(activeSpaceGroup)
   const activeSpaceHasMultipleViews = useMemo(() => {
     if (!activeSpaceGroup) return false
-    return visibleSpaceMenuViews(activeSpaceGroup, {
-      views: spaceMenuViewsFromStore.length > 0 ? spaceMenuViewsFromStore : null,
-      includeManageRound: Boolean(activeSpaceGroup?.fundingRound?.id && canAdminister)
-    }).length > 1
-  }, [activeSpaceGroup, spaceMenuViewsFromStore, canAdminister])
+    const viewCount = knownMenuViewCount(
+      activeSpaceGroup,
+      spaceMenuViewsFromStore,
+      linkedActiveSpaceGroup?.menuViewCount
+    )
+    const menuCount = viewCount + (activeSpaceGroup?.fundingRound?.id && canAdminister ? 1 : 0)
+    return menuCount > 1
+  }, [activeSpaceGroup, spaceMenuViewsFromStore, linkedActiveSpaceGroup, canAdminister])
   const showingSpaceMenu = Boolean(
     isGroupContext &&
     activeSpaceGroup &&
@@ -769,9 +795,11 @@ export default function ContextMenu (props) {
 
   // Footer More uses the space's off-menu items when drilled into a space menu.
   const footerMoreSections = showingSpaceMenu ? spaceMoreSpacesSections : moreSpacesSections
-  const moreSpacesCount = (footerMoreSections?.trackSpaces?.length || 0) +
+  const moreSpacesCount = (footerMoreSections?.draftSpaces?.length || 0) +
+    (footerMoreSections?.trackSpaces?.length || 0) +
     (footerMoreSections?.fundingRoundSpaces?.length || 0) +
-    (footerMoreSections?.otherSpaces?.length || 0)
+    (footerMoreSections?.otherSpaces?.length || 0) +
+    (footerMoreSections?.archivedSpaces?.length || 0)
   const moreSpacesBadge = moreSpacesCount > 0
     ? (
       <span className='ml-auto shrink-0 text-xs leading-none text-foreground/50 bg-foreground/10 rounded-full px-1.5 py-1'>

@@ -4,6 +4,7 @@ import { useDispatch } from 'react-redux'
 import { Link, useLocation } from 'react-router-dom'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import { cn } from 'util/index'
+import { isDrawerNavLayout } from 'util/mobile'
 
 /** Returns true when pathname matches the link target or a nested route under it. */
 function isPathActive (pathname, to) {
@@ -14,7 +15,9 @@ function isPathActive (pathname, to) {
 export default function MenuLink ({ badgeCount = null, to, children, onClick, externalLink, className, isEditing, isActive, style, onMouseEnter, onMouseLeave, keepNavOpen = false, ...rest }) {
   const dispatch = useDispatch()
   const location = useLocation()
-  const isCurrentLocation = isActive ?? isPathActive(location.pathname, to)
+  // In the drawer layout a tapped view replaces the menu entirely, so a row
+  // still wearing "selected" when the drawer reopens is stale, not wayfinding.
+  const isCurrentLocation = !isDrawerNavLayout() && (isActive ?? isPathActive(location.pathname, to))
 
   const handleClick = useCallback(() => {
     if (onClick) {

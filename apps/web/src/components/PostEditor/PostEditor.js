@@ -390,6 +390,7 @@ function PostEditorInner ({
       .map((m) => m.group)
       .filter((g) => {
         if (!g) return false
+        if (g.status === 'archived') return false
         // Filter out paywalled groups where user doesn't have access
         if (g.paywall && g.canAccess === false) {
           return false
@@ -397,7 +398,11 @@ function PostEditorInner ({
         return true
       })
 
-    if (currentGroup?.id && !groups.some(g => sameGroupId(g.id, currentGroup.id))) {
+    if (
+      currentGroup?.id &&
+      currentGroup.status !== 'archived' &&
+      !groups.some(g => sameGroupId(g.id, currentGroup.id))
+    ) {
       groups.push(currentGroup)
     }
 
@@ -1378,7 +1383,7 @@ function PostEditorInner ({
           onClick={handleToFieldContainerClick}
         >
           <div className='text-xs text-foreground/50 px-2'>{t('To')}</div>
-          <div className='border-foreground w-full'>
+          <div className='border-foreground w-full min-w-0'>
             <ToField
               options={toOptions}
               selected={selectedToOptions}

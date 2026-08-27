@@ -3,6 +3,8 @@ import ormReducer from './index'
 import toggleGroupTopicSubscribe from 'store/actions/toggleGroupTopicSubscribe'
 import {
   CREATE_MESSAGE,
+  CREATE_MODERATION_ACTION,
+  CREATE_MODERATION_ACTION_PENDING,
   DELETE_COMMENT_PENDING,
   DELETE_POST_PENDING,
   FETCH_FOR_GROUP_PENDING,
@@ -720,5 +722,65 @@ describe('on UPDATE_COMMENT_PENDING', () => {
     expect(comment.editedAt).toEqual(editedAt)
     expect(message.text).toEqual(theNewText)
     expect(message.editedAt).toEqual(editedAt)
+  })
+})
+
+describe('on CREATE_MODERATION_ACTION', () => {
+  const session = orm.session(orm.getEmptyState())
+  session.Me.create({ id: 'me-1', name: 'Reporter', avatarUrl: 'me.png' })
+  session.Person.create({ id: 'author-1', name: 'Author', avatarUrl: 'author.png' })
+  session.Group.create({ id: 'g1', name: 'Hylo', slug: 'hylo', type: null })
+  session.Agreement.create({ id: 'a1', title: 'Be kind', description: 'Please', order: 1 })
+  session.Post.create({
+    id: 'p1',
+    title: 'Hello',
+    details: 'World',
+    type: 'discussion',
+    creator: 'author-1',
+    flaggedGroups: []
+  })
+
+  const pendingAction = {
+    type: CREATE_MODERATION_ACTION_PENDING,
+    meta: {
+      tempId: 'temp-mod-1',
+      data: {
+        postId: 'p1',
+        groupId: 'g1',
+        text: 'This breaks an agreement',
+        anonymous: false,
+        agreements: ['a1'],
+        platformAgreements: ['plat-1']
+      }
+    }
+  }
+
+  it('creates a renderable optimistic moderation action', () => {
+    const newState = ormReducer(session.state, pendingAction)
+    const newSession = orm.session(newState)
+    const action = newSession.ModerationAction.withId('temp-mod-1')
+    expect(action.status).toEqual('active')
+    expect(action.text).toEqual('This breaks an agreement')
+    expect(action.reporter.name).toEqual('Reporter')
+    expect(action.post.title).toEqual('Hello')
+    expect(action.post.creator.name).toEqual('Author')
+    expect(action.group.slug).toEqual('hylo')
+    expect(action.agreements[0].title).toEqual('Be kind')
+    expect(action.platformAgreements[0].id).toEqual('plat-1')
+    expect(newSession.Post.withId('p1').flaggedGroups).toContain('g1')
+  })
+
+  it('replaces the temp id with the server id', () => {
+    const pendingState = ormReducer(session.state, pendingAction)
+    const newState = ormReducer(pendingState, {
+      type: CREATE_MODERATION_ACTION,
+      payload: { data: { createModerationAction: { id: 'real-9' } } },
+      meta: { tempId: 'temp-mod-1' }
+    })
+    const newSession = orm.session(newState)
+    expect(newSession.ModerationAction.idExists('temp-mod-1')).toBe(false)
+    const action = newSession.ModerationAction.withId('real-9')
+    expect(action.text).toEqual('This breaks an agreement')
+    expect(action.reporter.name).toEqual('Reporter')
   })
 })

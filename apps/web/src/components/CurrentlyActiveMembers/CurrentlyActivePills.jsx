@@ -1,23 +1,12 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { Tooltip, TooltipContent, TooltipTrigger } from 'components/ui/tooltip'
-import { bgImageStyle, cn, parseApiDate } from 'util/index'
+import { bgImageStyle, cn, isRecentlyActive } from 'util/index'
 
-/** lastActiveAt within this window counts as currently active. */
-export const RECENTLY_ACTIVE_MS = 15 * 60 * 1000
 /** Chat strip and the members page preview. */
 export const DEFAULT_ACTIVE_MAX = 5
 /** Sidebar / one-column menu strip — a bit more room than chat. */
 export const MENU_ACTIVE_MAX = 8
-
-/**
- * True when a person's lastActiveAt falls inside the currently-active window.
- */
-export function isRecentlyActive (person, now = Date.now()) {
-  const date = parseApiDate(person?.lastActiveAt)
-  if (!date) return false
-  return now - date.getTime() < RECENTLY_ACTIVE_MS
-}
 
 /**
  * Overlapping avatar strip for currently-active members. Newest on the left.

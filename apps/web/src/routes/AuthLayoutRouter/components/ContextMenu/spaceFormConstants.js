@@ -1,3 +1,4 @@
+import { BadgeCheck, CreditCard, DoorOpen, Lock, Users } from 'lucide-react'
 import { GROUP_ACCESSIBILITY, GROUP_VISIBILITY } from 'store/models/Group'
 
 /** Suggested icons covering common space archetypes (chat, circle, team, local group, etc). */
@@ -21,6 +22,7 @@ export const SPACE_ICON_SUGGESTIONS = [
 export const ACCESS_OPTIONS = [
   {
     value: 'open',
+    icon: DoorOpen,
     labelKey: 'Open',
     descKey: 'Anyone who can see this space can join it',
     visibility: GROUP_VISIBILITY.Public,
@@ -28,6 +30,7 @@ export const ACCESS_OPTIONS = [
   },
   {
     value: 'request',
+    icon: Lock,
     labelKey: 'Request to Join',
     descKey: 'Must be approved by a group host',
     visibility: GROUP_VISIBILITY.Public,
@@ -35,6 +38,7 @@ export const ACCESS_OPTIONS = [
   },
   {
     value: 'invite',
+    icon: Users,
     labelKey: 'Invite Only',
     descKey: 'Only people who are invited can join',
     visibility: GROUP_VISIBILITY.Hidden,
@@ -42,6 +46,7 @@ export const ACCESS_OPTIONS = [
   },
   {
     value: 'role',
+    icon: BadgeCheck,
     labelKey: 'Role Gated',
     descKey: 'Only members with the selected roles can join',
     visibility: GROUP_VISIBILITY.Hidden,
@@ -49,6 +54,7 @@ export const ACCESS_OPTIONS = [
   },
   {
     value: 'paid',
+    icon: CreditCard,
     labelKey: 'Paid',
     descKey: 'Anyone can see it, but must pay to join',
     visibility: GROUP_VISIBILITY.Protected,

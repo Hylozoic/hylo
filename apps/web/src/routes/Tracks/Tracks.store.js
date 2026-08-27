@@ -96,7 +96,6 @@ export function ormSessionReducer (
           completionMessage: createdTrack.completionMessage,
           completionRole: createdTrack.completionRole,
           description: createdTrack.description,
-          publishedAt: createdTrack.publishedAt,
           welcomeMessage: createdTrack.welcomeMessage
         }
       })

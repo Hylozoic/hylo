@@ -5,17 +5,14 @@ import { useDispatch, useSelector } from 'react-redux'
 import { Link, useNavigate } from 'react-router-dom'
 
 import InviteMembersDialog from 'components/InviteMembersDialog/InviteMembersDialog'
-import CurrentlyActivePills, {
-  DEFAULT_ACTIVE_MAX,
-  isRecentlyActive
-} from './CurrentlyActivePills'
+import CurrentlyActivePills, { DEFAULT_ACTIVE_MAX } from './CurrentlyActivePills'
 import { personUrl } from '@hylo/navigation'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import {
   fetchRecentlyActiveMembers,
   getRecentlyActiveMembers
 } from 'routes/Members/Members.store'
-import { cn } from 'util/index'
+import { cn, isRecentlyActive } from 'util/index'
 
 /**
  * Currently-active members widget: overlapping avatars, a count pill that opens
@@ -42,24 +39,28 @@ export default function CurrentlyActiveMembers ({
   const slug = group?.slug
   const countSlug = profileGroupSlug || slug
 
-  const fetched = useSelector(state => getRecentlyActiveMembers(state, { slug, first: max }))
+  // One more than the strip shows: the (max+1)-th person carries the overflow signal.
+  const fetched = useSelector(state => getRecentlyActiveMembers(state, { slug, first: max + 1 }))
 
   useEffect(() => {
     if (!slug) return
-    dispatch(fetchRecentlyActiveMembers({ slug, first: max }))
+    dispatch(fetchRecentlyActiveMembers({ slug, first: max + 1 }))
   }, [dispatch, slug, max])
 
   // The API already returns the N most recently active people, and the strip
   // shows all of them so the widget is never empty. Who is actually online is
-  // carried by the green dots on the avatars and on the count pill.
+  // carried by the green dots on the avatars themselves.
   const activeMembers = useMemo(
     () => (fetched || []).slice(0, max),
     [fetched, max]
   )
-  const anyOnline = useMemo(
-    () => activeMembers.some(m => isRecentlyActive(m)),
-    [activeMembers]
-  )
+  // The pill's dot is an overflow indicator: someone online who got pushed off
+  // the visible strip. Online people are by definition the most recently active,
+  // so the (max+1)-th person being online means more are online than fit.
+  const onlineOverflow = useMemo(() => {
+    const next = (fetched || [])[max]
+    return Boolean(next && isRecentlyActive(next))
+  }, [fetched, max])
 
   /**
    * Opens a member profile and closes the mobile drawer so the profile is visible.
@@ -110,7 +111,7 @@ export default function CurrentlyActiveMembers ({
     <>
       <Users className='w-3.5 h-3.5' />
       {group.memberCount != null && <span>{group.memberCount}</span>}
-      {anyOnline && <span className='w-[7px] h-[7px] rounded-full bg-green-500' aria-hidden='true' />}
+      {onlineOverflow && <span className='w-[7px] h-[7px] rounded-full bg-green-500' aria-hidden='true' />}
     </>
   )
   const countClass = cn(
@@ -129,7 +130,7 @@ export default function CurrentlyActiveMembers ({
             <Link
               to={membersUrl}
               onClick={handleCountClick}
-              className={cn(countClass, !stacked && 'ml-2')}
+              className={countClass}
               aria-label={t('Members')}
             >
               {countInner}
@@ -140,7 +141,7 @@ export default function CurrentlyActiveMembers ({
               type='button'
               onClick={onCountClick}
               disabled={!interactive}
-              className={cn(countClass, !stacked && 'ml-2')}
+              className={countClass}
               aria-label={t('Members')}
             >
               {countInner}
@@ -159,7 +160,16 @@ export default function CurrentlyActiveMembers ({
       )}
       onClick={rowOpensDirectory ? handleRowClick : undefined}
     >
-      <div className={cn('min-w-0 overflow-hidden', stacked ? 'w-full flex justify-center' : 'flex-1')}>
+      <div
+        className={cn(
+          'min-w-0 overflow-hidden',
+          stacked
+            ? 'w-full flex justify-center'
+            // Mask instead of a painted gradient so the fade-out works over any
+            // row background; content short of the edge is unaffected.
+            : 'flex-1 [mask-image:linear-gradient(to_right,black_calc(100%-28px),transparent)]'
+        )}
+      >
         <CurrentlyActivePills
           members={activeMembers}
           max={max}

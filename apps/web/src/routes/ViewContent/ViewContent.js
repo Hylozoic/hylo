@@ -7,8 +7,27 @@ import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
 import { Routes, Route, useLocation } from 'react-router-dom'
 import { push } from 'redux-first-history'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  MouseSensor,
+  TouchSensor,
+  useSensor,
+  useSensors
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  rectSortingStrategy,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 import { COMMON_VIEWS } from 'store/models/GroupView'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
+import CollectionDragHandle from 'components/CollectionDragHandle'
 import Loading from 'components/Loading'
 import NoPosts from 'components/NoPosts'
 import { DateTimeHelpers } from '@hylo/shared'
@@ -40,8 +59,9 @@ import fetchGroupTopic from 'store/actions/fetchGroupTopic'
 import fetchTopic from 'store/actions/fetchTopic'
 import fetchPosts from 'store/actions/fetchPosts'
 import fetchViewPinnedPosts from 'store/actions/fetchViewPinnedPosts'
+import { reorderViewPost } from 'store/actions/groupViews'
 // import toggleGroupTopicSubscribe from 'store/actions/toggleGroupTopicSubscribe'
-import { FETCH_POSTS, FETCH_TOPIC, FETCH_GROUP_TOPIC, CONTEXT_MY, VIEW_MENTIONS, VIEW_ANNOUNCEMENTS, VIEW_INTERACTIONS, VIEW_POSTS, VIEW_SAVED_POSTS, VIEW_DRAFTS, RESP_MANAGE_CONTENT } from 'store/constants'
+import { FETCH_POSTS, FETCH_TOPIC, FETCH_GROUP_TOPIC, CONTEXT_MY, VIEW_MENTIONS, VIEW_ANNOUNCEMENTS, VIEW_INTERACTIONS, VIEW_POSTS, VIEW_SAVED_POSTS, VIEW_DRAFTS, RESP_ADMINISTRATION, RESP_MANAGE_CONTENT } from 'store/constants'
 import presentPost from 'store/presenters/presentPost'
 import { makeDropQueryResults } from 'store/reducers/queryResults'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
@@ -70,6 +90,9 @@ const viewComponent = {
 }
 
 const dropPostResults = makeDropQueryResults(FETCH_POSTS)
+
+const MOUSE_ACTIVATION = { distance: 5 }
+const TOUCH_ACTIVATION = { delay: 180, tolerance: 8 }
 
 /** Maps a custom/collection GroupView into the stream config shape ViewContent expects. */
 function streamConfigFromGroupView (groupView) {
@@ -159,6 +182,10 @@ export default function ViewContent (props) {
 
   const pinnableView = useCurrentPinnableView()
   const canModerateContent = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_MANAGE_CONTENT, groupId: group?.id }))
+  const canManageCollection = useSelector(state => hasResponsibilityForGroup(state, {
+    responsibility: [RESP_ADMINISTRATION, RESP_MANAGE_CONTENT],
+    groupId: group?.id
+  }))
 
   useEffect(() => {
     if (!group?.id || !pinnableView?.id) return
@@ -196,7 +223,8 @@ export default function ViewContent (props) {
   const configuredViewMode = querystringParams.v || streamViewConfig?.defaultViewMode || defaultViewMode
   const viewMode = configuredViewMode === 'map' ? 'cards' : configuredViewMode
   const isCalendarViewMode = viewMode === 'calendar'
-  let sortBy = querystringParams.s || streamViewConfig?.defaultSort || defaultSortBy
+  const collectionDefaultSort = streamViewConfig?.type === 'collection' ? 'order' : defaultSortBy
+  let sortBy = querystringParams.s || streamViewConfig?.defaultSort || collectionDefaultSort
   if (!streamViewConfig && sortBy === 'order') {
     sortBy = 'updated'
   }
@@ -373,6 +401,8 @@ export default function ViewContent (props) {
   // ORM-backed fields (creator avatar) stay intact after an optimistic pin.
   const streamPosts = useMemo(() => {
     if (isCalendarViewMode) return posts
+    // Manual collection order is the source of truth; don't lift pins above it.
+    if (streamViewConfig?.type === 'collection' && sortBy === 'order') return posts
     const order = (pinnableView?.pinnedPostIds || []).map(id => String(id))
     if (order.length === 0 && pinnedPosts.length === 0) return posts
     const ids = order.length ? order : pinnedPosts.map(p => String(p.id))
@@ -381,9 +411,43 @@ export default function ViewContent (props) {
     const top = ids.map(id => feedById.get(id) || pinById.get(id)).filter(Boolean)
     const topIds = new Set(top.map(p => String(p.id)))
     return [...top, ...posts.filter(p => !topIds.has(String(p.id)))]
-  }, [isCalendarViewMode, pinnableView?.pinnedPostIds, pinnedPosts, posts])
+  }, [isCalendarViewMode, pinnableView?.pinnedPostIds, pinnedPosts, posts, sortBy, streamViewConfig?.type])
   const hasMore = useSelector(state => getHasMorePosts(state, fetchPostsParam))
   const pending = useSelector(state => state.pending[FETCH_POSTS])
+
+  const collectionSensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: MOUSE_ACTIVATION }),
+    useSensor(TouchSensor, { activationConstraint: TOUCH_ACTIVATION }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
+
+  const canReorderCollection = Boolean(
+    streamViewConfig?.type === 'collection' &&
+    streamViewConfig?.collectionId &&
+    group?.id &&
+    canManageCollection &&
+    sortBy === 'order' &&
+    !isCalendarViewMode &&
+    !search &&
+    !postTypeFilter &&
+    streamPosts.length > 1
+  )
+  const isGridCollectionView = viewMode === 'grid' || viewMode === 'bigGrid'
+
+  const handleCollectionDragEnd = useCallback((event) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const viewId = streamViewConfig?.collectionId
+    if (!viewId || !group?.id) return
+    const overIndex = over.data.current?.sortable?.index
+    if (overIndex == null) return
+    dispatch(reorderViewPost({
+      groupId: group.id,
+      viewId,
+      postId: active.id,
+      order: overIndex
+    }))
+  }, [dispatch, group?.id, streamViewConfig?.collectionId])
 
   const fetchPostsFrom = useCallback((offset) => {
     if (pending && offset > 0) return
@@ -682,40 +746,24 @@ export default function ViewContent (props) {
                 </div>
               )}
               {!isCalendarViewMode && (
-                <MasonryGrid
-                  enabled={viewMode === 'grid' || viewMode === 'bigGrid'}
-                  gap={8}
-                  className={cn(
-                    'my-[5px] mx-auto overflow-visible w-full',
-                    viewMode === 'grid' && 'grid grid-cols-2 min-[426px]:grid-cols-3 items-start gap-x-2 p-2',
-                    viewMode === 'bigGrid' && 'grid grid-cols-2 items-start gap-x-2 p-2',
-                    viewMode === 'list' && streamPosts.length > 0 && 'border-2 border-foreground/10 rounded-md bg-card overflow-hidden',
-                    showEmptyStream && 'flex-1 flex flex-col justify-center'
-                  )}
-                >
-
-                  {showEmptyStream ? <NoPosts message={noPostsMessage} actionLabel={hasPostPrompt ? t('Create something') : null} onAction={createFromEmpty} /> : ''}
-
-                  {streamPosts.map(post => {
-                    const ViewComponent = post.type === 'chat_activity'
-                      ? ChatActivityCard
-                      : viewComponent[viewMode]
-                    return (
-                      <ViewComponent
-                        className={cn(viewMode === 'cards' && 'max-[425px]:mx-[5px] max-[425px]:mb-2.5')}
-                        routeParams={routeParams}
-                        post={post}
-                        group={group}
-                        key={post.id}
-                        currentGroupId={group && group.id}
-                        currentUser={currentUser}
-                        querystringParams={querystringParams}
-                        childPost={isChildGroupPost({ context, groupSlug, post })}
-                        childPostFromSpace={isChildSpacePost({ context, groupSlug, post })}
-                      />
-                    )
-                  })}
-                </MasonryGrid>
+                <CollectionPostsGrid
+                  canReorder={canReorderCollection}
+                  sensors={collectionSensors}
+                  isGridView={isGridCollectionView}
+                  onDragEnd={handleCollectionDragEnd}
+                  streamPosts={streamPosts}
+                  viewMode={viewMode}
+                  showEmptyStream={showEmptyStream}
+                  noPostsMessage={noPostsMessage}
+                  hasPostPrompt={hasPostPrompt}
+                  onCreateFromEmpty={createFromEmpty}
+                  routeParams={routeParams}
+                  group={group}
+                  currentUser={currentUser}
+                  querystringParams={querystringParams}
+                  context={context}
+                  groupSlug={groupSlug}
+                />
               )}
               {showCalendar && (
                 <div className='calendarView'>
@@ -758,6 +806,122 @@ export default function ViewContent (props) {
             </>
             )}
       </div>
+    </div>
+  )
+}
+
+/** Stream/grid/list of collection posts, with optional handle-only reorder. */
+function CollectionPostsGrid ({
+  canReorder,
+  sensors,
+  isGridView,
+  onDragEnd,
+  streamPosts,
+  viewMode,
+  showEmptyStream,
+  noPostsMessage,
+  hasPostPrompt,
+  onCreateFromEmpty,
+  routeParams,
+  group,
+  currentUser,
+  querystringParams,
+  context,
+  groupSlug
+}) {
+  const { t } = useTranslation()
+  const gridClassName = cn(
+    'my-[5px] mx-auto overflow-visible w-full',
+    viewMode === 'grid' && 'grid grid-cols-2 min-[426px]:grid-cols-3 items-start gap-x-2 p-2',
+    viewMode === 'bigGrid' && 'grid grid-cols-2 items-start gap-x-2 p-2',
+    viewMode === 'list' && streamPosts.length > 0 && 'border-2 border-foreground/10 rounded-md bg-card overflow-hidden',
+    showEmptyStream && 'flex-1 flex flex-col justify-center'
+  )
+
+  const postItems = streamPosts.map(post => {
+    const ViewComponent = post.type === 'chat_activity'
+      ? ChatActivityCard
+      : viewComponent[viewMode]
+    const card = (
+      <ViewComponent
+        className={cn(viewMode === 'cards' && 'max-[425px]:mx-[5px] max-[425px]:mb-2.5')}
+        routeParams={routeParams}
+        post={post}
+        group={group}
+        currentGroupId={group && group.id}
+        currentUser={currentUser}
+        querystringParams={querystringParams}
+        childPost={isChildGroupPost({ context, groupSlug, post })}
+        childPostFromSpace={isChildSpacePost({ context, groupSlug, post })}
+      />
+    )
+
+    if (!canReorder) {
+      return <React.Fragment key={post.id}>{card}</React.Fragment>
+    }
+
+    return (
+      <SortableCollectionPost key={post.id} id={post.id}>
+        {card}
+      </SortableCollectionPost>
+    )
+  })
+
+  const grid = (
+    <MasonryGrid
+      enabled={viewMode === 'grid' || viewMode === 'bigGrid'}
+      gap={8}
+      className={gridClassName}
+    >
+      {showEmptyStream ? <NoPosts message={noPostsMessage} actionLabel={hasPostPrompt ? t('Create something') : null} onAction={onCreateFromEmpty} /> : ''}
+      {postItems}
+    </MasonryGrid>
+  )
+
+  if (!canReorder) return grid
+
+  return (
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      modifiers={isGridView ? undefined : [restrictToVerticalAxis]}
+      onDragEnd={onDragEnd}
+    >
+      <SortableContext
+        items={streamPosts.map(post => post.id)}
+        strategy={isGridView ? rectSortingStrategy : verticalListSortingStrategy}
+      >
+        {grid}
+      </SortableContext>
+    </DndContext>
+  )
+}
+
+/** Positions a hover-revealed drag handle over a collection post. */
+function SortableCollectionPost ({ id, children }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform && { ...transform, scaleY: 1 }),
+    transition,
+    opacity: isDragging ? 0.4 : 1
+  }
+
+  return (
+    <div ref={setNodeRef} style={style} className='relative group'>
+      {children}
+      <CollectionDragHandle
+        attributes={attributes}
+        listeners={listeners}
+        className='absolute left-1 top-2 z-20'
+      />
     </div>
   )
 }

@@ -746,11 +746,11 @@ export default function AuthLayoutRouter (props) {
     return () => clearTimeout(timeoutId)
   }, [currentUserLoading, membershipGroupIdsKey, memberships.length, dispatch])
 
-  // Scroll to top of center column when context, groupSlug, or view changes (from `pathMatchParams`)
+  // Scroll to top of center column when context, groupSlug, space, or view changes (from `pathMatchParams`)
   useEffect(() => {
     const centerColumn = document.getElementById(CENTER_COLUMN_ID)
     if (centerColumn) centerColumn.scrollTop = 0
-  }, [pathMatchParams?.context, pathMatchParams?.groupSlug, pathMatchParams?.view])
+  }, [pathMatchParams?.context, pathMatchParams?.groupSlug, pathMatchParams?.spaceSlug, pathMatchParams?.view])
 
   // Show a toast notification once when a new app version is detected
   useEffect(() => {
@@ -1094,9 +1094,11 @@ export default function AuthLayoutRouter (props) {
                   element={
                     /* When viewing a group, check membership first before rendering any group routes.
                        Skip the loading gate for post-detail URLs so PostDetail can render immediately
-                       (post may be pre-fetched during bootstrap). Otherwise show route-shaped skeletons
+                       (post may be pre-fetched during bootstrap). Skip it for invite/join query params
+                       too: fetchForGroup has no accessCode, so hidden/protected groups stay "loading"
+                       until GroupDetail runs GroupDetailsQuery. Otherwise show route-shaped skeletons
                        instead of a bare spinner. */
-                    currentGroupLoading && !paramPostId
+                    currentGroupLoading && !paramPostId && !groupInviteBypass
                       ? <RouteBootstrapSkeleton />
                       : currentGroupSlug && !currentGroupMembership
                         ? <GroupDetail context='groups' group={currentGroup} />
@@ -1118,7 +1120,7 @@ export default function AuthLayoutRouter (props) {
                             <Route path='custom/:customViewId/*' element={<ViewContent context='groups' view='custom' />} />
                             <Route path='collection/:customViewId/*' element={<ViewContent context='groups' view='collection' />} />
                             <Route path='space-collection/:viewId/*' element={<SpaceCollection group={currentGroup} />} />
-                            <Route path='groups/*' element={<Navigate to='about/related-groups' replace />} />
+                            <Route path='groups/*' element={<Navigate to={`/groups/${currentGroupSlug}/about/related-groups`} replace />} />
                             <Route path='members/create/*' element={<Members context='groups' />} />
                             <Route path='members/:personId/*' element={<MemberProfile context='groups' />} />
                             <Route path='members/*' element={<Members context='groups' />} />
@@ -1139,7 +1141,7 @@ export default function AuthLayoutRouter (props) {
                               }
                             />
                             {!isOneColumnGroup && <Route path={POST_DETAIL_MATCH} element={<PostDetail />} />}
-                            <Route path='moderation/*' element={<Navigate to='about/moderation' replace />} />
+                            <Route path='moderation/*' element={<Navigate to={`/groups/${currentGroupSlug}/about/moderation`} replace />} />
                             {/* Legacy All Views / Tracks / Funding Rounds / All Topics → More Spaces */}
                             <Route path='all-views/*' element={<Navigate to={`/groups/${currentGroupSlug}/more-spaces`} replace />} />
                             <Route path='tracks/*' element={<Navigate to={`/groups/${currentGroupSlug}/more-spaces`} replace />} />

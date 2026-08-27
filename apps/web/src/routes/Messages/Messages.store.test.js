@@ -155,10 +155,12 @@ describe('fetchMessages', () => {
 describe('createMessage', () => {
   const messageThreadId = '1'
   const text = 'hey you'
-  const action = createMessage(messageThreadId, text)
+  const attachments = [{ attachmentType: 'image', url: 'https://example.com/a.png' }]
+  const action = createMessage(messageThreadId, text, false, attachments)
   it('uses messageThreadId and text as variables in the graphql mutation', () => {
     expect(action.graphql.variables.messageThreadId).toEqual(messageThreadId)
     expect(action.graphql.variables.text).toEqual(text)
+    expect(action.graphql.variables.attachments).toEqual(attachments)
   })
   it('behaves optimistically and generates a temp id for each message namespaced to the thread', () => {
     expect(action.meta.optimistic).toBeTruthy()
@@ -175,6 +177,8 @@ describe('createMessage', () => {
   })
   it('passes the message text as metadata', () => {
     expect(action.meta.messageText).toEqual('hey you')
+    expect(action.meta.text).toEqual('hey you')
+    expect(action.meta.attachments).toEqual(attachments)
   })
 })
 

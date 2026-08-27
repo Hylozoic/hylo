@@ -2,11 +2,10 @@ import { debounce, get } from 'lodash/fp'
 import React, { useEffect, useLayoutEffect, useCallback, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Helmet } from 'react-helmet'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import { isSystemGroupRole, sortCustomGroupRoles, sortSystemGroupRoles } from '@hylo/hooks/groupRoleHelpers'
-import { LayoutGrid, List, Search } from 'lucide-react'
-import CurrentlyActivePills, { DEFAULT_ACTIVE_MAX, isRecentlyActive } from 'components/CurrentlyActiveMembers/CurrentlyActivePills'
+import { LayoutGrid, List, Search, Waypoints } from 'lucide-react'
 import InviteMembersDialog from 'components/InviteMembersDialog/InviteMembersDialog'
 import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
@@ -20,9 +19,8 @@ import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import usePillRowClamp from 'hooks/usePillRowClamp'
 import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
-import { personUrl } from '@hylo/navigation'
 import { isPhoneDevice } from 'util/mobile'
-import { FETCH_MEMBERS, FETCH_MEMBERS_FOR_GRAPH, fetchMembers, fetchMembersForGraph, fetchRecentlyActiveMembers, fetchRoleMemberCounts, fetchFundingRoundMemberCounts, getMembers, getGraphMembers, getHasFetchedGraphMembers, getHasMoreMembers, getHasFetchedMembers, getMemberQueryProps, getRecentlyActiveMembers, removeMember } from './Members.store'
+import { FETCH_MEMBERS, FETCH_MEMBERS_FOR_GRAPH, fetchMembers, fetchMembersForGraph, fetchRoleMemberCounts, fetchFundingRoundMemberCounts, getMembers, getGraphMembers, getHasFetchedGraphMembers, getHasMoreMembers, getHasFetchedMembers, getMemberQueryProps, removeMember } from './Members.store'
 import { fetchTrack } from 'store/actions/trackActions'
 import { fetchFundingRound } from 'routes/FundingRounds/FundingRounds.store'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
@@ -48,7 +46,6 @@ function Members (props) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const location = useLocation()
-  const navigate = useNavigate()
 
   const context = props.context
   const slug = useEffectiveGroupSlug()
@@ -71,13 +68,6 @@ function Members (props) {
   )
   const members = useSelector(state => getMembers(state, memberQueryProps))
   const graphMembers = useSelector(state => getGraphMembers(state, { slug }))
-  const recentlyActiveFetched = useSelector(state => getRecentlyActiveMembers(state, { slug, first: DEFAULT_ACTIVE_MAX }))
-  // The heading says "Currently Active", so only people inside the active
-  // window belong here — the API sorts by last_active_at but does not filter.
-  const currentlyActiveMembers = useMemo(
-    () => (recentlyActiveFetched || []).filter(m => isRecentlyActive(m)).slice(0, DEFAULT_ACTIVE_MAX),
-    [recentlyActiveFetched]
-  )
   const graphPending = useSelector(state => state.pending[FETCH_MEMBERS_FOR_GRAPH])
   const hasFetchedGraphMembers = useSelector(state => getHasFetchedGraphMembers(state, { slug }))
   const hasMore = useSelector(state => getHasMoreMembers(state, memberQueryProps))
@@ -235,16 +225,15 @@ function Members (props) {
     fetchMembersAction(0)
   }, [group?.id, slug, sortBy, search, groupRoleId, trackCompleted, fundingRoundCapability, fetchMembersAction])
 
-  useEffect(() => {
-    if (!slug) return
-    dispatch(fetchRecentlyActiveMembers({ slug, first: DEFAULT_ACTIVE_MAX }))
-  }, [dispatch, slug])
+  // The skill map is loved but heavy — it starts collapsed behind a toggle.
+  const [showSkillMap, setShowSkillMap] = useState(false)
 
-  // The skills graph shows the whole membership, unaffected by directory filters
+  // The skills graph shows the whole membership, unaffected by directory filters.
+  // Fetched only once the map is opened — it starts hidden.
   useEffect(() => {
-    if (!group?.id || !slug) return
+    if (!group?.id || !slug || !showSkillMap) return
     dispatch(fetchMembersForGraph({ slug }))
-  }, [dispatch, group?.id, slug])
+  }, [dispatch, group?.id, slug, showSkillMap])
 
   const handleGraphSkillClick = useCallback(skillName => {
     setSearchValue(skillName)
@@ -299,23 +288,7 @@ function Members (props) {
       <Helmet>
         <title>{pageTitle} | {group ? `${group.name} | ` : ''}Hylo</title>
       </Helmet>
-      {currentlyActiveMembers.length > 0 && (
-        <div className='px-4 pt-4'>
-          <h3 className='text-sm font-semibold text-foreground/70 mb-2'>{t('Currently Active')}</h3>
-          <CurrentlyActivePills
-            members={currentlyActiveMembers}
-            max={DEFAULT_ACTIVE_MAX}
-            onPersonClick={person => navigate(personUrl(person.id, slug))}
-          />
-        </div>
-      )}
       <div className={classes.content}>
-        <MemberSkillsGraph
-          members={graphMembers}
-          loading={Boolean(graphPending) || !hasFetchedGraphMembers}
-          slug={slug}
-          onSkillClick={handleGraphSkillClick}
-        />
         <div className='flex flex-col gap-2 py-4'>
           <div className='flex flex-wrap items-center gap-2'>
             {/* Phones start as just a button so the controls fit one row; tapping
@@ -386,6 +359,20 @@ function Members (props) {
                 <List className='w-4 h-4' />
               </button>
             </div>
+            <button
+              type='button'
+              onClick={() => setShowSkillMap(v => !v)}
+              aria-pressed={showSkillMap}
+              aria-label={t('Skill map')}
+              title={t('Skill map')}
+              className={cn(
+                'flex items-center gap-1.5 rounded-lg border-2 border-foreground/20 px-2.5 py-[10px] text-sm leading-4 transition-colors',
+                showSkillMap ? 'bg-selected text-foreground' : 'text-foreground/60 hover:text-foreground hover:bg-foreground/5'
+              )}
+            >
+              <Waypoints className='w-4 h-4' />
+              <span className='hidden sm:inline whitespace-nowrap'>{t('Skill map')}</span>
+            </button>
           </div>
           {(displayedRoles.length > 0 || canSeeTrackCompletion || showFundingRoundRoles) && (
             <div ref={roleClamp.containerRef} className='flex flex-wrap items-center gap-1.5'>
@@ -469,6 +456,16 @@ function Members (props) {
             </div>
           )}
         </div>
+        {showSkillMap && (
+          <div className='pb-4'>
+            <MemberSkillsGraph
+              members={graphMembers}
+              loading={Boolean(graphPending) || !hasFetchedGraphMembers}
+              slug={slug}
+              onSkillClick={handleGraphSkillClick}
+            />
+          </div>
+        )}
         <MasonryGrid
           enabled={displayMode === 'card'}
           gap={12}

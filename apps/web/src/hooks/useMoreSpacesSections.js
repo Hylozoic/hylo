@@ -6,6 +6,7 @@ import { makeGetMoreSpacesSections } from 'store/selectors/getMoreSpacesSections
 // Same shape the selector returns for a missing group, hoisted so the no-group branch
 // keeps a stable reference across calls.
 const EMPTY_SECTIONS = {
+  draftSpaces: [],
   trackSpaces: [],
   fundingRoundSpaces: [],
   otherSpaces: [],

@@ -143,7 +143,6 @@ export function fetchFundingRound (id) {
           numParticipants
           numSubmissions
           phase
-          publishedAt
           requireBudget
           submissionDescriptor
           submissionDescriptorPlural
@@ -279,7 +278,6 @@ export function createFundingRound (data) {
           minTokenAllocation,
           numParticipants,
           numSubmissions,
-          publishedAt,
           requireBudget,
           submissionDescriptor,
           submissionDescriptorPlural,
@@ -422,6 +420,9 @@ export function deleteFundingRound (id) {
 // Determine what phase a funding round should be in based on timestamps
 export function getExpectedPhase (fundingRound) {
   if (!fundingRound) return null
+  if (fundingRound.phase === 'draft' || fundingRound.phase === 'archived') {
+    return fundingRound.phase
+  }
 
   const now = new Date()
 
@@ -438,10 +439,7 @@ export function getExpectedPhase (fundingRound) {
   const submissionsOpenAt = fundingRound.submissionsOpenAt ? new Date(fundingRound.submissionsOpenAt) : null
   if (submissionsOpenAt && submissionsOpenAt <= now) return 'submissions'
 
-  const publishedAt = fundingRound.publishedAt ? new Date(fundingRound.publishedAt) : null
-  if (publishedAt && publishedAt <= now) return 'published'
-
-  return 'draft'
+  return fundingRound.phase || 'published'
 }
 
 // Check if a phase transition is needed
@@ -573,7 +571,6 @@ export function ormSessionReducer (
       syncFundingRoundEmbeddedData(session, meta.id, {
         submissionDescriptor: data.submissionDescriptor,
         submissionDescriptorPlural: data.submissionDescriptorPlural,
-        publishedAt: data.publishedAt,
         tokenType: data.tokenType,
         votingMethod: data.votingMethod,
         submissionsOpenAt: data.submissionsOpenAt,
