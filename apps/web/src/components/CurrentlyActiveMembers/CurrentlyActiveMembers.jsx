@@ -156,7 +156,16 @@ export default function CurrentlyActiveMembers ({
       )}
       onClick={rowOpensDirectory ? handleRowClick : undefined}
     >
-      <div className={cn('min-w-0 overflow-hidden', stacked ? 'w-full flex justify-center' : 'flex-1')}>
+      <div
+        className={cn(
+          'min-w-0 overflow-hidden',
+          stacked
+            ? 'w-full flex justify-center'
+            // Mask instead of a painted gradient so the fade-out works over any
+            // row background; content short of the edge is unaffected.
+            : 'flex-1 [mask-image:linear-gradient(to_right,black_calc(100%-28px),transparent)]'
+        )}
+      >
         <CurrentlyActivePills
           members={activeMembers}
           max={max}
