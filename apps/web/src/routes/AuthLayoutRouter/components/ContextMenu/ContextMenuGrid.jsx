@@ -1,6 +1,6 @@
 import { cn, bgImageStyle } from 'util/index'
 import { isDrawerNavLayout } from 'util/mobile'
-import { Info, Settings, Users, Pencil, X, CircleEllipsis, ChevronLeft, UserPlus } from 'lucide-react'
+import { Info, Settings, Users, Pencil, X, CircleEllipsis, ChevronLeft, Search, UserPlus } from 'lucide-react'
 import React, { useMemo, useRef, useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
@@ -824,8 +824,21 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
               <div className='absolute top-3 left-1/2 -translate-x-1/2 z-30 w-full max-w-[1000px] px-3 flex items-center justify-between'>
                 <GroupNotificationsPopover group={group} />
 
-                {/* Matches GroupMenuHeader's affordances — about, then settings */}
+                {/* Matches GroupMenuHeader's affordances — search, about, then settings */}
                 <div className='flex items-center gap-3'>
+                  <button
+                    type='button'
+                    onClick={() => {
+                      const params = new URLSearchParams()
+                      params.set('groupSlug', groupSlug)
+                      params.set('from', `${location.pathname}${location.search || ''}`)
+                      navigate(`/search?${params.toString()}`)
+                    }}
+                    aria-label={t('Search')}
+                  >
+                    <Search className='w-6 h-6 text-white drop-shadow-md hover:scale-110 transition-all' />
+                  </button>
+
                   <button
                     type='button'
                     onClick={() => navigate(groupUrl(groupSlug, 'about', {}))}
