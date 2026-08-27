@@ -547,13 +547,12 @@ async function main () {
 
     const paidTrackRes = await client.query(
       `INSERT INTO tracks (
-        name, description, published_at, access_controlled,
+        name, description, access_controlled,
         action_descriptor, action_descriptor_plural,
         group_id, created_at, updated_at, settings
       ) VALUES (
         'E2E Paid Track',
         '<p>Deterministic paid track for Batch P3 E2E</p>',
-        $1::timestamptz,
         false,
         'Action',
         'Actions',
