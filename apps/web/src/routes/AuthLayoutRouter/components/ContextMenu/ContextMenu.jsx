@@ -1160,22 +1160,21 @@ export default function ContextMenu (props) {
                               : 'bg-foreground/10 border-foreground/20 text-foreground/80 hover:bg-foreground/20 hover:text-foreground dark:bg-white/15 dark:border-white/25 dark:text-white/90 dark:hover:bg-white/25 dark:hover:text-white'
                           )}
                         />
+                        <Link
+                          to={spaceUrl(groupSlug, localSpaceSlug(groupSlug, activeSpaceGroup.slug), 'about')}
+                          onClick={() => dispatch(toggleNavMenu(false))}
+                          className={cn(
+                            'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 no-underline hover:no-underline transition-colors',
+                            activeSpaceBannerUrl
+                              ? 'bg-white/15 border-white/25 text-white hover:bg-white/25 hover:text-white'
+                              : 'bg-foreground/10 border-foreground/20 text-foreground/80 hover:bg-foreground/20 hover:text-foreground dark:bg-white/15 dark:border-white/25 dark:text-white/90 dark:hover:bg-white/25 dark:hover:text-white'
+                          )}
+                        >
+                          <Info className='w-3.5 h-3.5' />
+                          {t('About')}
+                        </Link>
                       </span>
                     </div>
-                    <Link
-                      to={spaceUrl(groupSlug, localSpaceSlug(groupSlug, activeSpaceGroup.slug), 'about')}
-                      onClick={() => dispatch(toggleNavMenu(false))}
-                      className={cn(
-                        'shrink-0 transition-all hover:scale-110',
-                        activeSpaceBannerUrl
-                          ? 'text-white/80 hover:text-white'
-                          : 'text-foreground/60 hover:text-foreground dark:text-white/80 dark:hover:text-white'
-                      )}
-                      aria-label={t('About')}
-                      title={t('About')}
-                    >
-                      <Info className='w-5 h-5' />
-                    </Link>
                   </div>
                 </div>
                 {spaceMenuViews.length > 0 || isEditing
