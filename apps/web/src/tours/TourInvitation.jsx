@@ -44,7 +44,7 @@ export default function TourInvitation ({ message, onAccept, onDecline, onTimeou
     >
       <div
         className={cn(
-          'flex items-center gap-2 rounded-full bg-card text-card-foreground shadow-xl border-2 border-selected/40 overflow-hidden',
+          'flex items-center gap-2 rounded-full max-sm:rounded-2xl bg-card text-card-foreground shadow-xl border-2 border-selected/40 overflow-hidden',
           'transition-all duration-500 ease-out motion-reduce:transition-none',
           phase === 'expanded' ? 'pl-2 pr-2 py-2' : 'p-2'
         )}
@@ -61,28 +61,35 @@ export default function TourInvitation ({ message, onAccept, onDecline, onTimeou
         <div
           className={cn(
             'flex items-center gap-2 overflow-hidden transition-all duration-500 ease-out motion-reduce:transition-none',
+            // Phones stack the copy above the actions; a row would crush the
+            // message into a sliver beside the buttons
+            'max-sm:flex-col max-sm:items-start max-sm:gap-1.5',
             // The height cap matters as much as the width: at max-w-0 the copy
             // would wrap into a zero-width column and stretch the pill tall
-            phase === 'expanded' ? 'opacity-100 max-w-[420px] max-h-24' : 'opacity-0 max-w-0 max-h-9'
+            phase === 'expanded'
+              ? 'opacity-100 max-w-[min(420px,calc(100vw-5rem))] max-h-24 max-sm:max-h-36'
+              : 'opacity-0 max-w-0 max-h-9'
           )}
         >
-          <span className='text-sm leading-snug max-w-[220px]'>{message}</span>
-          <button
-            type='button'
-            data-testid='tour-invite-accept'
-            onClick={onAccept}
-            className='shrink-0 whitespace-nowrap rounded-full bg-selected text-foreground text-sm font-bold px-3 py-1.5 hover:bg-selected/85 transition-colors'
-          >
-            {t('Show me')}
-          </button>
-          <button
-            type='button'
-            data-testid='tour-invite-decline'
-            onClick={onDecline}
-            className='shrink-0 whitespace-nowrap text-sm text-foreground/60 hover:text-foreground px-1.5 py-1.5 transition-colors'
-          >
-            {t('No thanks')}
-          </button>
+          <span className='text-sm leading-snug max-w-[220px] max-sm:max-w-none'>{message}</span>
+          <div className='flex items-center gap-2 shrink-0'>
+            <button
+              type='button'
+              data-testid='tour-invite-accept'
+              onClick={onAccept}
+              className='shrink-0 whitespace-nowrap rounded-full bg-selected text-foreground text-sm font-bold px-3 py-1.5 hover:bg-selected/85 transition-colors'
+            >
+              {t('Show me')}
+            </button>
+            <button
+              type='button'
+              data-testid='tour-invite-decline'
+              onClick={onDecline}
+              className='shrink-0 whitespace-nowrap text-sm text-foreground/60 hover:text-foreground px-1.5 py-1.5 transition-colors'
+            >
+              {t('No thanks')}
+            </button>
+          </div>
         </div>
       </div>
     </div>,
