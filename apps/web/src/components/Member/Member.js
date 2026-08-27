@@ -142,7 +142,18 @@ function Member ({
 
   const skills = (member.skills || []).map(s => s?.name).filter(Boolean)
   const [skillsExpanded, setSkillsExpanded] = useState(false)
-  const skillsClamp = usePillRowClamp(skills.length, 3, skillsExpanded)
+
+  // Roles without an emoji render as nothing (BadgeEmoji returns null), so only
+  // the ones that produce a pill may count toward the clamp math.
+  const rowRoles = roles.filter(role => role.emoji)
+  const [rolesExpanded, setRolesExpanded] = useState(false)
+
+  // Each clamp's container only exists in one layout. Report 0 items while the
+  // other layout is up: the count changing on a layout switch re-runs the
+  // hook's effect at a moment its ref is actually attached — otherwise it
+  // arms against a missing element and never measures.
+  const skillsClamp = usePillRowClamp(layout === 'card' && !square ? skills.length : 0, 3, skillsExpanded)
+  const rolesClamp = usePillRowClamp(layout === 'row' ? rowRoles.length : 0, 1, rolesExpanded)
 
   const [confirmingRemove, setConfirmingRemove] = useState(false)
   const canRemove = Boolean(removeMember) && currentUserResponsibilities.includes(RESP_REMOVE_MEMBERS)
@@ -367,19 +378,29 @@ function Member ({
             <div className='flex items-center gap-1.5 min-w-0'>
               <span className='text-sm font-bold text-foreground truncate'>{name}</span>
               {isSelf && <span className='text-xs text-selected font-semibold shrink-0'>· {t('You')}</span>}
-              {roles.length > 0 && (
-                <span className='inline-flex gap-0.5 shrink-0'>
-                  {roles.map(role => (
+            </div>
+            {rowRoles.length > 0
+              ? (
+                <div ref={rolesClamp.containerRef} className='flex flex-wrap items-center gap-1 min-w-0'>
+                  {rowRoles.map(role => (
                     <BadgeEmoji key={role.id + role.common} expanded showName {...role} responsibilities={role.responsibilities} id={id} />
                   ))}
-                </span>
+                  {!rolesExpanded && (
+                    <button
+                      type='button'
+                      onClick={e => { e.stopPropagation(); setRolesExpanded(true) }}
+                      className='text-xs text-foreground/50 hover:text-foreground whitespace-nowrap transition-colors'
+                    >
+                      {t('({{count}} more...)', { count: rowRoles.length - rolesClamp.visibleCount })}
+                    </button>
+                  )}
+                </div>
+                )
+              : location && (
+                <div className='flex items-center gap-1 text-xs text-foreground/50 min-w-0'>
+                  <MapPin className='w-3 h-3 shrink-0' /><span className='truncate'>{location}</span>
+                </div>
               )}
-            </div>
-            {location && (
-              <div className='flex items-center gap-1 text-xs text-foreground/50 min-w-0'>
-                <MapPin className='w-3 h-3 shrink-0' /><span className='truncate'>{location}</span>
-              </div>
-            )}
           </div>
           {joinedShort && <span className='hidden sm:block text-xs text-foreground/50 whitespace-nowrap shrink-0'>{joinedShort}</span>}
           <MemberActiveNote lastActiveAt={lastActiveAt} />
