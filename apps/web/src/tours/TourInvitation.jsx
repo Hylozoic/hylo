@@ -37,7 +37,7 @@ export default function TourInvitation ({ message, onAccept, onDecline, onTimeou
       role='dialog'
       aria-label={message}
       className={cn(
-        'fixed z-[1000000] bottom-6 right-6 max-sm:right-1/2 max-sm:translate-x-1/2',
+        'fixed z-[1000000] bottom-6 left-1/2 -translate-x-1/2',
         'transition-all duration-500 ease-out motion-reduce:transition-none',
         phase === 'hidden' ? 'opacity-0 translate-y-6' : 'opacity-100 translate-y-0'
       )}
@@ -60,8 +60,10 @@ export default function TourInvitation ({ message, onAccept, onDecline, onTimeou
         </span>
         <div
           className={cn(
-            'flex items-center gap-2 transition-all duration-500 ease-out motion-reduce:transition-none',
-            phase === 'expanded' ? 'opacity-100 max-w-[420px]' : 'opacity-0 max-w-0'
+            'flex items-center gap-2 overflow-hidden transition-all duration-500 ease-out motion-reduce:transition-none',
+            // The height cap matters as much as the width: at max-w-0 the copy
+            // would wrap into a zero-width column and stretch the pill tall
+            phase === 'expanded' ? 'opacity-100 max-w-[420px] max-h-24' : 'opacity-0 max-w-0 max-h-9'
           )}
         >
           <span className='text-sm leading-snug max-w-[220px]'>{message}</span>
