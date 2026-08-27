@@ -1729,9 +1729,9 @@ function PostEditorInner ({
         />
       )} */}
       {canHaveTimes && (
-        <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
-          <div className='text-xs text-foreground/50'>{currentPost.type === 'proposal' ? t('Voting window') : t('Timeframe')}</div>
-          <div className='flex items-center gap-1 sm:flex-row flex-col justify-start items-center sm:justify-center'>
+        <div className='flex flex-wrap items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 min-w-0'>
+          <div className='text-xs text-foreground/50 shrink-0'>{currentPost.type === 'proposal' ? t('Voting window') : t('Timeframe')}</div>
+          <div className='flex flex-1 flex-wrap items-center gap-1 min-w-0'>
             <DateTimePicker
               hourCycle={hourCycle}
               granularity='minute'
@@ -1740,7 +1740,7 @@ function PostEditorInner ({
               onChange={handleStartTimeChange}
               onMonthChange={() => {}}
             />
-            <div className='text-xs text-foreground/50'>{t('to')}</div>
+            <div className='text-xs text-foreground/50 shrink-0'>{t('to')}</div>
             <DateTimePicker
               ref={endTimeRef}
               hourCycle={hourCycle}

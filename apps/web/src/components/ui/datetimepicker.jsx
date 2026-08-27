@@ -211,8 +211,12 @@ function genYears (yearRange = 50) {
 }
 // ---------- utils end ----------
 /**
- * Returns the nearest dialog/modal DOM node so the popover can portal into it.
- * When body scroll is locked, portaling to `document.body` lets the panel extend past the visible dialog; anchoring to this surface keeps collision detection aligned with what the user actually sees (Post dialog, CreateModal, ModalDialog inner, Radix dialog content).
+ * Returns the nearest dialog DOM node so the popover can portal into it.
+ * CreateModal is skipped: it uses overflow + backdrop-filter, which in Safari
+ * becomes a containing block for `position: fixed` and places the calendar far
+ * to the right of its trigger. Portaling to `document.body` keeps coordinates
+ * viewport-relative, matching Chrome. Radix dialogs still need an in-dialog
+ * portal because they lock body scroll.
  */
 function getPopoverSurfaceFromTrigger (triggerEl) {
   if (!triggerEl || typeof triggerEl.closest !== 'function') {
@@ -220,7 +224,6 @@ function getPopoverSurfaceFromTrigger (triggerEl) {
   }
   return (
     triggerEl.closest('#post-dialog-content') ||
-    triggerEl.closest('#create-modal-content') ||
     triggerEl.closest('[data-testid="popup-inner"]') ||
     triggerEl.closest('[role="dialog"][data-state="open"]') ||
     undefined
@@ -561,7 +564,7 @@ const DateTimePicker = React.forwardRef(({ locale = DateTimeHelpers.getLocaleAsS
   return (
     <Popover open={popoverOpen} onOpenChange={handlePopoverOpenChange}>
       <PopoverTrigger asChild disabled={disabled}>
-        <Button variant='outline' className={cn('min-h-11 sm:min-h-10 justify-start text-left font-normal touch-manipulation', !displayDate && 'text-muted-foreground', className)} ref={buttonRef}>
+        <Button variant='outline' className={cn('min-h-11 sm:min-h-10 max-w-full justify-start text-left font-normal touch-manipulation', !displayDate && 'text-muted-foreground', className)} ref={buttonRef}>
           <CalendarIcon className='mr-2 h-4 w-4' />
           {displayDate
             ? (DateTimeHelpers.toDateTime(displayDate, {
@@ -578,7 +581,7 @@ const DateTimePicker = React.forwardRef(({ locale = DateTimeHelpers.getLocaleAsS
         align='start'
         sideOffset={6}
         collisionPadding={12}
-        className='w-auto p-0 z-[1100] max-h-[min(85dvh,560px)] overflow-y-auto'
+        className='w-auto p-0 z-[1100] max-h-[min(560px,calc(100dvh-24px))] overflow-y-auto'
       >
         <Calendar
           mode='single' selected={displayDate} month={month} onSelect={(newDate) => {
