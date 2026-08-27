@@ -21,12 +21,12 @@ import {
   filterAndSortPosts,
   filterAndSortUsers
 } from '../services/Search/util'
+import { messageThreadSearchFilter } from './messageThreadSearch'
 const { createGroupRoleScope } = require('../../lib/scopes')
 const {
   mergeAccessGrantsForPresentation,
   getBuyButtonTextFromOffering
 } = require('../../lib/stripeOfferingMetadata')
-import { messageThreadSearchFilter } from './messageThreadSearch'
 
 /** Deprecated GraphQL compat: older mobile clients still query removed common-role fields */
 const emptyQuerySet = () => ({ total: 0, hasMore: false, items: [] })
@@ -227,7 +227,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
             typename: 'MessageThread',
             querySet: true,
             filter: (relation, args) => {
-              let result = relation.query(q => {
+              const result = relation.query(q => {
                 if (args.muted) {
                   q.whereNotNull('posts_users.muted_at')
                 } else {

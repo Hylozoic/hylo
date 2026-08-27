@@ -4239,7 +4239,6 @@ input InappropriateContentInput {
 
 input InviteInput {
   emails: [String]
-  message: String
   # Assign Coordinator system role when the invitation is used
   assignCoordinator: Boolean
   # Group role ID to assign when the invitation is used
