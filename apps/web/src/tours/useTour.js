@@ -20,6 +20,26 @@ import updateUserSettings from 'store/actions/updateUserSettings'
 // Only one tour may run at a time; auto-starts wait for the active one to end
 let tourActive = false
 
+// Present in the DOM is not enough: on phones the nav rail and group menu are
+// mounted but off-canvas, and highlighting an off-screen anchor floats the
+// popover over whatever is actually visible
+function isAnchorVisible (element) {
+  if (!element) return false
+  if (typeof element.checkVisibility === 'function' &&
+      !element.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })) {
+    return false
+  }
+  const rect = element.getBoundingClientRect()
+  if (rect.width < 1 || rect.height < 1) return false
+  const viewportWidth = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0)
+  const viewportHeight = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0)
+  // An unmeasurable viewport (headless embeds) can't prove off-screen-ness;
+  // fall back to the style and size checks above
+  if (viewportWidth === 0 || viewportHeight === 0) return true
+  return rect.right > 0 && rect.bottom > 0 &&
+    rect.left < viewportWidth && rect.top < viewportHeight
+}
+
 export default function useTour ({
   id,
   steps,
@@ -51,8 +71,8 @@ export default function useTour ({
       driverRef.current.destroy()
       driverRef.current = null
     }
-    const presentSteps = steps.filter(step => !step.element || document.querySelector(step.element))
-    if (presentSteps.length === 0) return
+    const presentSteps = steps.filter(step => !step.element || isAnchorVisible(document.querySelector(step.element)))
+    if (presentSteps.length === 0) return false
     tourActive = true
     driverRef.current = driver({
       showProgress: presentSteps.length > 1,
@@ -68,6 +88,7 @@ export default function useTour ({
       }
     })
     driverRef.current.drive()
+    return true
   }, [markSeen, steps])
 
   useEffect(() => {
@@ -79,20 +100,29 @@ export default function useTour ({
     // loading screen (index.html) removes itself once its fade finishes, another
     // tour may be mid-run, and callers can name overlays (welcome modal) that
     // must close first
+    let poll
     let timer
+    let cancelled = false
     const clearToStart = () =>
       !document.getElementById('hylo-boot-loader') &&
       !tourActive &&
       !blockedBySelectors.some(selector => document.querySelector(selector))
-    const poll = setInterval(() => {
+    // startTour is a no-op while every anchor is off-screen (phone nav closed),
+    // so keep retrying quietly until the surface is actually visible
+    const attempt = () => {
+      if (cancelled) return
+      if (!(clearToStart() && startTour())) {
+        timer = setTimeout(attempt, 1000)
+      }
+    }
+    poll = setInterval(() => {
       if (clearToStart()) {
         clearInterval(poll)
-        timer = setTimeout(() => {
-          if (clearToStart()) startTour()
-        }, autoStartDelay)
+        timer = setTimeout(attempt, autoStartDelay)
       }
     }, 300)
     return () => {
+      cancelled = true
       clearInterval(poll)
       clearTimeout(timer)
     }
