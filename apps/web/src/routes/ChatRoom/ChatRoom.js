@@ -922,13 +922,14 @@ export default function ChatRoom (props) {
       </div>
 
       {/* Post chat box */}
-      {/* pt below sm gives the last message breathing room above the composer —
-          OUTSIDE the message list: padding inside its scroller skews Virtuoso's
-          atBottom check, which pinned the phone one message shy of the bottom */}
-      <PeopleTyping groupId={group?.id} className='w-full px-3 sm:px-5 pt-2 sm:pt-0 text-xs text-foreground/50' />
       {/* Composer floats with margins matching the message gutter (left edge = avatar edge).
-          Subtle gradient settles the pane into a darker hue beneath the input. */}
-      <div className='ChatBoxContainer w-full shrink-0 px-3 sm:px-5 pb-3 sm:pb-5 pt-0 bg-gradient-to-b from-transparent to-darkening/[0.05] dark:to-darkening/25'>
+          Subtle gradient settles the pane into a darker hue beneath the input.
+          The typing strip overlays the list's last pixels instead of sitting in
+          flow — idle, it reserved a dead band above the input (worst on phones),
+          and padding inside the scroller is off-limits (skews Virtuoso's
+          atBottom check, which pinned the phone one message shy of the bottom) */}
+      <div className='ChatBoxContainer relative w-full shrink-0 px-3 sm:px-5 pb-3 sm:pb-5 pt-0 bg-gradient-to-b from-transparent to-darkening/[0.05] dark:to-darkening/25'>
+        <PeopleTyping groupId={group?.id} className='absolute bottom-full left-0 w-full px-3 sm:px-5 pb-0.5 text-xs text-foreground/50 pointer-events-none' />
         {/* Drafts are scoped per chat topic so switching rooms does not leak text */}
         {group?.id && (
           <ChatEditor
