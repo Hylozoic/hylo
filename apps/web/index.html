@@ -59,10 +59,19 @@
       @media (min-width: 640px) {
         #hylo-boot-loader svg { width: 84px; }
       }
+      #hylo-boot-progress {
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        height: 5px;
+        width: 0;
+        background: #090B0A;
+      }
       @media (prefers-color-scheme: dark) {
         #hylo-boot-loader {
           background: linear-gradient(152deg, #3A3A3A 0%, #2E2E2E 55%, #232323 100%);
         }
+        #hylo-boot-progress { background: #FFFFFF; }
       }
     </style>
   </head>
@@ -114,7 +123,6 @@
       var EDGE_LEAD = 0.128, EDGE_STAGGER = 0.035, EDGE_DUR = 0.230
       var HOP = 30, SW = 5, MIN_SHOW = 2.4, FADE = 0.7
       var AT = [CUES.Spark + 0.08, CUES.Chain - 0.032, CUES.Chain + 0.24, CUES.Web, CUES.Web + 0.269, CUES.Web + 0.538]
-      var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
       var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
       var ink = dark ? '#FFFFFF' : '#090B0A'
 
@@ -154,13 +162,26 @@
       }
       zoomG.appendChild(wordG)
       host.appendChild(svg)
+      var bar = document.createElement('div')
+      bar.id = 'hylo-boot-progress'
+      host.appendChild(bar)
 
       var T = 0, last = null, readyFlag = false, fadeStart = null, stopped = false
+      // Boot milestones: script running -> app modules loaded -> React mounted ->
+      // session known. The bottom bar eases to each completed step's share of
+      // the width, creeping toward the next so a slow step still reads as alive.
+      var STEPS = 4, reachedCount = 1, reachedAt = 0, disp = 0
+      var MILESTONE_INDEX = { modules: 2, react: 3, session: 4 }
+      function reach (n) {
+        if (n > reachedCount) { reachedCount = n; reachedAt = T }
+      }
       function frame (now) {
         if (stopped) return
-        if (last != null) T += Math.min((now - last) / 1000, 0.1)
+        var dt = 0
+        if (last != null) dt = Math.min((now - last) / 1000, 0.1)
+        T += dt
         last = now
-        var t = reduced ? 3.8 : T
+        var t = T
         for (var i = 0; i < ORDER.length; i++) {
           var to = NODES[ORDER[i]]
           var from = i === 0 ? [to[0], to[1] + 38] : NODES[ORDER[i - 1]]
@@ -193,34 +214,38 @@
         wordG.setAttribute('opacity', outCubic(wp))
         wordG.setAttribute('transform', 'translate(2.5 ' + (195 + 9 * (1 - outCubic(wd))) + ')')
         var zoom = 1
-        if (!reduced && t > CUES.Name + 0.15) {
+        if (t > CUES.Name + 0.15) {
           var phase = (t - (CUES.Name + 0.15)) % 9
           var up = phase < 6 ? phase / 6 : 1 - (phase - 6) / 3
           zoom = 1 + 0.30 * inOutSine(up)
         }
         zoomG.setAttribute('transform', 'translate(78 113) scale(' + zoom * 0.62 + ') translate(-78 -113)')
-        // Reduced motion: the finished lockup still arrives with a gentle
-        // fade-in rather than popping in fully formed
-        var fadeIn = reduced ? inOutSine(clamp(T / 0.6, 0, 1)) : 1
-        var minShow = reduced ? 1.0 : MIN_SHOW
-        if (readyFlag && T >= minShow && fadeStart == null) fadeStart = T
-        var fadeOut = 1
+        var base = reachedCount / STEPS
+        var target = base
+        if (reachedCount < STEPS) {
+          var nextShare = (reachedCount + 1) / STEPS
+          target = Math.min(nextShare - 0.02, base + (nextShare - base - 0.02) * (1 - Math.exp(-(T - reachedAt) / 5)))
+        }
+        disp += (target - disp) * Math.min(1, dt * 6)
+        bar.style.width = (disp * 100) + 'vw'
+        if (readyFlag && T >= MIN_SHOW && fadeStart == null) fadeStart = T
         if (fadeStart != null) {
-          fadeOut = 1 - inOutSine(clamp((T - fadeStart) / FADE, 0, 1))
+          var f = 1 - inOutSine(clamp((T - fadeStart) / FADE, 0, 1))
+          host.style.opacity = f
           host.style.pointerEvents = 'none'
           host.setAttribute('aria-hidden', 'true')
-        }
-        host.style.opacity = fadeIn * fadeOut
-        if (fadeStart != null && fadeOut <= 0) {
-          stopped = true
-          if (host.parentNode) host.parentNode.removeChild(host)
-          return
+          if (f <= 0) {
+            stopped = true
+            if (host.parentNode) host.parentNode.removeChild(host)
+            return
+          }
         }
         window.requestAnimationFrame(frame)
       }
       window.requestAnimationFrame(frame)
       window.HyloBootLoader = {
-        ready: function () { readyFlag = true }
+        milestone: function (name) { reach(MILESTONE_INDEX[name] || 0) },
+        ready: function () { reach(STEPS); readyFlag = true }
       }
     })()
     </script>

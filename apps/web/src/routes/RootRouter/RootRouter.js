@@ -195,9 +195,13 @@ export default function RootRouter () {
     sendMessageToWebView(WebViewMessageTypes.VERIFY_AUTH)
   }, [isAuthSessionUnknown, isAuthorized])
 
-  // The branded boot loading screen lives in index.html so it can start before
-  // React mounts. Once the session is known the view below starts rendering —
-  // tell the loader so it can fade itself out and unhook.
+  // Boot loading screen milestones (the loader lives in index.html so it can
+  // start before React mounts): React has mounted, then the session is known —
+  // at which point the view below starts rendering and the loader fades out.
+  useEffect(() => {
+    window.HyloBootLoader?.milestone?.('react')
+  }, [])
+
   const bootDone = !isAuthSessionUnknown && !mobileRecovering
   useEffect(() => {
     if (bootDone) window.HyloBootLoader?.ready()
