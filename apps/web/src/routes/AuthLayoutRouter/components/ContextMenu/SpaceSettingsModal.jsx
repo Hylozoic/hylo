@@ -132,7 +132,6 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
   const [actionDescriptor, setActionDescriptor] = useState(track?.actionDescriptor || 'Action')
   const [actionDescriptorPlural, setActionDescriptorPlural] = useState(track?.actionDescriptorPlural || 'Actions')
   const [completionRole, setCompletionRole] = useState(track?.completionRole || null)
-  const [publishedAt, setPublishedAt] = useState(track?.publishedAt || null)
   const completionMessageEditorRef = useRef(null)
 
   const accessOptions = useMemo(
@@ -151,7 +150,6 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
   )
 
   // Funding Round settings
-  const [frPublishedAt, setFrPublishedAt] = useState(fundingRound?.publishedAt || null)
   const [frSubmissionsOpenAt, setFrSubmissionsOpenAt] = useState(toDateOrNull(fundingRound?.submissionsOpenAt))
   const [frSubmissionsCloseAt, setFrSubmissionsCloseAt] = useState(toDateOrNull(fundingRound?.submissionsCloseAt))
   const [frVotingOpensAt, setFrVotingOpensAt] = useState(toDateOrNull(fundingRound?.votingOpensAt))
@@ -223,14 +221,12 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
     if (!track?.id) return
     setActionDescriptor(track.actionDescriptor || 'Action')
     setActionDescriptorPlural(track.actionDescriptorPlural || 'Actions')
-    setPublishedAt(track.publishedAt || null)
     if (hasTrackSettings(track)) setCompletionRole(track.completionRole || null)
-  }, [track?.id, track?.completionMessage, track?.completionRole?.id, track?.actionDescriptor, track?.actionDescriptorPlural, track?.publishedAt])
+  }, [track?.id, track?.completionMessage, track?.completionRole?.id, track?.actionDescriptor, track?.actionDescriptorPlural])
 
   const roundIsFull = hasFundingRoundSettings(fundingRound)
   useEffect(() => {
     if (!fundingRound?.id) return
-    setFrPublishedAt(fundingRound.publishedAt || null)
     setFrSubmissionDescriptor(fundingRound.submissionDescriptor || 'Submission')
     setFrSubmissionDescriptorPlural(fundingRound.submissionDescriptorPlural || 'Submissions')
     if (!roundIsFull) return
@@ -272,7 +268,7 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
     </li>
   ), [])
 
-  const handleSave = useCallback(async () => {
+  const handleSave = useCallback(async (status) => {
     if (!name.trim() || !space?.id || !parentGroup?.id) return
     if (!slugValid) {
       setShowSlugError(true)
@@ -300,7 +296,8 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
         visibility: accessOption.visibility,
         accessibility: accessOption.accessibility,
         requiredRoles: access === 'role' ? requiredRoles.map(role => role.id) : [],
-        paywall: Boolean(accessOption.paywall)
+        paywall: Boolean(accessOption.paywall),
+        status
       }))
 
       if (welcomeTouched) {
@@ -324,15 +321,13 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
           actionDescriptor,
           actionDescriptorPlural,
           completionMessage,
-          completionRole,
-          publishedAt
+          completionRole
         }))
       }
 
       if (fundingRound?.id) {
         await dispatch(updateFundingRound({
           id: fundingRound.id,
-          publishedAt: toIsoOrNull(frPublishedAt),
           submissionsOpenAt: toIsoOrNull(frSubmissionsOpenAt),
           submissionsCloseAt: toIsoOrNull(frSubmissionsCloseAt),
           votingOpensAt: toIsoOrNull(frVotingOpensAt),
@@ -364,7 +359,7 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
     } finally {
       setIsSaving(false)
     }
-  }, [dispatch, space?.id, parentGroup?.id, view?.id, name, slug, slugValid, description, icon, bannerUrl, purpose, locationObject, postTypes, access, accessOptions, requiredRoles, welcomeTouched, welcomeDraft, welcomeView, showWelcomePage, space?.settings?.showWelcomePage, track?.id, actionDescriptor, actionDescriptorPlural, completionRole, publishedAt, fundingRound?.id, frPublishedAt, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frAllowLateJoiners, frHideFinalResults, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles, onClose])
+  }, [dispatch, space?.id, parentGroup?.id, view?.id, name, slug, slugValid, description, icon, bannerUrl, purpose, locationObject, postTypes, access, accessOptions, requiredRoles, welcomeTouched, welcomeDraft, welcomeView, showWelcomePage, space?.settings?.showWelcomePage, track?.id, actionDescriptor, actionDescriptorPlural, completionRole, fundingRound?.id, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frAllowLateJoiners, frHideFinalResults, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles, onClose])
 
   const advancedSettings = useMemo(() => [
     {
@@ -426,6 +421,9 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
   const revealedSettings = advancedSettings.filter(setting => openAdvanced.has(setting.key))
 
   if (!space) return null
+
+  const spaceStatus = space.status || 'published'
+  const isFundingRoundLifecycle = ['submissions', 'discussion', 'voting', 'completed'].includes(spaceStatus)
 
   const panel = (
     <div className={inline ? 'flex flex-col' : 'bg-midground rounded-lg shadow-lg p-4 w-full max-w-md sm:max-w-[40rem] max-h-[85vh] flex flex-col'}>
@@ -534,8 +532,6 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
             setActionDescriptorPlural={setActionDescriptorPlural}
             completionRole={completionRole}
             setCompletionRole={setCompletionRole}
-            publishedAt={publishedAt}
-            setPublishedAt={setPublishedAt}
             roles={roles}
             completionMessageEditorRef={completionMessageEditorRef}
             groupIds={[space.id]}
@@ -546,8 +542,6 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
 
         {fundingRound?.id && (
           <FundingRoundSettingsFields
-            publishedAt={frPublishedAt}
-            setPublishedAt={setFrPublishedAt}
             submissionDescriptor={frSubmissionDescriptor}
             setSubmissionDescriptor={setFrSubmissionDescriptor}
             submissionDescriptorPlural={frSubmissionDescriptorPlural}
@@ -620,9 +614,22 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
 
       <div className='flex justify-end gap-2 mt-4 pt-2 border-t border-foreground/10'>
         <Button variant='primary' onClick={onClose}>{t('Cancel')}</Button>
-        <Button variant='secondary' disabled={!name.trim() || isSaving} onClick={handleSave}>
-          {isSaving ? t('Saving...') : t('Save')}
-        </Button>
+        {isFundingRoundLifecycle
+          ? (
+            <Button variant='secondary' disabled={!name.trim() || isSaving} onClick={() => handleSave()}>
+              {isSaving ? t('Saving...') : t('Save')}
+            </Button>
+            )
+          : (
+            <>
+              <Button variant='primary' disabled={!name.trim() || isSaving} onClick={() => handleSave('draft')}>
+                {isSaving ? t('Saving...') : t('Save Draft')}
+              </Button>
+              <Button variant='secondary' disabled={!name.trim() || isSaving} onClick={() => handleSave('published')}>
+                {isSaving ? t('Saving...') : t('Publish')}
+              </Button>
+            </>
+            )}
       </div>
     </div>
   )

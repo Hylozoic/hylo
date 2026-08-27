@@ -33,7 +33,6 @@ query (
         numActions
         numPeopleCompleted
         numPeopleEnrolled
-        publishedAt
         userSettings
         space {
           id
@@ -42,6 +41,7 @@ query (
           description
           slug
           type
+          status
           homeRoute
           parentGroup {
             id
@@ -61,7 +61,7 @@ export default function fetchGroupTracks (groupId, {
   offset = 0,
   order = 'desc',
   published = null,
-  sortBy = 'published_at'
+  sortBy = 'created_at'
 }) {
   return {
     type: FETCH_GROUP_TRACKS,

@@ -390,6 +390,7 @@ function PostEditorInner ({
       .map((m) => m.group)
       .filter((g) => {
         if (!g) return false
+        if (g.status === 'archived') return false
         // Filter out paywalled groups where user doesn't have access
         if (g.paywall && g.canAccess === false) {
           return false
@@ -397,7 +398,11 @@ function PostEditorInner ({
         return true
       })
 
-    if (currentGroup?.id && !groups.some(g => sameGroupId(g.id, currentGroup.id))) {
+    if (
+      currentGroup?.id &&
+      currentGroup.status !== 'archived' &&
+      !groups.some(g => sameGroupId(g.id, currentGroup.id))
+    ) {
       groups.push(currentGroup)
     }
 

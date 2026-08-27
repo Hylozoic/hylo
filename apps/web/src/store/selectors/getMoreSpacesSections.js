@@ -11,8 +11,16 @@ export function getMenuSpaceIds (groupViews) {
   )
 }
 
-/** Splits off-menu spaces into Tracks, Funding Rounds, other Spaces, and Archived. */
+function withDraftFlag (space) {
+  return {
+    ...space,
+    isDraft: space.status === 'draft'
+  }
+}
+
+/** Splits off-menu spaces into Drafts, Tracks, Funding Rounds, other Spaces, and Archived. */
 export function categorizeOffMenuSpaces (spaces, menuSpaceIds) {
+  const draftSpaces = []
   const trackSpaces = []
   const fundingRoundSpaces = []
   const otherSpaces = []
@@ -20,31 +28,35 @@ export function categorizeOffMenuSpaces (spaces, menuSpaceIds) {
 
   for (const space of spaces || []) {
     if (menuSpaceIds.has(String(space.id))) continue
+    if (space.active === false) continue
 
-    if (space.active === false) {
-      archivedSpaces.push(space)
+    if (space.status === 'archived') {
+      archivedSpaces.push(withDraftFlag(space))
+      continue
+    }
+
+    if (space.status === 'draft') {
+      draftSpaces.push(withDraftFlag(space))
       continue
     }
 
     if (space.fundingRound) {
-      fundingRoundSpaces.push(space)
+      fundingRoundSpaces.push(withDraftFlag(space))
     } else if (space.track) {
-      trackSpaces.push({
-        ...space,
-        isDraft: !space.track.publishedAt
-      })
+      trackSpaces.push(withDraftFlag(space))
     } else {
-      otherSpaces.push(space)
+      otherSpaces.push(withDraftFlag(space))
     }
   }
 
   const sortByName = (a, b) => (a.name || '').localeCompare(b.name || '')
+  draftSpaces.sort(sortByName)
   trackSpaces.sort(sortByName)
   fundingRoundSpaces.sort(sortByName)
   otherSpaces.sort(sortByName)
   archivedSpaces.sort(sortByName)
 
-  return { trackSpaces, fundingRoundSpaces, otherSpaces, archivedSpaces }
+  return { draftSpaces, trackSpaces, fundingRoundSpaces, otherSpaces, archivedSpaces }
 }
 
 /** Builds a fresh getMoreSpacesSections selector.
@@ -58,6 +70,7 @@ export function makeGetMoreSpacesSections () {
     (session, group) => {
       if (!group) {
         return {
+          draftSpaces: [],
           trackSpaces: [],
           fundingRoundSpaces: [],
           otherSpaces: [],
@@ -69,18 +82,15 @@ export function makeGetMoreSpacesSections () {
       const menuSpaceIds = getMenuSpaceIds(group.groupViews)
       const spaces = group.spaces?.items || []
       const spaceSections = categorizeOffMenuSpaces(spaces, menuSpaceIds)
-      const otherSpaces = [...spaceSections.otherSpaces, ...spaceSections.archivedSpaces]
-        .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
 
-      const hasAny = spaceSections.trackSpaces.length +
+      const hasAny = spaceSections.draftSpaces.length +
+        spaceSections.trackSpaces.length +
         spaceSections.fundingRoundSpaces.length +
-        otherSpaces.length > 0
+        spaceSections.otherSpaces.length +
+        spaceSections.archivedSpaces.length > 0
 
       return {
-        trackSpaces: spaceSections.trackSpaces,
-        fundingRoundSpaces: spaceSections.fundingRoundSpaces,
-        otherSpaces,
-        archivedSpaces: [],
+        ...spaceSections,
         hasAny
       }
     }

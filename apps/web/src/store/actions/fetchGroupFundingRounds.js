@@ -28,7 +28,6 @@ query (
         numParticipants
         numSubmissions
         phase
-        publishedAt
         submissionsOpenAt
         submissionsCloseAt
         requireBudget
@@ -50,6 +49,7 @@ query (
           bannerUrl
           description
           homeRoute
+          status
           parentGroup {
             id
             slug

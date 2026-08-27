@@ -26,7 +26,6 @@ FundingRound.fields = {
   numParticipants: attr(),
   numSubmissions: attr(),
   phase: attr(),
-  publishedAt: attr(),
   requireBudget: attr(),
   submissionDescriptor: attr(),
   submissionDescriptorPlural: attr(),

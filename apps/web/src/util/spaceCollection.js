@@ -65,7 +65,7 @@ export function resolveSpacesByIds (spaces, spaceIds) {
     .filter(Boolean)
     .map(space => ({
       ...space,
-      isDraft: Boolean(space.track && !space.track.publishedAt)
+      isDraft: space.status === 'draft'
     }))
 }
 

@@ -157,6 +157,7 @@ export function fetchTrack (trackId) {
               id
               slug
               type
+              status
               homeRoute
               name
               bannerUrl
@@ -179,7 +180,6 @@ export function fetchTrack (trackId) {
             numActions
             numPeopleCompleted
             numPeopleEnrolled
-            publishedAt
             userSettings
           }
         }
@@ -217,6 +217,7 @@ export function createTrack (data) {
             id
             slug
             type
+            status
             homeRoute
             name
             bannerUrl
@@ -226,15 +227,11 @@ export function createTrack (data) {
               slug
             }
           }
-          publishedAt
         }
       }
       `,
       variables: {
-        data: {
-          ...data,
-          publishedAt: data.publishedAt ? data.publishedAt.valueOf() : null
-        }
+        data
       }
     },
     meta: {
@@ -334,6 +331,7 @@ export function duplicateTrack (trackId) {
               id
               slug
               type
+              status
               homeRoute
               parentGroup {
                 id

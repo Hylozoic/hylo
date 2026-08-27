@@ -38,7 +38,7 @@ import useMoreSpacesSections from 'hooks/useMoreSpacesSections'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
-import { createGroupView, deleteGroupView, deleteSpace, setGroupViewHidden, updateGroupView } from 'store/actions/groupViews'
+import { createGroupView, deleteGroupView, deleteSpace, archiveSpace, setGroupViewHidden, updateGroupView } from 'store/actions/groupViews'
 import { canHardDeleteView } from 'store/models/GroupView'
 import GroupMenuHeader from 'components/GroupMenuHeader'
 import GroupNotificationsPopover from 'components/GroupNotificationsPopover/GroupNotificationsPopover'
@@ -425,18 +425,22 @@ function useMoreSpacesContent (group) {
   )
   const pending = useSelector(state => isPendingFor(FETCH_GROUP_SPACES, state))
 
+  const showDrafts = sections.draftSpaces?.length > 0
   const showTracks = sections.trackSpaces?.length > 0
   const showFundingRounds = sections.fundingRoundSpaces?.length > 0
   const showOtherSpaces = sections.otherSpaces?.length > 0
+  const showArchived = sections.archivedSpaces?.length > 0
 
   return {
     sections,
     canManageSpaces,
     pending,
+    showDrafts,
     showTracks,
     showFundingRounds,
     showOtherSpaces,
-    hasContent: showTracks || showFundingRounds || showOtherSpaces
+    showArchived,
+    hasContent: showDrafts || showTracks || showFundingRounds || showOtherSpaces || showArchived
   }
 }
 
@@ -454,9 +458,11 @@ function MoreSpacesGrid ({
   const {
     sections,
     pending,
+    showDrafts,
     showTracks,
     showFundingRounds,
     showOtherSpaces,
+    showArchived,
     hasContent
   } = useMoreSpacesContent(group)
   const groupViews = useGroupViews(group)
@@ -528,7 +534,7 @@ function MoreSpacesGrid ({
   const handleDeleteSpace = useCallback(async (space) => {
     if (!space?.id || deletingSpaceId) return
     const confirmed = window.confirm(
-      t('Are you sure you want to permanently delete {{name}}? Posts in this space will no longer be accessible.', {
+      t('Are you sure you want to delete {{name}}? It will be hidden from the menu and More Spaces.', {
         name: space.name
       })
     )
@@ -545,6 +551,24 @@ function MoreSpacesGrid ({
     }
   }, [dispatch, group?.id, deletingSpaceId, t])
 
+  const handleArchiveSpace = useCallback(async (space) => {
+    if (!space?.id || deletingSpaceId) return
+    const confirmed = window.confirm(
+      t('Are you sure you want to archive {{name}}?', { name: space.name })
+    )
+    if (!confirmed) return
+    setDeletingSpaceId(space.id)
+    try {
+      await dispatch(archiveSpace(space.id))
+      await dispatch(fetchGroupSpaces(group.id))
+      await dispatch(fetchGroupViews(group.id))
+    } catch (error) {
+      console.error('Failed to archive space:', error)
+    } finally {
+      setDeletingSpaceId(null)
+    }
+  }, [dispatch, group?.id, deletingSpaceId, t])
+
   if (pending && !hasContent) {
     return <ViewsGridSkeleton />
   }
@@ -555,11 +579,17 @@ function MoreSpacesGrid ({
 
   return (
     <div className='flex flex-col gap-6'>
-      {showTracks && (
-        <div className='flex flex-col gap-3'>
-          <TextSection>{t('Tracks')}</TextSection>
+      {[
+        showOtherSpaces && { key: 'other', items: sections.otherSpaces },
+        showTracks && { key: 'tracks', title: t('Tracks'), items: sections.trackSpaces },
+        showFundingRounds && { key: 'rounds', title: t('Funding Rounds'), items: sections.fundingRoundSpaces },
+        showDrafts && { key: 'drafts', title: t('Drafts'), items: sections.draftSpaces },
+        showArchived && { key: 'archived', title: t('Archived'), items: sections.archivedSpaces }
+      ].filter(Boolean).map(section => (
+        <div key={section.key} className='flex flex-col gap-3'>
+          {section.title && <TextSection>{section.title}</TextSection>}
           <div className='flex flex-wrap gap-3'>
-            {sections.trackSpaces.map(space => (
+            {section.items.map(space => (
               <SpaceViewCard
                 key={space.id}
                 space={space}
@@ -567,60 +597,17 @@ function MoreSpacesGrid ({
                 isDeleting={String(deletingSpaceId) === String(space.id)}
                 onOpen={handleOpenSpace}
                 onOpenAbout={handleOpenSpaceAbout}
-                onAddToMenu={handleAddSpaceToMenu}
+                onAddToMenu={space.status === 'archived' || space.status === 'draft' ? null : handleAddSpaceToMenu}
                 onAddToCollection={handleAddToCollection}
                 collectionViews={collectionViews}
                 onOpenSettings={onOpenSpaceSettings}
                 onDelete={handleDeleteSpace}
+                onArchive={space.status === 'archived' ? null : handleArchiveSpace}
               />
             ))}
           </div>
         </div>
-      )}
-      {showFundingRounds && (
-        <div className='flex flex-col gap-3'>
-          <TextSection>{t('Funding Rounds')}</TextSection>
-          <div className='flex flex-wrap gap-3'>
-            {sections.fundingRoundSpaces.map(space => (
-              <SpaceViewCard
-                key={space.id}
-                space={space}
-                isEditing={isEditing}
-                isDeleting={String(deletingSpaceId) === String(space.id)}
-                onOpen={handleOpenSpace}
-                onOpenAbout={handleOpenSpaceAbout}
-                onAddToMenu={handleAddSpaceToMenu}
-                onAddToCollection={handleAddToCollection}
-                collectionViews={collectionViews}
-                onOpenSettings={onOpenSpaceSettings}
-                onDelete={handleDeleteSpace}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-      {showOtherSpaces && (
-        <div className='flex flex-col gap-3'>
-          <TextSection>{t('Other Spaces')}</TextSection>
-          <div className='flex flex-wrap gap-3'>
-            {sections.otherSpaces.map(space => (
-              <SpaceViewCard
-                key={space.id}
-                space={space}
-                isEditing={isEditing}
-                isDeleting={String(deletingSpaceId) === String(space.id)}
-                onOpen={handleOpenSpace}
-                onOpenAbout={handleOpenSpaceAbout}
-                onAddToMenu={handleAddSpaceToMenu}
-                onAddToCollection={handleAddToCollection}
-                collectionViews={collectionViews}
-                onOpenSettings={onOpenSpaceSettings}
-                onDelete={handleDeleteSpace}
-              />
-            ))}
-          </div>
-        </div>
-      )}
+      ))}
     </div>
   )
 }

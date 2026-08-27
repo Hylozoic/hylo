@@ -221,6 +221,7 @@ export async function deleteGroupView (userId, id, context) {
     await view.destroy({ transacting: trx })
     const remaining = await GroupView.findForGroup(groupId, { transacting: trx })
     await GroupView.applyOrder(remaining.map(v => Number(v.id)), { groupId, trx })
+    await GroupView.syncMenuViewCount(groupId, { transacting: trx })
   }).catch(err => {
     throw new GraphQLError(`Deletion of view failed: ${err.message}`)
   })
@@ -288,6 +289,7 @@ export async function setGroupViewHidden (userId, id, hidden, context) {
       const remaining = await GroupView.findForGroup(groupId, { transacting: trx })
       const ids = remaining.map(v => Number(v.id))
       await GroupView.applyOrder(ids, { groupId, trx })
+      await GroupView.syncMenuViewCount(groupId, { transacting: trx })
     })
   } else {
     if (currentOrder != null) {
@@ -301,6 +303,7 @@ export async function setGroupViewHidden (userId, id, hidden, context) {
       .first()
     const nextOrder = maxOrderRow && maxOrderRow.max_order != null ? Number(maxOrderRow.max_order) + 1 : 0
     await view.save({ order: nextOrder, updated_at: new Date() }, { patch: true })
+    await GroupView.syncMenuViewCount(groupId)
   }
 
   const group = await Group.find(groupId)

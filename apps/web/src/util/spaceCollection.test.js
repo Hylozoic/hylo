@@ -39,7 +39,7 @@ describe('spaceCollection helpers', () => {
 
   it('resolves spaces in stored order and drops missing ids', () => {
     const spaces = [
-      { id: '10', name: 'Later', track: { publishedAt: null } },
+      { id: '10', name: 'Later', status: 'draft', track: { id: 't1' } },
       { id: '9', name: 'First' }
     ]
     const resolved = resolveSpacesByIds(spaces, ['9', '99', '10'])

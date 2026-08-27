@@ -1091,9 +1091,11 @@ export default function AuthLayoutRouter (props) {
                   element={
                     /* When viewing a group, check membership first before rendering any group routes.
                        Skip the loading gate for post-detail URLs so PostDetail can render immediately
-                       (post may be pre-fetched during bootstrap). Otherwise show route-shaped skeletons
+                       (post may be pre-fetched during bootstrap). Skip it for invite/join query params
+                       too: fetchForGroup has no accessCode, so hidden/protected groups stay "loading"
+                       until GroupDetail runs GroupDetailsQuery. Otherwise show route-shaped skeletons
                        instead of a bare spinner. */
-                    currentGroupLoading && !paramPostId
+                    currentGroupLoading && !paramPostId && !groupInviteBypass
                       ? <RouteBootstrapSkeleton />
                       : currentGroupSlug && !currentGroupMembership
                         ? <GroupDetail context='groups' group={currentGroup} />

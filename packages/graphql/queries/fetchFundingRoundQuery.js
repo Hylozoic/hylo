@@ -16,6 +16,7 @@ export default gql`
         slug
         description
         bannerUrl
+        status
       }
       hideFinalResultsFromParticipants
       isParticipating
@@ -25,7 +26,6 @@ export default gql`
       numParticipants
       numSubmissions
       phase
-      publishedAt
       requireBudget
       submissionDescriptor
       submissionDescriptorPlural

@@ -1,10 +1,8 @@
 import React, { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Eye, EyeOff } from 'lucide-react'
 
 import HyloEditor from 'components/HyloEditor'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'components/ui/select'
-import { cn } from 'util/index'
 
 /** Shared track settings fields for create and edit space flows. */
 export default function TrackSettingsFields ({
@@ -14,8 +12,6 @@ export default function TrackSettingsFields ({
   setActionDescriptorPlural,
   completionRole,
   setCompletionRole,
-  publishedAt,
-  setPublishedAt,
   roles,
   completionMessageEditorRef,
   groupIds = [],
@@ -104,26 +100,6 @@ export default function TrackSettingsFields ({
             value={actionDescriptorPlural}
             type='text'
           />
-        </div>
-      </div>
-
-      <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
-        <div className='flex items-center gap-2'>
-          <button
-            type='button'
-            className={cn('p-2 rounded-md transition-colors', publishedAt ? 'bg-foreground/10' : 'bg-accent text-white')}
-            onClick={() => setPublishedAt(null)}
-          >
-            <EyeOff className='w-5 h-5' />
-          </button>
-          <button
-            type='button'
-            className={cn('p-2 rounded-md transition-colors', publishedAt ? 'bg-accent text-white' : 'bg-foreground/10')}
-            onClick={() => setPublishedAt(new Date().toISOString())}
-          >
-            <Eye className='w-5 h-5' />
-          </button>
-          <span>{publishedAt ? t('Published') : t('Unpublished')}</span>
         </div>
       </div>
     </div>

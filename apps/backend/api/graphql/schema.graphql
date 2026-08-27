@@ -23,6 +23,16 @@ enum FundingRoundPhase {
   completed
 }
 
+enum GroupStatus {
+  draft
+  published
+  submissions
+  discussion
+  voting
+  completed
+  archived
+}
+
 type Query {
   # Find an Activity by ID
   activity(id: ID): Activity
@@ -774,8 +784,10 @@ type Group {
   accessibility: Int
   # Spaces & Views: post types that can be posted into this Group/Space, e.g. ['discussion', 'event']. Null = all types accepted
   acceptedPostTypes: [String]
-  # Whether this group/space is active. False means archived (spaces appear under More Spaces → Archived)
+  # Whether this group/space is active. False means deleted (hidden from menus and More Spaces)
   active: Boolean
+  # Space lifecycle: draft, published, archived; funding-round spaces also use submissions, discussion, voting, completed
+  status: GroupStatus
   # Whether this group's posts can be shown in public feeds
   allowInPublic: Boolean
   # URL to the image of the avatar of the group
@@ -794,6 +806,9 @@ type Group {
   geoShape: JSON
   # Cached path for group home redirect (e.g. /stream, /map, /chat/general). Used so we can redirect without loading context widgets.
   homeRoute: String
+  # Cached count of on-menu views (order is not null). Stored on groups.menu_view_count
+  # so a parent menu can tell single-view vs multi-view spaces without a nested query.
+  menuViewCount: Int
   # The current invite link for this group
   invitePath: String
   # A string describing the physical location of this group in the world
@@ -1147,7 +1162,7 @@ type Group {
     order: String,
     # true: Only return tracks that are published, false: Only return tracks that are not published, null: return all tracks
     published: Boolean,
-    # Sort by 'id', 'name', or 'published_at'
+    # Sort by 'id', 'name', or 'created_at'
     sortBy: String
   ): TrackQuerySet
 
@@ -2721,8 +2736,6 @@ type Track {
   numPeopleCompleted: Int
   # The total number of posts in this track
   postsTotal: Int
-  # When this track was published
-  publishedAt: Date
   # When this track was updated
   updatedAt: Date
   # The settings for the current user in this track
@@ -2979,10 +2992,8 @@ type FundingRound {
   numParticipants: Int
   # Number of submissions in the round
   numSubmissions: Int
-  # The current phase of the round: draft, published, submissions, discussion, voting, completed
+  # The current phase of the round (resolved from the space group's status)
   phase: FundingRoundPhase
-  # When the round was published
-  publishedAt: Date
   # Whether a budget is required for submissions
   requireBudget: Boolean
   # The term used to describe a submission to the round
@@ -3323,7 +3334,9 @@ type Mutation {
     # When true, space is Paid access (forces protected + restricted)
     paywall: Boolean,
     # When false, parent menu space view is created off-menu (More Views). Default true.
-    addToMenu: Boolean
+    addToMenu: Boolean,
+    # draft or published. Drafts are always created off-menu.
+    status: GroupStatus
   ): Group
   # Update a Space's settings
   updateSpace(
@@ -3342,11 +3355,13 @@ type Mutation {
     bannerUrl: String,
     avatarUrl: String,
     # When true, space is Paid access (forces protected + restricted)
-    paywall: Boolean
+    paywall: Boolean,
+    # draft or published. Setting draft removes the space from the parent menu.
+    status: GroupStatus
   ): Group
-  # Archive a Space (soft-deactivate; removes its menu entry from the parent)
+  # Archive a Space (status=archived; removes its menu entry from the parent). Stays in More Spaces → Archived.
   archiveSpace(id: ID!): Group
-  # Permanently delete a Space
+  # Soft-delete a Space (active=false). Hidden from menus and More Spaces.
   deleteSpace(id: ID!): GenericResult
   # Join a Space (creates a group membership + per-view unread rows)
   joinSpace(spaceId: ID!): Membership
@@ -4432,8 +4447,6 @@ input TrackInput {
   groupId: ID
   # The posts (actions) for the track
   postIds: [ID]
-  # When the track was or will be published, null if not published
-  publishedAt: Date
 }
 
 input RoleSelectionInput {
@@ -4456,8 +4469,6 @@ input FundingRoundInput {
   maxTokenAllocation: Int
   # Minimum tokens a voter can allocate
   minTokenAllocation: Int
-  # When the round was or will be published, null if not published
-  publishedAt: Date
   # Whether a budget is required for submissions
   requireBudget: Boolean
   # The term used to describe a submission to the round

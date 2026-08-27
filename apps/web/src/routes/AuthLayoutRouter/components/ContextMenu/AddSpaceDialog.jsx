@@ -159,7 +159,6 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
   const [isCreating, setIsCreating] = useState(false)
 
   // Funding Round settings (only used when creating a funding-round space)
-  const [frPublishedAt, setFrPublishedAt] = useState(null)
   const [frSubmissionsOpenAt, setFrSubmissionsOpenAt] = useState(null)
   const [frSubmissionsCloseAt, setFrSubmissionsCloseAt] = useState(null)
   const [frVotingOpensAt, setFrVotingOpensAt] = useState(null)
@@ -180,7 +179,6 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
   const [actionDescriptor, setActionDescriptor] = useState('Action')
   const [actionDescriptorPlural, setActionDescriptorPlural] = useState('Actions')
   const [completionRole, setCompletionRole] = useState(null)
-  const [trackPublishedAt, setTrackPublishedAt] = useState(null)
   const completionMessageEditorRef = useRef(null)
 
   /** Switches space type and resets post types / included views / icon to that type's defaults. */
@@ -341,7 +339,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
     setManualViews(prev => [...prev, { ...viewData, key: `manual-${prev.length}-${Date.now()}` }])
   }, [])
 
-  const handleCreate = useCallback(async () => {
+  const handleCreate = useCallback(async (status) => {
     if (!name.trim() || !group?.id) return
     if (!slugValid) {
       setShowSlugError(true)
@@ -381,7 +379,8 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
         requiredRoles: access === 'role' ? requiredRoles.map(role => role.id) : null,
         paywall: Boolean(accessOption.paywall),
         viewTypes,
-        addToMenu
+        addToMenu: status === 'draft' ? false : addToMenu,
+        status
       }))
 
       const newSpace = result?.payload?.data?.createSpace
@@ -392,13 +391,11 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
           actionDescriptor,
           actionDescriptorPlural,
           completionMessage: completionMessageEditorRef.current?.getHTML?.() || null,
-          completionRole,
-          publishedAt: trackPublishedAt ? new Date(trackPublishedAt) : null
+          completionRole
         }))
       } else if (newSpace?.id && spaceType === 'funding-round') {
         await dispatch(createFundingRound({
           groupId: newSpace.id,
-          publishedAt: toIsoOrNull(frPublishedAt),
           submissionsOpenAt: toIsoOrNull(frSubmissionsOpenAt),
           submissionsCloseAt: toIsoOrNull(frSubmissionsCloseAt),
           votingOpensAt: toIsoOrNull(frVotingOpensAt),
@@ -479,7 +476,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
         dispatch(fetchGroupViews(group.id)),
         newSpace?.id ? dispatch(fetchGroupViews(newSpace.id)) : Promise.resolve(),
         dispatch(fetchForCurrentUser()),
-        addToMenu === false && group?.slug ? dispatch(fetchForGroup(group.slug)) : Promise.resolve()
+        (addToMenu === false || status === 'draft') && group?.slug ? dispatch(fetchForGroup(group.slug)) : Promise.resolve()
       ])
       onClose()
       if (onCreated) {
@@ -502,7 +499,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
     } finally {
       setIsCreating(false)
     }
-  }, [dispatch, group?.id, name, slug, slugValid, description, icon, bannerUrl, purpose, locationObject, postTypes, access, requiredRoles, spaceType, orderedRows, standardViewTypes, homeViewType, welcomeEnabled, welcomeExtras, showWelcomePage, onClose, onCreated, navigate, routerLocation.pathname, addToMenu, isOneColumn, actionDescriptor, actionDescriptorPlural, completionRole, trackPublishedAt, frPublishedAt, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frAllowLateJoiners, frHideFinalResults, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles])
+  }, [dispatch, group?.id, name, slug, slugValid, description, icon, bannerUrl, purpose, locationObject, postTypes, access, requiredRoles, spaceType, orderedRows, standardViewTypes, homeViewType, welcomeEnabled, welcomeExtras, showWelcomePage, onClose, onCreated, navigate, routerLocation.pathname, addToMenu, isOneColumn, actionDescriptor, actionDescriptorPlural, completionRole, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frAllowLateJoiners, frHideFinalResults, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles])
 
   const advancedSettings = useMemo(() => [
     {
@@ -761,8 +758,6 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
               setActionDescriptorPlural={setActionDescriptorPlural}
               completionRole={completionRole}
               setCompletionRole={setCompletionRole}
-              publishedAt={trackPublishedAt}
-              setPublishedAt={setTrackPublishedAt}
               roles={roles}
               completionMessageEditorRef={completionMessageEditorRef}
               groupIds={group?.id ? [group.id] : []}
@@ -772,8 +767,6 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
 
           {spaceType === 'funding-round' && (
             <FundingRoundSettingsFields
-              publishedAt={frPublishedAt}
-              setPublishedAt={setFrPublishedAt}
               submissionDescriptor={frSubmissionDescriptor}
               setSubmissionDescriptor={setFrSubmissionDescriptor}
               submissionDescriptorPlural={frSubmissionDescriptorPlural}
@@ -845,8 +838,11 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
 
         <div className='flex justify-end gap-2 mt-4 pt-2 border-t border-foreground/10'>
           <Button variant='primary' onClick={onClose}>{t('Cancel')}</Button>
-          <Button variant='secondary' disabled={!name.trim() || isCreating} onClick={handleCreate}>
-            {isCreating ? t('Creating...') : t('Create')}
+          <Button variant='primary' disabled={!name.trim() || isCreating} onClick={() => handleCreate('draft')}>
+            {isCreating ? t('Creating...') : t('Save as Draft')}
+          </Button>
+          <Button variant='secondary' disabled={!name.trim() || isCreating} onClick={() => handleCreate('published')}>
+            {isCreating ? t('Creating...') : t('Create and Publish')}
           </Button>
         </div>
       </div>

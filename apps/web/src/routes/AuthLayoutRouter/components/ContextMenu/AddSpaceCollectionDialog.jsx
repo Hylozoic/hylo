@@ -78,7 +78,7 @@ export default function AddSpaceCollectionDialog ({ group, view, onCancel, onCre
       parentGroupId: ownerGroup?.id
     })).map(space => ({
       ...space,
-      isDraft: Boolean(space.track && !space.track.publishedAt)
+      isDraft: space.status === 'draft'
     }))
   }, [ownerGroup?.spaces?.items, ownerGroup?.id, publishedOfferings, canAdminister, myMemberships, currentUser])
 
