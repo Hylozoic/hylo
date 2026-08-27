@@ -8,7 +8,7 @@ export const GROUP_WELCOME_TOUR_ID = 'group-welcome'
 export function groupCreatorTourSteps (t) {
   return [
     {
-      element: '[data-tour="group-header"]',
+      element: '[data-tour="group-menu"]',
       popover: {
         title: t('Welcome to your new group'),
         description: t('Its menu, members, and settings all live in this panel.'),
@@ -57,7 +57,7 @@ export function groupCreatorTourSteps (t) {
 export function groupWelcomeTourSteps (t) {
   return [
     {
-      element: '[data-tour="group-header"]',
+      element: '[data-tour="group-menu"]',
       popover: {
         title: t('The group menu'),
         description: t('Each item is a view of this group. Spaces are sub-groups with their own members and content.'),

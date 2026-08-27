@@ -961,6 +961,7 @@ export default function ContextMenu (props) {
       )}
       style={{ boxShadow: 'inset -15px 0 15px -10px hsl(var(--darkening) / 0.3)' }}
       onScroll={handleScroll}
+      data-tour='group-menu'
     >
       {/* Fixed-position, so the menu's own overflow scrolling never clips it */}
       {!isPhoneDevice() && <ContextMenuResizer menuEl={menuRootEl} />}
