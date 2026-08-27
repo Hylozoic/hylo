@@ -20,7 +20,7 @@ function matchesContext (entry, groupId, postId) {
   return true
 }
 
-function PeopleTyping ({ className, groupId, postId }) {
+function PeopleTyping ({ className, groupId, postId, hideWhenEmpty = false }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const peopleTyping = useSelector(getPeopleTyping)
@@ -41,6 +41,7 @@ function PeopleTyping ({ className, groupId, postId }) {
   }, [dispatch, peopleTyping])
 
   const names = values(peopleTyping).filter(v => matchesContext(v, groupId, postId)).map(v => v.name)
+  if (hideWhenEmpty && names.length === 0) return null
   return (
     <div className={cn(classes.typing, className)} data-testid='people-typing'>
       {names.length === 1 && <span>{names[0]} {t('is typing...')}&nbsp;</span>}

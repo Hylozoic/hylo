@@ -27,7 +27,7 @@ describe('WelcomeExplore', () => {
     )
 
     expect(screen.getByRole('link', { name: /View the public map/i })).toHaveAttribute('href', '/public/map?hideDrawer=true')
-    expect(screen.getByRole('link', { name: /Public stream/i })).toHaveAttribute('href', '/public/stream')
+    expect(screen.getByRole('link', { name: /Public stream/i })).toHaveAttribute('href', '/public/all')
     expect(screen.getByRole('link', { name: /Create a group/i })).toHaveAttribute('href', '/public?createGroup=true')
     expect(screen.getByRole('link', { name: /Complete your profile/i })).toHaveAttribute('href', '/my/edit-profile')
   })

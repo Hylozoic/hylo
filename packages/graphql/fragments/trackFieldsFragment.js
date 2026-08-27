@@ -27,7 +27,6 @@ export default gql`
     numActions
     numPeopleCompleted
     numPeopleEnrolled
-    publishedAt
     userSettings
     space {
       id
@@ -37,6 +36,7 @@ export default gql`
       avatarUrl
       slug
       type
+      status
       homeRoute
       parentGroup {
         id

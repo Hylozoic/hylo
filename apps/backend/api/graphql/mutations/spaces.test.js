@@ -111,7 +111,7 @@ describe('space mutations', () => {
   })
 
   describe('deleteSpace', () => {
-    it('hard-deletes the space group row', async () => {
+    it('soft-deletes the space (active = false)', async () => {
       const space = await createSpace(coordinator.id, {
         parentGroupId: parentGroup.id,
         name: `Delete Me ${Date.now()}`
@@ -121,7 +121,8 @@ describe('space mutations', () => {
       expect(result.success).to.be.true
 
       const found = await Group.find(space.id)
-      expect(found).to.be.null
+      expect(found).to.not.be.null
+      expect(found.get('active')).to.equal(false)
 
       const menuEntry = await GroupView.where({
         type: GroupView.Type.SPACE,
@@ -130,7 +131,7 @@ describe('space mutations', () => {
       expect(menuEntry).to.be.null
     })
 
-    it('hard-deletes an already archived space', async () => {
+    it('soft-deletes an already archived space', async () => {
       const space = await createSpace(coordinator.id, {
         parentGroupId: parentGroup.id,
         name: `Archived Then Deleted ${Date.now()}`
@@ -138,14 +139,16 @@ describe('space mutations', () => {
 
       await archiveSpace(coordinator.id, space.id, {})
       const archived = await Group.find(space.id)
-      expect(archived.get('active')).to.equal(false)
+      expect(archived.get('status')).to.equal(Group.Status.ARCHIVED)
+      expect(archived.get('active')).to.equal(true)
 
       const result = await deleteSpace(coordinator.id, space.id, {})
       expect(result.success).to.be.true
-      expect(await Group.find(space.id)).to.be.null
+      const deleted = await Group.find(space.id)
+      expect(deleted.get('active')).to.equal(false)
     })
 
-    it('hard-deletes a funding round space', async () => {
+    it('soft-deletes a funding round space without destroying the round', async () => {
       const space = await createSpace(coordinator.id, {
         parentGroupId: parentGroup.id,
         name: `Round Space ${Date.now()}`
@@ -157,12 +160,13 @@ describe('space mutations', () => {
         created_at: new Date(),
         updated_at: new Date()
       }).save()
-      await space.save({ funding_round_id: round.id, active: false }, { patch: true })
+      await space.save({ funding_round_id: round.id }, { patch: true })
 
       const result = await deleteSpace(coordinator.id, space.id, {})
       expect(result.success).to.be.true
-      expect(await Group.find(space.id)).to.be.null
-      expect(await FundingRound.where({ id: round.id }).fetch()).to.be.null
+      const deleted = await Group.find(space.id)
+      expect(deleted.get('active')).to.equal(false)
+      expect(await FundingRound.where({ id: round.id }).fetch()).to.not.be.null
     })
 
     it('rejects when user cannot manage spaces', async () => {
@@ -180,6 +184,56 @@ describe('space mutations', () => {
 
       expect(await Group.find(space.id)).to.not.be.null
       await deleteSpace(coordinator.id, space.id, {})
+    })
+  })
+
+  describe('createSpace status', () => {
+    it('creates published by default and on the menu', async () => {
+      const space = await createSpace(coordinator.id, {
+        parentGroupId: parentGroup.id,
+        name: `Published ${Date.now()}`
+      }, {})
+      expect(space.get('status')).to.equal(Group.Status.PUBLISHED)
+      const menuEntry = await GroupView.where({
+        type: GroupView.Type.SPACE,
+        linked_group_id: space.id
+      }).fetch()
+      expect(menuEntry.get('order')).to.not.equal(null)
+    })
+
+    it('creates drafts off-menu', async () => {
+      const space = await createSpace(coordinator.id, {
+        parentGroupId: parentGroup.id,
+        name: `Draft ${Date.now()}`,
+        status: Group.Status.DRAFT,
+        addToMenu: true
+      }, {})
+      expect(space.get('status')).to.equal(Group.Status.DRAFT)
+      const menuEntry = await GroupView.where({
+        type: GroupView.Type.SPACE,
+        linked_group_id: space.id
+      }).fetch()
+      expect(menuEntry.get('order')).to.equal(null)
+    })
+  })
+
+  describe('archiveSpace', () => {
+    it('sets status archived and keeps the row active', async () => {
+      const space = await createSpace(coordinator.id, {
+        parentGroupId: parentGroup.id,
+        name: `Archive Me ${Date.now()}`
+      }, {})
+
+      await archiveSpace(coordinator.id, space.id, {})
+      const archived = await Group.find(space.id)
+      expect(archived.get('status')).to.equal(Group.Status.ARCHIVED)
+      expect(archived.get('active')).to.equal(true)
+
+      const menuEntry = await GroupView.where({
+        type: GroupView.Type.SPACE,
+        linked_group_id: space.id
+      }).fetch()
+      expect(menuEntry).to.be.null
     })
   })
 

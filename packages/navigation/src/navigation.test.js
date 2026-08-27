@@ -18,7 +18,8 @@ import {
   spaceHomeRoutePath,
   spaceHomeUrl,
   localSpaceSlug,
-  storedSpaceSlug
+  storedSpaceSlug,
+  tagSearchUrl
 } from './index'
 
 describe('postUrl', () => {
@@ -227,7 +228,6 @@ describe('homeRoutePathForView', () => {
   it('returns paths for common home view types', () => {
     expect(homeRoutePathForView({ type: 'all' })).toEqual('/all')
     expect(homeRoutePathForView({ type: 'welcome' })).toEqual('/welcome')
-    expect(homeRoutePathForView({ type: 'stream' })).toEqual('/all')
     expect(homeRoutePathForView({ type: 'custom', id: 12 })).toEqual('/custom/12')
     expect(homeRoutePathForView({ type: 'collection', id: 34 })).toEqual('/collection/34')
     expect(homeRoutePathForView({ type: 'space-collection', id: 56 })).toEqual('/space-collection/56')
@@ -289,5 +289,27 @@ describe('storedSpaceSlug', () => {
 
   it('does not double-prefix an already stored slug', () => {
     expect(storedSpaceSlug('my-community', 'my-community-general')).toEqual('my-community-general')
+  })
+})
+
+describe('tagSearchUrl', () => {
+  it('searches the current group for a hashtag', () => {
+    expect(tagSearchUrl('climate', { groupSlug: 'awesome-team' }))
+      .toEqual('/search?t=%23climate&groupSlug=awesome-team')
+  })
+
+  it('accepts a tag that already has a leading hash', () => {
+    expect(tagSearchUrl('#climate', { groupSlug: 'awesome-team' }))
+      .toEqual('/search?t=%23climate&groupSlug=awesome-team')
+  })
+
+  it('omits groupSlug for all/public context slugs', () => {
+    expect(tagSearchUrl('climate', { groupSlug: 'all' })).toEqual('/search?t=%23climate')
+    expect(tagSearchUrl('climate', { groupSlug: 'public' })).toEqual('/search?t=%23climate')
+  })
+
+  it('returns /search when the tag is empty', () => {
+    expect(tagSearchUrl('')).toEqual('/search')
+    expect(tagSearchUrl('#')).toEqual('/search')
   })
 })

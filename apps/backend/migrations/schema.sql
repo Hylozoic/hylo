@@ -1034,7 +1034,6 @@ CREATE TABLE public.funding_rounds (
     total_tokens integer,
     min_token_allocation integer,
     max_token_allocation integer,
-    published_at timestamp with time zone,
     submissions_open_at timestamp with time zone,
     submissions_close_at timestamp with time zone,
     voting_opens_at timestamp with time zone,
@@ -1047,10 +1046,10 @@ CREATE TABLE public.funding_rounds (
     updated_at timestamp with time zone,
     submitter_roles jsonb DEFAULT '[]'::jsonb,
     voter_roles jsonb DEFAULT '[]'::jsonb,
-    phase character varying(255) DEFAULT 'draft'::character varying,
     deactivated_at timestamp with time zone,
     hide_final_results_from_participants boolean DEFAULT false,
-    allow_self_voting boolean DEFAULT false
+    allow_self_voting boolean DEFAULT false,
+    allow_late_joiners boolean DEFAULT false
 );
 
 
@@ -1591,6 +1590,7 @@ CREATE TABLE public.groups (
     website_url text,
     calendar_token character varying(255),
     home_route character varying(255),
+    menu_view_count integer DEFAULT 0 NOT NULL,
     stripe_account_id bigint,
     stripe_charges_enabled boolean DEFAULT false,
     stripe_payouts_enabled boolean DEFAULT false,
@@ -1604,7 +1604,8 @@ CREATE TABLE public.groups (
     required_roles jsonb,
     icon character varying(255),
     track_id bigint,
-    funding_round_id bigint
+    funding_round_id bigint,
+    status character varying(255) DEFAULT 'published'::character varying NOT NULL
 );
 
 
@@ -3323,7 +3324,6 @@ CREATE TABLE public.tracks (
     action_descriptor_plural character varying(255),
     completion_message text,
     deactivated_at timestamp with time zone,
-    published_at timestamp with time zone,
     created_at timestamp with time zone,
     updated_at timestamp with time zone,
     settings jsonb DEFAULT '{}'::jsonb,
@@ -5454,6 +5454,13 @@ CREATE INDEX groups_tags_group_id_visibility_index ON public.groups_tags USING b
 --
 
 CREATE INDEX groups_visibility_active_index ON public.groups USING btree (visibility, active);
+
+
+--
+-- Name: groups_type_status_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX groups_type_status_index ON public.groups USING btree (type, status);
 
 
 --

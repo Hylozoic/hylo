@@ -206,16 +206,20 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
 
   // Portal above AuthLayout nav stacking so the dialog is not trapped behind GlobalNav.
   return createPortal(
-    <div className={cn(
-      'fixed inset-0 z-[1100] flex items-center justify-center bg-darkening/50 pointer-events-auto',
-      isWelcome && 'p-4'
-    )}>
-      <div className={cn(
-        'bg-midground rounded-lg shadow-lg p-4 w-full',
-        isWelcome
-          ? 'max-w-[750px] h-[calc(100vh-2rem)] flex flex-col'
-          : 'max-w-lg max-h-[85vh] overflow-y-auto'
-      )}>
+    <div
+      className={cn(
+        'fixed inset-0 z-[1100] flex items-center justify-center bg-darkening/50 pointer-events-auto',
+        isWelcome && 'p-4'
+      )}
+    >
+      <div
+        className={cn(
+          'bg-midground rounded-lg shadow-lg p-4 w-full',
+          isWelcome
+            ? 'max-w-[750px] h-[calc(100vh-2rem)] flex flex-col'
+            : 'max-w-lg max-h-[85vh] overflow-y-auto'
+        )}
+      >
         <h2 className='text-lg font-semibold mb-4 flex items-center gap-2 shrink-0'>
           <GroupViewIcon view={view} />
           {title}
@@ -373,12 +377,12 @@ export function GroupViewEditActions ({ view, onSettings, onHide, onDelete, clas
               type='button'
               className='p-1 text-foreground/50 hover:text-destructive rounded'
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); onHide(view) }}
-              aria-label={t('Remove from main menu')}
+              aria-label={t('Move to More Spaces')}
             >
               <X className='w-4 h-4' />
             </button>
           </TooltipTrigger>
-          <TooltipContent>{t('Remove from main menu')}</TooltipContent>
+          <TooltipContent>{t('Move to More Spaces')}</TooltipContent>
         </Tooltip>
       )}
       {hardDeletable && onDelete && (

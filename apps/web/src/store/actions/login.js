@@ -16,6 +16,7 @@ export default function login (email, password) {
               name
               settings {
                 alreadySeenTour
+                toursSeen
                 colorScheme
                 dmNotifications
                 commentNotifications

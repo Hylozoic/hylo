@@ -791,6 +791,9 @@ module.exports = bookshelf.Model.extend({
 
     if (isEmpty(groupIds)) throw new Error('no group ids in activity')
     const group = await Group.find(groupIds[0])
+    if (group.get('type') === 'space') {
+      await group.load(['parentGroup'])
+    }
 
     const clickthroughParams = '?' + new URLSearchParams({
       ctt: 'approved_join_request_email',
@@ -806,7 +809,7 @@ module.exports = bookshelf.Model.extend({
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
         group_avatar_url: group.get('avatar_url'),
         group_name: group.get('name'),
-        group_url: Frontend.Route.group(group) + clickthroughParams,
+        group_url: Frontend.Route.groupHome(group) + clickthroughParams,
         approver_name: actor.get('name'),
         approver_avatar_url: actor.get('avatar_url'),
         approver_profile_url: Frontend.Route.profile(actor) + clickthroughParams

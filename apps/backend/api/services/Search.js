@@ -32,11 +32,14 @@ module.exports = {
       }
 
       if (!isNil(opts.published)) {
-        if (opts.published) {
-          qb.where('funding_rounds.published_at', 'is not', null)
-        } else {
-          qb.where('funding_rounds.published_at', null)
-        }
+        qb.whereIn('funding_rounds.group_id', function () {
+          this.select('id').from('groups')
+          if (opts.published) {
+            this.whereIn('status', Group.PUBLISHED_STATUSES)
+          } else {
+            this.where('status', Group.Status.DRAFT)
+          }
+        })
       }
 
       qb.orderBy(opts.sortBy || 'id', opts.order || 'asc')
@@ -214,11 +217,14 @@ module.exports = {
       }
 
       if (!isNil(opts.published)) {
-        if (opts.published) {
-          qb.where('tracks.published_at', 'is not', null)
-        } else {
-          qb.where('tracks.published_at', null)
-        }
+        qb.whereIn('tracks.group_id', function () {
+          this.select('id').from('groups')
+          if (opts.published) {
+            this.whereIn('status', Group.PUBLISHED_STATUSES)
+          } else {
+            this.where('status', Group.Status.DRAFT)
+          }
+        })
       }
 
       qb.orderBy(opts.sortBy || 'id', opts.order || 'asc')
@@ -256,7 +262,7 @@ module.exports = {
 }
 
 const fetchGroupAccess = (userId, { groupIds }) => {
-  if (groupIds) return Promise.resolve({ groupIds })
+  if (groupIds && groupIds.length > 0) return Promise.resolve({ groupIds })
   return Promise.resolve({ userId })
 }
 

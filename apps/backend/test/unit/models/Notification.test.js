@@ -407,6 +407,7 @@ describe('Notification', function () {
           group_name: 'My Group',
           approver_name: 'Joe'
         })
+        expect(opts.data.group_url).to.match(/\/groups\/my-group\//)
       })
 
       return preloadNotification(activities.approvedJoinRequest, Notification.MEDIUM.Email)

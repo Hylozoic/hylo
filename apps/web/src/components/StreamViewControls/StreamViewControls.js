@@ -34,7 +34,7 @@ const GROUP_CLASS = 'inline-flex items-center gap-0.5 h-8 sm:h-9 p-[3px] box-bor
 const PILL_CLASS = 'inline-flex items-center gap-1 sm:gap-1.5 h-8 sm:h-9 px-2 sm:px-3 box-border rounded-[9px] bg-background border-2 border-foreground/20 text-foreground text-xs font-semibold cursor-pointer transition-colors hover:border-foreground/40 whitespace-nowrap'
 
 /** One segmented-group button. Active reads as the selected green, per the design. */
-function ToolBtn ({ active, onClick, tooltip, children }) {
+function ToolBtn ({ active, onClick, tooltip, children, dataTour }) {
   return (
     <button
       type='button'
@@ -45,6 +45,7 @@ function ToolBtn ({ active, onClick, tooltip, children }) {
       )}
       data-tooltip-content={tooltip}
       data-tooltip-id='stream-controls-tip'
+      data-tour={dataTour}
       aria-pressed={active}
       aria-label={tooltip}
     >
@@ -189,7 +190,7 @@ const StreamViewControls = ({
           />
         </div>
 
-        <div className={cn(GROUP_CLASS, 'max-sm:hidden')}>
+        <div className={cn(GROUP_CLASS, 'max-sm:hidden')} data-tour='stream-view-modes'>
           <ToolBtn active={viewMode === 'cards'} onClick={() => changeView('cards')} tooltip={t('Card view')}>
             {VIEW_MODE_ICONS.cards}
           </ToolBtn>
@@ -212,6 +213,7 @@ const StreamViewControls = ({
         <div className={GROUP_CLASS}>
           <ToolBtn
             active={activePostsOnly}
+            dataTour='stream-active-toggle'
             onClick={handleClickActivePostsOnly}
             tooltip={activePostsOnly ? t('Show both active and completed posts') : t('Hide complete posts, show only active ones')}
           >
@@ -220,6 +222,7 @@ const StreamViewControls = ({
           {showChildPostToggle && (
             <ToolBtn
               active={childPostInclusion === 'yes'}
+              dataTour='stream-child-toggle'
               onClick={handleChildPostInclusion}
               tooltip={childPostInclusion === 'yes' ? t('Hide posts from child groups and spaces you are a member of') : t('Show posts from child groups and spaces you are a member of')}
             >

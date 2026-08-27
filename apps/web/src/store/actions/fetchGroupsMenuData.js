@@ -59,9 +59,11 @@ query FetchGroupsMenuData (
       purpose
       slug
       type
+      status
       parentId
       icon
       homeRoute
+      menuViewCount
       visibility
       accessibility
       acceptedPostTypes
@@ -91,11 +93,13 @@ query FetchGroupsMenuData (
             name
             slug
             type
+            status
             parentId
             avatarUrl
             bannerUrl
             icon
             homeRoute
+            menuViewCount
             description
             purpose
             location
@@ -119,13 +123,11 @@ query FetchGroupsMenuData (
               id
               actionDescriptor
               actionDescriptorPlural
-              publishedAt
               accessControlled
               canAccess
             }
             fundingRound {
               id
-              publishedAt
               phase
               submissionDescriptor
               submissionDescriptorPlural
@@ -176,6 +178,7 @@ query FetchGroupsMenuData (
           name
           slug
           type
+          status
           parentId
           avatarUrl
           icon
@@ -202,6 +205,7 @@ query FetchGroupsMenuData (
           }
           active
           homeRoute
+          menuViewCount
           groupViews {
             items {
               id
@@ -235,13 +239,11 @@ query FetchGroupsMenuData (
             id
             actionDescriptor
             actionDescriptorPlural
-            publishedAt
             accessControlled
             canAccess
           }
           fundingRound {
             id
-            publishedAt
             phase
             submissionDescriptor
             submissionDescriptorPlural

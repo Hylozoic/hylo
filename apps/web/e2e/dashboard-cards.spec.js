@@ -10,14 +10,22 @@
 import { test, expect } from '@playwright/test'
 import fs from 'fs'
 import path from 'path'
+import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading.js'
 
 const screenshotDir = path.resolve(import.meta.dirname, 'screenshots')
 const uiTimeout = { timeout: 60000 }
 
+test.describe.configure({ timeout: 120000 })
+
+/**
+ * Persists the user's group menu style from /my/appearance.
+ */
 async function setGroupNavStyle (page, ariaLabel) {
   await page.goto('/my/appearance')
-  await page.waitForLoadState('networkidle')
-  await page.getByRole('button', { name: ariaLabel }).click()
+  await waitPastRootSessionLoading(page)
+  const button = page.getByRole('button', { name: ariaLabel })
+  await button.waitFor({ state: 'visible', timeout: 60000 })
+  await button.click()
   // let the updateMe mutation persist
   await page.waitForTimeout(1000)
 }
@@ -26,9 +34,8 @@ test('two-column menu active row styling', async ({ page }) => {
   fs.mkdirSync(screenshotDir, { recursive: true })
 
   await page.goto('/groups/e2e-public-group')
-  await page.waitForLoadState('networkidle')
+  await waitPastRootSessionLoading(page)
   await page.locator('text=Loading views').waitFor({ state: 'detached', timeout: 20000 }).catch(() => {})
-  await page.waitForTimeout(500)
 
   // Open a couple of views so the active-row background is visible
   const menuItems = page.locator('.ContextMenu ul .MenuLink, .ContextMenu ul a')
@@ -71,7 +78,7 @@ test('one-column dashboard cards', async ({ page }) => {
     await setGroupNavStyle(page, 'Card Menu')
 
     await page.goto('/groups/e2e-public-group')
-    await page.waitForLoadState('networkidle')
+    await waitPastRootSessionLoading(page)
     // wait for the group views to load and cards to render
     await page.locator('text=Loading views').waitFor({ state: 'detached', timeout: 20000 }).catch(() => {})
 
@@ -94,6 +101,12 @@ test('one-column dashboard cards', async ({ page }) => {
     console.log('Screenshot saved: dashboard-cards-hover.png')
   } finally {
     // Reset shared E2E user so other suites keep two-column / Side Menu behavior
-    await setGroupNavStyle(page, 'Group Default')
+    try {
+      if (!page.isClosed()) {
+        await setGroupNavStyle(page, 'Group Default')
+      }
+    } catch {
+      // Browser already closed after a timeout; seed user defaults to group-default.
+    }
   }
 })

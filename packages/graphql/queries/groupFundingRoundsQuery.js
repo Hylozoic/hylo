@@ -22,6 +22,7 @@ export default gql`
       ) {
         items {
           id
+          allowLateJoiners
           allowSelfVoting
           createdAt
           criteria
@@ -31,6 +32,7 @@ export default gql`
             slug
             description
             bannerUrl
+            status
           }
           isParticipating
           hideFinalResultsFromParticipants
@@ -39,7 +41,6 @@ export default gql`
           numParticipants
           numSubmissions
           phase
-          publishedAt
           requireBudget
           submissionDescriptor
           submissionDescriptorPlural
@@ -62,6 +63,4 @@ export default gql`
         }
       }
     }
-  }
-`
-
+  }`

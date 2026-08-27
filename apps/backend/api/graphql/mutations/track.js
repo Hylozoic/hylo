@@ -6,9 +6,6 @@ import convertGraphqlData from './convertGraphqlData'
 export async function createTrack (userId, data) {
   return bookshelf.transaction(async transacting => {
     const attrs = convertGraphqlData(omit(data, 'groupId', 'publishedAt', 'name', 'description', 'bannerUrl', 'welcomeMessage'))
-    if (data.publishedAt) {
-      attrs.published_at = new Date(Number(data.publishedAt)) // XXX: because convertGraphqlData messes up dates
-    }
 
     const spaceId = data.groupId
     if (spaceId) {
@@ -93,7 +90,6 @@ export async function updateTrack (userId, id, data) {
   }
 
   const attrs = convertGraphqlData(omit(data, 'groupId', 'publishedAt', 'name', 'description', 'bannerUrl', 'welcomeMessage'))
-  attrs.published_at = data.publishedAt ? new Date(Number(data.publishedAt)) : null
   await track.save(attrs)
   return track
 }

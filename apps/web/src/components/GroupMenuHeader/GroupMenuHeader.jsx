@@ -87,6 +87,7 @@ export default function GroupMenuHeader ({
         !compact && !hideBanner && 'shadow-md'
       )}
       data-testid='group-header'
+      data-tour='group-header'
     >
       {!hideBanner && (
         <>
@@ -120,12 +121,12 @@ export default function GroupMenuHeader ({
           aria-hidden='true'
         />
       )}
-      <div className={cn('absolute top-2 left-2 z-20', controlFade)}>
+      <div className={cn('absolute top-2 left-2 z-20', controlFade)} data-tour='group-notifications'>
         <GroupNotificationsPopover group={group} />
       </div>
       {canAdminister && (
-        <div className={cn('absolute top-2 right-2 z-20', controlFade)}>
-          <button onClick={() => navigateAndClose(groupUrl(group.slug, 'settings', {}))}>
+        <div className={cn('absolute top-2 right-2 z-20', controlFade)} data-tour='group-settings'>
+          <button aria-label={t('Group Settings')} onClick={() => navigateAndClose(groupUrl(group.slug, 'settings', {}))}>
             <Settings className='w-6 h-6 text-white drop-shadow-md hover:scale-110 transition-all' />
           </button>
         </div>
@@ -201,25 +202,25 @@ export default function GroupMenuHeader ({
               <Users className='w-3.5 h-3.5' />
               {group.memberCount}
             </Link>
-            <InviteMembersDialog
-              group={group}
-              alwaysVisible
-              triggerLabel={t('Invite')}
-              triggerClassName='rounded-full bg-white/15 border border-white/25 px-2 py-0.5 text-white hover:text-white hover:bg-white/25 hover:scale-100'
-            />
+            <span className='inline-flex' data-tour='group-invite'>
+              <InviteMembersDialog
+                group={group}
+                alwaysVisible
+                triggerLabel={t('Invite')}
+                triggerClassName='rounded-full bg-white/15 border border-white/25 px-2 py-0.5 text-white hover:text-white hover:bg-white/25 hover:scale-100'
+              />
+            </span>
+            <button
+              type='button'
+              data-tour='group-about'
+              onClick={() => navigateAndClose(groupUrl(group.slug, 'about', {}))}
+              className='inline-flex items-center gap-1 rounded-full bg-white/15 border border-white/25 px-2 py-0.5 text-white hover:bg-white/25 hover:text-white transition-colors'
+            >
+              <Info className='w-3.5 h-3.5' />
+              {t('About')}
+            </button>
           </span>
         </div>
-        <Info
-          className={cn(
-            `text-${textColor} cursor-pointer h-[20px] shrink-0 text-white hover:scale-110 transition-all`,
-            // Sits on the avatar's centre line while the row itself is top-aligned,
-            // so a name that wraps to three lines doesn't drag it down the banner.
-            // Compact collapses its width so the faded-out icon leaves no gap.
-            compact ? 'w-0' : 'w-[20px] mt-2.5',
-            controlFade
-          )}
-          onClick={() => navigateAndClose(groupUrl(group.slug, 'about', {}))}
-        />
       </div>
     </div>
   )

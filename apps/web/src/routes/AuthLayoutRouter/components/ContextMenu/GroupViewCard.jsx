@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react'
 import { useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Boxes, ExternalLink, Info, Loader2, Pencil, Plus, Settings, Trash2, Users, X } from 'lucide-react'
+import { Archive, Boxes, ExternalLink, Info, Loader2, Pencil, Plus, Settings, Trash2, Users, X } from 'lucide-react'
 import { localSpaceSlug, spaceUrl } from '@hylo/navigation'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 
@@ -134,11 +134,13 @@ export function CardEditActions ({
   onOpenSettings,
   onHide,
   onEditMenu,
+  onArchive,
   onDelete,
   addLabel,
   settingsLabel,
   hideLabel,
   editMenuLabel,
+  archiveLabel,
   deleteLabel,
   collectionViews,
   onAddToCollection,
@@ -248,6 +250,24 @@ export function CardEditActions ({
             </button>
           </TooltipTrigger>
           <TooltipContent>{editMenuLabel}</TooltipContent>
+        </Tooltip>
+      )}
+      {onArchive && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type='button'
+              onClick={(e) => {
+                e.stopPropagation()
+                onArchive()
+              }}
+              className={CARD_ACTION_BTN}
+              aria-label={archiveLabel}
+            >
+              <Archive className='w-4 h-4' />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>{archiveLabel}</TooltipContent>
         </Tooltip>
       )}
       {onDelete && (
@@ -594,6 +614,7 @@ export function SpaceViewCard ({
   onAddToMenu,
   onOpenSettings,
   onDelete,
+  onArchive,
   onHide,
   hideLabel,
   collectionViews,
@@ -619,7 +640,6 @@ export function SpaceViewCard ({
       className={cn(
         CARD_CLASS,
         cardChrome(isDark),
-        isEditing && 'cursor-grab active:cursor-grabbing',
         isDeleting && 'pointer-events-none opacity-50'
       )}
       style={{
@@ -691,8 +711,11 @@ export function SpaceViewCard ({
         </div>
         <div className='absolute left-0 right-0 top-[calc(50%+28px)] bottom-0 flex flex-col items-center justify-center text-center px-3'>
           <TruncatedText as='h3' className={cn(CARD_TITLE_CLASS, onLightSurface ? 'text-foreground' : 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]')} text={space.name} />
-          {space.isDraft && (
+          {(space.isDraft || space.status === 'draft') && (
             <span className={cn('text-[10.5px] font-semibold mt-1', onLightSurface ? 'text-foreground/60' : 'text-white/70 [text-shadow:0_1px_4px_rgba(0,0,0,0.6)]')}>{t('Draft')}</span>
+          )}
+          {space.status === 'archived' && (
+            <span className={cn('text-[10.5px] font-semibold mt-1', onLightSurface ? 'text-foreground/60' : 'text-white/70 [text-shadow:0_1px_4px_rgba(0,0,0,0.6)]')}>{t('Archived')}</span>
           )}
         </div>
       </div>
@@ -706,6 +729,7 @@ export function SpaceViewCard ({
           onAddToMenu={onAddToMenu ? () => onAddToMenu(space) : null}
           onOpenSettings={onOpenSettings ? () => onOpenSettings(space) : null}
           onDelete={onDelete ? () => onDelete(space) : null}
+          onArchive={onArchive ? () => onArchive(space) : null}
           onHide={onHide ? () => onHide(space) : null}
           hideLabel={hideLabel}
           collectionViews={collectionsWithoutSpace(collectionViews, space.id)}
@@ -713,6 +737,7 @@ export function SpaceViewCard ({
           addToCollectionLabel={t('Add to Collection')}
           addLabel={t('Add to Menu')}
           settingsLabel={t('Settings')}
+          archiveLabel={t('Archive')}
           deleteLabel={t('Delete Space')}
         />
       )}

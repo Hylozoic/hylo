@@ -169,9 +169,12 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   // Spaces & Views: all child spaces of this group/space, via groups.parent_id
-  // (includes archived spaces — filter on active where needed) (spec section 3.4)
+  // (includes archived spaces; excludes deleted active=false spaces)
   spaces () {
-    return this.hasMany(Group, 'parent_id').query(q => q.where('type', 'space'))
+    return this.hasMany(Group, 'parent_id').query(q => {
+      q.where('type', 'space')
+      q.where('active', true)
+    })
   },
 
   comments: function () {
@@ -782,6 +785,8 @@ module.exports = bookshelf.Model.extend(merge({
    * Lives here rather than in Track.leave / FundingRound.leave so every departure path is
    * covered — direct leave, moderator removal, and the parent-group cascade in removeMembers.
    * Must be called before memberships are deactivated: only currently active members count.
+   * For funding rounds, also zeroes any tokens the leavers allocated to submissions so a
+   * later rejoin cannot keep those votes.
    */
   async settleParticipation (userIds, { transacting } = {}) {
     const participation = [
@@ -792,6 +797,25 @@ module.exports = bookshelf.Model.extend(merge({
 
     const memberships = await GroupMembership.forIds(userIds, this.id, { multiple: true }).fetch({ transacting })
     if (memberships.length === 0) return
+
+    const fundingRoundId = this.get('funding_round_id')
+    if (fundingRoundId) {
+      const submissionIdsQuery = bookshelf.knex('groups_posts')
+        .join('posts', 'posts.id', 'groups_posts.post_id')
+        .where('groups_posts.group_id', this.id)
+        .where('posts.type', Post.Type.SUBMISSION)
+        .pluck('posts.id')
+      if (transacting) submissionIdsQuery.transacting(transacting)
+      const submissionIds = await submissionIdsQuery
+      if (submissionIds.length > 0) {
+        const votesQuery = bookshelf.knex('posts_users')
+          .whereIn('post_id', submissionIds)
+          .whereIn('user_id', userIds)
+          .update({ tokens_allocated_to: 0 })
+        if (transacting) votesQuery.transacting(transacting)
+        await votesQuery
+      }
+    }
 
     await Promise.map(memberships.models, async membership => {
       participation.forEach(({ setting }) => membership.removeSetting(setting))
@@ -866,7 +890,6 @@ module.exports = bookshelf.Model.extend(merge({
 
     return Promise.map(existingMemberships.models, ms => ms.updateAndSave(updatedAttribs, { transacting }))
   },
-
 
   update: async function (changes, updatedByUserId) {
     const whitelist = [
@@ -1019,6 +1042,22 @@ module.exports = bookshelf.Model.extend(merge({
   }
 }, HasSettings), {
   // ****** Class constants ****** //
+
+  Status: {
+    DRAFT: 'draft',
+    PUBLISHED: 'published',
+    SUBMISSIONS: 'submissions',
+    DISCUSSION: 'discussion',
+    VOTING: 'voting',
+    COMPLETED: 'completed',
+    ARCHIVED: 'archived'
+  },
+
+  /** Statuses that count as published (visible content, not draft or archived). */
+  PUBLISHED_STATUSES: ['published', 'submissions', 'discussion', 'voting', 'completed'],
+
+  /** Funding-round-only statuses past published. */
+  FUNDING_ROUND_LIFECYCLE_STATUSES: ['submissions', 'discussion', 'voting', 'completed'],
 
   Visibility: {
     HIDDEN: 0,
@@ -1284,7 +1323,7 @@ module.exports = bookshelf.Model.extend(merge({
 
   /**
    * Permanently delete a space group row and related non-CASCADE FK rows.
-   * Archive (active = false) is handled separately via archiveSpace / deactivate.
+   * Soft-delete (active = false) is handled via deleteSpace. Archive is status=archived.
    */
   async destroySpace (id, { transacting } = {}) {
     const space = await Group.find(id, { transacting })
@@ -1355,10 +1394,16 @@ module.exports = bookshelf.Model.extend(merge({
         await knex('responsibilities').whereIn('id', responsibilityIds).del()
       }
 
+      const parentId = space.get('parent_id')
+
       // Explicit even though CASCADE — menu rows on the parent and space views.
       await knex('group_views').where(builder => {
         builder.where({ group_id: spaceId }).orWhere({ linked_group_id: spaceId })
       }).del()
+
+      if (parentId) {
+        await GroupView.syncMenuViewCount(parentId, { transacting: trx })
+      }
 
       await knex('groups').where({ id: spaceId }).del()
       return true
@@ -1377,8 +1422,8 @@ module.exports = bookshelf.Model.extend(merge({
    * When `viewTypes` is omitted: `all` (order 0, home), `chat`, `members`, then one view per
    * accepted post type. When `viewTypes` is provided, seeds that ordered list instead
    * (used when the creator has customized the Included Views in the space creation dialog).
-   * Always sets `groups.home_route` from the order-0 view. Idempotent — does nothing if the
-   * space already has views.
+   * Always sets `groups.home_route` from the order-0 view and `menu_view_count`.
+   * Idempotent — does nothing if the space already has views.
    */
   async setupSpaceViews (spaceId, acceptedPostTypes = [], viewTypes, { transacting } = {}) {
     const existing = await GroupView.where({ group_id: spaceId }).fetchAll({ transacting })
@@ -1416,13 +1461,17 @@ module.exports = bookshelf.Model.extend(merge({
       }).save(null, { transacting })
     }
 
-    // Persist home_route from the order-0 view so redirects work without loading all views
-    if (rows.length > 0) {
-      const homeRoute = GroupView.computeHomeRoutePath({ type: rows[0].type })
-      const update = bookshelf.knex('groups').where({ id: spaceId }).update({ home_route: homeRoute })
-      if (transacting) update.transacting(transacting)
-      await update
-    }
+    // Persist home_route and menu_view_count so the parent menu can open a
+    // single-view space without loading nested views.
+    const homeRoute = rows.length > 0
+      ? GroupView.computeHomeRoutePath({ type: rows[0].type })
+      : null
+    const update = bookshelf.knex('groups').where({ id: spaceId }).update({
+      ...(homeRoute ? { home_route: homeRoute } : {}),
+      menu_view_count: rows.length
+    })
+    if (transacting) update.transacting(transacting)
+    await update
   },
 
   find (idOrSlug, opts = {}) {

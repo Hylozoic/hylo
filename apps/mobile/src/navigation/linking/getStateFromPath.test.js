@@ -148,7 +148,7 @@ const notificationsSamplePaths = [
   '/public/proposals',
   '/public/requests-and-offers',
   '/public/resources',
-  '/public/stream',
+  '/public/all',
   '/public/topics/climate-change',
   '/reset-password',
   '/search',

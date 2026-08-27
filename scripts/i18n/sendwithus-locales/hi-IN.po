@@ -767,8 +767,8 @@ msgstr "%(subject_formatted)s"
 msgid "Your request to join %(group_pill)s was approved by %(approver_pill)s!"
 msgstr "आपकी %(group_pill)s में शामिल होने की अनुरोध %(approver_pill)s ने स्वीकार कर ली!"
 
-msgid "Now's a great time to introduce yourself in the chat."
-msgstr "चैट में अपना परिचय देने का अच्छा समय है।"
+msgid "Introduce yourself to the group"
+msgstr "समूह से अपना परिचय दें"
 
 msgid "Jump in"
 msgstr "शामिल हों"

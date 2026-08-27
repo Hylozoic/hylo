@@ -44,6 +44,7 @@ export default function PostPrompt (props) {
       to={createPostPath}
       aria-label={postPromptString}
       title={postPromptString}
+      data-tour='new-post'
       className={cn(
         // rounded-md, matching the group context menu's controls.
         // Icon-only on phones; the label costs width the control row lacks there

@@ -8,6 +8,9 @@ import './css/global/index.scss'
 import './i18n.mjs'
 import { isSandboxMode } from 'sandbox/isSandbox'
 
+// The boot loading screen's second milestone: the module graph has loaded
+window.HyloBootLoader?.milestone?.('modules')
+
 // Reload once when Vite fails to fetch a dynamic import (stale chunks after deploy)
 window.addEventListener('vite:preloadError', () => {
   if (!window.sessionStorage.getItem('vite-reload-attempted')) {

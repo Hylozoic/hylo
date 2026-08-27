@@ -6,6 +6,9 @@ import { Link, useLocation, useNavigate, Routes, Route } from 'react-router-dom'
 import { replace } from 'redux-first-history'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
+import useTour from 'tours/useTour'
+import { GROUP_CREATOR_TOUR_ID, GROUP_WELCOME_TOUR_ID, groupCreatorTourSteps, groupWelcomeTourSteps } from 'tours/groupTours'
+import { MENU_EDIT_TOUR_ID, menuEditTourSteps } from 'tours/menuEditTour'
 
 import {
   ALL_GROUPS_CONTEXT_SLUG,
@@ -13,6 +16,7 @@ import {
   PUBLIC_CONTEXT_SLUG,
   groupUrl,
   localSpaceSlug,
+  spaceHomeUrl,
   spaceUrl,
   addQuerystringToPath,
   personUrl
@@ -124,6 +128,17 @@ function visibleSpaceMenuViews (spaceGroup, { includeManageRound = false, views 
   return spaceViews
 }
 
+/** On-menu view count: loaded views if present, otherwise Group.menuViewCount. */
+function knownMenuViewCount (spaceGroup, storeViews = [], nestedCount) {
+  if (storeViews.length > 0) {
+    return storeViews.filter(v => v.order != null).length
+  }
+  if (spaceGroup?.groupViews != null) {
+    return (spaceGroup.groupViews.items || []).filter(v => v.order != null).length
+  }
+  return Number(spaceGroup?.menuViewCount ?? nestedCount) || 0
+}
+
 /** Space row with an optional More link for off-menu space views (single-view spaces). */
 function SpaceMenuItemWithMore ({
   presentedView,
@@ -145,9 +160,11 @@ function SpaceMenuItemWithMore ({
 }) {
   const { t } = useTranslation()
   const spaceMoreSections = useMoreSpacesSections(resolvedSpaceGroup)
-  const spaceMoreCount = (spaceMoreSections?.trackSpaces?.length || 0) +
+  const spaceMoreCount = (spaceMoreSections?.draftSpaces?.length || 0) +
+    (spaceMoreSections?.trackSpaces?.length || 0) +
     (spaceMoreSections?.fundingRoundSpaces?.length || 0) +
-    (spaceMoreSections?.otherSpaces?.length || 0)
+    (spaceMoreSections?.otherSpaces?.length || 0) +
+    (spaceMoreSections?.archivedSpaces?.length || 0)
   const spaceMoreBadge = spaceMoreCount > 0
     ? (
       <span className='ml-auto shrink-0 text-xs leading-none text-foreground/50 bg-foreground/10 rounded-full px-1.5 py-1'>
@@ -377,14 +394,12 @@ function GroupViewMenuItem ({
     const showManageRound = Boolean(linkedSpaceGroup?.fundingRound?.id && canManageRound)
     // Filter with ORM acceptedPostTypes when available (space settings update that record).
     const resolvedSpaceGroup = spaceGroupFromStore || linkedSpaceGroup
-    const spaceViews = visibleSpaceMenuViews(
+    const viewCount = knownMenuViewCount(
       resolvedSpaceGroup,
-      { views: spaceViewsFromStore.length > 0 ? spaceViewsFromStore : null }
-    ).map(v => GroupViewPresenter(v))
-    const menuSpaceViews = showManageRound
-      ? [...spaceViews, GroupViewPresenter(MANAGE_ROUND_VIEW)]
-      : spaceViews
-    const singleSpaceView = menuSpaceViews.length === 1 ? menuSpaceViews[0] : null
+      spaceViewsFromStore,
+      linkedSpaceGroup?.menuViewCount
+    )
+    const menuCount = viewCount + (showManageRound ? 1 : 0)
     // Space badge = membership unread or pending join requests (same orange dot).
     const spaceMembership = linkedSpaceGroup &&
       myMemberships.find(m => String(m.group.id) === String(linkedSpaceGroup.id))
@@ -395,15 +410,19 @@ function GroupViewMenuItem ({
       0
     ) > 0
     const showSpaceDot = spaceUnread || spaceJoinRequests
-    // Single-view spaces open that view directly. Multi-view spaces open the
+    // Single-view spaces open homeRoute directly. Multi-view spaces open the
     // space menu: the drawer stays open on mobile, and the URL is the space
     // index so dismissing the drawer still shows that menu rather than home.
-    const drillIntoSpaceMenu = isSpaceMember && !singleSpaceView
+    // Unknown count (0) is not multi-view — treating it as drill-in kept the
+    // parent menu open on the first tap (URL changed, drawer stayed).
+    const drillIntoSpaceMenu = isSpaceMember && menuCount > 1
     const keepNavOpen = drillIntoSpaceMenu && isDrawerNavLayout()
-    const spaceLink = singleSpaceView && isSpaceMember
-      ? menuViewUrl(parentSlug, singleSpaceView, resolvedSpaceGroup)
+    const spaceLink = isSpaceMember && menuCount <= 1
+      ? spaceHomeUrl(parentSlug, resolvedSpaceGroup)
       : spaceEntryUrl(parentSlug, resolvedSpaceGroup)
-    const isSpaceActive = Boolean(
+    // No selected state in the drawer layout — the drawer closed when this
+    // space opened, so the highlight would be stale when it reopens.
+    const isSpaceActive = !isDrawerNavLayout() && Boolean(
       spaceSlug &&
       linkedSpaceGroup &&
       localSpaceSlug(parentSlug, linkedSpaceGroup.slug) === spaceSlug
@@ -455,7 +474,7 @@ function GroupViewMenuItem ({
   const isExternal = Boolean(externalHref)
   // The selected row reveals a postType-tinted icon-texture background,
   // mirroring the one-column dashboard cards.
-  const isRowActive = Boolean(!isExternal && url && (location.pathname === url || location.pathname.startsWith(`${url}/`)))
+  const isRowActive = !isDrawerNavLayout() && Boolean(!isExternal && url && (location.pathname === url || location.pathname.startsWith(`${url}/`)))
   const rowCol = viewCardColor(presentedView)
   const inviteGroup = spaceGroup || group
 
@@ -538,6 +557,7 @@ function GroupViewList ({
   onOpenSettings,
   canAdminister = false
 }) {
+  const { t } = useTranslation()
   const [showAddView, setShowAddView] = useState(false)
   const [showAddSpace, setShowAddSpace] = useState(false)
   // Spaces cannot nest spaces; Add Space is parent-menu only
@@ -552,11 +572,11 @@ function GroupViewList ({
           groupSlug={groupSlug}
           onSettings={onOpenSettings}
         />
-        <div className='px-1.5 pb-1.5 flex flex-col gap-1'>
+        <div className='px-1.5 pb-1.5 flex flex-col gap-1' data-tour='add-to-menu'>
           {/* One Add control opening the same view/space chooser the card grids use,
               rather than a button per kind. p-1 matches the Done Editing button height below */}
           <AddViewOrSpaceMenu
-            trigger={<AddViewOrSpaceButton className='p-1 pl-2' />}
+            trigger={<AddViewOrSpaceButton className='p-1 pl-2' label={t('Add to Menu')} />}
             onChooseView={() => setShowAddView(true)}
             onChooseSpace={() => setShowAddSpace(true)}
             canAddSpace={canAddSpace}
@@ -624,6 +644,12 @@ export default function ContextMenu (props) {
   // On More Spaces page, `?space=` selects a space in the sidebar without leaving the page.
   const spaceSlug = routeSpaceSlug || (isMoreSpacesPath ? getQuerystringParam('space', location) : null)
 
+  // Opening a space (or switching group) swaps the menu's whole content while the
+  // panel element persists — without this it presents the new menu mid-scroll.
+  useEffect(() => {
+    if (menuRootEl) menuRootEl.scrollTop = 0
+  }, [menuRootEl, groupSlug, spaceSlug])
+
   const isPublicContext = routeParams.context === PUBLIC_CONTEXT_SLUG
   const isMyContext = routeParams.context === MY_CONTEXT_SLUG
   const isAllContext = routeParams.context === ALL_GROUPS_CONTEXT_SLUG
@@ -633,6 +659,35 @@ export default function ContextMenu (props) {
     group?.settings?.layout
   )
   const profileUrl = personUrl(currentUser?.id, groupSlug)
+
+  // Guided first-visit tours, offered via a floating invitation: the creator
+  // of a brand-new group (sole member, administers) gets the steward tour;
+  // everyone else gets the member tour. Held until the group welcome modal
+  // (agreements / join questions) closes. Two-column only — the card grid
+  // renders none of these anchors.
+  const isNewlyCreatedGroup = canAdminister && group?.memberCount === 1
+  const groupTourSteps = useMemo(
+    () => isNewlyCreatedGroup ? groupCreatorTourSteps(t) : groupWelcomeTourSteps(t),
+    [isNewlyCreatedGroup, t]
+  )
+  const { invitation: groupTourInvitation } = useTour({
+    id: isNewlyCreatedGroup ? GROUP_CREATOR_TOUR_ID : GROUP_WELCOME_TOUR_ID,
+    steps: groupTourSteps,
+    autoStart: true,
+    inviteMessage: isNewlyCreatedGroup
+      ? t('Your group is ready — want a quick tour?')
+      : t('New here? Take a quick tour of this group.'),
+    enabled: isGroupContext && !!group?.id && !isOneColumnLayout && !isEditing,
+    blockedBySelectors: ['[data-testid="group-welcome-modal"]']
+  })
+  const menuEditSteps = useMemo(() => menuEditTourSteps(t), [t])
+  const { invitation: menuEditInvitation } = useTour({
+    id: MENU_EDIT_TOUR_ID,
+    steps: menuEditSteps,
+    autoStart: true,
+    inviteMessage: t('First time editing the menu? Take a quick tour.'),
+    enabled: isGroupContext && !!group?.id && !isOneColumnLayout && isEditing
+  })
 
   const isNavOpen = useSelector(state => get('AuthLayoutRouter.isNavOpen', state))
   const toggleNavMenuAction = useCallback(() => dispatch(toggleNavMenu()), [dispatch])
@@ -681,11 +736,14 @@ export default function ContextMenu (props) {
   const spaceMenuViewsFromStore = useGroupViews(activeSpaceGroup)
   const activeSpaceHasMultipleViews = useMemo(() => {
     if (!activeSpaceGroup) return false
-    return visibleSpaceMenuViews(activeSpaceGroup, {
-      views: spaceMenuViewsFromStore.length > 0 ? spaceMenuViewsFromStore : null,
-      includeManageRound: Boolean(activeSpaceGroup?.fundingRound?.id && canAdminister)
-    }).length > 1
-  }, [activeSpaceGroup, spaceMenuViewsFromStore, canAdminister])
+    const viewCount = knownMenuViewCount(
+      activeSpaceGroup,
+      spaceMenuViewsFromStore,
+      linkedActiveSpaceGroup?.menuViewCount
+    )
+    const menuCount = viewCount + (activeSpaceGroup?.fundingRound?.id && canAdminister ? 1 : 0)
+    return menuCount > 1
+  }, [activeSpaceGroup, spaceMenuViewsFromStore, linkedActiveSpaceGroup, canAdminister])
   const showingSpaceMenu = Boolean(
     isGroupContext &&
     activeSpaceGroup &&
@@ -769,9 +827,11 @@ export default function ContextMenu (props) {
 
   // Footer More uses the space's off-menu items when drilled into a space menu.
   const footerMoreSections = showingSpaceMenu ? spaceMoreSpacesSections : moreSpacesSections
-  const moreSpacesCount = (footerMoreSections?.trackSpaces?.length || 0) +
+  const moreSpacesCount = (footerMoreSections?.draftSpaces?.length || 0) +
+    (footerMoreSections?.trackSpaces?.length || 0) +
     (footerMoreSections?.fundingRoundSpaces?.length || 0) +
-    (footerMoreSections?.otherSpaces?.length || 0)
+    (footerMoreSections?.otherSpaces?.length || 0) +
+    (footerMoreSections?.archivedSpaces?.length || 0)
   const moreSpacesBadge = moreSpacesCount > 0
     ? (
       <span className='ml-auto shrink-0 text-xs leading-none text-foreground/50 bg-foreground/10 rounded-full px-1.5 py-1'>
@@ -830,6 +890,7 @@ export default function ContextMenu (props) {
         <MenuLink
           to={moreSpacesLink}
           isActive={isMoreSpacesPath}
+          data-tour='more-spaces'
           className='flex items-center gap-2 text-base font-medium text-foreground hover:text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 w-full transition-all opacity-85 hover:opacity-100'
         >
           <CircleEllipsis className='w-4 h-4 shrink-0' />
@@ -863,6 +924,7 @@ export default function ContextMenu (props) {
           }
           keepNavOpen={isDrawerNavLayout()}
           isEditing={isEditing}
+          data-tour='edit-menu'
           className='flex items-center gap-2 text-base font-medium text-foreground hover:text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 w-full transition-all opacity-85 hover:opacity-100'
         >
           <Pencil className='w-4 h-4' />
@@ -914,7 +976,10 @@ export default function ContextMenu (props) {
       )}
       style={{ boxShadow: 'inset -15px 0 15px -10px hsl(var(--darkening) / 0.3)' }}
       onScroll={handleScroll}
+      data-tour='group-menu'
     >
+      {groupTourInvitation}
+      {menuEditInvitation}
       {/* Fixed-position, so the menu's own overflow scrolling never clips it */}
       {!isPhoneDevice() && <ContextMenuResizer menuEl={menuRootEl} />}
       <div className={cn(
@@ -1095,22 +1160,21 @@ export default function ContextMenu (props) {
                               : 'bg-foreground/10 border-foreground/20 text-foreground/80 hover:bg-foreground/20 hover:text-foreground dark:bg-white/15 dark:border-white/25 dark:text-white/90 dark:hover:bg-white/25 dark:hover:text-white'
                           )}
                         />
+                        <Link
+                          to={spaceUrl(groupSlug, localSpaceSlug(groupSlug, activeSpaceGroup.slug), 'about')}
+                          onClick={() => dispatch(toggleNavMenu(false))}
+                          className={cn(
+                            'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 no-underline hover:no-underline transition-colors',
+                            activeSpaceBannerUrl
+                              ? 'bg-white/15 border-white/25 text-white hover:bg-white/25 hover:text-white'
+                              : 'bg-foreground/10 border-foreground/20 text-foreground/80 hover:bg-foreground/20 hover:text-foreground dark:bg-white/15 dark:border-white/25 dark:text-white/90 dark:hover:bg-white/25 dark:hover:text-white'
+                          )}
+                        >
+                          <Info className='w-3.5 h-3.5' />
+                          {t('About')}
+                        </Link>
                       </span>
                     </div>
-                    <Link
-                      to={spaceUrl(groupSlug, localSpaceSlug(groupSlug, activeSpaceGroup.slug), 'about')}
-                      onClick={() => dispatch(toggleNavMenu(false))}
-                      className={cn(
-                        'shrink-0 transition-all hover:scale-110',
-                        activeSpaceBannerUrl
-                          ? 'text-white/80 hover:text-white'
-                          : 'text-foreground/60 hover:text-foreground dark:text-white/80 dark:hover:text-white'
-                      )}
-                      aria-label={t('About')}
-                      title={t('About')}
-                    >
-                      <Info className='w-5 h-5' />
-                    </Link>
                   </div>
                 </div>
                 {spaceMenuViews.length > 0 || isEditing

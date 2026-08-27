@@ -44,9 +44,12 @@ const queryFragment = `group(slug: $slug, updateLastViewed: $updateLastViewed) {
     }
     slug
     type
+    status
+    active
     parentId
     icon
     homeRoute
+    menuViewCount
     acceptedPostTypes
     typeDescriptor
     typeDescriptorPlural
@@ -68,15 +71,14 @@ const queryFragment = `group(slug: $slug, updateLastViewed: $updateLastViewed) {
         name
         emoji
       }
-      publishedAt
       accessControlled
       canAccess
     }
     fundingRound {
       id
-      publishedAt
       phase
       allowSelfVoting
+      allowLateJoiners
       hideFinalResultsFromParticipants
       votingMethod
       totalTokens

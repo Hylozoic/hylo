@@ -47,9 +47,10 @@ export default function SpaceSelector ({
   const suggestionSections = useMemo(() => {
     const sections = categorizeOffMenuSpaces(filteredSpaces, new Set())
     return [
+      { key: 'other', items: sections.otherSpaces },
       { key: 'tracks', label: t('Tracks'), items: sections.trackSpaces },
       { key: 'funding-rounds', label: t('Funding Rounds'), items: sections.fundingRoundSpaces },
-      { key: 'other', label: t('Other Spaces'), items: sections.otherSpaces },
+      { key: 'drafts', label: t('Drafts'), items: sections.draftSpaces },
       { key: 'archived', label: t('Archived'), items: sections.archivedSpaces }
     ].filter(section => section.items.length > 0)
   }, [filteredSpaces, t])
@@ -148,9 +149,11 @@ export default function SpaceSelector ({
           )}
           {suggestionSections.map(section => (
             <li key={section.key} className='m-0 p-0'>
-              <div className='text-[11px] font-semibold uppercase tracking-wide text-foreground/50 px-1 pt-1'>
-                {section.label}
-              </div>
+              {section.label && (
+                <div className='text-[11px] font-semibold uppercase tracking-wide text-foreground/50 px-1 pt-1'>
+                  {section.label}
+                </div>
+              )}
               <ul className='m-0 p-0'>
                 {section.items.map(space => (
                   <Suggestion
@@ -277,7 +280,7 @@ const SelectedSpace = forwardRef((props, ref) => {
         {space.isDraft && (
           <span className='text-[10px] font-semibold text-foreground/50 shrink-0'>{t('Draft')}</span>
         )}
-        {space.active === false && (
+        {space.status === 'archived' && (
           <span className='text-[10px] font-semibold text-foreground/50 shrink-0'>{t('Archived')}</span>
         )}
       </div>

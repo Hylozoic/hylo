@@ -46,6 +46,7 @@ const TabButton = ({ isSelected, onPress, children }) => {
 // Get current phase of funding round
 function getRoundPhase (round) {
   if (!round) return 'draft'
+  if (round.phase === 'draft' || round.phase === 'archived') return 'draft'
 
   const now = new Date()
   const toDate = (value) => value ? new Date(value) : null
@@ -59,7 +60,7 @@ function getRoundPhase (round) {
   if (votingOpensAt && votingOpensAt <= now) return 'voting'
   if (submissionsCloseAt && submissionsCloseAt <= now) return 'discussion'
   if (submissionsOpenAt && submissionsOpenAt <= now) return 'submissions'
-  if (round.publishedAt && new Date(round.publishedAt) <= now) return 'open'
+  if (round.phase && round.phase !== 'draft' && round.phase !== 'archived') return 'open'
 
   return 'draft'
 }

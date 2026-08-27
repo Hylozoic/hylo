@@ -1,9 +1,9 @@
+import { isDrawerNavLayout } from 'util/mobile'
+import { externalLinkHref, groupViewUrl, isParentGroupPath, spaceEntryUrl } from './groupViewMenuUrl'
+
 jest.mock('util/mobile', () => ({
   isDrawerNavLayout: jest.fn(() => false)
 }))
-
-import { isDrawerNavLayout } from 'util/mobile'
-import { externalLinkHref, groupViewUrl, isParentGroupPath, spaceEntryUrl } from './groupViewMenuUrl'
 
 describe('externalLinkHref', () => {
   it('adds https:// when the stored link has no scheme', () => {

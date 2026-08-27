@@ -9,7 +9,12 @@ import queryResults, {
 } from './queryResults'
 import { FETCH_MEMBERS } from 'routes/Members/Members.store'
 import {
-  REMOVE_POST_PENDING
+  CREATE_MODERATION_ACTION,
+  CREATE_MODERATION_ACTION_PENDING,
+  FETCH_MODERATION_ACTIONS,
+  FETCH_POSTS,
+  REMOVE_POST_PENDING,
+  REORDER_VIEW_POST_PENDING
 } from 'store/constants'
 import { RECEIVE_POST } from 'components/SocketListener/SocketListener.store'
 import { OPTIMISTIC_NOTICE_PREFIX } from 'store/util/chatActivityNotice'
@@ -502,5 +507,81 @@ describe('makeQueryResultsModelSelector', () => {
     expect(models.length).toEqual(3)
     expect(models.map(m => m.id)).toEqual([5, 2, 3])
     expect(models[0].creator.name).toEqual('The Creator')
+  })
+})
+
+describe('CREATE_MODERATION_ACTION optimistic query results', () => {
+  const slug = 'building-hylo'
+  const parentSlug = 'parent-group'
+  const groupKey = buildKey(FETCH_MODERATION_ACTIONS, { slug, sortBy: 'created' })
+  const parentKey = buildKey(FETCH_MODERATION_ACTIONS, { slug: parentSlug, sortBy: 'created' })
+  const otherKey = buildKey(FETCH_MODERATION_ACTIONS, { slug: 'other-group', sortBy: 'created' })
+
+  const initialState = {
+    [groupKey]: { ids: ['10'], total: 1, hasMore: false },
+    [parentKey]: { ids: ['10'], total: 1, hasMore: false },
+    [otherKey]: { ids: ['10'], total: 1, hasMore: false }
+  }
+
+  it('prepends the temp id to matching group and parent lists', () => {
+    const nextState = queryResults(initialState, {
+      type: CREATE_MODERATION_ACTION_PENDING,
+      meta: { tempId: 'temp-1', slugs: [slug, parentSlug] }
+    })
+
+    expect(nextState[groupKey].ids).toEqual(['temp-1', '10'])
+    expect(nextState[parentKey].ids).toEqual(['temp-1', '10'])
+    expect(nextState[otherKey].ids).toEqual(['10'])
+  })
+
+  it('replaces the temp id with the server id', () => {
+    const pendingState = queryResults(initialState, {
+      type: CREATE_MODERATION_ACTION_PENDING,
+      meta: { tempId: 'temp-1', slugs: [slug, parentSlug] }
+    })
+    const nextState = queryResults(pendingState, {
+      type: CREATE_MODERATION_ACTION,
+      payload: { data: { createModerationAction: { id: '99' } } },
+      meta: { tempId: 'temp-1', slugs: [slug, parentSlug] }
+    })
+
+    expect(nextState[groupKey].ids).toEqual(['99', '10'])
+    expect(nextState[parentKey].ids).toEqual(['99', '10'])
+    expect(nextState[otherKey].ids).toEqual(['10'])
+  })
+
+  it('prepends the server id when the list was fetched without a pending temp id', () => {
+    const nextState = queryResults(initialState, {
+      type: CREATE_MODERATION_ACTION,
+      payload: { data: { createModerationAction: { id: '99' } } },
+      meta: { tempId: 'temp-1', slugs: [slug] }
+    })
+
+    expect(nextState[groupKey].ids).toEqual(['99', '10'])
+    expect(nextState[parentKey].ids).toEqual(['10'])
+  })
+})
+
+describe('REORDER_VIEW_POST_PENDING', () => {
+  const viewId = 'view-1'
+  const orderKey = buildKey(FETCH_POSTS, { forCollection: viewId, sortBy: 'order' })
+  const createdKey = buildKey(FETCH_POSTS, { forCollection: viewId, sortBy: 'created' })
+  const otherKey = buildKey(FETCH_POSTS, { slug: 'other' })
+
+  const initialState = {
+    [orderKey]: { ids: ['a', 'b', 'c'], total: 3, hasMore: false },
+    [createdKey]: { ids: ['c', 'b', 'a'], total: 3, hasMore: false },
+    [otherKey]: { ids: ['a', 'b'], total: 2, hasMore: false }
+  }
+
+  it('moves the post in manual-order collection results only', () => {
+    const nextState = queryResults(initialState, {
+      type: REORDER_VIEW_POST_PENDING,
+      meta: { viewId, postId: 'a', order: 2 }
+    })
+
+    expect(nextState[orderKey].ids).toEqual(['b', 'c', 'a'])
+    expect(nextState[createdKey].ids).toEqual(['c', 'b', 'a'])
+    expect(nextState[otherKey].ids).toEqual(['a', 'b'])
   })
 })

@@ -1,6 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Eye, EyeOff } from 'lucide-react'
 
 import HyloEditor from 'components/HyloEditor'
 import TagInput from 'components/TagInput'
@@ -12,8 +11,6 @@ import { cn } from 'util/index'
 
 /** Shared funding round settings fields for create and edit space flows. */
 export default function FundingRoundSettingsFields ({
-  publishedAt,
-  setPublishedAt,
   submissionDescriptor,
   setSubmissionDescriptor,
   submissionDescriptorPlural,
@@ -34,6 +31,8 @@ export default function FundingRoundSettingsFields ({
   setTokenType,
   allowSelfVoting,
   setAllowSelfVoting,
+  allowLateJoiners,
+  setAllowLateJoiners,
   hideFinalResults,
   setHideFinalResults,
   submitterRoles,
@@ -79,26 +78,6 @@ export default function FundingRoundSettingsFields ({
     <div className='flex flex-col gap-3 border-t-2 border-foreground/10 pt-3 mt-1'>
       <h3 className='text-base font-semibold'>{t('Funding Round Settings')}</h3>
 
-      <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
-        <div className='flex items-center gap-2'>
-          <button
-            type='button'
-            className={cn('p-2 rounded-md transition-colors', publishedAt ? 'bg-foreground/10' : 'bg-accent text-white')}
-            onClick={() => setPublishedAt(null)}
-          >
-            <EyeOff className='w-5 h-5' />
-          </button>
-          <button
-            type='button'
-            className={cn('p-2 rounded-md transition-colors', publishedAt ? 'bg-accent text-white' : 'bg-foreground/10')}
-            onClick={() => setPublishedAt(new Date().toISOString())}
-          >
-            <Eye className='w-5 h-5' />
-          </button>
-          <span>{publishedAt ? t('Published') : t('Unpublished')}</span>
-        </div>
-      </div>
-
       <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
         <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 focus-within:border-focus'>
           <div className='text-xs text-foreground/50 w-[90px]'>{t('Unit term')}</div>
@@ -143,7 +122,13 @@ export default function FundingRoundSettingsFields ({
 
       <div>
         <label className='text-sm text-foreground/70'>{t('Voting method')}</label>
-        <Select value={votingMethod} onValueChange={setVotingMethod}>
+        <Select
+          value={votingMethod}
+          onValueChange={value => {
+            setVotingMethod(value)
+            if (value !== 'token_allocation_constant') setAllowLateJoiners(false)
+          }}
+        >
           <SelectTrigger className='w-full border-2 bg-input border-foreground/30 rounded-md p-2 text-base mt-1'>
             <SelectValue />
           </SelectTrigger>
@@ -185,6 +170,23 @@ export default function FundingRoundSettingsFields ({
           />
           <Label htmlFor='fr-allow-self-voting' className='cursor-pointer font-normal'>
             {t('Allow participants to vote on their own submissions')}
+          </Label>
+        </div>
+        <div className='flex items-center gap-2'>
+          <Checkbox
+            id='fr-allow-late-joiners'
+            checked={votingMethod === 'token_allocation_constant' && !!allowLateJoiners}
+            disabled={votingMethod !== 'token_allocation_constant'}
+            onCheckedChange={checked => setAllowLateJoiners(!!checked)}
+          />
+          <Label
+            htmlFor='fr-allow-late-joiners'
+            className={cn(
+              'cursor-pointer font-normal',
+              votingMethod !== 'token_allocation_constant' && 'opacity-50 cursor-not-allowed'
+            )}
+          >
+            {t('Allow people who join during voting to receive tokens and vote')}
           </Label>
         </div>
         <div className='flex items-center gap-2'>

@@ -4,6 +4,7 @@ export default gql`
   query FetchFundingRoundQuery($id: ID) {
     fundingRound(id: $id) {
       id
+      allowLateJoiners
       allowSelfVoting
       canSubmit
       canVote
@@ -15,6 +16,7 @@ export default gql`
         slug
         description
         bannerUrl
+        status
       }
       hideFinalResultsFromParticipants
       isParticipating
@@ -24,7 +26,6 @@ export default gql`
       numParticipants
       numSubmissions
       phase
-      publishedAt
       requireBudget
       submissionDescriptor
       submissionDescriptorPlural

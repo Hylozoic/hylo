@@ -6,7 +6,7 @@ import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading
  * Runs on `chromium` and `mobile-chrome`. Requires E2E seed + `auth.setup.js` session.
  *
  * Router note: there is no `/public/topics` directory route — only `/public/topics/:topicName`.
- * Bare `/public/topics` hits `public/*` and redirects to `/public/stream`.
+ * Bare `/public/topics` hits `public/*` and redirects to `/public/all`.
  */
 
 test.describe.configure({ timeout: 120000 })
@@ -21,10 +21,10 @@ async function expectPublicContextShell (page, urlPattern) {
 }
 
 test.describe('Batch C: global context /public (authenticated)', () => {
-  test('GET /public/stream loads Public stream', async ({ page }) => {
-    await page.goto('/public/stream')
+  test('GET /public/all loads Public All Activity', async ({ page }) => {
+    await page.goto('/public/all')
     await waitPastRootSessionLoading(page)
-    await expectPublicContextShell(page, /\/public\/stream/)
+    await expectPublicContextShell(page, /\/public\/all/)
   })
 
   test('GET /public/map loads Public map', async ({ page }) => {
@@ -45,10 +45,10 @@ test.describe('Batch C: global context /public (authenticated)', () => {
     await expectPublicContextShell(page, /\/public\/topics\/e2e-smoke-topic/)
   })
 
-  test('GET /public/topics (index) redirects to /public/stream', async ({ page }) => {
+  test('GET /public/topics (index) redirects to /public/all', async ({ page }) => {
     await page.goto('/public/topics')
     await waitPastRootSessionLoading(page)
-    await expect(page).toHaveURL(/\/public\/stream(\/.*)?$/, navTimeout)
+    await expect(page).toHaveURL(/\/public\/all(\/.*)?$/, navTimeout)
   })
 
   test('GET /public/projects loads projects stream', async ({ page }) => {

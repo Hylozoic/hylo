@@ -97,7 +97,7 @@ export default function PeopleList ({
     const root = containerRef.current
     const sentinel = sentinelRef.current
     if (!root || !sentinel || !hasMore || !onLoadMore) return undefined
-    const observer = new IntersectionObserver(
+    const observer = new window.IntersectionObserver(
       ([entry]) => {
         if (entry?.isIntersecting) onLoadMore()
       },

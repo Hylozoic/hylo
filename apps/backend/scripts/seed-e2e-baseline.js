@@ -360,11 +360,13 @@ async function main () {
       `INSERT INTO group_views (group_id, type, "order", created_at, updated_at)
        VALUES
          ($1, 'all', 0, $3::timestamptz, $3::timestamptz),
-         ($1, 'members', 1, $3::timestamptz, $3::timestamptz),
-         ($1, 'map', 2, $3::timestamptz, $3::timestamptz),
+         ($1, 'chat', 1, $3::timestamptz, $3::timestamptz),
+         ($1, 'members', 2, $3::timestamptz, $3::timestamptz),
+         ($1, 'map', 3, $3::timestamptz, $3::timestamptz),
          ($2, 'all', 0, $3::timestamptz, $3::timestamptz),
-         ($2, 'members', 1, $3::timestamptz, $3::timestamptz),
-         ($2, 'map', 2, $3::timestamptz, $3::timestamptz)`,
+         ($2, 'chat', 1, $3::timestamptz, $3::timestamptz),
+         ($2, 'members', 2, $3::timestamptz, $3::timestamptz),
+         ($2, 'map', 3, $3::timestamptz, $3::timestamptz)`,
       [publicGroupId, privateGroupId, now]
     )
 
@@ -572,10 +574,13 @@ async function main () {
     await client.query(
       `INSERT INTO group_views (group_id, type, "order", created_at, updated_at)
        VALUES
-         ($1, 'about', 0, $2::timestamptz, $2::timestamptz),
-         ($1, 'track-actions', 1, $2::timestamptz, $2::timestamptz),
-         ($1, 'members', 2, $2::timestamptz, $2::timestamptz)`,
+         ($1, 'track-actions', 0, $2::timestamptz, $2::timestamptz),
+         ($1, 'members', 1, $2::timestamptz, $2::timestamptz)`,
       [paidTrackSpaceId, now]
+    )
+    await client.query(
+      `UPDATE groups SET home_route = '/track-actions' WHERE id = $1`,
+      [paidTrackSpaceId]
     )
 
     await client.query(
@@ -755,7 +760,7 @@ async function main () {
       `INSERT INTO posts (name, description, type, created_at, updated_at, user_id, active, visibility, is_public)
        VALUES ($1, $2, 'discussion', $3::timestamptz, $3::timestamptz, $4, true, 0, true)
        RETURNING id`,
-      ['E2E Multi Public Post', 'Dual-group public post for close → /public/stream', now, userId]
+      ['E2E Multi Public Post', 'Dual-group public post for close → /public/all', now, userId]
     )
     const postMultiPublicId = postMultiPublicRes.rows[0].id
     await client.query(

@@ -12,6 +12,7 @@ FundingRound.modelName = 'FundingRound'
 
 FundingRound.fields = {
   id: attr(),
+  allowLateJoiners: attr(),
   allowSelfVoting: attr(),
   canSubmit: attr(),
   canVote: attr(),
@@ -25,7 +26,6 @@ FundingRound.fields = {
   numParticipants: attr(),
   numSubmissions: attr(),
   phase: attr(),
-  publishedAt: attr(),
   requireBudget: attr(),
   submissionDescriptor: attr(),
   submissionDescriptorPlural: attr(),

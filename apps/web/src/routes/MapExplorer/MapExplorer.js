@@ -1,4 +1,6 @@
 import { cn } from 'util/index'
+import useTour from 'tours/useTour'
+import { MAP_TOUR_ID, mapTourSteps } from 'tours/mapTour'
 import React, { useState, useEffect, useMemo, useRef, useCallback, useContext } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useNavigate, useLocation } from 'react-router-dom'
@@ -104,6 +106,15 @@ function getLocationCenter (entity) {
 
 function MapExplorer (props) {
   const { t } = useTranslation()
+
+  // First-visit tour of the map's floating controls, offered by invitation
+  const mapTourStepList = useMemo(() => mapTourSteps(t), [t])
+  const { invitation: mapTourInvitation } = useTour({
+    id: MAP_TOUR_ID,
+    steps: mapTourStepList,
+    autoStart: true,
+    inviteMessage: t('New to the map? Take a quick tour.')
+  })
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const location = useLocation()
@@ -785,6 +796,7 @@ function MapExplorer (props) {
       </Helmet>
 
       <div className='flex-1 h-full relative' data-testid='map-container'>
+        {mapTourInvitation}
         <Map
           baseLayerStyle={baseLayerStyle}
           hyloLayers={[polygonLayer, groupIconLayer, clusterLayer]}
@@ -843,7 +855,7 @@ function MapExplorer (props) {
       <div className='absolute top-5 left-[74px]'>
         <LocationInput saveLocationToDB={false} onChange={handleLocationInputSelection} className='bg-input rounded-md text-base h-9 text-foreground placeholder-foreground/40 w-full px-2 py-0 transition-all outline-none mb-0 border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground focus:border-focus hover:scale-105' />
       </div>
-      <button className={cn('border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md py-1.5 px-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute bottom-2 sm:bottom-10 left-2 sm:left-5 gap-1 text-xs', classes.toggleFeatureFiltersButton, { [classes.open]: showFeatureFilters, [classes.withoutNav]: withoutNav })} onClick={toggleFeatureFilters}>
+      <button className={cn('border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md py-1.5 px-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute bottom-2 sm:bottom-10 left-2 sm:left-5 gap-1 text-xs', classes.toggleFeatureFiltersButton, { [classes.open]: showFeatureFilters, [classes.withoutNav]: withoutNav })} data-tour='map-features' onClick={toggleFeatureFilters}>
         {t('Features:')} <strong>{possibleFeatureTypes.filter(featureType => filters.featureTypes[featureType]).length}/{possibleFeatureTypes.length}</strong>
       </button>
 
@@ -852,6 +864,7 @@ function MapExplorer (props) {
           <button
             onClick={toggleSavedSearches}
             className={cn('border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md w-9 h-9 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center justify-center absolute top-5 text-base left-5', { 'border-selected/50 text-selected': showSavedSearches })}
+            data-tour='map-saved-searches'
           >
             <Heart className='w-5 h-5' />
           </button>

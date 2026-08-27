@@ -38,7 +38,7 @@ import GroupViewIcon from './GroupViewIcon'
 import { GroupViewEditActions } from './GroupViewSettingsModal'
 import { canDeleteView, canHardDeleteView, isSoftRemoveView, viewTypeHasSettings } from 'store/models/GroupView'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
-import { deleteGroupView, deleteSpace, setGroupViewHidden, updateGroupView } from 'store/actions/groupViews'
+import { archiveSpace, deleteGroupView, deleteSpace, setGroupViewHidden, updateGroupView } from 'store/actions/groupViews'
 import { appendSpaceId, collectionsWithoutSpace, spaceCollectionViews } from 'util/spaceCollection'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
@@ -158,6 +158,7 @@ function SpaceEditRowMenu ({
   onSettings,
   onAddToCollection,
   onHide,
+  onArchive,
   onDelete
 }) {
   const { t } = useTranslation()
@@ -207,7 +208,12 @@ function SpaceEditRowMenu ({
         )}
         {softRemovable && onHide && (
           <DropdownMenuItem onSelect={() => onHide(view)}>
-            {t('Remove from main menu')}
+            {t('Move to More Spaces')}
+          </DropdownMenuItem>
+        )}
+        {hardDeletable && space?.status !== 'archived' && onArchive && (
+          <DropdownMenuItem onSelect={() => onArchive(view)}>
+            {t('Archive')}
           </DropdownMenuItem>
         )}
         {hardDeletable && onDelete && (
@@ -234,6 +240,7 @@ function SortableSpaceEditRow ({
   onSettings,
   onAddToCollection,
   onHide,
+  onArchive,
   onDelete
 }) {
   const { t } = useTranslation()
@@ -276,6 +283,7 @@ function SortableSpaceEditRow ({
             onSettings={onSettings}
             onAddToCollection={onAddToCollection}
             onHide={onHide}
+            onArchive={onArchive}
             onDelete={onDelete}
           />
           {spaceGroup?.slug && groupSlug && (
@@ -365,7 +373,7 @@ export default function GroupViewEditList ({ views, group, groupSlug, onSettings
       const space = view.linkedGroup
       if (!space?.id) return
       const confirmed = window.confirm(
-        t('Are you sure you want to permanently delete {{name}}? Posts in this space will no longer be accessible.', {
+        t('Are you sure you want to delete {{name}}? It will be hidden from the menu and More Spaces.', {
           name: space.name || displayNameForView(view, t)
         })
       )
@@ -388,6 +396,25 @@ export default function GroupViewEditList ({ views, group, groupSlug, onSettings
     }
   }, [dispatch, group?.id, t])
 
+  const handleArchive = useCallback(async (view) => {
+    if (!canHardDeleteView(view) || !group?.id) return
+    const space = view.linkedGroup
+    if (!space?.id || space.status === 'archived') return
+    const confirmed = window.confirm(
+      t('Are you sure you want to archive {{name}}?', {
+        name: space.name || displayNameForView(view, t)
+      })
+    )
+    if (!confirmed) return
+    try {
+      await dispatch(archiveSpace(space.id))
+      await dispatch(fetchGroupSpaces(group.id))
+      await dispatch(fetchGroupViews(group.id))
+    } catch (error) {
+      console.error('Failed to archive space:', error)
+    }
+  }, [dispatch, group?.id, t])
+
   const ids = orderedViews.map(v => String(v.id))
   // Two-column creates a space then opens it, so flashing the sidebar row is noise.
   const flashingIds = useFlashAddedItems(orderedViews, { skipTypes: ['space'] })
@@ -400,7 +427,7 @@ export default function GroupViewEditList ({ views, group, groupSlug, onSettings
       modifiers={[restrictToVerticalAxis]}
     >
       <SortableContext items={ids} strategy={verticalListSortingStrategy}>
-        <ul className='m-0 p-3 mb-2'>
+        <ul className='m-0 p-3 mb-2' data-tour='edit-menu-list'>
           {orderedViews.map((view, index) => {
             if (view.type === 'space') {
               return (
@@ -412,6 +439,7 @@ export default function GroupViewEditList ({ views, group, groupSlug, onSettings
                   onSettings={onSettings}
                   onAddToCollection={handleAddToCollection}
                   onHide={handleHide}
+                  onArchive={handleArchive}
                   onDelete={handleDelete}
                 />
               )

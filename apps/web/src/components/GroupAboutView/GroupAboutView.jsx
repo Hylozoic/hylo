@@ -317,7 +317,7 @@ export default function GroupAboutView ({
     const observer = new ResizeObserver(updateTabsOverflow)
     observer.observe(el)
     Array.from(el.children).forEach(child => observer.observe(child))
-    const mutations = new MutationObserver(() => {
+    const mutations = new window.MutationObserver(() => {
       Array.from(el.children).forEach(child => observer.observe(child))
       updateTabsOverflow()
     })

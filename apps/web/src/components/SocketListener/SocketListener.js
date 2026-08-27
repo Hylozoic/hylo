@@ -120,10 +120,11 @@ function convertToThread (data) {
       ...data,
       createdAt: new Date(data.createdAt).toString(),
       updatedAt: new Date(data.updatedAt).toString(),
-      messages: data.messages.map(({ id, createdAt, text, creator }) => ({
+      messages: data.messages.map(({ id, createdAt, text, creator, attachments }) => ({
         id,
         text,
         creator,
+        attachments,
         createdAt: new Date(createdAt).toString(),
         messageThread: data.id
       })),

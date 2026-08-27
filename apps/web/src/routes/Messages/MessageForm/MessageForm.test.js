@@ -1,7 +1,6 @@
 import React from 'react'
-import { render, screen, fireEvent, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
+import { render, screen, fireEvent } from 'util/testing/reactTestingLibraryExtended'
 import MessageForm from './MessageForm'
-import { keyMap } from 'util/textInput'
 
 const messageThreadId = '1'
 const currentUser = {
@@ -26,7 +25,7 @@ describe('MessageForm', () => {
     render(<MessageForm {...defaultProps} />)
 
     expect(screen.getByPlaceholderText('Write something...')).toBeInTheDocument()
-    expect(screen.getByRole('button')).toBeInTheDocument()
+    expect(screen.getByTestId('send-button')).toBeInTheDocument()
   })
 
   it('displays the current message text', () => {
@@ -53,7 +52,10 @@ describe('MessageForm', () => {
     render(<MessageForm {...defaultProps} />)
 
     fireEvent.click(screen.getByTestId('send-button'))
-    expect(defaultProps.onSubmit).toHaveBeenCalled()
+    expect(defaultProps.onSubmit).toHaveBeenCalledWith({
+      text: 'hey you',
+      attachments: []
+    })
   })
 
   it('runs onSubmit when enter is pressed', () => {
@@ -61,7 +63,10 @@ describe('MessageForm', () => {
 
     fireEvent.change(screen.getByPlaceholderText('Write something...'), { target: { value: 'hey you' } })
     fireEvent.keyDown(screen.getByPlaceholderText('Write something...'), { key: 'Enter' })
-    expect(defaultProps.onSubmit).toHaveBeenCalled()
+    expect(defaultProps.onSubmit).toHaveBeenCalledWith({
+      text: 'hey you',
+      attachments: []
+    })
   })
 
   it('shows loading state when pending', () => {
@@ -70,4 +75,3 @@ describe('MessageForm', () => {
     expect(screen.getByText(/Sending/i)).toBeInTheDocument()
   })
 })
-

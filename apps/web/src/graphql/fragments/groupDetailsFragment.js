@@ -30,6 +30,8 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
   }
   slug
   type
+  status
+  active
   parentId
   icon
   acceptedPostTypes
@@ -49,15 +51,14 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
       name
       emoji
     }
-    publishedAt
     accessControlled
     canAccess
   }
   fundingRound {
     id
-    publishedAt
     phase
     allowSelfVoting
+    allowLateJoiners
     hideFinalResultsFromParticipants
     votingMethod
     totalTokens

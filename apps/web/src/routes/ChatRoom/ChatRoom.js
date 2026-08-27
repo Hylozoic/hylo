@@ -1,10 +1,9 @@
 import isMobile from 'ismobilejs'
 import { debounce } from 'lodash/fp'
-import { ChevronDown, Copy, MessageSquareMore, Send } from 'lucide-react'
+import { ChevronDown, MessageSquareMore } from 'lucide-react'
 import { DateTimeHelpers, postAppearsInChat } from '@hylo/shared'
 import { EditorView } from 'prosemirror-view'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import CopyToClipboard from 'react-copy-to-clipboard'
 import { Helmet } from 'react-helmet'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
@@ -17,11 +16,8 @@ import ChatEditor from 'components/ChatEditor'
 import Loading from 'components/Loading'
 import PeopleTyping from 'components/PeopleTyping'
 import { StreamSkeleton } from 'components/PostCard/PostCardSkeleton'
-import NoPosts from 'components/NoPosts'
 import PostDialog from 'components/PostDialog'
 import Tooltip from 'components/Tooltip'
-import Button from 'components/ui/button'
-import InviteMembersDialog from 'components/InviteMembersDialog/InviteMembersDialog'
 import ChatMembersPanel from './ChatMembersPanel'
 import PinnedPostChips from './PinnedPostChips'
 import ChatPost from './ChatPost'
@@ -35,7 +31,7 @@ import fetchGroupViews from 'store/actions/fetchGroupViews'
 import fetchPosts from 'store/actions/fetchPosts'
 import fetchViewPinnedPosts from 'store/actions/fetchViewPinnedPosts'
 import updateGroupViewUser from 'store/actions/updateGroupViewUser'
-import { FETCH_POSTS, RESP_ADD_MEMBERS, RESP_MANAGE_CONTENT } from 'store/constants'
+import { FETCH_POSTS, RESP_MANAGE_CONTENT } from 'store/constants'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
 import presentPost from 'store/presenters/presentPost'
 import { makeDropQueryResults, makeQueryResultsModelSelector } from 'store/reducers/queryResults'
@@ -45,7 +41,8 @@ import getMe from 'store/selectors/getMe'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import { getPostResults } from 'store/selectors/getPosts'
 import { cn } from 'util/index'
-import { groupInviteUrl } from '@hylo/navigation'
+import useTour from 'tours/useTour'
+import { CHAT_TOUR_ID, chatTourSteps } from 'tours/chatTour'
 import { isLegacyWebView } from 'util/webView'
 import { formatLocalizedDate } from 'util/dateFormat'
 import { getLocaleFromLocalStorage } from 'util/locale'
@@ -133,9 +130,17 @@ export default function ChatRoom (props) {
   const withoutNav = isLegacyWebView() || hideNavLayout
   const { t } = useTranslation()
 
+  // First-time-in-chat tour, offered by invitation
+  const chatTourStepList = useMemo(() => chatTourSteps(t), [t])
+  const { invitation: chatTourInvitation } = useTour({
+    id: CHAT_TOUR_ID,
+    steps: chatTourStepList,
+    autoStart: true,
+    inviteMessage: t('First time in a chat room? Take a quick tour.')
+  })
+
   const effectiveGroupSlug = useEffectiveGroupSlug()
   const groupSlug = props.groupSlug || effectiveGroupSlug
-  const showHomeWelcome = props.showHomeWelcome ?? !props.groupSlug
   const { postId: selectedPostId } = routeParams
 
   const context = props.context || routeParams.context
@@ -817,6 +822,7 @@ export default function ChatRoom (props) {
       <Helmet>
         <title>{t('Chat')} | {group?.name ? `${group.name} | ` : ''}Hylo</title>
       </Helmet>
+      {chatTourInvitation}
 
       <div
         id='chats'
@@ -844,6 +850,7 @@ export default function ChatRoom (props) {
             role='separator'
             aria-orientation='vertical'
             aria-label={t('Adjust chat width')}
+            data-tour='chat-width-rail'
             className={cn(
               'absolute top-0 bottom-0 z-20 flex flex-col items-center justify-between group touch-none select-none',
               resizingChatWidth ? 'cursor-grabbing' : 'cursor-grab'
@@ -909,8 +916,7 @@ export default function ChatRoom (props) {
                   handleRemoveReaction,
                   loadToLatest,
                   postIdToStartAt,
-                  selectedPostId,
-                  showHomeWelcome
+                  selectedPostId
                 }}
                 initialData={postsForDisplay}
                 initialLocation={{ index: initialPostToScrollTo, align: 'start-no-overflow' }}
@@ -929,13 +935,16 @@ export default function ChatRoom (props) {
       </div>
 
       {/* Post chat box */}
-      {/* pt below sm gives the last message breathing room above the composer —
-          OUTSIDE the message list: padding inside its scroller skews Virtuoso's
-          atBottom check, which pinned the phone one message shy of the bottom */}
-      <PeopleTyping groupId={group?.id} className='w-full px-3 sm:px-5 pt-2 sm:pt-0 text-xs text-foreground/50' />
+      {/* The typing strip renders nothing while idle — in flow it reserved a
+          dead band above the input (worst on phones), and as an overlay it
+          crowded the newest message. When someone types it takes its row and
+          the list nudges up, which reads as activity. Padding inside the
+          scroller stays off-limits (skews Virtuoso's atBottom check, which
+          pinned the phone one message shy of the bottom). */}
+      <PeopleTyping groupId={group?.id} hideWhenEmpty className='w-full px-3 sm:px-5 py-1 text-xs text-foreground/50' />
       {/* Composer floats with margins matching the message gutter (left edge = avatar edge).
           Subtle gradient settles the pane into a darker hue beneath the input. */}
-      <div className='ChatBoxContainer w-full shrink-0 px-3 sm:px-5 pb-3 sm:pb-5 pt-0 bg-gradient-to-b from-transparent to-darkening/[0.05] dark:to-darkening/25'>
+      <div className='ChatBoxContainer w-full shrink-0 px-3 sm:px-5 pb-3 sm:pb-5 pt-0 bg-gradient-to-b from-transparent to-darkening/[0.05] dark:to-darkening/25' data-tour='chat-composer'>
         {/* Drafts are scoped per chat topic so switching rooms does not leak text */}
         {group?.id && (
           <ChatEditor
@@ -960,7 +969,6 @@ export default function ChatRoom (props) {
 
 /** * Virtuoso Components ***/
 const EmptyPlaceholder = ({ context }) => {
-  const { t } = useTranslation()
   // Virtuoso can paint this before initialData lands. If Redux already has
   // posts, stay blank rather than flashing the empty-room copy.
   if (context.numPosts > 0) return null
@@ -968,9 +976,7 @@ const EmptyPlaceholder = ({ context }) => {
     <div className='mx-auto flex flex-col items-center justify-center max-w-[750px] h-full min-h-[50vh]'>
       {!context.loadedPast || !context.loadedFuture || !context.hasFetchedForCurrentRoom
         ? <StreamSkeleton columnVariant='chat' />
-        : context.showHomeWelcome
-          ? <HomeChatWelcome group={context.group} />
-          : <NoPosts className={styles.noPosts} icon='message-dashed' message={t('No messages yet. Start the conversation!')} />}
+        : <EmptyChatWelcome />}
     </div>
   )
 }
@@ -1137,27 +1143,13 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
   )
 }
 
-const HomeChatWelcome = ({ group }) => {
+const EmptyChatWelcome = () => {
   const { t } = useTranslation()
-  const canAddMembers = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADD_MEMBERS, groupId: group?.id }))
 
   return (
     <div className='mx-auto px-4 max-w-[500px] flex flex-col items-center justify-center'>
-      <img src='/home-chat-welcome.png' alt='Golden Starburst' />
-      <h1 className='text-center'>{t('homeChatWelcomeTitle')}</h1>
-      <p className='text-center'>{t('homeChatWelcomeDescription', { group_name: group.name })}</p>
-      <div className='flex gap-2 items-center justify-center'>
-        {canAddMembers && (
-          <>
-            <InviteMembersDialog group={group}>
-              <Button><Send /> {t('Send Invites')}</Button>
-            </InviteMembersDialog>
-            <CopyToClipboard text={groupInviteUrl(group)}>
-              <Button><Copy /> {t('Copy Invite Link')}</Button>
-            </CopyToClipboard>
-          </>
-        )}
-      </div>
+      <img src='/home-chat-welcome.png' alt='' />
+      <h1 className='text-center'>{t('It\'s quiet in here, start the conversation.')}</h1>
     </div>
   )
 }

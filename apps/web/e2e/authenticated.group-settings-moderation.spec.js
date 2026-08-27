@@ -2,7 +2,8 @@ import { test, expect } from '@playwright/test'
 import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading.js'
 
 /**
- * Batch I — group settings (`/groups/:slug/settings/*`) and group moderation (`/groups/:slug/moderation/*` only).
+ * Batch I — group settings (`/groups/:slug/settings/*`) and group moderation
+ * (`/groups/:slug/about/moderation`; `/moderation` redirects there).
  * There is no moderation route under global `/all`, `/public`, or `/my`.
  * Requires E2E seed: Coordinator group role + Administration responsibility linked for the login user
  * (`scripts/seed-e2e-baseline.js`).
@@ -43,12 +44,13 @@ test.describe('Batch I: group settings', () => {
 })
 
 test.describe('Batch I: moderation (group workspace only)', () => {
-  test('GET /groups/:slug/moderation loads shell', async ({ page }) => {
+  test('GET /groups/:slug/moderation redirects to about/moderation', async ({ page }) => {
     await page.goto(groupPath(PRIVATE_GROUP_SLUG, '/moderation'))
     await waitPastRootSessionLoading(page)
-    await expect(page).toHaveURL(new RegExp(`/groups/${PRIVATE_GROUP_SLUG}/moderation`), navTimeout)
+    await expect(page).toHaveURL(new RegExp(`/groups/${PRIVATE_GROUP_SLUG}/about/moderation/?$`), navTimeout)
     await expect(page.locator('#center-column')).toBeVisible(uiTimeout)
     await expect(page.locator('#outer-container')).toBeVisible(uiTimeout)
+    await expect(page.getByRole('button', { name: /^Moderation$/i })).toBeVisible(uiTimeout)
     // Helmet briefly uses `context` before `group` hydrates — avoid asserting exact pipe segments
     await expect(page).toHaveTitle(/Moderation.*Hylo/i, uiTimeout)
   })

@@ -17,6 +17,7 @@ query (
     fundingRounds (first: $first, offset: $offset, order: $order, sortBy: $sortBy, published: $published, search: $search) {
       items {
         id
+        allowLateJoiners
         allowSelfVoting
         createdAt
         criteria
@@ -27,7 +28,6 @@ query (
         numParticipants
         numSubmissions
         phase
-        publishedAt
         submissionsOpenAt
         submissionsCloseAt
         requireBudget
@@ -49,6 +49,7 @@ query (
           bannerUrl
           description
           homeRoute
+          status
           parentGroup {
             id
             slug
