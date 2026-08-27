@@ -60,11 +60,19 @@ export default function useTour ({
   const seen = toursSeen.includes(id)
   const signupInProgress = currentUser?.settings?.signupInProgress
 
+  // Live stores (chat sockets, typing events) recreate settings objects
+  // constantly; reading through a ref keeps markSeen — and everything built on
+  // it — referentially stable so the auto-start countdown isn't reset on every
+  // store update and can actually elapse
+  const toursSeenRef = useRef(toursSeen)
+  useEffect(() => { toursSeenRef.current = toursSeen }, [toursSeen])
+
   const markSeen = useCallback(() => {
-    if (!toursSeen.includes(id)) {
-      dispatch(updateUserSettings({ settings: { toursSeen: [...toursSeen, id] } }))
+    const seenNow = toursSeenRef.current
+    if (!seenNow.includes(id)) {
+      dispatch(updateUserSettings({ settings: { toursSeen: [...seenNow, id] } }))
     }
-  }, [dispatch, id, toursSeen])
+  }, [dispatch, id])
 
   const startTour = useCallback(() => {
     if (driverRef.current) {
