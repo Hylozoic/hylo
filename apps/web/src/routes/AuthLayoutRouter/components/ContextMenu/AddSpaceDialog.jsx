@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import useTour from 'tours/useTour'
 import { SPACE_CREATE_TOUR_ID, spaceCreateTourSteps } from 'tours/spaceCreateTour'
+import { TRACK_SETUP_TOUR_ID, trackSetupTourSteps } from 'tours/trackSetupTour'
+import { FUNDING_ROUND_SETUP_TOUR_ID, fundingRoundSetupTourSteps } from 'tours/fundingRoundSetupTour'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Activity, BadgeDollarSign, Hand, ImagePlus, Layers, LayoutGrid, MapPin, MessageCircleMore, Plus, Settings, Shapes } from 'lucide-react'
@@ -132,6 +134,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
     autoStartDelay: 1200,
     inviteMessage: t('Creating a space? Take a quick tour of the big decisions.')
   })
+
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const routerLocation = useLocation()
@@ -142,6 +145,25 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
   )
 
   const [spaceType, setSpaceType] = useState('custom')
+  // Type-specific tours when the Track or Funding Round type is selected
+  const trackTourStepList = useMemo(() => trackSetupTourSteps(t), [t])
+  const { invitation: trackTourInvitation } = useTour({
+    id: TRACK_SETUP_TOUR_ID,
+    steps: trackTourStepList,
+    autoStart: true,
+    autoStartDelay: 1200,
+    enabled: spaceType === 'track',
+    inviteMessage: t('Setting up a track? Take a quick tour.')
+  })
+  const roundTourStepList = useMemo(() => fundingRoundSetupTourSteps(t), [t])
+  const { invitation: roundTourInvitation } = useTour({
+    id: FUNDING_ROUND_SETUP_TOUR_ID,
+    steps: roundTourStepList,
+    autoStart: true,
+    autoStartDelay: 1200,
+    enabled: spaceType === 'funding-round',
+    inviteMessage: t('Setting up a funding round? Take a quick tour.')
+  })
   const [name, setName] = useState('')
   const [slug, setSlug] = useState('')
   const [slugCustomized, setSlugCustomized] = useState(false)
@@ -590,6 +612,8 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
         </h2>
 
         {spaceTourInvitation}
+        {trackTourInvitation}
+        {roundTourInvitation}
         <div className='flex flex-col gap-3 overflow-y-auto flex-1 min-h-0 p-1 -m-1'>
           <div className='grid grid-cols-2 sm:grid-cols-4 gap-2' data-tour='space-type'>
             {SPACE_TYPE_OPTIONS.map(option => {
@@ -850,7 +874,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
           </div>
         </div>
 
-        <div className='flex justify-end gap-2 mt-4 pt-2 border-t border-foreground/10'>
+        <div className='flex justify-end gap-2 mt-4 pt-2 border-t border-foreground/10' data-tour='space-publish'>
           <Button variant='primary' onClick={onClose}>{t('Cancel')}</Button>
           <Button variant='primary' disabled={!name.trim() || isCreating} onClick={() => handleCreate('draft')}>
             {isCreating ? t('Creating...') : t('Save as Draft')}
