@@ -613,9 +613,9 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
               className={cn('relative w-full h-[20vh] flex flex-col items-center justify-center border-2 border-dashed border-foreground/50 rounded-lg shadow-md bg-cover bg-center bg-darkening/0 hover:bg-darkening/20 scale-1 hover:scale-105 transition-all cursor-pointer', { 'border-none': !!bannerUrl })}
               style={{ backgroundImage: `url(${bannerUrl})` }}
             >
-              <div className='flex flex-col items-center justify-center gap-1'>
-                <ImagePlus className='inline-block' />
-                <span className='ml-2 text-xs opacity-40 group-hover:opacity-100 transition-all'>{t('Set space banner')}</span>
+              <div className='flex items-center gap-2 rounded-lg bg-black/50 px-3 py-2 text-white opacity-60 group-hover:opacity-100 transition-opacity'>
+                <ImagePlus className='w-4 h-4' />
+                <span className='text-xs font-semibold'>{t('Set space banner')}</span>
               </div>
             </div>
           </UploadAttachmentButton>

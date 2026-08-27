@@ -2,20 +2,24 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
-import { ImagePlus } from 'lucide-react'
+import { Hand, ImagePlus, LayoutGrid, MapPin } from 'lucide-react'
 
+import { AdvancedPill, AdvancedSection } from 'components/AdvancedSettings/AdvancedSettings'
 import Button from 'components/ui/button'
 import { FIELD_LABEL_CLASS, INPUT_CLASS } from 'components/ui/form-field'
 import { Input } from 'components/ui/input'
+import HyloEditor from 'components/HyloEditor'
 import LocationInput from 'components/LocationInput/LocationInput'
 import PostTypePills from 'components/PostTypePills/PostTypePills'
 import SettingSelectRow from 'components/SettingSelectRow/SettingSelectRow'
+import SwitchStyled from 'components/SwitchStyled'
 import TagInput from 'components/TagInput'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import { updateFundingRound, fetchFundingRound } from 'routes/FundingRounds/FundingRounds.store'
 import { localSpaceSlug } from '@hylo/navigation'
-import { updateSpace } from 'store/actions/groupViews'
+import { createGroupView, updateGroupView, updateSpace } from 'store/actions/groupViews'
 import { updateTrack, fetchTrack } from 'store/actions/trackActions'
+import { updateGroupSettings } from 'routes/GroupSettings/GroupSettings.store'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import getFundingRound from 'store/selectors/getFundingRound'
@@ -76,6 +80,12 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
         fundingRound: spaceFromStore?.fundingRound || passedSpace?.fundingRound
       }
     : null
+  const welcomeView = useSelector(state => {
+    const slug = passedSpace?.slug
+    if (!slug) return null
+    const views = getGroupForSlug(state, slug)?.groupViews?.toModelArray?.() || []
+    return views.find(view => view.type === 'welcome')?.ref || null
+  })
   const fetchedTrack = useSelector(state => space?.track?.id ? getTrack(state, space.track.id) : null)
   const fetchedRound = useSelector(state => space?.fundingRound?.id ? getFundingRound(state, space.fundingRound.id) : null)
   const track = fetchedTrack || space?.track
@@ -110,6 +120,13 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
   })
   const [roleSearchTerm, setRoleSearchTerm] = useState(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [openAdvanced, setOpenAdvanced] = useState(() => new Set())
+  const [justRevealed, setJustRevealed] = useState(null)
+  // Welcome edits only save if the panel was ever opened
+  const [welcomeTouched, setWelcomeTouched] = useState(false)
+  const [welcomeDraft, setWelcomeDraft] = useState(null)
+  const [showWelcomePage, setShowWelcomePage] = useState(space?.settings?.showWelcomePage ?? true)
+  const welcomeEditorRef = useRef(null)
 
   // Track settings (only relevant when this space is backed by a Track)
   const [actionDescriptor, setActionDescriptor] = useState(track?.actionDescriptor || 'Action')
@@ -150,6 +167,42 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
   const [frSubmitterRoles, setFrSubmitterRoles] = useState(fundingRound?.submitterRoles || [])
   const [frVoterRoles, setFrVoterRoles] = useState(fundingRound?.voterRoles || [])
   const frCriteriaEditorRef = useRef(null)
+
+  // The welcome panel edits the space's welcome view — make sure its
+  // pageContent is actually loaded (menu payloads are slim).
+  useEffect(() => {
+    if (space?.id) dispatch(fetchGroupViews(space.id))
+  }, [dispatch, space?.id])
+
+  const toggleAdvanced = useCallback((key) => {
+    const isOpen = openAdvanced.has(key)
+    if (isOpen && key === 'welcome') {
+      // The editor unmounts with the panel — keep the drafted page in state.
+      setWelcomeDraft(current => welcomeEditorRef.current?.getHTML?.() ?? current)
+    }
+    if (!isOpen) {
+      setJustRevealed(key)
+      if (key === 'welcome') setWelcomeTouched(true)
+    }
+    setOpenAdvanced(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) {
+        next.delete(key)
+      } else {
+        next.add(key)
+      }
+      return next
+    })
+  }, [openAdvanced])
+
+  // Revealed editors append below the pills, often past the fold — bring the new one
+  // into view so clicking a pill visibly does something.
+  useEffect(() => {
+    if (!justRevealed) return
+    const element = document.querySelector(`[data-advanced-key="${justRevealed}"]`)
+    element?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+    setJustRevealed(null)
+  }, [justRevealed])
 
   useEffect(() => {
     const trackId = space?.track?.id
@@ -250,6 +303,20 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
         paywall: Boolean(accessOption.paywall)
       }))
 
+      if (welcomeTouched) {
+        const pageContent = welcomeEditorRef.current?.getHTML?.() ?? welcomeDraft ?? welcomeView?.pageContent ?? ''
+        if (welcomeView?.id) {
+          if (pageContent !== (welcomeView.pageContent || '')) {
+            await dispatch(updateGroupView({ id: welcomeView.id, groupId: space.id, pageContent }))
+          }
+        } else {
+          await dispatch(createGroupView({ groupId: space.id, type: 'welcome', pageContent, addToEnd: true }))
+        }
+        if (showWelcomePage !== (space?.settings?.showWelcomePage ?? true)) {
+          await dispatch(updateGroupSettings(space.id, { settings: { showWelcomePage } }))
+        }
+      }
+
       if (track?.id) {
         const completionMessage = completionMessageEditorRef.current?.getHTML?.() ?? track.completionMessage
         await dispatch(updateTrack({
@@ -297,7 +364,66 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
     } finally {
       setIsSaving(false)
     }
-  }, [dispatch, space?.id, parentGroup?.id, view?.id, name, slug, slugValid, description, icon, bannerUrl, purpose, locationObject, postTypes, access, accessOptions, requiredRoles, track?.id, actionDescriptor, actionDescriptorPlural, completionRole, publishedAt, fundingRound?.id, frPublishedAt, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frAllowLateJoiners, frHideFinalResults, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles, onClose])
+  }, [dispatch, space?.id, parentGroup?.id, view?.id, name, slug, slugValid, description, icon, bannerUrl, purpose, locationObject, postTypes, access, accessOptions, requiredRoles, welcomeTouched, welcomeDraft, welcomeView, showWelcomePage, space?.settings?.showWelcomePage, track?.id, actionDescriptor, actionDescriptorPlural, completionRole, publishedAt, fundingRound?.id, frPublishedAt, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frAllowLateJoiners, frHideFinalResults, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles, onClose])
+
+  const advancedSettings = useMemo(() => [
+    {
+      key: 'location',
+      icon: MapPin,
+      label: 'Location',
+      defaultSummary: locationObject?.fullText || t('No location'),
+      render: () => (
+        <LocationInput
+          locationObject={locationObject}
+          location={locationObject?.fullText || ''}
+          onChange={setLocationObject}
+          className={INPUT_CLASS}
+        />
+      )
+    },
+    {
+      key: 'postTypes',
+      icon: LayoutGrid,
+      label: 'Post types',
+      defaultSummary: postTypes.length > 0 ? postTypes.join(', ') : t('None'),
+      render: () => (
+        <PostTypePills postTypes={postTypes} onPostTypesChange={setPostTypes} label={t('Accepted post types')} />
+      )
+    },
+    {
+      key: 'welcome',
+      icon: Hand,
+      label: 'Welcome',
+      defaultSummary: welcomeView ? null : t('No welcome page'),
+      render: () => (
+        <div className='flex flex-col gap-2'>
+          <div className='flex items-center gap-2'>
+            <SwitchStyled
+              checked={showWelcomePage}
+              onChange={() => setShowWelcomePage(v => !v)}
+              backgroundColor={showWelcomePage ? 'hsl(var(--selected))' : 'rgba(0 0 0 / .6)'}
+            />
+            <span className='text-sm text-foreground/80'>
+              {t('Show this welcome page to new members when they first land in the space.')}
+            </span>
+          </div>
+          <HyloEditor
+            key={welcomeView?.id ? `welcome-${welcomeView.id}` : 'welcome-new'}
+            contentHTML={welcomeDraft ?? welcomeView?.pageContent ?? ''}
+            className='min-h-[120px] p-2'
+            containerClassName='hyloEditor flex flex-col border border-foreground/20 rounded-lg bg-input'
+            extendedMenu
+            groupIds={space?.id ? [space.id] : []}
+            ref={welcomeEditorRef}
+            showMenu
+            type='welcomePage'
+          />
+        </div>
+      )
+    }
+  ], [t, locationObject, postTypes, welcomeView, welcomeDraft, showWelcomePage, space?.id])
+
+  const revealedSettings = advancedSettings.filter(setting => openAdvanced.has(setting.key))
 
   if (!space) return null
 
@@ -315,33 +441,37 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
             className={cn('relative w-full h-[20vh] flex flex-col items-center justify-center border-2 border-dashed border-foreground/50 rounded-lg shadow-md bg-cover bg-center bg-darkening/0 hover:bg-darkening/20 scale-1 hover:scale-105 transition-all cursor-pointer', { 'border-none': !!bannerUrl })}
             style={{ backgroundImage: `url(${bannerUrl})` }}
           >
-            <div className='flex flex-col items-center justify-center gap-1'>
-              <ImagePlus className='inline-block' />
-              <span className='ml-2 text-xs opacity-40 group-hover:opacity-100 transition-all'>{t('Set space banner')}</span>
+            <div className='flex items-center gap-2 rounded-lg bg-black/50 px-3 py-2 text-white opacity-60 group-hover:opacity-100 transition-opacity'>
+              <ImagePlus className='w-4 h-4' />
+              <span className='text-xs font-semibold'>{t('Set space banner')}</span>
             </div>
           </div>
         </UploadAttachmentButton>
 
         <SpaceIconRow value={icon} onChange={setIcon} />
 
-        <div className='flex flex-col gap-1'>
-          <label className={FIELD_LABEL_CLASS}>{t('Name')}</label>
-          <Input
-            className={INPUT_CLASS}
-            value={name}
-            onChange={e => setName(e.target.value)}
-            placeholder={t('Space name')}
+        <div className='grid grid-cols-1 sm:grid-cols-[1.35fr_1fr] gap-3 items-start'>
+          <div className='flex flex-col gap-1'>
+            <div className='h-5 flex items-center'>
+              <label className={FIELD_LABEL_CLASS}>{t('Name')}</label>
+            </div>
+            <Input
+              className={INPUT_CLASS}
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder={t('Space name')}
+            />
+          </div>
+
+          <SpaceSlugField
+            parentSlug={parentGroup?.slug}
+            value={slug}
+            onChange={setSlug}
+            currentStoredSlug={space.slug}
+            onValidityChange={setSlugValid}
+            forceShowError={showSlugError}
           />
         </div>
-
-        <SpaceSlugField
-          parentSlug={parentGroup?.slug}
-          value={slug}
-          onChange={setSlug}
-          currentStoredSlug={space.slug}
-          onValidityChange={setSlugValid}
-          forceShowError={showSlugError}
-        />
 
         <div className='flex flex-col gap-1'>
           <label className={FIELD_LABEL_CLASS}>{t('Purpose')}</label>
@@ -363,22 +493,6 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
             className={cn(INPUT_CLASS, 'min-h-[80px] resize-none')}
           />
         </div>
-
-        <div className='flex flex-col gap-1'>
-          <label className={FIELD_LABEL_CLASS}>{t('Location')}</label>
-          <LocationInput
-            locationObject={locationObject}
-            location={locationObject?.fullText || ''}
-            onChange={setLocationObject}
-            className={INPUT_CLASS}
-          />
-        </div>
-
-        <PostTypePills
-          postTypes={postTypes}
-          onPostTypesChange={setPostTypes}
-          label={t('Accepted post types')}
-        />
 
         <div className='flex flex-col gap-2'>
           <label className={FIELD_LABEL_CLASS}>{t('Access')}</label>
@@ -469,6 +583,39 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
             initialCriteria={fundingRound.criteria}
           />
         )}
+
+        <div className='mt-2 pt-4 border-t border-foreground/10'>
+          <h2 className={cn(FIELD_LABEL_CLASS, 'm-0 mb-2')}>{t('Additional settings')}</h2>
+
+          <div className='flex flex-wrap gap-2'>
+            {advancedSettings.map(setting => (
+              <AdvancedPill
+                key={setting.key}
+                isOpen={openAdvanced.has(setting.key)}
+                icon={setting.icon}
+                label={setting.label}
+                defaultSummary={setting.defaultSummary}
+                onClick={() => toggleAdvanced(setting.key)}
+              />
+            ))}
+          </div>
+
+          {revealedSettings.length > 0 && (
+            <div className='flex flex-col gap-3 mt-4'>
+              {revealedSettings.map(setting => (
+                <AdvancedSection
+                  key={setting.key}
+                  settingKey={setting.key}
+                  icon={setting.icon}
+                  label={setting.label}
+                  onHide={() => toggleAdvanced(setting.key)}
+                >
+                  {setting.render()}
+                </AdvancedSection>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className='flex justify-end gap-2 mt-4 pt-2 border-t border-foreground/10'>
