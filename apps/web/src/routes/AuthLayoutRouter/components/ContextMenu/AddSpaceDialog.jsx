@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
+import useTour from 'tours/useTour'
+import { SPACE_CREATE_TOUR_ID, spaceCreateTourSteps } from 'tours/spaceCreateTour'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Activity, BadgeDollarSign, Hand, ImagePlus, Layers, LayoutGrid, MapPin, MessageCircleMore, Plus, Settings, Shapes } from 'lucide-react'
@@ -120,6 +122,16 @@ function customSpaceStandardViews (postTypes, removedStandardTypes) {
  * Pass `addToMenu={false}` when adding from More Spaces (space view created off-menu). */
 export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu = true }) {
   const { t } = useTranslation()
+
+  // First-open tour of the space form's load-bearing choices, offered by invitation
+  const spaceTourStepList = useMemo(() => spaceCreateTourSteps(t), [t])
+  const { invitation: spaceTourInvitation } = useTour({
+    id: SPACE_CREATE_TOUR_ID,
+    steps: spaceTourStepList,
+    autoStart: true,
+    autoStartDelay: 1200,
+    inviteMessage: t('Creating a space? Take a quick tour of the big decisions.')
+  })
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const routerLocation = useLocation()
@@ -577,8 +589,9 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
           {addToMenu ? t('Create a new space in the main menu') : t('Create a new space in More Spaces')}
         </h2>
 
+        {spaceTourInvitation}
         <div className='flex flex-col gap-3 overflow-y-auto flex-1 min-h-0 p-1 -m-1'>
-          <div className='grid grid-cols-2 sm:grid-cols-4 gap-2'>
+          <div className='grid grid-cols-2 sm:grid-cols-4 gap-2' data-tour='space-type'>
             {SPACE_TYPE_OPTIONS.map(option => {
               const OptionIcon = option.icon
               const isSelected = spaceType === option.value
@@ -669,7 +682,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
             />
           </div>
 
-          <div className='flex flex-col gap-2'>
+          <div className='flex flex-col gap-2' data-tour='space-access'>
             <label className={FIELD_LABEL_CLASS}>{t('Access')}</label>
             <SettingSelectRow
               label='Access'
@@ -701,7 +714,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
             )}
           </div>
 
-          <div className='mt-2'>
+          <div className='mt-2' data-tour='space-home'>
             <div className='flex items-end justify-between gap-2 mb-2'>
               <div className='min-w-0'>
                 <span className={FIELD_LABEL_CLASS}>{t("Choose your space's home")}</span>

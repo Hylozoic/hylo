@@ -4,6 +4,8 @@ import { ChevronLeft } from 'lucide-react'
 import React, { useCallback, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import useTour from 'tours/useTour'
+import { GROUP_SETTINGS_TOUR_ID, groupSettingsTourSteps } from 'tours/groupSettingsTour'
 import { useSelector, useDispatch } from 'react-redux'
 
 import { groupUrl } from '@hylo/navigation'
@@ -41,6 +43,15 @@ export default function GroupSettingsMenu ({ group, groupSlug, isOneColumn = fal
 
   const phoneLayout = isPhoneDevice()
 
+  // First-open orientation tour over the settings sections, offered by invitation
+  const settingsTourStepList = useMemo(() => groupSettingsTourSteps(t), [t])
+  const { invitation: settingsTourInvitation } = useTour({
+    id: GROUP_SETTINGS_TOUR_ID,
+    steps: settingsTourStepList,
+    autoStart: true,
+    inviteMessage: t('First time in group settings? Take a quick tour.')
+  })
+
   const settingsMenuItems = useMemo(() => [
     canAdminister && { title: 'Group Details', url: 'settings' },
     canAdminister && { title: 'Agreements', url: 'settings/agreements' },
@@ -71,11 +82,12 @@ export default function GroupSettingsMenu ({ group, groupSlug, isOneColumn = fal
           phoneLayout ? (isOneColumn ? 'left-0' : 'left-14') : 'left-0'
         )}
       >
+        {settingsTourInvitation}
         <h3 className='text-lg font-bold flex items-center gap-2 text-foreground'>
           <ChevronLeft className='w-6 h-6 inline cursor-pointer' onClick={closeMenu} />
           {t('Group Settings')}
         </h3>
-        <ul className='flex flex-col gap-2 p-0'>
+        <ul className='flex flex-col gap-2 p-0' data-tour='settings-nav'>
           {settingsMenuItems.map(item => {
             const itemPath = groupUrl(slug, item.url)
             // Group Details uses the /settings prefix shared by all tabs, so only match exactly
@@ -88,6 +100,7 @@ export default function GroupSettingsMenu ({ group, groupSlug, isOneColumn = fal
                 <MenuLink
                   to={itemPath}
                   isActive={isActive}
+                  data-tour={'settings-nav-' + item.url.split('/').pop()}
                   className={cn(
                     'text-base text-foreground border-2 border-transparent hover:border-foreground/50 hover:text-foreground rounded-md p-1 pl-2 hover:bg-card text-foreground w-full block transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100',
                     { 'border-secondary': isActive }
