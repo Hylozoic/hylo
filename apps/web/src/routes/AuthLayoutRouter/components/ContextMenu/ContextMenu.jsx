@@ -625,6 +625,12 @@ export default function ContextMenu (props) {
   // On More Spaces page, `?space=` selects a space in the sidebar without leaving the page.
   const spaceSlug = routeSpaceSlug || (isMoreSpacesPath ? getQuerystringParam('space', location) : null)
 
+  // Opening a space (or switching group) swaps the menu's whole content while the
+  // panel element persists — without this it presents the new menu mid-scroll.
+  useEffect(() => {
+    if (menuRootEl) menuRootEl.scrollTop = 0
+  }, [menuRootEl, groupSlug, spaceSlug])
+
   const isPublicContext = routeParams.context === PUBLIC_CONTEXT_SLUG
   const isMyContext = routeParams.context === MY_CONTEXT_SLUG
   const isAllContext = routeParams.context === ALL_GROUPS_CONTEXT_SLUG

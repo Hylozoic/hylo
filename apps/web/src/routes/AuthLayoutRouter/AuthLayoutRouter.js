@@ -745,11 +745,11 @@ export default function AuthLayoutRouter (props) {
     return () => clearTimeout(timeoutId)
   }, [currentUserLoading, membershipGroupIdsKey, memberships.length, dispatch])
 
-  // Scroll to top of center column when context, groupSlug, or view changes (from `pathMatchParams`)
+  // Scroll to top of center column when context, groupSlug, space, or view changes (from `pathMatchParams`)
   useEffect(() => {
     const centerColumn = document.getElementById(CENTER_COLUMN_ID)
     if (centerColumn) centerColumn.scrollTop = 0
-  }, [pathMatchParams?.context, pathMatchParams?.groupSlug, pathMatchParams?.view])
+  }, [pathMatchParams?.context, pathMatchParams?.groupSlug, pathMatchParams?.spaceSlug, pathMatchParams?.view])
 
   // Show a toast notification once when a new app version is detected
   useEffect(() => {
