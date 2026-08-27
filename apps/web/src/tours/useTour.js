@@ -29,6 +29,28 @@ let inviteActive = false
 // purpose: politeness bookkeeping, not user data.
 const OFFER_LIMIT = 2
 const offerKey = id => `hylo-tour-offers:${id}`
+
+// QA switch: visit any page with ?tourTest=true to make every tour act unseen
+// on every load (and ?tourTest=false to turn it off again). While on, nothing
+// is written to toursSeen or the offer counters, so real state is untouched.
+function isTourTestMode () {
+  try {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('tourTest') === 'true') {
+      window.localStorage.setItem('hylo-tour-test', 'true')
+    } else if (params.get('tourTest') === 'false') {
+      window.localStorage.removeItem('hylo-tour-test')
+    }
+    const on = window.localStorage.getItem('hylo-tour-test') === 'true'
+    if (on && !window.__hyloTourTestAnnounced) {
+      window.__hyloTourTestAnnounced = true
+      console.info('[Hylo tours] Test mode is ON — every tour offers itself on every load. Turn off with ?tourTest=false')
+    }
+    return on
+  } catch (e) {
+    return false
+  }
+}
 function offerCount (id) {
   try { return Number(window.localStorage.getItem(offerKey(id))) || 0 } catch (e) { return 0 }
 }
@@ -78,7 +100,8 @@ export default function useTour ({
     () => currentUser?.settings?.toursSeen || [],
     [currentUser?.settings?.toursSeen]
   )
-  const seen = toursSeen.includes(id)
+  const testMode = isTourTestMode()
+  const seen = !testMode && toursSeen.includes(id)
   const signupInProgress = currentUser?.settings?.signupInProgress
 
   // Live stores (chat sockets, typing events) recreate settings objects
@@ -89,6 +112,7 @@ export default function useTour ({
   useEffect(() => { toursSeenRef.current = toursSeen }, [toursSeen])
 
   const markSeen = useCallback(() => {
+    if (isTourTestMode()) return
     const seenNow = toursSeenRef.current
     if (!seenNow.includes(id)) {
       dispatch(updateUserSettings({ settings: { toursSeen: [...seenNow, id] } }))
@@ -145,7 +169,7 @@ export default function useTour ({
 
   const timeoutInvite = useCallback(() => {
     closeInvite()
-    bumpOfferCount(id)
+    if (!isTourTestMode()) bumpOfferCount(id)
   }, [closeInvite, id])
 
   useEffect(() => {
@@ -154,7 +178,7 @@ export default function useTour ({
     // never intercepts unrelated tests; tour specs start tours explicitly
     if (typeof navigator !== 'undefined' && navigator.webdriver) return
     // Ignored (timed-out) invitations only re-offer so many times
-    if (mode === 'invite' && offerCount(id) >= OFFER_LIMIT) return
+    if (mode === 'invite' && !testMode && offerCount(id) >= OFFER_LIMIT) return
     // Hold the countdown until the app is actually visible and free: the boot
     // loading screen (index.html) removes itself once its fade finishes, another
     // tour may be mid-run, and callers can name overlays (welcome modal) that
@@ -195,7 +219,7 @@ export default function useTour ({
       clearInterval(poll)
       clearTimeout(timer)
     }
-  }, [autoStart, enabled, seen, !!currentUser, signupInProgress, startTour, autoStartDelay, mode, id])
+  }, [autoStart, enabled, seen, !!currentUser, signupInProgress, startTour, autoStartDelay, mode, id, testMode])
 
   useEffect(() => {
     return () => {
