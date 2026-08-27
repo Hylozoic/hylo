@@ -5,7 +5,7 @@ import { Helmet } from 'react-helmet'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import { isSystemGroupRole, sortCustomGroupRoles, sortSystemGroupRoles } from '@hylo/hooks/groupRoleHelpers'
-import { LayoutGrid, List, Search } from 'lucide-react'
+import { LayoutGrid, List, Search, Waypoints } from 'lucide-react'
 import CurrentlyActivePills, { DEFAULT_ACTIVE_MAX } from 'components/CurrentlyActiveMembers/CurrentlyActivePills'
 import InviteMembersDialog from 'components/InviteMembersDialog/InviteMembersDialog'
 import Dropdown from 'components/Dropdown'
@@ -240,11 +240,15 @@ function Members (props) {
     dispatch(fetchRecentlyActiveMembers({ slug, first: DEFAULT_ACTIVE_MAX }))
   }, [dispatch, slug])
 
-  // The skills graph shows the whole membership, unaffected by directory filters
+  // The skill map is loved but heavy — it starts collapsed behind a toggle.
+  const [showSkillMap, setShowSkillMap] = useState(false)
+
+  // The skills graph shows the whole membership, unaffected by directory filters.
+  // Fetched only once the map is opened — it starts hidden.
   useEffect(() => {
-    if (!group?.id || !slug) return
+    if (!group?.id || !slug || !showSkillMap) return
     dispatch(fetchMembersForGraph({ slug }))
-  }, [dispatch, group?.id, slug])
+  }, [dispatch, group?.id, slug, showSkillMap])
 
   const handleGraphSkillClick = useCallback(skillName => {
     setSearchValue(skillName)
@@ -310,12 +314,6 @@ function Members (props) {
         </div>
       )}
       <div className={classes.content}>
-        <MemberSkillsGraph
-          members={graphMembers}
-          loading={Boolean(graphPending) || !hasFetchedGraphMembers}
-          slug={slug}
-          onSkillClick={handleGraphSkillClick}
-        />
         <div className='flex flex-col gap-2 py-4'>
           <div className='flex flex-wrap items-center gap-2'>
             {/* Phones start as just a button so the controls fit one row; tapping
@@ -386,6 +384,20 @@ function Members (props) {
                 <List className='w-4 h-4' />
               </button>
             </div>
+            <button
+              type='button'
+              onClick={() => setShowSkillMap(v => !v)}
+              aria-pressed={showSkillMap}
+              aria-label={t('Skill map')}
+              title={t('Skill map')}
+              className={cn(
+                'flex items-center gap-1.5 rounded-lg border-2 border-foreground/20 px-2.5 py-[10px] text-sm transition-colors',
+                showSkillMap ? 'bg-selected text-foreground' : 'text-foreground/60 hover:text-foreground hover:bg-foreground/5'
+              )}
+            >
+              <Waypoints className='w-4 h-4' />
+              <span className='hidden sm:inline whitespace-nowrap'>{t('Skill map')}</span>
+            </button>
           </div>
           {(displayedRoles.length > 0 || canSeeTrackCompletion || showFundingRoundRoles) && (
             <div ref={roleClamp.containerRef} className='flex flex-wrap items-center gap-1.5'>
@@ -469,6 +481,16 @@ function Members (props) {
             </div>
           )}
         </div>
+        {showSkillMap && (
+          <div className='pb-4'>
+            <MemberSkillsGraph
+              members={graphMembers}
+              loading={Boolean(graphPending) || !hasFetchedGraphMembers}
+              slug={slug}
+              onSkillClick={handleGraphSkillClick}
+            />
+          </div>
+        )}
         <MasonryGrid
           enabled={displayMode === 'card'}
           gap={12}
