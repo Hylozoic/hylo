@@ -35,33 +35,186 @@
       load never flashes it. React clears #root when it mounts, which removes it.
     -->
     <style>
-      .boot-indicator {
-        height: 100%;
+      /* Match the boot loading screen's palette so the pre-React wait is the
+         same surface the animation fades in over, not a black canvas. */
+      html, body { background: #EDECE8; }
+      @media (prefers-color-scheme: dark) {
+        html, body { background: #2E2E2E; }
+      }
+      #hylo-boot-loader {
+        position: fixed;
+        inset: 0;
+        z-index: 2000;
         display: flex;
         align-items: center;
         justify-content: center;
+        background: linear-gradient(152deg, #F4F3F1 0%, #EDECE8 55%, #E4E3DE 100%);
       }
-      .boot-indicator span {
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        border: 3px solid rgba(128, 128, 128, 0.25);
-        border-top-color: rgba(128, 128, 128, 0.9);
-        opacity: 0;
-        animation: boot-spin 0.8s linear infinite, boot-appear 0.3s ease-out 0.5s forwards;
+      #hylo-boot-loader svg {
+        display: block;
+        overflow: visible;
+        width: 168px;
+        margin-top: -6vh;
       }
-      @keyframes boot-spin { to { transform: rotate(360deg); } }
-      @keyframes boot-appear { to { opacity: 1; } }
-      @media (prefers-reduced-motion: reduce) {
-        .boot-indicator span { animation: boot-appear 0.3s ease-out 0.5s forwards; }
+      @media (min-width: 640px) {
+        #hylo-boot-loader svg { width: 84px; }
+      }
+      @media (prefers-color-scheme: dark) {
+        #hylo-boot-loader {
+          background: linear-gradient(152deg, #3A3A3A 0%, #2E2E2E 55%, #232323 100%);
+        }
       }
     </style>
   </head>
   <body>
     <!-- if the value of 'root' is ever changed, than also change the value in /src/client/util -->
-    <div id="root" style="height: 100%; overflow: hidden;">
-      <div class="boot-indicator" role="status" aria-label="Loading"><span></span></div>
-    </div>
+    <div id="root" style="height: 100%; overflow: hidden;"></div>
+
+    <!-- Boot loading screen: the Hylo mark assembles ring by ring, HYLO fades up,
+         and the lockup breathes until the app is ready. Lives outside #root and
+         runs from HTML parse, so it plays while the module graph is still
+         loading; React calls window.HyloBootLoader.ready() when the view below
+         has started, and the loader fades itself out and unhooks. -->
+    <div id="hylo-boot-loader" role="status" aria-label="Loading"></div>
+    <script>
+    (function () {
+      var host = document.getElementById('hylo-boot-loader')
+      if (!host) return
+      var NS = 'http://www.w3.org/2000/svg'
+      var NODES = [[77.9657, 14.5829], [141.347, 51.7376], [141.347, 126.048], [77.9657, 163.202], [14.5829, 126.048], [14.5829, 51.7376]]
+      var R = 12.0829, TRIM = 12.35, ORDER = [3, 4, 5, 0, 1, 2]
+      var WORD = [
+        'M70.9719 0.427002C71.8014 0.427002 72.2684 1.38059 71.7598 2.03588L58.9336 18.5629C58.7978 18.7378 58.7241 18.9529 58.7241 19.1744V29.3229C58.7241 29.8738 58.2776 30.3203 57.7268 30.3203H55.1301C54.5793 30.3203 54.1328 29.8738 54.1328 29.3229V19.5267C54.1328 19.2987 54.0547 19.0776 53.9114 18.9002L40.3091 2.05089C39.7825 1.39856 40.2468 0.427002 41.0852 0.427002H44.8838C45.1936 0.427002 45.4858 0.570933 45.6746 0.816523L55.671 13.8205C56.0731 14.3436 56.8631 14.3392 57.2592 13.8116L67.0125 0.82542C67.2009 0.574588 67.4963 0.427002 67.81 0.427002H70.9719Z',
+        'M150.929 15.3737C150.929 17.5374 150.489 19.5588 149.611 21.4378C148.732 23.2883 147.485 24.9111 145.87 26.3061C144.254 27.7012 142.355 28.7972 140.173 29.5944C137.991 30.3631 135.582 30.7474 132.946 30.7474C130.31 30.7474 127.887 30.3631 125.676 29.5944C123.494 28.7972 121.595 27.7012 119.979 26.3061C118.392 24.9111 117.159 23.2883 116.281 21.4378C115.402 19.5588 114.963 17.5374 114.963 15.3737C114.963 13.21 115.402 11.2029 116.281 9.35234C117.159 7.47333 118.392 5.83632 119.979 4.44129C121.595 3.04627 123.494 1.96442 125.676 1.19573C127.887 0.398577 130.31 0 132.946 0C135.582 0 137.991 0.398577 140.173 1.19573C142.355 1.96442 144.254 3.04627 145.87 4.44129C147.485 5.83632 148.732 7.47333 149.611 9.35234C150.489 11.2029 150.929 13.21 150.929 15.3737ZM146.252 15.3737C146.252 13.2954 145.685 11.4449 144.552 9.82209C143.418 8.17084 141.845 6.87547 139.833 5.93596C137.849 4.96799 135.553 4.484 132.946 4.484C130.31 4.484 127.986 4.96799 125.974 5.93596C123.99 6.87547 122.431 8.17084 121.297 9.82209C120.192 11.4449 119.639 13.2954 119.639 15.3737C119.639 17.452 120.192 19.3168 121.297 20.968C122.431 22.5908 123.99 23.8862 125.974 24.8542C127.986 25.7937 130.31 26.2634 132.946 26.2634C135.553 26.2634 137.849 25.7937 139.833 24.8542C141.845 23.8862 143.418 22.5766 144.552 20.9253C145.685 19.2741 146.252 17.4235 146.252 15.3737Z',
+        'M105.508 25.879C106.058 25.879 106.505 26.3256 106.505 26.8764V29.3229C106.505 29.8738 106.058 30.3203 105.508 30.3203H83.015C82.4641 30.3203 82.0176 29.8738 82.0176 29.3229V1.42438C82.0176 0.873546 82.4641 0.427002 83.015 0.427002H85.6116C86.1624 0.427002 86.609 0.873545 86.609 1.42438V24.8817C86.609 25.4325 87.0555 25.879 87.6063 25.879H105.508Z',
+        'M3.594 0.427002C4.14484 0.427002 4.59138 0.873545 4.59138 1.42438V12.3692C4.59138 12.92 5.03793 13.3665 5.58877 13.3665H24.3828C24.9336 13.3665 25.3801 12.92 25.3801 12.3692V1.42438C25.3801 0.873545 25.8267 0.427002 26.3775 0.427002H28.9742C29.525 0.427002 29.9715 0.873545 29.9715 1.42438V29.3229C29.9715 29.8738 29.525 30.3203 28.9742 30.3203H26.3775C25.8267 30.3203 25.3801 29.8738 25.3801 29.3229V18.8052C25.3801 18.2544 24.9336 17.8078 24.3828 17.8078H5.58876C5.03793 17.8078 4.59138 18.2544 4.59138 18.8052V29.3229C4.59138 29.8738 4.14484 30.3203 3.594 30.3203H0.997381C0.446542 30.3203 0 29.8738 0 29.3229V1.42438C0 0.873546 0.446543 0.427002 0.997381 0.427002H3.594Z'
+      ]
+      var EDGES = []
+      for (var i = 1; i < ORDER.length; i++) {
+        var links = []
+        for (var j = 0; j < i; j++) {
+          var a = NODES[ORDER[j]], b = NODES[ORDER[i]]
+          var dx = b[0] - a[0], dy = b[1] - a[1], d = Math.hypot(dx, dy)
+          links.push({
+            arrival: i, order: 0, len: d - TRIM * 2,
+            x1: a[0] + dx / d * TRIM, y1: a[1] + dy / d * TRIM,
+            x2: b[0] - dx / d * TRIM, y2: b[1] - dy / d * TRIM
+          })
+        }
+        links.sort(function (p, q) { return p.len - q.len })
+        for (var k = 0; k < links.length; k++) { links[k].order = k; EDGES.push(links[k]) }
+      }
+      function clamp (v, lo, hi) { return Math.min(hi, Math.max(lo, v)) }
+      function outCubic (t) { return 1 - Math.pow(1 - t, 3) }
+      function outQuart (t) { return 1 - Math.pow(1 - t, 4) }
+      function outBack (t) { var c = 1.70158; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2) }
+      function inOutSine (t) { return -(Math.cos(Math.PI * t) - 1) / 2 }
+      var CUES = { Spark: 0, Chain: 0.672, Web: 1.184, Name: 2.112 }
+      var TRAVEL_FIRST = 0.512, TRAVEL = 0.294, BOUNCE = 0.205
+      var EDGE_LEAD = 0.128, EDGE_STAGGER = 0.035, EDGE_DUR = 0.230
+      var HOP = 30, SW = 5, MIN_SHOW = 2.4, FADE = 0.7
+      var AT = [CUES.Spark + 0.08, CUES.Chain - 0.032, CUES.Chain + 0.24, CUES.Web, CUES.Web + 0.269, CUES.Web + 0.538]
+      var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+      var ink = dark ? '#FFFFFF' : '#090B0A'
+
+      var svg = document.createElementNS(NS, 'svg')
+      svg.setAttribute('viewBox', '0 0 156 226')
+      var zoomG = document.createElementNS(NS, 'g')
+      svg.appendChild(zoomG)
+      var lines = EDGES.map(function (e) {
+        var el = document.createElementNS(NS, 'line')
+        el.setAttribute('x1', e.x1); el.setAttribute('y1', e.y1)
+        el.setAttribute('x2', e.x2); el.setAttribute('y2', e.y2)
+        el.setAttribute('stroke', ink); el.setAttribute('stroke-width', SW)
+        el.setAttribute('stroke-linecap', 'round')
+        el.setAttribute('stroke-dasharray', e.len)
+        el.setAttribute('stroke-dashoffset', e.len)
+        zoomG.appendChild(el)
+        return el
+      })
+      var rings = ORDER.map(function () {
+        var g = document.createElementNS(NS, 'g')
+        g.setAttribute('opacity', '0')
+        var c = document.createElementNS(NS, 'circle')
+        c.setAttribute('r', R); c.setAttribute('fill', 'none')
+        c.setAttribute('stroke', ink); c.setAttribute('stroke-width', SW)
+        g.appendChild(c); zoomG.appendChild(g)
+        return g
+      })
+      var wordG = document.createElementNS(NS, 'g')
+      wordG.setAttribute('opacity', '0')
+      for (var w = 0; w < WORD.length; w++) {
+        var pathEl = document.createElementNS(NS, 'path')
+        pathEl.setAttribute('d', WORD[w]); pathEl.setAttribute('fill', ink)
+        wordG.appendChild(pathEl)
+      }
+      zoomG.appendChild(wordG)
+      host.appendChild(svg)
+
+      var T = 0, last = null, readyFlag = false, fadeStart = null, stopped = false
+      function frame (now) {
+        if (stopped) return
+        if (last != null) T += Math.min((now - last) / 1000, 0.1)
+        last = now
+        var t = reduced ? 3.8 : T
+        for (var i = 0; i < ORDER.length; i++) {
+          var to = NODES[ORDER[i]]
+          var from = i === 0 ? [to[0], to[1] + 38] : NODES[ORDER[i - 1]]
+          var travel = i === 0 ? TRAVEL_FIRST : TRAVEL
+          var p = clamp((t - AT[i]) / travel, 0, 1)
+          var e = outCubic(p)
+          var x = from[0] + (to[0] - from[0]) * e
+          var y = from[1] + (to[1] - from[1]) * e - HOP * Math.sin(Math.PI * e)
+          var sx = 1, sy = 1
+          var bt = t - (AT[i] + travel)
+          if (bt >= 0 && bt < BOUNCE) {
+            var bp = bt / BOUNCE
+            y -= HOP * 0.22 * Math.sin(Math.PI * bp) * (1 - bp * 0.5)
+            var sq = Math.sin(Math.PI * bp) * (1 - bp)
+            sx = 1 + 0.13 * sq; sy = 1 - 0.13 * sq
+          }
+          var sc = 0.12 + 0.88 * outBack(p)
+          rings[i].setAttribute('opacity', clamp(p / 0.5, 0, 1))
+          rings[i].setAttribute('transform', 'translate(' + x + ' ' + y + ') scale(' + (sx * sc) + ' ' + (sy * sc) + ')')
+        }
+        for (var k = 0; k < EDGES.length; k++) {
+          var ed = EDGES[k]
+          var ep = outQuart(clamp((t - (AT[ed.arrival] + EDGE_LEAD + ed.order * EDGE_STAGGER)) / EDGE_DUR, 0, 1))
+          lines[k].setAttribute('stroke-dashoffset', ed.len * (1 - ep))
+        }
+        var wp = clamp((t - (CUES.Name + 0.25)) / 0.8, 0, 1)
+        var wd = clamp((t - (CUES.Name + 0.25)) / 0.9, 0, 1)
+        wordG.setAttribute('opacity', outCubic(wp))
+        wordG.setAttribute('transform', 'translate(2.5 ' + (195 + 9 * (1 - outCubic(wd))) + ')')
+        var zoom = 1
+        if (!reduced && t > CUES.Name + 0.15) {
+          var phase = (t - (CUES.Name + 0.15)) % 9
+          var up = phase < 6 ? phase / 6 : 1 - (phase - 6) / 3
+          zoom = 1 + 0.30 * inOutSine(up)
+        }
+        zoomG.setAttribute('transform', 'translate(78 113) scale(' + zoom * 0.62 + ') translate(-78 -113)')
+        var minShow = reduced ? 0.3 : MIN_SHOW
+        if (readyFlag && T >= minShow && fadeStart == null) fadeStart = T
+        if (fadeStart != null) {
+          var f = 1 - inOutSine(clamp((T - fadeStart) / FADE, 0, 1))
+          host.style.opacity = f
+          host.style.pointerEvents = 'none'
+          host.setAttribute('aria-hidden', 'true')
+          if (f <= 0) {
+            stopped = true
+            if (host.parentNode) host.parentNode.removeChild(host)
+            return
+          }
+        }
+        window.requestAnimationFrame(frame)
+      }
+      window.requestAnimationFrame(frame)
+      window.HyloBootLoader = {
+        ready: function () { readyFlag = true }
+      }
+    })()
+    </script>
 
     <!--
       This HTML file is a template.
