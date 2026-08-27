@@ -161,18 +161,18 @@ class TagInput extends Component {
         : null
 
       return (
-        <li key={t.id} className='inline-flex items-center relative mr-2'>
+        <li key={t.id} className='inline-flex items-center relative pr-2 min-w-0 max-w-full'>
           {t.avatarUrl && <RoundImage url={t.avatarUrl} small className={theme.selectedTagImage} />}
           <span className={cn('text-foreground', { 'inline-flex min-w-0 items-center gap-1.5': t.isSpace })}>
             {t.isSpace
               ? (
                 <>
-                  <span className='truncate'>{parentName}</span>
+                  <span className='truncate min-w-0'>{parentName}</span>
                   <span className='text-foreground/50 shrink-0'>/</span>
                   {t.icon && (
                     <LucideIcon name={t.icon} className='h-3.5 w-3.5 shrink-0' />
                   )}
-                  <span className='truncate'>{spaceName}</span>
+                  <span className='truncate min-w-0'>{spaceName}</span>
                 </>
                 )
               : (

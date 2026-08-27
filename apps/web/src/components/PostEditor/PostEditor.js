@@ -1378,7 +1378,7 @@ function PostEditorInner ({
           onClick={handleToFieldContainerClick}
         >
           <div className='text-xs text-foreground/50 px-2'>{t('To')}</div>
-          <div className='border-foreground w-full'>
+          <div className='border-foreground w-full min-w-0'>
             <ToField
               options={toOptions}
               selected={selectedToOptions}
