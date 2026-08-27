@@ -1,8 +1,10 @@
 import { cn } from 'util/index'
 import { get } from 'lodash/fp'
-import { Globe, HelpCircle, Plus, PlusCircle, Bell, MessagesSquare, ChevronDown, Settings, LogOut, User, Edit, Users, Mail, Bell as BellIcon, Palette, Languages, UserX, Search, Shield, BookOpen, Download, Heart, Wrench } from 'lucide-react'
+import { Compass, Globe, HelpCircle, Plus, PlusCircle, Bell, MessagesSquare, ChevronDown, Settings, LogOut, User, Edit, Users, Mail, Bell as BellIcon, Palette, Languages, UserX, Search, Shield, BookOpen, Download, Heart, Wrench } from 'lucide-react'
 import React, { Suspense, useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
+import useTour from 'tours/useTour'
+import { GLOBAL_CHROME_TOUR_ID, globalChromeTourSteps } from 'tours/globalChromeTour'
 import { useIntercom } from 'react-use-intercom'
 import { useSelector, useDispatch } from 'react-redux'
 import { useLocation, useNavigate } from 'react-router-dom'
@@ -157,7 +159,7 @@ function GlobalCreateMenu () {
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger aria-label={t('Create')} data-testid='global-nav-create'>
+      <PopoverTrigger aria-label={t('Create')} data-testid='global-nav-create' data-tour='create'>
         <div className={cn('bg-[hsl(0_0%_17%)] text-white relative z-20 transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-8 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-foreground/0 hover:border-foreground/50')}>
           <PlusCircle className='w-7 h-7' />
         </div>
@@ -532,6 +534,14 @@ export default function GlobalNav (props) {
   // download at all on desktop
   const showAppStoreLink = isMobileDevice() && !isWebView()
   const { t } = useTranslation()
+  const [helpOpen, setHelpOpen] = useState(false)
+  const tourSteps = useMemo(() => globalChromeTourSteps(t), [t])
+  const { startTour } = useTour({ id: GLOBAL_CHROME_TOUR_ID, steps: tourSteps, autoStart: true })
+  const handleTakeTour = useCallback(() => {
+    setHelpOpen(false)
+    // Let the popover finish closing before the overlay measures the anchors
+    setTimeout(startTour, 150)
+  }, [startTour])
   const [navReady, setNavReady] = useState(false)
   const [isContainerHovered, setIsContainerHovered] = useState(false)
   // A stack's subgroup menu and the rail's labels are alternatives, never both at
@@ -963,6 +973,7 @@ export default function GlobalNav (props) {
           url={myHomeLandingUrl()}
           className={isVisible(0)}
           showTooltip={showLabels}
+          dataTour='my-home'
         />
 
         <Suspense fallback={<GlobalNavItem className={isVisible(1)} showTooltip={showLabels}><Bell className='w-7 h-7' /></GlobalNavItem>}>
@@ -973,6 +984,7 @@ export default function GlobalNav (props) {
               className={isVisible(1)}
               showTooltip={showLabels}
               badgeCount={showBadge ? '-' : 0}
+              dataTour='activity'
             >
               <BadgedIcon name='Notifications' className='!text-white cursor-pointer font-md' />
             </GlobalNavItem>}
@@ -986,6 +998,7 @@ export default function GlobalNav (props) {
           className={isVisible(2)}
           showTooltip={showLabels}
           badgeCount={currentUser?.unseenThreadCount || 0}
+          dataTour='messages'
         >
           <MessagesSquare />
         </GlobalNavItem>
@@ -996,6 +1009,7 @@ export default function GlobalNav (props) {
           url='/public'
           className={isVisible(3)}
           showTooltip={showLabels}
+          dataTour='the-commons'
         >
           <Globe />
         </GlobalNavItem>
@@ -1112,14 +1126,15 @@ export default function GlobalNav (props) {
         <div className='flex items-center justify-center gap-1.5'>
           <SettingsMenu currentUser={currentUser} triggerClassName={GLOBAL_NAV_UTILITY_BUTTON} />
 
-          <Popover>
+          <Popover open={helpOpen} onOpenChange={setHelpOpen}>
             <PopoverTrigger>
-              <span className={GLOBAL_NAV_UTILITY_BUTTON}>
+              <span className={GLOBAL_NAV_UTILITY_BUTTON} data-tour='help'>
                 <HelpCircle className='w-5 h-5' />
               </span>
             </PopoverTrigger>
             <PopoverContent side='right' align='start'>
               <ul className='flex flex-col gap-2 m-0 p-0'>
+                <li className='w-full'><span className='text-foreground cursor-pointer px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' data-testid='take-a-tour' onClick={handleTakeTour}><Compass className='h-4 w-4' />{t('Take a tour')}</span></li>
                 <li className='w-full'><span className='text-foreground cursor-pointer px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' onClick={handleSupportClick}><MessagesSquare className='h-4 w-4' />{t('Feedback & Support')}</span></li>
                 <li className='w-full'><a className='text-foreground cursor-pointer hover:text-foreground/100 px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' href='https://hylozoic.gitbook.io/hylo/guides/hylo-user-guide' target='_blank' rel='noreferrer'><BookOpen className='h-4 w-4' />{t('User Guide')}</a></li>
                 <li className='w-full'><a className='text-foreground cursor-pointer hover:text-foreground/100 px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' href='http://hylo.com/terms/' target='_blank' rel='noreferrer'><Shield className='h-4 w-4' />{t('Terms & Privacy')}</a></li>

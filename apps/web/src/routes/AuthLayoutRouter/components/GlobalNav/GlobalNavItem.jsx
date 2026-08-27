@@ -41,7 +41,8 @@ export default function GlobalNavItem ({
   showTooltip: parentShowTooltip,
   index = 0,
   isPinned = false,
-  childGroups = []
+  childGroups = [],
+  dataTour
 }) {
   const navigate = useNavigate()
   const routeParams = useRouteParams()
@@ -253,6 +254,7 @@ export default function GlobalNavItem ({
         msUserSelect: 'none'
       }}
       role='button'
+      data-tour={dataTour}
     >
       {hasChildren
         ? (
