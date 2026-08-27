@@ -68,6 +68,36 @@ test('space modals carry the group creation form treatment', async ({ page }) =>
   await page.getByRole('button', { name: 'Role Gated' }).click()
   await expect(page.getByPlaceholder('Search roles/badges')).toBeVisible()
 
+  // Name and Handle share a row on desktop (labels align; the handle input itself
+  // sits inside its @-prefixed wrapper, so compare the labels)
+  const nameLabel = await page.getByText('Name', { exact: true }).boundingBox()
+  const handleLabel = await page.getByText('Handle', { exact: true }).boundingBox()
+  expect(Math.abs(nameLabel.y - handleLabel.y)).toBeLessThan(4)
+
+  // Home picker with segments, and the additional-settings pills
+  await expect(page.getByText("Choose your space's home")).toBeVisible()
+  await expect(page.getByText('Activity Stream')).toBeVisible()
+  for (const label of ['Location', 'Post types', 'Welcome']) {
+    await expect(page.getByRole('button', { name: label, exact: true })).toBeVisible()
+  }
+  await page.waitForTimeout(400)
+  await page.screenshot({ path: shot('7-create-home-additional'), animations: 'disabled' })
+
+  // Welcome reveals its control surface with the page editor inside
+  await page.getByRole('button', { name: 'Welcome', exact: true }).click()
+  await expect(page.getByText('Show this welcome page to new members when they first land in the space.')).toBeVisible()
+  await page.locator('[data-advanced-key="welcome"]').scrollIntoViewIfNeeded()
+  await page.waitForTimeout(500)
+  await page.screenshot({ path: shot('8-create-welcome-open'), animations: 'disabled' })
+
+  // Edit Menu swaps the picker for the menu editor, which now includes Welcome
+  await page.getByRole('button', { name: 'Edit Menu' }).click()
+  const menuPanel = page.locator('[data-advanced-key="views"]')
+  await expect(menuPanel.getByText('All Activity')).toBeVisible()
+  await expect(menuPanel.getByText('Welcome', { exact: true })).toBeVisible()
+  await page.screenshot({ path: shot('9-create-menu-editor') })
+  await page.getByRole('button', { name: 'Hide Menu Items' }).click()
+
   // Search Icons opens the searchable Lucide picker
   await searchIcons.click()
   await expect(page.getByPlaceholder('Search icons')).toBeVisible({ timeout: 5000 })
@@ -82,6 +112,11 @@ test('space modals carry the group creation form treatment', async ({ page }) =>
   const narrowSearchBox = await searchIcons.boundingBox()
   const circleBox = await page.locator('button[aria-label="Circle"]').boundingBox()
   expect(Math.abs(circleBox.y - narrowSearchBox.y)).toBeLessThan(4)
+
+  // Name and Handle stack on mobile widths
+  const nameLabelNarrow = await page.getByText('Name', { exact: true }).boundingBox()
+  const handleLabelNarrow = await page.getByText('Handle', { exact: true }).boundingBox()
+  expect(handleLabelNarrow.y).toBeGreaterThan(nameLabelNarrow.y + 40)
   await page.screenshot({ path: shot('4-create-narrow'), fullPage: false })
   await page.setViewportSize({ width: 1280, height: 720 })
 

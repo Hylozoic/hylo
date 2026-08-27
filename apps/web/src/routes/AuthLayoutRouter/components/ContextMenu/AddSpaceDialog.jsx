@@ -1,17 +1,21 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { BadgeDollarSign, ImagePlus, Layers, MessageCircleMore, Plus, Shapes } from 'lucide-react'
+import { Activity, BadgeDollarSign, Hand, ImagePlus, Layers, LayoutGrid, MapPin, MessageCircleMore, Plus, Settings, Shapes } from 'lucide-react'
 
 import Button from 'components/ui/button'
 import { FIELD_LABEL_CLASS, INPUT_CLASS } from 'components/ui/form-field'
 import { Input } from 'components/ui/input'
+import { AdvancedPill, AdvancedSection } from 'components/AdvancedSettings/AdvancedSettings'
+import HomeViewPicker, { CUSTOM_HOME_VIEW, viewTypesForCreate } from 'components/HomeViewPicker/HomeViewPicker'
+import HyloEditor from 'components/HyloEditor'
 import IncludedViewsEditor from 'components/IncludedViewsEditor/IncludedViewsEditor'
 import LocationInput from 'components/LocationInput/LocationInput'
 import PostTypePills from 'components/PostTypePills/PostTypePills'
 import SettingSelectRow from 'components/SettingSelectRow/SettingSelectRow'
+import SwitchStyled from 'components/SwitchStyled'
 import TagInput from 'components/TagInput'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import { CUSTOM_VIEW_DEFAULT_POST_TYPES, CUSTOM_VIEW_POST_TYPE_OPTIONS } from 'components/CustomViewForm/customViewFormConstants'
@@ -52,6 +56,25 @@ const SPACE_TYPE_OPTIONS = [
   { value: 'chat', labelKey: 'Chat Space', icon: MessageCircleMore },
   { value: 'track', labelKey: 'Track', icon: Shapes },
   { value: 'funding-round', labelKey: 'Funding Round', icon: BadgeDollarSign }
+]
+
+/** Home options a custom space can lead with — spaces have no map view; any other
+ * view promoted to the top of the menu takes the first segment's place. */
+const SPACE_HOME_VIEW_OPTIONS = [
+  {
+    value: 'STREAM',
+    viewType: 'all',
+    icon: Activity,
+    title: 'Activity Stream',
+    description: "A sorted feed of all your space's posts"
+  },
+  {
+    value: 'CHAT',
+    viewType: 'chat',
+    icon: MessageCircleMore,
+    title: 'Chat',
+    description: 'A real-time chat room for quick conversations, coordination and casual interactions.'
+  }
 ]
 
 /** Defaults for accepted post types / included views / icon based on the selected space type. */
@@ -123,6 +146,13 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
   const [manualViews, setManualViews] = useState([])
   const [welcomeExtras, setWelcomeExtras] = useState(null)
   const [orderedRows, setOrderedRows] = useState([])
+  const [homeView, setHomeView] = useState('STREAM')
+  const [showMenuEditor, setShowMenuEditor] = useState(false)
+  const [openAdvanced, setOpenAdvanced] = useState(() => new Set())
+  const [justRevealed, setJustRevealed] = useState(null)
+  const [welcomeEnabled, setWelcomeEnabled] = useState(false)
+  const [showWelcomePage, setShowWelcomePage] = useState(true)
+  const welcomeEditorRef = useRef(null)
   const [access, setAccess] = useState('open')
   const [requiredRoles, setRequiredRoles] = useState([])
   const [roleSearchTerm, setRoleSearchTerm] = useState(null)
@@ -162,6 +192,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
     setPresetStandardViews(defaults.standardViewTypes)
     setManualViews([])
     setIcon(defaults.icon)
+    setHomeView('STREAM')
   }, [])
 
   const roles = useMemo(
@@ -197,11 +228,72 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
   ), [])
 
   const standardViewTypes = useMemo(() => {
-    if (presetStandardViews) {
-      return presetStandardViews.filter(type => !removedStandardTypes.has(type))
+    const base = presetStandardViews
+      ? presetStandardViews.filter(type => !removedStandardTypes.has(type))
+      : customSpaceStandardViews(postTypes, removedStandardTypes)
+    if (welcomeEnabled && !base.includes('welcome') && !removedStandardTypes.has('welcome')) {
+      return [...base, 'welcome']
     }
-    return customSpaceStandardViews(postTypes, removedStandardTypes)
-  }, [presetStandardViews, postTypes, removedStandardTypes])
+    return base
+  }, [presetStandardViews, postTypes, removedStandardTypes, welcomeEnabled])
+
+  // Whatever sits at the top of the menu is the home — the backend takes the landing
+  // route from the first seeded view. Keyed on the row rather than the array so a
+  // re-ordered-but-identical list can't feed back into another render.
+  const firstRow = orderedRows[0]
+  const firstRowKey = firstRow?.key || null
+
+  useEffect(() => {
+    if (!firstRow || spaceType !== 'custom') return
+    const match = firstRow.kind === 'standard' &&
+      SPACE_HOME_VIEW_OPTIONS.find(option => option.viewType === firstRow.type)
+    setHomeView(match ? match.value : CUSTOM_HOME_VIEW)
+  }, [firstRowKey, spaceType])
+
+  // Only set when the home is a view the segmented control doesn't already carry.
+  const customHomeRow = homeView === CUSTOM_HOME_VIEW ? firstRow : null
+  const homeViewType = SPACE_HOME_VIEW_OPTIONS.find(option => option.value === homeView)?.viewType
+
+  const toggleAdvanced = useCallback((key) => {
+    const isOpen = openAdvanced.has(key)
+    if (isOpen && key === 'welcome') {
+      // The editor unmounts with the panel — keep the drafted page in state.
+      setWelcomeExtras(current => ({
+        pageContent: welcomeEditorRef.current?.getHTML?.() ?? current?.pageContent ?? '',
+        showWelcomePage
+      }))
+    }
+    if (!isOpen) {
+      setJustRevealed(key)
+      if (key === 'welcome') {
+        setWelcomeEnabled(true)
+        setRemovedStandardTypes(prev => {
+          if (!prev.has('welcome')) return prev
+          const next = new Set(prev)
+          next.delete('welcome')
+          return next
+        })
+      }
+    }
+    setOpenAdvanced(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) {
+        next.delete(key)
+      } else {
+        next.add(key)
+      }
+      return next
+    })
+  }, [openAdvanced, showWelcomePage])
+
+  // Revealed editors append below the pills, often past the fold — bring the new one
+  // into view so clicking a pill visibly does something.
+  useEffect(() => {
+    if (!justRevealed) return
+    const element = document.querySelector(`[data-advanced-key="${justRevealed}"]`)
+    element?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+    setJustRevealed(null)
+  }, [justRevealed])
 
   /** Removes a standard view unless it is the current home (top) view. */
   const handleRemoveStandardView = useCallback((type) => {
@@ -209,7 +301,15 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
     const homeRow = orderedRows[0]
     if (homeRow?.kind === 'standard' && homeRow.type === type) return
     setRemovedStandardTypes(prev => new Set(prev).add(type))
-    if (type === 'welcome') setWelcomeExtras(null)
+    if (type === 'welcome') {
+      setWelcomeExtras(null)
+      setWelcomeEnabled(false)
+      setOpenAdvanced(prev => {
+        const next = new Set(prev)
+        next.delete('welcome')
+        return next
+      })
+    }
   }, [orderedRows])
 
   /** Removes a staged custom/link/text view unless it is the current home (top) view. */
@@ -252,8 +352,18 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
       const accessOption = accessOptionsForGroup(group).find(option => option.value === access)
       const standardTypesInOrder = orderedRows.filter(row => row.kind === 'standard').map(row => row.type)
       const manualRowsInOrder = orderedRows.filter(row => row.kind === 'manual')
-      // Fall back to standardViewTypes if IncludedViewsEditor hasn't reported order yet
-      const viewTypes = standardTypesInOrder.length > 0 ? standardTypesInOrder : standardViewTypes
+      // Custom spaces put the chosen home first; preset types already lead with theirs.
+      const viewTypes = spaceType === 'custom'
+        ? viewTypesForCreate(standardTypesInOrder, standardViewTypes, homeViewType)
+        : (standardTypesInOrder.length > 0 ? standardTypesInOrder : standardViewTypes)
+
+      // The welcome panel's editor wins while mounted; otherwise use the kept draft.
+      const effectiveWelcome = welcomeEnabled
+        ? {
+            pageContent: welcomeEditorRef.current?.getHTML?.() ?? welcomeExtras?.pageContent ?? '',
+            showWelcomePage
+          }
+        : welcomeExtras
 
       const result = await dispatch(createSpace({
         parentGroupId: group.id,
@@ -343,20 +453,20 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
         }
       }
 
-      if (newSpace?.id && welcomeExtras) {
+      if (newSpace?.id && effectiveWelcome) {
         const viewsResult = await dispatch(fetchGroupViews(newSpace.id))
         const createdViews = viewsResult?.payload?.data?.group?.groupViews?.items || []
         const welcomeView = createdViews.find(view => view.type === 'welcome')
-        if (welcomeView?.id && welcomeExtras.pageContent) {
+        if (welcomeView?.id && effectiveWelcome.pageContent) {
           await dispatch(updateGroupView({
             id: welcomeView.id,
             groupId: newSpace.id,
-            pageContent: welcomeExtras.pageContent
+            pageContent: effectiveWelcome.pageContent
           }))
         }
-        if (welcomeExtras.showWelcomePage !== undefined) {
+        if (effectiveWelcome.showWelcomePage !== undefined) {
           await dispatch(updateGroupSettings(newSpace.id, {
-            settings: { showWelcomePage: welcomeExtras.showWelcomePage }
+            settings: { showWelcomePage: effectiveWelcome.showWelcomePage }
           }))
         }
       }
@@ -392,7 +502,67 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
     } finally {
       setIsCreating(false)
     }
-  }, [dispatch, group?.id, name, slug, slugValid, description, icon, bannerUrl, purpose, locationObject, postTypes, access, requiredRoles, spaceType, orderedRows, standardViewTypes, welcomeExtras, onClose, onCreated, navigate, routerLocation.pathname, addToMenu, isOneColumn, actionDescriptor, actionDescriptorPlural, completionRole, trackPublishedAt, frPublishedAt, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frAllowLateJoiners, frHideFinalResults, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles])
+  }, [dispatch, group?.id, name, slug, slugValid, description, icon, bannerUrl, purpose, locationObject, postTypes, access, requiredRoles, spaceType, orderedRows, standardViewTypes, homeViewType, welcomeEnabled, welcomeExtras, showWelcomePage, onClose, onCreated, navigate, routerLocation.pathname, addToMenu, isOneColumn, actionDescriptor, actionDescriptorPlural, completionRole, trackPublishedAt, frPublishedAt, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frAllowLateJoiners, frHideFinalResults, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles])
+
+  const advancedSettings = useMemo(() => [
+    {
+      key: 'location',
+      icon: MapPin,
+      label: 'Location',
+      defaultSummary: t('No location'),
+      render: () => (
+        <LocationInput
+          locationObject={locationObject}
+          location={locationObject?.fullText || ''}
+          onChange={setLocationObject}
+          className={INPUT_CLASS}
+        />
+      )
+    },
+    {
+      key: 'postTypes',
+      icon: LayoutGrid,
+      label: 'Post types',
+      defaultSummary: defaultsForSpaceType(spaceType).postTypes.length > 0
+        ? t('Discussions, events, requests, offers')
+        : t('None'),
+      render: () => (
+        <PostTypePills postTypes={postTypes} onPostTypesChange={setPostTypes} label={t('Accepted post types')} />
+      )
+    },
+    {
+      key: 'welcome',
+      icon: Hand,
+      label: 'Welcome',
+      defaultSummary: t('No welcome page'),
+      render: () => (
+        <div className='flex flex-col gap-2'>
+          <div className='flex items-center gap-2'>
+            <SwitchStyled
+              checked={showWelcomePage}
+              onChange={() => setShowWelcomePage(v => !v)}
+              backgroundColor={showWelcomePage ? 'hsl(var(--selected))' : 'rgba(0 0 0 / .6)'}
+            />
+            <span className='text-sm text-foreground/80'>
+              {t('Show this welcome page to new members when they first land in the space.')}
+            </span>
+          </div>
+          <HyloEditor
+            contentHTML={welcomeExtras?.pageContent || ''}
+            className='min-h-[120px] p-2'
+            containerClassName='hyloEditor flex flex-col border border-foreground/20 rounded-lg bg-input'
+            extendedMenu
+            groupIds={group?.id ? [group.id] : []}
+            ref={welcomeEditorRef}
+            showMenu
+            type='welcomePage'
+          />
+        </div>
+      )
+    }
+  ], [t, locationObject, postTypes, spaceType, showWelcomePage, welcomeExtras?.pageContent, group?.id])
+
+  const revealedSettings = advancedSettings.filter(setting => openAdvanced.has(setting.key))
 
   /** Closes the dialog when the dimmed overlay (not the panel) is clicked. */
   const handleBackdropClick = (event) => {
@@ -452,30 +622,34 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
 
           <SpaceIconRow value={icon} onChange={setIcon} />
 
-          <div className='flex flex-col gap-1'>
-            <label className={FIELD_LABEL_CLASS}>{t('Name')}</label>
-            <Input
-              className={INPUT_CLASS}
-              value={name}
-              onChange={e => {
-                const newName = e.target.value
-                setName(newName)
-                if (!slugCustomized) setSlug(nameToSlug(newName))
+          <div className='grid grid-cols-1 sm:grid-cols-[1.35fr_1fr] gap-3 items-start'>
+            <div className='flex flex-col gap-1'>
+              <div className='h-5 flex items-center'>
+                <label className={FIELD_LABEL_CLASS}>{t('Name')}</label>
+              </div>
+              <Input
+                className={INPUT_CLASS}
+                value={name}
+                onChange={e => {
+                  const newName = e.target.value
+                  setName(newName)
+                  if (!slugCustomized) setSlug(nameToSlug(newName))
+                }}
+                placeholder={t('Space name')}
+              />
+            </div>
+
+            <SpaceSlugField
+              parentSlug={group?.slug}
+              value={slug}
+              onChange={(next) => {
+                setSlug(next)
+                setSlugCustomized(true)
               }}
-              placeholder={t('Space name')}
+              onValidityChange={setSlugValid}
+              forceShowError={showSlugError}
             />
           </div>
-
-          <SpaceSlugField
-            parentSlug={group?.slug}
-            value={slug}
-            onChange={(next) => {
-              setSlug(next)
-              setSlugCustomized(true)
-            }}
-            onValidityChange={setSlugValid}
-            forceShowError={showSlugError}
-          />
 
           <div className='flex flex-col gap-1'>
             <label className={FIELD_LABEL_CLASS}>{t('Purpose')}</label>
@@ -497,33 +671,6 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
               className={cn(INPUT_CLASS, 'min-h-[80px] resize-none')}
             />
           </div>
-
-          <div className='flex flex-col gap-1'>
-            <label className={FIELD_LABEL_CLASS}>{t('Location')}</label>
-            <LocationInput
-              locationObject={locationObject}
-              location={locationObject?.fullText || ''}
-              onChange={setLocationObject}
-              className={INPUT_CLASS}
-            />
-          </div>
-
-          <PostTypePills
-            postTypes={postTypes}
-            onPostTypesChange={setPostTypes}
-            label={t('Accepted post types')}
-          />
-
-          <IncludedViewsEditor
-            key={spaceType}
-            standardViewTypes={standardViewTypes}
-            onRemoveStandardType={handleRemoveStandardView}
-            manualViews={manualViews}
-            onAddView={handleAddView}
-            onRemoveManualView={handleRemoveManualView}
-            acceptedPostTypes={postTypes}
-            onOrderedRowsChange={setOrderedRows}
-          />
 
           <div className='flex flex-col gap-2'>
             <label className={FIELD_LABEL_CLASS}>{t('Access')}</label>
@@ -555,6 +702,55 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
                 />
               </div>
             )}
+          </div>
+
+          <div className='mt-2'>
+            <div className='flex items-end justify-between gap-2 mb-2'>
+              <div className='min-w-0'>
+                <span className={FIELD_LABEL_CLASS}>{t("Choose your space's home")}</span>
+                <p className='text-xs text-foreground/60 mt-0.5 mb-0'>{t('Set the default view members see when they enter your space.')}</p>
+              </div>
+              {!showMenuEditor && (
+                <button
+                  type='button'
+                  onClick={() => setShowMenuEditor(true)}
+                  className='shrink-0 flex items-center gap-1.5 text-xs font-semibold text-foreground/70 hover:text-foreground border border-foreground/20 hover:border-foreground/40 rounded-md px-2 py-1 transition-colors'
+                >
+                  <Settings className='w-3.5 h-3.5' />
+                  {t('Edit Menu')}
+                </button>
+              )}
+            </div>
+            {showMenuEditor
+              ? (
+                <AdvancedSection
+                  settingKey='views'
+                  icon={Settings}
+                  label='Menu Items'
+                  onHide={() => setShowMenuEditor(false)}
+                >
+                  <IncludedViewsEditor
+                    key={spaceType}
+                    standardViewTypes={standardViewTypes}
+                    onRemoveStandardType={handleRemoveStandardView}
+                    manualViews={manualViews}
+                    onAddView={handleAddView}
+                    onRemoveManualView={handleRemoveManualView}
+                    acceptedPostTypes={postTypes}
+                    onOrderedRowsChange={setOrderedRows}
+                    label={t("These are the menu your members use. The one at the top is your space's home.")}
+                    labelClassName='text-xs text-foreground/60'
+                  />
+                </AdvancedSection>
+                )
+              : spaceType === 'custom' && (
+                <HomeViewPicker
+                  value={homeView}
+                  onChange={setHomeView}
+                  customHomeRow={customHomeRow}
+                  options={SPACE_HOME_VIEW_OPTIONS}
+                />
+              )}
           </div>
 
           {spaceType === 'track' && (
@@ -612,6 +808,39 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
               editorKey='create'
             />
           )}
+
+          <div className='mt-2 pt-4 border-t border-foreground/10'>
+            <h2 className={cn(FIELD_LABEL_CLASS, 'm-0 mb-2')}>{t('Additional settings')}</h2>
+
+            <div className='flex flex-wrap gap-2'>
+              {advancedSettings.map(setting => (
+                <AdvancedPill
+                  key={setting.key}
+                  isOpen={openAdvanced.has(setting.key)}
+                  icon={setting.icon}
+                  label={setting.label}
+                  defaultSummary={setting.defaultSummary}
+                  onClick={() => toggleAdvanced(setting.key)}
+                />
+              ))}
+            </div>
+
+            {revealedSettings.length > 0 && (
+              <div className='flex flex-col gap-3 mt-4'>
+                {revealedSettings.map(setting => (
+                  <AdvancedSection
+                    key={setting.key}
+                    settingKey={setting.key}
+                    icon={setting.icon}
+                    label={setting.label}
+                    onHide={() => toggleAdvanced(setting.key)}
+                  >
+                    {setting.render()}
+                  </AdvancedSection>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className='flex justify-end gap-2 mt-4 pt-2 border-t border-foreground/10'>
