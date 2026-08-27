@@ -403,7 +403,9 @@ function GroupViewMenuItem ({
     const spaceLink = singleSpaceView && isSpaceMember
       ? menuViewUrl(parentSlug, singleSpaceView, resolvedSpaceGroup)
       : spaceEntryUrl(parentSlug, resolvedSpaceGroup)
-    const isSpaceActive = Boolean(
+    // No selected state in the drawer layout — the drawer closed when this
+    // space opened, so the highlight would be stale when it reopens.
+    const isSpaceActive = !isDrawerNavLayout() && Boolean(
       spaceSlug &&
       linkedSpaceGroup &&
       localSpaceSlug(parentSlug, linkedSpaceGroup.slug) === spaceSlug
@@ -455,7 +457,7 @@ function GroupViewMenuItem ({
   const isExternal = Boolean(externalHref)
   // The selected row reveals a postType-tinted icon-texture background,
   // mirroring the one-column dashboard cards.
-  const isRowActive = Boolean(!isExternal && url && (location.pathname === url || location.pathname.startsWith(`${url}/`)))
+  const isRowActive = !isDrawerNavLayout() && Boolean(!isExternal && url && (location.pathname === url || location.pathname.startsWith(`${url}/`)))
   const rowCol = viewCardColor(presentedView)
   const inviteGroup = spaceGroup || group
 
