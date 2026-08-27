@@ -6,6 +6,8 @@ import { Link, useLocation, useNavigate, Routes, Route } from 'react-router-dom'
 import { replace } from 'redux-first-history'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
+import useTour from 'tours/useTour'
+import { GROUP_CREATOR_TOUR_ID, GROUP_WELCOME_TOUR_ID, groupCreatorTourSteps, groupWelcomeTourSteps } from 'tours/groupTours'
 
 import {
   ALL_GROUPS_CONTEXT_SLUG,
@@ -657,6 +659,22 @@ export default function ContextMenu (props) {
   )
   const profileUrl = personUrl(currentUser?.id, groupSlug)
 
+  // Guided first-visit tours: the creator of a brand-new group (sole member,
+  // administers) gets the steward tour; everyone else gets the member tour.
+  // Held until the group welcome modal (agreements / join questions) closes.
+  const isNewlyCreatedGroup = canAdminister && group?.memberCount === 1
+  const groupTourSteps = useMemo(
+    () => isNewlyCreatedGroup ? groupCreatorTourSteps(t) : groupWelcomeTourSteps(t),
+    [isNewlyCreatedGroup, t]
+  )
+  useTour({
+    id: isNewlyCreatedGroup ? GROUP_CREATOR_TOUR_ID : GROUP_WELCOME_TOUR_ID,
+    steps: groupTourSteps,
+    autoStart: true,
+    enabled: isGroupContext && !!group?.id,
+    blockedBySelectors: ['[data-testid="group-welcome-modal"]']
+  })
+
   const isNavOpen = useSelector(state => get('AuthLayoutRouter.isNavOpen', state))
   const toggleNavMenuAction = useCallback(() => dispatch(toggleNavMenu()), [dispatch])
 
@@ -891,6 +909,7 @@ export default function ContextMenu (props) {
           }
           keepNavOpen={isDrawerNavLayout()}
           isEditing={isEditing}
+          data-tour='edit-menu'
           className='flex items-center gap-2 text-base font-medium text-foreground hover:text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 w-full transition-all opacity-85 hover:opacity-100'
         >
           <Pencil className='w-4 h-4' />
