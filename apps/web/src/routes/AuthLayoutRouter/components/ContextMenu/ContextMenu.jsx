@@ -1049,7 +1049,7 @@ export default function ContextMenu (props) {
           'relative z-20 flex flex-col flex-1',
           // Inset card: banner wraps its top corners, background color wraps
           // the rest. No overflow-hidden so dropdowns/modals are not clipped.
-          isGroupContext && 'mx-2 mb-2 rounded-xl bg-background bg-gradient-to-b from-context-menu-background to-theme-background/10 dark:to-theme-background/40 shadow-md',
+          isGroupContext && 'ml-2 mb-2 rounded-xl bg-background bg-gradient-to-b from-context-menu-background to-theme-background/10 dark:to-theme-background/40 shadow-md',
           isSettingsPath && 'min-h-0 overflow-hidden'
         )}
         >
