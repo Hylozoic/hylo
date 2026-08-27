@@ -2,11 +2,10 @@ import { debounce, get } from 'lodash/fp'
 import React, { useEffect, useLayoutEffect, useCallback, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Helmet } from 'react-helmet'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import { isSystemGroupRole, sortCustomGroupRoles, sortSystemGroupRoles } from '@hylo/hooks/groupRoleHelpers'
 import { LayoutGrid, List, Search, Waypoints } from 'lucide-react'
-import CurrentlyActivePills, { DEFAULT_ACTIVE_MAX } from 'components/CurrentlyActiveMembers/CurrentlyActivePills'
 import InviteMembersDialog from 'components/InviteMembersDialog/InviteMembersDialog'
 import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
@@ -20,9 +19,8 @@ import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import usePillRowClamp from 'hooks/usePillRowClamp'
 import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
-import { personUrl } from '@hylo/navigation'
 import { isPhoneDevice } from 'util/mobile'
-import { FETCH_MEMBERS, FETCH_MEMBERS_FOR_GRAPH, fetchMembers, fetchMembersForGraph, fetchRecentlyActiveMembers, fetchRoleMemberCounts, fetchFundingRoundMemberCounts, getMembers, getGraphMembers, getHasFetchedGraphMembers, getHasMoreMembers, getHasFetchedMembers, getMemberQueryProps, getRecentlyActiveMembers, removeMember } from './Members.store'
+import { FETCH_MEMBERS, FETCH_MEMBERS_FOR_GRAPH, fetchMembers, fetchMembersForGraph, fetchRoleMemberCounts, fetchFundingRoundMemberCounts, getMembers, getGraphMembers, getHasFetchedGraphMembers, getHasMoreMembers, getHasFetchedMembers, getMemberQueryProps, removeMember } from './Members.store'
 import { fetchTrack } from 'store/actions/trackActions'
 import { fetchFundingRound } from 'routes/FundingRounds/FundingRounds.store'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
@@ -33,7 +31,7 @@ import getFundingRound from 'store/selectors/getFundingRound'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import changeQuerystringParam, { changeQuerystringParams } from 'store/actions/changeQuerystringParam'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
-import { cn, isRecentlyActive } from 'util/index'
+import { cn } from 'util/index'
 import { CENTER_COLUMN_ID } from 'util/scrolling'
 import orm from 'store/models'
 
@@ -48,7 +46,6 @@ function Members (props) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const location = useLocation()
-  const navigate = useNavigate()
 
   const context = props.context
   const slug = useEffectiveGroupSlug()
@@ -71,13 +68,6 @@ function Members (props) {
   )
   const members = useSelector(state => getMembers(state, memberQueryProps))
   const graphMembers = useSelector(state => getGraphMembers(state, { slug }))
-  const recentlyActiveFetched = useSelector(state => getRecentlyActiveMembers(state, { slug, first: DEFAULT_ACTIVE_MAX }))
-  // The heading says "Currently Active", so only people inside the active
-  // window belong here — the API sorts by last_active_at but does not filter.
-  const currentlyActiveMembers = useMemo(
-    () => (recentlyActiveFetched || []).filter(m => isRecentlyActive(m)).slice(0, DEFAULT_ACTIVE_MAX),
-    [recentlyActiveFetched]
-  )
   const graphPending = useSelector(state => state.pending[FETCH_MEMBERS_FOR_GRAPH])
   const hasFetchedGraphMembers = useSelector(state => getHasFetchedGraphMembers(state, { slug }))
   const hasMore = useSelector(state => getHasMoreMembers(state, memberQueryProps))
@@ -235,11 +225,6 @@ function Members (props) {
     fetchMembersAction(0)
   }, [group?.id, slug, sortBy, search, groupRoleId, trackCompleted, fundingRoundCapability, fetchMembersAction])
 
-  useEffect(() => {
-    if (!slug) return
-    dispatch(fetchRecentlyActiveMembers({ slug, first: DEFAULT_ACTIVE_MAX }))
-  }, [dispatch, slug])
-
   // The skill map is loved but heavy — it starts collapsed behind a toggle.
   const [showSkillMap, setShowSkillMap] = useState(false)
 
@@ -303,16 +288,6 @@ function Members (props) {
       <Helmet>
         <title>{pageTitle} | {group ? `${group.name} | ` : ''}Hylo</title>
       </Helmet>
-      {currentlyActiveMembers.length > 0 && (
-        <div className='px-4 pt-4'>
-          <h3 className='text-sm font-semibold text-foreground/70 mb-2'>{t('Currently Active')}</h3>
-          <CurrentlyActivePills
-            members={currentlyActiveMembers}
-            max={DEFAULT_ACTIVE_MAX}
-            onPersonClick={person => navigate(personUrl(person.id, slug))}
-          />
-        </div>
-      )}
       <div className={classes.content}>
         <div className='flex flex-col gap-2 py-4'>
           <div className='flex flex-wrap items-center gap-2'>

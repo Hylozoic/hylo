@@ -3,7 +3,6 @@ import React, { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { push } from 'redux-first-history'
-import { DateTimeHelpers } from '@hylo/shared'
 import { messagePersonUrl, personUrl } from '@hylo/navigation'
 import BadgeEmoji from 'components/BadgeEmoji'
 import Dropdown from 'components/Dropdown'
@@ -37,36 +36,18 @@ function formatJoinDate (value) {
   return formatLocalizedDate(date, { style: 'short' })
 }
 
-/** Active metadata note — green dot + "Active", or a short relative time like post headers. */
-function MemberActiveNote ({ lastActiveAt, onPhoto = false }) {
-  const { t } = useTranslation()
-  const date = parseApiDate(lastActiveAt)
-  if (!date) return null
-
-  // Same window as the currently-active avatar strips, so a green dot here and
-  // a green dot in the sidebar never disagree about who is online.
-  const isActive = isRecentlyActive({ lastActiveAt }, Date.now())
-  const relativeTime = DateTimeHelpers.humanDate(date, true)
-
-  return (
-    <span className={cn(
-      'inline-flex items-center gap-1 whitespace-nowrap',
-      onPhoto
-        ? 'text-[10px] text-white/70 [text-shadow:0_1px_4px_rgba(0,0,0,0.6)]'
-        : 'text-foreground/50 text-2xs'
-    )}
-    >
-      {isActive && <span className='w-2 h-2 rounded-full bg-green-500 shrink-0' aria-hidden />}
-      {isActive ? t('Active') : `${t('Last Active')}: ${relativeTime}`}
-    </span>
-  )
+/** Currently-active marker worn on the avatar's corner, replacing the old text
+ * note. Same window as the sidebar avatar strips, so the dots never disagree
+ * about who is online. */
+function ActiveDot ({ lastActiveAt, className }) {
+  if (!isRecentlyActive({ lastActiveAt }, Date.now())) return null
+  return <span className={cn('absolute rounded-full bg-green-500 ring-2 ring-card', className)} aria-hidden />
 }
 
-function MemberMeta ({ enrolledAt, lastActiveAt, onPhoto = false, compact = false }) {
+function MemberMeta ({ enrolledAt, onPhoto = false, compact = false }) {
   const { t } = useTranslation()
   const joinDate = formatJoinDate(enrolledAt)
-  const activeNote = <MemberActiveNote lastActiveAt={lastActiveAt} onPhoto={onPhoto} />
-  if (!joinDate && !activeNote) return null
+  if (!joinDate) return null
 
   return (
     <div className={cn(
@@ -76,9 +57,7 @@ function MemberMeta ({ enrolledAt, lastActiveAt, onPhoto = false, compact = fals
         : compact ? 'text-[10px] text-foreground/50' : 'text-xs text-foreground/50'
     )}
     >
-      {joinDate && <span>{t('Join Date')}: {joinDate}</span>}
-      {joinDate && activeNote && <span aria-hidden>•</span>}
-      {activeNote}
+      <span>{t('Join Date')}: {joinDate}</span>
     </div>
   )
 }
@@ -279,11 +258,14 @@ function Member ({
           )}
           <div className='relative h-full'>
             <div className='absolute inset-0 grid place-items-center'>
-              <div
-                className='w-14 h-14 rounded-[15px] overflow-hidden grid place-items-center shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.35)]'
-                style={{ border: '1px solid hsl(0 0% 100% / 0.28)' }}
-              >
-                <div className='w-full h-full bg-cover bg-center' style={bgImageStyle(avatarUrl)} />
+              <div className='relative'>
+                <div
+                  className='w-14 h-14 rounded-[15px] overflow-hidden grid place-items-center shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.35)]'
+                  style={{ border: '1px solid hsl(0 0% 100% / 0.28)' }}
+                >
+                  <div className='w-full h-full bg-cover bg-center' style={bgImageStyle(avatarUrl)} />
+                </div>
+                <ActiveDot lastActiveAt={lastActiveAt} className='-bottom-1 -right-1 w-3.5 h-3.5' />
               </div>
             </div>
             <div className='absolute left-0 right-0 top-[calc(50%+28px)] bottom-0 flex flex-col items-center justify-center text-center px-2 gap-0.5'>
@@ -311,7 +293,7 @@ function Member ({
                   <span className='truncate'>{location}</span>
                 </div>
               )}
-              <MemberMeta enrolledAt={enrolledAt} lastActiveAt={lastActiveAt} onPhoto={onPhoto} />
+              <MemberMeta enrolledAt={enrolledAt} onPhoto={onPhoto} />
             </div>
           </div>
         </div>
@@ -373,7 +355,10 @@ function Member ({
     return (
       <div className={cn('flex flex-col border-b border-foreground/10 last:border-b-0', className)} data-testid='member-card'>
         <div onClick={goToPerson(id, group?.slug)} className='flex items-center gap-2.5 px-3 py-2.5 cursor-pointer hover:bg-foreground/5 transition-colors min-w-0'>
-          <div className='w-8 h-8 rounded-full bg-cover bg-center shrink-0' style={bgImageStyle(avatarUrl)} />
+          <div className='relative shrink-0'>
+            <div className='w-8 h-8 rounded-full bg-cover bg-center' style={bgImageStyle(avatarUrl)} />
+            <ActiveDot lastActiveAt={lastActiveAt} className='bottom-0 right-0 w-2.5 h-2.5' />
+          </div>
           <div className='min-w-0 flex-1'>
             <div className='flex items-center gap-1.5 min-w-0'>
               <span className='text-sm font-bold text-foreground truncate'>{name}</span>
@@ -403,7 +388,6 @@ function Member ({
               )}
           </div>
           {joinedShort && <span className='hidden sm:block text-xs text-foreground/50 whitespace-nowrap shrink-0'>{joinedShort}</span>}
-          <MemberActiveNote lastActiveAt={lastActiveAt} />
           {messageButton(false)}
           {canRemove && <div onClick={e => e.stopPropagation()}>{removeDropdown(false)}</div>}
         </div>
@@ -435,7 +419,10 @@ function Member ({
       >
         <div className='absolute inset-0' style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.42), rgba(0,0,0,0.66))' }} />
         <div className='relative flex items-center gap-3'>
-          <div className={cn('w-12 h-12 rounded-full bg-cover bg-center shrink-0 shadow-md', isSelf && 'ring-2 ring-selected')} style={bgImageStyle(avatarUrl)} />
+          <div className='relative shrink-0'>
+            <div className={cn('w-12 h-12 rounded-full bg-cover bg-center shadow-md', isSelf && 'ring-2 ring-selected')} style={bgImageStyle(avatarUrl)} />
+            <ActiveDot lastActiveAt={lastActiveAt} className='-bottom-0.5 -right-0.5 w-3.5 h-3.5' />
+          </div>
           <div className='flex-1 min-w-0'>
             <div className='text-white font-bold text-base leading-tight truncate'>
               {name}
@@ -489,12 +476,13 @@ function Member ({
           {joinAnswersBlock && <div className='mt-3'>{joinAnswersBlock}</div>}
         </div>
       )}
-      <div className='px-4 pb-3'>
-        <div className='border-t border-foreground/10 pt-2.5 flex items-center gap-2 text-xs text-foreground/50'>
-          <MemberActiveNote lastActiveAt={lastActiveAt} />
-          {joinedShort && <span className='ml-auto'>{t('Joined {{date}}', { date: joinedShort })}</span>}
+      {joinedShort && (
+        <div className='px-4 pb-3'>
+          <div className='border-t border-foreground/10 pt-2.5 flex items-center gap-2 text-xs text-foreground/50'>
+            <span className='ml-auto'>{t('Joined {{date}}', { date: joinedShort })}</span>
+          </div>
         </div>
-      </div>
+      )}
       {removeConfirmDialog}
     </div>
   )
