@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+import { useLocation } from 'react-router-dom'
 import { driver } from 'driver.js'
 import 'driver.js/dist/driver.css'
 import './tours.css'
@@ -70,12 +71,13 @@ function isAnchorVisible (element) {
   const rect = element.getBoundingClientRect()
   if (rect.width < 1 || rect.height < 1) return false
   const viewportWidth = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0)
-  const viewportHeight = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0)
   // An unmeasurable viewport (headless embeds) can't prove off-screen-ness;
   // fall back to the style and size checks above
-  if (viewportWidth === 0 || viewportHeight === 0) return true
-  return rect.right > 0 && rect.bottom > 0 &&
-    rect.left < viewportWidth && rect.top < viewportHeight
+  if (viewportWidth === 0) return true
+  // Only horizontal off-canvas disqualifies (the phone nav slides sideways).
+  // Vertically out-of-view elements are usually just scrolled past — the tour
+  // scrolls each step into view when it highlights it
+  return rect.right > 0 && rect.left < viewportWidth
 }
 
 export default function useTour ({
@@ -132,6 +134,14 @@ export default function useTour ({
       overlayOpacity: 0.6,
       stagePadding: 6,
       stageRadius: 10,
+      smoothScroll: true,
+      // Center each step's anchor — including inside nested scroll containers
+      // like modals, where driver's own in-view check can be fooled
+      onHighlightStarted: (element) => {
+        if (element && typeof element.scrollIntoView === 'function') {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' })
+        }
+      },
       steps: presentSteps,
       // Closing early counts as seen: a dismissed tour must never chase the user
       onDestroyed: () => {
@@ -145,6 +155,17 @@ export default function useTour ({
   }, [markSeen, steps])
 
   const [inviteOpen, setInviteOpen] = useState(false)
+  const [inviteClosing, setInviteClosing] = useState(false)
+
+  // Navigating away mid-invitation dismisses it gracefully (fade out downward)
+  // without burning an offer — the surface changed, the user didn't decline
+  const location = useLocation()
+  const invitePathnameRef = useRef(location.pathname)
+  useEffect(() => {
+    if (location.pathname === invitePathnameRef.current) return
+    invitePathnameRef.current = location.pathname
+    if (inviteOpen) setInviteClosing(true)
+  }, [location.pathname, inviteOpen])
 
   // If the surface unmounts while its invitation is up, release the slot
   useEffect(() => {
@@ -155,6 +176,7 @@ export default function useTour ({
   const closeInvite = useCallback(() => {
     inviteActive = false
     setInviteOpen(false)
+    setInviteClosing(false)
   }, [])
 
   const acceptInvite = useCallback(() => {
@@ -237,6 +259,8 @@ export default function useTour ({
         onAccept={acceptInvite}
         onDecline={declineInvite}
         onTimeout={timeoutInvite}
+        closing={inviteClosing}
+        onClosed={closeInvite}
       />
       )
     : null

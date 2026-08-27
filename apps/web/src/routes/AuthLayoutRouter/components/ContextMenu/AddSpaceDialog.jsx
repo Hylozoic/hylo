@@ -599,6 +599,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
                 <button
                   key={option.value}
                   type='button'
+                  data-tour={'space-type-' + option.value}
                   onClick={() => handleSpaceTypeChange(option.value)}
                   className={cn(
                     'flex flex-col items-center gap-1 rounded-md border-2 p-2 transition-all',

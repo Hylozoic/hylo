@@ -12,9 +12,9 @@ import { cn } from 'util/index'
  * Left untouched it calls onTimeout (offer again another day); declining is
  * final and accepting starts the tour.
  */
-export default function TourInvitation ({ message, onAccept, onDecline, onTimeout, timeoutMs = 15000 }) {
+export default function TourInvitation ({ message, onAccept, onDecline, onTimeout, closing = false, onClosed, timeoutMs = 15000 }) {
   const { t } = useTranslation()
-  // hidden → risen (lightbulb visible) → expanded (copy revealed)
+  // hidden → risen (lightbulb visible) → expanded (copy revealed) → leaving
   const [phase, setPhase] = useState('hidden')
 
   useEffect(() => {
@@ -32,6 +32,14 @@ export default function TourInvitation ({ message, onAccept, onDecline, onTimeou
     return () => clearTimeout(timer)
   }, [phase, onTimeout, timeoutMs])
 
+  // Asked to close (e.g. the route changed): fade out downward, then unmount
+  useEffect(() => {
+    if (!closing) return
+    setPhase('leaving')
+    const timer = setTimeout(() => onClosed && onClosed(), 450)
+    return () => clearTimeout(timer)
+  }, [closing, onClosed])
+
   return createPortal(
     <div
       role='dialog'
@@ -39,7 +47,7 @@ export default function TourInvitation ({ message, onAccept, onDecline, onTimeou
       className={cn(
         'fixed z-[1000000] bottom-6 left-1/2 -translate-x-1/2',
         'transition-all duration-500 ease-out motion-reduce:transition-none',
-        phase === 'hidden' ? 'opacity-0 translate-y-6' : 'opacity-100 translate-y-0'
+        phase === 'hidden' || phase === 'leaving' ? 'opacity-0 translate-y-6' : 'opacity-100 translate-y-0'
       )}
     >
       <div
