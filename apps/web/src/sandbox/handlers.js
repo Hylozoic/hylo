@@ -130,6 +130,9 @@ function handleQuery (operationName, rootField, variables, seed, query) {
       }
       return { data: { notifications: paginate(seed.notifications || [], variables.first, variables.offset) } }
 
+    case 'Search':
+      return { data: { search: presentSearch(seed, variables) } }
+
     default:
       return defaultQuery(rootField, variables, seed, query)
   }
@@ -209,7 +212,7 @@ function defaultQuery (rootField, variables, seed, query) {
     case 'messageThread':
       return { data: { messageThread: findThread(seed, variables.id) } }
     case 'search':
-      return { data: { search: { items: [], total: 0, hasMore: false } } }
+      return { data: { search: presentSearch(seed, variables) } }
     case 'notifications':
       return { data: { notifications: paginate(seed.notifications || [], variables.first, variables.offset) } }
     case 'fundingRound':
@@ -274,6 +277,26 @@ function handleMutation (operationName, rootField, variables, seed) {
       }
     case 'findOrCreateLinkPreviewByUrl':
       return { data: { findOrCreateLinkPreviewByUrl: null } }
+    case 'createInvitation':
+      return {
+        data: {
+          createInvitation: {
+            invitations: [],
+            error: 'Create an account to invite people'
+          }
+        }
+      }
+    case 'createStripeCheckoutSession':
+      return {
+        data: {
+          createStripeCheckoutSession: {
+            sessionId: null,
+            url: null,
+            success: false,
+            error: 'Not available in the demo'
+          }
+        }
+      }
     case 'login':
     case 'logout':
     case 'register':
@@ -517,6 +540,101 @@ function presentPeopleQuerySet (seed, variables) {
   return paginate(items, variables.first, variables.offset)
 }
 
+/**
+ * Local full-text search over seed people, posts, and comments.
+ * Mirrors SearchResultQuerySet: items with polymorphic content + __typename.
+ */
+function presentSearch (seed, variables = {}) {
+  const term = String(variables.search || variables.term || '').trim().toLowerCase()
+  const typeFilter = variables.type && variables.type !== 'all' ? variables.type : null
+  const groupIdSet = variables.groupIds?.length
+    ? new Set(variables.groupIds.map(String))
+    : null
+  const first = variables.first || 10
+  const offset = variables.offset || 0
+
+  if (term.length < 2) {
+    return { items: [], total: 0, hasMore: false }
+  }
+
+  const items = []
+
+  if (!typeFilter || typeFilter === 'person') {
+    const people = [seed.peopleById[seed.ids.me], ...seed.people].filter(Boolean)
+    for (const person of people) {
+      const haystack = [person.name, person.location, person.tagline, person.bio]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+      if (!haystack.includes(term)) continue
+      items.push({
+        id: `sr-person-${person.id}`,
+        content: {
+          __typename: 'Person',
+          id: person.id,
+          name: person.name,
+          location: person.location,
+          avatarUrl: person.avatarUrl,
+          skills: person.skills || { items: [] }
+        }
+      })
+    }
+  }
+
+  if (!typeFilter || typeFilter === 'post') {
+    for (const post of Object.values(seed.posts.byId)) {
+      if (groupIdSet && !postInGroups(post, groupIdSet)) continue
+      const haystack = [post.title, stripHtml(post.details)]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+      if (!haystack.includes(term)) continue
+      items.push({
+        id: `sr-post-${post.id}`,
+        content: {
+          __typename: 'Post',
+          ...presentPost(seed, post)
+        }
+      })
+    }
+  }
+
+  if (!typeFilter || typeFilter === 'comment') {
+    for (const post of Object.values(seed.posts.byId)) {
+      if (groupIdSet && !postInGroups(post, groupIdSet)) continue
+      for (const comment of post.comments?.items || []) {
+        const haystack = stripHtml(comment.text || '').toLowerCase()
+        if (!haystack.includes(term)) continue
+        items.push({
+          id: `sr-comment-${comment.id}`,
+          content: {
+            __typename: 'Comment',
+            id: comment.id,
+            text: comment.text,
+            createdAt: comment.createdAt,
+            creator: comment.creator,
+            attachments: comment.attachments || [],
+            post: {
+              __typename: 'Post',
+              ...presentPost(seed, post)
+            }
+          }
+        })
+      }
+    }
+  }
+
+  return paginate(items, first, offset)
+}
+
+function postInGroups (post, groupIdSet) {
+  return (post.groups || []).some(g => groupIdSet.has(String(g.id)))
+}
+
+function stripHtml (html = '') {
+  return String(html).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
 function membersForGroup (seed, group) {
   if (!group) return []
   const me = seed.peopleById[seed.ids.me]
@@ -652,12 +770,10 @@ function createPost (seed, variables) {
   else if (group.id === seed.groups.simple.id) {
     if (post.type === 'chat') seed.posts.simpleGroupChat.unshift(post)
     else (seed.posts.simpleGroupStream || (seed.posts.simpleGroupStream = [])).unshift(post)
-  }
-  else if (group.id === seed.groups.staff.id) {
+  } else if (group.id === seed.groups.staff.id) {
     if (post.type === 'chat') seed.posts.staffGroupChat.unshift(post)
     else (seed.posts.staffGroupStream || (seed.posts.staffGroupStream = [])).unshift(post)
-  }
-  else if (group.id === seed.groups.spaces.chat.id) seed.posts.chatSpace.unshift(post)
+  } else if (group.id === seed.groups.spaces.chat.id) seed.posts.chatSpace.unshift(post)
   return presentPost(seed, post)
 }
 

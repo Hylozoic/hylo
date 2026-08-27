@@ -15,6 +15,8 @@ import Icon from 'components/Icon'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import PeopleSelector from 'routes/Messages/PeopleSelector'
 import { cn } from 'util/index'
+import { isSandboxMode } from 'sandbox/isSandbox'
+import { toast } from 'sonner'
 import orm from 'store/models'
 import { GROUP_ACCESSIBILITY, GROUP_TYPES, GROUP_VISIBILITY } from 'store/models/Group'
 import getMe from 'store/selectors/getMe'
@@ -202,6 +204,17 @@ I'm inviting you to join {{name}} on Hylo.
 
   const handleSendInvites = () => {
     if (sendingRef.current) return
+
+    if (isSandboxMode()) {
+      toast(t('Create an account to invite people'), {
+        action: {
+          label: t('Sign up'),
+          onClick: () => { window.location.href = '/signup' }
+        }
+      })
+      return
+    }
+
     sendingRef.current = true
 
     let groupRoleId = null
