@@ -77,7 +77,20 @@ function isAnchorVisible (element) {
   // Only horizontal off-canvas disqualifies (the phone nav slides sideways).
   // Vertically out-of-view elements are usually just scrolled past — the tour
   // scrolls each step into view when it highlights it
-  return rect.right > 0 && rect.left < viewportWidth
+  if (!(rect.right > 0 && rect.left < viewportWidth)) return false
+  // On-canvas is still not enough: a mounted surface can sit entirely under
+  // another one (the phone menu over the group's home view), and touring the
+  // covered surface makes no sense. Probe the anchor's visible center — the
+  // probe only proves anything while that point is inside the viewport, so
+  // scrolled-past anchors stay eligible per the note above
+  const viewportHeight = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0)
+  if (viewportHeight === 0) return true
+  const cx = (Math.max(rect.left, 0) + Math.min(rect.right, viewportWidth)) / 2
+  const cy = (Math.max(rect.top, 0) + Math.min(rect.bottom, viewportHeight)) / 2
+  if (cy <= 0 || cy >= viewportHeight) return true
+  const hit = document.elementFromPoint(cx, cy)
+  if (!hit) return true
+  return element.contains(hit) || hit.contains(element)
 }
 
 export default function useTour ({
