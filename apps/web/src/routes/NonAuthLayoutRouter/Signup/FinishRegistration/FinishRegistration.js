@@ -84,7 +84,7 @@ export default function FinishRegistration () {
             label='name'
             name='name'
             onChange={handleChange}
-            className='bg-card rounded-md mb-3'
+            className='bg-card border-2 border-foreground/20 rounded-md mb-3'
             inputClassName='p-4 autofill:text-foreground text-foreground autofill:bg-transparent w-full bg-transparent rounded-md'
             type='text'
             value={formValues.name}
@@ -98,7 +98,7 @@ export default function FinishRegistration () {
             label='password'
             name='password'
             onChange={handleChange}
-            className='bg-card rounded-md mb-3'
+            className='bg-card border-2 border-foreground/20 rounded-md mb-3'
             inputClassName='p-4 autofill:text-foreground text-foreground autofill:bg-transparent w-full bg-transparent rounded-md'
             type='password'
             value={formValues.password}
@@ -113,7 +113,7 @@ export default function FinishRegistration () {
             name='passwordConfirmation'
             onChange={handleChange}
             onEnter={handleSubmit}
-            className='bg-card rounded-md mb-3'
+            className='bg-card border-2 border-foreground/20 rounded-md mb-3'
             inputClassName='p-4 autofill:text-foreground text-foreground autofill:bg-transparent w-full bg-transparent rounded-md'
             type='password'
             value={formValues.passwordConfirmation}

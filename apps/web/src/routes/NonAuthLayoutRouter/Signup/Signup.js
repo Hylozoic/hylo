@@ -102,7 +102,7 @@ export default function Signup (props) {
           internalLabel={t('Your email address')}
           onChange={handleEmailChange}
           onEnter={submit}
-          className='bg-card rounded-md mb-3'
+          className='bg-card border-2 border-foreground/20 rounded-md mb-3'
           inputClassName='p-4 text-foreground bg-card w-full rounded-md autofill:text-foreground autofill:bg-transparent selected:text-foreground'
           type='text'
           value={email || ''}

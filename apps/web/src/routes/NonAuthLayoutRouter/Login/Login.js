@@ -120,7 +120,7 @@ export default function Login (props) {
             internalLabel={t('Email')}
             onChange={handleEmailChange}
             doCheckAutofill
-            className='bg-card rounded-md mb-3'
+            className='bg-card border-2 border-foreground/20 rounded-md mb-3'
             inputClassName='p-4 autofill:text-foreground text-foreground autofill:bg-transparent w-full bg-transparent rounded-md'
             type='email'
             value={email || ''}
@@ -132,7 +132,7 @@ export default function Login (props) {
             onChange={handlePasswordChange}
             doCheckAutofill
             onEnter={handleLogin}
-            className='bg-card rounded-md mb-3'
+            className='bg-card border-2 border-foreground/20 rounded-md mb-3'
             inputClassName='p-4 autofill:text-foreground text-foreground autofill:bg-transparent w-full bg-transparent rounded-md'
             type='password'
             value={password || ''}

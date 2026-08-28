@@ -65,7 +65,7 @@ function PasswordReset ({ className }) {
             noClearButton
             onChange={onChange}
             onEnter={submit}
-            className='bg-card rounded-md mb-3 selected:text-foreground'
+            className='bg-card border-2 border-foreground/20 rounded-md mb-3 selected:text-foreground'
             inputClassName='p-3 text-foreground bg-card w-full rounded-md autofill:text-foreground autofill:bg-transparent selected:text-foreground'
             type='text'
             value={email}
