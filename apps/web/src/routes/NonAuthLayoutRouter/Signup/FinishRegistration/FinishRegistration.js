@@ -60,7 +60,7 @@ export default function FinishRegistration () {
   }
 
   return (
-    <div className='bg-background/100 shadow-md rounded-md w-full max-w-[320px] mx-auto'>
+    <div className='bg-midground shadow-md rounded-md w-full max-w-[320px] mx-auto'>
       <div className='relative'>
         <Icon
           name='Ex'
@@ -84,7 +84,7 @@ export default function FinishRegistration () {
             label='name'
             name='name'
             onChange={handleChange}
-            className='bg-input rounded-md mb-3'
+            className='bg-card rounded-md mb-3'
             inputClassName='p-4 autofill:text-foreground text-foreground autofill:bg-transparent w-full bg-transparent rounded-md'
             type='text'
             value={formValues.name}
@@ -98,7 +98,7 @@ export default function FinishRegistration () {
             label='password'
             name='password'
             onChange={handleChange}
-            className='bg-input rounded-md mb-3'
+            className='bg-card rounded-md mb-3'
             inputClassName='p-4 autofill:text-foreground text-foreground autofill:bg-transparent w-full bg-transparent rounded-md'
             type='password'
             value={formValues.password}
@@ -113,7 +113,7 @@ export default function FinishRegistration () {
             name='passwordConfirmation'
             onChange={handleChange}
             onEnter={handleSubmit}
-            className='bg-input rounded-md mb-3'
+            className='bg-card rounded-md mb-3'
             inputClassName='p-4 autofill:text-foreground text-foreground autofill:bg-transparent w-full bg-transparent rounded-md'
             type='password'
             value={formValues.passwordConfirmation}

@@ -118,7 +118,7 @@ export default function NonAuthLayoutRouter (props) {
           <Route
             path='signup/*'
             element={
-              <div className='bg-background/100 rounded-md w-full max-w-[320px] mx-auto p-4 mt-4 text-sm'>
+              <div className='bg-midground rounded-md w-full max-w-[320px] mx-auto p-4 mt-4 text-sm'>
                 <Link to='/login' className='text-foreground flex items-center justify-between gap-2'>
                   {t('Already have an account?')} <Button variant='outline'>{t('Sign in')}</Button>
                 </Link>
@@ -128,7 +128,7 @@ export default function NonAuthLayoutRouter (props) {
           <Route
             path='reset-password'
             element={
-              <div className='bg-background/100 rounded-md w-full max-w-[320px] mx-auto p-4 mt-4 text-center'>
+              <div className='bg-midground rounded-md w-full max-w-[320px] mx-auto p-4 mt-4 text-center'>
                 <div className='flex items-center justify-center gap-2'>
                   <Link tabIndex={-1} to='/signup' className='text-foreground'>
                     <Button variant='outline'>{t('Sign up')}</Button>
@@ -144,7 +144,7 @@ export default function NonAuthLayoutRouter (props) {
           <Route
             path='/login'
             element={
-              <div className='bg-background/100 rounded-md w-full max-w-[320px] mx-auto p-4 mt-4 text-sm'>
+              <div className='bg-midground rounded-md w-full max-w-[320px] mx-auto p-4 mt-4 text-sm'>
                 <Link className='flex items-center justify-between gap-2 text-foreground' tabIndex={-1} to='/signup'>
                   {t('Not a member of Hylo?')} <Button variant='outline'>{t('Sign Up')}</Button>
                 </Link>
@@ -152,7 +152,7 @@ export default function NonAuthLayoutRouter (props) {
             }
           />
         </Routes>
-        <div className='bg-background/100 rounded-md w-full max-w-[320px] mx-auto p-4 mt-4 text-center'>
+        <div className='bg-midground rounded-md w-full max-w-[320px] mx-auto p-4 mt-4 text-center'>
           <a href='https://hylo.com/terms/' target='_blank' rel='noreferrer' className='text-foreground/100'>{t('Terms of Service')}</a> +&nbsp;
           <a href='https://hylo.com/privacy' target='_blank' rel='noreferrer' className='text-foreground/100'>{t('Privacy Policy')}</a>
         </div>
