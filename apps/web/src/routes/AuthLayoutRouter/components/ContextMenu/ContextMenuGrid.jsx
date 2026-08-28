@@ -62,6 +62,8 @@ import {
   CARD_CLASS,
   CARD_FADE_CLASS,
   CARD_TITLE_CLASS,
+  CARD_TILE_CLASS,
+  CARD_LABEL_TOP_CLASS,
   CARD_W,
   CARD_H
 } from './viewCardTheme'
@@ -329,13 +331,13 @@ function MoreSpacesCard ({ onClick, t }) {
         <div className='absolute inset-0 grid place-items-center'>
           {/* Same solid tile as the icon cards, so this reads as one of them */}
           <div
-            className='w-14 h-14 rounded-[15px] grid place-items-center shadow-[0_4px_12px_rgba(0,0,0,0.35)]'
+            className={cn(CARD_TILE_CLASS, 'grid place-items-center shadow-[0_4px_12px_rgba(0,0,0,0.35)]')}
             style={{ background: col, color: inkOn(col), border: `1px solid color-mix(in srgb, ${col} 55%, white)` }}
           >
             <CircleEllipsis className='w-7 h-7' />
           </div>
         </div>
-        <div className='absolute left-0 right-0 top-[calc(50%+28px)] bottom-0 flex flex-col items-center justify-center text-center px-3'>
+        <div className={cn(CARD_LABEL_TOP_CLASS, 'absolute left-0 right-0 bottom-0 flex flex-col items-center justify-center text-center px-3')}>
           <h3 className={cn(CARD_TITLE_CLASS, isDark ? 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]' : 'text-foreground')}>{t('More Spaces')}</h3>
         </div>
       </div>
@@ -383,13 +385,13 @@ function JoinRequestsCard ({ count, onClick, t }) {
       <div className='relative h-full'>
         <div className='absolute inset-0 grid place-items-center'>
           <div
-            className='w-14 h-14 rounded-[15px] grid place-items-center shadow-[0_4px_12px_rgba(0,0,0,0.35)]'
+            className={cn(CARD_TILE_CLASS, 'grid place-items-center shadow-[0_4px_12px_rgba(0,0,0,0.35)]')}
             style={{ background: col, color: inkOn(col), border: `1px solid color-mix(in srgb, ${col} 55%, white)` }}
           >
             <UserPlus className='w-7 h-7' />
           </div>
         </div>
-        <div className='absolute left-0 right-0 top-[calc(50%+28px)] bottom-0 flex flex-col items-center justify-center text-center px-3'>
+        <div className={cn(CARD_LABEL_TOP_CLASS, 'absolute left-0 right-0 bottom-0 flex flex-col items-center justify-center text-center px-3')}>
           <h3 className={cn(CARD_TITLE_CLASS, isDark ? 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]' : 'text-foreground')}>{t('Join Requests')}</h3>
         </div>
       </div>
