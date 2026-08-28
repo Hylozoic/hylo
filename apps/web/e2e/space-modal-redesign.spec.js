@@ -42,8 +42,7 @@ test('space modals carry the group creation form treatment', async ({ page }) =>
 
   // ---- Create modal ----
   const center = page.locator('#center-column-container')
-  await center.getByRole('button', { name: 'Add', exact: true }).first().click()
-  await page.getByText('Add Space', { exact: true }).click()
+  await center.getByRole('button', { name: 'Add to More Spaces' }).click()
   const heading = page.locator('h2', { hasText: /Create a new space in/ })
   await expect(heading).toBeVisible({ timeout: 20000 })
 

@@ -101,7 +101,7 @@ export default function FundingRoundSettingsFields ({
         </div>
       </div>
 
-      <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
+      <div className='grid grid-cols-1 sm:grid-cols-2 gap-3' data-tour='round-schedule'>
         <div>
           <label className='text-sm text-foreground/70'>{t('Submissions open')}</label>
           <DateTimePicker value={submissionsOpenAt} onChange={setSubmissionsOpenAt} />
@@ -120,7 +120,7 @@ export default function FundingRoundSettingsFields ({
         </div>
       </div>
 
-      <div>
+      <div data-tour='round-voting'>
         <label className='text-sm text-foreground/70'>{t('Voting method')}</label>
         <Select
           value={votingMethod}
@@ -201,7 +201,7 @@ export default function FundingRoundSettingsFields ({
         </div>
       </div>
 
-      <div>
+      <div data-tour='round-roles'>
         <label className='text-sm text-foreground/70'>{t('Submitter roles')}</label>
         <div className='mt-1 flex flex-row items-center relative border-2 border-transparent shadow-md transition-all duration-200 group focus-within:border-focus bg-input rounded-md'>
           <TagInput

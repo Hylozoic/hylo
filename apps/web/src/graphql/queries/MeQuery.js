@@ -52,6 +52,7 @@ export default gql`
     rsvpCalendarUrl
     settings {
       alreadySeenTour
+      toursSeen
       colorScheme
       dmNotifications
       commentNotifications

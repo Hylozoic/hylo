@@ -57,6 +57,7 @@ export default gql`
     }
     settings {
       alreadySeenTour
+      toursSeen
       colorScheme
       dmNotifications
       commentNotifications

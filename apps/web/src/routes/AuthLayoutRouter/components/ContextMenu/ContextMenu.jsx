@@ -6,6 +6,9 @@ import { Link, useLocation, useNavigate, Routes, Route } from 'react-router-dom'
 import { replace } from 'redux-first-history'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
+import useTour from 'tours/useTour'
+import { GROUP_CREATOR_TOUR_ID, GROUP_WELCOME_TOUR_ID, groupCreatorTourSteps, groupWelcomeTourSteps } from 'tours/groupTours'
+import { MENU_EDIT_TOUR_ID, menuEditTourSteps } from 'tours/menuEditTour'
 
 import {
   ALL_GROUPS_CONTEXT_SLUG,
@@ -52,6 +55,7 @@ import GroupSettingsMenu from './GroupSettingsMenu'
 import MenuRowBackground from './MenuRowBackground'
 import { viewCardColor } from './viewCardTheme'
 import { DEFAULT_BANNER } from 'store/models/Group'
+import { isMenuViewVisible } from 'store/models/GroupView'
 import GroupViewEditList from './GroupViewEditList'
 import GroupViewSettingsModal from './GroupViewSettingsModal'
 import SpaceSettingsModal from './SpaceSettingsModal'
@@ -115,23 +119,17 @@ function findSpaceForSlug (groupViews, group, parentSlug, spaceSlug) {
   return { spaceView: null, spaceGroup: null }
 }
 
-/** Visible menu views for a space (ordered), optionally with Manage Round. */
-function visibleSpaceMenuViews (spaceGroup, { includeManageRound = false, views = null } = {}) {
-  const spaceViews = (views || spaceGroup?.groupViews?.items || [])
-    .filter(v => v.order != null)
-  if (includeManageRound && spaceGroup?.fundingRound?.id) {
-    return [...spaceViews, MANAGE_ROUND_VIEW]
-  }
-  return spaceViews
-}
-
-/** On-menu view count: loaded views if present, otherwise Group.menuViewCount. */
+/** On-menu view count: loaded views if present, otherwise Group.menuViewCount.
+ * Typed views disallowed by acceptedPostTypes are omitted so a space with one
+ * remaining typed view still opens as a single-view space. */
 function knownMenuViewCount (spaceGroup, storeViews = [], nestedCount) {
+  const acceptedPostTypes = spaceGroup?.acceptedPostTypes
+  const countVisible = (views) => views.filter(v => isMenuViewVisible(v, acceptedPostTypes)).length
   if (storeViews.length > 0) {
-    return storeViews.filter(v => v.order != null).length
+    return countVisible(storeViews)
   }
   if (spaceGroup?.groupViews != null) {
-    return (spaceGroup.groupViews.items || []).filter(v => v.order != null).length
+    return countVisible(spaceGroup.groupViews.items || [])
   }
   return Number(spaceGroup?.menuViewCount ?? nestedCount) || 0
 }
@@ -569,7 +567,7 @@ function GroupViewList ({
           groupSlug={groupSlug}
           onSettings={onOpenSettings}
         />
-        <div className='px-1.5 pb-1.5 flex flex-col gap-1'>
+        <div className='px-1.5 pb-1.5 flex flex-col gap-1' data-tour='add-to-menu'>
           {/* One Add control opening the same view/space chooser the card grids use,
               rather than a button per kind. p-1 matches the Done Editing button height below */}
           <AddViewOrSpaceMenu
@@ -585,9 +583,9 @@ function GroupViewList ({
     )
   }
 
-  // Live menu: only views with an order (hidden views have order = null).
+  // Live menu: ordered views whose post types are still accepted (hidden views have order = null).
   const visibleViews = groupViews
-    .filter(view => view.order != null)
+    .filter(view => isMenuViewVisible(view, group?.acceptedPostTypes))
 
   // Synthetic steward item for funding-round spaces — always last, not in the DB.
   const menuViews = (spaceGroup?.fundingRound?.id && canAdminister)
@@ -656,6 +654,35 @@ export default function ContextMenu (props) {
     group?.settings?.layout
   )
   const profileUrl = personUrl(currentUser?.id, groupSlug)
+
+  // Guided first-visit tours, offered via a floating invitation: the creator
+  // of a brand-new group (sole member, administers) gets the steward tour;
+  // everyone else gets the member tour. Held until the group welcome modal
+  // (agreements / join questions) closes. Two-column only — the card grid
+  // renders none of these anchors.
+  const isNewlyCreatedGroup = canAdminister && group?.memberCount === 1
+  const groupTourSteps = useMemo(
+    () => isNewlyCreatedGroup ? groupCreatorTourSteps(t) : groupWelcomeTourSteps(t),
+    [isNewlyCreatedGroup, t]
+  )
+  const { invitation: groupTourInvitation } = useTour({
+    id: isNewlyCreatedGroup ? GROUP_CREATOR_TOUR_ID : GROUP_WELCOME_TOUR_ID,
+    steps: groupTourSteps,
+    autoStart: true,
+    inviteMessage: isNewlyCreatedGroup
+      ? t('Your group is ready — want a quick tour?')
+      : t('New here? Take a quick tour of this group.'),
+    enabled: isGroupContext && !!group?.id && !isOneColumnLayout && !isEditing,
+    blockedBySelectors: ['[data-testid="group-welcome-modal"]']
+  })
+  const menuEditSteps = useMemo(() => menuEditTourSteps(t), [t])
+  const { invitation: menuEditInvitation } = useTour({
+    id: MENU_EDIT_TOUR_ID,
+    steps: menuEditSteps,
+    autoStart: true,
+    inviteMessage: t('First time editing the menu? Take a quick tour.'),
+    enabled: isGroupContext && !!group?.id && !isOneColumnLayout && isEditing
+  })
 
   const isNavOpen = useSelector(state => get('AuthLayoutRouter.isNavOpen', state))
   const toggleNavMenuAction = useCallback(() => dispatch(toggleNavMenu()), [dispatch])
@@ -858,6 +885,7 @@ export default function ContextMenu (props) {
         <MenuLink
           to={moreSpacesLink}
           isActive={isMoreSpacesPath}
+          data-tour='more-spaces'
           className='flex items-center gap-2 text-base font-medium text-foreground hover:text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 w-full transition-all opacity-85 hover:opacity-100'
         >
           <CircleEllipsis className='w-4 h-4 shrink-0' />
@@ -891,6 +919,7 @@ export default function ContextMenu (props) {
           }
           keepNavOpen={isDrawerNavLayout()}
           isEditing={isEditing}
+          data-tour='edit-menu'
           className='flex items-center gap-2 text-base font-medium text-foreground hover:text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 w-full transition-all opacity-85 hover:opacity-100'
         >
           <Pencil className='w-4 h-4' />
@@ -942,7 +971,10 @@ export default function ContextMenu (props) {
       )}
       style={{ boxShadow: 'inset -15px 0 15px -10px hsl(var(--darkening) / 0.3)' }}
       onScroll={handleScroll}
+      data-tour='group-menu'
     >
+      {groupTourInvitation}
+      {menuEditInvitation}
       {/* Fixed-position, so the menu's own overflow scrolling never clips it */}
       {!isPhoneDevice() && <ContextMenuResizer menuEl={menuRootEl} />}
       <div className={cn(
@@ -1123,22 +1155,21 @@ export default function ContextMenu (props) {
                               : 'bg-foreground/10 border-foreground/20 text-foreground/80 hover:bg-foreground/20 hover:text-foreground dark:bg-white/15 dark:border-white/25 dark:text-white/90 dark:hover:bg-white/25 dark:hover:text-white'
                           )}
                         />
+                        <Link
+                          to={spaceUrl(groupSlug, localSpaceSlug(groupSlug, activeSpaceGroup.slug), 'about')}
+                          onClick={() => dispatch(toggleNavMenu(false))}
+                          className={cn(
+                            'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 no-underline hover:no-underline transition-colors',
+                            activeSpaceBannerUrl
+                              ? 'bg-white/15 border-white/25 text-white hover:bg-white/25 hover:text-white'
+                              : 'bg-foreground/10 border-foreground/20 text-foreground/80 hover:bg-foreground/20 hover:text-foreground dark:bg-white/15 dark:border-white/25 dark:text-white/90 dark:hover:bg-white/25 dark:hover:text-white'
+                          )}
+                        >
+                          <Info className='w-3.5 h-3.5' />
+                          {t('About')}
+                        </Link>
                       </span>
                     </div>
-                    <Link
-                      to={spaceUrl(groupSlug, localSpaceSlug(groupSlug, activeSpaceGroup.slug), 'about')}
-                      onClick={() => dispatch(toggleNavMenu(false))}
-                      className={cn(
-                        'shrink-0 transition-all hover:scale-110',
-                        activeSpaceBannerUrl
-                          ? 'text-white/80 hover:text-white'
-                          : 'text-foreground/60 hover:text-foreground dark:text-white/80 dark:hover:text-white'
-                      )}
-                      aria-label={t('About')}
-                      title={t('About')}
-                    >
-                      <Info className='w-5 h-5' />
-                    </Link>
                   </div>
                 </div>
                 {spaceMenuViews.length > 0 || isEditing

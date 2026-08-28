@@ -3,10 +3,7 @@ import { useTranslation } from 'react-i18next'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 import GroupViewIcon from 'routes/AuthLayoutRouter/components/ContextMenu/GroupViewIcon'
 import SegmentedPicker from 'components/SegmentedPicker/SegmentedPicker'
-
-// Stands in for a home view that isn't one of the picker's own options — the backend
-// takes the landing route from the first seeded view, so any menu item can hold the spot.
-export const CUSTOM_HOME_VIEW = 'CUSTOM'
+import { CUSTOM_HOME_VIEW } from 'store/models/GroupView'
 
 // What each of the other menu items is, for when one of them is the home view.
 const VIEW_TYPE_DESCRIPTIONS = {
@@ -17,17 +14,6 @@ const VIEW_TYPE_DESCRIPTIONS = {
   proposals: 'Decisions your group is making together',
   projects: 'The work your group has underway',
   members: 'Everyone who is part of your group'
-}
-
-/** Seeds the menu in this order, with the chosen home view first so the landing route matches.
- * `orderedStandardTypes` is empty until Menu Items is opened, so we fall back to the derived defaults. */
-export function viewTypesForCreate (orderedStandardTypes, defaultTypes, homeType) {
-  const types = orderedStandardTypes.length > 0 ? orderedStandardTypes : defaultTypes
-  if (types.length === 0) return [homeType || 'all']
-  if (homeType && types.includes(homeType) && types[0] !== homeType) {
-    return [homeType, ...types.filter(type => type !== homeType)]
-  }
-  return types
 }
 
 // One control: a segmented toggle whose selection swaps the description beneath it,

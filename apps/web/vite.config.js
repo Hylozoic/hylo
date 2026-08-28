@@ -162,6 +162,7 @@ export default defineConfig(({ command }) => ({
       routes: path.resolve(__dirname, 'src/routes'),
       store: path.resolve(__dirname, 'src/store'),
       sandbox: path.resolve(__dirname, 'src/sandbox'),
+      tours: path.resolve(__dirname, 'src/tours'),
       util: path.resolve(__dirname, 'src/util'),
       '@hylo/contexts': path.resolve(__dirname, '../../packages/contexts'),
       '@hylo/graphql': path.resolve(__dirname, '../../packages/graphql'),

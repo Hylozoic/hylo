@@ -1,6 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
+import useTour from 'tours/useTour'
+import { SPACE_CREATE_TOUR_ID, spaceCreateTourSteps } from 'tours/spaceCreateTour'
+import { TRACK_SETUP_TOUR_ID, trackSetupTourSteps } from 'tours/trackSetupTour'
+import { FUNDING_ROUND_SETUP_TOUR_ID, fundingRoundSetupTourSteps } from 'tours/fundingRoundSetupTour'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Activity, BadgeDollarSign, Hand, ImagePlus, Layers, LayoutGrid, MapPin, MessageCircleMore, Plus, Settings, Shapes } from 'lucide-react'
@@ -9,7 +13,7 @@ import Button from 'components/ui/button'
 import { FIELD_LABEL_CLASS, INPUT_CLASS } from 'components/ui/form-field'
 import { Input } from 'components/ui/input'
 import { AdvancedPill, AdvancedSection } from 'components/AdvancedSettings/AdvancedSettings'
-import HomeViewPicker, { CUSTOM_HOME_VIEW, viewTypesForCreate } from 'components/HomeViewPicker/HomeViewPicker'
+import HomeViewPicker from 'components/HomeViewPicker/HomeViewPicker'
 import HyloEditor from 'components/HyloEditor'
 import IncludedViewsEditor from 'components/IncludedViewsEditor/IncludedViewsEditor'
 import LocationInput from 'components/LocationInput/LocationInput'
@@ -28,7 +32,7 @@ import fetchGroupViews from 'store/actions/fetchGroupViews'
 import { updateGroupSettings } from 'routes/GroupSettings/GroupSettings.store'
 import { createTrack } from 'store/actions/trackActions'
 import { createFundingRound } from 'routes/FundingRounds/FundingRounds.store'
-import { POST_TYPE_TO_VIEW_TYPE } from 'store/models/GroupView'
+import { CUSTOM_HOME_VIEW, POST_TYPE_TO_VIEW_TYPE, viewTypesForCreate } from 'store/models/GroupView'
 import { groupRolesForPicker } from '@hylo/hooks/groupRoleHelpers'
 import getMe from 'store/selectors/getMe'
 import { cn } from 'util/index'
@@ -120,6 +124,17 @@ function customSpaceStandardViews (postTypes, removedStandardTypes) {
  * Pass `addToMenu={false}` when adding from More Spaces (space view created off-menu). */
 export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu = true }) {
   const { t } = useTranslation()
+
+  // First-open tour of the space form's load-bearing choices, offered by invitation
+  const spaceTourStepList = useMemo(() => spaceCreateTourSteps(t), [t])
+  const { invitation: spaceTourInvitation } = useTour({
+    id: SPACE_CREATE_TOUR_ID,
+    steps: spaceTourStepList,
+    autoStart: true,
+    autoStartDelay: 1200,
+    inviteMessage: t('Creating a space? Take a quick tour of the big decisions.')
+  })
+
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const routerLocation = useLocation()
@@ -130,6 +145,25 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
   )
 
   const [spaceType, setSpaceType] = useState('custom')
+  // Type-specific tours when the Track or Funding Round type is selected
+  const trackTourStepList = useMemo(() => trackSetupTourSteps(t), [t])
+  const { invitation: trackTourInvitation } = useTour({
+    id: TRACK_SETUP_TOUR_ID,
+    steps: trackTourStepList,
+    autoStart: true,
+    autoStartDelay: 1200,
+    enabled: spaceType === 'track',
+    inviteMessage: t('Setting up a track? Take a quick tour.')
+  })
+  const roundTourStepList = useMemo(() => fundingRoundSetupTourSteps(t), [t])
+  const { invitation: roundTourInvitation } = useTour({
+    id: FUNDING_ROUND_SETUP_TOUR_ID,
+    steps: roundTourStepList,
+    autoStart: true,
+    autoStartDelay: 1200,
+    enabled: spaceType === 'funding-round',
+    inviteMessage: t('Setting up a funding round? Take a quick tour.')
+  })
   const [name, setName] = useState('')
   const [slug, setSlug] = useState('')
   const [slugCustomized, setSlugCustomized] = useState(false)
@@ -577,8 +611,11 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
           {addToMenu ? t('Create a new space in the main menu') : t('Create a new space in More Spaces')}
         </h2>
 
+        {spaceTourInvitation}
+        {trackTourInvitation}
+        {roundTourInvitation}
         <div className='flex flex-col gap-3 overflow-y-auto flex-1 min-h-0 p-1 -m-1'>
-          <div className='grid grid-cols-2 sm:grid-cols-4 gap-2'>
+          <div className='grid grid-cols-2 sm:grid-cols-4 gap-2' data-tour='space-type'>
             {SPACE_TYPE_OPTIONS.map(option => {
               const OptionIcon = option.icon
               const isSelected = spaceType === option.value
@@ -586,6 +623,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
                 <button
                   key={option.value}
                   type='button'
+                  data-tour={'space-type-' + option.value}
                   onClick={() => handleSpaceTypeChange(option.value)}
                   className={cn(
                     'flex flex-col items-center gap-1 rounded-md border-2 p-2 transition-all',
@@ -669,7 +707,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
             />
           </div>
 
-          <div className='flex flex-col gap-2'>
+          <div className='flex flex-col gap-2' data-tour='space-access'>
             <label className={FIELD_LABEL_CLASS}>{t('Access')}</label>
             <SettingSelectRow
               label='Access'
@@ -701,7 +739,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
             )}
           </div>
 
-          <div className='mt-2'>
+          <div className='mt-2' data-tour='space-home'>
             <div className='flex items-end justify-between gap-2 mb-2'>
               <div className='min-w-0'>
                 <span className={FIELD_LABEL_CLASS}>{t("Choose your space's home")}</span>
@@ -836,7 +874,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
           </div>
         </div>
 
-        <div className='flex justify-end gap-2 mt-4 pt-2 border-t border-foreground/10'>
+        <div className='flex justify-end gap-2 mt-4 pt-2 border-t border-foreground/10' data-tour='space-publish'>
           <Button variant='primary' onClick={onClose}>{t('Cancel')}</Button>
           <Button variant='primary' disabled={!name.trim() || isCreating} onClick={() => handleCreate('draft')}>
             {isCreating ? t('Creating...') : t('Save as Draft')}

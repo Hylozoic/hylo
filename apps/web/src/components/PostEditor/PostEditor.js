@@ -1,5 +1,7 @@
 /* global DOMParser */
 import { cn } from 'util/index'
+import useTour from 'tours/useTour'
+import { POST_EDITOR_TOUR_ID, postEditorTourSteps } from 'tours/postEditorTour'
 import { debounce, get, isEqual, isEmpty, uniqBy, uniqueId } from 'lodash/fp'
 import { TriangleAlert, X } from 'lucide-react'
 import { DateTimeHelpers } from '@hylo/shared'
@@ -183,6 +185,15 @@ function PostEditorInner ({
 
   const currentUser = useSelector(getMe)
   const myMemberships = useSelector(getMyMemberships)
+
+  // First-time-in-the-editor tour, offered via a floating invitation
+  const editorTourSteps = useMemo(() => postEditorTourSteps(t), [t])
+  const { invitation: editorTourInvitation } = useTour({
+    id: POST_EDITOR_TOUR_ID,
+    steps: editorTourSteps,
+    autoStart: true,
+    inviteMessage: t('Want a quick tour of the post editor?')
+  })
   const currentGroup = useSelector(state => getGroupForSlug(state, groupSlug))
   // Track / funding-round spaces carry their config on the group itself.
   const currentTrack = currentGroup?.track || null
@@ -1332,7 +1343,8 @@ function PostEditorInner ({
           WebkitMaskImage: 'linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 40px, rgba(0,0,0,1) calc(100% - 40px), rgba(0,0,0,0) 100%)'
         }}
       />
-      <div className={cn('PostEditorHeader relative')}>
+      {editorTourInvitation}
+      <div className={cn('PostEditorHeader relative')} data-tour='post-type'>
         {isAction
           ? (
             <div className=''>{isEditing ? t('Edit {{actionDescriptor}}', { actionDescriptor: currentTrack?.actionDescriptor }) : t('Add {{actionDescriptor}}', { actionDescriptor: currentTrack?.actionDescriptor })}</div>
@@ -1380,6 +1392,7 @@ function PostEditorInner ({
       {!isAction && !isSubmission && (
         <div
           className={cn('PostEditorTo flex w-full items-center bg-input rounded p-1 border-2 border-transparent transition-all', { 'border-2 border-focus': toFieldFocused })}
+          data-tour='post-to'
           onClick={handleToFieldContainerClick}
         >
           <div className='text-xs text-foreground/50 px-2'>{t('To')}</div>
@@ -1420,10 +1433,12 @@ function PostEditorInner ({
           <span className='text-black bg-[#FFB949] w-full relative -top-[15px] pb-[2px] px-[10px] rounded-[7px]'>{t('Title limited to {{maxTitleLength}} characters', { maxTitleLength: MAX_TITLE_LENGTH })}</span>
         )}
       </div>
-      <div className={cn(
-        'PostEditorContent w-full bg-input rounded p-1',
-        'flex flex-col !items-start border-2 border-transparent shadow-md transition-all duration-200 overflow-x-hidden focus-within:border-2 focus-within:border-focus'
-      )}
+      <div
+        className={cn(
+          'PostEditorContent w-full bg-input rounded p-1',
+          'flex flex-col !items-start border-2 border-transparent shadow-md transition-all duration-200 overflow-x-hidden focus-within:border-2 focus-within:border-focus'
+        )}
+        data-tour='post-body'
       >
         {currentPost.details === null || loading
           ? <div><Loading /></div>
@@ -1491,7 +1506,7 @@ function PostEditorInner ({
         </div>
       </div> */}
       {!isAction && !isSubmission && (
-        <div className='PostEditorPublic flex w-full items-center bg-input rounded p-1'>
+        <div className='PostEditorPublic flex w-full items-center bg-input rounded p-1' data-tour='post-public'>
           <PublicToggle
             togglePublic={togglePublic}
             isPublic={!!currentPost.isPublic}

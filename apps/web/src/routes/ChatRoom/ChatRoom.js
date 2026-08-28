@@ -41,6 +41,8 @@ import getMe from 'store/selectors/getMe'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import { getPostResults } from 'store/selectors/getPosts'
 import { cn } from 'util/index'
+import useTour from 'tours/useTour'
+import { CHAT_TOUR_ID, chatTourSteps } from 'tours/chatTour'
 import { isLegacyWebView } from 'util/webView'
 import { formatLocalizedDate } from 'util/dateFormat'
 import { getLocaleFromLocalStorage } from 'util/locale'
@@ -127,6 +129,15 @@ export default function ChatRoom (props) {
   const { hideNavLayout } = useLayoutFlags()
   const withoutNav = isLegacyWebView() || hideNavLayout
   const { t } = useTranslation()
+
+  // First-time-in-chat tour, offered by invitation
+  const chatTourStepList = useMemo(() => chatTourSteps(t), [t])
+  const { invitation: chatTourInvitation } = useTour({
+    id: CHAT_TOUR_ID,
+    steps: chatTourStepList,
+    autoStart: true,
+    inviteMessage: t('First time in a chat room? Take a quick tour.')
+  })
 
   const effectiveGroupSlug = useEffectiveGroupSlug()
   const groupSlug = props.groupSlug || effectiveGroupSlug
@@ -811,6 +822,7 @@ export default function ChatRoom (props) {
       <Helmet>
         <title>{t('Chat')} | {group?.name ? `${group.name} | ` : ''}Hylo</title>
       </Helmet>
+      {chatTourInvitation}
 
       <div
         id='chats'
@@ -838,6 +850,7 @@ export default function ChatRoom (props) {
             role='separator'
             aria-orientation='vertical'
             aria-label={t('Adjust chat width')}
+            data-tour='chat-width-rail'
             className={cn(
               'absolute top-0 bottom-0 z-20 flex flex-col items-center justify-between group touch-none select-none',
               resizingChatWidth ? 'cursor-grabbing' : 'cursor-grab'
@@ -931,7 +944,7 @@ export default function ChatRoom (props) {
       <PeopleTyping groupId={group?.id} hideWhenEmpty className='w-full px-3 sm:px-5 py-1 text-xs text-foreground/50' />
       {/* Composer floats with margins matching the message gutter (left edge = avatar edge).
           Subtle gradient settles the pane into a darker hue beneath the input. */}
-      <div className='ChatBoxContainer w-full shrink-0 px-3 sm:px-5 pb-3 sm:pb-5 pt-0 bg-gradient-to-b from-transparent to-darkening/[0.05] dark:to-darkening/25'>
+      <div className='ChatBoxContainer w-full shrink-0 px-3 sm:px-5 pb-3 sm:pb-5 pt-0 bg-gradient-to-b from-transparent to-darkening/[0.05] dark:to-darkening/25' data-tour='chat-composer'>
         {/* Drafts are scoped per chat topic so switching rooms does not leak text */}
         {group?.id && (
           <ChatEditor
