@@ -60,7 +60,7 @@ export default function FinishRegistration () {
   }
 
   return (
-    <div className='bg-card shadow-md rounded-md w-full max-w-[320px] mx-auto'>
+    <div className='bg-background/100 shadow-md rounded-md w-full max-w-[320px] mx-auto'>
       <div className='relative'>
         <Icon
           name='Ex'

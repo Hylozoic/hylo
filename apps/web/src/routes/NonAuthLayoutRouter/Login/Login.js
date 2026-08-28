@@ -108,7 +108,7 @@ export default function Login (props) {
       <Helmet>
         <title>{t('Sign in to Hylo')}</title>
       </Helmet>
-      <div className='bg-card shadow-md rounded-md w-full max-w-[320px] mx-auto'>
+      <div className='bg-background/100 shadow-md rounded-md w-full max-w-[320px] mx-auto'>
         <div className='flex flex-col gap-2 p-4'>
           <h1 className='text-2xl font-bold mb-4 text-foreground text-center'>{t('Sign in to Hylo')}</h1>
 

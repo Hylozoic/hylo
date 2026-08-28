@@ -10,6 +10,7 @@ import setReturnToPath from 'store/actions/setReturnToPath'
 import { getAuthenticated } from 'store/selectors/getSignupState'
 import particlesjsConfig from './particlesjsConfig'
 import LocaleDropdown from 'routes/AuthLayoutRouter/components/GlobalNav/LocaleDropdown/LocaleDropdown'
+import useAppearance from 'hooks/useAppearance'
 import Button from 'components/ui/button'
 import JoinGroup from 'routes/JoinGroup'
 import Login from 'routes/NonAuthLayoutRouter/Login'
@@ -41,8 +42,10 @@ export default function NonAuthLayoutRouter (props) {
     : returnToPathFromQueryString
   const locale = getLocaleFromLocalStorage()
   const localeDisplay = localeToFlagEmoji(locale)
-  const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
-  const logoSrc = isDarkMode ? '/hylo-logo-light-horizontal.svg' : '/hylo-logo-dark-horizontal.svg'
+  // Follow the scheme AppearanceSync actually applies to the document, not raw
+  // prefers-color-scheme — the two disagree when the app theme overrides the OS
+  const { effectiveColorScheme } = useAppearance()
+  const logoSrc = effectiveColorScheme === 'dark' ? '/hylo-logo-light-horizontal.svg' : '/hylo-logo-dark-horizontal.svg'
 
   useEffect(() => {
     if (returnToPath && returnToPath !== '/') {
