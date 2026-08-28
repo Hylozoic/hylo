@@ -252,7 +252,11 @@ function ChatEditorInner ({
   }, [])
 
   useEffect(() => {
-    setCurrentPost(prev => (prev.linkPreview === linkPreview ? prev : { ...prev, linkPreview }))
+    setCurrentPost(prev => {
+      if (prev.linkPreview === linkPreview) return prev
+      if (linkPreview) return { ...prev, linkPreview, skipLinkPreview: false }
+      return { ...prev, linkPreview }
+    })
   }, [linkPreview, setCurrentPost])
 
   const reset = useCallback(() => {
@@ -319,7 +323,7 @@ function ChatEditorInner ({
 
   const handleRemoveLinkPreview = useCallback(() => {
     dispatch(removeLinkPreview())
-    setCurrentPost(prev => ({ ...prev, linkPreview: null, linkPreviewFeatured: false }))
+    setCurrentPost(prev => ({ ...prev, linkPreview: null, linkPreviewFeatured: false, skipLinkPreview: true }))
   }, [dispatch, setCurrentPost])
 
   const isValid = useMemo(() => {
@@ -350,6 +354,7 @@ function ChatEditorInner ({
         isPublic,
         linkPreview,
         linkPreviewFeatured,
+        skipLinkPreview,
         timezone,
         title
       } = currentPost
@@ -371,6 +376,7 @@ function ChatEditorInner ({
         isPublic,
         linkPreview,
         linkPreviewFeatured,
+        skipLinkPreview,
         localId: uniqueId('post_'),
         pending: true,
         timezone,

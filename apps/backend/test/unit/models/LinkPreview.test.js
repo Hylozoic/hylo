@@ -57,4 +57,40 @@ describe('LinkPreview', () => {
       .then(() => expect(Queue.classMethod).not.to.have.been.called())
     })
   })
+
+  describe('findOrCreateAndPopulate', () => {
+    it('returns an already-populated preview without re-fetching', async () => {
+      const url = 'http://foo.com/already-done'
+      const existing = await LinkPreview.forge({
+        url,
+        title: 'Done',
+        done: true
+      }).save()
+      mockify(LinkPreview, 'populate', async () => existing)
+      try {
+        const preview = await LinkPreview.findOrCreateAndPopulate(url)
+        expect(preview.id).to.equal(existing.id)
+        expect(LinkPreview.populate).not.to.have.been.called()
+      } finally {
+        unspyify(LinkPreview, 'populate')
+      }
+    })
+
+    it('creates and populates a new preview', async () => {
+      const url = 'http://foo.com/new-preview'
+      mockify(LinkPreview, 'populate', async ({ id }) => {
+        const p = await LinkPreview.find(id)
+        return p.save({ title: 'Fresh', done: true, updated_at: new Date() })
+      })
+      try {
+        const preview = await LinkPreview.findOrCreateAndPopulate(url)
+        expect(preview.get('url')).to.equal(url)
+        expect(preview.get('title')).to.equal('Fresh')
+        expect(preview.get('done')).to.equal(true)
+        expect(LinkPreview.populate).to.have.been.called()
+      } finally {
+        unspyify(LinkPreview, 'populate')
+      }
+    })
+  })
 })
