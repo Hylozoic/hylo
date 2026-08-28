@@ -55,6 +55,7 @@ import GroupSettingsMenu from './GroupSettingsMenu'
 import MenuRowBackground from './MenuRowBackground'
 import { viewCardColor } from './viewCardTheme'
 import { DEFAULT_BANNER } from 'store/models/Group'
+import { isMenuViewVisible } from 'store/models/GroupView'
 import GroupViewEditList from './GroupViewEditList'
 import GroupViewSettingsModal from './GroupViewSettingsModal'
 import SpaceSettingsModal from './SpaceSettingsModal'
@@ -118,23 +119,17 @@ function findSpaceForSlug (groupViews, group, parentSlug, spaceSlug) {
   return { spaceView: null, spaceGroup: null }
 }
 
-/** Visible menu views for a space (ordered), optionally with Manage Round. */
-function visibleSpaceMenuViews (spaceGroup, { includeManageRound = false, views = null } = {}) {
-  const spaceViews = (views || spaceGroup?.groupViews?.items || [])
-    .filter(v => v.order != null)
-  if (includeManageRound && spaceGroup?.fundingRound?.id) {
-    return [...spaceViews, MANAGE_ROUND_VIEW]
-  }
-  return spaceViews
-}
-
-/** On-menu view count: loaded views if present, otherwise Group.menuViewCount. */
+/** On-menu view count: loaded views if present, otherwise Group.menuViewCount.
+ * Typed views disallowed by acceptedPostTypes are omitted so a space with one
+ * remaining typed view still opens as a single-view space. */
 function knownMenuViewCount (spaceGroup, storeViews = [], nestedCount) {
+  const acceptedPostTypes = spaceGroup?.acceptedPostTypes
+  const countVisible = (views) => views.filter(v => isMenuViewVisible(v, acceptedPostTypes)).length
   if (storeViews.length > 0) {
-    return storeViews.filter(v => v.order != null).length
+    return countVisible(storeViews)
   }
   if (spaceGroup?.groupViews != null) {
-    return (spaceGroup.groupViews.items || []).filter(v => v.order != null).length
+    return countVisible(spaceGroup.groupViews.items || [])
   }
   return Number(spaceGroup?.menuViewCount ?? nestedCount) || 0
 }
@@ -588,9 +583,9 @@ function GroupViewList ({
     )
   }
 
-  // Live menu: only views with an order (hidden views have order = null).
+  // Live menu: ordered views whose post types are still accepted (hidden views have order = null).
   const visibleViews = groupViews
-    .filter(view => view.order != null)
+    .filter(view => isMenuViewVisible(view, group?.acceptedPostTypes))
 
   // Synthetic steward item for funding-round spaces — always last, not in the DB.
   const menuViews = (spaceGroup?.fundingRound?.id && canAdminister)

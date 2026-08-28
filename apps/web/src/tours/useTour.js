@@ -205,7 +205,6 @@ export default function useTour ({
     // loading screen (index.html) removes itself once its fade finishes, another
     // tour may be mid-run, and callers can name overlays (welcome modal) that
     // must close first
-    let poll
     let timer
     let cancelled = false
     const clearToStart = () =>
@@ -230,7 +229,7 @@ export default function useTour ({
         timer = setTimeout(attempt, 1000)
       }
     }
-    poll = setInterval(() => {
+    const poll = setInterval(() => {
       if (clearToStart()) {
         clearInterval(poll)
         timer = setTimeout(attempt, autoStartDelay)

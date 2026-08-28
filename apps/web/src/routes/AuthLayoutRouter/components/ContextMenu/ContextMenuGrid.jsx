@@ -39,7 +39,7 @@ import { useViewHeader } from 'contexts/ViewHeaderContext'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import { createGroupView, deleteGroupView, deleteSpace, archiveSpace, setGroupViewHidden, updateGroupView } from 'store/actions/groupViews'
-import { canHardDeleteView } from 'store/models/GroupView'
+import { canHardDeleteView, isMenuViewVisible } from 'store/models/GroupView'
 import GroupMenuHeader from 'components/GroupMenuHeader'
 import GroupNotificationsPopover from 'components/GroupNotificationsPopover/GroupNotificationsPopover'
 import CardIconField from './CardIconField'
@@ -709,14 +709,14 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
       }) || []
     }
     const views = filterSpaceViewsForMenuVisibility(
-      (groupViews || []).filter(view => view.order != null),
+      (groupViews || []).filter(view => isMenuViewVisible(view, menuGroup?.acceptedPostTypes)),
       spaceVisibilityOpts
     )
     if (spaceGroup?.fundingRound?.id && canAdminister) {
       return [...views, MANAGE_ROUND_VIEW]
     }
     return views
-  }, [isContextMode, context, currentUser?.id, groupViews, spaceGroup?.fundingRound?.id, canAdminister, spaceVisibilityOpts])
+  }, [isContextMode, context, currentUser?.id, groupViews, menuGroup?.acceptedPostTypes, spaceGroup?.fundingRound?.id, canAdminister, spaceVisibilityOpts])
 
   const sections = useMemo(() => partitionViewsIntoSections(visibleViews), [visibleViews])
 

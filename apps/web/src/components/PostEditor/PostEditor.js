@@ -1433,11 +1433,12 @@ function PostEditorInner ({
           <span className='text-black bg-[#FFB949] w-full relative -top-[15px] pb-[2px] px-[10px] rounded-[7px]'>{t('Title limited to {{maxTitleLength}} characters', { maxTitleLength: MAX_TITLE_LENGTH })}</span>
         )}
       </div>
-      <div className={cn(
-        'PostEditorContent w-full bg-input rounded p-1',
-        'flex flex-col !items-start border-2 border-transparent shadow-md transition-all duration-200 overflow-x-hidden focus-within:border-2 focus-within:border-focus'
-      )}
-      data-tour='post-body'
+      <div
+        className={cn(
+          'PostEditorContent w-full bg-input rounded p-1',
+          'flex flex-col !items-start border-2 border-transparent shadow-md transition-all duration-200 overflow-x-hidden focus-within:border-2 focus-within:border-focus'
+        )}
+        data-tour='post-body'
       >
         {currentPost.details === null || loading
           ? <div><Loading /></div>

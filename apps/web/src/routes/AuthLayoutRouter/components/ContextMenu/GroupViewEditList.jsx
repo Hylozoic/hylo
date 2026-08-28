@@ -36,7 +36,7 @@ import {
 import TruncatedText from 'components/TruncatedText'
 import GroupViewIcon from './GroupViewIcon'
 import { GroupViewEditActions } from './GroupViewSettingsModal'
-import { canDeleteView, canHardDeleteView, isSoftRemoveView, viewTypeHasSettings } from 'store/models/GroupView'
+import { canDeleteView, canHardDeleteView, isMenuViewVisible, isSoftRemoveView, viewTypeHasSettings } from 'store/models/GroupView'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 import { archiveSpace, deleteGroupView, deleteSpace, setGroupViewHidden, updateGroupView } from 'store/actions/groupViews'
 import { appendSpaceId, collectionsWithoutSpace, spaceCollectionViews } from 'util/spaceCollection'
@@ -312,8 +312,8 @@ export default function GroupViewEditList ({ views, group, groupSlug, onSettings
   const dispatch = useDispatch()
   const { t } = useTranslation()
   const visibleViews = useMemo(() => sortViewsByOrder(
-    (views || []).filter(v => v.order != null)
-  ), [views])
+    (views || []).filter(v => isMenuViewVisible(v, group?.acceptedPostTypes))
+  ), [views, group?.acceptedPostTypes])
   const [orderedViews, setOrderedViews] = useState(visibleViews)
 
   // Merge Redux updates into local order (preserves drag order; full replace on add/delete).
