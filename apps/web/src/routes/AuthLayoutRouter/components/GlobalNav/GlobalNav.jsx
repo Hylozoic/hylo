@@ -536,7 +536,12 @@ export default function GlobalNav (props) {
   const { t } = useTranslation()
   const [helpOpen, setHelpOpen] = useState(false)
   const tourSteps = useMemo(() => globalChromeTourSteps(t), [t])
-  const { startTour } = useTour({ id: GLOBAL_CHROME_TOUR_ID, steps: tourSteps, autoStart: true, mode: 'auto' })
+  const { startTour, invitation: chromeTourInvitation } = useTour({
+    id: GLOBAL_CHROME_TOUR_ID,
+    steps: tourSteps,
+    autoStart: true,
+    inviteMessage: t('New to Hylo? Let us show you around.')
+  })
   const handleTakeTour = useCallback(() => {
     setHelpOpen(false)
     // Let the popover finish closing before the overlay measures the anchors
@@ -950,6 +955,7 @@ export default function GlobalNav (props) {
         boxShadow: 'inset -15px 0 15px -10px hsl(var(--darkening) / 0.4)'
       }}
     >
+      {chromeTourInvitation}
       <div className='absolute inset-0 bg-gradient-to-b from-theme-background/75 to-theme-highlight dark:bg-gradient-to-b dark:from-theme-background/90 dark:to-theme-highlight/100 z-0' />
       <div className='absolute top-0 right-0 w-4 h-full bg-gradient-to-l from-theme-background/10 to-theme-background/0 z-20' />
       <div
