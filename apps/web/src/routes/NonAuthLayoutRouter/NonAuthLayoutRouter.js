@@ -118,11 +118,17 @@ export default function NonAuthLayoutRouter (props) {
           <Route
             path='signup/*'
             element={
-              <div className='bg-midground rounded-md w-full max-w-[320px] mx-auto p-4 mt-4 text-sm'>
-                <Link to='/login' className='text-foreground flex items-center justify-between gap-2'>
-                  {t('Already have an account?')} <Button variant='outline'>{t('Sign in')}</Button>
-                </Link>
-              </div>
+              // The agreements step is past the sign-in fork — offering it there
+              // would only lead people out of a signup they already committed to
+              location.pathname === '/signup/agreements'
+                ? null
+                : (
+                  <div className='bg-midground rounded-md w-full max-w-[320px] mx-auto p-4 mt-4 text-sm'>
+                    <Link to='/login' className='text-foreground flex items-center justify-between gap-2'>
+                      {t('Already have an account?')} <Button variant='outline'>{t('Sign in')}</Button>
+                    </Link>
+                  </div>
+                  )
             }
           />
           <Route
