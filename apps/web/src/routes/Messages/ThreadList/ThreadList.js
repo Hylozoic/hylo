@@ -122,8 +122,9 @@ function ThreadList () {
   return (
     <div
       className={cn(
-        // Width comes from MessagesLayout's resizable wrapper on desktop
-        'bg-background h-full flex flex-col flex-wrap overflow-hidden min-w-0 w-full'
+        // Width comes from MessagesLayout's resizable wrapper on desktop.
+        // Same ground as the group context menu, so the two sidebars match
+        'bg-background bg-gradient-to-b from-context-menu-background to-theme-background/10 dark:to-theme-background/40 h-full flex flex-col flex-wrap overflow-hidden min-w-0 w-full'
       )}
       style={{ boxShadow: 'inset -15px 0 15px -10px hsl(var(--darkening) / 0.3)' }}
       onClick={handleContainerClick}
