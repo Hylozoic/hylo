@@ -23,6 +23,7 @@ const queryFragment = `group(slug: $slug, updateLastViewed: $updateLastViewed) {
     location
     memberCount
     openJoinRequestCount
+    openModerationActionCount
     stewardDescriptor
     stewardDescriptorPlural
     name

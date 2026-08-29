@@ -1037,6 +1037,10 @@ export default function makeModels (userId, isAdmin, apiClient) {
           if (!userId) return 0
           return g.get('num_open_join_requests') || 0
         },
+        openModerationActionCount: g => {
+          if (!userId) return 0
+          return ModerationAction.where({ group_id: g.id, status: 'active' }).count().then(Number)
+        },
         pendingInvitations: (g, { first }) => InvitationService.find({ groupId: g.id, pendingOnly: true }),
         responsibilities: async g => g.availableResponsibilities().fetch(),
         settings: g => mapKeys(camelCase, g.get('settings')),

@@ -22,6 +22,7 @@ export default function groupQueryFragment () {
     location
     memberCount
     openJoinRequestCount
+    openModerationActionCount
     stewardDescriptor
     stewardDescriptorPlural
     name
