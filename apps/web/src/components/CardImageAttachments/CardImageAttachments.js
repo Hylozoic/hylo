@@ -52,6 +52,9 @@ export default function CardImageAttachments ({
 
   const openModal = (e) => {
     if (className === 'post-card') return
+    // Opening the lightbox must not also trigger surrounding click-to-open
+    // handlers (a chat post opens its detail view on container clicks)
+    e?.stopPropagation?.()
     setInitialSlide(e?.currentTarget?.dataset?.index || 0)
     setModalVisible(true)
   }
