@@ -1197,13 +1197,13 @@ export default function GlobalNav (props) {
                 <span>{t('Feedback & Support')}</span>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <a href='https://hylozoic.gitbook.io/hylo/guides/hylo-user-guide' target='_blank' rel='noreferrer'>
+                <a href='https://hylozoic.gitbook.io/hylo/guides/hylo-user-guide' target='_blank' rel='noreferrer' className='text-foreground hover:text-foreground'>
                   <BookOpen className='mr-2 h-4 w-4' />
                   <span>{t('User Guide')}</span>
                 </a>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <a href='http://hylo.com/terms/' target='_blank' rel='noreferrer'>
+                <a href='http://hylo.com/terms/' target='_blank' rel='noreferrer' className='text-foreground hover:text-foreground'>
                   <Shield className='mr-2 h-4 w-4' />
                   <span>{t('Terms & Privacy')}</span>
                 </a>
@@ -1215,7 +1215,7 @@ export default function GlobalNav (props) {
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem asChild>
-                <a href='https://opencollective.com/hylo' target='_blank' rel='noreferrer'>
+                <a href='https://opencollective.com/hylo' target='_blank' rel='noreferrer' className='text-foreground hover:text-foreground'>
                   <Heart className='mr-2 h-4 w-4' />
                   <span>{t('Contribute to Hylo')}</span>
                 </a>
