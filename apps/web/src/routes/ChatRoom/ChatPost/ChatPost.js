@@ -468,9 +468,12 @@ export default function ChatPost ({
         {linkPreview && !linkPreviewFeatured && (
           <LinkPreview {...pick(['title', 'description', 'imageUrl', 'url'], linkPreview)} className='px-5 pb-[0.6rem] pl-[42px] block [&>div]:mb-0 max-w-[calc(var(--chat-stream-width,750px)-50px)]' />
         )}
-        <CardImageAttachments attachments={post.attachments} isFlagged={isFlagged && !post.clickthrough} forChatPost />
+        {/* Chat has no clickthrough affordance, so a flagged post's media stays
+            blurred like its text rather than honoring a clickthrough recorded
+            on another surface */}
+        <CardImageAttachments attachments={post.attachments} isFlagged={isFlagged} forChatPost />
         {!isEmpty(fileAttachments) && (
-          <CardFileAttachments attachments={fileAttachments} />
+          <CardFileAttachments attachments={fileAttachments} className={cn({ 'blur-sm': isFlagged })} />
         )}
         {((postReactions && postReactions.length > 0) || commentsTotal > 0) && (
           <div className='w-full flex flex-row items-center flex-wrap gap-1.5 pl-[42px] mt-1 mb-[2px]'>

@@ -168,16 +168,23 @@ export default function CardImageAttachments ({
         {forChatPost
           ? (
             <div className='flex flex-row gap-2'>
+              {/* Chat tiles are background-image divs, not <img>, so the
+                  [&_img] blur above can't reach them — blur inside a clipping
+                  wrapper instead (scale hides the blur's transparent edges) */}
               {imageAttachments.map((image, index) =>
-                <div
-                  key={image.url}
-                  data-index={index}
-                  className='block w-[150px] h-[200px] cursor-pointer rounded-md bg-cover bg-center border border-foreground/10 hover:brightness-110'
-                  style={bgImageStyle(image.url)}
-                  role='img'
-                  aria-label={image.url}
-                  onClick={openModal}
-                />
+                <div key={image.url} className='relative w-[150px] h-[200px] rounded-md overflow-hidden border border-foreground/10 shrink-0'>
+                  <div
+                    data-index={index}
+                    className={cn(
+                      'absolute inset-0 cursor-pointer bg-cover bg-center hover:brightness-110',
+                      isFlagged && 'blur-[30px] scale-110'
+                    )}
+                    style={bgImageStyle(image.url)}
+                    role='img'
+                    aria-label={image.url}
+                    onClick={openModal}
+                  />
+                </div>
               )}
             </div>
             )
