@@ -3,8 +3,9 @@ import { get } from 'lodash/fp'
 import { Compass, Globe, HelpCircle, Plus, PlusCircle, Bell, MessagesSquare, ChevronDown, Settings, LogOut, User, Edit, Users, Mail, Bell as BellIcon, Palette, Languages, UserX, Search, Shield, BookOpen, Download, Heart, Wrench } from 'lucide-react'
 import React, { Suspense, useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import useTour from 'tours/useTour'
+import useTour, { driveTour, isTourTestMode } from 'tours/useTour'
 import { GLOBAL_CHROME_TOUR_ID, globalChromeTourSteps } from 'tours/globalChromeTour'
+import { tourCatalog, isTourAvailable } from 'tours/catalog'
 import { useIntercom } from 'react-use-intercom'
 import { useSelector, useDispatch } from 'react-redux'
 import { useLocation, useNavigate } from 'react-router-dom'
@@ -40,6 +41,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
@@ -536,17 +538,40 @@ export default function GlobalNav (props) {
   const { t } = useTranslation()
   const [helpOpen, setHelpOpen] = useState(false)
   const tourSteps = useMemo(() => globalChromeTourSteps(t), [t])
-  const { startTour, invitation: chromeTourInvitation } = useTour({
+  const { invitation: chromeTourInvitation } = useTour({
     id: GLOBAL_CHROME_TOUR_ID,
     steps: tourSteps,
     autoStart: true,
     inviteMessage: t('New to Hylo? Let us show you around.')
   })
-  const handleTakeTour = useCallback(() => {
+  // The Help menu lists every tour; ones whose anchors aren't on the current
+  // surface are shown disabled. Availability is a DOM question, so it's
+  // measured fresh each time the menu opens
+  const allTours = useMemo(() => tourCatalog(t), [t])
+  const [availableTourIds, setAvailableTourIds] = useState(() => new Set())
+  const handleHelpOpenChange = useCallback((open) => {
+    setHelpOpen(open)
+    if (open) {
+      setAvailableTourIds(new Set(allTours.filter(isTourAvailable).map(tour => tour.id)))
+    }
+  }, [allTours])
+  const toursSeen = currentUser?.settings?.toursSeen
+  const handleRunTour = useCallback((tour) => {
     setHelpOpen(false)
-    // Let the popover finish closing before the overlay measures the anchors
-    setTimeout(startTour, 150)
-  }, [startTour])
+    // Let the menu finish closing before the overlay measures the anchors
+    setTimeout(() => {
+      driveTour(tour.steps, {
+        // A finished replay counts as seen, same as an organic run
+        onDestroyed: () => {
+          if (isTourTestMode()) return
+          const seenNow = toursSeen || []
+          if (!seenNow.includes(tour.id)) {
+            dispatch(updateUserSettings({ settings: { toursSeen: [...seenNow, tour.id] } }))
+          }
+        }
+      })
+    }, 150)
+  }, [toursSeen, dispatch])
   const [navReady, setNavReady] = useState(false)
   const [isContainerHovered, setIsContainerHovered] = useState(false)
   // A stack's subgroup menu and the rail's labels are alternatives, never both at
@@ -1132,44 +1157,94 @@ export default function GlobalNav (props) {
         <div className='flex items-center justify-center gap-1.5'>
           <SettingsMenu currentUser={currentUser} triggerClassName={GLOBAL_NAV_UTILITY_BUTTON} />
 
-          <Popover open={helpOpen} onOpenChange={setHelpOpen}>
-            <PopoverTrigger>
+          <DropdownMenu open={helpOpen} onOpenChange={handleHelpOpenChange}>
+            <DropdownMenuTrigger asChild>
               <span className={GLOBAL_NAV_UTILITY_BUTTON} data-tour='help'>
                 <HelpCircle className='w-5 h-5' />
               </span>
-            </PopoverTrigger>
-            <PopoverContent side='right' align='start'>
-              <ul className='flex flex-col gap-2 m-0 p-0'>
-                <li className='w-full'><span className='text-foreground cursor-pointer px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' data-testid='take-a-tour' onClick={handleTakeTour}><Compass className='h-4 w-4' />{t('Take a tour')}</span></li>
-                <li className='w-full'><span className='text-foreground cursor-pointer px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' onClick={handleSupportClick}><MessagesSquare className='h-4 w-4' />{t('Feedback & Support')}</span></li>
-                <li className='w-full'><a className='text-foreground cursor-pointer hover:text-foreground/100 px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' href='https://hylozoic.gitbook.io/hylo/guides/hylo-user-guide' target='_blank' rel='noreferrer'><BookOpen className='h-4 w-4' />{t('User Guide')}</a></li>
-                <li className='w-full'><a className='text-foreground cursor-pointer hover:text-foreground/100 px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' href='http://hylo.com/terms/' target='_blank' rel='noreferrer'><Shield className='h-4 w-4' />{t('Terms & Privacy')}</a></li>
-                {showAppStoreLink && <li className='w-full'><span className='text-foreground cursor-pointer px-2 py-1 hover:text-foreground/100 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' onClick={downloadApp}><Download className='h-4 w-4' />{t('Download App')}</span></li>}
-                <li className='w-full'><a className='text-foreground cursor-pointer px-2 py-1 hover:text-foreground/100 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' href='https://opencollective.com/hylo' target='_blank' rel='noreferrer'><Heart className='h-4 w-4' />{t('Contribute to Hylo')}</a></li>
-              </ul>
-              {showSupportModal && (
-                <ModalDialog
-                  closeModal={() => setShowSupportModal(false)}
-                  showModalTitle={false}
-                  submitButtonAction={() => {
-                    setShowSupportModal(false)
-                    showPreferences()
-                  }}
-                  submitButtonText={t('Edit Cookie Preferences')}
-                >
-                  <div className='p-4'>
-                    <h2 className='text-xl font-semibold mb-2'>{t('Support Chat Disabled')}</h2>
-                    <p className='text-foreground/70 mb-4'>
-                      {t('To use the support chat you need to enable support cookies in your cookie preferences')}
-                    </p>
-                    <p className='text-foreground/70 mb-2'>
-                      {t('Click below to edit your cookie preferences')}
-                    </p>
-                  </div>
-                </ModalDialog>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              side='right'
+              align='start'
+              className={cn(
+                'z-[200] bg-card',
+                compactLayout
+                  ? 'min-w-[260px] [&_[role=menuitem]]:py-3 [&_[role=menuitem]]:text-base'
+                  : 'min-w-[260px] sm:min-w-[200px] [&_[role=menuitem]]:py-3 [&_[role=menuitem]]:text-base sm:[&_[role=menuitem]]:py-1.5 sm:[&_[role=menuitem]]:text-sm'
               )}
-            </PopoverContent>
-          </Popover>
+            >
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger data-testid='take-a-tour'>
+                  <Compass className='mr-2 h-4 w-4' />
+                  <span>{t('Take a tour')} ({availableTourIds.size})</span>
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className='z-[200] bg-card'>
+                  <DropdownMenuLabel className='text-foreground/60 font-normal'>{t('Tours for this view')}</DropdownMenuLabel>
+                  {allTours.map(tour => (
+                    <DropdownMenuItem
+                      key={tour.id}
+                      disabled={!availableTourIds.has(tour.id)}
+                      onClick={() => handleRunTour(tour)}
+                    >
+                      {tour.title}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleSupportClick}>
+                <MessagesSquare className='mr-2 h-4 w-4' />
+                <span>{t('Feedback & Support')}</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <a href='https://hylozoic.gitbook.io/hylo/guides/hylo-user-guide' target='_blank' rel='noreferrer'>
+                  <BookOpen className='mr-2 h-4 w-4' />
+                  <span>{t('User Guide')}</span>
+                </a>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <a href='http://hylo.com/terms/' target='_blank' rel='noreferrer'>
+                  <Shield className='mr-2 h-4 w-4' />
+                  <span>{t('Terms & Privacy')}</span>
+                </a>
+              </DropdownMenuItem>
+              {showAppStoreLink && (
+                <DropdownMenuItem onClick={downloadApp}>
+                  <Download className='mr-2 h-4 w-4' />
+                  <span>{t('Download App')}</span>
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem asChild>
+                <a href='https://opencollective.com/hylo' target='_blank' rel='noreferrer'>
+                  <Heart className='mr-2 h-4 w-4' />
+                  <span>{t('Contribute to Hylo')}</span>
+                </a>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          {/* Outside the menu: selecting Feedback & Support closes it, and this
+              dialog has to outlive that close */}
+          {showSupportModal && (
+            <ModalDialog
+              closeModal={() => setShowSupportModal(false)}
+              showModalTitle={false}
+              submitButtonAction={() => {
+                setShowSupportModal(false)
+                showPreferences()
+              }}
+              submitButtonText={t('Edit Cookie Preferences')}
+            >
+              <div className='p-4'>
+                <h2 className='text-xl font-semibold mb-2'>{t('Support Chat Disabled')}</h2>
+                <p className='text-foreground/70 mb-4'>
+                  {t('To use the support chat you need to enable support cookies in your cookie preferences')}
+                </p>
+                <p className='text-foreground/70 mb-2'>
+                  {t('Click below to edit your cookie preferences')}
+                </p>
+              </div>
+            </ModalDialog>
+          )}
         </div>
       </div>
     </div>
