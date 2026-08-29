@@ -850,7 +850,10 @@ export default function ContextMenu (props) {
     : (group?.slug ? groupUrl(group.slug, 'requests') : null)
   const joinRequestsSection = isGroupContext && joinRequestsLink && canAddMembers && joinRequestCount > 0
     ? (
-      <div className='px-1.5 pb-2 border-t border-foreground/10 pt-2'>
+      // Sticky: a pending join request must be visible even when the menu is
+      // scrolled — the row pins to the bottom of the viewport until its natural
+      // slot above More Spaces scrolls into view
+      <div className='px-1.5 pb-2 border-t border-foreground/10 pt-2 mt-auto sticky bottom-0 z-30 bg-background/95 backdrop-blur-sm'>
         {isEditing
           ? (
             <div
@@ -930,11 +933,15 @@ export default function ContextMenu (props) {
     : null
 
   const menuFooter = (
-    <div className='mt-auto'>
+    <>
       {joinRequestsSection}
-      {moreSpacesSection}
-      {editMenuButton}
-    </div>
+      {/* When the join requests row exists it carries the mt-auto (it must be a
+          direct flex child for its sticky pinning to span the whole card) */}
+      <div className={joinRequestsSection ? undefined : 'mt-auto'}>
+        {moreSpacesSection}
+        {editMenuButton}
+      </div>
+    </>
   )
 
   // Simple groups don't use the vertical widget context menu — their home dashboard
