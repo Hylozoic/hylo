@@ -861,6 +861,7 @@ export default function ContextMenu (props) {
               aria-disabled='true'
             >
               <UserPlus className='w-4 h-4 shrink-0' />
+              <span className='text-[9px] font-bold uppercase tracking-wide leading-none bg-accent text-white rounded-full px-1.5 py-1 shrink-0'>{t('New')}</span>
               <span>{t('Join Requests')}</span>
             </div>
             )
@@ -871,6 +872,7 @@ export default function ContextMenu (props) {
               className='flex items-center gap-2 text-base font-medium text-foreground hover:text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 pr-8 w-full transition-all opacity-85 hover:opacity-100'
             >
               <UserPlus className='w-4 h-4 shrink-0' />
+              <span className='text-[9px] font-bold uppercase tracking-wide leading-none bg-accent text-white rounded-full px-1.5 py-1 shrink-0'>{t('New')}</span>
               <span>{t('Join Requests')}</span>
             </MenuLink>
             )}
