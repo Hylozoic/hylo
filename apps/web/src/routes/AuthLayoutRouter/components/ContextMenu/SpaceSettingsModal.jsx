@@ -2,11 +2,12 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
-import { Hand, ImagePlus, LayoutGrid, MapPin } from 'lucide-react'
+import { Hand, ImagePlus, LayoutGrid, MapPin, Trash2 } from 'lucide-react'
 
 import { AdvancedPill, AdvancedSection } from 'components/AdvancedSettings/AdvancedSettings'
 import Button from 'components/ui/button'
 import { FIELD_LABEL_CLASS, INPUT_CLASS } from 'components/ui/form-field'
+import { Tooltip, TooltipContent, TooltipTrigger } from 'components/ui/tooltip'
 import { Input } from 'components/ui/input'
 import HyloEditor from 'components/HyloEditor'
 import LocationInput from 'components/LocationInput/LocationInput'
@@ -26,6 +27,7 @@ import getFundingRound from 'store/selectors/getFundingRound'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getTrack from 'store/selectors/getTrack'
 import { groupRolesForPicker } from '@hylo/hooks/groupRoleHelpers'
+import { DEFAULT_BANNER } from 'store/models/Group'
 import { cn } from 'util/index'
 
 import FundingRoundSettingsFields from './FundingRoundSettingsFields'
@@ -424,6 +426,14 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
 
   const spaceStatus = space.status || 'published'
   const isFundingRoundLifecycle = ['submissions', 'discussion', 'voting', 'completed'].includes(spaceStatus)
+  const hasBanner = Boolean(bannerUrl && bannerUrl !== DEFAULT_BANNER)
+
+  /** Clear the banner locally; an empty value is persisted as a delete on save. */
+  const handleRemoveBanner = (event) => {
+    event.preventDefault()
+    event.stopPropagation()
+    setBannerUrl('')
+  }
 
   const panel = (
     <div className={inline ? 'flex flex-col' : 'bg-midground rounded-lg shadow-lg p-4 w-full max-w-md sm:max-w-[40rem] max-h-[85vh] flex flex-col'}>
@@ -436,9 +446,24 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
           className='w-full group'
         >
           <div
-            className={cn('relative w-full h-[20vh] flex flex-col items-center justify-center border-2 border-dashed border-foreground/50 rounded-lg shadow-md bg-cover bg-center bg-darkening/0 hover:bg-darkening/20 scale-1 hover:scale-105 transition-all cursor-pointer', { 'border-none': !!bannerUrl })}
-            style={{ backgroundImage: `url(${bannerUrl})` }}
+            className={cn('relative w-full h-[20vh] flex flex-col items-center justify-center border-2 border-dashed border-foreground/50 rounded-lg shadow-md bg-cover bg-center bg-darkening/0 hover:bg-darkening/20 scale-1 hover:scale-105 transition-all cursor-pointer', { 'border-none': hasBanner })}
+            style={hasBanner ? { backgroundImage: `url(${bannerUrl})` } : undefined}
           >
+            {hasBanner && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type='button'
+                    onClick={handleRemoveBanner}
+                    aria-label={t('Remove Banner')}
+                    className='absolute top-2 right-6 z-10 p-1.5 rounded-md bg-black/50 text-white opacity-0 group-hover:opacity-100 focus:opacity-100 hover:bg-destructive transition-all'
+                  >
+                    <Trash2 className='w-4 h-4' />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent className='z-[1200]'>{t('Remove Banner')}</TooltipContent>
+              </Tooltip>
+            )}
             <div className='flex items-center gap-2 rounded-lg bg-black/50 px-3 py-2 text-white opacity-60 group-hover:opacity-100 transition-opacity'>
               <ImagePlus className='w-4 h-4' />
               <span className='text-xs font-semibold'>{t('Set space banner')}</span>
