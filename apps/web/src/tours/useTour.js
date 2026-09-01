@@ -34,7 +34,7 @@ const offerKey = id => `hylo-tour-offers:${id}`
 // QA switch: visit any page with ?tourTest=true to make every tour act unseen
 // on every load (and ?tourTest=false to turn it off again). While on, nothing
 // is written to toursSeen or the offer counters, so real state is untouched.
-function isTourTestMode () {
+export function isTourTestMode () {
   try {
     const params = new URLSearchParams(window.location.search)
     if (params.get('tourTest') === 'true') {
@@ -62,7 +62,7 @@ function bumpOfferCount (id) {
 // Present in the DOM is not enough: on phones the nav rail and group menu are
 // mounted but off-canvas, and highlighting an off-screen anchor floats the
 // popover over whatever is actually visible
-function isAnchorVisible (element) {
+export function isAnchorVisible (element) {
   if (!element) return false
   if (typeof element.checkVisibility === 'function' &&
       !element.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })) {
@@ -77,7 +77,52 @@ function isAnchorVisible (element) {
   // Only horizontal off-canvas disqualifies (the phone nav slides sideways).
   // Vertically out-of-view elements are usually just scrolled past — the tour
   // scrolls each step into view when it highlights it
-  return rect.right > 0 && rect.left < viewportWidth
+  if (!(rect.right > 0 && rect.left < viewportWidth)) return false
+  // On-canvas is still not enough: a mounted surface can sit entirely under
+  // another one (the phone menu over the group's home view), and touring the
+  // covered surface makes no sense. Probe the anchor's visible center — the
+  // probe only proves anything while that point is inside the viewport, so
+  // scrolled-past anchors stay eligible per the note above
+  const viewportHeight = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0)
+  if (viewportHeight === 0) return true
+  const cx = (Math.max(rect.left, 0) + Math.min(rect.right, viewportWidth)) / 2
+  const cy = (Math.max(rect.top, 0) + Math.min(rect.bottom, viewportHeight)) / 2
+  if (cy <= 0 || cy >= viewportHeight) return true
+  const hit = document.elementFromPoint(cx, cy)
+  if (!hit) return true
+  return element.contains(hit) || hit.contains(element)
+}
+
+/**
+ * Runs a tour's steps through the shared driver.js setup. Steps whose anchor
+ * is absent or covered are dropped; with nothing left it returns null and
+ * nothing happens. Callers own persistence via onDestroyed.
+ */
+export function driveTour (steps, { onDestroyed } = {}) {
+  const presentSteps = steps.filter(step => !step.element || isAnchorVisible(document.querySelector(step.element)))
+  if (presentSteps.length === 0) return null
+  tourActive = true
+  const instance = driver({
+    showProgress: presentSteps.length > 1,
+    overlayOpacity: 0.6,
+    stagePadding: 6,
+    stageRadius: 10,
+    smoothScroll: true,
+    // Center each step's anchor — including inside nested scroll containers
+    // like modals, where driver's own in-view check can be fooled
+    onHighlightStarted: (element) => {
+      if (element && typeof element.scrollIntoView === 'function') {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' })
+      }
+    },
+    steps: presentSteps,
+    onDestroyed: () => {
+      tourActive = false
+      if (onDestroyed) onDestroyed()
+    }
+  })
+  instance.drive()
+  return instance
 }
 
 export default function useTour ({
@@ -126,31 +171,15 @@ export default function useTour ({
       driverRef.current.destroy()
       driverRef.current = null
     }
-    const presentSteps = steps.filter(step => !step.element || isAnchorVisible(document.querySelector(step.element)))
-    if (presentSteps.length === 0) return false
-    tourActive = true
-    driverRef.current = driver({
-      showProgress: presentSteps.length > 1,
-      overlayOpacity: 0.6,
-      stagePadding: 6,
-      stageRadius: 10,
-      smoothScroll: true,
-      // Center each step's anchor — including inside nested scroll containers
-      // like modals, where driver's own in-view check can be fooled
-      onHighlightStarted: (element) => {
-        if (element && typeof element.scrollIntoView === 'function') {
-          element.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' })
-        }
-      },
-      steps: presentSteps,
+    const instance = driveTour(steps, {
       // Closing early counts as seen: a dismissed tour must never chase the user
       onDestroyed: () => {
         driverRef.current = null
-        tourActive = false
         markSeen()
       }
     })
-    driverRef.current.drive()
+    if (!instance) return false
+    driverRef.current = instance
     return true
   }, [markSeen, steps])
 

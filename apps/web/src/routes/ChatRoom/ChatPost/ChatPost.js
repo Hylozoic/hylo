@@ -5,8 +5,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
-import ReactPlayer from 'react-player'
 import { useLongPress } from 'use-long-press'
+import isPlayableVideoUrl from 'util/isPlayableVideoUrl'
 import Avatar from 'components/Avatar'
 import ClickCatcher from 'components/ClickCatcher'
 import CardFileAttachments from 'components/CardFileAttachments'
@@ -92,7 +92,6 @@ export default function ChatPost ({
   const { parentGroupSlug, spaceSlug } = useGroupRouteOpts()
 
   const [editing, setEditing] = useState(false)
-  const [isVideo, setIsVideo] = useState()
   const [flaggingVisible, setFlaggingVisible] = useState(false)
   const [isLongPress, setIsLongPress] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
@@ -111,11 +110,8 @@ export default function ChatPost ({
 
   const groupIds = useMemo(() => postGroups.map(g => g.id), [postGroups])
 
-  useEffect(() => {
-    if (linkPreview?.url) {
-      setIsVideo(ReactPlayer.canPlay(linkPreview?.url))
-    }
-  }, [linkPreview?.url])
+  const previewUrl = linkPreview?.url || linkPreview?.ref?.url
+  const showFeaturedVideo = linkPreviewFeatured && isPlayableVideoUrl(previewUrl)
 
   // Measure rather than count characters: what matters is the height on screen,
   // which shifts with images, embeds and the reader's chosen stream width
@@ -143,7 +139,8 @@ export default function ChatPost ({
     // Don't open post details in these cases
     } else if (
       !editing &&
-      !(event.target.getAttribute('target') === '_blank') &&
+      // closest: the click often lands on an icon or span inside the link
+      !event.target.closest?.('a[target="_blank"]') &&
       !event.target.className.includes('image') &&
       !event.target.className.includes('icon-Smiley')
     ) {
@@ -460,18 +457,26 @@ export default function ChatPost ({
           delay={250}
           id='flag-tt'
         />
-        {linkPreview?.url && linkPreviewFeatured && isVideo && (
+        {showFeaturedVideo && (
           <div className='ml-[42px] mt-2 max-w-[calc(var(--chat-stream-width,750px)-50px)] overflow-hidden rounded-lg'>
-            <Feature url={linkPreview.url} />
+            <Feature url={previewUrl} />
           </div>
         )}
-        {linkPreview && !linkPreviewFeatured && (
-          <LinkPreview {...pick(['title', 'description', 'imageUrl', 'url'], linkPreview)} className='px-5 pb-[0.6rem] pl-[42px] block [&>div]:mb-0 max-w-[calc(var(--chat-stream-width,750px)-50px)]' />
+        {linkPreview && !showFeaturedVideo && (
+          <LinkPreview {...pick(['title', 'description', 'imageUrl', 'url'], linkPreview.ref || linkPreview)} className='px-5 pb-[0.6rem] pl-[42px] block [&>div]:mb-0 max-w-[calc(var(--chat-stream-width,750px)-50px)]' />
         )}
-        <CardImageAttachments attachments={post.attachments} isFlagged={isFlagged && !post.clickthrough} forChatPost />
-        {!isEmpty(fileAttachments) && (
-          <CardFileAttachments attachments={fileAttachments} />
-        )}
+        {/* Chat has no clickthrough affordance, so a flagged post's media stays
+            blurred like its text rather than honoring a clickthrough recorded
+            on another surface */}
+        {/* The wrapper makes empty space beside the attachments open the post,
+            like the header and text regions; tile clicks stop propagation and
+            open the lightbox instead */}
+        <div onClick={handleClick}>
+          <CardImageAttachments attachments={post.attachments} isFlagged={isFlagged} forChatPost />
+          {!isEmpty(fileAttachments) && (
+            <CardFileAttachments attachments={fileAttachments} className={cn({ 'blur-sm': isFlagged })} />
+          )}
+        </div>
         {((postReactions && postReactions.length > 0) || commentsTotal > 0) && (
           <div className='w-full flex flex-row items-center flex-wrap gap-1.5 pl-[42px] mt-1 mb-[2px]'>
             {postReactions && postReactions.length > 0 && (

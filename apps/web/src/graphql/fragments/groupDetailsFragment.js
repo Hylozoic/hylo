@@ -11,6 +11,7 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
   location
   memberCount
   openJoinRequestCount
+  openModerationActionCount
   stewardDescriptor
   stewardDescriptorPlural
   name

@@ -86,6 +86,14 @@
     (function () {
       var host = document.getElementById('hylo-boot-loader')
       if (!host) return
+      // Playwright sets navigator.webdriver. The overlay is outside #root at
+      // z-index 2000 and holds a 2.4s minimum show, so tests can assert on
+      // content underneath while screenshots still capture this splash.
+      if (navigator.webdriver) {
+        host.parentNode.removeChild(host)
+        window.HyloBootLoader = { milestone: function () {}, ready: function () {} }
+        return
+      }
       var NS = 'http://www.w3.org/2000/svg'
       var NODES = [[77.9657, 14.5829], [141.347, 51.7376], [141.347, 126.048], [77.9657, 163.202], [14.5829, 126.048], [14.5829, 51.7376]]
       var R = 12.0829, TRIM = 12.35, ORDER = [3, 2, 1, 0, 5, 4]

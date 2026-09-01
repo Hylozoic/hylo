@@ -21,6 +21,7 @@ export default function createPost (postParams) {
     imageUrls,
     linkPreview,
     linkPreviewFeatured,
+    skipLinkPreview,
     localId,
     location,
     locationId,
@@ -70,6 +71,7 @@ export default function createPost (postParams) {
         markAsReadTopicName,
         linkPreviewId,
         linkPreviewFeatured,
+        skipLinkPreview,
         localId: localId || uniqueId('post_'), // to match the optimistically created post and replace it with the real one
         location,
         locationId,

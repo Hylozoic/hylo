@@ -108,7 +108,7 @@ export default function Login (props) {
       <Helmet>
         <title>{t('Sign in to Hylo')}</title>
       </Helmet>
-      <div className='bg-card shadow-md rounded-md w-full max-w-[320px] mx-auto'>
+      <div className='bg-midground shadow-md rounded-md w-full max-w-[320px] mx-auto'>
         <div className='flex flex-col gap-2 p-4'>
           <h1 className='text-2xl font-bold mb-4 text-foreground text-center'>{t('Sign in to Hylo')}</h1>
 
@@ -120,7 +120,7 @@ export default function Login (props) {
             internalLabel={t('Email')}
             onChange={handleEmailChange}
             doCheckAutofill
-            className='bg-input rounded-md mb-3'
+            className='bg-card border-2 border-foreground/20 rounded-md mb-3'
             inputClassName='p-4 autofill:text-foreground text-foreground autofill:bg-transparent w-full bg-transparent rounded-md'
             type='email'
             value={email || ''}
@@ -132,7 +132,7 @@ export default function Login (props) {
             onChange={handlePasswordChange}
             doCheckAutofill
             onEnter={handleLogin}
-            className='bg-input rounded-md mb-3'
+            className='bg-card border-2 border-foreground/20 rounded-md mb-3'
             inputClassName='p-4 autofill:text-foreground text-foreground autofill:bg-transparent w-full bg-transparent rounded-md'
             type='password'
             value={password || ''}

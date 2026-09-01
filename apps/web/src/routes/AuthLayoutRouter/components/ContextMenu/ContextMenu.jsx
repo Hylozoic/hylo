@@ -1,6 +1,6 @@
 import { isDrawerNavLayout, isPhoneDevice } from 'util/mobile'
 import { get } from 'lodash/fp'
-import { CircleEllipsis, Info, Pencil, Settings, UserPlus, Users } from 'lucide-react'
+import { CircleEllipsis, Info, Pencil, Settings, ShieldCheck, UserPlus, Users } from 'lucide-react'
 import React, { useEffect, useCallback, useState, useMemo } from 'react'
 import { Link, useLocation, useNavigate, Routes, Route } from 'react-router-dom'
 import { replace } from 'redux-first-history'
@@ -42,7 +42,7 @@ import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import logout from 'store/actions/logout'
-import { FETCH_GROUP_VIEWS, RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
+import { FETCH_GROUP_VIEWS, RESP_ADD_MEMBERS, RESP_ADMINISTRATION, RESP_MANAGE_CONTENT } from 'store/constants'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
 import getMyMemberships from 'store/selectors/getMyMemberships'
@@ -875,6 +875,54 @@ export default function ContextMenu (props) {
       )
     : null
 
+  // Unresolved flags need steward eyes just like join requests do
+  const canModerate = useSelector(state => hasResponsibilityForGroup(state, {
+    responsibility: RESP_MANAGE_CONTENT,
+    groupId: joinRequestTargetGroup?.id
+  }))
+  const moderationCount = joinRequestTargetGroup?.openModerationActionCount || 0
+  const moderationLink = showingSpaceMenu && spaceSlug
+    ? spaceUrl(groupSlug, spaceSlug, 'about/moderation')
+    : (group?.slug ? groupUrl(group.slug, 'about/moderation') : null)
+  const moderationSection = isGroupContext && moderationLink && canModerate && moderationCount > 0
+    ? (
+      <div className='px-1.5 pb-2 border-t border-foreground/10 pt-2'>
+        {isEditing
+          ? (
+            <div
+              className='flex items-center gap-2 text-base font-medium text-foreground/40 border-2 border-transparent rounded-md p-1 pl-2 w-full cursor-not-allowed opacity-60'
+              aria-disabled='true'
+            >
+              <ShieldCheck className='w-4 h-4 shrink-0' />
+              <span>{t('Moderation')}</span>
+            </div>
+            )
+          : (
+            <MenuLink
+              to={moderationLink}
+              badgeCount={moderationCount}
+              className='flex items-center gap-2 text-base font-medium text-foreground hover:text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 pr-8 w-full transition-all opacity-85 hover:opacity-100'
+            >
+              <ShieldCheck className='w-4 h-4 shrink-0' />
+              <span>{t('Moderation')}</span>
+            </MenuLink>
+            )}
+      </div>
+      )
+    : null
+
+  // Sticky: pending flags and join requests must be visible even when the menu
+  // is scrolled — the rows pin (stacked, moderation above) at the bottom of the
+  // viewport until their natural slot above More Spaces comes into view
+  const stickyAlertsSection = (moderationSection || joinRequestsSection)
+    ? (
+      <div className='mt-auto sticky bottom-0 z-30 bg-background/95 backdrop-blur-sm'>
+        {moderationSection}
+        {joinRequestsSection}
+      </div>
+      )
+    : null
+
   // Hidden when there is nothing behind it, and while editing a space menu —
   // spaces cannot nest spaces. Stays clickable in the group Edit Menu so
   // mobile can open the page; desktop group Edit Menu is already there,
@@ -930,11 +978,15 @@ export default function ContextMenu (props) {
     : null
 
   const menuFooter = (
-    <div className='mt-auto'>
-      {joinRequestsSection}
-      {moreSpacesSection}
-      {editMenuButton}
-    </div>
+    <>
+      {stickyAlertsSection}
+      {/* When the sticky alerts exist they carry the mt-auto (they must be a
+          direct flex child for their sticky pinning to span the whole card) */}
+      <div className={stickyAlertsSection ? undefined : 'mt-auto'}>
+        {moreSpacesSection}
+        {editMenuButton}
+      </div>
+    </>
   )
 
   // Simple groups don't use the vertical widget context menu — their home dashboard
@@ -1073,7 +1125,7 @@ export default function ContextMenu (props) {
                   {/* Where the X used to sit: this space's notification settings */}
                   <div
                     className={cn(
-                      'relative z-10 self-start m-2 p-1 rounded-md backdrop-blur-sm transition-colors',
+                      'relative z-10 self-start m-2 flex items-center justify-center p-1 leading-none rounded-md backdrop-blur-sm transition-colors',
                       activeSpaceBannerUrl
                         ? 'bg-black/25 text-white/90 hover:bg-black/40 hover:text-white'
                         : 'bg-foreground/10 text-foreground/70 hover:bg-foreground/20 hover:text-foreground dark:text-white/80 dark:hover:text-white'

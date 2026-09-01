@@ -365,6 +365,7 @@ function Members (props) {
               aria-pressed={showSkillMap}
               aria-label={t('Skill map')}
               title={t('Skill map')}
+              data-testid='skill-map-toggle'
               className={cn(
                 'flex items-center gap-1.5 rounded-lg border-2 border-foreground/20 px-2.5 py-[10px] text-sm leading-4 transition-colors',
                 showSkillMap ? 'bg-selected text-foreground' : 'text-foreground/60 hover:text-foreground hover:bg-foreground/5'

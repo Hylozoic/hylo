@@ -48,7 +48,7 @@ export default function Agreements () {
   }
 
   return (
-    <div className='bg-card shadow-md rounded-md w-[320px] md:w-[640px] max-h-[70vh] flex flex-col mt-20'>
+    <div className='bg-midground shadow-md rounded-md w-[320px] md:w-[640px] max-h-[70vh] flex flex-col mt-20'>
       <div className='relative flex-1 overflow-y-auto'>
         <Icon
           name='Ex'
@@ -96,7 +96,7 @@ export default function Agreements () {
         </div>
       </div>
 
-      <div className='p-6 border-t border-foreground/10 bg-card rounded-b-md'>
+      <div className='p-6 border-t border-foreground/10 bg-midground rounded-b-md'>
         <div className='space-y-4'>
           <div className='flex items-start gap-3'>
             <Checkbox

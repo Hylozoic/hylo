@@ -44,6 +44,8 @@ import {
   CARD_FADE_CLASS,
   CARD_FILL_CLASS,
   CARD_TITLE_CLASS,
+  CARD_TILE_CLASS,
+  CARD_LABEL_TOP_CLASS,
   CARD_W,
   CARD_H
 } from './viewCardTheme'
@@ -314,7 +316,7 @@ export const AddCard = React.forwardRef(function AddCard ({ onClick, label, clas
       {...props}
     >
       {/* The tile keeps its weight so the target still reads while the card outline recedes */}
-      <span className='w-14 h-14 rounded-[15px] grid place-items-center border-2 border-dashed border-foreground/25'>
+      <span className={cn(CARD_TILE_CLASS, 'grid place-items-center border-2 border-dashed border-foreground/25')}>
         <Plus className='w-6 h-6' />
       </span>
       <span className={cn(CARD_TITLE_CLASS, 'px-3')}>{label}</span>
@@ -407,7 +409,7 @@ function GroupViewCard ({
 
   const iconTile = (
     <div
-      className='w-14 h-14 rounded-[15px] overflow-hidden grid place-items-center shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.35)]'
+      className={cn(CARD_TILE_CLASS, 'overflow-hidden grid place-items-center shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.35)]')}
       style={presented.avatarUrl
         ? { border: '1px solid hsl(0 0% 100% / 0.28)' }
         : onPhoto
@@ -517,7 +519,7 @@ function GroupViewCard ({
         <div className='absolute inset-0 grid place-items-center'>
           {iconTile}
         </div>
-        <div className='absolute left-0 right-0 top-[calc(50%+28px)] bottom-0 flex flex-col items-center justify-center text-center px-3'>
+        <div className={cn(CARD_LABEL_TOP_CLASS, 'absolute left-0 right-0 bottom-0 flex flex-col items-center justify-center text-center px-3')}>
           {label}
         </div>
       </div>
@@ -694,7 +696,7 @@ export function SpaceViewCard ({
       <div className='relative h-full'>
         <div className='absolute inset-0 grid place-items-center'>
           <div
-            className={cn('w-14 h-14 rounded-[15px] overflow-hidden grid place-items-center shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.35)]', onLightSurface ? 'text-foreground/80' : 'text-white')}
+            className={cn(CARD_TILE_CLASS, 'overflow-hidden grid place-items-center shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.35)]', onLightSurface ? 'text-foreground/80' : 'text-white')}
             style={space.avatarUrl
               ? { border: '1px solid hsl(0 0% 100% / 0.28)' }
               : onLightSurface
@@ -709,7 +711,7 @@ export function SpaceViewCard ({
                 : <div className={cn('w-7 h-7 rounded-full', onLightSurface ? 'bg-black/15' : 'bg-white/20')} />}
           </div>
         </div>
-        <div className='absolute left-0 right-0 top-[calc(50%+28px)] bottom-0 flex flex-col items-center justify-center text-center px-3'>
+        <div className={cn(CARD_LABEL_TOP_CLASS, 'absolute left-0 right-0 bottom-0 flex flex-col items-center justify-center text-center px-3')}>
           <TruncatedText as='h3' className={cn(CARD_TITLE_CLASS, onLightSurface ? 'text-foreground' : 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]')} text={space.name} />
           {(space.isDraft || space.status === 'draft') && (
             <span className={cn('text-[10.5px] font-semibold mt-1', onLightSurface ? 'text-foreground/60' : 'text-white/70 [text-shadow:0_1px_4px_rgba(0,0,0,0.6)]')}>{t('Draft')}</span>

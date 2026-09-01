@@ -721,7 +721,9 @@ export default function AuthLayoutRouter (props) {
   // after initial page load to let critical requests complete first.
   // Disabled for users with more than MENU_PRELOAD_MAX_MEMBERSHIPS memberships
   // (includes space memberships) to avoid overwhelming the backend.
+  // Isolated E2E skips this: four workers each preloading nested spaces OOMs one Sails process.
   useEffect(() => {
+    if (import.meta.env.VITE_E2E_ISOLATED === '1') return
     if (currentUserLoading) return
     if (memberships.length === 0 || memberships.length > MENU_PRELOAD_MAX_MEMBERSHIPS) return
     if (!membershipGroupIdsKey) return

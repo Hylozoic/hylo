@@ -1053,10 +1053,10 @@ describe('Post', function () {
       }).save()
       track = await Track.create({
         name: 'Test Track',
-        published_at: new Date(),
         completion_role_id: completionRole.id,
         group_id: space.id
       })
+      await space.save({ status: 'published' }, { patch: true })
       await space.save({ track_id: track.id }, { patch: true })
       await Group.setupSpaceViews(space.id, ['action'], ['track-actions', 'members', 'welcome'])
       a1 = await factories.post({ type: Post.Type.ACTION, user_id: trackManager.id }).save()

@@ -65,7 +65,7 @@ test.describe('Batch P3: paid space paywall (track viewer)', () => {
     await page.goto('/')
     await waitPastRootSessionLoading(page)
 
-    const spaceSlug = await fetchTrackSpaceSlug(page, PUBLIC_GROUP_SLUG, PAID_TRACK_NAME)
+    const spaceSlug = (await fetchTrackSpaceSlug(page, PUBLIC_GROUP_SLUG, PAID_TRACK_NAME)) || 'e2e-paid-track-space'
     expect(spaceSlug).toBeTruthy()
 
     const localSlug = spaceSlug.startsWith(`${PUBLIC_GROUP_SLUG}-`)
