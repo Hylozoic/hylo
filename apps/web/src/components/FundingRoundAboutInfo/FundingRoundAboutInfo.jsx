@@ -123,7 +123,8 @@ export default function FundingRoundAboutInfo ({ fundingRoundId, roleGroupId }) 
       )}
 
       <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
-        <Info label={t('Budget Required')} value={round.requireBudget ? t('Yes') : t('No')} />
+        <Info label={t('Show Budget Field')} value={round.requireBudget ? t('Yes') : t('No')} />
+        <Info label={t('Show real-time votes')} value={round.showRealtimeVotes ? t('Yes') : t('No')} />
         <Info label={t('Voting Method')} value={votingMethodLabel} />
         <Info label={t('Token Type')} value={round.tokenType} />
         <Info

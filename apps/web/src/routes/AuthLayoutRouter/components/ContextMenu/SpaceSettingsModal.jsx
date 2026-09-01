@@ -164,6 +164,8 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
   const [frAllowSelfVoting, setFrAllowSelfVoting] = useState(!!fundingRound?.allowSelfVoting)
   const [frAllowLateJoiners, setFrAllowLateJoiners] = useState(!!fundingRound?.allowLateJoiners)
   const [frHideFinalResults, setFrHideFinalResults] = useState(!!fundingRound?.hideFinalResultsFromParticipants)
+  const [frRequireBudget, setFrRequireBudget] = useState(!!fundingRound?.requireBudget)
+  const [frShowRealtimeVotes, setFrShowRealtimeVotes] = useState(!!fundingRound?.showRealtimeVotes)
   const [frSubmissionDescriptor, setFrSubmissionDescriptor] = useState(fundingRound?.submissionDescriptor || 'Submission')
   const [frSubmissionDescriptorPlural, setFrSubmissionDescriptorPlural] = useState(fundingRound?.submissionDescriptorPlural || 'Submissions')
   const [frSubmitterRoles, setFrSubmitterRoles] = useState(fundingRound?.submitterRoles || [])
@@ -244,6 +246,8 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
     setFrAllowSelfVoting(!!fundingRound.allowSelfVoting)
     setFrAllowLateJoiners(!!fundingRound.allowLateJoiners)
     setFrHideFinalResults(!!fundingRound.hideFinalResultsFromParticipants)
+    setFrRequireBudget(!!fundingRound.requireBudget)
+    setFrShowRealtimeVotes(!!fundingRound.showRealtimeVotes)
     setFrSubmitterRoles(fundingRound.submitterRoles || [])
     setFrVoterRoles(fundingRound.voterRoles || [])
     // Full round object is read when roundIsFull flips; avoid depending on the selector's new object each render.
@@ -342,6 +346,8 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
           allowSelfVoting: frAllowSelfVoting,
           allowLateJoiners: frAllowLateJoiners,
           hideFinalResultsFromParticipants: frHideFinalResults,
+          requireBudget: frRequireBudget,
+          showRealtimeVotes: frShowRealtimeVotes,
           submissionDescriptor: frSubmissionDescriptor,
           submissionDescriptorPlural: frSubmissionDescriptorPlural,
           submitterRoles: frSubmitterRoles,
@@ -593,6 +599,10 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
             setAllowLateJoiners={setFrAllowLateJoiners}
             hideFinalResults={frHideFinalResults}
             setHideFinalResults={setFrHideFinalResults}
+            requireBudget={frRequireBudget}
+            setRequireBudget={setFrRequireBudget}
+            showRealtimeVotes={frShowRealtimeVotes}
+            setShowRealtimeVotes={setFrShowRealtimeVotes}
             submitterRoles={frSubmitterRoles}
             setSubmitterRoles={setFrSubmitterRoles}
             voterRoles={frVoterRoles}

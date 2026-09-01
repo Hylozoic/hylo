@@ -2998,6 +2998,8 @@ type FundingRound {
   phase: FundingRoundPhase
   # Whether a budget is required for submissions
   requireBudget: Boolean
+  # Whether to show running vote totals during the voting phase
+  showRealtimeVotes: Boolean
   # The term used to describe a submission to the round
   submissionDescriptor: String
   # # The plural term used to describe submissions to the round
@@ -4477,6 +4479,8 @@ input FundingRoundInput {
   minTokenAllocation: Int
   # Whether a budget is required for submissions
   requireBudget: Boolean
+  # Whether to show running vote totals during the voting phase
+  showRealtimeVotes: Boolean
   # The term used to describe a submission to the round
   submissionDescriptor: String
   # # The plural term used to describe submissions to the round
