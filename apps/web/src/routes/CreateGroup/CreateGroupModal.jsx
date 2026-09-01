@@ -28,23 +28,26 @@ export default function CreateGroupModal () {
     if (!open) close()
   }, [close])
 
-  // The Filestack picker renders on <body>, so Radix reads clicks inside it as
-  // clicks outside the dialog and would close the form mid-upload.
-  const keepOpenForFilestack = useCallback(event => {
+  // Filestack and Add View / Welcome overlays portal to <body>. A modal dialog
+  // would treat them as outside and steal focus (the Welcome editor cannot type).
+  const keepOpenForExternalOverlays = useCallback(event => {
     const target = event.detail?.originalEvent?.target || event.target
-    if (target?.closest?.('[class^="fsp-"], [class*=" fsp-"]')) event.preventDefault()
+    if (target?.closest?.('[class^="fsp-"], [class*=" fsp-"], [data-hylo-nested-dialog]')) {
+      event.preventDefault()
+    }
   }, [])
 
   if (!isOpen) return null
 
   return (
-    <Dialog open onOpenChange={handleOpenChange}>
+    <Dialog modal={false} open onOpenChange={handleOpenChange}>
       <DialogContent
+        overlayAsDiv
         className='w-[calc(100vw-2rem)] max-w-[620px] max-h-[calc(100vh-5rem)] p-0 gap-0 rounded-2xl flex flex-col [&>button:last-child]:top-4 [&>button:last-child]:right-4'
         onOpenAutoFocus={event => event.preventDefault()}
-        onPointerDownOutside={keepOpenForFilestack}
-        onInteractOutside={keepOpenForFilestack}
-        onFocusOutside={keepOpenForFilestack}
+        onPointerDownOutside={keepOpenForExternalOverlays}
+        onInteractOutside={keepOpenForExternalOverlays}
+        onFocusOutside={keepOpenForExternalOverlays}
       >
         <div className='flex items-center gap-2 h-12 px-4 border-b border-foreground/10 shrink-0'>
           <Users className='w-5 h-5 text-selected shrink-0' />

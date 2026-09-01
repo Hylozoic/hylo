@@ -1166,27 +1166,32 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       // Set new join questions in the ORM
       if (payload.data.updateGroupSettings && (payload.data.updateGroupSettings.joinQuestions || payload.data.updateGroupSettings.prerequisiteGroups)) {
         group = Group.withId(meta.id)
-        clearCacheFor(Group, meta.id)
+        if (group) clearCacheFor(Group, meta.id)
       }
 
-      if (payload.data.updateGroupSettings && (payload.data.updateGroupSettings.agreements)) {
-        // Optimistically update the agreementsAcceptedAt setting, so the person adding the agreements doesnt have to immediately accept them
+      // Optimistically update the agreementsAcceptedAt setting, so the person adding the agreements doesnt have to immediately accept them.
+      // The query always returns agreements, so only do this when they were actually edited.
+      if (meta.changes?.agreements) {
         me = Me.first()
-        membership = Membership.safeGet({ group: meta.id, person: me.id })
-        const newSettings = {
-          ...membership.settings,
-          agreementsAcceptedAt: new Date()
+        membership = me ? Membership.safeGet({ group: meta.id, person: me.id }) : null
+        if (membership) {
+          membership.update({
+            settings: {
+              ...membership.settings,
+              agreementsAcceptedAt: new Date()
+            }
+          })
         }
-        membership.update({ settings: newSettings })
 
         group = Group.withId(meta.id)
-        clearCacheFor(Group, meta.id)
+        if (group) clearCacheFor(Group, meta.id)
       }
       break
     }
 
     case UPDATE_GROUP_SETTINGS_PENDING: {
       group = Group.withId(meta.id)
+      if (!group) break
       const { settings: settingsChanges, ...otherChanges } = meta.changes || {}
       group.update({
         ...otherChanges,
@@ -1198,8 +1203,10 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       // Clear out prerequisiteGroups so they can be reset when the UPDATE completes
       group.update({ prerequisiteGroups: [] })
 
-      // Triggers an update to redux-orm for the membership
-      membership = Membership.safeGet({ group: meta.id, person: me.id }).update({ forceUpdate: new Date() })
+      // Triggers an update to redux-orm for the membership. Newly created spaces
+      // (e.g. track/funding-round) may not have a membership in the ORM yet.
+      membership = me ? Membership.safeGet({ group: meta.id, person: me.id }) : null
+      if (membership) membership.update({ forceUpdate: new Date() })
       break
     }
 

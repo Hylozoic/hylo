@@ -727,7 +727,8 @@ export default function ContextMenu (props) {
     activeSpaceGroup &&
     myMemberships.some(m => m.group.id === activeSpaceGroup.id)
   )
-  // Ordered single-view spaces stay in the group menu; multi-view and off-menu spaces drill in.
+  // Ordered single-view spaces stay in the group menu; multi-view and off-menu
+  // spaces drill in. Edit mode also drills in so a single-view space can gain views.
   const spaceMenuViewsFromStore = useGroupViews(activeSpaceGroup)
   const activeSpaceHasMultipleViews = useMemo(() => {
     if (!activeSpaceGroup) return false
@@ -743,7 +744,7 @@ export default function ContextMenu (props) {
     isGroupContext &&
     activeSpaceGroup &&
     (isSpaceMember || (isMoreSpacesPath && canAdminister)) &&
-    (activeSpaceHasMultipleViews || (isMoreSpacesPath && spaceSlug))
+    (activeSpaceHasMultipleViews || isEditing || (isMoreSpacesPath && spaceSlug))
   )
   const spaceMenuViews = useMemo(() => {
     if (!showingSpaceMenu) return []
@@ -1054,7 +1055,8 @@ export default function ContextMenu (props) {
           <div className='ContextDetails w-full relative z-10'>
             {isGroupContext
             /* Duck only when the space really takes the menu over (its own
-               header below) — single-view in-menu spaces stay in the group list */
+               header below) — single-view in-menu spaces stay in the group list
+               unless edit mode has drilled into that space's menu */
               ? (
                 <GroupMenuHeader
                   group={group}

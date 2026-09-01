@@ -76,6 +76,40 @@ test.describe('Create Group modal', () => {
     await expect(page).toHaveURL(/\/public\/all$/)
   })
 
+  test('adding Welcome from the menu toggles the Welcome pill on, and removing it toggles it off', async ({ page }) => {
+    const dialog = await openCreateGroup(page, '/public/all?createGroup=true')
+
+    const welcomePill = dialog.getByRole('button', { name: 'Welcome', exact: true })
+    await expect(welcomePill).toHaveAttribute('aria-pressed', 'false')
+
+    await dialog.getByRole('button', { name: 'Edit Menu' }).click()
+    await dialog.getByRole('button', { name: 'Add View' }).click()
+
+    const addViewDialog = page.getByRole('dialog', { name: 'Add View' })
+    await addViewDialog.getByRole('button', { name: /Welcome/ }).click()
+    await addViewDialog.getByRole('button', { name: 'Next' }).click()
+
+    const welcomePage = page.locator('h2', { hasText: 'Welcome Page' }).locator('..')
+    await welcomePage.getByRole('button', { name: 'Add View' }).click()
+
+    await expect(welcomePill).toHaveAttribute('aria-pressed', 'true')
+    await expect(dialog.locator('[data-advanced-key="welcome"]')).toBeVisible()
+    const menuPanel = dialog.locator('[data-advanced-key="views"]')
+    await expect(menuPanel.getByText('Welcome', { exact: true })).toBeVisible()
+
+    await welcomePill.click()
+    await expect(welcomePill).toHaveAttribute('aria-pressed', 'false')
+    await expect(menuPanel.getByText('Welcome', { exact: true })).toHaveCount(0)
+
+    await welcomePill.click()
+    await expect(welcomePill).toHaveAttribute('aria-pressed', 'true')
+    await expect(menuPanel.getByText('Welcome', { exact: true })).toBeVisible()
+
+    await menuPanel.locator('li').filter({ hasText: /^Welcome/ }).getByRole('button', { name: 'Remove view' }).click()
+    await expect(welcomePill).toHaveAttribute('aria-pressed', 'false')
+    await expect(dialog.locator('[data-advanced-key="welcome"]')).toHaveCount(0)
+  })
+
   test('still renders as a standalone page', async ({ page }) => {
     await page.goto('/create-group')
     await expect(page.locator('#groupName')).toBeVisible({ timeout: 60000 })

@@ -137,8 +137,8 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
   const completionMessageEditorRef = useRef(null)
 
   const accessOptions = useMemo(
-    () => accessOptionsForGroup(parentGroup, { includePaid: Boolean(space?.paywall) }),
-    [parentGroup, space?.paywall]
+    () => accessOptionsForGroup(parentGroup),
+    [parentGroup]
   )
 
   const accessSelectOptions = useMemo(
@@ -146,7 +146,9 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
       value: option.value,
       icon: option.icon,
       title: option.labelKey,
-      description: option.descKey
+      description: option.descKey,
+      disabled: option.disabled,
+      disabledTooltip: option.disabledTooltipKey
     })),
     [accessOptions]
   )

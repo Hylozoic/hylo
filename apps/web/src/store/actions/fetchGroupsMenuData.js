@@ -69,6 +69,10 @@ query FetchGroupsMenuData (
       acceptedPostTypes
       memberCount
       paywall
+      stripeAccountId
+      stripeChargesEnabled
+      stripePayoutsEnabled
+      stripeDetailsSubmitted
       settings {
         allowGroupInvites
         showWelcomePage

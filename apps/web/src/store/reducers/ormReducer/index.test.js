@@ -23,6 +23,7 @@ import {
   UPDATE_ALL_MEMBERSHIP_SETTINGS_PENDING
 } from 'routes/UserSettings/UserSettings.store'
 import {
+  UPDATE_GROUP_SETTINGS,
   UPDATE_GROUP_SETTINGS_PENDING
 } from 'routes/GroupSettings/GroupSettings.store'
 import {
@@ -336,6 +337,65 @@ describe('on UPDATE_GROUP_SETTINGS_PENDING', () => {
       showWelcomePage: false,
       showSuggestedSkills: true
     })
+  })
+
+  it('updates a newly created space that has no membership in the ORM yet', () => {
+    const newSpaceSession = orm.session(orm.getEmptyState())
+    newSpaceSession.Me.create({ id: '1' })
+    const newSpace = newSpaceSession.Group.create({
+      id: '99',
+      name: 'New Track Space',
+      settings: {}
+    })
+
+    const action = {
+      type: UPDATE_GROUP_SETTINGS_PENDING,
+      meta: {
+        id: newSpace.id,
+        changes: {
+          settings: {
+            showWelcomePage: true
+          }
+        }
+      }
+    }
+
+    const newState = ormReducer(newSpaceSession.state, action)
+    const resultSession = orm.session(newState)
+    expect(resultSession.Group.withId('99').settings.showWelcomePage).toEqual(true)
+  })
+})
+
+describe('on UPDATE_GROUP_SETTINGS', () => {
+  it('does not crash when the query returns agreements but the space has no membership yet', () => {
+    const newSpaceSession = orm.session(orm.getEmptyState())
+    newSpaceSession.Me.create({ id: '1' })
+    newSpaceSession.Group.create({
+      id: '99',
+      name: 'New Track Space',
+      settings: { showWelcomePage: true }
+    })
+
+    const action = {
+      type: UPDATE_GROUP_SETTINGS,
+      payload: {
+        data: {
+          updateGroupSettings: {
+            id: '99',
+            settings: { showWelcomePage: true },
+            agreements: { items: [] }
+          }
+        }
+      },
+      meta: {
+        id: '99',
+        changes: {
+          settings: { showWelcomePage: true }
+        }
+      }
+    }
+
+    expect(() => ormReducer(newSpaceSession.state, action)).not.toThrow()
   })
 })
 

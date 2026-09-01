@@ -50,9 +50,10 @@ test('space modals carry the group creation form treatment', async ({ page }) =>
   expect(Math.abs(firstBox.y - searchBox.y)).toBeLessThan(4)
   await page.screenshot({ path: shot('1-create-wide') })
 
-  // Access dropdown opens with the group-modal option list
+  // Access dropdown opens with the group-modal option list, including Paid
   await page.getByRole('button', { name: 'Access' }).click()
   await expect(page.getByRole('button', { name: 'Role Gated' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Paid' })).toBeVisible()
   await page.screenshot({ path: shot('2-create-access-open'), animations: 'disabled' })
 
   // Role Gated selection reveals the role picker under the row
@@ -129,4 +130,45 @@ test('space modals carry the group creation form treatment', async ({ page }) =>
 
   console.log('WIDE ICON COUNT SAMPLE:', wideCount, 'NARROW BOXES:', JSON.stringify({ narrowFirst }))
   expect(pageErrors, `page errors: ${pageErrors.join('; ')}`).toHaveLength(0)
+})
+
+test('adding Welcome from the menu toggles the Welcome pill on, and removing it toggles it off', async ({ page }) => {
+  test.skip(test.info().project.name !== 'chromium', 'desktop-only interaction check')
+
+  await page.goto(`/groups/${GROUP}/more-spaces?edit=true`)
+  await waitPastRootSessionLoading(page)
+  await page.waitForLoadState('networkidle')
+
+  await page.locator('#center-column-container').getByRole('button', { name: 'Add to More Spaces' }).click()
+  await expect(page.locator('h2', { hasText: /Create a new space in/ })).toBeVisible({ timeout: 20000 })
+
+  const welcomePill = page.getByRole('button', { name: 'Welcome', exact: true })
+  await expect(welcomePill).toHaveAttribute('aria-pressed', 'false')
+
+  await page.getByRole('button', { name: 'Edit Menu' }).click()
+  await page.locator('[data-advanced-key="views"]').getByRole('button', { name: 'Add View' }).click()
+
+  const addViewDialog = page.getByRole('dialog', { name: 'Add View' })
+  await addViewDialog.getByRole('button', { name: /Welcome/ }).click()
+  await addViewDialog.getByRole('button', { name: 'Next' }).click()
+
+  const welcomePage = page.locator('h2', { hasText: 'Welcome Page' }).locator('..')
+  await welcomePage.getByRole('button', { name: 'Add View' }).click()
+
+  await expect(welcomePill).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.locator('[data-advanced-key="welcome"]')).toBeVisible()
+  const menuPanel = page.locator('[data-advanced-key="views"]')
+  await expect(menuPanel.getByText('Welcome', { exact: true })).toBeVisible()
+
+  await welcomePill.click()
+  await expect(welcomePill).toHaveAttribute('aria-pressed', 'false')
+  await expect(menuPanel.getByText('Welcome', { exact: true })).toHaveCount(0)
+
+  await welcomePill.click()
+  await expect(welcomePill).toHaveAttribute('aria-pressed', 'true')
+  await expect(menuPanel.getByText('Welcome', { exact: true })).toBeVisible()
+
+  await menuPanel.locator('li').filter({ hasText: /^Welcome/ }).getByRole('button', { name: 'Remove view' }).click()
+  await expect(welcomePill).toHaveAttribute('aria-pressed', 'false')
+  await expect(page.locator('[data-advanced-key="welcome"]')).toHaveCount(0)
 })
