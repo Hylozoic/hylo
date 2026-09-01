@@ -7,16 +7,14 @@
  * - Access renders as the group creation modal's SettingSelectRow dropdown
  */
 import { test, expect } from '@playwright/test'
-import dotenv from 'dotenv'
 import fs from 'fs'
 import path from 'path'
-
-dotenv.config({ path: path.resolve(import.meta.dirname, '../.env') })
+import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading.js'
 
 const screenshotDir = path.resolve(import.meta.dirname, 'screenshots')
-const GROUP = 'building-hylo'
+const GROUP = 'e2e-public-group'
 
-test.use({ storageState: { cookies: [], origins: [] } })
+test.use({ storageState: 'e2e/.auth/session.json' })
 test.setTimeout(240000)
 
 function shot (name) {
@@ -30,14 +28,8 @@ test('space modals carry the group creation form treatment', async ({ page }) =>
   const pageErrors = []
   page.on('pageerror', err => pageErrors.push(String(err)))
 
-  await page.goto('/login')
-  await expect(page.getByLabel('email')).toBeVisible({ timeout: 180000 })
-  await page.getByLabel('email').fill(process.env.E2E_TEST_USERNAME)
-  await page.getByLabel('password', { exact: true }).fill(process.env.E2E_TEST_PASSWORD)
-  await page.getByRole('button', { name: /sign\s*in/i }).click()
-  await expect(page.locator('#center-column-container')).toBeVisible({ timeout: 120000 })
-
   await page.goto(`/groups/${GROUP}/more-spaces?edit=true`)
+  await waitPastRootSessionLoading(page)
   await page.waitForLoadState('networkidle')
 
   // ---- Create modal ----
@@ -49,7 +41,7 @@ test('space modals carry the group creation form treatment', async ({ page }) =>
   const searchIcons = page.getByRole('button', { name: 'Search Icons' })
   await expect(searchIcons).toBeVisible()
   await expect(page.getByText('Handle', { exact: true })).toBeVisible()
-  await expect(page.locator('text=hylo.com/groups/building-hylo/spaces/')).toBeVisible()
+  await expect(page.locator('text=hylo.com/groups/e2e-public-group/spaces/')).toBeVisible()
 
   // Icon suggestions all sit on one line: same vertical position as the picker button
   const iconButtons = page.locator('button[aria-label="Circle"], button[aria-label="Globe"]')

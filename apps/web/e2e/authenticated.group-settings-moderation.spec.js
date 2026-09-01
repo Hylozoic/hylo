@@ -23,14 +23,18 @@ function groupPath (slug, rest) {
 }
 
 test.describe('Batch I: group settings', () => {
-  test('GET …/settings loads default Settings tab', async ({ page }) => {
+  test('GET …/settings loads default Settings tab', async ({ page }, testInfo) => {
     await page.goto(groupPath(PUBLIC_GROUP_SLUG, '/settings'))
     await waitPastRootSessionLoading(page)
     await expect(page).toHaveURL(new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/settings/?$`), navTimeout)
     await expect(page.locator('#center-column')).toBeVisible(uiTimeout)
-    await expect(
-      page.getByRole('heading', { name: /Default notification settings/i })
-    ).toBeVisible(uiTimeout)
+    if (testInfo.project.name.includes('mobile')) {
+      await expect(page.getByRole('button', { name: /^Group Details$/i })).toBeVisible(uiTimeout)
+    } else {
+      await expect(
+        page.getByRole('heading', { name: /Default notification settings/i })
+      ).toBeVisible(uiTimeout)
+    }
     await expect(page).toHaveTitle(/Hylo/i, uiTimeout)
   })
 

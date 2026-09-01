@@ -52,40 +52,42 @@ describe('space mutations', () => {
     })
 
     it('allows the same local slug under two parent groups', async () => {
+      const localSlug = `shared-${Date.now()}`
       const otherParent = await factories.group().save()
       await assignCoordinator(coordinator, otherParent)
 
       const first = await createSpace(coordinator.id, {
         parentGroupId: parentGroup.id,
         name: 'General',
-        slug: 'general'
+        slug: localSlug
       }, {})
       const second = await createSpace(coordinator.id, {
         parentGroupId: otherParent.id,
         name: 'General',
-        slug: 'general'
+        slug: localSlug
       }, {})
 
-      expect(first.get('slug')).to.equal(`${parentGroup.get('slug')}-general`)
-      expect(second.get('slug')).to.equal(`${otherParent.get('slug')}-general`)
+      expect(first.get('slug')).to.equal(`${parentGroup.get('slug')}-${localSlug}`)
+      expect(second.get('slug')).to.equal(`${otherParent.get('slug')}-${localSlug}`)
       await deleteSpace(coordinator.id, first.id, {})
       await deleteSpace(coordinator.id, second.id, {})
     })
 
     it('suffixes when the prefixed slug is already taken in the same group', async () => {
+      const localSlug = `dup-${Date.now()}`
       const first = await createSpace(coordinator.id, {
         parentGroupId: parentGroup.id,
         name: 'General A',
-        slug: 'general'
+        slug: localSlug
       }, {})
       const second = await createSpace(coordinator.id, {
         parentGroupId: parentGroup.id,
         name: 'General B',
-        slug: 'general'
+        slug: localSlug
       }, {})
 
-      expect(first.get('slug')).to.equal(`${parentGroup.get('slug')}-general`)
-      expect(second.get('slug')).to.equal(`${parentGroup.get('slug')}-general-2`)
+      expect(first.get('slug')).to.equal(`${parentGroup.get('slug')}-${localSlug}`)
+      expect(second.get('slug')).to.equal(`${parentGroup.get('slug')}-${localSlug}-2`)
       await deleteSpace(coordinator.id, first.id, {})
       await deleteSpace(coordinator.id, second.id, {})
     })

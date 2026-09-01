@@ -43,6 +43,7 @@ import { MAX_POST_TOPICS } from 'util/constants'
 import useDraft, { hasDraftContent, hasPostDraftPayloadContent } from 'hooks/useDraft'
 import LinkPreview from 'components/PostEditor/LinkPreview'
 import { buildPostDraftPayload, mergeDraftIntoPost } from 'components/PostEditor/postDraftUtils'
+import isPlayableVideoUrl from 'util/isPlayableVideoUrl'
 
 /**
  * Inline chat composer for ChatRoom — creates chat posts with draft persistence.
@@ -252,7 +253,21 @@ function ChatEditorInner ({
   }, [])
 
   useEffect(() => {
-    setCurrentPost(prev => (prev.linkPreview === linkPreview ? prev : { ...prev, linkPreview }))
+    setCurrentPost(prev => {
+      if (prev.linkPreview === linkPreview) return prev
+      if (linkPreview) {
+        const isNewPreview = !prev.linkPreview || prev.linkPreview.id !== linkPreview.id
+        return {
+          ...prev,
+          linkPreview,
+          skipLinkPreview: false,
+          linkPreviewFeatured: isNewPreview && isPlayableVideoUrl(linkPreview.url || linkPreview.ref?.url)
+            ? true
+            : prev.linkPreviewFeatured
+        }
+      }
+      return { ...prev, linkPreview }
+    })
   }, [linkPreview, setCurrentPost])
 
   const reset = useCallback(() => {
@@ -319,7 +334,7 @@ function ChatEditorInner ({
 
   const handleRemoveLinkPreview = useCallback(() => {
     dispatch(removeLinkPreview())
-    setCurrentPost(prev => ({ ...prev, linkPreview: null, linkPreviewFeatured: false }))
+    setCurrentPost(prev => ({ ...prev, linkPreview: null, linkPreviewFeatured: false, skipLinkPreview: true }))
   }, [dispatch, setCurrentPost])
 
   const isValid = useMemo(() => {
@@ -350,6 +365,7 @@ function ChatEditorInner ({
         isPublic,
         linkPreview,
         linkPreviewFeatured,
+        skipLinkPreview,
         timezone,
         title
       } = currentPost
@@ -371,6 +387,7 @@ function ChatEditorInner ({
         isPublic,
         linkPreview,
         linkPreviewFeatured,
+        skipLinkPreview,
         localId: uniqueId('post_'),
         pending: true,
         timezone,

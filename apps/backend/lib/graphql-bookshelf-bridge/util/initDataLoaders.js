@@ -14,13 +14,14 @@ export default function initDataLoaders (spec) {
     throw new Error("Can't have a model DataLoader named 'relations'")
   }
 
-  // general-purpose query cache, for relational SQL queries that aren't just
-  // fetching objects by ID.
+  // Relation SQL is unique per parent/filter. A random cacheKeyFn used to skip
+  // hits, but DataLoader still stored every key, so reused schemas (E2E, long
+  // sessions) grew without bound until the process OOMed.
   loaders.relations = new DataLoader(
     queries => Promise.map(queries, async ({ relation, method }) => {
       return method ? relation[method]() : relation.fetch()
     }),
-    { cacheKeyFn: _ => Math.random().toString() }
+    { cache: false }
   )
 
   // DataLoader for Tag lookups by name (Post.topics from tag_names)

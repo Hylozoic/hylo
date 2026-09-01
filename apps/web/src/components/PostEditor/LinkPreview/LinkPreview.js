@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import ReactPlayer from 'react-player'
 import { useTranslation } from 'react-i18next'
+import isPlayableVideoUrl from 'util/isPlayableVideoUrl'
 import { Expand, Shrink } from 'lucide-react'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
@@ -12,7 +12,7 @@ export default function LinkPreview ({ loading, featured: providedFeatured, ...p
   const [isVideo, setIsVideo] = useState()
   const [featured, setFeatured] = useState()
   const { linkPreview, onClose, onFeatured, className } = props
-  const url = linkPreview?.url
+  const url = linkPreview?.url || linkPreview?.ref?.url
   const { t } = useTranslation()
 
   const toggleFeatured = () => {
@@ -22,7 +22,7 @@ export default function LinkPreview ({ loading, featured: providedFeatured, ...p
 
   useEffect(() => {
     if (url) {
-      const isVideo = ReactPlayer.canPlay(url)
+      const isVideo = isPlayableVideoUrl(url)
 
       setIsVideo(isVideo)
 

@@ -23,4 +23,5 @@ export async function waitPastRootSessionLoading (page, options = {}) {
     await loader.first().waitFor({ state: 'visible', timeout: waitForLoaderVisibleTimeoutMs }).catch(() => {})
   }
   await expect(loader).toHaveCount(0, { timeout: loaderGoneTimeoutMs })
+  await page.locator('#hylo-boot-loader').waitFor({ state: 'detached', timeout: 8000 }).catch(() => {})
 }

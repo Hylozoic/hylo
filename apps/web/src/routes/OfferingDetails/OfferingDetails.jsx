@@ -148,7 +148,9 @@ export default function OfferingDetails () {
   }, [offering, offeringId, t])
 
   if (loading) {
-    return <Loading type='fullscreen' />
+    // Inside the auth shell a fullscreen loader is `h-screen` and blocks
+    // Playwright's session-ready check. Guests still get the full-page spinner.
+    return <Loading type={currentUser ? undefined : 'fullscreen'} />
   }
 
   if (error) {

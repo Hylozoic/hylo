@@ -4341,6 +4341,8 @@ input PostInput {
   linkPreviewId: String
   # Whether LinkPreview appears full size above post or smaller below
   linkPreviewFeatured: Boolean
+  # When true, do not auto-generate a link preview from URLs in the post (the author removed it in the editor)
+  skipLinkPreview: Boolean
   # Temporary id passed in from the client to identify the post when it is created, for optimistically updating the UI
   localId: String
   # Full location string

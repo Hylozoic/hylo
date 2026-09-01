@@ -5,32 +5,25 @@
  * its own line when the chip needs the room.
  */
 import { test, expect } from '@playwright/test'
-import dotenv from 'dotenv'
 import fs from 'fs'
 import path from 'path'
-
-dotenv.config({ path: path.resolve(import.meta.dirname, '../.env') })
+import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading.js'
 
 const screenshotDir = path.resolve(import.meta.dirname, 'screenshots')
-const GROUP = 'building-hylo'
+const GROUP = 'e2e-public-group'
+const SPACE = 'e2e-test-space'
 
-test.use({ storageState: { cookies: [], origins: [] }, viewport: { width: 375, height: 812 } })
+test.use({ storageState: 'e2e/.auth/session.json', viewport: { width: 375, height: 812 } })
 test.setTimeout(240000)
 
 test('post modal fills a phone and the To chip truncates instead of clipping', async ({ page }) => {
   test.skip(test.info().project.name !== 'chromium', 'visual check')
   fs.mkdirSync(screenshotDir, { recursive: true })
 
-  await page.goto('/login')
-  await expect(page.getByLabel('email')).toBeVisible({ timeout: 180000 })
-  await page.getByLabel('email').fill(process.env.E2E_TEST_USERNAME)
-  await page.getByLabel('password', { exact: true }).fill(process.env.E2E_TEST_PASSWORD)
-  await page.getByRole('button', { name: /sign\s*in/i }).click()
-  await page.waitForLoadState('networkidle')
-
   // Straight to the create-post modal in a space context: the To field
   // pre-fills with the "Group / Space" chip.
-  await page.goto(`/groups/${GROUP}/spaces/test-space/create/post`)
+  await page.goto(`/groups/${GROUP}/spaces/${SPACE}/create/post`)
+  await waitPastRootSessionLoading(page)
   const toField = page.locator('.PostEditorTo')
   await expect(toField).toBeVisible({ timeout: 60000 })
   await page.waitForTimeout(600)

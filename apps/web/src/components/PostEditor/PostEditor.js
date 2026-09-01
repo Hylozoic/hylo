@@ -97,6 +97,7 @@ import { MAX_POST_TOPICS } from 'util/constants'
 import generateTempID from 'util/generateTempId'
 import { setQuerystringParam } from '@hylo/navigation'
 import { sanitizeURL } from 'util/url'
+import isPlayableVideoUrl from 'util/isPlayableVideoUrl'
 import ActionsBar from './ActionsBar'
 import HyloHTML from 'components/HyloHTML'
 import useDraft, { hasDraftContent, hasPostDraftPayloadContent } from 'hooks/useDraft'
@@ -721,7 +722,21 @@ function PostEditorInner ({
   }, [initialPost.id])
 
   useEffect(() => {
-    setCurrentPost(prev => (prev.linkPreview === linkPreview ? prev : { ...prev, linkPreview }))
+    setCurrentPost(prev => {
+      if (prev.linkPreview === linkPreview) return prev
+      if (linkPreview) {
+        const isNewPreview = !prev.linkPreview || prev.linkPreview.id !== linkPreview.id
+        return {
+          ...prev,
+          linkPreview,
+          skipLinkPreview: false,
+          linkPreviewFeatured: isNewPreview && isPlayableVideoUrl(linkPreview.url || linkPreview.ref?.url)
+            ? true
+            : prev.linkPreviewFeatured
+        }
+      }
+      return { ...prev, linkPreview }
+    })
   }, [linkPreview, setCurrentPost])
 
   useEffect(() => {
@@ -984,7 +999,7 @@ function PostEditorInner ({
 
   const handleRemoveLinkPreview = useCallback(() => {
     dispatch(removeLinkPreview())
-    setCurrentPost(prev => ({ ...prev, linkPreview: null, linkPreviewFeatured: false }))
+    setCurrentPost(prev => ({ ...prev, linkPreview: null, linkPreviewFeatured: false, skipLinkPreview: true }))
   }, [dispatch, setCurrentPost])
 
   const handleAddToOption = useCallback((toOptions) => {
@@ -1100,6 +1115,7 @@ function PostEditorInner ({
         isStrictProposal,
         linkPreview,
         linkPreviewFeatured,
+        skipLinkPreview,
         locationId,
         meetingLink,
         members,
@@ -1158,6 +1174,7 @@ function PostEditorInner ({
         isStrictProposal,
         linkPreview,
         linkPreviewFeatured,
+        skipLinkPreview,
         localId: uniqueId('post_'), // For optimistic display of the new post
         location: postLocation,
         locationId: actualLocationId,

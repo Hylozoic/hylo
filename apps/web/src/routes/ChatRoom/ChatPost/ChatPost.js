@@ -5,8 +5,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
-import ReactPlayer from 'react-player'
 import { useLongPress } from 'use-long-press'
+import isPlayableVideoUrl from 'util/isPlayableVideoUrl'
 import Avatar from 'components/Avatar'
 import ClickCatcher from 'components/ClickCatcher'
 import CardFileAttachments from 'components/CardFileAttachments'
@@ -92,7 +92,6 @@ export default function ChatPost ({
   const { parentGroupSlug, spaceSlug } = useGroupRouteOpts()
 
   const [editing, setEditing] = useState(false)
-  const [isVideo, setIsVideo] = useState()
   const [flaggingVisible, setFlaggingVisible] = useState(false)
   const [isLongPress, setIsLongPress] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
@@ -111,11 +110,8 @@ export default function ChatPost ({
 
   const groupIds = useMemo(() => postGroups.map(g => g.id), [postGroups])
 
-  useEffect(() => {
-    if (linkPreview?.url) {
-      setIsVideo(ReactPlayer.canPlay(linkPreview?.url))
-    }
-  }, [linkPreview?.url])
+  const previewUrl = linkPreview?.url || linkPreview?.ref?.url
+  const showFeaturedVideo = linkPreviewFeatured && isPlayableVideoUrl(previewUrl)
 
   // Measure rather than count characters: what matters is the height on screen,
   // which shifts with images, embeds and the reader's chosen stream width
@@ -461,13 +457,13 @@ export default function ChatPost ({
           delay={250}
           id='flag-tt'
         />
-        {linkPreview?.url && linkPreviewFeatured && isVideo && (
+        {showFeaturedVideo && (
           <div className='ml-[42px] mt-2 max-w-[calc(var(--chat-stream-width,750px)-50px)] overflow-hidden rounded-lg'>
-            <Feature url={linkPreview.url} />
+            <Feature url={previewUrl} />
           </div>
         )}
-        {linkPreview && !linkPreviewFeatured && (
-          <LinkPreview {...pick(['title', 'description', 'imageUrl', 'url'], linkPreview)} className='px-5 pb-[0.6rem] pl-[42px] block [&>div]:mb-0 max-w-[calc(var(--chat-stream-width,750px)-50px)]' />
+        {linkPreview && !showFeaturedVideo && (
+          <LinkPreview {...pick(['title', 'description', 'imageUrl', 'url'], linkPreview.ref || linkPreview)} className='px-5 pb-[0.6rem] pl-[42px] block [&>div]:mb-0 max-w-[calc(var(--chat-stream-width,750px)-50px)]' />
         )}
         {/* Chat has no clickthrough affordance, so a flagged post's media stays
             blurred like its text rather than honoring a clickthrough recorded

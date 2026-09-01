@@ -240,6 +240,7 @@ const ViewHeader = () => {
         <button
           className={cn('p-2 -ml-1 cursor-pointer absolute left-0 z-10', !compactLayout && 'sm:hidden', !compactLayout && backButton && 'sm:block')}
           onClick={handleChevronClick}
+          data-testid='view-header-nav-toggle'
         >
           <ChevronLeft className='w-6 h-6' />
         </button>
@@ -251,6 +252,7 @@ const ViewHeader = () => {
           <button
             className={cn('p-2 -ml-1 mr-1 cursor-pointer', !compactLayout && 'sm:hidden', !compactLayout && backButton && 'sm:block')}
             onClick={handleChevronClick}
+            data-testid='view-header-nav-toggle'
           >
             <ChevronLeft className='w-6 h-6' />
           </button>

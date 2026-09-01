@@ -8,16 +8,14 @@
  * menu's lives in the sidebar outside it.
  */
 import { test, expect } from '@playwright/test'
-import dotenv from 'dotenv'
 import fs from 'fs'
 import path from 'path'
-
-dotenv.config({ path: path.resolve(import.meta.dirname, '../.env') })
+import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading.js'
 
 const screenshotDir = path.resolve(import.meta.dirname, 'screenshots')
-const GROUP = 'building-hylo'
+const GROUP = 'e2e-public-group'
 
-test.use({ storageState: { cookies: [], origins: [] } })
+test.use({ storageState: 'e2e/.auth/session.json' })
 
 // Vite's cold dep-prebundle can hold the app on its loading splash well past the 30s default.
 test.setTimeout(240000)
@@ -45,15 +43,8 @@ test('Add Space modal title names its destination', async ({ page }) => {
   test.skip(test.info().project.name !== 'chromium', 'desktop-only visual check')
   fs.mkdirSync(screenshotDir, { recursive: true })
 
-  await page.goto('/login')
-  await expect(page.getByLabel('email')).toBeVisible({ timeout: 180000 })
-  await page.getByLabel('email').fill(process.env.E2E_TEST_USERNAME)
-  await page.getByLabel('password', { exact: true }).fill(process.env.E2E_TEST_PASSWORD)
-  await page.getByRole('button', { name: /sign\s*in/i }).click()
-  await expect(page.locator('#center-column-container')).toBeVisible({ timeout: 120000 })
-
-  // Off-menu: the More Spaces page's own Add, inside the center column
   await page.goto(`/groups/${GROUP}/more-spaces?edit=true`)
+  await waitPastRootSessionLoading(page)
   await page.waitForLoadState('networkidle')
   let heading = await openFromMoreSpaces(page)
   console.log('MORE SPACES title:', JSON.stringify(await heading.textContent()))
@@ -63,6 +54,7 @@ test('Add Space modal title names its destination', async ({ page }) => {
   // On-menu: the sidebar's group-menu Add (ContextMenu's default addToMenu).
   // Reload first — the dialog has no Escape handler, so a fresh page clears it.
   await page.goto(`/groups/${GROUP}/more-spaces?edit=true`)
+  await waitPastRootSessionLoading(page)
   await page.waitForLoadState('networkidle')
   heading = await openFromMenu(page)
   console.log('MAIN MENU title:', JSON.stringify(await heading.textContent()))

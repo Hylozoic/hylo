@@ -31,6 +31,7 @@ async function setGroupNavStyle (page, ariaLabel) {
 }
 
 test('two-column menu active row styling', async ({ page }) => {
+  test.skip(test.info().project.name === 'mobile-chrome', 'two-column sidebar is desktop-only')
   fs.mkdirSync(screenshotDir, { recursive: true })
 
   await page.goto('/groups/e2e-public-group')
