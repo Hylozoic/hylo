@@ -356,6 +356,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
           'end_time',
           'id',
           'is_public',
+          'link_preview_featured',
           'location',
           'name',
           'num_people_reacts',
