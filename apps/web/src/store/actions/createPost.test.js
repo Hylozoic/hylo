@@ -28,4 +28,17 @@ describe('createPost', () => {
     expect(action.graphql.query).not.toMatch(/chatActivityNotice \{/)
     expect(action.meta.extractModel.modelName).toEqual('Post')
   })
+
+  it('passes skipLinkPreview when the editor removed the preview', () => {
+    const action = createPost({
+      groups: [{ id: '1' }],
+      details: '<p>https://example.com</p>',
+      type: 'discussion',
+      skipLinkPreview: true
+    })
+
+    expect(action.graphql.query).toMatch(/\$skipLinkPreview:\s*Boolean/)
+    expect(action.graphql.query).toMatch(/skipLinkPreview:\s*\$skipLinkPreview/)
+    expect(action.graphql.variables.skipLinkPreview).toEqual(true)
+  })
 })

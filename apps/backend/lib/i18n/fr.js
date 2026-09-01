@@ -65,7 +65,9 @@ exports.fr = {
   textForGroupParentGroupJoinRequestAcceptedParentMember: ({ parentGroup, childGroup }) => `Le groupe ${childGroup.get('name')} vient de rejoindre votre groupe ${parentGroup.get('name')} !`,
   textForGroupParentGroupJoinRequestAcceptedChildMember: ({ parentGroup, childGroup }) => `Votre groupe ${childGroup.get('name')} a rejoint ${parentGroup.get('name')}.`,
   textForEventInvitation: ({ actor, postName }) => `${actor.get('name')} vous a invité·e à « ${postName} »`,
-  textForGroupInvitation: ({ actor, groupName }) => `${actor.get('name')} vous a invité·e à rejoindre ${groupName}`,
+  textForGroupInvitation: ({ actor, groupName, parentGroupName }) => parentGroupName
+    ? `${actor.get('name')} vous a invité·e à les rejoindre dans l'espace ${groupName} de ${parentGroupName}`
+    : `${actor.get('name')} vous a invité·e à les rejoindre dans ${groupName}`,
   textForGroupInvitationAccepted: ({ actor, groupName }) => `${actor.get('name')} a accepté votre invitation à rejoindre ${groupName}`,
   textForGroupPeerGroupInvite: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} a invité votre groupe ${toGroup.get('name')} à former un lien de pairs avec ${fromGroup.get('name')}`,
   textForGroupPeerGroupInviteAccepted: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} a accepté le lien de pairs entre ${fromGroup.get('name')} et ${toGroup.get('name')}`,
@@ -82,18 +84,18 @@ exports.fr = {
   },
   textForPostMention: ({ groupName, person, postName }) => `${person} vous a mentionné·e dans la publication « ${postName} » dans ${groupName}`,
   textForPost: ({ firstTag, groupName, person, postName }) => `${person} a publié « ${postName} » dans ${groupName}${firstTag ? ` #${firstTag}` : ''}`,
-  textForTrackCompleted: ({ actor, track }) => `Parcours terminé : « ${track.get('name')} » complété par ${actor.get('name')}`,
-  textForTrackEnrollment: ({ actor, track }) => `Inscription au parcours : « ${track.get('name')} » par ${actor.get('name')}`,
+  textForTrackCompleted: ({ actor, trackName }) => `Parcours terminé : « ${trackName} » complété par ${actor.get('name')}`,
+  textForTrackEnrollment: ({ actor, trackName }) => `Inscription au parcours : « ${trackName} » par ${actor.get('name')}`,
   textForVoteReset: ({ person, postName, groupName }) => `${person} a modifié les options de la proposition « ${postName} » dans ${groupName}. Les votes ont été réinitialisés`,
-  textForFundingRoundNewSubmission: ({ fundingRound, post, actor }) => `${actor.get('name')} a soumis « ${post.summary()} » pour « ${fundingRound.get('title')} »`,
-  textForFundingRoundPhaseTransition: ({ fundingRound, phase }) => {
+  textForFundingRoundNewSubmission: ({ fundingRoundTitle, post, actor }) => `${actor.get('name')} a soumis « ${post.summary()} » pour « ${fundingRoundTitle} »`,
+  textForFundingRoundPhaseTransition: ({ fundingRoundTitle, phase }) => {
     const phaseMessages = {
       submissions: 'Les contributions sont ouvertes',
       discussion: 'Les contributions sont closes, les discussions sont ouvertes',
       voting: 'Le vote est ouvert',
       completed: 'Le vote est clos, la manche est terminée'
     }
-    return `${fundingRound.get('title')} : ${phaseMessages[phase] || 'Statut mis à jour'}`
+    return `${fundingRoundTitle} : ${phaseMessages[phase] || 'Statut mis à jour'}`
   },
   textForFundingRoundReminder: ({ reminderType }) => {
     const reminderMessages = {

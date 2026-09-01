@@ -67,10 +67,18 @@ export const groupFilter = userId => relation => {
           })
           q6.orWhereIn('groups.id', peerGroupsOfStewardedGroupIds)
         })
-        // + spaces of groups you can add members to / administer
+        // + spaces of groups you can add members to / administer (including hidden)
         q2.orWhere(qSpace => {
           qSpace.where('groups.type', 'space')
           qSpace.whereIn('groups.parent_id', selectJoinManagerGroupIds)
+        })
+        // + non-hidden child spaces of groups you belong to (join interstitial, More Spaces,
+        // paywalled tracks). Spaces use parent_id, not group_relationships, so the child-group
+        // clause above never includes them.
+        q2.orWhere(qSpaceMember => {
+          qSpaceMember.where('groups.type', 'space')
+          qSpaceMember.whereIn('groups.parent_id', selectIdsForMember)
+          qSpaceMember.andWhere('groups.visibility', '!=', Group.Visibility.HIDDEN)
         })
         // + all public groups
         q2.orWhere(q5 => {

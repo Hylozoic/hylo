@@ -28,6 +28,7 @@ const url = function () {
  * @param {string} queryFragment `?ctt=...&cti=...` or `ctt=...&cti=...`
  */
 const appendQueryString = function (baseUrl, queryFragment) {
+  if (baseUrl == null || baseUrl === '') return baseUrl
   if (queryFragment == null || queryFragment === '') return baseUrl
   const q = String(queryFragment).replace(/^\?+/, '').replace(/^&+/, '') // Remove any leading ? or & from the queryFragment
   if (!q) return baseUrl
@@ -126,6 +127,20 @@ module.exports = {
       return url('/groups/%s', getSlug(group))
     },
 
+    /**
+     * URL for a group's configured home view (`home_route`).
+     * Spaces use Route.space so they land under the parent group.
+     */
+    groupHome: function (group) {
+      const isGroupObject = group && typeof group.get === 'function'
+      const isSpace = isGroupObject && group.get('type') === 'space'
+      if (isSpace) {
+        return this.space(group)
+      }
+      const homeRoute = isGroupObject ? (group.get('home_route') || '/all') : '/all'
+      return this.group(group) + normalizeViewPath(homeRoute)
+    },
+
     groupRelationships: function (group) {
       return this.group(group) + '/groups'
     },
@@ -135,6 +150,11 @@ module.exports = {
     },
 
     groupJoinRequests: function (group) {
+      const isGroupObject = group && typeof group.get === 'function'
+      const isSpace = isGroupObject && group.get('type') === 'space'
+      if (isSpace) {
+        return this.space(group, '/requests')
+      }
       return this.groupSettings(group) + '/requests'
     },
 
@@ -160,6 +180,10 @@ module.exports = {
       }
 
       return url(`${contextUrl}/map/post/${getModelId(post)}`)
+    },
+
+    myInvitations: function () {
+      return url('/my/invitations')
     },
 
     notificationsSettings: function (clickthroughParams, user) {

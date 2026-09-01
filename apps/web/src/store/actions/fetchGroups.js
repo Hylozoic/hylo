@@ -3,6 +3,20 @@ import { createSelector } from 'reselect'
 import { FETCH_GROUPS } from 'store/constants'
 import { makeGetQueryResults, makeQueryResultsModelSelector } from 'store/reducers/queryResults'
 
+// Cache key params for FETCH_GROUPS. Omits page size (`first`) because it was
+// added to the global queryResults whitelist for member pills and must not
+// hide Group Explorer results from the selector.
+export function getGroupQueryProps ({ farmQuery, groupIds, groupType, nearCoord, search, sortBy }) {
+  return {
+    farmQuery,
+    groupIds,
+    groupType,
+    nearCoord,
+    search,
+    sortBy
+  }
+}
+
 export function fetchGroups ({ allowedInPublic, farmQuery, groupType, nearCoord, offset, order, pageSize = 20, search, slug, sortBy, groupIds }) {
   const query = groupQuery
   const extractModel = 'Group'
@@ -29,7 +43,8 @@ export function fetchGroups ({ allowedInPublic, farmQuery, groupType, nearCoord,
       slug,
       extractModel,
       extractQueryResults: {
-        getItems
+        getItems,
+        getRouteParams: ({ meta }) => getGroupQueryProps(meta.graphql.variables)
       }
     }
   }

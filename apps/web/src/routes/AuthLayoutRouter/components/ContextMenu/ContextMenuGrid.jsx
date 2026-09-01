@@ -1,11 +1,11 @@
 import { cn, bgImageStyle } from 'util/index'
 import { isDrawerNavLayout } from 'util/mobile'
-import { Info, Settings, Users, Pencil, X, CircleEllipsis, ChevronLeft, UserPlus } from 'lucide-react'
+import { Info, Settings, Users, Pencil, X, CircleEllipsis, ChevronLeft, Search, UserPlus } from 'lucide-react'
 import React, { useMemo, useRef, useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
-import InviteMembersPopover from 'components/InviteMembersPopover/InviteMembersPopover'
+import InviteMembersDialog from 'components/InviteMembersDialog/InviteMembersDialog'
 import GroupViewPresenter, {
   displayNameForView,
   getStaticMenuViews,
@@ -19,6 +19,7 @@ import {
   spaceUrl
 } from '@hylo/navigation'
 import { replace } from 'redux-first-history'
+import { menuViewUrl, spaceEntryUrl, isParentGroupPath } from './groupViewMenuUrl'
 import { logoutFromMobileWebView } from 'util/webView'
 import logout from 'store/actions/logout'
 import { DEFAULT_BANNER, DEFAULT_AVATAR } from 'store/models/Group'
@@ -36,8 +37,8 @@ import useMoreSpacesSections from 'hooks/useMoreSpacesSections'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
-import { createGroupView, deleteGroupView, deleteSpace, setGroupViewHidden } from 'store/actions/groupViews'
-import { canHardDeleteView } from 'store/models/GroupView'
+import { createGroupView, deleteGroupView, deleteSpace, archiveSpace, setGroupViewHidden, updateGroupView } from 'store/actions/groupViews'
+import { canHardDeleteView, isMenuViewVisible } from 'store/models/GroupView'
 import GroupMenuHeader from 'components/GroupMenuHeader'
 import GroupNotificationsPopover from 'components/GroupNotificationsPopover/GroupNotificationsPopover'
 import CardIconField from './CardIconField'
@@ -60,17 +61,21 @@ import {
   CARD_CLASS,
   CARD_FADE_CLASS,
   CARD_TITLE_CLASS,
+  CARD_TILE_CLASS,
+  CARD_LABEL_TOP_CLASS,
   CARD_W,
   CARD_H
 } from './viewCardTheme'
 import GroupViewSettingsModal from './GroupViewSettingsModal'
 import SpaceSettingsModal from './SpaceSettingsModal'
 import AddCollectionDialog from './AddCollectionDialog'
+import AddSpaceCollectionDialog from './AddSpaceCollectionDialog'
 import AddGroupViewDialog from './AddGroupViewDialog'
 import AddSpaceDialog from './AddSpaceDialog'
 import AddViewOrSpaceMenu from './AddViewOrSpaceMenu'
 import EditingBottomBar, { EDITING_BAR_BUTTON_CLASS } from './EditingBottomBar'
-import { menuViewUrl } from './groupViewMenuUrl'
+import getPreviousLocation from 'store/selectors/getPreviousLocation'
+import { appendSpaceId, spaceCollectionViews } from 'util/spaceCollection'
 
 /** Synthetic view so the More Spaces card can use the same icon wallpaper as real views. */
 const MORE_SPACES_VIEW = { lucideIcon: 'CircleEllipsis' }
@@ -197,8 +202,9 @@ function SpaceBannerHeader ({ group, spaceGroup, canAdminister, onOpenSettings, 
             <Users className='w-3.5 h-3.5' />
             {spaceGroup.memberCount}
           </Link>
-          <InviteMembersPopover
+          <InviteMembersDialog
             group={spaceGroup}
+            parentGroup={group}
             alwaysVisible
             triggerLabel={t('Invite')}
             triggerClassName={cn('rounded-full border px-2 py-0.5 hover:scale-100', pillClass)}
@@ -213,7 +219,7 @@ function StickyBackHeader ({ title, icon, onBack, t }) {
   // Dressed as ViewHeader (surface, hairline, shadow, chevron + icon + bold
   // title) — this level hides the real ViewHeader, so the bar stands in for it
   return (
-    <div className='sticky top-0 z-30 -mx-4 mb-2 p-2 bg-background border-b border-foreground/[0.08] shadow-[0_4px_14px_0px_rgba(0,0,0,0.16)] dark:border-transparent dark:shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)] flex items-center'>
+    <div className='sticky top-0 z-30 p-2 bg-context-menu-background border-b border-foreground/[0.08] shadow-[0_4px_14px_0px_rgba(0,0,0,0.16)] dark:border-transparent dark:shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)] flex items-center'>
       <button
         type='button'
         onClick={onBack}
@@ -324,13 +330,13 @@ function MoreSpacesCard ({ onClick, t }) {
         <div className='absolute inset-0 grid place-items-center'>
           {/* Same solid tile as the icon cards, so this reads as one of them */}
           <div
-            className='w-14 h-14 rounded-[15px] grid place-items-center shadow-[0_4px_12px_rgba(0,0,0,0.35)]'
+            className={cn(CARD_TILE_CLASS, 'grid place-items-center shadow-[0_4px_12px_rgba(0,0,0,0.35)]')}
             style={{ background: col, color: inkOn(col), border: `1px solid color-mix(in srgb, ${col} 55%, white)` }}
           >
             <CircleEllipsis className='w-7 h-7' />
           </div>
         </div>
-        <div className='absolute left-0 right-0 top-[calc(50%+28px)] bottom-0 flex flex-col items-center justify-center text-center px-3'>
+        <div className={cn(CARD_LABEL_TOP_CLASS, 'absolute left-0 right-0 bottom-0 flex flex-col items-center justify-center text-center px-3')}>
           <h3 className={cn(CARD_TITLE_CLASS, isDark ? 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]' : 'text-foreground')}>{t('More Spaces')}</h3>
         </div>
       </div>
@@ -378,13 +384,13 @@ function JoinRequestsCard ({ count, onClick, t }) {
       <div className='relative h-full'>
         <div className='absolute inset-0 grid place-items-center'>
           <div
-            className='w-14 h-14 rounded-[15px] grid place-items-center shadow-[0_4px_12px_rgba(0,0,0,0.35)]'
+            className={cn(CARD_TILE_CLASS, 'grid place-items-center shadow-[0_4px_12px_rgba(0,0,0,0.35)]')}
             style={{ background: col, color: inkOn(col), border: `1px solid color-mix(in srgb, ${col} 55%, white)` }}
           >
             <UserPlus className='w-7 h-7' />
           </div>
         </div>
-        <div className='absolute left-0 right-0 top-[calc(50%+28px)] bottom-0 flex flex-col items-center justify-center text-center px-3'>
+        <div className={cn(CARD_LABEL_TOP_CLASS, 'absolute left-0 right-0 bottom-0 flex flex-col items-center justify-center text-center px-3')}>
           <h3 className={cn(CARD_TITLE_CLASS, isDark ? 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]' : 'text-foreground')}>{t('Join Requests')}</h3>
         </div>
       </div>
@@ -420,18 +426,22 @@ function useMoreSpacesContent (group) {
   )
   const pending = useSelector(state => isPendingFor(FETCH_GROUP_SPACES, state))
 
+  const showDrafts = sections.draftSpaces?.length > 0
   const showTracks = sections.trackSpaces?.length > 0
   const showFundingRounds = sections.fundingRoundSpaces?.length > 0
   const showOtherSpaces = sections.otherSpaces?.length > 0
+  const showArchived = sections.archivedSpaces?.length > 0
 
   return {
     sections,
     canManageSpaces,
     pending,
+    showDrafts,
     showTracks,
     showFundingRounds,
     showOtherSpaces,
-    hasContent: showTracks || showFundingRounds || showOtherSpaces
+    showArchived,
+    hasContent: showDrafts || showTracks || showFundingRounds || showOtherSpaces || showArchived
   }
 }
 
@@ -449,9 +459,11 @@ function MoreSpacesGrid ({
   const {
     sections,
     pending,
+    showDrafts,
     showTracks,
     showFundingRounds,
     showOtherSpaces,
+    showArchived,
     hasContent
   } = useMoreSpacesContent(group)
   const groupViews = useGroupViews(group)
@@ -465,8 +477,7 @@ function MoreSpacesGrid ({
 
   const handleOpenSpace = useCallback((space) => {
     if (isEditing) return
-    const local = localSpaceSlug(groupSlug, space.slug)
-    navigate(spaceUrl(groupSlug, local), { state: { fromMoreSpaces: true } })
+    navigate(spaceEntryUrl(groupSlug, space), { state: { fromMoreSpaces: true } })
   }, [groupSlug, navigate, isEditing])
 
   const handleOpenSpaceAbout = useCallback((space) => {
@@ -497,10 +508,34 @@ function MoreSpacesGrid ({
     }
   }, [dispatch, group?.id, groupViews])
 
+  const collectionViews = useMemo(
+    () => spaceCollectionViews(groupViews).map(view => ({
+      id: view.id,
+      name: displayNameForView(view, t),
+      settings: view.settings
+    })),
+    [groupViews, t]
+  )
+
+  const handleAddToCollection = useCallback(async (space, collectionView) => {
+    if (!group?.id || !space?.id || !collectionView?.id) return
+    const fullView = (groupViews || []).find(v => String(v.id) === String(collectionView.id))
+    if (!fullView) return
+    try {
+      await dispatch(updateGroupView({
+        id: fullView.id,
+        groupId: group.id,
+        settings: appendSpaceId(fullView.settings, space.id)
+      }))
+    } catch (error) {
+      console.error('Failed to add space to collection:', error)
+    }
+  }, [dispatch, group?.id, groupViews])
+
   const handleDeleteSpace = useCallback(async (space) => {
     if (!space?.id || deletingSpaceId) return
     const confirmed = window.confirm(
-      t('Are you sure you want to permanently delete {{name}}? Posts in this space will no longer be accessible.', {
+      t('Are you sure you want to delete {{name}}? It will be hidden from the menu and More Spaces.', {
         name: space.name
       })
     )
@@ -517,6 +552,24 @@ function MoreSpacesGrid ({
     }
   }, [dispatch, group?.id, deletingSpaceId, t])
 
+  const handleArchiveSpace = useCallback(async (space) => {
+    if (!space?.id || deletingSpaceId) return
+    const confirmed = window.confirm(
+      t('Are you sure you want to archive {{name}}?', { name: space.name })
+    )
+    if (!confirmed) return
+    setDeletingSpaceId(space.id)
+    try {
+      await dispatch(archiveSpace(space.id))
+      await dispatch(fetchGroupSpaces(group.id))
+      await dispatch(fetchGroupViews(group.id))
+    } catch (error) {
+      console.error('Failed to archive space:', error)
+    } finally {
+      setDeletingSpaceId(null)
+    }
+  }, [dispatch, group?.id, deletingSpaceId, t])
+
   if (pending && !hasContent) {
     return <ViewsGridSkeleton />
   }
@@ -527,11 +580,17 @@ function MoreSpacesGrid ({
 
   return (
     <div className='flex flex-col gap-6'>
-      {showTracks && (
-        <div className='flex flex-col gap-3'>
-          <TextSection>{t('Tracks')}</TextSection>
+      {[
+        showOtherSpaces && { key: 'other', items: sections.otherSpaces },
+        showTracks && { key: 'tracks', title: t('Tracks'), items: sections.trackSpaces },
+        showFundingRounds && { key: 'rounds', title: t('Funding Rounds'), items: sections.fundingRoundSpaces },
+        showDrafts && { key: 'drafts', title: t('Drafts'), items: sections.draftSpaces },
+        showArchived && { key: 'archived', title: t('Archived'), items: sections.archivedSpaces }
+      ].filter(Boolean).map(section => (
+        <div key={section.key} className='flex flex-col gap-3'>
+          {section.title && <TextSection>{section.title}</TextSection>}
           <div className='flex flex-wrap gap-3'>
-            {sections.trackSpaces.map(space => (
+            {section.items.map(space => (
               <SpaceViewCard
                 key={space.id}
                 space={space}
@@ -539,54 +598,17 @@ function MoreSpacesGrid ({
                 isDeleting={String(deletingSpaceId) === String(space.id)}
                 onOpen={handleOpenSpace}
                 onOpenAbout={handleOpenSpaceAbout}
-                onAddToMenu={handleAddSpaceToMenu}
+                onAddToMenu={space.status === 'archived' || space.status === 'draft' ? null : handleAddSpaceToMenu}
+                onAddToCollection={handleAddToCollection}
+                collectionViews={collectionViews}
                 onOpenSettings={onOpenSpaceSettings}
                 onDelete={handleDeleteSpace}
+                onArchive={space.status === 'archived' ? null : handleArchiveSpace}
               />
             ))}
           </div>
         </div>
-      )}
-      {showFundingRounds && (
-        <div className='flex flex-col gap-3'>
-          <TextSection>{t('Funding Rounds')}</TextSection>
-          <div className='flex flex-wrap gap-3'>
-            {sections.fundingRoundSpaces.map(space => (
-              <SpaceViewCard
-                key={space.id}
-                space={space}
-                isEditing={isEditing}
-                isDeleting={String(deletingSpaceId) === String(space.id)}
-                onOpen={handleOpenSpace}
-                onOpenAbout={handleOpenSpaceAbout}
-                onAddToMenu={handleAddSpaceToMenu}
-                onOpenSettings={onOpenSpaceSettings}
-                onDelete={handleDeleteSpace}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-      {showOtherSpaces && (
-        <div className='flex flex-col gap-3'>
-          <TextSection>{t('Other Spaces')}</TextSection>
-          <div className='flex flex-wrap gap-3'>
-            {sections.otherSpaces.map(space => (
-              <SpaceViewCard
-                key={space.id}
-                space={space}
-                isEditing={isEditing}
-                isDeleting={String(deletingSpaceId) === String(space.id)}
-                onOpen={handleOpenSpace}
-                onOpenAbout={handleOpenSpaceAbout}
-                onAddToMenu={handleAddSpaceToMenu}
-                onOpenSettings={onOpenSpaceSettings}
-                onDelete={handleDeleteSpace}
-              />
-            ))}
-          </div>
-        </div>
-      )}
+      ))}
     </div>
   )
 }
@@ -607,6 +629,7 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
   const dispatch = useDispatch()
   const currentUser = useSelector(getMe)
   const myMemberships = useSelector(getMyMemberships)
+  const previousLocation = useSelector(getPreviousLocation)
   const groupSlug = group?.slug
   const isContextMode = Boolean(context) && !group
 
@@ -645,7 +668,9 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
   // itself once you are on that level, so only fetch here — where the card lives —
   // to avoid asking twice.
   const moreSpaces = useMoreSpacesContent(group)
-  const showMoreSpacesCard = moreSpaces.hasContent || moreSpaces.pending
+  // Wait until spaces have loaded — pending would flash the card then hide it
+  // when this group has nothing behind More Spaces.
+  const showMoreSpacesCard = moreSpaces.hasContent
   useEffect(() => {
     if (isContextMode || isMoreSpacesLevel || spaceGroup || !group?.id || !groupSlug) return
     dispatch(fetchGroupSpaces(group.id))
@@ -685,14 +710,14 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
       }) || []
     }
     const views = filterSpaceViewsForMenuVisibility(
-      (groupViews || []).filter(view => view.order != null),
+      (groupViews || []).filter(view => isMenuViewVisible(view, menuGroup?.acceptedPostTypes)),
       spaceVisibilityOpts
     )
     if (spaceGroup?.fundingRound?.id && canAdminister) {
       return [...views, MANAGE_ROUND_VIEW]
     }
     return views
-  }, [isContextMode, context, currentUser?.id, groupViews, spaceGroup?.fundingRound?.id, canAdminister, spaceVisibilityOpts])
+  }, [isContextMode, context, currentUser?.id, groupViews, menuGroup?.acceptedPostTypes, spaceGroup?.fundingRound?.id, canAdminister, spaceVisibilityOpts])
 
   const sections = useMemo(() => partitionViewsIntoSections(visibleViews), [visibleViews])
 
@@ -711,16 +736,16 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
     : null
 
   const handleBack = useCallback(() => {
-    if (isSpaceLevel && location.state?.fromMoreSpaces) {
-      navigate(groupUrl(groupSlug, 'more-spaces'))
-      return
-    }
     if (isSpaceLevel || isMoreSpacesLevel) {
+      if (isParentGroupPath(previousLocation?.pathname, groupSlug)) {
+        navigate(previousLocation)
+        return
+      }
       navigate(groupUrl(groupSlug))
       return
     }
     navigate(-1)
-  }, [isSpaceLevel, isMoreSpacesLevel, location.state, groupSlug, navigate])
+  }, [isSpaceLevel, isMoreSpacesLevel, previousLocation, groupSlug, navigate])
 
   const toggleEditing = useCallback(() => {
     if (isEditing) {
@@ -741,8 +766,7 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
       return
     }
     if (presented.type === 'space' && presented.linkedGroup) {
-      const local = localSpaceSlug(groupSlug, presented.linkedGroup.slug)
-      navigate(spaceUrl(groupSlug, local))
+      navigate(spaceEntryUrl(groupSlug, presented.linkedGroup))
       return
     }
     const url = menuViewUrl(groupSlug, presented, spaceGroup)
@@ -783,8 +807,21 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
               <div className='absolute top-3 left-1/2 -translate-x-1/2 z-30 w-full max-w-[1000px] px-3 flex items-center justify-between'>
                 <GroupNotificationsPopover group={group} />
 
-                {/* Matches GroupMenuHeader's affordances — about, then settings */}
+                {/* Matches GroupMenuHeader's affordances — search, about, then settings */}
                 <div className='flex items-center gap-3'>
+                  <button
+                    type='button'
+                    onClick={() => {
+                      const params = new URLSearchParams()
+                      params.set('groupSlug', groupSlug)
+                      params.set('from', `${location.pathname}${location.search || ''}`)
+                      navigate(`/search?${params.toString()}`)
+                    }}
+                    aria-label={t('Search')}
+                  >
+                    <Search className='w-6 h-6 text-white drop-shadow-md hover:scale-110 transition-all' />
+                  </button>
+
                   <button
                     type='button'
                     onClick={() => navigate(groupUrl(groupSlug, 'about', {}))}
@@ -832,8 +869,9 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
                     >
                       {t('{{count}} Members', { count: (spaceGroup || group)?.memberCount || 0 })}
                     </Link>
-                    <InviteMembersPopover
+                    <InviteMembersDialog
                       group={spaceGroup || group}
+                      parentGroup={spaceGroup ? group : null}
                       triggerClassName='text-white hover:text-white'
                     />
                   </span>
@@ -843,13 +881,13 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
         </div>
       )}
 
-      {/* Extra room up top so the first row of cards clears the banner edge */}
-      <div ref={gridContainerRef} className={cn('w-full max-w-[1000px] mx-auto px-4 pt-10 pb-6', isEditing && 'pb-24')}>
-        {/* Space level carries its own takeover headers above; More keeps the bar */}
-        {isMoreSpacesLevel && (
-          <StickyBackHeader title={nestedTitle} icon={<CircleEllipsis />} onBack={handleBack} t={t} />
-        )}
+      {/* More Spaces has no banner — keep the back bar flush with the top */}
+      {isMoreSpacesLevel && (
+        <StickyBackHeader title={nestedTitle} icon={<CircleEllipsis />} onBack={handleBack} t={t} />
+      )}
 
+      {/* Extra room up top so the first row of cards clears the banner edge */}
+      <div ref={gridContainerRef} className={cn('w-full max-w-[1000px] mx-auto px-4 pb-6', isMoreSpacesLevel ? 'pt-4' : 'pt-10', isEditing && 'pb-24')}>
         {isMoreSpacesLevel
           ? <MoreSpacesGrid group={group} groupSlug={groupSlug} navigate={navigate} t={t} />
           : isEditing
@@ -964,7 +1002,7 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
             <SpaceSettingsModal
               view={settingsView}
               space={settingsView.linkedGroup}
-              group={group}
+              parentGroup={group}
               onClose={() => setSettingsView(null)}
             />
             )
@@ -977,13 +1015,22 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
                 onCreated={() => setSettingsView(null)}
               />
               )
-            : (
-              <GroupViewSettingsModal
-                view={settingsView}
-                group={menuGroup}
-                onClose={() => setSettingsView(null)}
-              />
-              )
+            : settingsView.type === 'space-collection'
+              ? (
+                <AddSpaceCollectionDialog
+                  group={menuGroup}
+                  view={settingsView}
+                  onCancel={() => setSettingsView(null)}
+                  onCreated={() => setSettingsView(null)}
+                />
+                )
+              : (
+                <GroupViewSettingsModal
+                  view={settingsView}
+                  group={menuGroup}
+                  onClose={() => setSettingsView(null)}
+                />
+                )
       )}
     </div>
   )

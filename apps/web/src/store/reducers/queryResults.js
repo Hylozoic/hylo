@@ -10,10 +10,13 @@ import { mapValues, camelCase } from 'lodash'
 import orm from 'store/models'
 import { createSelector as ormCreateSelector } from 'redux-orm'
 import {
+  FETCH_MODERATION_ACTIONS,
   FETCH_POST,
   FETCH_POSTS,
   FETCH_TOPICS,
   FETCH_DEFAULT_TOPICS,
+  CREATE_MODERATION_ACTION,
+  CREATE_MODERATION_ACTION_PENDING,
   CREATE_POST,
   CREATE_PROJECT,
   DROP_QUERY_RESULTS,
@@ -25,6 +28,7 @@ import {
   FETCH_COMMENTS,
   REMOVE_POST_PENDING,
   REMOVE_POST_FROM_VIEW_PENDING,
+  REORDER_VIEW_POST_PENDING,
   SAVE_POST_PENDING,
   UNSAVE_POST_PENDING,
   FULFILL_POST_PENDING,
@@ -72,6 +76,28 @@ export default function (state = {}, action) {
   //
 
   switch (type) {
+    case CREATE_MODERATION_ACTION_PENDING: {
+      const tempId = meta?.tempId
+      if (!tempId) return state
+      const slugs = uniq((meta.slugs || []).filter(Boolean))
+      return slugs.reduce((memo, slug) => {
+        return prependIdForCreate(memo, FETCH_MODERATION_ACTIONS, { slug, sortBy: 'created' }, tempId)
+      }, state)
+    }
+
+    case CREATE_MODERATION_ACTION: {
+      const createdId = payload?.data?.createModerationAction?.id
+      if (!createdId) return state
+      let nextState = state
+      if (meta?.tempId) {
+        nextState = replaceIdInQueryResults(nextState, meta.tempId, createdId)
+      }
+      const slugs = uniq((meta.slugs || []).filter(Boolean))
+      return slugs.reduce((memo, slug) => {
+        return prependIdForCreate(memo, FETCH_MODERATION_ACTIONS, { slug, sortBy: 'created' }, createdId)
+      }, nextState)
+    }
+
     case CREATE_PROJECT:
     case CREATE_POST:
     case RECEIVE_POST:
@@ -143,6 +169,21 @@ export default function (state = {}, action) {
           ids: results.ids.filter(id => String(id) !== String(meta.postId)),
           total: (results.total || results.total === 0) && results.total - 1
         }
+      })
+
+    case REORDER_VIEW_POST_PENDING:
+      return mapValues(state, (results, key) => {
+        const keyObject = JSON.parse(key)
+        if (String(get('params.forCollection', keyObject)) !== String(meta.viewId)) return results
+        if (get('params.sortBy', keyObject) && get('params.sortBy', keyObject) !== 'order') return results
+        const ids = results.ids || []
+        const fromIndex = ids.findIndex(id => String(id) === String(meta.postId))
+        if (fromIndex === -1 || fromIndex === meta.order) return results
+        const next = [...ids]
+        const [moved] = next.splice(fromIndex, 1)
+        const insertAt = Math.max(0, Math.min(meta.order, next.length))
+        next.splice(insertAt, 0, moved)
+        return { ...results, ids: next }
       })
 
     case UNSAVE_POST_PENDING:
@@ -323,15 +364,25 @@ export function matchNewPostIntoQueryResults (state, { id, isPublic, type, group
     }, memo, queriesToMatch)
   }, state, groups)
 
-  // Typed views (`types` array) and All Activity (`filter: all+notices`) are not
-  // covered by the explicit queriesToMatch list. Move an existing id to the front
-  // when the same chat_activity hour bucket is updated.
+  // Typed views (`types` array), All Activity (`filter: all+notices`) and the
+  // group/space chat rooms are not covered by the explicit queriesToMatch list:
+  // their keys carry params (`first`, no `topic`) the templates above omit.
+  // Move an existing id to the front when the same chat_activity hour bucket is updated.
   return mapValues(updatedState, (results, key) => {
-    if (!results?.ids || type === 'chat') return results
+    if (!results?.ids) return results
     const keyObject = JSON.parse(key)
     if (keyObject.type !== FETCH_POSTS) return results
     const params = keyObject.params || {}
     if (!groupSlugs.includes(params.slug) && !(params.groupId && parentIds.includes(String(params.groupId)))) return results
+
+    if (type === 'chat') {
+      if (params.filter !== 'chat') return results
+      if (params.search) return results
+      if (params.types && !params.types.includes('chat')) return results
+      if (params.topic && !topics.some(t => String(t.id) === String(params.topic))) return results
+      return moveIdToFront(results, id)
+    }
+
     const matchesTypes = params.types?.includes(type)
     const isAllActivity = params.filter === 'all+notices'
     if (!matchesTypes && !isAllActivity) return results
@@ -500,6 +551,7 @@ export const queryParamWhitelist = [
   'filter',
   'first',
   'forCollection',
+  'fundingRoundCapability',
   'groupId',
   'groupIds',
   'groupRoleId',
@@ -519,6 +571,7 @@ export const queryParamWhitelist = [
   'sortBy',
   'topic',
   'topics',
+  'trackCompleted',
   'type', // TODO: why do we have type & filter? should only need one
   'types',
   'page',

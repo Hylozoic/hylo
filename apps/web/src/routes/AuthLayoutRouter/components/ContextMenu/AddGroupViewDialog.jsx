@@ -13,6 +13,7 @@ import PostSelector from 'components/PostSelector'
 import PeopleSelector from 'routes/Messages/PeopleSelector'
 import GroupViewIcon from './GroupViewIcon'
 import AddCollectionDialog from './AddCollectionDialog'
+import AddSpaceCollectionDialog from './AddSpaceCollectionDialog'
 import AddCustomViewDialog from './AddCustomViewDialog'
 import AddWelcomeViewDialog from './AddWelcomeViewDialog'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
@@ -24,6 +25,7 @@ import {
   getParentGroups,
   getPeerGroups
 } from 'store/selectors/getGroupRelationships'
+import { viewAcceptedByPostTypes } from 'store/models/GroupView'
 import { cn } from 'util/index'
 import { sanitizeURL } from 'util/url'
 
@@ -46,6 +48,7 @@ const COMMON_VIEW_TYPES = [
 const CUSTOM_VIEW_TYPES = [
   'custom',
   'collection',
+  'space-collection',
   'link',
   'post',
   'member',
@@ -67,7 +70,7 @@ function descriptionForViewType (type, t) {
 /** Modal for picking and creating a new group view.
  * Pass `onAdd` to stage the view locally instead of dispatching a mutation — used when
  * building up a not-yet-created group/space (e.g. AddSpaceDialog's Included Views editor). */
-export default function AddGroupViewDialog ({ group, groupViews, onClose, onAdd }) {
+export default function AddGroupViewDialog ({ group, groupViews, acceptedPostTypes, onClose, onAdd }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const [selectedType, setSelectedType] = useState(null)
@@ -77,6 +80,7 @@ export default function AddGroupViewDialog ({ group, groupViews, onClose, onAdd 
   const [textContent, setTextContent] = useState('')
   const [showCustomViewDialog, setShowCustomViewDialog] = useState(false)
   const [showCollectionDialog, setShowCollectionDialog] = useState(false)
+  const [showSpaceCollectionDialog, setShowSpaceCollectionDialog] = useState(false)
   const [showWelcomeViewDialog, setShowWelcomeViewDialog] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
   const [people, setPeople] = useState([])
@@ -112,8 +116,10 @@ export default function AddGroupViewDialog ({ group, groupViews, onClose, onAdd 
   }, [typesInMenu])
 
   const commonViewTypes = useMemo(
-    () => COMMON_VIEW_TYPES.filter(type => !isTypeInMenu(type)),
-    [isTypeInMenu]
+    () => COMMON_VIEW_TYPES.filter(type => (
+      viewAcceptedByPostTypes(type, acceptedPostTypes) && !isTypeInMenu(type)
+    )),
+    [acceptedPostTypes, isTypeInMenu]
   )
 
   const customViewTypes = CUSTOM_VIEW_TYPES
@@ -145,7 +151,7 @@ export default function AddGroupViewDialog ({ group, groupViews, onClose, onAdd 
     if (ENTITY_VIEW_TYPES.has(selectedType)) return false
     if (selectedType === 'link') return Boolean(linkName.trim() && linkUrl.trim())
     if (selectedType === 'text') return Boolean(textContent.trim())
-    if (selectedType === 'custom' || selectedType === 'collection') return true
+    if (selectedType === 'custom' || selectedType === 'collection' || selectedType === 'space-collection') return true
     return true
   }, [selectedType, linkName, linkUrl, textContent])
 
@@ -183,6 +189,11 @@ export default function AddGroupViewDialog ({ group, groupViews, onClose, onAdd 
 
     if (selectedType === 'collection') {
       setShowCollectionDialog(true)
+      return
+    }
+
+    if (selectedType === 'space-collection') {
+      setShowSpaceCollectionDialog(true)
       return
     }
 
@@ -255,6 +266,11 @@ export default function AddGroupViewDialog ({ group, groupViews, onClose, onAdd 
 
   const handleCollectionCreated = useCallback(() => {
     setShowCollectionDialog(false)
+    onClose()
+  }, [onClose])
+
+  const handleSpaceCollectionCreated = useCallback(() => {
+    setShowSpaceCollectionDialog(false)
     onClose()
   }, [onClose])
 
@@ -343,6 +359,8 @@ export default function AddGroupViewDialog ({ group, groupViews, onClose, onAdd 
               removePerson={() => {}}
               peopleSelectorOpen={peopleSelectorOpen}
               onFocus={() => setPeopleSelectorOpen(true)}
+              onTyping={() => setPeopleSelectorOpen(true)}
+              dropdownClassName='z-[1200]'
               autoFocus
             />
           </div>
@@ -362,12 +380,25 @@ export default function AddGroupViewDialog ({ group, groupViews, onClose, onAdd 
     )
   }
 
+  /** Closes the dialog when the dimmed overlay (not the panel) is clicked. */
+  const handleBackdropClick = (event) => {
+    if (event.target === event.currentTarget) onClose()
+  }
+
   // Portal above AuthLayout nav stacking so the dialog is not trapped behind GlobalNav.
   return createPortal(
     <>
-      <div className='fixed inset-0 z-[1100] flex items-center justify-center bg-darkening/50 pointer-events-auto'>
-        <div className='bg-midground rounded-lg shadow-lg p-4 w-full max-w-md max-h-[80vh] flex flex-col'>
-          <h2 className='text-lg font-semibold mb-4'>{t('Add View')}</h2>
+      <div
+        className='fixed inset-0 z-[1100] flex items-center justify-center bg-darkening/50 pointer-events-auto'
+        onClick={handleBackdropClick}
+      >
+        <div
+          role='dialog'
+          aria-modal='true'
+          aria-labelledby='add-group-view-dialog-title'
+          className='relative bg-midground rounded-lg shadow-lg p-4 w-full max-w-md max-h-[80vh] flex flex-col'
+        >
+          <h2 id='add-group-view-dialog-title' className='text-lg font-semibold mb-4'>{t('Add View')}</h2>
 
           <div className='flex flex-col gap-1 overflow-y-auto flex-1 min-h-0'>
             {commonViewTypes.length > 0 && (
@@ -398,7 +429,7 @@ export default function AddGroupViewDialog ({ group, groupViews, onClose, onAdd 
               <Button variant='secondary' disabled={!canAdd || isCreating} onClick={handleAdd}>
                 {isCreating
                   ? t('Creating...')
-                  : (selectedType === 'custom' || selectedType === 'collection' || selectedType === 'welcome')
+                  : (selectedType === 'custom' || selectedType === 'collection' || selectedType === 'space-collection' || selectedType === 'welcome')
                       ? t('Next')
                       : t('Add View')}
               </Button>
@@ -422,6 +453,15 @@ export default function AddGroupViewDialog ({ group, groupViews, onClose, onAdd 
           onCancel={() => setShowCollectionDialog(false)}
           onCreated={handleCollectionCreated}
           onAdd={onAdd ? (viewData) => { onAdd(viewData); handleCollectionCreated() } : undefined}
+        />
+      )}
+
+      {showSpaceCollectionDialog && (
+        <AddSpaceCollectionDialog
+          group={group}
+          onCancel={() => setShowSpaceCollectionDialog(false)}
+          onCreated={handleSpaceCollectionCreated}
+          onAdd={onAdd ? (viewData) => { onAdd(viewData); handleSpaceCollectionCreated() } : undefined}
         />
       )}
 

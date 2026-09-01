@@ -193,6 +193,8 @@
 @media screen and (max-width: 600px) {
   .create-modal-wrapper {
     width: 100%;
+    /* The editor needs the phone's full width far more than a 20px gutter */
+    padding: 8px;
   }
 }
 

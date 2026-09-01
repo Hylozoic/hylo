@@ -94,7 +94,15 @@ const FlagGroupContent = ({ onClose, onFlag, linkData, type = 'content' }) => {
   }
 
   const submit = () => {
-    dispatch(createModerationAction({ text: explanation, postId: id, groupId: group.id, agreements: agreementsSelected, platformAgreements: platformAgreementsSelected, anonymous }))
+    const slugs = [...new Set([group?.slug, parentGroupSlug].filter(Boolean))]
+    dispatch(createModerationAction({
+      text: explanation,
+      postId: id,
+      groupId: group.id,
+      agreements: agreementsSelected,
+      platformAgreements: platformAgreementsSelected,
+      anonymous
+    }, { slugs }))
     if (onFlag) {
       onFlag({ postId: id, groupId: group.id })
     }

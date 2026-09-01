@@ -123,6 +123,11 @@ function GroupDetail ({ forCurrentGroup = false }) {
     : (routeParams.detailGroupSlug || routeParams.groupSlug)
   const groupSelector = useSelector(state => getGroupForSlug(state, slug))
   const group = useMemo(() => presentGroup(groupSelector), [groupSelector])
+  const parentGroup = useSelector(state => {
+    if (group?.type !== GROUP_TYPES.space || !routeParams.groupSlug) return null
+    if (routeParams.groupSlug === slug) return null
+    return getGroupForSlug(state, routeParams.groupSlug)
+  })
   const isAboutCurrentGroup = forCurrentGroup || routeParams.groupSlug === routeParams.detailGroupSlug
   const myMemberships = useSelector(state => getMyMemberships(state))
   const isMember = useMemo(() => group && currentUser ? myMemberships.find(m => m.group.id === group.id) : false, [group, currentUser, myMemberships])
@@ -169,7 +174,6 @@ function GroupDetail ({ forCurrentGroup = false }) {
       slug,
       accessCode,
       invitationToken,
-      withContextWidgets: false,
       withWidgets: true,
       withPrerequisites: !!currentUser
     }))
@@ -504,10 +508,10 @@ function GroupDetail ({ forCurrentGroup = false }) {
                     )
           : ''}
       </div>
-      {showSpaceSettings && (
+      {showSpaceSettings && parentGroup && (
         <SpaceSettingsModal
           space={group}
-          group={group}
+          parentGroup={parentGroup}
           onClose={() => setShowSpaceSettings(false)}
         />
       )}

@@ -24,7 +24,11 @@ export default function GroupNotificationsPopover ({ group, className = 'w-6 h-6
 
   return (
     <Popover>
-      <PopoverTrigger type='button' aria-label={t('Notification Settings')}>
+      <PopoverTrigger
+        type='button'
+        aria-label={t('Notification Settings')}
+        className='inline-flex items-center justify-center p-0 leading-none [&>svg]:block'
+      >
         <Bell className={className} />
       </PopoverTrigger>
       <PopoverContent align='start' className='w-[21rem]'>

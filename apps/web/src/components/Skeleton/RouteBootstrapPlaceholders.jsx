@@ -164,51 +164,6 @@ export function GroupWelcomeBootstrapSkeleton () {
   )
 }
 
-/** Tracks list or track home: header + card list. */
-export function TracksBootstrapSkeleton () {
-  return (
-    <div className={cn(STREAM_MAIN_COLUMN_CLASS, 'w-full')} aria-busy='true' aria-label='Loading tracks'>
-      <div className='flex items-center gap-3 mb-6'>
-        <Skeleton className='h-10 w-10 rounded-lg' />
-        <div className='flex-1 flex flex-col gap-2'>
-          <Skeleton className='h-4 w-[50%]' />
-          <Skeleton className='h-2 w-[32%]' />
-        </div>
-      </div>
-      {[0, 1, 2, 3].map(i => (
-        <div key={i} className='rounded-xl border-2 border-foreground/5 bg-card/50 p-4 mb-3 flex gap-3'>
-          <Skeleton className='w-16 h-16 rounded-lg flex-shrink-0' />
-          <div className='flex-1 flex flex-col gap-2'>
-            <Skeleton className='h-3 w-[55%]' />
-            <Skeleton className='h-2 w-full' />
-            <Skeleton className='h-2 w-[75%]' />
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-/** Funding rounds list or detail shell. */
-export function FundingRoundsBootstrapSkeleton () {
-  return (
-    <div className={cn(STREAM_MAIN_COLUMN_CLASS, 'w-full')} aria-busy='true' aria-label='Loading funding rounds'>
-      <Skeleton className='h-7 w-[55%] mb-6' />
-      {[0, 1, 2].map(i => (
-        <div key={i} className='rounded-xl border-2 border-foreground/5 overflow-hidden mb-4'>
-          <Skeleton className='h-28 w-full' />
-          <div className='p-4 flex flex-col gap-2'>
-            <Skeleton className='h-4 w-[48%]' />
-            <Skeleton className='h-2 w-full' />
-            <Skeleton className='h-2 w-[60%]' />
-            <Skeleton className='h-9 w-32 rounded-md mt-2' />
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-}
-
 /** Moderation table-ish rows. */
 export function ModerationBootstrapSkeleton () {
   return (

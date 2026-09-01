@@ -129,13 +129,12 @@ export function fetchFundingRound (id) {
       query: `query ($id: ID) {
         fundingRound (id: $id) {
           id
+          allowLateJoiners
           allowSelfVoting
-          bannerUrl
           canSubmit
           canVote
           createdAt
           criteria
-          description
           hideFinalResultsFromParticipants
           isParticipating
           joinedAt
@@ -144,7 +143,6 @@ export function fetchFundingRound (id) {
           numParticipants
           numSubmissions
           phase
-          publishedAt
           requireBudget
           submissionDescriptor
           submissionDescriptorPlural
@@ -155,7 +153,6 @@ export function fetchFundingRound (id) {
           }
           submissionsCloseAt,
           submissionsOpenAt,
-          title,
           tokenType,
           tokensRemaining,
           totalTokens,
@@ -267,20 +264,20 @@ export function createFundingRound (data) {
       query: `mutation CreateFundingRound($data: FundingRoundInput) {
         createFundingRound(data: $data) {
           id,
-          bannerUrl,
+          allowLateJoiners,
           createdAt,
           criteria,
-          description,
           group {
             id
             name
             slug
+            bannerUrl
+            description
           }
           maxTokenAllocation,
           minTokenAllocation,
           numParticipants,
           numSubmissions,
-          publishedAt,
           requireBudget,
           submissionDescriptor,
           submissionDescriptorPlural,
@@ -291,7 +288,6 @@ export function createFundingRound (data) {
           }
           submissionsCloseAt,
           submissionsOpenAt,
-          title,
           tokenType,
           totalTokens,
           totalTokensAllocated,
@@ -362,6 +358,7 @@ export function joinFundingRound (id) {
           joinFundingRound(id: $id) {
             id
             isParticipating
+            tokensRemaining
           }
         }
       `,
@@ -370,7 +367,8 @@ export function joinFundingRound (id) {
       }
     },
     meta: {
-      id
+      id,
+      extractModel: 'FundingRound'
     }
   }
 }
@@ -422,6 +420,9 @@ export function deleteFundingRound (id) {
 // Determine what phase a funding round should be in based on timestamps
 export function getExpectedPhase (fundingRound) {
   if (!fundingRound) return null
+  if (fundingRound.phase === 'draft' || fundingRound.phase === 'archived') {
+    return fundingRound.phase
+  }
 
   const now = new Date()
 
@@ -438,10 +439,7 @@ export function getExpectedPhase (fundingRound) {
   const submissionsOpenAt = fundingRound.submissionsOpenAt ? new Date(fundingRound.submissionsOpenAt) : null
   if (submissionsOpenAt && submissionsOpenAt <= now) return 'submissions'
 
-  const publishedAt = fundingRound.publishedAt ? new Date(fundingRound.publishedAt) : null
-  if (publishedAt && publishedAt <= now) return 'published'
-
-  return 'draft'
+  return fundingRound.phase || 'published'
 }
 
 // Check if a phase transition is needed
@@ -573,8 +571,6 @@ export function ormSessionReducer (
       syncFundingRoundEmbeddedData(session, meta.id, {
         submissionDescriptor: data.submissionDescriptor,
         submissionDescriptorPlural: data.submissionDescriptorPlural,
-        publishedAt: data.publishedAt,
-        title: data.title,
         tokenType: data.tokenType,
         votingMethod: data.votingMethod,
         submissionsOpenAt: data.submissionsOpenAt,

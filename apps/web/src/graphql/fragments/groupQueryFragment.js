@@ -15,27 +15,6 @@ export default function groupQueryFragment () {
     }
     avatarUrl
     bannerUrl
-    customViews {
-      items {
-        id
-        groupId
-        activePostsOnly
-        collectionId
-        defaultSort
-        defaultViewMode
-        externalLink
-        isActive
-        icon
-        name
-        order
-        postTypes
-        topics {
-          id
-          name
-        }
-        type
-      }
-    }
     description
     eventCalendarUrl
     geoShape
@@ -43,6 +22,7 @@ export default function groupQueryFragment () {
     location
     memberCount
     openJoinRequestCount
+    openModerationActionCount
     stewardDescriptor
     stewardDescriptorPlural
     name
@@ -70,7 +50,7 @@ export default function groupQueryFragment () {
     websiteUrl
     paywall
     canAccess
-    groupRoles {
+    groupRoles(first: 100, order: "asc") {
       items {
         id
         name
@@ -78,6 +58,7 @@ export default function groupQueryFragment () {
         emoji
         groupId
         membersTotal
+        type
         responsibilities {
           items {
             id
@@ -128,85 +109,6 @@ export default function groupQueryFragment () {
               }
             }
           }
-        }
-      }
-    }
-    contextWidgets {
-      items {
-        id
-        autoAdded
-        title
-        type
-        order
-        visibility
-        view
-        icon
-        highlightNumber
-        secondaryNumber
-        parentId
-        viewGroup {
-          id
-          avatarUrl
-          bannerUrl
-          name
-          memberCount
-          visibility
-          accessibility
-          slug
-        }
-        viewPost {
-          id
-          announcement
-          title
-          details
-          type
-          createdAt
-          startTime
-          endTime
-          isPublic
-        }
-        customView {
-          id
-          groupId
-          collectionId
-          externalLink
-          isActive
-          icon
-          name
-          order
-          postTypes
-          topics {
-            id
-            name
-          }
-          type
-        }
-        viewUser {
-          id
-          name
-          avatarUrl
-        }
-        viewChat {
-          id
-          name
-        }
-        viewFundingRound {
-          id
-          title
-          isParticipating
-          publishedAt
-          submissionsOpenAt
-          submissionsCloseAt
-          votingOpensAt
-          votingClosesAt
-        }
-        viewTrack {
-          id
-          name
-          didComplete
-          isEnrolled
-          numActions
-          publishedAt
         }
       }
     }

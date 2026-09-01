@@ -26,6 +26,7 @@ export const buildPostDraftPayload = (post = {}) => ({
   meetingLink: post.meetingLink || '',
   linkPreview: post.linkPreview || null,
   linkPreviewFeatured: !!post.linkPreviewFeatured,
+  skipLinkPreview: !!post.skipLinkPreview,
   acceptContributions: !!post.acceptContributions,
   completionAction: post.completionAction || null,
   completionActionSettings: post.completionActionSettings || null,

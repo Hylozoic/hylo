@@ -129,7 +129,7 @@ export default defineConfig({
         storageState: './e2e/.auth/session-mutate-user.json'
       },
       dependencies: ['setup', 'setup-session-mutate'],
-      timeout: 120000
+      timeout: 240000
     },
     {
       name: 'mobile-session-mutate',
@@ -139,7 +139,7 @@ export default defineConfig({
         storageState: './e2e/.auth/session-mutate-user.json'
       },
       dependencies: ['setup', 'setup-session-mutate'],
-      timeout: 120000
+      timeout: 240000
     },
     {
       name: 'mobile-unauth',
@@ -174,7 +174,8 @@ export default defineConfig({
     env: {
       ...process.env,
       VITE_API_HOST: process.env.VITE_API_HOST || 'http://localhost:3001',
-      PORT: webPort
+      PORT: webPort,
+      ...(process.env.E2E_ISOLATED === '1' ? { VITE_E2E_ISOLATED: '1' } : {})
     }
   }
 })

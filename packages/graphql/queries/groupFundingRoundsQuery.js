@@ -22,19 +22,17 @@ export default gql`
       ) {
         items {
           id
+          allowLateJoiners
           allowSelfVoting
-          bannerUrl
           createdAt
           criteria
           group {
             id
-            description
+            name
             slug
-            homeRoute
-            parentGroup {
-              id
-              slug
-            }
+            description
+            bannerUrl
+            status
           }
           isParticipating
           hideFinalResultsFromParticipants
@@ -43,13 +41,11 @@ export default gql`
           numParticipants
           numSubmissions
           phase
-          publishedAt
           requireBudget
           submissionDescriptor
           submissionDescriptorPlural
           submissionsCloseAt
           submissionsOpenAt
-          title
           tokenType
           totalTokens
           totalTokensAllocated
@@ -67,6 +63,4 @@ export default gql`
         }
       }
     }
-  }
-`
-
+  }`

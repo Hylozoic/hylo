@@ -9,6 +9,10 @@ export { COMMON_VIEWS } from '@hylo/presenters/GroupViewPresenter'
 
 export { POST_TYPE_TO_VIEW_TYPE, VIEW_TYPE_TO_POST_TYPES }
 
+/** Stands in for a home view that isn't one of the picker's own options — the backend
+ * takes the landing route from the first seeded view, so any menu item can hold the spot. */
+export const CUSTOM_HOME_VIEW = 'CUSTOM'
+
 const NON_DELETABLE_TYPES = ['track-actions', 'funding-round-submissions']
 
 /**
@@ -35,9 +39,15 @@ export function viewAcceptedByPostTypes (viewType, acceptedPostTypes) {
   return requiredPostTypes.some(postType => acceptedPostTypes.includes(postType))
 }
 
+/** True when a persisted view belongs on the live or edit menu. */
+export function isMenuViewVisible (view, acceptedPostTypes) {
+  if (view?.order == null) return false
+  return viewAcceptedByPostTypes(view.type, acceptedPostTypes)
+}
+
 /** View types that have configurable settings in the menu editor. */
 export function viewTypeHasSettings (type) {
-  return ['all', 'chat', 'link', 'text', 'custom', 'collection', 'welcome', 'space'].includes(type)
+  return ['all', 'chat', 'link', 'text', 'custom', 'collection', 'space-collection', 'welcome', 'space'].includes(type)
 }
 
 /** Soft-removable items use X to move to More Spaces (spaces only). */
@@ -70,6 +80,17 @@ export function canSetAsHomeView (view) {
   return canBeHomeView(view)
 }
 
+/** Seeds the menu in this order, with the chosen home view first so the landing route matches.
+ * `orderedStandardTypes` is empty until Menu Items is opened, so we fall back to the derived defaults. */
+export function viewTypesForCreate (orderedStandardTypes, defaultTypes, homeType) {
+  const types = orderedStandardTypes.length > 0 ? orderedStandardTypes : defaultTypes
+  if (types.length === 0) return [homeType || 'all']
+  if (homeType && types.includes(homeType) && types[0] !== homeType) {
+    return [homeType, ...types.filter(type => type !== homeType)]
+  }
+  return types
+}
+
 class GroupView extends Model {
   toString () {
     return `GroupView: ${this.name || this.type}`
@@ -91,5 +112,7 @@ GroupView.fields = {
   topics: attr(),
   settings: attr(),
   newPostCount: attr(),
-  lastReadPostId: attr()
+  lastReadPostId: attr(),
+  pinnedPostIds: attr(),
+  pinnedPosts: attr()
 }

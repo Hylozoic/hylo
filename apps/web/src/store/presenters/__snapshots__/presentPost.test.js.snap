@@ -24,10 +24,13 @@ Object {
   "id": 324,
   "imageAttachments": Array [],
   "linkPreview": null,
+  "linkPreviewFeatured": false,
   "location": undefined,
+  "locationObject": null,
   "members": Array [],
   "noticeData": null,
   "noticePosts": Array [],
+  "postMemberships": Array [],
   "proposalOptions": Array [],
   "topics": Array [],
 }

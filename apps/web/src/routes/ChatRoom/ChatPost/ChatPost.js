@@ -1,12 +1,12 @@
 import { filter, isEmpty, isFunction, pick } from 'lodash/fp'
-import { BookmarkCheck, Bookmark, Check, Flag, MessageCircle, Pencil, Trash2, X } from 'lucide-react'
-import { DateTimeHelpers } from '@hylo/shared'
+import { BookmarkCheck, Bookmark, Check, Flag, MessageCircle, Pencil, Pin, PinOff, Trash2, X } from 'lucide-react'
+import { DateTimeHelpers, MAX_PINNED_POSTS_PER_VIEW } from '@hylo/shared'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
-import ReactPlayer from 'react-player'
 import { useLongPress } from 'use-long-press'
+import isPlayableVideoUrl from 'util/isPlayableVideoUrl'
 import Avatar from 'components/Avatar'
 import ClickCatcher from 'components/ClickCatcher'
 import CardFileAttachments from 'components/CardFileAttachments'
@@ -34,7 +34,25 @@ import { groupUrl, personUrl, spaceUrl } from '@hylo/navigation'
 import { useGroupRouteOpts } from 'contexts/SpaceGroupContext'
 import { getLocaleFromLocalStorage } from 'util/locale'
 import { hasActiveTextSelection, hasReadableContentSelection } from 'util/textSelectionTouch'
+import pinPostAction from 'store/actions/pinPost'
+import useCurrentPinnableView from 'hooks/useCurrentPinnableView'
 import { cn } from 'util/index'
+
+// Tall messages are clipped to this height until the reader asks for the rest,
+// so one long post can't push the rest of the conversation off screen
+const MAX_COLLAPSED_DETAILS_HEIGHT = 200
+// Only clip when doing so buys back meaningful height — a message a hair over
+// the limit would otherwise gain a "See More" that hides a single line
+const COLLAPSE_SLACK = 40
+// Fade the clipped text itself rather than painting a gradient over it: the
+// row's background shifts between default, hover and highlighted states
+const COLLAPSED_DETAILS_FADE = 'linear-gradient(to bottom, black calc(100% - 40px), transparent)'
+const collapsedDetailsStyle = {
+  maxHeight: MAX_COLLAPSED_DETAILS_HEIGHT,
+  overflow: 'hidden',
+  maskImage: COLLAPSED_DETAILS_FADE,
+  WebkitMaskImage: COLLAPSED_DETAILS_FADE
+}
 
 export default function ChatPost ({
   className,
@@ -55,7 +73,6 @@ export default function ChatPost ({
     details,
     editedAt,
     fileAttachments,
-    groups, // TODO: why pass this in, why not pull from getGroupFromSlug?
     id,
     linkPreview,
     linkPreviewFeatured,
@@ -71,30 +88,47 @@ export default function ChatPost ({
   const isPressDevice = !window.matchMedia('(hover: hover) and (pointer: fine)').matches
   const currentUser = useSelector(getMe)
   const currentUserResponsibilities = useSelector(state => getResponsibilitiesForGroup(state, { person: currentUser, groupId: group.id })).map(r => r.title)
+  const pinnableView = useCurrentPinnableView()
   const { parentGroupSlug, spaceSlug } = useGroupRouteOpts()
 
   const [editing, setEditing] = useState(false)
-  const [isVideo, setIsVideo] = useState()
   const [flaggingVisible, setFlaggingVisible] = useState(false)
   const [isLongPress, setIsLongPress] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false)
+  const [detailsOverflowing, setDetailsOverflowing] = useState(false)
+  const [detailsExpanded, setDetailsExpanded] = useState(false)
+  const detailsRef = useRef()
 
   const isCreator = currentUser.id === creator.id
   const isFlagged = useMemo(() => group && post.flaggedGroups && post.flaggedGroups.some(id => String(id) === String(group.id)), [group, post.flaggedGroups])
 
   const postGroups = useMemo(() => {
-    if (groups?.length) return groups
+    if (post.groups?.length) return post.groups
     return group ? [{ id: group.id, name: group.name, slug: group.slug }] : []
-  }, [groups, group])
+  }, [post.groups, group])
 
   const groupIds = useMemo(() => postGroups.map(g => g.id), [postGroups])
 
+  const previewUrl = linkPreview?.url || linkPreview?.ref?.url
+  const showFeaturedVideo = linkPreviewFeatured && isPlayableVideoUrl(previewUrl)
+
+  // Measure rather than count characters: what matters is the height on screen,
+  // which shifts with images, embeds and the reader's chosen stream width
   useEffect(() => {
-    if (linkPreview?.url) {
-      setIsVideo(ReactPlayer.canPlay(linkPreview?.url))
-    }
-  }, [linkPreview?.url])
+    const element = detailsRef.current
+    if (!element) return
+    const measure = () => setDetailsOverflowing(element.offsetHeight > MAX_COLLAPSED_DETAILS_HEIGHT + COLLAPSE_SLACK)
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [details, editing])
+
+  const handleToggleDetails = useCallback((event) => {
+    event.stopPropagation()
+    setDetailsExpanded(expanded => !expanded)
+  }, [])
 
   const handleClick = event => {
     if (hasActiveTextSelection() || hasReadableContentSelection()) return
@@ -105,7 +139,8 @@ export default function ChatPost ({
     // Don't open post details in these cases
     } else if (
       !editing &&
-      !(event.target.getAttribute('target') === '_blank') &&
+      // closest: the click often lands on an icon or span inside the link
+      !event.target.closest?.('a[target="_blank"]') &&
       !event.target.className.includes('image') &&
       !event.target.className.includes('icon-Smiley')
     ) {
@@ -223,12 +258,26 @@ export default function ChatPost ({
     }
   }, [savedAt, id])
 
-  const actionItems = filter(item => isFunction(item.onClick), [
+  const pinnedPostIds = (pinnableView?.pinnedPostIds || []).map(pid => String(pid))
+  const pinned = pinnedPostIds.includes(String(id))
+  const atPinCap = pinnedPostIds.length >= MAX_PINNED_POSTS_PER_VIEW && !pinned
+  const canShowPin = currentUserResponsibilities.includes(RESP_MANAGE_CONTENT) &&
+    !!pinnableView?.id &&
+    !!group?.id
+  const pinAtCap = canShowPin && atPinCap
+  const canPin = canShowPin && (pinned || !atPinCap)
+  const handlePinPost = useCallback(() => {
+    if (!pinnableView?.id || !group?.id) return
+    dispatch(pinPostAction(id, pinnableView.id, group.id, post))
+  }, [dispatch, id, pinnableView?.id, group?.id, post])
+
+  const actionItems = filter(item => isFunction(item.onClick) || item.disabled, [
     // { icon: 'Copy', label: 'Copy Link', onClick: copyLink },
     { icon: <MessageCircle className='w-4 h-4 text-foreground' />, label: 'Reply', onClick: showPost, tooltip: 'Reply to post' },
     // TODO: Edit disabled in mobile environments due to issue with keyboard management and autofocus of field
     { icon: <Pencil className='w-4 h-4 text-foreground' />, label: 'Edit', onClick: (isCreator && !isLongPress) ? editPost : null, tooltip: 'Edit post' },
     { icon: savedAt ? <BookmarkCheck className='w-4 h-4 text-foreground' /> : <Bookmark className='w-4 h-4 text-foreground' />, label: savedAt ? t('Unsave Post') : t('Save Post'), onClick: handleSavePost, tooltip: savedAt ? 'Unsave post' : 'Save post' },
+    { icon: pinned ? <PinOff className='w-4 h-4 text-foreground' /> : <Pin className={cn('w-4 h-4', pinAtCap ? 'text-foreground/40' : 'text-foreground')} />, label: pinned ? t('Unpin from View') : t('Pin to View'), onClick: canPin ? handlePinPost : null, disabled: pinAtCap, tooltip: pinAtCap ? t('You can only pin 3 posts') : (pinned ? t('Unpin from View') : t('Pin to View')) },
     { icon: <Flag className='w-4 h-4 text-foreground' />, label: 'Flag', onClick: !isCreator ? () => { setFlaggingVisible(true) } : null, tooltip: 'Flag post' },
     { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: 'Delete', onClick: isCreator ? deletePostWithConfirm : null, red: true, tooltip: 'Delete post' },
     { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: 'Remove From Group', onClick: !isCreator && currentUserResponsibilities.includes(RESP_MANAGE_CONTENT) ? removePostWithConfirm : null, red: true, tooltip: 'Remove post from group' }
@@ -294,13 +343,16 @@ export default function ChatPost ({
           {actionItems.map(item => (
             <button
               key={item.label}
-              onClick={handleActionItemClick(item.onClick)}
+              type='button'
+              onClick={item.disabled ? (e) => { e.stopPropagation(); e.preventDefault() } : handleActionItemClick(item.onClick)}
               className={cn(
                 'h-6 flex justify-center items-center rounded-lg bg-card hover:scale-110 transition-all border-2 border-transparent hover:border-foreground/50 shadow-lg hover:cursor-pointer',
-                item.label === 'Reply' ? 'gap-1 px-2' : 'w-6'
+                item.label === 'Reply' ? 'gap-1 px-2' : 'w-6',
+                item.disabled && 'opacity-40 cursor-default hover:scale-100 hover:border-transparent'
               )}
               data-tooltip-content={item.label !== 'Reply' ? item.tooltip : undefined}
               data-tooltip-id='action-tt'
+              title={item.disabled ? item.tooltip : undefined}
             >
               {item.icon}
               {item.label === 'Reply' && <span className='text-xs text-foreground'>{t('Reply')}</span>}
@@ -334,7 +386,12 @@ export default function ChatPost ({
               <Avatar avatarUrl={creator.avatarUrl} medium />
             </div>
             <div className='ml-[42px] flex items-baseline gap-2'>
-              <div className='font-bold cursor-pointer' onClick={showCreator}>{creator.name}</div>
+              <div className='font-bold cursor-pointer flex items-center gap-1.5' onClick={showCreator}>
+                {creator.name}
+                {pinned && (
+                  <Pin className='w-3.5 h-3.5 shrink-0 text-[hsl(45_65%_45%)] dark:text-[hsl(45_65%_62%)]' strokeWidth={2.5} aria-hidden='true' />
+                )}
+              </div>
               <div className='text-xs text-foreground/50'>
                 {DateTimeHelpers.toDateTime(createdAt, { locale: getLocaleFromLocalStorage() }).toFormat('t')}
                 {editedAt && <span>&nbsp;({t('edited')} {DateTimeHelpers.toDateTime(editedAt, { locale: getLocaleFromLocalStorage() }).toFormat('t')})</span>}
@@ -370,31 +427,56 @@ export default function ChatPost ({
           </div>
         )}
         {details && !editing && (
-          <ClickCatcher groupSlug={group.slug} onClick={handleClick}>
-            {/* break-words: an unbroken run (a long URL, a keysmash) must wrap rather
-                than widen the message container — visible mostly on phone widths */}
-            <div className={cn('ml-[42px] max-w-[calc(var(--chat-stream-width,750px)-50px)] cursor-text select-text break-words', { 'blur-sm': isFlagged })}>
-              <HyloHTML className='w-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 break-words' html={details} />
-            </div>
-          </ClickCatcher>
+          <>
+            <ClickCatcher groupSlug={group.slug} onClick={handleClick}>
+              {/* break-words: an unbroken run (a long URL, a keysmash) must wrap rather
+                  than widen the message container — visible mostly on phone widths */}
+              <div
+                className={cn('ml-[42px] max-w-[calc(var(--chat-stream-width,750px)-50px)] cursor-text select-text break-words', { 'blur-sm': isFlagged })}
+                style={detailsOverflowing && !detailsExpanded ? collapsedDetailsStyle : undefined}
+              >
+                {/* Inner wrapper stays unclipped so its height is the message's true height */}
+                <div ref={detailsRef}>
+                  <HyloHTML className='w-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 break-words' html={details} />
+                </div>
+              </div>
+            </ClickCatcher>
+            {detailsOverflowing && (
+              <button
+                type='button'
+                onClick={handleToggleDetails}
+                className='block ml-[42px] mt-1 text-xs font-semibold text-focus hover:underline'
+              >
+                {detailsExpanded ? t('See Less') : t('See More')}
+              </button>
+            )}
+          </>
         )}
         {isFlagged && <Link to={moderationActionsGroupUrl} className='absolute top-[calc(50%-14px)] ml-[50%] text-decoration-none' data-tooltip-content={t('See why this post was flagged')} data-tooltip-id='flag-tt'><Icon name='Flag' className='text-xl text-accent font-bold' /></Link>}
         <Tooltip
           delay={250}
           id='flag-tt'
         />
-        {linkPreview?.url && linkPreviewFeatured && isVideo && (
+        {showFeaturedVideo && (
           <div className='ml-[42px] mt-2 max-w-[calc(var(--chat-stream-width,750px)-50px)] overflow-hidden rounded-lg'>
-            <Feature url={linkPreview.url} />
+            <Feature url={previewUrl} />
           </div>
         )}
-        {linkPreview && !linkPreviewFeatured && (
-          <LinkPreview {...pick(['title', 'description', 'imageUrl', 'url'], linkPreview)} className='px-5 pb-[0.6rem] pl-[42px] block [&>div]:mb-0 max-w-[calc(var(--chat-stream-width,750px)-50px)]' />
+        {linkPreview && !showFeaturedVideo && (
+          <LinkPreview {...pick(['title', 'description', 'imageUrl', 'url'], linkPreview.ref || linkPreview)} className='px-5 pb-[0.6rem] pl-[42px] block [&>div]:mb-0 max-w-[calc(var(--chat-stream-width,750px)-50px)]' />
         )}
-        <CardImageAttachments attachments={post.attachments} isFlagged={isFlagged && !post.clickthrough} forChatPost />
-        {!isEmpty(fileAttachments) && (
-          <CardFileAttachments attachments={fileAttachments} />
-        )}
+        {/* Chat has no clickthrough affordance, so a flagged post's media stays
+            blurred like its text rather than honoring a clickthrough recorded
+            on another surface */}
+        {/* The wrapper makes empty space beside the attachments open the post,
+            like the header and text regions; tile clicks stop propagation and
+            open the lightbox instead */}
+        <div onClick={handleClick}>
+          <CardImageAttachments attachments={post.attachments} isFlagged={isFlagged} forChatPost />
+          {!isEmpty(fileAttachments) && (
+            <CardFileAttachments attachments={fileAttachments} className={cn({ 'blur-sm': isFlagged })} />
+          )}
+        </div>
         {((postReactions && postReactions.length > 0) || commentsTotal > 0) && (
           <div className='w-full flex flex-row items-center flex-wrap gap-1.5 pl-[42px] mt-1 mb-[2px]'>
             {postReactions && postReactions.length > 0 && (

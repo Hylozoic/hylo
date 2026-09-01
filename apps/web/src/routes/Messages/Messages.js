@@ -87,7 +87,7 @@ const Messages = () => {
     dispatch(fetchMessages(messageThreadId, { cursor: fetchMessagesCursor }))
   }, [dispatch, messageThreadId, messages])
   const findOrCreateThreadAction = useCallback((participantIds) => dispatch(findOrCreateThread(participantIds)), [dispatch])
-  const createMessageAction = useCallback((threadId, text, isNew) => dispatch(createMessage(threadId, text, isNew)), [dispatch])
+  const createMessageAction = useCallback((threadId, text, isNew, attachments) => dispatch(createMessage(threadId, text, isNew, attachments)), [dispatch])
   const changeQuerystringParamAction = useCallback((param, value) => dispatch(changeQuerystringParam(location, param, value)), [location])
   const fetchRecentContactsAction = useCallback(() => dispatch(fetchRecentContacts()), [dispatch])
   const fetchPeopleAction = useCallback((options) => {
@@ -253,28 +253,31 @@ const Messages = () => {
     clearMessageDraft({ deleteOnServer: true })
   }, [messageText, isRealThread, currentUser, clearMessageDraft])
 
-  const sendMessage = async () => {
-    if (!messageText || messageCreatePending) return false
+  const sendMessage = async ({ text, attachments }) => {
+    const hasText = text?.trim()
+    const hasAttachments = attachments?.length > 0
+    if ((!hasText && !hasAttachments) || messageCreatePending) return false
+    const messageBody = hasText ? TextHelpers.markdown(text) : ''
     if (forNewThread) {
-      await sendNewMessage()
+      await sendNewMessage(messageBody, attachments)
     } else {
-      await sendForExisting()
+      await sendForExisting(messageBody, attachments)
     }
     clearMessageDraft({ deleteOnServer: true })
     setParticipants([])
     return false
   }
 
-  const sendForExisting = () => {
-    createMessageAction(messageThreadId, TextHelpers.markdown(messageText)).then(() => focusForm())
+  const sendForExisting = (messageBody, attachments) => {
+    createMessageAction(messageThreadId, messageBody, false, attachments).then(() => focusForm())
   }
 
-  const sendNewMessage = async () => {
+  const sendNewMessage = async (messageBody, attachments) => {
     const participantIds = participants.map(p => p.id)
     const createThreadResponse = await findOrCreateThreadAction(participantIds)
     const newMessageThreadId = get('payload.data.findOrCreateThread.id', createThreadResponse) ||
       get('data.findOrCreateThread.id', createThreadResponse)
-    await createMessageAction(newMessageThreadId, TextHelpers.markdown(messageText), true)
+    await createMessageAction(newMessageThreadId, messageBody, true, attachments)
     goToThreadAction(newMessageThreadId)
   }
 
@@ -318,7 +321,6 @@ const Messages = () => {
           people={contacts}
           onFocus={() => setPeopleSelectorOpen(true)}
           onTyping={() => setPeopleSelectorOpen(true)}
-          onPersonSelected={() => setPeopleSelectorOpen(false)}
           selectedPeople={participants}
           selectPerson={addParticipant}
           removePerson={removeParticipant}
@@ -395,7 +397,7 @@ const Messages = () => {
           {/* The recipients/thread header belongs to this column only — it must
               not span the inbox list beside it. Styled like ViewHeader: same
               hairline edge and shadow floating above the message stream. */}
-          <div className='flex-shrink-0 z-20 -mx-3 px-4 py-2 bg-background border-b border-foreground/[0.08] shadow-[0_4px_14px_0px_rgba(0,0,0,0.16)] dark:border-transparent dark:shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)]'>
+          <div className='flex-shrink-0 z-20 -mx-3 px-4 py-2 bg-background border-b border-foreground/[0.08] shadow-header dark:border-transparent dark:shadow-header-dark'>
             {header}
           </div>
           <div

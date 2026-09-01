@@ -23,6 +23,7 @@ const queryFragment = `group(slug: $slug, updateLastViewed: $updateLastViewed) {
     location
     memberCount
     openJoinRequestCount
+    openModerationActionCount
     stewardDescriptor
     stewardDescriptorPlural
     name
@@ -44,8 +45,12 @@ const queryFragment = `group(slug: $slug, updateLastViewed: $updateLastViewed) {
     }
     slug
     type
+    status
+    active
     parentId
     icon
+    homeRoute
+    menuViewCount
     acceptedPostTypes
     typeDescriptor
     typeDescriptorPlural
@@ -57,10 +62,50 @@ const queryFragment = `group(slug: $slug, updateLastViewed: $updateLastViewed) {
     stripeChargesEnabled
     stripePayoutsEnabled
     stripeDetailsSubmitted
+    track {
+      id
+      actionDescriptor
+      actionDescriptorPlural
+      completionMessage
+      completionRole {
+        id
+        name
+        emoji
+      }
+      accessControlled
+      canAccess
+    }
     fundingRound {
       id
+      phase
+      allowSelfVoting
+      allowLateJoiners
+      hideFinalResultsFromParticipants
+      votingMethod
+      totalTokens
+      tokenType
+      maxTokenAllocation
+      minTokenAllocation
+      requireBudget
+      submissionDescriptor
+      submissionDescriptorPlural
+      submissionsOpenAt
+      submissionsCloseAt
+      votingOpensAt
+      votingClosesAt
+      criteria
+      submitterRoles {
+        id
+        emoji
+        name
+      }
+      voterRoles {
+        id
+        emoji
+        name
+      }
     }
-    groupRoles {
+    groupRoles(first: 100, order: "asc") {
       items {
         id
         name
@@ -119,85 +164,6 @@ const queryFragment = `group(slug: $slug, updateLastViewed: $updateLastViewed) {
               }
             }
           }
-        }
-      }
-    }
-    contextWidgets {
-      items {
-        id
-        autoAdded
-        title
-        type
-        order
-        visibility
-        view
-        icon
-        highlightNumber
-        secondaryNumber
-        parentId
-        viewGroup {
-          id
-          avatarUrl
-          bannerUrl
-          name
-          memberCount
-          visibility
-          accessibility
-          slug
-        }
-        viewPost {
-          id
-          announcement
-          title
-          details
-          type
-          createdAt
-          startTime
-          endTime
-          isPublic
-        }
-        customView {
-          id
-          groupId
-          collectionId
-          externalLink
-          isActive
-          icon
-          name
-          order
-          postTypes
-          topics {
-            id
-            name
-          }
-          type
-        }
-        viewUser {
-          id
-          name
-          avatarUrl
-        }
-        viewChat {
-          id
-          name
-        }
-        viewFundingRound {
-          id
-          title
-          isParticipating
-          publishedAt
-          submissionsOpenAt
-          submissionsCloseAt
-          votingOpensAt
-          votingClosesAt
-        }
-        viewTrack {
-          id
-          name
-          didComplete
-          isEnrolled
-          numActions
-          publishedAt
         }
       }
     }

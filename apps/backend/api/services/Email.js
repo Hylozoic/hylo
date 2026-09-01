@@ -8,7 +8,9 @@ const api = require('sendwithus')(process.env.SENDWITHUS_KEY)
 const sendEmail = opts =>
   new Promise((resolve, reject) =>
     api.send(opts, (err, resp) => err ? reject(err) : resolve(resp)))
-    .then(() => true)
+    .then((resp) => {
+      return resp || true
+    })
     .catch(err => {
       console.error('Error sending email:', err, ' email opts = ', opts)
       return false
@@ -26,13 +28,19 @@ const defaultOptions = {
   }
 }
 
-const sendSimpleEmail = (address, templateId, data, extraOptions, locale = 'en-US') =>
-  sendEmail(merge({}, defaultOptions, {
+const sendSimpleEmail = (address, templateId, data, extraOptions, locale = 'en-US') => {
+  const emailOpts = merge({}, defaultOptions, {
     email_id: templateId,
     recipient: { address },
     email_data: data,
     locale: normalizeLocaleToFull(locale)
-  }, extraOptions))
+  }, extraOptions)
+  if (emailOpts.version) {
+    emailOpts.version_name = emailOpts.version
+    delete emailOpts.version
+  }
+  return sendEmail(emailOpts)
+}
 
 const sendEmailWithOptions = curry((templateId, opts) => {
   const emailOpts = merge({}, defaultOptions, {

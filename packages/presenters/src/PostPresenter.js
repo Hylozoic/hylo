@@ -86,7 +86,7 @@ export const POST_TYPES = {
   },
   request: {
     primaryColor: caribbeanGreen,
-    iconName: 'HandRaised',
+    iconName: 'Heart',
     backgroundColor: fakeAlpha(caribbeanGreen, 0.2),
     map: true
   },

@@ -20,7 +20,8 @@ module.exports = {
       qb.where('funding_rounds.deactivated_at', null)
 
       if (opts.search) {
-        qb.whereRaw('funding_rounds.title ilike ?', opts.search + '%')
+        qb.join('groups', 'groups.id', 'funding_rounds.group_id')
+        qb.whereRaw('groups.name ilike ?', opts.search + '%')
       }
 
       if (opts.limit || opts.first) {
@@ -31,11 +32,14 @@ module.exports = {
       }
 
       if (!isNil(opts.published)) {
-        if (opts.published) {
-          qb.where('funding_rounds.published_at', 'is not', null)
-        } else {
-          qb.where('funding_rounds.published_at', null)
-        }
+        qb.whereIn('funding_rounds.group_id', function () {
+          this.select('id').from('groups')
+          if (opts.published) {
+            this.whereIn('status', Group.PUBLISHED_STATUSES)
+          } else {
+            this.where('status', Group.Status.DRAFT)
+          }
+        })
       }
 
       qb.orderBy(opts.sortBy || 'id', opts.order || 'asc')
@@ -96,6 +100,10 @@ module.exports = {
             })
           })
         })
+      } else if (opts.groupType !== 'space' && !opts.groupIds) {
+        // List UIs (explore, public map) should not treat spaces as groups.
+        // parentSlugs, groupType='space', and explicit groupIds keep spaces (§3.8).
+        Group.excludeSpaces(qb)
       }
 
       if (typeof opts.allowedInPublic === 'boolean') {
@@ -193,7 +201,8 @@ module.exports = {
       qb.where('tracks.deactivated_at', null)
 
       if (opts.autocomplete) {
-        qb.whereRaw('tracks.name ilike ?', opts.autocomplete + '%')
+        qb.join('groups', 'groups.id', 'tracks.group_id')
+        qb.whereRaw('groups.name ilike ?', opts.autocomplete + '%')
       }
 
       // if (opts.enrolled) {
@@ -208,11 +217,14 @@ module.exports = {
       }
 
       if (!isNil(opts.published)) {
-        if (opts.published) {
-          qb.where('tracks.published_at', 'is not', null)
-        } else {
-          qb.where('tracks.published_at', null)
-        }
+        qb.whereIn('tracks.group_id', function () {
+          this.select('id').from('groups')
+          if (opts.published) {
+            this.whereIn('status', Group.PUBLISHED_STATUSES)
+          } else {
+            this.where('status', Group.Status.DRAFT)
+          }
+        })
       }
 
       qb.orderBy(opts.sortBy || 'id', opts.order || 'asc')
@@ -250,7 +262,7 @@ module.exports = {
 }
 
 const fetchGroupAccess = (userId, { groupIds }) => {
-  if (groupIds) return Promise.resolve({ groupIds })
+  if (groupIds && groupIds.length > 0) return Promise.resolve({ groupIds })
   return Promise.resolve({ userId })
 }
 

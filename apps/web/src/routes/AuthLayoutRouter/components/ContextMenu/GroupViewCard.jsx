@@ -1,17 +1,26 @@
 import React, { useMemo, useState } from 'react'
 import { useSelector } from 'react-redux'
+import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ExternalLink, Info, Loader2, Pencil, Plus, Settings, Trash2, Users, X } from 'lucide-react'
+import { Archive, Boxes, ExternalLink, Info, Loader2, Pencil, Plus, Settings, Trash2, Users, X } from 'lucide-react'
+import { localSpaceSlug, spaceUrl } from '@hylo/navigation'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 
 import CurrentlyActiveMembers, { DEFAULT_ACTIVE_MAX } from 'components/CurrentlyActiveMembers'
 import LucideIcon from 'components/LucideIcon/LucideIcon'
 import TruncatedText from 'components/TruncatedText'
 import { Tooltip, TooltipContent, TooltipTrigger } from 'components/ui/tooltip'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from 'components/ui/dropdown-menu'
 import useAppearance from 'hooks/useAppearance'
 import { DEFAULT_BANNER } from 'store/models/Group'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMyMemberships from 'store/selectors/getMyMemberships'
+import { collectionsWithoutSpace } from 'util/spaceCollection'
 import { viewShowsUnreadDot, viewUnreadBadgeCount } from 'util/viewUnreadBadges'
 import { bgImageStyle, cn } from 'util/index'
 
@@ -35,6 +44,8 @@ import {
   CARD_FADE_CLASS,
   CARD_FILL_CLASS,
   CARD_TITLE_CLASS,
+  CARD_TILE_CLASS,
+  CARD_LABEL_TOP_CLASS,
   CARD_W,
   CARD_H
 } from './viewCardTheme'
@@ -44,11 +55,99 @@ import {
 const CARD_ACTION_BTN = 'p-1.5 rounded-md bg-background/90 text-foreground/60 hover:text-foreground pointer-events-auto cursor-pointer'
 
 /**
+ * Members count or Join pill in the upper-left of a space card.
+ * Join matches the two-column menu row so non-members see the same invite.
+ */
+export function SpaceCardMembershipPill ({ isMember, memberCount, lightSurfaceLabels }) {
+  const { t } = useTranslation()
+  if (!(typeof memberCount === 'number' || !isMember)) return null
+
+  return (
+    <span
+      className={cn(
+        'absolute top-1.5 left-1.5 z-10 inline-flex items-center gap-0.5 text-xs leading-none rounded-full px-1.5 py-1',
+        lightSurfaceLabels
+          ? 'bg-black/10 text-foreground/60'
+          : 'bg-black/30 text-white/90 backdrop-blur-sm'
+      )}
+      aria-label={isMember ? t('{{count}} Members', { count: memberCount }) : t('Join')}
+    >
+      {isMember
+        ? (
+          <>
+            <Users className='w-3 h-3' aria-hidden='true' />
+            {memberCount}
+          </>
+          )
+        : <span className='uppercase text-[10px] font-semibold tracking-wide'>+ {t('Join')}</span>}
+    </span>
+  )
+}
+
+/** About shortcut — members only. Sits in the top-right cluster. */
+export function SpaceCardAboutButton ({ onOpenAbout, space, lightSurfaceLabels }) {
+  const { t } = useTranslation()
+  if (!onOpenAbout) return null
+
+  return (
+    <button
+      type='button'
+      onClick={(e) => {
+        e.stopPropagation()
+        onOpenAbout(space)
+      }}
+      onKeyDown={(e) => e.stopPropagation()}
+      className={cn(
+        'p-1 rounded-md backdrop-blur-sm transition-colors',
+        lightSurfaceLabels
+          ? 'text-foreground/50 hover:text-foreground bg-black/10 hover:bg-black/20'
+          : 'text-white/70 hover:text-white bg-black/25 hover:bg-black/45'
+      )}
+      aria-label={t('About')}
+      title={t('About')}
+    >
+      <Info className='w-4 h-4' />
+    </button>
+  )
+}
+
+/**
+ * Top-right cluster: About (i), then a notification badge if present.
+ * The badge keeps the outer corner; the (i) sits to its left.
+ */
+export function SpaceCardTopRight ({ about, badge }) {
+  if (!about && !badge) return null
+
+  return (
+    <div className='absolute top-1.5 right-1.5 z-10 flex items-center gap-1'>
+      {about}
+      {badge}
+    </div>
+  )
+}
+
+/**
  * Edit-mode toolbar in the top-right of a card: +, gear, X (spaces), pencil, delete.
  * Stops pointerdown so that when the card itself is a drag handle, pressing a
  * button doesn't begin a drag instead of clicking.
  */
-export function CardEditActions ({ onAddToMenu, onOpenSettings, onHide, onEditMenu, onDelete, addLabel, settingsLabel, hideLabel, editMenuLabel, deleteLabel }) {
+export function CardEditActions ({
+  onAddToMenu,
+  onOpenSettings,
+  onHide,
+  onEditMenu,
+  onArchive,
+  onDelete,
+  addLabel,
+  settingsLabel,
+  hideLabel,
+  editMenuLabel,
+  archiveLabel,
+  deleteLabel,
+  collectionViews,
+  onAddToCollection,
+  addToCollectionLabel
+}) {
   return (
     <div
       className='absolute top-2 right-2 z-10 flex items-center gap-1 opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 transition-opacity pointer-events-none'
@@ -71,6 +170,35 @@ export function CardEditActions ({ onAddToMenu, onOpenSettings, onHide, onEditMe
           </TooltipTrigger>
           <TooltipContent>{addLabel}</TooltipContent>
         </Tooltip>
+      )}
+      {onAddToCollection && collectionViews?.length > 0 && (
+        <DropdownMenu>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type='button'
+                  onClick={(e) => e.stopPropagation()}
+                  className={CARD_ACTION_BTN}
+                  aria-label={addToCollectionLabel}
+                >
+                  <Boxes className='w-4 h-4' />
+                </button>
+              </DropdownMenuTrigger>
+            </TooltipTrigger>
+            <TooltipContent>{addToCollectionLabel}</TooltipContent>
+          </Tooltip>
+          <DropdownMenuContent align='end' onClick={(e) => e.stopPropagation()}>
+            {collectionViews.map(collectionView => (
+              <DropdownMenuItem
+                key={collectionView.id}
+                onSelect={() => onAddToCollection(collectionView)}
+              >
+                {collectionView.name}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
       )}
       {onOpenSettings && (
         <Tooltip>
@@ -126,6 +254,24 @@ export function CardEditActions ({ onAddToMenu, onOpenSettings, onHide, onEditMe
           <TooltipContent>{editMenuLabel}</TooltipContent>
         </Tooltip>
       )}
+      {onArchive && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type='button'
+              onClick={(e) => {
+                e.stopPropagation()
+                onArchive()
+              }}
+              className={CARD_ACTION_BTN}
+              aria-label={archiveLabel}
+            >
+              <Archive className='w-4 h-4' />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>{archiveLabel}</TooltipContent>
+        </Tooltip>
+      )}
       {onDelete && (
         <Tooltip>
           <TooltipTrigger asChild>
@@ -170,7 +316,7 @@ export const AddCard = React.forwardRef(function AddCard ({ onClick, label, clas
       {...props}
     >
       {/* The tile keeps its weight so the target still reads while the card outline recedes */}
-      <span className='w-14 h-14 rounded-[15px] grid place-items-center border-2 border-dashed border-foreground/25'>
+      <span className={cn(CARD_TILE_CLASS, 'grid place-items-center border-2 border-dashed border-foreground/25')}>
         <Plus className='w-6 h-6' />
       </span>
       <span className={cn(CARD_TITLE_CLASS, 'px-3')}>{label}</span>
@@ -196,10 +342,12 @@ function GroupViewCard ({
   view,
   isEditing,
   onOpen,
+  onOpenAbout,
   group = null,
   spaceGroup = null
 }) {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const { effectiveColorScheme } = useAppearance()
   const isDark = effectiveColorScheme === 'dark'
   const [hover, setHover] = useState(false)
@@ -241,7 +389,9 @@ function GroupViewCard ({
     isSpace && linkedGroup &&
     myMemberships.some(m => String(m.group.id) === String(linkedGroup.id))
   )
-  const spaceMemberCount = isSpace ? (linkedGroup?.memberCount ?? null) : null
+  const spaceMemberCount = isSpace
+    ? (liveSpaceGroup?.memberCount ?? linkedGroup?.memberCount ?? null)
+    : null
   const isMembers = presented.type === 'members'
   const inviteGroup = spaceGroup || group
   const membersUrl = isMembers && group?.slug
@@ -259,7 +409,7 @@ function GroupViewCard ({
 
   const iconTile = (
     <div
-      className='w-14 h-14 rounded-[15px] overflow-hidden grid place-items-center shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.35)]'
+      className={cn(CARD_TILE_CLASS, 'overflow-hidden grid place-items-center shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.35)]')}
       style={presented.avatarUrl
         ? { border: '1px solid hsl(0 0% 100% / 0.28)' }
         : onPhoto
@@ -303,26 +453,23 @@ function GroupViewCard ({
     </span>
   )
 
-  const spacePill = !isEditing && isSpace && (typeof spaceMemberCount === 'number' || !isSpaceMember)
+  const handleOpenAbout = () => {
+    if (onOpenAbout && linkedGroup) {
+      onOpenAbout(linkedGroup)
+      return
+    }
+    if (!group?.slug || !linkedGroup?.slug) return
+    const local = localSpaceSlug(group.slug, linkedGroup.slug)
+    navigate(spaceUrl(group.slug, local, '/about'))
+  }
+
+  const spacePill = !isEditing && isSpace
     ? (
-      <span
-        className={cn(
-          'absolute top-1.5 left-1.5 z-10 inline-flex items-center gap-0.5 text-xs leading-none rounded-full px-1.5 py-1',
-          lightSurfaceLabels
-            ? 'bg-black/10 text-foreground/60'
-            : 'bg-black/30 text-white/90 backdrop-blur-sm'
-        )}
-        aria-label={isSpaceMember ? t('{{count}} Members', { count: spaceMemberCount }) : t('Join')}
-      >
-        {isSpaceMember
-          ? (
-            <>
-              <Users className='w-3 h-3' aria-hidden='true' />
-              {spaceMemberCount}
-            </>
-            )
-          : <span className='uppercase text-[10px] font-semibold tracking-wide'>+ {t('Join')}</span>}
-      </span>
+      <SpaceCardMembershipPill
+        isMember={isSpaceMember}
+        memberCount={spaceMemberCount}
+        lightSurfaceLabels={lightSurfaceLabels}
+      />
       )
     : null
 
@@ -372,7 +519,7 @@ function GroupViewCard ({
         <div className='absolute inset-0 grid place-items-center'>
           {iconTile}
         </div>
-        <div className='absolute left-0 right-0 top-[calc(50%+28px)] bottom-0 flex flex-col items-center justify-center text-center px-3'>
+        <div className={cn(CARD_LABEL_TOP_CLASS, 'absolute left-0 right-0 bottom-0 flex flex-col items-center justify-center text-center px-3')}>
           {label}
         </div>
       </div>
@@ -432,13 +579,27 @@ function GroupViewCard ({
           </>
           )}
       {spacePill}
-      {!isEditing && (showUnreadDot || showJoinRequestDot) && (
-        <span className='absolute top-1.5 right-1.5 z-10 w-3 h-3 rounded-full bg-orange-500 border-2 border-background' />
-      )}
-      {!isEditing && chatBadgeCount != null && (
-        <span className='absolute top-1.5 right-1.5 z-10 min-w-5 h-5 px-1 rounded-full bg-accent text-white text-xs font-bold flex items-center justify-center border-2 border-background'>
-          {chatBadgeCount}
-        </span>
+      {!isEditing && (
+        <SpaceCardTopRight
+          about={isSpace && isSpaceMember
+            ? (
+              <SpaceCardAboutButton
+                onOpenAbout={handleOpenAbout}
+                space={linkedGroup}
+                lightSurfaceLabels={lightSurfaceLabels}
+              />
+              )
+            : null}
+          badge={chatBadgeCount != null
+            ? (
+              <span className='min-w-5 h-5 px-1 rounded-full bg-accent text-white text-xs font-bold flex items-center justify-center border-2 border-background'>
+                {chatBadgeCount}
+              </span>
+              )
+            : (showUnreadDot || showJoinRequestDot)
+                ? <span className='w-3 h-3 rounded-full bg-orange-500 border-2 border-background' />
+                : null}
+        />
       )}
       {cardBody}
     </div>
@@ -446,13 +607,32 @@ function GroupViewCard ({
 }
 
 /** Card for an off-menu space: banner image + scrim with a frosted-glass tile. */
-export function SpaceViewCard ({ space, isEditing, isDeleting = false, onOpen, onOpenAbout, onAddToMenu, onOpenSettings, onDelete }) {
+export function SpaceViewCard ({
+  space,
+  isEditing,
+  isDeleting = false,
+  onOpen,
+  onOpenAbout,
+  onAddToMenu,
+  onOpenSettings,
+  onDelete,
+  onArchive,
+  onHide,
+  hideLabel,
+  collectionViews,
+  onAddToCollection
+}) {
   const { t } = useTranslation()
   const { effectiveColorScheme } = useAppearance()
   const isDark = effectiveColorScheme === 'dark'
   const bgImageUrl = (space.bannerUrl && space.bannerUrl !== DEFAULT_BANNER ? space.bannerUrl : null) || space.avatarUrl || null
   const onLightSurface = !isDark && !bgImageUrl
   const liveSpaceGroup = useSelector(state => space?.slug ? getGroupForSlug(state, space.slug) : null)
+  const myMemberships = useSelector(getMyMemberships)
+  const isSpaceMember = Boolean(
+    space && myMemberships.some(m => String(m.group.id) === String(space.id))
+  )
+  const spaceMemberCount = space?.memberCount ?? liveSpaceGroup?.memberCount ?? null
   const showJoinRequestDot = (
     (liveSpaceGroup?.openJoinRequestCount || space?.openJoinRequestCount || 0) > 0
   )
@@ -462,7 +642,6 @@ export function SpaceViewCard ({ space, isEditing, isDeleting = false, onOpen, o
       className={cn(
         CARD_CLASS,
         cardChrome(isDark),
-        isEditing && 'cursor-grab active:cursor-grabbing',
         isDeleting && 'pointer-events-none opacity-50'
       )}
       style={{
@@ -491,13 +670,33 @@ export function SpaceViewCard ({ space, isEditing, isDeleting = false, onOpen, o
           <div className='absolute inset-0' style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.6) 100%)' }} />
         </>
       )}
-      {showJoinRequestDot && !isEditing && !isDeleting && (
-        <span className='absolute top-1.5 left-1.5 z-10 w-3 h-3 rounded-full bg-orange-500 border-2 border-background' />
+      {!isEditing && !isDeleting && (
+        <SpaceCardMembershipPill
+          isMember={isSpaceMember}
+          memberCount={spaceMemberCount}
+          lightSurfaceLabels={onLightSurface}
+        />
+      )}
+      {!isEditing && !isDeleting && (
+        <SpaceCardTopRight
+          about={onOpenAbout && isSpaceMember
+            ? (
+              <SpaceCardAboutButton
+                onOpenAbout={onOpenAbout}
+                space={space}
+                lightSurfaceLabels={onLightSurface}
+              />
+              )
+            : null}
+          badge={showJoinRequestDot
+            ? <span className='w-3 h-3 rounded-full bg-orange-500 border-2 border-background' />
+            : null}
+        />
       )}
       <div className='relative h-full'>
         <div className='absolute inset-0 grid place-items-center'>
           <div
-            className={cn('w-14 h-14 rounded-[15px] overflow-hidden grid place-items-center shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.35)]', onLightSurface ? 'text-foreground/80' : 'text-white')}
+            className={cn(CARD_TILE_CLASS, 'overflow-hidden grid place-items-center shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.35)]', onLightSurface ? 'text-foreground/80' : 'text-white')}
             style={space.avatarUrl
               ? { border: '1px solid hsl(0 0% 100% / 0.28)' }
               : onLightSurface
@@ -512,10 +711,13 @@ export function SpaceViewCard ({ space, isEditing, isDeleting = false, onOpen, o
                 : <div className={cn('w-7 h-7 rounded-full', onLightSurface ? 'bg-black/15' : 'bg-white/20')} />}
           </div>
         </div>
-        <div className='absolute left-0 right-0 top-[calc(50%+28px)] bottom-0 flex flex-col items-center justify-center text-center px-3'>
+        <div className={cn(CARD_LABEL_TOP_CLASS, 'absolute left-0 right-0 bottom-0 flex flex-col items-center justify-center text-center px-3')}>
           <TruncatedText as='h3' className={cn(CARD_TITLE_CLASS, onLightSurface ? 'text-foreground' : 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]')} text={space.name} />
-          {space.isDraft && (
+          {(space.isDraft || space.status === 'draft') && (
             <span className={cn('text-[10.5px] font-semibold mt-1', onLightSurface ? 'text-foreground/60' : 'text-white/70 [text-shadow:0_1px_4px_rgba(0,0,0,0.6)]')}>{t('Draft')}</span>
+          )}
+          {space.status === 'archived' && (
+            <span className={cn('text-[10.5px] font-semibold mt-1', onLightSurface ? 'text-foreground/60' : 'text-white/70 [text-shadow:0_1px_4px_rgba(0,0,0,0.6)]')}>{t('Archived')}</span>
           )}
         </div>
       </div>
@@ -524,32 +726,20 @@ export function SpaceViewCard ({ space, isEditing, isDeleting = false, onOpen, o
           <Loader2 className='w-7 h-7 animate-spin text-foreground/70' aria-label={t('Deleting')} />
         </div>
       )}
-      {/* Reachable without opening the space — the card is otherwise the only way in,
-          and a space's description is exactly what you want before deciding to enter.
-          Hidden while editing so it can't collide with the edit toolbar, and while
-          deleting so it can't sit under the spinner. */}
-      {onOpenAbout && !isEditing && !isDeleting && (
-        <button
-          type='button'
-          onClick={(e) => {
-            e.stopPropagation()
-            onOpenAbout(space)
-          }}
-          onKeyDown={(e) => e.stopPropagation()}
-          className='absolute top-2 right-2 z-10 p-1 rounded-md text-white/70 hover:text-white bg-black/25 hover:bg-black/45 backdrop-blur-sm transition-colors'
-          aria-label={t('About')}
-          title={t('About')}
-        >
-          <Info className='w-4 h-4' />
-        </button>
-      )}
       {isEditing && !isDeleting && (
         <CardEditActions
           onAddToMenu={onAddToMenu ? () => onAddToMenu(space) : null}
           onOpenSettings={onOpenSettings ? () => onOpenSettings(space) : null}
           onDelete={onDelete ? () => onDelete(space) : null}
+          onArchive={onArchive ? () => onArchive(space) : null}
+          onHide={onHide ? () => onHide(space) : null}
+          hideLabel={hideLabel}
+          collectionViews={collectionsWithoutSpace(collectionViews, space.id)}
+          onAddToCollection={onAddToCollection ? (collectionView) => onAddToCollection(space, collectionView) : null}
+          addToCollectionLabel={t('Add to Collection')}
           addLabel={t('Add to Menu')}
           settingsLabel={t('Settings')}
+          archiveLabel={t('Archive')}
           deleteLabel={t('Delete Space')}
         />
       )}

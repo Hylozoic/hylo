@@ -1,14 +1,13 @@
 import isMobile from 'ismobilejs'
 import { debounce } from 'lodash/fp'
-import { ChevronDown, Copy, MessageSquareMore, Send } from 'lucide-react'
+import { ChevronDown, MessageSquareMore } from 'lucide-react'
 import { DateTimeHelpers, postAppearsInChat } from '@hylo/shared'
 import { EditorView } from 'prosemirror-view'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import CopyToClipboard from 'react-copy-to-clipboard'
 import { Helmet } from 'react-helmet'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
-import { useLocation, Routes, Route, useNavigate } from 'react-router-dom'
+import { useLocation, Routes, Route } from 'react-router-dom'
 import { VirtuosoMessageList, VirtuosoMessageListLicense, useVirtuosoLocation, useVirtuosoMethods } from '@virtuoso.dev/message-list'
 
 import { getSocket } from 'client/websockets.js'
@@ -17,21 +16,22 @@ import ChatEditor from 'components/ChatEditor'
 import Loading from 'components/Loading'
 import PeopleTyping from 'components/PeopleTyping'
 import { StreamSkeleton } from 'components/PostCard/PostCardSkeleton'
-import NoPosts from 'components/NoPosts'
 import PostDialog from 'components/PostDialog'
 import Tooltip from 'components/Tooltip'
-import Button from 'components/ui/button'
 import ChatMembersPanel from './ChatMembersPanel'
+import PinnedPostChips from './PinnedPostChips'
 import ChatPost from './ChatPost'
 import ChatPostNotice from './ChatPostNotice'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import useRouteParams from 'hooks/useRouteParams'
+import useGroupViews from 'hooks/useGroupViews'
 import fetchForGroup from 'store/actions/fetchForGroup'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import fetchPosts from 'store/actions/fetchPosts'
+import fetchViewPinnedPosts from 'store/actions/fetchViewPinnedPosts'
 import updateGroupViewUser from 'store/actions/updateGroupViewUser'
-import { FETCH_POSTS, RESP_ADD_MEMBERS } from 'store/constants'
+import { FETCH_POSTS, RESP_MANAGE_CONTENT } from 'store/constants'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
 import presentPost from 'store/presenters/presentPost'
 import { makeDropQueryResults, makeQueryResultsModelSelector } from 'store/reducers/queryResults'
@@ -40,9 +40,9 @@ import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import { getPostResults } from 'store/selectors/getPosts'
-import { getGroupViews } from 'store/selectors/getGroupViews'
 import { cn } from 'util/index'
-import { groupInviteUrl, groupUrl } from '@hylo/navigation'
+import useTour from 'tours/useTour'
+import { CHAT_TOUR_ID, chatTourSteps } from 'tours/chatTour'
 import { isLegacyWebView } from 'util/webView'
 import { formatLocalizedDate } from 'util/dateFormat'
 import { getLocaleFromLocalStorage } from 'util/locale'
@@ -130,9 +130,17 @@ export default function ChatRoom (props) {
   const withoutNav = isLegacyWebView() || hideNavLayout
   const { t } = useTranslation()
 
+  // First-time-in-chat tour, offered by invitation
+  const chatTourStepList = useMemo(() => chatTourSteps(t), [t])
+  const { invitation: chatTourInvitation } = useTour({
+    id: CHAT_TOUR_ID,
+    steps: chatTourStepList,
+    autoStart: true,
+    inviteMessage: t('First time in a chat room? Take a quick tour.')
+  })
+
   const effectiveGroupSlug = useEffectiveGroupSlug()
   const groupSlug = props.groupSlug || effectiveGroupSlug
-  const showHomeWelcome = props.showHomeWelcome ?? !props.groupSlug
   const { postId: selectedPostId } = routeParams
 
   const context = props.context || routeParams.context
@@ -141,12 +149,20 @@ export default function ChatRoom (props) {
 
   const currentUser = useSelector(getMe)
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
-  const groupViews = useSelector(state => getGroupViews(state, group))
+  const groupViews = useGroupViews(group)
   const chatView = groupViews.find(v => v.type === 'chat') || null
   const showPostNoticesInChat = group?.settings?.showPostNoticesInChat ?? true
 
   const chatViewLoading = !!group?.id && !chatView
   const groupLoading = !!groupSlug && !group
+
+  const canModerateContent = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_MANAGE_CONTENT, groupId: group?.id }))
+  const pinnedPosts = chatView?.pinnedPosts || []
+
+  useEffect(() => {
+    if (!group?.id || !chatView?.id) return
+    dispatch(fetchViewPinnedPosts(group.id, chatView.id))
+  }, [dispatch, group?.id, chatView?.id])
 
   const querystringParams = getQuerystringParam(['search', 'postId'], location)
   const search = querystringParams?.search
@@ -802,10 +818,11 @@ export default function ChatRoom (props) {
   }, [])
 
   return (
-    <div className={cn('ChatRoom flex-1 min-h-0 shadow-md flex flex-col overflow-hidden items-center justify-center', { [styles.withoutNav]: withoutNav })} ref={setContainer}>
+    <div className={cn('ChatRoom flex-1 min-h-0 flex flex-col overflow-hidden items-center justify-center', { [styles.withoutNav]: withoutNav })} ref={setContainer}>
       <Helmet>
         <title>{t('Chat')} | {group?.name ? `${group.name} | ` : ''}Hylo</title>
       </Helmet>
+      {chatTourInvitation}
 
       <div
         id='chats'
@@ -816,6 +833,14 @@ export default function ChatRoom (props) {
         {/* The stream header's wash, here as a still strip: theme background fading
             to its own colour at zero alpha, so messages scroll under a soft top edge */}
         <div aria-hidden='true' className='absolute top-0 left-0 right-0 h-14 z-20 pointer-events-none bg-gradient-to-b from-[hsl(var(--theme-background)/0.1)] dark:from-[hsl(var(--theme-background)/0.5)] to-[hsl(var(--theme-background)/0)]' />
+        {/* Pinned posts ride the top edge as chips, left of the presence cluster */}
+        <PinnedPostChips
+          posts={pinnedPosts}
+          viewId={chatView?.id}
+          groupId={group?.id}
+          canModerate={canModerateContent}
+          className='absolute top-1.5 left-3 right-24 sm:right-[240px] z-30'
+        />
         {/* Width rail on the clamp edge. The triangles stay visible as a quiet
             hint; the dashed line and its wash only surface on hover or drag.
             left includes the pane's px-1, which offsets content but not
@@ -825,6 +850,7 @@ export default function ChatRoom (props) {
             role='separator'
             aria-orientation='vertical'
             aria-label={t('Adjust chat width')}
+            data-tour='chat-width-rail'
             className={cn(
               'absolute top-0 bottom-0 z-20 flex flex-col items-center justify-between group touch-none select-none',
               resizingChatWidth ? 'cursor-grabbing' : 'cursor-grab'
@@ -890,8 +916,7 @@ export default function ChatRoom (props) {
                   handleRemoveReaction,
                   loadToLatest,
                   postIdToStartAt,
-                  selectedPostId,
-                  showHomeWelcome
+                  selectedPostId
                 }}
                 initialData={postsForDisplay}
                 initialLocation={{ index: initialPostToScrollTo, align: 'start-no-overflow' }}
@@ -910,13 +935,16 @@ export default function ChatRoom (props) {
       </div>
 
       {/* Post chat box */}
-      {/* pt below sm gives the last message breathing room above the composer —
-          OUTSIDE the message list: padding inside its scroller skews Virtuoso's
-          atBottom check, which pinned the phone one message shy of the bottom */}
-      <PeopleTyping groupId={group?.id} className='w-full px-3 sm:px-5 pt-2 sm:pt-0 text-xs text-foreground/50' />
+      {/* The typing strip renders nothing while idle — in flow it reserved a
+          dead band above the input (worst on phones), and as an overlay it
+          crowded the newest message. When someone types it takes its row and
+          the list nudges up, which reads as activity. Padding inside the
+          scroller stays off-limits (skews Virtuoso's atBottom check, which
+          pinned the phone one message shy of the bottom). */}
+      <PeopleTyping groupId={group?.id} hideWhenEmpty className='w-full px-3 sm:px-5 py-1 text-xs text-foreground/50' />
       {/* Composer floats with margins matching the message gutter (left edge = avatar edge).
           Subtle gradient settles the pane into a darker hue beneath the input. */}
-      <div className='ChatBoxContainer w-full shrink-0 px-3 sm:px-5 pb-3 sm:pb-5 pt-0 bg-gradient-to-b from-transparent to-darkening/[0.05] dark:to-darkening/25'>
+      <div className='ChatBoxContainer w-full shrink-0 px-3 sm:px-5 pb-3 sm:pb-5 pt-0 bg-gradient-to-b from-transparent to-darkening/[0.05] dark:to-darkening/25' data-tour='chat-composer'>
         {/* Drafts are scoped per chat topic so switching rooms does not leak text */}
         {group?.id && (
           <ChatEditor
@@ -941,14 +969,14 @@ export default function ChatRoom (props) {
 
 /** * Virtuoso Components ***/
 const EmptyPlaceholder = ({ context }) => {
-  const { t } = useTranslation()
+  // Virtuoso can paint this before initialData lands. If Redux already has
+  // posts, stay blank rather than flashing the empty-room copy.
+  if (context.numPosts > 0) return null
   return (
     <div className='mx-auto flex flex-col items-center justify-center max-w-[750px] h-full min-h-[50vh]'>
       {!context.loadedPast || !context.loadedFuture || !context.hasFetchedForCurrentRoom
         ? <StreamSkeleton columnVariant='chat' />
-        : context.showHomeWelcome && context.numPosts === 0
-          ? <HomeChatWelcome group={context.group} />
-          : <NoPosts className={styles.noPosts} icon='message-dashed' message={t('No messages yet. Start the conversation!')} />}
+        : <EmptyChatWelcome />}
     </div>
   )
 }
@@ -1115,26 +1143,13 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
   )
 }
 
-const HomeChatWelcome = ({ group }) => {
+const EmptyChatWelcome = () => {
   const { t } = useTranslation()
-  const navigate = useNavigate()
-  const canAddMembers = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADD_MEMBERS, groupId: group?.id }))
 
   return (
     <div className='mx-auto px-4 max-w-[500px] flex flex-col items-center justify-center'>
-      <img src='/home-chat-welcome.png' alt='Golden Starburst' />
-      <h1 className='text-center'>{t('homeChatWelcomeTitle')}</h1>
-      <p className='text-center'>{t('homeChatWelcomeDescription', { group_name: group.name })}</p>
-      <div className='flex gap-2 items-center justify-center'>
-        {canAddMembers && (
-          <>
-            <Button onClick={() => navigate(groupUrl(group.slug, 'settings/invite'))}><Send /> {t('Send Invites')}</Button>
-            <CopyToClipboard text={groupInviteUrl(group)}>
-              <Button><Copy /> {t('Copy Invite Link')}</Button>
-            </CopyToClipboard>
-          </>
-        )}
-      </div>
+      <img src='/home-chat-welcome.png' alt='' />
+      <h1 className='text-center'>{t('It\'s quiet in here, start the conversation.')}</h1>
     </div>
   )
 }

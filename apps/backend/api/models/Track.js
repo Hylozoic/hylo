@@ -96,9 +96,18 @@ module.exports = bookshelf.Model.extend(Object.assign({
     return membership && membership.get('active') ? membership.get('settings') : null
   },
 
-  // Getter to override access to the welcome_message attribute and sanitize the HTML
-  welcomeMessage: function () {
-    return RichText.processHTML(this.get('welcome_message'))
+  /** Display name lives on the Track space group. */
+  displayName: async function ({ transacting } = {}) {
+    if (this.relations.group) return this.relations.group.get('name') || ''
+    const space = await this.group().fetch({ transacting })
+    return space ? space.get('name') : ''
+  },
+
+  /** Description lives on the Track space group. */
+  displayDescription: async function ({ transacting } = {}) {
+    if (this.relations.group) return this.relations.group.get('description') || ''
+    const space = await this.group().fetch({ transacting })
+    return space ? space.get('description') : ''
   },
 
   /** Ordered action Posts from the Track space's track-actions view. */
@@ -113,11 +122,9 @@ module.exports = bookshelf.Model.extend(Object.assign({
       delete newTrack.attributes.id
       delete newTrack.id
       await newTrack.save({
-        name: this.get('name') + ' (copy)',
         num_actions: 0,
         num_people_enrolled: 0,
         num_people_completed: 0,
-        published_at: null,
         group_id: null
       }, { transacting: trx })
 
@@ -130,16 +137,17 @@ module.exports = bookshelf.Model.extend(Object.assign({
         delete copySpace.id
         const accessCode = await Group.getNewAccessCode()
         await copySpace.save({
-          name: (sourceSpace.get('name') || newTrack.get('name')) + ' (copy)',
+          name: (sourceSpace.get('name') || 'Track') + ' (copy)',
           slug: `${sourceSpace.get('slug')}-copy-${Date.now()}`.slice(0, 40),
           access_code: accessCode,
           track_id: newTrack.id,
+          status: Group.Status.DRAFT,
           created_at: new Date(),
           num_members: 0,
           num_open_join_requests: 0
         }, { transacting: trx })
         await newTrack.save({ group_id: copySpace.id }, { patch: true, transacting: trx })
-        await Group.setupSpaceViews(copySpace.id, sourceSpace.get('accepted_post_types') || [], ['about', 'track-actions', 'members'], { transacting: trx })
+        await Group.setupSpaceViews(copySpace.id, sourceSpace.get('accepted_post_types') || [], ['track-actions', 'members', 'welcome'], { transacting: trx })
       }
 
       // Duplicate actions from the track-actions collections_posts list
@@ -212,6 +220,14 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
   create: async function (attrs, { transacting } = {}) {
     attrs.settings = attrs.settings || { }
+    // Dual-write display fields onto leftover NOT NULL columns until the
+    // in-progress drop-column migration ships. Source of truth is the space group.
+    if (!attrs.name) {
+      const space = attrs.group_id ? await Group.find(attrs.group_id, { transacting }) : null
+      attrs.name = (space && space.get('name')) || 'Untitled'
+      if (attrs.description === undefined) attrs.description = space ? space.get('description') : null
+      if (attrs.banner_url === undefined) attrs.banner_url = space ? space.get('banner_url') : null
+    }
     return this.forge(Object.assign({ created_at: new Date() }, attrs)).save({}, { transacting })
   },
 
@@ -224,12 +240,13 @@ module.exports = bookshelf.Model.extend(Object.assign({
       if (!track || track.get('deactivated_at') !== null) {
         throw new GraphQLError('Track not found')
       }
-      if (!track.get('published_at')) {
-        throw new GraphQLError('Track is not published')
-      }
       const space = await track.group().fetch({ transacting: trx })
       if (!space) {
         throw new GraphQLError('Track space not found')
+      }
+      const status = space.get('status')
+      if (status === Group.Status.DRAFT || status === Group.Status.ARCHIVED) {
+        throw new GraphQLError('Track is not published')
       }
 
       let membership = await GroupMembership.forPair(userId, space, { includeInactive: true }).fetch({ transacting: trx })
@@ -295,9 +312,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
       if (!membership || !membership.get('active')) {
         return null
       }
-      await track.save({ num_people_enrolled: Math.max(0, track.get('num_people_enrolled') - 1) }, { transacting: trx })
-      membership.removeSetting('completedAt')
-      await membership.save({ settings: membership.get('settings') }, { patch: true, transacting: trx })
+      // num_people_enrolled and the completedAt setting are settled by Group.removeMembers,
+      // so that leaving the parent group cascades the same way.
       await space.removeMembers([userId], { transacting: trx })
       return membership
     })
@@ -313,7 +329,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     const space = await Group.find(track.get('group_id'), { transacting })
     if (!space) return
 
-    await space.save({ active: false }, { patch: true, transacting })
+    await space.save({ status: Group.Status.ARCHIVED }, { patch: true, transacting })
   },
 
   // When a post is deactivated, remove it from any track-actions collections and update num_actions

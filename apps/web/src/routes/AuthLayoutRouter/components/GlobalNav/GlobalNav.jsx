@@ -1,8 +1,11 @@
 import { cn } from 'util/index'
 import { get } from 'lodash/fp'
-import { Globe, HelpCircle, Plus, PlusCircle, Bell, MessagesSquare, ChevronDown, Settings, LogOut, User, Edit, Users, Mail, Bell as BellIcon, Palette, Languages, UserX, Search, Shield, BookOpen, Download, Heart, Wrench } from 'lucide-react'
+import { Compass, Globe, HelpCircle, Plus, PlusCircle, Bell, MessagesSquare, ChevronDown, Settings, LogOut, User, Edit, Users, Mail, Bell as BellIcon, Palette, Languages, UserX, Search, Shield, BookOpen, Download, Heart, Wrench } from 'lucide-react'
 import React, { Suspense, useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
+import useTour, { driveTour, isTourTestMode } from 'tours/useTour'
+import { GLOBAL_CHROME_TOUR_ID, globalChromeTourSteps } from 'tours/globalChromeTour'
+import { tourCatalog, isTourAvailable } from 'tours/catalog'
 import { useIntercom } from 'react-use-intercom'
 import { useSelector, useDispatch } from 'react-redux'
 import { useLocation, useNavigate } from 'react-router-dom'
@@ -38,6 +41,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
@@ -58,7 +62,7 @@ import ModalDialog from 'components/ModalDialog'
 import { pinGroup, unpinGroup, updateGroupNavOrder } from 'store/actions/pinGroup'
 import markGroupAsRead from 'store/actions/markGroupAsRead'
 import logout from 'store/actions/logout'
-import { newMessageUrl, personUrl } from '@hylo/navigation'
+import { newMessageUrl, personUrl, myHomeLandingUrl } from '@hylo/navigation'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import { createGroupModalUrl } from 'routes/CreateGroup/createGroupUrl'
 import {
@@ -146,6 +150,7 @@ function GlobalCreateMenu () {
   const dispatch = useDispatch()
   const location = useLocation()
   const [open, setOpen] = useState(false)
+  const compactLayout = isCompactLayoutDevice()
 
   const go = (path) => () => {
     setOpen(false)
@@ -155,12 +160,16 @@ function GlobalCreateMenu () {
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger aria-label={t('Create')} data-testid='global-nav-create'>
+      <PopoverTrigger aria-label={t('Create')} data-testid='global-nav-create' data-tour='create'>
         <div className={cn('bg-[hsl(0_0%_17%)] text-white relative z-20 transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-8 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-foreground/0 hover:border-foreground/50')}>
           <PlusCircle className='w-7 h-7' />
         </div>
       </PopoverTrigger>
-      <PopoverContent side='right' align='end' className='w-[210px] p-1.5 rounded-xl'>
+      <PopoverContent
+        side={compactLayout ? 'top' : 'right'}
+        align={compactLayout ? 'center' : 'end'}
+        className='w-[210px] p-1.5 rounded-xl'
+      >
         <CreateMenuRow
           onClick={go(createGroupModalUrl(location))}
           tileClass='bg-[hsl(200_55%_45%)]'
@@ -200,6 +209,49 @@ function CreateMenuRow ({ onClick, tileClass, icon, label }) {
       <span className={cn('w-7 h-7 rounded-lg grid place-items-center text-white shrink-0', tileClass)}>{icon}</span>
       {label}
     </button>
+  )
+}
+
+/**
+ * Nested settings. Desktop uses a side flyout; compact expands inline so the
+ * panel never leaves the parent menu (phones have no room to the left or right).
+ */
+function SettingsSubMenu ({ compact, icon, label, children }) {
+  const [open, setOpen] = useState(false)
+
+  if (!compact) {
+    return (
+      <DropdownMenuSub>
+        <DropdownMenuSubTrigger>
+          {icon}
+          <span>{label}</span>
+        </DropdownMenuSubTrigger>
+        <DropdownMenuSubContent className='z-[200] bg-card'>
+          {children}
+        </DropdownMenuSubContent>
+      </DropdownMenuSub>
+    )
+  }
+
+  return (
+    <>
+      <DropdownMenuItem
+        className='flex flex-row items-center'
+        onSelect={(event) => {
+          event.preventDefault()
+          setOpen(prev => !prev)
+        }}
+      >
+        {icon}
+        <span className='flex-1'>{label}</span>
+        <ChevronDown className={cn('ml-auto h-4 w-4 shrink-0 transition-transform', open && 'rotate-180')} />
+      </DropdownMenuItem>
+      {open && (
+        <div className='pl-4'>
+          {children}
+        </div>
+      )}
+    </>
   )
 }
 
@@ -343,127 +395,90 @@ function SettingsMenu ({ currentUser, triggerClassName, contentSide = 'right', c
           <BellIcon className='mr-2 h-4 w-4' />
           <span>{t('Notifications')}</span>
         </DropdownMenuItem>
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger>
-            <Palette className='mr-2 h-4 w-4' />
-            <span>{t('Appearance')}</span>
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent className='z-[200] bg-card'>
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <span>{t('Color Mode')}</span>
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent className='z-[200] bg-card'>
-                <DropdownMenuRadioGroup value={colorScheme} onValueChange={value => handleSettingChange({ colorScheme: value })}>
-                  <DropdownMenuRadioItem value='auto'>
-                    {t('System')}
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value='light'>
-                    {t('Light')}
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value='dark'>
-                    {t('Dark')}
-                  </DropdownMenuRadioItem>
-                </DropdownMenuRadioGroup>
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <span>{t('Color Theme')}</span>
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent className='z-[200] bg-card'>
-                <DropdownMenuRadioGroup value={theme} onValueChange={value => handleSettingChange({ theme: value })}>
-                  {availableThemes.map(theme => (
-                    <DropdownMenuRadioItem key={theme} value={theme} className='capitalize'>
-                      {t(theme)}
-                    </DropdownMenuRadioItem>
-                  ))}
-                </DropdownMenuRadioGroup>
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
-            {!isPhoneViewport && (
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger>
-                  <span>{t('Global Navigation')}</span>
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent className='z-[200] bg-card'>
-                  <DropdownMenuRadioGroup value={globalNavStyle} onValueChange={value => handleSettingChange({ globalNavStyle: value })}>
-                    <DropdownMenuRadioItem value='sidebar'>
-                      {t('Sidebar')}
-                    </DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value='tabs'>
-                      {t('Topbar')}
-                    </DropdownMenuRadioItem>
-                  </DropdownMenuRadioGroup>
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
-            )}
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <span>{t('Group Nav Stacking')}</span>
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent className='z-[200] bg-card'>
-                <DropdownMenuRadioGroup value={stackGroups ? 'stacked' : 'flat'} onValueChange={value => handleSettingChange({ stackGroups: value === 'stacked' })}>
-                  <DropdownMenuRadioItem value='flat'>
-                    {t('Flat')}
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value='stacked'>
-                    {t('Stacked')}
-                  </DropdownMenuRadioItem>
-                </DropdownMenuRadioGroup>
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <span>{t('Group Menu Style')}</span>
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent className='z-[200] bg-card'>
-                <DropdownMenuRadioGroup value={groupNavStyle} onValueChange={value => handleSettingChange({ groupNavStyle: value })}>
-                  <DropdownMenuRadioItem value={NAV_STYLE_GROUP_DEFAULT}>
-                    {t('Group Default')}
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value={NAV_STYLE_TWO_COLUMN}>
-                    {t('Side Menu')}
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value={NAV_STYLE_ONE_COLUMN}>
-                    {t('Card Menu')}
-                  </DropdownMenuRadioItem>
-                </DropdownMenuRadioGroup>
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger>
-            <Languages className='mr-2 h-4 w-4' />
-            <span>{t('Language')}</span>
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent className='z-[200] bg-card'>
-            <DropdownMenuRadioGroup value={currentLocale} onValueChange={handleLanguageChange}>
-              <DropdownMenuRadioItem value={LOCALE_EN_US}>
-                🇺🇸 {t('English')}
+        <SettingsSubMenu compact={compactLayout} icon={<Palette className='mr-2 h-4 w-4' />} label={t('Appearance')}>
+          <SettingsSubMenu compact={compactLayout} label={t('Color Mode')}>
+            <DropdownMenuRadioGroup value={colorScheme} onValueChange={value => handleSettingChange({ colorScheme: value })}>
+              <DropdownMenuRadioItem value='auto'>
+                {t('System')}
               </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value={LOCALE_EN_GB}>
-                🇬🇧 {t('English (UK)')}
+              <DropdownMenuRadioItem value='light'>
+                {t('Light')}
               </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value={LOCALE_ES}>
-                🇪🇸 {t('Spanish')}
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value={LOCALE_DE}>
-                🇩🇪 {t('German')}
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value={LOCALE_FR}>
-                🇫🇷 {t('French')}
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value={LOCALE_HI}>
-                🇮🇳 {t('Hindi')}
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value={LOCALE_PT}>
-                🇵🇹 {t('Portuguese')}
+              <DropdownMenuRadioItem value='dark'>
+                {t('Dark')}
               </DropdownMenuRadioItem>
             </DropdownMenuRadioGroup>
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
+          </SettingsSubMenu>
+          <SettingsSubMenu compact={compactLayout} label={t('Color Theme')}>
+            <DropdownMenuRadioGroup value={theme} onValueChange={value => handleSettingChange({ theme: value })}>
+              {availableThemes.map(theme => (
+                <DropdownMenuRadioItem key={theme} value={theme} className='capitalize'>
+                  {t(theme)}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          </SettingsSubMenu>
+          {!isPhoneViewport && (
+            <SettingsSubMenu compact={compactLayout} label={t('Global Navigation')}>
+              <DropdownMenuRadioGroup value={globalNavStyle} onValueChange={value => handleSettingChange({ globalNavStyle: value })}>
+                <DropdownMenuRadioItem value='sidebar'>
+                  {t('Sidebar')}
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value='tabs'>
+                  {t('Topbar')}
+                </DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </SettingsSubMenu>
+          )}
+          <SettingsSubMenu compact={compactLayout} label={t('Group Nav Stacking')}>
+            <DropdownMenuRadioGroup value={stackGroups ? 'stacked' : 'flat'} onValueChange={value => handleSettingChange({ stackGroups: value === 'stacked' })}>
+              <DropdownMenuRadioItem value='flat'>
+                {t('Flat')}
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value='stacked'>
+                {t('Stacked')}
+              </DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+          </SettingsSubMenu>
+          <SettingsSubMenu compact={compactLayout} label={t('Group Menu Style')}>
+            <DropdownMenuRadioGroup value={groupNavStyle} onValueChange={value => handleSettingChange({ groupNavStyle: value })}>
+              <DropdownMenuRadioItem value={NAV_STYLE_GROUP_DEFAULT}>
+                {t('Group Default')}
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value={NAV_STYLE_TWO_COLUMN}>
+                {t('Side Menu')}
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value={NAV_STYLE_ONE_COLUMN}>
+                {t('Card Menu')}
+              </DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+          </SettingsSubMenu>
+        </SettingsSubMenu>
+        <SettingsSubMenu compact={compactLayout} icon={<Languages className='mr-2 h-4 w-4' />} label={t('Language')}>
+          <DropdownMenuRadioGroup value={currentLocale} onValueChange={handleLanguageChange}>
+            <DropdownMenuRadioItem value={LOCALE_EN_US}>
+              🇺🇸 {t('English')}
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value={LOCALE_EN_GB}>
+              🇬🇧 {t('English (UK)')}
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value={LOCALE_ES}>
+              🇪🇸 {t('Spanish')}
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value={LOCALE_DE}>
+              🇩🇪 {t('German')}
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value={LOCALE_FR}>
+              🇫🇷 {t('French')}
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value={LOCALE_HI}>
+              🇮🇳 {t('Hindi')}
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value={LOCALE_PT}>
+              🇵🇹 {t('Portuguese')}
+            </DropdownMenuRadioItem>
+          </DropdownMenuRadioGroup>
+        </SettingsSubMenu>
         <DropdownMenuItem onClick={handleBlockedUsers}>
           <UserX className='mr-2 h-4 w-4' />
           <span>{t('Blocked Users')}</span>
@@ -515,6 +530,42 @@ export default function GlobalNav (props) {
   // download at all on desktop
   const showAppStoreLink = isMobileDevice() && !isWebView()
   const { t } = useTranslation()
+  const [helpOpen, setHelpOpen] = useState(false)
+  const tourSteps = useMemo(() => globalChromeTourSteps(t), [t])
+  const { invitation: chromeTourInvitation } = useTour({
+    id: GLOBAL_CHROME_TOUR_ID,
+    steps: tourSteps,
+    autoStart: true,
+    inviteMessage: t('New to Hylo? Let us show you around.')
+  })
+  // The Help menu lists every tour; ones whose anchors aren't on the current
+  // surface are shown disabled. Availability is a DOM question, so it's
+  // measured fresh each time the menu opens
+  const allTours = useMemo(() => tourCatalog(t), [t])
+  const [availableTourIds, setAvailableTourIds] = useState(() => new Set())
+  const handleHelpOpenChange = useCallback((open) => {
+    setHelpOpen(open)
+    if (open) {
+      setAvailableTourIds(new Set(allTours.filter(isTourAvailable).map(tour => tour.id)))
+    }
+  }, [allTours])
+  const toursSeen = currentUser?.settings?.toursSeen
+  const handleRunTour = useCallback((tour) => {
+    setHelpOpen(false)
+    // Let the menu finish closing before the overlay measures the anchors
+    setTimeout(() => {
+      driveTour(tour.steps, {
+        // A finished replay counts as seen, same as an organic run
+        onDestroyed: () => {
+          if (isTourTestMode()) return
+          const seenNow = toursSeen || []
+          if (!seenNow.includes(tour.id)) {
+            dispatch(updateUserSettings({ settings: { toursSeen: [...seenNow, tour.id] } }))
+          }
+        }
+      })
+    }, 150)
+  }, [toursSeen, dispatch])
   const [navReady, setNavReady] = useState(false)
   const [isContainerHovered, setIsContainerHovered] = useState(false)
   // A stack's subgroup menu and the rail's labels are alternatives, never both at
@@ -923,6 +974,7 @@ export default function GlobalNav (props) {
         boxShadow: 'inset -15px 0 15px -10px hsl(var(--darkening) / 0.4)'
       }}
     >
+      {chromeTourInvitation}
       <div className='absolute inset-0 bg-gradient-to-b from-theme-background/75 to-theme-highlight dark:bg-gradient-to-b dark:from-theme-background/90 dark:to-theme-highlight/100 z-0' />
       <div className='absolute top-0 right-0 w-4 h-full bg-gradient-to-l from-theme-background/10 to-theme-background/0 z-20' />
       <div
@@ -943,9 +995,10 @@ export default function GlobalNav (props) {
         <GlobalNavItem
           img={get('avatarUrl', currentUser)}
           tooltip={t('My Home')}
-          url='/my'
+          url={myHomeLandingUrl()}
           className={isVisible(0)}
           showTooltip={showLabels}
+          dataTour='my-home'
         />
 
         <Suspense fallback={<GlobalNavItem className={isVisible(1)} showTooltip={showLabels}><Bell className='w-7 h-7' /></GlobalNavItem>}>
@@ -956,6 +1009,7 @@ export default function GlobalNav (props) {
               className={isVisible(1)}
               showTooltip={showLabels}
               badgeCount={showBadge ? '-' : 0}
+              dataTour='activity'
             >
               <BadgedIcon name='Notifications' className='!text-white cursor-pointer font-md' />
             </GlobalNavItem>}
@@ -969,6 +1023,7 @@ export default function GlobalNav (props) {
           className={isVisible(2)}
           showTooltip={showLabels}
           badgeCount={currentUser?.unseenThreadCount || 0}
+          dataTour='messages'
         >
           <MessagesSquare />
         </GlobalNavItem>
@@ -979,6 +1034,7 @@ export default function GlobalNav (props) {
           url='/public'
           className={isVisible(3)}
           showTooltip={showLabels}
+          dataTour='the-commons'
         >
           <Globe />
         </GlobalNavItem>
@@ -1095,43 +1151,94 @@ export default function GlobalNav (props) {
         <div className='flex items-center justify-center gap-1.5'>
           <SettingsMenu currentUser={currentUser} triggerClassName={GLOBAL_NAV_UTILITY_BUTTON} />
 
-          <Popover>
-            <PopoverTrigger>
-              <span className={GLOBAL_NAV_UTILITY_BUTTON}>
+          <DropdownMenu open={helpOpen} onOpenChange={handleHelpOpenChange}>
+            <DropdownMenuTrigger asChild>
+              <span className={GLOBAL_NAV_UTILITY_BUTTON} data-tour='help'>
                 <HelpCircle className='w-5 h-5' />
               </span>
-            </PopoverTrigger>
-            <PopoverContent side='right' align='start'>
-              <ul className='flex flex-col gap-2 m-0 p-0'>
-                <li className='w-full'><span className='text-foreground cursor-pointer px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' onClick={handleSupportClick}><MessagesSquare className='h-4 w-4' />{t('Feedback & Support')}</span></li>
-                <li className='w-full'><a className='text-foreground cursor-pointer hover:text-foreground/100 px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' href='https://hylozoic.gitbook.io/hylo/guides/hylo-user-guide' target='_blank' rel='noreferrer'><BookOpen className='h-4 w-4' />{t('User Guide')}</a></li>
-                <li className='w-full'><a className='text-foreground cursor-pointer hover:text-foreground/100 px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' href='http://hylo.com/terms/' target='_blank' rel='noreferrer'><Shield className='h-4 w-4' />{t('Terms & Privacy')}</a></li>
-                {showAppStoreLink && <li className='w-full'><span className='text-foreground cursor-pointer px-2 py-1 hover:text-foreground/100 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' onClick={downloadApp}><Download className='h-4 w-4' />{t('Download App')}</span></li>}
-                <li className='w-full'><a className='text-foreground cursor-pointer px-2 py-1 hover:text-foreground/100 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' href='https://opencollective.com/hylo' target='_blank' rel='noreferrer'><Heart className='h-4 w-4' />{t('Contribute to Hylo')}</a></li>
-              </ul>
-              {showSupportModal && (
-                <ModalDialog
-                  closeModal={() => setShowSupportModal(false)}
-                  showModalTitle={false}
-                  submitButtonAction={() => {
-                    setShowSupportModal(false)
-                    showPreferences()
-                  }}
-                  submitButtonText={t('Edit Cookie Preferences')}
-                >
-                  <div className='p-4'>
-                    <h2 className='text-xl font-semibold mb-2'>{t('Support Chat Disabled')}</h2>
-                    <p className='text-foreground/70 mb-4'>
-                      {t('To use the support chat you need to enable support cookies in your cookie preferences')}
-                    </p>
-                    <p className='text-foreground/70 mb-2'>
-                      {t('Click below to edit your cookie preferences')}
-                    </p>
-                  </div>
-                </ModalDialog>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              side='right'
+              align='start'
+              className={cn(
+                'z-[200] bg-card',
+                compactLayout
+                  ? 'min-w-[260px] [&_[role=menuitem]]:py-3 [&_[role=menuitem]]:text-base'
+                  : 'min-w-[260px] sm:min-w-[200px] [&_[role=menuitem]]:py-3 [&_[role=menuitem]]:text-base sm:[&_[role=menuitem]]:py-1.5 sm:[&_[role=menuitem]]:text-sm'
               )}
-            </PopoverContent>
-          </Popover>
+            >
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger data-testid='take-a-tour'>
+                  <Compass className='mr-2 h-4 w-4' />
+                  <span>{t('Take a tour')} ({availableTourIds.size})</span>
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className='z-[200] bg-card'>
+                  <DropdownMenuLabel className='text-foreground/60 font-normal'>{t('Tours for this view')}</DropdownMenuLabel>
+                  {allTours.map(tour => (
+                    <DropdownMenuItem
+                      key={tour.id}
+                      disabled={!availableTourIds.has(tour.id)}
+                      onClick={() => handleRunTour(tour)}
+                    >
+                      {tour.title}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleSupportClick}>
+                <MessagesSquare className='mr-2 h-4 w-4' />
+                <span>{t('Feedback & Support')}</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <a href='https://hylozoic.gitbook.io/hylo/guides/hylo-user-guide' target='_blank' rel='noreferrer' className='text-foreground hover:text-foreground'>
+                  <BookOpen className='mr-2 h-4 w-4' />
+                  <span>{t('User Guide')}</span>
+                </a>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <a href='http://hylo.com/terms/' target='_blank' rel='noreferrer' className='text-foreground hover:text-foreground'>
+                  <Shield className='mr-2 h-4 w-4' />
+                  <span>{t('Terms & Privacy')}</span>
+                </a>
+              </DropdownMenuItem>
+              {showAppStoreLink && (
+                <DropdownMenuItem onClick={downloadApp}>
+                  <Download className='mr-2 h-4 w-4' />
+                  <span>{t('Download App')}</span>
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem asChild>
+                <a href='https://opencollective.com/hylo' target='_blank' rel='noreferrer' className='text-foreground hover:text-foreground'>
+                  <Heart className='mr-2 h-4 w-4' />
+                  <span>{t('Contribute to Hylo')}</span>
+                </a>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          {/* Outside the menu: selecting Feedback & Support closes it, and this
+              dialog has to outlive that close */}
+          {showSupportModal && (
+            <ModalDialog
+              closeModal={() => setShowSupportModal(false)}
+              showModalTitle={false}
+              submitButtonAction={() => {
+                setShowSupportModal(false)
+                showPreferences()
+              }}
+              submitButtonText={t('Edit Cookie Preferences')}
+            >
+              <div className='p-4'>
+                <h2 className='text-xl font-semibold mb-2'>{t('Support Chat Disabled')}</h2>
+                <p className='text-foreground/70 mb-4'>
+                  {t('To use the support chat you need to enable support cookies in your cookie preferences')}
+                </p>
+                <p className='text-foreground/70 mb-2'>
+                  {t('Click below to edit your cookie preferences')}
+                </p>
+              </div>
+            </ModalDialog>
+          )}
         </div>
       </div>
     </div>

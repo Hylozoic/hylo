@@ -70,11 +70,15 @@ export function fetchNotifications (first = 20, offset = 0) {
               }
               track {
                 id
-                name
+                space {
+                  name
+                }
               }
               fundingRound {
                 id
-                title
+                group {
+                  name
+                }
               }
               meta {
                 reasons

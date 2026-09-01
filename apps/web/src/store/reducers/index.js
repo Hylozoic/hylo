@@ -34,7 +34,6 @@ import SavedSearches from 'routes/UserSettings/UserSettings.store'
 import Search from 'routes/Search/Search.store'
 import SkillsSection from 'components/SkillsSection/SkillsSection.store'
 import SkillsToLearnSection from 'components/SkillsToLearnSection/SkillsToLearnSection.store'
-import TopicsSettings from 'routes/GroupSettings/TopicsSettingsTab/TopicsSettingsTab.store'
 import UserGroupsTab from 'routes/UserSettings/UserGroupsTab/UserGroupsTab.store'
 
 export const createCombinedReducers = routerReducer => combineReducers({
@@ -72,7 +71,6 @@ export const createCombinedReducers = routerReducer => combineReducers({
   Search,
   SkillsSection,
   SkillsToLearnSection,
-  TopicsSettings,
   UserGroupsTab
 })
 

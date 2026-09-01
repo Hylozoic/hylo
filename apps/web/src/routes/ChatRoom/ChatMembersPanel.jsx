@@ -5,12 +5,12 @@ import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 
 import Avatar from 'components/Avatar'
-import CurrentlyActivePills, { DEFAULT_ACTIVE_MAX, isRecentlyActive } from 'components/CurrentlyActiveMembers/CurrentlyActivePills'
+import CurrentlyActivePills, { DEFAULT_ACTIVE_MAX } from 'components/CurrentlyActiveMembers/CurrentlyActivePills'
 import { getPeopleTyping } from 'components/PeopleTyping/PeopleTyping.store'
 import { Tooltip, TooltipContent, TooltipTrigger } from 'components/ui/tooltip'
 import useRouteParams from 'hooks/useRouteParams'
 import { isMobileDevice } from 'util/mobile'
-import { cn } from 'util/index'
+import { cn, isRecentlyActive } from 'util/index'
 import {
   FETCH_MEMBERS,
   fetchMembers,
@@ -234,6 +234,7 @@ export default function ChatMembersPanel ({ group, latestPost }) {
           onClick={() => setOpen(true)}
           className='inline-flex items-center gap-1.5 h-7 pl-2.5 pr-2 rounded-md bg-card/90 backdrop-blur-sm border border-foreground/20 text-foreground text-xs font-semibold cursor-pointer transition-all hover:border-foreground/40 hover:scale-105'
           aria-label={t('Members')}
+          data-tour='chat-members'
         >
           <Users className='w-3.5 h-3.5' />
           {group.memberCount != null && <span>{group.memberCount}</span>}

@@ -6,7 +6,7 @@ describe('presentPost', () => {
   const postId = 324
   const session = orm.session(orm.getEmptyState())
 
-  const group = session.Group.create({ id: groupId })
+  session.Group.create({ id: groupId })
   const person = session.Person.create({ name: 'Mr Person' })
   const eventInvitation = session.EventInvitation.create({ response: 'yes', person, event: postId })
   session.Post.create({ id: postId, eventInvitations: [eventInvitation] })
@@ -17,5 +17,30 @@ describe('presentPost', () => {
     const post = session.Post.withId(postId)
     const result = presentPost(post, groupId)
     expect(result).toMatchSnapshot()
+  })
+
+  it('exposes featured video link preview fields from the ORM relation', () => {
+    const preview = session.LinkPreview.create({
+      id: 'lp-1',
+      title: 'A video',
+      url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      imageUrl: 'thumb.png'
+    })
+    session.Post.withId(postId).update({
+      linkPreview: preview.id,
+      linkPreviewFeatured: true
+    })
+    const result = presentPost(session.Post.withId(postId), groupId)
+    expect(result.linkPreviewFeatured).toBe(true)
+    expect(result.linkPreview.url).toBe('https://www.youtube.com/watch?v=dQw4w9WgXcQ')
+    expect(result.linkPreview.title).toBe('A video')
+  })
+
+  it('keeps nested GraphQL locationObject from post.ref', () => {
+    session.Post.withId(postId).update({
+      locationObject: { id: '99', center: { lat: 37.7, lng: -122.4 } }
+    })
+    const result = presentPost(session.Post.withId(postId), groupId)
+    expect(result.locationObject).toEqual({ id: '99', center: { lat: 37.7, lng: -122.4 } })
   })
 })

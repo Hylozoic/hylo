@@ -1,6 +1,6 @@
 import { createSelector } from 'reselect'
 import { filter, isFunction } from 'lodash'
-import { Check, Play, CircleDashed, BookmarkCheck, Bookmark, Pencil, Link2, Flag, Copy, Trash2, Library, LibraryBig } from 'lucide-react'
+import { Check, Play, CircleDashed, BookmarkCheck, Bookmark, Pencil, Link2, Flag, Copy, Pin, PinOff, Trash2, Library, LibraryBig } from 'lucide-react'
 import { DateTime } from 'luxon'
 import React, { useCallback, useMemo, useState } from 'react'
 import ReactDOM from 'react-dom'
@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { push } from 'redux-first-history'
 import { Link } from 'react-router-dom'
-import { TextHelpers } from '@hylo/shared'
+import { MAX_PINNED_POSTS_PER_VIEW, TextHelpers } from '@hylo/shared'
 import { formatUserDatePair } from 'util/dateFormat'
 import Avatar from 'components/Avatar'
 import Dropdown from 'components/Dropdown'
@@ -20,7 +20,7 @@ import Tooltip from 'components/Tooltip'
 import PostCompletion from '../PostCompletion'
 import { getPostTypeIcon, PROPOSAL_STATUS_CASUAL, PROPOSAL_STATUS_COMPLETED } from 'store/models/Post'
 import { RESP_ADMINISTRATION, RESP_MANAGE_CONTENT } from 'store/constants'
-import { removePostFromUrl, editPostUrl, duplicatePostUrl, postUrl, groupUrl, personUrl, topicUrl, spaceUrl } from '@hylo/navigation'
+import { removePostFromUrl, editPostUrl, duplicatePostUrl, postUrl, groupUrl, personUrl, tagSearchUrl, spaceUrl } from '@hylo/navigation'
 import getMe from 'store/selectors/getMe'
 import deletePostAction from 'store/actions/deletePost'
 import removePostAction from 'store/actions/removePost'
@@ -29,8 +29,10 @@ import { getResponsibilityTitlesForGroup } from 'store/selectors/getResponsibili
 import { getGroupViewById } from 'store/selectors/getGroupViews'
 import getRolesForGroup from 'store/selectors/getRolesForGroup'
 import useGroupViews from 'hooks/useGroupViews'
+import useCurrentPinnableView from 'hooks/useCurrentPinnableView'
 import { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 import { useEffectiveGroupSlug, useGroupRouteOpts } from 'contexts/SpaceGroupContext'
+import pinPostAction from 'store/actions/pinPost'
 import { cn } from 'util/index'
 import {
   unfulfillPost as unfulfillPostAction,
@@ -134,6 +136,28 @@ function PostHeader (props) {
   const canEdit = isCreator
   const canFlag = !isCreator
   const canModerate = !isCreator && responsibilities.includes(RESP_MANAGE_CONTENT)
+  const pinnableView = useCurrentPinnableView()
+  const belongsToCurrentGroup = (postGroups || []).length === 0 ||
+    (postGroups || []).some(g => String(g.id) === String(group?.id) || g.slug === group?.slug)
+  const pinnedPostIds = (pinnableView?.pinnedPostIds || []).map(pid => String(pid))
+  const pinned = pinnedPostIds.includes(String(id))
+  const atPinCap = pinnedPostIds.length >= MAX_PINNED_POSTS_PER_VIEW && !pinned
+  const canShowPin = !!group?.id &&
+    !!pinnableView?.id &&
+    responsibilities.includes(RESP_MANAGE_CONTENT)
+  const fromChildView = (postGroups || []).length > 0 && !belongsToCurrentGroup
+  const fromChildSpace = fromChildView && (postGroups || []).some(g => g.type === 'space')
+  const pinDisabled = canShowPin && !pinned && (fromChildView || atPinCap)
+  const pinTooltip = fromChildView
+    ? (fromChildSpace
+        ? t('You cannot pin a post from a space to this view')
+        : t('You cannot pin a post from a child group to this view'))
+    : (atPinCap ? t('You can only pin 3 posts') : undefined)
+  const canPin = canShowPin && !pinDisabled
+  const handlePinPost = useCallback(() => {
+    if (!pinnableView?.id || !group?.id) return
+    dispatch(pinPostAction(id, pinnableView.id, group.id, post))
+  }, [dispatch, id, pinnableView?.id, group?.id, post])
   const canCurateCollections = responsibilities.includes(RESP_ADMINISTRATION) ||
     responsibilities.includes(RESP_MANAGE_CONTENT)
 
@@ -316,6 +340,7 @@ function PostHeader (props) {
   const dropdownItems = filter([
     { icon: <Pencil className='w-4 h-4 text-foreground' />, label: t('Edit'), onClick: canEdit ? editPost : undefined },
     { icon: <Link2 className='w-4 h-4 text-foreground' />, label: t('Copy Link'), onClick: copyLink },
+    { icon: pinned ? <PinOff className='w-4 h-4 text-foreground' /> : <Pin className={cn('w-4 h-4', pinDisabled ? 'text-foreground/40' : 'text-foreground')} />, label: pinned ? t('Unpin from View') : t('Pin to View'), onClick: canPin ? handlePinPost : undefined, disabled: pinDisabled, tooltip: pinTooltip },
     { icon: savedAt ? <BookmarkCheck className='w-4 h-4 text-foreground' /> : <Bookmark className='w-4 h-4 text-foreground' />, label: savedAt ? t('Unsave Post') : t('Save Post'), onClick: savedAt ? unsavePost : savePost },
     { icon: <Flag className='w-4 h-4 text-foreground' />, label: t('Flag'), onClick: flagPostFunc() },
     { icon: <Copy className='w-4 h-4 text-foreground' />, label: t('Duplicate'), onClick: duplicatePost },
@@ -323,7 +348,7 @@ function PostHeader (props) {
     removeFromCollectionItem,
     { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: t('Delete'), onClick: isCreator ? () => deletePost(t('Are you sure you want to delete this post? You cannot undo this.')) : undefined, red: true },
     { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: t('Remove From Group'), onClick: canModerate ? () => removePost(t('Are you sure you want to remove this post? You cannot undo this.')) : undefined, red: true }
-  ], item => item && (isFunction(item.onClick) || item.items?.length))
+  ], item => item && (isFunction(item.onClick) || item.disabled || item.items?.length))
 
   const typesWithTimes = ['action', 'offer', 'request', 'resource', 'project', 'proposal']
   const canHaveTimes = typesWithTimes.includes(type)
@@ -385,10 +410,19 @@ function PostHeader (props) {
                 )}
               </div>
             </Highlight>
-            <div className='flex items-center ml-2'>
+            {/* Wraps rather than clips: on phones the badge drops to the next
+                line instead of getting cropped by the header's overflow-hidden */}
+            <div className='flex items-center flex-wrap gap-y-1 ml-2'>
               <span className='text-foreground/50 text-2xs whitespace-nowrap mr-3' data-tooltip-id={`dateTip-${id}`} data-tooltip-content={exactCreatedTimestamp}>
                 {createdTimestamp}
               </span>
+              {/* Phones keep just the gold pin square; the label returns at xs */}
+              {pinned && (
+                <span title={t('Pinned')} className='inline-flex items-center shrink-0 gap-1 h-7 px-1.5 xs:px-2 mr-2 rounded-md text-[9.5px] font-bold uppercase tracking-wider bg-[hsl(45_45%_90%)] dark:bg-[hsl(45_45%_18%)] border border-[hsl(45_45%_60%)] dark:border-[hsl(45_45%_34%)] text-[hsl(45_60%_35%)] dark:text-[hsl(45_65%_72%)]'>
+                  <Pin className='w-3.5 h-3.5' strokeWidth={2.5} aria-hidden='true' />
+                  <span className='hidden xs:inline'>{t('Pinned')}</span>
+                </span>
+              )}
               {type !== 'submission' && (
                 // h-7 (and rounded-md) so the pill and the three-dot toggle read as one control family.
                 // The old py1 was a dead class — the pill never actually had vertical padding.
@@ -396,6 +430,7 @@ function PostHeader (props) {
                   <Icon name={getPostTypeIcon(type)} className='text-sm' dataTestId={'post-type-' + type.charAt(0).toUpperCase() + type.slice(1)} />
                   {t(type)}
                 </div>)}
+
               {announcement && (
                 <span className='mt-[-2px]'>
                   <span className='text-2xs mx-3 relative top-[-6px]'>•</span>
@@ -417,10 +452,10 @@ function PostHeader (props) {
                 1px for optical centering in inline contexts — here the icon IS the bordered
                 box, so the nudge shifted the whole button 1px below the pill beside it */}
             {dropdownItems.length > 0 &&
-              <Dropdown id='post-header-more-dropdown' toggleChildren={<Icon name='More' dataTestId='post-header-more-icon' className='cursor-pointer border-2 border-foreground/30 rounded-md h-7 w-7 flex items-center justify-center !top-0' />} items={dropdownItems} alignRight noOverflow />}
+              <Dropdown id='post-header-more-dropdown' toggleChildren={<Icon name='More' dataTestId='post-header-more-icon' className='cursor-pointer border-2 border-foreground/30 rounded-md h-7 w-7 flex items-center justify-center !top-0' />} items={dropdownItems} alignRight noOverflow portal />}
             {close &&
-              <a className={cn('inline-block cursor-pointer relative px-3 text-xl')} data-testid='post-detail-close' onClick={close}>
-                <Icon name='Ex' className='align-middle' />
+              <a className='flex items-center justify-center cursor-pointer h-7 px-3 text-xl' data-testid='post-detail-close' onClick={close}>
+                <Icon name='Ex' className='leading-none !top-0' />
               </a>}
           </div>
         </div>
@@ -499,7 +534,7 @@ export function TopicsLine ({ topics, slug, newLine }) {
       {topics.slice(0, 3).map(t =>
         <Link
           className='py:2 px-3 xs:px-2 flex items-center border rounded-md mt-2 ml-2 bg-white text-xs mr-3'
-          to={topicUrl(t.name, { groupSlug: slug })}
+          to={tagSearchUrl(t.name, { groupSlug: slug })}
           key={t.name}
         >
           #{t.name}

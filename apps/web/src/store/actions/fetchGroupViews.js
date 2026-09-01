@@ -10,7 +10,20 @@ export default function fetchGroupViews (groupId) {
         group(id: $groupId) {
           id
           openJoinRequestCount
-          groupViews {
+          track {
+            id
+            actionDescriptor
+            actionDescriptorPlural
+            accessControlled
+            canAccess
+          }
+          fundingRound {
+            id
+            phase
+            submissionDescriptor
+            submissionDescriptorPlural
+          }
+          groupViews(menuOnly: true) {
             items {
               id
               type
@@ -23,113 +36,29 @@ export default function fetchGroupViews (groupId) {
               settings
               newPostCount
               lastReadPostId
+              pinnedPostIds
               linkedGroup {
                 id
                 name
                 slug
-                type
-                parentId
+                status
                 avatarUrl
-                bannerUrl
                 icon
                 homeRoute
-                memberCount
-                openJoinRequestCount
-                description
-                purpose
-                location
-                locationObject {
-                  id
-                  fullText
-                }
-                acceptedPostTypes
-                visibility
-                accessibility
-                requiredRoles
-                paywall
-                groupRoles {
-                  items {
-                    id
-                    name
-                    emoji
-                  }
-                }
                 track {
                   id
-                  name
                   actionDescriptor
                   actionDescriptorPlural
-                  completionMessage
-                  completionRole {
-                    id
-                    name
-                    emoji
-                  }
-                  publishedAt
                   accessControlled
                   canAccess
                 }
                 fundingRound {
                   id
-                  title
-                  publishedAt
                   phase
-                  allowSelfVoting
-                  hideFinalResultsFromParticipants
-                  votingMethod
-                  totalTokens
-                  tokenType
-                  maxTokenAllocation
-                  minTokenAllocation
-                  requireBudget
                   submissionDescriptor
                   submissionDescriptorPlural
-                  submissionsOpenAt
-                  submissionsCloseAt
-                  votingOpensAt
-                  votingClosesAt
-                  criteria
-                  description
-                  submitterRoles {
-                    id
-                    emoji
-                    name
-                  }
-                  voterRoles {
-                    id
-                    emoji
-                    name
-                  }
                 }
-                groupViews {
-                  items {
-                    id
-                    type
-                    name
-                    order
-                    icon
-                    newPostCount
-                    lastReadPostId
-                    viewPost {
-                      id
-                      type
-                      title
-                      startTime
-                      timezone
-                    }
-                    viewUser {
-                      id
-                      name
-                      avatarUrl
-                    }
-                    linkedGroup {
-                      id
-                      name
-                      avatarUrl
-                      icon
-                    }
-                  }
-                }
+                menuViewCount
               }
               viewPost {
                 id
@@ -150,8 +79,9 @@ export default function fetchGroupViews (groupId) {
       variables: { groupId }
     },
     meta: {
-      // Also extract each menu space's linkedGroup (e.g. its `track`) as its own
-      // normalized Group record — see store/util/extractNestedGroups.js
+      groupId,
+      // Also extract each menu space's linkedGroup as its own normalized Group
+      // record — see store/util/extractNestedGroups.js
       extractModel: [
         { getRoot: get('group'), modelName: 'Group', append: true },
         { getRoot: data => collectLinkedGroups(get('group.groupViews.items', data)), modelName: 'Group', append: true }

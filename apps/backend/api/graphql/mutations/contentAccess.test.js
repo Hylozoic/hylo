@@ -29,9 +29,8 @@ describe('Content Access Mutations', () => {
       publish_status: 'published'
     }).save()
     track = await Track.forge({
-      name: 'Test Track',
-      description: 'Test Track Description',
-      group_id: group.id
+      group_id: group.id,
+      name: 'Test Track'
     }).save()
 
     // Add admin user as group administrator

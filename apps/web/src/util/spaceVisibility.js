@@ -51,6 +51,9 @@ export function shouldShowSpaceInMenu (space, {
   viewerRoleIds
 } = {}) {
   if (!space) return false
+  if (space.status === 'draft' || space.status === 'archived') {
+    return Boolean(canManageSpaces)
+  }
   if (canManageSpaces) return true
 
   if (space.paywall) {
@@ -98,7 +101,9 @@ export function filterSpaceViewsForMenuVisibility (views, opts) {
   const grantedSpaceIds = spaceIdsGrantedByPublishedOfferings(opts?.offerings)
   return (views || []).filter(view => {
     if (view.type !== 'space') return true
-    return shouldShowSpaceInMenu(view.linkedGroup, { ...opts, grantedSpaceIds })
+    const space = view.linkedGroup
+    if (space?.status === 'draft' || space?.status === 'archived') return false
+    return shouldShowSpaceInMenu(space, { ...opts, grantedSpaceIds })
   })
 }
 
@@ -111,11 +116,14 @@ export function filterMoreSpacesSections (sections, opts) {
   const fundingRoundSpaces = filterSpacesForMenuVisibility(sections.fundingRoundSpaces, opts)
   const otherSpaces = filterSpacesForMenuVisibility(sections.otherSpaces, opts)
   const archivedSpaces = filterSpacesForMenuVisibility(sections.archivedSpaces, opts)
-  const hasAny = trackSpaces.length +
+  const draftSpaces = filterSpacesForMenuVisibility(sections.draftSpaces, opts)
+  const hasAny = (draftSpaces?.length || 0) +
+    trackSpaces.length +
     fundingRoundSpaces.length +
     otherSpaces.length +
     archivedSpaces.length > 0
   return {
+    draftSpaces,
     trackSpaces,
     fundingRoundSpaces,
     otherSpaces,

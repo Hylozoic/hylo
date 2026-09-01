@@ -14,7 +14,7 @@ import {
   verticalListSortingStrategy
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { GripVertical, Pencil } from 'lucide-react'
+import { Ellipsis, GripVertical, Pencil } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
@@ -23,12 +23,23 @@ import { addQuerystringToPath } from '@hylo/navigation'
 import { spaceEntryUrl } from './groupViewMenuUrl'
 
 import { Tooltip, TooltipContent, TooltipTrigger } from 'components/ui/tooltip'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger
+} from 'components/ui/dropdown-menu'
 import TruncatedText from 'components/TruncatedText'
 import GroupViewIcon from './GroupViewIcon'
 import { GroupViewEditActions } from './GroupViewSettingsModal'
-import { canDeleteView, canHardDeleteView, isSoftRemoveView } from 'store/models/GroupView'
+import { canDeleteView, canHardDeleteView, isMenuViewVisible, isSoftRemoveView, viewTypeHasSettings } from 'store/models/GroupView'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
-import { deleteGroupView, deleteSpace, setGroupViewHidden } from 'store/actions/groupViews'
+import { archiveSpace, deleteGroupView, deleteSpace, setGroupViewHidden, updateGroupView } from 'store/actions/groupViews'
+import { appendSpaceId, collectionsWithoutSpace, spaceCollectionViews } from 'util/spaceCollection'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import { mergeOrderedViewsFromSource, sortViewsByMenuOrder } from 'store/util/groupViewsOrder'
@@ -139,12 +150,97 @@ function SortableEditRow ({ view, onSettings, onHide, onDelete, isHome, spaceGro
   )
 }
 
+/** Overflow for space rows: settings, add to collection, remove, delete. Pencil stays outside. */
+function SpaceEditRowMenu ({
+  view,
+  space,
+  collectionViews,
+  onSettings,
+  onAddToCollection,
+  onHide,
+  onArchive,
+  onDelete
+}) {
+  const { t } = useTranslation()
+  const showSettings = viewTypeHasSettings(view?.type)
+  const removable = canDeleteView(view)
+  const hardDeletable = canHardDeleteView(view)
+  const softRemovable = removable && isSoftRemoveView(view)
+  const availableCollections = collectionsWithoutSpace(collectionViews, space?.id)
+
+  return (
+    <DropdownMenu modal={false}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <DropdownMenuTrigger asChild>
+            <button
+              type='button'
+              className='p-1 text-foreground/50 hover:text-foreground rounded'
+              onPointerDown={(e) => e.stopPropagation()}
+              aria-label={t('More actions')}
+            >
+              <Ellipsis className='w-4 h-4' />
+            </button>
+          </DropdownMenuTrigger>
+        </TooltipTrigger>
+        <TooltipContent>{t('More actions')}</TooltipContent>
+      </Tooltip>
+      <DropdownMenuContent align='end' className='z-[200]' onClick={(e) => e.stopPropagation()}>
+        {showSettings && (
+          <DropdownMenuItem onSelect={() => onSettings?.(view)}>
+            {t('Settings')}
+          </DropdownMenuItem>
+        )}
+        {availableCollections.length > 0 && (
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>{t('Add to Collection')}</DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className='z-[200]'>
+              {availableCollections.map(collectionView => (
+                <DropdownMenuItem
+                  key={collectionView.id}
+                  onSelect={() => onAddToCollection?.(space, collectionView)}
+                >
+                  {collectionView.name}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+        )}
+        {softRemovable && onHide && (
+          <DropdownMenuItem onSelect={() => onHide(view)}>
+            {t('Move to More Spaces')}
+          </DropdownMenuItem>
+        )}
+        {hardDeletable && space?.status !== 'archived' && onArchive && (
+          <DropdownMenuItem onSelect={() => onArchive(view)}>
+            {t('Archive')}
+          </DropdownMenuItem>
+        )}
+        {hardDeletable && onDelete && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className='text-destructive focus:text-destructive'
+              onSelect={() => onDelete(view)}
+            >
+              {t('Delete Space')}
+            </DropdownMenuItem>
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
 /** Space row — pencil drills into that space's menu in edit mode (no nested expand). */
 function SortableSpaceEditRow ({
   view,
   groupSlug,
+  collectionViews,
   onSettings,
+  onAddToCollection,
   onHide,
+  onArchive,
   onDelete
 }) {
   const { t } = useTranslation()
@@ -179,28 +275,33 @@ function SortableSpaceEditRow ({
         </button>
         <GroupViewIcon view={presentedView} />
         <TruncatedText className='flex-1 min-w-0 truncate text-base font-semibold text-foreground' text={displayNameForView(presentedView, t)} />
-        <GroupViewEditActions
-          view={view}
-          onSettings={onSettings}
-          onHide={onHide}
-          onDelete={onDelete}
-          className={EDIT_ACTIONS_CLASS}
-        />
-        {spaceGroup?.slug && groupSlug && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                type='button'
-                className='p-1 text-foreground/50 hover:text-foreground'
-                onClick={handleEditSpaceMenu}
-                aria-label={t('Edit space menu')}
-              >
-                <Pencil className='w-4 h-4' />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent>{t('Edit space menu')}</TooltipContent>
-          </Tooltip>
-        )}
+        <div className={cn('flex items-center shrink-0', EDIT_ACTIONS_CLASS)}>
+          <SpaceEditRowMenu
+            view={view}
+            space={spaceGroup}
+            collectionViews={collectionViews}
+            onSettings={onSettings}
+            onAddToCollection={onAddToCollection}
+            onHide={onHide}
+            onArchive={onArchive}
+            onDelete={onDelete}
+          />
+          {spaceGroup?.slug && groupSlug && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type='button'
+                  className='p-1 text-foreground/50 hover:text-foreground'
+                  onClick={handleEditSpaceMenu}
+                  aria-label={t('Edit space menu')}
+                >
+                  <Pencil className='w-4 h-4' />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>{t('Edit space menu')}</TooltipContent>
+            </Tooltip>
+          )}
+        </div>
       </div>
     </li>
   )
@@ -211,8 +312,8 @@ export default function GroupViewEditList ({ views, group, groupSlug, onSettings
   const dispatch = useDispatch()
   const { t } = useTranslation()
   const visibleViews = useMemo(() => sortViewsByOrder(
-    (views || []).filter(v => v.order != null)
-  ), [views])
+    (views || []).filter(v => isMenuViewVisible(v, group?.acceptedPostTypes))
+  ), [views, group?.acceptedPostTypes])
   const [orderedViews, setOrderedViews] = useState(visibleViews)
 
   // Merge Redux updates into local order (preserves drag order; full replace on add/delete).
@@ -242,13 +343,37 @@ export default function GroupViewEditList ({ views, group, groupSlug, onSettings
     }
   }, [dispatch, group?.id, t])
 
+  const collectionViews = useMemo(
+    () => spaceCollectionViews(views).map(view => ({
+      id: view.id,
+      name: displayNameForView(view, t),
+      settings: view.settings
+    })),
+    [views, t]
+  )
+
+  const handleAddToCollection = useCallback(async (space, collectionView) => {
+    if (!group?.id || !space?.id || !collectionView?.id) return
+    const fullView = (views || []).find(v => String(v.id) === String(collectionView.id))
+    if (!fullView) return
+    try {
+      await dispatch(updateGroupView({
+        id: fullView.id,
+        groupId: group.id,
+        settings: appendSpaceId(fullView.settings, space.id)
+      }))
+    } catch (error) {
+      console.error('Failed to add space to collection:', error)
+    }
+  }, [dispatch, group?.id, views])
+
   const handleDelete = useCallback(async (view) => {
     if (!canHardDeleteView(view) || !group?.id) return
     if (view.type === 'space') {
       const space = view.linkedGroup
       if (!space?.id) return
       const confirmed = window.confirm(
-        t('Are you sure you want to permanently delete {{name}}? Posts in this space will no longer be accessible.', {
+        t('Are you sure you want to delete {{name}}? It will be hidden from the menu and More Spaces.', {
           name: space.name || displayNameForView(view, t)
         })
       )
@@ -271,6 +396,25 @@ export default function GroupViewEditList ({ views, group, groupSlug, onSettings
     }
   }, [dispatch, group?.id, t])
 
+  const handleArchive = useCallback(async (view) => {
+    if (!canHardDeleteView(view) || !group?.id) return
+    const space = view.linkedGroup
+    if (!space?.id || space.status === 'archived') return
+    const confirmed = window.confirm(
+      t('Are you sure you want to archive {{name}}?', {
+        name: space.name || displayNameForView(view, t)
+      })
+    )
+    if (!confirmed) return
+    try {
+      await dispatch(archiveSpace(space.id))
+      await dispatch(fetchGroupSpaces(group.id))
+      await dispatch(fetchGroupViews(group.id))
+    } catch (error) {
+      console.error('Failed to archive space:', error)
+    }
+  }, [dispatch, group?.id, t])
+
   const ids = orderedViews.map(v => String(v.id))
   // Two-column creates a space then opens it, so flashing the sidebar row is noise.
   const flashingIds = useFlashAddedItems(orderedViews, { skipTypes: ['space'] })
@@ -283,7 +427,7 @@ export default function GroupViewEditList ({ views, group, groupSlug, onSettings
       modifiers={[restrictToVerticalAxis]}
     >
       <SortableContext items={ids} strategy={verticalListSortingStrategy}>
-        <ul className='m-0 p-3 mb-2'>
+        <ul className='m-0 p-3 mb-2' data-tour='edit-menu-list'>
           {orderedViews.map((view, index) => {
             if (view.type === 'space') {
               return (
@@ -291,8 +435,11 @@ export default function GroupViewEditList ({ views, group, groupSlug, onSettings
                   key={view.id}
                   view={view}
                   groupSlug={groupSlug || group?.slug}
+                  collectionViews={collectionViews}
                   onSettings={onSettings}
+                  onAddToCollection={handleAddToCollection}
                   onHide={handleHide}
+                  onArchive={handleArchive}
                   onDelete={handleDelete}
                 />
               )

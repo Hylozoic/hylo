@@ -100,13 +100,6 @@ export const LOCATION_PRECISION = {
   region: 'Display only nearest city and dont show on the map'
 }
 
-export class ChatRoom extends Model { }
-ChatRoom.modelName = 'ChatRoom'
-ChatRoom.fields = {
-  group: fk('Group', 'chatrooms'),
-  topic: fk('GroupTopic', 'chatrooms')
-}
-
 export class GroupSteward extends Model { }
 GroupSteward.modelName = 'GroupSteward'
 GroupSteward.fields = {
@@ -177,7 +170,6 @@ Group.fields = {
     as: 'announcements',
     relatedName: 'announcementGroups'
   }),
-  chatRooms: many('ChatRoom'),
   childGroups: many({
     to: 'Group',
     relatedName: 'parentGroups',
@@ -185,12 +177,13 @@ Group.fields = {
     throughFields: ['childGroup', 'parentGroup']
   }),
   peerGroups: many('Group'),
-  customViews: many('CustomView'),
   feedOrder: attr(),
   geoShape: attr(),
   groupToGroupJoinQuestions: many('GroupToGroupJoinQuestion'),
+  groupRoles: attr(),
   groupViews: attr(),
   homeRoute: attr(),
+  menuViewCount: attr(),
   icon: attr(),
   id: attr(),
   joinQuestions: many('GroupJoinQuestion'),
@@ -202,6 +195,7 @@ Group.fields = {
   members: many('Person'),
   memberCount: attr(),
   openJoinRequestCount: attr(),
+  openModerationActionCount: attr(),
   stewards: many({
     to: 'Person',
     relatedName: 'stewardedGroups',
@@ -231,6 +225,8 @@ Group.fields = {
   settings: attr(),
   slug: attr(),
   spaces: attr(),
+  status: attr(),
+  active: attr(),
   suggestedSkills: many('Skill'),
   track: attr(),
   tracks: many('Track'),

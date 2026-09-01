@@ -1,5 +1,7 @@
 /* global DOMParser */
 import { cn } from 'util/index'
+import useTour from 'tours/useTour'
+import { POST_EDITOR_TOUR_ID, postEditorTourSteps } from 'tours/postEditorTour'
 import { debounce, get, isEqual, isEmpty, uniqBy, uniqueId } from 'lodash/fp'
 import { TriangleAlert, X } from 'lucide-react'
 import { DateTimeHelpers } from '@hylo/shared'
@@ -95,6 +97,7 @@ import { MAX_POST_TOPICS } from 'util/constants'
 import generateTempID from 'util/generateTempId'
 import { setQuerystringParam } from '@hylo/navigation'
 import { sanitizeURL } from 'util/url'
+import isPlayableVideoUrl from 'util/isPlayableVideoUrl'
 import ActionsBar from './ActionsBar'
 import HyloHTML from 'components/HyloHTML'
 import useDraft, { hasDraftContent, hasPostDraftPayloadContent } from 'hooks/useDraft'
@@ -183,6 +186,15 @@ function PostEditorInner ({
 
   const currentUser = useSelector(getMe)
   const myMemberships = useSelector(getMyMemberships)
+
+  // First-time-in-the-editor tour, offered via a floating invitation
+  const editorTourSteps = useMemo(() => postEditorTourSteps(t), [t])
+  const { invitation: editorTourInvitation } = useTour({
+    id: POST_EDITOR_TOUR_ID,
+    steps: editorTourSteps,
+    autoStart: true,
+    inviteMessage: t('Want a quick tour of the post editor?')
+  })
   const currentGroup = useSelector(state => getGroupForSlug(state, groupSlug))
   // Track / funding-round spaces carry their config on the group itself.
   const currentTrack = currentGroup?.track || null
@@ -204,8 +216,13 @@ function PostEditorInner ({
     // null/undefined acceptedPostTypes = group accepts all types
     if (fromGroup == null) return fromView
     if (!Array.isArray(fromGroup)) return fromView
-    if (fromView == null) return fromGroup
-    return fromView.filter(type => fromGroup.includes(type))
+    // Typed views (track-actions, funding-round-submissions) keep their post type even when
+    // the space has empty acceptedPostTypes (track/FR spaces do not use stream post types).
+    if (fromView != null) {
+      if (fromGroup.length === 0) return fromView
+      return fromView.filter(type => fromGroup.includes(type))
+    }
+    return fromGroup
   }, [editing, allowedPostTypesForView, currentGroup?.acceptedPostTypes])
 
   useEffect(() => {
@@ -343,8 +360,6 @@ function PostEditorInner ({
       isAnonymousVote: false,
       isPublic: context === 'public',
       isStrictProposal: false,
-      location: '',
-      locationId: null,
       meetingLink: '',
       proposalOptions: [],
       quorum: 0,
@@ -355,10 +370,12 @@ function PostEditorInner ({
       votingMethod: VOTING_METHOD_SINGLE,
       ...(inputPost || {}),
       ...prefilledEventTimes,
+      location: inputPost?.location || selectedLocation || '',
+      locationId: inputPost?.locationId || null,
       startTime: typeof inputPost?.startTime === 'string' ? new Date(inputPost.startTime) : (inputPost?.startTime || prefilledEventTimes.startTime),
       endTime: typeof inputPost?.endTime === 'string' ? new Date(inputPost.endTime) : (inputPost?.endTime || prefilledEventTimes.endTime)
     }
-  }, [inputPost?.id, createPostType, currentGroup, topic, context, editing, eventDateParam, inputPost?.startTime, inputPost?.endTime, currentTrack?.actionDescriptor, t])
+  }, [inputPost?.id, inputPost?.location, inputPost?.locationId, createPostType, currentGroup, topic, context, editing, eventDateParam, inputPost?.startTime, inputPost?.endTime, currentTrack?.actionDescriptor, selectedLocation, t])
 
   const [currentPost, setCurrentPostState] = useState(initialPost)
   const [editorInitialContent, setEditorInitialContent] = useState(initialPost.details || '')
@@ -385,6 +402,7 @@ function PostEditorInner ({
       .map((m) => m.group)
       .filter((g) => {
         if (!g) return false
+        if (g.status === 'archived') return false
         // Filter out paywalled groups where user doesn't have access
         if (g.paywall && g.canAccess === false) {
           return false
@@ -392,7 +410,11 @@ function PostEditorInner ({
         return true
       })
 
-    if (currentGroup?.id && !groups.some(g => sameGroupId(g.id, currentGroup.id))) {
+    if (
+      currentGroup?.id &&
+      currentGroup.status !== 'archived' &&
+      !groups.some(g => sameGroupId(g.id, currentGroup.id))
+    ) {
       groups.push(currentGroup)
     }
 
@@ -700,7 +722,21 @@ function PostEditorInner ({
   }, [initialPost.id])
 
   useEffect(() => {
-    setCurrentPost(prev => (prev.linkPreview === linkPreview ? prev : { ...prev, linkPreview }))
+    setCurrentPost(prev => {
+      if (prev.linkPreview === linkPreview) return prev
+      if (linkPreview) {
+        const isNewPreview = !prev.linkPreview || prev.linkPreview.id !== linkPreview.id
+        return {
+          ...prev,
+          linkPreview,
+          skipLinkPreview: false,
+          linkPreviewFeatured: isNewPreview && isPlayableVideoUrl(linkPreview.url || linkPreview.ref?.url)
+            ? true
+            : prev.linkPreviewFeatured
+        }
+      }
+      return { ...prev, linkPreview }
+    })
   }, [linkPreview, setCurrentPost])
 
   useEffect(() => {
@@ -963,7 +999,7 @@ function PostEditorInner ({
 
   const handleRemoveLinkPreview = useCallback(() => {
     dispatch(removeLinkPreview())
-    setCurrentPost(prev => ({ ...prev, linkPreview: null, linkPreviewFeatured: false }))
+    setCurrentPost(prev => ({ ...prev, linkPreview: null, linkPreviewFeatured: false, skipLinkPreview: true }))
   }, [dispatch, setCurrentPost])
 
   const handleAddToOption = useCallback((toOptions) => {
@@ -1079,6 +1115,7 @@ function PostEditorInner ({
         isStrictProposal,
         linkPreview,
         linkPreviewFeatured,
+        skipLinkPreview,
         locationId,
         meetingLink,
         members,
@@ -1107,8 +1144,8 @@ function PostEditorInner ({
         fileAttachments && fileAttachments.map((attachment) => attachment.url)
       const postLocation = currentPost.location || selectedLocation
       const actualLocationId = await ensureLocationIdIfCoordinate({
-        fetchLocation,
-        postLocation,
+        fetchLocation: (data) => dispatch(fetchLocation(data)),
+        location: postLocation,
         locationId
       })
       const meetingLinkValue = meetingLinkInputRef.current?.value ?? meetingLink
@@ -1137,6 +1174,7 @@ function PostEditorInner ({
         isStrictProposal,
         linkPreview,
         linkPreviewFeatured,
+        skipLinkPreview,
         localId: uniqueId('post_'), // For optimistic display of the new post
         location: postLocation,
         locationId: actualLocationId,
@@ -1322,7 +1360,8 @@ function PostEditorInner ({
           WebkitMaskImage: 'linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 40px, rgba(0,0,0,1) calc(100% - 40px), rgba(0,0,0,0) 100%)'
         }}
       />
-      <div className={cn('PostEditorHeader relative')}>
+      {editorTourInvitation}
+      <div className={cn('PostEditorHeader relative')} data-tour='post-type'>
         {isAction
           ? (
             <div className=''>{isEditing ? t('Edit {{actionDescriptor}}', { actionDescriptor: currentTrack?.actionDescriptor }) : t('Add {{actionDescriptor}}', { actionDescriptor: currentTrack?.actionDescriptor })}</div>
@@ -1370,10 +1409,11 @@ function PostEditorInner ({
       {!isAction && !isSubmission && (
         <div
           className={cn('PostEditorTo flex w-full items-center bg-input rounded p-1 border-2 border-transparent transition-all', { 'border-2 border-focus': toFieldFocused })}
+          data-tour='post-to'
           onClick={handleToFieldContainerClick}
         >
           <div className='text-xs text-foreground/50 px-2'>{t('To')}</div>
-          <div className='border-foreground w-full'>
+          <div className='border-foreground w-full min-w-0'>
             <ToField
               options={toOptions}
               selected={selectedToOptions}
@@ -1410,10 +1450,12 @@ function PostEditorInner ({
           <span className='text-black bg-[#FFB949] w-full relative -top-[15px] pb-[2px] px-[10px] rounded-[7px]'>{t('Title limited to {{maxTitleLength}} characters', { maxTitleLength: MAX_TITLE_LENGTH })}</span>
         )}
       </div>
-      <div className={cn(
-        'PostEditorContent w-full bg-input rounded p-1',
-        'flex flex-col !items-start border-2 border-transparent shadow-md transition-all duration-200 overflow-x-hidden focus-within:border-2 focus-within:border-focus'
-      )}
+      <div
+        className={cn(
+          'PostEditorContent w-full bg-input rounded p-1',
+          'flex flex-col !items-start border-2 border-transparent shadow-md transition-all duration-200 overflow-x-hidden focus-within:border-2 focus-within:border-focus'
+        )}
+        data-tour='post-body'
       >
         {currentPost.details === null || loading
           ? <div><Loading /></div>
@@ -1481,7 +1523,7 @@ function PostEditorInner ({
         </div>
       </div> */}
       {!isAction && !isSubmission && (
-        <div className='PostEditorPublic flex w-full items-center bg-input rounded p-1'>
+        <div className='PostEditorPublic flex w-full items-center bg-input rounded p-1' data-tour='post-public'>
           <PublicToggle
             togglePublic={togglePublic}
             isPublic={!!currentPost.isPublic}
@@ -1657,9 +1699,9 @@ function PostEditorInner ({
       )} */}
       {canHaveTimes && (
         <>
-          <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
-            <div className='text-xs text-foreground/50'>{currentPost.type === 'proposal' ? t('Voting window') : t('Timeframe')}</div>
-            <div className='flex items-center gap-1 sm:flex-row flex-col justify-start items-center sm:justify-center'>
+          <div className='flex flex-wrap items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 min-w-0'>
+            <div className='text-xs text-foreground/50 shrink-0'>{currentPost.type === 'proposal' ? t('Voting window') : t('Timeframe')}</div>
+            <div className='flex flex-1 flex-wrap items-center gap-1 min-w-0'>
               <DateTimePicker
                 hourCycle={hourCycle}
                 granularity='minute'
@@ -1668,7 +1710,7 @@ function PostEditorInner ({
                 onChange={handleStartTimeChange}
                 onMonthChange={() => {}}
               />
-              <div className='text-xs text-foreground/50'>{t('to')}</div>
+              <div className='text-xs text-foreground/50 shrink-0'>{t('to')}</div>
               <DateTimePicker
                 ref={endTimeRef}
                 hourCycle={hourCycle}
@@ -1680,7 +1722,7 @@ function PostEditorInner ({
               />
             </div>
           </div>
-          <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
+          <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md py-0 px-2 gap-2'>
             <div className='text-xs text-foreground/50 shrink-0'>{t('Timezone')}</div>
             <TimezoneSelect
               className='border-none bg-transparent'

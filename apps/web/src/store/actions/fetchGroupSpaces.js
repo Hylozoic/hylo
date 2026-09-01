@@ -16,12 +16,14 @@ export default function fetchGroupSpaces (groupId) {
               name
               slug
               type
+              status
               parentId
               avatarUrl
               icon
               bannerUrl
               memberCount
               openJoinRequestCount
+              openModerationActionCount
               description
               purpose
               location
@@ -44,6 +46,7 @@ export default function fetchGroupSpaces (groupId) {
               }
               active
               homeRoute
+              menuViewCount
               groupViews {
                 items {
                   id
@@ -51,8 +54,10 @@ export default function fetchGroupSpaces (groupId) {
                   name
                   order
                   icon
+                  settings
                   newPostCount
                   lastReadPostId
+                  pinnedPostIds
                   pageContent
                   viewPost {
                     id
@@ -76,50 +81,16 @@ export default function fetchGroupSpaces (groupId) {
               }
               track {
                 id
-                name
                 actionDescriptor
                 actionDescriptorPlural
-                completionMessage
-                completionRole {
-                  id
-                  name
-                  emoji
-                }
-                publishedAt
                 accessControlled
                 canAccess
               }
               fundingRound {
                 id
-                title
-                publishedAt
                 phase
-                allowSelfVoting
-                hideFinalResultsFromParticipants
-                votingMethod
-                totalTokens
-                tokenType
-                maxTokenAllocation
-                minTokenAllocation
-                requireBudget
                 submissionDescriptor
                 submissionDescriptorPlural
-                submissionsOpenAt
-                submissionsCloseAt
-                votingOpensAt
-                votingClosesAt
-                criteria
-                description
-                submitterRoles {
-                  id
-                  emoji
-                  name
-                }
-                voterRoles {
-                  id
-                  emoji
-                  name
-                }
               }
             }
           }

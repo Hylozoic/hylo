@@ -148,7 +148,9 @@ export default function OfferingDetails () {
   }, [offering, offeringId, t])
 
   if (loading) {
-    return <Loading type='fullscreen' />
+    // Inside the auth shell a fullscreen loader is `h-screen` and blocks
+    // Playwright's session-ready check. Guests still get the full-page spinner.
+    return <Loading type={currentUser ? undefined : 'fullscreen'} />
   }
 
   if (error) {
@@ -274,18 +276,18 @@ export default function OfferingDetails () {
                                     key={track.id}
                                     className='inline-flex items-center gap-2 px-3 py-2 rounded-md bg-selected/20 text-foreground'
                                   >
-                                    {track.bannerUrl && (
+                                    {track.space?.bannerUrl && (
                                       <img
-                                        src={track.bannerUrl}
-                                        alt={track.name}
+                                        src={track.space.bannerUrl}
+                                        alt={track.space?.name}
                                         className='w-8 h-8 rounded object-cover'
                                       />
                                     )}
                                     <div className='flex flex-col'>
-                                      <span className='text-sm font-medium'>{track.name}</span>
-                                      {track.description && (
+                                      <span className='text-sm font-medium'>{track.space?.name}</span>
+                                      {track.space?.description && (
                                         <div className='text-xs text-foreground/70 line-clamp-1'>
-                                          <HyloHTML html={track.description} />
+                                          <HyloHTML html={track.space.description} />
                                         </div>
                                       )}
                                     </div>

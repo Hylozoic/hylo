@@ -1,4 +1,4 @@
-/* global bookshelf, Group, Post, User, GroupViewUser, CollectionPost, GroupView */
+/* global bookshelf, Group, Post, User, GroupViewUser, CollectionPost, GroupViewPin, GroupView */
 /* eslint-disable camelcase */
 
 const { homeRoutePathForView } = require('@hylo/navigation')
@@ -30,6 +30,10 @@ module.exports = bookshelf.Model.extend({
     return this.hasMany(CollectionPost, 'view_id').query(q => q.orderBy('order', 'asc'))
   },
 
+  pins () {
+    return this.hasMany(GroupViewPin, 'view_id').query(q => q.orderBy('pinned_at', 'desc'))
+  },
+
   viewsUsers () {
     return this.hasMany(GroupViewUser, 'view_id')
   }
@@ -55,6 +59,7 @@ module.exports = bookshelf.Model.extend({
     RESOURCES: 'resources',
     SEPARATOR: 'separator',
     SPACE: 'space',
+    SPACE_COLLECTION: 'space-collection',
     TEXT: 'text',
     TRACK_ACTIONS: 'track-actions',
     WELCOME: 'welcome'
@@ -92,12 +97,14 @@ module.exports = bookshelf.Model.extend({
       .first()
     const nextOrder = maxOrderRow && maxOrderRow.max_order != null ? Number(maxOrderRow.max_order) + 1 : 0
 
-    return GroupView.forge({
+    const view = await GroupView.forge({
       ...attrs,
       order: nextOrder,
       created_at: now,
       updated_at: now
     }).save(null, { transacting, method: 'insert' })
+    await GroupView.syncMenuViewCount(attrs.group_id, { transacting })
+    return view
   },
 
   /**
@@ -197,5 +204,24 @@ module.exports = bookshelf.Model.extend({
       WHERE id IN (${newOrderedIds.join(',')})
     `
     await bookshelf.knex.raw(query).transacting(trx)
+  },
+
+  /**
+   * Recount on-menu views (order is not null) into groups.menu_view_count.
+   * Call after adding, hiding, showing, or deleting menu rows.
+   */
+  syncMenuViewCount: async function (groupId, { transacting } = {}) {
+    if (!groupId) return 0
+    const countQuery = bookshelf.knex('group_views')
+      .where({ group_id: groupId })
+      .whereNotNull('order')
+      .count('* as count')
+    if (transacting) countQuery.transacting(transacting)
+    const row = await countQuery.first()
+    const count = parseInt(row?.count || 0, 10)
+    const update = bookshelf.knex('groups').where({ id: groupId }).update({ menu_view_count: count })
+    if (transacting) update.transacting(transacting)
+    await update
+    return count
   }
 })

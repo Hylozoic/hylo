@@ -2,8 +2,10 @@ import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import PropTypes from 'prop-types'
 import { debounce, throttle } from 'lodash/fp'
+import Loading from 'components/Loading'
 import PeopleList from './PeopleList'
 import MatchingPeopleListItem from './MatchingPeopleListItem'
+import { cn } from 'util/index'
 import { MAX_MESSAGE_THREAD_PARTICIPANTS } from '../messageThreadLimits'
 
 const invalidPersonName = /[^a-z '-]+/gi
@@ -60,7 +62,6 @@ export default function PeopleSelector (props) {
     setCurrentMatch(null)
     setCurrentText('')
     props.selectPerson(person)
-    // Adding someone closes the list; typing again reopens it
     props.onPersonSelected?.()
   }
 
@@ -144,7 +145,10 @@ export default function PeopleSelector (props) {
         )}
         <div className='relative flex-1 min-w-[150px] sm:max-w-[320px]'>
           <input
-            className='w-full bg-darkening/20 focus:bg-input rounded p-2 text-foreground placeholder:text-foreground/50 border-2 border-transparent focus:border-focus transition-all outline-none'
+            className={cn(
+              'w-full bg-darkening/20 focus:bg-input rounded p-2 text-foreground placeholder:text-foreground/50 border-2 border-transparent focus:border-focus transition-all outline-none',
+              props.loading && 'pr-9'
+            )}
             ref={autocompleteInput}
             type='text'
             spellCheck={false}
@@ -160,9 +164,25 @@ export default function PeopleSelector (props) {
               }
               props.onFocus?.(e)
             }}
+            onBlur={(e) => {
+              // Delay so a mousedown on the dropdown can select before we close
+              const related = e.relatedTarget
+              setTimeout(() => {
+                if (justSelectedRef.current) return
+                const dropdown = document.querySelector('[data-people-selector-dropdown]')
+                if (dropdown?.contains(document.activeElement) || dropdown?.contains(related)) return
+                if (document.activeElement === autocompleteInput.current) return
+                props.onBlur?.(e)
+              }, 0)
+            }}
             value={currentText}
             autoFocus={props.autoFocus}
           />
+          {props.loading && (
+            <div className='absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none'>
+              <Loading type='inline' size={18} />
+            </div>
+          )}
 
           {peopleSelectorOpen
             ? <PeopleList
@@ -175,6 +195,9 @@ export default function PeopleSelector (props) {
                 }}
                 selectedIndex={selectedIndex}
                 inputElement={autocompleteInput.current}
+                dropdownClassName={props.dropdownClassName}
+                hasMore={props.hasMore}
+                onLoadMore={props.onLoadMore}
               />
             : ''}
         </div>
@@ -199,5 +222,9 @@ PeopleSelector.propTypes = {
   inputRef: PropTypes.object,
   autoFocus: PropTypes.bool,
   maxParticipantsReached: PropTypes.bool,
-  placeholder: PropTypes.string
+  placeholder: PropTypes.string,
+  dropdownClassName: PropTypes.string,
+  loading: PropTypes.bool,
+  hasMore: PropTypes.bool,
+  onLoadMore: PropTypes.func
 }

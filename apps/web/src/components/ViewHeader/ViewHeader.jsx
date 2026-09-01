@@ -1,87 +1,64 @@
 import { ChevronLeft, Globe, Info } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useDispatch, useSelector } from 'react-redux'
-import { useNavigate, useLocation } from 'react-router-dom'
-import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
-import { localSpaceSlug, spaceUrl } from '@hylo/navigation'
+import { useNavigate } from 'react-router-dom'
+import { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
+import { spaceUrl, myHomeLandingUrl } from '@hylo/navigation'
 import Icon from 'components/Icon'
+import LucideIcon from 'components/LucideIcon/LucideIcon'
 import InfoButton from 'components/ui/info'
 import { Command, CommandItem, CommandList } from 'components/ui/command'
-import { useViewHeader } from 'contexts/ViewHeaderContext'
-import useRouteParams from 'hooks/useRouteParams'
+import useMobileNavBack from 'hooks/useMobileNavBack'
 import GroupViewIcon from 'routes/AuthLayoutRouter/components/ContextMenu/GroupViewIcon'
-import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
-import getGroupForSlug from 'store/selectors/getGroupForSlug'
-import { getGroupViews } from 'store/selectors/getGroupViews'
-import getQuerystringParam from 'store/selectors/getQuerystringParam'
-import getMe from 'store/selectors/getMe'
-import getMyMemberships from 'store/selectors/getMyMemberships'
-import getPreviousLocation from 'store/selectors/getPreviousLocation'
+import { hueOf, viewCardColor } from 'routes/AuthLayoutRouter/components/ContextMenu/viewCardTheme'
 import { bgImageStyle, cn } from 'util/index'
-import { isCompactLayoutDevice, isDrawerNavLayout, isPhoneDevice } from 'util/mobile'
-import { isCardMenuPreference, isOneColumnLayout } from 'util/navigationLayout'
+import { isCompactLayoutDevice, isPhoneDevice } from 'util/mobile'
 
-/** Resolves the parent menu's space view (or a synthetic one for off-menu spaces). */
-function resolveSpaceMenuView (parentGroup, groupViews, parentSlug, spaceSlug) {
-  if (!spaceSlug || !parentSlug) return null
-
-  const menuSpace = (groupViews || []).find(v =>
-    v.type === 'space' &&
-    localSpaceSlug(parentSlug, v.linkedGroup?.slug) === spaceSlug
+/**
+ * The prototype's icon chrome: the view icon on a tile tinted to its
+ * post-type color (slate for custom and non-post views).
+ */
+function ViewIconTile ({ icon, hue, className }) {
+  if (!icon) return null
+  return (
+    <span
+      className={cn(
+        'w-8 h-8 rounded-[9px] grid place-items-center shrink-0 border-2',
+        'bg-[hsl(var(--vh-hue)_48%_90%)] border-[hsl(var(--vh-hue)_40%_70%)] text-[hsl(var(--vh-hue)_45%_35%)]',
+        'dark:bg-[hsl(var(--vh-hue)_40%_26%)] dark:border-[hsl(var(--vh-hue)_40%_42%)] dark:text-[hsl(var(--vh-hue)_60%_82%)]',
+        className
+      )}
+      style={{ '--vh-hue': hue }}
+    >
+      {typeof icon === 'string'
+        ? <LucideIcon name={icon} className='w-[18px] h-[18px]' fallback={<Icon name={icon} className='text-lg leading-none' />} />
+        : React.cloneElement(icon, { className: 'w-[18px] h-[18px]' })}
+    </span>
   )
-  if (menuSpace) return menuSpace
-
-  const offMenuSpace = (parentGroup?.spaces?.items || []).find(space =>
-    localSpaceSlug(parentSlug, space.slug) === spaceSlug
-  )
-  if (!offMenuSpace) return null
-
-  return {
-    type: 'space',
-    name: offMenuSpace.name,
-    icon: offMenuSpace.icon,
-    linkedGroup: offMenuSpace
-  }
 }
 
 const ViewHeader = () => {
-  const dispatch = useDispatch()
-  const { context, groupSlug, spaceSlug: routeSpaceSlug } = useRouteParams()
   const navigate = useNavigate()
-  const location = useLocation()
   const { t } = useTranslation()
-  // More Spaces drill-in uses ?space= on /more-spaces rather than the space route.
-  const isMoreSpacesPath = location.pathname.replace(/\/$/, '').endsWith('/more-spaces')
-  const spaceSlug = routeSpaceSlug || (isMoreSpacesPath ? getQuerystringParam('space', location) : null)
-  const group = useSelector(state => getGroupForSlug(state, groupSlug))
-  const groupViews = useSelector(state => spaceSlug ? getGroupViews(state, group) : null)
-  const currentUser = useSelector(getMe)
-  const myMemberships = useSelector(getMyMemberships)
-  const { headerDetails } = useViewHeader()
-  const { backButton, backTo, mobileBackButton, title, icon, info, search, centered, headerActions, spaceBreadcrumb } = headerDetails
-
-  const previousLocation = useSelector(getPreviousLocation)
+  const {
+    performBack,
+    headerDetails,
+    location,
+    group,
+    currentUser,
+    groupSlug,
+    spaceSlug,
+    context,
+    isOneColumnGroup,
+    isOneColumnContext,
+    oneColumn,
+    isSingleViewSpace,
+    presentedSpaceView,
+    isSpaceMember
+  } = useMobileNavBack()
+  const { backButton, mobileBackButton, title, icon, info, search, centered, headerActions } = headerDetails
   const compactLayout = isCompactLayoutDevice()
-  const userGroupNavStyle = currentUser?.settings?.groupNavStyle
-  const isOneColumnGroup = context === 'groups' && isOneColumnLayout(userGroupNavStyle, group?.settings?.layout)
-  const isOneColumnContext = isCardMenuPreference(userGroupNavStyle) && ['my', 'all', 'public'].includes(context)
-  const oneColumn = isOneColumnGroup || isOneColumnContext
-
-  const spaceMenuView = useMemo(
-    () => resolveSpaceMenuView(group, groupViews, groupSlug, spaceSlug),
-    [group, groupViews, groupSlug, spaceSlug]
-  )
-  const presentedSpaceView = useMemo(() => {
-    if (spaceBreadcrumb === false) return null
-    return spaceMenuView ? GroupViewPresenter(spaceMenuView) : null
-  }, [spaceMenuView, spaceBreadcrumb])
   const spaceName = presentedSpaceView ? displayNameForView(presentedSpaceView, t) : null
-  const isSpaceMember = useMemo(() => {
-    const spaceId = spaceMenuView?.linkedGroup?.id
-    if (!spaceId) return false
-    return myMemberships.some(m => String(m.group?.id) === String(spaceId))
-  }, [spaceMenuView, myMemberships])
 
   const hasTitle = typeof title === 'string'
     ? title.length > 0
@@ -94,19 +71,6 @@ const ViewHeader = () => {
   // desktop browsers collapse only below the sm breakpoint.
   const parentCrumbNameClass = isPhoneDevice() ? 'hidden' : 'hidden sm:block'
 
-  // A single-view space (e.g. chat-only) opens straight into its one view, so the
-  // breadcrumb shows just the space — repeating the lone view's title is noise.
-  // More Spaces is a separate page (space > More…), so never collapse it.
-  const singleSpaceView = useMemo(() => {
-    if (isMoreSpacesPath) return null
-    const spaceGroup = presentedSpaceView?.linkedGroup
-    if (!spaceGroup) return null
-    const visibleViews = (spaceGroup.groupViews?.items || [])
-      .filter(v => v.order != null)
-    return visibleViews.length === 1 ? visibleViews[0] : null
-  }, [presentedSpaceView, isMoreSpacesPath])
-  const isSingleViewSpace = Boolean(singleSpaceView)
-
   // Members inside a single-view space read as "Space: View"
   const spaceSubSegment = spaceSlug ? (location.pathname.split(`/spaces/${spaceSlug}/`)[1] || '').split('/')[0] : null
   const spaceSubViewTitle = isSingleViewSpace && ['members', 'about'].includes(spaceSubSegment) && typeof title === 'string'
@@ -114,6 +78,15 @@ const ViewHeader = () => {
     : null
 
   const spaceAboutUrl = groupSlug && spaceSlug ? spaceUrl(groupSlug, spaceSlug, 'about') : null
+
+  // The view's brand hue, from the path segment naming the view
+  const viewHue = useMemo(() => {
+    const parts = location.pathname.split('/').filter(Boolean)
+    let rest = parts
+    if (parts[0] === 'groups') rest = parts[2] === 'spaces' ? parts.slice(4) : parts.slice(2)
+    else if (['all', 'my', 'public'].includes(parts[0])) rest = parts.slice(1)
+    return hueOf(viewCardColor({ type: rest[0] || null }))
+  }, [location.pathname])
 
   const [searchValue, setSearchValue] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
@@ -231,96 +204,8 @@ const ViewHeader = () => {
   // On small screens, the chevron toggles the nav menu only when there is no
   // explicit back behavior (backButton/mobileBackButton). If a screen declares
   // a back button, we always treat the chevron as \"back\" so it never takes
-  // two taps.
-  const handleChevronClick = () => {
-    // Phone settings use master-detail navigation:
-    // /settings/<tab>  → back to /settings (the menu)
-    // /settings (root) → exit settings, return to the group home. For normal groups
-    //                    also open the drawer so the user lands on the context menu
-    //                    (widget list) instead of the underlying active view.
-    if (isDrawerNavLayout(window.innerWidth) && groupSlug && location.pathname.startsWith(`/groups/${groupSlug}/settings`)) {
-      const isSettingsRoot = location.pathname === `/groups/${groupSlug}/settings` ||
-        location.pathname === `/groups/${groupSlug}/settings/`
-      if (isSettingsRoot) {
-        navigate(`/groups/${groupSlug}`)
-        if (!isOneColumnGroup) {
-          dispatch(toggleNavMenu(true))
-        }
-      } else {
-        navigate(`/groups/${groupSlug}/settings`)
-      }
-      return
-    }
-
-    // Single-view spaces open straight into their lone (home) view. Back from
-    // any secondary view (members, moderation, …) returns to that home view;
-    // back from the home view itself opens the group menu.
-    if (isSingleViewSpace && !backButton && !mobileBackButton && !backTo) {
-      const spaceBase = `/groups/${groupSlug}/spaces/${spaceSlug}`
-      const here = location.pathname.replace(/\/$/, '')
-      const homeSuffix = presentedSpaceView?.linkedGroup?.homeRoute || (singleSpaceView?.type ? `/${singleSpaceView.type}` : '')
-      const homePath = `${spaceBase}${homeSuffix}`.replace(/\/$/, '')
-      if (homeSuffix && here.startsWith(spaceBase) && here !== homePath) {
-        navigate(homePath)
-        return
-      }
-      if (isOneColumnGroup) {
-        navigate(`/groups/${groupSlug}`)
-      } else {
-        dispatch(toggleNavMenu(true))
-      }
-      return
-    }
-
-    // One-column groups: back from a space view → space menu; from a group view → group menu.
-    if (isOneColumnGroup && groupSlug) {
-      const path = location.pathname.replace(/\/$/, '')
-      const groupHome = `/groups/${groupSlug}`
-      if (spaceSlug) {
-        const spaceMenu = `/groups/${groupSlug}/spaces/${spaceSlug}`
-        if (path !== spaceMenu) {
-          navigate(spaceMenu)
-          return
-        }
-        if (location.state?.fromMoreSpaces) {
-          navigate(`${groupHome}/more-spaces`)
-          return
-        }
-        navigate(groupHome)
-        return
-      }
-      if (path !== groupHome && path !== `${groupHome}/more-spaces`) {
-        navigate(groupHome)
-        return
-      }
-      if (path === `${groupHome}/more-spaces`) {
-        navigate(groupHome)
-        return
-      }
-    }
-
-    // Card-menu My/All/Public: back from a view returns to that context's menu home.
-    if (isOneColumnContext) {
-      const path = location.pathname.replace(/\/$/, '')
-      const contextHome = `/${context}`
-      if (path !== contextHome) {
-        navigate(contextHome)
-        return
-      }
-    }
-
-    // Card-menu layouts render the sidebar inline on phone too — there's no
-    // drawer to toggle, so the chevron should navigate back instead.
-    if (isDrawerNavLayout(window.innerWidth) && !mobileBackButton && !backButton && !oneColumn) {
-      dispatch(toggleNavMenu())
-    } else if (backTo) {
-      navigate(backTo)
-    } else if (centered) {
-      navigate(previousLocation || '/')
-    } else {
-      navigate(-1)
-    }
-  }
+  // two taps. Shared with Android hardware back via performMobileNavBack.
+  const handleChevronClick = performBack
 
   // Hide ViewHeader on card-menu levels (homes have their own banner;
   // nested grids have their own sticky back bar). Show it on actual views.
@@ -346,15 +231,16 @@ const ViewHeader = () => {
   // Light mode surfaces sit close in lightness, so the sticky header needs a
   // hairline edge plus a stronger shadow to read as a layer above the stream.
   return (
-    <header className={cn('flex flex-row items-center z-40 p-2 sticky top-0 w-full bg-context-menu-background border-b border-foreground/[0.08] shadow-[0_4px_14px_0px_rgba(0,0,0,0.16)] dark:border-transparent dark:shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)]', {
+    <header className={cn('ViewHeader flex flex-row items-center z-40 p-2 sticky top-0 w-full bg-context-menu-background border-b border-foreground/[0.08] shadow-header dark:border-transparent dark:shadow-header-dark', {
       'justify-center': centered,
       hidden: (oneColumn && isBannerVisible) || isOneColumnMenuLevel
     })}
     >
       {centered && (backButton || mobileBackButton) && (
         <button
-          className={cn('p-2 -ml-1 cursor-pointer absolute left-0 z-10 bg-background', !compactLayout && 'sm:hidden', !compactLayout && backButton && 'sm:block')}
+          className={cn('p-2 -ml-1 cursor-pointer absolute left-0 z-10', !compactLayout && 'sm:hidden', !compactLayout && backButton && 'sm:block')}
           onClick={handleChevronClick}
+          data-testid='view-header-nav-toggle'
         >
           <ChevronLeft className='w-6 h-6' />
         </button>
@@ -366,6 +252,7 @@ const ViewHeader = () => {
           <button
             className={cn('p-2 -ml-1 mr-1 cursor-pointer', !compactLayout && 'sm:hidden', !compactLayout && backButton && 'sm:block')}
             onClick={handleChevronClick}
+            data-testid='view-header-nav-toggle'
           >
             <ChevronLeft className='w-6 h-6' />
           </button>
@@ -406,7 +293,7 @@ const ViewHeader = () => {
           {!isSingleViewSpace && hasTitle && <span className='mx-1.5 shrink-0 text-foreground/40'>{'>'}</span>}
         </>
       )}
-      {!centered && !oneColumn && !isSingleViewSpace && icon && (typeof icon === 'string' ? <Icon name={icon} className='mr-3 text-lg' /> : React.cloneElement(icon, { className: 'mr-3 text-lg' }))}
+      {!centered && !oneColumn && !isSingleViewSpace && icon && <ViewIconTile icon={icon} hue={viewHue} className='mr-3' />}
       {isOneColumnGroup && (() => {
         const inSpace = Boolean(presentedSpaceView && spaceSlug)
         const groupHref = `/groups/${groupSlug}`
@@ -465,11 +352,7 @@ const ViewHeader = () => {
               </>
             )}
             {hasTitle && <span className='text-foreground/30 text-lg shrink-0'>{'>'}</span>}
-            {hasTitle && icon && (
-              typeof icon === 'string'
-                ? <Icon name={icon} className='text-lg shrink-0' />
-                : React.cloneElement(icon, { className: 'w-5 h-5 shrink-0' })
-            )}
+            {hasTitle && icon && <ViewIconTile icon={icon} hue={viewHue} />}
           </div>
         )
       })()}
@@ -479,7 +362,7 @@ const ViewHeader = () => {
           : React.isValidElement(title)
             ? true
             : !!(title?.mobile || title?.desktop)
-        const contextHref = `/${context}`
+        const contextHref = context === 'public' ? '/public' : myHomeLandingUrl()
         const contextLabel = context === 'public' ? t('The Commons') : t('My Home')
 
         return (
@@ -509,11 +392,7 @@ const ViewHeader = () => {
               {contextLabel}
             </span>
             {hasTitle && <span className='text-foreground/30 text-lg shrink-0'>{'>'}</span>}
-            {hasTitle && icon && (
-              typeof icon === 'string'
-                ? <Icon name={icon} className='text-lg shrink-0' />
-                : React.cloneElement(icon, { className: 'w-5 h-5 shrink-0' })
-            )}
+            {hasTitle && icon && <ViewIconTile icon={icon} hue={viewHue} />}
           </div>
         )
       })()}

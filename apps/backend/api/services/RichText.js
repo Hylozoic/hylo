@@ -156,3 +156,37 @@ export function getUserMentions (processedHTML) {
 
   return filter(el => !isNull(el), uniq(mentionedUserIDs))
 }
+
+/**
+ * Returns the first http(s) URL in HTML or plain text, after autolinking.
+ * Used to generate a link preview when a post is created without one (e.g. Zapier).
+ */
+export function getFirstExternalUrl (content) {
+  if (!content) return null
+
+  const autolinkedHTML = Autolinker.link(content, { className: 'linkified' })
+  const dom = getDOM(autolinkedHTML)
+  const anchors = dom.querySelectorAll('a[href]')
+
+  for (const el of anchors) {
+    let href = (el.getAttribute('href') || '').trim()
+    if (!href) continue
+    if (/^(mailto:|tel:|javascript:)/i.test(href)) continue
+
+    if (href.startsWith('/')) {
+      href = `https://hylo.com${href}`
+    } else if (!/^https?:\/\//i.test(href)) {
+      href = `https://${href}`
+    }
+
+    try {
+      const parsed = new URL(href)
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') continue
+      return parsed.href
+    } catch (e) {
+      continue
+    }
+  }
+
+  return null
+}

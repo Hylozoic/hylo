@@ -1,4 +1,5 @@
 import React, { useCallback, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 
@@ -51,13 +52,14 @@ export default function AddWelcomeViewDialog ({ group, onCancel, onCreated, onAd
     }
   }, [dispatch, group, onAdd, onCreated, showWelcomePage])
 
-  return (
+  // Portal above AuthLayout nav stacking so the dialog is not trapped behind GlobalNav.
+  return createPortal(
     <div className='fixed inset-0 z-[1100] flex items-center justify-center bg-darkening/50 p-4 pointer-events-auto'>
-      <div className='bg-midground rounded-lg shadow-lg p-5 w-full max-w-lg max-h-[85vh] flex flex-col'>
-        <h2 className='text-lg font-semibold mb-4'>{t('Welcome Page')}</h2>
+      <div className='bg-midground rounded-lg shadow-lg p-4 w-full max-w-[750px] h-[calc(100vh-2rem)] flex flex-col'>
+        <h2 className='text-lg font-semibold mb-4 shrink-0'>{t('Welcome Page')}</h2>
 
-        <div className='overflow-y-auto flex-1 min-h-0 flex flex-col gap-3'>
-          <div className='flex items-center gap-2'>
+        <div className='flex flex-col gap-3 flex-1 min-h-0'>
+          <div className='flex items-center gap-2 shrink-0'>
             <SwitchStyled
               checked={showWelcomePage}
               onChange={() => setShowWelcomePage(v => !v)}
@@ -69,7 +71,8 @@ export default function AddWelcomeViewDialog ({ group, onCancel, onCreated, onAd
           </div>
           <HyloEditor
             contentHTML=''
-            className='min-h-32 p-2 border border-foreground/20 rounded-lg bg-input'
+            className='min-h-0 flex-1 overflow-y-auto p-2 [&_.ProseMirror]:min-h-full'
+            containerClassName='hyloEditor flex flex-col flex-1 min-h-0 border border-foreground/20 rounded-lg bg-input'
             extendedMenu
             groupIds={group?.id ? [group.id] : []}
             ref={welcomeEditorRef}
@@ -78,13 +81,14 @@ export default function AddWelcomeViewDialog ({ group, onCancel, onCreated, onAd
           />
         </div>
 
-        <div className='flex justify-end gap-2 mt-4 pt-2 border-t border-foreground/10'>
+        <div className='flex justify-end gap-2 mt-4 pt-2 border-t border-foreground/10 shrink-0'>
           <Button variant='primary' onClick={onCancel}>{t('Back')}</Button>
           <Button variant='secondary' disabled={isSaving} onClick={handleSave}>
             {isSaving ? t('Creating...') : t('Add View')}
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

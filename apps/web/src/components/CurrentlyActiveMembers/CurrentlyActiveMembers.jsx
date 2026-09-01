@@ -4,18 +4,15 @@ import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { Link, useNavigate } from 'react-router-dom'
 
-import InviteMembersPopover from 'components/InviteMembersPopover/InviteMembersPopover'
-import CurrentlyActivePills, {
-  DEFAULT_ACTIVE_MAX,
-  isRecentlyActive
-} from './CurrentlyActivePills'
+import InviteMembersDialog from 'components/InviteMembersDialog/InviteMembersDialog'
+import CurrentlyActivePills, { DEFAULT_ACTIVE_MAX } from './CurrentlyActivePills'
 import { personUrl } from '@hylo/navigation'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import {
   fetchRecentlyActiveMembers,
   getRecentlyActiveMembers
 } from 'routes/Members/Members.store'
-import { cn } from 'util/index'
+import { cn, isRecentlyActive } from 'util/index'
 
 /**
  * Currently-active members widget: overlapping avatars, a count pill that opens
@@ -25,6 +22,7 @@ import { cn } from 'util/index'
  */
 export default function CurrentlyActiveMembers ({
   group,
+  parentGroup,
   max = DEFAULT_ACTIVE_MAX,
   membersUrl,
   profileGroupSlug,
@@ -41,24 +39,28 @@ export default function CurrentlyActiveMembers ({
   const slug = group?.slug
   const countSlug = profileGroupSlug || slug
 
-  const fetched = useSelector(state => getRecentlyActiveMembers(state, { slug, first: max }))
+  // One more than the strip shows: the (max+1)-th person carries the overflow signal.
+  const fetched = useSelector(state => getRecentlyActiveMembers(state, { slug, first: max + 1 }))
 
   useEffect(() => {
     if (!slug) return
-    dispatch(fetchRecentlyActiveMembers({ slug, first: max }))
+    dispatch(fetchRecentlyActiveMembers({ slug, first: max + 1 }))
   }, [dispatch, slug, max])
 
-  // The API already returns the N most recently active people. Filtering that
-  // short list by a 15-minute window left the strip empty whenever lastActiveAt
-  // was missing or a bit stale. The green dot still uses the live window.
+  // The API already returns the N most recently active people, and the strip
+  // shows all of them so the widget is never empty. Who is actually online is
+  // carried by the green dots on the avatars themselves.
   const activeMembers = useMemo(
     () => (fetched || []).slice(0, max),
     [fetched, max]
   )
-  const anyOnline = useMemo(
-    () => activeMembers.some(m => isRecentlyActive(m)),
-    [activeMembers]
-  )
+  // The pill's dot is an overflow indicator: someone online who got pushed off
+  // the visible strip. Online people are by definition the most recently active,
+  // so the (max+1)-th person being online means more are online than fit.
+  const onlineOverflow = useMemo(() => {
+    const next = (fetched || [])[max]
+    return Boolean(next && isRecentlyActive(next))
+  }, [fetched, max])
 
   /**
    * Opens a member profile and closes the mobile drawer so the profile is visible.
@@ -71,8 +73,10 @@ export default function CurrentlyActiveMembers ({
 
   /**
    * Count pill: custom handler (chat drawer) or the members view URL.
+   * Stops propagation so the row handler below does not fire it a second time.
    */
   const handleCountClick = (e) => {
+    e.stopPropagation()
     if (!interactive) {
       e.preventDefault()
       return
@@ -85,18 +89,37 @@ export default function CurrentlyActiveMembers ({
     dispatch(toggleNavMenu(false))
   }
 
+  /**
+   * The whole row opens the directory — only the avatars and the invite control
+   * do something else, and both already stop propagation.
+   */
+  const handleRowClick = () => {
+    if (!interactive) return
+    if (onCountClick) {
+      onCountClick()
+      return
+    }
+    if (!membersUrl) return
+    dispatch(toggleNavMenu(false))
+    navigate(membersUrl)
+  }
+  const rowOpensDirectory = interactive && Boolean(onCountClick || membersUrl)
+
   if (!group) return null
 
   const countInner = (
     <>
       <Users className='w-3.5 h-3.5' />
       {group.memberCount != null && <span>{group.memberCount}</span>}
-      {anyOnline && <span className='w-[7px] h-[7px] rounded-full bg-green-500' aria-hidden='true' />}
+      {onlineOverflow && <span className='w-[7px] h-[7px] rounded-full bg-green-500' aria-hidden='true' />}
     </>
   )
   const countClass = cn(
     'inline-flex items-center gap-1.5 h-7 pl-2.5 pr-2 rounded-md bg-card/90 backdrop-blur-sm border border-foreground/20 text-foreground text-xs font-semibold transition-all shrink-0',
-    interactive && 'hover:border-foreground/40 hover:scale-105 cursor-pointer',
+    // The global link rule paints BOTH a:hover and a:focus with --selected, and
+    // the focus colour sticks after a click until something else takes focus —
+    // so both states have to be pinned back to the foreground colour.
+    interactive && 'hover:border-foreground/40 hover:text-foreground focus:text-foreground hover:scale-105 cursor-pointer',
     !interactive && 'cursor-inherit'
   )
 
@@ -107,7 +130,7 @@ export default function CurrentlyActiveMembers ({
             <Link
               to={membersUrl}
               onClick={handleCountClick}
-              className={cn(countClass, !stacked && 'ml-2')}
+              className={countClass}
               aria-label={t('Members')}
             >
               {countInner}
@@ -118,7 +141,7 @@ export default function CurrentlyActiveMembers ({
               type='button'
               onClick={onCountClick}
               disabled={!interactive}
-              className={cn(countClass, !stacked && 'ml-2')}
+              className={countClass}
               aria-label={t('Members')}
             >
               {countInner}
@@ -128,13 +151,25 @@ export default function CurrentlyActiveMembers ({
     : null
 
   return (
-    <div className={cn(
-      'group flex min-w-0 w-full',
-      stacked ? 'flex-col items-center gap-1.5' : 'items-center',
-      className
-    )}
+    <div
+      className={cn(
+        'group flex min-w-0 w-full',
+        stacked ? 'flex-col items-center gap-1.5' : 'items-center',
+        rowOpensDirectory && 'cursor-pointer',
+        className
+      )}
+      onClick={rowOpensDirectory ? handleRowClick : undefined}
     >
-      <div className={cn('min-w-0 overflow-hidden', stacked ? 'w-full flex justify-center' : 'flex-1')}>
+      <div
+        className={cn(
+          'min-w-0 overflow-hidden',
+          stacked
+            ? 'w-full flex justify-center'
+            // Mask instead of a painted gradient so the fade-out works over any
+            // row background; content short of the edge is unaffected.
+            : 'flex-1 [mask-image:linear-gradient(to_right,black_calc(100%-28px),transparent)]'
+        )}
+      >
         <CurrentlyActivePills
           members={activeMembers}
           max={max}
@@ -153,8 +188,9 @@ export default function CurrentlyActiveMembers ({
             '[&:has([data-state=open])]:max-w-[2rem] [&:has([data-state=open])]:ml-1'
           )}
         >
-          <InviteMembersPopover
+          <InviteMembersDialog
             group={group}
+            parentGroup={parentGroup}
             alwaysVisible
             triggerClassName='text-foreground/50 hover:text-foreground'
           />

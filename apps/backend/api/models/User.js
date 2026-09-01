@@ -390,7 +390,8 @@ module.exports = bookshelf.Model.extend(merge({
           digestFrequency: defaultDigestFrequency,
           sendEmail: true,
           sendPushNotifications: true,
-          showJoinForm: true
+          showJoinForm: true,
+          lastReadAt: null
         }
       },
       { transacting })
@@ -855,8 +856,7 @@ module.exports = bookshelf.Model.extend(merge({
       TagFollow.findOrCreate({
         userId,
         groupId,
-        tagId: id,
-        isSubscribing: true
+        tagId: id
       }, { transacting: trx })
         .catch(err => {
           if (!err.message.match(/duplicate key value/)) throw err

@@ -1,10 +1,11 @@
-import { Bell, Check, ChevronRight, Copy, ExternalLink, Info, Link2, LogOut, MapPin, Network, Settings, ShieldCheck, Users } from 'lucide-react'
+import { BadgeDollarSign, Bell, Check, ChevronRight, Copy, ExternalLink, Info, Link2, LogOut, MapPin, Network, Settings, ShieldCheck, Users } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 
 import ClickCatcher from 'components/ClickCatcher'
+import FundingRoundAboutInfo from 'components/FundingRoundAboutInfo/FundingRoundAboutInfo'
 import HyloHTML from 'components/HyloHTML'
 import Icon from 'components/Icon'
 import LucideIcon from 'components/LucideIcon/LucideIcon'
@@ -41,9 +42,10 @@ import { bgImageStyle, cn } from 'util/index'
 
 /**
  * Shared About surface for groups and spaces, per the redesign: a banner with
- * the identity, then a tab menu that imports each template inline — Moderation,
- * About, Notification Settings, Members — plus Settings (groups navigate to the
- * settings page; spaces edit inline underneath).
+ * the identity, then a tab menu that imports each template inline — About,
+ * Round Details (funding-round spaces), Moderation, Notification Settings,
+ * Members — plus Settings (groups navigate to the settings page; spaces edit
+ * inline underneath).
  */
 
 function AboutCard ({ title, action, children, className }) {
@@ -205,14 +207,16 @@ function AboutPanel ({ group, parentGroup, isSpace, membership, onLeave, onOpenM
         </AboutCard>
       )}
       {membership && (
-        <div className='border-2 border-dashed border-foreground/15 rounded-xl p-4 flex justify-center'>
+        <div className='border-2 border-dashed border-foreground/15 rounded-xl p-4 flex justify-center min-w-0'>
           <Button
             variant='outline'
             onClick={onLeave}
-            className='border-accent/20 hover:border-accent/100 text-accent/60 hover:text-accent/100 flex items-center gap-2'
+            className='border-accent/20 hover:border-accent/100 text-accent/60 hover:text-accent/100 flex items-center gap-2 h-auto max-w-full min-w-0 whitespace-normal'
           >
-            <LogOut className='w-4 h-4' />
-            {isSpace ? t('Leave Space') : t('Leave {{name}}', { name: group.name })}
+            <LogOut className='w-4 h-4 shrink-0' />
+            <span className='text-left break-words'>
+              {isSpace ? t('Leave Space') : t('Leave {{name}}', { name: group.name })}
+            </span>
           </Button>
         </div>
       )}
@@ -261,6 +265,7 @@ export default function GroupAboutView ({
     responsibility: RESP_ADMINISTRATION, groupId: parentGroup?.id
   }))
   const showSettings = isSpace ? (canAdminister || canAdministerParent) : canAdminister
+  const isFundingRoundSpace = Boolean(isSpace && group?.fundingRound?.id)
 
   useEffect(() => {
     if (isSpace || !group?.slug) return
@@ -312,7 +317,7 @@ export default function GroupAboutView ({
     const observer = new ResizeObserver(updateTabsOverflow)
     observer.observe(el)
     Array.from(el.children).forEach(child => observer.observe(child))
-    const mutations = new MutationObserver(() => {
+    const mutations = new window.MutationObserver(() => {
       Array.from(el.children).forEach(child => observer.observe(child))
       updateTabsOverflow()
     })
@@ -332,6 +337,7 @@ export default function GroupAboutView ({
 
   const tabs = [
     { id: 'about', label: t('About'), icon: Info },
+    { id: 'round-details', label: t('Round Details'), icon: BadgeDollarSign, hidden: !isFundingRoundSpace },
     { id: 'moderation', label: t('Moderation'), icon: ShieldCheck },
     { id: 'notifications', label: t('Notification Settings'), icon: Bell, hidden: !membership },
     { id: 'members', label: t('Members'), icon: Users },
@@ -423,7 +429,7 @@ export default function GroupAboutView ({
       </div>
 
       {/* Tab menu */}
-      <div className='sticky top-0 z-20 shrink-0 relative bg-context-menu-background shadow-[0_4px_14px_0px_rgba(0,0,0,0.16)] dark:shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)]'>
+      <div className='sticky top-0 z-20 shrink-0 relative bg-context-menu-background shadow-header dark:shadow-header-dark'>
         <div ref={tabRailRef} className='max-w-[808px] mx-auto px-4 sm:px-6 py-2 flex gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'>
           {tabs.map(item => {
             const on = item.id === activeTab && !(item.id === 'settings' && !isSpace)
@@ -462,7 +468,8 @@ export default function GroupAboutView ({
       {/* Panel */}
       {activeTab === 'members' || activeTab === 'related-groups'
         ? (
-          <div className='flex-1 min-h-0'>
+          /* Same column as the nav, so every tab's content shares one width */
+          <div className='flex-1 min-h-0 w-full max-w-[808px] mx-auto'>
             {activeTab === 'members' && (
               <Members context='groups' defaultDisplayMode={inDialog ? 'list' : 'card'} />
             )}
@@ -483,6 +490,12 @@ export default function GroupAboutView ({
                   t={t}
                 />
               )}
+              {activeTab === 'round-details' && isFundingRoundSpace && (
+                <FundingRoundAboutInfo
+                  fundingRoundId={group.fundingRound.id}
+                  roleGroupId={group.parentId || parentGroup?.id || group.id}
+                />
+              )}
               {activeTab === 'moderation' && <Moderation context='groups' />}
               {activeTab === 'notifications' && membership && (
                 <AboutCard title={t('Notification Settings for {{name}}', { name: group.name })}>
@@ -500,7 +513,7 @@ export default function GroupAboutView ({
                   <SpaceSettingsModal
                     inline
                     space={group}
-                    group={parentGroup}
+                    parentGroup={parentGroup}
                     onClose={() => handleTab('about')}
                   />
                 </AboutCard>

@@ -5,10 +5,7 @@ import convertGraphqlData from './convertGraphqlData'
 
 export async function createTrack (userId, data) {
   return bookshelf.transaction(async transacting => {
-    const attrs = convertGraphqlData(omit(data, 'groupId', 'publishedAt'))
-    if (data.publishedAt) {
-      attrs.published_at = new Date(Number(data.publishedAt)) // XXX: because convertGraphqlData messes up dates
-    }
+    const attrs = convertGraphqlData(omit(data, 'groupId', 'publishedAt', 'name', 'description', 'bannerUrl', 'welcomeMessage'))
 
     const spaceId = data.groupId
     if (spaceId) {
@@ -92,8 +89,7 @@ export async function updateTrack (userId, id, data) {
     throw new GraphQLError('You do not have permission to edit this track')
   }
 
-  const attrs = convertGraphqlData(omit(data, 'groupId', 'publishedAt'))
-  attrs.published_at = data.publishedAt ? new Date(Number(data.publishedAt)) : null
+  const attrs = convertGraphqlData(omit(data, 'groupId', 'publishedAt', 'name', 'description', 'bannerUrl', 'welcomeMessage'))
   await track.save(attrs)
   return track
 }

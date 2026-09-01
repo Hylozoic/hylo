@@ -107,7 +107,7 @@ export default function MembershipRequestsTab ({
   if (isSettingsContext) return content
 
   return (
-    <div className='w-full mx-auto px-2 py-2 sm:px-8 sm:py-8 max-w-[750px]'>
+    <div className='w-full mx-auto px-2 py-2 sm:px-4 sm:py-4 max-w-[750px]'>
       {content}
     </div>
   )

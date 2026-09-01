@@ -219,8 +219,13 @@ const HyloEditor = React.forwardRef(({
 
   useEffect(() => {
     if (!editor) return
-    if (groupIds) editor.extensionStorage.mention.groupIds = groupIds
-  }, [groupIds])
+    if (editor.extensionStorage.mention) {
+      editor.extensionStorage.mention.groupIds = groupIds
+    }
+    if (editor.extensionStorage.topic) {
+      editor.extensionStorage.topic.groupIds = groupIds
+    }
+  }, [editor, groupIds])
 
   useEffect(() => {
     if (!editor) return
@@ -266,12 +271,24 @@ const HyloEditor = React.forwardRef(({
 
   editorRef.current = editor
 
+  /** Focus the editor when clicking empty space around the (often short) ProseMirror surface. */
+  const handleEditorAreaPointerDown = (event) => {
+    if (readOnly) return
+    if (event.target.closest('.ProseMirror')) return
+    editor.chain().focus('end').run()
+  }
+
   return (
     <div className={cn('flex-1', containerClassName)}>
       {showMenu && (
         <HyloEditorMenuBar editor={editor} extendedMenu={extendedMenu} type={type} id={groupIds?.[0]} className={menuClassName} />
       )}
-      <EditorContent className={cn('HyloEditor_EditorContent1 global-postContent text-foreground py-3 px-3', className)} editor={editor} />
+      <EditorContent
+        className={cn('HyloEditor_EditorContent1 global-postContent text-foreground py-3 px-3 cursor-text', className)}
+        editor={editor}
+        onMouseDown={handleEditorAreaPointerDown}
+        onTouchStart={handleEditorAreaPointerDown}
+      />
       {editor && (
         <BubbleMenu
           editor={editor}

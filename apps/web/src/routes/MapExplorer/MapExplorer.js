@@ -1,11 +1,13 @@
 import { cn } from 'util/index'
+import useTour from 'tours/useTour'
+import { MAP_TOUR_ID, mapTourSteps } from 'tours/mapTour'
 import React, { useState, useEffect, useMemo, useRef, useCallback, useContext } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Helmet } from 'react-helmet'
 import { useTranslation } from 'react-i18next'
 import { createSelector } from 'reselect'
-import { debounce, get, groupBy, isEqual, isEmpty } from 'lodash'
+import { debounce, groupBy, isEqual, isEmpty } from 'lodash'
 import { pick, pickBy } from 'lodash/fp'
 import { Heart, Layers, Map as MapIcon } from 'lucide-react'
 import bbox from '@turf/bbox'
@@ -80,6 +82,7 @@ function presentMember (person, groupId) {
     ...pick(['id', 'name', 'avatarUrl', 'groupRoles', 'locationObject', 'tagline', 'skills'], person.ref),
     type: 'member',
     skills: person.skills.toModelArray(),
+    locationObject: person.ref?.locationObject || person.locationObject?.ref || person.locationObject,
     group: person.memberships.first()
       ? person.memberships.first().group.name
       : null
@@ -93,8 +96,35 @@ function presentGroup (group) {
   return group.ref
 }
 
+/**
+ * The group whose map we are viewing belongs in the drawer even when its
+ * location has not hydrated or Mapbox has not emitted a bounding box yet.
+ */
+function withCurrentGroup (groups, group) {
+  if (!group) return groups
+  const presented = presentGroup(group)
+  if (!presented || groups.some(g => String(g.id) === String(presented.id))) return groups
+  return groups.concat(presented)
+}
+
+/** Map coordinates live on GraphQL's nested locationObject, not the locationId FK. */
+function getLocationCenter (entity) {
+  if (!entity) return null
+  if (entity.locationObject?.center) return entity.locationObject.center
+  return entity.ref?.locationObject?.center || null
+}
+
 function MapExplorer (props) {
   const { t } = useTranslation()
+
+  // First-visit tour of the map's floating controls, offered by invitation
+  const mapTourStepList = useMemo(() => mapTourSteps(t), [t])
+  const { invitation: mapTourInvitation } = useTour({
+    id: MAP_TOUR_ID,
+    steps: mapTourStepList,
+    autoStart: true,
+    inviteMessage: t('New to the map? Take a quick tour.')
+  })
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const location = useLocation()
@@ -108,7 +138,12 @@ function MapExplorer (props) {
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
   const groupId = group?.id
   const queryGroupSlugs = getQuerystringParam('group', location)
-  const groupSlugs = useMemo(() => group ? (queryGroupSlugs || []).concat(groupSlug) : queryGroupSlugs, [groupSlug, queryGroupSlugs])
+  // Scope child-group queries to the current group as soon as we have a slug.
+  // Waiting for the group model left parentSlugs empty and loaded every nearby group.
+  const groupSlugs = useMemo(() => {
+    if (!groupSlug) return queryGroupSlugs
+    return (queryGroupSlugs || []).concat(groupSlug)
+  }, [groupSlug, queryGroupSlugs])
 
   const currentUser = useSelector(state => getMe(state, { location }))
   const defaultChildPostInclusion = currentUser?.settings?.streamChildPosts || 'yes'
@@ -118,8 +153,13 @@ function MapExplorer (props) {
   const queryParams = useMemo(() => getQuerystringParam(['search', 'sortBy', 'hide', 'topics', 'group'], location), [location])
 
   const reduxState = useSelector(state => state.MapExplorer)
+  const mapScopeKey = `${context}:${groupSlug || ''}`
+  const scopedMapState = reduxState.mapScopeKey === mapScopeKey
 
-  const totalBoundingBoxLoaded = useMemo(() => reduxState.totalBoundingBoxLoaded, [reduxState.totalBoundingBoxLoaded])
+  const totalBoundingBoxLoaded = useMemo(
+    () => scopedMapState ? reduxState.totalBoundingBoxLoaded : null,
+    [scopedMapState, reduxState.totalBoundingBoxLoaded]
+  )
 
   const fetchPostsParams = useMemo(() => ({
     childPostInclusion,
@@ -154,8 +194,8 @@ function MapExplorer (props) {
     ...filters,
     topics: filters.topics.map(topic => topic.id),
     types: !isEmpty(filters.featureTypes) ? Object.keys(filters.featureTypes).filter(ft => filters.featureTypes[ft]) : null,
-    currentBoundingBox: filters.currentBoundingBox || totalBoundingBoxLoaded
-  }), [childPostInclusion, context, groupSlug, groupSlugs, filters, totalBoundingBoxLoaded])
+    currentBoundingBox: (scopedMapState && filters.currentBoundingBox) || totalBoundingBoxLoaded
+  }), [childPostInclusion, context, groupSlug, groupSlugs, filters, scopedMapState, totalBoundingBoxLoaded])
 
   const fetchGroupParams = useMemo(() => ({
     boundingBox: totalBoundingBoxLoaded,
@@ -202,9 +242,9 @@ function MapExplorer (props) {
   const [browserLocation, setBrowserLocation] = useState(null)
   useEffect(() => {
     if (!centerParam &&
-        !reduxState.centerLocation &&
-        !group?.locationObject?.center &&
-        !currentUser?.locationObject?.center) {
+        !(scopedMapState && reduxState.centerLocation) &&
+        !getLocationCenter(group) &&
+        !getLocationCenter(currentUser)) {
       navigator.geolocation.getCurrentPosition((position) => {
         setBrowserLocation({
           lat: position.coords.latitude,
@@ -220,6 +260,8 @@ function MapExplorer (props) {
     }
   }, [])
 
+  const groupCenter = getLocationCenter(group)
+  const userCenter = getLocationCenter(currentUser)
   const centerParam = getQuerystringParam('center', location)
   const centerLocation = useMemo(() => {
     if (centerParam) {
@@ -227,13 +269,12 @@ function MapExplorer (props) {
       return { lat: parseFloat(decodedCenter[0]), lng: parseFloat(decodedCenter[1]) }
     }
 
-    // TODO: figure out how to priotize group location over current user location, when current user loads first
-    return reduxState.centerLocation ||
-      group?.locationObject?.center ||
-      currentUser?.locationObject?.center ||
+    return (scopedMapState && reduxState.centerLocation) ||
+      groupCenter ||
+      userCenter ||
       browserLocation ||
       { lat: 35.442845, lng: 7.916598 }
-  }, [centerParam, reduxState.centerLocation, group?.locationObject?.center, currentUser?.locationObject?.center, browserLocation])
+  }, [centerParam, scopedMapState, reduxState.centerLocation, groupCenter, userCenter, browserLocation])
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
@@ -247,7 +288,7 @@ function MapExplorer (props) {
   const defaultZoom = useMemo(() => (centerLocation ? 10 : 2), [centerLocation])
 
   const zoomParam = getQuerystringParam('zoom', location)
-  const zoom = useMemo(() => zoomParam ? parseFloat(zoomParam) : reduxState.zoom || defaultZoom, [zoomParam, reduxState.zoom, defaultZoom])
+  const zoom = useMemo(() => zoomParam ? parseFloat(zoomParam) : (scopedMapState && reduxState.zoom) || defaultZoom, [zoomParam, scopedMapState, reduxState.zoom, defaultZoom])
 
   const baseStyleParam = getQuerystringParam('style', location)
   const [baseLayerStyle, setBaseLayerStyle] = useState(baseStyleParam || reduxState.baseLayerStyle || currentUser?.settings?.mapBaseLayer || 'satellite-streets-v12')
@@ -381,7 +422,7 @@ function MapExplorer (props) {
     setBaseLayerStyle(style)
   }, [dispatch, currentUser, location])
 
-  const updateBoundingBox = useCallback(bbox => dispatch(updateState({ totalBoundingBoxLoaded: bbox })), [dispatch])
+  const updateBoundingBox = useCallback(bbox => dispatch(updateState({ totalBoundingBoxLoaded: bbox, mapScopeKey })), [dispatch, mapScopeKey])
 
   const updateQueryParams = useCallback((params, replace) => updateUrlFromStore(params, replace), [updateUrlFromStore])
 
@@ -390,8 +431,8 @@ function MapExplorer (props) {
       zoom
     }
     newUrlParams.center = encodeURIComponent(centerLocation.lat + ',' + centerLocation.lng)
-    dispatch(updateState({ centerLocation, zoom })).then(() => dispatch(changeQuerystringParams(location, newUrlParams, true)))
-  }, [dispatch, location])
+    dispatch(updateState({ centerLocation, zoom, mapScopeKey })).then(() => dispatch(changeQuerystringParams(location, newUrlParams, true)))
+  }, [dispatch, location, mapScopeKey])
 
   const handleViewSavedSearch = useCallback((search) => {
     const { mapPath } = generateViewParams(search)
@@ -501,13 +542,13 @@ function MapExplorer (props) {
     }
     const viewMembers = members.filter(member => centerWithin(member.locationObject))
     const viewPosts = postsForMap.filter(post => centerWithin(post.locationObject))
-    const viewGroups = groups.filter(mapGroup => {
+    const viewGroups = withCurrentGroup(groups.filter(mapGroup => {
       if (mapGroup.geoShape) {
         return mapGroup.geoShape.coordinates[0].some(([lng, lat]) =>
           lng >= west && lng <= east && lat >= south && lat <= north)
       }
       return centerWithin(mapGroup.locationObject)
-    }).concat(get(group, 'locationObject.center') || get(group, 'geoShape') ? group : [])
+    }), group)
       .map(mapGroup => {
         // Ensure spaces can navigate to their parent from the current map context
         if (mapGroup.type === 'space' && !mapGroup.parentGroup?.slug && group && mapGroup.parentId === group.id) {
@@ -550,18 +591,30 @@ function MapExplorer (props) {
     }
   }, [viewport])
 
+  const lastFittedScopeRef = useRef(null)
+  const lastFittedGroupCenterRef = useRef(null)
   useEffect(() => {
-    if (!groupPending && centerLocation) {
-      setViewport({
-        ...viewport,
-        latitude: centerLocation.lat,
-        longitude: centerLocation.lng,
-        zoom
-      })
-    }
-  }, [groupPending])
+    if (groupPending || !centerLocation) return
+    const groupCenterKey = groupCenter ? `${groupCenter.lat},${groupCenter.lng}` : null
+    const scopeChanged = lastFittedScopeRef.current !== mapScopeKey
+    const groupCenterArrived = groupCenterKey && groupCenterKey !== lastFittedGroupCenterRef.current
+    if (!scopeChanged && !groupCenterArrived) return
+    lastFittedScopeRef.current = mapScopeKey
+    lastFittedGroupCenterRef.current = groupCenterKey
+    setViewport(v => ({
+      ...v,
+      latitude: parseFloat(centerLocation.lat),
+      longitude: parseFloat(centerLocation.lng),
+      zoom
+    }))
+  }, [groupPending, mapScopeKey, groupCenter, centerLocation, zoom])
 
   /* Lifecycle methods */
+  useEffect(() => {
+    if (!group) return
+    setGroupsForDrawer(prev => withCurrentGroup(prev, group))
+  }, [group])
+
   useEffect(() => {
     if (isMobileDevice()) {
       setHideDrawer(true)
@@ -602,6 +655,7 @@ function MapExplorer (props) {
 
   useEffect(() => {
     if (totalBoundingBoxLoaded) {
+      if (context === 'groups' && isEmpty(fetchGroupParams.parentSlugs)) return
       dispatch(fetchGroupsForMap({ ...fetchGroupParams }))
     }
   }, [fetchGroupParams])
@@ -616,7 +670,7 @@ function MapExplorer (props) {
     if (currentBoundingBox) {
       updatedMapFeatures(currentBoundingBox)
     }
-  }, [currentBoundingBox, postsForMap.length, members.length, groups.length])
+  }, [currentBoundingBox, updatedMapFeatures])
 
   useEffect(() => {
     if (selectedSearch) {
@@ -754,6 +808,7 @@ function MapExplorer (props) {
       </Helmet>
 
       <div className='flex-1 h-full relative' data-testid='map-container'>
+        {mapTourInvitation}
         <Map
           baseLayerStyle={baseLayerStyle}
           hyloLayers={[polygonLayer, groupIconLayer, clusterLayer]}
@@ -812,7 +867,7 @@ function MapExplorer (props) {
       <div className='absolute top-5 left-[74px]'>
         <LocationInput saveLocationToDB={false} onChange={handleLocationInputSelection} className='bg-input rounded-md text-base h-9 text-foreground placeholder-foreground/40 w-full px-2 py-0 transition-all outline-none mb-0 border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground focus:border-focus hover:scale-105' />
       </div>
-      <button className={cn('border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md py-1.5 px-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute bottom-2 sm:bottom-10 left-2 sm:left-5 gap-1 text-xs', classes.toggleFeatureFiltersButton, { [classes.open]: showFeatureFilters, [classes.withoutNav]: withoutNav })} onClick={toggleFeatureFilters}>
+      <button className={cn('border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md py-1.5 px-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute bottom-2 sm:bottom-10 left-2 sm:left-5 gap-1 text-xs', classes.toggleFeatureFiltersButton, { [classes.open]: showFeatureFilters, [classes.withoutNav]: withoutNav })} data-tour='map-features' onClick={toggleFeatureFilters}>
         {t('Features:')} <strong>{possibleFeatureTypes.filter(featureType => filters.featureTypes[featureType]).length}/{possibleFeatureTypes.length}</strong>
       </button>
 
@@ -821,6 +876,7 @@ function MapExplorer (props) {
           <button
             onClick={toggleSavedSearches}
             className={cn('border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md w-9 h-9 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center justify-center absolute top-5 text-base left-5', { 'border-selected/50 text-selected': showSavedSearches })}
+            data-tour='map-saved-searches'
           >
             <Heart className='w-5 h-5' />
           </button>

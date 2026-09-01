@@ -1,5 +1,6 @@
 import { GraphQLError } from 'graphql'
 import { v4 as uuidv4 } from 'uuid'
+import { localSpaceSlug, storedSpaceSlug } from '@hylo/navigation'
 import { notifyGroupUpdated } from './notifyGroupUpdated'
 
 // Space mutations — see docs/spaces-and-views-engineering-spec.md section 4.4 / 10
@@ -13,14 +14,24 @@ function slugify (name) {
     .slice(0, 40) || 'space'
 }
 
+/** First unused groups.slug. Stored space slugs include the parent prefix, so do not cap at 40. */
 async function uniqueSlug (baseSlug) {
   let slug = baseSlug
   let suffix = 2
   while (await Group.where({ slug }).fetch()) {
-    slug = `${baseSlug}-${suffix}`.slice(0, 40)
+    slug = `${baseSlug}-${suffix}`
     suffix += 1
   }
   return slug
+}
+
+/** Local URL slug, then globally unique `{parentSlug}-{localSlug}` for storage. */
+async function uniqueStoredSpaceSlug (parentSlug, requestedSlug, name) {
+  const requestedLocal = requestedSlug ? localSpaceSlug(parentSlug, requestedSlug) : ''
+  const localSlug = requestedLocal && Group.isSlugValid(requestedLocal)
+    ? requestedLocal
+    : slugify(name)
+  return uniqueSlug(storedSpaceSlug(parentSlug, localSlug))
 }
 
 /**
@@ -45,7 +56,7 @@ async function requireSpaceManager (userId, spaceId, action, { includeInactive =
   return space
 }
 
-export async function createSpace (userId, { parentGroupId, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, purpose, location, locationId, viewTypes, bannerUrl, avatarUrl, paywall, addToMenu = true }, context) {
+export async function createSpace (userId, { parentGroupId, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, purpose, location, locationId, viewTypes, bannerUrl, avatarUrl, paywall, addToMenu = true, status }, context) {
   if (!userId) throw new GraphQLError('No userId passed into function')
   if (!parentGroupId) throw new GraphQLError('No parentGroupId passed into function')
   if (!name || !name.trim()) throw new GraphQLError('Name cannot be blank')
@@ -58,7 +69,7 @@ export async function createSpace (userId, { parentGroupId, name, slug, accepted
     throw new GraphQLError("You don't have permission to create spaces in this group")
   }
 
-  const finalSlug = await uniqueSlug(slug && Group.isSlugValid(slug) ? slug : slugify(name))
+  const finalSlug = await uniqueStoredSpaceSlug(parentGroup.get('slug'), slug, name)
   const isPaywalled = Boolean(paywall)
   const spaceVisibility = isPaywalled
     ? Group.Visibility.PROTECTED
@@ -66,6 +77,12 @@ export async function createSpace (userId, { parentGroupId, name, slug, accepted
   const spaceAccessibility = isPaywalled
     ? Group.Accessibility.RESTRICTED
     : (accessibility != null ? accessibility : Group.Accessibility.RESTRICTED)
+
+  const spaceStatus = status || Group.Status.PUBLISHED
+  if (spaceStatus !== Group.Status.DRAFT && spaceStatus !== Group.Status.PUBLISHED) {
+    throw new GraphQLError('New spaces can only be draft or published')
+  }
+  const addToParentMenu = spaceStatus === Group.Status.DRAFT ? false : addToMenu
 
   const space = new Group({
     type: 'space',
@@ -88,6 +105,7 @@ export async function createSpace (userId, { parentGroupId, name, slug, accepted
     visibility: spaceVisibility,
     accessibility: spaceAccessibility,
     paywall: isPaywalled,
+    status: spaceStatus,
     settings: {},
     access_code: await Group.getNewAccessCode(),
     calendar_token: uuidv4(),
@@ -108,7 +126,7 @@ export async function createSpace (userId, { parentGroupId, name, slug, accepted
       type: GroupView.Type.SPACE,
       linked_group_id: space.id
     }
-    if (addToMenu === false) {
+    if (addToParentMenu === false) {
       await GroupView.createOffMenu(spaceViewAttrs, { transacting: trx })
     } else {
       await GroupView.appendToMenu(spaceViewAttrs, { transacting: trx })
@@ -123,7 +141,7 @@ export async function createSpace (userId, { parentGroupId, name, slug, accepted
   return space.refresh()
 }
 
-export async function updateSpace (userId, { id, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, location, locationId, purpose, bannerUrl, avatarUrl, paywall }, context) {
+export async function updateSpace (userId, { id, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, location, locationId, purpose, bannerUrl, avatarUrl, paywall, status }, context) {
   if (!userId) throw new GraphQLError('No userId passed into function')
   if (!id) throw new GraphQLError('No id passed into function')
 
@@ -131,9 +149,15 @@ export async function updateSpace (userId, { id, name, slug, acceptedPostTypes, 
 
   const changes = {}
   if (name !== undefined && name.trim()) changes.name = name.trim()
-  if (slug !== undefined && slug !== space.get('slug')) {
-    if (!Group.isSlugValid(slug)) throw new GraphQLError('Slug is invalid')
-    changes.slug = await uniqueSlug(slug)
+  if (slug !== undefined) {
+    const parent = await Group.find(space.get('parent_id'))
+    const parentSlug = parent?.get('slug')
+    const localSlug = localSpaceSlug(parentSlug, slug)
+    if (!Group.isSlugValid(localSlug)) throw new GraphQLError('Slug is invalid')
+    const prefixed = storedSpaceSlug(parentSlug, localSlug)
+    if (prefixed !== space.get('slug')) {
+      changes.slug = await uniqueSlug(prefixed)
+    }
   }
   if (acceptedPostTypes !== undefined) changes.accepted_post_types = acceptedPostTypes
   if (visibility !== undefined) changes.visibility = visibility
@@ -154,8 +178,23 @@ export async function updateSpace (userId, { id, name, slug, acceptedPostTypes, 
       changes.required_roles = null
     }
   }
+  if (status !== undefined) {
+    const allowed = space.get('funding_round_id')
+      ? Object.values(Group.Status)
+      : [Group.Status.DRAFT, Group.Status.PUBLISHED, Group.Status.ARCHIVED]
+    if (!allowed.includes(status)) {
+      throw new GraphQLError('Invalid status for this space')
+    }
+    changes.status = status
+  }
 
-  await space.save(changes, { patch: true })
+  if (Object.keys(changes).length > 0) {
+    await space.save(changes, { patch: true })
+  }
+
+  if (status === Group.Status.DRAFT || status === Group.Status.ARCHIVED) {
+    await removeSpaceFromParentMenu(id)
+  }
 
   const parentId = space.get('parent_id')
   if (parentId) {
@@ -166,6 +205,15 @@ export async function updateSpace (userId, { id, name, slug, acceptedPostTypes, 
   return space.refresh()
 }
 
+/** Destroy the parent group's type=space menu row for this space. */
+async function removeSpaceFromParentMenu (spaceId, { transacting } = {}) {
+  const menuEntry = await GroupView.where({ type: GroupView.Type.SPACE, linked_group_id: spaceId }).fetch({ transacting })
+  if (!menuEntry) return
+  const parentGroupId = menuEntry.get('group_id')
+  await menuEntry.destroy({ transacting })
+  await GroupView.syncMenuViewCount(parentGroupId, { transacting })
+}
+
 export async function archiveSpace (userId, id, context) {
   if (!userId) throw new GraphQLError('No userId passed into function')
   if (!id) throw new GraphQLError('No id passed into function')
@@ -174,12 +222,8 @@ export async function archiveSpace (userId, id, context) {
   const parentId = space.get('parent_id')
 
   await bookshelf.transaction(async trx => {
-    await space.save({ active: false }, { patch: true, transacting: trx })
-
-    if (parentId) {
-      const menuEntry = await GroupView.where({ type: GroupView.Type.SPACE, linked_group_id: id }).fetch({ transacting: trx })
-      if (menuEntry) await menuEntry.destroy({ transacting: trx })
-    }
+    await space.save({ status: Group.Status.ARCHIVED }, { patch: true, transacting: trx })
+    await removeSpaceFromParentMenu(id, { transacting: trx })
   })
 
   if (parentId) {
@@ -187,18 +231,21 @@ export async function archiveSpace (userId, id, context) {
     notifyGroupUpdated(context, parentGroup, parentId)
   }
 
-  return space
+  return space.refresh()
 }
 
 export async function deleteSpace (userId, id, context) {
   if (!userId) throw new GraphQLError('No userId passed into function')
   if (!id) throw new GraphQLError('No id passed into function')
 
-  // Include inactive so soft-archived leftovers can still be permanently removed.
+  // Include inactive so already-deleted leftovers can be re-saved as inactive.
   const space = await requireSpaceManager(userId, id, 'delete this space', { includeInactive: true })
   const parentId = space.get('parent_id')
 
-  await Group.destroySpace(id)
+  await bookshelf.transaction(async trx => {
+    await space.save({ active: false }, { patch: true, transacting: trx })
+    await removeSpaceFromParentMenu(id, { transacting: trx })
+  })
 
   if (parentId) {
     const parentGroup = await Group.find(parentId)
@@ -228,6 +275,14 @@ export async function joinSpace (userId, spaceId) {
   // without requesting or holding a required role
   const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, parentId)
   const canAdministerParent = responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)
+
+  const spaceStatus = space.get('status')
+  if (spaceStatus === Group.Status.ARCHIVED) {
+    throw new GraphQLError('This space is archived')
+  }
+  if (spaceStatus === Group.Status.DRAFT && !canAdministerParent) {
+    throw new GraphQLError('This space is not published')
+  }
 
   if (!canAdministerParent) {
     if (space.get('paywall')) {
@@ -264,19 +319,4 @@ export async function joinSpace (userId, spaceId) {
   }
 
   return membership
-}
-
-export async function leaveSpace (userId, spaceId) {
-  if (!userId) throw new GraphQLError('No userId passed into function')
-  if (!spaceId) throw new GraphQLError('No spaceId passed into function')
-
-  const space = await Group.find(spaceId)
-  if (!space) throw new GraphQLError('Space not found')
-
-  const user = await User.find(userId)
-  if (!user) throw new GraphQLError('User not found')
-
-  await user.leaveGroup(space)
-
-  return { success: true }
 }
