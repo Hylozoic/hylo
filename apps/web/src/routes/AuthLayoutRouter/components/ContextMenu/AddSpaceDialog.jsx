@@ -203,6 +203,8 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
   const [frAllowSelfVoting, setFrAllowSelfVoting] = useState(false)
   const [frAllowLateJoiners, setFrAllowLateJoiners] = useState(false)
   const [frHideFinalResults, setFrHideFinalResults] = useState(false)
+  const [frRequireBudget, setFrRequireBudget] = useState(false)
+  const [frShowRealtimeVotes, setFrShowRealtimeVotes] = useState(false)
   const [frSubmissionDescriptor, setFrSubmissionDescriptor] = useState('Submission')
   const [frSubmissionDescriptorPlural, setFrSubmissionDescriptorPlural] = useState('Submissions')
   const [frSubmitterRoles, setFrSubmitterRoles] = useState([])
@@ -467,6 +469,8 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
           allowSelfVoting: frAllowSelfVoting,
           allowLateJoiners: frAllowLateJoiners,
           hideFinalResultsFromParticipants: frHideFinalResults,
+          requireBudget: frRequireBudget,
+          showRealtimeVotes: frShowRealtimeVotes,
           submissionDescriptor: frSubmissionDescriptor,
           submissionDescriptorPlural: frSubmissionDescriptorPlural,
           submitterRoles: frSubmitterRoles,
@@ -560,7 +564,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
     } finally {
       setIsCreating(false)
     }
-  }, [dispatch, group?.id, name, slug, slugValid, description, icon, bannerUrl, purpose, locationObject, postTypes, access, accessOptions, requiredRoles, spaceType, orderedRows, standardViewTypes, homeViewType, welcomeEnabled, welcomeExtras, showWelcomePage, onClose, onCreated, navigate, routerLocation.pathname, addToMenu, isOneColumn, actionDescriptor, actionDescriptorPlural, completionRole, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frAllowLateJoiners, frHideFinalResults, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles])
+  }, [dispatch, group?.id, name, slug, slugValid, description, icon, bannerUrl, purpose, locationObject, postTypes, access, accessOptions, requiredRoles, spaceType, orderedRows, standardViewTypes, homeViewType, welcomeEnabled, welcomeExtras, showWelcomePage, onClose, onCreated, navigate, routerLocation.pathname, addToMenu, isOneColumn, actionDescriptor, actionDescriptorPlural, completionRole, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frAllowLateJoiners, frHideFinalResults, frRequireBudget, frShowRealtimeVotes, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles])
 
   const advancedSettings = useMemo(() => [
     {
@@ -861,6 +865,10 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
               setAllowLateJoiners={setFrAllowLateJoiners}
               hideFinalResults={frHideFinalResults}
               setHideFinalResults={setFrHideFinalResults}
+              requireBudget={frRequireBudget}
+              setRequireBudget={setFrRequireBudget}
+              showRealtimeVotes={frShowRealtimeVotes}
+              setShowRealtimeVotes={setFrShowRealtimeVotes}
               submitterRoles={frSubmitterRoles}
               setSubmitterRoles={setFrSubmitterRoles}
               voterRoles={frVoterRoles}

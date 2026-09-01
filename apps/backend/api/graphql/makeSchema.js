@@ -30,6 +30,8 @@ import {
   cancelJoinRequest,
   clearModerationAction,
   completePost,
+  convertGroupToSpace,
+  convertSpaceToChildGroup,
   createAffiliation,
   createComment,
   createFundingRound,
@@ -649,6 +651,12 @@ export function makeMutations ({ fetchOne }) {
     archiveSpace: (root, { id }, context) => archiveSpace(context.currentUserId, id, context),
 
     deleteSpace: (root, { id }, context) => deleteSpace(context.currentUserId, id, context),
+
+    convertSpaceToChildGroup: (root, { id }, context) =>
+      convertSpaceToChildGroup(context.currentUserId, id, context),
+
+    convertGroupToSpace: (root, { id, parentGroupId }, context) =>
+      convertGroupToSpace(context.currentUserId, { id, parentGroupId }, context),
 
     joinSpace: (root, { spaceId }, context) => joinSpace(context.currentUserId, spaceId),
 

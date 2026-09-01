@@ -2998,6 +2998,8 @@ type FundingRound {
   phase: FundingRoundPhase
   # Whether a budget is required for submissions
   requireBudget: Boolean
+  # Whether to show running vote totals during the voting phase
+  showRealtimeVotes: Boolean
   # The term used to describe a submission to the round
   submissionDescriptor: String
   # # The plural term used to describe submissions to the round
@@ -3367,6 +3369,10 @@ type Mutation {
   archiveSpace(id: ID!): Group
   # Soft-delete a Space (active=false). Hidden from menus and More Spaces.
   deleteSpace(id: ID!): GenericResult
+  # Convert a regular Space into a child Group of its parent
+  convertSpaceToChildGroup(id: ID!): Group
+  # Convert a child Group into a Space of its single parent
+  convertGroupToSpace(id: ID!, parentGroupId: ID!): Group
   # Join a Space (creates a group membership + per-view unread rows)
   joinSpace(spaceId: ID!): Membership
   # Update the current logged in user's last-read position for a chat GroupView, recalculating newPostCount
@@ -4477,6 +4483,8 @@ input FundingRoundInput {
   minTokenAllocation: Int
   # Whether a budget is required for submissions
   requireBudget: Boolean
+  # Whether to show running vote totals during the voting phase
+  showRealtimeVotes: Boolean
   # The term used to describe a submission to the round
   submissionDescriptor: String
   # # The plural term used to describe submissions to the round

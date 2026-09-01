@@ -826,7 +826,8 @@ export default function AuthLayoutRouter (props) {
     return <NotFound />
   }
 
-  // Spaces opened as top-level `/groups/:spaceSlug` must nest under their parent.
+  // Spaces (`type = space`) opened as `/groups/:spaceSlug` nest under their parent.
+  // Child groups must stay at `/groups/:slug` even if they still have a parentId.
   // Covers cold-load restore, bookmarks, and any other bare-space links.
   // Spaces have no Group Settings page — map leftover `/settings` URLs (join
   // requests used to live there) onto the nested space routes.

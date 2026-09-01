@@ -119,9 +119,9 @@ function groupAcceptsPostType (group, postType) {
   return types.includes(postType)
 }
 
-/** Returns true when the group is a space (child of a top-level group). */
+/** Returns true when the group is a space (`type = space`). */
 function isSpaceGroup (group) {
-  return !!group && (group.type === GROUP_TYPES.space || !!group.parentId)
+  return !!group && group.type === GROUP_TYPES.space
 }
 
 /** Compares group ids as strings so GraphQL/ORM number vs string ids still match. */
@@ -1039,7 +1039,7 @@ function PostEditorInner ({
    * Checks various conditions based on post type and sets error messages
    */
   const isValid = useMemo(() => {
-    const { type, title, groups, startTime, endTime, donationsLink, projectManagementLink, meetingLink, proposalOptions, budget } = currentPost
+    const { type, title, groups, startTime, endTime, donationsLink, projectManagementLink, meetingLink, proposalOptions } = currentPost
 
     const errorMessages = []
 
@@ -1062,11 +1062,6 @@ function PostEditorInner ({
           errorMessages.push(t('At least one proposal option required'))
         }
         break
-      case 'submission':
-        if (currentFundingRound?.requireBudget && !budget) {
-          errorMessages.push(t('Budget is required for this submission'))
-        }
-        break
     }
 
     if (title?.length === 0 || title?.length > MAX_TITLE_LENGTH) {
@@ -1082,7 +1077,7 @@ function PostEditorInner ({
     }
 
     return errorMessages.length === 0
-  }, [hasDescription, currentPost.type, currentPost.title, currentPost.groups, currentPost.startTime, currentPost.endTime, currentPost.donationsLink, currentPost.projectManagementLink, currentPost.meetingLink, currentPost.proposalOptions, currentPost.budget, currentFundingRound?.requireBudget])
+  }, [hasDescription, currentPost.type, currentPost.title, currentPost.groups, currentPost.startTime, currentPost.endTime, currentPost.donationsLink, currentPost.projectManagementLink, currentPost.meetingLink, currentPost.proposalOptions])
 
   // const handleCancel = () => {
   //   if (onCancel) {
@@ -1844,10 +1839,10 @@ function PostEditorInner ({
           </div>
         </div>
       )}
-      {(currentPost.type === 'project' || currentPost.type === 'submission') && (
+      {(currentPost.type === 'project' || (currentPost.type === 'submission' && currentFundingRound?.requireBudget)) && (
         <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
           <div className='text-xs text-foreground/50 mr-2 whitespace-nowrap'>
-            {t('Budget Total')}{currentPost.type === 'submission' && currentFundingRound?.requireBudget ? '*' : ''}
+            {t('Budget Total')}
           </div>
           <div className='w-full'>
             <input

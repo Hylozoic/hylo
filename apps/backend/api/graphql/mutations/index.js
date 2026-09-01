@@ -45,7 +45,9 @@ export {
   updateSpace,
   archiveSpace,
   deleteSpace,
-  joinSpace
+  joinSpace,
+  convertSpaceToChildGroup,
+  convertGroupToSpace
 } from './spaces'
 export {
   respondToEvent,

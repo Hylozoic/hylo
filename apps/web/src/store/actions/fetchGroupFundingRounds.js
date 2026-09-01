@@ -31,6 +31,7 @@ query (
         submissionsOpenAt
         submissionsCloseAt
         requireBudget
+        showRealtimeVotes
         submissionDescriptor
         submissionDescriptorPlural
         submissionsCloseAt

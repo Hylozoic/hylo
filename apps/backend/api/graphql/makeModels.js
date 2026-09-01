@@ -1546,6 +1546,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'max_token_allocation',
         'min_token_allocation',
         'require_budget',
+        'show_realtime_votes',
         'submission_descriptor_plural',
         'submission_descriptor',
         'submissions_close_at',

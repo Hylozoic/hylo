@@ -27,6 +27,7 @@ FundingRound.fields = {
   numSubmissions: attr(),
   phase: attr(),
   requireBudget: attr(),
+  showRealtimeVotes: attr(),
   submissionDescriptor: attr(),
   submissionDescriptorPlural: attr(),
   submissions: many('Post'),

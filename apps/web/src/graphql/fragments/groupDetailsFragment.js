@@ -67,6 +67,7 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
     maxTokenAllocation
     minTokenAllocation
     requireBudget
+    showRealtimeVotes
     submissionDescriptor
     submissionDescriptorPlural
     submissionsOpenAt
