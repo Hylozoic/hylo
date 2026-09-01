@@ -82,6 +82,7 @@ export function fetchGroupSettings (slug) {
             layout
           }
           type
+          parentId
           slug
           visibility
           stripeAccountId

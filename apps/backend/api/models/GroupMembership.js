@@ -162,7 +162,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
    * No-op for spaces — they inherit roles from the parent group.
    */
   async assignCoordinatorRole (userId, groupId, { transacting } = {}) {
-    const roleScopeId = await Group.roleScopeId(groupId)
+    const roleScopeId = await Group.roleScopeId(groupId, { transacting })
     if (String(roleScopeId) !== String(groupId)) return
 
     await GroupRole.setupSystemRoles(groupId, { transacting })

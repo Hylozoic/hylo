@@ -96,7 +96,7 @@ module.exports = bookshelf.Model.extend({
    * No-op for spaces — they inherit roles from the parent group.
    */
   setupSystemRoles: async function (groupId, { transacting } = {}) {
-    const roleScopeId = await Group.roleScopeId(groupId)
+    const roleScopeId = await Group.roleScopeId(groupId, { transacting })
     if (String(roleScopeId) !== String(groupId)) return
 
     const responsibilityRows = await Responsibility.query(q => {

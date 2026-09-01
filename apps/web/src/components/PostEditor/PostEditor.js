@@ -119,9 +119,9 @@ function groupAcceptsPostType (group, postType) {
   return types.includes(postType)
 }
 
-/** Returns true when the group is a space (child of a top-level group). */
+/** Returns true when the group is a space (`type = space`). */
 function isSpaceGroup (group) {
-  return !!group && (group.type === GROUP_TYPES.space || !!group.parentId)
+  return !!group && group.type === GROUP_TYPES.space
 }
 
 /** Compares group ids as strings so GraphQL/ORM number vs string ids still match. */
