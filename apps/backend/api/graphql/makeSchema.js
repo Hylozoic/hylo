@@ -191,7 +191,64 @@ import makeSubscriptions from './makeSubscriptions'
 const schemaText = readFileSync(join(__dirname, 'schema.graphql')).toString()
 let modelToTypeMap
 
+/** Yoga calls makeSchema on every GraphQL request. Rebuilding that executable schema
+ *  is the isolated-E2E OOM (heap hits the 4GB cap). Cache per auth identity; skip in
+ *  unit tests so DataLoaders do not leak across cases. `GRAPHQL_CACHE_SCHEMA=0` disables. */
+const SCHEMA_CACHE_MAX = 16
+const schemaCache = new Map()
+
+/**
+ * Whether this process should reuse GraphQL schemas across requests.
+ */
+function shouldCacheGraphqlSchema () {
+  if (process.env.GRAPHQL_CACHE_SCHEMA === '0') return false
+  if (process.env.NODE_ENV === 'test') return false
+  return true
+}
+
+/**
+ * Cache key: filters and loaders close over userId / admin / API client.
+ * @param {object} req
+ */
+function graphqlSchemaCacheKey (req) {
+  const userId = req?.session?.userId || 'anon'
+  const isAdmin = req && Admin.isSignedIn(req) ? '1' : '0'
+  const apiClientId = req?.api_client?.id || req?.api_client?.client_id || ''
+  return `${userId}|${isAdmin}|${apiClientId}`
+}
+
+/**
+ * LRU insert; drops the oldest entry when over SCHEMA_CACHE_MAX.
+ * @param {string} key
+ * @param {object} schema
+ */
+function rememberGraphqlSchema (key, schema) {
+  if (schemaCache.has(key)) schemaCache.delete(key)
+  schemaCache.set(key, schema)
+  while (schemaCache.size > SCHEMA_CACHE_MAX) {
+    const oldest = schemaCache.keys().next().value
+    schemaCache.delete(oldest)
+  }
+}
+
 export default async function makeSchema ({ req }) {
+  const cache = shouldCacheGraphqlSchema()
+  const key = cache ? graphqlSchemaCacheKey(req) : null
+  if (key && schemaCache.has(key)) {
+    const cached = schemaCache.get(key)
+    rememberGraphqlSchema(key, cached)
+    return cached
+  }
+  const schema = await buildGraphqlSchema(req)
+  if (key) rememberGraphqlSchema(key, schema)
+  return schema
+}
+
+/**
+ * Build a fresh executable schema for this request's identity.
+ * @param {object} req
+ */
+async function buildGraphqlSchema (req) {
   const userId = req.session.userId
   const isAdmin = Admin.isSignedIn(req)
   const models = makeModels(userId, isAdmin, req.api_client)
