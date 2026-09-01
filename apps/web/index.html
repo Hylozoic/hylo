@@ -247,10 +247,26 @@
         }
         window.requestAnimationFrame(frame)
       }
+      // The whole lifecycle above rides requestAnimationFrame, which browsers
+      // suspend entirely for hidden tabs — so a page loaded in the background
+      // (or headless) would keep the loader forever, hiding the mounted app
+      // and blocking anything gated on the loader being gone. Nobody sees the
+      // animation in a hidden tab: once the app is ready there, just remove.
+      function teardown () {
+        stopped = true
+        if (host.parentNode) host.parentNode.removeChild(host)
+      }
+      document.addEventListener('visibilitychange', function () {
+        if (document.hidden && readyFlag) teardown()
+      })
       window.requestAnimationFrame(frame)
       window.HyloBootLoader = {
         milestone: function (name) { reach(MILESTONE_INDEX[name] || 0) },
-        ready: function () { reach(STEPS); readyFlag = true }
+        ready: function () {
+          reach(STEPS)
+          readyFlag = true
+          if (document.hidden) teardown()
+        }
       }
     })()
     </script>
