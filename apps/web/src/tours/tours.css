@@ -50,3 +50,14 @@
 .driver-popover-arrow-side-right.driver-popover-arrow { border-right-color: hsl(var(--card)); }
 .driver-popover-arrow-side-top.driver-popover-arrow { border-top-color: hsl(var(--card)); }
 .driver-popover-arrow-side-bottom.driver-popover-arrow { border-bottom-color: hsl(var(--card)); }
+
+/* Sandbox demo chrome stays above the tour overlay and stays clickable */
+.driver-active [data-testid='sandbox-banner'] {
+  position: relative;
+  z-index: 1000000001;
+  pointer-events: auto !important;
+}
+
+.driver-active [data-testid='sandbox-banner'] * {
+  pointer-events: auto !important;
+}

@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { driver } from 'driver.js'
+import { isSandboxMode } from 'sandbox/isSandbox'
 import 'driver.js/dist/driver.css'
 import './tours.css'
 import getMe from 'store/selectors/getMe'
@@ -61,6 +63,20 @@ function bumpOfferCount (id) {
 // Present in the DOM is not enough: on phones the nav rail and group menu are
 // mounted but off-canvas, and highlighting an off-screen anchor floats the
 // popover over whatever is actually visible
+// driver.js dims the full viewport; punch a second hole for the sandbox banner
+// so language and reset stay reachable for the whole tour
+function applySandboxBannerOverlayCutout () {
+  const path = document.querySelector('svg.driver-overlay path')
+  const banner = document.querySelector('[data-testid="sandbox-banner"]')
+  if (!path || !banner) return
+  const { x, y, width, height } = banner.getBoundingClientRect()
+  if (width < 1 || height < 1) return
+  const d = path.getAttribute('d')
+  if (!d) return
+  const cutout = `M${x},${y} h${width} v${height} h-${width} z`
+  path.setAttribute('d', `${d} ${cutout}`)
+}
+
 function isAnchorVisible (element) {
   if (!element) return false
   if (typeof element.checkVisibility === 'function' &&
@@ -94,8 +110,10 @@ export default function useTour ({
   blockedBySelectors = []
 }) {
   const dispatch = useDispatch()
+  const { t } = useTranslation()
   const currentUser = useSelector(getMe)
   const driverRef = useRef(null)
+  const sandboxOverlayResizeRef = useRef(null)
   const toursSeen = useMemo(
     () => currentUser?.settings?.toursSeen || [],
     [currentUser?.settings?.toursSeen]
@@ -119,30 +137,54 @@ export default function useTour ({
     }
   }, [dispatch, id])
 
+  const clearSandboxOverlayResize = useCallback(() => {
+    if (!sandboxOverlayResizeRef.current) return
+    window.removeEventListener('resize', sandboxOverlayResizeRef.current)
+    sandboxOverlayResizeRef.current = null
+  }, [])
+
   const startTour = useCallback(() => {
     if (driverRef.current) {
       driverRef.current.destroy()
       driverRef.current = null
     }
+    clearSandboxOverlayResize()
     const presentSteps = steps.filter(step => !step.element || isAnchorVisible(document.querySelector(step.element)))
     if (presentSteps.length === 0) return false
+    const keepSandboxBannerClear = isSandboxMode()
     tourActive = true
     driverRef.current = driver({
       showProgress: presentSteps.length > 1,
       overlayOpacity: 0.6,
       stagePadding: 6,
       stageRadius: 10,
+      nextBtnText: t('Next'),
+      prevBtnText: t('Previous'),
+      doneBtnText: t('Done'),
       steps: presentSteps,
+      onHighlighted: () => {
+        if (keepSandboxBannerClear) applySandboxBannerOverlayCutout()
+      },
       // Closing early counts as seen: a dismissed tour must never chase the user
       onDestroyed: () => {
+        clearSandboxOverlayResize()
         driverRef.current = null
         tourActive = false
         markSeen()
       }
     })
+    if (keepSandboxBannerClear) {
+      const handleResize = () => {
+        window.requestAnimationFrame(() => {
+          window.requestAnimationFrame(() => applySandboxBannerOverlayCutout())
+        })
+      }
+      sandboxOverlayResizeRef.current = handleResize
+      window.addEventListener('resize', handleResize)
+    }
     driverRef.current.drive()
     return true
-  }, [markSeen, steps])
+  }, [clearSandboxOverlayResize, markSeen, steps, t])
 
   const [inviteOpen, setInviteOpen] = useState(false)
 
@@ -223,12 +265,13 @@ export default function useTour ({
 
   useEffect(() => {
     return () => {
+      clearSandboxOverlayResize()
       if (driverRef.current) {
         driverRef.current.destroy()
         driverRef.current = null
       }
     }
-  }, [])
+  }, [clearSandboxOverlayResize])
 
   const invitation = inviteOpen
     ? (

@@ -5,8 +5,20 @@ export const GLOBAL_CHROME_TOUR_ID = 'global-chrome'
  * attributes on the GlobalNav tiles; steps whose anchor is missing (compact
  * layouts) are skipped by useTour.
  */
-export function globalChromeTourSteps (t) {
-  return [
+export function globalChromeTourSteps (t, { sandboxMode = false } = {}) {
+  const steps = []
+
+  if (sandboxMode) {
+    steps.push({
+      popover: {
+        title: t('Hylo Demo'),
+        description: t("You're exploring a demo. Changes aren't saved."),
+        side: 'bottom'
+      }
+    })
+  }
+
+  steps.push(
     {
       element: '[data-tour="my-home"]',
       popover: {
@@ -55,5 +67,7 @@ export function globalChromeTourSteps (t) {
         side: 'right'
       }
     }
-  ]
+  )
+
+  return steps
 }
