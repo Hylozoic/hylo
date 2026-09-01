@@ -1125,7 +1125,7 @@ export default function ContextMenu (props) {
                   {/* Where the X used to sit: this space's notification settings */}
                   <div
                     className={cn(
-                      'relative z-10 self-start m-2 p-1 rounded-md backdrop-blur-sm transition-colors',
+                      'relative z-10 self-start m-2 flex items-center justify-center p-1 leading-none rounded-md backdrop-blur-sm transition-colors',
                       activeSpaceBannerUrl
                         ? 'bg-black/25 text-white/90 hover:bg-black/40 hover:text-white'
                         : 'bg-foreground/10 text-foreground/70 hover:bg-foreground/20 hover:text-foreground dark:text-white/80 dark:hover:text-white'
