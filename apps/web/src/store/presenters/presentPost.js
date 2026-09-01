@@ -50,7 +50,9 @@ export default function presentPost (post, groupId) {
       fileAttachments: (rawPost ? post.attachments || [] : (post.attachments?.toModelArray?.() || [])).filter(a => a.type === 'file').sort((a, b) => a.position - b.position),
       imageAttachments: (rawPost ? post.attachments || [] : (post.attachments?.toModelArray?.() || [])).filter(a => a.type === 'image').sort((a, b) => a.position - b.position),
       groups: (rawPost ? post.groups || [] : (post.groups?.toModelArray?.() || [])),
-      linkPreview: post.linkPreview, // needed to load the link preview object
+      // Accessing the relation loads it; prefer .ref so url/title are plain fields
+      linkPreview: rawPost ? post.linkPreview : (post.linkPreview?.ref || post.linkPreview),
+      linkPreviewFeatured: !!(rawPost ? post.linkPreviewFeatured : post.ref?.linkPreviewFeatured),
       location: post.location, // needed to load the location object
       // GraphQL locationObject is stored nested on .ref; the locationId FK is usually empty
       locationObject: rawPost ? post.locationObject : (post.ref?.locationObject || post.locationObject?.ref || post.locationObject),

@@ -43,6 +43,7 @@ import { MAX_POST_TOPICS } from 'util/constants'
 import useDraft, { hasDraftContent, hasPostDraftPayloadContent } from 'hooks/useDraft'
 import LinkPreview from 'components/PostEditor/LinkPreview'
 import { buildPostDraftPayload, mergeDraftIntoPost } from 'components/PostEditor/postDraftUtils'
+import isPlayableVideoUrl from 'util/isPlayableVideoUrl'
 
 /**
  * Inline chat composer for ChatRoom — creates chat posts with draft persistence.
@@ -254,7 +255,17 @@ function ChatEditorInner ({
   useEffect(() => {
     setCurrentPost(prev => {
       if (prev.linkPreview === linkPreview) return prev
-      if (linkPreview) return { ...prev, linkPreview, skipLinkPreview: false }
+      if (linkPreview) {
+        const isNewPreview = !prev.linkPreview || prev.linkPreview.id !== linkPreview.id
+        return {
+          ...prev,
+          linkPreview,
+          skipLinkPreview: false,
+          linkPreviewFeatured: isNewPreview && isPlayableVideoUrl(linkPreview.url || linkPreview.ref?.url)
+            ? true
+            : prev.linkPreviewFeatured
+        }
+      }
       return { ...prev, linkPreview }
     })
   }, [linkPreview, setCurrentPost])

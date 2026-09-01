@@ -24,6 +24,7 @@ Object {
   "id": 324,
   "imageAttachments": Array [],
   "linkPreview": null,
+  "linkPreviewFeatured": false,
   "location": undefined,
   "locationObject": null,
   "members": Array [],

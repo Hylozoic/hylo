@@ -97,6 +97,7 @@ import { MAX_POST_TOPICS } from 'util/constants'
 import generateTempID from 'util/generateTempId'
 import { setQuerystringParam } from '@hylo/navigation'
 import { sanitizeURL } from 'util/url'
+import isPlayableVideoUrl from 'util/isPlayableVideoUrl'
 import ActionsBar from './ActionsBar'
 import HyloHTML from 'components/HyloHTML'
 import useDraft, { hasDraftContent, hasPostDraftPayloadContent } from 'hooks/useDraft'
@@ -723,7 +724,17 @@ function PostEditorInner ({
   useEffect(() => {
     setCurrentPost(prev => {
       if (prev.linkPreview === linkPreview) return prev
-      if (linkPreview) return { ...prev, linkPreview, skipLinkPreview: false }
+      if (linkPreview) {
+        const isNewPreview = !prev.linkPreview || prev.linkPreview.id !== linkPreview.id
+        return {
+          ...prev,
+          linkPreview,
+          skipLinkPreview: false,
+          linkPreviewFeatured: isNewPreview && isPlayableVideoUrl(linkPreview.url || linkPreview.ref?.url)
+            ? true
+            : prev.linkPreviewFeatured
+        }
+      }
       return { ...prev, linkPreview }
     })
   }, [linkPreview, setCurrentPost])
