@@ -9,7 +9,7 @@ import { ImagePlus, Loader2, Paperclip, Plus, Send } from 'lucide-react'
 import { onEnterNoShift } from 'util/textInput'
 import { STARTED_TYPING_INTERVAL } from 'util/constants'
 import AttachmentManager from 'components/AttachmentManager'
-import { addAttachment, getAttachments, clearAttachments } from 'components/AttachmentManager/AttachmentManager.store'
+import { addAttachment, getAttachments, clearAttachments, getUploadAttachmentPending } from 'components/AttachmentManager/AttachmentManager.store'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import {
   Popover,
@@ -21,6 +21,8 @@ import { isMobileDevice } from 'util/mobile'
 const MessageForm = forwardRef((props, ref) => {
   const [hasFocus, setHasFocus] = useState(false)
   const [attachMenuOpen, setAttachMenuOpen] = useState(false)
+  const [attachmentUploading, setAttachmentUploading] = useState(false)
+  const [uploadingAttachmentType, setUploadingAttachmentType] = useState(null)
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const _ref = useRef(null)
@@ -35,11 +37,22 @@ const MessageForm = forwardRef((props, ref) => {
     (a, b) => a.length === b.length && a.every((item, index) => item?.url === b[index]?.url)
   )
   const attachments = [...imageAttachments, ...fileAttachments]
+  const uploadAttachmentPending = useSelector(state =>
+    getUploadAttachmentPending(state, { type: 'comment', id: 'new' })
+  )
+  const attaching = attachmentUploading || !!uploadAttachmentPending
+  const busy = props.pending || attaching
   const addAttachmentAction = useCallback(attachment => dispatch(addAttachment('message', 'new', attachment)), [dispatch])
   const clearAttachmentsAction = useCallback(() => dispatch(clearAttachments('message')), [dispatch])
+  const handleAttachmentLoadingChange = useCallback((next, attachmentType) => {
+    setAttachmentUploading(next)
+    setUploadingAttachmentType(next ? attachmentType : null)
+    if (next) setAttachMenuOpen(false)
+  }, [])
 
   const handleSubmit = event => {
     if (event) event.preventDefault()
+    if (busy) return
     const text = props.messageText
     if (!text?.trim() && isEmpty(attachments)) return
 
@@ -76,7 +89,7 @@ const MessageForm = forwardRef((props, ref) => {
     props.sendIsTyping(true)
   }, STARTED_TYPING_INTERVAL)
 
-  const canSend = (Boolean(props.messageText?.trim()) || !isEmpty(attachments)) && !props.pending && !props.disabled
+  const canSend = (Boolean(props.messageText?.trim()) || !isEmpty(attachments)) && !busy && !props.disabled
 
   // Styled to match the group chat composer (ChatEditorContent), so DMs and
   // chat read as one messaging experience.
@@ -110,6 +123,7 @@ const MessageForm = forwardRef((props, ref) => {
                 addAttachmentAction(attachment)
                 setAttachMenuOpen(false)
               }}
+              onLoadingChange={(next) => handleAttachmentLoadingChange(next, 'image')}
               allowMultiple
               className='w-full'
             >
@@ -126,6 +140,7 @@ const MessageForm = forwardRef((props, ref) => {
                 addAttachmentAction(attachment)
                 setAttachMenuOpen(false)
               }}
+              onLoadingChange={(next) => handleAttachmentLoadingChange(next, 'file')}
               allowMultiple
               className='w-full'
             >
@@ -156,10 +171,16 @@ const MessageForm = forwardRef((props, ref) => {
           placeholder={props.placeholder || t('Write something...')}
           disabled={props.pending || props.disabled}
         />
-        {props.pending
+        {busy
           ? (
-            <div className='flex items-center gap-1 p-1.5 mb-0.5 text-sm text-foreground/50 shrink-0'>
-              <Loader2 className='w-4 h-4 animate-spin' /> {t('Sending...')}
+            <div
+              className='flex items-center gap-1 p-1.5 mb-0.5 text-sm text-foreground/50 shrink-0'
+              data-testid='message-form-spinner'
+              role='status'
+              aria-label={props.pending ? t('Sending...') : t('Loading...')}
+            >
+              <Loader2 className='w-5 h-5 animate-spin' />
+              {props.pending ? t('Sending...') : null}
             </div>
             )
           : (
@@ -179,8 +200,20 @@ const MessageForm = forwardRef((props, ref) => {
             </button>
             )}
       </div>
-      <AttachmentManager type='message' id='new' attachmentType='image' />
-      <AttachmentManager type='message' id='new' attachmentType='file' />
+      <AttachmentManager
+        type='message'
+        id='new'
+        attachmentType='image'
+        showLoading
+        uploadAttachmentPending={attaching && uploadingAttachmentType === 'image'}
+      />
+      <AttachmentManager
+        type='message'
+        id='new'
+        attachmentType='file'
+        showLoading
+        uploadAttachmentPending={attaching && uploadingAttachmentType === 'file'}
+      />
     </form>
   )
 })
