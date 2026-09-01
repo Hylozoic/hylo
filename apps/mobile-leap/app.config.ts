@@ -79,6 +79,10 @@ function buildPlugins (): NonNullable<ExpoConfig['plugins']> {
           ]
         },
         android: {
+          // Play Console requires target API 36 (Android 16) as of 31 Aug 2026
+          compileSdkVersion: 36,
+          targetSdkVersion: 36,
+          buildToolsVersion: '36.0.0',
           usesCleartextTraffic: true
         }
       }
