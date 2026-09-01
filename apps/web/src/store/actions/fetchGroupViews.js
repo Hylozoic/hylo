@@ -14,13 +14,11 @@ export default function fetchGroupViews (groupId) {
             id
             actionDescriptor
             actionDescriptorPlural
-            publishedAt
             accessControlled
             canAccess
           }
           fundingRound {
             id
-            publishedAt
             phase
             submissionDescriptor
             submissionDescriptorPlural
@@ -43,6 +41,7 @@ export default function fetchGroupViews (groupId) {
                 id
                 name
                 slug
+                status
                 avatarUrl
                 icon
                 homeRoute
@@ -50,17 +49,16 @@ export default function fetchGroupViews (groupId) {
                   id
                   actionDescriptor
                   actionDescriptorPlural
-                  publishedAt
                   accessControlled
                   canAccess
                 }
                 fundingRound {
                   id
-                  publishedAt
                   phase
                   submissionDescriptor
                   submissionDescriptorPlural
                 }
+                menuViewCount
               }
               viewPost {
                 id

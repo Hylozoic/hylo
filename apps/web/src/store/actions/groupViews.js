@@ -5,6 +5,7 @@ import {
   CREATE_SPACE,
   DELETE_GROUP_VIEW,
   DELETE_SPACE,
+  ARCHIVE_SPACE,
   FETCH_VIEW_POSTS,
   REMOVE_POST_FROM_VIEW,
   REORDER_GROUP_VIEW,
@@ -65,6 +66,7 @@ const groupViewFields = `
     avatarUrl
     icon
     homeRoute
+    menuViewCount
     description
     groupViews {
       items {
@@ -318,11 +320,11 @@ export function fetchViewPosts (groupId, viewId) {
 }
 
 /** Create a child space under a parent group. */
-export function createSpace ({ parentGroupId, name, slug, description, icon, acceptedPostTypes, purpose, location, locationId, visibility, accessibility, requiredRoles, viewTypes, bannerUrl, avatarUrl, paywall, addToMenu }) {
+export function createSpace ({ parentGroupId, name, slug, description, icon, acceptedPostTypes, purpose, location, locationId, visibility, accessibility, requiredRoles, viewTypes, bannerUrl, avatarUrl, paywall, addToMenu, status }) {
   return {
     type: CREATE_SPACE,
     graphql: {
-      query: `mutation ($parentGroupId: ID!, $name: String!, $slug: String, $description: String, $icon: String, $acceptedPostTypes: [String], $purpose: String, $location: String, $locationId: ID, $visibility: Int, $accessibility: Int, $requiredRoles: [Int], $viewTypes: [String], $bannerUrl: String, $avatarUrl: String, $paywall: Boolean, $addToMenu: Boolean) {
+      query: `mutation ($parentGroupId: ID!, $name: String!, $slug: String, $description: String, $icon: String, $acceptedPostTypes: [String], $purpose: String, $location: String, $locationId: ID, $visibility: Int, $accessibility: Int, $requiredRoles: [Int], $viewTypes: [String], $bannerUrl: String, $avatarUrl: String, $paywall: Boolean, $addToMenu: Boolean, $status: GroupStatus) {
         createSpace(
           parentGroupId: $parentGroupId
           name: $name
@@ -341,20 +343,24 @@ export function createSpace ({ parentGroupId, name, slug, description, icon, acc
           avatarUrl: $avatarUrl
           paywall: $paywall
           addToMenu: $addToMenu
+          status: $status
         ) {
           id
           name
           slug
           homeRoute
+          menuViewCount
           description
           bannerUrl
           avatarUrl
           paywall
           visibility
           accessibility
+          status
+          active
         }
       }`,
-      variables: { parentGroupId, name, slug, description, icon, acceptedPostTypes, purpose, location, locationId, visibility, accessibility, requiredRoles: toIntRoleIds(requiredRoles), viewTypes, bannerUrl, avatarUrl, paywall, addToMenu }
+      variables: { parentGroupId, name, slug, description, icon, acceptedPostTypes, purpose, location, locationId, visibility, accessibility, requiredRoles: toIntRoleIds(requiredRoles), viewTypes, bannerUrl, avatarUrl, paywall, addToMenu, status }
     },
     meta: {
       parentGroupId,
@@ -366,11 +372,11 @@ export function createSpace ({ parentGroupId, name, slug, description, icon, acc
 }
 
 /** Update a space's settings. */
-export function updateSpace ({ id, groupId, spaceViewId, name, slug, description, icon, acceptedPostTypes, viewName, purpose, location, locationId, visibility, accessibility, requiredRoles, bannerUrl, avatarUrl, paywall }) {
+export function updateSpace ({ id, groupId, spaceViewId, name, slug, description, icon, acceptedPostTypes, viewName, purpose, location, locationId, visibility, accessibility, requiredRoles, bannerUrl, avatarUrl, paywall, status }) {
   return {
     type: UPDATE_SPACE,
     graphql: {
-      query: `mutation ($id: ID!, $name: String, $slug: String, $description: String, $icon: String, $acceptedPostTypes: [String], $purpose: String, $location: String, $locationId: ID, $visibility: Int, $accessibility: Int, $requiredRoles: [Int], $bannerUrl: String, $avatarUrl: String, $paywall: Boolean) {
+      query: `mutation ($id: ID!, $name: String, $slug: String, $description: String, $icon: String, $acceptedPostTypes: [String], $purpose: String, $location: String, $locationId: ID, $visibility: Int, $accessibility: Int, $requiredRoles: [Int], $bannerUrl: String, $avatarUrl: String, $paywall: Boolean, $status: GroupStatus) {
         updateSpace(
           id: $id
           name: $name
@@ -387,11 +393,13 @@ export function updateSpace ({ id, groupId, spaceViewId, name, slug, description
           bannerUrl: $bannerUrl
           avatarUrl: $avatarUrl
           paywall: $paywall
+          status: $status
         ) {
           id
           name
           slug
           homeRoute
+          menuViewCount
           description
           bannerUrl
           avatarUrl
@@ -400,9 +408,11 @@ export function updateSpace ({ id, groupId, spaceViewId, name, slug, description
           accessibility
           acceptedPostTypes
           icon
+          status
+          active
         }
       }`,
-      variables: omitBy(isUndefined, { id, name, slug, description, icon, acceptedPostTypes, purpose, location, locationId, visibility, accessibility, requiredRoles: toIntRoleIds(requiredRoles), bannerUrl, avatarUrl, paywall })
+      variables: omitBy(isUndefined, { id, name, slug, description, icon, acceptedPostTypes, purpose, location, locationId, visibility, accessibility, requiredRoles: toIntRoleIds(requiredRoles), bannerUrl, avatarUrl, paywall, status })
     },
     meta: {
       id,
@@ -414,6 +424,26 @@ export function updateSpace ({ id, groupId, spaceViewId, name, slug, description
       extractModel: [
         { getRoot: get('updateSpace'), modelName: 'Group' }
       ]
+    }
+  }
+}
+
+export function archiveSpace (id) {
+  return {
+    type: ARCHIVE_SPACE,
+    graphql: {
+      query: `mutation ($id: ID!) {
+        archiveSpace(id: $id) {
+          id
+          status
+          active
+        }
+      }`,
+      variables: { id }
+    },
+    meta: {
+      id,
+      extractModel: 'Group'
     }
   }
 }

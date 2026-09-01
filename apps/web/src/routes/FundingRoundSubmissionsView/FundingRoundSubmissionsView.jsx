@@ -106,7 +106,7 @@ export default function FundingRoundSubmissionsView () {
     }
   }, [
     round?.phase,
-    round?.publishedAt,
+    round?.phase,
     round?.submissionsOpenAt,
     round?.submissionsCloseAt,
     round?.votingOpensAt,

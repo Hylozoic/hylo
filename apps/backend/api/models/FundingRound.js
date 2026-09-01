@@ -33,6 +33,21 @@ module.exports = bookshelf.Model.extend({
     return space ? space.get('name') : ''
   },
 
+  /** Lifecycle status lives on the space group. */
+  async spaceStatus ({ transacting } = {}) {
+    const space = this.relations.group || await this.group().fetch({ transacting })
+    const status = space && space.get('status')
+    if (Object.values(FundingRound.PHASES).includes(status)) return status
+    return FundingRound.PHASES.DRAFT
+  },
+
+  async setSpaceStatus (status, { transacting } = {}) {
+    const space = this.relations.group || await this.group().fetch({ transacting })
+    if (!space) return
+    await space.save({ status }, { patch: true, transacting })
+    if (this.relations.group) this.relations.group.set({ status })
+  },
+
   // Serialize JSON columns before saving to database
   format: function (attrs) {
     const formatted = Object.assign({}, attrs)
@@ -253,56 +268,42 @@ module.exports = bookshelf.Model.extend({
     let transitionCount = 0
 
     return bookshelf.transaction(async transacting => {
-      // Transition from draft to published
-      const publishingRounds = await FundingRound.query(q => {
-        q.where('deactivated_at', null)
-        q.whereNotNull('published_at')
-        q.where('phase', FundingRound.PHASES.DRAFT)
-        q.where('published_at', '<=', now)
+      const fetch = (statuses, extra) => FundingRound.query(q => {
+        q.join('groups', 'groups.id', 'funding_rounds.group_id')
+        q.where('funding_rounds.deactivated_at', null)
+        q.where('groups.active', true)
+        q.whereIn('groups.status', Array.isArray(statuses) ? statuses : [statuses])
+        extra(q)
       }).fetchAll({ transacting })
 
-      for (const round of publishingRounds.models) {
-        await round.save({ phase: FundingRound.PHASES.PUBLISHED }, { transacting, patch: true })
-        transitionCount++
-      }
+      // Draft → published is explicit (Publish button), not date-driven.
 
-      // Transition from published to submissions
-      const submissionsOpeningRounds = await FundingRound.query(q => {
-        q.where('deactivated_at', null)
-        q.whereNotNull('submissions_open_at')
-        q.where('phase', FundingRound.PHASES.PUBLISHED)
-        q.where('submissions_open_at', '<=', now)
-      }).fetchAll({ transacting })
+      const submissionsOpeningRounds = await fetch(FundingRound.PHASES.PUBLISHED, q => {
+        q.whereNotNull('funding_rounds.submissions_open_at')
+        q.where('funding_rounds.submissions_open_at', '<=', now)
+      })
 
       for (const round of submissionsOpeningRounds.models) {
-        await round.save({ phase: FundingRound.PHASES.SUBMISSIONS }, { transacting, patch: true })
+        await round.setSpaceStatus(FundingRound.PHASES.SUBMISSIONS, { transacting })
         Queue.classMethod('FundingRound', 'sendPhaseTransitionNotifications', { roundId: round.id, phase: FundingRound.PHASES.SUBMISSIONS })
         transitionCount++
       }
 
-      // TODO: if going from published to voting straight dont send notifications for 3 transitions
-
-      // Transition from submissions to discussion
-      const submissionsClosingRounds = await FundingRound.query(q => {
-        q.where('deactivated_at', null)
-        q.whereNotNull('submissions_close_at')
-        q.where('phase', FundingRound.PHASES.SUBMISSIONS)
-        q.where('submissions_close_at', '<=', now)
-      }).fetchAll({ transacting })
+      const submissionsClosingRounds = await fetch(FundingRound.PHASES.SUBMISSIONS, q => {
+        q.whereNotNull('funding_rounds.submissions_close_at')
+        q.where('funding_rounds.submissions_close_at', '<=', now)
+      })
 
       for (const round of submissionsClosingRounds.models) {
-        await round.save({ phase: FundingRound.PHASES.DISCUSSION }, { transacting, patch: true })
+        await round.setSpaceStatus(FundingRound.PHASES.DISCUSSION, { transacting })
         Queue.classMethod('FundingRound', 'sendPhaseTransitionNotifications', { roundId: round.id, phase: FundingRound.PHASES.DISCUSSION })
         transitionCount++
       }
 
-      // Transition from submissions or discussion to voting
-      const votingOpeningRounds = await FundingRound.query(q => {
-        q.where('deactivated_at', null)
-        q.whereNotNull('voting_opens_at')
-        q.whereIn('phase', [FundingRound.PHASES.SUBMISSIONS, FundingRound.PHASES.DISCUSSION])
-        q.where('voting_opens_at', '<=', now)
-      }).fetchAll({ transacting })
+      const votingOpeningRounds = await fetch([FundingRound.PHASES.SUBMISSIONS, FundingRound.PHASES.DISCUSSION], q => {
+        q.whereNotNull('funding_rounds.voting_opens_at')
+        q.where('funding_rounds.voting_opens_at', '<=', now)
+      })
 
       for (const round of votingOpeningRounds.models) {
         try {
@@ -311,21 +312,18 @@ module.exports = bookshelf.Model.extend({
           console.error('Error distributing tokens for round:', round.id, error)
           continue
         }
-        await round.save({ phase: FundingRound.PHASES.VOTING }, { transacting, patch: true })
+        await round.setSpaceStatus(FundingRound.PHASES.VOTING, { transacting })
         Queue.classMethod('FundingRound', 'sendPhaseTransitionNotifications', { roundId: round.id, phase: FundingRound.PHASES.VOTING })
         transitionCount++
       }
 
-      // Transition from voting to completed
-      const votingClosingRounds = await FundingRound.query(q => {
-        q.where('deactivated_at', null)
-        q.whereNotNull('voting_closes_at')
-        q.where('phase', FundingRound.PHASES.VOTING)
-        q.where('voting_closes_at', '<=', now)
-      }).fetchAll({ transacting })
+      const votingClosingRounds = await fetch(FundingRound.PHASES.VOTING, q => {
+        q.whereNotNull('funding_rounds.voting_closes_at')
+        q.where('funding_rounds.voting_closes_at', '<=', now)
+      })
 
       for (const round of votingClosingRounds.models) {
-        await round.save({ phase: FundingRound.PHASES.COMPLETED }, { transacting, patch: true })
+        await round.setSpaceStatus(FundingRound.PHASES.COMPLETED, { transacting })
         Queue.classMethod('FundingRound', 'sendPhaseTransitionNotifications', { roundId: round.id, phase: FundingRound.PHASES.COMPLETED })
         transitionCount++
       }
@@ -398,10 +396,10 @@ module.exports = bookshelf.Model.extend({
     await membership.save({ created_at: new Date() }, { patch: true, transacting })
     await round.save({ num_participants: (round.get('num_participants') || 0) + 1 }, { transacting })
 
-    const canAllocateOnJoin = round.get('allow_late_joiners')
-      && round.get('voting_method') === 'token_allocation_constant'
-      && round.get('phase') === FundingRound.PHASES.VOTING
-      && round.get('total_tokens')
+    const canAllocateOnJoin = round.get('allow_late_joiners') &&
+      round.get('voting_method') === 'token_allocation_constant' &&
+      await round.spaceStatus({ transacting }) === FundingRound.PHASES.VOTING &&
+      round.get('total_tokens')
 
     // Late joiners only receive tokens when the round is already in voting
     if (canAllocateOnJoin && await round.canUserVote(userId)) {
@@ -445,7 +443,7 @@ module.exports = bookshelf.Model.extend({
     }
 
     // Check if tokens have already been distributed (phase is voting or completed)
-    const phase = round.get('phase')
+    const phase = await round.spaceStatus({ transacting })
     if (phase === FundingRound.PHASES.VOTING || phase === FundingRound.PHASES.COMPLETED) {
       return round
     }

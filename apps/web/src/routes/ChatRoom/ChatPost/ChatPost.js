@@ -143,7 +143,8 @@ export default function ChatPost ({
     // Don't open post details in these cases
     } else if (
       !editing &&
-      !(event.target.getAttribute('target') === '_blank') &&
+      // closest: the click often lands on an icon or span inside the link
+      !event.target.closest?.('a[target="_blank"]') &&
       !event.target.className.includes('image') &&
       !event.target.className.includes('icon-Smiley')
     ) {
@@ -468,10 +469,18 @@ export default function ChatPost ({
         {linkPreview && !linkPreviewFeatured && (
           <LinkPreview {...pick(['title', 'description', 'imageUrl', 'url'], linkPreview)} className='px-5 pb-[0.6rem] pl-[42px] block [&>div]:mb-0 max-w-[calc(var(--chat-stream-width,750px)-50px)]' />
         )}
-        <CardImageAttachments attachments={post.attachments} isFlagged={isFlagged && !post.clickthrough} forChatPost />
-        {!isEmpty(fileAttachments) && (
-          <CardFileAttachments attachments={fileAttachments} />
-        )}
+        {/* Chat has no clickthrough affordance, so a flagged post's media stays
+            blurred like its text rather than honoring a clickthrough recorded
+            on another surface */}
+        {/* The wrapper makes empty space beside the attachments open the post,
+            like the header and text regions; tile clicks stop propagation and
+            open the lightbox instead */}
+        <div onClick={handleClick}>
+          <CardImageAttachments attachments={post.attachments} isFlagged={isFlagged} forChatPost />
+          {!isEmpty(fileAttachments) && (
+            <CardFileAttachments attachments={fileAttachments} className={cn({ 'blur-sm': isFlagged })} />
+          )}
+        </div>
         {((postReactions && postReactions.length > 0) || commentsTotal > 0) && (
           <div className='w-full flex flex-row items-center flex-wrap gap-1.5 pl-[42px] mt-1 mb-[2px]'>
             {postReactions && postReactions.length > 0 && (

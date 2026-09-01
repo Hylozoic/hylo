@@ -27,7 +27,7 @@ function toSpaceCard (group, kind, parentById) {
   return {
     ...ref,
     parentGroup,
-    isDraft: kind === 'track' && ref.track && !ref.track.publishedAt
+    isDraft: ref.status === 'draft'
   }
 }
 
@@ -45,6 +45,7 @@ function spacesFromMemberships (memberships, kind) {
   return memberships
     .map(membership => membership.group)
     .filter(Boolean)
+    .filter(group => group.active !== false)
     .filter(group => group.type === GROUP_TYPES.space || group.parentId)
     .filter(group => kind === 'track' ? group.track : group.fundingRound)
     .map(group => toSpaceCard(group, kind, parentById))

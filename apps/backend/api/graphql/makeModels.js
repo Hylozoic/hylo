@@ -723,6 +723,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'created_at',
         'description',
         'home_route',
+        'menu_view_count',
         'icon',
         'location',
         'geo_shape',
@@ -734,6 +735,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'purpose',
         'required_roles',
         'slug',
+        'status',
         'stripe_account_id',
         'stripe_charges_enabled',
         'stripe_payouts_enabled',
@@ -882,17 +884,23 @@ export default function makeModels (userId, isAdmin, apiClient) {
 
                 if (!isNil(published)) {
                   if (published) {
-                    q.whereNotNull('tracks.published_at')
+                    q.whereIn('tracks.group_id', function () {
+                      this.select('id').from('groups').whereIn('status', Group.PUBLISHED_STATUSES)
+                    })
                   } else {
-                    q.whereNull('tracks.published_at')
+                    q.whereIn('tracks.group_id', function () {
+                      this.select('id').from('groups').where('status', Group.Status.DRAFT)
+                    })
                   }
                 }
 
-                q.orderBy(sortBy || 'id', order || 'asc')
+                q.orderBy(sortBy === 'published_at' ? 'tracks.created_at' : (sortBy || 'id'), order || 'asc')
 
                 // Only admins can see unpublished tracks
                 if (!GroupMembership.hasResponsibility(userId, groupId, Responsibility.constants.RESP_ADMINISTRATION)) {
-                  q.whereNotNull('tracks.published_at')
+                  q.whereIn('tracks.group_id', function () {
+                    this.select('id').from('groups').whereIn('status', Group.PUBLISHED_STATUSES)
+                  })
                 }
               })
           }
@@ -1038,6 +1046,10 @@ export default function makeModels (userId, isAdmin, apiClient) {
         openJoinRequestCount: g => {
           if (!userId) return 0
           return g.get('num_open_join_requests') || 0
+        },
+        openModerationActionCount: g => {
+          if (!userId) return 0
+          return ModerationAction.where({ group_id: g.id, status: 'active' }).count().then(Number)
         },
         pendingInvitations: (g, { first }) => InvitationService.find({ groupId: g.id, pendingOnly: true }),
         responsibilities: async g => g.availableResponsibilities().fetch(),
@@ -1514,7 +1526,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'num_actions',
         'num_people_completed',
         'num_people_enrolled',
-        'published_at',
         'updated_at'
       ],
       relations: [
@@ -1544,8 +1555,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'hide_final_results_from_participants',
         'max_token_allocation',
         'min_token_allocation',
-        'phase',
-        'published_at',
         'require_budget',
         'submission_descriptor_plural',
         'submission_descriptor',
@@ -1559,6 +1568,10 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'voting_opens_at'
       ],
       getters: {
+        phase: async r => {
+          if (!r) return null
+          return r.spaceStatus()
+        },
         canSubmit: r => r && userId ? r.canUserSubmit(userId) : false,
         canVote: r => r && userId ? r.canUserVote(userId) : false,
         isParticipating: r => r && userId && r.isParticipating(userId),

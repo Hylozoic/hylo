@@ -3,7 +3,7 @@ import { fireEvent, render, screen } from 'util/testing/reactTestingLibraryExten
 import SpaceSelector from './SpaceSelector'
 
 const spaces = [
-  { id: '1', name: 'Permaculture Track', track: { publishedAt: '2026-01-01' } },
+  { id: '1', name: 'Permaculture Track', status: 'published', track: { id: 't1' } },
   { id: '2', name: 'Spring Round', fundingRound: { id: 'fr1' } },
   { id: '3', name: 'Working Group' }
 ]
@@ -24,11 +24,14 @@ describe('SpaceSelector', () => {
     fireEvent.focus(screen.getByPlaceholderText('Search for spaces'))
     expect(screen.getByText('Funding Rounds')).toBeInTheDocument()
     expect(screen.getByText('Spring Round')).toBeInTheDocument()
-    expect(screen.getByText('Other Spaces')).toBeInTheDocument()
+    expect(screen.queryByText('Other Spaces')).not.toBeInTheDocument()
     expect(screen.getByText('Working Group')).toBeInTheDocument()
 
     fireEvent.click(screen.getByText('Spring Round'))
-    expect(onSelectSpace).toHaveBeenCalledWith(spaces[1])
+    expect(onSelectSpace).toHaveBeenCalledWith(expect.objectContaining({
+      id: '2',
+      name: 'Spring Round'
+    }))
   })
 
   it('filters suggestions by search text', () => {

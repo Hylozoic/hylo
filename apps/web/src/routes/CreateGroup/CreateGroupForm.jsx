@@ -1,6 +1,6 @@
 import { trim } from 'lodash/fp'
 import {
-  Activity, ArrowRight, ChevronDown, DoorOpen, EyeOff, Globe, HelpCircle, ImagePlus,
+  Activity, ArrowRight, DoorOpen, EyeOff, Globe, HelpCircle, ImagePlus,
   LayoutGrid, Lock, Map, MapPin, MessageCircleMore, Network, Plus, ScrollText, Settings, Shield, Users, X
 } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -8,24 +8,23 @@ import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { useLocation, useParams } from 'react-router-dom'
 import { push } from 'redux-first-history'
-import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
-import GroupViewIcon from 'routes/AuthLayoutRouter/components/ContextMenu/GroupViewIcon'
+import { AdvancedPill, AdvancedSection } from 'components/AdvancedSettings/AdvancedSettings'
 import GroupsSelector from 'components/GroupsSelector'
+import HomeViewPicker from 'components/HomeViewPicker/HomeViewPicker'
 import IncludedViewsEditor from 'components/IncludedViewsEditor/IncludedViewsEditor'
 import LocationInput from 'components/LocationInput/LocationInput'
 import PostTypePills from 'components/PostTypePills/PostTypePills'
-import SegmentedPicker from 'components/SegmentedPicker/SegmentedPicker'
+import SettingSelectRow from 'components/SettingSelectRow/SettingSelectRow'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import Button from 'components/ui/button'
+import { INPUT_CLASS } from 'components/ui/form-field'
 import InfoButton from 'components/ui/info'
-import { Popover, PopoverContent, PopoverTrigger } from 'components/ui/popover'
-import { Tooltip, TooltipContent, TooltipTrigger } from 'components/ui/tooltip'
 import { CUSTOM_VIEW_DEFAULT_POST_TYPES, CUSTOM_VIEW_POST_TYPE_OPTIONS } from 'components/CustomViewForm/customViewFormConstants'
 import { createGroupView } from 'store/actions/groupViews'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import { RESP_ADMINISTRATION } from 'store/constants'
 import { DEFAULT_AVATAR, GROUP_ACCESSIBILITY, GROUP_VISIBILITY } from 'store/models/Group'
-import { POST_TYPE_TO_VIEW_TYPE } from 'store/models/GroupView'
+import { CUSTOM_HOME_VIEW, POST_TYPE_TO_VIEW_TYPE, viewTypesForCreate } from 'store/models/GroupView'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
@@ -38,25 +37,10 @@ import { nameToSlug, SLUG_MAX_LENGTH, slugValidatorRegex } from './slug'
 
 const STANDARD_VIEW_TYPES = new Set(['all', 'chat', 'map', 'members', ...Object.values(POST_TYPE_TO_VIEW_TYPE)])
 
-/** Seeds the menu in this order, with the chosen home view first so the landing route matches.
- * `orderedStandardTypes` is empty until Menu Items is opened, so we fall back to the derived defaults. */
-function viewTypesForCreate (orderedStandardTypes, defaultTypes, homeType) {
-  const types = orderedStandardTypes.length > 0 ? orderedStandardTypes : defaultTypes
-  if (types.length === 0) return [homeType || 'all']
-  if (homeType && types.includes(homeType) && types[0] !== homeType) {
-    return [homeType, ...types.filter(type => type !== homeType)]
-  }
-  return types
-}
-
 const SLUG_CHECK_DEBOUNCE = 300
 
 const NAME_MAX_LENGTH = 60
 const PURPOSE_MAX_LENGTH = 500
-
-// Every text field in this form — including the ones inside the advanced editors —
-// uses this so the whole modal reads as one set of controls.
-const INPUT_CLASS = 'w-full rounded-lg border-2 border-foreground/20 bg-input px-3 py-2.5 text-sm text-foreground placeholder-foreground/40 focus:outline-none focus:border-focus transition-colors'
 
 // The chosen groups are rendered here as pills instead, so TagInput's own tags are
 // hidden and only its field is used. `relative` on that field's row keeps the
@@ -159,21 +143,6 @@ const VISIBILITY_OPTIONS = [
   }
 ]
 
-// Stands in for a home view that isn't one of the three below — the backend takes the
-// landing route from the first seeded view, so any menu item can hold the spot.
-const CUSTOM_HOME_VIEW = 'CUSTOM'
-
-// What each of the other menu items is, for when one of them is the home view.
-const VIEW_TYPE_DESCRIPTIONS = {
-  discussions: 'All your discussions in one place',
-  events: 'Everything your group has coming up',
-  'requests-and-offers': 'What people need, and what they can offer',
-  resources: 'The resources your group has gathered',
-  proposals: 'Decisions your group is making together',
-  projects: 'The work your group has underway',
-  members: 'Everyone who is part of your group'
-}
-
 // Home view decides the group's landing route. Each value maps to the view type that
 // has to be seeded for that route to resolve.
 // Icons match what each view carries in the group menu (VIEW_TYPE_TO_LUCIDE_ICON).
@@ -201,43 +170,6 @@ const HOME_VIEW_OPTIONS = [
   }
 ]
 
-// One control: a segmented toggle whose selection swaps the description beneath it,
-// rather than three cards each repeating their own explanation. Promoting any other
-// menu item to the top makes it the home, so it takes the first segment's place —
-// the segments are shortcuts to the top of the menu, not a separate setting.
-function HomeViewPicker ({ value, onChange, customHomeRow }) {
-  const { t } = useTranslation()
-
-  const options = useMemo(() => {
-    if (!customHomeRow) return HOME_VIEW_OPTIONS
-    const presented = GroupViewPresenter({ type: customHomeRow.type, name: customHomeRow.name, pageContent: customHomeRow.pageContent })
-    const name = customHomeRow.name || displayNameForView(presented, t)
-    const description = VIEW_TYPE_DESCRIPTIONS[customHomeRow.type]
-    return [
-      {
-        value: CUSTOM_HOME_VIEW,
-        title: name,
-        translated: true,
-        description: description ? t(description) : t('Members will land on {{name}} when they enter your group.', { name }),
-        renderIcon: className => <GroupViewIcon view={presented} className={className} />
-      },
-      ...HOME_VIEW_OPTIONS.slice(1)
-    ]
-  }, [customHomeRow, t])
-
-  const segments = options.map(option => ({
-    value: option.value,
-    label: option.translated ? option.title : t(option.title),
-    description: option.translated ? option.description : t(option.description),
-    icon: option.icon,
-    renderIcon: option.renderIcon,
-    disabled: option.value === CUSTOM_HOME_VIEW
-  }))
-
-  // Container restyled to read like the Additional settings panels
-  return <SegmentedPicker value={value} onChange={onChange} options={segments} className='rounded-xl border border-foreground/10 bg-foreground/5 p-2' />
-}
-
 const ACCESSIBILITY_OPTIONS = [
   {
     value: GROUP_ACCESSIBILITY.Open,
@@ -258,129 +190,6 @@ const ACCESSIBILITY_OPTIONS = [
     description: 'Nobody can request to join. Members arrive only when a steward invites them directly or shares an invite link.'
   }
 ]
-
-// Returns the nearest open dialog so popovers portal inside it. Radix dialogs are
-// modal, so content portalled to document.body sits behind the scroll lock and
-// stops responding to clicks.
-function popoverSurface (element) {
-  if (!element || typeof element.closest !== 'function') return undefined
-  return element.closest('[role="dialog"][data-state="open"]') || undefined
-}
-
-// A setting rendered as its own heading: the chosen option's title is the label and
-// its explanation sits underneath, so the current choice reads as a sentence rather
-// than as a value inside a form control.
-function SettingSelectRow ({ value, onChange, options, label }) {
-  const { t } = useTranslation()
-  const [open, setOpen] = useState(false)
-  const anchorRef = useRef()
-  const selected = options.find(o => o.value === value) || options[0]
-  const SelectedIcon = selected.icon
-
-  return (
-    <div className='flex items-start gap-3' ref={anchorRef}>
-      <div className='w-9 h-9 shrink-0 rounded-full bg-selected/20 text-selected flex items-center justify-center'>
-        <SelectedIcon className='w-[18px] h-[18px]' />
-      </div>
-      <div className='flex-1 min-w-0'>
-        <Popover open={open} onOpenChange={setOpen}>
-          <PopoverTrigger asChild>
-            <button
-              type='button'
-              aria-label={t(label)}
-              className={cn(
-                '-ml-2 inline-flex items-center gap-2 rounded-md px-2 py-0.5 text-[15px] font-bold text-foreground transition-colors',
-                open ? 'bg-foreground/10' : 'hover:bg-foreground/5'
-              )}
-            >
-              {t(selected.title)}
-              <ChevronDown className={cn('w-3 h-3 opacity-60 transition-transform', open && 'rotate-180')} />
-            </button>
-          </PopoverTrigger>
-          <PopoverContent
-            align='start'
-            arrow={false}
-            container={popoverSurface(anchorRef.current)}
-            className='w-[280px] p-1.5'
-          >
-            {options.map(option => {
-              const OptionIcon = option.icon
-              const isSelected = option.value === value
-              return (
-                <button
-                  key={option.value}
-                  type='button'
-                  onClick={() => { onChange(option.value); setOpen(false) }}
-                  className={cn(
-                    'flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left transition-colors',
-                    isSelected ? 'bg-selected/20 text-selected' : 'text-foreground/80 hover:bg-foreground/5'
-                  )}
-                >
-                  <OptionIcon className='w-4 h-4 shrink-0' />
-                  <span className='text-sm font-semibold'>{t(option.title)}</span>
-                </button>
-              )
-            })}
-          </PopoverContent>
-        </Popover>
-        <p className='text-[13px] leading-snug text-foreground/60 mt-0.5 mb-0'>{t(selected.description)}</p>
-      </div>
-    </div>
-  )
-}
-
-function AdvancedPill ({ isOpen, icon: Icon, label, defaultSummary, onClick }) {
-  const { t } = useTranslation()
-  const pill = (
-    <button
-      type='button'
-      onClick={onClick}
-      aria-pressed={isOpen}
-      className={cn(
-        'inline-flex items-center gap-2 rounded-full border-2 px-3 py-1.5 text-[13px] font-semibold transition-all',
-        isOpen
-          ? 'border-selected bg-selected/20 text-selected'
-          : 'border-foreground/20 text-foreground/70 hover:border-foreground/50 hover:text-foreground'
-      )}
-    >
-      <Icon className='w-3 h-3' />
-      {t(label)}
-    </button>
-  )
-
-  if (isOpen || !defaultSummary) return pill
-
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>{pill}</TooltipTrigger>
-      <TooltipContent className='flex flex-col items-start gap-0.5 py-1.5'>
-        <span className='text-[9px] font-bold tracking-widest text-foreground/50'>{t('DEFAULT')}</span>
-        <span className='text-xs font-semibold'>{defaultSummary}</span>
-      </TooltipContent>
-    </Tooltip>
-  )
-}
-
-function AdvancedSection ({ settingKey, icon: Icon, label, onHide, children }) {
-  const { t } = useTranslation()
-  return (
-    <div data-advanced-key={settingKey} className='rounded-xl border border-foreground/10 bg-foreground/5 p-4'>
-      <div className='flex items-center gap-2 mb-1.5'>
-        <Icon className='w-4 h-4 text-selected' />
-        <span className='flex-1 text-sm font-bold text-foreground'>{t(label)}</span>
-        <button
-          type='button'
-          onClick={onHide}
-          aria-label={t('Hide {{label}}', { label: t(label) })}
-          className='text-foreground/50 hover:text-foreground transition-colors'
-        >
-          <X className='w-3.5 h-3.5' />
-        </button>
-      </div>
-      {children}
-    </div>
-  )
-}
 
 function AgreementsEditor ({ agreements, onChange }) {
   const { t } = useTranslation()
@@ -944,7 +753,7 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
                 />
               </AdvancedSection>
               )
-            : <HomeViewPicker value={homeView} onChange={setHomeView} customHomeRow={customHomeRow} />}
+            : <HomeViewPicker value={homeView} onChange={setHomeView} customHomeRow={customHomeRow} options={HOME_VIEW_OPTIONS} />}
         </div>
 
         {visibility === GROUP_VISIBILITY.Public && (

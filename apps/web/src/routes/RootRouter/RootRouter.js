@@ -196,6 +196,18 @@ export default function RootRouter () {
     sendMessageToWebView(WebViewMessageTypes.VERIFY_AUTH)
   }, [isAuthSessionUnknown, isAuthorized])
 
+  // Boot loading screen milestones (the loader lives in index.html so it can
+  // start before React mounts): React has mounted, then the session is known —
+  // at which point the view below starts rendering and the loader fades out.
+  useEffect(() => {
+    window.HyloBootLoader?.milestone?.('react')
+  }, [])
+
+  const bootDone = !isAuthSessionUnknown && !mobileRecovering
+  useEffect(() => {
+    if (bootDone) window.HyloBootLoader?.ready()
+  }, [bootDone])
+
   if (isAuthSessionUnknown || mobileRecovering) {
     if (window.HyloMobileV2 || isNeutralRootSessionLoadingPath(pathname)) {
       return <Loading type='fullscreen' />
@@ -220,46 +232,48 @@ export default function RootRouter () {
 
   if (!isAuthorized) {
     return (
-      <Routes>
-        <Route path='/' element={<Navigate to='/login' replace />} />
+      <>
+        <Routes>
+          <Route path='/' element={<Navigate to='/login' replace />} />
 
-        <Route
-          path='/public/*'
-          element={<PublicLayoutRouter />}
-        />
+          <Route
+            path='/public/*'
+            element={<PublicLayoutRouter />}
+          />
 
-        <Route path='/oauth/*' element={<OAuthLayoutRouter />} />
+          <Route path='/oauth/*' element={<OAuthLayoutRouter />} />
 
-        <Route path='/post/:postId/*' element={<PublicPostDetail />} />
+          <Route path='/post/:postId/*' element={<PublicPostDetail />} />
 
-        {/* Redirect all other post routes to /post/:postId */}
-        <Route path='/all/topics/:topicName/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
-        <Route path='/all/members/:personId/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
-        <Route path='/all/:view/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
-        <Route path='/all/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
-        <Route path='/public/topics/:topicName/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
-        <Route path='/public/:view/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
-        <Route path='/public/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
-        <Route path='/my/:view/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
-        <Route path='/members/:personId/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
-        <Route path='/groups/:groupSlug/custom/:customViewId/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
-        <Route path='/groups/:groupSlug/members/:personId/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
-        <Route path='/groups/:groupSlug/topics/:topicName/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
-        <Route path='/groups/:groupSlug/:view/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
-        <Route path='/groups/:groupSlug/chat/:topicName/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
-        <Route path='/groups/:groupSlug/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
+          {/* Redirect all other post routes to /post/:postId */}
+          <Route path='/all/topics/:topicName/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
+          <Route path='/all/members/:personId/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
+          <Route path='/all/:view/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
+          <Route path='/all/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
+          <Route path='/public/topics/:topicName/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
+          <Route path='/public/:view/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
+          <Route path='/public/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
+          <Route path='/my/:view/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
+          <Route path='/members/:personId/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
+          <Route path='/groups/:groupSlug/custom/:customViewId/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
+          <Route path='/groups/:groupSlug/members/:personId/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
+          <Route path='/groups/:groupSlug/topics/:topicName/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
+          <Route path='/groups/:groupSlug/:view/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
+          <Route path='/groups/:groupSlug/chat/:topicName/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
+          <Route path='/groups/:groupSlug/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
 
-        <Route path='/members/:personId/*' element={<PublicMemberProfile />} />
-        <Route path='/all/members/:personId/*' element={<PublicMemberProfile />} />
+          <Route path='/members/:personId/*' element={<PublicMemberProfile />} />
+          <Route path='/all/members/:personId/*' element={<PublicMemberProfile />} />
 
-        {/* XXX: sending join page directly to JoinGroup, before all other group pages go to the public group detail */}
-        <Route path='/groups/:groupSlug/join/:accessCode/*' element={<JoinGroup />} />
-        {/* Must be before `/groups/:groupSlug/*` → PublicGroupDetail so offering URLs resolve here */}
-        <Route path='/groups/:groupSlug/offerings/:offeringId' element={<OfferingDetails />} />
-        <Route path='/groups/:groupSlug/*' element={<PublicGroupDetail />} />
+          {/* XXX: sending join page directly to JoinGroup, before all other group pages go to the public group detail */}
+          <Route path='/groups/:groupSlug/join/:accessCode/*' element={<JoinGroup />} />
+          {/* Must be before `/groups/:groupSlug/*` → PublicGroupDetail so offering URLs resolve here */}
+          <Route path='/groups/:groupSlug/offerings/:offeringId' element={<OfferingDetails />} />
+          <Route path='/groups/:groupSlug/*' element={<PublicGroupDetail />} />
 
-        <Route path='*' element={<NonAuthLayoutRouter />} />
-      </Routes>
+          <Route path='*' element={<NonAuthLayoutRouter />} />
+        </Routes>
+      </>
     )
   }
 }

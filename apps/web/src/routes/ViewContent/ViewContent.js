@@ -76,6 +76,8 @@ import isPendingFor from 'store/selectors/isPendingFor'
 import markViewAsRead from 'store/actions/markViewAsRead'
 import { TYPED_BADGE_VIEW_TYPES } from 'util/viewUnreadBadges'
 import { cn } from 'util/index'
+import useTour from 'tours/useTour'
+import { STREAM_TOUR_ID, streamTourSteps } from 'tours/streamTour'
 import { createPostUrl, groupUrl, spaceUrl } from '@hylo/navigation'
 import { getLocaleFromLocalStorage } from 'util/locale'
 import { STREAM_MAIN_COLUMN_CLASS } from 'util/mainContentColumn'
@@ -131,6 +133,15 @@ export default function ViewContent (props) {
   const location = useLocation()
   const routeParams = useRouteParams()
   const { t } = useTranslation()
+
+  // First-visit tour of the stream's icon-only controls, offered by invitation
+  const streamTourStepList = useMemo(() => streamTourSteps(t), [t])
+  const { invitation: streamTourInvitation } = useTour({
+    id: STREAM_TOUR_ID,
+    steps: streamTourStepList,
+    autoStart: true,
+    inviteMessage: t('Want a quick tour of these stream controls?')
+  })
   const groupSlug = useEffectiveGroupSlug()
   const { parentGroupSlug, spaceSlug } = useGroupRouteOpts()
   const { topicName, customViewId } = routeParams
@@ -663,6 +674,7 @@ export default function ViewContent (props) {
 
   return (
     <div id='stream-outer-container' className='flex flex-col h-full overflow-auto' ref={setContainer}>
+      {streamTourInvitation}
       <Helmet>
         <title>{name} | {group ? `${group.name} | ` : context} | Hylo</title>
         <meta name='description' content={group ? `Posts from ${group.name}. ${group.description}` : 'Group Not Found'} />

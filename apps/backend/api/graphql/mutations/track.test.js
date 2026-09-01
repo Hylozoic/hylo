@@ -42,8 +42,7 @@ describe('track mutations', () => {
       }).save()
       const track = await createTrack(trackManager.id, {
         name: 'Onboarding',
-        groupId: space.id,
-        publishedAt: Date.now().toString()
+        groupId: space.id
       })
       expect(String(track.get('group_id'))).to.equal(String(space.id))
       await space.refresh()
@@ -122,8 +121,7 @@ describe('track mutations', () => {
       }).save()
       const track = await createTrack(trackManager.id, {
         name,
-        groupId: space.id,
-        publishedAt: Date.now().toString()
+        groupId: space.id
       })
       return { space, track }
     }
@@ -140,7 +138,8 @@ describe('track mutations', () => {
       const space = await factories.group({
         type: 'space',
         parent_id: group.id,
-        slug: `track-space-draft-${Date.now()}`
+        slug: `track-space-draft-${Date.now()}`,
+        status: Group.Status.DRAFT
       }).save()
       const track = await createTrack(trackManager.id, {
         name: 'Draft',

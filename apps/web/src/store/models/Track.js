@@ -28,7 +28,6 @@ Track.fields = {
   numActions: attr(),
   numPeopleCompleted: attr(),
   numPeopleEnrolled: attr(),
-  publishedAt: attr(),
   // Embedded space Group (tracks.group_id) — not a normalized relation
   space: attr()
 }

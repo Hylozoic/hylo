@@ -115,7 +115,7 @@ export default function SpaceCollection ({ group, parentGroup }) {
   const visibleSpaces = useMemo(
     () => filterSpacesForMenuVisibility(allSpaces, visibilityOpts).map(space => ({
       ...space,
-      isDraft: Boolean(space.track && !space.track.publishedAt)
+      isDraft: space.status === 'draft'
     })),
     [allSpaces, visibilityOpts]
   )

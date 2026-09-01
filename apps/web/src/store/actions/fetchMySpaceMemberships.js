@@ -27,6 +27,8 @@ export default function fetchMySpaceMemberships () {
                 name
                 slug
                 type
+                status
+                active
                 parentId
                 icon
                 avatarUrl
@@ -41,11 +43,9 @@ export default function fetchMySpaceMemberships () {
                 }
                 track {
                   id
-                  publishedAt
                 }
                 fundingRound {
                   id
-                  publishedAt
                 }
               }
             }

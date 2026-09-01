@@ -8,7 +8,7 @@ import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { addQuerystringToPath, groupUrl, localSpaceSlug, spaceUrl } from '@hylo/navigation'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
-import { createGroupView, deleteSpace, setGroupViewHidden, updateGroupView } from 'store/actions/groupViews'
+import { createGroupView, deleteSpace, archiveSpace, setGroupViewHidden, updateGroupView } from 'store/actions/groupViews'
 import { FETCH_GROUP_SPACES } from 'store/constants'
 import useGroupViews from 'hooks/useGroupViews'
 import useMoreSpacesSections from 'hooks/useMoreSpacesSections'
@@ -18,9 +18,8 @@ import isPendingFor from 'store/selectors/isPendingFor'
 import { cn } from 'util/index'
 
 import AddSpaceDialog from './AddSpaceDialog'
-import AddViewOrSpaceMenu from './AddViewOrSpaceMenu'
 import SpaceSettingsModal from './SpaceSettingsModal'
-import { SpaceViewCard } from './GroupViewCard'
+import { AddCard, SpaceViewCard } from './GroupViewCard'
 import EditingBottomBar, { EDITING_BAR_BUTTON_CLASS } from './EditingBottomBar'
 import ViewsGridSkeleton from './ViewsGridSkeleton'
 import { spaceEntryUrl } from './groupViewMenuUrl'
@@ -172,7 +171,7 @@ export default function MoreSpacesPage ({ group }) {
   const handleDeleteSpace = useCallback(async (space) => {
     if (!space?.id || deletingSpaceId) return
     const confirmed = window.confirm(
-      t('Are you sure you want to permanently delete {{name}}? Posts in this space will no longer be accessible.', {
+      t('Are you sure you want to delete {{name}}? It will be hidden from the menu and More Spaces.', {
         name: space.name
       })
     )
@@ -184,6 +183,24 @@ export default function MoreSpacesPage ({ group }) {
       await dispatch(fetchGroupViews(contentGroup.id))
     } catch (error) {
       console.error('Failed to delete space:', error)
+    } finally {
+      setDeletingSpaceId(null)
+    }
+  }, [dispatch, contentGroup?.id, deletingSpaceId, t])
+
+  const handleArchiveSpace = useCallback(async (space) => {
+    if (!space?.id || deletingSpaceId) return
+    const confirmed = window.confirm(
+      t('Are you sure you want to archive {{name}}?', { name: space.name })
+    )
+    if (!confirmed) return
+    setDeletingSpaceId(space.id)
+    try {
+      await dispatch(archiveSpace(space.id))
+      await dispatch(fetchGroupSpaces(contentGroup.id))
+      await dispatch(fetchGroupViews(contentGroup.id))
+    } catch (error) {
+      console.error('Failed to archive space:', error)
     } finally {
       setDeletingSpaceId(null)
     }
@@ -226,10 +243,12 @@ export default function MoreSpacesPage ({ group }) {
     if (group?.id) await dispatch(fetchGroupSpaces(group.id))
   }, [dispatch, contentGroup?.id, group?.id])
 
+  const showDrafts = sections.draftSpaces.length > 0
   const showTracks = sections.trackSpaces.length > 0
   const showFundingRounds = sections.fundingRoundSpaces.length > 0
   const showOtherSpaces = sections.otherSpaces.length > 0
-  const hasContent = showTracks || showFundingRounds || showOtherSpaces
+  const showArchived = sections.archivedSpaces.length > 0
+  const hasContent = showDrafts || showTracks || showFundingRounds || showOtherSpaces || showArchived
 
   return (
     <div ref={containerRef} className={cn('w-full max-w-[980px] mx-auto px-4 py-6', isEditing && 'pb-24')}>
@@ -239,11 +258,17 @@ export default function MoreSpacesPage ({ group }) {
             ? <p className='text-sm text-foreground/40'>{t('No more spaces')}</p>
             : (
               <div className='flex flex-col'>
-                {showTracks && (
-                  <section className={SECTION_CLASS}>
-                    <SectionHeading>{t('Tracks')}</SectionHeading>
+                {[
+                  showOtherSpaces && { key: 'other', items: sections.otherSpaces },
+                  showTracks && { key: 'tracks', title: t('Tracks'), items: sections.trackSpaces },
+                  showFundingRounds && { key: 'rounds', title: t('Funding Rounds'), items: sections.fundingRoundSpaces },
+                  showDrafts && { key: 'drafts', title: t('Drafts'), items: sections.draftSpaces },
+                  showArchived && { key: 'archived', title: t('Archived'), items: sections.archivedSpaces }
+                ].filter(Boolean).map(section => (
+                  <section key={section.key} className={SECTION_CLASS}>
+                    {section.title && <SectionHeading>{section.title}</SectionHeading>}
                     <div className='flex flex-wrap gap-3'>
-                      {sections.trackSpaces.map(space => (
+                      {section.items.map(space => (
                         <SpaceViewCard
                           key={space.id}
                           space={space}
@@ -251,69 +276,26 @@ export default function MoreSpacesPage ({ group }) {
                           isDeleting={String(deletingSpaceId) === String(space.id)}
                           onOpen={handleOpenSpace}
                           onOpenAbout={handleOpenSpaceAbout}
-                          onAddToMenu={handleAddSpaceToMenu}
+                          onAddToMenu={space.status === 'archived' || space.status === 'draft' ? null : handleAddSpaceToMenu}
                           onAddToCollection={handleAddToCollection}
                           collectionViews={collectionViews}
                           onOpenSettings={setSettingsSpace}
                           onDelete={handleDeleteSpace}
+                          onArchive={space.status === 'archived' ? null : handleArchiveSpace}
                         />
                       ))}
                     </div>
                   </section>
-                )}
-                {showFundingRounds && (
-                  <section className={SECTION_CLASS}>
-                    <SectionHeading>{t('Funding Rounds')}</SectionHeading>
-                    <div className='flex flex-wrap gap-3'>
-                      {sections.fundingRoundSpaces.map(space => (
-                        <SpaceViewCard
-                          key={space.id}
-                          space={space}
-                          isEditing={isEditing}
-                          isDeleting={String(deletingSpaceId) === String(space.id)}
-                          onOpen={handleOpenSpace}
-                          onOpenAbout={handleOpenSpaceAbout}
-                          onAddToMenu={handleAddSpaceToMenu}
-                          onAddToCollection={handleAddToCollection}
-                          collectionViews={collectionViews}
-                          onOpenSettings={setSettingsSpace}
-                          onDelete={handleDeleteSpace}
-                        />
-                      ))}
-                    </div>
-                  </section>
-                )}
-                {showOtherSpaces && (
-                  <section className={SECTION_CLASS}>
-                    <SectionHeading>{t('Other Spaces')}</SectionHeading>
-                    <div className='flex flex-wrap gap-3'>
-                      {sections.otherSpaces.map(space => (
-                        <SpaceViewCard
-                          key={space.id}
-                          space={space}
-                          isEditing={isEditing}
-                          isDeleting={String(deletingSpaceId) === String(space.id)}
-                          onOpen={handleOpenSpace}
-                          onOpenAbout={handleOpenSpaceAbout}
-                          onAddToMenu={handleAddSpaceToMenu}
-                          onAddToCollection={handleAddToCollection}
-                          collectionViews={collectionViews}
-                          onOpenSettings={setSettingsSpace}
-                          onDelete={handleDeleteSpace}
-                        />
-                      ))}
-                    </div>
-                  </section>
-                )}
+                ))}
               </div>
               )}
 
       {/* Below the sections, and shown even when empty so there is a way to add the first one */}
       {isEditing && !isSpaceMoreSpaces && (
         <div className='flex flex-wrap gap-3 mt-6'>
-          <AddViewOrSpaceMenu
-            canAddSpace
-            onChooseSpace={() => setShowAddSpace(true)}
+          <AddCard
+            label={t('Add to More Spaces')}
+            onClick={() => setShowAddSpace(true)}
           />
         </div>
       )}
