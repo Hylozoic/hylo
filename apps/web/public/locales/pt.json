@@ -1345,6 +1345,7 @@
   "Overview": "Visão geral",
   "PERSONAL": "PESSOAL",
   "Paid": "Pago",
+  "Paid access requires a connected Stripe account. Finish setup in this group's Paid Content settings.": "O acesso pago exige uma conta Stripe conectada. Conclua a configuração em Conteúdo Pago deste grupo.",
   "Paid Content": "Conteúdo Pago",
   "Paid Content Access": "Acesso ao Conteúdo Pago",
   "Paid Offerings": "Ofertas Pagas",

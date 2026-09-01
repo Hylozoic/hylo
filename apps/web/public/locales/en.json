@@ -1386,6 +1386,7 @@
   "PERSONAL": "PERSONAL",
   "Page": "Page",
   "Paid": "Paid",
+  "Paid access requires a connected Stripe account. Finish setup in this group's Paid Content settings.": "Paid access requires a connected Stripe account. Finish setup in this group's Paid Content settings.",
   "Paid Content": "Paid Content",
   "Paid Content Access": "Paid Content Access",
   "Paid Offerings": "Paid Offerings",

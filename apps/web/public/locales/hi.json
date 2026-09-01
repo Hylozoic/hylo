@@ -1345,6 +1345,7 @@
   "Overview": "अवलोकन",
   "PERSONAL": "व्यक्तिगत",
   "Paid": "सशुल्क",
+  "Paid access requires a connected Stripe account. Finish setup in this group's Paid Content settings.": "पेड एक्सेस के लिए एक कनेक्टेड Stripe खाता चाहिए। इस समूह की पेड कंटेंट सेटिंग्स में सेटअप पूरा करें।",
   "Paid Content": "पेड कंटेंट",
   "Paid Content Access": "पेड कंटेंट पहुंच",
   "Paid Offerings": "पेड ऑफ़र",

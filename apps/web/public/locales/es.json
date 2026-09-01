@@ -1380,6 +1380,7 @@
   "PERSONAL": "PERSONAL",
   "Page": "Página",
   "Paid": "De pago",
+  "Paid access requires a connected Stripe account. Finish setup in this group's Paid Content settings.": "El acceso de pago requiere una cuenta de Stripe conectada. Termina la configuración en Contenido pago de este grupo.",
   "Paid Content": "Contenido pago",
   "Paid Content Access": "Acceso a Contenido Pago",
   "Paid Offerings": "Ofertas Pagas",
