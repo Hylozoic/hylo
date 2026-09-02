@@ -23,6 +23,7 @@ import {
   filterAndSortPosts,
   filterAndSortUsers
 } from '../services/Search/util'
+import { messageThreadSearchFilter } from './messageThreadSearch'
 const { createGroupRoleScope } = require('../../lib/scopes')
 const {
   mergeAccessGrantsForPresentation,

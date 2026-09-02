@@ -4191,7 +4191,6 @@ input InviteInput {
   emails: [String]
   # Existing Hylo users to invite by id (their account email is used)
   userIds: [ID]
-  message: String
   # Assign Coordinator system role when the invitation is used
   assignCoordinator: Boolean
   # Group role ID to assign when the invitation is used

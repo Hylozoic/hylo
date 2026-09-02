@@ -67,7 +67,7 @@ function InviteSettingsTab (props) {
   const parentName = parentGroup?.name || parentGroupFromStore?.name
 
   const regenerateAccessCode = useCallback(() => dispatch(regenerateAccessCodeAction(group.id)), [dispatch, group.id])
-  const createInvitations = useCallback((emails, message, groupRoleId, userIds) => dispatch(createInvitationsAction(group.id, emails, message, groupRoleId, userIds)), [dispatch, group.id])
+  const createInvitations = useCallback((emails, groupRoleId, userIds) => dispatch(createInvitationsAction(group.id, emails, groupRoleId, userIds)), [dispatch, group.id])
   const expireInvitation = useCallback((invitationToken) => dispatch(expireInvitationAction(invitationToken)), [dispatch])
   const resendInvitation = useCallback((invitationToken) => dispatch(resendInvitationAction(invitationToken)), [dispatch])
   const reinviteAll = useCallback(() => dispatch(reinviteAllAction(group.id)), [dispatch, group.id])
@@ -75,17 +75,10 @@ function InviteSettingsTab (props) {
 
   const { t } = useTranslation()
 
-  const defaultMessage = t(`Hi!
-
-I'm inviting you to join {{name}} on Hylo.
-
-{{name}} is using Hylo for our online community: this is our dedicated space for communication & collaboration.`, { name: group.name })
-
   const [copiedPublicLink, setCopiedPublicLink] = useState(false)
   const [copiedInviteLink, setCopiedInviteLink] = useState(false)
   const [reset, setReset] = useState(false)
   const [emails, setEmails] = useState('')
-  const [message, setMessage] = useState(defaultMessage)
   const [selectedRoleId, setSelectedRoleId] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
@@ -211,7 +204,7 @@ I'm inviting you to join {{name}} on Hylo.
 
     const userIds = selectedPeople.map(p => p.id)
     const emailList = parseEmailList(emails).filter(Boolean)
-    createInvitations(emailList, message, groupRoleId, userIds)
+    createInvitations(emailList, groupRoleId, userIds)
       .then(res => {
         sendingRef.current = false
         if (!res?.payload?.data?.createInvitation) return
@@ -412,14 +405,6 @@ I'm inviting you to join {{name}} on Hylo.
           value={emails}
           disabled={pendingCreate}
           onChange={(event) => setEmails(event.target.value)}
-        />
-        <div className='mt-4 mb-2'>{t('Customize the invite email message (optional):')}</div>
-        <TextareaAutosize
-          minRows={5}
-          className='rounded-lg bg-input text-foreground focus:outline-none focus:ring-0 focus:ring-offset-0 border-2 border-transparent focus:border-focus p-2'
-          value={message}
-          disabled={pendingCreate}
-          onChange={(event) => setMessage(event.target.value)}
         />
         <div className='mt-4 mb-2'>{t('Assign a role to invitees (optional):')}</div>
         <select

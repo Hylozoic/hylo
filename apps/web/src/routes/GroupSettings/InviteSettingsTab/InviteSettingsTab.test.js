@@ -7,20 +7,22 @@ describe('InviteSettingsTab', () => {
   it('renders correctly', () => {
     const group = {
       id: 1,
-      name: 'Hylo'
+      name: 'Hylo',
+      invitePath: '/groups/hylo/join/lalala'
     }
 
     render(
       <InviteSettingsTab
         group={group}
-        regenerateAccessCode={() => {}}
-        inviteLink='http://www.hylo.com/c/hylo/join/lalala'
       />
     )
 
     expect(screen.getByText('Invite people on Hylo')).toBeInTheDocument()
     expect(screen.getByText('Share a Join Link')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Generate a Link|Reset Link/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Send Invite/i })).toBeInTheDocument()
+    expect(screen.getByPlaceholderText(/example@domain.com/i)).toBeInTheDocument()
+    expect(screen.queryByText(/Customize the invite email message/i)).not.toBeInTheDocument()
   })
 
   it('shows a public link for public groups', () => {
