@@ -292,7 +292,7 @@ function PostEditorInner ({
    */
   const detailsHtmlRef = useRef(null)
 
-  const linkPreview = useSelector(state => getLinkPreview(state)) // TODO: probably not working?
+  const linkPreview = useSelector(state => getLinkPreview(state))
   const fetchLinkPreviewPending = useSelector(state => isPendingFor(FETCH_LINK_PREVIEW, state))
   const uploadAttachmentPending = useSelector(getUploadAttachmentPending)
 
@@ -375,7 +375,7 @@ function PostEditorInner ({
       startTime: typeof inputPost?.startTime === 'string' ? new Date(inputPost.startTime) : (inputPost?.startTime || prefilledEventTimes.startTime),
       endTime: typeof inputPost?.endTime === 'string' ? new Date(inputPost.endTime) : (inputPost?.endTime || prefilledEventTimes.endTime)
     }
-  }, [inputPost?.id, inputPost?.location, inputPost?.locationId, createPostType, currentGroup, topic, context, editing, eventDateParam, inputPost?.startTime, inputPost?.endTime, currentTrack?.actionDescriptor, selectedLocation, t])
+  }, [inputPost?.id, inputPost?.location, inputPost?.locationId, inputPost?.linkPreview?.id, inputPost?.linkPreviewFeatured, createPostType, currentGroup, topic, context, editing, eventDateParam, inputPost?.startTime, inputPost?.endTime, currentTrack?.actionDescriptor, selectedLocation, t])
 
   const [currentPost, setCurrentPostState] = useState(initialPost)
   const [editorInitialContent, setEditorInitialContent] = useState(initialPost.details || '')
@@ -721,21 +721,33 @@ function PostEditorInner ({
     if (initialPost.id) reset()
   }, [initialPost.id])
 
+  // Hydrate a late-arriving post preview (e.g. FETCH_POST completes after first paint)
+  // without overwriting a user-fetched or user-removed preview.
+  useEffect(() => {
+    if (!initialPost.linkPreview) return
+    setCurrentPost(prev => {
+      if (prev.skipLinkPreview || prev.linkPreview) return prev
+      return {
+        ...prev,
+        linkPreview: initialPost.linkPreview,
+        linkPreviewFeatured: !!initialPost.linkPreviewFeatured
+      }
+    })
+  }, [initialPost.linkPreview, initialPost.linkPreviewFeatured, setCurrentPost])
+
   useEffect(() => {
     setCurrentPost(prev => {
+      if (!linkPreview) return prev
       if (prev.linkPreview === linkPreview) return prev
-      if (linkPreview) {
-        const isNewPreview = !prev.linkPreview || prev.linkPreview.id !== linkPreview.id
-        return {
-          ...prev,
-          linkPreview,
-          skipLinkPreview: false,
-          linkPreviewFeatured: isNewPreview && isPlayableVideoUrl(linkPreview.url || linkPreview.ref?.url)
-            ? true
-            : prev.linkPreviewFeatured
-        }
+      const isNewPreview = !prev.linkPreview || prev.linkPreview.id !== linkPreview.id
+      return {
+        ...prev,
+        linkPreview,
+        skipLinkPreview: false,
+        linkPreviewFeatured: isNewPreview && isPlayableVideoUrl(linkPreview.url || linkPreview.ref?.url)
+          ? true
+          : prev.linkPreviewFeatured
       }
-      return { ...prev, linkPreview }
     })
   }, [linkPreview, setCurrentPost])
 
@@ -775,7 +787,7 @@ function PostEditorInner ({
 
   /**
    * Resets the editor to its initial state
-   * Clears form fields, attachments, and link previews
+   * Clears compose-time attachments and fetched previews, but keeps the post's existing link preview
    */
   const reset = useCallback(() => {
     syncDetailsToCurrentPost.cancel()
@@ -784,7 +796,11 @@ function PostEditorInner ({
     editorRef.current?.setContent(details)
     setHasDescription(details.length > 0)
     dispatch(clearLinkPreview())
-    setCurrentPost(() => ({ ...initialPost, linkPreview: null, linkPreviewFeatured: false }))
+    setCurrentPost(() => ({
+      ...initialPost,
+      linkPreview: initialPost.linkPreview || null,
+      linkPreviewFeatured: !!initialPost.linkPreviewFeatured
+    }))
     setEditorInitialContent(details)
     dispatch(clearAttachments('post', 'new', 'image'))
     dispatch(clearAttachments('post', 'new', 'file'))

@@ -30,11 +30,23 @@ jest.mock('lodash/debounce', () => fn => {
   return fn
 })
 
-function testProviders () {
+function testProviders ({ withLinkPreview } = {}) {
   const ormSession = orm.mutableSession(orm.getEmptyState())
   ormSession.Me.create({ id: '1' })
   ormSession.Group.create({ id: '1', name: 'Test Group', slug: 'test-group' })
-  ormSession.Post.create({ id: '1', title: 'Test Post', type: 'discussion', groups: [{ id: '1', name: 'Test Group' }], topics: [{ name: 'design' }] })
+  const postAttrs = { id: '1', title: 'Test Post', type: 'discussion', groups: [{ id: '1', name: 'Test Group' }], topics: [{ name: 'design' }] }
+  if (withLinkPreview) {
+    ormSession.LinkPreview.create({
+      id: 'lp1',
+      title: 'Example Site',
+      description: 'A description',
+      url: 'https://example.com',
+      imageUrl: 'https://example.com/img.png'
+    })
+    postAttrs.linkPreview = 'lp1'
+    postAttrs.linkPreviewFeatured = false
+  }
+  ormSession.Post.create(postAttrs)
   const reduxState = { orm: ormSession.state }
 
   return AllTheProviders(reduxState)
@@ -86,10 +98,10 @@ describe('PostEditor', () => {
     onClose: jest.fn()
   }
 
-  const renderComponent = (props = {}) => {
+  const renderComponent = (props = {}, providerOptions) => {
     return render(
       <PostEditor {...baseProps} {...props} />,
-      { wrapper: testProviders() }
+      { wrapper: testProviders(providerOptions) }
     )
   }
 
@@ -143,6 +155,15 @@ describe('PostEditor', () => {
       renderComponent(editProps)
       await waitFor(() => {
         expect(screen.getByDisplayValue('Test Post')).toBeInTheDocument()
+      })
+    })
+
+    it('shows the existing link preview', async () => {
+      jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ groupSlug: 'test-group', postId: '1' })
+      renderComponent(editProps, { withLinkPreview: true })
+      await waitFor(() => {
+        expect(screen.getByText('Example Site')).toBeInTheDocument()
+        expect(screen.getByText('example.com')).toBeInTheDocument()
       })
     })
   })
