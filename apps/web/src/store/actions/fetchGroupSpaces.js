@@ -74,6 +74,7 @@ export default function fetchGroupSpaces (groupId) {
                   linkedGroup {
                     id
                     name
+                    slug
                     avatarUrl
                     icon
                   }

@@ -124,7 +124,8 @@ export async function createSpace (userId, { parentGroupId, name, slug, accepted
     const spaceViewAttrs = {
       group_id: parentGroupId,
       type: GroupView.Type.SPACE,
-      linked_group_id: space.id
+      linked_group_id: space.id,
+      name: name.trim()
     }
     if (addToParentMenu === false) {
       await GroupView.createOffMenu(spaceViewAttrs, { transacting: trx })
@@ -192,6 +193,10 @@ export async function updateSpace (userId, { id, name, slug, acceptedPostTypes, 
     await space.save(changes, { patch: true })
   }
 
+  if (changes.name) {
+    await syncSpaceMenuViewName(id, changes.name)
+  }
+
   if (status === Group.Status.DRAFT || status === Group.Status.ARCHIVED) {
     await removeSpaceFromParentMenu(id)
   }
@@ -203,6 +208,16 @@ export async function updateSpace (userId, { id, name, slug, acceptedPostTypes, 
   }
 
   return space.refresh()
+}
+
+/** Keep the parent menu's type=space row name in sync with the space Group. */
+async function syncSpaceMenuViewName (spaceId, name, { transacting } = {}) {
+  if (!name) return
+  const query = bookshelf.knex('group_views')
+    .where({ type: GroupView.Type.SPACE, linked_group_id: spaceId })
+    .update({ name, updated_at: new Date() })
+  if (transacting) query.transacting(transacting)
+  await query
 }
 
 /** Destroy the parent group's type=space menu row for this space. */
@@ -405,7 +420,7 @@ export async function convertSpaceToChildGroup (userId, id, context) {
 }
 
 /** Turn the parent's type=group menu row into a space item, or create an off-menu space view. */
-async function convertChildGroupViewToSpaceView (parentId, childId, { transacting } = {}) {
+async function convertChildGroupViewToSpaceView (parentId, childId, groupName, { transacting } = {}) {
   const groupViews = await GroupView.where({
     group_id: parentId,
     linked_group_id: childId,
@@ -414,7 +429,10 @@ async function convertChildGroupViewToSpaceView (parentId, childId, { transactin
 
   if (groupViews.length > 0) {
     for (const view of groupViews.models) {
-      await view.save({ type: GroupView.Type.SPACE }, { patch: true, transacting })
+      await view.save({
+        type: GroupView.Type.SPACE,
+        name: view.get('name') || groupName || null
+      }, { patch: true, transacting })
     }
     return
   }
@@ -428,7 +446,8 @@ async function convertChildGroupViewToSpaceView (parentId, childId, { transactin
   await GroupView.createOffMenu({
     group_id: parentId,
     type: GroupView.Type.SPACE,
-    linked_group_id: childId
+    linked_group_id: childId,
+    name: groupName || null
   }, { transacting })
 }
 
@@ -501,7 +520,7 @@ export async function convertGroupToSpace (userId, { id, parentGroupId }, contex
   await bookshelf.transaction(async trx => {
     await group.save({ type: 'space', parent_id: parentGroupId }, { patch: true, transacting: trx })
     await relationship.save({ active: false }, { transacting: trx })
-    await convertChildGroupViewToSpaceView(parentGroupId, id, { transacting: trx })
+    await convertChildGroupViewToSpaceView(parentGroupId, id, group.get('name'), { transacting: trx })
   })
 
   notifyGroupUpdated(context, parentGroup, parentGroupId)

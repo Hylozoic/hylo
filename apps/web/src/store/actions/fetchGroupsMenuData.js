@@ -159,6 +159,7 @@ query FetchGroupsMenuData (
                 linkedGroup {
                   id
                   name
+                  slug
                   avatarUrl
                   icon
                 }
@@ -234,6 +235,7 @@ query FetchGroupsMenuData (
               linkedGroup {
                 id
                 name
+                slug
                 avatarUrl
                 icon
               }

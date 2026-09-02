@@ -754,8 +754,9 @@ export default function ContextMenu (props) {
   // Off-menu count for the space menu's More row (spaces not shown in the space menu).
   const spaceMoreSpacesSections = useMoreSpacesSections(showingSpaceMenu ? activeSpaceGroup : null)
   const spaceViewsLoading = viewsPending && spaceMenuViews.length === 0
-  const spaceDisplayName = activeSpaceGroup?.name ||
-    (activeSpaceView ? displayNameForView(GroupViewPresenter(activeSpaceView), t) : t('Space'))
+  const spaceDisplayName = (activeSpaceView ? displayNameForView(GroupViewPresenter(activeSpaceView), t) : null) ||
+    activeSpaceGroup?.name ||
+    t('Space')
   const presentedActiveSpaceView = useMemo(
     () => activeSpaceView ? GroupViewPresenter(activeSpaceView) : null,
     [activeSpaceView]

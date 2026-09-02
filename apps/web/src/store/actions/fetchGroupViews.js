@@ -9,6 +9,7 @@ export default function fetchGroupViews (groupId) {
       query: `query FetchGroupViews ($groupId: ID) {
         group(id: $groupId) {
           id
+          name
           openJoinRequestCount
           track {
             id

@@ -729,7 +729,7 @@ async function main () {
       ]
     )
 
-    /** Paid track space + offering granting space membership (Batch P3). Coordinators bypass; use `e2e.track-viewer@hylo.test`. */
+    /** Paid track space + parent offering granting space membership (Batch P3). Coordinators bypass; use `e2e.track-viewer@hylo.test`. */
     const paidTrackSpaceRes = await client.query(
       `INSERT INTO groups (
         name, slug, type, parent_id, access_code, visibility, accessibility,
@@ -820,7 +820,7 @@ async function main () {
         $8::timestamptz
       )`,
       [
-        paidTrackSpaceId,
+        publicGroupId,
         'prod_e2e_track_access_001',
         'price_e2e_track_access_001',
         'E2E Track Access Monthly',

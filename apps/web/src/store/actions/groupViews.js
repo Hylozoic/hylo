@@ -34,7 +34,7 @@ function toIntRoleIds (ids) {
 function spaceViewMenuData ({ name, description, viewName, icon }) {
   const linkedGroup = omitBy(isUndefined, { name, description, icon })
   return omitBy(isUndefined, {
-    name: viewName,
+    name: viewName !== undefined ? viewName : name,
     linkedGroup: Object.keys(linkedGroup).length ? linkedGroup : undefined
   })
 }
@@ -88,6 +88,11 @@ const groupViewFields = `
           id
           name
           avatarUrl
+        }
+        linkedGroup {
+          id
+          name
+          slug
         }
       }
     }

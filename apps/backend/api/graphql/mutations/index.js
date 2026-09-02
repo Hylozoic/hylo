@@ -182,7 +182,8 @@ export {
   createStripeOffering,
   updateStripeOffering,
   createStripeCheckoutSession,
-  checkStripeStatus
+  checkStripeStatus,
+  fulfillStripeCheckoutSession
 } from './stripe'
 export {
   membershipChangeCommit
