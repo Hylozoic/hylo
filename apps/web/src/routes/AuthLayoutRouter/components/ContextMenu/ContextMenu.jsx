@@ -384,7 +384,7 @@ function GroupViewMenuItem ({
     const linkedSpaceGroup = presentedView.linkedGroup
     const isSpaceMember = Boolean(
       linkedSpaceGroup &&
-      myMemberships.some(m => m.group.id === linkedSpaceGroup.id)
+      myMemberships.some(m => String(m.group?.id) === String(linkedSpaceGroup.id))
     )
     const showManageRound = Boolean(linkedSpaceGroup?.fundingRound?.id && canManageRound)
     // Filter with ORM acceptedPostTypes when available (space settings update that record).
@@ -397,7 +397,7 @@ function GroupViewMenuItem ({
     const menuCount = viewCount + (showManageRound ? 1 : 0)
     // Space badge = membership unread or pending join requests (same orange dot).
     const spaceMembership = linkedSpaceGroup &&
-      myMemberships.find(m => String(m.group.id) === String(linkedSpaceGroup.id))
+      myMemberships.find(m => String(m.group?.id) === String(linkedSpaceGroup.id))
     const spaceUnread = (spaceMembership?.newPostCount || 0) > 0
     const spaceJoinRequests = (
       spaceGroupFromStore?.openJoinRequestCount ||
@@ -725,7 +725,7 @@ export default function ContextMenu (props) {
   const activeSpaceGroup = spaceGroupFromStore || linkedActiveSpaceGroup
   const isSpaceMember = Boolean(
     activeSpaceGroup &&
-    myMemberships.some(m => m.group.id === activeSpaceGroup.id)
+    myMemberships.some(m => String(m.group?.id) === String(activeSpaceGroup.id))
   )
   // Ordered single-view spaces stay in the group menu; multi-view and off-menu
   // spaces drill in. Edit mode also drills in so a single-view space can gain views.
