@@ -3,9 +3,16 @@ import { homeRoutePathForView } from '@hylo/navigation'
 /** Merge menu patch fields onto a view row (deep-merge linkedGroup when present). */
 function mergeViewMenuPatch (view, updates) {
   if (!updates) return view
-  const merged = { ...view, ...updates }
-  if (updates.linkedGroup) {
-    merged.linkedGroup = { ...(view.linkedGroup || {}), ...updates.linkedGroup }
+  // Skip undefined so a last-read patch cannot wipe type/order/linkedGroup
+  // (spreading `{ linkedGroup: undefined }` would hide the space from the menu).
+  const definedUpdates = Object.fromEntries(
+    Object.entries(updates).filter(([, value]) => value !== undefined)
+  )
+  const merged = { ...view, ...definedUpdates }
+  if (definedUpdates.linkedGroup) {
+    merged.linkedGroup = { ...(view.linkedGroup || {}), ...definedUpdates.linkedGroup }
+  } else if (view.type === 'space' && view.linkedGroup) {
+    merged.linkedGroup = view.linkedGroup
   }
   return merged
 }
@@ -415,15 +422,16 @@ export function preserveViewLoadedPosts (existingItems, newItems) {
     if (existing.pinnedPosts !== undefined && newView.pinnedPosts === undefined) {
       merged.pinnedPosts = existing.pinnedPosts
     }
-    if (newView.type === 'space' && newView.linkedGroup?.groupViews?.items) {
+    if (newView.type === 'space' && (existing.linkedGroup || newView.linkedGroup)) {
       const existingSpaceItems = existing.linkedGroup?.groupViews?.items
-      if (existingSpaceItems?.length) {
-        merged.linkedGroup = {
-          ...merged.linkedGroup,
-          groupViews: {
-            items: preserveViewLoadedPosts(existingSpaceItems, newView.linkedGroup.groupViews.items)
-          }
+      const newSpaceItems = newView.linkedGroup?.groupViews?.items
+      merged.linkedGroup = { ...(existing.linkedGroup || {}), ...(newView.linkedGroup || {}) }
+      if (existingSpaceItems?.length && newSpaceItems?.length) {
+        merged.linkedGroup.groupViews = {
+          items: preserveViewLoadedPosts(existingSpaceItems, newSpaceItems)
         }
+      } else if (existingSpaceItems?.length && !newSpaceItems) {
+        merged.linkedGroup.groupViews = { items: existingSpaceItems }
       }
     }
     return merged

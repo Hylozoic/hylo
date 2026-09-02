@@ -41,10 +41,19 @@ export default function fetchGroupViews (groupId) {
                 id
                 name
                 slug
+                type
                 status
+                parentId
                 avatarUrl
+                bannerUrl
                 icon
                 homeRoute
+                memberCount
+                visibility
+                accessibility
+                requiredRoles
+                paywall
+                acceptedPostTypes
                 track {
                   id
                   actionDescriptor

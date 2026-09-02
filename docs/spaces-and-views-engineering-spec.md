@@ -1675,9 +1675,5 @@ Two findings changed the cleanup order that this section previously assumed (bot
 
 | Item | Notes |
 |------|-------|
-| Archive / unarchive space UI | `archiveSpace` exists on the backend; the web app only *displays* archived spaces in More Spaces |
-| Draft funding rounds and tracks | Or maybe any space can be a draft? |
-| Track welcome metadata | The `welcome` view doesn't render num actions / enrolled / completed for track spaces (§7.2) |
-| Track / round metadata on `SpaceJoinPage` | No action count, enrolled count, or phase dates on the interstitial (§7.9) |
 | Steward onboarding prompt | Not started (§12) |
 | Retire track-scoped Stripe path | `access_grants.trackIds` is still read for pre-migration rows. Once confident all rows are reminted to `groupIds`, drop the `trackIds` branches and `stripe_products.track_id` |
