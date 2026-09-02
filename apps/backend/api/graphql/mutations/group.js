@@ -125,11 +125,7 @@ export async function joinGroup (groupId, userId, questionAnswers, accessCode, i
   // Keep showJoinForm true so the Welcome/purpose modal still shows, but mark
   // join questions complete so that modal does not re-ask barriers already done.
   if (acceptAgreements && membership) {
-    await membership.acceptAgreements()
-    if (!membership.getSetting('joinQuestionsAnsweredAt')) {
-      membership.addSetting({ joinQuestionsAnsweredAt: new Date().toISOString() })
-      await membership.save()
-    }
+    await membership.completeJoinBarriers()
   }
 
   // Token invitations can attach a group role (e.g. Host). joinGroup marks invites used by
