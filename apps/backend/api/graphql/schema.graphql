@@ -3717,6 +3717,9 @@ type Mutation {
   # Check Stripe account status and update database values
   checkStripeStatus(groupId: ID!): StripeStatusCheckResult
 
+  # Grant access from a completed Checkout session (success-page fallback)
+  fulfillStripeCheckoutSession(sessionId: ID!, offeringId: ID): StripeFulfillCheckoutResult
+
   # Apply a membership subscription change (Stripe Connect). Call membershipChangePreview first; unsupported modes error until implemented.
   membershipChangeCommit(
     groupId: ID!
@@ -3847,6 +3850,11 @@ type StripeCheckoutSessionResult {
   sessionId: String
   url: String
   success: Boolean
+}
+
+type StripeFulfillCheckoutResult {
+  success: Boolean
+  message: String
 }
 
 # Stats for an offering's subscribers

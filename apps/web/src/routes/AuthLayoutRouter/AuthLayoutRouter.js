@@ -267,7 +267,7 @@ export default function AuthLayoutRouter (props) {
   // Refs for mobile nav drawer animation
   const navContainerRef = useRef(null)
   const backdropRef = useRef(null)
-  const preloadedMenuGroupIdsKeyRef = useRef('')
+  const preloadedMenuGroupIdsRef = useRef(new Set())
   const isNavOpenRef = useRef(isNavOpen)
   const isDraggingNavRef = useRef(false)
   const compactLayout = isCompactLayoutDevice()
@@ -714,10 +714,8 @@ export default function AuthLayoutRouter (props) {
     }
   }, [currentGroupSlug, currentGroupMembership, currentGroup?.paywall, currentGroup?.canAccess, location.pathname, navigate, dispatch])
 
-  // Pre-load context menu data for all membership groups in paginated batches.
-  // This ensures context menus render immediately when switching groups.
-  // Batches are processed sequentially (10 groups at a time) with a delay
-  // after initial page load to let critical requests complete first.
+  // Pre-load context menu data for membership groups that do not already have
+  // groupViews (10 ids per request). Skip groups whose menu is already loaded.
   // Disabled for users with more than MENU_PRELOAD_MAX_MEMBERSHIPS memberships
   // (includes space memberships) to avoid overwhelming the backend.
   // Isolated E2E skips this: four workers each preloading nested spaces OOMs one Sails process.
@@ -726,17 +724,28 @@ export default function AuthLayoutRouter (props) {
     if (currentUserLoading) return
     if (memberships.length === 0 || memberships.length > MENU_PRELOAD_MAX_MEMBERSHIPS) return
     if (!membershipGroupIdsKey) return
-    if (membershipGroupIdsKey === preloadedMenuGroupIdsKeyRef.current) return
 
     const groupIds = membershipGroupIdsKey.split(',')
+    const session = orm.session(store.getState().orm)
+    const idsToFetch = groupIds.filter(id => {
+      if (preloadedMenuGroupIdsRef.current.has(id)) return false
+      const group = session.Group.idExists(id) ? session.Group.withId(id) : null
+      if (group?.groupViews != null) {
+        preloadedMenuGroupIdsRef.current.add(id)
+        return false
+      }
+      return true
+    })
+    if (idsToFetch.length === 0) return
+
     const INITIAL_DELAY = 4500
     const BATCH_SIZE = 10
 
     const timeoutId = setTimeout(async () => {
-      preloadedMenuGroupIdsKeyRef.current = membershipGroupIdsKey
+      idsToFetch.forEach(id => preloadedMenuGroupIdsRef.current.add(id))
       const batches = []
-      for (let i = 0; i < groupIds.length; i += BATCH_SIZE) {
-        batches.push(groupIds.slice(i, i + BATCH_SIZE))
+      for (let i = 0; i < idsToFetch.length; i += BATCH_SIZE) {
+        batches.push(idsToFetch.slice(i, i + BATCH_SIZE))
       }
 
       for (const batch of batches) {

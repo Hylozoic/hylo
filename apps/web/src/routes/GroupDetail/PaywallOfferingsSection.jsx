@@ -3,8 +3,9 @@ import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useLocation } from 'react-router-dom'
 import Button from 'components/ui/button'
-import HyloHTML from 'components/HyloHTML'
+import { stripHtml } from 'hooks/useDraft'
 import { DollarSign, CreditCard, LogIn } from 'lucide-react'
+import { localSpaceSlug } from '@hylo/navigation'
 import { getHost } from 'store/middleware/apiMiddleware'
 import fetchPublicStripeOfferings from 'store/actions/fetchPublicStripeOfferings'
 import { createStripeCheckoutSession } from 'util/offerings'
@@ -17,11 +18,14 @@ import { JoinBarriers } from './JoinSection'
 /**
  * PaywallOfferingsSection Component
  *
- * Displays available offerings for a paywalled group and allows users
+ * Displays available offerings for a paywalled group or space and allows users
  * to purchase access via Stripe checkout. Includes barriers (agreements/questions)
  * that must be satisfied before purchase.
+ *
+ * Paid spaces do not own offerings. Pass `sellingGroup` (the parent) so we load
+ * parent offerings that grant this space, and so checkout uses the parent id.
  */
-export default function PaywallOfferingsSection ({ group }) {
+export default function PaywallOfferingsSection ({ group, sellingGroup }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const navigate = useNavigate()
@@ -34,6 +38,9 @@ export default function PaywallOfferingsSection ({ group }) {
   const [offerings, setOfferings] = useState([])
   const [loading, setLoading] = useState(true)
   const [checkoutLoading, setCheckoutLoading] = useState(null)
+  const offeringsGroupId = sellingGroup?.id || (group?.type === 'space' && group?.parentId) || group?.id
+  const checkoutSlug = sellingGroup?.slug || group?.slug
+  const isSpace = group?.type === 'space'
 
   // Barriers state - track whether agreements/questions are satisfied
   const [barriersState, setBarriersState] = useState({ canProceed: true, questionAnswers: [], hasBarriers: false })
@@ -46,21 +53,20 @@ export default function PaywallOfferingsSection ({ group }) {
     setBarriersState(state)
   }, [])
 
-  // Fetch offerings for the group using public query
-  // Filter to only show offerings that grant access to this group
+  // Fetch offerings from the selling group (parent for spaces), then keep those
+  // that grant this group/space.
   useEffect(() => {
-    if (!group?.paywall || !group?.id) {
+    if (!group?.paywall || !group?.id || !offeringsGroupId) {
       setLoading(false)
       return
     }
 
     const loadOfferings = async () => {
       try {
-        const result = await dispatch(fetchPublicStripeOfferings({ groupId: group.id }))
+        const result = await dispatch(fetchPublicStripeOfferings({ groupId: offeringsGroupId }))
         const responseData = result.payload?.getData ? result.payload.getData() : result.payload?.data?.publicStripeOfferings
 
         if (responseData?.offerings) {
-          // Filter to only include offerings that grant access to this group
           const groupAccessOfferings = responseData.offerings.filter(offering =>
             offeringGrantsGroupAccess(offering, group.id)
           )
@@ -74,7 +80,7 @@ export default function PaywallOfferingsSection ({ group }) {
     }
 
     loadOfferings()
-  }, [dispatch, group?.id, group?.paywall])
+  }, [dispatch, group?.id, group?.paywall, offeringsGroupId])
 
   /**
    * Creates a Stripe checkout session and redirects to payment
@@ -82,7 +88,7 @@ export default function PaywallOfferingsSection ({ group }) {
    * Non-authenticated users are redirected to sign-up first
    */
   const handlePurchase = useCallback(async (offering) => {
-    if (!group?.id || !offering?.id) {
+    if (!group?.id || !offering?.id || !offeringsGroupId) {
       window.alert(t('Unable to process payment. Please contact support.'))
       return
     }
@@ -110,17 +116,25 @@ export default function PaywallOfferingsSection ({ group }) {
 
     try {
       const baseUrl = getHost()
-      const successUrl = `${baseUrl}/groups/${group.slug}/payment/success`
-      const cancelUrl = `${baseUrl}/groups/${group.slug}/payment/cancel`
+      const spaceLocalSlug = group?.type === 'space' && checkoutSlug
+        ? localSpaceSlug(checkoutSlug, group.slug)
+        : null
+      const successUrl = spaceLocalSlug
+        ? `${baseUrl}/groups/${checkoutSlug}/payment/success?spaceSlug=${encodeURIComponent(spaceLocalSlug)}`
+        : `${baseUrl}/groups/${checkoutSlug}/payment/success`
+      const cancelUrl = spaceLocalSlug
+        ? `${baseUrl}/groups/${checkoutSlug}/spaces/${encodeURIComponent(spaceLocalSlug)}`
+        : `${baseUrl}/groups/${checkoutSlug}/payment/cancel`
 
       const checkoutData = await createStripeCheckoutSession({
-        groupId: group.id,
+        groupId: offeringsGroupId,
         offeringId: offering.id,
         quantity: 1,
         successUrl,
         cancelUrl,
         metadata: {
-          groupSlug: group.slug
+          groupSlug: checkoutSlug,
+          ...(spaceLocalSlug ? { spaceSlug: spaceLocalSlug } : {})
         }
       })
 
@@ -131,7 +145,7 @@ export default function PaywallOfferingsSection ({ group }) {
       window.alert(t('Failed to start payment process: {{error}}', { error: error.message }))
       setCheckoutLoading(null)
     }
-  }, [group, barriersState, barriersExpanded])
+  }, [group, offeringsGroupId, checkoutSlug, barriersState, barriersExpanded])
 
   if (loading) {
     return (
@@ -145,9 +159,13 @@ export default function PaywallOfferingsSection ({ group }) {
     return (
       <div className='border-2 border-dashed border-foreground/20 rounded-xl p-4 text-center'>
         <DollarSign className='w-12 h-12 mx-auto mb-2 text-foreground/50' />
-        <h3 className='text-lg font-semibold mb-2'>{t('This group requires payment to join')}</h3>
+        <h3 className='text-lg font-semibold mb-2'>
+          {isSpace ? t('This space requires payment to join') : t('This group requires payment to join')}
+        </h3>
         <p className='text-foreground/70 text-sm'>
-          {t('No payment options are currently available. Please contact the group administrators.')}
+          {isSpace
+            ? t('No payment options are currently available. Please contact the space administrators.')
+            : t('No payment options are currently available. Please contact the group administrators.')}
         </p>
       </div>
     )
@@ -161,15 +179,21 @@ export default function PaywallOfferingsSection ({ group }) {
     <div className='border-2 border-dashed border-foreground/20 rounded-xl p-4'>
       <div className='flex items-center gap-2 mb-4'>
         <DollarSign className='w-6 h-6 text-foreground' />
-        <h3 className='text-lg font-semibold'>{t('This group requires a fee to join')}</h3>
+        <h3 className='text-lg font-semibold'>
+          {isSpace ? t('This space requires a fee to join') : t('This group requires a fee to join')}
+        </h3>
       </div>
       {isLapsedMember && (
         <p className='text-foreground/70 text-sm mb-2 italic'>
-          {t('Either your membership has lapsed or the group stewards have added a paywall to the group.')}
+          {isSpace
+            ? t('Either your membership has lapsed or the space stewards have added a paywall to the space.')
+            : t('Either your membership has lapsed or the group stewards have added a paywall to the group.')}
         </p>
       )}
       <p className='text-foreground/70 text-sm mb-4'>
-        {t('Choose a payment option below to gain access to this group:')}
+        {isSpace
+          ? t('Choose a payment option below to gain access to this space:')
+          : t('Choose a payment option below to gain access to this group:')}
       </p>
 
       {/* Barriers Section - shown when expanded */}
@@ -186,6 +210,7 @@ export default function PaywallOfferingsSection ({ group }) {
             key={offering.id}
             offering={offering}
             group={group}
+            isSpace={isSpace}
             checkoutLoading={checkoutLoading}
             onPurchase={handlePurchase}
             isPurchaseDisabled={isPurchaseDisabled}
@@ -202,7 +227,7 @@ export default function PaywallOfferingsSection ({ group }) {
  *
  * Displays a single offering with its details and what access it grants
  */
-function OfferingCard ({ offering, group, checkoutLoading, onPurchase, isPurchaseDisabled, isAuthenticated }) {
+function OfferingCard ({ offering, group, isSpace, checkoutLoading, onPurchase, isPurchaseDisabled, isAuthenticated }) {
   const { t } = useTranslation()
 
   const grantsGroupAccess = useMemo(() => {
@@ -267,9 +292,9 @@ function OfferingCard ({ offering, group, checkoutLoading, onPurchase, isPurchas
       <div className='flex items-start justify-between mb-2'>
         <div className='flex-1'>
           <h4 className='font-semibold text-foreground mb-1'>{offering.name}</h4>
-          {offering.description && (
-            <div className='text-sm text-foreground/70 mb-2 global-postContent'>
-              <HyloHTML html={offering.description} />
+          {stripHtml(offering.description) && (
+            <div className='text-sm text-foreground/70 mb-2 whitespace-pre-wrap'>
+              {stripHtml(offering.description)}
             </div>
           )}
           <div className='flex items-center gap-4 text-sm text-foreground/60'>
@@ -298,7 +323,7 @@ function OfferingCard ({ offering, group, checkoutLoading, onPurchase, isPurchas
         <div className='border-t border-foreground/10 pt-3 mt-3'>
           {grantsGroupAccess && (
             <p className='text-sm font-semibold text-foreground mb-2'>
-              {t('Grants access to the group')}
+              {isSpace ? t('Grants access to the space') : t('Grants access to the group')}
             </p>
           )}
 

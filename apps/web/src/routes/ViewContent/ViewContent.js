@@ -732,7 +732,7 @@ export default function ViewContent (props) {
         {showPaywallBlock
           ? (
             <div className='mt-4'>
-              <PaywallOfferingsSection group={group} />
+              <PaywallOfferingsSection group={group} sellingGroup={parentGroup} />
             </div>
             )
           : (

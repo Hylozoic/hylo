@@ -89,6 +89,11 @@ const groupViewFields = `
           name
           avatarUrl
         }
+        linkedGroup {
+          id
+          name
+          slug
+        }
       }
     }
   }

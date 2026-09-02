@@ -235,7 +235,7 @@ export default function SpaceJoinPage () {
                   ? (
                     <div className='w-full text-left'>
                       <p className='text-sm text-foreground/70 mb-3 text-center'>{t('Pay to Join Space')}</p>
-                      <PaywallOfferingsSection group={spaceGroup} />
+                      <PaywallOfferingsSection group={spaceGroup} sellingGroup={parentGroup} />
                     </div>
                     )
                   : isRoleGated
