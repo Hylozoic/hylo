@@ -741,19 +741,28 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         group = Group.withId(meta.groupId)
         updateGroupViewInMenu(group, meta.spaceViewId, meta.data)
       }
-      if (meta.id && meta.status && Group.idExists(meta.id)) {
+      if (meta.id && Group.idExists(meta.id)) {
         const spaceGroup = Group.withId(meta.id)
         const fundingRoundId = spaceGroup.fundingRound?.id
-        const updates = { status: meta.status }
-        if (fundingRoundId) {
-          updates.fundingRound = { ...spaceGroup.fundingRound, phase: meta.status }
+        const nextName = meta.data?.linkedGroup?.name || meta.data?.name
+        const updates = {}
+        if (nextName) updates.name = nextName
+        if (meta.status) {
+          updates.status = meta.status
+          if (fundingRoundId) {
+            updates.fundingRound = { ...spaceGroup.fundingRound, phase: meta.status }
+          }
         }
-        spaceGroup.update(updates)
-        const { FundingRound } = session
-        const round = fundingRoundId && FundingRound.idExists(fundingRoundId)
-          ? FundingRound.withId(fundingRoundId)
-          : FundingRound.all().toModelArray().find(r => String(r.group) === String(meta.id))
-        if (round) round.update({ phase: meta.status })
+        if (Object.keys(updates).length > 0) {
+          spaceGroup.update(updates)
+        }
+        if (meta.status) {
+          const { FundingRound } = session
+          const round = fundingRoundId && FundingRound.idExists(fundingRoundId)
+            ? FundingRound.withId(fundingRoundId)
+            : FundingRound.all().toModelArray().find(r => String(r.group) === String(meta.id))
+          if (round) round.update({ phase: meta.status })
+        }
       }
       break
     }

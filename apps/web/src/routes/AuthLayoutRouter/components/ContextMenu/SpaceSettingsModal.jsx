@@ -288,7 +288,6 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
       const accessOption = accessOptions.find(option => option.value === access)
       const trimmedName = name.trim()
 
-      // Space menu labels use linkedGroup.name — do not snapshot the name onto group_views.
       await dispatch(updateSpace({
         id: space.id,
         groupId: parentGroup.id,
@@ -357,10 +356,9 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
         }))
       }
 
-      // Refresh the space's own views (typed views appear/disappear with acceptedPostTypes)
-      // and the parent menu so nested space labels/copies stay in sync.
+      // Space menu name/icon are patched on save. Only refetch this space's
+      // views so typed items appear/disappear with acceptedPostTypes.
       await dispatch(fetchGroupViews(space.id))
-      await dispatch(fetchGroupViews(parentGroup.id))
       if (!view?.id) {
         await dispatch(fetchGroupSpaces(parentGroup.id))
       }

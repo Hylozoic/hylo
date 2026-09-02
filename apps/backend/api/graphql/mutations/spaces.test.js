@@ -93,6 +93,30 @@ describe('space mutations', () => {
     })
   })
 
+  describe('updateSpace name', () => {
+    it('writes the new name onto the parent menu space view', async () => {
+      const space = await createSpace(coordinator.id, {
+        parentGroupId: parentGroup.id,
+        name: `Orchard ${Date.now()}`
+      }, {})
+      const createdView = await GroupView.where({
+        type: GroupView.Type.SPACE,
+        linked_group_id: space.id
+      }).fetch()
+      expect(createdView.get('name')).to.equal(space.get('name'))
+
+      await updateSpace(coordinator.id, { id: space.id, name: 'Plots' }, {})
+      const updated = await Group.find(space.id)
+      expect(updated.get('name')).to.equal('Plots')
+      const updatedView = await GroupView.where({
+        type: GroupView.Type.SPACE,
+        linked_group_id: space.id
+      }).fetch()
+      expect(updatedView.get('name')).to.equal('Plots')
+      await deleteSpace(coordinator.id, space.id, {})
+    })
+  })
+
   describe('updateSpace slug', () => {
     it('prefixes a local slug and is a no-op when the stored slug already matches', async () => {
       const space = await createSpace(coordinator.id, {
@@ -201,6 +225,7 @@ describe('space mutations', () => {
         linked_group_id: space.id
       }).fetch()
       expect(menuEntry.get('order')).to.not.equal(null)
+      expect(menuEntry.get('name')).to.equal(space.get('name'))
     })
 
     it('creates drafts off-menu', async () => {
