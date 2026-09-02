@@ -16,6 +16,8 @@ export default function usePillRowClamp (itemCount, maxRows, expanded = false) {
   // visibleCount starts low so the pre-measure more label renders at its
   // widest; measurement then only ever shrinks the label, never overflows
   const [state, setState] = useState({ visibleCount: 1, clamped: false })
+  // Widest width the more pill has rendered at (see measure)
+  const moreMinWidthRef = useRef(0)
 
   useLayoutEffect(() => {
     const el = containerRef.current
@@ -51,6 +53,13 @@ export default function usePillRowClamp (itemCount, maxRows, expanded = false) {
         commit(0, false)
         return
       }
+      // The label's width feeds back into the wrap measurement: a shorter
+      // "(10 more...)" can free room for one more pill, making the label
+      // "(11 more...)" — a hair wider — which overflows and hides the pill
+      // again, forever. Pin the pill to the widest width it has rendered at
+      // so the label text can't move the layout and the loop settles.
+      if (more.offsetWidth > moreMinWidthRef.current) moreMinWidthRef.current = more.offsetWidth
+      more.style.minWidth = `${moreMinWidthRef.current}px`
       more.style.display = 'none'
       if (rowTops(items).length <= maxRows) {
         commit(items.length, false)
