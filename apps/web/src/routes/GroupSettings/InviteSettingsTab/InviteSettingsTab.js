@@ -330,7 +330,23 @@ function InviteSettingsTab (props) {
       <div className='border-2 mt-2 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 text-foreground background-black/10 rounded-lg border-dashed relative mb-4 hover:border-t-foreground/100 hover:border-x-foreground/90 transition-all hover:border-b-foreground/80 flex flex-col gap-2'>
         <div className='text-foreground'>
           <h2 className='text-lg font-bold mt-0 mb-1 text-foreground'>{t('Share a Join Link')}</h2>
-          <div className='text-sm'><strong>{t('Use this link to invite people you know and trust.')}</strong> <span className='text-foreground/50'>{t('They will still have the opportunity to answer any join questions and agree to agreements before they enter the group.')}</span></div>
+          <div className='text-sm'>
+            {isSpace
+              ? (
+                <>
+                  <strong>{t('Use this link to invite people to the space.')}</strong>{' '}
+                  <span className='text-foreground/50'>
+                    {t('If they are not a member of {{name}} they will be given the opportunity to join that first, so make sure you know and trust them.', { name: parentName || t('the group') })}
+                  </span>
+                </>
+                )
+              : (
+                <>
+                  <strong>{t('Use this link to invite people you know and trust.')}</strong>{' '}
+                  <span className='text-foreground/50'>{t('They will still have the opportunity to answer any join questions and agree to agreements before they enter the group.')}</span>
+                </>
+                )}
+          </div>
         </div>
         <div className='flex flex-col sm:flex-row sm:items-center gap-2 min-w-0 w-full'>
           {inviteLink && (
@@ -396,7 +412,11 @@ function InviteSettingsTab (props) {
         <h2 className='text-lg font-bold mt-4 mb-1 text-foreground'>
           {t('Send Invites via email')}
         </h2>
-        <span className='text-sm text-foreground/50'>{t('An email invitation link will be sent to each email address, which allows them to bypass the group approval process. They will still be shown any required questions or agreements you may have set.')}</span>
+        <span className='text-sm text-foreground/50'>
+          {isSpace
+            ? t('An invitation link will be sent to each email address to join this space. If they are not yet a member of {{name}} they will be asked to join that first.', { name: parentName || t('the group') })
+            : t('An invitation link will be sent to each email address. They will still be shown any required questions or agreements you may have set to join this group.')}
+        </span>
         <p>{t('Enter email addresses separated by commas or new lines')}</p>
         <TextareaAutosize
           minRows={1}

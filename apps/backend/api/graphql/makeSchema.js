@@ -326,10 +326,12 @@ async function buildGraphqlSchema (req) {
 function invitationMatchesGroupQuery (inviteCheck, slug, id) {
   if (!inviteCheck?.valid) return false
   if (slug) {
-    return !!(inviteCheck.groupSlug && inviteCheck.groupSlug === slug)
+    return !!(inviteCheck.groupSlug && inviteCheck.groupSlug === slug) ||
+      !!(inviteCheck.parentGroupSlug && inviteCheck.parentGroupSlug === slug)
   }
   if (id != null && id !== '') {
-    return String(inviteCheck.groupId) === String(id)
+    return String(inviteCheck.groupId) === String(id) ||
+      (inviteCheck.parentGroupId != null && String(inviteCheck.parentGroupId) === String(id))
   }
   return false
 }
@@ -659,7 +661,8 @@ export function makeMutations ({ fetchOne }) {
     convertGroupToSpace: (root, { id, parentGroupId }, context) =>
       convertGroupToSpace(context.currentUserId, { id, parentGroupId }, context),
 
-    joinSpace: (root, { spaceId }, context) => joinSpace(context.currentUserId, spaceId),
+    joinSpace: (root, { spaceId, accessCode, invitationToken }, context) =>
+      joinSpace(context.currentUserId, spaceId, accessCode, invitationToken),
 
     createInvitation: (root, { groupId, data }, context) => createInvitation(context.currentUserId, groupId, data), // consider sending locale from the frontend here
 

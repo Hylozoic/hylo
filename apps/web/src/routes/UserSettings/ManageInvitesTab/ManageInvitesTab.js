@@ -13,6 +13,7 @@ import { currentUserSettingsUrl, personUrl, groupUrl, spaceHomeUrl } from '@hylo
 import acceptInvitation from 'store/actions/acceptInvitation'
 import { FETCH_MY_REQUESTS_AND_INVITES } from 'store/constants'
 import { isSpaceGroup } from 'store/selectors/getMyGroups'
+import getMyMemberships from 'store/selectors/getMyMemberships'
 import {
   cancelJoinRequest,
   declineInvite,
@@ -46,9 +47,17 @@ function ManageInvitesTab () {
   const pendingJoinRequests = useSelector(getPendingJoinRequests)
   const pendingSpaceJoinRequests = useSelector(getPendingSpaceJoinRequests)
   const rejectedJoinRequests = useSelector(getRejectedJoinRequests)
+  const myMemberships = useSelector(getMyMemberships)
   const loading = useSelector(state => state.pending[FETCH_MY_REQUESTS_AND_INVITES])
 
   const acceptInvite = (invitationToken, group) => {
+    const parentSlug = group.parentGroup?.slug
+    const parentId = group.parentId || group.parentGroup?.id
+    const isParentMember = parentId && myMemberships.some(m => String(m.group?.id) === String(parentId))
+    if (isSpaceGroup(group) && parentSlug && !isParentMember) {
+      dispatch(push(`/groups/${parentSlug}/about?token=${invitationToken}`))
+      return
+    }
     dispatch(acceptInvitation({ invitationToken }))
       .then(() => dispatch(push(destinationAfterInvite(group))))
   }

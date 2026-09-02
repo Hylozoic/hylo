@@ -2,6 +2,7 @@ import { BadgeDollarSign, Users } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
+import { useLocation } from 'react-router-dom'
 
 import ClickCatcher from 'components/ClickCatcher'
 import HyloHTML from 'components/HyloHTML'
@@ -22,6 +23,7 @@ import fetchForGroup from 'store/actions/fetchForGroup'
 import joinSpace from 'store/actions/joinSpace'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
+import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { RESP_ADMINISTRATION } from 'store/constants'
 import { DEFAULT_BANNER, GROUP_ACCESSIBILITY, accessibilityIcon, spaceAccessDescription } from 'store/models/Group'
@@ -35,9 +37,13 @@ import { DEFAULT_BANNER, GROUP_ACCESSIBILITY, accessibilityIcon, spaceAccessDesc
 export default function SpaceJoinPage () {
   const dispatch = useDispatch()
   const { t } = useTranslation()
+  const location = useLocation()
   const routeParams = useRouteParams()
   const parentSlug = routeParams.groupSlug
   const spaceFullSlug = useEffectiveGroupSlug()
+  const accessCode = getQuerystringParam('accessCode', location)
+  const invitationToken = getQuerystringParam('token', location)
+  const hasJoinOrInviteLink = !!(accessCode || invitationToken)
 
   const parentGroup = useSelector(state => getGroupForSlug(state, parentSlug))
   const spaceGroup = useSelector(state => getGroupForSlug(state, spaceFullSlug))
@@ -99,18 +105,26 @@ export default function SpaceJoinPage () {
   const [joining, setJoining] = useState(false)
   const [requesting, setRequesting] = useState(false)
   const [actionError, setActionError] = useState(null)
+  const [autoJoinAttempted, setAutoJoinAttempted] = useState(false)
 
   const handleJoinSpace = useCallback(async () => {
     setActionError(null)
     setJoining(true)
     try {
-      await dispatch(joinSpace(spaceGroup.id))
+      await dispatch(joinSpace(spaceGroup.id, accessCode, invitationToken))
     } catch (error) {
       setActionError(error.message || t('Something went wrong. Please try again.'))
     } finally {
       setJoining(false)
     }
-  }, [dispatch, spaceGroup?.id, t])
+  }, [dispatch, spaceGroup?.id, accessCode, invitationToken, t])
+
+  // Join/invite links auto-join; SpaceContent then shows the space instead of this page
+  useEffect(() => {
+    if (!hasJoinOrInviteLink || !spaceGroup?.id || spaceGroup.paywall || autoJoinAttempted) return
+    setAutoJoinAttempted(true)
+    handleJoinSpace()
+  }, [hasJoinOrInviteLink, spaceGroup?.id, spaceGroup?.paywall, autoJoinAttempted, handleJoinSpace])
 
   const handleRequestToJoin = useCallback(async () => {
     setActionError(null)
@@ -124,7 +138,8 @@ export default function SpaceJoinPage () {
     }
   }, [dispatch, spaceGroup?.id, t])
 
-  if (!parentGroup || !spaceGroup || !spaceDetailsLoaded) return <Loading />
+  const autoJoining = hasJoinOrInviteLink && !spaceGroup?.paywall && (!autoJoinAttempted || joining)
+  if (!parentGroup || !spaceGroup || !spaceDetailsLoaded || autoJoining) return <Loading />
 
   const bannerUrl = spaceGroup.bannerUrl && spaceGroup.bannerUrl !== DEFAULT_BANNER
     ? spaceGroup.bannerUrl
@@ -132,9 +147,11 @@ export default function SpaceJoinPage () {
 
   const isRoleGated = !spaceGroup.paywall && (spaceGroup.requiredRoles || []).length > 0
 
-  // Parent-group admins can always join; role-holders and open spaces join directly
+  // Parent-group admins can always join; a join/invite link pre-approves Closed,
+  // Restricted, and role-gated spaces; role-holders and open spaces join directly
   const canJoinDirectly = canAdministerParent || (
     !spaceGroup.paywall && (
+      hasJoinOrInviteLink ||
       (isRoleGated && hasRequiredRole) ||
       spaceGroup.accessibility === GROUP_ACCESSIBILITY.Open
     )

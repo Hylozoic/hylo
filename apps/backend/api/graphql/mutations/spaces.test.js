@@ -585,6 +585,57 @@ describe('space mutations', () => {
       }
     })
 
+    it('returns the existing membership when the user is already in the space', async () => {
+      const space = await createAndLeaveSpace({ accessibility: Group.Accessibility.CLOSED })
+      const first = await joinSpace(member.id, space.id, space.get('access_code'))
+      const second = await joinSpace(member.id, space.id, space.get('access_code'))
+      expect(second.id).to.equal(first.id)
+    })
+
+    it('lets a parent member join a closed space with a valid access code', async () => {
+      const space = await createAndLeaveSpace({ accessibility: Group.Accessibility.CLOSED })
+
+      const membership = await joinSpace(member.id, space.id, space.get('access_code'))
+      expect(membership).to.be.ok
+    })
+
+    it('rejects a closed-space join with an invalid access code', async () => {
+      const space = await createAndLeaveSpace({ accessibility: Group.Accessibility.CLOSED })
+
+      try {
+        await joinSpace(member.id, space.id, 'not-a-real-code')
+        expect.fail('should throw')
+      } catch (e) {
+        expect(e.message).to.match(/request to join/)
+      }
+    })
+
+    it('rejects a closed-space join with another space access code', async () => {
+      const space = await createAndLeaveSpace({ accessibility: Group.Accessibility.CLOSED })
+      const other = await createAndLeaveSpace({ accessibility: Group.Accessibility.CLOSED })
+
+      try {
+        await joinSpace(member.id, space.id, other.get('access_code'))
+        expect.fail('should throw')
+      } catch (e) {
+        expect(e.message).to.match(/request to join/)
+      }
+    })
+
+    it('lets a parent member join a closed space with an invitation token', async () => {
+      const space = await createAndLeaveSpace({ accessibility: Group.Accessibility.CLOSED })
+      const invitation = await Invitation.create({
+        userId: coordinator.id,
+        groupId: space.id,
+        email: member.get('email')
+      })
+
+      const membership = await joinSpace(member.id, space.id, null, invitation.get('token'))
+      expect(membership).to.be.ok
+      await invitation.refresh()
+      expect(invitation.get('used_by_id')).to.equal(member.id)
+    })
+
     it('lets Administration join a role-gated space without the required role', async () => {
       const gatedRole = await GroupRole.forge({
         group_id: parentGroup.id,
