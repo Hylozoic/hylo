@@ -82,8 +82,8 @@ test('space modals carry the group creation form treatment', async ({ page }) =>
   await page.waitForTimeout(500)
   await page.screenshot({ path: shot('8-create-welcome-open'), animations: 'disabled' })
 
-  // Edit Menu swaps the picker for the menu editor, which now includes Welcome
-  await page.getByRole('button', { name: 'Edit Menu' }).click()
+  // Edit Full Menu swaps the picker for the menu editor, which now includes Welcome
+  await page.getByRole('button', { name: 'Edit Full Menu' }).click()
   const menuPanel = page.locator('[data-advanced-key="views"]')
   await expect(menuPanel.getByText('All Activity')).toBeVisible()
   await expect(menuPanel.getByText('Welcome', { exact: true })).toBeVisible()
@@ -145,7 +145,7 @@ test('adding Welcome from the menu toggles the Welcome pill on, and removing it 
   const welcomePill = page.getByRole('button', { name: 'Welcome', exact: true })
   await expect(welcomePill).toHaveAttribute('aria-pressed', 'false')
 
-  await page.getByRole('button', { name: 'Edit Menu' }).click()
+  await page.getByRole('button', { name: 'Edit Full Menu' }).click()
   await page.locator('[data-advanced-key="views"]').getByRole('button', { name: 'Add View' }).click()
 
   const addViewDialog = page.getByRole('dialog', { name: 'Add View' })

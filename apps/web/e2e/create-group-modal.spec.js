@@ -82,7 +82,7 @@ test.describe('Create Group modal', () => {
     const welcomePill = dialog.getByRole('button', { name: 'Welcome', exact: true })
     await expect(welcomePill).toHaveAttribute('aria-pressed', 'false')
 
-    await dialog.getByRole('button', { name: 'Edit Menu' }).click()
+    await dialog.getByRole('button', { name: 'Edit Full Menu' }).click()
     await dialog.getByRole('button', { name: 'Add View' }).click()
 
     const addViewDialog = page.getByRole('dialog', { name: 'Add View' })
