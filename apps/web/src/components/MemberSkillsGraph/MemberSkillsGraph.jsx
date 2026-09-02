@@ -22,9 +22,6 @@ export default function MemberSkillsGraph ({ members, loading, slug, onSkillClic
   const graphInstanceRef = useRef(null)
   const [userThreshold, setUserThreshold] = useState(null)
   const [expanded, setExpanded] = useState(false)
-  // The map opens closed: a 150px teaser under a cover, so it does not push the
-  // directory off the screen before anyone has asked to look at it.
-  const [opened, setOpened] = useState(false)
   const [building, setBuilding] = useState(false)
 
   // The ORM selector hands us a fresh members array whenever any Person
@@ -95,7 +92,7 @@ export default function MemberSkillsGraph ({ members, loading, slug, onSkillClic
         graphInstanceRef.current = null
       }
     }
-  }, [nodes, links, expanded, opened])
+  }, [nodes, links, expanded])
 
   useEffect(() => {
     if (!expanded) return
@@ -106,15 +103,9 @@ export default function MemberSkillsGraph ({ members, loading, slug, onSkillClic
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [expanded])
 
-  // The canvas bitmap is sized once from the container rect, so growing the
-  // container stretches the old render into ellipses until the rebuild lands.
-  // Raise the spinner in the same commit as the height change to cover it.
-  const openMap = () => {
-    setBuilding(true)
-    setOpened(true)
-  }
-
-  // Enlarging swaps to a fullscreen box, which is the same resize problem.
+  // The canvas bitmap is sized once from the container rect, and enlarging
+  // swaps to a fullscreen box — raise the spinner in the same commit as the
+  // height change so the stretched old render never shows.
   const toggleExpanded = () => {
     setBuilding(true)
     setExpanded(value => !value)
@@ -129,7 +120,7 @@ export default function MemberSkillsGraph ({ members, loading, slug, onSkillClic
 
   return (
     <div
-      className={cn(expanded ? 'fixed inset-0 z-[100] bg-background flex flex-col p-3' : 'mt-3 mb-2')}
+      className={cn(expanded && 'fixed inset-0 z-[100] bg-background flex flex-col p-3')}
       data-testid='member-skills-graph'
     >
       <div className='flex items-center justify-between bg-card rounded-t-xl border-b border-foreground/10 px-3 py-2'>
@@ -177,50 +168,34 @@ export default function MemberSkillsGraph ({ members, loading, slug, onSkillClic
           'relative w-full',
           expanded
             ? 'flex-1 min-h-0'
-            : !opened
-                ? 'h-[150px]'
-                // Phones get a roughly square map whatever the skill count — the taller
-                // sizes below push everything else off the screen. Enlarge is right there.
-                : cn('h-[300px]', loading || nodes.length >= 60
-                  ? 'sm:h-[560px]'
-                  : nodes.length < 12 ? 'sm:h-[300px]' : nodes.length < 30 ? 'sm:h-[380px]' : 'sm:h-[460px]')
+            // Phones get a roughly square map whatever the skill count — the taller
+            // sizes below push everything else off the screen. Enlarge is right there.
+            : cn('h-[300px]', loading || nodes.length >= 60
+              ? 'sm:h-[560px]'
+              : nodes.length < 12 ? 'sm:h-[300px]' : nodes.length < 30 ? 'sm:h-[380px]' : 'sm:h-[460px]')
         )}
       >
         <div
           ref={containerRef}
           className='w-full h-full bg-card bg-[url("/network-map-bg.png")] bg-no-repeat bg-cover rounded-b-xl overflow-hidden shadow-2xl'
         />
-        {(opened || expanded) && (
-          <button
-            type='button'
-            onClick={toggleExpanded}
-            title={expanded ? t('Close') : t('Enlarge map')}
-            aria-label={expanded ? t('Close') : t('Enlarge map')}
-            data-testid='skills-enlarge-button'
-            className='absolute top-3 left-3 flex items-center justify-center rounded-lg border-2 border-foreground/20 bg-card/90 backdrop-blur p-2 text-foreground/70 cursor-pointer transition-colors hover:text-foreground hover:bg-foreground/5'
-          >
-            {expanded ? <Minimize2 className='w-4 h-4' /> : <Maximize2 className='w-4 h-4' />}
-          </button>
-        )}
-        {!expanded && !opened && !loading && !building && (
-          <div className='absolute inset-0 flex items-center justify-center rounded-b-xl bg-background/60 backdrop-blur-[1px]'>
-            <button
-              type='button'
-              onClick={openMap}
-              data-testid='skills-open-map-button'
-              className='rounded-lg border-2 border-foreground/20 bg-card/90 px-3 py-2 text-sm font-semibold text-foreground/80 backdrop-blur cursor-pointer transition-colors hover:text-foreground hover:border-foreground/40'
-            >
-              {t('Open map')}
-            </button>
-          </div>
-        )}
+        <button
+          type='button'
+          onClick={toggleExpanded}
+          title={expanded ? t('Close') : t('Enlarge map')}
+          aria-label={expanded ? t('Close') : t('Enlarge map')}
+          data-testid='skills-enlarge-button'
+          className='absolute top-3 left-3 flex items-center justify-center rounded-lg border-2 border-foreground/20 bg-card/90 backdrop-blur p-2 text-foreground/70 cursor-pointer transition-colors hover:text-foreground hover:bg-foreground/5'
+        >
+          {expanded ? <Minimize2 className='w-4 h-4' /> : <Maximize2 className='w-4 h-4' />}
+        </button>
         {(loading || building) && (
           <div className='absolute inset-0 flex flex-col items-center justify-center gap-1 rounded-b-xl bg-card'>
             <Loading type='inline' />
             <span className='text-sm text-foreground/60'>{t('Loading skills map')}</span>
           </div>
         )}
-        {!loading && !building && (opened || expanded) && (
+        {!loading && !building && (
           <div className='absolute bottom-3 right-3 flex flex-col rounded-lg border-2 border-foreground/20 bg-card/90 backdrop-blur overflow-hidden'>
             <button
               type='button'

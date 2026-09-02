@@ -292,6 +292,14 @@ function Members (props) {
       </Helmet>
       <div className={classes.content}>
         <div className='flex flex-col gap-2 py-4'>
+          {showSkillMap && (
+            <MemberSkillsGraph
+              members={graphMembers}
+              loading={Boolean(graphPending) || !hasFetchedGraphMembers}
+              slug={slug}
+              onSkillClick={handleGraphSkillClick}
+            />
+          )}
           <div className='flex flex-wrap items-center gap-2'>
             {/* Phones start as just a button so the controls fit one row; tapping
                 it hands the full row to the input. Desktop is unchanged. */}
@@ -459,16 +467,6 @@ function Members (props) {
             </div>
           )}
         </div>
-        {showSkillMap && (
-          <div className='pb-4'>
-            <MemberSkillsGraph
-              members={graphMembers}
-              loading={Boolean(graphPending) || !hasFetchedGraphMembers}
-              slug={slug}
-              onSkillClick={handleGraphSkillClick}
-            />
-          </div>
-        )}
         <MasonryGrid
           enabled={displayMode === 'card'}
           gap={12}
