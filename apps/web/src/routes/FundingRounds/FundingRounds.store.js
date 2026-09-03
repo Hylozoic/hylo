@@ -144,6 +144,7 @@ export function fetchFundingRound (id) {
           numSubmissions
           phase
           requireBudget
+          showRealtimeVotes
           submissionDescriptor
           submissionDescriptorPlural
           submitterRoles {
@@ -279,6 +280,7 @@ export function createFundingRound (data) {
           numParticipants,
           numSubmissions,
           requireBudget,
+          showRealtimeVotes,
           submissionDescriptor,
           submissionDescriptorPlural,
           submitterRoles {
@@ -481,6 +483,7 @@ export function allocateTokensToSubmission (postId, tokens, fundingRoundId) {
           allocateTokensToSubmission(postId: $postId, tokens: $tokens) {
             id
             tokensAllocated
+            totalTokensAllocated
           }
         }
       `,
@@ -589,8 +592,9 @@ export function ormSessionReducer (
       // Add back the old allocation, then subtract the new allocation
       const oldAllocation = post.tokensAllocated || 0
       const newTokensRemaining = round.tokensRemaining + oldAllocation - meta.tokens
+      const newTotalAllocated = (post.totalTokensAllocated || 0) - oldAllocation + meta.tokens
       round.update({ tokensRemaining: newTokensRemaining })
-      return post.update({ tokensAllocated: meta.tokens })
+      return post.update({ tokensAllocated: meta.tokens, totalTokensAllocated: newTotalAllocated })
     }
 
     case DELETE_FUNDING_ROUND_PENDING: {

@@ -139,6 +139,16 @@ function adjustOpenJoinRequestCount (session, groupId, delta) {
 }
 
 /**
+ * Adjust the cached unresolved-flag count used by the Moderation menu badge.
+ */
+function adjustOpenModerationActionCount (session, groupId, delta) {
+  if (!groupId || !delta) return
+  const group = session.Group.idExists(groupId) ? session.Group.withId(groupId) : null
+  if (!group) return
+  group.update({ openModerationActionCount: Math.max(0, (group.openModerationActionCount || 0) + delta) })
+}
+
+/**
  * Whether any loaded menu copy for this group still shows unread (own GroupViews
  * and/or nested under a parent's type=space linkedGroup).
  */
@@ -371,9 +381,13 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     }
 
     case CLEAR_MODERATION_ACTION_PENDING: {
-      if (meta && meta?.moderationActionId) {
+      if (meta && meta?.moderationActionId && session.ModerationAction.idExists(meta.moderationActionId)) {
         const moderationAction = session.ModerationAction.withId(meta.moderationActionId)
+        const wasActive = moderationAction.status === 'active'
         moderationAction.update({ status: 'cleared' })
+        if (wasActive) {
+          adjustOpenModerationActionCount(session, meta.groupId || moderationAction.groupId, -1)
+        }
       }
       break
     }
@@ -519,6 +533,8 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
           post.update({ flaggedGroups: flaggedGroups || [meta?.data?.groupId] })
           post.update({ moderationActions: moderationActions || [meta?.data] })
         }
+
+        adjustOpenModerationActionCount(session, meta.data.groupId, 1)
 
         if (meta.tempId) {
           const reporter = Me.first()
@@ -702,13 +718,13 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     case MARK_VIEW_AS_READ: {
       const readView = payload?.data?.markViewAsRead
       if (!readView?.id) break
+      // markRead always zeros the count. Do not write a stale server value back
+      // (cached GroupViewUser DataLoader used to return the pre-mark count).
       updateGroupViewInAllMenus(Group.all(), readView.id, {
         lastReadPostId: readView.lastReadPostId,
-        newPostCount: readView.newPostCount ?? 0
+        newPostCount: 0
       })
-      if ((readView.newPostCount ?? 0) === 0) {
-        clearMembershipIfMenuHasNoUnread(session, meta.groupId)
-      }
+      clearMembershipIfMenuHasNoUnread(session, meta.groupId)
       break
     }
 
@@ -740,6 +756,29 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       if (meta.groupId && meta.spaceViewId && meta.data && Object.keys(meta.data).length > 0) {
         group = Group.withId(meta.groupId)
         updateGroupViewInMenu(group, meta.spaceViewId, meta.data)
+      }
+      if (meta.id && Group.idExists(meta.id)) {
+        const spaceGroup = Group.withId(meta.id)
+        const fundingRoundId = spaceGroup.fundingRound?.id
+        const nextName = meta.data?.linkedGroup?.name || meta.data?.name
+        const updates = {}
+        if (nextName) updates.name = nextName
+        if (meta.status) {
+          updates.status = meta.status
+          if (fundingRoundId) {
+            updates.fundingRound = { ...spaceGroup.fundingRound, phase: meta.status }
+          }
+        }
+        if (Object.keys(updates).length > 0) {
+          spaceGroup.update(updates)
+        }
+        if (meta.status) {
+          const { FundingRound } = session
+          const round = fundingRoundId && FundingRound.idExists(fundingRoundId)
+            ? FundingRound.withId(fundingRoundId)
+            : FundingRound.all().toModelArray().find(r => String(r.group) === String(meta.id))
+          if (round) round.update({ phase: meta.status })
+        }
       }
       break
     }
@@ -1166,27 +1205,32 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       // Set new join questions in the ORM
       if (payload.data.updateGroupSettings && (payload.data.updateGroupSettings.joinQuestions || payload.data.updateGroupSettings.prerequisiteGroups)) {
         group = Group.withId(meta.id)
-        clearCacheFor(Group, meta.id)
+        if (group) clearCacheFor(Group, meta.id)
       }
 
-      if (payload.data.updateGroupSettings && (payload.data.updateGroupSettings.agreements)) {
-        // Optimistically update the agreementsAcceptedAt setting, so the person adding the agreements doesnt have to immediately accept them
+      // Optimistically update the agreementsAcceptedAt setting, so the person adding the agreements doesnt have to immediately accept them.
+      // The query always returns agreements, so only do this when they were actually edited.
+      if (meta.changes?.agreements) {
         me = Me.first()
-        membership = Membership.safeGet({ group: meta.id, person: me.id })
-        const newSettings = {
-          ...membership.settings,
-          agreementsAcceptedAt: new Date()
+        membership = me ? Membership.safeGet({ group: meta.id, person: me.id }) : null
+        if (membership) {
+          membership.update({
+            settings: {
+              ...membership.settings,
+              agreementsAcceptedAt: new Date()
+            }
+          })
         }
-        membership.update({ settings: newSettings })
 
         group = Group.withId(meta.id)
-        clearCacheFor(Group, meta.id)
+        if (group) clearCacheFor(Group, meta.id)
       }
       break
     }
 
     case UPDATE_GROUP_SETTINGS_PENDING: {
       group = Group.withId(meta.id)
+      if (!group) break
       const { settings: settingsChanges, ...otherChanges } = meta.changes || {}
       group.update({
         ...otherChanges,
@@ -1198,8 +1242,10 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       // Clear out prerequisiteGroups so they can be reset when the UPDATE completes
       group.update({ prerequisiteGroups: [] })
 
-      // Triggers an update to redux-orm for the membership
-      membership = Membership.safeGet({ group: meta.id, person: me.id }).update({ forceUpdate: new Date() })
+      // Triggers an update to redux-orm for the membership. Newly created spaces
+      // (e.g. track/funding-round) may not have a membership in the ORM yet.
+      membership = me ? Membership.safeGet({ group: meta.id, person: me.id }) : null
+      if (membership) membership.update({ forceUpdate: new Date() })
       break
     }
 

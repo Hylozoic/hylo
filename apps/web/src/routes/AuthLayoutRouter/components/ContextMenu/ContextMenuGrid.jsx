@@ -39,7 +39,7 @@ import { useViewHeader } from 'contexts/ViewHeaderContext'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import { createGroupView, deleteGroupView, deleteSpace, archiveSpace, setGroupViewHidden, updateGroupView } from 'store/actions/groupViews'
-import { canHardDeleteView } from 'store/models/GroupView'
+import { canHardDeleteView, isMenuViewVisible } from 'store/models/GroupView'
 import GroupMenuHeader from 'components/GroupMenuHeader'
 import GroupNotificationsPopover from 'components/GroupNotificationsPopover/GroupNotificationsPopover'
 import CardIconField from './CardIconField'
@@ -62,6 +62,8 @@ import {
   CARD_CLASS,
   CARD_FADE_CLASS,
   CARD_TITLE_CLASS,
+  CARD_TILE_CLASS,
+  CARD_LABEL_TOP_CLASS,
   CARD_W,
   CARD_H
 } from './viewCardTheme'
@@ -122,7 +124,7 @@ function partitionViewsIntoSections (views) {
  * the full group banner (220px), so the takeover swaps hierarchy without
  * moving the grid below.
  */
-function SpaceBannerHeader ({ group, spaceGroup, canAdminister, onOpenSettings, navigate, t }) {
+function SpaceBannerHeader ({ group, spaceGroup, canAdminister, onOpenSettings, t }) {
   const presentedSpaceView = useMemo(() => GroupViewPresenter({
     type: 'space', name: spaceGroup.name, icon: spaceGroup.icon, linkedGroup: spaceGroup
   }), [spaceGroup])
@@ -148,20 +150,12 @@ function SpaceBannerHeader ({ group, spaceGroup, canAdminister, onOpenSettings, 
           )
         : <MenuRowBackground view={presentedSpaceView} bannerUrl={null} rows={8} spaced className='rounded-none' />}
 
-      {/* Controls bar, mirroring the group banner: bell left, about + settings right */}
+      {/* Controls bar, mirroring the group banner: bell left, settings right */}
       <div className='absolute top-3 left-1/2 -translate-x-1/2 z-30 w-full max-w-[1000px] px-3 flex items-center justify-between'>
         <div className={controlClass}>
           <GroupNotificationsPopover group={spaceGroup} className='w-6 h-6 drop-shadow-md hover:scale-110 transition-all' />
         </div>
-        <div className='flex items-center gap-3'>
-          <button
-            type='button'
-            onClick={() => navigate(spaceUrl(group.slug, localSpace, 'about'))}
-            aria-label={t('About')}
-            title={t('About')}
-          >
-            <Info className={cn('w-6 h-6 drop-shadow-md hover:scale-110 transition-all', controlClass)} />
-          </button>
+        <div className='flex items-center gap-2'>
           {canAdminister && (
             <button type='button' onClick={onOpenSettings} aria-label={t('Space Settings')} title={t('Space Settings')}>
               <Settings className={cn('w-6 h-6 drop-shadow-md hover:scale-110 transition-all', controlClass)} />
@@ -208,6 +202,13 @@ function SpaceBannerHeader ({ group, spaceGroup, canAdminister, onOpenSettings, 
             triggerLabel={t('Invite')}
             triggerClassName={cn('rounded-full border px-2 py-0.5 hover:scale-100', pillClass)}
           />
+          <Link
+            to={spaceUrl(group.slug, localSpace, 'about')}
+            className={cn('inline-flex items-center gap-1 rounded-full border px-2 py-0.5 no-underline hover:no-underline transition-colors', pillClass)}
+          >
+            <Info className='w-3.5 h-3.5' />
+            {t('About')}
+          </Link>
         </span>
       </div>
     </div>
@@ -329,13 +330,13 @@ function MoreSpacesCard ({ onClick, t }) {
         <div className='absolute inset-0 grid place-items-center'>
           {/* Same solid tile as the icon cards, so this reads as one of them */}
           <div
-            className='w-14 h-14 rounded-[15px] grid place-items-center shadow-[0_4px_12px_rgba(0,0,0,0.35)]'
+            className={cn(CARD_TILE_CLASS, 'grid place-items-center shadow-[0_4px_12px_rgba(0,0,0,0.35)]')}
             style={{ background: col, color: inkOn(col), border: `1px solid color-mix(in srgb, ${col} 55%, white)` }}
           >
             <CircleEllipsis className='w-7 h-7' />
           </div>
         </div>
-        <div className='absolute left-0 right-0 top-[calc(50%+28px)] bottom-0 flex flex-col items-center justify-center text-center px-3'>
+        <div className={cn(CARD_LABEL_TOP_CLASS, 'absolute left-0 right-0 bottom-0 flex flex-col items-center justify-center text-center px-3')}>
           <h3 className={cn(CARD_TITLE_CLASS, isDark ? 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]' : 'text-foreground')}>{t('More Spaces')}</h3>
         </div>
       </div>
@@ -383,13 +384,13 @@ function JoinRequestsCard ({ count, onClick, t }) {
       <div className='relative h-full'>
         <div className='absolute inset-0 grid place-items-center'>
           <div
-            className='w-14 h-14 rounded-[15px] grid place-items-center shadow-[0_4px_12px_rgba(0,0,0,0.35)]'
+            className={cn(CARD_TILE_CLASS, 'grid place-items-center shadow-[0_4px_12px_rgba(0,0,0,0.35)]')}
             style={{ background: col, color: inkOn(col), border: `1px solid color-mix(in srgb, ${col} 55%, white)` }}
           >
             <UserPlus className='w-7 h-7' />
           </div>
         </div>
-        <div className='absolute left-0 right-0 top-[calc(50%+28px)] bottom-0 flex flex-col items-center justify-center text-center px-3'>
+        <div className={cn(CARD_LABEL_TOP_CLASS, 'absolute left-0 right-0 bottom-0 flex flex-col items-center justify-center text-center px-3')}>
           <h3 className={cn(CARD_TITLE_CLASS, isDark ? 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]' : 'text-foreground')}>{t('Join Requests')}</h3>
         </div>
       </div>
@@ -709,14 +710,14 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
       }) || []
     }
     const views = filterSpaceViewsForMenuVisibility(
-      (groupViews || []).filter(view => view.order != null),
+      (groupViews || []).filter(view => isMenuViewVisible(view, menuGroup?.acceptedPostTypes)),
       spaceVisibilityOpts
     )
     if (spaceGroup?.fundingRound?.id && canAdminister) {
       return [...views, MANAGE_ROUND_VIEW]
     }
     return views
-  }, [isContextMode, context, currentUser?.id, groupViews, spaceGroup?.fundingRound?.id, canAdminister, spaceVisibilityOpts])
+  }, [isContextMode, context, currentUser?.id, groupViews, menuGroup?.acceptedPostTypes, spaceGroup?.fundingRound?.id, canAdminister, spaceVisibilityOpts])
 
   const sections = useMemo(() => partitionViewsIntoSections(visibleViews), [visibleViews])
 
@@ -793,7 +794,6 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
             spaceGroup={spaceGroup}
             canAdminister={canAdminister}
             onOpenSettings={() => setSettingsView({ type: 'space', linkedGroup: spaceGroup, name: spaceGroup.name, icon: spaceGroup.icon })}
-            navigate={navigate}
             t={t}
           />
         </>
@@ -811,8 +811,14 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
               <div className='absolute top-3 left-1/2 -translate-x-1/2 z-30 w-full max-w-[1000px] px-3 flex items-center justify-between'>
                 <GroupNotificationsPopover group={group} />
 
-                {/* Matches GroupMenuHeader's affordances — search, about, then settings */}
-                <div className='flex items-center gap-3'>
+                {/* Members / invite / about sit under the name, matching GroupMenuHeader.
+                    Top-right keeps settings, then search on the far right. */}
+                <div className='flex items-center gap-2'>
+                  {canAdminister && (
+                    <button type='button' onClick={() => navigate(groupUrl(groupSlug, 'settings', {}))}>
+                      <Settings className='w-6 h-6 text-white drop-shadow-md hover:scale-110 transition-all' />
+                    </button>
+                  )}
                   <button
                     type='button'
                     onClick={() => {
@@ -825,20 +831,6 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
                   >
                     <Search className='w-6 h-6 text-white drop-shadow-md hover:scale-110 transition-all' />
                   </button>
-
-                  <button
-                    type='button'
-                    onClick={() => navigate(groupUrl(groupSlug, 'about', {}))}
-                    aria-label={t('About')}
-                  >
-                    <Info className='w-6 h-6 text-white drop-shadow-md hover:scale-110 transition-all' />
-                  </button>
-
-                  {canAdminister && (
-                    <button type='button' onClick={() => navigate(groupUrl(groupSlug, 'settings', {}))}>
-                      <Settings className='w-6 h-6 text-white drop-shadow-md hover:scale-110 transition-all' />
-                    </button>
-                  )}
                 </div>
               </div>
             )}
@@ -865,19 +857,30 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
               {displaySubtitle
                 ? <span className='text-sm text-white/80 drop-shadow-md'>{displaySubtitle}</span>
                 : !isContextMode && (
-                  <span className='group text-sm flex items-center gap-1 text-white/80 drop-shadow-md'>
-                    <Users className='w-4 h-4' />
+                  <span className='flex items-center gap-1 text-xs'>
                     <Link
-                      className='text-white/80 underline hover:text-white'
+                      className='inline-flex items-center gap-1 rounded-full bg-white/15 border border-white/25 px-2 py-0.5 text-white hover:bg-white/25 hover:text-white no-underline hover:no-underline transition-colors'
                       to={groupUrl((spaceGroup || group)?.slug || groupSlug, 'members', {})}
+                      aria-label={t('{{count}} Members', { count: (spaceGroup || group)?.memberCount || 0 })}
                     >
-                      {t('{{count}} Members', { count: (spaceGroup || group)?.memberCount || 0 })}
+                      <Users className='w-3.5 h-3.5' />
+                      {(spaceGroup || group)?.memberCount || 0}
                     </Link>
                     <InviteMembersDialog
                       group={spaceGroup || group}
                       parentGroup={spaceGroup ? group : null}
-                      triggerClassName='text-white hover:text-white'
+                      alwaysVisible
+                      triggerLabel={t('Invite')}
+                      triggerClassName='rounded-full bg-white/15 border border-white/25 px-2 py-0.5 text-white hover:text-white hover:bg-white/25 hover:scale-100'
                     />
+                    <button
+                      type='button'
+                      onClick={() => navigate(groupUrl((spaceGroup || group)?.slug || groupSlug, 'about', {}))}
+                      className='inline-flex items-center gap-1 rounded-full bg-white/15 border border-white/25 px-2 py-0.5 text-white hover:bg-white/25 hover:text-white transition-colors'
+                    >
+                      <Info className='w-3.5 h-3.5' />
+                      {t('About')}
+                    </button>
                   </span>
                   )}
             </div>

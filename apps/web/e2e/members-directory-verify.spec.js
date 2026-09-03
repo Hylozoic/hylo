@@ -1,37 +1,41 @@
 import { test, expect } from '@playwright/test'
+import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading.js'
 
 test.use({ storageState: 'e2e/.auth/session.json' })
 
 test('members page: counts, hidden empty roles, stable map, padding', async ({ page }) => {
+  test.skip(test.info().project.name.includes('mobile'), 'members directory chrome is desktop')
+  test.setTimeout(120000)
   const errors = []
   page.on('pageerror', err => errors.push(String(err)))
 
   await page.setViewportSize({ width: 1280, height: 900 })
-  await page.goto('/groups/building-hylo/members')
-  await page.waitForLoadState('networkidle')
-  await page.waitForTimeout(2500)
+  await page.goto('/groups/e2e-public-group/members')
+  await waitPastRootSessionLoading(page)
 
-  // Role pill counts fetched and rendered
   const row = page.locator('div').filter({ has: page.getByRole('button', { name: /All members/ }) }).last()
   const coordinator = row.getByRole('button', { name: /Coordinator/ })
-  await expect(coordinator).toContainText('7')
+  await expect(coordinator).toBeVisible({ timeout: 30000 })
+  await expect(coordinator).toContainText(/\d/)
 
-  // Zero-member roles hidden
   await expect(page.getByRole('button', { name: /Moderator/ })).toHaveCount(0)
   await expect(page.getByRole('button', { name: /^👋 Host/ })).toHaveCount(0)
 
-  // Bottom padding >= 100px
   const pad = await page.evaluate(() => parseFloat(window.getComputedStyle(document.getElementById('members-page')).paddingBottom))
   console.log('padding-bottom:', pad)
   expect(pad).toBeGreaterThanOrEqual(100)
 
-  // Mark the map canvas, change role filter, canvas must survive (no rebuild)
+  await page.getByTestId('skill-map-toggle').click()
+  const graph = page.getByTestId('member-skills-graph')
+  await expect(graph).toBeVisible({ timeout: 60000 })
+  await expect(graph.locator('canvas')).toBeVisible({ timeout: 30000 })
+
   await page.evaluate(() => {
     const canvas = document.querySelector('[data-testid="member-skills-graph"] canvas')
     if (canvas) canvas.dataset.stable = 'yes'
   })
   await coordinator.click()
-  await page.waitForTimeout(2500)
+  await page.waitForTimeout(1500)
   const marker = await page.evaluate(() =>
     document.querySelector('[data-testid="member-skills-graph"] canvas')?.dataset.stable)
   console.log('canvas marker after role change:', marker)

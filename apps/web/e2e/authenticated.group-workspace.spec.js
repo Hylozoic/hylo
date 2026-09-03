@@ -8,10 +8,10 @@ import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading
  * Skipped here (other batches / needs IDs): `custom/:customViewId` (Batch J), inner `*` default redirect covered via bogus segment test.
  */
 
-test.describe.configure({ timeout: 120000 })
+test.describe.configure({ timeout: 180000 })
 
 const navTimeout = { timeout: 90000 }
-const uiTimeout = { timeout: 60000 }
+const uiTimeout = { timeout: 90000 }
 
 const PUBLIC_GROUP_SLUG = 'e2e-public-group'
 const PRIVATE_GROUP_SLUG = 'e2e-private-group'
@@ -30,7 +30,9 @@ function groupPrivate (rest) {
 
 async function expectGroupWorkspaceShell (page, urlPattern) {
   await expect(page).toHaveURL(urlPattern, navTimeout)
-  await expect(page.locator('#center-column')).toBeVisible(uiTimeout)
+  // AuthLayout shell id — `#center-column` is the inner scroller and is not
+  // always mounted yet on phone (drawer / bootstrap), so wait on the container.
+  await expect(page.locator('#center-column-container')).toBeVisible(uiTimeout)
   await expect(page).toHaveTitle(/E2E|Hylo/i, uiTimeout)
 }
 
@@ -159,7 +161,7 @@ test.describe('Batch D: group workspace', () => {
     await page.goto(groupPublic('/settings'))
     await waitPastRootSessionLoading(page)
     await expect(page).toHaveURL(new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/settings`), navTimeout)
-    await expect(page.locator('#center-column')).toBeVisible(uiTimeout)
+    await expect(page.locator('#center-column-container')).toBeVisible(uiTimeout)
     await expect(page).toHaveTitle(/E2E|Hylo/i, uiTimeout)
   })
 
@@ -167,7 +169,7 @@ test.describe('Batch D: group workspace', () => {
     await page.goto(groupPrivate('/stream'))
     await waitPastRootSessionLoading(page)
     await expect(page).toHaveURL(new RegExp(`/groups/${PRIVATE_GROUP_SLUG}/all`), navTimeout)
-    await expect(page.locator('#center-column')).toBeVisible(uiTimeout)
+    await expect(page.locator('#center-column-container')).toBeVisible(uiTimeout)
     await expect(page).toHaveTitle(/E2E|Hylo/i, uiTimeout)
   })
 

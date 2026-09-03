@@ -19,6 +19,23 @@ describe('presentPost', () => {
     expect(result).toMatchSnapshot()
   })
 
+  it('exposes featured video link preview fields from the ORM relation', () => {
+    const preview = session.LinkPreview.create({
+      id: 'lp-1',
+      title: 'A video',
+      url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      imageUrl: 'thumb.png'
+    })
+    session.Post.withId(postId).update({
+      linkPreview: preview.id,
+      linkPreviewFeatured: true
+    })
+    const result = presentPost(session.Post.withId(postId), groupId)
+    expect(result.linkPreviewFeatured).toBe(true)
+    expect(result.linkPreview.url).toBe('https://www.youtube.com/watch?v=dQw4w9WgXcQ')
+    expect(result.linkPreview.title).toBe('A video')
+  })
+
   it('resolves locationObject from the Location relation', () => {
     session.Location.create({ id: '99', center: { lat: 37.7, lng: -122.4 } })
     session.Post.withId(postId).update({ locationObject: '99' })

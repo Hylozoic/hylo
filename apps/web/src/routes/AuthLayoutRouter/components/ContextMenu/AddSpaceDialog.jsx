@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import useTour from 'tours/useTour'
 import { SPACE_CREATE_TOUR_ID, spaceCreateTourSteps } from 'tours/spaceCreateTour'
+import { TRACK_SETUP_TOUR_ID, trackSetupTourSteps } from 'tours/trackSetupTour'
+import { FUNDING_ROUND_SETUP_TOUR_ID, fundingRoundSetupTourSteps } from 'tours/fundingRoundSetupTour'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Activity, BadgeDollarSign, Hand, ImagePlus, Layers, LayoutGrid, MapPin, MessageCircleMore, Plus, Settings, Shapes } from 'lucide-react'
@@ -11,7 +13,7 @@ import Button from 'components/ui/button'
 import { FIELD_LABEL_CLASS, INPUT_CLASS } from 'components/ui/form-field'
 import { Input } from 'components/ui/input'
 import { AdvancedPill, AdvancedSection } from 'components/AdvancedSettings/AdvancedSettings'
-import HomeViewPicker, { CUSTOM_HOME_VIEW, viewTypesForCreate } from 'components/HomeViewPicker/HomeViewPicker'
+import HomeViewPicker from 'components/HomeViewPicker/HomeViewPicker'
 import HyloEditor from 'components/HyloEditor'
 import IncludedViewsEditor from 'components/IncludedViewsEditor/IncludedViewsEditor'
 import LocationInput from 'components/LocationInput/LocationInput'
@@ -30,7 +32,7 @@ import fetchGroupViews from 'store/actions/fetchGroupViews'
 import { updateGroupSettings } from 'routes/GroupSettings/GroupSettings.store'
 import { createTrack } from 'store/actions/trackActions'
 import { createFundingRound } from 'routes/FundingRounds/FundingRounds.store'
-import { POST_TYPE_TO_VIEW_TYPE } from 'store/models/GroupView'
+import { CUSTOM_HOME_VIEW, POST_TYPE_TO_VIEW_TYPE, viewTypesForCreate } from 'store/models/GroupView'
 import { groupRolesForPicker } from '@hylo/hooks/groupRoleHelpers'
 import getMe from 'store/selectors/getMe'
 import { cn } from 'util/index'
@@ -132,6 +134,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
     autoStartDelay: 1200,
     inviteMessage: t('Creating a space? Take a quick tour of the big decisions.')
   })
+
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const routerLocation = useLocation()
@@ -142,6 +145,25 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
   )
 
   const [spaceType, setSpaceType] = useState('custom')
+  // Type-specific tours when the Track or Funding Round type is selected
+  const trackTourStepList = useMemo(() => trackSetupTourSteps(t), [t])
+  const { invitation: trackTourInvitation } = useTour({
+    id: TRACK_SETUP_TOUR_ID,
+    steps: trackTourStepList,
+    autoStart: true,
+    autoStartDelay: 1200,
+    enabled: spaceType === 'track',
+    inviteMessage: t('Setting up a track? Take a quick tour.')
+  })
+  const roundTourStepList = useMemo(() => fundingRoundSetupTourSteps(t), [t])
+  const { invitation: roundTourInvitation } = useTour({
+    id: FUNDING_ROUND_SETUP_TOUR_ID,
+    steps: roundTourStepList,
+    autoStart: true,
+    autoStartDelay: 1200,
+    enabled: spaceType === 'funding-round',
+    inviteMessage: t('Setting up a funding round? Take a quick tour.')
+  })
   const [name, setName] = useState('')
   const [slug, setSlug] = useState('')
   const [slugCustomized, setSlugCustomized] = useState(false)
@@ -181,6 +203,8 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
   const [frAllowSelfVoting, setFrAllowSelfVoting] = useState(false)
   const [frAllowLateJoiners, setFrAllowLateJoiners] = useState(false)
   const [frHideFinalResults, setFrHideFinalResults] = useState(false)
+  const [frRequireBudget, setFrRequireBudget] = useState(false)
+  const [frShowRealtimeVotes, setFrShowRealtimeVotes] = useState(false)
   const [frSubmissionDescriptor, setFrSubmissionDescriptor] = useState('Submission')
   const [frSubmissionDescriptorPlural, setFrSubmissionDescriptorPlural] = useState('Submissions')
   const [frSubmitterRoles, setFrSubmitterRoles] = useState([])
@@ -203,6 +227,17 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
     setManualViews([])
     setIcon(defaults.icon)
     setHomeView('STREAM')
+    // Tracks and funding rounds ship a welcome page — turn the setting on so new
+    // members land there, and open the Welcome panel so the toggle is visible.
+    const welcomeByDefault = value === 'track' || value === 'funding-round'
+    setWelcomeEnabled(welcomeByDefault)
+    setShowWelcomePage(true)
+    setOpenAdvanced(prev => {
+      const next = new Set(prev)
+      if (welcomeByDefault) next.add('welcome')
+      else next.delete('welcome')
+      return next
+    })
   }, [])
 
   const roles = useMemo(
@@ -210,14 +245,21 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
     [group?.groupRoles?.items]
   )
 
+  const accessOptions = useMemo(
+    () => accessOptionsForGroup(group),
+    [group]
+  )
+
   const accessSelectOptions = useMemo(
-    () => accessOptionsForGroup(group).map(option => ({
+    () => accessOptions.map(option => ({
       value: option.value,
       icon: option.icon,
       title: option.labelKey,
-      description: option.descKey
+      description: option.descKey,
+      disabled: option.disabled,
+      disabledTooltip: option.disabledTooltipKey
     })),
-    [group]
+    [accessOptions]
   )
 
   const roleSuggestions = useMemo(() => {
@@ -272,6 +314,8 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
         pageContent: welcomeEditorRef.current?.getHTML?.() ?? current?.pageContent ?? '',
         showWelcomePage
       }))
+      setWelcomeEnabled(false)
+      setRemovedStandardTypes(prev => new Set(prev).add('welcome'))
     }
     if (!isOpen) {
       setJustRevealed(key)
@@ -334,6 +378,13 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
         pageContent: viewData.pageContent,
         showWelcomePage: viewData.showWelcomePage
       })
+      if (viewData.showWelcomePage !== undefined) setShowWelcomePage(viewData.showWelcomePage)
+      setWelcomeEnabled(true)
+      setJustRevealed('welcome')
+      setOpenAdvanced(prev => {
+        if (prev.has('welcome')) return prev
+        return new Set(prev).add('welcome')
+      })
     }
     if (STANDARD_VIEW_TYPES.has(viewData.type)) {
       setRemovedStandardTypes(prev => {
@@ -359,7 +410,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
     }
     setIsCreating(true)
     try {
-      const accessOption = accessOptionsForGroup(group).find(option => option.value === access)
+      const accessOption = accessOptions.find(option => option.value === access)
       const standardTypesInOrder = orderedRows.filter(row => row.kind === 'standard').map(row => row.type)
       const manualRowsInOrder = orderedRows.filter(row => row.kind === 'manual')
       // Custom spaces put the chosen home first; preset types already lead with theirs.
@@ -373,7 +424,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
             pageContent: welcomeEditorRef.current?.getHTML?.() ?? welcomeExtras?.pageContent ?? '',
             showWelcomePage
           }
-        : welcomeExtras
+        : null
 
       const result = await dispatch(createSpace({
         parentGroupId: group.id,
@@ -418,6 +469,8 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
           allowSelfVoting: frAllowSelfVoting,
           allowLateJoiners: frAllowLateJoiners,
           hideFinalResultsFromParticipants: frHideFinalResults,
+          requireBudget: frRequireBudget,
+          showRealtimeVotes: frShowRealtimeVotes,
           submissionDescriptor: frSubmissionDescriptor,
           submissionDescriptorPlural: frSubmissionDescriptorPlural,
           submitterRoles: frSubmitterRoles,
@@ -511,7 +564,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
     } finally {
       setIsCreating(false)
     }
-  }, [dispatch, group?.id, name, slug, slugValid, description, icon, bannerUrl, purpose, locationObject, postTypes, access, requiredRoles, spaceType, orderedRows, standardViewTypes, homeViewType, welcomeEnabled, welcomeExtras, showWelcomePage, onClose, onCreated, navigate, routerLocation.pathname, addToMenu, isOneColumn, actionDescriptor, actionDescriptorPlural, completionRole, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frAllowLateJoiners, frHideFinalResults, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles])
+  }, [dispatch, group?.id, name, slug, slugValid, description, icon, bannerUrl, purpose, locationObject, postTypes, access, accessOptions, requiredRoles, spaceType, orderedRows, standardViewTypes, homeViewType, welcomeEnabled, welcomeExtras, showWelcomePage, onClose, onCreated, navigate, routerLocation.pathname, addToMenu, isOneColumn, actionDescriptor, actionDescriptorPlural, completionRole, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frAllowLateJoiners, frHideFinalResults, frRequireBudget, frShowRealtimeVotes, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles])
 
   const advancedSettings = useMemo(() => [
     {
@@ -543,7 +596,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
       key: 'welcome',
       icon: Hand,
       label: 'Welcome',
-      defaultSummary: t('No welcome page'),
+      defaultSummary: welcomeEnabled ? null : t('No welcome page'),
       render: () => (
         <div className='flex flex-col gap-2'>
           <div className='flex items-center gap-2'>
@@ -569,9 +622,10 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
         </div>
       )
     }
-  ], [t, locationObject, postTypes, spaceType, showWelcomePage, welcomeExtras?.pageContent, group?.id])
+  ], [t, locationObject, postTypes, spaceType, showWelcomePage, welcomeEnabled, welcomeExtras?.pageContent, group?.id])
 
   const revealedSettings = advancedSettings.filter(setting => openAdvanced.has(setting.key))
+  const hideHomePickerCopy = spaceType === 'chat' || spaceType === 'track' || spaceType === 'funding-round'
 
   /** Closes the dialog when the dimmed overlay (not the panel) is clicked. */
   const handleBackdropClick = (event) => {
@@ -590,6 +644,8 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
         </h2>
 
         {spaceTourInvitation}
+        {trackTourInvitation}
+        {roundTourInvitation}
         <div className='flex flex-col gap-3 overflow-y-auto flex-1 min-h-0 p-1 -m-1'>
           <div className='grid grid-cols-2 sm:grid-cols-4 gap-2' data-tour='space-type'>
             {SPACE_TYPE_OPTIONS.map(option => {
@@ -599,6 +655,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
                 <button
                   key={option.value}
                   type='button'
+                  data-tour={'space-type-' + option.value}
                   onClick={() => handleSpaceTypeChange(option.value)}
                   className={cn(
                     'flex flex-col items-center gap-1 rounded-md border-2 p-2 transition-all',
@@ -715,22 +772,31 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
           </div>
 
           <div className='mt-2' data-tour='space-home'>
-            <div className='flex items-end justify-between gap-2 mb-2'>
-              <div className='min-w-0'>
-                <span className={FIELD_LABEL_CLASS}>{t("Choose your space's home")}</span>
-                <p className='text-xs text-foreground/60 mt-0.5 mb-0'>{t('Set the default view members see when they enter your space.')}</p>
+            {(!hideHomePickerCopy || !showMenuEditor) && (
+              <div className={cn('flex items-end gap-2 mb-2', hideHomePickerCopy ? '' : 'justify-between')}>
+                {!hideHomePickerCopy && (
+                  <div className='min-w-0'>
+                    <span className={FIELD_LABEL_CLASS}>{t("Choose your space's home")}</span>
+                    <p className='text-xs text-foreground/60 mt-0.5 mb-0'>{t('Set the default view members see when they enter your space. You can change this later by editing the space menu.')}</p>
+                  </div>
+                )}
+                {!showMenuEditor && (
+                  <button
+                    type='button'
+                    onClick={() => setShowMenuEditor(true)}
+                    className={cn(
+                      'shrink-0 flex items-center gap-2 text-sm font-semibold text-foreground/70 hover:text-foreground border border-foreground/20 hover:border-foreground/40 rounded-md transition-colors',
+                      hideHomePickerCopy
+                        ? 'w-full justify-center px-3 py-2.5'
+                        : 'px-3 py-1.5'
+                    )}
+                  >
+                    <Settings className='w-4 h-4' />
+                    {t(hideHomePickerCopy ? 'Edit Space Menu' : 'Edit Full Menu')}
+                  </button>
+                )}
               </div>
-              {!showMenuEditor && (
-                <button
-                  type='button'
-                  onClick={() => setShowMenuEditor(true)}
-                  className='shrink-0 flex items-center gap-1.5 text-xs font-semibold text-foreground/70 hover:text-foreground border border-foreground/20 hover:border-foreground/40 rounded-md px-2 py-1 transition-colors'
-                >
-                  <Settings className='w-3.5 h-3.5' />
-                  {t('Edit Menu')}
-                </button>
-              )}
-            </div>
+            )}
             {showMenuEditor
               ? (
                 <AdvancedSection
@@ -804,6 +870,10 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
               setAllowLateJoiners={setFrAllowLateJoiners}
               hideFinalResults={frHideFinalResults}
               setHideFinalResults={setFrHideFinalResults}
+              requireBudget={frRequireBudget}
+              setRequireBudget={setFrRequireBudget}
+              showRealtimeVotes={frShowRealtimeVotes}
+              setShowRealtimeVotes={setFrShowRealtimeVotes}
               submitterRoles={frSubmitterRoles}
               setSubmitterRoles={setFrSubmitterRoles}
               voterRoles={frVoterRoles}
@@ -849,7 +919,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
           </div>
         </div>
 
-        <div className='flex justify-end gap-2 mt-4 pt-2 border-t border-foreground/10'>
+        <div className='flex justify-end gap-2 mt-4 pt-2 border-t border-foreground/10' data-tour='space-publish'>
           <Button variant='primary' onClick={onClose}>{t('Cancel')}</Button>
           <Button variant='primary' disabled={!name.trim() || isCreating} onClick={() => handleCreate('draft')}>
             {isCreating ? t('Creating...') : t('Save as Draft')}

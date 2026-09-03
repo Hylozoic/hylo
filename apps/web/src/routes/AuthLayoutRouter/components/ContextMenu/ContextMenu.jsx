@@ -1,6 +1,6 @@
 import { isDrawerNavLayout, isPhoneDevice } from 'util/mobile'
 import { get } from 'lodash/fp'
-import { CircleEllipsis, Info, Pencil, Settings, UserPlus, Users } from 'lucide-react'
+import { CircleEllipsis, Info, Pencil, Settings, ShieldCheck, UserPlus, Users } from 'lucide-react'
 import React, { useEffect, useCallback, useState, useMemo } from 'react'
 import { Link, useLocation, useNavigate, Routes, Route } from 'react-router-dom'
 import { replace } from 'redux-first-history'
@@ -42,7 +42,7 @@ import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import logout from 'store/actions/logout'
-import { FETCH_GROUP_VIEWS, RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
+import { FETCH_GROUP_VIEWS, RESP_ADD_MEMBERS, RESP_ADMINISTRATION, RESP_MANAGE_CONTENT } from 'store/constants'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
 import getMyMemberships from 'store/selectors/getMyMemberships'
@@ -55,6 +55,7 @@ import GroupSettingsMenu from './GroupSettingsMenu'
 import MenuRowBackground from './MenuRowBackground'
 import { viewCardColor } from './viewCardTheme'
 import { DEFAULT_BANNER } from 'store/models/Group'
+import { isMenuViewVisible } from 'store/models/GroupView'
 import GroupViewEditList from './GroupViewEditList'
 import GroupViewSettingsModal from './GroupViewSettingsModal'
 import SpaceSettingsModal from './SpaceSettingsModal'
@@ -118,23 +119,17 @@ function findSpaceForSlug (groupViews, group, parentSlug, spaceSlug) {
   return { spaceView: null, spaceGroup: null }
 }
 
-/** Visible menu views for a space (ordered), optionally with Manage Round. */
-function visibleSpaceMenuViews (spaceGroup, { includeManageRound = false, views = null } = {}) {
-  const spaceViews = (views || spaceGroup?.groupViews?.items || [])
-    .filter(v => v.order != null)
-  if (includeManageRound && spaceGroup?.fundingRound?.id) {
-    return [...spaceViews, MANAGE_ROUND_VIEW]
-  }
-  return spaceViews
-}
-
-/** On-menu view count: loaded views if present, otherwise Group.menuViewCount. */
+/** On-menu view count: loaded views if present, otherwise Group.menuViewCount.
+ * Typed views disallowed by acceptedPostTypes are omitted so a space with one
+ * remaining typed view still opens as a single-view space. */
 function knownMenuViewCount (spaceGroup, storeViews = [], nestedCount) {
+  const acceptedPostTypes = spaceGroup?.acceptedPostTypes
+  const countVisible = (views) => views.filter(v => isMenuViewVisible(v, acceptedPostTypes)).length
   if (storeViews.length > 0) {
-    return storeViews.filter(v => v.order != null).length
+    return countVisible(storeViews)
   }
   if (spaceGroup?.groupViews != null) {
-    return (spaceGroup.groupViews.items || []).filter(v => v.order != null).length
+    return countVisible(spaceGroup.groupViews.items || [])
   }
   return Number(spaceGroup?.menuViewCount ?? nestedCount) || 0
 }
@@ -389,7 +384,7 @@ function GroupViewMenuItem ({
     const linkedSpaceGroup = presentedView.linkedGroup
     const isSpaceMember = Boolean(
       linkedSpaceGroup &&
-      myMemberships.some(m => m.group.id === linkedSpaceGroup.id)
+      myMemberships.some(m => String(m.group?.id) === String(linkedSpaceGroup.id))
     )
     const showManageRound = Boolean(linkedSpaceGroup?.fundingRound?.id && canManageRound)
     // Filter with ORM acceptedPostTypes when available (space settings update that record).
@@ -402,7 +397,7 @@ function GroupViewMenuItem ({
     const menuCount = viewCount + (showManageRound ? 1 : 0)
     // Space badge = membership unread or pending join requests (same orange dot).
     const spaceMembership = linkedSpaceGroup &&
-      myMemberships.find(m => String(m.group.id) === String(linkedSpaceGroup.id))
+      myMemberships.find(m => String(m.group?.id) === String(linkedSpaceGroup.id))
     const spaceUnread = (spaceMembership?.newPostCount || 0) > 0
     const spaceJoinRequests = (
       spaceGroupFromStore?.openJoinRequestCount ||
@@ -588,9 +583,9 @@ function GroupViewList ({
     )
   }
 
-  // Live menu: only views with an order (hidden views have order = null).
+  // Live menu: ordered views whose post types are still accepted (hidden views have order = null).
   const visibleViews = groupViews
-    .filter(view => view.order != null)
+    .filter(view => isMenuViewVisible(view, group?.acceptedPostTypes))
 
   // Synthetic steward item for funding-round spaces — always last, not in the DB.
   const menuViews = (spaceGroup?.fundingRound?.id && canAdminister)
@@ -634,7 +629,8 @@ export default function ContextMenu (props) {
 
   const groupSlug = routeParams.groupSlug
   const routeSpaceSlug = routeParams.spaceSlug
-  const group = useSelector(state => currentGroup || getGroupForSlug(state, groupSlug))
+  const groupFromStore = useSelector(state => getGroupForSlug(state, groupSlug))
+  const group = groupFromStore || currentGroup
   const canAdminister = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADMINISTRATION, groupId: group?.id }))
   const isEditing = getQuerystringParam('edit', location) === 'true' && canAdminister
   const [settingsView, setSettingsView] = useState(null)
@@ -730,9 +726,10 @@ export default function ContextMenu (props) {
   const activeSpaceGroup = spaceGroupFromStore || linkedActiveSpaceGroup
   const isSpaceMember = Boolean(
     activeSpaceGroup &&
-    myMemberships.some(m => m.group.id === activeSpaceGroup.id)
+    myMemberships.some(m => String(m.group?.id) === String(activeSpaceGroup.id))
   )
-  // Ordered single-view spaces stay in the group menu; multi-view and off-menu spaces drill in.
+  // Ordered single-view spaces stay in the group menu; multi-view and off-menu
+  // spaces drill in. Edit mode also drills in so a single-view space can gain views.
   const spaceMenuViewsFromStore = useGroupViews(activeSpaceGroup)
   const activeSpaceHasMultipleViews = useMemo(() => {
     if (!activeSpaceGroup) return false
@@ -748,7 +745,7 @@ export default function ContextMenu (props) {
     isGroupContext &&
     activeSpaceGroup &&
     (isSpaceMember || (isMoreSpacesPath && canAdminister)) &&
-    (activeSpaceHasMultipleViews || (isMoreSpacesPath && spaceSlug))
+    (activeSpaceHasMultipleViews || isEditing || (isMoreSpacesPath && spaceSlug))
   )
   const spaceMenuViews = useMemo(() => {
     if (!showingSpaceMenu) return []
@@ -758,8 +755,9 @@ export default function ContextMenu (props) {
   // Off-menu count for the space menu's More row (spaces not shown in the space menu).
   const spaceMoreSpacesSections = useMoreSpacesSections(showingSpaceMenu ? activeSpaceGroup : null)
   const spaceViewsLoading = viewsPending && spaceMenuViews.length === 0
-  const spaceDisplayName = activeSpaceGroup?.name ||
-    (activeSpaceView ? displayNameForView(GroupViewPresenter(activeSpaceView), t) : t('Space'))
+  const spaceDisplayName = (activeSpaceView ? displayNameForView(GroupViewPresenter(activeSpaceView), t) : null) ||
+    activeSpaceGroup?.name ||
+    t('Space')
   const presentedActiveSpaceView = useMemo(
     () => activeSpaceView ? GroupViewPresenter(activeSpaceView) : null,
     [activeSpaceView]
@@ -853,29 +851,54 @@ export default function ContextMenu (props) {
   const joinRequestsLink = showingSpaceMenu && spaceSlug
     ? spaceUrl(groupSlug, spaceSlug, 'requests')
     : (group?.slug ? groupUrl(group.slug, 'requests') : null)
-  const joinRequestsSection = isGroupContext && joinRequestsLink && canAddMembers && joinRequestCount > 0
+  // Steward alerts are not menu items — hide them while rearranging the menu
+  const joinRequestsSection = !isEditing && isGroupContext && joinRequestsLink && canAddMembers && joinRequestCount > 0
     ? (
       <div className='px-1.5 pb-2 border-t border-foreground/10 pt-2'>
-        {isEditing
-          ? (
-            <div
-              className='flex items-center gap-2 text-base font-medium text-foreground/40 border-2 border-transparent rounded-md p-1 pl-2 w-full cursor-not-allowed opacity-60'
-              aria-disabled='true'
-            >
-              <UserPlus className='w-4 h-4 shrink-0' />
-              <span>{t('Join Requests')}</span>
-            </div>
-            )
-          : (
-            <MenuLink
-              to={joinRequestsLink}
-              badgeCount={joinRequestCount}
-              className='flex items-center gap-2 text-base font-medium text-foreground hover:text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 pr-8 w-full transition-all opacity-85 hover:opacity-100'
-            >
-              <UserPlus className='w-4 h-4 shrink-0' />
-              <span>{t('Join Requests')}</span>
-            </MenuLink>
-            )}
+        <MenuLink
+          to={joinRequestsLink}
+          badgeCount={joinRequestCount}
+          className='flex items-center gap-2 text-base font-medium text-foreground hover:text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 pr-8 w-full transition-all opacity-85 hover:opacity-100'
+        >
+          <UserPlus className='w-4 h-4 shrink-0' />
+          <span>{t('Join Requests')}</span>
+        </MenuLink>
+      </div>
+      )
+    : null
+
+  // Unresolved flags need steward eyes just like join requests do
+  const canModerate = useSelector(state => hasResponsibilityForGroup(state, {
+    responsibility: RESP_MANAGE_CONTENT,
+    groupId: joinRequestTargetGroup?.id
+  }))
+  const moderationCount = joinRequestTargetGroup?.openModerationActionCount || 0
+  const moderationLink = showingSpaceMenu && spaceSlug
+    ? spaceUrl(groupSlug, spaceSlug, 'about/moderation')
+    : (group?.slug ? groupUrl(group.slug, 'about/moderation') : null)
+  const moderationSection = !isEditing && isGroupContext && moderationLink && canModerate && moderationCount > 0
+    ? (
+      <div className='px-1.5 pb-2 border-t border-foreground/10 pt-2'>
+        <MenuLink
+          to={moderationLink}
+          badgeCount={moderationCount}
+          className='flex items-center gap-2 text-base font-medium text-foreground hover:text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 pr-8 w-full transition-all opacity-85 hover:opacity-100'
+        >
+          <ShieldCheck className='w-4 h-4 shrink-0' />
+          <span>{t('Moderation')}</span>
+        </MenuLink>
+      </div>
+      )
+    : null
+
+  // Sticky: pending flags and join requests must be visible even when the menu
+  // is scrolled — the rows pin (stacked, moderation above) at the bottom of the
+  // viewport until their natural slot above More Spaces comes into view
+  const stickyAlertsSection = (moderationSection || joinRequestsSection)
+    ? (
+      <div className='mt-auto sticky bottom-0 z-30 bg-background/95 backdrop-blur-sm'>
+        {moderationSection}
+        {joinRequestsSection}
       </div>
       )
     : null
@@ -935,11 +958,15 @@ export default function ContextMenu (props) {
     : null
 
   const menuFooter = (
-    <div className='mt-auto'>
-      {joinRequestsSection}
-      {moreSpacesSection}
-      {editMenuButton}
-    </div>
+    <>
+      {stickyAlertsSection}
+      {/* When the sticky alerts exist they carry the mt-auto (they must be a
+          direct flex child for their sticky pinning to span the whole card) */}
+      <div className={stickyAlertsSection ? undefined : 'mt-auto'}>
+        {moreSpacesSection}
+        {editMenuButton}
+      </div>
+    </>
   )
 
   // Simple groups don't use the vertical widget context menu — their home dashboard
@@ -1007,7 +1034,8 @@ export default function ContextMenu (props) {
           <div className='ContextDetails w-full relative z-10'>
             {isGroupContext
             /* Duck only when the space really takes the menu over (its own
-               header below) — single-view in-menu spaces stay in the group list */
+               header below) — single-view in-menu spaces stay in the group list
+               unless edit mode has drilled into that space's menu */
               ? (
                 <GroupMenuHeader
                   group={group}
@@ -1078,7 +1106,7 @@ export default function ContextMenu (props) {
                   {/* Where the X used to sit: this space's notification settings */}
                   <div
                     className={cn(
-                      'relative z-10 self-start m-2 p-1 rounded-md backdrop-blur-sm transition-colors',
+                      'relative z-10 self-start m-2 flex items-center justify-center p-1 leading-none rounded-md backdrop-blur-sm transition-colors',
                       activeSpaceBannerUrl
                         ? 'bg-black/25 text-white/90 hover:bg-black/40 hover:text-white'
                         : 'bg-foreground/10 text-foreground/70 hover:bg-foreground/20 hover:text-foreground dark:text-white/80 dark:hover:text-white'

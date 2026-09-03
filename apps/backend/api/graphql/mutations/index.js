@@ -45,7 +45,9 @@ export {
   updateSpace,
   archiveSpace,
   deleteSpace,
-  joinSpace
+  joinSpace,
+  convertSpaceToChildGroup,
+  convertGroupToSpace
 } from './spaces'
 export {
   respondToEvent,
@@ -180,7 +182,8 @@ export {
   createStripeOffering,
   updateStripeOffering,
   createStripeCheckoutSession,
-  checkStripeStatus
+  checkStripeStatus,
+  fulfillStripeCheckoutSession
 } from './stripe'
 export {
   membershipChangeCommit
@@ -223,6 +226,24 @@ export async function leaveGroup (userId, groupId) {
 }
 
 export async function findOrCreateLinkPreviewByUrl ({ url }) {
+  const hyloAttrs = await LinkPreview.attrsForPublicHyloPost(url)
+  if (hyloAttrs) {
+    let preview = await LinkPreview.find(url)
+    if (!preview) {
+      try {
+        preview = await LinkPreview.forge({ url, created_at: new Date() }).save()
+      } catch (err) {
+        if (err.message && err.message.includes('duplicate key value')) {
+          preview = await LinkPreview.find(url)
+        } else {
+          throw err
+        }
+      }
+    }
+    if (!preview) return
+    return preview.save({ ...hyloAttrs, done: true, updated_at: new Date() })
+  }
+
   const preview = await LinkPreview.find(url)
 
   if (!preview) return LinkPreview.queue(url)

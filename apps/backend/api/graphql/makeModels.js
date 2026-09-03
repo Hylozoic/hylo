@@ -110,6 +110,10 @@ export default function makeModels (userId, isAdmin, apiClient) {
     return ids.map(id => byId.get(String(id)) || null)
   }, { cacheKeyFn: id => String(id) })
 
+  // cache: false — makeSchema reuses this executable schema (and these loaders)
+  // across requests. A cached new_post_count after markViewAsRead made the
+  // mutation return the old unread count, which the web app treated as still
+  // unread and fired markViewAsRead in a loop.
   const groupViewUserLoader = new DataLoader(async (viewIds) => {
     if (!userId) return viewIds.map(() => null)
     const rows = await bookshelf.knex('group_views_users')
@@ -118,7 +122,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
       .select('view_id', 'new_post_count', 'last_read_post_id')
     const byView = new Map(rows.map(row => [String(row.view_id), row]))
     return viewIds.map(id => byView.get(String(id)) || null)
-  }, { cacheKeyFn: id => String(id) })
+  }, { cache: false, cacheKeyFn: id => String(id) })
 
   const pinnedPostIdsLoader = new DataLoader(async (viewIds) => {
     const rows = await bookshelf.knex('group_view_pins')
@@ -1037,6 +1041,10 @@ export default function makeModels (userId, isAdmin, apiClient) {
           if (!userId) return 0
           return g.get('num_open_join_requests') || 0
         },
+        openModerationActionCount: g => {
+          if (!userId) return 0
+          return ModerationAction.where({ group_id: g.id, status: 'active' }).count().then(Number)
+        },
         pendingInvitations: (g, { first }) => InvitationService.find({ groupId: g.id, pendingOnly: true }),
         responsibilities: async g => g.availableResponsibilities().fetch(),
         settings: g => mapKeys(camelCase, g.get('settings')),
@@ -1542,6 +1550,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'max_token_allocation',
         'min_token_allocation',
         'require_budget',
+        'show_realtime_votes',
         'submission_descriptor_plural',
         'submission_descriptor',
         'submissions_close_at',

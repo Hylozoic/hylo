@@ -63,6 +63,7 @@ export default function ManageRoundView () {
       <div className='flex flex-col flex-1 w-full mx-auto p-1 sm:p-4 max-w-[750px]'>
         <FundingRoundPhaseManager
           round={round}
+          spaceId={group?.id}
           spaceName={group?.name}
           submissionCount={round.numSubmissions}
           participantCount={group?.memberCount}

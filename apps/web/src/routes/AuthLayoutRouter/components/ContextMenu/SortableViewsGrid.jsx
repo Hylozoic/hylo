@@ -23,7 +23,7 @@ import { useNavigate } from 'react-router-dom'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 import { addQuerystringToPath, localSpaceSlug, spaceUrl } from '@hylo/navigation'
 
-import { canDeleteView, canHardDeleteView, isSoftRemoveView } from 'store/models/GroupView'
+import { canDeleteView, canHardDeleteView, isMenuViewVisible, isSoftRemoveView } from 'store/models/GroupView'
 import { archiveSpace, setGroupViewHidden } from 'store/actions/groupViews'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
@@ -216,9 +216,9 @@ export default function SortableViewsGrid ({
   const commitOrder = useCommitViewOrder(group)
   const visibleViews = useMemo(
     () => sortViewsByMenuOrder(
-      (views || []).filter(v => v.order != null)
+      (views || []).filter(v => isMenuViewVisible(v, (spaceGroup || group)?.acceptedPostTypes))
     ),
-    [views]
+    [views, spaceGroup?.acceptedPostTypes, group?.acceptedPostTypes]
   )
   const [orderedViews, setOrderedViews] = useState(visibleViews)
 

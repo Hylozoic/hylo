@@ -26,6 +26,7 @@ export const buildPostDraftPayload = (post = {}) => ({
   meetingLink: post.meetingLink || '',
   linkPreview: post.linkPreview || null,
   linkPreviewFeatured: !!post.linkPreviewFeatured,
+  skipLinkPreview: !!post.skipLinkPreview,
   acceptContributions: !!post.acceptContributions,
   completionAction: post.completionAction || null,
   completionActionSettings: post.completionActionSettings || null,
@@ -55,6 +56,11 @@ export const mergeDraftIntoPost = (base, draft, groupOptions = []) => {
     groups: draftGroups,
     proposalOptions: draft.proposalOptions?.length ? draft.proposalOptions.map(option => ({ ...option })) : base.proposalOptions,
     startTime: draft.startTime ? new Date(draft.startTime) : base.startTime,
-    endTime: draft.endTime ? new Date(draft.endTime) : base.endTime
+    endTime: draft.endTime ? new Date(draft.endTime) : base.endTime,
+    // Keep the post's existing preview unless the user added a new one or removed it
+    linkPreview: draft.skipLinkPreview ? null : (draft.linkPreview || base.linkPreview || null),
+    linkPreviewFeatured: draft.skipLinkPreview
+      ? false
+      : (draft.linkPreview ? !!draft.linkPreviewFeatured : !!base.linkPreviewFeatured)
   }
 }

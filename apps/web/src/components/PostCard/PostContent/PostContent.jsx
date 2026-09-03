@@ -1,9 +1,8 @@
 import { cn } from 'util/index'
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import { pick } from 'lodash/fp'
 import { useTranslation } from 'react-i18next'
 import { TextHelpers } from '@hylo/shared'
-import ReactPlayer from 'react-player'
 import Highlight from 'components/Highlight'
 import HyloHTML from 'components/HyloHTML'
 import ClickCatcher from 'components/ClickCatcher'
@@ -11,6 +10,7 @@ import CardFileAttachments from 'components/CardFileAttachments'
 import Feature from 'components/PostCard/Feature'
 import LinkPreview from 'components/LinkPreview'
 import Tooltip from 'components/Tooltip'
+import isPlayableVideoUrl from 'util/isPlayableVideoUrl'
 
 import classes from './PostContent.module.scss'
 
@@ -30,14 +30,9 @@ export default function PostContent ({
   exactEditedTimestamp,
   ...post
 }) {
-  const [isVideo, setIsVideo] = useState()
   const { t } = useTranslation()
-
-  useEffect(() => {
-    if (linkPreview?.url) {
-      setIsVideo(ReactPlayer.canPlay(linkPreview?.url))
-    }
-  }, [linkPreview?.url])
+  const previewUrl = linkPreview?.url || linkPreview?.ref?.url
+  const showFeaturedVideo = linkPreviewFeatured && isPlayableVideoUrl(previewUrl)
 
   const details = expanded ? providedDetails : TextHelpers.truncateHTML(providedDetails, MAX_DETAILS_LENGTH)
 
@@ -45,8 +40,8 @@ export default function PostContent ({
     <Highlight {...highlightProps}>
       <div onClick={onClick} className={cn('p-0 global-postContent', { [classes.constrained]: constrained })}>
         <div className={classes.fade} />
-        {linkPreview?.url && linkPreviewFeatured && isVideo && (
-          <Feature url={linkPreview.url} />
+        {showFeaturedVideo && (
+          <Feature url={previewUrl} />
         )}
         {details && (
           <ClickCatcher groupSlug={slug}>
@@ -65,8 +60,8 @@ export default function PostContent ({
           </div>
         )}
         <div className='flex flex-col gap-4'>
-          {linkPreview && !linkPreviewFeatured && (
-            <LinkPreview {...pick(['title', 'description', 'url', 'imageUrl'], linkPreview)} />
+          {linkPreview && !showFeaturedVideo && (
+            <LinkPreview {...pick(['title', 'description', 'url', 'imageUrl'], linkPreview.ref || linkPreview)} />
           )}
           {fileAttachments && fileAttachments.length > 0 && (
             <CardFileAttachments attachments={fileAttachments} />

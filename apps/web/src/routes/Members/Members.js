@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Helmet } from 'react-helmet'
 import { useLocation } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
+import { createSelector as ormCreateSelector } from 'redux-orm'
 import { isSystemGroupRole, sortCustomGroupRoles, sortSystemGroupRoles } from '@hylo/hooks/groupRoleHelpers'
 import { LayoutGrid, List, Search, Waypoints } from 'lucide-react'
 import InviteMembersDialog from 'components/InviteMembersDialog/InviteMembersDialog'
@@ -36,6 +37,13 @@ import { CENTER_COLUMN_ID } from 'util/scrolling'
 import orm from 'store/models'
 
 import classes from './Members.module.scss'
+
+/** Parent group when the current group is a space; otherwise the group itself. */
+const getRolesSourceGroup = ormCreateSelector(
+  orm,
+  (state, group) => group?.parentId || group?.id,
+  (session, groupId) => groupId ? session.Group.safeGet({ id: groupId }) : null
+)
 
 const defaultSortBy = 'name'
 // TODO: should be by responsibility, not role
@@ -86,7 +94,8 @@ function Members (props) {
   // Track spaces: members with Administration, or the Moderator/Host system role, can see who completed the track.
   const trackId = group?.track?.id
   const canAdminister = useSelector(state => hasResponsibilityForGroup(state, { groupId: roleGroupId, responsibility: RESP_ADMINISTRATION }))
-  const myRoleNames = useSelector(state => getRolesForGroup(state, { groupId: roleGroupId }).map(role => role.name))
+  const myRoles = useSelector(state => getRolesForGroup(state, { groupId: roleGroupId }))
+  const myRoleNames = useMemo(() => myRoles.map(role => role.name), [myRoles])
   const canSeeTrackCompletion = Boolean(trackId) && (canAdminister || myRoleNames.some(name => TRACK_COMPLETION_VISIBLE_ROLES.includes(name)))
   const currentTrack = useSelector(state => trackId ? getTrack(state, trackId) : null)
   const completedAtByUserId = useMemo(() => {
@@ -102,14 +111,7 @@ function Members (props) {
   const voterRoles = fundingRound?.voterRoles || []
   const [fundingRoundCounts, setFundingRoundCounts] = useState(null)
 
-  const rolesSourceGroup = useSelector(state => {
-    if (!group) return null
-    const session = orm.session(state.orm)
-    if (group.parentId) {
-      return session.Group.withId(group.parentId)
-    }
-    return group
-  })
+  const rolesSourceGroup = useSelector(state => getRolesSourceGroup(state, group))
 
   const filterableRoles = useMemo(() => {
     // Roles nobody holds aren't useful filters; undefined counts stay visible
@@ -290,6 +292,14 @@ function Members (props) {
       </Helmet>
       <div className={classes.content}>
         <div className='flex flex-col gap-2 py-4'>
+          {showSkillMap && (
+            <MemberSkillsGraph
+              members={graphMembers}
+              loading={Boolean(graphPending) || !hasFetchedGraphMembers}
+              slug={slug}
+              onSkillClick={handleGraphSkillClick}
+            />
+          )}
           <div className='flex flex-wrap items-center gap-2'>
             {/* Phones start as just a button so the controls fit one row; tapping
                 it hands the full row to the input. Desktop is unchanged. */}
@@ -365,6 +375,7 @@ function Members (props) {
               aria-pressed={showSkillMap}
               aria-label={t('Skill map')}
               title={t('Skill map')}
+              data-testid='skill-map-toggle'
               className={cn(
                 'flex items-center gap-1.5 rounded-lg border-2 border-foreground/20 px-2.5 py-[10px] text-sm leading-4 transition-colors',
                 showSkillMap ? 'bg-selected text-foreground' : 'text-foreground/60 hover:text-foreground hover:bg-foreground/5'
@@ -456,16 +467,6 @@ function Members (props) {
             </div>
           )}
         </div>
-        {showSkillMap && (
-          <div className='pb-4'>
-            <MemberSkillsGraph
-              members={graphMembers}
-              loading={Boolean(graphPending) || !hasFetchedGraphMembers}
-              slug={slug}
-              onSkillClick={handleGraphSkillClick}
-            />
-          </div>
-        )}
         <MasonryGrid
           enabled={displayMode === 'card'}
           gap={12}

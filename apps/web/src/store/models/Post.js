@@ -105,6 +105,7 @@ Post.fields = {
   fulfilledAt: attr(),
   groupsTotal: attr(),
   isPublic: attr(),
+  linkPreviewFeatured: attr(),
   location: attr(),
   meetingLink: attr(),
   peopleReactedTotal: attr(),

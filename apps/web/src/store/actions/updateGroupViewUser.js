@@ -1,11 +1,12 @@
-import { get } from 'lodash/fp'
 import { UPDATE_GROUP_VIEW_USER } from 'store/constants'
 
 /**
  * Update the current user's last-read position for a chat GroupView.
  * Optimistically patches lastReadPostId/newPostCount on the group's embedded
  * groupViews menu (see UPDATE_GROUP_VIEW_USER_PENDING), then refreshes from the
- * backend response.
+ * backend response. Do not extractModel as GroupView — the mutation only
+ * returns badge fields, and upserting that partial row is enough to drop
+ * type/order/linkedGroup if anything later copies ORM GroupViews into the menu.
  *
  * @param {string|number} viewId - GroupView id
  * @param {object} data - fields to update (typically { lastReadPostId })
@@ -28,13 +29,7 @@ export default function updateGroupViewUser (viewId, data, groupId) {
       id: viewId,
       groupId,
       data: { newPostCount: 0, ...data },
-      optimistic: true,
-      extractModel: [
-        {
-          getRoot: get('updateGroupViewUser'),
-          modelName: 'GroupView'
-        }
-      ]
+      optimistic: true
     }
   }
 }

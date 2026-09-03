@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
+import { useLocation } from 'react-router-dom'
 import { driver } from 'driver.js'
 import { isSandboxMode } from 'sandbox/isSandbox'
 import 'driver.js/dist/driver.css'
@@ -32,10 +32,14 @@ let inviteActive = false
 const OFFER_LIMIT = 2
 const offerKey = id => `hylo-tour-offers:${id}`
 
+// Module-level so driveTour (used from Help menu replays too) can clear the
+// sandbox banner cutout listener when a tour ends
+let sandboxOverlayResizeHandler = null
+
 // QA switch: visit any page with ?tourTest=true to make every tour act unseen
 // on every load (and ?tourTest=false to turn it off again). While on, nothing
 // is written to toursSeen or the offer counters, so real state is untouched.
-function isTourTestMode () {
+export function isTourTestMode () {
   try {
     const params = new URLSearchParams(window.location.search)
     if (params.get('tourTest') === 'true') {
@@ -60,9 +64,12 @@ function bumpOfferCount (id) {
   try { window.localStorage.setItem(offerKey(id), String(offerCount(id) + 1)) } catch (e) {}
 }
 
-// Present in the DOM is not enough: on phones the nav rail and group menu are
-// mounted but off-canvas, and highlighting an off-screen anchor floats the
-// popover over whatever is actually visible
+function clearSandboxOverlayResize () {
+  if (!sandboxOverlayResizeHandler) return
+  window.removeEventListener('resize', sandboxOverlayResizeHandler)
+  sandboxOverlayResizeHandler = null
+}
+
 // driver.js dims the full viewport; punch a second hole for the sandbox banner
 // so language and reset stay reachable for the whole tour
 function applySandboxBannerOverlayCutout () {
@@ -77,7 +84,10 @@ function applySandboxBannerOverlayCutout () {
   path.setAttribute('d', `${d} ${cutout}`)
 }
 
-function isAnchorVisible (element) {
+// Present in the DOM is not enough: on phones the nav rail and group menu are
+// mounted but off-canvas, and highlighting an off-screen anchor floats the
+// popover over whatever is actually visible
+export function isAnchorVisible (element) {
   if (!element) return false
   if (typeof element.checkVisibility === 'function' &&
       !element.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })) {
@@ -86,12 +96,73 @@ function isAnchorVisible (element) {
   const rect = element.getBoundingClientRect()
   if (rect.width < 1 || rect.height < 1) return false
   const viewportWidth = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0)
-  const viewportHeight = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0)
   // An unmeasurable viewport (headless embeds) can't prove off-screen-ness;
   // fall back to the style and size checks above
-  if (viewportWidth === 0 || viewportHeight === 0) return true
-  return rect.right > 0 && rect.bottom > 0 &&
-    rect.left < viewportWidth && rect.top < viewportHeight
+  if (viewportWidth === 0) return true
+  // Only horizontal off-canvas disqualifies (the phone nav slides sideways).
+  // Vertically out-of-view elements are usually just scrolled past — the tour
+  // scrolls each step into view when it highlights it
+  if (!(rect.right > 0 && rect.left < viewportWidth)) return false
+  // On-canvas is still not enough: a mounted surface can sit entirely under
+  // another one (the phone menu over the group's home view), and touring the
+  // covered surface makes no sense. Probe the anchor's visible center — the
+  // probe only proves anything while that point is inside the viewport, so
+  // scrolled-past anchors stay eligible per the note above
+  const viewportHeight = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0)
+  if (viewportHeight === 0) return true
+  const cx = (Math.max(rect.left, 0) + Math.min(rect.right, viewportWidth)) / 2
+  const cy = (Math.max(rect.top, 0) + Math.min(rect.bottom, viewportHeight)) / 2
+  if (cy <= 0 || cy >= viewportHeight) return true
+  const hit = document.elementFromPoint(cx, cy)
+  if (!hit) return true
+  return element.contains(hit) || hit.contains(element)
+}
+
+/**
+ * Runs a tour's steps through the shared driver.js setup. Steps whose anchor
+ * is absent or covered are dropped; with nothing left it returns null and
+ * nothing happens. Callers own persistence via onDestroyed.
+ */
+export function driveTour (steps, { onDestroyed } = {}) {
+  clearSandboxOverlayResize()
+  const presentSteps = steps.filter(step => !step.element || isAnchorVisible(document.querySelector(step.element)))
+  if (presentSteps.length === 0) return null
+  const keepSandboxBannerClear = isSandboxMode()
+  tourActive = true
+  const instance = driver({
+    showProgress: presentSteps.length > 1,
+    overlayOpacity: 0.6,
+    stagePadding: 6,
+    stageRadius: 10,
+    smoothScroll: true,
+    // Center each step's anchor — including inside nested scroll containers
+    // like modals, where driver's own in-view check can be fooled
+    onHighlightStarted: (element) => {
+      if (element && typeof element.scrollIntoView === 'function') {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' })
+      }
+    },
+    steps: presentSteps,
+    onHighlighted: () => {
+      if (keepSandboxBannerClear) applySandboxBannerOverlayCutout()
+    },
+    onDestroyed: () => {
+      clearSandboxOverlayResize()
+      tourActive = false
+      if (onDestroyed) onDestroyed()
+    }
+  })
+  if (keepSandboxBannerClear) {
+    const handleResize = () => {
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => applySandboxBannerOverlayCutout())
+      })
+    }
+    sandboxOverlayResizeHandler = handleResize
+    window.addEventListener('resize', handleResize)
+  }
+  instance.drive()
+  return instance
 }
 
 export default function useTour ({
@@ -110,10 +181,8 @@ export default function useTour ({
   blockedBySelectors = []
 }) {
   const dispatch = useDispatch()
-  const { t } = useTranslation()
   const currentUser = useSelector(getMe)
   const driverRef = useRef(null)
-  const sandboxOverlayResizeRef = useRef(null)
   const toursSeen = useMemo(
     () => currentUser?.settings?.toursSeen || [],
     [currentUser?.settings?.toursSeen]
@@ -137,56 +206,35 @@ export default function useTour ({
     }
   }, [dispatch, id])
 
-  const clearSandboxOverlayResize = useCallback(() => {
-    if (!sandboxOverlayResizeRef.current) return
-    window.removeEventListener('resize', sandboxOverlayResizeRef.current)
-    sandboxOverlayResizeRef.current = null
-  }, [])
-
   const startTour = useCallback(() => {
     if (driverRef.current) {
       driverRef.current.destroy()
       driverRef.current = null
     }
-    clearSandboxOverlayResize()
-    const presentSteps = steps.filter(step => !step.element || isAnchorVisible(document.querySelector(step.element)))
-    if (presentSteps.length === 0) return false
-    const keepSandboxBannerClear = isSandboxMode()
-    tourActive = true
-    driverRef.current = driver({
-      showProgress: presentSteps.length > 1,
-      overlayOpacity: 0.6,
-      stagePadding: 6,
-      stageRadius: 10,
-      nextBtnText: t('Next'),
-      prevBtnText: t('Previous'),
-      doneBtnText: t('Done'),
-      steps: presentSteps,
-      onHighlighted: () => {
-        if (keepSandboxBannerClear) applySandboxBannerOverlayCutout()
-      },
+    const instance = driveTour(steps, {
       // Closing early counts as seen: a dismissed tour must never chase the user
       onDestroyed: () => {
-        clearSandboxOverlayResize()
         driverRef.current = null
-        tourActive = false
         markSeen()
       }
     })
-    if (keepSandboxBannerClear) {
-      const handleResize = () => {
-        window.requestAnimationFrame(() => {
-          window.requestAnimationFrame(() => applySandboxBannerOverlayCutout())
-        })
-      }
-      sandboxOverlayResizeRef.current = handleResize
-      window.addEventListener('resize', handleResize)
-    }
-    driverRef.current.drive()
+    if (!instance) return false
+    driverRef.current = instance
     return true
-  }, [clearSandboxOverlayResize, markSeen, steps, t])
+  }, [markSeen, steps])
 
   const [inviteOpen, setInviteOpen] = useState(false)
+  const [inviteClosing, setInviteClosing] = useState(false)
+
+  // Navigating away mid-invitation dismisses it gracefully (fade out downward)
+  // without burning an offer — the surface changed, the user didn't decline
+  const location = useLocation()
+  const invitePathnameRef = useRef(location.pathname)
+  useEffect(() => {
+    if (location.pathname === invitePathnameRef.current) return
+    invitePathnameRef.current = location.pathname
+    if (inviteOpen) setInviteClosing(true)
+  }, [location.pathname, inviteOpen])
 
   // If the surface unmounts while its invitation is up, release the slot
   useEffect(() => {
@@ -197,6 +245,7 @@ export default function useTour ({
   const closeInvite = useCallback(() => {
     inviteActive = false
     setInviteOpen(false)
+    setInviteClosing(false)
   }, [])
 
   const acceptInvite = useCallback(() => {
@@ -225,7 +274,6 @@ export default function useTour ({
     // loading screen (index.html) removes itself once its fade finishes, another
     // tour may be mid-run, and callers can name overlays (welcome modal) that
     // must close first
-    let poll
     let timer
     let cancelled = false
     const clearToStart = () =>
@@ -250,7 +298,7 @@ export default function useTour ({
         timer = setTimeout(attempt, 1000)
       }
     }
-    poll = setInterval(() => {
+    const poll = setInterval(() => {
       if (clearToStart()) {
         clearInterval(poll)
         timer = setTimeout(attempt, autoStartDelay)
@@ -265,13 +313,12 @@ export default function useTour ({
 
   useEffect(() => {
     return () => {
-      clearSandboxOverlayResize()
       if (driverRef.current) {
         driverRef.current.destroy()
         driverRef.current = null
       }
     }
-  }, [clearSandboxOverlayResize])
+  }, [])
 
   const invitation = inviteOpen
     ? (
@@ -280,6 +327,8 @@ export default function useTour ({
         onAccept={acceptInvite}
         onDecline={declineInvite}
         onTimeout={timeoutInvite}
+        closing={inviteClosing}
+        onClosed={closeInvite}
       />
       )
     : null

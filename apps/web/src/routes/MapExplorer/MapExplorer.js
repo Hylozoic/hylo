@@ -96,6 +96,17 @@ function presentGroup (group) {
   }
 }
 
+/**
+ * The group whose map we are viewing belongs in the drawer even when its
+ * location has not hydrated or Mapbox has not emitted a bounding box yet.
+ */
+function withCurrentGroup (groups, group) {
+  if (!group) return groups
+  const presented = presentGroup(group)
+  if (!presented || groups.some(g => String(g.id) === String(presented.id))) return groups
+  return groups.concat(presented)
+}
+
 /** Map coordinates from a Location relation or nested GraphQL locationObject. */
 function getLocationCenter (entity) {
   if (!entity) return null
@@ -534,14 +545,13 @@ function MapExplorer (props) {
     }
     const viewMembers = members.filter(member => centerWithin(member.locationObject))
     const viewPosts = postsForMap.filter(post => centerWithin(post.locationObject))
-    const viewGroups = groups.filter(mapGroup => {
+    const viewGroups = withCurrentGroup(groups.filter(mapGroup => {
       if (mapGroup.geoShape) {
         return mapGroup.geoShape.coordinates[0].some(([lng, lat]) =>
           lng >= west && lng <= east && lat >= south && lat <= north)
       }
       return centerWithin(mapGroup.locationObject)
-    }).concat(getLocationCenter(group) || group?.geoShape || group?.ref?.geoShape ? presentGroup(group) : [])
-      .filter((mapGroup, index, list) => list.findIndex(g => String(g.id) === String(mapGroup.id)) === index)
+    }), group)
       .map(mapGroup => {
         // Ensure spaces can navigate to their parent from the current map context
         if (mapGroup.type === 'space' && !mapGroup.parentGroup?.slug && group && mapGroup.parentId === group.id) {
@@ -603,6 +613,11 @@ function MapExplorer (props) {
   }, [groupPending, mapScopeKey, groupCenter, centerLocation, zoom])
 
   /* Lifecycle methods */
+  useEffect(() => {
+    if (!group) return
+    setGroupsForDrawer(prev => withCurrentGroup(prev, group))
+  }, [group])
+
   useEffect(() => {
     if (isMobileDevice()) {
       setHideDrawer(true)

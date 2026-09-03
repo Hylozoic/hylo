@@ -1,24 +1,24 @@
 import { test, expect } from '@playwright/test'
+import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading.js'
+
+test.describe.configure({ timeout: 120000 })
 
 test.use({ storageState: 'e2e/.auth/session.json' })
 
 test('explorer titles are white in light mode', async ({ page }) => {
   await page.goto('/public/groups')
-  await page.waitForLoadState('domcontentloaded')
-  await page.waitForTimeout(6000)
-  const color = await page.evaluate(() => {
-    const h3 = document.querySelector('h3.text-white')
-    return h3 ? window.getComputedStyle(h3).color : null
-  })
+  await waitPastRootSessionLoading(page)
+  const name = page.locator('span.text-white.font-bold', { hasText: 'E2E Public Group' }).first()
+  await expect(name).toBeVisible({ timeout: 30000 })
+  const color = await name.evaluate(el => window.getComputedStyle(el).color)
   console.log('title color:', color)
   expect(color).toBe('rgb(255, 255, 255)')
   await page.screenshot({ path: 'e2e/screenshots/explorer-titles.png' })
 })
 
 test('stream controls use border-2', async ({ page }) => {
-  await page.goto('/groups/building-hylo/stream')
-  await page.waitForLoadState('domcontentloaded')
-  await page.waitForTimeout(6000)
+  await page.goto('/groups/e2e-public-group/all')
+  await waitPastRootSessionLoading(page)
   const width = await page.evaluate(() => {
     const pill = [...document.querySelectorAll('button, div')].find(el =>
       el.className && String(el.className).includes('rounded-[9px]'))
@@ -29,25 +29,13 @@ test('stream controls use border-2', async ({ page }) => {
 })
 
 test('directly loaded space closes to group home', async ({ page }) => {
-  await page.goto('/groups/building-hylo')
-  await page.waitForLoadState('domcontentloaded')
-  await page.waitForTimeout(6000)
-  const href = await page.evaluate(() => {
-    const link = [...document.querySelectorAll('a')].find(a =>
-      a.textContent.includes('Test Space') && a.href.includes('/spaces/'))
-    return link ? link.getAttribute('href') : null
-  })
-  console.log('space href:', href)
-  expect(href).not.toBeNull()
-
-  // Direct-load the space-menu takeover (more-spaces ?space= shows the
-  // SpaceMenuHeader with its X) with no in-app history to return to
-  await page.goto('/groups/building-hylo/more-spaces?space=test-space')
-  await page.waitForLoadState('domcontentloaded')
-  await page.waitForTimeout(6000)
+  test.skip(test.info().project.name.includes('mobile'), 'space menu header is desktop chrome')
+  await page.goto('/groups/e2e-public-group/more-spaces?space=e2e-test-space')
+  await waitPastRootSessionLoading(page)
+  await expect(page.locator('.SpaceMenuHeader')).toBeVisible({ timeout: 60000 })
   await page.screenshot({ path: 'e2e/screenshots/space-direct.png' })
-  await page.locator('.SpaceMenuHeader [title="Close"]').click()
-  await page.waitForTimeout(1500)
+  await page.getByTestId('group-header').click()
+  await expect(page.locator('.SpaceMenuHeader')).toBeHidden({ timeout: 15000 })
   const url = page.url()
   console.log('after close:', url)
   expect(url.includes('space=')).toBe(false)

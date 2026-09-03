@@ -170,16 +170,27 @@ export function JoinBarriers ({ group, onBarriersStateChange, joinIntroCopy = fa
   )
 }
 
-export default function JoinSection ({ accessCode, addSkill, currentUser, fullPage, group, groupsWithPendingRequests, invitationRole, invitationToken, joinGroup, requestToJoinGroup, removeSkill, routeParams, t }) {
+export default function JoinSection ({ accessCode, addSkill, currentUser, fullPage, group, groupsWithPendingRequests, invitationRole, invitationToken, joinGroup, linkedSpaceName, requestToJoinGroup, removeSkill, routeParams, t }) {
   const hasPendingRequest = groupsWithPendingRequests[group.id]
 
   // User arrived with a join link (accessCode) or email invite link (token) — pre-approved for Closed/Restricted
   const hasJoinOrInviteLink = !!(accessCode || invitationToken)
 
+  const linkedSpaceNotice = linkedSpaceName
+    ? (
+      <div className='bg-selected/10 border border-selected/30 rounded-xl p-4 mb-4 text-center'>
+        <span className='font-medium text-foreground'>
+          {t('You will also be added to space {{name}} on joining', { name: linkedSpaceName })}
+        </span>
+      </div>
+      )
+    : null
+
   // If group has paywall, show paywall offerings with nested barriers
   if (group.paywall) {
     return (
       <div className={cn('JoinSection requestBar align-center flex flex-col z-20 border-0 justify-center h-auto', { 'w-full max-w-[750px]': fullPage })}>
+        {linkedSpaceNotice}
         <PaywallOfferingsSection group={group} />
       </div>
     )
@@ -198,6 +209,7 @@ export default function JoinSection ({ accessCode, addSkill, currentUser, fullPa
           </div>
         </div>
       )}
+      {linkedSpaceNotice}
       {group.prerequisiteGroups && group.prerequisiteGroups.length > 0
         ? (
           <div className='w-full mb-[100px] border border-dashed p-3 rounded bg-midground'>

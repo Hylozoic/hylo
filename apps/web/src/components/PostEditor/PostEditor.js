@@ -97,6 +97,7 @@ import { MAX_POST_TOPICS } from 'util/constants'
 import generateTempID from 'util/generateTempId'
 import { setQuerystringParam } from '@hylo/navigation'
 import { sanitizeURL } from 'util/url'
+import isPlayableVideoUrl from 'util/isPlayableVideoUrl'
 import ActionsBar from './ActionsBar'
 import HyloHTML from 'components/HyloHTML'
 import useDraft, { hasDraftContent, hasPostDraftPayloadContent } from 'hooks/useDraft'
@@ -118,9 +119,9 @@ function groupAcceptsPostType (group, postType) {
   return types.includes(postType)
 }
 
-/** Returns true when the group is a space (child of a top-level group). */
+/** Returns true when the group is a space (`type = space`). */
 function isSpaceGroup (group) {
-  return !!group && (group.type === GROUP_TYPES.space || !!group.parentId)
+  return !!group && group.type === GROUP_TYPES.space
 }
 
 /** Compares group ids as strings so GraphQL/ORM number vs string ids still match. */
@@ -291,7 +292,7 @@ function PostEditorInner ({
    */
   const detailsHtmlRef = useRef(null)
 
-  const linkPreview = useSelector(state => getLinkPreview(state)) // TODO: probably not working?
+  const linkPreview = useSelector(state => getLinkPreview(state))
   const fetchLinkPreviewPending = useSelector(state => isPendingFor(FETCH_LINK_PREVIEW, state))
   const uploadAttachmentPending = useSelector(getUploadAttachmentPending)
 
@@ -374,7 +375,7 @@ function PostEditorInner ({
       startTime: typeof inputPost?.startTime === 'string' ? new Date(inputPost.startTime) : (inputPost?.startTime || prefilledEventTimes.startTime),
       endTime: typeof inputPost?.endTime === 'string' ? new Date(inputPost.endTime) : (inputPost?.endTime || prefilledEventTimes.endTime)
     }
-  }, [inputPost?.id, inputPost?.location, inputPost?.locationId, createPostType, currentGroup, topic, context, editing, eventDateParam, inputPost?.startTime, inputPost?.endTime, currentTrack?.actionDescriptor, selectedLocation, t])
+  }, [inputPost?.id, inputPost?.location, inputPost?.locationId, inputPost?.linkPreview?.id, inputPost?.linkPreviewFeatured, createPostType, currentGroup, topic, context, editing, eventDateParam, inputPost?.startTime, inputPost?.endTime, currentTrack?.actionDescriptor, selectedLocation, t])
 
   const [currentPost, setCurrentPostState] = useState(initialPost)
   const [editorInitialContent, setEditorInitialContent] = useState(initialPost.details || '')
@@ -720,8 +721,34 @@ function PostEditorInner ({
     if (initialPost.id) reset()
   }, [initialPost.id])
 
+  // Hydrate a late-arriving post preview (e.g. FETCH_POST completes after first paint)
+  // without overwriting a user-fetched or user-removed preview.
   useEffect(() => {
-    setCurrentPost(prev => (prev.linkPreview === linkPreview ? prev : { ...prev, linkPreview }))
+    if (!initialPost.linkPreview) return
+    setCurrentPost(prev => {
+      if (prev.skipLinkPreview || prev.linkPreview) return prev
+      return {
+        ...prev,
+        linkPreview: initialPost.linkPreview,
+        linkPreviewFeatured: !!initialPost.linkPreviewFeatured
+      }
+    })
+  }, [initialPost.linkPreview, initialPost.linkPreviewFeatured, setCurrentPost])
+
+  useEffect(() => {
+    setCurrentPost(prev => {
+      if (!linkPreview) return prev
+      if (prev.linkPreview === linkPreview) return prev
+      const isNewPreview = !prev.linkPreview || prev.linkPreview.id !== linkPreview.id
+      return {
+        ...prev,
+        linkPreview,
+        skipLinkPreview: false,
+        linkPreviewFeatured: isNewPreview && isPlayableVideoUrl(linkPreview.url || linkPreview.ref?.url)
+          ? true
+          : prev.linkPreviewFeatured
+      }
+    })
   }, [linkPreview, setCurrentPost])
 
   useEffect(() => {
@@ -760,7 +787,7 @@ function PostEditorInner ({
 
   /**
    * Resets the editor to its initial state
-   * Clears form fields, attachments, and link previews
+   * Clears compose-time attachments and fetched previews, but keeps the post's existing link preview
    */
   const reset = useCallback(() => {
     syncDetailsToCurrentPost.cancel()
@@ -769,7 +796,11 @@ function PostEditorInner ({
     editorRef.current?.setContent(details)
     setHasDescription(details.length > 0)
     dispatch(clearLinkPreview())
-    setCurrentPost(() => ({ ...initialPost, linkPreview: null, linkPreviewFeatured: false }))
+    setCurrentPost(() => ({
+      ...initialPost,
+      linkPreview: initialPost.linkPreview || null,
+      linkPreviewFeatured: !!initialPost.linkPreviewFeatured
+    }))
     setEditorInitialContent(details)
     dispatch(clearAttachments('post', 'new', 'image'))
     dispatch(clearAttachments('post', 'new', 'file'))
@@ -984,7 +1015,7 @@ function PostEditorInner ({
 
   const handleRemoveLinkPreview = useCallback(() => {
     dispatch(removeLinkPreview())
-    setCurrentPost(prev => ({ ...prev, linkPreview: null, linkPreviewFeatured: false }))
+    setCurrentPost(prev => ({ ...prev, linkPreview: null, linkPreviewFeatured: false, skipLinkPreview: true }))
   }, [dispatch, setCurrentPost])
 
   const handleAddToOption = useCallback((toOptions) => {
@@ -1024,7 +1055,7 @@ function PostEditorInner ({
    * Checks various conditions based on post type and sets error messages
    */
   const isValid = useMemo(() => {
-    const { type, title, groups, startTime, endTime, donationsLink, projectManagementLink, meetingLink, proposalOptions, budget } = currentPost
+    const { type, title, groups, startTime, endTime, donationsLink, projectManagementLink, meetingLink, proposalOptions } = currentPost
 
     const errorMessages = []
 
@@ -1047,11 +1078,6 @@ function PostEditorInner ({
           errorMessages.push(t('At least one proposal option required'))
         }
         break
-      case 'submission':
-        if (currentFundingRound?.requireBudget && !budget) {
-          errorMessages.push(t('Budget is required for this submission'))
-        }
-        break
     }
 
     if (title?.length === 0 || title?.length > MAX_TITLE_LENGTH) {
@@ -1067,7 +1093,7 @@ function PostEditorInner ({
     }
 
     return errorMessages.length === 0
-  }, [hasDescription, currentPost.type, currentPost.title, currentPost.groups, currentPost.startTime, currentPost.endTime, currentPost.donationsLink, currentPost.projectManagementLink, currentPost.meetingLink, currentPost.proposalOptions, currentPost.budget, currentFundingRound?.requireBudget])
+  }, [hasDescription, currentPost.type, currentPost.title, currentPost.groups, currentPost.startTime, currentPost.endTime, currentPost.donationsLink, currentPost.projectManagementLink, currentPost.meetingLink, currentPost.proposalOptions])
 
   // const handleCancel = () => {
   //   if (onCancel) {
@@ -1100,6 +1126,7 @@ function PostEditorInner ({
         isStrictProposal,
         linkPreview,
         linkPreviewFeatured,
+        skipLinkPreview,
         locationId,
         meetingLink,
         members,
@@ -1158,6 +1185,7 @@ function PostEditorInner ({
         isStrictProposal,
         linkPreview,
         linkPreviewFeatured,
+        skipLinkPreview,
         localId: uniqueId('post_'), // For optimistic display of the new post
         location: postLocation,
         locationId: actualLocationId,
@@ -1433,11 +1461,12 @@ function PostEditorInner ({
           <span className='text-black bg-[#FFB949] w-full relative -top-[15px] pb-[2px] px-[10px] rounded-[7px]'>{t('Title limited to {{maxTitleLength}} characters', { maxTitleLength: MAX_TITLE_LENGTH })}</span>
         )}
       </div>
-      <div className={cn(
-        'PostEditorContent w-full bg-input rounded p-1',
-        'flex flex-col !items-start border-2 border-transparent shadow-md transition-all duration-200 overflow-x-hidden focus-within:border-2 focus-within:border-focus'
-      )}
-      data-tour='post-body'
+      <div
+        className={cn(
+          'PostEditorContent w-full bg-input rounded p-1',
+          'flex flex-col !items-start border-2 border-transparent shadow-md transition-all duration-200 overflow-x-hidden focus-within:border-2 focus-within:border-focus'
+        )}
+        data-tour='post-body'
       >
         {currentPost.details === null || loading
           ? <div><Loading /></div>
@@ -1826,10 +1855,10 @@ function PostEditorInner ({
           </div>
         </div>
       )}
-      {(currentPost.type === 'project' || currentPost.type === 'submission') && (
+      {(currentPost.type === 'project' || (currentPost.type === 'submission' && currentFundingRound?.requireBudget)) && (
         <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
           <div className='text-xs text-foreground/50 mr-2 whitespace-nowrap'>
-            {t('Budget Total')}{currentPost.type === 'submission' && currentFundingRound?.requireBudget ? '*' : ''}
+            {t('Budget Total')}
           </div>
           <div className='w-full'>
             <input

@@ -20,6 +20,7 @@ export default function UploadAttachmentButton ({
   onInitialUpload, // If set then we won't upload the file to the server, we'll call this instead
   onSuccess,
   onError = () => {},
+  onLoadingChange,
   customRender,
   allowMultiple,
   disable,
@@ -52,20 +53,31 @@ export default function UploadAttachmentButton ({
     }
   }
 
-  const onUploadDone = async ({ filesUploaded }) => {
-    for (const filestackFileObject of filesUploaded) {
-      await onFileUploadFinished(filestackFileObject)
-    }
+  const finishLoading = () => {
     setLoading(false)
+    onLoadingChange?.(false)
   }
 
-  const onCancel = () => setLoading(false)
+  const onUploadDone = async ({ filesUploaded }) => {
+    try {
+      for (const filestackFileObject of filesUploaded) {
+        await onFileUploadFinished(filestackFileObject)
+      }
+    } finally {
+      finishLoading()
+    }
+  }
+
+  const onCancel = () => finishLoading()
 
   const onClick = () => {
     setLoading(true)
     filestackPicker({
       attachmentType,
       maxFiles: allowMultiple ? 10 : 1,
+      onFileSelected: () => {
+        onLoadingChange?.(true)
+      },
       onUploadDone,
       onCancel,
       t
@@ -93,6 +105,7 @@ UploadAttachmentButton.propTypes = {
   onInitialUpload: PropTypes.func,
   onSuccess: PropTypes.func,
   onError: PropTypes.func,
+  onLoadingChange: PropTypes.func,
   customRender: PropTypes.func,
   allowMultiple: PropTypes.bool,
   disable: PropTypes.bool,

@@ -25,6 +25,7 @@ import {
   getParentGroups,
   getPeerGroups
 } from 'store/selectors/getGroupRelationships'
+import { viewAcceptedByPostTypes } from 'store/models/GroupView'
 import { cn } from 'util/index'
 import { sanitizeURL } from 'util/url'
 
@@ -69,7 +70,7 @@ function descriptionForViewType (type, t) {
 /** Modal for picking and creating a new group view.
  * Pass `onAdd` to stage the view locally instead of dispatching a mutation — used when
  * building up a not-yet-created group/space (e.g. AddSpaceDialog's Included Views editor). */
-export default function AddGroupViewDialog ({ group, groupViews, onClose, onAdd }) {
+export default function AddGroupViewDialog ({ group, groupViews, acceptedPostTypes, onClose, onAdd }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const [selectedType, setSelectedType] = useState(null)
@@ -115,8 +116,10 @@ export default function AddGroupViewDialog ({ group, groupViews, onClose, onAdd 
   }, [typesInMenu])
 
   const commonViewTypes = useMemo(
-    () => COMMON_VIEW_TYPES.filter(type => !isTypeInMenu(type)),
-    [isTypeInMenu]
+    () => COMMON_VIEW_TYPES.filter(type => (
+      viewAcceptedByPostTypes(type, acceptedPostTypes) && !isTypeInMenu(type)
+    )),
+    [acceptedPostTypes, isTypeInMenu]
   )
 
   const customViewTypes = CUSTOM_VIEW_TYPES
@@ -386,6 +389,7 @@ export default function AddGroupViewDialog ({ group, groupViews, onClose, onAdd 
   return createPortal(
     <>
       <div
+        data-hylo-nested-dialog
         className='fixed inset-0 z-[1100] flex items-center justify-center bg-darkening/50 pointer-events-auto'
         onClick={handleBackdropClick}
       >

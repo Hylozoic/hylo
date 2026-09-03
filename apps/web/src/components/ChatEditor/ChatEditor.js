@@ -23,7 +23,6 @@ import {
 import isPendingFor from 'store/selectors/isPendingFor'
 import getMe from 'store/selectors/getMe'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
-import { CREATE_POST } from 'store/constants'
 import createPost from 'store/actions/createPost'
 import {
   addAttachment,
@@ -43,6 +42,7 @@ import { MAX_POST_TOPICS } from 'util/constants'
 import useDraft, { hasDraftContent, hasPostDraftPayloadContent } from 'hooks/useDraft'
 import LinkPreview from 'components/PostEditor/LinkPreview'
 import { buildPostDraftPayload, mergeDraftIntoPost } from 'components/PostEditor/postDraftUtils'
+import isPlayableVideoUrl from 'util/isPlayableVideoUrl'
 
 /**
  * Inline chat composer for ChatRoom — creates chat posts with draft persistence.
@@ -116,7 +116,6 @@ function ChatEditorInner ({
     state => getAttachments(state, { type: 'post', id: undefined, attachmentType: 'file' }),
     (a, b) => a.length === b.length && a.every((item, index) => item?.url === b[index]?.url)
   )
-  const postPending = useSelector(state => isPendingFor(CREATE_POST, state))
   const loading = !!uploadAttachmentPending
 
   const showImages = !isEmpty(imageAttachments) || uploadImageAttachmentPending
@@ -240,11 +239,6 @@ function ChatEditorInner ({
   }, [autoFocus, draftContextKey])
 
   useEffect(() => {
-    if (autoFocus) {
-      setTimeout(() => {
-        editorRef.current && editorRef.current.focus()
-      }, 500)
-    }
     return () => {
       dispatch(clearLinkPreview())
       dispatch(clearAttachments('post', 'new', 'image'))
@@ -252,7 +246,21 @@ function ChatEditorInner ({
   }, [])
 
   useEffect(() => {
-    setCurrentPost(prev => (prev.linkPreview === linkPreview ? prev : { ...prev, linkPreview }))
+    setCurrentPost(prev => {
+      if (prev.linkPreview === linkPreview) return prev
+      if (linkPreview) {
+        const isNewPreview = !prev.linkPreview || prev.linkPreview.id !== linkPreview.id
+        return {
+          ...prev,
+          linkPreview,
+          skipLinkPreview: false,
+          linkPreviewFeatured: isNewPreview && isPlayableVideoUrl(linkPreview.url || linkPreview.ref?.url)
+            ? true
+            : prev.linkPreviewFeatured
+        }
+      }
+      return { ...prev, linkPreview }
+    })
   }, [linkPreview, setCurrentPost])
 
   const reset = useCallback(() => {
@@ -268,9 +276,9 @@ function ChatEditorInner ({
     isSubmittedRef.current = false
     setIsDirty(false)
     if (autoFocus) {
-      setTimeout(() => {
-        editorRef.current && editorRef.current.focus()
-      }, 500)
+      // Immediate end-focus. A delayed focus() defaults to the start and jumps
+      // the caret after the next message has already begun.
+      editorRef.current?.focus('end')
     }
   }, [autoFocus, clearDraft, dispatch, initialPost, setCurrentPost, setIsDirty])
 
@@ -319,7 +327,7 @@ function ChatEditorInner ({
 
   const handleRemoveLinkPreview = useCallback(() => {
     dispatch(removeLinkPreview())
-    setCurrentPost(prev => ({ ...prev, linkPreview: null, linkPreviewFeatured: false }))
+    setCurrentPost(prev => ({ ...prev, linkPreview: null, linkPreviewFeatured: false, skipLinkPreview: true }))
   }, [dispatch, setCurrentPost])
 
   const isValid = useMemo(() => {
@@ -350,6 +358,7 @@ function ChatEditorInner ({
         isPublic,
         linkPreview,
         linkPreviewFeatured,
+        skipLinkPreview,
         timezone,
         title
       } = currentPost
@@ -371,6 +380,7 @@ function ChatEditorInner ({
         isPublic,
         linkPreview,
         linkPreviewFeatured,
+        skipLinkPreview,
         localId: uniqueId('post_'),
         pending: true,
         timezone,
@@ -384,6 +394,8 @@ function ChatEditorInner ({
       cancelPendingSave()
       stopTyping()
       reset()
+      // The next message can be composed and sent while this request is in flight.
+      isSubmittingRef.current = false
 
       const savedPost = await dispatch(createPost(postToSave))
       if (!savedPost.error) {
@@ -393,7 +405,6 @@ function ChatEditorInner ({
           afterSave(savedPost?.payload?.data?.createPost)
         }
       }
-      isSubmittingRef.current = false
     } catch (error) {
       isSubmittingRef.current = false
       throw error
@@ -401,9 +412,9 @@ function ChatEditorInner ({
   }, [afterSave, cancelPendingSave, clearDraft, currentPost, currentUser, dispatch, fileAttachments, imageAttachments, onSave, reset, setIsDirty, stopTyping])
 
   const doSave = useEventCallback(() => {
-    if (!isValid || loading || postPending) return
+    if (!isValid || loading) return
     save()
-  }, [isValid, loading, postPending, save])
+  }, [isValid, loading, save])
 
   useImperativeHandle(ref, () => ({
     submit: () => doSave(),
@@ -411,7 +422,7 @@ function ChatEditorInner ({
   }))
 
   const groupIds = currentGroup?.id ? [currentGroup.id] : undefined
-  const canSubmit = isValid && !loading && !postPending
+  const canSubmit = isValid && !loading
 
   return (
     <div className='flex flex-col relative gap-2'>

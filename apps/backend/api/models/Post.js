@@ -356,6 +356,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
           'end_time',
           'id',
           'is_public',
+          'link_preview_featured',
           'location',
           'name',
           'num_people_reacts',
@@ -1281,6 +1282,30 @@ module.exports = bookshelf.Model.extend(Object.assign({
         AND start_time IS NOT NULL
         AND end_time IS NOT NULL;`
     )
+  },
+
+  /**
+   * Fetches Open Graph metadata for a URL in a newly created post and attaches
+   * the resulting LinkPreview. Used when the client did not supply linkPreviewId
+   * (Zapier, email, and other API creates).
+   */
+  generateLinkPreview: async ({ postId, url }) => {
+    const post = await Post.find(postId)
+    if (!post || post.get('link_preview_id')) return
+
+    const previewUrl = url
+      || RichText.getFirstExternalUrl(post.get('description'))
+      || RichText.getFirstExternalUrl(post.get('name'))
+    if (!previewUrl) return
+
+    const preview = await LinkPreview.findOrCreateAndPopulate(previewUrl)
+    if (!preview?.get('title')) return
+
+    const fresh = await Post.find(postId)
+    if (!fresh || fresh.get('link_preview_id')) return
+
+    await fresh.save({ link_preview_id: preview.id }, { patch: true })
+    Post.afterRelatedMutation(postId, { changeContext: 'edit' })
   },
 
   // Background task to fire zapier triggers on new_post

@@ -51,6 +51,25 @@ describe('PostContent', () => {
     expect(screen.getByText(/(a\s)+…/)).toBeInTheDocument()
   })
 
+  it('renders a featured video instead of the link preview card', () => {
+    render(
+      <PostContent
+        {...defaultProps}
+        linkPreviewFeatured
+        linkPreview={{
+          title: 'Never Gonna Give You Up',
+          url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+          imageUrl: 'foo.png'
+        }}
+      />
+    )
+
+    expect(screen.queryByText('Never Gonna Give You Up')).not.toBeInTheDocument()
+    expect(screen.getByTestId('featured-video')).toBeInTheDocument()
+    expect(screen.getByTitle('Featured video').getAttribute('src')).toBe('https://www.youtube.com/embed/dQw4w9WgXcQ')
+    expect(screen.getByText('the details')).toBeInTheDocument()
+  })
+
   it('renders edit timestamp when provided', () => {
     const props = {
       ...defaultProps,

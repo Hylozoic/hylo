@@ -108,6 +108,30 @@ describe('mutations/group', () => {
       )
       expect(canAddMembers).to.be.true
     })
+
+    it('adds the user to the space after joining the parent with a space invitation', async () => {
+      const inviter = await factories.user().save()
+      const user = await factories.user().save()
+      const parent = await factories.group().save({ accessibility: Group.Accessibility.RESTRICTED })
+      const space = await factories.group({ type: 'space', parent_id: parent.id }).save()
+      await inviter.joinGroup(parent, { assignCoordinator: true })
+
+      const invitation = await Invitation.create({
+        userId: inviter.id,
+        groupId: space.id,
+        email: user.get('email')
+      })
+
+      await joinGroup(parent.id, user.id, [], null, invitation.get('token'), false, {})
+
+      const parentMembership = await GroupMembership.forPair(user, parent).fetch()
+      const spaceMembership = await GroupMembership.forPair(user, space).fetch()
+      expect(parentMembership).to.exist
+      expect(spaceMembership).to.exist
+
+      await invitation.refresh()
+      expect(invitation.get('used_by_id')).to.equal(user.id)
+    })
   })
 
   describe('createGroup', () => {

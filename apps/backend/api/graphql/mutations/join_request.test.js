@@ -89,6 +89,37 @@ describe('join_request mutations', () => {
         expect(e.message).to.match(/Invalid parameters/)
       }
     })
+
+    it('marks agreements and join questions complete so the welcome modal does not re-ask', async () => {
+      const g = await factories.group().save()
+      await assignCoordinator(moderator, g)
+      await g.update({
+        agreements: [{ title: 'Be kind', description: 'Please be kind' }],
+        join_questions: [{ text: 'Why do you want to join?' }]
+      }, moderator.id)
+
+      const joinQuestions = await g.joinQuestions().fetch()
+      expect(joinQuestions.length).to.equal(1)
+      const questionId = joinQuestions.models[0].get('question_id') || joinQuestions.models[0].get('questionId')
+
+      const requester = await factories.user().save()
+      const jr = await createJoinRequest(requester.id, g.id, [
+        { questionId, answer: 'To help out' }
+      ])
+      await acceptJoinRequest(moderator.id, jr.request.id)
+
+      const gm = await GroupMembership.forPair(requester.id, g.id).fetch()
+      expect(gm.getSetting('joinQuestionsAnsweredAt')).to.exist
+      expect(gm.getSetting('agreementsAcceptedAt')).to.exist
+      expect(gm.getSetting('showJoinForm')).to.equal(true)
+
+      const acceptedAgreements = await UserGroupAgreement.where({
+        user_id: requester.id,
+        group_id: g.id
+      }).fetchAll()
+      expect(acceptedAgreements.length).to.be.above(0)
+      expect(acceptedAgreements.models[0].get('accepted')).to.equal(true)
+    })
   })
 
   describe('cancelJoinRequest', () => {

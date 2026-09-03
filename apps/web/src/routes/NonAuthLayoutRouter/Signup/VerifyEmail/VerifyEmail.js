@@ -76,7 +76,7 @@ export default function VerifyEmail (props) {
   if (loading) return <Loading />
 
   return (
-    <div className='bg-card shadow-md rounded-md p-4 w-full max-w-[320px] mx-auto'>
+    <div className='bg-midground shadow-md rounded-md p-4 w-full max-w-[320px] mx-auto'>
       <Link to='/signup' className='text-foreground/80 text-sm mb-2 inline-block'>&#8592; {t('back')}</Link>
       <h1 className='text-2xl font-bold mb-4 text-foreground text-center'>{t('Check your email')}</h1>
       {notice && <p className='text-accent text-center text-sm'>{notice}</p>}
@@ -89,7 +89,7 @@ export default function VerifyEmail (props) {
           onChange={handleChange}
           classNames={{
             container: 'flex gap-2',
-            character: 'w-10 h-12 rounded-md border border-foreground/20 text-2xl text-center bg-input text-foreground transition-all duration-200',
+            character: 'w-10 h-12 rounded-md border border-foreground/20 text-2xl text-center bg-card text-foreground transition-all duration-200',
             characterInactive: 'bg-background/60',
             characterSelected: 'border-selected',
             characterFilled: 'bg-selected/20'

@@ -1,21 +1,25 @@
 import { test, expect } from '@playwright/test'
+import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading.js'
+
+test.describe.configure({ timeout: 120000 })
 
 test.use({ storageState: 'e2e/.auth/session.json' })
 
 test('empty stream shows centered cluster with create button', async ({ page }) => {
+  test.skip(test.info().project.name.includes('mobile'), 'empty-state geometry is a desktop stream layout')
   await page.setViewportSize({ width: 1280, height: 900 })
 
-  await page.goto('/groups/building-hylo/stream')
-  await page.waitForLoadState('domcontentloaded')
-  await page.waitForTimeout(3000)
-  await page.locator('[data-tooltip-content="Search posts"]').click()
+  await page.goto('/groups/e2e-public-group/all')
+  await waitPastRootSessionLoading(page)
+  const searchToggle = page.getByRole('button', { name: 'Search posts' })
+  await expect(searchToggle).toBeVisible({ timeout: 60000 })
+  await searchToggle.click()
   const searchInput = page.getByPlaceholder('Search posts')
   await searchInput.fill('zzzqqqxyzzy')
   await searchInput.press('Enter')
-  await page.waitForTimeout(3000)
+  await expect(page.getByText('Nothing here yet', { exact: true })).toBeVisible({ timeout: 60000 })
 
   const cluster = page.getByText('Nothing here yet', { exact: true })
-  await expect(cluster).toBeVisible()
   const button = page.getByRole('button', { name: 'Create something' })
   await expect(button).toBeVisible()
 
@@ -28,9 +32,6 @@ test('empty stream shows centered cluster with create button', async ({ page }) 
   await page.screenshot({ path: 'e2e/screenshots/empty-state.png' })
 
   await button.click()
-  await page.waitForTimeout(1500)
-  const url = page.url()
-  console.log('after click:', url)
-  expect(url).toContain('/create/post')
+  await expect(page).toHaveURL(/\/create\/post/, { timeout: 15000 })
   await page.screenshot({ path: 'e2e/screenshots/empty-state-create.png' })
 })

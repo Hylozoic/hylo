@@ -2,11 +2,12 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
-import { Hand, ImagePlus, LayoutGrid, MapPin } from 'lucide-react'
+import { Hand, ImagePlus, LayoutGrid, MapPin, Trash2 } from 'lucide-react'
 
 import { AdvancedPill, AdvancedSection } from 'components/AdvancedSettings/AdvancedSettings'
 import Button from 'components/ui/button'
 import { FIELD_LABEL_CLASS, INPUT_CLASS } from 'components/ui/form-field'
+import { Tooltip, TooltipContent, TooltipTrigger } from 'components/ui/tooltip'
 import { Input } from 'components/ui/input'
 import HyloEditor from 'components/HyloEditor'
 import LocationInput from 'components/LocationInput/LocationInput'
@@ -16,8 +17,8 @@ import SwitchStyled from 'components/SwitchStyled'
 import TagInput from 'components/TagInput'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import { updateFundingRound, fetchFundingRound } from 'routes/FundingRounds/FundingRounds.store'
-import { localSpaceSlug } from '@hylo/navigation'
-import { createGroupView, updateGroupView, updateSpace } from 'store/actions/groupViews'
+import { groupUrl, localSpaceSlug } from '@hylo/navigation'
+import { createGroupView, convertSpaceToChildGroup, updateGroupView, updateSpace } from 'store/actions/groupViews'
 import { updateTrack, fetchTrack } from 'store/actions/trackActions'
 import { updateGroupSettings } from 'routes/GroupSettings/GroupSettings.store'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
@@ -26,6 +27,7 @@ import getFundingRound from 'store/selectors/getFundingRound'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getTrack from 'store/selectors/getTrack'
 import { groupRolesForPicker } from '@hylo/hooks/groupRoleHelpers'
+import { DEFAULT_BANNER } from 'store/models/Group'
 import { cn } from 'util/index'
 
 import FundingRoundSettingsFields from './FundingRoundSettingsFields'
@@ -120,6 +122,7 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
   })
   const [roleSearchTerm, setRoleSearchTerm] = useState(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [isConverting, setIsConverting] = useState(false)
   const [openAdvanced, setOpenAdvanced] = useState(() => new Set())
   const [justRevealed, setJustRevealed] = useState(null)
   // Welcome edits only save if the panel was ever opened
@@ -135,8 +138,8 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
   const completionMessageEditorRef = useRef(null)
 
   const accessOptions = useMemo(
-    () => accessOptionsForGroup(parentGroup, { includePaid: Boolean(space?.paywall) }),
-    [parentGroup, space?.paywall]
+    () => accessOptionsForGroup(parentGroup),
+    [parentGroup]
   )
 
   const accessSelectOptions = useMemo(
@@ -144,7 +147,9 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
       value: option.value,
       icon: option.icon,
       title: option.labelKey,
-      description: option.descKey
+      description: option.descKey,
+      disabled: option.disabled,
+      disabledTooltip: option.disabledTooltipKey
     })),
     [accessOptions]
   )
@@ -160,6 +165,8 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
   const [frAllowSelfVoting, setFrAllowSelfVoting] = useState(!!fundingRound?.allowSelfVoting)
   const [frAllowLateJoiners, setFrAllowLateJoiners] = useState(!!fundingRound?.allowLateJoiners)
   const [frHideFinalResults, setFrHideFinalResults] = useState(!!fundingRound?.hideFinalResultsFromParticipants)
+  const [frRequireBudget, setFrRequireBudget] = useState(!!fundingRound?.requireBudget)
+  const [frShowRealtimeVotes, setFrShowRealtimeVotes] = useState(!!fundingRound?.showRealtimeVotes)
   const [frSubmissionDescriptor, setFrSubmissionDescriptor] = useState(fundingRound?.submissionDescriptor || 'Submission')
   const [frSubmissionDescriptorPlural, setFrSubmissionDescriptorPlural] = useState(fundingRound?.submissionDescriptorPlural || 'Submissions')
   const [frSubmitterRoles, setFrSubmitterRoles] = useState(fundingRound?.submitterRoles || [])
@@ -240,6 +247,8 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
     setFrAllowSelfVoting(!!fundingRound.allowSelfVoting)
     setFrAllowLateJoiners(!!fundingRound.allowLateJoiners)
     setFrHideFinalResults(!!fundingRound.hideFinalResultsFromParticipants)
+    setFrRequireBudget(!!fundingRound.requireBudget)
+    setFrShowRealtimeVotes(!!fundingRound.showRealtimeVotes)
     setFrSubmitterRoles(fundingRound.submitterRoles || [])
     setFrVoterRoles(fundingRound.voterRoles || [])
     // Full round object is read when roundIsFull flips; avoid depending on the selector's new object each render.
@@ -279,7 +288,6 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
       const accessOption = accessOptions.find(option => option.value === access)
       const trimmedName = name.trim()
 
-      // Space menu labels use linkedGroup.name — do not snapshot the name onto group_views.
       await dispatch(updateSpace({
         id: space.id,
         groupId: parentGroup.id,
@@ -338,6 +346,8 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
           allowSelfVoting: frAllowSelfVoting,
           allowLateJoiners: frAllowLateJoiners,
           hideFinalResultsFromParticipants: frHideFinalResults,
+          requireBudget: frRequireBudget,
+          showRealtimeVotes: frShowRealtimeVotes,
           submissionDescriptor: frSubmissionDescriptor,
           submissionDescriptorPlural: frSubmissionDescriptorPlural,
           submitterRoles: frSubmitterRoles,
@@ -346,10 +356,9 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
         }))
       }
 
-      // Refresh the space's own views (typed views appear/disappear with acceptedPostTypes)
-      // and the parent menu so nested space labels/copies stay in sync.
+      // Space menu name/icon are patched on save. Only refetch this space's
+      // views so typed items appear/disappear with acceptedPostTypes.
       await dispatch(fetchGroupViews(space.id))
-      await dispatch(fetchGroupViews(parentGroup.id))
       if (!view?.id) {
         await dispatch(fetchGroupSpaces(parentGroup.id))
       }
@@ -359,7 +368,28 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
     } finally {
       setIsSaving(false)
     }
-  }, [dispatch, space?.id, parentGroup?.id, view?.id, name, slug, slugValid, description, icon, bannerUrl, purpose, locationObject, postTypes, access, accessOptions, requiredRoles, welcomeTouched, welcomeDraft, welcomeView, showWelcomePage, space?.settings?.showWelcomePage, track?.id, actionDescriptor, actionDescriptorPlural, completionRole, fundingRound?.id, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frAllowLateJoiners, frHideFinalResults, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles, onClose])
+  }, [dispatch, space?.id, parentGroup?.id, view?.id, name, slug, slugValid, description, icon, bannerUrl, purpose, locationObject, postTypes, access, accessOptions, requiredRoles, welcomeTouched, welcomeDraft, welcomeView, showWelcomePage, space?.settings?.showWelcomePage, track?.id, actionDescriptor, actionDescriptorPlural, completionRole, fundingRound?.id, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frAllowLateJoiners, frHideFinalResults, frRequireBudget, frShowRealtimeVotes, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles, onClose])
+
+  /** Convert this space into a child group of the parent. */
+  const handleConvertToChildGroup = useCallback(async () => {
+    if (!space?.id || !parentGroup?.id) return
+    if (!window.confirm(t('Are you sure you want to convert {{name}} to a child group? It will no longer be a space. If it is in the menu it will become a child group item; otherwise it will only appear under Related Groups.', { name: space.name || name }))) {
+      return
+    }
+    setIsConverting(true)
+    try {
+      await dispatch(convertSpaceToChildGroup({ id: space.id }))
+      if (space.slug) {
+        window.location.assign(groupUrl(space.slug))
+        return
+      }
+      onClose()
+    } catch (error) {
+      console.error('Failed to convert space to child group:', error)
+    } finally {
+      setIsConverting(false)
+    }
+  }, [dispatch, onClose, parentGroup?.id, space?.id, space?.name, space?.slug, name, t])
 
   const advancedSettings = useMemo(() => [
     {
@@ -424,6 +454,15 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
 
   const spaceStatus = space.status || 'published'
   const isFundingRoundLifecycle = ['submissions', 'discussion', 'voting', 'completed'].includes(spaceStatus)
+  const canConvertToChildGroup = !track?.id && !fundingRound?.id
+  const hasBanner = Boolean(bannerUrl && bannerUrl !== DEFAULT_BANNER)
+
+  /** Clear the banner locally; an empty value is persisted as a delete on save. */
+  const handleRemoveBanner = (event) => {
+    event.preventDefault()
+    event.stopPropagation()
+    setBannerUrl('')
+  }
 
   const panel = (
     <div className={inline ? 'flex flex-col' : 'bg-midground rounded-lg shadow-lg p-4 w-full max-w-md sm:max-w-[40rem] max-h-[85vh] flex flex-col'}>
@@ -436,9 +475,24 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
           className='w-full group'
         >
           <div
-            className={cn('relative w-full h-[20vh] flex flex-col items-center justify-center border-2 border-dashed border-foreground/50 rounded-lg shadow-md bg-cover bg-center bg-darkening/0 hover:bg-darkening/20 scale-1 hover:scale-105 transition-all cursor-pointer', { 'border-none': !!bannerUrl })}
-            style={{ backgroundImage: `url(${bannerUrl})` }}
+            className={cn('relative w-full h-[20vh] flex flex-col items-center justify-center border-2 border-dashed border-foreground/50 rounded-lg shadow-md bg-cover bg-center bg-darkening/0 hover:bg-darkening/20 scale-1 hover:scale-105 transition-all cursor-pointer', { 'border-none': hasBanner })}
+            style={hasBanner ? { backgroundImage: `url(${bannerUrl})` } : undefined}
           >
+            {hasBanner && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type='button'
+                    onClick={handleRemoveBanner}
+                    aria-label={t('Remove Banner')}
+                    className='absolute top-2 right-6 z-10 p-1.5 rounded-md bg-black/50 text-white opacity-0 group-hover:opacity-100 focus:opacity-100 hover:bg-destructive transition-all'
+                  >
+                    <Trash2 className='w-4 h-4' />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent className='z-[1200]'>{t('Remove Banner')}</TooltipContent>
+              </Tooltip>
+            )}
             <div className='flex items-center gap-2 rounded-lg bg-black/50 px-3 py-2 text-white opacity-60 group-hover:opacity-100 transition-opacity'>
               <ImagePlus className='w-4 h-4' />
               <span className='text-xs font-semibold'>{t('Set space banner')}</span>
@@ -566,6 +620,10 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
             setAllowLateJoiners={setFrAllowLateJoiners}
             hideFinalResults={frHideFinalResults}
             setHideFinalResults={setFrHideFinalResults}
+            requireBudget={frRequireBudget}
+            setRequireBudget={setFrRequireBudget}
+            showRealtimeVotes={frShowRealtimeVotes}
+            setShowRealtimeVotes={setFrShowRealtimeVotes}
             submitterRoles={frSubmitterRoles}
             setSubmitterRoles={setFrSubmitterRoles}
             voterRoles={frVoterRoles}
@@ -612,24 +670,35 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
         </div>
       </div>
 
-      <div className='flex justify-end gap-2 mt-4 pt-2 border-t border-foreground/10'>
-        <Button variant='primary' onClick={onClose}>{t('Cancel')}</Button>
-        {isFundingRoundLifecycle
-          ? (
-            <Button variant='secondary' disabled={!name.trim() || isSaving} onClick={() => handleSave()}>
-              {isSaving ? t('Saving...') : t('Save')}
-            </Button>
-            )
-          : (
-            <>
-              <Button variant='primary' disabled={!name.trim() || isSaving} onClick={() => handleSave('draft')}>
-                {isSaving ? t('Saving...') : t('Save Draft')}
+      <div className='flex flex-wrap items-center gap-2 mt-4 pt-2 border-t border-foreground/10'>
+        {canConvertToChildGroup && (
+          <Button
+            variant='outline'
+            disabled={isSaving || isConverting}
+            onClick={handleConvertToChildGroup}
+          >
+            {isConverting ? t('Saving...') : t('Convert to Child Group')}
+          </Button>
+        )}
+        <div className='flex justify-end gap-2 ml-auto'>
+          <Button variant='primary' onClick={onClose}>{t('Cancel')}</Button>
+          {isFundingRoundLifecycle
+            ? (
+              <Button variant='secondary' disabled={!name.trim() || isSaving || isConverting} onClick={() => handleSave()}>
+                {isSaving ? t('Saving...') : t('Save')}
               </Button>
-              <Button variant='secondary' disabled={!name.trim() || isSaving} onClick={() => handleSave('published')}>
-                {isSaving ? t('Saving...') : t('Publish')}
-              </Button>
-            </>
-            )}
+              )
+            : (
+              <>
+                <Button variant='primary' disabled={!name.trim() || isSaving || isConverting} onClick={() => handleSave('draft')}>
+                  {isSaving ? t('Saving...') : t('Save Draft')}
+                </Button>
+                <Button variant='secondary' disabled={!name.trim() || isSaving || isConverting} onClick={() => handleSave('published')}>
+                  {isSaving ? t('Saving...') : t('Publish')}
+                </Button>
+              </>
+              )}
+        </div>
       </div>
     </div>
   )

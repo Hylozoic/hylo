@@ -240,6 +240,7 @@ export function iconForView (view) {
 /**
  * Human-readable menu label for a GroupView.
  * Optional `spaceGroup` supplies track/funding-round unit terms for nested space views.
+ * Space labels use the view name (kept in sync with the space Group on create/update).
  */
 export function displayNameForView (view, t, { spaceGroup } = {}) {
   if (view?.type === 'post' && view.viewPost?.title) return view.viewPost.title
@@ -249,9 +250,9 @@ export function displayNameForView (view, t, { spaceGroup } = {}) {
     if (view.pageContent) return view.pageContent
     if (view.name) return translateViewName(view.name, t)
   }
-  // Space menu labels always follow the space group name (not a stale view.name snapshot).
   if (view?.type === 'space') {
-    return view.linkedGroup?.name || (view.name ? translateViewName(view.name, t) : undefined)
+    if (view.name) return translateViewName(view.name, t)
+    return view.linkedGroup?.name || spaceGroup?.name
   }
   if (view?.name) return translateViewName(view.name, t)
 

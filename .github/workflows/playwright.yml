@@ -156,8 +156,8 @@ jobs:
         continue-on-error: true
         with:
           files: apps/web/test-results/junit.xml
-          check_name: Playwright E2E
-          comment_title: Playwright E2E
+          check_name: Playwright results
+          comment_title: Playwright results
 
       - uses: actions/upload-artifact@v6.0.0
         if: ${{ !cancelled() }}

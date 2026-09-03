@@ -11,6 +11,7 @@ import getMe from 'store/selectors/getMe'
 import getMyMemberships from 'store/selectors/getMyMemberships'
 import getPreviousLocation from 'store/selectors/getPreviousLocation'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
+import { isMenuViewVisible } from 'store/models/GroupView'
 import { performMobileNavBack } from 'util/mobileNavBack'
 import { isCardMenuPreference, isOneColumnLayout } from 'util/navigationLayout'
 
@@ -89,14 +90,14 @@ export default function useMobileNavBack () {
   const singleSpaceView = useMemo(() => {
     if (isMoreSpacesPath || !spaceGroup) return null
     const views = spaceGroupViews.length > 0 ? spaceGroupViews : (spaceGroup.groupViews?.items || [])
-    const visibleViews = views.filter(v => v.order != null)
+    const visibleViews = views.filter(v => isMenuViewVisible(v, spaceGroup.acceptedPostTypes))
     return visibleViews.length === 1 ? visibleViews[0] : null
   }, [spaceGroup, spaceGroupViews, isMoreSpacesPath])
   const isSingleViewSpace = Boolean(singleSpaceView)
   const hasSpaceMenu = useMemo(() => {
     if (!spaceGroup) return false
     const views = spaceGroupViews.length > 0 ? spaceGroupViews : (spaceGroup.groupViews?.items || [])
-    return views.filter(v => v.order != null).length > 1
+    return views.filter(v => isMenuViewVisible(v, spaceGroup.acceptedPostTypes)).length > 1
   }, [spaceGroup, spaceGroupViews])
 
   const spaceHomePath = useMemo(() => {
