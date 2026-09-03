@@ -96,12 +96,28 @@ export default function SiteBanners () {
                   )
               )}
             >
-              <div className='flex items-start gap-2 p-3'>
-                <ClickCatcher className='flex-1 min-w-0 text-sm sm:text-base [&_a]:underline'>
-                  <HyloHTML html={banner.text} />
-                </ClickCatcher>
-                <div className='flex items-center gap-1 shrink-0'>
-                  {banner.actionText && banner.actionUrl && (
+              <div className='p-3'>
+                <div className='flex items-start gap-2'>
+                  <ClickCatcher className='flex-1 min-w-0 text-sm sm:text-base [&_a]:underline'>
+                    {banner.title && <p className='font-bold text-base sm:text-lg mb-1'>{banner.title}</p>}
+                    <HyloHTML html={banner.text} />
+                  </ClickCatcher>
+                  <div className='flex items-center gap-1 shrink-0'>
+                    {isTop && banners.length > 1 && (
+                      <span className='text-xs opacity-60 px-1'>{t('+{{count}} more', { count: banners.length - 1 })}</span>
+                    )}
+                    <button
+                      type='button'
+                      aria-label={t('Dismiss')}
+                      className='p-1 rounded-full opacity-60 hover:opacity-100 transition-opacity'
+                      onClick={() => handleDismiss(banner.id)}
+                    >
+                      <X className='w-4 h-4' />
+                    </button>
+                  </div>
+                </div>
+                {banner.actionText && banner.actionUrl && (
+                  <div className='flex justify-end mt-2'>
                     <Button
                       variant='secondary'
                       size='sm'
@@ -109,19 +125,8 @@ export default function SiteBanners () {
                     >
                       {banner.actionText}
                     </Button>
-                  )}
-                  {isTop && banners.length > 1 && (
-                    <span className='text-xs opacity-60 px-1'>{t('+{{count}} more', { count: banners.length - 1 })}</span>
-                  )}
-                  <button
-                    type='button'
-                    aria-label={t('Dismiss')}
-                    className='p-1 rounded-full opacity-60 hover:opacity-100 transition-opacity'
-                    onClick={() => handleDismiss(banner.id)}
-                  >
-                    <X className='w-4 h-4' />
-                  </button>
-                </div>
+                  </div>
+                )}
               </div>
             </div>
           )

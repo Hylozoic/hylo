@@ -1,6 +1,7 @@
 exports.up = async function (knex) {
   await knex.schema.createTable('site_banners', table => {
     table.increments('id').primary()
+    table.text('title')
     table.text('text')
     table.text('type').defaultTo('info')
     table.text('action_text')

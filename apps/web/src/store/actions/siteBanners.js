@@ -12,6 +12,7 @@ import {
 
 const siteBannerFields = `
   id
+  title
   text
   type
   actionText
@@ -36,6 +37,7 @@ export function fetchSiteBanners () {
         query {
           siteBanners {
             id
+            title
             text
             type
             actionText

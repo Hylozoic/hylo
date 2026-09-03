@@ -2079,6 +2079,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
       model: SiteBanner,
       attributes: [
         'id',
+        'title',
         'text',
         'type',
         'created_at',

@@ -25,7 +25,7 @@ const TYPE_OPTIONS = [
   { value: 'alert', label: 'Alert' }
 ]
 
-const EMPTY_DRAFT = { id: null, status: 'draft', type: 'info', actionText: '', actionUrl: '' }
+const EMPTY_DRAFT = { id: null, status: 'draft', title: '', type: 'info', actionText: '', actionUrl: '' }
 
 function statusOf (banner) {
   if (banner.unpublishedAt) return 'unpublished'
@@ -84,6 +84,7 @@ export default function SiteBanners () {
     setSaving(true)
     try {
       const data = {
+        title: draft.title || null,
         text,
         type: draft.type,
         actionText: draft.actionText || null,
@@ -111,7 +112,7 @@ export default function SiteBanners () {
   }, [dispatch, draft, loadBanners, resetDraft, t])
 
   const handleEdit = useCallback((banner) => {
-    setDraft({ id: banner.id, status: statusOf(banner), type: banner.type, actionText: banner.actionText || '', actionUrl: banner.actionUrl || '' })
+    setDraft({ id: banner.id, status: statusOf(banner), title: banner.title || '', type: banner.type, actionText: banner.actionText || '', actionUrl: banner.actionUrl || '' })
     editorRef.current?.setContent(banner.text)
   }, [])
 
@@ -144,6 +145,15 @@ export default function SiteBanners () {
 
       <div className='mb-8 border border-foreground/20 rounded-md p-4'>
         <h2 className='text-lg font-semibold mb-4'>{draft.id ? t('Edit Banner') : t('New Banner')}</h2>
+
+        <div className='mb-4'>
+          <label className='block text-sm font-medium mb-1'>{t('Title')}</label>
+          <Input
+            value={draft.title}
+            onChange={e => setDraft(d => ({ ...d, title: e.target.value }))}
+            placeholder={t('Optional')}
+          />
+        </div>
 
         <div className='mb-4 border border-input rounded-md'>
           <HyloEditor
@@ -234,6 +244,7 @@ export default function SiteBanners () {
                   <li key={banner.id} className='p-4'>
                     <div className='flex items-start justify-between gap-4'>
                       <div className='min-w-0 flex-1'>
+                        {banner.title && <p className='font-bold mb-1'>{banner.title}</p>}
                         <HyloHTML className='text-sm mb-1' html={banner.text} />
                         {banner.actionText && (
                           <p className='text-xs text-foreground/50 mb-1'>

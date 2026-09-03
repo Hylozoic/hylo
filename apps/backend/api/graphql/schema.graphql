@@ -3148,6 +3148,7 @@ type EmailEnabledTester {
 # A site-wide announcement banner published by a superadmin
 type SiteBanner {
   id: ID!
+  title: String
   text: String
   type: String
   actionText: String
@@ -3162,6 +3163,7 @@ type SiteBanner {
 }
 
 input SiteBannerInput {
+  title: String
   text: String
   type: String
   actionText: String

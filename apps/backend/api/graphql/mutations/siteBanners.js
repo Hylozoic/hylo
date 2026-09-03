@@ -30,6 +30,7 @@ function normalizeAndValidateActionUrl (url) {
 
 function whitelistData (data = {}) {
   const whitelist = {}
+  if ('title' in data) whitelist.title = data.title || null
   if ('text' in data) whitelist.text = data.text
   if ('type' in data) whitelist.type = VALID_TYPES.includes(data.type) ? data.type : 'info'
   if ('actionText' in data) whitelist.action_text = data.actionText || null
