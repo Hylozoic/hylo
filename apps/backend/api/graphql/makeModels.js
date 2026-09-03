@@ -625,7 +625,10 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'locationObject',
         { members: { querySet: true } },
         { eventInvitations: { querySet: true } },
-        { moderationActions: { querySet: true } },
+        // Plain list, matching the schema's [ModerationAction] — a querySet
+        // here makes every query selecting the field fail with
+        // "Expected Iterable" before any resolver output reaches the client
+        'moderationActions',
         { proposalOptions: { querySet: true } },
         { proposalVotes: { querySet: true } },
         'linkPreview',

@@ -10,6 +10,20 @@ export default function chatRoomPostFieldsFragment () {
   editedAt
   endTime
   flaggedGroups
+  moderationActions {
+    id
+    groupId
+    status
+    text
+    agreements {
+      id
+      title
+    }
+    platformAgreements {
+      id
+      text
+    }
+  }
   linkPreviewFeatured
   savedAt
   startTime

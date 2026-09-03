@@ -2454,6 +2454,7 @@ type Post {
 
   # Any moderation actions that are linked to this post
   moderationActions: [ModerationAction]
+  moderationActionsTotal: Int
 
   # The members of a project type Post
   members(first: Int, cursor: ID, order: String): PersonQuerySet

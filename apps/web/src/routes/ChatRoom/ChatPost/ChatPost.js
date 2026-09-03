@@ -17,7 +17,6 @@ import FlagGroupContent from 'components/FlagGroupContent'
 import Highlight from 'components/Highlight'
 import HyloEditor from 'components/HyloEditor'
 import HyloHTML from 'components/HyloHTML'
-import Icon from 'components/Icon'
 import Feature from 'components/PostCard/Feature'
 import { savePost, unsavePost } from 'components/PostCard/PostHeader/PostHeader.store'
 import LinkPreview from 'components/LinkPreview'
@@ -107,6 +106,28 @@ export default function ChatPost ({
 
   const isCreator = currentUser.id === creator.id
   const isFlagged = useMemo(() => group && post.flaggedGroups && post.flaggedGroups.some(id => String(id) === String(group.id)), [group, post.flaggedGroups])
+
+  // The flag badge's tooltip: agreement titles and reporter notes from this
+  // group's active moderation actions, falling back to the generic line
+  const flagReasons = useMemo(() => {
+    const actions = (post.moderationActions || []).filter(action =>
+      action.status === 'active' && (!action.groupId || String(action.groupId) === String(group?.id)))
+    const reasons = []
+    actions.forEach(action => {
+      const agreements = action.agreements?.items || action.agreements || []
+      agreements.forEach(agreement => agreement?.title && reasons.push(agreement.title))
+      const platform = action.platformAgreements?.items || action.platformAgreements || []
+      platform.forEach(pa => pa?.text && reasons.push(pa.text))
+      if (action.text) reasons.push(action.text)
+    })
+    const unique = [...new Set(reasons)]
+    return unique.length ? unique.join(' · ') : t('See why this post was flagged')
+  }, [post.moderationActions, group?.id, t])
+
+  const hasImageAttachments = useMemo(
+    () => (post.attachments || []).some(attachment => attachment?.type === 'image'),
+    [post.attachments]
+  )
 
   const postGroups = useMemo(() => {
     if (post.groups?.length) return post.groups
@@ -296,6 +317,21 @@ export default function ChatPost ({
     ? spaceUrl(parentGroupSlug, spaceSlug, '/moderation')
     : (group && groupUrl(group.slug, 'moderation'))
 
+  // White flag on a red disc, linking to the moderation queue; hovering shows
+  // the flag's reasons. Rides beside whichever content block was flagged.
+  const flagBadge = (
+    <Link
+      to={moderationActionsGroupUrl}
+      aria-label={t('See why this post was flagged')}
+      data-tooltip-content={flagReasons}
+      data-tooltip-id='flag-tt'
+      onClick={event => event.stopPropagation()}
+      className='shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-destructive text-white shadow-md hover:scale-110 transition-transform'
+    >
+      <Flag className='w-3.5 h-3.5' strokeWidth={2.5} fill='currentColor' />
+    </Link>
+  )
+
   const handleMouseEnter = () => {
     if (!editing) setIsHovered(true)
   }
@@ -436,24 +472,30 @@ export default function ChatPost ({
         )}
         {details && !editing && (
           <>
-            <ClickCatcher groupSlug={group.slug} onClick={handleClick}>
-              {/* break-words: an unbroken run (a long URL, a keysmash) must wrap rather
-                  than widen the message container — visible mostly on phone widths */}
-              <div
-                data-testid='chat-post-details'
-                className={cn('ml-[42px] max-w-[calc(var(--chat-stream-width,750px)-50px)] cursor-text select-text break-words', { 'blur-sm': isFlagged })}
-                style={!detailsExpanded
-                  ? (detailsOverflowing
-                      ? { ...clippedDetailsStyle, ...collapsedDetailsFadeStyle }
-                      : clippedDetailsStyle)
-                  : undefined}
-              >
-                {/* Inner wrapper stays unclipped so its height is the message's true height */}
-                <div ref={detailsRef}>
-                  <HyloHTML className='w-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 break-words' html={details} />
+            {/* Flagged text gets its badge at the end of the line: the flex row
+                lets the text block keep its natural width with the badge
+                centered just past it */}
+            <div className={cn(isFlagged && 'flex items-center gap-2')}>
+              <ClickCatcher groupSlug={group.slug} onClick={handleClick}>
+                {/* break-words: an unbroken run (a long URL, a keysmash) must wrap rather
+                    than widen the message container — visible mostly on phone widths */}
+                <div
+                  data-testid='chat-post-details'
+                  className={cn('ml-[42px] max-w-[calc(var(--chat-stream-width,750px)-50px)] cursor-text select-text break-words', { 'blur-sm': isFlagged })}
+                  style={!detailsExpanded
+                    ? (detailsOverflowing
+                        ? { ...clippedDetailsStyle, ...collapsedDetailsFadeStyle }
+                        : clippedDetailsStyle)
+                    : undefined}
+                >
+                  {/* Inner wrapper stays unclipped so its height is the message's true height */}
+                  <div ref={detailsRef}>
+                    <HyloHTML className='w-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 break-words' html={details} />
+                  </div>
                 </div>
-              </div>
-            </ClickCatcher>
+              </ClickCatcher>
+              {isFlagged && !hasImageAttachments && flagBadge}
+            </div>
             {detailsOverflowing && (
               <button
                 type='button'
@@ -465,7 +507,6 @@ export default function ChatPost ({
             )}
           </>
         )}
-        {isFlagged && <Link to={moderationActionsGroupUrl} className='absolute top-[calc(50%-14px)] ml-[50%] text-decoration-none' data-tooltip-content={t('See why this post was flagged')} data-tooltip-id='flag-tt'><Icon name='Flag' className='text-xl text-accent font-bold' /></Link>}
         <Tooltip
           delay={250}
           id='flag-tt'
@@ -483,9 +524,11 @@ export default function ChatPost ({
             on another surface */}
         {/* The wrapper makes empty space beside the attachments open the post,
             like the header and text regions; tile clicks stop propagation and
-            open the lightbox instead */}
-        <div onClick={handleClick}>
-          <CardImageAttachments attachments={post.attachments} isFlagged={isFlagged} forChatPost />
+            open the lightbox instead. When flagged media is present the badge
+            rides this row, centered beside the tiles */}
+        <div className={cn(isFlagged && hasImageAttachments && 'flex items-center gap-2')} onClick={handleClick}>
+          <CardImageAttachments attachments={post.attachments} isFlagged={isFlagged} forChatPost className='min-w-0' />
+          {isFlagged && hasImageAttachments && flagBadge}
           {!isEmpty(fileAttachments) && (
             <CardFileAttachments attachments={fileAttachments} className={cn({ 'blur-sm': isFlagged })} />
           )}
