@@ -512,6 +512,13 @@ export async function convertGroupToSpace (userId, { id, parentGroupId }, contex
     throw new GraphQLError('Cannot convert a group that has child or peer groups to a space')
   }
 
+  const spaceCount = await Group.query(q => {
+    q.where({ parent_id: id, type: 'space', active: true })
+  }).count()
+  if (Number(spaceCount) > 0) {
+    throw new GraphQLError('Cannot convert a group that has spaces to a space')
+  }
+
   const parentGroup = await Group.findActive(parentGroupId)
   if (!parentGroup) throw new GraphQLError('Parent group not found')
   if (parentGroup.get('type') === 'space') {

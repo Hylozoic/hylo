@@ -544,6 +544,27 @@ describe('space mutations', () => {
         expect(e.message).to.match(/child or peer groups/)
       }
     })
+
+    it('rejects when the group has spaces of its own', async () => {
+      const child = await createChildGroup()
+      await assignCoordinator(coordinator, child)
+      const space = await createSpace(coordinator.id, {
+        parentGroupId: child.id,
+        name: `Child Space ${Date.now()}`
+      }, {})
+
+      try {
+        await convertGroupToSpace(coordinator.id, {
+          id: child.id,
+          parentGroupId: parentGroup.id
+        }, {})
+        expect.fail('should throw')
+      } catch (e) {
+        expect(e.message).to.match(/has spaces/)
+      } finally {
+        await deleteSpace(coordinator.id, space.id, {})
+      }
+    })
   })
 
   describe('joinSpace', () => {

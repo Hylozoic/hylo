@@ -78,6 +78,11 @@ function RelatedGroupsTab () {
     dispatch(fetchGroupToGroupJoinQuestions())
   }, [dispatch])
 
+  useEffect(() => {
+    if (group?.slug) dispatch(fetchGroupRelationships(group.slug))
+    if (group?.id) dispatch(fetchGroupSpaces(group.id))
+  }, [dispatch, group?.id, group?.slug])
+
   const toggleInviteAsChildPicker = () => {
     setShowInviteAsChildPicker(!showInviteAsChildPicker)
     setShowInviteAsPeerPicker(false) // Close peer picker when opening child picker
@@ -138,14 +143,31 @@ function RelatedGroupsTab () {
   }
 
   const parentGroup = parentGroups.length === 1 ? parentGroups[0] : null
-  const canConvertToSpace = Boolean(
-    parentGroup &&
+  const spacesLoaded = group?.spaces != null
+  const hasOwnSpaces = (group?.spaces?.items || []).length > 0
+  const hasOtherRelatedGroups = parentGroups.length > 1 || childGroups.length > 0 || peerGroups.length > 0
+  const canShowConvertToSpace = Boolean(
     group &&
     !isSpaceGroup(group) &&
     !group.type &&
-    childGroups.length === 0 &&
-    peerGroups.length === 0
+    parentGroups.length > 0
   )
+  const canConvertToSpace = Boolean(
+    canShowConvertToSpace &&
+    parentGroup &&
+    !hasOtherRelatedGroups &&
+    spacesLoaded &&
+    !hasOwnSpaces
+  )
+
+  /** Tooltip explaining why this child group cannot become a space. */
+  const convertToSpaceDisabledReason = hasOtherRelatedGroups && hasOwnSpaces
+    ? t('This group cannot be converted to a space because it has other related groups and spaces of its own.')
+    : hasOtherRelatedGroups
+      ? t('This group cannot be converted to a space because it has other related groups. A group can only become a space if it has exactly one parent and no child or peer groups.')
+      : hasOwnSpaces
+        ? t('This group cannot be converted to a space because it has spaces of its own.')
+        : null
 
   /** Convert this group into a space of its only parent. */
   const handleConvertToSpace = async () => {
@@ -187,12 +209,13 @@ function RelatedGroupsTab () {
     }
 
     const items = []
-    if (type === GROUP_RELATIONSHIP_TYPE.ChildToParent && canConvertToSpace && fromGroup.id === parentGroup.id) {
+    if (type === GROUP_RELATIONSHIP_TYPE.ChildToParent && canShowConvertToSpace) {
       items.push({
         icon: <LayoutGrid className='w-4 h-4' />,
         label: t('Convert to Space of {{parentName}}', { parentName: fromGroup.name }),
         onClick: handleConvertToSpace,
-        disabled: isConverting
+        disabled: isConverting || !canConvertToSpace,
+        tooltip: convertToSpaceDisabledReason
       })
     }
     items.push({
@@ -350,7 +373,7 @@ function RelatedGroupsTab () {
                 <GroupCard
                   group={p}
                   key={p.id}
-                  actionMenu={<Dropdown id='related-groups-parent-dropdown' alignRight toggleChildren={<Icon name='More' />} items={relationshipDropdownItems(p, group, GROUP_RELATIONSHIP_TYPE.ChildToParent)} className='right-0 left-auto' />}
+                  actionMenu={<Dropdown id={`related-groups-parent-dropdown-${p.id}`} alignRight toggleChildren={<Icon name='More' />} items={relationshipDropdownItems(p, group, GROUP_RELATIONSHIP_TYPE.ChildToParent)} className='right-0 left-auto' />}
                 />
               ))}
             </div>
