@@ -500,6 +500,12 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
   // TODO: if not in a group should show as flagged if flagged in any of my groups
   const isFlagged = useMemo(() => post?.flaggedGroups && post.flaggedGroups.some(id => String(id) === String(currentGroup?.id)), [post, currentGroup])
 
+  // Acknowledging the flag cover reveals the content only for this viewing —
+  // deliberately not persisted, so reopening the post shows the cover again
+  const [flagRevealed, setFlagRevealed] = useState(false)
+  useEffect(() => { setFlagRevealed(false) }, [post?.id])
+  const flagObscured = isFlagged && !flagRevealed
+
   const projectManagementTool = useMemo(() => {
     const m = post?.projectManagementLink ? post.projectManagementLink.match(/(asana|trello|airtable|clickup|confluence|teamwork|notion|wrike|zoho)/) : null
     return m ? m[1] : null
@@ -600,7 +606,7 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
         )}
         <div className='bg-card rounded-lg shadow-md'>
           {post.attachments && post.attachments.length > 0 && (
-            <CardImageAttachments attachments={post.attachments} isFlagged={isFlagged && !post.clickthrough} />
+            <CardImageAttachments attachments={post.attachments} isFlagged={flagObscured} />
           )}
           {isEvent && (
             <EventBody
@@ -611,7 +617,8 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
               event={post}
               respondToEvent={(response) => dispatch(respondToEvent(post, response))}
               togglePeopleDialog={handleTogglePeopleDialog}
-              isFlagged={isFlagged}
+              isFlagged={flagObscured}
+              onRevealFlagged={() => setFlagRevealed(true)}
             />
           )}
           {isEvent && meetingUrl && (
@@ -637,7 +644,8 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
               expanded
               routeParams={routeParams}
               slug={groupSlug}
-              isFlagged={isFlagged}
+              isFlagged={flagObscured}
+              onRevealFlagged={() => setFlagRevealed(true)}
               {...post}
             />
           )}

@@ -200,6 +200,9 @@ export default function PostCard (props) {
   const postTypeName = postType?.charAt(0).toUpperCase() + postType?.slice(1)
   const isEvent = postType === 'event'
   const isFlagged = group && post.flaggedGroups && post.flaggedGroups.some(id => String(id) === String(group.id))
+  // Ephemeral: reopening the card (remount) restores the cover
+  const [flagRevealed, setFlagRevealed] = useState(false)
+  const flagObscured = isFlagged && !flagRevealed
 
   const hasImage = post.attachments?.find(a => a.type === 'image') || false
 
@@ -344,7 +347,7 @@ export default function PostCard (props) {
                 <CardImageAttachments
                   attachments={post.attachments || []}
                   className='post-card'
-                  isFlagged={isFlagged && !post.clickthrough}
+                  isFlagged={flagObscured}
                 />
               </div>
             )}
@@ -357,7 +360,8 @@ export default function PostCard (props) {
               slug={routeParams.groupSlug}
               respondToEvent={handleRespondToEvent}
               constrained={constrained}
-              isFlagged={isFlagged}
+              isFlagged={flagObscured}
+              onRevealFlagged={() => setFlagRevealed(true)}
             />
           )}
           {!isEvent && (
@@ -368,7 +372,8 @@ export default function PostCard (props) {
                 slug={routeParams.groupSlug}
                 constrained={constrained}
                 currentUser={currentUser}
-                isFlagged={isFlagged}
+                isFlagged={flagObscured}
+                onRevealFlagged={() => setFlagRevealed(true)}
                 highlightProps={highlightProps}
                 mapDrawer={mapDrawer}
                 onAddProposalVote={onAddProposalVote}

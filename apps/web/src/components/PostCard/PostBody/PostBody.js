@@ -1,11 +1,9 @@
 import { cn } from 'util/index'
 import React from 'react'
-import { useDispatch } from 'react-redux'
 import { FlagCover } from 'components/FlagBadge'
 import PostTitle from '../PostTitle'
 import PostContent from '../PostContent'
 import PostBodyProposal from '../PostBodyProposal'
-import { recordClickthrough } from 'store/actions/moderationActions'
 
 import classes from './PostBody.module.scss'
 
@@ -18,6 +16,7 @@ export default function PostBody (props) {
     currentUser,
     highlightProps,
     isFlagged,
+    onRevealFlagged,
     mapDrawer = false,
     onClick,
     onAddProposalVote,
@@ -25,14 +24,13 @@ export default function PostBody (props) {
     onSwapProposalVote,
     ...post
   } = props
-  const dispatch = useDispatch()
 
   return (
     <div className='relative'>
-      {isFlagged && !post.clickthrough &&
-        <FlagCover post={post} onView={() => dispatch(recordClickthrough({ postId: post.id }))} />}
+      {isFlagged &&
+        <FlagCover post={post} onView={onRevealFlagged} />}
 
-      <div className={cn('p-2 pb-0', { [classes.smallMargin]: !expanded, [classes.constrained]: constrained, [classes.isFlagged]: isFlagged && !post.clickthrough }, className)}>
+      <div className={cn('p-2 pb-0', { [classes.smallMargin]: !expanded, [classes.constrained]: constrained, [classes.isFlagged]: isFlagged }, className)}>
         {post.type !== 'chat' && (
           <PostTitle
             {...post}

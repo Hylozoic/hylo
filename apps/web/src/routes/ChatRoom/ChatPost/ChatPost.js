@@ -13,7 +13,7 @@ import CardFileAttachments from 'components/CardFileAttachments'
 import CardImageAttachments from 'components/CardImageAttachments'
 import EmojiRow from 'components/EmojiRow'
 import EmojiPicker from 'components/EmojiPicker'
-import FlagBadge, { FlagCover } from 'components/FlagBadge'
+import FlagBadge from 'components/FlagBadge'
 import FlagGroupContent from 'components/FlagGroupContent'
 import Highlight from 'components/Highlight'
 import HyloEditor from 'components/HyloEditor'
@@ -27,7 +27,6 @@ import useViewPostDetails from 'hooks/useViewPostDetails'
 import deletePost from 'store/actions/deletePost'
 import removePost from 'store/actions/removePost'
 import updatePost from 'store/actions/updatePost'
-import { recordClickthrough } from 'store/actions/moderationActions'
 import getMe from 'store/selectors/getMe'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
 import { RESP_MANAGE_CONTENT } from 'store/constants'
@@ -113,10 +112,6 @@ export default function ChatPost ({
     () => (post.attachments || []).some(attachment => attachment?.type === 'image'),
     [post.attachments]
   )
-
-  // Content stays blurred and inert under the FlagCover until this viewer
-  // acknowledges it (recordClickthrough), same as the stream and post views
-  const showFlagCover = isFlagged && !post.clickthrough
 
   const postGroups = useMemo(() => {
     if (post.groups?.length) return post.groups
@@ -447,23 +442,21 @@ export default function ChatPost ({
             </div>
           </div>
         )}
-        {/* Everything the flag covers sits in one relative wrapper so the
-            acknowledgment cover can sit over the whole flagged region; the
-            min-height keeps the cover card from bleeding over neighbors when
-            the flagged message is a single short line */}
-        <div className={cn('relative', showFlagCover && 'min-h-[170px]')}>
+        {/* Chat keeps flagged content permanently obscured — the reveal flow
+            lives in the post viewer, which shows the flag cover */}
+        <div className='relative'>
           {details && !editing && (
             <>
               {/* Flagged text gets its badge at the end of the line: the flex row
                 lets the text block keep its natural width with the badge
                 centered just past it */}
-              <div className={cn(isFlagged && !showFlagCover && 'flex items-center gap-2')}>
+              <div className={cn(isFlagged && 'flex items-center gap-2')}>
                 <ClickCatcher groupSlug={group.slug} onClick={handleClick}>
                   {/* break-words: an unbroken run (a long URL, a keysmash) must wrap rather
                     than widen the message container — visible mostly on phone widths */}
                   <div
                     data-testid='chat-post-details'
-                    className={cn('ml-[42px] max-w-[calc(var(--chat-stream-width,750px)-50px)] cursor-text select-text break-words', { 'blur-sm pointer-events-none select-none': showFlagCover })}
+                    className={cn('ml-[42px] max-w-[calc(var(--chat-stream-width,750px)-50px)] cursor-text select-text break-words', { 'blur-sm pointer-events-none select-none': isFlagged })}
                     style={!detailsExpanded
                       ? (detailsOverflowing
                           ? { ...clippedDetailsStyle, ...collapsedDetailsFadeStyle }
@@ -476,7 +469,7 @@ export default function ChatPost ({
                     </div>
                   </div>
                 </ClickCatcher>
-                {isFlagged && !showFlagCover && !hasImageAttachments && flagBadge}
+                {isFlagged && !hasImageAttachments && flagBadge}
               </div>
               {detailsOverflowing && (
                 <button
@@ -505,16 +498,13 @@ export default function ChatPost ({
             like the header and text regions; tile clicks stop propagation and
             open the lightbox instead. When flagged media is present the badge
             rides this row, centered beside the tiles */}
-          <div className={cn(isFlagged && !showFlagCover && hasImageAttachments && 'flex items-center gap-2')} onClick={handleClick}>
-            <CardImageAttachments attachments={post.attachments} isFlagged={showFlagCover} forChatPost className='min-w-0' />
-            {isFlagged && !showFlagCover && hasImageAttachments && flagBadge}
+          <div className={cn(isFlagged && hasImageAttachments && 'flex items-center gap-2')} onClick={handleClick}>
+            <CardImageAttachments attachments={post.attachments} isFlagged={isFlagged} forChatPost className='min-w-0' />
+            {isFlagged && hasImageAttachments && flagBadge}
             {!isEmpty(fileAttachments) && (
-              <CardFileAttachments attachments={fileAttachments} className={cn({ 'blur-sm pointer-events-none select-none': showFlagCover })} />
+              <CardFileAttachments attachments={fileAttachments} className={cn({ 'blur-sm pointer-events-none select-none': isFlagged })} />
             )}
           </div>
-          {showFlagCover && (
-            <FlagCover post={post} groupId={group?.id} onView={() => dispatch(recordClickthrough({ postId: id }))} />
-          )}
         </div>
         {((postReactions && postReactions.length > 0) || commentsTotal > 0) && (
           <div className='w-full flex flex-row items-center flex-wrap gap-1.5 pl-[42px] mt-1 mb-[2px]'>
