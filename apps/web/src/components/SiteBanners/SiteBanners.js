@@ -132,7 +132,8 @@ export default function SiteBanners () {
                     </button>
                   </div>
                 </div>
-                <ClickCatcher className='mt-5 min-w-0 break-words text-sm sm:text-base [&_a]:underline'>
+                {/* block: ClickCatcher renders a span, whose vertical margin is inert */}
+                <ClickCatcher className='block mt-8 min-w-0 break-words text-sm sm:text-base [&_a]:underline'>
                   {banner.title && <p className='font-bold text-xl sm:text-2xl mb-0'>{banner.title}</p>}
                   {createdOn && <p className='text-xs opacity-60 mt-1 mb-3'>{createdOn}</p>}
                   <HyloHTML html={banner.text} />
