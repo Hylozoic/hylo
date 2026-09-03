@@ -11,6 +11,15 @@ const SEEDED_GROUP_NAME = 'E2E Join Public Restricted'
 const SEEDED_GROUP_SLUG = 'e2e-join-public-restricted'
 
 /**
+ * The create-group modal. Scoped by accessible name so the closed GlobalNav
+ * "Create" popover (also role=dialog while it animates out) is not matched.
+ * @param {import('@playwright/test').Page} page
+ */
+function createGroupDialog (page) {
+  return page.getByRole('dialog', { name: 'Create a group' })
+}
+
+/**
  * Opens the create-group dialog via the `createGroup` query string.
  * @param {import('@playwright/test').Page} page
  * @param {string} url
@@ -18,7 +27,7 @@ const SEEDED_GROUP_SLUG = 'e2e-join-public-restricted'
 async function openCreateGroup (page, url) {
   await page.goto(url)
   await expect(page.locator('#center-column-container')).toBeVisible({ timeout: 60000 })
-  const dialog = page.getByRole('dialog')
+  const dialog = createGroupDialog(page)
   await expect(dialog).toBeVisible({ timeout: 30000 })
   return dialog
 }
@@ -37,7 +46,7 @@ test.describe('Create Group modal', () => {
     await page.getByTestId('global-nav-create').click()
     await page.getByText('Create a group', { exact: true }).click()
 
-    const dialog = page.getByRole('dialog')
+    const dialog = createGroupDialog(page)
     await expect(dialog).toBeVisible()
     await expect(page).toHaveURL(/createGroup=true/)
     await page.screenshot({ path: path.resolve(screenshotDir, 'create-group-01-modal-empty.png') })
@@ -72,7 +81,7 @@ test.describe('Create Group modal', () => {
     const dialog = await openCreateGroup(page, '/public/all?createGroup=true')
 
     await dialog.getByRole('button', { name: 'Cancel' }).click()
-    await expect(page.getByRole('dialog')).toBeHidden()
+    await expect(createGroupDialog(page)).toBeHidden()
     await expect(page).toHaveURL(/\/public\/all$/)
   })
 
@@ -82,7 +91,7 @@ test.describe('Create Group modal', () => {
     const welcomePill = dialog.getByRole('button', { name: 'Welcome', exact: true })
     await expect(welcomePill).toHaveAttribute('aria-pressed', 'false')
 
-    await dialog.getByRole('button', { name: 'Edit Menu' }).click()
+    await dialog.getByRole('button', { name: 'Edit Full Menu' }).click()
     await dialog.getByRole('button', { name: 'Add View' }).click()
 
     const addViewDialog = page.getByRole('dialog', { name: 'Add View' })

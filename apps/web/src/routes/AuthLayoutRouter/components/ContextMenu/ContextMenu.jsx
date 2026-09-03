@@ -629,7 +629,8 @@ export default function ContextMenu (props) {
 
   const groupSlug = routeParams.groupSlug
   const routeSpaceSlug = routeParams.spaceSlug
-  const group = useSelector(state => currentGroup || getGroupForSlug(state, groupSlug))
+  const groupFromStore = useSelector(state => getGroupForSlug(state, groupSlug))
+  const group = groupFromStore || currentGroup
   const canAdminister = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADMINISTRATION, groupId: group?.id }))
   const isEditing = getQuerystringParam('edit', location) === 'true' && canAdminister
   const [settingsView, setSettingsView] = useState(null)
@@ -850,29 +851,18 @@ export default function ContextMenu (props) {
   const joinRequestsLink = showingSpaceMenu && spaceSlug
     ? spaceUrl(groupSlug, spaceSlug, 'requests')
     : (group?.slug ? groupUrl(group.slug, 'requests') : null)
-  const joinRequestsSection = isGroupContext && joinRequestsLink && canAddMembers && joinRequestCount > 0
+  // Steward alerts are not menu items — hide them while rearranging the menu
+  const joinRequestsSection = !isEditing && isGroupContext && joinRequestsLink && canAddMembers && joinRequestCount > 0
     ? (
       <div className='px-1.5 pb-2 border-t border-foreground/10 pt-2'>
-        {isEditing
-          ? (
-            <div
-              className='flex items-center gap-2 text-base font-medium text-foreground/40 border-2 border-transparent rounded-md p-1 pl-2 w-full cursor-not-allowed opacity-60'
-              aria-disabled='true'
-            >
-              <UserPlus className='w-4 h-4 shrink-0' />
-              <span>{t('Join Requests')}</span>
-            </div>
-            )
-          : (
-            <MenuLink
-              to={joinRequestsLink}
-              badgeCount={joinRequestCount}
-              className='flex items-center gap-2 text-base font-medium text-foreground hover:text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 pr-8 w-full transition-all opacity-85 hover:opacity-100'
-            >
-              <UserPlus className='w-4 h-4 shrink-0' />
-              <span>{t('Join Requests')}</span>
-            </MenuLink>
-            )}
+        <MenuLink
+          to={joinRequestsLink}
+          badgeCount={joinRequestCount}
+          className='flex items-center gap-2 text-base font-medium text-foreground hover:text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 pr-8 w-full transition-all opacity-85 hover:opacity-100'
+        >
+          <UserPlus className='w-4 h-4 shrink-0' />
+          <span>{t('Join Requests')}</span>
+        </MenuLink>
       </div>
       )
     : null
@@ -886,29 +876,17 @@ export default function ContextMenu (props) {
   const moderationLink = showingSpaceMenu && spaceSlug
     ? spaceUrl(groupSlug, spaceSlug, 'about/moderation')
     : (group?.slug ? groupUrl(group.slug, 'about/moderation') : null)
-  const moderationSection = isGroupContext && moderationLink && canModerate && moderationCount > 0
+  const moderationSection = !isEditing && isGroupContext && moderationLink && canModerate && moderationCount > 0
     ? (
       <div className='px-1.5 pb-2 border-t border-foreground/10 pt-2'>
-        {isEditing
-          ? (
-            <div
-              className='flex items-center gap-2 text-base font-medium text-foreground/40 border-2 border-transparent rounded-md p-1 pl-2 w-full cursor-not-allowed opacity-60'
-              aria-disabled='true'
-            >
-              <ShieldCheck className='w-4 h-4 shrink-0' />
-              <span>{t('Moderation')}</span>
-            </div>
-            )
-          : (
-            <MenuLink
-              to={moderationLink}
-              badgeCount={moderationCount}
-              className='flex items-center gap-2 text-base font-medium text-foreground hover:text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 pr-8 w-full transition-all opacity-85 hover:opacity-100'
-            >
-              <ShieldCheck className='w-4 h-4 shrink-0' />
-              <span>{t('Moderation')}</span>
-            </MenuLink>
-            )}
+        <MenuLink
+          to={moderationLink}
+          badgeCount={moderationCount}
+          className='flex items-center gap-2 text-base font-medium text-foreground hover:text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 pr-8 w-full transition-all opacity-85 hover:opacity-100'
+        >
+          <ShieldCheck className='w-4 h-4 shrink-0' />
+          <span>{t('Moderation')}</span>
+        </MenuLink>
       </div>
       )
     : null

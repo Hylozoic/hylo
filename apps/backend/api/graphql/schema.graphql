@@ -665,8 +665,18 @@ type Attachment {
 type CheckInvitationResult {
   # Whether the invitation is still valid or not
   valid: Boolean
+  # The invited group or space id (used to auto-join a space)
+  groupId: ID
   # The slug of the group for redirect purposes
   groupSlug: String
+  # The name of the invited group or space
+  groupName: String
+  # True when the invitation is for a space rather than a top-level group
+  isSpace: Boolean
+  # Parent group slug when the invitation is for a space
+  parentGroupSlug: String
+  # Parent group name when the invitation is for a space
+  parentGroupName: String
   # The email address from the invitation (for token-based invites)
   email: String
   # The group role that will be assigned when this invitation is used
@@ -3373,8 +3383,9 @@ type Mutation {
   convertSpaceToChildGroup(id: ID!): Group
   # Convert a child Group into a Space of its single parent
   convertGroupToSpace(id: ID!, parentGroupId: ID!): Group
-  # Join a Space (creates a group membership + per-view unread rows)
-  joinSpace(spaceId: ID!): Membership
+  # Join a Space (creates a group membership + per-view unread rows).
+  # accessCode or invitationToken pre-approves Closed, Restricted, and role-gated spaces.
+  joinSpace(spaceId: ID!, accessCode: String, invitationToken: String): Membership
   # Update the current logged in user's last-read position for a chat GroupView, recalculating newPostCount
   updateGroupViewUser(viewId: ID!, lastReadPostId: ID): GroupView
   # Mark a View as read for the current logged in user
@@ -4191,7 +4202,6 @@ input InviteInput {
   emails: [String]
   # Existing Hylo users to invite by id (their account email is used)
   userIds: [ID]
-  message: String
   # Assign Coordinator system role when the invitation is used
   assignCoordinator: Boolean
   # Group role ID to assign when the invitation is used

@@ -5,6 +5,7 @@ exports.en = {
   clientInviteMessageDefault: ({ userName, groupName }) => `Hi ${userName}, <br><br> We're excited to welcome you into our community. Click below to join ${groupName} on Hylo.`,
   CreatorEmail: () => 'Creator Email',
   createInvitationSubject: (name) => `Join me in ${name} on Hylo!`,
+  createInvitationMessage: (name) => `Hi!\n\nI'm inviting you to join ${name} on Hylo.\n\n${name} is using Hylo for our online community: this is our dedicated space for communication & collaboration.`,
   CreatorName: () => 'Creator Name',
   CreatorURL: () => 'Creator URL',
   Group: () => 'Group',

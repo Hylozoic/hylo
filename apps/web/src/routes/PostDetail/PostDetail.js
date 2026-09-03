@@ -541,6 +541,9 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
     width: state.activityWidth + 'px',
     marginTop: STICKY_HEADER_SCROLL_OFFSET + 'px'
   }
+  const shareDescription = TextHelpers.presentHTMLToText(post.details, { truncate: MAX_DETAILS_LENGTH })
+  const shareTitle = post.title || TextHelpers.presentHTMLToText(post.details, { truncate: 80 }) || 'Hylo'
+  const shareImageUrl = post.imageAttachments?.[0]?.url
 
   return (
     <div
@@ -555,7 +558,16 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
         <title>
           {`${post.title || TextHelpers.presentHTMLToText(post.details, { truncate: 20 })} | Hylo`}
         </title>
-        <meta name='description' content={TextHelpers.presentHTMLToText(post.details, { truncate: MAX_DETAILS_LENGTH })} />
+        <meta name='description' content={shareDescription} />
+        {post.isPublic && <meta property='og:type' content='article' />}
+        {post.isPublic && <meta property='og:site_name' content='Hylo' />}
+        {post.isPublic && <meta property='og:title' content={shareTitle} />}
+        {post.isPublic && <meta property='og:description' content={shareDescription} />}
+        {post.isPublic && shareImageUrl && <meta property='og:image' content={shareImageUrl} />}
+        {post.isPublic && <meta name='twitter:card' content={shareImageUrl ? 'summary_large_image' : 'summary'} />}
+        {post.isPublic && <meta name='twitter:title' content={shareTitle} />}
+        {post.isPublic && <meta name='twitter:description' content={shareDescription} />}
+        {post.isPublic && shareImageUrl && <meta name='twitter:image' content={shareImageUrl} />}
       </Helmet>
       <div className='flex flex-col rounded-lg shadow-sm'>
         <ScrollListener elementId={DETAIL_COLUMN_ID} onScroll={handleScroll} />

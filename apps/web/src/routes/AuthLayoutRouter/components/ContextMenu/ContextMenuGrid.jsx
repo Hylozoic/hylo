@@ -124,7 +124,7 @@ function partitionViewsIntoSections (views) {
  * the full group banner (220px), so the takeover swaps hierarchy without
  * moving the grid below.
  */
-function SpaceBannerHeader ({ group, spaceGroup, canAdminister, onOpenSettings, navigate, t }) {
+function SpaceBannerHeader ({ group, spaceGroup, canAdminister, onOpenSettings, t }) {
   const presentedSpaceView = useMemo(() => GroupViewPresenter({
     type: 'space', name: spaceGroup.name, icon: spaceGroup.icon, linkedGroup: spaceGroup
   }), [spaceGroup])
@@ -150,20 +150,12 @@ function SpaceBannerHeader ({ group, spaceGroup, canAdminister, onOpenSettings, 
           )
         : <MenuRowBackground view={presentedSpaceView} bannerUrl={null} rows={8} spaced className='rounded-none' />}
 
-      {/* Controls bar, mirroring the group banner: bell left, about + settings right */}
+      {/* Controls bar, mirroring the group banner: bell left, settings right */}
       <div className='absolute top-3 left-1/2 -translate-x-1/2 z-30 w-full max-w-[1000px] px-3 flex items-center justify-between'>
         <div className={controlClass}>
           <GroupNotificationsPopover group={spaceGroup} className='w-6 h-6 drop-shadow-md hover:scale-110 transition-all' />
         </div>
-        <div className='flex items-center gap-3'>
-          <button
-            type='button'
-            onClick={() => navigate(spaceUrl(group.slug, localSpace, 'about'))}
-            aria-label={t('About')}
-            title={t('About')}
-          >
-            <Info className={cn('w-6 h-6 drop-shadow-md hover:scale-110 transition-all', controlClass)} />
-          </button>
+        <div className='flex items-center gap-2'>
           {canAdminister && (
             <button type='button' onClick={onOpenSettings} aria-label={t('Space Settings')} title={t('Space Settings')}>
               <Settings className={cn('w-6 h-6 drop-shadow-md hover:scale-110 transition-all', controlClass)} />
@@ -210,6 +202,13 @@ function SpaceBannerHeader ({ group, spaceGroup, canAdminister, onOpenSettings, 
             triggerLabel={t('Invite')}
             triggerClassName={cn('rounded-full border px-2 py-0.5 hover:scale-100', pillClass)}
           />
+          <Link
+            to={spaceUrl(group.slug, localSpace, 'about')}
+            className={cn('inline-flex items-center gap-1 rounded-full border px-2 py-0.5 no-underline hover:no-underline transition-colors', pillClass)}
+          >
+            <Info className='w-3.5 h-3.5' />
+            {t('About')}
+          </Link>
         </span>
       </div>
     </div>
@@ -795,7 +794,6 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
             spaceGroup={spaceGroup}
             canAdminister={canAdminister}
             onOpenSettings={() => setSettingsView({ type: 'space', linkedGroup: spaceGroup, name: spaceGroup.name, icon: spaceGroup.icon })}
-            navigate={navigate}
             t={t}
           />
         </>
@@ -813,8 +811,14 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
               <div className='absolute top-3 left-1/2 -translate-x-1/2 z-30 w-full max-w-[1000px] px-3 flex items-center justify-between'>
                 <GroupNotificationsPopover group={group} />
 
-                {/* Matches GroupMenuHeader's affordances — search, about, then settings */}
-                <div className='flex items-center gap-3'>
+                {/* Members / invite / about sit under the name, matching GroupMenuHeader.
+                    Top-right keeps settings, then search on the far right. */}
+                <div className='flex items-center gap-2'>
+                  {canAdminister && (
+                    <button type='button' onClick={() => navigate(groupUrl(groupSlug, 'settings', {}))}>
+                      <Settings className='w-6 h-6 text-white drop-shadow-md hover:scale-110 transition-all' />
+                    </button>
+                  )}
                   <button
                     type='button'
                     onClick={() => {
@@ -827,20 +831,6 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
                   >
                     <Search className='w-6 h-6 text-white drop-shadow-md hover:scale-110 transition-all' />
                   </button>
-
-                  <button
-                    type='button'
-                    onClick={() => navigate(groupUrl(groupSlug, 'about', {}))}
-                    aria-label={t('About')}
-                  >
-                    <Info className='w-6 h-6 text-white drop-shadow-md hover:scale-110 transition-all' />
-                  </button>
-
-                  {canAdminister && (
-                    <button type='button' onClick={() => navigate(groupUrl(groupSlug, 'settings', {}))}>
-                      <Settings className='w-6 h-6 text-white drop-shadow-md hover:scale-110 transition-all' />
-                    </button>
-                  )}
                 </div>
               </div>
             )}
@@ -867,19 +857,30 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
               {displaySubtitle
                 ? <span className='text-sm text-white/80 drop-shadow-md'>{displaySubtitle}</span>
                 : !isContextMode && (
-                  <span className='group text-sm flex items-center gap-1 text-white/80 drop-shadow-md'>
-                    <Users className='w-4 h-4' />
+                  <span className='flex items-center gap-1 text-xs'>
                     <Link
-                      className='text-white/80 underline hover:text-white'
+                      className='inline-flex items-center gap-1 rounded-full bg-white/15 border border-white/25 px-2 py-0.5 text-white hover:bg-white/25 hover:text-white no-underline hover:no-underline transition-colors'
                       to={groupUrl((spaceGroup || group)?.slug || groupSlug, 'members', {})}
+                      aria-label={t('{{count}} Members', { count: (spaceGroup || group)?.memberCount || 0 })}
                     >
-                      {t('{{count}} Members', { count: (spaceGroup || group)?.memberCount || 0 })}
+                      <Users className='w-3.5 h-3.5' />
+                      {(spaceGroup || group)?.memberCount || 0}
                     </Link>
                     <InviteMembersDialog
                       group={spaceGroup || group}
                       parentGroup={spaceGroup ? group : null}
-                      triggerClassName='text-white hover:text-white'
+                      alwaysVisible
+                      triggerLabel={t('Invite')}
+                      triggerClassName='rounded-full bg-white/15 border border-white/25 px-2 py-0.5 text-white hover:text-white hover:bg-white/25 hover:scale-100'
                     />
+                    <button
+                      type='button'
+                      onClick={() => navigate(groupUrl((spaceGroup || group)?.slug || groupSlug, 'about', {}))}
+                      className='inline-flex items-center gap-1 rounded-full bg-white/15 border border-white/25 px-2 py-0.5 text-white hover:bg-white/25 hover:text-white transition-colors'
+                    >
+                      <Info className='w-3.5 h-3.5' />
+                      {t('About')}
+                    </button>
                   </span>
                   )}
             </div>

@@ -777,17 +777,22 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
                 {!hideHomePickerCopy && (
                   <div className='min-w-0'>
                     <span className={FIELD_LABEL_CLASS}>{t("Choose your space's home")}</span>
-                    <p className='text-xs text-foreground/60 mt-0.5 mb-0'>{t('Set the default view members see when they enter your space.')}</p>
+                    <p className='text-xs text-foreground/60 mt-0.5 mb-0'>{t('Set the default view members see when they enter your space. You can change this later by editing the space menu.')}</p>
                   </div>
                 )}
                 {!showMenuEditor && (
                   <button
                     type='button'
                     onClick={() => setShowMenuEditor(true)}
-                    className='shrink-0 flex items-center gap-1.5 text-xs font-semibold text-foreground/70 hover:text-foreground border border-foreground/20 hover:border-foreground/40 rounded-md px-2 py-1 transition-colors'
+                    className={cn(
+                      'shrink-0 flex items-center gap-2 text-sm font-semibold text-foreground/70 hover:text-foreground border border-foreground/20 hover:border-foreground/40 rounded-md transition-colors',
+                      hideHomePickerCopy
+                        ? 'w-full justify-center px-3 py-2.5'
+                        : 'px-3 py-1.5'
+                    )}
                   >
-                    <Settings className='w-3.5 h-3.5' />
-                    {t('Edit Menu')}
+                    <Settings className='w-4 h-4' />
+                    {t(hideHomePickerCopy ? 'Edit Space Menu' : 'Edit Full Menu')}
                   </button>
                 )}
               </div>

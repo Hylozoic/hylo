@@ -58,8 +58,6 @@
   width: 100%;
   height: 100%;
   overflow-y: auto;
-  background: hsl(var(--primary) / 0.7);
-  backdrop-filter: blur(2px);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -72,6 +70,8 @@
   width: 100%;
   height: 100%;
   z-index: 0;
+  background: hsl(var(--primary) / 0.7);
+  backdrop-filter: blur(2px);
 }
 
 .create-modal-wrapper {

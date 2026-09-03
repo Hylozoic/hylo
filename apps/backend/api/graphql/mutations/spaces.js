@@ -1,6 +1,7 @@
 import { GraphQLError } from 'graphql'
 import { v4 as uuidv4 } from 'uuid'
 import { localSpaceSlug, storedSpaceSlug } from '@hylo/navigation'
+import InvitationService from '../../services/InvitationService'
 import { notifyGroupUpdated } from './notifyGroupUpdated'
 
 // Space mutations — see docs/spaces-and-views-engineering-spec.md section 4.4 / 10
@@ -511,6 +512,13 @@ export async function convertGroupToSpace (userId, { id, parentGroupId }, contex
     throw new GraphQLError('Cannot convert a group that has child or peer groups to a space')
   }
 
+  const spaceCount = await Group.query(q => {
+    q.where({ parent_id: id, type: 'space', active: true })
+  }).count()
+  if (Number(spaceCount) > 0) {
+    throw new GraphQLError('Cannot convert a group that has spaces to a space')
+  }
+
   const parentGroup = await Group.findActive(parentGroupId)
   if (!parentGroup) throw new GraphQLError('Parent group not found')
   if (parentGroup.get('type') === 'space') {
@@ -528,7 +536,17 @@ export async function convertGroupToSpace (userId, { id, parentGroupId }, contex
   return group.refresh()
 }
 
-export async function joinSpace (userId, spaceId) {
+/**
+ * Join a space. Parent-group Administration can join any space. A valid
+ * accessCode or invitationToken pre-approves Closed, Restricted, and role-gated
+ * spaces. Paywalled spaces still require purchase unless the user administers
+ * the parent.
+ * @param userId {string}
+ * @param spaceId {string}
+ * @param accessCode {string} optional join-link access code
+ * @param invitationToken {string} optional email-invite token
+ */
+export async function joinSpace (userId, spaceId, accessCode, invitationToken) {
   if (!userId) throw new GraphQLError('No userId passed into function')
   if (!spaceId) throw new GraphQLError('No spaceId passed into function')
 
@@ -538,47 +556,69 @@ export async function joinSpace (userId, spaceId) {
   const space = await Group.findActive(spaceId)
   if (!space || space.get('type') !== 'space') throw new GraphQLError('Space not found')
 
-  const parentId = space.get('parent_id')
-  const parentMembership = parentId && await GroupMembership.forPair(userId, parentId).fetch()
-  if (!parentMembership) {
-    throw new GraphQLError('You must be a member of the parent group to join this space')
-  }
+  const existingMembership = await GroupMembership.forPair(userId, spaceId).fetch()
+  let membership = existingMembership
+  let hasValidInvitation = false
 
-  // Administration on the parent can join any space (closed, restricted, role-gated, paywalled)
-  // without requesting or holding a required role
-  const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, parentId)
-  const canAdministerParent = responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)
-
-  const spaceStatus = space.get('status')
-  if (spaceStatus === Group.Status.ARCHIVED) {
-    throw new GraphQLError('This space is archived')
-  }
-  if (spaceStatus === Group.Status.DRAFT && !canAdministerParent) {
-    throw new GraphQLError('This space is not published')
-  }
-
-  if (!canAdministerParent) {
-    if (space.get('paywall')) {
-      throw new GraphQLError('This space requires purchased access to join')
+  if (!existingMembership) {
+    const parentId = space.get('parent_id')
+    const parentMembership = parentId && await GroupMembership.forPair(userId, parentId).fetch()
+    if (!parentMembership) {
+      throw new GraphQLError('You must be a member of the parent group to join this space')
     }
 
-    const requiredRoles = space.get('required_roles')
-    const isRoleGated = Array.isArray(requiredRoles) && requiredRoles.length > 0
+    // Administration on the parent can join any space (closed, restricted, role-gated, paywalled)
+    // without requesting or holding a required role
+    const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, parentId)
+    const canAdministerParent = responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)
 
-    if (isRoleGated) {
-      const memberRoleIds = await bookshelf.knex('group_memberships_group_roles')
-        .where({ user_id: userId, group_id: parentId, active: true })
-        .pluck('group_role_id')
-      const memberRoleIdSet = new Set(memberRoleIds.map(id => String(id)))
-      if (!requiredRoles.some(roleId => memberRoleIdSet.has(String(roleId)))) {
-        throw new GraphQLError('You do not have the required role to join this space')
+    const spaceStatus = space.get('status')
+    if (spaceStatus === Group.Status.ARCHIVED) {
+      throw new GraphQLError('This space is archived')
+    }
+    if (spaceStatus === Group.Status.DRAFT && !canAdministerParent) {
+      throw new GraphQLError('This space is not published')
+    }
+
+    // Join/invite links pre-approve Closed, Restricted, and role-gated spaces (same as joinGroup)
+    let inviteCheck = null
+    if (accessCode || invitationToken) {
+      inviteCheck = await InvitationService.check(invitationToken, accessCode)
+    }
+    hasValidInvitation = !!(inviteCheck?.valid && inviteCheck.groupSlug === space.get('slug'))
+
+    if (!canAdministerParent) {
+      if (space.get('paywall')) {
+        throw new GraphQLError('This space requires purchased access to join')
       }
-    } else if (space.get('accessibility') !== Group.Accessibility.OPEN) {
-      throw new GraphQLError('This space requires a request to join')
+
+      if (!hasValidInvitation) {
+        const requiredRoles = space.get('required_roles')
+        const isRoleGated = Array.isArray(requiredRoles) && requiredRoles.length > 0
+
+        if (isRoleGated) {
+          const memberRoleIds = await bookshelf.knex('group_memberships_group_roles')
+            .where({ user_id: userId, group_id: parentId, active: true })
+            .pluck('group_role_id')
+          const memberRoleIdSet = new Set(memberRoleIds.map(id => String(id)))
+          if (!requiredRoles.some(roleId => memberRoleIdSet.has(String(roleId)))) {
+            throw new GraphQLError('You do not have the required role to join this space')
+          }
+        } else if (space.get('accessibility') !== Group.Accessibility.OPEN) {
+          throw new GraphQLError('This space requires a request to join')
+        }
+      }
     }
+
+    membership = await user.joinGroup(space, { fromInvitation: hasValidInvitation })
   }
 
-  const membership = await user.joinGroup(space, {})
+  if (invitationToken) {
+    const invitation = await Invitation.find(invitationToken)
+    if (invitation && String(invitation.get('group_id')) === String(spaceId)) {
+      await invitation.use(userId)
+    }
+  }
 
   // Create per-view unread rows for every existing view in the space (spec section 2.6).
   // Chat starts at the latest chat post so joining does not dump people at the oldest message.

@@ -16,6 +16,20 @@ import 'tippy.js/dist/tippy.css'
 import { shouldBailTextSelectionGesture } from 'util/textSelectionTouch'
 import classes from './HyloEditor.module.scss'
 
+/**
+ * True when a parent contentHTML update should not replace the live editor doc.
+ * Empty-to-empty is a no-op; a focused editor with text must not be wiped by
+ * a send/reset that pushes empty contentHTML.
+ */
+export function shouldSkipExternalEditorContent (currentHtml, nextHtml, isFocused) {
+  const next = nextHtml || ''
+  const current = currentHtml || ''
+  const isEmptyHtml = (html) => !html || html === '<p></p>'
+  if (next === current || (isEmptyHtml(next) && isEmptyHtml(current))) return true
+  if (isEmptyHtml(next) && !isEmptyHtml(current) && isFocused) return true
+  return false
+}
+
 const HyloEditor = React.forwardRef(({
   className,
   containerClassName = 'hyloEditor',
@@ -199,12 +213,16 @@ const HyloEditor = React.forwardRef(({
     }
   })
 
-  // Dynamic setting of initial editor content, and setting the initialized state
+  // Apply parent-driven content. Skip no-ops and do not wipe a message the user
+  // has already started after a send/reset pushed empty contentHTML.
   useEffect(() => {
-    if (editor.isInitialized) {
-      editor.commands.setContent(contentHTML)
+    if (!editor?.isInitialized) return
+    if (shouldSkipExternalEditorContent(editor.getHTML(), contentHTML, editor.isFocused)) {
       setInitialized(true)
+      return
     }
+    editor.commands.setContent(contentHTML)
+    setInitialized(true)
   }, [editor?.isInitialized, contentHTML])
 
   // Dynamic placeholder text
@@ -242,7 +260,7 @@ const HyloEditor = React.forwardRef(({
     },
     focus: position => {
       if (editorRef.current) {
-        editorRef.current.commands.focus(position || 'start')
+        editorRef.current.commands.focus(position || 'end')
       }
     },
     getHTML: () => {

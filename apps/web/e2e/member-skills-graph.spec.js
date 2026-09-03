@@ -54,12 +54,7 @@ test('member skills graph renders and drives the directory search', async ({ pag
   await page.getByTestId('skill-map-toggle').click()
   const graph = page.getByTestId('member-skills-graph')
   await expect(graph).toBeVisible({ timeout: 60000 })
-  // Teaser still mounts a canvas; enlarge only exists after Open map.
   await expect(graph.getByText('Loading skills map')).toBeHidden({ timeout: 60000 })
-  const openMap = graph.getByTestId('skills-open-map-button')
-  if (await openMap.isVisible().catch(() => false)) {
-    await openMap.click()
-  }
   await expect(graph.getByTestId('skills-enlarge-button')).toBeVisible({ timeout: 30000 })
   await expect(graph.locator('canvas')).toBeVisible()
 

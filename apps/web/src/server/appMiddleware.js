@@ -1,9 +1,11 @@
 import root from 'root-path'
 import { readFileSync } from 'fs'
 import lodash from 'lodash'
+import { withPublicPostMetaTags } from './postMetaTags.js'
 
-export default function appMiddleware (req, res, next) {
-  return res.status(200).send(html(''))
+export default async function appMiddleware (req, res, next) {
+  const page = await withPublicPostMetaTags(html(''), req)
+  return res.status(200).send(page)
 }
 
 // A property to make it easy to mock in tests

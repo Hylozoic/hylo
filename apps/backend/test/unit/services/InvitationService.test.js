@@ -26,9 +26,26 @@ describe('InvitationService', () => {
 
     it('should find a group by a valid accessCode', () => {
       return InvitationService.check(null, group.get('access_code'))
-        .then(result =>
+        .then(result => {
           expect(result.valid).to.equal(true)
-        )
+          expect(result.isSpace).to.equal(false)
+          expect(result.parentGroupSlug).to.equal(null)
+        })
+    })
+
+    it('includes parent group fields for a space access code', async () => {
+      const parent = await factories.group({ name: 'Parent Group' }).save()
+      const space = await factories.group({
+        type: 'space',
+        parent_id: parent.id,
+        name: 'The Space'
+      }).save()
+      const result = await InvitationService.check(null, space.get('access_code'))
+      expect(result.valid).to.equal(true)
+      expect(result.isSpace).to.equal(true)
+      expect(result.groupName).to.equal('The Space')
+      expect(result.parentGroupSlug).to.equal(parent.get('slug'))
+      expect(result.parentGroupName).to.equal('Parent Group')
     })
 
     it('should find a group by a valid token', () => {

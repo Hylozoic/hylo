@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test'
 import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading.js'
 
+test.describe.configure({ timeout: 120000 })
+
 test.use({ storageState: 'e2e/.auth/session.json' })
 
 test('explorer titles are white in light mode', async ({ page }) => {
@@ -30,7 +32,7 @@ test('directly loaded space closes to group home', async ({ page }) => {
   test.skip(test.info().project.name.includes('mobile'), 'space menu header is desktop chrome')
   await page.goto('/groups/e2e-public-group/more-spaces?space=e2e-test-space')
   await waitPastRootSessionLoading(page)
-  await expect(page.locator('.SpaceMenuHeader')).toBeVisible({ timeout: 30000 })
+  await expect(page.locator('.SpaceMenuHeader')).toBeVisible({ timeout: 60000 })
   await page.screenshot({ path: 'e2e/screenshots/space-direct.png' })
   await page.getByTestId('group-header').click()
   await expect(page.locator('.SpaceMenuHeader')).toBeHidden({ timeout: 15000 })

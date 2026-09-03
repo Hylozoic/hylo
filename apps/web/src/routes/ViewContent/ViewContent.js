@@ -203,10 +203,15 @@ export default function ViewContent (props) {
     dispatch(fetchViewPinnedPosts(group.id, pinnableView.id))
   }, [dispatch, group?.id, pinnableView?.id])
 
-  // Clear typed-view unread when opening Events/Proposals/etc.
+  // Clear typed-view unread when opening Discussions/Events/etc.
+  // Mark once per view id — a stale newPostCount (cached GraphQL DataLoader, or
+  // an in-flight fetchGroupViews) used to re-trigger this and loop MARK_VIEW_AS_READ.
+  const markedReadViewIdRef = useRef(null)
   useEffect(() => {
     if (!typedBadgeView?.id || !group?.id) return
     if (!(typedBadgeView.newPostCount > 0)) return
+    if (markedReadViewIdRef.current === typedBadgeView.id) return
+    markedReadViewIdRef.current = typedBadgeView.id
     dispatch(markViewAsRead(typedBadgeView.id, group.id))
   }, [dispatch, typedBadgeView?.id, typedBadgeView?.newPostCount, group?.id])
 
