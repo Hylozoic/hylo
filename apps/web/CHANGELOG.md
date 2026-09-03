@@ -6,9 +6,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-### Changed
-- Convert to Space in Related Groups is grayed out with an explanation when the group has other related groups or spaces of its own
-
 ## [7.0.0] - 2026-09-02 - Spaces and Views!
 
 ### Added
@@ -46,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New group menu layout style optionsd: Side menu is the current style with the group's menu on the left and the current view content on the right. Card Menu style (also called one-column layout) means you see the group menu taking up the whole screen, with views as cards. Clicking on a view takes you to the content in full width. Then you click the back button in the header to go back to the group's menu. Clicking on a space will take you to the space's menu where you can further drill into a view in the space. A group can set this menu style as its default, which can be overriden by the user in their appearance settings if they want to always use one style or the other.in Edi
 - New appearance setting Group Nav Stacking -> Stacking, shows a parent group with all its child groups nested in the global nav menu. Clicking on the parent shows a menu to let you jump directly to a child group.
 - New appearance setting Global Navigation -> Topbar shows the global nav menu as tabs at the top of the screen instead of on the left.
+- New ability for Hylo stewards to send one-time announcements to all hylo users that appear as a banner at the top of the site.
 
 ### Changed
 - Group menu rebuilt around views and spaces. A multi-view space drills into its own menu; a single-view space links straight to that view. Views are either in the menu or deleted. Only spaces can live off-menu, in More Spaces

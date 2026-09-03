@@ -38,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `toursSeen` user setting for new user guided tours
 - `openModerationActionCount` so the group menu can badge unresolved moderation flags
 - Convert a regular space to a child group, and a child group with one parent to a space (`convertSpaceToChildGroup`, `convertGroupToSpace`)
+- New ability for Hylo stewards to send one-time announcements to all hylo users that appear as a banner at the top of the site.
 
 ### Changed
 - Tracks and funding rounds are spaces. Display name, banner, and description live on the space group (creates still dual-write leftover NOT NULL columns until those drop)
