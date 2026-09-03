@@ -112,10 +112,12 @@ export default function SiteBanners () {
                   )
               )}
             >
-              <div className='p-4 sm:p-5 pt-2.5 sm:pt-3'>
+              <div className='p-4 sm:p-5'>
                 {/* Logo and Close oppose each other on the header row */}
                 <div className='flex items-center justify-between'>
-                  <img className='h-5 sm:h-6' src={logoSrc} alt={t('Hylo logo')} />
+                  {/* my-0: a global stylesheet gives imgs vertical margins, which
+                      inflated this row and pushed the header off the top edge */}
+                  <img className='h-5 sm:h-6 my-0' src={logoSrc} alt={t('Hylo logo')} />
                   <div className='flex items-center gap-1 shrink-0'>
                     {isTop && banners.length > 1 && (
                       <span className='text-xs opacity-60 px-1'>{t('+{{count}} more', { count: banners.length - 1 })}</span>
