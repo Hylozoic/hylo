@@ -1,7 +1,7 @@
 import { cn } from 'util/index'
 import React from 'react'
-import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
+import { FlagCover } from 'components/FlagBadge'
 import PostTitle from '../PostTitle'
 import PostContent from '../PostContent'
 import PostBodyProposal from '../PostBodyProposal'
@@ -26,15 +26,11 @@ export default function PostBody (props) {
     ...post
   } = props
   const dispatch = useDispatch()
-  const { t } = useTranslation()
 
   return (
-    <div>
+    <div className='relative'>
       {isFlagged && !post.clickthrough &&
-        <div className={classes.clickthroughContainer}>
-          <div>{t('clickthroughExplainer')}</div>
-          <div className={classes.clickthroughButton} onClick={() => dispatch(recordClickthrough({ postId: post.id }))}>{t('View post')}</div>
-        </div>}
+        <FlagCover post={post} onView={() => dispatch(recordClickthrough({ postId: post.id }))} />}
 
       <div className={cn('p-2 pb-0', { [classes.smallMargin]: !expanded, [classes.constrained]: constrained, [classes.isFlagged]: isFlagged && !post.clickthrough }, className)}>
         {post.type !== 'chat' && (

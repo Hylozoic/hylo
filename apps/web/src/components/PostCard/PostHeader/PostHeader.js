@@ -15,6 +15,7 @@ import Dropdown from 'components/Dropdown'
 import Highlight from 'components/Highlight'
 import FlagContent from 'components/FlagContent'
 import FlagGroupContent from 'components/FlagGroupContent'
+import FlagBadge from 'components/FlagBadge'
 import Icon from 'components/Icon'
 import Tooltip from 'components/Tooltip'
 import PostCompletion from '../PostCompletion'
@@ -443,7 +444,7 @@ function PostHeader (props) {
           </div>
 
           <div className={cn('flex items-center justify-end ml-auto', { hidden: constrained })}>
-            {isFlagged && <Link to={moderationActionsGroupUrl} className='text-decoration-none' data-tooltip-content={t('See why this post was flagged')} data-tooltip-id='post-header-flag-tt'><Icon name='Flag' className='top-1 mr-3 text-xl text-accent font-bold' /></Link>}
+            {isFlagged && <FlagBadge to={moderationActionsGroupUrl} post={post} tooltipId='post-header-flag-tt' className='mr-3' />}
             <Tooltip
               delay={250}
               id='post-header-flag-tt'

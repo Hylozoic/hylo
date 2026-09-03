@@ -3,7 +3,7 @@ import { BookmarkCheck, Bookmark, Check, Flag, MessageCircle, Pencil, Pin, PinOf
 import { DateTimeHelpers, MAX_PINNED_POSTS_PER_VIEW } from '@hylo/shared'
 import React, { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { useLongPress } from 'use-long-press'
 import isPlayableVideoUrl from 'util/isPlayableVideoUrl'
@@ -13,6 +13,7 @@ import CardFileAttachments from 'components/CardFileAttachments'
 import CardImageAttachments from 'components/CardImageAttachments'
 import EmojiRow from 'components/EmojiRow'
 import EmojiPicker from 'components/EmojiPicker'
+import FlagBadge, { FlagCover } from 'components/FlagBadge'
 import FlagGroupContent from 'components/FlagGroupContent'
 import Highlight from 'components/Highlight'
 import HyloEditor from 'components/HyloEditor'
@@ -26,6 +27,7 @@ import useViewPostDetails from 'hooks/useViewPostDetails'
 import deletePost from 'store/actions/deletePost'
 import removePost from 'store/actions/removePost'
 import updatePost from 'store/actions/updatePost'
+import { recordClickthrough } from 'store/actions/moderationActions'
 import getMe from 'store/selectors/getMe'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
 import { RESP_MANAGE_CONTENT } from 'store/constants'
@@ -107,27 +109,14 @@ export default function ChatPost ({
   const isCreator = currentUser.id === creator.id
   const isFlagged = useMemo(() => group && post.flaggedGroups && post.flaggedGroups.some(id => String(id) === String(group.id)), [group, post.flaggedGroups])
 
-  // The flag badge's tooltip: agreement titles and reporter notes from this
-  // group's active moderation actions, falling back to the generic line
-  const flagReasons = useMemo(() => {
-    const actions = (post.moderationActions || []).filter(action =>
-      action.status === 'active' && (!action.groupId || String(action.groupId) === String(group?.id)))
-    const reasons = []
-    actions.forEach(action => {
-      const agreements = action.agreements?.items || action.agreements || []
-      agreements.forEach(agreement => agreement?.title && reasons.push(agreement.title))
-      const platform = action.platformAgreements?.items || action.platformAgreements || []
-      platform.forEach(pa => pa?.text && reasons.push(pa.text))
-      if (action.text) reasons.push(action.text)
-    })
-    const unique = [...new Set(reasons)]
-    return unique.length ? unique.join(' · ') : t('See why this post was flagged')
-  }, [post.moderationActions, group?.id, t])
-
   const hasImageAttachments = useMemo(
     () => (post.attachments || []).some(attachment => attachment?.type === 'image'),
     [post.attachments]
   )
+
+  // Content stays blurred and inert under the FlagCover until this viewer
+  // acknowledges it (recordClickthrough), same as the stream and post views
+  const showFlagCover = isFlagged && !post.clickthrough
 
   const postGroups = useMemo(() => {
     if (post.groups?.length) return post.groups
@@ -317,20 +306,8 @@ export default function ChatPost ({
     ? spaceUrl(parentGroupSlug, spaceSlug, '/moderation')
     : (group && groupUrl(group.slug, 'moderation'))
 
-  // White flag on a red disc, linking to the moderation queue; hovering shows
-  // the flag's reasons. Rides beside whichever content block was flagged.
-  const flagBadge = (
-    <Link
-      to={moderationActionsGroupUrl}
-      aria-label={t('See why this post was flagged')}
-      data-tooltip-content={flagReasons}
-      data-tooltip-id='flag-tt'
-      onClick={event => event.stopPropagation()}
-      className='shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-destructive text-white shadow-md hover:scale-110 transition-transform'
-    >
-      <Flag className='w-3.5 h-3.5' strokeWidth={2.5} fill='currentColor' />
-    </Link>
-  )
+  // Rides beside whichever content block was flagged; hover shows the reasons
+  const flagBadge = <FlagBadge to={moderationActionsGroupUrl} post={post} groupId={group?.id} />
 
   const handleMouseEnter = () => {
     if (!editing) setIsHovered(true)
@@ -470,67 +447,73 @@ export default function ChatPost ({
             </div>
           </div>
         )}
-        {details && !editing && (
-          <>
-            {/* Flagged text gets its badge at the end of the line: the flex row
+        {/* Everything the flag covers sits in one relative wrapper so the
+            acknowledgment cover can sit over the whole flagged region; the
+            min-height keeps the cover card from bleeding over neighbors when
+            the flagged message is a single short line */}
+        <div className={cn('relative', showFlagCover && 'min-h-[170px]')}>
+          {details && !editing && (
+            <>
+              {/* Flagged text gets its badge at the end of the line: the flex row
                 lets the text block keep its natural width with the badge
                 centered just past it */}
-            <div className={cn(isFlagged && 'flex items-center gap-2')}>
-              <ClickCatcher groupSlug={group.slug} onClick={handleClick}>
-                {/* break-words: an unbroken run (a long URL, a keysmash) must wrap rather
+              <div className={cn(isFlagged && !showFlagCover && 'flex items-center gap-2')}>
+                <ClickCatcher groupSlug={group.slug} onClick={handleClick}>
+                  {/* break-words: an unbroken run (a long URL, a keysmash) must wrap rather
                     than widen the message container — visible mostly on phone widths */}
-                <div
-                  data-testid='chat-post-details'
-                  className={cn('ml-[42px] max-w-[calc(var(--chat-stream-width,750px)-50px)] cursor-text select-text break-words', { 'blur-sm': isFlagged })}
-                  style={!detailsExpanded
-                    ? (detailsOverflowing
-                        ? { ...clippedDetailsStyle, ...collapsedDetailsFadeStyle }
-                        : clippedDetailsStyle)
-                    : undefined}
-                >
-                  {/* Inner wrapper stays unclipped so its height is the message's true height */}
-                  <div ref={detailsRef}>
-                    <HyloHTML className='w-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 break-words' html={details} />
+                  <div
+                    data-testid='chat-post-details'
+                    className={cn('ml-[42px] max-w-[calc(var(--chat-stream-width,750px)-50px)] cursor-text select-text break-words', { 'blur-sm pointer-events-none select-none': showFlagCover })}
+                    style={!detailsExpanded
+                      ? (detailsOverflowing
+                          ? { ...clippedDetailsStyle, ...collapsedDetailsFadeStyle }
+                          : clippedDetailsStyle)
+                      : undefined}
+                  >
+                    {/* Inner wrapper stays unclipped so its height is the message's true height */}
+                    <div ref={detailsRef}>
+                      <HyloHTML className='w-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 break-words' html={details} />
+                    </div>
                   </div>
-                </div>
-              </ClickCatcher>
-              {isFlagged && !hasImageAttachments && flagBadge}
+                </ClickCatcher>
+                {isFlagged && !showFlagCover && !hasImageAttachments && flagBadge}
+              </div>
+              {detailsOverflowing && (
+                <button
+                  type='button'
+                  onClick={handleToggleDetails}
+                  className='block ml-[42px] mt-1 text-xs font-semibold text-focus hover:underline'
+                >
+                  {detailsExpanded ? t('See Less') : t('See More')}
+                </button>
+              )}
+            </>
+          )}
+          <Tooltip
+            delay={250}
+            id='flag-tt'
+          />
+          {showFeaturedVideo && (
+            <div className='ml-[42px] mt-2 max-w-[calc(var(--chat-stream-width,750px)-50px)] overflow-hidden rounded-lg'>
+              <Feature url={previewUrl} />
             </div>
-            {detailsOverflowing && (
-              <button
-                type='button'
-                onClick={handleToggleDetails}
-                className='block ml-[42px] mt-1 text-xs font-semibold text-focus hover:underline'
-              >
-                {detailsExpanded ? t('See Less') : t('See More')}
-              </button>
-            )}
-          </>
-        )}
-        <Tooltip
-          delay={250}
-          id='flag-tt'
-        />
-        {showFeaturedVideo && (
-          <div className='ml-[42px] mt-2 max-w-[calc(var(--chat-stream-width,750px)-50px)] overflow-hidden rounded-lg'>
-            <Feature url={previewUrl} />
-          </div>
-        )}
-        {linkPreview && !showFeaturedVideo && (
-          <LinkPreview {...pick(['title', 'description', 'imageUrl', 'url'], linkPreview.ref || linkPreview)} className='px-5 pb-[0.6rem] pl-[42px] block [&>div]:mb-0 max-w-[calc(var(--chat-stream-width,750px)-50px)]' />
-        )}
-        {/* Chat has no clickthrough affordance, so a flagged post's media stays
-            blurred like its text rather than honoring a clickthrough recorded
-            on another surface */}
-        {/* The wrapper makes empty space beside the attachments open the post,
+          )}
+          {linkPreview && !showFeaturedVideo && (
+            <LinkPreview {...pick(['title', 'description', 'imageUrl', 'url'], linkPreview.ref || linkPreview)} className='px-5 pb-[0.6rem] pl-[42px] block [&>div]:mb-0 max-w-[calc(var(--chat-stream-width,750px)-50px)]' />
+          )}
+          {/* The wrapper makes empty space beside the attachments open the post,
             like the header and text regions; tile clicks stop propagation and
             open the lightbox instead. When flagged media is present the badge
             rides this row, centered beside the tiles */}
-        <div className={cn(isFlagged && hasImageAttachments && 'flex items-center gap-2')} onClick={handleClick}>
-          <CardImageAttachments attachments={post.attachments} isFlagged={isFlagged} forChatPost className='min-w-0' />
-          {isFlagged && hasImageAttachments && flagBadge}
-          {!isEmpty(fileAttachments) && (
-            <CardFileAttachments attachments={fileAttachments} className={cn({ 'blur-sm': isFlagged })} />
+          <div className={cn(isFlagged && !showFlagCover && hasImageAttachments && 'flex items-center gap-2')} onClick={handleClick}>
+            <CardImageAttachments attachments={post.attachments} isFlagged={showFlagCover} forChatPost className='min-w-0' />
+            {isFlagged && !showFlagCover && hasImageAttachments && flagBadge}
+            {!isEmpty(fileAttachments) && (
+              <CardFileAttachments attachments={fileAttachments} className={cn({ 'blur-sm pointer-events-none select-none': showFlagCover })} />
+            )}
+          </div>
+          {showFlagCover && (
+            <FlagCover post={post} groupId={group?.id} onView={() => dispatch(recordClickthrough({ postId: id }))} />
           )}
         </div>
         {((postReactions && postReactions.length > 0) || commentsTotal > 0) && (

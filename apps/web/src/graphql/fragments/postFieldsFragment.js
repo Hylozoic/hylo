@@ -62,6 +62,11 @@ const postFieldsFragment = (withComments, withCompletion = false, withAllComplet
     groupId
     status
     text
+    anonymous
+    reporter {
+      id
+      name
+    }
     agreements {
       id
       title

@@ -15,6 +15,11 @@ export default function chatRoomPostFieldsFragment () {
     groupId
     status
     text
+    anonymous
+    reporter {
+      id
+      name
+    }
     agreements {
       id
       title

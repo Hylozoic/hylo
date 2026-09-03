@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 import EventInviteDialog from 'components/EventInviteDialog'
+import { FlagCover } from 'components/FlagBadge'
 import EventDate from '../EventDate'
 import EventTimeDisplay from 'components/EventTimeDisplay/EventTimeDisplay'
 import EventRSVP from '../EventRSVP'
@@ -34,12 +35,9 @@ function EventBody (props) {
   const isHappeningNow = startTime && endTime && new Date(startTime) <= now && now <= new Date(endTime)
 
   return (
-    <div>
+    <div className='relative'>
       {isFlagged && !event.clickthrough &&
-        <div className={classes.clickthroughContainer}>
-          <div>{t('clickthroughExplainer')}</div>
-          <div className={classes.clickthroughButton} onClick={() => dispatch(recordClickthrough({ postId: event.id }))}>{t('View post')}</div>
-        </div>}
+        <FlagCover post={event} onView={() => dispatch(recordClickthrough({ postId: event.id }))} />}
 
       <div className={cn(classes.body, classes.eventBody, { [classes.smallMargin]: !expanded, [classes.eventImage]: attachmentType === 'image', [classes.constrained]: constrained }, className)}>
         <div className={cn('flex flex-col', { [classes.constrained]: constrained, [classes.isFlagged]: isFlagged && !event.clickthrough })}>

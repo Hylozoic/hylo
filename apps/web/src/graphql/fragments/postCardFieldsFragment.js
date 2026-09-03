@@ -26,6 +26,11 @@ export default function postCardFieldsFragment ({ includeGroups = true } = {}) {
     groupId
     status
     text
+    anonymous
+    reporter {
+      id
+      name
+    }
     agreements {
       id
       title
