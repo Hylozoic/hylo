@@ -115,7 +115,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   name: 'Hylo',
   slug: 'hylo-mobile-leap',
   scheme: 'hyloapp',
-  version: '6.3.9', // keep in lockstep with apps/mobile until cutover
+  version: '7.0.0', // keep in lockstep with apps/mobile until cutover
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'automatic',
