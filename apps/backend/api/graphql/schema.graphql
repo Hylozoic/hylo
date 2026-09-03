@@ -475,6 +475,12 @@ type Query {
 
   # Query for email-enabled testers (admin only)
   emailEnabledTesters: [EmailEnabledTester]
+
+  # Active, undismissed site banners for the current user
+  siteBanners: [SiteBanner]
+
+  # All site banners, past and present (admin only)
+  allSiteBanners: [SiteBanner]
 }
 
 union Update = Message | MessageThread | Notification
@@ -3139,6 +3145,29 @@ type EmailEnabledTester {
   updatedAt: Date
 }
 
+# A site-wide announcement banner published by a superadmin
+type SiteBanner {
+  id: ID!
+  text: String
+  type: String
+  actionText: String
+  actionUrl: String
+  creator: Person
+  publishedAt: Date
+  unpublishedAt: Date
+  createdAt: Date
+  updatedAt: Date
+  # Number of users who have dismissed this banner (admin only)
+  dismissedCount: Int
+}
+
+input SiteBannerInput {
+  text: String
+  type: String
+  actionText: String
+  actionUrl: String
+}
+
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type ProposalOptionQuerySet {
   total: Int
@@ -3669,6 +3698,18 @@ type Mutation {
   addEmailEnabledTester(userId: ID!): EmailEnabledTester
   # Remove a user from the email-enabled testers list (admin only)
   removeEmailEnabledTester(userId: ID!): Boolean
+  # Create a new site banner (admin only)
+  createSiteBanner(data: SiteBannerInput): SiteBanner
+  # Update a site banner's text, type, or action button, at any point in its lifecycle (admin only)
+  updateSiteBanner(id: ID!, data: SiteBannerInput): SiteBanner
+  # Publish a site banner so all users see it (admin only)
+  publishSiteBanner(id: ID!): SiteBanner
+  # Take down a published site banner (admin only)
+  unpublishSiteBanner(id: ID!): SiteBanner
+  # Permanently delete a site banner (admin only)
+  deleteSiteBanner(id: ID!): Boolean
+  # Dismiss a site banner for the current user
+  dismissSiteBanner(id: ID!): Boolean
   # Verify your email address, manually by code or automatically by URL token
   verifyEmail(
     # The shortcode sent via email
