@@ -82,10 +82,14 @@ function FlagContent ({ linkData, onClose, type = 'content' }) {
   ]
 
   const modalContent = (
-    <div className='fixed inset-0 z-[1001] overflow-y-auto pointer-events-auto' onClick={(e) => e.stopPropagation()}>
-      <div className='absolute inset-0 bg-black/50 z-0 w-full h-full top-0 left-0' onClick={closeModal} />
-      <div className='relative max-h-screen flex items-center justify-center p-4 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 max-w-[750px] w-full'>
-        <div className='relative bg-background rounded-lg shadow-xl w-full max-w-[750px] p-6'>
+    <div
+      className='fixed inset-0 z-[1100] flex items-center justify-center p-4 bg-darkening/50 dark:bg-darkening/90 backdrop-blur-sm pointer-events-auto'
+      onClick={closeModal}
+    >
+      <div
+        className='relative bg-background rounded-lg shadow-xl w-full max-w-[750px] max-h-[90vh] overflow-y-auto p-6'
+        onClick={(e) => e.stopPropagation()}
+      >
           <div className='flex flex-row items-center justify-between mb-4'>
             <h2 className='text-xl font-semibold'>{t('Explanation for Flagging')}</h2>
             <button onClick={closeModal} className='text-foreground/70 hover:text-foreground transition-colors'>
@@ -138,7 +142,6 @@ function FlagContent ({ linkData, onClose, type = 'content' }) {
               </Button>
             </div>
           </div>
-        </div>
       </div>
     </div>
   )

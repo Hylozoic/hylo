@@ -139,6 +139,16 @@ function adjustOpenJoinRequestCount (session, groupId, delta) {
 }
 
 /**
+ * Adjust the cached unresolved-flag count used by the Moderation menu badge.
+ */
+function adjustOpenModerationActionCount (session, groupId, delta) {
+  if (!groupId || !delta) return
+  const group = session.Group.idExists(groupId) ? session.Group.withId(groupId) : null
+  if (!group) return
+  group.update({ openModerationActionCount: Math.max(0, (group.openModerationActionCount || 0) + delta) })
+}
+
+/**
  * Whether any loaded menu copy for this group still shows unread (own GroupViews
  * and/or nested under a parent's type=space linkedGroup).
  */
@@ -371,9 +381,13 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     }
 
     case CLEAR_MODERATION_ACTION_PENDING: {
-      if (meta && meta?.moderationActionId) {
+      if (meta && meta?.moderationActionId && session.ModerationAction.idExists(meta.moderationActionId)) {
         const moderationAction = session.ModerationAction.withId(meta.moderationActionId)
+        const wasActive = moderationAction.status === 'active'
         moderationAction.update({ status: 'cleared' })
+        if (wasActive) {
+          adjustOpenModerationActionCount(session, meta.groupId || moderationAction.groupId, -1)
+        }
       }
       break
     }
@@ -519,6 +533,8 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
           post.update({ flaggedGroups: flaggedGroups || [meta?.data?.groupId] })
           post.update({ moderationActions: moderationActions || [meta?.data] })
         }
+
+        adjustOpenModerationActionCount(session, meta.data.groupId, 1)
 
         if (meta.tempId) {
           const reporter = Me.first()
