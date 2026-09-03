@@ -912,13 +912,17 @@ export default function ChatRoom (props) {
         {/* The stream header's wash, here as a still strip: theme background fading
             to its own colour at zero alpha, so messages scroll under a soft top edge */}
         <div aria-hidden='true' className='absolute top-0 left-0 right-0 h-14 z-20 pointer-events-none bg-gradient-to-b from-[hsl(var(--theme-background)/0.1)] dark:from-[hsl(var(--theme-background)/0.5)] to-[hsl(var(--theme-background)/0)]' />
-        {/* Pinned posts ride the top edge as chips, left of the presence cluster */}
+        {/* Pinned posts ride the top edge as chips, left of the presence cluster.
+            The cluster (avatar stack + members pill) is the same width on phones
+            as desktop, so the reserve doesn't shrink with the breakpoint —
+            chips truncate and scroll within their strip instead of running
+            under the avatars */}
         <PinnedPostChips
           posts={pinnedPosts}
           viewId={chatView?.id}
           groupId={group?.id}
           canModerate={canModerateContent}
-          className='absolute top-1.5 left-3 right-24 sm:right-[240px] z-30'
+          className='absolute top-1.5 left-3 right-[240px] z-30'
         />
         {/* Width rail on the clamp edge. The triangles stay visible as a quiet
             hint; the dashed line and its wash only surface on hover or drag.
