@@ -71,7 +71,7 @@ export default function PinnedPostChips ({ posts, viewId, groupId, canModerate, 
   if (!posts?.length) return null
 
   return (
-    <div className={cn('flex items-start gap-1.5 overflow-x-auto py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden', className)} data-tour='chat-pins'>
+    <div className={cn('flex items-start gap-1.5 overflow-x-auto py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden', className)}>
       {posts.map(post => (
         <PinnedChip
           key={post.id}
