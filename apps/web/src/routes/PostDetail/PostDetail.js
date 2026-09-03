@@ -11,6 +11,7 @@ import { AnalyticsEvents, TextHelpers } from '@hylo/shared'
 import { PROJECT_CONTRIBUTIONS } from 'config/featureFlags'
 import ActionCompletionResponsesDialog from 'components/ActionCompletionResponsesDialog'
 import CardImageAttachments from 'components/CardImageAttachments'
+import { FlagCover } from 'components/FlagBadge'
 import {
   PostBody,
   PostFooter,
@@ -604,7 +605,10 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
             />
           </div>
         )}
-        <div className='bg-card rounded-lg shadow-md'>
+        <div className='bg-card rounded-lg shadow-md relative'>
+          {/* Cover at the card level so it centers against the whole post
+              content (attachments + body), not just the text block */}
+          {flagObscured && <FlagCover post={post} onView={() => setFlagRevealed(true)} />}
           {post.attachments && post.attachments.length > 0 && (
             <CardImageAttachments attachments={post.attachments} isFlagged={flagObscured} />
           )}
@@ -618,7 +622,7 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
               respondToEvent={(response) => dispatch(respondToEvent(post, response))}
               togglePeopleDialog={handleTogglePeopleDialog}
               isFlagged={flagObscured}
-              onRevealFlagged={() => setFlagRevealed(true)}
+              flagCover={false}
             />
           )}
           {isEvent && meetingUrl && (
@@ -645,7 +649,7 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
               routeParams={routeParams}
               slug={groupSlug}
               isFlagged={flagObscured}
-              onRevealFlagged={() => setFlagRevealed(true)}
+              flagCover={false}
               {...post}
             />
           )}

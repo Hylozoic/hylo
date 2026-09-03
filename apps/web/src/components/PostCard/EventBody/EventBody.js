@@ -19,7 +19,7 @@ function EventBody (props) {
 
   const toggleInviteDialog = () => setShowInviteDialog(!showInviteDialog)
 
-  const { currentUser, event, isFlagged, onRevealFlagged, respondToEvent, slug, expanded, className, constrained, onClick, togglePeopleDialog } = props
+  const { currentUser, event, isFlagged, flagCover = true, onRevealFlagged, respondToEvent, slug, expanded, className, constrained, onClick, togglePeopleDialog } = props
   const { id, startTime, endTime, timezone, eventInvitations, groups } = event
 
   const firstAttachment = event.attachments?.[0]
@@ -33,7 +33,7 @@ function EventBody (props) {
 
   return (
     <div className='relative'>
-      {isFlagged &&
+      {isFlagged && flagCover &&
         <FlagCover post={event} onView={onRevealFlagged} />}
 
       <div className={cn(classes.body, classes.eventBody, { [classes.smallMargin]: !expanded, [classes.eventImage]: attachmentType === 'image', [classes.constrained]: constrained }, className)}>

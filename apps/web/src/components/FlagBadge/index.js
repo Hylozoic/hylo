@@ -107,10 +107,10 @@ export function FlagCover ({ post, groupId, onView }) {
   const { t } = useTranslation()
   const reasons = flagReasons(post, groupId, t)
   return (
-    <div className='absolute inset-0 z-10 flex items-center justify-center p-2'>
+    <div className='absolute inset-0 z-10 flex items-center justify-center p-2 pointer-events-none'>
       {/* One slim bar, not a tall card: the cover should hide as little of the
           surrounding page as possible — both text lines clamp to one row */}
-      <div className='flex items-center gap-2.5 min-w-0 max-w-full rounded-xl border-2 border-foreground/20 bg-card/95 backdrop-blur-sm shadow-lg px-3 py-1.5'>
+      <div className='pointer-events-auto flex items-center gap-2.5 min-w-0 max-w-full rounded-xl border-2 border-foreground/20 bg-card/95 backdrop-blur-sm shadow-lg px-3 py-1.5'>
         <span className='shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-destructive text-white' aria-hidden='true'>
           <Flag className='w-3 h-3' strokeWidth={2.5} fill='currentColor' />
         </span>

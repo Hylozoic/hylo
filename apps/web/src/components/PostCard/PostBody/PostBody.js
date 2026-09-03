@@ -16,6 +16,7 @@ export default function PostBody (props) {
     currentUser,
     highlightProps,
     isFlagged,
+    flagCover = true,
     onRevealFlagged,
     mapDrawer = false,
     onClick,
@@ -27,7 +28,7 @@ export default function PostBody (props) {
 
   return (
     <div className='relative'>
-      {isFlagged &&
+      {isFlagged && flagCover &&
         <FlagCover post={post} onView={onRevealFlagged} />}
 
       <div className={cn('p-2 pb-0', { [classes.smallMargin]: !expanded, [classes.constrained]: constrained, [classes.isFlagged]: isFlagged }, className)}>
