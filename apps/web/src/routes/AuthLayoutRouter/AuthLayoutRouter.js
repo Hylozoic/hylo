@@ -8,6 +8,10 @@ import { get, some } from 'lodash/fp'
 import { cn } from 'util/index'
 import {
   createPersistentSelectionTracker,
+  hasActiveTextSelection,
+  hasReadableContentSelection,
+  isReadableContentTarget,
+  isTextInteractionTarget,
   shouldBailTextSelectionGesture
 } from 'util/textSelectionTouch'
 import mixpanel from 'mixpanel-browser'
@@ -382,6 +386,7 @@ export default function AuthLayoutRouter (props) {
     let touchTarget = null
     let touchStartedWithTextSelected = false
     let touchActive = false
+    let edgeOpenGesture = false
 
     const selectionTracker = createPersistentSelectionTracker({
       getActiveTouch: () => touchActive
@@ -390,8 +395,6 @@ export default function AuthLayoutRouter (props) {
     const handleTouchStart = (e) => {
       if (!isDrawerNavLayout(window.innerWidth)) return
       if (document.querySelector('.PostDialog-Content')) return
-      if (shouldBailTextSelectionGesture(e.target)) return
-      if (selectionTracker.hasSelection) return
       const navEl = navContainerRef.current
       const backdropEl = backdropRef.current
       if (!navEl || !backdropEl) return
@@ -401,6 +404,17 @@ export default function AuthLayoutRouter (props) {
       // Swipe-to-open only from the left edge so horizontal drags in content
       // (e.g. text selection handles) are not hijacked as nav gestures.
       if (!isNavOpenRef.current && touch.clientX > NAV_OPEN_EDGE_WIDTH_PX) return
+      edgeOpenGesture = !isNavOpenRef.current
+
+      // Text fields always win. Static readable surfaces (chat stream, post
+      // bodies) only block a swipe that is NOT an edge open — otherwise the
+      // drawer could never be opened from inside the chat, and the browser's
+      // back gesture swallowed the swipe. The 300ms long-press guard below
+      // still hands slow presses at the edge over to text selection.
+      if (isTextInteractionTarget(e.target)) return
+      if (hasActiveTextSelection() || hasReadableContentSelection()) return
+      if (!edgeOpenGesture && isReadableContentTarget(e.target)) return
+      if (selectionTracker.hasSelection) return
 
       touchActive = true
       touchStartX = touch.clientX
@@ -430,7 +444,11 @@ export default function AuthLayoutRouter (props) {
         return
       }
       if (
-        shouldBailTextSelectionGesture(e.target) ||
+        // Same exemption as touchstart: an edge-open drag over static readable
+        // content stays a nav gesture; live selections still cancel it
+        (edgeOpenGesture
+          ? (isTextInteractionTarget(e.target) || hasActiveTextSelection() || hasReadableContentSelection())
+          : shouldBailTextSelectionGesture(e.target)) ||
         touchStartedWithTextSelected ||
         selectionTracker.hasSelection
       ) {
