@@ -65,6 +65,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Post editor link preview is full width and uses the same card colors as the post card
 - Long chat posts now show a small Read More link at the bottom to expand the post.
 - New unified map drawer shows posts, groups and members intermingled, though you can still filter to show only certain types of content.
+- Allow admins to fulfill/unfulfill posts
 
 ### Removed
 - All Views, Tracks, and Funding Rounds as group pages (those URLs redirect to More Spaces)
@@ -90,6 +91,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Offering descriptions are saved and shown as plain text, so Stripe Checkout no longer displays HTML tags
 - en locale split into en-US and en-GB locales to respect date formats
 - Removing someone from a group also removes other group related permissions
+- All base-map layers now available in dark mode
 
 ## [6.5.6] - 2026-08-04
 

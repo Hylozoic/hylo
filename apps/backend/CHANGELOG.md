@@ -47,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Searching inside a group does not return public posts
 - Join-request approved email no longer tells people to introduce themselves in the chat
 - Chat digest email is now hourly instead of every 10 minutes
+- Allow admins to fulfill/unfulfill posts
 
 ### Removed
 - `ContextWidget`, `CustomView`, `Collection`, and `CollectionsPost` GraphQL types and mutations
