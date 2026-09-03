@@ -36,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Show funding round details on the Welcome view for the space always. ALso in a tab in the About page for the space.
 - Animated Hylo loading screen on boot
 - Attachments on direct messages
+- Editing direct messages
 - Dedicated meeting link field on events
 - Support for setting a timezone on posts.
 - Public posts include Open Graph and Twitter meta tags for title, body text, and the first attached image
@@ -44,6 +45,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New appearance setting Group Nav Stacking -> Stacking, shows a parent group with all its child groups nested in the global nav menu. Clicking on the parent shows a menu to let you jump directly to a child group.
 - New appearance setting Global Navigation -> Topbar shows the global nav menu as tabs at the top of the screen instead of on the left.
 - New ability for Hylo stewards to send one-time announcements to all hylo users that appear as a banner at the top of the site.
+- Creating an event in a specific calendar context adds the selected date from the calender
+- More options to filter/sort members in the memberlist
 
 ### Changed
 - Group menu rebuilt around views and spaces. A multi-view space drills into its own menu; a single-view space links straight to that view. Views are either in the menu or deleted. Only spaces can live off-menu, in More Spaces
@@ -85,6 +88,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Links to a different Hylo environment (e.g. staging.hylo.com while on hylo.com) open in a new tab instead of being rewritten as in-app routes
 - After a join request is approved, the group welcome modal no longer re-shows agreements and join questions that were already completed
 - Offering descriptions are saved and shown as plain text, so Stripe Checkout no longer displays HTML tags
+- en locale split into en-US and en-GB locales to respect date formats
+- Removing someone from a group also removes other group related permissions
 
 ## [6.5.6] - 2026-08-04
 

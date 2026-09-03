@@ -39,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `openModerationActionCount` so the group menu can badge unresolved moderation flags
 - Convert a regular space to a child group, and a child group with one parent to a space (`convertSpaceToChildGroup`, `convertGroupToSpace`)
 - New ability for Hylo stewards to send one-time announcements to all hylo users that appear as a banner at the top of the site.
+- Editing direct messages
 
 ### Changed
 - Tracks and funding rounds are spaces. Display name, banner, and description live on the space group (creates still dual-write leftover NOT NULL columns until those drop)
@@ -64,6 +65,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Approving a join request now records that agreements and join questions were already completed, so the welcome modal does not ask for them again
 - Offering descriptions are stored and sent to Stripe as plain text, so empty editor HTML like `<p></p>` does not appear on Checkout
 - Paying for a space grants membership from the success page (not only the Stripe webhook), including spaces listed in the offering's access grants
+- en locale split into en-US and en-GB locales to respect date formats
 
 ## [6.5.5] - 2026-07-21
 
