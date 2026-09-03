@@ -24,9 +24,16 @@ function chipTitle (post) {
  * hover; touch devices never see it, since there is no hover to reveal it with.
  * The chrome lives on the wrapper so the two buttons read as one chip.
  */
-function PinnedChip ({ post, canModerate, onOpen, onUnpin, t }) {
+function PinnedChip ({ post, canModerate, onOpen, onUnpin, soleChip, t }) {
   return (
-    <div className='group inline-flex shrink-0 items-center h-[29px] px-2.5 rounded-md max-w-[300px] min-w-0 border border-[hsl(45_45%_60%)] dark:border-[hsl(45_45%_34%)] bg-card shadow-sm'>
+    <div
+      className={cn(
+        'group inline-flex items-center h-[29px] px-2.5 rounded-md max-w-full sm:max-w-[300px] min-w-0 border border-[hsl(45_45%_60%)] dark:border-[hsl(45_45%_34%)] bg-card shadow-sm',
+        // A lone chip ellipsizes at the strip's edge; several keep their width
+        // and scroll within the strip instead of crushing each other
+        !soleChip && 'shrink-0'
+      )}
+    >
       <button
         type='button'
         onClick={onOpen}
@@ -71,12 +78,16 @@ export default function PinnedPostChips ({ posts, viewId, groupId, canModerate, 
   if (!posts?.length) return null
 
   return (
-    <div className={cn('flex items-start gap-1.5 overflow-x-auto py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden', className)}>
+    // Phones have no row to share with the presence cluster, so the chips
+    // stack as a right-aligned column beneath it; sm+ keeps the scrolling
+    // strip to the cluster's left
+    <div className={cn('flex flex-col items-end sm:flex-row sm:items-start gap-1.5 sm:overflow-x-auto py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden', className)}>
       {posts.map(post => (
         <PinnedChip
           key={post.id}
           post={post}
           canModerate={canModerate}
+          soleChip={posts.length === 1}
           onOpen={() => navigate(`post/${post.id}`)}
           onUnpin={() => dispatch(pinPost(post.id, viewId, groupId, post))}
           t={t}

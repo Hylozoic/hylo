@@ -108,6 +108,8 @@ Post.fields = {
   linkPreviewFeatured: attr(),
   location: attr(),
   meetingLink: attr(),
+  // Plain data, not a relation: the flag badge tooltip reads reasons off it
+  moderationActions: attr(),
   peopleReactedTotal: attr(),
   projectManagementLink: attr(),
   sortOrder: attr(),

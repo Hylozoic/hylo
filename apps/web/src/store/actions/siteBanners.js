@@ -42,6 +42,7 @@ export function fetchSiteBanners () {
             type
             actionText
             actionUrl
+            createdAt
           }
         }
       `,
