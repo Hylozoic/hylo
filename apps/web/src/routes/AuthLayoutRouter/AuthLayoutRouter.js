@@ -91,6 +91,7 @@ import WelcomeWizardRouter from 'routes/WelcomeWizardRouter'
 import { VIEW_DRAFTS } from 'store/constants'
 import { isAtReturnToPath } from 'util/returnToPath'
 import Management from 'routes/Management'
+import SiteBanners from 'components/SiteBanners/SiteBanners'
 import { getLocaleFromLocalStorage } from 'util/locale'
 import { isCompactLayoutDevice, isDrawerNavLayout, isPhoneDevice } from 'util/mobile'
 import { isLegacyWebView } from 'util/webView'
@@ -885,6 +886,7 @@ export default function AuthLayoutRouter (props) {
 
   return (
     <IntercomProvider appId={isTest || isSandboxMode() ? '' : config.intercom.appId} autoBoot={!isSandboxMode()} autoBootProps={intercomProps}>
+      <SiteBanners />
       {/* Pull-to-refresh indicator - shows during and after gesture */}
       {(isPulling || isRefreshing) && (
         <div className='fixed top-4 left-1/2 -translate-x-1/2 z-50'>

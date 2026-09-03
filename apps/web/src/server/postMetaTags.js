@@ -1,4 +1,4 @@
-import { TextHelpers } from '@hylo/shared'
+import * as TextHelpers from '@hylo/shared/TextHelpers'
 
 const MAX_DESCRIPTION_LENGTH = 144
 const POST_ID_PATH = /\/post\/(\d+)(?:\/|$)/

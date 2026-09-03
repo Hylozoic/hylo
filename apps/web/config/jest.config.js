@@ -49,6 +49,7 @@ export default {
     '\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$': '<rootDir>/config/jest/__mocks__/fileMock.js',
     '^@/(.*)$': '<rootDir>/src/$1',
     '^@hylo/shared$': '<rootDir>/../../packages/shared/src/index.js',
+    '^@hylo/shared/TextHelpers$': '<rootDir>/../../packages/shared/src/TextHelpers.js',
     '^@hylo/hooks/(.*)$': '<rootDir>/../../packages/hooks/$1',
     '^@hylo/presenters/(.*)$': '<rootDir>/../../packages/presenters/src/$1',
     '^client/(.*)$': '<rootDir>/src/client/$1',

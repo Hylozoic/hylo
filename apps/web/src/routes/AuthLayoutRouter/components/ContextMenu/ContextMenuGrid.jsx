@@ -1,6 +1,6 @@
 import { cn, bgImageStyle } from 'util/index'
 import { isDrawerNavLayout } from 'util/mobile'
-import { Info, Settings, Users, Pencil, X, CircleEllipsis, ChevronLeft, Search, UserPlus } from 'lucide-react'
+import { Info, Settings, Users, Pencil, X, CircleEllipsis, ChevronLeft, Search, ShieldCheck, UserPlus } from 'lucide-react'
 import React, { useMemo, useRef, useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
@@ -24,7 +24,7 @@ import { WebViewMessageTypes } from '@hylo/shared'
 import { sendMessageToWebView } from 'util/webView'
 import logout from 'store/actions/logout'
 import { DEFAULT_BANNER, DEFAULT_AVATAR } from 'store/models/Group'
-import { RESP_ADMINISTRATION, RESP_ADD_MEMBERS, FETCH_GROUP_SPACES, FETCH_GROUP_VIEWS } from 'store/constants'
+import { RESP_ADMINISTRATION, RESP_ADD_MEMBERS, RESP_MANAGE_CONTENT, FETCH_GROUP_SPACES, FETCH_GROUP_VIEWS } from 'store/constants'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import getMe from 'store/selectors/getMe'
@@ -78,8 +78,9 @@ import EditingBottomBar, { EDITING_BAR_BUTTON_CLASS } from './EditingBottomBar'
 import getPreviousLocation from 'store/selectors/getPreviousLocation'
 import { appendSpaceId, spaceCollectionViews } from 'util/spaceCollection'
 
-/** Synthetic view so the More Spaces card can use the same icon wallpaper as real views. */
+/** Synthetic views so steward-alert and More Spaces cards share the icon wallpaper of real views. */
 const MORE_SPACES_VIEW = { lucideIcon: 'CircleEllipsis' }
+const MODERATION_VIEW = { lucideIcon: 'ShieldCheck' }
 const JOIN_REQUESTS_VIEW = { lucideIcon: 'UserPlus' }
 
 /**
@@ -258,7 +259,7 @@ function SeparatorSection () {
 }
 
 /** Renders partitioned view sections as a card grid. */
-function ViewsGrid ({ sections, group, spaceGroup, onOpen, t }) {
+function ViewsGrid ({ sections, group, spaceGroup, onOpen, t, footer = null }) {
   return (
     // Headings and card rows are flat siblings here, so the gap is the heading's
     // distance from its own cards — it matches the gap between cards, and
@@ -290,6 +291,7 @@ function ViewsGrid ({ sections, group, spaceGroup, onOpen, t }) {
           </div>
         )
       })}
+      {footer}
     </div>
   )
 }
@@ -344,8 +346,8 @@ function MoreSpacesCard ({ onClick, t }) {
   )
 }
 
-/** Card opening Join Requests, shown when there are pending requests. */
-function JoinRequestsCard ({ count, onClick, t }) {
+/** Steward-alert card (moderation / join requests) with a count badge. */
+function StewardAlertCard ({ view, icon, title, count, onClick }) {
   const { effectiveColorScheme } = useAppearance()
   const isDark = effectiveColorScheme === 'dark'
   const [hover, setHover] = useState(false)
@@ -366,7 +368,7 @@ function JoinRequestsCard ({ count, onClick, t }) {
       onMouseLeave={() => setHover(false)}
       role='button'
       tabIndex={0}
-      aria-label={t('Join Requests')}
+      aria-label={title}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
@@ -374,7 +376,7 @@ function JoinRequestsCard ({ count, onClick, t }) {
         }
       }}
     >
-      <CardIconField view={JOIN_REQUESTS_VIEW} tint={tint} w={CARD_W} h={CARD_H} />
+      <CardIconField view={view} tint={tint} w={CARD_W} h={CARD_H} />
       <div className={CARD_FADE_CLASS} style={{ background: cardFadeGradient(effectiveColorScheme) }} />
       {count > 0 && (
         <span className='absolute top-1.5 right-1.5 z-10 min-w-5 h-5 px-1 rounded-full bg-accent text-white text-xs font-bold flex items-center justify-center border-2 border-background'>
@@ -387,11 +389,11 @@ function JoinRequestsCard ({ count, onClick, t }) {
             className={cn(CARD_TILE_CLASS, 'grid place-items-center shadow-[0_4px_12px_rgba(0,0,0,0.35)]')}
             style={{ background: col, color: inkOn(col), border: `1px solid color-mix(in srgb, ${col} 55%, white)` }}
           >
-            <UserPlus className='w-7 h-7' />
+            {icon}
           </div>
         </div>
         <div className={cn(CARD_LABEL_TOP_CLASS, 'absolute left-0 right-0 bottom-0 flex flex-col items-center justify-center text-center px-3')}>
-          <h3 className={cn(CARD_TITLE_CLASS, isDark ? 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]' : 'text-foreground')}>{t('Join Requests')}</h3>
+          <h3 className={cn(CARD_TITLE_CLASS, isDark ? 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]' : 'text-foreground')}>{title}</h3>
         </div>
       </div>
     </div>
@@ -645,6 +647,10 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
     responsibility: RESP_ADD_MEMBERS,
     groupId: (spaceGroup || group)?.id
   }))
+  const canModerate = useSelector(state => hasResponsibilityForGroup(state, {
+    responsibility: RESP_MANAGE_CONTENT,
+    groupId: (spaceGroup || group)?.id
+  }))
   const isEditing = !isContextMode && getQuerystringParam('edit', location) === 'true' && canAdminister && !isMoreSpacesLevel
   const [settingsView, setSettingsView] = useState(null)
   const [showAddView, setShowAddView] = useState(false)
@@ -671,6 +677,10 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
   // Wait until spaces have loaded — pending would flash the card then hide it
   // when this group has nothing behind More Spaces.
   const showMoreSpacesCard = moreSpaces.hasContent
+  const moderationCount = menuGroup?.openModerationActionCount || 0
+  const joinRequestCount = menuGroup?.openJoinRequestCount || 0
+  const showStewardAlerts = !isContextMode && !isEditing && !isMoreSpacesLevel &&
+    ((canModerate && moderationCount > 0) || (canAddMembers && joinRequestCount > 0))
   useEffect(() => {
     if (isContextMode || isMoreSpacesLevel || spaceGroup || !group?.id || !groupSlug) return
     dispatch(fetchGroupSpaces(group.id))
@@ -954,21 +964,40 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
                       spaceGroup={spaceGroup}
                       onOpen={handleOpenMenuView}
                       t={t}
+                      footer={showStewardAlerts
+                        ? (
+                          <div className='flex flex-wrap gap-3'>
+                            {canModerate && moderationCount > 0 && (
+                              <StewardAlertCard
+                                view={MODERATION_VIEW}
+                                icon={<ShieldCheck className='w-7 h-7' />}
+                                title={t('Moderation')}
+                                count={moderationCount}
+                                onClick={() => navigate(
+                                  spaceGroup
+                                    ? spaceUrl(groupSlug, localSpaceSlug(groupSlug, spaceGroup.slug), 'about/moderation')
+                                    : groupUrl(groupSlug, 'about/moderation')
+                                )}
+                              />
+                            )}
+                            {canAddMembers && joinRequestCount > 0 && (
+                              <StewardAlertCard
+                                view={JOIN_REQUESTS_VIEW}
+                                icon={<UserPlus className='w-7 h-7' />}
+                                title={t('Join Requests')}
+                                count={joinRequestCount}
+                                onClick={() => navigate(
+                                  spaceGroup
+                                    ? spaceUrl(groupSlug, localSpaceSlug(groupSlug, spaceGroup.slug), 'requests')
+                                    : groupUrl(groupSlug, 'requests')
+                                )}
+                              />
+                            )}
+                          </div>
+                          )
+                        : null}
                     />
                     )}
-                {!isContextMode && !isEditing && !isMoreSpacesLevel && canAddMembers && (menuGroup?.openJoinRequestCount || 0) > 0 && (
-                  <div className='flex flex-wrap gap-3'>
-                    <JoinRequestsCard
-                      count={menuGroup.openJoinRequestCount}
-                      onClick={() => navigate(
-                        spaceGroup
-                          ? spaceUrl(groupSlug, localSpaceSlug(groupSlug, spaceGroup.slug), 'requests')
-                          : groupUrl(groupSlug, 'requests')
-                      )}
-                      t={t}
-                    />
-                  </div>
-                )}
                 {!isContextMode && !spaceGroup && showMoreSpacesCard && (
                   <div className='flex flex-wrap gap-3'>
                     <MoreSpacesCard

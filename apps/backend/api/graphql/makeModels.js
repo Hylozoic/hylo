@@ -2073,6 +2073,30 @@ export default function makeModels (userId, isAdmin, apiClient) {
         createdAt: e => e.get('created_at'),
         updatedAt: e => e.get('updated_at')
       }
+    },
+
+    SiteBanner: {
+      model: SiteBanner,
+      attributes: [
+        'id',
+        'title',
+        'text',
+        'type',
+        'created_at',
+        'updated_at'
+      ],
+      relations: [
+        { creator: { alias: 'creator' } }
+      ],
+      getters: {
+        actionText: b => b.get('action_text'),
+        actionUrl: b => b.get('action_url'),
+        publishedAt: b => b.get('published_at'),
+        unpublishedAt: b => b.get('unpublished_at'),
+        createdAt: b => b.get('created_at'),
+        updatedAt: b => b.get('updated_at'),
+        dismissedCount: b => SiteBanner.dismissedCount(b.get('id'))
+      }
     }
   }
 }
