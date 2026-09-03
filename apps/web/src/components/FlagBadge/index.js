@@ -107,17 +107,21 @@ export function FlagCover ({ post, groupId, onView }) {
   const { t } = useTranslation()
   const reasons = flagReasons(post, groupId, t)
   return (
-    <div className='absolute inset-0 z-10 flex items-center justify-center p-4'>
-      <div className='flex flex-col items-center gap-2 text-center rounded-xl border-2 border-foreground/20 bg-card/95 backdrop-blur-sm shadow-xl px-4 py-3 max-w-[340px]'>
-        <span className={FLAG_DISC_CLASS} aria-hidden='true'>
-          <Flag className='w-3.5 h-3.5' strokeWidth={2.5} fill='currentColor' />
+    <div className='absolute inset-0 z-10 flex items-center justify-center p-2'>
+      {/* One slim bar, not a tall card: the cover should hide as little of the
+          surrounding page as possible — both text lines clamp to one row */}
+      <div className='flex items-center gap-2.5 min-w-0 max-w-full rounded-xl border-2 border-foreground/20 bg-card/95 backdrop-blur-sm shadow-lg px-3 py-1.5'>
+        <span className='shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-destructive text-white' aria-hidden='true'>
+          <Flag className='w-3 h-3' strokeWidth={2.5} fill='currentColor' />
         </span>
-        <div className='text-sm text-foreground/80'>{t('clickthroughExplainer')}</div>
-        <div className='text-xs text-foreground/60'>{reasons}</div>
+        <div className='min-w-0 text-left'>
+          <div className='text-xs font-semibold text-foreground/80 truncate'>{t('clickthroughExplainer')}</div>
+          <div className='text-xs text-foreground/60 truncate'>{reasons}</div>
+        </div>
         <button
           type='button'
           onClick={event => { event.stopPropagation(); onView() }}
-          className='rounded-lg border-2 border-foreground/20 px-3 py-1.5 text-sm font-semibold text-foreground/80 hover:text-foreground hover:border-foreground/40 cursor-pointer transition-colors'
+          className='shrink-0 whitespace-nowrap rounded-lg border-2 border-foreground/20 px-2.5 py-1 text-xs font-semibold text-foreground/80 hover:text-foreground hover:border-foreground/40 cursor-pointer transition-colors'
         >
           {t('View post')}
         </button>
