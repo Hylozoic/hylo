@@ -416,6 +416,17 @@ export function preserveViewLoadedPosts (existingItems, newItems) {
     if (!existing) return newView
 
     const merged = { ...newView }
+    // A just-advanced last-read can lose to an in-flight fetchGroupViews that still
+    // has the old cursor and unread count — keep the newer local position.
+    const existingLastRead = parseInt(existing.lastReadPostId, 10)
+    const incomingLastRead = parseInt(newView.lastReadPostId, 10)
+    if (Number.isFinite(existingLastRead) &&
+        (!Number.isFinite(incomingLastRead) || existingLastRead > incomingLastRead)) {
+      merged.lastReadPostId = existing.lastReadPostId
+      if (existing.newPostCount !== undefined) {
+        merged.newPostCount = existing.newPostCount
+      }
+    }
     if (existing.collectionPosts !== undefined && newView.collectionPosts === undefined) {
       merged.collectionPosts = existing.collectionPosts
     }

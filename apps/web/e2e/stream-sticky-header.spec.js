@@ -8,6 +8,9 @@
 import { expect, test } from '@playwright/test'
 import fs from 'fs'
 import path from 'path'
+import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading.js'
+
+test.describe.configure({ timeout: 120000 })
 
 const screenshotDir = path.resolve(import.meta.dirname, 'screenshots')
 const GROUP_PATH = '/groups/e2e-public-group/all'
@@ -20,7 +23,9 @@ test('stream header stays pinned while the stream scrolls', async ({ page }) => 
   await page.setViewportSize({ width: 1280, height: 500 })
 
   await page.goto(GROUP_PATH)
-  await page.waitForLoadState('networkidle')
+  // Hylo keeps GraphQL/websocket traffic alive, so networkidle never settles.
+  await waitPastRootSessionLoading(page)
+  await expect(page.locator('#stream-outer-container')).toBeVisible({ timeout: 60000 })
 
   // Dismiss the cookie banner so it doesn't sit over the stream in the shots
   const cookieButton = page.getByRole('button', { name: /Reject Non-Essential/i })

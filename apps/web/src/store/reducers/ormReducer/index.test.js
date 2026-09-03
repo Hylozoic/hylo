@@ -10,6 +10,7 @@ import {
   FETCH_FOR_GROUP_PENDING,
   FETCH_NOTIFICATIONS,
   MARK_ACTIVITY_READ_PENDING,
+  MARK_VIEW_AS_READ,
   MARK_ALL_ACTIVITIES_READ_PENDING,
   TOGGLE_GROUP_TOPIC_SUBSCRIBE_PENDING,
   UPDATE_COMMENT_PENDING,
@@ -489,6 +490,38 @@ describe('on UPDATE_USER_SETTINGS_PENDING', () => {
       dmNotifications: 'both',
       commentNotifications: 'email'
     })
+  })
+})
+
+describe('on MARK_VIEW_AS_READ', () => {
+  const session = orm.session(orm.getEmptyState())
+  session.Group.create({
+    id: '1',
+    slug: 'space',
+    groupViews: {
+      items: [
+        { id: 'discussions-1', type: 'discussions', newPostCount: 4 }
+      ]
+    }
+  })
+
+  it('zeros newPostCount even when the payload still has a stale unread count', () => {
+    const newState = ormReducer(session.state, {
+      type: MARK_VIEW_AS_READ,
+      payload: {
+        data: {
+          markViewAsRead: {
+            id: 'discussions-1',
+            lastReadPostId: '99',
+            newPostCount: 4
+          }
+        }
+      },
+      meta: { id: 'discussions-1', groupId: '1' }
+    })
+    const group = orm.session(newState).Group.withId('1')
+    expect(group.groupViews.items[0].newPostCount).toEqual(0)
+    expect(group.groupViews.items[0].lastReadPostId).toEqual('99')
   })
 })
 

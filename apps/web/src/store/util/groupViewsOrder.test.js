@@ -84,6 +84,26 @@ describe('preserveViewLoadedPosts', () => {
     expect(merged[0].linkedGroup.visibility).toBe(0)
     expect(merged[0].linkedGroup.groupViews.items).toEqual([{ id: 'v1', type: 'chat', order: 0 }])
   })
+
+  it('keeps a newer local last-read when a stale views fetch returns an older cursor', () => {
+    const existing = [{
+      id: 'chat',
+      type: 'chat',
+      lastReadPostId: '108579',
+      newPostCount: 0
+    }]
+    const refreshed = [{
+      id: 'chat',
+      type: 'chat',
+      lastReadPostId: '108578',
+      newPostCount: 1
+    }]
+
+    const merged = preserveViewLoadedPosts(existing, refreshed)
+
+    expect(merged[0].lastReadPostId).toBe('108579')
+    expect(merged[0].newPostCount).toBe(0)
+  })
 })
 
 describe('setGroupViewHiddenInMenu', () => {

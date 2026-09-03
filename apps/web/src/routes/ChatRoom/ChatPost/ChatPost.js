@@ -1,7 +1,7 @@
 import { filter, isEmpty, isFunction, pick } from 'lodash/fp'
 import { BookmarkCheck, Bookmark, Check, Flag, MessageCircle, Pencil, Pin, PinOff, Trash2, X } from 'lucide-react'
 import { DateTimeHelpers, MAX_PINNED_POSTS_PER_VIEW } from '@hylo/shared'
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
@@ -47,9 +47,14 @@ const COLLAPSE_SLACK = 40
 // Fade the clipped text itself rather than painting a gradient over it: the
 // row's background shifts between default, hover and highlighted states
 const COLLAPSED_DETAILS_FADE = 'linear-gradient(to bottom, black calc(100% - 40px), transparent)'
-const collapsedDetailsStyle = {
+// Always clip until expanded so Virtuoso measures the collapsed height on first
+// paint. Measuring full height and then collapsing fights atBottom / shortSizeAlign
+// in a loop at the bottom of the list.
+const clippedDetailsStyle = {
   maxHeight: MAX_COLLAPSED_DETAILS_HEIGHT,
-  overflow: 'hidden',
+  overflow: 'hidden'
+}
+const collapsedDetailsFadeStyle = {
   maskImage: COLLAPSED_DETAILS_FADE,
   WebkitMaskImage: COLLAPSED_DETAILS_FADE
 }
@@ -114,8 +119,10 @@ export default function ChatPost ({
   const showFeaturedVideo = linkPreviewFeatured && isPlayableVideoUrl(previewUrl)
 
   // Measure rather than count characters: what matters is the height on screen,
-  // which shifts with images, embeds and the reader's chosen stream width
-  useEffect(() => {
+  // which shifts with images, embeds and the reader's chosen stream width.
+  // useLayoutEffect so See More is decided before paint — the clip itself is
+  // already on from the first render (see clippedDetailsStyle).
+  useLayoutEffect(() => {
     const element = detailsRef.current
     if (!element) return
     const measure = () => setDetailsOverflowing(element.offsetHeight > MAX_COLLAPSED_DETAILS_HEIGHT + COLLAPSE_SLACK)
@@ -309,8 +316,9 @@ export default function ChatPost ({
     }
   }, [])
 
-  const handleActionItemClick = useCallback((onClick) => () => {
-    onClick()
+  const handleActionItemClick = useCallback((onClick) => (event) => {
+    event.stopPropagation()
+    onClick(event)
   }, [])
 
   return (
@@ -432,8 +440,13 @@ export default function ChatPost ({
               {/* break-words: an unbroken run (a long URL, a keysmash) must wrap rather
                   than widen the message container — visible mostly on phone widths */}
               <div
+                data-testid='chat-post-details'
                 className={cn('ml-[42px] max-w-[calc(var(--chat-stream-width,750px)-50px)] cursor-text select-text break-words', { 'blur-sm': isFlagged })}
-                style={detailsOverflowing && !detailsExpanded ? collapsedDetailsStyle : undefined}
+                style={!detailsExpanded
+                  ? (detailsOverflowing
+                      ? { ...clippedDetailsStyle, ...collapsedDetailsFadeStyle }
+                      : clippedDetailsStyle)
+                  : undefined}
               >
                 {/* Inner wrapper stays unclipped so its height is the message's true height */}
                 <div ref={detailsRef}>

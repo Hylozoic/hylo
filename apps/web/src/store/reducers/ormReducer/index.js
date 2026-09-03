@@ -702,13 +702,13 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     case MARK_VIEW_AS_READ: {
       const readView = payload?.data?.markViewAsRead
       if (!readView?.id) break
+      // markRead always zeros the count. Do not write a stale server value back
+      // (cached GroupViewUser DataLoader used to return the pre-mark count).
       updateGroupViewInAllMenus(Group.all(), readView.id, {
         lastReadPostId: readView.lastReadPostId,
-        newPostCount: readView.newPostCount ?? 0
+        newPostCount: 0
       })
-      if ((readView.newPostCount ?? 0) === 0) {
-        clearMembershipIfMenuHasNoUnread(session, meta.groupId)
-      }
+      clearMembershipIfMenuHasNoUnread(session, meta.groupId)
       break
     }
 
