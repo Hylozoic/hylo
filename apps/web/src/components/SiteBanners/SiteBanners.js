@@ -112,7 +112,7 @@ export default function SiteBanners () {
                   )
               )}
             >
-              <div className='p-4 sm:p-5'>
+              <div className='p-4 sm:p-5 pt-2.5 sm:pt-3'>
                 {/* Logo and Close oppose each other on the header row */}
                 <div className='flex items-center justify-between'>
                   <img className='h-5 sm:h-6' src={logoSrc} alt={t('Hylo logo')} />
@@ -138,8 +138,8 @@ export default function SiteBanners () {
                 {banner.actionText && banner.actionUrl && (
                   <div className='flex justify-end mt-4'>
                     <Button
-                      variant='secondary'
                       size='sm'
+                      className='bg-selected text-foreground font-bold hover:bg-selected/85'
                       onClick={() => handleAction(banner)}
                     >
                       {banner.actionText}
