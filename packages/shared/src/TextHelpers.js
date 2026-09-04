@@ -161,7 +161,9 @@ export function humanDate (date, short) {
 }
 
 export function isDateInTheFuture (date) {
-  return typeof date === 'string' ? DateTime.fromISO(date) : DateTime.fromJSDate(date) > DateTime.now()
+  // NOTE: the parens matter, without them the ternary swallows the comparison and
+  // a string date returns a (always truthy) DateTime instead of a boolean
+  return (typeof date === 'string' ? DateTime.fromISO(date) : DateTime.fromJSDate(date)) > DateTime.now()
 }
 
 /**
