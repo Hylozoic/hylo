@@ -2,10 +2,11 @@
  * Visual verification for the one-column dashboard card redesign:
  * postType-colored cards with staggered icon-field backgrounds.
  *
- * Run: node scripts/run-isolated-e2e.js dashboard-cards --project=chromium
+ * Uses the seeded one-column group (`e2e-one-column-group`) instead of
+ * toggling the shared E2E user's Card Menu preference — that mutation raced
+ * parallel suites onto one-column and broke ContextMenu-dependent tests.
  *
- * IMPORTANT: toggling Card Menu persists on the shared E2E user. Always reset
- * to Group Default in `finally` so parallel/authenticated suites stay two-column.
+ * Run: node scripts/run-isolated-e2e.js dashboard-cards --project=chromium
  */
 import { test, expect } from '@playwright/test'
 import fs from 'fs'
@@ -16,19 +17,6 @@ const screenshotDir = path.resolve(import.meta.dirname, 'screenshots')
 const uiTimeout = { timeout: 60000 }
 
 test.describe.configure({ timeout: 120000 })
-
-/**
- * Persists the user's group menu style from /my/appearance.
- */
-async function setGroupNavStyle (page, ariaLabel) {
-  await page.goto('/my/appearance')
-  await waitPastRootSessionLoading(page)
-  const button = page.getByRole('button', { name: ariaLabel })
-  await button.waitFor({ state: 'visible', timeout: 60000 })
-  await button.click()
-  // let the updateMe mutation persist
-  await page.waitForTimeout(1000)
-}
 
 test('two-column menu active row styling', async ({ page }) => {
   test.skip(test.info().project.name === 'mobile-chrome', 'two-column sidebar is desktop-only')
@@ -74,40 +62,26 @@ test('two-column menu active row styling', async ({ page }) => {
 test('one-column dashboard cards', async ({ page }) => {
   fs.mkdirSync(screenshotDir, { recursive: true })
 
-  try {
-    // Force the card menu for this user so any group renders one-column
-    await setGroupNavStyle(page, 'Card Menu')
+  // Group settings.layout=one-column — no shared-user preference mutation
+  await page.goto('/groups/e2e-one-column-group')
+  await waitPastRootSessionLoading(page)
+  await page.locator('text=Loading views').waitFor({ state: 'detached', timeout: 20000 }).catch(() => {})
 
-    await page.goto('/groups/e2e-public-group')
-    await waitPastRootSessionLoading(page)
-    // wait for the group views to load and cards to render
-    await page.locator('text=Loading views').waitFor({ state: 'detached', timeout: 20000 }).catch(() => {})
+  const firstCard = page.locator('.ContextMenuGrid [role="button"]').first()
+  await expect(firstCard).toBeVisible(uiTimeout)
 
-    const firstCard = page.locator('.ContextMenuGrid [role="button"]').first()
-    await expect(firstCard).toBeVisible(uiTimeout)
+  await page.screenshot({
+    path: path.resolve(screenshotDir, 'dashboard-cards.png'),
+    fullPage: true
+  })
+  console.log('Screenshot saved: dashboard-cards.png')
 
-    await page.screenshot({
-      path: path.resolve(screenshotDir, 'dashboard-cards.png'),
-      fullPage: true
-    })
-    console.log('Screenshot saved: dashboard-cards.png')
-
-    // Hover a card to capture the colored ring + lift state
-    await firstCard.hover()
-    await page.waitForTimeout(300)
-    await page.screenshot({
-      path: path.resolve(screenshotDir, 'dashboard-cards-hover.png'),
-      fullPage: false
-    })
-    console.log('Screenshot saved: dashboard-cards-hover.png')
-  } finally {
-    // Reset shared E2E user so other suites keep two-column / Side Menu behavior
-    try {
-      if (!page.isClosed()) {
-        await setGroupNavStyle(page, 'Group Default')
-      }
-    } catch {
-      // Browser already closed after a timeout; seed user defaults to group-default.
-    }
-  }
+  // Hover a card to capture the colored ring + lift state
+  await firstCard.hover()
+  await page.waitForTimeout(300)
+  await page.screenshot({
+    path: path.resolve(screenshotDir, 'dashboard-cards-hover.png'),
+    fullPage: false
+  })
+  console.log('Screenshot saved: dashboard-cards-hover.png')
 })

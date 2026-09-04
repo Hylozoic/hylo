@@ -30,7 +30,9 @@ test('deep link to a space in a two-column group resolves', async ({ page }) => 
   await expect(page.locator('#center-column-container')).toBeVisible({ timeout: 60000 })
   await expect(page.getByTestId('loading-container')).toHaveCount(0, { timeout: 30000 })
   await expect(page).toHaveURL(/\/groups\/e2e-public-group\/spaces\/e2e-test-space(\/.*)?$/, { timeout: 30000 })
-  await expect(page.getByText('E2E Test Space').first()).toBeVisible({ timeout: 30000 })
+  // SpaceMenuHeader uses a div for the name (not a heading); avoid getByText().first()
+  // which can match a hidden breadcrumb duplicate ahead of the visible title.
+  await expect(page.locator('.SpaceMenuHeader').getByText('E2E Test Space')).toBeVisible({ timeout: 30000 })
   await expect(page.getByRole('link', { name: /Signup or Login/i })).toHaveCount(0)
 
   await page.screenshot({

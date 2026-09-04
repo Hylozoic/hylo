@@ -18,19 +18,17 @@ test('space menu header shows icon box, pills, X close, and hover-reveal cover',
   test.setTimeout(120000)
   fs.mkdirSync(screenshotDir, { recursive: true })
 
-  await page.goto('/groups/e2e-public-group/more-spaces')
+  // Open space menu state via ?space= — clicking a More Spaces card navigates to the
+  // space home view (spaceEntryUrl), which does not mount .SpaceMenuHeader the same way.
+  await page.goto('/groups/e2e-public-group/more-spaces?space=e2e-test-space')
   await waitPastRootSessionLoading(page)
-  // The default off-menu section has no heading (only Tracks / Funding Rounds / Drafts do).
-  const card = page.getByRole('button', { name: /E2E Test Space/ }).first()
-  await expect(card).toBeVisible({ timeout: 60000 })
+
+  const spaceHeader = page.locator('.SpaceMenuHeader')
+  await spaceHeader.waitFor({ state: 'visible', timeout: 60000 })
 
   await page.screenshot({
     path: path.resolve(screenshotDir, 'space-menu-0-more-spaces.png')
   })
-
-  await card.click()
-  const spaceHeader = page.locator('.SpaceMenuHeader')
-  await spaceHeader.waitFor({ state: 'visible' })
 
   await expect(page.getByTestId('group-header').getByLabel('Back')).toBeVisible()
   await expect(spaceHeader.getByRole('link', { name: /member/i })).toBeVisible()
