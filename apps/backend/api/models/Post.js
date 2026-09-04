@@ -12,6 +12,7 @@ import { postRoom, pushToSockets } from '../services/Websockets'
 import { fulfill, unfulfill } from './post/fulfillPost'
 import { decrementNewPostCount } from './post/deletePost'
 import { incrementNewPostCount } from './post/createPost'
+import rehostAndAttachImages from './post/rehostAndAttachImages'
 import upsertChatActivityNoticeForPost from './post/upsertChatActivityNotice'
 import EnsureLoad from './mixins/EnsureLoad'
 import { countTotal } from '../../lib/util/knex'
@@ -1283,6 +1284,13 @@ module.exports = bookshelf.Model.extend(Object.assign({
         AND end_time IS NOT NULL;`
     )
   },
+
+  /**
+   * Downloads remote image URLs (e.g. Airtable attachments), stores them on S3,
+   * and attaches them to the post. Queued from create/update so Zapier is not
+   * blocked by large downloads.
+   */
+  rehostAndAttachImages,
 
   /**
    * Fetches Open Graph metadata for a URL in a newly created post and attaches

@@ -236,3 +236,96 @@ describe('createPost accepted_post_types', () => {
     })
   })
 })
+
+describe('createPost imageUrls', () => {
+  let user, group
+  const hostedUrl = 'https://cdn.hylo.com/evo-uploads/user/1/post/new/hosted.png'
+  const remoteUrl = 'https://v5.airtableusercontent.com/v1/foo/photo.jpg'
+
+  before(() =>
+    setup.clearDb()
+      .then(() => Promise.props({
+        u: new User({ name: 'U1', email: 'img@b.c', active: true }).save(),
+        g: new Group({ slug: 'img-group', name: 'Img Group' }).save()
+      }))
+      .then(props => {
+        user = props.u
+        group = props.g
+        return user.joinGroup(group)
+      })
+  )
+
+  beforeEach(() => {
+    mockify(Queue, 'classMethod', () => Promise.resolve())
+  })
+
+  afterEach(() => unspyify(Queue, 'classMethod'))
+
+  it('attaches already-hosted Hylo URLs and does not queue a rehost job', async () => {
+    stubGetImageSize(hostedUrl)
+    const created = await createPost(user.id, {
+      name: 'With hosted image',
+      group_ids: [group.id],
+      imageUrls: [hostedUrl]
+    })
+
+    await created.load('media')
+    const images = created.relations.media.filter(m => m.get('type') === 'image')
+    expect(images.length).to.equal(1)
+    expect(images[0].get('url')).to.equal(hostedUrl)
+    expect(Queue.classMethod).not.to.have.been.called.with('Post', 'rehostAndAttachImages')
+  })
+
+  it('queues remote URLs and does not store them as media on create', async () => {
+    const created = await createPost(user.id, {
+      name: 'With remote image',
+      group_ids: [group.id],
+      imageUrls: [remoteUrl]
+    })
+
+    await created.load('media')
+    expect(created.relations.media.length).to.equal(0)
+    expect(Queue.classMethod).to.have.been.called.with('Post', 'rehostAndAttachImages', {
+      postId: created.id,
+      userId: user.id,
+      imageUrls: [remoteUrl],
+      startPosition: 0
+    }, 0)
+  })
+
+  it('attaches hosted URLs immediately and queues remaining remote URLs', async () => {
+    stubGetImageSize(hostedUrl)
+    const created = await createPost(user.id, {
+      name: 'Mixed images',
+      group_ids: [group.id],
+      imageUrls: [hostedUrl, remoteUrl]
+    })
+
+    await created.load('media')
+    const images = created.relations.media.filter(m => m.get('type') === 'image')
+    expect(images.length).to.equal(1)
+    expect(images[0].get('url')).to.equal(hostedUrl)
+    expect(Queue.classMethod).to.have.been.called.with('Post', 'rehostAndAttachImages', {
+      postId: created.id,
+      userId: user.id,
+      imageUrls: [remoteUrl],
+      startPosition: 1
+    }, 0)
+  })
+
+  it('queues every remote URL when several are passed', async () => {
+    const secondRemote = 'https://upload.wikimedia.org/wikipedia/commons/cow.jpg'
+    const created = await createPost(user.id, {
+      name: 'Two remotes',
+      group_ids: [group.id],
+      imageUrls: [remoteUrl, secondRemote]
+    })
+
+    expect(Queue.classMethod).to.have.been.called.with('Post', 'rehostAndAttachImages', {
+      postId: created.id,
+      userId: user.id,
+      imageUrls: [remoteUrl, secondRemote],
+      startPosition: 0
+    }, 0)
+  })
+})
