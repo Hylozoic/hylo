@@ -110,6 +110,10 @@ export default function makeModels (userId, isAdmin, apiClient) {
     return ids.map(id => byId.get(String(id)) || null)
   }, { cacheKeyFn: id => String(id) })
 
+  // cache: false — makeSchema reuses this executable schema (and these loaders)
+  // across requests. A cached new_post_count after markViewAsRead made the
+  // mutation return the old unread count, which the web app treated as still
+  // unread and fired markViewAsRead in a loop.
   const groupViewUserLoader = new DataLoader(async (viewIds) => {
     if (!userId) return viewIds.map(() => null)
     const rows = await bookshelf.knex('group_views_users')
@@ -118,7 +122,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
       .select('view_id', 'new_post_count', 'last_read_post_id')
     const byView = new Map(rows.map(row => [String(row.view_id), row]))
     return viewIds.map(id => byView.get(String(id)) || null)
-  }, { cacheKeyFn: id => String(id) })
+  }, { cache: false, cacheKeyFn: id => String(id) })
 
   const pinnedPostIdsLoader = new DataLoader(async (viewIds) => {
     const rows = await bookshelf.knex('group_view_pins')
@@ -621,7 +625,10 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'locationObject',
         { members: { querySet: true } },
         { eventInvitations: { querySet: true } },
-        { moderationActions: { querySet: true } },
+        // Plain list, matching the schema's [ModerationAction] — a querySet
+        // here makes every query selecting the field fail with
+        // "Expected Iterable" before any resolver output reaches the client
+        'moderationActions',
         { proposalOptions: { querySet: true } },
         { proposalVotes: { querySet: true } },
         'linkPreview',
@@ -1546,6 +1553,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'max_token_allocation',
         'min_token_allocation',
         'require_budget',
+        'show_realtime_votes',
         'submission_descriptor_plural',
         'submission_descriptor',
         'submissions_close_at',
@@ -2067,6 +2075,30 @@ export default function makeModels (userId, isAdmin, apiClient) {
         userId: e => e.get('user_id'),
         createdAt: e => e.get('created_at'),
         updatedAt: e => e.get('updated_at')
+      }
+    },
+
+    SiteBanner: {
+      model: SiteBanner,
+      attributes: [
+        'id',
+        'title',
+        'text',
+        'type',
+        'created_at',
+        'updated_at'
+      ],
+      relations: [
+        { creator: { alias: 'creator' } }
+      ],
+      getters: {
+        actionText: b => b.get('action_text'),
+        actionUrl: b => b.get('action_url'),
+        publishedAt: b => b.get('published_at'),
+        unpublishedAt: b => b.get('unpublished_at'),
+        createdAt: b => b.get('created_at'),
+        updatedAt: b => b.get('updated_at'),
+        dismissedCount: b => SiteBanner.dismissedCount(b.get('id'))
       }
     }
   }

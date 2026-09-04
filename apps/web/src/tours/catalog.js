@@ -4,7 +4,6 @@ import { MENU_EDIT_TOUR_ID, menuEditTourSteps } from './menuEditTour'
 import { POST_EDITOR_TOUR_ID, postEditorTourSteps } from './postEditorTour'
 import { MAP_TOUR_ID, mapTourSteps } from './mapTour'
 import { STREAM_TOUR_ID, streamTourSteps } from './streamTour'
-import { CHAT_TOUR_ID, chatTourSteps } from './chatTour'
 import { GROUP_SETTINGS_TOUR_ID, groupSettingsTourSteps } from './groupSettingsTour'
 import { SPACE_CREATE_TOUR_ID, spaceCreateTourSteps } from './spaceCreateTour'
 import { TRACK_SETUP_TOUR_ID, trackSetupTourSteps } from './trackSetupTour'
@@ -24,7 +23,6 @@ export function tourCatalog (t) {
     { id: MENU_EDIT_TOUR_ID, title: t('Edit the menu'), steps: menuEditTourSteps(t) },
     { id: POST_EDITOR_TOUR_ID, title: t('Create a post'), steps: postEditorTourSteps(t) },
     { id: STREAM_TOUR_ID, title: t('The stream'), steps: streamTourSteps(t) },
-    { id: CHAT_TOUR_ID, title: t('Chat rooms'), steps: chatTourSteps(t) },
     { id: MAP_TOUR_ID, title: t('The map'), steps: mapTourSteps(t) },
     { id: GROUP_SETTINGS_TOUR_ID, title: t('Group settings'), steps: groupSettingsTourSteps(t) },
     { id: SPACE_CREATE_TOUR_ID, title: t('Create a space'), steps: spaceCreateTourSteps(t) },

@@ -28,10 +28,6 @@ test('members page: counts, hidden empty roles, stable map, padding', async ({ p
   await page.getByTestId('skill-map-toggle').click()
   const graph = page.getByTestId('member-skills-graph')
   await expect(graph).toBeVisible({ timeout: 60000 })
-  const openMap = graph.getByTestId('skills-open-map-button')
-  if (await openMap.isVisible().catch(() => false)) {
-    await openMap.click()
-  }
   await expect(graph.locator('canvas')).toBeVisible({ timeout: 30000 })
 
   await page.evaluate(() => {

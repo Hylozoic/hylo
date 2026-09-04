@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import ManagementContextMenu from './ManagementContextMenu'
 import StagingEmailTesters from './StagingEmailTesters'
 import StripeAnalytics from './StripeAnalytics/StripeAnalytics'
+import SiteBanners from './SiteBanners/SiteBanners'
 
 export default function Management () {
   return (
@@ -12,6 +13,7 @@ export default function Management () {
         <Routes>
           <Route path='staging/email-testers' element={<StagingEmailTesters />} />
           <Route path='paid-content/stripe-analytics' element={<StripeAnalytics />} />
+          <Route path='site/banners' element={<SiteBanners />} />
           <Route path='' element={<Navigate to='staging/email-testers' replace />} />
         </Routes>
       </div>

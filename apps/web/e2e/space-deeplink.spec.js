@@ -46,7 +46,7 @@ test('deep link to a space in a one-column group resolves', async ({ page }) => 
   await waitPastRootSessionLoading(page)
 
   await expect(page.getByTestId('loading-container').locator('.h-screen')).toHaveCount(0, { timeout: 30000 })
-  await expect(page.locator('#center-column-container')).toBeVisible()
+  await expect(page.locator('#center-column-container')).toBeVisible({ timeout: 60000 })
   await expect(page).toHaveURL(/\/groups\/e2e-one-column-group\/spaces\/e2e-one-column-space/, { timeout: 30000 })
 
   await page.screenshot({

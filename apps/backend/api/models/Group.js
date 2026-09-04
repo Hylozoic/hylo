@@ -1729,7 +1729,7 @@ module.exports = bookshelf.Model.extend(merge({
    * Group id whose groups_roles / role assignments apply for this group.
    * Spaces use parent_id; top-level groups use their own id.
    */
-  async roleScopeId (groupOrId) {
+  async roleScopeId (groupOrId, { transacting } = {}) {
     const groupId = groupOrId instanceof Group ? groupOrId.id : groupOrId
     if (!groupId) return groupId
     if (groupOrId instanceof Group && groupOrId.get('parent_id') != null) {
@@ -1738,7 +1738,9 @@ module.exports = bookshelf.Model.extend(merge({
     if (groupOrId instanceof Group && groupOrId.has('parent_id')) {
       return groupOrId.id
     }
-    const row = await bookshelf.knex('groups').where('id', groupId).select('id', 'parent_id').first()
+    let query = bookshelf.knex('groups').where('id', groupId).select('id', 'parent_id')
+    if (transacting) query = query.transacting(transacting)
+    const row = await query.first()
     if (!row) return groupId
     return row.parent_id || row.id
   },

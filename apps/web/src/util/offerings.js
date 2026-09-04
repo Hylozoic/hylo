@@ -2,6 +2,8 @@
  * Utility functions for working with Stripe offerings
  */
 
+import { isSandboxMode } from 'sandbox/isSandbox'
+
 /**
  * Creates a Stripe checkout session for an offering
  *
@@ -22,6 +24,10 @@ export async function createStripeCheckoutSession ({
   cancelUrl,
   metadata = {}
 }) {
+  if (isSandboxMode()) {
+    throw new Error('Not available in the demo')
+  }
+
   const mutation = `
     mutation ($groupId: ID!, $offeringId: ID!, $quantity: Int, $successUrl: String!, $cancelUrl: String!, $metadata: JSON) {
       createStripeCheckoutSession(

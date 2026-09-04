@@ -34,7 +34,10 @@ async function openFromMoreSpaces (page) {
 
 /** On-menu: the sidebar menu's Add control, then its Add Space item. */
 async function openFromMenu (page) {
-  await page.getByRole('button', { name: 'Add to Menu' }).first().click()
+  const addToMenu = page.getByRole('button', { name: 'Add to Menu' }).first()
+  await addToMenu.scrollIntoViewIfNeeded()
+  await expect(addToMenu).toBeVisible({ timeout: 60000 })
+  await addToMenu.click()
   await page.getByText('Add Space', { exact: true }).click()
   return awaitDialogHeading(page)
 }

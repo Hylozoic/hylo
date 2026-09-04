@@ -5,6 +5,7 @@ exports.hi = {
   clientInviteMessageDefault: ({ userName, groupName }) => `नमस्ते ${userName}, <br><br> हम आपको अपने समुदाय में स्वागत करते हुए प्रसन्न हैं। Hylo पर ${groupName} में शामिल होने के लिए नीचे क्लिक करें।`,
   CreatorEmail: () => 'निर्माता ईमेल',
   createInvitationSubject: (name) => `Hylo पर ${name} में मेरे साथ जुड़ें!`,
+  createInvitationMessage: (name) => `हाय!\n\nमैं आपको Hylo पर ${name} से जुड़ने के लिए आमंत्रित कर रहा हूँ।\n\n${name} हमारी ऑनलाइन समुदाय के लिए Hylo का उपयोग कर रहा है: यह संचार और सहयोग के लिए हमारी समर्पित जगह है।`,
   CreatorName: () => 'निर्माता का नाम',
   CreatorURL: () => 'निर्माता URL',
   Group: () => 'समूह',

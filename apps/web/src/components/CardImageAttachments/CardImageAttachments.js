@@ -52,6 +52,9 @@ export default function CardImageAttachments ({
 
   const openModal = (e) => {
     if (className === 'post-card') return
+    // A flagged image stays sealed: no lightbox until the viewer acknowledges
+    // the flag cover (which clears isFlagged via clickthrough)
+    if (isFlagged) return
     // Opening the lightbox must not also trigger surrounding click-to-open
     // handlers (a chat post opens its detail view on container clicks)
     e?.stopPropagation?.()

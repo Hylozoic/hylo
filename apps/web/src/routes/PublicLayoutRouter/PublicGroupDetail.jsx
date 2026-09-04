@@ -27,21 +27,26 @@ export default function PublicGroupDetail (props) {
   const hasInvitationParams = !!(accessCode || invitationToken)
 
   useEffect(() => {
-    (async () => {
+    let cancelled = false
+    ;(async () => {
       setLoading(true)
-      // Pass invitation params to allow fetching restricted/hidden groups
-      const result = await dispatch(checkIsGroupViewable(groupSlug, { accessCode, invitationToken }))
-      const groupData = result?.payload?.data?.group
-      const isPublicGroup = groupData?.visibility === 2
-
-      // Allow access if group is public OR if we have valid invitation params and group was returned
-      if (!isPublicGroup && !(hasInvitationParams && groupData)) {
-        navigate('/login?returnToUrl=' + location.pathname + location.search, { replace: true })
+      const loginPath = '/login?returnToUrl=' + encodeURIComponent(location.pathname + location.search)
+      try {
+        const result = await dispatch(checkIsGroupViewable(groupSlug, { accessCode, invitationToken }))
+        if (cancelled) return
+        const groupData = result?.payload?.data?.group ?? result?.payload?.getData?.()
+        const isPublicGroup = groupData?.visibility === 2
+        if (!isPublicGroup && !(hasInvitationParams && groupData)) {
+          navigate(loginPath, { replace: true })
+          return
+        }
+        setLoading(false)
+      } catch {
+        if (!cancelled) navigate(loginPath, { replace: true })
       }
-
-      setLoading(false)
     })()
-  }, [groupSlug, location.pathname, location.search, accessCode, invitationToken, hasInvitationParams])
+    return () => { cancelled = true }
+  }, [groupSlug, location.pathname, location.search, accessCode, invitationToken, hasInvitationParams, dispatch, navigate])
 
   if (loading) {
     return <Loading />

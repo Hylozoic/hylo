@@ -364,9 +364,9 @@ export function matchNewPostIntoQueryResults (state, { id, isPublic, type, group
     }, memo, queriesToMatch)
   }, state, groups)
 
-  // Typed views (`types` array), All Activity (`filter: all+notices`) and the
-  // group/space chat rooms are not covered by the explicit queriesToMatch list:
-  // their keys carry params (`first`, no `topic`) the templates above omit.
+  // Typed views (`types` array), All Activity, and group/space chat rooms are
+  // not covered by the explicit queriesToMatch list: their keys carry params
+  // (`first`, `groupId`) the templates above omit.
   // Move an existing id to the front when the same chat_activity hour bucket is updated.
   return mapValues(updatedState, (results, key) => {
     if (!results?.ids) return results
@@ -384,8 +384,17 @@ export function matchNewPostIntoQueryResults (state, { id, isPublic, type, group
     }
 
     const matchesTypes = params.types?.includes(type)
-    const isAllActivity = params.filter === 'all+notices'
-    if (!matchesTypes && !isAllActivity) return results
+    // Show chat activity ON → filter is all+notices (includes chat_activity cards)
+    const isAllActivityWithNotices = params.filter === 'all+notices'
+    // Show chat activity OFF → no filter and no types, same as the server's
+    // blank / "all" streamTypes query. Notices must not land here.
+    const isAllActivityWithoutNotices = type !== 'chat_activity' &&
+      (!params.filter || params.filter === 'all') &&
+      !params.types?.length &&
+      !params.topic &&
+      !params.topics?.length &&
+      !params.forCollection
+    if (!matchesTypes && !isAllActivityWithNotices && !isAllActivityWithoutNotices) return results
     return moveIdToFront(results, id)
   })
 }

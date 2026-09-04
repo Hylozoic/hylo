@@ -237,7 +237,9 @@ test.describe('email password login (cold storage)', () => {
     await expect(page.locator('#email')).toBeVisible(uiTimeout)
     await page.locator('#email').fill('e2e.user@hylo.test')
     await page.locator('#password').fill('e2e-password-123')
-    await page.getByRole('button', { name: /sign\s*in/i }).click()
+    const signIn = page.getByRole('button', { name: /sign\s*in/i })
+    await expect(signIn).toBeEnabled({ timeout: 15000 })
+    await signIn.click()
     await expect(page.locator('#center-column-container')).toBeVisible({ timeout: 120000 })
   })
 

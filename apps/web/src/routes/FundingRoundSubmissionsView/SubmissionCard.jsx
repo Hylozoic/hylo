@@ -59,6 +59,13 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
     return [...submissionAllocations].sort((a, b) => (b?.tokensAllocated || 0) - (a?.tokensAllocated || 0))
   }, [submissionAllocations])
   const hasAllocations = sortedAllocations.length > 0
+  const realtimeTotalVotes = useMemo(() => {
+    const others = (post.totalTokensAllocated || 0) - (post.tokensAllocated || 0)
+    const currentVote = typeof localVoteAmount === 'number'
+      ? localVoteAmount
+      : (parseInt(localVoteAmount, 10) || 0)
+    return Math.max(0, others + currentVote)
+  }, [post.totalTokensAllocated, post.tokensAllocated, localVoteAmount])
 
   const deletePostWithConfirm = useCallback(() => {
     if (window.confirm(t('Are you sure you want to delete this {{submissionDescriptor}}? You cannot undo this.', { submissionDescriptor: round?.submissionDescriptor }))) {
@@ -262,6 +269,11 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
           {!round.allowSelfVoting && parseInt(post.creator.id) === parseInt(currentUser?.id) && (
             <span className='text-xs text-foreground/60 text-center max-w-[100px] sm:max-w-[120px] leading-tight'>
               {t('Cannot vote on your own submission')}
+            </span>
+          )}
+          {round.showRealtimeVotes && (
+            <span className='text-[11px] text-foreground/60 text-center leading-tight'>
+              {t('Total Votes: {{count}}', { count: realtimeTotalVotes })}
             </span>
           )}
         </div>

@@ -1,6 +1,6 @@
 import { cn, bgImageStyle } from 'util/index'
 import { isDrawerNavLayout } from 'util/mobile'
-import { Info, Settings, Users, Pencil, X, CircleEllipsis, ChevronLeft, Search, UserPlus } from 'lucide-react'
+import { Info, Settings, Users, Pencil, X, CircleEllipsis, ChevronLeft, Search, ShieldCheck, UserPlus } from 'lucide-react'
 import React, { useMemo, useRef, useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
@@ -23,7 +23,7 @@ import { menuViewUrl, spaceEntryUrl, isParentGroupPath } from './groupViewMenuUr
 import { logoutFromMobileWebView } from 'util/webView'
 import logout from 'store/actions/logout'
 import { DEFAULT_BANNER, DEFAULT_AVATAR } from 'store/models/Group'
-import { RESP_ADMINISTRATION, RESP_ADD_MEMBERS, FETCH_GROUP_SPACES, FETCH_GROUP_VIEWS } from 'store/constants'
+import { RESP_ADMINISTRATION, RESP_ADD_MEMBERS, RESP_MANAGE_CONTENT, FETCH_GROUP_SPACES, FETCH_GROUP_VIEWS } from 'store/constants'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import getMe from 'store/selectors/getMe'
@@ -77,8 +77,9 @@ import EditingBottomBar, { EDITING_BAR_BUTTON_CLASS } from './EditingBottomBar'
 import getPreviousLocation from 'store/selectors/getPreviousLocation'
 import { appendSpaceId, spaceCollectionViews } from 'util/spaceCollection'
 
-/** Synthetic view so the More Spaces card can use the same icon wallpaper as real views. */
+/** Synthetic views so steward-alert and More Spaces cards share the icon wallpaper of real views. */
 const MORE_SPACES_VIEW = { lucideIcon: 'CircleEllipsis' }
+const MODERATION_VIEW = { lucideIcon: 'ShieldCheck' }
 const JOIN_REQUESTS_VIEW = { lucideIcon: 'UserPlus' }
 
 /**
@@ -123,7 +124,7 @@ function partitionViewsIntoSections (views) {
  * the full group banner (220px), so the takeover swaps hierarchy without
  * moving the grid below.
  */
-function SpaceBannerHeader ({ group, spaceGroup, canAdminister, onOpenSettings, navigate, t }) {
+function SpaceBannerHeader ({ group, spaceGroup, canAdminister, onOpenSettings, t }) {
   const presentedSpaceView = useMemo(() => GroupViewPresenter({
     type: 'space', name: spaceGroup.name, icon: spaceGroup.icon, linkedGroup: spaceGroup
   }), [spaceGroup])
@@ -149,20 +150,12 @@ function SpaceBannerHeader ({ group, spaceGroup, canAdminister, onOpenSettings, 
           )
         : <MenuRowBackground view={presentedSpaceView} bannerUrl={null} rows={8} spaced className='rounded-none' />}
 
-      {/* Controls bar, mirroring the group banner: bell left, about + settings right */}
+      {/* Controls bar, mirroring the group banner: bell left, settings right */}
       <div className='absolute top-3 left-1/2 -translate-x-1/2 z-30 w-full max-w-[1000px] px-3 flex items-center justify-between'>
         <div className={controlClass}>
           <GroupNotificationsPopover group={spaceGroup} className='w-6 h-6 drop-shadow-md hover:scale-110 transition-all' />
         </div>
-        <div className='flex items-center gap-3'>
-          <button
-            type='button'
-            onClick={() => navigate(spaceUrl(group.slug, localSpace, 'about'))}
-            aria-label={t('About')}
-            title={t('About')}
-          >
-            <Info className={cn('w-6 h-6 drop-shadow-md hover:scale-110 transition-all', controlClass)} />
-          </button>
+        <div className='flex items-center gap-2'>
           {canAdminister && (
             <button type='button' onClick={onOpenSettings} aria-label={t('Space Settings')} title={t('Space Settings')}>
               <Settings className={cn('w-6 h-6 drop-shadow-md hover:scale-110 transition-all', controlClass)} />
@@ -209,6 +202,13 @@ function SpaceBannerHeader ({ group, spaceGroup, canAdminister, onOpenSettings, 
             triggerLabel={t('Invite')}
             triggerClassName={cn('rounded-full border px-2 py-0.5 hover:scale-100', pillClass)}
           />
+          <Link
+            to={spaceUrl(group.slug, localSpace, 'about')}
+            className={cn('inline-flex items-center gap-1 rounded-full border px-2 py-0.5 no-underline hover:no-underline transition-colors', pillClass)}
+          >
+            <Info className='w-3.5 h-3.5' />
+            {t('About')}
+          </Link>
         </span>
       </div>
     </div>
@@ -258,7 +258,7 @@ function SeparatorSection () {
 }
 
 /** Renders partitioned view sections as a card grid. */
-function ViewsGrid ({ sections, group, spaceGroup, onOpen, t }) {
+function ViewsGrid ({ sections, group, spaceGroup, onOpen, t, footer = null }) {
   return (
     // Headings and card rows are flat siblings here, so the gap is the heading's
     // distance from its own cards — it matches the gap between cards, and
@@ -290,6 +290,7 @@ function ViewsGrid ({ sections, group, spaceGroup, onOpen, t }) {
           </div>
         )
       })}
+      {footer}
     </div>
   )
 }
@@ -344,8 +345,8 @@ function MoreSpacesCard ({ onClick, t }) {
   )
 }
 
-/** Card opening Join Requests, shown when there are pending requests. */
-function JoinRequestsCard ({ count, onClick, t }) {
+/** Steward-alert card (moderation / join requests) with a count badge. */
+function StewardAlertCard ({ view, icon, title, count, onClick }) {
   const { effectiveColorScheme } = useAppearance()
   const isDark = effectiveColorScheme === 'dark'
   const [hover, setHover] = useState(false)
@@ -366,7 +367,7 @@ function JoinRequestsCard ({ count, onClick, t }) {
       onMouseLeave={() => setHover(false)}
       role='button'
       tabIndex={0}
-      aria-label={t('Join Requests')}
+      aria-label={title}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
@@ -374,7 +375,7 @@ function JoinRequestsCard ({ count, onClick, t }) {
         }
       }}
     >
-      <CardIconField view={JOIN_REQUESTS_VIEW} tint={tint} w={CARD_W} h={CARD_H} />
+      <CardIconField view={view} tint={tint} w={CARD_W} h={CARD_H} />
       <div className={CARD_FADE_CLASS} style={{ background: cardFadeGradient(effectiveColorScheme) }} />
       {count > 0 && (
         <span className='absolute top-1.5 right-1.5 z-10 min-w-5 h-5 px-1 rounded-full bg-accent text-white text-xs font-bold flex items-center justify-center border-2 border-background'>
@@ -387,11 +388,11 @@ function JoinRequestsCard ({ count, onClick, t }) {
             className={cn(CARD_TILE_CLASS, 'grid place-items-center shadow-[0_4px_12px_rgba(0,0,0,0.35)]')}
             style={{ background: col, color: inkOn(col), border: `1px solid color-mix(in srgb, ${col} 55%, white)` }}
           >
-            <UserPlus className='w-7 h-7' />
+            {icon}
           </div>
         </div>
         <div className={cn(CARD_LABEL_TOP_CLASS, 'absolute left-0 right-0 bottom-0 flex flex-col items-center justify-center text-center px-3')}>
-          <h3 className={cn(CARD_TITLE_CLASS, isDark ? 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]' : 'text-foreground')}>{t('Join Requests')}</h3>
+          <h3 className={cn(CARD_TITLE_CLASS, isDark ? 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]' : 'text-foreground')}>{title}</h3>
         </div>
       </div>
     </div>
@@ -645,6 +646,10 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
     responsibility: RESP_ADD_MEMBERS,
     groupId: (spaceGroup || group)?.id
   }))
+  const canModerate = useSelector(state => hasResponsibilityForGroup(state, {
+    responsibility: RESP_MANAGE_CONTENT,
+    groupId: (spaceGroup || group)?.id
+  }))
   const isEditing = !isContextMode && getQuerystringParam('edit', location) === 'true' && canAdminister && !isMoreSpacesLevel
   const [settingsView, setSettingsView] = useState(null)
   const [showAddView, setShowAddView] = useState(false)
@@ -671,6 +676,10 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
   // Wait until spaces have loaded — pending would flash the card then hide it
   // when this group has nothing behind More Spaces.
   const showMoreSpacesCard = moreSpaces.hasContent
+  const moderationCount = menuGroup?.openModerationActionCount || 0
+  const joinRequestCount = menuGroup?.openJoinRequestCount || 0
+  const showStewardAlerts = !isContextMode && !isEditing && !isMoreSpacesLevel &&
+    ((canModerate && moderationCount > 0) || (canAddMembers && joinRequestCount > 0))
   useEffect(() => {
     if (isContextMode || isMoreSpacesLevel || spaceGroup || !group?.id || !groupSlug) return
     dispatch(fetchGroupSpaces(group.id))
@@ -789,7 +798,6 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
             spaceGroup={spaceGroup}
             canAdminister={canAdminister}
             onOpenSettings={() => setSettingsView({ type: 'space', linkedGroup: spaceGroup, name: spaceGroup.name, icon: spaceGroup.icon })}
-            navigate={navigate}
             t={t}
           />
         </>
@@ -807,8 +815,14 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
               <div className='absolute top-3 left-1/2 -translate-x-1/2 z-30 w-full max-w-[1000px] px-3 flex items-center justify-between'>
                 <GroupNotificationsPopover group={group} />
 
-                {/* Matches GroupMenuHeader's affordances — search, about, then settings */}
-                <div className='flex items-center gap-3'>
+                {/* Members / invite / about sit under the name, matching GroupMenuHeader.
+                    Top-right keeps settings, then search on the far right. */}
+                <div className='flex items-center gap-2'>
+                  {canAdminister && (
+                    <button type='button' onClick={() => navigate(groupUrl(groupSlug, 'settings', {}))}>
+                      <Settings className='w-6 h-6 text-white drop-shadow-md hover:scale-110 transition-all' />
+                    </button>
+                  )}
                   <button
                     type='button'
                     onClick={() => {
@@ -821,20 +835,6 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
                   >
                     <Search className='w-6 h-6 text-white drop-shadow-md hover:scale-110 transition-all' />
                   </button>
-
-                  <button
-                    type='button'
-                    onClick={() => navigate(groupUrl(groupSlug, 'about', {}))}
-                    aria-label={t('About')}
-                  >
-                    <Info className='w-6 h-6 text-white drop-shadow-md hover:scale-110 transition-all' />
-                  </button>
-
-                  {canAdminister && (
-                    <button type='button' onClick={() => navigate(groupUrl(groupSlug, 'settings', {}))}>
-                      <Settings className='w-6 h-6 text-white drop-shadow-md hover:scale-110 transition-all' />
-                    </button>
-                  )}
                 </div>
               </div>
             )}
@@ -861,19 +861,30 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
               {displaySubtitle
                 ? <span className='text-sm text-white/80 drop-shadow-md'>{displaySubtitle}</span>
                 : !isContextMode && (
-                  <span className='group text-sm flex items-center gap-1 text-white/80 drop-shadow-md'>
-                    <Users className='w-4 h-4' />
+                  <span className='flex items-center gap-1 text-xs'>
                     <Link
-                      className='text-white/80 underline hover:text-white'
+                      className='inline-flex items-center gap-1 rounded-full bg-white/15 border border-white/25 px-2 py-0.5 text-white hover:bg-white/25 hover:text-white no-underline hover:no-underline transition-colors'
                       to={groupUrl((spaceGroup || group)?.slug || groupSlug, 'members', {})}
+                      aria-label={t('{{count}} Members', { count: (spaceGroup || group)?.memberCount || 0 })}
                     >
-                      {t('{{count}} Members', { count: (spaceGroup || group)?.memberCount || 0 })}
+                      <Users className='w-3.5 h-3.5' />
+                      {(spaceGroup || group)?.memberCount || 0}
                     </Link>
                     <InviteMembersDialog
                       group={spaceGroup || group}
                       parentGroup={spaceGroup ? group : null}
-                      triggerClassName='text-white hover:text-white'
+                      alwaysVisible
+                      triggerLabel={t('Invite')}
+                      triggerClassName='rounded-full bg-white/15 border border-white/25 px-2 py-0.5 text-white hover:text-white hover:bg-white/25 hover:scale-100'
                     />
+                    <button
+                      type='button'
+                      onClick={() => navigate(groupUrl((spaceGroup || group)?.slug || groupSlug, 'about', {}))}
+                      className='inline-flex items-center gap-1 rounded-full bg-white/15 border border-white/25 px-2 py-0.5 text-white hover:bg-white/25 hover:text-white transition-colors'
+                    >
+                      <Info className='w-3.5 h-3.5' />
+                      {t('About')}
+                    </button>
                   </span>
                   )}
             </div>
@@ -947,21 +958,40 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
                       spaceGroup={spaceGroup}
                       onOpen={handleOpenMenuView}
                       t={t}
+                      footer={showStewardAlerts
+                        ? (
+                          <div className='flex flex-wrap gap-3'>
+                            {canModerate && moderationCount > 0 && (
+                              <StewardAlertCard
+                                view={MODERATION_VIEW}
+                                icon={<ShieldCheck className='w-7 h-7' />}
+                                title={t('Moderation')}
+                                count={moderationCount}
+                                onClick={() => navigate(
+                                  spaceGroup
+                                    ? spaceUrl(groupSlug, localSpaceSlug(groupSlug, spaceGroup.slug), 'about/moderation')
+                                    : groupUrl(groupSlug, 'about/moderation')
+                                )}
+                              />
+                            )}
+                            {canAddMembers && joinRequestCount > 0 && (
+                              <StewardAlertCard
+                                view={JOIN_REQUESTS_VIEW}
+                                icon={<UserPlus className='w-7 h-7' />}
+                                title={t('Join Requests')}
+                                count={joinRequestCount}
+                                onClick={() => navigate(
+                                  spaceGroup
+                                    ? spaceUrl(groupSlug, localSpaceSlug(groupSlug, spaceGroup.slug), 'requests')
+                                    : groupUrl(groupSlug, 'requests')
+                                )}
+                              />
+                            )}
+                          </div>
+                          )
+                        : null}
                     />
                     )}
-                {!isContextMode && !isEditing && !isMoreSpacesLevel && canAddMembers && (menuGroup?.openJoinRequestCount || 0) > 0 && (
-                  <div className='flex flex-wrap gap-3'>
-                    <JoinRequestsCard
-                      count={menuGroup.openJoinRequestCount}
-                      onClick={() => navigate(
-                        spaceGroup
-                          ? spaceUrl(groupSlug, localSpaceSlug(groupSlug, spaceGroup.slug), 'requests')
-                          : groupUrl(groupSlug, 'requests')
-                      )}
-                      t={t}
-                    />
-                  </div>
-                )}
                 {!isContextMode && !spaceGroup && showMoreSpacesCard && (
                   <div className='flex flex-wrap gap-3'>
                     <MoreSpacesCard

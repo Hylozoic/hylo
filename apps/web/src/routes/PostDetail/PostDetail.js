@@ -11,6 +11,7 @@ import { AnalyticsEvents, TextHelpers } from '@hylo/shared'
 import { PROJECT_CONTRIBUTIONS } from 'config/featureFlags'
 import ActionCompletionResponsesDialog from 'components/ActionCompletionResponsesDialog'
 import CardImageAttachments from 'components/CardImageAttachments'
+import { FlagCover } from 'components/FlagBadge'
 import {
   PostBody,
   PostFooter,
@@ -500,6 +501,12 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
   // TODO: if not in a group should show as flagged if flagged in any of my groups
   const isFlagged = useMemo(() => post?.flaggedGroups && post.flaggedGroups.some(id => String(id) === String(currentGroup?.id)), [post, currentGroup])
 
+  // Acknowledging the flag cover reveals the content only for this viewing —
+  // deliberately not persisted, so reopening the post shows the cover again
+  const [flagRevealed, setFlagRevealed] = useState(false)
+  useEffect(() => { setFlagRevealed(false) }, [post?.id])
+  const flagObscured = isFlagged && !flagRevealed
+
   const projectManagementTool = useMemo(() => {
     const m = post?.projectManagementLink ? post.projectManagementLink.match(/(asana|trello|airtable|clickup|confluence|teamwork|notion|wrike|zoho)/) : null
     return m ? m[1] : null
@@ -541,6 +548,9 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
     width: state.activityWidth + 'px',
     marginTop: STICKY_HEADER_SCROLL_OFFSET + 'px'
   }
+  const shareDescription = TextHelpers.presentHTMLToText(post.details, { truncate: MAX_DETAILS_LENGTH })
+  const shareTitle = post.title || TextHelpers.presentHTMLToText(post.details, { truncate: 80 }) || 'Hylo'
+  const shareImageUrl = post.imageAttachments?.[0]?.url
 
   return (
     <div
@@ -555,7 +565,16 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
         <title>
           {`${post.title || TextHelpers.presentHTMLToText(post.details, { truncate: 20 })} | Hylo`}
         </title>
-        <meta name='description' content={TextHelpers.presentHTMLToText(post.details, { truncate: MAX_DETAILS_LENGTH })} />
+        <meta name='description' content={shareDescription} />
+        {post.isPublic && <meta property='og:type' content='article' />}
+        {post.isPublic && <meta property='og:site_name' content='Hylo' />}
+        {post.isPublic && <meta property='og:title' content={shareTitle} />}
+        {post.isPublic && <meta property='og:description' content={shareDescription} />}
+        {post.isPublic && shareImageUrl && <meta property='og:image' content={shareImageUrl} />}
+        {post.isPublic && <meta name='twitter:card' content={shareImageUrl ? 'summary_large_image' : 'summary'} />}
+        {post.isPublic && <meta name='twitter:title' content={shareTitle} />}
+        {post.isPublic && <meta name='twitter:description' content={shareDescription} />}
+        {post.isPublic && shareImageUrl && <meta name='twitter:image' content={shareImageUrl} />}
       </Helmet>
       <div className='flex flex-col rounded-lg shadow-sm'>
         <ScrollListener elementId={DETAIL_COLUMN_ID} onScroll={handleScroll} />
@@ -586,9 +605,12 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
             />
           </div>
         )}
-        <div className='bg-card rounded-lg shadow-md'>
+        <div className='bg-card rounded-lg shadow-md relative'>
+          {/* Cover at the card level so it centers against the whole post
+              content (attachments + body), not just the text block */}
+          {flagObscured && <FlagCover post={post} onView={() => setFlagRevealed(true)} />}
           {post.attachments && post.attachments.length > 0 && (
-            <CardImageAttachments attachments={post.attachments} isFlagged={isFlagged && !post.clickthrough} />
+            <CardImageAttachments attachments={post.attachments} isFlagged={flagObscured} />
           )}
           {isEvent && (
             <EventBody
@@ -599,7 +621,8 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
               event={post}
               respondToEvent={(response) => dispatch(respondToEvent(post, response))}
               togglePeopleDialog={handleTogglePeopleDialog}
-              isFlagged={isFlagged}
+              isFlagged={flagObscured}
+              flagCover={false}
             />
           )}
           {isEvent && meetingUrl && (
@@ -625,7 +648,8 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
               expanded
               routeParams={routeParams}
               slug={groupSlug}
-              isFlagged={isFlagged}
+              isFlagged={flagObscured}
+              flagCover={false}
               {...post}
             />
           )}

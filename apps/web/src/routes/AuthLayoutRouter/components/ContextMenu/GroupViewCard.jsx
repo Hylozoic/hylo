@@ -17,7 +17,9 @@ import {
   DropdownMenuTrigger
 } from 'components/ui/dropdown-menu'
 import useAppearance from 'hooks/useAppearance'
+import useGroupViews from 'hooks/useGroupViews'
 import { DEFAULT_BANNER } from 'store/models/Group'
+import { singleVisibleMenuView } from 'store/models/GroupView'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMyMemberships from 'store/selectors/getMyMemberships'
 import { collectionsWithoutSpace } from 'util/spaceCollection'
@@ -379,11 +381,20 @@ function GroupViewCard ({
       ? getGroupForSlug(state, linkedGroup.slug)
       : null
   )
+  const spaceViewsFromStore = useGroupViews(isSpace && linkedGroup?.id ? { id: linkedGroup.id } : null)
+  const singleSpaceView = isSpace
+    ? singleVisibleMenuView(
+      spaceViewsFromStore.length > 0
+        ? spaceViewsFromStore
+        : (liveSpaceGroup?.groupViews?.items || linkedGroup?.groupViews?.items || []),
+      (liveSpaceGroup || linkedGroup)?.acceptedPostTypes
+    )
+    : null
   const showJoinRequestDot = isSpace && (
     (liveSpaceGroup?.openJoinRequestCount || linkedGroup?.openJoinRequestCount || 0) > 0
   )
-  const chatBadgeCount = viewUnreadBadgeCount(presented)
-  const showUnreadDot = viewShowsUnreadDot(presented)
+  const chatBadgeCount = viewUnreadBadgeCount(presented) || viewUnreadBadgeCount(singleSpaceView)
+  const showUnreadDot = viewShowsUnreadDot(presented) || viewShowsUnreadDot(singleSpaceView)
   const myMemberships = useSelector(getMyMemberships)
   const isSpaceMember = Boolean(
     isSpace && linkedGroup &&
@@ -628,11 +639,20 @@ export function SpaceViewCard ({
   const bgImageUrl = (space.bannerUrl && space.bannerUrl !== DEFAULT_BANNER ? space.bannerUrl : null) || space.avatarUrl || null
   const onLightSurface = !isDark && !bgImageUrl
   const liveSpaceGroup = useSelector(state => space?.slug ? getGroupForSlug(state, space.slug) : null)
+  const spaceViewsFromStore = useGroupViews(space?.id ? { id: space.id } : null)
   const myMemberships = useSelector(getMyMemberships)
   const isSpaceMember = Boolean(
     space && myMemberships.some(m => String(m.group.id) === String(space.id))
   )
   const spaceMemberCount = space?.memberCount ?? liveSpaceGroup?.memberCount ?? null
+  const singleSpaceView = singleVisibleMenuView(
+    spaceViewsFromStore.length > 0
+      ? spaceViewsFromStore
+      : (liveSpaceGroup?.groupViews?.items || space?.groupViews?.items || []),
+    (liveSpaceGroup || space)?.acceptedPostTypes
+  )
+  const chatBadgeCount = viewUnreadBadgeCount(singleSpaceView)
+  const showUnreadDot = viewShowsUnreadDot(singleSpaceView)
   const showJoinRequestDot = (
     (liveSpaceGroup?.openJoinRequestCount || space?.openJoinRequestCount || 0) > 0
   )
@@ -688,9 +708,15 @@ export function SpaceViewCard ({
               />
               )
             : null}
-          badge={showJoinRequestDot
-            ? <span className='w-3 h-3 rounded-full bg-orange-500 border-2 border-background' />
-            : null}
+          badge={chatBadgeCount != null
+            ? (
+              <span className='min-w-5 h-5 px-1 rounded-full bg-accent text-white text-xs font-bold flex items-center justify-center border-2 border-background'>
+                {chatBadgeCount}
+              </span>
+              )
+            : (showUnreadDot || showJoinRequestDot)
+                ? <span className='w-3 h-3 rounded-full bg-orange-500 border-2 border-background' />
+                : null}
         />
       )}
       <div className='relative h-full'>

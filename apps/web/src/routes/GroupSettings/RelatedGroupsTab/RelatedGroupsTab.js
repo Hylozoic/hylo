@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Trash2, DollarSign } from 'lucide-react'
+import { Trash2, DollarSign, LayoutGrid } from 'lucide-react'
 import { get } from 'lodash/fp'
 import { bgImageStyle } from 'util/index'
 import Button from 'components/ui/button'
@@ -16,6 +16,12 @@ import { GROUP_RELATIONSHIP_TYPE } from 'store/models/GroupRelationshipInvite'
 import Tooltip from 'components/Tooltip'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { groupUrl } from '@hylo/navigation'
+import fetchGroupRelationships from 'store/actions/fetchGroupRelationships'
+import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
+import fetchGroupViews from 'store/actions/fetchGroupViews'
+import { convertGroupToSpace } from 'store/actions/groupViews'
+import { isSpaceGroup } from 'store/selectors/getMyGroups'
+import { fetchGroupSettings } from '../GroupSettings.store'
 import {
   acceptGroupRelationshipInvite,
   cancelGroupRelationshipInvite,
@@ -66,10 +72,16 @@ function RelatedGroupsTab () {
   const [peerDescription, setPeerDescription] = useState('')
   const [showRequestToJoinModalForGroup, setShowRequestToJoinModalForGroup] = useState(false)
   const [showRequestToJoinPicker, setShowRequestToJoinPicker] = useState(false)
+  const [isConverting, setIsConverting] = useState(false)
 
   useEffect(() => {
     dispatch(fetchGroupToGroupJoinQuestions())
   }, [dispatch])
+
+  useEffect(() => {
+    if (group?.slug) dispatch(fetchGroupRelationships(group.slug))
+    if (group?.id) dispatch(fetchGroupSpaces(group.id))
+  }, [dispatch, group?.id, group?.slug])
 
   const toggleInviteAsChildPicker = () => {
     setShowInviteAsChildPicker(!showInviteAsChildPicker)
@@ -130,6 +142,55 @@ function RelatedGroupsTab () {
     }
   }
 
+  const parentGroup = parentGroups.length === 1 ? parentGroups[0] : null
+  const spacesLoaded = group?.spaces != null
+  const hasOwnSpaces = (group?.spaces?.items || []).length > 0
+  const hasOtherRelatedGroups = parentGroups.length > 1 || childGroups.length > 0 || peerGroups.length > 0
+  const canShowConvertToSpace = Boolean(
+    group &&
+    !isSpaceGroup(group) &&
+    !group.type &&
+    parentGroups.length > 0
+  )
+  const canConvertToSpace = Boolean(
+    canShowConvertToSpace &&
+    parentGroup &&
+    !hasOtherRelatedGroups &&
+    spacesLoaded &&
+    !hasOwnSpaces
+  )
+
+  /** Tooltip explaining why this child group cannot become a space. */
+  const convertToSpaceDisabledReason = hasOtherRelatedGroups && hasOwnSpaces
+    ? t('This group cannot be converted to a space because it has other related groups and spaces of its own.')
+    : hasOtherRelatedGroups
+      ? t('This group cannot be converted to a space because it has other related groups. A group can only become a space if it has exactly one parent and no child or peer groups.')
+      : hasOwnSpaces
+        ? t('This group cannot be converted to a space because it has spaces of its own.')
+        : null
+
+  /** Convert this group into a space of its only parent. */
+  const handleConvertToSpace = async () => {
+    if (!group?.id || !parentGroup?.id) return
+    if (!window.confirm(t('Are you sure you want to convert {{groupName}} to a space of {{parentName}}? If it has a menu item in {{parentName}} that item will become a space; otherwise it will appear in More Spaces.', { groupName: group.name, parentName: parentGroup.name }))) {
+      return
+    }
+    setIsConverting(true)
+    try {
+      await dispatch(convertGroupToSpace({ id: group.id, parentGroupId: parentGroup.id }))
+      if (group.slug) {
+        await dispatch(fetchGroupSettings(group.slug))
+        await dispatch(fetchGroupRelationships(group.slug))
+      }
+      await dispatch(fetchGroupViews(parentGroup.id))
+      await dispatch(fetchGroupSpaces(parentGroup.id))
+    } catch (error) {
+      console.error('Failed to convert group to space:', error)
+    } finally {
+      setIsConverting(false)
+    }
+  }
+
   const relationshipDropdownItems = (fromGroup, toGroup, type) => {
     if (type === GROUP_RELATIONSHIP_TYPE.PeerToPeer) {
       return [
@@ -147,20 +208,29 @@ function RelatedGroupsTab () {
       ]
     }
 
-    return [
-      {
-        icon: <Trash2 className='w-4 h-4 text-destructive' />,
-        label: type === GROUP_RELATIONSHIP_TYPE.ParentToChild ? t('Remove Child') : t('Leave Parent'),
-        onClick: () => {
-          if (window.confirm(type === GROUP_RELATIONSHIP_TYPE.ParentToChild
-            ? t('Are you sure you want to remove {{groupName}}', { groupName: toGroup.name })
-            : t('Are you sure you want to leave {{groupName}}', { groupName: toGroup.name }))) {
-            dispatch(deleteGroupRelationship(fromGroup.id, toGroup.id))
-          }
-        },
-        red: true
-      }
-    ]
+    const items = []
+    if (type === GROUP_RELATIONSHIP_TYPE.ChildToParent && canShowConvertToSpace) {
+      items.push({
+        icon: <LayoutGrid className='w-4 h-4' />,
+        label: t('Convert to Space of {{parentName}}', { parentName: fromGroup.name }),
+        onClick: handleConvertToSpace,
+        disabled: isConverting || !canConvertToSpace,
+        tooltip: convertToSpaceDisabledReason
+      })
+    }
+    items.push({
+      icon: <Trash2 className='w-4 h-4 text-destructive' />,
+      label: type === GROUP_RELATIONSHIP_TYPE.ParentToChild ? t('Remove Child') : t('Leave Parent'),
+      onClick: () => {
+        if (window.confirm(type === GROUP_RELATIONSHIP_TYPE.ParentToChild
+          ? t('Are you sure you want to remove {{groupName}}', { groupName: toGroup.name })
+          : t('Are you sure you want to leave {{groupName}}', { groupName: toGroup.name }))) {
+          dispatch(deleteGroupRelationship(fromGroup.id, toGroup.id))
+        }
+      },
+      red: true
+    })
+    return items
   }
 
   const { setHeaderDetails } = useViewHeader()
@@ -303,7 +373,7 @@ function RelatedGroupsTab () {
                 <GroupCard
                   group={p}
                   key={p.id}
-                  actionMenu={<Dropdown id='related-groups-parent-dropdown' alignRight toggleChildren={<Icon name='More' />} items={relationshipDropdownItems(p, group, GROUP_RELATIONSHIP_TYPE.ChildToParent)} className='right-0 left-auto' />}
+                  actionMenu={<Dropdown id={`related-groups-parent-dropdown-${p.id}`} alignRight toggleChildren={<Icon name='More' />} items={relationshipDropdownItems(p, group, GROUP_RELATIONSHIP_TYPE.ChildToParent)} className='right-0 left-auto' />}
                 />
               ))}
             </div>

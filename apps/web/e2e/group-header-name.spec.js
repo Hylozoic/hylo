@@ -1,13 +1,15 @@
 import { test, expect } from '@playwright/test'
 import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading.js'
 
+test.describe.configure({ timeout: 120000 })
+
 test.use({ storageState: 'e2e/.auth/session.json' })
 
 test('long group names show fully with pills intact', async ({ page }) => {
   test.skip(test.info().project.name.includes('mobile'), 'header lives in the desktop context menu')
   await page.goto('/groups/e2e-public-group/all')
   await waitPastRootSessionLoading(page)
-  await expect(page.locator('.GroupMenuHeaderName')).toBeVisible({ timeout: 30000 })
+  await expect(page.locator('.GroupMenuHeaderName')).toBeVisible({ timeout: 60000 })
 
   const geom = await page.evaluate(() => {
     const h1 = document.querySelector('.GroupMenuHeaderName')

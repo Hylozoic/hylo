@@ -10,7 +10,7 @@ import {
 } from 'store/constants'
 
 // Synced from ReactNative Nov '23
-export function fetchNotifications (first = 20, offset = 0) {
+export function fetchNotifications (first = 20, offset = 0, resetCount = true) {
   return {
     type: FETCH_NOTIFICATIONS,
     graphql: {
@@ -92,11 +92,11 @@ export function fetchNotifications (first = 20, offset = 0) {
           }
         }
       }`,
-      variables: { first, offset }
+      variables: { first, offset, resetCount }
     },
     meta: {
       extractModel: 'Notification',
-      resetCount: true,
+      resetCount,
       extractQueryResults: {
         getItems: get('payload.data.notifications')
       }

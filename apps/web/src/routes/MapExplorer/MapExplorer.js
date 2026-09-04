@@ -79,10 +79,10 @@ const MAP_BASE_LAYERS = [
 
 function presentMember (person, groupId) {
   return {
-    ...pick(['id', 'name', 'avatarUrl', 'groupRoles', 'locationObject', 'tagline', 'skills'], person.ref),
+    ...pick(['id', 'name', 'avatarUrl', 'groupRoles', 'tagline', 'skills'], person.ref),
     type: 'member',
     skills: person.skills.toModelArray(),
-    locationObject: person.ref?.locationObject || person.locationObject?.ref || person.locationObject,
+    locationObject: person.locationObject?.ref || (person.ref?.locationObject?.center ? person.ref.locationObject : null),
     group: person.memberships.first()
       ? person.memberships.first().group.name
       : null
@@ -90,10 +90,10 @@ function presentMember (person, groupId) {
 }
 
 function presentGroup (group) {
-  // locationObject is stored as a plain nested object on .ref from the GraphQL
-  // payload (field key is locationObject, FK column is locationId) — do not
-  // overwrite it with the FK accessor, which is often null for map results.
-  return group.ref
+  return {
+    ...group.ref,
+    locationObject: group.locationObject?.ref || (group.ref?.locationObject?.center ? group.ref.locationObject : null)
+  }
 }
 
 /**
@@ -107,10 +107,11 @@ function withCurrentGroup (groups, group) {
   return groups.concat(presented)
 }
 
-/** Map coordinates live on GraphQL's nested locationObject, not the locationId FK. */
+/** Map coordinates from a Location relation or nested GraphQL locationObject. */
 function getLocationCenter (entity) {
   if (!entity) return null
   if (entity.locationObject?.center) return entity.locationObject.center
+  if (entity.locationObject?.ref?.center) return entity.locationObject.ref.center
   return entity.ref?.locationObject?.center || null
 }
 
@@ -269,6 +270,8 @@ function MapExplorer (props) {
       return { lat: parseFloat(decodedCenter[0]), lng: parseFloat(decodedCenter[1]) }
     }
 
+    // Prefer scoped redux center, then group location, so maps aren't stuck on
+    // a previous scope's pan or the Africa fallback (35.44, 7.92).
     return (scopedMapState && reduxState.centerLocation) ||
       groupCenter ||
       userCenter ||
@@ -951,7 +954,7 @@ function MapExplorer (props) {
             menuAbove
             toggleChildren={(
               <span className={classes.layersDropdownLabel}>
-                {t(MAP_BASE_LAYERS.find(o => o.id === baseLayerStyle).label)}
+                {t(MAP_BASE_LAYERS.find(o => o.id === baseLayerStyle)?.label || '')}
                 <Icon name='ArrowDown' />
               </span>
             )}

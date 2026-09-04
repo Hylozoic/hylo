@@ -1,4 +1,4 @@
-import { isMenuViewVisible, viewAcceptedByPostTypes } from './GroupView'
+import { isMenuViewVisible, singleVisibleMenuView, viewAcceptedByPostTypes } from './GroupView'
 
 describe('viewAcceptedByPostTypes', () => {
   it('allows every view type when acceptedPostTypes is null', () => {
@@ -38,5 +38,28 @@ describe('isMenuViewVisible', () => {
   it('shows on-menu typed views that are still accepted', () => {
     expect(isMenuViewVisible({ type: 'events', order: 2 }, ['event'])).toBe(true)
     expect(isMenuViewVisible({ type: 'all', order: 0 }, [])).toBe(true)
+  })
+})
+
+describe('singleVisibleMenuView', () => {
+  it('returns the view when exactly one is on the menu', () => {
+    expect(singleVisibleMenuView([
+      { type: 'chat', order: 0, newPostCount: 3 },
+      { type: 'discussions', order: null, newPostCount: 1 }
+    ])).toEqual({ type: 'chat', order: 0, newPostCount: 3 })
+  })
+
+  it('returns null when multiple views are on the menu', () => {
+    expect(singleVisibleMenuView([
+      { type: 'chat', order: 0 },
+      { type: 'discussions', order: 1 }
+    ])).toBe(null)
+  })
+
+  it('returns null when the only typed view is disallowed', () => {
+    expect(singleVisibleMenuView(
+      [{ type: 'events', order: 0 }],
+      ['discussion']
+    )).toBe(null)
   })
 })

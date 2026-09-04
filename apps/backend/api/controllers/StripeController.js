@@ -11,6 +11,7 @@
 const StripeService = require('../services/StripeService')
 const Stripe = require('stripe')
 const { parseJsonObject: parseAccessGrants } = require('../../lib/stripeOfferingMetadata')
+const { grantCheckoutSessionAccess } = require('../../lib/grantCheckoutSessionAccess')
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2025-10-29.clover'
 })
@@ -773,118 +774,25 @@ module.exports = {
       }
 
       // Verify payment was successful
-      if (session.payment_status !== 'paid') {
+      if (session.payment_status !== 'paid' && session.payment_status !== 'no_payment_required') {
         if (process.env.NODE_ENV === 'development') {
           console.log(`Checkout session ${session.id} completed but payment status is ${session.payment_status}`)
         }
         return
       }
 
-      // Extract user and product info from session metadata
-      const userId = session.metadata?.userId
-      const groupId = session.metadata?.groupId
-      const offeringId = session.metadata?.offeringId
-
-      if (!userId || !groupId || !offeringId) {
+      const grant = await grantCheckoutSessionAccess(session)
+      if (!grant.granted) {
         if (process.env.NODE_ENV === 'development') {
-          console.log(`Missing required metadata in session ${session.id}:`, {
-            userId: !!userId,
-            groupId: !!groupId,
-            offeringId: !!offeringId
-          })
+          console.log(`Checkout session ${session.id} did not grant access: ${grant.reason}`)
         }
         return
       }
 
-      // Find the offering (StripeProduct) by database ID
-      const offering = await StripeProduct.where({ id: offeringId }).fetch()
-      if (!offering) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`No offering found for ID: ${offeringId}`)
-        }
-        return
-      }
-
-      // Verify the offering belongs to the specified group
-      const offeringGroupId = offering.get('group_id')
-      if (parseInt(offeringGroupId) !== parseInt(groupId)) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`Offering ${offeringId} does not belong to group ${groupId}`)
-        }
-        return
-      }
-
-      // Determine if this is a subscription based on session mode
-      const stripeSubscriptionId = session.subscription || null
-
-      const userIdNum = parseInt(userId, 10)
-      const grantedByGroupIdNum = parseInt(offeringGroupId, 10)
-
-      // FIRST: Determine which groups need membership from the offering's access_grants
-      // We need to ensure membership BEFORE assigning roles
-      const accessGrants = offering.get('access_grants') || {}
-      const groupsToJoin = new Set()
-
-      // Add the group that owns the product (always grant access to this group)
-      groupsToJoin.add(grantedByGroupIdNum)
-
-      // Add any groups specified in access_grants.groupIds
-      if (accessGrants.groupIds && Array.isArray(accessGrants.groupIds)) {
-        for (const groupId of accessGrants.groupIds) {
-          const groupIdNum = parseInt(groupId, 10)
-          if (!isNaN(groupIdNum) && groupIdNum > 0) {
-            groupsToJoin.add(groupIdNum)
-          }
-        }
-      }
-
-      // If groupRoleIds are specified, ensure membership for those groups
-      if (accessGrants.groupRoleIds || accessGrants.groupIds) {
-        const groupIdsForRoles = accessGrants.groupIds && Array.isArray(accessGrants.groupIds) && accessGrants.groupIds.length > 0
-          ? accessGrants.groupIds.map(id => parseInt(id, 10)).filter(id => !isNaN(id) && id > 0)
-          : [grantedByGroupIdNum]
-        for (const groupIdNum of groupIdsForRoles) {
-          groupsToJoin.add(groupIdNum)
-        }
-      }
-
-      // Ensure user is a member of all groups that will receive access BEFORE assigning roles
-      for (const accessGroupId of groupsToJoin) {
-        try {
-          const membership = await GroupMembership.ensureMembership(userIdNum, accessGroupId)
-
-          // Record agreement acceptance - user accepted agreements before purchase
-          if (membership) {
-            await membership.acceptAgreements()
-          }
-
-          // Pin the purchased group to the user's global navigation
-          await GroupMembership.pinGroupToNav(userIdNum, accessGroupId)
-
-          if (process.env.NODE_ENV === 'development') {
-            console.log(`Ensured group membership for user ${userIdNum} in group ${accessGroupId}`)
-          }
-        } catch (error) {
-          console.error(`Error ensuring membership for user ${userIdNum} in group ${accessGroupId}:`, error)
-          // Continue processing other groups even if one fails
-        }
-      }
-
-      // NOW: Generate content access records and assign roles (membership is already ensured)
-      const accessRecords = await offering.generateContentAccessRecords({
-        userId: userIdNum,
-        sessionId: session.id,
-        stripeSubscriptionId,
-        stripeCustomerId: session.customer || null,
-        metadata: {
-          paymentAmount: session.amount_total,
-          currency: session.currency,
-          purchasedAt: new Date().toISOString()
-        }
-      })
+      const { userId, groupId, offering, accessRecords, stripeSubscriptionId } = grant
 
       if (process.env.NODE_ENV === 'development') {
-        console.log(`Created ${accessRecords.length} content access records for user ${userId}`)
+        console.log(`${grant.already ? 'Reused' : 'Created'} ${accessRecords.length} content access records for user ${userId}`)
       }
 
       // Transfer platform contribution to Hylo if the customer added the optional line item
