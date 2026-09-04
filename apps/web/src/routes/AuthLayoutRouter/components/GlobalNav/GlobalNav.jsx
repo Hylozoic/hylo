@@ -14,7 +14,8 @@ import {
   DndContext,
   closestCenter,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors
 } from '@dnd-kit/core'
@@ -87,6 +88,25 @@ import {
 } from 'util/navigationLayout'
 
 import styles from './GlobalNav.module.scss'
+
+// Mouse drags start once the pointer travels a few pixels. Touch needs a hold
+// instead, because a finger moving over the rail is a scroll until proven
+// otherwise. These have to be separate sensors: a delay on a shared
+// PointerSensor also applies to the mouse, and any movement inside the delay
+// cancels activation so an ordinary press-and-drag never starts.
+const MOUSE_ACTIVATION = { distance: 8 }
+const TOUCH_ACTIVATION = { delay: 500, tolerance: 10 }
+// After a long-press activates, this much movement counts as a drag rather than
+// a press-and-release that should open the context menu.
+const TOUCH_DRAG_SLOP = 10
+
+/**
+ * Returns true when a dnd-kit drag was started by a finger, not a mouse.
+ */
+function isTouchActivatorEvent (event) {
+  if (!event) return false
+  return event.type === 'touchstart' || event.touches != null
+}
 
 // Sortable wrapper for GlobalNavItem
 function SortableGlobalNavItem ({ group, index, isVisible, showTooltip, isContainerHovered, groupRefsMap }) {
@@ -929,19 +949,47 @@ export default function GlobalNav (props) {
 
   // Drag and drop sensors
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 15
-      }
-    }),
+    useSensor(MouseSensor, { activationConstraint: MOUSE_ACTIVATION }),
+    useSensor(TouchSensor, { activationConstraint: TOUCH_ACTIVATION }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates
     })
   )
 
-  // Handle drag end for reordering pinned groups
+  /**
+   * Radix opens its context menu after 700ms of a still finger. That fights
+   * the touch drag (long-press then move) and would pop the menu while the
+   * item is picked up. Stopping pointerdown on capture keeps Radix from
+   * starting that timer; TouchSensor listens to touchstart, so the hold is
+   * unaffected. Click still fires, so tapping the group still navigates.
+   */
+  const handlePinnedTriggerPointerDownCapture = (event) => {
+    if (event.pointerType !== 'touch' && event.pointerType !== 'pen') return
+    event.stopPropagation()
+  }
+
+  /**
+   * Opens the group's context menu at the original press point after a
+   * long-press that never became a drag.
+   */
+  const openPinnedGroupContextMenu = (groupId, clientX, clientY) => {
+    const node = groupRefsMap.current.get(groupId)
+    if (!node) return
+    node.dispatchEvent(new MouseEvent('contextmenu', {
+      bubbles: true,
+      cancelable: true,
+      view: window,
+      clientX,
+      clientY
+    }))
+  }
+
+  /**
+   * Reorders a pinned group, or opens its context menu when a touch long-press
+   * ended without a drag.
+   */
   const handleDragEnd = (event) => {
-    const { active, over } = event
+    const { active, over, delta, activatorEvent } = event
 
     if (active && over && active.id !== over.id) {
       const oldIndex = pinnedGroups.findIndex(group => group.id === active.id)
@@ -958,7 +1006,17 @@ export default function GlobalNav (props) {
         // Only update the moved group's navOrder - backend will handle updating others
         dispatch(updateGroupNavOrder(active.id, newNavOrder))
       }
+      return
     }
+
+    const didDrag = Math.abs(delta?.x || 0) > TOUCH_DRAG_SLOP || Math.abs(delta?.y || 0) > TOUCH_DRAG_SLOP
+    if (didDrag || !isTouchActivatorEvent(activatorEvent)) return
+
+    const touch = activatorEvent.touches?.[0] || activatorEvent.changedTouches?.[0]
+    const clientX = touch?.clientX ?? activatorEvent.clientX
+    const clientY = touch?.clientY ?? activatorEvent.clientY
+    // Wait until dnd-kit has detached its window contextmenu listener
+    setTimeout(() => openPinnedGroupContextMenu(active.id, clientX, clientY), 0)
   }
 
   // Prevent default browser context menu on mobile devices
@@ -1060,7 +1118,7 @@ export default function GlobalNav (props) {
           >
             {pinnedGroups.map((group, pinnedIndex) => (
               <RightClickMenu key={group.id}>
-                <RightClickMenuTrigger onContextMenu={handleContextMenu}>
+                <RightClickMenuTrigger onPointerDownCapture={handlePinnedTriggerPointerDownCapture}>
                   <SortableGlobalNavItem
                     group={group}
                     index={pinnedIndex}
