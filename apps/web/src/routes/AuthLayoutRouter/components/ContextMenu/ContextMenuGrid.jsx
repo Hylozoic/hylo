@@ -20,8 +20,7 @@ import {
 } from '@hylo/navigation'
 import { replace } from 'redux-first-history'
 import { menuViewUrl, spaceEntryUrl, isParentGroupPath } from './groupViewMenuUrl'
-import { WebViewMessageTypes } from '@hylo/shared'
-import { sendMessageToWebView } from 'util/webView'
+import { logoutFromMobileWebView } from 'util/webView'
 import logout from 'store/actions/logout'
 import { DEFAULT_BANNER, DEFAULT_AVATAR } from 'store/models/Group'
 import { RESP_ADMINISTRATION, RESP_ADD_MEMBERS, RESP_MANAGE_CONTENT, FETCH_GROUP_SPACES, FETCH_GROUP_VIEWS } from 'store/constants'
@@ -772,12 +771,7 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
   const handleOpenMenuView = useCallback(async (view) => {
     const presented = GroupViewPresenter(view)
     if (presented.type === 'logout') {
-      await dispatch(logout())
-      if (window.HyloMobileV2) {
-        sendMessageToWebView(WebViewMessageTypes.LOGOUT)
-      } else {
-        dispatch(replace('/login', null))
-      }
+      await logoutFromMobileWebView(dispatch, logout(), replace('/login', null))
       return
     }
     if (presented.type === 'space' && presented.linkedGroup) {

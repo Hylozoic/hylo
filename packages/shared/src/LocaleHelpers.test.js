@@ -6,6 +6,8 @@ import {
   LOCALE_FR,
   LOCALE_HI,
   LOCALE_PT,
+  localeToFlagEmoji,
+  localeToNameKey,
   localeToTranslationKey,
   normalizeLocaleToFull
 } from './LocaleHelpers'
@@ -30,6 +32,27 @@ describe('normalizeLocaleToFull', () => {
     expect(normalizeLocaleToFull()).toBe(LOCALE_EN_US)
     expect(normalizeLocaleToFull('')).toBe(LOCALE_EN_US)
     expect(normalizeLocaleToFull('xx')).toBe(LOCALE_EN_US)
+  })
+})
+
+describe('localeToFlagEmoji', () => {
+  it('returns the flag for each UI locale', () => {
+    expect(localeToFlagEmoji(LOCALE_EN_US)).toBe('🇺🇸')
+    expect(localeToFlagEmoji(LOCALE_EN_GB)).toBe('🇬🇧')
+    expect(localeToFlagEmoji(LOCALE_ES)).toBe('🇪🇸')
+    expect(localeToFlagEmoji(LOCALE_DE)).toBe('🇩🇪')
+    expect(localeToFlagEmoji(LOCALE_FR)).toBe('🇫🇷')
+    expect(localeToFlagEmoji(LOCALE_HI)).toBe('🇮🇳')
+    expect(localeToFlagEmoji(LOCALE_PT)).toBe('🇵🇹')
+  })
+})
+
+describe('localeToNameKey', () => {
+  it('returns i18n keys for locale names', () => {
+    expect(localeToNameKey(LOCALE_EN_US)).toBe('English')
+    expect(localeToNameKey(LOCALE_EN_GB)).toBe('English (UK)')
+    expect(localeToNameKey('es')).toBe('Spanish')
+    expect(localeToNameKey(LOCALE_PT)).toBe('Portuguese')
   })
 })
 

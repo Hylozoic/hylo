@@ -16,6 +16,27 @@ export const UI_LOCALES = [
   LOCALE_PT
 ]
 
+/** i18n keys for locale names shown in language pickers. */
+export const LOCALE_NAME_KEYS = {
+  [LOCALE_EN_US]: 'English',
+  [LOCALE_EN_GB]: 'English (UK)',
+  [LOCALE_ES]: 'Spanish',
+  [LOCALE_DE]: 'German',
+  [LOCALE_FR]: 'French',
+  [LOCALE_HI]: 'Hindi',
+  [LOCALE_PT]: 'Portuguese'
+}
+
+export const LOCALE_FLAGS = {
+  [LOCALE_EN_US]: '🇺🇸',
+  [LOCALE_EN_GB]: '🇬🇧',
+  [LOCALE_ES]: '🇪🇸',
+  [LOCALE_DE]: '🇩🇪',
+  [LOCALE_FR]: '🇫🇷',
+  [LOCALE_HI]: '🇮🇳',
+  [LOCALE_PT]: '🇵🇹'
+}
+
 const FULL_LOCALE_LOOKUP = {
   en: LOCALE_EN_US,
   'en-US': LOCALE_EN_US,
@@ -51,4 +72,14 @@ export function localeToTranslationKey (locale) {
   const full = normalizeLocaleToFull(locale)
   if (full.startsWith('en')) return 'en'
   return full.split('-')[0]
+}
+
+/** Flag emoji for a Hylo UI locale. */
+export function localeToFlagEmoji (locale = LOCALE_EN_US) {
+  return LOCALE_FLAGS[normalizeLocaleToFull(locale)] || LOCALE_FLAGS[LOCALE_EN_US]
+}
+
+/** English display name key for a Hylo UI locale (pass through t()). */
+export function localeToNameKey (locale = LOCALE_EN_US) {
+  return LOCALE_NAME_KEYS[normalizeLocaleToFull(locale)] || LOCALE_NAME_KEYS[LOCALE_EN_US]
 }
