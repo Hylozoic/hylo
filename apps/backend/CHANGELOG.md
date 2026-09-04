@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+- Remote `imageUrls` on create/update post (e.g. Airtable attachments via Zapier) are copied to S3 in a background job instead of storing expiring URLs
+
 ### Changed
 - `convertGroupToSpace` rejects groups that have spaces of their own
 
