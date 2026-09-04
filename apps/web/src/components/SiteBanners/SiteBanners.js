@@ -101,7 +101,10 @@ export default function SiteBanners () {
               aria-modal={isTop || undefined}
               aria-hidden={!isTop}
               className={cn(
-                'rounded-xl border shadow-2xl transition-all',
+                // flex-col + max-h: on a small device with a long announcement, the
+                // header (with the only way to close it) must stay put while the
+                // body scrolls, rather than the whole card growing off-screen
+                'rounded-xl border shadow-2xl transition-all flex flex-col max-h-[85vh]',
                 TYPE_STYLES[banner.type] || TYPE_STYLES.info,
                 isTop
                   ? 'relative pointer-events-auto'
@@ -112,34 +115,41 @@ export default function SiteBanners () {
                   )
               )}
             >
-              <div className='p-4 sm:p-5'>
-                {/* Logo and Close oppose each other on the header row */}
-                <div className='flex items-center justify-between'>
-                  {/* my-0: a global stylesheet gives imgs vertical margins, which
-                      inflated this row and pushed the header off the top edge */}
-                  <img className='h-5 sm:h-6 my-0' src={logoSrc} alt={t('Hylo logo')} />
-                  <div className='flex items-center gap-1 shrink-0'>
-                    {isTop && banners.length > 1 && (
-                      <span className='text-xs opacity-60 px-1'>{t('+{{count}} more', { count: banners.length - 1 })}</span>
-                    )}
-                    <button
-                      type='button'
-                      aria-label={t('Dismiss')}
-                      className='p-1 rounded-full opacity-60 hover:opacity-100 transition-opacity'
-                      onClick={() => handleDismiss(banner.id)}
-                    >
-                      <X className='w-4 h-4' />
-                    </button>
-                  </div>
+              {/* Logo and Close oppose each other on the header row, which stays fixed above the scrollable body */}
+              <div className='flex items-center justify-between p-4 sm:p-5 pb-3 shrink-0'>
+                {/* my-0: a global stylesheet gives imgs vertical margins, which
+                    inflated this row and pushed the header off the top edge */}
+                <img className='h-5 sm:h-6 my-0' src={logoSrc} alt={t('Hylo logo')} />
+                <div className='flex items-center gap-1 shrink-0'>
+                  {isTop && banners.length > 1 && (
+                    <span className='text-xs opacity-60 px-1'>{t('+{{count}} more', { count: banners.length - 1 })}</span>
+                  )}
+                  <button
+                    type='button'
+                    aria-label={t('Dismiss')}
+                    className='p-1 rounded-full opacity-60 hover:opacity-100 transition-opacity'
+                    onClick={() => handleDismiss(banner.id)}
+                  >
+                    <X className='w-4 h-4' />
+                  </button>
                 </div>
+              </div>
+              <div className='overflow-y-auto px-4 sm:px-5 pb-4 sm:pb-5'>
                 {/* block: ClickCatcher renders a span, whose vertical margin is inert */}
-                <ClickCatcher className='block mt-8 min-w-0 break-words text-sm sm:text-base [&_a]:underline'>
+                <ClickCatcher className='block min-w-0 break-words text-sm sm:text-base [&_a]:underline'>
                   {banner.title && <p className='font-bold text-xl sm:text-2xl mb-0'>{banner.title}</p>}
                   {createdOn && <p className='text-xs opacity-60 mt-1 mb-3'>{createdOn}</p>}
                   <HyloHTML html={banner.text} />
                 </ClickCatcher>
-                {banner.actionText && banner.actionUrl && (
-                  <div className='flex justify-end mt-4'>
+                <div className='flex justify-end items-center gap-2 mt-4'>
+                  <Button
+                    variant='ghost'
+                    size='sm'
+                    onClick={() => handleDismiss(banner.id)}
+                  >
+                    {t('Dismiss')}
+                  </Button>
+                  {banner.actionText && banner.actionUrl && (
                     <Button
                       size='sm'
                       className='bg-selected text-foreground font-bold hover:bg-selected/85'
@@ -147,8 +157,8 @@ export default function SiteBanners () {
                     >
                       {banner.actionText}
                     </Button>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </div>
           )
