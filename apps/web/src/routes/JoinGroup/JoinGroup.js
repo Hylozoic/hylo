@@ -74,7 +74,7 @@ export default function JoinGroup (props) {
 
         // Check if the invitation is valid and get group info
         const result = await dispatch(checkInvitation({ invitationToken, accessCode }))
-        const checkResult = result?.payload?.getData()
+        const checkResult = result?.payload?.data?.checkInvitation ?? result?.payload?.getData?.()
 
         if (!checkResult?.valid) {
           throw new Error(t('Invalid invitation'))

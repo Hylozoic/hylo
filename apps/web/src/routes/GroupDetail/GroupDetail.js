@@ -253,9 +253,10 @@ function GroupDetail ({ forCurrentGroup = false }) {
   }, [location.hash, group?.agreements?.length])
 
   useEffect(() => {
+    if (!currentUser?.id) return
     dispatch(fetchJoinRequests())
     dispatch(fetchForCurrentUser())
-  }, [dispatch])
+  }, [dispatch, currentUser?.id])
 
   useEffect(() => {
     fetchGroup()
