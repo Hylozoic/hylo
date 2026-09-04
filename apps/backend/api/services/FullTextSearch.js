@@ -135,14 +135,22 @@ const applyGroupAccessFilter = (qb, groupAccess) => {
 
 const recencyRankSql = `(rank * case when sort_ts is null then 1 else exp(-extract(epoch from (now() - sort_ts)) / ${recencyHalfLifeSeconds}.0) end)`
 
-const search = (opts) => {
-  const term = compact(opts.term.replace(/'/, '').split(' '))
+// Strip characters that are tsquery operators or punctuation so user input
+// like "#release!" does not produce a syntax error in to_tsquery.
+const sanitizeTsQueryTerm = (rawTerm) => {
+  return compact(String(rawTerm || '').split(/\s+/))
+    .map(w => w.replace(/[,;|:&()!\\#'"<>*]+/g, ''))
+    .filter(Boolean)
     .map(w => w + ':*')
     .join(' & ')
+}
+
+const search = (opts) => {
+  const term = sanitizeTsQueryTerm(opts.term)
 
   const lang = opts.lang || defaultLang
-  const tsquery = `to_tsquery('${lang}', '${term}')`
-  const rank = `ts_rank_cd(${columnName}, ${tsquery})`
+  const tsquery = term ? `to_tsquery('${lang}', '${term}')` : null
+  const rank = tsquery ? `ts_rank_cd(${columnName}, ${tsquery})` : '0'
   let columns
 
   // set opts.subquery if you are using this search method within one of the
@@ -161,7 +169,7 @@ const search = (opts) => {
   let query = bookshelf.knex
     .select(columns)
     .from(tableName)
-    .where(raw(`${columnName} @@ ${tsquery}`))
+    .where(tsquery ? raw(`${columnName} @@ ${tsquery}`) : raw('false'))
     .where(raw({
       person: 'user_id is not null',
       post: 'post_id is not null',

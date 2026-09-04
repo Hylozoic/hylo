@@ -6,11 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-### Changed
+## [7.0.1] - 2026-09-04
+
+### Fixed
 - `convertGroupToSpace` rejects groups that have spaces of their own
 - Converting a child group to a space unpins it from every user's global nav and compact remaining pin order
+- Sanitize search query terms to avoid syntax errors when using special characters
+- For all old posts that had tags added to them that are not in the body, add those tags to the body. So people can see the tags again.
 
-## [7.0.0] - 2026-09-02 - Spaces and Views!
+## [7.0.0] - 2026-09-03 - Spaces and Views!
 
 ### Added
 - Groups can now contain **Spaces**, which are fully nested child groups accessible directly from the group menu. They are tracked in the database by having type = 'space' and parent_id = group_id. Tracks and Funding Rounds are now types of space and can have custom menus. If a space has a single view in it then clicking on it in the group menu directly opens that view. If it has more than one then the group menu is replaced by the space menu, with a header showing the parent group at the top to go back to the parent group.

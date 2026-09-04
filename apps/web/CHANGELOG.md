@@ -6,10 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-### Fixed
-- Converting a child group to a space removes it from GlobalNav immediately, including when it was pinned
+## [7.0.1] - 2026-09-04
 
-## [7.0.0] - 2026-09-02 - Spaces and Views!
+### Fixed
+- Added confirmation dialog when canceling out of group or space creation, to make sure entered information is not lost.
+- Converting a child group to a space removes it from GlobalNav immediately, including when it was pinned
+- Don't allow converting a group to a space if it has spaces of its own
+- Make site banner scrollable when long on a small device, and add dismiss button to bottom
+
+
+## [7.0.0] - 2026-09-03 - Spaces and Views!
 
 ### Added
 - Groups can now contain **Spaces**, which are fully nested child groups accessible directly from the group menu. Tracks and Funding Rounds are now types of space and can have custom menus. If a space has a single view in it then clicking on it in the group menu directly opens that view. If it has more than one then the group menu is replaced by the space menu, with a header showing the parent group at the top to go back to the parent group.
