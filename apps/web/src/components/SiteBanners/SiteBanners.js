@@ -39,7 +39,7 @@ export default function SiteBanners () {
   const loadBanners = useCallback(() => {
     dispatch(fetchSiteBanners()).then(result => {
       const items = result?.payload?.data?.siteBanners
-      if (items) setBanners(items)
+      if (Array.isArray(items)) setBanners(items)
     }).catch(() => { /* banners are optional chrome */ })
   }, [dispatch])
 

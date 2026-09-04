@@ -219,11 +219,22 @@ function defaultQuery (rootField, variables, seed, query) {
       return { data: { fundingRound: presentFundingRound(seed, variables.id) } }
     case 'track':
       return { data: { track: presentTrack(seed, variables.id) } }
+    // Plain GraphQL lists (not *QuerySet connections) — must be arrays
+    case 'siteBanners':
+    case 'allSiteBanners':
+    case 'platformAgreements':
+    case 'emailEnabledTesters':
+      return { data: { [rootField]: [] } }
     default:
       return { data: rootField ? { [rootField]: emptyForField(rootField) } : {} }
   }
 }
 
+/**
+ * Fallback empty value for unhandled root fields.
+ * Known plain lists (siteBanners, etc.) are handled in defaultQuery above.
+ * Everything else ending in s / Set gets the paginated QuerySet shape.
+ */
 function emptyForField (rootField) {
   if (rootField.endsWith('s') || rootField.endsWith('Set')) {
     return { items: [], total: 0, hasMore: false }

@@ -98,7 +98,7 @@ import Management from 'routes/Management'
 import SiteBanners from 'components/SiteBanners/SiteBanners'
 import { getLocaleFromLocalStorage } from 'util/locale'
 import { isCompactLayoutDevice, isDrawerNavLayout, isPhoneDevice } from 'util/mobile'
-import { isLegacyWebView } from 'util/webView'
+import isWebView, { isLegacyWebView } from 'util/webView'
 import store from 'store'
 import { setMembershipLastViewedAt, toggleNavMenu } from './AuthLayoutRouter.store'
 import { Toaster } from 'components/ui/sonner'
@@ -574,11 +574,20 @@ export default function AuthLayoutRouter (props) {
     }
   }, [withoutNav, dispatch])
 
+  // Chat and DMs own their own scroll/pagination (Virtuoso / #message-list).
+  // A page reload on pull-down fights history scrolling and is never the right action there.
+  const isChatOrMessagesRoute = /\/chat\//.test(location.pathname) ||
+    location.pathname.startsWith('/messages')
+
   // Pull-to-refresh gesture for WebView (web-side implementation)
   // Requires user to pull down AND hold for a moment to prevent accidental triggers
   const { isPulling, isReadyToRefresh, isRefreshing } = usePullToRefresh(
     () => window.location.reload(),
-    { threshold: 120, holdDuration: 400 } // Pull 120px and hold for 400ms
+    {
+      threshold: 120,
+      holdDuration: 400, // Pull 120px and hold for 400ms
+      enabled: isWebView() && !isChatOrMessagesRoute
+    }
   )
 
   // Baseline/regression: in Chrome DevTools open Performance (user timings: hylo-auth-bootstrap,
