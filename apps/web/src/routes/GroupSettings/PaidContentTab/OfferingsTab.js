@@ -4,7 +4,7 @@
  * Contains components for managing offerings:
  * - OfferingsTab: Main tab with offerings list and forms
  * - OfferingListItem: Individual offering display
- * - LineItemsSelector: Selector for tracks, groups, and roles
+ * - LineItemsSelector: Selector for spaces, groups, and roles
  * - SubscribersPanel: Panel showing subscribers for an offering
  */
 
@@ -16,7 +16,6 @@ import CopyToClipboard from 'react-copy-to-clipboard'
 
 import Button from 'components/ui/button'
 import HyloEditor from 'components/HyloEditor'
-import HyloHTML from 'components/HyloHTML'
 import Loading from 'components/Loading'
 import SettingsControl from 'components/SettingsControl'
 import { Switch } from 'components/ui/switch'
@@ -25,11 +24,28 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandList, Command
 import { createOffering, updateOffering } from './PaidContentTab.store'
 import GroupPaywallSection from './GroupPaywallSection'
 import { offeringUrl, origin } from '@hylo/navigation'
-import fetchGroupTracks from 'store/actions/fetchGroupTracks'
+import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import useDebounce from 'hooks/useDebounce'
-import { validateOfferingDurationForAccessGrants, isRecurringOfferingDuration } from '@hylo/shared'
-import { parseAccessGrants, offeringHasTrackAccess, offeringHasGroupAccess, offeringHasRoleAccess } from 'util/accessGrants'
+import { parseAccessGrants, offeringHasGroupAccess, offeringHasRoleAccess } from 'util/accessGrants'
 import { queryHyloAPI } from 'util/graphql'
+import { formatLocalizedDate } from 'util/dateFormat'
+import { stripHtml } from 'hooks/useDraft'
+
+const EMPTY_LINE_ITEMS = { spaces: [], groups: [], roles: [] }
+
+/** Builds accessGrants.groupIds from parent-group + space line items (deduped). */
+function groupIdsFromLineItems (lineItems) {
+  const ids = []
+  ;(lineItems.groups || []).forEach(g => {
+    const id = parseInt(g.id, 10)
+    if (!isNaN(id) && !ids.includes(id)) ids.push(id)
+  })
+  ;(lineItems.spaces || []).forEach(space => {
+    const id = parseInt(space.id, 10)
+    if (!isNaN(id) && !ids.includes(id)) ids.push(id)
+  })
+  return ids
+}
 
 function estimateStripeCardFeeUsdStyle (amount) {
   // Stripe fees vary by country/payment method. This is a common US cards estimate.
@@ -124,7 +140,6 @@ const OFFERING_SUBSCRIBERS_QUERY = `
 function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
-  const groupRoles = useMemo(() => group?.groupRoles?.items || [], [group?.groupRoles?.items])
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [editingOffering, setEditingOffering] = useState(null)
   const editFormRef = useRef(null)
@@ -139,11 +154,7 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
     slidingScaleEnabled: false,
     slidingScaleMinQuantity: '',
     slidingScaleMaxQuantity: '',
-    lineItems: {
-      tracks: [],
-      groups: [],
-      roles: []
-    }
+    lineItems: { ...EMPTY_LINE_ITEMS }
   })
 
   const BUY_BUTTON_TEXT_MAX_LENGTH = 30
@@ -152,20 +163,8 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
   const [showArchived, setShowArchived] = useState(false)
   const [accessFilter, setAccessFilter] = useState('all')
   const [expandedOfferingId, setExpandedOfferingId] = useState(null)
+  const [childSpaces, setChildSpaces] = useState([])
   const descriptionEditorRef = useRef(null)
-
-  const grantsOnlyTracks = useMemo(() => {
-    const hasTracks = formData.lineItems.tracks.length > 0
-    const hasGroups = formData.lineItems.groups.length > 0
-    const hasRoles = formData.lineItems.roles.length > 0
-    return hasTracks && !hasGroups && !hasRoles
-  }, [formData.lineItems])
-
-  useEffect(() => {
-    if (grantsOnlyTracks && isRecurringOfferingDuration(formData.duration)) {
-      setFormData(prev => ({ ...prev, duration: '' }))
-    }
-  }, [grantsOnlyTracks, formData.duration])
 
   /**
    * Toggle subscriber view for an offering
@@ -175,11 +174,18 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
     setExpandedOfferingId(prevId => prevId === offeringId ? null : offeringId)
   }, [])
 
-  // Fetch tracks when needed for content access editing and display
+  // Load child spaces for content-access selection and display
   useEffect(() => {
-    if (group?.id && (showCreateForm || editingOffering || offerings?.length > 0)) {
-      dispatch(fetchGroupTracks(group.id, { published: true }))
+    async function loadSpaces () {
+      if (!group?.id || !(showCreateForm || editingOffering || offerings?.length > 0)) return
+      try {
+        const response = await dispatch(fetchGroupSpaces(group.id))
+        setChildSpaces(response?.payload?.data?.group?.spaces?.items || [])
+      } catch (error) {
+        console.error('Error fetching spaces:', error)
+      }
     }
+    loadSpaces()
   }, [dispatch, group?.id, showCreateForm, editingOffering, offerings?.length])
 
   // Scroll to edit form when it opens
@@ -209,21 +215,17 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
         throw new Error(t('Invalid price'))
       }
 
-      // Format accessGrants from line items
-      // Format: { "trackIds": [1, 2], "groupRoleIds": [4], "groupIds": [5, 6] }
+      // Format accessGrants from line items: { groupIds, groupRoleIds }
       const accessGrants = {}
-      if (formData.lineItems.tracks.length > 0) {
-        accessGrants.trackIds = formData.lineItems.tracks.map(track => parseInt(track.id))
+      const groupIds = groupIdsFromLineItems(formData.lineItems)
+      if (groupIds.length > 0) {
+        accessGrants.groupIds = groupIds
       }
       if (formData.lineItems.roles.length > 0) {
-        // Separate common roles and group roles
         const groupRoleIds = formData.lineItems.roles.map(r => parseInt(r.id))
         if (groupRoleIds.length > 0) {
           accessGrants.groupRoleIds = groupRoleIds
         }
-      }
-      if (formData.lineItems.groups.length > 0) {
-        accessGrants.groupIds = formData.lineItems.groups.map(g => parseInt(g.id))
       }
       const trimmedButtonText = formData.buyButtonText?.trim?.()
       if (trimmedButtonText) {
@@ -252,14 +254,7 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
         if (maximum != null) accessGrants.slidingScale.maximum = maximum
       }
 
-      const durationError = validateOfferingDurationForAccessGrants(accessGrants, formData.duration)
-      if (durationError) {
-        window.alert(t(durationError))
-        setCreating(false)
-        return
-      }
-
-      const description = descriptionEditorRef.current?.getHTML?.() ?? formData.description ?? ''
+      const description = descriptionEditorRef.current?.getText?.() ?? formData.description ?? ''
 
       const result = await dispatch(createOffering(
         group.id,
@@ -278,7 +273,7 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
       }
 
       // Reset form and refresh offerings
-      setFormData({ name: '', description: '', price: '', currency: 'usd', duration: '', publishStatus: 'unpublished', buyButtonText: '', slidingScaleEnabled: false, slidingScaleMinQuantity: '', slidingScaleMaxQuantity: '', lineItems: { tracks: [], groups: [], roles: [] } })
+      setFormData({ name: '', description: '', price: '', currency: 'usd', duration: '', publishStatus: 'unpublished', buyButtonText: '', slidingScaleEnabled: false, slidingScaleMinQuantity: '', slidingScaleMaxQuantity: '', lineItems: { ...EMPTY_LINE_ITEMS } })
       setShowCreateForm(false)
       onRefreshOfferings()
     } catch (error) {
@@ -304,31 +299,21 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
         throw new Error(t('Cannot update offering: missing offering ID'))
       }
 
-      // Format accessGrants from line items
+      // Format accessGrants from line items: { groupIds, groupRoleIds }
       const accessGrants = {}
-      if (formData.lineItems.tracks.length > 0) {
-        accessGrants.trackIds = formData.lineItems.tracks.map(track => parseInt(track.id))
+      const groupIds = groupIdsFromLineItems(formData.lineItems)
+      if (groupIds.length > 0) {
+        accessGrants.groupIds = groupIds
       }
       if (formData.lineItems.roles.length > 0) {
-        // Separate common roles and group roles
         const groupRoleIds = formData.lineItems.roles.map(r => parseInt(r.id))
         if (groupRoleIds.length > 0) {
           accessGrants.groupRoleIds = groupRoleIds
         }
       }
-      if (formData.lineItems.groups.length > 0) {
-        accessGrants.groupIds = formData.lineItems.groups.map(g => parseInt(g.id))
-      }
       const trimmedButtonText = formData.buyButtonText?.trim?.()
       if (trimmedButtonText) {
         accessGrants.buyButtonText = trimmedButtonText.slice(0, BUY_BUTTON_TEXT_MAX_LENGTH)
-      }
-
-      const durationError = validateOfferingDurationForAccessGrants(accessGrants, formData.duration)
-      if (durationError) {
-        window.alert(t(durationError))
-        setUpdating(false)
-        return
       }
 
       // Parse existing accessGrants for comparison
@@ -337,7 +322,6 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
       // Normalize for comparison (includes buyButtonText so changes to button label trigger update)
       const normalizeAccessGrants = (ag) => {
         const normalized = {}
-        if (ag.trackIds && ag.trackIds.length > 0) normalized.trackIds = [...ag.trackIds].sort()
         if (ag.groupRoleIds && ag.groupRoleIds.length > 0) normalized.groupRoleIds = [...ag.groupRoleIds].sort()
         if (ag.groupIds && ag.groupIds.length > 0) normalized.groupIds = [...ag.groupIds].sort()
         if (ag.buyButtonText != null && String(ag.buyButtonText).trim() !== '') {
@@ -346,7 +330,7 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
         return normalized
       }
 
-      const description = descriptionEditorRef.current?.getHTML?.() ?? formData.description ?? ''
+      const description = descriptionEditorRef.current?.getText?.() ?? formData.description ?? ''
 
       const updates = {}
       if (formData.name !== editingOffering.name) updates.name = formData.name
@@ -382,7 +366,7 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
 
       // Reset form and refresh offerings
       setEditingOffering(null)
-      setFormData({ name: '', description: '', price: '', currency: 'usd', duration: '', publishStatus: 'unpublished', buyButtonText: '', lineItems: { tracks: [], groups: [], roles: [] } })
+      setFormData({ name: '', description: '', price: '', currency: 'usd', duration: '', publishStatus: 'unpublished', buyButtonText: '', lineItems: { ...EMPTY_LINE_ITEMS } })
       onRefreshOfferings()
     } catch (error) {
       console.error('Error updating offering:', error)
@@ -393,17 +377,15 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
   }, [dispatch, editingOffering, formData, onRefreshOfferings, t])
 
   const handleStartEdit = useCallback((offering) => {
-    // Use tracks from GraphQL relation
-    const offeringTracks = offering.tracks || []
     const accessGrants = parseAccessGrants(offering.accessGrants)
 
     // Lookup roles from group context using IDs from accessGrants
-    const groupRoles = group?.groupRoles?.items || []
+    const groupRolesList = group?.groupRoles?.items || []
     const rolesFromAccessGrants = []
 
     if (accessGrants.groupRoleIds && Array.isArray(accessGrants.groupRoleIds)) {
       accessGrants.groupRoleIds.forEach(roleId => {
-        const role = groupRoles.find(r => parseInt(r.id) === parseInt(roleId))
+        const role = groupRolesList.find(r => parseInt(r.id) === parseInt(roleId))
         if (role) {
           rolesFromAccessGrants.push({
             id: role.id,
@@ -415,20 +397,27 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
       })
     }
 
-    // Convert tracks relation to lineItems format
+    const parentId = parseInt(group?.id, 10)
+    const grantGroupIds = accessGrants.groupIds || []
+    const spacesById = new Map(childSpaces.map(space => [parseInt(space.id, 10), space]))
+    const spaces = []
+    const groups = []
+    grantGroupIds.forEach(groupId => {
+      const id = parseInt(groupId, 10)
+      if (id === parentId) {
+        groups.push({ id: group.id, name: group.name })
+        return
+      }
+      const space = spacesById.get(id)
+      spaces.push(space
+        ? { id: space.id, name: space.name }
+        : { id: groupId, name: t('Space {{id}}', { id: groupId }) })
+    })
+
     const lineItems = {
-      tracks: offeringTracks.map(track => ({
-        id: track.id,
-        name: track.name
-      })),
+      spaces,
       roles: rolesFromAccessGrants,
-      groups: (accessGrants.groupIds || []).map(groupId => {
-        // For groups, we can use the current group if it matches, or create a placeholder
-        if (parseInt(groupId) === parseInt(group?.id)) {
-          return { id: group.id, name: group.name }
-        }
-        return { id: groupId, name: t('Group {{id}}', { id: groupId }) }
-      })
+      groups
     }
 
     setEditingOffering(offering)
@@ -443,17 +432,17 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
       lineItems
     })
     setShowCreateForm(false)
-  }, [group, groupRoles])
+  }, [group, childSpaces, t])
 
   const handleCancelEdit = useCallback(() => {
     setEditingOffering(null)
-    setFormData({ name: '', description: '', price: '', currency: 'usd', duration: '', publishStatus: 'unpublished', buyButtonText: '', slidingScaleEnabled: false, slidingScaleMinQuantity: '', slidingScaleMaxQuantity: '', lineItems: { tracks: [], groups: [], roles: [] } })
+    setFormData({ name: '', description: '', price: '', currency: 'usd', duration: '', publishStatus: 'unpublished', buyButtonText: '', slidingScaleEnabled: false, slidingScaleMinQuantity: '', slidingScaleMaxQuantity: '', lineItems: { ...EMPTY_LINE_ITEMS } })
     setShowCreateForm(false)
   }, [])
 
   const handleDiscardForm = useCallback(() => {
     setShowCreateForm(false)
-    setFormData({ name: '', description: '', price: '', currency: 'usd', duration: '', publishStatus: 'unpublished', buyButtonText: '', slidingScaleEnabled: false, slidingScaleMinQuantity: '', slidingScaleMaxQuantity: '', lineItems: { tracks: [], groups: [], roles: [] } })
+    setFormData({ name: '', description: '', price: '', currency: 'usd', duration: '', publishStatus: 'unpublished', buyButtonText: '', slidingScaleEnabled: false, slidingScaleMinQuantity: '', slidingScaleMaxQuantity: '', lineItems: { ...EMPTY_LINE_ITEMS } })
   }, [])
 
   return (
@@ -599,21 +588,15 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
 
             <SettingsControl
               label={t('Duration')}
-              helpText={grantsOnlyTracks
-                ? t('Tracks are sold as one-time purchases. Recurring billing is only available when the offering includes group or role access.')
-                : t('Recurring billing interval. Monthly, seasonal, and annual options auto-renew each period. Leave empty for one-time payment with lifetime access.')}
+              helpText={t('Recurring billing interval. Monthly, seasonal, and annual options auto-renew each period. Leave empty for one-time payment with lifetime access.')}
               value={formData.duration}
               onChange={(e) => setFormData(prev => ({ ...prev, duration: e.target.value }))}
               renderControl={(props) => (
                 <select {...props} className='w-full p-2 rounded-md bg-background border border-border'>
                   <option value=''>{t('One-time purchase (lifetime access)')}</option>
-                  {!grantsOnlyTracks && (
-                    <>
-                      <option value='month'>{t('Monthly (recurring)')}</option>
-                      <option value='season'>{t('Every 3 months (recurring)')}</option>
-                      <option value='annual'>{t('Annual (recurring)')}</option>
-                    </>
-                  )}
+                  <option value='month'>{t('Monthly (recurring)')}</option>
+                  <option value='season'>{t('Every 3 months (recurring)')}</option>
+                  <option value='annual'>{t('Annual (recurring)')}</option>
                 </select>
               )}
             />
@@ -696,21 +679,15 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
 
             <SettingsControl
               label={t('Duration')}
-              helpText={grantsOnlyTracks
-                ? t('Tracks are sold as one-time purchases. Recurring billing is only available when the offering includes group or role access.')
-                : t('Recurring billing interval. Monthly, seasonal, and annual options auto-renew each period. Leave empty for one-time payment with lifetime access.')}
+              helpText={t('Recurring billing interval. Monthly, seasonal, and annual options auto-renew each period. Leave empty for one-time payment with lifetime access.')}
               value={formData.duration}
               onChange={(e) => setFormData(prev => ({ ...prev, duration: e.target.value }))}
               renderControl={(props) => (
                 <select {...props} className='w-full p-2 rounded-md bg-background border border-border'>
                   <option value=''>{t('One-time purchase (lifetime access)')}</option>
-                  {!grantsOnlyTracks && (
-                    <>
-                      <option value='month'>{t('Monthly (recurring)')}</option>
-                      <option value='season'>{t('Every 3 months (recurring)')}</option>
-                      <option value='annual'>{t('Annual (recurring)')}</option>
-                    </>
-                  )}
+                  <option value='month'>{t('Monthly (recurring)')}</option>
+                  <option value='season'>{t('Every 3 months (recurring)')}</option>
+                  <option value='annual'>{t('Annual (recurring)')}</option>
                 </select>
               )}
             />
@@ -770,7 +747,6 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
               >
                 <option value='all'>{t('All')}</option>
                 <option value='group'>{t('Group access')}</option>
-                <option value='track'>{t('Track access')}</option>
                 <option value='role'>{t('Role access')}</option>
               </select>
             </div>
@@ -797,8 +773,6 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
               filteredOfferings = filteredOfferings.filter(offering => {
                 if (accessFilter === 'group') {
                   return offeringHasGroupAccess(offering)
-                } else if (accessFilter === 'track') {
-                  return offeringHasTrackAccess(offering)
                 } else if (accessFilter === 'role') {
                   return offeringHasRoleAccess(offering)
                 }
@@ -819,6 +793,7 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
 
             return filteredOfferings.map(offering => (
               <OfferingListItem
+                childSpaces={childSpaces}
                 key={offering.id}
                 offering={offering}
                 onEdit={handleStartEdit}
@@ -1067,14 +1042,14 @@ function SubscribersPanel ({ offering, group, t }) {
                       : t('Lapsed')}
                     {subscriber.joinedAt && (
                       <span className='ml-2'>
-                        {t('Joined')}: {new Date(subscriber.joinedAt).toLocaleDateString()}
+                        {t('Joined')}: {formatLocalizedDate(subscriber.joinedAt, { style: 'short' })}
                       </span>
                     )}
                   </p>
                 </div>
                 {subscriber.status === 'lapsed' && subscriber.expiresAt && (
                   <span className='text-xs text-foreground/40'>
-                    {t('Expired')}: {new Date(subscriber.expiresAt).toLocaleDateString()}
+                    {t('Expired')}: {formatLocalizedDate(subscriber.expiresAt, { style: 'short' })}
                   </span>
                 )}
               </div>
@@ -1115,7 +1090,7 @@ function SubscribersPanel ({ offering, group, t }) {
  * List item displaying a single offering with details
  * Used in the OfferingsTab list view
  */
-function OfferingListItem ({ offering, onEdit, group, isEditing, isExpanded, onToggleSubscribers, t }) {
+function OfferingListItem ({ offering, onEdit, group, childSpaces = [], isEditing, isExpanded, onToggleSubscribers, t }) {
   const [copied, setCopied] = useState(false)
 
   /**
@@ -1128,18 +1103,14 @@ function OfferingListItem ({ offering, onEdit, group, isEditing, isExpanded, onT
   }, [onToggleSubscribers, offering.id])
   const fullOfferingUrl = origin() + offeringUrl(offering.id, group.slug)
 
-  // Use tracks and roles relations from GraphQL, fallback to parsing accessGrants for backwards compatibility
   const accessGrants = useMemo(() => {
     return parseAccessGrants(offering.accessGrants)
   }, [offering.accessGrants])
 
-  // Get track and role objects for display
-  // Lookup roles from group context using IDs from accessGrants
   const accessDetails = useMemo(() => {
     const groupRoles = group?.groupRoles?.items || []
     const roles = []
 
-    // Lookup group roles
     if (accessGrants.groupRoleIds && Array.isArray(accessGrants.groupRoleIds)) {
       accessGrants.groupRoleIds.forEach(roleId => {
         const role = groupRoles.find(r => parseInt(r.id) === parseInt(roleId))
@@ -1147,22 +1118,27 @@ function OfferingListItem ({ offering, onEdit, group, isEditing, isExpanded, onT
       })
     }
 
-    // Lookup common roles
-    const details = {
-      tracks: offering.tracks || [],
-      roles,
-      hasGroups: false
+    const parentId = parseInt(group?.id, 10)
+    const spacesById = new Map((childSpaces || []).map(space => [parseInt(space.id, 10), space]))
+    const spaces = []
+    let hasParentGroup = false
+
+    if (accessGrants.groupIds && Array.isArray(accessGrants.groupIds)) {
+      accessGrants.groupIds.forEach(groupId => {
+        const id = parseInt(groupId, 10)
+        if (id === parentId) {
+          hasParentGroup = true
+          return
+        }
+        const space = spacesById.get(id)
+        spaces.push(space || { id: groupId, name: `Space ${groupId}` })
+      })
     }
 
-    // Since we only allow the current group, just check if groups exist
-    if (accessGrants.groupIds && Array.isArray(accessGrants.groupIds) && accessGrants.groupIds.length > 0) {
-      details.hasGroups = true
-    }
+    return { spaces, roles, hasGroups: hasParentGroup }
+  }, [childSpaces, accessGrants, group?.id, group?.groupRoles?.items])
 
-    return details
-  }, [offering.tracks, accessGrants, group?.groupRoles?.items])
-
-  const hasAccessContent = accessDetails.tracks.length > 0 || accessDetails.roles.length > 0 || accessDetails.hasGroups
+  const hasAccessContent = accessDetails.spaces.length > 0 || accessDetails.roles.length > 0 || accessDetails.hasGroups
 
   const slidingScaleDisplay = useMemo(() => {
     const slidingScale = accessGrants.slidingScale || accessGrants.sliding_scale
@@ -1216,9 +1192,9 @@ function OfferingListItem ({ offering, onEdit, group, isEditing, isExpanded, onT
                     : t('Unpublished')}
             </span>
           </div>
-          {offering.description && (
-            <div className='text-sm text-foreground/70 mb-2 global-postContent'>
-              <HyloHTML html={offering.description} />
+          {stripHtml(offering.description) && (
+            <div className='text-sm text-foreground/70 mb-2 whitespace-pre-wrap'>
+              {stripHtml(offering.description)}
             </div>
           )}
           <div className='flex items-center gap-4 text-xs text-foreground/50 mb-2'>
@@ -1252,20 +1228,20 @@ function OfferingListItem ({ offering, onEdit, group, isEditing, isExpanded, onT
                   <p className='text-sm font-bold text-foreground'>{t('Grants access to the group')}</p>
                 </div>
               )}
-              {(accessDetails.tracks.length > 0 || accessDetails.roles.length > 0) && (
+              {(accessDetails.spaces.length > 0 || accessDetails.roles.length > 0) && (
                 <>
                   <p className='text-xs font-semibold text-foreground/70 mb-2'>{t('Grants access to')}:</p>
                   <div className='flex flex-col gap-2 text-xs text-foreground/60'>
-                    {accessDetails.tracks.length > 0 && (
+                    {accessDetails.spaces.length > 0 && (
                       <div>
-                        <span className='font-medium mb-1 block'>{t('Tracks')}:</span>
+                        <span className='font-medium mb-1 block'>{t('Spaces')}:</span>
                         <div className='flex flex-wrap gap-2'>
-                          {accessDetails.tracks.map(track => (
+                          {accessDetails.spaces.map(space => (
                             <span
-                              key={track.id}
+                              key={space.id}
                               className='inline-flex items-center gap-1 px-2 py-1 rounded-md bg-selected/20 text-foreground text-sm'
                             >
-                              {track.name}
+                              {space.name}
                             </span>
                           ))}
                         </div>
@@ -1352,18 +1328,18 @@ function OfferingListItem ({ offering, onEdit, group, isEditing, isExpanded, onT
 /**
  * Line Items Selector Component
  *
- * Allows selection of tracks, groups, and roles to attach to an offering.
+ * Allows selection of spaces, the parent group, and roles to attach to an offering.
  * Selected items are displayed as removable chips.
  */
 function LineItemsSelector ({ group, lineItems, onLineItemsChange, t }) {
   const dispatch = useDispatch()
-  const [activeSelector, setActiveSelector] = useState(null) // 'track' or 'role'
+  const [activeSelector, setActiveSelector] = useState(null) // 'space' or 'role'
   const [searchTerm, setSearchTerm] = useState('')
   const [items, setItems] = useState([])
   const [isLoading, setIsLoading] = useState(false)
+  const [spaces, setSpaces] = useState([])
   const debouncedSearch = useDebounce(searchTerm, 300)
 
-  // Get roles (combine common roles and group roles, like TagInput does)
   const groupRoles = useMemo(() => group?.groupRoles?.items || [], [group?.groupRoles?.items])
   const allRoles = useMemo(() => groupRoles.map(role => ({
     ...role,
@@ -1371,65 +1347,60 @@ function LineItemsSelector ({ group, lineItems, onLineItemsChange, t }) {
     label: `${role.emoji || ''} ${role.name}`.trim()
   })), [groupRoles])
 
-  // Fetch tracks when track selector is active.
+  // Prefetch child spaces once for the selector
   useEffect(() => {
-    async function getTracks () {
-      if (activeSelector !== 'track') return
-
-      setIsLoading(true)
+    async function loadSpaces () {
+      if (!group?.id) return
       try {
-        const response = await dispatch(fetchGroupTracks(group.id, {
-          autocomplete: debouncedSearch || '',
-          first: 20,
-          published: null
-        }))
-        setItems(response?.payload?.data?.group?.tracks?.items || [])
+        const response = await dispatch(fetchGroupSpaces(group.id))
+        setSpaces(response?.payload?.data?.group?.spaces?.items || [])
       } catch (error) {
-        console.error('Error fetching tracks:', error)
-      } finally {
-        setIsLoading(false)
+        console.error('Error fetching spaces:', error)
       }
     }
+    loadSpaces()
+  }, [dispatch, group?.id])
 
-    getTracks()
-  }, [debouncedSearch, dispatch, activeSelector, group.id])
+  // Filter spaces when space selector is active
+  useEffect(() => {
+    if (activeSelector !== 'space') return
+    setIsLoading(false)
+    const unselected = spaces.filter(space =>
+      space.paywall &&
+      !(lineItems.spaces || []).some(selected => parseInt(selected.id) === parseInt(space.id))
+    )
+    if (!debouncedSearch) {
+      setItems(unselected)
+      return
+    }
+    const searchLower = debouncedSearch.toLowerCase()
+    setItems(unselected.filter(space => (space.name || '').toLowerCase().includes(searchLower)))
+  }, [debouncedSearch, activeSelector, spaces, lineItems.spaces])
 
   // Filter roles when role selector is active
   useEffect(() => {
-    if (activeSelector === 'role') {
-      setIsLoading(false)
-      // Filter out already selected roles
-      const unselectedRoles = allRoles.filter(role =>
-        !lineItems.roles.some(selected => selected.id === role.id)
-      )
-
-      if (!debouncedSearch) {
-        setItems(unselectedRoles)
-      } else {
-        const searchLower = debouncedSearch.toLowerCase()
-        const filteredRoles = unselectedRoles.filter(role =>
-          role.name.toLowerCase().includes(searchLower)
-        )
-        setItems(filteredRoles)
-      }
+    if (activeSelector !== 'role') return
+    setIsLoading(false)
+    const unselectedRoles = allRoles.filter(role =>
+      !lineItems.roles.some(selected => selected.id === role.id)
+    )
+    if (!debouncedSearch) {
+      setItems(unselectedRoles)
+      return
     }
+    const searchLower = debouncedSearch.toLowerCase()
+    setItems(unselectedRoles.filter(role => role.name.toLowerCase().includes(searchLower)))
   }, [debouncedSearch, activeSelector, allRoles, lineItems.roles])
 
   const handleSelectItem = useCallback((item) => {
-    const itemType = activeSelector === 'track' ? 'tracks' : 'roles'
+    const itemType = activeSelector === 'space' ? 'spaces' : 'roles'
     const currentItems = lineItems[itemType] || []
-
-    // Check if item is already selected
-    if (currentItems.find(i => i.id === item.id)) {
-      return
-    }
+    if (currentItems.find(i => i.id === item.id)) return
 
     onLineItemsChange({
       ...lineItems,
       [itemType]: [...currentItems, item]
     })
-
-    // Reset selector
     setActiveSelector(null)
     setSearchTerm('')
   }, [activeSelector, lineItems, onLineItemsChange])
@@ -1441,23 +1412,18 @@ function LineItemsSelector ({ group, lineItems, onLineItemsChange, t }) {
     })
   }, [lineItems, onLineItemsChange])
 
-  /**
-   * Handles toggling group access for the current group
-   */
+  /** Handles toggling group access for the current (parent) group */
   const handleToggleGroupAccess = useCallback((checked) => {
     if (!group) return
-
     const currentGroups = lineItems.groups || []
     const isGroupSelected = currentGroups.some(g => parseInt(g.id) === parseInt(group.id))
 
     if (checked && !isGroupSelected) {
-      // Add current group
       onLineItemsChange({
         ...lineItems,
         groups: [...currentGroups, { id: group.id, name: group.name }]
       })
     } else if (!checked && isGroupSelected) {
-      // Remove current group
       onLineItemsChange({
         ...lineItems,
         groups: currentGroups.filter(g => parseInt(g.id) !== parseInt(group.id))
@@ -1466,11 +1432,11 @@ function LineItemsSelector ({ group, lineItems, onLineItemsChange, t }) {
   }, [group, lineItems, onLineItemsChange])
 
   const textOptions = {
-    track: {
-      searchPlaceholder: t('Search tracks...'),
-      noResults: t('No tracks found'),
-      heading: t('Tracks'),
-      buttonLabel: t('Add Track')
+    space: {
+      searchPlaceholder: t('Search spaces...'),
+      noResults: t('No paid spaces found'),
+      heading: t('Spaces'),
+      buttonLabel: t('Add Space')
     },
     role: {
       searchPlaceholder: t('Search roles...'),
@@ -1480,7 +1446,6 @@ function LineItemsSelector ({ group, lineItems, onLineItemsChange, t }) {
     }
   }
 
-  // Check if current group is selected
   const isGroupAccessEnabled = useMemo(() => {
     if (!group) return false
     return lineItems.groups.some(g => parseInt(g.id) === parseInt(group.id))
@@ -1493,10 +1458,9 @@ function LineItemsSelector ({ group, lineItems, onLineItemsChange, t }) {
           {t('Content Access')}
         </label>
         <p className='text-xs text-foreground/60 mb-3'>
-          {t('Select tracks, groups, and roles that this offering grants access to')}
+          {t('Select spaces, groups, and roles that this offering grants access to')}
         </p>
 
-        {/* Group Access Toggle */}
         <div className='mb-4 flex items-center justify-between p-3 border border-foreground/20 rounded-lg'>
           <div className='flex-1'>
             <label className='text-sm font-medium text-foreground block mb-1'>
@@ -1512,22 +1476,20 @@ function LineItemsSelector ({ group, lineItems, onLineItemsChange, t }) {
           />
         </div>
 
-        {/* Selected Items Display */}
         <div className='space-y-2 mb-4'>
-          {lineItems.tracks.length > 0 && (
+          {(lineItems.spaces || []).length > 0 && (
             <div>
-              <p className='text-xs text-foreground/50 mb-1'>{t('Tracks')}:</p>
+              <p className='text-xs text-foreground/50 mb-1'>{t('Spaces')}:</p>
               <div className='flex flex-wrap gap-2'>
-                {lineItems.tracks.map(track => (
+                {lineItems.spaces.map(space => (
                   <span
-                    key={track.id}
+                    key={space.id}
                     className='inline-flex items-center gap-1 px-2 py-1 rounded-md bg-selected/20 text-foreground text-sm'
                   >
-                    {track.name}
-                    {'publishedAt' in track && !track.publishedAt && <span className='text-foreground/50 text-xs'>({t('Draft')})</span>}
+                    {space.name}
                     <button
                       type='button'
-                      onClick={() => handleRemoveItem('tracks', track.id)}
+                      onClick={() => handleRemoveItem('spaces', space.id)}
                       className='hover:text-destructive'
                     >
                       <X className='w-3 h-3' />
@@ -1562,16 +1524,15 @@ function LineItemsSelector ({ group, lineItems, onLineItemsChange, t }) {
           )}
         </div>
 
-        {/* Add Buttons */}
         <div className='flex gap-2 flex-wrap'>
           <Button
             type='button'
             variant='outline'
             size='sm'
-            onClick={() => setActiveSelector(activeSelector === 'track' ? null : 'track')}
+            onClick={() => setActiveSelector(activeSelector === 'space' ? null : 'space')}
           >
             <PlusCircle className='w-4 h-4 mr-1' />
-            {textOptions.track.buttonLabel}
+            {textOptions.space.buttonLabel}
           </Button>
           <Button
             type='button'
@@ -1584,7 +1545,6 @@ function LineItemsSelector ({ group, lineItems, onLineItemsChange, t }) {
           </Button>
         </div>
 
-        {/* Search/Select Interface */}
         {activeSelector && (
           <div className='mt-3 border-2 border-foreground/20 rounded-lg p-3'>
             <Command className='rounded-lg border shadow-md'>
@@ -1601,7 +1561,7 @@ function LineItemsSelector ({ group, lineItems, onLineItemsChange, t }) {
                     : (
                       <CommandGroup heading={textOptions[activeSelector].heading}>
                         {items.map((item) => {
-                          const itemType = activeSelector === 'track' ? 'tracks' : 'roles'
+                          const itemType = activeSelector === 'space' ? 'spaces' : 'roles'
                           const isSelected = lineItems[itemType].find(i => i.id === item.id)
                           return (
                             <CommandItem
@@ -1613,9 +1573,6 @@ function LineItemsSelector ({ group, lineItems, onLineItemsChange, t }) {
                             >
                               {activeSelector === 'role' && item.emoji && <span className='mr-2'>{item.emoji}</span>}
                               <span>{item.name}</span>
-                              {activeSelector === 'track' && !item.publishedAt && (
-                                <span className='ml-2 text-xs text-foreground/50'>({t('Draft')})</span>
-                              )}
                               {isSelected && <span className='ml-2 text-xs text-foreground/50'>({t('Already selected')})</span>}
                             </CommandItem>
                           )

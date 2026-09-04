@@ -15,8 +15,9 @@ describe('Header', () => {
       }
     }
     render(<Header {...props} />)
-    expect(screen.getByText('Two')).toBeInTheDocument()
-    expect(screen.getByText('Three')).toBeInTheDocument()
+    // Measuring container + visible pills both render participant names
+    expect(screen.getAllByText('Two').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Three').length).toBeGreaterThan(0)
   })
 
   it('should render "You" when current user is the only participant', () => {

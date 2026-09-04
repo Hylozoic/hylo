@@ -2,7 +2,8 @@ import { test, expect } from '@playwright/test'
 import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading.js'
 
 /**
- * Batch I — group settings (`/groups/:slug/settings/*`) and group moderation (`/groups/:slug/moderation/*` only).
+ * Batch I — group settings (`/groups/:slug/settings/*`) and group moderation
+ * (`/groups/:slug/about/moderation`; `/moderation` redirects there).
  * There is no moderation route under global `/all`, `/public`, or `/my`.
  * Requires E2E seed: Coordinator group role + Administration responsibility linked for the login user
  * (`scripts/seed-e2e-baseline.js`).
@@ -22,14 +23,18 @@ function groupPath (slug, rest) {
 }
 
 test.describe('Batch I: group settings', () => {
-  test('GET …/settings loads default Settings tab', async ({ page }) => {
+  test('GET …/settings loads default Settings tab', async ({ page }, testInfo) => {
     await page.goto(groupPath(PUBLIC_GROUP_SLUG, '/settings'))
     await waitPastRootSessionLoading(page)
     await expect(page).toHaveURL(new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/settings/?$`), navTimeout)
     await expect(page.locator('#center-column')).toBeVisible(uiTimeout)
-    await expect(
-      page.getByRole('heading', { name: /Default notification settings/i })
-    ).toBeVisible(uiTimeout)
+    if (testInfo.project.name.includes('mobile')) {
+      await expect(page.getByRole('button', { name: /^Group Details$/i })).toBeVisible(uiTimeout)
+    } else {
+      await expect(
+        page.getByRole('heading', { name: /Default notification settings/i })
+      ).toBeVisible(uiTimeout)
+    }
     await expect(page).toHaveTitle(/Hylo/i, uiTimeout)
   })
 
@@ -43,12 +48,13 @@ test.describe('Batch I: group settings', () => {
 })
 
 test.describe('Batch I: moderation (group workspace only)', () => {
-  test('GET /groups/:slug/moderation loads shell', async ({ page }) => {
+  test('GET /groups/:slug/moderation redirects to about/moderation', async ({ page }) => {
     await page.goto(groupPath(PRIVATE_GROUP_SLUG, '/moderation'))
     await waitPastRootSessionLoading(page)
-    await expect(page).toHaveURL(new RegExp(`/groups/${PRIVATE_GROUP_SLUG}/moderation`), navTimeout)
+    await expect(page).toHaveURL(new RegExp(`/groups/${PRIVATE_GROUP_SLUG}/about/moderation/?$`), navTimeout)
     await expect(page.locator('#center-column')).toBeVisible(uiTimeout)
     await expect(page.locator('#outer-container')).toBeVisible(uiTimeout)
+    await expect(page.getByRole('button', { name: /^Moderation$/i })).toBeVisible(uiTimeout)
     // Helmet briefly uses `context` before `group` hydrates — avoid asserting exact pipe segments
     await expect(page).toHaveTitle(/Moderation.*Hylo/i, uiTimeout)
   })

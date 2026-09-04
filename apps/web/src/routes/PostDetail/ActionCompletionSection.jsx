@@ -1,8 +1,9 @@
 import { Pencil, PartyPopper } from 'lucide-react'
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
-import { TextHelpers, DateTimeHelpers } from '@hylo/shared'
+import { TextHelpers } from '@hylo/shared'
+import { formatUserDatePair } from 'util/dateFormat'
 import { FileManager } from 'components/AttachmentManager/FileManager'
 import CardFileAttachments from 'components/CardFileAttachments'
 import ClickCatcher from 'components/ClickCatcher'
@@ -14,9 +15,60 @@ import Checkbox from 'components/ui/checkbox'
 import * as Dialog from '@radix-ui/react-dialog'
 import { Label } from 'components/ui/label'
 import useRouteParams from 'hooks/useRouteParams'
+import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import completePost from 'store/actions/completePost'
+import { fetchViewPosts } from 'store/actions/groupViews'
+import { fetchTrack } from 'store/actions/trackActions'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
+import { getGroupViews } from 'store/selectors/getGroupViews'
 import getTrack from 'store/selectors/getTrack'
+
+/** Role objects from a group's embedded groupRoles list. */
+function roleItems (group) {
+  if (!group) return []
+  return group.groupRoles?.items || group.ref?.groupRoles?.items || []
+}
+
+/**
+ * Resolves the track completion role for display and optimistic membership.
+ * Roles live on the parent group; the space's groupRoles list is empty.
+ */
+function resolveCompletionRole (trackRole, parentGroup, spaceGroup) {
+  if (!trackRole) return null
+  const id = trackRole.id
+  const emoji = trackRole.emoji || trackRole.ref?.emoji
+  const name = trackRole.name || trackRole.ref?.name
+  if (emoji || name) {
+    return {
+      id,
+      emoji,
+      name,
+      groupId: trackRole.groupId || trackRole.ref?.groupId || parentGroup?.id
+    }
+  }
+  const found = [...roleItems(parentGroup), ...roleItems(spaceGroup)]
+    .find(role => String(role.id) === String(id))
+  if (!found) return null
+  return {
+    id: found.id,
+    emoji: found.emoji,
+    name: found.name,
+    groupId: found.groupId || parentGroup?.id
+  }
+}
+
+/** True when completion HTML has visible text (empty editor HTML is treated as none). */
+function hasVisibleCompletionMessage (html) {
+  if (!html) return false
+  return TextHelpers.presentHTMLToText(html).trim().length > 0
+}
+
+/** True when every action in the list is complete (this post counts as complete). */
+function allTrackActionsComplete (trackActions, postId) {
+  return Array.isArray(trackActions) &&
+    trackActions.length > 0 &&
+    trackActions.every(action => action.completedAt || String(action.id) === String(postId))
+}
 
 export default function ActionCompletionSection ({ post, currentUser }) {
   const dispatch = useDispatch()
@@ -25,32 +77,97 @@ export default function ActionCompletionSection ({ post, currentUser }) {
   const [completionResponse, setCompletionResponse] = useState(post.completionResponse || [])
   const [showTrackCompletionDialog, setShowTrackCompletionDialog] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
+  const completedOnMountRef = useRef(Boolean(post.completedAt))
   const { completionAction, completionActionSettings } = post
-  const { instructions, options } = completionActionSettings
-  const currentTrack = useSelector(state => getTrack(state, routeParams.trackId))
-  const currentGroup = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
+  const { instructions, options } = completionActionSettings || {}
+  // Track spaces carry the track on the space group (group.track).
+  const groupSlug = useEffectiveGroupSlug() || routeParams.groupSlug
+  const currentGroup = useSelector(state => getGroupForSlug(state, groupSlug))
+  const parentGroup = useSelector(state => {
+    const parentSlug = routeParams.groupSlug
+    if (!parentSlug || parentSlug === groupSlug) return null
+    return getGroupForSlug(state, parentSlug)
+  })
+  const trackId = currentGroup?.track?.id
+  const fetchedTrack = useSelector(state => trackId ? getTrack(state, trackId) : null)
+  const currentTrack = fetchedTrack || currentGroup?.track || null
+  const groupViews = useSelector(state => getGroupViews(state, currentGroup))
+  const actionsView = groupViews.find(v => v.type === 'track-actions')
+  const collectionPosts = actionsView?.collectionPosts
+  const trackActions = collectionPosts || []
+  const completionRole = resolveCompletionRole(currentTrack?.completionRole, parentGroup, currentGroup)
+  const trackName = currentGroup?.name || currentTrack?.space?.name || ''
+
+  useEffect(() => {
+    if (!trackId || fetchedTrack?.id) return
+    dispatch(fetchTrack(trackId))
+  }, [dispatch, trackId, fetchedTrack?.id])
+
+  useEffect(() => {
+    if (currentGroup?.id && actionsView?.id && collectionPosts === undefined) {
+      dispatch(fetchViewPosts(currentGroup.id, actionsView.id))
+    }
+  }, [currentGroup?.id, actionsView?.id, collectionPosts, dispatch])
+
+  const isTrackCompleteAfterThisPost = allTrackActionsComplete(trackActions, post.id) ||
+    (fetchedTrack?.numActions === 1)
+
+  useEffect(() => {
+    if (completedOnMountRef.current) return
+    if (!post.completedAt || !currentTrack?.id) return
+
+    if (isTrackCompleteAfterThisPost) {
+      completedOnMountRef.current = true
+      setShowTrackCompletionDialog(true)
+      return
+    }
+
+    const othersStillIncomplete = Array.isArray(collectionPosts) &&
+      collectionPosts.some(action => String(action.id) !== String(post.id) && !action.completedAt)
+    if (othersStillIncomplete) {
+      completedOnMountRef.current = true
+      return
+    }
+
+    // Empty or still-loading action list: wait for numActions before deciding
+    if (collectionPosts === undefined || fetchedTrack?.numActions == null) return
+
+    completedOnMountRef.current = true
+  }, [
+    post.completedAt,
+    currentTrack?.id,
+    collectionPosts,
+    fetchedTrack?.numActions,
+    isTrackCompleteAfterThisPost
+  ])
 
   const handleSubmitCompletion = useCallback(() => {
     if (completionAction === 'button' || completionResponse.length > 0) {
-      // Check if the person has completed all actions in the track
-      const allActionsCompleted = currentTrack?.posts.every(action => action.id === post.id || action.completedAt)
-      const trackCompleted = allActionsCompleted && !post.completedAt
+      const trackCompleted = !post.completedAt && isTrackCompleteAfterThisPost
       if (trackCompleted) {
         setShowTrackCompletionDialog(true)
       }
-      const completionRole = currentTrack?.completionRole && currentGroup?.groupRoles?.items?.find(
-        role => String(role.id) === String(currentTrack.completionRole.id)
-      )
       dispatch(completePost(post.id, completionResponse, {
         trackId: currentTrack?.id,
         trackCompleted,
-        completionRoleId: currentTrack?.completionRole?.id,
+        completionRoleId: currentTrack?.completionRole?.id || completionRole?.id,
         completionRole,
-        groupId: currentGroup?.id
+        groupId: currentGroup?.id,
+        parentGroupId: parentGroup?.id
       }))
     }
     setIsEditing(false)
-  }, [post, completionResponse, currentTrack, currentGroup?.id, dispatch, completionAction])
+  }, [
+    post,
+    completionResponse,
+    currentTrack,
+    currentGroup?.id,
+    parentGroup?.id,
+    completionRole,
+    dispatch,
+    completionAction,
+    isTrackCompleteAfterThisPost
+  ])
 
   useEffect(() => {
     // If the post is completed, or re-completed, close edit mode
@@ -65,7 +182,7 @@ export default function ActionCompletionSection ({ post, currentUser }) {
 
   if (!completionAction) return null
 
-  const completedAt = post.completedAt ? DateTimeHelpers.formatDatePair({ start: post.completedAt }) : null
+  const completedAt = post.completedAt ? formatUserDatePair({ start: post.completedAt }) : null
   let completionControls, completionButtonText, alreadyCompletedMessage
   let completionResponseText = completionResponse?.length > 0 ? completionResponse.map((r, i) => <p key={i}><HyloHTML html={r} /></p>) : null
   switch (completionAction) {
@@ -180,21 +297,21 @@ export default function ActionCompletionSection ({ post, currentUser }) {
       )}
       <Dialog.Root open={showTrackCompletionDialog} onOpenChange={setShowTrackCompletionDialog}>
         <Dialog.Portal>
-          <Dialog.Overlay className='CompletedTrackDialog-Overlay bg-darkening/50 absolute top-0 left-0 right-0 bottom-0 grid place-items-center overflow-y-auto z-[900] backdrop-blur-sm'>
-            <Dialog.Content className='CompletedTrackDialog-Content min-w-[300px] w-full bg-background p-4 rounded-md z-[51] max-w-[750px] outline-none'>
+          <Dialog.Overlay className='CompletedTrackDialog-Overlay bg-darkening/50 absolute top-0 left-0 right-0 bottom-0 grid place-items-center overflow-y-auto z-[1100] backdrop-blur-sm'>
+            <Dialog.Content className='CompletedTrackDialog-Content min-w-[300px] w-full bg-background p-4 rounded-md z-[1101] max-w-[750px] outline-none'>
               <PartyPopper className='w-10 h-10 text-green-500 mx-auto' />
-              <Dialog.Title className='sr-only'>Congratulations!</Dialog.Title>
-              <Dialog.Description className='sr-only'>Congratulations!</Dialog.Description>
-              <h3 className='text-2xl font-bold text-center'>Congratulations, you have completed {currentTrack?.name}!</h3>
-              {currentTrack?.completionMessage && (
+              <Dialog.Title className='sr-only'>{t('Congratulations!')}</Dialog.Title>
+              <Dialog.Description className='sr-only'>{t('Congratulations!')}</Dialog.Description>
+              <h3 className='text-2xl font-bold text-center'>{t('Congratulations, you have completed {{trackName}}!', { trackName })}</h3>
+              {hasVisibleCompletionMessage(currentTrack?.completionMessage) && (
                 <ClickCatcher>
-                  <HyloHTML element='p' html={TextHelpers.markdown(currentTrack?.completionMessage)} className='text-center text-foreground/70' />
+                  <HyloHTML html={currentTrack.completionMessage} className='text-center text-foreground/70 mt-2' />
                 </ClickCatcher>
               )}
-              {currentTrack?.completionRole && (
+              {completionRole && (
                 <div className='text-center text-foreground border-2 border-selected/20 flex flex-col gap-2 items-center ml-auto mr-auto w-full mt-4 p-4 rounded-md border-dashed'>
-                  <div>You've earned a new role!</div>
-                  <div className='rounded-md bg-selected/50 shadow-xl border-2 border-selected/80 px-2 py-1 bg-selected'>{currentTrack?.completionRole.emoji} {currentTrack?.completionRole.name}</div>
+                  <div>{t('newRoleEarned')}</div>
+                  <div className='rounded-md bg-selected/50 shadow-xl border-2 border-selected/80 px-2 py-1 bg-selected'>{completionRole.emoji} {completionRole.name}</div>
                 </div>
               )}
             </Dialog.Content>

@@ -1,17 +1,26 @@
-/* global Track */
+/* global Track, Group, GroupMembership, Responsibility */
 import { omit } from 'lodash'
 import { GraphQLError } from 'graphql'
 import convertGraphqlData from './convertGraphqlData'
 
 export async function createTrack (userId, data) {
   return bookshelf.transaction(async transacting => {
-    const attrs = convertGraphqlData(omit(data, 'groupIds', 'publishedAt'))
-    if (data.publishedAt) {
-      attrs.published_at = new Date(Number(data.publishedAt)) // XXX: because convertGraphqlData messes up dates
+    const attrs = convertGraphqlData(omit(data, 'groupId', 'publishedAt', 'name', 'description', 'bannerUrl', 'welcomeMessage'))
+
+    const spaceId = data.groupId
+    if (spaceId) {
+      attrs.group_id = spaceId
     }
+
     const track = await Track.create(attrs, { transacting })
-    await track.groups().attach(data.groupIds, { transacting })
-    Queue.classMethod('Group', 'doesMenuUpdate', { groupIds: data.groupIds, track })
+
+    if (spaceId) {
+      const group = await Group.find(spaceId, { transacting })
+      if (group && group.get('type') === 'space' && !group.get('track_id')) {
+        await group.save({ track_id: track.id }, { patch: true, transacting })
+      }
+    }
+
     return track
   })
 }
@@ -27,9 +36,7 @@ export async function deleteTrack (userId, id) {
   }
 
   await bookshelf.transaction(async transacting => {
-    await track.groups().detach(null, { transacting })
-    await track.posts().detach(null, { transacting })
-    await track.users().detach(null, { transacting })
+    await Track.deactivate({ trackId: id, transacting })
     await track.destroy({ transacting })
   })
   return true
@@ -82,67 +89,21 @@ export async function updateTrack (userId, id, data) {
     throw new GraphQLError('You do not have permission to edit this track')
   }
 
-  const attrs = convertGraphqlData(omit(data, 'groupIds', 'publishedAt'))
-  attrs.published_at = data.publishedAt ? new Date(Number(data.publishedAt)) : null
+  const attrs = convertGraphqlData(omit(data, 'groupId', 'publishedAt', 'name', 'description', 'bannerUrl', 'welcomeMessage'))
   await track.save(attrs)
-  const groups = await track.groups().fetch()
-  Queue.classMethod('Group', 'doesMenuUpdate', { groupIds: groups.pluck('id'), track })
   return track
 }
 
-export async function updateTrackActionOrder (userId, trackId, postId, newOrderIndex) {
-  const track = await Track.find(trackId)
-  if (!track) {
-    throw new GraphQLError('Track not found')
-  }
-
-  const trackPost = await TrackPost.where({ track_id: trackId, post_id: postId }).fetch()
-  if (!trackPost) {
-    throw new GraphQLError('Track post not found')
-  }
-
-  if (!(await canEdit(track, userId))) {
-    throw new GraphQLError('You do not have permission to edit this track')
-  }
-
-  const oldOrder = trackPost.get('sort_order')
-
-  await bookshelf.transaction(async transacting => {
-    if (oldOrder > newOrderIndex) {
-      await TrackPost.query()
-        .select("max('sort_order') as max_order")
-        .where({ track_id: trackId })
-        .andWhere('sort_order', '>=', newOrderIndex)
-        .andWhere('sort_order', '<', oldOrder)
-        .update({ sort_order: bookshelf.knex.raw('?? + 1', ['sort_order']) })
-        .transacting(transacting)
-    } else if (oldOrder < newOrderIndex) {
-      await TrackPost.query()
-        .select("max('sort_order') as max_order")
-        .where({ track_id: trackId })
-        .andWhere('sort_order', '<=', newOrderIndex)
-        .andWhere('sort_order', '>', oldOrder)
-        .update({ sort_order: bookshelf.knex.raw('?? - 1', ['sort_order']) })
-        .transacting(transacting)
-    }
-
-    await trackPost.save({ sort_order: newOrderIndex }, { transacting })
-  })
-
-  return trackPost
-}
-
-// Utility function to check if user can edit the track
+/** True if user can manage tracks on the space (inherited roles) or parent group. */
 async function canEdit (track, userId) {
-  const groups = await track.groups().fetch()
-  const groupIds = groups.pluck('id')
-  let canEdit = false
-  for (const groupId of groupIds) {
-    const canManageTracks = await GroupMembership.hasResponsibility(userId, groupId, Responsibility.constants.RESP_MANAGE_TRACKS)
-    if (canManageTracks) {
-      canEdit = true
-      break
-    }
+  const space = await track.group().fetch()
+  if (!space) return false
+  if (await GroupMembership.hasResponsibility(userId, space.id, Responsibility.constants.RESP_ADMINISTRATION)) {
+    return true
   }
-  return canEdit
+  // Allow parent Administration without space membership (stewards managing from parent menu)
+  const parentId = space.get('parent_id')
+  if (!parentId) return false
+  const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, parentId)
+  return responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)
 }

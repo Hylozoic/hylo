@@ -206,9 +206,11 @@ export function fetchOfferings (groupId, accountId) {
             buyButtonText
             tracks {
               id
-              name
-              bannerUrl
-              description
+              space {
+                name
+                bannerUrl
+                description
+              }
             }
           }
           success

@@ -93,5 +93,49 @@ describe('Fetcher', () => {
         })
       })
     })
+
+    describe('skipModelFilter', () => {
+      it('skips the default model filter when skipModelFilter is true', () => {
+        const filter = spy(relation => relation.query(q => q.where('wheels.active', true)))
+        const modelsWithFilter = {
+          Bike: {
+            model: Bike,
+            relations: ['wheels']
+          },
+          Wheel: {
+            model: Wheel,
+            filter
+          }
+        }
+        const fetcherWithFilter = new Fetcher(modelsWithFilter, {setupLoaders})
+        const bike = new Bike({id: 1})
+        return fetcherWithFilter.fetchRelation(bike.wheels(), 'Wheel', {
+          skipModelFilter: true
+        })
+          .then(() => {
+            expect(filter).to.not.have.been.called()
+          })
+      })
+
+      it('applies the default model filter when skipModelFilter is not set', () => {
+        const filter = spy(relation => relation.query(q => q.where('wheels.active', true)))
+        const modelsWithFilter = {
+          Bike: {
+            model: Bike,
+            relations: ['wheels']
+          },
+          Wheel: {
+            model: Wheel,
+            filter
+          }
+        }
+        const fetcherWithFilter = new Fetcher(modelsWithFilter, {setupLoaders})
+        const bike = new Bike({id: 1})
+        return fetcherWithFilter.fetchRelation(bike.wheels(), 'Wheel', {})
+          .then(() => {
+            expect(filter).to.have.been.called()
+          })
+      })
+    })
   })
 })

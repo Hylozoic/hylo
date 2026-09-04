@@ -29,21 +29,21 @@ async function expectEditPostShell (page, urlPattern) {
 
 test.describe('Batch J: create modal (chooser)', () => {
   test('GET groups/:slug/:view/create opens chooser', async ({ page }) => {
-    await page.goto(`/groups/${PUBLIC_GROUP_SLUG}/stream/create`)
+    await page.goto(`/groups/${PUBLIC_GROUP_SLUG}/all/create`)
     await expectCreateChooserShell(
       page,
-      new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/stream/create`)
+      new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/all/create`)
     )
   })
 
   test('GET all/:view/create opens chooser', async ({ page }) => {
-    await page.goto('/all/stream/create')
-    await expectCreateChooserShell(page, /\/all\/stream\/create/)
+    await page.goto('/all/all/create')
+    await expectCreateChooserShell(page, /\/all\/all\/create/)
   })
 
   test('GET public/:view/create opens chooser', async ({ page }) => {
-    await page.goto('/public/stream/create')
-    await expectCreateChooserShell(page, /\/public\/stream\/create/)
+    await page.goto('/public/all/create')
+    await expectCreateChooserShell(page, /\/public\/all\/create/)
   })
 
   test('GET my/:view/create opens chooser', async ({ page }) => {

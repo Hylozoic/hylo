@@ -10,7 +10,13 @@ export const KEYS_PRESERVED_ON_RESET = [
 
 export default function (state = null, action) {
   if (action.type === LOGOUT && !action.error) {
-    return getEmptyState()
+    // Wipe all cached data, but keep the anonymous `authSession` the slice already
+    // computed for this LOGOUT (getEmptyState would reset it to `Unknown`, making the
+    // app re-run checkLogin instead of treating the user as definitively logged out).
+    return {
+      ...getEmptyState(),
+      authSession: state.authSession
+    }
   }
 
   if (action.type === RESET_STORE && !action.error) {

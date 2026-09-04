@@ -1,6 +1,7 @@
 import { GraphQLError } from 'graphql'
 import GroupService from '../../services/GroupService'
 import InvitationService from '../../services/InvitationService'
+import { joinSpace } from './spaces'
 import convertGraphqlData from './convertGraphqlData'
 import underlyingDeleteGroupTopic from '../../models/group/deleteGroupTopic'
 import {
@@ -94,15 +95,15 @@ export async function joinGroup (groupId, userId, questionAnswers, accessCode, i
   const group = await Group.find(groupId)
   if (!group) throw new GraphQLError(`Group id ${groupId} not found`)
 
-  // Check if user has a valid invitation for pre-approved join
-  let hasValidInvitation = false
+  // Check if user has a valid invitation for pre-approved join. A space invite
+  // also authorizes joining that space's parent group.
+  let inviteCheck = null
   if (accessCode || invitationToken) {
-    const inviteCheck = await InvitationService.check(invitationToken, accessCode)
-    // Validate the invitation is for this specific group
-    if (inviteCheck?.valid && inviteCheck?.groupSlug === group.get('slug')) {
-      hasValidInvitation = true
-    }
+    inviteCheck = await InvitationService.check(invitationToken, accessCode)
   }
+  const inviteIsForThisGroup = !!(inviteCheck?.valid && inviteCheck.groupSlug === group.get('slug'))
+  const inviteIsForChildSpace = !!(inviteCheck?.valid && inviteCheck.parentGroupSlug === group.get('slug'))
+  const hasValidInvitation = inviteIsForThisGroup || inviteIsForChildSpace
 
   // For non-Open groups, require a valid invitation
   if (group.get('accessibility') !== Group.Accessibility.OPEN && !hasValidInvitation) {
@@ -121,14 +122,19 @@ export async function joinGroup (groupId, userId, questionAnswers, accessCode, i
 
   const membership = await user.joinGroup(group, { questionAnswers, fromInvitation: hasValidInvitation })
 
-  // Record agreement acceptance if user accepted agreements during join flow
+  // Record agreement acceptance if user accepted agreements during join flow.
+  // Keep showJoinForm true so the Welcome/purpose modal still shows, but mark
+  // join questions complete so that modal does not re-ask barriers already done.
   if (acceptAgreements && membership) {
-    await membership.acceptAgreements()
+    await membership.completeJoinBarriers()
   }
 
   // Token invitations can attach a group role (e.g. Host). joinGroup marks invites used by
   // email but does not assign roles — invitation.use() handles role assignment.
-  if (invitationToken && hasValidInvitation) {
+  // A space invite also joins that space (view unread rows included via joinSpace).
+  if (inviteIsForChildSpace && inviteCheck.groupId) {
+    await joinSpace(userId, inviteCheck.groupId, accessCode, invitationToken)
+  } else if (invitationToken && hasValidInvitation) {
     const invitation = await Invitation.find(invitationToken)
     if (invitation) {
       await invitation.use(userId)
@@ -228,8 +234,6 @@ export async function acceptGroupRelationshipInvite (userId, groupRelationshipIn
   if (invite) {
     if (GroupMembership.hasResponsibility(userId, invite.get('to_group_id'), Responsibility.constants.RESP_ADMINISTRATION)) {
       const groupRelationship = await invite.accept(userId)
-      const groupIds = [invite.get('from_group_id'), invite.get('to_group_id')]
-      await Queue.classMethod('Group', 'doesMenuUpdate', { groupRelationship: true, groupIds })
 
       if (groupRelationship) {
         publishAsync(publishGroupRelationshipUpdate, context, {

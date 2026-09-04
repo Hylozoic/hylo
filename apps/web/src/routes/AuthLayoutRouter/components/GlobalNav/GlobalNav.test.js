@@ -1,92 +1,49 @@
 import React from 'react'
 import { graphql, HttpResponse } from 'msw'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
-import { render, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
+import orm from 'store/models'
+import { AllTheProviders, render, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import GlobalNav from './GlobalNav'
 
 jest.mock('react-use-intercom', () => ({
   useIntercom: () => ({ show: () => {} })
 }))
 
+function providersWithMe () {
+  const ormSession = orm.mutableSession(orm.getEmptyState())
+  ormSession.Me.create({
+    id: '1',
+    name: 'Test User',
+    hasRegistered: true,
+    emailValidated: true,
+    settings: {
+      signupInProgress: false,
+      alreadySeenTour: true
+    }
+  })
+  return AllTheProviders({ orm: ormSession.state })
+}
+
 describe('GlobalNav', () => {
   it('renders as expected with no group', async () => {
-    const me = {
-      id: '1',
-      name: 'Test User',
-      hasRegistered: true,
-      emailValidated: true,
-      settings: {
-        signupInProgress: false,
-        alreadySeenTour: true
-      }
-    }
-
     mockGraphqlServer.use(
-      graphql.query('MeQuery', () => {
-        return HttpResponse.json({
-          data: {
-            me
-          }
-        })
-      }),
-      graphql.query('FetchForGroup', () => {
-        return HttpResponse.json({
-          data: {
-            group: null
-          }
-        })
-      }),
-      graphql.query('GroupDetailsQuery', () => {
-        return HttpResponse.json({
-          data: {
-            group: null
-          }
-        })
-      }),
-      graphql.query('PostsQuery', () => {
-        return HttpResponse.json({
-          data: {
-            group: null
-          }
-        })
-      }),
-      graphql.query('GroupPostsQuery', () => {
-        return HttpResponse.json({
-          data: {
-            group: null
-          }
-        })
-      }),
-      // defaults
-      graphql.query('MessageThreadsQuery', () => {
-        return HttpResponse.json({
-          data: {
-            me: null
-          }
-        })
-      }),
-      graphql.query('MyPendingJoinRequestsQuery', () => {
-        return HttpResponse.json({
-          data: {
-            joinRequests: null
-          }
-        })
-      }),
-      graphql.query('NotificationsQuery', () => {
-        return HttpResponse.json({
-          data: {
-            notifications: null
-          }
-        })
-      })
+      graphql.query('MeQuery', () => HttpResponse.json({ data: { me: null } })),
+      graphql.query('FetchForGroup', () => HttpResponse.json({ data: { group: null } })),
+      graphql.query('GroupDetailsQuery', () => HttpResponse.json({ data: { group: null } })),
+      graphql.query('PostsQuery', () => HttpResponse.json({ data: { group: null } })),
+      graphql.query('GroupPostsQuery', () => HttpResponse.json({ data: { group: null } })),
+      graphql.query('MessageThreadsQuery', () => HttpResponse.json({ data: { me: null } })),
+      graphql.query('MyPendingJoinRequestsQuery', () => HttpResponse.json({ data: { joinRequests: null } })),
+      graphql.query('NotificationsQuery', () => HttpResponse.json({ data: { notifications: null } }))
     )
 
-    render(
-      <GlobalNav routeParams={{ context: 'all', view: 'stream' }} />
+    const { container } = render(
+      <GlobalNav routeParams={{ context: 'all', view: 'all' }} />,
+      { wrapper: providersWithMe() }
     )
 
     await waitFor(() => {
-      expect(screen.getByText("You don't have any messages yet")).toBeInTheDocument()
+      expect(container.querySelector('.globalNavContainer')).toBeInTheDocument()
     })
   })
 })

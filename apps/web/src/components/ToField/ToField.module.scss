@@ -17,7 +17,12 @@
 }
 
 .selected {
-  display: inline;
+  /* A wrapping flex row: the chip can shrink (so its truncate spans engage) and
+     the search input wraps to its own line instead of clipping the chip. */
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  min-width: 0;
   list-style: none;
   padding: 0px;
 }
@@ -49,6 +54,7 @@
   cursor: pointer;
   color: #AAA !important;
   margin-left: 8px;
+  flex-shrink: 0;
 }
 
 .selectedTag:hover,

@@ -1,3 +1,37 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`presentPost matches the snapshot 1`] = `null`;
+exports[`presentPost matches the snapshot 1`] = `
+Object {
+  "attachments": Array [],
+  "commenters": Array [],
+  "completionResponses": Array [],
+  "createdTimestamp": "2y ago",
+  "createdTimestampShort": "2y",
+  "creator": null,
+  "editedTimestamp": null,
+  "eventInvitations": Array [
+    Object {
+      "eventInvitationId": 0,
+      "id": 0,
+      "name": "Mr Person",
+      "response": "yes",
+    },
+  ],
+  "exactCreatedTimestamp": "7/23/2024 4:30 PM UTC",
+  "exactEditedTimestamp": "7/23/2024 4:30 PM UTC",
+  "fileAttachments": Array [],
+  "groups": Array [],
+  "id": 324,
+  "imageAttachments": Array [],
+  "linkPreview": null,
+  "linkPreviewFeatured": false,
+  "location": undefined,
+  "locationObject": null,
+  "members": Array [],
+  "noticeData": null,
+  "noticePosts": Array [],
+  "postMemberships": Array [],
+  "proposalOptions": Array [],
+  "topics": Array [],
+}
+`;

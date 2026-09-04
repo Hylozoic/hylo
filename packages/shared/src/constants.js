@@ -26,6 +26,9 @@ export const AnalyticsEvents = {
   UNBLOCK_USER: 'User Un-Blocked'
 }
 
+// CustomEvent dispatched in the WebView when Android hardware back is pressed.
+export const HYLO_HARDWARE_BACK_EVENT = 'hylo-hardware-back'
+
 export const WebViewMessageTypes = {
   JOINED_GROUP: 'JOINED_GROUP',
   LEFT_GROUP: 'LEFT_GROUP',
@@ -38,7 +41,12 @@ export const WebViewMessageTypes = {
   VERIFY_AUTH: 'VERIFY_AUTH',
   // Web app confirmed checkLogin succeeded inside the v2 mobile WebView.
   AUTH_SUCCESS: 'AUTH_SUCCESS',
+  // Native re-minted the session cookie and synced the WebView jar — re-run checkLogin
+  // in place instead of reloading the whole page.
+  SESSION_READY: 'SESSION_READY',
   NAVIGATION: 'NAVIGATION',
+  // Web app has no in-app back target left; native should exit the app.
+  CAN_EXIT_APP: 'CAN_EXIT_APP',
   THEME_CHANGE: 'THEME_CHANGE',
   EDITOR: {
     BLUR: 'BLUR',

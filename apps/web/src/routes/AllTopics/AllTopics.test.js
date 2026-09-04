@@ -1,15 +1,12 @@
 import React from 'react'
 import { render, screen, fireEvent, waitFor, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
-import { Provider } from 'react-redux'
-import configureStore from 'redux-mock-store'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import { graphql, HttpResponse } from 'msw'
 import orm from 'store/models'
+import { CENTER_COLUMN_ID } from 'util/scrolling'
 import AllTopics from './AllTopics'
 import SearchBar from './SearchBar'
 import TopicListItem from './TopicListItem'
-
-const mockStore = configureStore([])
 
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
@@ -29,9 +26,12 @@ function testProviders () {
 
 describe('AllTopics', () => {
   beforeEach(() => {
+    const centerColumn = document.createElement('div')
+    centerColumn.id = CENTER_COLUMN_ID
+    document.body.appendChild(centerColumn)
+
     mockGraphqlServer.use(
-      graphql.query('FetchTopics', ({ query, variables }) => {
-        console.log('FetchTopics query', query, variables)
+      graphql.query('FetchTopics', () => {
         return HttpResponse.json({
           data: {
             topics: [{ id: '1', name: 'petitions' }]
@@ -41,8 +41,12 @@ describe('AllTopics', () => {
     )
   })
 
-  it('renders the component with topics', async () => {
+  afterEach(() => {
+    const centerColumn = document.getElementById(CENTER_COLUMN_ID)
+    if (centerColumn) centerColumn.remove()
+  })
 
+  it('renders the component with topics', async () => {
     render(
       <AllTopics
         toggleGroupTopicSubscribe={() => {}}
@@ -52,8 +56,6 @@ describe('AllTopics', () => {
 
     await waitFor(() => {
       expect(screen.getByText('goteam Topics')).toBeInTheDocument()
-      // TODO: fix this
-      // expect(screen.getByText('#petitions')).toBeInTheDocument()
     })
   })
 })

@@ -41,6 +41,11 @@ export const groupFilter = userId => relation => {
         const selectStewardedGroupIds = Group.selectIdsByResponsibilities(userId, [Responsibility.constants.RESP_ADMINISTRATION])
         const childrenOfStewardedGroupIds = GroupRelationship.childIdsFor(selectStewardedGroupIds)
         const peerGroupsOfStewardedGroupIds = GroupRelationship.peerIdsFor(selectStewardedGroupIds)
+        // Spaces use parent_id, not group_relationships — parent stewards must still fetch them
+        const selectJoinManagerGroupIds = Group.selectIdsByResponsibilities(userId, [
+          Responsibility.constants.RESP_ADMINISTRATION,
+          Responsibility.constants.RESP_ADD_MEMBERS
+        ])
 
         // Can see groups you are a member of...
         q2.whereIn('groups.id', selectIdsForMember)
@@ -61,6 +66,19 @@ export const groupFilter = userId => relation => {
             q7.andWhere('groups.visibility', '!=', Group.Visibility.HIDDEN)
           })
           q6.orWhereIn('groups.id', peerGroupsOfStewardedGroupIds)
+        })
+        // + spaces of groups you can add members to / administer (including hidden)
+        q2.orWhere(qSpace => {
+          qSpace.where('groups.type', 'space')
+          qSpace.whereIn('groups.parent_id', selectJoinManagerGroupIds)
+        })
+        // + non-hidden child spaces of groups you belong to (join interstitial, More Spaces,
+        // paywalled tracks). Spaces use parent_id, not group_relationships, so the child-group
+        // clause above never includes them.
+        q2.orWhere(qSpaceMember => {
+          qSpaceMember.where('groups.type', 'space')
+          qSpaceMember.whereIn('groups.parent_id', selectIdsForMember)
+          qSpaceMember.andWhere('groups.visibility', '!=', Group.Visibility.HIDDEN)
         })
         // + all public groups
         q2.orWhere(q5 => {

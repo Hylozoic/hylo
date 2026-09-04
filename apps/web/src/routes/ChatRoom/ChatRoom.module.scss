@@ -94,12 +94,14 @@
 }
 
 @media screen and (max-width: 640px) {
+  /* visible cannot pair with a non-visible y-axis: it computes to auto and the
+     pane becomes touch-pannable sideways. clip forbids scrolling on x entirely. */
   :global(.ChatRoom #chats) {
-    overflow-x: visible;
+    overflow: clip;
   }
 
   :global(.ChatRoom #chats [data-virtuoso-scroller]) {
-    overflow-x: visible !important;
+    overflow-x: clip !important;
   }
 }
 

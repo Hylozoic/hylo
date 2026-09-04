@@ -1,6 +1,7 @@
 import passport from 'passport'
 import appleSigninAuth from 'apple-signin-auth'
 import crypto from 'crypto'
+import { Validators } from '@hylo/shared'
 import OIDCAdapter from '../services/oidc/KnexAdapter'
 import { mintTokensForUser } from '../services/OIDCTokens'
 
@@ -39,8 +40,23 @@ const hasLinkedAccount = function (user, service) {
 // mobile token-auth path so social logins behave exactly like /noo/login/native:
 // bearer token only, no server session cookie. Mirrors the reactivation side
 // effect of UserSession.login (a self-deactivated account is reactivated on login).
-const recordTokenLogin = (user) =>
-  user.save({ last_login_at: new Date(), active: true }, { patch: true, autoRefresh: true })
+const recordTokenLogin = (user) => {
+  const updates = { last_login_at: new Date() }
+  // Mirror UserSession.login: only activate when the user has a valid name
+  if (!Validators.validateUser.name(user.get('name'))) {
+    updates.active = true
+  }
+  return user.save(updates, { patch: true, autoRefresh: true })
+}
+
+// Prefer a non-empty profile name when the user is missing one (common for
+// email-verification stubs that later log in via OAuth with the same email).
+const ensureUserNameFromProfile = async (user, profile) => {
+  if (!Validators.validateUser.name(user.get('name'))) return user
+  const profileName = typeof profile?.name === 'string' ? profile.name.trim() : ''
+  if (!profileName) return user
+  return user.save({ name: profileName }, { patch: true, autoRefresh: true })
+}
 
 // Resolves (or creates) the user for a verified social profile and always returns
 // that user. For web/popup callers (`tokenAuth` falsy) it establishes a cookie
@@ -51,6 +67,7 @@ const upsertUser = (req, service, profile, { tokenAuth = false } = {}) => {
   return findUser(service, profile.email, profile.id)
   .then(async (user) => {
     if (user) {
+      await ensureUserNameFromProfile(user, profile)
       if (tokenAuth) {
         await recordTokenLogin(user)
       } else {
@@ -63,10 +80,13 @@ const upsertUser = (req, service, profile, { tokenAuth = false } = {}) => {
       return user
     }
 
-    const attrs = _.merge(_.pick(profile, 'email', 'name'), {
-      account: {type: service, profile},
+    const attrs = {
+      email: profile.email,
+      account: { type: service, profile },
       email_validated: true // When using oAuth email is already verified
-    })
+    }
+    const profileName = typeof profile?.name === 'string' ? profile.name.trim() : ''
+    if (profileName) attrs.name = profileName
 
     const newUser = await User.create(attrs)
     await Analytics.trackSignup(newUser.id, req)
@@ -241,10 +261,15 @@ module.exports = {
     // Confirm that identityToken was verified:
     if (appleIdTokenClaims.sub === user) {
       const isTokenAuth = req.get('X-Hylo-Token-Auth') === '1'
+      // Apple only returns the name on the first authorization; later sign-ins
+      // omit it. Avoid stringifying null/undefined into "null null".
+      const appleName = [fullName?.givenName, fullName?.familyName]
+        .filter(part => typeof part === 'string' && part.trim())
+        .join(' ')
       upsertUser(req, 'apple', {
         id: user,
         email,
-        name: fullName.givenName + ' ' + fullName.familyName
+        name: appleName || undefined
       }, { tokenAuth: isTokenAuth })
         .then(async authedUser => {
           // Mobile token-auth clients opt in via header and get a token pair back

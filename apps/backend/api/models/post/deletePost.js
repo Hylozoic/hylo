@@ -1,33 +1,56 @@
-// Decrement new_post_count for TagFollows when a post is deleted
-// This is called as a background job after a post is deactivated
-export async function decrementNewPostCount (post) {
-  const { tags, groups } = post.relations
+import {
+  POST_TYPE_TO_TYPED_VIEW,
+  postCountsTowardChatUnread
+} from '@hylo/shared'
 
-  if (!tags || tags.length === 0 || !groups || groups.length === 0) {
+// Decrement new_post_count for GroupMemberships and GroupViewUsers when a post is deleted.
+// Called as a background job after a post is deactivated.
+export async function decrementNewPostCount (post) {
+  const { groups } = post.relations
+
+  if (!groups || groups.length === 0) {
     return
   }
 
-  // Find all TagFollows that:
-  // 1. Have a tag_id matching one of the post's tags
-  // 2. Have a group_id matching one of the post's groups
-  // 3. Have a last_read_post_id less than the deleted post's id (meaning they haven't seen this post yet)
-  // 4. Decrement their new_post_count (but not below 0)
-  const tagFollowQuery = TagFollow.query(q => {
-    q.whereIn('tag_id', tags.map('id'))
-    q.whereIn('group_id', groups.map('id'))
-    q.where('last_read_post_id', '<', post.id)
-    q.where('new_post_count', '>', 0)
-  }).query()
+  const postType = post.get('type')
+  const typedViewType = POST_TYPE_TO_TYPED_VIEW[postType]
 
-  // Also decrement for GroupMemberships
   const groupMembershipQuery = GroupMembership.query(q => {
     q.whereIn('group_id', groups.map('id'))
     q.where('group_memberships.active', true)
     q.where('group_memberships.new_post_count', '>', 0)
   }).query()
 
+  const viewDecrements = Promise.map(groups.models, async group => {
+    const jobs = []
+
+    // Typed common views (discussions, events, …)
+    if (typedViewType) {
+      const typedView = await GroupView.where({
+        group_id: group.id,
+        type: typedViewType
+      }).fetch()
+      if (typedView) {
+        jobs.push(GroupViewUser.decrementNewPostCount(typedView.id, { beforePostId: post.id }))
+      }
+    }
+
+    // Chat view badge: chat posts only
+    if (postCountsTowardChatUnread(postType)) {
+      const chatView = await GroupView.where({
+        group_id: group.id,
+        type: GroupView.Type.CHAT
+      }).fetch()
+      if (chatView) {
+        jobs.push(GroupViewUser.decrementNewPostCount(chatView.id, { beforePostId: post.id }))
+      }
+    }
+
+    return Promise.all(jobs)
+  })
+
   return Promise.all([
-    tagFollowQuery.decrement('new_post_count'),
-    groupMembershipQuery.decrement('new_post_count')
+    groupMembershipQuery.decrement('new_post_count'),
+    viewDecrements
   ])
 }

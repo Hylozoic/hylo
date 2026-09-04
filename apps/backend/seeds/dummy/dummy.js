@@ -20,7 +20,7 @@ const SYSTEM_ROLES = [
     name: 'Coordinator',
     emoji: '🪄',
     description: 'Coordinators are empowered to do everything related to group administration.',
-    responsibilities: ['Administration', 'Add Members', 'Remove Members', 'Manage Content', 'Manage Tracks']
+    responsibilities: ['Administration', 'Add Members', 'Remove Members', 'Manage Content']
   },
   {
     name: 'Moderator',
@@ -152,8 +152,7 @@ exports.seed = (knex) => warning(knex)
     { title: 'Administration', type: 'system' },
     { title: 'Add Members', type: 'system' },
     { title: 'Remove Members', type: 'system' },
-    { title: 'Manage Content', type: 'system' },
-    { title: 'Manage Tracks', type: 'system' }
+    { title: 'Manage Content', type: 'system' }
   ]))
   .then(() => knex('responsibilities').select('id', 'title'))
   .then((rows) => Object.fromEntries(rows.map(r => [r.title, r.id])))
@@ -195,26 +194,7 @@ exports.seed = (knex) => warning(knex)
       })
     }
 
-    // Add chat rooms to main group
-    const homeWidget = await knex('context_widgets').insert({
-      group_id: group.id,
-      type: 'home',
-      title: 'widget-home',
-      order: 1
-    })
-    await knex('context_widgets').insert({
-      type: 'viewChat',
-      view_chat_id: general.id,
-      group_id: group.id,
-      parent_id: homeWidget.id,
-      order: 1
-    })
-    await knex('context_widgets').insert({
-      type: 'viewChat',
-      view_chat_id: regeneration.id,
-      group_id: group.id,
-      order: 2
-    })
+    // Chat rooms are GroupViews of type chat, seeded by Group.setupSpaceViews
   })
   .then(() => addUsersToGroups(knex))
   .then(() => createThreads(knex))

@@ -5,6 +5,7 @@ exports.fr = {
   clientInviteMessageDefault: ({ userName, groupName }) => `Bonjour ${userName}, <br><br> Nous sommes ravis de vous accueillir dans notre communauté. Cliquez ci-dessous pour rejoindre ${groupName} sur Hylo.`,
   CreatorEmail: () => 'E-mail du créateur',
   createInvitationSubject: (name) => `Rejoignez-moi dans ${name} sur Hylo !`,
+  createInvitationMessage: (name) => `Salut !\n\nJe vous invite à rejoindre ${name} sur Hylo.\n\n${name} utilise Hylo pour notre communauté en ligne : c'est notre espace dédié à la communication et à la collaboration.`,
   CreatorName: () => 'Nom du créateur',
   CreatorURL: () => 'URL du créateur',
   Group: () => 'Groupe',
@@ -39,6 +40,10 @@ exports.fr = {
   moderationYouFlaggedAPost: () => 'Vous avez signalé une publication',
   moderationYouFlaggedPostEmailContent: ({ post, group }) => `Vous avez signalé la publication « ${post.summary()} » dans le groupe ${group.get('name')} comme violant un accord de groupe. \n`,
   moderationYourPostWasFlagged: () => 'Votre publication a été signalée',
+  moderationPostClosedEmailSubject: () => 'Votre publication a été fermée',
+  moderationPostReopenedEmailSubject: () => 'Votre publication a été rouverte',
+  moderationPostClosedEmailContent: ({ post, group, actor }) => `${actor.get('name')} a fermé votre publication « ${post.summary()} » dans le groupe ${group.get('name')}. \n`,
+  moderationPostReopenedEmailContent: ({ post, group, actor }) => `${actor.get('name')} a rouvert votre publication « ${post.summary()} » dans le groupe ${group.get('name')}. \n`,
   Name: () => 'Nom',
   newSavedSearchResults: (name) => `Nouveaux résultats de recherche enregistrée dans ${name}`,
   textForApprovedJoinRequest: ({ actor, groupName }) => `${actor.get('name')} a accepté votre demande pour rejoindre ${groupName}`,
@@ -61,26 +66,37 @@ exports.fr = {
   textForGroupParentGroupJoinRequestAcceptedParentMember: ({ parentGroup, childGroup }) => `Le groupe ${childGroup.get('name')} vient de rejoindre votre groupe ${parentGroup.get('name')} !`,
   textForGroupParentGroupJoinRequestAcceptedChildMember: ({ parentGroup, childGroup }) => `Votre groupe ${childGroup.get('name')} a rejoint ${parentGroup.get('name')}.`,
   textForEventInvitation: ({ actor, postName }) => `${actor.get('name')} vous a invité·e à « ${postName} »`,
-  textForGroupInvitation: ({ actor, groupName }) => `${actor.get('name')} vous a invité·e à rejoindre ${groupName}`,
+  textForGroupInvitation: ({ actor, groupName, parentGroupName }) => parentGroupName
+    ? `${actor.get('name')} vous a invité·e à les rejoindre dans l'espace ${groupName} de ${parentGroupName}`
+    : `${actor.get('name')} vous a invité·e à les rejoindre dans ${groupName}`,
   textForGroupInvitationAccepted: ({ actor, groupName }) => `${actor.get('name')} a accepté votre invitation à rejoindre ${groupName}`,
   textForGroupPeerGroupInvite: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} a invité votre groupe ${toGroup.get('name')} à former un lien de pairs avec ${fromGroup.get('name')}`,
   textForGroupPeerGroupInviteAccepted: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} a accepté le lien de pairs entre ${fromGroup.get('name')} et ${toGroup.get('name')}`,
-  textForJoinRequest: ({ actor, groupName }) => `${actor.get('name')} a demandé à rejoindre ${groupName}`,
+  textForJoinRequest: ({ actor, groupName, parentGroupName }) => parentGroupName
+    ? `${actor.get('name')} a demandé à rejoindre ${groupName} dans ${parentGroupName}`
+    : `${actor.get('name')} a demandé à rejoindre ${groupName}`,
   textForMemberJoinedGroup: ({ group, actor }) => `Un nouveau membre a rejoint ${group.get('name')} : ${actor.get('name')}`,
+  textForPostModeratedFulfillment: ({ post, actor, reason }) => {
+    const postName = post.summary()
+    if (reason === 'postUnfulfilled') {
+      return `${actor.get('name')} a rouvert votre publication « ${postName} »`
+    }
+    return `${actor.get('name')} a fermé votre publication « ${postName} »`
+  },
   textForPostMention: ({ groupName, person, postName }) => `${person} vous a mentionné·e dans la publication « ${postName} » dans ${groupName}`,
   textForPost: ({ firstTag, groupName, person, postName }) => `${person} a publié « ${postName} » dans ${groupName}${firstTag ? ` #${firstTag}` : ''}`,
-  textForTrackCompleted: ({ actor, track }) => `Parcours terminé : « ${track.get('name')} » complété par ${actor.get('name')}`,
-  textForTrackEnrollment: ({ actor, track }) => `Inscription au parcours : « ${track.get('name')} » par ${actor.get('name')}`,
+  textForTrackCompleted: ({ actor, trackName }) => `Parcours terminé : « ${trackName} » complété par ${actor.get('name')}`,
+  textForTrackEnrollment: ({ actor, trackName }) => `Inscription au parcours : « ${trackName} » par ${actor.get('name')}`,
   textForVoteReset: ({ person, postName, groupName }) => `${person} a modifié les options de la proposition « ${postName} » dans ${groupName}. Les votes ont été réinitialisés`,
-  textForFundingRoundNewSubmission: ({ fundingRound, post, actor }) => `${actor.get('name')} a soumis « ${post.summary()} » pour « ${fundingRound.get('title')} »`,
-  textForFundingRoundPhaseTransition: ({ fundingRound, phase }) => {
+  textForFundingRoundNewSubmission: ({ fundingRoundTitle, post, actor }) => `${actor.get('name')} a soumis « ${post.summary()} » pour « ${fundingRoundTitle} »`,
+  textForFundingRoundPhaseTransition: ({ fundingRoundTitle, phase }) => {
     const phaseMessages = {
       submissions: 'Les contributions sont ouvertes',
       discussion: 'Les contributions sont closes, les discussions sont ouvertes',
       voting: 'Le vote est ouvert',
       completed: 'Le vote est clos, la manche est terminée'
     }
-    return `${fundingRound.get('title')} : ${phaseMessages[phase] || 'Statut mis à jour'}`
+    return `${fundingRoundTitle} : ${phaseMessages[phase] || 'Statut mis à jour'}`
   },
   textForFundingRoundReminder: ({ reminderType }) => {
     const reminderMessages = {

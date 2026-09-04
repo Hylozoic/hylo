@@ -1,9 +1,9 @@
+import { isPhoneDevice } from 'util/mobile'
+import { getPostDetailCloseDestination, memberGroupIdsFromMe, shouldUseSmartPostClose } from './postDetailCloseNavigation'
+
 jest.mock('util/mobile', () => ({
   isPhoneDevice: jest.fn(() => false)
 }))
-
-import { isPhoneDevice } from 'util/mobile'
-import { getPostDetailCloseDestination, memberGroupIdsFromMe, shouldUseSmartPostClose } from './postDetailCloseNavigation'
 
 function meWithGroups (groupIds) {
   return {
@@ -22,32 +22,32 @@ describe('memberGroupIdsFromMe', () => {
 describe('getPostDetailCloseDestination', () => {
   const base = { pathname: '/post/99', search: '?x=1' }
 
-  it('single group + member → group stream', () => {
+  it('single group + member → group all view', () => {
     const me = meWithGroups(['10'])
     const post = { isPublic: true, groups: [{ id: '10', slug: 'alpha' }] }
     expect(getPostDetailCloseDestination({ ...base, post, me })).toEqual({
-      pathname: '/groups/alpha/stream',
+      pathname: '/groups/alpha/all',
       search: ''
     })
   })
 
-  it('single group + not a member + public → /public/stream', () => {
+  it('single group + not a member + public → /public/all', () => {
     const me = meWithGroups([])
     const post = { isPublic: true, groups: [{ id: '10', slug: 'alpha' }] }
     expect(getPostDetailCloseDestination({ ...base, post, me })).toEqual({
-      pathname: '/public/stream',
+      pathname: '/public/all',
       search: ''
     })
   })
 
-  it('many groups + member of none + public → /public/stream', () => {
+  it('many groups + member of none + public → /public/all', () => {
     const me = meWithGroups([])
     const post = {
       isPublic: true,
       groups: [{ id: '1', slug: 'a' }, { id: '2', slug: 'b' }]
     }
     expect(getPostDetailCloseDestination({ ...base, post, me })).toEqual({
-      pathname: '/public/stream',
+      pathname: '/public/all',
       search: ''
     })
   })
@@ -64,14 +64,14 @@ describe('getPostDetailCloseDestination', () => {
     })
   })
 
-  it('many groups + member of exactly one → that group stream', () => {
+  it('many groups + member of exactly one → that group all view', () => {
     const me = meWithGroups(['10', '99'])
     const post = {
       isPublic: true,
       groups: [{ id: '10', slug: 'in' }, { id: '20', slug: 'out' }]
     }
     expect(getPostDetailCloseDestination({ ...base, post, me })).toEqual({
-      pathname: '/groups/in/stream',
+      pathname: '/groups/in/all',
       search: ''
     })
   })
@@ -107,10 +107,10 @@ describe('shouldUseSmartPostClose', () => {
 
   it('is true for in-context view on phone', () => {
     isPhoneDevice.mockReturnValue(true)
-    expect(shouldUseSmartPostClose('stream')).toBe(true)
+    expect(shouldUseSmartPostClose('all')).toBe(true)
   })
 
   it('is false for in-context view on desktop', () => {
-    expect(shouldUseSmartPostClose('stream')).toBe(false)
+    expect(shouldUseSmartPostClose('all')).toBe(false)
   })
 })

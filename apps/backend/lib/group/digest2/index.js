@@ -29,7 +29,12 @@ export const prepareDigestData = async (id, type, opts = {}) => {
     endTime = range[1]
   }
   const group = await Group.find(id)
-  const data = await getPostsAndComments(group, startTime, endTime, type)
+  const spacesCollection = await group.spaces().query(q => q.where('active', true)).fetch()
+  const spaces = spacesCollection.models
+  spaces.forEach(space => {
+    space.relations.parentGroup = group
+  })
+  const data = await getPostsAndComments(group, startTime, endTime, type, spaces)
   if (!data) return false
   const formattedData = await formatData(group, data)
   return merge({
@@ -54,14 +59,15 @@ export const sendToUser = (user, type, data, opts = {}) => {
 
   return personalizeData(user, type, data, opts)
     .then(data => {
-      const locale = user.get('settings')?.locale || 'en-US'
+      const locale = user.getLocale()
       return opts.dryRun || !data
         ? false
         : Email.sendSimpleEmail(user.get('email'), templateId, data, {
           sender: {
             name: senderNameViaHylo(senderName, locale),
             reply_to: 'DoNotReply@hylo.com'
-          }
+          },
+          version: 'Spaces'
         }, locale)
     })
 }
@@ -74,11 +80,23 @@ export const sendDigest = (id, type, opts = {}) => {
         .then(users => users.length)))
 }
 
-export const sendAllDigests = (type, opts) =>
-  Group.where({ active: true }).query().pluck('id')
+export const sendAllDigests = (type, opts = {}) => {
+  if (opts.groupIds && opts.groupIds.length === 0) return Promise.resolve([])
+
+  let query = bookshelf.knex('groups')
+    .where({ active: true })
+    .where(function () {
+      this.whereNull('type').orWhere('type', '<>', 'space')
+    })
+  if (opts.groupIds) {
+    query = query.whereIn('id', opts.groupIds)
+  }
+  return query
+    .pluck('id')
     .then(ids => Promise.map(ids, id =>
       sendDigest(id, type, opts).then(count => count && [id, count]))
       .then(compact))
+}
 
 export const sendSampleData = address =>
-  Email.sendSimpleEmail(address, DIGEST_TEMPLATE_ID, sampleData)
+  Email.sendSimpleEmail(address, DIGEST_TEMPLATE_ID, sampleData, { version: 'Spaces'})

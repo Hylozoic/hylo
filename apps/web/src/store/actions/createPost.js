@@ -21,9 +21,11 @@ export default function createPost (postParams) {
     imageUrls,
     linkPreview,
     linkPreviewFeatured,
+    skipLinkPreview,
     localId,
     location,
     locationId,
+    meetingLink,
     memberIds = [],
     isAnonymousVote,
     isPublic,
@@ -39,7 +41,8 @@ export default function createPost (postParams) {
     title,
     topicNames,
     trackId,
-    type
+    type,
+    viewId
   } = postParams
   const linkPreviewId = linkPreview && linkPreview.id
   const groupIds = groups.map(c => c.id)
@@ -68,9 +71,11 @@ export default function createPost (postParams) {
         markAsReadTopicName,
         linkPreviewId,
         linkPreviewFeatured,
+        skipLinkPreview,
         localId: localId || uniqueId('post_'), // to match the optimistically created post and replace it with the real one
         location,
         locationId,
+        meetingLink,
         memberIds,
         projectManagementLink,
         proposalOptions,
@@ -81,7 +86,8 @@ export default function createPost (postParams) {
         title,
         topicNames,
         trackId,
-        type
+        type,
+        viewId
       }
     },
     meta: {
@@ -103,7 +109,8 @@ export default function createPost (postParams) {
       type,
       fundingRoundId,
       groupIds,
-      trackId
+      trackId,
+      viewId
     }
   }
 }

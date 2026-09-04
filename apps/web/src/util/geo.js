@@ -1,5 +1,17 @@
 import WebMercatorViewport from '@math.gl/web-mercator'
 
+/**
+ * Lat/lng from a Location model or a raw GraphQL locationObject.
+ */
+export function locationCenter (locationObject) {
+  const center = locationObject?.center || locationObject?.ref?.center
+  if (!center) return null
+  const lat = parseFloat(center.lat)
+  const lng = parseFloat(center.lng)
+  if (Number.isNaN(lat) || Number.isNaN(lng)) return null
+  return { lat, lng }
+}
+
 export function locationObjectToViewport (priorViewport, locationObject) {
   const bbox = locationObject.bbox
   if (bbox) {

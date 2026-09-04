@@ -29,7 +29,7 @@ export default function SuggestedSkills ({ addSkill, currentUser, group, removeS
 
   return (
     <div className='skillPills bg-muted border border-background rounded p-4 w-full my-3'>
-      <h4 className='text-muted-foreground'>{t('Which of the following skills & interests are relevant to you?')}</h4>
+      <h4 className='text-muted-foreground'>{t('{{group.name}} wants to know which skills and interests are relevant to you?', { group })}</h4>
       <div className='flex flex-wrap gap-2'>
         <Pillbox
           pills={pills}

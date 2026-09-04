@@ -3,9 +3,12 @@ import React, { useEffect, useMemo } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { push } from 'redux-first-history'
 import { useTranslation } from 'react-i18next'
-import { useParams } from 'react-router-dom'
+import { Navigate, useNavigate, useParams } from 'react-router-dom'
+import { ChevronRight } from 'lucide-react'
+import { useViewHeader } from 'contexts/ViewHeaderContext'
+import useIsPhoneViewport from 'hooks/useIsPhoneViewport'
+import AppearanceTab from './AppearanceTab/AppearanceTab'
 import AgreementsTab from './AgreementsTab'
-import CustomViewsTab from './CustomViewsTab'
 import DeleteSettingsTab from './DeleteSettingsTab'
 import GroupSettingsTab from './GroupSettingsTab'
 import ImportExportSettingsTab from './ImportExportSettingsTab'
@@ -16,18 +19,17 @@ import PrivacySettingsTab from './PrivacySettingsTab'
 import RelatedGroupsTab from './RelatedGroupsTab'
 import ResponsibilitiesTab from './ResponsibilitiesTab'
 import ExportDataTab from './ExportDataTab'
-import TracksTab from './TracksTab'
-import WelcomePageTab from './WelcomePageTab'
 import PaidContentTab from './PaidContentTab'
 import Loading from 'components/Loading'
 import { fetchLocation } from 'components/LocationInput/LocationInput.store'
 import FullPageModal from 'routes/FullPageModal'
-import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION, RESP_MANAGE_TRACKS } from 'store/constants'
+import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
 import { WebViewMessageTypes } from '@hylo/shared'
 import { isLegacyWebView, sendMessageToWebView } from 'util/webView'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
-import { allGroupsUrl, groupUrl } from '@hylo/navigation'
+import { allGroupsUrl, groupUrl, spaceHomeUrl } from '@hylo/navigation'
 import presentGroup from 'store/presenters/presentGroup'
+import { GROUP_TYPES } from 'store/models/Group'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { getParentGroups } from 'store/selectors/getGroupRelationships'
 import getMe from 'store/selectors/getMe'
@@ -38,10 +40,45 @@ import {
   updateGroupSettings
 } from './GroupSettings.store'
 
+// On phone, /settings shows this list-of-categories instead of the default tab content.
+// Tapping a category navigates to /settings/<path>; the back chevron there returns here.
+function PhoneSettingsMenuList ({ items, groupSlug }) {
+  const { t } = useTranslation()
+  const navigate = useNavigate()
+  const { setHeaderDetails } = useViewHeader()
+
+  useEffect(() => {
+    setHeaderDetails({
+      title: t('Group Settings'),
+      icon: '',
+      info: '',
+      search: false
+    })
+  }, [setHeaderDetails, t])
+
+  return (
+    <ul className='flex flex-col gap-2 p-0 m-0 list-none'>
+      {items.map(item => (
+        <li key={item.path}>
+          <button
+            type='button'
+            onClick={() => navigate(groupUrl(groupSlug, `settings/${item.path}`))}
+            className='flex items-center justify-between w-full px-4 py-3 rounded-lg bg-card hover:bg-card/80 text-foreground text-left cursor-pointer border border-foreground/10 transition-colors'
+          >
+            <span className='text-base'>{item.name}</span>
+            <ChevronRight className='w-5 h-5 text-foreground/40' />
+          </button>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 export default function GroupSettings () {
   const dispatch = useDispatch()
   const routeParams = useParams()
   const { t } = useTranslation()
+  const isPhoneViewport = useIsPhoneViewport()
 
   // State selectors
   const slug = routeParams.groupSlug
@@ -78,38 +115,67 @@ export default function GroupSettings () {
   const responsibilities = useSelector(state => getResponsibilitiesForGroup(state, { person: currentUser, groupId: group?.id })).map(r => r.title)
   const canAdminister = responsibilities.includes(RESP_ADMINISTRATION)
   const canAddMembers = responsibilities.includes(RESP_ADD_MEMBERS)
-  const canManageTracks = responsibilities.includes(RESP_MANAGE_TRACKS)
 
   if (!group) return <Loading />
 
+  const isSpace = group.type === GROUP_TYPES.space || !!group.parentId
+  if (isSpace) {
+    const parentSlug = rawGroup?.parentGroup?.slug || parentGroups[0]?.slug
+    if (!parentSlug) return <Loading />
+    return <Navigate to={spaceHomeUrl(parentSlug, group)} replace />
+  }
+
   if (!responsibilities.includes(RESP_ADMINISTRATION) && !responsibilities.includes(RESP_ADD_MEMBERS)) push(groupUrl(slug))
-  if (!responsibilities.includes(RESP_ADMINISTRATION) && responsibilities.includes(RESP_ADD_MEMBERS)) push('settings/invite')
+  if (!responsibilities.includes(RESP_ADMINISTRATION) && responsibilities.includes(RESP_ADD_MEMBERS) && !isSpace) push('settings/invite')
+
+  const groupDetailsTab = (
+    <GroupSettingsTab
+      fetchLocation={fetchLocationAction}
+      fetchPending={fetchPending}
+      currentUser={currentUser}
+      group={group}
+      parentGroups={parentGroups}
+      updateGroupSettings={updateGroupSettingsAction}
+    />
+  )
+
+  // Build the phone menu list from the same metadata as the tabs themselves so
+  // labels and visibility follow the user's permissions automatically.
+  const phoneMenuItems = compact([
+    canAdminister && { name: t('Group Details'), path: 'details' },
+    canAdminister && !isSpace && { name: t('Agreements'), path: 'agreements' },
+    canAdminister && { name: t('Responsibilities'), path: 'responsibilities' },
+    canAdminister && { name: t('Roles & Badges'), path: 'roles' },
+    canAdminister && { name: t('Privacy & Access'), path: 'privacy' },
+    canAddMembers && !isSpace && { name: t('Invite'), path: 'invite' },
+    canAddMembers && { name: t('Join Requests'), path: 'requests' },
+    canAdminister && { name: t('Related Groups'), path: 'relationships' },
+    canAdminister && { name: t('Export Data'), path: 'export' },
+    canAdminister && { name: t('Appearance & Layout'), path: 'appearance' },
+    canAdminister && { name: t('Paid Content'), path: 'paid-content' },
+    canAdminister && { name: t('Delete'), path: 'delete' }
+  ])
 
   const overallSettings = {
     name: t('Settings'),
     path: '',
-    component: (
-      <GroupSettingsTab
-        fetchLocation={fetchLocationAction}
-        fetchPending={fetchPending}
-        currentUser={currentUser}
-        group={group}
-        parentGroups={parentGroups}
-        updateGroupSettings={updateGroupSettingsAction}
-      />
-    )
+    component: isPhoneViewport
+      ? <PhoneSettingsMenuList items={phoneMenuItems} groupSlug={slug} />
+      : groupDetailsTab
+  }
+
+  // Stable URL for Group Details (used by the phone menu list and the desktop
+  // sidebar so both link to the same place).
+  const detailsSettings = {
+    name: t('Group Details'),
+    path: 'details',
+    component: groupDetailsTab
   }
 
   const agreementSettings = {
     name: t('Agreements'),
     path: 'agreements',
     component: <AgreementsTab group={group} />
-  }
-
-  const welcomePageSettings = {
-    name: t('Welcome Page'),
-    path: 'welcome',
-    component: <WelcomePageTab group={group} updateGroupSettings={updateGroupSettingsAction} />
   }
 
   const responsibilitiesSettings = {
@@ -130,42 +196,22 @@ export default function GroupSettings () {
     component: <PrivacySettingsTab group={group} slug={group.slug} updateGroupSettings={updateGroupSettingsAction} parentGroups={parentGroups} fetchPending={fetchPending} />
   }
 
-  const customViewsSettings = {
-    name: t('Custom Views'),
-    path: 'views',
-    component: (
-      <CustomViewsTab group={group} />
-    )
-  }
-
-  // const topicsSettings = {
-  //   name: t('Topics'),
-  //   path: 'topics',
-  //   component: <TopicsSettingsTab group={group} />
-  // }
-
   const inviteSettings = {
     name: t('Invite'),
     path: 'invite',
     component: <InviteSettingsTab group={group} />
   }
 
-  const joinRequestSettings = {
+  const joinRequestsSettings = {
     name: t('Join Requests'),
     path: 'requests',
-    component: <MembershipRequestsTab group={group} currentUser={currentUser} />
+    component: <MembershipRequestsTab group={group} />
   }
 
   const relatedGroupsSettings = {
     name: t('Related Groups'),
     path: 'relationships',
     component: <RelatedGroupsTab group={group} currentUser={currentUser} />
-  }
-
-  const tracksSettings = {
-    name: t('Tracks'),
-    path: 'tracks',
-    component: <TracksTab group={group} currentUser={currentUser} />
   }
 
   const importSettings = {
@@ -178,6 +224,12 @@ export default function GroupSettings () {
     name: t('Export Data'),
     path: 'export',
     component: <ExportDataTab group={group} />
+  }
+
+  const appearanceSettings = {
+    name: t('Appearance & Layout'),
+    path: 'appearance',
+    component: <AppearanceTab group={group} updateGroupSettings={updateGroupSettingsAction} />
   }
 
   const paidContentSettings = {
@@ -197,19 +249,17 @@ export default function GroupSettings () {
       goToOnClose={groupUrl(slug)}
       content={compact([
         canAdminister ? overallSettings : null,
-        canAdminister ? agreementSettings : null,
-        canAdminister ? welcomePageSettings : null,
+        canAdminister ? detailsSettings : null,
+        canAdminister && !isSpace ? agreementSettings : null,
         canAdminister ? responsibilitiesSettings : null,
         canAdminister ? rolesSettings : null,
         canAdminister ? accessSettings : null,
-        canAdminister ? customViewsSettings : null,
-        // canAdminister ? topicsSettings : null, TODO: hide for now, we may want to bring back
-        canAddMembers ? inviteSettings : null,
-        canAddMembers ? joinRequestSettings : null,
+        canAddMembers && !isSpace ? inviteSettings : null,
+        canAddMembers ? joinRequestsSettings : null,
         canAdminister ? relatedGroupsSettings : null,
-        canManageTracks ? tracksSettings : null,
         canAdminister ? importSettings : null,
         canAdminister ? exportSettings : null,
+        canAdminister ? appearanceSettings : null,
         canAdminister ? paidContentSettings : null,
         canAdminister ? deleteSettings : null
       ])}

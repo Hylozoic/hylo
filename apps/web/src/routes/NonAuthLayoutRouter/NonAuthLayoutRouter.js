@@ -7,9 +7,10 @@ import Div100vh from 'react-div-100vh'
 import Particles from 'react-tsparticles'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import setReturnToPath from 'store/actions/setReturnToPath'
-import { getAuthenticated } from 'store/selectors/getAuthState'
+import { getAuthenticated } from 'store/selectors/getSignupState'
 import particlesjsConfig from './particlesjsConfig'
 import LocaleDropdown from 'routes/AuthLayoutRouter/components/GlobalNav/LocaleDropdown/LocaleDropdown'
+import useAppearance from 'hooks/useAppearance'
 import Button from 'components/ui/button'
 import JoinGroup from 'routes/JoinGroup'
 import Login from 'routes/NonAuthLayoutRouter/Login'
@@ -41,8 +42,10 @@ export default function NonAuthLayoutRouter (props) {
     : returnToPathFromQueryString
   const locale = getLocaleFromLocalStorage()
   const localeDisplay = localeToFlagEmoji(locale)
-  const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
-  const logoSrc = isDarkMode ? '/hylo-logo-light-horizontal.svg' : '/hylo-logo-dark-horizontal.svg'
+  // Follow the scheme AppearanceSync actually applies to the document, not raw
+  // prefers-color-scheme — the two disagree when the app theme overrides the OS
+  const { effectiveColorScheme } = useAppearance()
+  const logoSrc = effectiveColorScheme === 'dark' ? '/hylo-logo-light-horizontal.svg' : '/hylo-logo-dark-horizontal.svg'
 
   useEffect(() => {
     if (returnToPath && returnToPath !== '/') {
@@ -115,17 +118,23 @@ export default function NonAuthLayoutRouter (props) {
           <Route
             path='signup/*'
             element={
-              <div className='bg-background/100 rounded-md w-full max-w-[320px] mx-auto p-4 mt-4 text-sm'>
-                <Link to='/login' className='text-foreground flex items-center justify-between gap-2'>
-                  {t('Already have an account?')} <Button variant='outline'>{t('Sign in')}</Button>
-                </Link>
-              </div>
+              // The agreements step is past the sign-in fork — offering it there
+              // would only lead people out of a signup they already committed to
+              location.pathname === '/signup/agreements'
+                ? null
+                : (
+                  <div className='bg-midground rounded-md w-full max-w-[320px] mx-auto p-4 mt-4 text-sm'>
+                    <Link to='/login' className='text-foreground flex items-center justify-between gap-2'>
+                      {t('Already have an account?')} <Button variant='outline'>{t('Sign in')}</Button>
+                    </Link>
+                  </div>
+                  )
             }
           />
           <Route
             path='reset-password'
             element={
-              <div className='bg-background/100 rounded-md w-full max-w-[320px] mx-auto p-4 mt-4 text-center'>
+              <div className='bg-midground rounded-md w-full max-w-[320px] mx-auto p-4 mt-4 text-center'>
                 <div className='flex items-center justify-center gap-2'>
                   <Link tabIndex={-1} to='/signup' className='text-foreground'>
                     <Button variant='outline'>{t('Sign up')}</Button>
@@ -141,7 +150,7 @@ export default function NonAuthLayoutRouter (props) {
           <Route
             path='/login'
             element={
-              <div className='bg-background/100 rounded-md w-full max-w-[320px] mx-auto p-4 mt-4 text-sm'>
+              <div className='bg-midground rounded-md w-full max-w-[320px] mx-auto p-4 mt-4 text-sm'>
                 <Link className='flex items-center justify-between gap-2 text-foreground' tabIndex={-1} to='/signup'>
                   {t('Not a member of Hylo?')} <Button variant='outline'>{t('Sign Up')}</Button>
                 </Link>
@@ -149,7 +158,7 @@ export default function NonAuthLayoutRouter (props) {
             }
           />
         </Routes>
-        <div className='bg-background/100 rounded-md w-full max-w-[320px] mx-auto p-4 mt-4 text-center'>
+        <div className='bg-midground rounded-md w-full max-w-[320px] mx-auto p-4 mt-4 text-center'>
           <a href='https://hylo.com/terms/' target='_blank' rel='noreferrer' className='text-foreground/100'>{t('Terms of Service')}</a> +&nbsp;
           <a href='https://hylo.com/privacy' target='_blank' rel='noreferrer' className='text-foreground/100'>{t('Privacy Policy')}</a>
         </div>

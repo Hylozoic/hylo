@@ -1,5 +1,6 @@
 import { filestackKey, isTest } from 'config/index'
 import * as Filestack from 'filestack-js'
+import { isSandboxMode } from 'sandbox/isSandbox'
 
 // Dev / CI often omit VITE_FILESTACK_API_KEY; Filestack.init(undefined) throws and breaks the whole tree (e.g. Playwright /login).
 const filestack = Filestack.init(isTest || !filestackKey ? 'dummykey' : filestackKey)
@@ -70,6 +71,10 @@ export function uploadedFileToAttachment ({ url, filename, mimetype }) {
 }
 
 export function transformFile (file) {
+  // Blob / sandbox uploads have no Filestack handle — keep the local URL.
+  if (!file?.handle || String(file.url || '').startsWith('blob:')) {
+    return file
+  }
   // Apply rotation from EXIF metadata
   const url = getRootMimeType(file.mimetype) === 'image'
     ? 'https://cdn.filestackcontent.com/rotate=deg:exif/' + file.handle
@@ -78,14 +83,69 @@ export function transformFile (file) {
   return { ...file, url }
 }
 
+/**
+ * Local file picker for sandbox — returns blob: URLs instead of talking to Filestack.
+ */
+function sandboxFilePicker ({
+  attachmentType = 'image',
+  maxFiles = 1,
+  onFileUploadFinished = () => {},
+  onUploadDone,
+  onCancel
+}) {
+  return {
+    open () {
+      const input = document.createElement('input')
+      input.type = 'file'
+      input.multiple = maxFiles > 1
+      const accept = acceptFromAttachmentType(attachmentType)
+      if (Array.isArray(accept)) input.accept = accept.join(',')
+
+      input.addEventListener('change', async () => {
+        const files = Array.from(input.files || []).slice(0, maxFiles)
+        if (!files.length) {
+          onCancel?.()
+          return
+        }
+        const filesUploaded = files.map(file => ({
+          url: URL.createObjectURL(file),
+          filename: file.name,
+          mimetype: file.type || 'application/octet-stream',
+          handle: null
+        }))
+        for (const file of filesUploaded) {
+          onFileUploadFinished(transformFile(file))
+        }
+        await onUploadDone?.({
+          filesUploaded: filesUploaded.map(file => transformFile(file))
+        })
+      })
+
+      input.addEventListener('cancel', () => onCancel?.())
+      input.click()
+    }
+  }
+}
+
 export function filestackPicker ({
   attachmentType = 'image',
   maxFiles = 1,
   onFileUploadFinished = () => {},
   onUploadDone,
+  onCancel,
   t,
   ...rest
 }) {
+  if (isSandboxMode()) {
+    return sandboxFilePicker({
+      attachmentType,
+      maxFiles,
+      onFileUploadFinished,
+      onUploadDone,
+      onCancel
+    })
+  }
+
   return filestack.picker({
     accept: acceptFromAttachmentType(attachmentType),
     customText: {
@@ -102,6 +162,7 @@ export function filestackPicker ({
         ...rest
       })
     },
+    onCancel,
     ...rest
   })
 }

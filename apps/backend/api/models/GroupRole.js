@@ -5,7 +5,7 @@ const SYSTEM_ROLES = [
     name: 'Coordinator',
     emoji: '🪄',
     description: 'Coordinators are empowered to do everything related to group administration.',
-    responsibilities: ['Administration', 'Add Members', 'Remove Members', 'Manage Content', 'Manage Tracks', 'Manage Rounds']
+    responsibilities: ['Administration', 'Add Members', 'Remove Members', 'Manage Content']
   },
   {
     name: 'Moderator',
@@ -93,8 +93,12 @@ module.exports = bookshelf.Model.extend({
   /**
    * Create system roles (Coordinator, Moderator, Host) for a group if they do not exist yet.
    * Links responsibilities by name (type = system). Idempotent.
+   * No-op for spaces — they inherit roles from the parent group.
    */
   setupSystemRoles: async function (groupId, { transacting } = {}) {
+    const roleScopeId = await Group.roleScopeId(groupId, { transacting })
+    if (String(roleScopeId) !== String(groupId)) return
+
     const responsibilityRows = await Responsibility.query(q => {
       q.where('type', 'system')
     }).fetchAll({ transacting })

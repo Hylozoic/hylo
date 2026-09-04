@@ -5,11 +5,13 @@ import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
 import PropTypes from 'prop-types'
 import { get, throttle, find } from 'lodash/fp'
+import { Video } from 'lucide-react'
 import { Helmet } from 'react-helmet'
 import { AnalyticsEvents, TextHelpers } from '@hylo/shared'
 import { PROJECT_CONTRIBUTIONS } from 'config/featureFlags'
 import ActionCompletionResponsesDialog from 'components/ActionCompletionResponsesDialog'
 import CardImageAttachments from 'components/CardImageAttachments'
+import { FlagCover } from 'components/FlagBadge'
 import {
   PostBody,
   PostFooter,
@@ -17,6 +19,7 @@ import {
   PostGroups,
   EventBody
 } from 'components/PostCard'
+import { chatUrlForActivityPost } from 'components/PostCard/ChatActivityCard'
 import ScrollListener from 'components/ScrollListener'
 import Comments from './Comments'
 import SocketSubscriber from 'components/SocketSubscriber'
@@ -27,13 +30,14 @@ import PeopleInfo from 'components/PostCard/PeopleInfo'
 import ProjectContributions from './ProjectContributions'
 import PostPeopleDialog from 'components/PostPeopleDialog'
 import useRouteParams from 'hooks/useRouteParams'
+import { useEffectiveGroupSlug, useGroupRouteOpts } from 'contexts/SpaceGroupContext'
 import fetchPost from 'store/actions/fetchPost'
 import joinProject from 'store/actions/joinProject'
 import leaveProject from 'store/actions/leaveProject'
 import processStripeToken from 'store/actions/processStripeToken'
 import respondToEvent from 'store/actions/respondToEvent'
 import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
-import { FETCH_POST, RESP_MANAGE_TRACKS } from 'store/constants'
+import { FETCH_POST, RESP_ADMINISTRATION } from 'store/constants'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import presentPost from 'store/presenters/presentPost'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
@@ -72,10 +76,12 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
   const location = useLocation()
   const routeParams = useRouteParams()
   const postId = routeParams.postId || getQuerystringParam('fromPostId', location)
-  const { groupSlug, view } = routeParams
+  const { view } = routeParams
+  const groupSlug = useEffectiveGroupSlug() || routeParams.groupSlug
+  const { parentGroupSlug } = useGroupRouteOpts()
   const commentId = getQuerystringParam('commentId', location) || routeParams.commentId
   const currentGroup = useSelector(state => getGroupForSlug(state, groupSlug))
-  const hasTracksResponsibility = useSelector(state => currentGroup && hasResponsibilityForGroup(state, { groupId: currentGroup.id, responsibility: RESP_MANAGE_TRACKS }))
+  const hasTracksResponsibility = useSelector(state => currentGroup && hasResponsibilityForGroup(state, { groupId: currentGroup.id, responsibility: RESP_ADMINISTRATION }))
   const postSelector = useSelector(state => getPost(state, postId))
   const post = useMemo(() => {
     return postSelector ? presentPost(postSelector, get('id', currentGroup)) : null
@@ -96,8 +102,23 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
   const [commentEditingActive, setCommentEditingActive] = useState(false)
   const commentFormRef = useRef(null)
 
+  // Opened via a Reply affordance: focus the comment box once it exists. The
+  // delay clears CommentForm's mobile guard, which blurs any focus landing in
+  // the first 500ms after mount. Navigation state, so it never sticks to the URL.
+  const focusCommentRequested = Boolean(location.state?.focusComment)
+  useEffect(() => {
+    if (!focusCommentRequested) return
+    const id = setTimeout(() => commentFormRef.current?.focus?.(), 600)
+    return () => clearTimeout(id)
+  }, [focusCommentRequested])
+
   const activityHeader = useRef(null)
   const { t } = useTranslation()
+
+  useEffect(() => {
+    if (post?.type !== 'chat_activity') return
+    navigate(chatUrlForActivityPost(post, parentGroupSlug || groupSlug), { replace: true })
+  }, [groupSlug, navigate, parentGroupSlug, post])
 
   const postDetailCloseDestination = useMemo(() => {
     return post
@@ -113,8 +134,26 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
         }
   }, [post, location.pathname, location.search, currentUser])
 
+  // Fetch post; include action-completion fields only for action posts.
+  // Deep-linked actions may fetch twice: once without type, again once type is known.
   useEffect(() => {
-    onPostIdChange()
+    if (!postId) return
+    const isAction = post?.type === 'action'
+    dispatch(fetchPost(postId, {
+      withCompletion: isAction,
+      withCompletionResponses: isAction && hasTracksResponsibility
+    }))
+  }, [postId, post?.type, hasTracksResponsibility])
+
+  useEffect(() => {
+    if (!post) return
+    dispatch(trackAnalyticsEvent(AnalyticsEvents.POST_OPENED, {
+      postId: post.id,
+      groupId: post.groups.map(g => g.id),
+      isPublic: post.isPublic,
+      topics: post.topics?.map(t => t.name),
+      type: post.type
+    }))
   }, [postId])
 
   const { setHeaderDetails } = useViewHeader()
@@ -146,22 +185,6 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
   }, [])
 
   const { ref } = useResizeDetector({ handleHeight: false, onResize: handleSetComponentPositions })
-
-  const onPostIdChange = useCallback(() => {
-    if (!pending) {
-      dispatch(fetchPost(postId, hasTracksResponsibility))
-    }
-
-    if (post) {
-      dispatch(trackAnalyticsEvent(AnalyticsEvents.POST_OPENED, {
-        postId: post.id,
-        groupId: post.groups.map(g => g.id),
-        isPublic: post.isPublic,
-        topics: post.topics?.map(t => t.name),
-        type: post.type
-      }))
-    }
-  }, [postId, post, pending])
 
   const handleScroll = throttle(100, event => {
     const { scrollTop } = event.target
@@ -476,7 +499,13 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
   const isEvent = useMemo(() => get('type', post) === 'event', [post])
 
   // TODO: if not in a group should show as flagged if flagged in any of my groups
-  const isFlagged = useMemo(() => post?.flaggedGroups && post.flaggedGroups.includes(currentGroup?.id), [post, currentGroup])
+  const isFlagged = useMemo(() => post?.flaggedGroups && post.flaggedGroups.some(id => String(id) === String(currentGroup?.id)), [post, currentGroup])
+
+  // Acknowledging the flag cover reveals the content only for this viewing —
+  // deliberately not persisted, so reopening the post shows the cover again
+  const [flagRevealed, setFlagRevealed] = useState(false)
+  useEffect(() => { setFlagRevealed(false) }, [post?.id])
+  const flagObscured = isFlagged && !flagRevealed
 
   const projectManagementTool = useMemo(() => {
     const m = post?.projectManagementLink ? post.projectManagementLink.match(/(asana|trello|airtable|clickup|confluence|teamwork|notion|wrike|zoho)/) : null
@@ -485,6 +514,12 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
 
   const d = post?.donationsLink ? post.donationsLink.match(/(cash|clover|gofundme|opencollective|paypal|squareup|venmo)/) : null
   const donationService = d ? d[1] : null
+
+  const meetingUrl = useMemo(() => {
+    const link = post?.meetingLink?.trim()
+    if (!link) return null
+    return link.startsWith('http') ? link : `https://${link}`
+  }, [post?.meetingLink])
 
   const { acceptContributions, totalContributions } = post || {}
 
@@ -513,6 +548,9 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
     width: state.activityWidth + 'px',
     marginTop: STICKY_HEADER_SCROLL_OFFSET + 'px'
   }
+  const shareDescription = TextHelpers.presentHTMLToText(post.details, { truncate: MAX_DETAILS_LENGTH })
+  const shareTitle = post.title || TextHelpers.presentHTMLToText(post.details, { truncate: 80 }) || 'Hylo'
+  const shareImageUrl = post.imageAttachments?.[0]?.url
 
   return (
     <div
@@ -527,7 +565,16 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
         <title>
           {`${post.title || TextHelpers.presentHTMLToText(post.details, { truncate: 20 })} | Hylo`}
         </title>
-        <meta name='description' content={TextHelpers.presentHTMLToText(post.details, { truncate: MAX_DETAILS_LENGTH })} />
+        <meta name='description' content={shareDescription} />
+        {post.isPublic && <meta property='og:type' content='article' />}
+        {post.isPublic && <meta property='og:site_name' content='Hylo' />}
+        {post.isPublic && <meta property='og:title' content={shareTitle} />}
+        {post.isPublic && <meta property='og:description' content={shareDescription} />}
+        {post.isPublic && shareImageUrl && <meta property='og:image' content={shareImageUrl} />}
+        {post.isPublic && <meta name='twitter:card' content={shareImageUrl ? 'summary_large_image' : 'summary'} />}
+        {post.isPublic && <meta name='twitter:title' content={shareTitle} />}
+        {post.isPublic && <meta name='twitter:description' content={shareDescription} />}
+        {post.isPublic && shareImageUrl && <meta name='twitter:image' content={shareImageUrl} />}
       </Helmet>
       <div className='flex flex-col rounded-lg shadow-sm'>
         <ScrollListener elementId={DETAIL_COLUMN_ID} onScroll={handleScroll} />
@@ -535,7 +582,7 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
           className={classes.header}
           post={post}
           routeParams={routeParams}
-          close={inPostDialog ? attemptClose : undefined}
+          close={isIsolatedPostView ? undefined : attemptClose}
           expanded
           isFlagged={isFlagged}
           hasImage={hasImage}
@@ -553,14 +600,17 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
               currentUser={currentUser}
               post={post}
               routeParams={routeParams}
-              close={inPostDialog ? attemptClose : undefined}
+              close={isIsolatedPostView ? undefined : attemptClose}
               isFlagged={isFlagged}
             />
           </div>
         )}
-        <div className='bg-card rounded-lg shadow-md'>
+        <div className='bg-card rounded-lg shadow-md relative'>
+          {/* Cover at the card level so it centers against the whole post
+              content (attachments + body), not just the text block */}
+          {flagObscured && <FlagCover post={post} onView={() => setFlagRevealed(true)} />}
           {post.attachments && post.attachments.length > 0 && (
-            <CardImageAttachments attachments={post.attachments} isFlagged={isFlagged && !post.clickthrough} />
+            <CardImageAttachments attachments={post.attachments} isFlagged={flagObscured} />
           )}
           {isEvent && (
             <EventBody
@@ -571,8 +621,25 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
               event={post}
               respondToEvent={(response) => dispatch(respondToEvent(post, response))}
               togglePeopleDialog={handleTogglePeopleDialog}
-              isFlagged={isFlagged}
+              isFlagged={flagObscured}
+              flagCover={false}
             />
+          )}
+          {isEvent && meetingUrl && (
+            <div className='border-2 border-foreground/20 rounded-lg p-2 sm:p-3 flex flex-row gap-2 w-[calc(100%-1rem)] sm:w-[calc(100%-2rem)] mx-2 sm:mx-4 mb-2 justify-between border-dashed items-center'>
+              <div className='flex items-center gap-2 text-sm'>
+                <Video className='w-4 h-4 shrink-0 text-foreground/50' />
+                {t('Join this event online')}
+              </div>
+              <a
+                className='inline-block border-2 border-selected/20 rounded-lg p-2 px-4 hover:border-selected/100 transition-all text-selected text-sm whitespace-nowrap'
+                href={meetingUrl}
+                target='_blank'
+                rel='noreferrer'
+              >
+                {t('Join online')}
+              </a>
+            </div>
           )}
           {!isEvent && (
             <PostBody
@@ -581,7 +648,8 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
               expanded
               routeParams={routeParams}
               slug={groupSlug}
-              isFlagged={isFlagged}
+              isFlagged={flagObscured}
+              flagCover={false}
               {...post}
             />
           )}

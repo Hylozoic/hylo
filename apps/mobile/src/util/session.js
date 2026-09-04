@@ -158,25 +158,28 @@ function cookieDomainForUrl (url) {
 
 /**
  * Writes each key-value pair from a parsed cookie object into the WebView's native
- * cookie store for HYLO_WEB_BASE_URL. Called after every setSessionCookie to keep
- * the AsyncStorage cookie and the WebView's jar in sync.
+ * cookie store for both the web host and the API host. Called after every
+ * setSessionCookie to keep the AsyncStorage cookie and the WebView's jar in sync.
  */
 async function syncCookiesToWebView (cookieObj) {
-  const url = Config.HYLO_WEB_BASE_URL
-  if (!url || !cookieObj) return
+  if (!cookieObj) return
 
-  const domain = cookieDomainForUrl(url)
-  const secure = /^https:/i.test(url)
+  const urls = [...new Set([Config.HYLO_WEB_BASE_URL, apiHost].filter(Boolean))]
 
-  await Promise.all(
-    Object.entries(cookieObj).map(([name, value]) =>
-      CookieManager.set(
-        url,
-        { name, value, path: '/', secure, ...(domain ? { domain } : {}) },
-        USE_WEBKIT
+  await Promise.all(urls.map(url => {
+    const domain = cookieDomainForUrl(url)
+    const secure = /^https:/i.test(url)
+
+    return Promise.all(
+      Object.entries(cookieObj).map(([name, value]) =>
+        CookieManager.set(
+          url,
+          { name, value, path: '/', secure, ...(domain ? { domain } : {}) },
+          USE_WEBKIT
+        )
       )
     )
-  )
+  }))
 }
 
 // this is a bag of hacks that probably only works with our current backend.

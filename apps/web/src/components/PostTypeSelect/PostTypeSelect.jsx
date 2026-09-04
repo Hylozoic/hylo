@@ -4,12 +4,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { POST_TYPES } from 'store/models/Post'
 import { cn } from 'util/index'
 
-export default function PostTypeSelect ({ className, includeChat = false, postType, setPostType }) {
+export default function PostTypeSelect ({ allowedPostTypes, className, includeChat = false, postType, setPostType }) {
   const { t } = useTranslation()
 
-  const postTypes = Object.keys(POST_TYPES).filter(t => t !== 'action')
+  let postTypes = Object.keys(POST_TYPES).filter(type => type !== 'action')
   if (!includeChat) {
-    postTypes.splice(postTypes.indexOf('chat'), 1)
+    postTypes = postTypes.filter(type => type !== 'chat')
+  }
+  // null = all types; empty array = none (except keep current selection visible)
+  if (allowedPostTypes != null) {
+    postTypes = postTypes.filter(type => allowedPostTypes.includes(type))
+    // Keep the current type selectable if it falls outside the allowed set
+    if (postType && !postTypes.includes(postType)) {
+      postTypes = [...postTypes, postType]
+    }
   }
 
   return (

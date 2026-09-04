@@ -3,17 +3,14 @@ import { matchPath, useLocation } from 'react-router-dom'
 import { StreamSkeleton } from 'components/PostCard/PostCardSkeleton'
 import PostDetailSkeleton from 'routes/PostDetail/PostDetailSkeleton'
 import {
-  AllViewBootstrapSkeleton,
   EventsBootstrapSkeleton,
-  FundingRoundsBootstrapSkeleton,
   GroupAboutBootstrapSkeleton,
   GroupSettingsBootstrapSkeleton,
   GroupSubgroupsBootstrapSkeleton,
   GroupWelcomeBootstrapSkeleton,
   MapExplorerBootstrapSkeleton,
   MembersBootstrapSkeleton,
-  ModerationBootstrapSkeleton,
-  TracksBootstrapSkeleton
+  ModerationBootstrapSkeleton
 } from './RouteBootstrapPlaceholders'
 
 /** Group chat room — same column width as ChatRoom message list. */
@@ -77,34 +74,9 @@ const EVENTS_BOOTSTRAP_PATTERNS = [
   '/public/events'
 ]
 
-const TRACKS_DETAIL_BOOTSTRAP_PATTERNS = [
-  '/groups/:groupSlug/tracks/:trackId/*',
-  '/groups/:groupSlug/tracks/:trackId'
-]
-
-const TRACKS_LIST_BOOTSTRAP_PATTERNS = [
-  '/groups/:groupSlug/tracks/*',
-  '/groups/:groupSlug/tracks'
-]
-
-const FUNDING_ROUND_DETAIL_BOOTSTRAP_PATTERNS = [
-  '/groups/:groupSlug/funding-rounds/:fundingRoundId/*',
-  '/groups/:groupSlug/funding-rounds/:fundingRoundId'
-]
-
-const FUNDING_ROUNDS_LIST_BOOTSTRAP_PATTERNS = [
-  '/groups/:groupSlug/funding-rounds/*',
-  '/groups/:groupSlug/funding-rounds'
-]
-
 const MODERATION_BOOTSTRAP_PATTERNS = [
   '/groups/:groupSlug/moderation/*',
   '/groups/:groupSlug/moderation'
-]
-
-const ALL_VIEWS_BOOTSTRAP_PATTERNS = [
-  '/groups/:groupSlug/all-views',
-  '/groups/:groupSlug/all-views/'
 ]
 
 function matchesAnyPattern (patterns, pathname) {
@@ -149,28 +121,8 @@ function isEventsBootstrapPath (pathname) {
   return matchesAnyPattern(EVENTS_BOOTSTRAP_PATTERNS, pathname)
 }
 
-function isTracksDetailBootstrapPath (pathname) {
-  return matchesAnyPattern(TRACKS_DETAIL_BOOTSTRAP_PATTERNS, pathname)
-}
-
-function isTracksListBootstrapPath (pathname) {
-  return matchesAnyPattern(TRACKS_LIST_BOOTSTRAP_PATTERNS, pathname)
-}
-
-function isFundingRoundDetailBootstrapPath (pathname) {
-  return matchesAnyPattern(FUNDING_ROUND_DETAIL_BOOTSTRAP_PATTERNS, pathname)
-}
-
-function isFundingRoundsListBootstrapPath (pathname) {
-  return matchesAnyPattern(FUNDING_ROUNDS_LIST_BOOTSTRAP_PATTERNS, pathname)
-}
-
 function isModerationBootstrapPath (pathname) {
   return matchesAnyPattern(MODERATION_BOOTSTRAP_PATTERNS, pathname)
-}
-
-function isAllViewsBootstrapPath (pathname) {
-  return matchesAnyPattern(ALL_VIEWS_BOOTSTRAP_PATTERNS, pathname)
 }
 
 /**
@@ -218,28 +170,8 @@ export default function RouteBootstrapSkeleton ({ pathname: pathnameProp }) {
     return <EventsBootstrapSkeleton />
   }
 
-  if (isTracksDetailBootstrapPath(pathname)) {
-    return <TracksBootstrapSkeleton />
-  }
-
-  if (isTracksListBootstrapPath(pathname)) {
-    return <TracksBootstrapSkeleton />
-  }
-
-  if (isFundingRoundDetailBootstrapPath(pathname)) {
-    return <FundingRoundsBootstrapSkeleton />
-  }
-
-  if (isFundingRoundsListBootstrapPath(pathname)) {
-    return <FundingRoundsBootstrapSkeleton />
-  }
-
   if (isModerationBootstrapPath(pathname)) {
     return <ModerationBootstrapSkeleton />
-  }
-
-  if (isAllViewsBootstrapPath(pathname)) {
-    return <AllViewBootstrapSkeleton />
   }
 
   return <StreamSkeleton />

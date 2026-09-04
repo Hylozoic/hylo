@@ -78,7 +78,7 @@ export const CommentEditor = React.forwardRef(({
         } else {
           // Check if this completion also completes the track
           if (currentTrack && data.completePost) {
-            const allActionsCompleted = currentTrack.posts.every(
+            const allActionsCompleted = (currentTrack.posts || []).every(
               action => action.id === post.id || action.completedAt
             )
 
@@ -164,6 +164,7 @@ export const CommentEditor = React.forwardRef(({
       <ScrollView contentContainerStyle={[styles.editor, isModal && { paddingBottom: safeAreaInsets.bottom }]}>
         <HyloEditorWebView
           placeholder={t('Write a comment')}
+          groupIds={post?.groups?.map(group => group.id).filter(Boolean)}
           readOnly={submitting}
           ref={setEditorRef}
           widthOffset={isIOS ? 34 : 38}

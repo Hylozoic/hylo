@@ -1,5 +1,5 @@
 import React from 'react'
-import { useNavigate, Navigate, Route, Routes } from 'react-router-dom'
+import { useNavigate, useParams, Navigate, Route, Routes } from 'react-router-dom'
 import Div100vh from 'react-div-100vh'
 import { POST_DETAIL_MATCH, GROUP_DETAIL_MATCH } from '@hylo/navigation'
 import { CENTER_COLUMN_ID, DETAIL_COLUMN_ID } from 'util/scrolling'
@@ -7,9 +7,15 @@ import GroupDetail from 'routes/GroupDetail'
 import GroupExplorer from 'routes/GroupExplorer'
 import MapExplorer from 'routes/MapExplorer'
 import PostDetail from 'routes/PostDetail'
-import Stream from 'routes/Stream'
+import ViewContent from 'routes/ViewContent'
 import AllTopics from 'routes/AllTopics'
 import PublicPageHeader from './PublicPageHeader'
+
+/** Legacy `/public/stream` → `/public/all`, preserving any trailing path. */
+function RedirectPublicStreamToAll () {
+  const { '*': rest } = useParams()
+  return <Navigate to={`/public/all${rest ? `/${rest}` : ''}`} replace />
+}
 
 /** Same id as auth shell center column so `/public/*` streams match E2E and scroll targets */
 function PublicCenterColumn ({ children }) {
@@ -29,18 +35,19 @@ export default function PublicLayoutRouter (props) {
           <Route index element={<Navigate to='groups' replace />} />
           <Route path='map/*' element={<MapExplorerLayoutRouter />} />
           <Route path='groups/*' element={<GroupExplorerLayoutRouter />} />
-          <Route path='stream/*' element={<PublicCenterColumn><Stream context='public' /></PublicCenterColumn>} />
-          <Route path='projects/*' element={<PublicCenterColumn><Stream context='public' view='projects' /></PublicCenterColumn>} />
-          <Route path='proposals/*' element={<PublicCenterColumn><Stream context='public' view='proposals' /></PublicCenterColumn>} />
-          <Route path='events/*' element={<PublicCenterColumn><Stream context='public' /></PublicCenterColumn>} />
-          <Route path='topics/:topicName' element={<PublicCenterColumn><Stream context='public' /></PublicCenterColumn>} />
+          <Route path='all/*' element={<PublicCenterColumn><ViewContent context='public' view='all' /></PublicCenterColumn>} />
+          <Route path='stream/*' element={<RedirectPublicStreamToAll />} />
+          <Route path='projects/*' element={<PublicCenterColumn><ViewContent context='public' view='projects' /></PublicCenterColumn>} />
+          <Route path='proposals/*' element={<PublicCenterColumn><ViewContent context='public' view='proposals' /></PublicCenterColumn>} />
+          <Route path='events/*' element={<PublicCenterColumn><ViewContent context='public' view='events' /></PublicCenterColumn>} />
+          <Route path='topics/:topicName' element={<PublicCenterColumn><ViewContent context='public' /></PublicCenterColumn>} />
           <Route path='topics' element={<AllTopics />} />
           {/* Must be before `public/*` in AuthLayout; here match post editor paths if ever deep-linked unauth */}
-          <Route path='post/:postId/edit/*' element={<PublicCenterColumn><Stream context='public' /></PublicCenterColumn>} />
-          <Route path='post/:postId/create/*' element={<PublicCenterColumn><Stream context='public' /></PublicCenterColumn>} />
+          <Route path='post/:postId/edit/*' element={<PublicCenterColumn><ViewContent context='public' /></PublicCenterColumn>} />
+          <Route path='post/:postId/create/*' element={<PublicCenterColumn><ViewContent context='public' /></PublicCenterColumn>} />
 
-          {/* Unknown under /public — send to stream (same as auth shell), not login */}
-          <Route path='*' element={<Navigate to='/public/stream' replace />} />
+          {/* Unknown under /public — send to All Activity (same as auth shell), not login */}
+          <Route path='*' element={<Navigate to='/public/all' replace />} />
         </Routes>
       </div>
     </Div100vh>

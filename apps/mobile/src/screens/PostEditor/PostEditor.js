@@ -408,7 +408,7 @@ export default function PostEditor (props) {
               <HyloEditorWebView
                 placeholder={t('Add a description')}
                 contentHTML={post?.details}
-                // groupIds={groupOptions && groupOptions.map(g => g.id)}
+                groupIds={post?.groups?.map(group => group.id).filter(Boolean)}
                 onChange={details => updatePost({ details })}
                 onAddTopic={!topicsPicked && handleAddTopic}
                 readOnly={selectedPostLoading || isSaving}

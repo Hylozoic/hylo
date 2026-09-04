@@ -32,7 +32,8 @@ export default function GroupWelcomeModal (props) {
   const currentGroup = useSelector(state => getGroupForSlug(state, params.groupSlug))
   const group = presentGroup(currentGroup)
   const currentMembership = useSelector(state => getMyGroupMembership(state, params.groupSlug))
-  const membershipAgreements = currentMembership?.agreements.toModelArray()
+  const membershipAgreements = currentMembership?.agreements?.toModelArray?.() || []
+  const savedJoinAnswers = currentMembership?.joinQuestionAnswers?.toModelArray?.() || []
   const { agreementsAcceptedAt, joinQuestionsAnsweredAt } = currentMembership?.settings || {}
   const [page, setPage] = useState(1)
   const welcomeModalRef = useRef(null)
@@ -42,18 +43,53 @@ export default function GroupWelcomeModal (props) {
   const numCheckedAgreements = currentAgreements.reduce((count, agreement) => count + (agreement ? 1 : 0), 0)
   const checkedAllAgreements = numCheckedAgreements === numAgreements
 
-  const agreementsChanged = numAgreements > 0 &&
-    (!agreementsAcceptedAt || agreementsAcceptedAt < currentGroup.settings.agreementsLastUpdatedAt)
+  const agreementsLastUpdatedAt = currentGroup?.settings?.agreementsLastUpdatedAt
+  const agreementsChangedByTimestamp = Boolean(
+    agreementsAcceptedAt &&
+    agreementsLastUpdatedAt &&
+    agreementsAcceptedAt < agreementsLastUpdatedAt
+  )
+  const allAgreementsAlreadyAccepted = numAgreements > 0 &&
+    (group?.agreements || []).every(ga => membershipAgreements?.find(ma => ma.id === ga.id)?.accepted)
+  // Re-show only when agreements actually changed, or they were never accepted
+  const agreementsChanged = numAgreements > 0 && (
+    agreementsChangedByTimestamp ||
+    (!agreementsAcceptedAt && !allAgreementsAlreadyAccepted)
+  )
 
-  const [questionAnswers, setQuestionAnswers] = useState(group?.joinQuestions.map(q => { return { questionId: q.questionId, text: q.text, answer: '' } }))
-  const [allQuestionsAnswered, setAllQuestionsAnswered] = useState(!group?.settings?.askJoinQuestions || !!joinQuestionsAnsweredAt)
+  const [questionAnswers, setQuestionAnswers] = useState(
+    () => (group?.joinQuestions || []).map(q => ({ questionId: q.questionId, text: q.text, answer: '' }))
+  )
 
   // Only show first page (agreements) if there are agreements that need to be accepted
   const hasFirstPage = agreementsChanged
-  const hasSecondPage = (group?.settings?.askJoinQuestions && questionAnswers?.length > 0 && !joinQuestionsAnsweredAt) ||
-    (group?.settings?.showSuggestedSkills && group?.suggestedSkills?.length > 0)
+  const questionsHaveSavedAnswers = Boolean(
+    group?.joinQuestions?.length > 0 &&
+    group.joinQuestions.every(q => {
+      const saved = savedJoinAnswers.find(a => String(a.question?.id) === String(q.questionId))
+      return saved && trim(saved.answer).length > 0
+    })
+  )
+  // Questions are only required when the group asks them, answers are not yet recorded, and questions are loaded
+  const questionsStillRequired = Boolean(
+    group?.settings?.askJoinQuestions &&
+    !joinQuestionsAnsweredAt &&
+    !questionsHaveSavedAnswers &&
+    questionAnswers?.length > 0
+  )
+  // Skills were already offered on GroupDetail join when joinQuestionsAnsweredAt is set
+  const showSuggestedSkills = Boolean(
+    group?.settings?.showSuggestedSkills &&
+    group?.suggestedSkills?.length > 0 &&
+    !joinQuestionsAnsweredAt &&
+    !questionsHaveSavedAnswers
+  )
+  const hasSecondPage = questionsStillRequired || showSuggestedSkills
+  // Skills are optional; only block Jump In when join questions are shown and unanswered
+  const answersComplete = !questionsStillRequired ||
+    (questionAnswers || []).every(a => trim(a.answer).length > 0)
 
-  const showWelcomeModal = currentMembership?.settings?.showJoinForm || agreementsChanged || !joinQuestionsAnsweredAt
+  const showWelcomeModal = currentMembership?.settings?.showJoinForm || agreementsChanged
 
   useEffect(() => {
     if (showWelcomeModal && group?.id && currentMembership) dispatch(fetchGroupWelcomeData(group.id, currentUser.id))
@@ -69,22 +105,17 @@ export default function GroupWelcomeModal (props) {
 
   useEffect(() => {
     if (group?.joinQuestions?.length > 0) {
-      setQuestionAnswers(group?.joinQuestions.map(q => { return { questionId: q.questionId, text: q.text, answer: '' } }))
-
-      // not loading answers right now, so we know if answered before by whether joinQuestionsAnsweredAt is set
-      setAllQuestionsAnswered(!group?.settings?.askJoinQuestions || !!joinQuestionsAnsweredAt)
+      setQuestionAnswers(group.joinQuestions.map(q => {
+        const saved = savedJoinAnswers.find(a => String(a.question?.id) === String(q.questionId))
+        return { questionId: q.questionId, text: q.text, answer: saved?.answer || '' }
+      }))
     }
+  }, [group?.joinQuestions?.length, savedJoinAnswers.length])
 
-    // If dont have agreements to show come straight to the second page
-    if (!hasFirstPage) {
-      setPage(2)
-    }
-  }, [group?.joinQuestions?.length, hasFirstPage])
-
+  // Keep page in sync when agreements-changed state loads after first paint
   useEffect(() => {
-    // After the member joins the group, make sure we know whether they have already answered the questions or not
-    setAllQuestionsAnswered(!group?.settings?.askJoinQuestions || !!joinQuestionsAnsweredAt)
-  }, [currentMembership?.settings.joinQuestionsAnsweredAt])
+    setPage(hasFirstPage ? 1 : 2)
+  }, [hasFirstPage])
 
   if (!showWelcomeModal || !group || !currentMembership) return null
 
@@ -112,8 +143,8 @@ export default function GroupWelcomeModal (props) {
       group.id,
       { joinQuestionsAnsweredAt: new Date(), showJoinForm: false },
       true, // acceptAgreements
-      // If join quesions were previously answered, don't overwrite them with empty answers here
-      questionAnswers && !joinQuestionsAnsweredAt ? questionAnswers.map(q => ({ questionId: q.questionId, answer: q.answer })) : null
+      // If join questions were previously answered, don't overwrite them with empty answers here
+      questionAnswers && !joinQuestionsAnsweredAt && !questionsHaveSavedAnswers ? questionAnswers.map(q => ({ questionId: q.questionId, answer: q.answer })) : null
     ))
     return null
   }
@@ -130,7 +161,6 @@ export default function GroupWelcomeModal (props) {
     setQuestionAnswers(prevAnswers => {
       const newAnswers = [...prevAnswers]
       newAnswers[index].answer = answerValue
-      setAllQuestionsAnswered(newAnswers.every(a => trim(a.answer).length > 0))
       return newAnswers
     })
   }
@@ -224,11 +254,11 @@ export default function GroupWelcomeModal (props) {
                   <p>{group.purpose}</p>
                 </div>}
 
-              {group?.settings?.showSuggestedSkills && group.suggestedSkills?.length > 0 &&
+              {showSuggestedSkills &&
                 <SuggestedSkills addSkill={addSkill} currentUser={currentUser} group={group} removeSkill={removeSkill} />}
 
-              {!joinQuestionsAnsweredAt && group.settings?.askJoinQuestions && questionAnswers?.length > 0 && <div className={classes.questionsHeader}>{t('Please answer the following questions to enter')}</div>}
-              {!joinQuestionsAnsweredAt && group.settings?.askJoinQuestions && questionAnswers && questionAnswers.map((q, index) => (
+              {questionsStillRequired && <div className={classes.questionsHeader}>{t('Please answer the following questions to enter')}</div>}
+              {questionsStillRequired && questionAnswers.map((q, index) => (
                 <div className={classes.joinQuestion} key={index}>
                   <h3 className='text-lg font-bold'>{q.text}</h3>
                   <textarea name={`question_${q.questionId}`} onChange={handleAnswerQuestion(index)} value={q.answer} placeholder={t('Type your answer here...')} />
@@ -248,7 +278,7 @@ export default function GroupWelcomeModal (props) {
                 variant='secondary'
                 className='w-full rounded-md mt-4 border-highlight'
                 data-testid='jump-in'
-                disabled={(page === 1 && !checkedAllAgreements) || (page === 2 && !allQuestionsAnswered)}
+                disabled={(page === 1 && !checkedAllAgreements) || (page === 2 && !answersComplete)}
                 onClick={handleAccept}
               >
                 {page === 1 && hasSecondPage ? t('Next') : t('Jump in!')}

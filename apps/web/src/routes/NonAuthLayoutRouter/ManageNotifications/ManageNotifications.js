@@ -7,7 +7,8 @@ import { useTranslation } from 'react-i18next'
 import useRouteParams from 'hooks/useRouteParams'
 
 import Button from 'components/Button'
-import CheckBox from 'components/CheckBox'
+import Checkbox from 'components/ui/checkbox'
+import { Label } from 'components/ui/label'
 import {
   Select,
   SelectContent,
@@ -154,12 +155,16 @@ export default function ManageNotifications (props) {
                 </Select>
               </div>
 
-              <CheckBox
-                checked={unsubscribeAll}
-                label={t('Unsubscribe from all')}
-                onChange={value => setUnsubscribeAll(value)}
-                labelClass={styles.unsubscribeAllLabel}
-              />
+              <div className='flex items-center gap-2'>
+                <Checkbox
+                  id='unsubscribe-all'
+                  checked={unsubscribeAll}
+                  onCheckedChange={value => setUnsubscribeAll(!!value)}
+                />
+                <Label htmlFor='unsubscribe-all' className={cn('cursor-pointer font-normal', styles.unsubscribeAllLabel)}>
+                  {t('Unsubscribe from all')}
+                </Label>
+              </div>
 
               <Button
                 className={styles.submit}

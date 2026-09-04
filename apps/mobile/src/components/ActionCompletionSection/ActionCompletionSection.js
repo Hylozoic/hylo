@@ -63,7 +63,8 @@ export default function ActionCompletionSection({ post, trackId }) {
 
       const completedPost = data.completePost
       if (completedPost) {
-        const allActionsCompleted = currentTrack.posts.every(
+        const trackActions = currentTrack.posts || []
+        const allActionsCompleted = trackActions.length > 0 && trackActions.every(
           action => action.id === post.id || action.completedAt
         )
 

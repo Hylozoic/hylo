@@ -18,7 +18,7 @@ describe('GroupsList', () => {
     expect(groupLinks).toHaveLength(3)
   })
 
-  it('renders groups in rows of two', () => {
+  it('renders groups in rows of one', () => {
     const props = {
       groups: [
         { id: 1, name: 'One', slug: 'one' },
@@ -29,7 +29,7 @@ describe('GroupsList', () => {
 
     const { container } = render(<GroupsList {...props} />)
     const rows = container.querySelectorAll('.groupRow')
-    expect(rows).toHaveLength(2)
+    expect(rows).toHaveLength(3)
   })
 })
 

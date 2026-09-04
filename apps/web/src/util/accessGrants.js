@@ -3,13 +3,13 @@
  *
  * accessGrants can be either a JSON string or an object with the structure:
  * {
- *   trackIds: [1, 2, 3],
- *   groupIds: [4, 5, 6],
+ *   groupIds: [4, 5, 6],  // parent group and/or space group ids
  *   groupRoleIds: [9, 10],
  *   buyButtonText: "Join now"  // Optional; UI/checkout only (also stored on stripe_products.metadata)
  *   slidingScale: { enabled, minimum?, maximum? }  // Optional; checkout quantity range (also in metadata)
  * }
- * Access logic uses trackIds, groupIds, groupRoleIds; presentation fields are ignored there.
+ * Access logic uses groupIds, groupRoleIds; presentation fields are ignored there.
+ * Legacy trackIds may still exist on older rows until migration; prefer groupIds for spaces.
  * The client may still send buyButtonText / slidingScale inside this object; the API persists them in metadata.
  */
 

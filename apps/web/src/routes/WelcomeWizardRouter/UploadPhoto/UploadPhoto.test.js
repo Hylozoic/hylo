@@ -1,25 +1,30 @@
 import React from 'react'
-import { render, screen } from 'util/testing/reactTestingLibraryExtended'
+import orm from 'store/models'
+import { AllTheProviders, render, screen } from 'util/testing/reactTestingLibraryExtended'
 import UploadPhoto from './UploadPhoto'
+
+function providersWithUser (user) {
+  const ormSession = orm.mutableSession(orm.getEmptyState())
+  if (user) ormSession.Me.create(user)
+  return AllTheProviders({ orm: ormSession.state })
+}
 
 describe('UploadPhoto', () => {
   it('renders correctly', () => {
-    render(<UploadPhoto currentUser={true} />)
+    render(
+      <UploadPhoto />,
+      { wrapper: providersWithUser({ id: '1', name: 'Test User', avatarUrl: 'avatar.png' }) }
+    )
 
-    // Check for key elements
     expect(screen.getByText('STEP 1/3')).toBeInTheDocument()
     expect(screen.getByText('Upload a profile image')).toBeInTheDocument()
     expect(screen.getByText('Next: Where are you from?')).toBeInTheDocument()
-
-    // Check for the upload button
     expect(screen.getByTestId('upload-attachment-button')).toBeInTheDocument()
-
-    // Check for the icon
-    expect(screen.getByTestId('icon-AddImage')).toBeInTheDocument()
+    expect(screen.getByTestId('upload-photo-button')).toBeInTheDocument()
   })
 
   it('displays loading when currentUser is not provided', () => {
-    render(<UploadPhoto currentUser={null} />)
+    render(<UploadPhoto />, { wrapper: providersWithUser(null) })
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument()
   })
 })

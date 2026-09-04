@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import AsyncCreatableSelect from 'react-select/async-creatable'
 import { isEmpty, uniqBy, orderBy, get, includes } from 'lodash/fp'
 import { Validators } from '@hylo/shared'
+import { cn } from 'util/index'
 import Icon from 'components/Icon'
 import findTopics from 'store/actions/findTopics'
 import getDefaultTopics from 'store/selectors/getDefaultTopics'
@@ -21,17 +22,19 @@ const inputStyles = {
     ...styles,
     padding: '0.5rem'
   }),
-  control: styles => ({
+  control: (styles, { isFocused }) => ({
     ...styles,
     minWidth: '200px',
-    border: 'none',
+    borderWidth: '1px',
+    borderStyle: 'solid',
+    borderColor: isFocused ? 'hsl(var(--ring))' : 'hsl(var(--border))',
     borderRadius: '0.5rem',
     backgroundColor: 'hsl(var(--background))',
     boxShadow: 'none',
-    transition: 'all 0.2s ease-in-out',
+    transition: 'border-color 0.2s ease-in-out',
     cursor: 'text',
     '&:hover': {
-      border: '1px solid hsl(var(--border))'
+      borderColor: 'hsl(var(--foreground) / 0.5)'
     }
   }),
   input: styles => ({
@@ -99,7 +102,7 @@ const inputStyles = {
 }
 
 function TopicSelector (props) {
-  const { forGroups = [], selectedTopics = [], onChange } = props
+  const { forGroups = [], selectedTopics = [], onChange, className } = props
   const { t } = useTranslation()
   const [selected, setSelected] = useState([])
   const [topicsEdited, setTopicsEdited] = useState(false)
@@ -212,6 +215,7 @@ function TopicSelector (props) {
       placeholder={t('Enter up to three topics...')}
       name='topics'
       value={selected}
+      className={cn('hover:scale-100', className)}
       classNamePrefix='topic-selector'
       defaultOptions={formatGroupTopicSuggestions(defaultTopics) || []}
       styles={inputStyles}

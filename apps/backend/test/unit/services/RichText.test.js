@@ -97,4 +97,24 @@ describe('RichText', function () {
       expect(RichText.getUserMentions(text)).to.have.members(['5942', '8781'])
     })
   })
+
+  describe('getFirstExternalUrl', () => {
+    it('returns null when there is no content', () => {
+      expect(RichText.getFirstExternalUrl()).to.equal(null)
+      expect(RichText.getFirstExternalUrl('')).to.equal(null)
+    })
+
+    it('finds a plain-text URL', () => {
+      expect(RichText.getFirstExternalUrl('Check this https://example.com/article')).to.equal('https://example.com/article')
+    })
+
+    it('finds the first href in HTML', () => {
+      const html = '<p>See <a href="https://example.com/one">one</a> and <a href="https://example.com/two">two</a></p>'
+      expect(RichText.getFirstExternalUrl(html)).to.equal('https://example.com/one')
+    })
+
+    it('skips mailto links', () => {
+      expect(RichText.getFirstExternalUrl('Email <a href="mailto:hi@example.com">hi</a> then https://example.com')).to.equal('https://example.com/')
+    })
+  })
 })

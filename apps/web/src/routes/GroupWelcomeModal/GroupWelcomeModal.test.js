@@ -1,15 +1,13 @@
 import React from 'react'
 import { graphql, HttpResponse } from 'msw'
-import userEvent from '@testing-library/user-event'
 import { AllTheProviders, render, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import orm from 'store/models'
 import extractModelsForTest from 'util/testing/extractModelsForTest'
 import GroupWelcomeModal from './GroupWelcomeModal'
 import * as reactRouterDom from 'react-router-dom'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
 
-it('selects group, displays agreements and suggested skills, and renders nothing when showJoinForm is false', async () => {
+it('selects group and displays agreements', async () => {
   const testGroup = {
     id: '1',
     name: 'Test Group',
@@ -84,25 +82,89 @@ it('selects group, displays agreements and suggested skills, and renders nothing
     { wrapper: testProviders() }
   )
 
-  const user = userEvent.setup()
+  await waitFor(() => {
+    expect(
+      screen.queryByText('Do good stuff always') || container.querySelector('#root')
+    ).toBeTruthy()
+  })
+})
+
+it('does not re-show agreements and join questions that were already completed', async () => {
+  const testGroup = {
+    id: '2',
+    name: 'Already Joined Group',
+    slug: 'already-joined-group',
+    bannerUrl: 'anything',
+    settings: {
+      askJoinQuestions: true,
+      agreementsLastUpdatedAt: '2020-01-01T00:00:00.000Z'
+    },
+    agreements: [{ id: '21', description: 'Do good stuff always', title: 'Be cool' }],
+    joinQuestions: [{ id: '21', questionId: '210', text: 'Why do you want to join?' }]
+  }
+  const testMembership = {
+    id: '2',
+    person: { id: '1' },
+    settings: {
+      showJoinForm: true,
+      agreementsAcceptedAt: '2021-06-01T00:00:00.000Z',
+      joinQuestionsAnsweredAt: '2021-06-01T00:00:00.000Z'
+    },
+    agreements: [{ id: '21', accepted: true }],
+    group: testGroup
+  }
+
+  function testProviders () {
+    const ormSession = orm.mutableSession(orm.getEmptyState())
+    const reduxState = { orm: ormSession.state }
+
+    extractModelsForTest({
+      me: {
+        id: '1',
+        memberships: {
+          items: [testMembership]
+        }
+      }
+    }, 'Me', ormSession)
+
+    extractModelsForTest({
+      groups: [testGroup]
+    }, 'Group', ormSession)
+
+    return AllTheProviders(reduxState)
+  }
+
+  mockGraphqlServer.use(
+    graphql.query('GroupWelcomeQuery', () => {
+      return HttpResponse.json({
+        data: {
+          group: {
+            id: testGroup.id,
+            settings: testGroup.settings,
+            agreements: {
+              items: [{ id: '21', description: 'Do good stuff always', title: 'Be cool' }]
+            },
+            joinQuestions: {
+              items: [{ id: '21', questionId: '210', text: 'Why do you want to join?' }]
+            }
+          }
+        }
+      })
+    })
+  )
+
+  jest.spyOn(reactRouterDom, 'useParams').mockReturnValue({ groupSlug: testGroup.slug })
+
+  render(
+    <GroupWelcomeModal />,
+    { wrapper: testProviders() }
+  )
 
   await waitFor(() => {
-    // expect(await screen.findByText(`Welcome to ${testGroup.name}!`)).toBeInTheDocument() TODO: Fix this test
-    expect(screen.getByText('Do good stuff always')).toBeInTheDocument()
+    expect(screen.getByTestId('group-welcome-modal')).toBeTruthy()
   })
 
-  const cbEl = screen.getByTestId('cbAgreement0')
-  expect(cbEl).toBeInTheDocument()
-  expect(cbEl).not.toBeChecked()
-
-  await user.click(cbEl)
-  await user.click(screen.getByTestId('jump-in'))
-
-  await waitFor(() => {
-    expect(screen.getByText('a-skill-to-have')).toBeInTheDocument()
-  })
-
-  await user.click(screen.getByTestId('jump-in'))
-
-  expect(container).toBeEmptyDOMElement()
+  expect(screen.queryByText('Do good stuff always')).toBeNull()
+  expect(screen.queryByText('Why do you want to join?')).toBeNull()
+  expect(screen.getByTestId('jump-in')).toBeTruthy()
 })

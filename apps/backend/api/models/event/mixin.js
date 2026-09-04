@@ -3,6 +3,41 @@ import { TextHelpers, DateTimeHelpers } from '@hylo/shared'
 import ical, { ICalEventStatus, ICalCalendarMethod } from 'ical-generator'
 import { senderNameViaHylo } from '../../../lib/email/senderNameViaHylo'
 
+function resolveEventChangeValue (eventChanges, key, currentValue) {
+  if (!eventChanges || eventChanges[key] === false || eventChanges[key] === undefined) {
+    return currentValue
+  }
+  return eventChanges[key]
+}
+
+function buildCalLocationAndDescription ({ physicalLocation, meetingLink, baseDescription }) {
+  const location = physicalLocation || meetingLink || ''
+  let description = baseDescription
+  if (physicalLocation && meetingLink) {
+    const joinLine = `Join online: ${meetingLink}`
+    description = description ? `${description}\n\n${joinLine}` : joinLine
+  }
+  return { location, description }
+}
+
+function formatEventLocationForEmail (location, meetingLink) {
+  const physical = location || ''
+  const link = meetingLink || ''
+  if (physical && link) return `${physical}\nJoin online: ${link}`
+  return physical || link || ''
+}
+
+function resolveNewLocationForEmail (eventChanges, post) {
+  const locationChanged = eventChanges?.location !== false && eventChanges?.location !== undefined
+  const meetingLinkChanged = eventChanges?.meeting_link !== false && eventChanges?.meeting_link !== undefined
+  if (!locationChanged && !meetingLinkChanged) return eventChanges?.location
+
+  return formatEventLocationForEmail(
+    resolveEventChangeValue(eventChanges, 'location', post.get('location')),
+    resolveEventChangeValue(eventChanges, 'meeting_link', post.get('meeting_link'))
+  )
+}
+
 export default {
   isEvent () {
     return this.get('type') === Post.Type.EVENT
@@ -88,17 +123,23 @@ export default {
   getCalEventData: async function ({ eventInvitation, forUserId, eventChanges, url }) {
     const organizer = await this.user().fetch()
     const deleted = eventChanges?.deleted
-    const newLocation = eventChanges?.location
     const newStart = eventChanges?.start_time
     const newEnd = eventChanges?.end_time
+    const physicalLocation = resolveEventChangeValue(eventChanges, 'location', this.get('location'))
+    const meetingLink = resolveEventChangeValue(eventChanges, 'meeting_link', this.get('meeting_link'))
+    const { location, description } = buildCalLocationAndDescription({
+      physicalLocation,
+      meetingLink,
+      baseDescription: TextHelpers.presentHTMLToText(this.details(forUserId))
+    })
     // note: eventInvitation.response can be null
     const notGoing = eventInvitation?.notGoing()
     const going = eventInvitation?.going()
 
     return {
       summary: this.title(),
-      description: TextHelpers.presentHTMLToText(this.details(forUserId)),
-      location: newLocation || this.get('location'),
+      description,
+      location,
       start: newStart || this.get('start_time'),
       end: newEnd || this.get('end_time'),
       // see https://github.com/sebbo2002/ical-generator#-date-time--timezones
@@ -141,6 +182,7 @@ export default {
   // event can be new, updated or deleted
   sendUserRsvp: async function ({ eventInvitationId, eventChanges }) {
     const eventInvitation = await EventInvitation.where({ id: eventInvitationId }).fetch()
+    if (!eventInvitation) return
     const user = await eventInvitation.user().fetch()
     await this.load('groups')
     const groupNames = this.relations.groups.map(g => g.get('name')).join(', ')
@@ -149,18 +191,19 @@ export default {
     const emailTemplate = eventChanges.new ? 'sendEventRsvpEmail' : eventChanges.deleted ? 'sendEventRsvpCancelEmail' : 'sendEventRsvpUpdateEmail'
     const newStart = (eventChanges.start_time || eventChanges.end_time) ? (eventChanges.start_time || this.get('start_time')) : null
     const newEnd = (eventChanges.start_time || eventChanges.end_time) ? (eventChanges.end_time || this.get('end_time')) : null
-    const newDate = newStart && newEnd ? DateTimeHelpers.formatDatePair({ start: newStart, end: newEnd, timezone: this.get('timezone') }) : null
-    const newLocation = eventChanges.location
+    const userLocale = user.getLocale()
+    const newDate = newStart && newEnd ? DateTimeHelpers.formatDatePair({ start: newStart, end: newEnd, timezone: this.get('timezone'), locale: userLocale }) : null
+    const newLocation = resolveNewLocationForEmail(eventChanges, this)
 
     const rsvpEmailPayload = {
       email: user.get('email'),
       version: 'default',
       data: {
-        date: DateTimeHelpers.formatDatePair({ start: this.get('start_time'), end: this.get('end_time'), timezone: this.get('timezone') }),
+        date: DateTimeHelpers.formatDatePair({ start: this.get('start_time'), end: this.get('end_time'), timezone: this.get('timezone'), locale: userLocale }),
         user_name: user.get('name'),
         event_name: this.title(),
         event_description: this.details(),
-        event_location: this.get('location'),
+        event_location: formatEventLocationForEmail(this.get('location'), this.get('meeting_link')),
         event_url: Frontend.Route.post(this, this.relations.groups.first()),
         response: eventInvitation.getHumanResponse(),
         group_names: groupNames,

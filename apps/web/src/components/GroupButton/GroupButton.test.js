@@ -26,8 +26,7 @@ describe('GroupButton', () => {
     const avatarImage = screen.getByRole('img')
     expect(avatarImage.getAttribute('style')).toContain(props.group.avatarUrl)
 
-    // Check if the link has the correct href
-    const link = screen.getByRole('link')
-    expect(link).toHaveAttribute('href', `/groups/${props.group.slug}`)
+    // GroupButton navigates via button click (not an anchor link)
+    expect(screen.getByRole('button', { name: /Backyard Birders/i })).toBeInTheDocument()
   })
 })

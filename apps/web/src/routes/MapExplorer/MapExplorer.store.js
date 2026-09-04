@@ -121,6 +121,7 @@ const membersFragment = `
         }
       }
       locationObject {
+        id
         center {
           lat
           lng
@@ -177,9 +178,13 @@ const groupsQuery = `query (
       avatarUrl
       description
       geoShape
+      homeRoute
+      icon
       memberCount
       name
+      parentId
       slug
+      type
       locationObject {
         id
         addressNumber
@@ -198,6 +203,10 @@ const groupsQuery = `query (
         locality
         neighborhood
         region
+      }
+      parentGroup {
+        id
+        slug
       }
     }
   }
@@ -238,6 +247,7 @@ export function fetchPostsForMap ({ activePostsOnly, childPostInclusion = 'yes',
         createdAt
         updatedAt
         locationObject {
+          id
           center {
             lat
             lng
@@ -289,6 +299,7 @@ export function fetchPostsForMap ({ activePostsOnly, childPostInclusion = 'yes',
         createdAt
         updatedAt
         locationObject {
+          id
           center {
             lat
             lng
@@ -329,7 +340,19 @@ export function fetchPostsForMap ({ activePostsOnly, childPostInclusion = 'yes',
     meta: {
       extractModel,
       extractQueryResults: {
-        getItems
+        getItems,
+        // Omit pagination/geo vars so the lookup key matches MapExplorer selectors
+        // (selectors pass context/slug/groupSlugs/childPostInclusion only).
+        getRouteParams: ({ meta: { graphql: { variables } } }) => ({
+          childPostInclusion: variables.childPostInclusion,
+          context: variables.context,
+          filter: variables.filter,
+          groupSlugs: variables.groupSlugs,
+          search: variables.search,
+          slug: variables.slug,
+          sortBy: variables.sortBy,
+          topics: variables.topics
+        })
       }
     }
   }
@@ -376,7 +399,19 @@ export function fetchPostsForDrawer ({ activePostsOnly, childPostInclusion = 'ye
       extractModel,
       extractQueryResults: {
         getItems,
-        replace
+        replace,
+        // Omit pagination/geo vars so the lookup key matches MapExplorer selectors
+        getRouteParams: ({ meta: { graphql: { variables } } }) => ({
+          childPostInclusion: variables.childPostInclusion,
+          context: variables.context,
+          filter: variables.filter,
+          groupSlugs: variables.groupSlugs,
+          search: variables.search,
+          slug: variables.slug,
+          sortBy: variables.sortBy,
+          topics: variables.topics,
+          types: variables.types
+        })
       }
     }
   }
@@ -663,6 +698,7 @@ const DEFAULT_STATE = {
   centerLocation: null,
   totalBoundingBoxLoaded: null,
   zoom: 0,
+  mapScopeKey: null,
   clientFilterParams: {
     currentBoundingBox: null,
     featureTypes: Object.keys(FEATURE_TYPES).filter(t => FEATURE_TYPES[t].map).reduce((types, type) => { types[type] = true; return types }, {}),

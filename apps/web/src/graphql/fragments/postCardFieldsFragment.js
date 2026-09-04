@@ -1,9 +1,10 @@
-// TODO: do we need postMembership? depends on how pinning works. not in chat room probably
 const postGroupsFields = `
   groups {
     id
     name
     slug
+    type
+    parentId
   }
 `
 
@@ -20,12 +21,51 @@ export default function postCardFieldsFragment ({ includeGroups = true } = {}) {
   editedAt
   endTime
   flaggedGroups
+  moderationActions {
+    id
+    groupId
+    status
+    text
+    anonymous
+    reporter {
+      id
+      name
+    }
+    agreements {
+      id
+      title
+    }
+    platformAgreements {
+      id
+      text
+    }
+  }
   fulfilledAt
   isAnonymousVote
   isPublic
   linkPreviewFeatured
   location
+  meetingLink
+  locationObject {
+    id
+    center {
+      lat
+      lng
+    }
+    fullText
+  }
   myEventResponse
+  noticeData
+  noticePosts {
+    id
+    details
+    createdAt
+    creator {
+      id
+      name
+      avatarUrl
+    }
+  }
   peopleReactedTotal
   projectManagementLink
   proposalOutcome

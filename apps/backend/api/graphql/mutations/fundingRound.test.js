@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-expressions */
 import '../../../test/setup'
 import factories from '../../../test/setup/factories'
 import { assignCoordinator } from '../../../test/setup/roleHelpers'
@@ -10,6 +11,34 @@ import {
   doPhaseTransition,
   allocateTokensToSubmission
 } from './fundingRound'
+
+/** Save a funding round and put lifecycle on the space group.status. */
+async function saveRound (attrs) {
+  const status = attrs.phase
+  const rest = { ...attrs }
+  delete rest.phase
+  delete rest.published_at
+  const round = await new FundingRound(rest).save()
+  if (status && rest.group_id) {
+    const space = await Group.find(rest.group_id)
+    if (space) await space.save({ status }, { patch: true })
+  }
+  return round
+}
+
+/** Patch round attrs; phase is written to the space group. */
+async function patchRound (round, attrs) {
+  const status = attrs.phase
+  const rest = { ...attrs }
+  delete rest.phase
+  delete rest.published_at
+  if (Object.keys(rest).length) await round.save(rest, { patch: true })
+  if (status) {
+    const space = await Group.find(round.get('group_id'))
+    if (space) await space.save({ status }, { patch: true })
+  }
+  return round
+}
 
 describe('createFundingRound', () => {
   let user, moderatorUser, group
@@ -29,25 +58,39 @@ describe('createFundingRound', () => {
       votingMethod: 'token_allocation_constant',
       totalTokens: 100,
       description: 'A round for community projects',
-      criteria: 'Must benefit the community',
-      publishedAt: new Date(Date.now() - 1000).getTime().toString() // Set published_at so creator can join
+      criteria: 'Must benefit the community'
     }
 
     const round = await createFundingRound(moderatorUser.id, data)
     expect(round).to.exist
-    expect(round.get('title')).to.equal(data.title)
     expect(round.get('group_id')).to.equal(group.id)
+    expect(round.get('allow_late_joiners')).to.not.be.true
   })
 
-  it('throws error when title is missing', async () => {
-    const data = { groupId: group.id, votingMethod: 'token_allocation_constant', totalTokens: 100 }
-
-    try {
-      await createFundingRound(moderatorUser.id, data)
-      expect.fail('should reject')
-    } catch (e) {
-      expect(e.message).to.match(/title is required/)
+  it('saves allowLateJoiners when voting method is token_allocation_constant', async () => {
+    const data = {
+      title: 'Late Joiner Round',
+      groupId: group.id,
+      votingMethod: 'token_allocation_constant',
+      totalTokens: 100,
+      allowLateJoiners: true
     }
+
+    const round = await createFundingRound(moderatorUser.id, data)
+    expect(round.get('allow_late_joiners')).to.be.true
+  })
+
+  it('forces allowLateJoiners off when voting method is token_allocation_divide', async () => {
+    const data = {
+      title: 'Divide Round',
+      groupId: group.id,
+      votingMethod: 'token_allocation_divide',
+      totalTokens: 100,
+      allowLateJoiners: true
+    }
+
+    const round = await createFundingRound(moderatorUser.id, data)
+    expect(round.get('allow_late_joiners')).to.be.false
   })
 
   it('throws error when groupId is missing', async () => {
@@ -84,19 +127,16 @@ describe('createFundingRound', () => {
   })
 
   it('creates a funding round with date fields', async () => {
-    const publishedAt = new Date('2024-01-01').getTime()
     const submissionsOpenAt = new Date('2024-01-15').getTime()
     const data = {
       title: 'Test Round',
       groupId: group.id,
       votingMethod: 'token_allocation_constant',
       totalTokens: 100,
-      publishedAt: publishedAt.toString(),
       submissionsOpenAt: submissionsOpenAt.toString()
     }
 
     const round = await createFundingRound(moderatorUser.id, data)
-    expect(round.get('published_at')).to.be.an.instanceof(Date)
     expect(round.get('submissions_open_at')).to.be.an.instanceof(Date)
   })
 
@@ -111,8 +151,7 @@ describe('createFundingRound', () => {
       votingMethod: 'token_allocation_constant',
       totalTokens: 100,
       submitterRoles,
-      voterRoles,
-      publishedAt: new Date(Date.now() - 1000).getTime().toString() // Set published_at so creator can join
+      voterRoles
     }
 
     const round = await createFundingRound(moderatorUser.id, data)
@@ -137,27 +176,27 @@ describe('updateFundingRound', () => {
     await assignCoordinator(moderatorUser, group)
 
     // Create a funding round
-    round = await new FundingRound({
+    round = await saveRound({
       title: 'Original Title',
       group_id: group.id,
       phase: FundingRound.PHASES.DRAFT,
       voting_method: 'token_allocation_constant'
-    }).save()
+    })
   })
 
-  it('updates a funding round title', async () => {
-    const data = { title: 'Updated Title' }
+  it('updates a funding round criteria', async () => {
+    const data = { criteria: 'Updated criteria' }
 
     const updatedRound = await updateFundingRound(moderatorUser.id, round.id, data)
-    expect(updatedRound.get('title')).to.equal('Updated Title')
+    expect(updatedRound.get('criteria')).to.equal('Updated criteria')
   })
 
   it('updates funding round dates', async () => {
-    const publishedAt = new Date('2024-01-01').getTime()
-    const data = { publishedAt: publishedAt.toString() }
+    const submissionsOpenAt = new Date('2024-01-15').getTime()
+    const data = { submissionsOpenAt: submissionsOpenAt.toString() }
 
     const updatedRound = await updateFundingRound(moderatorUser.id, round.id, data)
-    expect(updatedRound.get('published_at')).to.be.an.instanceof(Date)
+    expect(updatedRound.get('submissions_open_at')).to.be.an.instanceof(Date)
   })
 
   it('updates role restrictions', async () => {
@@ -198,15 +237,38 @@ describe('updateFundingRound', () => {
     }
   })
 
-  it('triggers phase transition on update', async () => {
-    const now = new Date()
-    const pastDate = new Date(now.getTime() - 1000).getTime() // 1 second ago
-    const data = { publishedAt: pastDate.toString() }
+  it('allows parent Administration to update a funding round space without space membership', async () => {
+    const space = await factories.group({
+      type: 'space',
+      parent_id: group.id,
+      slug: `fr-space-update-${Date.now()}`
+    }).save()
+    const spaceRound = await saveRound({
+      title: 'Space Round',
+      group_id: space.id,
+      phase: FundingRound.PHASES.DRAFT,
+      voting_method: 'token_allocation_constant'
+    })
 
-    const updatedRound = await updateFundingRound(moderatorUser.id, round.id, data)
-    // Refetch to get latest phase
+    // moderatorUser is coordinator on parent only — not a member of the space
+    const updatedRound = await updateFundingRound(moderatorUser.id, spaceRound.id, { criteria: 'Updated Space Round' })
+    expect(updatedRound.get('criteria')).to.equal('Updated Space Round')
+  })
+
+  it('clears allowLateJoiners when voting method changes to token_allocation_divide', async () => {
+    await round.save({ allow_late_joiners: true }, { patch: true })
+
+    const updatedRound = await updateFundingRound(moderatorUser.id, round.id, {
+      votingMethod: 'token_allocation_divide'
+    })
+    expect(updatedRound.get('allow_late_joiners')).to.be.false
+  })
+
+  it('does not auto-publish a draft when dates are updated', async () => {
+    const pastDate = new Date(Date.now() - 1000).getTime()
+    await updateFundingRound(moderatorUser.id, round.id, { submissionsOpenAt: pastDate.toString() })
     const freshRound = await FundingRound.find(round.id)
-    expect(freshRound.get('phase')).to.equal(FundingRound.PHASES.PUBLISHED)
+    expect(await freshRound.spaceStatus()).to.equal(FundingRound.PHASES.DRAFT)
   })
 })
 
@@ -221,17 +283,17 @@ describe('deleteFundingRound', () => {
     await assignCoordinator(moderatorUser, group)
 
     // Create a funding round
-    round = await new FundingRound({
+    round = await saveRound({
       title: 'Test Round',
       group_id: group.id,
       phase: FundingRound.PHASES.DRAFT,
       voting_method: 'token_allocation_constant'
-    }).save()
+    })
   })
 
   it('soft deletes a funding round', async () => {
     const result = await deleteFundingRound(moderatorUser.id, round.id)
-    expect(result.success).to.be.true
+    expect(result.success).to.equal(true)
 
     // FundingRound.find excludes deactivated rounds, so we need to query directly
     const deletedRound = await FundingRound.where({ id: round.id }).fetch()
@@ -258,66 +320,118 @@ describe('deleteFundingRound', () => {
 })
 
 describe('joinFundingRound', () => {
-  let user, group, round
+  let user, parentGroup, space, round
 
   beforeEach(async function () {
     user = factories.user()
-    group = factories.group()
-    await Promise.all([user.save(), group.save()])
+    parentGroup = factories.group()
+    await Promise.all([user.save(), parentGroup.save()])
+    await user.joinGroup(parentGroup)
 
-    // User must be a member of the group
-    await user.joinGroup(group)
-
-    // Create a funding round with published_at set
-    round = await new FundingRound({
-      title: 'Test Round',
-      group_id: group.id,
-      phase: FundingRound.PHASES.PUBLISHED,
-      published_at: new Date(Date.now() - 1000),
-      voting_method: 'token_allocation_constant'
+    space = await factories.group({
+      type: 'space',
+      parent_id: parentGroup.id,
+      slug: `fr-space-join-${Date.now()}`
     }).save()
+
+    round = await saveRound({
+      title: 'Test Round',
+      group_id: space.id,
+      phase: FundingRound.PHASES.PUBLISHED,
+      voting_method: 'token_allocation_constant'
+    })
+    await space.save({ funding_round_id: round.id }, { patch: true })
   })
 
   it('allows a user to join a funding round', async () => {
     const updatedRound = await joinFundingRound(user.id, round.id)
 
     const isParticipating = await updatedRound.isParticipating(user.id)
-    expect(isParticipating).to.be.true
+    expect(isParticipating).to.equal(true)
   })
 
-  it('creates a FundingRoundUser record', async () => {
+  it('creates an active space membership', async () => {
     await joinFundingRound(user.id, round.id)
 
-    const roundUser = await FundingRoundUser.where({
-      user_id: user.id,
-      funding_round_id: round.id
-    }).fetch()
+    const membership = await GroupMembership.forPair(user.id, space).fetch()
+    expect(membership).to.exist
+    expect(membership.get('active')).to.equal(true)
+  })
 
-    expect(roundUser).to.exist
+  it('does not allocate tokens when joining before voting', async () => {
+    await round.save({ allow_late_joiners: true, total_tokens: 100 }, { patch: true })
+    await joinFundingRound(user.id, round.id)
+
+    const membership = await GroupMembership.forPair(user.id, space).fetch()
+    expect(membership.get('settings')?.tokensRemaining || 0).to.equal(0)
+  })
+
+  it('allocates tokens when joining during voting if allowLateJoiners is on', async () => {
+    await patchRound(round, {
+      allow_late_joiners: true,
+      phase: FundingRound.PHASES.VOTING,
+      total_tokens: 100,
+      voting_method: 'token_allocation_constant'
+    })
+
+    await joinFundingRound(user.id, round.id)
+
+    const membership = await GroupMembership.forPair(user.id, space).fetch()
+    expect(membership.get('settings').tokensRemaining).to.equal(100)
+  })
+
+  it('does not allocate tokens when joining during voting if allowLateJoiners is off', async () => {
+    await patchRound(round, {
+      allow_late_joiners: false,
+      phase: FundingRound.PHASES.VOTING,
+      total_tokens: 100,
+      voting_method: 'token_allocation_constant'
+    })
+
+    await joinFundingRound(user.id, round.id)
+
+    const membership = await GroupMembership.forPair(user.id, space).fetch()
+    expect(membership.get('settings')?.tokensRemaining || 0).to.equal(0)
+  })
+
+  it('does not allocate tokens to late joiners when voting method is token_allocation_divide', async () => {
+    await patchRound(round, {
+      allow_late_joiners: true,
+      phase: FundingRound.PHASES.VOTING,
+      total_tokens: 100,
+      voting_method: 'token_allocation_divide'
+    })
+
+    await joinFundingRound(user.id, round.id)
+
+    const membership = await GroupMembership.forPair(user.id, space).fetch()
+    expect(membership.get('settings')?.tokensRemaining || 0).to.equal(0)
   })
 })
 
 describe('leaveFundingRound', () => {
-  let user, group, round
+  let user, parentGroup, space, round
 
   beforeEach(async function () {
     user = factories.user()
-    group = factories.group()
-    await Promise.all([user.save(), group.save()])
+    parentGroup = factories.group()
+    await Promise.all([user.save(), parentGroup.save()])
+    await user.joinGroup(parentGroup)
 
-    // User must be a member of the group
-    await user.joinGroup(group)
-
-    // Create a funding round with published_at set
-    round = await new FundingRound({
-      title: 'Test Round',
-      group_id: group.id,
-      phase: FundingRound.PHASES.PUBLISHED,
-      published_at: new Date(Date.now() - 1000),
-      voting_method: 'token_allocation_constant'
+    space = await factories.group({
+      type: 'space',
+      parent_id: parentGroup.id,
+      slug: `fr-space-leave-${Date.now()}`
     }).save()
 
-    // Join the round first
+    round = await saveRound({
+      title: 'Test Round',
+      group_id: space.id,
+      phase: FundingRound.PHASES.PUBLISHED,
+      voting_method: 'token_allocation_constant'
+    })
+    await space.save({ funding_round_id: round.id }, { patch: true })
+
     await FundingRound.join(round.id, user.id)
   })
 
@@ -325,18 +439,60 @@ describe('leaveFundingRound', () => {
     const updatedRound = await leaveFundingRound(user.id, round.id)
 
     const isParticipating = await updatedRound.isParticipating(user.id)
-    expect(isParticipating).to.be.false
+    expect(isParticipating).to.equal(false)
   })
 
-  it('removes the FundingRoundUser record', async () => {
+  it('deactivates the space membership', async () => {
     await leaveFundingRound(user.id, round.id)
 
-    const roundUser = await FundingRoundUser.where({
-      user_id: user.id,
-      funding_round_id: round.id
-    }).fetch()
+    const membership = await GroupMembership.forPair(user.id, space).fetch()
+    expect(membership).to.not.exist
+    const inactive = await GroupMembership.forPair(user.id, space, { includeInactive: true }).fetch()
+    expect(inactive.get('active')).to.equal(false)
+  })
 
-    expect(roundUser).to.not.exist
+  it('clears the user\'s votes so a later rejoin cannot keep them', async () => {
+    const otherVoter = factories.user()
+    const submission = factories.post({ type: Post.Type.SUBMISSION })
+    await Promise.all([otherVoter.save(), submission.save()])
+    await otherVoter.joinGroup(parentGroup)
+    await space.posts().attach(submission)
+
+    await patchRound(round, {
+      allow_late_joiners: true,
+      phase: FundingRound.PHASES.VOTING,
+      total_tokens: 100,
+      voting_method: 'token_allocation_constant',
+      voting_opens_at: new Date(Date.now() - 10000)
+    })
+
+    const userMembership = await GroupMembership.forPair(user.id, space).fetch()
+    userMembership.addSetting({ tokensRemaining: 100 })
+    await userMembership.save({ settings: userMembership.get('settings') }, { patch: true })
+
+    await FundingRound.join(round.id, otherVoter.id)
+    const otherMembership = await GroupMembership.forPair(otherVoter.id, space).fetch()
+    otherMembership.addSetting({ tokensRemaining: 100 })
+    await otherMembership.save({ settings: otherMembership.get('settings') }, { patch: true })
+
+    await allocateTokensToSubmission(user.id, submission.id, 40)
+    await allocateTokensToSubmission(otherVoter.id, submission.id, 25)
+
+    await leaveFundingRound(user.id, round.id)
+
+    const leftUserAllocation = await PostUser.find(submission.id, user.id)
+    expect(leftUserAllocation.get('tokens_allocated_to') || 0).to.equal(0)
+
+    const otherAllocation = await PostUser.find(submission.id, otherVoter.id)
+    expect(otherAllocation.get('tokens_allocated_to')).to.equal(25)
+
+    await joinFundingRound(user.id, round.id)
+
+    const rejoinedMembership = await GroupMembership.forPair(user.id, space).fetch()
+    expect(rejoinedMembership.get('settings').tokensRemaining).to.equal(100)
+
+    const rejoinedAllocation = await PostUser.find(submission.id, user.id)
+    expect(rejoinedAllocation.get('tokens_allocated_to') || 0).to.equal(0)
   })
 })
 
@@ -349,70 +505,70 @@ describe('doPhaseTransition', () => {
     await Promise.all([user.save(), group.save()])
   })
 
-  it('transitions from DRAFT to PUBLISHED when publishedAt passes', async () => {
-    const pastDate = new Date(Date.now() - 1000) // 1 second ago
-    round = await new FundingRound({
+  it('does not auto-transition from DRAFT to PUBLISHED', async () => {
+    round = await saveRound({
       title: 'Test Round',
       group_id: group.id,
       phase: FundingRound.PHASES.DRAFT,
-      published_at: pastDate,
       voting_method: 'token_allocation_constant'
-    }).save()
+    })
 
     await doPhaseTransition(user.id, round.id)
 
     const updatedRound = await FundingRound.find(round.id)
-    expect(updatedRound.get('phase')).to.equal(FundingRound.PHASES.PUBLISHED)
+    expect(await updatedRound.spaceStatus()).to.equal(FundingRound.PHASES.DRAFT)
   })
 
   it('transitions from PUBLISHED to SUBMISSIONS when submissionsOpenAt passes', async () => {
     const pastDate = new Date(Date.now() - 1000) // 1 second ago
-    round = await new FundingRound({
+    round = await saveRound({
       title: 'Test Round',
       group_id: group.id,
       phase: FundingRound.PHASES.PUBLISHED,
-      published_at: new Date(Date.now() - 10000),
       submissions_open_at: pastDate,
       voting_method: 'token_allocation_constant'
-    }).save()
+    })
 
     await doPhaseTransition(user.id, round.id)
 
     const updatedRound = await FundingRound.find(round.id)
-    expect(updatedRound.get('phase')).to.equal(FundingRound.PHASES.SUBMISSIONS)
+    expect(await updatedRound.spaceStatus()).to.equal(FundingRound.PHASES.SUBMISSIONS)
   })
 
   it('transitions from SUBMISSIONS to DISCUSSION when submissionsCloseAt passes', async () => {
     const pastDate = new Date(Date.now() - 1000) // 1 second ago
-    round = await new FundingRound({
+    round = await saveRound({
       title: 'Test Round',
       group_id: group.id,
       phase: FundingRound.PHASES.SUBMISSIONS,
-      published_at: new Date(Date.now() - 20000),
       submissions_open_at: new Date(Date.now() - 10000),
       submissions_close_at: pastDate,
       voting_method: 'token_allocation_constant'
-    }).save()
+    })
 
     await doPhaseTransition(user.id, round.id)
 
     const updatedRound = await FundingRound.find(round.id)
-    expect(updatedRound.get('phase')).to.equal(FundingRound.PHASES.DISCUSSION)
+    expect(await updatedRound.spaceStatus()).to.equal(FundingRound.PHASES.DISCUSSION)
   })
 
   it('transitions from DISCUSSION to VOTING when votingOpensAt passes', async () => {
     const pastDate = new Date(Date.now() - 1000) // 1 second ago
-    round = await new FundingRound({
+    const space = await factories.group({
+      type: 'space',
+      parent_id: group.id,
+      slug: `fr-space-phase-${Date.now()}`
+    }).save()
+    round = await saveRound({
       title: 'Test Round',
-      group_id: group.id,
+      group_id: space.id,
       phase: FundingRound.PHASES.DISCUSSION,
-      published_at: new Date(Date.now() - 30000),
       submissions_open_at: new Date(Date.now() - 20000),
       submissions_close_at: new Date(Date.now() - 10000),
       voting_opens_at: pastDate,
       voting_method: 'token_allocation_constant',
       total_tokens: 100 // Required for token distribution
-    }).save()
+    })
 
     // Join a user to the round so token distribution has users
     await user.joinGroup(group)
@@ -421,80 +577,76 @@ describe('doPhaseTransition', () => {
     await doPhaseTransition(user.id, round.id)
 
     const updatedRound = await FundingRound.find(round.id)
-    expect(updatedRound.get('phase')).to.equal(FundingRound.PHASES.VOTING)
+    expect(await updatedRound.spaceStatus()).to.equal(FundingRound.PHASES.VOTING)
   })
 
   it('transitions from VOTING to COMPLETED when votingClosesAt passes', async () => {
     const pastDate = new Date(Date.now() - 1000) // 1 second ago
-    round = await new FundingRound({
+    round = await saveRound({
       title: 'Test Round',
       group_id: group.id,
       phase: FundingRound.PHASES.VOTING,
-      published_at: new Date(Date.now() - 40000),
       submissions_open_at: new Date(Date.now() - 30000),
       submissions_close_at: new Date(Date.now() - 20000),
       voting_opens_at: new Date(Date.now() - 10000),
       voting_closes_at: pastDate,
       voting_method: 'token_allocation_constant'
-    }).save()
+    })
 
     await doPhaseTransition(user.id, round.id)
 
     const updatedRound = await FundingRound.find(round.id)
-    expect(updatedRound.get('phase')).to.equal(FundingRound.PHASES.COMPLETED)
+    expect(await updatedRound.spaceStatus()).to.equal(FundingRound.PHASES.COMPLETED)
   })
 
-  it('does not transition if publishedAt is in the future', async () => {
-    const futureDate = new Date(Date.now() + 10000) // 10 seconds from now
-    round = await new FundingRound({
+  it('leaves a draft unchanged when schedule dates are in the past', async () => {
+    round = await saveRound({
       title: 'Test Round',
       group_id: group.id,
       phase: FundingRound.PHASES.DRAFT,
-      published_at: futureDate,
+      submissions_open_at: new Date(Date.now() - 1000),
       voting_method: 'token_allocation_constant'
-    }).save()
+    })
 
     await doPhaseTransition(user.id, round.id)
 
     const updatedRound = await FundingRound.find(round.id)
-    expect(updatedRound.get('phase')).to.equal(FundingRound.PHASES.DRAFT)
+    expect(await updatedRound.spaceStatus()).to.equal(FundingRound.PHASES.DRAFT)
   })
 
   it('transitions back from COMPLETED to VOTING when votingClosesAt is cleared', async () => {
-    round = await new FundingRound({
+    round = await saveRound({
       title: 'Test Round',
       group_id: group.id,
       phase: FundingRound.PHASES.COMPLETED,
-      published_at: new Date(Date.now() - 40000),
       submissions_open_at: new Date(Date.now() - 30000),
       submissions_close_at: new Date(Date.now() - 20000),
       voting_opens_at: new Date(Date.now() - 10000),
       voting_closes_at: null,
       voting_method: 'token_allocation_constant'
-    }).save()
+    })
 
     await doPhaseTransition(user.id, round.id)
 
     const updatedRound = await FundingRound.find(round.id)
-    expect(updatedRound.get('phase')).to.equal(FundingRound.PHASES.VOTING)
+    expect(await updatedRound.spaceStatus()).to.equal(FundingRound.PHASES.VOTING)
   })
 
   it('transitions back from VOTING when votingOpensAt is cleared', async () => {
-    round = await new FundingRound({
+    round = await saveRound({
       title: 'Test Round',
       group_id: group.id,
       phase: FundingRound.PHASES.VOTING,
-      published_at: new Date(Date.now() - 30000),
       submissions_open_at: new Date(Date.now() - 20000),
       submissions_close_at: new Date(Date.now() - 10000),
       voting_opens_at: null,
       voting_method: 'token_allocation_constant'
-    }).save()
+    })
 
     await doPhaseTransition(user.id, round.id)
 
     const updatedRound = await FundingRound.find(round.id)
-    expect(updatedRound.get('phase')).to.equal(FundingRound.PHASES.DISCUSSION)
+    expect(await updatedRound.spaceStatus()).to.equal(FundingRound.PHASES.DISCUSSION)
   })
 
   it('throws error when round does not exist', async () => {
@@ -508,50 +660,45 @@ describe('doPhaseTransition', () => {
 })
 
 describe('allocateTokensToSubmission', () => {
-  let user, group, round, submission, voter
+  let user, parentGroup, space, round, submission, voter
 
   beforeEach(async function () {
     user = factories.user()
     voter = factories.user()
-    group = factories.group()
-    await Promise.all([user.save(), voter.save(), group.save()])
+    parentGroup = factories.group()
+    await Promise.all([user.save(), voter.save(), parentGroup.save()])
 
-    // Voter must be a member of the group
-    await voter.joinGroup(group)
+    // Voter must be a member of the parent group
+    await voter.joinGroup(parentGroup)
+
+    space = await factories.group({
+      type: 'space',
+      parent_id: parentGroup.id,
+      slug: `fr-space-alloc-${Date.now()}`
+    }).save()
 
     // Create a funding round in voting phase
-    round = await new FundingRound({
+    round = await saveRound({
       title: 'Test Round',
-      group_id: group.id,
+      group_id: space.id,
       phase: FundingRound.PHASES.VOTING,
-      published_at: new Date(Date.now() - 40000),
       submissions_open_at: new Date(Date.now() - 30000),
       submissions_close_at: new Date(Date.now() - 20000),
       voting_opens_at: new Date(Date.now() - 10000),
       voting_method: 'token_allocation_constant'
-    }).save()
+    })
+    await space.save({ funding_round_id: round.id }, { patch: true })
 
-    // Create a submission
+    // Create a submission on the funding-round space
     submission = factories.post({ type: Post.Type.SUBMISSION })
     await submission.save()
-    await group.posts().attach(submission)
+    await space.posts().attach(submission)
 
-    // Link submission to funding round
-    await bookshelf.knex('funding_rounds_posts').insert({
-      funding_round_id: round.id,
-      post_id: submission.id
-    })
-
-    // Have voter join the round
+    // Have voter join the round and set tokens on membership settings
     await FundingRound.join(round.id, voter.id)
-
-    // Update the voter's FundingRoundUser record with tokens
-    await FundingRoundUser.where({
-      user_id: voter.id,
-      funding_round_id: round.id
-    }).fetch().then(roundUser => roundUser.save({
-      tokens_remaining: 100
-    }))
+    const membership = await GroupMembership.forPair(voter.id, space).fetch()
+    membership.addSetting({ tokensRemaining: 100 })
+    await membership.save({ settings: membership.get('settings') }, { patch: true })
   })
 
   it('allows a user to allocate tokens to a submission', async () => {
@@ -563,12 +710,9 @@ describe('allocateTokensToSubmission', () => {
     const postUser = await PostUser.find(submission.id, voter.id)
     expect(postUser.get('tokens_allocated_to')).to.equal(50)
 
-    // Check that remaining tokens were updated
-    const roundUser = await FundingRoundUser.where({
-      user_id: voter.id,
-      funding_round_id: round.id
-    }).fetch()
-    expect(roundUser.get('tokens_remaining')).to.equal(50)
+    // Check that remaining tokens were updated on membership settings
+    const membership = await GroupMembership.forPair(voter.id, space).fetch()
+    expect(membership.get('settings').tokensRemaining).to.equal(50)
   })
 
   it('updates existing token allocation', async () => {
@@ -581,11 +725,8 @@ describe('allocateTokensToSubmission', () => {
     const postUser = await PostUser.find(submission.id, voter.id)
     expect(postUser.get('tokens_allocated_to')).to.equal(50)
 
-    const roundUser = await FundingRoundUser.where({
-      user_id: voter.id,
-      funding_round_id: round.id
-    }).fetch()
-    expect(roundUser.get('tokens_remaining')).to.equal(50)
+    const membership = await GroupMembership.forPair(voter.id, space).fetch()
+    expect(membership.get('settings').tokensRemaining).to.equal(50)
   })
 
   it('allows reducing token allocation', async () => {
@@ -598,11 +739,8 @@ describe('allocateTokensToSubmission', () => {
     const postUser = await PostUser.find(submission.id, voter.id)
     expect(postUser.get('tokens_allocated_to')).to.equal(30)
 
-    const roundUser = await FundingRoundUser.where({
-      user_id: voter.id,
-      funding_round_id: round.id
-    }).fetch()
-    expect(roundUser.get('tokens_remaining')).to.equal(70)
+    const membership = await GroupMembership.forPair(voter.id, space).fetch()
+    expect(membership.get('settings').tokensRemaining).to.equal(70)
   })
 
   it('throws error when postId is missing', async () => {
@@ -685,21 +823,21 @@ describe('allocateTokensToSubmission', () => {
 
   it('throws error when voting has not started', async () => {
     // Create a round in submissions phase
-    const draftRound = await new FundingRound({
-      title: 'Draft Round',
-      group_id: group.id,
-      phase: FundingRound.PHASES.SUBMISSIONS,
-      published_at: new Date(Date.now() - 1000), // Set published_at so user can join
-      voting_method: 'token_allocation_constant'
+    const draftSpace = await factories.group({
+      type: 'space',
+      parent_id: parentGroup.id,
+      slug: `fr-space-draft-${Date.now()}`
     }).save()
+    const draftRound = await saveRound({
+      title: 'Draft Round',
+      group_id: draftSpace.id,
+      phase: FundingRound.PHASES.SUBMISSIONS,
+      voting_method: 'token_allocation_constant'
+    })
 
     const draftSubmission = factories.post({ type: Post.Type.SUBMISSION })
     await draftSubmission.save()
-
-    await bookshelf.knex('funding_rounds_posts').insert({
-      funding_round_id: draftRound.id,
-      post_id: draftSubmission.id
-    })
+    await draftSpace.posts().attach(draftSubmission)
 
     await FundingRound.join(draftRound.id, voter.id)
 
@@ -723,11 +861,7 @@ describe('allocateTokensToSubmission', () => {
     const postUser = await PostUser.find(submission.id, voter.id)
     expect(postUser.get('tokens_allocated_to')).to.equal(0)
 
-    const roundUser = await FundingRoundUser.where({
-      user_id: voter.id,
-      funding_round_id: round.id
-    }).fetch()
-    expect(roundUser.get('tokens_remaining')).to.equal(100)
+    const membership = await GroupMembership.forPair(voter.id, space).fetch()
+    expect(membership.get('settings').tokensRemaining).to.equal(100)
   })
 })
-

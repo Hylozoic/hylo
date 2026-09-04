@@ -90,8 +90,8 @@ android {
         applicationId "com.hylo.hyloandroid"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 321
-        versionName "6.3.8"
+        versionCode 322
+        versionName "6.3.9"
     }
     signingConfigs {
         debug {

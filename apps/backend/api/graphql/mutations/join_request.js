@@ -2,7 +2,7 @@ import { GraphQLError } from 'graphql'
 
 export async function createJoinRequest (userId, groupId, questionAnswers = []) {
   if (groupId && userId) {
-    const pendingRequest = await JoinRequest.where({ user_id: userId, group_id: groupId, status: JoinRequest.STATUS.Pending}).fetch()
+    const pendingRequest = await JoinRequest.where({ user_id: userId, group_id: groupId, status: JoinRequest.STATUS.Pending }).fetch()
     if (pendingRequest) {
       return { request: pendingRequest }
     }
@@ -40,7 +40,7 @@ export async function cancelJoinRequest (userId, joinRequestId) {
   const joinRequest = await JoinRequest.find(joinRequestId)
   if (joinRequest) {
     if (joinRequest.get('user_id') === userId) {
-      await joinRequest.save({ status: JoinRequest.STATUS.Canceled })
+      await joinRequest.cancel()
       return { success: true }
     } else {
       throw new GraphQLError('You do not have permission to do this')
@@ -54,7 +54,7 @@ export async function declineJoinRequest (userId, joinRequestId) {
   const joinRequest = await JoinRequest.find(joinRequestId)
   if (joinRequest) {
     if (await GroupMembership.hasResponsibility(userId, joinRequest.get('group_id'), Responsibility.constants.RESP_ADD_MEMBERS)) {
-      await joinRequest.save({ status: JoinRequest.STATUS.Rejected })
+      await joinRequest.decline()
       return joinRequest
     } else {
       throw new GraphQLError('You do not have permission to do this')

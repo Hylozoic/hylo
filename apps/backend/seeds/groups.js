@@ -5,7 +5,7 @@ const SYSTEM_ROLES = [
     name: 'Coordinator',
     emoji: '🪄',
     description: 'Coordinators are empowered to do everything related to group administration.',
-    responsibilities: ['Administration', 'Add Members', 'Remove Members', 'Manage Content', 'Manage Tracks', 'Manage Rounds']
+    responsibilities: ['Administration', 'Add Members', 'Remove Members', 'Manage Content']
   },
   {
     name: 'Moderator',

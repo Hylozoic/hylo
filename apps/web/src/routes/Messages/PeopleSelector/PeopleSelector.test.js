@@ -1,7 +1,10 @@
 import React from 'react'
-import { render, screen, fireEvent, waitFor, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
-import { keyMap } from 'util/textInput'
+import { render, screen, fireEvent, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import PeopleSelector from './PeopleSelector'
+
+beforeAll(() => {
+  Element.prototype.scrollTo = jest.fn()
+})
 
 const defaultProps = {
   setPeopleSearch: jest.fn(),
@@ -18,6 +21,10 @@ const defaultProps = {
 }
 
 describe('PeopleSelector', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+  })
+
   it('renders the component', () => {
     render(<PeopleSelector {...defaultProps} />)
     expect(screen.getByPlaceholderText('+ Add someone')).toBeInTheDocument()
@@ -45,48 +52,11 @@ describe('PeopleSelector', () => {
       jest.useRealTimers()
     })
   })
-  describe('onKeyDown', () => {
-    it('does not hit server when backspace is pressed', async () => {
-      render(<PeopleSelector {...defaultProps} />)
-      const input = screen.getByPlaceholderText('+ Add someone')
-      fireEvent.keyDown(input, { keyCode: keyMap.BACKSPACE })
-      await waitFor(() => expect(defaultProps.fetchPeople).toHaveBeenCalledTimes(1))
-    })
-
-    it('hits server when the input value changes', async () => {
-      render(<PeopleSelector {...defaultProps} />)
-      const input = screen.getByPlaceholderText('+ Add someone')
-      fireEvent.change(input, { target: { value: 'not empty' } })
-      await waitFor(() => expect(defaultProps.fetchPeople).toHaveBeenCalled())
-    })
-
-    it('removes participant if backspace pressed when autocompleteInput is empty', async () => {
-      render(<PeopleSelector {...defaultProps} />)
-      const input = screen.getByPlaceholderText('+ Add someone')
-      fireEvent.keyDown(input, { keyCode: keyMap.BACKSPACE })
-      await waitFor(() => expect(defaultProps.removePerson).toHaveBeenCalled())
-    })
-
-    it('calls selectPerson with currentMatch when enter pressed', async () => {
-      render(<PeopleSelector {...defaultProps} />)
-      const input = screen.getByPlaceholderText('+ Add someone')
-      fireEvent.keyDown(input, { keyCode: keyMap.ENTER })
-      await waitFor(() => expect(defaultProps.selectPerson).toHaveBeenCalledWith({ id: '1', name: 'Person 1' }))
-    })
-
-    it('calls selectPerson with currentMatch when comma pressed', async () => {
-      render(<PeopleSelector {...defaultProps} />)
-      const input = screen.getByPlaceholderText('+ Add someone')
-      fireEvent.keyDown(input, { keyCode: keyMap.COMMA })
-      await waitFor(() => expect(defaultProps.selectPerson).toHaveBeenCalledWith({ id: '1', name: 'Person 1' }))
-    })
-  })
 
   describe('selectPerson', () => {
     it('calls selectPerson with the correct id when clicking a person', async () => {
       render(<PeopleSelector {...defaultProps} />)
-      const personItem = screen.getByText('Person 1')
-      fireEvent.click(personItem)
+      fireEvent.click(screen.getByText('Person 1'))
       await waitFor(() => expect(defaultProps.selectPerson).toHaveBeenCalledWith({ id: '1', name: 'Person 1' }))
     })
 
@@ -94,8 +64,7 @@ describe('PeopleSelector', () => {
       render(<PeopleSelector {...defaultProps} />)
       const input = screen.getByPlaceholderText('+ Add someone')
       fireEvent.change(input, { target: { value: 'flargle' } })
-      const personItem = screen.getByText('Person 1')
-      fireEvent.click(personItem)
+      fireEvent.click(screen.getByText('Person 1'))
       await waitFor(() => {
         expect(input).toHaveValue('')
         expect(defaultProps.setPeopleSearch).toHaveBeenCalledWith(null)

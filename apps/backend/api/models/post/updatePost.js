@@ -59,7 +59,6 @@ export function afterUpdatingPost (post, opts) {
       Tag.updateForPost(post, topicNames, userId, transacting),
       updateFollowers(post, transacting)
     ]))
-    .then(() => Queue.classMethod('Group', 'doesMenuUpdate', { post: { type: post.type, location_id: post.location_id }, groupIds: group_ids }))
     .then(() => post.isEvent() && Queue.classMethod('Post', 'processEventUpdated', { postId: post.id, eventInviteeIds, userId, eventChanges }))
     .then(() => post.get('type') === 'project' && memberIds && post.setProjectMembers(memberIds, { transacting }))
     .then(() => post.get('type') === 'proposal' && proposalOptions && post.updateProposalOptions({ options: proposalOptions, userId, opts: { transacting } }))
@@ -70,6 +69,7 @@ export function getEventChanges({ post, params }) {
   return {
     start_time: post.get('start_time').getTime() !== params.startTime.getTime() && params.startTime,
     end_time: post.get('end_time').getTime() !== params.endTime.getTime() && params.endTime,
-    location: post.get('location') !== params.location && params.location
+    location: post.get('location') !== params.location && params.location,
+    meeting_link: post.get('meeting_link') !== params.meetingLink && params.meetingLink
   }
 }

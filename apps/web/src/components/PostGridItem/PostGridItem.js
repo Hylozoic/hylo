@@ -1,11 +1,12 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { CircleCheckBig } from 'lucide-react'
+import { CircleCheckBig, Pin } from 'lucide-react'
 import { TextHelpers } from '@hylo/shared'
 import Avatar from 'components/Avatar'
 import Icon from 'components/Icon'
-import Tooltip from 'components/Tooltip'
+import useCurrentPinnableView from 'hooks/useCurrentPinnableView'
 import useViewPostDetails from 'hooks/useViewPostDetails'
+import childGroupLabel from 'util/childGroupLabel'
 import { cn } from 'util/index'
 
 /**
@@ -32,8 +33,12 @@ export default function PostGridItem ({
   const imageUrl = hasImage ? firstAttachment.url : null
 
   const { t } = useTranslation()
-  const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroupId)
+  const isFlagged = post.flaggedGroups && post.flaggedGroups.some(id => String(id) === String(currentGroupId))
   const viewPostDetails = useViewPostDetails()
+  const pinnableView = useCurrentPinnableView()
+  const pinnedInView = (pinnableView?.pinnedPostIds || []).map(pid => String(pid)).includes(String(post.id))
+
+  const groupLabel = childPost ? childGroupLabel(post, t) : null
 
   // Image card layout - image fills card with title overlay
   if (hasImage) {
@@ -60,18 +65,6 @@ export default function PostGridItem ({
           }}
         />
 
-        {/* Child post indicator */}
-        {childPost && (
-          <div
-            className='absolute top-2 right-2 bg-white/90 rounded p-1 z-10'
-            data-tooltip-content={t('Post from child group')}
-            data-tooltip-id={'childgroup-tt' + post.id}
-          >
-            <Icon name='Subgroup' className='w-4 h-4' />
-            <Tooltip delay={250} id={'childgroup-tt' + post.id} />
-          </div>
-        )}
-
         {/* Flagged indicator */}
         {isFlagged && (
           <div className='absolute inset-0 flex items-center justify-center backdrop-blur-sm'>
@@ -82,12 +75,17 @@ export default function PostGridItem ({
         {/* Content overlay at bottom */}
         <div className='absolute bottom-0 left-0 right-0 p-3 z-10 pb-0'>
           <h3 className='flex items-center text-white font-bold text-sm line-clamp-2 drop-shadow-md mb-0 mt-0 leading-tight'>
+            {pinnedInView && <Pin className='w-3.5 h-3.5 mr-1 shrink-0 text-[hsl(45_80%_70%)]' strokeWidth={2.5} aria-hidden='true' />}
             {post.fulfilledAt && <span className='mr-1'><CircleCheckBig className='w-4 text-green-500' /></span>}
             {title}
           </h3>
           <div className='flex items-center gap-1.5 text-xs text-white h-8 min-w-0'>
             <Avatar avatarUrl={creator.avatarUrl} tiny className='flex-shrink-0' />
-            <span className='truncate font-bold min-w-0'>{creator.name}</span>
+            {/* With a group name in the row the creator cedes space at 60% so both stay legible */}
+            <span className={cn('truncate font-bold min-w-0', groupLabel && 'shrink-0 max-w-[60%]')}>{creator.name}</span>
+            {groupLabel && (
+              <span className='truncate text-white/60 min-w-0'>{groupLabel}</span>
+            )}
             <span className='text-white/60 ml-auto flex-shrink-0'>{createdTimestampShort}</span>
           </div>
         </div>
@@ -106,17 +104,6 @@ export default function PostGridItem ({
       )}
       onClick={() => viewPostDetails(post)}
     >
-      {/* Child post indicator */}
-      {childPost && (
-        <div
-          className='absolute top-2 right-2 bg-primary rounded p-1 z-10'
-          data-tooltip-content={t('Post from child group')}
-          data-tooltip-id={'childgroup-tt' + post.id}
-        >
-          <Icon name='Subgroup' className='w-4 h-4' />
-          <Tooltip delay={250} id={'childgroup-tt' + post.id} />
-        </div>
-      )}
 
       {/* Flagged overlay */}
       {isFlagged && (
@@ -128,6 +115,7 @@ export default function PostGridItem ({
       {/* Content */}
       <div className='p-3 flex-1 flex flex-col min-h-0 overflow-hidden pb-0'>
         <h3 className='flex items-center text-foreground font-bold text-sm line-clamp-2 mb-1 mt-0 shrink-0 leading-tight'>
+          {pinnedInView && <Pin className='w-3.5 h-3.5 mr-1 shrink-0 text-[hsl(45_65%_45%)] dark:text-[hsl(45_65%_62%)]' strokeWidth={2.5} aria-hidden='true' />}
           {post.fulfilledAt && <span className='mr-1'><CircleCheckBig className='w-4 text-green-500' /></span>}
           {title}
         </h3>
@@ -139,7 +127,10 @@ export default function PostGridItem ({
       {/* Footer */}
       <div className='flex items-center gap-1 w-full text-xs h-8 px-3 mt-auto bg-card relative z-10 min-w-0'>
         <Avatar avatarUrl={creator.avatarUrl} tiny className='flex-shrink-0' />
-        <span className='truncate text-foreground font-bold min-w-0'>{creator.name}</span>
+        <span className={cn('truncate text-foreground font-bold min-w-0', groupLabel && 'shrink-0 max-w-[60%]')}>{creator.name}</span>
+        {groupLabel && (
+          <span className='truncate text-foreground/60 min-w-0'>{groupLabel}</span>
+        )}
         <span className='text-foreground/70 ml-auto flex-shrink-0'>{createdTimestampShort}</span>
       </div>
     </div>

@@ -12,16 +12,36 @@
 
 module.exports.sockets = {
 
+  // Presence freshness: with the defaults a silently-dead connection (sleeping
+  // laptop, dropped VPN) stays "online" for ~45-90s. Tighter ping cycle caps
+  // that at ~25s without meaningful overhead.
+  pingInterval: 10000,
+  pingTimeout: 15000,
+
   /***************************************************************************
   *                                                                          *
   * This custom onDisconnect function will be run each time a socket         *
   * disconnects                                                              *
   *                                                                          *
   ***************************************************************************/
-  // afterDisconnect: function(session, socket) {
-
-    // By default: do nothing.
-  // },
+  // Presence cleanup: a dead socket leaves every room it was counted in, and
+  // rooms where its user is now absent hear a memberAway. Sails globalizes
+  // services, but access defensively — this must never break disconnects.
+  afterDisconnect: function (session, socket, cb) {
+    try {
+      const presence = (typeof RoomPresence !== 'undefined' && RoomPresence) ||
+        (sails.services && (sails.services.roompresence || sails.services.RoomPresence))
+      if (presence && typeof presence.dropSocket === 'function') {
+        presence.dropSocket(socket.id).forEach(({ room, userId }) => {
+          const groupId = String(room).split('/')[1]
+          sails.sockets.broadcast(room, 'memberAway', { groupId, userId })
+        })
+      }
+    } catch (e) {
+      if (sails.log && sails.log.error) sails.log.error('RoomPresence disconnect error:', e)
+    }
+    return cb && cb()
+  },
 
 
   /***************************************************************************

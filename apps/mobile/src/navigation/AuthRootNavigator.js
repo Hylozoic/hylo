@@ -19,7 +19,7 @@ import PrimaryWebView from 'screens/PrimaryWebView'
 import LoadingScreen from 'screens/LoadingScreen'
 import NoInternetConnection from 'screens/NoInternetConnection'
 import { twBackground } from '@hylo/presenters/colors'
-import useUnifiedSubscription from '@hylo/hooks/useUnifiedSubscription'
+import { normalizeLocaleToFull } from '@hylo/shared'
 import useNetworkConnectivity from 'hooks/useNetworkConnectivity'
 
 const AuthRoot = createStackNavigator()
@@ -78,7 +78,7 @@ export default function AuthRootNavigator () {
   useEffect(() => {
     (async function () {
       if (!initialized && currentUser && !currentUserFetching && !error) {
-        const locale = currentUser?.settings?.locale || 'en'
+        const locale = normalizeLocaleToFull(currentUser?.settings?.locale || 'en-US')
 
         // Locale setup
         i18n.changeLanguage(locale)

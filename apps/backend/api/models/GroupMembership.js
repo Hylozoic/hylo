@@ -16,9 +16,19 @@ module.exports = bookshelf.Model.extend(Object.assign({
       .withPivot(['accepted'])
   },
 
+  /**
+   * Role assignments for this membership. Spaces inherit assignments from the parent group.
+   */
   membershipGroupRoles () {
-    return this.hasMany(MemberGroupRole, 'group_id', 'group_id')
-      .where({ user_id: this.get('user_id') })
+    const groupId = this.get('group_id')
+    return this.hasMany(MemberGroupRole, 'user_id', 'user_id')
+      .query(q => {
+        q.whereIn('group_memberships_group_roles.group_id', function () {
+          this.select(bookshelf.knex.raw('COALESCE(parent_id, id)'))
+            .from('groups')
+            .where('id', groupId)
+        })
+      })
   },
 
   group () {
@@ -39,7 +49,9 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
   async acceptAgreements (transacting) {
     const groupId = this.get('group_id')
-    const groupAgreements = await GroupAgreement.where({ group_id: groupId }).fetchAll({ transacting })
+    // Spaces inherit parent agreements, so record acceptance against the parent
+    const agreementGroupId = await Group.roleScopeId(groupId)
+    const groupAgreements = await GroupAgreement.where({ group_id: agreementGroupId }).fetchAll({ transacting })
 
     // Only set agreementsAcceptedAt if the group actually has agreements
     // This prevents falsely recording acceptance when there's nothing to accept
@@ -50,7 +62,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     this.addSetting({ agreementsAcceptedAt: (new Date()).toISOString() })
 
     for (const ga of groupAgreements) {
-      const attrs = { group_id: groupId, user_id: this.get('user_id'), agreement_id: ga.get('agreement_id') }
+      const attrs = { group_id: agreementGroupId, user_id: this.get('user_id'), agreement_id: ga.get('agreement_id') }
       await UserGroupAgreement
         .where(attrs)
         .fetch({ transacting })
@@ -65,6 +77,18 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
     // Save the membership to persist the agreementsAcceptedAt setting
     await this.save(null, { transacting })
+  },
+
+  /**
+   * Record that the member already completed join barriers (agreements and questions).
+   * Keeps showJoinForm true so the welcome/purpose modal can still appear.
+   */
+  async completeJoinBarriers (transacting) {
+    await this.acceptAgreements(transacting)
+    if (!this.getSetting('joinQuestionsAnsweredAt')) {
+      this.addSetting({ joinQuestionsAnsweredAt: new Date().toISOString() })
+      await this.save(null, { transacting })
+    }
   },
 
   async updateAndSave (attrs, { transacting } = {}) {
@@ -134,16 +158,25 @@ module.exports = bookshelf.Model.extend(Object.assign({
     const gm = await this.forPair(userOrId, groupId).fetch(opts)
     const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, groupId)
 
-    if (gm && !responsibilities.includes(responsibility)) {
+    if (!responsibilities.includes(responsibility)) {
       return false
     }
-    return !!gm
+    if (gm) return true
+
+    // Spaces inherit steward access from parent membership
+    const roleScopeId = await Group.roleScopeId(groupId)
+    if (String(roleScopeId) === String(groupId)) return false
+    return this.hasActiveMembership(userOrId, roleScopeId)
   },
 
   /**
    * Assign the Coordinator system role to a member.
+   * No-op for spaces — they inherit roles from the parent group.
    */
   async assignCoordinatorRole (userId, groupId, { transacting } = {}) {
+    const roleScopeId = await Group.roleScopeId(groupId, { transacting })
+    if (String(roleScopeId) !== String(groupId)) return
+
     await GroupRole.setupSystemRoles(groupId, { transacting })
     const coordinator = await GroupRole.findSystemRole(groupId, 'Coordinator', { transacting })
     if (!coordinator) return
@@ -175,6 +208,17 @@ module.exports = bookshelf.Model.extend(Object.assign({
       user_id: userId,
       group_id: groupId,
       group_role_id: coordinator.id
+    }).destroy({ require: false, transacting })
+  },
+
+  /**
+   * Remove all group role assignments for a member in a group's role scope.
+   */
+  async revokeAllGroupRoles (userId, groupId, { transacting } = {}) {
+    const roleScopeId = await Group.roleScopeId(groupId)
+    await MemberGroupRole.where({
+      user_id: userId,
+      group_id: roleScopeId
     }).destroy({ require: false, transacting })
   },
 
@@ -218,7 +262,12 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
     if (existingMembership) {
       if (!existingMembership.get('active')) {
-        await existingMembership.save({ active: true }, { patch: true, transacting })
+        const group = groupOrId instanceof Group ? groupOrId : await Group.find(groupId, { transacting })
+        const memberships = await group.addMembers([userId], {}, { transacting })
+        if (assignCoordinator) {
+          await GroupMembership.assignCoordinatorRole(userId, groupId, { transacting })
+        }
+        return memberships[0]
       }
       if (assignCoordinator) {
         await GroupMembership.assignCoordinatorRole(userId, groupId, { transacting })

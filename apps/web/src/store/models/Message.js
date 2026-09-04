@@ -15,5 +15,6 @@ Message.fields = {
   text: attr(),
   creator: fk('Person'),
   createdAt: attr(),
+  editedAt: attr(),
   messageThread: fk('MessageThread', 'messages')
 }

@@ -322,6 +322,24 @@ describe('Post', function () {
         })
     })
 
+    it('creates activity for group members of a chat', () => {
+      const post = factories.post({user_id: u.id, type: Post.Type.CHAT})
+
+      return post.save()
+        .then(() => post.groups().attach(c.id))
+        .then(() => post.createActivities())
+        .then(() => Activity.where({post_id: post.id}).fetchAll())
+        .then(activities => {
+          expect(activities.length).to.equal(2)
+          expect(activities.pluck('reader_id').sort()).to.deep.equal([u2.id, u3.id].sort())
+          activities.forEach(activity => {
+            expect(activity.get('actor_id')).to.equal(u.id)
+            expect(activity.get('meta')).to.deep.equal({reasons: ['chat']})
+            expect(activity.get('unread')).to.equal(true)
+          })
+        })
+    })
+
     it('creates an activity for a tag follower', () => {
       const post = factories.post({
         user_id: u.id
@@ -526,7 +544,7 @@ describe('Post', function () {
 
       expect(updateEventInviteesSpy).to.have.been.called
       expect(updateEventInviteesSpy).to.have.been.called.with({
-        eventInviteeIds: [1, 2, 3],
+        eventInviteeIds: [user.id, 1, 2, 3],
         inviterId: user.id,
         params: { location: 'Test Location' }
       })
@@ -539,6 +557,7 @@ describe('Post', function () {
       postInstance.sendUserRsvp = sendUserRsvpSpy
       postInstance.createGroupEventCalendarSubscriptions = spy(async () => {})
       Post.find = spy(() => Promise.resolve(postInstance))
+      spyify(EventInvitation, 'find', () => Promise.resolve(null))
 
       await Post.processEventCreated({
         postId: post.id,
@@ -546,6 +565,8 @@ describe('Post', function () {
         userId: user.id,
         params
       })
+
+      unspyify(EventInvitation, 'find')
 
       expect(sendUserRsvpSpy).to.have.been.called
       expect(sendUserRsvpSpy).to.have.been.called.with({
@@ -609,7 +630,7 @@ describe('Post', function () {
       spyify(Queue, 'classMethod')
       const callOrder = []
       const postInstance = await Post.find(post.id)
-      
+
       postInstance.updateEventInvitees = spy(async () => {
         callOrder.push('updateEventInvitees')
       })
@@ -818,7 +839,7 @@ describe('Post', function () {
     it('calls all post methods in correct order when significant change occur', async () => {
       const callOrder = []
       const postInstance = await Post.find(post.id)
-      
+
       postInstance.updateEventInvitees = spy(async () => {
         callOrder.push('updateEventInvitees')
       })
@@ -931,7 +952,7 @@ describe('Post', function () {
     it('calls all post methods in correct order', async () => {
       const callOrder = []
       const postInstance = await Post.find(post.id)
-      
+
       postInstance.sendUserRsvps = spy(async () => {
         callOrder.push('sendUserRsvps')
       })
@@ -1007,18 +1028,17 @@ describe('Post', function () {
     })
   })
 
-  describe('checkCompletedTracks', () => {
-    let user, group, track, completionRole, a1, a2, trackManager
+  describe('checkCompletedTrack', () => {
+    let user, group, space, track, completionRole, a1, a2, trackManager
 
     beforeEach(async () => {
       spyify(Queue, 'classMethod', () => Promise.resolve())
       await setup.clearDb()
-      const { assignTrackManager, ensureManageTracksResponsibility } = require('../../setup/roleHelpers')
-      await ensureManageTracksResponsibility()
+      const { assignCoordinator } = require('../../setup/roleHelpers')
       trackManager = await factories.user().save()
       user = await factories.user().save()
       group = await factories.group().save()
-      await assignTrackManager(trackManager, group)
+      await assignCoordinator(trackManager, group)
       await user.joinGroup(group)
       completionRole = await GroupRole.forge({
         group_id: group.id,
@@ -1026,16 +1046,23 @@ describe('Post', function () {
         emoji: '🎓',
         type: GroupRole.TYPE_CUSTOM
       }).save()
+      space = await factories.group({
+        type: 'space',
+        parent_id: group.id,
+        slug: `track-space-${Date.now()}`
+      }).save()
       track = await Track.create({
         name: 'Test Track',
-        published_at: new Date(),
-        completion_role_id: completionRole.id
+        completion_role_id: completionRole.id,
+        group_id: space.id
       })
-      await track.groups().attach(group.id)
+      await space.save({ status: 'published' }, { patch: true })
+      await space.save({ track_id: track.id }, { patch: true })
+      await Group.setupSpaceViews(space.id, ['action'], ['track-actions', 'members', 'welcome'])
       a1 = await factories.post({ type: Post.Type.ACTION, user_id: trackManager.id }).save()
       a2 = await factories.post({ type: Post.Type.ACTION, user_id: trackManager.id }).save()
-      await a1.groups().attach(group)
-      await a2.groups().attach(group)
+      await a1.groups().attach(space)
+      await a2.groups().attach(space)
       await Track.addPost(a1, track)
       await Track.addPost(a2, track)
       await Track.enroll(track.id, user.id)
@@ -1047,7 +1074,7 @@ describe('Post', function () {
 
     it('assigns the completion role when all track actions are completed', async () => {
       await a1.complete(user.id, JSON.stringify([]))
-      await Post.checkCompletedTracks({ userId: user.id, postId: a1.id })
+      await Post.checkCompletedTrack({ userId: user.id, postId: a1.id })
       let memberRole = await MemberGroupRole.where({
         user_id: user.id,
         group_role_id: completionRole.id
@@ -1055,7 +1082,7 @@ describe('Post', function () {
       expect(memberRole).to.not.exist
 
       await a2.complete(user.id, JSON.stringify([]))
-      await Post.checkCompletedTracks({ userId: user.id, postId: a2.id })
+      await Post.checkCompletedTrack({ userId: user.id, postId: a2.id })
 
       memberRole = await MemberGroupRole.where({
         user_id: user.id,
@@ -1064,8 +1091,8 @@ describe('Post', function () {
       }).fetch()
       expect(memberRole).to.exist
 
-      const trackUser = await TrackUser.where({ track_id: track.id, user_id: user.id }).fetch()
-      expect(trackUser.get('completed_at')).to.exist
+      const membership = await GroupMembership.forPair(user.id, space).fetch()
+      expect(membership.get('settings')?.completedAt).to.exist
     })
   })
 })

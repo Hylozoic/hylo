@@ -2,15 +2,16 @@ import { cn } from 'util/index'
 import React, { useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
-import { CircleCheckBig } from 'lucide-react'
+import { CircleCheckBig, Pin } from 'lucide-react'
 import { TextHelpers } from '@hylo/shared'
 import Avatar from 'components/Avatar'
 import EmojiRow from 'components/EmojiRow'
 import EventDate from 'components/PostCard/EventDate'
 import EventRSVP from 'components/PostCard/EventRSVP'
 import Icon from 'components/Icon'
-import Tooltip from 'components/Tooltip'
+import useCurrentPinnableView from 'hooks/useCurrentPinnableView'
 import useViewPostDetails from 'hooks/useViewPostDetails'
+import childGroupLabel from 'util/childGroupLabel'
 import respondToEvent from 'store/actions/respondToEvent'
 import getMe from 'store/selectors/getMe'
 
@@ -30,6 +31,8 @@ export default function PostBigGridItem ({
   const dispatch = useDispatch()
   const currentUser = useSelector(getMe) || propCurrentUser
   const viewPostDetails = useViewPostDetails()
+  const pinnableView = useCurrentPinnableView()
+  const pinnedInView = (pinnableView?.pinnedPostIds || []).map(pid => String(pid)).includes(String(post.id))
 
   const handleRespondToEvent = useCallback((response) => {
     dispatch(respondToEvent(post, response))
@@ -49,8 +52,13 @@ export default function PostBigGridItem ({
   const hasFile = firstAttachment?.type === 'file'
   const numAttachments = attachments?.length || 0
 
-  const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroupId)
+  const isFlagged = post.flaggedGroups && post.flaggedGroups.some(id => String(id) === String(currentGroupId))
   const isEvent = post.type === 'event'
+  // Match the stream card (EventBody): no RSVP on past events or signed-out views
+  const isPastEvent = post.endTime && new Date(post.endTime) < new Date()
+  const showRSVP = isEvent && currentUser && !isPastEvent
+
+  const groupLabel = childPost ? childGroupLabel(post, t) : null
 
   // Donation link detection
   const donationMatch = post.donationsLink?.match(/(cash|clover|gofundme|opencollective|paypal|squareup|venmo)/)
@@ -63,7 +71,9 @@ export default function PostBigGridItem ({
     return (
       <div
         className={cn(
-          'h-[400px] w-full rounded-lg shadow-lg relative cursor-pointer',
+          // isolate: DropdownButton carries its own z-20; without a stacking context
+          // here it escapes the card and paints over the pinned stream header
+          'h-[400px] w-full rounded-lg shadow-lg relative isolate cursor-pointer',
           'hover:scale-[1.02] hover:shadow-xl transition-all overflow-hidden border-2 border-transparent hover:border-foreground/50',
           {
             'opacity-60': (isFlagged && !post.clickthrough) || post.fulfilledAt
@@ -84,18 +94,6 @@ export default function PostBigGridItem ({
             background: 'linear-gradient(to top, hsl(var(--darkening) / 0.95) 0%, hsl(var(--darkening) / 0.6) 50%, hsl(var(--darkening) / 0.2) 100%)'
           }}
         />
-
-        {/* Child post indicator */}
-        {childPost && (
-          <div
-            className='absolute top-3 right-3 bg-white/90 rounded p-1.5 z-10'
-            data-tooltip-content={t('Post from child group')}
-            data-tooltip-id={'childgroup-tt' + post.id}
-          >
-            <Icon name='Subgroup' className='w-4 h-4' />
-            <Tooltip delay={250} id={'childgroup-tt' + post.id} />
-          </div>
-        )}
 
         {/* Flagged indicator */}
         {isFlagged && (
@@ -120,15 +118,19 @@ export default function PostBigGridItem ({
             </div>
             <span className='text-white/50 text-xs flex-shrink-0'>{createdTimestampShort}</span>
           </div>
+          {groupLabel && (
+            <div className='text-white/70 text-xs truncate'>{groupLabel}</div>
+          )}
           <h3 className='text-white font-bold text-lg line-clamp-2 drop-shadow-md mb-1 mt-0 leading-tight'>
             <span className={cn('flex items-center', { 'opacity-60': (isFlagged && !post.clickthrough) || post.fulfilledAt })}>
+              {pinnedInView && <Pin className='w-4 h-4 mr-1 shrink-0 text-[hsl(45_80%_70%)]' strokeWidth={2.5} aria-hidden='true' />}
               {post.fulfilledAt && <span className='mr-1'><CircleCheckBig className='w-5 text-green-500' /></span>}
               {title}
             </span>
           </h3>
 
           {/* Event RSVP */}
-          {isEvent && (
+          {showRSVP && (
             <div className='flex items-center justify-between bg-white/10 backdrop-blur-sm rounded-lg p-3 mb-3'>
               <span className='text-white text-sm'>{t('Can you go?')}</span>
               <EventRSVP {...post} respondToEvent={handleRespondToEvent} position='top' />
@@ -164,24 +166,14 @@ export default function PostBigGridItem ({
   return (
     <div
       className={cn(
-        'max-h-[400px] w-full bg-card rounded-lg shadow-lg relative cursor-pointer',
+        // isolate: same stacking containment as the image card above
+        'max-h-[400px] w-full bg-card rounded-lg shadow-lg relative isolate cursor-pointer',
         'hover:scale-[1.02] hover:shadow-xl transition-all overflow-hidden border-2 border-transparent hover:border-foreground/50',
         'flex flex-col',
         { 'opacity-60': (isFlagged && !post.clickthrough) || post.fulfilledAt }
       )}
       onClick={() => viewPostDetails(post)}
     >
-      {/* Child post indicator */}
-      {childPost && (
-        <div
-          className='absolute top-3 right-3 bg-primary rounded p-1.5 z-10'
-          data-tooltip-content={t('Post from child group')}
-          data-tooltip-id={'childgroup-tt' + post.id}
-        >
-          <Icon name='Subgroup' className='w-4 h-4' />
-          <Tooltip delay={250} id={'childgroup-tt' + post.id} />
-        </div>
-      )}
 
       {/* Flagged overlay */}
       {isFlagged && (
@@ -201,7 +193,11 @@ export default function PostBigGridItem ({
               <span className='font-bold text-foreground truncate'>{creator.name}</span>
               <span className='flex-shrink-0'>{createdTimestampShort}</span>
             </div>
+            {groupLabel && (
+              <div className='text-xs text-foreground/50 truncate'>{groupLabel}</div>
+            )}
             <h3 className='flex items-center text-foreground font-bold text-lg line-clamp-2 mb-1 mt-0 leading-tight'>
+              {pinnedInView && <Pin className='w-4 h-4 mr-1 shrink-0 text-[hsl(45_65%_45%)] dark:text-[hsl(45_65%_62%)]' strokeWidth={2.5} aria-hidden='true' />}
               {post.fulfilledAt && <span className='mr-1'><CircleCheckBig className='w-5 text-green-500' /></span>}
               {title}
             </h3>
@@ -224,7 +220,7 @@ export default function PostBigGridItem ({
         )}
 
         {/* Event RSVP */}
-        {isEvent && (
+        {showRSVP && (
           <div className='flex items-center justify-between bg-midground/50 border-2 border-dashed border-foreground/20 rounded-lg p-3 mb-2 shrink-0'>
             <span className='text-foreground text-sm'>{t('Can you go?')}</span>
             <EventRSVP {...post} respondToEvent={handleRespondToEvent} position='top' />

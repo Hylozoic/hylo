@@ -1,17 +1,21 @@
 import { cn } from 'util/index'
 import { get } from 'lodash/fp'
-import { Globe, HelpCircle, PlusCircle, Bell, MessagesSquare, ChevronDown, Settings, LogOut, User, Edit, Users, Mail, Bell as BellIcon, Palette, Languages, UserX, Search, Shield, BookOpen, Download, Heart, Wrench } from 'lucide-react'
+import { Compass, Globe, HelpCircle, Plus, PlusCircle, Bell, MessagesSquare, ChevronDown, Settings, LogOut, User, Edit, Users, Mail, Bell as BellIcon, Palette, Languages, UserX, Search, Shield, BookOpen, Download, Heart, Wrench } from 'lucide-react'
 import React, { Suspense, useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
+import useTour, { driveTour, isTourTestMode } from 'tours/useTour'
+import { GLOBAL_CHROME_TOUR_ID, globalChromeTourSteps } from 'tours/globalChromeTour'
+import { tourCatalog, isTourAvailable } from 'tours/catalog'
 import { useIntercom } from 'react-use-intercom'
 import { useSelector, useDispatch } from 'react-redux'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { replace } from 'redux-first-history'
 import {
   DndContext,
   closestCenter,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors
 } from '@dnd-kit/core'
@@ -38,6 +42,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
@@ -47,24 +52,61 @@ import {
   DropdownMenuTrigger
 } from 'components/ui/dropdown-menu'
 import BadgedIcon from 'components/BadgedIcon'
-import CreateMenu from 'components/CreateMenu'
 import GlobalNavItem from './GlobalNavItem'
 import GlobalNavTooltipContainer from './GlobalNavTooltipContainer'
-import getMyGroups from 'store/selectors/getMyGroups'
+import { getMyGroupsWithChildren } from 'store/selectors/getMyGroups'
 import { isCompactLayoutDevice, isMobileDevice, downloadApp } from 'util/mobile'
 import isWebView, { sendMessageToWebView, getMobileAppVersion } from 'util/webView'
 import { getCookieConsent } from 'util/cookieConsent'
+import { isSandboxMode } from 'sandbox/isSandbox'
 import { useCookieConsent } from 'contexts/CookieConsentContext'
 import ModalDialog from 'components/ModalDialog'
 import { pinGroup, unpinGroup, updateGroupNavOrder } from 'store/actions/pinGroup'
+import markGroupAsRead from 'store/actions/markGroupAsRead'
 import logout from 'store/actions/logout'
-import { personUrl } from '@hylo/navigation'
-import { WebViewMessageTypes } from '@hylo/shared'
-import { useTheme } from 'contexts/ThemeContext'
-import { getLocaleFromLocalStorage } from 'util/locale'
+import { newMessageUrl, personUrl, myHomeLandingUrl } from '@hylo/navigation'
+import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
+import { createGroupModalUrl } from 'routes/CreateGroup/createGroupUrl'
+import {
+  WebViewMessageTypes,
+  LOCALE_DE,
+  LOCALE_EN_GB,
+  LOCALE_EN_US,
+  LOCALE_ES,
+  LOCALE_FR,
+  LOCALE_HI,
+  LOCALE_PT
+} from '@hylo/shared'
+import useAppearance from 'hooks/useAppearance'
+import { getLocaleFromLocalStorage, normalizeLocaleToFull } from 'util/locale'
 import updateUserSettings from 'store/actions/updateUserSettings'
+import { availableThemes, getAppearanceFromSettings } from 'util/appearance'
+import {
+  NAV_STYLE_GROUP_DEFAULT,
+  NAV_STYLE_ONE_COLUMN,
+  NAV_STYLE_TWO_COLUMN
+} from 'util/navigationLayout'
 
 import styles from './GlobalNav.module.scss'
+
+// Mouse drags start once the pointer travels a few pixels. Touch needs a hold
+// instead, because a finger moving over the rail is a scroll until proven
+// otherwise. These have to be separate sensors: a delay on a shared
+// PointerSensor also applies to the mouse, and any movement inside the delay
+// cancels activation so an ordinary press-and-drag never starts.
+const MOUSE_ACTIVATION = { distance: 8 }
+const TOUCH_ACTIVATION = { delay: 500, tolerance: 10 }
+// After a long-press activates, this much movement counts as a drag rather than
+// a press-and-release that should open the context menu.
+const TOUCH_DRAG_SLOP = 10
+
+/**
+ * Returns true when a dnd-kit drag was started by a finger, not a mouse.
+ */
+function isTouchActivatorEvent (event) {
+  if (!event) return false
+  return event.type === 'touchstart' || event.touches != null
+}
 
 // Sortable wrapper for GlobalNavItem
 function SortableGlobalNavItem ({ group, index, isVisible, showTooltip, isContainerHovered, groupRefsMap }) {
@@ -111,6 +153,7 @@ function SortableGlobalNavItem ({ group, index, isVisible, showTooltip, isContai
         url={`/groups/${group.slug}`}
         className={isVisible}
         showTooltip={isContainerHovered}
+        childGroups={group.childGroups}
         isPinned
       />
     </div>
@@ -119,14 +162,146 @@ function SortableGlobalNavItem ({ group, index, isVisible, showTooltip, isContai
 
 const NotificationsDropdown = React.lazy(() => import('./NotificationsDropdown'))
 
+/**
+ * The + menu (per the design): four actions with colored icon tiles instead of
+ * a list of every post type. Controlled popover so choosing a row closes it.
+ */
+function GlobalCreateMenu () {
+  const { t } = useTranslation()
+  const navigate = useNavigate()
+  const dispatch = useDispatch()
+  const location = useLocation()
+  const [open, setOpen] = useState(false)
+  const compactLayout = isCompactLayoutDevice()
+
+  const go = (path) => () => {
+    setOpen(false)
+    dispatch(toggleNavMenu(false))
+    navigate(path)
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger aria-label={t('Create')} data-testid='global-nav-create' data-tour='create'>
+        <div className={cn('bg-[hsl(0_0%_17%)] text-white relative z-20 transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-8 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-foreground/0 hover:border-foreground/50')}>
+          <PlusCircle className='w-7 h-7' />
+        </div>
+      </PopoverTrigger>
+      <PopoverContent
+        side={compactLayout ? 'top' : 'right'}
+        align={compactLayout ? 'center' : 'end'}
+        className='w-[210px] p-1.5 rounded-xl'
+      >
+        <CreateMenuRow
+          onClick={go(createGroupModalUrl(location))}
+          tileClass='bg-[hsl(200_55%_45%)]'
+          icon={<Plus className='w-4 h-4' />}
+          label={t('Create a group')}
+        />
+        <CreateMenuRow
+          onClick={go(`${location.pathname}/create/post`)}
+          tileClass='bg-[hsl(155_51%_34%)]'
+          icon={<Edit className='w-4 h-4' />}
+          label={t('Create a post')}
+        />
+        <CreateMenuRow
+          onClick={go(newMessageUrl())}
+          tileClass='bg-[hsl(280_40%_42%)]'
+          icon={<Mail className='w-4 h-4' />}
+          label={t('New DM')}
+        />
+        <CreateMenuRow
+          onClick={go('/public/groups')}
+          tileClass='bg-[hsl(0_0%_22%)]'
+          icon={<Globe className='w-4 h-4' />}
+          label={t('Explore Groups')}
+        />
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+function CreateMenuRow ({ onClick, tileClass, icon, label }) {
+  return (
+    <button
+      type='button'
+      onClick={onClick}
+      className='w-full flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-semibold text-foreground/90 hover:text-foreground hover:bg-foreground/10 transition-colors text-left'
+    >
+      <span className={cn('w-7 h-7 rounded-lg grid place-items-center text-white shrink-0', tileClass)}>{icon}</span>
+      {label}
+    </button>
+  )
+}
+
+/**
+ * Nested settings. Desktop uses a side flyout; compact expands inline so the
+ * panel never leaves the parent menu (phones have no room to the left or right).
+ */
+function SettingsSubMenu ({ compact, icon, label, children }) {
+  const [open, setOpen] = useState(false)
+
+  if (!compact) {
+    return (
+      <DropdownMenuSub>
+        <DropdownMenuSubTrigger>
+          {icon}
+          <span>{label}</span>
+        </DropdownMenuSubTrigger>
+        <DropdownMenuSubContent className='z-[200] bg-card'>
+          {children}
+        </DropdownMenuSubContent>
+      </DropdownMenuSub>
+    )
+  }
+
+  return (
+    <>
+      <DropdownMenuItem
+        className='flex flex-row items-center'
+        onSelect={(event) => {
+          event.preventDefault()
+          setOpen(prev => !prev)
+        }}
+      >
+        {icon}
+        <span className='flex-1'>{label}</span>
+        <ChevronDown className={cn('ml-auto h-4 w-4 shrink-0 transition-transform', open && 'rotate-180')} />
+      </DropdownMenuItem>
+      {open && (
+        <div className='pl-4'>
+          {children}
+        </div>
+      )}
+    </>
+  )
+}
+
 // Settings Menu Component
-function SettingsMenu ({ currentUser }) {
+function SettingsMenu ({ currentUser, triggerClassName, contentSide = 'right', contentAlign = 'start' }) {
   const compactLayout = isCompactLayoutDevice()
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const dispatch = useDispatch()
-  const { colorScheme, setColorScheme, currentTheme, setCurrentTheme, availableThemes } = useTheme()
-  const currentLocale = currentUser?.settings?.locale || i18n.language || getLocaleFromLocalStorage() || 'en'
+  const { colorScheme } = useAppearance()
+  const { theme } = getAppearanceFromSettings(currentUser?.settings)
+  const globalNavStyle = currentUser?.settings?.globalNavStyle === 'tabs' ? 'tabs' : 'sidebar'
+  const stackGroups = currentUser?.settings?.stackGroups === true
+  const currentLocale = normalizeLocaleToFull(
+    currentUser?.settings?.locale || i18n.language || getLocaleFromLocalStorage()
+  )
+
+  // Hide the Sidebar/Tabs toggle on phone viewports — tabs are forced off there.
+  const [isPhoneViewport, setIsPhoneViewport] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 639px)').matches
+  )
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const mq = window.matchMedia('(max-width: 639px)')
+    const handler = (e) => setIsPhoneViewport(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
 
   const handleLogout = async () => {
     await dispatch(logout())
@@ -178,10 +353,22 @@ function SettingsMenu ({ currentUser }) {
     : ''
 
   const handleLanguageChange = (locale) => {
-    i18n.changeLanguage(locale)
-    getLocaleFromLocalStorage(locale)
+    const normalizedLocale = normalizeLocaleToFull(locale)
+    i18n.changeLanguage(normalizedLocale)
+    getLocaleFromLocalStorage(normalizedLocale)
     if (currentUser) {
-      dispatch(updateUserSettings({ settings: { locale } }))
+      dispatch(updateUserSettings({ settings: { locale: normalizedLocale } }))
+    }
+  }
+
+  const groupNavStyle = currentUser?.settings?.groupNavStyle || NAV_STYLE_GROUP_DEFAULT
+
+  /**
+   * Persists one or more appearance settings on the current user.
+   */
+  const handleSettingChange = (settings) => {
+    if (currentUser) {
+      dispatch(updateUserSettings({ settings }))
     }
   }
 
@@ -190,14 +377,14 @@ function SettingsMenu ({ currentUser }) {
       <DropdownMenuTrigger asChild>
         <span
           data-testid='global-nav-settings-trigger'
-          className={cn('bg-primary relative transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-2 border-foreground/0 hover:border-foreground/50 cursor-pointer', compactLayout ? 'h-10' : 'h-10 sm:h-8')}
+          className={triggerClassName || cn('bg-primary relative transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-2 border-foreground/0 hover:border-foreground/50 cursor-pointer', compactLayout ? 'h-10' : 'h-10 sm:h-8')}
         >
-          <Settings className={cn(compactLayout ? 'w-7 h-7' : 'w-7 h-7 sm:w-6 sm:h-6')} />
+          <Settings className={triggerClassName ? 'w-5 h-5' : cn(compactLayout ? 'w-7 h-7' : 'w-7 h-7 sm:w-6 sm:h-6')} />
         </span>
       </DropdownMenuTrigger>
       <DropdownMenuContent
-        side='right'
-        align='start'
+        side={contentSide}
+        align={contentAlign}
         className={cn(
           'z-[200] bg-card',
           compactLayout
@@ -235,14 +422,9 @@ function SettingsMenu ({ currentUser }) {
           <BellIcon className='mr-2 h-4 w-4' />
           <span>{t('Notifications')}</span>
         </DropdownMenuItem>
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger>
-            <Palette className='mr-2 h-4 w-4' />
-            <span>{t('Appearance')}</span>
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent className='z-[200] bg-card'>
-            <div className='px-2 py-1.5 text-sm font-semibold'>{t('Display Mode')}</div>
-            <DropdownMenuRadioGroup value={colorScheme} onValueChange={setColorScheme}>
+        <SettingsSubMenu compact={compactLayout} icon={<Palette className='mr-2 h-4 w-4' />} label={t('Appearance')}>
+          <SettingsSubMenu compact={compactLayout} label={t('Color Mode')}>
+            <DropdownMenuRadioGroup value={colorScheme} onValueChange={value => handleSettingChange({ colorScheme: value })}>
               <DropdownMenuRadioItem value='auto'>
                 {t('System')}
               </DropdownMenuRadioItem>
@@ -253,45 +435,77 @@ function SettingsMenu ({ currentUser }) {
                 {t('Dark')}
               </DropdownMenuRadioItem>
             </DropdownMenuRadioGroup>
-            <DropdownMenuSeparator />
-            <div className='px-2 py-1.5 text-sm font-semibold'>{t('Color Scheme')}</div>
-            <DropdownMenuRadioGroup value={currentTheme} onValueChange={setCurrentTheme}>
+          </SettingsSubMenu>
+          <SettingsSubMenu compact={compactLayout} label={t('Color Theme')}>
+            <DropdownMenuRadioGroup value={theme} onValueChange={value => handleSettingChange({ theme: value })}>
               {availableThemes.map(theme => (
                 <DropdownMenuRadioItem key={theme} value={theme} className='capitalize'>
                   {t(theme)}
                 </DropdownMenuRadioItem>
               ))}
             </DropdownMenuRadioGroup>
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger>
-            <Languages className='mr-2 h-4 w-4' />
-            <span>{t('Language')}</span>
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent className='z-[200] bg-card'>
-            <DropdownMenuRadioGroup value={currentLocale} onValueChange={handleLanguageChange}>
-              <DropdownMenuRadioItem value='en'>
-                🇬🇧 {t('English')}
+          </SettingsSubMenu>
+          {!isPhoneViewport && (
+            <SettingsSubMenu compact={compactLayout} label={t('Global Navigation')}>
+              <DropdownMenuRadioGroup value={globalNavStyle} onValueChange={value => handleSettingChange({ globalNavStyle: value })}>
+                <DropdownMenuRadioItem value='sidebar'>
+                  {t('Sidebar')}
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value='tabs'>
+                  {t('Topbar')}
+                </DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </SettingsSubMenu>
+          )}
+          <SettingsSubMenu compact={compactLayout} label={t('Group Nav Stacking')}>
+            <DropdownMenuRadioGroup value={stackGroups ? 'stacked' : 'flat'} onValueChange={value => handleSettingChange({ stackGroups: value === 'stacked' })}>
+              <DropdownMenuRadioItem value='flat'>
+                {t('Flat')}
               </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value='es'>
-                🇪🇸 {t('Spanish')}
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value='de'>
-                🇩🇪 {t('German')}
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value='fr'>
-                🇫🇷 {t('French')}
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value='hi'>
-                🇮🇳 {t('Hindi')}
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value='pt'>
-                🇵🇹 {t('Portuguese')}
+              <DropdownMenuRadioItem value='stacked'>
+                {t('Stacked')}
               </DropdownMenuRadioItem>
             </DropdownMenuRadioGroup>
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
+          </SettingsSubMenu>
+          <SettingsSubMenu compact={compactLayout} label={t('Group Menu Style')}>
+            <DropdownMenuRadioGroup value={groupNavStyle} onValueChange={value => handleSettingChange({ groupNavStyle: value })}>
+              <DropdownMenuRadioItem value={NAV_STYLE_GROUP_DEFAULT}>
+                {t('Group Default')}
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value={NAV_STYLE_TWO_COLUMN}>
+                {t('Side Menu')}
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value={NAV_STYLE_ONE_COLUMN}>
+                {t('Card Menu')}
+              </DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+          </SettingsSubMenu>
+        </SettingsSubMenu>
+        <SettingsSubMenu compact={compactLayout} icon={<Languages className='mr-2 h-4 w-4' />} label={t('Language')}>
+          <DropdownMenuRadioGroup value={currentLocale} onValueChange={handleLanguageChange}>
+            <DropdownMenuRadioItem value={LOCALE_EN_US}>
+              🇺🇸 {t('English')}
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value={LOCALE_EN_GB}>
+              🇬🇧 {t('English (UK)')}
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value={LOCALE_ES}>
+              🇪🇸 {t('Spanish')}
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value={LOCALE_DE}>
+              🇩🇪 {t('German')}
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value={LOCALE_FR}>
+              🇫🇷 {t('French')}
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value={LOCALE_HI}>
+              🇮🇳 {t('Hindi')}
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value={LOCALE_PT}>
+              🇵🇹 {t('Portuguese')}
+            </DropdownMenuRadioItem>
+          </DropdownMenuRadioGroup>
+        </SettingsSubMenu>
         <DropdownMenuItem onClick={handleBlockedUsers}>
           <UserX className='mr-2 h-4 w-4' />
           <span>{t('Blocked Users')}</span>
@@ -318,26 +532,82 @@ function SettingsMenu ({ currentUser }) {
   )
 }
 
+// Settings and help sit on one row as small dark squares: they are utilities, not
+// destinations, so they recede against the rail instead of reading as two more tiles.
+const GLOBAL_NAV_UTILITY_BUTTON = 'relative flex items-center justify-center w-8 h-8 shrink-0 rounded-lg bg-black/30 text-white/80 hover:text-white hover:bg-black/50 transition-all cursor-pointer'
+
 export default function GlobalNav (props) {
   const { currentUser } = props
   const { show: showIntercom } = useIntercom()
   const { showPreferences } = useCookieConsent()
   const [showSupportModal, setShowSupportModal] = useState(false)
   const dispatch = useDispatch()
-  const sortedGroups = useSelector(getMyGroups)
+  const stackGroups = currentUser?.settings?.stackGroups === true
+  const rawGroups = useSelector(getMyGroupsWithChildren)
+  // When stacking is off, flatten: every group renders as its own item with no subgroup stack.
+  const sortedGroups = useMemo(
+    () => stackGroups ? rawGroups : rawGroups.map(group => ({ ...group, childGroups: [] })),
+    [rawGroups, stackGroups]
+  )
   const isNavOpen = useSelector(state => get('AuthLayoutRouter.isNavOpen', state))
   const pinnedGroups = useMemo(() => sortedGroups.filter(group => group.navOrder != null), [sortedGroups])
   const unpinnedGroups = useMemo(() => sortedGroups.filter(group => group.navOrder == null), [sortedGroups])
   const compactLayout = isCompactLayoutDevice()
-  const appStoreLinkClass = isMobileDevice() ? 'isMobileDevice' : 'isntMobileDevice'
+  // The store links only go anywhere on a phone or tablet, so don't offer the
+  // download at all on desktop
+  const showAppStoreLink = isMobileDevice() && !isWebView()
   const { t } = useTranslation()
+  const [helpOpen, setHelpOpen] = useState(false)
+  const tourSteps = useMemo(() => globalChromeTourSteps(t, { sandboxMode: isSandboxMode() }), [t])
+  const { invitation: chromeTourInvitation } = useTour({
+    id: GLOBAL_CHROME_TOUR_ID,
+    steps: tourSteps,
+    autoStart: true,
+    inviteMessage: t('New to Hylo? Let us show you around.')
+  })
+  // The Help menu lists every tour; ones whose anchors aren't on the current
+  // surface are shown disabled. Availability is a DOM question, so it's
+  // measured fresh each time the menu opens
+  const allTours = useMemo(() => tourCatalog(t), [t])
+  const [availableTourIds, setAvailableTourIds] = useState(() => new Set())
+  const handleHelpOpenChange = useCallback((open) => {
+    setHelpOpen(open)
+    if (open) {
+      setAvailableTourIds(new Set(allTours.filter(isTourAvailable).map(tour => tour.id)))
+    }
+  }, [allTours])
+  const toursSeen = currentUser?.settings?.toursSeen
+  const handleRunTour = useCallback((tour) => {
+    setHelpOpen(false)
+    // Let the menu finish closing before the overlay measures the anchors
+    setTimeout(() => {
+      driveTour(tour.steps, {
+        // A finished replay counts as seen, same as an organic run
+        onDestroyed: () => {
+          if (isTourTestMode()) return
+          const seenNow = toursSeen || []
+          if (!seenNow.includes(tour.id)) {
+            dispatch(updateUserSettings({ settings: { toursSeen: [...seenNow, tour.id] } }))
+          }
+        }
+      })
+    }, 150)
+  }, [toursSeen, dispatch])
   const [navReady, setNavReady] = useState(false)
   const [isContainerHovered, setIsContainerHovered] = useState(false)
+  // A stack's subgroup menu and the rail's labels are alternatives, never both at
+  // once: the submenu already names every group it contains, so labels behind it
+  // are noise. Kept as a ref too for the listeners that outlive a render.
+  const [submenuOpen, setSubmenuOpen] = useState(false)
+  const submenuOpenRef = useRef(false)
+  // Labels give way to the submenu, but the scrim behind them stays: the submenu
+  // reads as the rail continuing outward, so it needs the same ground to sit on.
+  const showLabels = isContainerHovered && !submenuOpen
+  const showScrim = isContainerHovered || submenuOpen
   const [menuTimeoutId, setMenuTimeoutId] = useState(null)
   const hoverDelayTimeoutRef = useRef(null)
   const ignoreTouchRef = useRef(false) // Ignore touch events briefly after nav opens
   const [isOverflowing, setIsOverflowing] = useState(false)
-  const [scrollbarWidth, setScrollbarWidth] = useState(0)
   const [hiddenBadgeCount, setHiddenBadgeCount] = useState(0)
   const navContainerRef = useRef(null)
   const groupRefsMap = useRef(new Map())
@@ -380,6 +650,17 @@ export default function GlobalNav (props) {
     return () => window.removeEventListener('contextMenuScroll', handleContextMenuScroll)
   }, [])
 
+  // A stack opening its submenu takes the rail's labels down with it
+  useEffect(() => {
+    const handleSubmenuToggle = (e) => {
+      submenuOpenRef.current = e.detail
+      setSubmenuOpen(e.detail)
+      if (e.detail) clearHover()
+    }
+    window.addEventListener('navSubmenuToggle', handleSubmenuToggle)
+    return () => window.removeEventListener('navSubmenuToggle', handleSubmenuToggle)
+  }, [])
+
   // Add effect to handle menu timeout
   useEffect(() => {
     if (isContainerHovered) {
@@ -405,47 +686,25 @@ export default function GlobalNav (props) {
     }
   }, [isContainerHovered])
 
-  // Detect scrollbar width and if the nav container is overflowing
+  // Detect if the nav container is overflowing (drives the top fade indicator).
+  // The scrollbar itself is hidden via CSS, so no width compensation is needed
+  // and the icon column stays symmetric inside its padding.
   useEffect(() => {
     const container = navContainerRef.current
     if (!container) return
 
-    const checkOverflowAndScrollbar = () => {
-      const hasOverflow = container.scrollHeight > container.clientHeight
-      setIsOverflowing(hasOverflow)
-
-      if (hasOverflow) {
-        // Detect scrollbar width by comparing offsetWidth (includes scrollbar) with clientWidth (excludes scrollbar)
-        // This tells us if the scrollbar is currently taking up layout space
-        const width = container.offsetWidth - container.clientWidth
-
-        // If width is 0, scrollbar is overlay-only (not taking space)
-        // If width > 0, scrollbar is always visible (taking space) - we need to compensate
-        setScrollbarWidth(width > 0 ? width : 0)
-      } else {
-        setScrollbarWidth(0)
-      }
+    const checkOverflow = () => {
+      setIsOverflowing(container.scrollHeight > container.clientHeight)
     }
 
-    // Initial check
-    checkOverflowAndScrollbar()
-
-    // Use a small delay to ensure layout is complete
-    const timeoutId = setTimeout(checkOverflowAndScrollbar, 100)
-
-    const resizeObserver = new ResizeObserver(() => {
-      // Small delay to ensure scrollbar state is updated
-      setTimeout(checkOverflowAndScrollbar, 50)
-    })
+    checkOverflow()
+    const resizeObserver = new ResizeObserver(checkOverflow)
     resizeObserver.observe(container)
-
-    // Also check on window resize to catch scrollbar visibility changes
-    window.addEventListener('resize', checkOverflowAndScrollbar)
+    window.addEventListener('resize', checkOverflow)
 
     return () => {
-      clearTimeout(timeoutId)
       resizeObserver.disconnect()
-      window.removeEventListener('resize', checkOverflowAndScrollbar)
+      window.removeEventListener('resize', checkOverflow)
     }
   }, [sortedGroups.length])
 
@@ -559,6 +818,7 @@ export default function GlobalNav (props) {
     // Ignore touch-originated pointer events — prevents phantom hover/tooltip
     // when the nav slides open and lands under the user's finger
     if (e.pointerType === 'touch' || ignoreTouchRef.current) return
+    if (submenuOpenRef.current) return
 
     // Clear any existing timeout to avoid race conditions
     if (hoverDelayTimeoutRef.current) {
@@ -612,6 +872,8 @@ export default function GlobalNav (props) {
     // Ignore touch events briefly after nav opens to prevent accidental triggers
     // when the nav slides in and a lingering touch event fires
     if (ignoreTouchRef.current) return
+    // The submenu owns the screen while it's open
+    if (submenuOpenRef.current) return
 
     // On touch, show immediately (no delay like desktop mouse hover)
     touchEndedRef.current = false
@@ -639,6 +901,10 @@ export default function GlobalNav (props) {
 
     const handleNavScroll = () => {
       isScrollingRef.current = true
+      // Scrolling the rail means the user has moved on from the stack they opened
+      if (submenuOpenRef.current) {
+        window.dispatchEvent(new CustomEvent('navSubmenuClose'))
+      }
       // While scrolling, cancel any pending close timeout
       if (clearHoverTimeoutRef.current) {
         clearTimeout(clearHoverTimeoutRef.current)
@@ -677,21 +943,53 @@ export default function GlobalNav (props) {
     dispatch(unpinGroup(groupId))
   }
 
+  const handleMarkGroupAsRead = (groupId) => {
+    dispatch(markGroupAsRead(groupId))
+  }
+
   // Drag and drop sensors
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 15
-      }
-    }),
+    useSensor(MouseSensor, { activationConstraint: MOUSE_ACTIVATION }),
+    useSensor(TouchSensor, { activationConstraint: TOUCH_ACTIVATION }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates
     })
   )
 
-  // Handle drag end for reordering pinned groups
+  /**
+   * Radix opens its context menu after 700ms of a still finger. That fights
+   * the touch drag (long-press then move) and would pop the menu while the
+   * item is picked up. Stopping pointerdown on capture keeps Radix from
+   * starting that timer; TouchSensor listens to touchstart, so the hold is
+   * unaffected. Click still fires, so tapping the group still navigates.
+   */
+  const handlePinnedTriggerPointerDownCapture = (event) => {
+    if (event.pointerType !== 'touch' && event.pointerType !== 'pen') return
+    event.stopPropagation()
+  }
+
+  /**
+   * Opens the group's context menu at the original press point after a
+   * long-press that never became a drag.
+   */
+  const openPinnedGroupContextMenu = (groupId, clientX, clientY) => {
+    const node = groupRefsMap.current.get(groupId)
+    if (!node) return
+    node.dispatchEvent(new MouseEvent('contextmenu', {
+      bubbles: true,
+      cancelable: true,
+      view: window,
+      clientX,
+      clientY
+    }))
+  }
+
+  /**
+   * Reorders a pinned group, or opens its context menu when a touch long-press
+   * ended without a drag.
+   */
   const handleDragEnd = (event) => {
-    const { active, over } = event
+    const { active, over, delta, activatorEvent } = event
 
     if (active && over && active.id !== over.id) {
       const oldIndex = pinnedGroups.findIndex(group => group.id === active.id)
@@ -708,7 +1006,17 @@ export default function GlobalNav (props) {
         // Only update the moved group's navOrder - backend will handle updating others
         dispatch(updateGroupNavOrder(active.id, newNavOrder))
       }
+      return
     }
+
+    const didDrag = Math.abs(delta?.x || 0) > TOUCH_DRAG_SLOP || Math.abs(delta?.y || 0) > TOUCH_DRAG_SLOP
+    if (didDrag || !isTouchActivatorEvent(activatorEvent)) return
+
+    const touch = activatorEvent.touches?.[0] || activatorEvent.changedTouches?.[0]
+    const clientX = touch?.clientX ?? activatorEvent.clientX
+    const clientY = touch?.clientY ?? activatorEvent.clientY
+    // Wait until dnd-kit has detached its window contextmenu listener
+    setTimeout(() => openPinnedGroupContextMenu(active.id, clientX, clientY), 0)
   }
 
   // Prevent default browser context menu on mobile devices
@@ -731,20 +1039,18 @@ export default function GlobalNav (props) {
         boxShadow: 'inset -15px 0 15px -10px hsl(var(--darkening) / 0.4)'
       }}
     >
+      {chromeTourInvitation}
       <div className='absolute inset-0 bg-gradient-to-b from-theme-background/75 to-theme-highlight dark:bg-gradient-to-b dark:from-theme-background/90 dark:to-theme-highlight/100 z-0' />
       <div className='absolute top-0 right-0 w-4 h-full bg-gradient-to-l from-theme-background/10 to-theme-background/0 z-20' />
       <div
         ref={navContainerRef}
         className={cn(
+          // Scrollbar hidden (scrolling still works) so it never eats layout space
+          // and the tiles stay horizontally centered in the rail
           'pt-4 flex flex-col items-center relative z-10 px-3 overflow-x-visible overflow-y-scroll grow',
+          '[scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
           styles.globalNavContainer
         )}
-        style={{
-          // When scrollbar is taking up space (always visible), add padding to compensate
-          // This keeps content centered regardless of scrollbar visibility mode
-          paddingRight: scrollbarWidth > 0 ? `calc(0.75rem - ${scrollbarWidth}px + 2px)` : undefined,
-          paddingLeft: scrollbarWidth > 0 ? `calc(1.5rem - ${scrollbarWidth}px + 1px)` : undefined
-        }}
         onClick={handleClick}
         onPointerLeave={handleContainerPointerLeave}
         onPointerEnter={handleContainerPointerEnter}
@@ -754,42 +1060,51 @@ export default function GlobalNav (props) {
         <GlobalNavItem
           img={get('avatarUrl', currentUser)}
           tooltip={t('My Home')}
-          url='/my'
+          url={myHomeLandingUrl()}
           className={isVisible(0)}
-          showTooltip={isContainerHovered}
+          showTooltip={showLabels}
+          dataTour='my-home'
         />
 
-        <Suspense fallback={<GlobalNavItem className={isVisible(1)} showTooltip={isContainerHovered}><Bell className='w-7 h-7' /></GlobalNavItem>}>
+        <Suspense fallback={<GlobalNavItem className={isVisible(1)} showTooltip={showLabels}><Bell className='w-7 h-7' /></GlobalNavItem>}>
           <NotificationsDropdown renderToggleChildren={showBadge =>
             <GlobalNavItem
+              darkTile
               tooltip={t('Activity')}
               className={isVisible(1)}
-              showTooltip={isContainerHovered}
+              showTooltip={showLabels}
               badgeCount={showBadge ? '-' : 0}
+              dataTour='activity'
             >
-              <BadgedIcon name='Notifications' className='!text-primary-foreground cursor-pointer font-md' />
+              <BadgedIcon name='Notifications' className='!text-white cursor-pointer font-md' />
             </GlobalNavItem>}
           />
         </Suspense>
 
         <GlobalNavItem
+          darkTile
           tooltip={t('Messages')}
           url='/messages'
           className={isVisible(2)}
-          showTooltip={isContainerHovered}
-          badgeCount={currentUser.unseenThreadCount || 0}
+          showTooltip={showLabels}
+          badgeCount={currentUser?.unseenThreadCount || 0}
+          dataTour='messages'
         >
           <MessagesSquare />
         </GlobalNavItem>
 
-        <GlobalNavItem
-          tooltip={t('The Commons')}
-          url='/public'
-          className={isVisible(3)}
-          showTooltip={isContainerHovered}
-        >
-          <Globe color='hsl(var(--primary-foreground))' />
-        </GlobalNavItem>
+        {!isSandboxMode() && (
+          <GlobalNavItem
+            darkTile
+            tooltip={t('The Commons')}
+            url='/public'
+            className={isVisible(3)}
+            showTooltip={showLabels}
+            dataTour='the-commons'
+          >
+            <Globe />
+          </GlobalNavItem>
+        )}
 
         {/* Pinned Groups Section - Sortable */}
         <DndContext
@@ -803,17 +1118,18 @@ export default function GlobalNav (props) {
           >
             {pinnedGroups.map((group, pinnedIndex) => (
               <RightClickMenu key={group.id}>
-                <RightClickMenuTrigger onContextMenu={handleContextMenu}>
+                <RightClickMenuTrigger onPointerDownCapture={handlePinnedTriggerPointerDownCapture}>
                   <SortableGlobalNavItem
                     group={group}
                     index={pinnedIndex}
                     isVisible={isVisible(4 + pinnedIndex)}
-                    showTooltip={isContainerHovered}
-                    isContainerHovered={isContainerHovered}
+                    showTooltip={showLabels}
+                    isContainerHovered={showLabels}
                     groupRefsMap={groupRefsMap}
                   />
                 </RightClickMenuTrigger>
                 <RightClickMenuContent>
+                  <RightClickMenuItem onClick={() => handleMarkGroupAsRead(group.id)}>{t('Mark as Read')}</RightClickMenuItem>
                   <RightClickMenuItem onClick={() => handleUnpinGroup(group.id)}>{t('Unpin')}</RightClickMenuItem>
                 </RightClickMenuContent>
               </RightClickMenu>
@@ -842,10 +1158,12 @@ export default function GlobalNav (props) {
                     tooltip={group.name}
                     url={`/groups/${group.slug}`}
                     className={isVisible(4 + actualIndex)}
-                    showTooltip={isContainerHovered}
+                    showTooltip={showLabels}
+                    childGroups={group.childGroups}
                   />
                 </RightClickMenuTrigger>
                 <RightClickMenuContent>
+                  <RightClickMenuItem onClick={() => handleMarkGroupAsRead(group.id)}>{t('Mark as Read')}</RightClickMenuItem>
                   <RightClickMenuItem onClick={() => handlePinGroup(group.id)}>{t('Pin to top')}</RightClickMenuItem>
                 </RightClickMenuContent>
               </RightClickMenu>
@@ -859,8 +1177,8 @@ export default function GlobalNav (props) {
           'fixed z-0 bottom-0 w-[400px] h-full',
           'transition-all duration-300 ease-out transform  backdrop-blur-md translate-x-0',
           {
-            'opacity-80 translate-x-0': isContainerHovered,
-            'opacity-0 -translate-x-full': !isContainerHovered
+            'opacity-80 translate-x-0': showScrim,
+            'opacity-0 -translate-x-full': !showScrim
           }
         )}
         style={{
@@ -893,59 +1211,105 @@ export default function GlobalNav (props) {
           </div>
         )}
 
-        <Popover>
-          <PopoverTrigger>
-            <div className={cn('bg-primary relative z-20 transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-8 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-foreground/0 hover:border-foreground/50')}>
-              <PlusCircle className='w-7 h-7' />
-            </div>
-          </PopoverTrigger>
-          <PopoverContent side='right' align='center'>
-            <CreateMenu />
-          </PopoverContent>
-        </Popover>
+        <GlobalCreateMenu />
 
-        <SettingsMenu currentUser={currentUser} />
+        {/* Settings and help are utilities rather than destinations, so they share a
+            row as small dark squares instead of taking a full-width bright tile each */}
+        <div className='flex items-center justify-center gap-1.5'>
+          <SettingsMenu currentUser={currentUser} triggerClassName={GLOBAL_NAV_UTILITY_BUTTON} />
 
-        <Popover>
-          <PopoverTrigger>
-            <span className={cn('bg-primary relative transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-8 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-2 border-foreground/0 hover:border-foreground/50')}>
-              <HelpCircle className='w-6 h-6' />
-            </span>
-          </PopoverTrigger>
-          <PopoverContent side='right' align='start'>
-            <ul className='flex flex-col gap-2 m-0 p-0'>
-              <li className='w-full'><span className='text-foreground cursor-pointer px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' onClick={handleSupportClick}><MessagesSquare className='h-4 w-4' />{t('Feedback & Support')}</span></li>
-              <li className='w-full'><a className='text-foreground cursor-pointer hover:text-foreground/100 px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' href='https://hylozoic.gitbook.io/hylo/guides/hylo-user-guide' target='_blank' rel='noreferrer'><BookOpen className='h-4 w-4' />{t('User Guide')}</a></li>
-              <li className='w-full'><a className='text-foreground cursor-pointer hover:text-foreground/100 px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' href='http://hylo.com/terms/' target='_blank' rel='noreferrer'><Shield className='h-4 w-4' />{t('Terms & Privacy')}</a></li>
-              {!isWebView() && <li className='w-full'><span className={cn('text-foreground cursor-pointer px-2 py-1 hover:text-foreground/100 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2', styles[appStoreLinkClass])} onClick={downloadApp}><Download className='h-4 w-4' />{t('Download App')}</span></li>}
-              <li className='w-full'><a className='text-foreground cursor-pointer px-2 py-1 hover:text-foreground/100 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' href='https://opencollective.com/hylo' target='_blank' rel='noreferrer'><Heart className='h-4 w-4' />{t('Contribute to Hylo')}</a></li>
-            </ul>
-            {showSupportModal && (
-              <ModalDialog
-                closeModal={() => setShowSupportModal(false)}
-                showModalTitle={false}
-                submitButtonAction={() => {
-                  setShowSupportModal(false)
-                  showPreferences()
-                }}
-                submitButtonText={t('Edit Cookie Preferences')}
-              >
-                <div className='p-4'>
-                  <h2 className='text-xl font-semibold mb-2'>{t('Support Chat Disabled')}</h2>
-                  <p className='text-foreground/70 mb-4'>
-                    {t('To use the support chat you need to enable support cookies in your cookie preferences')}
-                  </p>
-                  <p className='text-foreground/70 mb-2'>
-                    {t('Click below to edit your cookie preferences')}
-                  </p>
-                </div>
-              </ModalDialog>
-            )}
-          </PopoverContent>
-        </Popover>
+          <DropdownMenu open={helpOpen} onOpenChange={handleHelpOpenChange}>
+            <DropdownMenuTrigger asChild>
+              <span className={GLOBAL_NAV_UTILITY_BUTTON} data-tour='help'>
+                <HelpCircle className='w-5 h-5' />
+              </span>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              side='right'
+              align='start'
+              className={cn(
+                'z-[200] bg-card',
+                compactLayout
+                  ? 'min-w-[260px] [&_[role=menuitem]]:py-3 [&_[role=menuitem]]:text-base'
+                  : 'min-w-[260px] sm:min-w-[200px] [&_[role=menuitem]]:py-3 [&_[role=menuitem]]:text-base sm:[&_[role=menuitem]]:py-1.5 sm:[&_[role=menuitem]]:text-sm'
+              )}
+            >
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger data-testid='take-a-tour'>
+                  <Compass className='mr-2 h-4 w-4' />
+                  <span>{t('Take a tour')} ({availableTourIds.size})</span>
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className='z-[200] bg-card'>
+                  <DropdownMenuLabel className='text-foreground/60 font-normal'>{t('Tours for this view')}</DropdownMenuLabel>
+                  {allTours.map(tour => (
+                    <DropdownMenuItem
+                      key={tour.id}
+                      disabled={!availableTourIds.has(tour.id)}
+                      onClick={() => handleRunTour(tour)}
+                    >
+                      {tour.title}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleSupportClick}>
+                <MessagesSquare className='mr-2 h-4 w-4' />
+                <span>{t('Feedback & Support')}</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <a href='https://hylozoic.gitbook.io/hylo/guides/hylo-user-guide' target='_blank' rel='noreferrer' className='text-foreground hover:text-foreground'>
+                  <BookOpen className='mr-2 h-4 w-4' />
+                  <span>{t('User Guide')}</span>
+                </a>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <a href='http://hylo.com/terms/' target='_blank' rel='noreferrer' className='text-foreground hover:text-foreground'>
+                  <Shield className='mr-2 h-4 w-4' />
+                  <span>{t('Terms & Privacy')}</span>
+                </a>
+              </DropdownMenuItem>
+              {showAppStoreLink && (
+                <DropdownMenuItem onClick={downloadApp}>
+                  <Download className='mr-2 h-4 w-4' />
+                  <span>{t('Download App')}</span>
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem asChild>
+                <a href='https://opencollective.com/hylo' target='_blank' rel='noreferrer' className='text-foreground hover:text-foreground'>
+                  <Heart className='mr-2 h-4 w-4' />
+                  <span>{t('Contribute to Hylo')}</span>
+                </a>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          {/* Outside the menu: selecting Feedback & Support closes it, and this
+              dialog has to outlive that close */}
+          {showSupportModal && (
+            <ModalDialog
+              closeModal={() => setShowSupportModal(false)}
+              showModalTitle={false}
+              submitButtonAction={() => {
+                setShowSupportModal(false)
+                showPreferences()
+              }}
+              submitButtonText={t('Edit Cookie Preferences')}
+            >
+              <div className='p-4'>
+                <h2 className='text-xl font-semibold mb-2'>{t('Support Chat Disabled')}</h2>
+                <p className='text-foreground/70 mb-4'>
+                  {t('To use the support chat you need to enable support cookies in your cookie preferences')}
+                </p>
+                <p className='text-foreground/70 mb-2'>
+                  {t('Click below to edit your cookie preferences')}
+                </p>
+              </div>
+            </ModalDialog>
+          )}
+        </div>
       </div>
     </div>
   )
 }
 
-export { GlobalNavTooltipContainer }
+export { GlobalNavTooltipContainer, SettingsMenu }

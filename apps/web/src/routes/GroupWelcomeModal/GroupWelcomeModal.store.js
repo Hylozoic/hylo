@@ -15,6 +15,7 @@ export const groupWelcomeQuery = `
         publicMemberDirectory
         showSuggestedSkills
         showWelcomePage
+        layout
       }
       agreements {
         items {
@@ -47,6 +48,15 @@ export const groupWelcomeQuery = `
           }
           person {
             id
+          }
+          joinQuestionAnswers {
+            items {
+              id
+              answer
+              question {
+                id
+              }
+            }
           }
           settings {
             joinQuestionsAnsweredAt

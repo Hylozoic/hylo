@@ -164,51 +164,6 @@ export function GroupWelcomeBootstrapSkeleton () {
   )
 }
 
-/** Tracks list or track home: header + card list. */
-export function TracksBootstrapSkeleton () {
-  return (
-    <div className={cn(STREAM_MAIN_COLUMN_CLASS, 'w-full')} aria-busy='true' aria-label='Loading tracks'>
-      <div className='flex items-center gap-3 mb-6'>
-        <Skeleton className='h-10 w-10 rounded-lg' />
-        <div className='flex-1 flex flex-col gap-2'>
-          <Skeleton className='h-4 w-[50%]' />
-          <Skeleton className='h-2 w-[32%]' />
-        </div>
-      </div>
-      {[0, 1, 2, 3].map(i => (
-        <div key={i} className='rounded-xl border-2 border-foreground/5 bg-card/50 p-4 mb-3 flex gap-3'>
-          <Skeleton className='w-16 h-16 rounded-lg flex-shrink-0' />
-          <div className='flex-1 flex flex-col gap-2'>
-            <Skeleton className='h-3 w-[55%]' />
-            <Skeleton className='h-2 w-full' />
-            <Skeleton className='h-2 w-[75%]' />
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-/** Funding rounds list or detail shell. */
-export function FundingRoundsBootstrapSkeleton () {
-  return (
-    <div className={cn(STREAM_MAIN_COLUMN_CLASS, 'w-full')} aria-busy='true' aria-label='Loading funding rounds'>
-      <Skeleton className='h-7 w-[55%] mb-6' />
-      {[0, 1, 2].map(i => (
-        <div key={i} className='rounded-xl border-2 border-foreground/5 overflow-hidden mb-4'>
-          <Skeleton className='h-28 w-full' />
-          <div className='p-4 flex flex-col gap-2'>
-            <Skeleton className='h-4 w-[48%]' />
-            <Skeleton className='h-2 w-full' />
-            <Skeleton className='h-2 w-[60%]' />
-            <Skeleton className='h-9 w-32 rounded-md mt-2' />
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-}
-
 /** Moderation table-ish rows. */
 export function ModerationBootstrapSkeleton () {
   return (
@@ -228,35 +183,6 @@ export function ModerationBootstrapSkeleton () {
           </div>
         ))}
       </div>
-    </div>
-  )
-}
-
-/**
- * All Views — matches `AllView.jsx`: responsive grid, dashed add tile, then widget cards
- * (`bg-card/40 border-2 border-card/30 rounded-lg`, centered title block).
- */
-export function AllViewBootstrapSkeleton () {
-  return (
-    <div
-      className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4 w-full'
-      aria-busy='true'
-      aria-label='Loading views'
-    >
-      <div className='border-2 flex items-center justify-center border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 background-black/10 rounded-lg border-dashed relative min-h-[120px]'>
-        <Skeleton className='h-7 w-36 max-w-[85%] rounded-md' />
-      </div>
-      {[0, 1, 2, 3, 4, 5, 6, 7].map(i => (
-        <div
-          key={i}
-          className='relative flex flex-col bg-card/40 border-2 border-card/30 shadow-md rounded-lg min-h-[120px] items-center justify-center p-4'
-        >
-          <div className='flex flex-col items-center gap-2 w-full max-w-[220px]'>
-            <Skeleton className='h-5 w-[88%]' />
-            <Skeleton className='h-4 w-[55%]' />
-          </div>
-        </div>
-      ))}
     </div>
   )
 }

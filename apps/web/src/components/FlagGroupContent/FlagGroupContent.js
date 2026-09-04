@@ -4,7 +4,8 @@ import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import TextareaAutosize from 'react-textarea-autosize'
 import Button from 'components/ui/button'
-import CheckBox from 'components/CheckBox'
+import Checkbox from 'components/ui/checkbox'
+import { Label } from 'components/ui/label'
 import Icon from 'components/Icon'
 import MultiSelect from 'components/MultiSelect'
 import fetchPlatformAgreements from 'store/actions/fetchPlatformAgreements'
@@ -15,11 +16,16 @@ import getGroupForDetail from 'store/selectors/getGroupForDetails'
 import getPlatformAgreements from 'store/selectors/getPlatformAgreements'
 import { groupUrl } from '@hylo/navigation'
 import Tooltip from 'components/Tooltip'
+import { useEffectiveGroupSlug, useGroupRouteOpts } from 'contexts/SpaceGroupContext'
+import getGroupForSlug from 'store/selectors/getGroupForSlug'
 
 const FlagGroupContent = ({ onClose, onFlag, linkData, type = 'content' }) => {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const { id, slug } = linkData || {}
+  const effectiveGroupSlug = useEffectiveGroupSlug()
+  const { parentGroupSlug, spaceSlug } = useGroupRouteOpts()
+  const groupSlug = effectiveGroupSlug || slug
 
   useEffect(() => {
     dispatch(fetchPlatformAgreements())
@@ -37,11 +43,21 @@ const FlagGroupContent = ({ onClose, onFlag, linkData, type = 'content' }) => {
   }, [])
 
   const platformAgreements = useSelector(getPlatformAgreements)
-  const currentGroup = useSelector(state => getGroupForDetail(state, { slug }))
+  const currentGroup = useSelector(state => getGroupForDetail(state, { slug: groupSlug }))
+  const parentGroup = useSelector(state => {
+    if (spaceSlug && parentGroupSlug) return getGroupForSlug(state, parentGroupSlug)
+    return null
+  })
   const group = presentGroup(currentGroup)
+  const agreementsSource = presentGroup(parentGroup) || group
 
-  const agreements = group?.agreements || []
-  const groupAgreementsUrl = group ? groupUrl(group.slug) + '/about' : ''
+  const agreements = (agreementsSource?.agreements?.length
+    ? agreementsSource.agreements
+    : group?.agreements) || []
+  const agreementsGroupName = agreementsSource?.name || group?.name
+  const groupAgreementsUrl = agreementsSource
+    ? groupUrl(agreementsSource.slug) + '/about#agreements'
+    : ''
 
   const [anonymous, setAnonymous] = useState(false)
   const [explanation, setExplanation] = useState('')
@@ -78,7 +94,15 @@ const FlagGroupContent = ({ onClose, onFlag, linkData, type = 'content' }) => {
   }
 
   const submit = () => {
-    dispatch(createModerationAction({ text: explanation, postId: id, groupId: group.id, agreements: agreementsSelected, platformAgreements: platformAgreementsSelected, anonymous }))
+    const slugs = [...new Set([group?.slug, parentGroupSlug].filter(Boolean))]
+    dispatch(createModerationAction({
+      text: explanation,
+      postId: id,
+      groupId: group.id,
+      agreements: agreementsSelected,
+      platformAgreements: platformAgreementsSelected,
+      anonymous
+    }, { slugs }))
     if (onFlag) {
       onFlag({ postId: id, groupId: group.id })
     }
@@ -87,94 +111,101 @@ const FlagGroupContent = ({ onClose, onFlag, linkData, type = 'content' }) => {
   }
 
   return (
-    <div className='fixed inset-0 z-[1001] overflow-y-auto pointer-events-auto' onClick={(e) => e.stopPropagation()}>
-      <div className='fixed inset-0 bg-black/50 z-0 w-full h-full top-0 left-0' onClick={closeModal} />
-      <div className='relative max-h-screen flex items-center justify-center p-4 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 max-w-[750px] w-full'>
-        <div className='relative bg-background rounded-lg shadow-xl w-full max-w-[750px] p-6'>
-          <div className='flex flex-row items-center justify-between mb-4'>
-            <h2 className='text-xl font-semibold'>{t('Explanation for Flagging')}</h2>
-            <button onClick={closeModal} className='text-foreground/70 hover:text-foreground transition-colors'>
-              <Icon name='Ex' className='w-5 h-5' />
-            </button>
-          </div>
+    <div
+      className='fixed inset-0 z-[1100] flex items-center justify-center p-4 bg-darkening/50 dark:bg-darkening/90 backdrop-blur-sm pointer-events-auto'
+      onClick={closeModal}
+    >
+      <div
+        className='relative bg-background rounded-lg shadow-xl w-full max-w-[750px] max-h-[90vh] flex flex-col p-6'
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className='flex flex-row items-center justify-between mb-4 shrink-0'>
+          <h2 className='text-xl font-semibold'>{t('Explanation for Flagging')}</h2>
+          <button onClick={closeModal} className='text-foreground/70 hover:text-foreground transition-colors'>
+            <Icon name='Ex' className='w-5 h-5' />
+          </button>
+        </div>
 
-          <div className='space-y-4 max-h-[80vh] overflow-y-auto px-1'>
-            <div className='text-foreground/70 text-sm'>
-              {t('flaggingExplainer')}
-            </div>
-            <div className='text-accent text-sm font-medium'>
-              {t('flagsNeedACategory')}
-            </div>
-            <TextareaAutosize
-              className='w-full min-h-[120px] p-3 rounded-lg border-2 border-foreground/10 bg-transparent text-foreground/80 focus:outline-none focus:ring-2 focus:ring-accent placeholder:text-foreground/50'
-              minRows={4}
-              value={explanation}
-              onChange={(e) => setExplanation(e.target.value)}
-              placeholder={explanationPlaceholder}
-            />
-            {group && agreements.length > 0 && (
-              <div className='space-y-3'>
-                <h3 className='text-base font-medium'>{t('Not permitted in {{groupName}}', { groupName: group?.name })}</h3>
-                <a
-                  href={groupAgreementsUrl}
-                  target='_blank'
-                  rel='noopener noreferrer'
-                  className='text-foreground/50 hover:text-foreground/80 text-sm border-2 border-foreground/10 rounded-lg p-1 px-2 w-fit block hover:scale-105 transition-all'
-                >
-                  {t('View group agreements')}
-                </a>
-                <MultiSelect items={agreements} selected={agreementsSelected} handleSelect={handleAgreementsSelect} />
-              </div>
-            )}
+        <div className='space-y-4 overflow-y-auto px-1 min-h-0'>
+          <div className='text-foreground/70 text-sm'>
+            {t('flaggingExplainer')}
+          </div>
+          <div className='text-accent text-sm font-medium'>
+            {t('flagsNeedACategory')}
+          </div>
+          <TextareaAutosize
+            className='w-full min-h-[120px] p-3 rounded-lg border-2 border-foreground/10 bg-transparent text-foreground/80 focus:outline-none focus:ring-2 focus:ring-accent placeholder:text-foreground/50'
+            minRows={4}
+            value={explanation}
+            onChange={(e) => setExplanation(e.target.value)}
+            placeholder={explanationPlaceholder}
+          />
+          {group && agreements.length > 0 && (
             <div className='space-y-3'>
-              <h3 className='text-base font-medium'>{t('Violations of platform agreements')}</h3>
+              <h3 className='text-base font-medium'>{t('Not permitted in {{groupName}}', { groupName: agreementsGroupName })}</h3>
               <a
-                href={agreementsURL}
+                href={groupAgreementsUrl}
                 target='_blank'
                 rel='noopener noreferrer'
                 className='text-foreground/50 hover:text-foreground/80 text-sm border-2 border-foreground/10 rounded-lg p-1 px-2 w-fit block hover:scale-105 transition-all'
               >
-                {t('View platform agreements')}
+                {t('View group agreements')}
               </a>
-              <div className='space-y-2'>
-                <h5 className='text-sm font-medium text-foreground/70'>{t('Not permitted in Public Spaces')}</h5>
-                <MultiSelect
-                  items={platformAgreements.filter((ag) => ag.type !== 'anywhere')}
-                  selected={platformAgreementsSelected}
-                  handleSelect={handlePlatformAgreementsSelect}
-                />
-              </div>
-              <div className='space-y-2'>
-                <h5 className='text-sm font-medium text-foreground/70'>{t('Not permitted anywhere on the platform')}</h5>
-                <MultiSelect
-                  items={platformAgreements.filter((ag) => ag.type === 'anywhere')}
-                  selected={platformAgreementsSelected}
-                  handleSelect={handlePlatformAgreementsSelect}
-                />
-              </div>
+              <MultiSelect items={agreements} selected={agreementsSelected} handleSelect={handleAgreementsSelect} />
             </div>
-            <div className='flex items-center justify-between pt-2 border-t border-foreground/10'>
-              <CheckBox
-                checked={anonymous}
-                label={t('Anonymous (moderators will see your name)')}
-                onChange={value => setAnonymous(value)}
-                className='text-sm text-foreground/70'
+          )}
+          <div className='space-y-3'>
+            <h3 className='text-base font-medium'>{t('Violations of platform agreements')}</h3>
+            <a
+              href={agreementsURL}
+              target='_blank'
+              rel='noopener noreferrer'
+              className='text-foreground/50 hover:text-foreground/80 text-sm border-2 border-foreground/10 rounded-lg p-1 px-2 w-fit block hover:scale-105 transition-all'
+            >
+              {t('View platform agreements')}
+            </a>
+            <div className='space-y-2'>
+              <h5 className='text-sm font-medium text-foreground/70'>{t('Not permitted in Public Spaces')}</h5>
+              <MultiSelect
+                items={platformAgreements.filter((ag) => ag.type !== 'anywhere')}
+                selected={platformAgreementsSelected}
+                handleSelect={handlePlatformAgreementsSelect}
               />
-              <Button
-                variant='secondary'
-                onClick={submit}
-                disabled={!isValid()}
-                data-tooltip-content={t('Select an agreement and add an explanation for why you are flagging this post')}
-                data-tooltip-id='flagging-submit-tt'
-              >
-                {t('Submit')}
-              </Button>
-              <Tooltip
-                id='flagging-submit-tt'
-                delay={250}
+            </div>
+            <div className='space-y-2'>
+              <h5 className='text-sm font-medium text-foreground/70'>{t('Not permitted anywhere on the platform')}</h5>
+              <MultiSelect
+                items={platformAgreements.filter((ag) => ag.type === 'anywhere')}
+                selected={platformAgreementsSelected}
+                handleSelect={handlePlatformAgreementsSelect}
               />
             </div>
           </div>
+        </div>
+        <div className='flex items-center justify-between pt-4 mt-2 border-t border-foreground/10 shrink-0'>
+          <div className='flex items-center gap-2'>
+            <Checkbox
+              id='flag-anonymous'
+              checked={anonymous}
+              onCheckedChange={value => setAnonymous(!!value)}
+            />
+            <Label htmlFor='flag-anonymous' className='cursor-pointer font-normal text-sm text-foreground/70'>
+              {t('Anonymous (moderators will see your name)')}
+            </Label>
+          </div>
+          <Button
+            variant='secondary'
+            onClick={submit}
+            disabled={!isValid()}
+            data-tooltip-content={t('Select an agreement and add an explanation for why you are flagging this post')}
+            data-tooltip-id='flagging-submit-tt'
+          >
+            {t('Submit')}
+          </Button>
+          <Tooltip
+            id='flagging-submit-tt'
+            delay={250}
+          />
         </div>
       </div>
     </div>

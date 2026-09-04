@@ -1,7 +1,7 @@
 import React, { useRef, useCallback, useState, useEffect } from 'react'
-import { View, StatusBar } from 'react-native'
+import { View, StatusBar, BackHandler, Platform } from 'react-native'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
-import { WebViewMessageTypes } from '@hylo/shared'
+import { WebViewMessageTypes, HYLO_HARDWARE_BACK_EVENT } from '@hylo/shared'
 import { version as hyloAppVersion } from '../../../package.json'
 import { isIOS } from 'util/platform'
 import HyloWebView from 'components/HyloWebView'
@@ -15,14 +15,14 @@ import useThemeStore from 'store/themeStore'
 
 /**
  * PrimaryWebView - Single full-screen WebView for all authenticated content
- * 
+ *
  * Replaces the previous architecture of multiple specialized WebView screens:
  * - ChatRoomWebView
  * - GroupSettingsWebView
  * - UserSettingsWebView
  * - MapWebView
  * - GroupExploreWebView
- * 
+ *
  * The web app now handles all navigation, UI, and state management.
  * This component handles:
  * 1. Authentication verification (ensures user is logged in)
@@ -43,7 +43,7 @@ export default function PrimaryWebView() {
   // On iOS, use a smaller bottom inset since the UI is simple and doesn't need as much space
   const bottomInset = isIOS ? Math.max(insets.bottom * 0.5, 8) : insets.bottom
   const safeAreaEdges = isIOS ? ['top', 'left', 'right'] : ['top', 'left', 'right', 'bottom']
-  
+
   // Verify user is authenticated before showing WebView.
   // cache-and-network (not network-only) is intentional: with network-only, any
   // re-execution of this query (e.g. caused by a NetInfo null→false→true flicker)
@@ -62,7 +62,25 @@ export default function PrimaryWebView() {
   if (currentUser) hasLoadedUser.current = true
   const [isWebViewLoading, setIsWebViewLoading] = useState(true)
   const [webViewError, setWebViewError] = useState(null)
-  
+  const [sessionRecovering, setSessionRecovering] = useState(false)
+
+  useEffect(() => {
+    if (Platform.OS !== 'android') return
+
+    const onHardwareBackPress = () => {
+      if (!webViewRef.current) return false
+
+      webViewRef.current.injectJavaScript(`
+        window.dispatchEvent(new CustomEvent(${JSON.stringify(HYLO_HARDWARE_BACK_EVENT)}));
+        true;
+      `)
+      return true
+    }
+
+    const subscription = BackHandler.addEventListener('hardwareBackPress', onHardwareBackPress)
+    return () => subscription.remove()
+  }, [])
+
   // Get the path from the route params
   // This comes from the linking table catch-all: ':path(.*)' -> Main
   const { path, originalLinkingPath } = useRouteParams()
@@ -76,11 +94,12 @@ export default function PrimaryWebView() {
    */
   const messageHandler = useCallback((message) => {
     const { type, data } = message
-    
+
     switch (type) {
       case WebViewMessageTypes.LOGOUT:
         // Web app triggers logout, native handles the actual logout
         console.log('📱 Logout triggered from WebView')
+        setSessionRecovering(false)
         logout()
         break
 
@@ -92,11 +111,15 @@ export default function PrimaryWebView() {
         }
         break
       }
-        
+
+      case WebViewMessageTypes.CAN_EXIT_APP:
+        BackHandler.exitApp()
+        break
+
       // DEPRECATED: These cases are no longer needed
       // case 'NAVIGATION': Web app handles all navigation now
       // case 'GROUP_DELETED': Web app handles group deletion navigation
-      
+
       default:
         // Log unknown message types in dev for debugging
         if (__DEV__ && type) {
@@ -104,7 +127,7 @@ export default function PrimaryWebView() {
         }
     }
   }, [logout, setTheme])
-  
+
   /**
    * Handle WebView load completion
    */
@@ -138,7 +161,7 @@ export default function PrimaryWebView() {
   // Do NOT fallback to '/' — the proxy serves the marketing landing page there for
   // unauthenticated requests, and the React app never loads to fire the LOGOUT guard.
   const webViewPath = originalLinkingPath || path || '/app'
-  
+
   if (__DEV__) {
     console.log('📱 PrimaryWebView loading path:', {
       path,
@@ -148,16 +171,16 @@ export default function PrimaryWebView() {
       fetchingUser
     })
   }
-  
+
   // Only show NoInternetConnection on the very first load (before the WebView has loaded).
   // After first load, keep the WebView mounted — Android fires isInternetReachable=false
   // events on resume that would otherwise unmount/remount the WebView, causing reload loops.
   if (!hasLoadedUser.current && (!isConnected || !isInternetReachable)) {
     return (
-      <NoInternetConnection 
+      <NoInternetConnection
         onRetry={() => {
           setWebViewError(null)
-        }} 
+        }}
       />
     )
   }
@@ -172,11 +195,11 @@ export default function PrimaryWebView() {
   // Show error screen if WebView failed to load due to network issues
   if (webViewError && (!isConnected || !isInternetReachable)) {
     return (
-      <NoInternetConnection 
+      <NoInternetConnection
         onRetry={() => {
           setWebViewError(null)
           setIsWebViewLoading(true)
-        }} 
+        }}
       />
     )
   }
@@ -186,7 +209,7 @@ export default function PrimaryWebView() {
   //   2. cookie bridge resolution (HyloWebView renders null while getting session cookie)
   //   3. WebView page loading
   // This replaces the previous three separate loading states that caused visible flashes.
-  const showLoadingOverlay = !hasLoadedUser.current || isWebViewLoading
+  const showLoadingOverlay = !hasLoadedUser.current || isWebViewLoading || sessionRecovering
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor, paddingBottom: bottomInset }} edges={safeAreaEdges}>
@@ -212,6 +235,8 @@ export default function PrimaryWebView() {
           path={webViewPath}
           mobileAppVersion={hyloAppVersion}
           messageHandler={messageHandler}
+          onSessionRecoveryStart={() => setSessionRecovering(true)}
+          onSessionRecoveryEnd={() => setSessionRecovering(false)}
           onLoadEnd={handleLoadEnd}
           onError={handleError}
           onHttpError={handleHttpError}

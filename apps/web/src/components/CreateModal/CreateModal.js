@@ -1,13 +1,11 @@
-import React, { useRef, useState } from 'react'
+import React, { useRef, useState, useCallback } from 'react'
 import { useSelector } from 'react-redux'
 import { Route, Routes, useNavigate, useLocation } from 'react-router-dom'
 import { CSSTransition } from 'react-transition-group'
 import getPreviousLocation from 'store/selectors/getPreviousLocation'
 import UnsavedDraftLeaveDialog from 'components/UnsavedDraftLeaveDialog/UnsavedDraftLeaveDialog'
+import { useRegisterHardwareBackHandler } from 'util/hardwareBackHandler'
 import CreateModalChooser from './CreateModalChooser'
-import CreateGroup from 'components/CreateGroup'
-import FundingRoundEditor from 'components/FundingRoundEditor'
-import TrackEditor from 'components/TrackEditor'
 import Icon from 'components/Icon'
 import PostEditor from 'components/PostEditor'
 import { removeCreateEditModalFromUrl, stripComposeModalQueryParams } from '@hylo/navigation'
@@ -63,6 +61,18 @@ const CreateModal = (props) => {
     closeModal()
   }
 
+  const confirmCloseRef = useRef(confirmClose)
+  confirmCloseRef.current = confirmClose
+
+  useRegisterHardwareBackHandler(useCallback(() => {
+    if (showConfirmDialog) {
+      setShowConfirmDialog(false)
+      return true
+    }
+    confirmCloseRef.current()
+    return true
+  }, [showConfirmDialog]))
+
   return (
     <CSSTransition
       classNames='createModal'
@@ -72,7 +82,7 @@ const CreateModal = (props) => {
       nodeRef={modalRef}
     >
       <div className={classes.createModal} ref={modalRef}>
-        <div className={classes.createModalWrapper}>
+        <div className={classes.createModalWrapper} id='create-modal-content'>
           <span className='absolute top-6 right-6 p-2 z-10 cursor-pointer' onClick={confirmClose}>
             <Icon name='Ex' />
           </span>
@@ -89,36 +99,25 @@ const CreateModal = (props) => {
                 ref={postEditorRef}
               />
               )
-            : props.editingTrack
-              ? (
-                <TrackEditor {...props} />
-                )
-              : props.editingFundingRound
-                ? (
-                  <FundingRoundEditor {...props} editingRound />
-                  )
-                : (
-                  <Routes>
-                    <Route
-                      path='post'
-                      element={(
-                        <PostEditor
-                          {...props}
-                          selectedLocation={mapLocation}
-                          afterSave={closeModal}
-                          onCancel={confirmClose}
-                          setIsDirty={setIsDirty}
-                          draftId={`${modalDraftId}:create`}
-                          ref={postEditorRef}
-                        />
-                      )}
+            : (
+              <Routes>
+                <Route
+                  path='post'
+                  element={(
+                    <PostEditor
+                      {...props}
+                      selectedLocation={mapLocation}
+                      afterSave={closeModal}
+                      onCancel={confirmClose}
+                      setIsDirty={setIsDirty}
+                      draftId={`${modalDraftId}:create`}
+                      ref={postEditorRef}
                     />
-                    <Route path='group' element={<CreateGroup {...props} />} />
-                    <Route path='track' element={<TrackEditor {...props} />} />
-                    <Route path='funding-round' element={<FundingRoundEditor {...props} />} />
-                    <Route path='*' element={<CreateModalChooser {...props} />} />
-                  </Routes>
                   )}
+                />
+                <Route path='*' element={<CreateModalChooser {...props} />} />
+              </Routes>
+              )}
         </div>
         <div className={classes.createModalBg} onClick={confirmClose} />
 

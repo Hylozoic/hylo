@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 4hjAA3Sl3pGoB6jiTRLpGMoKZfd9B1XvMZqTNTSKcyYGfnYbcWgDnzvsDUnQHd2
+\restrict tUF07NWBIyBoffLToE0SeitR4QkNiJF7GirKbknzPG6fJr35GuUbD46h1N7i2kX
 
 -- Dumped from database version 17.8 (Postgres.app)
 -- Dumped by pg_dump version 18.2 (Postgres.app)
@@ -434,52 +434,17 @@ ALTER SEQUENCE public.blocked_users_id_seq OWNED BY public.blocked_users.id;
 
 
 --
--- Name: collections; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.collections (
-    id integer NOT NULL,
-    user_id bigint,
-    group_id bigint,
-    is_active boolean DEFAULT true,
-    name character varying(255) NOT NULL,
-    created_at timestamp with time zone,
-    updated_at timestamp with time zone
-);
-
-
---
--- Name: collections_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.collections_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: collections_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.collections_id_seq OWNED BY public.collections.id;
-
-
---
 -- Name: collections_posts; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.collections_posts (
     id integer NOT NULL,
-    collection_id bigint NOT NULL,
     post_id bigint NOT NULL,
     user_id bigint NOT NULL,
     "order" integer DEFAULT 0,
     created_at timestamp with time zone,
-    updated_at timestamp with time zone
+    updated_at timestamp with time zone,
+    view_id bigint NOT NULL
 );
 
 
@@ -688,77 +653,6 @@ ALTER SEQUENCE public.content_access_id_seq OWNED BY public.content_access.id;
 
 
 --
--- Name: context_widgets; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.context_widgets (
-    id bigint NOT NULL,
-    title character varying(255),
-    group_id bigint,
-    type character varying(255),
-    "order" integer,
-    visibility character varying(255),
-    parent_id bigint,
-    view character varying(255),
-    icon character varying(255),
-    auto_added boolean DEFAULT false,
-    view_group_id bigint,
-    view_post_id bigint,
-    custom_view_id bigint,
-    view_user_id bigint,
-    view_chat_id bigint,
-    created_at timestamp with time zone,
-    updated_at timestamp with time zone,
-    view_track_id bigint,
-    view_funding_round_id bigint,
-    CONSTRAINT single_view_reference CHECK (((((((
-CASE
-    WHEN (view_group_id IS NOT NULL) THEN 1
-    ELSE 0
-END +
-CASE
-    WHEN (view_post_id IS NOT NULL) THEN 1
-    ELSE 0
-END) +
-CASE
-    WHEN (view IS NOT NULL) THEN 1
-    ELSE 0
-END) +
-CASE
-    WHEN (custom_view_id IS NOT NULL) THEN 1
-    ELSE 0
-END) +
-CASE
-    WHEN (view_user_id IS NOT NULL) THEN 1
-    ELSE 0
-END) +
-CASE
-    WHEN (view_chat_id IS NOT NULL) THEN 1
-    ELSE 0
-END) <= 1))
-);
-
-
---
--- Name: context_widgets_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.context_widgets_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: context_widgets_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.context_widgets_id_seq OWNED BY public.context_widgets.id;
-
-
---
 -- Name: contributor_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -817,81 +711,6 @@ CREATE SEQUENCE public.cookie_consents_id_seq
 --
 
 ALTER SEQUENCE public.cookie_consents_id_seq OWNED BY public.cookie_consents.id;
-
-
---
--- Name: custom_view_topics; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.custom_view_topics (
-    id integer NOT NULL,
-    custom_view_id bigint NOT NULL,
-    tag_id bigint NOT NULL
-);
-
-
---
--- Name: custom_view_topics_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.custom_view_topics_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: custom_view_topics_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.custom_view_topics_id_seq OWNED BY public.custom_view_topics.id;
-
-
---
--- Name: custom_views; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.custom_views (
-    id integer NOT NULL,
-    group_id bigint,
-    is_active boolean DEFAULT true,
-    search_text character varying(255),
-    icon character varying(255),
-    name character varying(255),
-    external_link character varying(255),
-    default_view_mode character varying(255),
-    active_posts_only boolean,
-    post_types character varying(255)[],
-    created_at timestamp with time zone,
-    updated_at timestamp with time zone,
-    "order" integer NOT NULL,
-    collection_id bigint,
-    default_sort character varying(255),
-    type character varying(255)
-);
-
-
---
--- Name: custom_views_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.custom_views_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: custom_views_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.custom_views_id_seq OWNED BY public.custom_views.id;
 
 
 --
@@ -1215,7 +1034,6 @@ CREATE TABLE public.funding_rounds (
     total_tokens integer,
     min_token_allocation integer,
     max_token_allocation integer,
-    published_at timestamp with time zone,
     submissions_open_at timestamp with time zone,
     submissions_close_at timestamp with time zone,
     voting_opens_at timestamp with time zone,
@@ -1228,10 +1046,10 @@ CREATE TABLE public.funding_rounds (
     updated_at timestamp with time zone,
     submitter_roles jsonb DEFAULT '[]'::jsonb,
     voter_roles jsonb DEFAULT '[]'::jsonb,
-    phase character varying(255) DEFAULT 'draft'::character varying,
     deactivated_at timestamp with time zone,
     hide_final_results_from_participants boolean DEFAULT false,
-    allow_self_voting boolean DEFAULT false
+    allow_self_voting boolean DEFAULT false,
+    allow_late_joiners boolean DEFAULT false
 );
 
 
@@ -1253,74 +1071,6 @@ CREATE SEQUENCE public.funding_rounds_id_seq
 --
 
 ALTER SEQUENCE public.funding_rounds_id_seq OWNED BY public.funding_rounds.id;
-
-
---
--- Name: funding_rounds_posts; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.funding_rounds_posts (
-    id integer NOT NULL,
-    funding_round_id bigint NOT NULL,
-    post_id bigint NOT NULL,
-    created_at timestamp with time zone,
-    updated_at timestamp with time zone
-);
-
-
---
--- Name: funding_rounds_posts_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.funding_rounds_posts_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: funding_rounds_posts_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.funding_rounds_posts_id_seq OWNED BY public.funding_rounds_posts.id;
-
-
---
--- Name: funding_rounds_users; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.funding_rounds_users (
-    id integer NOT NULL,
-    funding_round_id bigint NOT NULL,
-    user_id bigint NOT NULL,
-    settings jsonb DEFAULT '{}'::jsonb,
-    created_at timestamp with time zone,
-    updated_at timestamp with time zone,
-    tokens_remaining integer DEFAULT 0
-);
-
-
---
--- Name: funding_rounds_users_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.funding_rounds_users_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: funding_rounds_users_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.funding_rounds_users_id_seq OWNED BY public.funding_rounds_users.id;
 
 
 --
@@ -1659,6 +1409,114 @@ ALTER SEQUENCE public.group_to_group_join_request_question_answers_id_seq OWNED 
 
 
 --
+-- Name: group_view_pins; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.group_view_pins (
+    id bigint NOT NULL,
+    view_id bigint NOT NULL,
+    post_id bigint NOT NULL,
+    pinned_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: group_view_pins_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.group_view_pins_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: group_view_pins_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.group_view_pins_id_seq OWNED BY public.group_view_pins.id;
+
+
+--
+-- Name: group_views; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.group_views (
+    id bigint NOT NULL,
+    group_id bigint NOT NULL,
+    name character varying(255),
+    type character varying(255) NOT NULL,
+    "order" integer,
+    icon character varying(255),
+    page_content text,
+    link text,
+    post_id bigint,
+    user_id bigint,
+    linked_group_id bigint,
+    topics jsonb DEFAULT '[]'::jsonb NOT NULL,
+    settings jsonb,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+--
+-- Name: group_views_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.group_views_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: group_views_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.group_views_id_seq OWNED BY public.group_views.id;
+
+
+--
+-- Name: group_views_users; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.group_views_users (
+    id bigint NOT NULL,
+    view_id bigint NOT NULL,
+    user_id bigint NOT NULL,
+    new_post_count integer DEFAULT 0 NOT NULL,
+    last_read_post_id bigint,
+    settings jsonb,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+--
+-- Name: group_views_users_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.group_views_users_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: group_views_users_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.group_views_users_id_seq OWNED BY public.group_views_users.id;
+
+
+--
 -- Name: group_widgets; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1715,6 +1573,7 @@ CREATE TABLE public.groups (
     access_code character varying(255),
     settings jsonb,
     num_members integer,
+    num_open_join_requests integer DEFAULT 0 NOT NULL,
     slack_hook_url text,
     slack_team text,
     slack_configure_url text,
@@ -1731,6 +1590,7 @@ CREATE TABLE public.groups (
     website_url text,
     calendar_token character varying(255),
     home_route character varying(255),
+    menu_view_count integer DEFAULT 0 NOT NULL,
     stripe_account_id bigint,
     stripe_charges_enabled boolean DEFAULT false,
     stripe_payouts_enabled boolean DEFAULT false,
@@ -1738,7 +1598,14 @@ CREATE TABLE public.groups (
     paywall boolean DEFAULT false,
     stripe_sales_paused boolean DEFAULT false NOT NULL,
     stripe_sales_paused_at timestamp with time zone,
-    stripe_sales_paused_reason text
+    stripe_sales_paused_reason text,
+    parent_id bigint,
+    accepted_post_types jsonb,
+    required_roles jsonb,
+    icon character varying(255),
+    track_id bigint,
+    funding_round_id bigint,
+    status character varying(255) DEFAULT 'published'::character varying NOT NULL
 );
 
 
@@ -1817,7 +1684,6 @@ ALTER SEQUENCE public.groups_id_seq OWNED BY public.groups.id;
 CREATE TABLE public.groups_posts (
     post_id bigint NOT NULL,
     id integer NOT NULL,
-    pinned_at timestamp with time zone,
     group_id bigint NOT NULL
 );
 
@@ -1916,39 +1782,6 @@ CREATE SEQUENCE public.groups_suggested_skills_id_seq
 --
 
 ALTER SEQUENCE public.groups_suggested_skills_id_seq OWNED BY public.groups_suggested_skills.id;
-
-
---
--- Name: groups_tracks; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.groups_tracks (
-    id integer NOT NULL,
-    track_id bigint NOT NULL,
-    group_id bigint NOT NULL,
-    created_at timestamp with time zone,
-    updated_at timestamp with time zone
-);
-
-
---
--- Name: groups_tracks_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.groups_tracks_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: groups_tracks_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.groups_tracks_id_seq OWNED BY public.groups_tracks.id;
 
 
 --
@@ -2578,6 +2411,7 @@ CREATE TABLE public.posts (
     is_public boolean DEFAULT false,
     donations_link character varying(255),
     project_management_link character varying(255),
+    meeting_link character varying(255),
     link_preview_featured boolean DEFAULT false,
     reactions_summary jsonb,
     timezone character varying(255),
@@ -2595,7 +2429,9 @@ CREATE TABLE public.posts (
     num_people_completed integer DEFAULT 0,
     num_commenters integer DEFAULT 0,
     budget character varying(255),
-    ical_sequence integer
+    ical_sequence integer,
+    tag_names text[] DEFAULT '{}'::text[] NOT NULL,
+    notice_data jsonb
 );
 
 
@@ -3176,6 +3012,77 @@ ALTER SEQUENCE public.skills_users_id_seq OWNED BY public.skills_users.id;
 
 
 --
+-- Name: site_banners; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.site_banners (
+    id integer NOT NULL,
+    title text,
+    text text,
+    type text DEFAULT 'info'::text,
+    action_text text,
+    action_url text,
+    created_by_id bigint,
+    published_at timestamp with time zone,
+    unpublished_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+--
+-- Name: site_banners_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.site_banners_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: site_banners_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.site_banners_id_seq OWNED BY public.site_banners.id;
+
+
+--
+-- Name: site_banners_users; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.site_banners_users (
+    id integer NOT NULL,
+    site_banner_id integer,
+    user_id bigint,
+    dismissed_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+--
+-- Name: site_banners_users_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.site_banners_users_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: site_banners_users_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.site_banners_users_id_seq OWNED BY public.site_banners_users.id;
+
+
+--
 -- Name: stripe_accounts; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -3484,11 +3391,10 @@ CREATE TABLE public.tracks (
     name character varying(255) NOT NULL,
     description text,
     banner_url text,
-    action_descriptor_plural character varying(255),
     welcome_message text,
+    action_descriptor_plural character varying(255),
     completion_message text,
     deactivated_at timestamp with time zone,
-    published_at timestamp with time zone,
     created_at timestamp with time zone,
     updated_at timestamp with time zone,
     settings jsonb DEFAULT '{}'::jsonb,
@@ -3497,7 +3403,8 @@ CREATE TABLE public.tracks (
     num_people_completed integer DEFAULT 0,
     completion_role_id bigint,
     action_descriptor character varying(255),
-    access_controlled boolean DEFAULT false
+    access_controlled boolean DEFAULT false,
+    group_id bigint
 );
 
 
@@ -3526,76 +3433,6 @@ CREATE SEQUENCE public.tracks_id_seq
 --
 
 ALTER SEQUENCE public.tracks_id_seq OWNED BY public.tracks.id;
-
-
---
--- Name: tracks_posts; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.tracks_posts (
-    id integer NOT NULL,
-    track_id bigint NOT NULL,
-    post_id bigint NOT NULL,
-    sort_order integer,
-    created_at timestamp with time zone,
-    updated_at timestamp with time zone
-);
-
-
---
--- Name: tracks_posts_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.tracks_posts_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: tracks_posts_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.tracks_posts_id_seq OWNED BY public.tracks_posts.id;
-
-
---
--- Name: tracks_users; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.tracks_users (
-    id integer NOT NULL,
-    track_id bigint NOT NULL,
-    user_id bigint NOT NULL,
-    settings jsonb DEFAULT '{}'::jsonb,
-    enrolled_at timestamp with time zone,
-    completed_at timestamp with time zone,
-    created_at timestamp with time zone,
-    updated_at timestamp with time zone
-);
-
-
---
--- Name: tracks_users_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.tracks_users_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: tracks_users_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.tracks_users_id_seq OWNED BY public.tracks_users.id;
 
 
 --
@@ -3960,13 +3797,6 @@ ALTER TABLE ONLY public.blocked_users ALTER COLUMN id SET DEFAULT nextval('publi
 
 
 --
--- Name: collections id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.collections ALTER COLUMN id SET DEFAULT nextval('public.collections_id_seq'::regclass);
-
-
---
 -- Name: collections_posts id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -3988,31 +3818,10 @@ ALTER TABLE ONLY public.content_access ALTER COLUMN id SET DEFAULT nextval('publ
 
 
 --
--- Name: context_widgets id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.context_widgets ALTER COLUMN id SET DEFAULT nextval('public.context_widgets_id_seq'::regclass);
-
-
---
 -- Name: cookie_consents id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.cookie_consents ALTER COLUMN id SET DEFAULT nextval('public.cookie_consents_id_seq'::regclass);
-
-
---
--- Name: custom_view_topics id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.custom_view_topics ALTER COLUMN id SET DEFAULT nextval('public.custom_view_topics_id_seq'::regclass);
-
-
---
--- Name: custom_views id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.custom_views ALTER COLUMN id SET DEFAULT nextval('public.custom_views_id_seq'::regclass);
 
 
 --
@@ -4069,20 +3878,6 @@ ALTER TABLE ONLY public.flagged_items ALTER COLUMN id SET DEFAULT nextval('publi
 --
 
 ALTER TABLE ONLY public.funding_rounds ALTER COLUMN id SET DEFAULT nextval('public.funding_rounds_id_seq'::regclass);
-
-
---
--- Name: funding_rounds_posts id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.funding_rounds_posts ALTER COLUMN id SET DEFAULT nextval('public.funding_rounds_posts_id_seq'::regclass);
-
-
---
--- Name: funding_rounds_users id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.funding_rounds_users ALTER COLUMN id SET DEFAULT nextval('public.funding_rounds_users_id_seq'::regclass);
 
 
 --
@@ -4156,6 +3951,27 @@ ALTER TABLE ONLY public.group_to_group_join_request_question_answers ALTER COLUM
 
 
 --
+-- Name: group_view_pins id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_view_pins ALTER COLUMN id SET DEFAULT nextval('public.group_view_pins_id_seq'::regclass);
+
+
+--
+-- Name: group_views id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_views ALTER COLUMN id SET DEFAULT nextval('public.group_views_id_seq'::regclass);
+
+
+--
+-- Name: group_views_users id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_views_users ALTER COLUMN id SET DEFAULT nextval('public.group_views_users_id_seq'::regclass);
+
+
+--
 -- Name: group_widgets id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -4202,13 +4018,6 @@ ALTER TABLE ONLY public.groups_suggested_skills ALTER COLUMN id SET DEFAULT next
 --
 
 ALTER TABLE ONLY public.groups_tags ALTER COLUMN id SET DEFAULT nextval('public.communities_tags_id_seq'::regclass);
-
-
---
--- Name: groups_tracks id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.groups_tracks ALTER COLUMN id SET DEFAULT nextval('public.groups_tracks_id_seq'::regclass);
 
 
 --
@@ -4380,6 +4189,20 @@ ALTER TABLE ONLY public.skills_users ALTER COLUMN id SET DEFAULT nextval('public
 
 
 --
+-- Name: site_banners id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.site_banners ALTER COLUMN id SET DEFAULT nextval('public.site_banners_id_seq'::regclass);
+
+
+--
+-- Name: site_banners_users id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.site_banners_users ALTER COLUMN id SET DEFAULT nextval('public.site_banners_users_id_seq'::regclass);
+
+
+--
 -- Name: stripe_accounts id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -4426,20 +4249,6 @@ ALTER TABLE ONLY public.tags ALTER COLUMN id SET DEFAULT nextval('public.tags_id
 --
 
 ALTER TABLE ONLY public.tracks ALTER COLUMN id SET DEFAULT nextval('public.tracks_id_seq'::regclass);
-
-
---
--- Name: tracks_posts id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.tracks_posts ALTER COLUMN id SET DEFAULT nextval('public.tracks_posts_id_seq'::regclass);
-
-
---
--- Name: tracks_users id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.tracks_users ALTER COLUMN id SET DEFAULT nextval('public.tracks_users_id_seq'::regclass);
 
 
 --
@@ -4572,14 +4381,6 @@ ALTER TABLE ONLY public.blocked_users
 
 
 --
--- Name: collections collections_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.collections
-    ADD CONSTRAINT collections_pkey PRIMARY KEY (id);
-
-
---
 -- Name: collections_posts collections_posts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4612,14 +4413,6 @@ ALTER TABLE ONLY public.content_access
 
 
 --
--- Name: context_widgets context_widgets_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.context_widgets
-    ADD CONSTRAINT context_widgets_pkey PRIMARY KEY (id);
-
-
---
 -- Name: cookie_consents cookie_consents_consent_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4633,22 +4426,6 @@ ALTER TABLE ONLY public.cookie_consents
 
 ALTER TABLE ONLY public.cookie_consents
     ADD CONSTRAINT cookie_consents_pkey PRIMARY KEY (id);
-
-
---
--- Name: custom_view_topics custom_view_topics_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.custom_view_topics
-    ADD CONSTRAINT custom_view_topics_pkey PRIMARY KEY (id);
-
-
---
--- Name: custom_views custom_views_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.custom_views
-    ADD CONSTRAINT custom_views_pkey PRIMARY KEY (id);
 
 
 --
@@ -4740,22 +4517,6 @@ ALTER TABLE ONLY public.funding_rounds
 
 
 --
--- Name: funding_rounds_posts funding_rounds_posts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.funding_rounds_posts
-    ADD CONSTRAINT funding_rounds_posts_pkey PRIMARY KEY (id);
-
-
---
--- Name: funding_rounds_users funding_rounds_users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.funding_rounds_users
-    ADD CONSTRAINT funding_rounds_users_pkey PRIMARY KEY (id);
-
-
---
 -- Name: group_relationships group_connections_parent_group_id_child_group_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4836,6 +4597,46 @@ ALTER TABLE ONLY public.group_to_group_join_request_question_answers
 
 
 --
+-- Name: group_view_pins group_view_pins_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_view_pins
+    ADD CONSTRAINT group_view_pins_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: group_view_pins group_view_pins_view_id_post_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_view_pins
+    ADD CONSTRAINT group_view_pins_view_id_post_id_unique UNIQUE (view_id, post_id);
+
+
+--
+-- Name: group_views group_views_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_views
+    ADD CONSTRAINT group_views_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: group_views_users group_views_users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_views_users
+    ADD CONSTRAINT group_views_users_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: group_views_users group_views_users_view_id_user_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_views_users
+    ADD CONSTRAINT group_views_users_view_id_user_id_unique UNIQUE (view_id, user_id);
+
+
+--
 -- Name: group_widgets group_widgets_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4905,14 +4706,6 @@ ALTER TABLE ONLY public.groups_suggested_skills
 
 ALTER TABLE ONLY public.groups_tags
     ADD CONSTRAINT groups_tags_group_id_tag_id_unique UNIQUE (group_id, tag_id);
-
-
---
--- Name: groups_tracks groups_tracks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.groups_tracks
-    ADD CONSTRAINT groups_tracks_pkey PRIMARY KEY (id);
 
 
 --
@@ -5252,6 +5045,30 @@ ALTER TABLE ONLY public.skills_users
 
 
 --
+-- Name: site_banners site_banners_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.site_banners
+    ADD CONSTRAINT site_banners_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: site_banners_users site_banners_users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.site_banners_users
+    ADD CONSTRAINT site_banners_users_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: site_banners_users site_banners_users_site_banner_id_user_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.site_banners_users
+    ADD CONSTRAINT site_banners_users_site_banner_id_user_id_unique UNIQUE (site_banner_id, user_id);
+
+
+--
 -- Name: stripe_accounts stripe_accounts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5329,22 +5146,6 @@ ALTER TABLE ONLY public.tags
 
 ALTER TABLE ONLY public.tracks
     ADD CONSTRAINT tracks_pkey PRIMARY KEY (id);
-
-
---
--- Name: tracks_posts tracks_posts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.tracks_posts
-    ADD CONSTRAINT tracks_posts_pkey PRIMARY KEY (id);
-
-
---
--- Name: tracks_users tracks_users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.tracks_users
-    ADD CONSTRAINT tracks_users_pkey PRIMARY KEY (id);
 
 
 --
@@ -5576,20 +5377,6 @@ CREATE INDEX content_access_user_id_status_index ON public.content_access USING 
 
 
 --
--- Name: context_widgets_group_id_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX context_widgets_group_id_index ON public.context_widgets USING btree (group_id);
-
-
---
--- Name: context_widgets_parent_id_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX context_widgets_parent_id_index ON public.context_widgets USING btree (parent_id);
-
-
---
 -- Name: cookie_consents_consent_id_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -5650,27 +5437,6 @@ CREATE INDEX email_enabled_testers_user_id_index ON public.email_enabled_testers
 --
 
 CREATE INDEX funding_rounds_group_id_index ON public.funding_rounds USING btree (group_id);
-
-
---
--- Name: funding_rounds_posts_funding_round_id_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX funding_rounds_posts_funding_round_id_index ON public.funding_rounds_posts USING btree (funding_round_id);
-
-
---
--- Name: funding_rounds_users_funding_round_id_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX funding_rounds_users_funding_round_id_index ON public.funding_rounds_users USING btree (funding_round_id);
-
-
---
--- Name: funding_rounds_users_user_id_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX funding_rounds_users_user_id_index ON public.funding_rounds_users USING btree (user_id);
 
 
 --
@@ -5793,13 +5559,6 @@ CREATE INDEX groups_tags_group_id_visibility_index ON public.groups_tags USING b
 
 
 --
--- Name: groups_tracks_group_id_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX groups_tracks_group_id_index ON public.groups_tracks USING btree (group_id);
-
-
---
 -- Name: groups_visibility_active_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -5807,10 +5566,95 @@ CREATE INDEX groups_visibility_active_index ON public.groups USING btree (visibi
 
 
 --
+-- Name: groups_type_status_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX groups_type_status_index ON public.groups USING btree (type, status);
+
+
+--
+-- Name: idx_collections_posts_view_post; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_collections_posts_view_post ON public.collections_posts USING btree (view_id, post_id) WHERE (view_id IS NOT NULL);
+
+
+--
 -- Name: idx_fts_search; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_fts_search ON public.search_index USING gin (document);
+
+
+--
+-- Name: idx_group_view_pins_post_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_group_view_pins_post_id ON public.group_view_pins USING btree (post_id);
+
+
+--
+-- Name: idx_group_views_group_order; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_group_views_group_order ON public.group_views USING btree (group_id, "order");
+
+
+--
+-- Name: idx_groups_funding_round_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_groups_funding_round_id ON public.groups USING btree (funding_round_id);
+
+
+--
+-- Name: idx_groups_parent_id_type; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_groups_parent_id_type ON public.groups USING btree (parent_id, type);
+
+
+--
+-- Name: idx_collections_posts_view_id_order; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_collections_posts_view_id_order ON public.collections_posts USING btree (view_id, "order");
+
+
+--
+-- Name: idx_gvu_user_id_view_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_gvu_user_id_view_id ON public.group_views_users USING btree (user_id, view_id) INCLUDE (new_post_count, last_read_post_id);
+
+
+--
+-- Name: idx_gvu_updated_at_unread; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_gvu_updated_at_unread ON public.group_views_users USING btree (updated_at) WHERE (new_post_count > 0);
+
+
+--
+-- Name: posts_notice_bucket_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX posts_notice_bucket_key ON public.posts USING btree (((notice_data ->> 'bucketKey'::text))) WHERE ((notice_data ->> 'bucketKey'::text) IS NOT NULL);
+
+
+
+--
+-- Name: idx_groups_track_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_groups_track_id ON public.groups USING btree (track_id);
+
+
+--
+-- Name: idx_gvu_user_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_gvu_user_id ON public.group_views_users USING btree (user_id);
 
 
 --
@@ -5860,6 +5704,13 @@ CREATE UNIQUE INDEX idx_search_index_unique ON public.search_index USING btree (
 --
 
 CREATE INDEX idx_search_index_user_id ON public.search_index USING btree (user_id) WHERE (user_id IS NOT NULL);
+
+
+--
+-- Name: idx_tracks_group_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_tracks_group_id ON public.tracks USING btree (group_id);
 
 
 --
@@ -6066,27 +5917,6 @@ CREATE INDEX subscription_change_events_user_id_group_id_index ON public.subscri
 
 
 --
--- Name: tracks_posts_track_id_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX tracks_posts_track_id_index ON public.tracks_posts USING btree (track_id);
-
-
---
--- Name: tracks_users_track_id_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX tracks_users_track_id_index ON public.tracks_users USING btree (track_id);
-
-
---
--- Name: tracks_users_user_id_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX tracks_users_user_id_index ON public.tracks_users USING btree (user_id);
-
-
---
 -- Name: user_connections_user_id_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -6261,22 +6091,6 @@ ALTER TABLE ONLY public.blocked_users
 
 
 --
--- Name: collections collections_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.collections
-    ADD CONSTRAINT collections_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id) DEFERRABLE INITIALLY DEFERRED;
-
-
---
--- Name: collections_posts collections_posts_collection_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.collections_posts
-    ADD CONSTRAINT collections_posts_collection_id_foreign FOREIGN KEY (collection_id) REFERENCES public.collections(id) DEFERRABLE INITIALLY DEFERRED;
-
-
---
 -- Name: collections_posts collections_posts_post_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6293,11 +6107,11 @@ ALTER TABLE ONLY public.collections_posts
 
 
 --
--- Name: collections collections_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: collections_posts collections_posts_view_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.collections
-    ADD CONSTRAINT collections_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) DEFERRABLE INITIALLY DEFERRED;
+ALTER TABLE ONLY public.collections_posts
+    ADD CONSTRAINT collections_posts_view_id_foreign FOREIGN KEY (view_id) REFERENCES public.group_views(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
 
 
 --
@@ -6413,115 +6227,11 @@ ALTER TABLE ONLY public.content_access
 
 
 --
--- Name: context_widgets context_widgets_custom_view_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.context_widgets
-    ADD CONSTRAINT context_widgets_custom_view_id_foreign FOREIGN KEY (custom_view_id) REFERENCES public.custom_views(id) ON DELETE CASCADE;
-
-
---
--- Name: context_widgets context_widgets_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.context_widgets
-    ADD CONSTRAINT context_widgets_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
-
-
---
--- Name: context_widgets context_widgets_parent_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.context_widgets
-    ADD CONSTRAINT context_widgets_parent_id_foreign FOREIGN KEY (parent_id) REFERENCES public.context_widgets(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
-
-
---
--- Name: context_widgets context_widgets_view_chat_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.context_widgets
-    ADD CONSTRAINT context_widgets_view_chat_id_foreign FOREIGN KEY (view_chat_id) REFERENCES public.tags(id) ON DELETE CASCADE;
-
-
---
--- Name: context_widgets context_widgets_view_funding_round_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.context_widgets
-    ADD CONSTRAINT context_widgets_view_funding_round_id_foreign FOREIGN KEY (view_funding_round_id) REFERENCES public.funding_rounds(id);
-
-
---
--- Name: context_widgets context_widgets_view_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.context_widgets
-    ADD CONSTRAINT context_widgets_view_group_id_foreign FOREIGN KEY (view_group_id) REFERENCES public.groups(id) ON DELETE CASCADE;
-
-
---
--- Name: context_widgets context_widgets_view_post_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.context_widgets
-    ADD CONSTRAINT context_widgets_view_post_id_foreign FOREIGN KEY (view_post_id) REFERENCES public.posts(id) ON DELETE CASCADE;
-
-
---
--- Name: context_widgets context_widgets_view_track_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.context_widgets
-    ADD CONSTRAINT context_widgets_view_track_id_foreign FOREIGN KEY (view_track_id) REFERENCES public.tracks(id);
-
-
---
--- Name: context_widgets context_widgets_view_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.context_widgets
-    ADD CONSTRAINT context_widgets_view_user_id_foreign FOREIGN KEY (view_user_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
-
---
 -- Name: cookie_consents cookie_consents_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.cookie_consents
     ADD CONSTRAINT cookie_consents_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id);
-
-
---
--- Name: custom_view_topics custom_view_topics_custom_view_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.custom_view_topics
-    ADD CONSTRAINT custom_view_topics_custom_view_id_foreign FOREIGN KEY (custom_view_id) REFERENCES public.custom_views(id) DEFERRABLE INITIALLY DEFERRED;
-
-
---
--- Name: custom_view_topics custom_view_topics_tag_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.custom_view_topics
-    ADD CONSTRAINT custom_view_topics_tag_id_foreign FOREIGN KEY (tag_id) REFERENCES public.tags(id);
-
-
---
--- Name: custom_views custom_views_collection_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.custom_views
-    ADD CONSTRAINT custom_views_collection_id_foreign FOREIGN KEY (collection_id) REFERENCES public.collections(id) DEFERRABLE INITIALLY DEFERRED;
-
-
---
--- Name: custom_views custom_views_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.custom_views
-    ADD CONSTRAINT custom_views_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id) DEFERRABLE INITIALLY DEFERRED;
 
 
 --
@@ -6797,38 +6507,6 @@ ALTER TABLE ONLY public.funding_rounds
 
 
 --
--- Name: funding_rounds_posts funding_rounds_posts_funding_round_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.funding_rounds_posts
-    ADD CONSTRAINT funding_rounds_posts_funding_round_id_foreign FOREIGN KEY (funding_round_id) REFERENCES public.funding_rounds(id) DEFERRABLE INITIALLY DEFERRED;
-
-
---
--- Name: funding_rounds_posts funding_rounds_posts_post_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.funding_rounds_posts
-    ADD CONSTRAINT funding_rounds_posts_post_id_foreign FOREIGN KEY (post_id) REFERENCES public.posts(id) DEFERRABLE INITIALLY DEFERRED;
-
-
---
--- Name: funding_rounds_users funding_rounds_users_funding_round_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.funding_rounds_users
-    ADD CONSTRAINT funding_rounds_users_funding_round_id_foreign FOREIGN KEY (funding_round_id) REFERENCES public.funding_rounds(id) DEFERRABLE INITIALLY DEFERRED;
-
-
---
--- Name: funding_rounds_users funding_rounds_users_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.funding_rounds_users
-    ADD CONSTRAINT funding_rounds_users_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) DEFERRABLE INITIALLY DEFERRED;
-
-
---
 -- Name: group_relationships group_connections_child_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -7021,6 +6699,78 @@ ALTER TABLE ONLY public.group_to_group_join_request_question_answers
 
 
 --
+-- Name: group_view_pins group_view_pins_post_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_view_pins
+    ADD CONSTRAINT group_view_pins_post_id_foreign FOREIGN KEY (post_id) REFERENCES public.posts(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: group_view_pins group_view_pins_view_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_view_pins
+    ADD CONSTRAINT group_view_pins_view_id_foreign FOREIGN KEY (view_id) REFERENCES public.group_views(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: group_views group_views_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_views
+    ADD CONSTRAINT group_views_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: group_views group_views_linked_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_views
+    ADD CONSTRAINT group_views_linked_group_id_foreign FOREIGN KEY (linked_group_id) REFERENCES public.groups(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: group_views group_views_post_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_views
+    ADD CONSTRAINT group_views_post_id_foreign FOREIGN KEY (post_id) REFERENCES public.posts(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: group_views group_views_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_views
+    ADD CONSTRAINT group_views_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: group_views_users group_views_users_last_read_post_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_views_users
+    ADD CONSTRAINT group_views_users_last_read_post_id_foreign FOREIGN KEY (last_read_post_id) REFERENCES public.posts(id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: group_views_users group_views_users_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_views_users
+    ADD CONSTRAINT group_views_users_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: group_views_users group_views_users_view_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_views_users
+    ADD CONSTRAINT group_views_users_view_id_foreign FOREIGN KEY (view_id) REFERENCES public.group_views(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+
+--
 -- Name: group_widgets group_widgets_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -7061,11 +6811,27 @@ ALTER TABLE ONLY public.groups
 
 
 --
+-- Name: groups groups_funding_round_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.groups
+    ADD CONSTRAINT groups_funding_round_id_foreign FOREIGN KEY (funding_round_id) REFERENCES public.funding_rounds(id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED;
+
+
+--
 -- Name: groups groups_location_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.groups
     ADD CONSTRAINT groups_location_id_foreign FOREIGN KEY (location_id) REFERENCES public.locations(id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: groups groups_parent_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.groups
+    ADD CONSTRAINT groups_parent_id_foreign FOREIGN KEY (parent_id) REFERENCES public.groups(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
 
 
 --
@@ -7117,19 +6883,11 @@ ALTER TABLE ONLY public.groups_tags
 
 
 --
--- Name: groups_tracks groups_tracks_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: groups groups_track_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.groups_tracks
-    ADD CONSTRAINT groups_tracks_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id) DEFERRABLE INITIALLY DEFERRED;
-
-
---
--- Name: groups_tracks groups_tracks_track_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.groups_tracks
-    ADD CONSTRAINT groups_tracks_track_id_foreign FOREIGN KEY (track_id) REFERENCES public.tracks(id) DEFERRABLE INITIALLY DEFERRED;
+ALTER TABLE ONLY public.groups
+    ADD CONSTRAINT groups_track_id_foreign FOREIGN KEY (track_id) REFERENCES public.tracks(id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED;
 
 
 --
@@ -7501,6 +7259,30 @@ ALTER TABLE ONLY public.skills_users
 
 
 --
+-- Name: site_banners site_banners_created_by_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.site_banners
+    ADD CONSTRAINT site_banners_created_by_id_foreign FOREIGN KEY (created_by_id) REFERENCES public.users(id);
+
+
+--
+-- Name: site_banners_users site_banners_users_site_banner_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.site_banners_users
+    ADD CONSTRAINT site_banners_users_site_banner_id_foreign FOREIGN KEY (site_banner_id) REFERENCES public.site_banners(id) ON DELETE CASCADE;
+
+
+--
+-- Name: site_banners_users site_banners_users_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.site_banners_users
+    ADD CONSTRAINT site_banners_users_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
 -- Name: stripe_logs stripe_logs_content_access_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -7589,35 +7371,11 @@ ALTER TABLE ONLY public.tag_follows
 
 
 --
--- Name: tracks_posts tracks_posts_post_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: tracks tracks_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.tracks_posts
-    ADD CONSTRAINT tracks_posts_post_id_foreign FOREIGN KEY (post_id) REFERENCES public.posts(id) DEFERRABLE INITIALLY DEFERRED;
-
-
---
--- Name: tracks_posts tracks_posts_track_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.tracks_posts
-    ADD CONSTRAINT tracks_posts_track_id_foreign FOREIGN KEY (track_id) REFERENCES public.tracks(id) DEFERRABLE INITIALLY DEFERRED;
-
-
---
--- Name: tracks_users tracks_users_track_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.tracks_users
-    ADD CONSTRAINT tracks_users_track_id_foreign FOREIGN KEY (track_id) REFERENCES public.tracks(id) DEFERRABLE INITIALLY DEFERRED;
-
-
---
--- Name: tracks_users tracks_users_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.tracks_users
-    ADD CONSTRAINT tracks_users_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) DEFERRABLE INITIALLY DEFERRED;
+ALTER TABLE ONLY public.tracks
+    ADD CONSTRAINT tracks_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED;
 
 
 --
@@ -7720,5 +7478,5 @@ ALTER TABLE ONLY public.zapier_triggers
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 4hjAA3Sl3pGoB6jiTRLpGMoKZfd9B1XvMZqTNTSKcyYGfnYbcWgDnzvsDUnQHd2
+\unrestrict tUF07NWBIyBoffLToE0SeitR4QkNiJF7GirKbknzPG6fJr35GuUbD46h1N7i2kX
 

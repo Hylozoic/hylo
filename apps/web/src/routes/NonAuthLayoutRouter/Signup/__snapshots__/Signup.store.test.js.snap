@@ -14,16 +14,20 @@ Object {
               name
               settings {
                 alreadySeenTour
-                digestFrequency
+                toursSeen
+                colorScheme
                 dmNotifications
                 commentNotifications
-                postNotifications
                 signupInProgress
                 locale
+                globalNavStyle
+                groupNavStyle
+                stackGroups
                 streamChildPosts
                 streamViewMode
                 streamSortBy
                 streamPostType
+                theme
               }
             }
           }

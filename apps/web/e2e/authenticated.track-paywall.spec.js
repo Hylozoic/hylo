@@ -2,8 +2,9 @@ import { test, expect } from '@playwright/test'
 import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading.js'
 
 /**
- * Batch P3 — access-controlled track + Stripe offering (member without Coordinator bypass).
- * Seed: `E2E Paid Track`, offering `E2E Track Access Monthly`, user `e2e.track-viewer@hylo.test`.
+ * Batch P3 — paid track space (member without Coordinator / Administration).
+ * Seed: `E2E Paid Track` space with paywall + offering granting that space.
+ * User: `e2e.track-viewer@hylo.test`.
  */
 
 test.describe.configure({ timeout: 120000 })
@@ -12,15 +13,14 @@ const uiTimeout = { timeout: 60000 }
 
 const PUBLIC_GROUP_SLUG = 'e2e-public-group'
 const PAID_TRACK_NAME = 'E2E Paid Track'
-const TRACK_OFFERING_NAME = 'E2E Track Access Monthly'
 
 /**
- * Track DB id is sequence-dependent; resolve via GraphQL after login.
+ * Resolve Track space slug via GraphQL after login.
  * @param {import('@playwright/test').Page} page
  * @param {string} groupSlug
  * @param {string} trackName
  */
-async function fetchTrackIdByName (page, groupSlug, trackName) {
+async function fetchTrackSpaceSlug (page, groupSlug, trackName) {
   return page.evaluate(
     async ({ slug, name }) => {
       const res = await fetch('/noo/graphql', {
@@ -31,7 +31,11 @@ async function fetchTrackIdByName (page, groupSlug, trackName) {
           query: `query ($slug: String) {
             group(slug: $slug) {
               tracks(first: 30, published: true) {
-                items { id name }
+                items {
+                  id
+                  name
+                  space { id slug }
+                }
               }
             }
           }`,
@@ -50,25 +54,28 @@ async function fetchTrackIdByName (page, groupSlug, trackName) {
       }
       const items = json?.data?.group?.tracks?.items || []
       const row = items.find(i => i.name === name)
-      return row?.id ?? null
+      return row?.space?.slug ?? null
     },
     { slug: groupSlug, name: trackName }
   )
 }
 
-test.describe('Batch P3: track paywall (track viewer)', () => {
-  test('published access-controlled track shows fee and purchase affordances', async ({ page }) => {
+test.describe('Batch P3: paid space paywall (track viewer)', () => {
+  test('paywalled track space shows offerings on join interstitial', async ({ page }) => {
     await page.goto('/')
     await waitPastRootSessionLoading(page)
 
-    const trackId = await fetchTrackIdByName(page, PUBLIC_GROUP_SLUG, PAID_TRACK_NAME)
-    expect(trackId).toBeTruthy()
+    const spaceSlug = (await fetchTrackSpaceSlug(page, PUBLIC_GROUP_SLUG, PAID_TRACK_NAME)) || 'e2e-paid-track-space'
+    expect(spaceSlug).toBeTruthy()
 
-    await page.goto(`/groups/${PUBLIC_GROUP_SLUG}/tracks/${trackId}`)
+    const localSlug = spaceSlug.startsWith(`${PUBLIC_GROUP_SLUG}-`)
+      ? spaceSlug.slice(PUBLIC_GROUP_SLUG.length + 1)
+      : spaceSlug
+
+    await page.goto(`/groups/${PUBLIC_GROUP_SLUG}/spaces/${localSlug}/track-actions`)
     await waitPastRootSessionLoading(page)
 
-    await expect(page.getByRole('heading', { name: /This track requires a fee to access/i })).toBeVisible(uiTimeout)
-    await expect(page.getByText(TRACK_OFFERING_NAME)).toBeVisible(uiTimeout)
-    await expect(page.getByRole('button', { name: /Purchase Access/i })).toBeVisible(uiTimeout)
+    await expect(page.getByText(/Pay to Join Space/i)).toBeVisible(uiTimeout)
+    await expect(page.getByText(/E2E Track Access Monthly/i)).toBeVisible(uiTimeout)
   })
 })

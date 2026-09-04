@@ -27,17 +27,22 @@ export default gql`
           title
         }
       }
+      acceptedPostTypes
       avatarUrl
       bannerUrl
+      icon
       name
       memberCount
       stewardDescriptor
       stewardDescriptorPlural
+      parentId
       settings {
         showSuggestedSkills
         showWelcomePage
+        layout
       }
       slug
+      type
       allowInPublic
       accessibility
     }

@@ -11,12 +11,14 @@
 const StripeService = require('../services/StripeService')
 const Stripe = require('stripe')
 const { parseJsonObject: parseAccessGrants } = require('../../lib/stripeOfferingMetadata')
+const { grantCheckoutSessionAccess } = require('../../lib/grantCheckoutSessionAccess')
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2025-10-29.clover'
 })
 /* global bookshelf, StripeAccount, StripeProduct, ContentAccess, GroupMembership, Group, User, Track, Frontend, SubscriptionChangeEvent */
 
 const Email = require('../services/Email')
+const { normalizeLocaleToFull } = require('../../lib/localeHelpers')
 
 // Dispute rate thresholds matching Stripe's own early-warning and critical levels
 const DISPUTE_RATE_WARNING_THRESHOLD = 0.0075 // 0.75% — Stripe early warning
@@ -772,118 +774,25 @@ module.exports = {
       }
 
       // Verify payment was successful
-      if (session.payment_status !== 'paid') {
+      if (session.payment_status !== 'paid' && session.payment_status !== 'no_payment_required') {
         if (process.env.NODE_ENV === 'development') {
           console.log(`Checkout session ${session.id} completed but payment status is ${session.payment_status}`)
         }
         return
       }
 
-      // Extract user and product info from session metadata
-      const userId = session.metadata?.userId
-      const groupId = session.metadata?.groupId
-      const offeringId = session.metadata?.offeringId
-
-      if (!userId || !groupId || !offeringId) {
+      const grant = await grantCheckoutSessionAccess(session)
+      if (!grant.granted) {
         if (process.env.NODE_ENV === 'development') {
-          console.log(`Missing required metadata in session ${session.id}:`, {
-            userId: !!userId,
-            groupId: !!groupId,
-            offeringId: !!offeringId
-          })
+          console.log(`Checkout session ${session.id} did not grant access: ${grant.reason}`)
         }
         return
       }
 
-      // Find the offering (StripeProduct) by database ID
-      const offering = await StripeProduct.where({ id: offeringId }).fetch()
-      if (!offering) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`No offering found for ID: ${offeringId}`)
-        }
-        return
-      }
-
-      // Verify the offering belongs to the specified group
-      const offeringGroupId = offering.get('group_id')
-      if (parseInt(offeringGroupId) !== parseInt(groupId)) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`Offering ${offeringId} does not belong to group ${groupId}`)
-        }
-        return
-      }
-
-      // Determine if this is a subscription based on session mode
-      const stripeSubscriptionId = session.subscription || null
-
-      const userIdNum = parseInt(userId, 10)
-      const grantedByGroupIdNum = parseInt(offeringGroupId, 10)
-
-      // FIRST: Determine which groups need membership from the offering's access_grants
-      // We need to ensure membership BEFORE assigning roles
-      const accessGrants = offering.get('access_grants') || {}
-      const groupsToJoin = new Set()
-
-      // Add the group that owns the product (always grant access to this group)
-      groupsToJoin.add(grantedByGroupIdNum)
-
-      // Add any groups specified in access_grants.groupIds
-      if (accessGrants.groupIds && Array.isArray(accessGrants.groupIds)) {
-        for (const groupId of accessGrants.groupIds) {
-          const groupIdNum = parseInt(groupId, 10)
-          if (!isNaN(groupIdNum) && groupIdNum > 0) {
-            groupsToJoin.add(groupIdNum)
-          }
-        }
-      }
-
-      // If groupRoleIds are specified, ensure membership for those groups
-      if (accessGrants.groupRoleIds || accessGrants.groupIds) {
-        const groupIdsForRoles = accessGrants.groupIds && Array.isArray(accessGrants.groupIds) && accessGrants.groupIds.length > 0
-          ? accessGrants.groupIds.map(id => parseInt(id, 10)).filter(id => !isNaN(id) && id > 0)
-          : [grantedByGroupIdNum]
-        for (const groupIdNum of groupIdsForRoles) {
-          groupsToJoin.add(groupIdNum)
-        }
-      }
-
-      // Ensure user is a member of all groups that will receive access BEFORE assigning roles
-      for (const accessGroupId of groupsToJoin) {
-        try {
-          const membership = await GroupMembership.ensureMembership(userIdNum, accessGroupId)
-
-          // Record agreement acceptance - user accepted agreements before purchase
-          if (membership) {
-            await membership.acceptAgreements()
-          }
-
-          // Pin the purchased group to the user's global navigation
-          await GroupMembership.pinGroupToNav(userIdNum, accessGroupId)
-
-          if (process.env.NODE_ENV === 'development') {
-            console.log(`Ensured group membership for user ${userIdNum} in group ${accessGroupId}`)
-          }
-        } catch (error) {
-          console.error(`Error ensuring membership for user ${userIdNum} in group ${accessGroupId}:`, error)
-          // Continue processing other groups even if one fails
-        }
-      }
-
-      // NOW: Generate content access records and assign roles (membership is already ensured)
-      const accessRecords = await offering.generateContentAccessRecords({
-        userId: userIdNum,
-        sessionId: session.id,
-        stripeSubscriptionId,
-        stripeCustomerId: session.customer || null,
-        metadata: {
-          paymentAmount: session.amount_total,
-          currency: session.currency,
-          purchasedAt: new Date().toISOString()
-        }
-      })
+      const { userId, groupId, offering, accessRecords, stripeSubscriptionId } = grant
 
       if (process.env.NODE_ENV === 'development') {
-        console.log(`Created ${accessRecords.length} content access records for user ${userId}`)
+        console.log(`${grant.already ? 'Reused' : 'Created'} ${accessRecords.length} content access records for user ${userId}`)
       }
 
       // Transfer platform contribution to Hylo if the customer added the optional line item
@@ -978,7 +887,7 @@ module.exports = {
 
             // Format purchase date
             const purchaseDate = new Date(session.created * 1000)
-            const formattedPurchaseDate = purchaseDate.toLocaleDateString(userLocale === 'es' ? 'es-ES' : 'en-US', {
+            const formattedPurchaseDate = purchaseDate.toLocaleDateString(normalizeLocaleToFull(userLocale), {
               year: 'numeric',
               month: 'long',
               day: 'numeric'
@@ -1007,10 +916,12 @@ module.exports = {
             let track = null
             let trackName = null
             let trackUrl = null
+            let trackSpace = null
             if (isTrackPurchase && trackId) {
               track = await Track.find(trackId)
               if (track) {
-                trackName = track.get('name')
+                trackSpace = await track.group().fetch()
+                trackName = trackSpace ? trackSpace.get('name') : ''
                 trackUrl = Frontend.Route.track(track, group)
               }
             }
@@ -1046,7 +957,7 @@ module.exports = {
 
                 if (subscription.current_period_end) {
                   const renewalDateObj = new Date(subscription.current_period_end * 1000)
-                  renewalDate = renewalDateObj.toLocaleDateString(userLocale === 'es' ? 'es-ES' : 'en-US', {
+                  renewalDate = renewalDateObj.toLocaleDateString(normalizeLocaleToFull(userLocale), {
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric'
@@ -1101,9 +1012,9 @@ module.exports = {
                 data: {
                   user_name: user.get('name'),
                   track_name: trackName,
-                  track_description: track.get('description'),
+                  track_description: trackSpace ? trackSpace.get('description') : '',
                   track_url: trackUrl,
-                  track_image_url: track.get('image_url') || group.get('avatar_url'),
+                  track_image_url: (trackSpace && (trackSpace.get('banner_url') || trackSpace.get('avatar_url'))) || group.get('avatar_url'),
                   group_name: group.get('name'),
                   group_url: Frontend.Route.group(group),
                   offering_name: offering.get('name'),
@@ -1162,7 +1073,7 @@ module.exports = {
                   } else if (duration === 'annual') {
                     expiresAtDate.setFullYear(expiresAtDate.getFullYear() + 1)
                   }
-                  emailData.expires_at = expiresAtDate.toLocaleDateString(userLocale === 'es' ? 'es-ES' : 'en-US', {
+                  emailData.expires_at = expiresAtDate.toLocaleDateString(normalizeLocaleToFull(userLocale), {
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric'
@@ -1606,7 +1517,7 @@ module.exports = {
           const userLocale = user.getLocale()
           const cancelledAt = new Date()
           const cancelledAtFormatted = cancelledAt.toLocaleDateString(
-            userLocale === 'es' ? 'es-ES' : 'en-US',
+            normalizeLocaleToFull(userLocale),
             {
               year: 'numeric',
               month: 'long',
@@ -1630,7 +1541,7 @@ module.exports = {
           }
 
           const accessEndsAtFormatted = accessEndsAt.toLocaleDateString(
-            userLocale === 'es' ? 'es-ES' : 'en-US',
+            normalizeLocaleToFull(userLocale),
             {
               year: 'numeric',
               month: 'long',
@@ -1708,7 +1619,7 @@ module.exports = {
                 const adminLocale = admin.getLocale()
 
                 const cancelledAtFormattedForAdmin = cancelledAt.toLocaleDateString(
-                  adminLocale === 'es' ? 'es-ES' : 'en-US',
+                  normalizeLocaleToFull(adminLocale),
                   {
                     year: 'numeric',
                     month: 'long',
@@ -1717,7 +1628,7 @@ module.exports = {
                 )
 
                 const accessEndsAtFormattedForAdmin = accessEndsAt.toLocaleDateString(
-                  adminLocale === 'es' ? 'es-ES' : 'en-US',
+                  normalizeLocaleToFull(adminLocale),
                   {
                     year: 'numeric',
                     month: 'long',
@@ -1908,7 +1819,7 @@ module.exports = {
           const userLocale = user.getLocale()
           const paymentDate = new Date(invoice.created * 1000)
           const paymentDateFormatted = paymentDate.toLocaleDateString(
-            userLocale === 'es' ? 'es-ES' : 'en-US',
+            normalizeLocaleToFull(userLocale),
             {
               year: 'numeric',
               month: 'long',
@@ -1917,7 +1828,7 @@ module.exports = {
           )
 
           const nextRenewalDateFormatted = newExpiresAt.toLocaleDateString(
-            userLocale === 'es' ? 'es-ES' : 'en-US',
+            normalizeLocaleToFull(userLocale),
             {
               year: 'numeric',
               month: 'long',
@@ -2167,7 +2078,7 @@ module.exports = {
           if (invoice.next_payment_attempt) {
             const retryDate = new Date(invoice.next_payment_attempt * 1000)
             retryDateFormatted = retryDate.toLocaleDateString(
-              userLocale === 'es' ? 'es-ES' : 'en-US',
+              normalizeLocaleToFull(userLocale),
               {
                 year: 'numeric',
                 month: 'long',
@@ -2180,7 +2091,7 @@ module.exports = {
           let accessEndsDateFormatted = null
           if (accessEndsDate) {
             accessEndsDateFormatted = accessEndsDate.toLocaleDateString(
-              userLocale === 'es' ? 'es-ES' : 'en-US',
+              normalizeLocaleToFull(userLocale),
               {
                 year: 'numeric',
                 month: 'long',

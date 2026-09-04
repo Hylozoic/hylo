@@ -29,6 +29,13 @@ export default {
       // => @media (min-width: 1536px) { ... }
     },
     extend: {
+      boxShadow: {
+        // Sticky headers and menu bars that must read as a layer above the
+        // content scrolling under them. The dark variant needs a much heavier
+        // alpha: a 0.1 shadow is invisible against a dark surface.
+        header: '0 4px 14px 0 rgba(0, 0, 0, 0.16)',
+        'header-dark': '0 6px 18px 0 rgba(0, 0, 0, 0.45)'
+      },
       scale: {
         101: '1.01',
         102: '1.02'
@@ -59,12 +66,36 @@ export default {
           '50%': {
             'box-shadow': 'none'
           }
+        },
+        'menu-flash': {
+          '0%, 100%': {
+            'box-shadow': '0 0 0 0 hsl(var(--selected) / 0)',
+            'background-color': 'hsl(var(--selected) / 0)'
+          },
+          '18%, 32%': {
+            'box-shadow': '0 0 0 3px hsl(var(--selected) / 0.7)',
+            'background-color': 'hsl(var(--selected) / 0.28)'
+          },
+          '50%': {
+            'box-shadow': '0 0 0 0 hsl(var(--selected) / 0)',
+            'background-color': 'hsl(var(--selected) / 0)'
+          },
+          '68%, 82%': {
+            'box-shadow': '0 0 0 3px hsl(var(--selected) / 0.7)',
+            'background-color': 'hsl(var(--selected) / 0.28)'
+          }
+        },
+        'typing-dot': {
+          '0%, 60%, 100%': { opacity: '0.25', transform: 'translateY(0)' },
+          '30%': { opacity: '1', transform: 'translateY(-2px)' }
         }
       },
       animation: {
         'slide-up': 'slide-up 0.15s ease-out forwards var(--delay, 0ms)',
         'fill-forwards': 'forwards',
-        pulsate: 'glow 0.75s ease-in-out infinite'
+        pulsate: 'glow 0.75s ease-in-out infinite',
+        'menu-flash': 'menu-flash 1.4s ease-in-out',
+        'typing-dot': 'typing-dot 1.1s ease-in-out infinite'
       },
       animationDelay: {
         ...Array.from({ length: 20 }, (_, i) => i * 50).reduce((acc, delay) => ({
@@ -139,7 +170,16 @@ export default {
         },
         'theme-background': 'hsl(var(--theme-background))',
         'theme-highlight': 'hsl(var(--theme-highlight) / <alpha-value>)',
-        'context-menu-background': 'hsl(var(--context-menu-background) / <alpha-value>)'
+        'context-menu-background': 'hsl(var(--context-menu-background) / <alpha-value>)',
+        chats: 'hsl(var(--chats) / <alpha-value>)',
+        discussions: 'hsl(var(--discussions) / <alpha-value>)',
+        events: 'hsl(var(--events) / <alpha-value>)',
+        offers: 'hsl(var(--offers) / <alpha-value>)',
+        projects: 'hsl(var(--projects) / <alpha-value>)',
+        proposals: 'hsl(var(--proposals) / <alpha-value>)',
+        requests: 'hsl(var(--requests) / <alpha-value>)',
+        resources: 'hsl(var(--resources) / <alpha-value>)',
+        members: 'hsl(var(--members) / <alpha-value>)'
       },
       fontSize: {
         '2xs': '0.625rem'

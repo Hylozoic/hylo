@@ -12,10 +12,10 @@ describe('PostGroups', () => {
     slug: 'hylo'
   }
 
-  it('renders group names and "Posted In:" text', () => {
+  it('renders group names and "To:" text', () => {
     render(<PostGroups {...defaultProps} />)
 
-    expect(screen.getByText('Posted In:')).toBeInTheDocument()
+    expect(screen.getByText(/To:/)).toBeInTheDocument()
     expect(screen.getByText('One')).toBeInTheDocument()
     expect(screen.getByText('Two')).toBeInTheDocument()
     expect(screen.getByText('1 other')).toBeInTheDocument()

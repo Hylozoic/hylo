@@ -1,15 +1,23 @@
-import { ws } from 'msw'
+import { graphql, http, HttpResponse, ws } from 'msw'
 import { setupServer } from 'msw/node'
 import { toSocketIo } from '@mswjs/socket.io-binding'
 
 // TODO: figure out better way to mock websocket stuff, without warnings.
 const chat = ws.link('ws://localhost:3001')
 
+const emptyGraphqlResponse = () => HttpResponse.json({ data: {} })
+
+// Unit tests use window.location.origin (http://localhost) as the API host
+const hyloGraphql = graphql.link('http://localhost/noo/graphql')
+
 const handlers = [
-  // http.get('http://localhost:3001/socket.io', () => {
-  //   console.log('socket.ioaaaa')
-  //   return HttpResponse.json({ message: 'Mocked response' })
-  // })
+  // Catch-all so unmocked GraphQL calls don't hit the network and flake tests.
+  // Tests can still override with mockGraphqlServer.use(...).
+  hyloGraphql.operation(emptyGraphqlResponse),
+  graphql.operation(emptyGraphqlResponse),
+  http.post('http://localhost/noo/graphql', emptyGraphqlResponse),
+  http.post('http://localhost:3001/noo/graphql', emptyGraphqlResponse),
+  http.post('*/noo/graphql', emptyGraphqlResponse),
   chat.addEventListener('connection', (connection) => {
     console.log('socket connection')
     const io = toSocketIo(connection)

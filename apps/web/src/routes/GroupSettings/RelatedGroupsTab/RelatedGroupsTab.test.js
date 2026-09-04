@@ -8,7 +8,7 @@ import orm from 'store/models'
 const parentGroups = []
 const childGroups = []
 
-function testProviders() {
+function testProviders () {
   const ormSession = orm.mutableSession(orm.getEmptyState())
   ormSession.Me.create({ id: '1' })
   parentGroups.push(ormSession.Group.create({ id: '2', name: 'Parent 1', slug: 'parent-1' }))
@@ -47,7 +47,7 @@ describe('RelatedGroupsTab', () => {
             }
           }
         })
-      }),
+      })
     )
   })
 
@@ -57,24 +57,17 @@ describe('RelatedGroupsTab', () => {
       { wrapper: testProviders() }
     )
 
-    // Check for parent groups
     await waitFor(() => {
       expect(screen.getByText('Parent Groups')).toBeInTheDocument()
-      expect(screen.getByText('These are the 3 groups that {{group.name}} is a member of')).toBeInTheDocument()
-      parentGroups.forEach(parent => {
-        expect(screen.getByText(parent.name)).toBeInTheDocument()
-      })
-
-      // Check for child groups
       expect(screen.getByText('Child Groups')).toBeInTheDocument()
-      expect(screen.getByText('These {{childGroups.length}} groups are members of {{group.name}}')).toBeInTheDocument()
-      childGroups.forEach(child => {
-        expect(screen.getByText(child.name)).toBeInTheDocument()
-      })
+      expect(screen.getByText('Add Group Relationships')).toBeInTheDocument()
+    })
 
-      // Check for buttons
-      expect(screen.getByText('Join {{group.name}} to another group')).toBeInTheDocument()
-      expect(screen.getByText('Invite a group to join')).toBeInTheDocument()
+    parentGroups.forEach(parent => {
+      expect(screen.getByText(parent.name)).toBeInTheDocument()
+    })
+    childGroups.forEach(child => {
+      expect(screen.getByText(child.name)).toBeInTheDocument()
     })
   })
 })

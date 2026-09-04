@@ -21,7 +21,13 @@ module.exports = bookshelf.Model.extend({
     const user = await this.user().fetch()
     const group = await this.group().fetch()
     if (user && group) {
-      await user.joinGroup(group)
+      const wasPending = this.get('status') === JoinRequest.STATUS.Pending
+      const membership = await user.joinGroup(group)
+      // Requester already accepted agreements and answered questions when submitting.
+      // Carry that through so the welcome modal does not re-ask after approval.
+      if (membership) {
+        await membership.completeJoinBarriers()
+      }
 
       // TODO: add tracking of who did the approving in the join_request
       await this.save({ status: JoinRequest.STATUS.Accepted }).then(async request => {
@@ -34,9 +40,32 @@ module.exports = bookshelf.Model.extend({
 
         Activity.saveForReasons([approvedMember])
       })
+      if (wasPending) {
+        await Group.adjustOpenJoinRequestCount(group.id, -1)
+      }
       return this
     }
     throw new GraphQLError('Invalid join request')
+  },
+
+  /** Mark a pending request as rejected and decrement the group's cached count. */
+  decline: async function () {
+    const wasPending = this.get('status') === JoinRequest.STATUS.Pending
+    await this.save({ status: JoinRequest.STATUS.Rejected })
+    if (wasPending) {
+      await Group.adjustOpenJoinRequestCount(this.get('group_id'), -1)
+    }
+    return this
+  },
+
+  /** Mark a pending request as canceled and decrement the group's cached count. */
+  cancel: async function () {
+    const wasPending = this.get('status') === JoinRequest.STATUS.Pending
+    await this.save({ status: JoinRequest.STATUS.Canceled })
+    if (wasPending) {
+      await Group.adjustOpenJoinRequestCount(this.get('group_id'), -1)
+    }
+    return this
   }
 }, {
 
@@ -55,25 +84,36 @@ module.exports = bookshelf.Model.extend({
       status: this.STATUS.Pending
     }).save()
       .then(async request => {
-        JoinRequest.afterCreate(request)
+        await JoinRequest.afterCreate(request)
         return request
       })
   },
 
   afterCreate: async function (request) {
+    await Group.adjustOpenJoinRequestCount(request.get('group_id'), 1)
     await request.load(['group', 'user'])
     const { group, user } = request.relations
 
-    const moderators = await group.moderators().fetch()
+    // Notify anyone with Add Members on this group, or on the parent for spaces
+    // (space.moderators() only finds space members, so parent stewards were skipped).
+    const rows = await Responsibility.fetchForGroup(group.id)
+    const readerIds = [...new Set(
+      rows
+        .filter(r => r.responsibility_title === Responsibility.constants.RESP_ADD_MEMBERS)
+        .map(r => r.user_id)
+        .filter(id => String(id) !== String(user.id))
+    )]
 
-    const announcees = moderators.map(moderator => ({
+    const parentId = group.get('parent_id')
+    const announcees = readerIds.map(readerId => ({
       actor_id: user.id,
-      reader_id: moderator.id,
+      reader_id: readerId,
       group_id: group.id,
+      ...(parentId ? { other_group_id: parentId } : {}),
       reason: 'joinRequest'
     }))
 
-    Activity.saveForReasons(announcees)
+    await Activity.saveForReasons(announcees)
   },
 
   find: async function (id) {

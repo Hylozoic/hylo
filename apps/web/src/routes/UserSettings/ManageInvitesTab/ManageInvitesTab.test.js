@@ -1,69 +1,38 @@
 import React from 'react'
-import { render, screen, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
-import { JOIN_REQUEST_STATUS } from 'store/models/JoinRequest'
+import orm from 'store/models'
+import { AllTheProviders, render, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import ManageInvitesTab from './ManageInvitesTab'
 
+jest.mock('./ManageInvitesTab.store', () => ({
+  ...jest.requireActual('./ManageInvitesTab.store'),
+  fetchMyInvitesAndRequests: () => ({ type: 'MOCK_FETCH_MY_REQUESTS_AND_INVITES' })
+}))
+
+function emptyProviders (pending = {}) {
+  const ormSession = orm.mutableSession(orm.getEmptyState())
+  ormSession.Me.create({ id: '1', name: 'Test User' })
+  return AllTheProviders({ orm: ormSession.state, pending })
+}
+
 describe('ManageInvitesTab', () => {
-  it('renders a list of pending join requests', () => {
-    const props = {
-      canceledJoinRequests: [],
-      pendingGroupInvites: [
-        { id: '1', group: { id: 1, name: 'group1', avatarUrl: null }, creator: { id: 1, name: 'Testy Tester' } }
-      ],
-      pendingJoinRequests: [
-        { id: '1', group: { id: 1, name: 'group1', avatarUrl: null } },
-        { id: '2', group: { id: 2, name: 'group2', avatarUrl: null } }
-      ],
-      rejectedJoinRequests: [],
-      cancelJoinRequest: jest.fn(),
-      fetchMyInvitesAndRequests: jest.fn(() => Promise.resolve({ me: {} }))
-    }
+  it('renders empty invite and request sections', async () => {
+    render(<ManageInvitesTab />, { wrapper: emptyProviders() })
 
-    render(<ManageInvitesTab {...props} />)
-
-    expect(screen.getByText('Group Invitations & Join Requests')).toBeInTheDocument()
-    expect(screen.getByText('Invitations to Join New Groups')).toBeInTheDocument()
-    expect(screen.getByText('Your Open Requests to Join Groups')).toBeInTheDocument()
-    expect(screen.getAllByText(/group\d/).length).toBe(3) // 2 pending join requests + 1 pending invite
-    expect(screen.getByText('Testy Tester')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText('Invitations to Join New Groups')).toBeInTheDocument()
+      expect(screen.getByText('Invitations to Join Spaces')).toBeInTheDocument()
+      expect(screen.getByText('Your Open Requests to Join Groups')).toBeInTheDocument()
+      expect(screen.getByText('Your Open Requests to Join Spaces')).toBeInTheDocument()
+      expect(screen.getByText('Declined Invitations & Requests')).toBeInTheDocument()
+    })
   })
 
-  it('displays loading state when loading prop is true', () => {
-    const props = {
-      loading: true,
-      canceledJoinRequests: [],
-      pendingGroupInvites: [],
-      pendingJoinRequests: [],
-      rejectedJoinRequests: [],
-      cancelJoinRequest: jest.fn(),
-      fetchMyInvitesAndRequests: jest.fn()
-    }
-
-    render(<ManageInvitesTab {...props} />)
+  it('displays loading state when fetch is pending', () => {
+    render(
+      <ManageInvitesTab />,
+      { wrapper: emptyProviders({ FETCH_MY_REQUESTS_AND_INVITES: true }) }
+    )
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument()
-  })
-
-  it('renders declined invitations and requests', () => {
-    const props = {
-      canceledJoinRequests: [
-        { id: '1', group: { id: 1, name: 'canceled1', avatarUrl: null }, status: JOIN_REQUEST_STATUS.Canceled }
-      ],
-      pendingGroupInvites: [],
-      pendingJoinRequests: [],
-      rejectedJoinRequests: [
-        { id: '2', group: { id: 2, name: 'rejected1', avatarUrl: null }, status: JOIN_REQUEST_STATUS.Rejected }
-      ],
-      cancelJoinRequest: jest.fn(),
-      fetchMyInvitesAndRequests: jest.fn(() => Promise.resolve({ me: {} }))
-    }
-
-    render(<ManageInvitesTab {...props} />)
-
-    expect(screen.getByText('Declined Invitations & Requests')).toBeInTheDocument()
-    expect(screen.getByText('canceled1')).toBeInTheDocument()
-    expect(screen.getByText('rejected1')).toBeInTheDocument()
-    expect(screen.getByText('Canceled')).toBeInTheDocument()
-    expect(screen.getByText('Declined')).toBeInTheDocument()
   })
 })

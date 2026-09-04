@@ -5,22 +5,17 @@ if (!process.env.DATABASE_URL) {
   throw new Error('process.env.DATABASE_URL must be set')
 }
 
-const url = require('url').parse(process.env.DATABASE_URL)
-let user, password
-if (url.auth) {
-  const i = url.auth.indexOf(':')
-  user = url.auth.slice(0, i)
-  password = url.auth.slice(i + 1)
-}
+const databaseUrl = new URL(process.env.DATABASE_URL)
 
 const defaults = {
   client: 'pg',
   connection: {
-    host: url.hostname,
-    port: url.port,
-    user: user || 'postgres',
-    password: password,
-    database: url.pathname.substring(1)
+    host: databaseUrl.hostname,
+    port: databaseUrl.port || undefined,
+    user: decodeURIComponent(databaseUrl.username || 'postgres'),
+    // Empty string when URL has no password (e.g. postgresql://postgres@127.0.0.1/db)
+    password: databaseUrl.password ? decodeURIComponent(databaseUrl.password) : undefined,
+    database: decodeURIComponent(databaseUrl.pathname.replace(/^\//, ''))
   },
   pool: {
     // https://github.com/Vincit/objection.js/issues/1137

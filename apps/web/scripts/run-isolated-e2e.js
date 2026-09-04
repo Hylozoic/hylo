@@ -249,6 +249,18 @@ const waitForBackend = async (url, timeoutMs = 120000, shouldAbort = () => null)
   throw new Error(`Backend did not become ready: ${url}`)
 }
 
+/**
+ * Isolated API heap. Playwright fans out many GraphQL requests at one Sails process;
+ * without a cap Node dies around the default ~2–4GB and Vite logs ECONNRESET.
+ * If NODE_OPTIONS already sets max-old-space-size, leave it alone.
+ * @param {string} [existing]
+ */
+function withBackendHeapLimit (existing) {
+  const current = existing || ''
+  if (/\bmax-old-space-size\b/.test(current)) return current
+  return `${current} --max-old-space-size=8192`.trim()
+}
+
 const setupDatabase = (backendEnv) => {
   console.log(`\n[isolated-e2e] Recreating DB ${e2eDbName}`)
   terminateSessionsToDatabase(e2eDbName, e2eDbUrl, pgCliEnv)
@@ -280,10 +292,7 @@ const runE2E = async () => {
     DATABASE_URL: e2eDbUrl,
     PORT: e2eBackendPort,
     NODE_ENV: 'development',
-    /** Long Playwright runs: reduce OOM risk if unset (merge with existing NODE_OPTIONS). */
-    NODE_OPTIONS: process.env.NODE_OPTIONS
-      ? process.env.NODE_OPTIONS
-      : '--max-old-space-size=4096',
+    NODE_OPTIONS: withBackendHeapLimit(process.env.NODE_OPTIONS),
     PROTOCOL: 'http',
     DOMAIN: `localhost:${e2eWebPort}`,
     /** Lets decodeHyloJWT accept tokens minted when DOMAIN briefly differs (e.g. :3000 vs E2E web :3330) */

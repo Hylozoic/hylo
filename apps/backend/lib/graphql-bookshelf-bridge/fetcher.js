@@ -44,7 +44,7 @@ export default class Fetcher {
     // apply the filter that always applies to this target model, if any
     const model = this._getModel(typename)
 
-    if (model.filter) relation = model.filter(relation)
+    if (model.filter && !fetchOpts.skipModelFilter) relation = model.filter(relation)
 
     // apply the filter that applies to this specific pair of models, if any
     if (fetchOpts.filter) relation = fetchOpts.filter(relation)

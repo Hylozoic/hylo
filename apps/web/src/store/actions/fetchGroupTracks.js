@@ -20,10 +20,8 @@ query (
         id
         accessControlled
         canAccess
-        bannerUrl
         actionDescriptor
         actionDescriptorPlural
-        description
         completionMessage
         completionRole {
           id
@@ -32,13 +30,24 @@ query (
         }
         didComplete
         isEnrolled
-        name
         numActions
         numPeopleCompleted
         numPeopleEnrolled
-        publishedAt
         userSettings
-        welcomeMessage
+        space {
+          id
+          name
+          bannerUrl
+          description
+          slug
+          type
+          status
+          homeRoute
+          parentGroup {
+            id
+            slug
+          }
+        }
       }
     }
   }
@@ -52,7 +61,7 @@ export default function fetchGroupTracks (groupId, {
   offset = 0,
   order = 'desc',
   published = null,
-  sortBy = 'published_at'
+  sortBy = 'created_at'
 }) {
   return {
     type: FETCH_GROUP_TRACKS,

@@ -11,10 +11,8 @@ export const LEAVE_TRACK = `${MODULE_NAME}/LEAVE_TRACK`
 export const LEAVE_TRACK_PENDING = `${MODULE_NAME}/LEAVE_TRACK_PENDING`
 export const UPDATE_TRACK = `${MODULE_NAME}/UPDATE_TRACK`
 export const UPDATE_TRACK_PENDING = `${MODULE_NAME}/UPDATE_TRACK_PENDING`
-export const UPDATE_TRACK_ACTION_ORDER = `${MODULE_NAME}/UPDATE_TRACK_ACTION_ORDER`
-export const UPDATE_TRACK_ACTION_ORDER_PENDING = `${MODULE_NAME}/UPDATE_TRACK_ACTION_ORDER_PENDING`
 
-const PostFieldsFragment = `
+export const PostFieldsFragment = `
   id
   commentersTotal
   commentsTotal
@@ -29,7 +27,6 @@ const PostFieldsFragment = `
   location
   numPeopleCompleted
   peopleReactedTotal
-  sortOrder
   startTime
   timezone
   title
@@ -141,7 +138,6 @@ export function fetchTrack (trackId) {
             canAccess
             actionDescriptor
             actionDescriptorPlural
-            bannerUrl
             completionMessage
             completionRole {
               id
@@ -156,8 +152,21 @@ export function fetchTrack (trackId) {
                 }
               }
             }
-            description
             didComplete
+            space {
+              id
+              slug
+              type
+              status
+              homeRoute
+              name
+              bannerUrl
+              description
+              parentGroup {
+                id
+                slug
+              }
+            }
             enrolledUsers {
               items {
                 id
@@ -168,18 +177,10 @@ export function fetchTrack (trackId) {
               }
             }
             isEnrolled
-            name
             numActions
             numPeopleCompleted
             numPeopleEnrolled
-            publishedAt
             userSettings
-            welcomeMessage
-            posts {
-              items {
-                ${PostFieldsFragment}
-              }
-            }
           }
         }
       `,
@@ -206,32 +207,31 @@ export function createTrack (data) {
           id
           actionDescriptor
           actionDescriptorPlural
-          bannerUrl
           completionMessage
           completionRole {
             id
             emoji
             name
           }
-          description
-          groups {
-            items {
+          space {
+            id
+            slug
+            type
+            status
+            homeRoute
+            name
+            bannerUrl
+            description
+            parentGroup {
               id
-              name
               slug
             }
           }
-          name
-          publishedAt
-          welcomeMessage
         }
       }
       `,
       variables: {
-        data: {
-          ...data,
-          publishedAt: data.publishedAt ? data.publishedAt.valueOf() : null
-        }
+        data
       }
     },
     meta: {
@@ -247,8 +247,8 @@ export function updateTrack (data) {
 
   // We need completionRole in the data for the optimistic update, but only the id in the mutation
   const dataForUpdate = { ...rest }
-  if (dataForUpdate.completionRole) {
-    dataForUpdate.completionRoleId = rest.completionRole.id
+  if (Object.prototype.hasOwnProperty.call(rest, 'completionRole')) {
+    dataForUpdate.completionRoleId = rest.completionRole?.id ?? null
   }
   delete dataForUpdate.completionRole
 
@@ -270,31 +270,6 @@ export function updateTrack (data) {
     meta: {
       trackId,
       data: rest,
-      optimistic: true
-    }
-  }
-}
-
-export function updateTrackActionOrder ({ trackId, postId, newOrderIndex }) {
-  return {
-    type: UPDATE_TRACK_ACTION_ORDER,
-    graphql: {
-      query: `mutation UpdateTrackActionOrder($trackId: ID, $postId: ID, $newOrderIndex: Int) {
-        updateTrackActionOrder(trackId: $trackId, postId: $postId, newOrderIndex: $newOrderIndex) {
-          success
-        }
-      }
-      `,
-      variables: {
-        trackId,
-        postId,
-        newOrderIndex: newOrderIndex + 1 // order in db is 1-indexed
-      }
-    },
-    meta: {
-      trackId,
-      postId,
-      newOrderIndex,
       optimistic: true
     }
   }
@@ -352,12 +327,26 @@ export function duplicateTrack (trackId) {
         mutation ($trackId: ID) {
           duplicateTrack(trackId: $trackId) {
             id
+            space {
+              id
+              slug
+              type
+              status
+              homeRoute
+              parentGroup {
+                id
+                slug
+              }
+            }
           }
         }
       `,
       variables: {
         trackId
       }
+    },
+    meta: {
+      extractModel: 'Track'
     }
   }
 }

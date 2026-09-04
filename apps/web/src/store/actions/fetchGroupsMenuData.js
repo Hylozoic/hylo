@@ -1,9 +1,13 @@
 import { get } from 'lodash/fp'
 import { FETCH_GROUPS_MENU_DATA } from 'store/constants'
+import {
+  collectLinkedGroupsFromGroupsQuery,
+  collectSpaceGroupsFromGroupsQuery
+} from 'store/util/extractNestedGroups'
 
 // Fetches context menu data for a batch of groups.
-// This preloads the contextWidgets and related fields needed to render
-// group context menus immediately, without waiting for individual group fetches.
+// Preloads groupViews and spaces so group menus render
+// immediately when switching groups, without waiting for per-group fetches.
 // Accepts a subset of groupIds to support pagination (typically 10 at a time).
 export default function fetchGroupsMenuData (groupIds) {
   return {
@@ -19,6 +23,16 @@ export default function fetchGroupsMenuData (groupIds) {
       extractModel: [
         {
           getRoot: get('groups'),
+          modelName: 'Group',
+          append: true
+        },
+        {
+          getRoot: data => collectLinkedGroupsFromGroupsQuery(get('groups', data)),
+          modelName: 'Group',
+          append: true
+        },
+        {
+          getRoot: data => collectSpaceGroupsFromGroupsQuery(get('groups', data)),
           modelName: 'Group',
           append: true
         }
@@ -45,107 +59,200 @@ query FetchGroupsMenuData (
       purpose
       slug
       type
+      status
+      parentId
+      icon
+      homeRoute
+      menuViewCount
       visibility
       accessibility
+      acceptedPostTypes
       memberCount
+      paywall
+      stripeAccountId
+      stripeChargesEnabled
+      stripePayoutsEnabled
+      stripeDetailsSubmitted
       settings {
         allowGroupInvites
         showWelcomePage
+        layout
       }
-      customViews {
+      groupViews {
         items {
           id
-          groupId
-          collectionId
-          externalLink
-          isActive
-          icon
+          type
           name
           order
-          postTypes
-          topics {
+          icon
+          link
+          pageContent
+          topics
+          settings
+          newPostCount
+          lastReadPostId
+          pinnedPostIds
+          linkedGroup {
             id
             name
-          }
-          type
-        }
-      }
-      contextWidgets {
-        items {
-          id
-          autoAdded
-          title
-          type
-          order
-          visibility
-          view
-          icon
-          highlightNumber
-          secondaryNumber
-          parentId
-          viewGroup {
-            id
+            slug
+            type
+            status
+            parentId
             avatarUrl
             bannerUrl
-            name
-            memberCount
+            icon
+            homeRoute
+            menuViewCount
+            description
+            purpose
+            location
+            locationObject {
+              id
+              fullText
+            }
+            acceptedPostTypes
             visibility
             accessibility
-            slug
+            requiredRoles
+            paywall
+            groupRoles {
+              items {
+                id
+                name
+                emoji
+              }
+            }
+            track {
+              id
+              actionDescriptor
+              actionDescriptorPlural
+              accessControlled
+              canAccess
+            }
+            fundingRound {
+              id
+              phase
+              submissionDescriptor
+              submissionDescriptorPlural
+            }
+            groupViews {
+              items {
+                id
+                type
+                name
+                order
+                icon
+                settings
+                newPostCount
+                lastReadPostId
+                pinnedPostIds
+                viewPost {
+                  id
+                  title
+                }
+                viewUser {
+                  id
+                  name
+                  avatarUrl
+                }
+                linkedGroup {
+                  id
+                  name
+                  slug
+                  avatarUrl
+                  icon
+                }
+              }
+            }
           }
           viewPost {
             id
-            announcement
             title
-            details
-            type
-            createdAt
-            startTime
-            endTime
-            isPublic
-          }
-          customView {
-            id
-            groupId
-            collectionId
-            externalLink
-            isActive
-            icon
-            name
-            order
-            postTypes
-            topics {
-              id
-              name
-            }
-            type
           }
           viewUser {
             id
             name
             avatarUrl
           }
-          viewChat {
+        }
+      }
+      spaces {
+        items {
+          id
+          name
+          slug
+          type
+          status
+          parentId
+          avatarUrl
+          icon
+          bannerUrl
+          description
+          purpose
+          location
+          locationObject {
             id
-            name
+            fullText
           }
-          viewFundingRound {
-            id
-            title
-            isParticipating
-            publishedAt
-            submissionsOpenAt
-            submissionsCloseAt
-            votingOpensAt
-            votingClosesAt
+          acceptedPostTypes
+          visibility
+          accessibility
+          requiredRoles
+          paywall
+          groupRoles {
+            items {
+              id
+              name
+              emoji
+              active
+            }
           }
-          viewTrack {
+          active
+          homeRoute
+          menuViewCount
+          groupViews {
+            items {
+              id
+              type
+              name
+              order
+              icon
+              settings
+              newPostCount
+              lastReadPostId
+              pinnedPostIds
+              pageContent
+              viewPost {
+                id
+                title
+              }
+              viewUser {
+                id
+                name
+                avatarUrl
+              }
+              linkedGroup {
+                id
+                name
+                slug
+                avatarUrl
+                icon
+              }
+            }
+          }
+          track {
             id
-            name
-            didComplete
-            isEnrolled
-            numActions
-            publishedAt
+            actionDescriptor
+            actionDescriptorPlural
+            accessControlled
+            canAccess
+          }
+          fundingRound {
+            id
+            phase
+            submissionDescriptor
+            submissionDescriptorPlural
           }
         }
       }
