@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-expressions */
 import createPost, { afterCreatingPost } from './createPost'
 const rootPath = require('root-path')
 const setup = require(rootPath('test/setup'))
@@ -12,7 +13,7 @@ describe('afterCreatingPost', () => {
     setup.clearDb()
       .then(() => Promise.props({
         requestTag: Tag.forge({ name: 'request' }).save(),
-        u1: new User({ name: 'U1', email: 'a@b.c', active: true }).save(),
+        u1: new User({ name: 'U1', email: 'a@b.c', active: true }).save()
       }))
       .then(props => {
         post = factories.post({ user_id: props.u1.id, description: 'wow!', link_preview_id: null })
@@ -64,13 +65,13 @@ describe('afterCreatingPost', () => {
   it('ignores duplicate group ids', () => {
     const c = factories.group()
     return c.save()
-    .then(() => post.save())
-    .then(() => afterCreatingPost(post, {group_ids: [c.id, c.id]}))
-    .then(() => post.load('groups'))
-    .then(() => expect(post.relations.groups.length).to.equal(1))
-    .catch(err => {
-      throw err
-    })
+      .then(() => post.save())
+      .then(() => afterCreatingPost(post, { group_ids: [c.id, c.id] }))
+      .then(() => post.load('groups'))
+      .then(() => expect(post.relations.groups.length).to.equal(1))
+      .catch(err => {
+        throw err
+      })
   })
 
   it('queues a link preview when the post has a URL and no preview', () => {
@@ -83,7 +84,7 @@ describe('afterCreatingPost', () => {
       .then(() => afterCreatingPost(linkedPost, { group_ids: [] }))
       .then(() => {
         expect(Queue.classMethod).to.have.been.called
-          .with('Post', 'generateLinkPreview', { postId: linkedPost.id, url: 'https://example.com/from-zapier' }, 0)
+          .with('Post', 'generateLinkPreview', { postId: linkedPost.id, url: 'https://example.com/from-zapier' })
       })
   })
 
@@ -185,8 +186,16 @@ describe('Post.generateLinkPreview', () => {
       unspyify(LinkPreview, 'findOrCreateAndPopulate')
     }
   })
-})
 
+  it('throws when the post is not found so the job can retry', async () => {
+    try {
+      await Post.generateLinkPreview({ postId: 999999999, url: 'https://example.com/retry' })
+      expect.fail('should throw')
+    } catch (e) {
+      expect(e.message).to.match(/post 999999999 not found/)
+    }
+  })
+})
 
 describe('createPost accepted_post_types', () => {
   let user, restrictedGroup

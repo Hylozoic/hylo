@@ -1,4 +1,5 @@
 /* globals LinkPreview */
+/* eslint-disable no-unused-expressions */
 import { spyify, unspyify, mockify } from '../../setup/helpers'
 import factories from '../../setup/factories'
 require('../../setup')
@@ -6,7 +7,7 @@ require('../../setup')
 describe('LinkPreview', () => {
   describe('populate', () => {
     const url = 'http://foo.com/bar'
-    var preview
+    let preview
 
     beforeEach(() => {
       // getLinkPreview is bound at module load; mock the model method instead of link-preview-js
@@ -20,17 +21,17 @@ describe('LinkPreview', () => {
           done: true
         })
       })
-      preview = LinkPreview.forge({url})
+      preview = LinkPreview.forge({ url })
       return preview.save()
     })
 
     afterEach(() => unspyify(LinkPreview, 'populate'))
 
     it('works', () => {
-      return LinkPreview.populate({id: preview.id})
-      .then(preview => {
-        expect(preview.get('title')).to.equal('wow!')
-      })
+      return LinkPreview.populate({ id: preview.id })
+        .then(preview => {
+          expect(preview.get('title')).to.equal('wow!')
+        })
     })
   })
 
@@ -42,20 +43,20 @@ describe('LinkPreview', () => {
 
     it('works for a new url', () => {
       return LinkPreview.queue(url)
-      .then(() => LinkPreview.find(url))
-      .then(preview => {
-        expect(preview).to.exist
+        .then(() => LinkPreview.find(url))
+        .then(preview => {
+          expect(preview).to.exist
 
-        expect(Queue.classMethod).to.have.been.called
-        .with('LinkPreview', 'populate', {id: preview.id}, 0)
-      })
+          expect(Queue.classMethod).to.have.been.called
+            .with('LinkPreview', 'populate', { id: preview.id }, 0)
+        })
     })
 
     it('does nothing for an existing url', () => {
       const url3 = 'http://foo.com/bar3'
-      return LinkPreview.forge({url: url3}).save()
-      .then(() => LinkPreview.queue(url3))
-      .then(() => expect(Queue.classMethod).not.to.have.been.called())
+      return LinkPreview.forge({ url: url3 }).save()
+        .then(() => LinkPreview.queue(url3))
+        .then(() => expect(Queue.classMethod).not.to.have.been.called())
     })
   })
 
@@ -88,6 +89,22 @@ describe('LinkPreview', () => {
         expect(preview.get('url')).to.equal(url)
         expect(preview.get('title')).to.equal('Fresh')
         expect(preview.get('done')).to.equal(true)
+        expect(LinkPreview.populate).to.have.been.called()
+      } finally {
+        unspyify(LinkPreview, 'populate')
+      }
+    })
+
+    it('re-fetches a done preview that has no title', async () => {
+      const url = 'http://foo.com/failed-then-retry'
+      await LinkPreview.forge({ url, done: true }).save()
+      mockify(LinkPreview, 'populate', async ({ id }) => {
+        const p = await LinkPreview.find(id)
+        return p.save({ title: 'Recovered', done: true, updated_at: new Date() })
+      })
+      try {
+        const preview = await LinkPreview.findOrCreateAndPopulate(url)
+        expect(preview.get('title')).to.equal('Recovered')
         expect(LinkPreview.populate).to.have.been.called()
       } finally {
         unspyify(LinkPreview, 'populate')
