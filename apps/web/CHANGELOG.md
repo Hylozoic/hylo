@@ -6,11 +6,92 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [7.0.0] - 2026-09-02 - Spaces and Views!
+
 ### Added
-- Funding round setting to allow people who join during voting to get tokens and vote
+- Groups can now contain **Spaces**, which are fully nested child groups accessible directly from the group menu. Tracks and Funding Rounds are now types of space and can have custom menus. If a space has a single view in it then clicking on it in the group menu directly opens that view. If it has more than one then the group menu is replaced by the space menu, with a header showing the parent group at the top to go back to the parent group.
+- Spaces can be Open to all, Request to Invite, Invite Only, only visible to certain roles, or accessible only by paying for access.
+- You can convert a regular space to a child group from space settings, and a child group with one parent to a space from Related Groups.
+- There's a new More Spaces page for spaces that are not currently in the group's menu. This replaces the previous All Views, Tracks, and Funding Rounds pages. You can also find draft spaces here (not yet visible to group members), and archived spaces that the group is no longer actively using.
+- The group and space About page has much more information, with tabs for group details, members, related groups, moderation, and notifications settings. You can also leave the group or space from here. About and Related Groups no longer appears as a menu items.
+- If a group or space has pending Join Requests then a menu item appears for group stewards with a badge indicating how many are waiting a response.
+- If a group or space has flagged posts waiting a moderation decision then a menu item appears for group stewards with a badge indicating how many are waiting a response.
+- If a person is invited to a space but is not a member of the parent group they will first be invited to join the parent group, and once they join they will also be added to the space.
+- You can invite Hylo members to a group or space by searching for them by name.
+- Space collections: A new type of view that enables steward-curated lists of spaces in the menu. People with Manage Content can add spaces, and drag-reorder spaces in the collection.
+- Post Collections are much more flexible and allow for adding/removing posts from the three dot menu on a post, and reordering them by drag and drop from the collection view.
+- The Stream view has been renamed All Activity and now contains chat cards that show chat activity that occurred within any given hour. Clicking on it will take you to those chats in the chat room.
+- You can now pin posts to any specific view and they will appear at the top of that view. You can pin up to three posts to a view at a time.
+- Redesign active members view widget appears in the menu. Active members also shown in the chat room along with who is currently typing.
+- Spaces with a location appear on the group map.
+- New Skill map on the members directory shows who has what skills in the group.
+- Join and activity dates on member cards
+- When viewing the member directory in a track type space you can see which members completed or did not yet complete the track.
+- When viewing the a Funding round space type member directory you can see and filter by who can vote, who can submit, who cannot submit and who cannot vote.
+- New funding round settings to allow people who join during voting to get tokens and vote, to hide or show the budget field, and to show real-time vote totals during the voting phase.
+- Draft and archived statuses for all spaces
+- Draft funding rounds show a Draft step on Manage Round with Publish Round. After publishing, that step is gone and Round has not begun is current.
+- You can now turn off post types when creating/editing a group or space. When off you can no longer post those types of posts in that group or space, and the views associated with those post types are hidden from the menu.
+- Begin button on a track welcome page that goes to Actions
+- Show funding round details on the Welcome view for the space always. ALso in a tab in the About page for the space.
+- Animated Hylo loading screen on boot
+- Attachments on direct messages
+- Editing direct messages
+- Dedicated meeting link field on events
+- Support for setting a timezone on posts.
+- Public posts include Open Graph and Twitter meta tags for title, body text, and the first attached image
+- Guided tours for group creators and new members (menu, stream, chat, map, settings, space creation, post editor, track and funding-round setup). Help menu lists the tour catalog
+- New group menu layout style optionsd: Side menu is the current style with the group's menu on the left and the current view content on the right. Card Menu style (also called one-column layout) means you see the group menu taking up the whole screen, with views as cards. Clicking on a view takes you to the content in full width. Then you click the back button in the header to go back to the group's menu. Clicking on a space will take you to the space's menu where you can further drill into a view in the space. A group can set this menu style as its default, which can be overriden by the user in their appearance settings if they want to always use one style or the other.in Edi
+- New appearance setting Group Nav Stacking -> Stacking, shows a parent group with all its child groups nested in the global nav menu. Clicking on the parent shows a menu to let you jump directly to a child group.
+- New appearance setting Global Navigation -> Topbar shows the global nav menu as tabs at the top of the screen instead of on the left.
+- New ability for Hylo stewards to send one-time announcements to all hylo users that appear as a banner at the top of the site.
+- Creating an event in a specific calendar context adds the selected date from the calender
+- More options to filter/sort members in the memberlist
 
 ### Changed
-- Temporarily removed ability to customize email invite message, to prevent spam
+- Group menu rebuilt around views and spaces. A multi-view space drills into its own menu; a single-view space links straight to that view. Views are either in the menu or deleted. Only spaces can live off-menu, in More Spaces
+- You can no longer nest menu items inside of containers. Instead you can add text header items or separator items to the menu. This simplifies drag and drop reordering of the menu items.
+- Welcome Page is a view. Joining a group or space with a welcome page goes there first, though you can turn this off in the Welcome view settings.
+- Chat Rooms no longer show full post cards of non-chat post types. Instead they show a smaller notice. You can also turn off post notices completely in the chat view settings.
+- My Home has been tweaked to show All My Groups Activity, Map, and Events at the top of the menu; My Tracks and My Funding Rounds as card grids of spaces you belong to. Announcements has been removed from the menu.
+- Post editor "To" field nests spaces under their parent group and filters by accepted post types
+- Posts in My, All, and Public streams, and in search results, show which group or space they belong to.
+- Clicking a #tag searches by it instead of going to a topic stream
+- Paid tracks become paid spaces
+- Use the Heart icon for Request posts
+- Active members are marked with a green avatar dot (the member-count pill's green dot means more people are online than fit in the strip)
+- Help menu includes a tour catalog which you can rerun tours from
+- New Group creation flow gives more advanced options for initial setup of your group.
+- Post editor link preview is full width and uses the same card colors as the post card
+- Long chat posts now show a small Read More link at the bottom to expand the post.
+- New unified map drawer shows posts, groups and members intermingled, though you can still filter to show only certain types of content.
+- Allow admins to fulfill/unfulfill posts
+
+### Removed
+- All Views, Tracks, and Funding Rounds as group pages (those URLs redirect to More Spaces)
+- Custom Views, Welcome Page, Tracks, and Topics tabs in Group Settings
+- Announcements from the My Home menu (the `/my/announcements` route still works)
+- About, Moderation, and Related Groups as separate menu views (they are About page tabs)
+- The `#general` topic
+- Manage Tracks and Manage Funding Rounds responsibilities (Administration covers management of spaces)
+- The ability to customize email invite message, to prevent spam
+
+### Fixed
+- @mentions in comments only suggest people in the group
+- Creating a post by clicking the map
+- Searching in a group no longer shows public posts; comment search results no longer show raw HTML
+- When viewing child posts in an activity stream, no longer show peer-group posts.
+- Date/time picker stays on screen in Safari at any size
+- Nested user settings menu on mobile
+- Featured YouTube/Vimeo link previews play as embedded videos again
+- Removing a link preview in the editor no longer regenerates it on save.
+- Opening a space on a phone starts at the top of the space menu
+- Links to a different Hylo environment (e.g. staging.hylo.com while on hylo.com) open in a new tab instead of being rewritten as in-app routes
+- After a join request is approved, the group welcome modal no longer re-shows agreements and join questions that were already completed
+- Offering descriptions are saved and shown as plain text, so Stripe Checkout no longer displays HTML tags
+- en locale split into en-US and en-GB locales to respect date formats
+- Removing someone from a group also removes other group related permissions
+- All base-map layers now available in dark mode
 
 ## [6.5.6] - 2026-08-04
 

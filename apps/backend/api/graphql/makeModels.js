@@ -625,7 +625,10 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'locationObject',
         { members: { querySet: true } },
         { eventInvitations: { querySet: true } },
-        { moderationActions: { querySet: true } },
+        // Plain list, matching the schema's [ModerationAction] — a querySet
+        // here makes every query selecting the field fail with
+        // "Expected Iterable" before any resolver output reaches the client
+        'moderationActions',
         { proposalOptions: { querySet: true } },
         { proposalVotes: { querySet: true } },
         'linkPreview',
@@ -2072,6 +2075,30 @@ export default function makeModels (userId, isAdmin, apiClient) {
         userId: e => e.get('user_id'),
         createdAt: e => e.get('created_at'),
         updatedAt: e => e.get('updated_at')
+      }
+    },
+
+    SiteBanner: {
+      model: SiteBanner,
+      attributes: [
+        'id',
+        'title',
+        'text',
+        'type',
+        'created_at',
+        'updated_at'
+      ],
+      relations: [
+        { creator: { alias: 'creator' } }
+      ],
+      getters: {
+        actionText: b => b.get('action_text'),
+        actionUrl: b => b.get('action_url'),
+        publishedAt: b => b.get('published_at'),
+        unpublishedAt: b => b.get('unpublished_at'),
+        createdAt: b => b.get('created_at'),
+        updatedAt: b => b.get('updated_at'),
+        dismissedCount: b => SiteBanner.dismissedCount(b.get('id'))
       }
     }
   }

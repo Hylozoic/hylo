@@ -1,11 +1,9 @@
 import { cn } from 'util/index'
 import React from 'react'
-import { useTranslation } from 'react-i18next'
-import { useDispatch } from 'react-redux'
+import { FlagCover } from 'components/FlagBadge'
 import PostTitle from '../PostTitle'
 import PostContent from '../PostContent'
 import PostBodyProposal from '../PostBodyProposal'
-import { recordClickthrough } from 'store/actions/moderationActions'
 
 import classes from './PostBody.module.scss'
 
@@ -18,6 +16,8 @@ export default function PostBody (props) {
     currentUser,
     highlightProps,
     isFlagged,
+    flagCover = true,
+    onRevealFlagged,
     mapDrawer = false,
     onClick,
     onAddProposalVote,
@@ -25,18 +25,13 @@ export default function PostBody (props) {
     onSwapProposalVote,
     ...post
   } = props
-  const dispatch = useDispatch()
-  const { t } = useTranslation()
 
   return (
-    <div>
-      {isFlagged && !post.clickthrough &&
-        <div className={classes.clickthroughContainer}>
-          <div>{t('clickthroughExplainer')}</div>
-          <div className={classes.clickthroughButton} onClick={() => dispatch(recordClickthrough({ postId: post.id }))}>{t('View post')}</div>
-        </div>}
+    <div className='relative'>
+      {isFlagged && flagCover &&
+        <FlagCover post={post} onView={onRevealFlagged} />}
 
-      <div className={cn('p-2 pb-0', { [classes.smallMargin]: !expanded, [classes.constrained]: constrained, [classes.isFlagged]: isFlagged && !post.clickthrough }, className)}>
+      <div className={cn('p-2 pb-0', { [classes.smallMargin]: !expanded, [classes.constrained]: constrained, [classes.isFlagged]: isFlagged }, className)}>
         {post.type !== 'chat' && (
           <PostTitle
             {...post}
