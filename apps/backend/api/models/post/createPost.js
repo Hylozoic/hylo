@@ -4,6 +4,7 @@ import setupPostAttrs from './setupPostAttrs'
 import updateChildren from './updateChildren'
 import { assertGroupsAcceptPostType } from './validatePostData'
 import { groupRoom, pushToSockets } from '../../services/Websockets'
+import { partitionImageUrls } from '../../../lib/uploader/rehostRemoteMedia'
 import {
   POST_TYPE_TO_TYPED_VIEW,
   postCountsTowardChatUnread
@@ -11,12 +12,13 @@ import {
 
 export default async function createPost (userId, params) {
   await assertGroupsAcceptPostType(params.group_ids, params.type)
+  const { hosted: hostedImageUrls, remote: remoteImageUrls } = partitionImageUrls(params.imageUrls)
   return setupPostAttrs(userId, merge(Post.newPostAttrs(), params), true)
     .then(attrs => bookshelf.transaction(transacting =>
       Post.create(attrs, { transacting })
         .tap(post => afterCreatingPost(post, merge(
-          pick(params, 'localId', 'group_ids', 'imageUrl', 'videoUrl', 'docs', 'topicNames', 'memberIds', 'eventInviteeIds', 'imageUrls', 'fileUrls', 'fundingRoundId', 'announcement', 'location', 'location_id', 'proposalOptions', 'trackId', 'viewId', 'markAsReadTopicName', 'skip_link_preview'),
-          { children: params.requests, transacting }
+          pick(params, 'localId', 'group_ids', 'imageUrl', 'videoUrl', 'docs', 'topicNames', 'memberIds', 'eventInviteeIds', 'fileUrls', 'fundingRoundId', 'announcement', 'location', 'location_id', 'proposalOptions', 'trackId', 'viewId', 'markAsReadTopicName', 'skip_link_preview'),
+          { imageUrls: hostedImageUrls, children: params.requests, transacting }
         ))))
       .then(function (inserts) {
         inserts.setLocalId(params.localId)
@@ -25,6 +27,14 @@ export default async function createPost (userId, params) {
         throw error
       }))
     .then(post => {
+      if (remoteImageUrls.length > 0) {
+        Queue.classMethod('Post', 'rehostAndAttachImages', {
+          postId: post.id,
+          userId,
+          imageUrls: remoteImageUrls,
+          startPosition: (hostedImageUrls || []).length
+        }, 0)
+      }
       if (post.get('type') === Post.Type.CHAT) {
         Queue.classMethod('Post', 'upsertChatActivityNotice', { postId: post.id }, 0)
       }
