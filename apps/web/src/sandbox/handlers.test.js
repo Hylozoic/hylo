@@ -212,6 +212,15 @@ describe('sandbox GraphQL handlers', () => {
     expect(seed.track.actions[0].completedAt).toBeTruthy()
   })
 
+  it('returns siteBanners as a plain array, not a QuerySet', () => {
+    const result = handleGraphql({
+      query: 'query { siteBanners { id title text type } }'
+    }, seed)
+
+    expect(Array.isArray(result.data.siteBanners)).toBe(true)
+    expect(result.data.siteBanners).toEqual([])
+  })
+
   it('returns local search hits for people, posts, and comments', () => {
     const result = handleGraphql({
       query: `query Search ($search: String, $type: String) {
