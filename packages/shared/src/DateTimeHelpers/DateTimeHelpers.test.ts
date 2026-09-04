@@ -67,6 +67,38 @@ describe('formatDatePair', () => {
   })
 })
 
+describe('defaultEventTimesForDate', () => {
+  it('uses 9am-10am on a past day', () => {
+    const past = DateTime.now().minus({ days: 3 }).toISODate()
+    const { startTime, endTime } = DateTimeHelpers.defaultEventTimesForDate(past)
+    const start = DateTime.fromJSDate(startTime)
+    const end = DateTime.fromJSDate(endTime)
+    expect(start.toISODate()).toBe(past)
+    expect(start.hour).toBe(9)
+    expect(start.minute).toBe(0)
+    expect(end.toISODate()).toBe(past)
+    expect(end.hour).toBe(10)
+  })
+
+  it('uses 9am-10am on a future day', () => {
+    const future = DateTime.now().plus({ days: 3 }).toISODate()
+    const { startTime, endTime } = DateTimeHelpers.defaultEventTimesForDate(future)
+    const start = DateTime.fromJSDate(startTime)
+    const end = DateTime.fromJSDate(endTime)
+    expect(start.toISODate()).toBe(future)
+    expect(start.hour).toBe(9)
+    expect(end.toISODate()).toBe(future)
+    expect(end.hour).toBe(10)
+  })
+
+  it('uses a time after now when the selected day is today', () => {
+    const today = DateTime.now().toISODate()
+    const { startTime, endTime } = DateTimeHelpers.defaultEventTimesForDate(today)
+    expect(startTime.getTime()).toBeGreaterThan(Date.now())
+    expect(endTime.getTime()).toBeGreaterThan(startTime.getTime())
+  })
+})
+
 describe('timezone helpers', () => {
   it('converts between picker dates and stored instants', () => {
     const timezone = 'America/Los_Angeles'

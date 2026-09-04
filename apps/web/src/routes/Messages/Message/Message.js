@@ -1,14 +1,14 @@
 import { cn } from 'util/index'
 import { Check, Pencil, X } from 'lucide-react'
 import PropTypes from 'prop-types'
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
-import TextareaAutosize from 'react-textarea-autosize'
 import Avatar from 'components/Avatar'
 import ClickCatcher from 'components/ClickCatcher'
 import CardFileAttachments from 'components/CardFileAttachments'
 import CardImageAttachments from 'components/CardImageAttachments'
+import HyloEditor from 'components/HyloEditor'
 import HyloHTML from 'components/HyloHTML'
 import ProfileCardDialog from 'components/ProfileCardDialog/ProfileCardDialog'
 import { TextHelpers, DateTimeHelpers } from '@hylo/shared'
@@ -20,8 +20,8 @@ export default function Message ({ message, isHeader }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const currentUser = useSelector(getMe)
+  const editorRef = useRef()
   const [editing, setEditing] = useState(false)
-  const [editText, setEditText] = useState(message.text)
   const [showActions, setShowActions] = useState(false)
 
   const person = message.creator
@@ -40,41 +40,49 @@ export default function Message ({ message, isHeader }) {
     ? `${t('edited')} ${DateTimeHelpers.humanDate(message.editedAt)}`
     : null
 
+  useEffect(() => {
+    if (!editing) return
+    const id = setTimeout(() => editorRef.current?.focus('end'), 100)
+    return () => clearTimeout(id)
+  }, [editing])
+
   const handleEdit = useCallback(() => {
-    setEditText(message.text)
     setEditing(true)
     setShowActions(false)
+  }, [])
+
+  const discardEdit = useCallback(() => {
+    editorRef.current?.setContent(message.text)
+    setEditing(false)
   }, [message.text])
 
-  const handleCancelEdit = useCallback(() => {
-    if (editText !== message.text && !window.confirm(t('Do you want to discard your edit?'))) {
-      return
-    }
-    setEditText(message.text)
-    setEditing(false)
-  }, [editText, message.text, t])
+  const handleEditCancel = useCallback(() => {
+    discardEdit()
+    return true
+  }, [discardEdit])
 
-  const handleSaveEdit = useCallback(() => {
-    const trimmed = editText.trim()
-    if (!trimmed) return
-    if (trimmed === message.text) {
-      setEditing(false)
-      return
+  const handleEditCancelClick = useCallback((event) => {
+    event.stopPropagation()
+    if (window.confirm(t('Do you want to discard your edit?'))) {
+      discardEdit()
     }
-    dispatch(updateComment(message.id, trimmed))
-    setEditing(false)
-  }, [dispatch, editText, message.id, message.text])
+  }, [discardEdit, t])
 
-  const handleEditKeyDown = useCallback((event) => {
-    if (event.key === 'Escape') {
-      event.preventDefault()
-      handleCancelEdit()
+  const handleEditSave = useCallback(contentHTML => {
+    if (editorRef.current?.isEmpty()) {
+      return true
     }
-    if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault()
-      handleSaveEdit()
+    dispatch(updateComment(message.id, contentHTML))
+    setEditing(false)
+    return true
+  }, [dispatch, message.id])
+
+  const handleEditSaveClick = useCallback((event) => {
+    event.stopPropagation()
+    if (editorRef.current) {
+      handleEditSave(editorRef.current.getHTML())
     }
-  }, [handleCancelEdit, handleSaveEdit])
+  }, [handleEditSave])
 
   return (
     <div
@@ -125,33 +133,33 @@ export default function Message ({ message, isHeader }) {
         <div className='text-foreground break-words'>
           {editing
             ? (
-              <div className='flex flex-col gap-2'>
-                <TextareaAutosize
-                  value={editText}
-                  onChange={e => setEditText(e.target.value)}
-                  onKeyDown={handleEditKeyDown}
-                  className='text-foreground bg-background w-full p-2 border border-foreground/20 rounded-lg focus:outline-none focus:border-focus resize-none'
-                  minRows={2}
-                  maxRows={8}
-                  autoFocus
+              <div className='relative'>
+                <HyloEditor
+                  className='py-2.5 pr-[50px] pl-2.5 m-0 overflow-y-auto max-h-[200px] cursor-text border border-foreground/20 rounded-lg'
+                  contentHTML={message.text}
+                  onEscape={handleEditCancel}
+                  onEnter={handleEditSave}
+                  blurOnScroll={false}
+                  ref={editorRef}
                 />
-                <div className='flex gap-2 justify-end'>
+                <div className='absolute top-2.5 right-2.5 flex items-center gap-1.5 z-[1]'>
                   <button
                     type='button'
-                    onClick={handleCancelEdit}
-                    aria-label={t('Cancel')}
-                    className='p-1.5 rounded text-foreground/60 hover:text-foreground hover:bg-foreground/10'
+                    onClick={handleEditSaveClick}
+                    aria-label={t('Save')}
+                    data-testid='Save'
+                    className='p-0.5 rounded text-selected hover:bg-selected/10'
                   >
-                    <X className='w-4 h-4' />
+                    <Check className='w-5 h-5' />
                   </button>
                   <button
                     type='button'
-                    onClick={handleSaveEdit}
-                    aria-label={t('Save')}
-                    disabled={!editText.trim()}
-                    className='p-1.5 rounded text-primary hover:bg-primary/10 disabled:opacity-40'
+                    onClick={handleEditCancelClick}
+                    aria-label={t('Cancel')}
+                    data-testid='Cancel'
+                    className='p-0.5 rounded text-destructive hover:bg-destructive/10'
                   >
-                    <Check className='w-4 h-4' />
+                    <X className='w-5 h-5' />
                   </button>
                 </div>
               </div>

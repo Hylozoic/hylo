@@ -2,10 +2,12 @@ import React from 'react'
 import { render, screen, fireEvent, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 import orm from 'store/models'
 import Message from './Message'
+import updateComment from 'store/actions/updateComment'
 
-jest.mock('store/actions/updateComment', () => jest.fn(() => ({ type: 'UPDATE_COMMENT' })))
-
-const updateComment = require('store/actions/updateComment').default
+jest.mock('store/actions/updateComment', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({ type: 'UPDATE_COMMENT' }))
+}))
 
 function testProviders (meId = '1') {
   const ormSession = orm.mutableSession(orm.getEmptyState())
@@ -72,10 +74,24 @@ describe('Message', () => {
     render(<Message message={defaultMessage} isHeader />, { wrapper: testProviders() })
 
     fireEvent.click(screen.getByLabelText('Edit'))
-    const textarea = screen.getByRole('textbox')
-    fireEvent.change(textarea, { target: { value: 'updated message' } })
+    const editor = screen.getByRole('textbox')
+    expect(editor).toBeInTheDocument()
+    expect(editor).toHaveTextContent('test message')
     fireEvent.click(screen.getByLabelText('Save'))
 
-    expect(updateComment).toHaveBeenCalledWith('1', 'updated message')
+    expect(updateComment).toHaveBeenCalledWith('1', '<p>test message</p>')
+  })
+
+  it('parses HTML message content in the editor instead of showing tags', () => {
+    const htmlMessage = {
+      ...defaultMessage,
+      text: '<p>hello world</p>'
+    }
+    render(<Message message={htmlMessage} isHeader />, { wrapper: testProviders() })
+
+    fireEvent.click(screen.getByLabelText('Edit'))
+    const editor = screen.getByRole('textbox')
+    expect(editor).toHaveTextContent('hello world')
+    expect(editor.textContent).not.toContain('<p>')
   })
 })
