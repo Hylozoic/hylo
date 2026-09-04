@@ -4,6 +4,8 @@ import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import { graphql, HttpResponse } from 'msw'
 import { render, screen, waitFor, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 import orm from 'store/models'
+import PostEditor from './PostEditor'
+import ActionsBar from './ActionsBar'
 
 jest.mock('store/actions/createPost', () => {
   return jest.fn(() => {
@@ -21,9 +23,6 @@ jest.mock('store/actions/updatePost', () => {
     }
   })
 })
-
-import PostEditor from './PostEditor'
-import ActionsBar from './ActionsBar'
 
 jest.mock('lodash/debounce', () => fn => {
   fn.cancel = jest.fn()

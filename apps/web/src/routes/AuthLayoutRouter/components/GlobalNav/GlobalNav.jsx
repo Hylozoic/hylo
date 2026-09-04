@@ -558,7 +558,7 @@ export default function GlobalNav (props) {
   const showAppStoreLink = isMobileDevice() && !isWebView()
   const { t } = useTranslation()
   const [helpOpen, setHelpOpen] = useState(false)
-  const tourSteps = useMemo(() => globalChromeTourSteps(t), [t])
+  const tourSteps = useMemo(() => globalChromeTourSteps(t, { sandboxMode: isSandboxMode() }), [t])
   const { invitation: chromeTourInvitation } = useTour({
     id: GLOBAL_CHROME_TOUR_ID,
     steps: tourSteps,

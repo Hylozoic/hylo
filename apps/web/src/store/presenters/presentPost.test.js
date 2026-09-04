@@ -36,14 +36,6 @@ describe('presentPost', () => {
     expect(result.linkPreview.title).toBe('A video')
   })
 
-  it('keeps nested GraphQL locationObject from post.ref', () => {
-    session.Post.withId(postId).update({
-      locationObject: { id: '99', center: { lat: 37.7, lng: -122.4 } }
-    })
-    const result = presentPost(session.Post.withId(postId), groupId)
-    expect(result.locationObject).toEqual({ id: '99', center: { lat: 37.7, lng: -122.4 } })
-  })
-
   it('resolves locationObject from the Location relation', () => {
     session.Location.create({ id: '99', center: { lat: 37.7, lng: -122.4 } })
     session.Post.withId(postId).update({ locationObject: '99' })

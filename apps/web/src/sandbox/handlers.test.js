@@ -211,4 +211,40 @@ describe('sandbox GraphQL handlers', () => {
     expect(seed.posts.byId[actionId].completedAt).toBeTruthy()
     expect(seed.track.actions[0].completedAt).toBeTruthy()
   })
+
+  it('returns local search hits for people, posts, and comments', () => {
+    const result = handleGraphql({
+      query: `query Search ($search: String, $type: String) {
+        search(term: $search, first: 20, type: $type) {
+          total
+          hasMore
+          items {
+            id
+            content {
+              __typename
+              ... on Person { id name }
+              ... on Post { id title }
+              ... on Comment { id text }
+            }
+          }
+        }
+      }`,
+      variables: { search: 'forest' }
+    }, seed)
+
+    expect(result.data.search.total).toBeGreaterThan(0)
+    const types = new Set(result.data.search.items.map(item => item.content.__typename))
+    expect(types.has('Post') || types.has('Comment')).toBe(true)
+
+    const peopleOnly = handleGraphql({
+      query: `query Search ($search: String, $type: String) {
+        search(term: $search, first: 20, type: $type) {
+          items { content { __typename ... on Person { id name } } }
+        }
+      }`,
+      variables: { search: 'Elena', type: 'person' }
+    }, seed)
+    expect(peopleOnly.data.search.items.length).toBeGreaterThan(0)
+    expect(peopleOnly.data.search.items.every(i => i.content.__typename === 'Person')).toBe(true)
+  })
 })

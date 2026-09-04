@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useLocation } from 'react-router-dom'
 import { driver } from 'driver.js'
+import { isSandboxMode } from 'sandbox/isSandbox'
 import 'driver.js/dist/driver.css'
 import './tours.css'
 import getMe from 'store/selectors/getMe'
@@ -31,6 +32,10 @@ let inviteActive = false
 const OFFER_LIMIT = 2
 const offerKey = id => `hylo-tour-offers:${id}`
 
+// Module-level so driveTour (used from Help menu replays too) can clear the
+// sandbox banner cutout listener when a tour ends
+let sandboxOverlayResizeHandler = null
+
 // QA switch: visit any page with ?tourTest=true to make every tour act unseen
 // on every load (and ?tourTest=false to turn it off again). While on, nothing
 // is written to toursSeen or the offer counters, so real state is untouched.
@@ -57,6 +62,26 @@ function offerCount (id) {
 }
 function bumpOfferCount (id) {
   try { window.localStorage.setItem(offerKey(id), String(offerCount(id) + 1)) } catch (e) {}
+}
+
+function clearSandboxOverlayResize () {
+  if (!sandboxOverlayResizeHandler) return
+  window.removeEventListener('resize', sandboxOverlayResizeHandler)
+  sandboxOverlayResizeHandler = null
+}
+
+// driver.js dims the full viewport; punch a second hole for the sandbox banner
+// so language and reset stay reachable for the whole tour
+function applySandboxBannerOverlayCutout () {
+  const path = document.querySelector('svg.driver-overlay path')
+  const banner = document.querySelector('[data-testid="sandbox-banner"]')
+  if (!path || !banner) return
+  const { x, y, width, height } = banner.getBoundingClientRect()
+  if (width < 1 || height < 1) return
+  const d = path.getAttribute('d')
+  if (!d) return
+  const cutout = `M${x},${y} h${width} v${height} h-${width} z`
+  path.setAttribute('d', `${d} ${cutout}`)
 }
 
 // Present in the DOM is not enough: on phones the nav rail and group menu are
@@ -99,8 +124,10 @@ export function isAnchorVisible (element) {
  * nothing happens. Callers own persistence via onDestroyed.
  */
 export function driveTour (steps, { onDestroyed } = {}) {
+  clearSandboxOverlayResize()
   const presentSteps = steps.filter(step => !step.element || isAnchorVisible(document.querySelector(step.element)))
   if (presentSteps.length === 0) return null
+  const keepSandboxBannerClear = isSandboxMode()
   tourActive = true
   const instance = driver({
     showProgress: presentSteps.length > 1,
@@ -116,11 +143,24 @@ export function driveTour (steps, { onDestroyed } = {}) {
       }
     },
     steps: presentSteps,
+    onHighlighted: () => {
+      if (keepSandboxBannerClear) applySandboxBannerOverlayCutout()
+    },
     onDestroyed: () => {
+      clearSandboxOverlayResize()
       tourActive = false
       if (onDestroyed) onDestroyed()
     }
   })
+  if (keepSandboxBannerClear) {
+    const handleResize = () => {
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => applySandboxBannerOverlayCutout())
+      })
+    }
+    sandboxOverlayResizeHandler = handleResize
+    window.addEventListener('resize', handleResize)
+  }
   instance.drive()
   return instance
 }
