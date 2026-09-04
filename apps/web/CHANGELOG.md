@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+- Converting a child group to a space removes it from GlobalNav immediately, including when it was pinned
+
 ## [7.0.0] - 2026-09-02 - Spaces and Views!
 
 ### Added

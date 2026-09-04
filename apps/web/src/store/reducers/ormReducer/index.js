@@ -74,7 +74,8 @@ import {
   MARK_VIEW_AS_READ,
   MARK_VIEW_AS_READ_PENDING,
   MARK_GROUP_AS_READ_PENDING,
-  UPDATE_SPACE_PENDING
+  UPDATE_SPACE_PENDING,
+  CONVERT_GROUP_TO_SPACE_PENDING
 } from 'store/constants'
 import {
   UPDATE_ALL_MEMBERSHIP_SETTINGS_PENDING,
@@ -223,6 +224,30 @@ function snapshotViewLoadedPostsForFetchGroupViews (Group, meta) {
   })
 
   return snapshots.length ? snapshots : null
+}
+
+/**
+ * Unpins a group from the current user's global nav and compact remaining pin order.
+ */
+function unpinGroupFromNavAndCompact (session, groupId) {
+  const me = session.Me.first()
+  if (!me || !groupId) return
+
+  const membership = session.Membership.safeGet({ group: groupId, person: me.id })
+  if (!membership) return
+
+  if (membership.navOrder == null) {
+    membership.update({ forceUpdate: new Date() })
+    return
+  }
+
+  const removedOrder = membership.navOrder
+  session.Membership.all().toModelArray().forEach(m => {
+    if (m.navOrder == null || m.navOrder <= removedOrder) return
+    if (m.person && String(m.person.id) !== String(me.id)) return
+    m.update({ navOrder: m.navOrder - 1 })
+  })
+  membership.update({ navOrder: null })
 }
 
 function restoreViewLoadedPostsAfterFetchGroupViews (Group, snapshots) {
@@ -744,6 +769,31 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
           }
         })
       }
+      break
+    }
+
+    case CONVERT_GROUP_TO_SPACE_PENDING: {
+      // Spaces never appear in GlobalNav. Update type immediately, drop the parent
+      // child-group relationship, and unpin so remaining pinned groups stay contiguous.
+      if (meta.id && Group.idExists(meta.id)) {
+        const convertingGroup = Group.withId(meta.id)
+        convertingGroup.update({
+          type: 'space',
+          parentId: meta.parentGroupId || convertingGroup.parentId
+        })
+      }
+      if (meta.id && meta.parentGroupId) {
+        const relationship = GroupRelationship.safeGet({
+          parentGroup: meta.parentGroupId,
+          childGroup: meta.id
+        })
+        if (relationship) {
+          relationship.delete()
+          clearCacheFor(Group, meta.parentGroupId)
+          clearCacheFor(Group, meta.id)
+        }
+      }
+      unpinGroupFromNavAndCompact(session, meta.id)
       break
     }
 

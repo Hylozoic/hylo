@@ -6,6 +6,7 @@ import {
   CREATE_MESSAGE,
   CREATE_MODERATION_ACTION,
   CREATE_MODERATION_ACTION_PENDING,
+  CONVERT_GROUP_TO_SPACE_PENDING,
   DELETE_COMMENT_PENDING,
   DELETE_POST_PENDING,
   FETCH_FOR_GROUP_PENDING,
@@ -913,5 +914,46 @@ describe('on CLEAR_MODERATION_ACTION_PENDING', () => {
     })
     const newSession = orm.session(newState)
     expect(newSession.Group.withId('g1').openModerationActionCount).toEqual(2)
+  })
+})
+
+describe('on CONVERT_GROUP_TO_SPACE_PENDING', () => {
+  function setupSession () {
+    const session = orm.session(orm.getEmptyState())
+    const me = session.Me.create({ id: '1' })
+    session.Person.create({ id: '1', name: 'Me' })
+    const parent = session.Group.create({ id: 'parent', name: 'Parent', slug: 'parent' })
+    const child = session.Group.create({ id: 'child', name: 'Child', slug: 'child' })
+    const other = session.Group.create({ id: 'other', name: 'Other', slug: 'other' })
+    session.GroupRelationship.create({ id: 'rel-1', parentGroup: parent.id, childGroup: child.id })
+    session.Membership.create({ id: 'm-parent', group: parent.id, person: me.id, navOrder: 0 })
+    session.Membership.create({ id: 'm-child', group: child.id, person: me.id, navOrder: 1 })
+    session.Membership.create({ id: 'm-other', group: other.id, person: me.id, navOrder: 2 })
+    return session
+  }
+
+  it('marks the group as a space and removes it from the parent child relationship', () => {
+    const session = setupSession()
+    const newState = ormReducer(session.state, {
+      type: CONVERT_GROUP_TO_SPACE_PENDING,
+      meta: { id: 'child', parentGroupId: 'parent' }
+    })
+    const newSession = orm.session(newState)
+    const converted = newSession.Group.withId('child')
+    expect(converted.type).toEqual('space')
+    expect(converted.parentId).toEqual('parent')
+    expect(newSession.GroupRelationship.idExists('rel-1')).toBeFalsy()
+  })
+
+  it('unpins the converted group and compact remaining pin order', () => {
+    const session = setupSession()
+    const newState = ormReducer(session.state, {
+      type: CONVERT_GROUP_TO_SPACE_PENDING,
+      meta: { id: 'child', parentGroupId: 'parent' }
+    })
+    const newSession = orm.session(newState)
+    expect(newSession.Membership.withId('m-child').navOrder).toBeNull()
+    expect(newSession.Membership.withId('m-parent').navOrder).toEqual(0)
+    expect(newSession.Membership.withId('m-other').navOrder).toEqual(1)
   })
 })
