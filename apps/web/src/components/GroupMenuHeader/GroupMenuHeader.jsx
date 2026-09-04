@@ -194,7 +194,7 @@ export default function GroupMenuHeader ({
             )}
           >
             <Link
-              className='inline-flex items-center gap-1 rounded-full bg-darkening/80 backdrop-blur-sm border border-white/20 px-2 py-0.5 text-white hover:bg-darkening/90 hover:text-white no-underline hover:no-underline transition-colors'
+              className='inline-flex items-center gap-1 rounded-full bg-darkening/30 backdrop-blur-sm border border-white/20 px-2 py-0.5 text-white hover:bg-darkening/50 hover:text-white no-underline hover:no-underline transition-colors'
               to={groupUrl(group.slug, 'members', {})}
               onClick={() => dispatch(toggleNavMenu(false))}
               aria-label={t('{{count}} Members', { count: group.memberCount })}
@@ -207,14 +207,14 @@ export default function GroupMenuHeader ({
                 group={group}
                 alwaysVisible
                 triggerLabel={t('Invite')}
-                triggerClassName='rounded-full bg-darkening/80 backdrop-blur-sm border border-white/20 px-2 py-0.5 text-white hover:text-white hover:bg-darkening/90 hover:scale-100'
+                triggerClassName='rounded-full bg-darkening/30 backdrop-blur-sm border border-white/20 px-2 py-0.5 text-white hover:text-white hover:bg-darkening/50 hover:scale-100'
               />
             </span>
             <button
               type='button'
               data-tour='group-about'
               onClick={() => navigateAndClose(groupUrl(group.slug, 'about', {}))}
-              className='inline-flex items-center gap-1 rounded-full bg-darkening/80 backdrop-blur-sm border border-white/20 px-2 py-0.5 text-white hover:bg-darkening/90 hover:text-white transition-colors'
+              className='inline-flex items-center gap-1 rounded-full bg-darkening/30 backdrop-blur-sm border border-white/20 px-2 py-0.5 text-white hover:bg-darkening/50 hover:text-white transition-colors'
             >
               <Info className='w-3.5 h-3.5' />
               {t('About')}
