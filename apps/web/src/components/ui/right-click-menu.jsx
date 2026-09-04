@@ -4,7 +4,65 @@ import { Check, ChevronRight, Circle } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
-const RightClickMenu = ContextMenuPrimitive.Root
+/**
+ * Returns true when the event landed on an open Radix menu panel.
+ */
+function isEventOnMenu (target) {
+  if (!(target instanceof Node)) return false
+  return Array.from(document.querySelectorAll('[data-radix-menu-content]')).some(
+    (node) => node.contains(target)
+  )
+}
+
+/**
+ * Non-modal so the page stays scrollable and a press outside can close the
+ * menu. Modal mode sets body pointer-events: none, which on iOS swallows
+ * that outside press. Radix also waits for `click` on touch, so a press
+ * that turns into a scroll never dismisses — remounting on pointerdown
+ * or scroll closes it immediately.
+ */
+function RightClickMenu ({ modal = false, onOpenChange, ...props }) {
+  const [open, setOpen] = React.useState(false)
+  const [instance, setInstance] = React.useState(0)
+  const onOpenChangeRef = React.useRef(onOpenChange)
+  onOpenChangeRef.current = onOpenChange
+
+  const handleOpenChange = (next) => {
+    setOpen(next)
+    onOpenChangeRef.current?.(next)
+  }
+
+  React.useEffect(() => {
+    if (!open) return
+
+    const dismiss = (event) => {
+      if (isEventOnMenu(event.target)) return
+      setOpen(false)
+      setInstance((n) => n + 1)
+      onOpenChangeRef.current?.(false)
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      document.addEventListener('pointerdown', dismiss, true)
+      window.addEventListener('scroll', dismiss, true)
+    }, 0)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+      document.removeEventListener('pointerdown', dismiss, true)
+      window.removeEventListener('scroll', dismiss, true)
+    }
+  }, [open])
+
+  return (
+    <ContextMenuPrimitive.Root
+      key={instance}
+      modal={modal}
+      onOpenChange={handleOpenChange}
+      {...props}
+    />
+  )
+}
 
 const RightClickMenuTrigger = ContextMenuPrimitive.Trigger
 

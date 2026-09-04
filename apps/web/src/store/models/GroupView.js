@@ -45,6 +45,13 @@ export function isMenuViewVisible (view, acceptedPostTypes) {
   return viewAcceptedByPostTypes(view.type, acceptedPostTypes)
 }
 
+/** The lone on-menu view, or null if the group has zero or multiple. */
+export function singleVisibleMenuView (views, acceptedPostTypes) {
+  const visible = (views || []).filter(view => isMenuViewVisible(view, acceptedPostTypes))
+  if (visible.length !== 1) return null
+  return visible[0]
+}
+
 /** View types that have configurable settings in the menu editor. */
 export function viewTypeHasSettings (type) {
   return ['all', 'chat', 'link', 'text', 'custom', 'collection', 'space-collection', 'welcome', 'space'].includes(type)
