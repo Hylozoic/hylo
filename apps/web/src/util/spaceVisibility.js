@@ -102,7 +102,9 @@ export function filterSpaceViewsForMenuVisibility (views, opts) {
   return (views || []).filter(view => {
     if (view.type !== 'space') return true
     const space = view.linkedGroup
-    if (space?.status === 'draft' || space?.status === 'archived') return false
+    // Keep the row while linkedGroup is still loading — hiding here is what made
+    // a space vanish from the menu after a last-read patch cloned a partial copy.
+    if (!space) return true
     return shouldShowSpaceInMenu(space, { ...opts, grantedSpaceIds })
   })
 }

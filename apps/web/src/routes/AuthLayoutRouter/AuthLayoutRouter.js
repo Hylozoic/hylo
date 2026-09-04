@@ -8,10 +8,15 @@ import { get, some } from 'lodash/fp'
 import { cn } from 'util/index'
 import {
   createPersistentSelectionTracker,
+  hasActiveTextSelection,
+  hasReadableContentSelection,
+  isReadableContentTarget,
+  isTextInteractionTarget,
   shouldBailTextSelectionGesture
 } from 'util/textSelectionTouch'
 import mixpanel from 'mixpanel-browser'
 import config, { isDev, isTest } from 'config/index'
+import { isSandboxMode } from 'sandbox/isSandbox'
 import CookieConsentLinker from 'components/CookieConsentLinker'
 import ContextMenu from './components/ContextMenu'
 import CreateModal from 'components/CreateModal'
@@ -90,6 +95,7 @@ import WelcomeWizardRouter from 'routes/WelcomeWizardRouter'
 import { VIEW_DRAFTS } from 'store/constants'
 import { isAtReturnToPath } from 'util/returnToPath'
 import Management from 'routes/Management'
+import SiteBanners from 'components/SiteBanners/SiteBanners'
 import { getLocaleFromLocalStorage } from 'util/locale'
 import { isCompactLayoutDevice, isDrawerNavLayout, isPhoneDevice } from 'util/mobile'
 import { isLegacyWebView } from 'util/webView'
@@ -267,7 +273,7 @@ export default function AuthLayoutRouter (props) {
   // Refs for mobile nav drawer animation
   const navContainerRef = useRef(null)
   const backdropRef = useRef(null)
-  const preloadedMenuGroupIdsKeyRef = useRef('')
+  const preloadedMenuGroupIdsRef = useRef(new Set())
   const isNavOpenRef = useRef(isNavOpen)
   const isDraggingNavRef = useRef(false)
   const compactLayout = isCompactLayoutDevice()
@@ -381,6 +387,7 @@ export default function AuthLayoutRouter (props) {
     let touchTarget = null
     let touchStartedWithTextSelected = false
     let touchActive = false
+    let edgeOpenGesture = false
 
     const selectionTracker = createPersistentSelectionTracker({
       getActiveTouch: () => touchActive
@@ -389,8 +396,6 @@ export default function AuthLayoutRouter (props) {
     const handleTouchStart = (e) => {
       if (!isDrawerNavLayout(window.innerWidth)) return
       if (document.querySelector('.PostDialog-Content')) return
-      if (shouldBailTextSelectionGesture(e.target)) return
-      if (selectionTracker.hasSelection) return
       const navEl = navContainerRef.current
       const backdropEl = backdropRef.current
       if (!navEl || !backdropEl) return
@@ -400,6 +405,17 @@ export default function AuthLayoutRouter (props) {
       // Swipe-to-open only from the left edge so horizontal drags in content
       // (e.g. text selection handles) are not hijacked as nav gestures.
       if (!isNavOpenRef.current && touch.clientX > NAV_OPEN_EDGE_WIDTH_PX) return
+      edgeOpenGesture = !isNavOpenRef.current
+
+      // Text fields always win. Static readable surfaces (chat stream, post
+      // bodies) only block a swipe that is NOT an edge open — otherwise the
+      // drawer could never be opened from inside the chat, and the browser's
+      // back gesture swallowed the swipe. The 300ms long-press guard below
+      // still hands slow presses at the edge over to text selection.
+      if (isTextInteractionTarget(e.target)) return
+      if (hasActiveTextSelection() || hasReadableContentSelection()) return
+      if (!edgeOpenGesture && isReadableContentTarget(e.target)) return
+      if (selectionTracker.hasSelection) return
 
       touchActive = true
       touchStartX = touch.clientX
@@ -429,7 +445,11 @@ export default function AuthLayoutRouter (props) {
         return
       }
       if (
-        shouldBailTextSelectionGesture(e.target) ||
+        // Same exemption as touchstart: an edge-open drag over static readable
+        // content stays a nav gesture; live selections still cancel it
+        (edgeOpenGesture
+          ? (isTextInteractionTarget(e.target) || hasActiveTextSelection() || hasReadableContentSelection())
+          : shouldBailTextSelectionGesture(e.target)) ||
         touchStartedWithTextSelected ||
         selectionTracker.hasSelection
       ) {
@@ -621,7 +641,7 @@ export default function AuthLayoutRouter (props) {
     if (currentUser?.settings?.locale) {
       getLocaleFromLocalStorage(currentUser?.settings?.locale)
     }
-    if (!config.mixpanel.token || !currentUser?.id) return
+    if (isSandboxMode() || !config.mixpanel.token || !currentUser?.id) return
     mixpanel.identify(currentUser.id)
     mixpanel.people.set({
       $name: currentUser.name,
@@ -631,7 +651,7 @@ export default function AuthLayoutRouter (props) {
   }, [currentUser?.email, currentUser?.id, currentUser?.location, currentUser?.name, currentUser?.settings?.locale])
 
   useEffect(() => {
-    if (!config.mixpanel.token) return
+    if (isSandboxMode() || !config.mixpanel.token) return
     // Add all current group membershps to mixpanel user
     mixpanel.set_group('groupId', memberships.map(m => m.group.id))
 
@@ -714,10 +734,8 @@ export default function AuthLayoutRouter (props) {
     }
   }, [currentGroupSlug, currentGroupMembership, currentGroup?.paywall, currentGroup?.canAccess, location.pathname, navigate, dispatch])
 
-  // Pre-load context menu data for all membership groups in paginated batches.
-  // This ensures context menus render immediately when switching groups.
-  // Batches are processed sequentially (10 groups at a time) with a delay
-  // after initial page load to let critical requests complete first.
+  // Pre-load context menu data for membership groups that do not already have
+  // groupViews (10 ids per request). Skip groups whose menu is already loaded.
   // Disabled for users with more than MENU_PRELOAD_MAX_MEMBERSHIPS memberships
   // (includes space memberships) to avoid overwhelming the backend.
   // Isolated E2E skips this: four workers each preloading nested spaces OOMs one Sails process.
@@ -726,17 +744,28 @@ export default function AuthLayoutRouter (props) {
     if (currentUserLoading) return
     if (memberships.length === 0 || memberships.length > MENU_PRELOAD_MAX_MEMBERSHIPS) return
     if (!membershipGroupIdsKey) return
-    if (membershipGroupIdsKey === preloadedMenuGroupIdsKeyRef.current) return
 
     const groupIds = membershipGroupIdsKey.split(',')
+    const session = orm.session(store.getState().orm)
+    const idsToFetch = groupIds.filter(id => {
+      if (preloadedMenuGroupIdsRef.current.has(id)) return false
+      const group = session.Group.idExists(id) ? session.Group.withId(id) : null
+      if (group?.groupViews != null) {
+        preloadedMenuGroupIdsRef.current.add(id)
+        return false
+      }
+      return true
+    })
+    if (idsToFetch.length === 0) return
+
     const INITIAL_DELAY = 4500
     const BATCH_SIZE = 10
 
     const timeoutId = setTimeout(async () => {
-      preloadedMenuGroupIdsKeyRef.current = membershipGroupIdsKey
+      idsToFetch.forEach(id => preloadedMenuGroupIdsRef.current.add(id))
       const batches = []
-      for (let i = 0; i < groupIds.length; i += BATCH_SIZE) {
-        batches.push(groupIds.slice(i, i + BATCH_SIZE))
+      for (let i = 0; i < idsToFetch.length; i += BATCH_SIZE) {
+        batches.push(idsToFetch.slice(i, i + BATCH_SIZE))
       }
 
       for (const batch of batches) {
@@ -768,10 +797,11 @@ export default function AuthLayoutRouter (props) {
 
   if (currentUserLoading) {
     return (
-      <div data-testid='loading-screen' className={cn('flex flex-row items-stretch bg-midground h-full', { 'h-[100dvh]': compactLayout })}>
+      <div data-testid='loading-screen' className={cn('flex flex-row items-stretch bg-midground h-full', { 'h-[100dvh]': compactLayout && !isSandboxMode() })}>
         <Helmet>
-          <title>Hylo</title>
+          <title>{isSandboxMode() ? 'Hylo Demo' : 'Hylo'}</title>
           <meta name='description' content='Prosocial Coordination for a Thriving Planet' />
+          {isSandboxMode() && <meta name='robots' content='noindex, nofollow' />}
         </Helmet>
         <BootstrapShell withoutNav={withoutNav} className='flex-1 min-h-0' />
       </div>
@@ -824,7 +854,8 @@ export default function AuthLayoutRouter (props) {
     return <NotFound />
   }
 
-  // Spaces opened as top-level `/groups/:spaceSlug` must nest under their parent.
+  // Spaces (`type = space`) opened as `/groups/:spaceSlug` nest under their parent.
+  // Child groups must stay at `/groups/:slug` even if they still have a parentId.
   // Covers cold-load restore, bookmarks, and any other bare-space links.
   // Spaces have no Group Settings page — map leftover `/settings` URLs (join
   // requests used to live there) onto the nested space routes.
@@ -872,7 +903,8 @@ export default function AuthLayoutRouter (props) {
   }
 
   return (
-    <IntercomProvider appId={isTest ? '' : config.intercom.appId} autoBoot autoBootProps={intercomProps}>
+    <IntercomProvider appId={isTest || isSandboxMode() ? '' : config.intercom.appId} autoBoot={!isSandboxMode()} autoBootProps={intercomProps}>
+      <SiteBanners />
       {/* Pull-to-refresh indicator - shows during and after gesture */}
       {(isPulling || isRefreshing) && (
         <div className='fixed top-4 left-1/2 -translate-x-1/2 z-50'>
@@ -895,8 +927,9 @@ export default function AuthLayoutRouter (props) {
         </div>
       )}
       <Helmet>
-        <title>{currentGroup ? `${currentGroup.name} | ` : ''}Hylo</title>
+        <title>{currentGroup ? `${currentGroup.name} | ` : ''}{isSandboxMode() ? 'Hylo Demo' : 'Hylo'}</title>
         <meta name='description' content='Prosocial Coordination for a Thriving Planet' />
+        {isSandboxMode() && <meta name='robots' content='noindex, nofollow' />}
         {currentUser && (
           <script id='greencheck' type='application/json'>
             {`{ 'id': '${currentUser.id}', 'fullname': '${currentUser.name}', 'description': '${currentUser.tagline}', 'image': '${currentUser.avatarUrl}' }`}
@@ -922,7 +955,7 @@ export default function AuthLayoutRouter (props) {
         {/* )} */}
       </Routes>
 
-      <div className={cn('flex items-stretch bg-midground h-full', isTabNav ? 'flex-col' : 'flex-row', { 'h-[100dvh]': compactLayout, [classes.mapView]: isMapView, [classes.detailOpen]: hasDetail })}>
+      <div className={cn('flex items-stretch bg-midground h-full', isTabNav ? 'flex-col' : 'flex-row', { 'h-[100dvh]': compactLayout && !isSandboxMode(), [classes.mapView]: isMapView, [classes.detailOpen]: hasDetail })}>
         {/* Top tab nav bar (when tab mode is active) */}
         {isTabNav && !withoutNav && (
           <TopNav currentUser={currentUser} />

@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/react'
+import { isSandboxMode } from 'sandbox/isSandbox'
 
 /*
   Sentry-backed error reporter (replaces the old Rollbar integration).
@@ -47,6 +48,7 @@ if (enabled) {
   Sentry.setTag('mobileWebView', window.HyloMobileV2 ? 'true' : 'false')
   if (window.HyloMobileAppVersion) Sentry.setTag('mobileAppVersion', window.HyloMobileAppVersion)
   if (window.HyloNativeSessionId) Sentry.setTag('nativeSessionId', window.HyloNativeSessionId)
+  if (isSandboxMode()) Sentry.setTag('sandbox', 'true')
 }
 
 /** Records a Sentry breadcrumb (no-op when reporting is disabled) */

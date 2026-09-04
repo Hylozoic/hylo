@@ -3,9 +3,16 @@ import { homeRoutePathForView } from '@hylo/navigation'
 /** Merge menu patch fields onto a view row (deep-merge linkedGroup when present). */
 function mergeViewMenuPatch (view, updates) {
   if (!updates) return view
-  const merged = { ...view, ...updates }
-  if (updates.linkedGroup) {
-    merged.linkedGroup = { ...(view.linkedGroup || {}), ...updates.linkedGroup }
+  // Skip undefined so a last-read patch cannot wipe type/order/linkedGroup
+  // (spreading `{ linkedGroup: undefined }` would hide the space from the menu).
+  const definedUpdates = Object.fromEntries(
+    Object.entries(updates).filter(([, value]) => value !== undefined)
+  )
+  const merged = { ...view, ...definedUpdates }
+  if (definedUpdates.linkedGroup) {
+    merged.linkedGroup = { ...(view.linkedGroup || {}), ...definedUpdates.linkedGroup }
+  } else if (view.type === 'space' && view.linkedGroup) {
+    merged.linkedGroup = view.linkedGroup
   }
   return merged
 }
@@ -409,21 +416,33 @@ export function preserveViewLoadedPosts (existingItems, newItems) {
     if (!existing) return newView
 
     const merged = { ...newView }
+    // A just-advanced last-read can lose to an in-flight fetchGroupViews that still
+    // has the old cursor and unread count — keep the newer local position.
+    const existingLastRead = parseInt(existing.lastReadPostId, 10)
+    const incomingLastRead = parseInt(newView.lastReadPostId, 10)
+    if (Number.isFinite(existingLastRead) &&
+        (!Number.isFinite(incomingLastRead) || existingLastRead > incomingLastRead)) {
+      merged.lastReadPostId = existing.lastReadPostId
+      if (existing.newPostCount !== undefined) {
+        merged.newPostCount = existing.newPostCount
+      }
+    }
     if (existing.collectionPosts !== undefined && newView.collectionPosts === undefined) {
       merged.collectionPosts = existing.collectionPosts
     }
     if (existing.pinnedPosts !== undefined && newView.pinnedPosts === undefined) {
       merged.pinnedPosts = existing.pinnedPosts
     }
-    if (newView.type === 'space' && newView.linkedGroup?.groupViews?.items) {
+    if (newView.type === 'space' && (existing.linkedGroup || newView.linkedGroup)) {
       const existingSpaceItems = existing.linkedGroup?.groupViews?.items
-      if (existingSpaceItems?.length) {
-        merged.linkedGroup = {
-          ...merged.linkedGroup,
-          groupViews: {
-            items: preserveViewLoadedPosts(existingSpaceItems, newView.linkedGroup.groupViews.items)
-          }
+      const newSpaceItems = newView.linkedGroup?.groupViews?.items
+      merged.linkedGroup = { ...(existing.linkedGroup || {}), ...(newView.linkedGroup || {}) }
+      if (existingSpaceItems?.length && newSpaceItems?.length) {
+        merged.linkedGroup.groupViews = {
+          items: preserveViewLoadedPosts(existingSpaceItems, newSpaceItems)
         }
+      } else if (existingSpaceItems?.length && !newSpaceItems) {
+        merged.linkedGroup.groupViews = { items: existingSpaceItems }
       }
     }
     return merged

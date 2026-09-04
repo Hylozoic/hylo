@@ -5,6 +5,7 @@ import HyloEditor from 'components/HyloEditor'
 import TagInput from 'components/TagInput'
 import Checkbox from 'components/ui/checkbox'
 import { DateTimePicker } from 'components/ui/datetimepicker'
+import InfoButton from 'components/ui/info'
 import { Label } from 'components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'components/ui/select'
 import { cn } from 'util/index'
@@ -35,6 +36,10 @@ export default function FundingRoundSettingsFields ({
   setAllowLateJoiners,
   hideFinalResults,
   setHideFinalResults,
+  requireBudget,
+  setRequireBudget,
+  showRealtimeVotes,
+  setShowRealtimeVotes,
   submitterRoles,
   setSubmitterRoles,
   voterRoles,
@@ -164,6 +169,16 @@ export default function FundingRoundSettingsFields ({
       <div className='flex flex-col gap-2'>
         <div className='flex items-center gap-2'>
           <Checkbox
+            id='fr-require-budget'
+            checked={!!requireBudget}
+            onCheckedChange={checked => setRequireBudget(!!checked)}
+          />
+          <Label htmlFor='fr-require-budget' className='cursor-pointer font-normal'>
+            {t('Show budget field for submissions')}
+          </Label>
+        </div>
+        <div className='flex items-center gap-2'>
+          <Checkbox
             id='fr-allow-self-voting'
             checked={allowSelfVoting}
             onCheckedChange={checked => setAllowSelfVoting(!!checked)}
@@ -188,6 +203,20 @@ export default function FundingRoundSettingsFields ({
           >
             {t('Allow people who join during voting to receive tokens and vote')}
           </Label>
+        </div>
+        <div className='flex items-center gap-2'>
+          <Checkbox
+            id='fr-show-realtime-votes'
+            checked={!!showRealtimeVotes}
+            onCheckedChange={checked => setShowRealtimeVotes(!!checked)}
+          />
+          <Label htmlFor='fr-show-realtime-votes' className='cursor-pointer font-normal'>
+            {t('Show real-time votes during voting phase')}
+          </Label>
+          <InfoButton
+            className='text-foreground/50'
+            content={t('By default votes are not visible until after voting ends.')}
+          />
         </div>
         <div className='flex items-center gap-2'>
           <Checkbox

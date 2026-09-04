@@ -6,6 +6,8 @@ import {
   DELETE_GROUP_VIEW,
   DELETE_SPACE,
   ARCHIVE_SPACE,
+  CONVERT_GROUP_TO_SPACE,
+  CONVERT_SPACE_TO_CHILD_GROUP,
   FETCH_VIEW_POSTS,
   REMOVE_POST_FROM_VIEW,
   REORDER_GROUP_VIEW,
@@ -32,7 +34,7 @@ function toIntRoleIds (ids) {
 function spaceViewMenuData ({ name, description, viewName, icon }) {
   const linkedGroup = omitBy(isUndefined, { name, description, icon })
   return omitBy(isUndefined, {
-    name: viewName,
+    name: viewName !== undefined ? viewName : name,
     linkedGroup: Object.keys(linkedGroup).length ? linkedGroup : undefined
   })
 }
@@ -86,6 +88,11 @@ const groupViewFields = `
           id
           name
           avatarUrl
+        }
+        linkedGroup {
+          id
+          name
+          slug
         }
       }
     }
@@ -419,6 +426,7 @@ export function updateSpace ({ id, groupId, spaceViewId, name, slug, description
       groupId,
       spaceViewId,
       acceptedPostTypes,
+      status,
       data: spaceViewMenuData({ name, description, viewName, icon }),
       optimistic: true,
       extractModel: [
@@ -460,5 +468,56 @@ export function deleteSpace (id) {
       variables: { id }
     },
     meta: { id }
+  }
+}
+
+/** Convert a regular space into a child group of its parent. */
+export function convertSpaceToChildGroup ({ id }) {
+  return {
+    type: CONVERT_SPACE_TO_CHILD_GROUP,
+    graphql: {
+      query: `mutation ($id: ID!) {
+        convertSpaceToChildGroup(id: $id) {
+          id
+          name
+          slug
+          type
+          parentId
+        }
+      }`,
+      variables: { id }
+    },
+    meta: {
+      id,
+      extractModel: [
+        { getRoot: get('convertSpaceToChildGroup'), modelName: 'Group' }
+      ]
+    }
+  }
+}
+
+/** Convert a child group into a space of its parent. */
+export function convertGroupToSpace ({ id, parentGroupId }) {
+  return {
+    type: CONVERT_GROUP_TO_SPACE,
+    graphql: {
+      query: `mutation ($id: ID!, $parentGroupId: ID!) {
+        convertGroupToSpace(id: $id, parentGroupId: $parentGroupId) {
+          id
+          name
+          slug
+          type
+          parentId
+        }
+      }`,
+      variables: { id, parentGroupId }
+    },
+    meta: {
+      id,
+      parentGroupId,
+      extractModel: [
+        { getRoot: get('convertGroupToSpace'), modelName: 'Group' }
+      ]
+    }
   }
 }

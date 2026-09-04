@@ -76,10 +76,15 @@ export function isParentPaidContentReady (group) {
   )
 }
 
-/** Access options available for create/edit, optionally gating Paid on parent Stripe readiness. */
-export function accessOptionsForGroup (group, { includePaid = false } = {}) {
-  if (includePaid || isParentPaidContentReady(group)) return ACCESS_OPTIONS
-  return ACCESS_OPTIONS.filter(option => option.value !== 'paid')
+const PAID_DISABLED_TOOLTIP = 'Paid access requires a connected Stripe account. Finish setup in this group\'s Paid Content settings.'
+
+/** Access options for create/edit. Paid is always listed; disabled until Stripe is ready. */
+export function accessOptionsForGroup (group) {
+  const paidReady = isParentPaidContentReady(group)
+  return ACCESS_OPTIONS.map(option => {
+    if (option.value !== 'paid' || paidReady) return option
+    return { ...option, disabled: true, disabledTooltipKey: PAID_DISABLED_TOOLTIP }
+  })
 }
 
 /** Reverse-maps a space's visibility/accessibility/requiredRoles/paywall onto one of ACCESS_OPTIONS. */

@@ -6,6 +6,7 @@ import Div100vh from 'react-div-100vh'
 import Loading from 'components/Loading'
 import Button from 'components/ui/button'
 import HyloHTML from 'components/HyloHTML'
+import { stripHtml } from 'hooks/useDraft'
 import { CreditCard, LogIn } from 'lucide-react'
 import { DEFAULT_BANNER, DEFAULT_AVATAR } from 'store/models/Group'
 import { offeringUrl, origin } from '@hylo/navigation'
@@ -205,9 +206,9 @@ export default function OfferingDetails () {
           <div className='bg-midground rounded-xl p-6 shadow-lg'>
             <h1 className='text-4xl font-bold text-foreground mb-4'>{offering.name}</h1>
 
-            {offering.description && (
-              <div className='text-lg text-foreground/70 mb-6 leading-relaxed global-postContent'>
-                <HyloHTML html={offering.description} />
+            {stripHtml(offering.description) && (
+              <div className='text-lg text-foreground/70 mb-6 leading-relaxed whitespace-pre-wrap'>
+                {stripHtml(offering.description)}
               </div>
             )}
 

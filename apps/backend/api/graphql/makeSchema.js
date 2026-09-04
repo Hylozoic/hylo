@@ -30,6 +30,8 @@ import {
   cancelJoinRequest,
   clearModerationAction,
   completePost,
+  convertGroupToSpace,
+  convertSpaceToChildGroup,
   createAffiliation,
   createComment,
   createFundingRound,
@@ -53,6 +55,12 @@ import {
   declineJoinRequest,
   addEmailEnabledTester,
   removeEmailEnabledTester,
+  createSiteBanner,
+  updateSiteBanner,
+  publishSiteBanner,
+  unpublishSiteBanner,
+  deleteSiteBanner,
+  dismissSiteBanner,
   deleteAffiliation,
   deleteComment,
   deleteFundingRound,
@@ -167,6 +175,7 @@ import {
   updateStripeOffering,
   createStripeCheckoutSession,
   checkStripeStatus,
+  fulfillStripeCheckoutSession,
   membershipChangeCommit,
   verifyEmail
 } from './mutations'
@@ -323,10 +332,12 @@ async function buildGraphqlSchema (req) {
 function invitationMatchesGroupQuery (inviteCheck, slug, id) {
   if (!inviteCheck?.valid) return false
   if (slug) {
-    return !!(inviteCheck.groupSlug && inviteCheck.groupSlug === slug)
+    return !!(inviteCheck.groupSlug && inviteCheck.groupSlug === slug) ||
+      !!(inviteCheck.parentGroupSlug && inviteCheck.parentGroupSlug === slug)
   }
   if (id != null && id !== '') {
-    return String(inviteCheck.groupId) === String(id)
+    return String(inviteCheck.groupId) === String(id) ||
+      (inviteCheck.parentGroupId != null && String(inviteCheck.parentGroupId) === String(id))
   }
   return false
 }
@@ -538,6 +549,17 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
       }
       const testers = await EmailEnabledTester.findAll()
       return testers.toModelArray ? testers.toModelArray() : testers
+    },
+    siteBanners: async (root, args, context) => {
+      const banners = await SiteBanner.activeForUser(context.currentUserId)
+      return banners.toModelArray ? banners.toModelArray() : banners
+    },
+    allSiteBanners: async (root, args, context) => {
+      if (!(await Admin.isSuperAdmin(context.currentUserId))) {
+        throw new GraphQLError('Unauthorized: Admin access required')
+      }
+      const banners = await SiteBanner.all()
+      return banners.toModelArray ? banners.toModelArray() : banners
     }
   }
 }
@@ -651,7 +673,14 @@ export function makeMutations ({ fetchOne }) {
 
     deleteSpace: (root, { id }, context) => deleteSpace(context.currentUserId, id, context),
 
-    joinSpace: (root, { spaceId }, context) => joinSpace(context.currentUserId, spaceId),
+    convertSpaceToChildGroup: (root, { id }, context) =>
+      convertSpaceToChildGroup(context.currentUserId, id, context),
+
+    convertGroupToSpace: (root, { id, parentGroupId }, context) =>
+      convertGroupToSpace(context.currentUserId, { id, parentGroupId }, context),
+
+    joinSpace: (root, { spaceId, accessCode, invitationToken }, context) =>
+      joinSpace(context.currentUserId, spaceId, accessCode, invitationToken),
 
     createInvitation: (root, { groupId, data }, context) => createInvitation(context.currentUserId, groupId, data), // consider sending locale from the frontend here
 
@@ -792,6 +821,8 @@ export function makeMutations ({ fetchOne }) {
 
     checkStripeStatus: (root, { groupId }, context) => checkStripeStatus(context.currentUserId, { groupId }),
 
+    fulfillStripeCheckoutSession: (root, { sessionId, offeringId }, context) => fulfillStripeCheckoutSession(context.currentUserId, { sessionId, offeringId }),
+
     membershipChangeCommit: (root, { groupId, fromOfferingId, toOfferingId, newQuantity }, context) =>
       membershipChangeCommit(context.currentUserId, { groupId, fromOfferingId, toOfferingId, newQuantity }),
 
@@ -881,7 +912,19 @@ export function makeMutations ({ fetchOne }) {
 
     addEmailEnabledTester: (root, { userId }, context) => addEmailEnabledTester(context.currentUserId, userId),
 
-    removeEmailEnabledTester: (root, { userId }, context) => removeEmailEnabledTester(context.currentUserId, userId)
+    removeEmailEnabledTester: (root, { userId }, context) => removeEmailEnabledTester(context.currentUserId, userId),
+
+    createSiteBanner: (root, { data }, context) => createSiteBanner(context.currentUserId, data),
+
+    updateSiteBanner: (root, { id, data }, context) => updateSiteBanner(context.currentUserId, id, data),
+
+    publishSiteBanner: (root, { id }, context) => publishSiteBanner(context.currentUserId, id),
+
+    unpublishSiteBanner: (root, { id }, context) => unpublishSiteBanner(context.currentUserId, id),
+
+    deleteSiteBanner: (root, { id }, context) => deleteSiteBanner(context.currentUserId, id),
+
+    dismissSiteBanner: (root, { id }, context) => dismissSiteBanner(context.currentUserId, id)
   }
 }
 

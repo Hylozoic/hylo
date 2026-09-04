@@ -4,6 +4,37 @@ import { TextHelpers } from '@hylo/shared'
 import { get, isEmpty, map, merge } from 'lodash/fp'
 
 /**
+ * Builds the public checkInvitation payload for a group, including parent
+ * group fields when the invite is for a space.
+ */
+async function invitationResultForGroup (group, extras = {}) {
+  if (!group) return { valid: false }
+  const isSpace = group.get('type') === 'space' || !!group.get('parent_id')
+  let parentGroupId = null
+  let parentGroupSlug = null
+  let parentGroupName = null
+  if (isSpace && group.get('parent_id')) {
+    const parent = await Group.find(group.get('parent_id'))
+    if (parent) {
+      parentGroupId = parent.id
+      parentGroupSlug = parent.get('slug')
+      parentGroupName = parent.get('name')
+    }
+  }
+  return {
+    valid: true,
+    groupId: group.id,
+    groupSlug: group.get('slug'),
+    groupName: group.get('name'),
+    isSpace,
+    parentGroupId,
+    parentGroupSlug,
+    parentGroupName,
+    ...extras
+  }
+}
+
+/**
  * Sends an in-app notification to an existing Hylo user invited by user id.
  */
 function notifyExistingUser ({ actorId, invitee, group }) {
@@ -184,21 +215,18 @@ module.exports = {
     })
   },
 
-  /**
+    /**
    * Check if an invitation is valid and return group information for redirect
    * @param token {String} invitation token from email invite
    * @param accessCode {String} access code from invite link
-   * @returns {Object} { valid, groupId, groupSlug, email, groupRole }
+   * @returns {Object} { valid, groupId, groupSlug, groupName, isSpace, parentGroupSlug, email, groupRole }
    */
   check: async (token, accessCode) => {
     if (accessCode) {
       // Invalid / unknown codes must return { valid: false } — plain .fetch() rejects when no row (Bookshelf).
       const group = await Group.queryByAccessCode(accessCode).fetch({ require: false })
-      return {
-        valid: !!group,
-        groupId: group ? group.get('id') : null,
-        groupSlug: group ? group.get('slug') : null
-      }
+      if (!group) return { valid: false }
+      return invitationResultForGroup(group)
     }
     if (token) {
       const invitation = await Invitation.where({
@@ -215,12 +243,8 @@ module.exports = {
           groupRole = await GroupRole.where({ id: invitation.get('group_role_id') }).fetch()
         }
 
-        return {
-          valid: true,
+        return invitationResultForGroup(group, {
           groupId: invitation.get('group_id'),
-          groupSlug: group
-            ? group.get('slug')
-            : null,
           email: invitation.get('email'),
           groupRole: groupRole
             ? {
@@ -229,7 +253,7 @@ module.exports = {
                 emoji: groupRole.get('emoji')
               }
             : null
-        }
+        })
       }
       return { valid: false }
     }

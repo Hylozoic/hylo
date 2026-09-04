@@ -15,6 +15,8 @@ import Icon from 'components/Icon'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import PeopleSelector from 'routes/Messages/PeopleSelector'
 import { cn } from 'util/index'
+import { isSandboxMode } from 'sandbox/isSandbox'
+import { toast } from 'sonner'
 import orm from 'store/models'
 import { GROUP_ACCESSIBILITY, GROUP_TYPES, GROUP_VISIBILITY } from 'store/models/Group'
 import getMe from 'store/selectors/getMe'
@@ -67,7 +69,7 @@ function InviteSettingsTab (props) {
   const parentName = parentGroup?.name || parentGroupFromStore?.name
 
   const regenerateAccessCode = useCallback(() => dispatch(regenerateAccessCodeAction(group.id)), [dispatch, group.id])
-  const createInvitations = useCallback((emails, message, groupRoleId, userIds) => dispatch(createInvitationsAction(group.id, emails, message, groupRoleId, userIds)), [dispatch, group.id])
+  const createInvitations = useCallback((emails, groupRoleId, userIds) => dispatch(createInvitationsAction(group.id, emails, groupRoleId, userIds)), [dispatch, group.id])
   const expireInvitation = useCallback((invitationToken) => dispatch(expireInvitationAction(invitationToken)), [dispatch])
   const resendInvitation = useCallback((invitationToken) => dispatch(resendInvitationAction(invitationToken)), [dispatch])
   const reinviteAll = useCallback(() => dispatch(reinviteAllAction(group.id)), [dispatch, group.id])
@@ -75,17 +77,10 @@ function InviteSettingsTab (props) {
 
   const { t } = useTranslation()
 
-  const defaultMessage = t(`Hi!
-
-I'm inviting you to join {{name}} on Hylo.
-
-{{name}} is using Hylo for our online community: this is our dedicated space for communication & collaboration.`, { name: group.name })
-
   const [copiedPublicLink, setCopiedPublicLink] = useState(false)
   const [copiedInviteLink, setCopiedInviteLink] = useState(false)
   const [reset, setReset] = useState(false)
   const [emails, setEmails] = useState('')
-  const [message, setMessage] = useState(defaultMessage)
   const [selectedRoleId, setSelectedRoleId] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
@@ -202,6 +197,17 @@ I'm inviting you to join {{name}} on Hylo.
 
   const handleSendInvites = () => {
     if (sendingRef.current) return
+
+    if (isSandboxMode()) {
+      toast(t('Create an account to invite people'), {
+        action: {
+          label: t('Sign up'),
+          onClick: () => { window.location.href = '/signup' }
+        }
+      })
+      return
+    }
+
     sendingRef.current = true
 
     let groupRoleId = null
@@ -211,7 +217,7 @@ I'm inviting you to join {{name}} on Hylo.
 
     const userIds = selectedPeople.map(p => p.id)
     const emailList = parseEmailList(emails).filter(Boolean)
-    createInvitations(emailList, message, groupRoleId, userIds)
+    createInvitations(emailList, groupRoleId, userIds)
       .then(res => {
         sendingRef.current = false
         if (!res?.payload?.data?.createInvitation) return
@@ -337,7 +343,23 @@ I'm inviting you to join {{name}} on Hylo.
       <div className='border-2 mt-2 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 text-foreground background-black/10 rounded-lg border-dashed relative mb-4 hover:border-t-foreground/100 hover:border-x-foreground/90 transition-all hover:border-b-foreground/80 flex flex-col gap-2'>
         <div className='text-foreground'>
           <h2 className='text-lg font-bold mt-0 mb-1 text-foreground'>{t('Share a Join Link')}</h2>
-          <div className='text-sm'><strong>{t('Use this link to invite people you know and trust.')}</strong> <span className='text-foreground/50'>{t('They will still have the opportunity to answer any join questions and agree to agreements before they enter the group.')}</span></div>
+          <div className='text-sm'>
+            {isSpace
+              ? (
+                <>
+                  <strong>{t('Use this link to invite people to the space.')}</strong>{' '}
+                  <span className='text-foreground/50'>
+                    {t('If they are not a member of {{name}} they will be given the opportunity to join that first, so make sure you know and trust them.', { name: parentName || t('the group') })}
+                  </span>
+                </>
+                )
+              : (
+                <>
+                  <strong>{t('Use this link to invite people you know and trust.')}</strong>{' '}
+                  <span className='text-foreground/50'>{t('They will still have the opportunity to answer any join questions and agree to agreements before they enter the group.')}</span>
+                </>
+                )}
+          </div>
         </div>
         <div className='flex flex-col sm:flex-row sm:items-center gap-2 min-w-0 w-full'>
           {inviteLink && (
@@ -403,7 +425,11 @@ I'm inviting you to join {{name}} on Hylo.
         <h2 className='text-lg font-bold mt-4 mb-1 text-foreground'>
           {t('Send Invites via email')}
         </h2>
-        <span className='text-sm text-foreground/50'>{t('An email invitation link will be sent to each email address, which allows them to bypass the group approval process. They will still be shown any required questions or agreements you may have set.')}</span>
+        <span className='text-sm text-foreground/50'>
+          {isSpace
+            ? t('An invitation link will be sent to each email address to join this space. If they are not yet a member of {{name}} they will be asked to join that first.', { name: parentName || t('the group') })
+            : t('An invitation link will be sent to each email address. They will still be shown any required questions or agreements you may have set to join this group.')}
+        </span>
         <p>{t('Enter email addresses separated by commas or new lines')}</p>
         <TextareaAutosize
           minRows={1}
@@ -412,14 +438,6 @@ I'm inviting you to join {{name}} on Hylo.
           value={emails}
           disabled={pendingCreate}
           onChange={(event) => setEmails(event.target.value)}
-        />
-        <div className='mt-4 mb-2'>{t('Customize the invite email message (optional):')}</div>
-        <TextareaAutosize
-          minRows={5}
-          className='rounded-lg bg-input text-foreground focus:outline-none focus:ring-0 focus:ring-offset-0 border-2 border-transparent focus:border-focus p-2'
-          value={message}
-          disabled={pendingCreate}
-          onChange={(event) => setMessage(event.target.value)}
         />
         <div className='mt-4 mb-2'>{t('Assign a role to invitees (optional):')}</div>
         <select

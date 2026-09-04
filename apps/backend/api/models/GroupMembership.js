@@ -79,6 +79,18 @@ module.exports = bookshelf.Model.extend(Object.assign({
     await this.save(null, { transacting })
   },
 
+  /**
+   * Record that the member already completed join barriers (agreements and questions).
+   * Keeps showJoinForm true so the welcome/purpose modal can still appear.
+   */
+  async completeJoinBarriers (transacting) {
+    await this.acceptAgreements(transacting)
+    if (!this.getSetting('joinQuestionsAnsweredAt')) {
+      this.addSetting({ joinQuestionsAnsweredAt: new Date().toISOString() })
+      await this.save(null, { transacting })
+    }
+  },
+
   async updateAndSave (attrs, { transacting } = {}) {
     for (const key in attrs) {
       if (key === 'settings') {
@@ -162,7 +174,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
    * No-op for spaces — they inherit roles from the parent group.
    */
   async assignCoordinatorRole (userId, groupId, { transacting } = {}) {
-    const roleScopeId = await Group.roleScopeId(groupId)
+    const roleScopeId = await Group.roleScopeId(groupId, { transacting })
     if (String(roleScopeId) !== String(groupId)) return
 
     await GroupRole.setupSystemRoles(groupId, { transacting })

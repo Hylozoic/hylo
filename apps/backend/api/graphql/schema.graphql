@@ -475,6 +475,12 @@ type Query {
 
   # Query for email-enabled testers (admin only)
   emailEnabledTesters: [EmailEnabledTester]
+
+  # Active, undismissed site banners for the current user
+  siteBanners: [SiteBanner]
+
+  # All site banners, past and present (admin only)
+  allSiteBanners: [SiteBanner]
 }
 
 union Update = Message | MessageThread | Notification
@@ -665,8 +671,18 @@ type Attachment {
 type CheckInvitationResult {
   # Whether the invitation is still valid or not
   valid: Boolean
+  # The invited group or space id (used to auto-join a space)
+  groupId: ID
   # The slug of the group for redirect purposes
   groupSlug: String
+  # The name of the invited group or space
+  groupName: String
+  # True when the invitation is for a space rather than a top-level group
+  isSpace: Boolean
+  # Parent group slug when the invitation is for a space
+  parentGroupSlug: String
+  # Parent group name when the invitation is for a space
+  parentGroupName: String
   # The email address from the invitation (for token-based invites)
   email: String
   # The group role that will be assigned when this invitation is used
@@ -2442,6 +2458,7 @@ type Post {
 
   # Any moderation actions that are linked to this post
   moderationActions: [ModerationAction]
+  moderationActionsTotal: Int
 
   # The members of a project type Post
   members(first: Int, cursor: ID, order: String): PersonQuerySet
@@ -3002,6 +3019,8 @@ type FundingRound {
   phase: FundingRoundPhase
   # Whether a budget is required for submissions
   requireBudget: Boolean
+  # Whether to show running vote totals during the voting phase
+  showRealtimeVotes: Boolean
   # The term used to describe a submission to the round
   submissionDescriptor: String
   # # The plural term used to describe submissions to the round
@@ -3129,6 +3148,31 @@ type EmailEnabledTester {
   user: Person
   createdAt: Date
   updatedAt: Date
+}
+
+# A site-wide announcement banner published by a superadmin
+type SiteBanner {
+  id: ID!
+  title: String
+  text: String
+  type: String
+  actionText: String
+  actionUrl: String
+  creator: Person
+  publishedAt: Date
+  unpublishedAt: Date
+  createdAt: Date
+  updatedAt: Date
+  # Number of users who have dismissed this banner (admin only)
+  dismissedCount: Int
+}
+
+input SiteBannerInput {
+  title: String
+  text: String
+  type: String
+  actionText: String
+  actionUrl: String
 }
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
@@ -3371,8 +3415,13 @@ type Mutation {
   archiveSpace(id: ID!): Group
   # Soft-delete a Space (active=false). Hidden from menus and More Spaces.
   deleteSpace(id: ID!): GenericResult
-  # Join a Space (creates a group membership + per-view unread rows)
-  joinSpace(spaceId: ID!): Membership
+  # Convert a regular Space into a child Group of its parent
+  convertSpaceToChildGroup(id: ID!): Group
+  # Convert a child Group into a Space of its single parent
+  convertGroupToSpace(id: ID!, parentGroupId: ID!): Group
+  # Join a Space (creates a group membership + per-view unread rows).
+  # accessCode or invitationToken pre-approves Closed, Restricted, and role-gated spaces.
+  joinSpace(spaceId: ID!, accessCode: String, invitationToken: String): Membership
   # Update the current logged in user's last-read position for a chat GroupView, recalculating newPostCount
   updateGroupViewUser(viewId: ID!, lastReadPostId: ID): GroupView
   # Mark a View as read for the current logged in user
@@ -3656,6 +3705,18 @@ type Mutation {
   addEmailEnabledTester(userId: ID!): EmailEnabledTester
   # Remove a user from the email-enabled testers list (admin only)
   removeEmailEnabledTester(userId: ID!): Boolean
+  # Create a new site banner (admin only)
+  createSiteBanner(data: SiteBannerInput): SiteBanner
+  # Update a site banner's text, type, or action button, at any point in its lifecycle (admin only)
+  updateSiteBanner(id: ID!, data: SiteBannerInput): SiteBanner
+  # Publish a site banner so all users see it (admin only)
+  publishSiteBanner(id: ID!): SiteBanner
+  # Take down a published site banner (admin only)
+  unpublishSiteBanner(id: ID!): SiteBanner
+  # Permanently delete a site banner (admin only)
+  deleteSiteBanner(id: ID!): Boolean
+  # Dismiss a site banner for the current user
+  dismissSiteBanner(id: ID!): Boolean
   # Verify your email address, manually by code or automatically by URL token
   verifyEmail(
     # The shortcode sent via email
@@ -3714,6 +3775,9 @@ type Mutation {
 
   # Check Stripe account status and update database values
   checkStripeStatus(groupId: ID!): StripeStatusCheckResult
+
+  # Grant access from a completed Checkout session (success-page fallback)
+  fulfillStripeCheckoutSession(sessionId: ID!, offeringId: ID): StripeFulfillCheckoutResult
 
   # Apply a membership subscription change (Stripe Connect). Call membershipChangePreview first; unsupported modes error until implemented.
   membershipChangeCommit(
@@ -3845,6 +3909,11 @@ type StripeCheckoutSessionResult {
   sessionId: String
   url: String
   success: Boolean
+}
+
+type StripeFulfillCheckoutResult {
+  success: Boolean
+  message: String
 }
 
 # Stats for an offering's subscribers
@@ -4181,7 +4250,6 @@ input InviteInput {
   emails: [String]
   # Existing Hylo users to invite by id (their account email is used)
   userIds: [ID]
-  message: String
   # Assign Coordinator system role when the invitation is used
   assignCoordinator: Boolean
   # Group role ID to assign when the invitation is used
@@ -4483,6 +4551,8 @@ input FundingRoundInput {
   minTokenAllocation: Int
   # Whether a budget is required for submissions
   requireBudget: Boolean
+  # Whether to show running vote totals during the voting phase
+  showRealtimeVotes: Boolean
   # The term used to describe a submission to the round
   submissionDescriptor: String
   # # The plural term used to describe submissions to the round

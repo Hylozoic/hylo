@@ -3,9 +3,9 @@ import orm from 'store/models'
 import { GROUP_TYPES } from 'store/models/Group'
 import getMyMemberships from 'store/selectors/getMyMemberships'
 
-/** True when a group record represents a Space (sub-group under a parent). */
+/** True when a group record represents a Space (`type = space`) */
 export function isSpaceGroup (group) {
-  return group?.type === GROUP_TYPES.space || Boolean(group?.parentId)
+  return group?.type === GROUP_TYPES.space
 }
 
 /** Sorts groups by nav pin order, then alphabetically by name. */

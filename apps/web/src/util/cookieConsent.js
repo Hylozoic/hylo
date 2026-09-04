@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid'
 import isWebView from 'util/webView'
+import { isSandboxMode } from 'sandbox/isSandbox'
 
 const COOKIE_NAME = 'hylo_cookie_consent'
 
@@ -8,6 +9,8 @@ const COOKIE_NAME = 'hylo_cookie_consent'
  * (iframe or mobile webView)
  */
 export const shouldSkipCookieConsent = () => {
+  if (isSandboxMode()) return true
+
   // Skip for iframe
   if (window.self !== window.top) return true
 

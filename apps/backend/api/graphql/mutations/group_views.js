@@ -356,22 +356,27 @@ export async function updateGroupViewUser (userId, viewId, { lastReadPostId } = 
   const updates = { updated_at: new Date() }
 
   if (lastReadPostId != null) {
-    updates.last_read_post_id = lastReadPostId
-    const groupId = view.get('group_id')
-    const postTypes = recountPostTypesForView(view.get('type'))
+    // Socket mark-read can race createPost's transaction: the id is on the
+    // client before posts is committed, which trips last_read_post_id_foreign.
+    const postExists = await bookshelf.knex('posts').where('id', lastReadPostId).first('id')
+    if (postExists) {
+      updates.last_read_post_id = lastReadPostId
+      const groupId = view.get('group_id')
+      const postTypes = recountPostTypesForView(view.get('type'))
 
-    if (!postTypes) {
-      updates.new_post_count = 0
-    } else {
-      const newPostCount = await bookshelf.knex('posts')
-        .join('groups_posts', 'posts.id', 'groups_posts.post_id')
-        .where('groups_posts.group_id', groupId)
-        .whereIn('posts.type', postTypes)
-        .where('posts.id', '>', lastReadPostId)
-        .whereNull('posts.deactivated_at')
-        .count('posts.id as count')
-        .then(rows => parseInt(rows[0]?.count || 0))
-      updates.new_post_count = newPostCount
+      if (!postTypes) {
+        updates.new_post_count = 0
+      } else {
+        const newPostCount = await bookshelf.knex('posts')
+          .join('groups_posts', 'posts.id', 'groups_posts.post_id')
+          .where('groups_posts.group_id', groupId)
+          .whereIn('posts.type', postTypes)
+          .where('posts.id', '>', lastReadPostId)
+          .whereNull('posts.deactivated_at')
+          .count('posts.id as count')
+          .then(rows => parseInt(rows[0]?.count || 0))
+        updates.new_post_count = newPostCount
+      }
     }
   }
 

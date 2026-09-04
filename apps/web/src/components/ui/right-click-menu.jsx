@@ -4,7 +4,65 @@ import { Check, ChevronRight, Circle } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
-const RightClickMenu = ContextMenuPrimitive.Root
+/**
+ * Returns true when the event landed on an open Radix menu panel.
+ */
+function isEventOnMenu (target) {
+  if (!(target instanceof globalThis.Node)) return false
+  return Array.from(document.querySelectorAll('[data-radix-menu-content]')).some(
+    (node) => node.contains(target)
+  )
+}
+
+/**
+ * Non-modal so the page stays scrollable and a press outside can close the
+ * menu. Modal mode sets body pointer-events: none, which on iOS swallows
+ * that outside press. Radix also waits for `click` on touch, so a press
+ * that turns into a scroll never dismisses — remounting on pointerdown
+ * or scroll closes it immediately.
+ */
+function RightClickMenu ({ modal = false, onOpenChange, ...props }) {
+  const [open, setOpen] = React.useState(false)
+  const [instance, setInstance] = React.useState(0)
+  const onOpenChangeRef = React.useRef(onOpenChange)
+  onOpenChangeRef.current = onOpenChange
+
+  const handleOpenChange = (next) => {
+    setOpen(next)
+    onOpenChangeRef.current?.(next)
+  }
+
+  React.useEffect(() => {
+    if (!open) return
+
+    const dismiss = (event) => {
+      if (isEventOnMenu(event.target)) return
+      setOpen(false)
+      setInstance((n) => n + 1)
+      onOpenChangeRef.current?.(false)
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      document.addEventListener('pointerdown', dismiss, true)
+      window.addEventListener('scroll', dismiss, true)
+    }, 0)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+      document.removeEventListener('pointerdown', dismiss, true)
+      window.removeEventListener('scroll', dismiss, true)
+    }
+  }, [open])
+
+  return (
+    <ContextMenuPrimitive.Root
+      key={instance}
+      modal={modal}
+      onOpenChange={handleOpenChange}
+      {...props}
+    />
+  )
+}
 
 const RightClickMenuTrigger = ContextMenuPrimitive.Trigger
 
@@ -36,7 +94,7 @@ const RightClickMenuSubContent = React.forwardRef(({ className, ...props }, ref)
   <ContextMenuPrimitive.SubContent
     ref={ref}
     className={cn(
-      'z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-[--radix-context-menu-content-transform-origin]',
+      'z-[500] min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-[--radix-context-menu-content-transform-origin]',
       className
     )}
     {...props}
@@ -49,7 +107,7 @@ const RightClickMenuContent = React.forwardRef(({ className, ...props }, ref) =>
     <ContextMenuPrimitive.Content
       ref={ref}
       className={cn(
-        'z-50 max-h-[--radix-context-menu-content-available-height] min-w-[8rem] overflow-y-auto overflow-x-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md animate-in fade-in-80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-[--radix-context-menu-content-transform-origin]',
+        'z-[500] max-h-[--radix-context-menu-content-available-height] min-w-[8rem] overflow-y-auto overflow-x-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md animate-in fade-in-80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-[--radix-context-menu-content-transform-origin]',
         className
       )}
       {...props}

@@ -14,17 +14,18 @@ import {
   DialogTitle
 } from 'components/ui/dialog'
 import { updateFundingRound, fetchFundingRoundParticipants } from 'routes/FundingRounds/FundingRounds.store'
+import { updateSpace } from 'store/actions/groupViews'
 import fetchFundingRoundAllocations from 'store/actions/fetchFundingRoundAllocations'
 import { cn } from 'util/index'
 import { getLocaleFromLocalStorage } from 'util/locale'
 
 /** Returns true when the stored phase is the pre-submissions "not begun" state. */
 function isNotBegunPhase (phase) {
-  return phase === 'published' || phase === 'draft'
+  return phase === 'published'
 }
 
 /** Steward controls for advancing/rewinding funding round phases and exporting results. */
-export default function FundingRoundPhaseManager ({ round, spaceName, onOpenSettings, submissionCount, participantCount }) {
+export default function FundingRoundPhaseManager ({ round, spaceId, spaceName, onOpenSettings, submissionCount, participantCount }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
 
@@ -60,8 +61,10 @@ export default function FundingRoundPhaseManager ({ round, spaceName, onOpenSett
   /** Determines whether a timeline phase key is in the past relative to the current phase. */
   const getIsPast = useCallback((phaseKey) => {
     switch (phaseKey) {
+      case 'draft':
+        return false
       case 'published':
-        return !isNotBegunPhase(currentPhase)
+        return !isNotBegunPhase(currentPhase) && currentPhase !== 'draft'
       case 'submissions':
         return currentPhase === 'discussion' || currentPhase === 'voting' || currentPhase === 'completed'
       case 'discussion':
@@ -170,6 +173,17 @@ export default function FundingRoundPhaseManager ({ round, spaceName, onOpenSett
   const submissionDescriptorPlural = round.submissionDescriptorPlural || t('Submissions')
 
   const phases = useMemo(() => [
+    ...(currentPhase === 'draft'
+      ? [getPhaseData({
+          phaseKey: 'draft',
+          baseLabel: t('Draft'),
+          baseDescription: t('This round is not yet published'),
+          dateField: null,
+          forwardButtonText: t('Publish Round'),
+          nextPhaseKey: 'published',
+          previousPhaseKey: null
+        })]
+      : []),
     getPhaseData({
       phaseKey: 'published',
       baseLabel: t('Round has not begun'),
@@ -223,18 +237,27 @@ export default function FundingRoundPhaseManager ({ round, spaceName, onOpenSett
       nextPhaseKey: null,
       previousPhaseKey: 'voting'
     })
-  ], [getPhaseData, numParticipants, numSubmissions, submissionDescriptorPlural, t])
+  ], [currentPhase, getPhaseData, numParticipants, numSubmissions, submissionDescriptorPlural, t])
 
   /** Confirms and advances the round to the next phase. */
   const handleStartPhase = (phase) => {
+    const isPublishingDraft = phase.key === 'draft'
     setConfirmDialog({
       isOpen: true,
       title: t('Confirm Action'),
-      message: t('Are you sure you want to {{action}}?', { action: phase.forwardButtonText.toLowerCase() }),
+      message: isPublishingDraft
+        ? t('Are you sure you want to publish this round?')
+        : t('Are you sure you want to {{action}}?', { action: phase.forwardButtonText.toLowerCase() }),
       confirmButtonText: phase.forwardButtonText,
       onConfirm: async () => {
         setConfirmDialog({ isOpen: false, title: '', message: '', confirmButtonText: '', onConfirm: null })
         try {
+          if (isPublishingDraft) {
+            if (spaceId) {
+              await dispatch(updateSpace({ id: spaceId, status: 'published' }))
+            }
+            return
+          }
           await dispatch(updateFundingRound({ id: round.id, [phase.dateField]: new Date().toISOString(), phase: phase.nextPhaseKey }))
         } catch (error) {
           const errorMessage = error?.message || error?.toString() || t('An error occurred while updating the funding round')

@@ -36,7 +36,7 @@ function NotificationsDropdown ({ renderToggleChildren, className }) {
   const pending = useSelector(state => state.pending[FETCH_NOTIFICATIONS])
 
   useEffect(() => {
-    dispatch(fetchNotifications())
+    dispatch(fetchNotifications(NOTIFICATIONS_PAGE_SIZE, 0, false))
   }, [dispatch])
 
   // Allow scroll events to pass through to GlobalNav even when a modal post dialog is open

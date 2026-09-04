@@ -1,5 +1,5 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate, useLocation, useParams } from 'react-router-dom'
 import * as Dialog from '@radix-ui/react-dialog'
 
 import { removePostFromUrl } from '@hylo/navigation'
@@ -31,9 +31,14 @@ const PostDialog = ({
 }) => {
   const navigate = useNavigate()
   const location = useLocation()
+  const { postId } = useParams()
 
   const postDetailRef = useRef(null)
   const [dialogOpen, setDialogOpen] = useState(true)
+
+  useEffect(() => {
+    setDialogOpen(true)
+  }, [postId])
 
   const portalContainer = useMemo(() => container || document.getElementById('center-column-container'), [container])
 

@@ -4,11 +4,27 @@ import {
   viewShowsUnreadDot,
   groupMenuHasUnreadBadges
 } from './viewUnreadBadges'
+import { singleVisibleMenuView } from 'store/models/GroupView'
 
 describe('viewUnreadBadges', () => {
   it('shows numbered badge for chat only', () => {
     expect(viewUnreadBadgeCount({ type: 'chat', newPostCount: 3 })).toBe(3)
     expect(viewUnreadBadgeCount({ type: 'discussions', newPostCount: 3 })).toBe(null)
+  })
+
+  it('uses the lone space view for the space-row badge', () => {
+    const loneChat = singleVisibleMenuView([
+      { type: 'chat', order: 0, newPostCount: 7 },
+      { type: 'events', order: null, newPostCount: 2 }
+    ])
+    expect(viewUnreadBadgeCount(loneChat)).toBe(7)
+    expect(viewShowsUnreadDot(loneChat)).toBe(false)
+
+    const loneDiscussions = singleVisibleMenuView([
+      { type: 'discussions', order: 0, newPostCount: 1 }
+    ])
+    expect(viewUnreadBadgeCount(loneDiscussions)).toBe(null)
+    expect(viewShowsUnreadDot(loneDiscussions)).toBe(true)
   })
 
   it('shows dot for typed common views', () => {

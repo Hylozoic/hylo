@@ -3,7 +3,8 @@ import {
   preserveViewLoadedPosts,
   removeGroupViewFromMenu,
   setGroupViewHiddenInMenu,
-  syncAcceptedPostTypesInMenus
+  syncAcceptedPostTypesInMenus,
+  updateGroupViewInMenu
 } from './groupViewsOrder'
 
 function makeGroup (groupViews) {
@@ -17,6 +18,31 @@ function makeGroup (groupViews) {
     }
   }
 }
+
+describe('updateGroupViewInMenu', () => {
+  it('preserves a sibling space row when patching chat last-read', () => {
+    const parent = makeGroup([
+      { id: 'chat', type: 'chat', order: 0, lastReadPostId: '1', newPostCount: 3 },
+      {
+        id: 'space-view',
+        type: 'space',
+        order: 1,
+        linkedGroup: { id: 'space-1', name: 'Garden', slug: 'garden', visibility: 0 }
+      }
+    ])
+
+    updateGroupViewInMenu(parent, 'chat', { lastReadPostId: '99', newPostCount: 0, linkedGroup: undefined })
+
+    expect(parent.groupViews.items.map(v => v.type)).toEqual(['chat', 'space'])
+    expect(parent.groupViews.items[0].lastReadPostId).toBe('99')
+    expect(parent.groupViews.items[1].linkedGroup).toEqual({
+      id: 'space-1',
+      name: 'Garden',
+      slug: 'garden',
+      visibility: 0
+    })
+  })
+})
 
 describe('preserveViewLoadedPosts', () => {
   it('keeps collectionPosts when refreshed groupViews omit them', () => {
@@ -33,6 +59,50 @@ describe('preserveViewLoadedPosts', () => {
 
     expect(merged[0].collectionPosts).toEqual([{ id: 'p1', completedAt: null }])
     expect(merged[0].order).toBe(0)
+  })
+
+  it('keeps nested space menus and linkedGroup fields when a refresh omits them', () => {
+    const existing = [{
+      id: 'space-view',
+      type: 'space',
+      linkedGroup: {
+        id: 'space-1',
+        name: 'Garden',
+        visibility: 0,
+        groupViews: { items: [{ id: 'v1', type: 'chat', order: 0 }] }
+      }
+    }]
+    const refreshed = [{
+      id: 'space-view',
+      type: 'space',
+      linkedGroup: { id: 'space-1', name: 'Garden', paywall: false }
+    }]
+
+    const merged = preserveViewLoadedPosts(existing, refreshed)
+
+    expect(merged[0].linkedGroup.paywall).toBe(false)
+    expect(merged[0].linkedGroup.visibility).toBe(0)
+    expect(merged[0].linkedGroup.groupViews.items).toEqual([{ id: 'v1', type: 'chat', order: 0 }])
+  })
+
+  it('keeps a newer local last-read when a stale views fetch returns an older cursor', () => {
+    const existing = [{
+      id: 'chat',
+      type: 'chat',
+      lastReadPostId: '108579',
+      newPostCount: 0
+    }]
+    const refreshed = [{
+      id: 'chat',
+      type: 'chat',
+      lastReadPostId: '108578',
+      newPostCount: 1
+    }]
+
+    const merged = preserveViewLoadedPosts(existing, refreshed)
+
+    expect(merged[0].lastReadPostId).toBe('108579')
+    expect(merged[0].newPostCount).toBe(0)
   })
 })
 

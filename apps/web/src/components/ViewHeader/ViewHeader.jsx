@@ -228,6 +228,12 @@ const ViewHeader = () => {
     return null
   }
 
+  // Management doesn't set headerDetails via ViewHeaderContext, so without this
+  // the header would keep showing whatever the previously visited route left behind.
+  if (location.pathname.startsWith('/management')) {
+    return null
+  }
+
   // Light mode surfaces sit close in lightness, so the sticky header needs a
   // hairline edge plus a stronger shadow to read as a layer above the stream.
   return (

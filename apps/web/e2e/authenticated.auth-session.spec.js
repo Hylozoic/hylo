@@ -48,8 +48,15 @@ test.describe('authenticated: logout and session', () => {
 
     // Group stream: phone chevron toggles the nav drawer. /my/posts can treat
     // it as back (one-column My home), so create/settings never enter the viewport.
+    // Retries reuse session-mutate-user.json after this test DELETEs that session,
+    // so restore auth via the login form when we landed on /login.
     await page.goto('/groups/e2e-public-group/all')
     await waitPastRootSessionLoading(page)
+    if (/\/login/.test(page.url())) {
+      await signInWithSessionMutate(page)
+      await page.goto('/groups/e2e-public-group/all')
+      await waitPastRootSessionLoading(page)
+    }
     await expect(page.locator('#center-column-container')).toBeVisible(uiTimeout)
 
     await openGlobalNavSettingsMenu(page)

@@ -61,7 +61,7 @@ export default function AddCustomViewDialog ({ group, onCancel, onCreated, onAdd
   }, [canSave, defaultViewMode, dispatch, group?.id, name, icon, topics, postTypes, searchText, onCreated, onAdd])
 
   return (
-    <div className='fixed inset-0 z-[1100] flex items-center justify-center bg-darkening/50 p-4 pointer-events-auto'>
+    <div data-hylo-nested-dialog className='fixed inset-0 z-[1100] flex items-center justify-center bg-darkening/50 p-4 pointer-events-auto'>
       <div className='bg-midground rounded-lg shadow-lg p-5 w-full max-w-md max-h-[85vh] flex flex-col'>
         <h2 className='text-lg font-semibold mb-4'>{t('Custom Post Stream')}</h2>
 

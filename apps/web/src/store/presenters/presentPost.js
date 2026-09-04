@@ -15,6 +15,11 @@ function parseNoticeData (value) {
   return value
 }
 
+/** True when value is a nested GraphQL/Location payload with coordinates. */
+function isPlainLocation (value) {
+  return value && typeof value === 'object' && value.center != null
+}
+
 export default function presentPost (post, groupId) {
   if (!post) return null
 
@@ -54,8 +59,10 @@ export default function presentPost (post, groupId) {
       linkPreview: rawPost ? post.linkPreview : (post.linkPreview?.ref || post.linkPreview),
       linkPreviewFeatured: !!(rawPost ? post.linkPreviewFeatured : post.ref?.linkPreviewFeatured),
       location: post.location, // needed to load the location object
-      // GraphQL locationObject is stored nested on .ref; the locationId FK is usually empty
-      locationObject: rawPost ? post.locationObject : (post.ref?.locationObject || post.locationObject?.ref || post.locationObject),
+      // Prefer the Location relation; ref.locationObject is only the FK id after extraction
+      locationObject: rawPost
+        ? post.locationObject
+        : (post.locationObject?.ref || (isPlainLocation(post.ref?.locationObject) ? post.ref.locationObject : null)),
       members: (rawPost ? post.members?.items || [] : (post.members?.toModelArray?.() || [])).map(person => {
         return {
           ...(rawPost ? person : person.ref),

@@ -1,7 +1,30 @@
 import { CheckCircle2, FileCheck2, Lock, MessageSquare, Vote, ShieldAlert } from 'lucide-react'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
+import { useGroupRouteOpts } from 'contexts/SpaceGroupContext'
+import { spaceUrl } from '@hylo/navigation'
 import { formatUserDatePair } from 'util/dateFormat'
+
+const SUBMISSIONS_LINK_MARKER = '__SUBMISSIONS_LINK__'
+
+/** Renders the voting prompt with the submission descriptor linked to the submissions view. */
+function AllocateVotesPrompt ({ tokenType, submissionDescriptorPlural, submissionsUrl, t }) {
+  const sentence = t('Allocate your {{tokenType}} to the {{submissionDescriptorPlural}} you think deserve support.', {
+    tokenType,
+    submissionDescriptorPlural: SUBMISSIONS_LINK_MARKER
+  })
+  const [before, after] = sentence.split(SUBMISSIONS_LINK_MARKER)
+  const label = (
+    submissionsUrl
+      ? <Link to={submissionsUrl} className='text-accent hover:underline'>{submissionDescriptorPlural}</Link>
+      : submissionDescriptorPlural
+  )
+  if (after === undefined) {
+    return <>{sentence}</>
+  }
+  return <>{before}{label}{after}</>
+}
 
 export default function RoundPhaseStatus ({
   round,
@@ -12,7 +35,11 @@ export default function RoundPhaseStatus ({
   canVote = true
 }) {
   const { t } = useTranslation()
+  const { parentGroupSlug, spaceSlug } = useGroupRouteOpts()
   const { submitterRoles, voterRoles } = round || {}
+  const submissionsUrl = parentGroupSlug && spaceSlug
+    ? spaceUrl(parentGroupSlug, spaceSlug, 'funding-round-submissions')
+    : null
 
   const submissionsOpenDate = round.submissionsOpenAt
   const submissionsCloseDate = round.submissionsCloseAt
@@ -176,10 +203,12 @@ export default function RoundPhaseStatus ({
           {canVote && !cannotVoteAsLateJoiner && (
             <div>
               <p className='text-sm text-foreground/80 mt-0 mb-0 pt-0 font-normal'>
-                {t('Allocate your {{tokenType}} to the {{submissionDescriptorPlural}} you think deserve support.', {
-                  tokenType: round.tokenType || t('Votes'),
-                  submissionDescriptorPlural: round.submissionDescriptorPlural
-                })}
+                <AllocateVotesPrompt
+                  tokenType={round.tokenType || t('Votes')}
+                  submissionDescriptorPlural={round.submissionDescriptorPlural || t('Submissions')}
+                  submissionsUrl={submissionsUrl}
+                  t={t}
+                />
               </p>
               {votingClosesDate && (
                 <span className='text-sm font-normal pt-0 mt-0 text-foreground/50'>

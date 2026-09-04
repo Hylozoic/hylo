@@ -69,6 +69,10 @@ query FetchGroupsMenuData (
       acceptedPostTypes
       memberCount
       paywall
+      stripeAccountId
+      stripeChargesEnabled
+      stripePayoutsEnabled
+      stripeDetailsSubmitted
       settings {
         allowGroupInvites
         showWelcomePage
@@ -155,6 +159,7 @@ query FetchGroupsMenuData (
                 linkedGroup {
                   id
                   name
+                  slug
                   avatarUrl
                   icon
                 }
@@ -230,6 +235,7 @@ query FetchGroupsMenuData (
               linkedGroup {
                 id
                 name
+                slug
                 avatarUrl
                 icon
               }

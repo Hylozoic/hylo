@@ -1,5 +1,6 @@
 /* globals LinkPreview */
 import { spyify, unspyify, mockify } from '../../setup/helpers'
+import factories from '../../setup/factories'
 require('../../setup')
 
 describe('LinkPreview', () => {
@@ -91,6 +92,50 @@ describe('LinkPreview', () => {
       } finally {
         unspyify(LinkPreview, 'populate')
       }
+    })
+  })
+
+  describe('parseHyloPostId', () => {
+    it('reads the post id from known Hylo hosts', () => {
+      expect(LinkPreview.parseHyloPostId('https://hylo.com/post/42')).to.equal('42')
+      expect(LinkPreview.parseHyloPostId('https://www.hylo.com/groups/foo/post/99')).to.equal('99')
+      expect(LinkPreview.parseHyloPostId('http://localhost:3000/public/post/7')).to.equal('7')
+    })
+
+    it('returns null for non-Hylo URLs and non-post paths', () => {
+      expect(LinkPreview.parseHyloPostId('https://example.com/post/42')).to.equal(null)
+      expect(LinkPreview.parseHyloPostId('https://hylo.com/groups/foo')).to.equal(null)
+    })
+  })
+
+  describe('attrsForPublicHyloPost', () => {
+    it('returns title, body text, and first image for a public post', async () => {
+      const post = await factories.post({
+        name: 'Garden day',
+        description: '<p>Come help <strong>plant</strong> trees.</p>',
+        is_public: true
+      }).save()
+      await factories.media({
+        post_id: post.id,
+        type: 'image',
+        url: 'http://cdn.example/first.jpg',
+        position: 0
+      }).save()
+
+      const attrs = await LinkPreview.attrsForPublicHyloPost(`https://hylo.com/post/${post.id}`)
+      expect(attrs.title).to.equal('Garden day')
+      expect(attrs.description).to.include('Come help plant trees')
+      expect(attrs.image_url).to.equal('http://cdn.example/first.jpg')
+    })
+
+    it('returns null for a private post', async () => {
+      const post = await factories.post({
+        name: 'Secret',
+        is_public: false
+      }).save()
+
+      const attrs = await LinkPreview.attrsForPublicHyloPost(`https://hylo.com/post/${post.id}`)
+      expect(attrs).to.equal(null)
     })
   })
 })

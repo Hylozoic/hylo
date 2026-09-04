@@ -3013,6 +3013,77 @@ ALTER SEQUENCE public.skills_users_id_seq OWNED BY public.skills_users.id;
 
 
 --
+-- Name: site_banners; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.site_banners (
+    id integer NOT NULL,
+    title text,
+    text text,
+    type text DEFAULT 'info'::text,
+    action_text text,
+    action_url text,
+    created_by_id bigint,
+    published_at timestamp with time zone,
+    unpublished_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+--
+-- Name: site_banners_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.site_banners_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: site_banners_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.site_banners_id_seq OWNED BY public.site_banners.id;
+
+
+--
+-- Name: site_banners_users; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.site_banners_users (
+    id integer NOT NULL,
+    site_banner_id integer,
+    user_id bigint,
+    dismissed_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+--
+-- Name: site_banners_users_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.site_banners_users_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: site_banners_users_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.site_banners_users_id_seq OWNED BY public.site_banners_users.id;
+
+
+--
 -- Name: stripe_accounts; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -4119,6 +4190,20 @@ ALTER TABLE ONLY public.skills_users ALTER COLUMN id SET DEFAULT nextval('public
 
 
 --
+-- Name: site_banners id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.site_banners ALTER COLUMN id SET DEFAULT nextval('public.site_banners_id_seq'::regclass);
+
+
+--
+-- Name: site_banners_users id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.site_banners_users ALTER COLUMN id SET DEFAULT nextval('public.site_banners_users_id_seq'::regclass);
+
+
+--
 -- Name: stripe_accounts id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -4958,6 +5043,30 @@ ALTER TABLE ONLY public.skills_users
 
 ALTER TABLE ONLY public.skills_users
     ADD CONSTRAINT skills_users_skill_id_user_id_type_unique UNIQUE (skill_id, user_id, type);
+
+
+--
+-- Name: site_banners site_banners_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.site_banners
+    ADD CONSTRAINT site_banners_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: site_banners_users site_banners_users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.site_banners_users
+    ADD CONSTRAINT site_banners_users_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: site_banners_users site_banners_users_site_banner_id_user_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.site_banners_users
+    ADD CONSTRAINT site_banners_users_site_banner_id_user_id_unique UNIQUE (site_banner_id, user_id);
 
 
 --
@@ -7148,6 +7257,30 @@ ALTER TABLE ONLY public.skills_users
 
 ALTER TABLE ONLY public.skills_users
     ADD CONSTRAINT skills_users_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: site_banners site_banners_created_by_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.site_banners
+    ADD CONSTRAINT site_banners_created_by_id_foreign FOREIGN KEY (created_by_id) REFERENCES public.users(id);
+
+
+--
+-- Name: site_banners_users site_banners_users_site_banner_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.site_banners_users
+    ADD CONSTRAINT site_banners_users_site_banner_id_foreign FOREIGN KEY (site_banner_id) REFERENCES public.site_banners(id) ON DELETE CASCADE;
+
+
+--
+-- Name: site_banners_users site_banners_users_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.site_banners_users
+    ADD CONSTRAINT site_banners_users_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --

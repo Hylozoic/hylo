@@ -37,7 +37,7 @@ Person.fields = {
   url: attr(),
   location: attr(),
   isProfilePublic: attr(),
-  locationId: fk({
+  locationObject: fk({
     to: 'Location',
     as: 'locationObject'
   }),

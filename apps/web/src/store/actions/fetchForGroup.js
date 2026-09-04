@@ -87,6 +87,7 @@ const queryFragment = `group(slug: $slug, updateLastViewed: $updateLastViewed) {
       maxTokenAllocation
       minTokenAllocation
       requireBudget
+      showRealtimeVotes
       submissionDescriptor
       submissionDescriptorPlural
       submissionsOpenAt

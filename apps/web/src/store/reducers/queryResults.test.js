@@ -356,6 +356,68 @@ describe('matchNewPostIntoQueryResults', () => {
     })
   })
 
+  it('prepends a post onto All Activity when show chat activity is off', () => {
+    const allActivityKey = '{"type":"FETCH_POSTS","params":{"childPostInclusion":"yes","context":"groups","first":20,"groupId":"5","slug":"bar","sortBy":"created"}}'
+    const resourcesKey = '{"type":"FETCH_POSTS","params":{"childPostInclusion":"yes","context":"groups","first":20,"groupId":"5","slug":"bar","sortBy":"created","types":["resource"]}}'
+    const topicKey = '{"type":"FETCH_POSTS","params":{"childPostInclusion":"yes","context":"groups","first":20,"groupId":"5","slug":"bar","sortBy":"created","topics":["123"]}}'
+    const state = {
+      [allActivityKey]: {
+        hasMore: true,
+        ids: ['18', '11'],
+        total: 2
+      },
+      [resourcesKey]: {
+        hasMore: true,
+        ids: ['18'],
+        total: 1
+      },
+      [topicKey]: {
+        hasMore: true,
+        ids: ['18'],
+        total: 1
+      }
+    }
+    const post = { id: '99', type: 'discussion', groups: [{ slug: 'bar' }] }
+
+    expect(matchNewPostIntoQueryResults(state, post)).toEqual({
+      [allActivityKey]: {
+        hasMore: true,
+        ids: ['99', '18', '11'],
+        total: 3
+      },
+      [resourcesKey]: {
+        hasMore: true,
+        ids: ['18'],
+        total: 1
+      },
+      [topicKey]: {
+        hasMore: true,
+        ids: ['18'],
+        total: 1
+      }
+    })
+  })
+
+  it('does not prepend a chat_activity notice onto All Activity when show chat activity is off', () => {
+    const allActivityKey = '{"type":"FETCH_POSTS","params":{"childPostInclusion":"yes","context":"groups","first":20,"slug":"bar","sortBy":"created"}}'
+    const state = {
+      [allActivityKey]: {
+        hasMore: true,
+        ids: ['18', '11'],
+        total: 2
+      }
+    }
+    const post = { id: 'notice-4', type: 'chat_activity', groups: [{ slug: 'bar' }] }
+
+    expect(matchNewPostIntoQueryResults(state, post)).toEqual({
+      [allActivityKey]: {
+        hasMore: true,
+        ids: ['18', '11'],
+        total: 2
+      }
+    })
+  })
+
   it('matches a space notice into the parent group All Activity', () => {
     const state = {
       '{"type":"FETCH_POSTS","params":{"childPostInclusion":"yes","context":"groups","filter":"all+notices","groupId":"1","slug":"parent","sortBy":"created"}}': {

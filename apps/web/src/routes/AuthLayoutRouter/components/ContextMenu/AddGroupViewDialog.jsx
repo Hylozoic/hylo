@@ -389,6 +389,7 @@ export default function AddGroupViewDialog ({ group, groupViews, acceptedPostTyp
   return createPortal(
     <>
       <div
+        data-hylo-nested-dialog
         className='fixed inset-0 z-[1100] flex items-center justify-center bg-darkening/50 pointer-events-auto'
         onClick={handleBackdropClick}
       >

@@ -16,7 +16,6 @@ import CopyToClipboard from 'react-copy-to-clipboard'
 
 import Button from 'components/ui/button'
 import HyloEditor from 'components/HyloEditor'
-import HyloHTML from 'components/HyloHTML'
 import Loading from 'components/Loading'
 import SettingsControl from 'components/SettingsControl'
 import { Switch } from 'components/ui/switch'
@@ -30,6 +29,7 @@ import useDebounce from 'hooks/useDebounce'
 import { parseAccessGrants, offeringHasGroupAccess, offeringHasRoleAccess } from 'util/accessGrants'
 import { queryHyloAPI } from 'util/graphql'
 import { formatLocalizedDate } from 'util/dateFormat'
+import { stripHtml } from 'hooks/useDraft'
 
 const EMPTY_LINE_ITEMS = { spaces: [], groups: [], roles: [] }
 
@@ -254,7 +254,7 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
         if (maximum != null) accessGrants.slidingScale.maximum = maximum
       }
 
-      const description = descriptionEditorRef.current?.getHTML?.() ?? formData.description ?? ''
+      const description = descriptionEditorRef.current?.getText?.() ?? formData.description ?? ''
 
       const result = await dispatch(createOffering(
         group.id,
@@ -330,7 +330,7 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
         return normalized
       }
 
-      const description = descriptionEditorRef.current?.getHTML?.() ?? formData.description ?? ''
+      const description = descriptionEditorRef.current?.getText?.() ?? formData.description ?? ''
 
       const updates = {}
       if (formData.name !== editingOffering.name) updates.name = formData.name
@@ -1192,9 +1192,9 @@ function OfferingListItem ({ offering, onEdit, group, childSpaces = [], isEditin
                     : t('Unpublished')}
             </span>
           </div>
-          {offering.description && (
-            <div className='text-sm text-foreground/70 mb-2 global-postContent'>
-              <HyloHTML html={offering.description} />
+          {stripHtml(offering.description) && (
+            <div className='text-sm text-foreground/70 mb-2 whitespace-pre-wrap'>
+              {stripHtml(offering.description)}
             </div>
           )}
           <div className='flex items-center gap-4 text-xs text-foreground/50 mb-2'>
@@ -1366,6 +1366,7 @@ function LineItemsSelector ({ group, lineItems, onLineItemsChange, t }) {
     if (activeSelector !== 'space') return
     setIsLoading(false)
     const unselected = spaces.filter(space =>
+      space.paywall &&
       !(lineItems.spaces || []).some(selected => parseInt(selected.id) === parseInt(space.id))
     )
     if (!debouncedSearch) {
@@ -1433,7 +1434,7 @@ function LineItemsSelector ({ group, lineItems, onLineItemsChange, t }) {
   const textOptions = {
     space: {
       searchPlaceholder: t('Search spaces...'),
-      noResults: t('No spaces found'),
+      noResults: t('No paid spaces found'),
       heading: t('Spaces'),
       buttonLabel: t('Add Space')
     },

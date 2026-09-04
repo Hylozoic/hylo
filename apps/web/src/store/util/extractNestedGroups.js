@@ -8,7 +8,9 @@
  *
  * Collects every `linkedGroup` object nested within a `groupViews.items` array,
  * recursing into each linkedGroup's own `groupViews.items` (spaces can have their
- * own space-type views).
+ * own space-type views). Every GraphQL `linkedGroup` selection must include
+ * `slug` — space URLs are built from it, and a later extract without slug
+ * overwrites the menu copy used by those links.
  */
 export function collectLinkedGroups (items) {
   const result = []
