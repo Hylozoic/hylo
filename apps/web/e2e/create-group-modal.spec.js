@@ -85,6 +85,30 @@ test.describe('Create Group modal', () => {
     await expect(page).toHaveURL(/\/public\/all$/)
   })
 
+  test('warns before discarding entered group data', async ({ page }) => {
+    const dialog = await openCreateGroup(page, '/public/all?createGroup=true')
+    await dialog.locator('#groupName').fill('Watershed Council')
+
+    await dialog.getByRole('button', { name: 'Cancel' }).click()
+
+    const confirm = page.getByRole('dialog', { name: 'Discard this group?' })
+    await expect(confirm).toBeVisible()
+    await expect(confirm.getByRole('button', { name: 'Continue Editing' })).toBeVisible()
+    await expect(confirm.getByRole('button', { name: 'Discard Group' })).toBeVisible()
+    await expect(confirm.getByRole('button', { name: 'Save as Draft' })).toHaveCount(0)
+    await page.screenshot({ path: path.resolve(screenshotDir, 'create-group-06-discard-confirm.png') })
+
+    await confirm.getByRole('button', { name: 'Continue Editing' }).click()
+    await expect(confirm).toBeHidden()
+    await expect(dialog).toBeVisible()
+    await expect(dialog.locator('#groupName')).toHaveValue('Watershed Council')
+
+    await dialog.getByRole('button', { name: 'Cancel' }).click()
+    await confirm.getByRole('button', { name: 'Discard Group' }).click()
+    await expect(createGroupDialog(page)).toBeHidden()
+    await expect(page).toHaveURL(/\/public\/all$/)
+  })
+
   test('adding Welcome from the menu toggles the Welcome pill on, and removing it toggles it off', async ({ page }) => {
     const dialog = await openCreateGroup(page, '/public/all?createGroup=true')
 
