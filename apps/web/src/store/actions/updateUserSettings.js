@@ -17,14 +17,20 @@ export default function updateUserSettings (changes) {
             rsvpCalendarUrl
             settings {
               alreadySeenTour
+              toursSeen
+              colorScheme
               dmNotifications
               commentNotifications
+              globalNavStyle
+              groupNavStyle
               rsvpCalendarSub
               signupInProgress
+              stackGroups
               streamChildPosts
               streamViewMode
               streamSortBy
               streamPostType
+              theme
             }
           }
         }

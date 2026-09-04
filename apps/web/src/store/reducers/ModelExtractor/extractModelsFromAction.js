@@ -15,6 +15,10 @@ export function getRoots (action) {
   if (typeof extractModel === 'string') {
     // shorthand syntax: payload.data must have exactly one child, and the
     // value of extractModel is the model name
+    if (keys.length === 0) {
+      // Empty payloads (e.g. test GraphQL catch-alls) — nothing to extract
+      return []
+    }
     if (keys.length !== 1) {
       throw new Error(`Bad data for ${action.type}: payload.data should have exactly one child`)
     }

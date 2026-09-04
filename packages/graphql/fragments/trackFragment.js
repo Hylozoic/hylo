@@ -3,20 +3,25 @@ import { gql } from 'urql'
 export default gql`
   fragment TrackFieldsFragment on Track {
     id
-    bannerUrl
     actionDescriptor
     actionDescriptorPlural
-    description
     didComplete
     isEnrolled
-    name
     numActions
     numPeopleCompleted
     numPeopleEnrolled
     userSettings
-    publishedAt
-    groups {
-      items {
+    space {
+      id
+      avatarUrl
+      bannerUrl
+      description
+      name
+      slug
+      type
+      status
+      homeRoute
+      parentGroup {
         id
         avatarUrl
         name

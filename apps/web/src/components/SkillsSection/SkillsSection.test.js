@@ -8,31 +8,34 @@ jest.mock('components/ui/button', () => ({
   default: ({ children, ...props }) => <button type='button' {...props}>{children}</button>
 }))
 
+jest.mock('./SkillsSection.store', () => ({
+  addSkill: jest.fn(() => ({ type: 'ADD_SKILL' })),
+  addSkillToGroup: jest.fn(() => ({ type: 'ADD_SKILL_TO_GROUP' })),
+  removeSkill: jest.fn(() => ({ type: 'REMOVE_SKILL' })),
+  removeSkillFromGroup: jest.fn(() => ({ type: 'REMOVE_SKILL_FROM_GROUP' })),
+  fetchMemberSkills: jest.fn(() => ({ type: 'FETCH_MEMBER_SKILLS' })),
+  fetchSkillSuggestions: jest.fn(() => ({ type: 'FETCH_SKILL_SUGGESTIONS' })),
+  getMemberSkills: jest.fn(() => []),
+  getSkillSuggestions: jest.fn(() => []),
+  getSearch: jest.fn(() => ''),
+  setSearch: jest.fn(() => ({ type: 'SET_SEARCH' }))
+}))
+
 describe('SkillsSection', () => {
   const mockSkills = [
     { id: 1, name: 'test' },
     { id: 2, name: 'unclickable' }
   ]
 
-  const controlledProps = {
-    skills: mockSkills,
-    fetchMemberSkills: jest.fn(),
-    fetchSkillSuggestions: jest.fn(),
-    setSearch: jest.fn(),
-    addSkill: jest.fn(),
-    removeSkill: jest.fn(),
-    searchForSkill: jest.fn()
-  }
-
   it('shows basic pills', () => {
-    render(<SkillsSection {...controlledProps} />)
+    render(<SkillsSection skills={mockSkills} />)
 
     expect(screen.getByText('test')).toBeInTheDocument()
     expect(screen.getByText('unclickable')).toBeInTheDocument()
   })
 
   it('shows editable fields when isMe = true', async () => {
-    render(<SkillsSection {...controlledProps} isMe />)
+    render(<SkillsSection skills={mockSkills} isMe />)
 
     expect(screen.getByText('Add a Skill or Interest')).toBeInTheDocument()
     fireEvent.click(screen.getByText('Add a Skill or Interest'))

@@ -1,8 +1,10 @@
 import {
   ormSessionReducer,
   RECEIVE_MESSAGE,
+  RECEIVE_MESSAGE_UPDATED,
   RECEIVE_POST,
-  RECEIVE_NOTIFICATION
+  RECEIVE_NOTIFICATION,
+  RECEIVE_OPEN_JOIN_REQUEST_COUNT
 } from './SocketListener.store'
 import orm from 'store/models'
 
@@ -63,43 +65,120 @@ describe('SocketListener.store.ormSessionReducer', () => {
     expect(session.Me.first().unseenThreadCount).toBe(0)
   })
 
+  it('responds to RECEIVE_MESSAGE_UPDATED', () => {
+    session.Message.create({
+      id: '99',
+      text: 'old text',
+      messageThread: '7'
+    })
+    const action = {
+      type: RECEIVE_MESSAGE_UPDATED,
+      payload: {
+        data: {
+          message: {
+            id: '99',
+            text: 'new text',
+            editedAt: '2024-01-01T00:00:00.000Z'
+          }
+        }
+      }
+    }
+
+    ormSessionReducer(session, action)
+    const message = session.Message.withId('99')
+    expect(message.text).toBe('new text')
+    expect(message.editedAt).toBe(new Date('2024-01-01T00:00:00.000Z').toString())
+  })
+
   describe('for RECEIVE_POST', () => {
     let action
 
     beforeEach(() => {
       session.Me.create({ id: '2' })
-      session.Person.create({ id: '14' })
-      session.Group.create({ id: '1', name: 'place' })
-      session.Membership.create({ id: '1', group: '1' })
-      session.Membership.create({ id: '2', group: '1', person: '14' })
-      session.GroupTopic.create({ id: '1', topic: '2', group: '1' })
-      session.GroupTopic.create({ id: '2', topic: '7', group: '1' })
+      session.Person.create({ id: '2' })
+      session.Group.create({
+        id: '1',
+        name: 'place',
+        groupViews: {
+          items: [
+            { id: '10', type: 'chat', newPostCount: 0 },
+            { id: '11', type: 'discussions', newPostCount: 0 }
+          ]
+        }
+      })
+      session.Membership.create({ id: '1', group: '1', person: '2', newPostCount: 0 })
       action = {
         type: RECEIVE_POST,
         payload: {
+          groupId: '1',
           data: {
             post: {
-              topics: ['2', '7'],
-              groupId: '1',
-              creatorId: '4'
+              type: 'discussion',
+              topics: [{ id: '2' }],
+              creator: { id: '4' }
             }
           }
         }
       }
     })
 
-    it('updates new post counts', () => {
+    it('updates membership and typed-view unread, not chat', () => {
       ormSessionReducer(session, action)
       expect(session.Membership.withId('1').newPostCount).toBe(1)
-      expect(session.Membership.withId('2').newPostCount).toBeFalsy()
-      expect(session.GroupTopic.withId('1').newPostCount).toBe(1)
-      expect(session.GroupTopic.withId('2').newPostCount).toBe(1)
+      const views = session.Group.withId('1').groupViews.items
+      expect(views.find(v => v.type === 'discussions').newPostCount).toBe(1)
+      expect(views.find(v => v.type === 'chat').newPostCount).toBe(0)
+    })
+
+    it('bumps the chat badge for chat posts', () => {
+      action.payload.data.post.type = 'chat'
+      ormSessionReducer(session, action)
+      const views = session.Group.withId('1').groupViews.items
+      expect(views.find(v => v.type === 'chat').newPostCount).toBe(1)
+      expect(views.find(v => v.type === 'discussions').newPostCount).toBe(0)
     })
 
     it('ignores posts created by the current user', () => {
-      action.payload.data.post.creatorId = '2'
+      action.payload.data.post.creator = { id: '2' }
       ormSessionReducer(session, action)
-      expect(session.Membership.withId('1').newPostCount).toBeFalsy()
+      expect(session.Membership.withId('1').newPostCount).toBe(0)
+      const views = session.Group.withId('1').groupViews.items
+      expect(views.find(v => v.type === 'discussions').newPostCount).toBe(0)
+      expect(views.find(v => v.type === 'chat').newPostCount).toBe(0)
+    })
+
+    it('updates nested space menus on the parent group', () => {
+      session.Group.create({
+        id: '99',
+        name: 'parent',
+        groupViews: {
+          items: [
+            {
+              id: 'space-view',
+              type: 'space',
+              linkedGroup: {
+                id: '1',
+                settings: { showPostNoticesInChat: true },
+                groupViews: {
+                  items: [
+                    { id: '10', type: 'chat', newPostCount: 0 },
+                    { id: '11', type: 'discussions', newPostCount: 0 }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      })
+      // Space's own Group may not have groupViews loaded — nested parent menu still updates
+      session.Group.withId('1').update({ groupViews: null })
+
+      ormSessionReducer(session, action)
+
+      const nested = session.Group.withId('99').groupViews.items[0].linkedGroup.groupViews.items
+      expect(nested.find(v => v.type === 'discussions').newPostCount).toBe(1)
+      expect(nested.find(v => v.type === 'chat').newPostCount).toBe(0)
+      expect(session.Membership.withId('1').newPostCount).toBe(1)
     })
   })
 
@@ -110,5 +189,34 @@ describe('SocketListener.store.ormSessionReducer', () => {
     }
     ormSessionReducer(session, action)
     expect(session.Me.first().newNotificationCount).toBe(3)
+  })
+
+  it('sets openJoinRequestCount from RECEIVE_OPEN_JOIN_REQUEST_COUNT', () => {
+    session.Group.create({
+      id: 'space-1',
+      slug: 'the-space',
+      openJoinRequestCount: 0
+    })
+    session.Group.create({
+      id: 'parent-1',
+      slug: 'parent',
+      groupViews: {
+        items: [{
+          id: 'v1',
+          type: 'space',
+          linkedGroup: { id: 'space-1', slug: 'the-space', openJoinRequestCount: 0 }
+        }]
+      },
+      spaces: {
+        items: [{ id: 'space-1', slug: 'the-space', openJoinRequestCount: 0 }]
+      }
+    })
+    ormSessionReducer(session, {
+      type: RECEIVE_OPEN_JOIN_REQUEST_COUNT,
+      payload: { groupId: 'space-1', openJoinRequestCount: 3 }
+    })
+    expect(session.Group.withId('space-1').openJoinRequestCount).toBe(3)
+    expect(session.Group.withId('parent-1').groupViews.items[0].linkedGroup.openJoinRequestCount).toBe(3)
+    expect(session.Group.withId('parent-1').spaces.items[0].openJoinRequestCount).toBe(3)
   })
 })

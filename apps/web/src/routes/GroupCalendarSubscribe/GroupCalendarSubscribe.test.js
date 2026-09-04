@@ -142,7 +142,7 @@ describe('GroupCalendarSubscribe', () => {
   it('Google Calendar button copies URL and opens add-by-url page in new tab', () => {
     render(<GroupCalendarSubscribe {...defaultProps} />)
     fireEvent.click(screen.getByRole('button', { name: /Subscribe to this Group's Calendar/i }))
-    const googleButton = screen.getByRole('button', { name: /Google Calendar/i })
+    const googleButton = screen.getByRole('button', { name: /Add to Google Calendar/i })
     fireEvent.click(googleButton)
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(defaultProps.eventCalendarUrl)
     expect(window.open).toHaveBeenCalledWith(GOOGLE_CALENDAR_ADD_URL, '_blank', 'noopener,noreferrer')
@@ -152,16 +152,17 @@ describe('GroupCalendarSubscribe', () => {
     render(<GroupCalendarSubscribe {...defaultProps} />)
     fireEvent.click(screen.getByRole('button', { name: /Subscribe to this Group's Calendar/i }))
 
-    const locationHref = {}
-    const originalLocation = window.location
-    delete window.location
-    window.location = locationHref
+    const hrefSetter = jest.fn()
+    const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+      ...window.location,
+      set href (url) { hrefSetter(url) },
+      get href () { return hrefSetter.mock.calls[0]?.[0] || '' }
+    })
 
-    fireEvent.click(screen.getByRole('button', { name: /Apple Calendar/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Add to Apple or Outlook/i }))
 
-    expect(locationHref.href).toBe('webcal://example.com/calendar/feed.ics')
-
-    window.location = originalLocation
+    expect(hrefSetter).toHaveBeenCalledWith('webcal://example.com/calendar/feed.ics')
+    locationSpy.mockRestore()
   })
 
   describe('RSVP calendar subscription (user events)', () => {
@@ -195,22 +196,23 @@ describe('GroupCalendarSubscribe', () => {
       render(<GroupCalendarSubscribe {...rsvpProps} />)
       fireEvent.click(screen.getByRole('button', { name: /Subscribe to all the Hylo events you have RSVPed to/i }))
 
-      const locationHref = {}
-      const originalLocation = window.location
-      delete window.location
-      window.location = locationHref
+      const hrefSetter = jest.fn()
+      const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+        ...window.location,
+        set href (url) { hrefSetter(url) },
+        get href () { return hrefSetter.mock.calls[0]?.[0] || '' }
+      })
 
-      fireEvent.click(screen.getByRole('button', { name: /Apple Calendar/i }))
+      fireEvent.click(screen.getByRole('button', { name: /Add to Apple or Outlook/i }))
 
-      expect(locationHref.href).toBe('webcal://example.com/user/123/calendar-abc.ics')
-
-      window.location = originalLocation
+      expect(hrefSetter).toHaveBeenCalledWith('webcal://example.com/user/123/calendar-abc.ics')
+      locationSpy.mockRestore()
     })
 
     it('Google Calendar button copies RSVP URL and opens add-by-url page', () => {
       render(<GroupCalendarSubscribe {...rsvpProps} />)
       fireEvent.click(screen.getByRole('button', { name: /Subscribe to all the Hylo events you have RSVPed to/i }))
-      fireEvent.click(screen.getByRole('button', { name: /Google Calendar/i }))
+      fireEvent.click(screen.getByRole('button', { name: /Add to Google Calendar/i }))
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith(rsvpCalendarUrl)
       expect(window.open).toHaveBeenCalledWith(GOOGLE_CALENDAR_ADD_URL, '_blank', 'noopener,noreferrer')
     })

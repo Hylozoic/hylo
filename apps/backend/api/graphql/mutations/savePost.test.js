@@ -1,4 +1,4 @@
-import '../../../test/setup'
+/* eslint-disable no-unused-expressions */
 import setup from '../../../test/setup'
 import factories from '../../../test/setup/factories'
 import { savePost, unsavePost } from './savePost'
@@ -23,7 +23,7 @@ describe('savePost mutations', () => {
   it('updates saved_at when PostUser already exists', async () => {
     const before = await PostUser.find(post.id, user.id)
     const prev = before.get('saved_at')
-    await new Promise(r => setTimeout(r, 5))
+    await new Promise(resolve => setTimeout(resolve, 5))
     await savePost(user.id, post.id)
     const after = await PostUser.find(post.id, user.id)
     expect(after.get('saved_at').getTime()).to.be.at.least(prev.getTime())

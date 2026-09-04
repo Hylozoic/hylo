@@ -53,6 +53,14 @@ export function getAndStore (url) {
     request.get(url)
       .on('error', reject)
       .on('response', upstreamRes => {
+        // Never cache error pages (e.g. upstream 504) — otherwise private-window
+        // visitors keep getting a tiny 504 HTML body with Express status 200.
+        if (upstreamRes.statusCode < 200 || upstreamRes.statusCode >= 300) {
+          upstreamRes.resume()
+          reject(new Error(`Proxy upstream ${upstreamRes.statusCode} for ${url}`))
+          return
+        }
+
         const gzipped = upstreamRes.headers['content-encoding'] === 'gzip'
         upstreamRes.on('data', d => chunks.push(d))
         upstreamRes.on('end', () => {

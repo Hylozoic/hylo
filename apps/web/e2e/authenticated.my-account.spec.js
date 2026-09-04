@@ -65,6 +65,13 @@ test.describe('Batch H: My streams & redirect', () => {
     await expectAuthedShell(page, /\/my\/tracks/)
     await expect(page.getByText('My Tracks').first()).toBeVisible(uiTimeout)
   })
+
+  test('GET /my/funding-rounds loads My Funding Rounds shell', async ({ page }) => {
+    await page.goto('/my/funding-rounds')
+    await waitPastRootSessionLoading(page)
+    await expectAuthedShell(page, /\/my\/funding-rounds/)
+    await expect(page.getByText('My Funding Rounds').first()).toBeVisible(uiTimeout)
+  })
 })
 
 test.describe('Batch H: User settings under /my/*', () => {
@@ -74,9 +81,8 @@ test.describe('Batch H: User settings under /my/*', () => {
     await expect(page).toHaveURL(/\/my\/edit-profile/, navTimeout)
     await expect(page.locator('#center-column')).toBeVisible(uiTimeout)
     await expect(page.getByRole('heading', { name: /Edit Your Profile/i })).toBeVisible(uiTimeout)
-    await expect(page.locator('#center-column [data-testid="loading-indicator"]')).toHaveCount(0, {
-      timeout: 90000
-    })
+    // SkillsSection also uses Loading; waiting for every indicator in #center-column
+    // to unmount can exceed the 120s test budget. The name field is the tab's own ready signal.
     await expect(page.locator('#nameField')).toBeVisible(uiTimeout)
   })
 

@@ -7,11 +7,10 @@
     "allowJs": true,
     "allowSyntheticDefaultImports": true,
     "module": "commonjs",
-    "baseUrl": ".",
     "paths": {
-      "*": ["src/*"],
-      "config": ["config"],
-      "assets": ["assets"]
+      "*": ["./src/*"],
+      "config": ["./config"],
+      "assets": ["./assets"]
     },
     "outDir": "build"
   },

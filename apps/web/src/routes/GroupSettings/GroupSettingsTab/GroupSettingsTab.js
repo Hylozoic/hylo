@@ -3,14 +3,18 @@ import PropTypes from 'prop-types'
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
+import { useNavigate } from 'react-router-dom'
 import { TextHelpers } from '@hylo/shared'
+import { groupUrl } from '@hylo/navigation'
 import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
 import { ImageUp, Info } from 'lucide-react'
+import { CUSTOM_VIEW_DEFAULT_POST_TYPES } from 'components/CustomViewForm/customViewFormConstants'
 import { ensureLocationIdIfCoordinate } from 'components/LocationInput/LocationInput.store'
 import EditableMap from 'components/Map/EditableMap/EditableMap'
 import EditableMapModal from 'components/Map/EditableMap/EditableMapModal'
+import PostTypePills from 'components/PostTypePills/PostTypePills'
 import SettingsControl from 'components/SettingsControl'
 import SkillsSection from 'components/SkillsSection'
 import SwitchStyled from 'components/SwitchStyled'
@@ -33,8 +37,9 @@ const { object, func } = PropTypes
 
 function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, updateGroupSettings }) {
   const dispatch = useDispatch()
-  const [state, setState] = useState(defaultEditState())
+  const navigate = useNavigate()
   const { t } = useTranslation()
+  const [state, setState] = useState(defaultEditState)
 
   useEffect(() => {
     if (!fetchPending) {
@@ -46,12 +51,13 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
     if (!group) return { edits: {}, changed: false, valid: false }
 
     const {
-      aboutVideoUri, avatarUrl, bannerUrl, description, geoShape, location, locationObject, name, settings, websiteUrl
+      aboutVideoUri, acceptedPostTypes, avatarUrl, bannerUrl, description, geoShape, location, locationObject, name, settings, websiteUrl
     } = group
 
     return {
       edits: {
         aboutVideoUri: (aboutVideoUri && trim(aboutVideoUri)) || '',
+        acceptedPostTypes: Array.isArray(acceptedPostTypes) ? acceptedPostTypes : [...CUSTOM_VIEW_DEFAULT_POST_TYPES],
         avatarUrl: avatarUrl || DEFAULT_AVATAR,
         bannerUrl: bannerUrl || DEFAULT_BANNER,
         description: description || '',
@@ -123,7 +129,7 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
     setHeaderDetails({
-      title: t('Group Settings'),
+      title: `${t('Group Settings')} > ${t('Group Details')}`,
       icon: 'Settings',
       info: ''
     })
@@ -133,10 +139,11 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
 
   const { changed, edits, error } = state
   const {
-    aboutVideoUri, avatarUrl, bannerUrl, description, geoShape, location, stewardDescriptor, stewardDescriptorPlural, name, purpose, settings, websiteUrl
+    aboutVideoUri, acceptedPostTypes, avatarUrl, bannerUrl, description, geoShape, location, stewardDescriptor, stewardDescriptorPlural, name, purpose, settings, websiteUrl
   } = edits
 
-  const { defaultDigestFrequency: defaultDigestFrequencySetting = 'daily', locationDisplayPrecision, showSuggestedSkills } = settings
+  const { defaultDigestFrequency: defaultDigestFrequencySetting = 'daily', locationDisplayPrecision, showSuggestedSkills, showWelcomePage = true } = settings
+  const welcomeShownToNewMembers = showWelcomePage !== false
   const editableMapLocation = group?.locationObject || currentUser.locationObject
 
   t('Display exact location')
@@ -250,6 +257,36 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
                 toggleModal={toggleModal}
               />
               )}
+        </div>
+      </SettingsSection>
+      <SettingsSection>
+        <h3 className='text-foreground text-xl mb-4 mt-0'>{t('Accepted Post Types')}</h3>
+        <p className='text-foreground/70 text-sm mb-4'>{t('Choose which post types this group accepts. Views for turned-off types are hidden from the group menu.')}</p>
+        <PostTypePills
+          postTypes={acceptedPostTypes}
+          onPostTypesChange={updateSettingDirectly('acceptedPostTypes')}
+          label={t('Accepted post types')}
+        />
+        <div className='mt-6 flex flex-col gap-2'>
+          <div className='flex items-center gap-3'>
+            <SwitchStyled
+              checked={welcomeShownToNewMembers}
+              onChange={() => updateSettingDirectly('settings.showWelcomePage')(!welcomeShownToNewMembers)}
+              backgroundColor={welcomeShownToNewMembers ? 'hsl(var(--selected))' : 'rgba(0 0 0 / .6)'}
+            />
+            <span className='text-foreground text-sm'>
+              {t('Show this welcome page to new members when they first land in the group.')}
+            </span>
+          </div>
+          {welcomeShownToNewMembers && (
+            <button
+              type='button'
+              className='text-sm text-selected hover:underline self-start ml-12'
+              onClick={() => navigate(groupUrl(group.slug, 'welcome'))}
+            >
+              {t('Edit Welcome Page Content')}
+            </button>
+          )}
         </div>
       </SettingsSection>
       <SettingsSection>

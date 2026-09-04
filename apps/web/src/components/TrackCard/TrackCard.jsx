@@ -1,50 +1,47 @@
-import { CopyPlus, Eye, EyeOff, Pencil, Users, UserCheck, DollarSign } from 'lucide-react'
+import { CopyPlus, Pencil, Users, UserCheck, DollarSign } from 'lucide-react'
 import React, { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { Link, useNavigate } from 'react-router-dom'
 import Tooltip from 'components/Tooltip'
-import Button from 'components/ui/button'
 import useRouteParams from 'hooks/useRouteParams'
-import { duplicateTrack, updateTrack } from 'store/actions/trackActions'
+import { duplicateTrack } from 'store/actions/trackActions'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
-import { RESP_MANAGE_TRACKS } from 'store/constants'
+import { RESP_ADMINISTRATION } from 'store/constants'
 import { trackUrl } from '@hylo/navigation'
-import { cn } from 'util/index'
+
+/** Resolves the parent group slug for linking into a Track space. */
+function parentSlugForTrack (track, routeGroupSlug) {
+  if (routeGroupSlug) return routeGroupSlug
+  return track.space?.parentGroup?.slug || track.space?.slug || null
+}
 
 function TrackCard ({ track }) {
   const routeParams = useRouteParams()
   const { t } = useTranslation()
-  let currentGroup = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
-  let viewTrackUrl = trackUrl(track.id, routeParams)
-  if (!currentGroup) {
-    // When viewing from My Tracks, use the first group of the track
-    currentGroup = track.groups?.[0]
-    viewTrackUrl = trackUrl(track.id, { ...routeParams, groupSlug: currentGroup.slug })
-  }
-  const canEdit = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_MANAGE_TRACKS, groupId: currentGroup?.id }))
+  const routeGroup = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
+  const parentSlug = parentSlugForTrack(track, routeParams.groupSlug || routeGroup?.slug)
+  const parentFromSpace = track.space?.parentGroup
+  const responsibilityGroupId = routeGroup?.id || parentFromSpace?.id || track.space?.id
+  const viewTrackUrl = trackUrl(track.id, { groupSlug: parentSlug, space: track.space })
+  const canEdit = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADMINISTRATION, groupId: responsibilityGroupId }))
   const dispatch = useDispatch()
   const navigate = useNavigate()
+  const isDraft = track.space?.status === 'draft'
 
   const handleDuplicateTrack = useCallback(async () => {
     if (window.confirm(t('Are you sure you want to duplicate this track?'))) {
       const newTrack = await dispatch(duplicateTrack(track.id))
-      navigate(trackUrl(newTrack.payload.data?.duplicateTrack?.id, routeParams) + '/edit')
+      const duplicated = newTrack.payload.data?.duplicateTrack
+      navigate(trackUrl(duplicated?.id, {
+        groupSlug: parentSlug,
+        space: duplicated?.space || track.space
+      }))
     }
-  }, [routeParams])
+  }, [routeParams, parentSlug, track.space, track.id, dispatch, navigate, t])
 
-  const handlePublishTrack = useCallback((publishedAt) => {
-    if (confirm(publishedAt ? t('Are you sure you want to publish this track?') : t('Are you sure you want to unpublish this track?'))) {
-      dispatch(updateTrack({ trackId: track.id, publishedAt }))
-    }
-  }, [track.id])
-
-  const { actionDescriptorPlural, didComplete, isEnrolled, name, numActions, numPeopleCompleted, numPeopleEnrolled, publishedAt, accessControlled } = track
-
-  const handleButtonClick = (event) => {
-    event.preventDefault() // Prevents the click event from bubbling up to the Link
-  }
+  const { actionDescriptorPlural, didComplete, isEnrolled, name, numActions, numPeopleCompleted, numPeopleEnrolled, accessControlled } = track
 
   return (
     <div className='text-foreground hover:text-foreground/100'>
@@ -62,9 +59,10 @@ function TrackCard ({ track }) {
               </>
             )}
             <span className='text-xs text-foreground/60 ml-2'>{numActions} {actionDescriptorPlural}</span>
+            {isDraft && <span className='text-xs text-accent ml-2'>{t('Draft')}</span>}
           </Link>
           {canEdit && <CopyPlus className='hover:scale-125 transition-all w-6 h-6 cursor-pointer text-foreground mr-2' onClick={handleDuplicateTrack} />}
-          {canEdit && <Link className='hover:scale-125 transition-all' to={`${viewTrackUrl}?tab=edit`}><Pencil className='w-6 h-6 cursor-pointer text-foreground' /></Link>}
+          {canEdit && <Link className='hover:scale-125 transition-all' to={viewTrackUrl}><Pencil className='w-6 h-6 cursor-pointer text-foreground' /></Link>}
         </div>
         <Link className='flex justify-between items-center text-foreground hover:text-foreground/100' to={viewTrackUrl}>
           <div className='flex justify-between items-center flex-row gap-2'>
@@ -90,36 +88,6 @@ function TrackCard ({ track }) {
                   )
                 : null}
           </div>
-          {canEdit && (
-            <div className='flex items-center gap-2 bg-input p-2 rounded-md'>
-              <Button
-                className={cn(
-                  'flex items-center justify-center rounded-md transition-colors w-8 h-8 transition-all',
-                  publishedAt ? 'bg-foreground/10' : 'bg-accent text-white'
-                )}
-                onClick={(e) => { handleButtonClick(e); return publishedAt ? handlePublishTrack(null) : null }}
-                tooltip={publishedAt ? t('Unpublish this track') : null}
-              >
-                <EyeOff className='w-5 h-5' />
-              </Button>
-              <Button
-                className={cn(
-                  'flex items-center justify-center rounded-md transition-colors w-8 h-8 transition-alls',
-                  publishedAt ? 'bg-selected text-white' : 'bg-foreground/10'
-                )}
-                onClick={(e) => { handleButtonClick(e); return publishedAt ? null : handlePublishTrack(new Date().toISOString()) }}
-                tooltip={publishedAt ? null : t('Publish this track')}
-              >
-                <Eye className='w-5 h-5' />
-              </Button>
-              <span className={cn(
-                'mr-2 text-xs',
-                publishedAt ? 'text-selected' : 'text-accent'
-              )}
-              >{publishedAt ? t('Published') : t('Unpublished')}
-              </span>
-            </div>
-          )}
         </Link>
       </div>
       <Tooltip

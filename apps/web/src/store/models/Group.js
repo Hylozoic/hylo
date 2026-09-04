@@ -8,7 +8,8 @@ export const GROUP_ACCESSIBILITY = {
 
 export const GROUP_TYPES = {
   default: null,
-  farm: 'farm'
+  farm: 'farm',
+  space: 'space'
 }
 
 export function accessibilityDescription (a) {
@@ -20,6 +21,25 @@ export function accessibilityDescription (a) {
     case GROUP_ACCESSIBILITY.Open:
       return 'Anyone who can see this group can join it'
   }
+}
+
+/**
+ * Human-readable access sentence for a space, shown on the join page and about
+ * modal. requiredRoles are resolved role objects from the parent group.
+ */
+export function spaceAccessDescription ({ space, parentGroupName, requiredRoles = [], t }) {
+  if (space.paywall) return t('A paid membership is required to join this space')
+  if (requiredRoles.length > 0) {
+    const roleNames = requiredRoles.map(role => [role.emoji, role.name].filter(Boolean).join(' ')).join(', ')
+    return t('Only {{roleNames}} may join this space', { roleNames })
+  }
+  if (space.accessibility === GROUP_ACCESSIBILITY.Open) {
+    return t('Anyone in {{groupName}} can access this space', { groupName: parentGroupName })
+  }
+  if (space.accessibility === GROUP_ACCESSIBILITY.Restricted) {
+    return t('Members of {{groupName}} must request to join and be approved', { groupName: parentGroupName })
+  }
+  return t('You must be invited to join this space')
 }
 
 export function accessibilityIcon (a) {
@@ -80,13 +100,6 @@ export const LOCATION_PRECISION = {
   region: 'Display only nearest city and dont show on the map'
 }
 
-export class ChatRoom extends Model { }
-ChatRoom.modelName = 'ChatRoom'
-ChatRoom.fields = {
-  group: fk('Group', 'chatrooms'),
-  topic: fk('GroupTopic', 'chatrooms')
-}
-
 export class GroupSteward extends Model { }
 GroupSteward.modelName = 'GroupSteward'
 GroupSteward.fields = {
@@ -145,6 +158,7 @@ Group.modelName = 'Group'
 
 Group.fields = {
   accessibility: attr(),
+  acceptedPostTypes: attr(),
   activeProjects: many({
     to: 'Post',
     as: 'activeProjects',
@@ -156,7 +170,6 @@ Group.fields = {
     as: 'announcements',
     relatedName: 'announcementGroups'
   }),
-  chatRooms: many('ChatRoom'),
   childGroups: many({
     to: 'Group',
     relatedName: 'parentGroups',
@@ -164,20 +177,25 @@ Group.fields = {
     throughFields: ['childGroup', 'parentGroup']
   }),
   peerGroups: many('Group'),
-  customViews: many('CustomView'),
   feedOrder: attr(),
   geoShape: attr(),
   groupToGroupJoinQuestions: many('GroupToGroupJoinQuestion'),
+  groupRoles: attr(),
+  groupViews: attr(),
   homeRoute: attr(),
+  menuViewCount: attr(),
+  icon: attr(),
   id: attr(),
   joinQuestions: many('GroupJoinQuestion'),
   location: attr(),
-  locationId: fk({
+  locationObject: fk({
     to: 'Location',
     as: 'locationObject'
   }),
   members: many('Person'),
   memberCount: attr(),
+  openJoinRequestCount: attr(),
+  openModerationActionCount: attr(),
   stewards: many({
     to: 'Person',
     relatedName: 'stewardedGroups',
@@ -187,6 +205,8 @@ Group.fields = {
   stewardDescriptor: attr(),
   stewardDescriptorPlural: attr(),
   name: attr(),
+  parentGroup: fk({ to: 'Group', as: 'parentGroup', relatedName: 'childSpaceGroups' }),
+  parentId: attr(),
   openOffersAndRequests: many({
     to: 'Post',
     as: 'openOffersAndRequests',
@@ -201,10 +221,17 @@ Group.fields = {
     throughFields: ['prerequisiteGroup', 'forGroup']
   }),
   purpose: attr(),
+  requiredRoles: attr(),
   settings: attr(),
   slug: attr(),
+  spaces: attr(),
+  status: attr(),
+  active: attr(),
   suggestedSkills: many('Skill'),
+  track: attr(),
   tracks: many('Track'),
+  fundingRound: attr(),
+  type: attr(),
   upcomingEvents: many({
     to: 'Post',
     as: 'upcomingEvents',

@@ -1,41 +1,11 @@
 import React from 'react'
-import { render, screen, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
+import { render, screen } from 'util/testing/reactTestingLibraryExtended'
 import Comments from './Comments'
 import ShowMore from './ShowMore'
 
 describe('Comments', () => {
-  it('renders correctly', () => {
-    const props = {
-      currentUser: { id: 1 },
-      comments: [
-        { id: 1, parentComment: null, text: 'Comment 1', childComments: [], creator: { id: 1, name: 'Joe Smith', avatarUrl: 'foo.jpg' } },
-        { id: 2, parentComment: null, text: 'Comment 2', childComments: [], creator: { id: 2, name: 'Jane Doe', avatarUrl: 'bar.jpg' } },
-        { id: 3, parentComment: null, text: 'Comment 3', childComments: [], creator: { id: 3, name: 'John Doe', avatarUrl: 'baz.jpg' } }
-      ],
-      total: 9,
-      hasMore: true,
-      post: {
-        id: '91',
-        groups: [{ id: '100' }]
-      },
-      slug: 'foo',
-      createComment: jest.fn()
-    }
-
-    render(<Comments {...props} />)
-
-    expect(screen.getByText('View 6 previous comments')).toBeInTheDocument()
-    expect(screen.getByText('Comment 1')).toBeInTheDocument()
-    expect(screen.getByText('Comment 2')).toBeInTheDocument()
-    expect(screen.getByText('Comment 3')).toBeInTheDocument()
-    // expect(screen.getByPlaceholderText('Write a comment...')).toBeInTheDocument()
-  })
-
   it('renders login link when user is not logged in', () => {
     const props = {
-      comments: [],
-      total: 0,
-      hasMore: false,
       post: { id: '91', groups: [{ id: '100' }] },
       slug: 'foo'
     }

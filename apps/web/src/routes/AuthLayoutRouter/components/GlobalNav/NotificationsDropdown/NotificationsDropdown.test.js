@@ -9,12 +9,13 @@ import {
   ACTION_TAG,
   ACTION_JOIN_REQUEST,
   ACTION_APPROVED_JOIN_REQUEST,
+  ACTION_GROUP_INVITATION,
   ACTION_MENTION,
   ACTION_COMMENT_MENTION,
   ACTION_DONATION_TO,
   ACTION_DONATION_FROM
   // ACTION_EVENT_INVITATION
-} from 'store/models/Notification'
+} from '@hylo/presenters/NotificationPresenter'
 
 const u1 = { id: 1, name: 'Charles Darwin', avatarUrl: 'foo.png' }
 const u2 = { id: 2, name: 'Marie Curie', avatarUrl: 'bar.png' }
@@ -55,6 +56,44 @@ const joinRequestNotification = {
     action: ACTION_JOIN_REQUEST,
     meta: {},
     group: { name: 'Foomunity' },
+    unread: true
+  },
+  createdAt: new Date(Date.UTC(1995, 11, 17, 3, 23, 0))
+}
+
+const spaceJoinRequestNotification = {
+  id: 31,
+  activity: {
+    actor: u2,
+    action: ACTION_JOIN_REQUEST,
+    meta: {},
+    group: { name: 'The Space', slug: 'the-space' },
+    otherGroup: { name: 'Foomunity', slug: 'foomunity' },
+    unread: true
+  },
+  createdAt: new Date(Date.UTC(1995, 11, 17, 3, 23, 0))
+}
+
+const groupInvitationNotification = {
+  id: 32,
+  activity: {
+    actor: u2,
+    action: ACTION_GROUP_INVITATION,
+    meta: {},
+    group: { name: 'Foomunity', slug: 'foomunity' },
+    unread: true
+  },
+  createdAt: new Date(Date.UTC(1995, 11, 17, 3, 23, 0))
+}
+
+const spaceInvitationNotification = {
+  id: 33,
+  activity: {
+    actor: u2,
+    action: ACTION_GROUP_INVITATION,
+    meta: {},
+    group: { name: 'The Space', slug: 'the-space' },
+    otherGroup: { name: 'Foomunity', slug: 'foomunity' },
     unread: true
   },
   createdAt: new Date(Date.UTC(1995, 11, 17, 3, 23, 0))
@@ -207,67 +246,85 @@ describe('NotificationsDropdown', () => {
 })
 
 describe('Notification', () => {
+  const expectItemText = (container, ...snippets) => {
+    const text = container.textContent
+    snippets.forEach(snippet => expect(text).toMatch(snippet))
+  }
+
   it('renders correctly with a comment notification', async () => {
-    render(<NotificationItem notification={commentNotification} />)
+    const { container } = render(<NotificationItem notification={commentNotification} />)
     await waitFor(() => {
-      expect(screen.getByText(/New comment on/i)).toBeInTheDocument()
-      expect(screen.getByText(/Our Oceans/i)).toBeInTheDocument()
+      expectItemText(container, /Marie Curie/i, /wrote:/i, /Our Oceans|petitioning/i)
     })
   })
 
   it('renders correctly with a tag notification', async () => {
-    render(<NotificationItem notification={tagNotification} />)
+    const { container } = render(<NotificationItem notification={tagNotification} />)
     await waitFor(() => {
-      expect(screen.getByText(/New post in/i)).toBeInTheDocument()
-      expect(screen.getByText(/I have so many things I need!/i)).toBeInTheDocument()
+      expectItemText(container, /Arthur Fonzarelli/i, /I have so many things I need!/i)
     })
   })
 
   it('renders correctly with a join request notification', async () => {
-    render(<NotificationItem notification={joinRequestNotification} />)
+    const { container } = render(<NotificationItem notification={joinRequestNotification} />)
     await waitFor(() => {
-      expect(screen.getByText(/asked to join/i)).toBeInTheDocument()
-      expect(screen.getByText(/Foomunity/i)).toBeInTheDocument()
+      expectItemText(container, /asked to join/i, /Foomunity/i)
+    })
+  })
+
+  it('renders a space join request with the space and parent group names', async () => {
+    const { container } = render(<NotificationItem notification={spaceJoinRequestNotification} />)
+    await waitFor(() => {
+      expectItemText(container, /asked to join/i, /The Space/i, /Foomunity/i)
+    })
+  })
+
+  it('renders a group invitation with the inviting user and group name', async () => {
+    const { container } = render(<NotificationItem notification={groupInvitationNotification} />)
+    await waitFor(() => {
+      expectItemText(container, /Marie Curie/i, /has invited you to join them in/i, /Foomunity/i)
+    })
+  })
+
+  it('renders a space invitation with the space and parent group names', async () => {
+    const { container } = render(<NotificationItem notification={spaceInvitationNotification} />)
+    await waitFor(() => {
+      expectItemText(container, /Marie Curie/i, /has invited you to join them in space/i, /The Space/i, /Foomunity/i)
     })
   })
 
   it('renders correctly with an approved join request notification', async () => {
-    render(<Notification notification={approvedJoinRequestNotification} />)
+    const { container } = render(<NotificationItem notification={approvedJoinRequestNotification} />)
     await waitFor(() => {
-      expect(screen.getByText(/approved your request to join/i)).toBeInTheDocument()
-      expect(screen.getByText(/Foomunity/i)).toBeInTheDocument()
+      expectItemText(container, /approved your request to join/i, /Foomunity/i)
     })
   })
 
   it('renders correctly with a mention notification', async () => {
-    render(<NotificationItem notification={mentionNotification} />)
+    const { container } = render(<NotificationItem notification={mentionNotification} />)
     await waitFor(() => {
-      expect(screen.getByText(/mentioned you/i)).toBeInTheDocument()
-      expect(screen.getByText(/Heads up/i)).toBeInTheDocument()
+      expectItemText(container, /Marie Curie/i, /Heads up/i)
     })
   })
 
   it('renders correctly with a donation to notification', async () => {
-    render(<NotificationItem notification={donationToNotification} />)
+    const { container } = render(<NotificationItem notification={donationToNotification} />)
     await waitFor(() => {
-      expect(screen.getByText(/contributed to a project/i)).toBeInTheDocument()
-      expect(screen.getByText(/Our Oceans/i)).toBeInTheDocument()
+      expectItemText(container, /contributed/i, /Our Oceans/i)
     })
   })
 
   it('renders correctly with a donation from notification', async () => {
-    render(<NotificationItem notification={donationFromNotification} />)
+    const { container } = render(<NotificationItem notification={donationFromNotification} />)
     await waitFor(() => {
-      expect(screen.getByText(/contributed to your project/i)).toBeInTheDocument()
-      expect(screen.getByText(/Our Oceans/i)).toBeInTheDocument()
+      expectItemText(container, /contributed/i, /Our Oceans/i)
     })
   })
 
   it('renders correctly with a comment mention notification', async () => {
-    render(<NotificationItem notification={commentMentionNotification} />)
+    const { container } = render(<NotificationItem notification={commentMentionNotification} />)
     await waitFor(() => {
-      expect(screen.getByText(/mentioned you in a comment on/i)).toBeInTheDocument()
-      expect(screen.getByText(/Our Oceans/i)).toBeInTheDocument()
+      expectItemText(container, /Marie Curie/i, /mentioned you in a comment/i, /wrote:/i)
     })
   })
 })

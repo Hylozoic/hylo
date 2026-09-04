@@ -30,12 +30,13 @@ Person.fields = {
   bio: attr(),
   avatarUrl: attr(),
   bannerUrl: attr(),
+  lastActiveAt: attr(),
   twitterName: attr(),
   facebookUrl: attr(),
   linkedinUrl: attr(),
   url: attr(),
   location: attr(),
-  locationId: fk({
+  locationObject: fk({
     to: 'Location',
     as: 'locationObject'
   }),
@@ -59,7 +60,7 @@ export const PERSON_PROP_TYPES = {
   avatarUrl: PropTypes.string.isRequired
 }
 
-export const firstName = person => person.name.split(' ')[0]
+export const firstName = person => (person.name || '').split(' ')[0]
 export const twitterUrl = twitterName => twitterName && `https://twitter.com/${twitterName}`
 
 export const AXOLOTL_ID = '13986'

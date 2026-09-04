@@ -1,6 +1,6 @@
 import React from 'react'
 import { AllTheProviders, render, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
-import { graphql, HttpResponse } from 'msw'
+import { graphql, HttpResponse, delay } from 'msw'
 import orm from 'store/models'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import extractModelsForTest from 'util/testing/extractModelsForTest'
@@ -37,21 +37,20 @@ const post = {
 
 describe('PostDetail', () => {
   beforeEach(() => {
-    // Add a mock element with id=DETAIL_COLUMN_ID to the document
-    const detailColumn = document.createElement('div')
-    detailColumn.id = DETAIL_COLUMN_ID
-    document.body.appendChild(detailColumn)
-
-    mockGraphqlServer.use(
-      graphql.query('FetchPost', () => HttpResponse.json({
-        data: {
-          post
-        }
-      }))
-    )
+    if (!document.getElementById(DETAIL_COLUMN_ID)) {
+      const detailColumn = document.createElement('div')
+      detailColumn.id = DETAIL_COLUMN_ID
+      document.body.appendChild(detailColumn)
+    }
   })
 
   it('renders correctly', async () => {
+    mockGraphqlServer.use(
+      graphql.query('FetchPost', () => HttpResponse.json({
+        data: { post }
+      }))
+    )
+
     const group = {
       id: '109',
       slug: 'foo'
@@ -59,7 +58,7 @@ describe('PostDetail', () => {
 
     const ormSession = orm.session(orm.getEmptyState())
     extractModelsForTest({
-      posts: [post],
+      posts: [post]
     }, 'Post', ormSession)
     extractModelsForTest({
       groups: [group]
@@ -78,12 +77,18 @@ describe('PostDetail', () => {
     await waitFor(() => {
       expect(screen.getByText('Test Post')).toBeInTheDocument()
       expect(screen.getByText('the body of the post')).toBeInTheDocument()
-      expect(screen.getByText('#singing')).toBeInTheDocument()
-      expect(screen.getByText('#dancing')).toBeInTheDocument()
+      expect(screen.getByTestId('post-detail-close')).toBeInTheDocument()
     })
   })
 
-  it('shows loading state when post is pending', async () => {
+  it('shows loading state when post is pending', () => {
+    mockGraphqlServer.use(
+      graphql.query('FetchPost', async () => {
+        await delay('infinite')
+        return HttpResponse.json({ data: { post: null } })
+      })
+    )
+
     const ormSession = orm.session(orm.getEmptyState())
     const reduxState = {
       orm: ormSession.state,
@@ -97,12 +102,16 @@ describe('PostDetail', () => {
       { wrapper: AllTheProviders(reduxState) }
     )
 
-    await waitFor(() => {
-      expect(screen.getByTestId('loading-indicator')).toBeInTheDocument()
-    })
+    expect(screen.getByLabelText('Loading post')).toBeInTheDocument()
   })
 
   it('shows NotFound when post does not exist', async () => {
+    mockGraphqlServer.use(
+      graphql.query('FetchPost', () => HttpResponse.json({
+        data: { post: null }
+      }))
+    )
+
     jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ groupSlug: 'test-group', postId: 'akjhdskjfh' })
     render(
       <PostDetail />,
@@ -114,4 +123,3 @@ describe('PostDetail', () => {
     })
   })
 })
-

@@ -57,16 +57,22 @@ export default gql`
     }
     settings {
       alreadySeenTour
+      toursSeen
+      colorScheme
       dmNotifications
       commentNotifications
       locale
       mapBaseLayer
+      globalNavStyle
+      groupNavStyle
       rsvpCalendarSub
       signupInProgress
+      stackGroups
       streamChildPosts
       streamViewMode
       streamSortBy
       streamPostType
+      theme
     }
     affiliations {
       items {

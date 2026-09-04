@@ -24,9 +24,23 @@ const DialogOverlay = React.forwardRef(({ className, ...props }, ref) => (
 ))
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName
 
-const DialogContent = React.forwardRef(({ className, children, onClose, ...props }, ref) => (
+// overlayClassName styles the backdrop behind this dialog only — omit it and every
+// existing dialog keeps the default scrim.
+// overlayAsDiv: Radix Overlay is not painted when the dialog is non-modal
+// (`modal={false}`). A plain div keeps the dimmed cover without the focus trap.
+const DialogContent = React.forwardRef(({ className, overlayClassName, children, onClose, overlayAsDiv, ...props }, ref) => (
   <DialogPortal>
-    <DialogOverlay />
+    {overlayAsDiv
+      ? (
+        <div
+          role='presentation'
+          className={cn(
+            'fixed inset-0 z-[100] bg-darkening/30',
+            overlayClassName
+          )}
+        />
+        )
+      : <DialogOverlay className={overlayClassName} />}
     <DialogPrimitive.Content
       ref={ref}
       className={cn(

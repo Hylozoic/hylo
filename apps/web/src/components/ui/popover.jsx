@@ -8,7 +8,9 @@ const PopoverTrigger = PopoverPrimitive.Trigger
 
 const PopoverArrow = PopoverPrimitive.Arrow
 
-const PopoverContent = React.forwardRef(({ className, align = 'center', sideOffset = 8, container, children, ...props }, ref) => (
+// arrow defaults on so every existing popover is unchanged; pass arrow={false}
+// when the content has no surface for an arrow to belong to.
+const PopoverContent = React.forwardRef(({ className, align = 'center', sideOffset = 8, container, arrow = true, children, ...props }, ref) => (
   <PopoverPrimitive.Portal container={container}>
     <PopoverPrimitive.Content
       ref={ref}
@@ -21,7 +23,7 @@ const PopoverContent = React.forwardRef(({ className, align = 'center', sideOffs
       {...props}
     >
       {children}
-      <PopoverArrow className='fill-popover' />
+      {arrow && <PopoverArrow className='fill-card' />}
     </PopoverPrimitive.Content>
   </PopoverPrimitive.Portal>
 ))

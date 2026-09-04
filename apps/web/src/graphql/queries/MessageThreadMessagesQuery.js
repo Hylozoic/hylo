@@ -9,6 +9,13 @@ export const MessageThreadMessagesQuery = gql`
           id
           text
           createdAt
+          editedAt
+          attachments {
+            id
+            position
+            type
+            url
+          }
           creator {
             id
             name

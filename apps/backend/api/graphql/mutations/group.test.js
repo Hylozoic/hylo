@@ -58,6 +58,10 @@ describe('mutations/group', () => {
         const membership = await GroupMembership.forPair(user2, group,
           { includeInactive: true }).fetch()
         expect(membership.get('active')).to.be.false
+
+        const roles = await MemberGroupRole.where({ user_id: user2.id, group_id: group.id }).fetchAll()
+        expect(roles.length).to.equal(0)
+        expect(await GroupMembership.hasResponsibility(user2.id, group, Responsibility.constants.RESP_ADMINISTRATION)).to.be.false
       })
     })
 
@@ -104,6 +108,30 @@ describe('mutations/group', () => {
       )
       expect(canAddMembers).to.be.true
     })
+
+    it('adds the user to the space after joining the parent with a space invitation', async () => {
+      const inviter = await factories.user().save()
+      const user = await factories.user().save()
+      const parent = await factories.group().save({ accessibility: Group.Accessibility.RESTRICTED })
+      const space = await factories.group({ type: 'space', parent_id: parent.id }).save()
+      await inviter.joinGroup(parent, { assignCoordinator: true })
+
+      const invitation = await Invitation.create({
+        userId: inviter.id,
+        groupId: space.id,
+        email: user.get('email')
+      })
+
+      await joinGroup(parent.id, user.id, [], null, invitation.get('token'), false, {})
+
+      const parentMembership = await GroupMembership.forPair(user, parent).fetch()
+      const spaceMembership = await GroupMembership.forPair(user, space).fetch()
+      expect(parentMembership).to.exist
+      expect(spaceMembership).to.exist
+
+      await invitation.refresh()
+      expect(invitation.get('used_by_id')).to.equal(user.id)
+    })
   })
 
   describe('createGroup', () => {
@@ -133,15 +161,8 @@ describe('mutations/group', () => {
       const hasAdministration = await GroupMembership.hasResponsibility(user.id, group, Responsibility.constants.RESP_ADMINISTRATION)
       expect(hasAdministration).to.be.true
 
-      const generalTopic = await group.tags().fetchOne()
-      expect(generalTopic).to.exist
-      expect(generalTopic.get('name')).to.equal('general')
-      expect(generalTopic.pivot.get('is_default')).to.equal(true)
-
-      const user2 = await membership.user().fetch()
-      const generalTagFollow = await user2.tagFollows().fetchOne()
-      expect(generalTagFollow).to.exist
-      expect(generalTagFollow.get('tag_id')).to.equal(generalTopic.id)
+      const chatView = await GroupView.where({ group_id: group.id, type: GroupView.Type.CHAT }).fetch()
+      expect(chatView).to.exist
     })
 
     it('creates inside a parent group if user can moderate the parent or parent is open', () => {

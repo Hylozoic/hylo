@@ -14,30 +14,24 @@ export default function initDataLoaders (spec) {
     throw new Error("Can't have a model DataLoader named 'relations'")
   }
 
-  // general-purpose query cache, for relational SQL queries that aren't just
-  // fetching objects by ID.
+  // Relation SQL is unique per parent/filter. A random cacheKeyFn used to skip
+  // hits, but DataLoader still stored every key, so reused schemas (E2E, long
+  // sessions) grew without bound until the process OOMed.
   loaders.relations = new DataLoader(
     queries => Promise.map(queries, async ({ relation, method }) => {
       return method ? relation[method]() : relation.fetch()
     }),
-    { cacheKeyFn: _ => Math.random().toString() }
+    { cache: false }
   )
 
-  // DataLoader for TrackUser lookups by (trackId, userId) pairs
-  // To prevent duplicate lookups of the same TrackUser in one session
-  loaders.trackUser = new DataLoader(
-    async (keys) => {
-      const results = await Promise.map(keys, async ({ trackId, userId }) => {
-        return TrackUser.query(q => {
-          q.where({
-            user_id: userId,
-            track_id: trackId
-          })
-        }).fetch()
-      })
-      return results
-    },
-    { cacheKeyFn: ({ trackId, userId }) => `${trackId}:${userId}` }
+  // DataLoader for Tag lookups by name (Post.topics from tag_names)
+  loaders.tagByName = new DataLoader(
+    async (names) => {
+      const tags = await Tag.query(q => q.whereIn('name', names)).fetchAll()
+      const byName = {}
+      tags.models.forEach(tag => { byName[tag.get('name')] = tag })
+      return names.map(name => byName[name] || null)
+    }
   )
 
   // DataLoader for TagFollow lookups by (groupId, tagId, userId) tuples
@@ -56,23 +50,6 @@ export default function initDataLoaders (spec) {
       return results
     },
     { cacheKeyFn: ({ groupId, tagId, userId }) => `${groupId}:${tagId}:${userId}` }
-  )
-
-  // DataLoader for FundingRoundUser lookups by (fundingRoundId, userId) pairs
-  // To prevent duplicate lookups of the same FundingRoundUser in one session
-  loaders.fundingRoundUser = new DataLoader(
-    async (keys) => {
-      const results = await Promise.map(keys, async ({ fundingRoundId, userId }) => {
-        return FundingRoundUser.query(q => {
-          q.where({
-            user_id: userId,
-            funding_round_id: fundingRoundId
-          })
-        }).fetch()
-      })
-      return results
-    },
-    { cacheKeyFn: ({ fundingRoundId, userId }) => `${fundingRoundId}:${userId}` }
   )
 
   return loaders

@@ -9,14 +9,18 @@ export const getModerationActionResults = makeGetQueryResults(FETCH_MODERATION_A
 
 export const getModerationActions = ormCreateSelector(
   orm,
-  (state, props) => props.groupId,
-  (session, groupId) => {
-    const moderationActions = session.ModerationAction.all().toModelArray()
-    return groupId
-      ? moderationActions.filter(ma => {
-        return ma.groupId === groupId
+  getModerationActionResults,
+  (session, results) => {
+    const ids = results?.ids || []
+    if (ids.length === 0) return []
+
+    return session.ModerationAction.all()
+      .filter(x => ids.some(id => String(id) === String(x.id)))
+      .orderBy(x => {
+        const idx = ids.findIndex(id => String(id) === String(x.id))
+        return idx === -1 ? Number.MAX_SAFE_INTEGER : idx
       })
-      : moderationActions || []
+      .toModelArray()
   }
 )
 

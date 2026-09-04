@@ -1,6 +1,6 @@
 import { curry, merge } from 'lodash'
 import { format } from 'util'
-import { mapLocaleToSendWithUS } from '../../lib/util'
+import { normalizeLocaleToFull } from '../../lib/localeHelpers'
 import { senderNameViaHylo } from '../../lib/email/senderNameViaHylo'
 
 const api = require('sendwithus')(process.env.SENDWITHUS_KEY)
@@ -8,7 +8,9 @@ const api = require('sendwithus')(process.env.SENDWITHUS_KEY)
 const sendEmail = opts =>
   new Promise((resolve, reject) =>
     api.send(opts, (err, resp) => err ? reject(err) : resolve(resp)))
-    .then(() => true)
+    .then((resp) => {
+      return resp || true
+    })
     .catch(err => {
       console.error('Error sending email:', err, ' email opts = ', opts)
       return false
@@ -26,20 +28,26 @@ const defaultOptions = {
   }
 }
 
-const sendSimpleEmail = (address, templateId, data, extraOptions, locale = 'en-US') =>
-  sendEmail(merge({}, defaultOptions, {
+const sendSimpleEmail = (address, templateId, data, extraOptions, locale = 'en-US') => {
+  const emailOpts = merge({}, defaultOptions, {
     email_id: templateId,
     recipient: { address },
     email_data: data,
-    locale: mapLocaleToSendWithUS(locale)
-  }, extraOptions))
+    locale: normalizeLocaleToFull(locale)
+  }, extraOptions)
+  if (emailOpts.version) {
+    emailOpts.version_name = emailOpts.version
+    delete emailOpts.version
+  }
+  return sendEmail(emailOpts)
+}
 
 const sendEmailWithOptions = curry((templateId, opts) => {
   const emailOpts = merge({}, defaultOptions, {
     email_id: templateId,
     recipient: { address: opts.email },
     email_data: opts.data,
-    locale: mapLocaleToSendWithUS(opts.locale),
+    locale: normalizeLocaleToFull(opts.locale),
     sender: opts.sender, // expects {name, reply_to}
     files: opts.files
   })
@@ -59,22 +67,22 @@ module.exports = {
     sendSimpleEmail(email, 'tem_jFYJ3bxMyfbbtbwgDGS4JGfK', data, extraOptions),
 
   sendPasswordReset: opts =>
-    sendSimpleEmail(opts.email, 'tem_phRPHm3y6RHvRFww6Vc3VBVB', opts.templateData, {}, mapLocaleToSendWithUS(opts.locale)),
+    sendSimpleEmail(opts.email, 'tem_phRPHm3y6RHvRFww6Vc3VBVB', opts.templateData, {}, normalizeLocaleToFull(opts.locale)),
 
   sendEmailVerification: opts =>
-    sendSimpleEmail(opts.email, 'tem_h99yGHv9MXTpMrPSDVTjQFyB', opts.templateData, {}, mapLocaleToSendWithUS(opts.locale)),
+    sendSimpleEmail(opts.email, 'tem_h99yGHv9MXTpMrPSDVTjQFyB', opts.templateData, {}, normalizeLocaleToFull(opts.locale)),
 
   sendFinishRegistration: opts =>
-    sendSimpleEmail(opts.email, 'tem_fqGSrDrSK6WpjTBFXSfY79k4', opts.templateData, {}, mapLocaleToSendWithUS(opts.locale)),
+    sendSimpleEmail(opts.email, 'tem_fqGSrDrSK6WpjTBFXSfY79k4', opts.templateData, {}, normalizeLocaleToFull(opts.locale)),
 
   sendModerationAction: ({ email, templateData, locale }) =>
-    sendSimpleEmail(email, 'tem_BXYk4Hxt74R9jH3pkdGfqbJM', templateData, {}, mapLocaleToSendWithUS(locale)),
+    sendSimpleEmail(email, 'tem_BXYk4Hxt74R9jH3pkdGfqbJM', templateData, {}, normalizeLocaleToFull(locale)),
 
   sendInvitation: (email, data) =>
     sendEmailWithOptions('tem_GTwXKBfkTpTHRfHpmJWbYr9d', {
       email,
       data,
-      locale: mapLocaleToSendWithUS(data.locale) || 'en-US',
+      locale: normalizeLocaleToFull(data.locale) || 'en-US',
       sender: {
         name: senderNameViaHylo(data.inviter_name, data.locale),
         reply_to: data.inviter_email
@@ -86,7 +94,7 @@ module.exports = {
     sendEmailWithOptions('tem_dwY7bkbHhxrb4vdc8mhjTBgQ', {
       email,
       data,
-      locale: mapLocaleToSendWithUS(data.locale) || 'en-US',
+      locale: normalizeLocaleToFull(data.locale) || 'en-US',
       sender: {
         name: senderNameViaHylo(data.inviter_name, data.locale),
         reply_to: data.inviter_email

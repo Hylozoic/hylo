@@ -37,6 +37,7 @@ import revokeContentAccess from 'store/actions/revokeContentAccess'
 import refundContentAccess from 'store/actions/refundContentAccess'
 import getTracksForGroup from 'store/selectors/getTracksForGroup'
 import useDebounce from 'hooks/useDebounce'
+import { formatLocalizedDate } from 'util/dateFormat'
 
 /**
  * Content Access Tab Component
@@ -147,7 +148,7 @@ function ContentAccessTab ({ group, offerings = [] }) {
           </div>
           <p className='text-sm text-foreground/70'>
             {showGrantForm
-              ? t('Grant users access to group content, tracks, or offerings')
+              ? t('Grant users access to group content, spaces, or offerings')
               : t('View and manage all content access grants for your group')}
           </p>
         </div>
@@ -254,7 +255,7 @@ function ContentAccessTab ({ group, offerings = [] }) {
                       <option value='all'>{t('All Tracks')}</option>
                       {tracks?.map(track => (
                         <option key={track.id} value={track.id}>
-                          {track.name}
+                          {track.space?.name}
                         </option>
                       ))}
                     </select>
@@ -367,8 +368,7 @@ function ContentAccessRecordItem ({ record, t, onActionComplete }) {
   }
 
   const formatDate = (dateString) => {
-    if (!dateString) return null
-    return new Date(dateString).toLocaleDateString()
+    return formatLocalizedDate(dateString, { style: 'short' })
   }
 
   const handleRevoke = async () => {
@@ -414,7 +414,7 @@ function ContentAccessRecordItem ({ record, t, onActionComplete }) {
               <div className='font-medium text-foreground break-words [overflow-wrap:anywhere]'>{user?.name}</div>
               <div className='text-sm text-foreground/70 break-words [overflow-wrap:anywhere]'>
                 {offering && <span>{offering.name}</span>}
-                {track && <span> • {track.name}</span>}
+                {track && <span> • {track.space?.name}</span>}
                 {role && <span> • {role.emoji} {role.name}</span>}
               </div>
             </div>
@@ -724,7 +724,7 @@ function GrantAccessForm ({ group, offerings, tracks, onSuccess, onCancel }) {
             <option value=''>{t('Choose a track...')}</option>
             {tracks?.map(track => (
               <option key={track.id} value={track.id}>
-                {track.name} {track.accessControlled && `(${t('Access Controlled')})`}
+                {track.space?.name} {track.accessControlled && `(${t('Access Controlled')})`}
               </option>
             ))}
           </select>

@@ -1,9 +1,10 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`fetchGroups works for public context 1`] = `
+exports[`fetchGroupsForMap works for public context 1`] = `
 Object {
   "graphql": Object {
     "query": "query (
+  $allowedInPublic: Boolean,
   $boundingBox: [PointInput],
   $context: String,
   $parentSlugs: [String],
@@ -12,6 +13,7 @@ Object {
   $visibility: Int
 ) {
   groups(
+    allowedInPublic: $allowedInPublic,
     boundingBox: $boundingBox,
     context: $context,
     parentSlugs: $parentSlugs,
@@ -24,9 +26,13 @@ Object {
       avatarUrl
       description
       geoShape
+      homeRoute
+      icon
       memberCount
       name
+      parentId
       slug
+      type
       locationObject {
         id
         addressNumber
@@ -46,10 +52,15 @@ Object {
         neighborhood
         region
       }
+      parentGroup {
+        id
+        slug
+      }
     }
   }
 }",
     "variables": Object {
+      "allowedInPublic": true,
       "boundingBox": Array [
         Object {
           "lat": 37.698360551679215,
@@ -91,7 +102,7 @@ Object {
     name
     avatarUrl
     bannerUrl
-
+    
   members(sortBy: $sortBy, order: \\"asc\\", boundingBox: $boundingBox, search: $search) {
     items {
       id
@@ -115,10 +126,12 @@ Object {
         }
       }
       locationObject {
+        id
         center {
           lat
           lng
         }
+        fullText
       }
       skills {
         hasMore
@@ -178,6 +191,7 @@ Object {
   $isFulfilled: Boolean,
   $offset: Int,
   $order: String,
+  $savedBy: [ID],
   $search: String,
   $slug: String,
   $sortBy: String,
@@ -191,7 +205,7 @@ Object {
     name
     avatarUrl
     bannerUrl
-
+    
 posts: viewPosts(
   activePostsOnly: $activePostsOnly,
   afterTime: $afterTime,
@@ -205,6 +219,7 @@ posts: viewPosts(
   isFulfilled: $isFulfilled,
   offset: $offset,
   order: $order,
+  savedBy: $savedBy,
   sortBy: $sortBy,
   search: $search,
   topic: $topic,
@@ -214,55 +229,89 @@ posts: viewPosts(
   hasMore
   total
   items {
-
+    
   id
   announcement
-  title
-  details
-  type
-  creator {
-    id
-    name
-    avatarUrl
-    groupRoles {
-      items {
-        id
-        name
-        emoji
-        active
-        groupId
-        responsibilities {
-          items {
-            id
-            title
-            description
-          }
-        }
-      }
-    }
-  }
-  createdAt
   clickthrough
-  updatedAt
-  flaggedGroups
-  isAnonymousVote
-  isPublic
-  fulfilledAt
-  startTime
-  endTime
-  timezone
+  commentersTotal
+  commentsTotal
+  createdAt
+  details
   donationsLink
   editedAt
-  projectManagementLink
+  endTime
+  flaggedGroups
+  fulfilledAt
+  isAnonymousVote
+  isPublic
+  linkPreviewFeatured
+  location
+  meetingLink
   myEventResponse
+  noticeData
+  noticePosts {
+    id
+    details
+    createdAt
+    creator {
+      id
+      name
+      avatarUrl
+    }
+  }
+  peopleReactedTotal
+  projectManagementLink
+  proposalOutcome
+  proposalStatus
+  quorum
+  savedAt
+  startTime
+  timezone
+  title
+  type
+  updatedAt
+  votingMethod
+  attachments {
+    type
+    url
+    position
+    id
+  }
   commenters(first: 3) {
     id
     name
     avatarUrl
   }
-  commentersTotal
-  commentsTotal
+  creator {
+    id
+    name
+    avatarUrl
+  }
+  
+  groups {
+    id
+    name
+    slug
+    type
+    parentId
+  }
 
+  eventInvitations {
+    total
+    hasMore
+    items {
+      id
+      response
+      person {
+        id
+        name
+        avatarUrl
+        bio
+        tagline
+        location
+      }
+    }
+  }
   linkPreview {
     description
     id
@@ -270,32 +319,18 @@ posts: viewPosts(
     title
     url
   }
-  linkPreviewFeatured
-  location
-  locationObject {
-    id
-    addressNumber
-    addressStreet
-    bbox {
-      lat
-      lng
+  members {
+    total
+    hasMore
+    items {
+      id
+      name
+      avatarUrl
+      bio
+      tagline
+      location
     }
-    center {
-      lat
-      lng
-    }
-    city
-    country
-    fullText
-    locality
-    neighborhood
-    region
   }
-  peopleReactedTotal
-  proposalStatus
-  proposalOutcome
-  votingMethod
-  quorum
   proposalOptions {
     total
     hasMore
@@ -324,49 +359,6 @@ posts: viewPosts(
     user {
       id
       name
-    }
-  }
-  groups {
-    id
-    name
-    slug
-  }
-  attachments {
-    type
-    url
-    position
-    id
-  }
-  topics {
-    id
-    name
-  }
-  members {
-    total
-    hasMore
-    items {
-      id
-      name
-      avatarUrl
-      bio
-      tagline
-      location
-    }
-  }
-  eventInvitations {
-    total
-    hasMore
-    items {
-      id
-      response
-      person {
-        id
-        name
-        avatarUrl
-        bio
-        tagline
-        location
-      }
     }
   }
 
@@ -399,7 +391,7 @@ posts: viewPosts(
       "slug": "foo",
       "sortBy": "updated",
       "topic": null,
-      "topics": null,
+      "topics": Array [],
       "types": undefined,
     },
   },
@@ -407,6 +399,7 @@ posts: viewPosts(
     "extractModel": "Group",
     "extractQueryResults": Object {
       "getItems": [Function],
+      "getRouteParams": [Function],
       "replace": undefined,
     },
   },
@@ -430,6 +423,7 @@ Object {
   $isFulfilled: Boolean,
   $offset: Int,
   $order: String,
+  $savedBy: [ID],
   $search: String,
   $slug: String,
   $sortBy: String,
@@ -456,6 +450,7 @@ Object {
       isFulfilled: $isFulfilled,
       offset: $offset,
       order: $order,
+      savedBy: $savedBy,
       sortBy: $sortBy,
       search: $search,
       topic: $topic,
@@ -472,10 +467,12 @@ Object {
         createdAt
         updatedAt
         locationObject {
+          id
           center {
             lat
             lng
           }
+          fullText
         }
         topics {
           id
@@ -516,6 +513,7 @@ Object {
     "extractModel": "Group",
     "extractQueryResults": Object {
       "getItems": [Function],
+      "getRouteParams": [Function],
     },
   },
   "type": "MapExplorer/FETCH_POSTS_MAP",
@@ -544,6 +542,7 @@ Object {
   $mentionsOf: [ID]
   $offset: Int,
   $order: String,
+  $savedBy: [ID],
   $search: String,
   $sortBy: String,
   $topic: ID,
@@ -569,6 +568,7 @@ Object {
       mentionsOf: $mentionsOf
       offset: $offset,
       order: $order,
+      savedBy: $savedBy,
       sortBy: $sortBy,
       search: $search,
       topic: $topic,
@@ -585,6 +585,7 @@ Object {
         createdAt
         updatedAt
         locationObject {
+          id
           center {
             lat
             lng
@@ -626,6 +627,7 @@ Object {
     "extractModel": "Post",
     "extractQueryResults": Object {
       "getItems": [Function],
+      "getRouteParams": [Function],
     },
   },
   "type": "MapExplorer/FETCH_POSTS_MAP",

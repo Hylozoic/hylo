@@ -2,10 +2,10 @@ import { removePostFromUrl, groupUrl } from '@hylo/navigation'
 import { isPhoneDevice } from 'util/mobile'
 
 /**
- * Smart close (group stream, public, my groups, etc.) vs stripping /post/:id from the URL.
- * Isolated /post/:postId always; in-context routes (e.g. group stream overlay) on phones only.
+ * Smart close (group all view, public, my groups, etc.) vs stripping /post/:id from the URL.
+ * Isolated /post/:postId always; in-context routes (e.g. group view overlay) on phones only.
  *
- * @param {string} [view] Route view from useRouteParams (e.g. 'post', 'stream')
+ * @param {string} [view] Route view from useRouteParams (e.g. 'post', 'all')
  * @returns {boolean}
  */
 export function shouldUseSmartPostClose (view) {
@@ -52,19 +52,19 @@ export function getPostDetailCloseDestination ({ pathname, search = '', post, me
 
   if (nG === 1) {
     if (nM === 1 && groups[0].slug) {
-      return { pathname: groupUrl(groups[0].slug, 'stream'), search: '' }
+      return { pathname: groupUrl(groups[0].slug, 'all'), search: '' }
     }
     if (!isPublic) return fallback
-    return { pathname: '/public/stream', search: '' }
+    return { pathname: '/public/all', search: '' }
   }
 
   if (nM === 0) {
-    if (isPublic) return { pathname: '/public/stream', search: '' }
+    if (isPublic) return { pathname: '/public/all', search: '' }
     return { pathname: '/my/groups', search: '' }
   }
 
   if (nM === 1 && memberOf[0].slug) {
-    return { pathname: groupUrl(memberOf[0].slug, 'stream'), search: '' }
+    return { pathname: groupUrl(memberOf[0].slug, 'all'), search: '' }
   }
 
   if (nM > 1) {

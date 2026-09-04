@@ -16,6 +16,20 @@ import 'tippy.js/dist/tippy.css'
 import { shouldBailTextSelectionGesture } from 'util/textSelectionTouch'
 import classes from './HyloEditor.module.scss'
 
+/**
+ * True when a parent contentHTML update should not replace the live editor doc.
+ * Empty-to-empty is a no-op; a focused editor with text must not be wiped by
+ * a send/reset that pushes empty contentHTML.
+ */
+export function shouldSkipExternalEditorContent (currentHtml, nextHtml, isFocused) {
+  const next = nextHtml || ''
+  const current = currentHtml || ''
+  const isEmptyHtml = (html) => !html || html === '<p></p>'
+  if (next === current || (isEmptyHtml(next) && isEmptyHtml(current))) return true
+  if (isEmptyHtml(next) && !isEmptyHtml(current) && isFocused) return true
+  return false
+}
+
 const HyloEditor = React.forwardRef(({
   className,
   containerClassName = 'hyloEditor',
@@ -199,12 +213,16 @@ const HyloEditor = React.forwardRef(({
     }
   })
 
-  // Dynamic setting of initial editor content, and setting the initialized state
+  // Apply parent-driven content. Skip no-ops and do not wipe a message the user
+  // has already started after a send/reset pushed empty contentHTML.
   useEffect(() => {
-    if (editor.isInitialized) {
-      editor.commands.setContent(contentHTML)
+    if (!editor?.isInitialized) return
+    if (shouldSkipExternalEditorContent(editor.getHTML(), contentHTML, editor.isFocused)) {
       setInitialized(true)
+      return
     }
+    editor.commands.setContent(contentHTML)
+    setInitialized(true)
   }, [editor?.isInitialized, contentHTML])
 
   // Dynamic placeholder text
@@ -219,8 +237,13 @@ const HyloEditor = React.forwardRef(({
 
   useEffect(() => {
     if (!editor) return
-    if (groupIds) editor.extensionStorage.mention.groupIds = groupIds
-  }, [groupIds])
+    if (editor.extensionStorage.mention) {
+      editor.extensionStorage.mention.groupIds = groupIds
+    }
+    if (editor.extensionStorage.topic) {
+      editor.extensionStorage.topic.groupIds = groupIds
+    }
+  }, [editor, groupIds])
 
   useEffect(() => {
     if (!editor) return
@@ -237,7 +260,7 @@ const HyloEditor = React.forwardRef(({
     },
     focus: position => {
       if (editorRef.current) {
-        editorRef.current.commands.focus(position || 'start')
+        editorRef.current.commands.focus(position || 'end')
       }
     },
     getHTML: () => {
@@ -266,12 +289,24 @@ const HyloEditor = React.forwardRef(({
 
   editorRef.current = editor
 
+  /** Focus the editor when clicking empty space around the (often short) ProseMirror surface. */
+  const handleEditorAreaPointerDown = (event) => {
+    if (readOnly) return
+    if (event.target.closest('.ProseMirror')) return
+    editor.chain().focus('end').run()
+  }
+
   return (
     <div className={cn('flex-1', containerClassName)}>
       {showMenu && (
         <HyloEditorMenuBar editor={editor} extendedMenu={extendedMenu} type={type} id={groupIds?.[0]} className={menuClassName} />
       )}
-      <EditorContent className={cn('HyloEditor_EditorContent1 global-postContent text-foreground py-3 px-3', className)} editor={editor} />
+      <EditorContent
+        className={cn('HyloEditor_EditorContent1 global-postContent text-foreground py-3 px-3 cursor-text', className)}
+        editor={editor}
+        onMouseDown={handleEditorAreaPointerDown}
+        onTouchStart={handleEditorAreaPointerDown}
+      />
       {editor && (
         <BubbleMenu
           editor={editor}
@@ -298,4 +333,4 @@ const HyloEditor = React.forwardRef(({
   )
 })
 
-export default HyloEditor
+export default React.memo(HyloEditor)

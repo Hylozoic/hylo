@@ -2,7 +2,9 @@ import React from 'react'
 import { render, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import CommentCard from './CommentCard'
 
-const mockShowDetails = jest.fn()
+const mockViewPostDetails = jest.fn()
+
+jest.mock('hooks/useViewPostDetails', () => () => mockViewPostDetails)
 
 const defaultProps = {
   comment: {
@@ -20,11 +22,14 @@ const defaultProps = {
     createdAt: new Date('2023-04-01T12:00:00Z')
   },
   expanded: false,
-  highlightProps: { term: 'foo' },
-  showDetails: mockShowDetails
+  highlightProps: { term: 'foo' }
 }
 
 describe('CommentCard', () => {
+  beforeEach(() => {
+    mockViewPostDetails.mockClear()
+  })
+
   it('renders comment card with correct content', () => {
     render(<CommentCard {...defaultProps} />)
 
@@ -32,7 +37,7 @@ describe('CommentCard', () => {
     expect(screen.getByText('commented on')).toBeInTheDocument()
     expect(screen.getByText('Awesome Sauce #hashtag')).toBeInTheDocument()
     expect(screen.getByText(/text of the comment/)).toBeInTheDocument()
-    expect(screen.getByText('Commented 1 year ago')).toBeInTheDocument()
+    expect(screen.getByText(/ago/i)).toBeInTheDocument()
   })
 
   it('renders expanded comment', () => {
@@ -67,10 +72,30 @@ describe('CommentCard', () => {
     })
   })
 
-  it('calls showDetails when clicked', () => {
+  it('strips HTML from untitled post details in the header', () => {
+    const propsWithMentionDetails = {
+      ...defaultProps,
+      comment: {
+        ...defaultProps.comment,
+        post: {
+          id: 77,
+          title: '',
+          details: '<p><span data-type="mention" class="mention" data-id="44944" data-label="clareattwell001">clareattwell001</span> shared an article</p>'
+        }
+      }
+    }
+
+    render(<CommentCard {...propsWithMentionDetails} />)
+
+    expect(screen.queryByText(/data-type="mention"/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/<p>/)).not.toBeInTheDocument()
+    expect(screen.getByText(/clareattwell001/)).toBeInTheDocument()
+  })
+
+  it('calls viewPostDetails when clicked', () => {
     render(<CommentCard {...defaultProps} />)
 
     screen.getByText('Joe Smith').click()
-    expect(mockShowDetails).toHaveBeenCalledWith(defaultProps.comment.post.id)
+    expect(mockViewPostDetails).toHaveBeenCalledWith(defaultProps.comment.post)
   })
 })

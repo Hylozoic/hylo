@@ -469,6 +469,51 @@ describe('Event Mixin', () => {
       expect(calEvent.location).to.equal(newLocation)
     })
 
+    it('uses meeting_link as iCal location when there is no physical location', async () => {
+      const meetingLink = 'https://meet.jit.si/hylo-event'
+      await event.save({ location: null, meeting_link: meetingLink }, { patch: true })
+
+      const calEvent = await event.getCalEventData({
+        eventInvitation,
+        forUserId: invitee1.id,
+        eventChanges: null,
+        url: 'https://example.com/event'
+      })
+
+      expect(calEvent.location).to.equal(meetingLink)
+
+      await event.save({ location: 'Original Location', meeting_link: null }, { patch: true })
+    })
+
+    it('appends meeting link to iCal description for hybrid events', async () => {
+      const meetingLink = 'https://zoom.us/j/123456789'
+      await event.save({ location: 'Community Hall', meeting_link: meetingLink }, { patch: true })
+
+      const calEvent = await event.getCalEventData({
+        eventInvitation,
+        forUserId: invitee1.id,
+        eventChanges: null,
+        url: 'https://example.com/event'
+      })
+
+      expect(calEvent.location).to.equal('Community Hall')
+      expect(calEvent.description).to.include('Join online: https://zoom.us/j/123456789')
+
+      await event.save({ location: 'Original Location', meeting_link: null }, { patch: true })
+    })
+
+    it('uses new meeting_link from eventChanges.meeting_link for online-only events', async () => {
+      const newMeetingLink = 'https://meet.google.com/abc-defg-hij'
+      const calEvent = await event.getCalEventData({
+        eventInvitation,
+        forUserId: invitee1.id,
+        eventChanges: { location: null, meeting_link: newMeetingLink },
+        url: 'https://example.com/event'
+      })
+
+      expect(calEvent.location).to.equal(newMeetingLink)
+    })
+
     it('returns CANCELLED status when eventInvitation.notGoing() is true', async () => {
       const noResponseInvitation = await EventInvitation.create({
         userId: invitee2.id,
@@ -944,6 +989,22 @@ describe('Event Mixin', () => {
         'Email',
         'sendEventRsvpEmail'
       )
+    })
+
+    it('includes meeting link in event_location for RSVP email without unknown template fields', async () => {
+      await event.save({ location: null, meeting_link: 'https://zoom.us/j/123456789' }, { patch: true })
+
+      await event.sendUserRsvp({
+        eventInvitationId: eventInvitation.id,
+        eventChanges: { new: true }
+      })
+
+      const emailCall = Queue.classMethod.__spy.calls.find(call => call[1] === 'sendEventRsvpEmail')
+      expect(emailCall).to.exist
+      expect(emailCall[2].data.event_location).to.equal('https://zoom.us/j/123456789')
+      expect(emailCall[2].data.event_meeting_link).to.equal(undefined)
+
+      await event.save({ location: 'Test Location', meeting_link: null }, { patch: true })
     })
   })
 

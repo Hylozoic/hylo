@@ -4,6 +4,7 @@ import { useMutation } from 'urql'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import { white80onCaribbeanGreen } from '@hylo/presenters/colors'
+import { LOCALE_EN_US, LOCALE_ES, normalizeLocaleToFull } from '@hylo/shared'
 import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettingsMutation'
 
 const LocaleSelector = ({ small, dark }) => {
@@ -15,10 +16,11 @@ const LocaleSelector = ({ small, dark }) => {
   const currentUserData = currentUserResult ? currentUserResult[0]?.currentUser : null
 
   const handleSelectLocale = (locale) => {
-    i18n.changeLanguage(locale)
+    const normalizedLocale = normalizeLocaleToFull(locale)
+    i18n.changeLanguage(normalizedLocale)
     setDropdownVisible(false)
     if (!currentUserData) return
-    updateUserSettings({ changes: { settings: { locale } } })
+    updateUserSettings({ changes: { settings: { locale: normalizedLocale } } })
   }
 
   // TODO: URQL! This keeps things from crashing when network is not active on load
@@ -84,7 +86,7 @@ const LocaleSelector = ({ small, dark }) => {
         onPress={() => setDropdownVisible(!dropdownVisible)}
       >
         <Text style={styles.selectorButtonText}>
-          {small ? '🌐' : `🌐 ${t('Language')}: ${selectedLocale === 'en' ? 'English' : 'Español'}`}
+          {small ? '🌐' : `🌐 ${t('Language')}: ${normalizeLocaleToFull(selectedLocale) === LOCALE_ES ? 'Español' : 'English'}`}
         </Text>
       </TouchableOpacity>
       {dropdownVisible && (
@@ -92,14 +94,14 @@ const LocaleSelector = ({ small, dark }) => {
           <TouchableOpacity
             style={[
               styles.optionButton,
-              selectedLocale === 'en' && styles.selectedOption
+              normalizeLocaleToFull(selectedLocale) === LOCALE_EN_US && styles.selectedOption
             ]}
-            onPress={() => handleSelectLocale('en')}
+            onPress={() => handleSelectLocale(LOCALE_EN_US)}
           >
             <Text
               style={[
                 styles.optionText,
-                selectedLocale === 'en' && styles.selectedOptionText
+                normalizeLocaleToFull(selectedLocale) === LOCALE_EN_US && styles.selectedOptionText
               ]}
             >
               English
@@ -108,14 +110,14 @@ const LocaleSelector = ({ small, dark }) => {
           <TouchableOpacity
             style={[
               styles.optionButton,
-              selectedLocale === 'es' && styles.selectedOption
+              normalizeLocaleToFull(selectedLocale) === LOCALE_ES && styles.selectedOption
             ]}
-            onPress={() => handleSelectLocale('es')}
+            onPress={() => handleSelectLocale(LOCALE_ES)}
           >
             <Text
               style={[
                 styles.optionText,
-                selectedLocale === 'es' && styles.selectedOptionText
+                normalizeLocaleToFull(selectedLocale) === LOCALE_ES && styles.selectedOptionText
               ]}
             >
               Español

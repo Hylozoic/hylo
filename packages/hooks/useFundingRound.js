@@ -7,6 +7,9 @@ export function presentFundingRound (fundingRound) {
   if (!fundingRound) return null
   return {
     ...fundingRound,
+    title: fundingRound.group?.name,
+    bannerUrl: fundingRound.group?.bannerUrl,
+    description: fundingRound.group?.description,
     users: fundingRound.users?.items || [],
     submissions: fundingRound.submissions?.items || []
   }

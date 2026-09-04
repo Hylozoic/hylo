@@ -28,15 +28,6 @@ export const REQUIRED_EDIT_POST_MATCH = ':detail(post)/:postId/:action(edit)'
 export const GROUP_DETAIL_MATCH = 'group/:detailGroupSlug'
 export const OPTIONAL_GROUP_MATCH = ':detail(group)?/(:detailGroupSlug)?'
 
-// TODO: have to have this here because otherwise the presenters package loads navigation package and visa versa which is a circular dependency
-export function findHomeWidget (group) {
-  if (!group?.contextWidgets) {
-    throw new Error('Group has no contextWidgets')
-  }
-  const homeWidget = group.contextWidgets.items.find(w => w.type === 'home')
-  return group.contextWidgets.items.find(w => w.parentId === homeWidget.id)
-}
-
 // Fundamental URL paths
 
 export function allGroupsUrl () {
@@ -51,8 +42,46 @@ export function myHomeUrl () {
   return '/my'
 }
 
+/** Landing path for the My Home button (All My Groups Activity). */
+export function myHomeLandingUrl () {
+  return '/all/all'
+}
+
+/** True when the current route is the My Home menu (My or All My Groups). */
+export function isMyHomeContext (context) {
+  return context === ALL_GROUPS_CONTEXT_SLUG || context === MY_CONTEXT_SLUG
+}
+
+/** True when the pathname is under My Home (`/all` or `/my`). */
+export function isMyHomePath (pathname = '') {
+  return pathname === '/all' || pathname === '/my' ||
+    pathname.startsWith('/all/') || pathname.startsWith('/my/')
+}
+
 export function searchUrl () {
   return '/search'
+}
+
+const NON_GROUP_SLUGS = [ALL_GROUPS_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG, SEARCH_CONTEXT_SLUG, MY_CONTEXT_SLUG, MESSAGES_CONTEXT_SLUG]
+
+/**
+ * Search URL for a hashtag, scoped to the current group when one is present.
+ * @param {string} tagName Tag name with or without a leading #
+ * @param {{ groupSlug?: string, from?: string }} [opts]
+ * @returns {string}
+ */
+export function tagSearchUrl (tagName, { groupSlug, from } = {}) {
+  const raw = typeof tagName === 'string' ? tagName.trim() : ''
+  const name = raw.startsWith('#') ? raw.slice(1) : raw
+  if (!name) return searchUrl()
+
+  const isRealGroup = groupSlug && !NON_GROUP_SLUGS.includes(groupSlug)
+
+  return addQuerystringToPath(searchUrl(), {
+    t: `#${name}`,
+    groupSlug: isRealGroup ? groupSlug : undefined,
+    from: from && !from.startsWith('/search') ? from : undefined
+  })
 }
 
 export function baseUrl ({
@@ -62,30 +91,34 @@ export function baseUrl ({
   fundingRoundId,
   groupSlug,
   memberId, personId, // TODO: switch to one of these?
+  spaceSlug,
   tab,
   topicName,
   trackId,
   view
 }) {
   const safeMemberId = personId || memberId
+  const spaceBase = spaceSlug && groupSlug ? spaceUrl(groupSlug, spaceSlug) : null
 
   if (safeMemberId) {
+    if (spaceBase) return `${spaceBase}/members/${safeMemberId}`
     return personUrl(safeMemberId, groupSlug)
-  } else if (view === 'chat' && topicName) {
-    return chatUrl(topicName, { context, groupSlug })
   } else if (topicName) {
-    return topicUrl(topicName, { context, groupSlug })
+    return topicUrl(topicName, { context, groupSlug, spaceSlug })
   } else if (trackId) {
-    return trackUrl(trackId, { context, groupSlug, tab })
+    return trackUrl(trackId, { context, groupSlug, spaceSlug, tab })
   } else if (fundingRoundId) {
-    return fundingRoundUrl(fundingRoundId, { context, groupSlug, tab })
+    return fundingRoundUrl(fundingRoundId, { context, groupSlug, spaceSlug, tab })
   } else if (view) {
+    if (spaceBase) {
+      return `${spaceBase}/${view}${customViewId ? '/' + customViewId : ''}`
+    }
     return viewUrl(view, { context, customViewId, defaultUrl, groupSlug })
   } else if (context === SEARCH_CONTEXT_SLUG) {
     // Has to come before groupSlug check because we use groupSlug as a param in searching
     return searchUrl()
   } else if (groupSlug) {
-    return groupUrl(groupSlug)
+    return spaceBase || groupUrl(groupSlug)
   } else if (context === ALL_GROUPS_CONTEXT_SLUG) {
     return allGroupsUrl()
   } else if (context === PUBLIC_CONTEXT_SLUG) {
@@ -105,19 +138,11 @@ export function createUrl (opts = {}, querystringParams = {}) {
   return addQuerystringToPath(url, querystringParams)
 }
 
-export function createGroupUrl (opts) {
-  return baseUrl(opts) + '/create/group'
-}
-
-export function createTrackUrl (opts) {
-  return baseUrl(opts) + '/create/track'
-}
-
 // For specific views of a group like 'map', or 'projects'
-export function viewUrl (view, { context, groupSlug, defaultUrl, customViewId }) {
+export function viewUrl (view, { context, groupSlug, defaultUrl, customViewId, spaceSlug }) {
   if (!view) return '/'
 
-  const base = baseUrl({ context, groupSlug, defaultUrl })
+  const base = baseUrl({ context, groupSlug, defaultUrl, spaceSlug })
 
   return `${base}/${view}${customViewId ? '/' + customViewId : ''}`
 }
@@ -133,6 +158,100 @@ export function groupUrl (slug, view = '', defaultUrl = allGroupsUrl()) {
   }
 }
 
+/** Local space slug portion from a stored space slug (parentSlug-localName). */
+export function localSpaceSlug (parentSlug, spaceFullSlug) {
+  if (!parentSlug || !spaceFullSlug) return spaceFullSlug || ''
+  const prefix = `${parentSlug}-`
+  return spaceFullSlug.startsWith(prefix) ? spaceFullSlug.slice(prefix.length) : spaceFullSlug
+}
+
+/** Stored space slug (`{parentSlug}-{localSlug}`). Does not double-prefix. */
+export function storedSpaceSlug (parentSlug, localSlug) {
+  if (!parentSlug || !localSlug) return localSlug || ''
+  const prefix = `${parentSlug}-`
+  return localSlug.startsWith(prefix) ? localSlug : `${prefix}${localSlug}`
+}
+
+/** Path segment for a GroupView within a group or space (e.g. /chat, /custom/123). */
+export function groupViewPath (view) {
+  if (!view) return ''
+  switch (view.type) {
+    case 'post':
+      return view.viewPost?.id ? `/post/${view.viewPost.id}` : ''
+    case 'member':
+      return view.viewUser?.id ? `/members/${view.viewUser.id}` : ''
+    case 'custom':
+      return `/custom/${view.id}`
+    case 'collection':
+      return `/collection/${view.id}`
+    case 'space-collection':
+      return `/space-collection/${view.id}`
+    case 'link':
+      return null
+    case 'manage-round':
+      return '/manage-round'
+    default:
+      return view.type ? `/${view.type}` : '/all'
+  }
+}
+
+/** Normalize a GroupView from a plain object or Bookshelf model. */
+function normalizeGroupView (view) {
+  if (!view) return null
+  if (typeof view.get === 'function') {
+    return { type: view.get('type'), id: view.get('id') }
+  }
+  return view
+}
+
+/**
+ * Route path suffix stored in groups.home_route for a GroupView
+ * (e.g. /all, /custom/123, /welcome).
+ * Shared by backend GroupView.computeHomeRoutePath and frontend optimistic updates.
+ */
+export function homeRoutePathForView (view) {
+  if (!view) return '/all'
+  const normalized = normalizeGroupView(view)
+  const path = groupViewPath(normalized)
+  if (path) return path
+  return normalized.type ? `/${normalized.type}` : '/all'
+}
+
+/** Base URL for a space under its parent group. Optional viewPath is appended (e.g. /chat). */
+export function spaceUrl (parentSlug, localSlug, viewPath = '') {
+  if (!parentSlug || !localSlug) return '/'
+  const base = `/groups/${parentSlug}/spaces/${localSlug}`
+  if (!viewPath) return base
+  return `${base}${viewPath.startsWith('/') ? viewPath : `/${viewPath}`}`
+}
+
+/** URL for a view inside a space. */
+export function spaceGroupViewUrl (parentSlug, spaceGroup, view) {
+  if (!parentSlug || !spaceGroup) return groupUrl(parentSlug)
+  const local = localSpaceSlug(parentSlug, spaceGroup.slug)
+  const path = groupViewPath(view)
+  if (path === null) return view?.link || null
+  return spaceUrl(parentSlug, local, path)
+}
+
+/** Home view path for a space (`groups.home_route`), with fallbacks when the field was omitted. */
+export function spaceHomeRoutePath (spaceGroup) {
+  if (!spaceGroup) return '/all'
+  const homeView = (spaceGroup.groupViews?.items || []).find(view => view.order === 0)
+  if (homeView) return homeRoutePathForView(homeView)
+  if (spaceGroup.homeRoute) return spaceGroup.homeRoute
+  if (spaceGroup.track?.id) return '/track-actions'
+  if (spaceGroup.fundingRound?.id) return '/funding-round-submissions'
+  return '/all'
+}
+
+/** URL for a space's home view. */
+export function spaceHomeUrl (parentSlug, spaceGroup) {
+  if (!parentSlug || !spaceGroup) return '/'
+  const local = localSpaceSlug(parentSlug, spaceGroup.slug)
+  return spaceUrl(parentSlug, local, spaceHomeRoutePath(spaceGroup))
+}
+
 export function groupDetailUrl (slug, opts = {}, querystringParams = {}) {
   let result = baseUrl(opts)
   result = `${result}/group/${slug}`
@@ -145,17 +264,21 @@ export function groupInviteUrl (group) {
 }
 
 export function groupHomeUrl ({ group, routeParams }) {
-  return widgetUrl({ ...routeParams, widget: findHomeWidget(group) })
+  const slug = group?.slug || routeParams?.groupSlug
+  const home = (group?.homeRoute || '/all').replace(/^\//, '')
+  return groupUrl(slug, home)
 }
 
 // Post URLS
 export function postUrl (id, opts = {}, querystringParams = {}) {
   const action = get('action', opts)
+  // Standalone /groups/:slug/post/:id uses "post" as a path segment, not a all activity view name
+  const urlOpts = opts.view === 'post' ? { ...opts, view: undefined } : opts
   let result
-  if (opts.context === '') {
+  if (urlOpts.context === '') {
     result = `/post/${id}`
   } else {
-    result = baseUrl(opts)
+    result = baseUrl(urlOpts)
     result = `${result}/post/${id}`
   }
   if (action) result = `${result}/${action}`
@@ -178,38 +301,32 @@ export function duplicatePostUrl (id, opts = {}) {
 
 // Given a post return the the main way to view the post
 // Chats go to the chat room scrolled to the post
-// Posts go to the stream with the post opened
+// Posts go to the all activity stream with the post opened
 export function primaryPostUrl (post, opts = {}, querystringParams = {}) {
   let result = baseUrl(opts)
   const postId = get('id', post) || post
   if (post.type === 'chat') {
-    // Chat posts always open in their specific chat room
-    const topicName = post.topics[0].name
+    result = `${baseUrl({ ...opts, view: 'chat' })}`
     if (opts.commentId) {
       // commentId in route params causes the post to open when the room loads
-      result = `${result}/chat/${topicName}/post/${postId}?commentId=${opts.commentId}`
+      result = `${result}/post/${postId}?commentId=${opts.commentId}`
     } else {
       // postId as querystring highlights the message without forcing it open
-      result = `${result}/chat/${topicName}?postId=${postId}`
+      result = `${result}?postId=${postId}`
     }
   } else {
     // Non-chat posts open within the group's home view so there is context.
-    // homeRoute is a path like '/stream', '/map', or '/chat/general'.
+    // homeRoute is a path like '/all', '/map', or '/chat'.
     // Non-chat posts always use the /post/:id path format (modal overlay) even
     // when the home is a chat view, so you can see the full post and comments
     // (?postId= is reserved for chat-type posts only).
     // If the home is a chat view but the post has no topics (e.g. Zapier-
     // created posts), fall back to the standalone /post/:id URL so the UI
     // can still open the post even though it isn't in any chat room.
-    const homeRoute = opts.homeRoute || '/stream'
-    const firstTopic = post.topics?.[0]?.name
-    if (homeRoute.startsWith('/chat/') && firstTopic) {
+    const homeRoute = opts.homeRoute || '/all'
+    if (homeRoute === '/chat' || homeRoute.startsWith('/chat/')) {
       // Non-chat post shown in a chat home: open as a modal above the chat
-      result = `${result}${homeRoute}/post/${postId}`
-      if (opts.commentId) result = `${result}?commentId=${opts.commentId}`
-    } else if (homeRoute.startsWith('/chat/')) {
-      // Chat home but no topics: fall back to standalone post URL
-      result = `${result}/post/${postId}`
+      result = `${result}/chat/post/${postId}`
       if (opts.commentId) result = `${result}?commentId=${opts.commentId}`
     } else {
       result = `${result}${homeRoute}/post/${postId}`
@@ -262,8 +379,8 @@ export function topicUrl (topicName, opts) {
   return `${topicsUrl(opts)}/${topicName}`
 }
 
-export function chatUrl (chatName, { context, groupSlug }) {
-  return `${baseUrl({ context, groupSlug })}/chat/${chatName}`
+export function chatUrl (_chatName, { context, groupSlug, spaceSlug } = {}) {
+  return viewUrl('chat', { context, groupSlug, spaceSlug })
 }
 
 export function customViewUrl (customViewId, rootPath, { context, groupSlug }) {
@@ -271,54 +388,35 @@ export function customViewUrl (customViewId, rootPath, { context, groupSlug }) {
 }
 
 /**
- * Compute the home route path (e.g. /stream, /map, /chat/general) from a context widget.
- * Mirrors backend ContextWidget.computeHomeRoutePath for optimistic updates.
+ * URL for a Track's space. Prefer opts.space (or spaceSlug) — legacy
+ * /groups/:groupSlug/tracks/:trackId routes are no longer supported.
  */
-export function homeRoutePathForWidget (widget) {
-  if (!widget) return '/stream'
-  if (widget.view) return '/' + widget.view
-  if (widget.viewChat) return '/chat/' + (widget.viewChat.name || 'general')
-  if (widget.customView) return '/custom/' + widget.customView.id
-  if (widget.viewTrack) return '/tracks/' + widget.viewTrack.id
-  if (widget.viewFundingRound) return '/funding-rounds/' + widget.viewFundingRound.id
-  return '/stream'
-}
-
-export function widgetUrl ({ widget, rootPath, groupSlug: providedSlug, context = 'group' }) {
-  if (!widget) return null
-
-  const groupSlug = isStaticContext(providedSlug) ? null : providedSlug
-  let url = ''
-  if (widget.url) return widget.url
-  if (widget.view === 'about') {
-    url = viewUrl('about', { groupSlug, context })
-  } else if (widget.view) {
-    url = viewUrl(widget.view, { groupSlug, context: widget.context || context })
-  } else if (widget.viewGroup) {
-    url = groupUrl(widget.viewGroup.slug)
-  } else if (widget.viewUser) {
-    url = personUrl(widget.viewUser.id, groupSlug)
-  } else if (widget.viewPost) {
-    url = postUrl(widget.viewPost.id, { groupSlug, context })
-  } else if (widget.viewChat) {
-    url = chatUrl(widget.viewChat.name, { rootPath, groupSlug, context })
-  } else if (widget.customView) {
-    url = customViewUrl(widget.customView.id, rootPath, { context, groupSlug })
-  } else if (widget.viewTrack) {
-    url = trackUrl(widget.viewTrack.id, { context, groupSlug })
-  } else if (widget.viewFundingRound) {
-    url = fundingRoundUrl(widget.viewFundingRound.id, { context, groupSlug })
+export function trackUrl (trackId, opts = {}) {
+  const { groupSlug, spaceSlug, space, tab } = opts
+  const localSlug = spaceSlug || (space?.slug && groupSlug ? localSpaceSlug(groupSlug, space.slug) : null)
+  if (groupSlug && localSlug) {
+    if (!tab && space) return spaceHomeUrl(groupSlug, space)
+    return spaceUrl(groupSlug, localSlug, tab ? `/${tab}` : '')
   }
-
-  return url
+  if (groupSlug) return groupUrl(groupSlug, 'settings/tracks')
+  return '/my/tracks'
 }
 
-export function trackUrl (trackId, opts) {
-  return baseUrl({ ...opts, context: 'group', view: 'tracks' }) + `/${trackId}` + (opts.tab ? `/${opts.tab}` : '')
-}
-
-export function fundingRoundUrl (fundingRoundId, opts) {
-  return baseUrl({ ...opts, context: 'group', view: 'funding-rounds' }) + `/${fundingRoundId}` + (opts.tab ? `/${opts.tab}` : '')
+/**
+ * URL for a Funding Round's space. Prefer opts.space (or spaceSlug) — legacy
+ * /groups/:groupSlug/funding-rounds/:id routes are no longer supported.
+ */
+export function fundingRoundUrl (fundingRoundId, opts = {}) {
+  const { groupSlug, spaceSlug, space, tab } = opts
+  const localSlug = spaceSlug || (space?.slug && groupSlug ? localSpaceSlug(groupSlug, space.slug) : null)
+  // Legacy tab name → space view path
+  const viewTab = tab === 'submissions' ? 'funding-round-submissions' : tab
+  if (groupSlug && localSlug) {
+    if (!viewTab && space) return spaceHomeUrl(groupSlug, space)
+    return spaceUrl(groupSlug, localSlug, viewTab ? `/${viewTab}` : '')
+  }
+  if (groupSlug) return groupUrl(groupSlug)
+  return '/'
 }
 
 /**
@@ -361,14 +459,8 @@ export function addQuerystringToPath (path, querystringParams) {
 export function removeCreateEditModalFromUrl (url) {
   const matchForCreateRegex = '/create/(post|track)/*'
   const matchForEditRegex = `/post/${HYLO_ID_MATCH}(/.*)?`
-  const matchForEditTrackRegex = `/tracks/${HYLO_ID_MATCH}(/.*)?`
   return url.replace(new RegExp(matchForCreateRegex), '')
     .replace(new RegExp(matchForEditRegex), '')
-    .replace(new RegExp(matchForEditTrackRegex), (match) => {
-      // Split the match into parts so we only remove the "edit" part of the url
-      const parts = match.split('/')
-      return parts.slice(0, 3).join('/') // Keep '/tracks/{id}'
-    })
 }
 
 /**
@@ -383,6 +475,7 @@ export function stripComposeModalQueryParams (url) {
     const base = typeof window !== 'undefined' ? window.location.origin : 'http://localhost'
     const u = new URL(url, base)
     u.searchParams.delete('newPostType')
+    u.searchParams.delete('eventDate')
     u.searchParams.delete('sourceDraftId')
     u.searchParams.delete('closePath')
     return `${u.pathname}${u.search}${u.hash}`

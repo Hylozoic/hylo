@@ -1,15 +1,27 @@
-import { get } from 'lodash/fp'
+import { get, pick } from 'lodash/fp'
 
 export const MODULE_NAME = 'GroupSettings'
 
-export const ADD_POST_TO_COLLECTION = `${MODULE_NAME}/ADD_POST_TO_COLLECTION`
-export const CREATE_COLLECTION = `${MODULE_NAME}/CREATE_COLLECTION`
+// Must match GroupSettingsInput in schema.graphql. Read-only fields like
+// agreementsLastUpdatedAt live on GroupSettings but are not writable.
+const GROUP_SETTINGS_INPUT_FIELDS = [
+  'allowGroupInvites',
+  'askGroupToGroupJoinQuestions',
+  'askJoinQuestions',
+  'defaultDigestFrequency',
+  'hideExtensionData',
+  'layout',
+  'locationDisplayPrecision',
+  'publicMemberDirectory',
+  'publishMurmurationsProfile',
+  'showSuggestedSkills',
+  'showWelcomePage',
+  'showPostNoticesInChat'
+]
+
 export const DELETE_GROUP = `${MODULE_NAME}/DELETE_GROUP`
-export const FETCH_COLLECTION_POSTS = `${MODULE_NAME}/FETCH_COLLECTION_POSTS`
 export const FETCH_GROUP_SETTINGS = `${MODULE_NAME}/FETCH_GROUP_SETTINGS`
 export const REGENERATE_ACCESS_CODE = `${MODULE_NAME}/REGENERATE_ACCESS_CODE`
-export const REMOVE_POST_FROM_COLLECTION = `${MODULE_NAME}/REMOVE_POST_FROM_COLLECTION`
-export const REORDER_POST_IN_COLLECTION = `${MODULE_NAME}/REORDER_POST_IN_COLLECTION`
 export const UPDATE_GROUP_SETTINGS = `${MODULE_NAME}/UPDATE_GROUP_SETTINGS`
 export const UPDATE_GROUP_SETTINGS_PENDING = UPDATE_GROUP_SETTINGS + '_PENDING'
 export const TRANSITION_GROUP_TO_NEW_MENU = 'TRANSITION_GROUP_TO_NEW_MENU'
@@ -26,6 +38,7 @@ export function fetchGroupSettings (slug) {
       query: `query ($slug: String) {
         group (slug: $slug) {
           id
+          acceptedPostTypes
           accessibility
           avatarUrl
           bannerUrl
@@ -65,8 +78,11 @@ export function fetchGroupSettings (slug) {
             publishMurmurationsProfile
             showSuggestedSkills
             showWelcomePage
+            showPostNoticesInChat
+            layout
           }
           type
+          parentId
           slug
           visibility
           stripeAccountId
@@ -88,31 +104,6 @@ export function fetchGroupSettings (slug) {
               id
               name
               avatarUrl
-            }
-          }
-          customViews {
-            items {
-              id
-              activePostsOnly
-              collectionId
-              collection {
-                id
-                name
-              }
-              defaultSort
-              defaultViewMode
-              externalLink
-              groupId
-              isActive
-              icon
-              name
-              order
-              postTypes
-              topics {
-                id
-                name
-              }
-              type
             }
           }
           groupRelationshipInvitesFrom {
@@ -211,6 +202,8 @@ export function fetchGroupSettings (slug) {
             items {
               id
               email
+              name
+              userId
               createdAt
               lastSentAt
             }
@@ -256,12 +249,17 @@ export function updateGroupSettings (id, changes) {
     delete changes.prerequisiteGroups
   }
 
+  if (changes.settings) {
+    changes.settings = pick(GROUP_SETTINGS_INPUT_FIELDS, changes.settings)
+  }
+
   return {
     type: UPDATE_GROUP_SETTINGS,
     graphql: { // TODO: integrate custom views into this query
       query: `mutation ($id: ID, $changes: GroupInput) {
         updateGroupSettings(id: $id, changes: $changes) {
           id
+          acceptedPostTypes
           stripeAccountId
           stripeChargesEnabled
           stripePayoutsEnabled
@@ -271,6 +269,9 @@ export function updateGroupSettings (id, changes) {
             defaultDigestFrequency
             locationDisplayPrecision
             showSuggestedSkills
+            showWelcomePage
+            showPostNoticesInChat
+            layout
           }
           agreements {
             items {
@@ -278,30 +279,6 @@ export function updateGroupSettings (id, changes) {
               description
               order
               title
-            }
-          }
-          customViews {
-            items {
-              id
-              activePostsOnly
-              collectionId
-              collection {
-                id
-              }
-              defaultSort
-              defaultViewMode
-              externalLink
-              groupId
-              isActive
-              icon
-              name
-              postTypes
-              order
-              topics {
-                id
-                name
-              }
-              type
             }
           }
           groupToGroupJoinQuestions {
@@ -338,121 +315,6 @@ export function updateGroupSettings (id, changes) {
       changes,
       extractModel: 'Group',
       optimistic: true
-    }
-  }
-}
-
-export function fetchCollectionPosts (groupId) {
-  return {
-    type: FETCH_COLLECTION_POSTS,
-    graphql: {
-      query: `query ($id: ID) {
-        group(id: $id) {
-          id
-          customViews {
-            items {
-              id
-              collectionId
-              collection {
-                id
-                linkedPosts {
-                  items {
-                    id
-                    order
-                    post {
-                      id
-                      title
-                      creator {
-                        id
-                        name
-                        avatarUrl
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }`,
-      variables: {
-        id: groupId
-      }
-    },
-    meta: {
-      extractModel: 'Group',
-      groupId
-    }
-  }
-}
-
-export function createCollection (collectionData) {
-  return {
-    type: CREATE_COLLECTION,
-    graphql: {
-      query: `mutation ($data: CollectionInput) {
-        createCollection(data: $data) {
-          id
-        }
-      }`,
-      variables: {
-        data: collectionData
-      }
-    },
-    meta: {
-      extractModel: 'Collection'
-    }
-  }
-}
-
-export function addPostToCollection (collectionId, postId) {
-  return {
-    type: ADD_POST_TO_COLLECTION,
-    graphql: {
-      query: `mutation ($collectionId: ID, $postId: ID) {
-        addPostToCollection(collectionId: $collectionId, postId: $postId) {
-          success
-        }
-      }`,
-      variables: {
-        collectionId,
-        postId
-      }
-    }
-  }
-}
-
-export function removePostFromCollection (collectionId, postId) {
-  return {
-    type: REMOVE_POST_FROM_COLLECTION,
-    graphql: {
-      query: `mutation ($collectionId: ID, $postId: ID) {
-        removePostFromCollection(collectionId: $collectionId, postId: $postId) {
-          success
-        }
-      }`,
-      variables: {
-        collectionId,
-        postId
-      }
-    }
-  }
-}
-
-export function reorderPostInCollection (collectionId, postId, newOrderIndex) {
-  return {
-    type: REORDER_POST_IN_COLLECTION,
-    graphql: {
-      query: `mutation ($collectionId: ID, $postId: ID, $newOrderIndex: Int) {
-        reorderPostInCollection(collectionId: $collectionId, postId: $postId, newOrderIndex: $newOrderIndex) {
-          success
-        }
-      }`,
-      variables: {
-        collectionId,
-        postId,
-        newOrderIndex
-      }
     }
   }
 }

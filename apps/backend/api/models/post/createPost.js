@@ -2,14 +2,20 @@ import { GraphQLError } from 'graphql'
 import { flatten, merge, pick, uniq } from 'lodash'
 import setupPostAttrs from './setupPostAttrs'
 import updateChildren from './updateChildren'
+import { assertGroupsAcceptPostType } from './validatePostData'
 import { groupRoom, pushToSockets } from '../../services/Websockets'
+import {
+  POST_TYPE_TO_TYPED_VIEW,
+  postCountsTowardChatUnread
+} from '@hylo/shared'
 
 export default async function createPost (userId, params) {
+  await assertGroupsAcceptPostType(params.group_ids, params.type)
   return setupPostAttrs(userId, merge(Post.newPostAttrs(), params), true)
     .then(attrs => bookshelf.transaction(transacting =>
       Post.create(attrs, { transacting })
         .tap(post => afterCreatingPost(post, merge(
-          pick(params, 'localId', 'group_ids', 'imageUrl', 'videoUrl', 'docs', 'topicNames', 'memberIds', 'eventInviteeIds', 'imageUrls', 'fileUrls', 'fundingRoundId', 'announcement', 'location', 'location_id', 'proposalOptions', 'trackId', 'markAsReadTopicName'),
+          pick(params, 'localId', 'group_ids', 'imageUrl', 'videoUrl', 'docs', 'topicNames', 'memberIds', 'eventInviteeIds', 'imageUrls', 'fileUrls', 'fundingRoundId', 'announcement', 'location', 'location_id', 'proposalOptions', 'trackId', 'viewId', 'markAsReadTopicName', 'skip_link_preview'),
           { children: params.requests, transacting }
         ))))
       .then(function (inserts) {
@@ -18,6 +24,12 @@ export default async function createPost (userId, params) {
       }).catch(function (error) {
         throw error
       }))
+    .then(post => {
+      if (post.get('type') === Post.Type.CHAT) {
+        Queue.classMethod('Post', 'upsertChatActivityNotice', { postId: post.id }, 0)
+      }
+      return post
+    })
 }
 
 export function afterCreatingPost (post, opts) {
@@ -72,7 +84,11 @@ export function afterCreatingPost (post, opts) {
     }, trx),
     opts.docs && Promise.map(opts.docs, (doc) => Media.createDoc(post.id, doc, trx)),
 
-    opts.trackId && Track.addPost(post, opts.trackId, trxOpts),
+    opts.trackId && Track.addPost(post, opts.trackId, { ...trxOpts, userId }),
+
+    // Track.addPost already links the post into the track-actions view — skip viewId
+    // to avoid a parallel duplicate insert into collections_posts.
+    opts.viewId && !opts.trackId && addPostToViewCollection(post, opts.viewId, userId, trxOpts),
 
     opts.fundingRoundId && post.get('type') === Post.Type.SUBMISSION && FundingRound.addPost(post, opts.fundingRoundId, userId, trxOpts)
   ]))
@@ -80,11 +96,11 @@ export function afterCreatingPost (post, opts) {
     .then(() => post.isEvent() && Queue.classMethod('Post', 'processEventCreated', { postId: post.id, eventInviteeIds: opts.eventInviteeIds, userId, params: opts.params }))
     .then(() => post.isProposal() && post.setProposalOptions({ options: opts.proposalOptions || [], userId, opts: trxOpts }))
     .then(() => Tag.updateForPost(post, opts.topicNames, userId, trx))
-    .then(() => updateTagsAndGroups(post, opts.localId, trx, opts.markAsReadTopicName))
-    // Mass TagFollow / GroupMembership new_post_count updates can touch thousands of
-    // rows for #general (every member is subscribed). Run in the background like delete.
+    .then(() => attachOrQueueLinkPreview(post, trx, opts.skip_link_preview))
+    .then(() => notifyAndMarkAuthorRead(post, opts.localId, trx))
+    // Mass GroupMembership / GroupViewUser new_post_count updates can touch thousands of
+    // rows. Run in the background like delete.
     .then(() => Queue.classMethod('Post', 'incrementNewPostCountForCreatedPost', { postId: post.id }, 0))
-    .then(() => Queue.classMethod('Group', 'doesMenuUpdate', { post: { type: post.get('type'), location_id: post.get('location_id') }, groupIds: opts.group_ids }))
     .then(() => Queue.classMethod('Post', 'createActivities', { postId: post.id }))
     .then(() => opts.fundingRoundId && post.get('type') === Post.Type.SUBMISSION && Queue.classMethod('FundingRound', 'notifyStewardsOfSubmission', { fundingRoundId: opts.fundingRoundId, postId: post.id, userId }))
     .then(() => Queue.classMethod('Post', 'notifySlack', { postId: post.id }))
@@ -95,38 +111,128 @@ export function afterCreatingPost (post, opts) {
     })
 }
 
-/**
- * Increment new_post_count for TagFollows and GroupMemberships when a post is created.
- * Called as a background job so large groups (#general) do not block createPost.
- */
-export async function incrementNewPostCount (post) {
-  const { tags, groups } = post.relations
+/** Links a newly created post into a view's ordered collections_posts list. */
+async function addPostToViewCollection (post, viewId, userId, { transacting } = {}) {
+  const view = await GroupView.where({ id: viewId }).fetch({ transacting })
+  if (!view) return null
 
-  if (!tags || tags.length === 0 || !groups || groups.length === 0) {
+  const existing = await CollectionPost.find(viewId, post.id, { transacting })
+  if (existing) return existing
+
+  const row = await bookshelf.knex('collections_posts')
+    .modify(q => { if (transacting) q.transacting(transacting) })
+    .where({ view_id: viewId })
+    .select(bookshelf.knex.raw('coalesce(max("order"), -1) as max_order'))
+    .first()
+  const nextOrder = Number(row.max_order) + 1
+
+  return CollectionPost.create({
+    view_id: viewId,
+    post_id: post.id,
+    order: nextOrder,
+    user_id: userId
+  }, { transacting })
+}
+
+/**
+ * If the post has no link preview, attach one from the first URL in its body/title.
+ * Reuses an already-fetched preview when present so the newPost socket payload includes it;
+ * otherwise queues a background fetch (Zapier / email / API creates skip the editor preview).
+ * Honors skipLinkPreview when the author removed the preview in the editor.
+ */
+async function attachOrQueueLinkPreview (post, trx, skipLinkPreview) {
+  if (skipLinkPreview || post.get('link_preview_id')) return
+
+  const url = RichText.getFirstExternalUrl(post.get('description'))
+    || RichText.getFirstExternalUrl(post.get('name'))
+  if (!url) return
+
+  const existing = await LinkPreview.find(url)
+  if (existing?.get('done') && existing.get('title')) {
+    await post.save({ link_preview_id: existing.id }, { patch: true, transacting: trx })
     return
   }
 
-  const trackAsNewPost = ![Post.Type.ACTION, Post.Type.SUBMISSION].includes(post.get('type'))
+  Queue.classMethod('Post', 'generateLinkPreview', { postId: post.id, url }, 0)
+}
 
-  const tagFollowQuery = TagFollow.query(q => {
-    q.whereIn('tag_id', tags.map('id'))
-    q.whereIn('group_id', groups.map('id'))
-    q.whereNot('user_id', post.get('user_id'))
-  }).query()
+/**
+ * Increment unread for GroupMemberships, typed views, and chat views.
+ * Called as a background job so large groups do not block createPost.
+ */
+export async function incrementNewPostCount (post) {
+  if (Post.isNoticeType(post.get('type'))) return
 
-  const groupMembershipQuery = GroupMembership.query(q => {
-    q.whereIn('group_id', groups.map('id'))
-    q.whereNot('group_memberships.user_id', post.get('user_id'))
-    q.where('group_memberships.active', true)
-  }).query()
+  const { groups } = post.relations
+
+  if (!groups || groups.length === 0) {
+    return
+  }
+
+  const postType = post.get('type')
+  const authorId = post.get('user_id')
+  const typedViewType = POST_TYPE_TO_TYPED_VIEW[postType]
+  const groupIds = groups.map('id')
+
+  const memberRows = await bookshelf.knex('group_memberships')
+    .whereIn('group_id', groupIds)
+    .whereNot('user_id', authorId)
+    .where('active', true)
+    .select('group_id', 'user_id')
+
+  const membersByGroup = new Map()
+  for (const row of memberRows) {
+    const key = String(row.group_id)
+    if (!membersByGroup.has(key)) membersByGroup.set(key, [])
+    membersByGroup.get(key).push(row.user_id)
+  }
+
+  const viewTypes = []
+  if (typedViewType) viewTypes.push(typedViewType)
+  if (postCountsTowardChatUnread(postType)) viewTypes.push(GroupView.Type.CHAT)
+
+  const views = viewTypes.length === 0
+    ? []
+    : (await GroupView.query(q => {
+        q.whereIn('group_id', groupIds)
+        q.whereIn('type', viewTypes)
+      }).fetchAll()).models
+
+  const viewsByGroupType = new Map()
+  for (const view of views) {
+    viewsByGroupType.set(`${String(view.get('group_id'))}:${view.get('type')}`, view)
+  }
+
+  const jobs = []
+  for (const group of groups.models) {
+    const memberIds = membersByGroup.get(String(group.id)) || []
+    if (memberIds.length === 0) continue
+
+    if (typedViewType) {
+      const typedView = viewsByGroupType.get(`${String(group.id)}:${typedViewType}`)
+      if (typedView) jobs.push(GroupViewUser.incrementNewPostCount(typedView.id, memberIds))
+    }
+    if (postCountsTowardChatUnread(postType)) {
+      const chatView = viewsByGroupType.get(`${String(group.id)}:${GroupView.Type.CHAT}`)
+      if (chatView) jobs.push(GroupViewUser.incrementNewPostCount(chatView.id, memberIds))
+    }
+  }
 
   return Promise.all([
-    trackAsNewPost && tagFollowQuery.update({ updated_at: new Date() }).increment('new_post_count'),
-    groupMembershipQuery.update({ updated_at: new Date() }).increment('new_post_count')
+    GroupMembership.query(q => {
+      q.whereIn('group_id', groupIds)
+      q.whereNot('group_memberships.user_id', authorId)
+      q.where('group_memberships.active', true)
+    }).query().update({ updated_at: new Date() }).increment('new_post_count'),
+    Promise.all(jobs)
   ])
 }
 
-async function updateTagsAndGroups (post, localId, trx, markAsReadTopicName = null) {
+/**
+ * After tags are synced: notify sockets, bump GroupTag freshness, and mark the
+ * author's matching views read up to this post (typed common view + chat when applicable).
+ */
+async function notifyAndMarkAuthorRead (post, localId, trx) {
   await post.load([
     'media', 'groups', 'linkPreview', 'tags', 'user'
   ], { transacting: trx })
@@ -140,51 +246,74 @@ async function updateTagsAndGroups (post, localId, trx, markAsReadTopicName = nu
   // room it's being pushed to.
   const payload = post.getNewPostSocketPayload()
   payload.localId = localId
-  const notifySockets = payload.groups.map(g => {
-    return pushToSockets(
+  const rooms = new Set()
+  const notifySockets = []
+  payload.groups.forEach(g => {
+    rooms.add(String(g.id))
+    notifySockets.push(pushToSockets(
       groupRoom(g.id),
       'newPost',
       Object.assign({}, payload, { groups: [g] })
-    )
+    ))
+  })
+  // Space posts also go to the parent room so the parent menu can badge
+  // without every client joining every space room.
+  groups.models.forEach(group => {
+    const parentId = group.get('parent_id')
+    if (!parentId || rooms.has(String(parentId))) return
+    rooms.add(String(parentId))
+    const g = payload.groups.find(p => String(p.id) === String(group.id))
+    if (!g) return
+    notifySockets.push(pushToSockets(
+      groupRoom(parentId),
+      'newPost',
+      Object.assign({}, payload, { groups: [g] })
+    ))
   })
 
   const groupTagsQuery = GroupTag.query(q => {
     q.whereIn('tag_id', tags.map('id'))
   }).query()
 
-  // Find the specific tag the user is actively viewing so we can always mark it read.
-  const markAsReadTag = markAsReadTopicName ? tags.find(t => t.get('name') === markAsReadTopicName) : null
-  const markAsReadTagId = markAsReadTag ? markAsReadTag.get('id') : null
-
-  // For the topic the user is currently viewing: always update last_read_post_id.
-  const activeTopicTagFollowQuery = markAsReadTagId ? TagFollow.query(q => {
-    q.where('tag_id', markAsReadTagId)
-    q.whereIn('group_id', groups.map('id'))
-    q.where('user_id', post.get('user_id'))
-  }).query() : null
-
-  // For all other topics: only update last_read_post_id when new_post_count = 0
-  // (avoids hiding unread posts when creating from outside a chat room).
-  const otherTagIds = tags.filter(t => t.get('id') !== markAsReadTagId).map(t => t.get('id'))
-  const otherMyTagFollowQuery = otherTagIds.length > 0 ? TagFollow.query(q => {
-    q.whereIn('tag_id', otherTagIds)
-    q.whereIn('group_id', groups.map('id'))
-    q.where('user_id', post.get('user_id'))
-    q.where('new_post_count', 0)
-  }).query() : null
-
   if (trx) {
     groupTagsQuery.transacting(trx)
-    if (activeTopicTagFollowQuery) activeTopicTagFollowQuery.transacting(trx)
-    if (otherMyTagFollowQuery) otherMyTagFollowQuery.transacting(trx)
   }
 
   const trackAsNewPost = ![Post.Type.ACTION, Post.Type.SUBMISSION].includes(post.get('type'))
+  const postType = post.get('type')
+  const authorId = post.get('user_id')
+  const postId = post.get('id')
+  const typedViewType = POST_TYPE_TO_TYPED_VIEW[postType]
+
+  const markAuthorViewsRead = Promise.map(groups.models, async group => {
+    const jobs = []
+
+    if (typedViewType) {
+      const typedView = await GroupView.where({
+        group_id: group.id,
+        type: typedViewType
+      }).fetch({ transacting: trx })
+      if (typedView) {
+        jobs.push(GroupViewUser.markAuthorRead(typedView.id, authorId, postId, { transacting: trx }))
+      }
+    }
+
+    if (postCountsTowardChatUnread(postType)) {
+      const chatView = await GroupView.where({
+        group_id: group.id,
+        type: GroupView.Type.CHAT
+      }).fetch({ transacting: trx })
+      if (chatView) {
+        jobs.push(GroupViewUser.markAuthorRead(chatView.id, authorId, postId, { transacting: trx }))
+      }
+    }
+
+    return Promise.all(jobs)
+  })
 
   return Promise.all([
     notifySockets,
     trackAsNewPost && groupTagsQuery.update({ updated_at: new Date() }),
-    trackAsNewPost && activeTopicTagFollowQuery && activeTopicTagFollowQuery.update({ updated_at: new Date(), last_read_post_id: post.get('id') }),
-    trackAsNewPost && otherMyTagFollowQuery && otherMyTagFollowQuery.update({ updated_at: new Date(), last_read_post_id: post.get('id') })
+    markAuthorViewsRead
   ])
 }

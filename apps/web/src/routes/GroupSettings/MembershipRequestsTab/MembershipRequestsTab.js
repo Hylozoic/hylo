@@ -1,14 +1,18 @@
 import { get } from 'lodash/fp'
-import React, { useEffect } from 'react'
+import React, { useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
-import { useNavigate } from 'react-router-dom'
-import { Check, X, Users, CircleOff } from 'lucide-react'
-import { groupUrl, personUrl } from '@hylo/navigation'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { Check, X, Users, CircleOff, UserPlus } from 'lucide-react'
+import { groupUrl, personUrl, spaceUrl } from '@hylo/navigation'
 import Avatar from 'components/Avatar'
 import Button from 'components/ui/button'
 import Loading from 'components/Loading'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
+import { useEffectiveGroupSlug, useGroupRouteOpts } from 'contexts/SpaceGroupContext'
+import presentGroup from 'store/presenters/presentGroup'
+import getGroupForSlug from 'store/selectors/getGroupForSlug'
+import { fetchGroupSettings } from '../GroupSettings.store'
 import {
   acceptJoinRequest,
   declineJoinRequest,
@@ -16,44 +20,63 @@ import {
 } from './MembershipRequestsTab.store'
 
 export default function MembershipRequestsTab ({
-  group
+  group: groupProp
 }) {
   const dispatch = useDispatch()
   const navigate = useNavigate()
+  const location = useLocation()
   const { t } = useTranslation()
+  const slugFromRoute = useEffectiveGroupSlug()
+  const { parentGroupSlug, spaceSlug } = useGroupRouteOpts()
+  const slug = groupProp?.slug || slugFromRoute
+  const rawGroup = useSelector(state => slug ? getGroupForSlug(state, slug) : null)
+  const group = useMemo(
+    () => groupProp || (rawGroup ? presentGroup(rawGroup) : null),
+    [groupProp, rawGroup]
+  )
+  const isSettingsContext = location.pathname.includes('/settings')
 
   useEffect(() => {
-    dispatch(fetchJoinRequests(group.id))
-  }, [group.id])
+    if (slug) dispatch(fetchGroupSettings(slug))
+  }, [slug])
+
+  useEffect(() => {
+    if (group?.id) dispatch(fetchJoinRequests(group.id))
+  }, [group?.id])
 
   const joinRequests = useSelector(state => get('MembershipRequests', state))
 
   const submitAccept = (joinRequestId) => {
-    dispatch(acceptJoinRequest(joinRequestId))
+    dispatch(acceptJoinRequest(joinRequestId, group.id))
   }
 
   const submitDecline = (joinRequestId) => {
-    dispatch(declineJoinRequest(joinRequestId))
+    dispatch(declineJoinRequest(joinRequestId, group.id))
   }
 
   const handleViewMembers = () => {
-    dispatch(navigate(groupUrl(group.slug, 'members')))
+    const url = spaceSlug
+      ? spaceUrl(parentGroupSlug, spaceSlug, 'members')
+      : groupUrl(group.slug, 'members')
+    navigate(url)
   }
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
     setHeaderDetails({
-      title: {
-        desktop: `${t('Group Settings')} > ${t('Join Requests')}`,
-        mobile: t('Join Requests')
-      },
-      icon: 'Settings'
+      title: isSettingsContext
+        ? {
+            desktop: `${t('Group Settings')} > ${t('Join Requests')}`,
+            mobile: t('Join Requests')
+          }
+        : t('Join Requests'),
+      icon: isSettingsContext ? 'Settings' : <UserPlus />
     })
-  }, [])
+  }, [isSettingsContext, setHeaderDetails, t])
 
-  if (!joinRequests) return <Loading />
+  if (!group || !joinRequests) return <Loading />
 
-  return (
+  const content = (
     <div className='space-y-4'>
       {joinRequests.length > 0 &&
         <NewRequests
@@ -78,6 +101,14 @@ export default function MembershipRequestsTab ({
         </Button>
       </div>
       {/* )} */}
+    </div>
+  )
+
+  if (isSettingsContext) return content
+
+  return (
+    <div className='w-full mx-auto px-2 py-2 sm:px-4 sm:py-4 max-w-[750px]'>
+      {content}
     </div>
   )
 }
@@ -125,9 +156,10 @@ function NewRequests ({ accept, decline, group, joinRequests }) {
 function JoinRequest ({ accept, decline, group, request }) {
   const { questionAnswers, user } = request
   const { t } = useTranslation()
+  const joinQuestions = group.joinQuestions || []
 
   // Answers to questions no longer being asked by the group
-  const otherAnswers = questionAnswers.filter(qa => !group.joinQuestions.find(jq => jq.questionId === qa.question.id))
+  const otherAnswers = questionAnswers.filter(qa => !joinQuestions.find(jq => jq.questionId === qa.question.id))
 
   return (
     <div className='bg-card p-4 rounded-lg space-y-4'>
@@ -148,7 +180,7 @@ function JoinRequest ({ accept, decline, group, request }) {
       </div>
 
       <div className='space-y-3'>
-        {group.joinQuestions.map(q => (
+        {joinQuestions.map(q => (
           <div key={q.id} className='space-y-1'>
             <h3 className='text-foreground font-medium'>{q.text}</h3>
             <p className='text-foreground/70'>

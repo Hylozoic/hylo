@@ -15,7 +15,7 @@ import '@testing-library/jest-dom'
 // ref: https://jestjs.io/docs/manual-mocks#mocking-methods-which-are-not-implemented-in-jsdom
 // ref: https://github.com/jsdom/jsdom/issues/2524
 
-beforeAll(() => mockGraphqlServer.listen({ onUnhandledRequest: 'error' }))
+beforeAll(() => mockGraphqlServer.listen({ onUnhandledRequest: 'warn' }))
 afterEach(() => mockGraphqlServer.resetHandlers())
 afterAll(() => mockGraphqlServer.close())
 

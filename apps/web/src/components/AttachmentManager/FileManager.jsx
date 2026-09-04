@@ -5,8 +5,6 @@ import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import { FilePreview } from './FilePreview'
 import { addAttachment, removeAttachment } from './AttachmentManager.store'
 
-import classes from './AttachmentManager.module.scss'
-
 export function FileManager ({
   type, id, attachments, onChange, canRemove = true,
   uploadAttachmentPending, showLoading, showAddButton, showLabel
@@ -25,27 +23,31 @@ export function FileManager ({
   }, [type, id, onChange, attachments])
 
   return (
-    <div className={classes.fileManager}>
-      {showLabel && <div className={classes.sectionLabel}>{t('Files')}</div>}
-      <div className={classes.filePreviews}>
+    <div className='flex flex-col gap-2 border-t-2 border-dashed border-foreground/20 pt-4 px-4 w-full mx-2'>
+      {showLabel && <div className='text-xs text-foreground/70'>{t('Files')}</div>}
+      <div>
         {attachments.map((attachment, i) =>
           <FilePreview
             attachment={attachment}
             removeFile={canRemove && (() => handleRemoveAttachment(attachment))}
             key={i}
           />)}
-        {showLoading && uploadAttachmentPending && <div className={classes.loadingFile}>{t('Loading...')}</div>}
+        {showLoading && uploadAttachmentPending && (
+          <div className='w-[100px] h-[30px] rounded mr-4 mb-4 text-center border-2 border-dashed border-border text-sm text-foreground/30 cursor-pointer mt-3 pt-1'>
+            {t('Loading...')}
+          </div>
+        )}
         {showAddButton && (
           <UploadAttachmentButton
             id={id}
             type={type}
             attachmentType='file'
             onSuccess={handleAddAttachment}
-            className={classes.addFileRow}
+            className='mt-3'
             allowMultiple
           >
-            <div className={classes.addFile}>
-              <span className={classes.addFilePlus}>+</span> {t('Add File')}
+            <div className='w-[100px] h-[30px] rounded mr-4 mb-4 text-center border-2 border-dashed border-border text-sm text-foreground/30 cursor-pointer'>
+              <span className='text-[17px] mr-1'>+</span> {t('Add File')}
             </div>
           </UploadAttachmentButton>)}
       </div>

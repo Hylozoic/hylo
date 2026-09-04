@@ -1,23 +1,21 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`pinPost matches last snapshot 1`] = `
+exports[`fulfillPost matches last snapshot 1`] = `
 Object {
   "graphql": Object {
-    "query": "mutation ($postId: ID, $groupId: ID) {
-        pinPost(postId: $postId, groupId: $groupId) {
+    "query": "mutation ($postId: ID) {
+        fulfillPost (postId: $postId) {
           success
         }
       }",
     "variables": Object {
-      "groupId": 2,
       "postId": 1,
     },
   },
   "meta": Object {
-    "groupId": 2,
     "optimistic": true,
     "postId": 1,
   },
-  "type": "PostHeader/PIN_POST",
+  "type": "FULFILL_POST",
 }
 `;

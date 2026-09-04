@@ -16,14 +16,20 @@ export default function login (email, password) {
               name
               settings {
                 alreadySeenTour
+                toursSeen
+                colorScheme
                 dmNotifications
                 commentNotifications
+                globalNavStyle
+                groupNavStyle
                 rsvpCalendarSub
                 signupInProgress
+                stackGroups
                 streamChildPosts
                 streamViewMode
                 streamSortBy
                 streamPostType
+                theme
               }
             }
             error

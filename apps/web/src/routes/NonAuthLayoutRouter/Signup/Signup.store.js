@@ -53,14 +53,20 @@ export function verifyEmail (email, code, token) {
               name
               settings {
                 alreadySeenTour
+                toursSeen
+                colorScheme
                 dmNotifications
                 commentNotifications
                 locale
+                globalNavStyle
+                groupNavStyle
                 signupInProgress
+                stackGroups
                 streamChildPosts
                 streamViewMode
                 streamSortBy
                 streamPostType
+                theme
               }
             }
             error
@@ -103,14 +109,20 @@ export function register (name, password) {
               name
               settings {
                 alreadySeenTour
+                toursSeen
+                colorScheme
                 dmNotifications
                 commentNotifications
                 signupInProgress
                 locale
+                globalNavStyle
+                groupNavStyle
+                stackGroups
                 streamChildPosts
                 streamViewMode
                 streamSortBy
                 streamPostType
+                theme
               }
             }
           }

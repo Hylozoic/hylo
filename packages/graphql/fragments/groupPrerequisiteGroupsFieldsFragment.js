@@ -17,6 +17,7 @@ export default gql`
           publicMemberDirectory
           showSuggestedSkills
           showWelcomePage
+          layout
         }
         slug
       }

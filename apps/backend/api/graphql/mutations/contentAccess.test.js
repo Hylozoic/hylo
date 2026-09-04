@@ -8,7 +8,7 @@ import {
 } from './contentAccess'
 const { expect } = require('chai')
 
-/* global ContentAccess, GroupMembership, StripeProduct, Track, GroupRole */
+/* global ContentAccess, StripeProduct, Track, GroupRole */
 
 describe('Content Access Mutations', () => {
   let user, adminUser, group, product, track
@@ -29,10 +29,9 @@ describe('Content Access Mutations', () => {
       publish_status: 'published'
     }).save()
     track = await Track.forge({
-      name: 'Test Track',
-      description: 'Test Track Description'
+      group_id: group.id,
+      name: 'Test Track'
     }).save()
-    await group.tracks().attach(track.id)
 
     // Add admin user as group administrator
     await adminUser.joinGroup(group, { assignCoordinator: true })

@@ -1,7 +1,21 @@
 /* eslint-disable camelcase */
-/* global bookshelf, Group, Post, GroupRole, FundingRoundUser, User, MemberGroupRole, FundingRound, FundingRoundPost, Tag */
+/* global bookshelf, Group, GroupMembership, Post, GroupRole, User, MemberGroupRole, FundingRound, Tag, RichText, Queue */
 import { GraphQLError } from 'graphql'
 import { sendPhaseTransitionNotifications, sendReminderNotifications, notifyStewardsOfSubmission } from './FundingRound/notifications'
+
+/** Active space membership for a funding-round participant (join space = participate). */
+function participationMembership (round, userId, { transacting, includeInactive } = {}) {
+  const groupId = round.get('group_id')
+  if (!groupId || !userId) return Promise.resolve(null)
+  return GroupMembership.forPair(userId, groupId, { includeInactive }).fetch({ transacting })
+}
+
+/** Tokens remaining for a participant, stored on membership settings. */
+function tokensRemainingFromMembership (membership) {
+  if (!membership || !membership.get('active')) return null
+  const value = membership.getSetting?.('tokensRemaining') ?? membership.get('settings')?.tokensRemaining
+  return value === undefined || value === null ? null : value
+}
 
 module.exports = bookshelf.Model.extend({
   tableName: 'funding_rounds',
@@ -12,8 +26,26 @@ module.exports = bookshelf.Model.extend({
     return RichText.processHTML(this.get('criteria'))
   },
 
-  description () {
-    return RichText.processHTML(this.get('description'))
+  /** Display name lives on the Funding Round space group. */
+  async displayName ({ transacting } = {}) {
+    if (this.relations.group) return this.relations.group.get('name') || ''
+    const space = await this.group().fetch({ transacting })
+    return space ? space.get('name') : ''
+  },
+
+  /** Lifecycle status lives on the space group. */
+  async spaceStatus ({ transacting } = {}) {
+    const space = this.relations.group || await this.group().fetch({ transacting })
+    const status = space && space.get('status')
+    if (Object.values(FundingRound.PHASES).includes(status)) return status
+    return FundingRound.PHASES.DRAFT
+  },
+
+  async setSpaceStatus (status, { transacting } = {}) {
+    const space = this.relations.group || await this.group().fetch({ transacting })
+    if (!space) return
+    await space.save({ status }, { patch: true, transacting })
+    if (this.relations.group) this.relations.group.set({ status })
   },
 
   // Serialize JSON columns before saving to database
@@ -29,17 +61,24 @@ module.exports = bookshelf.Model.extend({
     return formatted
   },
 
+  /** The Funding Round's space Group via funding_rounds.group_id (1:1). */
   group: function () {
     return this.belongsTo(Group, 'group_id')
   },
 
+  /**
+   * Submission posts on the funding-round space (groups_posts).
+   * Marks alreadyJoinedGroupPosts so GraphQL postFilter does not join groups_posts again.
+   */
   submissions: function () {
-    return this.belongsToMany(Post, 'funding_rounds_posts')
-      .query(q => {
-        q.where('posts.active', true)
-        q.where('posts.type', Post.Type.SUBMISSION)
-      })
-      .orderBy('posts.id', 'asc')
+    const spaceId = this.get('group_id')
+    return Post.collection().query(q => {
+      q.queryContext({ alreadyJoinedGroupPosts: true })
+      q.join('groups_posts', 'groups_posts.post_id', 'posts.id')
+      q.where('groups_posts.group_id', spaceId)
+      q.where('posts.type', Post.Type.SUBMISSION)
+      q.orderBy('posts.id', 'asc')
+    })
   },
 
   submitterRoles: async function () {
@@ -53,38 +92,45 @@ module.exports = bookshelf.Model.extend({
     return roles.filter(r => r) // Filter out any nulls
   },
 
-  roundUser: function (userId) {
-    return FundingRoundUser.query(q => {
-      q.where({
-        user_id: userId,
-        funding_round_id: this.get('id')
-      })
-    })
-  },
-
+  /** Participants = active members of the funding-round space. */
   users: function () {
-    return this.belongsToMany(User, 'funding_rounds_users', 'funding_round_id', 'user_id')
+    return this.belongsToMany(User, 'group_memberships', 'group_id', 'user_id', 'group_id')
+      .query(q => {
+        q.where('group_memberships.active', true)
+      })
+      .withPivot(['settings', 'created_at'])
   },
 
   joinedAt: async function (userId) {
-    return this.roundUser(userId).fetch().then(roundUser => roundUser ? roundUser.get('created_at') : null)
+    const membership = await participationMembership(this, userId)
+    return membership && membership.get('active') ? membership.get('created_at') : null
   },
 
-  isParticipating: function (userId) {
-    return this.roundUser(userId).fetch().then(roundUser => !!roundUser)
+  isParticipating: async function (userId) {
+    const membership = await participationMembership(this, userId)
+    return !!(membership && membership.get('active'))
   },
 
-  userSettings: function (userId) {
-    return this.roundUser(userId).fetch().then(roundUser => roundUser && roundUser.get('settings'))
+  userSettings: async function (userId) {
+    const membership = await participationMembership(this, userId)
+    return membership && membership.get('active') ? membership.get('settings') : null
+  },
+
+  tokensRemaining: async function (userId) {
+    const membership = await participationMembership(this, userId)
+    return tokensRemainingFromMembership(membership)
   },
 
   allocations: async function () {
-    const roundId = this.get('id')
-    if (!roundId) return []
+    const spaceId = this.get('group_id')
+    if (!spaceId) return []
 
-    const rows = await bookshelf.knex('funding_rounds_posts')
-      .join('posts_users', 'posts_users.post_id', 'funding_rounds_posts.post_id')
-      .where('funding_rounds_posts.funding_round_id', roundId)
+    const rows = await bookshelf.knex('groups_posts')
+      .join('posts', 'posts.id', 'groups_posts.post_id')
+      .join('posts_users', 'posts_users.post_id', 'groups_posts.post_id')
+      .where('groups_posts.group_id', spaceId)
+      .where('posts.type', Post.Type.SUBMISSION)
+      .where('posts.active', true)
       .whereNotNull('posts_users.tokens_allocated_to')
       .where('posts_users.tokens_allocated_to', '>', 0)
       .where('posts_users.active', true)
@@ -122,20 +168,21 @@ module.exports = bookshelf.Model.extend({
     return roles.filter(r => r) // Filter out any nulls
   },
 
-  // Check if a user has any of the required submitter roles
+  // Check if a user has any of the required submitter roles (roles live on the parent group for spaces)
   canUserSubmit: async function (userId) {
     const rolesData = this.get('submitter_roles')
     // If no roles are specified, anyone can submit
     if (!rolesData || rolesData.length === 0) return true
 
     const group = await this.group().fetch()
-    const groupId = group.id
+    if (!group) return false
+    const roleScopeId = await Group.roleScopeId(group)
 
     // Check if user has any of the specified roles
     for (const roleInfo of rolesData) {
       const hasRole = await MemberGroupRole.where({
         user_id: userId,
-        group_id: groupId,
+        group_id: roleScopeId,
         group_role_id: roleInfo.id
       }).fetch()
       if (hasRole) return true
@@ -144,20 +191,21 @@ module.exports = bookshelf.Model.extend({
     return false
   },
 
-  // Check if a user has any of the required voter roles
+  // Check if a user has any of the required voter roles (roles live on the parent group for spaces)
   canUserVote: async function (userId) {
     const rolesData = this.get('voter_roles')
     // If no roles are specified, anyone can vote
     if (!rolesData || rolesData.length === 0) return true
 
     const group = await this.group().fetch()
-    const groupId = group.id
+    if (!group) return false
+    const roleScopeId = await Group.roleScopeId(group)
 
     // Check if user has any of the specified roles
     for (const roleInfo of rolesData) {
       const hasRole = await MemberGroupRole.where({
         user_id: userId,
-        group_id: groupId,
+        group_id: roleScopeId,
         group_role_id: roleInfo.id
       }).fetch()
       if (hasRole) return true
@@ -176,8 +224,11 @@ module.exports = bookshelf.Model.extend({
     COMPLETED: 'completed'
   },
 
+  /**
+   * Ensure a submission post is on the funding-round space and bump num_submissions.
+   */
   addPost: async function (postOrId, fundingRoundOrId, userId, { transacting } = {}) {
-    const postId = typeof postOrId === 'number' ? postOrId : postOrId.get('id')
+    const postId = typeof postOrId === 'number' || typeof postOrId === 'string' ? postOrId : postOrId.get('id')
     const fundingRound = await (typeof fundingRoundOrId === 'object' ? fundingRoundOrId : FundingRound.find(fundingRoundOrId))
     if (!fundingRound) {
       throw new GraphQLError('Funding Round not found')
@@ -191,14 +242,24 @@ module.exports = bookshelf.Model.extend({
       }
     }
 
+    const spaceId = fundingRound.get('group_id')
+    if (!spaceId) {
+      throw new GraphQLError('Funding round space not found')
+    }
+
+    const existing = await bookshelf.knex('groups_posts')
+      .where({ group_id: spaceId, post_id: postId })
+      .transacting(transacting)
+      .first()
+
+    if (!existing) {
+      const post = typeof postOrId === 'object' ? postOrId : await Post.find(postId, { transacting })
+      if (!post) throw new GraphQLError('Post not found')
+      await post.groups().attach(spaceId, { transacting })
+    }
+
     await fundingRound.save({ num_submissions: fundingRound.get('num_submissions') + 1 }, { transacting })
-
-    const fundingRoundPost = await FundingRoundPost.create({
-      funding_round_id: fundingRound.get('id'),
-      post_id: postId
-    }, { transacting })
-
-    return fundingRoundPost
+    return fundingRound
   },
 
   // Check for phase transitions and perform them, sending notifications
@@ -207,56 +268,42 @@ module.exports = bookshelf.Model.extend({
     let transitionCount = 0
 
     return bookshelf.transaction(async transacting => {
-      // Transition from draft to published
-      const publishingRounds = await FundingRound.query(q => {
-        q.where('deactivated_at', null)
-        q.whereNotNull('published_at')
-        q.where('phase', FundingRound.PHASES.DRAFT)
-        q.where('published_at', '<=', now)
+      const fetch = (statuses, extra) => FundingRound.query(q => {
+        q.join('groups', 'groups.id', 'funding_rounds.group_id')
+        q.where('funding_rounds.deactivated_at', null)
+        q.where('groups.active', true)
+        q.whereIn('groups.status', Array.isArray(statuses) ? statuses : [statuses])
+        extra(q)
       }).fetchAll({ transacting })
 
-      for (const round of publishingRounds.models) {
-        await round.save({ phase: FundingRound.PHASES.PUBLISHED }, { transacting, patch: true })
-        transitionCount++
-      }
+      // Draft → published is explicit (Publish button), not date-driven.
 
-      // Transition from published to submissions
-      const submissionsOpeningRounds = await FundingRound.query(q => {
-        q.where('deactivated_at', null)
-        q.whereNotNull('submissions_open_at')
-        q.where('phase', FundingRound.PHASES.PUBLISHED)
-        q.where('submissions_open_at', '<=', now)
-      }).fetchAll({ transacting })
+      const submissionsOpeningRounds = await fetch(FundingRound.PHASES.PUBLISHED, q => {
+        q.whereNotNull('funding_rounds.submissions_open_at')
+        q.where('funding_rounds.submissions_open_at', '<=', now)
+      })
 
       for (const round of submissionsOpeningRounds.models) {
-        await round.save({ phase: FundingRound.PHASES.SUBMISSIONS }, { transacting, patch: true })
+        await round.setSpaceStatus(FundingRound.PHASES.SUBMISSIONS, { transacting })
         Queue.classMethod('FundingRound', 'sendPhaseTransitionNotifications', { roundId: round.id, phase: FundingRound.PHASES.SUBMISSIONS })
         transitionCount++
       }
 
-      // TODO: if going from published to voting straight dont send notifications for 3 transitions
-
-      // Transition from submissions to discussion
-      const submissionsClosingRounds = await FundingRound.query(q => {
-        q.where('deactivated_at', null)
-        q.whereNotNull('submissions_close_at')
-        q.where('phase', FundingRound.PHASES.SUBMISSIONS)
-        q.where('submissions_close_at', '<=', now)
-      }).fetchAll({ transacting })
+      const submissionsClosingRounds = await fetch(FundingRound.PHASES.SUBMISSIONS, q => {
+        q.whereNotNull('funding_rounds.submissions_close_at')
+        q.where('funding_rounds.submissions_close_at', '<=', now)
+      })
 
       for (const round of submissionsClosingRounds.models) {
-        await round.save({ phase: FundingRound.PHASES.DISCUSSION }, { transacting, patch: true })
+        await round.setSpaceStatus(FundingRound.PHASES.DISCUSSION, { transacting })
         Queue.classMethod('FundingRound', 'sendPhaseTransitionNotifications', { roundId: round.id, phase: FundingRound.PHASES.DISCUSSION })
         transitionCount++
       }
 
-      // Transition from submissions or discussion to voting
-      const votingOpeningRounds = await FundingRound.query(q => {
-        q.where('deactivated_at', null)
-        q.whereNotNull('voting_opens_at')
-        q.whereIn('phase', [FundingRound.PHASES.SUBMISSIONS, FundingRound.PHASES.DISCUSSION])
-        q.where('voting_opens_at', '<=', now)
-      }).fetchAll({ transacting })
+      const votingOpeningRounds = await fetch([FundingRound.PHASES.SUBMISSIONS, FundingRound.PHASES.DISCUSSION], q => {
+        q.whereNotNull('funding_rounds.voting_opens_at')
+        q.where('funding_rounds.voting_opens_at', '<=', now)
+      })
 
       for (const round of votingOpeningRounds.models) {
         try {
@@ -265,21 +312,18 @@ module.exports = bookshelf.Model.extend({
           console.error('Error distributing tokens for round:', round.id, error)
           continue
         }
-        await round.save({ phase: FundingRound.PHASES.VOTING }, { transacting, patch: true })
+        await round.setSpaceStatus(FundingRound.PHASES.VOTING, { transacting })
         Queue.classMethod('FundingRound', 'sendPhaseTransitionNotifications', { roundId: round.id, phase: FundingRound.PHASES.VOTING })
         transitionCount++
       }
 
-      // Transition from voting to completed
-      const votingClosingRounds = await FundingRound.query(q => {
-        q.where('deactivated_at', null)
-        q.whereNotNull('voting_closes_at')
-        q.where('phase', FundingRound.PHASES.VOTING)
-        q.where('voting_closes_at', '<=', now)
-      }).fetchAll({ transacting })
+      const votingClosingRounds = await fetch(FundingRound.PHASES.VOTING, q => {
+        q.whereNotNull('funding_rounds.voting_closes_at')
+        q.where('funding_rounds.voting_closes_at', '<=', now)
+      })
 
       for (const round of votingClosingRounds.models) {
-        await round.save({ phase: FundingRound.PHASES.COMPLETED }, { transacting, patch: true })
+        await round.setSpaceStatus(FundingRound.PHASES.COMPLETED, { transacting })
         Queue.classMethod('FundingRound', 'sendPhaseTransitionNotifications', { roundId: round.id, phase: FundingRound.PHASES.COMPLETED })
         transitionCount++
       }
@@ -290,16 +334,25 @@ module.exports = bookshelf.Model.extend({
 
   create: async function (attrs, userId) {
     attrs.voting_method = attrs.voting_method || 'token_allocation_constant'
+    // Dual-write display fields onto leftover NOT NULL columns until the
+    // in-progress drop-column migration ships. Source of truth is the space group.
+    if (!attrs.title && attrs.group_id) {
+      const space = await Group.find(attrs.group_id)
+      attrs.title = (space && space.get('name')) || 'Untitled'
+      if (attrs.description === undefined) attrs.description = space ? space.get('description') : null
+      if (attrs.banner_url === undefined) attrs.banner_url = space ? space.get('banner_url') : null
+    }
+    if (!attrs.title) attrs.title = 'Untitled'
 
     return await bookshelf.transaction(async transacting => {
       const round = this.forge({ created_at: new Date(), updated_at: new Date(), ...attrs })
-      round.save({}, { transacting })
+      await round.save({}, { transacting })
 
       // Create the special chat room for this round
       const topic = await Tag.findOrCreate('‡funding_round_' + round.id, { transacting })
-      await Tag.addToGroup({ group_id: attrs.group_id, tag_id: topic.id, isSubscribing: true, isChatRoom: true }, { transacting })
+      await Tag.addToGroup({ group_id: attrs.group_id, tag_id: topic.id, isSubscribing: true }, { transacting })
 
-      // Add creator as a participant
+      // Add creator as a participant (space membership)
       await FundingRound.join(round, userId, { transacting })
 
       return round
@@ -313,84 +366,75 @@ module.exports = bookshelf.Model.extend({
     }).fetch()
   },
 
+  /**
+   * Join a funding round by joining its space. Returns the GroupMembership.
+   */
   join: async function (roundOrId, userId, { transacting } = {}) {
     if (!transacting) {
-      return bookshelf.transaction(async transacting => {
-        return await FundingRound.join(roundOrId, userId, { transacting })
+      return bookshelf.transaction(async trx => {
+        return await FundingRound.join(roundOrId, userId, { transacting: trx })
       })
     }
 
-    const round = typeof roundOrId === 'object' ? roundOrId : await FundingRound.find(roundOrId, { transacting })
-    const roundId = round.id
-
+    const round = typeof roundOrId === 'object' ? roundOrId : await FundingRound.find(roundOrId)
     if (!round) {
       throw new GraphQLError('Funding Round not found')
     }
-    let roundUser = await FundingRoundUser.where({ funding_round_id: roundId, user_id: userId }).fetch({ transacting })
-    if (!roundUser) {
-      const createAttrs = { funding_round_id: roundId, user_id: userId }
-      const canAllocateOnJoin = round.get('allow_late_joiners')
-        && round.get('voting_method') === 'token_allocation_constant'
-        && round.get('phase') === FundingRound.PHASES.VOTING
-        && round.get('total_tokens')
 
-      // Late joiners only receive tokens when the round is already in voting
-      if (canAllocateOnJoin && await round.canUserVote(userId)) {
-        createAttrs.tokens_remaining = round.get('total_tokens')
+    const space = await round.group().fetch({ transacting })
+    if (!space) {
+      throw new GraphQLError('Funding round space not found')
+    }
+
+    let membership = await GroupMembership.forPair(userId, space, { includeInactive: true }).fetch({ transacting })
+    if (membership && membership.get('active')) {
+      return membership
+    }
+
+    const created = await space.addMembers([userId], {}, { transacting })
+    membership = created[0] || await GroupMembership.forPair(userId, space).fetch({ transacting })
+    await membership.save({ created_at: new Date() }, { patch: true, transacting })
+    await round.save({ num_participants: (round.get('num_participants') || 0) + 1 }, { transacting })
+
+    const canAllocateOnJoin = round.get('allow_late_joiners') &&
+      round.get('voting_method') === 'token_allocation_constant' &&
+      await round.spaceStatus({ transacting }) === FundingRound.PHASES.VOTING &&
+      round.get('total_tokens')
+
+    // Late joiners only receive tokens when the round is already in voting
+    if (canAllocateOnJoin && await round.canUserVote(userId)) {
+      membership.addSetting({ tokensRemaining: round.get('total_tokens') })
+      await membership.save({ settings: membership.get('settings') }, { transacting, patch: true })
+    }
+
+    return membership
+  },
+
+  /**
+   * Leave a funding round by leaving its space (deactivates membership).
+   * Votes and tokensRemaining are settled by Group.removeMembers so parent-group
+   * cascade (and moderator removal) follow the same path.
+   */
+  leave: async function (roundId, userId) {
+    return bookshelf.transaction(async transacting => {
+      const round = await FundingRound.find(roundId)
+      if (!round) {
+        throw new GraphQLError('Funding round not found')
+      }
+      const space = await round.group().fetch({ transacting })
+      if (!space) return null
+
+      const membership = await participationMembership(round, userId, { transacting, includeInactive: true })
+      if (!membership || !membership.get('active')) {
+        return null
       }
 
-      roundUser = await FundingRoundUser.create(createAttrs, { transacting })
-      await round.save({ num_participants: round.get('num_participants') + 1 }, { transacting })
-
-      // XXX: don't send notifications for joining a funding round for now
-      // const group = await round.group().fetch({ transacting })
-      // const manageResponsibility = await Responsibility.where({ title: Responsibility.constants.RESP_MANAGE_ROUNDS }).fetch({ transacting })
-      // const stewards = await group.membersWithResponsibilities([manageResponsibility.id]).fetch({ transacting })
-      // const stewardsIds = stewards.pluck('id')
-      // const activities = stewardsIds.map(stewardId => ({
-      //   reason: 'fundingRoundJoin',
-      //   actor_id: userId,
-      //   group_id: group.id,
-      //   reader_id: stewardId,
-      //   funding_round_id: round.id
-      // }))
-      // await Activity.saveForReasons(activities, transacting)
-    }
-    return roundUser
+      await space.removeMembers([userId], { transacting })
+      return membership
+    })
   },
 
-  // Remove a participant and clear any votes they cast in this round
-  leave: async function (roundId, userId, { transacting } = {}) {
-    if (!transacting) {
-      return bookshelf.transaction(async transacting => {
-        return await FundingRound.leave(roundId, userId, { transacting })
-      })
-    }
-
-    const round = await FundingRound.find(roundId)
-    if (!round) {
-      throw new GraphQLError('Funding round not found')
-    }
-
-    const roundUser = await FundingRoundUser.where({ funding_round_id: roundId, user_id: userId }).fetch({ transacting })
-    if (!roundUser) return null
-
-    const submissions = await round.submissions().fetch({ transacting })
-    const submissionIds = submissions.pluck('id')
-    if (submissionIds.length > 0) {
-      await bookshelf.knex('posts_users')
-        .whereIn('post_id', submissionIds)
-        .where({ user_id: userId })
-        .update({ tokens_allocated_to: 0 })
-        .transacting(transacting)
-    }
-
-    await roundUser.destroy({ transacting })
-    await round.save({ num_participants: round.get('num_participants') - 1 }, { transacting })
-    return true
-  },
-
-  // Distribute tokens to all users in a funding round
+  // Distribute tokens to all eligible participants via membership settings
   distributeTokens: async function (roundOrId, { transacting } = {}) {
     const round = typeof roundOrId === 'object' ? roundOrId : await FundingRound.find(roundOrId)
 
@@ -398,10 +442,8 @@ module.exports = bookshelf.Model.extend({
       throw new GraphQLError('Funding Round not found')
     }
 
-    const roundId = round.id
-
     // Check if tokens have already been distributed (phase is voting or completed)
-    const phase = round.get('phase')
+    const phase = await round.spaceStatus({ transacting })
     if (phase === FundingRound.PHASES.VOTING || phase === FundingRound.PHASES.COMPLETED) {
       return round
     }
@@ -425,33 +467,31 @@ module.exports = bookshelf.Model.extend({
       throw new GraphQLError('Total tokens not set for this round')
     }
 
-    // Get all users in the round
-    const roundUsers = await FundingRoundUser.query(q => {
-      q.where({ funding_round_id: roundId })
+    const spaceId = round.get('group_id')
+    const memberships = await GroupMembership.query(q => {
+      q.where({ group_id: spaceId, active: true })
     }).fetchAll({ transacting })
 
-    if (roundUsers.length === 0) {
+    if (memberships.length === 0) {
       throw new GraphQLError('No users in this round')
     }
 
     // Filter users by voter roles if specified
     const voterRolesData = round.get('voter_roles')
-    let eligibleUsers = roundUsers
+    let eligibleMemberships = memberships.models
 
     if (voterRolesData && voterRolesData.length > 0) {
-      // Only distribute tokens to users with the required voter roles
-      const eligibleUserChecks = await Promise.all(
-        roundUsers.map(async (roundUser) => {
-          const userId = roundUser.get('user_id')
-          const canVote = await round.canUserVote(userId)
-          return { roundUser, canVote }
+      const eligibleChecks = await Promise.all(
+        memberships.models.map(async (membership) => {
+          const canVote = await round.canUserVote(membership.get('user_id'))
+          return { membership, canVote }
         })
       )
-      eligibleUsers = eligibleUserChecks
+      eligibleMemberships = eligibleChecks
         .filter(({ canVote }) => canVote)
-        .map(({ roundUser }) => roundUser)
+        .map(({ membership }) => membership)
 
-      if (eligibleUsers.length === 0) {
+      if (eligibleMemberships.length === 0) {
         console.error('No users with required voter roles in this round')
         return round
       }
@@ -461,12 +501,13 @@ module.exports = bookshelf.Model.extend({
 
     // Calculate tokens per user based on voting method
     if (votingMethod === 'token_allocation_divide') {
-      tokensPerUser = Math.floor(totalTokens / eligibleUsers.length)
+      tokensPerUser = Math.floor(totalTokens / eligibleMemberships.length)
     }
 
-    // Distribute tokens to each eligible user
-    await Promise.all(eligibleUsers.map(async (roundUser) => {
-      await roundUser.save({ tokens_remaining: tokensPerUser }, { transacting, patch: true })
+    // Distribute tokens to each eligible participant
+    await Promise.all(eligibleMemberships.map(async (membership) => {
+      membership.addSetting({ tokensRemaining: tokensPerUser })
+      await membership.save({ settings: membership.get('settings') }, { transacting, patch: true })
     }))
 
     return round
@@ -480,13 +521,17 @@ module.exports = bookshelf.Model.extend({
       throw new GraphQLError('Funding Round not found')
     }
 
-    const roundId = round.id
+    const spaceId = round.get('group_id')
 
-    // Reset all user token balances
-    await bookshelf.knex('funding_rounds_users')
-      .where({ funding_round_id: roundId })
-      .update({ tokens_remaining: 0 })
-      .transacting(transacting)
+    // Reset all participant token balances on space memberships
+    const memberships = await GroupMembership.query(q => {
+      q.where({ group_id: spaceId, active: true })
+    }).fetchAll({ transacting })
+
+    await Promise.all(memberships.models.map(async (membership) => {
+      membership.addSetting({ tokensRemaining: 0 })
+      await membership.save({ settings: membership.get('settings') }, { transacting, patch: true })
+    }))
 
     // Clear all token allocations on submissions
     const submissions = await round.submissions().fetch({ transacting })

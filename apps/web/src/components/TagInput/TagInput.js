@@ -6,6 +6,7 @@ import { cn } from 'util/index'
 import { getKeyCode, keyMap } from 'util/textInput'
 import Icon from 'components/Icon'
 import KeyControlledItemList from 'components/KeyControlledList/KeyControlledItemList'
+import LucideIcon from 'components/LucideIcon/LucideIcon'
 import RoundImage from 'components/RoundImage'
 import { accessibilityIcon, visibilityIcon, accessibilityString, accessibilityDescription, visibilityString, visibilityDescription } from 'store/models/Group'
 import styles from './TagInput.module.scss'
@@ -57,9 +58,15 @@ class TagInput extends Component {
 
     this.input = React.createRef()
     this.list = React.createRef()
+    this.blurTimeout = null
   }
 
   input = React.createRef()
+
+  componentWillUnmount () {
+    if (this.blurTimeout) clearTimeout(this.blurTimeout)
+  }
+
   focus = () => {
     if (this.input.current && !this.props.readOnly) {
       this.input.current.focus()
@@ -101,6 +108,7 @@ class TagInput extends Component {
   }
 
   select = choice => {
+    if (this.blurTimeout) clearTimeout(this.blurTimeout)
     this.props.handleAddition(choice)
     this.resetInput()
   }
@@ -118,14 +126,18 @@ class TagInput extends Component {
   }
 
   handleFocus = (e) => {
+    if (this.blurTimeout) clearTimeout(this.blurTimeout)
     this.handleChange('')
     this.props.onFocus?.(e) // Propagate focus up
   }
 
   handleBlur = (e) => {
-    this.input.current.value = ''
-    this.handleChange(null)
-    this.props.onBlur?.(e) // Propagate blur up
+    // Delay so a suggestion click can add the tag before the list unmounts
+    this.blurTimeout = setTimeout(() => {
+      if (this.input.current) this.input.current.value = ''
+      this.handleChange(null)
+      this.props.onBlur?.(e)
+    }, 150)
   }
 
   handleChange = debounce(value => {
@@ -140,31 +152,55 @@ class TagInput extends Component {
     const { tags = [], placeholder = this.props.t('Type...'), suggestions, className, theme, readOnly, maxTags, addLeadingHashtag, renderSuggestion, tagType } = this.props
     const optionalHashtag = addLeadingHashtag ? '#' : ''
 
-    const selectedItems = uniqBy('id', tags).map(t =>
-      <li key={t.id} className='inline-flex items-center relative mr-2'>
-        {t.avatarUrl && <RoundImage url={t.avatarUrl} small className={theme.selectedTagImage} />}
-        <span className='text-foreground'>
-          {optionalHashtag}{t.label || t.name}
-          {tagType && tagType === 'groups' && this.props.groupSettings && (
-            <span>
-              <span className={styles.privacyIcon}>
-                <Icon name={accessibilityIcon(t.accessibility)} className={styles.tagInputPrivacyIcon} />
-                <div className={styles.privacyTooltip}>
-                  <div><strong>{this.props.t(accessibilityString(t.accessibility))}</strong> - {this.props.t(accessibilityDescription(t.accessibility))}</div>
-                </div>
-              </span>
-              <span className={styles.privacyIcon}>
-                <Icon name={visibilityIcon(t.visibility)} className={styles.tagInputPrivacyIcon} />
-                <div className={styles.privacyTooltip}>
-                  <div><strong>{this.props.t(visibilityString(t.visibility))}</strong> - {this.props.t(visibilityDescription(t.visibility))}</div>
-                </div>
-              </span>
-            </span>
-          )}
-        </span>
-        <a onClick={!readOnly ? this.remove(t) : undefined} className={theme.selectedTagRemove}>&times;</a>
-      </li>
-    )
+    const selectedItems = uniqBy('id', tags).map(t => {
+      const spaceName = t.isSpace
+        ? (t.group?.name || t.name?.split(' / ').slice(1).join(' / '))
+        : null
+      const parentName = t.isSpace
+        ? (t.parentGroup?.name || t.name?.split(' / ')[0])
+        : null
+
+      return (
+        <li key={t.id} className='inline-flex items-center relative pr-2 min-w-0 max-w-full'>
+          {t.avatarUrl && <RoundImage url={t.avatarUrl} small className={theme.selectedTagImage} />}
+          <span className={cn('text-foreground', { 'inline-flex min-w-0 items-center gap-1.5': t.isSpace })}>
+            {t.isSpace
+              ? (
+                <>
+                  <span className='truncate min-w-0'>{parentName}</span>
+                  <span className='text-foreground/50 shrink-0'>/</span>
+                  {t.icon && (
+                    <LucideIcon name={t.icon} className='h-3.5 w-3.5 shrink-0' />
+                  )}
+                  <span className='truncate min-w-0'>{spaceName}</span>
+                </>
+                )
+              : (
+                <>
+                  {optionalHashtag}{t.label || t.name}
+                  {tagType && tagType === 'groups' && this.props.groupSettings && (
+                    <span>
+                      <span className={styles.privacyIcon}>
+                        <Icon name={accessibilityIcon(t.accessibility)} className={styles.tagInputPrivacyIcon} />
+                        <div className={styles.privacyTooltip}>
+                          <div><strong>{this.props.t(accessibilityString(t.accessibility))}</strong> - {this.props.t(accessibilityDescription(t.accessibility))}</div>
+                        </div>
+                      </span>
+                      <span className={styles.privacyIcon}>
+                        <Icon name={visibilityIcon(t.visibility)} className={styles.tagInputPrivacyIcon} />
+                        <div className={styles.privacyTooltip}>
+                          <div><strong>{this.props.t(visibilityString(t.visibility))}</strong> - {this.props.t(visibilityDescription(t.visibility))}</div>
+                        </div>
+                      </span>
+                    </span>
+                  )}
+                </>
+                )}
+          </span>
+          <a onClick={!readOnly ? this.remove(t) : undefined} className={theme.selectedTagRemove}>&times;</a>
+        </li>
+      )
+    })
 
     const maxReached = maxTags && selectedItems.length >= maxTags
 
@@ -180,10 +216,11 @@ class TagInput extends Component {
         <ul className={theme.selected}>
           {selectedItems}
 
-          <li className={cn('text-foreground bg-transparent inline-flex', theme.searchInputContainer, { tagsEmpty: selectedItems.length === 0 })}>
-            <div className={cn('relative', theme.searchInputContainer)}>
+          <li className={cn('text-foreground bg-transparent inline-flex', theme.searchInputContainer, { 'w-full': selectedItems.length === 0, tagsEmpty: selectedItems.length === 0 })}>
+            <div className={cn('relative', theme.searchInputContainer, { 'w-full': selectedItems.length === 0 })}>
               <input
-                className={cn('text-foreground bg-transparent inline outline-none pr-1 placeholder:text-foreground/50',
+                className={cn('text-foreground bg-transparent outline-none pr-1 placeholder:text-foreground/50',
+                  selectedItems.length === 0 ? 'w-full' : 'inline',
                   theme.searchInput,
                   { error: maxReached, tagsEmpty: selectedItems.length === 0 }
                 )}
@@ -200,7 +237,10 @@ class TagInput extends Component {
               />
             </div>
             {!isEmpty(suggestionsOrError) &&
-              <div className='TagInput-suggestions absolute top-full left-0 w-full z-10'>
+              <div
+                className='TagInput-suggestions absolute top-full left-0 w-full z-10'
+                onMouseDown={event => event.preventDefault()}
+              >
                 <KeyControlledItemList
                   items={suggestionsOrError}
                   tagType={tagType}

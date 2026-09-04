@@ -1,41 +1,45 @@
 import isMobile from 'ismobilejs'
 import { debounce } from 'lodash/fp'
-import { Bell, BellDot, BellMinus, BellOff, ChevronDown, Copy, Send } from 'lucide-react'
-import { DateTimeHelpers } from '@hylo/shared'
+import { ChevronDown, MessageSquareMore } from 'lucide-react'
+import { DateTimeHelpers, postAppearsInChat } from '@hylo/shared'
 import { EditorView } from 'prosemirror-view'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import CopyToClipboard from 'react-copy-to-clipboard'
 import { Helmet } from 'react-helmet'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
-import { useLocation, Routes, Route, useNavigate } from 'react-router-dom'
-import { VirtuosoMessageList, VirtuosoMessageListLicense, useCurrentlyRenderedData, useVirtuosoLocation, useVirtuosoMethods } from '@virtuoso.dev/message-list'
+import { useLocation, Routes, Route } from 'react-router-dom'
+import { VirtuosoMessageList, VirtuosoMessageListLicense, useVirtuosoLocation, useVirtuosoMethods } from '@virtuoso.dev/message-list'
 
 import { getSocket } from 'client/websockets.js'
 import { useLayoutFlags } from 'contexts/LayoutFlagsContext'
-import PostEditor from 'components/PostEditor/PostEditor'
+import ChatEditor from 'components/ChatEditor'
 import Loading from 'components/Loading'
+import PeopleTyping from 'components/PeopleTyping'
 import { StreamSkeleton } from 'components/PostCard/PostCardSkeleton'
-import NoPosts from 'components/NoPosts'
-import PostCard from 'components/PostCard'
 import PostDialog from 'components/PostDialog'
 import Tooltip from 'components/Tooltip'
-import Button from 'components/ui/button'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger
-} from '@/components/ui/select'
+import ChatMembersPanel from './ChatMembersPanel'
+import PinnedPostChips from './PinnedPostChips'
 import ChatPost from './ChatPost'
+import ChatPostNotice from './ChatPostNotice'
+import {
+  chatRoomPageParams,
+  chatShowsDayLabel,
+  computeChatInitialScrollIndex,
+  isPersistedChatPostId,
+  samePostId
+} from './chatRoomUtils'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
+import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import useRouteParams from 'hooks/useRouteParams'
+import useGroupViews from 'hooks/useGroupViews'
+import fetchForGroup from 'store/actions/fetchForGroup'
+import fetchGroupViews from 'store/actions/fetchGroupViews'
 import fetchPosts from 'store/actions/fetchPosts'
-import fetchTopicFollow from 'store/actions/fetchTopicFollow'
-import updateTopicFollow from 'store/actions/updateTopicFollow'
-import { FETCH_TOPIC_FOLLOW, FETCH_POSTS, RESP_ADD_MEMBERS, UPDATE_TOPIC_FOLLOW_PENDING } from 'store/constants'
+import fetchViewPinnedPosts from 'store/actions/fetchViewPinnedPosts'
+import updateGroupViewUser from 'store/actions/updateGroupViewUser'
+import { FETCH_POSTS, RESP_MANAGE_CONTENT } from 'store/constants'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
-import { DEFAULT_CHAT_TOPIC } from 'store/models/Group'
 import presentPost from 'store/presenters/presentPost'
 import { makeDropQueryResults, makeQueryResultsModelSelector } from 'store/reducers/queryResults'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
@@ -43,11 +47,9 @@ import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import { getPostResults } from 'store/selectors/getPosts'
-import getTopicFollowForCurrentRoute from 'store/selectors/getTopicFollowForCurrentRoute'
-import isPendingFor from 'store/selectors/isPendingFor'
 import { cn } from 'util/index'
-import { groupInviteUrl, groupUrl } from '@hylo/navigation'
 import { isLegacyWebView } from 'util/webView'
+import { formatLocalizedDate } from 'util/dateFormat'
 import { getLocaleFromLocalStorage } from 'util/locale'
 
 import styles from './ChatRoom.module.scss'
@@ -55,6 +57,21 @@ import styles from './ChatRoom.module.scss'
 // the maximum amount of time in minutes that can pass between messages to still
 // include them under the same avatar and timestamp
 const MAX_MINS_TO_BATCH = 5
+
+// Messages clamp to this width for readability; the drag rail at the clamp edge
+// lets people widen the stream Discord-style. The choice sticks via localStorage.
+const CHAT_WIDTH_KEY = 'hyloChatStreamWidth'
+const DEFAULT_CHAT_WIDTH = 750
+const MIN_CHAT_WIDTH = 480
+// The list's sm+ px-5 gutter — the rail only exists on viewports wide enough
+// that the below-sm gutter never applies, and dragging right stops at a
+// matching gutter's distance from the right edge.
+const CHAT_GUTTER = 20
+// Slack past the clamp edge required before the rail appears at all
+const CHAT_RAIL_SLACK = 40
+// The rail sits wholly right of the stream: its background's left edge IS the
+// stream's endpoint, with the dashed line at the rail's own centre
+const CHAT_RAIL_WIDTH = 30
 
 // IMPORTANT: Use a selector factory so multiple prop-driven queries don't thrash a single memo cache
 // Preserve the order defined by queryResults.ids and transform to presentPost
@@ -68,28 +85,12 @@ EditorView.prototype.updateState = function updateState (state) {
   this.updateStateInner(state, this.state.plugins !== state.plugins)
 }
 
-// Define icon components as functions that accept props
-const NotificationsIcon = React.forwardRef(({ type, ...props }, ref) => {
-  const { t } = useTranslation()
-
-  switch (type) {
-    case 'all':
-      return <Bell {...props} data-tooltip-id='notifications-tt' data-tooltip-content={t('You will receive notifications for all chats in this room.')} />
-    case 'important':
-      return <BellDot {...props} data-tooltip-id='notifications-tt' data-tooltip-content={t('You will receive notifications for announcements and mentions in this room.')} />
-    case 'none':
-      return <BellOff {...props} data-tooltip-id='notifications-tt' data-tooltip-content={t('You will not receive notifications for any chats in this room.')} />
-    default:
-      return <BellMinus {...props} data-tooltip-id='notifications-tt' data-tooltip-html={t('You are previewing this chat room. <br /> Add a chat or change your notification settings to subscribe to this room.')} />
-  }
-})
-
 const getDisplayDay = (date) => {
   return date.hasSame(DateTimeHelpers.dateTimeNow(getLocaleFromLocalStorage()), 'day')
     ? 'Today'
     : date.hasSame(DateTimeHelpers.dateTimeNow(getLocaleFromLocalStorage()).minus({ days: 1 }), 'day')
       ? 'Yesterday'
-      : date.toFormat('MMM dd, yyyy')
+      : formatLocalizedDate(date, { style: 'medium' })
 }
 
 /**
@@ -102,50 +103,39 @@ const sanitizePostId = (postId) => {
   return matched ? matched[0] : null
 }
 
-/**
- * List index to show after load (posts sorted by id ascending).
- */
-const computeChatInitialScrollIndex = (sortedPosts, postIdToStartAt, lastReadPostId) => {
-  if (!sortedPosts?.length) return 0
-
-  // Set initial scroll to the passed in post to scroll to, otherwise to the last read post
-  const postToScrollTo = postIdToStartAt || lastReadPostId
-  if (!postToScrollTo) return 0
-
-  // XXX: We set the lastReadPostId to the largest post id as a hack to bring people to the most recent post when they join a chat room
-  const lastId = sortedPosts[sortedPosts.length - 1].id
-  if (postToScrollTo > lastId) return sortedPosts.length - 1
-
-  const postToScrollToIndex = sortedPosts.findIndex(post => post.id === postToScrollTo)
-  if (postToScrollToIndex !== -1) {
-    return Math.max(postToScrollToIndex, 0)
-  }
-
-  // XXX: When joining a room we set the lastReadPostId to the largest post id in the database as a hack to bring people to the most recent post when they join a chat room
-  // But more posts could have been added since we did this, so we if we can't find the last read post id, we scroll to the most recent post
-  return sortedPosts.length - 1
-}
-
 export default function ChatRoom (props) {
   const dispatch = useDispatch()
   const routeParams = useRouteParams()
   const location = useLocation()
   const { hideNavLayout } = useLayoutFlags()
   const withoutNav = isLegacyWebView() || hideNavLayout
+  const { t } = useTranslation()
 
-  const { customTopicName } = props
-  const { groupSlug, postId: selectedPostId } = routeParams
+  const effectiveGroupSlug = useEffectiveGroupSlug()
+  const groupSlug = props.groupSlug || effectiveGroupSlug
+  const { postId: selectedPostId } = routeParams
 
   const context = props.context || routeParams.context
-  const topicName = customTopicName || (routeParams.topicName && decodeURIComponent(routeParams.topicName))
-  const hiddenTopic = topicName.startsWith('‡')
 
   const socket = useMemo(() => getSocket(), [])
 
   const currentUser = useSelector(getMe)
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
-  const topicFollow = useSelector(state => getTopicFollowForCurrentRoute(state, group?.id, topicName))
-  const topicFollowLoading = useSelector(state => isPendingFor([FETCH_TOPIC_FOLLOW], state))
+  const groupViews = useGroupViews(group)
+  const chatView = groupViews.find(v => v.type === 'chat') || null
+  const showPostNoticesInChat = group?.settings?.showPostNoticesInChat ?? true
+
+  const chatViewLoading = !!group?.id && !chatView
+  const groupLoading = !!groupSlug && !group
+
+  const canModerateContent = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_MANAGE_CONTENT, groupId: group?.id }))
+  const pinnedPosts = chatView?.pinnedPosts || []
+
+  useEffect(() => {
+    if (!group?.id || !chatView?.id) return
+    dispatch(fetchViewPinnedPosts(group.id, chatView.id))
+  }, [dispatch, group?.id, chatView?.id])
+
   const querystringParams = getQuerystringParam(['search', 'postId'], location)
   const search = querystringParams?.search
   const [postIdToStartAt, setPostIdToStartAt] = useState(sanitizePostId(querystringParams?.postId))
@@ -154,7 +144,7 @@ export default function ChatRoom (props) {
   const messageListRef = useRef(null)
   /**
    * Monotonic “generation” for which chat room the list is showing. We bump it on every room entry
-   * (see topicFollow effect). In-flight `fetchPosts` requests capture `epoch` when they start; when
+   * (see chatView effect). In-flight `fetchPosts` requests capture `epoch` when they start; when
    * they finish they compare to `chatListEpochRef.current`. If different, the user already left
    * that room — we skip `prepend`/`append` and skip treating that response as authoritative for UI.
    *
@@ -163,15 +153,36 @@ export default function ChatRoom (props) {
    * corrupting the list or marking the wrong room loaded.
    */
   const chatListEpochRef = useRef(0)
+  // Tracks whether the tab was actually hidden before reconciling on foreground return.
+  const tabWasHiddenRef = useRef(false)
+  /** True while the chat composer has focus — avoids spurious scroll pagination from layout shifts. */
+  const composerFocusedRef = useRef(false)
 
   // Tracks the lastReadPostId we have committed locally — updated synchronously on create and on scroll updates,
   // so closures can check it without waiting for the Redux ORM re-render cycle.
-  const lastReadPostIdRef = useRef(topicFollow?.lastReadPostId)
+  const lastReadPostIdRef = useRef(chatView?.lastReadPostId)
+  // One recount per room+latestPost when last-read is already at the latest loaded post
+  // but newPostCount is still stale (socket bump / in-flight views fetch).
+  const lastReadRecountSentRef = useRef(null)
+  // Ignore the first rendered window after landing so opening unread does not
+  // immediately mark every on-screen new post as read.
+  const suppressReadUpdateRef = useRef(true)
+  // Edges of what is actually on screen (Virtuoso), not the first Redux page.
+  // Scroll pagination uses these as cursors so we never re-request a loaded page.
+  const oldestLoadedIdRef = useRef(null)
+  const newestLoadedIdRef = useRef(null)
+  const hasMorePastRef = useRef(true)
+  const hasMoreFutureRef = useRef(true)
+  const loadingPastRef = useRef(false)
+  const loadingFutureRef = useRef(false)
+  const fetchPostsPastRef = useRef(null)
+  const fetchPostsFutureRef = useRef(null)
+  // Posts that already rendered an author header. Keep it after prepend so
+  // same-author batching cannot shrink the previous top row and jump the list.
+  const keptHeaderPostIdsRef = useRef(new Set())
 
   // The last post seen by the current user. Doesn't update in real time as they scroll only when room is reloaded
-  const [latestOldPostId, setLatestOldPostId] = useState(topicFollow?.lastReadPostId)
-
-  const [notificationsSetting, setNotificationsSetting] = useState(topicFollow?.settings?.notifications)
+  const [latestOldPostId, setLatestOldPostId] = useState(chatView?.lastReadPostId)
 
   // Whether we are currently loading more past posts or future posts
   const [loadingPast, setLoadingPast] = useState(false)
@@ -187,33 +198,35 @@ export default function ChatRoom (props) {
   // DEPRECATED: Load same number for all mobile (including webview)
   const INITIAL_POSTS_TO_LOAD = isMobile.any ? 17 : 25
 
-  const fetchPostsPastParams = useMemo(() => ({
+  const chatFetchBaseParams = useMemo(() => ({
     childPostInclusion: 'no',
     includePostGroups: false,
+    fieldsVariant: 'chatRoom',
     context,
-    cursor: postIdToStartAt ? parseInt(postIdToStartAt) + 1 : parseInt(topicFollow?.lastReadPostId) + 1,
-    filter: 'chat',
-    first: Math.max(INITIAL_POSTS_TO_LOAD - topicFollow?.newPostCount, 3), // Always load at least 3 past posts
-    order: 'desc',
     slug: groupSlug,
     search,
     sortBy: 'id',
-    topic: topicFollow?.topic.id
-  }), [context, postIdToStartAt, topicFollow?.lastReadPostId, groupSlug, search, topicFollow?.topic.id])
+    filter: 'chat',
+    ...(showPostNoticesInChat ? {} : { types: ['chat'] })
+  }), [context, groupSlug, search, showPostNoticesInChat])
 
-  const fetchPostsFutureParams = useMemo(() => ({
-    childPostInclusion: 'no',
-    includePostGroups: false,
-    context,
-    cursor: postIdToStartAt || topicFollow?.lastReadPostId,
-    filter: 'chat',
-    first: Math.min(INITIAL_POSTS_TO_LOAD, topicFollow?.newPostCount),
-    order: 'asc',
-    slug: groupSlug,
-    search,
-    sortBy: 'id',
-    topic: topicFollow?.topic.id
-  }), [context, postIdToStartAt, topicFollow?.lastReadPostId, groupSlug, search, topicFollow?.topic.id])
+  const lastReadStartId = postIdToStartAt || chatView?.lastReadPostId
+
+  const fetchPostsPastParams = useMemo(() => (
+    chatRoomPageParams(chatFetchBaseParams, {
+      startId: lastReadStartId,
+      order: 'desc',
+      first: INITIAL_POSTS_TO_LOAD
+    })
+  ), [chatFetchBaseParams, lastReadStartId])
+
+  const fetchPostsFutureParams = useMemo(() => (
+    chatRoomPageParams(chatFetchBaseParams, {
+      startId: lastReadStartId,
+      order: 'asc',
+      first: INITIAL_POSTS_TO_LOAD
+    })
+  ), [chatFetchBaseParams, lastReadStartId])
 
   // Use per-instance memoized selectors to avoid cache thrashing between different prop sets
   const getPostsPastSelector = useMemo(() => makeGetPostsSelector(), [])
@@ -234,7 +247,7 @@ export default function ChatRoom (props) {
     const allPosts = [...(postsPast || []), ...(postsFuture || [])].filter(Boolean)
     // Deduplicate posts by ID (can happen when socket adds posts to Redux while viewing another room)
     const uniquePosts = Array.from(
-      new Map(allPosts.map(post => [post.id, post])).values()
+      new Map(allPosts.map(post => [String(post.id), post])).values()
     )
     return uniquePosts.sort((a, b) => Number(a.id) - Number(b.id))
   }, [postsPast, postsFuture])
@@ -252,87 +265,215 @@ export default function ChatRoom (props) {
   }, [postsForDisplay])
 
   const fetchPostsPast = useCallback((offset, extraParams = {}, force = false) => {
-    if ((loadingPast || hasMorePostsPast === false) && !force) return Promise.resolve()
+    if ((loadingPastRef.current || hasMorePastRef.current === false) && !force) return Promise.resolve()
     // Snapshot the room generation for this request — if the user switches chats before this resolves, epoch will mismatch.
     const epoch = chatListEpochRef.current
+    loadingPastRef.current = true
     setLoadingPast(true)
     return dispatch(fetchPosts({ ...fetchPostsPastParams, offset, ...extraParams }))
       .then((action) => {
         const posts = action.payload?.data?.group?.posts?.items || []
         const newPosts = posts.map(p => presentPost(p, group.id)).filter(Boolean)
-        setLoadingPast(false)
+        const hasMore = action.payload?.data?.group?.posts?.hasMore
+        if (typeof hasMore === 'boolean') hasMorePastRef.current = hasMore
+        if (newPosts.length === 0) hasMorePastRef.current = false
         // Stale response: do not mutate the list (another room’s epoch is active).
-        if (epoch !== chatListEpochRef.current) return
+        if (epoch !== chatListEpochRef.current) {
+          loadingPastRef.current = false
+          setLoadingPast(false)
+          return
+        }
         if (newPosts.length > 0) {
           const batch = newPosts.reverse()
+          const scrollAnchorId = oldestLoadedIdRef.current
+          if (batch[0]?.id) oldestLoadedIdRef.current = batch[0].id
           queueMicrotask(() => {
             // Re-check after microtask — room may have changed in the same tick as the network return.
             if (epoch !== chatListEpochRef.current) return
-            messageListRef.current?.data.prepend(batch)
+            // Initial lastRead window is applied via initialData. Prepending it
+            // after mount would duplicate and shove the "New posts" line off screen.
+            if (offset === 0 && extraParams.cursor == null) {
+              loadingPastRef.current = false
+              setLoadingPast(false)
+              return
+            }
+            const list = messageListRef.current
+            if (!list) {
+              loadingPastRef.current = false
+              setLoadingPast(false)
+              return
+            }
+            list.data.prepend(batch)
+            // Prepend keeps estimated offset; day dividers / real heights then
+            // shift the previous top post above the viewport. Pin it back.
+            if (scrollAnchorId) {
+              requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                  if (epoch !== chatListEpochRef.current) return
+                  const index = list.data.findIndex(item => samePostId(item?.id, scrollAnchorId))
+                  if (index !== -1) {
+                    list.scrollToItem({ index, align: 'start-no-overflow', behavior: 'auto' })
+                  }
+                  loadingPastRef.current = false
+                  setLoadingPast(false)
+                })
+              })
+            } else {
+              loadingPastRef.current = false
+              setLoadingPast(false)
+            }
           })
+        } else {
+          loadingPastRef.current = false
+          setLoadingPast(false)
         }
       })
-      .catch(() => setLoadingPast(false))
-  }, [fetchPostsPastParams, loadingPast, hasMorePostsPast, group?.id])
+      .catch(() => {
+        loadingPastRef.current = false
+        setLoadingPast(false)
+      })
+  }, [fetchPostsPastParams, group?.id])
 
   const fetchPostsFuture = useCallback((offset, extraParams = {}, force = false) => {
-    if ((loadingFuture || hasMorePostsFuture === false) && !force) return Promise.resolve()
+    if ((loadingFutureRef.current || hasMoreFutureRef.current === false) && !force) return Promise.resolve()
     // Same epoch snapshot as fetchPostsPast — ties this response to the room that was active when we dispatched.
     const epoch = chatListEpochRef.current
+    loadingFutureRef.current = true
     setLoadingFuture(true)
     return dispatch(fetchPosts({ ...fetchPostsFutureParams, offset, ...extraParams })).then((action) => {
+      const newPosts = (action.payload?.data?.group?.posts?.items || []).map(p => presentPost(p, group.id)).filter(Boolean)
+      const hasMore = action.payload?.data?.group?.posts?.hasMore
+      if (typeof hasMore === 'boolean') hasMoreFutureRef.current = hasMore
+      if (newPosts.length === 0) hasMoreFutureRef.current = false
+      if (newPosts[newPosts.length - 1]?.id) newestLoadedIdRef.current = newPosts[newPosts.length - 1].id
+      loadingFutureRef.current = false
       setLoadingFuture(false)
       // Stale: user left this chat — do not append to the current list.
       if (epoch !== chatListEpochRef.current) return 0
-      const newPosts = (action.payload?.data?.group?.posts?.items || []).map(p => presentPost(p, group.id)).filter(Boolean)
       queueMicrotask(() => {
         // Same re-check as prepend path — switch room before the microtask runs.
         if (epoch !== chatListEpochRef.current) return
-        if (offset === 0) {
-          messageListRef.current?.data.append(newPosts, { index: 'LAST', align: 'end' })
-        } else {
-          messageListRef.current?.data.append(newPosts)
-        }
+        // Initial lastRead window lands via initialData + lastRead scroll.
+        // Appending that page with index LAST dumped people at the bottom and
+        // cleared the unread badge.
+        if (offset === 0 && extraParams.cursor == null) return
+        if (newPosts.length === 0) return
+        messageListRef.current?.data.append(newPosts)
       })
       return newPosts.length
     }).catch(() => {
       // Without this catch a failed fetch rejects through the callers' .then chains,
       // loadedFuture never flips true and the room is stuck on the loading skeleton
+      loadingFutureRef.current = false
       setLoadingFuture(false)
       return 0
     })
-  }, [fetchPostsFutureParams, loadingFuture, hasMorePostsFuture, group?.id])
+  }, [fetchPostsFutureParams, group?.id])
 
+  /**
+   * Jump to the newest chat posts, scroll to bottom, and mark the room fully read.
+   * Always hard-resets to the latest window — stale newPostCount / hasMoreFuture=false
+   * previously left people stranded mid-history and spammed UPDATE_GROUP_VIEW_USER.
+   */
   const loadToLatest = useCallback(async () => {
-    // If there are many new posts, reset to newest using the existing reset flow
-    if ((topicFollow?.newPostCount || 0) >= INITIAL_POSTS_TO_LOAD * 2) {
-      // Set a huge postId to trigger the reset effect to fetch around the newest posts
-      dispatch(changeQuerystringParam(location, 'postId', String(Number.MAX_SAFE_INTEGER), null, true))
-      return
+    if (!chatView?.id || !group?.id) return
+
+    const epoch = chatListEpochRef.current
+
+    // Sentinel cursor beyond any real post id. Setting postIdToStartAt aligns Redux
+    // query keys with this window so scroll-up pagination keeps working afterward.
+    const jumpId = String(Number.MAX_SAFE_INTEGER)
+    const pastParams = {
+      ...chatFetchBaseParams,
+      cursor: parseInt(jumpId, 10) + 1,
+      first: INITIAL_POSTS_TO_LOAD,
+      order: 'desc'
+    }
+    const futureParams = {
+      ...chatFetchBaseParams,
+      cursor: jumpId,
+      // No posts exist after the sentinel; record an empty future page so hasMore is false.
+      first: 1,
+      order: 'asc'
     }
 
-    let offset = (postsFuture && postsFuture.length) ? postsFuture.length : 0
-    // Incrementally fetch remaining future pages
-    while (true) {
-      const fetched = await fetchPostsFuture(offset, { first: INITIAL_POSTS_TO_LOAD }, true)
-      if (!fetched || fetched < INITIAL_POSTS_TO_LOAD) break
-      offset += fetched
+    setPostIdToStartAt(jumpId)
+    setLoadedFuture(false)
+    setLoadedPast(false)
+    setInitialPostToScrollTo(null)
+
+    dispatch(dropPostResults(fetchPostsFutureParams))
+    dispatch(dropPostResults(fetchPostsPastParams))
+    dispatch(dropPostResults(pastParams))
+    dispatch(dropPostResults(futureParams))
+
+    messageListRef.current?.data.replace([], { purgeItemSizes: true })
+
+    const pastAction = await dispatch(fetchPosts({ ...pastParams, offset: 0 }))
+    await dispatch(fetchPosts({ ...futureParams, offset: 0 }))
+
+    if (epoch !== chatListEpochRef.current) return
+
+    const items = (pastAction.payload?.data?.group?.posts?.items || [])
+      .map(p => presentPost(p, group.id))
+      .filter(Boolean)
+      .sort((a, b) => Number(a.id) - Number(b.id))
+
+    queueMicrotask(() => {
+      if (epoch !== chatListEpochRef.current) return
+      const lastIndex = Math.max(items.length - 1, 0)
+      messageListRef.current?.data.replace(items, {
+        purgeItemSizes: true,
+        initialLocation: items.length > 0
+          ? { index: lastIndex, align: 'end' }
+          : undefined
+      })
+    })
+
+    setLoadedPast(true)
+    setLoadedFuture(true)
+    if (items.length > 0) {
+      setInitialPostToScrollTo(items.length - 1)
+      oldestLoadedIdRef.current = items[0].id
+      newestLoadedIdRef.current = items[items.length - 1].id
+      hasMorePastRef.current = pastAction.payload?.data?.group?.posts?.hasMore !== false
+      hasMoreFutureRef.current = false
     }
-  }, [dispatch, fetchPostsFuture, location, postsFuture?.length, topicFollow?.newPostCount])
+
+    const latestPost = items[items.length - 1]
+    if (isPersistedChatPostId(latestPost)) {
+      lastReadPostIdRef.current = latestPost.id
+      setLatestOldPostId(latestPost.id)
+      dispatch(updateGroupViewUser(chatView.id, { lastReadPostId: latestPost.id }, group.id))
+    }
+  }, [
+    chatView?.id,
+    group?.id,
+    dispatch,
+    fetchPostsFutureParams,
+    fetchPostsPastParams,
+    chatFetchBaseParams
+  ])
 
   const reconcileChatOnForeground = useCallback(() => {
-    if (!group?.id || !topicName) return
+    if (!group?.id) return
     if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return
 
     // Catch up in case socket events were missed while the tab/app was backgrounded.
-    dispatch(fetchTopicFollow(group.id, topicName))
-    fetchPostsFuture(0, { first: INITIAL_POSTS_TO_LOAD }, true)
-  }, [dispatch, fetchPostsFuture, group?.id, topicName])
+    dispatch(fetchGroupViews(group.id))
+    // Cursor after the newest loaded post so we only ask for posts the list does not have.
+    const latestLoadedId = postsForDisplay[postsForDisplay.length - 1]?.id
+    fetchPostsFuture(0, {
+      first: INITIAL_POSTS_TO_LOAD,
+      ...(latestLoadedId ? { cursor: latestLoadedId } : {})
+    }, true)
+  }, [dispatch, fetchPostsFuture, group?.id, postsForDisplay])
 
   const handleNewPostReceived = useCallback((data) => {
     if (!group?.id) return
     if (!data.groups?.some(g => String(g.id) === String(group.id))) return
-    if (!data.topics?.find(t => t.name === topicName)) return
+    // Chat activity cards belong in All Activity, not the chat timeline
+    if (!postAppearsInChat(data.type, showPostNoticesInChat)) return
     const post = presentPost(data, group.id)
     if (!post) return
 
@@ -341,7 +482,7 @@ export default function ChatRoom (props) {
 
     let updateExisting = false
     messageListRef.current?.data.map((item) => {
-      if (post.id === item.id || (item.pending && post.localId && post.localId === item.localId)) {
+      if (samePostId(post.id, item.id) || (item.pending && post.localId && post.localId === item.localId)) {
         updateExisting = true
         return confirmedPost
       } else {
@@ -350,10 +491,24 @@ export default function ChatRoom (props) {
     })
 
     if (!updateExisting) {
+      if (confirmedPost.id) newestLoadedIdRef.current = confirmedPost.id
       messageListRef.current?.data.append(
         [confirmedPost],
         ({ atBottom, scrollInProgress }) => {
           if (atBottom || scrollInProgress) {
+            // 'smooth' scrolls to the item's ESTIMATED height; on narrow screens
+            // the text wraps taller than estimated, so the animation lands shy of
+            // the bottom — half a message showing — and never re-corrects. Snap
+            // the last stretch once the real height is measured, unless the
+            // reader has meanwhile scrolled away.
+            setTimeout(() => {
+              try {
+                const location = messageListRef.current?.getScrollLocation?.()
+                if (location && location.bottomOffset < 200) {
+                  messageListRef.current?.scrollToItem({ index: 'LAST', align: 'end', behavior: 'auto' })
+                }
+              } catch (e) {}
+            }, 350)
             return 'smooth'
           } else {
             // setUnseenMessages((val) => val + 1) TODO
@@ -361,22 +516,26 @@ export default function ChatRoom (props) {
           }
         })
     }
-  }, [group?.id, topicName])
+  }, [group?.id, showPostNoticesInChat])
 
   const resetInitialPostToScrollTo = useCallback(() => {
     if (loadedPast && loadedFuture) {
       setInitialPostToScrollTo(
-        computeChatInitialScrollIndex(postsForDisplay, postIdToStartAt, topicFollow?.lastReadPostId)
+        computeChatInitialScrollIndex(postsForDisplay, postIdToStartAt, chatView?.lastReadPostId)
       )
     } else {
       setInitialPostToScrollTo(null)
     }
-  }, [loadedPast, loadedFuture, postsForDisplay, postIdToStartAt, topicFollow?.lastReadPostId])
+  }, [loadedPast, loadedFuture, postsForDisplay, postIdToStartAt, chatView?.lastReadPostId])
 
   useEffect(() => {
-    // Load TopicFollow
-    dispatch(fetchTopicFollow(group?.id, topicName))
-  }, [group?.id, topicName])
+    if (groupSlug && !group) dispatch(fetchForGroup(groupSlug))
+  }, [dispatch, groupSlug, group])
+
+  useEffect(() => {
+    if (!group?.id || chatView?.id) return
+    dispatch(fetchGroupViews(group.id))
+  }, [dispatch, group?.id, chatView?.id])
 
   useEffect(() => {
     socket.on('newPost', handleNewPostReceived)
@@ -388,27 +547,26 @@ export default function ChatRoom (props) {
 
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState === 'hidden') {
+        tabWasHiddenRef.current = true
+        return
+      }
+      if (document.visibilityState === 'visible' && tabWasHiddenRef.current) {
+        tabWasHiddenRef.current = false
         reconcileChatOnForeground()
       }
     }
 
-    const handleWindowFocus = () => {
-      reconcileChatOnForeground()
-    }
-
     document.addEventListener('visibilitychange', handleVisibilityChange)
-    window.addEventListener('focus', handleWindowFocus)
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
-      window.removeEventListener('focus', handleWindowFocus)
     }
   }, [reconcileChatOnForeground])
 
   useEffect(() => {
     // New chat room loaded, reset everything
-    if (topicFollow?.id) {
+    if (chatView?.id) {
       // Invalidate every in-flight fetch / deferred work from the previous room (see chatListEpochRef).
       chatListEpochRef.current += 1
       // Same numeric generation that fetchPostsPast/Future snapshot as `epoch` when they dispatch — keep in sync.
@@ -419,11 +577,9 @@ export default function ChatRoom (props) {
       const hasCachedData =
         (hasCachedPastData || hasCachedFutureData) && postsForDisplay.length > 0
 
-      setNotificationsSetting(topicFollow?.settings?.notifications)
-
       // Defer replace so Virtuoso’s ref is attached; `initialLocation` on replace restores scroll without remounting.
       const nextList = hasCachedData ? postsForDisplay : []
-      const lastReadForScroll = topicFollow?.lastReadPostId
+      const lastReadForScroll = chatView.lastReadPostId
       queueMicrotask(() => {
         // Another room switch bumped the global epoch — don’t apply this room’s replace.
         if (roomEpoch !== chatListEpochRef.current) return
@@ -444,28 +600,24 @@ export default function ChatRoom (props) {
         // We have cached data, use it immediately without showing loading state
         setLoadedPast(true)
         setLoadedFuture(true)
-        // Still fetch future posts in the background to pick up any new ones since last visit
-        if (topicFollow.newPostCount > 0) {
-          fetchPostsFuture(0, {}, true)
+        // Catch up from the newest cached post — do not gate on newPostCount
+        // (authors and stale badges would never ask for the tail).
+        const latestLoadedId = postsForDisplay[postsForDisplay.length - 1]?.id
+        if (latestLoadedId) {
+          fetchPostsFuture(0, { cursor: latestLoadedId, first: INITIAL_POSTS_TO_LOAD }, true)
         }
       } else {
-        // No cached data, fetch fresh
+        // No cached data, fetch fresh — always load the future page so a 0
+        // unread count cannot hide posts after lastRead.
         setLoadedFuture(false)
         setLoadedPast(false)
 
-        if (topicFollow.newPostCount > 0) {
-          // force: room re-entry must run even if persisted query said hasMore=false (e.g. user had loaded all history)
-          fetchPostsFuture(0, {}, true).then(() => {
-            // Only flip loaded for the room this effect opened — not for an abandoned fetch after a fast tab switch.
-            if (roomEpoch === chatListEpochRef.current) setLoadedFuture(true)
-          })
-        } else {
-          setLoadedFuture(true)
-        }
+        fetchPostsFuture(0, {}, true).then(() => {
+          if (roomEpoch === chatListEpochRef.current) setLoadedFuture(true)
+        })
 
-        // force: same — otherwise fetchPostsPast no-ops when hasMorePostsPast is false from cache but the list is empty
+        // force: otherwise fetchPostsPast no-ops when hasMorePostsPast is false from cache but the list is empty
         fetchPostsPast(0, {}, true).then(() => {
-          // Match fetchPostsFuture: stale responses must not set loadedPast for a room the user already left.
           if (roomEpoch === chatListEpochRef.current) setLoadedPast(true)
         })
       }
@@ -473,14 +625,27 @@ export default function ChatRoom (props) {
       resetInitialPostToScrollTo()
 
       // Reset marker of new posts
-      setLatestOldPostId(topicFollow.lastReadPostId)
-      lastReadPostIdRef.current = topicFollow.lastReadPostId
+      setLatestOldPostId(chatView.lastReadPostId)
+      lastReadPostIdRef.current = chatView.lastReadPostId
+      lastReadRecountSentRef.current = null
+      suppressReadUpdateRef.current = true
+      oldestLoadedIdRef.current = hasCachedData ? postsForDisplay[0]?.id : null
+      newestLoadedIdRef.current = hasCachedData ? postsForDisplay[postsForDisplay.length - 1]?.id : null
+      hasMorePastRef.current = true
+      hasMoreFutureRef.current = true
+      loadingPastRef.current = false
+      loadingFutureRef.current = false
+      keptHeaderPostIdsRef.current = new Set()
     }
-  }, [topicFollow?.id, topicName, groupSlug])
+  }, [chatView?.id, groupSlug])
 
   // Do once after loading posts for the room to get things ready
   useEffect(() => {
     resetInitialPostToScrollTo()
+    if (loadedPast && loadedFuture && postsForDisplay.length > 0) {
+      if (!oldestLoadedIdRef.current) oldestLoadedIdRef.current = postsForDisplay[0].id
+      if (!newestLoadedIdRef.current) newestLoadedIdRef.current = postsForDisplay[postsForDisplay.length - 1].id
+    }
   }, [loadedPast, loadedFuture])
 
   // Add this useEffect to mark initial animation as complete after a timeout
@@ -494,19 +659,34 @@ export default function ChatRoom (props) {
     }
   }, [loadedPast, loadedFuture, initialAnimationComplete])
 
-  // Reset new_post_count when we're at the latest post but still showing a new post count
+  // After Virtuoso lands on last-read, allow scroll-driven last-read updates.
+  useEffect(() => {
+    if (initialPostToScrollTo === null) return
+    const timer = setTimeout(() => {
+      suppressReadUpdateRef.current = false
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [initialPostToScrollTo, chatView?.id])
+
+  // Recount only when last-read is already the latest loaded post (stale badge).
+  // Do not advance last-read to the end of a just-loaded unread window — that
+  // cleared the orange count before the reader reached the new posts.
   useEffect(() => {
     if (loadedPast && loadedFuture &&
-        topicFollow?.newPostCount > 0 &&
-        !hasMorePostsFuture &&
+        (chatView?.newPostCount || 0) > 0 &&
+        hasMorePostsFuture === false &&
         postsForDisplay.length > 0) {
       const latestPost = postsForDisplay[postsForDisplay.length - 1]
-      if (latestPost?.id && topicFollow?.id) {
-        lastReadPostIdRef.current = latestPost.id
-        dispatch(updateTopicFollow(topicFollow.id, { lastReadPostId: latestPost.id }))
-      }
+      if (!isPersistedChatPostId(latestPost) || !chatView?.id || !group?.id) return
+      const latestId = parseInt(latestPost.id, 10)
+      const lastReadId = parseInt(lastReadPostIdRef.current || 0, 10)
+      if (!Number.isFinite(latestId) || latestId !== lastReadId) return
+      const recountKey = `${chatView.id}:${latestPost.id}`
+      if (lastReadRecountSentRef.current === recountKey) return
+      lastReadRecountSentRef.current = recountKey
+      dispatch(updateGroupViewUser(chatView.id, { lastReadPostId: latestPost.id }, group.id))
     }
-  }, [loadedPast, loadedFuture, topicFollow?.newPostCount, topicFollow?.id, hasMorePostsFuture, postsForDisplay])
+  }, [loadedPast, loadedFuture, chatView?.newPostCount, chatView?.id, hasMorePostsFuture, postsForDisplay, group?.id, dispatch])
 
   useEffect(() => {
     if (querystringParams?.postId) {
@@ -551,58 +731,59 @@ export default function ChatRoom (props) {
     }
   }, [querystringParams?.postId])
 
+  fetchPostsPastRef.current = fetchPostsPast
+  fetchPostsFutureRef.current = fetchPostsFuture
+
   const onScroll = useMemo(
     () => debounce(200, (location) => {
-      if (!loadingPast && !loadingFuture) {
-        if (location.listOffset > -100 && hasMorePostsPast) {
-          fetchPostsPast(postsPast.length, { first: 10 })
-        } else if (location.bottomOffset < 50 && hasMorePostsFuture) {
-          fetchPostsFuture(postsFuture.length, { first: 10 })
-        }
+      if (loadingPastRef.current || loadingFutureRef.current) return
+      if (location.listOffset > -100 && hasMorePastRef.current !== false) {
+        const oldestId = oldestLoadedIdRef.current
+        // id < oldest — only posts the list does not already have
+        if (oldestId) fetchPostsPastRef.current(0, { cursor: oldestId, first: 10 })
+      } else if (location.bottomOffset < 50 && hasMoreFutureRef.current !== false && !composerFocusedRef.current) {
+        const newestId = newestLoadedIdRef.current
+        if (newestId) fetchPostsFutureRef.current(0, { cursor: newestId, first: 10 })
       }
     }),
-    [hasMorePostsPast, hasMorePostsFuture, loadingPast, loadingFuture]
+    []
   )
 
-  const updateLastReadPost = debounce(200, (lastPost) => {
-    if (topicFollow?.id && lastPost?.id &&
-        parseInt(lastPost.id) > parseInt(lastReadPostIdRef.current || 0)) {
-      try {
+  const chatViewId = chatView?.id
+  const groupId = group?.id
+  const updateLastReadPost = useMemo(
+    () => debounce(200, (lastPost) => {
+      if (!chatViewId || !groupId || !isPersistedChatPostId(lastPost)) return
+      if (parseInt(lastPost.id, 10) > parseInt(lastReadPostIdRef.current || 0, 10)) {
         lastReadPostIdRef.current = lastPost.id
-        dispatch(updateTopicFollow(topicFollow.id, { lastReadPostId: lastPost.id }))
-      } catch (error) {
-        console.error('Error updating last read post:', error)
+        dispatch(updateGroupViewUser(chatViewId, { lastReadPostId: lastPost.id }, groupId))
       }
-    }
-  })
-
-  const updateNotificationsSetting = useCallback((value) => {
-    setNotificationsSetting(value)
-    dispatch(updateTopicFollow(topicFollow?.id, { settings: { notifications: value } }))
-  }, [topicFollow?.id])
+    }),
+    [chatViewId, groupId, dispatch]
+  )
 
   const onRenderedDataChange = useCallback((data) => {
-    // Only attempt to update if we have data and a valid lastPost
-    if (data && data.length > 0) {
-      const lastPost = data[data.length - 1]
-      if (lastPost?.id) {
-        updateLastReadPost(lastPost)
-      }
-    }
-  }, [topicFollow?.id, topicFollow?.lastReadPostId])
+    if (suppressReadUpdateRef.current) return
+    // Last item in visual order is the bottom of the viewport — how far they have read.
+    const lastPost = [...(data || [])].reverse().find(isPersistedChatPostId)
+    if (lastPost) updateLastReadPost(lastPost)
+  }, [updateLastReadPost])
 
+  // (post.postReactions || []): posts that entered the list optimistically or over
+  // the socket carry no reactions array, and throwing here happens AFTER the API
+  // call fired — the reaction saved but never showed until a refresh
   const handleAddReaction = useCallback((post, emojiFull) => {
-    const optimisticUpdate = { postReactions: [...post.postReactions, { emojiFull, user: { name: currentUser.name, id: currentUser.id } }] }
+    const optimisticUpdate = { postReactions: [...(post.postReactions || []), { emojiFull, user: { name: currentUser.name, id: currentUser.id } }] }
     const newPost = { ...post, ...optimisticUpdate }
     messageListRef.current?.data.map((item) => post.id === item.id || (post.localId && post.localId === item.localId) ? newPost : item)
   }, [currentUser])
 
   const handleRemoveReaction = useCallback((post, emojiFull) => {
-    const postReactions = post.postReactions.filter(reaction => {
+    const postReactions = (post.postReactions || []).filter(reaction => {
       if (reaction.emojiFull === emojiFull && reaction.user.id === currentUser.id) return false
       return true
     })
-    const newPost = { ...post, postReactions: postReactions.filter(reaction => reaction.emojiFull !== emojiFull || reaction.user.id !== currentUser.id) }
+    const newPost = { ...post, postReactions }
     messageListRef.current?.data.map((item) => post.id === item.id || (post.localId && post.localId === item.localId) ? newPost : item)
   }, [currentUser])
 
@@ -613,73 +794,14 @@ export default function ChatRoom (props) {
     messageListRef.current?.data.map((item) => post.id === item.id || (post.localId && post.localId === item.localId) ? newPost : item)
   }, [group?.id])
 
-  const handleAddProposalVote = useCallback(({ post, optionId }) => {
-    const optimisticUpdate = {
-      proposalVotes: {
-        ...post.proposalVotes,
-        items: [
-          ...post.proposalVotes.items,
-          {
-            postId: post.id,
-            optionId,
-            user: currentUser
-          }
-        ]
-      }
-    }
-    const newPost = { ...post, ...optimisticUpdate }
-    messageListRef.current?.data.map((item) => post.id === item.id || (post.localId && post.localId === item.localId) ? newPost : item)
-  }, [currentUser])
-
-  const handleRemoveProposalVote = useCallback(({ post, optionId }) => {
-    const voteIndex = post.proposalVotes.items.findIndex(vote =>
-      vote?.user?.id === currentUser.id && vote.optionId === optionId)
-
-    if (voteIndex === -1) return
-
-    const newProposalVotes = [...post.proposalVotes.items]
-    newProposalVotes.splice(voteIndex, 1)
-
-    const optimisticUpdate = {
-      proposalVotes: {
-        ...post.proposalVotes,
-        items: newProposalVotes
-      }
-    }
-
-    const newPost = { ...post, ...optimisticUpdate }
-    messageListRef.current?.data.map((item) => post.id === item.id || (post.localId && post.localId === item.localId) ? newPost : item)
-  }, [currentUser])
-
-  const handleSwapProposalVote = useCallback(({ post, addOptionId, removeOptionId }) => {
-    const voteIndex = post.proposalVotes.items.findIndex(vote =>
-      vote?.user?.id === currentUser.id && vote.optionId === removeOptionId)
-
-    if (voteIndex === -1) return
-
-    const newProposalVotes = [...post.proposalVotes.items]
-    newProposalVotes[voteIndex] = {
-      postId: post.id,
-      optionId: addOptionId,
-      user: currentUser
-    }
-
-    const optimisticUpdate = {
-      proposalVotes: {
-        ...post.proposalVotes,
-        items: newProposalVotes
-      }
-    }
-
-    const newPost = { ...post, ...optimisticUpdate }
-    messageListRef.current?.data.map((item) => post.id === item.id || (post.localId && post.localId === item.localId) ? newPost : item)
-  }, [currentUser])
-
   // Create a new chat post
   const onCreate = useCallback((postToSave) => {
+    const groupId = group?.id || postToSave?.groups?.[0]?.id
+    if (!groupId) return false
     // Optimistic add new post, which will be replaced with the real post from the server
-    const post = presentPost(postToSave, group.id)
+    const post = presentPost(postToSave, groupId)
     if (!post) return false
+    if (post.id) newestLoadedIdRef.current = post.id
     messageListRef.current?.data.append([post], ({ scrollInProgress, atBottom }) => {
       if (atBottom || scrollInProgress) {
         return 'smooth'
@@ -688,27 +810,26 @@ export default function ChatRoom (props) {
       }
     })
     return true
-  }, [])
+  }, [group?.id])
 
   const afterCreate = useCallback(async (postData) => {
-    const post = presentPost(postData, group.id)
+    const groupId = group?.id || postData?.groups?.[0]?.id
+    if (!groupId) return
+    const post = presentPost(postData, groupId)
     if (!post) return
     // Only match the pending item (requires item.pending) to avoid matching old rehydrated posts
     // that may share the same localId after a page reload (lodash uniqueId resets from 0 each load).
     // Clear localId on the confirmed post so it's never persisted to redux-persist (if we ever bring that back).
     const confirmedPost = { ...post, localId: undefined }
     messageListRef.current?.data.map((item) => item.pending && post.localId && item.localId && post.localId === item.localId ? confirmedPost : item)
-    if (!notificationsSetting) {
-      // If the user has not set a notification setting for this chat room, we set it to all on the backend when creating a post so update the UI to match
-      setNotificationsSetting('all')
-    }
     // Sync lastReadPostId locally — update the ref immediately so updateLastReadPost won't fire a redundant
-    // network call before the Redux ORM re-render cycle completes.
-    if (post.id && topicFollow?.id) {
+    // network call before the Redux ORM re-render cycle completes. Read state is persisted by the backend
+    // on createPost; Redux is updated optimistically in CREATE_POST_PENDING / CREATE_POST.
+    if (post.id) {
       lastReadPostIdRef.current = post.id
-      dispatch({ type: UPDATE_TOPIC_FOLLOW_PENDING, meta: { id: topicFollow.id, data: { lastReadPostId: post.id } } })
+      newestLoadedIdRef.current = post.id
     }
-  }, [notificationsSetting, topicFollow?.id])
+  }, [group?.id])
 
   const handleRemovePost = useCallback((postId) => {
     messageListRef.current?.data.findAndDelete((item) => postId === item.id)
@@ -716,44 +837,137 @@ export default function ChatRoom (props) {
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
-    !hiddenTopic && setHeaderDetails({
+    setHeaderDetails({
       backButton: false,
-      title: `#${topicName}`,
-      headerActions: (
-        <>
-          <Select value={notificationsSetting} onValueChange={updateNotificationsSetting}>
-            <SelectTrigger
-              icon={<NotificationsIcon type={notificationsSetting} className='w-8 h-8 p-1 rounded-lg cursor-pointer border-2 border-foreground/20 transition-all duration-200 hover:border-foreground/50' />}
-              className='border-none p-0 focus:ring-0 focus:ring-offset-0 bg-transparent'
-            />
-            <SelectContent className='border-none'>
-              <SelectItem value='all'>All Chats</SelectItem>
-              <SelectItem value='important'>Only Announcements & Mentions</SelectItem>
-              <SelectItem value='none'>Mute this chat room</SelectItem>
-            </SelectContent>
-          </Select>
-          <Tooltip
-            delay={250}
-            place='bottom-start'
-            id='notifications-tt'
-          />
-        </>
-      ),
-      icon: null,
+      title: t('Chat'),
+      headerActions: null,
+      icon: <MessageSquareMore className='w-4 h-4' />,
       info: '',
-      // DEPRECATED: Now always enable search
-      search: true // !isWebView()
+      search: true
     })
-  }, [hiddenTopic, topicName, notificationsSetting])
+  }, [setHeaderDetails, t])
+
+  // ── Resizable chat width ──────────────────────────────────────────────────
+  const [chatStreamWidth, setChatStreamWidth] = useState(() => {
+    const saved = parseInt(window.localStorage.getItem(CHAT_WIDTH_KEY), 10)
+    return Number.isFinite(saved) ? Math.max(saved, MIN_CHAT_WIDTH) : DEFAULT_CHAT_WIDTH
+  })
+  const [chatPaneEl, setChatPaneEl] = useState(null)
+  const [chatPaneWidth, setChatPaneWidth] = useState(0)
+  const [resizingChatWidth, setResizingChatWidth] = useState(false)
+  const chatResizeDragRef = useRef(null)
+
+  useEffect(() => {
+    if (!chatPaneEl) return
+    const observer = new ResizeObserver(entries => {
+      setChatPaneWidth(entries[0]?.contentRect?.width ?? 0)
+    })
+    observer.observe(chatPaneEl)
+    return () => observer.disconnect()
+  }, [chatPaneEl])
+
+  // Widest the stream may grow: the rail hangs fully right of the stream edge,
+  // so reserve its width (plus the pane's px-1) instead of a mirrored gutter
+  const chatAvailableWidth = Math.max(0, chatPaneWidth - CHAT_GUTTER - CHAT_RAIL_WIDTH - 4)
+  const effectiveChatWidth = chatAvailableWidth ? Math.min(chatStreamWidth, chatAvailableWidth) : chatStreamWidth
+  // No rail until the pane outgrows the clamp enough for the rail to mean something
+  const showChatWidthRail = chatAvailableWidth >= Math.min(chatStreamWidth, DEFAULT_CHAT_WIDTH) + CHAT_RAIL_SLACK
+
+  const onChatRailPointerDown = useCallback((e) => {
+    e.preventDefault()
+    e.currentTarget.setPointerCapture(e.pointerId)
+    chatResizeDragRef.current = { startX: e.clientX, startWidth: effectiveChatWidth }
+    setResizingChatWidth(true)
+  }, [effectiveChatWidth])
+
+  const onChatRailPointerMove = useCallback((e) => {
+    const drag = chatResizeDragRef.current
+    if (!drag) return
+    const next = Math.min(Math.max(drag.startWidth + e.clientX - drag.startX, MIN_CHAT_WIDTH), chatAvailableWidth)
+    setChatStreamWidth(next)
+  }, [chatAvailableWidth])
+
+  const onChatRailPointerUp = useCallback(() => {
+    if (!chatResizeDragRef.current) return
+    chatResizeDragRef.current = null
+    setResizingChatWidth(false)
+    setChatStreamWidth(width => {
+      window.localStorage.setItem(CHAT_WIDTH_KEY, String(Math.round(width)))
+      return width
+    })
+  }, [])
 
   return (
-    <div className={cn('ChatRoom flex-1 min-h-0 shadow-md flex flex-col overflow-hidden items-center justify-center', { [styles.withoutNav]: withoutNav })} ref={setContainer}>
+    <div className={cn('ChatRoom flex-1 min-h-0 flex flex-col overflow-hidden items-center justify-center', { [styles.withoutNav]: withoutNav })} ref={setContainer}>
       <Helmet>
-        <title>#{topicName} | {group ? `${group.name} | ` : ''}Hylo</title>
+        <title>{t('Chat')} | {group?.name ? `${group.name} | ` : ''}Hylo</title>
       </Helmet>
 
-      <div id='chats' className='my-0 mx-auto h-[calc(100%-130px)] w-full flex flex-col flex-1 relative overflow-hidden px-1'>
-        {initialPostToScrollTo === null || (topicFollowLoading && !topicFollow)
+      <div
+        id='chats'
+        ref={setChatPaneEl}
+        className='my-0 mx-auto min-h-0 w-full flex flex-col flex-1 relative overflow-hidden overflow-x-clip px-1'
+        style={{ '--chat-stream-width': `${effectiveChatWidth}px` }}
+      >
+        {/* The stream header's wash, here as a still strip: theme background fading
+            to its own colour at zero alpha, so messages scroll under a soft top edge */}
+        <div aria-hidden='true' className='absolute top-0 left-0 right-0 h-14 z-20 pointer-events-none bg-gradient-to-b from-[hsl(var(--theme-background)/0.1)] dark:from-[hsl(var(--theme-background)/0.5)] to-[hsl(var(--theme-background)/0)]' />
+        {/* Pinned posts ride the top edge as chips. On phones there's no room
+            beside the presence cluster (it renders at full desktop width), so
+            the chips column tucks right-aligned beneath it; sm+ keeps the
+            strip on the same row, left of the cluster */}
+        <PinnedPostChips
+          posts={pinnedPosts}
+          viewId={chatView?.id}
+          groupId={group?.id}
+          canModerate={canModerateContent}
+          className='absolute z-30 top-11 left-16 right-2 sm:top-1.5 sm:left-3 sm:right-[240px]'
+        />
+        {/* Width rail on the clamp edge. The triangles stay visible as a quiet
+            hint; the dashed line and its wash only surface on hover or drag.
+            left includes the pane's px-1, which offsets content but not
+            absolutely positioned children. */}
+        {showChatWidthRail && (
+          <div
+            role='separator'
+            aria-orientation='vertical'
+            aria-label={t('Adjust chat width')}
+            className={cn(
+              'absolute top-0 bottom-0 z-20 flex flex-col items-center justify-between group touch-none select-none',
+              resizingChatWidth ? 'cursor-grabbing' : 'cursor-grab'
+            )}
+            style={{ left: 4 + CHAT_GUTTER + effectiveChatWidth, width: CHAT_RAIL_WIDTH }}
+            onPointerDown={onChatRailPointerDown}
+            onPointerMove={onChatRailPointerMove}
+            onPointerUp={onChatRailPointerUp}
+            onPointerCancel={onChatRailPointerUp}
+          >
+            <div className={cn(
+              'absolute inset-0 rounded-lg transition-colors',
+              resizingChatWidth ? 'bg-[hsl(var(--theme-background)/0.2)]' : 'group-hover:bg-[hsl(var(--theme-background)/0.2)]'
+            )}
+            />
+            <div className={cn(
+              'absolute top-[9px] bottom-[9px] left-1/2 -ml-px border-l-2 border-dashed transition-colors',
+              resizingChatWidth ? 'border-foreground/40' : 'border-transparent group-hover:border-foreground/40'
+            )}
+            />
+            <div className={cn(
+              'relative w-0 h-0 border-x-4 border-x-transparent border-t-[6px] transition-colors',
+              resizingChatWidth ? 'border-t-foreground/60' : 'border-t-foreground/30 group-hover:border-t-foreground/60'
+            )}
+            />
+            <div className={cn(
+              'relative w-0 h-0 border-x-4 border-x-transparent border-b-[6px] transition-colors',
+              resizingChatWidth ? 'border-b-foreground/60' : 'border-b-foreground/30 group-hover:border-b-foreground/60'
+            )}
+            />
+          </div>
+        )}
+        {/* Member pill + active strip + slide-in list; absolute inside this container
+            so the cover blankets the chat pane and nothing else */}
+        <ChatMembersPanel group={group} latestPost={postsForDisplay[postsForDisplay.length - 1]} />
+        {initialPostToScrollTo === null || groupLoading || chatViewLoading
           ? (
             <div className='h-full w-full mt-auto overflow-x-visible flex flex-col justify-end min-h-[40vh]'>
               <StreamSkeleton columnVariant='chat' />
@@ -763,7 +977,7 @@ export default function ChatRoom (props) {
             <VirtuosoMessageListLicense licenseKey={import.meta.env.VITE_VIRTUOSO_KEY}>
               <VirtuosoMessageList
                 style={{ height: '100%', width: '100%', marginTop: 'auto', overflowX: 'visible' }}
-                className='px-1 sm:px-2'
+                className='px-3 sm:px-5'
                 ref={messageListRef}
                 context={{
                   currentUser,
@@ -775,30 +989,28 @@ export default function ChatRoom (props) {
                   loadedPast,
                   loadingFuture,
                   loadingPast,
-                  newPostCount: topicFollow?.newPostCount,
+                  hasMorePast: hasMorePastRef.current,
+                  keptHeaderPostIds: keptHeaderPostIdsRef.current,
+                  newPostCount: chatView?.newPostCount,
                   numPosts: postsForDisplay.length,
                   handleAddReaction,
                   handleFlagPost,
                   handleRemovePost,
                   handleRemoveReaction,
-                  handleAddProposalVote,
-                  handleRemoveProposalVote,
-                  handleSwapProposalVote,
                   loadToLatest,
                   postIdToStartAt,
-                  selectedPostId,
-                  topicName
+                  selectedPostId
                 }}
                 initialData={postsForDisplay}
                 initialLocation={{ index: initialPostToScrollTo, align: 'start-no-overflow' }}
                 shortSizeAlign='bottom-smooth'
-                computeItemKey={({ data, index }) => data?.id ?? data?.localId ?? `chat-${topicFollow.id}-${index}`}
+                computeItemKey={({ data, index }) => data?.id != null ? String(data.id) : (data?.localId ?? `chat-${chatView?.id ?? groupSlug}-${index}`)}
+                itemIdentity={item => item?.id != null ? String(item.id) : item?.localId}
                 onScroll={onScroll}
                 onRenderedDataChange={onRenderedDataChange}
                 EmptyPlaceholder={EmptyPlaceholder}
                 Footer={Footer}
                 Header={Header}
-                StickyHeader={StickyHeader}
                 StickyFooter={StickyFooter}
                 ItemContent={ItemContent}
               />
@@ -807,18 +1019,27 @@ export default function ChatRoom (props) {
       </div>
 
       {/* Post chat box */}
-      <div className='ChatBoxContainer w-full max-w-[750px] border-t-2 border-l-2 border-r-2 border-foreground/10 shadow-xl rounded-t-lg overflow-y-auto'>
+      {/* The typing strip renders nothing while idle — in flow it reserved a
+          dead band above the input (worst on phones), and as an overlay it
+          crowded the newest message. When someone types it takes its row and
+          the list nudges up, which reads as activity. Padding inside the
+          scroller stays off-limits (skews Virtuoso's atBottom check, which
+          pinned the phone one message shy of the bottom). */}
+      <PeopleTyping groupId={group?.id} hideWhenEmpty className='w-full px-3 sm:px-5 py-1 text-xs text-foreground/50' />
+      {/* Composer floats with margins matching the message gutter (left edge = avatar edge).
+          Subtle gradient settles the pane into a darker hue beneath the input. */}
+      <div className='ChatBoxContainer w-full shrink-0 px-3 sm:px-5 pb-3 sm:pb-5 pt-0 bg-gradient-to-b from-transparent to-darkening/[0.05] dark:to-darkening/25'>
         {/* Drafts are scoped per chat topic so switching rooms does not leak text */}
-        <PostEditor
-          context='groups'
-          customTopicName={customTopicName}
-          markAsReadTopicName={topicName}
-          autoFocus={!isMobile.any}
-          modal={false}
-          draftId={`chat:${groupSlug || 'global'}:${topicName || 'default'}`}
-          onSave={onCreate}
-          afterSave={afterCreate}
-        />
+        {group?.id && (
+          <ChatEditor
+            context='groups'
+            autoFocus={!isMobile.any}
+            onSave={onCreate}
+            afterSave={afterCreate}
+            onComposerFocus={() => { composerFocusedRef.current = true }}
+            onComposerBlur={() => { composerFocusedRef.current = false }}
+          />
+        )}
       </div>
       {/* DEPRECATED: Now always show PostDialog routes */}
       {/* {!isWebView() && ( */}
@@ -832,14 +1053,14 @@ export default function ChatRoom (props) {
 
 /** * Virtuoso Components ***/
 const EmptyPlaceholder = ({ context }) => {
-  const { t } = useTranslation()
+  // Virtuoso can paint this before initialData lands. If Redux already has
+  // posts, stay blank rather than flashing the empty-room copy.
+  if (context.numPosts > 0) return null
   return (
     <div className='mx-auto flex flex-col items-center justify-center max-w-[750px] h-full min-h-[50vh]'>
       {!context.loadedPast || !context.loadedFuture || !context.hasFetchedForCurrentRoom
         ? <StreamSkeleton columnVariant='chat' />
-        : context.topicName === DEFAULT_CHAT_TOPIC && context.numPosts === 0
-          ? <HomeChatWelcome group={context.group} />
-          : <NoPosts className={styles.noPosts} icon='message-dashed' message={t('No messages yet. Start the conversation!')} />}
+        : <EmptyChatWelcome />}
     </div>
   )
 }
@@ -852,26 +1073,16 @@ const Footer = ({ context }) => {
   return context.loadingFuture ? <div className={styles.loadingContainerBottom}><Loading /></div> : null
 }
 
-const StickyHeader = ({ data, prevData, context }) => {
-  const firstItem = useCurrentlyRenderedData()[0]
-  const createdAt = firstItem?.createdAt ? DateTimeHelpers.toDateTime(firstItem.createdAt, { locale: getLocaleFromLocalStorage() }) : null
-  const displayDay = createdAt && getDisplayDay(createdAt)
-
-  if (!context.loadingPast && !context.loadingFuture && context.numPosts === 0) return null
-
-  return (
-    <div className='!absolute top-0 w-full relative py-4'>
-      <div className={cn('absolute right-0 text-sm text-foreground/50 bg-background/50 hover:bg-background/100 hover:text-foreground/100 rounded-l-[15px] px-[10px] pl-[15px] h-[30px] leading-[30px] min-w-[130px] text-center')}>
-        {displayDay}
-      </div>
-    </div>
-  )
-}
-
 const StickyFooter = ({ context }) => {
   const location = useVirtuosoLocation()
   const virtuosoMethods = useVirtuosoMethods()
-  const showJumpButton = location.bottomOffset > 200 || context.newPostCount > 0
+  // Only once the bottom sits well below the fold. A just-arrived message dips
+  // below the fold for a beat before the list auto-scrolls to it — this distance
+  // comfortably exceeds that dip, so the button cannot flash during the settle.
+  // The unread count alone no longer forces the button: near the bottom the
+  // auto-scroll is already taking you there.
+  const JUMP_VISIBLE_BELOW_FOLD_PX = 400
+  const showJumpButton = location.bottomOffset > JUMP_VISIBLE_BELOW_FOLD_PX
   const showLoadingPulse = context.loadingFuture
 
   if (!showJumpButton && !showLoadingPulse) return null
@@ -931,22 +1142,28 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
     handleAddReaction,
     handleFlagPost,
     handleRemovePost,
-    handleRemoveReaction,
-    handleAddProposalVote,
-    handleRemoveProposalVote,
-    handleSwapProposalVote
+    handleRemoveReaction
   } = context
   const { t } = useTranslation()
   if (!post) return null
+  if (post.type === 'chat_activity') return null
   const expanded = context.selectedPostId === post.id
   const highlighted = post.id && context.postIdToStartAt === post.id
-  const firstUnread = context.latestOldPostId === prevData?.id && post.creator.id !== context.currentUser.id
+  const firstUnread = samePostId(context.latestOldPostId, prevData?.id) && post.creator.id !== context.currentUser.id
   const previousDay = prevData?.createdAt ? DateTimeHelpers.toDateTime(prevData.createdAt, { locale: getLocaleFromLocalStorage() }) : DateTimeHelpers.dateTimeNow(getLocaleFromLocalStorage())
   const currentDay = DateTimeHelpers.toDateTime(post.createdAt, { locale: getLocaleFromLocalStorage() })
-  const displayDay = prevData?.createdAt && previousDay.hasSame(currentDay, 'day') ? null : getDisplayDay(currentDay)
+  const sameDayAsPrevious = !!(prevData?.createdAt && previousDay.hasSame(currentDay, 'day'))
+  const displayDay = chatShowsDayLabel({
+    prevCreatedAt: prevData?.createdAt,
+    sameDayAsPrevious,
+    hasMorePast: context.hasMorePast
+  })
+    ? getDisplayDay(currentDay)
+    : null
   const createdTimeDiff = currentDay.diff(previousDay, 'minutes')?.toObject().minutes || 1000
   /* Display the author header if
   * There was no previous post
+  * Or this post already showed a header (do not drop it after prepend)
   * Or this post is the first unread post
   * Or this post is from a different day than the last post
   * Or it's been more than 5 minutes since the last post
@@ -954,7 +1171,9 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
   * Or the last post had any comments on it
   * Or the last past was a non chat type post
   */
-  const showHeader = !prevData || firstUnread || !!displayDay || createdTimeDiff > MAX_MINS_TO_BATCH || prevData.creator.id !== post.creator.id || prevData.commentersTotal > 0 || prevData.type !== 'chat'
+  if (!prevData && post.id != null) context.keptHeaderPostIds?.add(String(post.id))
+  const keepHeader = post.id != null && context.keptHeaderPostIds?.has(String(post.id))
+  const showHeader = keepHeader || !prevData || firstUnread || !!displayDay || createdTimeDiff > MAX_MINS_TO_BATCH || prevData.creator.id !== post.creator.id || prevData.commentersTotal > 0 || prevData.type !== 'chat'
   // Only calculate delay for initial load near bottom
   const isInitialLoad = context.numPosts > 0 && index > context.numPosts - 20
   const delay = isInitialLoad ? Math.min((context.numPosts - index - 1) * 35, 2000) : 0
@@ -966,22 +1185,29 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
 
   return (
     <>
+      {/* Same shape as the day divider below, in the notification bubble's accent.
+          Arbitrary value for the rule: accent has no <alpha-value> placeholder, so
+          slash-opacity classes on it are silently ignored */}
       {firstUnread &&
-        <div className='w-full relative py-3 text-sm'>
-          <hr className='border-t-2 border-red-500' />
-          <span className='text-red-500 text-center w-full block'>{t('New posts')}</span>
+        <div className='w-full flex items-center my-3'>
+          <div className='text-accent text-xs font-semibold whitespace-nowrap'>{t('New posts')}</div>
+          <div className='grow ml-4 border-t border-dashed border-[hsl(var(--accent)/0.3)]' />
         </div>}
       {displayDay && (
         <div className='w-full flex items-center my-3'>
-          <div className='grow h-px bg-foreground/10' />
-          <div className='mx-4 text-foreground/40 text-sm whitespace-nowrap'>{displayDay}</div>
-          <div className='grow h-px bg-foreground/10' />
+          <div className='text-foreground/40 text-xs whitespace-nowrap'>{displayDay}</div>
+          <div className='grow ml-4 border-t border-dashed border-foreground/10' />
         </div>
       )}
       {post.type === 'chat'
         ? (
+          // Last message keeps a gap above the composer equal to the list's left
+          // gutter (px-3 sm:px-5). Keyed on !nextData, not numPosts — appended
+          // posts (socket / optimistic send) grow the Virtuoso list before
+          // context.numPosts catches up, which left the newest message flush
+          // against the bottom.
           <div
-            className={cn('mx-auto max-w-[750px] transition-all mb-0', animationClass, { 'mb-5': index === context.numPosts - 1 })}
+            className={cn('max-w-[var(--chat-stream-width,750px)] transition-all mb-0', animationClass, { 'mb-3 sm:mb-5': !nextData })}
             style={animationStyle}
           >
             <ChatPost
@@ -998,22 +1224,12 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
           </div>)
         : (
           <div
-            className={`mx-auto max-w-[750px] mt-2 ${animationClass}`}
+            className={cn('max-w-[var(--chat-stream-width,750px)] my-2', animationClass, { 'mb-3 sm:mb-5': !nextData })}
             style={animationStyle}
           >
-            <PostCard
-              chat
-              group={context.group}
-              expanded={expanded}
+            <ChatPostNotice
               highlighted={highlighted}
               post={post}
-              onAddReaction={handleAddReaction}
-              onRemoveReaction={handleRemoveReaction}
-              onRemovePost={handleRemovePost}
-              onFlagPost={handleFlagPost}
-              onAddProposalVote={handleAddProposalVote}
-              onRemoveProposalVote={handleRemoveProposalVote}
-              onSwapProposalVote={handleSwapProposalVote}
             />
           </div>
           )}
@@ -1021,26 +1237,13 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
   )
 }
 
-const HomeChatWelcome = ({ group }) => {
+const EmptyChatWelcome = () => {
   const { t } = useTranslation()
-  const navigate = useNavigate()
-  const canAddMembers = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADD_MEMBERS, groupId: group?.id }))
 
   return (
     <div className='mx-auto px-4 max-w-[500px] flex flex-col items-center justify-center'>
-      <img src='/home-chat-welcome.png' alt='Golden Starburst' />
-      <h1 className='text-center'>{t('homeChatWelcomeTitle')}</h1>
-      <p className='text-center'>{t('homeChatWelcomeDescription', { group_name: group.name })}</p>
-      <div className='flex gap-2 items-center justify-center'>
-        {canAddMembers && (
-          <>
-            <Button onClick={() => navigate(groupUrl(group.slug, 'settings/invite'))}><Send /> {t('Send Invites')}</Button>
-            <CopyToClipboard text={groupInviteUrl(group)}>
-              <Button><Copy /> {t('Copy Invite Link')}</Button>
-            </CopyToClipboard>
-          </>
-        )}
-      </div>
+      <img src='/home-chat-welcome.png' alt='' />
+      <h1 className='text-center'>{t('It\'s quiet in here, start the conversation.')}</h1>
     </div>
   )
 }

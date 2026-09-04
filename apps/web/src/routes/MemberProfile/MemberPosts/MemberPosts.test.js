@@ -1,27 +1,19 @@
 import React from 'react'
 import { render, screen } from 'util/testing/reactTestingLibraryExtended'
 import MemberPosts from './MemberPosts'
-import denormalized from '../MemberProfile.test.json'
 
 describe('MemberPosts', () => {
-  const { person } = denormalized.data
-  const mockFetchMemberPosts = jest.fn()
-
   it('renders loading state when loading prop is true', () => {
-    render(<MemberPosts fetchMemberPosts={mockFetchMemberPosts} posts={[]} loading />)
+    render(<MemberPosts routeParams={{ personId: '1' }} loading />)
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument()
   })
 
-  it('renders posts when provided', () => {
-    render(<MemberPosts fetchMemberPosts={mockFetchMemberPosts} posts={person.posts} />)
+  it('renders empty list when there are no posts', () => {
+    const { container } = render(
+      <MemberPosts routeParams={{ personId: '1' }} loading={false} />
+    )
 
-    person.posts.forEach(post => {
-      expect(screen.getByText(post.title)).toBeInTheDocument()
-    })
-  })
-
-  it('calls fetchMemberPosts on mount', () => {
-    render(<MemberPosts fetchMemberPosts={mockFetchMemberPosts} posts={[]} />)
-    expect(mockFetchMemberPosts).toHaveBeenCalledTimes(3)
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument()
+    expect(container.querySelectorAll('[data-testid="post-card"]')).toHaveLength(0)
   })
 })

@@ -24,10 +24,16 @@ export default gql`
           id
           allowLateJoiners
           allowSelfVoting
-          bannerUrl
           createdAt
           criteria
-          description
+          group {
+            id
+            name
+            slug
+            description
+            bannerUrl
+            status
+          }
           isParticipating
           hideFinalResultsFromParticipants
           maxTokenAllocation
@@ -35,13 +41,12 @@ export default gql`
           numParticipants
           numSubmissions
           phase
-          publishedAt
           requireBudget
+          showRealtimeVotes
           submissionDescriptor
           submissionDescriptorPlural
           submissionsCloseAt
           submissionsOpenAt
-          title
           tokenType
           totalTokens
           totalTokensAllocated
@@ -59,6 +64,4 @@ export default gql`
         }
       }
     }
-  }
-`
-
+  }`

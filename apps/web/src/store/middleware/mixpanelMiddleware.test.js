@@ -28,6 +28,14 @@ describe('mixpanelMiddleware', () => {
         current: {
           loggedIn: false
         },
+        authSession: {
+          status: 'anonymous',
+          userId: null,
+          emailValidated: null,
+          hasRegistered: null,
+          signupInProgress: null,
+          checkedAt: null
+        },
         orm: session.state
       })
     }

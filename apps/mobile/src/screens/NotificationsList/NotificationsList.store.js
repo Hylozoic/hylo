@@ -2,7 +2,7 @@ import { gql } from 'urql'
 import { find, pick } from 'lodash/fp'
 import { TextHelpers } from '@hylo/shared'
 import { openURL } from 'hooks/useOpenURL'
-import { personUrl, chatUrl, groupUrl } from '@hylo/navigation'
+import { personUrl, chatUrl, groupUrl, localSpaceSlug, spaceUrl } from '@hylo/navigation'
 
 export const ACTION_ANNOUNCEMENT = 'announcement'
 export const ACTION_APPROVED_JOIN_REQUEST = 'approvedJoinRequest'
@@ -13,6 +13,7 @@ export const ACTION_DONATION_FROM = 'donation from'
 export const ACTION_EVENT_INVITATION = 'eventInvitation'
 export const ACTION_GROUP_CHILD_GROUP_INVITE = 'groupChildGroupInvite'
 export const ACTION_GROUP_CHILD_GROUP_INVITE_ACCEPTED = 'groupChildGroupInviteAccepted'
+export const ACTION_GROUP_INVITATION = 'groupInvitation'
 export const ACTION_GROUP_PARENT_GROUP_JOIN_REQUEST = 'groupParentGroupJoinRequest'
 export const ACTION_GROUP_PARENT_GROUP_JOIN_REQUEST_ACCEPTED = 'groupParentGroupJoinRequestAccepted'
 export const ACTION_GROUP_PEER_GROUP_INVITE = 'groupPeerGroupInvite'
@@ -31,6 +32,7 @@ export const NOTIFICATIONS_WHITELIST = [
   ACTION_TAG,
   ACTION_JOIN_REQUEST,
   ACTION_APPROVED_JOIN_REQUEST,
+  ACTION_GROUP_INVITATION,
   ACTION_MEMBER_JOINED_GROUP,
   ACTION_MENTION,
   ACTION_COMMENT_MENTION,
@@ -47,6 +49,18 @@ export const NOTIFICATIONS_WHITELIST = [
 ]
 
 export const NOTIFICATION_TEXT_MAX = 76
+
+function groupChatUrlOpts (group) {
+  const parentSlug = group?.parentGroup?.slug
+  if (parentSlug && (group?.type === 'space' || group?.parentId)) {
+    return {
+      context: 'group',
+      groupSlug: parentSlug,
+      spaceSlug: localSpaceSlug(parentSlug, group.slug)
+    }
+  }
+  return { context: 'group', groupSlug: group?.slug }
+}
 
 export const markActivityReadMutation = gql`
   mutation ($id: ID) {
@@ -88,12 +102,12 @@ export function refineActivity ({ action, actor, comment, group, post, track, me
   switch (action) {
     case ACTION_CHAT: {
       const topicReason = find(r => r.startsWith('chat: '), meta.reasons)
-      const topic = topicReason.split(': ')[1]
+      const topic = topicReason?.split(': ')[1]
       return {
         body: `${t('wrote:')} "${truncateHTML(post.details)}"`,
         header: t('New Chat')+':',
         objectName: group.name,
-        onPress: () => openURL(chatUrl(topic, { context: 'group', groupSlug: group?.slug }) + `?postId=${post.id}`)
+        onPress: () => openURL(chatUrl(topic, groupChatUrlOpts(group)) + `?postId=${post.id}`)
       }
     }
 
@@ -136,7 +150,7 @@ export function refineActivity ({ action, actor, comment, group, post, track, me
         body: `${t('wrote:')} "${truncateHTML(post.details)}"`,
         header: t('New Post in'),
         objectName: topic,
-        onPress: () => openURL(chatUrl(topic, { context: 'group', groupSlug: group?.slug }) + `?postId=${post.id}`)
+        onPress: () => openURL(chatUrl(topic, groupChatUrlOpts(group)) + `?postId=${post.id}`)
       }
     }
 
@@ -151,11 +165,36 @@ export function refineActivity ({ action, actor, comment, group, post, track, me
 
     case ACTION_JOIN_REQUEST:
       return {
-        body: t('asked to join'),
-        group: group.name,
+        body: otherGroup?.name
+          ? t('asked to join {{spaceName}} in {{groupName}}', { spaceName: group.name, groupName: otherGroup.name })
+          : t('asked to join'),
+        group: otherGroup?.name ? undefined : group.name,
         header: t('New join request'),
         nameInHeader: true,
-        onPress: () => openURL(`/groups/${group?.slug}/settings/requests`)
+        onPress: () => {
+          const parentSlug = otherGroup?.slug || group?.parentGroup?.slug
+          if (parentSlug && group?.slug) {
+            openURL(spaceUrl(parentSlug, localSpaceSlug(parentSlug, group.slug), 'requests'))
+            return
+          }
+          openURL(groupUrl(group?.slug, 'settings/requests'))
+        }
+      }
+
+    case ACTION_GROUP_INVITATION:
+      return {
+        body: otherGroup?.name
+          ? t('{{name}} has invited you to join them in space {{spaceName}} in {{groupName}}', {
+            name: actor.name,
+            spaceName: group.name,
+            groupName: otherGroup.name
+          })
+          : t('{{name}} has invited you to join them in {{groupName}}', {
+            name: actor.name,
+            groupName: group.name
+          }),
+        header: t('New Invitation'),
+        onPress: () => openURL('/my/invitations')
       }
 
     case ACTION_APPROVED_JOIN_REQUEST:

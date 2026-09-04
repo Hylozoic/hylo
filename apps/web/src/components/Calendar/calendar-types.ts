@@ -10,6 +10,7 @@ export type HyloPost = {
   id: string
   startTime: string
   endTime: string
+  timezone?: string
   title: string
   groups: HyloGroup[]
   type: string

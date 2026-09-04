@@ -10,10 +10,13 @@ import { mapValues, camelCase } from 'lodash'
 import orm from 'store/models'
 import { createSelector as ormCreateSelector } from 'redux-orm'
 import {
+  FETCH_MODERATION_ACTIONS,
   FETCH_POST,
   FETCH_POSTS,
   FETCH_TOPICS,
   FETCH_DEFAULT_TOPICS,
+  CREATE_MODERATION_ACTION,
+  CREATE_MODERATION_ACTION_PENDING,
   CREATE_POST,
   CREATE_PROJECT,
   DROP_QUERY_RESULTS,
@@ -24,6 +27,8 @@ import {
   FETCH_CHILD_COMMENTS,
   FETCH_COMMENTS,
   REMOVE_POST_PENDING,
+  REMOVE_POST_FROM_VIEW_PENDING,
+  REORDER_VIEW_POST_PENDING,
   SAVE_POST_PENDING,
   UNSAVE_POST_PENDING,
   FULFILL_POST_PENDING,
@@ -41,6 +46,7 @@ import {
   FETCH_POSTS_MAP_DRAWER
 } from 'routes/MapExplorer/MapExplorer.store'
 import { FETCH_MEMBERS, REMOVE_MEMBER_PENDING } from 'routes/Members/Members.store'
+import { OPTIMISTIC_NOTICE_PREFIX, parseNoticeData } from 'store/util/chatActivityNotice'
 // reducer
 
 export default function (state = {}, action) {
@@ -70,11 +76,39 @@ export default function (state = {}, action) {
   //
 
   switch (type) {
+    case CREATE_MODERATION_ACTION_PENDING: {
+      const tempId = meta?.tempId
+      if (!tempId) return state
+      const slugs = uniq((meta.slugs || []).filter(Boolean))
+      return slugs.reduce((memo, slug) => {
+        return prependIdForCreate(memo, FETCH_MODERATION_ACTIONS, { slug, sortBy: 'created' }, tempId)
+      }, state)
+    }
+
+    case CREATE_MODERATION_ACTION: {
+      const createdId = payload?.data?.createModerationAction?.id
+      if (!createdId) return state
+      let nextState = state
+      if (meta?.tempId) {
+        nextState = replaceIdInQueryResults(nextState, meta.tempId, createdId)
+      }
+      const slugs = uniq((meta.slugs || []).filter(Boolean))
+      return slugs.reduce((memo, slug) => {
+        return prependIdForCreate(memo, FETCH_MODERATION_ACTIONS, { slug, sortBy: 'created' }, createdId)
+      }, nextState)
+    }
+
     case CREATE_PROJECT:
     case CREATE_POST:
     case RECEIVE_POST:
       root = {
         ...(payload.data[camelCase(type)] || payload.data.post)
+      }
+      if (root.type === 'chat_activity') {
+        const bucketKey = parseNoticeData(root.noticeData)?.bucketKey
+        if (bucketKey) {
+          state = replaceIdInQueryResults(state, `${OPTIMISTIC_NOTICE_PREFIX}${bucketKey}`, root.id)
+        }
       }
       return matchNewPostIntoQueryResults(state, root)
 
@@ -124,6 +158,32 @@ export default function (state = {}, action) {
           ...results,
           ids: results.ids.filter(id => id !== meta.postId)
         }
+      })
+
+    case REMOVE_POST_FROM_VIEW_PENDING:
+      return mapValues(state, (results, key) => {
+        const keyObject = JSON.parse(key)
+        if (String(get('params.forCollection', keyObject)) !== String(meta.viewId)) return results
+        return {
+          ...results,
+          ids: results.ids.filter(id => String(id) !== String(meta.postId)),
+          total: (results.total || results.total === 0) && results.total - 1
+        }
+      })
+
+    case REORDER_VIEW_POST_PENDING:
+      return mapValues(state, (results, key) => {
+        const keyObject = JSON.parse(key)
+        if (String(get('params.forCollection', keyObject)) !== String(meta.viewId)) return results
+        if (get('params.sortBy', keyObject) && get('params.sortBy', keyObject) !== 'order') return results
+        const ids = results.ids || []
+        const fromIndex = ids.findIndex(id => String(id) === String(meta.postId))
+        if (fromIndex === -1 || fromIndex === meta.order) return results
+        const next = [...ids]
+        const [moved] = next.splice(fromIndex, 1)
+        const insertAt = Math.max(0, Math.min(meta.order, next.length))
+        next.splice(insertAt, 0, moved)
+        return { ...results, ids: next }
       })
 
     case UNSAVE_POST_PENDING:
@@ -194,7 +254,7 @@ export default function (state = {}, action) {
   return state
 }
 
-export function matchNewPostIntoQueryResults (state, { id, isPublic, type, groups, topics = [] }) {
+export function matchNewPostIntoQueryResults (state, { id, isPublic, type, groups = [], topics = [] }) {
   /* about this:
       we add the post id into queryResult sets that are based on time of
       creation because we know that the post just created is the latest
@@ -203,25 +263,29 @@ export function matchNewPostIntoQueryResults (state, { id, isPublic, type, group
   */
   const queriesToMatch = []
 
-  // All Groups stream w/ topics
-  queriesToMatch.push({ context: 'all' })
-  for (const topic of topics) {
-    queriesToMatch.push(
-      { context: 'all', topic: topic.id }
-    )
+  // All Groups stream w/ topics — skip system notices
+  if (type !== 'chat_activity') {
+    queriesToMatch.push({ context: 'all' })
+    for (const topic of topics) {
+      queriesToMatch.push(
+        { context: 'all', topic: topic.id }
+      )
+    }
+
+    // Public posts stream
+    if (isPublic) {
+      queriesToMatch.push({ context: 'public' })
+    }
   }
 
-  // Public posts stream
-  if (isPublic) {
-    queriesToMatch.push({ context: 'public' })
-  }
-
-  const groupSlugs = groups.map(g => g.slug)
+  const groupSlugs = groups.map(g => g.slug).filter(Boolean)
+  const parentIds = groups.map(g => g.parentId).filter(Boolean).map(String)
 
   // Group streams
   const updatedState = reduce((memo, group) => {
-    // Chat posts only appear in the chat rooms, nowhere else
-    if (type !== 'chat') {
+    // Chat posts only appear in the chat rooms, nowhere else.
+    // chat_activity notices are matched into All Activity below.
+    if (type !== 'chat' && type !== 'chat_activity') {
       queriesToMatch.push(
         // TODO: add types here
         { context: 'groups', slug: group.slug },
@@ -300,20 +364,38 @@ export function matchNewPostIntoQueryResults (state, { id, isPublic, type, group
     }, memo, queriesToMatch)
   }, state, groups)
 
-  // Generically handle queries that filter by a `types` array (e.g. requests-and-offers, projects, resources views).
-  // The existing queriesToMatch logic only covers `filter` (single type); this covers multi-type views.
+  // Typed views (`types` array), All Activity, and group/space chat rooms are
+  // not covered by the explicit queriesToMatch list: their keys carry params
+  // (`first`, `groupId`) the templates above omit.
+  // Move an existing id to the front when the same chat_activity hour bucket is updated.
   return mapValues(updatedState, (results, key) => {
-    if (!results?.ids || results.ids.includes(id) || type === 'chat') return results
+    if (!results?.ids) return results
     const keyObject = JSON.parse(key)
-    const typesArray = keyObject.params?.types
-    if (!typesArray || !typesArray.includes(type)) return results
-    if (!groupSlugs.includes(keyObject.params?.slug)) return results
-    return {
-      ...results,
-      ids: [id].concat(results.ids),
-      total: (results.total || results.total === 0) && results.total + 1,
-      hasMore: results.hasMore
+    if (keyObject.type !== FETCH_POSTS) return results
+    const params = keyObject.params || {}
+    if (!groupSlugs.includes(params.slug) && !(params.groupId && parentIds.includes(String(params.groupId)))) return results
+
+    if (type === 'chat') {
+      if (params.filter !== 'chat') return results
+      if (params.search) return results
+      if (params.types && !params.types.includes('chat')) return results
+      if (params.topic && !topics.some(t => String(t.id) === String(params.topic))) return results
+      return moveIdToFront(results, id)
     }
+
+    const matchesTypes = params.types?.includes(type)
+    // Show chat activity ON → filter is all+notices (includes chat_activity cards)
+    const isAllActivityWithNotices = params.filter === 'all+notices'
+    // Show chat activity OFF → no filter and no types, same as the server's
+    // blank / "all" streamTypes query. Notices must not land here.
+    const isAllActivityWithoutNotices = type !== 'chat_activity' &&
+      (!params.filter || params.filter === 'all') &&
+      !params.types?.length &&
+      !params.topic &&
+      !params.topics?.length &&
+      !params.forCollection
+    if (!matchesTypes && !isAllActivityWithNotices && !isAllActivityWithoutNotices) return results
+    return moveIdToFront(results, id)
   })
 }
 
@@ -361,19 +443,42 @@ export function matchSubCommentsIntoQueryResults (state, { data }) {
   return state
 }
 
+/** Swaps a temporary notice id for the real server id in every result set. */
+function replaceIdInQueryResults (state, fromId, toId) {
+  if (!fromId || String(fromId) === String(toId)) return state
+  const from = String(fromId)
+  const to = String(toId)
+  return mapValues(state, results => {
+    if (!results?.ids) return results
+    if (!results.ids.some(id => String(id) === from)) return results
+    return {
+      ...results,
+      ids: uniq(results.ids.map(id => String(id) === from ? to : id))
+    }
+  })
+}
+
 function prependIdForCreate (state, type, params, id) {
   const key = buildKey(type, params)
   if (!state[key]) return state
-  return !state[key].ids.includes(id)
-    ? {
-        ...state,
-        [key]: {
-          ids: [id].concat(state[key].ids),
-          total: (state[key].total || state[key].total === 0) && state[key].total + 1,
-          hasMore: state[key].hasMore
-        }
-      }
-    : state
+  return {
+    ...state,
+    [key]: moveIdToFront(state[key], id)
+  }
+}
+
+/** Puts `id` at the front of a query-result id list, incrementing total when new. */
+function moveIdToFront (results, id) {
+  const idStr = String(id)
+  const ids = results.ids || []
+  const without = ids.filter(x => String(x) !== idStr)
+  const alreadyHad = without.length !== ids.length
+  return {
+    ...results,
+    ids: [idStr].concat(without),
+    total: alreadyHad ? results.total : (results.total || results.total === 0) && results.total + 1,
+    hasMore: results.hasMore
+  }
 }
 
 function appendId (state, type, params, id) {
@@ -453,8 +558,12 @@ export const queryParamWhitelist = [
   'createdBy',
   'farmQuery',
   'filter',
+  'first',
   'forCollection',
+  'fundingRoundCapability',
+  'groupId',
   'groupIds',
+  'groupRoleId',
   'groupSlug',
   'groupSlugs',
   'groupType',
@@ -471,6 +580,7 @@ export const queryParamWhitelist = [
   'sortBy',
   'topic',
   'topics',
+  'trackCompleted',
   'type', // TODO: why do we have type & filter? should only need one
   'types',
   'page',

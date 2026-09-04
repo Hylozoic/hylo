@@ -12,6 +12,26 @@ Model.safeGet = function (matchObj) {
   return this.get(omittedMatchObj)
 }
 
+// GraphQL responses often include partial `settings` objects. Merge with existing
+// settings so keys omitted from a later query (e.g. askJoinQuestions) are not wiped.
+const originalUpdate = Model.prototype.update
+Model.prototype.update = function (attrs) {
+  if (
+    attrs &&
+    attrs.settings &&
+    typeof attrs.settings === 'object' &&
+    !Array.isArray(attrs.settings) &&
+    this.ref?.settings &&
+    typeof this.ref.settings === 'object'
+  ) {
+    return originalUpdate.call(this, {
+      ...attrs,
+      settings: { ...this.ref.settings, ...attrs.settings }
+    })
+  }
+  return originalUpdate.call(this, attrs)
+}
+
 Model.prototype.updateAppending = function (attrs) {
   return this.update(mapValues(attrs, (val, key) => {
     if (!val) return val

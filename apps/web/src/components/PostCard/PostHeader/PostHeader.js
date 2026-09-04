@@ -1,30 +1,39 @@
 import { createSelector } from 'reselect'
 import { filter, isFunction } from 'lodash'
-import { Check, Play, CircleDashed, BookmarkCheck, Bookmark, Pencil, Link2, Flag, Copy, Trash2 } from 'lucide-react'
+import { Check, Play, CircleDashed, BookmarkCheck, Bookmark, Pencil, Link2, Flag, Copy, Pin, PinOff, Trash2, Library, LibraryBig } from 'lucide-react'
 import { DateTime } from 'luxon'
 import React, { useCallback, useMemo, useState } from 'react'
 import ReactDOM from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { push } from 'redux-first-history'
-import { Link } from 'react-router-dom'
-import { TextHelpers, DateTimeHelpers } from '@hylo/shared'
+import { Link, useLocation } from 'react-router-dom'
+import { MAX_PINNED_POSTS_PER_VIEW, TextHelpers } from '@hylo/shared'
+import { formatUserDatePair } from 'util/dateFormat'
 import Avatar from 'components/Avatar'
 import Dropdown from 'components/Dropdown'
 import Highlight from 'components/Highlight'
 import FlagContent from 'components/FlagContent'
 import FlagGroupContent from 'components/FlagGroupContent'
+import FlagBadge from 'components/FlagBadge'
 import Icon from 'components/Icon'
 import Tooltip from 'components/Tooltip'
 import PostCompletion from '../PostCompletion'
 import { getPostTypeIcon, PROPOSAL_STATUS_CASUAL, PROPOSAL_STATUS_COMPLETED } from 'store/models/Post'
-import { RESP_MANAGE_CONTENT } from 'store/constants'
-import { removePostFromUrl, editPostUrl, duplicatePostUrl, postUrl, groupUrl, personUrl, topicUrl } from '@hylo/navigation'
+import { RESP_ADMINISTRATION, RESP_MANAGE_CONTENT } from 'store/constants'
+import { removePostFromUrl, editPostUrl, duplicatePostUrl, postUrl, groupUrl, personUrl, tagSearchUrl, spaceUrl } from '@hylo/navigation'
 import getMe from 'store/selectors/getMe'
 import deletePostAction from 'store/actions/deletePost'
 import removePostAction from 'store/actions/removePost'
+import { addPostToView, fetchViewPosts, removePostFromView } from 'store/actions/groupViews'
 import { getResponsibilityTitlesForGroup } from 'store/selectors/getResponsibilitiesForGroup'
+import { getGroupViewById } from 'store/selectors/getGroupViews'
 import getRolesForGroup from 'store/selectors/getRolesForGroup'
+import useGroupViews from 'hooks/useGroupViews'
+import useCurrentPinnableView from 'hooks/useCurrentPinnableView'
+import { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
+import { useEffectiveGroupSlug, useGroupRouteOpts } from 'contexts/SpaceGroupContext'
+import pinPostAction from 'store/actions/pinPost'
 import { cn } from 'util/index'
 import {
   unfulfillPost as unfulfillPostAction,
@@ -68,6 +77,7 @@ const selectPostHeaderStateProps = createSelector(
 function PostHeader (props) {
   const {
     chat,
+    childGroupLabel,
     routeParams = {},
     post,
     expanded,
@@ -99,31 +109,86 @@ function PostHeader (props) {
     id,
     endTime,
     startTime,
+    timezone,
     fulfilledAt,
-    savedAt
+    savedAt,
+    groups: postGroups = []
   } = post
 
   const { t } = useTranslation()
   const dispatch = useDispatch()
+  const location = useLocation()
   const [flaggingVisible, setFlaggingVisible] = useState(false)
+  const effectiveGroupSlug = useEffectiveGroupSlug()
+  const groupSlug = effectiveGroupSlug || routeParams.groupSlug
+  const { parentGroupSlug, spaceSlug } = useGroupRouteOpts()
 
   const {
     currentUser,
     group,
-    moderationActionsGroupUrl = '',
+    moderationActionsGroupUrl: groupModerationUrl = '',
     postUrl,
     responsibilities
-  } = useSelector(state => selectPostHeaderStateProps(state, props))
+  } = useSelector(state => selectPostHeaderStateProps(state, { ...props, groupSlug, routeParams }))
 
-  const groupSlug = routeParams.groupSlug
+  const moderationActionsGroupUrl = spaceSlug && parentGroupSlug
+    ? spaceUrl(parentGroupSlug, spaceSlug, '/moderation')
+    : groupModerationUrl
   const isCreator = currentUser && creator && currentUser.id === creator.id
   const canEdit = isCreator
   const canFlag = !isCreator
   const canModerate = !isCreator && responsibilities.includes(RESP_MANAGE_CONTENT)
+  const pinnableView = useCurrentPinnableView()
+  const belongsToCurrentGroup = (postGroups || []).length === 0 ||
+    (postGroups || []).some(g => String(g.id) === String(group?.id) || g.slug === group?.slug)
+  const pinnedPostIds = (pinnableView?.pinnedPostIds || []).map(pid => String(pid))
+  const pinned = pinnedPostIds.includes(String(id))
+  const atPinCap = pinnedPostIds.length >= MAX_PINNED_POSTS_PER_VIEW && !pinned
+  const canShowPin = !!group?.id &&
+    !!pinnableView?.id &&
+    responsibilities.includes(RESP_MANAGE_CONTENT)
+  const fromChildView = (postGroups || []).length > 0 && !belongsToCurrentGroup
+  const fromChildSpace = fromChildView && (postGroups || []).some(g => g.type === 'space')
+  const pinDisabled = canShowPin && !pinned && (fromChildView || atPinCap)
+  const pinTooltip = fromChildView
+    ? (fromChildSpace
+        ? t('You cannot pin a post from a space to this view')
+        : t('You cannot pin a post from a child group to this view'))
+    : (atPinCap ? t('You can only pin 3 posts') : undefined)
+  const canPin = canShowPin && !pinDisabled
+  const handlePinPost = useCallback(() => {
+    if (!pinnableView?.id || !group?.id) return
+    dispatch(pinPostAction(id, pinnableView.id, group.id, post))
+  }, [dispatch, id, pinnableView?.id, group?.id, post])
+  const canCurateCollections = responsibilities.includes(RESP_ADMINISTRATION) ||
+    responsibilities.includes(RESP_MANAGE_CONTENT)
+
+  const hasModeratorResponsibilitiesInAnyPostGroup = useSelector(state =>
+    postGroups.some(g => {
+      const groupResponsibilities = getResponsibilityTitlesForGroup(state, { groupId: g.id })
+      return groupResponsibilities.includes(RESP_ADMINISTRATION) ||
+        groupResponsibilities.includes(RESP_MANAGE_CONTENT)
+    })
+  )
+  const canCompleteAsModerator = !isCreator && hasModeratorResponsibilitiesInAnyPostGroup
+  const canCompletePost = isCreator || canCompleteAsModerator
+
+  const groupViews = useGroupViews(group)
+  const collectionViews = useMemo(
+    () => (groupViews || []).filter(view => view.type === 'collection'),
+    [groupViews]
+  )
+  const currentCollectionView = useSelector(state => {
+    const viewId = routeParams?.customViewId
+    if (!viewId || !group) return null
+    const view = getGroupViewById(state, group, viewId)
+    return view?.type === 'collection' ? view : null
+  })
+  const isChatPost = type === 'chat'
 
   const closeUrl = useMemo(
-    () => removePostFromUrl(`${window.location.pathname}${window.location.search}`),
-    []
+    () => removePostFromUrl(`${location.pathname}${location.search}`),
+    [location.pathname, location.search]
   )
 
   const editPost = useCallback(() => {
@@ -162,22 +227,22 @@ function PostHeader (props) {
   }, [canModerate, id, groupSlug, dispatch, closeUrl, onRemovePost])
 
   const fulfillPost = useCallback(() => {
-    if (!isCreator) return
+    if (!canCompletePost) return
     if (fulfillPostProp) {
       fulfillPostProp(id)
     } else {
       dispatch(fulfillPostAction(id))
     }
-  }, [isCreator, fulfillPostProp, id, dispatch])
+  }, [canCompletePost, fulfillPostProp, id, dispatch])
 
   const unfulfillPost = useCallback(() => {
-    if (!isCreator) return
+    if (!canCompletePost) return
     if (unfulfillPostProp) {
       unfulfillPostProp(id)
     } else {
       dispatch(unfulfillPostAction(id))
     }
-  }, [isCreator, unfulfillPostProp, id, dispatch])
+  }, [canCompletePost, unfulfillPostProp, id, dispatch])
 
   const savePost = useCallback(() => {
     if (savePostProp) {
@@ -203,6 +268,33 @@ function PostHeader (props) {
   const flagPostFunc = () =>
     canFlag ? () => { setFlaggingVisible(true) } : undefined
 
+  const handleOpenCollectionsSubmenu = useCallback(() => {
+    if (!group?.id) return
+    dispatch(fetchViewPosts(group.id, collectionViews[0]?.id))
+  }, [collectionViews, dispatch, group?.id])
+
+  const handleAddToCollection = useCallback((collectionView) => {
+    if (!group?.id || !collectionView?.id || !id) return
+    const alreadyIn = (collectionView.collectionPosts || []).some(p => String(p.id) === String(id))
+    if (alreadyIn) return
+    dispatch(addPostToView({
+      groupId: group.id,
+      viewId: collectionView.id,
+      postId: id,
+      post
+    }))
+  }, [dispatch, group?.id, id, post])
+
+  const handleRemoveFromCollection = useCallback(() => {
+    if (!group?.id || !currentCollectionView?.id || !id) return
+    if (!window.confirm(t('Remove this post from the collection?'))) return
+    dispatch(removePostFromView({
+      groupId: group.id,
+      viewId: currentCollectionView.id,
+      postId: id
+    }))
+  }, [currentCollectionView?.id, dispatch, group?.id, id, t])
+
   if (type === 'action') {
     return <ActionHeader post={post} isCurrentAction={isCurrentAction} actionDescriptor={actionDescriptor} />
   }
@@ -215,20 +307,50 @@ function PostHeader (props) {
 
   const creatorUrl = personUrl(creator.id, routeParams.groupSlug)
   const flagPostData = {
-    slug: routeParams.groupSlug,
+    slug: groupSlug,
     id,
     type: 'post'
   }
 
+  const addToCollectionItem = canCurateCollections && !isChatPost && collectionViews.length > 0
+    ? {
+        icon: <Library className='w-4 h-4 text-foreground' />,
+        label: t('Add to Collection'),
+        onOpen: handleOpenCollectionsSubmenu,
+        items: collectionViews.map(collectionView => {
+          const alreadyIn = (collectionView.collectionPosts || []).some(p => String(p.id) === String(id))
+          return {
+            key: collectionView.id,
+            label: alreadyIn
+              ? t('{{name}} (already added)', { name: displayNameForView(collectionView, t) })
+              : displayNameForView(collectionView, t),
+            disabled: alreadyIn,
+            onClick: () => handleAddToCollection(collectionView)
+          }
+        })
+      }
+    : null
+
+  const removeFromCollectionItem = canCurateCollections && currentCollectionView
+    ? {
+        icon: <LibraryBig className='w-4 h-4 text-foreground' />,
+        label: t('Remove from Collection'),
+        onClick: handleRemoveFromCollection
+      }
+    : null
+
   const dropdownItems = filter([
     { icon: <Pencil className='w-4 h-4 text-foreground' />, label: t('Edit'), onClick: canEdit ? editPost : undefined },
     { icon: <Link2 className='w-4 h-4 text-foreground' />, label: t('Copy Link'), onClick: copyLink },
+    { icon: pinned ? <PinOff className='w-4 h-4 text-foreground' /> : <Pin className={cn('w-4 h-4', pinDisabled ? 'text-foreground/40' : 'text-foreground')} />, label: pinned ? t('Unpin from View') : t('Pin to View'), onClick: canPin ? handlePinPost : undefined, disabled: pinDisabled, tooltip: pinTooltip },
     { icon: savedAt ? <BookmarkCheck className='w-4 h-4 text-foreground' /> : <Bookmark className='w-4 h-4 text-foreground' />, label: savedAt ? t('Unsave Post') : t('Save Post'), onClick: savedAt ? unsavePost : savePost },
     { icon: <Flag className='w-4 h-4 text-foreground' />, label: t('Flag'), onClick: flagPostFunc() },
     { icon: <Copy className='w-4 h-4 text-foreground' />, label: t('Duplicate'), onClick: duplicatePost },
+    addToCollectionItem,
+    removeFromCollectionItem,
     { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: t('Delete'), onClick: isCreator ? () => deletePost(t('Are you sure you want to delete this post? You cannot undo this.')) : undefined, red: true },
     { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: t('Remove From Group'), onClick: canModerate ? () => removePost(t('Are you sure you want to remove this post? You cannot undo this.')) : undefined, red: true }
-  ], item => isFunction(item.onClick))
+  ], item => item && (isFunction(item.onClick) || item.disabled || item.items?.length))
 
   const typesWithTimes = ['action', 'offer', 'request', 'resource', 'project', 'proposal']
   const canHaveTimes = typesWithTimes.includes(type)
@@ -237,7 +359,12 @@ function PostHeader (props) {
   const canBeCompleted = typesWithCompletion.includes(type) && (type !== 'proposal' || (proposalStatus === PROPOSAL_STATUS_COMPLETED || proposalStatus === PROPOSAL_STATUS_CASUAL))
   const actualEndTime = fulfilledAt && fulfilledAt < endTime ? fulfilledAt : endTime
 
-  const { from, to } = DateTimeHelpers.formatDatePair({ start: startTime, end: actualEndTime, returnAsObj: true })
+  const { from, to } = formatUserDatePair({
+    start: startTime,
+    end: actualEndTime,
+    timezone,
+    returnAsObj: true
+  })
 
   const startString = fulfilledAt
     ? false
@@ -275,19 +402,37 @@ function PostHeader (props) {
           <Avatar avatarUrl={creator.avatarUrl} url={creatorUrl} className={cn('mr-3', { 'mr-2': constrained })} medium />
           <div className='flex flex-wrap justify-between flex-1 text-foreground truncate xs:truncate-none overflow-hidden xs:overflow-visible mr-2 xs:max-w-auto'>
             <Highlight {...highlightProps}>
-              <Link to={creatorUrl} className={cn('flex whitespace-nowrap items-center text-card-foreground font-bold font-md text-base', { 'text-sm': constrained })} data-tooltip-content={creator.tagline} data-tooltip-id={`announcement-tt-${id}`}>
-                {creator.name}
-              </Link>
+              <div className='flex flex-col min-w-0'>
+                <Link to={creatorUrl} className={cn('flex whitespace-nowrap items-center text-card-foreground font-bold font-md text-base leading-tight', { 'text-sm': constrained })} data-tooltip-content={creator.tagline} data-tooltip-id={`announcement-tt-${id}`}>
+                  {creator.name}
+                </Link>
+                {/* Where a child post lives, under the author — replaces the tab that floated above the card */}
+                {childGroupLabel && (
+                  <span className='text-xs text-foreground/50 truncate leading-tight'>{childGroupLabel}</span>
+                )}
+              </div>
             </Highlight>
-            <div className='flex items-center ml-2'>
+            {/* Wraps rather than clips: on phones the badge drops to the next
+                line instead of getting cropped by the header's overflow-hidden */}
+            <div className='flex items-center flex-wrap gap-y-1 ml-2'>
+              <span className='text-foreground/50 text-2xs whitespace-nowrap mr-3' data-tooltip-id={`dateTip-${id}`} data-tooltip-content={exactCreatedTimestamp}>
+                {createdTimestamp}
+              </span>
+              {/* Phones keep just the gold pin square; the label returns at xs */}
+              {pinned && (
+                <span title={t('Pinned')} className='inline-flex items-center shrink-0 gap-1 h-7 px-1.5 xs:px-2 mr-2 rounded-md text-[9.5px] font-bold uppercase tracking-wider bg-[hsl(45_45%_90%)] dark:bg-[hsl(45_45%_18%)] border border-[hsl(45_45%_60%)] dark:border-[hsl(45_45%_34%)] text-[hsl(45_60%_35%)] dark:text-[hsl(45_65%_72%)]'>
+                  <Pin className='w-3.5 h-3.5' strokeWidth={2.5} aria-hidden='true' />
+                  <span className='hidden xs:inline'>{t('Pinned')}</span>
+                </span>
+              )}
               {type !== 'submission' && (
-                <div className='flex items-center gap-1 border-2 border-foreground/20 rounded text-xs capitalize px-1 text-foreground/70 py1 mr-4'>
+                // h-7 (and rounded-md) so the pill and the three-dot toggle read as one control family.
+                // The old py1 was a dead class — the pill never actually had vertical padding.
+                <div className='flex items-center gap-1 border-2 border-foreground/20 rounded-md text-xs capitalize px-1.5 h-7 text-foreground/70'>
                   <Icon name={getPostTypeIcon(type)} className='text-sm' dataTestId={'post-type-' + type.charAt(0).toUpperCase() + type.slice(1)} />
                   {t(type)}
                 </div>)}
-              <span className='text-foreground/50 text-2xs whitespace-nowrap' data-tooltip-id={`dateTip-${id}`} data-tooltip-content={exactCreatedTimestamp}>
-                {createdTimestamp}
-              </span>
+
               {announcement && (
                 <span className='mt-[-2px]'>
                   <span className='text-2xs mx-3 relative top-[-6px]'>•</span>
@@ -300,16 +445,19 @@ function PostHeader (props) {
           </div>
 
           <div className={cn('flex items-center justify-end ml-auto', { hidden: constrained })}>
-            {isFlagged && <Link to={moderationActionsGroupUrl} className='text-decoration-none' data-tooltip-content={t('See why this post was flagged')} data-tooltip-id='post-header-flag-tt'><Icon name='Flag' className='top-1 mr-3 text-xl text-accent font-bold' /></Link>}
+            {isFlagged && <FlagBadge to={moderationActionsGroupUrl} post={post} tooltipId='post-header-flag-tt' className='mr-3' />}
             <Tooltip
               delay={250}
               id='post-header-flag-tt'
             />
+            {/* !top-0 on the More icon: the global .icon-More style nudges the glyph down
+                1px for optical centering in inline contexts — here the icon IS the bordered
+                box, so the nudge shifted the whole button 1px below the pill beside it */}
             {dropdownItems.length > 0 &&
-              <Dropdown id='post-header-more-dropdown' toggleChildren={<Icon name='More' dataTestId='post-header-more-icon' className='cursor-pointer border-2 border-foreground/30 rounded-md p-2' />} items={dropdownItems} alignRight />}
+              <Dropdown id='post-header-more-dropdown' toggleChildren={<Icon name='More' dataTestId='post-header-more-icon' className='cursor-pointer border-2 border-foreground/30 rounded-md h-7 w-7 flex items-center justify-center !top-0' />} items={dropdownItems} alignRight noOverflow portal />}
             {close &&
-              <a className={cn('inline-block cursor-pointer relative px-3 text-xl')} data-testid='post-detail-close' onClick={close}>
-                <Icon name='Ex' className='align-middle' />
+              <a className='flex items-center justify-center cursor-pointer h-7 px-3 text-xl' data-testid='post-detail-close' onClick={close}>
+                <Icon name='Ex' className='leading-none !top-0' />
               </a>}
           </div>
         </div>
@@ -322,14 +470,15 @@ function PostHeader (props) {
           </div>
         )}
       </div>
-      {canBeCompleted && canEdit && expanded && (
+      {canBeCompleted && canCompletePost && expanded && (
         <PostCompletion
           type={type}
           startTime={startTime}
           endTime={endTime}
           isFulfilled={!!fulfilledAt}
-          fulfillPost={isCreator ? fulfillPost : undefined}
-          unfulfillPost={isCreator ? unfulfillPost : undefined}
+          isModerator={canCompleteAsModerator}
+          fulfillPost={fulfillPost}
+          unfulfillPost={unfulfillPost}
         />
       )}
       {
@@ -387,7 +536,7 @@ export function TopicsLine ({ topics, slug, newLine }) {
       {topics.slice(0, 3).map(t =>
         <Link
           className='py:2 px-3 xs:px-2 flex items-center border rounded-md mt-2 ml-2 bg-white text-xs mr-3'
-          to={topicUrl(t.name, { groupSlug: slug })}
+          to={tagSearchUrl(t.name, { groupSlug: slug })}
           key={t.name}
         >
           #{t.name}

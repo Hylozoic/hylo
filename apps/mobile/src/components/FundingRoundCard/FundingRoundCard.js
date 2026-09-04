@@ -9,11 +9,11 @@ import { useTranslation } from 'react-i18next'
 import { DateTimeHelpers } from '@hylo/shared'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useOpenURL from 'hooks/useOpenURL'
-import { groupUrl } from '@hylo/navigation'
+import { fundingRoundUrl } from '@hylo/navigation'
 
 // Get phase information for a funding round
 function getRoundPhase (round, t) {
-  if (!round?.publishedAt) {
+  if (round?.phase === 'draft' || round?.group?.status === 'draft' || round?.group?.status === 'archived') {
     return {
       key: 'draft',
       label: t('Draft'),
@@ -86,8 +86,11 @@ function FundingRoundCard ({ fundingRound, groupSlug }) {
   const participantCount = fundingRound.numParticipants || participants.length
 
   const navigateToFundingRound = () => {
-    const fundingRoundUrl = `${groupUrl(groupSlug || currentGroup?.slug, 'funding-rounds')}/${fundingRound.id}`
-    openURL(fundingRoundUrl)
+    // Soft-guard: prefer space URLs after funding-rounds spaces cutover
+    const space = fundingRound.group
+    const parentSlug = space?.parentGroup?.slug || groupSlug || currentGroup?.slug
+    if (!parentSlug || !space?.slug) return
+    openURL(fundingRoundUrl(fundingRound.id, { groupSlug: parentSlug, space, tab: 'funding-round-submissions' }))
   }
 
   return (

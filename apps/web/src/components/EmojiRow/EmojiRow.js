@@ -13,6 +13,7 @@ export default function EmojiRow (props) {
   const {
     alignLeft, // Put the add emoji button on the left side of the emoji row
     className,
+    pillClassName, // Extra classes for each reaction pill (e.g. denser chat styling)
     comment,
     currentUser,
     onClick,
@@ -76,6 +77,7 @@ export default function EmojiRow (props) {
               count={topReaction.userList.length}
               selected={topReaction.loggedInUser}
               toolTip={topReaction.userList.join('<br>')}
+              className={pillClassName}
             />
           )}
           {overflowReactions.length > 0 && (
@@ -84,7 +86,8 @@ export default function EmojiRow (props) {
                 <div
                   className={cn(
                     'relative select-none mr-2 mb-2 text-foreground text-baseline bg-darkening/10 rounded-lg m-1 py-1 px-3 items-center justify-center inline-flex opacity-100 transition-all cursor-pointer hover:bg-selected/50 z-0 hover:z-50 whitespace-nowrap',
-                    { 'bg-selected text-foreground': hasAnySelected }
+                    { 'bg-selected text-foreground': hasAnySelected },
+                    pillClassName
                   )}
                   onClick={(e) => e.stopPropagation()}
                 >

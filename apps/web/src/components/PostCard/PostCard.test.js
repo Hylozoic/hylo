@@ -3,21 +3,15 @@ import { render, screen } from 'util/testing/reactTestingLibraryExtended'
 import PostCard from './PostCard'
 import { fakePost } from 'util/testing/testData'
 import faker from '@faker-js/faker'
-import timezoneMock from 'timezone-mock'
 
 faker.seed(9000)
-
-beforeEach(() => {
-  timezoneMock.register('US/Pacific')
-})
-
-afterEach(() => {
-  timezoneMock.unregister()
-})
 
 it('renders post content correctly', () => {
   const post = {
     ...fakePost(),
+    type: 'discussion',
+    startTime: null,
+    endTime: null,
     updatedAt: new Date('2014-01-17').toISOString(),
     title: 'Test Post Title',
     details: 'Test post content'

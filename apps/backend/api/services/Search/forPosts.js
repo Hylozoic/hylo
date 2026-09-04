@@ -90,9 +90,7 @@ export default function forPosts (opts) {
 
     filterAndSortPosts(Object.assign({}, opts, {
       search: opts.term,
-      sortBy: opts.sort,
-      // Sort pinned posts first only when looking at a single group and not looking at chat room
-      showPinnedFirst: false // XXX: we have removed pinning for now, but plan to bring back. opts.type !== 'chat' && get(opts.groupIds, 'length') === 1
+      sortBy: opts.sort
     }), qb)
 
     if (opts.omit) {
@@ -117,8 +115,12 @@ export default function forPosts (opts) {
     }
 
     if (get(opts.groupIds, 'length') !== 1) {
-      // If not looking at a single group then hide axolotl welcome posts
-      qb.where('posts.user_id', '!=', User.AXOLOTL_ID)
+      // Hide Axolotl welcome posts in multi-group / network streams, but keep
+      // system notice posts (chat activity blocks) which are also Axolotl-authored
+      qb.where(q => {
+        q.where('posts.user_id', '!=', User.AXOLOTL_ID)
+          .orWhereIn('posts.type', Post.NOTICE_TYPES)
+      })
     }
 
     if (opts.parent_post_id) {

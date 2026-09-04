@@ -141,7 +141,7 @@ export default function UploadAction () {
 
       const completedPost = data.completePost
       if (completedPost) {
-        const allActionsCompleted = currentTrack.posts.every(
+        const allActionsCompleted = (currentTrack.posts || []).every(
           action => action.id === post.id || action.completedAt
         )
 

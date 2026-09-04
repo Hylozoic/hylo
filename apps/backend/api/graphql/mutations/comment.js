@@ -1,9 +1,9 @@
 import { GraphQLError } from 'graphql'
-import { merge, trim } from 'lodash'
+import { isEmpty, merge, trim } from 'lodash'
 import { includes } from 'lodash/fp'
 
 import underlyingDeleteComment from '../../models/comment/deleteComment'
-import underlyingCreateComment from '../../models/comment/createComment'
+import underlyingCreateComment, { pushMessageUpdatedToSockets } from '../../models/comment/createComment'
 import underlyingUpdateComment from '../../models/comment/updateComment'
 import { deleteDraftForContext } from './draft'
 
@@ -101,11 +101,16 @@ export async function updateComment (userId, { id, data }, context) {
   await canUpdateComment(userId, commentToValidate)
 
   const comment = await underlyingUpdateComment(userId, id, data)
+  const post = await Post.find(comment.get('post_id'))
 
   context.pubSub.publish(`comments:postId:${comment.get('post_id')}`, { comment })
 
   if (comment.get('comment_id')) {
     context.pubSub.publish(`comments:commentId:${comment.get('comment_id')}`, { comment })
+  }
+
+  if (post.get('type') === Post.Type.THREAD) {
+    await pushMessageUpdatedToSockets(comment, post)
   }
 
   return comment
@@ -115,7 +120,7 @@ export async function validateCommentCreateData (userId, data) {
   const isVisible = await Post.isVisibleToUser(data.postId, userId)
 
   if (isVisible) {
-    if (!data.imageUrl && !trim(data.text)) {
+    if (!data.imageUrl && !trim(data.text) && isEmpty(data.attachments)) {
       throw new GraphQLError("Can't create a blank comment")
     }
     return data
@@ -125,7 +130,7 @@ export async function validateCommentCreateData (userId, data) {
 }
 
 export async function validateCommentUpdateData (userId, data) {
-  if (!data.imageUrl && !trim(data.text)) {
+  if (!data.imageUrl && !trim(data.text) && isEmpty(data.attachments)) {
     throw new GraphQLError("Can't create a blank comment")
   }
   return data

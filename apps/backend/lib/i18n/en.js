@@ -40,6 +40,10 @@ exports.en = {
   moderationYouFlaggedAPost: () => 'You flagged a post',
   moderationYouFlaggedPostEmailContent: ({ post, group }) => `You flagged post "${post.summary()}" in group ${group.get('name')} as violating a group agreement. \n`,
   moderationYourPostWasFlagged: () => 'Your post was flagged',
+  moderationPostClosedEmailSubject: () => 'Your post was closed',
+  moderationPostReopenedEmailSubject: () => 'Your post was reopened',
+  moderationPostClosedEmailContent: ({ post, group, actor }) => `${actor.get('name')} closed your post "${post.summary()}" in group ${group.get('name')}. \n`,
+  moderationPostReopenedEmailContent: ({ post, group, actor }) => `${actor.get('name')} reopened your post "${post.summary()}" in group ${group.get('name')}. \n`,
   Name: () => 'Name',
   newSavedSearchResults: (name) => `New saved search results in ${name}`,
   textForApprovedJoinRequest: ({ actor, groupName }) => `${actor.get('name')} approved your request to join ${groupName}`,
@@ -62,26 +66,37 @@ exports.en = {
   textForGroupParentGroupJoinRequestAcceptedParentMember: ({ parentGroup, childGroup }) => `The group ${childGroup.get('name')} just joined your group ${parentGroup.get('name')}!`,
   textForGroupParentGroupJoinRequestAcceptedChildMember: ({ parentGroup, childGroup }) => `Your group ${childGroup.get('name')} has joined ${parentGroup.get('name')}.`,
   textForEventInvitation: ({ actor, postName }) => `${actor.get('name')} invited you to "${postName}"`,
-  textForGroupInvitation: ({ actor, groupName }) => `${actor.get('name')} invited you to join ${groupName}`,
+  textForGroupInvitation: ({ actor, groupName, parentGroupName }) => parentGroupName
+    ? `${actor.get('name')} has invited you to join them in space ${groupName} in ${parentGroupName}`
+    : `${actor.get('name')} has invited you to join them in ${groupName}`,
   textForGroupInvitationAccepted: ({ actor, groupName }) => `${actor.get('name')} accepted your invitation to join ${groupName}`,
   textForGroupPeerGroupInvite: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} invited your group ${toGroup.get('name')} to form a peer relationship with ${fromGroup.get('name')}`,
   textForGroupPeerGroupInviteAccepted: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} accepted the peer relationship between ${fromGroup.get('name')} and ${toGroup.get('name')}`,
-  textForJoinRequest: ({ actor, groupName }) => `${actor.get('name')} asked to join ${groupName}`,
+  textForJoinRequest: ({ actor, groupName, parentGroupName }) => parentGroupName
+    ? `${actor.get('name')} asked to join ${groupName} in ${parentGroupName}`
+    : `${actor.get('name')} asked to join ${groupName}`,
   textForMemberJoinedGroup: ({ group, actor }) => `New member has joined ${group.get('name')}: ${actor.get('name')}`,
+  textForPostModeratedFulfillment: ({ post, actor, reason }) => {
+    const postName = post.summary()
+    if (reason === 'postUnfulfilled') {
+      return `${actor.get('name')} reopened your post "${postName}"`
+    }
+    return `${actor.get('name')} closed your post "${postName}"`
+  },
   textForPostMention: ({ groupName, person, postName }) => `${person} mentioned you in post "${postName}" in ${groupName}`,
   textForPost: ({ firstTag, groupName, person, postName }) => `${person} posted "${postName}" in ${groupName}${firstTag ? ` #${firstTag}` : ''}`,
-  textForTrackCompleted: ({ actor, track }) => `Track completed: "${track.get('name')}" was completed by ${actor.get('name')}`,
-  textForTrackEnrollment: ({ actor, track }) => `Track enrollment: "${track.get('name')}" was enrolled in by ${actor.get('name')}`,
+  textForTrackCompleted: ({ actor, trackName }) => `Track completed: "${trackName}" was completed by ${actor.get('name')}`,
+  textForTrackEnrollment: ({ actor, trackName }) => `Track enrollment: "${trackName}" was enrolled in by ${actor.get('name')}`,
   textForVoteReset: ({ person, postName, groupName }) => `${person} changed the options for proposal: "${postName}" in ${groupName}. This has reset the votes`,
-  textForFundingRoundNewSubmission: ({ fundingRound, post, actor }) => `${actor.get('name')} submitted "${post.summary()}" to "${fundingRound.get('title')}"`,
-  textForFundingRoundPhaseTransition: ({ fundingRound, phase }) => {
+  textForFundingRoundNewSubmission: ({ fundingRoundTitle, post, actor }) => `${actor.get('name')} submitted "${post.summary()}" to "${fundingRoundTitle}"`,
+  textForFundingRoundPhaseTransition: ({ fundingRoundTitle, phase }) => {
     const phaseMessages = {
       submissions: 'Submissions are now open',
       discussion: 'Submissions have closed and discussions are open',
       voting: 'Voting is now open',
       completed: 'Voting has closed and the round has ended'
     }
-    return `${fundingRound.get('title')}: ${phaseMessages[phase] || 'Status updated'}`
+    return `${fundingRoundTitle}: ${phaseMessages[phase] || 'Status updated'}`
   },
   textForFundingRoundReminder: ({ reminderType }) => {
     const reminderMessages = {

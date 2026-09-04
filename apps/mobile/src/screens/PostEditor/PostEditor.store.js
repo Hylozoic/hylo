@@ -92,6 +92,7 @@ export const usePostEditorStore = create((set, get) => {
         locationId: post?.locationObject?.id || null,
         linkPreviewId: post?.linkPreview?.id,
         linkPreviewFeatured: post?.linkPreviewFeatured,
+        skipLinkPreview: !!post.skipLinkPreview,
         fundingRoundId: post.fundingRoundId
       }
     },

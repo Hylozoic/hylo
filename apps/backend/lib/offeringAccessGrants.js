@@ -4,7 +4,6 @@
  */
 export {
   validateOfferingDurationForAccessGrants,
-  accessGrantsGrantOnlyTracks,
   isRecurringOfferingDuration,
   RECURRING_OFFERING_DURATIONS
 } from '@hylo/shared'

@@ -23,6 +23,16 @@ enum FundingRoundPhase {
   completed
 }
 
+enum GroupStatus {
+  draft
+  published
+  submissions
+  discussion
+  voting
+  completed
+  archived
+}
+
 type Query {
   # Find an Activity by ID
   activity(id: ID): Activity
@@ -43,7 +53,6 @@ type Query {
   # Find an Comment by ID
   comment(id: ID): Comment
 
-  collection(id: ID): Collection
 
   # Query for content access records
   contentAccess(
@@ -71,17 +80,17 @@ type Query {
     sortBy: String
   ): ContentAccessQuerySet
 
-  # A Group CustomView by ID (stream, collection, or external link)
-  customView(id: ID): CustomView
-
-  contextWidgets(groupId: ID, includeUnordered: Boolean): ContextWidgetQuerySet
 
   # Query for PersonConnections
   connections(
     # Number of PersonConnections to load
     first: Int,
     # Start loading at this offset
-    offset: Int
+    offset: Int,
+    # Return connections whose names match this string
+    autocomplete: String,
+    # Exclude people who are already members of this group
+    excludeGroupId: ID
   ): PersonConnectionQuerySet
 
 
@@ -210,7 +219,9 @@ type Query {
     offset: Int,
     # Determines sort order
     sortBy: String,
-    # Only return moderation actions for this group by URL slug
+    # Group or space URL slug. A space returns only its own actions. A group also
+    # includes child-space actions the viewer is a member of, or all child spaces
+    # if they have the Manage Content responsibility.
     slug: String
 
   ): ModerationActionQuerySet
@@ -437,7 +448,7 @@ type Query {
   # Find a Topic by ID or by name (text)
   topic(id: ID, name: String): Topic
 
-  # Find one of your TopicFollows by group ID and topic name. Used to store settings related to a chat room.
+  # Find one of your TopicFollows by group ID and topic name.
   topicFollow(groupId: ID, topicName: String): TopicFollow
 
   # Query for Topics
@@ -464,6 +475,12 @@ type Query {
 
   # Query for email-enabled testers (admin only)
   emailEnabledTesters: [EmailEnabledTester]
+
+  # Active, undismissed site banners for the current user
+  siteBanners: [SiteBanner]
+
+  # All site banners, past and present (admin only)
+  allSiteBanners: [SiteBanner]
 }
 
 union Update = Message | MessageThread | Notification
@@ -525,6 +542,7 @@ type ActivityMeta {
       'announcement' = an announcement was posted
       'approvedJoinRequest' = your request to join a group was approved
       'joinRequest' = there is a reques to join one of your groups
+      'groupInvitation' = an existing Hylo user was invited to join a group or space
       'groupChildGroupInvite' = someone invited a group to join one of your groups
       'groupChildGroupInviteAccepted' = a child group accepted the invite to join one of your groups
       'groupParentGroupJoinRequest' = someone requested to join one of your groups to a new parent group
@@ -557,6 +575,7 @@ type Activity {
       'announcement' = an announcement was posted
       'approvedJoinRequest' = your request to join a group was approved
       'joinRequest' = there is a reques to join one of your groups
+      'groupInvitation' = an existing Hylo user was invited to join a group or space
       'groupChildGroupInvite' = someone invited a group to join one of your groups
       'groupChildGroupInviteAccepted' = a child group accepted the invite to join one of your groups
       'groupParentGroupJoinRequest' = someone requested to join one of your groups to a new parent group
@@ -652,53 +671,22 @@ type Attachment {
 type CheckInvitationResult {
   # Whether the invitation is still valid or not
   valid: Boolean
+  # The invited group or space id (used to auto-join a space)
+  groupId: ID
   # The slug of the group for redirect purposes
   groupSlug: String
+  # The name of the invited group or space
+  groupName: String
+  # True when the invitation is for a space rather than a top-level group
+  isSpace: Boolean
+  # Parent group slug when the invitation is for a space
+  parentGroupSlug: String
+  # Parent group name when the invitation is for a space
+  parentGroupName: String
   # The email address from the invitation (for token-based invites)
   email: String
   # The group role that will be assigned when this invitation is used
   groupRole: GroupRole
-}
-
-type Collection {
-  id: ID
-  # When the Collection was created
-  createdAt: Date
-  # The Group this Collection is associated with (optional)
-  group: Group
-  # The Posts in this Collection
-  linkedPosts: CollectionsPostQuerySet
-  # The name of the collection
-  name: String
-  # The Posts in this Collection
-  posts: PostQuerySet
-  # Total # of posts in this collection
-  postsTotal: Int
-  # When the Collection was last updated
-  updatedAt: Date
-  # The person who created this Collection
-  user: Person
-}
-
-type CollectionsPost {
-  id: ID
-  # When the CollectionsPost was created
-  createdAt: Date
-  # The order of the post in the collection when manually sorted
-  order: Int
-  # The post
-  post: Post
-  # When the CollectionsPost was last updated
-  updatedAt: Date
-  # The user that added this post to this collection
-  user: Person
-}
-
-# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
-type CollectionsPostQuerySet {
-  total: Int
-  hasMore: Boolean
-  items: [CollectionsPost]
 }
 
 # A comment on a post
@@ -769,113 +757,6 @@ type ContentAccessQuerySet {
   items: [ContentAccess]
 }
 
-# A ContextWidget for a Group
-type ContextWidget {
-  id: ID
-  # Whether the widget has been editted or previously added to the menu
-  autoAdded: Boolean
-  # The title of the widget
-  title: String
-  # The type of widget
-  type: String
-  # The display order of the widget
-  order: Int
-  # The visibility settings of the widget
-  visibility: String
-  # View that this widget is pointing at
-  view: String
-  # Icon for the widget
-  icon: String
-  # When this widget was created
-  createdAt: Date
-  # When this widget was last updated
-  updatedAt: Date
-  # Primary highlight number for this widget
-  highlightNumber: Int
-  # Secondary number for this widget
-  secondaryNumber: Int
-  # Parent ID for this widget
-  parentId: ID
-
-  # Relationships
-  # Child widgets if this is a parent widget
-  childWidgets: [ContextWidget]
-  # Custom view this widget is pointing at
-  customView: CustomView
-  # Group Topic this widget is pointing at, for chat rooms
-  groupTopic: GroupTopic
-  # The group that owns this widget
-  ownerGroup: Group
-  # Parent widget if this is a child widget
-  parentWidget: ContextWidget
-  # For chat rooms, the topic follow contains the notifications settings for the room for the current user
-  topicFollow: TopicFollow
-  # Chat this widget is pointing at
-  viewChat: Topic
-  # Funding round this widget is pointing at
-  viewFundingRound: FundingRound
-  # Group this widget is pointing at
-  viewGroup: Group
-  # Post this widget is pointing at
-  viewPost: Post
-  # Track this widget is pointing at
-  viewTrack: Track
-  # User this widget is pointing at
-  viewUser: Person
-}
-
-type ContextWidgetQuerySet {
-  total: Int
-  hasMore: Boolean
-  items: [ContextWidget]
-}
-
-# A CustomView for a Group
-type CustomView {
-  id: ID
-  # Whether this view only displays active posts or not
-  activePostsOnly: Boolean
-  # The id of the Collection associated with this CustomView, for 'collection' type views
-  collectionId: ID
-  # For 'collection' type CustomViews, this is the Collection of posts
-  collection: Collection
-  # How to sort a Post stream or Collection by defaut ('created', updated', or 'reactions')
-  defaultSort: String
-  # The default style of viewing posts in the view ('cards', 'list', 'bigGrid', 'grid')
-  defaultViewMode: String
-  # URL for external link views
-  externalLink: String
-  # Is this view active or not
-  isActive: Boolean
-  # The Group this CustomView is in
-  group: Group
-  # ID of the group this CustomView is attached to
-  groupId: Int
-  # The icon to display for this CustomView
-  icon: String
-  # The label to display for this CustomView
-  name: String
-  # Not used right now, will be used to order views in the navigation menu
-  order: Int
-  # For post stream type views, filter by these post types
-  postTypes: [String]
-  # Not used yet, will be used to filter the post stream by search text
-  searchText: String
-  # For post stream type views, only show posts that have any of these topics
-  topics: [Topic]
-  # Number of topic filters for this CustomView
-  topicsTotal: Int
-  # The type of custom view: 'externalLink', 'stream', or 'collection'
-  type: String
-}
-
-# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
-type CustomViewQuerySet {
-  total: Int
-  hasMore: Boolean
-  items: [CustomView]
-}
-
 # An invitation to an Event
 type EventInvitation {
   id: ID
@@ -917,10 +798,18 @@ type Group {
   aboutVideoUri: String,
   # Either 0 = Closed (invite only), 1 = Restricted (Anyone can request to join), 2 = Open (anyone can join if they can find/see the group)
   accessibility: Int
+  # Spaces & Views: post types that can be posted into this Group/Space, e.g. ['discussion', 'event']. Null = all types accepted
+  acceptedPostTypes: [String]
+  # Whether this group/space is active. False means deleted (hidden from menus and More Spaces)
+  active: Boolean
+  # Space lifecycle: draft, published, archived; funding-round spaces also use submissions, discussion, voting, completed
+  status: GroupStatus
   # Whether this group's posts can be shown in public feeds
   allowInPublic: Boolean
   # URL to the image of the avatar of the group
   avatarUrl: String
+  # Lucide or Hylo icon name for groups/spaces without a custom avatar
+  icon: String
   # URL to the image of the banner for the group
   bannerUrl: String
   # When the group was created
@@ -933,8 +822,9 @@ type Group {
   geoShape: JSON
   # Cached path for group home redirect (e.g. /stream, /map, /chat/general). Used so we can redirect without loading context widgets.
   homeRoute: String
-  # home widget
-  homeWidget: ContextWidget
+  # Cached count of on-menu views (order is not null). Stored on groups.menu_view_count
+  # so a parent menu can tell single-view vs multi-view spaces without a nested query.
+  menuViewCount: Int
   # The current invite link for this group
   invitePath: String
   # A string describing the physical location of this group in the world
@@ -943,6 +833,10 @@ type Group {
   locationObject: Location
   # Number of members in this group
   memberCount: Int
+  # Cached count of pending join requests. Visible only to members who can add members; 0 otherwise
+  openJoinRequestCount: Int
+  # Count of active (unresolved) moderation actions in this group
+  openModerationActionCount: Int
   # Word used to describe an admin/moderator of this group. Defaults to "Moderator". TODO: remove once mobile app switches to stewardDescriptor
   moderatorDescriptor: String
   # Plural word used to describe admins/moderators of this group. Defaults to "Moderators". TODO: remove once mobile app switches to stewardDescriptor
@@ -951,12 +845,16 @@ type Group {
   name: String
   # For the current logged in user how many prerequisite groups must they join before they can join this one
   numPrerequisitesLeft: Int
+  # Spaces & Views: parent Group id when this Group is a Space; null for top-level groups
+  parentId: ID
   # Whether this group requires purchased membership (paywall enabled)
   paywall: Boolean
   # Total number of posts in this group
   postCount: Int
   # The purpose statement for the group
   purpose: String
+  # Spaces & Views: group role ids required to view/post in this Space. Null/empty = no role restriction
+  requiredRoles: [Int]
   # Group settings
   settings: GroupSettings
   # Unique URL slug
@@ -975,7 +873,7 @@ type Group {
   stripePayoutsEnabled: Boolean
   # Whether all required Stripe details have been submitted
   stripeDetailsSubmitted: Boolean
-  # Right now can either by 'farm' or null
+  # Either 'farm', 'space' (a child Group belonging to another Group via parentGroup), or null
   type: String
   # Word used to describe this type of group. Defaults to Group, or if type is set then defaults to the type (e.g. Farm)
   typeDescriptor: String
@@ -983,8 +881,6 @@ type Group {
   typeDescriptorPlural: String
   # The primary website for the group
   websiteUrl: String
-  # The content for the group welcome page
-  welcomePage: String
   # Either 0 = Hidden (only visible to members), 1 = Protected (visible to members of related groups), 2 = Public (anyone can find/see this group)
   visibility: Int
 
@@ -1007,8 +903,6 @@ type Group {
   # The agreements required to participate in this Group
   agreements: AgreementQuerySet
 
-  chatRooms: ContextWidgetQuerySet
-
   # Child groups of this group
   childGroups(
     # Return groups whose names start with the autocomplete string
@@ -1027,11 +921,27 @@ type Group {
     search: String
   ): GroupQuerySet
 
-  # ContextWidgets for this group
-  contextWidgets: ContextWidgetQuerySet
 
-  # CustomViews for this group
-  customViews: CustomViewQuerySet
+  # Spaces & Views: this Group's/Space's own views. `menuOnly` omits off-menu
+  # (`order` is null) space entries; `type = 'space'` items include `linkedGroup`.
+  groupViews(
+    # If set, return only this view
+    id: ID
+    # When true, omit off-menu views (order is null)
+    menuOnly: Boolean
+  ): GroupViewQuerySet
+
+  # Spaces & Views: all child Spaces of this Group (including archived ones)
+  spaces: GroupQuerySet
+
+  # Spaces & Views: the parent Group this Space belongs to, if this Group is a Space
+  parentGroup: Group
+
+  # Spaces & Views: the Track this Space represents, if any
+  track: Track
+
+  # Spaces & Views: the FundingRound this Space represents, if any
+  fundingRound: FundingRound
 
   # The GroupExtension data for this group if it is a special group type like 'farm'
   groupExtensions: GroupExtensionQuerySet
@@ -1046,7 +956,16 @@ type Group {
   groupToGroupJoinQuestions: GroupToGroupJoinQuestionQuerySet
 
   # Special roles or badges attached to this group
-  groupRoles: GroupRoleQuerySet
+  groupRoles(
+    # Number of roles to return
+    first: Int,
+    # For pagination, return roles after this offset
+    offset: Int,
+    # Determines sort order, either 'ASC' or 'DESC'
+    order: String,
+    # Sort by 'id' or 'name'
+    sortBy: String
+  ): GroupRoleQuerySet
 
   # Topics that have been used in this group
   groupTopics(
@@ -1077,8 +996,14 @@ type Group {
     autocomplete: String
     # Return only people within the geographic bounding box
     boundingBox: [PointInput],
+    # Exclude people who are already members of this group (e.g. parent members not yet in a space)
+    excludeGroupId: ID,
     # Return members with a specific groupRole
     groupRoleId: ID,
+    # Track space only: true = members who completed the track, false = members who have not
+    trackCompleted: Boolean,
+    # Funding round space: 'submit' / 'notSubmit' / 'vote' / 'notVote'
+    fundingRoundCapability: String,
     # Number of people to return
     first: Int,
     # For pagination, return people after this offset in the query results
@@ -1255,7 +1180,7 @@ type Group {
     order: String,
     # true: Only return tracks that are published, false: Only return tracks that are not published, null: return all tracks
     published: Boolean,
-    # Sort by 'id', 'name', or 'published_at'
+    # Sort by 'id', 'name', or 'created_at'
     sortBy: String
   ): TrackQuerySet
 
@@ -1275,7 +1200,7 @@ type Group {
     sortBy: String
   ): FundingRoundQuerySet
 
-  # Posts to display in this group's stream. This includes posts from child groups that the logged in user is a member of
+  # Posts to display in this group's stream. Includes posts from child groups and child spaces that the logged in user is a member of
   viewPosts(
     # Only return posts that are not past their end date and have not been completed
     activePostsOnly: Boolean,
@@ -1358,6 +1283,80 @@ type GroupQuerySet {
   items: [Group]
 }
 
+# A View within a Group's or Space's navigation menu (see docs/spaces-and-views-engineering-spec.md section 2.5)
+type GroupView {
+  id: ID
+  # The Group or Space this view belongs to
+  group: Group
+  # Display name override (used by 'custom', 'space' and 'group' type views)
+  name: String
+  # The type of view, e.g. 'chat', 'welcome', 'custom', 'space', 'collection', 'link', etc.
+  type: String
+  # Position in the group's single ordered menu list. 0 = home view
+  order: Int
+  # Icon override for this view
+  icon: String
+  # Markdown content, used by 'welcome', 'text' and 'link' type views
+  pageContent: String
+  # URL, used by 'link' type views
+  link: String
+  # Topic names used to filter posts, for 'custom' type views
+  topics: [String]
+  # Type-specific settings, e.g. {postTypes, activePostsOnly, defaultSort, defaultViewMode, searchText} for 'custom' views
+  settings: JSON
+  # Posts in this view, for 'collection' and 'track-actions' type views
+  collectionPosts: [Post]
+  # Post ids pinned to this view (max 3). Cheap to load with the menu.
+  pinnedPostIds: [ID]
+  # Posts pinned to this view, newest pin first. Separate from the stream query.
+  pinnedPosts: [Post]
+  # The Space (or Group) this view links to, for 'space' and 'group' type views
+  linkedGroup: Group
+  # The Post this view points at, for 'post' type views
+  viewPost: Post
+  # The Person this view points at, for 'member' type views
+  viewUser: Person
+  # Number of new/unread posts in this view for the current logged in user
+  newPostCount: Int
+  # The last post id the current logged in user has read in this view
+  lastReadPostId: ID
+}
+
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type GroupViewQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [GroupView]
+}
+
+# Per-user unread state / settings for a GroupView (see docs/spaces-and-views-engineering-spec.md section 2.6)
+type GroupViewUser {
+  id: ID
+  # The View this pertains to
+  view: GroupView
+  # The Person this pertains to
+  user: Person
+  # Number of new/unread posts in this view for this user
+  newPostCount: Int
+  # The last post id this user has read in this view
+  lastReadPostId: ID
+  # Per-user, per-view settings. Null = inherit from the user's space membership settings
+  settings: JSON
+}
+
+# A Post within a 'collection' or 'track-actions' type GroupView (see docs/spaces-and-views-engineering-spec.md section 2.7)
+type CollectionPost {
+  id: ID
+  # The View this post belongs to
+  view: GroupView
+  # The Post
+  post: Post
+  # The order of the post within the view when manually sorted
+  order: Int
+  # When this was created
+  createdAt: Date
+}
+
 # Results of groupExists query
 type GroupExistsOutput {
   exists: Boolean
@@ -1431,6 +1430,8 @@ type GroupSettings {
   defaultDigestFrequency: String
   # Whether to display group extension data on the profile for special group types like farms
   hideExtensionData: Boolean
+  # Layout mode for the group: 'two-column' (sidebar + content) or 'one-column' (dashboard cards)
+  layout: String
   # How precisely to display group locations on the map and the group profile, to enable obfuscating the location
   locationDisplayPrecision: LocationDisplayPrecision
   # Whether to display the members of the group to non-members
@@ -1441,6 +1442,8 @@ type GroupSettings {
   showSuggestedSkills: Boolean
   # Whether to display the custom Welcome Page when a member joins the group
   showWelcomePage: Boolean
+  # Whether the chat view shows inline notices when other post types are created
+  showPostNoticesInChat: Boolean
 }
 
 # A relationship between two Groups
@@ -1515,6 +1518,8 @@ type GroupRole {
   group: Group
   # The id of the group that this role belongs to
   groupId: ID
+  # The number of active group members holding this role
+  membersTotal: Int
   # The name of the role
   name: String
   # system or custom
@@ -1553,9 +1558,9 @@ type GroupTopic {
   isDefault: Boolean
   # Whether the current logged in user is subscribed to this topic in this group
   isSubscribed: Boolean
-  # The most recent post that the user has read in this GroupTopic
+  # Obsolete — unread is on GroupViewUser. Always null.
   lastReadPostId: ID
-  # The number of new posts in this topic in this group since the current logged in user looked at the stream for this topic/group
+  # Obsolete — unread is on GroupViewUser. Always 0.
   newPostCount: Int
   # Total number of posts using this topic in this group
   postsTotal(groupSlug: String): Int
@@ -1635,6 +1640,10 @@ type Invitation {
   creator: Person
   # The email address being invited
   email: String
+  # Name of the Hylo user this invitation was sent to, if they have an account
+  name: String
+  # Hylo user id for this invitation, if the email matches an existing account
+  userId: ID
   # NOT USED?
   error: String
   # Which group they are being invited to
@@ -2002,10 +2011,12 @@ type MembershipCommonRoleQuerySet {
   items: [MembershipCommonRole]
 }
 
-# Settinga for a user's group membership
+# Settings for a user's group membership
 type MembershipSettings {
   # When the member last accepted the agreements of the group
   agreementsAcceptedAt: Date
+  # Track space: when the member completed the linked track
+  completedAt: Date
   # How often this person wants to receive the email digest about new posts and comments in this group: daily, weekly, or never
   digestFrequency: String
   # When the member filled out the join questions
@@ -2023,7 +2034,11 @@ type MembershipSettings {
 # A direct message sent in a specific thread
 type Message {
   id: ID
+  attachments(type: String): [Attachment]
+  attachmentsTotal: Int
   createdAt: Date
+  # When this message was last edited
+  editedAt: Date
   # The person sending the message
   creator: Person
   # The message thread this message is a part of
@@ -2134,7 +2149,7 @@ type Person {
   contactEmail: String
   # Phone number made visible on this person's profile
   contactPhone: String
-  # When loading through a track this is when they were enrolled in the track
+  # When loading through a track: membership created_at (join space = enroll)
   enrolledAt: Date
   # The URL to this person's Facebook profile
   facebookUrl: String
@@ -2361,6 +2376,8 @@ type Post {
   location: String
   # Object with geocoded location deatils
   locationObject: Location
+  # Video call link for online or hybrid events (Zoom, Meet, Jitsi, etc.)
+  meetingLink: String
   # Logged in user's attendance response to an event post: 'yes', 'maybe' or 'no'
   myEventResponse: String
   # The reactions of the logged-in user to this
@@ -2389,8 +2406,6 @@ type Post {
   reactionsSummary: JSON
   # When the current user saved this post
   savedAt: Date
-  # When loading posts for a Track, this is the order of the post in the track
-  sortOrder: Int
   # When this post "starts". Used for events, resources, projects, requests and offers right now
   startTime: Date
   # The timezone of the post
@@ -2405,9 +2420,13 @@ type Post {
   topicsTotal: Int
   # NOT USED RIGHT NOW
   totalContributions: Int
-  # Post type: 'discussion', 'event', 'offer', 'project', 'proposal', 'request', or 'resource'
+  # Post type: 'discussion', 'event', 'offer', 'project', 'proposal', 'request', 'resource', or notice types such as 'chat_activity'
   type: String
   updatedAt: Date
+  # JSON payload for system-generated notice posts (chat activity buckets, etc.)
+  noticeData: JSON
+  # Live chat posts previewed on a chat_activity notice, newest first
+  noticePosts: [Post]
 
   # The attachments (images, videos or files) added to the post
   attachments(type: String): [Attachment]
@@ -2435,6 +2454,7 @@ type Post {
 
   # Any moderation actions that are linked to this post
   moderationActions: [ModerationAction]
+  moderationActionsTotal: Int
 
   # The members of a project type Post
   members(first: Int, cursor: ID, order: String): PersonQuerySet
@@ -2467,8 +2487,6 @@ type PostMembership {
   id: ID
   # The group this post was posted in
   group: Group
-  # Whether this post is set to pinned in the group by a moderator
-  pinned: Boolean
 }
 
 # Relationship of a user to a post, indicating "following the post". Created when a user comments on or reacts to a post
@@ -2679,9 +2697,9 @@ type TopicFollow {
   createdAt: Date
   # The group that the topic is in
   group: Group
-  # The last post id that the user has read in this group
+  # Obsolete — unread is on GroupViewUser. Not updated.
   lastReadPostId: ID
-  # The number of new posts since the last post the user has read in this group
+  # Obsolete — unread is on GroupViewUser. Not updated.
   newPostCount: Int
   # The settings for the topic follow
   settings: TopicFollowSettings
@@ -2713,8 +2731,6 @@ type Track {
   actionDescriptor: String
   # The word used in this track to describe multiple actions
   actionDescriptorPlural: String
-  # The URL of the banner image for this track
-  bannerUrl: String
   # The message shown when a user completes this track
   completionMessage: String
   # The role/badge that is awarded when a user completes this track
@@ -2723,8 +2739,6 @@ type Track {
   createdAt: Date
   # When this track was deactivated
   deactivatedAt: Date
-  # The description of this track
-  description: String
   # Whether the current user has completed this track
   didComplete: Boolean
   # The users enrolled in this track
@@ -2733,8 +2747,6 @@ type Track {
   groupsTotal: Int
   # Whether the current user is enrolled in this track
   isEnrolled: Boolean
-  # The name of this track
-  name: String
   # The total number of actions in this track
   numActions: Int
   # The total number of people enrolled in this track
@@ -2743,20 +2755,14 @@ type Track {
   numPeopleCompleted: Int
   # The total number of posts in this track
   postsTotal: Int
-  # When this track was published
-  publishedAt: Date
   # When this track was updated
   updatedAt: Date
   # The settings for the current user in this track
   userSettings: JSON
   # The total number of users in this track
   usersTotal: Int
-  # The welcome message for this track
-  welcomeMessage: String
-  # The groups in this track
-  groups: GroupQuerySet
-  # The posts in this track
-  posts: PostQuerySet
+  # The Track space Group (tracks.group_id / groups.track_id)
+  space: Group
   # The users related to this track
   users: PersonQuerySet
 }
@@ -2765,18 +2771,6 @@ type TrackQuerySet {
   total: Int
   hasMore: Boolean
   items: [Track]
-}
-
-type TrackUser {
-  id: ID
-  completedAt: Date
-  createdAt: Date
-  enrolledAt: Date
-  settings: JSON
-  updatedAt: Date
-  group: Group
-  track: Track
-  user: Person
 }
 
 # Preview of subscription change rules (v1)
@@ -2854,7 +2848,7 @@ type StripeOffering {
   accessGrants: JSON
   # Presentation / checkout options (buyButtonText, slidingScale), not access scopes
   metadata: JSON
-  # Tracks this offering grants access to (resolved from accessGrants.trackIds)
+  # Tracks this offering used to grant (deprecated; prefer groupIds for spaces). Kept for read compatibility.
   tracks: [Track]
   # Group roles this offering grants (resolved from accessGrants.groupRoleIds)
   roles: [GroupRole]
@@ -2935,7 +2929,7 @@ type ContentAccessCheckResult {
 # A user's transaction/purchase record, enriched with Stripe data
 type UserTransaction {
   id: ID!
-  
+
   # From our database
   # The offering/product that was purchased
   offering: StripeOffering
@@ -2954,7 +2948,7 @@ type UserTransaction {
   purchaseDate: Date!
   # When access expires (null for lifetime)
   expiresAt: Date
-  
+
   # From Stripe API (enriched)
   # Payment type: 'one_time' or 'subscription'
   paymentType: String!
@@ -2971,7 +2965,7 @@ type UserTransaction {
   amountPaid: Int
   # Currency code (e.g., 'usd')
   currency: String
-  
+
   # Generated links
   # URL to Stripe billing portal for managing this subscription
   manageUrl: String
@@ -2990,12 +2984,10 @@ type UserTransactionQuerySet {
 # A participatory funding round
 type FundingRound {
   id: ID
-  # Whether participants can vote on their own submissions
-  allowSelfVoting: Boolean
   # Whether people who join during the voting phase receive tokens and can vote
   allowLateJoiners: Boolean
-  # The URL for the banner image of the round
-  bannerUrl: String
+  # Whether participants can vote on their own submissions
+  allowSelfVoting: Boolean
   # Whether the current user can submit to this funding round
   canSubmit: Boolean
   # Whether the current user can vote in this funding round
@@ -3003,9 +2995,7 @@ type FundingRound {
   createdAt: Date
   # Criteria for submitting projects/submissions
   criteria: String
-  # Description of the round
-  description: String
-  # The group that the funding round belongs to
+  # The Funding Round space Group (funding_rounds.group_id)
   group: Group
   # Whether to hide final voting results from participants
   hideFinalResultsFromParticipants: Boolean
@@ -3021,12 +3011,12 @@ type FundingRound {
   numParticipants: Int
   # Number of submissions in the round
   numSubmissions: Int
-  # The current phase of the round: draft, published, submissions, discussion, voting, completed
+  # The current phase of the round (resolved from the space group's status)
   phase: FundingRoundPhase
-  # When the round was published
-  publishedAt: Date
   # Whether a budget is required for submissions
   requireBudget: Boolean
+  # Whether to show running vote totals during the voting phase
+  showRealtimeVotes: Boolean
   # The term used to describe a submission to the round
   submissionDescriptor: String
   # # The plural term used to describe submissions to the round
@@ -3041,8 +3031,6 @@ type FundingRound {
   submissionsOpenAt: Date
   # The roles or badges required to add a submission to the round
   submitterRoles: [GroupRole]
-  # The title of the funding round
-  title: String
   # When tokens were distributed to users
   tokensDistributedAt: Date
   # The number of tokens remaining for the current user to allocate
@@ -3087,6 +3075,10 @@ type FundingRoundAllocation {
 type UserSettings {
   # Has this person seen the tour that displays the first time someone logs in
   alreadySeenTour: Boolean
+  # Ids of in-app guided tours this person has completed or dismissed
+  toursSeen: [String]
+  # Display mode preference: auto, light, or dark
+  colorScheme: String
   # How this person wants to receive notifications about new comments on posts they're following? email, push, both, or none
   commentNotifications: String
   # How this person wants to receive notifications about Direct Messages: email, push, both, or none
@@ -3097,12 +3089,20 @@ type UserSettings {
   locale: String
   # The most recent map base later viewed by this person
   mapBaseLayer: String
+  # Global navigation position: sidebar or tabs
+  globalNavStyle: String
+  # Override for group menu layout: group-default, two-column, or one-column
+  groupNavStyle: String
   # How this person wants to receive notifications for each post in their groups. none, important, or all
   postNotifications: String
   # Whether to enable RSVP calendar subscription
   rsvpCalendarSub: Boolean
   # Whether this person has finished viewing the welcome wizard after first signing up
   signupInProgress: Boolean
+  # Whether to show subgroups stacked on their parent in global nav (default false / flat)
+  stackGroups: Boolean
+  # Whether space clicks replace the ContextMenu with the space's views (default false / nested in group menu)
+  independentSpaceMenu: Boolean
   # Include child group posts in user's stream
   streamChildPosts: String
   # The most recent stream view mode used by this person: cards, list, grid, bigGrid
@@ -3111,6 +3111,8 @@ type UserSettings {
   streamSortBy: String
   # The most recent stream post type filter used by this person
   streamPostType: String
+  # Color scheme / palette name (e.g. default, forest, ocean)
+  theme: String
 }
 
 type Draft {
@@ -3142,6 +3144,31 @@ type EmailEnabledTester {
   user: Person
   createdAt: Date
   updatedAt: Date
+}
+
+# A site-wide announcement banner published by a superadmin
+type SiteBanner {
+  id: ID!
+  title: String
+  text: String
+  type: String
+  actionText: String
+  actionUrl: String
+  creator: Person
+  publishedAt: Date
+  unpublishedAt: Date
+  createdAt: Date
+  updatedAt: Date
+  # Number of users who have dismissed this banner (admin only)
+  dismissedCount: Int
+}
+
+input SiteBannerInput {
+  title: String
+  text: String
+  type: String
+  actionText: String
+  actionUrl: String
 }
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
@@ -3210,8 +3237,6 @@ type Mutation {
   ): GenericResult
   # NOT USED RIGHGT NOW. Add one or more people to a Project as a Project member.
   addPeopleToProjectRole(peopleIds: [ID], projectRoleId: ID): GenericResult
-  # Add a Post to a Collection
-  addPostToCollection(collectionId: ID, postId: ID): GenericResult
   # Add responsibility to a role
   addResponsibilityToRole(
     responsibilityId: ID,
@@ -3288,12 +3313,8 @@ type Mutation {
   completePost(postId: ID, completionResponse: JSON): Post
   # For logged in user to add an Affiliation to their profile
   createAffiliation(data: AffiliationInput): Affiliation
-  # Create a new post Collection
-  createCollection(data: CollectionInput): Collection
   # Add a comment to a Post
   createComment(data: CommentInput): Comment
-  # Create a new context widget
-  createContextWidget(data: ContextWidgetInput, groupId: ID): ContextWidget
   # Create a new funding round
   createFundingRound(data: FundingRoundInput): FundingRound
   # Create a new Group
@@ -3302,7 +3323,117 @@ type Mutation {
     # Create the group as a specific user. Only supported by particular API keys.
     asUserId: ID
   ): Group
-  # Invite an email address to join a Group
+  # ---- Spaces & Views (see docs/spaces-and-views-engineering-spec.md section 4) ----
+  # Create a new View in a Group's or Space's navigation menu
+  createGroupView(
+    groupId: ID!,
+    type: String!,
+    name: String,
+    icon: String,
+    settings: JSON,
+    link: String,
+    pageContent: String,
+    topics: [String],
+    orderInFrontOfViewId: ID,
+    addToEnd: Boolean,
+    linkedGroupId: ID,
+    postId: ID,
+    userId: ID,
+    # When true, create off-menu (order = null). Only valid for type = space (More Spaces).
+    hidden: Boolean
+  ): GroupView
+  # Update a View
+  updateGroupView(
+    id: ID!,
+    name: String,
+    icon: String,
+    settings: JSON,
+    link: String,
+    pageContent: String,
+    topics: [String],
+    orderInFrontOfViewId: ID,
+    addToEnd: Boolean
+  ): GroupView
+  # Delete a View
+  deleteGroupView(id: ID!): GenericResult
+  # Reorder a View within its Group's or Space's menu
+  reorderGroupView(id: ID!, orderInFrontOfViewId: ID, addToEnd: Boolean): GenericResult
+  # Hide (order = null) or show a Space in the parent menu. Only valid for type = space.
+  setGroupViewHidden(id: ID!, hidden: Boolean!): GroupView
+  # Set a View as the home view for its Group or Space
+  setHomeView(viewId: ID!, groupId: ID!): GenericResult
+  # Create a new Space (a child Group) within a parent Group
+  createSpace(
+    parentGroupId: ID!,
+    name: String!,
+    slug: String,
+    acceptedPostTypes: [String],
+    visibility: Int,
+    accessibility: Int,
+    icon: String,
+    description: String,
+    requiredRoles: [Int],
+    purpose: String,
+    location: String,
+    locationId: ID,
+    viewTypes: [String],
+    bannerUrl: String,
+    avatarUrl: String,
+    # When true, space is Paid access (forces protected + restricted)
+    paywall: Boolean,
+    # When false, parent menu space view is created off-menu (More Views). Default true.
+    addToMenu: Boolean,
+    # draft or published. Drafts are always created off-menu.
+    status: GroupStatus
+  ): Group
+  # Update a Space's settings
+  updateSpace(
+    id: ID!,
+    name: String,
+    slug: String,
+    acceptedPostTypes: [String],
+    visibility: Int,
+    accessibility: Int,
+    icon: String,
+    description: String,
+    requiredRoles: [Int],
+    location: String,
+    locationId: ID,
+    purpose: String,
+    bannerUrl: String,
+    avatarUrl: String,
+    # When true, space is Paid access (forces protected + restricted)
+    paywall: Boolean,
+    # draft or published. Setting draft removes the space from the parent menu.
+    status: GroupStatus
+  ): Group
+  # Archive a Space (status=archived; removes its menu entry from the parent). Stays in More Spaces → Archived.
+  archiveSpace(id: ID!): Group
+  # Soft-delete a Space (active=false). Hidden from menus and More Spaces.
+  deleteSpace(id: ID!): GenericResult
+  # Convert a regular Space into a child Group of its parent
+  convertSpaceToChildGroup(id: ID!): Group
+  # Convert a child Group into a Space of its single parent
+  convertGroupToSpace(id: ID!, parentGroupId: ID!): Group
+  # Join a Space (creates a group membership + per-view unread rows).
+  # accessCode or invitationToken pre-approves Closed, Restricted, and role-gated spaces.
+  joinSpace(spaceId: ID!, accessCode: String, invitationToken: String): Membership
+  # Update the current logged in user's last-read position for a chat GroupView, recalculating newPostCount
+  updateGroupViewUser(viewId: ID!, lastReadPostId: ID): GroupView
+  # Mark a View as read for the current logged in user
+  markViewAsRead(viewId: ID!): GroupView
+  # Mark all views + the group membership badge as read
+  markGroupAsRead(groupId: ID!): Group
+  # Update the current logged in user's settings for a View
+  updateViewSettings(viewId: ID!, settings: JSON!): GroupViewUser
+  # Add a Post to a 'collection' or 'track-actions' type View
+  addPostToView(viewId: ID!, postId: ID!, order: Int): CollectionPost
+  # Remove a Post from a View
+  removePostFromView(viewId: ID!, postId: ID!): GenericResult
+  # Reorder a Post within a View
+  reorderViewPost(viewId: ID!, postId: ID!, order: Int!): GenericResult
+
+  # Invite email addresses and/or existing people to join a Group
   createInvitation(groupId: ID, data: InviteInput): CreatedInvitations
   # Ask to join a Group
   createJoinRequest(groupId: ID, questionAnswers: [QuestionAnswerInput]): CreatedRequest
@@ -3336,8 +3467,6 @@ type Mutation {
   deleteComment(id: ID): GenericResult
   # Delete a draft by ID
   deleteDraft(id: ID!): GenericResult
-  # Delete a context widget (can only delete user added ones)
-  deleteContextWidget(contextWidgetId: ID): GenericResult
   # Delete a funding round
   deleteFundingRound(id: ID): GenericResult
   # Delete a group that you are a steward of
@@ -3424,8 +3553,8 @@ type Mutation {
   markThreadUnread(messageThreadId: ID): MessageThread,
   # Send a message to all the stewards of a Group
   messageGroupStewards(groupId: ID): ID
-  # Pin a post within a Group. Only a group moderator can call this.
-  pinPost(postId: ID, groupId: ID): GenericResult
+  # Pin a post to a View. Only a group moderator can call this. Toggles if already pinned. Max 3 per view.
+  pinPost(postId: ID, viewId: ID): GenericResult
   # Called when typing in front end, matches with peopleTyping subscription
   peopleTyping(messageThreadId: ID, postId: ID, commentId: ID): GenericResult,
   # NOT USED RIGHT NOW
@@ -3443,19 +3572,15 @@ type Mutation {
   # Reinvite all pending invitations to the current group. Only a group Host can call this.
   reinviteAll(groupId: ID): GenericResult
   # Create a new user account
-  register(name: String, password: String): SignupResult
+  register(name: String!, password: String!): SignupResult
   # NOT USED RIGHT NOW
   registerStripeAccount(authorizationCode: String): GenericResult
   # Reject a Group's invite or request to connect to one of your groups. Only a group steward can call this.
   rejectGroupRelationshipInvite(groupRelationshipInviteId: ID): GenericResult
-  # Remove a context widget from a menu
-  removeWidgetFromMenu(contextWidgetId: ID, groupId: ID): GenericResult
   # Remove a Person from a Group. Only a group Moderator can call this.
   removeMember(personId: ID, groupId: ID): Group
   # Remove a Post from a group, by groupId or group slug
   removePost(postId: ID, slug: String, groupId: ID): GenericResult
-  # Remove a Post from a Collection, if you have permission to
-  removePostFromCollection(collectionId: ID, postId: ID): GenericResult
   # Remove a group responsibility from a group
   removeResponsibilityFromRole(
     roleResponsibilityId: ID, groupId: ID
@@ -3477,23 +3602,6 @@ type Mutation {
     questionAnswers: [QuestionAnswerInput],
     parentId: ID
   ): CreatedGroupRelationshipInvite
-  # Change a context widget's order/position
-  reorderContextWidget(
-    contextWidgetId: ID,
-    # Change the parent of the widget
-    parentId: ID,
-    # Move the widget in front of this widget
-    orderInFrontOfWidgetId: ID,
-    # Add the widget to the end of the parent
-    addToEnd: Boolean
-  ): ContextWidget
-  # Change a post's order/position in a Collection to newOrderIndex (0 indexed)
-  reorderPostInCollection(
-    collectionId: ID,
-    postId: ID,
-    # Move the post to this index in the collection, 0 indexed
-    newOrderIndex: Int
-  ): GenericResult
   # Resend an invitation to the invited email address
   resendInvitation(invitationId: ID): GenericResult
   # Change your response to an event Post
@@ -3513,8 +3621,6 @@ type Mutation {
   sendPasswordReset(email: String!): GenericResult,
   # set options for a proposal
   setProposalOptions(postId: ID, options: [ProposalOptionInput]): [ProposalOption]
-  # Set the Home widget for a Group
-  setHomeWidget(contextWidgetId: ID, groupId: ID): GenericResult
   # Subscribe or unsubscribe to a Topic in a Group
   subscribe(groupId: ID, topicId: ID, isSubscribing: Boolean): GenericResult
   # Swap votes on a proposal
@@ -3531,8 +3637,6 @@ type Mutation {
   updateAllMemberships(data: MembershipInput): GenericResult
   # Edit a comment
   updateComment(id: ID, data: CommentInput): Comment
-  # Update a context widget
-  updateContextWidget(contextWidgetId: ID, data: ContextWidgetInput): ContextWidget
   # Update a funding round
   updateFundingRound(id: ID, data: FundingRoundInput): FundingRound
   # Update a Group's settings. Only a group steward can call this.
@@ -3584,8 +3688,6 @@ type Mutation {
   updateTopicFollow(id: ID, data: TopicFollowInput): TopicFollow
   # Update a track
   updateTrack(trackId: ID, data: TrackInput): Track
-  # Update the order of an action in a track
-  updateTrackActionOrder(trackId: ID, postId: ID, newOrderIndex: Int): GenericResult
   # Update settings for a GroupWidget
   updateWidget(id: ID, changes: GroupWidgetInput): GroupWidget
   # Accept an invitation to a Group
@@ -3599,6 +3701,18 @@ type Mutation {
   addEmailEnabledTester(userId: ID!): EmailEnabledTester
   # Remove a user from the email-enabled testers list (admin only)
   removeEmailEnabledTester(userId: ID!): Boolean
+  # Create a new site banner (admin only)
+  createSiteBanner(data: SiteBannerInput): SiteBanner
+  # Update a site banner's text, type, or action button, at any point in its lifecycle (admin only)
+  updateSiteBanner(id: ID!, data: SiteBannerInput): SiteBanner
+  # Publish a site banner so all users see it (admin only)
+  publishSiteBanner(id: ID!): SiteBanner
+  # Take down a published site banner (admin only)
+  unpublishSiteBanner(id: ID!): SiteBanner
+  # Permanently delete a site banner (admin only)
+  deleteSiteBanner(id: ID!): Boolean
+  # Dismiss a site banner for the current user
+  dismissSiteBanner(id: ID!): Boolean
   # Verify your email address, manually by code or automatically by URL token
   verifyEmail(
     # The shortcode sent via email
@@ -3657,6 +3771,9 @@ type Mutation {
 
   # Check Stripe account status and update database values
   checkStripeStatus(groupId: ID!): StripeStatusCheckResult
+
+  # Grant access from a completed Checkout session (success-page fallback)
+  fulfillStripeCheckoutSession(sessionId: ID!, offeringId: ID): StripeFulfillCheckoutResult
 
   # Apply a membership subscription change (Stripe Connect). Call membershipChangePreview first; unsupported modes error until implemented.
   membershipChangeCommit(
@@ -3790,6 +3907,11 @@ type StripeCheckoutSessionResult {
   success: Boolean
 }
 
+type StripeFulfillCheckoutResult {
+  success: Boolean
+  message: String
+}
+
 # Stats for an offering's subscribers
 type OfferingSubscriptionStats {
   # Number of currently active subscribers
@@ -3871,29 +3993,6 @@ input AttachmentInput {
   url: String
 }
 
-# A Collection
-input CollectionInput {
-  id: ID
-  # The Group this Collection is associated with (optional)
-  groupId: ID
-  # The name of the collection
-  name: String
-  # The Posts in this Collection
-  posts: [CollectionsPostInput]
-  # The person who created this Collection
-  userId: ID
-}
-
-input CollectionsPostInput {
-  id: ID
-  collectionId: ID
-  # The order of the post in the collection when manually sorted
-  order: Int
-  postId: ID
-  # The user that added this post to this collection
-  userId: ID
-}
-
 # A Comment
 input CommentInput {
   # Image or file attachments on the comment
@@ -3904,105 +4003,6 @@ input CommentInput {
   postId: String
   # Comment content
   text: String
-}
-
-# Input type for creating or updating a ContextWidget
-input ContextWidgetInput {
-  # If true, add this widget to the end of the list. Will be ignored if orderInFrontOfWidgetId is also provided.
-  addToEnd: Boolean
-
-  # Custom view this widget is pointing at
-  customViewId: ID
-
-  # Create a custom view when creating a widget
-  customViewInput: CustomViewInput
-
-  # Icon for the widget
-  icon: String
-
-  # The group this widget belongs to
-  ownerGroupId: ID
-
-  # The display order of the widget
-  orderInFrontOfWidgetId: ID
-
-  # ID of the parent widget if this is a child widget
-  parentId: ID
-
-  # If true, remove this widget from the menu.
-  remove: Boolean
-
-  # Type: null is default and valid. Only include widget type for special behaviors.
-  type: String
-
-  # The title of the widget
-  title: String
-
-  # The view that this widget is pointing at
-  view: String
-
-  # Chat this widget is pointing at
-  viewChatId: ID
-
-  # Funding round this widget is pointing at
-  viewFundingRoundId: ID
-
-  # Group this widget is pointing at
-  viewGroupId: ID
-
-  # Post this widget is pointing at
-  viewPostId: ID
-
-  # Track this widget is pointing at
-  viewTrackId: ID
-
-  # User this widget is pointing at
-  viewUserId: ID
-
-  # The visibility settings of the widget. Currently null or admin
-  visibility: String
-}
-
-# For adding or editing an existing CustomView on a Group
-input CustomViewInput {
-  # The ID of an existing CustomView
-  id: ID
-  # Whether this view only displays active posts or not
-  activePostsOnly: Boolean
-  # ID of a Collection for 'collection type' views
-  collectionId: ID
-  # How to sort a Post stream or Collection by defaut ('created', 'reactions', or 'updated')
-  defaultSort: String
-  # The default style of viewing posts in the view ('cards', 'list', 'bigGrid', 'grid')
-  defaultViewMode: String
-  # URL for external link views
-  externalLink: String
-  # ID of the group this view is connected to
-  groupId: Int
-  # The icon to display for this CustomView
-  icon: String
-  # Is this view active or not
-  isActive: Boolean
-  # The label to display for this CustomView
-  name: String
-  # Not used right now, will be used to order views in the navigation menu
-  order: Int
-  # For post stream type views, filter by these post types
-  postTypes: [String]
-  # Not used yet, will be used to filter the post stream by search text
-  searchText: String
-  # For post stream type views, only show posts that have any of these topics
-  topics: [CustomViewTopicInput]
-  # The type of custom view: 'externalLink', 'stream', or 'collection'
-  type: String
-}
-
-# A Topic added to a CustomView
-input CustomViewTopicInput {
-  # Topic ID
-  id: ID
-  # Topic content/text
-  name: String
 }
 
 # For adding a LinkPreview to a Post
@@ -4051,6 +4051,10 @@ input GroupInput {
   aboutVideoUri: String
   # Either 0 = Closed (invite only), 1 = Restricted (Anyone can request to join), 2 = Open (anyone can join if they can find/see the group)
   accessibility: Int
+  # Post types this group accepts (used to seed initial GroupViews via viewTypes)
+  acceptedPostTypes: [String]
+  # Ordered list of GroupView types to seed for this group's menu (see Group.setupSpaceViews)
+  viewTypes: [String]
   # Whether this Group is active or not
   active: Boolean
   # The group agreements
@@ -4059,8 +4063,6 @@ input GroupInput {
   avatarUrl: String
   # URL to the image of the banner for the group
   bannerUrl: String
-  # CustomViews for this Group
-  customViews: [CustomViewInput]
   # Group description text
   description: String
   # A geoJSON object outlining a geographic shape describing the border/boundaries of the group in the world
@@ -4117,8 +4119,6 @@ input GroupInput {
   typeDescriptorPlural: String
   # The primary website for the group
   websiteUrl: String
-  # The content for the group welcome page
-  welcomePage: String
   # Either 0 = Hidden (only visible to members), 1 = Protected (visible to members of related groups), 2 = Public (anyone can find/see this group)
   visibility: Int
 }
@@ -4140,9 +4140,9 @@ input GroupTopicInput {
 
 # Data related to a Person following a Topic in a Group
 input TopicFollowInput {
-  # The most recent post that the user has read in this GroupTopic
+  # Obsolete — unread is on GroupViewUser. Ignored by updateTopicFollow.
   lastReadPostId: ID
-  # Set the count of new posts with this Topic in the Group since the Person last looked a the Topic stream
+  # Obsolete — unread is on GroupViewUser. Ignored by updateTopicFollow.
   newPostCount: Int
   # Settings for this TopicFollow
   settings: TopicFollowSettingsInput
@@ -4166,6 +4166,8 @@ input GroupSettingsInput {
   defaultDigestFrequency: String
   # Whether to display group extension data on the profile for special group types like farms
   hideExtensionData: Boolean
+  # Layout mode for the group: 'two-column' (sidebar + content) or 'one-column' (dashboard cards)
+  layout: String
   # How precisely to display group locations on the map and the group profile, to enable obfuscating the location
   locationDisplayPrecision: LocationDisplayPrecision
   # Whether to display the members of the group to non-members
@@ -4176,6 +4178,8 @@ input GroupSettingsInput {
   showSuggestedSkills: Boolean
   # Whether to display the custom Welcome Page when a member joins the group
   showWelcomePage: Boolean
+  # Whether the chat view shows inline notices when other post types are created
+  showPostNoticesInChat: Boolean
 }
 
 # Settings for a Widget in a particular Group's explore page
@@ -4208,8 +4212,9 @@ input StripeOfferingInput {
   # Currency code (e.g. 'usd')
   currency: String
   # JSONB object defining what access this offering grants
-  # Format: { "trackIds": [1, 2], "groupRoleIds": [3, 4], "groupIds": [7, 8] }
+  # Format: { "groupIds": [7, 8], "groupRoleIds": [3, 4] } — groupIds may include space groups
   # buyButtonText and slidingScale may be sent here for convenience; they are stored in metadata
+  # Legacy trackIds are deprecated and ignored for new grants
   accessGrants: JSON
   # Renewal policy: automatic or manual
   renewalPolicy: String
@@ -4239,6 +4244,8 @@ input InappropriateContentInput {
 
 input InviteInput {
   emails: [String]
+  # Existing Hylo users to invite by id (their account email is used)
+  userIds: [ID]
   # Assign Coordinator system role when the invitation is used
   assignCoordinator: Boolean
   # Group role ID to assign when the invitation is used
@@ -4327,6 +4334,7 @@ input MembershipSettingsInput {
 
 # Data for updating a message in a direct message thread
 input MessageInput {
+  attachments: [AttachmentInput]
   # When this thread was created
   createdAt: Date
   # The ID of the thread to update/edit
@@ -4395,12 +4403,16 @@ input PostInput {
   linkPreviewId: String
   # Whether LinkPreview appears full size above post or smaller below
   linkPreviewFeatured: Boolean
+  # When true, do not auto-generate a link preview from URLs in the post (the author removed it in the editor)
+  skipLinkPreview: Boolean
   # Temporary id passed in from the client to identify the post when it is created, for optimistically updating the UI
   localId: String
   # Full location string
   location: String
   # Id to location object with geocoded location deatils
   locationId: ID
+  # Video call link for online or hybrid events (Zoom, Meet, Jitsi, etc.)
+  meetingLink: String
   # Topic name of the chat room the user is currently viewing. When set, that topic follow's last_read_post_id is always updated regardless of new_post_count.
   markAsReadTopicName: String
   # People to add as members to a project type Post
@@ -4423,6 +4435,8 @@ input PostInput {
   topicNames: [String]
   # The track this post is associated with
   trackId: ID
+  # The GroupView to add this post to (e.g. track-actions / collection / funding-round-submissions)
+  viewId: ID
   # Post type: 'action', 'chat', 'discussion', 'event', 'offer', 'project', 'proposal', 'request', 'resource', 'submission'
   type: String
 }
@@ -4499,24 +4513,14 @@ input TrackInput {
   actionDescriptor: String
   # The word used in this track to describe multiple actions
   actionDescriptorPlural: String
-  # The URL of the banner image for this track
-  bannerUrl: String
   # The message shown when a user completes this track
   completionMessage: String
   # The role/badge that is awarded when a user completes this track
   completionRoleId: ID
-  # The description of the track
-  description: String
-  # The groups this track is associated with
-  groupIds: [ID]
+  # The Track space group (tracks.group_id / groups.track_id)
+  groupId: ID
   # The posts (actions) for the track
   postIds: [ID]
-  # The name of the track
-  name: String
-  # When the track was or will be published, null if not published
-  publishedAt: Date
-  # The welcome message for the track
-  welcomeMessage: String
 }
 
 input RoleSelectionInput {
@@ -4525,16 +4529,12 @@ input RoleSelectionInput {
 }
 
 input FundingRoundInput {
-  # Whether participants can vote on their own submissions
-  allowSelfVoting: Boolean
   # Whether people who join during the voting phase receive tokens and can vote
   allowLateJoiners: Boolean
-  # The URL for the banner image of the round
-  bannerUrl: String
+  # Whether participants can vote on their own submissions
+  allowSelfVoting: Boolean
   # Criteria for submitting projects/submissions
   criteria: String
-  # Description of the round
-  description: String
   # The group that this funding round belongs to
   groupId: ID
   # Whether to hide final voting results from participants
@@ -4543,10 +4543,10 @@ input FundingRoundInput {
   maxTokenAllocation: Int
   # Minimum tokens a voter can allocate
   minTokenAllocation: Int
-  # When the round was or will be published, null if not published
-  publishedAt: Date
   # Whether a budget is required for submissions
   requireBudget: Boolean
+  # Whether to show running vote totals during the voting phase
+  showRealtimeVotes: Boolean
   # The term used to describe a submission to the round
   submissionDescriptor: String
   # # The plural term used to describe submissions to the round
@@ -4557,8 +4557,6 @@ input FundingRoundInput {
   submissionsOpenAt: Date
   # The roles or badges required to add a submission to the round
   submitterRoles: [RoleSelectionInput]
-  # The title of the funding round
-  title: String
   # Total tokens available to allocate
   totalTokens: Int
   # Token type used for voting/allocation
@@ -4576,6 +4574,10 @@ input FundingRoundInput {
 input UserSettingsInput {
   # Has this person seen the tour that displays the first time someone logs in
   alreadySeenTour: Boolean
+  # Ids of in-app guided tours this person has completed or dismissed
+  toursSeen: [String]
+  # Display mode preference: auto, light, or dark
+  colorScheme: String
   # How this person wants to receive notifications about new comments on posts they're following? email, push, both, or none
   commentNotifications: String
   # How this person wants to receive notifications about Direct Messages: email, push, both, or none
@@ -4586,10 +4588,18 @@ input UserSettingsInput {
   locale: String
   # The most recent map base later viewed by this person
   mapBaseLayer: String
+  # Global navigation position: sidebar or tabs
+  globalNavStyle: String
+  # Override for group menu layout: group-default, two-column, or one-column
+  groupNavStyle: String
   # Whether to enable RSVP calendar subscription
   rsvpCalendarSub: Boolean
   # Whether this person has finished viewing the welcome wizard after first signing up
   signupInProgress: Boolean
+  # Whether to show subgroups stacked on their parent in global nav (default false / flat)
+  stackGroups: Boolean
+  # Whether space clicks replace the ContextMenu with the space's views (default false / nested in group menu)
+  independentSpaceMenu: Boolean
   # Include child group posts in user's stream
   streamChildPosts: String
   # The most recent stream view mode used by this person: cards, list, grid, bigGrid
@@ -4598,4 +4608,6 @@ input UserSettingsInput {
   streamSortBy: String
   # The most recent stream post type filter used by this person
   streamPostType: String
+  # Color scheme / palette name (e.g. default, forest, ocean)
+  theme: String
 }

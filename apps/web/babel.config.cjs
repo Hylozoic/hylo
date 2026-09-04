@@ -24,6 +24,7 @@ module.exports = function (api) {
         { targets: { node: 'current' } }
       ],
       '@babel/preset-react',
+      '@babel/preset-typescript',
       [
         'babel-preset-vite',
         {

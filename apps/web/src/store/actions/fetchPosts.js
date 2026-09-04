@@ -17,6 +17,7 @@ export default function fetchPosts ({
   filter,
   first,
   forCollection,
+  groupId,
   interactedWithBy,
   mentionsOf,
   offset,
@@ -27,12 +28,13 @@ export default function fetchPosts ({
   sortBy,
   topic,
   topics,
-  types
+  types,
+  fieldsVariant
 }) {
   let query, extractModel, getItems
 
   if (context === 'groups') {
-    query = groupQuery(childPostInclusion === 'yes', includePostGroups)
+    query = groupQuery(childPostInclusion === 'yes', { includeGroups: includePostGroups, fieldsVariant })
     extractModel = 'Group'
     getItems = get('payload.data.group.posts')
   } else if (context === 'all' || context === 'public' || context === CONTEXT_MY) {
@@ -75,15 +77,21 @@ export default function fetchPosts ({
     },
     meta: {
       slug,
+      groupId,
       extractModel,
       extractQueryResults: {
-        getItems
+        getItems,
+        getRouteParams: ({ meta }) => {
+          const params = { ...meta.graphql.variables }
+          if (meta.groupId) params.groupId = meta.groupId
+          return params
+        }
       }
     }
   }
 }
 
-const groupQuery = (childPostInclusion, includePostGroups = true) => `query GroupPostsQuery (
+const groupQuery = (childPostInclusion, { includeGroups = true, fieldsVariant } = {}) => `query GroupPostsQuery (
   $activePostsOnly: Boolean,
   $afterTime: Date,
   $beforeTime: Date,
@@ -110,7 +118,7 @@ const groupQuery = (childPostInclusion, includePostGroups = true) => `query Grou
     name
     avatarUrl
     bannerUrl
-    ${groupViewPostsQueryFragment(childPostInclusion, { includeGroups: includePostGroups })}
+    ${groupViewPostsQueryFragment(childPostInclusion, { includeGroups, fieldsVariant })}
   }
 }`
 

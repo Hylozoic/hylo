@@ -6,16 +6,17 @@ export default gql`
       id
       allowLateJoiners
       allowSelfVoting
-      bannerUrl
       canSubmit
       canVote
       createdAt
       criteria
-      description
       group {
         id
         name
         slug
+        description
+        bannerUrl
+        status
       }
       hideFinalResultsFromParticipants
       isParticipating
@@ -25,8 +26,8 @@ export default gql`
       numParticipants
       numSubmissions
       phase
-      publishedAt
       requireBudget
+      showRealtimeVotes
       submissionDescriptor
       submissionDescriptorPlural
       submissions {
@@ -130,7 +131,6 @@ export default gql`
       }
       submissionsCloseAt
       submissionsOpenAt
-      title
       tokenType
       tokensRemaining
       totalTokens

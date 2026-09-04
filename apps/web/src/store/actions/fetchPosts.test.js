@@ -30,3 +30,17 @@ it('omits post groups for chat room queries', () => {
   })
   expect(posts.graphql.query).not.toMatch(/\bgroups\s*\{/)
 })
+
+it('uses minimal fields for chat room queries', () => {
+  const posts = fetchPosts({
+    context: 'groups',
+    filter: 'chat',
+    fieldsVariant: 'chatRoom',
+    includePostGroups: false,
+    slug: 'foo'
+  })
+  expect(posts.graphql.query).not.toMatch(/eventInvitations/)
+  expect(posts.graphql.query).not.toMatch(/proposalVotes/)
+  expect(posts.graphql.query).not.toMatch(/proposalOptions/)
+  expect(posts.graphql.query).toMatch(/postReactions/)
+})

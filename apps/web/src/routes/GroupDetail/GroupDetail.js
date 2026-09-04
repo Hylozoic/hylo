@@ -7,8 +7,10 @@ import { Tooltip } from 'react-tooltip'
 // import PropTypes from 'prop-types'
 import { useSelector, useDispatch } from 'react-redux'
 import { TextHelpers, WebViewMessageTypes } from '@hylo/shared'
+import { Bell, BellOff, Megaphone } from 'lucide-react'
 import Avatar from 'components/Avatar'
 import BadgeEmoji from 'components/BadgeEmoji'
+import SegmentedPicker from 'components/SegmentedPicker/SegmentedPicker'
 import ClickCatcher from 'components/ClickCatcher'
 import FarmGroupDetailBody from 'components/FarmGroupDetailBody'
 import GroupAboutVideoEmbed from 'components/GroupAboutVideoEmbed'
@@ -18,8 +20,18 @@ import SocketSubscriber from 'components/SocketSubscriber'
 import Loading from 'components/Loading'
 import NotFound from 'components/NotFound'
 import { addSkill, removeSkill } from 'components/SkillsSection/SkillsSection.store'
+import Button from 'components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from 'components/ui/dialog'
 import JoinSection from './JoinSection'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
+import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import checkInvitation from 'store/actions/checkInvitation'
 import fetchGroupDetails from 'store/actions/fetchGroupDetails'
 import { FETCH_GROUP_DETAILS, RESP_ADMINISTRATION } from 'store/constants'
@@ -44,7 +56,8 @@ import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForG
 import getRolesForGroup from 'store/selectors/getRolesForGroup'
 import fetchForCurrentUser from 'store/actions/fetchForCurrentUser'
 import { cn, inIframe } from 'util/index'
-import { groupUrl, personUrl, removeGroupFromUrl } from '@hylo/navigation'
+import { groupUrl, localSpaceSlug, personUrl, removeGroupFromUrl, spaceUrl } from '@hylo/navigation'
+import joinSpace from 'store/actions/joinSpace'
 import isWebView, { sendMessageToWebView } from 'util/webView'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 
@@ -53,6 +66,11 @@ import {
   fetchJoinRequests,
   joinGroup
 } from './GroupDetail.store'
+import { leaveGroup } from 'routes/UserSettings/UserGroupsTab/UserGroupsTab.store'
+import { updateMembershipSettings } from 'routes/UserSettings/UserSettings.store'
+import GroupMembershipNotificationSettings from 'routes/UserSettings/NotificationSettingsTab/GroupMembershipNotificationSettings'
+import FundingRoundAboutInfo from 'components/FundingRoundAboutInfo/FundingRoundAboutInfo'
+import SpaceSettingsModal from 'routes/AuthLayoutRouter/components/ContextMenu/SpaceSettingsModal'
 
 import g from './GroupDetail.module.scss'
 import m from '../MapExplorer/MapDrawer/MapDrawer.module.scss' // eslint-disable-line no-unused-vars
@@ -96,11 +114,21 @@ function GroupDetail ({ forCurrentGroup = false }) {
   const location = useLocation()
   const routeParams = useRouteParams()
   const { t } = useTranslation()
+  const effectiveGroupSlug = useEffectiveGroupSlug()
 
   const currentUser = useSelector(getMe)
-  const groupSelector = useSelector(state => getGroupForSlug(state, routeParams.detailGroupSlug || routeParams.groupSlug))
+  // When forCurrentGroup (group or space about page), prefer the effective slug so spaces
+  // under /groups/:parent/spaces/:spaceSlug/about resolve to the space, not the parent.
+  const slug = forCurrentGroup
+    ? (effectiveGroupSlug || routeParams.groupSlug)
+    : (routeParams.detailGroupSlug || routeParams.groupSlug)
+  const groupSelector = useSelector(state => getGroupForSlug(state, slug))
   const group = useMemo(() => presentGroup(groupSelector), [groupSelector])
-  const slug = routeParams.detailGroupSlug || routeParams.groupSlug
+  const parentGroup = useSelector(state => {
+    if (group?.type !== GROUP_TYPES.space || !routeParams.groupSlug) return null
+    if (routeParams.groupSlug === slug) return null
+    return getGroupForSlug(state, routeParams.groupSlug)
+  })
   const isAboutCurrentGroup = forCurrentGroup || routeParams.groupSlug === routeParams.detailGroupSlug
   const myMemberships = useSelector(state => getMyMemberships(state))
   const isMember = useMemo(() => group && currentUser ? myMemberships.find(m => m.group.id === group.id) : false, [group, currentUser, myMemberships])
@@ -118,23 +146,30 @@ function GroupDetail ({ forCurrentGroup = false }) {
   const [invitationEmail, setInvitationEmail] = useState(null)
   const [invitationRole, setInvitationRole] = useState(null)
   const [invitationChecked, setInvitationChecked] = useState(false)
+  const [linkedSpaceName, setLinkedSpaceName] = useState(null)
+  const [linkedSpaceSlug, setLinkedSpaceSlug] = useState(null)
+  const [linkedSpaceId, setLinkedSpaceId] = useState(null)
 
   useEffect(() => {
-    if (invitationToken && currentUser && !invitationChecked) {
-      (async () => {
-        const result = await dispatch(checkInvitation({ invitationToken }))
-        const checkResult = result?.payload?.data?.checkInvitation
-        if (checkResult?.email) {
-          setInvitationEmail(checkResult.email)
-        }
-        // Set invitation role from groupRole on the invite
-        if (checkResult?.groupRole) {
-          setInvitationRole(checkResult.groupRole)
-        }
-        setInvitationChecked(true)
-      })()
-    }
-  }, [invitationToken, currentUser, invitationChecked, dispatch])
+    if (!(invitationToken || accessCode) || invitationChecked) return
+    (async () => {
+      const result = await dispatch(checkInvitation({ invitationToken, accessCode }))
+      const checkResult = result?.payload?.data?.checkInvitation
+      if (checkResult?.email) {
+        setInvitationEmail(checkResult.email)
+      }
+      // Set invitation role from groupRole on the invite
+      if (checkResult?.groupRole) {
+        setInvitationRole(checkResult.groupRole)
+      }
+      if (checkResult?.isSpace && checkResult?.parentGroupSlug === slug) {
+        setLinkedSpaceName(checkResult.groupName)
+        setLinkedSpaceSlug(checkResult.groupSlug)
+        setLinkedSpaceId(checkResult.groupId)
+      }
+      setInvitationChecked(true)
+    })()
+  }, [invitationToken, accessCode, invitationChecked, dispatch, slug])
 
   // For email invites, validate that logged-in user's email matches the invitation email
   const hasEmailInvite = !!(invitationToken && invitationEmail)
@@ -147,7 +182,6 @@ function GroupDetail ({ forCurrentGroup = false }) {
       slug,
       accessCode,
       invitationToken,
-      withContextWidgets: false,
       withWidgets: true,
       withPrerequisites: !!currentUser
     }))
@@ -164,17 +198,30 @@ function GroupDetail ({ forCurrentGroup = false }) {
     ))
     if (isWebView()) {
       sendMessageToWebView(WebViewMessageTypes.JOINED_GROUP, { groupSlug: group.slug })
+    } else if (linkedSpaceSlug) {
+      if (linkedSpaceId) {
+        await dispatch(joinSpace(linkedSpaceId, accessCode, invitationToken)).catch(() => {})
+      }
+      navigate(spaceUrl(group.slug, localSpaceSlug(group.slug, linkedSpaceSlug)))
     } else {
       navigate(groupUrl(group.slug))
     }
-  }, [dispatch, group, accessCode, invitationToken])
+  }, [dispatch, group, accessCode, invitationToken, linkedSpaceSlug, linkedSpaceId])
 
   const requestToJoinGroup = useCallback((groupId, questionAnswers) => {
     dispatch(createJoinRequest(groupId, questionAnswers.map(q => ({ questionId: q.questionId, answer: q.answer }))))
   }, [dispatch])
 
+  const updateMySettings = useCallback(changes => {
+    if (!group?.id) return
+    dispatch(updateMembershipSettings(group.id, changes))
+  }, [dispatch, group?.id])
+
   const agreementsSectionRef = useRef(null)
   const [agreementsLinkCopied, setAgreementsLinkCopied] = useState(false)
+  const [showLeaveDialog, setShowLeaveDialog] = useState(false)
+  const [showSpaceSettings, setShowSpaceSettings] = useState(false)
+  const isSpace = group?.type === GROUP_TYPES.space
 
   const handleCopyAgreementsLink = useCallback(() => {
     const url = `${window.location.origin}${groupUrl(group.slug, 'about')}#agreements`
@@ -183,6 +230,18 @@ function GroupDetail ({ forCurrentGroup = false }) {
       window.setTimeout(() => setAgreementsLinkCopied(false), 2500)
     }).catch(() => {})
   }, [group?.slug])
+
+  const handleConfirmLeave = useCallback(() => {
+    if (!group?.id) return
+    dispatch(leaveGroup(group.id)).then(() => {
+      setShowLeaveDialog(false)
+      if (isSpace && routeParams.groupSlug && routeParams.spaceSlug) {
+        navigate(spaceUrl(routeParams.groupSlug, routeParams.spaceSlug))
+      } else {
+        navigate('/')
+      }
+    })
+  }, [dispatch, group?.id, isSpace, navigate, routeParams.groupSlug, routeParams.spaceSlug])
 
   useEffect(() => {
     if (location.hash !== '#agreements') return
@@ -194,16 +253,17 @@ function GroupDetail ({ forCurrentGroup = false }) {
   }, [location.hash, group?.agreements?.length])
 
   useEffect(() => {
+    if (!currentUser?.id) return
     dispatch(fetchJoinRequests())
     dispatch(fetchForCurrentUser())
-  }, [dispatch])
+  }, [dispatch, currentUser?.id])
 
   useEffect(() => {
     fetchGroup()
   }, [fetchGroup])
 
   const closeDetailModal = () => {
-    const newUrl = removeGroupFromUrl(window.location.pathname)
+    const newUrl = removeGroupFromUrl(`${location.pathname}`)
     navigate(newUrl)
   }
 
@@ -252,45 +312,56 @@ function GroupDetail ({ forCurrentGroup = false }) {
         <meta name='description' content={TextHelpers.truncateHTML(group.description, MAX_DETAILS_LENGTH)} />
       </Helmet>
 
-      {!isAboutCurrentGroup && (
-        <div className={cn('w-full py-8 px-2 bg-cover bg-center overflow-hidden relative shadow-xl', { 'rounded-xl': fullPage })} style={{ backgroundImage: `url(${group.bannerUrl || DEFAULT_BANNER})` }}>
-          {/* DEPRECATED: Now always show close button when not fullPage */}
-          {!fullPage && /* !isWebView() && */ (
-            <a className={g.close} onClick={closeDetailModal}><Icon name='Ex' /></a>
-          )}
-          <div className='bottom-0 right-0 bg-darkening/50 absolute top-0 left-0 z-0' />
-          <div className='max-w-screen-lg mx-auto flex items-center justify-center flex-col relative z-10'>
-            <img src={group.avatarUrl || DEFAULT_AVATAR} className='w-24 h-24 rounded-xl shadow-xl mt-0 mb-2' />
-            <div>
-              <div className='text-white font-bold text-2xl text-center'>{isAboutCurrentGroup && <span>{t('About')}</span>} {group.name}</div>
-              <div className='text-center'>
-                <div className='flex flex-row justify-center gap-1 text-sm text-white/70'>
-                  <span className={g.groupPrivacy}>
-                    <Icon name={visibilityIcon(group.visibility)} className={g.privacyIcon} />
-                    <div className={g.privacyTooltip}>
-                      <div>{t(visibilityString(group.visibility))} - {t(visibilityDescription(group.visibility))}</div>
-                    </div>
-                  </span>
-                  <span className={g.groupPrivacy}>
-                    <Icon name={accessibilityIcon(group.accessibility)} className={g.privacyIcon} />
-                    <div className={g.privacyTooltip}>
-                      <div>{t(accessibilityString(group.accessibility))} - {t(accessibilityDescription(group.accessibility))}</div>
-                    </div>
-                  </span>
-                  <span className={g.memberCount}>{t('{{count}} Members', { count: group.memberCount })}</span>
-                </div>
-                <span className='text-white/70 text-sm'>{group.location}</span>
+      {/* Banner header on every About, including the current group's own — the
+          sidebar shows the banner too, but this page should stand on its own */}
+      <div className={cn('w-full py-8 px-2 bg-cover bg-center overflow-hidden relative shadow-xl', { 'rounded-xl': fullPage })} style={{ backgroundImage: `url(${group.bannerUrl || DEFAULT_BANNER})` }}>
+        {/* DEPRECATED: Now always show close button when not fullPage */}
+        {!fullPage && /* !isWebView() && */ (
+          <a className={g.close} onClick={closeDetailModal}><Icon name='Ex' /></a>
+        )}
+        <div className='bottom-0 right-0 bg-darkening/50 absolute top-0 left-0 z-0' />
+        <div className='max-w-screen-lg mx-auto flex items-center justify-center flex-col relative z-10'>
+          <img src={group.avatarUrl || DEFAULT_AVATAR} className='w-24 h-24 rounded-xl shadow-xl mt-0 mb-2' />
+          <div>
+            <div className='text-white font-bold text-2xl text-center'>{group.name}</div>
+            {isSpace && isAboutCurrentGroup && responsibilityTitles.includes(RESP_ADMINISTRATION) && (
+              <div className='flex justify-center mt-2'>
+                <Button
+                  variant='secondary'
+                  onClick={() => setShowSpaceSettings(true)}
+                >
+                  {t('Space Settings')}
+                </Button>
               </div>
+            )}
+            <div className='text-center'>
+              <div className='flex flex-row justify-center gap-1 text-sm text-white/70'>
+                <span className={g.groupPrivacy}>
+                  <Icon name={visibilityIcon(group.visibility)} className={g.privacyIcon} />
+                  <div className={g.privacyTooltip}>
+                    <div>{t(visibilityString(group.visibility))} - {t(visibilityDescription(group.visibility))}</div>
+                  </div>
+                </span>
+                <span className={g.groupPrivacy}>
+                  <Icon name={accessibilityIcon(group.accessibility)} className={g.privacyIcon} />
+                  <div className={g.privacyTooltip}>
+                    <div>{t(accessibilityString(group.accessibility))} - {t(accessibilityDescription(group.accessibility))}</div>
+                  </div>
+                </span>
+                <span className={g.memberCount}>{t('{{count}} Members', { count: group.memberCount })}</span>
+              </div>
+              <span className='text-white/70 text-sm'>{group.location}</span>
             </div>
           </div>
         </div>
-      )}
+      </div>
 
       <div className='p-4'>
         {group.type === GROUP_TYPES.default && defaultGroupBody({ group, isAboutCurrentGroup, t, responsibilityTitles })}
         {group.type === GROUP_TYPES.farm && (
           <FarmGroupDetailBody isMember={isMember} group={group} currentUser={currentUser} routeParams={routeParams} />
         )}
+        {group.type === GROUP_TYPES.space && defaultGroupBody({ group, isAboutCurrentGroup, t, responsibilityTitles })}
         {isAboutCurrentGroup || group.type === GROUP_TYPES.farm
           ? (
             <div className='border-2 border-dashed border-foreground/20 rounded-xl p-4 mb-4'>
@@ -321,6 +392,12 @@ function GroupDetail ({ forCurrentGroup = false }) {
             <p>{t(accessibilityString(group.accessibility))} - {t(accessibilityDescription(group.accessibility))}</p>
           </div>
         </div>
+        {group.fundingRound?.id && (
+          <FundingRoundAboutInfo
+            fundingRoundId={group.fundingRound.id}
+            roleGroupId={group.parentId || group.id}
+          />
+        )}
         {group.agreements?.length > 0
           ? (
             <div
@@ -352,6 +429,44 @@ function GroupDetail ({ forCurrentGroup = false }) {
               })}
             </div>)
           : ''}
+        {isMember?.settings && (
+          <div className='rounded-xl border border-foreground/10 bg-foreground/5 p-4 mb-4'>
+            <div className='flex items-center gap-2 mb-1.5'>
+              <Bell className='w-4 h-4 text-selected' />
+              <span className='text-sm font-bold text-foreground'>{t('Notification Settings')}</span>
+            </div>
+            {isSpace
+              ? (
+                <SegmentedPicker
+                  value={isMember.settings.postNotifications}
+                  onChange={value => updateMySettings({ postNotifications: value })}
+                  options={[
+                    { value: 'none', label: t('Mute'), icon: BellOff, description: t("You won't hear about new posts in this space.") },
+                    { value: 'important', label: t('Important'), icon: Megaphone, description: t('Only announcements and posts that mention you.') },
+                    { value: 'all', label: t('All'), icon: Bell, description: t('Every new post in this space.') }
+                  ]}
+                />
+                )
+              : (
+                <GroupMembershipNotificationSettings
+                  id={isMember.id}
+                  settings={isMember.settings}
+                  update={updateMySettings}
+                />
+                )}
+          </div>
+        )}
+        {isMember && isAboutCurrentGroup && (
+          <div className='border-2 border-dashed border-foreground/20 rounded-xl p-4 mb-4 flex justify-center'>
+            <Button
+              variant='outline'
+              onClick={() => setShowLeaveDialog(true)}
+              className='border-accent/20 hover:border-accent/100 text-accent/60 hover:text-accent/100'
+            >
+              {t(isSpace ? 'Leave Space' : 'Leave Group')}
+            </Button>
+          </div>
+        )}
         {!isAboutCurrentGroup
           ? group.paywall
             ? (
@@ -366,6 +481,7 @@ function GroupDetail ({ forCurrentGroup = false }) {
                   invitationRole={invitationRole}
                   invitationToken={invitationToken}
                   joinGroup={joinGroupHandler}
+                  linkedSpaceName={linkedSpaceName}
                   requestToJoinGroup={requestToJoinGroup}
                   removeSkill={removeSkill}
                   routeParams={routeParams}
@@ -398,6 +514,7 @@ function GroupDetail ({ forCurrentGroup = false }) {
                         invitationRole={invitationRole}
                         invitationToken={invitationToken}
                         joinGroup={joinGroupHandler}
+                        linkedSpaceName={linkedSpaceName}
                         requestToJoinGroup={requestToJoinGroup}
                         removeSkill={removeSkill}
                         routeParams={routeParams}
@@ -407,6 +524,36 @@ function GroupDetail ({ forCurrentGroup = false }) {
                     )
           : ''}
       </div>
+      {showSpaceSettings && parentGroup && (
+        <SpaceSettingsModal
+          space={group}
+          parentGroup={parentGroup}
+          onClose={() => setShowSpaceSettings(false)}
+        />
+      )}
+      <Dialog open={showLeaveDialog} onOpenChange={setShowLeaveDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t(isSpace ? 'Leave Space' : 'Leave Group')}</DialogTitle>
+            <DialogDescription className='text-foreground/70'>
+              {t(
+                isSpace
+                  ? 'Are you sure you want to leave {{group_name}}? You will no longer have access to this space\'s content.'
+                  : 'Are you sure you want to leave {{group_name}}? You will no longer have access to this group\'s content.',
+                { group_name: group.name }
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className='flex gap-2 mt-4'>
+            <Button variant='outline' onClick={() => setShowLeaveDialog(false)}>
+              {t('Cancel')}
+            </Button>
+            <Button variant='destructive' onClick={handleConfirmLeave}>
+              {t(isSpace ? 'Leave Space' : 'Leave Group')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <Tooltip
         backgroundColor='rgba(35, 65, 91, 1.0)'
         effect='solid'
@@ -435,11 +582,11 @@ const defaultGroupBody = ({ group, isAboutCurrentGroup, responsibilityTitles, t 
       )}
       {isAboutCurrentGroup && (!group.purpose && !group.description) && responsibilityTitles.includes(RESP_ADMINISTRATION)
         ? (
-          <div className={g.noDescription}>
-            <div>
+          <div className='border-2 border-dashed border-foreground/20 rounded-xl p-4 mb-4'>
+            <div className={g.noDescription}>
               <h4 className='text-xl font-bold py-2'>{t('Your group doesn\'t have a purpose or description')}</h4>
-              <p>{t('Add a purpose, description, location, and more in your group settings')}</p>
-              <Link to={groupUrl(group.slug, 'settings')}>{t('Add a group description')}</Link>
+              <p className='text-foreground'>{t('Add a purpose, description, location, and more in your group settings')}</p>
+              <Link className='text-foreground border-foreground' to={groupUrl(group.slug, 'settings')}>{t('Add a group description')}</Link>
             </div>
           </div>
           )

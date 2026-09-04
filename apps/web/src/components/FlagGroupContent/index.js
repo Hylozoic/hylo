@@ -1,14 +1,16 @@
 import React from 'react'
 import FlagGroupContent from './FlagGroupContent'
 import ReactDOM from 'react-dom'
-import { rootDomId } from 'client/util'
 
-const FlagGroupContentPortal = function (props) {
-  const container = document.getElementById('post-dialog-content') || document.getElementById(rootDomId)
+/**
+ * Mount the flag dialog on document.body. Dialog hosts such as
+ * #post-dialog-content use transform + overflow, which traps position:fixed
+ * and clips this form (submit and the lower agreement lists disappear).
+ */
+export default function FlagGroupContentPortal (props) {
+  if (typeof document === 'undefined') return null
   return ReactDOM.createPortal(
     <FlagGroupContent {...props} />,
-    container
+    document.body
   )
 }
-
-export default FlagGroupContentPortal

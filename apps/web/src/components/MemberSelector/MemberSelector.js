@@ -95,6 +95,7 @@ const MemberSelector = forwardRef(function MemberSelector (props, ref) {
       inputClassName={className}
       renderSuggestion={Suggestion}
       backgroundClassName={backgroundClassName}
+      spaceChooses={false}
     />
   )
 })

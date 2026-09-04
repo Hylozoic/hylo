@@ -13,7 +13,8 @@
     ".": {
       "import": "./src/index.js",
       "require": "./dist/cjs/index.cjs"
-    }
+    },
+    "./TextHelpers": "./src/TextHelpers.js"
   },
   "standard": {
     "parser": "@babel/eslint-parser",

@@ -4,11 +4,11 @@ export default {
   rootDir: paths.rootPath,
   transform: {
     '\\.(gql|graphql)$': 'jest-transform-graphql',
-    '^.+\\.(js|jsx)$': 'babel-jest'
+    '^.+\\.(js|jsx|ts|tsx)$': 'babel-jest'
   },
   transformIgnorePatterns: ['/!node_modules\\/lodash/*'],
   collectCoverageFrom: [
-    '<rootDir>/src/**/*.{js,jsx}'
+    '<rootDir>/src/**/*.{js,jsx,ts,tsx}'
   ],
   coverageReporters: [
     'json',
@@ -23,7 +23,7 @@ export default {
     '<rootDir>/config/jest/afterTestEnvSetup.js'
   ],
   testPathIgnorePatterns: [
-    '<rootDir>[/\\\\](build|docs|node_modules|scripts|es5)[/\\\\]'
+    '<rootDir>[/\\\\](build|dist|docs|e2e|node_modules|scripts|es5)[/\\\\]'
   ],
   moduleDirectories: [
     'node_modules',
@@ -47,6 +47,11 @@ export default {
     '^react-native$': 'react-native-web',
     '\\.(css|scss)$': 'identity-obj-proxy',
     '\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$': '<rootDir>/config/jest/__mocks__/fileMock.js',
+    '^@/(.*)$': '<rootDir>/src/$1',
+    '^@hylo/shared$': '<rootDir>/../../packages/shared/src/index.js',
+    '^@hylo/shared/TextHelpers$': '<rootDir>/../../packages/shared/src/TextHelpers.js',
+    '^@hylo/hooks/(.*)$': '<rootDir>/../../packages/hooks/$1',
+    '^@hylo/presenters/(.*)$': '<rootDir>/../../packages/presenters/src/$1',
     '^client/(.*)$': '<rootDir>/src/client/$1',
     '^components/(.*)$': '<rootDir>/src/components/$1',
     '^contexts/(.*)$': '<rootDir>/src/contexts/$1',
@@ -56,6 +61,7 @@ export default {
     '^router/(.*)$': '<rootDir>/src/router/$1',
     '^routes/(.*)$': '<rootDir>/src/routes/$1',
     '^store/(.*)$': '<rootDir>/src/store/$1',
+    '^sandbox/(.*)$': '<rootDir>/src/sandbox/$1',
     '^util/(.*)$': '<rootDir>/src/util/$1'
   },
   watchPlugins: [

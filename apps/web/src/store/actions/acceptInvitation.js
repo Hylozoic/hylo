@@ -13,7 +13,6 @@ export default function acceptInvitation (inviteCodes = {}) {
           useInvitation (invitationToken: $invitationToken, accessCode: $accessCode) {
             membership {
               id
-              role
               group {
                 id
                 accessibility
@@ -29,8 +28,15 @@ export default function acceptInvitation (inviteCodes = {}) {
                   publicMemberDirectory
                   showSuggestedSkills
                   showWelcomePage
+                  layout
                 }
                 slug
+                type
+                parentId
+                parentGroup {
+                  id
+                  slug
+                }
                 visibility
               }
               person {
@@ -58,7 +64,8 @@ export default function acceptInvitation (inviteCodes = {}) {
     meta: {
       extractModel: {
         modelName: 'Membership',
-        getRoot: get('useInvitation.membership')
+        getRoot: get('useInvitation.membership'),
+        append: true
       },
       analytics: AnalyticsEvents.GROUP_INVITATION_ACCEPTED
     }

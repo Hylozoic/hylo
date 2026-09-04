@@ -20,9 +20,11 @@ export default
   $isStrictProposal: Boolean,
   $linkPreviewFeatured: Boolean,
   $linkPreviewId: String,
+  $skipLinkPreview: Boolean,
   $location: String,
   $locationId: ID,
   $localId: String,
+  $meetingLink: String,
   $memberIds: [ID],
   $projectManagementLink: String,
   $proposalOptions: [ProposalOptionInput],
@@ -33,7 +35,8 @@ export default
   $title: String,
   $topicNames: [String],
   $trackId: ID,
-  $type: String
+  $type: String,
+  $viewId: ID
 ) {
   createPost(data: {
     acceptContributions: $acceptContributions,
@@ -54,9 +57,11 @@ export default
     isStrictProposal: $isStrictProposal,
     linkPreviewFeatured: $linkPreviewFeatured,
     linkPreviewId: $linkPreviewId,
+    skipLinkPreview: $skipLinkPreview,
     localId: $localId,
     location: $location,
     locationId: $locationId,
+    meetingLink: $meetingLink,
     memberIds: $memberIds,
     projectManagementLink: $projectManagementLink,
     proposalOptions: $proposalOptions,
@@ -68,5 +73,6 @@ export default
     topicNames: $topicNames,
     trackId: $trackId,
     type: $type,
+    viewId: $viewId,
   }) {${postFieldsFragment(false, true)}}
 }`

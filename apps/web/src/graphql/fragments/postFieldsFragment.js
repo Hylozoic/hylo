@@ -37,6 +37,17 @@ const postFieldsFragment = (withComments, withCompletion = false, withAllComplet
   title
   details
   type
+  noticeData
+  noticePosts {
+    id
+    details
+    createdAt
+    creator {
+      id
+      name
+      avatarUrl
+    }
+  }
   creator {
     id
     name
@@ -46,6 +57,25 @@ const postFieldsFragment = (withComments, withCompletion = false, withAllComplet
   clickthrough
   updatedAt
   flaggedGroups
+  moderationActions {
+    id
+    groupId
+    status
+    text
+    anonymous
+    reporter {
+      id
+      name
+    }
+    agreements {
+      id
+      title
+    }
+    platformAgreements {
+      id
+      text
+    }
+  }
   isAnonymousVote
   isPublic
   fulfilledAt
@@ -113,6 +143,7 @@ const postFieldsFragment = (withComments, withCompletion = false, withAllComplet
   linkPreviewFeatured
   localId
   location
+  meetingLink
   locationObject {
     id
     addressNumber
@@ -171,6 +202,8 @@ const postFieldsFragment = (withComments, withCompletion = false, withAllComplet
     id
     name
     slug
+    type
+    parentId
   }
   attachments {
     type

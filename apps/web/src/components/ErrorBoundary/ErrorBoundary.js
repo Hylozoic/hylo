@@ -1,7 +1,7 @@
 import React from 'react'
 import { withTranslation } from 'react-i18next'
 import classes from './ErrorBoundary.module.scss'
-import rollbar from 'client/rollbar'
+import errorReporter from 'client/errorReporter'
 
 /** Returns true if the error is a stale chunk load failure after a new deploy */
 const isChunkLoadError = (error) =>
@@ -28,7 +28,7 @@ class ErrorBoundary extends React.Component {
       }
       return
     }
-    rollbar.error(error, info)
+    errorReporter.error(error, info)
   }
 
   render () {

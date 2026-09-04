@@ -2,12 +2,16 @@ import orm from 'store/models' // this initializes redux-orm
 import ormReducer from './index'
 import toggleGroupTopicSubscribe from 'store/actions/toggleGroupTopicSubscribe'
 import {
+  CLEAR_MODERATION_ACTION_PENDING,
   CREATE_MESSAGE,
+  CREATE_MODERATION_ACTION,
+  CREATE_MODERATION_ACTION_PENDING,
   DELETE_COMMENT_PENDING,
   DELETE_POST_PENDING,
   FETCH_FOR_GROUP_PENDING,
   FETCH_NOTIFICATIONS,
   MARK_ACTIVITY_READ_PENDING,
+  MARK_VIEW_AS_READ,
   MARK_ALL_ACTIVITIES_READ_PENDING,
   TOGGLE_GROUP_TOPIC_SUBSCRIBE_PENDING,
   UPDATE_COMMENT_PENDING,
@@ -21,11 +25,12 @@ import {
   UPDATE_ALL_MEMBERSHIP_SETTINGS_PENDING
 } from 'routes/UserSettings/UserSettings.store'
 import {
+  UPDATE_GROUP_SETTINGS,
   UPDATE_GROUP_SETTINGS_PENDING
 } from 'routes/GroupSettings/GroupSettings.store'
 import {
   CREATE_GROUP
-} from 'components/CreateGroup/CreateGroup.store'
+} from 'routes/CreateGroup/CreateGroup.store'
 import {
   REMOVE_MEMBER_PENDING
 } from 'routes/Members/Members.store'
@@ -280,7 +285,11 @@ describe('on UPDATE_GROUP_SETTINGS_PENDING', () => {
   const group = session.Group.create({
     id,
     name: 'Old Name',
-    description: 'Old description'
+    description: 'Old description',
+    settings: {
+      showWelcomePage: true,
+      showSuggestedSkills: true
+    }
   })
   session.Membership.create({
     group: group.id,
@@ -309,6 +318,86 @@ describe('on UPDATE_GROUP_SETTINGS_PENDING', () => {
     const group = newSession.Group.withId(id)
     expect(group.name).toEqual(name)
     expect(group.description).toEqual(description)
+  })
+
+  it('merges settings instead of replacing them', () => {
+    const action = {
+      type: UPDATE_GROUP_SETTINGS_PENDING,
+      meta: {
+        id,
+        changes: {
+          settings: {
+            showWelcomePage: false
+          }
+        }
+      }
+    }
+    const newState = ormReducer(session.state, action)
+    const newSession = orm.session(newState)
+    const group = newSession.Group.withId(id)
+    expect(group.settings).toEqual({
+      showWelcomePage: false,
+      showSuggestedSkills: true
+    })
+  })
+
+  it('updates a newly created space that has no membership in the ORM yet', () => {
+    const newSpaceSession = orm.session(orm.getEmptyState())
+    newSpaceSession.Me.create({ id: '1' })
+    const newSpace = newSpaceSession.Group.create({
+      id: '99',
+      name: 'New Track Space',
+      settings: {}
+    })
+
+    const action = {
+      type: UPDATE_GROUP_SETTINGS_PENDING,
+      meta: {
+        id: newSpace.id,
+        changes: {
+          settings: {
+            showWelcomePage: true
+          }
+        }
+      }
+    }
+
+    const newState = ormReducer(newSpaceSession.state, action)
+    const resultSession = orm.session(newState)
+    expect(resultSession.Group.withId('99').settings.showWelcomePage).toEqual(true)
+  })
+})
+
+describe('on UPDATE_GROUP_SETTINGS', () => {
+  it('does not crash when the query returns agreements but the space has no membership yet', () => {
+    const newSpaceSession = orm.session(orm.getEmptyState())
+    newSpaceSession.Me.create({ id: '1' })
+    newSpaceSession.Group.create({
+      id: '99',
+      name: 'New Track Space',
+      settings: { showWelcomePage: true }
+    })
+
+    const action = {
+      type: UPDATE_GROUP_SETTINGS,
+      payload: {
+        data: {
+          updateGroupSettings: {
+            id: '99',
+            settings: { showWelcomePage: true },
+            agreements: { items: [] }
+          }
+        }
+      },
+      meta: {
+        id: '99',
+        changes: {
+          settings: { showWelcomePage: true }
+        }
+      }
+    }
+
+    expect(() => ormReducer(newSpaceSession.state, action)).not.toThrow()
   })
 })
 
@@ -399,11 +488,41 @@ describe('on UPDATE_USER_SETTINGS_PENDING', () => {
     expect(me.location).toEqual('original location')
     expect(me.tagline).toEqual('new tagline')
     expect(me.settings).toEqual({
-      digestFrequency: 'daily',
       dmNotifications: 'both',
-      commentNotifications: 'email',
-      postNotifications: 'important'
+      commentNotifications: 'email'
     })
+  })
+})
+
+describe('on MARK_VIEW_AS_READ', () => {
+  const session = orm.session(orm.getEmptyState())
+  session.Group.create({
+    id: '1',
+    slug: 'space',
+    groupViews: {
+      items: [
+        { id: 'discussions-1', type: 'discussions', newPostCount: 4 }
+      ]
+    }
+  })
+
+  it('zeros newPostCount even when the payload still has a stale unread count', () => {
+    const newState = ormReducer(session.state, {
+      type: MARK_VIEW_AS_READ,
+      payload: {
+        data: {
+          markViewAsRead: {
+            id: 'discussions-1',
+            lastReadPostId: '99',
+            newPostCount: 4
+          }
+        }
+      },
+      meta: { id: 'discussions-1', groupId: '1' }
+    })
+    const group = orm.session(newState).Group.withId('1')
+    expect(group.groupViews.items[0].newPostCount).toEqual(0)
+    expect(group.groupViews.items[0].lastReadPostId).toEqual('99')
   })
 })
 
@@ -665,8 +784,14 @@ describe('on UPDATE_COMMENT_PENDING', () => {
   const commentId = '123'
   const session = orm.session(orm.getEmptyState())
   const theNewText = 'lalala'
+  const editedAt = '2024-03-01T12:00:00.000Z'
 
   session.Comment.create({
+    id: commentId,
+    text: 'ufufuf'
+  })
+
+  session.Message.create({
     id: commentId,
     text: 'ufufuf'
   })
@@ -676,15 +801,117 @@ describe('on UPDATE_COMMENT_PENDING', () => {
     meta: {
       id: commentId,
       data: {
-        text: theNewText
+        text: theNewText,
+        editedAt
       }
     }
   }
 
-  it('updates the text', () => {
+  it('updates the text on Comment and Message', () => {
     const newState = ormReducer(session.state, action)
     const newSession = orm.session(newState)
     const comment = newSession.Comment.withId(commentId)
+    const message = newSession.Message.withId(commentId)
     expect(comment.text).toEqual(theNewText)
+    expect(comment.editedAt).toEqual(editedAt)
+    expect(message.text).toEqual(theNewText)
+    expect(message.editedAt).toEqual(editedAt)
+  })
+})
+
+describe('on CREATE_MODERATION_ACTION', () => {
+  const session = orm.session(orm.getEmptyState())
+  session.Me.create({ id: 'me-1', name: 'Reporter', avatarUrl: 'me.png' })
+  session.Person.create({ id: 'author-1', name: 'Author', avatarUrl: 'author.png' })
+  session.Group.create({ id: 'g1', name: 'Hylo', slug: 'hylo', type: null, openModerationActionCount: 2 })
+  session.Agreement.create({ id: 'a1', title: 'Be kind', description: 'Please', order: 1 })
+  session.Post.create({
+    id: 'p1',
+    title: 'Hello',
+    details: 'World',
+    type: 'discussion',
+    creator: 'author-1',
+    flaggedGroups: []
+  })
+
+  const pendingAction = {
+    type: CREATE_MODERATION_ACTION_PENDING,
+    meta: {
+      tempId: 'temp-mod-1',
+      data: {
+        postId: 'p1',
+        groupId: 'g1',
+        text: 'This breaks an agreement',
+        anonymous: false,
+        agreements: ['a1'],
+        platformAgreements: ['plat-1']
+      }
+    }
+  }
+
+  it('creates a renderable optimistic moderation action', () => {
+    const newState = ormReducer(session.state, pendingAction)
+    const newSession = orm.session(newState)
+    const action = newSession.ModerationAction.withId('temp-mod-1')
+    expect(action.status).toEqual('active')
+    expect(action.text).toEqual('This breaks an agreement')
+    expect(action.reporter.name).toEqual('Reporter')
+    expect(action.post.title).toEqual('Hello')
+    expect(action.post.creator.name).toEqual('Author')
+    expect(action.group.slug).toEqual('hylo')
+    expect(action.agreements[0].title).toEqual('Be kind')
+    expect(action.platformAgreements[0].id).toEqual('plat-1')
+    expect(newSession.Post.withId('p1').flaggedGroups).toContain('g1')
+    expect(newSession.Group.withId('g1').openModerationActionCount).toEqual(3)
+  })
+
+  it('replaces the temp id with the server id', () => {
+    const pendingState = ormReducer(session.state, pendingAction)
+    const newState = ormReducer(pendingState, {
+      type: CREATE_MODERATION_ACTION,
+      payload: { data: { createModerationAction: { id: 'real-9' } } },
+      meta: { tempId: 'temp-mod-1' }
+    })
+    const newSession = orm.session(newState)
+    expect(newSession.ModerationAction.idExists('temp-mod-1')).toBe(false)
+    const action = newSession.ModerationAction.withId('real-9')
+    expect(action.text).toEqual('This breaks an agreement')
+    expect(action.reporter.name).toEqual('Reporter')
+  })
+})
+
+describe('on CLEAR_MODERATION_ACTION_PENDING', () => {
+  function setupSession () {
+    const session = orm.session(orm.getEmptyState())
+    session.Group.create({ id: 'g1', name: 'Hylo', slug: 'hylo', openModerationActionCount: 2 })
+    session.ModerationAction.create({
+      id: 'ma-1',
+      postId: 'p1',
+      groupId: 'g1',
+      status: 'active'
+    })
+    return session
+  }
+
+  it('marks the action cleared and decrements the group badge count', () => {
+    const session = setupSession()
+    const newState = ormReducer(session.state, {
+      type: CLEAR_MODERATION_ACTION_PENDING,
+      meta: { moderationActionId: 'ma-1', groupId: 'g1', postId: 'p1' }
+    })
+    const newSession = orm.session(newState)
+    expect(newSession.ModerationAction.withId('ma-1').status).toEqual('cleared')
+    expect(newSession.Group.withId('g1').openModerationActionCount).toEqual(1)
+  })
+
+  it('does not decrement again when the action is already cleared', () => {
+    const session = setupSession()
+    session.ModerationAction.withId('ma-1').update({ status: 'cleared' })
+    const newState = ormReducer(session.state, {
+      type: CLEAR_MODERATION_ACTION_PENDING,
+      meta: { moderationActionId: 'ma-1', groupId: 'g1', postId: 'p1' }
+    })
+    const newSession = orm.session(newState)
+    expect(newSession.Group.withId('g1').openModerationActionCount).toEqual(2)
   })
 })

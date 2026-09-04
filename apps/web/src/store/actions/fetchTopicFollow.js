@@ -7,8 +7,6 @@ export default function fetchTopicFollow (groupId, topicName) {
       query: `query ($groupId: ID, $topicName: String) {
         topicFollow(groupId: $groupId, topicName: $topicName) {
           id
-          lastReadPostId
-          newPostCount
           settings {
             notifications
           }

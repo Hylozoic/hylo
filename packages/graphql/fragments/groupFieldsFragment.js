@@ -27,14 +27,17 @@ export default gql`
       publicMemberDirectory
       showSuggestedSkills
       showWelcomePage
+      layout
     }
     slug
     type
+    parentId
+    icon
+    acceptedPostTypes
     typeDescriptor
     typeDescriptorPlural
     visibility
     websiteUrl
-    welcomePage
     agreements {
       items {
         id
@@ -54,27 +57,6 @@ export default gql`
         name
         slug
         visibility
-      }
-    }
-    customViews {
-      items {
-        id
-        activePostsOnly
-        collectionId
-        defaultSort
-        defaultViewMode
-        externalLink
-        groupId
-        isActive
-        icon
-        name
-        order
-        postTypes
-        topics {
-          id
-          name
-        }
-        type
       }
     }
     locationObject {

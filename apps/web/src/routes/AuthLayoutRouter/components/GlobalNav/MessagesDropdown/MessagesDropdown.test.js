@@ -41,10 +41,11 @@ const threads = [
 ]
 
 const session = orm.mutableSession(orm.getEmptyState())
-const { MessageThread, Message, Person } = session
+const { MessageThread, Message, Person, Me } = session
 
 const users = [u1, u2, u3]
 users.map(u => Person.create(u))
+Me.create({ ...u1, unseenThreadCount: 0 })
 
 threads.map(t => MessageThread.create(t))
 
@@ -83,6 +84,11 @@ describe('MessagesDropdown', () => {
 
     await waitFor(() => {
       expect(screen.getByText('click me')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByText('click me'))
+
+    await waitFor(() => {
       expect(screen.getByText("You don't have any messages yet")).toBeInTheDocument()
     })
   })
@@ -110,6 +116,11 @@ describe('MessagesDropdown', () => {
 
     await waitFor(() => {
       expect(screen.getByText('click me')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByText('click me'))
+
+    await waitFor(() => {
       expect(screen.getAllByText('Marie Curie and Arthur Fonzarelli')).toHaveLength(2)
       expect(screen.getByText('Marie Curie: hi')).toBeInTheDocument()
     })

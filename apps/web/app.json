@@ -25,13 +25,14 @@
     "VITE_SOCKET_HOST": {
       "required": true
     },
-    "ROLLBAR_CLIENT_TOKEN": {
-      "required": true
+    "VITE_SENTRY_DSN": {
+      "required": false
     },
     "VITE_MIXPANEL_TOKEN": {
       "required": true
     },
-    "ROLLBAR_ENV": "reviewApp",
+    "VITE_SENTRY_ENV": "reviewApp",
+    "VITE_SENTRY_DEBUG": "true",
     "VITE_INTERCOM_APP_ID": {
       "required": true
     }

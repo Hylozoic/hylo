@@ -32,14 +32,16 @@ import classes from './GroupCard.module.scss'
 
   TODO: Then is contents changed based on group type... perhaps passed in as a Content component
 */
-export default function GroupCard ({ group }) {
+export default function GroupCard ({ group, to }) {
   const { t } = useTranslation()
   const routeParams = useRouteParams()
 
   if (!group) return null
 
+  const linkTo = to || (group.memberStatus === 'member' ? groupUrl(group.slug) : groupDetailUrl(group.slug, routeParams))
+
   return (
-    <Link to={group.memberStatus === 'member' ? groupUrl(group.slug) : groupDetailUrl(group.slug, routeParams)} className='group'>
+    <Link to={linkTo} className='group'>
       <div className='flex relative rounded-lg p-4 bg-darkening/80 shadow-xl hover:scale-102 transition-all duration-300'>
         <div className='flex gap-2 relative z-10 w-full justify-between'>
           <div className='flex flex-row gap-2'>

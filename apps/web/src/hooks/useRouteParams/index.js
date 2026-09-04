@@ -33,7 +33,26 @@ export default function useRouteParams () {
     // if view is not set, then set it
     if (!params.view) {
       // Standalone post URL (e.g. /groups/:slug/post/:postId) uses "post" as a path segment, not a stream view name
-      if (params.context === 'groups') {
+      if (params.context === 'groups' && pathParts[3] === 'spaces') {
+        params.spaceSlug = pathParts[4]
+        const spaceView = pathParts[5]
+        if (!spaceView) {
+          params.view = ''
+        } else if (spaceView === 'custom' || spaceView === 'collection') {
+          params.view = spaceView
+          params.customViewId = pathParts[6]
+        } else if (spaceView === 'members') {
+          params.view = 'members'
+          if (pathParts[6]) params.memberId = pathParts[6]
+        } else if (spaceView === 'settings') {
+          params.view = `settings/${pathParts[6]}`
+        } else if (spaceView === 'post' && pathParts[6]) {
+          params.view = 'post'
+          params.postId = pathParts[6]
+        } else {
+          params.view = spaceView
+        }
+      } else if (params.context === 'groups') {
         const isGroupPostDetail = pathParts[3] === 'post' && pathParts[4] && /^\d+$/.test(pathParts[4])
         if (isGroupPostDetail) {
           params.view = 'post'
@@ -64,25 +83,29 @@ export default function useRouteParams () {
 
     // Set memberId
     if (params.view === 'members') {
-      params.memberId = params.context === 'groups' ? pathParts[4] : pathParts[3]
+      if (params.spaceSlug) {
+        params.memberId = pathParts[6]
+      } else {
+        params.memberId = params.context === 'groups' ? pathParts[4] : pathParts[3]
+      }
     }
 
-    // Set chat topicName
-    if (params.view === 'chat' || params.view === 'topic') {
-      // XXX: this should only ever be in a group
-      params.topicName = pathParts[4]
-    }
-
-    // Set trackId
-    if (params.view === 'tracks') {
-      params.trackId = pathParts[4]
-      params.tab = pathParts[5]
+    // Set topicName for topic streams (/topics/:topicName). Chat is /chat with no topic segment.
+    if (params.view === 'topic') {
+      if (!params.spaceSlug) {
+        params.topicName = pathParts[4]
+      }
     }
 
     // Set fundingRoundId
     if (params.view === 'funding-rounds') {
-      params.fundingRoundId = pathParts[4]
-      params.tab = pathParts[5]
+      if (params.spaceSlug) {
+        params.fundingRoundId = pathParts[6]
+        params.tab = pathParts[7]
+      } else {
+        params.fundingRoundId = pathParts[4]
+        params.tab = pathParts[5]
+      }
     }
 
     // If I'm in the group settings then I want the view to include the specific settings tab

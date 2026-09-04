@@ -49,7 +49,8 @@
 
 .create-modal {
   position: absolute;
-  z-index: 51;
+  /* Above map drawer (20) and the map post-detail column (60) */
+  z-index: 70;
   top: 0;
   left: 0;
   right: 0;
@@ -193,6 +194,8 @@
 @media screen and (max-width: 600px) {
   .create-modal-wrapper {
     width: 100%;
+    /* The editor needs the phone's full width far more than a 20px gutter */
+    padding: 8px;
   }
 }
 

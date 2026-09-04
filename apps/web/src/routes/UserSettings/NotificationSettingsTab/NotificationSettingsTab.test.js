@@ -1,13 +1,27 @@
 import React from 'react'
-import { render, screen, fireEvent, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
+import orm from 'store/models'
+import { AllTheProviders, render, screen } from 'util/testing/reactTestingLibraryExtended'
 import NotificationSettingsTab from './NotificationSettingsTab'
-import AllGroupsSettingsRow from './AllGroupsSettingRow'
 import MembershipSettingsRow from './MembershipSettingRow'
-import SettingsRow from './SettingToggles'
-import SettingsIcon from './SettingIcon'
+import SettingsToggles from './SettingToggles'
+import SettingsIcon from './SettingsIcon'
+
+function providersWithMe (settings = {}) {
+  const ormSession = orm.mutableSession(orm.getEmptyState())
+  ormSession.Me.create({
+    id: '1',
+    settings: {
+      dmNotifications: 'none',
+      commentNotifications: 'email',
+      ...settings
+    }
+  })
+  return AllTheProviders({ orm: ormSession.state })
+}
 
 describe('NotificationSettingsTab', () => {
   const currentUser = {
+    id: '1',
     settings: {
       dmNotifications: 'none',
       commentNotifications: 'email',
@@ -16,142 +30,29 @@ describe('NotificationSettingsTab', () => {
     }
   }
 
-  it('renders correctly', () => {
+  it('renders global and group notification sections', () => {
     render(
       <NotificationSettingsTab
         currentUser={currentUser}
-        messageSettings={{
-          sendEmail: true
-        }}
-        allGroupsSettings={{
-          sendEmail: true
-        }}
-        updateUserSettings={() => {}}
-        memberships={[{ id: 1, settings: { sendEmail: true }, group: { name: 'Group 1', avatarUrl: 'group1.png' } }, { id: 2, settings: { sendEmail: true }, group: { name: 'Group 2', avatarUrl: 'group2.png' } }]}
-      />
-    )
-    expect(screen.getByText('Notifications')).toBeInTheDocument()
-    expect(screen.getByText('How often would you like to receive email digests for new posts in your groups and saved searches?')).toBeInTheDocument()
-  })
-
-  it("hides mobile options if user doesn't have device", () => {
-    render(
-      <NotificationSettingsTab
         memberships={[]}
-        messageSettings={{
-          sendEmail: true
-        }}
-        allGroupsSettings={{
-          sendEmail: true
-        }}
-        currentUser={{
-          ...currentUser,
-        }}
-      />
+      />,
+      { wrapper: providersWithMe() }
     )
-    const selectOptions = screen.getAllByRole('option')
-    expect(selectOptions.filter(option => option.textContent === 'Mobile App')).toHaveLength(0)
-  })
-
-  it("sets email option if user doesn't have device and 'both' was selected", () => {
-    render(
-      <NotificationSettingsTab
-        messageSettings={{
-          sendEmail: true
-        }}
-        allGroupsSettings={{
-          sendEmail: true
-        }}
-        memberships={[]}
-        currentUser={{
-          ...currentUser,
-          settings: {
-            ...currentUser.settings,
-            commentNotifications: 'both'
-          },
-        }}
-      />
-    )
-    expect(screen.getByRole('option', { name: 'Email', selected: true })).toBeInTheDocument()
-  })
-
-  describe('updateMessageSettings', () => {
-    it('calls updateUserSettings', () => {
-      const updateUserSettings = jest.fn()
-      render(
-        <NotificationSettingsTab
-          messageSettings={{
-            sendEmail: true
-          }}
-          allGroupsSettings={{
-            sendEmail: true
-          }}
-          currentUser={currentUser}
-          updateUserSettings={updateUserSettings}
-          memberships={[]}
-        />
-      )
-
-      const pushNotificationToggle = screen.getAllByText('Off')[0]
-      fireEvent.click(pushNotificationToggle)
-      expect(updateUserSettings).toHaveBeenCalledWith({ settings: { dmNotifications: 'both' } })
-
-      const emailNotificationToggle = screen.getAllByText('On')[0]
-      fireEvent.click(emailNotificationToggle)
-      expect(updateUserSettings).toHaveBeenCalledWith({ settings: { dmNotifications: 'none' } })
-    })
-  })
-
-  describe('updateAllGroups', () => {
-    it('calls updateAllMemberships', () => {
-      const updateAllMemberships = jest.fn()
-      render(
-        <NotificationSettingsTab
-          messageSettings={{
-            sendEmail: true,
-            sendPushNotifications: false
-          }}
-          allGroupsSettings={{
-            sendEmail: true,
-            sendPushNotifications: false
-          }}
-          currentUser={currentUser}
-          updateAllMemberships={updateAllMemberships}
-          memberships={[
-            { id: 1, group: { id: 1 }, settings: { sendEmail: true, sendPushNotifications: false } },
-            { id: 2, group: { id: 2 }, settings: { sendEmail: true, sendPushNotifications: false } }
-          ]}
-        />
-      )
-
-      const pushNotificationToggle = screen.getAllByText('Off')[1]
-      fireEvent.click(pushNotificationToggle)
-      expect(updateAllMemberships).toHaveBeenCalledWith({ sendPushNotifications: true })
-    })
-  })
-})
-
-describe('AllGroupsSettingsRow', () => {
-  it('renders correctly', () => {
-    render(
-      <AllGroupsSettingsRow
-        settings={{ sendEmail: true }}
-        updateAllGroups={() => {}}
-      />
-    )
-    expect(screen.getByText('All Groups')).toBeInTheDocument()
-    expect(screen.getByText('On')).toBeInTheDocument()
+    expect(screen.getByText('Global notifications')).toBeInTheDocument()
+    expect(screen.getByText('Default group notifications')).toBeInTheDocument()
+    expect(screen.getByText('Messages')).toBeInTheDocument()
   })
 })
 
 describe('MembershipSettingsRow', () => {
-  it('renders correctly', () => {
+  it('renders group name', () => {
     render(
       <MembershipSettingsRow
         membership={{
           id: 1,
-          settings: { sendEmail: true },
+          settings: { sendEmail: true, digestFrequency: 'daily', postNotifications: 'all' },
           group: {
+            id: '1',
             name: 'Foomunity',
             avatarUrl: 'foo.png'
           }
@@ -160,21 +61,23 @@ describe('MembershipSettingsRow', () => {
       />
     )
     expect(screen.getByText('Foomunity')).toBeInTheDocument()
-    expect(screen.getByText('On')).toBeInTheDocument()
   })
 })
 
-describe('SettingsRow', () => {
-  it('renders correctly', () => {
+describe('SettingsToggles', () => {
+  it('renders email and push toggles', () => {
     render(
-      <SettingsRow
+      <SettingsToggles
+        id='test'
         name='Test Row'
-        settings={{ sendEmail: true }}
+        settings={{ sendEmail: true, sendPushNotifications: false }}
         update={() => {}}
+        label='Test Row'
       />
     )
     expect(screen.getByText('Test Row')).toBeInTheDocument()
-    expect(screen.getByText('On')).toBeInTheDocument()
+    expect(screen.getByText('Email')).toBeInTheDocument()
+    expect(screen.getByText('Mobile Push')).toBeInTheDocument()
   })
 })
 
