@@ -19,12 +19,12 @@ export default function PostPrompt (props) {
   const newPostType = postTypesAvailable?.[0]
   const createPostPath = useMemo(() => {
     const basePath = location.pathname.replace(/\/create\/.*$/, '')
-    const params = new URLSearchParams()
+    const params = new URLSearchParams(location.search)
     if (newPostType) params.set('newPostType', newPostType)
     if (eventDate) params.set('eventDate', eventDate)
     const query = params.toString()
     return `${basePath}/create/post${query ? `?${query}` : ''}`
-  }, [location.pathname, newPostType, eventDate])
+  }, [location.pathname, location.search, newPostType, eventDate])
 
   const postPromptString = useMemo(() => {
     const postPrompts = {
