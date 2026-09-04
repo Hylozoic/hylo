@@ -82,7 +82,7 @@ export default function SiteBanners () {
   return (
     // Scrim over the whole app: an announcement asks for a moment of full
     // attention, so the content behind is covered until the card is handled
-    <div className='fixed inset-0 z-[90] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4'>
+    <div className='fixed inset-0 z-[90] bg-darkening/50 backdrop-blur-sm flex items-center justify-center p-4'>
       <div className='relative w-full max-w-md sm:max-w-lg'>
         {visible.map((banner, index) => {
           const isTop = index === 0
