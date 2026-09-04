@@ -461,6 +461,34 @@ describe('space mutations', () => {
       expect(menuEntry.get('order')).to.not.equal(null)
     })
 
+    it('unpins the converted group and compact remaining pin order', async () => {
+      const child = await createChildGroup()
+      await member.joinGroup(child)
+      const otherGroup = await factories.group().save()
+      await coordinator.joinGroup(otherGroup)
+      await member.joinGroup(otherGroup)
+
+      await GroupMembership.forPair(coordinator.id, otherGroup.id).fetch().then(m => m.save({ nav_order: 0 }))
+      await GroupMembership.forPair(coordinator.id, child.id).fetch().then(m => m.save({ nav_order: 1 }))
+      await GroupMembership.forPair(member.id, child.id).fetch().then(m => m.save({ nav_order: 0 }))
+      await GroupMembership.forPair(member.id, otherGroup.id).fetch().then(m => m.save({ nav_order: 1 }))
+
+      await convertGroupToSpace(coordinator.id, {
+        id: child.id,
+        parentGroupId: parentGroup.id
+      }, {})
+
+      const coordinatorChild = await GroupMembership.forPair(coordinator.id, child.id).fetch()
+      const coordinatorOther = await GroupMembership.forPair(coordinator.id, otherGroup.id).fetch()
+      const memberChild = await GroupMembership.forPair(member.id, child.id).fetch()
+      const memberOther = await GroupMembership.forPair(member.id, otherGroup.id).fetch()
+
+      expect(coordinatorChild.get('nav_order')).to.be.null
+      expect(coordinatorOther.get('nav_order')).to.equal(0)
+      expect(memberChild.get('nav_order')).to.be.null
+      expect(memberOther.get('nav_order')).to.equal(0)
+    })
+
     it('creates an off-menu space view when the child has no parent menu item', async () => {
       const child = await createChildGroup()
 

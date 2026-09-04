@@ -54,7 +54,7 @@ import {
 import BadgedIcon from 'components/BadgedIcon'
 import GlobalNavItem from './GlobalNavItem'
 import GlobalNavTooltipContainer from './GlobalNavTooltipContainer'
-import { getMyGroupsWithChildren } from 'store/selectors/getMyGroups'
+import { getMyGroupsWithChildren, isSpaceGroup } from 'store/selectors/getMyGroups'
 import { isCompactLayoutDevice, isMobileDevice, downloadApp } from 'util/mobile'
 import isWebView, { sendMessageToWebView, getMobileAppVersion } from 'util/webView'
 import { getCookieConsent } from 'util/cookieConsent'
@@ -545,8 +545,12 @@ export default function GlobalNav (props) {
   const stackGroups = currentUser?.settings?.stackGroups === true
   const rawGroups = useSelector(getMyGroupsWithChildren)
   // When stacking is off, flatten: every group renders as its own item with no subgroup stack.
+  // Spaces never appear in GlobalNav — they live under their parent group's menu.
   const sortedGroups = useMemo(
-    () => stackGroups ? rawGroups : rawGroups.map(group => ({ ...group, childGroups: [] })),
+    () => {
+      const groups = stackGroups ? rawGroups : rawGroups.map(group => ({ ...group, childGroups: [] }))
+      return groups.filter(group => !isSpaceGroup(group))
+    },
     [rawGroups, stackGroups]
   )
   const isNavOpen = useSelector(state => get('AuthLayoutRouter.isNavOpen', state))

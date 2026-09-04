@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - `convertGroupToSpace` rejects groups that have spaces of their own
+- Converting a child group to a space unpins it from every user's global nav and compact remaining pin order
 
 ## [7.0.0] - 2026-09-02 - Spaces and Views!
 

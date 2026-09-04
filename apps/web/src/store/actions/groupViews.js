@@ -515,6 +515,7 @@ export function convertGroupToSpace ({ id, parentGroupId }) {
     meta: {
       id,
       parentGroupId,
+      optimistic: true,
       extractModel: [
         { getRoot: get('convertGroupToSpace'), modelName: 'Group' }
       ]
