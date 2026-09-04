@@ -40,7 +40,7 @@ export default function SiteBanners () {
     dispatch(fetchSiteBanners()).then(result => {
       const items = result?.payload?.data?.siteBanners
       if (items) setBanners(items)
-    })
+    }).catch(() => { /* banners are optional chrome */ })
   }, [dispatch])
 
   useEffect(() => {

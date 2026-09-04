@@ -51,6 +51,8 @@ export default function SiteBanners () {
       const items = result?.payload?.data?.allSiteBanners
       if (items) setBanners(items)
       setLoading(false)
+    }).catch(() => {
+      setLoading(false)
     })
   }, [dispatch])
 
