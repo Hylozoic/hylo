@@ -12,6 +12,15 @@ const KNOWN_HYLO_HOSTS = [
 ]
 const MAX_DESCRIPTION_LENGTH = 144
 
+/** Hostname (minus www) so a scrape with no og:title still produces a usable preview. */
+function fallbackTitle (url) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '')
+  } catch (e) {
+    return url
+  }
+}
+
 const LinkPreview = bookshelf.Model.extend({
   tableName: 'link_previews',
   requireFetch: false,
@@ -95,10 +104,16 @@ const LinkPreview = bookshelf.Model.extend({
         return preview.save({ ...doneAttrs(), ...hyloAttrs })
       }
 
-      const linkPreviewData = await getLinkPreview(preview.get('url'), { followRedirects: 'follow' })
+      const linkPreviewData = await getLinkPreview(preview.get('url'), {
+        followRedirects: 'follow',
+        headers: {
+          'user-agent': 'Twitterbot/1.0',
+          'Accept-Language': 'en-US'
+        }
+      })
       const attrs = doneAttrs()
 
-      attrs.title = linkPreviewData?.title
+      attrs.title = linkPreviewData?.title || fallbackTitle(preview.get('url'))
       attrs.description = linkPreviewData?.description
 
       const imageURL = get('images[0]', linkPreviewData) || get('favicons[0]', linkPreviewData)
@@ -109,7 +124,8 @@ const LinkPreview = bookshelf.Model.extend({
 
       return preview.save(attrs)
     } catch (err) {
-      return preview.save(doneAttrs())
+      sails.log.warn('LinkPreview.populate failed:', preview.get('url'), err.message)
+      return preview.save({ ...doneAttrs(), title: fallbackTitle(preview.get('url')) })
     }
   },
 
@@ -138,7 +154,8 @@ const LinkPreview = bookshelf.Model.extend({
     }
 
     if (!preview) return null
-    if (!preview.get('done')) {
+    // Re-fetch when a prior scrape finished without a title (blocked UA, timeout).
+    if (!preview.get('done') || !preview.get('title')) {
       await LinkPreview.populate({ id: preview.id })
       preview = await LinkPreview.find(preview.id)
     }

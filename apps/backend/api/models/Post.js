@@ -1291,11 +1291,14 @@ module.exports = bookshelf.Model.extend(Object.assign({
    */
   generateLinkPreview: async ({ postId, url }) => {
     const post = await Post.find(postId)
-    if (!post || post.get('link_preview_id')) return
+    // Throw on missing post so kue retries (the job can be queued before commit).
+    if (!post) throw new Error(`generateLinkPreview: post ${postId} not found`)
+    if (post.get('link_preview_id')) return
 
-    const previewUrl = url
-      || RichText.getFirstExternalUrl(post.get('description'))
-      || RichText.getFirstExternalUrl(post.get('name'))
+    const previewUrl = url ||
+      RichText.getFirstExternalUrl(post.get('description')) ||
+      RichText.getFirstExternalUrl(post.get('name'))
+
     if (!previewUrl) return
 
     const preview = await LinkPreview.findOrCreateAndPopulate(previewUrl)

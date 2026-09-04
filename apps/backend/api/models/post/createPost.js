@@ -143,8 +143,9 @@ async function addPostToViewCollection (post, viewId, userId, { transacting } = 
 async function attachOrQueueLinkPreview (post, trx, skipLinkPreview) {
   if (skipLinkPreview || post.get('link_preview_id')) return
 
-  const url = RichText.getFirstExternalUrl(post.get('description'))
-    || RichText.getFirstExternalUrl(post.get('name'))
+  const url = RichText.getFirstExternalUrl(post.get('description')) ||
+    RichText.getFirstExternalUrl(post.get('name'))
+
   if (!url) return
 
   const existing = await LinkPreview.find(url)
@@ -153,7 +154,9 @@ async function attachOrQueueLinkPreview (post, trx, skipLinkPreview) {
     return
   }
 
-  Queue.classMethod('Post', 'generateLinkPreview', { postId: post.id, url }, 0)
+  // Default 2s delay: this runs inside the create transaction, and delay(0) is
+  // immediately runnable so the worker can miss the uncommitted post and no-op.
+  return Queue.classMethod('Post', 'generateLinkPreview', { postId: post.id, url })
 }
 
 /**
