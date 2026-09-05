@@ -14,6 +14,7 @@ export default
     url
     tagline
     location
+    isProfilePublic
     locationObject {
       id
       addressNumber

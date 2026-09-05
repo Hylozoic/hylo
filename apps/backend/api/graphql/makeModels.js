@@ -203,6 +203,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'email_validated',
         'hasRegistered',
         'intercomHash',
+        'is_profile_public',
         'linkedin_url',
         'location',
         'facebook_url',
@@ -387,22 +388,29 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'avatar_url',
         'banner_url',
         'bio',
-        'contact_email',
-        'contact_phone',
+        'is_profile_public',
         'twitter_name',
         'linkedin_url',
         'facebook_url',
         'url',
         'last_active_at',
-        'location',
         'tagline'
       ],
       getters: {
         // When loading via Track.users: enrollment = membership created_at; completion in settings
         completedAt: p => p.pivot && (p.pivot.get('settings') || {}).completedAt,
+        // Never expose contact/location to anonymous viewers of public profiles
+        contactEmail: p => userId ? p.get('contact_email') : null,
+        contactPhone: p => userId ? p.get('contact_phone') : null,
         enrolledAt: p => p.pivot && p.pivot.get('created_at'),
+        location: p => userId ? p.get('location') : null,
+        locationObject: async p => {
+          if (!userId) return null
+          await p.load('locationObject')
+          return p.relations.locationObject
+        },
         membershipCommonRoles: emptyQuerySet,
-        messageThreadId: p => p.getMessageThreadWith(userId).then(post => post ? post.id : null),
+        messageThreadId: p => userId ? p.getMessageThreadWith(userId).then(post => post ? post.id : null) : null,
         // Never expose null names to clients — they call .split() etc.
         name: p => p.get('name') || ''
       },
@@ -429,7 +437,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
           }
         },
         'moderatedGroupMemberships', // TODO: still need this?
-        'locationObject',
+        // locationObject only via getter above (redacted for anonymous)
         { groupRoles: { querySet: true, filter: filterGroupRolesByGroup } },
         { affiliations: { querySet: true } },
         { eventsAttending: { querySet: true } },
@@ -620,10 +628,12 @@ export default function makeModels (userId, isAdmin, apiClient) {
           }
         },
         'groups',
-        { user: { alias: 'creator' } },
+        // If a post is already visible (postFilter), its author identity should be too —
+        // otherwise public posts render without avatars/names for anonymous viewers.
+        { user: { alias: 'creator', skipModelFilter: true } },
         'followers',
         'locationObject',
-        { members: { querySet: true } },
+        { members: { querySet: true, skipModelFilter: true } },
         { eventInvitations: { querySet: true } },
         // Plain list, matching the schema's [ModerationAction] — a querySet
         // here makes every query selecting the field fail with
@@ -1414,7 +1424,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'post',
         'user'
       ],
-      filter: nonAdminFilter(reactionFilter('reactions', userId))
+      filter: nonAdminFilter(reactionFilter(userId))
     },
 
     GroupTopic: {

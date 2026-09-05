@@ -63,12 +63,13 @@ const MESSAGES = {
   invalid: "That doesn't seem to be a valid person ID."
 }
 
-const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleColumn }) => {
+const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleColumn, context }) => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const routeParams = useParams()
   const { t } = useTranslation()
   const [container, setContainer] = useState(null)
+  const isPublicView = context === 'public'
 
   const personId = routeParams.personId
   const error = !Number.isSafeInteger(Number(personId)) ? MESSAGES.invalid : null
@@ -91,7 +92,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
   const push = (url) => navigate(url)
   const goToPreviousLocation = () => navigate(previousLocation)
 
-  const [currentTabState, setCurrentTabState] = useState(currentTab)
+  const [currentTabState, setCurrentTabState] = useState(context === 'public' ? 'Posts' : currentTab)
   const [showAllGroups, setShowAllGroups] = useState(false)
   const [showExpandGroupsButton, setShowExpandGroupsButton] = useState(false)
   const groupsRef = useRef(null)
@@ -99,6 +100,10 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
   const [showFullBio, setShowFullBio] = useState(false)
   const [isBioClamped, setIsBioClamped] = useState(false)
   const bioRef = useRef(null)
+
+  useEffect(() => {
+    if (isPublicView) setCurrentTabState('Posts')
+  }, [isPublicView])
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
@@ -160,28 +165,34 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
 
   const affiliations = person.affiliations && person.affiliations.items
   const events = person.eventsAttending && person.eventsAttending.items
-  const memberships = person.memberships.sort((a, b) => a.group.name.localeCompare(b.group.name))
+  const memberships = (person.memberships || []).sort((a, b) => a.group.name.localeCompare(b.group.name))
   const projects = person.projects && person.projects.items
   const locationWithoutUsa = person.location && person.location.replace(', United States', '')
   const isCurrentUser = currentUser && currentUser.id === personId
   const isAxolotl = AXOLOTL_ID === personId
   const contentDropDownItems = [
-    { id: 'Overview', label: t('Overview'), title: t('{{name}}\'s recent activity', { name: person.name }), component: RecentActivity },
+    !isPublicView && { id: 'Overview', label: t('Overview'), title: t('{{name}}\'s recent activity', { name: person.name }), component: RecentActivity },
     { id: 'Posts', label: t('Posts'), title: t('{{name}}\'s posts', { name: person.name }), component: MemberPosts },
-    { id: 'Comments', label: t('Comments'), title: t('{{name}}\'s comments', { name: person.name }), component: MemberComments },
-    { id: 'Reactions', label: t('Reactions'), title: t('{{name}}\'s reactions', { name: person.name }), component: MemberReactions }
-  ].map(contentDropDownitem => ({
+    !isPublicView && { id: 'Comments', label: t('Comments'), title: t('{{name}}\'s comments', { name: person.name }), component: MemberComments },
+    !isPublicView && { id: 'Reactions', label: t('Reactions'), title: t('{{name}}\'s reactions', { name: person.name }), component: MemberReactions }
+  ].filter(Boolean).map(contentDropDownitem => ({
     ...contentDropDownitem, onClick: () => selectTab(contentDropDownitem.label)
   }))
   const actionButtonsItems = [
-    { iconName: 'Messages', value: t('Message Member'), onClick: () => push(isCurrentUser ? messagesUrl() : messagePersonUrl(person)), hideCopyTip: true },
-    { iconName: 'Phone', value: person.contactPhone, onClick: () => handleContactPhone(person.contactPhone) },
-    { iconName: 'Email', value: person.contactEmail, onClick: () => handleContactEmail(person.contactEmail) },
+    {
+      iconName: 'Messages',
+      value: t('Message Member'),
+      onClick: () => push(isCurrentUser ? messagesUrl() : messagePersonUrl(person)),
+      hideCopyTip: true,
+      placeholder: isPublicView
+    },
+    !isPublicView && { iconName: 'Phone', value: person.contactPhone, onClick: () => handleContactPhone(person.contactPhone) },
+    !isPublicView && { iconName: 'Email', value: person.contactEmail, onClick: () => handleContactEmail(person.contactEmail) },
     { iconName: 'Facebook', value: person.facebookUrl, onClick: () => gotoExternalUrl(person.facebookUrl) },
     { iconName: 'LinkedIn', value: person.linkedinUrl, onClick: () => gotoExternalUrl(person.linkedinUrl) },
     { iconName: 'Twitter', value: twitterUrl(person.twitterName), onClick: () => gotoExternalUrl(twitterUrl(person.twitterName)) },
     { iconName: 'Public', value: person.url, onClick: () => gotoExternalUrl(person.url) }
-  ]
+  ].filter(Boolean)
   const actionDropdownItems = [
     { icon: <Pencil className='w-4 h-4 text-foreground' />, label: t('Edit Profile'), onClick: () => push(currentUserSettingsUrl()), hide: !isCurrentUser },
     { icon: <X className='w-4 h-4 text-foreground' />, label: t('Block this Member'), onClick: () => handleBlockUser(personId), hide: isCurrentUser || isAxolotl }
@@ -199,7 +210,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
           <meta name='description' content={`${person.name}: ${t('Member Profile')}`} />
         </Helmet>
         <div className='flex flex-col items-center w-full'>
-          {isCurrentUser &&
+          {isCurrentUser && !isPublicView &&
             <button className='absolute top-2 right-5 z-50 bg-foreground/50 hover:bg-selected/90 transition-all scale-100 hover:scale-105 rounded-lg text-background placeholder-foreground/40 w-[120px] p-1 transition-all outline-none hover:bg-darkening/80' onClick={() => push(currentUserSettingsUrl())}>
               <Icon name='Edit' /> {t('Edit Profile')}
             </button>}
@@ -221,7 +232,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
           </div>
           <div className='-mt-5 mb-10 center flex gap-2 flex-row w-full items-center justify-center'>
             <ActionButtons items={actionButtonsItems} />
-            <ActionDropdown items={actionDropdownItems} />
+            <ActionDropdown items={actionDropdownItems} placeholder={isPublicView} />
           </div>
           {(person.tagline || person.bio) && (
             <div className='flex items-center flex-col mb-4'>
@@ -308,7 +319,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
                     )}
                   </div>
                 </div>)
-              : (
+              : (!isPublicView && (
                 <div className='border-2 mt-8 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 background-black/10 rounded-lg border-dashed relative mb-4 text-center'>
                   <div className='text-sm bg-midground text-foreground/50 absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 text-center'>{t('Hylo Groups')}</div>
                   <p className='text-foreground/50 mb-3'>{t('Find groups to join and collaborate with others')}</p>
@@ -319,7 +330,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
                     <Icon name='Groups' className='mr-2' />
                     {t('Explore Groups')}
                   </button>
-                </div>)}
+                </div>))}
             {roles.length > 0 && (
               <div className='border-2 mt-8 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 background-black/10 rounded-lg border-dashed relative mb-6'>
                 <div className='bg-midground text-foreground/50 text-sm absolute -top-2.5 left-1/2 uppercase -translate-x-1/2 px-2 text-center'>{t('Roles in {{group}}', { group: group.name })}</div>
@@ -364,15 +375,17 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
         <div className='flex flex-col align-items-center max-w-[720px] w-full'>
           <div className='flex flex-row items-center justify-between w-full'>
             <h2 className='text-sm sm:text-base'>{currentContentTitle}</h2>
-            <Dropdown
-              id='member-profile-content-dropdown'
-              items={contentDropDownItems}
-              toggleChildren={
-                <button className='focus:text-foreground relative text-sm border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md py-1 px-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center justify-center gap-2'>
-                  {currentTabState} <Icon className='text-foreground' name='ArrowDown' />
-                </button>
-              }
-            />
+            {contentDropDownItems.length > 1 && (
+              <Dropdown
+                id='member-profile-content-dropdown'
+                items={contentDropDownItems}
+                toggleChildren={
+                  <button className='focus:text-foreground relative text-sm border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md py-1 px-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center justify-center gap-2'>
+                    {currentTabState} <Icon className='text-foreground' name='ArrowDown' />
+                  </button>
+                }
+              />
+            )}
           </div>
           <CurrentContentComponent routeParams={routeParams} loading={contentLoading} />
         </div>
@@ -406,8 +419,22 @@ function ActionTooltip ({ content, hideCopyTip, onClick }) {
 }
 
 function ActionButtons ({ items }) {
+  const buttonClassName = 'shadow-lg relative text-base border-2 border-foreground/20 rounded-md p-2 bg-background text-foreground flex items-center justify-center'
+
   return items.map((actionIconItem, index) => {
-    const { iconName, value, onClick, hideCopyTip } = actionIconItem
+    const { iconName, value, onClick, hideCopyTip, placeholder } = actionIconItem
+
+    if (placeholder) {
+      return (
+        <div
+          key={index}
+          className={cn(buttonClassName, 'invisible pointer-events-none')}
+          aria-hidden='true'
+        >
+          <Icon name={iconName} />
+        </div>
+      )
+    }
 
     if (!value) return null
 
@@ -416,7 +443,7 @@ function ActionButtons ({ items }) {
     return (
       <React.Fragment key={index}>
         <button
-          className='focus:text-foreground shadow-lg relative text-base border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 flex items-center justify-center'
+          className={cn(buttonClassName, 'focus:text-foreground hover:border-foreground/50 hover:text-foreground transition-all scale-100 hover:scale-105')}
           onClick={onClick}
           data-tooltip-id={tooltipId}
           data-tooltip-content={value}
@@ -440,7 +467,20 @@ function ActionButtons ({ items }) {
   })
 }
 
-function ActionDropdown ({ items }) {
+function ActionDropdown ({ items, placeholder }) {
+  const toggleClassName = 'shadow-lg relative text-base border-2 border-foreground/20 rounded-md p-2 bg-background text-foreground flex items-center justify-center'
+
+  if (placeholder) {
+    return (
+      <div
+        className={cn(toggleClassName, 'invisible pointer-events-none')}
+        aria-hidden='true'
+      >
+        <Icon className='-mt-[3px] mb-[3px]' name='More' />
+      </div>
+    )
+  }
+
   const activeItems = filter(items, item =>
     isFunction(item.onClick) && !item.hide)
 
@@ -451,7 +491,7 @@ function ActionDropdown ({ items }) {
       items={activeItems}
       toggleChildren={
         <button
-          className='focus:text-foreground shadow-lg relative text-base border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 flex items-center justify-center'
+          className={cn(toggleClassName, 'focus:text-foreground hover:border-foreground/50 hover:text-foreground transition-all scale-100 hover:scale-105')}
         >
           <Icon className='-mt-[3px] mb-[3px]' name='More' />
         </button>

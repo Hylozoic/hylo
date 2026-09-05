@@ -14,13 +14,15 @@ describe('fetchMemberPosts', () => {
         query: 'Give me all the member posts, please.',
         variables: {
           id: '12345',
-          first: 10
+          first: 10,
+          offset: 0,
+          order: 'desc'
         }
       },
       meta: { extractModel: 'Person' }
     }
     const { query, variables } = expected.graphql
-    const actual = fetchMemberPosts(variables.id, 10, query)
+    const actual = fetchMemberPosts(variables.id, 10, 0, query)
     expect(actual).toEqual(expected)
   })
 })

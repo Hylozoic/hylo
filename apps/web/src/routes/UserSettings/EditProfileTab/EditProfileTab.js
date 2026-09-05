@@ -10,11 +10,13 @@ import SkillsToLearnSection from 'components/SkillsToLearnSection'
 import Button from 'components/ui/button'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import Loading from 'components/Loading'
+import { Switch } from 'components/ui/switch'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { DEFAULT_BANNER } from 'store/models/Me'
 import { ensureLocationIdIfCoordinate } from 'components/LocationInput/LocationInput.store'
 import SocialControl from './SocialControl'
 import { bgImageStyle, cn } from 'util/index'
+import { personUrl } from '@hylo/navigation'
 
 export const validateName = name => name && name.match(/\S/gm)
 
@@ -74,8 +76,14 @@ function EditProfileTab ({
       url: url || '',
       facebookUrl,
       twitterName,
-      linkedinUrl
+      linkedinUrl,
+      isProfilePublic: !!currentUser.isProfilePublic
     })
+  }
+
+  const handleProfilePublicChange = (checked) => {
+    setEdits(prev => ({ ...prev, isProfilePublic: checked }))
+    updateUserSettings({ isProfilePublic: checked })
   }
 
   const updateSetting = (key, shouldSetChanged = true) => async event => {
@@ -105,7 +113,9 @@ function EditProfileTab ({
   const save = useCallback(() => {
     setChanged(false)
     setConfirm(false)
-    updateUserSettings(edits)
+    // Persist profile fields only — public toggle saves immediately on change
+    const { isProfilePublic, ...profileEdits } = edits
+    updateUserSettings(profileEdits)
   }, [edits, setConfirm, updateUserSettings])
 
   const canSave = changed && validateName(edits.name)
@@ -136,10 +146,13 @@ function EditProfileTab ({
   const {
     name, avatarUrl, bannerUrl, tagline, bio,
     contactEmail, contactPhone, location, url,
-    facebookUrl, twitterName, linkedinUrl
+    facebookUrl, twitterName, linkedinUrl, isProfilePublic
   } = edits
 
   const locationObject = currentUser.locationObject
+  const publicProfileUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}${personUrl(currentUser.id)}`
+    : personUrl(currentUser.id)
 
   return (
     <div className='max-w-3xl mx-auto px-4 py-6'>
@@ -279,6 +292,24 @@ function EditProfileTab ({
               />
             </div>
           </div>
+        </div>
+
+        <div className='flex items-center justify-between gap-4 border border-foreground/10 rounded-lg p-4'>
+          <div className='space-y-1'>
+            <h4 className='text-foreground font-medium'>{t('Make my profile public')}</h4>
+            <p className='text-foreground/70 text-sm'>
+              {t('When enabled, anyone with the link can view your profile without logging in to Hylo.')}
+            </p>
+            {isProfilePublic && (
+              <p className='text-xs text-muted-foreground mt-1 break-all'>
+                {t('Shareable link')}: {publicProfileUrl}
+              </p>
+            )}
+          </div>
+          <Switch
+            checked={!!isProfilePublic}
+            onCheckedChange={handleProfilePublicChange}
+          />
         </div>
       </div>
 

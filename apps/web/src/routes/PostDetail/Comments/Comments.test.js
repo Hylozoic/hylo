@@ -4,15 +4,30 @@ import Comments from './Comments'
 import ShowMore from './ShowMore'
 
 describe('Comments', () => {
-  it('renders login link when user is not logged in', () => {
+  it('shows commenter count and login CTA when user is not logged in', () => {
     const props = {
-      post: { id: '91', groups: [{ id: '100' }] },
+      post: { id: '91', groups: [{ id: '100' }], commentersTotal: 3 },
       slug: 'foo'
     }
 
     render(<Comments {...props} />)
 
-    expect(screen.getByText('Join Hylo to respond')).toBeInTheDocument()
+    expect(screen.getByTestId('comments-login-prompt')).toBeInTheDocument()
+    expect(screen.getByText('3 people commented')).toBeInTheDocument()
+    expect(screen.getByText('Log in to see comments')).toBeInTheDocument()
+    expect(screen.queryByText('Join Hylo to respond')).not.toBeInTheDocument()
+  })
+
+  it('shows empty-state copy when there are no commenters and user is logged out', () => {
+    const props = {
+      post: { id: '91', groups: [{ id: '100' }], commentersTotal: 0 },
+      slug: 'foo'
+    }
+
+    render(<Comments {...props} />)
+
+    expect(screen.getByText('No comments yet')).toBeInTheDocument()
+    expect(screen.getByText('Log in to see comments')).toBeInTheDocument()
   })
 })
 

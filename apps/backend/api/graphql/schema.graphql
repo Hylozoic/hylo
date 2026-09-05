@@ -1776,6 +1776,8 @@ type Me {
   intercomHash: String
   # IGNORE
   isAdmin: Boolean
+  # Whether this user's profile is publicly viewable without logging in
+  isProfilePublic: Boolean
   # URL of the logged in user's LinkedIn Profile
   linkedinUrl: String
   # String representing the logged in user's physical location
@@ -2155,6 +2157,8 @@ type Person {
   facebookUrl: String
   # False for new users who have not completed the registration process
   hasRegistered: Boolean
+  # Whether this person's profile is publicly viewable without logging in
+  isProfilePublic: Boolean
   # When this person last viewed Hylo
   lastActiveAt: String
   # URL of this person's LinkedIn Profile
@@ -4278,6 +4282,8 @@ input MeInput {
   email: String
   # The URL to your Facebook profile
   facebookUrl: String
+  # Whether your profile is publicly viewable without logging in
+  isProfilePublic: Boolean
   # The URL to your LinkedIn profile
   linkedinUrl: String
   # String representing your physical location

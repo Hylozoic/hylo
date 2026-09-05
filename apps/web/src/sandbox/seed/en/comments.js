@@ -336,14 +336,14 @@ export function buildCommentsByPostId (peopleById, meId) {
   }
 }
 
-function comment (num, creator, createdAt_offset, extrasOrText = {}) {
+function comment (num, creator, createdAtOffset, extrasOrText = {}) {
   const isString = typeof extrasOrText === 'string'
   const text = isString ? extrasOrText : (extrasOrText.text || htmlCopy())
   const childComments = (!isString && extrasOrText.childComments) || []
   return {
     id: sid('comment', num),
     text,
-    createdAt_offset,
+    createdAt_offset: createdAtOffset,
     creator,
     parentComment: null,
     attachments: [],
@@ -502,7 +502,7 @@ export function buildReactionsByPostId (peopleById, meId) {
   }
 }
 
-function reaction (num, user, emojiFull, createdAt_offset) {
+function reaction (num, user, emojiFull, createdAtOffset) {
   return {
     id: sid('reaction', num),
     userId: user?.id,
@@ -511,7 +511,7 @@ function reaction (num, user, emojiFull, createdAt_offset) {
     emojiBase: emojiFull,
     emojiLabel: emojiFull,
     entityType: 'post',
-    createdAt_offset
+    createdAt_offset: createdAtOffset
   }
 }
 
@@ -557,6 +557,6 @@ export function buildProposalData () {
   }
 }
 
-function vote (id, userId, optionId, postId, createdAt_offset) {
-  return { id: sid('vote', id), userId, optionId, postId, createdAt_offset }
+function vote (id, userId, optionId, postId, createdAtOffset) {
+  return { id: sid('vote', id), userId, optionId, postId, createdAt_offset: createdAtOffset }
 }

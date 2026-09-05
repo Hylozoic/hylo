@@ -8,25 +8,35 @@ import postQuery from '@graphql/queries/postQuery'
 /**
  * Fetch a post by id.
  * @param {string|number} id
- * @param {{ withCompletion?: boolean, withCompletionResponses?: boolean }} [options]
+ * @param {{ withComments?: boolean, withCompletion?: boolean, withCompletionResponses?: boolean }} [options]
+ *   withComments — include comments + commenter identities (false for anonymous public viewers)
  *   withCompletion — include completedAt / completionAction / completionResponse (action posts)
  *   withCompletionResponses — include all members' completionResponses (managers)
  */
-export default function fetchPost (id, { withCompletion = false, withCompletionResponses = false } = {}) {
+export default function fetchPost (id, {
+  withComments = true,
+  withCompletion = false,
+  withCompletionResponses = false
+} = {}) {
   return {
     type: FETCH_POST,
     graphql: {
-      query: postQuery({ withCompletion, withCompletionResponses }),
+      query: postQuery({ withComments, withCompletion, withCompletionResponses }),
       variables: {
         id
       }
     },
     meta: {
       extractModel: 'Post',
-      extractQueryResults: {
-        getType: () => FETCH_COMMENTS,
-        getItems: get('payload.data.post.comments')
-      }
+      // Only wire comment extraction when comments were requested
+      ...(withComments
+        ? {
+            extractQueryResults: {
+              getType: () => FETCH_COMMENTS,
+              getItems: get('payload.data.post.comments')
+            }
+          }
+        : {})
     }
   }
 }

@@ -2,22 +2,29 @@ export const commentFilter = userId => relation => relation.query(q => {
   q.distinct()
   q.where({ 'comments.active': true })
 
-  if (userId) {
-    q.leftJoin('groups_posts', 'comments.post_id', 'groups_posts.post_id')
-    // Only join posts if not already joined (e.g. by the User.comments relation)
+  if (!userId) {
+    // Anonymous viewers only see comments on public posts
     if (!q.queryContext()?.alreadyJoinedPosts) {
-      q.join('posts', 'groups_posts.post_id', 'posts.id')
+      q.join('posts', 'comments.post_id', 'posts.id')
     }
-    q.whereNotIn('comments.user_id', BlockedUser.blockedFor(userId))
-
-    q.where(q2 => {
-      const followedPostIds = PostUser.followedPostIds(userId)
-      q2.whereIn('comments.post_id', followedPostIds)
-        .orWhereIn('groups_posts.group_id', Group.selectIdsForMember(userId))
-        .orWhere('posts.is_public', true)
-    })
-    q.groupBy('comments.id')
+    q.where('posts.is_public', true)
+    return
   }
+
+  q.leftJoin('groups_posts', 'comments.post_id', 'groups_posts.post_id')
+  // Only join posts if not already joined (e.g. by the User.comments relation)
+  if (!q.queryContext()?.alreadyJoinedPosts) {
+    q.join('posts', 'groups_posts.post_id', 'posts.id')
+  }
+  q.whereNotIn('comments.user_id', BlockedUser.blockedFor(userId))
+
+  q.where(q2 => {
+    const followedPostIds = PostUser.followedPostIds(userId)
+    q2.whereIn('comments.post_id', followedPostIds)
+      .orWhereIn('groups_posts.group_id', Group.selectIdsForMember(userId))
+      .orWhere('posts.is_public', true)
+  })
+  q.groupBy('comments.id')
 })
 
 // Which groups are visible to the user?
@@ -140,7 +147,15 @@ export const membershipFilter = userId => relation => {
       q.whereIn('group_memberships.group_id', subq)
     })
   }
-  return relation
+  // Anonymous viewers (e.g. public profiles) only see public group memberships.
+  // Use a subquery — User.memberships already left-joins `groups`, so joining again would error.
+  return relation.query(q => {
+    q.whereIn('group_memberships.group_id', Group.query(gq => {
+      gq.select('id')
+      gq.where('active', true)
+      gq.where('visibility', Group.Visibility.PUBLIC)
+    }).query())
+  })
 }
 
 export const messageFilter = userId => relation => relation.query(q => {
@@ -148,25 +163,28 @@ export const messageFilter = userId => relation => relation.query(q => {
 })
 
 export const personFilter = userId => relation => relation.query(q => {
-  if (userId) {
-    q.whereNotIn('users.id', BlockedUser.blockedFor(userId))
-
-    // limit to users that are in those other memberships or are connected some other way
-
-    // find all other memberships of users that are in shared groups
-    const sharedMemberships = GroupMembership.query(q3 => {
-      q3.select('group_memberships.user_id')
-      q3.whereIn('group_memberships.group_id', Group.selectIdsForMember(userId))
-    })
-    const sharedConnections = UserConnection.query(ucq => {
-      ucq.select('other_user_id')
-      ucq.where('user_connections.user_id', userId)
-    })
-    q.where(inner =>
-      inner.where('users.id', User.AXOLOTL_ID)
-        .orWhereIn('users.id', sharedMemberships.query())
-        .orWhereIn('users.id', sharedConnections.query()))
+  if (!userId) {
+    // Anonymous queries can only see opted-in public profiles
+    q.where('users.is_profile_public', true)
+    return
   }
+
+  q.whereNotIn('users.id', BlockedUser.blockedFor(userId))
+
+  // Limit to users in shared groups, connected somehow, Axolotl, or public profiles
+  const sharedMemberships = GroupMembership.query(q3 => {
+    q3.select('group_memberships.user_id')
+    q3.whereIn('group_memberships.group_id', Group.selectIdsForMember(userId))
+  })
+  const sharedConnections = UserConnection.query(ucq => {
+    ucq.select('other_user_id')
+    ucq.where('user_connections.user_id', userId)
+  })
+  q.where(inner =>
+    inner.where('users.id', User.AXOLOTL_ID)
+      .orWhereIn('users.id', sharedMemberships.query())
+      .orWhereIn('users.id', sharedConnections.query())
+      .orWhere('users.is_profile_public', true))
 })
 
 export const postFilter = (userId, isAdmin) => relation => {
@@ -203,10 +221,16 @@ export const reactionFilter = userId => relation => {
     q.join('posts', 'posts.id', 'groups_posts.post_id')
     q.where('posts.active', true)
     q.andWhere('reactions.entity_type', 'post')
+
+    if (!userId) {
+      q.where('posts.is_public', true)
+      return
+    }
+
     q.andWhere(q2 => {
       const selectIdsForMember = Group.selectIdsForMember(userId)
-      q.whereIn('groups_posts.group_id', selectIdsForMember)
-      q.orWhere('posts.is_public', true)
+      q2.whereIn('groups_posts.group_id', selectIdsForMember)
+        .orWhere('posts.is_public', true)
     })
   })
 }

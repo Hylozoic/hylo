@@ -15,7 +15,6 @@ import { FUNDING_ROUND_ID } from './fundingRounds'
  */
 export function buildPosts (peopleById, meId) {
   const me = peopleById[meId]
-  const p002 = peopleById[sid('person', '002')]
   const p003 = peopleById[sid('person', '003')]
   const p004 = peopleById[sid('person', '004')]
   const p005 = peopleById[sid('person', '005')]
@@ -415,14 +414,14 @@ export function buildPosts (peopleById, meId) {
   }
 }
 
-function basePost (id, creator, groupId, createdAt_offset, type, extras = {}) {
+function basePost (id, creator, groupId, createdAtOffset, type, extras = {}) {
   return {
     id: sid('post', id),
     title: extras.title || PLACEHOLDER_NAME,
     details: extras.details || htmlCopy(),
     type,
-    createdAt_offset,
-    updatedAt_offset: createdAt_offset + 3600,
+    createdAt_offset: createdAtOffset,
+    updatedAt_offset: createdAtOffset + 3600,
     creator,
     groups: [{ id: groupId, name: groupDisplayName(groupId) }],
     groupsTotal: 1,
@@ -466,18 +465,18 @@ function withoutPlace (extras = {}) {
   return rest
 }
 
-function discussionPost (num, creator, groupId, createdAt_offset, extras = {}) {
-  return basePost(num, creator, groupId, createdAt_offset, 'discussion', {
+function discussionPost (num, creator, groupId, createdAtOffset, extras = {}) {
+  return basePost(num, creator, groupId, createdAtOffset, 'discussion', {
     ...withoutPlace(extras),
     fields: locationFields(num, extras)
   })
 }
 
-function eventPost (num, creator, groupId, createdAt_offset, extras = {}) {
+function eventPost (num, creator, groupId, createdAtOffset, extras = {}) {
   const { upcoming, location, place, ...rest } = extras
   const start = upcoming ? 86400 * 5 : -86400 * 3
   const end = upcoming ? 86400 * 5 + 7200 : -86400 * 3 + 7200
-  return basePost(num, creator, groupId, createdAt_offset, 'event', {
+  return basePost(num, creator, groupId, createdAtOffset, 'event', {
     ...rest,
     fields: {
       startTime_offset: start,
@@ -491,8 +490,8 @@ function eventPost (num, creator, groupId, createdAt_offset, extras = {}) {
   })
 }
 
-function proposalPost (num, creator, groupId, createdAt_offset, { voting, discussionPhase, title, details } = {}) {
-  return basePost(num, creator, groupId, createdAt_offset, 'proposal', {
+function proposalPost (num, creator, groupId, createdAtOffset, { voting, discussionPhase, title, details } = {}) {
+  return basePost(num, creator, groupId, createdAtOffset, 'proposal', {
     title,
     details,
     fields: {
@@ -504,43 +503,43 @@ function proposalPost (num, creator, groupId, createdAt_offset, { voting, discus
   })
 }
 
-function requestPost (num, creator, groupId, createdAt_offset, extras = {}) {
-  return basePost(num, creator, groupId, createdAt_offset, 'request', {
+function requestPost (num, creator, groupId, createdAtOffset, extras = {}) {
+  return basePost(num, creator, groupId, createdAtOffset, 'request', {
     ...withoutPlace(extras),
     fields: { endTime_offset: 86400 * 14, ...locationFields(num, extras) }
   })
 }
 
-function offerPost (num, creator, groupId, createdAt_offset, extras = {}) {
-  return basePost(num, creator, groupId, createdAt_offset, 'offer', {
+function offerPost (num, creator, groupId, createdAtOffset, extras = {}) {
+  return basePost(num, creator, groupId, createdAtOffset, 'offer', {
     ...withoutPlace(extras),
     fields: { endTime_offset: 86400 * 30, ...locationFields(num, extras) }
   })
 }
 
-function projectPost (num, creator, groupId, createdAt_offset, extras = {}) {
-  return basePost(num, creator, groupId, createdAt_offset, 'project', {
+function projectPost (num, creator, groupId, createdAtOffset, extras = {}) {
+  return basePost(num, creator, groupId, createdAtOffset, 'project', {
     ...withoutPlace(extras),
     fields: locationFields(num, extras)
   })
 }
 
-function resourcePost (num, creator, groupId, createdAt_offset, extras = {}) {
-  return basePost(num, creator, groupId, createdAt_offset, 'resource', {
+function resourcePost (num, creator, groupId, createdAtOffset, extras = {}) {
+  return basePost(num, creator, groupId, createdAtOffset, 'resource', {
     ...withoutPlace(extras),
     fields: locationFields(num, extras)
   })
 }
 
-function chatPost (prefix, num, creator, groupId, createdAt_offset, text) {
-  return basePost(`${prefix}-${num}`, creator, groupId, createdAt_offset, 'chat', {
+function chatPost (prefix, num, creator, groupId, createdAtOffset, text) {
+  return basePost(`${prefix}-${num}`, creator, groupId, createdAtOffset, 'chat', {
     title: null,
     details: '<p>' + (text || PLACEHOLDER_COPY.slice(0, 140)) + '</p>'
   })
 }
 
-function fundingSubmission (num, creator, groupId, createdAt_offset, tokensAllocated, extras = {}) {
-  return basePost(`fr-${num}`, creator, groupId, createdAt_offset, 'project', {
+function fundingSubmission (num, creator, groupId, createdAtOffset, tokensAllocated, extras = {}) {
+  return basePost(`fr-${num}`, creator, groupId, createdAtOffset, 'project', {
     title: extras.title,
     details: extras.details,
     commentCount: extras.commentCount || 0,
