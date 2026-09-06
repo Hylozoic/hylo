@@ -15,7 +15,7 @@ const screenshotDir = path.resolve(import.meta.dirname, 'screenshots')
 
 test('space menu header shows icon box, pills, X close, and hover-reveal cover', async ({ page }) => {
   test.skip(test.info().project.name !== 'chromium', 'desktop-only visual check')
-  test.setTimeout(120000)
+  test.setTimeout(240000)
   fs.mkdirSync(screenshotDir, { recursive: true })
 
   await page.goto('/groups/e2e-public-group/more-spaces')

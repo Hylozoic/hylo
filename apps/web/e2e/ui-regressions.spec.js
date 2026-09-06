@@ -17,6 +17,7 @@ test('explorer titles are white in light mode', async ({ page }) => {
 })
 
 test('stream controls use border-2', async ({ page }) => {
+  test.skip(test.info().project.name.includes('mobile'), 'view-mode segmented control is max-sm:hidden')
   await page.goto('/groups/e2e-public-group/all')
   await waitPastRootSessionLoading(page)
   const controls = page.getByTestId('stream-view-controls')
