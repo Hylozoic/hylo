@@ -33,6 +33,7 @@ if (enabled) {
 
 /**
  * Attaches Express/Sails request basics to the current scope when present.
+ * Prefer session fields (request-scoped) over process-wide setUser.
  * @param {object|null} req
  */
 function applyRequestContext (req) {
@@ -47,17 +48,14 @@ function applyRequestContext (req) {
     }
   })
 
-  if (req.user && (req.user.id || req.user.get)) {
+  if (req.session && req.session.userId) {
+    Sentry.setUser({
+      id: String(req.session.userId),
+      email: req.session.userEmail
+    })
+  } else if (req.user && (req.user.id || req.user.get)) {
     const id = req.user.id || (req.user.get && req.user.get('id'))
     if (id) Sentry.setUser({ id: String(id) })
-  } else if (req.rollbar_person) {
-    // Temporary until UserSession switches to sentry.setUser
-    const person = req.rollbar_person
-    Sentry.setUser({
-      id: person.id != null ? String(person.id) : undefined,
-      username: person.name,
-      email: person.email
-    })
   }
 }
 
@@ -140,9 +138,15 @@ const sentry = {
     return Sentry.flush(timeout)
   },
 
-  // Passthrough no-op so http middleware can swap gradually in a later phase
+  /**
+   * Express/Sails error middleware (last in http middleware order).
+   * Uses Sentry's handler when enabled; no-op pass-through when disabled.
+   */
   errorHandler () {
-    return (req, res, next) => next()
+    if (!enabled) {
+      return (req, res, next) => next()
+    }
+    return Sentry.expressErrorHandler()
   }
 }
 
