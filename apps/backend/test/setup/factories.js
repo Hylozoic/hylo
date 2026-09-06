@@ -28,11 +28,9 @@ module.exports = {
   },
 
   group: attrs => {
-    // Slugs must match /^[0-9a-z-]{2,40}$/ and stay unique across a full suite run
-    // (test DB is wiped once per process; groups accumulate between tests).
     return new Group(merge({
       name: faker.random.words(6),
-      slug: `g${faker.datatype.uuid().replace(/-/g, '').slice(0, 30)}`,
+      slug: faker.lorem.slug(),
       access_code: faker.random.alphaNumeric(6),
       settings: {}
     }, attrs))
