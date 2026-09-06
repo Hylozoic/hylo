@@ -1,31 +1,67 @@
 import { createYoga, maskError } from 'graphql-yoga'
 import { graphql, GraphQLError } from 'graphql'
+import { AsyncLocalStorage } from 'async_hooks'
 import { red } from 'chalk'
 import { inspect } from 'util'
 import RedisPubSub from '../services/RedisPubSub'
 import makeSchema from './makeSchema'
+import sentry from '../../lib/sentry'
 
 export const GRAPHQL_ENDPOINT = '/noo/graphql'
 
+// Per-execute store so maskError can attach user / operation without leaking across requests
+const graphqlRequestStore = new AsyncLocalStorage()
+
 /**
  * Yoga masks unexpected resolver errors as "Unexpected error." for clients.
- * Log the original error server-side first so production incidents stay diagnosable.
+ * Log the original error server-side and report it to Sentry (unmasked).
  */
 function maskAndLogGraphqlError (error, message, isDev) {
   const result = maskError(error, message, isDev)
   if (result?.message === message) {
     const original = error?.originalError instanceof Error
       ? error.originalError
-      : error
+      : (error instanceof Error ? error : new Error(String(error)))
     sails.log.error('[graphql] unexpected error (masked for client):', original)
+
+    const store = graphqlRequestStore.getStore() || {}
+    const path = Array.isArray(error?.path) ? error.path.join('.') : error?.path
+
+    sentry.captureException(original, {
+      tags: {
+        graphql: 'true',
+        ...(store.operationName ? { graphqlOperation: String(store.operationName) } : {})
+      },
+      extra: {
+        graphqlPath: path,
+        currentUserId: store.currentUserId,
+        operationName: store.operationName
+      }
+    })
   }
   return result
+}
+
+/**
+ * Stashes GraphQL request identity for Sentry capture inside maskAndLogGraphqlError.
+ */
+const graphqlSentryContextPlugin = {
+  onExecute ({ args, executeFn, setExecuteFn }) {
+    setExecuteFn((executionArgs) => {
+      const contextValue = executionArgs?.contextValue || args.contextValue
+      return graphqlRequestStore.run({
+        currentUserId: contextValue?.currentUserId,
+        operationName: executionArgs?.operationName || args.operationName
+      }, () => executeFn(executionArgs))
+    })
+  }
 }
 
 export const yoga = createYoga({
   graphqlEndpoint: GRAPHQL_ENDPOINT,
   schema: makeSchema,
   // plugins: [useLazyLoadedSchema(createSchema)],
+  plugins: [graphqlSentryContextPlugin],
   context: async ({ req, params }) => {
     if (process.env.DEBUG_GRAPHQL) {
       sails.log.info('\n' +
