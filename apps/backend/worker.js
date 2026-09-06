@@ -4,7 +4,6 @@ require('./config/kue') // this must be third
 
 const Promise = require('bluebird')
 const lodash = require('lodash')
-const rollbar = require('./lib/rollbar')
 const sentry = require('./lib/sentry')
 sentry.setProcess('worker')
 const sails = skiff.sails
@@ -54,19 +53,15 @@ function setupQueue (name, handler) {
         ? new Error(err)
         : (err || new Error('kue job failed without error'))
       sails.log.error(label + error.message.red, error)
-      rollbar.error(error, null, data)
+      sentry.error(error, null, data)
       done(error)
     }
   })
 }
 
 const throttledLog = throttle(error => {
-  if (rollbar.disabled) {
-    sails.log.error('Error setting up worker: ' + error.message)
-  } else {
-    sails.log.error('Error setting up worker: ' + error.message)
-    rollbar.error(error)
-  }
+  sails.log.error('Error setting up worker: ' + error.message)
+  if (!sentry.disabled) sentry.error(error)
 }, 30000)
 
 function handleRedisError (err) {

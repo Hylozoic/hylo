@@ -26,15 +26,6 @@ require('@babel/register')
 const sentry = require('./lib/sentry')
 sentry.setProcess('web')
 
-if (process.env.ROLLBAR_SERVER_TOKEN && process.env.NODE_ENV !== 'test') {
-  const rollbar = require('rollbar')
-  rollbar.init({
-    accessToken: process.env.ROLLBAR_SERVER_TOKEN,
-    captureUncaught: true,
-    captureUnhandledRejections: true
-  })
-}
-
 const { merge } = require('lodash')
 const chalk = require('chalk')
 chalk.enabled = true
