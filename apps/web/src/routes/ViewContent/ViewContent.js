@@ -702,7 +702,9 @@ export default function ViewContent (props) {
         // <alpha-value> placeholder, so slash-opacity classes are silently ignored.
         // Heavier wash in dark mode: a light page only needs a whisper of ground, but
         // the same alpha on a dark background disappears against the dark stream.
-        <div className='sticky top-0 z-20 w-full bg-gradient-to-b from-[hsl(var(--theme-background)/0.1)] dark:from-[hsl(var(--theme-background)/0.5)] to-[hsl(var(--theme-background)/0)]'>
+        // z-30: EventRSVP's DropdownButton is z-20 and would otherwise paint over this
+        // bar's open menus (post type filter, sort) when cards sit later in the DOM.
+        <div className='sticky top-0 z-30 w-full bg-gradient-to-b from-[hsl(var(--theme-background)/0.1)] dark:from-[hsl(var(--theme-background)/0.5)] to-[hsl(var(--theme-background)/0)]'>
           <div className='flex flex-row items-start gap-2 px-2 sm:px-4 pt-2 sm:pt-4 pb-6'>
             {hasPostPrompt && (
               <PostPrompt
