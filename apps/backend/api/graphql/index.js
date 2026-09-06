@@ -1,4 +1,4 @@
-import { createYoga } from 'graphql-yoga'
+import { createYoga, maskError } from 'graphql-yoga'
 import { graphql, GraphQLError } from 'graphql'
 import { red } from 'chalk'
 import { inspect } from 'util'
@@ -6,6 +6,21 @@ import RedisPubSub from '../services/RedisPubSub'
 import makeSchema from './makeSchema'
 
 export const GRAPHQL_ENDPOINT = '/noo/graphql'
+
+/**
+ * Yoga masks unexpected resolver errors as "Unexpected error." for clients.
+ * Log the original error server-side first so production incidents stay diagnosable.
+ */
+function maskAndLogGraphqlError (error, message, isDev) {
+  const result = maskError(error, message, isDev)
+  if (result?.message === message) {
+    const original = error?.originalError instanceof Error
+      ? error.originalError
+      : error
+    sails.log.error('[graphql] unexpected error (masked for client):', original)
+  }
+  return result
+}
 
 export const yoga = createYoga({
   graphqlEndpoint: GRAPHQL_ENDPOINT,
@@ -40,6 +55,9 @@ export const yoga = createYoga({
       socket: req.socket,
       currentUserId: req.session.userId
     }
+  },
+  maskedErrors: {
+    maskError: maskAndLogGraphqlError
   },
   logging: process.env.GRAPHQL_YOGA_LOG_LEVEL || 'info',
   graphiql: true

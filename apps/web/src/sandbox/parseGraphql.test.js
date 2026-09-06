@@ -30,4 +30,20 @@ describe('parseGraphql', () => {
       rootField: 'createPost'
     })
   })
+
+  it('treats anonymous mutations with variables as mutations', () => {
+    const query = `
+      mutation ($changes: MeInput) {
+        updateMe(changes: $changes) {
+          id
+          settings { toursSeen }
+        }
+      }
+    `
+    expect(parseGraphql(query)).toEqual({
+      kind: 'mutation',
+      operationName: null,
+      rootField: 'updateMe'
+    })
+  })
 })

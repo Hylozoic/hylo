@@ -221,6 +221,16 @@ describe('sandbox GraphQL handlers', () => {
     expect(result.data.siteBanners).toEqual([])
   })
 
+  it('updates toursSeen on me via updateMe', () => {
+    const result = handleGraphql({
+      query: 'mutation ($changes: MeInput) { updateMe(changes: $changes) { id settings { toursSeen } } }',
+      variables: { changes: { settings: { toursSeen: ['global-chrome', 'group-home'] } } }
+    }, seed)
+
+    expect(result.data.updateMe.settings.toursSeen).toEqual(['global-chrome', 'group-home'])
+    expect(seed.me.settings.toursSeen).toEqual(['global-chrome', 'group-home'])
+  })
+
   it('returns local search hits for people, posts, and comments', () => {
     const result = handleGraphql({
       query: `query Search ($search: String, $type: String) {
