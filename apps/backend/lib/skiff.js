@@ -31,6 +31,7 @@ if (process.env.NODE_ENV === 'test') {
 
 const { blue, green, red, yellow } = require('chalk')
 
+require('./sentry') // must require this early to initialize Sentry
 require('./rollbar') // must require this to initialize Rollbar
 var argv = require('minimist')(process.argv)
 var rc = require('rc')

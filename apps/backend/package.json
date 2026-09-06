@@ -74,6 +74,7 @@
     "@onesignal/node-onesignal": "^5.1.0-beta1",
     "@sailshq/connect-redis": "^6.1.3",
     "@sailshq/socket.io-redis": "^6.1.2",
+    "@sentry/node": "^10.68.0",
     "analytics-node": "^1.2.0",
     "apple-signin-auth": "^1.2.1",
     "async-repl": "0.4.0",

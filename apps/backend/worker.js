@@ -5,6 +5,8 @@ require('./config/kue') // this must be third
 const Promise = require('bluebird')
 const lodash = require('lodash')
 const rollbar = require('./lib/rollbar')
+const sentry = require('./lib/sentry')
+sentry.setProcess('worker')
 const sails = skiff.sails
 const { omit, throttle } = lodash
 const kue = require('kue')

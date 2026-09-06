@@ -22,6 +22,10 @@
 require('dotenv').config({ path: require('path').resolve(__dirname, '.env'), override: false })
 require('@babel/register')
 
+// Sentry must init early so uncaught / unhandled rejections are captured
+const sentry = require('./lib/sentry')
+sentry.setProcess('web')
+
 if (process.env.ROLLBAR_SERVER_TOKEN && process.env.NODE_ENV !== 'test') {
   const rollbar = require('rollbar')
   rollbar.init({
