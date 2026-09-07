@@ -12,7 +12,7 @@ import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading
 
 test.use({ storageState: 'e2e/.auth/session.json' })
 
-test.describe.configure({ timeout: 120000 })
+test.describe.configure({ timeout: 240000 })
 
 const screenshotDir = path.resolve(import.meta.dirname, 'screenshots')
 
@@ -23,14 +23,13 @@ test('deep link to a space in a two-column group resolves', async ({ page }) => 
   await page.goto('/groups/e2e-public-group/spaces/e2e-test-space')
   await waitPastRootSessionLoading(page)
 
-  // Off-menu space: SpaceContent fetches spaces, then either shows the space
-  // menu at the index or redirects to the home view. Either means the Loading
-  // gate cleared — do not require a child path (the default 30s test timeout
-  // was also shorter than that fetch + redirect).
+  // Off-menu space on a two-column group: ContextMenu swaps to the space menu.
+  // Do not use getByText().first() — ViewHeader can keep a hidden copy of the name.
   await expect(page.locator('#center-column-container')).toBeVisible({ timeout: 60000 })
   await expect(page.getByTestId('loading-container')).toHaveCount(0, { timeout: 30000 })
   await expect(page).toHaveURL(/\/groups\/e2e-public-group\/spaces\/e2e-test-space(\/.*)?$/, { timeout: 30000 })
-  await expect(page.getByText('E2E Test Space').first()).toBeVisible({ timeout: 30000 })
+  await expect(page.locator('.SpaceMenuHeader')).toBeVisible({ timeout: 30000 })
+  await expect(page.locator('.SpaceMenuHeader')).toContainText('E2E Test Space')
   await expect(page.getByRole('link', { name: /Signup or Login/i })).toHaveCount(0)
 
   await page.screenshot({

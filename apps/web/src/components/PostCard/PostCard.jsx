@@ -313,7 +313,9 @@ export default function PostCard (props) {
         <div
           ref={postCardRef}
           className={cn(
-            'PostCard group/post-card rounded-xl cursor-pointer p-1 ml-12 relative flex flex-col transition-all bg-card/50 dark:bg-card/100 hover:bg-card/100 border-2 border-card/30 shadow-xl hover:shadow-2xl hover:shadow-lg mb-4 hover:z-[2] hover:scale-101 duration-400 hover:border-foreground/50',
+            // isolate: DropdownButton is z-20; without a stacking context it escapes
+            // the card and paints over the pinned stream header (post type filter).
+            'PostCard group/post-card rounded-xl cursor-pointer p-1 ml-12 relative isolate flex flex-col transition-all bg-card/50 dark:bg-card/100 hover:bg-card/100 border-2 border-card/30 shadow-xl hover:shadow-2xl hover:shadow-lg mb-4 hover:z-[2] hover:scale-101 duration-400 hover:border-foreground/50',
             pinnedInView && 'ring-1 ring-inset ring-[hsl(45_60%_45%_/_0.45)]',
             classes[postType],
             {
@@ -403,7 +405,8 @@ export default function PostCard (props) {
       <div
         ref={postCardRef}
         className={cn(
-          'PostCard group/post-card rounded-xl cursor-pointer p-1 relative flex flex-col transition-all bg-card/50 dark:bg-card/100 hover:bg-card/100 border-2 border-card/30 shadow-xl hover:shadow-2xl hover:shadow-lg mb-4 relative hover:z-[2] hover:scale-101 duration-400 hover:border-foreground/50',
+          // isolate: same stacking containment as the chat card above
+          'PostCard group/post-card rounded-xl cursor-pointer p-1 relative isolate flex flex-col transition-all bg-card/50 dark:bg-card/100 hover:bg-card/100 border-2 border-card/30 shadow-xl hover:shadow-2xl hover:shadow-lg mb-4 relative hover:z-[2] hover:scale-101 duration-400 hover:border-foreground/50',
           pinnedInView && 'ring-1 ring-inset ring-[hsl(45_60%_45%_/_0.45)]',
           classes[postType],
           {

@@ -972,7 +972,7 @@ export default function AuthLayoutRouter (props) {
 
         {/* Simple groups skip the mobile drawer pattern: their home dashboard already
             functions as the menu, so the sidebar renders inline (like desktop) on phone too. */}
-        <div ref={resizeRef} className={cn(classes.main, { [classes.mapView]: isMapView, [classes.withoutNav]: withoutNav || isTabNav, [classes.mainPad]: !withoutNav && !isTabNav && !isOneColumnNav })}>
+        <div ref={resizeRef} className={cn(classes.main, isTabNav && 'flex-1 min-h-0 !h-auto', { [classes.mapView]: isMapView, [classes.withoutNav]: withoutNav || isTabNav, [classes.mainPad]: !withoutNav && !isTabNav && !isOneColumnNav })}>
           {/* Mobile nav backdrop overlay - not shown on create-group so back chevron gets first tap */}
           {/* TODO: this is a hack for the create group route, which we may make a modal handle a different better way  */}
           {!withoutNav && !isTabNav && !isCreateGroupRoute && !isOneColumnNav && (

@@ -134,6 +134,7 @@ module.exports = bookshelf.Model.extend({
   /**
    * Move a view to a new position within its group's single ordered menu list.
    * No nesting — order is just an ascending integer per group, 0 = home.
+   * When the new first row is navigable, also rewrite groups.home_route.
    */
   reorder: async function ({ id, addToEnd, orderInFrontOfViewId, trx: existingTrx }) {
     const doWork = async (trx) => {
@@ -156,6 +157,12 @@ module.exports = bookshelf.Model.extend({
       }
 
       await GroupView.applyOrder(newOrderedIds, { groupId, trx })
+
+      const homeView = await GroupView.where({ id: newOrderedIds[0] }).fetch({ transacting: trx })
+      if (homeView && !GroupView.NON_NAVIGABLE_TYPES.includes(homeView.get('type'))) {
+        const homeRoute = GroupView.computeHomeRoutePath(homeView)
+        await bookshelf.knex('groups').where({ id: groupId }).update({ home_route: homeRoute }).transacting(trx)
+      }
 
       return GroupView.where({ id }).fetch({ transacting: trx })
     }

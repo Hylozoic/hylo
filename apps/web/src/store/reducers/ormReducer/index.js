@@ -1225,7 +1225,8 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         group,
         parentGroupId: meta.parentGroupId,
         targetGroupId: meta.targetGroupId,
-        reorderedItems: meta.reorderedItems
+        reorderedItems: meta.reorderedItems,
+        updateHomeRoute: meta.updateHomeRoute && String(meta.parentGroupId) === String(meta.targetGroupId)
       })
       break
     }
