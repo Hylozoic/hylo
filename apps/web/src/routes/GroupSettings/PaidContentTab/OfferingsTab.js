@@ -11,6 +11,7 @@
 import React, { useCallback, useEffect, useState, useMemo, useRef } from 'react'
 import { useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
+import { useLocation, useSearchParams } from 'react-router-dom'
 import { CreditCard, AlertCircle, PlusCircle, Edit, X, Link2, Users, ChevronDown, ChevronUp } from 'lucide-react'
 import CopyToClipboard from 'react-copy-to-clipboard'
 
@@ -140,7 +141,14 @@ const OFFERING_SUBSCRIBERS_QUERY = `
 function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
-  const [showCreateForm, setShowCreateForm] = useState(false)
+  const location = useLocation()
+  const [, setSearchParams] = useSearchParams()
+
+  const deepLinkParams = useMemo(() => new URLSearchParams(location.search), [location.search])
+  const shouldOpenCreateForm = deepLinkParams.get('create') === '1'
+  const requestedSpaceId = deepLinkParams.get('spaceId') || null
+
+  const [showCreateForm, setShowCreateForm] = useState(shouldOpenCreateForm)
   const [editingOffering, setEditingOffering] = useState(null)
   const editFormRef = useRef(null)
   const [formData, setFormData] = useState({
@@ -164,7 +172,79 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
   const [accessFilter, setAccessFilter] = useState('all')
   const [expandedOfferingId, setExpandedOfferingId] = useState(null)
   const [childSpaces, setChildSpaces] = useState([])
+  const [spacesLoaded, setSpacesLoaded] = useState(false)
   const descriptionEditorRef = useRef(null)
+
+  // Only honor spaceId when it belongs to this group's child spaces
+  const validatedSpaceId = useMemo(() => {
+    if (!requestedSpaceId || !spacesLoaded) return null
+    const match = childSpaces.find(space => String(space.id) === String(requestedSpaceId))
+    return match ? String(match.id) : null
+  }, [requestedSpaceId, childSpaces, spacesLoaded])
+
+  // Open create form whenever deep-link params ask for it
+  useEffect(() => {
+    if (shouldOpenCreateForm) {
+      setShowCreateForm(true)
+    }
+  }, [shouldOpenCreateForm])
+
+  // Drop a forged/invalid spaceId from the URL once spaces have loaded
+  useEffect(() => {
+    if (!spacesLoaded || !requestedSpaceId || validatedSpaceId) return
+    const next = new URLSearchParams(location.search)
+    next.delete('spaceId')
+    setSearchParams(next, { replace: true })
+  }, [spacesLoaded, requestedSpaceId, validatedSpaceId, location.search, setSearchParams])
+
+  /**
+   * Clears create deep-link params after opening so cancel/close doesn't reopen forever
+   */
+  const clearCreateDeepLink = useCallback(() => {
+    if (!shouldOpenCreateForm && !requestedSpaceId) return
+    const next = new URLSearchParams(location.search)
+    next.delete('create')
+    next.delete('spaceId')
+    setSearchParams(next, { replace: true })
+  }, [shouldOpenCreateForm, requestedSpaceId, location.search, setSearchParams])
+
+  /**
+   * Preselects the deep-linked space on the create form once validated against group spaces.
+   */
+  useEffect(() => {
+    if (!showCreateForm || !validatedSpaceId) return
+
+    const matchedSpace = childSpaces.find(space => String(space.id) === String(validatedSpaceId))
+    if (!matchedSpace) return
+
+    const spaceItem = { id: matchedSpace.id, name: matchedSpace.name }
+
+    setFormData(prev => {
+      const spaces = prev.lineItems.spaces || []
+      const existingIndex = spaces.findIndex(space => String(space.id) === String(validatedSpaceId))
+
+      if (existingIndex >= 0) {
+        if (spaces[existingIndex].name === matchedSpace.name) return prev
+        const nextSpaces = [...spaces]
+        nextSpaces[existingIndex] = spaceItem
+        return {
+          ...prev,
+          lineItems: {
+            ...prev.lineItems,
+            spaces: nextSpaces
+          }
+        }
+      }
+
+      return {
+        ...prev,
+        lineItems: {
+          ...prev.lineItems,
+          spaces: [...spaces, spaceItem]
+        }
+      }
+    })
+  }, [showCreateForm, validatedSpaceId, childSpaces])
 
   /**
    * Toggle subscriber view for an offering
@@ -177,16 +257,19 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
   // Load child spaces for content-access selection and display
   useEffect(() => {
     async function loadSpaces () {
-      if (!group?.id || !(showCreateForm || editingOffering || offerings?.length > 0)) return
+      if (!group?.id || !(showCreateForm || editingOffering || offerings?.length > 0 || requestedSpaceId)) return
       try {
         const response = await dispatch(fetchGroupSpaces(group.id))
         setChildSpaces(response?.payload?.data?.group?.spaces?.items || [])
       } catch (error) {
         console.error('Error fetching spaces:', error)
+        setChildSpaces([])
+      } finally {
+        setSpacesLoaded(true)
       }
     }
     loadSpaces()
-  }, [dispatch, group?.id, showCreateForm, editingOffering, offerings?.length])
+  }, [dispatch, group?.id, showCreateForm, editingOffering, offerings?.length, requestedSpaceId])
 
   // Scroll to edit form when it opens
   useEffect(() => {
@@ -273,6 +356,7 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
       }
 
       // Reset form and refresh offerings
+      clearCreateDeepLink()
       setFormData({ name: '', description: '', price: '', currency: 'usd', duration: '', publishStatus: 'unpublished', buyButtonText: '', slidingScaleEnabled: false, slidingScaleMinQuantity: '', slidingScaleMaxQuantity: '', lineItems: { ...EMPTY_LINE_ITEMS } })
       setShowCreateForm(false)
       onRefreshOfferings()
@@ -282,7 +366,7 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
     } finally {
       setCreating(false)
     }
-  }, [dispatch, group, accountId, formData, onRefreshOfferings, t])
+  }, [dispatch, group, accountId, formData, onRefreshOfferings, clearCreateDeepLink, t])
 
   const handleUpdateOffering = useCallback(async (e) => {
     e.preventDefault()
@@ -435,15 +519,17 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
   }, [group, childSpaces, t])
 
   const handleCancelEdit = useCallback(() => {
+    clearCreateDeepLink()
     setEditingOffering(null)
     setFormData({ name: '', description: '', price: '', currency: 'usd', duration: '', publishStatus: 'unpublished', buyButtonText: '', slidingScaleEnabled: false, slidingScaleMinQuantity: '', slidingScaleMaxQuantity: '', lineItems: { ...EMPTY_LINE_ITEMS } })
     setShowCreateForm(false)
-  }, [])
+  }, [clearCreateDeepLink])
 
   const handleDiscardForm = useCallback(() => {
+    clearCreateDeepLink()
     setShowCreateForm(false)
     setFormData({ name: '', description: '', price: '', currency: 'usd', duration: '', publishStatus: 'unpublished', buyButtonText: '', slidingScaleEnabled: false, slidingScaleMinQuantity: '', slidingScaleMaxQuantity: '', lineItems: { ...EMPTY_LINE_ITEMS } })
-  }, [])
+  }, [clearCreateDeepLink])
 
   return (
     <div className='flex flex-col gap-4 mt-4 pb-4'>

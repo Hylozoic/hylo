@@ -6,13 +6,15 @@
  * - ContentAccessRecordItem: Individual record display
  */
 
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
+import { useLocation, useSearchParams } from 'react-router-dom'
 import { List, UserPlus, User, MoreVertical, Ban, RefreshCcw } from 'lucide-react'
 
 import Loading from 'components/Loading'
 import ItemSelector from 'components/ItemSelector'
+import { Switch } from 'components/ui/switch'
 import SettingsSection from '../SettingsSection'
 import {
   DropdownMenu,
@@ -30,14 +32,17 @@ import {
 } from 'components/ui/dialog'
 
 import { fetchContentAccess, getContentAccessRecords } from './PaidContentTab.store'
-import fetchGroupTracks from 'store/actions/fetchGroupTracks'
+import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
+import fetchPeople from 'store/actions/fetchPeople'
 import fetchPeopleAutocomplete from 'store/actions/fetchPeopleAutocomplete'
 import grantContentAccess from 'store/actions/grantContentAccess'
 import revokeContentAccess from 'store/actions/revokeContentAccess'
 import refundContentAccess from 'store/actions/refundContentAccess'
-import getTracksForGroup from 'store/selectors/getTracksForGroup'
 import useDebounce from 'hooks/useDebounce'
 import { formatLocalizedDate } from 'util/dateFormat'
+
+/** Max members loaded for the grant-access default picker list */
+const GROUP_MEMBERS_PAGE_SIZE = 100
 
 /**
  * Content Access Tab Component
@@ -47,7 +52,8 @@ import { formatLocalizedDate } from 'util/dateFormat'
 function ContentAccessTab ({ group, offerings = [] }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
-  const tracks = useSelector(state => getTracksForGroup(state, { groupId: group?.id }))
+  const location = useLocation()
+  const [, setSearchParams] = useSearchParams()
   const contentAccessData = useSelector(getContentAccessRecords)
   const groupRoles = group?.groupRoles?.items || []
 
@@ -57,15 +63,55 @@ function ContentAccessTab ({ group, offerings = [] }) {
     displayName: `${role.emoji || ''} ${role.name}`.trim()
   })), [groupRoles])
 
+  // Prefer location.search so deep-links work reliably under nested settings routes
+  const deepLinkParams = useMemo(() => new URLSearchParams(location.search), [location.search])
+  const shouldOpenGrantForm = deepLinkParams.get('grant') === '1'
+  const requestedSpaceId = deepLinkParams.get('spaceId') || null
+
   const [search, setSearch] = useState('')
   const [accessTypeFilter, setAccessTypeFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
   const [offeringFilter, setOfferingFilter] = useState('all')
-  const [trackFilter, setTrackFilter] = useState('all')
+  const [spaceFilter, setSpaceFilter] = useState('all')
   const [roleFilter, setRoleFilter] = useState('all')
   const [offset, setOffset] = useState(0)
   const [loading, setLoading] = useState(false)
-  const [showGrantForm, setShowGrantForm] = useState(false)
+  const [showGrantForm, setShowGrantForm] = useState(shouldOpenGrantForm)
+  const [spaces, setSpaces] = useState([])
+  const [spacesLoaded, setSpacesLoaded] = useState(false)
+
+  // Only honor spaceId when it belongs to this group's child spaces
+  const validatedGrantSpaceId = useMemo(() => {
+    if (!requestedSpaceId || !spacesLoaded) return null
+    const match = spaces.find(space => String(space.id) === String(requestedSpaceId))
+    return match ? String(match.id) : null
+  }, [requestedSpaceId, spaces, spacesLoaded])
+
+  // Open grant form whenever deep-link params ask for it
+  useEffect(() => {
+    if (shouldOpenGrantForm) {
+      setShowGrantForm(true)
+    }
+  }, [shouldOpenGrantForm])
+
+  // Drop a forged/invalid spaceId from the URL once spaces have loaded
+  useEffect(() => {
+    if (!spacesLoaded || !requestedSpaceId || validatedGrantSpaceId) return
+    const next = new URLSearchParams(location.search)
+    next.delete('spaceId')
+    setSearchParams(next, { replace: true })
+  }, [spacesLoaded, requestedSpaceId, validatedGrantSpaceId, location.search, setSearchParams])
+
+  /**
+   * Clears grant deep-link params after opening so cancel/toggle doesn't reopen forever
+   */
+  const clearGrantDeepLink = useCallback(() => {
+    if (!shouldOpenGrantForm && !requestedSpaceId) return
+    const next = new URLSearchParams(location.search)
+    next.delete('grant')
+    next.delete('spaceId')
+    setSearchParams(next, { replace: true })
+  }, [shouldOpenGrantForm, requestedSpaceId, location.search, setSearchParams])
 
   const debouncedSearch = useDebounce(search, 500)
 
@@ -83,7 +129,7 @@ function ContentAccessTab ({ group, offerings = [] }) {
       accessType: accessTypeFilter !== 'all' ? accessTypeFilter : null,
       status: statusFilter !== 'all' ? statusFilter : null,
       offeringId: offeringFilter !== 'all' ? offeringFilter : null,
-      trackId: trackFilter !== 'all' ? trackFilter : null,
+      groupId: spaceFilter !== 'all' ? spaceFilter : null,
       groupRoleId: roleFilter !== 'all' ? roleFilter : null,
       first: 20,
       offset,
@@ -93,24 +139,45 @@ function ContentAccessTab ({ group, offerings = [] }) {
 
     dispatch(fetchContentAccess(params))
       .finally(() => setLoading(false))
-  }, [dispatch, group?.id, debouncedSearch, accessTypeFilter, statusFilter, offeringFilter, trackFilter, roleFilter, offset])
+  }, [dispatch, group?.id, debouncedSearch, accessTypeFilter, statusFilter, offeringFilter, spaceFilter, roleFilter, offset])
 
   // Initial load on mount
   useEffect(() => {
     fetchContentAccessRecords()
   }, [fetchContentAccessRecords])
 
-  // Fetch tracks when needed
+  // Fetch child spaces for filters and grant form
   useEffect(() => {
-    if (group?.id) {
-      dispatch(fetchGroupTracks(group.id, { published: true }))
+    if (!group?.id) return
+
+    let cancelled = false
+
+    const loadSpaces = async () => {
+      try {
+        const response = await dispatch(fetchGroupSpaces(group.id))
+        if (cancelled) return
+        setSpaces(response?.payload?.data?.group?.spaces?.items || [])
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Error fetching spaces:', error)
+          setSpaces([])
+        }
+      } finally {
+        if (!cancelled) setSpacesLoaded(true)
+      }
+    }
+
+    loadSpaces()
+
+    return () => {
+      cancelled = true
     }
   }, [dispatch, group?.id])
 
   // Reset offset when filters change
   useEffect(() => {
     setOffset(0)
-  }, [debouncedSearch, accessTypeFilter, statusFilter, offeringFilter, trackFilter, roleFilter])
+  }, [debouncedSearch, accessTypeFilter, statusFilter, offeringFilter, spaceFilter, roleFilter])
 
   const handleLoadMore = () => {
     if (!loading && hasMore) {
@@ -128,7 +195,14 @@ function ContentAccessTab ({ group, offerings = [] }) {
               {showGrantForm ? t('Grant Access') : t('Content Access Records')}
             </h3>
             <button
-              onClick={() => setShowGrantForm(!showGrantForm)}
+              onClick={() => {
+                if (showGrantForm) {
+                  clearGrantDeepLink()
+                  setShowGrantForm(false)
+                } else {
+                  setShowGrantForm(true)
+                }
+              }}
               className='flex items-center gap-2 px-3 py-1.5 rounded-md bg-accent text-white text-sm hover:opacity-90 transition-opacity'
             >
               {showGrantForm
@@ -158,12 +232,17 @@ function ContentAccessTab ({ group, offerings = [] }) {
             <GrantAccessForm
               group={group}
               offerings={offerings}
-              tracks={tracks}
+              spaces={spaces}
+              initialSpaceId={validatedGrantSpaceId}
               onSuccess={() => {
+                clearGrantDeepLink()
                 setShowGrantForm(false)
                 fetchContentAccessRecords()
               }}
-              onCancel={() => setShowGrantForm(false)}
+              onCancel={() => {
+                clearGrantDeepLink()
+                setShowGrantForm(false)
+              }}
             />
             )
           : (
@@ -242,20 +321,20 @@ function ContentAccessTab ({ group, offerings = [] }) {
                     </select>
                   </div>
 
-                  {/* Track Filter */}
+                  {/* Space Filter */}
                   <div>
                     <label className='block text-sm font-medium text-foreground mb-2'>
-                      {t('Track')}
+                      {t('Space')}
                     </label>
                     <select
                       className='w-full px-3 py-2 bg-input border border-foreground/20 rounded-md text-foreground focus:border-focus focus:outline-none'
-                      value={trackFilter}
-                      onChange={(e) => setTrackFilter(e.target.value)}
+                      value={spaceFilter}
+                      onChange={(e) => setSpaceFilter(e.target.value)}
                     >
-                      <option value='all'>{t('All Tracks')}</option>
-                      {tracks?.map(track => (
-                        <option key={track.id} value={track.id}>
-                          {track.space?.name}
+                      <option value='all'>{t('All Spaces')}</option>
+                      {spaces?.map(space => (
+                        <option key={space.id} value={space.id}>
+                          {space.name}
                         </option>
                       ))}
                     </select>
@@ -300,6 +379,7 @@ function ContentAccessTab ({ group, offerings = [] }) {
                     <ContentAccessRecordItem
                       key={record.id}
                       record={record}
+                      parentGroupId={group?.id}
                       t={t}
                       onActionComplete={fetchContentAccessRecords}
                     />
@@ -331,11 +411,13 @@ function ContentAccessTab ({ group, offerings = [] }) {
  *
  * Displays a single content access record with action menu
  */
-function ContentAccessRecordItem ({ record, t, onActionComplete }) {
+function ContentAccessRecordItem ({ record, parentGroupId, t, onActionComplete }) {
   const dispatch = useDispatch()
-  const { id, user, offering, track, groupRole, accessType, status, createdAt, expiresAt, grantedBy, subscriptionCancelAtPeriodEnd, subscriptionPeriodEnd } = record
+  const { id, user, offering, track, group: accessGroup, groupRole, accessType, status, createdAt, expiresAt, grantedBy, subscriptionCancelAtPeriodEnd, subscriptionPeriodEnd } = record
 
   const role = groupRole
+  const isParentGroupAccess = accessGroup?.id && parentGroupId && String(accessGroup.id) === String(parentGroupId)
+  const spaceOrGroupLabel = accessGroup?.name || null
 
   const [showRevokeDialog, setShowRevokeDialog] = useState(false)
   const [showRefundDialog, setShowRefundDialog] = useState(false)
@@ -414,7 +496,18 @@ function ContentAccessRecordItem ({ record, t, onActionComplete }) {
               <div className='font-medium text-foreground break-words [overflow-wrap:anywhere]'>{user?.name}</div>
               <div className='text-sm text-foreground/70 break-words [overflow-wrap:anywhere]'>
                 {offering && <span>{offering.name}</span>}
-                {track && <span> • {track.space?.name}</span>}
+                {spaceOrGroupLabel && (
+                  <span>
+                    {offering ? ' • ' : ''}
+                    {isParentGroupAccess ? t('Group') : t('Space')}: {spaceOrGroupLabel}
+                  </span>
+                )}
+                {!accessGroup && track?.space?.name && (
+                  <span>
+                    {(offering || spaceOrGroupLabel) ? ' • ' : ''}
+                    {track.space.name}
+                  </span>
+                )}
                 {role && <span> • {role.emoji} {role.name}</span>}
               </div>
             </div>
@@ -541,15 +634,66 @@ function ContentAccessRecordItem ({ record, t, onActionComplete }) {
  *
  * Form for admins to grant access to users
  */
-function GrantAccessForm ({ group, offerings, tracks, onSuccess, onCancel }) {
+function GrantAccessForm ({ group, offerings, spaces, initialSpaceId, onSuccess, onCancel }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const [selectedUser, setSelectedUser] = useState(null)
-  const [accessType, setAccessType] = useState('') // 'offering', 'group', or 'track'
+  const [grantToAllMembers, setGrantToAllMembers] = useState(false)
+  const [accessType, setAccessType] = useState('') // 'offering', 'group', or 'space'
   const [selectedOfferingId, setSelectedOfferingId] = useState('')
-  const [selectedTrackId, setSelectedTrackId] = useState('')
+  const [selectedSpaceId, setSelectedSpaceId] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
+  const [groupMembers, setGroupMembers] = useState([])
+  const [loadingMembers, setLoadingMembers] = useState(false)
+
+  // Apply deep-linked space only after it has been validated as a child of this group
+  useEffect(() => {
+    if (!initialSpaceId) return
+    const belongsToGroup = (spaces || []).some(space => String(space.id) === String(initialSpaceId))
+    if (!belongsToGroup) return
+    setAccessType('space')
+    setSelectedSpaceId(String(initialSpaceId))
+  }, [initialSpaceId, spaces])
+
+  const spaceOptions = spaces || []
+
+  /**
+   * Loads current group members for the empty/focused user picker list.
+   * Typed search still uses platform-wide autocomplete (not scoped to membership).
+   */
+  useEffect(() => {
+    if (!group?.id) return
+
+    let cancelled = false
+
+    const loadGroupMembers = async () => {
+      setLoadingMembers(true)
+      try {
+        const response = await dispatch(fetchPeople({
+          autocomplete: '',
+          groupIds: [group.id],
+          first: GROUP_MEMBERS_PAGE_SIZE
+        }))
+        if (cancelled) return
+        const members = response?.payload?.data?.groups?.items?.[0]?.members?.items || []
+        setGroupMembers(members)
+      } catch (err) {
+        if (!cancelled) {
+          console.error('Failed to load group members for grant access:', err)
+          setGroupMembers([])
+        }
+      } finally {
+        if (!cancelled) setLoadingMembers(false)
+      }
+    }
+
+    loadGroupMembers()
+
+    return () => {
+      cancelled = true
+    }
+  }, [dispatch, group?.id])
 
   /**
    * Handles user selection from ItemSelector
@@ -560,22 +704,35 @@ function GrantAccessForm ({ group, offerings, tracks, onSuccess, onCancel }) {
   }, [])
 
   /**
+   * Toggles mass-grant mode and clears any selected user when enabling it
+   */
+  const handleGrantToAllMembersChange = useCallback((checked) => {
+    setGrantToAllMembers(checked)
+    if (checked) {
+      setSelectedUser(null)
+    }
+    setError(null)
+  }, [])
+
+  /**
    * Checks if the form is valid for submission
    */
   const isFormValid = useCallback(() => {
-    if (!selectedUser) return false
+    if (!grantToAllMembers && !selectedUser) return false
     if (!accessType) return false
     if (accessType === 'offering' && !selectedOfferingId) return false
-    if (accessType === 'track' && !selectedTrackId) return false
+    if (accessType === 'space' && !selectedSpaceId) return false
     return true
-  }, [selectedUser, accessType, selectedOfferingId, selectedTrackId])
+  }, [grantToAllMembers, selectedUser, accessType, selectedOfferingId, selectedSpaceId])
 
   /**
    * Handles form submission
    */
   const handleSubmit = useCallback(async () => {
     if (!isFormValid()) {
-      setError(t('Please select a user and an access type'))
+      setError(grantToAllMembers
+        ? t('Please select an access type')
+        : t('Please select a user and an access type'))
       return
     }
 
@@ -583,13 +740,16 @@ function GrantAccessForm ({ group, offerings, tracks, onSuccess, onCancel }) {
     setError(null)
 
     try {
+      // Spaces are child groups: grant via groupId = space.id (same as offerings accessGrants.groupIds).
       const params = {
-        userId: selectedUser.id,
+        userId: grantToAllMembers ? null : selectedUser.id,
         grantedByGroupId: group.id,
-        groupId: accessType === 'group' ? group.id : null,
+        groupId: accessType === 'group'
+          ? group.id
+          : (accessType === 'space' ? selectedSpaceId : null),
         productId: accessType === 'offering' ? selectedOfferingId : null,
-        trackId: accessType === 'track' ? selectedTrackId : null,
-        reason: 'Admin grant via settings'
+        reason: grantToAllMembers ? 'Admin grant to all group members via settings' : 'Admin grant via settings',
+        grantToAllMembers
       }
 
       const result = await dispatch(grantContentAccess(params))
@@ -605,7 +765,7 @@ function GrantAccessForm ({ group, offerings, tracks, onSuccess, onCancel }) {
     } finally {
       setSubmitting(false)
     }
-  }, [dispatch, isFormValid, selectedUser, accessType, selectedOfferingId, selectedTrackId, group, onSuccess, t])
+  }, [dispatch, isFormValid, grantToAllMembers, selectedUser, accessType, selectedOfferingId, selectedSpaceId, group, onSuccess, t])
 
   return (
     <div className='bg-card p-4 rounded-md shadow-md'>
@@ -622,10 +782,23 @@ function GrantAccessForm ({ group, offerings, tracks, onSuccess, onCancel }) {
         <ItemSelector
           selectedItem={selectedUser}
           onSelect={handleUserSelect}
+          defaultItems={groupMembers}
           fetchItems={fetchPeopleAutocomplete}
+          loading={loadingMembers}
+          disabled={grantToAllMembers}
           searchPlaceholder={t('Search for a user...')}
           emptyMessage={t('No users found')}
         />
+        <div className='flex items-center gap-3 mt-3'>
+          <Switch
+            checked={grantToAllMembers}
+            onCheckedChange={handleGrantToAllMembersChange}
+            aria-label={t('Or, grant access to all current group members')}
+          />
+          <span className='text-sm text-foreground'>
+            {t('Or, grant access to all current group members')}
+          </span>
+        </div>
       </div>
 
       {/* Access Type Selection */}
@@ -638,7 +811,7 @@ function GrantAccessForm ({ group, offerings, tracks, onSuccess, onCancel }) {
             type='button'
             onClick={() => {
               setAccessType('offering')
-              setSelectedTrackId('')
+              setSelectedSpaceId('')
             }}
             className={`px-4 py-2 rounded-md border transition-colors ${
               accessType === 'offering'
@@ -653,7 +826,7 @@ function GrantAccessForm ({ group, offerings, tracks, onSuccess, onCancel }) {
             onClick={() => {
               setAccessType('group')
               setSelectedOfferingId('')
-              setSelectedTrackId('')
+              setSelectedSpaceId('')
             }}
             className={`px-4 py-2 rounded-md border transition-colors ${
               accessType === 'group'
@@ -666,21 +839,21 @@ function GrantAccessForm ({ group, offerings, tracks, onSuccess, onCancel }) {
           <button
             type='button'
             onClick={() => {
-              setAccessType('track')
+              setAccessType('space')
               setSelectedOfferingId('')
             }}
             className={`px-4 py-2 rounded-md border transition-colors ${
-              accessType === 'track'
+              accessType === 'space'
                 ? 'bg-accent text-white border-accent'
                 : 'border-foreground/20 text-foreground hover:border-foreground/40'
             }`}
           >
-            {t('Track')}
+            {t('Space')}
           </button>
         </div>
       </div>
 
-      {/* Offering Selector - TODO: Implement in 8d */}
+      {/* Offering Selector */}
       {accessType === 'offering' && (
         <div className='mb-4'>
           <label className='block text-sm font-medium text-foreground mb-2'>
@@ -705,29 +878,36 @@ function GrantAccessForm ({ group, offerings, tracks, onSuccess, onCancel }) {
       {accessType === 'group' && (
         <div className='mb-4 p-3 bg-accent/10 rounded-md'>
           <p className='text-sm text-foreground'>
-            {t('Granting group access will add the selected user as a member of this group.')}
+            {grantToAllMembers
+              ? t('Granting group access to all members will ensure each member has an active access record for this group.')
+              : t('Granting group access will add the selected user as a member of this group.')}
           </p>
         </div>
       )}
 
-      {/* Track Selector - TODO: Implement in 8e */}
-      {accessType === 'track' && (
+      {/* Space Selector */}
+      {accessType === 'space' && (
         <div className='mb-4'>
           <label className='block text-sm font-medium text-foreground mb-2'>
-            {t('Select Track')}
+            {t('Select Space')}
           </label>
           <select
-            value={selectedTrackId}
-            onChange={(e) => setSelectedTrackId(e.target.value)}
+            value={selectedSpaceId}
+            onChange={(e) => setSelectedSpaceId(e.target.value)}
             className='w-full px-3 py-2 bg-input border border-foreground/20 rounded-md text-foreground focus:border-focus focus:outline-none'
           >
-            <option value=''>{t('Choose a track...')}</option>
-            {tracks?.map(track => (
-              <option key={track.id} value={track.id}>
-                {track.space?.name} {track.accessControlled && `(${t('Access Controlled')})`}
+            <option value=''>{t('Choose a space...')}</option>
+            {spaceOptions.map(space => (
+              <option key={space.id} value={String(space.id)}>
+                {space.name}{space.paywall ? ` (${t('Paid')})` : ''}
               </option>
             ))}
           </select>
+          {spaceOptions.length === 0 && (
+            <p className='mt-2 text-sm text-foreground/60'>
+              {t('No spaces found in this group')}
+            </p>
+          )}
         </div>
       )}
 
@@ -752,7 +932,11 @@ function GrantAccessForm ({ group, offerings, tracks, onSuccess, onCancel }) {
           disabled={!isFormValid() || submitting}
           className='px-4 py-2 rounded-md bg-accent text-white hover:opacity-90 transition-opacity disabled:opacity-50'
         >
-          {submitting ? t('Granting...') : t('Grant Access')}
+          {submitting
+            ? t('Granting...')
+            : grantToAllMembers
+              ? t('Grant Access to All Members')
+              : t('Grant Access')}
         </button>
       </div>
     </div>

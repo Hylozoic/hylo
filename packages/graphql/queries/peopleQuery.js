@@ -15,6 +15,13 @@ export default gql`
             id
             name
             avatarUrl
+            memberships {
+              id
+              group {
+                id
+                name
+              }
+            }
           }
         }
       }

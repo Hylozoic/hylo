@@ -320,6 +320,7 @@ export const filterAndSortContentAccess = curry((opts, q) => {
     status,
     offeringId,
     trackId,
+    groupId,
     groupRoleId,
     sortBy = 'created_at',
     order
@@ -351,9 +352,14 @@ export const filterAndSortContentAccess = curry((opts, q) => {
     q.where('content_access.product_id', offeringId)
   }
 
-  // Filter by track ID
+  // Filter by track ID (legacy)
   if (trackId) {
     q.where('content_access.track_id', trackId)
+  }
+
+  // Filter by target group/space ID
+  if (groupId) {
+    q.where('content_access.group_id', groupId)
   }
 
   // Filter by group role ID

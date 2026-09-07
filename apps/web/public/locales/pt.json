@@ -3037,5 +3037,16 @@
   "widget-public-groups": "Grupos Públicos",
   "widget-public-map": "Mapa Público",
   "widget-public-events": "Eventos públicos",
-  "Chat with {{groupName}}": "Converse com {{groupName}}"
+  "Chat with {{groupName}}": "Converse com {{groupName}}",
+  "Or, grant access to all current group members": "Ou conceda acesso a todos os membros atuais do grupo",
+  "Grant Access to All Members": "Conceder acesso a todos os membros",
+  "Granting group access to all members will ensure each member has an active access record for this group.": "Conceder acesso ao grupo a todos os membros garante que cada membro tenha um registro de acesso ativo para este grupo.",
+  "Please select an access type": "Por favor selecione um tipo de acesso",
+  "All Spaces": "Todos os espaços",
+  "Select Space": "Selecionar espaço",
+  "Choose a space...": "Escolha um espaço...",
+  "No spaces found in this group": "Nenhum espaço encontrado neste grupo",
+  "Offerings that include this space": "Ofertas que incluem este espaço",
+  "If there are no offerings that allow access to this space, members won't be able to join.": "Se não houver ofertas que permitam acesso a este espaço, os membros não poderão entrar.",
+  "Selected space": "Espaço selecionado"
 }

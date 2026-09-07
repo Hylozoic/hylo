@@ -2,7 +2,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
-import { Hand, ImagePlus, LayoutGrid, MapPin, Trash2 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { CreditCard, Hand, ImagePlus, LayoutGrid, MapPin, Trash2, UserPlus } from 'lucide-react'
 
 import { AdvancedPill, AdvancedSection } from 'components/AdvancedSettings/AdvancedSettings'
 import Button from 'components/ui/button'
@@ -17,6 +18,7 @@ import SwitchStyled from 'components/SwitchStyled'
 import TagInput from 'components/TagInput'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import { updateFundingRound, fetchFundingRound } from 'routes/FundingRounds/FundingRounds.store'
+import { fetchOfferings } from 'routes/GroupSettings/PaidContentTab/PaidContentTab.store'
 import { groupUrl, localSpaceSlug } from '@hylo/navigation'
 import { createGroupView, convertSpaceToChildGroup, updateGroupView, updateSpace } from 'store/actions/groupViews'
 import { updateTrack, fetchTrack } from 'store/actions/trackActions'
@@ -28,6 +30,7 @@ import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getTrack from 'store/selectors/getTrack'
 import { groupRolesForPicker } from '@hylo/hooks/groupRoleHelpers'
 import { DEFAULT_BANNER } from 'store/models/Group'
+import { offeringGrantsGroupAccess } from 'util/accessGrants'
 import { cn } from 'util/index'
 
 import FundingRoundSettingsFields from './FundingRoundSettingsFields'
@@ -52,6 +55,115 @@ function hasFundingRoundSettings (round) {
 function roleItems (g) {
   if (!g) return []
   return g.groupRoles?.items || g.ref?.groupRoles?.items || []
+}
+
+/**
+ * Paid-access helper UI under Space Settings Access: listings of offerings that
+ * grant this space, plus links to create an offering or grant access manually.
+ */
+function PaidSpaceAccessSection ({ parentGroup, spaceId }) {
+  const { t } = useTranslation()
+  const dispatch = useDispatch()
+  const navigate = useNavigate()
+  const [loading, setLoading] = useState(false)
+  const [spaceOfferings, setSpaceOfferings] = useState([])
+
+  useEffect(() => {
+    if (!parentGroup?.id || !parentGroup?.stripeAccountId || !spaceId) {
+      setSpaceOfferings([])
+      return
+    }
+
+    let cancelled = false
+
+    const loadOfferings = async () => {
+      setLoading(true)
+      try {
+        const result = await dispatch(fetchOfferings(parentGroup.id, parentGroup.stripeAccountId))
+        if (cancelled) return
+        const offerings = result?.payload?.data?.stripeOfferings?.offerings || []
+        setSpaceOfferings(
+          offerings.filter(offering =>
+            offering.publishStatus !== 'archived' &&
+            offeringGrantsGroupAccess(offering, spaceId)
+          )
+        )
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Error loading offerings for space:', error)
+          setSpaceOfferings([])
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    loadOfferings()
+
+    return () => {
+      cancelled = true
+    }
+  }, [dispatch, parentGroup?.id, parentGroup?.stripeAccountId, spaceId])
+
+  const handleCreateOffering = useCallback(() => {
+    if (!parentGroup?.slug || !spaceId) return
+    navigate({
+      pathname: groupUrl(parentGroup.slug, 'settings/paid-content/offerings'),
+      search: `create=1&spaceId=${encodeURIComponent(spaceId)}`
+    })
+  }, [navigate, parentGroup?.slug, spaceId])
+
+  const handleGrantAccess = useCallback(() => {
+    if (!parentGroup?.slug || !spaceId) return
+    navigate({
+      pathname: groupUrl(parentGroup.slug, 'settings/paid-content/content-access'),
+      search: `grant=1&spaceId=${encodeURIComponent(spaceId)}`
+    })
+  }, [navigate, parentGroup?.slug, spaceId])
+
+  return (
+    <div className='ml-0 sm:ml-1 mt-1 p-3 rounded-md border border-foreground/15 bg-foreground/5 flex flex-col gap-3'>
+      <div>
+        <div className='text-sm font-medium text-foreground mb-1'>{t('Offerings that include this space')}</div>
+        {loading && (
+          <p className='text-sm text-foreground/60'>{t('Loading...')}</p>
+        )}
+        {!loading && spaceOfferings.length > 0 && (
+          <ul className='flex flex-col gap-1.5'>
+            {spaceOfferings.map(offering => (
+              <li
+                key={offering.id}
+                className='text-sm text-foreground flex items-center justify-between gap-2'
+              >
+                <span className='truncate'>{offering.name}</span>
+                {offering.publishStatus && offering.publishStatus !== 'published' && (
+                  <span className='shrink-0 text-xs text-foreground/50 capitalize'>
+                    {offering.publishStatus}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+        {!loading && spaceOfferings.length === 0 && (
+          <p className='text-sm text-amber-700 dark:text-amber-400'>
+            {t("If there are no offerings that allow access to this space, members won't be able to join.")}
+          </p>
+        )}
+      </div>
+
+      <div className='flex flex-wrap gap-2'>
+        <Button type='button' variant='secondary' onClick={handleCreateOffering}>
+          <CreditCard className='w-4 h-4 mr-1.5' />
+          {t('Create Offering')}
+        </Button>
+        <Button type='button' variant='outline' onClick={handleGrantAccess}>
+          <UserPlus className='w-4 h-4 mr-1.5' />
+          {t('Grant Access')}
+        </Button>
+      </div>
+    </div>
+  )
 }
 
 /** Modal for editing an existing space's settings — same fields as AddSpaceDialog's creation form,
@@ -575,6 +687,9 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
                 onBlur={() => setRoleSearchTerm(null)}
               />
             </div>
+          )}
+          {access === 'paid' && space?.id && (
+            <PaidSpaceAccessSection parentGroup={parentGroup} spaceId={space.id} />
           )}
         </div>
 
