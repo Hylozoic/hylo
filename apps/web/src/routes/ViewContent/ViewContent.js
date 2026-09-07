@@ -277,6 +277,12 @@ export default function ViewContent (props) {
     const parsed = DateTimeHelpers.toDateTime(dateParam, { locale: getLocaleFromLocalStorage() })
     return parsed.isValid ? parsed.toJSDate() : new Date()
   }, [querystringParams.calendarDate])
+  // Calendar fetches the visible month window; day/week nav within a month must not
+  // rebuild fetch params or drop/refetch (that unmounted the whole calendar).
+  const calendarFetchMonthKey = useMemo(() => {
+    if (!isCalendarViewMode) return null
+    return DateTimeHelpers.toDateTime(calendarDate, { locale: getLocaleFromLocalStorage() }).toFormat('yyyy-MM')
+  }, [isCalendarViewMode, calendarDate])
   const eventCalendarUrl = useMemo(() => group?.eventCalendarUrl || '', [group])
   const rsvpCalendarUrl = useMemo(() => currentUser?.rsvpCalendarUrl || '', [currentUser])
 
@@ -361,7 +367,7 @@ export default function ViewContent (props) {
       }
     }
     return params
-  }, [activePostsOnly, calendarDate, isCalendarViewMode, childPostInclusion, context, streamViewConfig, group?.id, groupSlug, postTypeFilter, search, showChatActivity, sortBy, timeframe, topic?.id, topicName, view])
+  }, [activePostsOnly, calendarFetchMonthKey, isCalendarViewMode, childPostInclusion, context, streamViewConfig, group?.id, groupSlug, postTypeFilter, search, showChatActivity, sortBy, timeframe, topic?.id, topicName, view])
 
   let name = presentedGroupView
     ? displayNameForView(presentedGroupView, t)
@@ -645,9 +651,12 @@ export default function ViewContent (props) {
 
   const showEmptyStream = !pending && !topicBlockingStreams && !customViewLoading && streamPosts.length === 0
 
-  const calendarInitialLoading = (pending || topicBlockingStreams || customViewLoading) && isCalendarViewMode && posts.length === 0
-  const calendarFetchingMore = pending && isCalendarViewMode && posts.length > 0
-  const showCalendar = !customViewLoading && !topicBlockingStreams && isCalendarViewMode && (posts.length > 0 || !pending)
+  // Keep Calendar mounted across date/month fetches. Pending belongs in an overlay,
+  // not a gate that unmounts the whole view when posts briefly go empty.
+  const calendarBlocked = topicBlockingStreams || customViewLoading
+  const showCalendar = !calendarBlocked && isCalendarViewMode
+  const calendarFetching = pending && showCalendar
+  const calendarInitialLoading = calendarBlocked && isCalendarViewMode
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
@@ -753,7 +762,7 @@ export default function ViewContent (props) {
                   className='px-1 pb-1'
                 />
               )}
-              {calendarFetchingMore && (
+              {calendarFetching && (
                 <div
                   aria-live='polite'
                   className='sticky top-2 z-20 flex justify-end pointer-events-none h-0 overflow-visible'
