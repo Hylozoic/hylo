@@ -52,41 +52,63 @@ export default function CardImageAttachments ({
   if (isEmpty(imageAttachments)) return null
   if (!firstImageUrl) return null
 
+  const isSingleChatImage = forChatPost && imageAttachments.length === 1
+  const singleChatImage = isSingleChatImage ? imageAttachments[0] : null
+
   return (
     <>
       <div
         className={cn(
           className,
           'relative [&_img]:cursor-pointer',
-          forChatPost && 'flex overflow-x-auto overflow-y-hidden h-[200px] ml-[42px] mt-3 mb-3',
+          forChatPost && 'flex overflow-x-auto overflow-y-hidden ml-[42px] mt-3 mb-3',
+          // Multi-image row stays a fixed 200px strip; a single image only needs
+          // the max-height so wide photos can shrink height when width-capped.
+          forChatPost && (isSingleChatImage ? 'max-h-[200px]' : 'h-[200px]'),
           isFlagged && !forChatPost && 'overflow-hidden',
           isFlagged && '[&_img]:blur-[30px]'
         )}
       >
         {forChatPost
           ? (
-            <div className='flex flex-row gap-2'>
-              {/* Chat tiles are background-image divs, not <img>, so the
-                  [&_img] blur above can't reach them — blur inside a clipping
-                  wrapper instead (scale hides the blur's transparent edges) */}
-              {imageAttachments.map((image, index) => {
-                const tileSrc = image.thumbnailUrl || image.url
-                return (
-                  <div key={image.id || image.url} className='relative w-[150px] h-[200px] rounded-md overflow-hidden border border-foreground/10 shrink-0'>
-                    <div
-                      data-index={index}
+            <div className='flex flex-row gap-2 max-w-full'>
+              {isSingleChatImage
+                ? (
+                  // Single image: keep the 200px height cap but let width follow
+                  // aspect ratio up to the chat stream / viewport bound.
+                    <img
+                      data-index={0}
+                      src={singleChatImage.url}
+                      alt='Attached image 1'
+                      loading='lazy'
                       className={cn(
-                        'absolute inset-0 cursor-pointer bg-cover bg-center hover:brightness-110',
-                        isFlagged && 'blur-[30px] scale-110'
+                        'block h-auto max-h-[200px] w-auto max-w-[min(calc(var(--chat-stream-width,750px)-50px),calc(100vw-2.5rem))] object-contain rounded-md border border-foreground/10 cursor-pointer hover:brightness-110',
+                        isFlagged && 'blur-[30px]'
                       )}
-                      style={bgImageStyle(tileSrc)}
-                      role='img'
-                      aria-label={image.url}
                       onClick={openLightbox}
                     />
-                  </div>
-                )
-              })}
+                  )
+                : (
+                  // Multiple images: fixed 150×200 cover tiles in a horizontal row
+                    imageAttachments.map((image, index) => {
+                      const tileSrc = image.thumbnailUrl || image.url
+                      return (
+                        <div key={image.id || image.url} className='relative w-[150px] h-[200px] rounded-md overflow-hidden border border-foreground/10 shrink-0'>
+                          <div
+                            data-index={index}
+                            className={cn(
+                              'absolute inset-0 cursor-pointer bg-cover bg-center hover:brightness-110',
+                              isFlagged && 'blur-[30px] scale-110'
+                            )}
+                            style={bgImageStyle(tileSrc)}
+                            role='img'
+                            aria-label={image.url}
+                            onClick={openLightbox}
+                          />
+                        </div>
+                      )
+                    })
+                  )}
             </div>
             )
           : (

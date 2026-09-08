@@ -107,4 +107,18 @@ describe('CardImageAttachments', () => {
     expect(screen.getByLabelText('full-a')).toHaveStyle({ backgroundImage: 'url(thumb-a)' })
     expect(screen.getByLabelText('full-b')).toHaveStyle({ backgroundImage: 'url(full-b)' })
   })
+
+  it('renders a single chat image with a fluid width cap', () => {
+    render(<CardImageAttachments
+      forChatPost
+      attachments={[
+        { url: 'solo', thumbnailUrl: 'solo-thumb', type: 'image' }
+      ]}
+           />)
+
+    const image = screen.getByAltText('Attached image 1')
+    expect(image).toHaveAttribute('src', 'solo')
+    expect(image.className).toMatch(/max-h-\[200px]/)
+    expect(image.className).toMatch(/max-w-\[min\(/)
+  })
 })
