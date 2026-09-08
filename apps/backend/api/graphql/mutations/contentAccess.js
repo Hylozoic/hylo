@@ -12,7 +12,7 @@ import { GraphQLError } from 'graphql'
 const StripeService = require('../../services/StripeService')
 const { normalizeLocaleToFull } = require('../../../lib/localeHelpers')
 
-/* global ContentAccess, GroupMembership, User, Group, Responsibility, Track, StripeProduct, GroupRole, Frontend, StripeAccount */
+/* global ContentAccess, GroupMembership, User, Group, Responsibility, StripeProduct, GroupRole, Frontend, StripeAccount, Queue */
 
 function formatCurrencyFromMinorUnits (amountMinor, currencyCode) {
   try {
@@ -25,6 +25,167 @@ function formatCurrencyFromMinorUnits (amountMinor, currencyCode) {
   }
 }
 
+/**
+ * Resolves shared display/context data used in admin-granted access emails.
+ * Space access uses groupId (spaces are child groups); there is no trackId path here.
+ */
+async function buildAccessEmailContext ({ groupRoleId, productId, groupId, sessionUserId }) {
+  const grantedByUser = await User.find(sessionUserId)
+  let accessType = null
+  let accessName = null
+  let accessUrl = null
+  let contextGroup = null
+  let contextGroupName = null
+  let contextGroupUrl = null
+
+  if (groupRoleId) {
+    accessType = 'group_role'
+    const role = await GroupRole.where({ id: groupRoleId }).fetch()
+    if (role) {
+      accessName = role.get('name')
+      const roleGroupId = role.get('group_id')
+      contextGroup = await Group.find(roleGroupId)
+      if (contextGroup) {
+        contextGroupName = contextGroup.get('name')
+        contextGroupUrl = Frontend.Route.group(contextGroup)
+        accessUrl = contextGroupUrl
+      }
+    }
+  } else if (productId) {
+    accessType = 'offering'
+    const product = await StripeProduct.where({ id: productId }).fetch()
+    if (product) {
+      accessName = product.get('name')
+      const productGroupId = product.get('group_id')
+      contextGroup = await Group.find(productGroupId)
+      if (contextGroup) {
+        contextGroupName = contextGroup.get('name')
+        contextGroupUrl = Frontend.Route.group(contextGroup)
+        accessUrl = contextGroupUrl
+      }
+    }
+  } else if (groupId) {
+    accessType = 'group'
+    contextGroup = await Group.find(groupId)
+    if (contextGroup) {
+      accessName = contextGroup.get('name')
+      accessUrl = Frontend.Route.group(contextGroup)
+      contextGroupName = accessName
+      contextGroupUrl = accessUrl
+    }
+  }
+
+  return {
+    grantedByName: grantedByUser ? grantedByUser.get('name') : 'Administrator',
+    accessType,
+    accessName,
+    accessUrl,
+    contextGroup,
+    contextGroupName,
+    contextGroupUrl
+  }
+}
+
+/**
+ * Queues the admin-granted access email for a single user.
+ */
+async function queueAccessGrantedEmail ({ targetUser, emailContext, expiresAt }) {
+  const userLocale = targetUser.getLocale()
+  const emailData = {
+    user_name: targetUser.get('name'),
+    access_type: emailContext.accessType,
+    access_name: emailContext.accessName,
+    access_url: emailContext.accessUrl,
+    granted_by_name: emailContext.grantedByName
+  }
+
+  if (emailContext.contextGroupName) {
+    emailData.group_name = emailContext.contextGroupName
+  }
+  if (emailContext.contextGroupUrl) {
+    emailData.group_url = emailContext.contextGroupUrl
+  }
+  if (emailContext.contextGroup) {
+    emailData.group_avatar_url = emailContext.contextGroup.get('avatar_url')
+  }
+
+  if (expiresAt) {
+    const expiresAtDate = new Date(expiresAt)
+    emailData.expires_at = expiresAtDate.toLocaleDateString(normalizeLocaleToFull(userLocale), {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
+  }
+
+  Queue.classMethod('Email', 'sendAccessGranted', {
+    email: targetUser.get('email'),
+    data: emailData,
+    version: 'Redesign 2025',
+    locale: userLocale
+  })
+}
+
+/**
+ * Grants access to one user and applies enrollment / membership / email side effects.
+ *
+ * Spaces: there is no separate spaceId. Spaces are child groups, so space access is
+ * granted with groupId = space.id (same pattern as offering accessGrants.groupIds).
+ * That creates content_access.group_id for the space and ensureMembership on that space group.
+ * Track-backed spaces use the same groupId path (no trackId on admin grants).
+ */
+async function grantAccessToSingleUser ({
+  userId,
+  targetUser,
+  sessionUserId,
+  grantedByGroupId,
+  groupId,
+  productId,
+  groupRoleId,
+  expiresAt,
+  reason,
+  emailContext
+}) {
+  const access = await ContentAccess.grantAccess({
+    userId,
+    grantedByGroupId,
+    groupId,
+    grantedById: sessionUserId,
+    productId,
+    groupRoleId,
+    expiresAt,
+    reason
+  })
+
+  if (groupId) {
+    try {
+      await GroupMembership.ensureMembership(userId, groupId)
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Created group membership for user ${userId} in group ${groupId} via admin grant`)
+      }
+    } catch (membershipError) {
+      console.warn(`Group membership creation failed for user ${userId} in group ${groupId}:`, membershipError.message)
+    }
+  }
+
+  try {
+    await queueAccessGrantedEmail({
+      targetUser: targetUser || await User.where({ id: userId }).fetch(),
+      emailContext,
+      expiresAt
+    })
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`Queued Admin-Granted Access email to user ${userId}`)
+    }
+  } catch (emailError) {
+    console.error('Error queueing admin-granted access email:', emailError)
+  }
+
+  return access
+}
+
 module.exports = {
 
   /**
@@ -34,20 +195,26 @@ module.exports = {
    * without requiring a Stripe purchase. Useful for comps, staff access,
    * promotional access, etc.
    *
+   * When grantToAllMembers is true, grants to every current member of grantedByGroupId.
+   *
+   * groupId may be the parent group or a child space id (spaces are groups), including
+   * track-backed spaces. Admin grants do not use trackId.
+   *
    * Usage:
    *   mutation {
    *     grantContentAccess(
    *       userId: "456"
    *       grantedByGroupId: "123"
-   *       groupId: "789"  // optional - for access to a group
+   *       groupId: "789"  // optional - group or space id
    *       productId: "789"  // optional - for product-based access
-   *       trackId: "101"    // optional - for track-based access
    *       expiresAt: "2025-12-31T23:59:59Z"  // optional
    *       reason: "Staff member"
+   *       grantToAllMembers: false
    *     ) {
    *       id
    *       success
    *       message
+   *       grantedCount
    *     }
    *   }
    */
@@ -56,10 +223,10 @@ module.exports = {
     grantedByGroupId,
     groupId,
     productId,
-    trackId,
     groupRoleId,
     expiresAt,
-    reason
+    reason,
+    grantToAllMembers = false
   }) => {
     try {
       // Check if user is authenticated
@@ -79,172 +246,92 @@ module.exports = {
         throw new GraphQLError('You must be an administrator of the granting group to grant content access')
       }
 
+      if (!grantToAllMembers && !userId) {
+        throw new GraphQLError('Must specify userId or set grantToAllMembers')
+      }
+
+      // If groupId is provided, verify it exists and is the granting group or one of its spaces
+      if (groupId) {
+        const targetGroup = await Group.where({ id: groupId }).fetch()
+        if (!targetGroup) {
+          throw new GraphQLError('Target group not found')
+        }
+
+        const isGrantingGroup = String(groupId) === String(grantedByGroupId)
+        const isChildSpace = String(targetGroup.get('parent_id')) === String(grantedByGroupId)
+        if (!isGrantingGroup && !isChildSpace) {
+          throw new GraphQLError('Target group must be the granting group or one of its spaces')
+        }
+      }
+
+      // Must provide either groupId, productId, or groupRoleId
+      if (!groupId && !productId && !groupRoleId) {
+        throw new GraphQLError('Must specify either groupId, productId, or groupRoleId')
+      }
+
+      const emailContext = await buildAccessEmailContext({
+        groupRoleId,
+        productId,
+        groupId,
+        sessionUserId
+      })
+
+      if (grantToAllMembers) {
+        const members = await grantingGroup.members().fetch()
+        let grantedCount = 0
+        let lastAccess = null
+
+        for (const member of members.models) {
+          lastAccess = await grantAccessToSingleUser({
+            userId: member.id,
+            targetUser: member,
+            sessionUserId,
+            grantedByGroupId,
+            groupId,
+            productId,
+            groupRoleId,
+            expiresAt,
+            reason,
+            emailContext
+          })
+          grantedCount += 1
+        }
+
+        return {
+          id: lastAccess ? lastAccess.id : null,
+          userId: null,
+          grantedByGroupId,
+          groupId,
+          productId,
+          groupRoleId: lastAccess ? lastAccess.get('group_role_id') : groupRoleId,
+          accessType: lastAccess ? lastAccess.get('access_type') : ContentAccess.Type.ADMIN_GRANT,
+          status: lastAccess ? lastAccess.get('status') : null,
+          success: true,
+          message: grantedCount === 0
+            ? 'No group members to grant access to'
+            : `Access granted to ${grantedCount} group members`,
+          grantedCount
+        }
+      }
+
       // Verify the target user exists
       const targetUser = await User.where({ id: userId }).fetch()
       if (!targetUser) {
         throw new GraphQLError('User not found')
       }
 
-      // If groupId is provided, verify it exists
-      if (groupId) {
-        const targetGroup = await Group.where({ id: groupId }).fetch()
-        if (!targetGroup) {
-          throw new GraphQLError('Target group not found')
-        }
-      }
-
-      // Must provide either groupId, productId, trackId, or groupRoleId
-      if (!groupId && !productId && !trackId && !groupRoleId) {
-        throw new GraphQLError('Must specify either groupId, productId, trackId, or groupRoleId')
-      }
-
-      // Grant access using the ContentAccess model
-      const access = await ContentAccess.grantAccess({
+      const access = await grantAccessToSingleUser({
         userId,
+        targetUser,
+        sessionUserId,
         grantedByGroupId,
         groupId,
-        grantedById: sessionUserId,
         productId,
-        trackId,
         groupRoleId,
         expiresAt,
-        reason
+        reason,
+        emailContext
       })
-
-      // Auto-enroll user in track when access is granted
-      if (trackId) {
-        try {
-          await Track.enroll(trackId, userId)
-        } catch (enrollError) {
-          // Log but don't fail the access grant if enrollment fails
-          console.warn(`Auto-enrollment in track ${trackId} failed for user ${userId}:`, enrollError.message)
-        }
-      }
-
-      if (groupId) {
-        try {
-          await GroupMembership.ensureMembership(userId, groupId)
-
-          if (process.env.NODE_ENV === 'development') {
-            console.log(`Created group membership for user ${userId} in group ${groupId} via admin grant`)
-          }
-        } catch (membershipError) {
-          // Log but don't fail the access grant if membership creation fails
-          console.warn(`Group membership creation failed for user ${userId} in group ${groupId}:`, membershipError.message)
-        }
-      }
-
-      // Send Admin-Granted Access email
-      try {
-        const userLocale = targetUser.getLocale()
-        const grantedByUser = await User.find(sessionUserId)
-
-        // Determine access type and gather data
-        let accessType = null
-        let accessName = null
-        let accessUrl = null
-        let contextGroup = null
-        let contextGroupName = null
-        let contextGroupUrl = null
-
-        if (trackId) {
-          accessType = 'track'
-          const track = await Track.find(trackId)
-          if (track) {
-            accessName = await track.displayName()
-            // Track access is always within a group context
-            const trackGroupId = track.get('group_id')
-            contextGroup = await Group.find(trackGroupId)
-            if (contextGroup) {
-              contextGroupName = contextGroup.get('name')
-              contextGroupUrl = Frontend.Route.group(contextGroup)
-              accessUrl = Frontend.Route.track(track, contextGroup)
-            }
-          }
-        } else if (groupRoleId) {
-          accessType = 'group_role'
-          const role = await GroupRole.where({ id: groupRoleId }).fetch()
-          if (role) {
-            accessName = role.get('name')
-            // Role access is within a group context
-            const roleGroupId = role.get('group_id')
-            contextGroup = await Group.find(roleGroupId)
-            if (contextGroup) {
-              contextGroupName = contextGroup.get('name')
-              contextGroupUrl = Frontend.Route.group(contextGroup)
-              accessUrl = contextGroupUrl
-            }
-          }
-        } else if (productId) {
-          accessType = 'offering'
-          const product = await StripeProduct.where({ id: productId }).fetch()
-          if (product) {
-            accessName = product.get('name')
-            // Product access is within a group context
-            const productGroupId = product.get('group_id')
-            contextGroup = await Group.find(productGroupId)
-            if (contextGroup) {
-              contextGroupName = contextGroup.get('name')
-              contextGroupUrl = Frontend.Route.group(contextGroup)
-              accessUrl = contextGroupUrl
-            }
-          }
-        } else if (groupId) {
-          accessType = 'group'
-          contextGroup = await Group.find(groupId)
-          if (contextGroup) {
-            accessName = contextGroup.get('name')
-            accessUrl = Frontend.Route.group(contextGroup)
-            contextGroupName = accessName
-            contextGroupUrl = accessUrl
-          }
-        }
-
-        // Build email data
-        const emailData = {
-          user_name: targetUser.get('name'),
-          access_type: accessType,
-          access_name: accessName,
-          access_url: accessUrl,
-          granted_by_name: grantedByUser ? grantedByUser.get('name') : 'Administrator'
-        }
-
-        // Add context group info if available
-        if (contextGroupName) {
-          emailData.group_name = contextGroupName
-        }
-        if (contextGroupUrl) {
-          emailData.group_url = contextGroupUrl
-        }
-        if (contextGroup) {
-          emailData.group_avatar_url = contextGroup.get('avatar_url')
-        }
-
-        // Add expiration date if provided
-        if (expiresAt) {
-          const expiresAtDate = new Date(expiresAt)
-          emailData.expires_at = expiresAtDate.toLocaleDateString(normalizeLocaleToFull(userLocale), {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-          })
-        }
-
-        // Queue the email
-        Queue.classMethod('Email', 'sendAccessGranted', {
-          email: targetUser.get('email'),
-          data: emailData,
-          version: 'Redesign 2025',
-          locale: userLocale
-        })
-
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`Queued Admin-Granted Access email to user ${userId}`)
-        }
-      } catch (emailError) {
-        // Log error but don't fail the access grant if email fails
-        console.error('Error queueing admin-granted access email:', emailError)
-      }
 
       return {
         id: access.id,
@@ -252,12 +339,12 @@ module.exports = {
         grantedByGroupId,
         groupId,
         productId,
-        trackId,
         groupRoleId: access.get('group_role_id'),
         accessType: access.get('access_type'),
         status: access.get('status'),
         success: true,
-        message: 'Access granted successfully'
+        message: 'Access granted successfully',
+        grantedCount: 1
       }
     } catch (error) {
       if (error instanceof GraphQLError) {

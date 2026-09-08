@@ -6,7 +6,7 @@
 
 const { parseJsonObject: parseAccessGrants } = require('./stripeOfferingMetadata')
 
-/* global StripeProduct, GroupMembership, ContentAccess */
+/* global StripeProduct, GroupMembership, ContentAccess, Group */
 
 /**
  * Group/space ids this offering should join the buyer into.
@@ -70,7 +70,11 @@ async function grantCheckoutSessionAccess (session) {
       if (membership) {
         await membership.acceptAgreements()
       }
-      await GroupMembership.pinGroupToNav(userIdNum, accessGroupId)
+      // Spaces are not in GlobalNav; only pin the selling parent group
+      const accessGroup = await Group.find(accessGroupId)
+      if (accessGroup && accessGroup.get('type') !== 'space') {
+        await GroupMembership.pinGroupToNav(userIdNum, accessGroupId)
+      }
     } catch (error) {
       console.error(`Error ensuring membership for user ${userIdNum} in group ${accessGroupId}:`, error)
     }

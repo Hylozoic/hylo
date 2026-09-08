@@ -3036,5 +3036,16 @@
   "widget-public-groups": "Groupes publics",
   "widget-public-map": "Carte publique",
   "widget-public-events": "Événements publics",
-  "Chat with {{groupName}}": "Discuter avec {{groupName}}"
+  "Chat with {{groupName}}": "Discuter avec {{groupName}}",
+  "Or, grant access to all current group members": "Ou accorder l'accès à tous les membres actuels du groupe",
+  "Grant Access to All Members": "Accorder l'accès à tous les membres",
+  "Granting group access to all members will ensure each member has an active access record for this group.": "Accorder l'accès au groupe à tous les membres garantit que chaque membre dispose d'un enregistrement d'accès actif pour ce groupe.",
+  "Please select an access type": "Veuillez sélectionner un type d'accès",
+  "All Spaces": "Tous les espaces",
+  "Select Space": "Sélectionner un espace",
+  "Choose a space...": "Choisir un espace...",
+  "No spaces found in this group": "Aucun espace trouvé dans ce groupe",
+  "Offerings that include this space": "Offres qui incluent cet espace",
+  "If there are no offerings that allow access to this space, members won't be able to join.": "S'il n'y a aucune offre permettant l'accès à cet espace, les membres ne pourront pas le rejoindre.",
+  "Selected space": "Espace sélectionné"
 }
