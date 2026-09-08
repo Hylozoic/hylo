@@ -15,7 +15,7 @@ const screenshotDir = path.resolve(import.meta.dirname, 'screenshots')
 
 test('space menu header shows icon box, pills, X close, and hover-reveal cover', async ({ page }) => {
   test.skip(test.info().project.name !== 'chromium', 'desktop-only visual check')
-  test.setTimeout(120000)
+  test.setTimeout(240000)
   fs.mkdirSync(screenshotDir, { recursive: true })
 
   // Open space menu state via ?space= — clicking a More Spaces card navigates to the

@@ -339,5 +339,39 @@ module.exports = bookshelf.Model.extend(Object.assign({
     await membership.save({ nav_order: newNavOrder }, { patch: true, transacting })
 
     return membership
+  },
+
+  /**
+   * Unpin a group from every user's global nav and compact remaining pin order.
+   * Spaces do not appear in GlobalNav, so converting a group to a space must drop any pins.
+   *
+   * @param {Group|Number} groupOrId - Group instance or group ID
+   * @param {Object} [options] - Options
+   * @param {Object} [options.transacting] - Database transaction
+   */
+  async unpinGroupFromAllNavs (groupOrId, { transacting } = {}) {
+    const groupId = groupOrId instanceof Group ? groupOrId.id : groupOrId
+
+    if (!groupId) {
+      throw new Error("Can't call unpinGroupFromAllNavs without a group or group id")
+    }
+
+    const pinnedMemberships = await GroupMembership.query(q => {
+      q.where({ group_id: groupId })
+        .whereNotNull('nav_order')
+    }).fetchAll({ transacting })
+
+    for (const membership of pinnedMemberships.models) {
+      const userId = membership.get('user_id')
+      const currentNavOrder = membership.get('nav_order')
+
+      await bookshelf.knex('group_memberships')
+        .where({ user_id: userId })
+        .where('nav_order', '>', currentNavOrder)
+        .decrement('nav_order', 1)
+        .modify(q => { if (transacting) q.transacting(transacting) })
+
+      await membership.save({ nav_order: null }, { patch: true, transacting })
+    }
   }
 })

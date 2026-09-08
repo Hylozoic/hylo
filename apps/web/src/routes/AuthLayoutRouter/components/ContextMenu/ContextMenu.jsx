@@ -1007,13 +1007,13 @@ export default function ContextMenu (props) {
     <div
       ref={setMenuRootEl}
       className={cn(
-        'ContextMenu bg-background bg-gradient-to-b from-context-menu-background to-theme-background/10 dark:to-theme-background/40 relative z-20 isolate pointer-events-auto h-full flex-1 min-w-0',
+        'ContextMenu bg-background bg-gradient-to-b from-context-menu-background to-theme-background/10 dark:to-theme-background/40 relative z-20 isolate pointer-events-auto h-full flex flex-col flex-1 min-w-0',
         !isPhoneDevice() && 'sm:flex-initial sm:w-[var(--context-menu-width,300px)]',
         { [classes.mapView]: mapView },
         {
           [classes.showGroupMenu]: isNavOpen,
           'h-screen h-dvh': isPhoneDevice(),
-          'overflow-y-hidden flex flex-col': isSettingsPath,
+          'overflow-y-hidden': isSettingsPath,
           '!overflow-y-auto': !isSettingsPath
         },
         className
@@ -1031,7 +1031,9 @@ export default function ContextMenu (props) {
         // Flat wrap color in the gutters around the inset menu card. The
         // banner (below) only lives at the top and fades into this.
         isGroupContext && classes.plane,
-        isSettingsPath ? 'flex-1 min-h-0 overflow-hidden' : 'min-h-full min-h-screen min-h-dvh'
+        // Fill the menu panel, not the viewport. min-h-screen/dvh is taller than
+        // the panel under the topbar, so mt-auto Edit Menu was pushed off-screen.
+        isSettingsPath ? 'flex-1 min-h-0 overflow-hidden' : 'flex-1'
       )}
       >
         {/* Above ContextMenuCloseBg (z-10) so item taps are not swallowed on mobile */}

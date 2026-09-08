@@ -2,11 +2,11 @@
  * Visual verification for the one-column dashboard card redesign:
  * postType-colored cards with staggered icon-field backgrounds.
  *
- * Uses the seeded one-column group (`e2e-one-column-group`) instead of
- * toggling the shared E2E user's Card Menu preference — that mutation raced
- * parallel suites onto one-column and broke ContextMenu-dependent tests.
- *
  * Run: node scripts/run-isolated-e2e.js dashboard-cards --project=chromium
+ *
+ * One-column screenshots use `e2e-one-column-group` (group layout setting). Do
+ * not persist Card Menu on the shared E2E user — that races every parallel
+ * two-column spec against a one-column shell.
  */
 import { test, expect } from '@playwright/test'
 import fs from 'fs'
@@ -62,9 +62,9 @@ test('two-column menu active row styling', async ({ page }) => {
 test('one-column dashboard cards', async ({ page }) => {
   fs.mkdirSync(screenshotDir, { recursive: true })
 
-  // Group settings.layout=one-column — no shared-user preference mutation
   await page.goto('/groups/e2e-one-column-group')
   await waitPastRootSessionLoading(page)
+  // wait for the group views to load and cards to render
   await page.locator('text=Loading views').waitFor({ state: 'detached', timeout: 20000 }).catch(() => {})
 
   const firstCard = page.locator('.ContextMenuGrid [role="button"]').first()

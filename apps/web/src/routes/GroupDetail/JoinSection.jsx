@@ -170,7 +170,7 @@ export function JoinBarriers ({ group, onBarriersStateChange, joinIntroCopy = fa
   )
 }
 
-export default function JoinSection ({ accessCode, addSkill, currentUser, fullPage, group, groupsWithPendingRequests, invitationRole, invitationToken, joinGroup, linkedSpaceName, requestToJoinGroup, removeSkill, routeParams, t }) {
+export default function JoinSection ({ accessCode, currentUser, fullPage, group, groupsWithPendingRequests, invitationRole, invitationToken, joinGroup, linkedSpaceName, requestToJoinGroup, routeParams, t }) {
   const hasPendingRequest = groupsWithPendingRequests[group.id]
 
   // User arrived with a join link (accessCode) or email invite link (token) — pre-approved for Closed/Restricted
@@ -269,12 +269,10 @@ export default function JoinSection ({ accessCode, addSkill, currentUser, fullPa
           : group.accessibility === GROUP_ACCESSIBILITY.Open
             ? (
               <JoinQuestionsAndButtons
-                addSkill={addSkill}
                 currentUser={currentUser}
                 group={group}
                 joinGroup={joinGroup}
                 joinText={t('Join {{group.name}}', { group })}
-                removeSkill={removeSkill}
                 t={t}
               />
               )
@@ -283,12 +281,10 @@ export default function JoinSection ({ accessCode, addSkill, currentUser, fullPa
               ? hasJoinOrInviteLink
                 ? (
                   <JoinQuestionsAndButtons
-                    addSkill={addSkill}
                     currentUser={currentUser}
                     group={group}
                     joinGroup={joinGroup}
                     joinText={t('Join {{group.name}}', { group })}
-                    removeSkill={removeSkill}
                     t={t}
                   />
                   )
@@ -302,12 +298,10 @@ export default function JoinSection ({ accessCode, addSkill, currentUser, fullPa
                       )
                     : (
                       <JoinQuestionsAndButtons
-                        addSkill={addSkill}
                         currentUser={currentUser}
                         group={group}
                         joinGroup={requestToJoinGroup}
                         joinText={t('Request Membership in {{group.name}}', { group })}
-                        removeSkill={removeSkill}
                         t={t}
                       />
                       )
@@ -321,7 +315,7 @@ export default function JoinSection ({ accessCode, addSkill, currentUser, fullPa
   )
 }
 
-function JoinQuestionsAndButtons ({ addSkill, currentUser, group, joinGroup, joinText, removeSkill, t }) {
+function JoinQuestionsAndButtons ({ currentUser, group, joinGroup, joinText, t }) {
   const agreements = group.agreements || []
   const hasAgreements = agreements.length > 0
   const hasRequiredQuestions = group.settings?.askJoinQuestions && group.joinQuestions?.length > 0
@@ -377,7 +371,7 @@ function JoinQuestionsAndButtons ({ addSkill, currentUser, group, joinGroup, joi
           {hasBarriers &&
             <JoinBarriers group={group} onBarriersStateChange={handleBarriersStateChange} joinIntroCopy />}
           {hasSuggestedSkills &&
-            <SuggestedSkills addSkill={addSkill} currentUser={currentUser} group={group} removeSkill={removeSkill} />}
+            <SuggestedSkills currentUser={currentUser} group={group} />}
         </>
       )}
 

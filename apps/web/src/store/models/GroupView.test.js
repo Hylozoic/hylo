@@ -1,4 +1,4 @@
-import { isMenuViewVisible, singleVisibleMenuView, viewAcceptedByPostTypes } from './GroupView'
+import { canBeHomeView, isMenuViewVisible, singleVisibleMenuView, viewAcceptedByPostTypes } from './GroupView'
 
 describe('viewAcceptedByPostTypes', () => {
   it('allows every view type when acceptedPostTypes is null', () => {
@@ -61,5 +61,20 @@ describe('singleVisibleMenuView', () => {
       [{ type: 'events', order: 0 }],
       ['discussion']
     )).toBe(null)
+  })
+})
+
+describe('canBeHomeView', () => {
+  it('rejects text, separator, link, and space', () => {
+    expect(canBeHomeView({ type: 'text' })).toBe(false)
+    expect(canBeHomeView({ type: 'separator' })).toBe(false)
+    expect(canBeHomeView({ type: 'link' })).toBe(false)
+    expect(canBeHomeView({ type: 'space' })).toBe(false)
+  })
+
+  it('allows navigable menu types', () => {
+    expect(canBeHomeView({ type: 'chat' })).toBe(true)
+    expect(canBeHomeView({ type: 'all' })).toBe(true)
+    expect(canBeHomeView({ type: 'members' })).toBe(true)
   })
 })

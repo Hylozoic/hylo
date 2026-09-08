@@ -188,7 +188,7 @@ export function deleteGroupView (id, groupId) {
 }
 
 /** Reorder a view within its group's menu. */
-export function reorderGroupView ({ id, orderInFrontOfViewId, addToEnd, parentGroupId, targetGroupId, reorderedItems }) {
+export function reorderGroupView ({ id, orderInFrontOfViewId, addToEnd, parentGroupId, targetGroupId, reorderedItems, updateHomeRoute }) {
   return {
     type: REORDER_GROUP_VIEW,
     graphql: {
@@ -199,7 +199,7 @@ export function reorderGroupView ({ id, orderInFrontOfViewId, addToEnd, parentGr
       }`,
       variables: { id, orderInFrontOfViewId, addToEnd }
     },
-    meta: { id, parentGroupId, targetGroupId, reorderedItems }
+    meta: { id, parentGroupId, targetGroupId, reorderedItems, updateHomeRoute }
   }
 }
 
@@ -515,6 +515,7 @@ export function convertGroupToSpace ({ id, parentGroupId }) {
     meta: {
       id,
       parentGroupId,
+      optimistic: true,
       extractModel: [
         { getRoot: get('convertGroupToSpace'), modelName: 'Group' }
       ]

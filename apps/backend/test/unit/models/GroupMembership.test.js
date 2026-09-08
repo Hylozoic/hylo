@@ -74,4 +74,33 @@ describe('GroupMembership', () => {
     })
   })
 
+  describe('unpinGroupFromAllNavs', () => {
+    it('clears the pin and compact remaining nav order for every member', async () => {
+      const group = await factories.group().save()
+      const otherGroup = await factories.group().save()
+      const userA = await factories.user().save()
+      const userB = await factories.user().save()
+      await userA.joinGroup(group)
+      await userA.joinGroup(otherGroup)
+      await userB.joinGroup(group)
+      await userB.joinGroup(otherGroup)
+
+      await GroupMembership.forPair(userA.id, otherGroup.id).fetch().then(m => m.save({ nav_order: 0 }))
+      await GroupMembership.forPair(userA.id, group.id).fetch().then(m => m.save({ nav_order: 1 }))
+      await GroupMembership.forPair(userB.id, group.id).fetch().then(m => m.save({ nav_order: 0 }))
+      await GroupMembership.forPair(userB.id, otherGroup.id).fetch().then(m => m.save({ nav_order: 1 }))
+
+      await GroupMembership.unpinGroupFromAllNavs(group.id)
+
+      const userAConverted = await GroupMembership.forPair(userA.id, group.id).fetch()
+      const userAOther = await GroupMembership.forPair(userA.id, otherGroup.id).fetch()
+      const userBConverted = await GroupMembership.forPair(userB.id, group.id).fetch()
+      const userBOther = await GroupMembership.forPair(userB.id, otherGroup.id).fetch()
+
+      expect(userAConverted.get('nav_order')).to.be.null
+      expect(userAOther.get('nav_order')).to.equal(0)
+      expect(userBConverted.get('nav_order')).to.be.null
+      expect(userBOther.get('nav_order')).to.equal(0)
+    })
+  })
 })

@@ -454,8 +454,9 @@ async function convertChildGroupViewToSpaceView (parentId, childId, groupName, {
 
 /**
  * Convert a child group with exactly one parent into a space of that parent.
- * Sets type/parent_id, deactivates the relationship, and turns a parent menu
- * group view into a space view (or creates an off-menu space view).
+ * Sets type/parent_id, deactivates the relationship, unpins it from GlobalNav,
+ * and turns a parent menu group view into a space view (or creates an off-menu
+ * space view).
  */
 export async function convertGroupToSpace (userId, { id, parentGroupId }, context) {
   if (!userId) throw new GraphQLError('No userId passed into function')
@@ -529,6 +530,7 @@ export async function convertGroupToSpace (userId, { id, parentGroupId }, contex
     await group.save({ type: 'space', parent_id: parentGroupId }, { patch: true, transacting: trx })
     await relationship.save({ active: false }, { transacting: trx })
     await convertChildGroupViewToSpaceView(parentGroupId, id, group.get('name'), { transacting: trx })
+    await GroupMembership.unpinGroupFromAllNavs(id, { transacting: trx })
   })
 
   notifyGroupUpdated(context, parentGroup, parentGroupId)

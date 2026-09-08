@@ -10,7 +10,6 @@ import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMyGroupMembership from 'store/selectors/getMyGroupMembership'
 import presentGroup from 'store/presenters/presentGroup'
 import { DEFAULT_AVATAR, DEFAULT_BANNER } from 'store/models/Group'
-import { addSkill as addSkillAction, removeSkill as removeSkillAction } from 'components/SkillsSection/SkillsSection.store'
 import { fetchGroupWelcomeData } from './GroupWelcomeModal.store'
 import { updateMembershipSettings } from 'routes/UserSettings/UserSettings.store'
 import Button from 'components/ui/button'
@@ -165,9 +164,6 @@ export default function GroupWelcomeModal (props) {
     })
   }
 
-  const addSkill = name => dispatch(addSkillAction(name))
-  const removeSkill = skillId => dispatch(removeSkillAction(skillId))
-
   return (
     <CSSTransition
       classNames='welcome-modal'
@@ -255,7 +251,7 @@ export default function GroupWelcomeModal (props) {
                 </div>}
 
               {showSuggestedSkills &&
-                <SuggestedSkills addSkill={addSkill} currentUser={currentUser} group={group} removeSkill={removeSkill} />}
+                <SuggestedSkills currentUser={currentUser} group={group} />}
 
               {questionsStillRequired && <div className={classes.questionsHeader}>{t('Please answer the following questions to enter')}</div>}
               {questionsStillRequired && questionAnswers.map((q, index) => (

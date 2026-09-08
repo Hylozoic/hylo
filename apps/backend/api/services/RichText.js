@@ -173,9 +173,13 @@ export function getFirstExternalUrl (content) {
     if (!href) continue
     if (/^(mailto:|tel:|javascript:)/i.test(href)) continue
 
-    if (href.startsWith('/')) {
-      href = `https://hylo.com${href}`
-    } else if (!/^https?:\/\//i.test(href)) {
+    const className = el.getAttribute('class') || ''
+    if (/\b(mention|topic)\b/.test(className)) continue
+
+    // App-relative mention/topic links are not an external preview target.
+    if (href.startsWith('/') || href.startsWith('#')) continue
+
+    if (!/^https?:\/\//i.test(href)) {
       href = `https://${href}`
     }
 

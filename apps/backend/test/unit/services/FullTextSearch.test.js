@@ -36,5 +36,21 @@ describe('FullTextSearch', () => {
       expect(query).not.to.contain('count(*) over ()')
       expect(query).to.contain('limit 11')
     })
+
+    it('strips tsquery operators from the search term', () => {
+      const opts = { limit: 10, offset: 0, term: '#release!', type: 'person' }
+      const query = FullTextSearch.buildSearchInGroupsQuery({ groupIds: [3] }, opts).toString()
+
+      expect(query).to.contain('to_tsquery(\'english\', \'release:*\')')
+      expect(query).not.to.contain('#release')
+    })
+
+    it('matches nothing when the term is only tsquery operators', () => {
+      const opts = { limit: 10, offset: 0, term: '!!!', type: 'person' }
+      const query = FullTextSearch.buildSearchInGroupsQuery({ groupIds: [3] }, opts).toString()
+
+      expect(query).to.contain('where false')
+      expect(query).not.to.contain('to_tsquery')
+    })
   })
 })

@@ -17,9 +17,7 @@ test('explorer titles are white in light mode', async ({ page }) => {
 })
 
 test('stream controls use border-2', async ({ page }) => {
-  // data-testid=stream-view-controls is on the desktop view-mode group (max-sm:hidden);
-  // phones replace it with a lens dropdown.
-  test.skip(test.info().project.name.includes('mobile'), 'view-mode control group is desktop-only')
+  test.skip(test.info().project.name.includes('mobile'), 'view-mode segmented control is max-sm:hidden')
   await page.goto('/groups/e2e-public-group/all')
   await waitPastRootSessionLoading(page)
   const controls = page.getByTestId('stream-view-controls')

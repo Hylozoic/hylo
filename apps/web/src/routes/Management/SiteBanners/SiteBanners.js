@@ -49,7 +49,7 @@ export default function SiteBanners () {
   const loadBanners = useCallback(() => {
     return dispatch(fetchAllSiteBanners()).then(result => {
       const items = result?.payload?.data?.allSiteBanners
-      if (items) setBanners(items)
+      if (Array.isArray(items)) setBanners(items)
       setLoading(false)
     }).catch(() => {
       setLoading(false)
