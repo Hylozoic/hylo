@@ -241,4 +241,18 @@ describe('getMyGroupsWithChildren', () => {
 
     expect(result.map(g => g.slug)).toEqual(['former-space', 'parent-group'])
   })
+
+  it('excludes a pinned space from the top-level list', () => {
+    const session = orm.session(orm.getEmptyState())
+    const me = session.Me.create({ id: 1 })
+    const parent = session.Group.create({ id: '1', name: 'Parent Group', slug: 'parent-group' })
+    const space = session.Group.create({ id: '2', name: 'Pinned Space', slug: 'pinned-space', type: 'space', parentId: parent.id })
+    session.Membership.create({ id: 'm1', group: parent.id, person: me.id, navOrder: 0 })
+    session.Membership.create({ id: 'm2', group: space.id, person: me.id, navOrder: 1 })
+
+    const result = getMyGroupsWithChildren({ orm: session.state })
+
+    expect(result.map(g => g.slug)).toEqual(['parent-group'])
+    expect(result[0].spaces.map(s => s.slug)).toEqual(['pinned-space'])
+  })
 })

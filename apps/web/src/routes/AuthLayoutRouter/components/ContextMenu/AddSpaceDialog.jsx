@@ -22,6 +22,7 @@ import SettingSelectRow from 'components/SettingSelectRow/SettingSelectRow'
 import SwitchStyled from 'components/SwitchStyled'
 import TagInput from 'components/TagInput'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
+import UnsavedDraftLeaveDialog from 'components/UnsavedDraftLeaveDialog/UnsavedDraftLeaveDialog'
 import { CUSTOM_VIEW_DEFAULT_POST_TYPES, CUSTOM_VIEW_POST_TYPE_OPTIONS } from 'components/CustomViewForm/customViewFormConstants'
 import { addQuerystringToPath, localSpaceSlug, spaceHomeUrl, spaceUrl } from '@hylo/navigation'
 import { nameToSlug } from 'routes/CreateGroup/slug'
@@ -111,6 +112,12 @@ function defaultsForSpaceType (spaceType) {
   }
 }
 
+/** True when rich-text HTML contains visible characters (empty <p></p> does not count). */
+function htmlHasText (html) {
+  if (!html) return false
+  return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim().length > 0
+}
+
 /** Post-type-derived views for Custom Space (All Activity, Chat, Members, then type views). */
 function customSpaceStandardViews (postTypes, removedStandardTypes) {
   const base = ['all', 'chat', 'members']
@@ -191,6 +198,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
   const [requiredRoles, setRequiredRoles] = useState([])
   const [roleSearchTerm, setRoleSearchTerm] = useState(null)
   const [isCreating, setIsCreating] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
 
   // Funding Round settings (only used when creating a funding-round space)
   const [frSubmissionsOpenAt, setFrSubmissionsOpenAt] = useState(null)
@@ -566,6 +574,53 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
     }
   }, [dispatch, group?.id, name, slug, slugValid, description, icon, bannerUrl, purpose, locationObject, postTypes, access, accessOptions, requiredRoles, spaceType, orderedRows, standardViewTypes, homeViewType, welcomeEnabled, welcomeExtras, showWelcomePage, onClose, onCreated, navigate, routerLocation.pathname, addToMenu, isOneColumn, actionDescriptor, actionDescriptorPlural, completionRole, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frAllowLateJoiners, frHideFinalResults, frRequireBudget, frShowRealtimeVotes, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles])
 
+  /** True when the user has entered anything beyond the form's initial defaults. */
+  const hasEnteredData = useCallback(() => {
+    const customDefaults = defaultsForSpaceType('custom')
+    if (spaceType !== 'custom') return true
+    if (name.trim() || slugCustomized) return true
+    if (purpose.trim() || description.trim()) return true
+    if (bannerUrl || locationObject) return true
+    if (icon !== customDefaults.icon) return true
+    if (access !== 'open' || requiredRoles.length > 0) return true
+    if (homeView !== 'STREAM') return true
+    if (manualViews.length > 0 || removedStandardTypes.size > 0 || welcomeEnabled) return true
+    if (
+      postTypes.length !== customDefaults.postTypes.length ||
+      postTypes.some(type => !customDefaults.postTypes.includes(type))
+    ) return true
+    if (htmlHasText(welcomeEditorRef.current?.getHTML?.()) || htmlHasText(welcomeExtras?.pageContent)) return true
+    return false
+  }, [
+    spaceType, name, slugCustomized, purpose, description, bannerUrl, locationObject,
+    icon, access, requiredRoles, homeView, manualViews, removedStandardTypes,
+    welcomeEnabled, postTypes, welcomeExtras
+  ])
+
+  /** Closes immediately when the form is empty; otherwise asks before discarding. */
+  const requestClose = useCallback(() => {
+    if (showConfirm) return
+    if (hasEnteredData()) {
+      setShowConfirm(true)
+      return
+    }
+    onClose()
+  }, [showConfirm, hasEnteredData, onClose])
+
+  const handleContinueEditing = useCallback(() => {
+    setShowConfirm(false)
+  }, [])
+
+  const handleDiscardSpace = useCallback(() => {
+    setShowConfirm(false)
+    onClose()
+  }, [onClose])
+
+  const handleSaveDraftAndClose = useCallback(() => {
+    setShowConfirm(false)
+    handleCreate('draft')
+  }, [handleCreate])
+
   const advancedSettings = useMemo(() => [
     {
       key: 'location',
@@ -629,7 +684,8 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
 
   /** Closes the dialog when the dimmed overlay (not the panel) is clicked. */
   const handleBackdropClick = (event) => {
-    if (event.target === event.currentTarget) onClose()
+    if (showConfirm) return
+    if (event.target === event.currentTarget) requestClose()
   }
 
   // Portal above AuthLayout nav stacking so access radios / FR checkboxes remain clickable.
@@ -920,7 +976,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
         </div>
 
         <div className='flex justify-end gap-2 mt-4 pt-2 border-t border-foreground/10' data-tour='space-publish'>
-          <Button variant='primary' onClick={onClose}>{t('Cancel')}</Button>
+          <Button variant='primary' onClick={requestClose}>{t('Cancel')}</Button>
           <Button variant='primary' disabled={!name.trim() || isCreating} onClick={() => handleCreate('draft')}>
             {isCreating ? t('Creating...') : t('Save as Draft')}
           </Button>
@@ -929,6 +985,19 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
           </Button>
         </div>
       </div>
+      <UnsavedDraftLeaveDialog
+        open={showConfirm}
+        onOpenChange={open => { if (!open) setShowConfirm(false) }}
+        title={t('Save draft before closing?')}
+        description={t('You have unsaved information for this space. Save a draft to continue later, or discard it.')}
+        continueEditingLabel={t('Continue Editing')}
+        saveDraftLabel={t('Save as Draft')}
+        discardLabel={t('Discard Space')}
+        saveDraftDisabled={!name.trim() || isCreating}
+        onContinueEditing={handleContinueEditing}
+        onDiscard={handleDiscardSpace}
+        onSaveDraft={handleSaveDraftAndClose}
+      />
     </div>,
     document.body
   )

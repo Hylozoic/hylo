@@ -4,6 +4,7 @@ import setupPostAttrs from './setupPostAttrs'
 import updateChildren from './updateChildren'
 import { assertGroupsAcceptPostType } from './validatePostData'
 import { groupRoom, pushToSockets } from '../../services/Websockets'
+import { partitionImageUrls } from '../../../lib/uploader/rehostRemoteMedia'
 import {
   POST_TYPE_TO_TYPED_VIEW,
   postCountsTowardChatUnread
@@ -11,12 +12,13 @@ import {
 
 export default async function createPost (userId, params) {
   await assertGroupsAcceptPostType(params.group_ids, params.type)
+  const { hosted: hostedImageUrls, remote: remoteImageUrls } = partitionImageUrls(params.imageUrls)
   return setupPostAttrs(userId, merge(Post.newPostAttrs(), params), true)
     .then(attrs => bookshelf.transaction(transacting =>
       Post.create(attrs, { transacting })
         .tap(post => afterCreatingPost(post, merge(
-          pick(params, 'localId', 'group_ids', 'imageUrl', 'videoUrl', 'docs', 'topicNames', 'memberIds', 'eventInviteeIds', 'imageUrls', 'fileUrls', 'fundingRoundId', 'announcement', 'location', 'location_id', 'proposalOptions', 'trackId', 'viewId', 'markAsReadTopicName', 'skip_link_preview'),
-          { children: params.requests, transacting }
+          pick(params, 'localId', 'group_ids', 'imageUrl', 'videoUrl', 'docs', 'topicNames', 'memberIds', 'eventInviteeIds', 'fileUrls', 'fundingRoundId', 'announcement', 'location', 'location_id', 'proposalOptions', 'trackId', 'viewId', 'markAsReadTopicName', 'skip_link_preview'),
+          { imageUrls: hostedImageUrls, children: params.requests, transacting }
         ))))
       .then(function (inserts) {
         inserts.setLocalId(params.localId)
@@ -25,6 +27,14 @@ export default async function createPost (userId, params) {
         throw error
       }))
     .then(post => {
+      if (remoteImageUrls.length > 0) {
+        Queue.classMethod('Post', 'rehostAndAttachImages', {
+          postId: post.id,
+          userId,
+          imageUrls: remoteImageUrls,
+          startPosition: (hostedImageUrls || []).length
+        }, 0)
+      }
       if (post.get('type') === Post.Type.CHAT) {
         Queue.classMethod('Post', 'upsertChatActivityNotice', { postId: post.id }, 0)
       }
@@ -143,8 +153,9 @@ async function addPostToViewCollection (post, viewId, userId, { transacting } = 
 async function attachOrQueueLinkPreview (post, trx, skipLinkPreview) {
   if (skipLinkPreview || post.get('link_preview_id')) return
 
-  const url = RichText.getFirstExternalUrl(post.get('description'))
-    || RichText.getFirstExternalUrl(post.get('name'))
+  const url = RichText.getFirstExternalUrl(post.get('description')) ||
+    RichText.getFirstExternalUrl(post.get('name'))
+
   if (!url) return
 
   const existing = await LinkPreview.find(url)
@@ -153,7 +164,9 @@ async function attachOrQueueLinkPreview (post, trx, skipLinkPreview) {
     return
   }
 
-  Queue.classMethod('Post', 'generateLinkPreview', { postId: post.id, url }, 0)
+  // Default 2s delay: this runs inside the create transaction, and delay(0) is
+  // immediately runnable so the worker can miss the uncommitted post and no-op.
+  return Queue.classMethod('Post', 'generateLinkPreview', { postId: post.id, url })
 }
 
 /**

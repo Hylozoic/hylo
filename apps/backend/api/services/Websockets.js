@@ -1,5 +1,5 @@
 import { cyan } from 'chalk'
-import rollbar from '../../lib/rollbar'
+import sentry from '../../lib/sentry'
 import emitter from 'socket.io-emitter'
 
 const validMessageTypes = [
@@ -55,7 +55,7 @@ export function broadcast (room, messageType, payload, socketToExclude) {
     if (!io) {
       io = emitter(process.env.REDIS_URL)
       io.redis.on('error', err => {
-        rollbar.error(err, null, {room, messageType, payload})
+        sentry.error(err, null, {room, messageType, payload})
       })
       registerCleanup()
     }

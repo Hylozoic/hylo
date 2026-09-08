@@ -1,5 +1,5 @@
 import { Users } from 'lucide-react'
-import React, { useCallback } from 'react'
+import React, { useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Dialog, DialogContent, DialogTitle } from 'components/ui/dialog'
@@ -12,6 +12,7 @@ export default function CreateGroupModal () {
   const { t } = useTranslation()
   const location = useLocation()
   const navigate = useNavigate()
+  const formRef = useRef()
 
   const isOpen = new URLSearchParams(location.search).get(CREATE_GROUP_PARAM) === 'true'
 
@@ -25,8 +26,8 @@ export default function CreateGroupModal () {
   }, [location.pathname, location.search, navigate])
 
   const handleOpenChange = useCallback(open => {
-    if (!open) close()
-  }, [close])
+    if (!open) formRef.current?.requestClose()
+  }, [])
 
   // Filestack and Add View / Welcome overlays portal to <body>. A modal dialog
   // would treat them as outside and steal focus (the Welcome editor cannot type).
@@ -36,6 +37,11 @@ export default function CreateGroupModal () {
       event.preventDefault()
     }
   }, [])
+
+  const handleEscapeKeyDown = useCallback(event => {
+    if (formRef.current?.isConfirmOpen()) event.preventDefault()
+    keepOpenForExternalOverlays(event)
+  }, [keepOpenForExternalOverlays])
 
   if (!isOpen) return null
 
@@ -48,6 +54,7 @@ export default function CreateGroupModal () {
         onPointerDownOutside={keepOpenForExternalOverlays}
         onInteractOutside={keepOpenForExternalOverlays}
         onFocusOutside={keepOpenForExternalOverlays}
+        onEscapeKeyDown={handleEscapeKeyDown}
       >
         <div className='flex items-center gap-2 h-12 px-4 border-b border-foreground/10 shrink-0'>
           <Users className='w-5 h-5 text-selected shrink-0' />
@@ -55,6 +62,7 @@ export default function CreateGroupModal () {
         </div>
 
         <CreateGroupForm
+          ref={formRef}
           onClose={close}
           bodyClassName='flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-6 pt-5 pb-6'
           footerClassName='px-5 py-3.5 border-t border-foreground/10 shrink-0'

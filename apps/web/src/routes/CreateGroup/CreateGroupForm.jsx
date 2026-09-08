@@ -3,7 +3,7 @@ import {
   Activity, ArrowRight, DoorOpen, EyeOff, Globe, Hand, HelpCircle, ImagePlus,
   LayoutGrid, Lock, Map, MapPin, MessageCircleMore, Network, Plus, ScrollText, Settings, Shield, Users, X
 } from 'lucide-react'
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { useLocation, useParams } from 'react-router-dom'
@@ -17,6 +17,7 @@ import LocationInput from 'components/LocationInput/LocationInput'
 import PostTypePills from 'components/PostTypePills/PostTypePills'
 import SettingSelectRow from 'components/SettingSelectRow/SettingSelectRow'
 import SwitchStyled from 'components/SwitchStyled'
+import UnsavedDraftLeaveDialog from 'components/UnsavedDraftLeaveDialog/UnsavedDraftLeaveDialog'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import Button from 'components/ui/button'
 import { INPUT_CLASS } from 'components/ui/form-field'
@@ -40,6 +41,12 @@ import { nameToSlug, SLUG_MAX_LENGTH, slugValidatorRegex } from './slug'
 const STANDARD_VIEW_TYPES = new Set(['all', 'chat', 'map', 'members', 'welcome', ...Object.values(POST_TYPE_TO_VIEW_TYPE)])
 
 const SLUG_CHECK_DEBOUNCE = 300
+
+/** True when rich-text HTML contains visible characters (empty <p></p> does not count). */
+function htmlHasText (html) {
+  if (!html) return false
+  return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim().length > 0
+}
 
 const NAME_MAX_LENGTH = 60
 const PURPOSE_MAX_LENGTH = 500
@@ -273,7 +280,9 @@ function JoinQuestionsEditor ({ questions, onChange }) {
 
 // The create-group form itself. Rendered identically by the /create-group page and
 // by CreateGroupModal — only the surrounding chrome and the scroll container differ.
-export default function CreateGroupForm ({ onClose, bodyClassName, footerClassName }) {
+// When opened as a modal, requestClose (also exposed on the ref) confirms before
+// discarding any data the user has entered.
+const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClassName, footerClassName }, ref) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const location = useLocation()
@@ -312,6 +321,8 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
   const [nameTouched, setNameTouched] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState(null)
+  const [showConfirm, setShowConfirm] = useState(false)
+  const showConfirmRef = useRef(false)
 
   const [locationObject, setLocationObject] = useState(null)
   const [parentGroups, setParentGroups] = useState(
@@ -599,6 +610,66 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
     if (onClose) onClose()
     dispatch(push(groupUrl(slug)))
   }
+
+  const initialParentIdsRef = useRef(
+    currentGroup && parentGroupOptions.find(p => p.id === currentGroup.id) ? [currentGroup.id] : []
+  )
+
+  /** True when the user has entered anything beyond the form's initial defaults. */
+  const hasEnteredData = useCallback(() => {
+    if (name.trim() || (slugCustomized && slug.trim())) return true
+    if (purpose.trim()) return true
+    if (avatarUrl || bannerUrl) return true
+    if (homeView !== 'STREAM') return true
+    if (visibility !== GROUP_VISIBILITY.Protected) return true
+    if (accessibility !== GROUP_ACCESSIBILITY.Restricted) return true
+    if (locationObject) return true
+    const parentIds = parentGroups.map(group => group.id)
+    const initialParentIds = initialParentIdsRef.current
+    if (parentIds.length !== initialParentIds.length || parentIds.some(id => !initialParentIds.includes(id))) return true
+    if (agreements.length > 0) return true
+    if (joinQuestions.length > 0) return true
+    if (
+      postTypes.length !== CUSTOM_VIEW_DEFAULT_POST_TYPES.length ||
+      postTypes.some(type => !CUSTOM_VIEW_DEFAULT_POST_TYPES.includes(type))
+    ) return true
+    if (welcomeEnabled || removedStandardTypes.size > 0 || manualViews.length > 0) return true
+    if (htmlHasText(welcomeEditorRef.current?.getHTML?.()) || htmlHasText(welcomeExtras?.pageContent)) return true
+    return false
+  }, [
+    name, slug, slugCustomized, purpose, avatarUrl, bannerUrl,
+    homeView, visibility, accessibility, locationObject, parentGroups, agreements,
+    joinQuestions, postTypes, welcomeEnabled, removedStandardTypes, manualViews, welcomeExtras
+  ])
+
+  /** Closes immediately when the form is empty; otherwise asks before discarding. */
+  const requestClose = useCallback(() => {
+    if (!onClose) return
+    if (showConfirmRef.current) return
+    if (hasEnteredData()) {
+      setShowConfirm(true)
+      return
+    }
+    onClose()
+  }, [onClose, hasEnteredData])
+
+  useEffect(() => {
+    showConfirmRef.current = showConfirm
+  }, [showConfirm])
+
+  useImperativeHandle(ref, () => ({
+    requestClose,
+    isConfirmOpen: () => showConfirmRef.current
+  }), [requestClose])
+
+  const handleContinueEditing = useCallback(() => {
+    setShowConfirm(false)
+  }, [])
+
+  const handleDiscardGroup = useCallback(() => {
+    setShowConfirm(false)
+    onClose?.()
+  }, [onClose])
 
   const advancedSettings = useMemo(() => [
     {
@@ -919,7 +990,7 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
       <div className={cn('flex items-center justify-end gap-3', footerClassName)}>
         {submitError && <span className='text-error text-sm flex-1'>{submitError}</span>}
         {onClose && (
-          <Button variant='outline' onClick={onClose} disabled={submitting}>
+          <Button variant='outline' onClick={requestClose} disabled={submitting}>
             {t('Cancel')}
           </Button>
         )}
@@ -932,6 +1003,21 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
           <ArrowRight className='w-4 h-4 ml-2' />
         </Button>
       </div>
+
+      {onClose && (
+        <UnsavedDraftLeaveDialog
+          open={showConfirm}
+          onOpenChange={open => { if (!open) setShowConfirm(false) }}
+          title={t('Discard this group?')}
+          description={t('You have entered information for this group. If you discard it, that information will be lost.')}
+          continueEditingLabel={t('Continue Editing')}
+          discardLabel={t('Discard Group')}
+          onContinueEditing={handleContinueEditing}
+          onDiscard={handleDiscardGroup}
+        />
+      )}
     </>
   )
-}
+})
+
+export default CreateGroupForm

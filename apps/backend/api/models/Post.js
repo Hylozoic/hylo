@@ -12,6 +12,7 @@ import { postRoom, pushToSockets } from '../services/Websockets'
 import { fulfill, unfulfill } from './post/fulfillPost'
 import { decrementNewPostCount } from './post/deletePost'
 import { incrementNewPostCount } from './post/createPost'
+import rehostAndAttachImages from './post/rehostAndAttachImages'
 import upsertChatActivityNoticeForPost from './post/upsertChatActivityNotice'
 import EnsureLoad from './mixins/EnsureLoad'
 import { countTotal } from '../../lib/util/knex'
@@ -1285,17 +1286,27 @@ module.exports = bookshelf.Model.extend(Object.assign({
   },
 
   /**
+   * Downloads remote image URLs (e.g. Airtable attachments), stores them on S3,
+   * and attaches them to the post. Queued from create/update so Zapier is not
+   * blocked by large downloads.
+   */
+  rehostAndAttachImages,
+
+  /**
    * Fetches Open Graph metadata for a URL in a newly created post and attaches
    * the resulting LinkPreview. Used when the client did not supply linkPreviewId
    * (Zapier, email, and other API creates).
    */
   generateLinkPreview: async ({ postId, url }) => {
     const post = await Post.find(postId)
-    if (!post || post.get('link_preview_id')) return
+    // Throw on missing post so kue retries (the job can be queued before commit).
+    if (!post) throw new Error(`generateLinkPreview: post ${postId} not found`)
+    if (post.get('link_preview_id')) return
 
-    const previewUrl = url
-      || RichText.getFirstExternalUrl(post.get('description'))
-      || RichText.getFirstExternalUrl(post.get('name'))
+    const previewUrl = url ||
+      RichText.getFirstExternalUrl(post.get('description')) ||
+      RichText.getFirstExternalUrl(post.get('name'))
+
     if (!previewUrl) return
 
     const preview = await LinkPreview.findOrCreateAndPopulate(previewUrl)

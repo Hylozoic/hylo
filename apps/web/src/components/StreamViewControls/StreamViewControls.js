@@ -190,7 +190,7 @@ const StreamViewControls = ({
           />
         </div>
 
-        <div className={cn(GROUP_CLASS, 'max-sm:hidden')} data-tour='stream-view-modes'>
+        <div className={cn(GROUP_CLASS, 'max-sm:hidden')} data-testid='stream-view-controls' data-tour='stream-view-modes'>
           <ToolBtn active={viewMode === 'cards'} onClick={() => changeView('cards')} tooltip={t('Card view')}>
             {VIEW_MODE_ICONS.cards}
           </ToolBtn>

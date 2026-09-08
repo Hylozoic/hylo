@@ -1,7 +1,8 @@
 require('@babel/register')
 const skiff = require('./lib/skiff') // this must be required first
 const { DateTime } = require('luxon')
-const rollbar = require('./lib/rollbar')
+const sentry = require('./lib/sentry')
+sentry.setProcess('cron')
 const sails = skiff.sails
 const digest2 = require('./lib/group/digest2')
 const Promise = require('bluebird')
@@ -58,7 +59,7 @@ const hourly = now => {
   ]
 
   switch (now.hour) {
-    case 15:
+    case 12:
       sails.log.debug('Sending daily digests')
       tasks.push(sendAndLogDigests('daily'))
       tasks.push(sendSavedSearchDigests('daily'))
@@ -108,7 +109,7 @@ skiff.lift({
       .catch(function (err) {
         sails.log.error(red(err.message))
         sails.log.error(err)
-        rollbar.error(err, () => skiff.lower())
+        sentry.error(err, () => skiff.lower())
       })
   }
 })

@@ -36,6 +36,7 @@ test('group menu shows member pills on space rows and updated icons', async ({ p
 
   await page.goto('/groups/e2e-one-column-group')
   await waitPastRootSessionLoading(page)
+  await expect(page.locator('#center-column-container')).toBeVisible({ timeout: 60000 })
   await page.locator('text=Loading views').waitFor({ state: 'detached', timeout: 20000 }).catch(() => {})
   await expect(page.locator('.ContextMenuGrid [role="button"]').first()).toBeVisible({ timeout: 30000 })
   await page.screenshot({

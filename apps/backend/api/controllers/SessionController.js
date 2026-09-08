@@ -5,7 +5,7 @@ import { Validators } from '@hylo/shared'
 import OIDCAdapter from '../services/oidc/KnexAdapter'
 import { mintTokensForUser } from '../services/OIDCTokens'
 
-const rollbar = require('../../lib/rollbar')
+const sentry = require('../../lib/sentry')
 
 const findUser = function (service, email, id) {
   return User.query(function (qb) {
@@ -132,7 +132,7 @@ const finishOAuth = function (strategy, req, res, next) {
 
   return new Promise((resolve, reject) => {
     var respond = error => {
-      if (error && error.stack) rollbar.error(error, req)
+      if (error && error.stack) sentry.error(error, req)
       if (req.headers.accept === 'application/json') {
         error ? res.serverError(error) : res.ok({})
         return resolve()
@@ -327,12 +327,14 @@ module.exports = {
   },
 
   destroy: function (req, res) {
+    sentry.setUser(null)
     req.session.destroy()
     res.redirect('/')
   },
 
   // a 'pure' version of the above for API-only use
   destroySession: function (req, res) {
+    sentry.setUser(null)
     req.session.destroy()
     res.ok({})
   },

@@ -17,7 +17,7 @@ import {
 } from 'components/ui/tooltip'
 import BadgedIcon from 'components/BadgedIcon'
 import CreateMenu from 'components/CreateMenu'
-import { getMyGroupsWithChildren } from 'store/selectors/getMyGroups'
+import { getMyGroupsWithChildren, isSpaceGroup } from 'store/selectors/getMyGroups'
 import useRouteParams from 'hooks/useRouteParams'
 import { baseUrl, myHomeLandingUrl, isMyHomeContext } from '@hylo/navigation'
 import { DEFAULT_AVATAR } from 'store/models/Group'
@@ -180,7 +180,11 @@ export default function TopNav ({ currentUser }) {
   const navigate = useNavigate()
   const routeParams = useRouteParams()
   const stackGroups = currentUser?.settings?.stackGroups === true
-  const sortedGroups = useSelector(getMyGroupsWithChildren)
+  const rawGroups = useSelector(getMyGroupsWithChildren)
+  const sortedGroups = useMemo(
+    () => rawGroups.filter(group => !isSpaceGroup(group)),
+    [rawGroups]
+  )
   const tabContainerRef = useRef(null)
   const [visibleGroupCount, setVisibleGroupCount] = useState(sortedGroups.length)
   const [iconOnly, setIconOnly] = useState(false)

@@ -19,7 +19,6 @@ import Icon from 'components/Icon'
 import SocketSubscriber from 'components/SocketSubscriber'
 import Loading from 'components/Loading'
 import NotFound from 'components/NotFound'
-import { addSkill, removeSkill } from 'components/SkillsSection/SkillsSection.store'
 import Button from 'components/ui/button'
 import {
   Dialog,
@@ -253,9 +252,10 @@ function GroupDetail ({ forCurrentGroup = false }) {
   }, [location.hash, group?.agreements?.length])
 
   useEffect(() => {
+    if (!currentUser?.id) return
     dispatch(fetchJoinRequests())
     dispatch(fetchForCurrentUser())
-  }, [dispatch])
+  }, [dispatch, currentUser?.id])
 
   useEffect(() => {
     fetchGroup()
@@ -472,7 +472,6 @@ function GroupDetail ({ forCurrentGroup = false }) {
               <div>
                 <JoinSection
                   accessCode={accessCode}
-                  addSkill={addSkill}
                   currentUser={currentUser}
                   fullPage={fullPage}
                   group={group}
@@ -482,7 +481,6 @@ function GroupDetail ({ forCurrentGroup = false }) {
                   joinGroup={joinGroupHandler}
                   linkedSpaceName={linkedSpaceName}
                   requestToJoinGroup={requestToJoinGroup}
-                  removeSkill={removeSkill}
                   routeParams={routeParams}
                   t={t}
                 />
@@ -505,7 +503,6 @@ function GroupDetail ({ forCurrentGroup = false }) {
                     <div>
                       <JoinSection
                         accessCode={accessCode}
-                        addSkill={addSkill}
                         currentUser={currentUser}
                         fullPage={fullPage}
                         group={group}
@@ -515,7 +512,6 @@ function GroupDetail ({ forCurrentGroup = false }) {
                         joinGroup={joinGroupHandler}
                         linkedSpaceName={linkedSpaceName}
                         requestToJoinGroup={requestToJoinGroup}
-                        removeSkill={removeSkill}
                         routeParams={routeParams}
                         t={t}
                       />

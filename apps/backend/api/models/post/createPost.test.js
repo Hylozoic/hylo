@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-expressions */
 import createPost, { afterCreatingPost } from './createPost'
 const rootPath = require('root-path')
 const setup = require(rootPath('test/setup'))
@@ -12,7 +13,7 @@ describe('afterCreatingPost', () => {
     setup.clearDb()
       .then(() => Promise.props({
         requestTag: Tag.forge({ name: 'request' }).save(),
-        u1: new User({ name: 'U1', email: 'a@b.c', active: true }).save(),
+        u1: new User({ name: 'U1', email: 'a@b.c', active: true }).save()
       }))
       .then(props => {
         post = factories.post({ user_id: props.u1.id, description: 'wow!', link_preview_id: null })
@@ -64,13 +65,13 @@ describe('afterCreatingPost', () => {
   it('ignores duplicate group ids', () => {
     const c = factories.group()
     return c.save()
-    .then(() => post.save())
-    .then(() => afterCreatingPost(post, {group_ids: [c.id, c.id]}))
-    .then(() => post.load('groups'))
-    .then(() => expect(post.relations.groups.length).to.equal(1))
-    .catch(err => {
-      throw err
-    })
+      .then(() => post.save())
+      .then(() => afterCreatingPost(post, { group_ids: [c.id, c.id] }))
+      .then(() => post.load('groups'))
+      .then(() => expect(post.relations.groups.length).to.equal(1))
+      .catch(err => {
+        throw err
+      })
   })
 
   it('queues a link preview when the post has a URL and no preview', () => {
@@ -83,7 +84,7 @@ describe('afterCreatingPost', () => {
       .then(() => afterCreatingPost(linkedPost, { group_ids: [] }))
       .then(() => {
         expect(Queue.classMethod).to.have.been.called
-          .with('Post', 'generateLinkPreview', { postId: linkedPost.id, url: 'https://example.com/from-zapier' }, 0)
+          .with('Post', 'generateLinkPreview', { postId: linkedPost.id, url: 'https://example.com/from-zapier' })
       })
   })
 
@@ -185,8 +186,16 @@ describe('Post.generateLinkPreview', () => {
       unspyify(LinkPreview, 'findOrCreateAndPopulate')
     }
   })
-})
 
+  it('throws when the post is not found so the job can retry', async () => {
+    try {
+      await Post.generateLinkPreview({ postId: 999999999, url: 'https://example.com/retry' })
+      expect.fail('should throw')
+    } catch (e) {
+      expect(e.message).to.match(/post 999999999 not found/)
+    }
+  })
+})
 
 describe('createPost accepted_post_types', () => {
   let user, restrictedGroup
@@ -225,5 +234,98 @@ describe('createPost accepted_post_types', () => {
       expect(post).to.exist
       expect(post.get('type')).to.equal(Post.Type.EVENT)
     })
+  })
+})
+
+describe('createPost imageUrls', () => {
+  let user, group
+  const hostedUrl = 'https://cdn.hylo.com/evo-uploads/user/1/post/new/hosted.png'
+  const remoteUrl = 'https://v5.airtableusercontent.com/v1/foo/photo.jpg'
+
+  before(() =>
+    setup.clearDb()
+      .then(() => Promise.props({
+        u: new User({ name: 'U1', email: 'img@b.c', active: true }).save(),
+        g: new Group({ slug: 'img-group', name: 'Img Group' }).save()
+      }))
+      .then(props => {
+        user = props.u
+        group = props.g
+        return user.joinGroup(group)
+      })
+  )
+
+  beforeEach(() => {
+    mockify(Queue, 'classMethod', () => Promise.resolve())
+  })
+
+  afterEach(() => unspyify(Queue, 'classMethod'))
+
+  it('attaches already-hosted Hylo URLs and does not queue a rehost job', async () => {
+    stubGetImageSize(hostedUrl)
+    const created = await createPost(user.id, {
+      name: 'With hosted image',
+      group_ids: [group.id],
+      imageUrls: [hostedUrl]
+    })
+
+    await created.load('media')
+    const images = created.relations.media.filter(m => m.get('type') === 'image')
+    expect(images.length).to.equal(1)
+    expect(images[0].get('url')).to.equal(hostedUrl)
+    expect(Queue.classMethod).not.to.have.been.called.with('Post', 'rehostAndAttachImages')
+  })
+
+  it('queues remote URLs and does not store them as media on create', async () => {
+    const created = await createPost(user.id, {
+      name: 'With remote image',
+      group_ids: [group.id],
+      imageUrls: [remoteUrl]
+    })
+
+    await created.load('media')
+    expect(created.relations.media.length).to.equal(0)
+    expect(Queue.classMethod).to.have.been.called.with('Post', 'rehostAndAttachImages', {
+      postId: created.id,
+      userId: user.id,
+      imageUrls: [remoteUrl],
+      startPosition: 0
+    }, 0)
+  })
+
+  it('attaches hosted URLs immediately and queues remaining remote URLs', async () => {
+    stubGetImageSize(hostedUrl)
+    const created = await createPost(user.id, {
+      name: 'Mixed images',
+      group_ids: [group.id],
+      imageUrls: [hostedUrl, remoteUrl]
+    })
+
+    await created.load('media')
+    const images = created.relations.media.filter(m => m.get('type') === 'image')
+    expect(images.length).to.equal(1)
+    expect(images[0].get('url')).to.equal(hostedUrl)
+    expect(Queue.classMethod).to.have.been.called.with('Post', 'rehostAndAttachImages', {
+      postId: created.id,
+      userId: user.id,
+      imageUrls: [remoteUrl],
+      startPosition: 1
+    }, 0)
+  })
+
+  it('queues every remote URL when several are passed', async () => {
+    const secondRemote = 'https://upload.wikimedia.org/wikipedia/commons/cow.jpg'
+    const created = await createPost(user.id, {
+      name: 'Two remotes',
+      group_ids: [group.id],
+      imageUrls: [remoteUrl, secondRemote]
+    })
+
+    expect(Queue.classMethod).to.have.been.called.with('Post', 'rehostAndAttachImages', {
+      postId: created.id,
+      userId: user.id,
+      imageUrls: [remoteUrl, secondRemote],
+      startPosition: 0
+    }, 0)
   })
 })

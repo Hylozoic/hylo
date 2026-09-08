@@ -28,13 +28,18 @@ async function awaitDialogHeading (page) {
 
 /** Off-menu: the More Spaces page's own add card opens the dialog directly. */
 async function openFromMoreSpaces (page) {
-  await page.locator('#center-column-container').getByRole('button', { name: 'Add to More Spaces' }).click()
+  const addButton = page.locator('#center-column-container').getByRole('button', { name: 'Add to More Spaces' })
+  await expect(addButton).toBeVisible({ timeout: 60000 })
+  await addButton.click()
   return awaitDialogHeading(page)
 }
 
 /** On-menu: the sidebar menu's Add control, then its Add Space item. */
 async function openFromMenu (page) {
-  await page.getByRole('button', { name: 'Add to Menu' }).first().click()
+  const addToMenu = page.getByRole('button', { name: 'Add to Menu' }).first()
+  await addToMenu.scrollIntoViewIfNeeded()
+  await expect(addToMenu).toBeVisible({ timeout: 60000 })
+  await addToMenu.click()
   await page.getByText('Add Space', { exact: true }).click()
   return awaitDialogHeading(page)
 }

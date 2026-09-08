@@ -32,7 +32,7 @@ module.exports.http = {
 
     passportInit: require('passport').initialize(),
     passportSession: require('passport').session(),
-    rollbar: require('../lib/rollbar').errorHandler(),
+    sentry: require('../lib/sentry').errorHandler(),
 
     requestLogger: function (req, res, next) {
       sails.log.info(magenta(`${req.method} ${req.url}`))
@@ -58,7 +58,7 @@ module.exports.http = {
       'router',
       'www',
       'favicon',
-      'rollbar'
+      'sentry'
     ]
 
   /***************************************************************************

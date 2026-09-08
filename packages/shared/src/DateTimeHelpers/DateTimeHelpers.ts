@@ -105,10 +105,12 @@ export const defaultEventTimesForDate = (
 ): { startTime: Date; endTime: Date } => {
   const day = toDateTime(date, { locale }).startOf('day')
   const now = dateTimeNow(locale)
-  let start = isSameDay(day.toJSDate(), now.toJSDate())
+  const sameDay = isSameDay(day.toJSDate(), now.toJSDate())
+  let start = sameDay
     ? now.plus({ hours: 1 }).startOf('hour')
     : day.set({ hour: 9, minute: 0, second: 0, millisecond: 0 })
-  if (start <= now) {
+  // Only bump forward when creating on today; past calendar days keep 9:00 so the selected day is preserved.
+  if (sameDay && start <= now) {
     start = now.plus({ minutes: 30 }).startOf('minute')
   }
   const end = start.plus({ hours: 1 })
