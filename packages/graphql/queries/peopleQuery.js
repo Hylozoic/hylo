@@ -5,7 +5,8 @@ export default gql`
     $first: Int,
     $autocomplete: String,
     $groupIds: [ID],
-    $offset: Int
+    $offset: Int,
+    $includeMemberships: Boolean = false
   ) {
     groups(groupIds: $groupIds) {
       items {
@@ -15,7 +16,7 @@ export default gql`
             id
             name
             avatarUrl
-            memberships {
+            memberships @include(if: $includeMemberships) {
               id
               group {
                 id

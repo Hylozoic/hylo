@@ -673,7 +673,8 @@ function GrantAccessForm ({ group, offerings, spaces, initialSpaceId, onSuccess,
         const response = await dispatch(fetchPeople({
           autocomplete: '',
           groupIds: [group.id],
-          first: GROUP_MEMBERS_PAGE_SIZE
+          first: GROUP_MEMBERS_PAGE_SIZE,
+          includeMemberships: true
         }))
         if (cancelled) return
         const members = response?.payload?.data?.groups?.items?.[0]?.members?.items || []
@@ -694,6 +695,13 @@ function GrantAccessForm ({ group, offerings, spaces, initialSpaceId, onSuccess,
       cancelled = true
     }
   }, [dispatch, group?.id])
+
+  /**
+   * Platform-wide user search for the grant picker; includes memberships for display.
+   */
+  const fetchPeopleForGrant = useCallback((args) => {
+    return fetchPeopleAutocomplete({ ...args, includeMemberships: true })
+  }, [])
 
   /**
    * Handles user selection from ItemSelector
@@ -783,7 +791,7 @@ function GrantAccessForm ({ group, offerings, spaces, initialSpaceId, onSuccess,
           selectedItem={selectedUser}
           onSelect={handleUserSelect}
           defaultItems={groupMembers}
-          fetchItems={fetchPeopleAutocomplete}
+          fetchItems={fetchPeopleForGrant}
           loading={loadingMembers}
           disabled={grantToAllMembers}
           searchPlaceholder={t('Search for a user...')}
