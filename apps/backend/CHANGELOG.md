@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Added
 - Remote `imageUrls` on create/update post (e.g. Airtable attachments via Zapier) are copied to S3 in a background job instead of storing expiring URLs
+- Space setting **Automatically add group members**: when on, current group members are added in the background (except people who previously left the space), and new members are added when they join the group. Leaving a space deactivates membership so they are not re-added if the setting is toggled off and on. Leaving and rejoining the parent group re-adds people to auto-add spaces.
 
 ## [7.0.1] - 2026-09-04
 

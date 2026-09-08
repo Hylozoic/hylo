@@ -256,6 +256,7 @@ describe('Group', function () {
 
       const spaceMembership = await GroupMembership.forPair(user, space, { includeInactive: true }).fetch()
       expect(spaceMembership.get('active')).to.be.false
+      expect(spaceMembership.getSetting('leftSpace')).to.not.equal(true)
       expect(spaceMembership.getSetting('showJoinForm')).to.equal(true)
       expect(spaceMembership.getSetting('joinQuestionsAnsweredAt')).to.be.null
 
@@ -290,6 +291,7 @@ describe('Group', function () {
 
       const spaceMembership = await GroupMembership.forPair(user, space, { includeInactive: true }).fetch()
       expect(spaceMembership.get('active')).to.be.false
+      expect(spaceMembership.getSetting('leftSpace')).to.equal(true)
 
       const roles = await MemberGroupRole.where({ user_id: user.id, group_id: group.id }).fetchAll()
       expect(roles.length).to.equal(1)
@@ -833,6 +835,95 @@ describe('Group', function () {
       expect(ownRows.length).to.equal(0)
       const spaceAgreements = await space.agreements().fetch()
       expect(spaceAgreements.models[0].get('title')).to.equal('Be kind')
+    })
+  })
+
+  describe('addEligibleMembersToSpace', function () {
+    let parent, space, alreadyIn, leaver, neverJoined
+
+    before(async function () {
+      parent = await factories.group().save()
+      space = await factories.group({
+        type: 'space',
+        parent_id: parent.id,
+        slug: `space-auto-add-${Date.now()}`,
+        settings: { auto_add_members: true }
+      }).save()
+      alreadyIn = await factories.user().save()
+      leaver = await factories.user().save()
+      neverJoined = await factories.user().save()
+      await parent.addMembers([alreadyIn.id, leaver.id, neverJoined.id])
+      await space.addMembers([alreadyIn.id, leaver.id])
+      await space.removeMembers([leaver.id])
+    })
+
+    it('adds parent members who have never been in the space and skips people who left', async function () {
+      await Group.addEligibleMembersToSpace({ spaceId: space.id })
+
+      const alreadyMembership = await GroupMembership.forPair(alreadyIn, space).fetch()
+      expect(alreadyMembership.get('active')).to.be.true
+
+      const leaverMembership = await GroupMembership.forPair(leaver, space, { includeInactive: true }).fetch()
+      expect(leaverMembership.get('active')).to.be.false
+
+      const addedMembership = await GroupMembership.forPair(neverJoined, space).fetch()
+      expect(addedMembership.get('active')).to.be.true
+    })
+
+    it('adds a newly joined parent member and still skips people who left', async function () {
+      const newMember = await factories.user().save()
+      await parent.addMembers([newMember.id])
+
+      await Group.afterAddMembers({
+        groupId: parent.id,
+        newUserIds: [newMember.id],
+        reactivatedUserIds: []
+      })
+
+      const newMembership = await GroupMembership.forPair(newMember, space).fetch()
+      expect(newMembership.get('active')).to.be.true
+
+      const leaverMembership = await GroupMembership.forPair(leaver, space, { includeInactive: true }).fetch()
+      expect(leaverMembership.get('active')).to.be.false
+    })
+
+    it('re-adds people who left the parent group and then rejoined', async function () {
+      const parentLeaver = await factories.user().save()
+      await parent.addMembers([parentLeaver.id])
+      await space.addMembers([parentLeaver.id])
+      await parent.removeMembers([parentLeaver.id])
+
+      const afterParentLeave = await GroupMembership.forPair(parentLeaver, space, { includeInactive: true }).fetch()
+      expect(afterParentLeave.get('active')).to.be.false
+      expect(afterParentLeave.getSetting('leftSpace')).to.not.equal(true)
+
+      await parent.addMembers([parentLeaver.id])
+      await Group.afterAddMembers({
+        groupId: parent.id,
+        newUserIds: [],
+        reactivatedUserIds: [parentLeaver.id]
+      })
+
+      const rejoined = await GroupMembership.forPair(parentLeaver, space).fetch()
+      expect(rejoined.get('active')).to.be.true
+    })
+
+    it('does not re-add people who left the space even if they later leave and rejoin the parent', async function () {
+      const spaceThenParentLeaver = await factories.user().save()
+      await parent.addMembers([spaceThenParentLeaver.id])
+      await space.addMembers([spaceThenParentLeaver.id])
+      await space.removeMembers([spaceThenParentLeaver.id])
+      await parent.removeMembers([spaceThenParentLeaver.id])
+      await parent.addMembers([spaceThenParentLeaver.id])
+      await Group.afterAddMembers({
+        groupId: parent.id,
+        newUserIds: [],
+        reactivatedUserIds: [spaceThenParentLeaver.id]
+      })
+
+      const membership = await GroupMembership.forPair(spaceThenParentLeaver, space, { includeInactive: true }).fetch()
+      expect(membership.get('active')).to.be.false
+      expect(membership.getSetting('leftSpace')).to.equal(true)
     })
   })
 })

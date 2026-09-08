@@ -28,6 +28,7 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
     showSuggestedSkills
     showWelcomePage
     layout
+    autoAddMembers
   }
   slug
   type
@@ -191,6 +192,7 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
           showSuggestedSkills
           showWelcomePage
           layout
+          autoAddMembers
         }
         slug
       }
