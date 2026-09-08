@@ -40463,6 +40463,7 @@ __metadata:
     vite-plugin-svgr: "npm:^4.2.0"
     whatwg-fetch: "npm:2.0.3"
     xhr: "npm:^2.5.0"
+    yet-another-react-lightbox: "npm:^3.21.0"
     zustand: "npm:5.0.3"
   languageName: unknown
   linkType: soft
@@ -41525,6 +41526,23 @@ __metadata:
   version: 0.1.2
   resolution: "yeast@npm:0.1.2"
   checksum: 10/5536b5cfb3fc4ddf0c9eb4d2834a3a87e094d267bc40a2713d5b87a8da47c8615b8ffe475f3f92a085628e46be4704917ac0fea4827b3e8d27ac18b4230b6819
+  languageName: node
+  linkType: hard
+
+"yet-another-react-lightbox@npm:^3.21.0":
+  version: 3.32.2
+  resolution: "yet-another-react-lightbox@npm:3.32.2"
+  peerDependencies:
+    "@types/react": ^16 || ^17 || ^18 || ^19
+    "@types/react-dom": ^16 || ^17 || ^18 || ^19
+    react: ^16.8.0 || ^17 || ^18 || ^19
+    react-dom: ^16.8.0 || ^17 || ^18 || ^19
+  peerDependenciesMeta:
+    "@types/react":
+      optional: true
+    "@types/react-dom":
+      optional: true
+  checksum: 10/a867c9e199cc5f867b267f87e48fe60486f041815bf3fed64d6386821ae170e10d19b00fb6cc534ff210be78e3bb86b66ee0143f94ffe85082ab851c692d225e
   languageName: node
   linkType: hard
 

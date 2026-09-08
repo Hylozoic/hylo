@@ -387,7 +387,7 @@
   "Chat": "Chat",
   "CHAT ACTIVITY": "ACTIVITÉ DU CHAT",
   "Chat Topics": "Sujets de Chat",
-  "Chat must have content": "Le chat doit avoir du contenu",
+  "Chat must have text or an attachment": "Le chat doit contenir du texte ou une pièce jointe",
   "Chats": "Chats",
   "Check back soon to offer your {{submissionDescriptor}}": "Venez vérifier bientôt pour offrir votre {{submissionDescriptor}}.",
   "Check your email": "Vérifiez votre e-mail",

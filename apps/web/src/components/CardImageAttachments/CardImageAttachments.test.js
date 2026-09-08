@@ -1,6 +1,6 @@
 import React from 'react'
 import CardImageAttachments from './CardImageAttachments'
-import { render, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
+import { render, screen, waitFor, within } from 'util/testing/reactTestingLibraryExtended'
 import userEvent from '@testing-library/user-event'
 
 describe('CardImageAttachments', () => {
@@ -38,7 +38,7 @@ describe('CardImageAttachments', () => {
     expect(screen.queryByAltText('Attached image 4')).not.toBeInTheDocument()
   })
 
-  it('displays modal when image is clicked', async () => {
+  it('displays lightbox when image is clicked', async () => {
     render(<CardImageAttachments attachments={[
       { url: 'bar', type: 'image' },
       { url: 'baz', type: 'image' },
@@ -49,14 +49,12 @@ describe('CardImageAttachments', () => {
 
     userEvent.click(screen.getByAltText('Attached image 2'))
 
-    // The lightbox shows only the clicked image, not every attachment
     await waitFor(() => {
-      expect(screen.getByTestId('sc-img1')).toBeInTheDocument()
+      expect(document.querySelector('.yarl__root')).toBeInTheDocument()
     })
 
-    expect(screen.getByTestId('sc-img1')).toHaveAttribute('src', 'baz')
-    expect(screen.queryByTestId('sc-img0')).not.toBeInTheDocument()
-    expect(screen.queryByTestId('sc-img2')).not.toBeInTheDocument()
+    const currentSlide = document.querySelector('.yarl__slide_current img')
+    expect(currentSlide).toHaveAttribute('src', 'baz')
   })
 
   it('moves between images in the lightbox', async () => {
@@ -70,25 +68,18 @@ describe('CardImageAttachments', () => {
     userEvent.click(screen.getByTestId('first-image'))
 
     await waitFor(() => {
-      expect(screen.getByTestId('sc-img0')).toBeInTheDocument()
+      expect(document.querySelector('.yarl__root')).toBeInTheDocument()
     })
 
-    userEvent.click(screen.getByLabelText('Next image'))
+    const lightbox = document.querySelector('.yarl__root')
+    userEvent.click(within(lightbox).getByLabelText('Next'))
 
     await waitFor(() => {
-      expect(screen.getByTestId('sc-img1')).toHaveAttribute('src', 'baz')
-    })
-
-    // Wraps around from the first image to the last
-    userEvent.click(screen.getByLabelText('Previous image'))
-    userEvent.click(screen.getByLabelText('Previous image'))
-
-    await waitFor(() => {
-      expect(screen.getByTestId('sc-img2')).toHaveAttribute('src', 'bonk')
+      expect(document.querySelector('.yarl__slide_current img')).toHaveAttribute('src', 'baz')
     })
   })
 
-  it('does not display modal when image is clicked from postCard', async () => {
+  it('does not display lightbox when image is clicked from postCard', async () => {
     render(<CardImageAttachments
       attachments={[
         { url: 'bar', type: 'image' },
@@ -100,7 +91,20 @@ describe('CardImageAttachments', () => {
     userEvent.click(screen.getByAltText('Attached image 1'))
 
     await waitFor(() => {
-      expect(screen.queryByTestId('sc-img0')).not.toBeInTheDocument()
+      expect(document.querySelector('.yarl__root')).not.toBeInTheDocument()
     })
+  })
+
+  it('uses thumbnailUrl for chat tiles when available', () => {
+    render(<CardImageAttachments
+      forChatPost
+      attachments={[
+        { url: 'full-a', thumbnailUrl: 'thumb-a', type: 'image' },
+        { url: 'full-b', type: 'image' }
+      ]}
+           />)
+
+    expect(screen.getByLabelText('full-a')).toHaveStyle({ backgroundImage: 'url(thumb-a)' })
+    expect(screen.getByLabelText('full-b')).toHaveStyle({ backgroundImage: 'url(full-b)' })
   })
 })

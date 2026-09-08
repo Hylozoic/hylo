@@ -388,7 +388,7 @@
   "Chat": "चैट",
   "CHAT ACTIVITY": "चैट गतिविधि",
   "Chat Topics": "चैट विषय",
-  "Chat must have content": "चैट में सामग्री होनी चाहिए",
+  "Chat must have text or an attachment": "चैट में टेक्स्ट या अटैचमेंट होना चाहिए",
   "Chats": "चैट्स",
   "Check back soon to offer your {{submissionDescriptor}}": "जल्द ही वापस आएं ताकि आप अपना {{submissionDescriptor}} पेश कर सकें।",
   "Check your email": "अपना ईमेल देखें",
