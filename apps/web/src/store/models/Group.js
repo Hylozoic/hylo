@@ -184,6 +184,7 @@ Group.fields = {
   groupViews: attr(),
   homeRoute: attr(),
   menuViewCount: attr(),
+  moreSpacesCount: attr(),
   icon: attr(),
   id: attr(),
   joinQuestions: many('GroupJoinQuestion'),

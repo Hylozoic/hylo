@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Space setting to automatically add all current group members, and anyone who joins the group later. People who leave the space are not added again if the setting is turned off and then on.
 
+## [7.0.2] - 2026-09-08
+
+### Added
+- Ability to grant access to a paid space to all current members of the parent group
+- Can include imageUrls in createPost that get uploaded to AWS and attached to the post (if not already in AWS), for use by APIs and Zapier.
+
+### Fixed
+- More Spaces appears in the group menu on first load, using a cached off-menu space count so the spaces list is only fetched when you open that page
+- You can click on a steward's pill in the group about page to view their profile
+- Stop extra calendar reloads
+
 ## [7.0.1] - 2026-09-04
 
 ### Fixed
@@ -16,7 +27,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Converting a child group to a space removes it from GlobalNav immediately, including when it was pinned
 - Don't allow converting a group to a space if it has spaces of its own
 - Make site banner scrollable when long on a small device, and add dismiss button to bottom
-
 
 ## [7.0.0] - 2026-09-03 - Spaces and Views!
 

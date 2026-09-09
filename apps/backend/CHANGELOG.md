@@ -6,9 +6,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-## Added
-- Remote `imageUrls` on create/update post (e.g. Airtable attachments via Zapier) are copied to S3 in a background job instead of storing expiring URLs
 - Space setting **Automatically add group members**: when on, current group members are added in the background (except people who previously left the space), and new members are added when they join the group. Leaving a space deactivates membership so they are not re-added if the setting is toggled off and on. Leaving and rejoining the parent group re-adds people to auto-add spaces.
+
+## [7.0.2] - 2026-09-08
+
+### Added
+- Remote `imageUrls` on create/update post (e.g. Airtable attachments via Zapier) are copied to S3 in a background job instead of storing expiring URLs
+- `groups.more_spaces_count`: cached count of child spaces not on the group menu, so the More Spaces row and badge can render without loading the spaces list
+- Ability to grant access to a paid space to all current members of the parent group
+- Backend tracks errors through Sentry.
+
+### Fixed
+- Adding link previews for posts coming from Zapier
 
 ## [7.0.1] - 2026-09-04
 

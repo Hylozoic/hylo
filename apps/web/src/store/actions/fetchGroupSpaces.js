@@ -10,6 +10,7 @@ export default function fetchGroupSpaces (groupId) {
       query: `query FetchGroupSpaces ($groupId: ID) {
         group(id: $groupId) {
           id
+          moreSpacesCount
           spaces {
             items {
               id
@@ -53,6 +54,7 @@ export default function fetchGroupSpaces (groupId) {
               active
               homeRoute
               menuViewCount
+              moreSpacesCount
               groupViews {
                 items {
                   id

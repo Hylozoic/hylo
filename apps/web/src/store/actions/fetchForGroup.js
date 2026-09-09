@@ -52,6 +52,7 @@ const queryFragment = `group(slug: $slug, updateLastViewed: $updateLastViewed) {
     icon
     homeRoute
     menuViewCount
+    moreSpacesCount
     acceptedPostTypes
     typeDescriptor
     typeDescriptorPlural

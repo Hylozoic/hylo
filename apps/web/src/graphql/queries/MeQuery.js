@@ -120,6 +120,7 @@ export default gql`
         avatarUrl
         bannerUrl
         homeRoute
+        moreSpacesCount
         icon
         name
         memberCount

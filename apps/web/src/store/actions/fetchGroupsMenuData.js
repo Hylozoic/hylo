@@ -64,6 +64,7 @@ query FetchGroupsMenuData (
       icon
       homeRoute
       menuViewCount
+      moreSpacesCount
       visibility
       accessibility
       acceptedPostTypes
@@ -105,6 +106,7 @@ query FetchGroupsMenuData (
             icon
             homeRoute
             menuViewCount
+            moreSpacesCount
             description
             purpose
             location
@@ -224,6 +226,7 @@ query FetchGroupsMenuData (
           active
           homeRoute
           menuViewCount
+          moreSpacesCount
           groupViews {
             items {
               id
