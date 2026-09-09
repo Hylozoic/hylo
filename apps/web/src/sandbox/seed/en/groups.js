@@ -49,7 +49,7 @@ export function buildGroups () {
         lat: 37.8044,
         lng: -122.2712
       }),
-      homeRoute: '/stream',
+      homeRoute: '/all',
       stewardDescriptor: 'Coordinator',
       stewardDescriptorPlural: 'Coordinators',
       createdAt_offset: -86400 * 180,
@@ -389,14 +389,14 @@ export function buildMemberships (groups) {
 }
 
 /**
- * Context menu / groupViews for the main group (stream, map, spaces, etc.).
+ * Context menu / groupViews for the main group (all activity, map, spaces, etc.).
  */
 export function buildGroupViews (groups, track, fundingRound) {
   const { main, spaces } = groups
   return {
     [main.id]: [
-      viewItem(sid('view', 'stream'), 'stream', 'Stream', 0, { icon: 'LayoutList' }),
-      viewItem(sid('view', 'map'), 'map', 'Map', 1, { icon: 'Map' }),
+      viewItem(sid('view', 'all'), 'all', 'All Activity', 0),
+      viewItem(sid('view', 'map'), 'map', 'Map', 1),
       viewItem(sid('view', 'events'), 'events', 'Events', 2, { icon: 'Calendar' }),
       viewItem(sid('view', 'members'), 'members', 'Members', 3, { icon: 'Users' }),
       spaceViewItem(sid('view', 'chat-space'), spaces.chat, 4),
@@ -416,14 +416,14 @@ export function buildGroupViews (groups, track, fundingRound) {
     ],
     [groups.simple.id]: [
       viewItem(sid('view', 'simple-chat'), 'chat', 'Chat', 0, { icon: 'MessageCircle' }),
-      viewItem(sid('view', 'simple-all'), 'all', 'All Activity', 1, { icon: 'LayoutList' }),
+      viewItem(sid('view', 'simple-all'), 'all', 'All Activity', 1),
       viewItem(sid('view', 'simple-requests'), 'requests-and-offers', 'Requests & Offers', 2, { icon: 'HandHeart' }),
       viewItem(sid('view', 'simple-projects'), 'projects', 'Projects', 3, { icon: 'Layers' }),
       viewItem(sid('view', 'simple-members'), 'members', 'Members', 4, { icon: 'Users' })
     ],
     [groups.staff.id]: [
       viewItem(sid('view', 'staff-chat'), 'chat', 'Chat', 0, { icon: 'MessageCircle' }),
-      viewItem(sid('view', 'staff-all'), 'all', 'All Activity', 1, { icon: 'LayoutList' }),
+      viewItem(sid('view', 'staff-all'), 'all', 'All Activity', 1),
       viewItem(sid('view', 'staff-requests'), 'requests-and-offers', 'Requests & Offers', 2, { icon: 'HandHeart' }),
       viewItem(sid('view', 'staff-events'), 'events', 'Events', 3, { icon: 'Calendar' }),
       viewItem(sid('view', 'staff-members'), 'members', 'Members', 4, { icon: 'Users' })
