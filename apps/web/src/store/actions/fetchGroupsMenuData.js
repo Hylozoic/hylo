@@ -78,6 +78,7 @@ query FetchGroupsMenuData (
         allowGroupInvites
         showWelcomePage
         layout
+        autoAddMembers
       }
       groupViews {
         items {
@@ -118,6 +119,12 @@ query FetchGroupsMenuData (
             accessibility
             requiredRoles
             paywall
+            settings {
+              allowGroupInvites
+              showWelcomePage
+              layout
+              autoAddMembers
+            }
             groupRoles {
               items {
                 id
@@ -202,6 +209,12 @@ query FetchGroupsMenuData (
           accessibility
           requiredRoles
           paywall
+          settings {
+            allowGroupInvites
+            showWelcomePage
+            layout
+            autoAddMembers
+          }
           groupRoles {
             items {
               id

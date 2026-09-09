@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+- Space setting to automatically add all current group members, and anyone who joins the group later. People who leave the space are not added again if the setting is turned off and then on.
+
 ## [7.0.2] - 2026-09-08
 
 ### Added

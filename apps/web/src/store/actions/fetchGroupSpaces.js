@@ -37,6 +37,12 @@ export default function fetchGroupSpaces (groupId) {
               accessibility
               requiredRoles
               paywall
+              settings {
+                allowGroupInvites
+                showWelcomePage
+                layout
+                autoAddMembers
+              }
               groupRoles {
                 items {
                   id

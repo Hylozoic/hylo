@@ -42,6 +42,7 @@ const queryFragment = `group(slug: $slug, updateLastViewed: $updateLastViewed) {
       showWelcomePage
       showPostNoticesInChat
       layout
+      autoAddMembers
     }
     slug
     type
