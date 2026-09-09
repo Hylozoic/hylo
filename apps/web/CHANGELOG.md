@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+- More Spaces appears in the group menu on first load, using a cached off-menu space count so the spaces list is only fetched when you open that page
+
 ## [7.0.1] - 2026-09-04
 
 ### Fixed

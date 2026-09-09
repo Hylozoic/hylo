@@ -412,6 +412,7 @@ export async function convertSpaceToChildGroup (userId, id, context) {
     await parentGroup.addChild(space, { transacting: trx })
     await copyParentStewardsToChild(parentGroup, space, { transacting: trx })
     await convertSpaceViewToChildGroupView(id, space.get('name'), { transacting: trx })
+    await GroupView.syncMoreSpacesCount(parentId, { transacting: trx })
     await removeFromParentSpaceCollections(id, parentId, { transacting: trx })
   })
 
@@ -530,6 +531,7 @@ export async function convertGroupToSpace (userId, { id, parentGroupId }, contex
     await group.save({ type: 'space', parent_id: parentGroupId }, { patch: true, transacting: trx })
     await relationship.save({ active: false }, { transacting: trx })
     await convertChildGroupViewToSpaceView(parentGroupId, id, group.get('name'), { transacting: trx })
+    await GroupView.syncMoreSpacesCount(parentGroupId, { transacting: trx })
     await GroupMembership.unpinGroupFromAllNavs(id, { transacting: trx })
   })
 

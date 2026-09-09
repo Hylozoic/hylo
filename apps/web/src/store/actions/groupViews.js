@@ -69,6 +69,7 @@ const groupViewFields = `
     icon
     homeRoute
     menuViewCount
+    moreSpacesCount
     description
     groupViews {
       items {

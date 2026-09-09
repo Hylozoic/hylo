@@ -827,6 +827,9 @@ type Group {
   # Cached count of on-menu views (order is not null). Stored on groups.menu_view_count
   # so a parent menu can tell single-view vs multi-view spaces without a nested query.
   menuViewCount: Int
+  # Cached count of child spaces not on the group menu. Stored on groups.more_spaces_count
+  # so the menu can show More Spaces and its badge without loading the spaces list.
+  moreSpacesCount: Int
   # The current invite link for this group
   invitePath: String
   # A string describing the physical location of this group in the world

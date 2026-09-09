@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Added
 - Remote `imageUrls` on create/update post (e.g. Airtable attachments via Zapier) are copied to S3 in a background job instead of storing expiring URLs
+- `groups.more_spaces_count`: cached count of child spaces not on the group menu, so the More Spaces row and badge can render without loading the spaces list
 
 ## [7.0.1] - 2026-09-04
 

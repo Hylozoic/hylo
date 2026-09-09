@@ -188,7 +188,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
       }
     },
 
-
     Me: {
       model: User,
       attributes: [
@@ -721,6 +720,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'description',
         'home_route',
         'menu_view_count',
+        'more_spaces_count',
         'icon',
         'location',
         'geo_shape',
