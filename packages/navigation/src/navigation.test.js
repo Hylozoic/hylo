@@ -231,6 +231,7 @@ describe('homeRoutePathForView', () => {
     expect(homeRoutePathForView({ type: 'custom', id: 12 })).toEqual('/custom/12')
     expect(homeRoutePathForView({ type: 'collection', id: 34 })).toEqual('/collection/34')
     expect(homeRoutePathForView({ type: 'space-collection', id: 56 })).toEqual('/space-collection/56')
+    expect(homeRoutePathForView({ type: 'page', id: 7 })).toEqual('/page/7')
   })
 
   it('matches groupViewPath for navigable views', () => {

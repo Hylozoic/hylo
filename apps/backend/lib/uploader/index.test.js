@@ -1,4 +1,4 @@
-import { upload, guessFileType } from './index'
+import { upload, guessFileType, originalFilestackUrl, filestackPngUrl } from './index'
 import { Readable } from 'stream'
 
 describe('Uploader', () => {
@@ -96,5 +96,32 @@ describe('Uploader', () => {
     )
     const result = guessFileType(docxBuffer, 'any.docx')
     expect(result.ext).to.equal('docx')
+  })
+})
+
+describe('originalFilestackUrl', () => {
+  it('strips Filestack processing segments and keeps the handle', () => {
+    expect(originalFilestackUrl('https://cdn.filestackcontent.com/rotate=deg:exif/AbCd1234'))
+      .to.equal('https://cdn.filestackcontent.com/AbCd1234')
+  })
+
+  it('strips an appended filename that contains spaces', () => {
+    expect(originalFilestackUrl('https://cdn.filestackcontent.com/AbCd1234/Group 183-2.png'))
+      .to.equal('https://cdn.filestackcontent.com/AbCd1234')
+  })
+
+  it('leaves a handle-only Filestack URL unchanged', () => {
+    expect(originalFilestackUrl('https://cdn.filestackcontent.com/AbCd1234'))
+      .to.equal('https://cdn.filestackcontent.com/AbCd1234')
+  })
+
+  it('leaves non-Filestack URLs unchanged', () => {
+    expect(originalFilestackUrl('https://example.com/photo.jpg'))
+      .to.equal('https://example.com/photo.jpg')
+  })
+
+  it('builds a PNG conversion URL for SVG downloads', () => {
+    expect(filestackPngUrl('https://cdn.filestackcontent.com/AbCd1234/Group 183-2.svg'))
+      .to.equal('https://cdn.filestackcontent.com/output=format:png/AbCd1234')
   })
 })

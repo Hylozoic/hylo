@@ -101,7 +101,7 @@ const HyloEditor = React.forwardRef(({
     Image.configure({
       allowBase64: true,
       HTMLAttributes: {
-        class: 'w-full h-auto'
+        class: type === 'welcomePage' ? 'max-w-full h-auto mx-auto' : 'w-full h-auto'
       }
     }),
 
@@ -302,7 +302,11 @@ const HyloEditor = React.forwardRef(({
         <HyloEditorMenuBar editor={editor} extendedMenu={extendedMenu} type={type} id={groupIds?.[0]} className={menuClassName} />
       )}
       <EditorContent
-        className={cn('HyloEditor_EditorContent1 global-postContent text-foreground py-3 px-3 cursor-text', className)}
+        className={cn(
+          'HyloEditor_EditorContent1 global-postContent text-foreground py-3 px-3 cursor-text',
+          type === 'welcomePage' && 'hylo-page-html',
+          className
+        )}
         editor={editor}
         onMouseDown={handleEditorAreaPointerDown}
         onTouchStart={handleEditorAreaPointerDown}

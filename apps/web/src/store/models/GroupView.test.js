@@ -76,5 +76,6 @@ describe('canBeHomeView', () => {
     expect(canBeHomeView({ type: 'chat' })).toBe(true)
     expect(canBeHomeView({ type: 'all' })).toBe(true)
     expect(canBeHomeView({ type: 'members' })).toBe(true)
+    expect(canBeHomeView({ type: 'page' })).toBe(true)
   })
 })

@@ -371,11 +371,6 @@ function GroupViewCard ({
   const lightSurfaceLabels = !isDark && !onPhoto
   const eventStart = eventStartForView(presented)
   const isSpace = presented.type === 'space'
-  const isWelcome = presented.type === 'welcome'
-  const welcomeText = !isEditing && isWelcome && (presented.pageContent || group?.welcomePage)
-    ? (presented.pageContent || group.welcomePage).replace(/<[^>]*>/g, '').trim()
-    : null
-  const hasExtraContent = Boolean(welcomeText)
   const liveSpaceGroup = useSelector(state =>
     isSpace && linkedGroup?.slug
       ? getGroupForSlug(state, linkedGroup.slug)
@@ -485,22 +480,7 @@ function GroupViewCard ({
     : null
 
   let cardBody
-  if (hasExtraContent) {
-    cardBody = (
-      <div className='relative h-full flex flex-col p-2 sm:p-3'>
-        <div className='flex-1 flex flex-col items-center justify-center gap-1.5 text-center'>
-          {iconTile}
-          {label}
-        </div>
-        <p className={cn(
-          'm-0 px-1 text-xs line-clamp-2 leading-relaxed',
-          lightSurfaceLabels ? 'text-foreground/70' : 'text-white/70 [text-shadow:0_1px_4px_rgba(0,0,0,0.6)]'
-        )}
-        >{welcomeText}
-        </p>
-      </div>
-    )
-  } else if (isMembers) {
+  if (isMembers) {
     cardBody = (
       <div className='relative h-full flex flex-col p-2 sm:p-3'>
         <div className='text-center shrink-0 pt-0.5'>

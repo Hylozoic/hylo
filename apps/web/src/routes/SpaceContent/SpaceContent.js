@@ -10,6 +10,7 @@ import ChatRoom from 'routes/ChatRoom'
 import GroupAboutPage from 'routes/GroupAboutPage'
 import MembershipRequestsTab from 'routes/GroupSettings/MembershipRequestsTab'
 import GroupWelcomePage from 'routes/GroupWelcomePage'
+import GroupPageView from 'routes/GroupPageView'
 import MapExplorer from 'routes/MapExplorer'
 import MemberProfile from 'routes/MemberProfile'
 import Members from 'routes/Members'
@@ -196,6 +197,7 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
       <Routes>
         <Route index element={spaceIndexElement} />
         <Route path='welcome/*' element={<GroupWelcomePage />} />
+        <Route path='page/:viewId/*' element={<GroupPageView />} />
         <Route path='map/*' element={<MapExplorer context='groups' view='map' />} />
         <Route path='all/*' element={<ViewContent context='groups' view='all' />} />
         <Route path='discussions/*' element={<ViewContent context='groups' view='discussions' />} />

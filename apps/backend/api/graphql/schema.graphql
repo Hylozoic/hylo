@@ -1295,7 +1295,7 @@ type GroupView {
   id: ID
   # The Group or Space this view belongs to
   group: Group
-  # Display name override (used by 'custom', 'space' and 'group' type views)
+  # Display name override (used by 'custom', 'page', 'space' and 'group' type views)
   name: String
   # The type of view, e.g. 'chat', 'welcome', 'custom', 'space', 'collection', 'link', etc.
   type: String
@@ -1303,7 +1303,7 @@ type GroupView {
   order: Int
   # Icon override for this view
   icon: String
-  # Markdown content, used by 'welcome', 'text' and 'link' type views
+  # HTML content, used by 'page', 'welcome', 'text' and 'link' type views
   pageContent: String
   # URL, used by 'link' type views
   link: String
