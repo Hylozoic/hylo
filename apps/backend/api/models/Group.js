@@ -895,10 +895,10 @@ module.exports = bookshelf.Model.extend(merge({
       {
         settings: merge(
           {},
-          pickedAttrs.settings || {},
-          joinFlowReset
+          joinFlowReset,
+          pickedAttrs.settings || {}
         )
-      } // updateAndSave will merge these with existing settings
+      } // caller settings win so auto-add can skip the join form / emails
     )
 
     return Promise.map(existingMemberships.models, ms => ms.updateAndSave(updatedAttribs, { transacting }))
@@ -1287,6 +1287,9 @@ module.exports = bookshelf.Model.extend(merge({
   // Background task to do additional work/tasks after a new member finished joining a group (after they've accepted agreements and answered join questions)
   async afterFinishedJoining ({ userId, groupId }) {
     const group = await Group.find(groupId)
+    if (!group) return
+    // Auto-add spaces put people in without a join flow; don't email stewards "X joined"
+    if (group.get('type') === 'space' && group.getSetting('auto_add_members')) return
 
     const moderators = await group.moderators().fetch()
 

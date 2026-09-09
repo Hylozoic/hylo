@@ -906,6 +906,7 @@ describe('Group', function () {
 
       const rejoined = await GroupMembership.forPair(parentLeaver, space).fetch()
       expect(rejoined.get('active')).to.be.true
+      expect(rejoined.getSetting('showJoinForm')).to.equal(false)
     })
 
     it('does not re-add people who left the space even if they later leave and rejoin the parent', async function () {
@@ -924,6 +925,16 @@ describe('Group', function () {
       const membership = await GroupMembership.forPair(spaceThenParentLeaver, space, { includeInactive: true }).fetch()
       expect(membership.get('active')).to.be.false
       expect(membership.getSetting('leftSpace')).to.equal(true)
+    })
+
+    it('does not send member-joined notifications for auto-add spaces', async function () {
+      spyify(Activity, 'saveForReasons', () => Promise.resolve())
+      try {
+        await Group.afterFinishedJoining({ userId: alreadyIn.id, groupId: space.id })
+        expect(Activity.saveForReasons).to.not.have.been.called
+      } finally {
+        unspyify(Activity, 'saveForReasons')
+      }
     })
   })
 })
