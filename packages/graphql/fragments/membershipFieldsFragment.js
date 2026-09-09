@@ -19,6 +19,7 @@ export default gql`
     group {
       id
       homeRoute
+      moreSpacesCount
       agreements {
         items {
           id

@@ -171,6 +171,29 @@ describe('Group', function () {
       expect(membership.get('active')).to.be.true
       expect(membership.getSetting('lastReadAt')).to.be.null
     })
+
+    it('reactivates inactive membership and increments num_members when ids are numbers', async function () {
+      // Stripe checkout grant uses parseInt; pg returns bigint ids as strings.
+      // Rejoin must not treat that as a new insert (unique constraint) or skip the count.
+      // Use a fresh group/user — beforeEach already creates a membership for u1 without
+      // updating num_members, which would skew the count assertions.
+      const freshGroup = await factories.group({ num_members: 0 }).save()
+      const user = await factories.user().save()
+
+      await freshGroup.addMembers([user.id])
+      await freshGroup.refresh()
+      expect(freshGroup.get('num_members')).to.equal(1)
+
+      await freshGroup.removeMembers([user.id])
+      await freshGroup.refresh()
+      expect(freshGroup.get('num_members')).to.equal(0)
+
+      await GroupMembership.ensureMembership(parseInt(user.id, 10), parseInt(freshGroup.id, 10))
+
+      await freshGroup.refresh()
+      expect(freshGroup.get('num_members')).to.equal(1)
+      expect(await GroupMembership.hasActiveMembership(user.id, freshGroup.id)).to.be.true
+    })
   })
 
   describe('removeMembers', function () {

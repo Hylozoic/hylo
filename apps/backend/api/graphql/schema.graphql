@@ -66,8 +66,10 @@ type Query {
     status: String,
     # Filter by offering ID
     offeringId: ID,
-    # Filter by track ID
+    # Filter by track ID (legacy)
     trackId: ID,
+    # Filter by target group/space ID (content_access.group_id)
+    groupId: ID,
     # Filter by group role ID
     groupRoleId: ID,
     # Number of records to return
@@ -825,6 +827,9 @@ type Group {
   # Cached count of on-menu views (order is not null). Stored on groups.menu_view_count
   # so a parent menu can tell single-view vs multi-view spaces without a nested query.
   menuViewCount: Int
+  # Cached count of child spaces not on the group menu. Stored on groups.more_spaces_count
+  # so the menu can show More Spaces and its badge without loading the spaces list.
+  moreSpacesCount: Int
   # The current invite link for this group
   invitePath: String
   # A string describing the physical location of this group in the world
@@ -1252,8 +1257,10 @@ type Group {
     status: String,
     # Filter by offering ID
     offeringId: ID,
-    # Filter by track ID
+    # Filter by track ID (legacy)
     trackId: ID,
+    # Filter by target group/space ID (content_access.group_id)
+    groupId: ID,
     # Filter by group role ID
     groupRoleId: ID,
     # Number of records to return
@@ -2918,6 +2925,8 @@ type ContentAccessResult {
   status: String
   success: Boolean
   message: String
+  # Number of users granted access (useful for grantToAllMembers)
+  grantedCount: Int
 }
 
 type ContentAccessCheckResult {
@@ -3273,16 +3282,19 @@ type Mutation {
   cancelJoinRequest(joinRequestId: ID): GenericResult
   # Clear a moderation action; only a 'content manager' or initial reporter can do this.
   clearModerationAction(postId: ID, groupId: ID, moderationActionId: ID): GenericResult
-  # Grant content access to a user (admin only)
+  # Grant content access to a user, or to all current members of the granting group (admin only)
+  # groupId may be the parent group or a child space (spaces are groups). No trackId — use groupId for spaces.
   grantContentAccess(
-    userId: ID!,
+    # Target user. Required unless grantToAllMembers is true.
+    userId: ID,
     grantedByGroupId: ID!,
     groupId: ID,
     productId: ID,
-    trackId: ID,
     groupRoleId: ID,
     expiresAt: Date,
-    reason: String
+    reason: String,
+    # When true, grant to every current member of grantedByGroupId (userId is ignored)
+    grantToAllMembers: Boolean
   ): ContentAccessResult
   # Revoke content access (admin only)
   revokeContentAccess(
@@ -4391,7 +4403,7 @@ input PostInput {
   fundingRoundId: ID
   # IDs of the groups to post to
   groupIds: [ID]
-  # URLs of images in the post
+  # URLs of images in the post. URLs already on Hylo storage are attached immediately; other URLs (e.g. Airtable attachments) are downloaded and stored on our S3 in the background.
   imageUrls: [String]
   # Whether who votes on this proposal is visible or not
   isAnonymousVote: Boolean

@@ -11,12 +11,19 @@ import { createS3StorageStream } from './storage'
 import { validate } from './validation'
 import * as types from './types'
 
+const REMOTE_FETCH_HEADERS = {
+  'User-Agent': 'Hylo/1.0 (https://www.hylo.com; hello@hylo.com) image-rehost'
+}
+
 export function upload (args) {
   let { type, id, userId, url, stream, onProgress, filename } = args
   return validate(args)
     .then(() => {
       let passthrough, converter, storage, didSetup, sourceHasError
-      const source = url ? request(url) : stream
+      // Wikimedia and similar CDNs 403 the default `request` User-Agent.
+      const source = url
+        ? request({ url, headers: REMOTE_FETCH_HEADERS })
+        : stream
       if (!filename) filename = url
       function setupStreams (data, resolve, reject) {
         didSetup = true
@@ -79,6 +86,17 @@ export function upload (args) {
       }
 
       return new Promise((resolve, reject) => {
+        if (url && typeof source.on === 'function') {
+          source.on('response', response => {
+            if (response.statusCode < 200 || response.statusCode >= 300) {
+              sourceHasError = true
+              const err = new Error(`Download failed (${response.statusCode})`)
+              if (typeof source.abort === 'function') source.abort()
+              reject(err)
+            }
+          })
+        }
+
         source.on('data', data => {
           if (sourceHasError) return
 
@@ -98,6 +116,11 @@ export function upload (args) {
         })
 
         source.on('end', () => {
+          if (sourceHasError) return
+          if (!didSetup) {
+            reject(new Error('Download produced no data'))
+            return
+          }
           if (passthrough) passthrough.end()
         })
       })

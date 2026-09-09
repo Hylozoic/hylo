@@ -188,7 +188,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
       }
     },
 
-
     Me: {
       model: User,
       attributes: [
@@ -721,6 +720,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'description',
         'home_route',
         'menu_view_count',
+        'more_spaces_count',
         'icon',
         'location',
         'geo_shape',
@@ -920,7 +920,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         {
           contentAccess: {
             querySet: true,
-            filter: (relation, { search, accessType, status, offeringId, trackId, groupRoleId, sortBy, order }) =>
+            filter: (relation, { search, accessType, status, offeringId, trackId, groupId, groupRoleId, sortBy, order }) =>
               relation.query(filterAndSortContentAccess({
                 groupIds: [relation.relatedData.parentId],
                 search,
@@ -928,6 +928,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
                 status,
                 offeringId,
                 trackId,
+                groupId,
                 groupRoleId,
                 sortBy,
                 order
@@ -1969,7 +1970,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
       },
       filter: (relation) => {
         const args = ContentAccess._fetchManyArgs || {}
-        const { groupIds, search, accessType, status, offeringId, trackId, groupRoleId, sortBy = 'created_at', order } = args
+        const { groupIds, search, accessType, status, offeringId, trackId, groupId, groupRoleId, sortBy = 'created_at', order } = args
 
         return relation.query(q => {
           // Filter by group IDs (groups that granted the access)
@@ -1998,9 +1999,14 @@ export default function makeModels (userId, isAdmin, apiClient) {
             q.where('content_access.product_id', offeringId)
           }
 
-          // Filter by track ID
+          // Filter by track ID (legacy)
           if (trackId) {
             q.where('content_access.track_id', trackId)
+          }
+
+          // Filter by target group/space ID
+          if (groupId) {
+            q.where('content_access.group_id', groupId)
           }
 
           // Filter by group role ID

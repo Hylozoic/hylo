@@ -1,7 +1,7 @@
 import { isEmpty } from 'lodash'
 import { get, includes } from 'lodash/fp'
 import { refineOne } from './util/relations'
-import rollbar from '../../lib/rollbar'
+import sentry from '../../lib/sentry'
 import { broadcast, userRoom } from '../services/Websockets'
 import RedisPubSub from '../services/RedisPubSub'
 import { getLocaleStrings } from '../../lib/i18n/locales'
@@ -1433,7 +1433,7 @@ module.exports = bookshelf.Model.extend({
         await Promise.each(ns.models, n =>
           n.send().catch(err => {
             console.error('Error sending notification', err, n.attributes)
-            rollbar.error(err, null, { notification: n.attributes })
+            sentry.error(err, null, { notification: n.attributes })
             return n.save({ failed_at: new Date(), processing_started_at: null }, { patch: true })
           })
         )

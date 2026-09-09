@@ -34,7 +34,9 @@ test('space modals carry the group creation form treatment', async ({ page }) =>
 
   // ---- Create modal ----
   const center = page.locator('#center-column-container')
-  await center.getByRole('button', { name: 'Add to More Spaces' }).click()
+  const addButton = center.getByRole('button', { name: 'Add to More Spaces' })
+  await expect(addButton).toBeVisible({ timeout: 60000 })
+  await addButton.click()
   const heading = page.locator('h2', { hasText: /Create a new space in/ })
   await expect(heading).toBeVisible({ timeout: 20000 })
 
@@ -113,6 +115,10 @@ test('space modals carry the group creation form treatment', async ({ page }) =>
   await page.setViewportSize({ width: 1280, height: 720 })
 
   await page.getByRole('button', { name: 'Cancel' }).click()
+  // Role Gated / Welcome / menu edits dirty the form, so Cancel asks before closing.
+  const discard = page.getByRole('button', { name: 'Discard Space' })
+  await expect(discard).toBeVisible({ timeout: 10000 })
+  await discard.click()
   await expect(heading).toHaveCount(0)
 
   // ---- Settings modal for an existing space ----
@@ -139,7 +145,9 @@ test('adding Welcome from the menu toggles the Welcome pill on, and removing it 
   await waitPastRootSessionLoading(page)
   await page.waitForLoadState('networkidle')
 
-  await page.locator('#center-column-container').getByRole('button', { name: 'Add to More Spaces' }).click()
+  const addButton = page.locator('#center-column-container').getByRole('button', { name: 'Add to More Spaces' })
+  await expect(addButton).toBeVisible({ timeout: 60000 })
+  await addButton.click()
   await expect(page.locator('h2', { hasText: /Create a new space in/ })).toBeVisible({ timeout: 20000 })
 
   const welcomePill = page.getByRole('button', { name: 'Welcome', exact: true })

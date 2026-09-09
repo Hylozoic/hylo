@@ -646,11 +646,15 @@ module.exports = bookshelf.Model.extend(merge({
       pick(omitBy(membershipAttrs, isUndefined), GROUP_MEMBERSHIP_ATTR_UPDATE_WHITELIST)
     )
 
-    const userIds = usersOrIds.map(x => x instanceof User ? x.id : x)
+    // Normalize to strings: pg bigint ids are strings, but callers (e.g. Stripe
+    // checkout grant) often pass parseInt numbers. lodash difference is strict,
+    // so mismatched types treat returning members as "new", hit the unique
+    // constraint after reactivation, and skip the num_members increment.
+    const userIds = usersOrIds.map(x => String(x instanceof User ? x.id : x))
     const existingMemberships = await this.memberships(true)
       .query(q => q.whereIn('user_id', userIds)).fetch({ transacting })
-    const reactivatedUserIds = existingMemberships.filter(m => !m.get('active')).map(m => m.get('user_id'))
-    const existingUserIds = existingMemberships.pluck('user_id')
+    const reactivatedUserIds = existingMemberships.filter(m => !m.get('active')).map(m => String(m.get('user_id')))
+    const existingUserIds = existingMemberships.pluck('user_id').map(id => String(id))
     const newUserIds = difference(userIds, existingUserIds)
     const updatedMemberships = await this.updateMembers(existingUserIds, updatedAttribs, { transacting })
 
@@ -864,7 +868,7 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   async updateMembers (usersOrIds, attrs, { transacting } = {}) {
-    const userIds = usersOrIds.map(x => x instanceof User ? x.id : x)
+    const userIds = usersOrIds.map(x => String(x instanceof User ? x.id : x))
 
     const existingMemberships = await this.memberships(true)
       .query(q => q.whereIn('user_id', userIds)).fetch({ transacting })

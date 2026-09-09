@@ -3037,5 +3037,16 @@
   "widget-public-groups": "सार्वजनिक समूह",
   "widget-public-map": "सार्वजनिक मानचित्र",
   "widget-public-events": "सार्वजनिक कार्यक्रम",
-  "Chat with {{groupName}}": "{{groupName}} के साथ चैट करें"
+  "Chat with {{groupName}}": "{{groupName}} के साथ चैट करें",
+  "Or, grant access to all current group members": "या, वर्तमान समूह के सभी सदस्यों को पहुँच प्रदान करें",
+  "Grant Access to All Members": "सभी सदस्यों को पहुँच प्रदान करें",
+  "Granting group access to all members will ensure each member has an active access record for this group.": "सभी सदस्यों को समूह पहुँच देने से यह सुनिश्चित होगा कि प्रत्येक सदस्य के पास इस समूह के लिए सक्रिय पहुँच रिकॉर्ड हो।",
+  "Please select an access type": "कृपया एक पहुँच प्रकार चुनें",
+  "All Spaces": "सभी स्पेस",
+  "Select Space": "स्पेस चुनें",
+  "Choose a space...": "एक स्पेस चुनें...",
+  "No spaces found in this group": "इस समूह में कोई स्पेस नहीं मिला",
+  "Offerings that include this space": "ऑफरिंग जो इस स्पेस को शामिल करती हैं",
+  "If there are no offerings that allow access to this space, members won't be able to join.": "यदि ऐसी कोई ऑफरिंग नहीं है जो इस स्पेस तक पहुँच देती हो, तो सदस्य शामिल नहीं हो पाएंगे।",
+  "Selected space": "चयनित स्पेस"
 }

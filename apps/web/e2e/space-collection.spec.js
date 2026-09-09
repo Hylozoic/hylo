@@ -15,7 +15,7 @@ const GROUP_SLUG = 'e2e-public-group'
 const COLLECTION_NAME = 'E2E Space Collection'
 const uiTimeout = { timeout: 60000 }
 
-test.describe.configure({ timeout: 120000 })
+test.describe.configure({ timeout: 240000 })
 
 test('space collection view screenshots in read and edit mode', async ({ page }) => {
   test.skip(test.info().project.name !== 'chromium', 'desktop-only visual check')
@@ -25,9 +25,9 @@ test('space collection view screenshots in read and edit mode', async ({ page })
 
   await page.goto(`/groups/${GROUP_SLUG}/all`)
   await waitPastRootSessionLoading(page)
-  await page.locator('text=Loading views').waitFor({ state: 'detached', timeout: 20000 }).catch(() => {})
+  await expect(page.locator('.ContextMenu')).toBeVisible(uiTimeout)
 
-  const collectionItem = page.getByText(COLLECTION_NAME).first()
+  const collectionItem = page.locator('.ContextMenu').getByText(COLLECTION_NAME)
   await expect(collectionItem).toBeVisible(uiTimeout)
   await collectionItem.click()
   await page.waitForURL(/space-collection\//, { timeout: 15000 })

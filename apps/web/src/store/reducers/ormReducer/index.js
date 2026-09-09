@@ -1236,6 +1236,16 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       // patch every loaded menu copy, not only the space Group record.
       if (!meta.id || typeof meta.hidden !== 'boolean') break
       setGroupViewHiddenInAllMenus(Group.all(), meta.id, meta.hidden)
+      // Badge uses groups.moreSpacesCount, not the spaces list.
+      if (meta.groupId) {
+        group = Group.withId(meta.groupId)
+        if (group) {
+          const current = Number(group.moreSpacesCount) || 0
+          group.update({
+            moreSpacesCount: Math.max(0, current + (meta.hidden ? 1 : -1))
+          })
+        }
+      }
       break
     }
 
