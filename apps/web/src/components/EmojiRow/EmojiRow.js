@@ -26,7 +26,10 @@ export default function EmojiRow (props) {
   const [overflowOpen, setOverflowOpen] = useState(false)
 
   const entityType = comment ? 'comment' : 'post'
-  const myReactions = useMemo(() => (comment ? comment.commentReactions?.filter(reaction => reaction.user.id === currentUser?.id) : post.postReactions?.filter(reaction => reaction.user.id === currentUser?.id)) || [], [comment, post, currentUser])
+  const myReactions = useMemo(() => (comment
+    ? comment.commentReactions?.filter(reaction => reaction.user?.id === currentUser?.id)
+    : post.postReactions?.filter(reaction => reaction.user?.id === currentUser?.id)
+  ) || [], [comment, post, currentUser])
   const myEmojis = useMemo(() => myReactions.map((reaction) => reaction.emojiFull), [myReactions])
   const entityReactions = useMemo(() => (comment ? comment.commentReactions : post.postReactions) || [], [comment, post])
   const groupIds = useMemo(() => post.groups.map(g => g.id), [post])
@@ -41,27 +44,39 @@ export default function EmojiRow (props) {
     removeReactOnEntity({ commentId: comment?.id, emojiFull, entityType, postId: post.id })
   }, [comment, post, currentUser, onRemoveReaction, removeReactOnEntity, entityType, groupIds])
 
+  // Anonymous viewers get counts only — never reactor names in tooltips
   const usersReactions = useMemo(() => entityReactions.reduce((accum, entityReaction) => {
+    const name = currentUser ? entityReaction.user?.name : null
     if (accum[entityReaction.emojiFull]) {
-      const { userList } = accum[entityReaction.emojiFull]
-      accum[entityReaction.emojiFull] = { emojiFull: entityReaction.emojiFull, userList: [...userList, entityReaction.user.name] }
+      const existing = accum[entityReaction.emojiFull]
+      accum[entityReaction.emojiFull] = {
+        emojiFull: entityReaction.emojiFull,
+        count: existing.count + 1,
+        userList: name ? [...existing.userList, name] : existing.userList
+      }
     } else {
-      accum[entityReaction.emojiFull] = { emojiFull: entityReaction.emojiFull, userList: [entityReaction.user.name] }
+      accum[entityReaction.emojiFull] = {
+        emojiFull: entityReaction.emojiFull,
+        count: 1,
+        userList: name ? [name] : []
+      }
     }
 
-    if (myEmojis.includes(entityReaction.emojiFull)) accum[entityReaction.emojiFull] = { ...accum[entityReaction.emojiFull], loggedInUser: true }
+    if (myEmojis.includes(entityReaction.emojiFull)) {
+      accum[entityReaction.emojiFull] = { ...accum[entityReaction.emojiFull], loggedInUser: true }
+    }
 
     return accum
   }, {}), [entityReactions, myEmojis, currentUser])
 
   // Sort reactions by count (most popular first)
   const sortedReactions = useMemo(() =>
-    Object.values(usersReactions).sort((a, b) => b.userList.length - a.userList.length),
+    Object.values(usersReactions).sort((a, b) => b.count - a.count),
   [usersReactions])
 
   const topReaction = sortedReactions[0]
   const overflowReactions = sortedReactions.slice(1)
-  const overflowCount = overflowReactions.reduce((sum, r) => sum + r.userList.length, 0)
+  const overflowCount = overflowReactions.reduce((sum, r) => sum + r.count, 0)
   const hasAnySelected = overflowReactions.some(r => r.loggedInUser)
 
   return (
@@ -74,9 +89,9 @@ export default function EmojiRow (props) {
               onClick={currentUser ? topReaction.loggedInUser ? handleRemoveReaction : handleReaction : null}
               key={topReaction.emojiFull}
               emojiFull={topReaction.emojiFull}
-              count={topReaction.userList.length}
+              count={topReaction.count}
               selected={topReaction.loggedInUser}
-              toolTip={topReaction.userList.join('<br>')}
+              toolTip={currentUser ? topReaction.userList.join('<br>') : undefined}
               className={pillClassName}
             />
           )}
@@ -103,9 +118,9 @@ export default function EmojiRow (props) {
                       onClick={currentUser ? reaction.loggedInUser ? handleRemoveReaction : handleReaction : null}
                       key={reaction.emojiFull}
                       emojiFull={reaction.emojiFull}
-                      count={reaction.userList.length}
+                      count={reaction.count}
                       selected={reaction.loggedInUser}
-                      toolTip={reaction.userList.join('<br>')}
+                      toolTip={currentUser ? reaction.userList.join('<br>') : undefined}
                     />
                   ))}
                 </div>

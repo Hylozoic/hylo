@@ -113,7 +113,8 @@ describe('model filters', () => {
             (select "group_memberships"."user_id"
             from "group_memberships"
             where "group_memberships"."group_id" in ${myGroupIdsSqlFragment(myId)})
-          or "users"."id" in (select "other_user_id" from "user_connections" where "user_connections"."user_id" = '${myId}'))`)
+          or "users"."id" in (select "other_user_id" from "user_connections" where "user_connections"."user_id" = '${myId}')
+          or "users"."is_profile_public" = true)`)
     })
   })
 

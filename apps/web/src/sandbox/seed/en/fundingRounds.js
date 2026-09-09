@@ -1,4 +1,3 @@
-import { PLACEHOLDER_COPY, PLACEHOLDER_NAME } from '../constants'
 import { sid } from '../helpers'
 import { FUNDING_SPACE_ID, MAIN_COORDINATOR_ROLE_ID, MAIN_MEMBER_ROLE_ID } from './groups'
 

@@ -14,6 +14,7 @@ import NonAuthLayoutRouter from 'routes/NonAuthLayoutRouter'
 import OAuthLayoutRouter from 'routes/OAuth/OAuthLayoutRouter'
 import PublicLayoutRouter from 'routes/PublicLayoutRouter'
 import PublicGroupDetail from 'routes/PublicLayoutRouter/PublicGroupDetail'
+import PublicMemberProfile from 'routes/PublicLayoutRouter/PublicMemberProfile'
 import PublicPostDetail from 'routes/PublicLayoutRouter/PublicPostDetail'
 import OfferingDetails from 'routes/OfferingDetails/OfferingDetails'
 import checkLogin from 'store/actions/checkLogin'
@@ -261,6 +262,9 @@ export default function RootRouter () {
           <Route path='/groups/:groupSlug/:view/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
           <Route path='/groups/:groupSlug/chat/:topicName/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
           <Route path='/groups/:groupSlug/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
+
+          <Route path='/members/:personId/*' element={<PublicMemberProfile />} />
+          <Route path='/all/members/:personId/*' element={<PublicMemberProfile />} />
 
           {/* XXX: sending join page directly to JoinGroup, before all other group pages go to the public group detail */}
           <Route path='/groups/:groupSlug/join/:accessCode/*' element={<JoinGroup />} />

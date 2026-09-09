@@ -49,6 +49,7 @@ export default gql`
     url
     intercomHash
     hasStripeAccount
+    isProfilePublic
     rsvpCalendarUrl
     settings {
       alreadySeenTour

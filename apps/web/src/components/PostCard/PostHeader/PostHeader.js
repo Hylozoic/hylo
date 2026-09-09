@@ -339,18 +339,23 @@ function PostHeader (props) {
       }
     : null
 
-  const dropdownItems = filter([
-    { icon: <Pencil className='w-4 h-4 text-foreground' />, label: t('Edit'), onClick: canEdit ? editPost : undefined },
-    { icon: <Link2 className='w-4 h-4 text-foreground' />, label: t('Copy Link'), onClick: copyLink },
-    { icon: pinned ? <PinOff className='w-4 h-4 text-foreground' /> : <Pin className={cn('w-4 h-4', pinDisabled ? 'text-foreground/40' : 'text-foreground')} />, label: pinned ? t('Unpin from View') : t('Pin to View'), onClick: canPin ? handlePinPost : undefined, disabled: pinDisabled, tooltip: pinTooltip },
-    { icon: savedAt ? <BookmarkCheck className='w-4 h-4 text-foreground' /> : <Bookmark className='w-4 h-4 text-foreground' />, label: savedAt ? t('Unsave Post') : t('Save Post'), onClick: savedAt ? unsavePost : savePost },
-    { icon: <Flag className='w-4 h-4 text-foreground' />, label: t('Flag'), onClick: flagPostFunc() },
-    { icon: <Copy className='w-4 h-4 text-foreground' />, label: t('Duplicate'), onClick: duplicatePost },
-    addToCollectionItem,
-    removeFromCollectionItem,
-    { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: t('Delete'), onClick: isCreator ? () => deletePost(t('Are you sure you want to delete this post? You cannot undo this.')) : undefined, red: true },
-    { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: t('Remove From Group'), onClick: canModerate ? () => removePost(t('Are you sure you want to remove this post? You cannot undo this.')) : undefined, red: true }
-  ], item => item && (isFunction(item.onClick) || item.disabled || item.items?.length))
+  const copyLinkItem = { icon: <Link2 className='w-4 h-4 text-foreground' />, label: t('Copy Link'), onClick: copyLink }
+
+  // Logged-out viewers only get a shareable link; auth-only actions stay hidden
+  const dropdownItems = !currentUser
+    ? [copyLinkItem]
+    : filter([
+      { icon: <Pencil className='w-4 h-4 text-foreground' />, label: t('Edit'), onClick: canEdit ? editPost : undefined },
+      copyLinkItem,
+      { icon: pinned ? <PinOff className='w-4 h-4 text-foreground' /> : <Pin className={cn('w-4 h-4', pinDisabled ? 'text-foreground/40' : 'text-foreground')} />, label: pinned ? t('Unpin from View') : t('Pin to View'), onClick: canPin ? handlePinPost : undefined, disabled: pinDisabled, tooltip: pinTooltip },
+      { icon: savedAt ? <BookmarkCheck className='w-4 h-4 text-foreground' /> : <Bookmark className='w-4 h-4 text-foreground' />, label: savedAt ? t('Unsave Post') : t('Save Post'), onClick: savedAt ? unsavePost : savePost },
+      { icon: <Flag className='w-4 h-4 text-foreground' />, label: t('Flag'), onClick: flagPostFunc() },
+      { icon: <Copy className='w-4 h-4 text-foreground' />, label: t('Duplicate'), onClick: duplicatePost },
+      addToCollectionItem,
+      removeFromCollectionItem,
+      { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: t('Delete'), onClick: isCreator ? () => deletePost(t('Are you sure you want to delete this post? You cannot undo this.')) : undefined, red: true },
+      { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: t('Remove From Group'), onClick: canModerate ? () => removePost(t('Are you sure you want to remove this post? You cannot undo this.')) : undefined, red: true }
+    ], item => item && (isFunction(item.onClick) || item.disabled || item.items?.length))
 
   const typesWithTimes = ['action', 'offer', 'request', 'resource', 'project', 'proposal']
   const canHaveTimes = typesWithTimes.includes(type)

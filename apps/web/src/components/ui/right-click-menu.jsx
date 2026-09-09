@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
  * Returns true when the event landed on an open Radix menu panel.
  */
 function isEventOnMenu (target) {
-  if (!(target instanceof Node)) return false
+  if (!(target instanceof globalThis.Node)) return false
   return Array.from(document.querySelectorAll('[data-radix-menu-content]')).some(
     (node) => node.contains(target)
   )

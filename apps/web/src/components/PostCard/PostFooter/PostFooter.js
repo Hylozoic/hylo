@@ -1,5 +1,6 @@
 import React from 'react'
 import { withTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
 import { cn } from 'util/index'
 import EmojiRow from 'components/EmojiRow'
 import { get } from 'lodash/fp'
@@ -15,7 +16,8 @@ class PostFooter extends React.PureComponent {
     currentUser: PropTypes.shape(CURRENT_USER_PROP_TYPES),
     commenters: PropTypes.array,
     commentersTotal: PropTypes.number,
-    constrained: PropTypes.bool
+    constrained: PropTypes.bool,
+    t: PropTypes.func
   }
 
   render () {
@@ -30,10 +32,20 @@ class PostFooter extends React.PureComponent {
       onRemoveReaction = () => {},
       postId,
       mapDrawer,
+      t,
       ...post
     } = this.props
 
     const tooltipId = 'postfooter-tt-' + postId
+    const loginUrl = `/login?returnToUrl=${encodeURIComponent(window.location.pathname + window.location.search)}`
+
+    // Logged-out: show commenter count only (no names/avatars), linked to login
+    const total = commentersTotal || 0
+    const anonymousCommentLabel = total === 0
+      ? t('Be the first to comment')
+      : total === 1
+        ? t('{{count}} person commented', { count: 1 })
+        : t('{{count}} people commented', { count: total })
 
     return (
       <div onClick={onClick} className={cn('w-full text-foreground flex flex-wrap p-1 justify-between items-center', { [classes.constrained]: constrained }, { 'flex-col justify-start items-start gap-2': mapDrawer }, className)} data-testid='post-footer'>
@@ -45,7 +57,25 @@ class PostFooter extends React.PureComponent {
         />
 
         <div className='bg-darkening/5 rounded-lg py-2 mb-1 mr-1 px-2 items-center justify-center flex'>
-          <PeopleInfo constrained={constrained} people={commenters} peopleTotal={commentersTotal} excludePersonId={get('id', currentUser)} small />
+          {currentUser
+            ? (
+              <PeopleInfo
+                constrained={constrained}
+                people={commenters}
+                peopleTotal={commentersTotal}
+                excludePersonId={get('id', currentUser)}
+                small
+              />
+              )
+            : (
+              <Link
+                to={loginUrl}
+                className='text-foreground no-underline text-sm'
+                onClick={e => e.stopPropagation()}
+              >
+                {anonymousCommentLabel}
+              </Link>
+              )}
         </div>
         <Tooltip
           delay={550}

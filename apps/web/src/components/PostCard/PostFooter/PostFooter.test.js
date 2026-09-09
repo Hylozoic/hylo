@@ -26,6 +26,23 @@ describe('PostFooter', () => {
     expect(screen.getByText(/Joe/)).toBeInTheDocument()
   })
 
+  it('shows count-only comment label when logged out', () => {
+    render(
+      <PostFooter
+        commenters={commenters}
+        commentersTotal={4}
+        currentUser={null}
+        postReactions={[]}
+        peopleReactedTotal={0}
+        groups={[]}
+      />
+    )
+
+    expect(screen.getByTestId('post-footer')).toBeInTheDocument()
+    expect(screen.getByText('4 people commented')).toBeInTheDocument()
+    expect(screen.queryByText(/Joe/)).not.toBeInTheDocument()
+  })
+
   it('renders event footer correctly', () => {
     render(
       <PostFooter
@@ -40,5 +57,6 @@ describe('PostFooter', () => {
     )
 
     expect(screen.getByTestId('post-footer')).toBeInTheDocument()
+    expect(screen.getByText('Be the first to comment')).toBeInTheDocument()
   })
 })

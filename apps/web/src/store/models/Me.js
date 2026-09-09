@@ -72,6 +72,7 @@ Me.fields = {
   avatarUrl: attr(),
   intercomHash: attr(),
   isAdmin: attr(),
+  isProfilePublic: attr(),
   name: attr(),
   groupInvitesPending: many('Invitation'),
   joinRequests: many('JoinRequest'),
