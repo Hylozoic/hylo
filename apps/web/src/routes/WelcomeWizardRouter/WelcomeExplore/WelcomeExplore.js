@@ -5,7 +5,7 @@ import { useSelector } from 'react-redux'
 import { Link } from 'react-router-dom'
 import { bgImageStyle } from 'util/index'
 import getMe from 'store/selectors/getMe'
-import { createGroupModalUrl } from 'routes/CreateGroup/createGroupUrl'
+import { createGroupModalUrl } from '@hylo/navigation'
 
 const WelcomeExplore = () => {
   const currentUser = useSelector(getMe)

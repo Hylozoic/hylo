@@ -20,7 +20,7 @@ function createGroupDialog (page) {
 }
 
 /**
- * Opens the create-group dialog via the `createGroup` query string.
+ * Opens the create-group dialog via the `create=group` query string.
  * @param {import('@playwright/test').Page} page
  * @param {string} url
  */
@@ -48,7 +48,7 @@ test.describe('Create Group modal', () => {
 
     const dialog = createGroupDialog(page)
     await expect(dialog).toBeVisible()
-    await expect(page).toHaveURL(/createGroup=true/)
+    await expect(page).toHaveURL(/create=group/)
     await page.screenshot({ path: path.resolve(screenshotDir, 'create-group-01-modal-empty.png') })
 
     await dialog.locator('#groupName').fill('Bay & Delta  Watershed!')
@@ -58,7 +58,7 @@ test.describe('Create Group modal', () => {
   })
 
   test('reveals advanced settings inline', async ({ page }) => {
-    const dialog = await openCreateGroup(page, `/public/all?createGroup=true&name=${encodeURIComponent('Watershed Council')}`)
+    const dialog = await openCreateGroup(page, `/public/all?create=group&name=${encodeURIComponent('Watershed Council')}`)
 
     await dialog.getByRole('button', { name: 'Agreements', exact: true }).click()
     await dialog.getByRole('button', { name: 'Join questions', exact: true }).click()
@@ -68,7 +68,7 @@ test.describe('Create Group modal', () => {
   })
 
   test('flags a handle that is already taken', async ({ page }) => {
-    const dialog = await openCreateGroup(page, '/public/all?createGroup=true')
+    const dialog = await openCreateGroup(page, '/public/all?create=group')
 
     await dialog.locator('#groupName').fill(SEEDED_GROUP_NAME)
     await expect(dialog.locator('#groupSlug')).toHaveValue(SEEDED_GROUP_SLUG)
@@ -78,7 +78,7 @@ test.describe('Create Group modal', () => {
   })
 
   test('closing the modal returns to the page underneath', async ({ page }) => {
-    const dialog = await openCreateGroup(page, '/public/all?createGroup=true')
+    const dialog = await openCreateGroup(page, '/public/all?create=group')
 
     await dialog.getByRole('button', { name: 'Cancel' }).click()
     await expect(createGroupDialog(page)).toBeHidden()
@@ -86,7 +86,7 @@ test.describe('Create Group modal', () => {
   })
 
   test('warns before discarding entered group data', async ({ page }) => {
-    const dialog = await openCreateGroup(page, '/public/all?createGroup=true')
+    const dialog = await openCreateGroup(page, '/public/all?create=group')
     await dialog.locator('#groupName').fill('Watershed Council')
 
     await dialog.getByRole('button', { name: 'Cancel' }).click()
@@ -110,7 +110,7 @@ test.describe('Create Group modal', () => {
   })
 
   test('adding Welcome from the menu toggles the Welcome pill on, and removing it toggles it off', async ({ page }) => {
-    const dialog = await openCreateGroup(page, '/public/all?createGroup=true')
+    const dialog = await openCreateGroup(page, '/public/all?create=group')
 
     const welcomePill = dialog.getByRole('button', { name: 'Welcome', exact: true })
     await expect(welcomePill).toHaveAttribute('aria-pressed', 'false')
