@@ -6,6 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [7.0.4] - 2026-09-10
+
+### Changed
+- Unread badge counts for spaces now show the number of unread chats, plus the number of unread typed views inside it.
+- Group nav menu badges now appear as long as any view or space has a notification badge in it.
+
+### Fixed
+- Unread badge counts for spaces
+- Fix event RSVP emails
+- Fix sender name of emails from activity in spaces to include parent group name. "Parent Group > Space Name (view Hylo)"
+
 ## [7.0.3] - 2026-09-09
 
 ### Added

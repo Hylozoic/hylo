@@ -3,7 +3,6 @@ import { pick } from 'lodash/fp'
 import errorReporter from 'client/errorReporter'
 import {
   FETCH_FOR_CURRENT_USER,
-  FETCH_FOR_GROUP_PENDING,
   LOGOUT_PENDING
 } from 'store/constants'
 
@@ -67,7 +66,7 @@ export function toggleNavMenu (value) {
 }
 
 export function ormSessionReducer (
-  { Group, Me, Membership, Person },
+  { Me, Membership, Person },
   { type, meta, payload }
 ) {
   switch (type) {
@@ -75,15 +74,6 @@ export function ormSessionReducer (
       const me = Me.first()
       if (me) me.delete()
       break
-    }
-    case FETCH_FOR_GROUP_PENDING: {
-      const group = Group.safeGet({ slug: meta.slug })
-      if (!group) return
-      const me = Me.first()
-      if (!me) return
-      const membership = Membership.safeGet({ group: group.id, person: me.id })
-      if (!membership) return
-      return membership.update({ newPostCount: 0 })
     }
     case SET_MEMBERSHIP_LAST_VIEWED_AT: {
       const { groupId, personId, lastViewedAt } = meta || {}

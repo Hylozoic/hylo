@@ -109,6 +109,27 @@ export function chatRecountPostTypes () {
 }
 
 /**
+ * Membership.newPostCount for a group/space menu row: unread chats plus 1 for
+ * each other on-menu typed view that still has unread. Hidden views (order is
+ * null) are omitted. ChatRoom still uses the chat view's own newPostCount.
+ */
+export function membershipBadgeCountFromViews (views) {
+  const typed = new Set(TYPED_BADGE_VIEW_TYPES)
+  let chatCount = 0
+  let typedDots = 0
+  for (const view of views || []) {
+    if (view?.order === null) continue
+    const count = view.newPostCount || view.new_post_count || 0
+    if (view.type === 'chat') {
+      chatCount += count
+    } else if (typed.has(view.type) && count > 0) {
+      typedDots += 1
+    }
+  }
+  return chatCount + typedDots
+}
+
+/**
  * Post types that should be counted toward new_post_count for a view.
  * Returns null when the view never tracks unread (caller should set count to 0).
  */

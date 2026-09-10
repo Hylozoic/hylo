@@ -1,5 +1,6 @@
 import HasSettings from './mixins/HasSettings'
 import { isEmpty } from 'lodash'
+import { TYPED_BADGE_VIEW_TYPES } from '@hylo/shared'
 import {
   whereId
 } from './group/queryUtils'
@@ -230,10 +231,63 @@ module.exports = bookshelf.Model.extend(Object.assign({
     const membership = await GroupMembership.forPair(userOrId, groupOrId).fetch()
     if (membership) {
       membership.addSetting({ lastReadAt: new Date() })
-      await membership.save({ new_post_count: 0 })
-      return membership
+      await membership.save()
+      await GroupMembership.syncBadgeCounts(
+        membership.get('group_id'),
+        [membership.get('user_id')]
+      )
+      return membership.refresh()
     }
     return false
+  },
+
+  /**
+   * Set membership.new_post_count to the space/group menu badge: unread chats
+   * plus 1 per other on-menu typed view that still has unread.
+   */
+  async syncBadgeCounts (groupId, userIds, { transacting } = {}) {
+    if (!groupId) return
+    const ids = userIds
+      ? userIds.map(id => Number(id)).filter(id => Number.isFinite(id))
+      : null
+    if (ids && ids.length === 0) return
+
+    const typedTypes = TYPED_BADGE_VIEW_TYPES
+    const typedPlaceholders = typedTypes.map(() => '?').join(', ')
+    const sql = `
+      UPDATE group_memberships AS gm
+      SET
+        new_post_count = COALESCE(badge.cnt, 0),
+        updated_at = NOW()
+      FROM (
+        SELECT
+          gm2.id,
+          COALESCE(SUM(
+            CASE WHEN gv.type = 'chat' AND gv."order" IS NOT NULL
+              THEN COALESCE(gvu.new_post_count, 0) ELSE 0 END
+          ), 0)
+          + COUNT(*) FILTER (
+              WHERE gv.type IN (${typedPlaceholders})
+                AND gv."order" IS NOT NULL
+                AND COALESCE(gvu.new_post_count, 0) > 0
+            ) AS cnt
+        FROM group_memberships gm2
+        LEFT JOIN group_views gv ON gv.group_id = gm2.group_id
+        LEFT JOIN group_views_users gvu
+          ON gvu.view_id = gv.id AND gvu.user_id = gm2.user_id
+        WHERE gm2.group_id = ?
+          AND gm2.active = true
+          ${ids ? 'AND gm2.user_id = ANY(?::bigint[])' : ''}
+        GROUP BY gm2.id
+      ) AS badge
+      WHERE gm.id = badge.id
+        AND gm.new_post_count IS DISTINCT FROM COALESCE(badge.cnt, 0)
+    `
+    const bindings = ids
+      ? [...typedTypes, groupId, ids]
+      : [...typedTypes, groupId]
+    const query = bookshelf.knex.raw(sql, bindings)
+    await (transacting ? query.transacting(transacting) : query)
   },
 
   /**

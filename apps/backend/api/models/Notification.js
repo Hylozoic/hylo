@@ -5,7 +5,7 @@ import sentry from '../../lib/sentry'
 import { broadcast, userRoom } from '../services/Websockets'
 import RedisPubSub from '../services/RedisPubSub'
 import { getLocaleStrings } from '../../lib/i18n/locales'
-import { senderNameViaHylo } from '../../lib/email/senderNameViaHylo'
+import { senderNameForGroup, senderNameViaHylo } from '../../lib/email/senderNameViaHylo'
 
 // Workers run sendUnsent concurrently; rows claimed longer ago than this are eligible again.
 const STALE_NOTIFICATION_CLAIM_MINUTES = 30
@@ -768,7 +768,7 @@ module.exports = bookshelf.Model.extend({
     return Email.sendJoinRequestNotification({
       email: reader.get('email'),
       locale,
-      sender: { name: senderNameViaHylo(groupLabel, locale) },
+      sender: { name: await senderNameForGroup(group, locale) },
       data: {
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
         group_avatar_url: group.get('avatar_url'),
@@ -791,9 +791,6 @@ module.exports = bookshelf.Model.extend({
 
     if (isEmpty(groupIds)) throw new Error('no group ids in activity')
     const group = await Group.find(groupIds[0])
-    if (group.get('type') === 'space') {
-      await group.load(['parentGroup'])
-    }
 
     const clickthroughParams = '?' + new URLSearchParams({
       ctt: 'approved_join_request_email',
@@ -804,7 +801,7 @@ module.exports = bookshelf.Model.extend({
     return Email.sendApprovedJoinRequestNotification({
       email: reader.get('email'),
       locale,
-      sender: { name: senderNameViaHylo(group.get('name'), locale) },
+      sender: { name: await senderNameForGroup(group, locale) },
       data: {
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
         group_avatar_url: group.get('avatar_url'),
@@ -1170,7 +1167,7 @@ module.exports = bookshelf.Model.extend({
     return Email.sendFundingRoundNewSubmissionEmail({
       email: reader.get('email'),
       locale,
-      sender: { name: senderNameViaHylo(group.get('name'), locale) },
+      sender: { name: await senderNameForGroup(group, locale) },
       data: {
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
         funding_round_title: group.get('name'),
@@ -1251,7 +1248,7 @@ module.exports = bookshelf.Model.extend({
     return Email.sendFundingRoundPhaseTransitionEmail({
       email: reader.get('email'),
       locale,
-      sender: { name: senderNameViaHylo(group.get('name'), locale) },
+      sender: { name: await senderNameForGroup(group, locale) },
       data
     })
   },
@@ -1287,7 +1284,7 @@ module.exports = bookshelf.Model.extend({
     return Email.sendFundingRoundReminderEmail({
       email: reader.get('email'),
       locale,
-      sender: { name: senderNameViaHylo(group.get('name'), locale) },
+      sender: { name: await senderNameForGroup(group, locale) },
       data: {
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
         funding_round_title: group.get('name'),
