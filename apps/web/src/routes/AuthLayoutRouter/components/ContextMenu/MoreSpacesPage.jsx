@@ -206,15 +206,12 @@ export default function MoreSpacesPage ({ group }) {
     }
   }, [dispatch, contentGroup?.id, deletingSpaceId, t])
 
-  /** Open space home, or in edit mode open that space's home with its menu editing. */
+  /** Open the space (index shows the menu when there is no sidebar). */
   const handleOpenSpace = useCallback((space) => {
     if (isEditing) {
       navigate(addQuerystringToPath(spaceEntryUrl(groupSlug, space), { edit: 'true' }))
       return
     }
-    // Where a menu is visible alongside the content, going straight to the space's
-    // home view costs nothing. On a drawer layout SpaceContent shows the space's
-    // own menu at the index, so don't skip ahead to home.
     navigate(spaceEntryUrl(groupSlug, space), { state: { fromMoreSpaces: true } })
   }, [navigate, groupSlug, isEditing])
 
