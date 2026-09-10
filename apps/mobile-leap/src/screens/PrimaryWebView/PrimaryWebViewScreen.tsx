@@ -25,12 +25,15 @@ export default function PrimaryWebViewScreen () {
 
   useEffect(() => { hydrate() }, [hydrate])
 
-  // iOS: small manual bottom pad for the home indicator. Android: no bottom inset —
-  // RN 0.85 edge-to-edge reports nav-bar insets; padding here shrinks the WebView and
-  // leaves a dead band (legacy RN 0.77 reported 0 on the same devices). Web content
-  // extends to the screen bottom like the existing mobile app.
+  // iOS: omit bottom from edges and apply a reduced manual pad for the home indicator.
+  // Android: include bottom in edges so classic 3-button nav (and gesture bars) clear the
+  // WebView. Do not also set paddingBottom on Android — SafeAreaView edges are additive,
+  // and paddingBottom + inset doubles under RN edge-to-edge (the "dead band" that led to
+  // briefly zeroing Android insets).
   const bottomInset = isIOS ? Math.max(insets.bottom * 0.5, 8) : 0
-  const safeAreaEdges = ['top', 'left', 'right'] as const
+  const safeAreaEdges = isIOS
+    ? (['top', 'left', 'right'] as const)
+    : (['top', 'left', 'right', 'bottom'] as const)
 
   const currentUserResult = useCurrentUser({
     requestPolicy: 'cache-and-network',
