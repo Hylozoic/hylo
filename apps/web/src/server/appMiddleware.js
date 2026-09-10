@@ -1,10 +1,10 @@
 import root from 'root-path'
 import { readFileSync } from 'fs'
 import lodash from 'lodash'
-import { withPublicPostMetaTags } from './postMetaTags.js'
+import { withPublicMetaTags } from './publicMetaTags.js'
 
 export default async function appMiddleware (req, res, next) {
-  const page = await withPublicPostMetaTags(html(''), req)
+  const page = await withPublicMetaTags(html(''), req)
   return res.status(200).send(page)
 }
 
