@@ -1020,11 +1020,15 @@ module.exports = bookshelf.Model.extend(merge({
 
       if (changes.settings && typeof changes.settings.show_welcome_page === 'boolean') {
         let welcomeView = await GroupView.where({ group_id: this.id, type: 'welcome' }).fetch({ transacting })
-        if (!welcomeView && changes.settings.show_welcome_page) {
-          welcomeView = await GroupView.appendToMenu({
-            group_id: this.id,
-            type: 'welcome'
-          }, { transacting })
+        if (changes.settings.show_welcome_page) {
+          if (!welcomeView) {
+            welcomeView = await GroupView.appendToMenu({
+              group_id: this.id,
+              type: 'welcome'
+            }, { transacting })
+          } else if (welcomeView.get('order') == null) {
+            await GroupView.reorder({ id: welcomeView.id, addToEnd: true, trx: transacting })
+          }
         }
       }
       await this.save({}, { transacting })
