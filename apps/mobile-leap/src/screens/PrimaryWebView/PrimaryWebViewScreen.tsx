@@ -150,10 +150,7 @@ export default function PrimaryWebViewScreen () {
     >
       <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
       {showLoadingOverlay && (
-        <View
-          className='absolute inset-0 z-10 items-center justify-center'
-          style={{ backgroundColor }}
-        >
+        <View className='absolute inset-0 z-10'>
           <LoadingScreen />
         </View>
       )}
