@@ -20,13 +20,13 @@ it('renders chat activity header, timestamp, messages, and a link to the group c
   render(<ChatActivityCard post={post} />)
 
   expect(screen.getByTestId('chat-activity-card')).toBeInTheDocument()
-  expect(screen.getByText('CHAT ACTIVITY')).toBeInTheDocument()
+  expect(screen.getByText('Recently in')).toBeInTheDocument()
   expect(screen.getByText('Buy Nothing')).toBeInTheDocument()
   expect(screen.getByText('2h ago')).toBeInTheDocument()
   expect(screen.getByText('Tran')).toBeInTheDocument()
   expect(screen.getByText(/Claimed! Heading over this afternoon/)).toBeInTheDocument()
   expect(screen.getByText('Marisol')).toBeInTheDocument()
-  const openLink = screen.getByRole('link', { name: /^Open$/ })
+  const openLink = screen.getByRole('link', { name: /View activity/ })
   expect(openLink).toHaveAttribute('href', '/groups/buy-nothing/chat?postId=9')
 })
 

@@ -27,14 +27,14 @@ describe('PeopleSelector', () => {
 
   it('renders the component', () => {
     render(<PeopleSelector {...defaultProps} />)
-    expect(screen.getByPlaceholderText('+ Add someone')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Send a new message to...')).toBeInTheDocument()
   })
 
   describe('setPeopleSearch', () => {
     it('does not update if user input contains invalid characters', async () => {
       jest.useFakeTimers()
       render(<PeopleSelector {...defaultProps} />)
-      const input = screen.getByPlaceholderText('+ Add someone')
+      const input = screen.getByPlaceholderText('Send a new message to...')
       fireEvent.change(input, { target: { value: 'Poor Yorick9238183$@#$$@!' } })
       jest.runAllTimers()
       await waitFor(() => expect(defaultProps.setPeopleSearch).not.toHaveBeenCalled())
@@ -45,7 +45,7 @@ describe('PeopleSelector', () => {
     it('updates if user input contains valid characters', async () => {
       jest.useFakeTimers()
       render(<PeopleSelector {...defaultProps} />)
-      const input = screen.getByPlaceholderText('+ Add someone')
+      const input = screen.getByPlaceholderText('Send a new message to...')
       fireEvent.change(input, { target: { value: 'Poor Yorick' } })
       jest.runAllTimers()
       await waitFor(() => expect(defaultProps.setPeopleSearch).toHaveBeenCalledWith('Poor Yorick'))
@@ -62,7 +62,7 @@ describe('PeopleSelector', () => {
 
     it('resets values after adding a participant', async () => {
       render(<PeopleSelector {...defaultProps} />)
-      const input = screen.getByPlaceholderText('+ Add someone')
+      const input = screen.getByPlaceholderText('Send a new message to...')
       fireEvent.change(input, { target: { value: 'flargle' } })
       fireEvent.click(screen.getByText('Person 1'))
       await waitFor(() => {
