@@ -2,6 +2,7 @@ import {
   CHAT_VISIBLE_POST_TYPES,
   MAX_PINNED_POSTS_PER_VIEW,
   PINNABLE_VIEW_TYPES,
+  membershipBadgeCountFromViews,
   postAppearsInChat,
   postCountsTowardChatUnread,
   recountPostTypesForView,
@@ -46,6 +47,24 @@ describe('viewHelpers', () => {
       expect(recountPostTypesForView('all')).toBe(null)
       expect(recountPostTypesForView('custom')).toBe(null)
       expect(recountPostTypesForView('space-collection')).toBe(null)
+    })
+  })
+
+  describe('membershipBadgeCountFromViews', () => {
+    it('adds chat unread plus one per other on-menu typed view', () => {
+      expect(membershipBadgeCountFromViews([
+        { type: 'chat', order: 0, newPostCount: 7 },
+        { type: 'discussions', order: 1, newPostCount: 4 },
+        { type: 'events', order: 2, newPostCount: 1 },
+        { type: 'all', order: 3, newPostCount: 9 }
+      ])).toBe(9)
+    })
+
+    it('omits hidden typed views and counts no badge as 0', () => {
+      expect(membershipBadgeCountFromViews([
+        { type: 'chat', order: 0, newPostCount: 0 },
+        { type: 'discussions', order: null, newPostCount: 3 }
+      ])).toBe(0)
     })
   })
 

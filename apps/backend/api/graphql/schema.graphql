@@ -827,6 +827,9 @@ type Group {
   # Cached count of on-menu views (order is not null). Stored on groups.menu_view_count
   # so a parent menu can tell single-view vs multi-view spaces without a nested query.
   menuViewCount: Int
+  # Cached count of child spaces not on the group menu. Stored on groups.more_spaces_count
+  # so the menu can show More Spaces and its badge without loading the spaces list.
+  moreSpacesCount: Int
   # The current invite link for this group
   invitePath: String
   # A string describing the physical location of this group in the world
@@ -1292,7 +1295,7 @@ type GroupView {
   id: ID
   # The Group or Space this view belongs to
   group: Group
-  # Display name override (used by 'custom', 'space' and 'group' type views)
+  # Display name override (used by 'custom', 'page', 'space' and 'group' type views)
   name: String
   # The type of view, e.g. 'chat', 'welcome', 'custom', 'space', 'collection', 'link', etc.
   type: String
@@ -1300,7 +1303,7 @@ type GroupView {
   order: Int
   # Icon override for this view
   icon: String
-  # Markdown content, used by 'welcome', 'text' and 'link' type views
+  # HTML content, used by 'page', 'welcome', 'text' and 'link' type views
   pageContent: String
   # URL, used by 'link' type views
   link: String
@@ -1448,6 +1451,8 @@ type GroupSettings {
   showWelcomePage: Boolean
   # Whether the chat view shows inline notices when other post types are created
   showPostNoticesInChat: Boolean
+  # Space-only: add current parent-group members (except people who previously left) and anyone who joins the group later
+  autoAddMembers: Boolean
 }
 
 # A relationship between two Groups
@@ -3393,7 +3398,9 @@ type Mutation {
     # When false, parent menu space view is created off-menu (More Views). Default true.
     addToMenu: Boolean,
     # draft or published. Drafts are always created off-menu.
-    status: GroupStatus
+    status: GroupStatus,
+    # When true, current parent-group members are added in the background (except people who previously left)
+    autoAddMembers: Boolean
   ): Group
   # Update a Space's settings
   updateSpace(
@@ -3414,7 +3421,9 @@ type Mutation {
     # When true, space is Paid access (forces protected + restricted)
     paywall: Boolean,
     # draft or published. Setting draft removes the space from the parent menu.
-    status: GroupStatus
+    status: GroupStatus,
+    # When turned on, adds parent-group members who have not previously left this space
+    autoAddMembers: Boolean
   ): Group
   # Archive a Space (status=archived; removes its menu entry from the parent). Stays in More Spaces → Archived.
   archiveSpace(id: ID!): Group
@@ -4189,6 +4198,8 @@ input GroupSettingsInput {
   showWelcomePage: Boolean
   # Whether the chat view shows inline notices when other post types are created
   showPostNoticesInChat: Boolean
+  # Space-only: add current parent-group members (except people who previously left) and anyone who joins the group later
+  autoAddMembers: Boolean
 }
 
 # Settings for a Widget in a particular Group's explore page

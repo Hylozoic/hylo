@@ -32,6 +32,6 @@ test('empty stream shows centered cluster with create button', async ({ page }) 
   await page.screenshot({ path: 'e2e/screenshots/empty-state.png' })
 
   await button.click()
-  await expect(page).toHaveURL(/\/create\/post/, { timeout: 15000 })
+  await expect(page).toHaveURL(/create=post/, { timeout: 15000 })
   await page.screenshot({ path: 'e2e/screenshots/empty-state-create.png' })
 })

@@ -127,7 +127,26 @@ import {
   snapshotChatActivityNotices,
   upsertOptimisticChatActivityNotice
 } from 'store/util/chatActivityNotice'
-import { groupMenuHasUnreadBadges } from 'util/viewUnreadBadges'
+import { membershipBadgeCountFromViews } from '@hylo/shared'
+import { findViewsForGroupBadge } from 'util/viewUnreadBadges'
+
+/**
+ * Set this group's membership.newPostCount from loaded views (chat + typed dots).
+ */
+function syncMembershipBadgeFromGroupViews (session, groupId) {
+  if (!groupId) return
+  const { Me, Membership } = session
+  const me = Me.first()
+  if (!me) return
+  const views = findViewsForGroupBadge(session, groupId)
+  if (!views) return
+  const membership = Membership.safeGet({ group: groupId, person: me.id })
+  if (!membership) return
+  const next = membershipBadgeCountFromViews(views)
+  if ((membership.newPostCount || 0) !== next) {
+    membership.update({ newPostCount: next })
+  }
+}
 
 /**
  * Adjust the cached pending join-request count on a Group ORM record.
@@ -147,57 +166,6 @@ function adjustOpenModerationActionCount (session, groupId, delta) {
   const group = session.Group.idExists(groupId) ? session.Group.withId(groupId) : null
   if (!group) return
   group.update({ openModerationActionCount: Math.max(0, (group.openModerationActionCount || 0) + delta) })
-}
-
-/**
- * Whether any loaded menu copy for this group still shows unread (own GroupViews
- * and/or nested under a parent's type=space linkedGroup).
- */
-function groupHasUnreadInAnyMenu (session, groupId, getMembershipNewPostCount) {
-  const { Group } = session
-  const group = Group.idExists(groupId) ? Group.withId(groupId) : null
-  if (group && groupMenuHasUnreadBadges(group, getMembershipNewPostCount)) return true
-
-  for (const parent of Group.all().toModelArray()) {
-    for (const view of parent.groupViews?.items || []) {
-      if (view.type !== 'space' || String(view.linkedGroup?.id) !== String(groupId)) continue
-      if (groupMenuHasUnreadBadges(view.linkedGroup, getMembershipNewPostCount)) return true
-    }
-  }
-  return false
-}
-
-/**
- * Clear group/space membership badges when the menu has no remaining view or
- * nested-space unread. Also clears parent groups that embed this group as a space.
- */
-function clearMembershipIfMenuHasNoUnread (session, groupId) {
-  if (!groupId) return
-  const { Group, Me, Membership } = session
-  const me = Me.first()
-  if (!me) return
-
-  const getMembershipNewPostCount = (id) => {
-    const membership = Membership.safeGet({ group: id, person: me.id })
-    return membership?.newPostCount || 0
-  }
-
-  const clearOne = (id) => {
-    if (groupHasUnreadInAnyMenu(session, id, getMembershipNewPostCount)) return
-    const membership = Membership.safeGet({ group: id, person: me.id })
-    if (membership && membership.newPostCount > 0) {
-      membership.update({ newPostCount: 0 })
-    }
-  }
-
-  clearOne(groupId)
-
-  Group.all().toModelArray().forEach(parent => {
-    const embedsSpace = (parent.groupViews?.items || []).some(view =>
-      view.type === 'space' && String(view.linkedGroup?.id) === String(groupId)
-    )
-    if (embedsSpace) clearOne(parent.id)
-  })
 }
 
 /** Plain creator fields so an optimistic pin survives leaving the ORM session. */
@@ -313,6 +281,9 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     }
     if (preservedViewPostsSnapshots?.length) {
       restoreViewLoadedPostsAfterFetchGroupViews(Group, preservedViewPostsSnapshots)
+    }
+    if (type === FETCH_GROUP_VIEWS) {
+      syncMembershipBadgeFromGroupViews(session, meta.groupId)
     }
   }
 
@@ -714,9 +685,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       // patch every loaded menu so the badge clears where the user is looking.
       if (!meta.id || !meta.data) break
       updateGroupViewInAllMenus(Group.all(), meta.id, meta.data)
-      if ((meta.data.newPostCount ?? 0) === 0) {
-        clearMembershipIfMenuHasNoUnread(session, meta.groupId)
-      }
+      syncMembershipBadgeFromGroupViews(session, meta.groupId)
       break
     }
 
@@ -727,16 +696,14 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         lastReadPostId: updatedView.lastReadPostId,
         newPostCount: updatedView.newPostCount
       })
-      if ((updatedView.newPostCount ?? 0) === 0) {
-        clearMembershipIfMenuHasNoUnread(session, meta.groupId)
-      }
+      syncMembershipBadgeFromGroupViews(session, meta.groupId)
       break
     }
 
     case MARK_VIEW_AS_READ_PENDING: {
       if (!meta.id) break
       updateGroupViewInAllMenus(Group.all(), meta.id, { newPostCount: 0 })
-      clearMembershipIfMenuHasNoUnread(session, meta.groupId)
+      syncMembershipBadgeFromGroupViews(session, meta.groupId)
       break
     }
 
@@ -749,7 +716,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         lastReadPostId: readView.lastReadPostId,
         newPostCount: 0
       })
-      clearMembershipIfMenuHasNoUnread(session, meta.groupId)
+      syncMembershipBadgeFromGroupViews(session, meta.groupId)
       break
     }
 
@@ -1236,6 +1203,16 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       // patch every loaded menu copy, not only the space Group record.
       if (!meta.id || typeof meta.hidden !== 'boolean') break
       setGroupViewHiddenInAllMenus(Group.all(), meta.id, meta.hidden)
+      // Badge uses groups.moreSpacesCount, not the spaces list.
+      if (meta.groupId) {
+        group = Group.withId(meta.groupId)
+        if (group) {
+          const current = Number(group.moreSpacesCount) || 0
+          group.update({
+            moreSpacesCount: Math.max(0, current + (meta.hidden ? 1 : -1))
+          })
+        }
+      }
       break
     }
 

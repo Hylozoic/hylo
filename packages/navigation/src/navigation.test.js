@@ -7,6 +7,10 @@ import {
   setQuerystringParam,
   removeGroupFromUrl,
   createUrl,
+  createPostUrl,
+  createModalUrl,
+  createGroupModalUrl,
+  createPostModalUrl,
   primaryPostUrl,
   messagePersonUrl,
   isPublicPath,
@@ -70,6 +74,18 @@ describe('postUrl', () => {
     const actual = postUrl('123', { context: 'all', action: 'action' })
     expect(actual).toEqual(expected)
   })
+
+  it('should open a group post from about/moderation without nesting under about', () => {
+    const expected = '/groups/awesome-team/post/123'
+    const actual = postUrl('123', { context: 'groups', groupSlug: 'awesome-team', view: 'about' })
+    expect(actual).toEqual(expected)
+  })
+
+  it('should open a space post from about/moderation without nesting under about', () => {
+    const expected = '/groups/awesome-team/spaces/circle/post/123'
+    const actual = postUrl('123', { context: 'groups', groupSlug: 'awesome-team', spaceSlug: 'circle', view: 'about' })
+    expect(actual).toEqual(expected)
+  })
 })
 
 describe('removePostFromUrl', () => {
@@ -111,7 +127,7 @@ describe('editPostUrl', () => {
 describe('duplicatePostUrl', () => {
   it('should return create action URL with postId query param fromPostId', () => {
     const result = duplicatePostUrl('1234', { context: 'groups', groupSlug: 'test' })
-    expect(result).toEqual('/groups/test/create/post?fromPostId=1234')
+    expect(result).toEqual('/groups/test?fromPostId=1234&create=post')
   })
 })
 
@@ -163,9 +179,33 @@ describe('origin with windows !== undefined', () => {
 
 describe('createUrl', () => {
   it('returns correct location', () => {
-    const expected = '/my/create?lat=1.23456&lng=6.54321'
+    const expected = '/my?lat=1.23456&lng=6.54321&create=post'
     const actual = createUrl({ context: 'my' }, { lat: '1.23456', lng: '6.54321' })
     expect(actual).toEqual(expected)
+  })
+})
+
+describe('createPostUrl', () => {
+  it('opens the post modal on the current context via query param', () => {
+    expect(createPostUrl({ context: 'groups', groupSlug: 'test' }, { newPostType: 'event' }))
+      .toEqual('/groups/test?newPostType=event&create=post')
+  })
+})
+
+describe('createModalUrl', () => {
+  it('sets create=post on the current location', () => {
+    expect(createPostModalUrl({ pathname: '/groups/test/all', search: '?sortBy=updated' }))
+      .toEqual('/groups/test/all?sortBy=updated&create=post')
+  })
+
+  it('sets create=group on the current location', () => {
+    expect(createGroupModalUrl({ pathname: '/public/all', search: '' }))
+      .toEqual('/public/all?create=group')
+  })
+
+  it('accepts an explicit type', () => {
+    expect(createModalUrl({ pathname: '/all/all', search: '' }, 'post', { newPostType: 'request' }))
+      .toEqual('/all/all?newPostType=request&create=post')
   })
 })
 
@@ -231,6 +271,7 @@ describe('homeRoutePathForView', () => {
     expect(homeRoutePathForView({ type: 'custom', id: 12 })).toEqual('/custom/12')
     expect(homeRoutePathForView({ type: 'collection', id: 34 })).toEqual('/collection/34')
     expect(homeRoutePathForView({ type: 'space-collection', id: 56 })).toEqual('/space-collection/56')
+    expect(homeRoutePathForView({ type: 'page', id: 7 })).toEqual('/page/7')
   })
 
   it('matches groupViewPath for navigable views', () => {

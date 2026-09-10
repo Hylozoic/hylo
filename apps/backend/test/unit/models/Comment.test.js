@@ -207,6 +207,24 @@ describe('Comment', () => {
           expect(send2.data.subject_prefix).to.match(/You were mentioned/)
         })
       })
+
+      it('uses parent > space as the sender name for comments in a space', async () => {
+        const parentGroup = await factories.group({ name: 'Parent Group', slug: `parent-comment-${Date.now()}` }).save()
+        const space = await factories.group({
+          name: 'The Space',
+          slug: `space-comment-${Date.now()}`,
+          type: 'space',
+          parent_id: parentGroup.id
+        }).save()
+        await space.addMembers([u1.id, u2.id])
+        await group.posts().detach(post)
+        await space.posts().attach(post)
+
+        await Comment.sendDigests()
+
+        const send1 = log.find(l => l.email === u1.get('email'))
+        expect(send1.sender.name).to.equal('Parent Group > The Space (via Hylo)')
+      })
     })
   })
 })

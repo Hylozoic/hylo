@@ -13,8 +13,8 @@ import { sanitizeURL } from 'util/url'
 
 /**
  * URL for opening a space from a menu.
- * On a drawer layout (mobile) the space index is the space's own menu (SpaceContent);
- * alongside a visible sidebar, go straight to the home view.
+ * On a drawer layout the space index is the space's own menu. Alongside a
+ * visible sidebar, go to the home view (that view's unread clears; others stay).
  */
 export function spaceEntryUrl (parentSlug, spaceGroup) {
   if (!parentSlug || !spaceGroup?.slug) return parentSlug ? groupUrl(parentSlug) : '/'
@@ -92,6 +92,8 @@ export function groupViewUrl (groupSlug, view) {
       return groupUrl(groupSlug, `collection/${view.id}`)
     case 'space-collection':
       return groupUrl(groupSlug, `space-collection/${view.id}`)
+    case 'page':
+      return groupUrl(groupSlug, `page/${view.id}`)
     case 'track-actions':
       return groupUrl(groupSlug, 'track-actions')
     case 'funding-round-submissions':

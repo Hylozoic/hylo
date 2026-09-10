@@ -66,11 +66,55 @@ describe('GroupMembership', () => {
       gm = await u.joinGroup(g1)
     })
 
-    it('resets the new post count', async () => {
+    it('resets the new post count when no views are unread', async () => {
       await gm.save({ new_post_count: 1 })
       await GroupMembership.updateLastViewedAt(u, g1)
       await gm.refresh()
       expect(gm.get('new_post_count')).to.equal(0)
+    })
+
+    it('keeps the chat unread count instead of zeroing on visit', async () => {
+      const view = await GroupView.forge({
+        group_id: g1.id,
+        type: GroupView.Type.CHAT,
+        name: 'Chat',
+        order: 0
+      }).save()
+      await GroupViewUser.forge({
+        view_id: view.id,
+        user_id: u.id,
+        new_post_count: 4
+      }).save()
+      await gm.save({ new_post_count: 0 })
+      await GroupMembership.updateLastViewedAt(u, g1)
+      await gm.refresh()
+      expect(gm.get('new_post_count')).to.equal(4)
+    })
+  })
+
+  describe('syncBadgeCounts', () => {
+    it('sets membership to chat unread plus one per other unread typed view', async () => {
+      const group = await factories.group().save()
+      const user = await factories.user().save()
+      await user.joinGroup(group)
+      const chat = await GroupView.forge({
+        group_id: group.id,
+        type: GroupView.Type.CHAT,
+        name: 'Chat',
+        order: 0
+      }).save()
+      const discussions = await GroupView.forge({
+        group_id: group.id,
+        type: 'discussions',
+        name: 'Discussions',
+        order: 1
+      }).save()
+      await GroupViewUser.forge({ view_id: chat.id, user_id: user.id, new_post_count: 7 }).save()
+      await GroupViewUser.forge({ view_id: discussions.id, user_id: user.id, new_post_count: 3 }).save()
+
+      await GroupMembership.syncBadgeCounts(group.id, [user.id])
+      const membership = await GroupMembership.forPair(user, group).fetch()
+      expect(membership.get('new_post_count')).to.equal(8)
     })
   })
 

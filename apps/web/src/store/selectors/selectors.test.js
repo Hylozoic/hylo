@@ -242,6 +242,33 @@ describe('getMyGroupsWithChildren', () => {
     expect(result.map(g => g.slug)).toEqual(['former-space', 'parent-group'])
   })
 
+  it('shows a parent nav badge when a nested space has unread', () => {
+    const session = orm.session(orm.getEmptyState())
+    const me = session.Me.create({ id: 1 })
+    const parent = session.Group.create({ id: '1', name: 'Parent Group', slug: 'parent-group' })
+    const space = session.Group.create({ id: '2', name: 'Alpha Space', slug: 'alpha-space', type: 'space', parentId: parent.id })
+    session.Membership.create({ id: 'm1', group: parent.id, person: me.id, newPostCount: 0 })
+    session.Membership.create({ id: 'm2', group: space.id, person: me.id, newPostCount: 5 })
+
+    const result = getMyGroupsWithChildren({ orm: session.state })
+
+    expect(result[0].newPostCount).toEqual(1)
+    expect(result[0].spaces[0].newPostCount).toEqual(5)
+  })
+
+  it('keeps the parent membership count when the parent itself has unread', () => {
+    const session = orm.session(orm.getEmptyState())
+    const me = session.Me.create({ id: 1 })
+    const parent = session.Group.create({ id: '1', name: 'Parent Group', slug: 'parent-group' })
+    const space = session.Group.create({ id: '2', name: 'Alpha Space', slug: 'alpha-space', type: 'space', parentId: parent.id })
+    session.Membership.create({ id: 'm1', group: parent.id, person: me.id, newPostCount: 4 })
+    session.Membership.create({ id: 'm2', group: space.id, person: me.id, newPostCount: 5 })
+
+    const result = getMyGroupsWithChildren({ orm: session.state })
+
+    expect(result[0].newPostCount).toEqual(4)
+  })
+
   it('excludes a pinned space from the top-level list', () => {
     const session = orm.session(orm.getEmptyState())
     const me = session.Me.create({ id: 1 })

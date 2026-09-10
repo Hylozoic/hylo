@@ -550,11 +550,11 @@ describe('on FETCH_FOR_GROUP_PENDING', () => {
     }
   }
 
-  it('clears newPostCount', () => {
+  it('does not clear membership newPostCount on visit', () => {
     const newState = ormReducer(session.state, action)
     const newSession = orm.session(newState)
     const membership = newSession.Membership.withId('2')
-    expect(membership.newPostCount).toEqual(0)
+    expect(membership.newPostCount).toEqual(99)
   })
 })
 

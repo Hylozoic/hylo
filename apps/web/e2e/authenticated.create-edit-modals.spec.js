@@ -2,8 +2,8 @@ import { test, expect } from '@playwright/test'
 import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading.js'
 
 /**
- * Batch J — `CreateModal` routes (chooser + post edit) for `groups` / `all` / `public` / `my`.
- * One smoke URL per pattern per context — see `AuthLayoutRouter` CreateModal `<Route>` list.
+ * Batch J — create-post query param (`?create=post`) and post edit path
+ * (`/post/:id/edit`) for `groups` / `all` / `public` / `my`.
  * Seeded post id `1` (“E2E Public Post”) from `scripts/seed-e2e-baseline.js`.
  */
 
@@ -15,10 +15,10 @@ const uiTimeout = { timeout: 60000 }
 const E2E_POST_ID = '1'
 const PUBLIC_GROUP_SLUG = 'e2e-public-group'
 
-async function expectCreateChooserShell (page, urlPattern) {
+async function expectCreatePostShell (page, urlPattern) {
   await waitPastRootSessionLoading(page)
   await expect(page).toHaveURL(urlPattern, navTimeout)
-  await expect(page.getByRole('heading', { name: /What would you like to create/i })).toBeVisible(uiTimeout)
+  await expect(page.locator('#create-modal-content')).toBeVisible(uiTimeout)
 }
 
 async function expectEditPostShell (page, urlPattern) {
@@ -27,28 +27,28 @@ async function expectEditPostShell (page, urlPattern) {
   await expect(page.getByText(/E2E Public Post/i).first()).toBeVisible(uiTimeout)
 }
 
-test.describe('Batch J: create modal (chooser)', () => {
-  test('GET groups/:slug/:view/create opens chooser', async ({ page }) => {
-    await page.goto(`/groups/${PUBLIC_GROUP_SLUG}/all/create`)
-    await expectCreateChooserShell(
+test.describe('Batch J: create post modal', () => {
+  test('GET groups/:slug/:view?create=post opens editor', async ({ page }) => {
+    await page.goto(`/groups/${PUBLIC_GROUP_SLUG}/all?create=post`)
+    await expectCreatePostShell(
       page,
-      new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/all/create`)
+      new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/all\\?create=post`)
     )
   })
 
-  test('GET all/:view/create opens chooser', async ({ page }) => {
-    await page.goto('/all/all/create')
-    await expectCreateChooserShell(page, /\/all\/all\/create/)
+  test('GET all/:view?create=post opens editor', async ({ page }) => {
+    await page.goto('/all/all?create=post')
+    await expectCreatePostShell(page, /\/all\/all\?create=post/)
   })
 
-  test('GET public/:view/create opens chooser', async ({ page }) => {
-    await page.goto('/public/all/create')
-    await expectCreateChooserShell(page, /\/public\/all\/create/)
+  test('GET public/:view?create=post opens editor', async ({ page }) => {
+    await page.goto('/public/all?create=post')
+    await expectCreatePostShell(page, /\/public\/all\?create=post/)
   })
 
-  test('GET my/:view/create opens chooser', async ({ page }) => {
-    await page.goto('/my/posts/create')
-    await expectCreateChooserShell(page, /\/my\/posts\/create/)
+  test('GET my/:view?create=post opens editor', async ({ page }) => {
+    await page.goto('/my/posts?create=post')
+    await expectCreatePostShell(page, /\/my\/posts\?create=post/)
   })
 })
 

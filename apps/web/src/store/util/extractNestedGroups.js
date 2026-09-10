@@ -6,17 +6,28 @@
  * Space's `track`) never reach the Group entity looked up by slug/id elsewhere
  * (e.g. store/selectors/getGroupForSlug) unless we extract them explicitly.
  *
+ * Nested `groupViews` stay on the parent menu blob only. Extracting them onto
+ * the space Group overwrites unread counts from a dedicated fetchGroupViews.
+ *
  * Collects every `linkedGroup` object nested within a `groupViews.items` array,
  * recursing into each linkedGroup's own `groupViews.items` (spaces can have their
  * own space-type views). Every GraphQL `linkedGroup` selection must include
  * `slug` — space URLs are built from it, and a later extract without slug
  * overwrites the menu copy used by those links.
  */
+function groupExtractPayload (group) {
+  if (!group) return group
+  const rest = { ...group }
+  delete rest.groupViews
+  delete rest.spaces
+  return rest
+}
+
 export function collectLinkedGroups (items) {
   const result = []
   for (const view of items || []) {
     if (view?.linkedGroup?.id) {
-      result.push(view.linkedGroup)
+      result.push(groupExtractPayload(view.linkedGroup))
       result.push(...collectLinkedGroups(view.linkedGroup.groupViews?.items))
     }
   }
@@ -28,7 +39,7 @@ export function collectSpaceGroups (items) {
   const result = []
   for (const space of items || []) {
     if (space?.id) {
-      result.push(space)
+      result.push(groupExtractPayload(space))
       result.push(...collectLinkedGroups(space.groupViews?.items))
     }
   }

@@ -104,6 +104,26 @@ describe('preserveViewLoadedPosts', () => {
     expect(merged[0].lastReadPostId).toBe('108579')
     expect(merged[0].newPostCount).toBe(0)
   })
+
+  it('keeps a higher local unread count when a refresh zeros it without advancing last-read', () => {
+    const existing = [{
+      id: 'discussions',
+      type: 'discussions',
+      lastReadPostId: '10',
+      newPostCount: 3
+    }]
+    const refreshed = [{
+      id: 'discussions',
+      type: 'discussions',
+      lastReadPostId: '10',
+      newPostCount: 0
+    }]
+
+    const merged = preserveViewLoadedPosts(existing, refreshed)
+
+    expect(merged[0].lastReadPostId).toBe('10')
+    expect(merged[0].newPostCount).toBe(3)
+  })
 })
 
 describe('setGroupViewHiddenInMenu', () => {

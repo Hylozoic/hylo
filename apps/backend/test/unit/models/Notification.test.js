@@ -373,7 +373,7 @@ describe('Notification', function () {
       }).save()
       spyify(Email, 'sendJoinRequestNotification', opts => {
         expect(opts.sender).to.contain({
-          name: 'The Space in Parent Group (via Hylo)'
+          name: 'Parent Group > The Space (via Hylo)'
         })
         expect(opts.data).to.contain({
           group_name: 'The Space in Parent Group',

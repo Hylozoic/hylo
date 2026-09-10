@@ -115,6 +115,14 @@ export default gql`
           name
         }
       }
+      skillsToLearn (first: 100) {
+        total
+        hasMore
+        items {
+          id
+          name
+        }
+      }
     }
   }
 `

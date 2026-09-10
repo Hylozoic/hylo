@@ -16,7 +16,8 @@ const GROUP_SETTINGS_INPUT_FIELDS = [
   'publishMurmurationsProfile',
   'showSuggestedSkills',
   'showWelcomePage',
-  'showPostNoticesInChat'
+  'showPostNoticesInChat',
+  'autoAddMembers'
 ]
 
 export const DELETE_GROUP = `${MODULE_NAME}/DELETE_GROUP`
@@ -80,6 +81,7 @@ export function fetchGroupSettings (slug) {
             showWelcomePage
             showPostNoticesInChat
             layout
+            autoAddMembers
           }
           type
           parentId
@@ -272,6 +274,7 @@ export function updateGroupSettings (id, changes) {
             showWelcomePage
             showPostNoticesInChat
             layout
+            autoAddMembers
           }
           agreements {
             items {

@@ -6,6 +6,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [7.0.4] - 2026-09-10
+
+### Changed
+- Unread badge counts for spaces now show the number of unread chats, plus the number of unread typed views inside it.
+- Group nav menu badges now appear as long as any view or space has a notification badge in it.
+- Toggle welcome page setting on in group settings adds welcome view to the menu if its not there
+
+### Fixed
+- Unread badge counts for spaces
+- Editing welcome page settings in group settings
+- Clicking on post in moderation view now goes to the post
+
+## [7.0.3] - 2026-09-09
+
+### Added
+- Space setting to automatically add all current group members, and anyone who joins the group later. People who leave the space are not added again if the setting is turned off and then on.
+- Add new "Page" view type for static HTML content
+
+### Changed
+- Use query param create=post instead of adding /create/post to any route to open create post modal
+- Use better lightbox for image display in chat
+
+### Fixed
+- Scrolling to load more (older) notifications
+- Display of blocked users list in dark mode
+- Display of All Activity and Map views and icons in the sandbox
+
+## [7.0.2] - 2026-09-08
+
+### Added
+- Ability to grant access to a paid space to all current members of the parent group
+- Can include imageUrls in createPost that get uploaded to AWS and attached to the post (if not already in AWS), for use by APIs and Zapier.
+
+### Fixed
+- More Spaces appears in the group menu on first load, using a cached off-menu space count so the spaces list is only fetched when you open that page
+- You can click on a steward's pill in the group about page to view their profile
+- Stop extra calendar reloads
+
 ## [7.0.1] - 2026-09-04
 
 ### Fixed
@@ -13,7 +51,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Converting a child group to a space removes it from GlobalNav immediately, including when it was pinned
 - Don't allow converting a group to a space if it has spaces of its own
 - Make site banner scrollable when long on a small device, and add dismiss button to bottom
-
 
 ## [7.0.0] - 2026-09-03 - Spaces and Views!
 

@@ -38,9 +38,10 @@ export default function useRouteParams () {
         const spaceView = pathParts[5]
         if (!spaceView) {
           params.view = ''
-        } else if (spaceView === 'custom' || spaceView === 'collection') {
+        } else if (spaceView === 'custom' || spaceView === 'collection' || spaceView === 'page') {
           params.view = spaceView
           params.customViewId = pathParts[6]
+          if (spaceView === 'page') params.viewId = pathParts[6]
         } else if (spaceView === 'members') {
           params.view = 'members'
           if (pathParts[6]) params.memberId = pathParts[6]
@@ -58,6 +59,10 @@ export default function useRouteParams () {
           params.view = 'post'
         } else if (!['create', 'post'].includes(pathParts[3])) {
           params.view = pathParts[3]
+          if (pathParts[3] === 'page' && pathParts[4]) {
+            params.viewId = pathParts[4]
+            params.customViewId = pathParts[4]
+          }
         } else {
           params.view = ''
         }
@@ -111,6 +116,12 @@ export default function useRouteParams () {
     // If I'm in the group settings then I want the view to include the specific settings tab
     if (params.view === 'settings') {
       params.view = `${params.view}/${pathParts[4]}`
+    }
+
+    // CreatePostModal is mounted outside route params, so pull postId from the path
+    if (!params.postId) {
+      const postIdMatch = location.pathname.match(/\/post\/(\d+)/)
+      if (postIdMatch) params.postId = postIdMatch[1]
     }
 
     return {
