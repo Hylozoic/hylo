@@ -7,6 +7,10 @@ import {
   setQuerystringParam,
   removeGroupFromUrl,
   createUrl,
+  createPostUrl,
+  createModalUrl,
+  createGroupModalUrl,
+  createPostModalUrl,
   primaryPostUrl,
   messagePersonUrl,
   isPublicPath,
@@ -111,7 +115,7 @@ describe('editPostUrl', () => {
 describe('duplicatePostUrl', () => {
   it('should return create action URL with postId query param fromPostId', () => {
     const result = duplicatePostUrl('1234', { context: 'groups', groupSlug: 'test' })
-    expect(result).toEqual('/groups/test/create/post?fromPostId=1234')
+    expect(result).toEqual('/groups/test?fromPostId=1234&create=post')
   })
 })
 
@@ -163,9 +167,33 @@ describe('origin with windows !== undefined', () => {
 
 describe('createUrl', () => {
   it('returns correct location', () => {
-    const expected = '/my/create?lat=1.23456&lng=6.54321'
+    const expected = '/my?lat=1.23456&lng=6.54321&create=post'
     const actual = createUrl({ context: 'my' }, { lat: '1.23456', lng: '6.54321' })
     expect(actual).toEqual(expected)
+  })
+})
+
+describe('createPostUrl', () => {
+  it('opens the post modal on the current context via query param', () => {
+    expect(createPostUrl({ context: 'groups', groupSlug: 'test' }, { newPostType: 'event' }))
+      .toEqual('/groups/test?newPostType=event&create=post')
+  })
+})
+
+describe('createModalUrl', () => {
+  it('sets create=post on the current location', () => {
+    expect(createPostModalUrl({ pathname: '/groups/test/all', search: '?sortBy=updated' }))
+      .toEqual('/groups/test/all?sortBy=updated&create=post')
+  })
+
+  it('sets create=group on the current location', () => {
+    expect(createGroupModalUrl({ pathname: '/public/all', search: '' }))
+      .toEqual('/public/all?create=group')
+  })
+
+  it('accepts an explicit type', () => {
+    expect(createModalUrl({ pathname: '/all/all', search: '' }, 'post', { newPostType: 'request' }))
+      .toEqual('/all/all?newPostType=request&create=post')
   })
 })
 

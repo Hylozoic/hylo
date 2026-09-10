@@ -40,7 +40,7 @@ import { FETCH_FOR_GROUP } from 'store/constants'
 import presentPost from 'store/presenters/presentPost'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
-import { personUrl, postUrl, groupDetailUrl, spaceHomeUrl } from '@hylo/navigation'
+import { createPostModalUrl, personUrl, postUrl, groupDetailUrl, spaceHomeUrl } from '@hylo/navigation'
 
 import {
   fetchSavedSearches, deleteSearch, saveSearch, viewSavedSearch
@@ -335,12 +335,9 @@ function MapExplorer (props) {
   })
 
   // Clicking the map to create goes straight into the post editor with the
-  // clicked location prefilled (CreateModal reads lat/lng), no type chooser
+  // clicked location prefilled (CreatePostModal reads lat/lng), no type chooser
   const goToCreatePostAtLocation = useCallback((lngLat) => {
-    const params = new URLSearchParams(location.search)
-    params.set('lat', lngLat.lat)
-    params.set('lng', lngLat.lng)
-    navigate(`${location.pathname}/create/post?${params.toString()}`)
+    navigate(createPostModalUrl(location, { lat: lngLat.lat, lng: lngLat.lng }))
   }, [location, navigate])
 
   const updateUrlFromStore = useCallback((params, replace) => {

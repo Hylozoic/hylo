@@ -22,7 +22,7 @@ test('post modal fills a phone and the To chip truncates instead of clipping', a
 
   // Straight to the create-post modal in a space context: the To field
   // pre-fills with the "Group / Space" chip.
-  await page.goto(`/groups/${GROUP}/spaces/${SPACE}/create/post`)
+  await page.goto(`/groups/${GROUP}/spaces/${SPACE}?create=post`)
   await waitPastRootSessionLoading(page)
   const toField = page.locator('.PostEditorTo')
   await expect(toField).toBeVisible({ timeout: 60000 })

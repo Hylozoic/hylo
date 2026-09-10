@@ -113,6 +113,12 @@ export default function useRouteParams () {
       params.view = `${params.view}/${pathParts[4]}`
     }
 
+    // CreatePostModal is mounted outside route params, so pull postId from the path
+    if (!params.postId) {
+      const postIdMatch = location.pathname.match(/\/post\/(\d+)/)
+      if (postIdMatch) params.postId = postIdMatch[1]
+    }
+
     return {
       ...queryString.parse(location.search), // Convert string to object
       ...params
