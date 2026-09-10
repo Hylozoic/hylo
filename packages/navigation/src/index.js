@@ -297,8 +297,12 @@ export function groupHomeUrl ({ group, routeParams }) {
 // Post URLS
 export function postUrl (id, opts = {}, querystringParams = {}) {
   const action = get('action', opts)
-  // Standalone /groups/:slug/post/:id uses "post" as a path segment, not a all activity view name
-  const urlOpts = opts.view === 'post' ? { ...opts, view: undefined } : opts
+  // These path segments are not stream views that mount a nested post dialog.
+  // Use standalone /groups/:slug/post/:id (or the space equivalent) instead of
+  // e.g. /about/post/:id, which is swallowed by the About page splat.
+  const urlOpts = ['post', 'about', 'moderation'].includes(opts.view)
+    ? { ...opts, view: undefined }
+    : opts
   let result
   if (urlOpts.context === '') {
     result = `/post/${id}`
