@@ -420,12 +420,21 @@ export function preserveViewLoadedPosts (existingItems, newItems) {
     // has the old cursor and unread count — keep the newer local position.
     const existingLastRead = parseInt(existing.lastReadPostId, 10)
     const incomingLastRead = parseInt(newView.lastReadPostId, 10)
+    const lastReadAdvanced = Number.isFinite(incomingLastRead) &&
+      (!Number.isFinite(existingLastRead) || incomingLastRead > existingLastRead)
     if (Number.isFinite(existingLastRead) &&
         (!Number.isFinite(incomingLastRead) || existingLastRead > incomingLastRead)) {
       merged.lastReadPostId = existing.lastReadPostId
       if (existing.newPostCount !== undefined) {
         merged.newPostCount = existing.newPostCount
       }
+    } else if (!lastReadAdvanced &&
+        existing.newPostCount !== undefined &&
+        (newView.newPostCount === undefined || newView.newPostCount < existing.newPostCount)) {
+      // Parent/spaces extracts and stale fetches can replace unread with 0
+      // without the user opening the view. Keep the higher local count unless
+      // last-read actually moved forward.
+      merged.newPostCount = existing.newPostCount
     }
     if (existing.collectionPosts !== undefined && newView.collectionPosts === undefined) {
       merged.collectionPosts = existing.collectionPosts

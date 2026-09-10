@@ -53,7 +53,7 @@ import GroupSettingsMenu from './GroupSettingsMenu'
 import MenuRowBackground from './MenuRowBackground'
 import { viewCardColor } from './viewCardTheme'
 import { DEFAULT_BANNER } from 'store/models/Group'
-import { isMenuViewVisible, singleVisibleMenuView } from 'store/models/GroupView'
+import { isMenuViewVisible } from 'store/models/GroupView'
 import GroupViewEditList from './GroupViewEditList'
 import GroupViewSettingsModal from './GroupViewSettingsModal'
 import SpaceSettingsModal from './SpaceSettingsModal'
@@ -69,7 +69,7 @@ import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { WebViewMessageTypes } from '@hylo/shared'
 import { getMobileAppVersion, sendMessageToWebView } from 'util/webView'
-import { viewShowsUnreadDot, viewUnreadBadgeCount } from 'util/viewUnreadBadges'
+import { spaceRowBadgeCount, viewShowsUnreadDot, viewUnreadBadgeCount } from 'util/viewUnreadBadges'
 
 import classes from './ContextMenu.module.scss'
 
@@ -398,28 +398,17 @@ function GroupViewMenuItem ({
       linkedSpaceGroup?.menuViewCount
     )
     const menuCount = viewCount + (showManageRound ? 1 : 0)
-    // Space badge = membership unread or pending join requests (same orange dot).
-    // Single-view spaces also surface the nested view's unread: a numbered chat
-    // count, or the typed-view orange dot — that view never appears as its own row.
-    const nestedSpaceViews = spaceViewsFromStore.length > 0
-      ? spaceViewsFromStore
-      : (resolvedSpaceGroup?.groupViews?.items || [])
-    const singleSpaceView = singleVisibleMenuView(
-      nestedSpaceViews,
-      resolvedSpaceGroup?.acceptedPostTypes
-    )
-    const spaceChatBadgeCount = viewUnreadBadgeCount(singleSpaceView)
+    // Space badge = membership.newPostCount (unread chats + 1 per other unread
+    // view). Join requests still get a dot when there is no number.
     const spaceMembership = linkedSpaceGroup &&
       myMemberships.find(m => String(m.group?.id) === String(linkedSpaceGroup.id))
-    const spaceUnread = (spaceMembership?.newPostCount || 0) > 0
+    const spaceChatBadgeCount = spaceRowBadgeCount(spaceMembership?.newPostCount)
     const spaceJoinRequests = (
       spaceGroupFromStore?.openJoinRequestCount ||
       linkedSpaceGroup?.openJoinRequestCount ||
       0
     ) > 0
-    const showSpaceDot = !spaceChatBadgeCount && (
-      viewShowsUnreadDot(singleSpaceView) || spaceUnread || spaceJoinRequests
-    )
+    const showSpaceDot = !spaceChatBadgeCount && spaceJoinRequests
     // Single-view spaces open homeRoute directly. Multi-view spaces open the
     // space menu: the drawer stays open on mobile, and the URL is the space
     // index so dismissing the drawer still shows that menu rather than home.

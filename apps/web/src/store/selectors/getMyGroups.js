@@ -16,6 +16,16 @@ function sortGroups (a, b) {
   return a.name.localeCompare(b.name)
 }
 
+/**
+ * Parent GlobalNav/Drawer badge: the group's own unread, or 1 when any nested
+ * space still has unread (nav only shows a dot).
+ */
+function parentNavNewPostCount (ownCount, spaces) {
+  if ((ownCount || 0) > 0) return ownCount
+  if ((spaces || []).some(space => (space.newPostCount || 0) > 0)) return 1
+  return 0
+}
+
 /** Builds a plain summary object for a nested group or space row. */
 function toNestedGroupSummary (group, extras = {}) {
   return {
@@ -77,7 +87,7 @@ function buildMyGroupsTree (session, memberships) {
     return {
       ...group,
       membershipId: membership.id,
-      newPostCount: membership.newPostCount,
+      newPostCount: parentNavNewPostCount(membership.newPostCount, spaces),
       navOrder: membership.navOrder,
       childGroups,
       spaces
@@ -91,7 +101,7 @@ function buildMyGroupsTree (session, memberships) {
     groups.push({
       ...parentGroup.ref,
       membershipId: null,
-      newPostCount: 0,
+      newPostCount: parentNavNewPostCount(0, spaces),
       navOrder: null,
       childGroups: [],
       spaces,
