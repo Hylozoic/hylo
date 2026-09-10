@@ -1,0 +1,40 @@
+{
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "ios": {
+        "simulator": true
+      },
+      "env": {
+        "ONESIGNAL_APN_MODE": "development"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "env": {
+        "API_HOST": "https://staging.hylo.com",
+        "HYLO_WEB_BASE_URL": "https://staging.hylo.com",
+        "ONESIGNAL_APN_MODE": "production"
+      }
+    },
+    "staging": {
+      "extends": "preview"
+    },
+    "production": {
+      "autoIncrement": true,
+      "env": {
+        "API_HOST": "https://www.hylo.com",
+        "HYLO_WEB_BASE_URL": "https://www.hylo.com",
+        "ONESIGNAL_APN_MODE": "production"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

@@ -1,0 +1,22 @@
+appId: ${APP_ID}
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      id: login-screen
+    timeout: 15000
+- assertVisible: 'Log in to Hylo'
+- tapOn:
+    id: login-email-input
+- inputText: ${MAESTRO_TEST_EMAIL}
+- tapOn:
+    id: login-password-input
+- inputText: ${MAESTRO_TEST_PASSWORD}
+- hideKeyboard
+- tapOn:
+    id: login-submit-button
+- extendedWaitUntil:
+    notVisible:
+      id: login-screen
+    timeout: 60000
