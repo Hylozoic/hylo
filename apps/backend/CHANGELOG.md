@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Unread badge counts for spaces now show the number of unread chats, plus the number of unread typed views inside it.
 - Group nav menu badges now appear as long as any view or space has a notification badge in it.
+- Toggle welcome page setting on in group settings adds welcome view to the menu if its not there
 
 ### Fixed
 - Unread badge counts for spaces
