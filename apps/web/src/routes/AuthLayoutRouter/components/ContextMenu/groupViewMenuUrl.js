@@ -3,25 +3,21 @@ import {
   localSpaceSlug,
   postUrl,
   personUrl,
-  spaceHomeUrl,
   spaceGroupViewUrl,
   spaceUrl,
   viewUrl
 } from '@hylo/navigation'
-import { isDrawerNavLayout } from 'util/mobile'
 import { sanitizeURL } from 'util/url'
 
 /**
  * URL for opening a space from a menu.
- * On a drawer layout the space index is the space's own menu. Alongside a
- * visible sidebar, go to the home view (that view's unread clears; others stay).
+ * Always the space index. SpaceContent shows the space menu there when no
+ * sidebar is alongside it (one-column / drawer); otherwise it redirects to
+ * the home view so only that view's unread clears.
  */
 export function spaceEntryUrl (parentSlug, spaceGroup) {
   if (!parentSlug || !spaceGroup?.slug) return parentSlug ? groupUrl(parentSlug) : '/'
-  if (isDrawerNavLayout()) {
-    return spaceUrl(parentSlug, localSpaceSlug(parentSlug, spaceGroup.slug))
-  }
-  return spaceHomeUrl(parentSlug, spaceGroup)
+  return spaceUrl(parentSlug, localSpaceSlug(parentSlug, spaceGroup.slug))
 }
 
 /**
