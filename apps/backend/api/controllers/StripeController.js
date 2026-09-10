@@ -1288,8 +1288,11 @@ module.exports = {
             await membership.acceptAgreements()
           }
 
-          // Pin the purchased group to the user's global navigation
-          await GroupMembership.pinGroupToNav(userIdNum, accessGroupId)
+          // Spaces are not in GlobalNav; only pin top-level groups
+          const accessGroup = await Group.find(accessGroupId)
+          if (accessGroup && accessGroup.get('type') !== 'space') {
+            await GroupMembership.pinGroupToNav(userIdNum, accessGroupId)
+          }
 
           if (process.env.NODE_ENV === 'development') {
             console.log(`Ensured group membership for user ${userIdNum} in group ${accessGroupId}`)

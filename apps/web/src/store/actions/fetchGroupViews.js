@@ -10,6 +10,7 @@ export default function fetchGroupViews (groupId) {
         group(id: $groupId) {
           id
           name
+          moreSpacesCount
           openJoinRequestCount
           track {
             id
@@ -69,6 +70,7 @@ export default function fetchGroupViews (groupId) {
                   submissionDescriptorPlural
                 }
                 menuViewCount
+                moreSpacesCount
               }
               viewPost {
                 id

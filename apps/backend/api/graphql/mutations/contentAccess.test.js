@@ -67,20 +67,20 @@ describe('Content Access Mutations', () => {
       expect(access.get('status')).to.equal('active')
     })
 
-    it('grants access to a track for a user', async () => {
+    it('grants access to a group or space for a user', async () => {
       const result = await grantContentAccess(adminUser.id, {
         userId: user.id,
         grantedByGroupId: group.id,
-        trackId: track.id,
+        groupId: group.id,
         reason: 'Promotional access'
       })
 
       expect(result.success).to.be.true
-      expect(result.trackId).to.equal(track.id)
+      expect(result.groupId).to.equal(group.id)
 
       // Verify the access record was created
       const access = await ContentAccess.where({ id: result.id }).fetch()
-      expect(access.get('track_id')).to.equal(track.id)
+      expect(access.get('group_id')).to.equal(group.id)
     })
 
     it('grants access with expiration date', async () => {
@@ -144,14 +144,68 @@ describe('Content Access Mutations', () => {
       ).to.be.rejectedWith('Granting group not found')
     })
 
-    it('rejects access grant without productId or trackId', async () => {
+    it('grants access to all current group members when grantToAllMembers is true', async () => {
+      const anotherMember = await factories.user().save()
+      await anotherMember.joinGroup(group)
+
+      const result = await grantContentAccess(adminUser.id, {
+        grantedByGroupId: group.id,
+        productId: product.id,
+        reason: 'Mass grant',
+        grantToAllMembers: true
+      })
+
+      expect(result.success).to.be.true
+      expect(result.grantedCount).to.be.at.least(3) // admin, user, anotherMember
+      expect(result.userId).to.be.null
+
+      const accessForUser = await ContentAccess.query(q => {
+        q.where({
+          user_id: user.id,
+          product_id: product.id,
+          access_type: 'admin_grant'
+        })
+      }).fetchAll()
+      expect(accessForUser.length).to.be.at.least(1)
+
+      const accessForAnother = await ContentAccess.query(q => {
+        q.where({
+          user_id: anotherMember.id,
+          product_id: product.id,
+          access_type: 'admin_grant'
+        })
+      }).fetchAll()
+      expect(accessForAnother.length).to.be.at.least(1)
+    })
+
+    it('rejects mass grant without productId, groupId, or groupRoleId', async () => {
+      await expect(
+        grantContentAccess(adminUser.id, {
+          grantedByGroupId: group.id,
+          grantToAllMembers: true,
+          reason: 'Test'
+        })
+      ).to.be.rejectedWith('Must specify either groupId, productId, or groupRoleId')
+    })
+
+    it('rejects grant when neither userId nor grantToAllMembers is provided', async () => {
+      await expect(
+        grantContentAccess(adminUser.id, {
+          grantedByGroupId: group.id,
+          productId: product.id,
+          reason: 'Test'
+        })
+      ).to.be.rejectedWith('Must specify userId or set grantToAllMembers')
+    })
+
+    it('rejects access grant without groupId, productId, or groupRoleId', async () => {
       await expect(
         grantContentAccess(adminUser.id, {
           userId: user.id,
           grantedByGroupId: group.id,
           reason: 'Test'
         })
-      ).to.be.rejectedWith('Must specify either groupId, productId, trackId, or groupRoleId')
+      ).to.be.rejectedWith('Must specify either groupId, productId, or groupRoleId')
     })
   })
 

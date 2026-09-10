@@ -57,7 +57,7 @@ async function requireSpaceManager (userId, spaceId, action, { includeInactive =
   return space
 }
 
-export async function createSpace (userId, { parentGroupId, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, purpose, location, locationId, viewTypes, bannerUrl, avatarUrl, paywall, addToMenu = true, status }, context) {
+export async function createSpace (userId, { parentGroupId, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, purpose, location, locationId, viewTypes, bannerUrl, avatarUrl, paywall, addToMenu = true, status, autoAddMembers }, context) {
   if (!userId) throw new GraphQLError('No userId passed into function')
   if (!parentGroupId) throw new GraphQLError('No parentGroupId passed into function')
   if (!name || !name.trim()) throw new GraphQLError('Name cannot be blank')
@@ -107,7 +107,7 @@ export async function createSpace (userId, { parentGroupId, name, slug, accepted
     accessibility: spaceAccessibility,
     paywall: isPaywalled,
     status: spaceStatus,
-    settings: {},
+    settings: autoAddMembers ? { auto_add_members: true } : {},
     access_code: await Group.getNewAccessCode(),
     calendar_token: uuidv4(),
     created_at: new Date(),
@@ -139,15 +139,20 @@ export async function createSpace (userId, { parentGroupId, name, slug, accepted
 
   notifyGroupUpdated(context, parentGroup, parentGroupId)
 
+  if (autoAddMembers) {
+    Queue.classMethod('Group', 'addEligibleMembersToSpace', { spaceId: space.id })
+  }
+
   // Refresh so home_route (set by setupSpaceViews) is included in the response
   return space.refresh()
 }
 
-export async function updateSpace (userId, { id, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, location, locationId, purpose, bannerUrl, avatarUrl, paywall, status }, context) {
+export async function updateSpace (userId, { id, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, location, locationId, purpose, bannerUrl, avatarUrl, paywall, status, autoAddMembers }, context) {
   if (!userId) throw new GraphQLError('No userId passed into function')
   if (!id) throw new GraphQLError('No id passed into function')
 
   const space = await requireSpaceManager(userId, id, 'update this space')
+  const wasAutoAdd = !!space.getSetting('auto_add_members')
 
   const changes = {}
   if (name !== undefined && name.trim()) changes.name = name.trim()
@@ -189,9 +194,16 @@ export async function updateSpace (userId, { id, name, slug, acceptedPostTypes, 
     }
     changes.status = status
   }
+  if (autoAddMembers !== undefined) {
+    changes.settings = { ...(space.get('settings') || {}), auto_add_members: Boolean(autoAddMembers) }
+  }
 
   if (Object.keys(changes).length > 0) {
     await space.save(changes, { patch: true })
+  }
+
+  if (autoAddMembers && !wasAutoAdd) {
+    Queue.classMethod('Group', 'addEligibleMembersToSpace', { spaceId: space.id })
   }
 
   if (changes.name) {
@@ -412,6 +424,7 @@ export async function convertSpaceToChildGroup (userId, id, context) {
     await parentGroup.addChild(space, { transacting: trx })
     await copyParentStewardsToChild(parentGroup, space, { transacting: trx })
     await convertSpaceViewToChildGroupView(id, space.get('name'), { transacting: trx })
+    await GroupView.syncMoreSpacesCount(parentId, { transacting: trx })
     await removeFromParentSpaceCollections(id, parentId, { transacting: trx })
   })
 
@@ -530,6 +543,7 @@ export async function convertGroupToSpace (userId, { id, parentGroupId }, contex
     await group.save({ type: 'space', parent_id: parentGroupId }, { patch: true, transacting: trx })
     await relationship.save({ active: false }, { transacting: trx })
     await convertChildGroupViewToSpaceView(parentGroupId, id, group.get('name'), { transacting: trx })
+    await GroupView.syncMoreSpacesCount(parentGroupId, { transacting: trx })
     await GroupMembership.unpinGroupFromAllNavs(id, { transacting: trx })
   })
 
@@ -623,15 +637,7 @@ export async function joinSpace (userId, spaceId, accessCode, invitationToken) {
   }
 
   // Create per-view unread rows for every existing view in the space (spec section 2.6).
-  // Chat starts at the latest chat post so joining does not dump people at the oldest message.
-  const views = await GroupView.findForGroup(spaceId)
-  for (const view of views.models) {
-    if (view.get('type') === 'chat') {
-      await GroupViewUser.markRead(view.id, userId)
-    } else {
-      await GroupViewUser.findOrCreate(view.id, userId)
-    }
-  }
+  await Group.ensureSpaceViewUsers(spaceId, [userId])
 
   return membership
 }

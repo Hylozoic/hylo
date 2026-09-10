@@ -1,5 +1,10 @@
 import orm from '../../../../../store/models'
-import { getNotifications } from './NotificationsDropdown.store'
+import queryResults from '../../../../../store/reducers/queryResults'
+import {
+  fetchNotifications,
+  getHasMoreNotifications,
+  getNotifications
+} from './NotificationsDropdown.store'
 
 describe('getNotifications', () => {
   it('returns expected values', () => {
@@ -10,5 +15,26 @@ describe('getNotifications', () => {
     expect(notifications.length).toEqual(2)
     expect(notifications[0]).toEqual(notification2)
     expect(notifications[1]).toEqual(notification1)
+  })
+})
+
+describe('getHasMoreNotifications', () => {
+  it('reads hasMore after a paginated fetch that includes first and offset', () => {
+    const action = {
+      ...fetchNotifications(20, 20),
+      payload: {
+        data: {
+          notifications: {
+            total: 40,
+            hasMore: true,
+            items: [{ id: 21 }, { id: 22 }]
+          }
+        }
+      }
+    }
+
+    const state = { queryResults: queryResults({}, action) }
+
+    expect(getHasMoreNotifications(state)).toEqual(true)
   })
 })

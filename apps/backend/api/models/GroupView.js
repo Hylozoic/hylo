@@ -113,12 +113,14 @@ module.exports = bookshelf.Model.extend({
    */
   createOffMenu: async function (attrs, { transacting } = {}) {
     const now = new Date()
-    return GroupView.forge({
+    const view = await GroupView.forge({
       ...attrs,
       order: null,
       created_at: now,
       updated_at: now
     }).save(null, { transacting, method: 'insert' })
+    await GroupView.syncMoreSpacesCount(attrs.group_id, { transacting })
+    return view
   },
 
   /**
@@ -216,6 +218,8 @@ module.exports = bookshelf.Model.extend({
   /**
    * Recount on-menu views (order is not null) into groups.menu_view_count.
    * Call after adding, hiding, showing, or deleting menu rows.
+   * Also refreshes more_spaces_count — hiding or showing a space moves it
+   * between the menu and More Spaces.
    */
   syncMenuViewCount: async function (groupId, { transacting } = {}) {
     if (!groupId) return 0
@@ -227,6 +231,40 @@ module.exports = bookshelf.Model.extend({
     const row = await countQuery.first()
     const count = parseInt(row?.count || 0, 10)
     const update = bookshelf.knex('groups').where({ id: groupId }).update({ menu_view_count: count })
+    if (transacting) update.transacting(transacting)
+    await update
+    await GroupView.syncMoreSpacesCount(groupId, { transacting })
+    return count
+  },
+
+  /**
+   * Recount active child spaces that are not on this group's menu into
+   * groups.more_spaces_count. Includes drafts and archived spaces (same
+   * set More Spaces lists). Deleted spaces (active = false) are excluded.
+   */
+  syncMoreSpacesCount: async function (groupId, { transacting } = {}) {
+    if (!groupId) return 0
+    const countQuery = bookshelf.knex('groups as spaces')
+      .where({
+        'spaces.parent_id': groupId,
+        'spaces.type': 'space',
+        'spaces.active': true
+      })
+      .whereNotExists(function () {
+        this.select(bookshelf.knex.raw('1'))
+          .from('group_views as gv')
+          .whereRaw('gv.linked_group_id = spaces.id')
+          .andWhere({
+            'gv.group_id': groupId,
+            'gv.type': 'space'
+          })
+          .whereNotNull('gv.order')
+      })
+      .count('* as count')
+    if (transacting) countQuery.transacting(transacting)
+    const row = await countQuery.first()
+    const count = parseInt(row?.count || 0, 10)
+    const update = bookshelf.knex('groups').where({ id: groupId }).update({ more_spaces_count: count })
     if (transacting) update.transacting(transacting)
     await update
     return count
