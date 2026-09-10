@@ -51,6 +51,7 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
   const [name, setName] = useState(view?.name || '')
   const [link, setLink] = useState(view?.link || '')
   const [linkIcon, setLinkIcon] = useState(view?.icon || 'Globe')
+  const [pageIcon, setPageIcon] = useState(view?.icon || 'FileText')
   const [textContent, setTextContent] = useState(() => textContentFromView(view))
   const [showWelcomePage, setShowWelcomePage] = useState(group?.settings?.showWelcomePage ?? true)
   const [showPostNoticesInChat, setShowPostNoticesInChat] = useState(group?.settings?.showPostNoticesInChat ?? true)
@@ -62,6 +63,7 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
     setName(view?.name || '')
     setLink(view?.link || '')
     setLinkIcon(view?.icon || 'Globe')
+    setPageIcon(view?.icon || 'FileText')
     setTextContent(textContentFromView(view))
     setShowWelcomePage(group?.settings?.showWelcomePage ?? true)
     setShowPostNoticesInChat(group?.settings?.showPostNoticesInChat ?? true)
@@ -98,6 +100,15 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
         if (showWelcomePage !== (group.settings?.showWelcomePage ?? true)) {
           await dispatch(updateGroupSettings(group.id, { settings: { showWelcomePage } }))
         }
+      } else if (view.type === 'page') {
+        const pageContent = welcomeEditorRef.current?.getHTML?.() ?? view.pageContent
+        await dispatch(updateGroupView({
+          id: view.id,
+          groupId: group.id,
+          name: name.trim() || null,
+          icon: pageIcon,
+          pageContent
+        }))
       } else if (view.type === 'chat') {
         if (showPostNoticesInChat !== (group.settings?.showPostNoticesInChat ?? true)) {
           await dispatch(updateGroupSettings(group.id, { settings: { showPostNoticesInChat } }))
@@ -166,6 +177,7 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
     name,
     link,
     linkIcon,
+    pageIcon,
     textContent,
     showWelcomePage,
     showPostNoticesInChat,
@@ -197,25 +209,34 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
   if (!view) return null
 
   const isWelcome = view.type === 'welcome'
+  const isPage = view.type === 'page'
+  const isHtmlEditor = isWelcome || isPage
   const title = view.type === 'text'
     ? t('Edit Text View')
-    : displayNameForView(view, t, { spaceGroup: spaceGroupForLabel })
+    : isPage
+      ? t('Edit Page')
+      : displayNameForView(view, t, { spaceGroup: spaceGroupForLabel })
   const canBeHome = canSetAsHomeView(view)
   const canSaveCustom = customForm.name.trim().length >= 2 && customForm.postTypes.length > 0
-  const saveDisabled = view.type === 'custom' ? !canSaveCustom : isSaving
+  const canSavePage = name.trim().length > 0
+  const saveDisabled = view.type === 'custom'
+    ? !canSaveCustom
+    : isPage
+      ? !canSavePage || isSaving
+      : isSaving
 
   // Portal above AuthLayout nav stacking so the dialog is not trapped behind GlobalNav.
   return createPortal(
     <div
       className={cn(
         'fixed inset-0 z-[1100] flex items-center justify-center bg-darkening/50 pointer-events-auto',
-        isWelcome && 'p-4'
+        isHtmlEditor && 'p-4'
       )}
     >
       <div
         className={cn(
           'bg-midground rounded-lg shadow-lg p-4 w-full',
-          isWelcome
+          isHtmlEditor
             ? 'max-w-[750px] h-[calc(100vh-2rem)] flex flex-col'
             : 'max-w-lg max-h-[85vh] overflow-y-auto'
         )}
@@ -225,7 +246,7 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
           {title}
         </h2>
 
-        <div className={cn('flex flex-col gap-3', isWelcome && 'flex-1 min-h-0')}>
+        <div className={cn('flex flex-col gap-3', isHtmlEditor && 'flex-1 min-h-0')}>
           {isWelcome && (
             <>
               <div className='flex items-center gap-2 shrink-0'>
@@ -237,6 +258,30 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
                 <span className='text-sm text-foreground/80'>
                   {t('Show this welcome page to new members when they first land in the group.')}
                 </span>
+              </div>
+              <HyloEditor
+                key={view.id}
+                contentHTML={view.pageContent || ''}
+                className='min-h-0 flex-1 overflow-y-auto p-2 [&_.ProseMirror]:min-h-full'
+                containerClassName='hyloEditor flex flex-col flex-1 min-h-0 border border-foreground/20 rounded-lg bg-input'
+                extendedMenu
+                groupIds={[group.id]}
+                ref={welcomeEditorRef}
+                showMenu
+                type='welcomePage'
+              />
+            </>
+          )}
+
+          {isPage && (
+            <>
+              <div className='flex flex-col gap-1 shrink-0'>
+                <label className='text-sm text-foreground/70'>{t('Name')}</label>
+                <Input value={name} onChange={e => setName(e.target.value)} placeholder={t('Name')} />
+              </div>
+              <div className='flex flex-col gap-1 shrink-0'>
+                <label className='text-sm text-foreground/70'>{t('Icon')}</label>
+                <LucideIconPicker value={pageIcon} onChange={setPageIcon} />
               </div>
               <HyloEditor
                 key={view.id}

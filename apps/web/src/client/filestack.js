@@ -71,16 +71,21 @@ export function uploadedFileToAttachment ({ url, filename, mimetype }) {
 }
 
 export function transformFile (file) {
+  if (!file) return file
+  const filename = typeof file.filename === 'string'
+    ? file.filename.replace(/\s+/g, '-')
+    : file.filename
   // Blob / sandbox uploads have no Filestack handle — keep the local URL.
-  if (!file?.handle || String(file.url || '').startsWith('blob:')) {
-    return file
+  // Always fetch by handle. Filestack sometimes appends the original filename
+  // (spaces → 400) or a rotate=deg:exif transform (400 for SVG / some PNGs).
+  if (!file.handle || String(file.url || '').startsWith('blob:')) {
+    return { ...file, filename }
   }
-  // Apply rotation from EXIF metadata
-  const url = getRootMimeType(file.mimetype) === 'image'
-    ? 'https://cdn.filestackcontent.com/rotate=deg:exif/' + file.handle
-    : file.url
-
-  return { ...file, url }
+  return {
+    ...file,
+    filename,
+    url: `https://cdn.filestackcontent.com/${file.handle}`
+  }
 }
 
 /**

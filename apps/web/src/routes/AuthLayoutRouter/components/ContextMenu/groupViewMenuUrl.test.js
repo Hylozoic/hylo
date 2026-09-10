@@ -78,4 +78,9 @@ describe('groupViewUrl', () => {
     expect(groupViewUrl('building-hylo', { type: 'space-collection', id: '99' }))
       .toBe('/groups/building-hylo/space-collection/99')
   })
+
+  it('includes the view id for page routes', () => {
+    expect(groupViewUrl('building-hylo', { type: 'page', id: '42' }))
+      .toBe('/groups/building-hylo/page/42')
+  })
 })
