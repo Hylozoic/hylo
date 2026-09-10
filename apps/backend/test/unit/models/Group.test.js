@@ -937,4 +937,38 @@ describe('Group', function () {
       }
     })
   })
+
+  describe('show_welcome_page setting', function () {
+    let user, group
+
+    beforeEach(async function () {
+      user = await factories.user().save()
+      group = await factories.group({ active: true }).save()
+      await user.joinGroup(group)
+    })
+
+    it('creates a welcome view in the menu when turning the setting on', async function () {
+      await group.update({ settings: { show_welcome_page: true } }, user.id)
+      const welcome = await GroupView.where({ group_id: group.id, type: 'welcome' }).fetch()
+      expect(welcome).to.exist
+      expect(welcome.get('order')).to.not.equal(null)
+    })
+
+    it('does not hide the welcome view when turning the setting off', async function () {
+      const existing = await GroupView.appendToMenu({ group_id: group.id, type: 'welcome' })
+      const order = existing.get('order')
+      await group.update({ settings: { show_welcome_page: false } }, user.id)
+      const welcome = await GroupView.where({ id: existing.id }).fetch()
+      expect(welcome).to.exist
+      expect(welcome.get('order')).to.equal(order)
+    })
+
+    it('puts an off-menu welcome view back on the menu when turning the setting on', async function () {
+      const existing = await GroupView.createOffMenu({ group_id: group.id, type: 'welcome' })
+      expect(existing.get('order')).to.equal(null)
+      await group.update({ settings: { show_welcome_page: true } }, user.id)
+      const welcome = await GroupView.where({ id: existing.id }).fetch()
+      expect(welcome.get('order')).to.not.equal(null)
+    })
+  })
 })

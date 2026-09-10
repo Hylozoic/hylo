@@ -895,9 +895,8 @@ export default function AuthLayoutRouter (props) {
         // First join/view: send to welcome when shown to new members, not the home view.
         // Nested `/spaces/` URLs never hit the group lastViewedAt check below (that
         // check is for the parent slug), so this remount is the space equivalent.
-        const isFirstVisit = currentGroupMembership && !get('lastViewedAt', currentGroupMembership)
         destPath = rest || (
-          isFirstVisit && currentGroup?.settings?.showWelcomePage
+          shouldLandOnWelcome(currentGroup, currentGroupMembership, { views: groupViews })
             ? '/welcome'
             : (currentGroup.homeRoute || '/all')
         )

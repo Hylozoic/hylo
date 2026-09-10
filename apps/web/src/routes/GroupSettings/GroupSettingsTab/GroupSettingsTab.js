@@ -3,9 +3,7 @@ import PropTypes from 'prop-types'
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
-import { useNavigate } from 'react-router-dom'
 import { TextHelpers } from '@hylo/shared'
-import { groupUrl } from '@hylo/navigation'
 import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
@@ -20,6 +18,11 @@ import SkillsSection from 'components/SkillsSection'
 import SwitchStyled from 'components/SwitchStyled'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
+import useGroupViews from 'hooks/useGroupViews'
+import fetchGroupViews from 'store/actions/fetchGroupViews'
+import { createGroupView, updateGroupView } from 'store/actions/groupViews'
+import AddWelcomeViewDialog from 'routes/AuthLayoutRouter/components/ContextMenu/AddWelcomeViewDialog'
+import GroupViewSettingsModal from 'routes/AuthLayoutRouter/components/ContextMenu/GroupViewSettingsModal'
 import { setConfirmBeforeClose } from 'routes/FullPageModal/FullPageModal.store'
 import {
   DEFAULT_BANNER,
@@ -37,15 +40,40 @@ const { object, func } = PropTypes
 
 function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, updateGroupSettings }) {
   const dispatch = useDispatch()
-  const navigate = useNavigate()
   const { t } = useTranslation()
   const [state, setState] = useState(defaultEditState)
+  const [welcomeSettingsOpen, setWelcomeSettingsOpen] = useState(false)
+  const groupViews = useGroupViews(group)
+  const welcomeView = groupViews.find(view => view.type === 'welcome')
+  const groupViewsLoaded = group?.groupViews != null
 
   useEffect(() => {
     if (!fetchPending) {
       setState(defaultEditState())
     }
   }, [fetchPending])
+
+  useEffect(() => {
+    if (group?.id && !groupViewsLoaded) {
+      dispatch(fetchGroupViews(group.id))
+    }
+  }, [dispatch, group?.id, groupViewsLoaded])
+
+  // Stored setting defaults on, but joiners only land on welcome when the view
+  // is actually in the menu. Keep local edits aligned so Save does not create one.
+  useEffect(() => {
+    if (!groupViewsLoaded || welcomeView) return
+    setState(prev => {
+      if (prev.edits.settings?.showWelcomePage === false) return prev
+      return {
+        ...prev,
+        edits: {
+          ...prev.edits,
+          settings: { ...prev.edits.settings, showWelcomePage: false }
+        }
+      }
+    })
+  }, [groupViewsLoaded, welcomeView])
 
   function defaultEditState () {
     if (!group) return { edits: {}, changed: false, valid: false }
@@ -126,6 +154,31 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
     dispatch(setConfirmBeforeClose(false))
   }
 
+  /** Persist show-to-new-members immediately. Turning on adds welcome to the menu; turning off leaves it there. */
+  const handleWelcomeToggle = async () => {
+    if (!groupViewsLoaded || !group?.id) return
+    const next = !(welcomeView && state.edits.settings?.showWelcomePage !== false)
+
+    setState(prev => ({
+      ...prev,
+      edits: {
+        ...prev.edits,
+        settings: { ...prev.edits.settings, showWelcomePage: next }
+      }
+    }))
+
+    if (next && !welcomeView) {
+      await dispatch(createGroupView({ groupId: group.id, type: 'welcome', addToEnd: true }))
+    } else if (next && welcomeView?.order == null) {
+      await dispatch(updateGroupView({ id: welcomeView.id, groupId: group.id, addToEnd: true }))
+    }
+
+    const storedOn = group.settings?.showWelcomePage !== false
+    if (storedOn !== next) {
+      updateGroupSettings({ settings: { showWelcomePage: next } })
+    }
+  }
+
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
     setHeaderDetails({
@@ -142,8 +195,8 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
     aboutVideoUri, acceptedPostTypes, avatarUrl, bannerUrl, description, geoShape, location, stewardDescriptor, stewardDescriptorPlural, name, purpose, settings, websiteUrl
   } = edits
 
-  const { defaultDigestFrequency: defaultDigestFrequencySetting = 'daily', locationDisplayPrecision, showSuggestedSkills, showWelcomePage = true } = settings
-  const welcomeShownToNewMembers = showWelcomePage !== false
+  const { defaultDigestFrequency: defaultDigestFrequencySetting = 'daily', locationDisplayPrecision, showSuggestedSkills, showWelcomePage } = settings
+  const welcomeShownToNewMembers = !!(welcomeView && showWelcomePage !== false)
   const editableMapLocation = group?.locationObject || currentUser.locationObject
 
   t('Display exact location')
@@ -260,35 +313,50 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
         </div>
       </SettingsSection>
       <SettingsSection>
-        <h3 className='text-foreground text-xl mb-4 mt-0'>{t('Accepted Post Types')}</h3>
+        <h3 className='text-foreground text-xl mb-4 mt-0'>{t('Features')}</h3>
         <p className='text-foreground/70 text-sm mb-4'>{t('Choose which post types this group accepts. Views for turned-off types are hidden from the group menu.')}</p>
         <PostTypePills
           postTypes={acceptedPostTypes}
           onPostTypesChange={updateSettingDirectly('acceptedPostTypes')}
-          label={t('Accepted post types')}
+          hideLabel
         />
         <div className='mt-6 flex flex-col gap-2'>
           <div className='flex items-center gap-3'>
             <SwitchStyled
               checked={welcomeShownToNewMembers}
-              onChange={() => updateSettingDirectly('settings.showWelcomePage')(!welcomeShownToNewMembers)}
+              disabled={!groupViewsLoaded}
+              onChange={handleWelcomeToggle}
               backgroundColor={welcomeShownToNewMembers ? 'hsl(var(--selected))' : 'rgba(0 0 0 / .6)'}
             />
             <span className='text-foreground text-sm'>
-              {t('Show this welcome page to new members when they first land in the group.')}
+              {t('Show a welcome page to new members when they first land in the group.')}
             </span>
           </div>
           {welcomeShownToNewMembers && (
             <button
               type='button'
               className='text-sm text-selected hover:underline self-start ml-12'
-              onClick={() => navigate(groupUrl(group.slug, 'welcome'))}
+              onClick={() => setWelcomeSettingsOpen(true)}
             >
               {t('Edit Welcome Page Content')}
             </button>
           )}
         </div>
       </SettingsSection>
+      {welcomeSettingsOpen && welcomeView && (
+        <GroupViewSettingsModal
+          view={welcomeView}
+          group={group}
+          onClose={() => setWelcomeSettingsOpen(false)}
+        />
+      )}
+      {welcomeSettingsOpen && !welcomeView && groupViewsLoaded && (
+        <AddWelcomeViewDialog
+          group={group}
+          onCancel={() => setWelcomeSettingsOpen(false)}
+          onCreated={() => setWelcomeSettingsOpen(false)}
+        />
+      )}
       <SettingsSection>
         <h3 className='text-foreground text-xl mb-4 mt-0'>{t('Customize group terms')}</h3>
         <SettingsControl
