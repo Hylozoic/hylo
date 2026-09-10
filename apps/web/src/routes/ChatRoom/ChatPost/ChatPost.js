@@ -34,6 +34,7 @@ import { groupUrl, personUrl, spaceUrl } from '@hylo/navigation'
 import { useGroupRouteOpts } from 'contexts/SpaceGroupContext'
 import { getLocaleFromLocalStorage } from 'util/locale'
 import { hasActiveTextSelection, hasReadableContentSelection } from 'util/textSelectionTouch'
+import { hasDraftContent } from 'hooks/useDraft'
 import pinPostAction from 'store/actions/pinPost'
 import useCurrentPinnableView from 'hooks/useCurrentPinnableView'
 import { cn } from 'util/index'
@@ -112,6 +113,10 @@ export default function ChatPost ({
     () => (post.attachments || []).some(attachment => attachment?.type === 'image'),
     [post.attachments]
   )
+
+  // TipTap empty docs are often "<p></p>", which still paints a blank line above
+  // image tiles. Treat only visible text as details worth rendering.
+  const hasVisibleDetails = useMemo(() => hasDraftContent(details), [details])
 
   const postGroups = useMemo(() => {
     if (post.groups?.length) return post.groups
@@ -415,7 +420,7 @@ export default function ChatPost ({
             </div>
           </div>
         )}
-        {details && editing && (
+        {editing && (
           <div className='relative'>
             <HyloEditor
               containerClassName='ml-[42px] overflow-visible [&_p]:my-[3px]'
@@ -445,7 +450,7 @@ export default function ChatPost ({
         {/* Chat keeps flagged content permanently obscured — the reveal flow
             lives in the post viewer, which shows the flag cover */}
         <div className='relative'>
-          {details && !editing && (
+          {hasVisibleDetails && !editing && (
             <>
               {/* Flagged text gets its badge at the end of the line: the flex row
                 lets the text block keep its natural width with the badge

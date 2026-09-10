@@ -406,7 +406,7 @@
   "CHAT ACTIVITY": "CHAT ACTIVITY",
   "Chat Topics": "Chat Topics",
   "Chat draft": "Chat draft",
-  "Chat must have content": "Chat must have content",
+  "Chat must have text or an attachment": "Chat must have text or an attachment",
   "Chats": "Chats",
   "Check back soon to offer your {{submissionDescriptor}}": "Check back soon to offer your {{submissionDescriptor}}",
   "Check your email": "Check your email",

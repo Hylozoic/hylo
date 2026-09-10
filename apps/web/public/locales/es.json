@@ -406,7 +406,7 @@
   "CHAT ACTIVITY": "ACTIVIDAD DEL CHAT",
   "Chat Topics": "Temas de Chat",
   "Chat draft": "Borrador de chat",
-  "Chat must have content": "La charla debe tener contenido",
+  "Chat must have text or an attachment": "La charla debe tener texto o un archivo adjunto",
   "Chats": "Charlas",
   "Check back soon to offer your {{submissionDescriptor}}": "Vuelve pronto para ofrecer tu {{submissionDescriptor}}",
   "Check your email": "Consultar su correo electrónico",

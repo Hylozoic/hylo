@@ -391,7 +391,7 @@
   "Chat": "Chat",
   "CHAT ACTIVITY": "CHAT-AKTIVITÄT",
   "Chat Topics": "Chat-Themen",
-  "Chat must have content": "Der Chat darf nicht leer sein.",
+  "Chat must have text or an attachment": "Der Chat muss Text oder einen Anhang enthalten",
   "Chats": "Chats",
   "Check back soon to offer your {{submissionDescriptor}}": "Schau bald wieder vorbei, um dein {{submissionDescriptor}} anzubieten.",
   "Check your email": "Überprüfe deine E-Mails",

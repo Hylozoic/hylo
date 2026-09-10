@@ -6,7 +6,7 @@ import { FilePreview } from './FilePreview'
 import { addAttachment, removeAttachment } from './AttachmentManager.store'
 
 export function FileManager ({
-  type, id, attachments, onChange, canRemove = true,
+  type, id, attachments, onChange, onLoadingChange, canRemove = true,
   uploadAttachmentPending, showLoading, showAddButton, showLabel
 }) {
   const { t } = useTranslation()
@@ -43,6 +43,7 @@ export function FileManager ({
             type={type}
             attachmentType='file'
             onSuccess={handleAddAttachment}
+            onLoadingChange={onLoadingChange}
             className='mt-3'
             allowMultiple
           >
