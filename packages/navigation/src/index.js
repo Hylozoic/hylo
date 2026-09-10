@@ -132,10 +132,33 @@ export function baseUrl ({
   }
 }
 
-export function createUrl (opts = {}, querystringParams = {}) {
-  const url = baseUrl(opts) + '/create'
+export const CREATE_QUERY_PARAM = 'create'
+export const CREATE_POST = 'post'
+export const CREATE_GROUP = 'group'
 
-  return addQuerystringToPath(url, querystringParams)
+/**
+ * Adds or replaces `?create=` on the current location so a compose modal can
+ * layer over whatever page the user is already on.
+ */
+export function createModalUrl (location, type, extraParams = {}) {
+  const search = new URLSearchParams(location?.search || '')
+  Object.entries(extraParams).forEach(([key, value]) => {
+    if (value != null && value !== '') search.set(key, String(value))
+  })
+  search.set(CREATE_QUERY_PARAM, type)
+  return `${location?.pathname || '/'}?${search.toString()}`
+}
+
+export function createGroupModalUrl (location, params = {}) {
+  return createModalUrl(location, CREATE_GROUP, params)
+}
+
+export function createPostModalUrl (location, params = {}) {
+  return createModalUrl(location, CREATE_POST, params)
+}
+
+export function createUrl (opts = {}, querystringParams = {}) {
+  return addQuerystringToPath(baseUrl(opts), { ...querystringParams, [CREATE_QUERY_PARAM]: CREATE_POST })
 }
 
 // For specific views of a group like 'map', or 'projects'
@@ -186,6 +209,8 @@ export function groupViewPath (view) {
       return `/collection/${view.id}`
     case 'space-collection':
       return `/space-collection/${view.id}`
+    case 'page':
+      return `/page/${view.id}`
     case 'link':
       return null
     case 'manage-round':
@@ -287,8 +312,7 @@ export function postUrl (id, opts = {}, querystringParams = {}) {
 }
 
 export function createPostUrl (opts = {}, querystringParams = {}) {
-  const url = baseUrl(opts) + '/create/post'
-  return addQuerystringToPath(url, querystringParams)
+  return addQuerystringToPath(baseUrl(opts), { ...querystringParams, [CREATE_QUERY_PARAM]: CREATE_POST })
 }
 
 export function editPostUrl (id, opts = {}, querystringParams = {}) {
@@ -456,11 +480,27 @@ export function addQuerystringToPath (path, querystringParams) {
   return `${path}${queryString ? '?' + queryString : ''}`
 }
 
+/**
+ * Drops the `create` query param used to open compose modals.
+ */
+function stripCreateQueryParam (url) {
+  if (!url || typeof url !== 'string') return url
+  try {
+    const base = typeof window !== 'undefined' ? window.location.origin : 'http://localhost'
+    const u = new URL(url, base)
+    u.searchParams.delete(CREATE_QUERY_PARAM)
+    return `${u.pathname}${u.search}${u.hash}`
+  } catch {
+    return url
+  }
+}
+
 export function removeCreateEditModalFromUrl (url) {
   const matchForCreateRegex = '/create/(post|track)/*'
   const matchForEditRegex = `/post/${HYLO_ID_MATCH}(/.*)?`
-  return url.replace(new RegExp(matchForCreateRegex), '')
+  const withoutPath = url.replace(new RegExp(matchForCreateRegex), '')
     .replace(new RegExp(matchForEditRegex), '')
+  return stripCreateQueryParam(withoutPath)
 }
 
 /**
@@ -474,10 +514,12 @@ export function stripComposeModalQueryParams (url) {
   try {
     const base = typeof window !== 'undefined' ? window.location.origin : 'http://localhost'
     const u = new URL(url, base)
+    u.searchParams.delete(CREATE_QUERY_PARAM)
     u.searchParams.delete('newPostType')
     u.searchParams.delete('eventDate')
     u.searchParams.delete('sourceDraftId')
     u.searchParams.delete('closePath')
+    u.searchParams.delete('fromPostId')
     return `${u.pathname}${u.search}${u.hash}`
   } catch {
     return url

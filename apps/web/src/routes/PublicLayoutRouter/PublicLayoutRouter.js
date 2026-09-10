@@ -44,7 +44,6 @@ export default function PublicLayoutRouter (props) {
           <Route path='topics' element={<AllTopics />} />
           {/* Must be before `public/*` in AuthLayout; here match post editor paths if ever deep-linked unauth */}
           <Route path='post/:postId/edit/*' element={<PublicCenterColumn><ViewContent context='public' /></PublicCenterColumn>} />
-          <Route path='post/:postId/create/*' element={<PublicCenterColumn><ViewContent context='public' /></PublicCenterColumn>} />
 
           {/* Unknown under /public — send to All Activity (same as auth shell), not login */}
           <Route path='*' element={<Navigate to='/public/all' replace />} />

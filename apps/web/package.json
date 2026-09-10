@@ -1,7 +1,7 @@
 {
   "name": "web",
   "description": "Hylo Frontend",
-  "version": "7.0.2",
+  "version": "7.0.3",
   "private": true,
   "license": "Apache-2.0",
   "author": "Hylo <hello@hylo.com>",
@@ -230,6 +230,7 @@
     "vite": "^5.4.11",
     "whatwg-fetch": "2.0.3",
     "xhr": "^2.5.0",
+    "yet-another-react-lightbox": "^3.21.0",
     "zustand": "5.0.3"
   },
   "devDependencies": {

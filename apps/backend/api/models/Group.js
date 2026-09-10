@@ -737,14 +737,20 @@ module.exports = bookshelf.Model.extend(merge({
       }))
   },
 
-  async removeMembers (usersOrIds, { transacting } = {}) {
+  async removeMembers (usersOrIds, { transacting, fromParentLeave = false } = {}) {
     const userIds = usersOrIds.map(x => x instanceof User ? x.id : x)
     const roleScopeId = await Group.roleScopeId(this)
 
     // Runs first, while the memberships it settles are still active
     await this.settleParticipation(userIds, { transacting })
 
-    await this.updateMembers(usersOrIds, { active: false, nav_order: null }, { transacting })
+    const leaveAttrs = { active: false, nav_order: null }
+    // Opt out of auto-add only when leaving the space itself. Parent-group leave
+    // deactivates space memberships too, but those people should be re-added if they rejoin.
+    if (this.get('type') === 'space' && !fromParentLeave) {
+      leaveAttrs.settings = { leftSpace: true }
+    }
+    await this.updateMembers(usersOrIds, leaveAttrs, { transacting })
 
     // Per-view unread rows would otherwise survive as frozen badge signals: unread
     // increments skip inactive members, but the parent group's badge check matches
@@ -777,7 +783,7 @@ module.exports = bookshelf.Model.extend(merge({
         const spaceMemberships = await GroupMembership.forIds(userIds, space.id, { multiple: true }).fetch({ transacting })
         const activeSpaceUserIds = spaceMemberships.pluck('user_id')
         if (activeSpaceUserIds.length === 0) return
-        await space.removeMembers(activeSpaceUserIds, { transacting })
+        await space.removeMembers(activeSpaceUserIds, { transacting, fromParentLeave: true })
       })
     }
 
@@ -880,16 +886,19 @@ module.exports = bookshelf.Model.extend(merge({
       // Treat leave/rejoin as a first visit so welcome ("show to new members") shows again
       joinFlowReset.lastReadAt = null
     }
+    if (pickedAttrs.active === true && this.get('type') === 'space') {
+      joinFlowReset.leftSpace = false
+    }
     const updatedAttribs = Object.assign(
       {},
       pickedAttrs,
       {
         settings: merge(
           {},
-          pickedAttrs.settings || {},
-          joinFlowReset
+          joinFlowReset,
+          pickedAttrs.settings || {}
         )
-      } // updateAndSave will merge these with existing settings
+      } // caller settings win so auto-add can skip the join form / emails
     )
 
     return Promise.map(existingMemberships.models, ms => ms.updateAndSave(updatedAttribs, { transacting }))
@@ -906,6 +915,7 @@ module.exports = bookshelf.Model.extend(merge({
 
     const attributes = mapValues(pick(changes, whitelist), (v, k) => trimAttrs.includes(k) ? trim(v) : v)
     const saneAttrs = clone(attributes)
+    const wasAutoAdd = this.get('type') === 'space' && !!this.getSetting('auto_add_members')
 
     if (attributes.settings) {
       saneAttrs.settings = merge({}, this.get('settings'), attributes.settings)
@@ -926,6 +936,9 @@ module.exports = bookshelf.Model.extend(merge({
 
     this.set(saneAttrs)
     await this.validate()
+    const becomingAutoAdd = this.get('type') === 'space' &&
+      !!this.getSetting('auto_add_members') &&
+      !wasAutoAdd
     await bookshelf.transaction(async transacting => {
       if (changes.agreements && this.get('type') !== 'space' && !this.get('parent_id')) {
         const currentAgreementIds = (await this.agreements().fetch({ transacting })).pluck('id')
@@ -1021,6 +1034,10 @@ module.exports = bookshelf.Model.extend(merge({
       await Queue.classMethod('Group', 'geocodeLocation', { groupId: this.id })
     }
 
+    if (becomingAutoAdd) {
+      Queue.classMethod('Group', 'addEligibleMembersToSpace', { spaceId: this.id })
+    }
+
     if (this.hasMurmurationsProfile()) {
       await Queue.classMethod('Group', 'publishToMurmurations', { groupId: this.id })
     }
@@ -1089,6 +1106,18 @@ module.exports = bookshelf.Model.extend(merge({
     const members = await User.query(q => q.whereIn('id', newUserIds.concat(reactivatedUserIds))).fetchAll()
     const group = await Group.find(groupId)
 
+    // Auto-add new/reactivated parent-group members to spaces with autoAddMembers
+    if (group && group.get('type') !== 'space') {
+      const candidateIds = (newUserIds || []).concat(reactivatedUserIds || [])
+      if (candidateIds.length > 0) {
+        const spaces = await group.spaces().fetch()
+        await Promise.map(spaces.models, space => {
+          if (!space.getSetting('auto_add_members')) return
+          return Group.addEligibleMembersToSpace({ spaceId: space.id, userIds: candidateIds })
+        })
+      }
+    }
+
     // Publish group membership updates for new and reactivated members
     if (group && members.length > 0) {
       const { publishGroupMembershipUpdate } = require('../../lib/groupSubscriptionPublisher')
@@ -1151,6 +1180,73 @@ module.exports = bookshelf.Model.extend(merge({
     }
   },
 
+  /**
+   * Create per-view unread rows for users in a space. Chat starts at the latest
+   * post so joining does not dump people at the oldest message.
+   */
+  async ensureSpaceViewUsers (spaceId, userIds, { transacting } = {}) {
+    if (!userIds || userIds.length === 0) return
+    const views = await GroupView.findForGroup(spaceId, { transacting })
+    for (const userId of userIds) {
+      for (const view of views.models) {
+        if (view.get('type') === 'chat') {
+          await GroupViewUser.markRead(view.id, userId, { transacting })
+        } else {
+          await GroupViewUser.findOrCreate(view.id, userId, { transacting })
+        }
+      }
+    }
+  },
+
+  /**
+   * Add parent-group members to a space with autoAddMembers. Skips people who
+   * already belong and people who left the space (leftSpace). Inactive memberships
+   * from leaving the parent group are reactivated. When userIds is omitted, all
+   * current parent members are considered.
+   */
+  async addEligibleMembersToSpace ({ spaceId, userIds } = {}) {
+    const space = await Group.find(spaceId)
+    if (!space || space.get('type') !== 'space' || !space.get('active')) return
+    if (!space.getSetting('auto_add_members')) return
+    if (space.get('status') === Group.Status.ARCHIVED) return
+
+    const parentId = space.get('parent_id')
+    if (!parentId) return
+
+    let candidateIds
+    if (userIds == null) {
+      const parent = await Group.find(parentId)
+      if (!parent) return
+      const parentMemberships = await parent.memberships().fetch()
+      candidateIds = parentMemberships.pluck('user_id')
+    } else {
+      candidateIds = userIds.filter(Boolean)
+    }
+    if (candidateIds.length === 0) return
+
+    const existing = await space.memberships(true)
+      .query(q => q.whereIn('user_id', candidateIds))
+      .fetch()
+    const skipIds = new Set(
+      existing
+        .filter(m => m.get('active') || m.getSetting('leftSpace'))
+        .map(m => String(m.get('user_id')))
+    )
+    const toAdd = candidateIds.filter(id => !skipIds.has(String(id)))
+    if (toAdd.length === 0) return
+
+    await space.addMembers(toAdd, {
+      lastReadAt: new Date(),
+      settings: {
+        showJoinForm: false,
+        agreementsAcceptedAt: new Date(),
+        joinQuestionsAnsweredAt: new Date()
+      }
+    })
+
+    await Group.ensureSpaceViewUsers(spaceId, toAdd)
+  },
+
   // create a calendar subscription for group events
   async createEventCalendarSubscription ({ groupId }) {
     const group = await Group.find(groupId)
@@ -1191,6 +1287,9 @@ module.exports = bookshelf.Model.extend(merge({
   // Background task to do additional work/tasks after a new member finished joining a group (after they've accepted agreements and answered join questions)
   async afterFinishedJoining ({ userId, groupId }) {
     const group = await Group.find(groupId)
+    if (!group) return
+    // Auto-add spaces put people in without a join flow; don't email stewards "X joined"
+    if (group.get('type') === 'space' && group.getSetting('auto_add_members')) return
 
     const moderators = await group.moderators().fetch()
 

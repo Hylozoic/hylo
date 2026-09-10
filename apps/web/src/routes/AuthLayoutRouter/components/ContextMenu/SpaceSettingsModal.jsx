@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
-import { CreditCard, Hand, ImagePlus, LayoutGrid, MapPin, Trash2, UserPlus } from 'lucide-react'
+import { CreditCard, Hand, ImagePlus, LayoutGrid, MapPin, Trash2, UserPlus, Users } from 'lucide-react'
 
 import { AdvancedPill, AdvancedSection } from 'components/AdvancedSettings/AdvancedSettings'
 import Button from 'components/ui/button'
@@ -37,6 +37,7 @@ import FundingRoundSettingsFields from './FundingRoundSettingsFields'
 import SpaceIconRow from './SpaceIconRow'
 import SpaceSlugField from './SpaceSlugField'
 import TrackSettingsFields from './TrackSettingsFields'
+import AutoAddMembersSetting from './AutoAddMembersSetting'
 import { SPACE_ICON_SUGGESTIONS, accessOptionsForGroup, accessValueForSpace, toIsoOrNull } from './spaceFormConstants'
 
 function toDateOrNull (value) {
@@ -241,6 +242,7 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
   const [welcomeTouched, setWelcomeTouched] = useState(false)
   const [welcomeDraft, setWelcomeDraft] = useState(null)
   const [showWelcomePage, setShowWelcomePage] = useState(space?.settings?.showWelcomePage ?? true)
+  const [autoAddMembers, setAutoAddMembers] = useState(!!space?.settings?.autoAddMembers)
   const welcomeEditorRef = useRef(null)
 
   // Track settings (only relevant when this space is backed by a Track)
@@ -290,6 +292,10 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
   useEffect(() => {
     if (space?.id) dispatch(fetchGroupViews(space.id))
   }, [dispatch, space?.id])
+
+  useEffect(() => {
+    setAutoAddMembers(!!space?.settings?.autoAddMembers)
+  }, [space?.id, space?.settings?.autoAddMembers])
 
   const toggleAdvanced = useCallback((key) => {
     const isOpen = openAdvanced.has(key)
@@ -417,7 +423,8 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
         accessibility: accessOption.accessibility,
         requiredRoles: access === 'role' ? requiredRoles.map(role => role.id) : [],
         paywall: Boolean(accessOption.paywall),
-        status
+        status,
+        autoAddMembers
       }))
 
       if (welcomeTouched) {
@@ -480,7 +487,7 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
     } finally {
       setIsSaving(false)
     }
-  }, [dispatch, space?.id, parentGroup?.id, view?.id, name, slug, slugValid, description, icon, bannerUrl, purpose, locationObject, postTypes, access, accessOptions, requiredRoles, welcomeTouched, welcomeDraft, welcomeView, showWelcomePage, space?.settings?.showWelcomePage, track?.id, actionDescriptor, actionDescriptorPlural, completionRole, fundingRound?.id, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frAllowLateJoiners, frHideFinalResults, frRequireBudget, frShowRealtimeVotes, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles, onClose])
+  }, [dispatch, space?.id, parentGroup?.id, view?.id, name, slug, slugValid, description, icon, bannerUrl, purpose, locationObject, postTypes, access, accessOptions, requiredRoles, welcomeTouched, welcomeDraft, welcomeView, showWelcomePage, space?.settings?.showWelcomePage, autoAddMembers, track?.id, actionDescriptor, actionDescriptorPlural, completionRole, fundingRound?.id, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frAllowLateJoiners, frHideFinalResults, frRequireBudget, frShowRealtimeVotes, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles, onClose])
 
   /** Convert this space into a child group of the parent. */
   const handleConvertToChildGroup = useCallback(async () => {
@@ -557,8 +564,17 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
           />
         </div>
       )
+    },
+    {
+      key: 'autoAddMembers',
+      icon: Users,
+      label: 'Auto-add members',
+      defaultSummary: autoAddMembers ? t('On') : t('Off'),
+      render: () => (
+        <AutoAddMembersSetting checked={autoAddMembers} onChange={setAutoAddMembers} />
+      )
     }
-  ], [t, locationObject, postTypes, welcomeView, welcomeDraft, showWelcomePage, space?.id])
+  ], [t, locationObject, postTypes, welcomeView, welcomeDraft, showWelcomePage, space?.id, autoAddMembers])
 
   const revealedSettings = advancedSettings.filter(setting => openAdvanced.has(setting.key))
 

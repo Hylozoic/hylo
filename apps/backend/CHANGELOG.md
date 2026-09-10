@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [7.0.3] - 2026-09-09
+
+### Added
+- Space setting **Automatically add group members**: when on, current group members are added in the background (except people who previously left the space), and new members are added when they join the group. Leaving a space deactivates membership so they are not re-added if the setting is toggled off and on. Leaving and rejoining the parent group re-adds people to auto-add spaces.
+- Add new "Page" view type for static HTML content
+
 ## [7.0.2] - 2026-09-08
 
 ### Added

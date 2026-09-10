@@ -19,7 +19,7 @@ import config, { isDev, isTest } from 'config/index'
 import { isSandboxMode } from 'sandbox/isSandbox'
 import CookieConsentLinker from 'components/CookieConsentLinker'
 import ContextMenu from './components/ContextMenu'
-import CreateModal from 'components/CreateModal'
+import CreatePostModal from 'components/CreatePostModal'
 import GlobalNav from './components/GlobalNav'
 import ContextMenuGrid from './components/ContextMenu/ContextMenuGrid'
 import MoreSpacesPage from './components/ContextMenu/MoreSpacesPage'
@@ -70,6 +70,7 @@ import GroupSettings from 'routes/GroupSettings'
 import MembershipRequestsTab from 'routes/GroupSettings/MembershipRequestsTab'
 import GroupWelcomeModal from 'routes/GroupWelcomeModal'
 import GroupWelcomePage from 'routes/GroupWelcomePage'
+import GroupPageView from 'routes/GroupPageView'
 import GroupExplorer from 'routes/GroupExplorer'
 import Drawer from './components/Drawer'
 import JoinGroup from 'routes/JoinGroup'
@@ -122,7 +123,7 @@ function groupIdFromMembership (membership) {
 const MENU_PRELOAD_MAX_MEMBERSHIPS = 60
 
 /**
- * Legacy `/stream` → `/all`, preserving any trailing path (e.g. `/create`, `/post/:id`).
+ * Legacy `/stream` → `/all`, preserving any trailing path (e.g. `/post/:id`).
  */
 function RedirectStreamToAll ({ basePath }) {
   const { '*': rest } = useParams()
@@ -1036,62 +1037,7 @@ export default function AuthLayoutRouter (props) {
           </div> {/* END NavContainer */}
 
           <div className='AuthLayoutRouterCenterContainer flex flex-col h-full w-full relative flex-1 min-w-0' id='center-column-container'>
-            <Routes>
-              <Route path='groups/:groupSlug/topics/:topicName/create/*' element={<CreateModal context='groups' />} />
-              <Route path='groups/:groupSlug/topics/:topicName/post/:postId/create/*' element={<CreateModal context='groups' />} />
-              <Route path='groups/:groupSlug/topics/:topicName/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
-              <Route path='groups/:groupSlug/chat/create/*' element={<CreateModal context='groups' />} />
-              <Route path='groups/:groupSlug/chat/post/:postId/create/*' element={<CreateModal context='groups' />} />
-              <Route path='groups/:groupSlug/chat/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
-              <Route path='groups/:groupSlug/members/:personId/create/*' element={<CreateModal context='groups' />} />
-              <Route path='groups/:groupSlug/settings/:tab/create/*' element={<CreateModal context='groups' />} />
-              <Route path='groups/:groupSlug/:view/create/*' element={<CreateModal context='groups' />} />
-              <Route path='groups/:groupSlug/custom/:customViewId/create/*' element={<CreateModal context='groups' />} />
-              <Route path='groups/:groupSlug/custom/:customViewId/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
-              <Route path='groups/:groupSlug/:view/post/:postId/create/*' element={<CreateModal context='groups' />} />
-              <Route path='groups/:groupSlug/:view/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
-              <Route path='groups/:groupSlug/create/*' element={<CreateModal context='groups' />} />
-              <Route path='groups/:groupSlug/post/:postId/create/*' element={<CreateModal context='groups' />} />
-              <Route path='groups/:groupSlug/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
-              {/* Space create/edit modals — mirror group routes under /spaces/:spaceSlug */}
-              <Route path='groups/:groupSlug/spaces/:spaceSlug/chat/create/*' element={<CreateModal context='groups' />} />
-              <Route path='groups/:groupSlug/spaces/:spaceSlug/chat/post/:postId/create/*' element={<CreateModal context='groups' />} />
-              <Route path='groups/:groupSlug/spaces/:spaceSlug/chat/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
-              <Route path='groups/:groupSlug/spaces/:spaceSlug/members/:personId/create/*' element={<CreateModal context='groups' />} />
-              <Route path='groups/:groupSlug/spaces/:spaceSlug/:view/create/*' element={<CreateModal context='groups' />} />
-              <Route path='groups/:groupSlug/spaces/:spaceSlug/custom/:customViewId/create/*' element={<CreateModal context='groups' />} />
-              <Route path='groups/:groupSlug/spaces/:spaceSlug/custom/:customViewId/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
-              <Route path='groups/:groupSlug/spaces/:spaceSlug/:view/post/:postId/create/*' element={<CreateModal context='groups' />} />
-              <Route path='groups/:groupSlug/spaces/:spaceSlug/:view/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
-              <Route path='groups/:groupSlug/spaces/:spaceSlug/create/*' element={<CreateModal context='groups' />} />
-              <Route path='groups/:groupSlug/spaces/:spaceSlug/post/:postId/create/*' element={<CreateModal context='groups' />} />
-              <Route path='groups/:groupSlug/spaces/:spaceSlug/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
-              <Route path='public/topics/:topicName/create/*' element={<CreateModal context='public' />} />
-              <Route path='public/topics/:topicName/post/:postId/create/*' element={<CreateModal context='public' />} />
-              <Route path='public/topics/:topicName/post/:postId/edit/*' element={<CreateModal context='public' editingPost />} />
-              <Route path='all/topics/:topicName/create/*' element={<CreateModal context='all' />} />
-              <Route path='all/topics/:topicName/post/:postId/create/*' element={<CreateModal context='all' />} />
-              <Route path='all/topics/:topicName/post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
-              <Route path='all/:view/create/*' element={<CreateModal context='all' />} />
-              <Route path='all/:view/post/:postId/create/*' element={<CreateModal context='all' />} />
-              <Route path='all/:view/post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
-              <Route path='public/:view/create/*' element={<CreateModal context='public' />} />
-              <Route path='public/:view/post/:postId/create/*' element={<CreateModal context='public' />} />
-              <Route path='public/:view/post/:postId/edit/*' element={<CreateModal context='public' editingPost />} />
-              <Route path='my/:view/create/*' element={<CreateModal context='my' />} />
-              <Route path='my/:view/post/:postId/create/*' element={<CreateModal context='my' />} />
-              <Route path='my/:view/post/:postId/edit/*' element={<CreateModal context='my' editingPost />} />
-              <Route path='public/create/*' element={<CreateModal context='public' />} />
-              <Route path='public/post/:postId/create/*' element={<CreateModal context='public' />} />
-              <Route path='public/post/:postId/edit/*' element={<CreateModal context='public' editingPost />} />
-              <Route path='all/create/*' element={<CreateModal context='all' />} />
-              <Route path='all/post/:postId/create/*' element={<CreateModal context='all' />} />
-              <Route path='all/post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
-              <Route path='post/:postId/create/*' element={<CreateModal context='all' />} />
-              <Route path='post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
-              <Route path='messages/:messageThreadId/create/*' element={<CreateModal context='messages' />} />
-              <Route path='messages/create/*' element={<CreateModal context='messages' />} />
-            </Routes>
+            <CreatePostModal />
 
             <div className={cn('AuthLayout_centerColumn bg-midground flex flex-col px-0 relative min-h-1 h-full flex-1 overflow-y-auto overflow-x-hidden transition-all duration-450', { 'z-[60]': withoutNav, 'sm:p-0': isMapView })} id={CENTER_COLUMN_ID}>
               <ViewHeader />
@@ -1119,7 +1065,6 @@ export default function AuthLayoutRouter (props) {
                 <Route path='all/topics' element={<AllTopics />} />
                 {/* Must be before `public/*` — otherwise `/public/post/:id/edit` matches `public/*` and redirects away */}
                 <Route path='public/post/:postId/edit/*' element={<ViewContent context='public' />} />
-                <Route path='public/post/:postId/create/*' element={<ViewContent context='public' />} />
                 <Route path='all' element={isCardMenuUser ? <ContextMenuGrid context='all' /> : <Navigate to='/all/all' replace />} />
                 <Route path='all/*' element={<ViewContent context='my' />} />
                 <Route path='public' element={isCardMenuUser ? <ContextMenuGrid context='public' /> : <Navigate to='/public/all' replace />} />
@@ -1148,6 +1093,7 @@ export default function AuthLayoutRouter (props) {
                             <Route path='spaces/:spaceSlug/*' element={<SpaceContent parentGroup={currentGroup} isOneColumnGroup={isOneColumnGroup} />} />
                             <Route path='about/*' element={<GroupAboutPage />} />
                             <Route path='welcome/*' element={<GroupWelcomePage />} />
+                            <Route path='page/:viewId/*' element={<GroupPageView />} />
                             <Route path='map/*' element={<MapExplorer context='groups' view='map' />} />
                             <Route path='all/*' element={<ViewContent context='groups' view='all' />} />
                             <Route path='stream/*' element={<RedirectStreamToAll basePath={`/groups/${currentGroupSlug}`} />} />

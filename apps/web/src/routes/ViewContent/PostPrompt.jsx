@@ -2,6 +2,7 @@ import React, { useMemo } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { SquarePen } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { createPostModalUrl } from '@hylo/navigation'
 import { cn } from 'util/index'
 
 /**
@@ -18,13 +19,11 @@ export default function PostPrompt (props) {
   const type = useMemo(() => postTypesAvailable && postTypesAvailable.length === 1 ? postTypesAvailable[0] : 'default', [postTypesAvailable])
   const newPostType = postTypesAvailable?.[0]
   const createPostPath = useMemo(() => {
-    const basePath = location.pathname.replace(/\/create\/.*$/, '')
-    const params = new URLSearchParams(location.search)
-    if (newPostType) params.set('newPostType', newPostType)
-    if (eventDate) params.set('eventDate', eventDate)
-    const query = params.toString()
-    return `${basePath}/create/post${query ? `?${query}` : ''}`
-  }, [location.pathname, location.search, newPostType, eventDate])
+    const extra = {}
+    if (newPostType) extra.newPostType = newPostType
+    if (eventDate) extra.eventDate = eventDate
+    return createPostModalUrl(location, extra)
+  }, [location, newPostType, eventDate])
 
   const postPromptString = useMemo(() => {
     const postPrompts = {

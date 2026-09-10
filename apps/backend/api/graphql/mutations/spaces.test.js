@@ -2,6 +2,7 @@
 import setup from '../../../test/setup'
 import factories from '../../../test/setup/factories'
 import { assignCoordinator } from '../../../test/setup/roleHelpers'
+import { mockify, unspyify } from '../../../test/setup/helpers'
 import { archiveSpace, convertGroupToSpace, convertSpaceToChildGroup, createSpace, deleteSpace, joinSpace, updateSpace } from './spaces'
 
 describe('space mutations', () => {
@@ -706,6 +707,67 @@ describe('space mutations', () => {
       } catch (e) {
         expect(e.message).to.match(/required role/)
       }
+    })
+  })
+
+  describe('autoAddMembers', () => {
+    beforeEach(() => {
+      mockify(Queue, 'classMethod', () => Promise.resolve())
+    })
+
+    afterEach(() => {
+      unspyify(Queue, 'classMethod')
+    })
+
+    it('saves the setting and queues adding parent members when creating a space', async () => {
+      const space = await createSpace(coordinator.id, {
+        parentGroupId: parentGroup.id,
+        name: `Auto add ${Date.now()}`,
+        autoAddMembers: true
+      }, {})
+
+      expect(space.getSetting('auto_add_members')).to.equal(true)
+      expect(Queue.classMethod).to.have.been.called.with(
+        'Group',
+        'addEligibleMembersToSpace',
+        { spaceId: space.id }
+      )
+      await deleteSpace(coordinator.id, space.id, {})
+    })
+
+    it('does not queue adding members when the setting is off', async () => {
+      const space = await createSpace(coordinator.id, {
+        parentGroupId: parentGroup.id,
+        name: `No auto add ${Date.now()}`
+      }, {})
+
+      expect(space.getSetting('auto_add_members')).to.not.equal(true)
+      const autoAddCalls = Queue.classMethod.__spy.calls.filter(call =>
+        call[0] === 'Group' && call[1] === 'addEligibleMembersToSpace'
+      )
+      expect(autoAddCalls.length).to.equal(0)
+      await deleteSpace(coordinator.id, space.id, {})
+    })
+
+    it('queues adding members when the setting is turned on', async () => {
+      const space = await createSpace(coordinator.id, {
+        parentGroupId: parentGroup.id,
+        name: `Toggle auto add ${Date.now()}`
+      }, {})
+
+      await updateSpace(coordinator.id, { id: space.id, autoAddMembers: true }, {})
+      const updated = await Group.find(space.id)
+      expect(updated.getSetting('auto_add_members')).to.equal(true)
+      expect(Queue.classMethod).to.have.been.called.with(
+        'Group',
+        'addEligibleMembersToSpace',
+        { spaceId: space.id }
+      )
+
+      await updateSpace(coordinator.id, { id: space.id, autoAddMembers: false }, {})
+      const turnedOff = await Group.find(space.id)
+      expect(turnedOff.getSetting('auto_add_members')).to.equal(false)
+      await deleteSpace(coordinator.id, space.id, {})
     })
   })
 })

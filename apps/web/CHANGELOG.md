@@ -6,6 +6,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [7.0.3] - 2026-09-09
+
+### Added
+- Space setting to automatically add all current group members, and anyone who joins the group later. People who leave the space are not added again if the setting is turned off and then on.
+- Add new "Page" view type for static HTML content
+
+### Changed
+- Use query param create=post instead of adding /create/post to any route to open create post modal
+- Use better lightbox for image display in chat
+
+### Fixed
+- Scrolling to load more (older) notifications
+- Display of blocked users list in dark mode
+- Display of All Activity and Map views and icons in the sandbox
+
 ## [7.0.2] - 2026-09-08
 
 ### Added

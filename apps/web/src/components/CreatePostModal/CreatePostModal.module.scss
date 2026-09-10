@@ -1,0 +1,93 @@
+:global .create-modal-enter, :global .create-modal-appear {
+  .create-modal-bg {
+    opacity: 0;
+  }
+
+  .create-modal-wrapper {
+    opacity: 0;
+    position: relative;
+    right: -100%;
+  }
+}
+
+:global .create-modal-enter.create-modal-enter-active, :global .create-modal-appear.create-modal-appear-active {
+  .create-modal-bg {
+    opacity: 1;
+    transition: opacity 200ms ease-out;
+  }
+
+  .create-modal-wrapper {
+    opacity: 1;
+    right: 0;
+    transition: right 250ms ease-out, opacity 400ms ease-out;
+  }
+}
+
+:global .create-modal-exit {
+  .create-modal-bg {
+    opacity: 0;
+  }
+
+  .create-modal-wrapper {
+    opacity: 1;
+    transform: translate(0, 0);
+  }
+}
+
+:global .create-modal-exit.create-modal-exit-active {
+  .create-modal-bg {
+    opacity: 0;
+    transition: opacity 300ms ease-out;
+  }
+
+  .create-modal-wrapper {
+    opacity: 0;
+    transform: translate(0, -100px);
+    transition: transform 200ms ease-out, opacity 200ms ease-out;
+  }
+}
+
+.create-modal {
+  position: absolute;
+  /* Above map drawer (20) and the map post-detail column (60) */
+  z-index: 70;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.create-modal-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  background: hsl(var(--primary) / 0.7);
+  backdrop-filter: blur(2px);
+}
+
+.create-modal-wrapper {
+  width: 100%;
+  max-width: 800px;
+  margin-top: auto;
+  margin-bottom: auto;
+  position: relative;
+  z-index: 10;
+  padding: 20px;
+}
+
+@media screen and (max-width: 600px) {
+  .create-modal-wrapper {
+    width: 100%;
+    /* The editor needs the phone's full width far more than a 20px gutter */
+    padding: 8px;
+  }
+}

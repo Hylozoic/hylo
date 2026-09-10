@@ -46,6 +46,8 @@ export default {
   moduleNameMapper: {
     '^react-native$': 'react-native-web',
     '\\.(css|scss)$': 'identity-obj-proxy',
+    '^yet-another-react-lightbox$': '<rootDir>/config/jest/__mocks__/yet-another-react-lightbox.js',
+    '^yet-another-react-lightbox/plugins/(.*)$': '<rootDir>/config/jest/__mocks__/yet-another-react-lightbox-plugin.js',
     '\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$': '<rootDir>/config/jest/__mocks__/fileMock.js',
     '^@/(.*)$': '<rootDir>/src/$1',
     '^@hylo/shared$': '<rootDir>/../../packages/shared/src/index.js',

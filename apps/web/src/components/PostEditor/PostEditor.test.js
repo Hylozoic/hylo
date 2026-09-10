@@ -128,7 +128,7 @@ describe('PostEditor', () => {
 
       await waitFor(() => {
         expect(screen.getByText('Timeframe')).toBeInTheDocument()
-        expect(screen.getByText('Location')).toBeInTheDocument()
+        expect(screen.getByText('Venue')).toBeInTheDocument()
       })
     })
   })

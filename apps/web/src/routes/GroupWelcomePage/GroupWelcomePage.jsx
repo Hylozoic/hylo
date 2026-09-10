@@ -68,7 +68,7 @@ function GroupWelcomePage () {
   if (!groupViewsLoaded) return <Loading />
 
   return (
-    <div className='p-4 global-postContent max-w-[750px] mx-auto'>
+    <div className='p-4 global-postContent hylo-page-html max-w-[750px] mx-auto'>
       {!hasWelcomeContent && (
         <h1 className='text-2xl font-bold mb-4'>
           {t('Welcome to {{group.name}}!', { group })}

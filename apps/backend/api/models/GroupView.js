@@ -52,6 +52,7 @@ module.exports = bookshelf.Model.extend({
     MAP: 'map',
     MEMBER: 'member',
     MEMBERS: 'members',
+    PAGE: 'page',
     POST: 'post',
     PROJECTS: 'projects',
     PROPOSALS: 'proposals',

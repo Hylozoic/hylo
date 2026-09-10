@@ -64,9 +64,8 @@ import ModalDialog from 'components/ModalDialog'
 import { pinGroup, unpinGroup, updateGroupNavOrder } from 'store/actions/pinGroup'
 import markGroupAsRead from 'store/actions/markGroupAsRead'
 import logout from 'store/actions/logout'
-import { newMessageUrl, personUrl, myHomeLandingUrl } from '@hylo/navigation'
+import { createGroupModalUrl, createPostModalUrl, newMessageUrl, personUrl, myHomeLandingUrl } from '@hylo/navigation'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
-import { createGroupModalUrl } from 'routes/CreateGroup/createGroupUrl'
 import {
   WebViewMessageTypes,
   LOCALE_DE,
@@ -199,7 +198,7 @@ function GlobalCreateMenu () {
           label={t('Create a group')}
         />
         <CreateMenuRow
-          onClick={go(`${location.pathname}/create/post`)}
+          onClick={go(createPostModalUrl(location))}
           tileClass='bg-[hsl(155_51%_34%)]'
           icon={<Edit className='w-4 h-4' />}
           label={t('Create a post')}

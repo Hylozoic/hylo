@@ -229,7 +229,7 @@ function PostEditorInner ({
     if (groupSlug && !currentGroup) dispatch(fetchForGroup(groupSlug))
   }, [dispatch, groupSlug, currentGroup])
 
-  const editingPostId = routeParams.postId
+  const editingPostId = routeParams.postId || parsedRouteParams.postId
   const fromPostId = getQuerystringParam('fromPostId', urlLocation)
   const viewId = getQuerystringParam('viewId', urlLocation)
 
@@ -1255,7 +1255,7 @@ function PostEditorInner ({
     }
   }, [announcementSelected, currentPost.type, currentPost.proposalOptions, isEditing, isValid, initialPost.proposalOptions, save, loading, postPending])
 
-  // Allow parents (e.g. CreateModal) to trigger save/reset flows without duplicating editor logic
+  // Allow parents (e.g. CreatePostModal) to trigger save/reset flows without duplicating editor logic
   useImperativeHandle(ref, () => ({
     submit: () => doSave(),
     resetToInitial: () => reset()

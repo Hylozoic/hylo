@@ -155,6 +155,17 @@
     }
   }
 
+  // Page/welcome HTML: keep images at their intrinsic width (capped at the
+  // column) and center them. Overrides the w-full class TipTap used to save.
+  .hylo-page-html img {
+    width: auto;
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
   @media (max-width: 640px) {
     .global-postContent,
     .ChatPost_container .global-postContent {

@@ -591,13 +591,13 @@ export default function ViewContent (props) {
   // Refresh calendar when returning from the create modal (a post may have been created)
   const prevPathWasCreateRef = useRef(false)
   useEffect(() => {
-    const isCreatePath = location.pathname.includes('/create/')
+    const isCreatePath = new URLSearchParams(location.search).get('create') === 'post'
     if (prevPathWasCreateRef.current && !isCreatePath && isCalendarViewMode) {
       dispatch(dropPostResults(fetchPostsParam))
       fetchPostsFrom(0)
     }
     prevPathWasCreateRef.current = isCreatePath
-  }, [location.pathname, isCalendarViewMode, dispatch, fetchPostsParam, fetchPostsFrom])
+  }, [location.pathname, location.search, isCalendarViewMode, dispatch, fetchPostsParam, fetchPostsFrom])
 
   const hasPostPrompt = currentUserHasMemberships && context !== CONTEXT_MY && view !== 'explore'
   // Calendar view applies on both `/events` (default) and `/stream?v=calendar`.
