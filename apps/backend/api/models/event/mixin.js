@@ -197,7 +197,6 @@ export default {
 
     const rsvpEmailPayload = {
       email: user.get('email'),
-      version: 'default',
       data: {
         date: DateTimeHelpers.formatDatePair({ start: this.get('start_time'), end: this.get('end_time'), timezone: this.get('timezone'), locale: userLocale }),
         user_name: user.get('name'),
