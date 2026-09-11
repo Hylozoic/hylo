@@ -139,6 +139,22 @@ it('handles null children', () => {
   expect(extractor.mergedNodes()).toMatchSnapshot()
 })
 
+it('handles a null many-relation without throwing', () => {
+  const extractor = new ModelExtractor(orm.session(orm.getEmptyState()))
+  extractor.walk({
+    id: '1',
+    title: 'Hello',
+    groups: null,
+    topics: { items: null }
+  }, 'Post')
+  expect(extractor.mergedNodes()).toEqual([
+    {
+      modelName: 'Post',
+      payload: { id: '1', title: 'Hello', groups: [], topics: [] }
+    }
+  ])
+})
+
 it('creates a polymorphicChildId when __typename field is present', () => {
   const extractor = new ModelExtractor(orm.session(orm.getEmptyState()))
   extractor.walk(testPayloads.FETCH_SEARCH.data.search, 'SearchResult')

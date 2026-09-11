@@ -779,7 +779,14 @@ export default function AuthLayoutRouter (props) {
       }
 
       for (const batch of batches) {
-        await dispatch(fetchGroupsMenuData(batch))
+        try {
+          const result = await dispatch(fetchGroupsMenuData(batch))
+          if (result?.error) {
+            batch.forEach(id => preloadedMenuGroupIdsRef.current.delete(id))
+          }
+        } catch (err) {
+          batch.forEach(id => preloadedMenuGroupIdsRef.current.delete(id))
+        }
       }
     }, INITIAL_DELAY)
 

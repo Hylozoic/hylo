@@ -889,5 +889,17 @@ describe('makeAuthenticatedQueries', () => {
       expect(GroupMembership.updateLastViewedAt).to.have.been.called()
       unspyify(GroupMembership, 'updateLastViewedAt')
     })
+
+    it('still returns the group when updateLastViewedAt throws', async () => {
+      mockify(GroupMembership, 'updateLastViewedAt', () => {
+        throw new Error('badge sync failed')
+      })
+      const result = await queries.group(null, {
+        id: group.id,
+        updateLastViewed: true
+      })
+      expect(result).to.be.ok()
+      unspyify(GroupMembership, 'updateLastViewedAt')
+    })
   })
 })

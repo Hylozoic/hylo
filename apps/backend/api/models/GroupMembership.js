@@ -232,10 +232,14 @@ module.exports = bookshelf.Model.extend(Object.assign({
     if (membership) {
       membership.addSetting({ lastReadAt: new Date() })
       await membership.save()
-      await GroupMembership.syncBadgeCounts(
-        membership.get('group_id'),
-        [membership.get('user_id')]
-      )
+      try {
+        await GroupMembership.syncBadgeCounts(
+          membership.get('group_id'),
+          [membership.get('user_id')]
+        )
+      } catch (err) {
+        sails.log.error('syncBadgeCounts failed after updateLastViewedAt:', err)
+      }
       return membership.refresh()
     }
     return false

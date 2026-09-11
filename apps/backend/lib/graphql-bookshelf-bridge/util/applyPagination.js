@@ -20,7 +20,10 @@ export default function applyPagination (query, tableName, opts) {
     query = query.limit(first)
   }
 
-  query = countTotal(query, tableName, PAGINATION_TOTAL_COLUMN_NAME)
+  // Window totals explode memory on heavy filters (e.g. Post.groups + groupFilter).
+  if (!opts.skipTotal) {
+    query = countTotal(query, tableName, PAGINATION_TOTAL_COLUMN_NAME)
+  }
 
   if (cursor) {
     const op = order === 'asc' ? '>' : '<'

@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Unread badge counts for spaces
 - Fix event RSVP emails
 - Fix sender name of emails from activity in spaces to include parent group name. "Parent Group > Space Name (view Hylo)"
+- Fix occasional out of memory errors when loading post stream on production
 
 ## [7.0.3] - 2026-09-09
 

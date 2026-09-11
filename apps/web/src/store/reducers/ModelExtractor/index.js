@@ -102,8 +102,12 @@ export default class ModelExtractor {
   }
 
   _walkMany (value, modelName, extraProps) {
+    // GraphQL field errors leave many-relations as null; a missing `items`
+    // used to throw in the reducer and drop the whole action (empty stream).
+    if (!value) return []
     const items = Array.isArray(value) ? value : value[QUERY_SET_ITEMS_KEY]
-    return items.map(x => {
+    if (!Array.isArray(items)) return []
+    return items.filter(Boolean).map(x => {
       const node = extraProps ? Object.assign(x, extraProps) : x
       this.walk(node, modelName, false)
       return x.id

@@ -19,7 +19,11 @@ import OfferingDetails from 'routes/OfferingDetails/OfferingDetails'
 import checkLogin from 'store/actions/checkLogin'
 import { getAuthorized } from 'store/selectors/getSignupState'
 import { getAuthSessionUnknown } from 'store/selectors/getAuthSession'
-import { sendMessageToWebView } from 'util/webView'
+import {
+  clearMobileWebViewUserLogout,
+  isMobileWebViewUserLogoutInProgress,
+  sendMessageToWebView
+} from 'util/webView'
 import { isSandboxMode } from 'sandbox/isSandbox'
 
 if (!isTest && config.mixpanel.token && !isSandboxMode()) {
@@ -172,8 +176,10 @@ export default function RootRouter () {
   useEffect(() => {
     if (isAuthSessionUnknown) return
     if (!window.HyloMobileV2) return
+    if (isMobileWebViewUserLogoutInProgress()) return
 
     if (isAuthorized) {
+      clearMobileWebViewUserLogout()
       writeMobileReauthAttempts(0)
       writeMobileRecovering(false)
       setMobileRecovering(false)
@@ -207,6 +213,10 @@ export default function RootRouter () {
   useEffect(() => {
     if (bootDone) window.HyloBootLoader?.ready()
   }, [bootDone])
+
+  if (isMobileWebViewUserLogoutInProgress()) {
+    return <Loading type='fullscreen' />
+  }
 
   if (isAuthSessionUnknown || mobileRecovering) {
     if (window.HyloMobileV2 || isNeutralRootSessionLoadingPath(pathname)) {
