@@ -9,6 +9,8 @@ import {
   commentFilter,
   groupFilter,
   groupTopicFilter,
+  isGroupVisibleToViewer,
+  loadGroupVisibilityContext,
   makeFilterToggle,
   membershipFilter,
   messageFilter,
@@ -568,6 +570,21 @@ export default function makeModels (userId, isAdmin, apiClient) {
             ? p.userEventInvitation(userId).then(eventInvitation => eventInvitation ? eventInvitation.get('response') : '')
             : '',
         noticeData: p => parsePostNoticeData(p),
+        // Tiny groups_posts lookup, then in-memory visibility (same rules as
+        // groupFilter). Avoids the stream out of memory from filter+count(*) per post.
+        groups: async (p, _args, context) => {
+          const fetched = await p.groups().fetch()
+          const models = fetched?.models || []
+          // Do not skip for platform admins (@hylo.com / HYLO_ADMINS). That
+          // listed protected groups on stream cards and post pages.
+          if (!userId) {
+            return models.filter(g => g.get('visibility') === Group.Visibility.PUBLIC)
+          }
+          const ctx = context?.groupVisibilityLoader
+            ? await context.groupVisibilityLoader.load(userId)
+            : await loadGroupVisibilityContext(userId)
+          return models.filter(g => isGroupVisibleToViewer(g, ctx, userId))
+        },
         noticePosts: async p => {
           try {
             const ids = parsePostNoticeData(p)?.recentPostIds || []
@@ -618,7 +635,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
             }
           }
         },
-        'groups',
         { user: { alias: 'creator' } },
         'followers',
         'locationObject',

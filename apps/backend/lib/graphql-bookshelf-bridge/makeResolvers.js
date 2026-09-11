@@ -64,6 +64,7 @@ export function createResolverForModel (spec, fetcher) {
       let hasTotal
       try {
         hasTotal = !opts.querySet &&
+        !opts.skipTotal &&
         !['belongsTo', 'hasOne'].includes(
           get('type', model.forge()[bookshelfName]().relatedData))
       } catch (err) {
@@ -77,7 +78,8 @@ export function createResolverForModel (spec, fetcher) {
           {
             querySet: opts.querySet,
             filter: opts.filter && partialRight(opts.filter, args),
-            skipModelFilter: opts.skipModelFilter
+            skipModelFilter: opts.skipModelFilter,
+            skipTotal: opts.skipTotal
           },
           pick(args, 'first', 'cursor', 'order', 'sortBy', 'offset')
         )

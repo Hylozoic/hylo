@@ -436,6 +436,7 @@ export default function ViewContent (props) {
   }, [isCalendarViewMode, pinnableView?.pinnedPostIds, pinnedPosts, posts, sortBy, streamViewConfig?.type])
   const hasMore = useSelector(state => getHasMorePosts(state, fetchPostsParam))
   const pending = useSelector(state => state.pending[FETCH_POSTS])
+  const [fetchError, setFetchError] = useState(false)
 
   const collectionSensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: MOUSE_ACTIVATION }),
@@ -471,10 +472,20 @@ export default function ViewContent (props) {
     }))
   }, [dispatch, group?.id, streamViewConfig?.collectionId])
 
-  const fetchPostsFrom = useCallback((offset) => {
+  /** Loads a page of posts. First-page GraphQL failures retry once, then surface. */
+  const fetchPostsFrom = useCallback((offset, isRetry = false) => {
     if (pending && offset > 0) return
     if (hasMore === false && offset > 0) return
-    dispatch(fetchPosts({ offset, ...fetchPostsParam }))
+    if (offset === 0) setFetchError(false)
+    return Promise.resolve(dispatch(fetchPosts({ offset, ...fetchPostsParam })))
+      .then(action => {
+        if (action?.error) throw action.payload || new Error('FETCH_POSTS failed')
+      })
+      .catch(() => {
+        if (offset > 0) return
+        if (!isRetry) return fetchPostsFrom(offset, true)
+        setFetchError(true)
+      })
   }, [dispatch, pending, hasMore, fetchPostsParam])
 
   useEffect(() => {
@@ -649,7 +660,12 @@ export default function ViewContent (props) {
     dispatch(push(createPostUrl(routeParams, params)))
   }, [dispatch, routeParams, querystringParams, postTypeFilter, postTypesForPrompt])
 
-  const showEmptyStream = !pending && !topicBlockingStreams && !customViewLoading && streamPosts.length === 0
+  // hasMore is undefined until FETCH_POSTS succeeds. A failed fetch used to
+  // look like a real empty stream ("Nothing here yet") even when posts exist.
+  const queryReady = hasMore !== undefined
+  const showFetchError = fetchError && !pending && streamPosts.length === 0
+  const showEmptyStream = queryReady && !pending && !topicBlockingStreams && !customViewLoading && streamPosts.length === 0 && !fetchError
+  const waitingForFirstPage = !queryReady && !fetchError && !pending && streamPosts.length === 0
 
   // Keep Calendar mounted across date/month fetches. Pending belongs in an overlay,
   // not a gate that unmounts the whole view when posts briefly go empty.
@@ -781,16 +797,24 @@ export default function ViewContent (props) {
                   onDragEnd={handleCollectionDragEnd}
                   streamPosts={streamPosts}
                   viewMode={viewMode}
-                  showEmptyStream={showEmptyStream}
-                  noPostsMessage={noPostsMessage}
-                  hasPostPrompt={hasPostPrompt}
-                  onCreateFromEmpty={createFromEmpty}
+                  showEmptyStream={showEmptyStream || showFetchError}
+                  noPostsMessage={showFetchError ? t('Couldn\'t load posts') : noPostsMessage}
+                  hasPostPrompt={hasPostPrompt && !showFetchError}
+                  onCreateFromEmpty={showFetchError ? () => fetchPostsFrom(0, true) : createFromEmpty}
+                  emptyActionLabel={showFetchError ? t('Try Again') : null}
                   routeParams={routeParams}
                   group={group}
                   currentUser={currentUser}
                   querystringParams={querystringParams}
                   context={context}
                   groupSlug={groupSlug}
+                />
+              )}
+              {showFetchError && isCalendarViewMode && (
+                <NoPosts
+                  message={t('Couldn\'t load posts')}
+                  actionLabel={t('Try Again')}
+                  onAction={() => fetchPostsFrom(0, true)}
                 />
               )}
               {showCalendar && (
@@ -818,7 +842,7 @@ export default function ViewContent (props) {
                 </div>
               )}
 
-              {(pending || topicBlockingStreams || customViewLoading) && !isCalendarViewMode && (
+              {(pending || waitingForFirstPage || topicBlockingStreams || customViewLoading) && !isCalendarViewMode && (
                 posts.length === 0
                   ? <StreamSkeleton wrapWithMainColumn={false} />
                   : <StreamSkeleton wrapWithMainColumn={false} placeholderCount={2} />
@@ -850,6 +874,7 @@ function CollectionPostsGrid ({
   noPostsMessage,
   hasPostPrompt,
   onCreateFromEmpty,
+  emptyActionLabel,
   routeParams,
   group,
   currentUser,
@@ -901,7 +926,7 @@ function CollectionPostsGrid ({
       gap={8}
       className={gridClassName}
     >
-      {showEmptyStream ? <NoPosts message={noPostsMessage} actionLabel={hasPostPrompt ? t('Create something') : null} onAction={onCreateFromEmpty} /> : ''}
+      {showEmptyStream ? <NoPosts message={noPostsMessage} actionLabel={emptyActionLabel || (hasPostPrompt ? t('Create something') : null)} onAction={onCreateFromEmpty} /> : ''}
       {postItems}
     </MasonryGrid>
   )
