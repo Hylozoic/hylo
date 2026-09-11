@@ -96,7 +96,7 @@ import {
 import { MAX_POST_TOPICS } from 'util/constants'
 import generateTempID from 'util/generateTempId'
 import { setQuerystringParam } from '@hylo/navigation'
-import { sanitizeURL } from 'util/url'
+import { isMeetingUrl, sanitizeURL } from 'util/url'
 import isPlayableVideoUrl from 'util/isPlayableVideoUrl'
 import ActionsBar from './ActionsBar'
 import HyloHTML from 'components/HyloHTML'
@@ -999,7 +999,10 @@ function PostEditorInner ({
 
   const handleAddLinkPreview = useEventCallback((url, force) => {
     debouncedFetchLinkPreview(url, force, currentPost.linkPreview)
-  }, [currentPost.linkPreview, debouncedFetchLinkPreview])
+    if (currentPost.type === 'event' && isMeetingUrl(url)) {
+      setCurrentPost(prev => (prev.meetingLink ? prev : { ...prev, meetingLink: url }))
+    }
+  }, [currentPost.linkPreview, currentPost.type, debouncedFetchLinkPreview, setCurrentPost])
 
   const handleAddTopic = useEventCallback((topic) => {
     setCurrentPost(prev => {
