@@ -41,6 +41,7 @@ import {
   DEFAULT_BANNER,
   DEFAULT_AVATAR,
   GROUP_TYPES,
+  GROUP_VISIBILITY,
   visibilityDescription,
   visibilityIcon,
   visibilityString
@@ -303,12 +304,27 @@ function GroupDetail ({ forCurrentGroup = false }) {
   }
 
   const groupsWithPendingRequests = keyBy(joinRequests, 'group.id')
+  const isPublicGroup = group.visibility === GROUP_VISIBILITY.Public
+  const shareTitle = `${group.name} | Hylo`
+  const shareDescription = TextHelpers.presentHTMLToText(
+    TextHelpers.markdown(group.purpose || group.description || ''),
+    { truncate: MAX_DETAILS_LENGTH }
+  )
 
   return (
     <div className={cn('GroupDetail relative mx-auto', { 'w-full max-w-[750px] my-4': fullPage, 'w-screen-lg': !fullPage, [g.isAboutCurrentGroup]: isAboutCurrentGroup })}>
       <Helmet>
-        <title>{group.name} | Hylo</title>
-        <meta name='description' content={TextHelpers.truncateHTML(group.description, MAX_DETAILS_LENGTH)} />
+        <title>{shareTitle}</title>
+        <meta name='description' content={shareDescription} />
+        {isPublicGroup && <meta property='og:type' content='website' />}
+        {isPublicGroup && <meta property='og:site_name' content='Hylo' />}
+        {isPublicGroup && <meta property='og:title' content={shareTitle} />}
+        {isPublicGroup && <meta property='og:description' content={shareDescription} />}
+        {isPublicGroup && group.avatarUrl && <meta property='og:image' content={group.avatarUrl} />}
+        {isPublicGroup && <meta name='twitter:card' content='summary' />}
+        {isPublicGroup && <meta name='twitter:title' content={shareTitle} />}
+        {isPublicGroup && <meta name='twitter:description' content={shareDescription} />}
+        {isPublicGroup && group.avatarUrl && <meta name='twitter:image' content={group.avatarUrl} />}
       </Helmet>
 
       {/* Banner header on every About, including the current group's own — the
