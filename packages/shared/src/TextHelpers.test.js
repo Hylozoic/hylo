@@ -43,3 +43,33 @@ describe('sanitizeURL', () => {
     expect(TextHelpers.sanitizeURL('www.hylo.com')).toBe('https://www.hylo.com')
   })
 })
+
+describe('isDateInTheFuture', () => {
+  const past = DateTime.now().minus({ years: 1 })
+  const future = DateTime.now().plus({ years: 1 })
+
+  it('returns false for a past ISO string', () => {
+    expect(TextHelpers.isDateInTheFuture(past.toISO())).toBe(false)
+  })
+
+  it('returns true for a future ISO string', () => {
+    expect(TextHelpers.isDateInTheFuture(future.toISO())).toBe(true)
+  })
+
+  it('returns false for a past Date', () => {
+    expect(TextHelpers.isDateInTheFuture(past.toJSDate())).toBe(false)
+  })
+
+  it('returns true for a future Date', () => {
+    expect(TextHelpers.isDateInTheFuture(future.toJSDate())).toBe(true)
+  })
+
+  it('returns false for an unparseable string', () => {
+    expect(TextHelpers.isDateInTheFuture('not a date')).toBe(false)
+  })
+
+  it('returns false when there is no date', () => {
+    expect(TextHelpers.isDateInTheFuture(null)).toBe(false)
+    expect(TextHelpers.isDateInTheFuture(undefined)).toBe(false)
+  })
+})
