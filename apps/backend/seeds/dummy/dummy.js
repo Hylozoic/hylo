@@ -233,11 +233,6 @@ function randomIndex (length) {
   return Math.floor(Math.random() * length)
 }
 
-function moderatorOrMember () {
-  // Role 1 is moderator
-  return Math.random() > 0.9 ? 1 : 0
-}
-
 function addUsersToGroups (knex) {
   console.info('  --> group_memberships')
   return knex('users').select('id')
@@ -387,7 +382,6 @@ function fakeMembership (user_id, knex) {
         active: true,
         group_id: group.id,
         created_at: knex.fn.now(),
-        role: moderatorOrMember(),
         settings: '{ "send_email": true, "send_push_notifications": true }',
         user_id
       }))
