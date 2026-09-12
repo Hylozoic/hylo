@@ -2107,6 +2107,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'title',
         'text',
         'type',
+        'show_to_new_users',
         'created_at',
         'updated_at'
       ],
