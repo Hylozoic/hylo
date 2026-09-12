@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Site banner setting to show the banner to people who join Hylo while it is published (off by default)
+- Support unlisted vimeo videos in posts
 
 ### Changed
 - Unread badge counts for spaces now show the number of unread chats, plus the number of unread typed views inside it.
