@@ -5,7 +5,7 @@
   "author": "Hylo <hello@hylo.com>",
   "license": "Apache-2.0",
   "private": true,
-  "version": "7.0.4",
+  "version": "7.0.5",
   "nyc": {
     "sourceMap": false,
     "instrument": false,
