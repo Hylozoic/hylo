@@ -11,6 +11,7 @@ import Button from 'components/ui/button'
 import { Popover, PopoverTrigger, PopoverContent } from 'components/ui/popover'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import { cn } from 'util/index'
+import { getVideoEmbedUrl } from 'util/isPlayableVideoUrl'
 import { normalizeUserLinkHref } from 'util/url'
 
 // export function addIframe (editor) {
@@ -49,28 +50,14 @@ function setVideo (editor) {
 
   // get the src value from embed code if all pasted in
   const srcCheck = input.match(/src="(?<src>.+?)"/)
-  let src = srcCheck ? srcCheck.groups.src : input
+  const rawSrc = srcCheck ? srcCheck.groups.src : input
+  const src = getVideoEmbedUrl(rawSrc)
 
-  // check youtube url is correct
-  if (input.match(/youtube|youtu\.be/) && !src.match(/^https:\/\/www\.youtube\.com\/embed\//)) {
-    // try to convert regular youtube url to embed url
-    const youtubeMatch = src.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/)
-    if (youtubeMatch) {
-      src = `https://www.youtube.com/embed/${youtubeMatch[1]}`
-    } else {
-      return window.alert('Sorry, your YouTube URL should be a valid YouTube video URL.')
-    }
-  }
-
-  // check vimeo url is correct
-  if (input.match(/vimeo/) && !src.match(/^https:\/\/player\.vimeo\.com\/video\//)) {
-    // try to convert regular vimeo url to embed url
-    const vimeoMatch = src.match(/vimeo\.com\/(\d+)/)
-    if (vimeoMatch) {
-      src = `https://player.vimeo.com/video/${vimeoMatch[1]}`
-    } else {
+  if (!src) {
+    if (input.match(/vimeo/)) {
       return window.alert('Sorry, your Vimeo URL should be a valid Vimeo video URL.')
     }
+    return window.alert('Sorry, your YouTube URL should be a valid YouTube video URL.')
   }
 
   if (editor.isActive('video')) {

@@ -6,6 +6,7 @@ describe('isPlayableVideoUrl', () => {
     expect(isPlayableVideoUrl('https://youtu.be/dQw4w9WgXcQ')).toBe(true)
     expect(isPlayableVideoUrl('https://www.youtube.com/shorts/dQw4w9WgXcQ')).toBe(true)
     expect(isPlayableVideoUrl('https://vimeo.com/70509133')).toBe(true)
+    expect(isPlayableVideoUrl('https://vimeo.com/921819912/06e3f813av')).toBe(true)
   })
 
   it('rejects non-video and empty URLs', () => {
@@ -21,6 +22,12 @@ describe('getVideoEmbedUrl', () => {
     expect(getVideoEmbedUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ')).toBe('https://www.youtube.com/embed/dQw4w9WgXcQ')
     expect(getVideoEmbedUrl('https://youtu.be/dQw4w9WgXcQ?t=12')).toBe('https://www.youtube.com/embed/dQw4w9WgXcQ')
     expect(getVideoEmbedUrl('https://vimeo.com/70509133')).toBe('https://player.vimeo.com/video/70509133')
+    expect(getVideoEmbedUrl('https://vimeo.com/921819912/06e3f813av')).toBe('https://player.vimeo.com/video/921819912?h=06e3f813av')
+    expect(getVideoEmbedUrl('https://vimeo.com/921819912/06e3f813av?share=copy')).toBe('https://player.vimeo.com/video/921819912?h=06e3f813av')
+    expect(getVideoEmbedUrl('https://vimeo.com/channels/staffpicks/70509133')).toBe('https://player.vimeo.com/video/70509133')
+    expect(getVideoEmbedUrl('https://vimeo.com/921819912?h=06e3f813av')).toBe('https://player.vimeo.com/video/921819912?h=06e3f813av')
+    expect(getVideoEmbedUrl('https://player.vimeo.com/video/921819912?h=06e3f813av')).toBe('https://player.vimeo.com/video/921819912?h=06e3f813av')
+    expect(getVideoEmbedUrl('https://player.vimeo.com/video/921819912/06e3f813av')).toBe('https://player.vimeo.com/video/921819912?h=06e3f813av')
   })
 
   it('returns null for non-video URLs', () => {

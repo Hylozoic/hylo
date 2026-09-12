@@ -6,8 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [7.0.5] - 2026-09-11
+
 ### Added
 - Site banner setting `showToNewUsers` (default off, including existing banners) so people who join Hylo after a banner is published do not see it unless the setting is turned on
+- Support unlisted vimeo videos in posts
+
+### Fixed
+- Occasional out of memory errors when loading post stream on production
 
 ## [7.0.4] - 2026-09-10
 
@@ -20,7 +26,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Unread badge counts for spaces
 - Fix event RSVP emails
 - Fix sender name of emails from activity in spaces to include parent group name. "Parent Group > Space Name (view Hylo)"
-- Fix occasional out of memory errors when loading post stream on production
 
 ## [7.0.3] - 2026-09-09
 
