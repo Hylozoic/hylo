@@ -3008,7 +3008,7 @@
   "Anyone in {{groupName}} can access this space": "Alle Mitglieder von {{groupName}} können auf diesen Space zugreifen",
   "Members of {{groupName}} must request to join and be approved": "Mitglieder von {{groupName}} müssen den Beitritt anfragen und genehmigt werden",
   "You must be invited to join this space": "Du musst eingeladen werden, um diesem Space beizutreten",
-  "Recently in": "Kürzlich in",
+  "Recent chats in": "Aktuelle Chats in",
   "View activity": "Aktivität ansehen",
   "Leave {{name}}": "{{name}} verlassen",
   "Are you sure you want to leave {{group_name}}?": "Bist du sicher, dass du {{group_name}} verlassen möchtest?",
