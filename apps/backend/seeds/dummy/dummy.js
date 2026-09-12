@@ -120,102 +120,120 @@ function warning (knex) {
   })
 }
 
-exports.seed = (knex) => warning(knex)
-  .then(() => truncateAll(knex))
-  .then(() => seed('users', knex))
-  .then(() => hash(password, 10))
-  .then(hash => { provider_user_id = hash })
-  .then(() => knex('users')
-    .insert({
-      name,
-      email,
-      active: true,
-      avatar_url: `https://api.dicebear.com/9.x/pixel-art/svg?seed=${faker.random.word()}`,
-      email_validated: true,
-      created_at: knex.fn.now()
-    })
-    .returning('id'))
-  .then(([user_id]) => {
-    return knex('linked_account')
-      .insert({
-        user_id,
-        provider_user_id,
-        provider_key: 'password'
-      })
-  })
-  .then(() => knex('tags').insert([
-    { name: 'general' },
-    { name: 'collaboration' },
-    { name: 'regeneration' }
-  ]))
-  .then(() => knex('responsibilities').insert([
-    { title: 'Administration', type: 'system' },
-    { title: 'Add Members', type: 'system' },
-    { title: 'Remove Members', type: 'system' },
-    { title: 'Manage Content', type: 'system' }
-  ]))
-  .then(() => knex('responsibilities').select('id', 'title'))
-  .then((rows) => Object.fromEntries(rows.map(r => [r.title, r.id])))
-  .then((responsibilityByName) => {
-    return seed('tags', knex).then(() => responsibilityByName)
-  })
-  .then((responsibilityByName) => knex('groups').insert(fakeGroupData('starter-posts', 'starter-posts')).then(() => responsibilityByName))
-  .then((responsibilityByName) => knex('groups').insert(fakeGroupData(group, groupSlug)).then(() => responsibilityByName))
-  .then((responsibilityByName) => seed('groups', knex).then(() => responsibilityByName))
-  .then((responsibilityByName) => seedSystemRolesForAllGroups(knex, responsibilityByName))
-  .then(() => seed('posts', knex))
-  .then(() => Promise.all([
-    knex('users').where('email', email).first('id'),
-    knex('groups').where('slug', groupSlug).first('id'),
-    knex('tags').where('name', 'general').first('id'),
-    knex('tags').where('name', 'regeneration').first('id')
-  ]))
-  .then(async ([user, group, general, regeneration]) => {
-    // Add main user to group
-    await knex('group_memberships').insert({
-      active: true,
-      user_id: user.id,
-      group_id: group.id,
-      created_at: knex.fn.now(),
-      settings: '{ "send_email": true, "send_push_notifications": true }'
-    })
+const MAX_SEED_ATTEMPTS = 5
 
-    const coordinator = await knex('groups_roles')
-      .where({ group_id: group.id, name: 'Coordinator', type: 'system' })
-      .first()
-    if (coordinator) {
-      await knex('group_memberships_group_roles').insert({
+function runSeedAttempt (knex) {
+  return truncateAll(knex)
+    .then(() => seed('users', knex))
+    .then(() => hash(password, 10))
+    .then(hash => { provider_user_id = hash })
+    .then(() => knex('users')
+      .insert({
+        name,
+        email,
+        active: true,
+        avatar_url: `https://api.dicebear.com/9.x/pixel-art/svg?seed=${faker.random.word()}`,
+        email_validated: true,
+        created_at: knex.fn.now()
+      })
+      .returning('id'))
+    .then(([user_id]) => {
+      return knex('linked_account')
+        .insert({
+          user_id,
+          provider_user_id,
+          provider_key: 'password'
+        })
+    })
+    .then(() => knex('tags').insert([
+      { name: 'general' },
+      { name: 'collaboration' },
+      { name: 'regeneration' }
+    ]))
+    .then(() => knex('responsibilities').insert([
+      { title: 'Administration', type: 'system' },
+      { title: 'Add Members', type: 'system' },
+      { title: 'Remove Members', type: 'system' },
+      { title: 'Manage Content', type: 'system' }
+    ]))
+    .then(() => knex('responsibilities').select('id', 'title'))
+    .then((rows) => Object.fromEntries(rows.map(r => [r.title, r.id])))
+    .then((responsibilityByName) => {
+      return seed('tags', knex).then(() => responsibilityByName)
+    })
+    .then((responsibilityByName) => knex('groups').insert(fakeGroupData('starter-posts', 'starter-posts')).then(() => responsibilityByName))
+    .then((responsibilityByName) => knex('groups').insert(fakeGroupData(group, groupSlug)).then(() => responsibilityByName))
+    .then((responsibilityByName) => seed('groups', knex).then(() => responsibilityByName))
+    .then((responsibilityByName) => seedSystemRolesForAllGroups(knex, responsibilityByName))
+    .then(() => seed('posts', knex))
+    .then(() => Promise.all([
+      knex('users').where('email', email).first('id'),
+      knex('groups').where('slug', groupSlug).first('id'),
+      knex('tags').where('name', 'general').first('id'),
+      knex('tags').where('name', 'regeneration').first('id')
+    ]))
+    .then(async ([user, group, general, regeneration]) => {
+      // Add main user to group
+      await knex('group_memberships').insert({
+        active: true,
         user_id: user.id,
         group_id: group.id,
-        group_role_id: coordinator.id,
-        active: true,
         created_at: knex.fn.now(),
-        updated_at: knex.fn.now()
+        settings: '{ "send_email": true, "send_push_notifications": true }'
       })
-    }
 
-    // Chat rooms are GroupViews of type chat, seeded by Group.setupSpaceViews
-  })
-  .then(() => addUsersToGroups(knex))
-  .then(() => createThreads(knex))
-  .then(() => seedMessages(knex))
-  .then(() => addPostsToGroups(knex))
-  .catch(err => {
-    let report = err.message
-    if (err.message.includes('unique constraint')) {
-      report =
+      const coordinator = await knex('groups_roles')
+        .where({ group_id: group.id, name: 'Coordinator', type: 'system' })
+        .first()
+      if (coordinator) {
+        await knex('group_memberships_group_roles').insert({
+          user_id: user.id,
+          group_id: group.id,
+          group_role_id: coordinator.id,
+          active: true,
+          created_at: knex.fn.now(),
+          updated_at: knex.fn.now()
+        })
+      }
+
+      // Chat rooms are GroupViews of type chat, seeded by Group.setupSpaceViews
+    })
+    .then(() => addUsersToGroups(knex))
+    .then(() => createThreads(knex))
+    .then(() => seedMessages(knex))
+    .then(() => addPostsToGroups(knex))
+}
+
+exports.seed = (knex) => warning(knex)
+  .then(() => runSeedWithRetries(knex, 1))
+
+function runSeedWithRetries (knex, attempt) {
+  return runSeedAttempt(knex)
+    .catch(err => {
+      const isCollision = err.message && err.message.includes('unique constraint')
+      if (isCollision && attempt < MAX_SEED_ATTEMPTS) {
+        console.log(`
+  Faker generated a duplicate name (attempt ${attempt}/${MAX_SEED_ATTEMPTS}). This isn't
+  uncommon since Faker has a limited number of unique names. Retrying...
+`)
+        return runSeedWithRetries(knex, attempt + 1)
+      }
+
+      let report = err.message
+      if (isCollision) {
+        report =
 `
   Error during seeding.
 
-  This isn't uncommon: Faker generates a limited number of unique names,
-  and sometimes they collide. You should be able to simply re-run the
-  seed until it passes (sometimes four or five tries are required).
+  Gave up after ${MAX_SEED_ATTEMPTS} attempts, each hitting a Faker name collision.
+  Try running the seed again.
 
 ${err.message}
 `
-    }
-    console.error(report)
-  })
+      }
+      console.error(report)
+    })
+}
 
 function truncateAll (knex) {
   return knex.raw('TRUNCATE TABLE users CASCADE')
@@ -231,11 +249,6 @@ const fakeLookup = {
 
 function randomIndex (length) {
   return Math.floor(Math.random() * length)
-}
-
-function moderatorOrMember () {
-  // Role 1 is moderator
-  return Math.random() > 0.9 ? 1 : 0
 }
 
 function addUsersToGroups (knex) {
@@ -387,7 +400,6 @@ function fakeMembership (user_id, knex) {
         active: true,
         group_id: group.id,
         created_at: knex.fn.now(),
-        role: moderatorOrMember(),
         settings: '{ "send_email": true, "send_push_notifications": true }',
         user_id
       }))
