@@ -9,11 +9,21 @@ function getYoutubeId (url) {
 }
 
 /**
- * Numeric Vimeo id from a watch, player, or channel URL.
+ * Vimeo video id and optional unlisted privacy hash from a watch or player URL.
+ * Unlisted share URLs look like https://vimeo.com/921819912/06e3f813av
  */
-function getVimeoId (url) {
-  const match = url.match(/vimeo\.com\/(?:video\/|channels\/[^/]+\/)?(\d+)/i)
-  return match?.[1] || null
+function getVimeoEmbedParts (url) {
+  const playerMatch = url.match(/player\.vimeo\.com\/video\/(\d+)(?:\/([a-zA-Z0-9]+))?/i)
+  const unlistedMatch = !playerMatch && url.match(/vimeo\.com\/(\d+)\/([a-zA-Z0-9]+)/i)
+  const watchMatch = !playerMatch && !unlistedMatch && url.match(/vimeo\.com\/(?:video\/|channels\/[^/]+\/)?(\d+)/i)
+
+  const id = playerMatch?.[1] || unlistedMatch?.[1] || watchMatch?.[1]
+  if (!id) return null
+
+  const pathHash = playerMatch?.[2] || unlistedMatch?.[2] || null
+  const queryHash = url.match(/[?&]h=([a-zA-Z0-9]+)/)?.[1] || null
+
+  return { id, hash: pathHash || queryHash || null }
 }
 
 /**
@@ -24,8 +34,11 @@ export function getVideoEmbedUrl (url) {
   if (!url || typeof url !== 'string') return null
   const youtubeId = getYoutubeId(url)
   if (youtubeId) return `https://www.youtube.com/embed/${youtubeId}`
-  const vimeoId = getVimeoId(url)
-  if (vimeoId) return `https://player.vimeo.com/video/${vimeoId}`
+  const vimeo = getVimeoEmbedParts(url)
+  if (vimeo) {
+    const hashQuery = vimeo.hash ? `?h=${vimeo.hash}` : ''
+    return `https://player.vimeo.com/video/${vimeo.id}${hashQuery}`
+  }
   return null
 }
 
