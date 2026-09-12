@@ -1,7 +1,8 @@
 import React from 'react'
 import { graphql, HttpResponse } from 'msw'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
-import { AllTheProviders, render, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
+import { AllTheProviders, fireEvent, render, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
+import { RESP_REMOVE_MEMBERS } from 'store/constants'
 import denormalized from './MemberProfile.test.json'
 import MemberProfile from './MemberProfile.js'
 import orm from 'store/models'
@@ -13,6 +14,29 @@ function testWrapper (providedState) {
   ormSession.Reaction.create(denormalized.data.person.reactions)
   const reduxState = { orm: ormSession.state, ...providedState }
   return AllTheProviders(reduxState)
+}
+
+// Viewing another member's profile (distinct current-user id) within a group, so the
+// "Remove member from group" action's visibility can be exercised by responsibility.
+function testWrapperViewingOtherMember (hasRemoveResponsibility) {
+  const ormSession = orm.mutableSession(orm.getEmptyState())
+  ormSession.Person.create(denormalized.data.person)
+  ormSession.Reaction.create(denormalized.data.person.reactions)
+  ormSession.Group.create({ id: '1', slug: 'test-group', name: 'Test Group' })
+  ormSession.Me.create({
+    id: '999',
+    groupRoles: {
+      items: hasRemoveResponsibility
+        ? [{
+            id: 1,
+            groupId: '1',
+            name: 'Coordinator',
+            responsibilities: { items: [{ id: 1, title: RESP_REMOVE_MEMBERS }] }
+          }]
+        : []
+    }
+  })
+  return AllTheProviders({ orm: ormSession.state })
 }
 
 jest.mock('react-router-dom', () => ({
@@ -168,6 +192,31 @@ describe('MemberProfile', () => {
     render(<MemberProfile />, { wrapper: testWrapper() })
     await waitFor(() => {
       expect(screen.getByText('Oops, there\'s nothing to see here.')).toBeInTheDocument()
+    })
+  })
+
+  describe('remove member action', () => {
+    beforeEach(() => {
+      jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ personId: '46816' })
+      jest.spyOn(require('react-router-dom'), 'useLocation').mockReturnValue({ pathname: '/groups/test-group/members/46816', search: '' })
+    })
+
+    it('shows "Remove member from group" when the current user has the Remove Members responsibility', async () => {
+      render(<MemberProfile />, { wrapper: testWrapperViewingOtherMember(true) })
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: denormalized.data.person.name })).toBeInTheDocument()
+      })
+      fireEvent.click(screen.getAllByTestId('dropdown-toggle')[0])
+      expect(screen.getByText('Remove member from group')).toBeInTheDocument()
+    })
+
+    it('hides "Remove member from group" when the current user lacks the Remove Members responsibility', async () => {
+      render(<MemberProfile />, { wrapper: testWrapperViewingOtherMember(false) })
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: denormalized.data.person.name })).toBeInTheDocument()
+      })
+      fireEvent.click(screen.getAllByTestId('dropdown-toggle')[0])
+      expect(screen.queryByText('Remove member from group')).not.toBeInTheDocument()
     })
   })
 })

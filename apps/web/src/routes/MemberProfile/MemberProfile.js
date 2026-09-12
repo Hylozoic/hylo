@@ -1,5 +1,5 @@
 import { filter, isFunction } from 'lodash'
-import { Pencil, X } from 'lucide-react'
+import { Pencil, Trash2, X } from 'lucide-react'
 import React, { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import CopyToClipboard from 'react-copy-to-clipboard'
@@ -15,6 +15,7 @@ import Button from 'components/Button'
 import BadgeEmoji from 'components/BadgeEmoji'
 import ClickCatcher from 'components/ClickCatcher'
 import Dropdown from 'components/Dropdown'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from 'components/ui/dialog'
 import HyloHTML from 'components/HyloHTML'
 import Icon from 'components/Icon'
 import NotFound from 'components/NotFound'
@@ -33,7 +34,10 @@ import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import useViewPostDetails from 'hooks/useViewPostDetails'
 import blockUser from 'store/actions/blockUser'
+import { removeMember } from 'routes/Members/Members.store'
+import { RESP_REMOVE_MEMBERS } from 'store/constants'
 import { twitterUrl, AXOLOTL_ID } from 'store/models/Person'
+import { getResponsibilityTitlesForGroup } from 'store/selectors/getResponsibilitiesForGroup'
 import getRolesForGroup from 'store/selectors/getRolesForGroup'
 import isPendingFor from 'store/selectors/isPendingFor'
 import getPreviousLocation from 'store/selectors/getPreviousLocation'
@@ -87,9 +91,14 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
   const roles = useSelector(state => getRolesForGroup(state, { person, groupId: group?.id }))
   const currentUser = useSelector(getMe)
   const previousLocation = useSelector(getPreviousLocation) || { pathname: '/' }
+  // Spaces inherit roles/responsibilities from the parent group
+  const roleGroupId = group?.parentId || group?.id
+  const currentUserResponsibilities = useSelector(state =>
+    getResponsibilityTitlesForGroup(state, { person: currentUser, groupId: roleGroupId }))
 
   const fetchPersonAction = (id) => dispatch(fetchPerson(id))
   const blockUserAction = (id) => dispatch(blockUser(id))
+  const removeMemberAction = (id) => dispatch(removeMember(id, group.id, groupSlug))
   const push = (url) => navigate(url)
   const goToPreviousLocation = () => navigate(previousLocation)
 
@@ -109,6 +118,8 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
   const [showFullBio, setShowFullBio] = useState(false)
   const [isBioClamped, setIsBioClamped] = useState(false)
   const bioRef = useRef(null)
+
+  const [confirmingRemove, setConfirmingRemove] = useState(false)
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
@@ -178,6 +189,11 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
     }
   }
 
+  const confirmRemoveMember = () => {
+    setConfirmingRemove(false)
+    removeMemberAction(personId).then(goToPreviousLocation)
+  }
+
   const toggleShowAllGroups = () => {
     setShowAllGroups(!showAllGroups)
   }
@@ -201,6 +217,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
   const locationWithoutUsa = person.location && person.location.replace(', United States', '')
   const isCurrentUser = currentUser && currentUser.id === personId
   const isAxolotl = AXOLOTL_ID === personId
+  const canRemove = Boolean(group?.id) && currentUserResponsibilities.includes(RESP_REMOVE_MEMBERS)
   const contentDropDownItems = [
     { id: 'Overview', label: t('Overview'), title: t('{{name}}\'s recent activity', { name: person.name }), component: RecentActivity },
     { id: 'Posts', label: t('Posts'), title: t('{{name}}\'s posts', { name: person.name }), component: MemberPosts },
@@ -220,7 +237,8 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
   ]
   const actionDropdownItems = [
     { icon: <Pencil className='w-4 h-4 text-foreground' />, label: t('Edit Profile'), onClick: () => push(currentUserSettingsUrl()), hide: !isCurrentUser },
-    { icon: <X className='w-4 h-4 text-foreground' />, label: t('Block this Member'), onClick: () => handleBlockUser(personId), hide: isCurrentUser || isAxolotl }
+    { icon: <X className='w-4 h-4 text-foreground' />, label: t('Block this Member'), onClick: () => handleBlockUser(personId), hide: isCurrentUser || isAxolotl },
+    { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: t('Remove member from group'), onClick: () => setConfirmingRemove(true), hide: isCurrentUser || isAxolotl || !canRemove }
   ]
   const {
     title: currentContentTitle,
@@ -259,6 +277,38 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
             <ActionButtons items={actionButtonsItems} />
             <ActionDropdown items={actionDropdownItems} />
           </div>
+          {canRemove && (
+            <Dialog open={confirmingRemove} onOpenChange={setConfirmingRemove}>
+              <DialogContent className='max-w-md'>
+                <DialogHeader>
+                  <DialogTitle>{t('Remove member')}</DialogTitle>
+                </DialogHeader>
+                <DialogDescription asChild>
+                  <div className='flex flex-wrap items-center gap-1.5 text-sm text-foreground/80'>
+                    <span>{t('You are about to permanently remove')}</span>
+                    <span className='font-semibold text-foreground'>{person.name}</span>
+                    <span>{t('from the group. Are you sure?')}</span>
+                  </div>
+                </DialogDescription>
+                <DialogFooter>
+                  <button
+                    type='button'
+                    onClick={confirmRemoveMember}
+                    className='rounded-md bg-destructive text-white px-3 py-1.5 text-sm font-medium hover:opacity-90 transition-opacity'
+                  >
+                    {t('Remove')}
+                  </button>
+                  <button
+                    type='button'
+                    onClick={() => setConfirmingRemove(false)}
+                    className='rounded-md border-2 border-foreground/20 px-3 py-1.5 text-sm font-medium text-foreground hover:border-foreground/50 transition-all'
+                  >
+                    {t('Cancel')}
+                  </button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
           {(person.tagline || person.bio) && (
             <div className='flex items-center flex-col mb-4'>
               {person.tagline && <div className='text-foreground text-center text-lg font-bold max-w-md'>{person.tagline}</div>}
