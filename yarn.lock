@@ -10707,7 +10707,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/babel-types@npm:*, @types/babel-types@npm:^7.0.0":
+"@types/babel-types@npm:*":
   version: 7.0.16
   resolution: "@types/babel-types@npm:7.0.16"
   checksum: 10/86aa375bd2eeb8c37dd53308ff10e390f88ff88363b66eac1df0b83c8366da69a48e7d2f0c789223000bf358bd1073372c01754eaa7d930149428b580252075e
@@ -13532,7 +13532,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"babel-runtime@npm:^6.22.0, babel-runtime@npm:^6.26.0":
+"babel-runtime@npm:^6.11.6, babel-runtime@npm:^6.22.0, babel-runtime@npm:^6.26.0":
   version: 6.26.0
   resolution: "babel-runtime@npm:6.26.0"
   dependencies:
@@ -13572,7 +13572,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"babel-types@npm:^6.18.0, babel-types@npm:^6.19.0, babel-types@npm:^6.26.0":
+"babel-types@npm:^6.15.0, babel-types@npm:^6.16.0, babel-types@npm:^6.18.0, babel-types@npm:^6.19.0, babel-types@npm:^6.26.0":
   version: 6.26.0
   resolution: "babel-types@npm:6.26.0"
   dependencies:
@@ -13581,6 +13581,17 @@ __metadata:
     lodash: "npm:^4.17.4"
     to-fast-properties: "npm:^1.0.3"
   checksum: 10/7ddab92e0dfbda4ddb69d2dbf5825ef4df18d47a609b6dbc452229a40291286aeaec7b2241e6c6755868a5840eca2e6cddcc0a7f571bb004d27b85d246c3d4d6
+  languageName: node
+  linkType: hard
+
+"babylon-walk@npm:^1.0.2":
+  version: 1.0.2
+  resolution: "babylon-walk@npm:1.0.2"
+  dependencies:
+    babel-runtime: "npm:^6.11.6"
+    babel-types: "npm:^6.15.0"
+    lodash.clone: "npm:^4.5.0"
+  checksum: 10/8bcb7c79531f125b577ba4cbe558ee256d08a7375126d264106c503aea7ed572ab411ef966690210fe5063c38c1597f6005a797580ff6f872e764045dba10d24
   languageName: node
   linkType: hard
 
@@ -15974,24 +15985,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"constantinople@npm:^3.0.1, constantinople@npm:^3.1.2":
-  version: 3.1.2
-  resolution: "constantinople@npm:3.1.2"
+"constantinople@npm:3.1.1":
+  version: 3.1.1
+  resolution: "constantinople@npm:3.1.1"
   dependencies:
-    "@types/babel-types": "npm:^7.0.0"
     "@types/babylon": "npm:^6.16.2"
-    babel-types: "npm:^6.26.0"
+    babel-types: "npm:^6.16.0"
     babylon: "npm:^6.18.0"
-  checksum: 10/41552698444b759e4b8a5bd15ddbed0834227c3456214ee268e0fd770e7019bf95948a985d0cab7782efae2f9dd7a8de0303c764d004cec35459fe03a585dd33
-  languageName: node
-  linkType: hard
-
-"constantinople@npm:~3.0.1":
-  version: 3.0.2
-  resolution: "constantinople@npm:3.0.2"
-  dependencies:
-    acorn: "npm:^2.1.0"
-  checksum: 10/75696e90777a1a931e79e23f52dc80368d9c04af4e21d7c010601480ddc0b078384a4bea3d2a391013e0d319e04ed1bbbb0b601ddaf996fe9efe0134915f7f00
+    babylon-walk: "npm:^1.0.2"
+  checksum: 10/b955e219ae73fda2b9bbd4201d6b42d2da202450cb74bfd5981f56b1a448245b90281a43be98554e5a5077e7321925cca250b8465c13f387bbb12910190f98d3
   languageName: node
   linkType: hard
 
@@ -26910,6 +26912,13 @@ __metadata:
   version: 4.2.0
   resolution: "lodash.assign@npm:4.2.0"
   checksum: 10/2571d0d487375d5882ece0d94bf18807b6d9d1722ad77a84c220f27fabb6cf3e4f9109183317c95b0cb0d42dae6c2cad453a31d50c9cdcd102b3bbf1b78b1ea7
+  languageName: node
+  linkType: hard
+
+"lodash.clone@npm:^4.5.0":
+  version: 4.5.0
+  resolution: "lodash.clone@npm:4.5.0"
+  checksum: 10/387ca92bb9182197dd8de48cd51f846589abbfbf2b03d7f739eafadcd8f5968be5f4f170d848277edfc2a9b05a23732a1435799b13ddbd85c533c64ea7375dfd
   languageName: node
   linkType: hard
 
