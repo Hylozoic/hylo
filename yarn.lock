@@ -17440,17 +17440,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"deep-extend@npm:^0.6.0":
-  version: 0.6.0
-  resolution: "deep-extend@npm:0.6.0"
-  checksum: 10/7be7e5a8d468d6b10e6a67c3de828f55001b6eb515d014f7aeb9066ce36bd5717161eb47d6a0f7bed8a9083935b465bc163ee2581c8b128d29bf61092fdf57a7
-  languageName: node
-  linkType: hard
-
-"deep-extend@npm:~0.2.5":
-  version: 0.2.11
-  resolution: "deep-extend@npm:0.2.11"
-  checksum: 10/0659a7e1e51988182cd3fe6641f5fce94e22fedbd78d760ec5e3c36ed9696498210a7332b02c1e0bd64617dc0c1b84dbe0653fed4eaef235ba68508ad7f8a6cb
+"deep-extend@npm:0.5.1":
+  version: 0.5.1
+  resolution: "deep-extend@npm:0.5.1"
+  checksum: 10/009c1b0fcbf315dfec255b15447c5c6e0388ea490b84f6072bdab6d41d60ec20bb249acbda050d38cc881bfcb43f184f994d2d41a345ebcef3422e7e2f46d0d9
   languageName: node
   linkType: hard
 

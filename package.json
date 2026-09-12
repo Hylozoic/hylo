@@ -48,7 +48,8 @@
     "htmlparser2": "9.1.0",
     "entities": "4.5.0",
     "nativewind/react-native-css-interop": "0.1.22",
-    "mobile-leap@workspace:apps/mobile-leap>react-native-reanimated": "4.3.1"
+    "mobile-leap@workspace:apps/mobile-leap>react-native-reanimated": "4.3.1",
+    "deep-extend": "0.5.1"
   },
   "version": "1.0.0",
   "dependencies": {
