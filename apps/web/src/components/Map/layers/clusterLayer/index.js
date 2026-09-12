@@ -46,7 +46,14 @@ export function buildClusterLayerData ({ posts = [], members = [] }) {
 }
 
 export function createIconLayerFromPostsAndMembers ({ boundingBox, data, onHover, onClick }) {
-  return new PostClusterLayer({ boundingBox, data, onHover, onClick, getPosition: d => d.coordinates })
+  return new PostClusterLayer({
+    id: 'post-cluster-layer',
+    boundingBox,
+    data,
+    onHover,
+    onClick,
+    getPosition: d => d.coordinates
+  })
 }
 
 class PostClusterLayer extends CompositeLayer {
@@ -61,19 +68,20 @@ class PostClusterLayer extends CompositeLayer {
       return
     }
 
-    // Only reload the index when the source data really changed — panning and
-    // zooming just re-query the existing index, which is cheap
-    const rebuildIndex = changeFlags.dataChanged || !this.state.index
+    const sourceCount = data?.length || 0
+    // dataChanged can be false for a new array of the same length; also rebuild
+    // when FETCH_POSTS_MAP appends features. Panning keeps sourceCount stable.
+    const rebuildIndex = Boolean(changeFlags.dataChanged) || !this.state?.index || sourceCount !== this.state.sourceCount
     if (rebuildIndex) {
       // Radius here also adjusts how aggressively this layer clusters, lower means less clusters
       const index = new Supercluster({ maxZoom: 25, radius: 20 })
       index.load(
-        data.map(d => ({
+        (data || []).map(d => ({
           geometry: { coordinates: getPosition(d) },
           properties: d
         }))
       )
-      this.setState({ index })
+      this.setState({ index, sourceCount })
     }
 
     const z = Math.floor(this.context.viewport.zoom)

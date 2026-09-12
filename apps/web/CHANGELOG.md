@@ -6,10 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [7.0.4] - 2026-09-10
+
 ### Added
 - Site banner setting to show the banner to people who join Hylo while it is published (off by default)
-
-## [7.0.4] - 2026-09-10
 
 ### Changed
 - Unread badge counts for spaces now show the number of unread chats, plus the number of unread typed views inside it.
@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Unread badge counts for spaces
 - Editing welcome page settings in group settings
 - Clicking on post in moderation view now goes to the post
+- Loading more map data on zoom and pan
 
 ## [7.0.3] - 2026-09-09
 
