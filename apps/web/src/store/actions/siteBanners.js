@@ -17,6 +17,7 @@ const siteBannerFields = `
   type
   actionText
   actionUrl
+  showToNewUsers
   publishedAt
   unpublishedAt
   createdAt

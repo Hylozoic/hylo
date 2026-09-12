@@ -3165,6 +3165,8 @@ type SiteBanner {
   type: String
   actionText: String
   actionUrl: String
+  # When true, people who join Hylo after this banner is published will see it. Defaults to false.
+  showToNewUsers: Boolean
   creator: Person
   publishedAt: Date
   unpublishedAt: Date
@@ -3180,6 +3182,7 @@ input SiteBannerInput {
   type: String
   actionText: String
   actionUrl: String
+  showToNewUsers: Boolean
 }
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
@@ -3723,7 +3726,7 @@ type Mutation {
   createSiteBanner(data: SiteBannerInput): SiteBanner
   # Update a site banner's text, type, or action button, at any point in its lifecycle (admin only)
   updateSiteBanner(id: ID!, data: SiteBannerInput): SiteBanner
-  # Publish a site banner so all users see it (admin only)
+  # Publish a site banner so eligible users see it (admin only)
   publishSiteBanner(id: ID!): SiteBanner
   # Take down a published site banner (admin only)
   unpublishSiteBanner(id: ID!): SiteBanner

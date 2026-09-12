@@ -35,6 +35,7 @@ function whitelistData (data = {}) {
   if ('type' in data) whitelist.type = VALID_TYPES.includes(data.type) ? data.type : 'info'
   if ('actionText' in data) whitelist.action_text = data.actionText || null
   if ('actionUrl' in data) whitelist.action_url = normalizeAndValidateActionUrl(data.actionUrl)
+  if ('showToNewUsers' in data) whitelist.show_to_new_users = !!data.showToNewUsers
 
   if (!!whitelist.action_text !== !!whitelist.action_url) {
     throw new GraphQLError('Action Button Text and Action Button URL must be set together')
@@ -48,7 +49,7 @@ export async function createSiteBanner (adminUserId, data) {
     throw new GraphQLError('Unauthorized: Admin access required')
   }
 
-  const attrs = { ...whitelistData(data), created_by_id: adminUserId }
+  const attrs = { show_to_new_users: false, ...whitelistData(data), created_by_id: adminUserId }
   return SiteBanner.forge(attrs).save()
 }
 

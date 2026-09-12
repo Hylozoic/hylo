@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+- Site banner setting to show the banner to people who join Hylo while it is published (off by default)
+
 ## [7.0.4] - 2026-09-10
 
 ### Changed

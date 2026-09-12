@@ -16,8 +16,12 @@ module.exports = bookshelf.Model.extend({
     return SiteBanner.collection().query(q => q.orderBy('created_at', 'desc')).fetch()
   },
 
-  // Active banners (published, not taken down) that this user has not dismissed
-  activeForUser: function (userId) {
+  // Active banners (published, not taken down) that this user has not dismissed.
+  // Banners with show_to_new_users off are hidden from accounts created after publish.
+  activeForUser: async function (userId) {
+    const user = userId ? await User.find(userId) : null
+    const userCreatedAt = user && user.get('created_at')
+
     return SiteBanner.collection().query(q => {
       q.whereNotNull('published_at')
         .whereNull('unpublished_at')
@@ -27,7 +31,15 @@ module.exports = bookshelf.Model.extend({
             .whereRaw('site_banners_users.site_banner_id = site_banners.id')
             .where('site_banners_users.user_id', userId)
         })
-        .orderBy('published_at', 'desc')
+
+      if (userCreatedAt) {
+        q.where(function () {
+          this.where('show_to_new_users', true)
+            .orWhere('published_at', '>=', userCreatedAt)
+        })
+      }
+
+      q.orderBy('published_at', 'desc')
     }).fetch()
   },
 
