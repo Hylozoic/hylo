@@ -1,4 +1,4 @@
-import * as TextHelpers from '@hylo/shared/TextHelpers'
+import { toPlainText } from './ogText.js'
 
 const MAX_DESCRIPTION_LENGTH = 144
 const POST_ID_PATH = /\/post\/(\d+)(?:\/|$)/
@@ -70,7 +70,7 @@ export function injectPostMetaTagsIntoHtml (html, metaHtml) {
  */
 export function presentPublicPostMeta (post) {
   if (!post) return null
-  const description = TextHelpers.presentHTMLToText(post.details, { truncate: MAX_DESCRIPTION_LENGTH })
+  const description = toPlainText(post.details, MAX_DESCRIPTION_LENGTH)
   const title = post.title || description || 'Hylo'
   const attachments = post.attachments || []
   const firstImage = attachments
