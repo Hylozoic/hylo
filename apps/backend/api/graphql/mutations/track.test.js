@@ -2,7 +2,7 @@
 import setup from '../../../test/setup'
 import factories from '../../../test/setup/factories'
 import { spyify, unspyify } from '../../../test/setup/helpers'
-import { assignCoordinator } from '../../../test/setup/roleHelpers'
+import { assignAdministrator } from '../../../test/setup/roleHelpers'
 import {
   createTrack,
   deleteTrack,
@@ -27,7 +27,7 @@ describe('track mutations', () => {
     trackManager = await factories.user().save()
     member = await factories.user().save()
     group = await factories.group().save()
-    await assignCoordinator(trackManager, group)
+    await assignAdministrator(trackManager, group)
     await member.joinGroup(group)
   })
 

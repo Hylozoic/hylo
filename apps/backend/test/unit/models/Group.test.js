@@ -144,7 +144,7 @@ describe('Group', function () {
     })
 
     it('merges new settings to existing memberships and creates new ones', async function () {
-      const results = await group.addMembers([u1.id, u2.id], { assignCoordinator: true, settings: { there: true } })
+      const results = await group.addMembers([u1.id, u2.id], { assignAdministrator: true, settings: { there: true } })
       expect(results.length).to.equal(2)
 
       await gm1.refresh()

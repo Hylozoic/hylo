@@ -14,7 +14,7 @@ export const CHAT_SPACE_ID = sid('space', 'chat')
 export const TRACK_SPACE_ID = sid('space', 'track')
 export const FUNDING_SPACE_ID = sid('space', 'funding')
 
-export const MAIN_COORDINATOR_ROLE_ID = sid('role', 'coordinator')
+export const MAIN_ADMINISTRATOR_ROLE_ID = sid('role', 'administrator')
 export const MAIN_MEMBER_ROLE_ID = sid('role', 'member')
 
 /**
@@ -193,8 +193,8 @@ export function buildGroups () {
     },
     groupRoles: [
       {
-        id: MAIN_COORDINATOR_ROLE_ID,
-        name: 'Coordinator',
+        id: MAIN_ADMINISTRATOR_ROLE_ID,
+        name: 'Administrator',
         emoji: '🪄',
         active: true,
         groupId: MAIN_GROUP_ID,
@@ -213,7 +213,7 @@ export function buildGroups () {
 }
 
 /**
- * Memberships on Me — main group (coordinator) + simple group.
+ * Memberships on Me — main group (administrator) + simple group.
  */
 export function buildMemberships (groups) {
   return [

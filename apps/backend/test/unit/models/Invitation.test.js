@@ -26,13 +26,13 @@ describe('Invitation', function () {
         userId: inviter.id,
         groupId: group.id,
         email: 'foo@comcom.com',
-        assignCoordinator: true
+        assignAdministrator: true
       })
       invitation2 = await Invitation.create({
         userId: inviter.id,
         groupId: group.id,
         email: 'foo@comcom.com',
-        assignCoordinator: true,
+        assignAdministrator: true,
         tag_id: tag.id
       })
     })
@@ -123,7 +123,7 @@ describe('Invitation', function () {
         userId: inviter.id,
         groupId: group.id,
         email,
-        assignCoordinator: true,
+        assignAdministrator: true,
         subject,
         message
       })

@@ -944,7 +944,7 @@ export function makeApiQueries ({ fetchOne, fetchMany }) {
 
 export function makeApiMutations () {
   return {
-    addMember: (root, { userId, groupId, role }) => addMember(userId, groupId, role),
+    addMember: (root, { userId, groupId, assignAdministrator }) => addMember(userId, groupId, assignAdministrator),
     createGroup: (root, { asUserId, data }) => createGroup(asUserId, data),
     updateGroup: (root, { asUserId, id, changes }) => updateGroup(asUserId, id, changes)
   }

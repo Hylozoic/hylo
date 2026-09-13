@@ -5,7 +5,7 @@ import {
   buildGroupViews,
   buildMemberships,
   MAIN_GROUP_ID,
-  MAIN_COORDINATOR_ROLE_ID
+  MAIN_ADMINISTRATOR_ROLE_ID
 } from './groups'
 import { buildTrack, buildTrackActions, TRACK_ID } from './tracks'
 import { buildFundingRound, FUNDING_ROUND_ID } from './fundingRounds'
@@ -73,7 +73,7 @@ export function buildEnSeed () {
       ...me,
       newNotificationCount: unreadNotificationCount(notifications),
       memberships,
-      groupRoles: { items: groups.groupRoles.filter(role => role.id === MAIN_COORDINATOR_ROLE_ID) }
+      groupRoles: { items: groups.groupRoles.filter(role => role.id === MAIN_ADMINISTRATOR_ROLE_ID) }
     },
     people,
     peopleById: peopleMap,

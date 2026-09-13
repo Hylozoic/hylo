@@ -2,9 +2,10 @@
 
 const SYSTEM_ROLES = [
   {
-    name: 'Coordinator',
+    name: 'Administrator',
+    legacyNames: ['Coordinator'],
     emoji: '🪄',
-    description: 'Coordinators are empowered to do everything related to group administration.',
+    description: 'Administrators are empowered to do all group management and configuration.',
     responsibilities: ['Administration', 'Add Members', 'Remove Members', 'Manage Content']
   },
   {
@@ -91,7 +92,15 @@ module.exports = bookshelf.Model.extend({
   TYPE_CUSTOM: 'custom',
 
   /**
-   * Create system roles (Coordinator, Moderator, Host) for a group if they do not exist yet.
+   * Map a stored system role name (including legacy names) to the current name.
+   */
+  canonicalSystemRoleName: function (name) {
+    const roleDef = SYSTEM_ROLES.find(r => r.name === name || r.legacyNames?.includes(name))
+    return roleDef ? roleDef.name : name
+  },
+
+  /**
+   * Create system roles (Administrator, Moderator, Host) for a group if they do not exist yet.
    * Links responsibilities by name (type = system). Idempotent.
    * No-op for spaces — they inherit roles from the parent group.
    */
@@ -117,6 +126,20 @@ module.exports = bookshelf.Model.extend({
         name: roleDef.name,
         type: GroupRole.TYPE_SYSTEM
       }).fetch({ transacting })
+
+      if (!role && roleDef.legacyNames) {
+        for (const legacyName of roleDef.legacyNames) {
+          role = await GroupRole.where({
+            group_id: groupId,
+            name: legacyName,
+            type: GroupRole.TYPE_SYSTEM
+          }).fetch({ transacting })
+          if (role) {
+            await role.save({ name: roleDef.name }, { transacting, patch: true })
+            break
+          }
+        }
+      }
 
       if (!role) {
         role = await GroupRole.forge({
@@ -157,13 +180,23 @@ module.exports = bookshelf.Model.extend({
   },
 
   /**
-   * Find a system role by name for a group.
+   * Find a system role by current or legacy name for a group.
    */
-  findSystemRole: function (groupId, roleName, { transacting } = {}) {
-    return GroupRole.where({
-      group_id: groupId,
-      name: roleName,
-      type: GroupRole.TYPE_SYSTEM
-    }).fetch({ transacting })
+  findSystemRole: async function (groupId, roleName, { transacting } = {}) {
+    const roleDef = SYSTEM_ROLES.find(r => r.name === roleName || r.legacyNames?.includes(roleName))
+    const names = roleDef
+      ? [roleDef.name, ...(roleDef.legacyNames || [])]
+      : [roleName]
+
+    for (const name of [...new Set(names)]) {
+      const role = await GroupRole.where({
+        group_id: groupId,
+        name,
+        type: GroupRole.TYPE_SYSTEM
+      }).fetch({ transacting })
+      if (role) return role
+    }
+
+    return null
   }
 })

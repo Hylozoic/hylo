@@ -50,7 +50,10 @@ function ThreadList () {
   const returnToRef = useRef(
     previousPath && !previousPath.startsWith('/messages') ? previousPath : '/'
   )
-  const handleClose = () => navigate(returnToRef.current)
+  const handleClose = () => {
+    navigate(returnToRef.current)
+    if (isPhoneDevice()) dispatch(toggleNavMenu(true))
+  }
 
   const threads = useSelector(state => getThreads(state))
   const threadsPending = useSelector(state => isPendingFor(fetchThreads, state))
@@ -74,7 +77,14 @@ function ThreadList () {
   )
   const setThreadSearchAction = useCallback((search) => dispatch(setThreadSearch(search)), [dispatch])
 
-  const toggleNavMenuAction = useCallback(() => dispatch(toggleNavMenu()), [])
+  const closeNavMenuAction = useCallback(() => dispatch(toggleNavMenu(false)), [dispatch])
+
+  // Phone inbox lives in the nav drawer beside GlobalNav. Opening a thread
+  // closes that drawer; coming back to /messages has to reopen it.
+  useEffect(() => {
+    if (!isPhoneDevice() || messageThreadId) return
+    dispatch(toggleNavMenu(true))
+  }, [dispatch, messageThreadId])
 
   const onSearchChange = event => {
     setSearchInput(event.target.value)
@@ -145,7 +155,7 @@ function ThreadList () {
           className='w-8 h-8 grid place-items-center rounded-lg bg-selected text-white hover:text-white scale-100 hover:scale-105 transition-all flex-shrink-0'
           to='/messages/new'
           aria-label={t('New Message')}
-          onClick={isPhoneDevice() ? toggleNavMenuAction : undefined}
+          onClick={isPhoneDevice() ? closeNavMenuAction : undefined}
         >
           <SquarePen className='w-4 h-4' />
         </Link>

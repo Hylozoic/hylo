@@ -41,7 +41,7 @@ const TOKEN = {
   chat: 3,
   track: 4,
   funding: 5,
-  coordinator: 1,
+  administrator: 1,
   member: 2,
   onboarding: 1,
   spring: 1,

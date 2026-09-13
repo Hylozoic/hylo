@@ -171,44 +171,44 @@ module.exports = bookshelf.Model.extend(Object.assign({
   },
 
   /**
-   * Assign the Coordinator system role to a member.
+   * Assign the Administrator system role to a member.
    * No-op for spaces — they inherit roles from the parent group.
    */
-  async assignCoordinatorRole (userId, groupId, { transacting } = {}) {
+  async assignAdministratorRole (userId, groupId, { transacting } = {}) {
     const roleScopeId = await Group.roleScopeId(groupId, { transacting })
     if (String(roleScopeId) !== String(groupId)) return
 
     await GroupRole.setupSystemRoles(groupId, { transacting })
-    const coordinator = await GroupRole.findSystemRole(groupId, 'Coordinator', { transacting })
-    if (!coordinator) return
+    const administrator = await GroupRole.findSystemRole(groupId, 'Administrator', { transacting })
+    if (!administrator) return
 
     const exists = await MemberGroupRole.where({
       user_id: userId,
       group_id: groupId,
-      group_role_id: coordinator.id
+      group_role_id: administrator.id
     }).fetch({ transacting })
 
     if (!exists) {
       await MemberGroupRole.forge({
         user_id: userId,
         group_id: groupId,
-        group_role_id: coordinator.id,
+        group_role_id: administrator.id,
         active: true
       }).save(null, { transacting })
     }
   },
 
   /**
-   * Remove the Coordinator system role from a member.
+   * Remove the Administrator system role from a member.
    */
-  async removeCoordinatorRole (userId, groupId, { transacting } = {}) {
-    const coordinator = await GroupRole.findSystemRole(groupId, 'Coordinator', { transacting })
-    if (!coordinator) return
+  async removeAdministratorRole (userId, groupId, { transacting } = {}) {
+    const administrator = await GroupRole.findSystemRole(groupId, 'Administrator', { transacting })
+    if (!administrator) return
 
     await MemberGroupRole.where({
       user_id: userId,
       group_id: groupId,
-      group_role_id: coordinator.id
+      group_role_id: administrator.id
     }).destroy({ require: false, transacting })
   },
 
@@ -305,7 +305,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
    * @param {Object} [options.transacting] - Database transaction
    * @returns {Promise<GroupMembership>} The membership record
    */
-  async ensureMembership (userOrId, groupOrId, { assignCoordinator = false, transacting } = {}) {
+  async ensureMembership (userOrId, groupOrId, { assignAdministrator = false, transacting } = {}) {
     const userId = userOrId instanceof User ? userOrId.id : userOrId
     const groupId = groupOrId instanceof Group ? groupOrId.id : groupOrId
 
@@ -322,13 +322,13 @@ module.exports = bookshelf.Model.extend(Object.assign({
       if (!existingMembership.get('active')) {
         const group = groupOrId instanceof Group ? groupOrId : await Group.find(groupId, { transacting })
         const memberships = await group.addMembers([userId], {}, { transacting })
-        if (assignCoordinator) {
-          await GroupMembership.assignCoordinatorRole(userId, groupId, { transacting })
+        if (assignAdministrator) {
+          await GroupMembership.assignAdministratorRole(userId, groupId, { transacting })
         }
         return memberships[0]
       }
-      if (assignCoordinator) {
-        await GroupMembership.assignCoordinatorRole(userId, groupId, { transacting })
+      if (assignAdministrator) {
+        await GroupMembership.assignAdministratorRole(userId, groupId, { transacting })
       }
       return existingMembership
     }
@@ -344,7 +344,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     }
 
     return user.joinGroup(group, {
-      assignCoordinator,
+      assignAdministrator,
       fromInvitation: true, // This will ensure join questions are still shown
       transacting
     })

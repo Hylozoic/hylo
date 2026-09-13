@@ -114,11 +114,11 @@ module.exports = {
    * @param userIds {String[]} list of userIds
    * @param emails {String[]} list of emails
    * @param message
-   * @param assignCoordinator {Boolean} invite as Coordinator (defaults: false)
+   * @param assignAdministrator {Boolean} invite as Administrator (defaults: false)
    * @param subject
    * @param groupRoleId {Number} group role ID to assign when invitation is used
    */
-  create: ({ sessionUserId, groupId, tagName, userIds, emails = [], message, assignCoordinator = false, subject, groupRoleId }) => {
+  create: ({ sessionUserId, groupId, tagName, userIds, emails = [], message, assignAdministrator = false, subject, groupRoleId }) => {
     return Promise.join(
       userIds && User.query(q => q.whereIn('id', userIds)).fetchAll(),
       Group.find(groupId),
@@ -148,7 +148,7 @@ module.exports = {
           } else {
             opts.message = TextHelpers.markdown(message, { disableAutolinking: true })
             // TODO: are we still using this, alongside the groupRoleId?
-            opts.assignCoordinator = assignCoordinator
+            opts.assignAdministrator = assignAdministrator
             opts.subject = subject
           }
 
@@ -184,15 +184,15 @@ module.exports = {
    * @param groupId
    * @param subject {String} the email subject
    * @param message {String} the email message text
-   * @param assignCoordinator {Boolean} invite as Coordinator
+   * @param assignAdministrator {Boolean} invite as Administrator
    * @returns {*}
    */
-  reinviteAll: ({ sessionUserId, groupId, subject = '', message = '', assignCoordinator = false }) => {
+  reinviteAll: ({ sessionUserId, groupId, subject = '', message = '', assignAdministrator = false }) => {
     return Queue.classMethod('Invitation', 'reinviteAll', {
       groupId,
       subject,
       message,
-      assignCoordinator,
+      assignAdministrator,
       userId: sessionUserId
     })
   },

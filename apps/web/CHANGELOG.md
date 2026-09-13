@@ -6,6 +6,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [7.0.6] - 2026-09-13
+
+### Added
+- Stewards can now Remove a Member from the profile page of that member in the three-dot menu
+- Created at timestamp now visible on join requests
+
+### Changed
+- Coordinator system role has been renamed to Administrator
+- Tweaked copy of chat activity cards from "Recently In" to "Recent chats in"
+
+### Fixed
+- Fix close/back buttons in DMs on mobile
+
 ## [7.0.5] - 2026-09-11
 
 ### Added
@@ -14,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Loading more map data on zoom and pan
+
 ## [7.0.4] - 2026-09-10
 
 ### Changed

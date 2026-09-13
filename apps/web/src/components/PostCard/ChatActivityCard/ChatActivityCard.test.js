@@ -20,7 +20,7 @@ it('renders chat activity header, timestamp, messages, and a link to the group c
   render(<ChatActivityCard post={post} />)
 
   expect(screen.getByTestId('chat-activity-card')).toBeInTheDocument()
-  expect(screen.getByText('Recently in')).toBeInTheDocument()
+  expect(screen.getByText('Recent chats in')).toBeInTheDocument()
   expect(screen.getByText('Buy Nothing')).toBeInTheDocument()
   expect(screen.getByText('2h ago')).toBeInTheDocument()
   expect(screen.getByText('Tran')).toBeInTheDocument()

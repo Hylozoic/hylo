@@ -1034,11 +1034,11 @@ describe('Post', function () {
     beforeEach(async () => {
       spyify(Queue, 'classMethod', () => Promise.resolve())
       await setup.clearDb()
-      const { assignCoordinator } = require('../../setup/roleHelpers')
+      const { assignAdministrator } = require('../../setup/roleHelpers')
       trackManager = await factories.user().save()
       user = await factories.user().save()
       group = await factories.group().save()
-      await assignCoordinator(trackManager, group)
+      await assignAdministrator(trackManager, group)
       await user.joinGroup(group)
       completionRole = await GroupRole.forge({
         group_id: group.id,

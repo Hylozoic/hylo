@@ -34,7 +34,7 @@ describe('Content Access Mutations', () => {
     }).save()
 
     // Add admin user as group administrator
-    await adminUser.joinGroup(group, { assignCoordinator: true })
+    await adminUser.joinGroup(group, { assignAdministrator: true })
     // Add regular user as group member
     await user.joinGroup(group)
   })
