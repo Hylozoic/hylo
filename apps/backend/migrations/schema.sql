@@ -1591,6 +1591,7 @@ CREATE TABLE public.groups (
     calendar_token character varying(255),
     home_route character varying(255),
     menu_view_count integer DEFAULT 0 NOT NULL,
+    more_spaces_count integer DEFAULT 0 NOT NULL,
     stripe_account_id bigint,
     stripe_charges_enabled boolean DEFAULT false,
     stripe_payouts_enabled boolean DEFAULT false,
@@ -3025,6 +3026,7 @@ CREATE TABLE public.site_banners (
     created_by_id bigint,
     published_at timestamp with time zone,
     unpublished_at timestamp with time zone,
+    show_to_new_users boolean DEFAULT false NOT NULL,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
 );
