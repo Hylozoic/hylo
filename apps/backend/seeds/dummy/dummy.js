@@ -17,9 +17,9 @@ const n = {
 
 const SYSTEM_ROLES = [
   {
-    name: 'Coordinator',
+    name: 'Administrator',
     emoji: '🪄',
-    description: 'Coordinators are empowered to do everything related to group administration.',
+    description: 'Administrators are empowered to do all group management and configuration.',
     responsibilities: ['Administration', 'Add Members', 'Remove Members', 'Manage Content']
   },
   {
@@ -182,14 +182,14 @@ function runSeedAttempt (knex) {
         settings: '{ "send_email": true, "send_push_notifications": true }'
       })
 
-      const coordinator = await knex('groups_roles')
-        .where({ group_id: group.id, name: 'Coordinator', type: 'system' })
+      const administrator = await knex('groups_roles')
+        .where({ group_id: group.id, name: 'Administrator', type: 'system' })
         .first()
-      if (coordinator) {
+      if (administrator) {
         await knex('group_memberships_group_roles').insert({
           user_id: user.id,
           group_id: group.id,
-          group_role_id: coordinator.id,
+          group_role_id: administrator.id,
           active: true,
           created_at: knex.fn.now(),
           updated_at: knex.fn.now()

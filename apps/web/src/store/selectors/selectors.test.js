@@ -94,7 +94,7 @@ describe('hasResponsibilityForGroup', () => {
         items: [{
           id: 1,
           groupId: group.id,
-          name: 'Coordinator',
+          name: 'Administrator',
           responsibilities: {
             items: [
               { id: 1, title: 'Administration' },

@@ -7,7 +7,7 @@ import { ensureHyloCookieConsent } from './helpers/sessionAuth.js'
 
 dotenv.config({ path: path.resolve(import.meta.dirname, '../.env') })
 
-/** Public-group member without Coordinator — track paywall visible (`seed-e2e-baseline.js`). */
+/** Public-group member without Administrator — track paywall visible (`seed-e2e-baseline.js`). */
 const authFile = path.resolve(import.meta.dirname, '.auth/track-viewer-session.json')
 const E2E_LOGIN_EMAIL = 'e2e.track-viewer@hylo.test'
 const E2E_LOGIN_PASSWORD = 'e2e-password-123'

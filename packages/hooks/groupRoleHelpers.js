@@ -3,7 +3,8 @@ export const RESP_ADMINISTRATION = 'Administration'
 export const RESP_MANAGE_CONTENT = 'Manage Content'
 export const RESP_REMOVE_MEMBERS = 'Remove Members'
 
-export const SYSTEM_ROLE_NAMES = ['Coordinator', 'Moderator', 'Host']
+export const SYSTEM_ROLE_NAMES = ['Administrator', 'Moderator', 'Host']
+const LEGACY_SYSTEM_ROLE_NAMES = { Coordinator: 'Administrator' }
 
 /**
  * Whether a group role is a built-in system role.
@@ -13,23 +14,30 @@ export function isSystemGroupRole (role) {
 }
 
 /**
- * Sort system group roles in Coordinator, Moderator, Host order.
+ * Current system role name, mapping legacy Coordinator to Administrator.
+ */
+function canonicalSystemRoleName (name) {
+  return LEGACY_SYSTEM_ROLE_NAMES[name] || name
+}
+
+/**
+ * Sort system group roles in Administrator, Moderator, Host order.
  */
 export function sortSystemGroupRoles (roles) {
   return [...(roles || [])].filter(isSystemGroupRole).sort((a, b) => {
-    const aIndex = SYSTEM_ROLE_NAMES.indexOf(a.name)
-    const bIndex = SYSTEM_ROLE_NAMES.indexOf(b.name)
+    const aIndex = SYSTEM_ROLE_NAMES.indexOf(canonicalSystemRoleName(a.name))
+    const bIndex = SYSTEM_ROLE_NAMES.indexOf(canonicalSystemRoleName(b.name))
     return (aIndex === -1 ? SYSTEM_ROLE_NAMES.length : aIndex) -
       (bIndex === -1 ? SYSTEM_ROLE_NAMES.length : bIndex)
   })
 }
 
 /**
- * Active group roles for pickers: system roles (Coordinator, Moderator, Host) first, then custom.
+ * Active group roles for pickers: system roles (Administrator, Moderator, Host) first, then custom.
  */
 export function groupRolesForPicker (roles) {
   const active = (roles || []).filter(role => role?.id != null && role.active !== false)
-    .map(role => SYSTEM_ROLE_NAMES.includes(role.name) ? { ...role, type: 'system' } : role)
+    .map(role => SYSTEM_ROLE_NAMES.includes(canonicalSystemRoleName(role.name)) ? { ...role, type: 'system' } : role)
   return [
     ...sortSystemGroupRoles(active),
     ...sortCustomGroupRoles(active.filter(role => !isSystemGroupRole(role)))

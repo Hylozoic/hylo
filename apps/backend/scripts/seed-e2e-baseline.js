@@ -47,9 +47,9 @@ function assertSafeE2eDatabase (connectionString) {
 
 const SYSTEM_ROLE_DEFINITIONS = [
   {
-    name: 'Coordinator',
+    name: 'Administrator',
     emoji: '🪄',
-    description: 'Coordinators are empowered to do everything related to group administration.',
+    description: 'Administrators are empowered to do all group management and configuration.',
     responsibilities: ['Administration', 'Add Members', 'Remove Members', 'Manage Content']
   },
   {
@@ -76,7 +76,7 @@ const SYSTEM_RESPONSIBILITY_DEFINITIONS = [
 
 /**
  * E2E loads schema.sql only (no Knex migrations), so responsibilities may be empty.
- * GroupSettings and other permission checks need these rows for Coordinator → Administration.
+ * GroupSettings and other permission checks need these rows for Administrator → Administration.
  */
 async function ensureSystemResponsibilities (client, now) {
   for (const resp of SYSTEM_RESPONSIBILITY_DEFINITIONS) {
@@ -92,7 +92,7 @@ async function ensureSystemResponsibilities (client, now) {
 }
 
 /**
- * Create per-group system roles (Coordinator, Moderator, Host) if missing.
+ * Create per-group system roles (Administrator, Moderator, Host) if missing.
  * @returns {Promise<Record<string, number>>} role name → groups_roles.id
  */
 async function setupSystemRolesForGroup (client, groupId, now) {
@@ -130,8 +130,8 @@ async function setupSystemRolesForGroup (client, groupId, now) {
   return roleIds
 }
 
-/** Assign the Coordinator system role to a membership. */
-async function assignCoordinatorRole (client, userId, groupId, coordinatorRoleId, now) {
+/** Assign the Administrator system role to a membership. */
+async function assignAdministratorRole (client, userId, groupId, administratorRoleId, now) {
   await client.query(
     `INSERT INTO group_memberships_group_roles (user_id, group_id, group_role_id, active, created_at, updated_at)
      SELECT $1::bigint, $2::bigint, $3::bigint, true, $4::timestamptz, $4::timestamptz
@@ -139,7 +139,7 @@ async function assignCoordinatorRole (client, userId, groupId, coordinatorRoleId
        SELECT 1 FROM group_memberships_group_roles mgr
        WHERE mgr.user_id = $1 AND mgr.group_id = $2 AND mgr.group_role_id = $3
      )`,
-    [userId, groupId, coordinatorRoleId, now]
+    [userId, groupId, administratorRoleId, now]
   )
 }
 
@@ -193,7 +193,7 @@ const E2E_USER_PASSWORD = 'e2e-password-123'
 /** Logout / re-login Playwright only — keeps primary `e2e.user` session valid for parallel tests. */
 const E2E_SESSION_MUTATE_EMAIL = 'e2e.session-mutate@hylo.test'
 const E2E_STRIPE_ACCOUNT_EXTERNAL_ID = 'acct_e2e_public_group_001'
-/** Member of `e2e-public-group` without Coordinator — sees track paywall (Batch P3 E2E). */
+/** Member of `e2e-public-group` without Administrator — sees track paywall (Batch P3 E2E). */
 const E2E_TRACK_VIEWER_EMAIL = 'e2e.track-viewer@hylo.test'
 /** Extra public-group members so the skills graph has more than one person. */
 const E2E_MEMBER_A_EMAIL = 'e2e.member-a@hylo.test'
@@ -467,8 +467,8 @@ async function main () {
               ($5, $2, true, $3::timestamptz, $3::timestamptz, $6::jsonb)`,
       [publicGroupId, userId, now, membershipSettingsPrimaryLastViewed, privateGroupId, membershipSettingsPrimaryLastViewed]
     )
-    await assignCoordinatorRole(client, userId, publicGroupId, publicRoles.Coordinator, now)
-    await assignCoordinatorRole(client, userId, privateGroupId, privateRoles.Coordinator, now)
+    await assignAdministratorRole(client, userId, publicGroupId, publicRoles.Administrator, now)
+    await assignAdministratorRole(client, userId, privateGroupId, privateRoles.Administrator, now)
 
     const locationRes = await client.query(
       `INSERT INTO locations (center, full_text, city, region, country, created_at, updated_at)
@@ -536,7 +536,7 @@ async function main () {
        VALUES ($1, $2, true, $3::timestamptz, $3::timestamptz, $4::jsonb)`,
       [oneColumnGroupId, userId, now, membershipSettings]
     )
-    await assignCoordinatorRole(client, userId, oneColumnGroupId, oneColumnRoles.Coordinator, now)
+    await assignAdministratorRole(client, userId, oneColumnGroupId, oneColumnRoles.Administrator, now)
     await insertChildSpace(client, {
       parentId: oneColumnGroupId,
       name: 'E2E One Column Space',
@@ -608,7 +608,7 @@ async function main () {
       [stripeAccountId, publicGroupId]
     )
 
-    /** Public paywall group — Batch P2/P5/P6; `e2e.user` is a plain member (no Coordinator) for stream paywall */
+    /** Public paywall group — Batch P2/P5/P6; `e2e.user` is a plain member (no Administrator) for stream paywall */
     const paywallRes = await client.query(
       `INSERT INTO groups (
         active, created_at, updated_at, name, slug, description,
@@ -729,7 +729,7 @@ async function main () {
       ]
     )
 
-    /** Paid track space + parent offering granting space membership (Batch P3). Coordinators bypass; use `e2e.track-viewer@hylo.test`. */
+    /** Paid track space + parent offering granting space membership (Batch P3). Administrators bypass; use `e2e.track-viewer@hylo.test`. */
     const paidTrackSpaceRes = await client.query(
       `INSERT INTO groups (
         name, slug, type, parent_id, access_code, visibility, accessibility,
@@ -832,8 +832,8 @@ async function main () {
     )
 
     /**
-     * GroupSettings requires Coordinator → Administration (`getResponsibilitiesForGroup`).
-     * Raw `group_memberships` inserts do not run GroupMembership.assignCoordinatorRole.
+     * GroupSettings requires Administrator → Administration (`getResponsibilitiesForGroup`).
+     * Raw `group_memberships` inserts do not run GroupMembership.assignAdministratorRole.
      */
     const welcomeOverlayMembershipSettings = JSON.stringify({
       lastReadAt: new Date(seedInstantMs - 43200000).toISOString(),
@@ -866,7 +866,7 @@ async function main () {
       [welcomeGroupId, userId, now, welcomeOverlayMembershipSettings]
     )
 
-    await assignCoordinatorRole(client, userId, welcomeGroupId, welcomeRoles.Coordinator, now)
+    await assignAdministratorRole(client, userId, welcomeGroupId, welcomeRoles.Administrator, now)
 
     const mutateUserRes = await client.query(
       `INSERT INTO users (email, name, first_name, last_name, active, email_validated, created_at, updated_at, settings)
@@ -883,7 +883,7 @@ async function main () {
       [publicGroupId, sessionMutateUserId, now, sessionMutateMembershipSettings]
     )
 
-    await assignCoordinatorRole(client, sessionMutateUserId, publicGroupId, publicRoles.Coordinator, now)
+    await assignAdministratorRole(client, sessionMutateUserId, publicGroupId, publicRoles.Administrator, now)
 
     const mutatePasswordHash = await bcrypt.hash(E2E_USER_PASSWORD, 10)
     await client.query(
@@ -954,12 +954,12 @@ async function main () {
       [outsiderGroupId, hostId, now, membershipSettings, extrPubAId, extrPubBId]
     )
 
-    for (const [gid, coordinatorRoleId] of [
-      [outsiderGroupId, outsiderRoles.Coordinator],
-      [extrPubAId, extrPubARoles.Coordinator],
-      [extrPubBId, extrPubBRoles.Coordinator]
+    for (const [gid, administratorRoleId] of [
+      [outsiderGroupId, outsiderRoles.Administrator],
+      [extrPubAId, extrPubARoles.Administrator],
+      [extrPubBId, extrPubBRoles.Administrator]
     ]) {
-      await assignCoordinatorRole(client, hostId, gid, coordinatorRoleId, now)
+      await assignAdministratorRole(client, hostId, gid, administratorRoleId, now)
     }
 
     const postMultiPublicRes = await client.query(
@@ -1071,7 +1071,7 @@ async function main () {
          VALUES ($1, $2, true, $3::timestamptz, $3::timestamptz, $4::jsonb)`,
         [groupId, hostId, now, membershipSettings]
       )
-      await assignCoordinatorRole(client, hostId, groupId, roles.Coordinator, now)
+      await assignAdministratorRole(client, hostId, groupId, roles.Administrator, now)
     }
 
     const passwordHash = await bcrypt.hash(E2E_USER_PASSWORD, 10)

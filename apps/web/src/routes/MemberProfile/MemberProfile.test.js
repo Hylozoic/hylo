@@ -30,7 +30,7 @@ function testWrapperViewingOtherMember (hasRemoveResponsibility) {
         ? [{
             id: 1,
             groupId: '1',
-            name: 'Coordinator',
+            name: 'Administrator',
             responsibilities: { items: [{ id: 1, title: RESP_REMOVE_MEMBERS }] }
           }]
         : []

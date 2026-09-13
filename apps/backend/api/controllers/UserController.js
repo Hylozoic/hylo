@@ -8,9 +8,9 @@ import { joinRoom, leaveRoom } from '../services/Websockets'
 module.exports = {
 
   create: async function (req, res) {
-    const { name, email, groupId, isCoordinator } = req.allParams()
+    const { name, email, groupId, isAdministrator, isCoordinator } = req.allParams()
     const group = groupId && await Group.find(groupId)
-    const assignCoordinator = isCoordinator === true || isCoordinator === 'true'
+    const assignAdministrator = [isAdministrator, isCoordinator].some(value => value === true || value === 'true')
 
     const user = await User.find(email, {}, false)
     if (user) {
@@ -34,7 +34,7 @@ module.exports = {
 
           await InvitationService.create({
             groupId: group.id,
-            assignCoordinator,
+            assignAdministrator,
             message,
             sessionUserId: inviteBy?.id,
             subject,
@@ -48,8 +48,8 @@ module.exports = {
     }
 
     const attrs = { name, email: email ? email.toLowerCase() : null, email_validated: false, active: false, group }
-    if (assignCoordinator) {
-      attrs.assignCoordinator = true
+    if (assignAdministrator) {
+      attrs.assignAdministrator = true
     }
 
     return User.create(attrs)

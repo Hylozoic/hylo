@@ -24,7 +24,7 @@ apps/web/src/sandbox/seed/
   index.js              — loadSandboxSeed(locale)
   en/
     index.js            — assembles full seed; start here
-    people.js           — Me (coordinator) + 44 members + 3 starter-group members
+    people.js           — Me (administrator) + 44 members + 3 starter-group members
     groups.js           — main group, simple group, 3 spaces, memberships, groupViews
     posts.js            — 12 stream posts + 8 chat + 3 funding submissions + 5 simple chats
     comments.js         — comments, reactions, proposal options/votes
@@ -35,7 +35,7 @@ apps/web/src/sandbox/seed/
 
 ## Content inventory
 
-### Main group (`demo-community`) — 45 members, Me is coordinator
+### Main group (`demo-community`) — 45 members, Me is administrator
 
 **Stream posts (12):** discussion ×4, event ×2, proposal ×2, request ×2, offer ×2
 
