@@ -28,7 +28,7 @@ export default function ThreadListItem ({
   const latestMessagePreview = TextHelpers.presentHTMLToText(latestMessage?.text, { truncate: MAX_THREAD_PREVIEW_LENGTH })
   const { names, avatarUrls } = participantAttributes(thread, currentUser, 2)
   const dispatch = useDispatch()
-  const toggleNavMenuAction = useCallback(() => dispatch(toggleNavMenu()), [])
+  const closeNavMenuAction = useCallback(() => dispatch(toggleNavMenu(false)), [dispatch])
   const handleToggleReadStatus = useCallback((event) => {
     event.preventDefault()
     event.stopPropagation()
@@ -41,7 +41,11 @@ export default function ThreadListItem ({
 
   return (
     <li className={cn('group flex flex-row items-stretch bg-transparent my-0 mx-2 rounded-lg overflow-hidden transition-colors hover:bg-selected/50', { [classes.unreadListItem]: isUnread, 'bg-transparent xs:bg-selected': active })}>
-      <Link to={`/messages/${id}`} className='flex flex-row flex-1 min-w-0 p-2' onClick={isPhoneDevice() ? toggleNavMenuAction : undefined}>
+      <Link
+        to={`/messages/${id}`}
+        className='flex flex-row flex-1 min-w-0 p-2'
+        onClick={isPhoneDevice() ? closeNavMenuAction : undefined}
+      >
         <div className='mr-2 flex flex-col justify-center flex-shrink-0'>
           <ThreadAvatars avatarUrls={avatarUrls} />
         </div>
