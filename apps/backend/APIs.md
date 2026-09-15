@@ -138,7 +138,8 @@ __Parameters:__
 - name (required) = Judy Mangrove
 - email (required) = email@email.com
 - groupId (optional) = the id of a group to add the user to
-- isCoordinator (optional) = true to add the user to the group specified by groupId as a Coordinator
+- isAdministrator (optional) = true to add the user to the group specified by groupId as an Administrator
+  (`isCoordinator` is still accepted as an alias)
 
 __Return value__:
 

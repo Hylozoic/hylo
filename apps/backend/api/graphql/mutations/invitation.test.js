@@ -9,11 +9,11 @@ describe('invitation mutation', () => {
     user = factories.user()
     group = factories.group()
     return Promise.join(group.save(), user.save())
-      .then(() => user.joinGroup(group, { assignCoordinator: true }))
+      .then(() => user.joinGroup(group, { assignAdministrator: true }))
   })
 
   it('createInvitation successfully', () => {
-    const data = {emails: ['one@test.com', 'two@test.com'], assignCoordinator: true}
+    const data = {emails: ['one@test.com', 'two@test.com'], assignAdministrator: true}
     return createInvitation(user.id, group.id, data)
       .then((ret) => expect(ret.invitations).to.have.lengthOf(2))
   })

@@ -79,8 +79,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
         await TagFollow.findOrCreate({
           tagId: this.get('tag_id'),
           userId,
-          groupId: this.get('group_id'),
-        }, { transacting})
+          groupId: this.get('group_id')
+        }, { transacting })
       } catch (err) {
         // do nothing if the tag follow already exists
         if (!err.message || !err.message.includes('duplicate key value')) {
@@ -98,8 +98,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
   expire: function (userId, opts = {}) {
     const { transacting } = opts
-    return this.save({expired_by_id: userId, expired_at: new Date()},
-      {patch: true, transacting})
+    return this.save({ expired_by_id: userId, expired_at: new Date() },
+      { patch: true, transacting })
   },
 
   send: function () {
@@ -148,10 +148,10 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
   create: async function (opts) {
     let groupRoleId = opts.groupRoleId || null
-    if (opts.assignCoordinator && !groupRoleId) {
+    if (opts.assignAdministrator && !groupRoleId) {
       await GroupRole.setupSystemRoles(opts.groupId)
-      const coordinator = await GroupRole.findSystemRole(opts.groupId, 'Coordinator')
-      groupRoleId = coordinator ? coordinator.id : null
+      const administrator = await GroupRole.findSystemRole(opts.groupId, 'Administrator')
+      groupRoleId = administrator ? administrator.id : null
     }
 
     return new Invitation({
@@ -167,7 +167,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     }).save()
   },
 
-  createAndSend: function ({invitation}) {
+  createAndSend: function ({ invitation }) {
     return Invitation.find(invitation.id)
       .then(invitation =>
         invitation.send()
@@ -176,10 +176,10 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
   reinviteAll: function (opts) {
     const { groupId } = opts
-    return Invitation.where({group_id: groupId, used_by_id: null, expired_by_id: null})
-    .fetchAll({withRelated: ['creator', 'group', 'tag']})
-    .then(invitations =>
-      Promise.map(invitations.models, invitation => invitation.send()))
+    return Invitation.where({ group_id: groupId, used_by_id: null, expired_by_id: null })
+      .fetchAll({ withRelated: ['creator', 'group', 'tag'] })
+      .then(invitations =>
+        Promise.map(invitations.models, invitation => invitation.send()))
   },
 
   resendAllReady () {
@@ -190,9 +190,9 @@ module.exports = bookshelf.Model.extend(Object.assign({
       q.whereNull('used_by_id')
       q.whereNull('expired_by_id')
     })
-    .fetchAll({withRelated: ['creator', 'group', 'tag']})
-    .tap(invitations => Promise.map(invitations.models, i => i.send()))
-    .then(invitations => invitations.pluck('id'))
+      .fetchAll({ withRelated: ['creator', 'group', 'tag'] })
+      .tap(invitations => Promise.map(invitations.models, i => i.send()))
+      .then(invitations => invitations.pluck('id'))
   }
 
 })

@@ -78,7 +78,7 @@ export default function ChatActivityCard ({
           <MessageSquareMore className='w-3.5 h-3.5' />
         </span>
         <div className='flex-1 min-w-0 text-sm truncate'>
-          <span className='text-foreground/50'>{t('Recently in')}</span>
+          <span className='text-foreground/50'>{t('Recent chats in')}</span>
           {groupName && (
             <span className='font-bold text-foreground'> {groupName}</span>
           )}

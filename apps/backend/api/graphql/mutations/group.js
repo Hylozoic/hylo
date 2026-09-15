@@ -280,13 +280,13 @@ export async function rejectGroupRelationshipInvite (userId, groupRelationshipIn
 }
 
 // API only Group Mutations
-export async function addMember (userId, groupId, assignCoordinator = false) {
+export async function addMember (userId, groupId, assignAdministrator = false) {
   const group = await Group.find(groupId)
   if (!group) {
     return { success: false, error: 'Group not found' }
   }
 
-  await group.addMembers([userId], { assignCoordinator: !!assignCoordinator }, {})
+  await group.addMembers([userId], { assignAdministrator: !!assignAdministrator }, {})
   return { success: true }
 }
 

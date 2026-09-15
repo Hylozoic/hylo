@@ -443,14 +443,17 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         })
       }
 
-      const coordinatorRole = createGroupData.groupRoles?.items?.find(role => role.name === 'Coordinator')
-      if (coordinatorRole) {
-        const roleWithGroupId = coordinatorRole.groupId
-          ? coordinatorRole
-          : { ...coordinatorRole, groupId: createGroupData.id }
+      const administratorRole = createGroupData.groupRoles?.items?.find(role =>
+        role.name === 'Administrator' || role.name === 'Coordinator'
+      )
+      if (administratorRole) {
+        const roleWithGroupId = administratorRole.groupId
+          ? administratorRole
+          : { ...administratorRole, groupId: createGroupData.id }
         const existingItems = me.groupRoles?.items || []
         const alreadyHasRole = existingItems.some(
-          role => role.groupId === roleWithGroupId.groupId && role.name === 'Coordinator'
+          role => role.groupId === roleWithGroupId.groupId &&
+            (role.name === 'Administrator' || role.name === 'Coordinator')
         )
         if (!alreadyHasRole) {
           me.update({

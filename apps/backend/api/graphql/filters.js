@@ -1,3 +1,5 @@
+import DataLoader from 'dataloader'
+
 export const commentFilter = userId => relation => relation.query(q => {
   q.distinct()
   q.where({ 'comments.active': true })
@@ -87,6 +89,171 @@ export const groupFilter = userId => relation => {
       })
     }
   })
+}
+
+/**
+ * One-shot ID sets matching groupFilter, for filtering an already-loaded
+ * group list (e.g. a post's groups) without re-running that SQL per row.
+ */
+export async function loadGroupVisibilityContext (userId) {
+  if (!userId) return null
+
+  // Explicit knex + active memberships. Bookshelf .query().pluck() has dropped
+  // where / whereIn, which treated leftover (inactive) parent memberships as current.
+  const [memberIds, stewardIdList, joinManagerIdList] = await Promise.all([
+    activeMemberGroupIds(userId),
+    groupIdsByResponsibilities(userId, [Responsibility.constants.RESP_ADMINISTRATION]),
+    groupIdsByResponsibilities(userId, [
+      Responsibility.constants.RESP_ADMINISTRATION,
+      Responsibility.constants.RESP_ADD_MEMBERS
+    ])
+  ])
+
+  const [parentIds, childIds, peerIds, stewardChildIds, stewardPeerIds] = await Promise.all([
+    relatedGroupIds(memberIds, 'parent'),
+    relatedGroupIds(memberIds, 'child'),
+    relatedGroupIds(memberIds, 'peer'),
+    relatedGroupIds(stewardIdList, 'child'),
+    relatedGroupIds(stewardIdList, 'peer')
+  ])
+
+  return {
+    memberIds: new Set(memberIds),
+    parentIds: new Set(parentIds),
+    childIds: new Set(childIds),
+    peerIds: new Set(peerIds),
+    stewardChildIds: new Set(stewardChildIds),
+    stewardPeerIds: new Set(stewardPeerIds),
+    joinManagerIds: new Set(joinManagerIdList)
+  }
+}
+
+/**
+ * Fresh DataLoader for Yoga context. Schema-cached loaders in makeModels
+ * outlive a request and would keep stale memberships after leave.
+ */
+export function createGroupVisibilityLoader () {
+  return new DataLoader(
+    userIds => Promise.all(userIds.map(id => loadGroupVisibilityContext(id))),
+    { cacheKeyFn: id => String(id) }
+  )
+}
+
+/**
+ * Group ids the user currently belongs to (active membership, active group).
+ */
+async function activeMemberGroupIds (userId) {
+  const rows = await bookshelf.knex('group_memberships')
+    .join('groups', 'groups.id', 'group_memberships.group_id')
+    .where('group_memberships.user_id', userId)
+    .andWhere('group_memberships.active', true)
+    .andWhere('groups.active', true)
+    .select('groups.id')
+  return rows.map(row => String(row.id))
+}
+
+/**
+ * Groups the user stewards, requiring an active membership (spaces inherit
+ * roles from parent_id). Same rules as Group.selectIdsByResponsibilities.
+ */
+async function groupIdsByResponsibilities (userId, responsibilityTitles) {
+  const knex = bookshelf.knex
+  const roleGroupIds = knex('group_memberships_group_roles as mgr')
+    .join('group_roles_responsibilities as grr', 'grr.group_role_id', 'mgr.group_role_id')
+    .join('responsibilities as r', 'r.id', 'grr.responsibility_id')
+    .where('mgr.user_id', userId)
+    .whereIn('r.title', responsibilityTitles)
+    .where(function () {
+      this.where('mgr.active', true).orWhereNull('mgr.active')
+    })
+    .select('mgr.group_id')
+
+  const rows = await knex('group_memberships')
+    .join('groups', 'groups.id', 'group_memberships.group_id')
+    .where('group_memberships.user_id', userId)
+    .andWhere('group_memberships.active', true)
+    .andWhere('groups.active', true)
+    .where(function () {
+      this.whereIn('groups.id', roleGroupIds)
+        .orWhereIn('groups.parent_id', roleGroupIds)
+    })
+    .select('groups.id')
+  return rows.map(row => String(row.id))
+}
+
+/**
+ * IDs related to `fromIds` via group_relationships. Uses knex so the whereIn
+ * cannot be dropped (Bookshelf `.query().pluck()` was returning every row).
+ */
+async function relatedGroupIds (fromIds, direction) {
+  if (!fromIds || fromIds.length === 0) return []
+  const knex = bookshelf.knex
+  const parentChild = Group.RelationshipType.PARENT_CHILD
+  const peer = Group.RelationshipType.PEER_TO_PEER
+
+  if (direction === 'parent') {
+    const rows = await knex('group_relationships')
+      .select('parent_group_id')
+      .where({ active: true, relationship_type: parentChild })
+      .whereIn('child_group_id', fromIds)
+    return rows.map(row => String(row.parent_group_id))
+  }
+
+  if (direction === 'child') {
+    const rows = await knex('group_relationships')
+      .select('child_group_id')
+      .where({ active: true, relationship_type: parentChild })
+      .whereIn('parent_group_id', fromIds)
+    return rows.map(row => String(row.child_group_id))
+  }
+
+  const [asParent, asChild] = await Promise.all([
+    knex('group_relationships')
+      .select('child_group_id as group_id')
+      .where({ active: true, relationship_type: peer })
+      .whereIn('parent_group_id', fromIds),
+    knex('group_relationships')
+      .select('parent_group_id as group_id')
+      .where({ active: true, relationship_type: peer })
+      .whereIn('child_group_id', fromIds)
+  ])
+  return [...asParent, ...asChild].map(row => String(row.group_id))
+}
+
+function groupVisibilityValue (group) {
+  const raw = group.get ? group.get('visibility') : group.visibility
+  if (raw === null || raw === undefined || raw === '') return null
+  return Number(raw)
+}
+
+/**
+ * Whether a group should appear on a post the viewer can already see.
+ * Same rules as groupFilter: public, member, parent, protected child/peer
+ * of a membership, hidden child/peer of a stewarded group, and spaces via parent_id.
+ */
+export function isGroupVisibleToViewer (group, ctx, userId) {
+  const visibility = groupVisibilityValue(group)
+  if (visibility === Group.Visibility.PUBLIC) return true
+  if (!userId || !ctx) return false
+
+  const id = String(group.id)
+  if (ctx.memberIds.has(id)) return true
+  // Parents of groups you belong to (including hidden)
+  if (ctx.parentIds.has(id)) return true
+  // Protected children / peers of your groups (not every non-hidden group)
+  if (visibility === Group.Visibility.PROTECTED && ctx.childIds.has(id)) return true
+  if (visibility === Group.Visibility.PROTECTED && ctx.peerIds.has(id)) return true
+  // Hidden children / peers if you steward the related group
+  if (ctx.stewardChildIds.has(id)) return true
+  if (ctx.stewardPeerIds.has(id)) return true
+
+  const type = group.get ? group.get('type') : group.type
+  if (type === 'space') {
+    const parentId = String((group.get ? group.get('parent_id') : group.parentId) || '')
+    if (ctx.joinManagerIds.has(parentId)) return true
+    if (ctx.memberIds.has(parentId) && visibility === Group.Visibility.PROTECTED) return true
+  }
+  return false
 }
 
 export function groupTopicFilter (userId, {

@@ -8,6 +8,7 @@ import Loading from 'components/Loading'
 import Button from 'components/ui/button'
 import { Input } from 'components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'components/ui/select'
+import { Switch } from 'components/ui/switch'
 import { internalPathname } from 'components/ClickCatcher/ClickCatcher'
 import { normalizeUserLinkHref } from 'util/url'
 import {
@@ -25,7 +26,7 @@ const TYPE_OPTIONS = [
   { value: 'alert', label: 'Alert' }
 ]
 
-const EMPTY_DRAFT = { id: null, status: 'draft', title: '', type: 'info', actionText: '', actionUrl: '' }
+const EMPTY_DRAFT = { id: null, status: 'draft', title: '', type: 'info', actionText: '', actionUrl: '', showToNewUsers: false }
 
 function statusOf (banner) {
   if (banner.unpublishedAt) return 'unpublished'
@@ -90,7 +91,8 @@ export default function SiteBanners () {
         text,
         type: draft.type,
         actionText: draft.actionText || null,
-        actionUrl: draft.actionUrl || null
+        actionUrl: draft.actionUrl || null,
+        showToNewUsers: !!draft.showToNewUsers
       }
       const result = draft.id
         ? await dispatch(updateSiteBanner(draft.id, data))
@@ -114,7 +116,7 @@ export default function SiteBanners () {
   }, [dispatch, draft, loadBanners, resetDraft, t])
 
   const handleEdit = useCallback((banner) => {
-    setDraft({ id: banner.id, status: statusOf(banner), title: banner.title || '', type: banner.type, actionText: banner.actionText || '', actionUrl: banner.actionUrl || '' })
+    setDraft({ id: banner.id, status: statusOf(banner), title: banner.title || '', type: banner.type, actionText: banner.actionText || '', actionUrl: banner.actionUrl || '', showToNewUsers: !!banner.showToNewUsers })
     editorRef.current?.setContent(banner.text)
   }, [])
 
@@ -198,6 +200,19 @@ export default function SiteBanners () {
           </div>
         </div>
 
+        <div className='flex items-center justify-between gap-4 mb-4'>
+          <div className='space-y-1'>
+            <label className='block text-sm font-medium'>{t('Show to new users')}</label>
+            <p className='text-xs text-foreground/50'>
+              {t('People who join Hylo after this banner is published will also see it.')}
+            </p>
+          </div>
+          <Switch
+            checked={!!draft.showToNewUsers}
+            onCheckedChange={checked => setDraft(d => ({ ...d, showToNewUsers: !!checked }))}
+          />
+        </div>
+
         {error && <p className='text-sm text-destructive mb-4'>{error}</p>}
 
         <div className='flex gap-2'>
@@ -257,6 +272,7 @@ export default function SiteBanners () {
                           {statusLabel(banner)}
                           {banner.creator?.name && ` · ${t('by')} ${banner.creator.name}`}
                           {typeof banner.dismissedCount === 'number' && banner.publishedAt && ` · ${t('{{count}} dismissed', { count: banner.dismissedCount })}`}
+                          {banner.showToNewUsers ? ` · ${t('Shown to new users')}` : ''}
                         </p>
                       </div>
                       <div className='flex gap-2 shrink-0'>

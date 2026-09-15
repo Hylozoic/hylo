@@ -5,6 +5,7 @@ import { red } from 'chalk'
 import { inspect } from 'util'
 import RedisPubSub from '../services/RedisPubSub'
 import makeSchema from './makeSchema'
+import { createGroupVisibilityLoader } from './filters'
 import sentry from '../../lib/sentry'
 
 export const GRAPHQL_ENDPOINT = '/noo/graphql'
@@ -89,7 +90,8 @@ export const yoga = createYoga({
     return {
       pubSub: RedisPubSub,
       socket: req.socket,
-      currentUserId: req.session.userId
+      currentUserId: req.session.userId,
+      groupVisibilityLoader: createGroupVisibilityLoader()
     }
   },
   maskedErrors: {
@@ -114,6 +116,7 @@ export const createRequestHandler = () => ({
         pubSub: RedisPubSub,
         socket: req.socket,
         currentUserId: req.session?.userId,
+        groupVisibilityLoader: createGroupVisibilityLoader(),
         // Mutations (e.g. verifyEmail, login) read/write session via context.req
         req
       }
@@ -137,7 +140,11 @@ export const makeAuthenticatedQueries = (currentUserId, fetchOne, fetchMany) => 
   },
   group: async (_root, { id, updateLastViewed } = {}) => {
     if (updateLastViewed) {
-      await GroupMembership.updateLastViewedAt(currentUserId, id)
+      try {
+        await GroupMembership.updateLastViewedAt(currentUserId, id)
+      } catch (err) {
+        sails.log.error('updateLastViewedAt failed:', err)
+      }
     }
     return fetchOne ? fetchOne('group', { id }) : Group.find(id)
   }

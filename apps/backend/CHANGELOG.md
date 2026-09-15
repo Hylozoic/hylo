@@ -6,6 +6,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [7.0.6] - 2026-09-13
+
+### Changed
+- Coordinator system role has been renamed to Administrator
+
+## [7.0.5] - 2026-09-11
+
+### Added
+- Site banner setting `showToNewUsers` (default off, including existing banners) so people who join Hylo after a banner is published do not see it unless the setting is turned on
+- Support unlisted vimeo videos in posts
+
+### Fixed
+- Occasional out of memory errors when loading post stream on production
+
 ## [7.0.4] - 2026-09-10
 
 ### Changed

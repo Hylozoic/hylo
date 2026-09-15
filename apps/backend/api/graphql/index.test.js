@@ -878,6 +878,8 @@ describe('makeAuthenticatedQueries', () => {
       await group.addMembers([user])
     })
 
+    afterEach(() => unspyify(GroupMembership, 'updateLastViewedAt'))
+
     it('updates last viewed time', async () => {
       mockify(GroupMembership, 'updateLastViewedAt', (user, group) => {
          return true
@@ -887,7 +889,17 @@ describe('makeAuthenticatedQueries', () => {
         updateLastViewed: true
       })
       expect(GroupMembership.updateLastViewedAt).to.have.been.called()
-      unspyify(GroupMembership, 'updateLastViewedAt')
+    })
+
+    it('still returns the group when updateLastViewedAt throws', async () => {
+      mockify(GroupMembership, 'updateLastViewedAt', () => {
+        throw new Error('badge sync failed')
+      })
+      const result = await queries.group(null, {
+        id: group.id,
+        updateLastViewed: true
+      })
+      expect(result).to.exist
     })
   })
 })

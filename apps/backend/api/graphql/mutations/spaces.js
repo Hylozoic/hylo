@@ -116,7 +116,7 @@ export async function createSpace (userId, { parentGroupId, name, slug, accepted
 
   await bookshelf.transaction(async trx => {
     await space.save(null, { transacting: trx })
-    // No setupSystemRoles / assignCoordinator — spaces inherit roles from the parent
+    // No setupSystemRoles / assignAdministrator — spaces inherit roles from the parent
     await space.addMembers([userId], { lastReadAt: new Date() }, { transacting: trx })
     await Group.setupSpaceViews(space.id, acceptedPostTypes, viewTypes, { transacting: trx })
 
@@ -316,7 +316,7 @@ async function removeFromParentSpaceCollections (spaceId, parentId, { transactin
 
 /**
  * Add parent-group stewards to the new child group and copy their system
- * steward roles (Coordinator, Moderator, Host) by name.
+ * steward roles (Administrator, Moderator, Host) by name.
  */
 async function copyParentStewardsToChild (parentGroup, child, { transacting } = {}) {
   await GroupRole.setupSystemRoles(child.id, { transacting })
@@ -360,7 +360,7 @@ async function copyParentStewardsToChild (parentGroup, child, { transacting } = 
 
   const parentRoleIdToName = {}
   parentSystemRoles.forEach(role => {
-    parentRoleIdToName[String(role.id)] = role.get('name')
+    parentRoleIdToName[String(role.id)] = GroupRole.canonicalSystemRoleName(role.get('name'))
   })
 
   for (const assignment of assignments.models) {

@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-expressions */
 import '../../../test/setup'
 import factories from '../../../test/setup/factories'
-import { assignCoordinator } from '../../../test/setup/roleHelpers'
+import { assignAdministrator } from '../../../test/setup/roleHelpers'
 import {
   createFundingRound,
   updateFundingRound,
@@ -48,7 +48,7 @@ describe('createFundingRound', () => {
     moderatorUser = factories.user()
     group = factories.group()
     await Promise.all([user.save(), moderatorUser.save(), group.save()])
-    await assignCoordinator(moderatorUser, group)
+    await assignAdministrator(moderatorUser, group)
   })
 
   it('creates a funding round with required fields', async () => {
@@ -141,9 +141,9 @@ describe('createFundingRound', () => {
   })
 
   it('creates a funding round with role restrictions', async () => {
-    const coordinator = await GroupRole.findSystemRole(group.id, 'Coordinator')
+    const administrator = await GroupRole.findSystemRole(group.id, 'Administrator')
     const moderator = await GroupRole.findSystemRole(group.id, 'Moderator')
-    const submitterRoles = [{ id: coordinator.id }]
+    const submitterRoles = [{ id: administrator.id }]
     const voterRoles = [{ id: moderator.id }]
     const data = {
       title: 'Test Round',
@@ -173,7 +173,7 @@ describe('updateFundingRound', () => {
     moderatorUser = factories.user()
     group = factories.group()
     await Promise.all([user.save(), moderatorUser.save(), group.save()])
-    await assignCoordinator(moderatorUser, group)
+    await assignAdministrator(moderatorUser, group)
 
     // Create a funding round
     round = await saveRound({
@@ -200,9 +200,9 @@ describe('updateFundingRound', () => {
   })
 
   it('updates role restrictions', async () => {
-    const coordinator = await GroupRole.findSystemRole(group.id, 'Coordinator')
+    const administrator = await GroupRole.findSystemRole(group.id, 'Administrator')
     const moderator = await GroupRole.findSystemRole(group.id, 'Moderator')
-    const submitterRoles = [{ id: coordinator.id }]
+    const submitterRoles = [{ id: administrator.id }]
     const voterRoles = [{ id: moderator.id }]
     const data = { submitterRoles, voterRoles }
 
@@ -250,7 +250,7 @@ describe('updateFundingRound', () => {
       voting_method: 'token_allocation_constant'
     })
 
-    // moderatorUser is coordinator on parent only — not a member of the space
+    // moderatorUser is administrator on parent only — not a member of the space
     const updatedRound = await updateFundingRound(moderatorUser.id, spaceRound.id, { criteria: 'Updated Space Round' })
     expect(updatedRound.get('criteria')).to.equal('Updated Space Round')
   })
@@ -280,7 +280,7 @@ describe('deleteFundingRound', () => {
     moderatorUser = factories.user()
     group = factories.group()
     await Promise.all([user.save(), moderatorUser.save(), group.save()])
-    await assignCoordinator(moderatorUser, group)
+    await assignAdministrator(moderatorUser, group)
 
     // Create a funding round
     round = await saveRound({

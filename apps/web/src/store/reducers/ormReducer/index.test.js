@@ -674,7 +674,7 @@ describe('on CREATE_GROUP', () => {
           groupRoles: {
             items: [{
               id: 'coord-1',
-              name: 'Coordinator',
+              name: 'Administrator',
               groupId: 'g2',
               emoji: '🪄',
               active: true,
@@ -705,12 +705,12 @@ describe('on CREATE_GROUP', () => {
     expect(currentUser.memberships.toModelArray()).toHaveLength(2)
   })
 
-  it('adds the coordinator groupRole to the currentUser', () => {
+  it('adds the administrator groupRole to the currentUser', () => {
     const newState = ormReducer(session.state, action)
     const newSession = orm.session(newState)
     const currentUser = newSession.Me.first()
     expect(currentUser.groupRoles.items).toHaveLength(1)
-    expect(currentUser.groupRoles.items[0].name).toBe('Coordinator')
+    expect(currentUser.groupRoles.items[0].name).toBe('Administrator')
     expect(currentUser.groupRoles.items[0].responsibilities.items[0].title).toBe('Administration')
   })
 })

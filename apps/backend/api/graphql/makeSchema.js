@@ -456,8 +456,13 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
         group = await fetchOne('Group', slug || id, slug ? 'slug' : 'id')
       }
       if (updateLastViewed && group) {
-        // Resets new post count to 0
-        await GroupMembership.updateLastViewedAt(context.currentUserId, group)
+        // Side effect only — a badge-sync failure must not null out the group
+        // (that rejects FETCH_POSTS and the stream looks empty).
+        try {
+          await GroupMembership.updateLastViewedAt(context.currentUserId, group)
+        } catch (err) {
+          sails.log.error('updateLastViewedAt failed:', err)
+        }
       }
       return group
     },
@@ -939,7 +944,7 @@ export function makeApiQueries ({ fetchOne, fetchMany }) {
 
 export function makeApiMutations () {
   return {
-    addMember: (root, { userId, groupId, role }) => addMember(userId, groupId, role),
+    addMember: (root, { userId, groupId, assignAdministrator }) => addMember(userId, groupId, assignAdministrator),
     createGroup: (root, { asUserId, data }) => createGroup(asUserId, data),
     updateGroup: (root, { asUserId, id, changes }) => updateGroup(asUserId, id, changes)
   }

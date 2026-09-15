@@ -629,7 +629,7 @@ module.exports = bookshelf.Model.extend(merge({
   async addMembers (usersOrIds, attrs = {}, { transacting } = {}) {
     const groupSettings = this.get('settings') || {}
     const defaultDigestFrequency = groupSettings.default_digest_frequency === 'weekly' ? 'weekly' : 'daily'
-    const { assignCoordinator, ...membershipAttrs } = attrs
+    const { assignAdministrator, ...membershipAttrs } = attrs
 
     const updatedAttribs = Object.assign(
       {},
@@ -680,9 +680,9 @@ module.exports = bookshelf.Model.extend(merge({
       await User.followTags(id, this.id, defaultTagIds, transacting)
     }
 
-    if (assignCoordinator) {
+    if (assignAdministrator) {
       for (const id of userIds) {
-        await GroupMembership.assignCoordinatorRole(id, this.id, { transacting })
+        await GroupMembership.assignAdministratorRole(id, this.id, { transacting })
       }
     }
 
@@ -1380,7 +1380,7 @@ module.exports = bookshelf.Model.extend(merge({
       await Group.setupSpaceViews(group.id, attrs.accepted_post_types, data.view_types, { transacting: trx })
 
       // Set lastReadAt when creating a new group to mark creator as having viewed the group already
-      await group.addMembers([userId], { assignCoordinator: true, lastReadAt: new Date() }, { transacting: trx })
+      await group.addMembers([userId], { assignAdministrator: true, lastReadAt: new Date() }, { transacting: trx })
 
       // Have to add/request add to parent group after admin has been added to the group
       if (data.parent_ids) {

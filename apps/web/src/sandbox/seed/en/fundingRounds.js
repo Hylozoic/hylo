@@ -1,6 +1,5 @@
-import { PLACEHOLDER_COPY, PLACEHOLDER_NAME } from '../constants'
 import { sid } from '../helpers'
-import { FUNDING_SPACE_ID, MAIN_COORDINATOR_ROLE_ID, MAIN_MEMBER_ROLE_ID } from './groups'
+import { FUNDING_SPACE_ID, MAIN_ADMINISTRATOR_ROLE_ID, MAIN_MEMBER_ROLE_ID } from './groups'
 
 export const FUNDING_ROUND_ID = sid('funding-round', 'spring')
 
@@ -42,7 +41,7 @@ export function buildFundingRound () {
     ],
     voterRoles: [
       { id: MAIN_MEMBER_ROLE_ID, name: 'Member', emoji: '🌱' },
-      { id: MAIN_COORDINATOR_ROLE_ID, name: 'Coordinator', emoji: '🪄' }
+      { id: MAIN_ADMINISTRATOR_ROLE_ID, name: 'Administrator', emoji: '🪄' }
     ]
   }
 }

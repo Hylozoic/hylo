@@ -42,7 +42,7 @@ describe('TagInput', () => {
     const handleAddition = jest.fn()
     const handleInputChange = jest.fn()
     const onBlur = jest.fn()
-    const role = { id: '1', name: 'Coordinator' }
+    const role = { id: '1', name: 'Administrator' }
 
     renderComponent({
       handleAddition,
@@ -52,7 +52,7 @@ describe('TagInput', () => {
       allowNewTags: false
     })
 
-    const suggestion = screen.getByText('Coordinator')
+    const suggestion = screen.getByText('Administrator')
     fireEvent.mouseDown(suggestion)
     fireEvent.click(suggestion)
 
