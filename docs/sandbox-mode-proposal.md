@@ -376,7 +376,7 @@ demo content.
 - [x] Demo banner + reset + signup CTA + locale selector
 - [x] Replace seed placeholders with real copy (EN)
 - [ ] Remaining Tier 3 UX (Zapier, calendar subscribe affordances)
-- [ ] "Try the demo" on web login / marketing
+- [x] "Try the demo" on web login / marketing
 - [ ] Mobile “Try the demo” entry (D15)
 
 ### Phase 4 — payoff
