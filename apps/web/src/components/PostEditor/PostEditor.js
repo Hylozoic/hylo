@@ -284,6 +284,12 @@ function PostEditorInner ({
   const pendingTypeSwitchRef = useRef(null)
   /** Set to true when the post has been successfully submitted, preventing draft saves during teardown/navigation. */
   const isSubmittedRef = useRef(false)
+  /**
+   * Set once the user has edited the To field (added or removed any destination).
+   * After that, the current path's group/space is only applied when the modal
+   * loads — the user's choice is respected and never re-injected.
+   */
+  const toFieldTouchedRef = useRef(false)
   /** Blocks duplicate create/update dispatches before Redux pending state updates. */
   const isSubmittingRef = useRef(false)
   /**
@@ -450,7 +456,7 @@ function PostEditorInner ({
 
   const applyPostToEditor = useCallback((nextPost) => {
     let post = nextPost
-    if (!editing && currentGroup?.id) {
+    if (!editing && currentGroup?.id && !toFieldTouchedRef.current) {
       const hasCurrentGroup = post.groups?.some(g => sameGroupId(g?.id, currentGroup.id))
       if (!hasCurrentGroup) {
         post = { ...post, groups: [currentGroup, ...(post.groups || [])] }
@@ -516,6 +522,7 @@ function PostEditorInner ({
 
   useEffect(() => {
     if (editing || !currentGroup?.id) return
+    if (toFieldTouchedRef.current) return
     setCurrentPost(prev => {
       const hasCurrentGroup = prev.groups?.some(g => sameGroupId(g?.id, currentGroup.id))
       if (hasCurrentGroup) return prev
@@ -1019,6 +1026,7 @@ function PostEditorInner ({
   }, [dispatch, setCurrentPost])
 
   const handleAddToOption = useCallback((toOptions) => {
+    toFieldTouchedRef.current = true
     const groups = uniqBy('id', toOptions.map(toOption => toOption.group).filter(Boolean))
     setCurrentPost(prev => ({ ...prev, groups }))
   }, [setCurrentPost])
