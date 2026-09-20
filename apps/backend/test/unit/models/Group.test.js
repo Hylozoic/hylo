@@ -22,6 +22,16 @@ describe('Group', function () {
     })
   })
 
+  it('parses jsonb array columns that come back as JSON strings', function () {
+    const parsed = Group.prototype.parse({
+      accepted_post_types: '["discussion","event"]',
+      required_roles: '[1,2]',
+      name: 'foo'
+    })
+    expect(parsed.accepted_post_types).to.deep.equal(['discussion', 'event'])
+    expect(parsed.required_roles).to.deep.equal([1, 2])
+  })
+
   it('creates with default banner and avatar', async function () {
     const data = {
       name: 'my group',

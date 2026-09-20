@@ -1233,6 +1233,14 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     }
 
     case UPDATE_GROUP_SETTINGS: {
+      // Keep the saved list when the mutation payload omits a usable array
+      // (e.g. jsonb serialized as a string and GraphQL [String] nulls the field).
+      const returnedTypes = payload.data?.updateGroupSettings?.acceptedPostTypes
+      if (meta.changes?.acceptedPostTypes !== undefined && !Array.isArray(returnedTypes)) {
+        group = Group.withId(meta.id)
+        if (group) group.update({ acceptedPostTypes: meta.changes.acceptedPostTypes })
+      }
+
       // Set new join questions in the ORM
       if (payload.data.updateGroupSettings && (payload.data.updateGroupSettings.joinQuestions || payload.data.updateGroupSettings.prerequisiteGroups)) {
         group = Group.withId(meta.id)

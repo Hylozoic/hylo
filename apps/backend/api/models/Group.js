@@ -48,6 +48,21 @@ module.exports = bookshelf.Model.extend(merge({
       response.geo_shape = parsedGeo.toGeoJSON()
     }
 
+    // format() JSON.stringifies jsonb arrays for knex. RETURNING / fetch can
+    // still hand back a string; GraphQL [String]/[Int] fields need a real array.
+    if (typeof response.accepted_post_types === 'string') {
+      try {
+        const parsed = JSON.parse(response.accepted_post_types)
+        if (Array.isArray(parsed)) response.accepted_post_types = parsed
+      } catch (e) {}
+    }
+    if (typeof response.required_roles === 'string') {
+      try {
+        const parsed = JSON.parse(response.required_roles)
+        if (Array.isArray(parsed)) response.required_roles = parsed
+      } catch (e) {}
+    }
+
     return response
   },
 
