@@ -11,8 +11,9 @@ export default function applyPagination (query, tableName, opts) {
     throw new GraphQLError('Specifying both cursor and sortBy is not supported.')
   }
 
-  // skip special sorts
-  if (!['join', 'reactions', 'votes', 'updated', 'created'].includes(sortBy)) { // Can remove votes once Mobile has been ported over
+  // skip special sorts — filterAndSortPosts already orders these (and
+  // `order` would be ambiguous after joining collections_posts)
+  if (!['join', 'reactions', 'votes', 'updated', 'created', 'order', 'start_time'].includes(sortBy)) { // Can remove votes once Mobile has been ported over
     query = query.orderBy(snakeCase(sortBy), order)
   }
 
