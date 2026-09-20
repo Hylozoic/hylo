@@ -17,11 +17,12 @@ function routeToPath (routeURL) {
   return parsed.pathname + parsed.search
 }
 
-// Returns the best group to use for a push notification deep link.
+// Returns the best group to use for a notification (push deep link or email).
 // Prefers the activity's group_id, but only if the reader is actually a member of it.
 // Falls back to groupForFrontendRouteForUser, which checks post groups against the reader's
 // memberships and returns null for public posts (producing a /public/post/... URL).
-async function groupForPushRoute (post, activity, userId) {
+// Never returns a group the reader is not a member of.
+async function groupForNotificationForUser (post, activity, userId) {
   const activityGroupId = activity.get('group_id')
   if (activityGroupId) {
     const userGroupIds = await Group.pluckIdsForMember(userId)
@@ -219,17 +220,16 @@ module.exports = bookshelf.Model.extend({
       })
   },
 
-  sendAnnouncementPush: function (version) {
+  sendAnnouncementPush: async function (version) {
     const post = this.post()
-    const groupIds = Activity.groupIds(this.relations.activity)
+    const activity = this.relations.activity
+    const reader = this.reader()
     const locale = this.locale()
-    if (isEmpty(groupIds)) throw new Error('no group ids in activity')
-    return Group.find(groupIds[0])
-      .then(group => {
-        const path = routeToPath(Frontend.Route.post(post, group))
-        const alertText = PushNotification.textForAnnouncement(post, group, locale)
-        return this.reader().sendPushNotification(alertText, path)
-      })
+    const group = await groupForNotificationForUser(post, activity, reader.id)
+    if (!group) throw new Error('no member group for reader in activity')
+    const path = routeToPath(Frontend.Route.post(post, group))
+    const alertText = PushNotification.textForAnnouncement(post, group, locale)
+    return reader.sendPushNotification(alertText, path)
   },
 
   sendContributionPush: function (version) {
@@ -283,7 +283,7 @@ module.exports = bookshelf.Model.extend({
     const tags = post.relations.tags
     const firstTag = tags && tags.first()?.get('name')
 
-    const group = await groupForPushRoute(post, activity, reader.id)
+    const group = await groupForNotificationForUser(post, activity, reader.id)
     const path = routeToPath(Frontend.Route.post(post, group))
     const alertText = PushNotification.textForPost(post, group, firstTag, version, locale)
     return reader.sendPushNotification(alertText, path)
@@ -300,7 +300,7 @@ module.exports = bookshelf.Model.extend({
       return Promise.resolve()
     }
 
-    const group = await groupForPushRoute(post, activity, reader.id)
+    const group = await groupForNotificationForUser(post, activity, reader.id)
     const path = routeToPath(Frontend.Route.comment({ comment, group, post }))
     const alertText = PushNotification.textForComment(comment, version, locale)
     return reader.sendPushNotification(alertText, path)
@@ -451,7 +451,7 @@ module.exports = bookshelf.Model.extend({
     const reader = this.reader()
     const locale = this.locale()
     const reason = Notification.priorityReason(activity.get('meta').reasons)
-    const group = await groupForPushRoute(post, activity, reader.id)
+    const group = await groupForNotificationForUser(post, activity, reader.id)
     const path = routeToPath(Frontend.Route.post(post, group))
     const alertText = PushNotification.textForPostModeratedFulfillment(post, this.actor(), reason, locale)
     return reader.sendPushNotification(alertText, path)
@@ -467,11 +467,8 @@ module.exports = bookshelf.Model.extend({
     const reason = Notification.priorityReason(activity.get('meta').reasons)
     const isUnfulfilled = reason === 'postUnfulfilled'
 
-    const groupIds = Activity.groupIds(activity)
-    if (isEmpty(groupIds)) throw new Error('no group ids in activity')
-    const group = activity.get('group_id')
-      ? await Group.find(activity.get('group_id'))
-      : await Group.find(groupIds[0])
+    const group = await groupForNotificationForUser(post, activity, reader.id)
+    if (!group) throw new Error('no member group for reader in activity')
 
     const clickthroughParams = '?' + new URLSearchParams({
       ctt: 'post_moderated_fulfillment_email',
@@ -565,9 +562,8 @@ module.exports = bookshelf.Model.extend({
     const replyTo = Email.postReplyAddress(post.id, reader.id)
     const locale = this.locale()
 
-    const groupIds = Activity.groupIds(this.relations.activity)
-    if (isEmpty(groupIds)) throw new Error('no group ids in activity')
-    const group = await Group.find(groupIds[0])
+    const group = await groupForNotificationForUser(post, this.relations.activity, reader.id)
+    if (!group) throw new Error('no member group for reader in activity')
 
     const clickthroughParams = '?' + new URLSearchParams({
       ctt: 'announcement_email',
@@ -599,11 +595,9 @@ module.exports = bookshelf.Model.extend({
     const user = post.relations.user
     const replyTo = Email.postReplyAddress(post.id, reader.id)
 
-    const groupIds = Activity.groupIds(this.relations.activity)
     const locale = this.locale()
-
-    if (isEmpty(groupIds)) throw new Error('no group ids in activity')
-    const group = await Group.find(groupIds[0])
+    const group = await groupForNotificationForUser(post, this.relations.activity, reader.id)
+    if (!group) throw new Error('no member group for reader in activity')
 
     const clickthroughParams = '?' + new URLSearchParams({
       ctt: 'post_email',
@@ -635,14 +629,12 @@ module.exports = bookshelf.Model.extend({
     const replyTo = Email.postReplyAddress(post.id, reader.id)
     const locale = this.locale()
 
-    const groupIds = Activity.groupIds(this.relations.activity)
-    if (isEmpty(groupIds)) throw new Error('no group ids in activity')
-    const group = await Group.find(groupIds[0])
+    const group = await groupForNotificationForUser(post, this.relations.activity, reader.id)
 
     const clickthroughParams = '?' + new URLSearchParams({
       ctt: 'post_mention_email',
       cti: reader.id,
-      ctcn: group.get('name')
+      ctcn: group?.get('name')
     }).toString()
 
     return Email.sendPostMentionNotification({
@@ -655,7 +647,7 @@ module.exports = bookshelf.Model.extend({
       },
       data: {
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
-        group_name: group.get('name'),
+        group_name: group?.get('name'),
         post: post.presentForEmail({ group, clickthroughParams, locale }),
         tracking_pixel_url: Analytics.pixelUrl('Mention in Post', { userId: reader.id })
       }
