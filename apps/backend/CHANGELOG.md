@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Post notification emails now name a group the recipient is a member of, not another group the post was also shared to
+- Collection views sorted by manual order no longer add a second ambiguous `ORDER BY "order"` after joining `collections_posts`
 
 ## [7.0.6] - 2026-09-13
 

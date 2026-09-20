@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+- Collection and custom views no longer inherit a leftover post-type or "active only" filter from Discussions/Events/etc., which made curated posts look missing ("Nothing here yet") until a refresh or logout
+
 ## [7.0.6] - 2026-09-13
 
 ### Added
