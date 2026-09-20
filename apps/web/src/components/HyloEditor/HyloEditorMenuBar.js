@@ -146,7 +146,12 @@ export default function HyloEditorMenuBar ({ className, editor, extendedMenu, ty
               <Link size={14} />
             </button>
           </PopoverTrigger>
-          <PopoverContent side='right' align='start' className='!p-0 !w-[340px]'>
+          <PopoverContent
+            side='right'
+            align='start'
+            // Page/welcome dialogs portal at z-[1100]; default popover z-[200] opens behind them.
+            className='!p-0 !w-[340px] z-[1200]'
+          >
             <AddLinkBox
               editor={editor}
               setLinkModalOpen={setLinkModalOpen}
