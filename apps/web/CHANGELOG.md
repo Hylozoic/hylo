@@ -6,8 +6,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [7.0.7] - 2026-09-20
+
 ### Fixed
 - Collection and custom views no longer inherit a leftover post-type or "active only" filter from Discussions/Events/etc., which made curated posts look missing ("Nothing here yet") until a refresh or logout
+- Only allowing posting of accepted post types in a group
+- Display sibling spaces in To field when creating a post in a space
+- UI blocked on wide screens
+- Link editor in page view type editor
+- Post editor readding current path group/space too often and erasing choices in the To field
+- Move AAPA to .well-known
+
+### Fixed
 
 ## [7.0.6] - 2026-09-13
 
