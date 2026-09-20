@@ -63,7 +63,7 @@ import { reorderViewPost } from 'store/actions/groupViews'
 // import toggleGroupTopicSubscribe from 'store/actions/toggleGroupTopicSubscribe'
 import { FETCH_POSTS, FETCH_TOPIC, FETCH_GROUP_TOPIC, CONTEXT_MY, VIEW_MENTIONS, VIEW_ANNOUNCEMENTS, VIEW_INTERACTIONS, VIEW_POSTS, VIEW_SAVED_POSTS, VIEW_DRAFTS, RESP_ADMINISTRATION, RESP_MANAGE_CONTENT } from 'store/constants'
 import presentPost from 'store/presenters/presentPost'
-import { makeDropQueryResults } from 'store/reducers/queryResults'
+import { buildKey, makeDropQueryResults } from 'store/reducers/queryResults'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { getGroupViewById } from 'store/selectors/getGroupViews'
 import getMe from 'store/selectors/getMe'
@@ -82,6 +82,7 @@ import { createPostUrl, groupUrl, spaceUrl } from '@hylo/navigation'
 import { getLocaleFromLocalStorage } from 'util/locale'
 import { STREAM_MAIN_COLUMN_CLASS } from 'util/mainContentColumn'
 import { StreamSkeleton } from 'components/PostCard/PostCardSkeleton'
+import { shouldInheritUserStreamFilters } from './viewStreamFilters'
 
 const viewComponent = {
   cards: PostCard,
@@ -220,22 +221,25 @@ export default function ViewContent (props) {
   const customViewLoading = Boolean(
     customViewId && ((group && group.groupViews == null) || (parentGroup && parentGroup.groupViews == null))
   )
+  const customViewMissing = Boolean(
+    customViewId && !customViewLoading && !streamViewConfig && (view === 'custom' || view === 'collection')
+  )
 
   // Do not block the stream on topic refetch when Topic is already in the ORM (e.g. redux-persist (if we ever bring that back)).
   const topicBlockingStreams = Boolean(topicName) && topicLoading && !topic
 
   const defaultSortBy = systemView?.defaultSortBy || get('settings.streamSortBy', currentUser) || 'created'
   const defaultViewMode = systemView?.defaultViewMode || get('settings.streamViewMode', currentUser) || 'cards'
-  // All Activity should not inherit a leftover type filter from other views
-  const defaultPostType = view === 'all'
-    ? undefined
-    : (systemView?.defaultPostType || get('settings.streamPostType', currentUser) || undefined)
+  const inheritUserStreamFilters = shouldInheritUserStreamFilters({ view, customViewId, streamViewConfig })
+  const defaultPostType = inheritUserStreamFilters
+    ? (systemView?.defaultPostType || get('settings.streamPostType', currentUser) || undefined)
+    : undefined
   const defaultActivePostsOnly = systemView?.defaultActivePostsOnly || get('settings.activePostsOnly', currentUser) || false
   const defaultChildPostInclusion = get('settings.streamChildPosts', currentUser) || systemView?.defaultChildPostInclusion || 'yes'
 
   const querystringParams = getQuerystringParam(['s', 't', 'v', 'c', 'search', 'timeframe', 'activeOnly', 'calendarMode', 'calendarDate'], location)
 
-  const search = querystringParams.search || streamViewConfig?.searchText
+  const search = querystringParams.search || (streamViewConfig?.type === 'stream' ? streamViewConfig.searchText : undefined)
   const configuredViewMode = querystringParams.v || streamViewConfig?.defaultViewMode || defaultViewMode
   const viewMode = configuredViewMode === 'map' ? 'cards' : configuredViewMode
   const isCalendarViewMode = viewMode === 'calendar'
@@ -247,7 +251,11 @@ export default function ViewContent (props) {
   if (view === 'events' || isCalendarViewMode) {
     sortBy = 'start_time'
   }
-  const activePostsOnly = (querystringParams.activeOnly === 'true') || (!querystringParams.activeOnly && ((streamViewConfig?.type === 'stream' && streamViewConfig.activePostsOnly) || defaultActivePostsOnly))
+  const activePostsOnly = (querystringParams.activeOnly === 'true') || (!querystringParams.activeOnly && (
+    streamViewConfig?.type === 'stream'
+      ? Boolean(streamViewConfig.activePostsOnly)
+      : (inheritUserStreamFilters && defaultActivePostsOnly)
+  ))
   const childPostInclusion = querystringParams.c || defaultChildPostInclusion
   const timeframe = querystringParams.timeframe || 'future'
 
@@ -437,6 +445,8 @@ export default function ViewContent (props) {
   const hasMore = useSelector(state => getHasMorePosts(state, fetchPostsParam))
   const pending = useSelector(state => state.pending[FETCH_POSTS])
   const [fetchError, setFetchError] = useState(false)
+  const postsQueryKey = useMemo(() => buildKey(FETCH_POSTS, fetchPostsParam), [fetchPostsParam])
+  const [resolvedPostsQueryKey, setResolvedPostsQueryKey] = useState(null)
 
   const collectionSensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: MOUSE_ACTIVATION }),
@@ -480,6 +490,7 @@ export default function ViewContent (props) {
     return Promise.resolve(dispatch(fetchPosts({ offset, ...fetchPostsParam })))
       .then(action => {
         if (action?.error) throw action.payload || new Error('FETCH_POSTS failed')
+        if (offset === 0) setResolvedPostsQueryKey(buildKey(FETCH_POSTS, fetchPostsParam))
       })
       .catch(() => {
         if (offset > 0) return
@@ -662,10 +673,12 @@ export default function ViewContent (props) {
 
   // hasMore is undefined until FETCH_POSTS succeeds. A failed fetch used to
   // look like a real empty stream ("Nothing here yet") even when posts exist.
-  const queryReady = hasMore !== undefined
+  // Stale empty queryResults for this key (wrong leftover type filter, a
+  // previous race) must not count as ready until this visit's fetch finishes.
+  const queryReady = hasMore !== undefined && resolvedPostsQueryKey === postsQueryKey
   const showFetchError = fetchError && !pending && streamPosts.length === 0
-  const showEmptyStream = queryReady && !pending && !topicBlockingStreams && !customViewLoading && streamPosts.length === 0 && !fetchError
-  const waitingForFirstPage = !queryReady && !fetchError && !pending && streamPosts.length === 0
+  const showEmptyStream = customViewMissing || (queryReady && !pending && !topicBlockingStreams && !customViewLoading && streamPosts.length === 0 && !fetchError)
+  const waitingForFirstPage = !customViewMissing && !queryReady && !fetchError && streamPosts.length === 0
 
   // Keep Calendar mounted across date/month fetches. Pending belongs in an overlay,
   // not a gate that unmounts the whole view when posts briefly go empty.

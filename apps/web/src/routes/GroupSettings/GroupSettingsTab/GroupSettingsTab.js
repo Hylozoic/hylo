@@ -28,7 +28,8 @@ import {
   DEFAULT_BANNER,
   DEFAULT_AVATAR,
   DEFAULT_DIGEST_FREQUENCY,
-  LOCATION_PRECISION
+  LOCATION_PRECISION,
+  normalizeAcceptedPostTypes
 } from 'store/models/Group'
 import { bgImageStyle, cn } from 'util/index'
 import SaveButton from '../SaveButton'
@@ -85,7 +86,7 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
     return {
       edits: {
         aboutVideoUri: (aboutVideoUri && trim(aboutVideoUri)) || '',
-        acceptedPostTypes: Array.isArray(acceptedPostTypes) ? acceptedPostTypes : [...CUSTOM_VIEW_DEFAULT_POST_TYPES],
+        acceptedPostTypes: normalizeAcceptedPostTypes(acceptedPostTypes) || [...CUSTOM_VIEW_DEFAULT_POST_TYPES],
         avatarUrl: avatarUrl || DEFAULT_AVATAR,
         bannerUrl: bannerUrl || DEFAULT_BANNER,
         description: description || '',

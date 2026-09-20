@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [7.0.7] - 2026-09-20
+
+### Fixed
+- Post notification emails now name a group the recipient is a member of, not another group the post was also shared to
+- Collection views sorted by manual order no longer add a second ambiguous `ORDER BY "order"` after joining `collections_posts`
+- Only allowing posting of accepted post types in a group
+- Display sibling spaces in To field when creating a post in a space
+
 ## [7.0.6] - 2026-09-13
 
 ### Changed

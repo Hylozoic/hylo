@@ -10,7 +10,7 @@ const RESTRICTED_POST_TYPES = Object.keys(POST_TYPE_TO_TYPED_VIEW)
  * @param {*} value - Raw column value
  * @returns {string[]|null}
  */
-function parseAcceptedPostTypes (value) {
+export function parseAcceptedPostTypes (value) {
   if (value == null) return null
   if (Array.isArray(value)) return value
   if (typeof value === 'string') {

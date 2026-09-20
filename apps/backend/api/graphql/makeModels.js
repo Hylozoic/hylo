@@ -19,6 +19,7 @@ import {
   reactionFilter
 } from './filters'
 import { LOCATION_DISPLAY_PRECISION } from '../../lib/constants'
+import { parseAcceptedPostTypes } from '../models/post/validatePostData'
 import InvitationService from '../services/InvitationService'
 import {
   filterAndSortContentAccess,
@@ -995,6 +996,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'fundingRound'
       ],
       getters: {
+        // jsonb may come back as a JSON string after save; [String] cannot serialize that.
+        acceptedPostTypes: g => parseAcceptedPostTypes(g.get('accepted_post_types')),
         eventCalendarUrl: g => g.eventCalendarUrl(),
         // commonRoles: async g => g.commonRoles(),
         canAccess: g => g ? g.canAccess(userId) : false,

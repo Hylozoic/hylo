@@ -317,6 +317,56 @@ describe('Notification', function () {
         .then(() => unspyify(Email, 'sendPostMentionNotification'))
     })
 
+    it('names a member group in a new post email when the post is also in a group the reader is not in', async () => {
+      const otherGroup = await factories.group({ name: 'GroupX', slug: `group-x-${Date.now()}` }).save()
+      const sharedPost = await factories.post({
+        name: 'Shared Post',
+        user_id: actor.id,
+        description: 'Posted to two groups'
+      }).save()
+      // Attach the non-member group first so Activity.groupIds[0] would be GroupX
+      await otherGroup.posts().attach(sharedPost)
+      await group.posts().attach(sharedPost)
+      spyify(Email, 'sendPostNotification', opts => {
+        expect(opts.data.group_name).to.equal('My Group')
+        expect(opts.data.group_name).not.to.equal('GroupX')
+      })
+      const notification = await preloadNotification({
+        post_id: sharedPost.id,
+        meta: { reasons: [`newPost: ${group.id}`] },
+        reader_id: reader.id,
+        actor_id: actor.id,
+        group_id: group.id
+      }, Notification.MEDIUM.Email)
+      await notification.send()
+      expect(Email.sendPostNotification).to.have.been.called()
+      unspyify(Email, 'sendPostNotification')
+    })
+
+    it('does not name a non-member group even when that group is set on the activity', async () => {
+      const otherGroup = await factories.group({ name: 'GroupX', slug: `group-x-act-${Date.now()}` }).save()
+      const sharedPost = await factories.post({
+        name: 'Shared Post',
+        user_id: actor.id,
+        description: 'Posted to two groups'
+      }).save()
+      await otherGroup.posts().attach(sharedPost)
+      await group.posts().attach(sharedPost)
+      spyify(Email, 'sendPostNotification', opts => {
+        expect(opts.data.group_name).to.equal('My Group')
+      })
+      const notification = await preloadNotification({
+        post_id: sharedPost.id,
+        meta: { reasons: [`newPost: ${otherGroup.id}`] },
+        reader_id: reader.id,
+        actor_id: actor.id,
+        group_id: otherGroup.id
+      }, Notification.MEDIUM.Email)
+      await notification.send()
+      expect(Email.sendPostNotification).to.have.been.called()
+      unspyify(Email, 'sendPostNotification')
+    })
+
     it('sends no email for a comment', () => {
       spyify(Email, 'sendPostNotification')
 
