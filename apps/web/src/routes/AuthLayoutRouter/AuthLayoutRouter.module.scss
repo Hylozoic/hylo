@@ -384,6 +384,7 @@ $drawer-z-index: 51;
   &.hidden {
     opacity: 0;
     right: -1000px;
+    pointer-events: none;
     transition-delay: 0.0s;
   }
 }
