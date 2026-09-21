@@ -25,7 +25,6 @@ function handleQuery (operationName, rootField, variables, seed, query) {
     case 'FetchForGroup':
     case 'FetchGroupDetails':
     case 'FetchGroupViews':
-    case 'FetchContextWidgets':
     case 'FetchGroupSpaces':
     case 'FetchGroupRelationships':
       return { data: { group: presentGroup(seed, findGroup(seed, variables)) } }
@@ -338,6 +337,8 @@ function presentFundingRound (seed, id) {
       id: fundingSpace.id,
       name: fundingSpace.name,
       slug: fundingSpace.slug,
+      bannerUrl: fundingSpace.bannerUrl,
+      description: fundingSpace.description,
       homeRoute: fundingSpace.homeRoute,
       memberCount: fundingSpace.memberCount,
       parentGroup: {
@@ -355,6 +356,9 @@ function presentTrack (seed, id) {
     ...seed.track,
     space: {
       id: trackSpace.id,
+      name: trackSpace.name,
+      description: trackSpace.description,
+      bannerUrl: trackSpace.bannerUrl,
       slug: trackSpace.slug,
       type: trackSpace.type,
       homeRoute: trackSpace.homeRoute,
@@ -431,7 +435,6 @@ function presentGroup (seed, group) {
     canAccess: true,
     memberCount: group.type === 'space' ? members.length : group.memberCount,
     agreements: group.agreements || { items: [] },
-    contextWidgets: group.contextWidgets || { items: [] },
     groupViews: { items: presentGroupViews(seed, group) },
     groupRoles: { items: seed.groups.roles.filter(role => !role.groupId || role.groupId === group.id || role.groupId === seed.groups.main.id) },
     stewards: { items: [me] },

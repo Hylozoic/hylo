@@ -56,13 +56,8 @@ Only ONE of these combinations will be active for a content_access record:
 - `role_id` set (implies role-level access)  
 - `group_id` set (implies group-level access)
 
-**Automatic Expiration Mirroring:**
-The `expires_at` value from `content_access` is automatically mirrored to related tables using PostgreSQL triggers:
-- **When track_id is NULL** (group-level or role-based): `group_memberships.expires_at` (based on `user_id` + `group_id`)
-- **When track_id is set**: `tracks_users.access_granted` (boolean, set to true/false since tracks don't expire)
-- **When role_id is set**: `group_memberships_group_roles.expires_at` (based on `user_id` + `group_id` + `group_role_id`) AND `group_memberships.expires_at`
-
-**Important:** Track purchases (track_id set) do NOT update any expiration dates. Instead, the `access_granted` boolean in `tracks_users` is set to true when access is granted and false when revoked. This is because track access is one-time and doesn't expire.
+**Automatic expiration mirroring:**
+`content_access` writes materialize access on `user_scopes` through PostgreSQL triggers (`compute_user_scopes_from_content_access`). Track enrollment and completion live on the track space's `group_memberships`, not on `tracks_users` (that table was dropped). The old `sync_content_access_expires_at` / `clear_content_access_expires_at` functions, which updated `tracks_users`, were dropped with it.
 
 This avoids the need for JOINs when checking expiration - you can query the respective tables directly.
 
@@ -74,18 +69,11 @@ To avoid constantly joining `content_access` with membership tables, PostgreSQL 
 ### How It Works
 
 **When content access is granted or updated:**
-1. User inserts/updates a record in `content_access` with `expires_at` set
-2. Trigger `content_access_expires_at_sync` fires automatically
-3. Function `sync_content_access_expires_at()` executes (THREE MUTUALLY EXCLUSIVE CONDITIONALS):
-   - **If track_id is NOT NULL**: Sets `tracks_users.access_granted = true` (one-time access, no expiration)
-   - **If role_id is NOT NULL**: Updates `group_memberships_group_roles.expires_at` AND `group_memberships.expires_at` based on `granted_by_group_id`
-   - **If BOTH are NULL** (group-level access): Updates `group_memberships.expires_at` based on `granted_by_group_id`
+1. User inserts/updates a record in `content_access`
+2. A trigger materializes the grant onto `user_scopes`
+3. Revoking or expiring the row removes the matching scopes
 
-**When access is revoked or expires:**
-1. Status changes to 'revoked' or 'expired' in `content_access`
-2. Trigger `content_access_expires_at_clear` fires
-3. Function `clear_content_access_expires_at()` executes:
-   - Clears `expires_at` (sets to NULL) in the appropriate table based on what IDs are set
+Track access is a scope on the track's space. It is not a row in `tracks_users`.
 
 **Bundle Purchases (One Product, Multiple Access Grants):**
 - A single Stripe product can create multiple `content_access` records
@@ -116,14 +104,10 @@ if (membership.get('expires_at') && membership.get('expires_at') < new Date()) {
   // Membership has expired
 }
 
-// Check if track access is expired (no JOIN needed!)
-const trackAccess = await knex('tracks_users')
-  .where({ user_id: userId, track_id: trackId })
+// Check access from user_scopes (no JOIN needed)
+const scope = await knex('user_scopes')
+  .where({ user_id: userId, group_id: groupId })
   .first()
-
-if (trackAccess.expires_at && trackAccess.expires_at < new Date()) {
-  // Track access has expired
-}
 ```
 
 ### Protection Against Expiration Overwriting
@@ -137,8 +121,7 @@ if (trackAccess.expires_at && trackAccess.expires_at < new Date()) {
 
 // Step 2: Same user buys 1-month access to Track A (3 months later)
 // Creates: content_access { user_id, group_id, track_id: 123, expires_at: '2025-05-01' }
-// Trigger updates: tracks_users.expires_at = '2025-05-01' ✓
-// Trigger DOES NOT update: group_memberships.expires_at (still '2026-01-01') ✓
+// Trigger updates: user_scopes for the track space. group_memberships.expires_at stays '2026-01-01' ✓
 
 // Result: User retains 1-year group membership while having separate track expiration
 ```

@@ -254,7 +254,6 @@ Group.fields = {
     relatedName: 'eventGroups'
   }),
   visibility: attr(),
-  widgets: many('Widget'),
   stripeAccountId: attr(),
   stripeDashboardUrl: attr(),
   stripeChargesEnabled: attr(),

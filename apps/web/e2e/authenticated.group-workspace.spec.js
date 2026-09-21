@@ -97,10 +97,10 @@ test.describe('Batch D: group workspace', () => {
     await expectGroupWorkspaceShell(page, new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/requests-and-offers`))
   })
 
-  test('GET …/explore loads landing explorer', async ({ page }) => {
+  test('GET …/explore redirects to the group home', async ({ page }) => {
     await page.goto(groupPublic('/explore'))
     await waitPastRootSessionLoading(page)
-    await expectGroupWorkspaceShell(page, new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/explore`))
+    await expectGroupWorkspaceShell(page, new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/(all|stream|chat|map)`))
   })
 
   test('GET …/topics loads group topics directory', async ({ page }) => {

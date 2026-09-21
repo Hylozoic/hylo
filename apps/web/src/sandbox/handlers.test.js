@@ -152,12 +152,12 @@ describe('sandbox GraphQL handlers', () => {
 
   it('returns the bioregional grants funding round with submissions', () => {
     const result = handleGraphql({
-      query: 'query ($id: ID) { fundingRound(id: $id) { id title bannerUrl numSubmissions submissions { items { id title } } } }',
+      query: 'query ($id: ID) { fundingRound(id: $id) { id group { name bannerUrl } numSubmissions submissions { items { id title } } } }',
       variables: { id: seed.ids.fundingRound }
     }, seed)
 
-    expect(result.data.fundingRound.title).toBe('Bioregional Grants Round 1')
-    expect(result.data.fundingRound.bannerUrl).toContain('BF-Logo_W')
+    expect(result.data.fundingRound.group.name).toBe('Bioregional Grants Round 1')
+    expect(result.data.fundingRound.group.bannerUrl).toContain('BF-Logo_W')
     expect(result.data.fundingRound.numSubmissions).toBe(5)
     expect(result.data.fundingRound.submissions.items.length).toBe(5)
   })
@@ -165,11 +165,11 @@ describe('sandbox GraphQL handlers', () => {
   it('returns orientation steps as collectionPosts on the track space', () => {
     const trackSpace = seed.groups.spaces.track
     const result = handleGraphql({
-      query: 'query ($groupId: ID) { group(id: $groupId) { id track { id name } groupViews { items { id type collectionPosts { id title type completionAction } } } } }',
+      query: 'query ($groupId: ID) { group(id: $groupId) { id track { id space { name } } groupViews { items { id type collectionPosts { id title type completionAction } } } } }',
       variables: { groupId: trackSpace.id }
     }, seed)
 
-    expect(result.data.group.track.name).toBe('New Member Orientation')
+    expect(result.data.group.track.space.name).toBe('New Member Orientation')
     const actionsView = result.data.group.groupViews.items.find(view => view.type === 'track-actions')
     expect(actionsView.collectionPosts.length).toBe(5)
     expect(actionsView.collectionPosts[0].title).toBe('Introduce yourself')
@@ -185,7 +185,7 @@ describe('sandbox GraphQL handlers', () => {
 
   it('keeps track orientation steps when parent menu data is refetched', () => {
     const parentResult = handleGraphql({
-      query: 'query FetchGroupsMenuData { groups(first: 10) { items { id groupViews { items { type linkedGroup { id groupViews { items { type collectionPosts { id title } } } track { id name isEnrolled } } } } } } }'
+      query: 'query FetchGroupsMenuData { groups(first: 10) { items { id groupViews { items { type linkedGroup { id groupViews { items { type collectionPosts { id title } } } track { id space { name } isEnrolled } } } } } } }'
     }, seed)
 
     const trackSpaceId = String(seed.groups.spaces.track.id)
@@ -194,7 +194,7 @@ describe('sandbox GraphQL handlers', () => {
       view.type === 'space' && String(view.linkedGroup?.id) === trackSpaceId
     )
 
-    expect(trackSpaceView.linkedGroup.track.name).toBe('New Member Orientation')
+    expect(trackSpaceView.linkedGroup.track.space.name).toBe('New Member Orientation')
     expect(trackSpaceView.linkedGroup.track.isEnrolled).toBe(true)
     const actionsView = trackSpaceView.linkedGroup.groupViews.items.find(view => view.type === 'track-actions')
     expect(actionsView.collectionPosts.length).toBe(5)

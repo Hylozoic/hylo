@@ -304,7 +304,7 @@ Email Confirmation → Access Content
 4. **Database Triggers**
    - Triggers automatically update related tables:
      - `group_memberships.expires_at`
-     - `tracks_users.expires_at` 
+     - `user_scopes` (including access to a track's space)
      - `group_memberships_group_roles.expires_at`
 
 ### Functions Invoked
