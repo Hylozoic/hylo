@@ -646,8 +646,8 @@ function PostEditorInner ({
 
     // Current parent group and its spaces first, then everyone else alphabetically.
     // The parent row is omitted when it does not accept the selected post type.
-    const currentParent = topLevelGroups.find(g => String(g.id) === String(currentTopLevelId))
-      || (inSpace && routeParentGroup && !isSpaceGroup(routeParentGroup) ? routeParentGroup : null)
+    const currentParent = topLevelGroups.find(g => String(g.id) === String(currentTopLevelId)) ||
+      (inSpace && routeParentGroup && !isSpaceGroup(routeParentGroup) ? routeParentGroup : null)
     const leading = currentParent
       ? optionsForParent(currentParent, groupAcceptsPostType(currentParent, postTypeForOptions))
       : []
