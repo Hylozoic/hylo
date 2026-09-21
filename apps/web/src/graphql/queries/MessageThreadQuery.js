@@ -31,7 +31,7 @@ export const MessageThreadQuery = gql`
           }
           createdAt
           editedAt
-          postReactions {
+          commentReactions {
             emojiFull
             id
             user {

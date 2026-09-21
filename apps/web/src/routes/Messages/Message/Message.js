@@ -194,15 +194,15 @@ export default function Message ({ message, isHeader }) {
               </>
               )}
         </div>
-        <div className='mt-1 ml-[42px]'>
-          <EmojiRow
-            className='!mr-0'
-            pillClassName='m-0 mr-1 mb-0 py-0 px-2 h-[22px] rounded-full text-xs items-center'
-            post={message}
-            comment={message}
-            currentUser={currentUser}
-          />
-        </div>
+      </div>
+      <div className='mt-1 flex justify-end pr-2'>
+        <EmojiRow
+          className='!mr-0'
+          pillClassName='m-0 mr-1 mb-0 py-0 px-2 h-[22px] rounded-full text-xs items-center'
+          post={message}
+          comment={message}
+          currentUser={currentUser}
+        />
       </div>
     </div>
   )
@@ -215,7 +215,7 @@ Message.propTypes = {
     createdAt: PropTypes.string,
     editedAt: PropTypes.string,
     creator: PropTypes.object,
-    postReactions: PropTypes.array
+    commentReactions: PropTypes.array
   }).isRequired,
   isHeader: PropTypes.bool
 }

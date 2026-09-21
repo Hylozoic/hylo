@@ -2058,6 +2058,10 @@ type Message {
   postReactions: [Reaction]
   # Number of total reactions on the message
   postReactionsTotal: Int
+  # All reactions on a message (comment alias for EmojiRow)
+  commentReactions: [Reaction]
+  # Number of total reactions on a message
+  commentReactionsTotal: Int
 }
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set

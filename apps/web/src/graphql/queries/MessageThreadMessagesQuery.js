@@ -10,7 +10,7 @@ export const MessageThreadMessagesQuery = gql`
           text
           createdAt
           editedAt
-          postReactions {
+          commentReactions {
             emojiFull
             id
             user {
