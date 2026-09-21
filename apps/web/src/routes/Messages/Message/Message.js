@@ -100,6 +100,15 @@ export default function Message ({ message, isHeader }) {
         )}
       </div>
       <div className={cn(classes.content, 'min-w-0')}>
+        <div className='flex justify-end mb-1'>
+          <EmojiRow
+            className='!mr-0'
+            pillClassName='m-0 mr-1 mb-0 py-0 px-2 h-[22px] rounded-full text-xs items-center'
+            post={message}
+            comment={message}
+            currentUser={currentUser}
+          />
+        </div>
         {isHeader && (
           <div className='flex justify-between items-center gap-2'>
             <ProfileCardDialog personId={person.id}>
@@ -194,15 +203,6 @@ export default function Message ({ message, isHeader }) {
               </>
               )}
         </div>
-      </div>
-      <div className='mt-1 flex justify-end pr-2'>
-        <EmojiRow
-          className='!mr-0'
-          pillClassName='m-0 mr-1 mb-0 py-0 px-2 h-[22px] rounded-full text-xs items-center'
-          post={message}
-          comment={message}
-          currentUser={currentUser}
-        />
       </div>
     </div>
   )
