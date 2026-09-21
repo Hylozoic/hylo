@@ -8,6 +8,7 @@ import Avatar from 'components/Avatar'
 import ClickCatcher from 'components/ClickCatcher'
 import CardFileAttachments from 'components/CardFileAttachments'
 import CardImageAttachments from 'components/CardImageAttachments'
+import EmojiRow from 'components/EmojiRow'
 import HyloEditor from 'components/HyloEditor'
 import HyloHTML from 'components/HyloHTML'
 import ProfileCardDialog from 'components/ProfileCardDialog/ProfileCardDialog'
@@ -193,6 +194,15 @@ export default function Message ({ message, isHeader }) {
               </>
               )}
         </div>
+        <div className='mt-1 ml-[42px]'>
+          <EmojiRow
+            className='!mr-0'
+            pillClassName='m-0 mr-1 mb-0 py-0 px-2 h-[22px] rounded-full text-xs items-center'
+            post={message}
+            comment={message}
+            currentUser={currentUser}
+          />
+        </div>
       </div>
     </div>
   )
@@ -204,7 +214,8 @@ Message.propTypes = {
     text: PropTypes.string,
     createdAt: PropTypes.string,
     editedAt: PropTypes.string,
-    creator: PropTypes.object
+    creator: PropTypes.object,
+    postReactions: PropTypes.array
   }).isRequired,
   isHeader: PropTypes.bool
 }
