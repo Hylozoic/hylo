@@ -1412,7 +1412,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
             arguments: ({ type }) => [type]
           }
         },
-        { reactions: { alias: 'postReactions' } },
         { reactions: { alias: 'commentReactions' } }
       ],
       filter: messageFilter(userId)

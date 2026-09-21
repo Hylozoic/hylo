@@ -2054,11 +2054,7 @@ type Message {
   messageThread: MessageThread
   # The content of the Message
   text: String
-  # reactions to this message
-  postReactions: [Reaction]
-  # Number of total reactions on the message
-  postReactionsTotal: Int
-  # All reactions on a message (comment alias for EmojiRow)
+  # All reactions on a message
   commentReactions: [Reaction]
   # Number of total reactions on a message
   commentReactionsTotal: Int
