@@ -29,11 +29,13 @@ export function normalizeUserLinkHref (raw) {
 const MEETING_URL_PATTERNS = [
   /^https?:\/\/([\w-]+\.)*zoom\.us\//i,
   /^https?:\/\/meet\.google\.com\//i,
-  /^https?:\/\/meet\.jit\.si\//i
+  /^https?:\/\/meet\.jit\.si\//i,
+  /^https?:\/\/teams\.microsoft\.com\//i,
+  /^https?:\/\/teams\.live\.com\//i
 ]
 
 /**
- * True for a URL from a known video-meeting platform (Zoom, Google Meet, Jitsi).
+ * True for a URL from a known video-meeting platform (Zoom, Google Meet, Jitsi, Microsoft Teams).
  */
 export function isMeetingUrl (url) {
   if (!url || typeof url !== 'string') return false
