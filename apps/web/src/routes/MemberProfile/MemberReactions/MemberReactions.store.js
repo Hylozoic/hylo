@@ -5,12 +5,13 @@ import presentPost from 'store/presenters/presentPost'
 import postFieldsFragment from '@graphql/fragments/postFieldsFragment'
 import { FETCH_MEMBER_REACTIONS } from '../MemberProfile.store'
 
-export function fetchMemberReactions (id, order = 'desc', limit = 20, providedQuery) {
+export function fetchMemberReactions (id, order = 'desc', limit = 20, offset = 0, providedQuery) {
   const query = providedQuery ||
-  `query MemberReactions ($id: ID, $order: String, $limit: Int) {
+  `query MemberReactions ($id: ID, $order: String, $limit: Int, $offset: Int) {
     person (id: $id) {
       id
-      reactions (first: $limit, order: $order) {
+      reactions (first: $limit, offset: $offset, order: $order) {
+        hasMore
         items {
           id
           userId
@@ -26,7 +27,7 @@ export function fetchMemberReactions (id, order = 'desc', limit = 20, providedQu
     type: FETCH_MEMBER_REACTIONS,
     graphql: {
       query,
-      variables: { id, limit, order }
+      variables: { id, limit, order, offset }
     },
     meta: { extractModel: 'Person' }
   }
@@ -38,9 +39,11 @@ export const getMemberReactions = ormCreateSelector(
   ({ Reaction }, { personId }) => {
     const reactions = Reaction.filter(r => String(r.userId) === String(personId)).toModelArray()
     if (!reactions) return []
-    return compact(reactions.map(({ post }) => {
+    return compact(reactions.map(reaction => {
+      if (!reaction.post) return null
+      const post = presentPost(reaction.post)
       if (!post) return null
-      return presentPost(post)
+      return { id: String(reaction.id), createdAt: reaction.createdAt, post }
     }))
   }
 )

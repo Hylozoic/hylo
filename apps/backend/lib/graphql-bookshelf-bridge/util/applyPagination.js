@@ -14,7 +14,9 @@ export default function applyPagination (query, tableName, opts) {
   // skip special sorts — filterAndSortPosts already orders these (and
   // `order` would be ambiguous after joining collections_posts)
   if (!['join', 'reactions', 'votes', 'updated', 'created', 'order', 'start_time'].includes(sortBy)) { // Can remove votes once Mobile has been ported over
-    query = query.orderBy(snakeCase(sortBy), order)
+    // Qualify id so joins (posts, groups_posts) don't make ORDER BY ambiguous and skip rows.
+    const column = sortBy === 'id' ? `${tableName}.id` : snakeCase(sortBy)
+    query = query.orderBy(column, order)
   }
 
   if (first) {

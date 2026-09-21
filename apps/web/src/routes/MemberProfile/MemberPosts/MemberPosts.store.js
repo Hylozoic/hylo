@@ -38,12 +38,12 @@ const memberPostsQuery =
   }
 }`
 
-export function fetchMemberPosts (id, first = 20, query = memberPostsQuery) {
+export function fetchMemberPosts (id, first = 20, offset = 0, query = memberPostsQuery) {
   return {
     type: FETCH_MEMBER_POSTS,
     graphql: {
       query,
-      variables: { id, first }
+      variables: { id, first, offset, order: 'desc', sortBy: 'created' }
     },
     meta: { extractModel: 'Person' }
   }
