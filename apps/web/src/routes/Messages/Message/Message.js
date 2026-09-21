@@ -166,7 +166,7 @@ export default function Message ({ message, isHeader }) {
               </div>
               )
             : (
-              <div className='flex gap-1'>
+              <div className='flex flex-col sm:flex-row gap-1'>
                 <div className='flex-1 min-w-0'>
                   {!isHeader && canEdit && (
                     <button
@@ -193,7 +193,7 @@ export default function Message ({ message, isHeader }) {
                     )}
                   </ClickCatcher>
                 </div>
-                <div className='flex-shrink-0 self-start pt-0.5'>
+                <div className='flex-shrink-0 self-end sm:self-start pt-0.5'>
                   <EmojiRow
                     className='!mr-0'
                     pillClassName='m-0 mr-1 mb-0 py-0 px-2 h-[22px] rounded-full text-xs items-center'
