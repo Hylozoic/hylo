@@ -204,15 +204,21 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
   const togglePeopleDialog = useCallback(() => setState(prevState => ({ ...prevState, showPeopleDialog: !prevState.showPeopleDialog })), [])
 
   const onClose = useCallback(() => {
+    // Dialog close is owned by PostDialog so the post is popped off history
+    // instead of pushed back onto the profile (or other parent route).
+    if (inPostDialog && onDismissEmbeddedDialog) {
+      onDismissEmbeddedDialog()
+      return
+    }
     if (!useSmartPostClose) {
       navigate({
         pathname: removePostFromUrl(location.pathname) || '/',
         search: location.search
-      })
+      }, inPostDialog ? { replace: true } : undefined)
       return
     }
     navigate(postDetailCloseDestination)
-  }, [useSmartPostClose, navigate, postDetailCloseDestination, location.pathname, location.search])
+  }, [inPostDialog, onDismissEmbeddedDialog, useSmartPostClose, navigate, postDetailCloseDestination, location.pathname, location.search])
 
   const attemptClose = useCallback(() => {
     if (inPostDialog && commentFormRef.current?.hasUnsavedContent?.()) {

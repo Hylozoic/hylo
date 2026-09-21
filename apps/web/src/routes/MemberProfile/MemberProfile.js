@@ -6,7 +6,7 @@ import CopyToClipboard from 'react-copy-to-clipboard'
 import { Helmet } from 'react-helmet'
 import { useSelector, useDispatch } from 'react-redux'
 import { Tooltip } from 'react-tooltip'
-import { useParams, useNavigate, Routes, Route } from 'react-router-dom'
+import { useParams, useNavigate, useLocation, Routes, Route } from 'react-router-dom'
 import { TextHelpers, DateTimeHelpers } from '@hylo/shared'
 import { getLocaleFromLocalStorage } from 'util/locale'
 
@@ -32,6 +32,7 @@ import SkillsSection from 'components/SkillsSection'
 import SkillsToLearnSection from 'components/SkillsToLearnSection'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
+import useRouteParams from 'hooks/useRouteParams'
 import useViewPostDetails from 'hooks/useViewPostDetails'
 import blockUser from 'store/actions/blockUser'
 import { removeMember } from 'routes/Members/Members.store'
@@ -52,6 +53,7 @@ import {
   getPresentedPerson
 } from './MemberProfile.store'
 import { cn } from 'util/index'
+import { historyIndexBackDelta, profileDirectLoadBackPath } from 'util/mobileNavBack'
 import {
   currentUserSettingsUrl,
   messagePersonUrl,
@@ -76,7 +78,13 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
   const { t } = useTranslation()
   const [container, setContainer] = useState(null)
 
+  const location = useLocation()
+  const { context, groupSlug: routeGroupSlug } = useRouteParams()
   const personId = routeParams.personId
+  // History index of the page this profile was opened from. Header back returns
+  // there, including after posts opened from the profile have been closed.
+  const entryHistoryIndexRef = useRef(null)
+  const trackedPersonIdRef = useRef(null)
   const error = !Number.isSafeInteger(Number(personId)) ? MESSAGES.invalid : null
   const person = useSelector(state => getPresentedPerson(state, routeParams))
   const contentLoading = useSelector(state => isPendingFor([
@@ -122,16 +130,31 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
   const [confirmingRemove, setConfirmingRemove] = useState(false)
 
   const { setHeaderDetails } = useViewHeader()
+  const postOverlayOpen = /\/post\/\d+/.test(location.pathname)
   useEffect(() => {
+    if (trackedPersonIdRef.current !== personId) {
+      trackedPersonIdRef.current = personId
+      const idx = window.history.state?.idx
+      entryHistoryIndexRef.current = typeof idx === 'number' ? idx - 1 : null
+    }
+    const historyBack = historyIndexBackDelta({
+      currentIndex: window.history.state?.idx,
+      entryIndex: entryHistoryIndexRef.current,
+      postOverlayOpen
+    })
     setHeaderDetails({
       title: t('Member Profile') + ': ' + (person ? person.name : t('Loading...')),
       icon: 'Person',
       info: '',
       search: true,
       backButton: true,
-      mobileBackButton: true
+      mobileBackButton: true,
+      // No earlier history entry (profile opened directly): leave for the group home.
+      backTo: historyBack != null
+        ? historyBack
+        : (postOverlayOpen ? null : profileDirectLoadBackPath({ context, groupSlug: routeGroupSlug }))
     })
-  }, [person])
+  }, [person, personId, postOverlayOpen, context, routeGroupSlug, t])
 
   useEffect(() => {
     if (personId) fetchPersonAction(personId)
