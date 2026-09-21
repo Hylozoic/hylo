@@ -1506,11 +1506,21 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       const emojiFull = meta.data.emojiFull
       me = Me.first()
 
-      const optimisticUpdate = {
-        commentReactions: [...(comment.commentReactions || []), { emojiFull, user: { name: me.name, id: me.id } }]
+      if (comment) {
+        const optimisticUpdate = {
+          commentReactions: [...(comment.commentReactions || []), { emojiFull, user: { name: me.name, id: me.id } }]
+        }
+        comment.update(optimisticUpdate)
       }
 
-      comment.update(optimisticUpdate)
+      // Also handle optimistic update for Message model (DM messages)
+      const message = session.Message.withId(meta.commentId)
+      if (message) {
+        const optimisticUpdate = {
+          commentReactions: [...(message.commentReactions || []), { emojiFull, user: { name: me.name, id: me.id } }]
+        }
+        message.update(optimisticUpdate)
+      }
 
       break
     }
@@ -1519,11 +1529,25 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       comment = session.Comment.withId(meta.commentId)
       const emojiFull = meta.data.emojiFull
       me = Me.first()
-      const commentReactions = comment.commentReactions.filter(reaction => {
-        if (reaction.emojiFull === emojiFull && reaction.user.id === me.id) return false
-        return true
-      })
-      comment.update({ commentReactions })
+
+      if (comment) {
+        const commentReactions = comment.commentReactions.filter(reaction => {
+          if (reaction.emojiFull === emojiFull && reaction.user.id === me.id) return false
+          return true
+        })
+        comment.update({ commentReactions })
+      }
+
+      // Also handle optimistic update for Message model (DM messages)
+      const message = session.Message.withId(meta.commentId)
+      if (message) {
+        const commentReactions = (message.commentReactions || []).filter(reaction => {
+          if (reaction.emojiFull === emojiFull && reaction.user.id === me.id) return false
+          return true
+        })
+        message.update({ commentReactions })
+      }
+
       break
     }
 

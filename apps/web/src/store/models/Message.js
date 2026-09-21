@@ -16,5 +16,6 @@ Message.fields = {
   creator: fk('Person'),
   createdAt: attr(),
   editedAt: attr(),
-  messageThread: fk('MessageThread', 'messages')
+  messageThread: fk('MessageThread', 'messages'),
+  commentReactions: attr()
 }

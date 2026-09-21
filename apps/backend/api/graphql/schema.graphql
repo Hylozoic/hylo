@@ -2054,6 +2054,10 @@ type Message {
   messageThread: MessageThread
   # The content of the Message
   text: String
+  # All reactions on a message
+  commentReactions: [Reaction]
+  # Number of total reactions on a message
+  commentReactionsTotal: Int
 }
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set

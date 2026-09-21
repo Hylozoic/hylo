@@ -2,6 +2,7 @@ import { GraphQLError } from 'graphql'
 import { isEmpty, mapKeys, pick, snakeCase, size, trim } from 'lodash'
 import { v4 as uuidv4 } from 'uuid'
 import convertGraphqlData from './convertGraphqlData'
+import { pushToSockets, userRoom } from '../../services/Websockets'
 
 export {
   createAffiliation,
@@ -487,6 +488,25 @@ export function reactOn (userId, entityId, data, context) {
         if (parentCommentId) {
           context.pubSub.publish(`comments:commentId:${parentCommentId}`, { comment })
         }
+
+        // Push messageUpdated socket event for real-time DM updates (receivers)
+        if (comment.get('post_id')) {
+          const thread = await Post.find(postId)
+          const followers = await thread.followers().fetch().then(x => x.models)
+          const excludingSender = followers.map(x => x.id).filter(id => id !== userId)
+
+          const response = {
+            id: comment.id,
+            createdAt: (comment.get('created_at') || new Date()).toString(),
+            editedAt: comment.get('edited_at') ? comment.get('edited_at').toString() : undefined,
+            creator: comment.get('user_id'),
+            messageThread: comment.get('post_id'),
+            text: comment.get('text')
+          }
+
+          excludingSender.forEach(participantId =>
+            pushToSockets(userRoom(participantId), 'messageUpdated', response))
+        }
       }
 
       return result
@@ -523,6 +543,25 @@ export function deleteReaction (userId, entityId, data, context) {
         const parentCommentId = comment.get('comment_id')
         if (parentCommentId) {
           context.pubSub.publish(`comments:commentId:${parentCommentId}`, { comment })
+        }
+
+        // Push messageUpdated socket event for real-time DM updates (receivers)
+        if (comment.get('post_id')) {
+          const thread = await Post.find(postId)
+          const followers = await thread.followers().fetch().then(x => x.models)
+          const excludingSender = followers.map(x => x.id).filter(id => id !== userId)
+
+          const response = {
+            id: comment.id,
+            createdAt: (comment.get('created_at') || new Date()).toString(),
+            editedAt: comment.get('edited_at') ? comment.get('edited_at').toString() : undefined,
+            creator: comment.get('user_id'),
+            messageThread: comment.get('post_id'),
+            text: comment.get('text')
+          }
+
+          excludingSender.forEach(participantId =>
+            pushToSockets(userRoom(participantId), 'messageUpdated', response))
         }
       }
 

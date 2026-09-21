@@ -8,6 +8,7 @@ import Avatar from 'components/Avatar'
 import ClickCatcher from 'components/ClickCatcher'
 import CardFileAttachments from 'components/CardFileAttachments'
 import CardImageAttachments from 'components/CardImageAttachments'
+import EmojiRow from 'components/EmojiRow'
 import HyloEditor from 'components/HyloEditor'
 import HyloHTML from 'components/HyloHTML'
 import ProfileCardDialog from 'components/ProfileCardDialog/ProfileCardDialog'
@@ -165,32 +166,43 @@ export default function Message ({ message, isHeader }) {
               </div>
               )
             : (
-              <>
-                {!isHeader && canEdit && (
-                  <button
-                    type='button'
-                    onClick={handleEdit}
-                    aria-label={t('Edit')}
-                    className={cn(
-                      'float-right ml-2 p-1 rounded text-foreground/40 hover:text-foreground transition-opacity',
-                      showActions ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+              <div className='flex flex-col sm:flex-row gap-1'>
+                <div className='flex-1 min-w-0'>
+                  {!isHeader && canEdit && (
+                    <button
+                      type='button'
+                      onClick={handleEdit}
+                      aria-label={t('Edit')}
+                      className={cn(
+                        'float-right ml-2 p-1 rounded text-foreground/40 hover:text-foreground transition-opacity',
+                        showActions ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                      )}
+                    >
+                      <Pencil className='w-3.5 h-3.5' />
+                    </button>
+                  )}
+                  <ClickCatcher>
+                    {attachments.length > 0 && (
+                      <>
+                        <CardImageAttachments attachments={attachments} linked className={cn('mb-2', isHeader && 'mt-2')} />
+                        <CardFileAttachments attachments={attachments} className='mb-2' />
+                      </>
                     )}
-                  >
-                    <Pencil className='w-3.5 h-3.5' />
-                  </button>
-                )}
-                <ClickCatcher>
-                  {attachments.length > 0 && (
-                    <>
-                      <CardImageAttachments attachments={attachments} linked className={cn('mb-2', isHeader && 'mt-2')} />
-                      <CardFileAttachments attachments={attachments} className='mb-2' />
-                    </>
-                  )}
-                  {text && (
-                    <HyloHTML element='div' className='break-words max-w-full' html={text} />
-                  )}
-                </ClickCatcher>
-              </>
+                    {text && (
+                      <HyloHTML element='div' className='break-words max-w-full' html={text} />
+                    )}
+                  </ClickCatcher>
+                </div>
+                <div className='flex-shrink-0 self-end sm:self-start pt-0.5'>
+                  <EmojiRow
+                    className='!mr-0'
+                    pillClassName='m-0 mr-1 mb-0 py-0 px-2 h-[22px] rounded-full text-xs items-center'
+                    post={message}
+                    comment={message}
+                    currentUser={currentUser}
+                  />
+                </div>
+              </div>
               )}
         </div>
       </div>
@@ -204,7 +216,8 @@ Message.propTypes = {
     text: PropTypes.string,
     createdAt: PropTypes.string,
     editedAt: PropTypes.string,
-    creator: PropTypes.object
+    creator: PropTypes.object,
+    commentReactions: PropTypes.array
   }).isRequired,
   isHeader: PropTypes.bool
 }
