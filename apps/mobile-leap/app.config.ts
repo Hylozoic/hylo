@@ -138,7 +138,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     entitlements: {
       'com.apple.developer.associated-domains': [
         'applinks:www.hylo.com',
-        'applinks:staging.hylo.com'
+        'applinks:staging.hylo.com',
+        'applinks:hylo.com'
       ],
       ...(ONESIGNAL_APP_ID ? {
         'aps-environment': ONESIGNAL_APN_MODE,
