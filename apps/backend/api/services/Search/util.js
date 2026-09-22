@@ -213,7 +213,7 @@ function applyFundingRoundCapabilityFilter (q, groupId, capability) {
   `, [groupId])
 }
 
-export const filterAndSortUsers = curry(({ autocomplete, boundingBox, groupId, groupRoleId, order, search, sortBy, trackCompleted, fundingRoundCapability }, q) => {
+export const filterAndSortUsers = curry(({ autocomplete, boundingBox, groupId, groupRoleId, groupRoleIds, order, search, sortBy, trackCompleted, fundingRoundCapability }, q) => {
   if (autocomplete) {
     const query = chain(autocomplete.split(/\s*\s/)) // split on whitespace
       .map(word => word.replace(/[,;|:&()!\\]+/, ''))
@@ -229,12 +229,22 @@ export const filterAndSortUsers = curry(({ autocomplete, boundingBox, groupId, g
     q.orderByRaw('ts_rank_cd(to_tsvector(\'simple\', users.name), to_tsquery(\'simple\', ?)) DESC', [query])
   }
 
-  if (groupRoleId) {
+  // Collect all role IDs from single groupRoleId and/or groupRoleIds array, deduplicated
+  const roleFilterIds = []
+  if (groupRoleId) roleFilterIds.push(groupRoleId)
+  if (Array.isArray(groupRoleIds)) roleFilterIds.push(...groupRoleIds)
+
+  if (roleFilterIds.length > 0) {
+    const dedupedIds = [...new Set(roleFilterIds.map(id => String(id)))]
     q.leftJoin('group_memberships_group_roles', 'group_memberships_group_roles.user_id', '=', 'users.id')
     // A group_role_id belongs to exactly one group, so it scopes itself; adding
     // the queried group's id here broke spaces, whose role assignments live on
     // the parent group while the membership being filtered is the space's own
-    q.where('group_memberships_group_roles.group_role_id', '=', groupRoleId)
+    if (dedupedIds.length === 1) {
+      q.where('group_memberships_group_roles.group_role_id', '=', dedupedIds[0])
+    } else {
+      q.whereIn('group_memberships_group_roles.group_role_id', dedupedIds)
+    }
   }
 
   // Track space membership: completedAt lives on group_memberships.settings

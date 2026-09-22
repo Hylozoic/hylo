@@ -1005,6 +1005,8 @@ type Group {
     excludeGroupId: ID,
     # Return members with a specific groupRole
     groupRoleId: ID,
+    # Return members with any of these groupRoles (alternative to single groupRoleId)
+    groupRoleIds: [ID],
     # Track space only: true = members who completed the track, false = members who have not
     trackCompleted: Boolean,
     # Funding round space: 'submit' / 'notSubmit' / 'vote' / 'notVote'

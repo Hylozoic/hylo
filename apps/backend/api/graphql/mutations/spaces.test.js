@@ -4,6 +4,7 @@ import factories from '../../../test/setup/factories'
 import { assignAdministrator } from '../../../test/setup/roleHelpers'
 import { mockify, unspyify } from '../../../test/setup/helpers'
 import { archiveSpace, convertGroupToSpace, convertSpaceToChildGroup, createSpace, deleteSpace, joinSpace, updateSpace } from './spaces'
+import { createInvitation } from './invitation'
 
 describe('space mutations', () => {
   let administrator, member, parentGroup
@@ -707,6 +708,73 @@ describe('space mutations', () => {
       } catch (e) {
         expect(e.message).to.match(/required role/)
       }
+    })
+
+    it('rejects inviting a member to a role-gated space via people picker', async () => {
+      const gatedRole = await GroupRole.forge({
+        group_id: parentGroup.id,
+        name: 'Gated',
+        emoji: '🔑',
+        type: GroupRole.TYPE_CUSTOM
+      }).save()
+      const space = await createAndLeaveSpace({
+        accessibility: Group.Accessibility.OPEN,
+        requiredRoles: [gatedRole.id]
+      })
+
+      try {
+        await createInvitation(administrator.id, space.id, {
+          userIds: [member.id]
+        })
+        expect.fail('should throw')
+      } catch (e) {
+        expect(e.message).to.match(/does not have the required role/)
+      }
+    })
+
+    it('rejects joining a role-gated space via invite link when user lacks the role', async () => {
+      const gatedRole = await GroupRole.forge({
+        group_id: parentGroup.id,
+        name: 'Gated',
+        emoji: '🔑',
+        type: GroupRole.TYPE_CUSTOM
+      }).save()
+      const space = await createAndLeaveSpace({
+        accessibility: Group.Accessibility.OPEN,
+        requiredRoles: [gatedRole.id]
+      })
+      const accessCode = space.get('access_code')
+
+      try {
+        await joinSpace(member.id, space.id, accessCode)
+        expect.fail('should throw')
+      } catch (e) {
+        expect(e.message).to.match(/required role/)
+      }
+    })
+
+    it('lets a member with the required role join a role-gated space via invite link', async () => {
+      const gatedRole = await GroupRole.forge({
+        group_id: parentGroup.id,
+        name: 'Gated',
+        emoji: '🔑',
+        type: GroupRole.TYPE_CUSTOM
+      }).save()
+      const space = await createAndLeaveSpace({
+        accessibility: Group.Accessibility.OPEN,
+        requiredRoles: [gatedRole.id]
+      })
+
+      // Give member the required role
+      await MemberGroupRole.forge({
+        user_id: member.id,
+        group_id: parentGroup.id,
+        group_role_id: gatedRole.id,
+        active: true
+      }).save()
+
+      const membership = await joinSpace(member.id, space.id, space.get('access_code'))
+      expect(membership).to.be.ok
     })
   })
 

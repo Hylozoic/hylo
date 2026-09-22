@@ -3062,5 +3062,9 @@
   "No spaces found in this group": "Aucun espace trouvé dans ce groupe",
   "Offerings that include this space": "Offres qui incluent cet espace",
   "If there are no offerings that allow access to this space, members won't be able to join.": "S'il n'y a aucune offre permettant l'accès à cet espace, les membres ne pourront pas le rejoindre.",
+  "Has role": "Has role",
+  "No role": "No role",
+  "Only members with one of the required roles will actually be able to join the space.": "Only members with one of the required roles will actually be able to join the space.",
+  "Go to group roles": "Go to group roles",
   "Selected space": "Espace sélectionné"
 }
