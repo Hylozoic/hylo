@@ -152,7 +152,7 @@ describe('MemberProfile', () => {
     }
     render(<MemberProfile {...props} />, { wrapper: testWrapper() })
     await waitFor(() => {
-      expect(screen.getByText(`Rich Churcher\'s recent activity`)).toBeInTheDocument()
+      expect(screen.getByText("Rich Churcher's recent activity")).toBeInTheDocument()
     })
   })
 
@@ -162,7 +162,7 @@ describe('MemberProfile', () => {
     }
     render(<MemberProfile {...props} />, { wrapper: testWrapper() })
     await waitFor(() => {
-      expect(screen.getByText(`Rich Churcher\'s posts`)).toBeInTheDocument()
+      expect(screen.getByText("Rich Churcher's posts")).toBeInTheDocument()
     })
   })
 
@@ -172,7 +172,7 @@ describe('MemberProfile', () => {
     }
     render(<MemberProfile {...props} />, { wrapper: testWrapper() })
     await waitFor(() => {
-      expect(screen.getByText(`Rich Churcher\'s comments`)).toBeInTheDocument()
+      expect(screen.getByText("Rich Churcher's comments")).toBeInTheDocument()
     })
   })
 
