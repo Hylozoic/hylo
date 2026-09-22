@@ -921,9 +921,10 @@ module.exports = bookshelf.Model.extend(merge({
       memberships.models.forEach(async (membership) => {
         const zapierTriggers = await ZapierTrigger.forTypeAndGroups('member_updated', membership.get('group_id')).fetchAll()
         for (const trigger of zapierTriggers) {
+          const joinQuestions = await GroupJoinQuestionAnswer.latestAnswersFor(membership.get('group_id'), user.id)
           await fetch(trigger.get('target_url'), {
             method: 'post',
-            body: JSON.stringify(Object.assign({ id: user.id, profileUrl: Frontend.Route.profile(user, membership.relations.group) }, changes)),
+            body: JSON.stringify(Object.assign({ id: user.id, profileUrl: Frontend.Route.profile(user, membership.relations.group) }, changes, { joinQuestions })),
             headers: { 'Content-Type': 'application/json' }
           })
           // TODO: what to do with the response? check if succeeded or not?
